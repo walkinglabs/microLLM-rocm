@@ -59,6 +59,10 @@ float read_float_value(const void* data, DType dtype, std::int64_t index) {
             return static_cast<float>(static_cast<const Float16*>(data)[index]);
         case DType::BFloat16:
             return static_cast<float>(static_cast<const BFloat16*>(data)[index]);
+        case DType::Float8E4M3FNUZ:
+            return static_cast<float>(static_cast<const Float8E4M3FNUZ*>(data)[index]);
+        case DType::Float8E5M2FNUZ:
+            return static_cast<float>(static_cast<const Float8E5M2FNUZ*>(data)[index]);
         case DType::Int32:
         case DType::Int64:
             throw std::invalid_argument("floating-point access requires a floating dtype");
@@ -76,6 +80,12 @@ void write_float_value(void* data, DType dtype, std::int64_t index, float value)
             return;
         case DType::BFloat16:
             static_cast<BFloat16*>(data)[index] = BFloat16(value);
+            return;
+        case DType::Float8E4M3FNUZ:
+            static_cast<Float8E4M3FNUZ*>(data)[index] = Float8E4M3FNUZ(value);
+            return;
+        case DType::Float8E5M2FNUZ:
+            static_cast<Float8E5M2FNUZ*>(data)[index] = Float8E5M2FNUZ(value);
             return;
         case DType::Int32:
         case DType::Int64:

@@ -153,4 +153,23 @@ TEST(TensorDTypeTest, LowPrecisionViewsFillAndMaterializeLogicalOrder) {
     }
 }
 
+TEST(TensorDTypeTest, Mi300FnuzFloat8UsesOneByteAndExplicitCast) {
+    const std::vector<float> values{-240.0F, -1.5F, -0.125F, 0.0F,
+                                    0.125F, 1.5F, 240.0F};
+    for (const auto dtype : {DType::Float8E4M3FNUZ, DType::Float8E5M2FNUZ}) {
+        const auto tensor = Tensor::from_vector(values, {7}, dtype);
+        EXPECT_EQ(tensor.storage().num_bytes(), values.size());
+        EXPECT_EQ(tensor.dtype(), dtype);
+        const auto restored = tensor.to_vector();
+        ASSERT_EQ(restored.size(), values.size());
+        for (std::size_t index = 0; index < values.size(); ++index) {
+            const auto tolerance = std::max(0.02F, std::abs(values[index]) * 0.13F);
+            EXPECT_NEAR(restored[index], values[index], tolerance) << "index=" << index;
+        }
+        const auto fp32 = tensor.cast(DType::Float32);
+        EXPECT_EQ(fp32.dtype(), DType::Float32);
+        EXPECT_EQ(fp32.to_vector(), restored);
+    }
+}
+
 }  // namespace microllm

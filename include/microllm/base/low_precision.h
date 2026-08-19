@@ -2,6 +2,8 @@
 
 #include <bit>
 #include <cstdint>
+#include <cmath>
+#include <limits>
 
 namespace microllm {
 
@@ -93,7 +95,69 @@ struct BFloat16 {
     }
 };
 
+[[nodiscard]] inline float fp8_fnuz_bits_to_float(std::uint8_t bits,
+                                                   int exponent_bits,
+                                                   int mantissa_bits,
+                                                   int bias) noexcept {
+    (void)exponent_bits;
+    if (bits == 0x80U) return std::numeric_limits<float>::quiet_NaN();
+    const auto sign = (bits & 0x80U) != 0U ? -1.0F : 1.0F;
+    const auto magnitude = static_cast<std::uint8_t>(bits & 0x7fU);
+    const auto mantissa_mask = static_cast<std::uint8_t>((1U << mantissa_bits) - 1U);
+    const auto mantissa = static_cast<int>(magnitude & mantissa_mask);
+    const auto exponent = static_cast<int>(magnitude >> mantissa_bits);
+    if (exponent == 0) {
+        return sign * std::ldexp(static_cast<float>(mantissa),
+                                 1 - bias - mantissa_bits);
+    }
+    return sign * std::ldexp(
+        1.0F + static_cast<float>(mantissa) / static_cast<float>(1U << mantissa_bits),
+        exponent - bias);
+}
+
+[[nodiscard]] inline std::uint8_t float_to_fp8_fnuz_bits(float value,
+                                                         int exponent_bits,
+                                                         int mantissa_bits,
+                                                         int bias) noexcept {
+    if (std::isnan(value)) return 0x80U;
+    std::uint8_t best = 0;
+    auto best_error = std::numeric_limits<float>::infinity();
+    for (unsigned candidate = 0; candidate <= 0xffU; ++candidate) {
+        if (candidate == 0x80U) continue;
+        const auto decoded = fp8_fnuz_bits_to_float(
+            static_cast<std::uint8_t>(candidate), exponent_bits, mantissa_bits, bias);
+        const auto error = std::abs(decoded - value);
+        if (error < best_error || (error == best_error && (candidate & 1U) == 0U)) {
+            best_error = error;
+            best = static_cast<std::uint8_t>(candidate);
+        }
+    }
+    return best;
+}
+
+struct Float8E4M3FNUZ {
+    std::uint8_t bits = 0;
+    Float8E4M3FNUZ() = default;
+    explicit Float8E4M3FNUZ(float value)
+        : bits(float_to_fp8_fnuz_bits(value, 4, 3, 8)) {}
+    [[nodiscard]] explicit operator float() const noexcept {
+        return fp8_fnuz_bits_to_float(bits, 4, 3, 8);
+    }
+};
+
+struct Float8E5M2FNUZ {
+    std::uint8_t bits = 0;
+    Float8E5M2FNUZ() = default;
+    explicit Float8E5M2FNUZ(float value)
+        : bits(float_to_fp8_fnuz_bits(value, 5, 2, 16)) {}
+    [[nodiscard]] explicit operator float() const noexcept {
+        return fp8_fnuz_bits_to_float(bits, 5, 2, 16);
+    }
+};
+
 static_assert(sizeof(Float16) == 2);
 static_assert(sizeof(BFloat16) == 2);
+static_assert(sizeof(Float8E4M3FNUZ) == 1);
+static_assert(sizeof(Float8E5M2FNUZ) == 1);
 
 }  // namespace microllm
