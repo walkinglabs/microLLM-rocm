@@ -1,5 +1,10 @@
 # Architecture
 
+For a detailed explanation that starts from arrays and avoids assuming framework
+knowledge, read [DESIGN_FOR_BEGINNERS.zh-CN.md](DESIGN_FOR_BEGINNERS.zh-CN.md). Exact
+shape, error, tolerance, and PyTorch gates live in
+[OPERATOR_CONTRACTS.zh-CN.md](OPERATOR_CONTRACTS.zh-CN.md).
+
 ## Dependency direction
 
 ```text

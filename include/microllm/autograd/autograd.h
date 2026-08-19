@@ -1,10 +1,28 @@
 #pragma once
 
+#include <cstddef>
 #include <memory>
+#include <string>
+#include <vector>
 
 #include <microllm/core/tensor.h>
 
 namespace microllm::autograd {
+
+struct GraphNodeInfo {
+    std::size_t id = 0;
+    std::string operation;
+    Shape shape;
+    bool requires_grad = false;
+    std::vector<std::size_t> parents;
+};
+
+struct GraphSnapshot {
+    // Nodes are in topological order: every parent appears before its child.
+    std::vector<GraphNodeInfo> nodes;
+    std::size_t root_id = 0;
+    std::size_t edge_count = 0;
+};
 
 class Value {
 public:
@@ -49,6 +67,7 @@ private:
     friend Value contiguous(const Value&);
     friend Value causal_softmax(const Value&);
     friend Value repeat_interleave(const Value&, std::int64_t, std::int64_t);
+    friend GraphSnapshot inspect_graph(const Value&);
 };
 
 [[nodiscard]] Value add(const Value& left, const Value& right);
@@ -72,5 +91,6 @@ private:
 [[nodiscard]] Value causal_softmax(const Value& scores);
 [[nodiscard]] Value repeat_interleave(const Value& input, std::int64_t dim,
                                       std::int64_t repeats);
+[[nodiscard]] GraphSnapshot inspect_graph(const Value& root);
 
 }  // namespace microllm::autograd

@@ -111,10 +111,22 @@ TEST(HipBackwardOpsTest, DeviceNativePrimitivesMatchCpuReference) {
     expect_near(silu_backward(input.to(gpu), gradient.to(gpu)).to_vector(),
                 silu_backward(input, gradient).to_vector());
 
+    const auto indices = Tensor::from_int32_vector({2, 0, 2}, {3});
+    const auto embedding_gradient =
+        Tensor::from_vector({1, 2, 3, 4, 5, 6}, {3, 2});
+    expect_near(embedding_backward(embedding_gradient.to(gpu), indices.to(gpu), 4).to_vector(),
+                embedding_backward(embedding_gradient, indices, 4).to_vector());
+
     const auto cpu_rms = rms_norm_backward(input, weight, gradient);
     const auto hip_rms = rms_norm_backward(input.to(gpu), weight.to(gpu), gradient.to(gpu));
     expect_near(hip_rms.first.to_vector(), cpu_rms.first.to_vector(), 2.0e-4F);
     expect_near(hip_rms.second.to_vector(), cpu_rms.second.to_vector(), 2.0e-4F);
+
+    const auto up = Tensor::from_vector({1, 2, 3, 4, 5, 6}, {2, 3});
+    const auto cpu_swiglu = swiglu_backward(input, up, gradient);
+    const auto hip_swiglu = swiglu_backward(input.to(gpu), up.to(gpu), gradient.to(gpu));
+    expect_near(hip_swiglu.first.to_vector(), cpu_swiglu.first.to_vector());
+    expect_near(hip_swiglu.second.to_vector(), cpu_swiglu.second.to_vector());
 
     const auto probabilities = softmax(input);
     expect_near(softmax_backward(probabilities.to(gpu), gradient.to(gpu)).to_vector(),
@@ -125,6 +137,27 @@ TEST(HipBackwardOpsTest, DeviceNativePrimitivesMatchCpuReference) {
     const auto seed = Tensor::from_vector({0.75F}, {});
     expect_near(cross_entropy_backward(logits.to(gpu), targets.to(gpu), seed.to(gpu)).to_vector(),
                 cross_entropy_backward(logits, targets, seed).to_vector());
+
+    const auto rope_gradient =
+        Tensor::from_vector({1, 2, 3, 4, -1, -2, -3, -4}, {1, 2, 1, 4});
+    expect_near(rope_backward(rope_gradient.to(gpu)).to_vector(),
+                rope_backward(rope_gradient).to_vector(), 2.0e-5F);
+
+    const auto scores = Tensor::from_vector({1, 2, 3, 4, 5, 6, 7, 8, 9}, {1, 3, 3});
+    const auto score_gradient =
+        Tensor::from_vector({1, 2, 3, -1, 0, 1, 2, -2, 0.5F}, {1, 3, 3});
+    const auto cpu_causal = causal_softmax(scores);
+    const auto hip_causal = causal_softmax(scores.to(gpu));
+    expect_near(hip_causal.to_vector(), cpu_causal.to_vector());
+    expect_near(causal_softmax_backward(hip_causal, score_gradient.to(gpu)).to_vector(),
+                causal_softmax_backward(cpu_causal, score_gradient).to_vector());
+
+    const auto repeat_input = Tensor::from_vector({1, 2, 3, 4}, {2, 2});
+    const auto repeat_gradient = Tensor::from_vector({1, 2, 3, 4, 5, 6, 7, 8}, {4, 2});
+    expect_near(repeat_interleave(repeat_input.to(gpu), 0, 2).to_vector(),
+                repeat_interleave(repeat_input, 0, 2).to_vector());
+    expect_near(repeat_interleave_backward(repeat_gradient.to(gpu), {2, 2}, 0, 2).to_vector(),
+                repeat_interleave_backward(repeat_gradient, {2, 2}, 0, 2).to_vector());
 }
 
 TEST(HipOpsTest, ExplicitStreamContextOrdersKernelAndEvent) {

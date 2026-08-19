@@ -6,11 +6,11 @@ Branch: `feat/bootstrap-engine-m0-n0`
 
 | Gate | Result |
 |---|---:|
-| normal CPU evidence | 90/90 |
-| CPU ASan/UBSan (dynamic bindings excluded) | 88/88 |
-| MI300X/gfx942 HIP label | 22/22 |
+| normal CPU evidence | 99/99 |
+| CPU ASan/UBSan (dynamic bindings excluded) | 97/97 |
+| MI300X/gfx942 HIP label | 23/23 |
 | two-rank RCCL label | 7/7 |
-| PyTorch 2.13 CPU Custom Op | 1/1 |
+| PyTorch 2.13 CPU Custom Op and correctness oracle | 2/2 |
 | committed JSON/JSONL parser | all records valid |
 | N0–N8 and PA0–PA2 artifact presence | pass |
 
@@ -27,6 +27,11 @@ preload ordering. Those bindings pass separate normal CPU and HIP integration te
 - tiny SFT response-only loss: 1.88494 to 0.0106737;
 - full tiny GQA Transformer forward/backward graph: CPU/HIP loss and every parameter
   gradient agree, with zero host/device transfers during graph execution;
+- PyTorch CPU oracle: every public math operator, backward family, valid output shape,
+  24 invalid shape/dtype contracts, SGD, two-step AdamW moments, and the full tiny GQA
+  Transformer logits/loss/all-parameter gradients agree;
+- coverage audit: all 30 Tensor APIs, 29 graph/Value APIs, and 25 discovered test files
+  have explicit gates and CMake/CTest registration;
 - Model-S measured generation: CPU 9.33, readable HIP 55.86, Auto hipBLASLt 187.10
   tokens/s for the recorded one-token experiment;
 - two-rank parameters identical; single/two-rank maximum difference 1.49012e-08;

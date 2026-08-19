@@ -53,6 +53,11 @@ Focused evidence includes:
 - non-contiguous reshape/transpose backward;
 - repeated backward without stale intermediate gradients.
 
+Graph construction has its own `tests/graph/` directory. It inspects operation names,
+parent edges, topological order, shared branches, root shapes, CPU/HIP graph structure,
+and every-parameter gradient alignment. PyTorch rebuilds the same operator and tiny
+Transformer graphs in `python/tests/test_operator_parity.py`.
+
 ## 审查 Agent 改动
 
 Ask these questions before accepting generated backward code:

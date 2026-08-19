@@ -4,19 +4,19 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| CPU configuration | smoke-tested | clean CPU configure/build/CTest | CI matrix |
+| CPU configuration | smoke-tested | clean CPU configure/build; 99/99 CPU CTest | CI matrix |
 | Device/DType | smoke-tested | unit and invalid-index tests | HIP runtime use |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
 | Tensor metadata/views | smoke-tested | hand values, randomized shapes, bounds | more dtypes |
 | HIP view materialization | smoke-tested | gfx942 transposed logical-order copy | rank>8/more dtypes |
 | N0 PPM | smoke-tested | executable output/checksum | documented golden value |
 | HIP Storage/runtime | smoke-tested | gfx942 allocation, transfer, Stream/Event tests | CI on more GPUs |
-| CPU reference operators | smoke-tested | 9 hand-value/stability/shape tests | gradient references |
-| HIP readable operators | smoke-tested | gfx942 conformance for 11 kernels | more architectures/optimized paths |
+| CPU reference operators | smoke-tested | hand values plus PyTorch forward/backward oracle for every public math op | more dtypes |
+| HIP readable operators | smoke-tested | 23/23 gfx942 suite; all forward/backward primitives transitively checked against PyTorch | more architectures/optimized paths |
 | Operator context | smoke-tested | explicit Stream ordering and mismatch tests | low-level C descriptor |
-| CPU Transformer Autograd | smoke-tested | focused tests and finite differences | more dtypes |
+| CPU Transformer Autograd | smoke-tested | dedicated graph construction tests, finite differences, PyTorch full-graph gradients | more dtypes |
 | HIP Autograd | smoke-tested | CPU/HIP full Transformer gradient comparison; zero host transfers during graph execution | optimized reductions/more dtypes |
-| SGD/AdamW | smoke-tested | CPU/HIP update and state-restored next step | device-native HIP update/mixed precision |
+| SGD/AdamW | smoke-tested | PyTorch SGD and two-step AdamW parameter/moment parity plus restored next step | device-native HIP update/mixed precision |
 | Checkpoint | smoke-tested | atomic complete-state load, corruption, 3-step resume | mixed precision |
 | Model-S/Model-M config | smoke-tested | executable exact parameter/byte tests | model layers/training |
 | Model-S CPU forward | smoke-tested | 15,586,176 parameters and 8192 finite logits | training/HIP |
@@ -24,7 +24,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Model-S HIP forward | smoke-tested | MI300X/gfx942 8192-logit CPU comparison | multi-token/preallocated cache |
 | Tiny HIP training | smoke-tested | 5-step finite loss/grad trajectory on MI300X | device-native AdamW |
 | Model-M HIP train step | smoke-tested | 31.3M params, finite backward/update, 518.8MB engine peak | multi-step/real corpus |
-| Decoder Transformer structure | smoke-tested | tiny GQA/MHA causal forward and all-parameter backward | overfit/full recipe |
+| Decoder Transformer structure | smoke-tested | tiny GQA graph topology, PyTorch logits/loss/all-gradient parity, CPU/HIP parity | overfit/full recipe |
 | Byte tokenizer/token dataset | smoke-tested | all-byte round-trip and cursor equivalence | real-corpus run |
 | BPE/TinyStories source | smoke-tested | BPE round-trip + immutable licensed range + Model-S smoke | full corpus/reference train |
 | C++ training CLI | smoke-tested | CPU save/resume fixture and Model-S HIP real-text steps | validation/report CLI |
@@ -35,6 +35,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Token generation | smoke-tested | deterministic sampling and cache-backed length/bounds | trained text report |
 | Stable model failure | smoke-tested | low-loss cycle breaks beyond training context | rebuttal experiments |
 | PyTorch Custom Ops | smoke-tested on CPU | Torch 2.13 add/multiply via dispatcher | build/run with PyTorch ROCm |
+| PyTorch correctness oracle | smoke-tested on CPU | 30 Tensor APIs, 29 graph APIs, 25 test files audited; forward/backward/shape/model/optimizer parity | direct PyTorch ROCm run |
 | PyTorch ROCm environment | draft | matching 2.11/7.13 wheel Bus error on import | working Torch ROCm environment |
 | C ABI v1 | smoke-tested | pure C CPU/HIP create/copy/ops/error client | zero-copy external views |
 | Python ctypes API | smoke-tested | CPU/HIP Tensor/ops/error unittest | packaging/broader ops |

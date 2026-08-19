@@ -6,6 +6,7 @@
 #include <limits>
 #include <stdexcept>
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -17,6 +18,7 @@ namespace microllm::autograd {
 struct Value::Node {
     Tensor data;
     Tensor gradient;
+    std::string operation = "leaf";
     bool requires_grad = false;
     std::vector<std::shared_ptr<Node>> parents;
     std::function<void(const Tensor&)> backward;
@@ -46,10 +48,12 @@ void accumulate(const std::shared_ptr<Value::Node>& node, const Tensor& gradient
     node->gradient = node->gradient.defined() ? ops::add(node->gradient, prepared) : prepared;
 }
 
-Value operation(Tensor data, std::vector<std::shared_ptr<Value::Node>> parents,
+Value operation(const char* operation_name, Tensor data,
+                std::vector<std::shared_ptr<Value::Node>> parents,
                 std::function<void(const Tensor&)> backward) {
     auto node = std::make_shared<Value::Node>();
     node->data = std::move(data);
+    node->operation = operation_name;
     node->requires_grad = std::any_of(parents.begin(), parents.end(),
                                       [](const auto& parent) { return parent->requires_grad; });
     if (node->requires_grad) {
@@ -146,7 +150,7 @@ Value add(const Value& left, const Value& right) {
     require_value(right, "right");
     auto left_node = left.node_;
     auto right_node = right.node_;
-    return operation(ops::add(left.data(), right.data()), {left_node, right_node},
+    return operation("add", ops::add(left.data(), right.data()), {left_node, right_node},
                      [left_node, right_node](const Tensor& gradient) {
                          accumulate(left_node, gradient);
                          accumulate(right_node, gradient);
@@ -158,7 +162,8 @@ Value multiply(const Value& left, const Value& right) {
     require_value(right, "right");
     auto left_node = left.node_;
     auto right_node = right.node_;
-    return operation(ops::multiply(left.data(), right.data()), {left_node, right_node},
+    return operation("multiply", ops::multiply(left.data(), right.data()),
+                     {left_node, right_node},
                      [left_node, right_node](const Tensor& gradient) {
                          accumulate(left_node, ops::multiply(gradient, right_node->data));
                          accumulate(right_node, ops::multiply(gradient, left_node->data));
@@ -168,7 +173,7 @@ Value multiply(const Value& left, const Value& right) {
 Value scale(const Value& input, float factor) {
     require_value(input, "input");
     auto input_node = input.node_;
-    return operation(ops::scale(input.data(), factor), {input_node},
+    return operation("scale", ops::scale(input.data(), factor), {input_node},
                      [input_node, factor](const Tensor& gradient) {
                          accumulate(input_node, ops::scale(gradient, factor));
                      });
@@ -184,7 +189,7 @@ Value matmul(const Value& left, const Value& right) {
     const auto left_forward = left.data().is_contiguous() ? left.data() : left.data().contiguous();
     const auto right_forward =
         right.data().is_contiguous() ? right.data() : right.data().contiguous();
-    return operation(ops::matmul_with_implementation(
+    return operation("matmul", ops::matmul_with_implementation(
                          left_forward, right_forward, ops::MatmulImplementation::Auto),
                      {left_node, right_node},
                      [left_node, right_node, left_last, right_last](const Tensor& gradient) {
@@ -204,7 +209,7 @@ Value matmul(const Value& left, const Value& right) {
 Value sum(const Value& input) {
     require_value(input, "input");
     auto input_node = input.node_;
-    return operation(ops::reduce_sum(input.data()), {input_node},
+    return operation("sum", ops::reduce_sum(input.data()), {input_node},
                      [input_node](const Tensor& gradient) {
                          accumulate(input_node,
                                     ops::broadcast_scalar(gradient, input_node->data.shape()));
@@ -221,7 +226,7 @@ Value reshape(const Value& input, Shape shape) {
     require_value(input, "input");
     auto input_node = input.node_;
     const auto original_shape = input.data().shape();
-    return operation(input.data().reshape(std::move(shape)), {input_node},
+    return operation("reshape", input.data().reshape(std::move(shape)), {input_node},
                      [input_node, original_shape](const Tensor& gradient) {
                          accumulate(input_node, gradient.contiguous().reshape(original_shape));
                      });
@@ -230,7 +235,7 @@ Value reshape(const Value& input, Shape shape) {
 Value transpose(const Value& input, std::int64_t dim0, std::int64_t dim1) {
     require_value(input, "input");
     auto input_node = input.node_;
-    return operation(input.data().transpose(dim0, dim1), {input_node},
+    return operation("transpose", input.data().transpose(dim0, dim1), {input_node},
                      [input_node, dim0, dim1](const Tensor& gradient) {
                          accumulate(input_node, gradient.transpose(dim0, dim1));
                      });
@@ -243,7 +248,7 @@ Value embedding(const Value& weight, const Tensor& indices) {
     }
     auto weight_node = weight.node_;
     const auto vocabulary = weight.data().shape()[0];
-    return operation(ops::embedding(weight.data(), indices), {weight_node},
+    return operation("embedding", ops::embedding(weight.data(), indices), {weight_node},
                      [weight_node, indices, vocabulary](const Tensor& gradient) {
                          accumulate(weight_node,
                                     ops::embedding_backward(gradient, indices, vocabulary));
@@ -254,7 +259,7 @@ Value softmax(const Value& input, std::int64_t dim) {
     require_value(input, "input");
     auto input_node = input.node_;
     const auto output = ops::softmax(input.data(), dim);
-    return operation(output, {input_node},
+    return operation("softmax", output, {input_node},
                      [input_node, output](const Tensor& gradient) {
                          accumulate(input_node, ops::softmax_backward(output, gradient));
                      });
@@ -265,7 +270,7 @@ Value rms_norm(const Value& input, const Value& weight, float epsilon) {
     require_value(weight, "weight");
     auto input_node = input.node_;
     auto weight_node = weight.node_;
-    return operation(ops::rms_norm(input.data(), weight.data(), epsilon),
+    return operation("rms_norm", ops::rms_norm(input.data(), weight.data(), epsilon),
                      {input_node, weight_node},
                      [input_node, weight_node, epsilon](const Tensor& gradient) {
                          auto gradients = ops::rms_norm_backward(
@@ -278,7 +283,7 @@ Value rms_norm(const Value& input, const Value& weight, float epsilon) {
 Value silu(const Value& input) {
     require_value(input, "input");
     auto input_node = input.node_;
-    return operation(ops::silu(input.data()), {input_node},
+    return operation("silu", ops::silu(input.data()), {input_node},
                      [input_node](const Tensor& gradient) {
                          accumulate(input_node, ops::silu_backward(input_node->data, gradient));
                      });
@@ -289,7 +294,7 @@ Value swiglu(const Value& gate, const Value& up) {
     require_value(up, "up");
     auto gate_node = gate.node_;
     auto up_node = up.node_;
-    return operation(ops::swiglu(gate.data(), up.data()), {gate_node, up_node},
+    return operation("swiglu", ops::swiglu(gate.data(), up.data()), {gate_node, up_node},
                      [gate_node, up_node](const Tensor& gradient) {
                          auto gradients =
                              ops::swiglu_backward(gate_node->data, up_node->data, gradient);
@@ -304,7 +309,8 @@ Value rope(const Value& input, std::int64_t sequence_dim, std::int64_t position_
     auto input_node = input.node_;
     const auto forward_input =
         input.data().is_contiguous() ? input.data() : input.data().contiguous();
-    return operation(ops::rope(forward_input, sequence_dim, position_offset, base), {input_node},
+    return operation("rope", ops::rope(forward_input, sequence_dim, position_offset, base),
+                     {input_node},
                      [input_node, sequence_dim, position_offset,
                       base](const Tensor& gradient) {
                          accumulate(input_node, ops::rope_backward(
@@ -318,7 +324,8 @@ Value cross_entropy(const Value& logits, const Tensor& targets) {
         throw std::invalid_argument("autograd cross_entropy targets must match logits device");
     }
     auto logits_node = logits.node_;
-    return operation(ops::cross_entropy(logits.data(), targets), {logits_node},
+    return operation("cross_entropy", ops::cross_entropy(logits.data(), targets),
+                     {logits_node},
                      [logits_node, targets](const Tensor& gradient) {
                          accumulate(logits_node, ops::cross_entropy_backward(
                                                      logits_node->data, targets, gradient));
@@ -328,7 +335,7 @@ Value cross_entropy(const Value& logits, const Tensor& targets) {
 Value contiguous(const Value& input) {
     require_value(input, "input");
     auto input_node = input.node_;
-    return operation(input.data().contiguous(), {input_node},
+    return operation("contiguous", input.data().contiguous(), {input_node},
                      [input_node](const Tensor& gradient) { accumulate(input_node, gradient); });
 }
 
@@ -336,7 +343,7 @@ Value causal_softmax(const Value& scores) {
     require_value(scores, "scores");
     auto score_node = scores.node_;
     const auto output = ops::causal_softmax(scores.data());
-    return operation(output, {score_node},
+    return operation("causal_softmax", output, {score_node},
                      [score_node, output](const Tensor& gradient) {
                          accumulate(score_node,
                                     ops::causal_softmax_backward(output, gradient));
@@ -358,11 +365,47 @@ Value repeat_interleave(const Value& input, std::int64_t dim, std::int64_t repea
     }
     output_shape[static_cast<std::size_t>(dim)] *= repeats;
     auto input_node = input.node_;
-    return operation(ops::repeat_interleave(input.data(), dim, repeats), {input_node},
+    return operation("repeat_interleave", ops::repeat_interleave(input.data(), dim, repeats),
+                     {input_node},
                      [input_node, input_shape, dim, repeats](const Tensor& gradient) {
                          accumulate(input_node, ops::repeat_interleave_backward(
                                                     gradient, input_shape, dim, repeats));
                      });
+}
+
+GraphSnapshot inspect_graph(const Value& root) {
+    if (!root.node_) throw std::invalid_argument("cannot inspect an undefined graph root");
+    std::vector<std::shared_ptr<Value::Node>> topological;
+    std::unordered_set<Value::Node*> visited;
+    std::function<void(const std::shared_ptr<Value::Node>&)> visit = [&](const auto& current) {
+        if (!visited.insert(current.get()).second) return;
+        for (const auto& parent : current->parents) visit(parent);
+        topological.push_back(current);
+    };
+    visit(root.node_);
+
+    std::unordered_map<Value::Node*, std::size_t> ids;
+    for (std::size_t index = 0; index < topological.size(); ++index) {
+        ids.emplace(topological[index].get(), index);
+    }
+    GraphSnapshot snapshot;
+    snapshot.nodes.reserve(topological.size());
+    for (std::size_t index = 0; index < topological.size(); ++index) {
+        const auto& node = topological[index];
+        GraphNodeInfo info;
+        info.id = index;
+        info.operation = node->operation;
+        info.shape = node->data.shape();
+        info.requires_grad = node->requires_grad;
+        info.parents.reserve(node->parents.size());
+        for (const auto& parent : node->parents) {
+            info.parents.push_back(ids.at(parent.get()));
+            ++snapshot.edge_count;
+        }
+        snapshot.nodes.push_back(std::move(info));
+    }
+    snapshot.root_id = ids.at(root.node_.get());
+    return snapshot;
 }
 
 }  // namespace microllm::autograd

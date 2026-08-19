@@ -7,10 +7,10 @@ engine for teaching, measuring, and improving language-model systems on AMD GPUs
 开始，再使用[算子契约与 PyTorch 对照表](docs/OPERATOR_CONTRACTS.zh-CN.md)检查每个
 算子的输入 shape、输出 shape、误差和失败条件。
 
-The project is **pre-alpha**. The CPU float32 Storage/Tensor path and its N0 example
-are implemented. HIP operators, autograd, Transformer training, Python/PyTorch
-bindings, profiling, and distributed execution are tracked as explicit milestones;
-they are not presented as completed features.
+The project is **pre-alpha**. CPU/HIP FP32 operators, the repository-owned autograd
+graph, tiny Transformer training, optional bindings, profiling, and two-rank RCCL have
+smoke evidence. Reference-length training, PyTorch ROCm integration, Radeon validation,
+and four-rank execution remain outside release claims.
 
 ## Product shape
 
@@ -42,10 +42,11 @@ Every performance-sensitive operator will keep three paths where useful:
 | N0 PPM example | smoke-tested | runnable example with checksum |
 | HIP runtime and Tensor transfer | smoke-tested | MI300X runtime tests |
 | CPU reference operators | smoke-tested | hand values and sanitizer tests |
-| HIP readable operators | smoke-tested | 11 kernels, gfx942 conformance |
+| HIP readable operators | smoke-tested | forward/backward primitive and graph conformance on gfx942 |
 | HIP non-contiguous materialization | smoke-tested | generic rank≤8 stride-copy kernel |
 | CPU Transformer autograd | smoke-tested | hand gradients and finite differences |
 | HIP Transformer autograd | smoke-tested | device-native forward/backward graph; zero host transfers in graph test |
+| PyTorch operator/graph oracle | smoke-tested | all public math ops, shape rejection, SGD/AdamW, full tiny Transformer gradients |
 | SGD/AdamW | smoke-tested | hand first step and restored-state equivalence |
 | Versioned checkpoint | smoke-tested | complete state, corruption, resume trajectory |
 | Decoder Transformer | smoke-tested | tiny MHA/GQA forward, causal test, all-parameter backward |

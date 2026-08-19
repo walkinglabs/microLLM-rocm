@@ -14,6 +14,13 @@ if(Torch_FOUND)
     if(BUILD_TESTING)
         find_package(Python3 COMPONENTS Interpreter QUIET)
         if(Python3_Interpreter_FOUND)
+            add_executable(microllm_operator_oracle
+                ${PROJECT_SOURCE_DIR}/tests/torch/operator_oracle.cpp
+            )
+            target_link_libraries(microllm_operator_oracle PRIVATE
+                microllm::model microllm::training
+            )
+
             add_test(
                 NAME TorchOps.Basic
                 COMMAND ${CMAKE_COMMAND} -E env
@@ -22,6 +29,16 @@ if(Torch_FOUND)
                     ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/python/tests/test_torch_ops.py
             )
             set_tests_properties(TorchOps.Basic PROPERTIES LABELS "torch;integration")
+
+            add_test(
+                NAME TorchOps.OperatorParity
+                COMMAND ${CMAKE_COMMAND} -E env
+                    "MICROLLM_OPERATOR_ORACLE=$<TARGET_FILE:microllm_operator_oracle>"
+                    ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/python/tests/test_operator_parity.py
+            )
+            set_tests_properties(TorchOps.OperatorParity PROPERTIES
+                LABELS "torch;parity;graph;shape"
+            )
         endif()
     endif()
     message(STATUS "PyTorch found: Custom Op target enabled")

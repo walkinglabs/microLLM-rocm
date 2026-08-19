@@ -7,6 +7,8 @@ add_executable(microllm_tests
     runtime/runtime_test.cpp
     ops/ops_test.cpp
     autograd/autograd_test.cpp
+    graph/graph_construction_test.cpp
+    graph/graph_gradient_alignment_test.cpp
     training/optimizer_test.cpp
     training/checkpoint_test.cpp
     model/config_test.cpp
@@ -22,6 +24,15 @@ target_link_libraries(microllm_tests PRIVATE
     microllm::inference
 )
 
+find_package(Python3 COMPONENTS Interpreter QUIET)
+if(Python3_Interpreter_FOUND)
+    add_test(
+        NAME Coverage.OperatorAndTestFiles
+        COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/audit_test_coverage.py
+    )
+    set_tests_properties(Coverage.OperatorAndTestFiles PROPERTIES LABELS "cpu;coverage;schema")
+endif()
+
 include(GoogleTest)
 gtest_discover_tests(microllm_tests
     PROPERTIES LABELS "cpu\;unit"
@@ -31,6 +42,7 @@ gtest_discover_tests(microllm_tests
 if(MICROLLM_HAS_HIP)
     add_executable(microllm_hip_tests
         ops/hip_ops_test.cpp
+        graph/hip_graph_alignment_test.cpp
     )
     target_link_libraries(microllm_hip_tests PRIVATE
         GTest::gtest_main microllm::ops microllm::model microllm::training
