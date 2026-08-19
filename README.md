@@ -52,6 +52,7 @@ Every performance-sensitive operator will keep three paths where useful:
 | Model-S CPU training | smoke-tested | 3-step loss 11.2473 → 1.98712 |
 | Model-S HIP forward | smoke-tested | MI300X CPU/HIP max logit error 4.05312e-06 |
 | Tiny HIP training | smoke-tested | MI300X 5-step loss 2.21512 → 1.11681 |
+| Model-M HIP train step | smoke-tested | 31.3M params; 518,798,856 peak engine bytes |
 | C ABI v1 | smoke-tested | pure C CPU/HIP tensor and operator client |
 | Python ctypes API | smoke-tested | dependency-free CPU/HIP integration tests |
 | PyTorch Custom Ops | implemented, unverified | optional build; local Torch unavailable |

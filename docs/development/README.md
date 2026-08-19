@@ -84,3 +84,5 @@ the next gate. Records are append-only except for factual corrections.
   two-Stream overlap measurements and multi-GPU device-selection bug.
 - [2026-08-19-course-and-evidence.md](2026-08-19-course-and-evidence.md): N0–N8,
   PA0–PA2, unified artifact parser, and CPU CI.
+- [2026-08-19-model-m-hip-train-step.md](2026-08-19-model-m-hip-train-step.md):
+  actual 128MB-tier forward/backward/AdamW step on MI300X.
