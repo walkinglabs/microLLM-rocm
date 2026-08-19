@@ -30,5 +30,6 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Stable model failure | smoke-tested | low-loss cycle breaks beyond training context | rebuttal experiments |
 | Python/PyTorch bridge | draft | ABI design | zero-copy implementation |
 | C ABI v1 | smoke-tested | pure C CPU/HIP create/copy/ops/error client | zero-copy external views |
+| Python ctypes API | smoke-tested | CPU/HIP Tensor/ops/error unittest | packaging/broader ops |
 | Profiling/autotune | draft | registry design | traces and selection cache |
 | RCCL | draft | roadmap | 2/4 GPU equivalence |

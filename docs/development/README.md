@@ -56,3 +56,5 @@ the next gate. Records are append-only except for factual corrections.
   GPU-resident Transformer training trajectory and its host-reference boundaries.
 - [2026-08-19-m4-c-api.md](2026-08-19-m4-c-api.md): stable versioned C ABI and
   pure C CPU/HIP integration client.
+- [2026-08-19-m4-python-api.md](2026-08-19-m4-python-api.md): dependency-free ctypes
+  API consuming the same C ABI.

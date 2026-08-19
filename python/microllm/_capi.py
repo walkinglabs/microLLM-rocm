@@ -1,0 +1,279 @@
+from __future__ import annotations
+
+import ctypes
+import ctypes.util
+import enum
+import os
+from pathlib import Path
+from typing import Iterable, Sequence
+
+
+class MicroLLMError(RuntimeError):
+    pass
+
+
+class DType(enum.IntEnum):
+    FLOAT32 = 0
+    INT32 = 1
+
+
+class Device(enum.IntEnum):
+    CPU = 0
+    HIP = 1
+
+
+class _TensorHandle(ctypes.Structure):
+    pass
+
+
+_TensorPointer = ctypes.POINTER(_TensorHandle)
+
+
+def _library_path() -> str:
+    configured = os.environ.get("MICROLLM_LIBRARY")
+    if configured:
+        return configured
+    discovered = ctypes.util.find_library("microllm")
+    if discovered:
+        return discovered
+    candidates = [
+        Path(__file__).resolve().parent / "libmicrollm.so",
+        Path(__file__).resolve().parent.parent / "lib" / "libmicrollm.so",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return str(candidate)
+    raise MicroLLMError(
+        "libmicrollm was not found; set MICROLLM_LIBRARY to the built shared library"
+    )
+
+
+_lib = ctypes.CDLL(_library_path())
+_lib.ml_capi_version.restype = ctypes.c_uint32
+_lib.ml_engine_version.restype = ctypes.c_char_p
+_lib.ml_last_error.restype = ctypes.c_char_p
+_lib.ml_hip_device_count.argtypes = [ctypes.POINTER(ctypes.c_int)]
+_lib.ml_hip_device_count.restype = ctypes.c_int
+_lib.ml_tensor_from_f32.argtypes = [
+    ctypes.POINTER(ctypes.c_float),
+    ctypes.POINTER(ctypes.c_int64),
+    ctypes.c_size_t,
+    ctypes.c_int,
+    ctypes.c_int,
+    ctypes.POINTER(_TensorPointer),
+]
+_lib.ml_tensor_from_f32.restype = ctypes.c_int
+_lib.ml_tensor_from_i32.argtypes = [
+    ctypes.POINTER(ctypes.c_int32),
+    ctypes.POINTER(ctypes.c_int64),
+    ctypes.c_size_t,
+    ctypes.c_int,
+    ctypes.c_int,
+    ctypes.POINTER(_TensorPointer),
+]
+_lib.ml_tensor_from_i32.restype = ctypes.c_int
+_lib.ml_tensor_destroy.argtypes = [_TensorPointer]
+_lib.ml_tensor_rank.argtypes = [_TensorPointer, ctypes.POINTER(ctypes.c_size_t)]
+_lib.ml_tensor_rank.restype = ctypes.c_int
+_lib.ml_tensor_shape.argtypes = [_TensorPointer, ctypes.c_size_t, ctypes.POINTER(ctypes.c_int64)]
+_lib.ml_tensor_shape.restype = ctypes.c_int
+_lib.ml_tensor_numel.argtypes = [_TensorPointer, ctypes.POINTER(ctypes.c_int64)]
+_lib.ml_tensor_numel.restype = ctypes.c_int
+_lib.ml_tensor_dtype.argtypes = [_TensorPointer, ctypes.POINTER(ctypes.c_int)]
+_lib.ml_tensor_dtype.restype = ctypes.c_int
+_lib.ml_tensor_device.argtypes = [
+    _TensorPointer,
+    ctypes.POINTER(ctypes.c_int),
+    ctypes.POINTER(ctypes.c_int),
+]
+_lib.ml_tensor_device.restype = ctypes.c_int
+_lib.ml_tensor_copy_f32.argtypes = [_TensorPointer, ctypes.POINTER(ctypes.c_float), ctypes.c_size_t]
+_lib.ml_tensor_copy_f32.restype = ctypes.c_int
+_lib.ml_tensor_copy_i32.argtypes = [_TensorPointer, ctypes.POINTER(ctypes.c_int32), ctypes.c_size_t]
+_lib.ml_tensor_copy_i32.restype = ctypes.c_int
+_lib.ml_tensor_to.argtypes = [
+    _TensorPointer,
+    ctypes.c_int,
+    ctypes.c_int,
+    ctypes.POINTER(_TensorPointer),
+]
+_lib.ml_tensor_to.restype = ctypes.c_int
+for _name in ("ml_add", "ml_multiply", "ml_matmul"):
+    _function = getattr(_lib, _name)
+    _function.argtypes = [_TensorPointer, _TensorPointer, ctypes.POINTER(_TensorPointer)]
+    _function.restype = ctypes.c_int
+_lib.ml_softmax.argtypes = [_TensorPointer, ctypes.POINTER(_TensorPointer)]
+_lib.ml_softmax.restype = ctypes.c_int
+
+
+def _check(status: int) -> None:
+    if status == 0:
+        return
+    message = _lib.ml_last_error()
+    decoded = message.decode("utf-8", errors="replace") if message else "unknown engine error"
+    raise MicroLLMError(f"microLLM status {status}: {decoded}")
+
+
+def _parse_device(device: str | Device | tuple[Device, int]) -> tuple[Device, int]:
+    if isinstance(device, tuple):
+        return Device(device[0]), int(device[1])
+    if isinstance(device, Device):
+        return device, 0
+    kind, separator, index = device.partition(":")
+    parsed = Device.CPU if kind.lower() == "cpu" else Device.HIP if kind.lower() == "hip" else None
+    if parsed is None:
+        raise ValueError(f"unknown device {device!r}")
+    return parsed, int(index) if separator else 0
+
+
+class Tensor:
+    def __init__(self, handle: _TensorPointer):
+        if not handle:
+            raise MicroLLMError("cannot construct Tensor from a null handle")
+        self._handle = handle
+
+    @classmethod
+    def from_f32(
+        cls,
+        values: Iterable[float],
+        shape: Sequence[int],
+        device: str | Device | tuple[Device, int] = "cpu",
+    ) -> "Tensor":
+        flat = [float(value) for value in values]
+        dimensions = [int(value) for value in shape]
+        expected = 1
+        for dimension in dimensions:
+            if dimension < 0:
+                raise ValueError("shape dimensions must be non-negative")
+            expected *= dimension
+        if expected != len(flat):
+            raise ValueError(f"shape expects {expected} values, received {len(flat)}")
+        values_array = (ctypes.c_float * len(flat))(*flat)
+        shape_array = (ctypes.c_int64 * len(dimensions))(*dimensions)
+        kind, index = _parse_device(device)
+        output = _TensorPointer()
+        _check(
+            _lib.ml_tensor_from_f32(
+                values_array, shape_array, len(dimensions), int(kind), index, ctypes.byref(output)
+            )
+        )
+        return cls(output)
+
+    @classmethod
+    def from_i32(
+        cls,
+        values: Iterable[int],
+        shape: Sequence[int],
+        device: str | Device | tuple[Device, int] = "cpu",
+    ) -> "Tensor":
+        flat = [int(value) for value in values]
+        dimensions = [int(value) for value in shape]
+        expected = 1
+        for dimension in dimensions:
+            if dimension < 0:
+                raise ValueError("shape dimensions must be non-negative")
+            expected *= dimension
+        if expected != len(flat):
+            raise ValueError(f"shape expects {expected} values, received {len(flat)}")
+        values_array = (ctypes.c_int32 * len(flat))(*flat)
+        shape_array = (ctypes.c_int64 * len(dimensions))(*dimensions)
+        kind, index = _parse_device(device)
+        output = _TensorPointer()
+        _check(
+            _lib.ml_tensor_from_i32(
+                values_array, shape_array, len(dimensions), int(kind), index, ctypes.byref(output)
+            )
+        )
+        return cls(output)
+
+    def close(self) -> None:
+        if getattr(self, "_handle", None):
+            _lib.ml_tensor_destroy(self._handle)
+            self._handle = _TensorPointer()
+
+    def __del__(self) -> None:
+        self.close()
+
+    @property
+    def shape(self) -> tuple[int, ...]:
+        rank = ctypes.c_size_t()
+        _check(_lib.ml_tensor_rank(self._handle, ctypes.byref(rank)))
+        dimensions = []
+        for dim in range(rank.value):
+            size = ctypes.c_int64()
+            _check(_lib.ml_tensor_shape(self._handle, dim, ctypes.byref(size)))
+            dimensions.append(size.value)
+        return tuple(dimensions)
+
+    @property
+    def numel(self) -> int:
+        elements = ctypes.c_int64()
+        _check(_lib.ml_tensor_numel(self._handle, ctypes.byref(elements)))
+        return elements.value
+
+    @property
+    def dtype(self) -> DType:
+        value = ctypes.c_int()
+        _check(_lib.ml_tensor_dtype(self._handle, ctypes.byref(value)))
+        return DType(value.value)
+
+    @property
+    def device(self) -> tuple[Device, int]:
+        kind = ctypes.c_int()
+        index = ctypes.c_int()
+        _check(_lib.ml_tensor_device(self._handle, ctypes.byref(kind), ctypes.byref(index)))
+        return Device(kind.value), index.value
+
+    def tolist(self) -> list[float] | list[int]:
+        if self.dtype is DType.FLOAT32:
+            output = (ctypes.c_float * self.numel)()
+            _check(_lib.ml_tensor_copy_f32(self._handle, output, self.numel))
+            return list(output)
+        output = (ctypes.c_int32 * self.numel)()
+        _check(_lib.ml_tensor_copy_i32(self._handle, output, self.numel))
+        return list(output)
+
+    def to(self, device: str | Device | tuple[Device, int]) -> "Tensor":
+        kind, index = _parse_device(device)
+        output = _TensorPointer()
+        _check(_lib.ml_tensor_to(self._handle, int(kind), index, ctypes.byref(output)))
+        return Tensor(output)
+
+    def __add__(self, other: "Tensor") -> "Tensor":
+        return add(self, other)
+
+    def __mul__(self, other: "Tensor") -> "Tensor":
+        return multiply(self, other)
+
+    def __matmul__(self, other: "Tensor") -> "Tensor":
+        return matmul(self, other)
+
+
+def _binary(function: ctypes._CFuncPtr, left: Tensor, right: Tensor) -> Tensor:
+    output = _TensorPointer()
+    _check(function(left._handle, right._handle, ctypes.byref(output)))
+    return Tensor(output)
+
+
+def add(left: Tensor, right: Tensor) -> Tensor:
+    return _binary(_lib.ml_add, left, right)
+
+
+def multiply(left: Tensor, right: Tensor) -> Tensor:
+    return _binary(_lib.ml_multiply, left, right)
+
+
+def matmul(left: Tensor, right: Tensor) -> Tensor:
+    return _binary(_lib.ml_matmul, left, right)
+
+
+def softmax(input: Tensor) -> Tensor:
+    output = _TensorPointer()
+    _check(_lib.ml_softmax(input._handle, ctypes.byref(output)))
+    return Tensor(output)
+
+
+def hip_device_count() -> int:
+    count = ctypes.c_int()
+    _check(_lib.ml_hip_device_count(ctypes.byref(count)))
+    return count.value

@@ -53,6 +53,7 @@ Every performance-sensitive operator will keep three paths where useful:
 | Model-S HIP forward | smoke-tested | MI300X CPU/HIP max logit error 4.05312e-06 |
 | Tiny HIP training | smoke-tested | MI300X 5-step loss 2.21512 → 1.11681 |
 | C ABI v1 | smoke-tested | pure C CPU/HIP tensor and operator client |
+| Python ctypes API | smoke-tested | dependency-free CPU/HIP integration tests |
 | Model-S reference training report | planned | M3 next step |
 | Python/PyTorch bindings | planned | M4 |
 | Profiling/autotuning | planned | M5 |
@@ -89,6 +90,14 @@ With HIP enabled, run the explicit-Stream CPU/HIP comparison:
 
 ```bash
 ./build/examples/microllm_n1_cpu_hip
+```
+
+Use the optional dependency-free Python API against a build tree:
+
+```bash
+PYTHONPATH=python \
+MICROLLM_LIBRARY=build/bindings/capi/libmicrollm.so \
+python3 -c 'import microllm as m; print((m.Tensor.from_f32([1,2], (2,)) * m.Tensor.from_f32([3,4], (2,))).tolist())'
 ```
 
 ## Models

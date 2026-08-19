@@ -19,6 +19,7 @@ option(MICROLLM_ENABLE_HIPBLASLT "Enable hipBLASLt optimized operators" ON)
 option(MICROLLM_BUILD_TESTS "Build tests" ON)
 option(MICROLLM_BUILD_EXAMPLES "Build runnable examples" ON)
 option(MICROLLM_BUILD_CAPI "Build the stable C API shared library" ON)
+option(MICROLLM_BUILD_PYTHON "Enable tests/install rules for the ctypes Python API" ON)
 option(MICROLLM_ENABLE_SANITIZERS "Enable ASan and UBSan for host code" OFF)
 
 string(TOUPPER "${MICROLLM_ENABLE_HIP}" MICROLLM_ENABLE_HIP_NORMALIZED)
@@ -95,6 +96,9 @@ endif()
 
 if(MICROLLM_BUILD_CAPI)
     add_subdirectory(bindings/capi)
+    if(MICROLLM_BUILD_PYTHON)
+        add_subdirectory(bindings/python)
+    endif()
 endif()
 
 add_executable(micro_llm src/main.cpp)
