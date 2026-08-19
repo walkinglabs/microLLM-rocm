@@ -1,7 +1,12 @@
 add_executable(microllm_train train.cpp)
 target_link_libraries(microllm_train PRIVATE microllm::training microllm::io)
 
-install(TARGETS microllm_train RUNTIME DESTINATION bin)
+add_executable(microllm_runtime_info runtime_info.cpp)
+target_link_libraries(microllm_runtime_info PRIVATE
+    microllm::core microllm_build_config
+)
+
+install(TARGETS microllm_train microllm_runtime_info RUNTIME DESTINATION bin)
 
 if(BUILD_TESTING)
     set(MICROLLM_CLI_CHECKPOINT "${CMAKE_CURRENT_BINARY_DIR}/cli-smoke.ckpt")

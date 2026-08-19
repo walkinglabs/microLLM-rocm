@@ -23,7 +23,7 @@ std::uint64_t fnv1a(const std::vector<std::uint8_t>& bytes) {
 
 int main(int argc, char** argv) {
     try {
-        const std::filesystem::path output = argc > 1 ? argv[1] : "n0.ppm";
+        const std::filesystem::path output = argc > 1 ? argv[1] : "tensor.ppm";
         std::vector<float> pixels(64);
         for (std::size_t row = 0; row < 8; ++row) {
             for (std::size_t column = 0; column < 8; ++column) {
@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
         std::cout << "checksum_fnv1a=" << fnv1a(bytes) << '\n';
         return 0;
     } catch (const std::exception& error) {
-        std::cerr << "n0_ppm: " << error.what() << '\n';
+        std::cerr << "microllm_tensor_ppm: " << error.what() << '\n';
         return 1;
     }
 }

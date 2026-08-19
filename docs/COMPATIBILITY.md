@@ -5,6 +5,9 @@ ROCm support changes by release; check AMD's current
 [compatibility matrix](https://rocm.docs.amd.com/en/develop/compatibility/compatibility-matrix.html)
 before reproducing a run.
 
+Compiler, CMake, Python, HIP, hipBLASLt, RCCL, and rocprofv3 requirements plus the
+exact validated versions are maintained in [dev/build.md](dev/build.md).
+
 ## Current measured matrix
 
 | Device | gfx | Software | Evidence | State |

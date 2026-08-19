@@ -13,5 +13,5 @@ jobs:
         run: ./scripts/check_cpu.sh
       - name: Validate framework and result artifacts
         env:
-          MICROLLM_BUILD_DIR: ${{ github.workspace }}/build-cpu-sanitize
+          MICROLLM_BUILD_DIR: ${{ github.workspace }}/build/cpu-sanitize
         run: ./scripts/verify_evidence.sh cpu

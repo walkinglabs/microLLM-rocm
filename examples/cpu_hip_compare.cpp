@@ -51,7 +51,7 @@ int main() {
         if (maximum_error != 0.0F) throw std::runtime_error("CPU/HIP add mismatch");
         return 0;
     } catch (const std::exception& error) {
-        std::cerr << "n1_cpu_hip: " << error.what() << '\n';
+        std::cerr << "microllm_cpu_hip_compare: " << error.what() << '\n';
         return 1;
     }
 }

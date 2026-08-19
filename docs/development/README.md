@@ -111,3 +111,6 @@ the next gate. Records are append-only except for factual corrections.
   boundaries.
 - [2026-08-19-weight-api.md](2026-08-19-weight-api.md): named model state,
   safetensors/shards/index, Qwen-style mappings, corruption tests, and direct HIP load.
+- [2026-08-19-repository-presentation.md](2026-08-19-repository-presentation.md):
+  professional README, developer documentation hierarchy, CMake presets, and explicit
+  compiler/ROCm environment matrix.

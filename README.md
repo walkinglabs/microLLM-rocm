@@ -1,152 +1,222 @@
 # microLLM-rocm
 
-`microLLM-rocm` is a small, independently usable C++/HIP training and inference
-engine for teaching, measuring, and improving language-model systems on AMD GPUs.
+[![CPU evidence](https://github.com/walkinglabs/microLLM-rocm/actions/workflows/cpu.yml/badge.svg?branch=main)](https://github.com/walkinglabs/microLLM-rocm/actions/workflows/cpu.yml)
+[![C++20](https://img.shields.io/badge/C%2B%2B-20-00599C.svg)](https://isocpp.org/)
+[![ROCm](https://img.shields.io/badge/backend-ROCm%20%2F%20HIP-ED1C24.svg)](https://rocm.docs.amd.com/)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![Status](https://img.shields.io/badge/status-pre--alpha-orange.svg)](docs/development/STATUS.md)
 
-框架技术契约在[算子契约与 PyTorch 对照表](docs/OPERATOR_CONTRACTS.zh-CN.md)。
-命名权重、strict 加载、分片 safetensors 和 Qwen 名称映射见
-[权重 API 设计](docs/WEIGHTS.md)。
-面向初中生的课程与 N0–N8/PA0–PA2 独立维护在
-[`tutorial/beginner-course`](https://github.com/walkinglabs/microLLM-rocm/tree/tutorial/beginner-course)，
-不与 `main` 的框架发布边界混在一起。
+An independently usable C++20/HIP runtime for studying, training, profiling, and
+extending small decoder-only language models on AMD GPUs.
 
-The project is **pre-alpha**. CPU/HIP FP32 operators, the repository-owned autograd
-graph, tiny Transformer training, optional bindings, profiling, and two-rank RCCL have
-smoke evidence. Reference-length training, PyTorch ROCm integration, Radeon validation,
-and four-rank execution remain outside release claims.
+[Documentation](docs/index.md) · [Build](docs/dev/build.md) ·
+[Architecture](docs/ARCHITECTURE.md) · [Tests](docs/dev/testing.md) ·
+[Benchmarks](benchmarks/README.md) · [Roadmap](docs/development/NEXT_STEPS.md) ·
+[Beginner course](https://github.com/walkinglabs/microLLM-rocm/tree/tutorial/beginner-course)
 
-## Product shape
+> **Project maturity:** pre-alpha. The repository has measured CPU, MI300X, PyTorch
+> CPU-oracle, and two-rank RCCL evidence. It does not yet claim production readiness,
+> direct PyTorch ROCm parity, Radeon validation, reference-length training, or native
+> Qwen/DeepSeek execution.
+
+## Why this project exists
+
+Large frameworks make model development productive, but they hide the ownership,
+layout, execution, graph, and synchronization decisions that matter when a result is
+wrong or slow. microLLM-rocm keeps those decisions visible while preserving the pieces
+needed to run a real training and generation loop:
+
+- explicit Storage/Tensor ownership, shape, stride, dtype, offset, and device;
+- readable CPU references and repository-owned HIP kernels;
+- an eager reverse-mode graph engine with device-native Transformer backward;
+- Decoder-only MHA/GQA, RoPE, RMSNorm, SwiGLU, causal attention, loss, and optimizers;
+- named model state and F32/BF16/F16 safetensors loading;
+- C, Python ctypes, and optional PyTorch dispatcher adapters;
+- reproducible benchmarks, rocprofv3 workflows, hipBLASLt, and RCCL experiments.
+
+The design keeps three implementations where they provide engineering value:
 
 ```text
-Optional Python API / PyTorch Custom Ops
-                    ↓
-        C API and C++ engine API
-                    ↓
- Tensor → Ops → Autograd → Model → Train/Infer
-                    ↓
-       CPU reference / AMD HIP runtime
-                    ↓
-        hipBLASLt / RCCL when enabled
+readable CPU reference → readable HIP kernel → measured optimized candidate
 ```
 
-Every performance-sensitive operator will keep three paths where useful:
+An optimized candidate must pass the same numerical and shape/error contracts as the
+reference. A faster kernel is not accepted as a correctness argument.
 
-1. a readable CPU reference;
-2. a readable HIP implementation;
-3. a tuned implementation, which may use ROCm vendor libraries.
+## Architecture
 
-## Current status
+```text
+Applications / Examples / Benchmarks
+                 │
+       C++ API / C ABI / Python adapters
+                 │
+ Tensor ── Operators ── Autograd ── Transformer
+   │           │             │          │
+Storage     OpContext      Backward   Train / Generate
+   │        Stream/Event                   │
+   └──────── CPU reference / HIP runtime ──┘
+                    │
+             hipBLASLt / RCCL
+```
 
-| Area | Status | Evidence |
-|---|---|---|
-| CPU build without ROCm | smoke-tested | CPU CMake preset and CTest |
-| Device/Storage | smoke-tested | ownership and lifetime tests |
-| Tensor shape/stride/view | smoke-tested | deterministic and randomized tests |
-| N0 PPM example | smoke-tested | runnable example with checksum |
-| HIP runtime and Tensor transfer | smoke-tested | MI300X runtime tests |
-| CPU reference operators | smoke-tested | hand values and sanitizer tests |
-| HIP readable operators | smoke-tested | forward/backward primitive and graph conformance on gfx942 |
-| HIP non-contiguous materialization | smoke-tested | generic rank≤8 stride-copy kernel |
-| CPU Transformer autograd | smoke-tested | hand gradients and finite differences |
-| HIP Transformer autograd | smoke-tested | device-native forward/backward graph; zero host transfers in graph test |
-| PyTorch operator/graph oracle | smoke-tested | all public math ops, shape rejection, SGD/AdamW, full tiny Transformer gradients |
-| SGD/AdamW | smoke-tested | hand first step and restored-state equivalence |
-| Versioned checkpoint | smoke-tested | complete state, corruption, resume trajectory |
-| Decoder Transformer | smoke-tested | tiny MHA/GQA forward, causal test, all-parameter backward |
-| Byte tokenizer/token dataset | smoke-tested | byte round-trip and cursor-resume batches |
-| BPE/token data source | smoke-tested | BPE + immutable TinyStories Model-S smoke |
-| Weight API / safetensors | smoke-tested | F32/BF16/F16, shards/index, strict mapping, CPU/HIP load |
-| C++ training CLI | smoke-tested | save/resume + 10-step Model-S TinyStories HIP smoke |
-| Tiny Transformer training | smoke-tested | 40-step overfit loss 1.81171 → 0.00673309 |
-| SFT response masking | smoke-tested | CPU/HIP ignored targets; tiny loss 1.88494 → 0.01067 |
-| CPU KV cache | smoke-tested | per-layer MHA/GQA cached/full logits comparison |
-| Token generation | smoke-tested | greedy/top-k/temperature/fixed-seed cache generation |
-| Model-S CPU forward | smoke-tested | real 15.6M model, 8192 finite logits |
-| Model-S CPU training | smoke-tested | 3-step loss 11.2473 → 1.98712 |
-| Model-S HIP forward | smoke-tested | MI300X CPU/HIP max logit error 4.05312e-06 |
-| Tiny HIP training | smoke-tested | MI300X 5-step loss 2.21512 → 1.11681 |
-| Model-M HIP train step | smoke-tested | 31.3M params; 518,798,856 peak engine bytes |
-| C ABI v1 | smoke-tested | pure C CPU/HIP tensor and operator client |
-| Python ctypes API | smoke-tested | dependency-free CPU/HIP integration tests |
-| PyTorch Custom Ops | CPU smoke-tested | Torch 2.13 CPU passes; ROCm path unverified |
-| Micro-benchmark harness | smoke-tested | CPU/HIP JSONL, Event/wall/error metadata |
-| End-to-end benchmark | smoke-tested | train/generate tokens/s and engine peak memory |
-| hipBLASLt + shape selector | smoke-tested | 2D FP32 correctness and Model-S measurements |
-| RCCL two-GPU equivalence | smoke-tested | XGMI ranks identical; single/multi diff 1.49e-08 |
-| RCCL gradient buckets | smoke-tested | 64→1 collectives: 6.676→0.225 ms |
-| RCCL compute overlap | smoke-tested | separate Streams improve synthetic step 30–33% |
-| RCCL four-GPU | blocked by environment | 64MB /dev/shm; failure evidence retained |
-| Reference-length Model-S/SFT report | planned | full dataset + validation run required |
-| Python/PyTorch bindings | mixed | ctypes CPU/HIP + Torch CPU tested; Torch ROCm pending |
-| Profiling/autotuning | smoke-tested | M5 evidence and registry |
-| Backward-ready overlap/four-GPU retry | planned | M6 follow-up |
+Public interfaces live under `include/microllm`; implementation details stay under
+`src`. Optional bindings depend on the engine, never the reverse. See the
+[repository layout](docs/dev/repository-layout.md) for component ownership and
+dependency invariants.
 
-See [STATUS.md](docs/development/STATUS.md) for the evidence gate behind each state.
+## Quick start
 
-Run the unified artifact/test audit with:
+### CPU
+
+Requirements: Linux, CMake 3.25+, a C++20 compiler, and Python 3.9+ for optional tests.
+The current evidence was produced with CMake 3.31.10 and GCC/G++ 13.3.0.
 
 ```bash
-./scripts/verify_evidence.sh cpu
-MICROLLM_BUILD_DIR=build-hip ./scripts/verify_evidence.sh hip
-MICROLLM_BUILD_DIR=build-rccl ./scripts/verify_evidence.sh rccl
+cmake --preset cpu-debug
+cmake --build --preset cpu-debug --parallel
+ctest --preset cpu-debug
 ```
 
-## Build and test
-
-CPU-only development does not require ROCm:
+Run the sanitizer configuration:
 
 ```bash
-./scripts/configure.sh -DMICROLLM_ENABLE_HIP=OFF
-./scripts/build.sh
-./scripts/test.sh
+cmake --preset cpu-sanitize
+cmake --build --preset cpu-sanitize --parallel
+ctest --preset cpu-sanitize
 ```
 
-Run the stricter host check with AddressSanitizer and UndefinedBehaviorSanitizer:
+### AMD GPU
+
+Install a ROCm release supported by the target GPU, then:
 
 ```bash
-./scripts/check_cpu.sh
+cmake --preset hip-release
+cmake --build --preset hip-release --parallel
+ctest --preset hip-release
 ```
 
-On a ROCm machine, `MICROLLM_ENABLE_HIP=AUTO` is the default. Use `ON` when a
-missing HIP toolchain should be a configuration error.
-
-Run the first end-to-end artifact:
+Use an explicit architecture when auto-detection is not appropriate:
 
 ```bash
-./build/examples/microllm_n0_ppm /tmp/microllm-n0.ppm
+cmake --preset hip-release -DMICROLLM_HIP_ARCHITECTURES=gfx942
 ```
 
-With HIP enabled, run the explicit-Stream CPU/HIP comparison:
+For RCCL:
 
 ```bash
-./build/examples/microllm_n1_cpu_hip
+cmake --preset rccl-release
+cmake --build --preset rccl-release --parallel
+ctest --preset rccl-release
 ```
 
-Use the optional dependency-free Python API against a build tree:
+The complete compiler, CMake, ROCm, library, Python, and troubleshooting matrix is in
+[Build from source](docs/dev/build.md).
+
+## Measured evidence
+
+Current `main` gates:
+
+| Gate | Result | Scope |
+|---|---:|---|
+| CPU tests | 109/109 | reference, graph, model, weights, integration |
+| ASan/UBSan | 107/107 | host code; dynamic binding tests isolated |
+| MI300X/gfx942 HIP | 24/24 | operators, graph, model, direct weight load |
+| PyTorch CPU oracle | 2/2 | 70 FP32 numerical cases plus invalid contracts |
+| Two-rank RCCL | 7/7 | collective and global-batch equivalence |
+| Registered test files | 28 | machine-audited CTest registration |
+
+Latest PyTorch-reference maximum absolute differences:
+
+| Domain | Maximum absolute difference |
+|---|---:|
+| Forward operators | `1.90734863e-06` |
+| Autograd graphs | `9.53674316e-07` |
+| Tiny Transformer | `1.43051147e-06` |
+| SGD/AdamW | `3.72529030e-08` |
+
+These results cover the declared FP32 domain and representative shapes, not every
+dtype, model size, context length, or GPU. Detailed gates are maintained in
+[Testing and evidence](docs/dev/testing.md) and
+[current status](docs/development/STATUS.md).
+
+## External weights
+
+The framework supports independent named state dictionaries, strict/non-strict model
+loading, Hugging Face-style name/transpose mapping, and single or sharded safetensors:
+
+```cpp
+#include <microllm/model/model.h>
+
+microllm::model::TransformerModel model(config);
+auto mapping = microllm::model::qwen_style_weight_mapping(config);
+
+microllm::model::LoadWeightsOptions options;
+options.strict = true;
+options.mapping = std::move(mapping);
+
+model.load_safetensors_index("model.safetensors.index.json", options);
+model.to(microllm::Device::hip(0));
+```
+
+The mapping API handles names and 2D linear-weight orientation. It does not implement
+architecture differences such as QK-Norm, Q/K/V bias, explicit head width, MLA, MoE,
+or quantization. See [Weight API](docs/WEIGHTS.md).
+
+## Performance workflow
 
 ```bash
-PYTHONPATH=python \
-MICROLLM_LIBRARY=build/bindings/capi/libmicrollm.so \
-python3 -c 'import microllm as m; print((m.Tensor.from_f32([1,2], (2,)) * m.Tensor.from_f32([3,4], (2,))).tolist())'
+# Repeated Event/wall-clock micro-benchmarks
+MICROLLM_BUILD_DIR=build/hip-release \
+MICROLLM_BENCH_DEVICE=hip \
+./scripts/run_benchmarks.sh
+
+# HIP API, kernel, memory, JSON/CSV and Perfetto traces
+./scripts/profile_hip.sh /tmp/microllm-trace -- \
+  ./build/hip-release/benchmarks/microllm_bench_model \
+  --mode train --model tiny --device hip \
+  --steps 5 --warmup 1 --batch 1 --context 8 --new-tokens 8
 ```
 
-## Models
+The current exact-shape registry covers readable 2D matmul and hipBLASLt. It is not a
+general autotuner, and there is no stable in-process `@profile` API yet. The supported
+workflow and missing profiler boundary are documented in [Profiling](docs/dev/profiling.md)
+and [Operator development](docs/dev/operator-development.md).
 
-- **Model-S:** approximately 15.6M parameters / 62 MB of FP32 weights.
-- **Model-M:** approximately 31M parameters / 124 MB of FP32 weights (planned).
+## Repository map
 
-Reports always state both parameter count and weight dtype. “64 MB model” is not
-used as a substitute for a parameter count.
+| Path | Responsibility |
+|---|---|
+| `include/microllm/` | public C++ and C APIs |
+| `src/` | runtime, Tensor, operators, autograd, model, IO, train/infer, RCCL |
+| `bindings/` | optional C, Python, and PyTorch adapters |
+| `apps/` | command-line applications |
+| `examples/` | small executable API examples |
+| `benchmarks/` | micro/e2e/distributed benchmarks and curated evidence |
+| `tests/` | unit, graph, conformance, integration, and coverage gates |
+| `docs/` | framework and developer documentation |
+| `scripts/` | reproducible build, test, benchmark, and profile workflows |
 
 ## Documentation
 
-- [Project charter](docs/PROJECT_CHARTER.md)
-- [Architecture and dependency rules](docs/ARCHITECTURE.md)
-- [Development roadmap](docs/development/ROADMAP.md)
-- [Development records](docs/development/README.md)
-- [Hardware/Radeon compatibility](docs/COMPATIBILITY.md)
-- [Contributor task contract](docs/TASK_CONTRACT.md)
-- [Contributing](CONTRIBUTING.md)
+- [Documentation index](docs/index.md)
+- [Developer guide](docs/dev/index.md)
+- [Build system and validated toolchains](docs/dev/build.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Operator contracts](docs/OPERATOR_CONTRACTS.zh-CN.md)
+- [Weights and safetensors](docs/WEIGHTS.md)
+- [Hardware compatibility](docs/COMPATIBILITY.md)
+- [Current evidence status](docs/development/STATUS.md)
+- [Roadmap and explicit gaps](docs/development/NEXT_STEPS.md)
+- [Chronological development records](docs/development/README.md)
+
+The beginner course is maintained separately on
+[`tutorial/beginner-course`](https://github.com/walkinglabs/microLLM-rocm/tree/tutorial/beginner-course).
+
+## Contributing
+
+Changes require an explicit contract, a reference, positive and negative tests, and
+reproducible evidence. Start with [CONTRIBUTING.md](CONTRIBUTING.md) and
+[docs/TASK_CONTRACT.md](docs/TASK_CONTRACT.md).
 
 ## License
 

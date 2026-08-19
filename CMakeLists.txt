@@ -6,6 +6,9 @@ project(microLLM
     LANGUAGES C CXX
 )
 
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_C_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -121,9 +124,6 @@ if(NOT MICROLLM_BUILD_TORCH_OPS_NORMALIZED STREQUAL "OFF")
     add_subdirectory(bindings/torch)
 endif()
 
-add_executable(micro_llm src/main.cpp)
-target_link_libraries(micro_llm PRIVATE microllm::core microllm_build_config)
-
 if(MICROLLM_BUILD_EXAMPLES)
     add_subdirectory(examples)
 endif()
@@ -148,7 +148,6 @@ if(MICROLLM_BUILD_TESTS)
     add_subdirectory(tests)
 endif()
 
-install(TARGETS micro_llm RUNTIME DESTINATION bin)
 install(DIRECTORY include/microllm DESTINATION include)
 
 message(STATUS "")

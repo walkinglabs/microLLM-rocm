@@ -1,0 +1,96 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 25,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "MICROLLM_BUILD_TESTS": "ON",
+        "MICROLLM_BUILD_EXAMPLES": "ON",
+        "MICROLLM_BUILD_BENCHMARKS": "ON"
+      }
+    },
+    {
+      "name": "cpu-debug",
+      "displayName": "CPU Debug",
+      "description": "CPU-only developer build with tests and examples",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "MICROLLM_ENABLE_HIP": "OFF",
+        "MICROLLM_BUILD_TORCH_OPS": "OFF"
+      }
+    },
+    {
+      "name": "cpu-sanitize",
+      "displayName": "CPU ASan/UBSan",
+      "description": "CPU-only validation with AddressSanitizer and UBSan",
+      "inherits": "cpu-debug",
+      "cacheVariables": {
+        "MICROLLM_ENABLE_SANITIZERS": "ON",
+        "MICROLLM_BUILD_CAPI": "OFF",
+        "MICROLLM_BUILD_PYTHON": "OFF"
+      }
+    },
+    {
+      "name": "hip-release",
+      "displayName": "HIP Release",
+      "description": "Release build with required HIP and optional hipBLASLt",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "MICROLLM_ENABLE_HIP": "ON",
+        "MICROLLM_ENABLE_HIPBLASLT": "ON",
+        "MICROLLM_BUILD_TORCH_OPS": "OFF"
+      }
+    },
+    {
+      "name": "rccl-release",
+      "displayName": "HIP + RCCL Release",
+      "description": "Release build with HIP, hipBLASLt, and RCCL",
+      "inherits": "hip-release",
+      "cacheVariables": {
+        "MICROLLM_ENABLE_RCCL": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {"name": "cpu-debug", "configurePreset": "cpu-debug"},
+    {"name": "cpu-sanitize", "configurePreset": "cpu-sanitize"},
+    {"name": "hip-release", "configurePreset": "hip-release"},
+    {"name": "rccl-release", "configurePreset": "rccl-release"}
+  ],
+  "testPresets": [
+    {
+      "name": "cpu-debug",
+      "configurePreset": "cpu-debug",
+      "output": {"outputOnFailure": true},
+      "filter": {"include": {"label": "cpu"}}
+    },
+    {
+      "name": "cpu-sanitize",
+      "configurePreset": "cpu-sanitize",
+      "output": {"outputOnFailure": true},
+      "filter": {"include": {"label": "cpu"}}
+    },
+    {
+      "name": "hip-release",
+      "configurePreset": "hip-release",
+      "output": {"outputOnFailure": true},
+      "filter": {"include": {"label": "hip"}}
+    },
+    {
+      "name": "rccl-release",
+      "configurePreset": "rccl-release",
+      "output": {"outputOnFailure": true},
+      "filter": {"include": {"label": "rccl"}}
+    }
+  ]
+}

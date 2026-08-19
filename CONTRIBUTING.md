@@ -4,6 +4,10 @@ microLLM-rocm accepts small changes with explicit contracts and reproducible
 evidence. A directory existing in the repository does not mean its feature is
 implemented.
 
+Before editing, read the [developer guide](docs/dev/index.md),
+[validated build matrix](docs/dev/build.md), and
+[repository dependency rules](docs/dev/repository-layout.md).
+
 ## Before implementation
 
 Create or reference a task contract using [docs/TASK_CONTRACT.md](docs/TASK_CONTRACT.md).
@@ -24,12 +28,18 @@ invariants, reference implementation, tests, and evidence.
 ## Local checks
 
 ```bash
-./scripts/check_cpu.sh
+cmake --preset cpu-sanitize
+cmake --build --preset cpu-sanitize --parallel
+ctest --preset cpu-sanitize
+python3 scripts/audit_test_coverage.py
 ```
 
 HIP changes must additionally run the matching `hip`-labelled CTest tests on a
 recorded GPU and ROCm version. Performance changes must include correctness
 regression results and raw benchmark metadata.
+
+Operator changes must follow [operator development](docs/dev/operator-development.md).
+Performance claims must follow [profiling and measurement](docs/dev/profiling.md).
 
 ## Pull requests
 

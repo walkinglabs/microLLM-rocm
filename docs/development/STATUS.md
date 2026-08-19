@@ -9,7 +9,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
 | Tensor metadata/views | smoke-tested | hand values, randomized shapes, bounds | more dtypes |
 | HIP view materialization | smoke-tested | gfx942 transposed logical-order copy | rank>8/more dtypes |
-| N0 PPM | smoke-tested | executable output/checksum | documented golden value |
+| Tensor PPM sample | smoke-tested | executable output/checksum | documented golden value |
 | HIP Storage/runtime | smoke-tested | gfx942 allocation, transfer, Stream/Event tests | CI on more GPUs |
 | CPU reference operators | smoke-tested | hand values plus PyTorch forward/backward oracle for every public math op | more dtypes |
 | HIP readable operators | smoke-tested | 24/24 gfx942 suite; ops, graph, and direct weight load | more architectures/optimized paths |
