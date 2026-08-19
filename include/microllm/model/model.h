@@ -8,6 +8,7 @@
 
 #include <microllm/autograd/autograd.h>
 #include <microllm/model/config.h>
+#include <microllm/inference/kv_cache.h>
 
 namespace microllm::model {
 
@@ -24,6 +25,8 @@ public:
 
     [[nodiscard]] const ModelConfig& config() const noexcept;
     [[nodiscard]] autograd::Value forward(const Tensor& token_ids);
+    [[nodiscard]] Tensor forward_cached(const Tensor& token_id,
+                                        inference::KVCache& cache);
     [[nodiscard]] autograd::Value loss(const Tensor& token_ids, const Tensor& targets);
     [[nodiscard]] NamedValues named_parameters();
     [[nodiscard]] std::vector<autograd::Value*> parameters();

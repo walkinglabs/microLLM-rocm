@@ -38,3 +38,5 @@ the next gate. Records are append-only except for factual corrections.
   and deterministic resumable token batches.
 - [2026-08-19-m3-tiny-overfit.md](2026-08-19-m3-tiny-overfit.md): complete tiny
   Transformer training loop and measured loss trajectory.
+- [2026-08-19-m3-kv-cache.md](2026-08-19-m3-kv-cache.md): real per-layer MHA/GQA
+  K/V caching and cached/full logit equivalence.

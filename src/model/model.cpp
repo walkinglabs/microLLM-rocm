@@ -1,5 +1,6 @@
 #include <microllm/model/model.h>
 
+#include <algorithm>
 #include <cmath>
 #include <memory>
 #include <random>
@@ -7,10 +8,47 @@
 #include <string>
 #include <utility>
 
+#include <microllm/ops/ops.h>
+
 namespace microllm::model {
 namespace {
 
 using autograd::Value;
+
+Tensor append_cached_sequence(const Tensor& cached, const Tensor& current) {
+    if (!current.device().is_cpu() || current.dtype() != DType::Float32 ||
+        current.ndim() != 4) {
+        throw std::invalid_argument("cached K/V tensors must be CPU float32 rank four");
+    }
+    if (!cached.defined()) return current.contiguous();
+    if (cached.ndim() != 4 || cached.shape()[0] != current.shape()[0] ||
+        cached.shape()[1] != current.shape()[1] || cached.shape()[3] != current.shape()[3]) {
+        throw std::invalid_argument("cached and current K/V shapes are incompatible");
+    }
+    const auto batch = current.shape()[0];
+    const auto heads = current.shape()[1];
+    const auto old_sequence = cached.shape()[2];
+    const auto new_sequence = current.shape()[2];
+    const auto width = current.shape()[3];
+    const auto old_values = cached.to_vector();
+    const auto new_values = current.to_vector();
+    std::vector<float> output(static_cast<std::size_t>(
+        batch * heads * (old_sequence + new_sequence) * width));
+    for (std::int64_t batch_index = 0; batch_index < batch; ++batch_index) {
+        for (std::int64_t head = 0; head < heads; ++head) {
+            const auto old_base = (batch_index * heads + head) * old_sequence * width;
+            const auto new_base = (batch_index * heads + head) * new_sequence * width;
+            const auto output_base =
+                (batch_index * heads + head) * (old_sequence + new_sequence) * width;
+            std::copy_n(old_values.begin() + old_base, old_sequence * width,
+                        output.begin() + output_base);
+            std::copy_n(new_values.begin() + new_base, new_sequence * width,
+                        output.begin() + output_base + old_sequence * width);
+        }
+    }
+    return Tensor::from_vector(output,
+                               {batch, heads, old_sequence + new_sequence, width});
+}
 
 Tensor random_tensor(Shape shape, std::mt19937_64& generator, float standard_deviation) {
     std::normal_distribution<float> distribution(0.0F, standard_deviation);
@@ -30,6 +68,7 @@ public:
                             1.0F / std::sqrt(static_cast<float>(input)))) {}
 
     Value forward(const Value& input) { return autograd::matmul(input, weight_); }
+    Tensor forward_tensor(const Tensor& input) { return ops::matmul(input, weight_.data()); }
     Value& weight() noexcept { return weight_; }
 
 private:
@@ -43,6 +82,7 @@ public:
     }
 
     Value forward(const Value& input) { return autograd::rms_norm(input, weight_); }
+    Tensor forward_tensor(const Tensor& input) { return ops::rms_norm(input, weight_.data()); }
     Value& weight() noexcept { return weight_; }
 
 private:
@@ -89,6 +129,61 @@ public:
                                  {batch, sequence, config_.dimension});
     }
 
+    Tensor forward_cached(const Tensor& input, inference::KVCache::LayerState& cache,
+                          std::int64_t position) {
+        if (input.shape().size() != 3 || input.shape()[0] != 1 || input.shape()[1] != 1) {
+            throw std::invalid_argument("cached attention expects one B=1 token");
+        }
+        auto query = query_.forward_tensor(input.reshape({1, config_.dimension}))
+                         .reshape({1, 1, config_.heads, config_.head_dimension()})
+                         .transpose(1, 2);
+        auto key = key_.forward_tensor(input.reshape({1, config_.dimension}))
+                       .reshape({1, 1, config_.kv_heads, config_.head_dimension()})
+                       .transpose(1, 2);
+        auto value = value_.forward_tensor(input.reshape({1, config_.dimension}))
+                         .reshape({1, 1, config_.kv_heads, config_.head_dimension()})
+                         .transpose(1, 2);
+        query = ops::rope(query, 2, position, config_.rope_base);
+        key = ops::rope(key, 2, position, config_.rope_base);
+        cache.key = append_cached_sequence(cache.key, key);
+        cache.value = append_cached_sequence(cache.value, value);
+        auto expanded_key = cache.key;
+        auto expanded_value = cache.value;
+        if (config_.kv_heads != config_.heads) {
+            const auto repeats = config_.heads / config_.kv_heads;
+            const auto old_key = cache.key.to_vector();
+            const auto old_value = cache.value.to_vector();
+            const auto cached_sequence = cache.key.shape()[2];
+            std::vector<float> key_values(static_cast<std::size_t>(
+                config_.heads * cached_sequence * config_.head_dimension()));
+            std::vector<float> value_values(key_values.size());
+            for (std::int64_t head = 0; head < config_.heads; ++head) {
+                const auto source_head = head / repeats;
+                const auto source_base = source_head * cached_sequence * config_.head_dimension();
+                const auto destination_base = head * cached_sequence * config_.head_dimension();
+                std::copy_n(old_key.begin() + source_base,
+                            cached_sequence * config_.head_dimension(),
+                            key_values.begin() + destination_base);
+                std::copy_n(old_value.begin() + source_base,
+                            cached_sequence * config_.head_dimension(),
+                            value_values.begin() + destination_base);
+            }
+            expanded_key = Tensor::from_vector(
+                key_values, {1, config_.heads, cached_sequence, config_.head_dimension()});
+            expanded_value = Tensor::from_vector(
+                value_values, {1, config_.heads, cached_sequence, config_.head_dimension()});
+        }
+        const auto scores = ops::scale(
+            ops::matmul(query, expanded_key.transpose(-2, -1)),
+            1.0F / std::sqrt(static_cast<float>(config_.head_dimension())));
+        const auto probabilities = ops::softmax(scores);
+        auto context = ops::matmul(probabilities, expanded_value)
+                           .transpose(1, 2)
+                           .contiguous()
+                           .reshape({1, config_.dimension});
+        return output_.forward_tensor(context).reshape({1, 1, config_.dimension});
+    }
+
     void append_named(const std::string& prefix, NamedValues& values) {
         values.emplace_back(prefix + ".q_proj.weight", &query_.weight());
         values.emplace_back(prefix + ".k_proj.weight", &key_.weight());
@@ -121,6 +216,12 @@ public:
                                  {batch, sequence, config_.dimension});
     }
 
+    Tensor forward_tensor(const Tensor& input) {
+        const auto flat = input.reshape({1, config_.dimension});
+        const auto activated = ops::swiglu(gate_.forward_tensor(flat), up_.forward_tensor(flat));
+        return down_.forward_tensor(activated).reshape({1, 1, config_.dimension});
+    }
+
     void append_named(const std::string& prefix, NamedValues& values) {
         values.emplace_back(prefix + ".gate_proj.weight", &gate_.weight());
         values.emplace_back(prefix + ".up_proj.weight", &up_.weight());
@@ -145,6 +246,13 @@ public:
     Value forward(const Value& input) {
         auto hidden = autograd::add(input, attention_.forward(attention_norm_.forward(input)));
         return autograd::add(hidden, feed_forward_.forward(ffn_norm_.forward(hidden)));
+    }
+
+    Tensor forward_cached(const Tensor& input, inference::KVCache::LayerState& cache,
+                          std::int64_t position) {
+        auto hidden = ops::add(
+            input, attention_.forward_cached(attention_norm_.forward_tensor(input), cache, position));
+        return ops::add(hidden, feed_forward_.forward_tensor(ffn_norm_.forward_tensor(hidden)));
     }
 
     void append_named(const std::string& prefix, NamedValues& values) {
@@ -227,6 +335,35 @@ Value TransformerModel::loss(const Tensor& token_ids, const Tensor& targets) {
         throw std::invalid_argument("language-model targets must match token shape");
     }
     return autograd::cross_entropy(forward(token_ids), targets);
+}
+
+Tensor TransformerModel::forward_cached(const Tensor& token_id, inference::KVCache& cache) {
+    if (!token_id.device().is_cpu() || token_id.dtype() != DType::Int32 ||
+        token_id.shape() != Shape{1, 1}) {
+        throw std::invalid_argument("cached forward expects one CPU int32 token with shape 1x1");
+    }
+    if (cache.layer_count() != impl_->blocks.size() ||
+        cache.max_sequence_length() != impl_->config.max_sequence_length) {
+        throw std::invalid_argument("KV cache does not match model configuration");
+    }
+    if (cache.position() >= cache.max_sequence_length()) {
+        throw std::out_of_range("KV cache has reached maximum sequence length");
+    }
+    auto hidden = ops::embedding(impl_->token_embedding.data(), token_id);
+    for (std::size_t layer = 0; layer < impl_->blocks.size(); ++layer) {
+        hidden = impl_->blocks[layer]->forward_cached(hidden, cache.mutable_layer(layer),
+                                                      cache.position());
+    }
+    hidden = impl_->final_norm.forward_tensor(hidden);
+    const auto flat = hidden.reshape({1, impl_->config.dimension});
+    Tensor logits;
+    if (impl_->config.tie_embeddings) {
+        logits = ops::matmul(flat, impl_->token_embedding.data().transpose(0, 1));
+    } else {
+        logits = impl_->output_head->forward_tensor(flat);
+    }
+    cache.advance();
+    return logits.reshape({1, 1, impl_->config.vocabulary_size});
 }
 
 NamedValues TransformerModel::named_parameters() {

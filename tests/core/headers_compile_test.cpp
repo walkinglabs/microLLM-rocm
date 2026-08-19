@@ -16,5 +16,6 @@
 #include <microllm/io/byte_tokenizer.h>
 #include <microllm/io/token_dataset.h>
 #include <microllm/training/trainer.h>
+#include <microllm/inference/kv_cache.h>
 
 TEST(PublicHeaders, CanBeIncludedTogether) { SUCCEED(); }
