@@ -125,6 +125,7 @@ Current `main` gates:
 | PyTorch CPU oracle/alignment | 3/3 | ops plus same-weight model value/timing trace |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
 | Registered test files | 33 | machine-audited CTest registration |
+| CPU source coverage | 83.9% lines / 66.6% branches | GCC 13.3 + gcovr 8.3; `src/` and `include/` |
 
 Latest PyTorch-reference maximum absolute differences:
 

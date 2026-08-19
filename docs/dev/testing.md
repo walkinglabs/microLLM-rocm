@@ -41,6 +41,21 @@ The detailed per-operator tolerances and shape contracts are in
 `docs/OPERATOR_CONTRACTS.zh-CN.md`. BF16/F16 safetensors conversion is tested, but
 BF16/F16 compute kernels are not yet a correctness claim.
 
+## Line and branch coverage
+
+Test-file registration proves that a test was wired into CTest; it does not prove which
+source lines ran. The coverage build is a separate gate:
+
+```bash
+python -m pip install gcovr
+./scripts/run_coverage.sh /tmp/microllm-coverage
+```
+
+It starts from a clean generated build, runs the same CPU test label, and emits
+`summary.json`, Cobertura XML, and a detailed HTML report. Only `src/` and `include/`
+are counted. Coverage is evidence for finding blind spots, not permission to replace
+numeric, shape, failure, HIP, or external-oracle tests.
+
 ## Adding a test
 
 Every native `*_test.c/cpp` and Python `test_*.py` file must be registered with CTest

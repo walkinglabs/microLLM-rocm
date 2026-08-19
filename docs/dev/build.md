@@ -129,6 +129,7 @@ release claim because the recorded container exposes only 64 MB of shared memory
 | `MICROLLM_BUILD_PYTHON` | `ON` | ctypes API integration tests |
 | `MICROLLM_BUILD_TORCH_OPS` | `AUTO` | optional PyTorch dispatcher library |
 | `MICROLLM_ENABLE_SANITIZERS` | `OFF` | host ASan and UBSan |
+| `MICROLLM_ENABLE_COVERAGE` | `OFF` | GCC/Clang line and branch instrumentation |
 | `MICROLLM_SAFETENSORS_PYTHON` | empty | interpreter with torch/safetensors used by the optional official interop CTest |
 
 ## Common failures

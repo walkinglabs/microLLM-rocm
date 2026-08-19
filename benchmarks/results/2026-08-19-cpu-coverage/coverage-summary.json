@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "date_utc": "2026-08-19",
+  "compiler": "GCC 13.3.0",
+  "coverage_tool": "gcovr 8.3",
+  "scope": ["src/", "include/"],
+  "ctest": {"passed": 119, "total": 119},
+  "totals": {
+    "lines": {"covered": 2753, "total": 3281, "percent": 83.9},
+    "functions": {"covered": 390, "total": 429, "percent": 90.9},
+    "branches": {"covered": 2672, "total": 4011, "percent": 66.6}
+  },
+  "lowest_line_coverage": [
+    {"file": "src/ops/optimized.cpp", "line_percent": 26.5, "branch_percent": 7.3},
+    {"file": "include/microllm/base/dtype.h", "line_percent": 47.1, "branch_percent": 27.3},
+    {"file": "src/runtime/runtime.cpp", "line_percent": 63.4, "branch_percent": 32.9},
+    {"file": "src/io/safetensors.cpp", "line_percent": 76.1, "branch_percent": 56.8},
+    {"file": "src/io/sft.cpp", "line_percent": 76.5, "branch_percent": 66.7}
+  ]
+}

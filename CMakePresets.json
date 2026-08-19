@@ -40,6 +40,17 @@
       }
     },
     {
+      "name": "cpu-coverage",
+      "displayName": "CPU line/branch coverage",
+      "description": "CPU-only instrumented build for gcovr reports",
+      "inherits": "cpu-debug",
+      "cacheVariables": {
+        "MICROLLM_ENABLE_COVERAGE": "ON",
+        "MICROLLM_BUILD_CAPI": "OFF",
+        "MICROLLM_BUILD_PYTHON": "OFF"
+      }
+    },
+    {
       "name": "hip-release",
       "displayName": "HIP Release",
       "description": "Release build with required HIP and optional hipBLASLt",
@@ -64,6 +75,7 @@
   "buildPresets": [
     {"name": "cpu-debug", "configurePreset": "cpu-debug"},
     {"name": "cpu-sanitize", "configurePreset": "cpu-sanitize"},
+    {"name": "cpu-coverage", "configurePreset": "cpu-coverage"},
     {"name": "hip-release", "configurePreset": "hip-release"},
     {"name": "rccl-release", "configurePreset": "rccl-release"}
   ],
@@ -77,6 +89,12 @@
     {
       "name": "cpu-sanitize",
       "configurePreset": "cpu-sanitize",
+      "output": {"outputOnFailure": true},
+      "filter": {"include": {"label": "cpu"}}
+    },
+    {
+      "name": "cpu-coverage",
+      "configurePreset": "cpu-coverage",
       "output": {"outputOnFailure": true},
       "filter": {"include": {"label": "cpu"}}
     },

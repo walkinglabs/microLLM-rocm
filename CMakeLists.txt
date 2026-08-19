@@ -28,6 +28,7 @@ option(MICROLLM_BUILD_BENCHMARKS "Build reproducible micro and end-to-end benchm
 set(MICROLLM_BUILD_TORCH_OPS "AUTO" CACHE STRING "Build PyTorch Custom Ops: AUTO, ON, or OFF")
 set_property(CACHE MICROLLM_BUILD_TORCH_OPS PROPERTY STRINGS AUTO ON OFF)
 option(MICROLLM_ENABLE_SANITIZERS "Enable ASan and UBSan for host code" OFF)
+option(MICROLLM_ENABLE_COVERAGE "Enable GCC/Clang line and branch coverage" OFF)
 set(MICROLLM_SAFETENSORS_PYTHON "" CACHE FILEPATH
     "Python interpreter with torch and official safetensors for interoperability tests")
 
@@ -71,6 +72,9 @@ endif()
 
 add_library(microllm_project_options INTERFACE)
 target_compile_features(microllm_project_options INTERFACE cxx_std_20)
+if(MICROLLM_ENABLE_SANITIZERS AND MICROLLM_ENABLE_COVERAGE)
+    message(FATAL_ERROR "sanitizers and coverage must use separate builds")
+endif()
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     target_compile_options(microllm_project_options INTERFACE
         -Wall -Wextra -Wpedantic -Wconversion -Wshadow
@@ -83,6 +87,12 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
             -fsanitize=address,undefined
         )
     endif()
+    if(MICROLLM_ENABLE_COVERAGE)
+        target_compile_options(microllm_project_options INTERFACE --coverage -O0 -g)
+        target_link_options(microllm_project_options INTERFACE --coverage)
+    endif()
+elseif(MICROLLM_ENABLE_COVERAGE)
+    message(FATAL_ERROR "coverage currently requires GCC or Clang")
 endif()
 
 add_library(microllm_build_config INTERFACE)
@@ -162,4 +172,5 @@ message(STATUS "  RCCL:         ${MICROLLM_HAS_RCCL}")
 message(STATUS "  Tests:        ${MICROLLM_BUILD_TESTS}")
 message(STATUS "  Examples:     ${MICROLLM_BUILD_EXAMPLES}")
 message(STATUS "  Sanitizers:   ${MICROLLM_ENABLE_SANITIZERS}")
+message(STATUS "  Coverage:     ${MICROLLM_ENABLE_COVERAGE}")
 message(STATUS "")
