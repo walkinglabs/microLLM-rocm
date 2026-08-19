@@ -47,6 +47,7 @@ Every performance-sensitive operator will keep three paths where useful:
 | Tiny Transformer training | smoke-tested | 40-step overfit loss 1.81171 → 0.00673309 |
 | CPU KV cache | smoke-tested | per-layer MHA/GQA cached/full logits comparison |
 | Token generation | smoke-tested | greedy/top-k/temperature/fixed-seed cache generation |
+| Model-S CPU forward | smoke-tested | real 15.6M model, 8192 finite logits |
 | Model-S training/inference | planned | M3 next steps |
 | Python/PyTorch bindings | planned | M4 |
 | Profiling/autotuning | planned | M5 |

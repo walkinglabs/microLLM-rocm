@@ -44,3 +44,5 @@ the next gate. Records are append-only except for factual corrections.
   and sampled generation over the real KV cache.
 - [2026-08-19-m3-trained-generation-failure.md](2026-08-19-m3-trained-generation-failure.md):
   low training loss with a stable beyond-context generation failure.
+- [2026-08-19-m3-model-s-forward.md](2026-08-19-m3-model-s-forward.md): real
+  15.6M-parameter Model-S construction and CPU forward smoke.
