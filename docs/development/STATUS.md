@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| CPU configuration | smoke-tested | framework-only main configure/build; 124/124 CPU CTest | CI matrix |
+| CPU configuration | smoke-tested | framework-only main configure/build; 126/126 CPU CTest | CI matrix |
 | CPU code coverage | smoke-tested | 83.9% lines, 90.9% functions, 66.6% branches over `src/` + `include/` | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, cast, views and transfer | low-precision math/device-native cast |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
@@ -13,7 +13,8 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Tensor PPM sample | smoke-tested | executable output/checksum | documented golden value |
 | HIP Storage/runtime | smoke-tested | gfx942 allocation, transfer, Stream/Event tests | CI on more GPUs |
 | CPU reference operators | smoke-tested | hand/PyTorch oracles plus deterministic rank/edge/shape properties and randomized finite differences | more dtypes |
-| HIP readable operators | smoke-tested | 24/24 gfx942 suite; ops, graph, and direct weight load | more architectures/optimized paths |
+| HIP readable operators | smoke-tested | FP32 suite plus native FP16/BF16 basic kernels with zero host transfers | remaining low-precision forward/backward families |
+| MI300X precision capabilities | smoke-tested | dedicated gfx942 format gate; FP32/FP16/BF16 hipBLASLt execution and Event speedup | FP8/INT8 probes and packed INT4 software path |
 | Operator context | smoke-tested | explicit Stream ordering and mismatch tests | low-level C descriptor |
 | CPU Transformer Autograd | smoke-tested | dedicated graph construction tests, finite differences, PyTorch full-graph gradients | more dtypes |
 | HIP Autograd | smoke-tested | CPU/HIP full Transformer gradient comparison; zero host transfers during graph execution | optimized reductions/more dtypes |

@@ -30,9 +30,27 @@ struct TransferStats {
     std::size_t device_to_device_bytes = 0;
 };
 
+struct PrecisionCapabilities {
+    std::string architecture;
+    bool fp64 = false;
+    bool fp32 = false;
+    bool tf32_hardware = false;
+    bool fp16 = false;
+    bool bfloat16 = false;
+    bool fp8_fnuz = false;
+    bool fp8_ocp = false;
+    bool int8_matrix = false;
+    bool mxfp8 = false;
+    bool mxfp6 = false;
+    bool mxfp4 = false;
+    bool int4_matrix = false;
+    bool packed_int4_software = true;
+};
+
 [[nodiscard]] bool hip_compiled() noexcept;
 [[nodiscard]] int hip_device_count();
 [[nodiscard]] DeviceInfo device_info(Device device);
+[[nodiscard]] PrecisionCapabilities precision_capabilities(Device device);
 [[nodiscard]] MemoryInfo memory_info(Device device);
 [[nodiscard]] int hip_runtime_version();
 [[nodiscard]] int hip_driver_version();

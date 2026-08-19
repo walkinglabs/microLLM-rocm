@@ -37,11 +37,15 @@ MI300X 没有 CDNA4 的原生 MXFP4 Matrix Core。仓库可以保存 packed FP4 
 | 真正的 Tensor 存储 | ✓ | ✓ | ✓ | 计划中 | 计划中 | 计划中 |
 | CPU 构造/读取/cast | ✓ | ✓ | ✓ | 计划中 | 计划中 | 计划中 |
 | view/contiguous/设备复制 | ✓ | ✓ | ✓ | 计划中 | 计划中 | 计划中 |
-| 普通算子 | ✓ | 开发中 | 开发中 | — | — | — |
-| hipBLASLt GEMM | FP32 | 开发中 | 开发中 | 计划中 | 计划中 | 软件解包后计算 |
+| 基础逐元素/SiLU/SwiGLU/GEMM | ✓ | CPU/MI300X ✓ | CPU/MI300X ✓ | — | — | — |
+| hipBLASLt GEMM | FP32 ✓ | MI300X ✓ | MI300X ✓ | 计划中 | 计划中 | 软件解包后计算 |
 | 完整训练 | FP32 | 计划中 | 计划中 | 计划中 | — | — |
 
 表格中的“计划中”不是支持声明。只有对应测试和真机记录完成后才会改成 ✓。
+
+MI300X 的固定 `512³` 实测中，hipBLASLt 相对可读 Kernel 的平均 Event 加速为
+FP32 4.47x、FP16 3.83x、BF16 5.60x。原始记录和边界说明见
+`docs/development/2026-08-19-mi300x-precision-capabilities.md`。
 
 ## 4. 类型提升规则
 

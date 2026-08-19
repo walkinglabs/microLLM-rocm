@@ -96,6 +96,43 @@ void emit_forward_cases() {
     emit("repeat_interleave", repeat_interleave(f32({1, 2, 3, 4}, {2, 2}), 0, 2));
 }
 
+void emit_low_precision_forward_cases() {
+    using namespace microllm::ops;
+    for (const auto& [prefix, dtype] :
+         {std::pair{"fp16", DType::Float16},
+          std::pair{"bf16", DType::BFloat16}}) {
+        const auto name = [&](const char* operation) {
+            return std::string(prefix) + "_" + operation;
+        };
+        const auto left = Tensor::from_vector(
+            {1, -2, 3, 4, 0.5F, -0.25F}, {2, 3}, dtype);
+        const auto right = Tensor::from_vector(
+            {4, 5, -6, 2, 1.5F, 0.25F}, {2, 3}, dtype);
+        emit(name("add"), add(left, right));
+        emit(name("multiply"), multiply(left, right));
+        emit(name("scale"), scale(left, -0.25F));
+        emit(name("silu"), silu(left));
+        emit(name("swiglu"), swiglu(left, right));
+
+        const auto mat_left = Tensor::from_vector({1, 2, 3, 4, 5, 6}, {2, 3}, dtype);
+        const auto mat_right = Tensor::from_vector({1, 2, 3, 4, 5, 6}, {3, 2}, dtype);
+        emit(name("matmul"), matmul(mat_left, mat_right));
+        const auto embedding_weight = Tensor::from_vector(
+            {0, 1, 2, 3, 4, 5, 6, 7}, {4, 2}, dtype);
+        emit(name("embedding"), embedding(
+            embedding_weight, Tensor::from_int32_vector({2, 0, 2}, {3})));
+        emit(name("softmax"), softmax(left));
+        emit(name("rms_norm"), rms_norm(
+            left, Tensor::from_vector({1, 0.5F, 2}, {3}, dtype)));
+        const auto rope_input = Tensor::from_vector(
+            {1, 0, 0, 1, 1, 0, 0, 1}, {1, 2, 1, 4}, dtype);
+        emit(name("rope"), rope(rope_input));
+        emit(name("cross_entropy"), cross_entropy(
+            Tensor::from_vector({2, 1, 0, 0, 1, 2}, {2, 3}, dtype),
+            Tensor::from_int32_vector({0, 2}, {2})));
+    }
+}
+
 void emit_graph_gradient_cases() {
     using namespace microllm::autograd;
     Value a(f32({1, 2, 3, 4}, {2, 2}), true);
@@ -296,6 +333,7 @@ void emit_optimizer_cases() {
 
 int main() {
     emit_forward_cases();
+    emit_low_precision_forward_cases();
     emit_graph_gradient_cases();
     emit_invalid_shape_cases();
     emit_model_graph_case();

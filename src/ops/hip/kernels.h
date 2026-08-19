@@ -2,6 +2,8 @@
 
 #include <cstdint>
 
+#include <microllm/base/dtype.h>
+
 namespace microllm::ops::hip {
 
 void launch_fill(float* output, std::int64_t elements, float value, void* stream = nullptr);
@@ -11,6 +13,21 @@ void launch_multiply(const float* left, const float* right, float* output,
                      std::int64_t elements, void* stream = nullptr);
 void launch_scale(const float* input, float* output, std::int64_t elements, float factor,
                   void* stream = nullptr);
+void launch_fill_typed(void* output, DType dtype, std::int64_t elements, float value,
+                       void* stream = nullptr);
+void launch_add_typed(const void* left, const void* right, void* output, DType dtype,
+                      std::int64_t elements, void* stream = nullptr);
+void launch_multiply_typed(const void* left, const void* right, void* output, DType dtype,
+                           std::int64_t elements, void* stream = nullptr);
+void launch_scale_typed(const void* input, void* output, DType dtype,
+                        std::int64_t elements, float factor, void* stream = nullptr);
+void launch_matmul_typed(const void* left, const void* right, void* output, DType dtype,
+                         std::int64_t batches, std::int64_t rows, std::int64_t inner,
+                         std::int64_t columns, void* stream = nullptr);
+void launch_silu_typed(const void* input, void* output, DType dtype,
+                       std::int64_t elements, void* stream = nullptr);
+void launch_swiglu_typed(const void* gate, const void* up, void* output, DType dtype,
+                         std::int64_t elements, void* stream = nullptr);
 void launch_matmul(const float* left, const float* right, float* output,
                    std::int64_t batches, std::int64_t rows, std::int64_t inner,
                    std::int64_t columns, void* stream = nullptr);

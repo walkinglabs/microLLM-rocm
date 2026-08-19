@@ -20,6 +20,7 @@ struct Options {
     std::string operation = "add";
     std::string device = "cpu";
     std::string implementation = "readable";
+    std::string dtype = "fp32";
     std::int64_t size = 256;
     std::int64_t rows = 0;
     std::int64_t inner = 0;
@@ -43,6 +44,7 @@ Options parse_options(int argc, char** argv) {
         if (name == "--op") options.operation = argv[index + 1];
         else if (name == "--device") options.device = argv[index + 1];
         else if (name == "--implementation") options.implementation = argv[index + 1];
+        else if (name == "--dtype") options.dtype = argv[index + 1];
         else if (name == "--size") options.size = parse_integer(argv[index + 1], "size");
         else if (name == "--m") options.rows = parse_integer(argv[index + 1], "m");
         else if (name == "--k") options.inner = parse_integer(argv[index + 1], "k");
@@ -61,6 +63,9 @@ Options parse_options(int argc, char** argv) {
     if (options.implementation != "auto" && options.implementation != "readable" &&
         options.implementation != "hipblaslt") {
         throw std::invalid_argument("implementation must be auto, readable, or hipblaslt");
+    }
+    if (options.dtype != "fp32" && options.dtype != "fp16" && options.dtype != "bf16") {
+        throw std::invalid_argument("dtype must be fp32, fp16, or bf16");
     }
     if (options.implementation == "hipblaslt" &&
         (options.operation != "matmul" || options.device != "hip" ||
@@ -89,6 +94,12 @@ Options parse_options(int argc, char** argv) {
         throw std::invalid_argument("m/k/n are valid only for matmul");
     }
     return options;
+}
+
+microllm::DType parse_dtype(const std::string& value) {
+    if (value == "fp16") return microllm::DType::Float16;
+    if (value == "bf16") return microllm::DType::BFloat16;
+    return microllm::DType::Float32;
 }
 
 microllm::Tensor run_operation(const std::string& operation, const microllm::Tensor& left,
@@ -129,6 +140,7 @@ int main(int argc, char** argv) {
         const auto options = parse_options(argc, argv);
         const auto device = options.device == "cpu" ? microllm::Device::cpu()
                                                      : microllm::Device::hip();
+        const auto dtype = parse_dtype(options.dtype);
         if (device.is_hip() && microllm::runtime::hip_device_count() == 0) {
             throw std::runtime_error("HIP benchmark requested without a visible GPU");
         }
@@ -156,8 +168,8 @@ int main(int argc, char** argv) {
         const microllm::Shape right_shape = options.operation == "matmul"
                                                 ? microllm::Shape{options.inner, options.columns}
                                                 : left_shape;
-        const auto left_cpu = microllm::Tensor::from_vector(left_values, left_shape);
-        const auto right_cpu = microllm::Tensor::from_vector(right_values, right_shape);
+        const auto left_cpu = microllm::Tensor::from_vector(left_values, left_shape, dtype);
+        const auto right_cpu = microllm::Tensor::from_vector(right_values, right_shape, dtype);
         const auto reference =
             run_operation(options.operation, left_cpu, right_cpu, "readable").to_vector();
         const auto left = left_cpu.to(device);
@@ -229,7 +241,7 @@ int main(int argc, char** argv) {
                   << ",\"architecture\":\"" << architecture << "\""
                   << ",\"hip_runtime_version\":" << microllm::runtime::hip_runtime_version()
                   << ",\"hip_driver_version\":" << microllm::runtime::hip_driver_version()
-                  << ",\"dtype\":\"float32\""
+                  << ",\"dtype\":\"" << microllm::dtype_name(dtype) << "\""
                   << ",\"size\":" << options.size
                   << ",\"m\":" << options.rows
                   << ",\"k\":" << options.inner
@@ -247,7 +259,10 @@ int main(int argc, char** argv) {
                   << ",\"gpu_total_bytes\":" << memory_after.total_bytes
                   << ",\"maximum_absolute_error\":" << maximum_error
                   << ",\"value_sum\":" << value_sum << "}\n";
-        return maximum_error <= 2.0e-4F ? 0 : 2;
+        const auto tolerance = dtype == microllm::DType::Float32
+                                   ? 2.0e-4F
+                                   : dtype == microllm::DType::Float16 ? 3.0e-2F : 2.0e-1F;
+        return maximum_error <= tolerance ? 0 : 2;
     } catch (const std::exception& error) {
         std::cerr << "benchmark_ops: " << error.what() << '\n';
         return 1;

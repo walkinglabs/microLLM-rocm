@@ -58,6 +58,44 @@ TEST(HipOpsTest, FillAndElementwiseMatchCpuReference) {
     expect_near(scale(left, -0.25F).to_vector(), scale(left_cpu, -0.25F).to_vector());
 }
 
+TEST(HipLowPrecisionOpsTest, NativeBasicKernelsMatchCpuAndAvoidHostTransfers) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    for (const auto dtype : {DType::Float16, DType::BFloat16}) {
+        const auto tolerance = dtype == DType::Float16 ? 3.0e-3F : 3.0e-2F;
+        const auto left_cpu = Tensor::from_vector(
+            {1, -2, 3, 4, 0.5F, -0.25F}, {2, 3}, dtype);
+        const auto right_cpu = Tensor::from_vector(
+            {4, 5, -6, 2, 1.5F, 0.25F}, {2, 3}, dtype);
+        const auto mat_right_cpu = Tensor::from_vector(
+            {1, 2, 3, 4, 5, 6}, {3, 2}, dtype);
+        const auto left = left_cpu.to(gpu);
+        const auto right = right_cpu.to(gpu);
+        const auto mat_right = mat_right_cpu.to(gpu);
+        runtime::reset_transfer_stats();
+        auto filled = Tensor({6}, dtype, gpu);
+        fill_(filled, -1.25F);
+        const auto added = add(left, right);
+        const auto multiplied = multiply(left, right);
+        const auto scaled = scale(left, -0.25F);
+        const auto matrix = matmul(left, mat_right);
+        const auto activated = silu(left);
+        const auto gated = swiglu(left, right);
+        runtime::synchronize(gpu);
+        const auto transfers = runtime::transfer_stats();
+        EXPECT_EQ(transfers.host_to_device_calls, 0U);
+        EXPECT_EQ(transfers.device_to_host_calls, 0U);
+
+        expect_near(filled.to_vector(), std::vector<float>(6, -1.25F), tolerance);
+        expect_near(added.to_vector(), add(left_cpu, right_cpu).to_vector(), tolerance);
+        expect_near(multiplied.to_vector(), multiply(left_cpu, right_cpu).to_vector(), tolerance);
+        expect_near(scaled.to_vector(), scale(left_cpu, -0.25F).to_vector(), tolerance);
+        expect_near(matrix.to_vector(), matmul(left_cpu, mat_right_cpu).to_vector(), tolerance);
+        expect_near(activated.to_vector(), silu(left_cpu).to_vector(), tolerance);
+        expect_near(gated.to_vector(), swiglu(left_cpu, right_cpu).to_vector(), tolerance);
+    }
+}
+
 TEST(HipOpsTest, NaiveBatchedMatmulMatchesCpuReference) {
     require_gpu();
     const auto left_cpu = Tensor::from_vector({1, 2, 3, 4, 5, 6, 1, 0, 0, 1, 1, 1}, {2, 2, 3});
@@ -335,6 +373,19 @@ TEST(HipOptimizedOpsTest, HipblasLtMatmulMatchesReadableReference) {
                             MatmulImplementation::HipBLASLt)
                             .to_vector();
     expect_near(actual, expected, 2.0e-4F);
+    for (const auto dtype : {DType::Float16, DType::BFloat16}) {
+        const auto low_left = Tensor::from_vector(left_values, {64, 64}, dtype);
+        const auto low_right = Tensor::from_vector(right_values, {64, 64}, dtype);
+        const auto low_expected = matmul(low_left, low_right).to_vector();
+        runtime::reset_transfer_stats();
+        const auto low_actual_tensor = matmul_with_implementation(
+            low_left.to(Device::hip()), low_right.to(Device::hip()),
+            MatmulImplementation::HipBLASLt);
+        runtime::synchronize(Device::hip());
+        const auto tolerance = dtype == DType::Float16 ? 3.0e-2F : 2.0e-1F;
+        expect_near(low_actual_tensor.to_vector(), low_expected, tolerance);
+        EXPECT_EQ(low_actual_tensor.dtype(), dtype);
+    }
     EXPECT_EQ(choose_matmul_implementation(left_cpu.to(Device::hip()),
                                            right_cpu.to(Device::hip())),
               MatmulImplementation::Readable);

@@ -99,6 +99,65 @@ TEST(CpuOpsTest, ShapeErrorsAreVisible) {
     EXPECT_THROW((void)matmul(Tensor({2, 3}), Tensor({2, 4})), std::invalid_argument);
 }
 
+TEST(CpuLowPrecisionOpsTest, ForwardFamilyMatchesRoundedFloat32Reference) {
+    const auto indices = Tensor::from_int32_vector({2, 0, 2}, {3});
+    const auto targets = Tensor::from_int32_vector({0, 2}, {2});
+    for (const auto dtype : {DType::Float16, DType::BFloat16}) {
+        const auto tolerance = dtype == DType::Float16 ? 3.0e-3F : 3.0e-2F;
+        const auto left = Tensor::from_vector({1, -2, 3, 4, 0.5F, -0.25F}, {2, 3}, dtype);
+        const auto right = Tensor::from_vector({4, 5, -6, 2, 1.5F, 0.25F}, {2, 3}, dtype);
+        const auto left32 = left.cast(DType::Float32);
+        const auto right32 = right.cast(DType::Float32);
+        const auto compare = [&](const Tensor& actual, const Tensor& reference) {
+            EXPECT_EQ(actual.dtype(), dtype);
+            EXPECT_EQ(actual.shape(), reference.shape());
+            expect_near(actual.to_vector(), reference.cast(dtype).to_vector(), tolerance);
+        };
+        compare(add(left, right), add(left32, right32));
+        compare(multiply(left, right), multiply(left32, right32));
+        compare(scale(left, -0.25F), scale(left32, -0.25F));
+        compare(silu(left), silu(left32));
+        compare(swiglu(left, right), swiglu(left32, right32));
+
+        const auto mat_left = Tensor::from_vector({1, 2, 3, 4, 5, 6}, {2, 3}, dtype);
+        const auto mat_right = Tensor::from_vector({1, 2, 3, 4, 5, 6}, {3, 2}, dtype);
+        compare(matmul(mat_left, mat_right),
+                matmul(mat_left.cast(DType::Float32), mat_right.cast(DType::Float32)));
+
+        const auto embedding_weight = Tensor::from_vector(
+            {0, 1, 2, 3, 4, 5, 6, 7}, {4, 2}, dtype);
+        compare(embedding(embedding_weight, indices),
+                embedding(embedding_weight.cast(DType::Float32), indices));
+        compare(softmax(left), softmax(left32));
+        const auto norm_weight = Tensor::from_vector({1, 0.5F, 2}, {3}, dtype);
+        compare(rms_norm(left, norm_weight),
+                rms_norm(left32, norm_weight.cast(DType::Float32)));
+        const auto rope_input = Tensor::from_vector(
+            {1, 0, 0, 1, 1, 0, 0, 1}, {1, 2, 1, 4}, dtype);
+        compare(rope(rope_input), rope(rope_input.cast(DType::Float32)));
+
+        const auto logits = Tensor::from_vector({2, 1, 0, 0, 1, 2}, {2, 3}, dtype);
+        const auto loss = cross_entropy(logits, targets);
+        EXPECT_EQ(loss.dtype(), DType::Float32);
+        EXPECT_NEAR(loss.to_vector()[0],
+                    cross_entropy(logits.cast(DType::Float32), targets).to_vector()[0],
+                    tolerance);
+
+        auto filled = Tensor({2, 3}, dtype);
+        fill_(filled, -1.25F);
+        EXPECT_EQ(filled.to_vector(), (std::vector<float>(6, -1.25F)));
+    }
+}
+
+TEST(CpuLowPrecisionOpsTest, MixedDtypesRequireAnExplicitCast) {
+    const auto fp16 = Tensor::from_vector({1, 2}, {2}, DType::Float16);
+    const auto bf16 = Tensor::from_vector({1, 2}, {2}, DType::BFloat16);
+    EXPECT_THROW((void)add(fp16, bf16), std::invalid_argument);
+    EXPECT_THROW((void)multiply(fp16, bf16), std::invalid_argument);
+    EXPECT_THROW((void)swiglu(fp16, bf16), std::invalid_argument);
+    EXPECT_THROW((void)rms_norm(fp16, bf16), std::invalid_argument);
+}
+
 TEST(LowLevelOpsTest, OperatesOnCallerOwnedCpuBuffers) {
     const Shape shape{2, 2};
     const Strides strides{2, 1};

@@ -23,8 +23,8 @@ bool hipblaslt_available() noexcept { return MICROLLM_HAS_HIPBLASLT != 0; }
 MatmulImplementation choose_matmul_implementation(const Tensor& left,
                                                   const Tensor& right) {
     if (!hipblaslt_available() || !left.device().is_hip() || right.device() != left.device() ||
-        left.ndim() != 2 || right.ndim() != 2 || left.dtype() != DType::Float32 ||
-        right.dtype() != DType::Float32 || !left.is_contiguous() || !right.is_contiguous() ||
+        left.ndim() != 2 || right.ndim() != 2 || !is_floating_point(left.dtype()) ||
+        right.dtype() != left.dtype() || !left.is_contiguous() || !right.is_contiguous() ||
         left.shape()[1] != right.shape()[0]) {
         return MatmulImplementation::Readable;
     }
@@ -84,8 +84,9 @@ private:
 
 class Layout {
 public:
-    Layout(std::uint64_t rows, std::uint64_t columns, std::int64_t leading_dimension) {
-        check_status(hipblasLtMatrixLayoutCreate(&value_, HIP_R_32F, rows, columns,
+    Layout(hipDataType dtype, std::uint64_t rows, std::uint64_t columns,
+           std::int64_t leading_dimension) {
+        check_status(hipblasLtMatrixLayoutCreate(&value_, dtype, rows, columns,
                                                  leading_dimension),
                      "hipblasLtMatrixLayoutCreate");
     }
@@ -97,6 +98,17 @@ public:
 private:
     hipblasLtMatrixLayout_t value_ = nullptr;
 };
+
+hipDataType hip_dtype(DType dtype) {
+    switch (dtype) {
+        case DType::Float32: return HIP_R_32F;
+        case DType::Float16: return HIP_R_16F;
+        case DType::BFloat16: return HIP_R_16BF;
+        case DType::Int32:
+        case DType::Int64: break;
+    }
+    throw std::invalid_argument("hipBLASLt matmul requires FP32, FP16, or BF16");
+}
 
 class MatmulDescription {
 public:
@@ -117,24 +129,25 @@ private:
 Tensor hipblaslt_matmul(const Tensor& left, const Tensor& right,
                         const OpContext& context) {
     if (!left.device().is_hip() || right.device() != left.device() ||
-        left.dtype() != DType::Float32 || right.dtype() != DType::Float32 ||
+        !is_floating_point(left.dtype()) || right.dtype() != left.dtype() ||
         left.ndim() != 2 || right.ndim() != 2 || !left.is_contiguous() ||
         !right.is_contiguous()) {
         throw std::invalid_argument(
-            "hipBLASLt matmul requires contiguous 2D float32 tensors on one HIP device");
+            "hipBLASLt matmul requires matching contiguous 2D floating tensors on one HIP device");
     }
     const auto rows = left.shape()[0];
     const auto inner = left.shape()[1];
     const auto columns = right.shape()[1];
     if (right.shape()[0] != inner) throw std::invalid_argument("matmul inner dimensions mismatch");
-    Tensor output({rows, columns}, DType::Float32, left.device());
+    Tensor output({rows, columns}, left.dtype(), left.device());
     static Handle handle;
     MatmulDescription operation;
+    const auto data_type = hip_dtype(left.dtype());
     // Row-major C=A*B is column-major C^T=B^T*A^T without moving data.
-    Layout matrix_b(static_cast<std::uint64_t>(columns), static_cast<std::uint64_t>(inner),
+    Layout matrix_b(data_type, static_cast<std::uint64_t>(columns), static_cast<std::uint64_t>(inner),
                     columns);
-    Layout matrix_a(static_cast<std::uint64_t>(inner), static_cast<std::uint64_t>(rows), inner);
-    Layout matrix_c(static_cast<std::uint64_t>(columns), static_cast<std::uint64_t>(rows),
+    Layout matrix_a(data_type, static_cast<std::uint64_t>(inner), static_cast<std::uint64_t>(rows), inner);
+    Layout matrix_c(data_type, static_cast<std::uint64_t>(columns), static_cast<std::uint64_t>(rows),
                     columns);
     const float alpha = 1.0F;
     const float beta = 0.0F;

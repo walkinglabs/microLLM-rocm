@@ -132,6 +132,30 @@ DeviceInfo device_info(Device device) {
 #endif
 }
 
+PrecisionCapabilities precision_capabilities(Device device) {
+    const auto info = device_info(device);
+    PrecisionCapabilities capabilities;
+    capabilities.architecture = info.architecture;
+    capabilities.fp32 = true;
+    if (device.is_cpu()) return capabilities;
+    const auto is_cdna3 = info.architecture.rfind("gfx942", 0) == 0;
+    const auto is_cdna4 = info.architecture.rfind("gfx950", 0) == 0;
+    capabilities.fp64 = is_cdna3 || is_cdna4;
+    capabilities.tf32_hardware = is_cdna3;
+    capabilities.fp16 = is_cdna3 || is_cdna4;
+    capabilities.bfloat16 = is_cdna3 || is_cdna4;
+    capabilities.fp8_fnuz = is_cdna3;
+    capabilities.fp8_ocp = is_cdna4;
+    capabilities.int8_matrix = is_cdna3 || is_cdna4;
+    capabilities.mxfp8 = is_cdna4;
+    capabilities.mxfp6 = is_cdna4;
+    capabilities.mxfp4 = is_cdna4;
+    // The published MI300/MI350 precision table lists INT8 Matrix but not INT4 Matrix.
+    // Packed INT4 remains a software dequantization path until a probed backend says otherwise.
+    capabilities.int4_matrix = false;
+    return capabilities;
+}
+
 MemoryInfo memory_info(Device device) {
     if (device.is_cpu()) return {};
 #if MICROLLM_HAS_HIP

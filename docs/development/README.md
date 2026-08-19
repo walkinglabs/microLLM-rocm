@@ -124,6 +124,8 @@ the next gate. Records are append-only except for factual corrections.
   GCC/gcovr line, function, and branch coverage plus the remaining blind spots.
 - [2026-08-19-low-precision-tensor-storage.md](2026-08-19-low-precision-tensor-storage.md):
   real FP16/BF16 storage, cast/view/device-copy semantics, and MI300/MI350 boundaries.
+- [2026-08-19-mi300x-precision-capabilities.md](2026-08-19-mi300x-precision-capabilities.md):
+  dedicated hardware-format gates and measured FP32/FP16/BF16 Matrix acceleration.
 - [2026-08-19-data-parallel-trainer.md](2026-08-19-data-parallel-trainer.md):
   reusable two-rank training step, bucketed gradient average, global-batch equivalence,
   stage profiling, and production reducer gaps.

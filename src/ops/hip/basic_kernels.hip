@@ -4,6 +4,8 @@
 #include <string>
 
 #include <hip/hip_runtime.h>
+#include <hip/hip_bfloat16.h>
+#include <hip/hip_fp16.h>
 
 namespace microllm::ops::hip {
 namespace {
@@ -45,6 +47,98 @@ __global__ void scale_kernel(const float* input, float* output, std::int64_t ele
                              float factor) {
     const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
     if (index < elements) output[index] = input[index] * factor;
+}
+
+template <typename T>
+__device__ float load_as_float(const T& value) {
+    return static_cast<float>(value);
+}
+
+template <typename T>
+__device__ T store_from_float(float value) {
+    return T(value);
+}
+
+__device__ float sigmoid_typed_device(float value) {
+    if (value >= 0.0F) return 1.0F / (1.0F + expf(-value));
+    const auto exponential = expf(value);
+    return exponential / (1.0F + exponential);
+}
+
+template <typename T>
+__global__ void fill_typed_kernel(T* output, std::int64_t elements, float value) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    if (index < elements) output[index] = store_from_float<T>(value);
+}
+
+template <typename T>
+__global__ void add_typed_kernel(const T* left, const T* right, T* output,
+                                 std::int64_t elements) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    if (index < elements) {
+        output[index] = store_from_float<T>(load_as_float(left[index]) +
+                                            load_as_float(right[index]));
+    }
+}
+
+template <typename T>
+__global__ void multiply_typed_kernel(const T* left, const T* right, T* output,
+                                      std::int64_t elements) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    if (index < elements) {
+        output[index] = store_from_float<T>(load_as_float(left[index]) *
+                                            load_as_float(right[index]));
+    }
+}
+
+template <typename T>
+__global__ void scale_typed_kernel(const T* input, T* output, std::int64_t elements,
+                                   float factor) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    if (index < elements) {
+        output[index] = store_from_float<T>(load_as_float(input[index]) * factor);
+    }
+}
+
+template <typename T>
+__global__ void matmul_typed_kernel(const T* left, const T* right, T* output,
+                                    std::int64_t batches, std::int64_t rows,
+                                    std::int64_t inner, std::int64_t columns) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    const auto elements = batches * rows * columns;
+    if (index >= elements) return;
+    const auto column = index % columns;
+    const auto row_and_batch = index / columns;
+    const auto row = row_and_batch % rows;
+    const auto batch = row_and_batch / rows;
+    const auto left_base = batch * rows * inner;
+    const auto right_base = batch * inner * columns;
+    float sum = 0.0F;
+    for (std::int64_t reduction = 0; reduction < inner; ++reduction) {
+        sum += load_as_float(left[left_base + row * inner + reduction]) *
+               load_as_float(right[right_base + reduction * columns + column]);
+    }
+    output[index] = store_from_float<T>(sum);
+}
+
+template <typename T>
+__global__ void silu_typed_kernel(const T* input, T* output, std::int64_t elements) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    if (index < elements) {
+        const auto value = load_as_float(input[index]);
+        output[index] = store_from_float<T>(value * sigmoid_typed_device(value));
+    }
+}
+
+template <typename T>
+__global__ void swiglu_typed_kernel(const T* gate, const T* up, T* output,
+                                    std::int64_t elements) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    if (index < elements) {
+        const auto gate_value = load_as_float(gate[index]);
+        output[index] = store_from_float<T>(gate_value * sigmoid_typed_device(gate_value) *
+                                            load_as_float(up[index]));
+    }
 }
 
 __global__ void matmul_kernel(const float* left, const float* right, float* output,
@@ -450,6 +544,163 @@ void launch_scale(const float* input, float* output, std::int64_t elements, floa
     hipLaunchKernelGGL(scale_kernel, dim3(grid_size(elements)), dim3(kBlockSize), 0,
                        as_stream(stream), input, output, elements, factor);
     check_launch("scale_kernel");
+}
+
+void launch_fill_typed(void* output, DType dtype, std::int64_t elements, float value,
+                       void* stream) {
+    if (elements == 0) return;
+    const auto grid = dim3(grid_size(elements));
+    const auto block = dim3(kBlockSize);
+    switch (dtype) {
+        case DType::Float32:
+            hipLaunchKernelGGL(fill_typed_kernel<float>, grid, block, 0, as_stream(stream),
+                               static_cast<float*>(output), elements, value);
+            break;
+        case DType::Float16:
+            hipLaunchKernelGGL(fill_typed_kernel<__half>, grid, block, 0, as_stream(stream),
+                               static_cast<__half*>(output), elements, value);
+            break;
+        case DType::BFloat16:
+            hipLaunchKernelGGL(fill_typed_kernel<hip_bfloat16>, grid, block, 0,
+                               as_stream(stream), static_cast<hip_bfloat16*>(output),
+                               elements, value);
+            break;
+        default: throw std::invalid_argument("typed fill requires a floating dtype");
+    }
+    check_launch("fill_typed_kernel");
+}
+
+#define MICROLLM_LAUNCH_BINARY_TYPED(kernel_name, operation_name)                       \
+    switch (dtype) {                                                                    \
+        case DType::Float32:                                                            \
+            hipLaunchKernelGGL(kernel_name<float>, grid, block, 0, as_stream(stream),  \
+                               static_cast<const float*>(left),                         \
+                               static_cast<const float*>(right),                        \
+                               static_cast<float*>(output), elements);                  \
+            break;                                                                      \
+        case DType::Float16:                                                            \
+            hipLaunchKernelGGL(kernel_name<__half>, grid, block, 0, as_stream(stream), \
+                               static_cast<const __half*>(left),                        \
+                               static_cast<const __half*>(right),                       \
+                               static_cast<__half*>(output), elements);                 \
+            break;                                                                      \
+        case DType::BFloat16:                                                           \
+            hipLaunchKernelGGL(kernel_name<hip_bfloat16>, grid, block, 0,              \
+                               as_stream(stream),                                       \
+                               static_cast<const hip_bfloat16*>(left),                  \
+                               static_cast<const hip_bfloat16*>(right),                 \
+                               static_cast<hip_bfloat16*>(output), elements);           \
+            break;                                                                      \
+        default: throw std::invalid_argument(operation_name " requires a floating dtype"); \
+    }
+
+void launch_add_typed(const void* left, const void* right, void* output, DType dtype,
+                      std::int64_t elements, void* stream) {
+    if (elements == 0) return;
+    const auto grid = dim3(grid_size(elements));
+    const auto block = dim3(kBlockSize);
+    MICROLLM_LAUNCH_BINARY_TYPED(add_typed_kernel, "typed add")
+    check_launch("add_typed_kernel");
+}
+
+void launch_multiply_typed(const void* left, const void* right, void* output, DType dtype,
+                           std::int64_t elements, void* stream) {
+    if (elements == 0) return;
+    const auto grid = dim3(grid_size(elements));
+    const auto block = dim3(kBlockSize);
+    MICROLLM_LAUNCH_BINARY_TYPED(multiply_typed_kernel, "typed multiply")
+    check_launch("multiply_typed_kernel");
+}
+
+#undef MICROLLM_LAUNCH_BINARY_TYPED
+
+void launch_scale_typed(const void* input, void* output, DType dtype,
+                        std::int64_t elements, float factor, void* stream) {
+    if (elements == 0) return;
+    const auto grid = dim3(grid_size(elements));
+    const auto block = dim3(kBlockSize);
+#define MICROLLM_SCALE_CASE(cpp_type, enum_value)                                      \
+    case enum_value:                                                                   \
+        hipLaunchKernelGGL(scale_typed_kernel<cpp_type>, grid, block, 0,              \
+                           as_stream(stream), static_cast<const cpp_type*>(input),     \
+                           static_cast<cpp_type*>(output), elements, factor);          \
+        break
+    switch (dtype) {
+        MICROLLM_SCALE_CASE(float, DType::Float32);
+        MICROLLM_SCALE_CASE(__half, DType::Float16);
+        MICROLLM_SCALE_CASE(hip_bfloat16, DType::BFloat16);
+        default: throw std::invalid_argument("typed scale requires a floating dtype");
+    }
+#undef MICROLLM_SCALE_CASE
+    check_launch("scale_typed_kernel");
+}
+
+void launch_matmul_typed(const void* left, const void* right, void* output, DType dtype,
+                         std::int64_t batches, std::int64_t rows, std::int64_t inner,
+                         std::int64_t columns, void* stream) {
+    const auto elements = batches * rows * columns;
+    if (elements == 0) return;
+    const auto grid = dim3(grid_size(elements));
+    const auto block = dim3(kBlockSize);
+#define MICROLLM_MATMUL_CASE(cpp_type, enum_value)                                     \
+    case enum_value:                                                                   \
+        hipLaunchKernelGGL(matmul_typed_kernel<cpp_type>, grid, block, 0,             \
+                           as_stream(stream), static_cast<const cpp_type*>(left),      \
+                           static_cast<const cpp_type*>(right),                        \
+                           static_cast<cpp_type*>(output), batches, rows, inner,       \
+                           columns);                                                   \
+        break
+    switch (dtype) {
+        MICROLLM_MATMUL_CASE(float, DType::Float32);
+        MICROLLM_MATMUL_CASE(__half, DType::Float16);
+        MICROLLM_MATMUL_CASE(hip_bfloat16, DType::BFloat16);
+        default: throw std::invalid_argument("typed matmul requires a floating dtype");
+    }
+#undef MICROLLM_MATMUL_CASE
+    check_launch("matmul_typed_kernel");
+}
+
+void launch_silu_typed(const void* input, void* output, DType dtype,
+                       std::int64_t elements, void* stream) {
+    if (elements == 0) return;
+    const auto grid = dim3(grid_size(elements));
+    const auto block = dim3(kBlockSize);
+#define MICROLLM_SILU_CASE(cpp_type, enum_value)                                      \
+    case enum_value:                                                                  \
+        hipLaunchKernelGGL(silu_typed_kernel<cpp_type>, grid, block, 0,              \
+                           as_stream(stream), static_cast<const cpp_type*>(input),    \
+                           static_cast<cpp_type*>(output), elements);                 \
+        break
+    switch (dtype) {
+        MICROLLM_SILU_CASE(float, DType::Float32);
+        MICROLLM_SILU_CASE(__half, DType::Float16);
+        MICROLLM_SILU_CASE(hip_bfloat16, DType::BFloat16);
+        default: throw std::invalid_argument("typed silu requires a floating dtype");
+    }
+#undef MICROLLM_SILU_CASE
+    check_launch("silu_typed_kernel");
+}
+
+void launch_swiglu_typed(const void* gate, const void* up, void* output, DType dtype,
+                         std::int64_t elements, void* stream) {
+    if (elements == 0) return;
+    const auto grid = dim3(grid_size(elements));
+    const auto block = dim3(kBlockSize);
+#define MICROLLM_SWIGLU_CASE(cpp_type, enum_value)                                    \
+    case enum_value:                                                                  \
+        hipLaunchKernelGGL(swiglu_typed_kernel<cpp_type>, grid, block, 0,            \
+                           as_stream(stream), static_cast<const cpp_type*>(gate),     \
+                           static_cast<const cpp_type*>(up),                          \
+                           static_cast<cpp_type*>(output), elements);                 \
+        break
+    switch (dtype) {
+        MICROLLM_SWIGLU_CASE(float, DType::Float32);
+        MICROLLM_SWIGLU_CASE(__half, DType::Float16);
+        MICROLLM_SWIGLU_CASE(hip_bfloat16, DType::BFloat16);
+        default: throw std::invalid_argument("typed swiglu requires a floating dtype");
+    }
+#undef MICROLLM_SWIGLU_CASE
+    check_launch("swiglu_typed_kernel");
 }
 
 void launch_matmul(const float* left, const float* right, float* output,

@@ -36,6 +36,17 @@ if(BUILD_TESTING)
         add_test(NAME Benchmark.HipAddSmoke
                  COMMAND microllm_bench_ops --op add --size 1024 --warmup 1 --repetitions 2 --device hip)
         set_tests_properties(Benchmark.HipAddSmoke PROPERTIES LABELS "hip;benchmark;smoke")
+        if(MICROLLM_HAS_HIPBLASLT)
+            foreach(MICROLLM_LOW_DTYPE IN ITEMS fp16 bf16)
+                add_test(NAME Benchmark.HipMatmul.${MICROLLM_LOW_DTYPE}
+                         COMMAND microllm_bench_ops --op matmul --size 128
+                                 --dtype ${MICROLLM_LOW_DTYPE}
+                                 --implementation hipblaslt --warmup 1 --repetitions 2
+                                 --device hip)
+                set_tests_properties(Benchmark.HipMatmul.${MICROLLM_LOW_DTYPE}
+                                     PROPERTIES LABELS "hip;benchmark;dtype;smoke")
+            endforeach()
+        endif()
         add_test(NAME Benchmark.HipGenerateSmoke
                  COMMAND microllm_bench_model --mode generate --model tiny --device hip
                          --steps 2 --warmup 1 --batch 1 --context 1 --new-tokens 4)

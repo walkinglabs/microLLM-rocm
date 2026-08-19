@@ -84,6 +84,31 @@ def pytorch_references(actual):
     record(refs, "causal_softmax", causal_softmax(scores))
     record(refs, "repeat_interleave", torch.repeat_interleave(tensor([1, 2, 3, 4], (2, 2)), 2, 0))
 
+    for prefix, dtype in (("fp16", torch.float16), ("bf16", torch.bfloat16)):
+        low_left = left.to(dtype)
+        low_right = right.to(dtype)
+        record(refs, f"{prefix}_add", low_left + low_right)
+        record(refs, f"{prefix}_multiply", low_left * low_right)
+        record(refs, f"{prefix}_scale", low_left * -0.25)
+        record(refs, f"{prefix}_silu", F.silu(low_left))
+        record(refs, f"{prefix}_swiglu", F.silu(low_left) * low_right)
+        low_mat_left = matrix_left.to(dtype)
+        low_mat_right = matrix_right.to(dtype)
+        record(refs, f"{prefix}_matmul", low_mat_left @ low_mat_right)
+        low_embedding_weight = embedding_weight.to(dtype)
+        record(refs, f"{prefix}_embedding", F.embedding(indices, low_embedding_weight))
+        record(refs, f"{prefix}_softmax", torch.softmax(low_left, dim=-1))
+        record(
+            refs,
+            f"{prefix}_rms_norm",
+            F.rms_norm(low_left, (3,), tensor([1, 0.5, 2], (3,)).to(dtype), 1.0e-5),
+        )
+        low_rope = rope_input.to(dtype)
+        record(refs, f"{prefix}_rope", rope(low_rope))
+        low_logits = tensor([2, 1, 0, 0, 1, 2], (2, 3)).to(dtype)
+        low_targets = torch.tensor([0, 2], dtype=torch.long)
+        record(refs, f"{prefix}_cross_entropy", F.cross_entropy(low_logits, low_targets))
+
     a = tensor([1, 2, 3, 4], (2, 2), True)
     b = tensor([5, 6, 7, 8], (2, 2), True)
     basic_output = a * b + a * 2.0
@@ -262,7 +287,11 @@ class OperatorParityTest(unittest.TestCase):
         }
         for name, (_, expected) in self.references.items():
             actual = self.actual[name][1]
-            if name.startswith("model_grad:") or name in {"model_logits", "model_loss"}:
+            if name.startswith("bf16_"):
+                tolerance = 3.0e-2
+            elif name.startswith("fp16_"):
+                tolerance = 3.0e-3
+            elif name.startswith("model_grad:") or name in {"model_logits", "model_loss"}:
                 tolerance = 2.0e-3
             else:
                 tolerance = 3.0e-4 if name in looser else 3.0e-5

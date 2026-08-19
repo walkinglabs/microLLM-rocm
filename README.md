@@ -119,12 +119,12 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| CPU tests | 124/124 | reference, dtype/shape/property matrix, graph, model, weights, profiling, integration |
-| ASan/UBSan | 122/122 | host code; dynamic binding tests isolated |
-| MI300X/gfx942 HIP | 26/26 | dtype storage, operators, graph, model, weights, trace timing |
+| CPU tests | 126/126 | reference, dtype/shape/property matrix, graph, model, weights, profiling, integration |
+| ASan/UBSan | 124/124 | host code; dynamic binding tests isolated |
+| MI300X/gfx942 HIP | 31/31 | hardware formats, low-precision GEMM, graph, model, weights, profiling |
 | PyTorch CPU oracle/alignment | 3/3 | ops plus same-weight model value/timing trace |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
-| Registered test files | 33 | machine-audited CTest registration |
+| Registered test files | 34 | machine-audited CTest registration |
 | CPU source coverage | 83.9% lines / 66.6% branches | GCC 13.3 + gcovr 8.3; `src/` and `include/` |
 
 Latest PyTorch-reference maximum absolute differences:
