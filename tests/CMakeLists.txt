@@ -5,9 +5,10 @@ add_executable(microllm_tests
     core/tensor_test.cpp
     core/headers_compile_test.cpp
     runtime/runtime_test.cpp
+    ops/ops_test.cpp
 )
 
-target_link_libraries(microllm_tests PRIVATE GTest::gtest_main microllm::core)
+target_link_libraries(microllm_tests PRIVATE GTest::gtest_main microllm::core microllm::ops)
 
 include(GoogleTest)
 gtest_discover_tests(microllm_tests

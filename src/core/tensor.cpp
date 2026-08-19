@@ -108,6 +108,17 @@ Tensor Tensor::from_vector(const std::vector<float>& values, Shape shape) {
     return result;
 }
 
+Tensor Tensor::from_int32_vector(const std::vector<std::int32_t>& values, Shape shape) {
+    Tensor result(std::move(shape), DType::Int32);
+    if (static_cast<std::uint64_t>(result.numel()) != values.size()) {
+        throw std::invalid_argument("vector size does not match tensor shape");
+    }
+    if (!values.empty()) {
+        std::memcpy(result.data(), values.data(), values.size() * sizeof(std::int32_t));
+    }
+    return result;
+}
+
 Tensor Tensor::from_storage(Storage storage, Shape shape, Strides strides,
                             std::int64_t storage_offset, DType dtype) {
     return Tensor(std::move(storage), std::move(shape), std::move(strides), storage_offset,
@@ -233,6 +244,19 @@ std::vector<float> Tensor::to_vector() const {
         values[static_cast<std::size_t>(logical)] =
             base[logical_to_storage_index(logical, shape_, strides_, storage_offset_)];
     }
+    return values;
+}
+
+std::vector<std::int32_t> Tensor::to_int32_vector() const {
+    if (dtype_ != DType::Int32) {
+        throw std::runtime_error("to_int32_vector requires int32");
+    }
+    if (!is_contiguous()) {
+        throw std::runtime_error("to_int32_vector currently requires a contiguous tensor");
+    }
+    std::vector<std::int32_t> values(static_cast<std::size_t>(numel_));
+    runtime::copy_bytes(values.data(), Device::cpu(), data(), device(),
+                        byte_count(numel_, dtype_));
     return values;
 }
 

@@ -10,3 +10,5 @@ the next gate. Records are append-only except for factual corrections.
   bootstrap and CPU Tensor vertical slice.
 - [2026-08-19-m1-hip-runtime.md](2026-08-19-m1-hip-runtime.md): HIP allocation,
   transfer, Stream, and Event boundary.
+- [2026-08-19-m1-cpu-reference-ops.md](2026-08-19-m1-cpu-reference-ops.md): readable
+  CPU oracle for the first Transformer operator set.

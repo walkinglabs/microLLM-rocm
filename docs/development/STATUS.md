@@ -10,7 +10,8 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Tensor metadata/views | smoke-tested | hand values, randomized shapes, bounds | more dtypes |
 | N0 PPM | smoke-tested | executable output/checksum | documented golden value |
 | HIP Storage/runtime | smoke-tested | gfx942 allocation, transfer, Stream/Event tests | CI on more GPUs |
-| CPU/HIP operators | draft | directory design | reference/conformance tests |
+| CPU reference operators | smoke-tested | 9 hand-value/stability/shape tests | gradient references |
+| HIP operators | draft | shared public API | kernel/conformance tests |
 | Autograd | draft | roadmap | finite-difference tests |
 | Checkpoint | draft | roadmap | multi-step resume |
 | Model-S | draft | corrected parameter budget | overfit and training run |

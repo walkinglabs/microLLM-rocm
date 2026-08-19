@@ -27,6 +27,8 @@ public:
            DType dtype = DType::Float32, Device device = Device::cpu());
 
     [[nodiscard]] static Tensor from_vector(const std::vector<float>& values, Shape shape);
+    [[nodiscard]] static Tensor from_int32_vector(const std::vector<std::int32_t>& values,
+                                                  Shape shape);
     [[nodiscard]] static Tensor from_storage(Storage storage, Shape shape, Strides strides,
                                              std::int64_t storage_offset = 0,
                                              DType dtype = DType::Float32);
@@ -54,6 +56,7 @@ public:
 
     void fill(float value);
     [[nodiscard]] std::vector<float> to_vector() const;
+    [[nodiscard]] std::vector<std::int32_t> to_int32_vector() const;
 
     [[nodiscard]] Tensor reshape(Shape new_shape) const;
     [[nodiscard]] Tensor transpose(std::int64_t dim0, std::int64_t dim1) const;
