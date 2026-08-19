@@ -35,4 +35,5 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Profiling/autotune | draft | registry design | traces and selection cache |
 | Micro-benchmark harness | smoke-tested | CPU/HIP Event+wall JSONL and error gate | PyTorch comparison/more shapes |
 | Engine allocation tracker | smoke-tested | CPU/HIP current/peak/total accounting | external allocator integration |
+| End-to-end benchmark | smoke-tested | CPU/gfx942 train+generate raw JSONL | Model-S/PyTorch/tuned comparison |
 | RCCL | draft | roadmap | 2/4 GPU equivalence |

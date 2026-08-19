@@ -66,3 +66,5 @@ the next gate. Records are append-only except for factual corrections.
   operator timing schema and first CPU/gfx942 measurements.
 - [2026-08-19-m5-allocation-tracker.md](2026-08-19-m5-allocation-tracker.md): engine
   current/peak/total allocation accounting.
+- [2026-08-19-m5-end-to-end-benchmark.md](2026-08-19-m5-end-to-end-benchmark.md):
+  train/generate tokens/s, peak memory, and a stable GPU-slower failure.

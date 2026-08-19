@@ -176,8 +176,9 @@ public:
                                  {1, config_.heads, cached_sequence, config_.head_dimension()})
                                  .to(cache.value.device());
         }
+        const auto transposed_key = expanded_key.transpose(-2, -1).contiguous();
         const auto scores = ops::scale(
-            ops::matmul(query, expanded_key.transpose(-2, -1)),
+            ops::matmul(query, transposed_key),
             1.0F / std::sqrt(static_cast<float>(config_.head_dimension())));
         const auto probabilities = ops::softmax(scores);
         auto context = ops::matmul(probabilities, expanded_value)

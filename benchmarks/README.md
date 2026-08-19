@@ -16,3 +16,8 @@ Peak memory must come from a dedicated allocator tracker or profiling tool.
 Result schema version 1 fields are emitted directly by `microllm_bench_ops`.
 Representative committed smoke results live under `benchmarks/results/`; full local
 run outputs are ignored unless curated with their environment and correctness data.
+
+`microllm_bench_model` measures train or cache-backed generation throughput. Its
+`tokens_per_second` excludes construction and warm-up; `tokens_per_second_with_setup`
+includes construction, device transfer, optimizer allocation, and warm-up. Both are
+reported so setup cannot disappear from the experiment.

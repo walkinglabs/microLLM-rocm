@@ -56,6 +56,7 @@ Every performance-sensitive operator will keep three paths where useful:
 | Python ctypes API | smoke-tested | dependency-free CPU/HIP integration tests |
 | PyTorch Custom Ops | implemented, unverified | optional build; local Torch unavailable |
 | Micro-benchmark harness | smoke-tested | CPU/HIP JSONL, Event/wall/error metadata |
+| End-to-end benchmark | smoke-tested | train/generate tokens/s and engine peak memory |
 | Model-S reference training report | planned | M3 next step |
 | Python/PyTorch bindings | planned | M4 |
 | Profiling/autotuning | planned | M5 |
