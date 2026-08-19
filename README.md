@@ -3,6 +3,10 @@
 `microLLM-rocm` is a small, independently usable C++/HIP training and inference
 engine for teaching, measuring, and improving language-model systems on AMD GPUs.
 
+第一次阅读可以从[初中生也能读懂的中文设计说明](docs/DESIGN_FOR_BEGINNERS.zh-CN.md)
+开始，再使用[算子契约与 PyTorch 对照表](docs/OPERATOR_CONTRACTS.zh-CN.md)检查每个
+算子的输入 shape、输出 shape、误差和失败条件。
+
 The project is **pre-alpha**. The CPU float32 Storage/Tensor path and its N0 example
 are implemented. HIP operators, autograd, Transformer training, Python/PyTorch
 bindings, profiling, and distributed execution are tracked as explicit milestones;
