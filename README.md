@@ -134,6 +134,7 @@ used as a substitute for a parameter count.
 - [Architecture and dependency rules](docs/ARCHITECTURE.md)
 - [Development roadmap](docs/development/ROADMAP.md)
 - [Development records](docs/development/README.md)
+- [Hardware/Radeon compatibility](docs/COMPATIBILITY.md)
 - [Contributor task contract](docs/TASK_CONTRACT.md)
 - [Contributing](CONTRIBUTING.md)
 
