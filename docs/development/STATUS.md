@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| CPU configuration | smoke-tested | framework-only main configure/build; 138/138 CPU CTest | CI matrix |
+| CPU configuration | smoke-tested | framework-only main configure/build; 139/139 CPU CTest | CI matrix |
 | CPU code coverage | smoke-tested | 83.9% lines, 90.9% functions, 66.6% branches over `src/` + `include/` | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, cast, views and transfer | low-precision math/device-native cast |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
@@ -16,7 +16,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | HIP readable operators | smoke-tested | FP32 suite plus native FP16/BF16 basic kernels with zero host transfers | remaining low-precision forward/backward families |
 | MI300X precision capabilities | smoke-tested | dedicated gfx942 gate; FP32/FP16/BF16/FP8 hipBLASLt execution and Event speedup | INT8 probe and packed INT4 software path |
 | FP8 training/inference | smoke-tested | FNUZ kernels, scaled GEMM, FP32 master/backward, Transformer Linear policy and KV decode | dynamic amax/history and full training curve |
-| Qwen2.5 architecture | implemented | pinned config parses to exact 494,032,768 params; QKV bias and split-half RoPE pass CPU/HIP/PyTorch gates | official checkpoint logits/tokenizer/KV evidence |
+| Qwen2.5-0.5B | smoke-tested | official checkpoint, full logits, 14-case byte-BPE, basic chat IDs and four greedy KV tokens match Transformers | per-layer trace/tool chat/BF16/SFT |
 | Operator context | smoke-tested | explicit Stream ordering and mismatch tests | low-level C descriptor |
 | CPU Transformer Autograd | smoke-tested | dedicated graph construction tests, finite differences, PyTorch full-graph gradients | more dtypes |
 | HIP Autograd | smoke-tested | CPU/HIP full Transformer gradient comparison; zero host transfers during graph execution | optimized reductions/more dtypes |

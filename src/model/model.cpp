@@ -453,7 +453,8 @@ Tensor TransformerModel::forward_cached(const Tensor& token_id, inference::KVCac
     const auto flat = hidden.reshape({1, impl_->config.dimension});
     Tensor logits;
     if (impl_->config.tie_embeddings) {
-        logits = ops::matmul(flat, impl_->token_embedding.data().transpose(0, 1));
+        logits = ops::matmul(
+            flat, impl_->token_embedding.data().transpose(0, 1).contiguous());
     } else {
         logits = impl_->output_head->forward_tensor(flat);
     }

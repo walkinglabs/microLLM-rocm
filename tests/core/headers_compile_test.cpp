@@ -18,6 +18,8 @@
 #include <microllm/model/model.h>
 #include <microllm/io/byte_tokenizer.h>
 #include <microllm/io/bpe_tokenizer.h>
+#include <microllm/io/huggingface_bpe_tokenizer.h>
+#include <microllm/io/chat_template.h>
 #include <microllm/io/token_dataset.h>
 #include <microllm/io/sft.h>
 #include <microllm/io/safetensors.h>

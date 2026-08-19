@@ -8,6 +8,7 @@ and chronological engineering evidence.
 - [Build from source](dev/build.md)
 - [Architecture](ARCHITECTURE.md)
 - [Weight and safetensors API](WEIGHTS.md)
+- [Hugging Face and verified Qwen2.5 workflow](HUGGINGFACE.md)
 - [Operator contracts and PyTorch tolerances](OPERATOR_CONTRACTS.zh-CN.md)
 - [Hardware and ROCm compatibility](COMPATIBILITY.md)
 - [Benchmarks](../benchmarks/README.md)

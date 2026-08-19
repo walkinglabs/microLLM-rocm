@@ -469,8 +469,10 @@ Value repeat_interleave(const Value& input, std::int64_t dim, std::int64_t repea
     }
     output_shape[static_cast<std::size_t>(dim)] *= repeats;
     auto input_node = input.node_;
+    const auto forward_input =
+        input.data().is_contiguous() ? input.data() : input.data().contiguous();
     auto output = profiled_tensor("repeat_interleave", input.data().device(), [&] {
-        return ops::repeat_interleave(input.data(), dim, repeats);
+        return ops::repeat_interleave(forward_input, dim, repeats);
     });
     return operation("repeat_interleave", std::move(output),
                      {input_node},

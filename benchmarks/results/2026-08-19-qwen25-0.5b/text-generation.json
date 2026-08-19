@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "prompt": "Hello world",
+  "microllm_token_ids": [9707, 1879],
+  "pytorch_token_ids": [9707, 1879],
+  "generated_tokens": [0, 358, 2776, 264],
+  "generated_text": "! I'm a",
+  "load_ms": 10139.92013,
+  "forward_ms": 1439.370128,
+  "generation_ms": 345.54,
+  "engine_current_bytes": 1976131080,
+  "engine_peak_bytes": 3952262144,
+  "full_logit_count": 151936,
+  "full_logits_max_abs": 0.00006031990051269531,
+  "full_logits_mse": 1.35199101913841e-10,
+  "full_logits_cosine": 1.0000001192092896
+}

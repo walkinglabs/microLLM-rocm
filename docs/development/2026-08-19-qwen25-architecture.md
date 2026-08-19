@@ -3,8 +3,8 @@
 ## Pinned target
 
 The first external model target is `Qwen/Qwen2.5-0.5B` at revision
-`060db6499f32faf8b98477b0a26969ef7d8b9987`. The tracked config fixture comes from that
-model repository; no real checkpoint result is claimed in this milestone.
+`060db6499f32faf8b98477b0a26969ef7d8b9987`. The tracked config fixture and external
+BF16 checkpoint come from that model repository.
 
 ## Implemented architecture differences
 
@@ -30,10 +30,17 @@ repository's BF16 checkpoint metadata; its BF16 weight payload is 988,065,536 by
 - unsupported family, sliding-window, MRoPE, malformed scale, and shape rejection;
 - `microllm_hf_inspect --config ...` integration test.
 
-## Still required before “Qwen inference works”
+## Real checkpoint result
 
-- load the complete official checkpoint on MI300X;
-- compare fixed-token per-layer states and logits with Transformers;
-- implement the Qwen byte-level BPE tokenizer and special tokens;
-- compare KV-cache prefill/decode and greedy token output;
-- record memory and latency.
+- 290/290 tensors load strictly on MI300X;
+- fixed IDs `1,2,3,4`: 151,936 logits pass `atol=3e-4`, max abs `1.707e-4`,
+  MSE `2.676e-10`, cosine `0.99999994` versus Transformers FP32;
+- C++ Qwen byte-level BPE matches Transformers on 14 boundary cases;
+- basic Instruct system/user/assistant rendering and all 30 chat token IDs match;
+- `Hello world` maps to `[9707,1879]` in both implementations;
+- four greedy KV-cache tokens match exactly: `[0,358,2776,264]`, text `! I'm a`.
+
+Measured MI300X smoke: load 10.14 s, first two-token forward 1.44 s, four-token greedy
+generation 345.54 ms, current engine memory 1.976 GB, peak 3.952 GB. Raw compact evidence is tracked under
+`benchmarks/results/2026-08-19-qwen25-0.5b/`. Remaining gates are per-layer hidden-state
+traces, tool-call chat rendering, BF16 compute parity, optimized loading/cache, and SFT.

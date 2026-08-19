@@ -182,7 +182,9 @@ model.load_safetensors("model.safetensors");
 - tied weight 不重复分配；
 - 加载进度、取消和峰值内存报告。
 
-在这些能力完成前，不能把“支持 safetensors API”写成“支持任意 Hugging Face 大模型”。
+Qwen2.5-0.5B 已经通过一个固定官方 checkpoint 的严格加载和 logits 对齐；这仍不
+代表任意 Hugging Face 大模型都兼容。其他 Qwen 规模、Qwen3、DeepSeek、量化格式
+仍必须分别通过 config、权重、tokenizer 和完整 logits 门。
 
 ## 10. 测试门
 

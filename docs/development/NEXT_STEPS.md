@@ -18,12 +18,14 @@ roadmap. Passing a smaller smoke test does not complete a later item.
 First target: one pinned small dense checkpoint, not every Qwen release.
 
 - [x] parse pinned Qwen2.5 `config.json` and reject unsupported family/window/MRoPE fields;
-- [ ] load official tokenizer vocabulary, merges, special tokens, and chat template;
+- [x] load official Qwen byte-level vocabulary and merges with English/Chinese ID parity;
+- [x] load core Qwen special tokens and basic system/user/assistant chat template;
+- [ ] support tool-call/tool-response branches of the instruction chat template;
 - [x] add Q/K/V bias parameters, backward, HIP Kernel, and strict weight mapping;
 - [ ] add explicit attention head dimension and QK-Norm where required;
 - [ ] preallocate device-native KV cache;
-- [ ] compare tokenizer IDs, per-layer hidden states, logits, and greedy tokens with
-  PyTorch on fixed prompts;
+- [x] compare tokenizer IDs, complete logits, and greedy tokens with PyTorch on fixed prompts;
+- [ ] compare every per-layer hidden state with PyTorch;
 - [ ] record peak host/GPU memory, prefill/decode latency, and tokens/s.
 
 ## P2 — operator registry and profiler API

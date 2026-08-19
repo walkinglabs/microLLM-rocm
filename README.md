@@ -121,9 +121,9 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| CPU tests | 138/138 | reference, Qwen config, dtype/shape, graph, model, weights, profiling |
-| ASan/UBSan | 136/136 | host code; dynamic binding tests isolated |
-| MI300X/gfx942 HIP | 36/36 | FP8, Qwen bias/RoPE primitives, graph, weights, profiling |
+| CPU tests | 139/139 | reference, Qwen config/tokenizer, dtype/shape, graph, model, weights |
+| ASan/UBSan | 137/137 | host code; dynamic binding tests isolated |
+| MI300X/gfx942 HIP | 37/37 | Qwen checkpoint/KV regression, FP8, graph, weights, profiling |
 | PyTorch CPU oracle/alignment | 3/3 | ops plus same-weight model value/timing trace |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
 | Registered test files | 34 | machine-audited CTest registration |
@@ -191,9 +191,9 @@ build/cpu-debug/apps/microllm_hf_inspect \
   --config tests/fixtures/qwen25-0.5b-config.json
 ```
 
-This currently proves config/shape/parameter compatibility, not official checkpoint
-logit compatibility. The remaining gates are tracked in
-[the Qwen2.5 development record](docs/development/2026-08-19-qwen25-architecture.md).
+The official Qwen2.5-0.5B checkpoint now passes complete-logit and greedy KV-cache
+comparison on MI300X. See the commands, metrics, remaining chat/BF16 gates, and honest
+scope in [the Qwen2.5 development record](docs/development/2026-08-19-qwen25-architecture.md).
 
 ```bash
 # Repeated Event/wall-clock micro-benchmarks
@@ -254,6 +254,7 @@ overlap or one-process-per-GPU production semantics. See
 - [Operator contracts](docs/OPERATOR_CONTRACTS.zh-CN.md)
 - [Weights and safetensors](docs/WEIGHTS.md)
 - [Tensor dtypes and MI300/MI350 precision policy](docs/DTYPES.md)
+- [Hugging Face and verified Qwen2.5 workflow](docs/HUGGINGFACE.md)
 - [Hardware compatibility](docs/COMPATIBILITY.md)
 - [Alignment experiments](docs/dev/alignment.md)
 - [Distributed training](docs/dev/distributed-training.md)

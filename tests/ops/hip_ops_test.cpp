@@ -362,6 +362,18 @@ TEST(HipBackwardOpsTest, DeviceNativePrimitivesMatchCpuReference) {
                 repeat_interleave_backward(repeat_gradient, {2, 2}, 0, 2).to_vector());
 }
 
+TEST(HipAutogradTest, RepeatInterleaveMaterializesTransposedGqaValue) {
+    require_gpu();
+    autograd::Value input(
+        Tensor::from_vector({1, 2, 3, 4, 5, 6, 7, 8}, {1, 2, 2, 2}).to(Device::hip()),
+        true);
+    const auto transposed = autograd::transpose(input, 1, 2);
+    const auto repeated = autograd::repeat_interleave(transposed, 1, 2);
+    EXPECT_TRUE(repeated.data().is_contiguous());
+    autograd::sum(repeated).backward();
+    expect_near(input.grad().to_vector(), std::vector<float>(8, 2.0F));
+}
+
 TEST(HipOpsTest, ExplicitStreamContextOrdersKernelAndEvent) {
     require_gpu();
     const auto gpu = Device::hip();

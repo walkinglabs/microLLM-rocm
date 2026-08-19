@@ -14,9 +14,9 @@
 ## Current measured matrix
 
 ```text
-framework CPU                 138/138 pass
-CPU ASan/UBSan                136/136 pass
-MI300X/gfx942 HIP              36/36 pass
+framework CPU                 139/139 pass
+CPU ASan/UBSan                137/137 pass
+MI300X/gfx942 HIP              37/37 pass
 PyTorch CPU oracle/alignment      3/3 pass
 two-rank RCCL                  11/11 pass
 registered test files               34

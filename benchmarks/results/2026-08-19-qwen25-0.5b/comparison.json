@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "model": "Qwen/Qwen2.5-0.5B",
+  "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+  "tokens": [1, 2, 3, 4],
+  "count": 151936,
+  "atol": 0.0003,
+  "max_abs": 0.00017070770263671875,
+  "max_rel": 24.15253448486328,
+  "mse": 2.676233679110851e-10,
+  "cosine": 0.9999999403953552,
+  "maximum_error_index": 4102,
+  "microllm_at_max": 9.226896286010742,
+  "pytorch_at_max": 9.227066993713379
+}

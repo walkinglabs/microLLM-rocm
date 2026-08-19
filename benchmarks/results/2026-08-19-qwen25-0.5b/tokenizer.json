@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "transformers_boundary_cases": 14,
+  "matched_boundary_cases": 14,
+  "cases_include": [
+    "multiple spaces",
+    "tabs and newlines",
+    "emoji",
+    "Chinese and English",
+    "single-digit splitting",
+    "punctuation",
+    "English contractions",
+    "UTF-8 accents"
+  ],
+  "chat_prompt": "<|im_start|>system\nYou are Qwen, created by Alibaba Cloud. You are a helpful assistant.<|im_end|>\n<|im_start|>user\nHello<|im_end|>\n<|im_start|>assistant\n",
+  "chat_token_ids": [
+    151644, 8948, 198, 2610, 525, 1207, 16948, 11, 3465, 553,
+    54364, 14817, 13, 1446, 525, 264, 10950, 17847, 13, 151645,
+    198, 151644, 872, 198, 9707, 151645, 198, 151644, 77091, 198
+  ],
+  "chat_tokens_match_transformers": true,
+  "tool_call_template_supported": false
+}

@@ -1,9 +1,13 @@
 #include <string>
+#include <filesystem>
+#include <fstream>
 #include <vector>
 
 #include <gtest/gtest.h>
 #include <microllm/io/byte_tokenizer.h>
 #include <microllm/io/bpe_tokenizer.h>
+#include <microllm/io/huggingface_bpe_tokenizer.h>
+#include <microllm/io/chat_template.h>
 #include <microllm/io/token_dataset.h>
 #include <microllm/io/sft.h>
 
@@ -58,6 +62,43 @@ TEST(BpeTokenizerTest, RejectsBadVocabularyAndSerializedMerge) {
     EXPECT_THROW((void)BpeTokenizer::deserialize("wrong\n"), std::invalid_argument);
     EXPECT_THROW((void)BpeTokenizer::deserialize("MICROLLM_BPE_V1\n999 1\n"),
                  std::invalid_argument);
+}
+
+TEST(HuggingFaceBpeTokenizerTest, LoadsByteUnicodeVocabularyAndRankedMerges) {
+    const auto directory = std::filesystem::temp_directory_path();
+    const auto vocabulary = directory / "microllm-hf-vocab.json";
+    const auto merges = directory / "microllm-hf-merges.txt";
+    std::ofstream(vocabulary) <<
+        "{\"H\":0,\"i\":1,\"Hi\":2,\"Ġ\":3,\"ĠĠ\":4,"
+        "\"ĠH\":5,\"ĠHi\":6}";
+    std::ofstream(merges) << "H i\nĠ Ġ\nĠ Hi\n";
+    auto tokenizer = HuggingFaceBpeTokenizer::load(vocabulary, merges);
+    tokenizer.add_special_token("<|im_start|>", 151644);
+    EXPECT_EQ(tokenizer.encode("Hi"), (std::vector<std::int32_t>{2}));
+    EXPECT_EQ(tokenizer.encode(" "), (std::vector<std::int32_t>{3}));
+    EXPECT_EQ(tokenizer.encode("H  Hi"),
+              (std::vector<std::int32_t>{0, 3, 6}));
+    EXPECT_EQ(tokenizer.decode({2, 3}), "Hi ");
+    EXPECT_EQ(tokenizer.encode("Hi<|im_start|>Hi"),
+              (std::vector<std::int32_t>{2, 151644, 2}));
+    EXPECT_EQ(tokenizer.decode({2, 151644, 2}), "Hi<|im_start|>Hi");
+    EXPECT_THROW(tokenizer.add_special_token("<|im_start|>", 9), std::invalid_argument);
+    EXPECT_THROW((void)tokenizer.decode({7}), std::out_of_range);
+    std::error_code ignored;
+    std::filesystem::remove(vocabulary, ignored);
+    std::filesystem::remove(merges, ignored);
+}
+
+TEST(ChatTemplateTest, RendersBasicQwenConversationAndRejectsToolRole) {
+    const auto prompt = render_qwen2_chat({{"user", "Hello"}});
+    EXPECT_EQ(prompt,
+              "<|im_start|>system\nYou are Qwen, created by Alibaba Cloud. You are a "
+              "helpful assistant.<|im_end|>\n<|im_start|>user\nHello<|im_end|>\n"
+              "<|im_start|>assistant\n");
+    EXPECT_EQ(render_qwen2_chat({{"system", "Be concise"}, {"user", "Hi"}}, false),
+              "<|im_start|>system\nBe concise<|im_end|>\n"
+              "<|im_start|>user\nHi<|im_end|>\n");
+    EXPECT_THROW((void)render_qwen2_chat({{"tool", "result"}}), std::invalid_argument);
 }
 
 TEST(SftBatchTest, MasksPromptTargetsAndKeepsResponseTargets) {

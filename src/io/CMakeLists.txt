@@ -2,6 +2,8 @@ add_library(microllm_io STATIC
     byte_tokenizer.cpp
     token_dataset.cpp
     bpe_tokenizer.cpp
+    huggingface_bpe_tokenizer.cpp
+    chat_template.cpp
     sft.cpp
     safetensors.cpp
 )
