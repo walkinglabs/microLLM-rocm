@@ -41,7 +41,7 @@ Every performance-sensitive operator will keep three paths where useful:
 | HIP readable operators | smoke-tested | 11 kernels, gfx942 conformance |
 | CPU Transformer autograd | smoke-tested | hand gradients and finite differences |
 | SGD/AdamW | smoke-tested | hand first step and restored-state equivalence |
-| Checkpoint | planned | M2 next step |
+| Versioned checkpoint | smoke-tested | complete state, corruption, resume trajectory |
 | Model-S training/inference | planned | M3 |
 | Python/PyTorch bindings | planned | M4 |
 | Profiling/autotuning | planned | M5 |

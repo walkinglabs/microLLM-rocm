@@ -8,6 +8,7 @@ add_executable(microllm_tests
     ops/ops_test.cpp
     autograd/autograd_test.cpp
     training/optimizer_test.cpp
+    training/checkpoint_test.cpp
 )
 
 target_link_libraries(microllm_tests PRIVATE

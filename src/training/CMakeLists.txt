@@ -1,5 +1,6 @@
 add_library(microllm_training STATIC
     optimizer.cpp
+    checkpoint.cpp
 )
 add_library(microllm::training ALIAS microllm_training)
 

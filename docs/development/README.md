@@ -24,3 +24,5 @@ the next gate. Records are append-only except for factual corrections.
   backward paths needed by Transformer training.
 - [2026-08-19-m2-optimizers.md](2026-08-19-m2-optimizers.md): SGD, AdamW, and
   optimizer-state continuation equivalence.
+- [2026-08-19-m2-checkpoint.md](2026-08-19-m2-checkpoint.md): versioned complete
+  training state and multi-step resume equivalence.
