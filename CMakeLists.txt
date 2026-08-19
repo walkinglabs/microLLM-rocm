@@ -3,13 +3,14 @@ cmake_minimum_required(VERSION 3.25)
 project(microLLM
     VERSION 0.1.0
     DESCRIPTION "A small, teachable LLM training and inference engine for AMD ROCm"
-    LANGUAGES CXX
+    LANGUAGES C CXX
 )
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(MICROLLM_ENABLE_HIP "AUTO" CACHE STRING "Enable HIP support: AUTO, ON, or OFF")
 set_property(CACHE MICROLLM_ENABLE_HIP PROPERTY STRINGS AUTO ON OFF)
@@ -17,6 +18,7 @@ option(MICROLLM_ENABLE_RCCL "Enable RCCL distributed support" OFF)
 option(MICROLLM_ENABLE_HIPBLASLT "Enable hipBLASLt optimized operators" ON)
 option(MICROLLM_BUILD_TESTS "Build tests" ON)
 option(MICROLLM_BUILD_EXAMPLES "Build runnable examples" ON)
+option(MICROLLM_BUILD_CAPI "Build the stable C API shared library" ON)
 option(MICROLLM_ENABLE_SANITIZERS "Enable ASan and UBSan for host code" OFF)
 
 string(TOUPPER "${MICROLLM_ENABLE_HIP}" MICROLLM_ENABLE_HIP_NORMALIZED)
@@ -87,12 +89,16 @@ add_subdirectory(src/io)
 add_subdirectory(src/training)
 add_subdirectory(src/inference)
 
-add_executable(micro_llm src/main.cpp)
-target_link_libraries(micro_llm PRIVATE microllm::core microllm_build_config)
-
 if(MICROLLM_BUILD_TESTS)
     include(CTest)
 endif()
+
+if(MICROLLM_BUILD_CAPI)
+    add_subdirectory(bindings/capi)
+endif()
+
+add_executable(micro_llm src/main.cpp)
+target_link_libraries(micro_llm PRIVATE microllm::core microllm_build_config)
 
 if(MICROLLM_BUILD_EXAMPLES)
     add_subdirectory(examples)

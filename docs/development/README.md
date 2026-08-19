@@ -54,3 +54,5 @@ the next gate. Records are append-only except for factual corrections.
   HIP view materialization required by backward and multi-token inference.
 - [2026-08-19-m3-hip-training.md](2026-08-19-m3-hip-training.md): first complete
   GPU-resident Transformer training trajectory and its host-reference boundaries.
+- [2026-08-19-m4-c-api.md](2026-08-19-m4-c-api.md): stable versioned C ABI and
+  pure C CPU/HIP integration client.
