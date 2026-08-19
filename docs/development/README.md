@@ -58,3 +58,5 @@ the next gate. Records are append-only except for factual corrections.
   pure C CPU/HIP integration client.
 - [2026-08-19-m4-python-api.md](2026-08-19-m4-python-api.md): dependency-free ctypes
   API consuming the same C ABI.
+- [2026-08-19-m4-external-tensor-view.md](2026-08-19-m4-external-tensor-view.md):
+  zero-copy caller-owned TensorView operators and explicit Stream interop.

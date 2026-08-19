@@ -1,5 +1,6 @@
 add_library(microllm_ops STATIC
     ops.cpp
+    low_level.cpp
 )
 add_library(microllm::ops ALIAS microllm_ops)
 

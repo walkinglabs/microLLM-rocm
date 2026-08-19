@@ -8,6 +8,7 @@
 #include <microllm/runtime/runtime.h>
 #include <microllm/ops/context.h>
 #include <microllm/ops/ops.h>
+#include <microllm/ops/low_level.h>
 #include <microllm/autograd/autograd.h>
 #include <microllm/training/optimizer.h>
 #include <microllm/training/checkpoint.h>

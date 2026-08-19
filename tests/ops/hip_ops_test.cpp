@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 #include <microllm/ops/ops.h>
+#include <microllm/ops/low_level.h>
 #include <microllm/runtime/runtime.h>
 #include <microllm/model/model.h>
 #include <microllm/training/trainer.h>
@@ -171,6 +172,19 @@ TEST(HipTrainingTest, TinyTransformerRunsBackwardAndLowersLoss) {
     }
     EXPECT_LT(final_loss, first_loss);
     EXPECT_EQ(model.device(), Device::hip());
+}
+
+TEST(HipTensorViewTest, UsesCallerOwnedBuffersAndExplicitStream) {
+    require_gpu();
+    const auto gpu = Device::hip();
+    const auto left = Tensor::from_vector({1, 2, 3, 4}, {2, 2}).to(gpu);
+    const auto right = Tensor::from_vector({5, 6, 7, 8}, {2, 2}).to(gpu);
+    Tensor output({2, 2}, DType::Float32, gpu);
+    runtime::Stream stream(gpu);
+    const OpContext context{&stream, nullptr, 0};
+    add_out(output.view(), left.view(), right.view(), context);
+    stream.synchronize();
+    EXPECT_EQ(output.to_vector(), (std::vector<float>{6, 8, 10, 12}));
 }
 
 }  // namespace microllm::ops

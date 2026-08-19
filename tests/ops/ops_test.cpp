@@ -4,6 +4,7 @@
 
 #include <gtest/gtest.h>
 #include <microllm/ops/ops.h>
+#include <microllm/ops/low_level.h>
 
 namespace microllm::ops {
 namespace {
@@ -87,6 +88,21 @@ TEST(CpuOpsTest, ShapeErrorsAreVisible) {
     EXPECT_THROW((void)add(left, right), std::invalid_argument);
     EXPECT_THROW((void)softmax(Tensor({2, 0})), std::invalid_argument);
     EXPECT_THROW((void)matmul(Tensor({2, 3}), Tensor({2, 4})), std::invalid_argument);
+}
+
+TEST(LowLevelOpsTest, OperatesOnCallerOwnedCpuBuffers) {
+    const Shape shape{2, 2};
+    const Strides strides{2, 1};
+    const float left[4]{1, 2, 3, 4};
+    const float right[4]{5, 6, 7, 8};
+    float output[4]{};
+    const ConstTensorView left_view{left, DType::Float32, Device::cpu(), shape, strides};
+    const ConstTensorView right_view{right, DType::Float32, Device::cpu(), shape, strides};
+    const TensorView output_view{output, DType::Float32, Device::cpu(), shape, strides};
+    add_out(output_view, left_view, right_view);
+    EXPECT_EQ(std::vector<float>(output, output + 4), (std::vector<float>{6, 8, 10, 12}));
+    multiply_out(output_view, left_view, right_view);
+    EXPECT_EQ(std::vector<float>(output, output + 4), (std::vector<float>{5, 12, 21, 32}));
 }
 
 }  // namespace microllm::ops
