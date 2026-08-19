@@ -53,4 +53,38 @@ TEST(HipOpsTest, RejectsMixedDevicesAndNonContiguousInput) {
     EXPECT_THROW((void)add(gpu.transpose(0, 1), gpu), std::invalid_argument);
 }
 
+TEST(HipOpsTest, EmbeddingAndActivationsMatchCpuReference) {
+    require_gpu();
+    const auto weight_cpu = Tensor::from_vector({0, 1, 2, 3, 4, 5}, {3, 2});
+    const auto indices_cpu = Tensor::from_int32_vector({2, 0, 1}, {3});
+    expect_near(embedding(weight_cpu.to(Device::hip()), indices_cpu.to(Device::hip())).to_vector(),
+                embedding(weight_cpu, indices_cpu).to_vector());
+
+    const auto input_cpu = Tensor::from_vector({-2, -1, 0, 1, 2, 3}, {2, 3});
+    const auto up_cpu = Tensor::from_vector({1, 2, 3, 4, 5, 6}, {2, 3});
+    expect_near(silu(input_cpu.to(Device::hip())).to_vector(), silu(input_cpu).to_vector());
+    expect_near(swiglu(input_cpu.to(Device::hip()), up_cpu.to(Device::hip())).to_vector(),
+                swiglu(input_cpu, up_cpu).to_vector());
+}
+
+TEST(HipOpsTest, SoftmaxAndRmsNormMatchCpuReference) {
+    require_gpu();
+    const auto input_cpu = Tensor::from_vector({1000, 1000, 999, 1, 2, 3}, {2, 3});
+    const auto weight_cpu = Tensor::from_vector({1, 0.5F, 2}, {3});
+    expect_near(softmax(input_cpu.to(Device::hip())).to_vector(), softmax(input_cpu).to_vector());
+    expect_near(rms_norm(input_cpu.to(Device::hip()), weight_cpu.to(Device::hip())).to_vector(),
+                rms_norm(input_cpu, weight_cpu).to_vector(), 2.0e-4F);
+}
+
+TEST(HipOpsTest, RopeAndCrossEntropyMatchCpuReference) {
+    require_gpu();
+    const auto rope_input = Tensor::from_vector({1, 0, 0, 1, 1, 0, 0, 1}, {1, 2, 1, 4});
+    expect_near(rope(rope_input.to(Device::hip())).to_vector(), rope(rope_input).to_vector());
+
+    const auto logits_cpu = Tensor::from_vector({2, 1, 0, 0, 1, 2}, {2, 3});
+    const auto targets_cpu = Tensor::from_int32_vector({0, 2}, {2});
+    expect_near(cross_entropy(logits_cpu.to(Device::hip()), targets_cpu.to(Device::hip())).to_vector(),
+                cross_entropy(logits_cpu, targets_cpu).to_vector());
+}
+
 }  // namespace microllm::ops

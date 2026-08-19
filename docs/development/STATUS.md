@@ -11,8 +11,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | N0 PPM | smoke-tested | executable output/checksum | documented golden value |
 | HIP Storage/runtime | smoke-tested | gfx942 allocation, transfer, Stream/Event tests | CI on more GPUs |
 | CPU reference operators | smoke-tested | 9 hand-value/stability/shape tests | gradient references |
-| HIP basic operators | smoke-tested | gfx942 fill/elementwise/matmul conformance | more architectures |
-| HIP Transformer operators | draft | CPU oracle | GPU kernels/conformance |
+| HIP readable operators | smoke-tested | gfx942 conformance for 11 kernels | more architectures/optimized paths |
 | Autograd | draft | roadmap | finite-difference tests |
 | Checkpoint | draft | roadmap | multi-step resume |
 | Model-S | draft | corrected parameter budget | overfit and training run |

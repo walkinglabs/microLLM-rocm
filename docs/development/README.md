@@ -14,3 +14,5 @@ the next gate. Records are append-only except for factual corrections.
   CPU oracle for the first Transformer operator set.
 - [2026-08-19-m1-hip-basic-ops.md](2026-08-19-m1-hip-basic-ops.md): readable HIP
   elementwise kernels and naive batched matmul.
+- [2026-08-19-m1-hip-transformer-ops.md](2026-08-19-m1-hip-transformer-ops.md):
+  readable HIP Transformer operator set and CPU/HIP conformance.
