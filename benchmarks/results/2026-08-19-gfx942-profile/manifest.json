@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "tool": "rocprofv3",
+  "mode": "runtime-trace",
+  "device": "AMD Instinct MI300X VF",
+  "architecture": "gfx942:sramecc+:xnack-",
+  "command": "microllm_bench_model --mode train --model tiny --device hip --steps 2 --warmup 1 --batch 1 --context 8 --new-tokens 8",
+  "committed_files": ["kernel_stats.csv", "hip_api_stats.csv"],
+  "uncommitted_trace_outputs": ["hip_api_trace.csv", "kernel_trace.csv", "memory_allocation_trace.csv", "results.json", "results.pftrace"],
+  "note": "Full traces are reproducible with scripts/profile_hip.sh and are not committed because they total several megabytes for this two-step smoke."
+}

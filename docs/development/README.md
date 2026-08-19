@@ -68,3 +68,5 @@ the next gate. Records are append-only except for factual corrections.
   current/peak/total allocation accounting.
 - [2026-08-19-m5-end-to-end-benchmark.md](2026-08-19-m5-end-to-end-benchmark.md):
   train/generate tokens/s, peak memory, and a stable GPU-slower failure.
+- [2026-08-19-m5-rocprof-trace.md](2026-08-19-m5-rocprof-trace.md): rocprofv3
+  runtime trace confirming host copies and launch count as the current bottleneck.

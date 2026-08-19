@@ -21,3 +21,13 @@ run outputs are ignored unless curated with their environment and correctness da
 `tokens_per_second` excludes construction and warm-up; `tokens_per_second_with_setup`
 includes construction, device transfer, optimizer allocation, and warm-up. Both are
 reported so setup cannot disappear from the experiment.
+
+Capture HIP API, kernel, memory, and RCCL-ready runtime traces with the locally
+installed rocprofv3 interface:
+
+```bash
+./scripts/profile_hip.sh /tmp/microllm-trace -- \
+  ./build/benchmarks/microllm_bench_model \
+  --mode train --model tiny --device hip --steps 5 --warmup 1 \
+  --batch 1 --context 8 --new-tokens 8
+```
