@@ -28,6 +28,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Byte tokenizer/token dataset | smoke-tested | all-byte round-trip and cursor equivalence | real-corpus run |
 | BPE/TinyStories source | loader-ready | BPE round-trip + immutable licensed range download | full corpus/reference train |
 | Tiny Transformer training | smoke-tested | 40-step overfit and finite gradients | validation split/Model-S |
+| SFT response masking | smoke-tested | CPU/HIP ignored targets and tiny response-loss curve | Model-S instruction corpus/run |
 | CPU KV cache | smoke-tested | every prefix, MHA/GQA logits tolerance | preallocation/HIP/batching |
 | Token generation | smoke-tested | deterministic sampling and cache-backed length/bounds | trained text report |
 | Stable model failure | smoke-tested | low-loss cycle breaks beyond training context | rebuttal experiments |

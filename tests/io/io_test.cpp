@@ -5,6 +5,7 @@
 #include <microllm/io/byte_tokenizer.h>
 #include <microllm/io/bpe_tokenizer.h>
 #include <microllm/io/token_dataset.h>
+#include <microllm/io/sft.h>
 
 namespace microllm::io {
 
@@ -57,6 +58,15 @@ TEST(BpeTokenizerTest, RejectsBadVocabularyAndSerializedMerge) {
     EXPECT_THROW((void)BpeTokenizer::deserialize("wrong\n"), std::invalid_argument);
     EXPECT_THROW((void)BpeTokenizer::deserialize("MICROLLM_BPE_V1\n999 1\n"),
                  std::invalid_argument);
+}
+
+TEST(SftBatchTest, MasksPromptTargetsAndKeepsResponseTargets) {
+    const auto batch = make_sft_batch({1, 2, 3}, {4, 5});
+    EXPECT_EQ(batch.inputs.to_int32_vector(), (std::vector<std::int32_t>{1, 2, 3, 4}));
+    EXPECT_EQ(batch.targets.to_int32_vector(),
+              (std::vector<std::int32_t>{-100, -100, 4, 5}));
+    EXPECT_THROW((void)make_sft_batch({}, {1}), std::invalid_argument);
+    EXPECT_THROW((void)make_sft_batch({1}, {}), std::invalid_argument);
 }
 
 }  // namespace microllm::io

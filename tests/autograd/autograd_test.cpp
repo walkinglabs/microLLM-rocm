@@ -97,6 +97,16 @@ TEST(AutogradTest, CrossEntropyBackwardMatchesFiniteDifference) {
     }
 }
 
+TEST(AutogradTest, IgnoredCrossEntropyRowsHaveZeroLogitGradient) {
+    Value logits(Tensor::from_vector({2, 1, 0, 100, -100, 0}, {2, 3}), true);
+    cross_entropy(logits, Tensor::from_int32_vector({0, -100}, {2})).backward();
+    const auto gradient = logits.grad().to_vector();
+    EXPECT_NE(gradient[0], 0.0F);
+    EXPECT_EQ(gradient[3], 0.0F);
+    EXPECT_EQ(gradient[4], 0.0F);
+    EXPECT_EQ(gradient[5], 0.0F);
+}
+
 TEST(AutogradTest, RmsNormAndSwiGluBackwardsMatchFiniteDifference) {
     const std::vector<float> input_values{0.5F, -1.0F, 2.0F};
     const std::vector<float> weight_values{1.0F, 0.5F, 1.5F};

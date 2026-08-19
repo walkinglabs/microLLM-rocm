@@ -457,15 +457,26 @@ Value cross_entropy(const Value& logits, const Tensor& targets) {
     const auto labels = targets.to_int32_vector();
     const auto classes = logits.data().shape().back();
     const auto rows = logits.data().numel() / classes;
+    const auto valid_rows = static_cast<std::int64_t>(
+        std::count_if(labels.begin(), labels.end(), [](std::int32_t label) { return label != -100; }));
+    if (valid_rows == 0) throw std::invalid_argument("cross_entropy has no non-ignored targets");
     return operation(ops::cross_entropy(logits.data(), targets), {logits_node},
                      [logits_node, probabilities, labels, classes,
-                      rows](const Tensor& gradient) {
+                      rows, valid_rows](const Tensor& gradient) {
                          auto logits_gradient = probabilities;
                          for (std::int64_t row = 0; row < rows; ++row) {
+                             if (labels[static_cast<std::size_t>(row)] == -100) {
+                                 for (std::int64_t column = 0; column < classes; ++column) {
+                                     logits_gradient[static_cast<std::size_t>(row * classes + column)] =
+                                         0.0F;
+                                 }
+                                 continue;
+                             }
                              logits_gradient[static_cast<std::size_t>(
                                  row * classes + labels[static_cast<std::size_t>(row)])] -= 1.0F;
                          }
-                         const auto factor = gradient.to_vector()[0] / static_cast<float>(rows);
+                         const auto factor = gradient.to_vector()[0] /
+                                             static_cast<float>(valid_rows);
                          for (auto& value : logits_gradient) value *= factor;
                          accumulate(logits_node, values_on_device(
                                                      logits_gradient, logits_node->data.shape(),

@@ -47,6 +47,7 @@ Every performance-sensitive operator will keep three paths where useful:
 | Byte tokenizer/token dataset | smoke-tested | byte round-trip and cursor-resume batches |
 | BPE/token data source | loader-ready | self-contained BPE + immutable TinyStories revision |
 | Tiny Transformer training | smoke-tested | 40-step overfit loss 1.81171 → 0.00673309 |
+| SFT response masking | smoke-tested | CPU/HIP ignored targets; tiny loss 1.88494 → 0.01067 |
 | CPU KV cache | smoke-tested | per-layer MHA/GQA cached/full logits comparison |
 | Token generation | smoke-tested | greedy/top-k/temperature/fixed-seed cache generation |
 | Model-S CPU forward | smoke-tested | real 15.6M model, 8192 finite logits |

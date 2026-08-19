@@ -90,6 +90,14 @@ TEST(HipOpsTest, RopeAndCrossEntropyMatchCpuReference) {
                 cross_entropy(logits_cpu, targets_cpu).to_vector());
 }
 
+TEST(HipOpsTest, MaskedCrossEntropyMatchesCpuReference) {
+    require_gpu();
+    const auto logits = Tensor::from_vector({2, 1, 0, 100, -100, 0}, {2, 3});
+    const auto targets = Tensor::from_int32_vector({0, -100}, {2});
+    expect_near(cross_entropy(logits.to(Device::hip()), targets.to(Device::hip())).to_vector(),
+                cross_entropy(logits, targets).to_vector());
+}
+
 TEST(HipOpsTest, ExplicitStreamContextOrdersKernelAndEvent) {
     require_gpu();
     const auto gpu = Device::hip();

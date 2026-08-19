@@ -63,13 +63,25 @@ The generator supports greedy, temperature, top-k, and fixed seed:
 ctest --test-dir build --output-on-failure -R 'SamplingTest|GeneratorTest'
 ```
 
+## SFT response masking
+
+```bash
+./build/examples/microllm_tiny_sft
+```
+
+Targets whose predicted token is still inside the prompt are set to `-100` and
+ignored by CPU/HIP cross entropy and backward. Observed response-only loss:
+
+```text
+1.88494 → 0.439716 → 0.0549371 → 0.0106737
+```
+
 ## 预训练与 SFT 的边界
 
-SFT uses the same next-token loss over formatted prompt/response sequences; it does
-not need another optimizer. What is still missing is a licensed/versioned corpus,
-document-boundary split, response masking policy, reference training run, and fixed
-evaluation prompts. Until those artifacts exist, SFT remains an interface capability,
-not a measured result.
+SFT uses the same optimizer and masked next-token loss. Tiny response masking is now
+measured. What is still missing is a licensed/versioned instruction corpus, documented
+split, Model-S SFT run, and fixed evaluation prompts. Until those artifacts exist,
+Model-S SFT remains an interface capability, not a quality result.
 
 ## 下一步
 

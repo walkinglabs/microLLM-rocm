@@ -82,6 +82,15 @@ TEST(CpuOpsTest, CrossEntropyMatchesStableLogSoftmax) {
     EXPECT_NEAR(cross_entropy(logits, targets).to_vector()[0], expected, 1.0e-6F);
 }
 
+TEST(CpuOpsTest, CrossEntropyIgnoresMaskedRows) {
+    const auto logits = Tensor::from_vector({2, 1, 0, 100, -100, 0}, {2, 3});
+    const auto targets = Tensor::from_int32_vector({0, -100}, {2});
+    const auto expected = std::log(std::exp(2.0F) + std::exp(1.0F) + 1.0F) - 2.0F;
+    EXPECT_NEAR(cross_entropy(logits, targets).to_vector()[0], expected, 1.0e-6F);
+    EXPECT_THROW((void)cross_entropy(logits, Tensor::from_int32_vector({-100, -100}, {2})),
+                 std::invalid_argument);
+}
+
 TEST(CpuOpsTest, ShapeErrorsAreVisible) {
     const Tensor left({2, 3});
     const Tensor right({3, 2});

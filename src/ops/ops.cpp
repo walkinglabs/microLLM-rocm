@@ -447,9 +447,12 @@ Tensor cross_entropy(const Tensor& logits, const Tensor& targets,
     const auto values = logits.to_vector();
     const auto labels = targets.to_int32_vector();
     double total = 0.0;
+    std::int64_t valid_rows = 0;
     for (std::int64_t row = 0; row < rows; ++row) {
         const auto label = labels[static_cast<std::size_t>(row)];
+        if (label == -100) continue;
         if (label < 0 || label >= classes) throw std::out_of_range("target class out of range");
+        ++valid_rows;
         float maximum = -std::numeric_limits<float>::infinity();
         for (std::int64_t column = 0; column < classes; ++column) {
             maximum = std::max(maximum, values[static_cast<std::size_t>(row * classes + column)]);
@@ -461,7 +464,8 @@ Tensor cross_entropy(const Tensor& logits, const Tensor& targets,
         const auto selected = values[static_cast<std::size_t>(row * classes + label)];
         total += std::log(exponential_sum) + static_cast<double>(maximum - selected);
     }
-    return from_values({static_cast<float>(total / static_cast<double>(rows))}, {});
+    if (valid_rows == 0) throw std::invalid_argument("cross_entropy has no non-ignored targets");
+    return from_values({static_cast<float>(total / static_cast<double>(valid_rows))}, {});
 }
 
 }  // namespace microllm::ops

@@ -159,12 +159,15 @@ __global__ void cross_entropy_kernel(const float* logits, const std::int32_t* ta
                                      std::int64_t classes) {
     if (blockIdx.x != 0 || threadIdx.x != 0) return;
     double total = 0.0;
+    std::int64_t valid_rows = 0;
     for (std::int64_t row = 0; row < rows; ++row) {
         const auto label = static_cast<std::int64_t>(targets[row]);
+        if (label == -100) continue;
         if (label < 0 || label >= classes) {
             output[0] = nanf("");
             return;
         }
+        ++valid_rows;
         float maximum = -INFINITY;
         for (std::int64_t column = 0; column < classes; ++column) {
             maximum = fmaxf(maximum, logits[row * classes + column]);
@@ -176,7 +179,8 @@ __global__ void cross_entropy_kernel(const float* logits, const std::int32_t* ta
         total += log(denominator) +
                  static_cast<double>(maximum - logits[row * classes + label]);
     }
-    output[0] = static_cast<float>(total / static_cast<double>(rows));
+    output[0] = valid_rows == 0 ? nanf("")
+                               : static_cast<float>(total / static_cast<double>(valid_rows));
 }
 
 }  // namespace

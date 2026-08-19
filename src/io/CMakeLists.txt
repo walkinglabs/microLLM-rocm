@@ -2,6 +2,7 @@ add_library(microllm_io STATIC
     byte_tokenizer.cpp
     token_dataset.cpp
     bpe_tokenizer.cpp
+    sft.cpp
 )
 add_library(microllm::io ALIAS microllm_io)
 

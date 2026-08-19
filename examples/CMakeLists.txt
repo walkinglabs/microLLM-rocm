@@ -27,6 +27,9 @@ target_link_libraries(microllm_model_m_hip_train_smoke PRIVATE
     microllm::training microllm::runtime
 )
 
+add_executable(microllm_tiny_sft tiny_sft.cpp)
+target_link_libraries(microllm_tiny_sft PRIVATE microllm::training microllm::io)
+
 if(BUILD_TESTING)
     add_test(NAME N0.PpmSmoke COMMAND microllm_n0_ppm "${CMAKE_CURRENT_BINARY_DIR}/n0.ppm")
     set_tests_properties(N0.PpmSmoke PROPERTIES LABELS "cpu;example;smoke")
@@ -37,10 +40,12 @@ if(BUILD_TESTING)
         set_tests_properties(ModelS.HipForwardSmoke PROPERTIES LABELS "hip;model;slow")
         add_test(NAME N4.TinyHipTrain COMMAND microllm_tiny_hip_train)
         set_tests_properties(N4.TinyHipTrain PROPERTIES LABELS "hip;model;training;smoke")
-        add_test(NAME ModelM.HipTrainStepSmoke COMMAND microllm_model_m_hip_train_smoke)
+    add_test(NAME ModelM.HipTrainStepSmoke COMMAND microllm_model_m_hip_train_smoke)
         set_tests_properties(ModelM.HipTrainStepSmoke PROPERTIES
                              LABELS "hip;model;training;slow")
     endif()
+    add_test(NAME N5.TinySft COMMAND microllm_tiny_sft)
+    set_tests_properties(N5.TinySft PROPERTIES LABELS "cpu;model;sft;smoke")
     add_test(NAME N4.TinyOverfit COMMAND microllm_tiny_overfit)
     set_tests_properties(N4.TinyOverfit PROPERTIES LABELS "cpu;model;smoke")
     add_test(NAME ModelS.ForwardSmoke COMMAND microllm_model_s_smoke)
