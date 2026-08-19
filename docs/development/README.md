@@ -78,3 +78,5 @@ the next gate. Records are append-only except for factual corrections.
   all-reduce and single/global-batch training-step equivalence.
 - [2026-08-19-m6-buckets-and-four-rank-failure.md](2026-08-19-m6-buckets-and-four-rank-failure.md):
   bucket timing matrix and reproducible four-rank shared-memory failure.
+- [2026-08-19-m6-async-collective.md](2026-08-19-m6-async-collective.md): enqueue/wait
+  collective split required for communication-compute overlap.

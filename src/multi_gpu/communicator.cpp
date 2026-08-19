@@ -72,6 +72,20 @@ bool Communicator::aborted() const noexcept { return impl_->aborted; }
 runtime::Stream& Communicator::stream(std::size_t rank) { return impl_->streams.at(rank); }
 
 void Communicator::all_reduce(std::vector<Tensor>& tensors, bool average) {
+    if (tensors.empty()) return;
+    enqueue_all_reduce_sum(tensors);
+    synchronize();
+    if (average) {
+        const auto factor = 1.0F / static_cast<float>(tensors.size());
+        for (std::size_t rank = 0; rank < tensors.size(); ++rank) {
+            const ops::OpContext context{&impl_->streams[rank], nullptr, 0};
+            tensors[rank] = ops::scale(tensors[rank], factor, context);
+        }
+        synchronize();
+    }
+}
+
+void Communicator::enqueue_all_reduce_sum(std::vector<Tensor>& tensors) {
     if (impl_->aborted) throw std::logic_error("communicator has been aborted");
     if (tensors.size() != impl_->devices.size()) {
         throw std::invalid_argument("all-reduce needs one Tensor per rank");
@@ -102,15 +116,6 @@ void Communicator::all_reduce(std::vector<Tensor>& tensors, bool average) {
         }
         check_rccl(ncclGroupEnd(), "ncclGroupEnd");
         group_started = false;
-        synchronize();
-        if (average) {
-            const auto factor = 1.0F / static_cast<float>(tensors.size());
-            for (std::size_t rank = 0; rank < tensors.size(); ++rank) {
-                const ops::OpContext context{&impl_->streams[rank], nullptr, 0};
-                tensors[rank] = ops::scale(tensors[rank], factor, context);
-            }
-            synchronize();
-        }
     } catch (...) {
         if (group_started) (void)ncclGroupEnd();
         abort();
@@ -120,7 +125,12 @@ void Communicator::all_reduce(std::vector<Tensor>& tensors, bool average) {
 
 void Communicator::synchronize() {
     if (impl_->aborted) throw std::logic_error("communicator has been aborted");
-    for (const auto& stream : impl_->streams) stream.synchronize();
+    try {
+        for (const auto& stream : impl_->streams) stream.synchronize();
+    } catch (...) {
+        abort();
+        throw;
+    }
 }
 
 void Communicator::abort() noexcept {
