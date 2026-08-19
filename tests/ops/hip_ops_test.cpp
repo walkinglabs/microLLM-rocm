@@ -181,7 +181,7 @@ TEST(HipTensorViewTest, UsesCallerOwnedBuffersAndExplicitStream) {
     const auto right = Tensor::from_vector({5, 6, 7, 8}, {2, 2}).to(gpu);
     Tensor output({2, 2}, DType::Float32, gpu);
     runtime::Stream stream(gpu);
-    const OpContext context{&stream, nullptr, 0};
+    const auto context = OpContext::from_external_stream(gpu, stream.native_handle());
     add_out(output.view(), left.view(), right.view(), context);
     stream.synchronize();
     EXPECT_EQ(output.to_vector(), (std::vector<float>{6, 8, 10, 12}));

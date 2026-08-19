@@ -12,13 +12,33 @@ struct OpContext {
     runtime::Stream* stream = nullptr;
     void* workspace = nullptr;
     std::size_t workspace_bytes = 0;
+    void* external_stream = nullptr;
+    Device external_stream_device = Device::cpu();
+
+    [[nodiscard]] static OpContext from_external_stream(Device device, void* native_stream) {
+        OpContext context;
+        context.external_stream = native_stream;
+        context.external_stream_device = device;
+        return context;
+    }
 
     [[nodiscard]] void* native_stream(Device device) const {
-        if (stream == nullptr) return nullptr;
-        if (stream->device() != device) {
-            throw std::invalid_argument("operator stream does not match tensor device");
+        if (stream != nullptr && external_stream != nullptr) {
+            throw std::invalid_argument("operator context cannot contain two streams");
         }
-        return stream->native_handle();
+        if (stream != nullptr) {
+            if (stream->device() != device) {
+                throw std::invalid_argument("operator stream does not match tensor device");
+            }
+            return stream->native_handle();
+        }
+        if (external_stream != nullptr) {
+            if (external_stream_device != device) {
+                throw std::invalid_argument("external stream does not match tensor device");
+            }
+            return external_stream;
+        }
+        return nullptr;
     }
 };
 

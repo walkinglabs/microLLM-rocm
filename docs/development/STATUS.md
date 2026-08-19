@@ -28,7 +28,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | CPU KV cache | smoke-tested | every prefix, MHA/GQA logits tolerance | preallocation/HIP/batching |
 | Token generation | smoke-tested | deterministic sampling and cache-backed length/bounds | trained text report |
 | Stable model failure | smoke-tested | low-loss cycle breaks beyond training context | rebuttal experiments |
-| Python/PyTorch bridge | draft | ABI design | zero-copy implementation |
+| PyTorch Custom Ops | implemented | optional registration source, TensorView seam | build/run with PyTorch ROCm |
 | C ABI v1 | smoke-tested | pure C CPU/HIP create/copy/ops/error client | zero-copy external views |
 | Python ctypes API | smoke-tested | CPU/HIP Tensor/ops/error unittest | packaging/broader ops |
 | External TensorView ops | smoke-tested | caller-owned CPU/HIP buffers and Stream | Torch build validation |

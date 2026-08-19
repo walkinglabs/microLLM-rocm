@@ -60,3 +60,5 @@ the next gate. Records are append-only except for factual corrections.
   API consuming the same C ABI.
 - [2026-08-19-m4-external-tensor-view.md](2026-08-19-m4-external-tensor-view.md):
   zero-copy caller-owned TensorView operators and explicit Stream interop.
+- [2026-08-19-m4-torch-custom-ops.md](2026-08-19-m4-torch-custom-ops.md): optional
+  PyTorch CPU/ROCm registration source and missing-environment evidence.

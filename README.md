@@ -54,6 +54,7 @@ Every performance-sensitive operator will keep three paths where useful:
 | Tiny HIP training | smoke-tested | MI300X 5-step loss 2.21512 → 1.11681 |
 | C ABI v1 | smoke-tested | pure C CPU/HIP tensor and operator client |
 | Python ctypes API | smoke-tested | dependency-free CPU/HIP integration tests |
+| PyTorch Custom Ops | implemented, unverified | optional build; local Torch unavailable |
 | Model-S reference training report | planned | M3 next step |
 | Python/PyTorch bindings | planned | M4 |
 | Profiling/autotuning | planned | M5 |
