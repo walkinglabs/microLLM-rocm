@@ -23,7 +23,8 @@ test, raw record, and scope.
 | Bucket/overlap | pass synthetic | raw RCCL JSONL |
 | Four-rank execution | failed | `/dev/shm` ENOSPC debug record |
 | Python ctypes | pass CPU/HIP | unittest through C ABI |
-| PyTorch Custom Ops | unverified | source exists; Torch absent locally |
+| PyTorch Custom Ops CPU | pass | Torch 2.13 dispatcher comparison |
+| PyTorch Custom Ops ROCm | environment failure | matching wheel Bus error on import |
 | Real-corpus pretraining/SFT | unverified | dataset registry still planned |
 | Radeon compatibility | unverified | no Radeon run record |
 

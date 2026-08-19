@@ -19,7 +19,7 @@ not declared on generic hosted runners; local hardware commands remain explicit.
 
 ## Still unverified external deliverables
 
-- PyTorch Custom Op compilation/runtime because Torch is absent locally;
+- PyTorch ROCm Custom Op runtime because the matching temporary wheel fails on import;
 - real-corpus Model-S pretraining and SFT because the dataset registry is planned;
 - Radeon compatibility because no Radeon device is available;
 - four-rank RCCL because the current container shared-memory limit blocks init.

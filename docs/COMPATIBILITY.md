@@ -14,7 +14,7 @@ before reproducing a run.
 | 4× MI300X VF | gfx942, XGMI | RCCL 2.28.3 | init fails with 64MB `/dev/shm` | failed in current container |
 | Radeon | — | — | no hardware run | unverified |
 | PyTorch CPU | host | Torch 2.13.0+cpu | Custom Op add/multiply | smoke-tested |
-| PyTorch ROCm | — | — | no Torch ROCm development environment | unverified |
+| PyTorch ROCm | gfx942 candidate | Torch 2.11.0 + ROCm 7.13.0rc2 wheel | `import torch` Bus error before binding build | environment failure |
 
 ## Radeon validation procedure
 

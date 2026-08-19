@@ -94,3 +94,5 @@ the next gate. Records are append-only except for factual corrections.
   pure C++ save/resume CLI and Model-S TinyStories HIP trajectory.
 - [2026-08-19-torch-cpu-validation.md](2026-08-19-torch-cpu-validation.md): optional
   dispatcher binding compiled and run with an isolated Torch CPU wheel.
+- [2026-08-19-torch-rocm-environment-failure.md](2026-08-19-torch-rocm-environment-failure.md):
+  matching AMD wheel fails before Custom Op build.
