@@ -2,6 +2,7 @@
 #include <microllm/runtime/runtime.h>
 
 #include <cstring>
+#include <atomic>
 #include <limits>
 #include <stdexcept>
 #include <string>
@@ -17,6 +18,28 @@
 
 namespace microllm::runtime {
 namespace {
+
+struct AllocationCounters {
+    std::atomic<std::size_t> current{0};
+    std::atomic<std::size_t> peak{0};
+    std::atomic<std::size_t> total{0};
+};
+
+AllocationCounters cpu_counters;
+AllocationCounters hip_counters;
+
+AllocationCounters& counters(Device device) {
+    return device.is_cpu() ? cpu_counters : hip_counters;
+}
+
+void record_allocation(Device device, std::size_t bytes) {
+    auto& values = counters(device);
+    const auto current = values.current.fetch_add(bytes) + bytes;
+    values.total.fetch_add(bytes);
+    auto peak = values.peak.load();
+    while (current > peak && !values.peak.compare_exchange_weak(peak, current)) {
+    }
+}
 
 #if MICROLLM_HAS_HIP
 void check_hip(hipError_t status, const char* operation) {
@@ -138,28 +161,47 @@ void synchronize(Device device) {
 
 void* allocate(std::size_t num_bytes, Device device) {
     if (num_bytes == 0) return nullptr;
-    if (device.is_cpu()) return ::operator new(num_bytes);
+    if (device.is_cpu()) {
+        auto* pointer = ::operator new(num_bytes);
+        record_allocation(device, num_bytes);
+        return pointer;
+    }
 #if MICROLLM_HAS_HIP
     set_device(device);
     void* pointer = nullptr;
     check_hip(hipMalloc(&pointer, num_bytes), "hipMalloc");
+    record_allocation(device, num_bytes);
     return pointer;
 #else
     throw std::runtime_error("HIP allocation requested from a CPU-only build");
 #endif
 }
 
-void deallocate(void* pointer, Device device) noexcept {
+void deallocate(void* pointer, Device device, std::size_t num_bytes) noexcept {
     if (pointer == nullptr) return;
     if (device.is_cpu()) {
         ::operator delete(pointer);
+        counters(device).current.fetch_sub(num_bytes);
         return;
     }
 #if MICROLLM_HAS_HIP
-    if (hipSetDevice(device.index()) == hipSuccess) (void)hipFree(pointer);
+    if (hipSetDevice(device.index()) == hipSuccess && hipFree(pointer) == hipSuccess) {
+        counters(device).current.fetch_sub(num_bytes);
+    }
 #else
     (void)device;
 #endif
+}
+
+AllocationStats allocation_stats(Device device) noexcept {
+    auto& values = counters(device);
+    return {values.current.load(), values.peak.load(), values.total.load()};
+}
+
+void reset_allocation_peak(Device device) noexcept {
+    auto& values = counters(device);
+    values.peak.store(values.current.load());
+    values.total.store(0);
 }
 
 void copy_bytes(void* destination, Device destination_device, const void* source,

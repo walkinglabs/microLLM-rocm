@@ -9,7 +9,16 @@
 namespace microllm::runtime {
 
 [[nodiscard]] void* allocate(std::size_t num_bytes, Device device);
-void deallocate(void* pointer, Device device) noexcept;
+void deallocate(void* pointer, Device device, std::size_t num_bytes) noexcept;
+
+struct AllocationStats {
+    std::size_t current_bytes = 0;
+    std::size_t peak_bytes = 0;
+    std::size_t total_allocated_bytes = 0;
+};
+
+[[nodiscard]] AllocationStats allocation_stats(Device device) noexcept;
+void reset_allocation_peak(Device device) noexcept;
 
 void copy_bytes(void* destination, Device destination_device, const void* source,
                 Device source_device, std::size_t num_bytes);

@@ -64,3 +64,5 @@ the next gate. Records are append-only except for factual corrections.
   PyTorch CPU/ROCm registration source and missing-environment evidence.
 - [2026-08-19-m5-micro-benchmark.md](2026-08-19-m5-micro-benchmark.md): reproducible
   operator timing schema and first CPU/gfx942 measurements.
+- [2026-08-19-m5-allocation-tracker.md](2026-08-19-m5-allocation-tracker.md): engine
+  current/peak/total allocation accounting.

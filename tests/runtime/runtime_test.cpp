@@ -25,6 +25,20 @@ TEST(RuntimeTest, CpuCopyRoundTripsBytes) {
     EXPECT_EQ(output, input);
 }
 
+TEST(RuntimeTest, TracksCurrentPeakAndTotalEngineAllocations) {
+    const auto before = allocation_stats(Device::cpu()).current_bytes;
+    reset_allocation_peak(Device::cpu());
+    {
+        Storage first(64);
+        Storage second(32);
+        const auto during = allocation_stats(Device::cpu());
+        EXPECT_EQ(during.current_bytes, before + 96);
+        EXPECT_GE(during.peak_bytes, before + 96);
+        EXPECT_EQ(during.total_allocated_bytes, 96U);
+    }
+    EXPECT_EQ(allocation_stats(Device::cpu()).current_bytes, before);
+}
+
 #if MICROLLM_HAS_HIP
 TEST(HipRuntimeTest, ReportsDeviceAndTransfersTensor) {
     if (hip_device_count() == 0) GTEST_SKIP() << "No visible HIP device";

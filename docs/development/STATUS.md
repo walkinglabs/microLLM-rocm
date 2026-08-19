@@ -34,4 +34,5 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | External TensorView ops | smoke-tested | caller-owned CPU/HIP buffers and Stream | Torch build validation |
 | Profiling/autotune | draft | registry design | traces and selection cache |
 | Micro-benchmark harness | smoke-tested | CPU/HIP Event+wall JSONL and error gate | PyTorch comparison/more shapes |
+| Engine allocation tracker | smoke-tested | CPU/HIP current/peak/total accounting | external allocator integration |
 | RCCL | draft | roadmap | 2/4 GPU equivalence |

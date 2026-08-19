@@ -10,7 +10,7 @@ struct Storage::Allocation {
     std::size_t num_bytes = 0;
     Device device = Device::cpu();
 
-    ~Allocation() { runtime::deallocate(data, device); }
+    ~Allocation() { runtime::deallocate(data, device, num_bytes); }
 };
 
 Storage::Storage(std::size_t num_bytes, Device device) {
