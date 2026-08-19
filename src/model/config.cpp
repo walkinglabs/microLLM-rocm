@@ -1,0 +1,109 @@
+#include <microllm/model/config.h>
+
+#include <limits>
+#include <sstream>
+#include <stdexcept>
+
+namespace microllm::model {
+namespace {
+
+std::uint64_t checked_product(std::uint64_t left, std::uint64_t right) {
+    if (left != 0 && right > std::numeric_limits<std::uint64_t>::max() / left) {
+        throw std::overflow_error("model parameter count overflow");
+    }
+    return left * right;
+}
+
+std::uint64_t checked_add(std::uint64_t left, std::uint64_t right) {
+    if (right > std::numeric_limits<std::uint64_t>::max() - left) {
+        throw std::overflow_error("model parameter count overflow");
+    }
+    return left + right;
+}
+
+}  // namespace
+
+void ModelConfig::validate() const {
+    if (vocabulary_size <= 0 || dimension <= 0 || layers <= 0 || heads <= 0 ||
+        kv_heads <= 0 || ffn_dimension <= 0 || max_sequence_length <= 0) {
+        throw std::invalid_argument("all integral model dimensions must be positive");
+    }
+    if (dimension % heads != 0) throw std::invalid_argument("dimension must divide into heads");
+    if (heads % kv_heads != 0) throw std::invalid_argument("heads must divide into kv_heads groups");
+    if (head_dimension() % 2 != 0) throw std::invalid_argument("RoPE head dimension must be even");
+    if (!(rope_base > 0.0F)) throw std::invalid_argument("RoPE base must be positive");
+}
+
+std::int64_t ModelConfig::head_dimension() const {
+    if (heads <= 0 || dimension % heads != 0) {
+        throw std::invalid_argument("invalid head configuration");
+    }
+    return dimension / heads;
+}
+
+std::int64_t ModelConfig::kv_dimension() const {
+    if (kv_heads <= 0) throw std::invalid_argument("kv_heads must be positive");
+    return head_dimension() * kv_heads;
+}
+
+std::uint64_t ModelConfig::parameter_count() const {
+    validate();
+    const auto vocab = static_cast<std::uint64_t>(vocabulary_size);
+    const auto dim = static_cast<std::uint64_t>(dimension);
+    const auto layer_count = static_cast<std::uint64_t>(layers);
+    const auto feed_forward = static_cast<std::uint64_t>(ffn_dimension);
+    const auto key_value = static_cast<std::uint64_t>(kv_dimension());
+
+    const auto embedding = checked_product(vocab, dim);
+    const auto query_and_output = checked_product(2, checked_product(dim, dim));
+    const auto key_and_value = checked_product(2, checked_product(dim, key_value));
+    const auto attention = checked_add(query_and_output, key_and_value);
+    const auto ffn = checked_product(3, checked_product(dim, feed_forward));
+    const auto norms = checked_product(2, dim);
+    const auto per_layer = checked_add(checked_add(attention, ffn), norms);
+    auto total = checked_add(embedding, checked_product(layer_count, per_layer));
+    total = checked_add(total, dim);  // final RMSNorm
+    if (!tie_embeddings) total = checked_add(total, checked_product(dim, vocab));
+    return total;
+}
+
+std::uint64_t ModelConfig::weight_bytes(std::uint64_t bytes_per_parameter) const {
+    if (bytes_per_parameter == 0) throw std::invalid_argument("bytes per parameter must be positive");
+    return checked_product(parameter_count(), bytes_per_parameter);
+}
+
+std::string ModelConfig::summary() const {
+    std::ostringstream output;
+    output << "vocab=" << vocabulary_size << ",dim=" << dimension << ",layers=" << layers
+           << ",heads=" << heads << ",kv_heads=" << kv_heads << ",ffn=" << ffn_dimension
+           << ",max_seq=" << max_sequence_length << ",rope_base=" << rope_base
+           << ",tie_embeddings=" << (tie_embeddings ? "true" : "false")
+           << ",parameters=" << parameter_count();
+    return output.str();
+}
+
+ModelConfig ModelConfig::model_s() {
+    return {.vocabulary_size = 8192,
+            .dimension = 384,
+            .layers = 6,
+            .heads = 6,
+            .kv_heads = 6,
+            .ffn_dimension = 832,
+            .max_sequence_length = 512,
+            .rope_base = 10000.0F,
+            .tie_embeddings = false};
+}
+
+ModelConfig ModelConfig::model_m() {
+    return {.vocabulary_size = 8192,
+            .dimension = 512,
+            .layers = 8,
+            .heads = 8,
+            .kv_heads = 8,
+            .ffn_dimension = 1184,
+            .max_sequence_length = 512,
+            .rope_base = 10000.0F,
+            .tie_embeddings = false};
+}
+
+}  // namespace microllm::model

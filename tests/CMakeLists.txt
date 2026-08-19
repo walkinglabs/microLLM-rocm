@@ -9,10 +9,12 @@ add_executable(microllm_tests
     autograd/autograd_test.cpp
     training/optimizer_test.cpp
     training/checkpoint_test.cpp
+    model/config_test.cpp
 )
 
 target_link_libraries(microllm_tests PRIVATE
-    GTest::gtest_main microllm::core microllm::ops microllm::autograd microllm::training
+    GTest::gtest_main microllm::core microllm::ops microllm::autograd
+    microllm::training microllm::model
 )
 
 include(GoogleTest)

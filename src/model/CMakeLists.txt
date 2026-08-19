@@ -1,5 +1,15 @@
-# src/model — Transformer 组件
-# TODO: N6 启用
+add_library(microllm_model STATIC
+    config.cpp
+)
+add_library(microllm::model ALIAS microllm_model)
 
-add_library(micro_llm_model INTERFACE)
-target_include_directories(micro_llm_model INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(microllm_model
+    PUBLIC
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(microllm_model
+    PUBLIC microllm::autograd microllm_project_options microllm_build_config
+)
+
+install(TARGETS microllm_model ARCHIVE DESTINATION lib)

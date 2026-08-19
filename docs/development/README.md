@@ -28,3 +28,5 @@ the next gate. Records are append-only except for factual corrections.
   training state and multi-step resume equivalence.
 - [2026-08-19-m3-attention-primitives.md](2026-08-19-m3-attention-primitives.md):
   differentiable causal masking and contiguous graph materialization.
+- [2026-08-19-m3-model-config.md](2026-08-19-m3-model-config.md): executable Model-S
+  and Model-M parameter budgets.

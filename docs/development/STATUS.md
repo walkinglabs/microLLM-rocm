@@ -16,7 +16,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | CPU Transformer Autograd | smoke-tested | 11 focused tests and finite differences | attention composition/GPU backward |
 | SGD/AdamW | smoke-tested | hand first step and state-restored next step | GPU update/mixed precision |
 | Checkpoint | smoke-tested | complete-state load, corruption, 3-step resume | atomic save/GPU tensors |
-| Model-S | draft | corrected parameter budget | overfit and training run |
+| Model-S/Model-M config | smoke-tested | executable exact parameter/byte tests | model layers/training |
 | Python/PyTorch bridge | draft | ABI design | zero-copy implementation |
 | Profiling/autotune | draft | registry design | traces and selection cache |
 | RCCL | draft | roadmap | 2/4 GPU equivalence |

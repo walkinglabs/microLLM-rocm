@@ -11,5 +11,6 @@
 #include <microllm/autograd/autograd.h>
 #include <microllm/training/optimizer.h>
 #include <microllm/training/checkpoint.h>
+#include <microllm/model/config.h>
 
 TEST(PublicHeaders, CanBeIncludedTogether) { SUCCEED(); }
