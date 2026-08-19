@@ -26,3 +26,5 @@ the next gate. Records are append-only except for factual corrections.
   optimizer-state continuation equivalence.
 - [2026-08-19-m2-checkpoint.md](2026-08-19-m2-checkpoint.md): versioned complete
   training state and multi-step resume equivalence.
+- [2026-08-19-m3-attention-primitives.md](2026-08-19-m3-attention-primitives.md):
+  differentiable causal masking and contiguous graph materialization.

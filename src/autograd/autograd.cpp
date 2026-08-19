@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <functional>
+#include <limits>
 #include <stdexcept>
 #include <string>
 #include <unordered_set>
@@ -432,6 +433,74 @@ Value cross_entropy(const Value& logits, const Tensor& targets) {
                          for (auto& value : logits_gradient) value *= factor;
                          accumulate(logits_node, Tensor::from_vector(
                                                      logits_gradient, logits_node->data.shape()));
+                     });
+}
+
+Value contiguous(const Value& input) {
+    require_value(input, "input");
+    auto input_node = input.node_;
+    return operation(input.data().contiguous(), {input_node},
+                     [input_node](const Tensor& gradient) { accumulate(input_node, gradient); });
+}
+
+Value causal_softmax(const Value& scores) {
+    require_value(scores, "scores");
+    if (scores.data().ndim() < 2 ||
+        scores.data().shape()[scores.data().shape().size() - 2] != scores.data().shape().back()) {
+        throw std::invalid_argument("causal_softmax requires square final dimensions");
+    }
+    const auto sequence = scores.data().shape().back();
+    if (sequence == 0) throw std::invalid_argument("causal_softmax sequence cannot be empty");
+    const auto input_values = scores.data().to_vector();
+    auto probabilities = input_values;
+    const auto matrices = scores.data().numel() / (sequence * sequence);
+    for (std::int64_t matrix = 0; matrix < matrices; ++matrix) {
+        const auto matrix_base = matrix * sequence * sequence;
+        for (std::int64_t row = 0; row < sequence; ++row) {
+            const auto row_base = matrix_base + row * sequence;
+            float maximum = -std::numeric_limits<float>::infinity();
+            for (std::int64_t column = 0; column <= row; ++column) {
+                maximum = std::max(maximum,
+                                   input_values[static_cast<std::size_t>(row_base + column)]);
+            }
+            float denominator = 0.0F;
+            for (std::int64_t column = 0; column <= row; ++column) {
+                const auto index = static_cast<std::size_t>(row_base + column);
+                probabilities[index] = std::exp(input_values[index] - maximum);
+                denominator += probabilities[index];
+            }
+            for (std::int64_t column = 0; column <= row; ++column) {
+                probabilities[static_cast<std::size_t>(row_base + column)] /= denominator;
+            }
+            for (std::int64_t column = row + 1; column < sequence; ++column) {
+                probabilities[static_cast<std::size_t>(row_base + column)] = 0.0F;
+            }
+        }
+    }
+    auto score_node = scores.node_;
+    const auto output = Tensor::from_vector(probabilities, scores.data().shape());
+    return operation(output, {score_node},
+                     [score_node, probabilities, sequence, matrices](const Tensor& gradient) {
+                         const auto output_gradient = gradient.to_vector();
+                         std::vector<float> input_gradient(output_gradient.size(), 0.0F);
+                         for (std::int64_t matrix = 0; matrix < matrices; ++matrix) {
+                             const auto matrix_base = matrix * sequence * sequence;
+                             for (std::int64_t row = 0; row < sequence; ++row) {
+                                 const auto row_base = matrix_base + row * sequence;
+                                 float dot = 0.0F;
+                                 for (std::int64_t column = 0; column <= row; ++column) {
+                                     const auto index = static_cast<std::size_t>(row_base + column);
+                                     dot += output_gradient[index] * probabilities[index];
+                                 }
+                                 for (std::int64_t column = 0; column <= row; ++column) {
+                                     const auto index = static_cast<std::size_t>(row_base + column);
+                                     input_gradient[index] = probabilities[index] *
+                                                             (output_gradient[index] - dot);
+                                 }
+                             }
+                         }
+                         accumulate(score_node, Tensor::from_vector(
+                                                    input_gradient, score_node->data.shape()));
                      });
 }
 

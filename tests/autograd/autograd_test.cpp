@@ -164,4 +164,32 @@ TEST(AutogradTest, RopeBackwardMatchesFiniteDifference) {
     }
 }
 
+TEST(AutogradTest, CausalSoftmaxMasksFutureAndBackpropagatesOnlyVisiblePositions) {
+    Value scores(Tensor::from_vector({1, 100, 100, 1, 2, 100, 1, 2, 3}, {1, 1, 3, 3}), true);
+    const auto probabilities = causal_softmax(scores);
+    const auto values = probabilities.data().to_vector();
+    EXPECT_EQ(values[0], 1.0F);
+    EXPECT_EQ(values[1], 0.0F);
+    EXPECT_EQ(values[2], 0.0F);
+    EXPECT_NEAR(values[3] + values[4], 1.0F, 1.0e-6F);
+    EXPECT_EQ(values[5], 0.0F);
+    EXPECT_NEAR(values[6] + values[7] + values[8], 1.0F, 1.0e-6F);
+
+    const auto weights = Value(Tensor::from_vector({1, 2, 3, 4, 5, 6, 7, 8, 9},
+                                                    {1, 1, 3, 3}));
+    sum(multiply(probabilities, weights)).backward();
+    const auto gradient = scores.grad().to_vector();
+    EXPECT_EQ(gradient[1], 0.0F);
+    EXPECT_EQ(gradient[2], 0.0F);
+    EXPECT_EQ(gradient[5], 0.0F);
+}
+
+TEST(AutogradTest, ContiguousPreservesLogicalGradientOrderAfterTranspose) {
+    Value input(Tensor::from_vector({1, 2, 3, 4, 5, 6}, {2, 3}), true);
+    const auto reordered = contiguous(transpose(input, 0, 1));
+    const auto weights = Value(Tensor::from_vector({1, 2, 3, 4, 5, 6}, {3, 2}));
+    sum(multiply(reordered, weights)).backward();
+    EXPECT_EQ(input.grad().to_vector(), (std::vector<float>{1, 3, 5, 2, 4, 6}));
+}
+
 }  // namespace microllm::autograd

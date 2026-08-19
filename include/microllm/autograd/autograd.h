@@ -45,6 +45,8 @@ private:
     friend Value swiglu(const Value&, const Value&);
     friend Value rope(const Value&, std::int64_t, std::int64_t, float);
     friend Value cross_entropy(const Value&, const Tensor&);
+    friend Value contiguous(const Value&);
+    friend Value causal_softmax(const Value&);
 };
 
 [[nodiscard]] Value add(const Value& left, const Value& right);
@@ -64,5 +66,7 @@ private:
 [[nodiscard]] Value rope(const Value& input, std::int64_t sequence_dim = 1,
                          std::int64_t position_offset = 0, float base = 10000.0F);
 [[nodiscard]] Value cross_entropy(const Value& logits, const Tensor& targets);
+[[nodiscard]] Value contiguous(const Value& input);
+[[nodiscard]] Value causal_softmax(const Value& scores);
 
 }  // namespace microllm::autograd
