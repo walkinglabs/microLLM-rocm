@@ -78,6 +78,12 @@ def write_manifest(path, manifest):
 
 def main():
     args = parse_args()
+    repository = {
+        "path": str(PROJECT),
+        "commit": git_value("rev-parse", "HEAD"),
+        "branch": git_value("branch", "--show-current"),
+        "dirty": bool(git_value("status", "--porcelain")),
+    }
     output = args.output.resolve()
     if output.exists() and any(output.iterdir()) and not args.overwrite:
         raise SystemExit("output directory is not empty; pass --overwrite to replace its files")
@@ -91,12 +97,7 @@ def main():
         "run_id": run_id,
         "created_utc": datetime.datetime.now(datetime.UTC).isoformat(),
         "status": "running",
-        "repository": {
-            "path": str(PROJECT),
-            "commit": git_value("rev-parse", "HEAD"),
-            "branch": git_value("branch", "--show-current"),
-            "dirty": bool(git_value("status", "--porcelain")),
-        },
+        "repository": repository,
         "host": {
             "platform": platform.platform(),
             "machine": platform.machine(),
