@@ -1,4 +1,5 @@
 #include <cmath>
+#include <cstdint>
 #include <iostream>
 #include <iomanip>
 #include <stdexcept>
@@ -22,18 +23,26 @@ int main() {
         const microllm::io::TokenBatch batch{
             microllm::Tensor::from_int32_vector({1}, {1, 1}),
             microllm::Tensor::from_int32_vector({2}, {1, 1})};
-        const auto metrics = microllm::training::train_step(model, optimizer, batch, 1);
+        float first_loss = 0.0F;
+        microllm::training::StepMetrics metrics;
+        for (std::uint64_t step = 1; step <= 3; ++step) {
+            metrics = microllm::training::train_step(model, optimizer, batch, step);
+            if (step == 1) first_loss = metrics.loss;
+            std::cout << "step=" << step << " loss=" << metrics.loss
+                      << " gradient_l2_norm=" << metrics.gradient_l2_norm << '\n';
+        }
         const auto after = named.front().second->data().to_vector()[probe_index];
         std::cout << "parameters=" << model.parameter_count() << '\n';
-        std::cout << "loss=" << metrics.loss << '\n';
-        std::cout << "gradient_l2_norm=" << metrics.gradient_l2_norm << '\n';
+        std::cout << "first_loss=" << first_loss << '\n';
+        std::cout << "final_loss=" << metrics.loss << '\n';
         std::cout << std::setprecision(9);
         std::cout << "probe_parameter_before=" << before << '\n';
         std::cout << "probe_parameter_after=" << after << '\n';
         std::cout << "probe_parameter_delta=" << (after - before) << '\n';
         if (!std::isfinite(metrics.loss) || !std::isfinite(metrics.gradient_l2_norm) ||
-            !(metrics.gradient_l2_norm > 0.0F) || before == after) {
-            throw std::runtime_error("Model-S training step did not update finite state");
+            !(metrics.gradient_l2_norm > 0.0F) || before == after ||
+            !(metrics.loss < first_loss)) {
+            throw std::runtime_error("Model-S training trajectory did not update finite state");
         }
         return 0;
     } catch (const std::exception& error) {
