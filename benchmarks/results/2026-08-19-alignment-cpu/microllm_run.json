@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "framework": "microllm",
-  "run_id": "2026-08-19-alignment-cpu",
+  "run_id": "tiny-alignment-cpu",
   "device": "cpu:0",
   "seed": 211,
   "warmup": 5,
