@@ -65,12 +65,27 @@ Value parameter(Shape shape, std::mt19937_64& generator, float standard_deviatio
 
 class Linear {
 public:
-    Linear(std::int64_t input, std::int64_t output, std::mt19937_64& generator)
+    Linear(std::int64_t input, std::int64_t output, std::mt19937_64& generator,
+           const ModelConfig& config)
         : weight_(parameter({input, output}, generator,
-                            1.0F / std::sqrt(static_cast<float>(input)))) {}
+                            1.0F / std::sqrt(static_cast<float>(input)))),
+          precision_(config.linear_precision),
+          activation_scale_(config.fp8_activation_scale),
+          weight_scale_(config.fp8_weight_scale) {}
 
-    Value forward(const Value& input) { return autograd::matmul(input, weight_); }
+    Value forward(const Value& input) {
+        if (precision_ == LinearPrecision::Float8E4M3FNUZ) {
+            return autograd::fp8_matmul(input, weight_, activation_scale_, weight_scale_);
+        }
+        return autograd::matmul(input, weight_);
+    }
     Tensor forward_tensor(const Tensor& input) {
+        if (precision_ == LinearPrecision::Float8E4M3FNUZ) {
+            return ops::fp8_matmul(
+                ops::quantize_fp8(input, DType::Float8E4M3FNUZ, activation_scale_),
+                ops::quantize_fp8(weight_.data(), DType::Float8E4M3FNUZ, weight_scale_),
+                DType::Float32);
+        }
         return ops::matmul_with_implementation(input, weight_.data(),
                                                ops::MatmulImplementation::Auto);
     }
@@ -78,6 +93,9 @@ public:
 
 private:
     Value weight_;
+    LinearPrecision precision_ = LinearPrecision::Float32;
+    float activation_scale_ = 1.0F;
+    float weight_scale_ = 1.0F;
 };
 
 class Norm {
@@ -98,10 +116,10 @@ class Attention {
 public:
     Attention(const ModelConfig& config, std::mt19937_64& generator)
         : config_(config),
-          query_(config.dimension, config.dimension, generator),
-          key_(config.dimension, config.kv_dimension(), generator),
-          value_(config.dimension, config.kv_dimension(), generator),
-          output_(config.dimension, config.dimension, generator) {}
+          query_(config.dimension, config.dimension, generator, config),
+          key_(config.dimension, config.kv_dimension(), generator, config),
+          value_(config.dimension, config.kv_dimension(), generator, config),
+          output_(config.dimension, config.dimension, generator, config) {}
 
     Value forward(const Value& input) {
         if (input.data().ndim() != 3) throw std::invalid_argument("attention input must be BxTxD");
@@ -213,9 +231,9 @@ class FeedForward {
 public:
     FeedForward(const ModelConfig& config, std::mt19937_64& generator)
         : config_(config),
-          gate_(config.dimension, config.ffn_dimension, generator),
-          up_(config.dimension, config.ffn_dimension, generator),
-          down_(config.ffn_dimension, config.dimension, generator) {}
+          gate_(config.dimension, config.ffn_dimension, generator, config),
+          up_(config.dimension, config.ffn_dimension, generator, config),
+          down_(config.ffn_dimension, config.dimension, generator, config) {}
 
     Value forward(const Value& input) {
         const auto batch = input.data().shape()[0];
@@ -297,7 +315,7 @@ struct TransformerModel::Impl {
         }
         if (!config.tie_embeddings) {
             output_head = std::make_unique<Linear>(config.dimension, config.vocabulary_size,
-                                                   generator);
+                                                   generator, config);
         }
     }
 

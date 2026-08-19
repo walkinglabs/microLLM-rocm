@@ -19,12 +19,14 @@ hipBLASLt, and the host scale value used when launching conversion kernels.
 - device-native FP8 to FP32/FP16/BF16 dequantize Kernel;
 - hipBLASLt FP8 × FP8 scaled GEMM with FP32/FP16/BF16 output;
 - eager-autograd FP8 forward with FP32 master parameters and FP32 backward gradients;
+- Transformer `LinearPrecision` policy covering Q/K/V/O, FFN, output head, full
+  forward/loss/backward, and one-token KV-cache decode;
 - invalid format/scale gates and zero Tensor-payload host-transfer checks;
 - unified precision benchmark with Event median/p95, accuracy gate, and speedup ratios.
 
 The current training rule uses a quantized forward and a full-precision straight-through
-backward. Dynamic amax/history scaling and full Transformer FP8 policy are still later
-work; explicit scales make the current behavior reproducible.
+backward. Dynamic amax/history scaling remains later work; explicit per-policy activation
+and weight scales make the current behavior reproducible.
 
 ## Measured MI300X result
 

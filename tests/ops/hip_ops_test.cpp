@@ -176,6 +176,50 @@ TEST(HipFp8TrainingTest, ForwardAndStraightThroughBackwardKeepFp32MastersOnDevic
     EXPECT_TRUE(std::isfinite(loss.data().to_vector()[0]));
 }
 
+TEST(HipFp8TrainingTest, TransformerLinearPolicyRunsEndToEndOnMi300) {
+    require_gpu();
+    if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";
+    model::ModelConfig config{.vocabulary_size = 128,
+                              .dimension = 128,
+                              .layers = 1,
+                              .heads = 4,
+                              .kv_heads = 4,
+                              .ffn_dimension = 256,
+                              .max_sequence_length = 16,
+                              .rope_base = 10000.0F,
+                              .tie_embeddings = false,
+                              .linear_precision = model::LinearPrecision::Float8E4M3FNUZ,
+                              .fp8_activation_scale = 0.025F,
+                              .fp8_weight_scale = 0.005F};
+    model::TransformerModel model(config, 211);
+    model.to(Device::hip(0));
+    std::vector<std::int32_t> token_values(16);
+    std::vector<std::int32_t> target_values(16);
+    for (std::size_t index = 0; index < token_values.size(); ++index) {
+        token_values[index] = static_cast<std::int32_t>(index);
+        target_values[index] = static_cast<std::int32_t>(index + 1);
+    }
+    const auto tokens = Tensor::from_int32_vector(token_values, {1, 16}).to(Device::hip(0));
+    const auto targets = Tensor::from_int32_vector(target_values, {1, 16}).to(Device::hip(0));
+    runtime::reset_transfer_stats();
+    const auto loss = model.loss(tokens, targets);
+    loss.backward();
+    runtime::synchronize(Device::hip(0));
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    EXPECT_TRUE(std::isfinite(loss.data().to_vector()[0]));
+    for (const auto& [name, parameter] : model.named_parameters()) {
+        ASSERT_TRUE(parameter->has_grad()) << name;
+        EXPECT_EQ(parameter->data().dtype(), DType::Float32) << name;
+        EXPECT_EQ(parameter->grad().dtype(), DType::Float32) << name;
+    }
+    inference::KVCache cache(config.layers, config.max_sequence_length);
+    const auto decode_logits = model.forward_cached(
+        Tensor::from_int32_vector({1}, {1, 1}).to(Device::hip(0)), cache);
+    EXPECT_EQ(decode_logits.shape(), (Shape{1, 1, 128}));
+    for (const auto value : decode_logits.to_vector()) EXPECT_TRUE(std::isfinite(value));
+}
+
 TEST(HipOpsTest, NaiveBatchedMatmulMatchesCpuReference) {
     require_gpu();
     const auto left_cpu = Tensor::from_vector({1, 2, 3, 4, 5, 6, 1, 0, 0, 1, 1, 1}, {2, 2, 3});

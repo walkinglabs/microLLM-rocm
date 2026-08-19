@@ -39,7 +39,7 @@ MI300X 没有 CDNA4 的原生 MXFP4 Matrix Core。仓库可以保存 packed FP4 
 | view/contiguous/设备复制 | ✓ | ✓ | ✓ | 计划中 | 计划中 | 计划中 |
 | 基础逐元素/SiLU/SwiGLU/GEMM | ✓ | CPU/MI300X ✓ | CPU/MI300X ✓ | — | — | — |
 | hipBLASLt GEMM | FP32 ✓ | MI300X ✓ | MI300X ✓ | MI300X E4M3/E5M2 FNUZ ✓ | 计划中 | 软件解包后计算 |
-| 训练 OP | FP32 | 计划中 | 计划中 | FP8 forward + FP32 master/backward ✓ | — | — |
+| Transformer Linear 训练/推理 | FP32 | 计划中 | 计划中 | FP8 forward + FP32 master/backward/KV decode ✓ | — | — |
 
 表格中的“计划中”不是支持声明。只有对应测试和真机记录完成后才会改成 ✓。
 

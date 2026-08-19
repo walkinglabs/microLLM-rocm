@@ -1,6 +1,7 @@
 #include <microllm/model/config.h>
 
 #include <limits>
+#include <cmath>
 #include <sstream>
 #include <stdexcept>
 
@@ -32,6 +33,11 @@ void ModelConfig::validate() const {
     if (heads % kv_heads != 0) throw std::invalid_argument("heads must divide into kv_heads groups");
     if (head_dimension() % 2 != 0) throw std::invalid_argument("RoPE head dimension must be even");
     if (!(rope_base > 0.0F)) throw std::invalid_argument("RoPE base must be positive");
+    if (linear_precision == LinearPrecision::Float8E4M3FNUZ &&
+        (!std::isfinite(fp8_activation_scale) || fp8_activation_scale <= 0.0F ||
+         !std::isfinite(fp8_weight_scale) || fp8_weight_scale <= 0.0F)) {
+        throw std::invalid_argument("FP8 Linear scales must be finite and positive");
+    }
 }
 
 std::int64_t ModelConfig::head_dimension() const {
@@ -78,6 +84,8 @@ std::string ModelConfig::summary() const {
            << ",heads=" << heads << ",kv_heads=" << kv_heads << ",ffn=" << ffn_dimension
            << ",max_seq=" << max_sequence_length << ",rope_base=" << rope_base
            << ",tie_embeddings=" << (tie_embeddings ? "true" : "false")
+           << ",linear_precision="
+           << (linear_precision == LinearPrecision::Float32 ? "fp32" : "fp8_e4m3_fnuz")
            << ",parameters=" << parameter_count();
     return output.str();
 }

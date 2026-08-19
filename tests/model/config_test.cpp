@@ -31,6 +31,10 @@ TEST(ModelConfigTest, RejectsInvalidHeadAndRopeConfigurations) {
     config = ModelConfig::model_s();
     config.kv_heads = 4;
     EXPECT_THROW(config.validate(), std::invalid_argument);
+    config = ModelConfig::model_s();
+    config.linear_precision = LinearPrecision::Float8E4M3FNUZ;
+    config.fp8_activation_scale = 0.0F;
+    EXPECT_THROW(config.validate(), std::invalid_argument);
 }
 
 }  // namespace microllm::model

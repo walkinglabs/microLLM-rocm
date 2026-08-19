@@ -6,9 +6,9 @@ Branch: `feat/bootstrap-engine-m0-n0`
 
 | Gate | Result |
 |---|---:|
-| normal CPU evidence | 129/129 |
-| CPU ASan/UBSan (dynamic bindings excluded) | 127/127 |
-| MI300X/gfx942 HIP label | 34/34 |
+| normal CPU evidence | 130/130 |
+| CPU ASan/UBSan (dynamic bindings excluded) | 128/128 |
+| MI300X/gfx942 HIP label | 35/35 |
 | two-rank RCCL label | 11/11 |
 | PyTorch 2.13 CPU Custom Op, oracle, and model alignment | 3/3 |
 | committed JSON/JSONL parser | all records valid |
