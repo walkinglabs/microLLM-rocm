@@ -40,3 +40,5 @@ the next gate. Records are append-only except for factual corrections.
   Transformer training loop and measured loss trajectory.
 - [2026-08-19-m3-kv-cache.md](2026-08-19-m3-kv-cache.md): real per-layer MHA/GQA
   K/V caching and cached/full logit equivalence.
+- [2026-08-19-m3-generation.md](2026-08-19-m3-generation.md): deterministic greedy
+  and sampled generation over the real KV cache.

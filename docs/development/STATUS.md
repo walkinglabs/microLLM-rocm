@@ -20,7 +20,8 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Decoder Transformer structure | smoke-tested | tiny GQA/MHA causal forward and all-parameter backward | overfit/full recipe |
 | Byte tokenizer/token dataset | smoke-tested | all-byte round-trip and cursor equivalence | BPE/real corpus |
 | Tiny Transformer training | smoke-tested | 40-step overfit and finite gradients | validation split/Model-S |
-| CPU KV cache | smoke-tested | every prefix, MHA/GQA logits tolerance | preallocation/HIP/generation |
+| CPU KV cache | smoke-tested | every prefix, MHA/GQA logits tolerance | preallocation/HIP/batching |
+| Token generation | smoke-tested | deterministic sampling and cache-backed length/bounds | trained text report |
 | Python/PyTorch bridge | draft | ABI design | zero-copy implementation |
 | Profiling/autotune | draft | registry design | traces and selection cache |
 | RCCL | draft | roadmap | 2/4 GPU equivalence |

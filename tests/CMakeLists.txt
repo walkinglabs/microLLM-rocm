@@ -13,11 +13,13 @@ add_executable(microllm_tests
     model/model_test.cpp
     io/io_test.cpp
     training/trainer_test.cpp
+    inference/generator_test.cpp
 )
 
 target_link_libraries(microllm_tests PRIVATE
     GTest::gtest_main microllm::core microllm::ops microllm::autograd
     microllm::training microllm::model microllm::io
+    microllm::inference
 )
 
 include(GoogleTest)

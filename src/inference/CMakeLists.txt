@@ -1,5 +1,15 @@
-# src/inference — KV Cache, 自回归生成
-# TODO: N8 启用
+add_library(microllm_inference STATIC
+    generator.cpp
+)
+add_library(microllm::inference ALIAS microllm_inference)
 
-add_library(micro_llm_inference INTERFACE)
-target_include_directories(micro_llm_inference INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(microllm_inference
+    PUBLIC
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(microllm_inference
+    PUBLIC microllm::model microllm_project_options microllm_build_config
+)
+
+install(TARGETS microllm_inference ARCHIVE DESTINATION lib)

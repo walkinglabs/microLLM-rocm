@@ -85,6 +85,7 @@ add_subdirectory(src/autograd)
 add_subdirectory(src/model)
 add_subdirectory(src/io)
 add_subdirectory(src/training)
+add_subdirectory(src/inference)
 
 add_executable(micro_llm src/main.cpp)
 target_link_libraries(micro_llm PRIVATE microllm::core microllm_build_config)
