@@ -28,6 +28,31 @@ struct AllocationCounters {
 AllocationCounters cpu_counters;
 AllocationCounters hip_counters;
 
+struct TransferCounters {
+    std::atomic<std::size_t> host_to_device_calls{0};
+    std::atomic<std::size_t> device_to_host_calls{0};
+    std::atomic<std::size_t> device_to_device_calls{0};
+    std::atomic<std::size_t> host_to_device_bytes{0};
+    std::atomic<std::size_t> device_to_host_bytes{0};
+    std::atomic<std::size_t> device_to_device_bytes{0};
+};
+
+TransferCounters transfer_counters;
+
+void record_transfer(Device destination, Device source, std::size_t bytes) {
+    if (destination.is_cpu() && source.is_cpu()) return;
+    if (destination.is_hip() && source.is_cpu()) {
+        transfer_counters.host_to_device_calls.fetch_add(1);
+        transfer_counters.host_to_device_bytes.fetch_add(bytes);
+    } else if (destination.is_cpu() && source.is_hip()) {
+        transfer_counters.device_to_host_calls.fetch_add(1);
+        transfer_counters.device_to_host_bytes.fetch_add(bytes);
+    } else {
+        transfer_counters.device_to_device_calls.fetch_add(1);
+        transfer_counters.device_to_device_bytes.fetch_add(bytes);
+    }
+}
+
 AllocationCounters& counters(Device device) {
     return device.is_cpu() ? cpu_counters : hip_counters;
 }
@@ -159,6 +184,24 @@ void synchronize(Device device) {
 #endif
 }
 
+TransferStats transfer_stats() noexcept {
+    return {transfer_counters.host_to_device_calls.load(),
+            transfer_counters.device_to_host_calls.load(),
+            transfer_counters.device_to_device_calls.load(),
+            transfer_counters.host_to_device_bytes.load(),
+            transfer_counters.device_to_host_bytes.load(),
+            transfer_counters.device_to_device_bytes.load()};
+}
+
+void reset_transfer_stats() noexcept {
+    transfer_counters.host_to_device_calls.store(0);
+    transfer_counters.device_to_host_calls.store(0);
+    transfer_counters.device_to_device_calls.store(0);
+    transfer_counters.host_to_device_bytes.store(0);
+    transfer_counters.device_to_host_bytes.store(0);
+    transfer_counters.device_to_device_bytes.store(0);
+}
+
 void* allocate(std::size_t num_bytes, Device device) {
     if (num_bytes == 0) return nullptr;
     if (device.is_cpu()) {
@@ -211,6 +254,7 @@ void copy_bytes(void* destination, Device destination_device, const void* source
         throw std::invalid_argument("copy pointers must be non-null for a non-empty copy");
     }
     require_same_hip_device(destination_device, source_device);
+    record_transfer(destination_device, source_device, num_bytes);
     if (destination_device.is_cpu() && source_device.is_cpu()) {
         std::memcpy(destination, source, num_bytes);
         return;
@@ -413,6 +457,7 @@ void copy_bytes_async(void* destination, Device destination_device, const void* 
         throw std::invalid_argument("copy pointers must be non-null for a non-empty copy");
     }
     require_same_hip_device(destination_device, source_device);
+    record_transfer(destination_device, source_device, num_bytes);
     if (destination_device.is_cpu() && source_device.is_cpu()) {
         if (!stream.device().is_cpu()) throw std::invalid_argument("CPU copy requires a CPU stream");
         std::memcpy(destination, source, num_bytes);

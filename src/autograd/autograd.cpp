@@ -59,22 +59,6 @@ Value operation(Tensor data, std::vector<std::shared_ptr<Value::Node>> parents,
     return ValueAccess::make(std::move(node));
 }
 
-Tensor filled_like(const Tensor& input, float value) {
-    Tensor output(input.shape(), DType::Float32, input.device());
-    ops::fill_(output, value);
-    return output;
-}
-
-Tensor values_on_device(const std::vector<float>& values, Shape shape, Device device) {
-    return Tensor::from_vector(values, std::move(shape)).to(device);
-}
-
-float sigmoid(float value) {
-    if (value >= 0.0F) return 1.0F / (1.0F + std::exp(-value));
-    const auto exponential = std::exp(value);
-    return exponential / (1.0F + exponential);
-}
-
 }  // namespace
 
 Value::Value(Tensor data, bool requires_grad) : node_(std::make_shared<Node>()) {
@@ -220,13 +204,10 @@ Value matmul(const Value& left, const Value& right) {
 Value sum(const Value& input) {
     require_value(input, "input");
     auto input_node = input.node_;
-    double total = 0.0;
-    for (const auto value : input.data().to_vector()) total += value;
-    return operation(values_on_device({static_cast<float>(total)}, {}, input.data().device()),
-                     {input_node},
+    return operation(ops::reduce_sum(input.data()), {input_node},
                      [input_node](const Tensor& gradient) {
                          accumulate(input_node,
-                                    filled_like(input_node->data, gradient.to_vector()[0]));
+                                    ops::broadcast_scalar(gradient, input_node->data.shape()));
                      });
 }
 
@@ -261,25 +242,11 @@ Value embedding(const Value& weight, const Tensor& indices) {
         throw std::invalid_argument("autograd embedding indices must match weight device");
     }
     auto weight_node = weight.node_;
-    const auto saved_indices = indices.to_int32_vector();
     const auto vocabulary = weight.data().shape()[0];
-    const auto width = weight.data().shape()[1];
     return operation(ops::embedding(weight.data(), indices), {weight_node},
-                     [weight_node, saved_indices, vocabulary, width](const Tensor& gradient) {
-                         std::vector<float> weight_gradient(
-                             static_cast<std::size_t>(vocabulary * width), 0.0F);
-                         const auto output_gradient = gradient.to_vector();
-                         for (std::size_t token = 0; token < saved_indices.size(); ++token) {
-                             const auto index = static_cast<std::int64_t>(saved_indices[token]);
-                             for (std::int64_t column = 0; column < width; ++column) {
-                                 weight_gradient[static_cast<std::size_t>(index * width + column)] +=
-                                     output_gradient[token * static_cast<std::size_t>(width) +
-                                                     static_cast<std::size_t>(column)];
-                             }
-                         }
-                         accumulate(weight_node, values_on_device(
-                                                     weight_gradient, weight_node->data.shape(),
-                                                     weight_node->data.device()));
+                     [weight_node, indices, vocabulary](const Tensor& gradient) {
+                         accumulate(weight_node,
+                                    ops::embedding_backward(gradient, indices, vocabulary));
                      });
 }
 
@@ -287,28 +254,9 @@ Value softmax(const Value& input, std::int64_t dim) {
     require_value(input, "input");
     auto input_node = input.node_;
     const auto output = ops::softmax(input.data(), dim);
-    const auto saved_output = output.to_vector();
-    const auto width = input.data().shape().back();
     return operation(output, {input_node},
-                     [input_node, saved_output, width](const Tensor& gradient) {
-                         const auto output_gradient = gradient.to_vector();
-                         std::vector<float> input_gradient(output_gradient.size());
-                         const auto rows = static_cast<std::int64_t>(output_gradient.size()) / width;
-                         for (std::int64_t row = 0; row < rows; ++row) {
-                             float dot = 0.0F;
-                             for (std::int64_t column = 0; column < width; ++column) {
-                                 const auto index = static_cast<std::size_t>(row * width + column);
-                                 dot += output_gradient[index] * saved_output[index];
-                             }
-                             for (std::int64_t column = 0; column < width; ++column) {
-                                 const auto index = static_cast<std::size_t>(row * width + column);
-                                 input_gradient[index] = saved_output[index] *
-                                                         (output_gradient[index] - dot);
-                             }
-                         }
-                         accumulate(input_node, values_on_device(
-                                                    input_gradient, input_node->data.shape(),
-                                                    input_node->data.device()));
+                     [input_node, output](const Tensor& gradient) {
+                         accumulate(input_node, ops::softmax_backward(output, gradient));
                      });
 }
 
@@ -317,66 +265,22 @@ Value rms_norm(const Value& input, const Value& weight, float epsilon) {
     require_value(weight, "weight");
     auto input_node = input.node_;
     auto weight_node = weight.node_;
-    const auto input_values = input.data().to_vector();
-    const auto weight_values = weight.data().to_vector();
-    const auto width = input.data().shape().back();
     return operation(ops::rms_norm(input.data(), weight.data(), epsilon),
                      {input_node, weight_node},
-                     [input_node, weight_node, input_values, weight_values, width,
-                      epsilon](const Tensor& gradient) {
-                         const auto output_gradient = gradient.to_vector();
-                         std::vector<float> input_gradient(input_values.size());
-                         std::vector<float> weight_gradient(static_cast<std::size_t>(width), 0.0F);
-                         const auto rows = static_cast<std::int64_t>(input_values.size()) / width;
-                         for (std::int64_t row = 0; row < rows; ++row) {
-                             float square_sum = 0.0F;
-                             float weighted_dot = 0.0F;
-                             for (std::int64_t column = 0; column < width; ++column) {
-                                 const auto index = static_cast<std::size_t>(row * width + column);
-                                 square_sum += input_values[index] * input_values[index];
-                                 weighted_dot += output_gradient[index] *
-                                                 weight_values[static_cast<std::size_t>(column)] *
-                                                 input_values[index];
-                             }
-                             const auto inverse_rms =
-                                 1.0F / std::sqrt(square_sum / static_cast<float>(width) + epsilon);
-                             const auto correction = inverse_rms * inverse_rms * inverse_rms *
-                                                     weighted_dot / static_cast<float>(width);
-                             for (std::int64_t column = 0; column < width; ++column) {
-                                 const auto index = static_cast<std::size_t>(row * width + column);
-                                 input_gradient[index] =
-                                     output_gradient[index] *
-                                         weight_values[static_cast<std::size_t>(column)] * inverse_rms -
-                                     input_values[index] * correction;
-                                 weight_gradient[static_cast<std::size_t>(column)] +=
-                                     output_gradient[index] * input_values[index] * inverse_rms;
-                             }
-                         }
-                         accumulate(input_node, values_on_device(
-                                                    input_gradient, input_node->data.shape(),
-                                                    input_node->data.device()));
-                         accumulate(weight_node, values_on_device(
-                                                     weight_gradient, weight_node->data.shape(),
-                                                     weight_node->data.device()));
+                     [input_node, weight_node, epsilon](const Tensor& gradient) {
+                         auto gradients = ops::rms_norm_backward(
+                             input_node->data, weight_node->data, gradient, epsilon);
+                         accumulate(input_node, gradients.first);
+                         accumulate(weight_node, gradients.second);
                      });
 }
 
 Value silu(const Value& input) {
     require_value(input, "input");
     auto input_node = input.node_;
-    const auto values = input.data().to_vector();
     return operation(ops::silu(input.data()), {input_node},
-                     [input_node, values](const Tensor& gradient) {
-                         auto input_gradient = gradient.to_vector();
-                         for (std::size_t index = 0; index < values.size(); ++index) {
-                             const auto probability = sigmoid(values[index]);
-                             input_gradient[index] *= probability *
-                                                      (1.0F + values[index] *
-                                                                  (1.0F - probability));
-                         }
-                         accumulate(input_node, values_on_device(
-                                                    input_gradient, input_node->data.shape(),
-                                                    input_node->data.device()));
+                     [input_node](const Tensor& gradient) {
+                         accumulate(input_node, ops::silu_backward(input_node->data, gradient));
                      });
 }
 
@@ -385,27 +289,12 @@ Value swiglu(const Value& gate, const Value& up) {
     require_value(up, "up");
     auto gate_node = gate.node_;
     auto up_node = up.node_;
-    const auto gate_values = gate.data().to_vector();
-    const auto up_values = up.data().to_vector();
     return operation(ops::swiglu(gate.data(), up.data()), {gate_node, up_node},
-                     [gate_node, up_node, gate_values, up_values](const Tensor& gradient) {
-                         const auto output_gradient = gradient.to_vector();
-                         std::vector<float> gate_gradient(output_gradient.size());
-                         std::vector<float> up_gradient(output_gradient.size());
-                         for (std::size_t index = 0; index < output_gradient.size(); ++index) {
-                             const auto probability = sigmoid(gate_values[index]);
-                             const auto silu_value = gate_values[index] * probability;
-                             gate_gradient[index] = output_gradient[index] * up_values[index] *
-                                                    probability *
-                                                    (1.0F + gate_values[index] *
-                                                                (1.0F - probability));
-                             up_gradient[index] = output_gradient[index] * silu_value;
-                         }
-                         accumulate(gate_node, values_on_device(
-                                                   gate_gradient, gate_node->data.shape(),
-                                                   gate_node->data.device()));
-                         accumulate(up_node, values_on_device(up_gradient, up_node->data.shape(),
-                                                              up_node->data.device()));
+                     [gate_node, up_node](const Tensor& gradient) {
+                         auto gradients =
+                             ops::swiglu_backward(gate_node->data, up_node->data, gradient);
+                         accumulate(gate_node, gradients.first);
+                         accumulate(up_node, gradients.second);
                      });
 }
 
@@ -413,37 +302,13 @@ Value rope(const Value& input, std::int64_t sequence_dim, std::int64_t position_
            float base) {
     require_value(input, "input");
     auto input_node = input.node_;
-    const auto shape = input.data().shape();
-    if (sequence_dim < 0) sequence_dim += input.data().ndim();
-    const auto head_width = shape.back();
-    const auto sequence_stride = contiguous_strides(shape)[static_cast<std::size_t>(sequence_dim)];
-    const auto sequence_size = shape[static_cast<std::size_t>(sequence_dim)];
     const auto forward_input =
         input.data().is_contiguous() ? input.data() : input.data().contiguous();
     return operation(ops::rope(forward_input, sequence_dim, position_offset, base), {input_node},
-                     [input_node, head_width, sequence_stride, sequence_size, position_offset,
+                     [input_node, sequence_dim, position_offset,
                       base](const Tensor& gradient) {
-                         const auto values = gradient.to_vector();
-                         auto input_gradient = values;
-                         for (std::int64_t linear = 0; linear < gradient.numel();
-                              linear += head_width) {
-                             const auto position = (linear / sequence_stride) % sequence_size;
-                             for (std::int64_t pair = 0; pair < head_width / 2; ++pair) {
-                                 const auto angle = static_cast<float>(position + position_offset) *
-                                                    std::pow(base,
-                                                             -2.0F * static_cast<float>(pair) /
-                                                                 static_cast<float>(head_width));
-                                 const auto cosine = std::cos(angle);
-                                 const auto sine = std::sin(angle);
-                                 const auto even = static_cast<std::size_t>(linear + pair * 2);
-                                 const auto odd = even + 1;
-                                 input_gradient[even] = values[even] * cosine + values[odd] * sine;
-                                 input_gradient[odd] = -values[even] * sine + values[odd] * cosine;
-                             }
-                         }
-                         accumulate(input_node, values_on_device(
-                                                    input_gradient, input_node->data.shape(),
-                                                    input_node->data.device()));
+                         accumulate(input_node, ops::rope_backward(
+                                                    gradient, sequence_dim, position_offset, base));
                      });
 }
 
@@ -453,34 +318,10 @@ Value cross_entropy(const Value& logits, const Tensor& targets) {
         throw std::invalid_argument("autograd cross_entropy targets must match logits device");
     }
     auto logits_node = logits.node_;
-    const auto probabilities = ops::softmax(logits.data()).to_vector();
-    const auto labels = targets.to_int32_vector();
-    const auto classes = logits.data().shape().back();
-    const auto rows = logits.data().numel() / classes;
-    const auto valid_rows = static_cast<std::int64_t>(
-        std::count_if(labels.begin(), labels.end(), [](std::int32_t label) { return label != -100; }));
-    if (valid_rows == 0) throw std::invalid_argument("cross_entropy has no non-ignored targets");
     return operation(ops::cross_entropy(logits.data(), targets), {logits_node},
-                     [logits_node, probabilities, labels, classes,
-                      rows, valid_rows](const Tensor& gradient) {
-                         auto logits_gradient = probabilities;
-                         for (std::int64_t row = 0; row < rows; ++row) {
-                             if (labels[static_cast<std::size_t>(row)] == -100) {
-                                 for (std::int64_t column = 0; column < classes; ++column) {
-                                     logits_gradient[static_cast<std::size_t>(row * classes + column)] =
-                                         0.0F;
-                                 }
-                                 continue;
-                             }
-                             logits_gradient[static_cast<std::size_t>(
-                                 row * classes + labels[static_cast<std::size_t>(row)])] -= 1.0F;
-                         }
-                         const auto factor = gradient.to_vector()[0] /
-                                             static_cast<float>(valid_rows);
-                         for (auto& value : logits_gradient) value *= factor;
-                         accumulate(logits_node, values_on_device(
-                                                     logits_gradient, logits_node->data.shape(),
-                                                     logits_node->data.device()));
+                     [logits_node, targets](const Tensor& gradient) {
+                         accumulate(logits_node, ops::cross_entropy_backward(
+                                                     logits_node->data, targets, gradient));
                      });
 }
 
@@ -493,64 +334,12 @@ Value contiguous(const Value& input) {
 
 Value causal_softmax(const Value& scores) {
     require_value(scores, "scores");
-    if (scores.data().ndim() < 2 ||
-        scores.data().shape()[scores.data().shape().size() - 2] != scores.data().shape().back()) {
-        throw std::invalid_argument("causal_softmax requires square final dimensions");
-    }
-    const auto sequence = scores.data().shape().back();
-    if (sequence == 0) throw std::invalid_argument("causal_softmax sequence cannot be empty");
-    const auto input_values = scores.data().to_vector();
-    auto probabilities = input_values;
-    const auto matrices = scores.data().numel() / (sequence * sequence);
-    for (std::int64_t matrix = 0; matrix < matrices; ++matrix) {
-        const auto matrix_base = matrix * sequence * sequence;
-        for (std::int64_t row = 0; row < sequence; ++row) {
-            const auto row_base = matrix_base + row * sequence;
-            float maximum = -std::numeric_limits<float>::infinity();
-            for (std::int64_t column = 0; column <= row; ++column) {
-                maximum = std::max(maximum,
-                                   input_values[static_cast<std::size_t>(row_base + column)]);
-            }
-            float denominator = 0.0F;
-            for (std::int64_t column = 0; column <= row; ++column) {
-                const auto index = static_cast<std::size_t>(row_base + column);
-                probabilities[index] = std::exp(input_values[index] - maximum);
-                denominator += probabilities[index];
-            }
-            for (std::int64_t column = 0; column <= row; ++column) {
-                probabilities[static_cast<std::size_t>(row_base + column)] /= denominator;
-            }
-            for (std::int64_t column = row + 1; column < sequence; ++column) {
-                probabilities[static_cast<std::size_t>(row_base + column)] = 0.0F;
-            }
-        }
-    }
     auto score_node = scores.node_;
-    const auto output = values_on_device(probabilities, scores.data().shape(),
-                                         scores.data().device());
+    const auto output = ops::causal_softmax(scores.data());
     return operation(output, {score_node},
-                     [score_node, probabilities, sequence, matrices](const Tensor& gradient) {
-                         const auto output_gradient = gradient.to_vector();
-                         std::vector<float> input_gradient(output_gradient.size(), 0.0F);
-                         for (std::int64_t matrix = 0; matrix < matrices; ++matrix) {
-                             const auto matrix_base = matrix * sequence * sequence;
-                             for (std::int64_t row = 0; row < sequence; ++row) {
-                                 const auto row_base = matrix_base + row * sequence;
-                                 float dot = 0.0F;
-                                 for (std::int64_t column = 0; column <= row; ++column) {
-                                     const auto index = static_cast<std::size_t>(row_base + column);
-                                     dot += output_gradient[index] * probabilities[index];
-                                 }
-                                 for (std::int64_t column = 0; column <= row; ++column) {
-                                     const auto index = static_cast<std::size_t>(row_base + column);
-                                     input_gradient[index] = probabilities[index] *
-                                                             (output_gradient[index] - dot);
-                                 }
-                             }
-                         }
-                         accumulate(score_node, values_on_device(
-                                                    input_gradient, score_node->data.shape(),
-                                                    score_node->data.device()));
+                     [score_node, output](const Tensor& gradient) {
+                         accumulate(score_node,
+                                    ops::causal_softmax_backward(output, gradient));
                      });
 }
 
@@ -568,51 +357,11 @@ Value repeat_interleave(const Value& input, std::int64_t dim, std::int64_t repea
         throw std::overflow_error("repeat_interleave shape overflows int64");
     }
     output_shape[static_cast<std::size_t>(dim)] *= repeats;
-    const auto input_strides = contiguous_strides(input_shape);
-    const auto output_strides = contiguous_strides(output_shape);
-    const auto input_values = input.data().to_vector();
-    std::vector<float> output_values(static_cast<std::size_t>(checked_numel(output_shape)));
-    for (std::int64_t output_index = 0; output_index < checked_numel(output_shape);
-         ++output_index) {
-        auto remainder = output_index;
-        std::int64_t input_index = 0;
-        for (std::size_t axis = 0; axis < output_shape.size(); ++axis) {
-            const auto coordinate = remainder / output_strides[axis];
-            remainder %= output_strides[axis];
-            const auto input_coordinate =
-                axis == static_cast<std::size_t>(dim) ? coordinate / repeats : coordinate;
-            input_index += input_coordinate * input_strides[axis];
-        }
-        output_values[static_cast<std::size_t>(output_index)] =
-            input_values[static_cast<std::size_t>(input_index)];
-    }
     auto input_node = input.node_;
-    return operation(values_on_device(output_values, output_shape, input.data().device()),
-                     {input_node},
-                     [input_node, input_shape, output_shape, input_strides, output_strides, dim,
-                      repeats](const Tensor& gradient) {
-                         const auto output_gradient = gradient.to_vector();
-                         std::vector<float> input_gradient(
-                             static_cast<std::size_t>(checked_numel(input_shape)), 0.0F);
-                         for (std::int64_t output_index = 0;
-                              output_index < checked_numel(output_shape); ++output_index) {
-                             auto remainder = output_index;
-                             std::int64_t input_index = 0;
-                             for (std::size_t axis = 0; axis < output_shape.size(); ++axis) {
-                                 const auto coordinate = remainder / output_strides[axis];
-                                 remainder %= output_strides[axis];
-                                 const auto input_coordinate =
-                                     axis == static_cast<std::size_t>(dim)
-                                         ? coordinate / repeats
-                                         : coordinate;
-                                 input_index += input_coordinate * input_strides[axis];
-                             }
-                             input_gradient[static_cast<std::size_t>(input_index)] +=
-                                 output_gradient[static_cast<std::size_t>(output_index)];
-                         }
-                         accumulate(input_node, values_on_device(
-                                                    input_gradient, input_shape,
-                                                    input_node->data.device()));
+    return operation(ops::repeat_interleave(input.data(), dim, repeats), {input_node},
+                     [input_node, input_shape, dim, repeats](const Tensor& gradient) {
+                         accumulate(input_node, ops::repeat_interleave_backward(
+                                                    gradient, input_shape, dim, repeats));
                      });
 }
 

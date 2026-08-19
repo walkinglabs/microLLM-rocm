@@ -33,5 +33,48 @@ void launch_rope(const float* input, float* output, std::int64_t elements,
 void launch_cross_entropy(const float* logits, const std::int32_t* targets, float* output,
                           std::int64_t rows, std::int64_t classes,
                           void* stream = nullptr);
+void launch_reduce_sum(const float* input, float* output, std::int64_t elements,
+                       void* stream = nullptr);
+void launch_broadcast_scalar(const float* scalar, float* output, std::int64_t elements,
+                             void* stream = nullptr);
+void launch_embedding_backward(const float* gradient, const std::int32_t* indices,
+                               float* weight_gradient, std::int64_t tokens,
+                               std::int64_t vocabulary, std::int64_t width,
+                               void* stream = nullptr);
+void launch_softmax_backward(const float* output, const float* gradient,
+                             float* input_gradient, std::int64_t rows,
+                             std::int64_t width, void* stream = nullptr);
+void launch_rms_norm_backward(const float* input, const float* weight,
+                              const float* gradient, float* input_gradient,
+                              float* weight_gradient, std::int64_t rows,
+                              std::int64_t width, float epsilon, void* stream = nullptr);
+void launch_silu_backward(const float* input, const float* gradient,
+                          float* input_gradient, std::int64_t elements,
+                          void* stream = nullptr);
+void launch_swiglu_backward(const float* gate, const float* up, const float* gradient,
+                            float* gate_gradient, float* up_gradient,
+                            std::int64_t elements, void* stream = nullptr);
+void launch_rope_backward(const float* gradient, float* input_gradient,
+                          std::int64_t elements, std::int64_t head_width,
+                          std::int64_t sequence_size, std::int64_t sequence_stride,
+                          std::int64_t position_offset, float base,
+                          void* stream = nullptr);
+void launch_cross_entropy_backward(const float* logits, const std::int32_t* targets,
+                                   const float* loss_gradient, float* logits_gradient,
+                                   std::int64_t rows, std::int64_t classes,
+                                   void* stream = nullptr);
+void launch_causal_softmax(const float* scores, float* output, std::int64_t rows,
+                           std::int64_t sequence, void* stream = nullptr);
+void launch_causal_softmax_backward(const float* output, const float* gradient,
+                                    float* input_gradient, std::int64_t rows,
+                                    std::int64_t sequence, void* stream = nullptr);
+void launch_repeat_interleave(const float* input, float* output,
+                              std::int64_t output_elements, std::int64_t repeated_width,
+                              std::int64_t inner, std::int64_t repeats,
+                              void* stream = nullptr);
+void launch_repeat_interleave_backward(const float* gradient, float* input_gradient,
+                                       std::int64_t input_elements,
+                                       std::int64_t input_width, std::int64_t inner,
+                                       std::int64_t repeats, void* stream = nullptr);
 
 }  // namespace microllm::ops::hip

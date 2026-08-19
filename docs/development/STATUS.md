@@ -15,14 +15,14 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | HIP readable operators | smoke-tested | gfx942 conformance for 11 kernels | more architectures/optimized paths |
 | Operator context | smoke-tested | explicit Stream ordering and mismatch tests | low-level C descriptor |
 | CPU Transformer Autograd | smoke-tested | focused tests and finite differences | more dtypes |
-| HIP Autograd | smoke-tested | tiny five-step training | device-native nonlinear backward |
+| HIP Autograd | smoke-tested | CPU/HIP full Transformer gradient comparison; zero host transfers during graph execution | optimized reductions/more dtypes |
 | SGD/AdamW | smoke-tested | CPU/HIP update and state-restored next step | device-native HIP update/mixed precision |
 | Checkpoint | smoke-tested | atomic complete-state load, corruption, 3-step resume | mixed precision |
 | Model-S/Model-M config | smoke-tested | executable exact parameter/byte tests | model layers/training |
 | Model-S CPU forward | smoke-tested | 15,586,176 parameters and 8192 finite logits | training/HIP |
 | Model-S CPU training | smoke-tested | 3-step loss trajectory, AdamW state, parameter delta | real corpus/HIP |
 | Model-S HIP forward | smoke-tested | MI300X/gfx942 8192-logit CPU comparison | multi-token/preallocated cache |
-| Tiny HIP training | smoke-tested | 5-step finite loss/grad trajectory on MI300X | device-native backward/AdamW |
+| Tiny HIP training | smoke-tested | 5-step finite loss/grad trajectory on MI300X | device-native AdamW |
 | Model-M HIP train step | smoke-tested | 31.3M params, finite backward/update, 518.8MB engine peak | multi-step/real corpus |
 | Decoder Transformer structure | smoke-tested | tiny GQA/MHA causal forward and all-parameter backward | overfit/full recipe |
 | Byte tokenizer/token dataset | smoke-tested | all-byte round-trip and cursor equivalence | real-corpus run |

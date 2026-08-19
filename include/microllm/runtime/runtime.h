@@ -21,6 +21,15 @@ struct MemoryInfo {
     std::size_t total_bytes = 0;
 };
 
+struct TransferStats {
+    std::size_t host_to_device_calls = 0;
+    std::size_t device_to_host_calls = 0;
+    std::size_t device_to_device_calls = 0;
+    std::size_t host_to_device_bytes = 0;
+    std::size_t device_to_host_bytes = 0;
+    std::size_t device_to_device_bytes = 0;
+};
+
 [[nodiscard]] bool hip_compiled() noexcept;
 [[nodiscard]] int hip_device_count();
 [[nodiscard]] DeviceInfo device_info(Device device);
@@ -29,6 +38,8 @@ struct MemoryInfo {
 [[nodiscard]] int hip_driver_version();
 void set_device(Device device);
 void synchronize(Device device);
+[[nodiscard]] TransferStats transfer_stats() noexcept;
+void reset_transfer_stats() noexcept;
 
 class Stream {
 public:

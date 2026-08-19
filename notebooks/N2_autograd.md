@@ -65,9 +65,17 @@ Ask these questions before accepting generated backward code:
 
 ## 当前反例
 
-The correctness-first HIP path keeps Tensor state on GPU, but several nonlinear
-backward formulas materialize host values before returning one gradient Tensor to the
-device. It trains correctly; rocprofv3 later shows why it is slow.
+The correctness-first HIP path now executes the complete tiny Transformer forward and
+backward graph without host/device transfers between graph entry and graph completion.
+The graph engine, reverse-topological traversal, accumulation rules, backward formulas,
+and readable HIP kernels are implemented in this repository. The dedicated conformance
+test compares every parameter gradient with the CPU reference and checks runtime transfer
+counters remain zero.
+
+This does not yet make the complete training step device-native: loss reporting,
+gradient-norm reporting, and AdamW still materialize host values. The first HIP kernels
+also favor readability over parallel reductions, so correctness is proven before
+competitive throughput.
 
 ## 下一步
 

@@ -98,6 +98,35 @@ TEST(HipOpsTest, MaskedCrossEntropyMatchesCpuReference) {
                 cross_entropy(logits, targets).to_vector());
 }
 
+TEST(HipBackwardOpsTest, DeviceNativePrimitivesMatchCpuReference) {
+    require_gpu();
+    const auto gpu = Device::hip();
+    const auto input = Tensor::from_vector({-2, -1, 0, 1, 2, 3}, {2, 3});
+    const auto weight = Tensor::from_vector({1, 0.5F, 2}, {3});
+    const auto gradient = Tensor::from_vector({1, 2, 3, -1, -2, -3}, {2, 3});
+
+    expect_near(reduce_sum(input.to(gpu)).to_vector(), reduce_sum(input).to_vector());
+    expect_near(broadcast_scalar(Tensor::from_vector({2.5F}, {}).to(gpu), {2, 3}).to_vector(),
+                std::vector<float>(6, 2.5F));
+    expect_near(silu_backward(input.to(gpu), gradient.to(gpu)).to_vector(),
+                silu_backward(input, gradient).to_vector());
+
+    const auto cpu_rms = rms_norm_backward(input, weight, gradient);
+    const auto hip_rms = rms_norm_backward(input.to(gpu), weight.to(gpu), gradient.to(gpu));
+    expect_near(hip_rms.first.to_vector(), cpu_rms.first.to_vector(), 2.0e-4F);
+    expect_near(hip_rms.second.to_vector(), cpu_rms.second.to_vector(), 2.0e-4F);
+
+    const auto probabilities = softmax(input);
+    expect_near(softmax_backward(probabilities.to(gpu), gradient.to(gpu)).to_vector(),
+                softmax_backward(probabilities, gradient).to_vector());
+
+    const auto logits = Tensor::from_vector({2, 1, 0, 100, -100, 0}, {2, 3});
+    const auto targets = Tensor::from_int32_vector({0, -100}, {2});
+    const auto seed = Tensor::from_vector({0.75F}, {});
+    expect_near(cross_entropy_backward(logits.to(gpu), targets.to(gpu), seed.to(gpu)).to_vector(),
+                cross_entropy_backward(logits, targets, seed).to_vector());
+}
+
 TEST(HipOpsTest, ExplicitStreamContextOrdersKernelAndEvent) {
     require_gpu();
     const auto gpu = Device::hip();
@@ -180,6 +209,49 @@ TEST(HipTrainingTest, TinyTransformerRunsBackwardAndLowersLoss) {
     }
     EXPECT_LT(final_loss, first_loss);
     EXPECT_EQ(model.device(), Device::hip());
+}
+
+TEST(HipAutogradTest, FullTransformerBackwardMatchesCpuWithoutHostTransfers) {
+    require_gpu();
+    const model::ModelConfig config{.vocabulary_size = 8,
+                                    .dimension = 8,
+                                    .layers = 1,
+                                    .heads = 2,
+                                    .kv_heads = 1,
+                                    .ffn_dimension = 16,
+                                    .max_sequence_length = 4,
+                                    .rope_base = 10000.0F,
+                                    .tie_embeddings = false};
+    const auto tokens = Tensor::from_int32_vector({0, 1, 2, 3}, {1, 4});
+    const auto targets = Tensor::from_int32_vector({1, 2, 3, 0}, {1, 4});
+
+    model::TransformerModel cpu_model(config, 113);
+    const auto cpu_loss = cpu_model.loss(tokens, targets);
+    cpu_loss.backward();
+
+    model::TransformerModel hip_model(config, 113);
+    hip_model.to(Device::hip());
+    const auto hip_tokens = tokens.to(Device::hip());
+    const auto hip_targets = targets.to(Device::hip());
+    runtime::reset_transfer_stats();
+    const auto hip_loss = hip_model.loss(hip_tokens, hip_targets);
+    hip_loss.backward();
+    runtime::synchronize(Device::hip());
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+
+    expect_near(hip_loss.data().to_vector(), cpu_loss.data().to_vector(), 3.0e-4F);
+    const auto cpu_parameters = cpu_model.named_parameters();
+    const auto hip_parameters = hip_model.named_parameters();
+    ASSERT_EQ(cpu_parameters.size(), hip_parameters.size());
+    for (std::size_t index = 0; index < cpu_parameters.size(); ++index) {
+        EXPECT_EQ(cpu_parameters[index].first, hip_parameters[index].first);
+        ASSERT_TRUE(cpu_parameters[index].second->has_grad()) << cpu_parameters[index].first;
+        ASSERT_TRUE(hip_parameters[index].second->has_grad()) << hip_parameters[index].first;
+        expect_near(hip_parameters[index].second->grad().to_vector(),
+                    cpu_parameters[index].second->grad().to_vector(), 2.0e-3F);
+    }
 }
 
 TEST(HipTensorViewTest, UsesCallerOwnedBuffersAndExplicitStream) {

@@ -41,6 +41,7 @@ Every performance-sensitive operator will keep three paths where useful:
 | HIP readable operators | smoke-tested | 11 kernels, gfx942 conformance |
 | HIP non-contiguous materialization | smoke-tested | generic rank≤8 stride-copy kernel |
 | CPU Transformer autograd | smoke-tested | hand gradients and finite differences |
+| HIP Transformer autograd | smoke-tested | device-native forward/backward graph; zero host transfers in graph test |
 | SGD/AdamW | smoke-tested | hand first step and restored-state equivalence |
 | Versioned checkpoint | smoke-tested | complete state, corruption, resume trajectory |
 | Decoder Transformer | smoke-tested | tiny MHA/GQA forward, causal test, all-parameter backward |

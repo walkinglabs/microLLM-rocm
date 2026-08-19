@@ -8,7 +8,7 @@ Branch: `feat/bootstrap-engine-m0-n0`
 |---|---:|
 | normal CPU evidence | 90/90 |
 | CPU ASan/UBSan (dynamic bindings excluded) | 88/88 |
-| MI300X/gfx942 HIP label | 20/20 |
+| MI300X/gfx942 HIP label | 22/22 |
 | two-rank RCCL label | 7/7 |
 | PyTorch 2.13 CPU Custom Op | 1/1 |
 | committed JSON/JSONL parser | all records valid |
@@ -25,6 +25,8 @@ preload ordering. Those bindings pass separate normal CPU and HIP integration te
 - Model-M: 31,334,912 parameters; one complete MI300X train step, 518,798,856 peak
   engine-owned HIP bytes;
 - tiny SFT response-only loss: 1.88494 to 0.0106737;
+- full tiny GQA Transformer forward/backward graph: CPU/HIP loss and every parameter
+  gradient agree, with zero host/device transfers during graph execution;
 - Model-S measured generation: CPU 9.33, readable HIP 55.86, Auto hipBLASLt 187.10
   tokens/s for the recorded one-token experiment;
 - two-rank parameters identical; single/two-rank maximum difference 1.49012e-08;

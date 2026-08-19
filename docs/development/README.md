@@ -98,3 +98,6 @@ the next gate. Records are append-only except for factual corrections.
   matching AMD wheel fails before Custom Op build.
 - [2026-08-19-verification-summary.md](2026-08-19-verification-summary.md): final build/test
   matrix for this development branch and remaining release blockers.
+- [2026-08-19-device-native-autograd.md](2026-08-19-device-native-autograd.md):
+  self-written eager graph engine running the Transformer forward/backward path on HIP
+  without host transfers.
