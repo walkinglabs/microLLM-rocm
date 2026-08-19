@@ -44,6 +44,43 @@ if declared_graph != covered_graph:
         f"stale={sorted(covered_graph-declared_graph)}"
     )
 
+declared_weight_io = public_names(
+    "include/microllm/io/safetensors.h", ["StateDict", "void"]
+)
+expected_weight_io = {
+    "save_safetensors",
+    "load_safetensors",
+    "load_safetensors_files",
+    "load_safetensors_index",
+}
+if declared_weight_io != expected_weight_io:
+    errors.append(
+        f"safetensors.h mismatch missing={sorted(declared_weight_io-expected_weight_io)} "
+        f"stale={sorted(expected_weight_io-declared_weight_io)}"
+    )
+declared_weight_model = public_names(
+    "include/microllm/model/model.h",
+    ["io::StateDict", "LoadWeightsReport", "WeightMapping", "void"],
+)
+declared_weight_model.discard("to")
+expected_weight_model = {
+    "state_dict",
+    "load_state_dict",
+    "load_safetensors",
+    "load_safetensors_files",
+    "load_safetensors_index",
+    "save_safetensors",
+    "qwen_style_weight_mapping",
+}
+if declared_weight_model != expected_weight_model:
+    errors.append(
+        f"model weight API mismatch missing={sorted(declared_weight_model-expected_weight_model)} "
+        f"stale={sorted(expected_weight_model-declared_weight_model)}"
+    )
+for name, test_file in MANIFEST["weight_api"].items():
+    if not (ROOT / test_file).is_file():
+        errors.append(f"weight API {name} references missing test file {test_file}")
+
 parity_text = (ROOT / "python/tests/test_operator_parity.py").read_text()
 oracle_text = (ROOT / "tests/torch/operator_oracle.cpp").read_text()
 for name, gates in MANIFEST["tensor_ops"].items():

@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| CPU configuration | smoke-tested | framework-only main configure/build; 98/98 CPU CTest | CI matrix |
+| CPU configuration | smoke-tested | framework-only main configure/build; 109/109 CPU CTest | CI matrix |
 | Device/DType | smoke-tested | unit and invalid-index tests | HIP runtime use |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
 | Tensor metadata/views | smoke-tested | hand values, randomized shapes, bounds | more dtypes |
@@ -12,7 +12,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | N0 PPM | smoke-tested | executable output/checksum | documented golden value |
 | HIP Storage/runtime | smoke-tested | gfx942 allocation, transfer, Stream/Event tests | CI on more GPUs |
 | CPU reference operators | smoke-tested | hand values plus PyTorch forward/backward oracle for every public math op | more dtypes |
-| HIP readable operators | smoke-tested | 23/23 gfx942 suite; all forward/backward primitives transitively checked against PyTorch | more architectures/optimized paths |
+| HIP readable operators | smoke-tested | 24/24 gfx942 suite; ops, graph, and direct weight load | more architectures/optimized paths |
 | Operator context | smoke-tested | explicit Stream ordering and mismatch tests | low-level C descriptor |
 | CPU Transformer Autograd | smoke-tested | dedicated graph construction tests, finite differences, PyTorch full-graph gradients | more dtypes |
 | HIP Autograd | smoke-tested | CPU/HIP full Transformer gradient comparison; zero host transfers during graph execution | optimized reductions/more dtypes |
@@ -27,6 +27,8 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Decoder Transformer structure | smoke-tested | tiny GQA graph topology, PyTorch logits/loss/all-gradient parity, CPU/HIP parity | overfit/full recipe |
 | Byte tokenizer/token dataset | smoke-tested | all-byte round-trip and cursor equivalence | real-corpus run |
 | BPE/TinyStories source | smoke-tested | BPE round-trip + immutable licensed range + Model-S smoke | full corpus/reference train |
+| Weight/state API | smoke-tested | independent state_dict, atomic strict/non-strict load, Qwen-style transpose mapping | streaming load/model-specific architecture validation |
+| safetensors | smoke-tested | F32/BF16/F16, single/sharded/index files, corruption and CPU/HIP target tests | FP8/quantized formats/memory mapping |
 | C++ training CLI | smoke-tested | CPU save/resume fixture and Model-S HIP real-text steps | validation/report CLI |
 | Model-S TinyStories smoke | smoke-tested | immutable 1MiB train prefix, 10 HIP steps | full train/validation curve |
 | Tiny Transformer training | smoke-tested | 40-step overfit and finite gradients | validation split/Model-S |

@@ -25,3 +25,6 @@ they do not determine source-module boundaries.
 
 Every merged milestone updates `STATUS.md` from evidence. Planned code or an empty
 directory does not advance status.
+
+Previously implicit gaps for external weights, Qwen/DeepSeek compatibility, a general
+operator registry, and an in-process profiler are tracked in [NEXT_STEPS.md](NEXT_STEPS.md).

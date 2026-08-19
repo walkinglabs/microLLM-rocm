@@ -4,6 +4,8 @@ The beginner course is maintained on the separate
 [`tutorial/beginner-course`](https://github.com/walkinglabs/microLLM-rocm/tree/tutorial/beginner-course)
 branch. Exact framework shape, error, tolerance, and PyTorch gates live in
 [OPERATOR_CONTRACTS.zh-CN.md](OPERATOR_CONTRACTS.zh-CN.md) on `main`.
+Model weight ownership, external naming, and safetensors boundaries are specified in
+[WEIGHTS.md](WEIGHTS.md).
 
 ## Dependency direction
 

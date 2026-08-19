@@ -5,6 +5,8 @@ Each milestone records scope, decisions, commands, evidence, known failures, and
 the next gate. Records are append-only except for factual corrections.
 
 - [ROADMAP.md](ROADMAP.md): planned development sequence and acceptance gates.
+- [NEXT_STEPS.md](NEXT_STEPS.md): explicit gaps for external weights, real-model
+  compatibility, registry/profiler maturity, and release evidence.
 - [STATUS.md](STATUS.md): current evidence state by subsystem.
 - [2026-08-19-m0-n0-bootstrap.md](2026-08-19-m0-n0-bootstrap.md): first engine
   bootstrap and CPU Tensor vertical slice.
@@ -107,3 +109,5 @@ the next gate. Records are append-only except for factual corrections.
 - [2026-08-19-branch-separation.md](2026-08-19-branch-separation.md): framework on
   `main`, beginner course on `tutorial/beginner-course`, and independent verification
   boundaries.
+- [2026-08-19-weight-api.md](2026-08-19-weight-api.md): named model state,
+  safetensors/shards/index, Qwen-style mappings, corruption tests, and direct HIP load.

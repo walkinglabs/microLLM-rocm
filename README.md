@@ -4,6 +4,8 @@
 engine for teaching, measuring, and improving language-model systems on AMD GPUs.
 
 框架技术契约在[算子契约与 PyTorch 对照表](docs/OPERATOR_CONTRACTS.zh-CN.md)。
+命名权重、strict 加载、分片 safetensors 和 Qwen 名称映射见
+[权重 API 设计](docs/WEIGHTS.md)。
 面向初中生的课程与 N0–N8/PA0–PA2 独立维护在
 [`tutorial/beginner-course`](https://github.com/walkinglabs/microLLM-rocm/tree/tutorial/beginner-course)，
 不与 `main` 的框架发布边界混在一起。
@@ -53,6 +55,7 @@ Every performance-sensitive operator will keep three paths where useful:
 | Decoder Transformer | smoke-tested | tiny MHA/GQA forward, causal test, all-parameter backward |
 | Byte tokenizer/token dataset | smoke-tested | byte round-trip and cursor-resume batches |
 | BPE/token data source | smoke-tested | BPE + immutable TinyStories Model-S smoke |
+| Weight API / safetensors | smoke-tested | F32/BF16/F16, shards/index, strict mapping, CPU/HIP load |
 | C++ training CLI | smoke-tested | save/resume + 10-step Model-S TinyStories HIP smoke |
 | Tiny Transformer training | smoke-tested | 40-step overfit loss 1.81171 → 0.00673309 |
 | SFT response masking | smoke-tested | CPU/HIP ignored targets; tiny loss 1.88494 → 0.01067 |

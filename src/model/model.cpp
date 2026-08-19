@@ -4,6 +4,8 @@
 #include <cmath>
 #include <memory>
 #include <random>
+#include <set>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -412,6 +414,177 @@ std::uint64_t TransformerModel::parameter_count() {
     std::uint64_t count = 0;
     for (const auto* value : parameters()) count += static_cast<std::uint64_t>(value->data().numel());
     return count;
+}
+
+io::StateDict TransformerModel::state_dict(Device target) {
+    io::StateDict state;
+    for (const auto& [name, parameter] : named_parameters()) {
+        auto copy = Tensor::from_vector(parameter->data().to_vector(), parameter->data().shape());
+        if (target != Device::cpu()) copy = copy.to(target);
+        state.emplace(name, std::move(copy));
+    }
+    return state;
+}
+
+LoadWeightsReport TransformerModel::load_state_dict(const io::StateDict& state,
+                                                     const LoadWeightsOptions& options) {
+    LoadWeightsReport report;
+    const auto named = named_parameters();
+    std::set<std::string> target_names;
+    for (const auto& [name, parameter] : named) {
+        (void)parameter;
+        target_names.insert(name);
+    }
+    for (const auto& [target, source] : options.mapping) {
+        (void)source;
+        if (!target_names.contains(target)) {
+            report.incompatible.push_back("mapping target is not a model parameter: " + target);
+        }
+    }
+
+    struct Prepared {
+        std::string name;
+        Value* parameter = nullptr;
+        Tensor tensor;
+    };
+    std::vector<Prepared> prepared;
+    std::set<std::string> consumed;
+    for (const auto& [target_name, parameter] : named) {
+        const auto mapping = options.mapping.find(target_name);
+        const auto source_name = mapping == options.mapping.end()
+                                     ? target_name
+                                     : mapping->second.name;
+        const auto transform = mapping == options.mapping.end()
+                                   ? WeightTransform::Identity
+                                   : mapping->second.transform;
+        const auto found = state.find(source_name);
+        if (found == state.end()) {
+            report.missing.push_back(target_name + " <- " + source_name);
+            continue;
+        }
+        consumed.insert(source_name);
+        auto source = found->second;
+        if (!source.defined() || source.dtype() != DType::Float32) {
+            report.incompatible.push_back(target_name + " requires a defined float32 source");
+            continue;
+        }
+        if (transform == WeightTransform::Transpose2D) {
+            if (source.ndim() != 2) {
+                report.incompatible.push_back(target_name + " transpose requires rank two");
+                continue;
+            }
+            source = source.transpose(0, 1).contiguous();
+        }
+        if (source.shape() != parameter->data().shape()) {
+            std::ostringstream message;
+            message << target_name << " shape mismatch: source=[";
+            for (std::size_t index = 0; index < source.shape().size(); ++index) {
+                if (index != 0) message << ',';
+                message << source.shape()[index];
+            }
+            message << "] target=[";
+            for (std::size_t index = 0; index < parameter->data().shape().size(); ++index) {
+                if (index != 0) message << ',';
+                message << parameter->data().shape()[index];
+            }
+            message << ']';
+            report.incompatible.push_back(message.str());
+            continue;
+        }
+        auto copy = Tensor::from_vector(source.to_vector(), source.shape());
+        if (parameter->data().device() != Device::cpu()) {
+            copy = copy.to(parameter->data().device());
+        }
+        prepared.push_back({target_name, parameter, std::move(copy)});
+    }
+    for (const auto& [name, tensor] : state) {
+        (void)tensor;
+        if (!consumed.contains(name)) report.unexpected.push_back(name);
+    }
+
+    if (options.strict && !report.complete()) {
+        std::ostringstream message;
+        message << "strict weight load failed";
+        for (const auto& missing : report.missing) message << "\nmissing: " << missing;
+        for (const auto& unexpected : report.unexpected) message << "\nunexpected: " << unexpected;
+        for (const auto& incompatible : report.incompatible) {
+            message << "\nincompatible: " << incompatible;
+        }
+        throw std::invalid_argument(message.str());
+    }
+    for (auto& item : prepared) {
+        item.parameter->mutable_data() = std::move(item.tensor);
+        item.parameter->zero_grad();
+        report.loaded.push_back(std::move(item.name));
+    }
+    return report;
+}
+
+LoadWeightsReport TransformerModel::load_safetensors(
+    const std::filesystem::path& path, const LoadWeightsOptions& options) {
+    return load_state_dict(io::load_safetensors(path), options);
+}
+
+LoadWeightsReport TransformerModel::load_safetensors_files(
+    const std::vector<std::filesystem::path>& paths,
+    const LoadWeightsOptions& options) {
+    return load_state_dict(io::load_safetensors_files(paths), options);
+}
+
+LoadWeightsReport TransformerModel::load_safetensors_index(
+    const std::filesystem::path& index_path, const LoadWeightsOptions& options) {
+    return load_state_dict(io::load_safetensors_index(index_path), options);
+}
+
+void TransformerModel::save_safetensors(
+    const std::filesystem::path& path,
+    const io::SafetensorsSaveOptions& options) {
+    io::save_safetensors(path, state_dict(), options);
+}
+
+WeightMapping qwen_style_weight_mapping(const ModelConfig& config) {
+    config.validate();
+    WeightMapping mapping;
+    mapping.emplace("token_embedding.weight",
+                    WeightSource{"model.embed_tokens.weight", WeightTransform::Identity});
+    for (std::int64_t layer = 0; layer < config.layers; ++layer) {
+        const auto target = "blocks." + std::to_string(layer);
+        const auto source = "model.layers." + std::to_string(layer);
+        mapping.emplace(target + ".attention_norm.weight",
+                        WeightSource{source + ".input_layernorm.weight",
+                                     WeightTransform::Identity});
+        mapping.emplace(target + ".attention.q_proj.weight",
+                        WeightSource{source + ".self_attn.q_proj.weight",
+                                     WeightTransform::Transpose2D});
+        mapping.emplace(target + ".attention.k_proj.weight",
+                        WeightSource{source + ".self_attn.k_proj.weight",
+                                     WeightTransform::Transpose2D});
+        mapping.emplace(target + ".attention.v_proj.weight",
+                        WeightSource{source + ".self_attn.v_proj.weight",
+                                     WeightTransform::Transpose2D});
+        mapping.emplace(target + ".attention.o_proj.weight",
+                        WeightSource{source + ".self_attn.o_proj.weight",
+                                     WeightTransform::Transpose2D});
+        mapping.emplace(target + ".ffn_norm.weight",
+                        WeightSource{source + ".post_attention_layernorm.weight",
+                                     WeightTransform::Identity});
+        mapping.emplace(target + ".feed_forward.gate_proj.weight",
+                        WeightSource{source + ".mlp.gate_proj.weight",
+                                     WeightTransform::Transpose2D});
+        mapping.emplace(target + ".feed_forward.up_proj.weight",
+                        WeightSource{source + ".mlp.up_proj.weight",
+                                     WeightTransform::Transpose2D});
+        mapping.emplace(target + ".feed_forward.down_proj.weight",
+                        WeightSource{source + ".mlp.down_proj.weight",
+                                     WeightTransform::Transpose2D});
+    }
+    mapping.emplace("final_norm.weight",
+                    WeightSource{"model.norm.weight", WeightTransform::Identity});
+    if (!config.tie_embeddings) {
+        mapping.emplace("output_head.weight",
+                        WeightSource{"lm_head.weight", WeightTransform::Transpose2D});
+    }
+    return mapping;
 }
 
 }  // namespace microllm::model

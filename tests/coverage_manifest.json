@@ -71,6 +71,19 @@
     "adamw": ["optimizer_adamw_parameter_step1", "optimizer_adamw_parameter_step2", "optimizer_adamw_first_moment_step2", "optimizer_adamw_second_moment_step2"],
     "transformer_graph": ["model_logits", "model_loss", "model_grad:", "model_graph_has_topology"]
   },
+  "weight_api": {
+    "save_safetensors": "tests/io/safetensors_test.cpp",
+    "load_safetensors": "tests/io/safetensors_test.cpp",
+    "load_safetensors_files": "tests/io/safetensors_test.cpp",
+    "load_safetensors_index": "tests/io/safetensors_test.cpp",
+    "state_dict": "tests/model/weights_test.cpp",
+    "load_state_dict": "tests/model/weights_test.cpp",
+    "model_load_safetensors": "tests/model/weights_test.cpp",
+    "model_load_safetensors_files": "tests/model/weights_test.cpp",
+    "model_load_safetensors_index": "tests/model/weights_test.cpp",
+    "model_save_safetensors": "tests/model/weights_test.cpp",
+    "qwen_style_weight_mapping": "tests/model/weights_test.cpp"
+  },
   "test_files": [
     "bindings/capi/capi_test.c",
     "tests/autograd/autograd_test.cpp",
@@ -82,9 +95,12 @@
     "tests/graph/graph_gradient_alignment_test.cpp",
     "tests/graph/hip_graph_alignment_test.cpp",
     "tests/inference/generator_test.cpp",
+    "tests/io/hip_weights_test.cpp",
     "tests/io/io_test.cpp",
+    "tests/io/safetensors_test.cpp",
     "tests/model/config_test.cpp",
     "tests/model/model_test.cpp",
+    "tests/model/weights_test.cpp",
     "tests/multi_gpu/communicator_test.cpp",
     "tests/multi_gpu/distributed_step_test.cpp",
     "tests/multi_gpu/gradient_bucket_test.cpp",

@@ -13,7 +13,9 @@ add_executable(microllm_tests
     training/checkpoint_test.cpp
     model/config_test.cpp
     model/model_test.cpp
+    model/weights_test.cpp
     io/io_test.cpp
+    io/safetensors_test.cpp
     training/trainer_test.cpp
     inference/generator_test.cpp
 )
@@ -43,6 +45,7 @@ if(MICROLLM_HAS_HIP)
     add_executable(microllm_hip_tests
         ops/hip_ops_test.cpp
         graph/hip_graph_alignment_test.cpp
+        io/hip_weights_test.cpp
     )
     target_link_libraries(microllm_hip_tests PRIVATE
         GTest::gtest_main microllm::ops microllm::model microllm::training
