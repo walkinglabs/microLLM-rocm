@@ -20,6 +20,10 @@ void fill_(Tensor& tensor, float value, const OpContext& context = {});
 [[nodiscard]] bool hipblaslt_available() noexcept;
 [[nodiscard]] MatmulImplementation choose_matmul_implementation(
     const Tensor& left, const Tensor& right);
+void register_matmul_implementation(std::int64_t rows, std::int64_t inner,
+                                    std::int64_t columns,
+                                    MatmulImplementation implementation);
+void clear_matmul_implementation_registry();
 [[nodiscard]] Tensor matmul_with_implementation(
     const Tensor& left, const Tensor& right, MatmulImplementation implementation,
     const OpContext& context = {});

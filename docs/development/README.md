@@ -72,3 +72,5 @@ the next gate. Records are append-only except for factual corrections.
   runtime trace confirming host copies and launch count as the current bottleneck.
 - [2026-08-19-m5-hipblaslt.md](2026-08-19-m5-hipblaslt.md): shape-aware hipBLASLt
   candidate, Model-S speedup, and setup-time regression.
+- [2026-08-19-m5-tuning-registry.md](2026-08-19-m5-tuning-registry.md): safe exact-shape
+  implementation override seam for offline tuning skills.

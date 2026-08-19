@@ -211,6 +211,14 @@ TEST(HipOptimizedOpsTest, HipblasLtMatmulMatchesReadableReference) {
     const Tensor large_right({128, 128}, DType::Float32, Device::hip());
     EXPECT_EQ(choose_matmul_implementation(large_left, large_right),
               MatmulImplementation::HipBLASLt);
+    register_matmul_implementation(64, 64, 64, MatmulImplementation::HipBLASLt);
+    EXPECT_EQ(choose_matmul_implementation(left_cpu.to(Device::hip()),
+                                           right_cpu.to(Device::hip())),
+              MatmulImplementation::HipBLASLt);
+    clear_matmul_implementation_registry();
+    EXPECT_EQ(choose_matmul_implementation(left_cpu.to(Device::hip()),
+                                           right_cpu.to(Device::hip())),
+              MatmulImplementation::Readable);
 }
 #endif
 

@@ -2,12 +2,21 @@
 
 #include <stdexcept>
 #include <string>
+#include <map>
+#include <mutex>
+#include <tuple>
 
 #if MICROLLM_HAS_HIPBLASLT
 #include <hipblaslt/hipblaslt.h>
 #endif
 
 namespace microllm::ops {
+
+namespace {
+using MatmulShapeKey = std::tuple<std::int64_t, std::int64_t, std::int64_t>;
+std::mutex registry_mutex;
+std::map<MatmulShapeKey, MatmulImplementation> registry;
+}  // namespace
 
 bool hipblaslt_available() noexcept { return MICROLLM_HAS_HIPBLASLT != 0; }
 
@@ -19,9 +28,36 @@ MatmulImplementation choose_matmul_implementation(const Tensor& left,
         left.shape()[1] != right.shape()[0]) {
         return MatmulImplementation::Readable;
     }
+    const MatmulShapeKey key{left.shape()[0], left.shape()[1], right.shape()[1]};
+    {
+        const std::lock_guard<std::mutex> lock(registry_mutex);
+        const auto found = registry.find(key);
+        if (found != registry.end()) return found->second;
+    }
     return left.shape()[1] >= 128 && right.shape()[1] >= 128
                ? MatmulImplementation::HipBLASLt
                : MatmulImplementation::Readable;
+}
+
+void register_matmul_implementation(std::int64_t rows, std::int64_t inner,
+                                    std::int64_t columns,
+                                    MatmulImplementation implementation) {
+    if (rows <= 0 || inner <= 0 || columns <= 0) {
+        throw std::invalid_argument("registered matmul dimensions must be positive");
+    }
+    if (implementation == MatmulImplementation::Auto) {
+        throw std::invalid_argument("matmul registry choice must name a concrete implementation");
+    }
+    if (implementation == MatmulImplementation::HipBLASLt && !hipblaslt_available()) {
+        throw std::invalid_argument("cannot register unavailable hipBLASLt implementation");
+    }
+    const std::lock_guard<std::mutex> lock(registry_mutex);
+    registry[{rows, inner, columns}] = implementation;
+}
+
+void clear_matmul_implementation_registry() {
+    const std::lock_guard<std::mutex> lock(registry_mutex);
+    registry.clear();
 }
 
 #if MICROLLM_HAS_HIPBLASLT
