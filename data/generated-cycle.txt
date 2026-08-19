@@ -1,0 +1,4 @@
+Once upon a tiny GPU, tensors learned to share storage.
+Once upon a tiny GPU, tensors learned to share storage.
+Once upon a tiny GPU, tensors learned to share storage.
+Once upon a tiny GPU, tensors learned to share storage.

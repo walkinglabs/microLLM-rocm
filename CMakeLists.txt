@@ -100,6 +100,8 @@ if(MICROLLM_BUILD_TESTS)
     include(CTest)
 endif()
 
+add_subdirectory(apps)
+
 if(MICROLLM_BUILD_CAPI)
     add_subdirectory(bindings/capi)
     if(MICROLLM_BUILD_PYTHON)

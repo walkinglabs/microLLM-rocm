@@ -45,7 +45,8 @@ Every performance-sensitive operator will keep three paths where useful:
 | Versioned checkpoint | smoke-tested | complete state, corruption, resume trajectory |
 | Decoder Transformer | smoke-tested | tiny MHA/GQA forward, causal test, all-parameter backward |
 | Byte tokenizer/token dataset | smoke-tested | byte round-trip and cursor-resume batches |
-| BPE/token data source | loader-ready | self-contained BPE + immutable TinyStories revision |
+| BPE/token data source | smoke-tested | BPE + immutable TinyStories Model-S smoke |
+| C++ training CLI | smoke-tested | save/resume + 10-step Model-S TinyStories HIP smoke |
 | Tiny Transformer training | smoke-tested | 40-step overfit loss 1.81171 → 0.00673309 |
 | SFT response masking | smoke-tested | CPU/HIP ignored targets; tiny loss 1.88494 → 0.01067 |
 | CPU KV cache | smoke-tested | per-layer MHA/GQA cached/full logits comparison |
@@ -65,7 +66,7 @@ Every performance-sensitive operator will keep three paths where useful:
 | RCCL gradient buckets | smoke-tested | 64→1 collectives: 6.676→0.225 ms |
 | RCCL compute overlap | smoke-tested | separate Streams improve synthetic step 30–33% |
 | RCCL four-GPU | blocked by environment | 64MB /dev/shm; failure evidence retained |
-| Real-corpus Model-S/SFT report | planned | dataset/license/reference run required |
+| Reference-length Model-S/SFT report | planned | full dataset + validation run required |
 | Python/PyTorch bindings | mixed | ctypes tested; Torch source unverified |
 | Profiling/autotuning | smoke-tested | M5 evidence and registry |
 | Backward-ready overlap/four-GPU retry | planned | M6 follow-up |

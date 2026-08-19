@@ -90,3 +90,5 @@ the next gate. Records are append-only except for factual corrections.
   BPE and licensed immutable TinyStories loader source.
 - [2026-08-19-sft-response-masking.md](2026-08-19-sft-response-masking.md): CPU/HIP
   ignored-target loss and tiny SFT trajectory.
+- [2026-08-19-training-cli-real-text-smoke.md](2026-08-19-training-cli-real-text-smoke.md):
+  pure C++ save/resume CLI and Model-S TinyStories HIP trajectory.

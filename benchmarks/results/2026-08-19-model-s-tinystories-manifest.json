@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "dataset": "roneneldan/TinyStories",
+  "revision": "f54c09fd23315a6f9c86f9dc80f725de7d8f9c64",
+  "license": "cdla-sharing-1.0",
+  "split": "train",
+  "source_file": "TinyStories-train.txt",
+  "range_prefix_bytes": 1048576,
+  "tokenizer": "byte",
+  "model": "Model-S",
+  "parameters": 15586176,
+  "device": "AMD Instinct MI300X VF",
+  "architecture": "gfx942:sramecc+:xnack-",
+  "dtype": "float32",
+  "batch": 1,
+  "context": 8,
+  "steps": 10,
+  "seed": 20260819,
+  "learning_rate": 0.0001,
+  "wall_seconds": 5.159,
+  "status": "smoke-tested",
+  "warning": "Different sequential windows make this a connectivity smoke, not a convergence or validation curve."
+}
