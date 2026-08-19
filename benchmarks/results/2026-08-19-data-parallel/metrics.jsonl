@@ -1,0 +1,10 @@
+{"step":1,"mean_loss":2.75452,"bucket_count":1,"parameter_max_difference":0,"forward_backward_ms":2.88119,"communication_ms":22.917,"optimizer_ms":3.60851,"total_ms":29.7729}
+{"step":2,"mean_loss":2.05171,"bucket_count":1,"parameter_max_difference":0,"forward_backward_ms":2.22222,"communication_ms":0.386457,"optimizer_ms":4.05398,"total_ms":7.02827}
+{"step":3,"mean_loss":1.69936,"bucket_count":1,"parameter_max_difference":0,"forward_backward_ms":2.63571,"communication_ms":0.37663,"optimizer_ms":3.46156,"total_ms":6.89143}
+{"step":4,"mean_loss":1.55016,"bucket_count":1,"parameter_max_difference":0,"forward_backward_ms":2.14343,"communication_ms":0.42572,"optimizer_ms":3.99069,"total_ms":6.87495}
+{"step":5,"mean_loss":1.33651,"bucket_count":1,"parameter_max_difference":0,"forward_backward_ms":2.03335,"communication_ms":0.338141,"optimizer_ms":3.38293,"total_ms":6.10311}
+{"step":6,"mean_loss":1.15244,"bucket_count":1,"parameter_max_difference":0,"forward_backward_ms":2.02757,"communication_ms":0.359992,"optimizer_ms":3.29717,"total_ms":6.0386}
+{"step":7,"mean_loss":1.11527,"bucket_count":1,"parameter_max_difference":0,"forward_backward_ms":2.06087,"communication_ms":0.336325,"optimizer_ms":3.33647,"total_ms":6.12837}
+{"step":8,"mean_loss":1.06237,"bucket_count":1,"parameter_max_difference":0,"forward_backward_ms":2.2026,"communication_ms":0.403071,"optimizer_ms":4.12142,"total_ms":7.14082}
+{"step":9,"mean_loss":1.00737,"bucket_count":1,"parameter_max_difference":0,"forward_backward_ms":2.42812,"communication_ms":0.379191,"optimizer_ms":3.54894,"total_ms":6.72145}
+{"step":10,"mean_loss":0.981233,"bucket_count":1,"parameter_max_difference":0,"forward_backward_ms":2.19163,"communication_ms":0.418285,"optimizer_ms":4.06351,"total_ms":7.04709}
