@@ -47,6 +47,7 @@ private:
     friend Value cross_entropy(const Value&, const Tensor&);
     friend Value contiguous(const Value&);
     friend Value causal_softmax(const Value&);
+    friend Value repeat_interleave(const Value&, std::int64_t, std::int64_t);
 };
 
 [[nodiscard]] Value add(const Value& left, const Value& right);
@@ -68,5 +69,7 @@ private:
 [[nodiscard]] Value cross_entropy(const Value& logits, const Tensor& targets);
 [[nodiscard]] Value contiguous(const Value& input);
 [[nodiscard]] Value causal_softmax(const Value& scores);
+[[nodiscard]] Value repeat_interleave(const Value& input, std::int64_t dim,
+                                      std::int64_t repeats);
 
 }  // namespace microllm::autograd

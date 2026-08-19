@@ -192,4 +192,14 @@ TEST(AutogradTest, ContiguousPreservesLogicalGradientOrderAfterTranspose) {
     EXPECT_EQ(input.grad().to_vector(), (std::vector<float>{1, 3, 5, 2, 4, 6}));
 }
 
+TEST(AutogradTest, RepeatInterleaveExpandsHeadsAndReducesTheirGradients) {
+    Value input(Tensor::from_vector({1, 2, 3, 4}, {1, 2, 2}), true);
+    const auto repeated = repeat_interleave(input, 1, 3);
+    EXPECT_EQ(repeated.data().shape(), (Shape{1, 6, 2}));
+    EXPECT_EQ(repeated.data().to_vector(),
+              (std::vector<float>{1, 2, 1, 2, 1, 2, 3, 4, 3, 4, 3, 4}));
+    sum(repeated).backward();
+    EXPECT_EQ(input.grad().to_vector(), (std::vector<float>{3, 3, 3, 3}));
+}
+
 }  // namespace microllm::autograd

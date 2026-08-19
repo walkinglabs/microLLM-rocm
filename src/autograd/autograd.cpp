@@ -504,4 +504,63 @@ Value causal_softmax(const Value& scores) {
                      });
 }
 
+Value repeat_interleave(const Value& input, std::int64_t dim, std::int64_t repeats) {
+    require_value(input, "input");
+    if (dim < 0) dim += input.data().ndim();
+    if (dim < 0 || dim >= input.data().ndim()) {
+        throw std::out_of_range("repeat_interleave dimension is out of range");
+    }
+    if (repeats <= 0) throw std::invalid_argument("repeat_interleave repeats must be positive");
+    const auto input_shape = input.data().shape();
+    auto output_shape = input_shape;
+    if (output_shape[static_cast<std::size_t>(dim)] >
+        std::numeric_limits<std::int64_t>::max() / repeats) {
+        throw std::overflow_error("repeat_interleave shape overflows int64");
+    }
+    output_shape[static_cast<std::size_t>(dim)] *= repeats;
+    const auto input_strides = contiguous_strides(input_shape);
+    const auto output_strides = contiguous_strides(output_shape);
+    const auto input_values = input.data().to_vector();
+    std::vector<float> output_values(static_cast<std::size_t>(checked_numel(output_shape)));
+    for (std::int64_t output_index = 0; output_index < checked_numel(output_shape);
+         ++output_index) {
+        auto remainder = output_index;
+        std::int64_t input_index = 0;
+        for (std::size_t axis = 0; axis < output_shape.size(); ++axis) {
+            const auto coordinate = remainder / output_strides[axis];
+            remainder %= output_strides[axis];
+            const auto input_coordinate =
+                axis == static_cast<std::size_t>(dim) ? coordinate / repeats : coordinate;
+            input_index += input_coordinate * input_strides[axis];
+        }
+        output_values[static_cast<std::size_t>(output_index)] =
+            input_values[static_cast<std::size_t>(input_index)];
+    }
+    auto input_node = input.node_;
+    return operation(Tensor::from_vector(output_values, output_shape), {input_node},
+                     [input_node, input_shape, output_shape, input_strides, output_strides, dim,
+                      repeats](const Tensor& gradient) {
+                         const auto output_gradient = gradient.to_vector();
+                         std::vector<float> input_gradient(
+                             static_cast<std::size_t>(checked_numel(input_shape)), 0.0F);
+                         for (std::int64_t output_index = 0;
+                              output_index < checked_numel(output_shape); ++output_index) {
+                             auto remainder = output_index;
+                             std::int64_t input_index = 0;
+                             for (std::size_t axis = 0; axis < output_shape.size(); ++axis) {
+                                 const auto coordinate = remainder / output_strides[axis];
+                                 remainder %= output_strides[axis];
+                                 const auto input_coordinate =
+                                     axis == static_cast<std::size_t>(dim)
+                                         ? coordinate / repeats
+                                         : coordinate;
+                                 input_index += input_coordinate * input_strides[axis];
+                             }
+                             input_gradient[static_cast<std::size_t>(input_index)] +=
+                                 output_gradient[static_cast<std::size_t>(output_index)];
+                         }
+                         accumulate(input_node, Tensor::from_vector(input_gradient, input_shape));
+                     });
+}
+
 }  // namespace microllm::autograd
