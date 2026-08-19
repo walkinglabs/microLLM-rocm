@@ -87,4 +87,26 @@ TEST(HipOpsTest, RopeAndCrossEntropyMatchCpuReference) {
                 cross_entropy(logits_cpu, targets_cpu).to_vector());
 }
 
+TEST(HipOpsTest, ExplicitStreamContextOrdersKernelAndEvent) {
+    require_gpu();
+    const auto gpu = Device::hip();
+    const auto left = Tensor::from_vector({1, 2, 3, 4}, {4}).to(gpu);
+    const auto right = Tensor::from_vector({4, 3, 2, 1}, {4}).to(gpu);
+    runtime::Stream stream(gpu);
+    runtime::Event completion(gpu);
+    const OpContext context{&stream, nullptr, 0};
+    const auto output = add(left, right, context);
+    completion.record(stream);
+    completion.synchronize();
+    EXPECT_EQ(output.to_vector(), (std::vector<float>{5, 5, 5, 5}));
+}
+
+TEST(HipOpsTest, ExplicitStreamRejectsDeviceMismatch) {
+    require_gpu();
+    const auto gpu = Tensor::from_vector({1, 2}, {2}).to(Device::hip());
+    runtime::Stream cpu_stream(Device::cpu());
+    const OpContext context{&cpu_stream, nullptr, 0};
+    EXPECT_THROW((void)add(gpu, gpu, context), std::invalid_argument);
+}
+
 }  // namespace microllm::ops

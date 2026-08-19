@@ -72,6 +72,12 @@ Run the first end-to-end artifact:
 ./build/examples/microllm_n0_ppm /tmp/microllm-n0.ppm
 ```
 
+With HIP enabled, run the explicit-Stream CPU/HIP comparison:
+
+```bash
+./build/examples/microllm_n1_cpu_hip
+```
+
 ## Models
 
 - **Model-S:** approximately 15.6M parameters / 62 MB of FP32 weights.

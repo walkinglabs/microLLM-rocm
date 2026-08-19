@@ -16,3 +16,5 @@ the next gate. Records are append-only except for factual corrections.
   elementwise kernels and naive batched matmul.
 - [2026-08-19-m1-hip-transformer-ops.md](2026-08-19-m1-hip-transformer-ops.md):
   readable HIP Transformer operator set and CPU/HIP conformance.
+- [2026-08-19-m1-op-context.md](2026-08-19-m1-op-context.md): explicit Stream and
+  workspace context plus the N1 CPU/HIP artifact.

@@ -6,5 +6,7 @@
 #include <microllm/core/tensor_view.h>
 #include <microllm/runtime/memory.h>
 #include <microllm/runtime/runtime.h>
+#include <microllm/ops/context.h>
+#include <microllm/ops/ops.h>
 
 TEST(PublicHeaders, CanBeIncludedTogether) { SUCCEED(); }

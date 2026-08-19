@@ -53,7 +53,7 @@ float sigmoid(float value) {
 
 }  // namespace
 
-void fill_(Tensor& tensor, float value) {
+void fill_(Tensor& tensor, float value, const OpContext& context) {
     require_float(tensor, "tensor");
     if (tensor.device().is_cpu()) {
         tensor.fill(value);
@@ -61,13 +61,14 @@ void fill_(Tensor& tensor, float value) {
     }
     require_contiguous(tensor, "tensor");
 #if MICROLLM_HAS_HIP
-    hip::launch_fill(static_cast<float*>(tensor.data()), tensor.numel(), value);
+    hip::launch_fill(static_cast<float*>(tensor.data()), tensor.numel(), value,
+                     context.native_stream(tensor.device()));
 #else
     throw std::runtime_error("microLLM was built without HIP operator support");
 #endif
 }
 
-Tensor add(const Tensor& left, const Tensor& right) {
+Tensor add(const Tensor& left, const Tensor& right, const OpContext& context) {
     require_float(left, "left");
     require_float(right, "right");
     require_same_shape(left, right);
@@ -79,7 +80,8 @@ Tensor add(const Tensor& left, const Tensor& right) {
 #if MICROLLM_HAS_HIP
         hip::launch_add(static_cast<const float*>(left.data()),
                         static_cast<const float*>(right.data()),
-                        static_cast<float*>(output.data()), left.numel());
+                        static_cast<float*>(output.data()), left.numel(),
+                        context.native_stream(left.device()));
         return output;
 #else
         throw std::runtime_error("microLLM was built without HIP operator support");
@@ -93,7 +95,7 @@ Tensor add(const Tensor& left, const Tensor& right) {
     return from_values(std::move(left_values), left.shape());
 }
 
-Tensor multiply(const Tensor& left, const Tensor& right) {
+Tensor multiply(const Tensor& left, const Tensor& right, const OpContext& context) {
     require_float(left, "left");
     require_float(right, "right");
     require_same_shape(left, right);
@@ -105,7 +107,8 @@ Tensor multiply(const Tensor& left, const Tensor& right) {
 #if MICROLLM_HAS_HIP
         hip::launch_multiply(static_cast<const float*>(left.data()),
                              static_cast<const float*>(right.data()),
-                             static_cast<float*>(output.data()), left.numel());
+                             static_cast<float*>(output.data()), left.numel(),
+                             context.native_stream(left.device()));
         return output;
 #else
         throw std::runtime_error("microLLM was built without HIP operator support");
@@ -119,14 +122,15 @@ Tensor multiply(const Tensor& left, const Tensor& right) {
     return from_values(std::move(left_values), left.shape());
 }
 
-Tensor scale(const Tensor& input, float factor) {
+Tensor scale(const Tensor& input, float factor, const OpContext& context) {
     require_float(input, "input");
     if (input.device().is_hip()) {
         require_contiguous(input, "input");
         Tensor output(input.shape(), DType::Float32, input.device());
 #if MICROLLM_HAS_HIP
         hip::launch_scale(static_cast<const float*>(input.data()),
-                          static_cast<float*>(output.data()), input.numel(), factor);
+                          static_cast<float*>(output.data()), input.numel(), factor,
+                          context.native_stream(input.device()));
         return output;
 #else
         throw std::runtime_error("microLLM was built without HIP operator support");
@@ -137,7 +141,7 @@ Tensor scale(const Tensor& input, float factor) {
     return from_values(std::move(values), input.shape());
 }
 
-Tensor matmul(const Tensor& left, const Tensor& right) {
+Tensor matmul(const Tensor& left, const Tensor& right, const OpContext& context) {
     require_float(left, "left");
     require_float(right, "right");
     require_same_device(left, right);
@@ -169,7 +173,8 @@ Tensor matmul(const Tensor& left, const Tensor& right) {
 #if MICROLLM_HAS_HIP
         hip::launch_matmul(static_cast<const float*>(left.data()),
                            static_cast<const float*>(right.data()),
-                           static_cast<float*>(output.data()), batches, rows, inner, columns);
+                           static_cast<float*>(output.data()), batches, rows, inner, columns,
+                           context.native_stream(left.device()));
         return output;
 #else
         throw std::runtime_error("microLLM was built without HIP operator support");
@@ -197,7 +202,7 @@ Tensor matmul(const Tensor& left, const Tensor& right) {
     return from_values(std::move(output), std::move(output_shape));
 }
 
-Tensor embedding(const Tensor& weight, const Tensor& indices) {
+Tensor embedding(const Tensor& weight, const Tensor& indices, const OpContext& context) {
     require_float(weight, "weight");
     if (weight.ndim() != 2) throw std::invalid_argument("embedding weight must have rank two");
     if (indices.dtype() != DType::Int32) {
@@ -216,7 +221,7 @@ Tensor embedding(const Tensor& weight, const Tensor& indices) {
         hip::launch_embedding(static_cast<const float*>(weight.data()),
                               static_cast<const std::int32_t*>(indices.data()),
                               static_cast<float*>(output.data()), indices.numel(), vocabulary,
-                              width);
+                              width, context.native_stream(weight.device()));
         return output;
 #else
         throw std::runtime_error("microLLM was built without HIP operator support");
@@ -234,7 +239,7 @@ Tensor embedding(const Tensor& weight, const Tensor& indices) {
     return from_values(std::move(output), std::move(output_shape));
 }
 
-Tensor softmax(const Tensor& input, std::int64_t dim) {
+Tensor softmax(const Tensor& input, std::int64_t dim, const OpContext& context) {
     require_float(input, "input");
     const auto normalized = positive_dim(input, dim);
     if (normalized != input.ndim() - 1) {
@@ -248,7 +253,8 @@ Tensor softmax(const Tensor& input, std::int64_t dim) {
         Tensor output(input.shape(), DType::Float32, input.device());
 #if MICROLLM_HAS_HIP
         hip::launch_softmax(static_cast<const float*>(input.data()),
-                            static_cast<float*>(output.data()), rows, width);
+                            static_cast<float*>(output.data()), rows, width,
+                            context.native_stream(input.device()));
         return output;
 #else
         throw std::runtime_error("microLLM was built without HIP operator support");
@@ -269,7 +275,8 @@ Tensor softmax(const Tensor& input, std::int64_t dim) {
     return from_values(std::move(output), input.shape());
 }
 
-Tensor rms_norm(const Tensor& input, const Tensor& weight, float epsilon) {
+Tensor rms_norm(const Tensor& input, const Tensor& weight, float epsilon,
+                const OpContext& context) {
     require_float(input, "input");
     require_float(weight, "weight");
     require_same_device(input, weight);
@@ -286,7 +293,8 @@ Tensor rms_norm(const Tensor& input, const Tensor& weight, float epsilon) {
 #if MICROLLM_HAS_HIP
         hip::launch_rms_norm(static_cast<const float*>(input.data()),
                              static_cast<const float*>(weight.data()),
-                             static_cast<float*>(output.data()), rows, width, epsilon);
+                             static_cast<float*>(output.data()), rows, width, epsilon,
+                             context.native_stream(input.device()));
         return output;
 #else
         throw std::runtime_error("microLLM was built without HIP operator support");
@@ -310,14 +318,15 @@ Tensor rms_norm(const Tensor& input, const Tensor& weight, float epsilon) {
     return from_values(std::move(output), input.shape());
 }
 
-Tensor silu(const Tensor& input) {
+Tensor silu(const Tensor& input, const OpContext& context) {
     require_float(input, "input");
     if (input.device().is_hip()) {
         require_contiguous(input, "input");
         Tensor output(input.shape(), DType::Float32, input.device());
 #if MICROLLM_HAS_HIP
         hip::launch_silu(static_cast<const float*>(input.data()),
-                         static_cast<float*>(output.data()), input.numel());
+                         static_cast<float*>(output.data()), input.numel(),
+                         context.native_stream(input.device()));
         return output;
 #else
         throw std::runtime_error("microLLM was built without HIP operator support");
@@ -328,7 +337,7 @@ Tensor silu(const Tensor& input) {
     return from_values(std::move(values), input.shape());
 }
 
-Tensor swiglu(const Tensor& gate, const Tensor& up) {
+Tensor swiglu(const Tensor& gate, const Tensor& up, const OpContext& context) {
     require_float(gate, "gate");
     require_float(up, "up");
     require_same_shape(gate, up);
@@ -340,7 +349,8 @@ Tensor swiglu(const Tensor& gate, const Tensor& up) {
 #if MICROLLM_HAS_HIP
         hip::launch_swiglu(static_cast<const float*>(gate.data()),
                            static_cast<const float*>(up.data()),
-                           static_cast<float*>(output.data()), gate.numel());
+                           static_cast<float*>(output.data()), gate.numel(),
+                           context.native_stream(gate.device()));
         return output;
 #else
         throw std::runtime_error("microLLM was built without HIP operator support");
@@ -355,7 +365,7 @@ Tensor swiglu(const Tensor& gate, const Tensor& up) {
 }
 
 Tensor rope(const Tensor& input, std::int64_t sequence_dim, std::int64_t position_offset,
-            float base) {
+            float base, const OpContext& context) {
     require_float(input, "input");
     if (input.ndim() < 2) throw std::invalid_argument("rope requires rank two or greater");
     const auto sequence = positive_dim(input, sequence_dim);
@@ -375,7 +385,7 @@ Tensor rope(const Tensor& input, std::int64_t sequence_dim, std::int64_t positio
         hip::launch_rope(static_cast<const float*>(input.data()),
                          static_cast<float*>(output.data()), input.numel(), head_width,
                          input.shape()[static_cast<std::size_t>(sequence)], sequence_stride,
-                         position_offset, base);
+                         position_offset, base, context.native_stream(input.device()));
         return output;
 #else
         throw std::runtime_error("microLLM was built without HIP operator support");
@@ -400,7 +410,7 @@ Tensor rope(const Tensor& input, std::int64_t sequence_dim, std::int64_t positio
     return from_values(std::move(output), input.shape());
 }
 
-Tensor cross_entropy(const Tensor& logits, const Tensor& targets) {
+Tensor cross_entropy(const Tensor& logits, const Tensor& targets, const OpContext& context) {
     require_float(logits, "logits");
     if (targets.dtype() != DType::Int32) {
         throw std::invalid_argument("cross_entropy targets must be int32");
@@ -421,7 +431,8 @@ Tensor cross_entropy(const Tensor& logits, const Tensor& targets) {
 #if MICROLLM_HAS_HIP
         hip::launch_cross_entropy(static_cast<const float*>(logits.data()),
                                   static_cast<const std::int32_t*>(targets.data()),
-                                  static_cast<float*>(output.data()), rows, classes);
+                                  static_cast<float*>(output.data()), rows, classes,
+                                  context.native_stream(logits.device()));
         return output;
 #else
         throw std::runtime_error("microLLM was built without HIP operator support");
