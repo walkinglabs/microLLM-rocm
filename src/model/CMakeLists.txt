@@ -1,5 +1,6 @@
 add_library(microllm_model STATIC
     config.cpp
+    model.cpp
 )
 add_library(microllm::model ALIAS microllm_model)
 

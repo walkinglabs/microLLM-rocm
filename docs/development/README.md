@@ -32,3 +32,5 @@ the next gate. Records are append-only except for factual corrections.
   and Model-M parameter budgets.
 - [2026-08-19-m3-gqa-repeat.md](2026-08-19-m3-gqa-repeat.md): differentiable K/V
   head expansion for grouped-query Attention.
+- [2026-08-19-m3-transformer-model.md](2026-08-19-m3-transformer-model.md): trainable
+  Decoder-only MHA/GQA Transformer composition.

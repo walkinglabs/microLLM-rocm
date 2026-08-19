@@ -215,7 +215,7 @@ Value reshape(const Value& input, Shape shape) {
     const auto original_shape = input.data().shape();
     return operation(input.data().reshape(std::move(shape)), {input_node},
                      [input_node, original_shape](const Tensor& gradient) {
-                         accumulate(input_node, gradient.reshape(original_shape));
+                         accumulate(input_node, gradient.contiguous().reshape(original_shape));
                      });
 }
 

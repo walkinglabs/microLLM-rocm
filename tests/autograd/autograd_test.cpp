@@ -192,6 +192,14 @@ TEST(AutogradTest, ContiguousPreservesLogicalGradientOrderAfterTranspose) {
     EXPECT_EQ(input.grad().to_vector(), (std::vector<float>{1, 3, 5, 2, 4, 6}));
 }
 
+TEST(AutogradTest, ReshapeBackwardMaterializesNonContiguousGradient) {
+    Value input(Tensor::from_vector({1, 2, 3, 4, 5, 6}, {6}), true);
+    const auto matrix = reshape(input, {2, 3});
+    const auto transposed = transpose(matrix, 0, 1);
+    sum(transposed).backward();
+    EXPECT_EQ(input.grad().to_vector(), (std::vector<float>{1, 1, 1, 1, 1, 1}));
+}
+
 TEST(AutogradTest, RepeatInterleaveExpandsHeadsAndReducesTheirGradients) {
     Value input(Tensor::from_vector({1, 2, 3, 4}, {1, 2, 2}), true);
     const auto repeated = repeat_interleave(input, 1, 3);

@@ -17,6 +17,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | SGD/AdamW | smoke-tested | hand first step and state-restored next step | GPU update/mixed precision |
 | Checkpoint | smoke-tested | complete-state load, corruption, 3-step resume | atomic save/GPU tensors |
 | Model-S/Model-M config | smoke-tested | executable exact parameter/byte tests | model layers/training |
+| Decoder Transformer structure | smoke-tested | tiny GQA/MHA causal forward and all-parameter backward | overfit/full recipe |
 | Python/PyTorch bridge | draft | ABI design | zero-copy implementation |
 | Profiling/autotune | draft | registry design | traces and selection cache |
 | RCCL | draft | roadmap | 2/4 GPU equivalence |

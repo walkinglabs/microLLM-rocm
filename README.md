@@ -42,7 +42,8 @@ Every performance-sensitive operator will keep three paths where useful:
 | CPU Transformer autograd | smoke-tested | hand gradients and finite differences |
 | SGD/AdamW | smoke-tested | hand first step and restored-state equivalence |
 | Versioned checkpoint | smoke-tested | complete state, corruption, resume trajectory |
-| Model-S training/inference | planned | M3 |
+| Decoder Transformer | smoke-tested | tiny MHA/GQA forward, causal test, all-parameter backward |
+| Model-S training/inference | planned | M3 next steps |
 | Python/PyTorch bindings | planned | M4 |
 | Profiling/autotuning | planned | M5 |
 | RCCL multi-GPU | planned | M6 |
