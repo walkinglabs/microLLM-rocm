@@ -18,6 +18,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Checkpoint | smoke-tested | complete-state load, corruption, 3-step resume | atomic save/GPU tensors |
 | Model-S/Model-M config | smoke-tested | executable exact parameter/byte tests | model layers/training |
 | Decoder Transformer structure | smoke-tested | tiny GQA/MHA causal forward and all-parameter backward | overfit/full recipe |
+| Byte tokenizer/token dataset | smoke-tested | all-byte round-trip and cursor equivalence | BPE/real corpus |
 | Python/PyTorch bridge | draft | ABI design | zero-copy implementation |
 | Profiling/autotune | draft | registry design | traces and selection cache |
 | RCCL | draft | roadmap | 2/4 GPU equivalence |

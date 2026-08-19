@@ -43,6 +43,7 @@ Every performance-sensitive operator will keep three paths where useful:
 | SGD/AdamW | smoke-tested | hand first step and restored-state equivalence |
 | Versioned checkpoint | smoke-tested | complete state, corruption, resume trajectory |
 | Decoder Transformer | smoke-tested | tiny MHA/GQA forward, causal test, all-parameter backward |
+| Byte tokenizer/token dataset | smoke-tested | byte round-trip and cursor-resume batches |
 | Model-S training/inference | planned | M3 next steps |
 | Python/PyTorch bindings | planned | M4 |
 | Profiling/autotuning | planned | M5 |

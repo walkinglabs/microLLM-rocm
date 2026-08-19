@@ -12,5 +12,8 @@
 #include <microllm/training/optimizer.h>
 #include <microllm/training/checkpoint.h>
 #include <microllm/model/config.h>
+#include <microllm/model/model.h>
+#include <microllm/io/byte_tokenizer.h>
+#include <microllm/io/token_dataset.h>
 
 TEST(PublicHeaders, CanBeIncludedTogether) { SUCCEED(); }

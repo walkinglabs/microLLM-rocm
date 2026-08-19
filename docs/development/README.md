@@ -34,3 +34,5 @@ the next gate. Records are append-only except for factual corrections.
   head expansion for grouped-query Attention.
 - [2026-08-19-m3-transformer-model.md](2026-08-19-m3-transformer-model.md): trainable
   Decoder-only MHA/GQA Transformer composition.
+- [2026-08-19-m3-data-pipeline.md](2026-08-19-m3-data-pipeline.md): byte tokenizer
+  and deterministic resumable token batches.
