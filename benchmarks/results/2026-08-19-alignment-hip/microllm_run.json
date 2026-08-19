@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "framework": "microllm",
+  "run_id": "2026-08-19-alignment-hip",
+  "device": "hip:0",
+  "seed": 211,
+  "warmup": 5,
+  "repetitions": 20,
+  "model": {
+    "vocabulary_size": 8,
+    "dimension": 8,
+    "layers": 1,
+    "heads": 2,
+    "kv_heads": 1,
+    "ffn_dimension": 16,
+    "max_sequence_length": 4,
+    "rope_base": 10000
+  }
+}

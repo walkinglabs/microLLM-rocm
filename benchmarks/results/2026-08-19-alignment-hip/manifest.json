@@ -1,0 +1,125 @@
+{
+  "artifacts": [
+    "comparison.json",
+    "logs/compare.stderr.txt",
+    "logs/compare.stdout.txt",
+    "logs/microllm.stderr.txt",
+    "logs/microllm.stdout.txt",
+    "logs/pytorch.stderr.txt",
+    "logs/pytorch.stdout.txt",
+    "microllm_layer_timing.jsonl",
+    "microllm_operator_timing.jsonl",
+    "microllm_parameters.jsonl",
+    "microllm_run.json",
+    "microllm_values.jsonl",
+    "pytorch_layer_timing.jsonl",
+    "pytorch_operator_timing.jsonl",
+    "pytorch_run.json",
+    "pytorch_values.jsonl",
+    "report.md"
+  ],
+  "commands": {
+    "compare": [
+      "/home/devpod/envinit/miniforge3/bin/python3",
+      "/home/devpod/github/microLLM-rocm/tools/alignment/compare.py",
+      "--microllm",
+      "/home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-19-alignment-hip",
+      "--pytorch",
+      "/home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-19-alignment-hip",
+      "--output",
+      "/home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-19-alignment-hip",
+      "--atol",
+      "0.002",
+      "--rtol",
+      "0.002"
+    ],
+    "microllm": [
+      "/home/devpod/github/microLLM-rocm/build/hip-release/apps/microllm_alignment",
+      "--output",
+      "/home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-19-alignment-hip",
+      "--device",
+      "hip",
+      "--run-id",
+      "2026-08-19-alignment-hip",
+      "--seed",
+      "211",
+      "--warmup",
+      "5",
+      "--repetitions",
+      "20",
+      "--max-captured-elements",
+      "4096"
+    ],
+    "pytorch": [
+      "/tmp/microllm-torch-venv/bin/python",
+      "/home/devpod/github/microLLM-rocm/tools/alignment/pytorch_runner.py",
+      "--input",
+      "/home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-19-alignment-hip",
+      "--output",
+      "/home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-19-alignment-hip",
+      "--device",
+      "cpu",
+      "--run-id",
+      "2026-08-19-alignment-hip",
+      "--warmup",
+      "5",
+      "--repetitions",
+      "20",
+      "--max-captured-elements",
+      "4096"
+    ]
+  },
+  "completed_utc": "2026-08-19T11:03:18.527037+00:00",
+  "configuration": {
+    "atol": 0.002,
+    "max_captured_elements": 4096,
+    "microllm_binary": "/home/devpod/github/microLLM-rocm/build/hip-release/apps/microllm_alignment",
+    "microllm_device": "hip",
+    "pytorch_device": "cpu",
+    "pytorch_python": "/home/devpod/envinit/miniforge3/bin/python3.13",
+    "repetitions": 20,
+    "rtol": 0.002,
+    "seed": 211,
+    "warmup": 5
+  },
+  "created_utc": "2026-08-19T11:03:15.562724+00:00",
+  "host": {
+    "cmake": "cmake version 3.31.10",
+    "g++": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+    "gcc": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+    "hipcc": "HIP version: 7.13.99004-3309c6114a",
+    "machine": "x86_64",
+    "platform": "Linux-6.12.48+deb13-amd64-x86_64-with-glibc2.39",
+    "python": "3.13.13 | packaged by conda-forge | (main, Apr  8 2026, 02:00:33) [GCC 14.3.0]",
+    "rocprofv3": "             version: 1.3.0"
+  },
+  "repository": {
+    "branch": "main",
+    "commit": "13e7984477b0dd25b734e02ccf8b049742c8a310",
+    "dirty": false,
+    "path": "/home/devpod/github/microLLM-rocm"
+  },
+  "run_id": "2026-08-19-alignment-hip",
+  "schema_version": 1,
+  "stages": {
+    "compare": {
+      "returncode": 0,
+      "status": "pass",
+      "stderr": "logs/compare.stderr.txt",
+      "stdout": "logs/compare.stdout.txt"
+    },
+    "microllm": {
+      "returncode": 0,
+      "status": "pass",
+      "stderr": "logs/microllm.stderr.txt",
+      "stdout": "logs/microllm.stdout.txt"
+    },
+    "pytorch": {
+      "returncode": 0,
+      "status": "pass",
+      "stderr": "logs/pytorch.stderr.txt",
+      "stdout": "logs/pytorch.stdout.txt"
+    }
+  },
+  "status": "pass"
+}

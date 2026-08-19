@@ -1,0 +1,4 @@
+alignment_output="/home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-19-alignment-hip"
+framework=microllm
+device=hip:0
+status=pass

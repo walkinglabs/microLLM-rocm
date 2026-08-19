@@ -1,0 +1,2269 @@
+{
+  "atol": 0.002,
+  "layer_timings": [
+    {
+      "kind": "layer",
+      "microllm": {
+        "maximum_ms": 0.266692,
+        "mean_ms": 0.18366659999999999,
+        "median_ms": 0.19386399999999998,
+        "minimum_ms": 0.124684,
+        "p95_ms": 0.24031430000000004,
+        "samples": 20
+      },
+      "name": "model.blocks.0",
+      "occurrence": 0,
+      "pytorch": {
+        "maximum_ms": 56.85959,
+        "mean_ms": 31.209058149999997,
+        "median_ms": 27.8652265,
+        "minimum_ms": 12.105959,
+        "p95_ms": 56.049392,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 143.73595149176742,
+      "status": "measured"
+    },
+    {
+      "kind": "layer",
+      "microllm": {
+        "maximum_ms": 0.033185,
+        "mean_ms": 0.01970655,
+        "median_ms": 0.017521000000000002,
+        "minimum_ms": 0.013917,
+        "p95_ms": 0.029952150000000004,
+        "samples": 20
+      },
+      "name": "model.embedding",
+      "occurrence": 0,
+      "pytorch": {
+        "maximum_ms": 0.045395,
+        "mean_ms": 0.0205316,
+        "median_ms": 0.0186185,
+        "minimum_ms": 0.010877,
+        "p95_ms": 0.038525550000000006,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 1.0626391187717594,
+      "status": "measured"
+    },
+    {
+      "kind": "layer",
+      "microllm": {
+        "maximum_ms": 0.038621,
+        "mean_ms": 0.02375485,
+        "median_ms": 0.0230945,
+        "minimum_ms": 0.019196,
+        "p95_ms": 0.02871630000000001,
+        "samples": 20
+      },
+      "name": "model.final_norm",
+      "occurrence": 0,
+      "pytorch": {
+        "maximum_ms": 0.024558,
+        "mean_ms": 0.0176408,
+        "median_ms": 0.017008500000000003,
+        "minimum_ms": 0.013104,
+        "p95_ms": 0.0240583,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 0.736474052263526,
+      "status": "measured"
+    },
+    {
+      "kind": "model",
+      "microllm": {
+        "maximum_ms": 0.338026,
+        "mean_ms": 0.25312830000000003,
+        "median_ms": 0.2529005,
+        "minimum_ms": 0.189568,
+        "p95_ms": 0.31335165000000004,
+        "samples": 20
+      },
+      "name": "model.forward",
+      "occurrence": 0,
+      "pytorch": {
+        "maximum_ms": 56.941665,
+        "mean_ms": 31.2836614,
+        "median_ms": 27.927532499999998,
+        "minimum_ms": 12.164487,
+        "p95_ms": 56.109064100000005,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 110.4289335133778,
+      "status": "measured"
+    }
+  ],
+  "microllm_run": {
+    "device": "hip:0",
+    "framework": "microllm",
+    "model": {
+      "dimension": 8,
+      "ffn_dimension": 16,
+      "heads": 2,
+      "kv_heads": 1,
+      "layers": 1,
+      "max_sequence_length": 4,
+      "rope_base": 10000,
+      "vocabulary_size": 8
+    },
+    "repetitions": 20,
+    "run_id": "2026-08-19-alignment-hip",
+    "schema_version": 1,
+    "seed": 211,
+    "warmup": 5
+  },
+  "operator_timings": [
+    {
+      "kind": "operator",
+      "microllm": {
+        "maximum_ms": 0.023582,
+        "mean_ms": 0.0155663,
+        "median_ms": 0.0148865,
+        "minimum_ms": 0.013624,
+        "p95_ms": 0.017950400000000002,
+        "samples": 20
+      },
+      "name": "add",
+      "occurrence": 0,
+      "pytorch": {
+        "maximum_ms": 0.007424,
+        "mean_ms": 0.005881300000000001,
+        "median_ms": 0.0067895,
+        "minimum_ms": 0.003358,
+        "p95_ms": 0.007295750000000001,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 0.456084371746213,
+      "status": "measured"
+    },
+    {
+      "kind": "operator",
+      "microllm": {
+        "maximum_ms": 0.02799,
+        "mean_ms": 0.01917425,
+        "median_ms": 0.0173355,
+        "minimum_ms": 0.013709,
+        "p95_ms": 0.0274447,
+        "samples": 20
+      },
+      "name": "add",
+      "occurrence": 1,
+      "pytorch": {
+        "maximum_ms": 0.004621,
+        "mean_ms": 0.0029304,
+        "median_ms": 0.0028339999999999997,
+        "minimum_ms": 0.002448,
+        "p95_ms": 0.0037840500000000006,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 0.1634795650543682,
+      "status": "measured"
+    },
+    {
+      "kind": "operator",
+      "microllm": {
+        "maximum_ms": 0.032222,
+        "mean_ms": 0.0222105,
+        "median_ms": 0.019945499999999998,
+        "minimum_ms": 0.016747,
+        "p95_ms": 0.03127295,
+        "samples": 20
+      },
+      "name": "causal_softmax",
+      "occurrence": 0,
+      "pytorch": {
+        "maximum_ms": 60.049014,
+        "mean_ms": 32.6931141,
+        "median_ms": 25.9324625,
+        "minimum_ms": 11.77325,
+        "p95_ms": 59.9392643,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 1300.1660775613548,
+      "status": "measured"
+    },
+    {
+      "kind": "operator",
+      "microllm": {
+        "maximum_ms": 0.034761,
+        "mean_ms": 0.020506749999999997,
+        "median_ms": 0.018054,
+        "minimum_ms": 0.014379,
+        "p95_ms": 0.028380800000000005,
+        "samples": 20
+      },
+      "name": "contiguous",
+      "occurrence": 0,
+      "pytorch": {
+        "maximum_ms": 0.016206,
+        "mean_ms": 0.010256600000000001,
+        "median_ms": 0.0093305,
+        "minimum_ms": 0.005407,
+        "p95_ms": 0.0156911,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 0.5168106790738894,
+      "status": "measured"
+    },
+    {
+      "kind": "operator",
+      "microllm": {
+        "maximum_ms": 0.04209,
+        "mean_ms": 0.01981715,
+        "median_ms": 0.017052499999999998,
+        "minimum_ms": 0.01357,
+        "p95_ms": 0.033381350000000004,
+        "samples": 20
+      },
+      "name": "embedding",
+      "occurrence": 0,
+      "pytorch": {
+        "maximum_ms": 0.025085,
+        "mean_ms": 0.0182313,
+        "median_ms": 0.019764,
+        "minimum_ms": 0.012283,
+        "p95_ms": 0.021355300000000004,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 1.159008942970239,
+      "status": "measured"
+    },
+    {
+      "kind": "operator",
+      "microllm": {
+        "maximum_ms": 0.028254,
+        "mean_ms": 0.02043795,
+        "median_ms": 0.0192245,
+        "minimum_ms": 0.01518,
+        "p95_ms": 0.02709215,
+        "samples": 20
+      },
+      "name": "matmul",
+      "occurrence": 0,
+      "pytorch": {
+        "maximum_ms": 0.007087,
+        "mean_ms": 0.00332145,
+        "median_ms": 0.003168,
+        "minimum_ms": 0.002504,
+        "p95_ms": 0.0036176000000000025,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 0.16478972144919243,
+      "status": "measured"
+    },
+    {
+      "kind": "operator",
+      "microllm": {
+        "maximum_ms": 0.028558,
+        "mean_ms": 0.020106350000000002,
+        "median_ms": 0.018885,
+        "minimum_ms": 0.014936,
+        "p95_ms": 0.0281818,
+        "samples": 20
+      },
+      "name": "matmul",
+      "occurrence": 1,
+      "pytorch": {
+        "maximum_ms": 0.002995,
+        "mean_ms": 0.00279195,
+        "median_ms": 0.00287,
+        "minimum_ms": 0.001846,
+        "p95_ms": 0.0029665000000000004,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 0.1519724649192481,
+      "status": "measured"
+    },
+    {
+      "kind": "operator",
+      "microllm": {
+        "maximum_ms": 0.028779,
+        "mean_ms": 0.0188801,
+        "median_ms": 0.0171675,
+        "minimum_ms": 0.014719,
+        "p95_ms": 0.026571200000000003,
+        "samples": 20
+      },
+      "name": "matmul",
+      "occurrence": 2,
+      "pytorch": {
+        "maximum_ms": 0.002854,
+        "mean_ms": 0.00272885,
+        "median_ms": 0.0027635,
+        "minimum_ms": 0.001926,
+        "p95_ms": 0.0028416500000000003,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 0.16097276831221785,
+      "status": "measured"
+    },
+    {
+      "kind": "operator",
+      "microllm": {
+        "maximum_ms": 0.03394,
+        "mean_ms": 0.01915605,
+        "median_ms": 0.017592,
+        "minimum_ms": 0.013853,
+        "p95_ms": 0.028220050000000003,
+        "samples": 20
+      },
+      "name": "matmul",
+      "occurrence": 3,
+      "pytorch": {
+        "maximum_ms": 0.013776,
+        "mean_ms": 0.0108393,
+        "median_ms": 0.011517,
+        "minimum_ms": 0.00758,
+        "p95_ms": 0.013032150000000001,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 0.6546725784447476,
+      "status": "measured"
+    },
+    {
+      "kind": "operator",
+      "microllm": {
+        "maximum_ms": 0.036209,
+        "mean_ms": 0.0190767,
+        "median_ms": 0.0171415,
+        "minimum_ms": 0.014415,
+        "p95_ms": 0.02501325000000001,
+        "samples": 20
+      },
+      "name": "matmul",
+      "occurrence": 4,
+      "pytorch": {
+        "maximum_ms": 0.027149,
+        "mean_ms": 0.0176847,
+        "median_ms": 0.0183195,
+        "minimum_ms": 0.007337,
+        "p95_ms": 0.02637095,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 1.0687221071668174,
+      "status": "measured"
+    },
+    {
+      "kind": "operator",
+      "microllm": {
+        "maximum_ms": 0.049947,
+        "mean_ms": 0.020456,
+        "median_ms": 0.0186235,
+        "minimum_ms": 0.014807,
+        "p95_ms": 0.03410765000000001,
+        "samples": 20
+      },
+      "name": "matmul",
+      "occurrence": 5,
+      "pytorch": {
+        "maximum_ms": 0.014926,
+        "mean_ms": 0.01151135,
+        "median_ms": 0.013294,
+        "minimum_ms": 0.006019,
+        "p95_ms": 0.01441015,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 0.7138293016887266,
+      "status": "measured"
+    },
+    {
+      "kind": "operator",
+      "microllm": {
+        "maximum_ms": 0.031961,
+        "mean_ms": 0.0208537,
+        "median_ms": 0.0199955,
+        "minimum_ms": 0.015565,
+        "p95_ms": 0.029868150000000003,
+        "samples": 20
+      },
+      "name": "matmul",
+      "occurrence": 6,
+      "pytorch": {
+        "maximum_ms": 0.006636,
+        "mean_ms": 0.0045586,
+        "median_ms": 0.004522,
+        "minimum_ms": 0.003545,
+        "p95_ms": 0.0060954500000000005,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 0.2261508839488885,
+      "status": "measured"
+    },
+    {
+      "kind": "operator",
+      "microllm": {
+        "maximum_ms": 0.03932,
+        "mean_ms": 0.0222554,
+        "median_ms": 0.0185555,
+        "minimum_ms": 0.014827,
+        "p95_ms": 0.032731750000000004,
+        "samples": 20
+      },
+      "name": "matmul",
+      "occurrence": 7,
+      "pytorch": {
+        "maximum_ms": 0.004102,
+        "mean_ms": 0.0029632499999999997,
+        "median_ms": 0.0028525,
+        "minimum_ms": 0.002668,
+        "p95_ms": 0.0040193500000000005,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 0.1537280051736682,
+      "status": "measured"
+    },
+    {
+      "kind": "operator",
+      "microllm": {
+        "maximum_ms": 0.034859,
+        "mean_ms": 0.02260385,
+        "median_ms": 0.020828,
+        "minimum_ms": 0.0162,
+        "p95_ms": 0.031569150000000004,
+        "samples": 20
+      },
+      "name": "matmul",
+      "occurrence": 8,
+      "pytorch": {
+        "maximum_ms": 0.003197,
+        "mean_ms": 0.0029349,
+        "median_ms": 0.0029245,
+        "minimum_ms": 0.002724,
+        "p95_ms": 0.0031599500000000003,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 0.14041194545803726,
+      "status": "measured"
+    },
+    {
+      "kind": "operator",
+      "microllm": {
+        "maximum_ms": 0.026659,
+        "mean_ms": 0.01871455,
+        "median_ms": 0.0178305,
+        "minimum_ms": 0.014285,
+        "p95_ms": 0.026347400000000003,
+        "samples": 20
+      },
+      "name": "matmul",
+      "occurrence": 9,
+      "pytorch": {
+        "maximum_ms": 0.003935,
+        "mean_ms": 0.0030642,
+        "median_ms": 0.0030235,
+        "minimum_ms": 0.002793,
+        "p95_ms": 0.003236750000000001,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 0.16956899694343963,
+      "status": "measured"
+    },
+    {
+      "kind": "operator",
+      "microllm": {
+        "maximum_ms": 0.027843,
+        "mean_ms": 0.0192821,
+        "median_ms": 0.0184485,
+        "minimum_ms": 0.014994,
+        "p95_ms": 0.0259221,
+        "samples": 20
+      },
+      "name": "repeat_interleave",
+      "occurrence": 0,
+      "pytorch": {
+        "maximum_ms": 0.012221,
+        "mean_ms": 0.008917350000000001,
+        "median_ms": 0.009485500000000001,
+        "minimum_ms": 0.006419,
+        "p95_ms": 0.011245350000000001,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 0.5141610429032171,
+      "status": "measured"
+    },
+    {
+      "kind": "operator",
+      "microllm": {
+        "maximum_ms": 0.033852,
+        "mean_ms": 0.0181885,
+        "median_ms": 0.017016,
+        "minimum_ms": 0.014508,
+        "p95_ms": 0.025102500000000007,
+        "samples": 20
+      },
+      "name": "repeat_interleave",
+      "occurrence": 1,
+      "pytorch": {
+        "maximum_ms": 0.028708,
+        "mean_ms": 0.0063030000000000004,
+        "median_ms": 0.0051909999999999994,
+        "minimum_ms": 0.003816,
+        "p95_ms": 0.006669900000000017,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 0.3050658204043253,
+      "status": "measured"
+    },
+    {
+      "kind": "operator",
+      "microllm": {
+        "maximum_ms": 0.000285,
+        "mean_ms": 0.0002458,
+        "median_ms": 0.00024249999999999999,
+        "minimum_ms": 0.00023,
+        "p95_ms": 0.00027360000000000004,
+        "samples": 20
+      },
+      "name": "reshape",
+      "occurrence": 0,
+      "pytorch": {
+        "maximum_ms": 0.002406,
+        "mean_ms": 0.00175485,
+        "median_ms": 0.0017504999999999999,
+        "minimum_ms": 0.001409,
+        "p95_ms": 0.0019690000000000003,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 7.218556701030928,
+      "status": "measured"
+    },
+    {
+      "kind": "operator",
+      "microllm": {
+        "maximum_ms": 0.000301,
+        "mean_ms": 0.0002741,
+        "median_ms": 0.00026999999999999995,
+        "minimum_ms": 0.000263,
+        "p95_ms": 0.00029435,
+        "samples": 20
+      },
+      "name": "reshape",
+      "occurrence": 1,
+      "pytorch": {
+        "maximum_ms": 0.003887,
+        "mean_ms": 0.0026755999999999998,
+        "median_ms": 0.0026385000000000002,
+        "minimum_ms": 0.001879,
+        "p95_ms": 0.0032153500000000005,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 9.772222222222226,
+      "status": "measured"
+    },
+    {
+      "kind": "operator",
+      "microllm": {
+        "maximum_ms": 0.000292,
+        "mean_ms": 0.00025955,
+        "median_ms": 0.000254,
+        "minimum_ms": 0.000243,
+        "p95_ms": 0.00028250000000000004,
+        "samples": 20
+      },
+      "name": "reshape",
+      "occurrence": 2,
+      "pytorch": {
+        "maximum_ms": 0.003435,
+        "mean_ms": 0.0021534,
+        "median_ms": 0.0021089999999999998,
+        "minimum_ms": 0.001422,
+        "p95_ms": 0.002402350000000001,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 8.303149606299211,
+      "status": "measured"
+    },
+    {
+      "kind": "operator",
+      "microllm": {
+        "maximum_ms": 0.000336,
+        "mean_ms": 0.00025735,
+        "median_ms": 0.00025049999999999996,
+        "minimum_ms": 0.000241,
+        "p95_ms": 0.00027900000000000006,
+        "samples": 20
+      },
+      "name": "reshape",
+      "occurrence": 3,
+      "pytorch": {
+        "maximum_ms": 0.003409,
+        "mean_ms": 0.00207715,
+        "median_ms": 0.0020429999999999997,
+        "minimum_ms": 0.001354,
+        "p95_ms": 0.002307000000000001,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 8.155688622754491,
+      "status": "measured"
+    },
+    {
+      "kind": "operator",
+      "microllm": {
+        "maximum_ms": 0.00036,
+        "mean_ms": 0.0002711,
+        "median_ms": 0.000269,
+        "minimum_ms": 0.000246,
+        "p95_ms": 0.0002859000000000001,
+        "samples": 20
+      },
+      "name": "reshape",
+      "occurrence": 4,
+      "pytorch": {
+        "maximum_ms": 0.003827,
+        "mean_ms": 0.003109,
+        "median_ms": 0.0035205,
+        "minimum_ms": 0.001776,
+        "p95_ms": 0.0037671500000000004,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 13.087360594795541,
+      "status": "measured"
+    },
+    {
+      "kind": "operator",
+      "microllm": {
+        "maximum_ms": 0.000274,
+        "mean_ms": 0.00025105,
+        "median_ms": 0.000248,
+        "minimum_ms": 0.000243,
+        "p95_ms": 0.0002721,
+        "samples": 20
+      },
+      "name": "reshape",
+      "occurrence": 5,
+      "pytorch": {
+        "maximum_ms": 0.004327,
+        "mean_ms": 0.0030225,
+        "median_ms": 0.003048,
+        "minimum_ms": 0.002364,
+        "p95_ms": 0.0038748000000000003,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 12.29032258064516,
+      "status": "measured"
+    },
+    {
+      "kind": "operator",
+      "microllm": {
+        "maximum_ms": 0.000305,
+        "mean_ms": 0.00024845,
+        "median_ms": 0.000238,
+        "minimum_ms": 0.000227,
+        "p95_ms": 0.00028030000000000004,
+        "samples": 20
+      },
+      "name": "reshape",
+      "occurrence": 6,
+      "pytorch": {
+        "maximum_ms": 0.003046,
+        "mean_ms": 0.0019643,
+        "median_ms": 0.001922,
+        "minimum_ms": 0.001662,
+        "p95_ms": 0.0024931000000000007,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 8.07563025210084,
+      "status": "measured"
+    },
+    {
+      "kind": "operator",
+      "microllm": {
+        "maximum_ms": 0.000289,
+        "mean_ms": 0.00026015,
+        "median_ms": 0.000261,
+        "minimum_ms": 0.000234,
+        "p95_ms": 0.0002795,
+        "samples": 20
+      },
+      "name": "reshape",
+      "occurrence": 7,
+      "pytorch": {
+        "maximum_ms": 0.00352,
+        "mean_ms": 0.0024757,
+        "median_ms": 0.0024850000000000002,
+        "minimum_ms": 0.001989,
+        "p95_ms": 0.0028996500000000006,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 9.521072796934867,
+      "status": "measured"
+    },
+    {
+      "kind": "operator",
+      "microllm": {
+        "maximum_ms": 0.000295,
+        "mean_ms": 0.00025600000000000004,
+        "median_ms": 0.0002525,
+        "minimum_ms": 0.000241,
+        "p95_ms": 0.00028835000000000004,
+        "samples": 20
+      },
+      "name": "reshape",
+      "occurrence": 8,
+      "pytorch": {
+        "maximum_ms": 0.001983,
+        "mean_ms": 0.0017732999999999998,
+        "median_ms": 0.0017745,
+        "minimum_ms": 0.001583,
+        "p95_ms": 0.0019516499999999999,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 7.027722772277228,
+      "status": "measured"
+    },
+    {
+      "kind": "operator",
+      "microllm": {
+        "maximum_ms": 0.000256,
+        "mean_ms": 0.00024139999999999999,
+        "median_ms": 0.0002385,
+        "minimum_ms": 0.000233,
+        "p95_ms": 0.0002541,
+        "samples": 20
+      },
+      "name": "reshape",
+      "occurrence": 9,
+      "pytorch": {
+        "maximum_ms": 0.002636,
+        "mean_ms": 0.00226045,
+        "median_ms": 0.00223,
+        "minimum_ms": 0.002086,
+        "p95_ms": 0.0025638,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 9.350104821802937,
+      "status": "measured"
+    },
+    {
+      "kind": "operator",
+      "microllm": {
+        "maximum_ms": 0.060358,
+        "mean_ms": 0.0216608,
+        "median_ms": 0.018781,
+        "minimum_ms": 0.01487,
+        "p95_ms": 0.029480150000000024,
+        "samples": 20
+      },
+      "name": "rms_norm",
+      "occurrence": 0,
+      "pytorch": {
+        "maximum_ms": 0.032715,
+        "mean_ms": 0.0176356,
+        "median_ms": 0.016799500000000002,
+        "minimum_ms": 0.012852,
+        "p95_ms": 0.019537550000000008,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 0.8944944358660349,
+      "status": "measured"
+    },
+    {
+      "kind": "operator",
+      "microllm": {
+        "maximum_ms": 0.036431,
+        "mean_ms": 0.02182415,
+        "median_ms": 0.020735999999999997,
+        "minimum_ms": 0.015798,
+        "p95_ms": 0.030734800000000003,
+        "samples": 20
+      },
+      "name": "rms_norm",
+      "occurrence": 1,
+      "pytorch": {
+        "maximum_ms": 0.134117,
+        "mean_ms": 0.0512162,
+        "median_ms": 0.0521755,
+        "minimum_ms": 0.025972,
+        "p95_ms": 0.08386960000000004,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 2.516179591049383,
+      "status": "measured"
+    },
+    {
+      "kind": "operator",
+      "microllm": {
+        "maximum_ms": 0.056685,
+        "mean_ms": 0.0236787,
+        "median_ms": 0.020035,
+        "minimum_ms": 0.015402,
+        "p95_ms": 0.036451900000000016,
+        "samples": 20
+      },
+      "name": "rms_norm",
+      "occurrence": 2,
+      "pytorch": {
+        "maximum_ms": 0.024284,
+        "mean_ms": 0.018879,
+        "median_ms": 0.018347,
+        "minimum_ms": 0.016189,
+        "p95_ms": 0.02311835,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 0.915747441976541,
+      "status": "measured"
+    },
+    {
+      "kind": "operator",
+      "microllm": {
+        "maximum_ms": 0.03785,
+        "mean_ms": 0.0212771,
+        "median_ms": 0.0187635,
+        "minimum_ms": 0.015199,
+        "p95_ms": 0.03539900000000001,
+        "samples": 20
+      },
+      "name": "rope",
+      "occurrence": 0,
+      "pytorch": {
+        "maximum_ms": 0.145598,
+        "mean_ms": 0.09779974999999999,
+        "median_ms": 0.10576350000000001,
+        "minimum_ms": 0.063168,
+        "p95_ms": 0.11203735000000002,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 5.6366616036453765,
+      "status": "measured"
+    },
+    {
+      "kind": "operator",
+      "microllm": {
+        "maximum_ms": 0.028432,
+        "mean_ms": 0.0181218,
+        "median_ms": 0.017318,
+        "minimum_ms": 0.014488,
+        "p95_ms": 0.023503400000000004,
+        "samples": 20
+      },
+      "name": "rope",
+      "occurrence": 1,
+      "pytorch": {
+        "maximum_ms": 0.085397,
+        "mean_ms": 0.06041729999999999,
+        "median_ms": 0.058107,
+        "minimum_ms": 0.040676,
+        "p95_ms": 0.0853039,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 3.355295068714632,
+      "status": "measured"
+    },
+    {
+      "kind": "operator",
+      "microllm": {
+        "maximum_ms": 0.024161,
+        "mean_ms": 0.01836305,
+        "median_ms": 0.017183999999999998,
+        "minimum_ms": 0.013595,
+        "p95_ms": 0.023995700000000002,
+        "samples": 20
+      },
+      "name": "scale",
+      "occurrence": 0,
+      "pytorch": {
+        "maximum_ms": 0.008309,
+        "mean_ms": 0.006926450000000001,
+        "median_ms": 0.0071319999999999995,
+        "minimum_ms": 0.005311,
+        "p95_ms": 0.008285250000000001,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 0.4150372439478585,
+      "status": "measured"
+    },
+    {
+      "kind": "operator",
+      "microllm": {
+        "maximum_ms": 0.037506,
+        "mean_ms": 0.01932385,
+        "median_ms": 0.0174065,
+        "minimum_ms": 0.01429,
+        "p95_ms": 0.027793200000000007,
+        "samples": 20
+      },
+      "name": "swiglu",
+      "occurrence": 0,
+      "pytorch": {
+        "maximum_ms": 0.011686,
+        "mean_ms": 0.00959425,
+        "median_ms": 0.010038499999999999,
+        "minimum_ms": 0.007079,
+        "p95_ms": 0.011685049999999999,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 0.5767098497687645,
+      "status": "measured"
+    },
+    {
+      "kind": "operator",
+      "microllm": {
+        "maximum_ms": 0.000451,
+        "mean_ms": 0.0003669,
+        "median_ms": 0.000366,
+        "minimum_ms": 0.000317,
+        "p95_ms": 0.00039685,
+        "samples": 20
+      },
+      "name": "transpose",
+      "occurrence": 0,
+      "pytorch": {
+        "maximum_ms": 0.003945,
+        "mean_ms": 0.0026946,
+        "median_ms": 0.0028575,
+        "minimum_ms": 0.001861,
+        "p95_ms": 0.0036144000000000003,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 7.807377049180327,
+      "status": "measured"
+    },
+    {
+      "kind": "operator",
+      "microllm": {
+        "maximum_ms": 0.000293,
+        "mean_ms": 0.0002623,
+        "median_ms": 0.0002555,
+        "minimum_ms": 0.000245,
+        "p95_ms": 0.00029015000000000003,
+        "samples": 20
+      },
+      "name": "transpose",
+      "occurrence": 1,
+      "pytorch": {
+        "maximum_ms": 0.002272,
+        "mean_ms": 0.00196465,
+        "median_ms": 0.0019975,
+        "minimum_ms": 0.001244,
+        "p95_ms": 0.00222165,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 7.8180039138943265,
+      "status": "measured"
+    },
+    {
+      "kind": "operator",
+      "microllm": {
+        "maximum_ms": 0.000271,
+        "mean_ms": 0.0002497,
+        "median_ms": 0.00025,
+        "minimum_ms": 0.000231,
+        "p95_ms": 0.00027005000000000003,
+        "samples": 20
+      },
+      "name": "transpose",
+      "occurrence": 2,
+      "pytorch": {
+        "maximum_ms": 0.002117,
+        "mean_ms": 0.00171865,
+        "median_ms": 0.001716,
+        "minimum_ms": 0.001089,
+        "p95_ms": 0.0019469500000000002,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 6.864,
+      "status": "measured"
+    },
+    {
+      "kind": "operator",
+      "microllm": {
+        "maximum_ms": 0.000293,
+        "mean_ms": 0.00025225,
+        "median_ms": 0.0002485,
+        "minimum_ms": 0.000234,
+        "p95_ms": 0.00026925,
+        "samples": 20
+      },
+      "name": "transpose",
+      "occurrence": 3,
+      "pytorch": {
+        "maximum_ms": 0.002323,
+        "mean_ms": 0.0018030000000000001,
+        "median_ms": 0.0017935,
+        "minimum_ms": 0.001307,
+        "p95_ms": 0.0019563000000000002,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 7.217303822937625,
+      "status": "measured"
+    },
+    {
+      "kind": "operator",
+      "microllm": {
+        "maximum_ms": 0.000273,
+        "mean_ms": 0.0002403,
+        "median_ms": 0.0002345,
+        "minimum_ms": 0.000229,
+        "p95_ms": 0.000273,
+        "samples": 20
+      },
+      "name": "transpose",
+      "occurrence": 4,
+      "pytorch": {
+        "maximum_ms": 0.006203,
+        "mean_ms": 0.00423215,
+        "median_ms": 0.004291,
+        "minimum_ms": 0.002141,
+        "p95_ms": 0.0060149,
+        "samples": 20
+      },
+      "pytorch_over_microllm": 18.298507462686565,
+      "status": "measured"
+    }
+  ],
+  "pytorch_run": {
+    "device": "cpu",
+    "framework": "pytorch",
+    "model": {
+      "dimension": 8,
+      "ffn_dimension": 16,
+      "heads": 2,
+      "kv_heads": 1,
+      "layers": 1,
+      "max_sequence_length": 4,
+      "rope_base": 10000,
+      "vocabulary_size": 8
+    },
+    "repetitions": 20,
+    "run_id": "2026-08-19-alignment-hip",
+    "schema_version": 1,
+    "torch_hip_version": null,
+    "torch_version": "2.13.0+cpu",
+    "warmup": 5
+  },
+  "rtol": 0.002,
+  "run_id": "2026-08-19-alignment-hip",
+  "schema_version": 1,
+  "summary": {
+    "layer_timing_records": 4,
+    "operator_timing_records": 39,
+    "status": "pass",
+    "value_failed": 0,
+    "value_passed": 45,
+    "value_records": 45
+  },
+  "values": [
+    {
+      "cosine": 1.0,
+      "kind": "input",
+      "max_abs": 0.0,
+      "max_rel": 0.0,
+      "maximum_error_index": 0,
+      "microllm_at_max": 0,
+      "microllm_dtype": "int32",
+      "microllm_shape": [
+        1,
+        4
+      ],
+      "mse": 0.0,
+      "name": "model.tokens",
+      "occurrence": 0,
+      "partial_values": false,
+      "pytorch_at_max": 0.0,
+      "pytorch_dtype": "int32",
+      "pytorch_shape": [
+        1,
+        4
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.9999999999999928,
+      "kind": "layer",
+      "max_abs": 4.76837158203125e-07,
+      "max_rel": 5.397343306184471e-07,
+      "maximum_error_index": 22,
+      "microllm_at_max": -2.2975151538848877,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        1,
+        4,
+        8
+      ],
+      "mse": 4.707345624410664e-14,
+      "name": "model.blocks.0",
+      "occurrence": 0,
+      "partial_values": false,
+      "pytorch_at_max": -2.297515630722046,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        1,
+        4,
+        8
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.9999999999999999,
+      "kind": "layer",
+      "max_abs": 0.0,
+      "max_rel": 0.0,
+      "maximum_error_index": 0,
+      "microllm_at_max": -0.01814447157084942,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        1,
+        4,
+        8
+      ],
+      "mse": 0.0,
+      "name": "model.embedding",
+      "occurrence": 0,
+      "partial_values": false,
+      "pytorch_at_max": -0.01814447157084942,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        1,
+        4,
+        8
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.9999999999999957,
+      "kind": "layer",
+      "max_abs": 1.7881393432617188e-07,
+      "max_rel": 3.249029149477272e-07,
+      "maximum_error_index": 21,
+      "microllm_at_max": 0.7779312133789062,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        1,
+        4,
+        8
+      ],
+      "mse": 8.604228440844963e-15,
+      "name": "model.final_norm",
+      "occurrence": 0,
+      "partial_values": false,
+      "pytorch_at_max": 0.7779313921928406,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        1,
+        4,
+        8
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.9999999999999957,
+      "kind": "model",
+      "max_abs": 2.384185791015625e-07,
+      "max_rel": 7.697729092940292e-07,
+      "maximum_error_index": 14,
+      "microllm_at_max": -1.3229321241378784,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        1,
+        4,
+        8
+      ],
+      "mse": 9.395262345890387e-15,
+      "name": "model.forward",
+      "occurrence": 0,
+      "partial_values": false,
+      "pytorch_at_max": -1.3229323625564575,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        1,
+        4,
+        8
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.9999999999999964,
+      "kind": "operator",
+      "max_abs": 1.7881393432617188e-07,
+      "max_rel": 8.191278643237563e-06,
+      "maximum_error_index": 27,
+      "microllm_at_max": 0.6881887316703796,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        1,
+        4,
+        8
+      ],
+      "mse": 3.956063992019421e-15,
+      "name": "add",
+      "occurrence": 0,
+      "partial_values": false,
+      "pytorch_at_max": 0.688188910484314,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        1,
+        4,
+        8
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.9999999999999928,
+      "kind": "operator",
+      "max_abs": 4.76837158203125e-07,
+      "max_rel": 5.397343306184471e-07,
+      "maximum_error_index": 22,
+      "microllm_at_max": -2.2975151538848877,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        1,
+        4,
+        8
+      ],
+      "mse": 4.707345624410664e-14,
+      "name": "add",
+      "occurrence": 1,
+      "partial_values": false,
+      "pytorch_at_max": -2.297515630722046,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        1,
+        4,
+        8
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.9999999999999973,
+      "kind": "operator",
+      "max_abs": 1.1920928955078125e-07,
+      "max_rel": 8.694041886154999e-07,
+      "maximum_error_index": 12,
+      "microllm_at_max": 0.8364213705062866,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        1,
+        2,
+        4,
+        4
+      ],
+      "mse": 9.1550031444676e-16,
+      "name": "causal_softmax",
+      "occurrence": 0,
+      "partial_values": false,
+      "pytorch_at_max": 0.8364214897155762,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        1,
+        2,
+        4,
+        4
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.9999999999999954,
+      "kind": "operator",
+      "max_abs": 3.5762786865234375e-07,
+      "max_rel": 4.249320470369036e-06,
+      "maximum_error_index": 25,
+      "microllm_at_max": -1.253745198249817,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        1,
+        4,
+        2,
+        4
+      ],
+      "mse": 5.787310260467644e-15,
+      "name": "contiguous",
+      "occurrence": 0,
+      "partial_values": false,
+      "pytorch_at_max": -1.2537455558776855,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        1,
+        4,
+        2,
+        4
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.9999999999999999,
+      "kind": "operator",
+      "max_abs": 0.0,
+      "max_rel": 0.0,
+      "maximum_error_index": 0,
+      "microllm_at_max": -0.01814447157084942,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        1,
+        4,
+        8
+      ],
+      "mse": 0.0,
+      "name": "embedding",
+      "occurrence": 0,
+      "partial_values": false,
+      "pytorch_at_max": -0.01814447157084942,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        1,
+        4,
+        8
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.999999999999998,
+      "kind": "operator",
+      "max_abs": 2.384185791015625e-07,
+      "max_rel": 4.5404667395487254e-07,
+      "maximum_error_index": 25,
+      "microllm_at_max": -1.1462268829345703,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        4,
+        8
+      ],
+      "mse": 3.2751579226442118e-15,
+      "name": "matmul",
+      "occurrence": 0,
+      "partial_values": false,
+      "pytorch_at_max": -1.1462271213531494,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        4,
+        8
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.9999999999999991,
+      "kind": "operator",
+      "max_abs": 1.7881393432617188e-07,
+      "max_rel": 2.5463765189454235e-07,
+      "maximum_error_index": 15,
+      "microllm_at_max": -0.7022287845611572,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        4,
+        4
+      ],
+      "mse": 3.9968028886505635e-15,
+      "name": "matmul",
+      "occurrence": 1,
+      "partial_values": false,
+      "pytorch_at_max": -0.7022289633750916,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        4,
+        4
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.9999999999999978,
+      "kind": "operator",
+      "max_abs": 2.384185791015625e-07,
+      "max_rel": 3.754694541518943e-07,
+      "maximum_error_index": 13,
+      "microllm_at_max": 1.9535584449768066,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        4,
+        4
+      ],
+      "mse": 6.217248937900877e-15,
+      "name": "matmul",
+      "occurrence": 2,
+      "partial_values": false,
+      "pytorch_at_max": 1.9535586833953857,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        4,
+        4
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.9999999999999954,
+      "kind": "operator",
+      "max_abs": 9.5367431640625e-07,
+      "max_rel": 1.95559212432351e-06,
+      "maximum_error_index": 14,
+      "microllm_at_max": -5.671319007873535,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        1,
+        2,
+        4,
+        4
+      ],
+      "mse": 8.007006516153048e-14,
+      "name": "matmul",
+      "occurrence": 3,
+      "partial_values": false,
+      "pytorch_at_max": -5.671319961547852,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        1,
+        2,
+        4,
+        4
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.9999999999999954,
+      "kind": "operator",
+      "max_abs": 3.5762786865234375e-07,
+      "max_rel": 4.249320470369036e-06,
+      "maximum_error_index": 13,
+      "microllm_at_max": -1.253745198249817,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        1,
+        2,
+        4,
+        4
+      ],
+      "mse": 5.787310260467644e-15,
+      "name": "matmul",
+      "occurrence": 4,
+      "partial_values": false,
+      "pytorch_at_max": -1.2537455558776855,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        1,
+        2,
+        4,
+        4
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.9999999999999964,
+      "kind": "operator",
+      "max_abs": 1.7881393432617188e-07,
+      "max_rel": 3.599152084758232e-06,
+      "maximum_error_index": 27,
+      "microllm_at_max": 0.7222907543182373,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        4,
+        8
+      ],
+      "mse": 3.956063992019421e-15,
+      "name": "matmul",
+      "occurrence": 5,
+      "partial_values": false,
+      "pytorch_at_max": 0.7222909331321716,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        4,
+        8
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.9999999999999962,
+      "kind": "operator",
+      "max_abs": 2.384185791015625e-07,
+      "max_rel": 7.929524691314416e-07,
+      "maximum_error_index": 25,
+      "microllm_at_max": 1.858616590499878,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        4,
+        16
+      ],
+      "mse": 1.1293537719586633e-14,
+      "name": "matmul",
+      "occurrence": 6,
+      "partial_values": false,
+      "pytorch_at_max": 1.858616828918457,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        4,
+        16
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.9999999999999917,
+      "kind": "operator",
+      "max_abs": 4.76837158203125e-07,
+      "max_rel": 2.5942445819201907e-06,
+      "maximum_error_index": 17,
+      "microllm_at_max": 3.129805088043213,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        4,
+        16
+      ],
+      "mse": 2.049922731561793e-14,
+      "name": "matmul",
+      "occurrence": 7,
+      "partial_values": false,
+      "pytorch_at_max": 3.1298046112060547,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        4,
+        16
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.9999999999999916,
+      "kind": "operator",
+      "max_abs": 4.76837158203125e-07,
+      "max_rel": 2.8607508088176922e-06,
+      "maximum_error_index": 21,
+      "microllm_at_max": 1.9352232217788696,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        4,
+        8
+      ],
+      "mse": 3.781003288239049e-14,
+      "name": "matmul",
+      "occurrence": 8,
+      "partial_values": false,
+      "pytorch_at_max": 1.9352236986160278,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        4,
+        8
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.9999999999999957,
+      "kind": "operator",
+      "max_abs": 2.384185791015625e-07,
+      "max_rel": 7.697729092940292e-07,
+      "maximum_error_index": 14,
+      "microllm_at_max": -1.3229321241378784,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        4,
+        8
+      ],
+      "mse": 9.395262345890387e-15,
+      "name": "matmul",
+      "occurrence": 9,
+      "partial_values": false,
+      "pytorch_at_max": -1.3229323625564575,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        4,
+        8
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.9999999999999986,
+      "kind": "operator",
+      "max_abs": 1.7881393432617188e-07,
+      "max_rel": 4.29592090281699e-07,
+      "maximum_error_index": 12,
+      "microllm_at_max": 0.9119179844856262,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        1,
+        2,
+        4,
+        4
+      ],
+      "mse": 6.3976601794024646e-15,
+      "name": "repeat_interleave",
+      "occurrence": 0,
+      "partial_values": false,
+      "pytorch_at_max": 0.9119181632995605,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        1,
+        2,
+        4,
+        4
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.9999999999999979,
+      "kind": "operator",
+      "max_abs": 2.384185791015625e-07,
+      "max_rel": 3.754694541518943e-07,
+      "maximum_error_index": 13,
+      "microllm_at_max": 1.9535584449768066,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        1,
+        2,
+        4,
+        4
+      ],
+      "mse": 6.217248937900877e-15,
+      "name": "repeat_interleave",
+      "occurrence": 1,
+      "partial_values": false,
+      "pytorch_at_max": 1.9535586833953857,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        1,
+        2,
+        4,
+        4
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.9999999999999982,
+      "kind": "operator",
+      "max_abs": 2.384185791015625e-07,
+      "max_rel": 1.7923956003499114e-07,
+      "maximum_error_index": 30,
+      "microllm_at_max": -1.8677104711532593,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        4,
+        8
+      ],
+      "mse": 4.580537338316759e-15,
+      "name": "reshape",
+      "occurrence": 0,
+      "partial_values": false,
+      "pytorch_at_max": -1.8677107095718384,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        4,
+        8
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.999999999999998,
+      "kind": "operator",
+      "max_abs": 2.384185791015625e-07,
+      "max_rel": 4.5404667395487254e-07,
+      "maximum_error_index": 25,
+      "microllm_at_max": -1.1462268829345703,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        1,
+        4,
+        2,
+        4
+      ],
+      "mse": 3.2751579226442118e-15,
+      "name": "reshape",
+      "occurrence": 1,
+      "partial_values": false,
+      "pytorch_at_max": -1.1462271213531494,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        1,
+        4,
+        2,
+        4
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.9999999999999991,
+      "kind": "operator",
+      "max_abs": 1.7881393432617188e-07,
+      "max_rel": 2.5463765189454235e-07,
+      "maximum_error_index": 15,
+      "microllm_at_max": -0.7022287845611572,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        1,
+        4,
+        1,
+        4
+      ],
+      "mse": 3.9968028886505635e-15,
+      "name": "reshape",
+      "occurrence": 2,
+      "partial_values": false,
+      "pytorch_at_max": -0.7022289633750916,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        1,
+        4,
+        1,
+        4
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.9999999999999978,
+      "kind": "operator",
+      "max_abs": 2.384185791015625e-07,
+      "max_rel": 3.754694541518943e-07,
+      "maximum_error_index": 13,
+      "microllm_at_max": 1.9535584449768066,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        1,
+        4,
+        1,
+        4
+      ],
+      "mse": 6.217248937900877e-15,
+      "name": "reshape",
+      "occurrence": 3,
+      "partial_values": false,
+      "pytorch_at_max": 1.9535586833953857,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        1,
+        4,
+        1,
+        4
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.9999999999999954,
+      "kind": "operator",
+      "max_abs": 3.5762786865234375e-07,
+      "max_rel": 4.249320470369036e-06,
+      "maximum_error_index": 25,
+      "microllm_at_max": -1.253745198249817,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        4,
+        8
+      ],
+      "mse": 5.787310260467644e-15,
+      "name": "reshape",
+      "occurrence": 4,
+      "partial_values": false,
+      "pytorch_at_max": -1.2537455558776855,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        4,
+        8
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.9999999999999964,
+      "kind": "operator",
+      "max_abs": 1.7881393432617188e-07,
+      "max_rel": 3.599152084758232e-06,
+      "maximum_error_index": 27,
+      "microllm_at_max": 0.7222907543182373,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        1,
+        4,
+        8
+      ],
+      "mse": 3.956063992019421e-15,
+      "name": "reshape",
+      "occurrence": 5,
+      "partial_values": false,
+      "pytorch_at_max": 0.7222909331321716,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        1,
+        4,
+        8
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.9999999999999959,
+      "kind": "operator",
+      "max_abs": 1.7881393432617188e-07,
+      "max_rel": 8.187965765550447e-06,
+      "maximum_error_index": 13,
+      "microllm_at_max": -0.9561355710029602,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        4,
+        8
+      ],
+      "mse": 8.629409036300939e-15,
+      "name": "reshape",
+      "occurrence": 6,
+      "partial_values": false,
+      "pytorch_at_max": -0.9561357498168945,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        4,
+        8
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.9999999999999916,
+      "kind": "operator",
+      "max_abs": 4.76837158203125e-07,
+      "max_rel": 2.8607508088176922e-06,
+      "maximum_error_index": 21,
+      "microllm_at_max": 1.9352232217788696,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        1,
+        4,
+        8
+      ],
+      "mse": 3.781003288239049e-14,
+      "name": "reshape",
+      "occurrence": 7,
+      "partial_values": false,
+      "pytorch_at_max": 1.9352236986160278,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        1,
+        4,
+        8
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.9999999999999957,
+      "kind": "operator",
+      "max_abs": 1.7881393432617188e-07,
+      "max_rel": 3.249029149477272e-07,
+      "maximum_error_index": 21,
+      "microllm_at_max": 0.7779312133789062,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        4,
+        8
+      ],
+      "mse": 8.604228440844963e-15,
+      "name": "reshape",
+      "occurrence": 8,
+      "partial_values": false,
+      "pytorch_at_max": 0.7779313921928406,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        4,
+        8
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.9999999999999957,
+      "kind": "operator",
+      "max_abs": 2.384185791015625e-07,
+      "max_rel": 7.697729092940292e-07,
+      "maximum_error_index": 14,
+      "microllm_at_max": -1.3229321241378784,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        1,
+        4,
+        8
+      ],
+      "mse": 9.395262345890387e-15,
+      "name": "reshape",
+      "occurrence": 9,
+      "partial_values": false,
+      "pytorch_at_max": -1.3229323625564575,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        1,
+        4,
+        8
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.9999999999999982,
+      "kind": "operator",
+      "max_abs": 2.384185791015625e-07,
+      "max_rel": 1.7923956003499114e-07,
+      "maximum_error_index": 30,
+      "microllm_at_max": -1.8677104711532593,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        1,
+        4,
+        8
+      ],
+      "mse": 4.580537338316759e-15,
+      "name": "rms_norm",
+      "occurrence": 0,
+      "partial_values": false,
+      "pytorch_at_max": -1.8677107095718384,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        1,
+        4,
+        8
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.9999999999999959,
+      "kind": "operator",
+      "max_abs": 1.7881393432617188e-07,
+      "max_rel": 8.187965765550447e-06,
+      "maximum_error_index": 13,
+      "microllm_at_max": -0.9561355710029602,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        1,
+        4,
+        8
+      ],
+      "mse": 8.629409036300939e-15,
+      "name": "rms_norm",
+      "occurrence": 1,
+      "partial_values": false,
+      "pytorch_at_max": -0.9561357498168945,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        1,
+        4,
+        8
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.9999999999999957,
+      "kind": "operator",
+      "max_abs": 1.7881393432617188e-07,
+      "max_rel": 3.249029149477272e-07,
+      "maximum_error_index": 21,
+      "microllm_at_max": 0.7779312133789062,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        1,
+        4,
+        8
+      ],
+      "mse": 8.604228440844963e-15,
+      "name": "rms_norm",
+      "occurrence": 2,
+      "partial_values": false,
+      "pytorch_at_max": 0.7779313921928406,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        1,
+        4,
+        8
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.999999999999998,
+      "kind": "operator",
+      "max_abs": 2.384185791015625e-07,
+      "max_rel": 1.3336178384722075e-06,
+      "maximum_error_index": 14,
+      "microllm_at_max": 1.5024369955062866,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        1,
+        2,
+        4,
+        4
+      ],
+      "mse": 3.4226094181022404e-15,
+      "name": "rope",
+      "occurrence": 0,
+      "partial_values": false,
+      "pytorch_at_max": 1.5024372339248657,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        1,
+        2,
+        4,
+        4
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.9999999999999986,
+      "kind": "operator",
+      "max_abs": 1.7881393432617188e-07,
+      "max_rel": 4.29592090281699e-07,
+      "maximum_error_index": 12,
+      "microllm_at_max": 0.9119179844856262,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        1,
+        1,
+        4,
+        4
+      ],
+      "mse": 6.3976601794024646e-15,
+      "name": "rope",
+      "occurrence": 1,
+      "partial_values": false,
+      "pytorch_at_max": 0.9119181632995605,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        1,
+        1,
+        4,
+        4
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.9999999999999954,
+      "kind": "operator",
+      "max_abs": 4.76837158203125e-07,
+      "max_rel": 1.95559212432351e-06,
+      "maximum_error_index": 14,
+      "microllm_at_max": -2.8356595039367676,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        1,
+        2,
+        4,
+        4
+      ],
+      "mse": 2.001751629038262e-14,
+      "name": "scale",
+      "occurrence": 0,
+      "partial_values": false,
+      "pytorch_at_max": -2.835659980773926,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        1,
+        2,
+        4,
+        4
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.999999999999988,
+      "kind": "operator",
+      "max_abs": 5.960464477539062e-07,
+      "max_rel": 2.554666794336928e-06,
+      "maximum_error_index": 58,
+      "microllm_at_max": 1.8036750555038452,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        4,
+        16
+      ],
+      "mse": 2.1557063046521302e-14,
+      "name": "swiglu",
+      "occurrence": 0,
+      "partial_values": false,
+      "pytorch_at_max": 1.803675651550293,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        4,
+        16
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.999999999999998,
+      "kind": "operator",
+      "max_abs": 2.384185791015625e-07,
+      "max_rel": 4.5404667395487254e-07,
+      "maximum_error_index": 13,
+      "microllm_at_max": -1.1462268829345703,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        1,
+        2,
+        4,
+        4
+      ],
+      "mse": 3.2751579226442118e-15,
+      "name": "transpose",
+      "occurrence": 0,
+      "partial_values": false,
+      "pytorch_at_max": -1.1462271213531494,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        1,
+        2,
+        4,
+        4
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.9999999999999991,
+      "kind": "operator",
+      "max_abs": 1.7881393432617188e-07,
+      "max_rel": 2.5463765189454235e-07,
+      "maximum_error_index": 15,
+      "microllm_at_max": -0.7022287845611572,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        1,
+        1,
+        4,
+        4
+      ],
+      "mse": 3.9968028886505635e-15,
+      "name": "transpose",
+      "occurrence": 1,
+      "partial_values": false,
+      "pytorch_at_max": -0.7022289633750916,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        1,
+        1,
+        4,
+        4
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.9999999999999978,
+      "kind": "operator",
+      "max_abs": 2.384185791015625e-07,
+      "max_rel": 3.754694541518943e-07,
+      "maximum_error_index": 13,
+      "microllm_at_max": 1.9535584449768066,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        1,
+        1,
+        4,
+        4
+      ],
+      "mse": 6.217248937900877e-15,
+      "name": "transpose",
+      "occurrence": 2,
+      "partial_values": false,
+      "pytorch_at_max": 1.9535586833953857,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        1,
+        1,
+        4,
+        4
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.9999999999999986,
+      "kind": "operator",
+      "max_abs": 1.7881393432617188e-07,
+      "max_rel": 4.29592090281699e-07,
+      "maximum_error_index": 3,
+      "microllm_at_max": 0.9119179844856262,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        1,
+        2,
+        4,
+        4
+      ],
+      "mse": 6.3976601794024646e-15,
+      "name": "transpose",
+      "occurrence": 3,
+      "partial_values": false,
+      "pytorch_at_max": 0.9119181632995605,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        1,
+        2,
+        4,
+        4
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.9999999999999954,
+      "kind": "operator",
+      "max_abs": 3.5762786865234375e-07,
+      "max_rel": 4.249320470369036e-06,
+      "maximum_error_index": 25,
+      "microllm_at_max": -1.253745198249817,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        1,
+        4,
+        2,
+        4
+      ],
+      "mse": 5.787310260467644e-15,
+      "name": "transpose",
+      "occurrence": 4,
+      "partial_values": false,
+      "pytorch_at_max": -1.2537455558776855,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        1,
+        4,
+        2,
+        4
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    },
+    {
+      "cosine": 0.9999999999999957,
+      "kind": "output",
+      "max_abs": 2.384185791015625e-07,
+      "max_rel": 7.697729092940292e-07,
+      "maximum_error_index": 14,
+      "microllm_at_max": -1.3229321241378784,
+      "microllm_dtype": "float32",
+      "microllm_shape": [
+        1,
+        4,
+        8
+      ],
+      "mse": 9.395262345890387e-15,
+      "name": "model.logits",
+      "occurrence": 0,
+      "partial_values": false,
+      "pytorch_at_max": -1.3229323625564575,
+      "pytorch_dtype": "float32",
+      "pytorch_shape": [
+        1,
+        4,
+        8
+      ],
+      "special_value_mismatches": 0,
+      "status": "pass"
+    }
+  ]
+}
