@@ -20,6 +20,13 @@ if(MICROLLM_HAS_RCCL)
         microllm::multi_gpu microllm::profiling
     )
     install(TARGETS microllm_distributed_train RUNTIME DESTINATION bin)
+    if(BUILD_TESTING)
+        add_test(NAME DistributedCLI.Smoke
+                 COMMAND microllm_distributed_train --steps 1 --bucket-bytes 4096
+                         --trace ${CMAKE_CURRENT_BINARY_DIR}/distributed-smoke.jsonl)
+        set_tests_properties(DistributedCLI.Smoke PROPERTIES
+                             LABELS "hip;rccl;multi_gpu;integration")
+    endif()
 endif()
 
 if(BUILD_TESTING)

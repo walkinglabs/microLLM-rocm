@@ -55,6 +55,15 @@ Build the RCCL preset, then:
 The CLI prints one JSON record per step and writes stage/layer/model timing records using
 the same trace schema as the alignment infrastructure.
 
+For a complete manifest, environment, raw metrics, trace, stderr, and summary package:
+
+```bash
+python3 tools/distributed/run.py \
+  --binary build/rccl-release/apps/microllm_distributed_train \
+  --output /tmp/microllm-distributed \
+  --steps 20 --bucket-bytes 4194304
+```
+
 ## Correctness evidence
 
 The dedicated test runs three two-rank updates and compares with one CPU model trained

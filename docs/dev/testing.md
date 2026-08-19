@@ -18,7 +18,7 @@ framework CPU                 116/116 pass
 CPU ASan/UBSan                114/114 pass
 MI300X/gfx942 HIP              25/25 pass
 PyTorch CPU oracle/alignment      3/3 pass
-two-rank RCCL                  10/10 pass
+two-rank RCCL                  11/11 pass
 registered test files               32
 ```
 

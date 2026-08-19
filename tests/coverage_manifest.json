@@ -97,7 +97,8 @@
     "Communicator": "tests/multi_gpu/communicator_test.cpp",
     "all_reduce_gradients": "tests/multi_gpu/gradient_bucket_test.cpp",
     "DataParallelTrainer": "tests/multi_gpu/data_parallel_test.cpp",
-    "distributed_profile": "tests/multi_gpu/data_parallel_test.cpp"
+    "distributed_profile": "tests/multi_gpu/data_parallel_test.cpp",
+    "distributed_experiment_runner": "tools/distributed/run.py"
   },
   "test_files": [
     "bindings/capi/capi_test.c",

@@ -123,7 +123,7 @@ Current `main` gates:
 | ASan/UBSan | 114/114 | host code; dynamic binding tests isolated |
 | MI300X/gfx942 HIP | 25/25 | operators, graph, model, weights, trace timing |
 | PyTorch CPU oracle/alignment | 3/3 | ops plus same-weight model value/timing trace |
-| Two-rank RCCL | 10/10 | collectives, global-batch equivalence, DDP trainer |
+| Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
 | Registered test files | 32 | machine-audited CTest registration |
 
 Latest PyTorch-reference maximum absolute differences:
