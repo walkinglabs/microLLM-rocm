@@ -15,3 +15,15 @@ gtest_discover_tests(microllm_tests
     PROPERTIES LABELS "cpu;unit"
     DISCOVERY_TIMEOUT 30
 )
+
+if(MICROLLM_HAS_HIP)
+    add_executable(microllm_hip_tests
+        ops/hip_ops_test.cpp
+    )
+    target_link_libraries(microllm_hip_tests PRIVATE GTest::gtest_main microllm::ops)
+    gtest_discover_tests(microllm_hip_tests
+        TEST_PREFIX "HIP."
+        PROPERTIES LABELS "hip;conformance"
+        DISCOVERY_TIMEOUT 30
+    )
+endif()

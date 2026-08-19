@@ -12,3 +12,5 @@ the next gate. Records are append-only except for factual corrections.
   transfer, Stream, and Event boundary.
 - [2026-08-19-m1-cpu-reference-ops.md](2026-08-19-m1-cpu-reference-ops.md): readable
   CPU oracle for the first Transformer operator set.
+- [2026-08-19-m1-hip-basic-ops.md](2026-08-19-m1-hip-basic-ops.md): readable HIP
+  elementwise kernels and naive batched matmul.

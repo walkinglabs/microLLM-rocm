@@ -7,16 +7,34 @@
 #include <string>
 #include <vector>
 
+#if MICROLLM_HAS_HIP
+#include "hip/kernels.h"
+#endif
+
 namespace microllm::ops {
 namespace {
 
-void require_cpu_float(const Tensor& tensor, const char* name) {
+void require_float(const Tensor& tensor, const char* name) {
     if (!tensor.defined()) throw std::invalid_argument(std::string(name) + " is undefined");
-    if (!tensor.device().is_cpu()) {
-        throw std::runtime_error(std::string(name) + " requires CPU until the HIP op milestone");
-    }
     if (tensor.dtype() != DType::Float32) {
         throw std::invalid_argument(std::string(name) + " must be float32");
+    }
+}
+
+void require_cpu_float(const Tensor& tensor, const char* name) {
+    require_float(tensor, name);
+    if (!tensor.device().is_cpu()) {
+        throw std::runtime_error(std::string(name) + " operator does not have a HIP kernel yet");
+    }
+}
+
+void require_same_device(const Tensor& left, const Tensor& right) {
+    if (left.device() != right.device()) throw std::invalid_argument("tensor devices must match");
+}
+
+void require_contiguous(const Tensor& tensor, const char* name) {
+    if (!tensor.is_contiguous()) {
+        throw std::invalid_argument(std::string(name) + " must be contiguous for HIP execution");
     }
 }
 
@@ -43,14 +61,37 @@ float sigmoid(float value) {
 }  // namespace
 
 void fill_(Tensor& tensor, float value) {
-    require_cpu_float(tensor, "tensor");
-    tensor.fill(value);
+    require_float(tensor, "tensor");
+    if (tensor.device().is_cpu()) {
+        tensor.fill(value);
+        return;
+    }
+    require_contiguous(tensor, "tensor");
+#if MICROLLM_HAS_HIP
+    hip::launch_fill(static_cast<float*>(tensor.data()), tensor.numel(), value);
+#else
+    throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
 }
 
 Tensor add(const Tensor& left, const Tensor& right) {
-    require_cpu_float(left, "left");
-    require_cpu_float(right, "right");
+    require_float(left, "left");
+    require_float(right, "right");
     require_same_shape(left, right);
+    require_same_device(left, right);
+    if (left.device().is_hip()) {
+        require_contiguous(left, "left");
+        require_contiguous(right, "right");
+        Tensor output(left.shape(), DType::Float32, left.device());
+#if MICROLLM_HAS_HIP
+        hip::launch_add(static_cast<const float*>(left.data()),
+                        static_cast<const float*>(right.data()),
+                        static_cast<float*>(output.data()), left.numel());
+        return output;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
     auto left_values = left.to_vector();
     const auto right_values = right.to_vector();
     for (std::size_t index = 0; index < left_values.size(); ++index) {
@@ -60,9 +101,23 @@ Tensor add(const Tensor& left, const Tensor& right) {
 }
 
 Tensor multiply(const Tensor& left, const Tensor& right) {
-    require_cpu_float(left, "left");
-    require_cpu_float(right, "right");
+    require_float(left, "left");
+    require_float(right, "right");
     require_same_shape(left, right);
+    require_same_device(left, right);
+    if (left.device().is_hip()) {
+        require_contiguous(left, "left");
+        require_contiguous(right, "right");
+        Tensor output(left.shape(), DType::Float32, left.device());
+#if MICROLLM_HAS_HIP
+        hip::launch_multiply(static_cast<const float*>(left.data()),
+                             static_cast<const float*>(right.data()),
+                             static_cast<float*>(output.data()), left.numel());
+        return output;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
     auto left_values = left.to_vector();
     const auto right_values = right.to_vector();
     for (std::size_t index = 0; index < left_values.size(); ++index) {
@@ -72,15 +127,27 @@ Tensor multiply(const Tensor& left, const Tensor& right) {
 }
 
 Tensor scale(const Tensor& input, float factor) {
-    require_cpu_float(input, "input");
+    require_float(input, "input");
+    if (input.device().is_hip()) {
+        require_contiguous(input, "input");
+        Tensor output(input.shape(), DType::Float32, input.device());
+#if MICROLLM_HAS_HIP
+        hip::launch_scale(static_cast<const float*>(input.data()),
+                          static_cast<float*>(output.data()), input.numel(), factor);
+        return output;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
     auto values = input.to_vector();
     for (auto& value : values) value *= factor;
     return from_values(std::move(values), input.shape());
 }
 
 Tensor matmul(const Tensor& left, const Tensor& right) {
-    require_cpu_float(left, "left");
-    require_cpu_float(right, "right");
+    require_float(left, "left");
+    require_float(right, "right");
+    require_same_device(left, right);
     if (left.ndim() < 2 || right.ndim() != left.ndim()) {
         throw std::invalid_argument("matmul requires equal ranks of at least two");
     }
@@ -101,6 +168,20 @@ Tensor matmul(const Tensor& left, const Tensor& right) {
     for (const auto dimension : output_shape) batches *= dimension;
     output_shape.push_back(rows);
     output_shape.push_back(columns);
+
+    if (left.device().is_hip()) {
+        require_contiguous(left, "left");
+        require_contiguous(right, "right");
+        Tensor output(output_shape, DType::Float32, left.device());
+#if MICROLLM_HAS_HIP
+        hip::launch_matmul(static_cast<const float*>(left.data()),
+                           static_cast<const float*>(right.data()),
+                           static_cast<float*>(output.data()), batches, rows, inner, columns);
+        return output;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
 
     const auto left_values = left.to_vector();
     const auto right_values = right.to_vector();

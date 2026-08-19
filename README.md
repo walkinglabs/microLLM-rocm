@@ -38,7 +38,8 @@ Every performance-sensitive operator will keep three paths where useful:
 | N0 PPM example | smoke-tested | runnable example with checksum |
 | HIP runtime and Tensor transfer | smoke-tested | MI300X runtime tests |
 | CPU reference operators | smoke-tested | hand values and sanitizer tests |
-| HIP operators | planned | M1 next step |
+| HIP basic operators | smoke-tested | gfx942 CPU/HIP conformance |
+| HIP Transformer operators | planned | M1 next step |
 | Autograd and checkpointing | planned | M2 |
 | Model-S training/inference | planned | M3 |
 | Python/PyTorch bindings | planned | M4 |

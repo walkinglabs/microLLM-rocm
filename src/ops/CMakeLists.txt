@@ -11,5 +11,8 @@ target_include_directories(microllm_ops
 target_link_libraries(microllm_ops
     PUBLIC microllm::core microllm_project_options microllm_build_config
 )
+if(MICROLLM_HAS_HIP)
+    target_sources(microllm_ops PRIVATE hip/basic_kernels.hip)
+endif()
 
 install(TARGETS microllm_ops ARCHIVE DESTINATION lib)
