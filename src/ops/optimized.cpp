@@ -1,0 +1,135 @@
+#include <microllm/ops/ops.h>
+
+#include <stdexcept>
+#include <string>
+
+#if MICROLLM_HAS_HIPBLASLT
+#include <hipblaslt/hipblaslt.h>
+#endif
+
+namespace microllm::ops {
+
+bool hipblaslt_available() noexcept { return MICROLLM_HAS_HIPBLASLT != 0; }
+
+MatmulImplementation choose_matmul_implementation(const Tensor& left,
+                                                  const Tensor& right) {
+    if (!hipblaslt_available() || !left.device().is_hip() || right.device() != left.device() ||
+        left.ndim() != 2 || right.ndim() != 2 || left.dtype() != DType::Float32 ||
+        right.dtype() != DType::Float32 || !left.is_contiguous() || !right.is_contiguous() ||
+        left.shape()[1] != right.shape()[0]) {
+        return MatmulImplementation::Readable;
+    }
+    return left.shape()[1] >= 128 && right.shape()[1] >= 128
+               ? MatmulImplementation::HipBLASLt
+               : MatmulImplementation::Readable;
+}
+
+#if MICROLLM_HAS_HIPBLASLT
+namespace {
+
+void check_status(hipblasStatus_t status, const char* operation) {
+    if (status != HIPBLAS_STATUS_SUCCESS) {
+        throw std::runtime_error(std::string(operation) + " failed with hipBLASLt status " +
+                                 std::to_string(static_cast<int>(status)));
+    }
+}
+
+class Handle {
+public:
+    Handle() { check_status(hipblasLtCreate(&value_), "hipblasLtCreate"); }
+    ~Handle() { (void)hipblasLtDestroy(value_); }
+    Handle(const Handle&) = delete;
+    Handle& operator=(const Handle&) = delete;
+    hipblasLtHandle_t get() const noexcept { return value_; }
+
+private:
+    hipblasLtHandle_t value_ = nullptr;
+};
+
+class Layout {
+public:
+    Layout(std::uint64_t rows, std::uint64_t columns, std::int64_t leading_dimension) {
+        check_status(hipblasLtMatrixLayoutCreate(&value_, HIP_R_32F, rows, columns,
+                                                 leading_dimension),
+                     "hipblasLtMatrixLayoutCreate");
+    }
+    ~Layout() { (void)hipblasLtMatrixLayoutDestroy(value_); }
+    Layout(const Layout&) = delete;
+    Layout& operator=(const Layout&) = delete;
+    hipblasLtMatrixLayout_t get() const noexcept { return value_; }
+
+private:
+    hipblasLtMatrixLayout_t value_ = nullptr;
+};
+
+class MatmulDescription {
+public:
+    MatmulDescription() {
+        check_status(hipblasLtMatmulDescCreate(&value_, HIPBLAS_COMPUTE_32F,
+                                               HIP_R_32F),
+                     "hipblasLtMatmulDescCreate");
+    }
+    ~MatmulDescription() { (void)hipblasLtMatmulDescDestroy(value_); }
+    MatmulDescription(const MatmulDescription&) = delete;
+    MatmulDescription& operator=(const MatmulDescription&) = delete;
+    hipblasLtMatmulDesc_t get() const noexcept { return value_; }
+
+private:
+    hipblasLtMatmulDesc_t value_ = nullptr;
+};
+
+Tensor hipblaslt_matmul(const Tensor& left, const Tensor& right,
+                        const OpContext& context) {
+    if (!left.device().is_hip() || right.device() != left.device() ||
+        left.dtype() != DType::Float32 || right.dtype() != DType::Float32 ||
+        left.ndim() != 2 || right.ndim() != 2 || !left.is_contiguous() ||
+        !right.is_contiguous()) {
+        throw std::invalid_argument(
+            "hipBLASLt matmul requires contiguous 2D float32 tensors on one HIP device");
+    }
+    const auto rows = left.shape()[0];
+    const auto inner = left.shape()[1];
+    const auto columns = right.shape()[1];
+    if (right.shape()[0] != inner) throw std::invalid_argument("matmul inner dimensions mismatch");
+    Tensor output({rows, columns}, DType::Float32, left.device());
+    static Handle handle;
+    MatmulDescription operation;
+    // Row-major C=A*B is column-major C^T=B^T*A^T without moving data.
+    Layout matrix_b(static_cast<std::uint64_t>(columns), static_cast<std::uint64_t>(inner),
+                    columns);
+    Layout matrix_a(static_cast<std::uint64_t>(inner), static_cast<std::uint64_t>(rows), inner);
+    Layout matrix_c(static_cast<std::uint64_t>(columns), static_cast<std::uint64_t>(rows),
+                    columns);
+    const float alpha = 1.0F;
+    const float beta = 0.0F;
+    check_status(hipblasLtMatmul(
+                     handle.get(), operation.get(), &alpha, right.data(), matrix_b.get(),
+                     left.data(), matrix_a.get(), &beta, output.data(), matrix_c.get(),
+                     output.data(), matrix_c.get(), nullptr, context.workspace,
+                     context.workspace_bytes,
+                     reinterpret_cast<hipStream_t>(context.native_stream(left.device()))),
+                 "hipblasLtMatmul");
+    return output;
+}
+
+}  // namespace
+#endif
+
+Tensor matmul_with_implementation(const Tensor& left, const Tensor& right,
+                                  MatmulImplementation implementation,
+                                  const OpContext& context) {
+    if (implementation == MatmulImplementation::Auto) {
+        implementation = choose_matmul_implementation(left, right);
+    }
+    if (implementation == MatmulImplementation::Readable) return matmul(left, right, context);
+#if MICROLLM_HAS_HIPBLASLT
+    return hipblaslt_matmul(left, right, context);
+#else
+    (void)left;
+    (void)right;
+    (void)context;
+    throw std::runtime_error("microLLM was built without hipBLASLt");
+#endif
+}
+
+}  // namespace microllm::ops

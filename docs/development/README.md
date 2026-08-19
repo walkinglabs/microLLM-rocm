@@ -70,3 +70,5 @@ the next gate. Records are append-only except for factual corrections.
   train/generate tokens/s, peak memory, and a stable GPU-slower failure.
 - [2026-08-19-m5-rocprof-trace.md](2026-08-19-m5-rocprof-trace.md): rocprofv3
   runtime trace confirming host copies and launch count as the current bottleneck.
+- [2026-08-19-m5-hipblaslt.md](2026-08-19-m5-hipblaslt.md): shape-aware hipBLASLt
+  candidate, Model-S speedup, and setup-time regression.

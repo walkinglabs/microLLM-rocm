@@ -19,7 +19,11 @@ namespace {
 struct Options {
     std::string operation = "add";
     std::string device = "cpu";
+    std::string implementation = "readable";
     std::int64_t size = 256;
+    std::int64_t rows = 0;
+    std::int64_t inner = 0;
+    std::int64_t columns = 0;
     int warmup = 5;
     int repetitions = 20;
 };
@@ -38,7 +42,11 @@ Options parse_options(int argc, char** argv) {
         const std::string_view name(argv[index]);
         if (name == "--op") options.operation = argv[index + 1];
         else if (name == "--device") options.device = argv[index + 1];
+        else if (name == "--implementation") options.implementation = argv[index + 1];
         else if (name == "--size") options.size = parse_integer(argv[index + 1], "size");
+        else if (name == "--m") options.rows = parse_integer(argv[index + 1], "m");
+        else if (name == "--k") options.inner = parse_integer(argv[index + 1], "k");
+        else if (name == "--n") options.columns = parse_integer(argv[index + 1], "n");
         else if (name == "--warmup") options.warmup = static_cast<int>(parse_integer(argv[index + 1], "warmup"));
         else if (name == "--repetitions") options.repetitions = static_cast<int>(parse_integer(argv[index + 1], "repetitions"));
         else throw std::invalid_argument("unknown benchmark option: " + std::string(name));
@@ -50,6 +58,15 @@ Options parse_options(int argc, char** argv) {
     if (options.device != "cpu" && options.device != "hip") {
         throw std::invalid_argument("device must be cpu or hip");
     }
+    if (options.implementation != "auto" && options.implementation != "readable" &&
+        options.implementation != "hipblaslt") {
+        throw std::invalid_argument("implementation must be auto, readable, or hipblaslt");
+    }
+    if (options.implementation == "hipblaslt" &&
+        (options.operation != "matmul" || options.device != "hip" ||
+         !microllm::ops::hipblaslt_available())) {
+        throw std::invalid_argument("hipblaslt requires an available HIP matmul build");
+    }
     if (options.size <= 0 || options.warmup < 0 || options.repetitions <= 0) {
         throw std::invalid_argument("size/repetition options are outside valid ranges");
     }
@@ -60,14 +77,34 @@ Options parse_options(int argc, char** argv) {
     if (options.operation == "add" && options.size > 100000000) {
         throw std::invalid_argument("elementwise benchmark size exceeds the safety limit");
     }
+    if (options.operation == "matmul") {
+        options.rows = options.rows == 0 ? options.size : options.rows;
+        options.inner = options.inner == 0 ? options.size : options.inner;
+        options.columns = options.columns == 0 ? options.size : options.columns;
+        if (options.rows <= 0 || options.inner <= 0 || options.columns <= 0 ||
+            options.rows > 16384 || options.inner > 16384 || options.columns > 16384) {
+            throw std::invalid_argument("matmul m/k/n are outside safety limits");
+        }
+    } else if (options.rows != 0 || options.inner != 0 || options.columns != 0) {
+        throw std::invalid_argument("m/k/n are valid only for matmul");
+    }
     return options;
 }
 
 microllm::Tensor run_operation(const std::string& operation, const microllm::Tensor& left,
                                const microllm::Tensor& right,
+                               const std::string& implementation,
                                const microllm::ops::OpContext& context = {}) {
     if (operation == "add") return microllm::ops::add(left, right, context);
-    if (operation == "matmul") return microllm::ops::matmul(left, right, context);
+    if (operation == "matmul") {
+        return microllm::ops::matmul_with_implementation(
+            left, right,
+            implementation == "auto"
+                ? microllm::ops::MatmulImplementation::Auto
+                : implementation == "readable" ? microllm::ops::MatmulImplementation::Readable
+                                                : microllm::ops::MatmulImplementation::HipBLASLt,
+            context);
+    }
     return microllm::ops::softmax(left, -1, context);
 }
 
@@ -95,20 +132,34 @@ int main(int argc, char** argv) {
         if (device.is_hip() && microllm::runtime::hip_device_count() == 0) {
             throw std::runtime_error("HIP benchmark requested without a visible GPU");
         }
-        const auto element_count = options.operation == "add" ? options.size
-                                                                : options.size * options.size;
-        std::vector<float> left_values(static_cast<std::size_t>(element_count));
-        std::vector<float> right_values(static_cast<std::size_t>(element_count));
+        const auto left_count = options.operation == "matmul"
+                                    ? options.rows * options.inner
+                                    : options.operation == "add" ? options.size
+                                                                  : options.size * options.size;
+        const auto right_count = options.operation == "matmul"
+                                     ? options.inner * options.columns
+                                     : left_count;
+        std::vector<float> left_values(static_cast<std::size_t>(left_count));
+        std::vector<float> right_values(static_cast<std::size_t>(right_count));
         for (std::size_t index = 0; index < left_values.size(); ++index) {
             left_values[index] = static_cast<float>(static_cast<int>(index % 29) - 14) / 29.0F;
+        }
+        for (std::size_t index = 0; index < right_values.size(); ++index) {
             right_values[index] = static_cast<float>(static_cast<int>(index % 17) - 8) / 17.0F;
         }
-        const microllm::Shape shape = options.operation == "add"
-                                           ? microllm::Shape{options.size}
-                                           : microllm::Shape{options.size, options.size};
-        const auto left_cpu = microllm::Tensor::from_vector(left_values, shape);
-        const auto right_cpu = microllm::Tensor::from_vector(right_values, shape);
-        const auto reference = run_operation(options.operation, left_cpu, right_cpu).to_vector();
+        const microllm::Shape left_shape =
+            options.operation == "add"
+                ? microllm::Shape{options.size}
+                : options.operation == "matmul"
+                      ? microllm::Shape{options.rows, options.inner}
+                      : microllm::Shape{options.size, options.size};
+        const microllm::Shape right_shape = options.operation == "matmul"
+                                                ? microllm::Shape{options.inner, options.columns}
+                                                : left_shape;
+        const auto left_cpu = microllm::Tensor::from_vector(left_values, left_shape);
+        const auto right_cpu = microllm::Tensor::from_vector(right_values, right_shape);
+        const auto reference =
+            run_operation(options.operation, left_cpu, right_cpu, "readable").to_vector();
         const auto left = left_cpu.to(device);
         const auto right = right_cpu.to(device);
         const auto memory_before = microllm::runtime::memory_info(device);
@@ -122,13 +173,15 @@ int main(int argc, char** argv) {
             microllm::runtime::Event finish(device);
             const microllm::ops::OpContext context{&stream, nullptr, 0};
             for (int iteration = 0; iteration < options.warmup; ++iteration) {
-                output = run_operation(options.operation, left, right, context);
+                output = run_operation(options.operation, left, right, options.implementation,
+                                       context);
             }
             stream.synchronize();
             for (int iteration = 0; iteration < options.repetitions; ++iteration) {
                 const auto wall_start = std::chrono::steady_clock::now();
                 start.record(stream);
-                output = run_operation(options.operation, left, right, context);
+                output = run_operation(options.operation, left, right, options.implementation,
+                                       context);
                 finish.record(stream);
                 finish.synchronize();
                 const auto wall_finish = std::chrono::steady_clock::now();
@@ -139,11 +192,11 @@ int main(int argc, char** argv) {
             }
         } else {
             for (int iteration = 0; iteration < options.warmup; ++iteration) {
-                output = run_operation(options.operation, left, right);
+                output = run_operation(options.operation, left, right, options.implementation);
             }
             for (int iteration = 0; iteration < options.repetitions; ++iteration) {
                 const auto start = std::chrono::steady_clock::now();
-                output = run_operation(options.operation, left, right);
+                output = run_operation(options.operation, left, right, options.implementation);
                 const auto finish = std::chrono::steady_clock::now();
                 const auto elapsed =
                     std::chrono::duration<double, std::milli>(finish - start).count();
@@ -170,7 +223,7 @@ int main(int argc, char** argv) {
                   << "{\"schema_version\":1"
                   << ",\"engine_version\":\"" << MICROLLM_VERSION << "\""
                   << ",\"op\":\"" << options.operation << "\""
-                  << ",\"implementation\":\"readable\""
+                  << ",\"implementation\":\"" << options.implementation << "\""
                   << ",\"device\":\"" << options.device << "\""
                   << ",\"device_name\":\"" << device_name << "\""
                   << ",\"architecture\":\"" << architecture << "\""
@@ -178,6 +231,9 @@ int main(int argc, char** argv) {
                   << ",\"hip_driver_version\":" << microllm::runtime::hip_driver_version()
                   << ",\"dtype\":\"float32\""
                   << ",\"size\":" << options.size
+                  << ",\"m\":" << options.rows
+                  << ",\"k\":" << options.inner
+                  << ",\"n\":" << options.columns
                   << ",\"warmup\":" << options.warmup
                   << ",\"repetitions\":" << options.repetitions
                   << ",\"kernel_ms_min\":" << kernel.minimum

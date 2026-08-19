@@ -190,14 +190,20 @@ Value matmul(const Value& left, const Value& right) {
     const auto left_forward = left.data().is_contiguous() ? left.data() : left.data().contiguous();
     const auto right_forward =
         right.data().is_contiguous() ? right.data() : right.data().contiguous();
-    return operation(ops::matmul(left_forward, right_forward), {left_node, right_node},
+    return operation(ops::matmul_with_implementation(
+                         left_forward, right_forward, ops::MatmulImplementation::Auto),
+                     {left_node, right_node},
                      [left_node, right_node, left_last, right_last](const Tensor& gradient) {
                          const auto right_transposed =
                              right_node->data.transpose(right_last - 1, right_last).contiguous();
                          const auto left_transposed =
                              left_node->data.transpose(left_last - 1, left_last).contiguous();
-                         accumulate(left_node, ops::matmul(gradient, right_transposed));
-                         accumulate(right_node, ops::matmul(left_transposed, gradient));
+                         accumulate(left_node, ops::matmul_with_implementation(
+                                                   gradient, right_transposed,
+                                                   ops::MatmulImplementation::Auto));
+                         accumulate(right_node, ops::matmul_with_implementation(
+                                                    left_transposed, gradient,
+                                                    ops::MatmulImplementation::Auto));
                      });
 }
 

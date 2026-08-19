@@ -187,4 +187,31 @@ TEST(HipTensorViewTest, UsesCallerOwnedBuffersAndExplicitStream) {
     EXPECT_EQ(output.to_vector(), (std::vector<float>{6, 8, 10, 12}));
 }
 
+#if MICROLLM_HAS_HIPBLASLT
+TEST(HipOptimizedOpsTest, HipblasLtMatmulMatchesReadableReference) {
+    require_gpu();
+    std::vector<float> left_values(64 * 64);
+    std::vector<float> right_values(64 * 64);
+    for (std::size_t index = 0; index < left_values.size(); ++index) {
+        left_values[index] = static_cast<float>(index % 13) / 13.0F;
+        right_values[index] = static_cast<float>(index % 7) / 7.0F;
+    }
+    const auto left_cpu = Tensor::from_vector(left_values, {64, 64});
+    const auto right_cpu = Tensor::from_vector(right_values, {64, 64});
+    const auto expected = matmul(left_cpu, right_cpu).to_vector();
+    const auto actual = matmul_with_implementation(
+                            left_cpu.to(Device::hip()), right_cpu.to(Device::hip()),
+                            MatmulImplementation::HipBLASLt)
+                            .to_vector();
+    expect_near(actual, expected, 2.0e-4F);
+    EXPECT_EQ(choose_matmul_implementation(left_cpu.to(Device::hip()),
+                                           right_cpu.to(Device::hip())),
+              MatmulImplementation::Readable);
+    const Tensor large_left({128, 128}, DType::Float32, Device::hip());
+    const Tensor large_right({128, 128}, DType::Float32, Device::hip());
+    EXPECT_EQ(choose_matmul_implementation(large_left, large_right),
+              MatmulImplementation::HipBLASLt);
+}
+#endif
+
 }  // namespace microllm::ops

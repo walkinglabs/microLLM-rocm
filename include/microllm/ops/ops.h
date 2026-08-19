@@ -7,6 +7,8 @@
 
 namespace microllm::ops {
 
+enum class MatmulImplementation { Auto, Readable, HipBLASLt };
+
 void fill_(Tensor& tensor, float value, const OpContext& context = {});
 
 [[nodiscard]] Tensor add(const Tensor& left, const Tensor& right, const OpContext& context = {});
@@ -15,6 +17,12 @@ void fill_(Tensor& tensor, float value, const OpContext& context = {});
 [[nodiscard]] Tensor scale(const Tensor& input, float factor, const OpContext& context = {});
 [[nodiscard]] Tensor matmul(const Tensor& left, const Tensor& right,
                             const OpContext& context = {});
+[[nodiscard]] bool hipblaslt_available() noexcept;
+[[nodiscard]] MatmulImplementation choose_matmul_implementation(
+    const Tensor& left, const Tensor& right);
+[[nodiscard]] Tensor matmul_with_implementation(
+    const Tensor& left, const Tensor& right, MatmulImplementation implementation,
+    const OpContext& context = {});
 [[nodiscard]] Tensor embedding(const Tensor& weight, const Tensor& indices,
                                const OpContext& context = {});
 [[nodiscard]] Tensor softmax(const Tensor& input, std::int64_t dim = -1,

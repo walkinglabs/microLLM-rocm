@@ -37,4 +37,5 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Engine allocation tracker | smoke-tested | CPU/HIP current/peak/total accounting | external allocator integration |
 | End-to-end benchmark | smoke-tested | CPU/gfx942 train+generate raw JSONL | Model-S/PyTorch/tuned comparison |
 | rocprofv3 workflow | smoke-tested | kernel/HIP API/memory/full trace generated | release artifact retention |
+| hipBLASLt matmul | smoke-tested | FP32 CPU comparison, shape matrix, Model-S e2e | batched/workspace/autotune cache |
 | RCCL | draft | roadmap | 2/4 GPU equivalence |

@@ -67,7 +67,10 @@ public:
                             1.0F / std::sqrt(static_cast<float>(input)))) {}
 
     Value forward(const Value& input) { return autograd::matmul(input, weight_); }
-    Tensor forward_tensor(const Tensor& input) { return ops::matmul(input, weight_.data()); }
+    Tensor forward_tensor(const Tensor& input) {
+        return ops::matmul_with_implementation(input, weight_.data(),
+                                               ops::MatmulImplementation::Auto);
+    }
     Value& weight() noexcept { return weight_; }
 
 private:

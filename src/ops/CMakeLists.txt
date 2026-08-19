@@ -1,6 +1,7 @@
 add_library(microllm_ops STATIC
     ops.cpp
     low_level.cpp
+    optimized.cpp
 )
 add_library(microllm::ops ALIAS microllm_ops)
 
@@ -14,6 +15,9 @@ target_link_libraries(microllm_ops
 )
 if(MICROLLM_HAS_HIP)
     target_sources(microllm_ops PRIVATE hip/basic_kernels.hip)
+endif()
+if(MICROLLM_HAS_HIPBLASLT)
+    target_link_libraries(microllm_ops PRIVATE hip::host roc::hipblaslt)
 endif()
 
 install(TARGETS microllm_ops ARCHIVE DESTINATION lib)
