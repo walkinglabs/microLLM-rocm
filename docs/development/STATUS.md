@@ -14,8 +14,9 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | CPU reference operators | smoke-tested | 9 hand-value/stability/shape tests | gradient references |
 | HIP readable operators | smoke-tested | gfx942 conformance for 11 kernels | more architectures/optimized paths |
 | Operator context | smoke-tested | explicit Stream ordering and mismatch tests | low-level C descriptor |
-| CPU Transformer Autograd | smoke-tested | 11 focused tests and finite differences | attention composition/GPU backward |
-| SGD/AdamW | smoke-tested | hand first step and state-restored next step | GPU update/mixed precision |
+| CPU Transformer Autograd | smoke-tested | focused tests and finite differences | more dtypes |
+| HIP Autograd | smoke-tested | tiny five-step training | device-native nonlinear backward |
+| SGD/AdamW | smoke-tested | CPU/HIP update and state-restored next step | device-native HIP update/mixed precision |
 | Checkpoint | smoke-tested | complete-state load, corruption, 3-step resume | atomic save/GPU tensors |
 | Model-S/Model-M config | smoke-tested | executable exact parameter/byte tests | model layers/training |
 | Model-S CPU forward | smoke-tested | 15,586,176 parameters and 8192 finite logits | training/HIP |
@@ -32,7 +33,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | C ABI v1 | smoke-tested | pure C CPU/HIP create/copy/ops/error client | zero-copy external views |
 | Python ctypes API | smoke-tested | CPU/HIP Tensor/ops/error unittest | packaging/broader ops |
 | External TensorView ops | smoke-tested | caller-owned CPU/HIP buffers and Stream | Torch build validation |
-| Profiling/autotune | draft | registry design | traces and selection cache |
+| Profiling/autotune | smoke-tested | rocprofv3, hipBLASLt, shape registry | persistent arch/version cache |
 | Micro-benchmark harness | smoke-tested | CPU/HIP Event+wall JSONL and error gate | PyTorch comparison/more shapes |
 | Engine allocation tracker | smoke-tested | CPU/HIP current/peak/total accounting | external allocator integration |
 | End-to-end benchmark | smoke-tested | CPU/gfx942 train+generate raw JSONL | Model-S/PyTorch/tuned comparison |

@@ -82,3 +82,5 @@ the next gate. Records are append-only except for factual corrections.
   collective split required for communication-compute overlap.
 - [2026-08-19-m6-overlap-experiment.md](2026-08-19-m6-overlap-experiment.md):
   two-Stream overlap measurements and multi-GPU device-selection bug.
+- [2026-08-19-course-and-evidence.md](2026-08-19-course-and-evidence.md): N0–N8,
+  PA0–PA2, unified artifact parser, and CPU CI.

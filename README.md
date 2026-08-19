@@ -62,12 +62,20 @@ Every performance-sensitive operator will keep three paths where useful:
 | RCCL gradient buckets | smoke-tested | 64→1 collectives: 6.676→0.225 ms |
 | RCCL compute overlap | smoke-tested | separate Streams improve synthetic step 30–33% |
 | RCCL four-GPU | blocked by environment | 64MB /dev/shm; failure evidence retained |
-| Model-S reference training report | planned | M3 next step |
-| Python/PyTorch bindings | planned | M4 |
+| Real-corpus Model-S/SFT report | planned | dataset/license/reference run required |
+| Python/PyTorch bindings | mixed | ctypes tested; Torch source unverified |
 | Profiling/autotuning | smoke-tested | M5 evidence and registry |
 | Backward-ready overlap/four-GPU retry | planned | M6 follow-up |
 
 See [STATUS.md](docs/development/STATUS.md) for the evidence gate behind each state.
+
+Run the unified artifact/test audit with:
+
+```bash
+./scripts/verify_evidence.sh cpu
+MICROLLM_BUILD_DIR=build-hip ./scripts/verify_evidence.sh hip
+MICROLLM_BUILD_DIR=build-rccl ./scripts/verify_evidence.sh rccl
+```
 
 ## Build and test
 

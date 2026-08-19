@@ -1,0 +1,17 @@
+name: CPU evidence
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  cpu-sanitizers:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure, build, and test CPU with sanitizers
+        run: ./scripts/check_cpu.sh
+      - name: Validate course and result artifacts
+        env:
+          MICROLLM_BUILD_DIR: ${{ github.workspace }}/build-cpu-sanitize
+        run: ./scripts/verify_evidence.sh cpu
