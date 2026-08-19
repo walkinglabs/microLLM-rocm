@@ -70,7 +70,7 @@ microllm_layer_timing.jsonl
 pytorch_layer_timing.jsonl
 comparison.json
 report.md
-logs/{microllm,pytorch,compare}.{stdout,stderr}.log
+logs/{microllm,pytorch,compare}.{stdout,stderr}.txt
 ```
 
 The manifest records the repository commit/dirty state, command lines, host/tool

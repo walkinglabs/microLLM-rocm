@@ -57,13 +57,13 @@ def run_stage(name, command, output_directory, manifest):
     completed = subprocess.run(command, cwd=PROJECT, text=True, capture_output=True)
     logs = output_directory / "logs"
     logs.mkdir(exist_ok=True)
-    (logs / f"{name}.stdout.log").write_text(completed.stdout)
-    (logs / f"{name}.stderr.log").write_text(completed.stderr)
+    (logs / f"{name}.stdout.txt").write_text(completed.stdout)
+    (logs / f"{name}.stderr.txt").write_text(completed.stderr)
     manifest["stages"][name] = {
         "returncode": completed.returncode,
         "status": "pass" if completed.returncode == 0 else "fail",
-        "stdout": f"logs/{name}.stdout.log",
-        "stderr": f"logs/{name}.stderr.log",
+        "stdout": f"logs/{name}.stdout.txt",
+        "stderr": f"logs/{name}.stderr.txt",
     }
     return completed.returncode
 
