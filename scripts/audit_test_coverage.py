@@ -80,6 +80,12 @@ if declared_weight_model != expected_weight_model:
 for name, test_file in MANIFEST["weight_api"].items():
     if not (ROOT / test_file).is_file():
         errors.append(f"weight API {name} references missing test file {test_file}")
+for name, test_file in MANIFEST["profiling_api"].items():
+    if not (ROOT / test_file).is_file():
+        errors.append(f"profiling API {name} references missing test file {test_file}")
+for name, test_file in MANIFEST["distributed_api"].items():
+    if not (ROOT / test_file).is_file():
+        errors.append(f"distributed API {name} references missing test file {test_file}")
 
 parity_text = (ROOT / "python/tests/test_operator_parity.py").read_text()
 oracle_text = (ROOT / "tests/torch/operator_oracle.cpp").read_text()

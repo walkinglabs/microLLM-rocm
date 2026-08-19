@@ -34,9 +34,22 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [ ] correctness gate before timing;
 - [ ] warm-up, repeated Event timing, median/percentiles, and end-to-end regression;
 - [ ] persistent tuning cache with version invalidation;
-- [ ] `ProfileSession` and RAII `ProfileRange` C++ API;
+- [x] schema-versioned `TraceSession`, scoped activation, and RAII `TraceTimer` C++ API;
+- [x] same-weight microLLM/PyTorch tiny-model value and timing runner;
+- [x] manifest, raw JSONL, comparison JSON, and Markdown report artifacts;
 - [ ] optional Python context manager/decorator after the C++ profiler is stable;
 - [ ] rocprof marker correlation and Chrome/Perfetto export.
+
+## P2.5 — production data parallel reducer
+
+- [x] synchronous single-process multi-device DataParallelTrainer baseline;
+- [x] equal-local-batch validation, bucketed average all-reduce, identical updates;
+- [x] forward/backward, communication, optimizer, total, and rank-difference metrics;
+- [ ] one process per GPU communicator initialization;
+- [ ] autograd gradient-ready hooks and bucket rebuild by observed readiness;
+- [ ] compute-stream Events to communication streams and asynchronous work handles;
+- [ ] gradient-as-bucket views and zero-copy optimizer integration;
+- [ ] unused parameter, uneven input, timeout, and cross-process failure handling.
 
 ## P3 — DeepSeek distill target
 

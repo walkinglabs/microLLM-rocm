@@ -5,6 +5,7 @@ add_executable(microllm_tests
     core/tensor_test.cpp
     core/headers_compile_test.cpp
     runtime/runtime_test.cpp
+    profiling/trace_test.cpp
     ops/ops_test.cpp
     autograd/autograd_test.cpp
     graph/graph_construction_test.cpp
@@ -33,6 +34,11 @@ if(Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/audit_test_coverage.py
     )
     set_tests_properties(Coverage.OperatorAndTestFiles PROPERTIES LABELS "cpu;coverage;schema")
+    add_test(
+        NAME Alignment.Tools
+        COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/python/tests/test_alignment_tools.py
+    )
+    set_tests_properties(Alignment.Tools PROPERTIES LABELS "cpu;alignment;schema")
 endif()
 
 include(GoogleTest)
@@ -46,6 +52,7 @@ if(MICROLLM_HAS_HIP)
         ops/hip_ops_test.cpp
         graph/hip_graph_alignment_test.cpp
         io/hip_weights_test.cpp
+        profiling/hip_trace_test.cpp
     )
     target_link_libraries(microllm_hip_tests PRIVATE
         GTest::gtest_main microllm::ops microllm::model microllm::training
@@ -62,6 +69,7 @@ if(MICROLLM_HAS_RCCL)
         multi_gpu/communicator_test.cpp
         multi_gpu/distributed_step_test.cpp
         multi_gpu/gradient_bucket_test.cpp
+        multi_gpu/data_parallel_test.cpp
     )
     target_link_libraries(microllm_multi_gpu_tests PRIVATE
         GTest::gtest_main microllm::multi_gpu microllm::training microllm::model

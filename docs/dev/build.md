@@ -19,6 +19,7 @@ version is not silently claimed to work.
 | rocprofv3 | optional profiler | 1.3.0 |
 | GPU architecture | a ROCm-supported AMD GPU | 4 × gfx942 MI300X virtual functions |
 | GoogleTest | system package or fetched by CMake | v1.14.0 FetchContent fallback |
+| PyTorch | optional, required only for external oracle/alignment | 2.13.0+cpu in isolated environment |
 
 The project does not currently claim support for GCC versions older than the validated
 GCC 13.3 toolchain. Other C++20 compilers may work, but require their own recorded CI

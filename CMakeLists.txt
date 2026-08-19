@@ -93,6 +93,7 @@ target_compile_definitions(microllm_build_config INTERFACE
 
 add_subdirectory(src/runtime)
 add_subdirectory(src/core)
+add_subdirectory(src/profiling)
 add_subdirectory(src/ops)
 add_subdirectory(src/autograd)
 add_subdirectory(src/model)

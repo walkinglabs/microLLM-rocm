@@ -9,6 +9,7 @@ if(Torch_FOUND)
         target_compile_options(microllm_torch_ops PRIVATE ${MICROLLM_TORCH_CXX_FLAGS})
     endif()
     set_target_properties(microllm_torch_ops PROPERTIES OUTPUT_NAME microllm_torch_ops)
+    add_dependencies(microllm_torch_ops microllm_alignment)
     install(TARGETS microllm_torch_ops LIBRARY DESTINATION lib)
 
     if(BUILD_TESTING)
@@ -38,6 +39,24 @@ if(Torch_FOUND)
             )
             set_tests_properties(TorchOps.OperatorParity PROPERTIES
                 LABELS "torch;parity;graph;shape"
+            )
+
+            add_test(
+                NAME Alignment.TinyModel
+                COMMAND ${Python3_EXECUTABLE}
+                    ${PROJECT_SOURCE_DIR}/tools/alignment/run.py
+                    --microllm-binary $<TARGET_FILE:microllm_alignment>
+                    --python ${Python3_EXECUTABLE}
+                    --output ${CMAKE_CURRENT_BINARY_DIR}/alignment-smoke
+                    --microllm-device cpu
+                    --pytorch-device cpu
+                    --run-id ctest-alignment
+                    --warmup 1
+                    --repetitions 3
+                    --overwrite
+            )
+            set_tests_properties(Alignment.TinyModel PROPERTIES
+                LABELS "torch;alignment;integration;profile"
             )
         endif()
     endif()

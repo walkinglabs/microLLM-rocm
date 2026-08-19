@@ -6,7 +6,21 @@ target_link_libraries(microllm_runtime_info PRIVATE
     microllm::core microllm_build_config
 )
 
-install(TARGETS microllm_train microllm_runtime_info RUNTIME DESTINATION bin)
+add_executable(microllm_alignment alignment.cpp)
+target_link_libraries(microllm_alignment PRIVATE
+    microllm::model microllm::profiling microllm::runtime
+)
+
+install(TARGETS microllm_train microllm_runtime_info microllm_alignment
+        RUNTIME DESTINATION bin)
+
+if(MICROLLM_HAS_RCCL)
+    add_executable(microllm_distributed_train distributed_train.cpp)
+    target_link_libraries(microllm_distributed_train PRIVATE
+        microllm::multi_gpu microllm::profiling
+    )
+    install(TARGETS microllm_distributed_train RUNTIME DESTINATION bin)
+endif()
 
 if(BUILD_TESTING)
     set(MICROLLM_CLI_CHECKPOINT "${CMAKE_CURRENT_BINARY_DIR}/cli-smoke.ckpt")

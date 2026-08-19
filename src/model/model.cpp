@@ -11,6 +11,7 @@
 #include <utility>
 
 #include <microllm/ops/ops.h>
+#include <microllm/profiling/trace.h>
 
 namespace microllm::model {
 namespace {
@@ -220,7 +221,10 @@ public:
         const auto batch = input.data().shape()[0];
         const auto sequence = input.data().shape()[1];
         const auto flat = autograd::reshape(input, {batch * sequence, config_.dimension});
-        const auto activated = autograd::swiglu(gate_.forward(flat), up_.forward(flat));
+        // Keep projection evaluation order explicit so traces and failure attribution are stable.
+        const auto gate = gate_.forward(flat);
+        const auto up = up_.forward(flat);
+        const auto activated = autograd::swiglu(gate, up);
         return autograd::reshape(down_.forward(activated),
                                  {batch, sequence, config_.dimension});
     }
@@ -335,9 +339,25 @@ Value TransformerModel::forward(const Tensor& token_ids) {
         throw std::invalid_argument("token sequence exceeds configured maximum");
     }
     const auto model_tokens = token_ids.device() == device() ? token_ids : token_ids.to(device());
+    auto* trace = profiling::TraceSession::current();
+    if (trace != nullptr) trace->record(profiling::TraceKind::Input, "model.tokens", model_tokens);
+    profiling::TraceTimer model_timer(profiling::TraceKind::Model, "model.forward", device());
+
+    profiling::TraceTimer embedding_timer(profiling::TraceKind::Layer,
+                                           "model.embedding", device());
     auto hidden = autograd::embedding(impl_->token_embedding, model_tokens);
-    for (auto& block : impl_->blocks) hidden = block->forward(hidden);
+    embedding_timer.finish(hidden.data());
+    for (std::size_t layer = 0; layer < impl_->blocks.size(); ++layer) {
+        profiling::TraceTimer block_timer(
+            profiling::TraceKind::Layer,
+            "model.blocks." + std::to_string(layer), device());
+        hidden = impl_->blocks[layer]->forward(hidden);
+        block_timer.finish(hidden.data());
+    }
+    profiling::TraceTimer norm_timer(profiling::TraceKind::Layer,
+                                      "model.final_norm", device());
     hidden = impl_->final_norm.forward(hidden);
+    norm_timer.finish(hidden.data());
     const auto batch = token_ids.shape()[0];
     const auto sequence = token_ids.shape()[1];
     const auto flat = autograd::reshape(hidden, {batch * sequence, impl_->config.dimension});
@@ -347,7 +367,10 @@ Value TransformerModel::forward(const Tensor& token_ids) {
     } else {
         logits = impl_->output_head->forward(flat);
     }
-    return autograd::reshape(logits, {batch, sequence, impl_->config.vocabulary_size});
+    auto output = autograd::reshape(logits, {batch, sequence, impl_->config.vocabulary_size});
+    if (trace != nullptr) trace->record(profiling::TraceKind::Output, "model.logits", output.data());
+    model_timer.finish(output.data());
+    return output;
 }
 
 Value TransformerModel::loss(const Tensor& token_ids, const Tensor& targets) {

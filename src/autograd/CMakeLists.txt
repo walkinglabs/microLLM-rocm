@@ -9,7 +9,7 @@ target_include_directories(microllm_autograd
         $<INSTALL_INTERFACE:include>
 )
 target_link_libraries(microllm_autograd
-    PUBLIC microllm::ops microllm_project_options microllm_build_config
+    PUBLIC microllm::ops microllm::profiling microllm_project_options microllm_build_config
 )
 
 install(TARGETS microllm_autograd ARCHIVE DESTINATION lib)

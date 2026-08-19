@@ -84,6 +84,21 @@
     "model_save_safetensors": "tests/model/weights_test.cpp",
     "qwen_style_weight_mapping": "tests/model/weights_test.cpp"
   },
+  "profiling_api": {
+    "TraceSession": "tests/profiling/trace_test.cpp",
+    "ScopedTraceSession": "tests/profiling/trace_test.cpp",
+    "TraceTimer": "tests/profiling/trace_test.cpp",
+    "TraceRecord": "tests/profiling/trace_test.cpp",
+    "compare_values": "python/tests/test_alignment_tools.py",
+    "compare_timings": "python/tests/test_alignment_tools.py",
+    "alignment_orchestrator": "bindings/torch/CMakeLists.txt"
+  },
+  "distributed_api": {
+    "Communicator": "tests/multi_gpu/communicator_test.cpp",
+    "all_reduce_gradients": "tests/multi_gpu/gradient_bucket_test.cpp",
+    "DataParallelTrainer": "tests/multi_gpu/data_parallel_test.cpp",
+    "distributed_profile": "tests/multi_gpu/data_parallel_test.cpp"
+  },
   "test_files": [
     "bindings/capi/capi_test.c",
     "tests/autograd/autograd_test.cpp",
@@ -104,13 +119,17 @@
     "tests/multi_gpu/communicator_test.cpp",
     "tests/multi_gpu/distributed_step_test.cpp",
     "tests/multi_gpu/gradient_bucket_test.cpp",
+    "tests/multi_gpu/data_parallel_test.cpp",
     "tests/ops/hip_ops_test.cpp",
     "tests/ops/ops_test.cpp",
+    "tests/profiling/trace_test.cpp",
+    "tests/profiling/hip_trace_test.cpp",
     "tests/runtime/runtime_test.cpp",
     "tests/training/checkpoint_test.cpp",
     "tests/training/optimizer_test.cpp",
     "tests/training/trainer_test.cpp",
     "python/tests/test_capi.py",
+    "python/tests/test_alignment_tools.py",
     "python/tests/test_operator_parity.py",
     "python/tests/test_torch_ops.py"
   ]

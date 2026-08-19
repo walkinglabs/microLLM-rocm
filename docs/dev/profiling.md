@@ -2,6 +2,14 @@
 
 ## Available today
 
+### In-process trace API
+
+`microllm::profiling::TraceSession`, `ScopedTraceSession`, and `TraceTimer` record
+schema-versioned operator/layer/model traces. Value capture and timing are deliberately
+separate passes so Tensor copies performed for diagnosis do not become benchmark time.
+
+The complete cross-framework workflow is documented in [alignment.md](alignment.md).
+
 ### Micro-benchmark
 
 ```bash
@@ -33,13 +41,11 @@ numerical error, device metadata, and memory counters as JSON Lines.
 This produces HIP API/kernel/allocation traces, statistics, JSON, CSV, and Perfetto
 output when supported by the installed rocprofv3.
 
-## What is not implemented
+## What remains
 
-There is no in-process `@profile` decorator or stable C++ profiling session API yet.
-The intended C++ boundary is an RAII `ProfileSession`/`ProfileRange`, followed by an
-optional Python context manager/decorator. It must correlate ranges with Stream/Event
-timing and rocprof markers without forcing a global synchronization.
+There is no Python `@profile` decorator yet. The current stable entry points are the
+C++ RAII trace API and the alignment runner. Future work must correlate ranges with
+rocprof markers, support asynchronous HIP Event completion without per-range device
+synchronization, and export Perfetto ranges directly.
 
-Until that API exists, performance work must use the benchmark executables and
-`scripts/profile_hip.sh`; ad-hoc wall-clock timing around asynchronous kernels is not
-accepted evidence.
+Ad-hoc wall-clock timing around asynchronous kernels is not accepted evidence.

@@ -33,6 +33,7 @@ needed to run a real training and generation loop:
 - named model state and F32/BF16/F16 safetensors loading;
 - C, Python ctypes, and optional PyTorch dispatcher adapters;
 - reproducible benchmarks, rocprofv3 workflows, hipBLASLt, and RCCL experiments.
+- a cross-framework trace runner for operator/layer values and latency comparisons.
 
 The design keeps three implementations where they provide engineering value:
 
@@ -118,12 +119,12 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| CPU tests | 109/109 | reference, graph, model, weights, integration |
-| ASan/UBSan | 107/107 | host code; dynamic binding tests isolated |
-| MI300X/gfx942 HIP | 24/24 | operators, graph, model, direct weight load |
-| PyTorch CPU oracle | 2/2 | 70 FP32 numerical cases plus invalid contracts |
-| Two-rank RCCL | 7/7 | collective and global-batch equivalence |
-| Registered test files | 28 | machine-audited CTest registration |
+| CPU tests | 116/116 | reference, graph, model, weights, profiling, integration |
+| ASan/UBSan | 114/114 | host code; dynamic binding tests isolated |
+| MI300X/gfx942 HIP | 25/25 | operators, graph, model, weights, trace timing |
+| PyTorch CPU oracle/alignment | 3/3 | ops plus same-weight model value/timing trace |
+| Two-rank RCCL | 10/10 | collectives, global-batch equivalence, DDP trainer |
+| Registered test files | 32 | machine-audited CTest registration |
 
 Latest PyTorch-reference maximum absolute differences:
 
@@ -164,6 +165,22 @@ or quantization. See [Weight API](docs/WEIGHTS.md).
 
 ## Performance workflow
 
+Run the same model in microLLM and PyTorch, then compare every recorded value, shape,
+operator time, layer time, and full forward time:
+
+```bash
+python3 tools/alignment/run.py \
+  --microllm-binary build/hip-release/apps/microllm_alignment \
+  --python /path/to/python-with-pytorch \
+  --output /tmp/microllm-alignment \
+  --microllm-device hip \
+  --pytorch-device cpu \
+  --warmup 5 --repetitions 20
+```
+
+See [Alignment experiments](docs/dev/alignment.md) for the trace schema, three-pass
+measurement design, comparison metrics, artifact manifest, and model-extension process.
+
 ```bash
 # Repeated Event/wall-clock micro-benchmarks
 MICROLLM_BUILD_DIR=build/hip-release \
@@ -178,9 +195,26 @@ MICROLLM_BENCH_DEVICE=hip \
 ```
 
 The current exact-shape registry covers readable 2D matmul and hipBLASLt. It is not a
-general autotuner, and there is no stable in-process `@profile` API yet. The supported
-workflow and missing profiler boundary are documented in [Profiling](docs/dev/profiling.md)
-and [Operator development](docs/dev/operator-development.md).
+general autotuner. The C++ `TraceSession`/`TraceTimer` API is implemented; a Python
+`@profile` decorator and asynchronous rocprof range correlation remain future work.
+See [Profiling](docs/dev/profiling.md) and
+[Operator development](docs/dev/operator-development.md).
+
+## Multi-GPU training
+
+The RCCL build includes a correctness-first `DataParallelTrainer` and CLI:
+
+```bash
+./build/rccl-release/apps/microllm_distributed_train \
+  --steps 3 --bucket-bytes 4194304 \
+  --trace /tmp/microllm-ddp-trace.jsonl
+```
+
+It runs rank-local forward/backward, bucketed average all-reduce, identical AdamW
+updates, cross-rank parameter checks, and stage-level profiling. The current baseline
+synchronizes backward before communication; it does not yet claim gradient-ready
+overlap or one-process-per-GPU production semantics. See
+[Distributed training](docs/dev/distributed-training.md).
 
 ## Repository map
 
@@ -195,6 +229,7 @@ and [Operator development](docs/dev/operator-development.md).
 | `tests/` | unit, graph, conformance, integration, and coverage gates |
 | `docs/` | framework and developer documentation |
 | `scripts/` | reproducible build, test, benchmark, and profile workflows |
+| `tools/alignment/` | microLLM/PyTorch run orchestration and comparison reports |
 
 ## Documentation
 
@@ -205,6 +240,8 @@ and [Operator development](docs/dev/operator-development.md).
 - [Operator contracts](docs/OPERATOR_CONTRACTS.zh-CN.md)
 - [Weights and safetensors](docs/WEIGHTS.md)
 - [Hardware compatibility](docs/COMPATIBILITY.md)
+- [Alignment experiments](docs/dev/alignment.md)
+- [Distributed training](docs/dev/distributed-training.md)
 - [Current evidence status](docs/development/STATUS.md)
 - [Roadmap and explicit gaps](docs/development/NEXT_STEPS.md)
 - [Chronological development records](docs/development/README.md)

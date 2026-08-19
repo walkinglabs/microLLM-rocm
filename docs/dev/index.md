@@ -11,6 +11,8 @@ component has a public interface under `include/microllm`, an implementation und
 3. Read the [repository layout and dependency rules](repository-layout.md).
 4. For operator work, follow [operator development](operator-development.md).
 5. For performance work, follow [profiling](profiling.md).
+6. For cross-framework work, use [alignment experiments](alignment.md).
+7. For RCCL training, read [distributed training](distributed-training.md).
 
 ## Engineering rules
 

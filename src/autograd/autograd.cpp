@@ -12,6 +12,7 @@
 #include <vector>
 
 #include <microllm/ops/ops.h>
+#include <microllm/profiling/trace.h>
 
 namespace microllm::autograd {
 
@@ -35,6 +36,14 @@ void require_value(const Value& value, const char* name) {
     if (value.data().dtype() != DType::Float32) {
         throw std::invalid_argument(std::string(name) + " autograd requires float32");
     }
+}
+
+template <typename Forward>
+Tensor profiled_tensor(const char* name, Device device, Forward&& forward) {
+    profiling::TraceTimer timer(profiling::TraceKind::Operator, name, device);
+    auto output = forward();
+    timer.finish(output);
+    return output;
 }
 
 void accumulate(const std::shared_ptr<Value::Node>& node, const Tensor& gradient) {
@@ -150,7 +159,9 @@ Value add(const Value& left, const Value& right) {
     require_value(right, "right");
     auto left_node = left.node_;
     auto right_node = right.node_;
-    return operation("add", ops::add(left.data(), right.data()), {left_node, right_node},
+    auto output = profiled_tensor("add", left.data().device(),
+                                  [&] { return ops::add(left.data(), right.data()); });
+    return operation("add", std::move(output), {left_node, right_node},
                      [left_node, right_node](const Tensor& gradient) {
                          accumulate(left_node, gradient);
                          accumulate(right_node, gradient);
@@ -162,7 +173,9 @@ Value multiply(const Value& left, const Value& right) {
     require_value(right, "right");
     auto left_node = left.node_;
     auto right_node = right.node_;
-    return operation("multiply", ops::multiply(left.data(), right.data()),
+    auto output = profiled_tensor("multiply", left.data().device(),
+                                  [&] { return ops::multiply(left.data(), right.data()); });
+    return operation("multiply", std::move(output),
                      {left_node, right_node},
                      [left_node, right_node](const Tensor& gradient) {
                          accumulate(left_node, ops::multiply(gradient, right_node->data));
@@ -173,7 +186,9 @@ Value multiply(const Value& left, const Value& right) {
 Value scale(const Value& input, float factor) {
     require_value(input, "input");
     auto input_node = input.node_;
-    return operation("scale", ops::scale(input.data(), factor), {input_node},
+    auto output = profiled_tensor("scale", input.data().device(),
+                                  [&] { return ops::scale(input.data(), factor); });
+    return operation("scale", std::move(output), {input_node},
                      [input_node, factor](const Tensor& gradient) {
                          accumulate(input_node, ops::scale(gradient, factor));
                      });
@@ -189,8 +204,11 @@ Value matmul(const Value& left, const Value& right) {
     const auto left_forward = left.data().is_contiguous() ? left.data() : left.data().contiguous();
     const auto right_forward =
         right.data().is_contiguous() ? right.data() : right.data().contiguous();
-    return operation("matmul", ops::matmul_with_implementation(
-                         left_forward, right_forward, ops::MatmulImplementation::Auto),
+    auto output = profiled_tensor("matmul", left.data().device(), [&] {
+        return ops::matmul_with_implementation(left_forward, right_forward,
+                                               ops::MatmulImplementation::Auto);
+    });
+    return operation("matmul", std::move(output),
                      {left_node, right_node},
                      [left_node, right_node, left_last, right_last](const Tensor& gradient) {
                          const auto right_transposed =
@@ -209,7 +227,9 @@ Value matmul(const Value& left, const Value& right) {
 Value sum(const Value& input) {
     require_value(input, "input");
     auto input_node = input.node_;
-    return operation("sum", ops::reduce_sum(input.data()), {input_node},
+    auto output = profiled_tensor("sum", input.data().device(),
+                                  [&] { return ops::reduce_sum(input.data()); });
+    return operation("sum", std::move(output), {input_node},
                      [input_node](const Tensor& gradient) {
                          accumulate(input_node,
                                     ops::broadcast_scalar(gradient, input_node->data.shape()));
@@ -226,7 +246,9 @@ Value reshape(const Value& input, Shape shape) {
     require_value(input, "input");
     auto input_node = input.node_;
     const auto original_shape = input.data().shape();
-    return operation("reshape", input.data().reshape(std::move(shape)), {input_node},
+    auto output = profiled_tensor("reshape", input.data().device(),
+                                  [&] { return input.data().reshape(std::move(shape)); });
+    return operation("reshape", std::move(output), {input_node},
                      [input_node, original_shape](const Tensor& gradient) {
                          accumulate(input_node, gradient.contiguous().reshape(original_shape));
                      });
@@ -235,7 +257,9 @@ Value reshape(const Value& input, Shape shape) {
 Value transpose(const Value& input, std::int64_t dim0, std::int64_t dim1) {
     require_value(input, "input");
     auto input_node = input.node_;
-    return operation("transpose", input.data().transpose(dim0, dim1), {input_node},
+    auto output = profiled_tensor("transpose", input.data().device(),
+                                  [&] { return input.data().transpose(dim0, dim1); });
+    return operation("transpose", std::move(output), {input_node},
                      [input_node, dim0, dim1](const Tensor& gradient) {
                          accumulate(input_node, gradient.transpose(dim0, dim1));
                      });
@@ -248,7 +272,9 @@ Value embedding(const Value& weight, const Tensor& indices) {
     }
     auto weight_node = weight.node_;
     const auto vocabulary = weight.data().shape()[0];
-    return operation("embedding", ops::embedding(weight.data(), indices), {weight_node},
+    auto output = profiled_tensor("embedding", weight.data().device(),
+                                  [&] { return ops::embedding(weight.data(), indices); });
+    return operation("embedding", std::move(output), {weight_node},
                      [weight_node, indices, vocabulary](const Tensor& gradient) {
                          accumulate(weight_node,
                                     ops::embedding_backward(gradient, indices, vocabulary));
@@ -258,7 +284,8 @@ Value embedding(const Value& weight, const Tensor& indices) {
 Value softmax(const Value& input, std::int64_t dim) {
     require_value(input, "input");
     auto input_node = input.node_;
-    const auto output = ops::softmax(input.data(), dim);
+    const auto output = profiled_tensor("softmax", input.data().device(),
+                                        [&] { return ops::softmax(input.data(), dim); });
     return operation("softmax", output, {input_node},
                      [input_node, output](const Tensor& gradient) {
                          accumulate(input_node, ops::softmax_backward(output, gradient));
@@ -270,7 +297,10 @@ Value rms_norm(const Value& input, const Value& weight, float epsilon) {
     require_value(weight, "weight");
     auto input_node = input.node_;
     auto weight_node = weight.node_;
-    return operation("rms_norm", ops::rms_norm(input.data(), weight.data(), epsilon),
+    auto output = profiled_tensor("rms_norm", input.data().device(), [&] {
+        return ops::rms_norm(input.data(), weight.data(), epsilon);
+    });
+    return operation("rms_norm", std::move(output),
                      {input_node, weight_node},
                      [input_node, weight_node, epsilon](const Tensor& gradient) {
                          auto gradients = ops::rms_norm_backward(
@@ -283,7 +313,9 @@ Value rms_norm(const Value& input, const Value& weight, float epsilon) {
 Value silu(const Value& input) {
     require_value(input, "input");
     auto input_node = input.node_;
-    return operation("silu", ops::silu(input.data()), {input_node},
+    auto output = profiled_tensor("silu", input.data().device(),
+                                  [&] { return ops::silu(input.data()); });
+    return operation("silu", std::move(output), {input_node},
                      [input_node](const Tensor& gradient) {
                          accumulate(input_node, ops::silu_backward(input_node->data, gradient));
                      });
@@ -294,7 +326,9 @@ Value swiglu(const Value& gate, const Value& up) {
     require_value(up, "up");
     auto gate_node = gate.node_;
     auto up_node = up.node_;
-    return operation("swiglu", ops::swiglu(gate.data(), up.data()), {gate_node, up_node},
+    auto output = profiled_tensor("swiglu", gate.data().device(),
+                                  [&] { return ops::swiglu(gate.data(), up.data()); });
+    return operation("swiglu", std::move(output), {gate_node, up_node},
                      [gate_node, up_node](const Tensor& gradient) {
                          auto gradients =
                              ops::swiglu_backward(gate_node->data, up_node->data, gradient);
@@ -309,7 +343,10 @@ Value rope(const Value& input, std::int64_t sequence_dim, std::int64_t position_
     auto input_node = input.node_;
     const auto forward_input =
         input.data().is_contiguous() ? input.data() : input.data().contiguous();
-    return operation("rope", ops::rope(forward_input, sequence_dim, position_offset, base),
+    auto output = profiled_tensor("rope", input.data().device(), [&] {
+        return ops::rope(forward_input, sequence_dim, position_offset, base);
+    });
+    return operation("rope", std::move(output),
                      {input_node},
                      [input_node, sequence_dim, position_offset,
                       base](const Tensor& gradient) {
@@ -324,7 +361,9 @@ Value cross_entropy(const Value& logits, const Tensor& targets) {
         throw std::invalid_argument("autograd cross_entropy targets must match logits device");
     }
     auto logits_node = logits.node_;
-    return operation("cross_entropy", ops::cross_entropy(logits.data(), targets),
+    auto output = profiled_tensor("cross_entropy", logits.data().device(),
+                                  [&] { return ops::cross_entropy(logits.data(), targets); });
+    return operation("cross_entropy", std::move(output),
                      {logits_node},
                      [logits_node, targets](const Tensor& gradient) {
                          accumulate(logits_node, ops::cross_entropy_backward(
@@ -335,14 +374,17 @@ Value cross_entropy(const Value& logits, const Tensor& targets) {
 Value contiguous(const Value& input) {
     require_value(input, "input");
     auto input_node = input.node_;
-    return operation("contiguous", input.data().contiguous(), {input_node},
+    auto output = profiled_tensor("contiguous", input.data().device(),
+                                  [&] { return input.data().contiguous(); });
+    return operation("contiguous", std::move(output), {input_node},
                      [input_node](const Tensor& gradient) { accumulate(input_node, gradient); });
 }
 
 Value causal_softmax(const Value& scores) {
     require_value(scores, "scores");
     auto score_node = scores.node_;
-    const auto output = ops::causal_softmax(scores.data());
+    const auto output = profiled_tensor("causal_softmax", scores.data().device(),
+                                        [&] { return ops::causal_softmax(scores.data()); });
     return operation("causal_softmax", output, {score_node},
                      [score_node, output](const Tensor& gradient) {
                          accumulate(score_node,
@@ -365,7 +407,10 @@ Value repeat_interleave(const Value& input, std::int64_t dim, std::int64_t repea
     }
     output_shape[static_cast<std::size_t>(dim)] *= repeats;
     auto input_node = input.node_;
-    return operation("repeat_interleave", ops::repeat_interleave(input.data(), dim, repeats),
+    auto output = profiled_tensor("repeat_interleave", input.data().device(), [&] {
+        return ops::repeat_interleave(input.data(), dim, repeats);
+    });
+    return operation("repeat_interleave", std::move(output),
                      {input_node},
                      [input_node, input_shape, dim, repeats](const Tensor& gradient) {
                          accumulate(input_node, ops::repeat_interleave_backward(

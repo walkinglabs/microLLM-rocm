@@ -6,6 +6,7 @@
 #include <microllm/core/tensor_view.h>
 #include <microllm/runtime/memory.h>
 #include <microllm/runtime/runtime.h>
+#include <microllm/profiling/trace.h>
 #include <microllm/ops/context.h>
 #include <microllm/ops/ops.h>
 #include <microllm/ops/low_level.h>
@@ -25,6 +26,7 @@
 #if MICROLLM_HAS_RCCL
 #include <microllm/multi_gpu/communicator.h>
 #include <microllm/multi_gpu/gradient_bucket.h>
+#include <microllm/multi_gpu/data_parallel.h>
 #endif
 
 TEST(PublicHeaders, CanBeIncludedTogether) { SUCCEED(); }

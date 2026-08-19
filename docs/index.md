@@ -20,6 +20,8 @@ and chronological engineering evidence.
 - [Testing and evidence](dev/testing.md)
 - [Adding or optimizing an operator](dev/operator-development.md)
 - [Profiling](dev/profiling.md)
+- [microLLM/PyTorch alignment](dev/alignment.md)
+- [Data-parallel training](dev/distributed-training.md)
 - [Contribution process](../CONTRIBUTING.md)
 - [Task contract](TASK_CONTRACT.md)
 

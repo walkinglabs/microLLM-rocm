@@ -1,4 +1,8 @@
-add_library(microllm_multi_gpu STATIC communicator.cpp gradient_bucket.cpp)
+add_library(microllm_multi_gpu STATIC
+    communicator.cpp
+    gradient_bucket.cpp
+    data_parallel.cpp
+)
 add_library(microllm::multi_gpu ALIAS microllm_multi_gpu)
 
 target_include_directories(microllm_multi_gpu
@@ -7,7 +11,8 @@ target_include_directories(microllm_multi_gpu
         $<INSTALL_INTERFACE:include>
 )
 target_link_libraries(microllm_multi_gpu
-    PUBLIC microllm::ops microllm::runtime microllm_project_options microllm_build_config
+    PUBLIC microllm::model microllm::training microllm::profiling
+           microllm::ops microllm::runtime microllm_project_options microllm_build_config
     PRIVATE hip::host roc::rccl
 )
 

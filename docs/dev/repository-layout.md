@@ -15,6 +15,7 @@ microLLM-rocm/
 ├── python/             optional Python package and Python-side tests
 ├── docs/               framework, developer, and evidence documentation
 ├── scripts/            reproducible build/test/profile helpers
+├── tools/alignment/    cross-framework trace runners and comparator
 ├── data/               dataset registry and generated smoke fixtures
 ├── cmake/              project CMake modules when component logic is shared
 ├── CMakeLists.txt      root build definition
@@ -26,7 +27,8 @@ microLLM-rocm/
 ```text
 base
   ↓
-runtime → core → ops → autograd → model → training/inference
+runtime → core → profiling
+           └──→ ops → autograd → model → training/inference
                                       ↘ multi_gpu (optional RCCL)
 io ───────────────────────────────────↗
 ```
@@ -34,6 +36,7 @@ io ─────────────────────────�
 - `runtime`: allocation, copy, device, Stream, Event, and counters.
 - `core`: Storage, Tensor metadata, views, and device transfer.
 - `ops`: CPU references, readable HIP, optimized candidates, and execution context.
+- `profiling`: schema-versioned value/timing sessions and RAII timers.
 - `autograd`: eager reverse-mode graph construction and traversal.
 - `model`: Decoder-only Transformer composition and named weight loading.
 - `io`: token data, BPE, SFT batches, and safetensors.
