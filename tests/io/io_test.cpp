@@ -3,6 +3,7 @@
 
 #include <gtest/gtest.h>
 #include <microllm/io/byte_tokenizer.h>
+#include <microllm/io/bpe_tokenizer.h>
 #include <microllm/io/token_dataset.h>
 
 namespace microllm::io {
@@ -38,6 +39,24 @@ TEST(TokenDatasetTest, RejectsInsufficientDataAndBadCursor) {
     EXPECT_THROW((void)TokenDataset({1, 2, 3}, 3), std::invalid_argument);
     TokenDataset dataset({1, 2, 3, 4}, 2);
     EXPECT_THROW(dataset.set_cursor(2), std::out_of_range);
+}
+
+TEST(BpeTokenizerTest, LearnsFrequentPairsAndRoundTripsBytes) {
+    const std::string text = "banana banana banana\n";
+    const auto tokenizer = BpeTokenizer::train(text, 264);
+    EXPECT_GT(tokenizer.vocabulary_size(), 256U);
+    EXPECT_LT(tokenizer.encode(text).size(), text.size());
+    EXPECT_EQ(tokenizer.decode(tokenizer.encode(text)), text);
+    const auto restored = BpeTokenizer::deserialize(tokenizer.serialize());
+    EXPECT_EQ(restored.encode(text), tokenizer.encode(text));
+    EXPECT_EQ(restored.decode(restored.encode(text)), text);
+}
+
+TEST(BpeTokenizerTest, RejectsBadVocabularyAndSerializedMerge) {
+    EXPECT_THROW((void)BpeTokenizer::train("abc", 255), std::invalid_argument);
+    EXPECT_THROW((void)BpeTokenizer::deserialize("wrong\n"), std::invalid_argument);
+    EXPECT_THROW((void)BpeTokenizer::deserialize("MICROLLM_BPE_V1\n999 1\n"),
+                 std::invalid_argument);
 }
 
 }  // namespace microllm::io

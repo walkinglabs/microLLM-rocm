@@ -25,7 +25,8 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Tiny HIP training | smoke-tested | 5-step finite loss/grad trajectory on MI300X | device-native backward/AdamW |
 | Model-M HIP train step | smoke-tested | 31.3M params, finite backward/update, 518.8MB engine peak | multi-step/real corpus |
 | Decoder Transformer structure | smoke-tested | tiny GQA/MHA causal forward and all-parameter backward | overfit/full recipe |
-| Byte tokenizer/token dataset | smoke-tested | all-byte round-trip and cursor equivalence | BPE/real corpus |
+| Byte tokenizer/token dataset | smoke-tested | all-byte round-trip and cursor equivalence | real-corpus run |
+| BPE/TinyStories source | loader-ready | BPE round-trip + immutable licensed range download | full corpus/reference train |
 | Tiny Transformer training | smoke-tested | 40-step overfit and finite gradients | validation split/Model-S |
 | CPU KV cache | smoke-tested | every prefix, MHA/GQA logits tolerance | preallocation/HIP/batching |
 | Token generation | smoke-tested | deterministic sampling and cache-backed length/bounds | trained text report |

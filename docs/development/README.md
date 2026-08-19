@@ -86,3 +86,5 @@ the next gate. Records are append-only except for factual corrections.
   PA0–PA2, unified artifact parser, and CPU CI.
 - [2026-08-19-model-m-hip-train-step.md](2026-08-19-model-m-hip-train-step.md):
   actual 128MB-tier forward/backward/AdamW step on MI300X.
+- [2026-08-19-bpe-and-tinystories.md](2026-08-19-bpe-and-tinystories.md): self-contained
+  BPE and licensed immutable TinyStories loader source.
