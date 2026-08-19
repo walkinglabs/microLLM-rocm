@@ -47,6 +47,7 @@ rocprof*
 
 # Local run artifacts; curated evidence summaries live in docs/development/.
 runs/
+benchmark-results*.jsonl
 
 # Python 缓存 (如果用到辅助脚本)
 __pycache__/

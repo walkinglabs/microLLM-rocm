@@ -16,9 +16,17 @@ struct DeviceInfo {
     int warp_size = 0;
 };
 
+struct MemoryInfo {
+    std::size_t free_bytes = 0;
+    std::size_t total_bytes = 0;
+};
+
 [[nodiscard]] bool hip_compiled() noexcept;
 [[nodiscard]] int hip_device_count();
 [[nodiscard]] DeviceInfo device_info(Device device);
+[[nodiscard]] MemoryInfo memory_info(Device device);
+[[nodiscard]] int hip_runtime_version();
+[[nodiscard]] int hip_driver_version();
 void set_device(Device device);
 void synchronize(Device device);
 

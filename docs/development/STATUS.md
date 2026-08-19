@@ -33,4 +33,5 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Python ctypes API | smoke-tested | CPU/HIP Tensor/ops/error unittest | packaging/broader ops |
 | External TensorView ops | smoke-tested | caller-owned CPU/HIP buffers and Stream | Torch build validation |
 | Profiling/autotune | draft | registry design | traces and selection cache |
+| Micro-benchmark harness | smoke-tested | CPU/HIP Event+wall JSONL and error gate | PyTorch comparison/more shapes |
 | RCCL | draft | roadmap | 2/4 GPU equivalence |

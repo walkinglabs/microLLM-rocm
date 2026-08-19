@@ -84,6 +84,39 @@ DeviceInfo device_info(Device device) {
 #endif
 }
 
+MemoryInfo memory_info(Device device) {
+    if (device.is_cpu()) return {};
+#if MICROLLM_HAS_HIP
+    set_device(device);
+    std::size_t free_bytes = 0;
+    std::size_t total_bytes = 0;
+    check_hip(hipMemGetInfo(&free_bytes, &total_bytes), "hipMemGetInfo");
+    return {free_bytes, total_bytes};
+#else
+    throw std::runtime_error("microLLM was built without HIP support");
+#endif
+}
+
+int hip_runtime_version() {
+#if MICROLLM_HAS_HIP
+    int version = 0;
+    check_hip(hipRuntimeGetVersion(&version), "hipRuntimeGetVersion");
+    return version;
+#else
+    return 0;
+#endif
+}
+
+int hip_driver_version() {
+#if MICROLLM_HAS_HIP
+    int version = 0;
+    check_hip(hipDriverGetVersion(&version), "hipDriverGetVersion");
+    return version;
+#else
+    return 0;
+#endif
+}
+
 void set_device(Device device) {
     if (device.is_cpu()) return;
 #if MICROLLM_HAS_HIP

@@ -62,3 +62,5 @@ the next gate. Records are append-only except for factual corrections.
   zero-copy caller-owned TensorView operators and explicit Stream interop.
 - [2026-08-19-m4-torch-custom-ops.md](2026-08-19-m4-torch-custom-ops.md): optional
   PyTorch CPU/ROCm registration source and missing-environment evidence.
+- [2026-08-19-m5-micro-benchmark.md](2026-08-19-m5-micro-benchmark.md): reproducible
+  operator timing schema and first CPU/gfx942 measurements.

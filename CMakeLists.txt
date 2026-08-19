@@ -20,6 +20,7 @@ option(MICROLLM_BUILD_TESTS "Build tests" ON)
 option(MICROLLM_BUILD_EXAMPLES "Build runnable examples" ON)
 option(MICROLLM_BUILD_CAPI "Build the stable C API shared library" ON)
 option(MICROLLM_BUILD_PYTHON "Enable tests/install rules for the ctypes Python API" ON)
+option(MICROLLM_BUILD_BENCHMARKS "Build reproducible micro and end-to-end benchmarks" ON)
 set(MICROLLM_BUILD_TORCH_OPS "AUTO" CACHE STRING "Build PyTorch Custom Ops: AUTO, ON, or OFF")
 set_property(CACHE MICROLLM_BUILD_TORCH_OPS PROPERTY STRINGS AUTO ON OFF)
 option(MICROLLM_ENABLE_SANITIZERS "Enable ASan and UBSan for host code" OFF)
@@ -116,6 +117,10 @@ target_link_libraries(micro_llm PRIVATE microllm::core microllm_build_config)
 
 if(MICROLLM_BUILD_EXAMPLES)
     add_subdirectory(examples)
+endif()
+
+if(MICROLLM_BUILD_BENCHMARKS)
+    add_subdirectory(benchmarks)
 endif()
 
 if(MICROLLM_BUILD_TESTS)
