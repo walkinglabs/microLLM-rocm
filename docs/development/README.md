@@ -46,3 +46,5 @@ the next gate. Records are append-only except for factual corrections.
   low training loss with a stable beyond-context generation failure.
 - [2026-08-19-m3-model-s-forward.md](2026-08-19-m3-model-s-forward.md): real
   15.6M-parameter Model-S construction and CPU forward smoke.
+- [2026-08-19-m3-model-s-train-step.md](2026-08-19-m3-model-s-train-step.md): full
+  Model-S backward and AdamW update smoke.
