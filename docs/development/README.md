@@ -18,3 +18,5 @@ the next gate. Records are append-only except for factual corrections.
   readable HIP Transformer operator set and CPU/HIP conformance.
 - [2026-08-19-m1-op-context.md](2026-08-19-m1-op-context.md): explicit Stream and
   workspace context plus the N1 CPU/HIP artifact.
+- [2026-08-19-m2-autograd-core.md](2026-08-19-m2-autograd-core.md): eager reverse-mode
+  graph, gradient accumulation, and finite differences.

@@ -1,5 +1,15 @@
-# src/autograd — 自动求导 (计算图, 反向传播)
-# TODO: N5 启用
+add_library(microllm_autograd STATIC
+    autograd.cpp
+)
+add_library(microllm::autograd ALIAS microllm_autograd)
 
-add_library(micro_llm_autograd INTERFACE)
-target_include_directories(micro_llm_autograd INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(microllm_autograd
+    PUBLIC
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(microllm_autograd
+    PUBLIC microllm::ops microllm_project_options microllm_build_config
+)
+
+install(TARGETS microllm_autograd ARCHIVE DESTINATION lib)

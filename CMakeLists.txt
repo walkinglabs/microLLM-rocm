@@ -81,6 +81,7 @@ target_compile_definitions(microllm_build_config INTERFACE
 add_subdirectory(src/runtime)
 add_subdirectory(src/core)
 add_subdirectory(src/ops)
+add_subdirectory(src/autograd)
 
 add_executable(micro_llm src/main.cpp)
 target_link_libraries(micro_llm PRIVATE microllm::core microllm_build_config)

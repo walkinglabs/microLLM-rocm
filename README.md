@@ -39,7 +39,8 @@ Every performance-sensitive operator will keep three paths where useful:
 | HIP runtime and Tensor transfer | smoke-tested | MI300X runtime tests |
 | CPU reference operators | smoke-tested | hand values and sanitizer tests |
 | HIP readable operators | smoke-tested | 11 kernels, gfx942 conformance |
-| Autograd and checkpointing | planned | M2 |
+| Basic CPU autograd | smoke-tested | branch accumulation and finite difference |
+| Full Transformer autograd/checkpoint | planned | M2 next steps |
 | Model-S training/inference | planned | M3 |
 | Python/PyTorch bindings | planned | M4 |
 | Profiling/autotuning | planned | M5 |

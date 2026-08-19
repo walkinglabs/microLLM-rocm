@@ -53,7 +53,7 @@ float sigmoid(float value) {
 
 }  // namespace
 
-void fill_(Tensor& tensor, float value, const OpContext& context) {
+void fill_(Tensor& tensor, float value, [[maybe_unused]] const OpContext& context) {
     require_float(tensor, "tensor");
     if (tensor.device().is_cpu()) {
         tensor.fill(value);
@@ -68,7 +68,7 @@ void fill_(Tensor& tensor, float value, const OpContext& context) {
 #endif
 }
 
-Tensor add(const Tensor& left, const Tensor& right, const OpContext& context) {
+Tensor add(const Tensor& left, const Tensor& right, [[maybe_unused]] const OpContext& context) {
     require_float(left, "left");
     require_float(right, "right");
     require_same_shape(left, right);
@@ -95,7 +95,8 @@ Tensor add(const Tensor& left, const Tensor& right, const OpContext& context) {
     return from_values(std::move(left_values), left.shape());
 }
 
-Tensor multiply(const Tensor& left, const Tensor& right, const OpContext& context) {
+Tensor multiply(const Tensor& left, const Tensor& right,
+                [[maybe_unused]] const OpContext& context) {
     require_float(left, "left");
     require_float(right, "right");
     require_same_shape(left, right);
@@ -122,7 +123,7 @@ Tensor multiply(const Tensor& left, const Tensor& right, const OpContext& contex
     return from_values(std::move(left_values), left.shape());
 }
 
-Tensor scale(const Tensor& input, float factor, const OpContext& context) {
+Tensor scale(const Tensor& input, float factor, [[maybe_unused]] const OpContext& context) {
     require_float(input, "input");
     if (input.device().is_hip()) {
         require_contiguous(input, "input");
@@ -141,7 +142,8 @@ Tensor scale(const Tensor& input, float factor, const OpContext& context) {
     return from_values(std::move(values), input.shape());
 }
 
-Tensor matmul(const Tensor& left, const Tensor& right, const OpContext& context) {
+Tensor matmul(const Tensor& left, const Tensor& right,
+              [[maybe_unused]] const OpContext& context) {
     require_float(left, "left");
     require_float(right, "right");
     require_same_device(left, right);
@@ -202,7 +204,8 @@ Tensor matmul(const Tensor& left, const Tensor& right, const OpContext& context)
     return from_values(std::move(output), std::move(output_shape));
 }
 
-Tensor embedding(const Tensor& weight, const Tensor& indices, const OpContext& context) {
+Tensor embedding(const Tensor& weight, const Tensor& indices,
+                 [[maybe_unused]] const OpContext& context) {
     require_float(weight, "weight");
     if (weight.ndim() != 2) throw std::invalid_argument("embedding weight must have rank two");
     if (indices.dtype() != DType::Int32) {
@@ -239,7 +242,8 @@ Tensor embedding(const Tensor& weight, const Tensor& indices, const OpContext& c
     return from_values(std::move(output), std::move(output_shape));
 }
 
-Tensor softmax(const Tensor& input, std::int64_t dim, const OpContext& context) {
+Tensor softmax(const Tensor& input, std::int64_t dim,
+               [[maybe_unused]] const OpContext& context) {
     require_float(input, "input");
     const auto normalized = positive_dim(input, dim);
     if (normalized != input.ndim() - 1) {
@@ -276,7 +280,7 @@ Tensor softmax(const Tensor& input, std::int64_t dim, const OpContext& context) 
 }
 
 Tensor rms_norm(const Tensor& input, const Tensor& weight, float epsilon,
-                const OpContext& context) {
+                [[maybe_unused]] const OpContext& context) {
     require_float(input, "input");
     require_float(weight, "weight");
     require_same_device(input, weight);
@@ -318,7 +322,7 @@ Tensor rms_norm(const Tensor& input, const Tensor& weight, float epsilon,
     return from_values(std::move(output), input.shape());
 }
 
-Tensor silu(const Tensor& input, const OpContext& context) {
+Tensor silu(const Tensor& input, [[maybe_unused]] const OpContext& context) {
     require_float(input, "input");
     if (input.device().is_hip()) {
         require_contiguous(input, "input");
@@ -337,7 +341,8 @@ Tensor silu(const Tensor& input, const OpContext& context) {
     return from_values(std::move(values), input.shape());
 }
 
-Tensor swiglu(const Tensor& gate, const Tensor& up, const OpContext& context) {
+Tensor swiglu(const Tensor& gate, const Tensor& up,
+              [[maybe_unused]] const OpContext& context) {
     require_float(gate, "gate");
     require_float(up, "up");
     require_same_shape(gate, up);
@@ -365,7 +370,7 @@ Tensor swiglu(const Tensor& gate, const Tensor& up, const OpContext& context) {
 }
 
 Tensor rope(const Tensor& input, std::int64_t sequence_dim, std::int64_t position_offset,
-            float base, const OpContext& context) {
+            float base, [[maybe_unused]] const OpContext& context) {
     require_float(input, "input");
     if (input.ndim() < 2) throw std::invalid_argument("rope requires rank two or greater");
     const auto sequence = positive_dim(input, sequence_dim);
@@ -410,7 +415,8 @@ Tensor rope(const Tensor& input, std::int64_t sequence_dim, std::int64_t positio
     return from_values(std::move(output), input.shape());
 }
 
-Tensor cross_entropy(const Tensor& logits, const Tensor& targets, const OpContext& context) {
+Tensor cross_entropy(const Tensor& logits, const Tensor& targets,
+                     [[maybe_unused]] const OpContext& context) {
     require_float(logits, "logits");
     if (targets.dtype() != DType::Int32) {
         throw std::invalid_argument("cross_entropy targets must be int32");

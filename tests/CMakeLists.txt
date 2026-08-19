@@ -6,9 +6,12 @@ add_executable(microllm_tests
     core/headers_compile_test.cpp
     runtime/runtime_test.cpp
     ops/ops_test.cpp
+    autograd/autograd_test.cpp
 )
 
-target_link_libraries(microllm_tests PRIVATE GTest::gtest_main microllm::core microllm::ops)
+target_link_libraries(microllm_tests PRIVATE
+    GTest::gtest_main microllm::core microllm::ops microllm::autograd
+)
 
 include(GoogleTest)
 gtest_discover_tests(microllm_tests
