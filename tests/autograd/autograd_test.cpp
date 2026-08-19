@@ -24,6 +24,23 @@ TEST(AutogradTest, MatmulBackwardMatchesHandValues) {
     EXPECT_EQ(right.grad().to_vector(), (std::vector<float>{1, 1, 1.5F, 1.5F}));
 }
 
+TEST(AutogradTest, Fp8MatmulUsesQuantizedForwardAndFp32MasterGradients) {
+    Value left(Tensor::from_vector({1, -2, 3, 4, 0.5F, -0.25F}, {2, 3}), true);
+    Value right(Tensor::from_vector({1, 2, 3, 4, 5, 6}, {3, 2}), true);
+    const Value seed(Tensor::from_vector({1, -1, 0.5F, 2}, {2, 2}));
+    const auto output = fp8_matmul(left, right, 0.025F, 0.05F);
+    EXPECT_EQ(output.data().dtype(), DType::Float32);
+    sum(multiply(output, seed)).backward();
+
+    Value reference_left(left.data(), true);
+    Value reference_right(right.data(), true);
+    sum(multiply(matmul(reference_left, reference_right), seed)).backward();
+    EXPECT_EQ(left.grad().dtype(), DType::Float32);
+    EXPECT_EQ(right.grad().dtype(), DType::Float32);
+    EXPECT_EQ(left.grad().to_vector(), reference_left.grad().to_vector());
+    EXPECT_EQ(right.grad().to_vector(), reference_right.grad().to_vector());
+}
+
 TEST(AutogradTest, FiniteDifferenceChecksMultiplyAndMean) {
     const std::vector<float> initial{0.5F, -1.25F, 2.0F};
     const auto coefficient = Tensor::from_vector({2, -3, 4}, {3});

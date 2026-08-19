@@ -53,6 +53,7 @@ private:
     friend Value multiply(const Value&, const Value&);
     friend Value scale(const Value&, float);
     friend Value matmul(const Value&, const Value&);
+    friend Value fp8_matmul(const Value&, const Value&, float, float, DType);
     friend Value sum(const Value&);
     friend Value mean(const Value&);
     friend Value reshape(const Value&, Shape);
@@ -74,6 +75,10 @@ private:
 [[nodiscard]] Value multiply(const Value& left, const Value& right);
 [[nodiscard]] Value scale(const Value& input, float factor);
 [[nodiscard]] Value matmul(const Value& left, const Value& right);
+// FP8 forward with FP32 master inputs and straight-through FP32 gradients.
+[[nodiscard]] Value fp8_matmul(const Value& left, const Value& right,
+                               float left_scale, float right_scale,
+                               DType fp8_dtype = DType::Float8E4M3FNUZ);
 [[nodiscard]] Value sum(const Value& input);
 [[nodiscard]] Value mean(const Value& input);
 [[nodiscard]] Value reshape(const Value& input, Shape shape);

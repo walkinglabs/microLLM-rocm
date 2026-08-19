@@ -23,6 +23,10 @@ enum class DType : std::uint8_t {
            dtype == DType::Float8E5M2FNUZ;
 }
 
+[[nodiscard]] constexpr bool is_fp8_fnuz(DType dtype) noexcept {
+    return dtype == DType::Float8E4M3FNUZ || dtype == DType::Float8E5M2FNUZ;
+}
+
 [[nodiscard]] constexpr std::size_t dtype_size(DType dtype) {
     switch (dtype) {
         case DType::Float32:

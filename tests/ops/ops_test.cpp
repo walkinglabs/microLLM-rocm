@@ -158,6 +158,33 @@ TEST(CpuLowPrecisionOpsTest, MixedDtypesRequireAnExplicitCast) {
     EXPECT_THROW((void)rms_norm(fp16, bf16), std::invalid_argument);
 }
 
+TEST(CpuFp8OpsTest, QuantizeDequantizeAndScaledMatmulMatchFloatReference) {
+    const auto input = Tensor::from_vector(
+        {-2.0F, -1.0F, -0.25F, 0.0F, 0.25F, 1.0F, 2.0F, 3.0F}, {2, 4});
+    for (const auto format : {DType::Float8E4M3FNUZ, DType::Float8E5M2FNUZ}) {
+        const auto quantized = quantize_fp8(input, format, 0.025F);
+        EXPECT_EQ(quantized.values.dtype(), format);
+        EXPECT_EQ(quantized.values.storage().num_bytes(), 8U);
+        EXPECT_EQ(quantized.scale.dtype(), DType::Float32);
+        const auto restored = dequantize_fp8(quantized, DType::Float32);
+        const auto tolerance = format == DType::Float8E4M3FNUZ ? 0.15F : 0.25F;
+        expect_near(restored.to_vector(), input.to_vector(), tolerance);
+    }
+
+    const auto left = Tensor::from_vector({1, -2, 3, 4, 0.5F, -0.25F}, {2, 3});
+    const auto right = Tensor::from_vector({1, 2, 3, 4, 5, 6}, {3, 2});
+    const auto fp8_output = fp8_matmul(
+        quantize_fp8(left, DType::Float8E4M3FNUZ, 0.025F),
+        quantize_fp8(right, DType::Float8E4M3FNUZ, 0.05F), DType::BFloat16);
+    EXPECT_EQ(fp8_output.dtype(), DType::BFloat16);
+    expect_near(fp8_output.to_vector(), matmul(left, right).to_vector(), 0.8F);
+
+    EXPECT_THROW((void)quantize_fp8(input, DType::Float16, 1.0F),
+                 std::invalid_argument);
+    EXPECT_THROW((void)quantize_fp8(input, DType::Float8E4M3FNUZ, 0.0F),
+                 std::invalid_argument);
+}
+
 TEST(LowLevelOpsTest, OperatesOnCallerOwnedCpuBuffers) {
     const Shape shape{2, 2};
     const Strides strides{2, 1};

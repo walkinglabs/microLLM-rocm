@@ -74,6 +74,67 @@ float sigmoid(float value) {
 
 }  // namespace
 
+ScaledTensor quantize_fp8(const Tensor& input, DType fp8_dtype, float scale,
+                          [[maybe_unused]] const OpContext& context) {
+    if (!input.defined() || (input.dtype() != DType::Float32 &&
+                             input.dtype() != DType::Float16 &&
+                             input.dtype() != DType::BFloat16)) {
+        throw std::invalid_argument("FP8 quantize input must be FP32, FP16, or BF16");
+    }
+    if (!is_fp8_fnuz(fp8_dtype)) {
+        throw std::invalid_argument("MI300 FP8 quantize requires an FNUZ dtype");
+    }
+    if (!std::isfinite(scale) || scale <= 0.0F) {
+        throw std::invalid_argument("FP8 quantize scale must be finite and positive");
+    }
+    if (!input.is_contiguous()) throw std::invalid_argument("FP8 quantize requires contiguous input");
+    Tensor output(input.shape(), fp8_dtype, input.device());
+    if (input.device().is_cpu()) {
+        auto values = input.to_vector();
+        for (auto& value : values) value /= scale;
+        output = Tensor::from_vector(values, input.shape(), fp8_dtype);
+    } else {
+#if MICROLLM_HAS_HIP
+        hip::launch_quantize_fp8(input.data(), input.dtype(), output.data(), fp8_dtype,
+                                 input.numel(), 1.0F / scale,
+                                 context.native_stream(input.device()));
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    auto scale_tensor = Tensor::from_vector({scale}, {}, DType::Float32);
+    if (input.device().is_hip()) scale_tensor = scale_tensor.to(input.device());
+    return {std::move(output), std::move(scale_tensor), scale};
+}
+
+Tensor dequantize_fp8(const ScaledTensor& input, DType output_dtype,
+                      [[maybe_unused]] const OpContext& context) {
+    if (!input.values.defined() || !is_fp8_fnuz(input.values.dtype())) {
+        throw std::invalid_argument("FP8 dequantize requires FNUZ values");
+    }
+    if (output_dtype != DType::Float32 && output_dtype != DType::Float16 &&
+        output_dtype != DType::BFloat16) {
+        throw std::invalid_argument("FP8 dequantize output must be FP32, FP16, or BF16");
+    }
+    if (!std::isfinite(input.scale_value) || input.scale_value <= 0.0F) {
+        throw std::invalid_argument("FP8 dequantize scale must be finite and positive");
+    }
+    Tensor output(input.values.shape(), output_dtype, input.values.device());
+    if (input.values.device().is_cpu()) {
+        auto values = input.values.to_vector();
+        for (auto& value : values) value *= input.scale_value;
+        return Tensor::from_vector(values, input.values.shape(), output_dtype);
+    }
+#if MICROLLM_HAS_HIP
+    hip::launch_dequantize_fp8(input.values.data(), input.values.dtype(), output.data(),
+                               output_dtype, input.values.numel(), input.scale_value,
+                               context.native_stream(input.values.device()));
+    return output;
+#else
+    throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+}
+
 void fill_(Tensor& tensor, float value, [[maybe_unused]] const OpContext& context) {
     require_forward_float(tensor, "tensor");
     if (tensor.device().is_cpu()) {

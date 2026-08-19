@@ -96,6 +96,86 @@ TEST(HipLowPrecisionOpsTest, NativeBasicKernelsMatchCpuAndAvoidHostTransfers) {
     }
 }
 
+TEST(HipFp8OpsTest, QuantizeDequantizeAndScaledGemmAreDeviceNative) {
+    require_gpu();
+    if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";
+    const auto gpu = Device::hip(0);
+    constexpr std::int64_t size = 128;
+    std::vector<float> left_values(static_cast<std::size_t>(size * size));
+    std::vector<float> right_values(left_values.size());
+    for (std::size_t index = 0; index < left_values.size(); ++index) {
+        left_values[index] = static_cast<float>(static_cast<int>(index % 31) - 15) / 31.0F;
+        right_values[index] = static_cast<float>(static_cast<int>(index % 19) - 9) / 19.0F;
+    }
+    const auto left_cpu = Tensor::from_vector(left_values, {size, size});
+    const auto right_cpu = Tensor::from_vector(right_values, {size, size});
+    const auto left = left_cpu.to(gpu);
+    const auto right = right_cpu.to(gpu);
+
+    for (const auto format : {DType::Float8E4M3FNUZ, DType::Float8E5M2FNUZ}) {
+        runtime::reset_transfer_stats();
+        const auto quantized = quantize_fp8(left, format, 1.0F / 240.0F);
+        const auto restored = dequantize_fp8(quantized, DType::Float32);
+        runtime::synchronize(gpu);
+        const auto transfers = runtime::transfer_stats();
+        // One host-to-device scalar scale metadata copy is expected; tensor payloads stay on GPU.
+        EXPECT_EQ(transfers.host_to_device_calls, 1U);
+        EXPECT_EQ(transfers.device_to_host_calls, 0U);
+        const auto restored_values = restored.to_vector();
+        float maximum_error = 0.0F;
+        for (std::size_t index = 0; index < restored_values.size(); ++index) {
+            maximum_error = std::max(
+                maximum_error, std::abs(restored_values[index] - left_values[index]));
+        }
+        const auto tolerance = format == DType::Float8E4M3FNUZ ? 0.035F : 0.07F;
+        EXPECT_LE(maximum_error, tolerance) << "format=" << dtype_name(format);
+    }
+
+    const auto left_fp8 = quantize_fp8(left, DType::Float8E4M3FNUZ, 1.0F / 240.0F);
+    const auto right_fp8 = quantize_fp8(right, DType::Float8E4M3FNUZ, 1.0F / 240.0F);
+    runtime::reset_transfer_stats();
+    const auto output = fp8_matmul(left_fp8, right_fp8, DType::BFloat16);
+    runtime::synchronize(gpu);
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    EXPECT_EQ(output.dtype(), DType::BFloat16);
+    const auto output_values = output.to_vector();
+    const auto reference_values = matmul(left_cpu, right_cpu).to_vector();
+    float maximum_gemm_error = 0.0F;
+    for (std::size_t index = 0; index < output_values.size(); ++index) {
+        maximum_gemm_error = std::max(
+            maximum_gemm_error, std::abs(output_values[index] - reference_values[index]));
+    }
+    EXPECT_LE(maximum_gemm_error, 0.5F);
+}
+
+TEST(HipFp8TrainingTest, ForwardAndStraightThroughBackwardKeepFp32MastersOnDevice) {
+    require_gpu();
+    if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";
+    constexpr std::int64_t size = 128;
+    std::vector<float> left_values(static_cast<std::size_t>(size * size));
+    std::vector<float> right_values(left_values.size());
+    for (std::size_t index = 0; index < left_values.size(); ++index) {
+        left_values[index] = static_cast<float>(static_cast<int>(index % 17) - 8) / 17.0F;
+        right_values[index] = static_cast<float>(static_cast<int>(index % 13) - 6) / 13.0F;
+    }
+    autograd::Value left(Tensor::from_vector(left_values, {size, size}).to(Device::hip()), true);
+    autograd::Value right(Tensor::from_vector(right_values, {size, size}).to(Device::hip()), true);
+    runtime::reset_transfer_stats();
+    const auto loss = autograd::mean(autograd::fp8_matmul(
+        left, right, 1.0F / 240.0F, 1.0F / 240.0F));
+    loss.backward();
+    runtime::synchronize(Device::hip());
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    EXPECT_TRUE(left.has_grad());
+    EXPECT_TRUE(right.has_grad());
+    EXPECT_EQ(left.grad().dtype(), DType::Float32);
+    EXPECT_EQ(right.grad().dtype(), DType::Float32);
+    EXPECT_TRUE(std::isfinite(loss.data().to_vector()[0]));
+}
+
 TEST(HipOpsTest, NaiveBatchedMatmulMatchesCpuReference) {
     require_gpu();
     const auto left_cpu = Tensor::from_vector({1, 2, 3, 4, 5, 6, 1, 0, 0, 1, 1, 1}, {2, 2, 3});

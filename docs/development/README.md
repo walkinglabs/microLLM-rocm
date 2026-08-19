@@ -126,6 +126,8 @@ the next gate. Records are append-only except for factual corrections.
   real FP16/BF16 storage, cast/view/device-copy semantics, and MI300/MI350 boundaries.
 - [2026-08-19-mi300x-precision-capabilities.md](2026-08-19-mi300x-precision-capabilities.md):
   dedicated hardware-format gates and measured FP32/FP16/BF16 Matrix acceleration.
+- [2026-08-19-fp8-training-inference.md](2026-08-19-fp8-training-inference.md):
+  FNUZ quantization kernels, scaled GEMM, FP32-master training op, and measured ratios.
 - [2026-08-19-data-parallel-trainer.md](2026-08-19-data-parallel-trainer.md):
   reusable two-rank training step, bucketed gradient average, global-batch equivalence,
   stage profiling, and production reducer gaps.

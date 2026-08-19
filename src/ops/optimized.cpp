@@ -104,10 +104,20 @@ hipDataType hip_dtype(DType dtype) {
         case DType::Float32: return HIP_R_32F;
         case DType::Float16: return HIP_R_16F;
         case DType::BFloat16: return HIP_R_16BF;
+        case DType::Float8E4M3FNUZ: return HIP_R_8F_E4M3_FNUZ;
+        case DType::Float8E5M2FNUZ: return HIP_R_8F_E5M2_FNUZ;
         case DType::Int32:
         case DType::Int64: break;
     }
     throw std::invalid_argument("hipBLASLt matmul requires FP32, FP16, or BF16");
+}
+
+void set_scale_pointer(hipblasLtMatmulDesc_t description,
+                       hipblasLtMatmulDescAttributes_t attribute,
+                       const void* pointer) {
+    check_status(hipblasLtMatmulDescSetAttribute(
+                     description, attribute, &pointer, sizeof(pointer)),
+                 "hipblasLtMatmulDescSetAttribute(scale)");
 }
 
 class MatmulDescription {
@@ -161,6 +171,51 @@ Tensor hipblaslt_matmul(const Tensor& left, const Tensor& right,
     return output;
 }
 
+Tensor hipblaslt_fp8_matmul(const ScaledTensor& left, const ScaledTensor& right,
+                            DType output_dtype, const OpContext& context) {
+    if (!left.values.device().is_hip() || right.values.device() != left.values.device() ||
+        !is_fp8_fnuz(left.values.dtype()) || !is_fp8_fnuz(right.values.dtype()) ||
+        left.values.ndim() != 2 || right.values.ndim() != 2 ||
+        !left.values.is_contiguous() || !right.values.is_contiguous()) {
+        throw std::invalid_argument("FP8 hipBLASLt matmul requires contiguous 2D FNUZ tensors");
+    }
+    if (output_dtype != DType::Float32 && output_dtype != DType::Float16 &&
+        output_dtype != DType::BFloat16) {
+        throw std::invalid_argument("FP8 matmul output must be FP32, FP16, or BF16");
+    }
+    const auto rows = left.values.shape()[0];
+    const auto inner = left.values.shape()[1];
+    const auto columns = right.values.shape()[1];
+    if (right.values.shape()[0] != inner) throw std::invalid_argument("FP8 matmul inner mismatch");
+    Tensor output({rows, columns}, output_dtype, left.values.device());
+    static Handle handle;
+    MatmulDescription operation;
+    // Row-major C=A*B is submitted as column-major C^T=B^T*A^T, so scale A belongs
+    // to the user-visible right operand and scale B to the left operand.
+    set_scale_pointer(operation.get(), HIPBLASLT_MATMUL_DESC_A_SCALE_POINTER,
+                      right.scale.data());
+    set_scale_pointer(operation.get(), HIPBLASLT_MATMUL_DESC_B_SCALE_POINTER,
+                      left.scale.data());
+    Layout matrix_b(hip_dtype(right.values.dtype()),
+                    static_cast<std::uint64_t>(columns),
+                    static_cast<std::uint64_t>(inner), columns);
+    Layout matrix_a(hip_dtype(left.values.dtype()),
+                    static_cast<std::uint64_t>(inner),
+                    static_cast<std::uint64_t>(rows), inner);
+    Layout matrix_c(hip_dtype(output_dtype), static_cast<std::uint64_t>(columns),
+                    static_cast<std::uint64_t>(rows), columns);
+    const float alpha = 1.0F;
+    const float beta = 0.0F;
+    check_status(hipblasLtMatmul(
+                     handle.get(), operation.get(), &alpha, right.values.data(), matrix_b.get(),
+                     left.values.data(), matrix_a.get(), &beta, output.data(), matrix_c.get(),
+                     output.data(), matrix_c.get(), nullptr, context.workspace,
+                     context.workspace_bytes,
+                     reinterpret_cast<hipStream_t>(context.native_stream(left.values.device()))),
+                 "hipblasLtMatmul(FP8)");
+    return output;
+}
+
 }  // namespace
 #endif
 
@@ -178,6 +233,24 @@ Tensor matmul_with_implementation(const Tensor& left, const Tensor& right,
     (void)right;
     (void)context;
     throw std::runtime_error("microLLM was built without hipBLASLt");
+#endif
+}
+
+Tensor fp8_matmul(const ScaledTensor& left, const ScaledTensor& right,
+                  DType output_dtype, const OpContext& context) {
+    if (left.values.device() != right.values.device()) {
+        throw std::invalid_argument("FP8 matmul devices must match");
+    }
+    if (left.values.device().is_cpu()) {
+        return matmul(dequantize_fp8(left, DType::Float32),
+                      dequantize_fp8(right, DType::Float32)).cast(output_dtype);
+    }
+#if MICROLLM_HAS_HIPBLASLT
+    return hipblaslt_fp8_matmul(left, right, output_dtype, context);
+#else
+    (void)output_dtype;
+    (void)context;
+    throw std::runtime_error("FP8 matmul requires hipBLASLt");
 #endif
 }
 

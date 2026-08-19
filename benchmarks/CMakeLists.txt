@@ -1,6 +1,11 @@
 add_executable(microllm_bench_ops micro/benchmark_ops.cpp)
 target_link_libraries(microllm_bench_ops PRIVATE microllm::ops microllm::runtime)
 
+if(MICROLLM_HAS_HIP AND MICROLLM_HAS_HIPBLASLT)
+    add_executable(microllm_bench_precision micro/benchmark_precision.cpp)
+    target_link_libraries(microllm_bench_precision PRIVATE microllm::ops microllm::runtime)
+endif()
+
 add_executable(microllm_bench_model end_to_end/benchmark_model.cpp)
 target_link_libraries(microllm_bench_model PRIVATE
     microllm::training microllm::inference microllm::runtime
@@ -37,6 +42,10 @@ if(BUILD_TESTING)
                  COMMAND microllm_bench_ops --op add --size 1024 --warmup 1 --repetitions 2 --device hip)
         set_tests_properties(Benchmark.HipAddSmoke PROPERTIES LABELS "hip;benchmark;smoke")
         if(MICROLLM_HAS_HIPBLASLT)
+            add_test(NAME Benchmark.HipPrecisionMatrix
+                     COMMAND microllm_bench_precision --size 128 --warmup 1 --repetitions 2)
+            set_tests_properties(Benchmark.HipPrecisionMatrix
+                                 PROPERTIES LABELS "hip;benchmark;dtype;fp8;smoke")
             foreach(MICROLLM_LOW_DTYPE IN ITEMS fp16 bf16)
                 add_test(NAME Benchmark.HipMatmul.${MICROLLM_LOW_DTYPE}
                          COMMAND microllm_bench_ops --op matmul --size 128

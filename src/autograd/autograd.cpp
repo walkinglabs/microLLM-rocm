@@ -224,6 +224,36 @@ Value matmul(const Value& left, const Value& right) {
                      });
 }
 
+Value fp8_matmul(const Value& left, const Value& right,
+                 float left_scale, float right_scale, DType fp8_dtype) {
+    require_value(left, "left");
+    require_value(right, "right");
+    auto left_node = left.node_;
+    auto right_node = right.node_;
+    const auto left_last = left.data().ndim() - 1;
+    const auto right_last = right.data().ndim() - 1;
+    const auto left_forward = left.data().is_contiguous() ? left.data() : left.data().contiguous();
+    const auto right_forward = right.data().is_contiguous() ? right.data() : right.data().contiguous();
+    auto output = profiled_tensor("fp8_matmul", left.data().device(), [&] {
+        const auto quantized_left = ops::quantize_fp8(left_forward, fp8_dtype, left_scale);
+        const auto quantized_right = ops::quantize_fp8(right_forward, fp8_dtype, right_scale);
+        return ops::fp8_matmul(quantized_left, quantized_right, DType::Float32);
+    });
+    return operation("fp8_matmul", std::move(output), {left_node, right_node},
+                     [left_node, right_node, left_last, right_last](const Tensor& gradient) {
+                         const auto right_transposed =
+                             right_node->data.transpose(right_last - 1, right_last).contiguous();
+                         const auto left_transposed =
+                             left_node->data.transpose(left_last - 1, left_last).contiguous();
+                         accumulate(left_node, ops::matmul_with_implementation(
+                                                   gradient, right_transposed,
+                                                   ops::MatmulImplementation::Auto));
+                         accumulate(right_node, ops::matmul_with_implementation(
+                                                    left_transposed, gradient,
+                                                    ops::MatmulImplementation::Auto));
+                     });
+}
+
 Value sum(const Value& input) {
     require_value(input, "input");
     auto input_node = input.node_;

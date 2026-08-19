@@ -6,6 +6,7 @@
 #include <hip/hip_runtime.h>
 #include <hip/hip_bfloat16.h>
 #include <hip/hip_fp16.h>
+#include <hip/hip_fp8.h>
 
 namespace microllm::ops::hip {
 namespace {
@@ -138,6 +139,22 @@ __global__ void swiglu_typed_kernel(const T* gate, const T* up, T* output,
         const auto gate_value = load_as_float(gate[index]);
         output[index] = store_from_float<T>(gate_value * sigmoid_typed_device(gate_value) *
                                             load_as_float(up[index]));
+    }
+}
+
+template <typename Input, typename Output>
+__global__ void quantize_fp8_kernel(const Input* input, Output* output,
+                                    std::int64_t elements, float inverse_scale) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    if (index < elements) output[index] = Output(load_as_float(input[index]) * inverse_scale);
+}
+
+template <typename Input, typename Output>
+__global__ void dequantize_fp8_kernel(const Input* input, Output* output,
+                                      std::int64_t elements, float scale) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    if (index < elements) {
+        output[index] = store_from_float<Output>(static_cast<float>(input[index]) * scale);
     }
 }
 
@@ -701,6 +718,88 @@ void launch_swiglu_typed(const void* gate, const void* up, void* output, DType d
     }
 #undef MICROLLM_SWIGLU_CASE
     check_launch("swiglu_typed_kernel");
+}
+
+template <typename Input>
+void launch_quantize_for_input(const Input* input, void* output, DType fp8_dtype,
+                               std::int64_t elements, float inverse_scale,
+                               hipStream_t stream) {
+    const auto grid = dim3(grid_size(elements));
+    const auto block = dim3(kBlockSize);
+    if (fp8_dtype == DType::Float8E4M3FNUZ) {
+        hipLaunchKernelGGL((quantize_fp8_kernel<Input, __hip_fp8_e4m3_fnuz>), grid,
+                           block, 0, stream, input,
+                           static_cast<__hip_fp8_e4m3_fnuz*>(output), elements,
+                           inverse_scale);
+    } else if (fp8_dtype == DType::Float8E5M2FNUZ) {
+        hipLaunchKernelGGL((quantize_fp8_kernel<Input, __hip_fp8_e5m2_fnuz>), grid,
+                           block, 0, stream, input,
+                           static_cast<__hip_fp8_e5m2_fnuz*>(output), elements,
+                           inverse_scale);
+    } else {
+        throw std::invalid_argument("quantize output must be an MI300 FNUZ FP8 dtype");
+    }
+}
+
+void launch_quantize_fp8(const void* input, DType input_dtype, void* output,
+                         DType fp8_dtype, std::int64_t elements, float inverse_scale,
+                         void* stream) {
+    if (elements == 0) return;
+    switch (input_dtype) {
+        case DType::Float32:
+            launch_quantize_for_input(static_cast<const float*>(input), output, fp8_dtype,
+                                      elements, inverse_scale, as_stream(stream));
+            break;
+        case DType::Float16:
+            launch_quantize_for_input(static_cast<const __half*>(input), output, fp8_dtype,
+                                      elements, inverse_scale, as_stream(stream));
+            break;
+        case DType::BFloat16:
+            launch_quantize_for_input(static_cast<const hip_bfloat16*>(input), output,
+                                      fp8_dtype, elements, inverse_scale, as_stream(stream));
+            break;
+        default: throw std::invalid_argument("quantize input must be FP32, FP16, or BF16");
+    }
+    check_launch("quantize_fp8_kernel");
+}
+
+template <typename Input>
+void launch_dequantize_for_input(const Input* input, void* output, DType output_dtype,
+                                 std::int64_t elements, float scale,
+                                 hipStream_t stream) {
+    const auto grid = dim3(grid_size(elements));
+    const auto block = dim3(kBlockSize);
+#define MICROLLM_DEQUANT_CASE(cpp_type, enum_value)                                  \
+    case enum_value:                                                                 \
+        hipLaunchKernelGGL((dequantize_fp8_kernel<Input, cpp_type>), grid, block, 0, \
+                           stream, input, static_cast<cpp_type*>(output), elements,  \
+                           scale);                                                   \
+        break
+    switch (output_dtype) {
+        MICROLLM_DEQUANT_CASE(float, DType::Float32);
+        MICROLLM_DEQUANT_CASE(__half, DType::Float16);
+        MICROLLM_DEQUANT_CASE(hip_bfloat16, DType::BFloat16);
+        default: throw std::invalid_argument("dequantize output must be FP32, FP16, or BF16");
+    }
+#undef MICROLLM_DEQUANT_CASE
+}
+
+void launch_dequantize_fp8(const void* input, DType fp8_dtype, void* output,
+                           DType output_dtype, std::int64_t elements, float scale,
+                           void* stream) {
+    if (elements == 0) return;
+    if (fp8_dtype == DType::Float8E4M3FNUZ) {
+        launch_dequantize_for_input(static_cast<const __hip_fp8_e4m3_fnuz*>(input),
+                                    output, output_dtype, elements, scale,
+                                    as_stream(stream));
+    } else if (fp8_dtype == DType::Float8E5M2FNUZ) {
+        launch_dequantize_for_input(static_cast<const __hip_fp8_e5m2_fnuz*>(input),
+                                    output, output_dtype, elements, scale,
+                                    as_stream(stream));
+    } else {
+        throw std::invalid_argument("dequantize input must be an MI300 FNUZ FP8 dtype");
+    }
+    check_launch("dequantize_fp8_kernel");
 }
 
 void launch_matmul(const float* left, const float* right, float* output,

@@ -28,6 +28,9 @@
     "repeat_interleave_backward": {"torch": "graph_repeat_input_grad", "shape": "invalid_repeat_backward_shape"}
   },
   "operator_infrastructure": {
+    "quantize_fp8": "tests/ops/ops_test.cpp",
+    "dequantize_fp8": "tests/ops/ops_test.cpp",
+    "fp8_matmul": "tests/ops/hip_ops_test.cpp",
     "hipblaslt_available": "tests/ops/hip_ops_test.cpp",
     "choose_matmul_implementation": "tests/ops/hip_ops_test.cpp",
     "register_matmul_implementation": "tests/ops/hip_ops_test.cpp",
@@ -38,6 +41,7 @@
     "multiply": "graph_basic_b_grad",
     "scale": "graph_basic_output",
     "matmul": "graph_matmul_left_grad",
+    "fp8_matmul": "graph_fp8_matmul_left_grad",
     "sum": "graph_basic_loss",
     "mean": "graph_basic_loss",
     "reshape": "graph_reshape_input_grad",

@@ -126,6 +126,15 @@ def pytorch_references(actual):
     record(refs, "graph_matmul_left_grad", mat_left.grad)
     record(refs, "graph_matmul_right_grad", mat_right.grad)
 
+    fp8_left = tensor([1, -2, 3, 4, 0.5, -0.25], (2, 3))
+    fp8_right = tensor([1, 2, 3, 4, 5, 6], (3, 2))
+    fp8_seed = tensor([1, -1, 0.5, 2], (2, 2))
+    quantized_left = (fp8_left / 0.025).to(torch.float8_e4m3fnuz).float() * 0.025
+    quantized_right = (fp8_right / 0.05).to(torch.float8_e4m3fnuz).float() * 0.05
+    record(refs, "graph_fp8_matmul_output", quantized_left @ quantized_right)
+    record(refs, "graph_fp8_matmul_left_grad", fp8_seed @ fp8_right.transpose(0, 1))
+    record(refs, "graph_fp8_matmul_right_grad", fp8_left.transpose(0, 1) @ fp8_seed)
+
     embed_weight = tensor([0, 1, 2, 3, 4, 5, 6, 7], (4, 2), True)
     embed_seed = tensor([1, 2, 3, 4, 5, 6], (3, 2))
     (F.embedding(indices, embed_weight) * embed_seed).sum().backward()
@@ -287,7 +296,9 @@ class OperatorParityTest(unittest.TestCase):
         }
         for name, (_, expected) in self.references.items():
             actual = self.actual[name][1]
-            if name.startswith("bf16_"):
+            if name == "graph_fp8_matmul_output":
+                tolerance = 1.0e-1
+            elif name.startswith("bf16_"):
                 tolerance = 3.0e-2
             elif name.startswith("fp16_"):
                 tolerance = 3.0e-3

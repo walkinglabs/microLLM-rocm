@@ -28,6 +28,12 @@ void launch_silu_typed(const void* input, void* output, DType dtype,
                        std::int64_t elements, void* stream = nullptr);
 void launch_swiglu_typed(const void* gate, const void* up, void* output, DType dtype,
                          std::int64_t elements, void* stream = nullptr);
+void launch_quantize_fp8(const void* input, DType input_dtype, void* output,
+                         DType fp8_dtype, std::int64_t elements, float inverse_scale,
+                         void* stream = nullptr);
+void launch_dequantize_fp8(const void* input, DType fp8_dtype, void* output,
+                           DType output_dtype, std::int64_t elements, float scale,
+                           void* stream = nullptr);
 void launch_matmul(const float* left, const float* right, float* output,
                    std::int64_t batches, std::int64_t rows, std::int64_t inner,
                    std::int64_t columns, void* stream = nullptr);

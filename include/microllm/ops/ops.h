@@ -14,6 +14,20 @@ struct TensorPair {
     Tensor second;
 };
 
+struct ScaledTensor {
+    Tensor values;
+    Tensor scale;
+    float scale_value = 1.0F;
+};
+
+[[nodiscard]] ScaledTensor quantize_fp8(const Tensor& input, DType fp8_dtype,
+                                        float scale, const OpContext& context = {});
+[[nodiscard]] Tensor dequantize_fp8(const ScaledTensor& input, DType output_dtype,
+                                    const OpContext& context = {});
+[[nodiscard]] Tensor fp8_matmul(const ScaledTensor& left, const ScaledTensor& right,
+                                DType output_dtype = DType::BFloat16,
+                                const OpContext& context = {});
+
 void fill_(Tensor& tensor, float value, const OpContext& context = {});
 
 [[nodiscard]] Tensor add(const Tensor& left, const Tensor& right, const OpContext& context = {});

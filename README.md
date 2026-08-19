@@ -31,6 +31,7 @@ needed to run a real training and generation loop:
 - an eager reverse-mode graph engine with device-native Transformer backward;
 - Decoder-only MHA/GQA, RoPE, RMSNorm, SwiGLU, causal attention, loss, and optimizers;
 - named model state and F32/BF16/F16 safetensors loading;
+- MI300X FNUZ FP8 quantize/dequantize, scaled hipBLASLt GEMM, and FP32-master training op;
 - C, Python ctypes, and optional PyTorch dispatcher adapters;
 - reproducible benchmarks, rocprofv3 workflows, hipBLASLt, and RCCL experiments.
 - a cross-framework trace runner for operator/layer values and latency comparisons.
@@ -119,9 +120,9 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| CPU tests | 126/126 | reference, dtype/shape/property matrix, graph, model, weights, profiling, integration |
-| ASan/UBSan | 124/124 | host code; dynamic binding tests isolated |
-| MI300X/gfx942 HIP | 31/31 | hardware formats, low-precision GEMM, graph, model, weights, profiling |
+| CPU tests | 129/129 | reference, dtype/shape/property matrix, graph, model, weights, profiling, integration |
+| ASan/UBSan | 127/127 | host code; dynamic binding tests isolated |
+| MI300X/gfx942 HIP | 34/34 | FP8 train/infer ops, hardware formats, graph, model, weights, profiling |
 | PyTorch CPU oracle/alignment | 3/3 | ops plus same-weight model value/timing trace |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
 | Registered test files | 34 | machine-audited CTest registration |
