@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <iostream>
@@ -5,6 +6,7 @@
 #include <vector>
 
 #include <microllm/io/token_dataset.h>
+#include <microllm/inference/generator.h>
 #include <microllm/model/model.h>
 #include <microllm/training/trainer.h>
 
@@ -50,6 +52,26 @@ int main() {
         std::cout << "final_loss=" << final_loss << '\n';
         if (!std::isfinite(final_loss) || !(final_loss < first_loss * 0.35F)) {
             throw std::runtime_error("tiny Transformer did not reach the overfit gate");
+        }
+        const auto generated = microllm::inference::generate(
+            model, {0}, {.max_new_tokens = 7, .temperature = 0.0F, .top_k = 0, .seed = 1});
+        const std::vector<std::int32_t> expected{0, 1, 2, 3, 0, 1, 2, 3};
+        const std::vector<std::int32_t> expected_trained_prefix{0, 1, 2, 3, 0};
+        std::cout << "generated=";
+        for (std::size_t index = 0; index < generated.size(); ++index) {
+            if (index != 0) std::cout << ',';
+            std::cout << generated[index];
+        }
+        std::cout << '\n';
+        const auto trained_prefix_matches =
+            std::equal(expected_trained_prefix.begin(), expected_trained_prefix.end(),
+                       generated.begin());
+        std::cout << "trained_prefix_matches=" << (trained_prefix_matches ? "true" : "false")
+                  << '\n';
+        std::cout << "beyond_training_context_failure="
+                  << (generated == expected ? "false" : "true") << '\n';
+        if (!trained_prefix_matches) {
+            throw std::runtime_error("model did not learn the cycle inside its training context");
         }
         return 0;
     } catch (const std::exception& error) {

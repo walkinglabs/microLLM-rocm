@@ -22,6 +22,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Tiny Transformer training | smoke-tested | 40-step overfit and finite gradients | validation split/Model-S |
 | CPU KV cache | smoke-tested | every prefix, MHA/GQA logits tolerance | preallocation/HIP/batching |
 | Token generation | smoke-tested | deterministic sampling and cache-backed length/bounds | trained text report |
+| Stable model failure | smoke-tested | low-loss cycle breaks beyond training context | rebuttal experiments |
 | Python/PyTorch bridge | draft | ABI design | zero-copy implementation |
 | Profiling/autotune | draft | registry design | traces and selection cache |
 | RCCL | draft | roadmap | 2/4 GPU equivalence |

@@ -42,3 +42,5 @@ the next gate. Records are append-only except for factual corrections.
   K/V caching and cached/full logit equivalence.
 - [2026-08-19-m3-generation.md](2026-08-19-m3-generation.md): deterministic greedy
   and sampled generation over the real KV cache.
+- [2026-08-19-m3-trained-generation-failure.md](2026-08-19-m3-trained-generation-failure.md):
+  low training loss with a stable beyond-context generation failure.

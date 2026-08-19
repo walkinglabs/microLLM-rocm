@@ -8,7 +8,7 @@ add_executable(microllm_model_info model_info.cpp)
 target_link_libraries(microllm_model_info PRIVATE microllm::model)
 
 add_executable(microllm_tiny_overfit tiny_overfit.cpp)
-target_link_libraries(microllm_tiny_overfit PRIVATE microllm::training)
+target_link_libraries(microllm_tiny_overfit PRIVATE microllm::training microllm::inference)
 
 if(BUILD_TESTING)
     add_test(NAME N0.PpmSmoke COMMAND microllm_n0_ppm "${CMAKE_CURRENT_BINARY_DIR}/n0.ppm")
