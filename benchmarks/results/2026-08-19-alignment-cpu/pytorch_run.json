@@ -1,0 +1,20 @@
+{
+  "device": "cpu",
+  "framework": "pytorch",
+  "model": {
+    "dimension": 8,
+    "ffn_dimension": 16,
+    "heads": 2,
+    "kv_heads": 1,
+    "layers": 1,
+    "max_sequence_length": 4,
+    "rope_base": 10000,
+    "vocabulary_size": 8
+  },
+  "repetitions": 20,
+  "run_id": "2026-08-19-alignment-cpu",
+  "schema_version": 1,
+  "torch_hip_version": null,
+  "torch_version": "2.13.0+cpu",
+  "warmup": 5
+}
