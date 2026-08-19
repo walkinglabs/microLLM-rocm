@@ -58,7 +58,7 @@ Every performance-sensitive operator will keep three paths where useful:
 | Model-M HIP train step | smoke-tested | 31.3M params; 518,798,856 peak engine bytes |
 | C ABI v1 | smoke-tested | pure C CPU/HIP tensor and operator client |
 | Python ctypes API | smoke-tested | dependency-free CPU/HIP integration tests |
-| PyTorch Custom Ops | implemented, unverified | optional build; local Torch unavailable |
+| PyTorch Custom Ops | CPU smoke-tested | Torch 2.13 CPU passes; ROCm path unverified |
 | Micro-benchmark harness | smoke-tested | CPU/HIP JSONL, Event/wall/error metadata |
 | End-to-end benchmark | smoke-tested | train/generate tokens/s and engine peak memory |
 | hipBLASLt + shape selector | smoke-tested | 2D FP32 correctness and Model-S measurements |
@@ -67,7 +67,7 @@ Every performance-sensitive operator will keep three paths where useful:
 | RCCL compute overlap | smoke-tested | separate Streams improve synthetic step 30–33% |
 | RCCL four-GPU | blocked by environment | 64MB /dev/shm; failure evidence retained |
 | Reference-length Model-S/SFT report | planned | full dataset + validation run required |
-| Python/PyTorch bindings | mixed | ctypes tested; Torch source unverified |
+| Python/PyTorch bindings | mixed | ctypes CPU/HIP + Torch CPU tested; Torch ROCm pending |
 | Profiling/autotuning | smoke-tested | M5 evidence and registry |
 | Backward-ready overlap/four-GPU retry | planned | M6 follow-up |
 

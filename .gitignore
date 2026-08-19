@@ -33,6 +33,7 @@ data/*.jsonl
 data/*.txt
 !data/.gitkeep
 !data/README.md
+!data/generated-cycle.txt
 
 # 训练产物
 checkpoints/

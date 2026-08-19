@@ -92,3 +92,5 @@ the next gate. Records are append-only except for factual corrections.
   ignored-target loss and tiny SFT trajectory.
 - [2026-08-19-training-cli-real-text-smoke.md](2026-08-19-training-cli-real-text-smoke.md):
   pure C++ save/resume CLI and Model-S TinyStories HIP trajectory.
+- [2026-08-19-torch-cpu-validation.md](2026-08-19-torch-cpu-validation.md): optional
+  dispatcher binding compiled and run with an isolated Torch CPU wheel.

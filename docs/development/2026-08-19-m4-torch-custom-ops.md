@@ -20,10 +20,10 @@ launch on PyTorch's current HIP stream through the external OpContext seam.
 The implementation follows the official PyTorch C++ Custom Operators pattern:
 <https://docs.pytorch.org/tutorials/advanced/cpp_custom_ops.html>.
 
-## Current evidence state
+## Evidence state
 
-The current environment has neither the `torch` Python package nor
-`TorchConfig.cmake`. `AUTO` configuration reports that the target is not built and all
-non-Torch targets remain green. Therefore the source is **implemented but not
-smoke-tested**; it must not be presented as working PyTorch integration until a
-PyTorch ROCm build compiles and runs `TorchOps.Basic`.
+The base environment initially had neither the `torch` Python package nor
+`TorchConfig.cmake`; `AUTO` correctly left the target disabled. A later isolated
+official Torch 2.13 CPU environment compiled the dispatcher library and passed CPU
+add/multiply comparison. The PyTorch ROCm case remains unverified, so current-stream
+HIP integration must not yet be presented as measured.

@@ -11,15 +11,18 @@ if(Torch_FOUND)
     set_target_properties(microllm_torch_ops PROPERTIES OUTPUT_NAME microllm_torch_ops)
     install(TARGETS microllm_torch_ops LIBRARY DESTINATION lib)
 
-    if(BUILD_TESTING AND Python3_Interpreter_FOUND)
-        add_test(
-            NAME TorchOps.Basic
-            COMMAND ${CMAKE_COMMAND} -E env
-                "PYTHONPATH=${PROJECT_SOURCE_DIR}/python"
-                "MICROLLM_TORCH_OP_LIBRARY=$<TARGET_FILE:microllm_torch_ops>"
-                ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/python/tests/test_torch_ops.py
-        )
-        set_tests_properties(TorchOps.Basic PROPERTIES LABELS "torch;integration")
+    if(BUILD_TESTING)
+        find_package(Python3 COMPONENTS Interpreter QUIET)
+        if(Python3_Interpreter_FOUND)
+            add_test(
+                NAME TorchOps.Basic
+                COMMAND ${CMAKE_COMMAND} -E env
+                    "PYTHONPATH=${PROJECT_SOURCE_DIR}/python"
+                    "MICROLLM_TORCH_OP_LIBRARY=$<TARGET_FILE:microllm_torch_ops>"
+                    ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/python/tests/test_torch_ops.py
+            )
+            set_tests_properties(TorchOps.Basic PROPERTIES LABELS "torch;integration")
+        endif()
     endif()
     message(STATUS "PyTorch found: Custom Op target enabled")
 elseif(MICROLLM_BUILD_TORCH_OPS_NORMALIZED STREQUAL "ON")
