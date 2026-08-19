@@ -49,6 +49,7 @@ Every performance-sensitive operator will keep three paths where useful:
 | Token generation | smoke-tested | greedy/top-k/temperature/fixed-seed cache generation |
 | Model-S CPU forward | smoke-tested | real 15.6M model, 8192 finite logits |
 | Model-S CPU training | smoke-tested | 3-step loss 11.2473 → 1.98712 |
+| Model-S HIP forward | smoke-tested | MI300X CPU/HIP max logit error 4.05312e-06 |
 | Model-S reference training report | planned | M3 next step |
 | Python/PyTorch bindings | planned | M4 |
 | Profiling/autotuning | planned | M5 |

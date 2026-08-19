@@ -16,9 +16,8 @@ namespace {
 using autograd::Value;
 
 Tensor append_cached_sequence(const Tensor& cached, const Tensor& current) {
-    if (!current.device().is_cpu() || current.dtype() != DType::Float32 ||
-        current.ndim() != 4) {
-        throw std::invalid_argument("cached K/V tensors must be CPU float32 rank four");
+    if (current.dtype() != DType::Float32 || current.ndim() != 4) {
+        throw std::invalid_argument("cached K/V tensors must be float32 rank four");
     }
     if (!cached.defined()) return current.contiguous();
     if (cached.ndim() != 4 || cached.shape()[0] != current.shape()[0] ||
@@ -46,8 +45,8 @@ Tensor append_cached_sequence(const Tensor& cached, const Tensor& current) {
                         output.begin() + output_base + old_sequence * width);
         }
     }
-    return Tensor::from_vector(output,
-                               {batch, heads, old_sequence + new_sequence, width});
+    return Tensor::from_vector(output, {batch, heads, old_sequence + new_sequence, width})
+        .to(current.device());
 }
 
 Tensor random_tensor(Shape shape, std::mt19937_64& generator, float standard_deviation) {
@@ -169,9 +168,13 @@ public:
                             value_values.begin() + destination_base);
             }
             expanded_key = Tensor::from_vector(
-                key_values, {1, config_.heads, cached_sequence, config_.head_dimension()});
+                               key_values,
+                               {1, config_.heads, cached_sequence, config_.head_dimension()})
+                               .to(cache.key.device());
             expanded_value = Tensor::from_vector(
-                value_values, {1, config_.heads, cached_sequence, config_.head_dimension()});
+                                 value_values,
+                                 {1, config_.heads, cached_sequence, config_.head_dimension()})
+                                 .to(cache.value.device());
         }
         const auto scores = ops::scale(
             ops::matmul(query, expanded_key.transpose(-2, -1)),
@@ -307,6 +310,17 @@ TransformerModel::TransformerModel(TransformerModel&&) noexcept = default;
 TransformerModel& TransformerModel::operator=(TransformerModel&&) noexcept = default;
 const ModelConfig& TransformerModel::config() const noexcept { return impl_->config; }
 
+Device TransformerModel::device() {
+    return impl_->token_embedding.data().device();
+}
+
+void TransformerModel::to(Device target) {
+    for (auto* value : parameters()) {
+        value->mutable_data() = value->data().to(target);
+        value->zero_grad();
+    }
+}
+
 Value TransformerModel::forward(const Tensor& token_ids) {
     if (!token_ids.device().is_cpu() || token_ids.dtype() != DType::Int32 ||
         token_ids.ndim() != 2) {
@@ -338,9 +352,8 @@ Value TransformerModel::loss(const Tensor& token_ids, const Tensor& targets) {
 }
 
 Tensor TransformerModel::forward_cached(const Tensor& token_id, inference::KVCache& cache) {
-    if (!token_id.device().is_cpu() || token_id.dtype() != DType::Int32 ||
-        token_id.shape() != Shape{1, 1}) {
-        throw std::invalid_argument("cached forward expects one CPU int32 token with shape 1x1");
+    if (token_id.dtype() != DType::Int32 || token_id.shape() != Shape{1, 1}) {
+        throw std::invalid_argument("cached forward expects one int32 token with shape 1x1");
     }
     if (cache.layer_count() != impl_->blocks.size() ||
         cache.max_sequence_length() != impl_->config.max_sequence_length) {
@@ -349,7 +362,9 @@ Tensor TransformerModel::forward_cached(const Tensor& token_id, inference::KVCac
     if (cache.position() >= cache.max_sequence_length()) {
         throw std::out_of_range("KV cache has reached maximum sequence length");
     }
-    auto hidden = ops::embedding(impl_->token_embedding.data(), token_id);
+    const auto model_device = device();
+    const auto device_token = token_id.device() == model_device ? token_id : token_id.to(model_device);
+    auto hidden = ops::embedding(impl_->token_embedding.data(), device_token);
     for (std::size_t layer = 0; layer < impl_->blocks.size(); ++layer) {
         hidden = impl_->blocks[layer]->forward_cached(hidden, cache.mutable_layer(layer),
                                                       cache.position());

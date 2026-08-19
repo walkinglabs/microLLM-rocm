@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 #include <microllm/ops/ops.h>
 #include <microllm/runtime/runtime.h>
+#include <microllm/model/model.h>
 
 namespace microllm::ops {
 namespace {
@@ -107,6 +108,27 @@ TEST(HipOpsTest, ExplicitStreamRejectsDeviceMismatch) {
     runtime::Stream cpu_stream(Device::cpu());
     const OpContext context{&cpu_stream, nullptr, 0};
     EXPECT_THROW((void)add(gpu, gpu, context), std::invalid_argument);
+}
+
+TEST(HipModelTest, TinyOneTokenCachedForwardMatchesCpu) {
+    require_gpu();
+    const model::ModelConfig config{.vocabulary_size = 16,
+                                    .dimension = 8,
+                                    .layers = 1,
+                                    .heads = 2,
+                                    .kv_heads = 2,
+                                    .ffn_dimension = 16,
+                                    .max_sequence_length = 4,
+                                    .rope_base = 10000.0F,
+                                    .tie_embeddings = false};
+    const auto token = Tensor::from_int32_vector({3}, {1, 1});
+    model::TransformerModel cpu_model(config, 61);
+    inference::KVCache cpu_cache(config.layers, config.max_sequence_length);
+    const auto expected = cpu_model.forward_cached(token, cpu_cache).to_vector();
+    model::TransformerModel hip_model(config, 61);
+    hip_model.to(Device::hip());
+    inference::KVCache hip_cache(config.layers, config.max_sequence_length);
+    expect_near(hip_model.forward_cached(token, hip_cache).to_vector(), expected, 2.0e-4F);
 }
 
 }  // namespace microllm::ops

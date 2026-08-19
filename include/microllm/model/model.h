@@ -24,6 +24,8 @@ public:
     TransformerModel& operator=(const TransformerModel&) = delete;
 
     [[nodiscard]] const ModelConfig& config() const noexcept;
+    [[nodiscard]] Device device();
+    void to(Device device);
     [[nodiscard]] autograd::Value forward(const Tensor& token_ids);
     [[nodiscard]] Tensor forward_cached(const Tensor& token_id,
                                         inference::KVCache& cache);

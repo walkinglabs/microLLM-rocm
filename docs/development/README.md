@@ -48,3 +48,5 @@ the next gate. Records are append-only except for factual corrections.
   15.6M-parameter Model-S construction and CPU forward smoke.
 - [2026-08-19-m3-model-s-train-step.md](2026-08-19-m3-model-s-train-step.md): full
   Model-S backward and AdamW update smoke.
+- [2026-08-19-m3-model-s-hip-forward.md](2026-08-19-m3-model-s-hip-forward.md):
+  complete Model-S weight transfer and readable HIP forward comparison.
