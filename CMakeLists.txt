@@ -120,6 +120,7 @@ target_link_libraries(micro_llm PRIVATE microllm::core microllm_build_config)
 
 if(MICROLLM_BUILD_EXAMPLES)
     add_subdirectory(examples)
+    add_subdirectory(pa)
 endif()
 
 if(MICROLLM_BUILD_BENCHMARKS)
