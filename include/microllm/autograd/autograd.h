@@ -36,6 +36,15 @@ private:
     friend Value matmul(const Value&, const Value&);
     friend Value sum(const Value&);
     friend Value mean(const Value&);
+    friend Value reshape(const Value&, Shape);
+    friend Value transpose(const Value&, std::int64_t, std::int64_t);
+    friend Value embedding(const Value&, const Tensor&);
+    friend Value softmax(const Value&, std::int64_t);
+    friend Value rms_norm(const Value&, const Value&, float);
+    friend Value silu(const Value&);
+    friend Value swiglu(const Value&, const Value&);
+    friend Value rope(const Value&, std::int64_t, std::int64_t, float);
+    friend Value cross_entropy(const Value&, const Tensor&);
 };
 
 [[nodiscard]] Value add(const Value& left, const Value& right);
@@ -44,5 +53,16 @@ private:
 [[nodiscard]] Value matmul(const Value& left, const Value& right);
 [[nodiscard]] Value sum(const Value& input);
 [[nodiscard]] Value mean(const Value& input);
+[[nodiscard]] Value reshape(const Value& input, Shape shape);
+[[nodiscard]] Value transpose(const Value& input, std::int64_t dim0, std::int64_t dim1);
+[[nodiscard]] Value embedding(const Value& weight, const Tensor& indices);
+[[nodiscard]] Value softmax(const Value& input, std::int64_t dim = -1);
+[[nodiscard]] Value rms_norm(const Value& input, const Value& weight,
+                             float epsilon = 1.0e-5F);
+[[nodiscard]] Value silu(const Value& input);
+[[nodiscard]] Value swiglu(const Value& gate, const Value& up);
+[[nodiscard]] Value rope(const Value& input, std::int64_t sequence_dim = 1,
+                         std::int64_t position_offset = 0, float base = 10000.0F);
+[[nodiscard]] Value cross_entropy(const Value& logits, const Tensor& targets);
 
 }  // namespace microllm::autograd

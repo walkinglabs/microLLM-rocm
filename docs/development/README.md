@@ -20,3 +20,5 @@ the next gate. Records are append-only except for factual corrections.
   workspace context plus the N1 CPU/HIP artifact.
 - [2026-08-19-m2-autograd-core.md](2026-08-19-m2-autograd-core.md): eager reverse-mode
   graph, gradient accumulation, and finite differences.
+- [2026-08-19-m2-transformer-backward.md](2026-08-19-m2-transformer-backward.md):
+  backward paths needed by Transformer training.

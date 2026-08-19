@@ -13,7 +13,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | CPU reference operators | smoke-tested | 9 hand-value/stability/shape tests | gradient references |
 | HIP readable operators | smoke-tested | gfx942 conformance for 11 kernels | more architectures/optimized paths |
 | Operator context | smoke-tested | explicit Stream ordering and mismatch tests | low-level C descriptor |
-| Basic CPU Autograd | smoke-tested | branches, matmul, repeated backward, finite difference | Transformer ops |
+| CPU Transformer Autograd | smoke-tested | 11 focused tests and finite differences | attention composition/GPU backward |
 | Checkpoint | draft | roadmap | multi-step resume |
 | Model-S | draft | corrected parameter budget | overfit and training run |
 | Python/PyTorch bridge | draft | ABI design | zero-copy implementation |

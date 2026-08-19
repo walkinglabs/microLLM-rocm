@@ -3,6 +3,7 @@
 
 #include <gtest/gtest.h>
 #include <microllm/autograd/autograd.h>
+#include <microllm/ops/ops.h>
 
 namespace microllm::autograd {
 
@@ -66,6 +67,101 @@ TEST(AutogradTest, RepeatedBackwardAccumulatesLeavesWithoutReusingIntermediateGr
     loss.backward();
     loss.backward();
     EXPECT_EQ(input.grad().to_vector(), (std::vector<float>{8}));
+}
+
+TEST(AutogradTest, EmbeddingBackwardScattersAndAccumulatesRepeatedIndices) {
+    Value weight(Tensor::from_vector({0, 1, 2, 3, 4, 5}, {3, 2}), true);
+    const auto indices = Tensor::from_int32_vector({2, 0, 2}, {3});
+    sum(embedding(weight, indices)).backward();
+    EXPECT_EQ(weight.grad().to_vector(), (std::vector<float>{1, 1, 0, 0, 2, 2}));
+}
+
+TEST(AutogradTest, CrossEntropyBackwardMatchesFiniteDifference) {
+    const std::vector<float> initial{2, 1, 0, 0, 1, 2};
+    const auto targets = Tensor::from_int32_vector({0, 2}, {2});
+    Value logits(Tensor::from_vector(initial, {2, 3}), true);
+    cross_entropy(logits, targets).backward();
+    const auto analytical = logits.grad().to_vector();
+    constexpr float epsilon = 1.0e-3F;
+    for (std::size_t index = 0; index < initial.size(); ++index) {
+        auto plus = initial;
+        auto minus = initial;
+        plus[index] += epsilon;
+        minus[index] -= epsilon;
+        const auto positive = ops::cross_entropy(Tensor::from_vector(plus, {2, 3}), targets)
+                                  .to_vector()[0];
+        const auto negative = ops::cross_entropy(Tensor::from_vector(minus, {2, 3}), targets)
+                                  .to_vector()[0];
+        EXPECT_NEAR(analytical[index], (positive - negative) / (2.0F * epsilon), 2.0e-4F)
+            << "index=" << index;
+    }
+}
+
+TEST(AutogradTest, RmsNormAndSwiGluBackwardsMatchFiniteDifference) {
+    const std::vector<float> input_values{0.5F, -1.0F, 2.0F};
+    const std::vector<float> weight_values{1.0F, 0.5F, 1.5F};
+    Value input(Tensor::from_vector(input_values, {1, 3}), true);
+    Value weight(Tensor::from_vector(weight_values, {3}), true);
+    sum(rms_norm(input, weight)).backward();
+    constexpr float epsilon = 1.0e-3F;
+    for (std::size_t index = 0; index < input_values.size(); ++index) {
+        auto plus = input_values;
+        auto minus = input_values;
+        plus[index] += epsilon;
+        minus[index] -= epsilon;
+        const auto positive = ops::rms_norm(Tensor::from_vector(plus, {1, 3}), weight.data())
+                                  .to_vector();
+        const auto negative = ops::rms_norm(Tensor::from_vector(minus, {1, 3}), weight.data())
+                                  .to_vector();
+        float positive_sum = 0.0F;
+        float negative_sum = 0.0F;
+        for (const auto value : positive) positive_sum += value;
+        for (const auto value : negative) negative_sum += value;
+        EXPECT_NEAR(input.grad().to_vector()[index],
+                    (positive_sum - negative_sum) / (2.0F * epsilon), 4.0e-4F);
+    }
+
+    Value gate(Tensor::from_vector({-1, 0.5F, 2}, {3}), true);
+    Value up(Tensor::from_vector({2, 3, 4}, {3}), true);
+    sum(swiglu(gate, up)).backward();
+    EXPECT_NEAR(up.grad().to_vector()[1], ops::silu(gate.data()).to_vector()[1], 1.0e-6F);
+}
+
+TEST(AutogradTest, SoftmaxRopeAndViewBackwardsPreserveShapes) {
+    Value input(Tensor::from_vector({1, 2, 3, 4, 5, 6, 7, 8}, {1, 2, 1, 4}), true);
+    const auto transformed = rope(input);
+    const auto probabilities = softmax(reshape(transformed, {2, 4}));
+    sum(transpose(probabilities, 0, 1)).backward();
+    EXPECT_EQ(input.grad().shape(), input.data().shape());
+    for (const auto value : input.grad().to_vector()) EXPECT_NEAR(value, 0.0F, 1.0e-5F);
+}
+
+TEST(AutogradTest, RopeBackwardMatchesFiniteDifference) {
+    const std::vector<float> initial{1, 0, 0, 1, 1, 0, 0, 1};
+    const auto coefficients = Tensor::from_vector({1, 2, 3, 4, -1, 0.5F, 2, -3},
+                                                   {1, 2, 1, 4});
+    Value input(Tensor::from_vector(initial, {1, 2, 1, 4}), true);
+    sum(multiply(rope(input), Value(coefficients))).backward();
+    const auto analytical = input.grad().to_vector();
+    constexpr float epsilon = 1.0e-3F;
+    for (std::size_t index = 0; index < initial.size(); ++index) {
+        auto plus = initial;
+        auto minus = initial;
+        plus[index] += epsilon;
+        minus[index] -= epsilon;
+        const auto positive_values =
+            ops::multiply(ops::rope(Tensor::from_vector(plus, {1, 2, 1, 4})), coefficients)
+                .to_vector();
+        const auto negative_values =
+            ops::multiply(ops::rope(Tensor::from_vector(minus, {1, 2, 1, 4})), coefficients)
+                .to_vector();
+        float positive = 0.0F;
+        float negative = 0.0F;
+        for (const auto value : positive_values) positive += value;
+        for (const auto value : negative_values) negative += value;
+        EXPECT_NEAR(analytical[index], (positive - negative) / (2.0F * epsilon), 5.0e-4F)
+            << "index=" << index;
+    }
 }
 
 }  // namespace microllm::autograd
