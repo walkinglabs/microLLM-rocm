@@ -19,6 +19,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Model-S/Model-M config | smoke-tested | executable exact parameter/byte tests | model layers/training |
 | Decoder Transformer structure | smoke-tested | tiny GQA/MHA causal forward and all-parameter backward | overfit/full recipe |
 | Byte tokenizer/token dataset | smoke-tested | all-byte round-trip and cursor equivalence | BPE/real corpus |
+| Tiny Transformer training | smoke-tested | 40-step overfit and finite gradients | validation split/Model-S |
 | Python/PyTorch bridge | draft | ABI design | zero-copy implementation |
 | Profiling/autotune | draft | registry design | traces and selection cache |
 | RCCL | draft | roadmap | 2/4 GPU equivalence |

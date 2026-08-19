@@ -36,3 +36,5 @@ the next gate. Records are append-only except for factual corrections.
   Decoder-only MHA/GQA Transformer composition.
 - [2026-08-19-m3-data-pipeline.md](2026-08-19-m3-data-pipeline.md): byte tokenizer
   and deterministic resumable token batches.
+- [2026-08-19-m3-tiny-overfit.md](2026-08-19-m3-tiny-overfit.md): complete tiny
+  Transformer training loop and measured loss trajectory.

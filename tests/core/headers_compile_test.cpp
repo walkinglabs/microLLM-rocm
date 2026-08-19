@@ -15,5 +15,6 @@
 #include <microllm/model/model.h>
 #include <microllm/io/byte_tokenizer.h>
 #include <microllm/io/token_dataset.h>
+#include <microllm/training/trainer.h>
 
 TEST(PublicHeaders, CanBeIncludedTogether) { SUCCEED(); }

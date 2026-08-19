@@ -12,6 +12,7 @@ add_executable(microllm_tests
     model/config_test.cpp
     model/model_test.cpp
     io/io_test.cpp
+    training/trainer_test.cpp
 )
 
 target_link_libraries(microllm_tests PRIVATE
