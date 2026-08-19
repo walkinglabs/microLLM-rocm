@@ -121,9 +121,9 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| CPU tests | 130/130 | reference, dtype/shape/property matrix, graph, model, weights, profiling, integration |
-| ASan/UBSan | 128/128 | host code; dynamic binding tests isolated |
-| MI300X/gfx942 HIP | 35/35 | FP8 Transformer train/decode, hardware formats, graph, weights, profiling |
+| CPU tests | 138/138 | reference, Qwen config, dtype/shape, graph, model, weights, profiling |
+| ASan/UBSan | 136/136 | host code; dynamic binding tests isolated |
+| MI300X/gfx942 HIP | 36/36 | FP8, Qwen bias/RoPE primitives, graph, weights, profiling |
 | PyTorch CPU oracle/alignment | 3/3 | ops plus same-weight model value/timing trace |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
 | Registered test files | 34 | machine-audited CTest registration |
@@ -183,6 +183,17 @@ python3 tools/alignment/run.py \
 
 See [Alignment experiments](docs/dev/alignment.md) for the trace schema, four-pass
 measurement design, comparison metrics, artifact manifest, and model-extension process.
+
+Inspect the pinned Qwen2.5-compatible architecture without allocating model weights:
+
+```bash
+build/cpu-debug/apps/microllm_hf_inspect \
+  --config tests/fixtures/qwen25-0.5b-config.json
+```
+
+This currently proves config/shape/parameter compatibility, not official checkpoint
+logit compatibility. The remaining gates are tracked in
+[the Qwen2.5 development record](docs/development/2026-08-19-qwen25-architecture.md).
 
 ```bash
 # Repeated Event/wall-clock micro-benchmarks

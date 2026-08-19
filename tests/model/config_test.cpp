@@ -1,5 +1,9 @@
+#include <filesystem>
+#include <fstream>
+
 #include <gtest/gtest.h>
 #include <microllm/model/config.h>
+#include <microllm/model/huggingface.h>
 
 namespace microllm::model {
 
@@ -35,6 +39,54 @@ TEST(ModelConfigTest, RejectsInvalidHeadAndRopeConfigurations) {
     config.linear_precision = LinearPrecision::Float8E4M3FNUZ;
     config.fp8_activation_scale = 0.0F;
     EXPECT_THROW(config.validate(), std::invalid_argument);
+}
+
+TEST(HuggingFaceConfigTest, ParsesPinnedQwen25AndMatchesCheckpointParameterCount) {
+    const auto path = std::filesystem::temp_directory_path() / "microllm-qwen25-config.json";
+    std::ofstream(path) << R"({
+      "architectures":["Qwen2ForCausalLM"],
+      "bos_token_id":151643,"eos_token_id":151643,
+      "hidden_act":"silu","hidden_size":896,"intermediate_size":4864,
+      "max_position_embeddings":32768,"model_type":"qwen2",
+      "num_attention_heads":14,"num_hidden_layers":24,"num_key_value_heads":2,
+      "rms_norm_eps":1e-6,"rope_theta":1000000.0,
+      "tie_word_embeddings":true,"torch_dtype":"bfloat16",
+      "use_mrope":false,"use_sliding_window":false,"vocab_size":151936
+    })";
+    const auto parsed = load_huggingface_config(path);
+    EXPECT_EQ(parsed.model_type, "qwen2");
+    EXPECT_EQ(parsed.torch_dtype, "bfloat16");
+    EXPECT_EQ(parsed.bos_token_id, 151643);
+    EXPECT_EQ(parsed.model.dimension, 896);
+    EXPECT_EQ(parsed.model.layers, 24);
+    EXPECT_EQ(parsed.model.kv_heads, 2);
+    EXPECT_TRUE(parsed.model.attention_bias);
+    EXPECT_EQ(parsed.model.rope_layout, RopeLayout::SplitHalf);
+    EXPECT_TRUE(parsed.model.tie_embeddings);
+    EXPECT_FLOAT_EQ(parsed.model.rms_norm_epsilon, 1.0e-6F);
+    EXPECT_EQ(parsed.model.parameter_count(), 494'032'768U);
+    std::error_code ignored;
+    std::filesystem::remove(path, ignored);
+}
+
+TEST(HuggingFaceConfigTest, RejectsUnsupportedFamilyAndAttentionVariants) {
+    const auto path = std::filesystem::temp_directory_path() / "microllm-bad-hf-config.json";
+    const auto write = [&](const char* model_type, bool sliding) {
+        std::ofstream(path) << "{\"bos_token_id\":1,\"eos_token_id\":2,"
+            "\"hidden_act\":\"silu\",\"hidden_size\":8,\"intermediate_size\":16,"
+            "\"max_position_embeddings\":8,\"model_type\":\"" << model_type << "\","
+            "\"num_attention_heads\":2,\"num_hidden_layers\":1,\"num_key_value_heads\":1,"
+            "\"rms_norm_eps\":1e-6,\"rope_theta\":10000,\"tie_word_embeddings\":true,"
+            "\"torch_dtype\":\"float32\",\"use_mrope\":false,"
+            "\"use_sliding_window\":" << (sliding ? "true" : "false") << ","
+            "\"vocab_size\":16}";
+    };
+    write("llama", false);
+    EXPECT_THROW((void)load_huggingface_config(path), std::invalid_argument);
+    write("qwen2", true);
+    EXPECT_THROW((void)load_huggingface_config(path), std::invalid_argument);
+    std::error_code ignored;
+    std::filesystem::remove(path, ignored);
 }
 
 }  // namespace microllm::model

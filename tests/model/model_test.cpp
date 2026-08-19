@@ -33,6 +33,23 @@ TEST(TransformerModelTest, ConstructedParametersMatchConfigAndHaveUniqueNames) {
     }
 }
 
+TEST(TransformerModelTest, AttentionBiasAddsNamedTrainableParameters) {
+    auto config = tiny_config();
+    const auto without_bias = config.parameter_count();
+    config.attention_bias = true;
+    TransformerModel model(config, 7);
+    EXPECT_EQ(config.parameter_count(), without_bias + 16U);
+    const auto named = model.named_parameters();
+    std::set<std::string> names;
+    for (const auto& [name, parameter] : named) {
+        names.insert(name);
+        (void)parameter;
+    }
+    EXPECT_TRUE(names.contains("blocks.0.attention.q_proj.bias"));
+    EXPECT_TRUE(names.contains("blocks.0.attention.k_proj.bias"));
+    EXPECT_TRUE(names.contains("blocks.0.attention.v_proj.bias"));
+}
+
 TEST(TransformerModelTest, ForwardAndBackwardCoverEveryParameter) {
     TransformerModel model(tiny_config(), 11);
     const auto tokens = Tensor::from_int32_vector({1, 2, 3, 4, 4, 3, 2, 1}, {2, 4});

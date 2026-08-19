@@ -38,6 +38,21 @@ __global__ void add_kernel(const float* left, const float* right, float* output,
     if (index < elements) output[index] = left[index] + right[index];
 }
 
+__global__ void add_bias_kernel(const float* input, const float* bias, float* output,
+                                std::int64_t elements, std::int64_t width) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    if (index < elements) output[index] = input[index] + bias[index % width];
+}
+
+__global__ void bias_gradient_kernel(const float* gradient, float* output,
+                                     std::int64_t rows, std::int64_t width) {
+    const auto column = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    if (column >= width) return;
+    float total = 0.0F;
+    for (std::int64_t row = 0; row < rows; ++row) total += gradient[row * width + column];
+    output[column] = total;
+}
+
 __global__ void multiply_kernel(const float* left, const float* right, float* output,
                                 std::int64_t elements) {
     const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
@@ -265,6 +280,28 @@ __global__ void rope_kernel(const float* input, float* output, std::int64_t pair
     output[even + 1] = input[even] * sine + input[even + 1] * cosine;
 }
 
+__global__ void rope_split_half_kernel(
+    const float* input, float* output, std::int64_t pairs,
+    std::int64_t head_width, std::int64_t sequence_size,
+    std::int64_t sequence_stride, std::int64_t position_offset, float base) {
+    const auto pair_index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    if (pair_index >= pairs) return;
+    const auto half = head_width / 2;
+    const auto head = pair_index / half;
+    const auto pair = pair_index % half;
+    const auto first = head * head_width + pair;
+    const auto second = first + half;
+    const auto position = (first / sequence_stride) % sequence_size;
+    const auto angle = static_cast<float>(position + position_offset) *
+                       powf(base, -2.0F * static_cast<float>(pair) /
+                                      static_cast<float>(head_width));
+    float sine = 0.0F;
+    float cosine = 0.0F;
+    sincosf(angle, &sine, &cosine);
+    output[first] = input[first] * cosine - input[second] * sine;
+    output[second] = input[first] * sine + input[second] * cosine;
+}
+
 __global__ void cross_entropy_kernel(const float* logits, const std::int32_t* targets,
                                      float* output, std::int64_t rows,
                                      std::int64_t classes) {
@@ -406,6 +443,28 @@ __global__ void rope_backward_kernel(const float* gradient, float* input_gradien
     input_gradient[even + 1] = -gradient[even] * sine + gradient[even + 1] * cosine;
 }
 
+__global__ void rope_split_half_backward_kernel(
+    const float* gradient, float* input_gradient, std::int64_t pairs,
+    std::int64_t head_width, std::int64_t sequence_size,
+    std::int64_t sequence_stride, std::int64_t position_offset, float base) {
+    const auto pair_index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    if (pair_index >= pairs) return;
+    const auto half = head_width / 2;
+    const auto head = pair_index / half;
+    const auto pair = pair_index % half;
+    const auto first = head * head_width + pair;
+    const auto second = first + half;
+    const auto position = (first / sequence_stride) % sequence_size;
+    const auto angle = static_cast<float>(position + position_offset) *
+                       powf(base, -2.0F * static_cast<float>(pair) /
+                                      static_cast<float>(head_width));
+    float sine = 0.0F;
+    float cosine = 0.0F;
+    sincosf(angle, &sine, &cosine);
+    input_gradient[first] = gradient[first] * cosine + gradient[second] * sine;
+    input_gradient[second] = -gradient[first] * sine + gradient[second] * cosine;
+}
+
 __global__ void cross_entropy_backward_kernel(const float* logits,
                                               const std::int32_t* targets,
                                               const float* loss_gradient,
@@ -545,6 +604,22 @@ void launch_add(const float* left, const float* right, float* output,
     hipLaunchKernelGGL(add_kernel, dim3(grid_size(elements)), dim3(kBlockSize), 0,
                        as_stream(stream), left, right, output, elements);
     check_launch("add_kernel");
+}
+
+void launch_add_bias(const float* input, const float* bias, float* output,
+                     std::int64_t elements, std::int64_t width, void* stream) {
+    if (elements == 0) return;
+    hipLaunchKernelGGL(add_bias_kernel, dim3(grid_size(elements)), dim3(kBlockSize), 0,
+                       as_stream(stream), input, bias, output, elements, width);
+    check_launch("add_bias_kernel");
+}
+
+void launch_bias_gradient(const float* gradient, float* output,
+                          std::int64_t rows, std::int64_t width, void* stream) {
+    if (width == 0) return;
+    hipLaunchKernelGGL(bias_gradient_kernel, dim3(grid_size(width)), dim3(kBlockSize), 0,
+                       as_stream(stream), gradient, output, rows, width);
+    check_launch("bias_gradient_kernel");
 }
 
 void launch_multiply(const float* left, const float* right, float* output,
@@ -865,6 +940,19 @@ void launch_rope(const float* input, float* output, std::int64_t elements,
     check_launch("rope_kernel");
 }
 
+void launch_rope_split_half(const float* input, float* output,
+                            std::int64_t elements, std::int64_t head_width,
+                            std::int64_t sequence_size,
+                            std::int64_t sequence_stride,
+                            std::int64_t position_offset, float base, void* stream) {
+    if (elements == 0) return;
+    const auto pairs = elements / 2;
+    hipLaunchKernelGGL(rope_split_half_kernel, dim3(grid_size(pairs)),
+                       dim3(kBlockSize), 0, as_stream(stream), input, output, pairs,
+                       head_width, sequence_size, sequence_stride, position_offset, base);
+    check_launch("rope_split_half_kernel");
+}
+
 void launch_cross_entropy(const float* logits, const std::int32_t* targets, float* output,
                           std::int64_t rows, std::int64_t classes, void* stream) {
     hipLaunchKernelGGL(cross_entropy_kernel, dim3(1), dim3(1), 0, as_stream(stream),
@@ -946,6 +1034,20 @@ void launch_rope_backward(const float* gradient, float* input_gradient,
                        as_stream(stream), gradient, input_gradient, pairs, head_width,
                        sequence_size, sequence_stride, position_offset, base);
     check_launch("rope_backward_kernel");
+}
+
+void launch_rope_split_half_backward(
+    const float* gradient, float* input_gradient, std::int64_t elements,
+    std::int64_t head_width, std::int64_t sequence_size,
+    std::int64_t sequence_stride, std::int64_t position_offset, float base,
+    void* stream) {
+    if (elements == 0) return;
+    const auto pairs = elements / 2;
+    hipLaunchKernelGGL(rope_split_half_backward_kernel, dim3(grid_size(pairs)),
+                       dim3(kBlockSize), 0, as_stream(stream), gradient,
+                       input_gradient, pairs, head_width, sequence_size,
+                       sequence_stride, position_offset, base);
+    check_launch("rope_split_half_backward_kernel");
 }
 
 void launch_cross_entropy_backward(const float* logits, const std::int32_t* targets,

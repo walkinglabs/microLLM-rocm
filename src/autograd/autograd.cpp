@@ -168,6 +168,20 @@ Value add(const Value& left, const Value& right) {
                      });
 }
 
+Value add_bias(const Value& input, const Value& bias) {
+    require_value(input, "input");
+    require_value(bias, "bias");
+    auto input_node = input.node_;
+    auto bias_node = bias.node_;
+    auto output = profiled_tensor("add_bias", input.data().device(),
+                                  [&] { return ops::add_bias(input.data(), bias.data()); });
+    return operation("add_bias", std::move(output), {input_node, bias_node},
+                     [input_node, bias_node](const Tensor& gradient) {
+                         accumulate(input_node, gradient);
+                         accumulate(bias_node, ops::bias_gradient(gradient));
+                     });
+}
+
 Value multiply(const Value& left, const Value& right) {
     require_value(left, "left");
     require_value(right, "right");
@@ -382,6 +396,24 @@ Value rope(const Value& input, std::int64_t sequence_dim, std::int64_t position_
                       base](const Tensor& gradient) {
                          accumulate(input_node, ops::rope_backward(
                                                     gradient, sequence_dim, position_offset, base));
+                     });
+}
+
+Value rope_split_half(const Value& input, std::int64_t sequence_dim,
+                      std::int64_t position_offset, float base) {
+    require_value(input, "input");
+    auto input_node = input.node_;
+    const auto forward_input =
+        input.data().is_contiguous() ? input.data() : input.data().contiguous();
+    auto output = profiled_tensor("rope_split_half", input.data().device(), [&] {
+        return ops::rope_split_half(forward_input, sequence_dim, position_offset, base);
+    });
+    return operation("rope_split_half", std::move(output), {input_node},
+                     [input_node, sequence_dim, position_offset,
+                      base](const Tensor& gradient) {
+                         accumulate(input_node, ops::rope_split_half_backward(
+                                                    gradient, sequence_dim,
+                                                    position_offset, base));
                      });
 }
 

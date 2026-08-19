@@ -125,6 +125,20 @@ TEST(ModelWeightsTest, QwenStyleMappingTransposesLinearWeights) {
     expect_state_equal(target.state_dict(), native);
 }
 
+TEST(ModelWeightsTest, QwenStyleMappingIncludesAttentionBiasWhenConfigured) {
+    auto config = weight_config(false);
+    config.attention_bias = true;
+    const auto mapping = qwen_style_weight_mapping(config);
+    EXPECT_EQ(mapping.at("blocks.0.attention.q_proj.bias").name,
+              "model.layers.0.self_attn.q_proj.bias");
+    EXPECT_EQ(mapping.at("blocks.0.attention.k_proj.bias").name,
+              "model.layers.0.self_attn.k_proj.bias");
+    EXPECT_EQ(mapping.at("blocks.0.attention.v_proj.bias").name,
+              "model.layers.0.self_attn.v_proj.bias");
+    EXPECT_EQ(mapping.at("blocks.0.attention.q_proj.bias").transform,
+              WeightTransform::Identity);
+}
+
 TEST(ModelWeightsTest, LoadsSingleAndIndexedSafetensorsFiles) {
     TemporaryDirectory directory;
     TransformerModel source(weight_config(), 347);

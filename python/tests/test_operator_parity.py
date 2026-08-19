@@ -32,6 +32,23 @@ def rope(value, sequence_dim=1, position_offset=0, base=10000.0):
     return torch.stack((even * cosine - odd * sine, even * sine + odd * cosine), dim=-1).flatten(-2)
 
 
+def rope_split_half(value, sequence_dim=1, position_offset=0, base=10000.0):
+    width = value.shape[-1]
+    positions = torch.arange(position_offset, position_offset + value.shape[sequence_dim],
+                             dtype=value.dtype, device=value.device)
+    frequencies = base ** (-torch.arange(0, width, 2, dtype=value.dtype,
+                                          device=value.device) / width)
+    angles = positions[:, None] * frequencies[None, :]
+    view_shape = [1] * value.dim()
+    view_shape[sequence_dim] = value.shape[sequence_dim]
+    view_shape[-1] = width // 2
+    cosine = torch.cos(angles).reshape(view_shape)
+    sine = torch.sin(angles).reshape(view_shape)
+    first, second = value[..., :width // 2], value[..., width // 2:]
+    return torch.cat((first * cosine - second * sine,
+                      first * sine + second * cosine), dim=-1)
+
+
 def causal_softmax(scores):
     sequence = scores.shape[-1]
     future = torch.triu(torch.ones(sequence, sequence, dtype=torch.bool), diagonal=1)
@@ -51,6 +68,7 @@ def pytorch_references(actual):
     record(refs, "add", left + right)
     record(refs, "multiply", left * right)
     record(refs, "scale", left * -0.25)
+    record(refs, "add_bias", left + tensor([0.5, -1.0, 2.0], (3,)))
 
     matrix_left = tensor([1, 2, 3, 4, 5, 6], (2, 3))
     matrix_right = tensor([1, 2, 3, 4, 5, 6], (3, 2))
@@ -75,6 +93,7 @@ def pytorch_references(actual):
     record(refs, "swiglu", F.silu(left) * right)
     rope_input = tensor([1, 0, 0, 1, 1, 0, 0, 1], (1, 2, 1, 4))
     record(refs, "rope", rope(rope_input))
+    record(refs, "rope_split_half", rope_split_half(rope_input))
     logits = tensor([2, 1, 0, 100, -100, 0], (2, 3))
     targets = torch.tensor([0, -100], dtype=torch.long)
     record(refs, "cross_entropy", F.cross_entropy(logits, targets, ignore_index=-100))
@@ -118,6 +137,13 @@ def pytorch_references(actual):
     record(refs, "graph_basic_loss", basic_loss)
     record(refs, "graph_basic_a_grad", a.grad)
     record(refs, "graph_basic_b_grad", b.grad)
+
+    bias_input = tensor([1, 2, 3, 4, 5, 6], (2, 3), True)
+    bias = tensor([0.5, -1.0, 2.0], (3,), True)
+    bias_seed = tensor([1, 2, 3, -1, -2, -3], (2, 3))
+    ((bias_input + bias) * bias_seed).sum().backward()
+    record(refs, "graph_add_bias_input_grad", bias_input.grad)
+    record(refs, "graph_add_bias_bias_grad", bias.grad)
 
     mat_left = tensor([1, 2, 3, 4, 5, 6], (2, 3), True)
     mat_right = tensor([1, 2, 3, 4, 5, 6], (3, 2), True)
@@ -167,6 +193,10 @@ def pytorch_references(actual):
     rope_seed = tensor([1, 2, 3, 4, -1, -2, -3, -4], (1, 2, 1, 4))
     (rope(rope_value) * rope_seed).sum().backward()
     record(refs, "graph_rope_input_grad", rope_value.grad)
+
+    split_rope_value = tensor([1, 2, 3, 4, 5, 6, 7, 8], (1, 2, 1, 4), True)
+    (rope_split_half(split_rope_value) * rope_seed).sum().backward()
+    record(refs, "graph_rope_split_half_input_grad", split_rope_value.grad)
 
     ce_logits = tensor([2, 1, 0, 100, -100, 0], (2, 3), True)
     (F.cross_entropy(ce_logits, targets, ignore_index=-100) * 0.75).backward()
@@ -318,6 +348,8 @@ class OperatorParityTest(unittest.TestCase):
         expected = {
             "invalid_add_shape",
             "invalid_multiply_shape",
+            "invalid_add_bias_shape",
+            "invalid_bias_gradient_rank",
             "invalid_scale_dtype",
             "invalid_matmul_inner",
             "invalid_embedding_weight",
@@ -326,6 +358,7 @@ class OperatorParityTest(unittest.TestCase):
             "invalid_silu_dtype",
             "invalid_swiglu_shape",
             "invalid_rope_width",
+            "invalid_rope_split_half_width",
             "invalid_cross_entropy_shape",
             "invalid_reduce_dtype",
             "invalid_broadcast_source",
@@ -337,6 +370,7 @@ class OperatorParityTest(unittest.TestCase):
             "invalid_silu_backward_shape",
             "invalid_swiglu_backward_shape",
             "invalid_rope_backward_width",
+            "invalid_rope_split_half_backward_width",
             "invalid_cross_entropy_backward_seed",
             "invalid_causal_backward_shape",
             "invalid_repeat_backward_shape",

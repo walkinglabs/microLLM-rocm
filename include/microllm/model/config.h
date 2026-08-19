@@ -6,6 +6,7 @@
 namespace microllm::model {
 
 enum class LinearPrecision { Float32, Float8E4M3FNUZ };
+enum class RopeLayout { Interleaved, SplitHalf };
 
 struct ModelConfig {
     std::int64_t vocabulary_size = 0;
@@ -20,6 +21,9 @@ struct ModelConfig {
     LinearPrecision linear_precision = LinearPrecision::Float32;
     float fp8_activation_scale = 0.025F;
     float fp8_weight_scale = 0.005F;
+    float rms_norm_epsilon = 1.0e-5F;
+    bool attention_bias = false;
+    RopeLayout rope_layout = RopeLayout::Interleaved;
 
     void validate() const;
     [[nodiscard]] std::int64_t head_dimension() const;

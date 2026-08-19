@@ -62,6 +62,7 @@ void emit_forward_cases() {
     emit("add", add(left, right));
     emit("multiply", multiply(left, right));
     emit("scale", scale(left, -0.25F));
+    emit("add_bias", add_bias(left, f32({0.5F, -1.0F, 2.0F}, {3})));
 
     const auto matrix_left = f32({1, 2, 3, 4, 5, 6}, {2, 3});
     const auto matrix_right = f32({1, 2, 3, 4, 5, 6}, {3, 2});
@@ -85,6 +86,7 @@ void emit_forward_cases() {
 
     const auto rope_input = f32({1, 0, 0, 1, 1, 0, 0, 1}, {1, 2, 1, 4});
     emit("rope", rope(rope_input));
+    emit("rope_split_half", rope_split_half(rope_input));
     const auto logits = f32({2, 1, 0, 100, -100, 0}, {2, 3});
     const auto targets = Tensor::from_int32_vector({0, -100}, {2});
     emit("cross_entropy", cross_entropy(logits, targets));
@@ -145,6 +147,13 @@ void emit_graph_gradient_cases() {
     emit("graph_basic_a_grad", a.grad());
     emit("graph_basic_b_grad", b.grad());
 
+    Value bias_input(f32({1, 2, 3, 4, 5, 6}, {2, 3}), true);
+    Value bias(f32({0.5F, -1.0F, 2.0F}, {3}), true);
+    const Value bias_seed(f32({1, 2, 3, -1, -2, -3}, {2, 3}));
+    sum(multiply(add_bias(bias_input, bias), bias_seed)).backward();
+    emit("graph_add_bias_input_grad", bias_input.grad());
+    emit("graph_add_bias_bias_grad", bias.grad());
+
     Value mat_left(f32({1, 2, 3, 4, 5, 6}, {2, 3}), true);
     Value mat_right(f32({1, 2, 3, 4, 5, 6}, {3, 2}), true);
     const Value mat_seed(f32({1, 2, 3, 4}, {2, 2}));
@@ -195,6 +204,10 @@ void emit_graph_gradient_cases() {
     sum(multiply(rope(rope_input), rope_seed)).backward();
     emit("graph_rope_input_grad", rope_input.grad());
 
+    Value split_rope_input(f32({1, 2, 3, 4, 5, 6, 7, 8}, {1, 2, 1, 4}), true);
+    sum(multiply(rope_split_half(split_rope_input), rope_seed)).backward();
+    emit("graph_rope_split_half_input_grad", split_rope_input.grad());
+
     Value logits(f32({2, 1, 0, 100, -100, 0}, {2, 3}), true);
     cross_entropy(logits, Tensor::from_int32_vector({0, -100}, {2})).backward(
         f32({0.75F}, {}));
@@ -228,6 +241,10 @@ void emit_invalid_shape_cases() {
     const auto vector = f32({1, 2, 3}, {3});
     emit_bool("invalid_add_shape", rejected([&] { (void)add(matrix, vector); }));
     emit_bool("invalid_multiply_shape", rejected([&] { (void)multiply(matrix, vector); }));
+    emit_bool("invalid_add_bias_shape", rejected([&] { (void)add_bias(matrix, vector); }));
+    emit_bool("invalid_bias_gradient_rank", rejected([&] {
+                  (void)bias_gradient(f32({1}, {}));
+              }));
     emit_bool("invalid_scale_dtype", rejected([&] {
                   (void)scale(Tensor::from_int32_vector({1, 2}, {2}), 2.0F);
               }));
@@ -242,6 +259,9 @@ void emit_invalid_shape_cases() {
               }));
     emit_bool("invalid_swiglu_shape", rejected([&] { (void)swiglu(matrix, vector); }));
     emit_bool("invalid_rope_width", rejected([&] { (void)rope(f32({1, 2, 3}, {1, 1, 3})); }));
+    emit_bool("invalid_rope_split_half_width", rejected([&] {
+                  (void)rope_split_half(f32({1, 2, 3}, {1, 1, 3}));
+              }));
     emit_bool("invalid_cross_entropy_shape", rejected([&] {
                   (void)cross_entropy(matrix, Tensor::from_int32_vector({0}, {1}));
               }));
@@ -267,6 +287,9 @@ void emit_invalid_shape_cases() {
               }));
     emit_bool("invalid_rope_backward_width", rejected([&] {
                   (void)rope_backward(f32({1, 2, 3}, {1, 1, 3}));
+              }));
+    emit_bool("invalid_rope_split_half_backward_width", rejected([&] {
+                  (void)rope_split_half_backward(f32({1, 2, 3}, {1, 1, 3}));
               }));
     emit_bool("invalid_cross_entropy_backward_seed", rejected([&] {
                   (void)cross_entropy_backward(matrix, Tensor::from_int32_vector({0, 1}, {2}),

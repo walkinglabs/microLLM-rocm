@@ -9,6 +9,10 @@ namespace microllm::ops::hip {
 void launch_fill(float* output, std::int64_t elements, float value, void* stream = nullptr);
 void launch_add(const float* left, const float* right, float* output,
                 std::int64_t elements, void* stream = nullptr);
+void launch_add_bias(const float* input, const float* bias, float* output,
+                     std::int64_t elements, std::int64_t width, void* stream = nullptr);
+void launch_bias_gradient(const float* gradient, float* output,
+                          std::int64_t rows, std::int64_t width, void* stream = nullptr);
 void launch_multiply(const float* left, const float* right, float* output,
                      std::int64_t elements, void* stream = nullptr);
 void launch_scale(const float* input, float* output, std::int64_t elements, float factor,
@@ -53,6 +57,12 @@ void launch_rope(const float* input, float* output, std::int64_t elements,
                  std::int64_t head_width, std::int64_t sequence_size,
                  std::int64_t sequence_stride, std::int64_t position_offset, float base,
                  void* stream = nullptr);
+void launch_rope_split_half(const float* input, float* output,
+                            std::int64_t elements, std::int64_t head_width,
+                            std::int64_t sequence_size,
+                            std::int64_t sequence_stride,
+                            std::int64_t position_offset, float base,
+                            void* stream = nullptr);
 void launch_cross_entropy(const float* logits, const std::int32_t* targets, float* output,
                           std::int64_t rows, std::int64_t classes,
                           void* stream = nullptr);
@@ -82,6 +92,11 @@ void launch_rope_backward(const float* gradient, float* input_gradient,
                           std::int64_t sequence_size, std::int64_t sequence_stride,
                           std::int64_t position_offset, float base,
                           void* stream = nullptr);
+void launch_rope_split_half_backward(
+    const float* gradient, float* input_gradient, std::int64_t elements,
+    std::int64_t head_width, std::int64_t sequence_size,
+    std::int64_t sequence_stride, std::int64_t position_offset, float base,
+    void* stream = nullptr);
 void launch_cross_entropy_backward(const float* logits, const std::int32_t* targets,
                                    const float* loss_gradient, float* logits_gradient,
                                    std::int64_t rows, std::int64_t classes,

@@ -33,6 +33,9 @@ void ModelConfig::validate() const {
     if (heads % kv_heads != 0) throw std::invalid_argument("heads must divide into kv_heads groups");
     if (head_dimension() % 2 != 0) throw std::invalid_argument("RoPE head dimension must be even");
     if (!(rope_base > 0.0F)) throw std::invalid_argument("RoPE base must be positive");
+    if (!std::isfinite(rms_norm_epsilon) || rms_norm_epsilon <= 0.0F) {
+        throw std::invalid_argument("RMSNorm epsilon must be finite and positive");
+    }
     if (linear_precision == LinearPrecision::Float8E4M3FNUZ &&
         (!std::isfinite(fp8_activation_scale) || fp8_activation_scale <= 0.0F ||
          !std::isfinite(fp8_weight_scale) || fp8_weight_scale <= 0.0F)) {
@@ -64,9 +67,10 @@ std::uint64_t ModelConfig::parameter_count() const {
     const auto query_and_output = checked_product(2, checked_product(dim, dim));
     const auto key_and_value = checked_product(2, checked_product(dim, key_value));
     const auto attention = checked_add(query_and_output, key_and_value);
+    const auto attention_biases = attention_bias ? checked_add(dim, checked_product(2, key_value)) : 0;
     const auto ffn = checked_product(3, checked_product(dim, feed_forward));
     const auto norms = checked_product(2, dim);
-    const auto per_layer = checked_add(checked_add(attention, ffn), norms);
+    const auto per_layer = checked_add(checked_add(checked_add(attention, attention_biases), ffn), norms);
     auto total = checked_add(embedding, checked_product(layer_count, per_layer));
     total = checked_add(total, dim);  // final RMSNorm
     if (!tie_embeddings) total = checked_add(total, checked_product(dim, vocab));
@@ -86,6 +90,9 @@ std::string ModelConfig::summary() const {
            << ",tie_embeddings=" << (tie_embeddings ? "true" : "false")
            << ",linear_precision="
            << (linear_precision == LinearPrecision::Float32 ? "fp32" : "fp8_e4m3_fnuz")
+           << ",rms_eps=" << rms_norm_epsilon
+           << ",attention_bias=" << (attention_bias ? "true" : "false")
+           << ",rope_layout=" << (rope_layout == RopeLayout::Interleaved ? "interleaved" : "split_half")
            << ",parameters=" << parameter_count();
     return output.str();
 }

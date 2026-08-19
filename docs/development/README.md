@@ -128,6 +128,8 @@ the next gate. Records are append-only except for factual corrections.
   dedicated hardware-format gates and measured FP32/FP16/BF16 Matrix acceleration.
 - [2026-08-19-fp8-training-inference.md](2026-08-19-fp8-training-inference.md):
   FNUZ quantization kernels, scaled GEMM, FP32-master training op, and measured ratios.
+- [2026-08-19-qwen25-architecture.md](2026-08-19-qwen25-architecture.md): pinned HF
+  config, Q/K/V bias, split-half RoPE, exact parameter count, and remaining real-model gates.
 - [2026-08-19-data-parallel-trainer.md](2026-08-19-data-parallel-trainer.md):
   reusable two-rank training step, bucketed gradient average, global-batch equivalence,
   stage profiling, and production reducer gaps.

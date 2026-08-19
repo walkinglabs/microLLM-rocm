@@ -50,6 +50,7 @@ private:
     friend struct ValueAccess;
 
     friend Value add(const Value&, const Value&);
+    friend Value add_bias(const Value&, const Value&);
     friend Value multiply(const Value&, const Value&);
     friend Value scale(const Value&, float);
     friend Value matmul(const Value&, const Value&);
@@ -64,6 +65,7 @@ private:
     friend Value silu(const Value&);
     friend Value swiglu(const Value&, const Value&);
     friend Value rope(const Value&, std::int64_t, std::int64_t, float);
+    friend Value rope_split_half(const Value&, std::int64_t, std::int64_t, float);
     friend Value cross_entropy(const Value&, const Tensor&);
     friend Value contiguous(const Value&);
     friend Value causal_softmax(const Value&);
@@ -72,6 +74,7 @@ private:
 };
 
 [[nodiscard]] Value add(const Value& left, const Value& right);
+[[nodiscard]] Value add_bias(const Value& input, const Value& bias);
 [[nodiscard]] Value multiply(const Value& left, const Value& right);
 [[nodiscard]] Value scale(const Value& input, float factor);
 [[nodiscard]] Value matmul(const Value& left, const Value& right);
@@ -91,6 +94,10 @@ private:
 [[nodiscard]] Value swiglu(const Value& gate, const Value& up);
 [[nodiscard]] Value rope(const Value& input, std::int64_t sequence_dim = 1,
                          std::int64_t position_offset = 0, float base = 10000.0F);
+[[nodiscard]] Value rope_split_half(const Value& input,
+                                    std::int64_t sequence_dim = 1,
+                                    std::int64_t position_offset = 0,
+                                    float base = 10000.0F);
 [[nodiscard]] Value cross_entropy(const Value& logits, const Tensor& targets);
 [[nodiscard]] Value contiguous(const Value& input);
 [[nodiscard]] Value causal_softmax(const Value& scores);

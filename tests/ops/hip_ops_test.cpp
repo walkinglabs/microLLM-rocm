@@ -58,6 +58,24 @@ TEST(HipOpsTest, FillAndElementwiseMatchCpuReference) {
     expect_near(scale(left, -0.25F).to_vector(), scale(left_cpu, -0.25F).to_vector());
 }
 
+TEST(HipOpsTest, BiasForwardAndGradientStayOnDevice) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    const auto input_cpu = Tensor::from_vector({1, 2, 3, 4, 5, 6}, {2, 3});
+    const auto bias_cpu = Tensor::from_vector({0.5F, -1.0F, 2.0F}, {3});
+    const auto input = input_cpu.to(gpu);
+    const auto bias = bias_cpu.to(gpu);
+    runtime::reset_transfer_stats();
+    const auto output = add_bias(input, bias);
+    const auto reduced = bias_gradient(input);
+    runtime::synchronize(gpu);
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    expect_near(output.to_vector(), add_bias(input_cpu, bias_cpu).to_vector());
+    expect_near(reduced.to_vector(), bias_gradient(input_cpu).to_vector());
+}
+
 TEST(HipLowPrecisionOpsTest, NativeBasicKernelsMatchCpuAndAvoidHostTransfers) {
     require_gpu();
     const auto gpu = Device::hip(0);
@@ -263,6 +281,8 @@ TEST(HipOpsTest, RopeAndCrossEntropyMatchCpuReference) {
     require_gpu();
     const auto rope_input = Tensor::from_vector({1, 0, 0, 1, 1, 0, 0, 1}, {1, 2, 1, 4});
     expect_near(rope(rope_input.to(Device::hip())).to_vector(), rope(rope_input).to_vector());
+    expect_near(rope_split_half(rope_input.to(Device::hip())).to_vector(),
+                rope_split_half(rope_input).to_vector());
 
     const auto logits_cpu = Tensor::from_vector({2, 1, 0, 0, 1, 2}, {2, 3});
     const auto targets_cpu = Tensor::from_int32_vector({0, 2}, {2});
@@ -322,6 +342,8 @@ TEST(HipBackwardOpsTest, DeviceNativePrimitivesMatchCpuReference) {
         Tensor::from_vector({1, 2, 3, 4, -1, -2, -3, -4}, {1, 2, 1, 4});
     expect_near(rope_backward(rope_gradient.to(gpu)).to_vector(),
                 rope_backward(rope_gradient).to_vector(), 2.0e-5F);
+    expect_near(rope_split_half_backward(rope_gradient.to(gpu)).to_vector(),
+                rope_split_half_backward(rope_gradient).to_vector(), 2.0e-5F);
 
     const auto scores = Tensor::from_vector({1, 2, 3, 4, 5, 6, 7, 8, 9}, {1, 3, 3});
     const auto score_gradient =

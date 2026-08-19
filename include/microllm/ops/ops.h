@@ -31,6 +31,10 @@ struct ScaledTensor {
 void fill_(Tensor& tensor, float value, const OpContext& context = {});
 
 [[nodiscard]] Tensor add(const Tensor& left, const Tensor& right, const OpContext& context = {});
+[[nodiscard]] Tensor add_bias(const Tensor& input, const Tensor& bias,
+                              const OpContext& context = {});
+[[nodiscard]] Tensor bias_gradient(const Tensor& gradient,
+                                   const OpContext& context = {});
 [[nodiscard]] Tensor multiply(const Tensor& left, const Tensor& right,
                               const OpContext& context = {});
 [[nodiscard]] Tensor scale(const Tensor& input, float factor, const OpContext& context = {});
@@ -58,6 +62,11 @@ void clear_matmul_implementation_registry();
 [[nodiscard]] Tensor rope(const Tensor& input, std::int64_t sequence_dim = 1,
                           std::int64_t position_offset = 0, float base = 10000.0F,
                           const OpContext& context = {});
+[[nodiscard]] Tensor rope_split_half(const Tensor& input,
+                                     std::int64_t sequence_dim = 1,
+                                     std::int64_t position_offset = 0,
+                                     float base = 10000.0F,
+                                     const OpContext& context = {});
 [[nodiscard]] Tensor cross_entropy(const Tensor& logits, const Tensor& targets,
                                    const OpContext& context = {});
 
@@ -84,6 +93,10 @@ void clear_matmul_implementation_registry();
                                    std::int64_t position_offset = 0,
                                    float base = 10000.0F,
                                    const OpContext& context = {});
+[[nodiscard]] Tensor rope_split_half_backward(
+    const Tensor& gradient, std::int64_t sequence_dim = 1,
+    std::int64_t position_offset = 0, float base = 10000.0F,
+    const OpContext& context = {});
 [[nodiscard]] Tensor cross_entropy_backward(const Tensor& logits, const Tensor& targets,
                                             const Tensor& loss_gradient,
                                             const OpContext& context = {});

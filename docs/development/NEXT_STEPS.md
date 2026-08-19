@@ -17,9 +17,9 @@ roadmap. Passing a smaller smoke test does not complete a later item.
 
 First target: one pinned small dense checkpoint, not every Qwen release.
 
-- [ ] parse `config.json` and reject unsupported fields;
+- [x] parse pinned Qwen2.5 `config.json` and reject unsupported family/window/MRoPE fields;
 - [ ] load official tokenizer vocabulary, merges, special tokens, and chat template;
-- [ ] add bias parameters needed by the selected architecture;
+- [x] add Q/K/V bias parameters, backward, HIP Kernel, and strict weight mapping;
 - [ ] add explicit attention head dimension and QK-Norm where required;
 - [ ] preallocate device-native KV cache;
 - [ ] compare tokenizer IDs, per-layer hidden states, logits, and greedy tokens with

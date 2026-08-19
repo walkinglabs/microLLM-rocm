@@ -27,6 +27,13 @@ TEST(CpuOpsTest, ElementwiseOpsMatchHandValues) {
     EXPECT_EQ(scale(left, 0.5F).to_vector(), (std::vector<float>{0.5F, -1, 1.5F}));
 }
 
+TEST(CpuOpsTest, BiasBroadcastAndReductionMatchHandValues) {
+    const auto input = Tensor::from_vector({1, 2, 3, 4, 5, 6}, {2, 3});
+    const auto bias = Tensor::from_vector({0.5F, -1.0F, 2.0F}, {3});
+    expect_near(add_bias(input, bias).to_vector(), {1.5F, 1.0F, 5.0F, 4.5F, 4.0F, 8.0F});
+    expect_near(bias_gradient(input).to_vector(), {5, 7, 9});
+}
+
 TEST(CpuOpsTest, BatchedMatmulMatchesHandValues) {
     const auto left = Tensor::from_vector({1, 2, 3, 4, 5, 6, 1, 0, 0, 1, 1, 1}, {2, 2, 3});
     const auto right = Tensor::from_vector({1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6}, {2, 3, 2});
@@ -73,6 +80,18 @@ TEST(CpuOpsTest, RopeLeavesPositionZeroAndRotatesPositionOne) {
     expect_near({output[0], output[1], output[2], output[3]}, {1, 0, 0, 1});
     EXPECT_NEAR(output[4], std::cos(1.0F), 1.0e-5F);
     EXPECT_NEAR(output[5], std::sin(1.0F), 1.0e-5F);
+}
+
+TEST(CpuOpsTest, SplitHalfRopeUsesQwenPairLayout) {
+    const auto input = Tensor::from_vector({1, 2, 3, 4, 5, 6, 7, 8}, {1, 2, 1, 4});
+    const auto output = rope_split_half(input).to_vector();
+    EXPECT_EQ(std::vector<float>(output.begin(), output.begin() + 4),
+              (std::vector<float>{1, 2, 3, 4}));
+    EXPECT_NE(output, rope(input).to_vector());
+    const auto angle0_cos = std::cos(1.0F);
+    const auto angle0_sin = std::sin(1.0F);
+    EXPECT_NEAR(output[4], 5 * angle0_cos - 7 * angle0_sin, 1.0e-5F);
+    EXPECT_NEAR(output[6], 5 * angle0_sin + 7 * angle0_cos, 1.0e-5F);
 }
 
 TEST(CpuOpsTest, CrossEntropyMatchesStableLogSoftmax) {

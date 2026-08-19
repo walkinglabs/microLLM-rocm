@@ -11,7 +11,10 @@ target_link_libraries(microllm_alignment PRIVATE
     microllm::model microllm::profiling microllm::runtime
 )
 
-install(TARGETS microllm_train microllm_runtime_info microllm_alignment
+add_executable(microllm_hf_inspect hf_inspect.cpp)
+target_link_libraries(microllm_hf_inspect PRIVATE microllm::model)
+
+install(TARGETS microllm_train microllm_runtime_info microllm_alignment microllm_hf_inspect
         RUNTIME DESTINATION bin)
 
 if(MICROLLM_HAS_RCCL)
@@ -30,6 +33,11 @@ if(MICROLLM_HAS_RCCL)
 endif()
 
 if(BUILD_TESTING)
+    add_test(NAME HuggingFace.Qwen25Config
+             COMMAND microllm_hf_inspect --config
+                     ${PROJECT_SOURCE_DIR}/tests/fixtures/qwen25-0.5b-config.json)
+    set_tests_properties(HuggingFace.Qwen25Config PROPERTIES
+                         LABELS "cpu;huggingface;qwen;integration")
     set(MICROLLM_CLI_CHECKPOINT "${CMAKE_CURRENT_BINARY_DIR}/cli-smoke.ckpt")
     add_test(NAME TrainCLI.Save
              COMMAND microllm_train --data ${PROJECT_SOURCE_DIR}/data/generated-cycle.txt

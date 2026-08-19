@@ -176,6 +176,66 @@ Tensor add(const Tensor& left, const Tensor& right, [[maybe_unused]] const OpCon
     return from_values(std::move(left_values), left.shape(), left.dtype());
 }
 
+Tensor add_bias(const Tensor& input, const Tensor& bias,
+                [[maybe_unused]] const OpContext& context) {
+    require_float(input, "input");
+    require_float(bias, "bias");
+    require_same_device(input, bias);
+    if (input.ndim() == 0 || bias.ndim() != 1 || input.shape().back() != bias.shape()[0]) {
+        throw std::invalid_argument("bias must be rank one and match the input last dimension");
+    }
+    if (input.device().is_hip()) {
+        require_contiguous(input, "input");
+        require_contiguous(bias, "bias");
+        Tensor output(input.shape(), DType::Float32, input.device());
+#if MICROLLM_HAS_HIP
+        hip::launch_add_bias(static_cast<const float*>(input.data()),
+                             static_cast<const float*>(bias.data()),
+                             static_cast<float*>(output.data()), input.numel(),
+                             bias.numel(), context.native_stream(input.device()));
+        return output;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    auto values = input.to_vector();
+    const auto bias_values = bias.to_vector();
+    const auto width = static_cast<std::size_t>(bias.numel());
+    for (std::size_t index = 0; index < values.size(); ++index) {
+        values[index] += bias_values[index % width];
+    }
+    return from_values(std::move(values), input.shape());
+}
+
+Tensor bias_gradient(const Tensor& gradient,
+                     [[maybe_unused]] const OpContext& context) {
+    require_float(gradient, "gradient");
+    if (gradient.ndim() == 0) throw std::invalid_argument("bias gradient requires rank one or greater");
+    const auto width = gradient.shape().back();
+    const auto rows = gradient.numel() / width;
+    if (gradient.device().is_hip()) {
+        require_contiguous(gradient, "gradient");
+        Tensor output({width}, DType::Float32, gradient.device());
+#if MICROLLM_HAS_HIP
+        hip::launch_bias_gradient(static_cast<const float*>(gradient.data()),
+                                  static_cast<float*>(output.data()), rows, width,
+                                  context.native_stream(gradient.device()));
+        return output;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    const auto values = gradient.to_vector();
+    std::vector<float> output(static_cast<std::size_t>(width), 0.0F);
+    for (std::int64_t row = 0; row < rows; ++row) {
+        for (std::int64_t column = 0; column < width; ++column) {
+            output[static_cast<std::size_t>(column)] +=
+                values[static_cast<std::size_t>(row * width + column)];
+        }
+    }
+    return from_values(std::move(output), {width});
+}
+
 Tensor multiply(const Tensor& left, const Tensor& right,
                 [[maybe_unused]] const OpContext& context) {
     require_forward_float(left, "left");
@@ -491,6 +551,54 @@ Tensor rope(const Tensor& input, std::int64_t sequence_dim, std::int64_t positio
             const auto odd = even + 1;
             output[even] = values[even] * cosine - values[odd] * sine;
             output[odd] = values[even] * sine + values[odd] * cosine;
+        }
+    }
+    return from_values(std::move(output), input.shape(), input.dtype());
+}
+
+Tensor rope_split_half(const Tensor& input, std::int64_t sequence_dim,
+                       std::int64_t position_offset, float base,
+                       [[maybe_unused]] const OpContext& context) {
+    require_forward_float(input, "input");
+    if (input.ndim() < 2) throw std::invalid_argument("rope requires rank two or greater");
+    const auto sequence = positive_dim(input, sequence_dim);
+    if (sequence == input.ndim() - 1 || position_offset < 0 || base <= 0.0F ||
+        input.shape().back() % 2 != 0) {
+        throw std::invalid_argument("split-half rope shape or configuration is invalid");
+    }
+    const auto head_width = input.shape().back();
+    const auto sequence_stride =
+        contiguous_strides(input.shape())[static_cast<std::size_t>(sequence)];
+    if (input.device().is_hip()) {
+        require_readable_hip_dtype(input);
+        require_contiguous(input, "input");
+        Tensor output(input.shape(), input.dtype(), input.device());
+#if MICROLLM_HAS_HIP
+        hip::launch_rope_split_half(
+            static_cast<const float*>(input.data()), static_cast<float*>(output.data()),
+            input.numel(), head_width, input.shape()[static_cast<std::size_t>(sequence)],
+            sequence_stride, position_offset, base, context.native_stream(input.device()));
+        return output;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    const auto values = input.to_vector();
+    auto output = values;
+    const auto half = head_width / 2;
+    for (std::int64_t linear = 0; linear < input.numel(); linear += head_width) {
+        const auto position =
+            (linear / sequence_stride) % input.shape()[static_cast<std::size_t>(sequence)];
+        for (std::int64_t pair = 0; pair < half; ++pair) {
+            const auto angle = static_cast<float>(position + position_offset) *
+                               std::pow(base, -2.0F * static_cast<float>(pair) /
+                                                  static_cast<float>(head_width));
+            const auto cosine = std::cos(angle);
+            const auto sine = std::sin(angle);
+            const auto first = static_cast<std::size_t>(linear + pair);
+            const auto second = static_cast<std::size_t>(linear + pair + half);
+            output[first] = values[first] * cosine - values[second] * sine;
+            output[second] = values[first] * sine + values[second] * cosine;
         }
     }
     return from_values(std::move(output), input.shape(), input.dtype());
@@ -855,6 +963,55 @@ Tensor rope_backward(const Tensor& gradient, std::int64_t sequence_dim,
         }
     }
     return from_values(std::move(result), gradient.shape());
+}
+
+Tensor rope_split_half_backward(const Tensor& gradient,
+                                std::int64_t sequence_dim,
+                                std::int64_t position_offset, float base,
+                                [[maybe_unused]] const OpContext& context) {
+    require_float(gradient, "gradient");
+    if (gradient.ndim() < 2) throw std::invalid_argument("rope backward requires rank two or greater");
+    const auto sequence = positive_dim(gradient, sequence_dim);
+    if (sequence == gradient.ndim() - 1 || gradient.shape().back() % 2 != 0 ||
+        position_offset < 0 || base <= 0.0F) {
+        throw std::invalid_argument("split-half rope backward configuration is invalid");
+    }
+    const auto head_width = gradient.shape().back();
+    const auto sequence_stride =
+        contiguous_strides(gradient.shape())[static_cast<std::size_t>(sequence)];
+    if (gradient.device().is_hip()) {
+        require_contiguous(gradient, "gradient");
+        Tensor output(gradient.shape(), DType::Float32, gradient.device());
+#if MICROLLM_HAS_HIP
+        hip::launch_rope_split_half_backward(
+            static_cast<const float*>(gradient.data()), static_cast<float*>(output.data()),
+            gradient.numel(), head_width,
+            gradient.shape()[static_cast<std::size_t>(sequence)], sequence_stride,
+            position_offset, base, context.native_stream(gradient.device()));
+        return output;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    const auto values = gradient.to_vector();
+    auto output = values;
+    const auto half = head_width / 2;
+    for (std::int64_t linear = 0; linear < gradient.numel(); linear += head_width) {
+        const auto position =
+            (linear / sequence_stride) % gradient.shape()[static_cast<std::size_t>(sequence)];
+        for (std::int64_t pair = 0; pair < half; ++pair) {
+            const auto angle = static_cast<float>(position + position_offset) *
+                               std::pow(base, -2.0F * static_cast<float>(pair) /
+                                                  static_cast<float>(head_width));
+            const auto cosine = std::cos(angle);
+            const auto sine = std::sin(angle);
+            const auto first = static_cast<std::size_t>(linear + pair);
+            const auto second = static_cast<std::size_t>(linear + pair + half);
+            output[first] = values[first] * cosine + values[second] * sine;
+            output[second] = -values[first] * sine + values[second] * cosine;
+        }
+    }
+    return from_values(std::move(output), gradient.shape());
 }
 
 Tensor cross_entropy_backward(const Tensor& logits, const Tensor& targets,

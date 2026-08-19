@@ -16,6 +16,15 @@ TEST(AutogradTest, AccumulatesGradientAcrossGraphBranches) {
     EXPECT_EQ(coefficient.grad().to_vector(), (std::vector<float>{1, 2, 3}));
 }
 
+TEST(AutogradTest, AddBiasBackwardReducesEveryLeadingDimension) {
+    Value input(Tensor::from_vector({1, 2, 3, 4, 5, 6}, {2, 3}), true);
+    Value bias(Tensor::from_vector({0.5F, -1.0F, 2.0F}, {3}), true);
+    const Value seed(Tensor::from_vector({1, 2, 3, -1, -2, -3}, {2, 3}));
+    sum(multiply(add_bias(input, bias), seed)).backward();
+    EXPECT_EQ(input.grad().to_vector(), seed.data().to_vector());
+    EXPECT_EQ(bias.grad().to_vector(), (std::vector<float>{0, 0, 0}));
+}
+
 TEST(AutogradTest, MatmulBackwardMatchesHandValues) {
     Value left(Tensor::from_vector({1, 2, 3, 4}, {2, 2}), true);
     Value right(Tensor::from_vector({5, 6, 7, 8}, {2, 2}), true);

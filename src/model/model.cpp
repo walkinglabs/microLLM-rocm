@@ -66,59 +66,76 @@ Value parameter(Shape shape, std::mt19937_64& generator, float standard_deviatio
 class Linear {
 public:
     Linear(std::int64_t input, std::int64_t output, std::mt19937_64& generator,
-           const ModelConfig& config)
+           const ModelConfig& config, bool with_bias = false)
         : weight_(parameter({input, output}, generator,
                             1.0F / std::sqrt(static_cast<float>(input)))),
           precision_(config.linear_precision),
           activation_scale_(config.fp8_activation_scale),
-          weight_scale_(config.fp8_weight_scale) {}
+          weight_scale_(config.fp8_weight_scale), has_bias_(with_bias) {
+        if (has_bias_) {
+            bias_ = Value(Tensor({output}), true);
+            bias_.mutable_data().fill(0.0F);
+        }
+    }
 
     Value forward(const Value& input) {
         if (precision_ == LinearPrecision::Float8E4M3FNUZ) {
-            return autograd::fp8_matmul(input, weight_, activation_scale_, weight_scale_);
+            auto output = autograd::fp8_matmul(input, weight_, activation_scale_, weight_scale_);
+            return has_bias_ ? autograd::add_bias(output, bias_) : output;
         }
-        return autograd::matmul(input, weight_);
+        auto output = autograd::matmul(input, weight_);
+        return has_bias_ ? autograd::add_bias(output, bias_) : output;
     }
     Tensor forward_tensor(const Tensor& input) {
         if (precision_ == LinearPrecision::Float8E4M3FNUZ) {
-            return ops::fp8_matmul(
+            auto output = ops::fp8_matmul(
                 ops::quantize_fp8(input, DType::Float8E4M3FNUZ, activation_scale_),
                 ops::quantize_fp8(weight_.data(), DType::Float8E4M3FNUZ, weight_scale_),
                 DType::Float32);
+            return has_bias_ ? ops::add_bias(output, bias_.data()) : output;
         }
-        return ops::matmul_with_implementation(input, weight_.data(),
-                                               ops::MatmulImplementation::Auto);
+        auto output = ops::matmul_with_implementation(input, weight_.data(),
+                                                      ops::MatmulImplementation::Auto);
+        return has_bias_ ? ops::add_bias(output, bias_.data()) : output;
     }
     Value& weight() noexcept { return weight_; }
+    [[nodiscard]] bool has_bias() const noexcept { return has_bias_; }
+    Value& bias() noexcept { return bias_; }
 
 private:
     Value weight_;
     LinearPrecision precision_ = LinearPrecision::Float32;
     float activation_scale_ = 1.0F;
     float weight_scale_ = 1.0F;
+    bool has_bias_ = false;
+    Value bias_;
 };
 
 class Norm {
 public:
-    explicit Norm(std::int64_t dimension) : weight_(Tensor({dimension}), true) {
+    explicit Norm(std::int64_t dimension, float epsilon = 1.0e-5F)
+        : weight_(Tensor({dimension}), true), epsilon_(epsilon) {
         weight_.mutable_data().fill(1.0F);
     }
 
-    Value forward(const Value& input) { return autograd::rms_norm(input, weight_); }
-    Tensor forward_tensor(const Tensor& input) { return ops::rms_norm(input, weight_.data()); }
+    Value forward(const Value& input) { return autograd::rms_norm(input, weight_, epsilon_); }
+    Tensor forward_tensor(const Tensor& input) {
+        return ops::rms_norm(input, weight_.data(), epsilon_);
+    }
     Value& weight() noexcept { return weight_; }
 
 private:
     Value weight_;
+    float epsilon_ = 1.0e-5F;
 };
 
 class Attention {
 public:
     Attention(const ModelConfig& config, std::mt19937_64& generator)
         : config_(config),
-          query_(config.dimension, config.dimension, generator, config),
-          key_(config.dimension, config.kv_dimension(), generator, config),
-          value_(config.dimension, config.kv_dimension(), generator, config),
+          query_(config.dimension, config.dimension, generator, config, config.attention_bias),
+          key_(config.dimension, config.kv_dimension(), generator, config, config.attention_bias),
+          value_(config.dimension, config.kv_dimension(), generator, config, config.attention_bias),
           output_(config.dimension, config.dimension, generator, config) {}
 
     Value forward(const Value& input) {
@@ -132,8 +149,15 @@ public:
                                      {batch, sequence, config_.kv_heads, config_.head_dimension()});
         auto value = autograd::reshape(value_.forward(flat),
                                        {batch, sequence, config_.kv_heads, config_.head_dimension()});
-        query = autograd::rope(autograd::transpose(query, 1, 2), 2, 0, config_.rope_base);
-        key = autograd::rope(autograd::transpose(key, 1, 2), 2, 0, config_.rope_base);
+        const auto transposed_query = autograd::transpose(query, 1, 2);
+        const auto transposed_key = autograd::transpose(key, 1, 2);
+        if (config_.rope_layout == RopeLayout::SplitHalf) {
+            query = autograd::rope_split_half(transposed_query, 2, 0, config_.rope_base);
+            key = autograd::rope_split_half(transposed_key, 2, 0, config_.rope_base);
+        } else {
+            query = autograd::rope(transposed_query, 2, 0, config_.rope_base);
+            key = autograd::rope(transposed_key, 2, 0, config_.rope_base);
+        }
         value = autograd::transpose(value, 1, 2);
         if (config_.kv_heads != config_.heads) {
             const auto repeats = config_.heads / config_.kv_heads;
@@ -166,8 +190,13 @@ public:
         auto value = value_.forward_tensor(input.reshape({1, config_.dimension}))
                          .reshape({1, 1, config_.kv_heads, config_.head_dimension()})
                          .transpose(1, 2);
-        query = ops::rope(query, 2, position, config_.rope_base);
-        key = ops::rope(key, 2, position, config_.rope_base);
+        if (config_.rope_layout == RopeLayout::SplitHalf) {
+            query = ops::rope_split_half(query, 2, position, config_.rope_base);
+            key = ops::rope_split_half(key, 2, position, config_.rope_base);
+        } else {
+            query = ops::rope(query, 2, position, config_.rope_base);
+            key = ops::rope(key, 2, position, config_.rope_base);
+        }
         cache.key = append_cached_sequence(cache.key, key);
         cache.value = append_cached_sequence(cache.value, value);
         auto expanded_key = cache.key;
@@ -214,8 +243,11 @@ public:
 
     void append_named(const std::string& prefix, NamedValues& values) {
         values.emplace_back(prefix + ".q_proj.weight", &query_.weight());
+        if (query_.has_bias()) values.emplace_back(prefix + ".q_proj.bias", &query_.bias());
         values.emplace_back(prefix + ".k_proj.weight", &key_.weight());
+        if (key_.has_bias()) values.emplace_back(prefix + ".k_proj.bias", &key_.bias());
         values.emplace_back(prefix + ".v_proj.weight", &value_.weight());
+        if (value_.has_bias()) values.emplace_back(prefix + ".v_proj.bias", &value_.bias());
         values.emplace_back(prefix + ".o_proj.weight", &output_.weight());
     }
 
@@ -269,9 +301,9 @@ private:
 class Block {
 public:
     Block(const ModelConfig& config, std::mt19937_64& generator)
-        : attention_norm_(config.dimension),
+        : attention_norm_(config.dimension, config.rms_norm_epsilon),
           attention_(config, generator),
-          ffn_norm_(config.dimension),
+          ffn_norm_(config.dimension, config.rms_norm_epsilon),
           feed_forward_(config, generator) {}
 
     Value forward(const Value& input) {
@@ -307,7 +339,7 @@ struct TransformerModel::Impl {
         : config(std::move(model_config)),
           generator(seed),
           token_embedding(parameter({config.vocabulary_size, config.dimension}, generator, 0.02F)),
-          final_norm(config.dimension) {
+          final_norm(config.dimension, config.rms_norm_epsilon) {
         config.validate();
         blocks.reserve(static_cast<std::size_t>(config.layers));
         for (std::int64_t layer = 0; layer < config.layers; ++layer) {
@@ -603,6 +635,17 @@ WeightMapping qwen_style_weight_mapping(const ModelConfig& config) {
         mapping.emplace(target + ".attention.v_proj.weight",
                         WeightSource{source + ".self_attn.v_proj.weight",
                                      WeightTransform::Transpose2D});
+        if (config.attention_bias) {
+            mapping.emplace(target + ".attention.q_proj.bias",
+                            WeightSource{source + ".self_attn.q_proj.bias",
+                                         WeightTransform::Identity});
+            mapping.emplace(target + ".attention.k_proj.bias",
+                            WeightSource{source + ".self_attn.k_proj.bias",
+                                         WeightTransform::Identity});
+            mapping.emplace(target + ".attention.v_proj.bias",
+                            WeightSource{source + ".self_attn.v_proj.bias",
+                                         WeightTransform::Identity});
+        }
         mapping.emplace(target + ".attention.o_proj.weight",
                         WeightSource{source + ".self_attn.o_proj.weight",
                                      WeightTransform::Transpose2D});
