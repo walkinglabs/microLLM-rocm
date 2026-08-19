@@ -199,3 +199,29 @@ model.load_safetensors("model.safetensors");
 - 损坏 header、不支持 dtype、重复权重和不安全路径；
 - safetensors 直接加载到 HIP；
 - GPU 模型保持 GPU 参数。
+
+### 用官方 safetensors 包做双向检查
+
+“自己写、自己读”可能让 writer 和 reader 共享同一个错误。因此仓库还提供一个
+可选的外部互操作测试：
+
+```bash
+python -m pip install torch safetensors packaging numpy
+
+cmake -S . -B build/safetensors-interop \
+  -DMICROLLM_ENABLE_HIP=OFF \
+  -DMICROLLM_BUILD_TORCH_OPS=OFF \
+  -DMICROLLM_SAFETENSORS_PYTHON=/path/to/python
+cmake --build build/safetensors-interop \
+  --target microllm_safetensors_interop --parallel
+ctest --test-dir build/safetensors-interop \
+  -R '^Safetensors.OfficialInterop$' --output-on-failure
+```
+
+测试做两个方向：
+
+1. C++ 写文件，官方 Python 包读取并检查名字、dtype、shape 和每个值；
+2. 官方 Python 包写文件，C++ 读取并检查相同内容。
+
+F32、BF16 和 F16 三种文件 dtype 都会执行。这个测试是可选门，因为默认 CPU
+构建不应偷偷下载 Python 包；配置了指定解释器后，它会成为正式 CTest。

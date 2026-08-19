@@ -28,6 +28,11 @@ target_link_libraries(microllm_tests PRIVATE
     microllm::inference
 )
 
+add_executable(microllm_safetensors_interop
+    io/safetensors_interop_helper.cpp
+)
+target_link_libraries(microllm_safetensors_interop PRIVATE microllm::io)
+
 find_package(Python3 COMPONENTS Interpreter QUIET)
 if(Python3_Interpreter_FOUND)
     add_test(
@@ -40,6 +45,22 @@ if(Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/python/tests/test_alignment_tools.py
     )
     set_tests_properties(Alignment.Tools PROPERTIES LABELS "cpu;alignment;schema")
+endif()
+
+if(MICROLLM_SAFETENSORS_PYTHON)
+    if(NOT EXISTS "${MICROLLM_SAFETENSORS_PYTHON}")
+        message(FATAL_ERROR
+            "MICROLLM_SAFETENSORS_PYTHON does not exist: ${MICROLLM_SAFETENSORS_PYTHON}")
+    endif()
+    add_test(
+        NAME Safetensors.OfficialInterop
+        COMMAND ${MICROLLM_SAFETENSORS_PYTHON}
+            ${PROJECT_SOURCE_DIR}/tests/io/official_safetensors_interop.py
+            --helper $<TARGET_FILE:microllm_safetensors_interop>
+    )
+    set_tests_properties(Safetensors.OfficialInterop PROPERTIES
+        LABELS "cpu;weights;interop;external"
+    )
 endif()
 
 include(GoogleTest)

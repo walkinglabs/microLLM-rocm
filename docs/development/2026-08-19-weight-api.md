@@ -44,6 +44,28 @@ forward reproduction, Qwen naming/transposes, tied embeddings, single/multiple/i
 files, three source dtypes, corruption, duplicate weights, unsafe index paths, direct
 GPU load, and GPU model placement.
 
+## External format interoperability follow-up
+
+The initial round-trip used the microLLM writer and reader together. A later optional
+CTest closes that shared-bug gap by exchanging F32, BF16, and F16 fixtures in both
+directions with the official `safetensors` Python package. It checks keys, declared
+dtype, scalar/vector/matrix shapes, and every converted value.
+
+Measured environment and result:
+
+```text
+PyTorch       2.13.0+cpu
+safetensors   0.6.2
+NumPy         2.3.2
+packaging     25.0
+official interop CTest  1/1 pass
+directions              C++ -> Python, Python -> C++
+file dtypes              F32, BF16, F16
+```
+
+The gate is enabled explicitly with `MICROLLM_SAFETENSORS_PYTHON`; the ordinary build
+does not download external Python dependencies.
+
 ## Honest boundary
 
 The implementation currently materializes a complete StateDict before model copy, so

@@ -28,6 +28,8 @@ option(MICROLLM_BUILD_BENCHMARKS "Build reproducible micro and end-to-end benchm
 set(MICROLLM_BUILD_TORCH_OPS "AUTO" CACHE STRING "Build PyTorch Custom Ops: AUTO, ON, or OFF")
 set_property(CACHE MICROLLM_BUILD_TORCH_OPS PROPERTY STRINGS AUTO ON OFF)
 option(MICROLLM_ENABLE_SANITIZERS "Enable ASan and UBSan for host code" OFF)
+set(MICROLLM_SAFETENSORS_PYTHON "" CACHE FILEPATH
+    "Python interpreter with torch and official safetensors for interoperability tests")
 
 string(TOUPPER "${MICROLLM_ENABLE_HIP}" MICROLLM_ENABLE_HIP_NORMALIZED)
 if(NOT MICROLLM_ENABLE_HIP_NORMALIZED MATCHES "^(AUTO|ON|OFF)$")

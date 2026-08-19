@@ -20,6 +20,7 @@ version is not silently claimed to work.
 | GPU architecture | a ROCm-supported AMD GPU | 4 × gfx942 MI300X virtual functions |
 | GoogleTest | system package or fetched by CMake | v1.14.0 FetchContent fallback |
 | PyTorch | optional, required only for external oracle/alignment | 2.13.0+cpu in isolated environment |
+| safetensors Python package | optional, required for two-way weight format interop | 0.6.2 |
 
 The project does not currently claim support for GCC versions older than the validated
 GCC 13.3 toolchain. Other C++20 compilers may work, but require their own recorded CI
@@ -128,6 +129,7 @@ release claim because the recorded container exposes only 64 MB of shared memory
 | `MICROLLM_BUILD_PYTHON` | `ON` | ctypes API integration tests |
 | `MICROLLM_BUILD_TORCH_OPS` | `AUTO` | optional PyTorch dispatcher library |
 | `MICROLLM_ENABLE_SANITIZERS` | `OFF` | host ASan and UBSan |
+| `MICROLLM_SAFETENSORS_PYTHON` | empty | interpreter with torch/safetensors used by the optional official interop CTest |
 
 ## Common failures
 
