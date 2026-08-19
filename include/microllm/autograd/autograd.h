@@ -19,6 +19,7 @@ public:
     [[nodiscard]] Tensor& mutable_data();
     [[nodiscard]] bool has_grad() const noexcept;
     [[nodiscard]] const Tensor& grad() const;
+    void set_grad(Tensor gradient);
     void zero_grad();
     void backward() const;
     void backward(const Tensor& gradient) const;

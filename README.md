@@ -58,10 +58,11 @@ Every performance-sensitive operator will keep three paths where useful:
 | Micro-benchmark harness | smoke-tested | CPU/HIP JSONL, Event/wall/error metadata |
 | End-to-end benchmark | smoke-tested | train/generate tokens/s and engine peak memory |
 | hipBLASLt + shape selector | smoke-tested | 2D FP32 correctness and Model-S measurements |
+| RCCL two-GPU equivalence | smoke-tested | XGMI ranks identical; single/multi diff 1.49e-08 |
 | Model-S reference training report | planned | M3 next step |
 | Python/PyTorch bindings | planned | M4 |
-| Profiling/autotuning | planned | M5 |
-| RCCL multi-GPU | planned | M6 |
+| Profiling/autotuning | smoke-tested | M5 evidence and registry |
+| RCCL buckets/four-GPU | planned | M6 next steps |
 
 See [STATUS.md](docs/development/STATUS.md) for the evidence gate behind each state.
 

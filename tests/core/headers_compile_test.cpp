@@ -19,5 +19,8 @@
 #include <microllm/training/trainer.h>
 #include <microllm/inference/kv_cache.h>
 #include <microllm/inference/generator.h>
+#if MICROLLM_HAS_RCCL
+#include <microllm/multi_gpu/communicator.h>
+#endif
 
 TEST(PublicHeaders, CanBeIncludedTogether) { SUCCEED(); }

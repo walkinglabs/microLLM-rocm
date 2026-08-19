@@ -74,3 +74,5 @@ the next gate. Records are append-only except for factual corrections.
   candidate, Model-S speedup, and setup-time regression.
 - [2026-08-19-m5-tuning-registry.md](2026-08-19-m5-tuning-registry.md): safe exact-shape
   implementation override seam for offline tuning skills.
+- [2026-08-19-m6-rccl-equivalence.md](2026-08-19-m6-rccl-equivalence.md): real two-GPU
+  all-reduce and single/global-batch training-step equivalence.

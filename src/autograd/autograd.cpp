@@ -102,6 +102,16 @@ const Tensor& Value::grad() const {
     if (!has_grad()) throw std::logic_error("Value does not have a gradient");
     return node_->gradient;
 }
+void Value::set_grad(Tensor gradient) {
+    if (!node_ || !node_->requires_grad) {
+        throw std::logic_error("cannot set gradient on a non-differentiable Value");
+    }
+    if (gradient.shape() != node_->data.shape() || gradient.dtype() != DType::Float32 ||
+        gradient.device() != node_->data.device()) {
+        throw std::invalid_argument("assigned gradient must match parameter shape/device/dtype");
+    }
+    node_->gradient = gradient.is_contiguous() ? std::move(gradient) : gradient.contiguous();
+}
 void Value::zero_grad() {
     if (node_) node_->gradient = Tensor();
 }
