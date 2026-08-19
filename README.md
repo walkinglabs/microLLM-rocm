@@ -119,9 +119,9 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| CPU tests | 121/121 | reference, shape/property matrix, graph, model, weights, profiling, integration |
-| ASan/UBSan | 119/119 | host code; dynamic binding tests isolated |
-| MI300X/gfx942 HIP | 25/25 | operators, graph, model, weights, trace timing |
+| CPU tests | 124/124 | reference, dtype/shape/property matrix, graph, model, weights, profiling, integration |
+| ASan/UBSan | 122/122 | host code; dynamic binding tests isolated |
+| MI300X/gfx942 HIP | 26/26 | dtype storage, operators, graph, model, weights, trace timing |
 | PyTorch CPU oracle/alignment | 3/3 | ops plus same-weight model value/timing trace |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
 | Registered test files | 33 | machine-audited CTest registration |
@@ -240,6 +240,7 @@ overlap or one-process-per-GPU production semantics. See
 - [Architecture](docs/ARCHITECTURE.md)
 - [Operator contracts](docs/OPERATOR_CONTRACTS.zh-CN.md)
 - [Weights and safetensors](docs/WEIGHTS.md)
+- [Tensor dtypes and MI300/MI350 precision policy](docs/DTYPES.md)
 - [Hardware compatibility](docs/COMPATIBILITY.md)
 - [Alignment experiments](docs/dev/alignment.md)
 - [Distributed training](docs/dev/distributed-training.md)

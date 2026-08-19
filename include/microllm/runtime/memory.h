@@ -23,8 +23,9 @@ void reset_allocation_peak(Device device) noexcept;
 void copy_bytes(void* destination, Device destination_device, const void* source,
                 Device source_device, std::size_t num_bytes);
 
-void copy_strided_float32(void* contiguous_destination, const void* strided_source,
-                          Device device, std::span<const std::int64_t> shape,
-                          std::span<const std::int64_t> strides);
+void copy_strided(void* contiguous_destination, const void* strided_source,
+                  std::size_t element_bytes, Device device,
+                  std::span<const std::int64_t> shape,
+                  std::span<const std::int64_t> strides);
 
 }  // namespace microllm::runtime

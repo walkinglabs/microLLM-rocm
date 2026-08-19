@@ -7,6 +7,7 @@
 #include <vector>
 
 #include <microllm/base/dtype.h>
+#include <microllm/base/low_precision.h>
 #include <microllm/core/storage.h>
 #include <microllm/core/tensor_view.h>
 
@@ -26,7 +27,8 @@ public:
     Tensor(std::initializer_list<std::int64_t> shape,
            DType dtype = DType::Float32, Device device = Device::cpu());
 
-    [[nodiscard]] static Tensor from_vector(const std::vector<float>& values, Shape shape);
+    [[nodiscard]] static Tensor from_vector(const std::vector<float>& values, Shape shape,
+                                            DType dtype = DType::Float32);
     [[nodiscard]] static Tensor from_int32_vector(const std::vector<std::int32_t>& values,
                                                   Shape shape);
     [[nodiscard]] static Tensor from_storage(Storage storage, Shape shape, Strides strides,
@@ -66,6 +68,7 @@ public:
     [[nodiscard]] Tensor squeeze(std::int64_t dim = -1) const;
     [[nodiscard]] Tensor contiguous() const;
     [[nodiscard]] Tensor to(Device target) const;
+    [[nodiscard]] Tensor cast(DType target) const;
 
     [[nodiscard]] std::string str() const;
     friend std::ostream& operator<<(std::ostream& stream, const Tensor& tensor);

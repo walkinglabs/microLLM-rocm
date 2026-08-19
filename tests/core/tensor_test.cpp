@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <cmath>
 #include <limits>
 #include <random>
 #include <stdexcept>
@@ -102,6 +103,53 @@ TEST(TensorTest, RandomContiguousShapesRoundTrip) {
         const auto tensor = Tensor::from_vector(values, shape);
         EXPECT_TRUE(tensor.is_contiguous());
         EXPECT_EQ(tensor.to_vector(), values);
+    }
+}
+
+TEST(TensorDTypeTest, Float16AndBFloat16UseTwoByteStorageAndRoundTripValues) {
+    const std::vector<float> values{-3.25F, -0.125F, 0.0F, 0.333251953125F, 1.5F, 7.75F};
+    for (const auto dtype : {DType::Float16, DType::BFloat16}) {
+        const auto tensor = Tensor::from_vector(values, {2, 3}, dtype);
+        EXPECT_EQ(tensor.dtype(), dtype);
+        EXPECT_EQ(tensor.storage().num_bytes(), values.size() * 2U);
+        const auto restored = tensor.to_vector();
+        ASSERT_EQ(restored.size(), values.size());
+        const auto tolerance = dtype == DType::Float16 ? 1.0e-3F : 1.0e-2F;
+        for (std::size_t index = 0; index < values.size(); ++index) {
+            EXPECT_NEAR(restored[index], values[index], tolerance) << "index=" << index;
+        }
+    }
+}
+
+TEST(TensorDTypeTest, CastIsExplicitAndPreservesShapeDeviceAndSpecialValues) {
+    const auto source = Tensor::from_vector(
+        {0.0F, -0.0F, std::numeric_limits<float>::infinity(),
+         -std::numeric_limits<float>::infinity(), std::numeric_limits<float>::quiet_NaN()},
+        {5});
+    for (const auto dtype : {DType::Float16, DType::BFloat16}) {
+        const auto converted = source.cast(dtype);
+        EXPECT_EQ(converted.shape(), source.shape());
+        EXPECT_EQ(converted.device(), source.device());
+        EXPECT_EQ(converted.dtype(), dtype);
+        const auto restored = converted.cast(DType::Float32).to_vector();
+        EXPECT_EQ(restored[0], 0.0F);
+        EXPECT_TRUE(std::signbit(restored[1]));
+        EXPECT_EQ(restored[2], std::numeric_limits<float>::infinity());
+        EXPECT_EQ(restored[3], -std::numeric_limits<float>::infinity());
+        EXPECT_TRUE(std::isnan(restored[4]));
+    }
+    EXPECT_THROW((void)source.cast(DType::Int32), std::invalid_argument);
+}
+
+TEST(TensorDTypeTest, LowPrecisionViewsFillAndMaterializeLogicalOrder) {
+    for (const auto dtype : {DType::Float16, DType::BFloat16}) {
+        auto source = Tensor::from_vector({0, 1, 2, 3, 4, 5}, {2, 3}, dtype);
+        const auto packed = source.transpose(0, 1).contiguous();
+        EXPECT_EQ(packed.dtype(), dtype);
+        EXPECT_EQ(packed.shape(), (Shape{3, 2}));
+        EXPECT_EQ(packed.to_vector(), (std::vector<float>{0, 3, 1, 4, 2, 5}));
+        source.slice(1, 1, 3).fill(-2.0F);
+        EXPECT_EQ(source.to_vector(), (std::vector<float>{0, -2, -2, 3, -2, -2}));
     }
 }
 

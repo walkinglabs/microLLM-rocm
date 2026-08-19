@@ -51,6 +51,39 @@ void require_cpu_float32(const Tensor& tensor, const char* operation) {
     }
 }
 
+float read_float_value(const void* data, DType dtype, std::int64_t index) {
+    switch (dtype) {
+        case DType::Float32:
+            return static_cast<const float*>(data)[index];
+        case DType::Float16:
+            return static_cast<float>(static_cast<const Float16*>(data)[index]);
+        case DType::BFloat16:
+            return static_cast<float>(static_cast<const BFloat16*>(data)[index]);
+        case DType::Int32:
+        case DType::Int64:
+            throw std::invalid_argument("floating-point access requires a floating dtype");
+    }
+    throw std::invalid_argument("unknown dtype");
+}
+
+void write_float_value(void* data, DType dtype, std::int64_t index, float value) {
+    switch (dtype) {
+        case DType::Float32:
+            static_cast<float*>(data)[index] = value;
+            return;
+        case DType::Float16:
+            static_cast<Float16*>(data)[index] = Float16(value);
+            return;
+        case DType::BFloat16:
+            static_cast<BFloat16*>(data)[index] = BFloat16(value);
+            return;
+        case DType::Int32:
+        case DType::Int64:
+            throw std::invalid_argument("floating-point access requires a floating dtype");
+    }
+    throw std::invalid_argument("unknown dtype");
+}
+
 }  // namespace
 
 Strides contiguous_strides(const Shape& shape) {
@@ -97,13 +130,16 @@ Tensor::Tensor(Storage storage, Shape shape, Strides strides, std::int64_t stora
     validate_layout();
 }
 
-Tensor Tensor::from_vector(const std::vector<float>& values, Shape shape) {
-    Tensor result(std::move(shape));
+Tensor Tensor::from_vector(const std::vector<float>& values, Shape shape, DType dtype) {
+    if (!is_floating_point(dtype)) {
+        throw std::invalid_argument("float vector requires a floating tensor dtype");
+    }
+    Tensor result(std::move(shape), dtype);
     if (static_cast<std::uint64_t>(result.numel()) != values.size()) {
         throw std::invalid_argument("vector size does not match tensor shape");
     }
-    if (!values.empty()) {
-        std::memcpy(result.data(), values.data(), values.size() * sizeof(float));
+    for (std::size_t index = 0; index < values.size(); ++index) {
+        write_float_value(result.data(), dtype, static_cast<std::int64_t>(index), values[index]);
     }
     return result;
 }
@@ -221,28 +257,45 @@ TensorView Tensor::view() { return {data(), dtype_, device(), shape_, strides_};
 ConstTensorView Tensor::view() const { return {data(), dtype_, device(), shape_, strides_}; }
 
 void Tensor::fill(float value) {
-    require_cpu_float32(*this, "fill");
-    auto* base = static_cast<float*>(storage_.data());
+    if (!device().is_cpu()) throw std::runtime_error("fill currently requires a CPU tensor");
+    if (!is_floating_point(dtype_)) throw std::runtime_error("fill requires a floating dtype");
+    auto* base = storage_.data();
     for (std::int64_t logical = 0; logical < numel_; ++logical) {
-        base[logical_to_storage_index(logical, shape_, strides_, storage_offset_)] = value;
+        write_float_value(base, dtype_,
+                          logical_to_storage_index(logical, shape_, strides_, storage_offset_),
+                          value);
     }
 }
 
 std::vector<float> Tensor::to_vector() const {
-    if (dtype_ != DType::Float32) throw std::runtime_error("to_vector currently requires float32");
+    if (!is_floating_point(dtype_)) throw std::runtime_error("to_vector requires a floating dtype");
     if (device().is_hip() && !is_contiguous()) return contiguous().to_vector();
     std::vector<float> values(static_cast<std::size_t>(numel_));
     if (device().is_hip()) {
-        runtime::copy_bytes(values.data(), Device::cpu(), data(), device(),
+        Tensor host(shape_, dtype_, Device::cpu());
+        runtime::copy_bytes(host.data(), Device::cpu(), data(), device(),
                             byte_count(numel_, dtype_));
-        return values;
+        return host.to_vector();
     }
-    const auto* base = static_cast<const float*>(storage_.data());
+    const auto* base = storage_.data();
     for (std::int64_t logical = 0; logical < numel_; ++logical) {
-        values[static_cast<std::size_t>(logical)] =
-            base[logical_to_storage_index(logical, shape_, strides_, storage_offset_)];
+        values[static_cast<std::size_t>(logical)] = read_float_value(
+            base, dtype_, logical_to_storage_index(logical, shape_, strides_, storage_offset_));
     }
     return values;
+}
+
+Tensor Tensor::cast(DType target) const {
+    if (!defined_) throw std::logic_error("cannot cast an undefined tensor");
+    if (!is_floating_point(dtype_) || !is_floating_point(target)) {
+        throw std::invalid_argument("cast currently supports floating dtypes only");
+    }
+    if (target == dtype_) return *this;
+    if (device().is_cpu()) {
+        return Tensor::from_vector(to_vector(), shape_, target);
+    }
+    const auto host = to(Device::cpu()).cast(target);
+    return host.to(device());
 }
 
 std::vector<std::int32_t> Tensor::to_int32_vector() const {
@@ -341,10 +394,7 @@ Tensor Tensor::contiguous() const {
     if (!defined_) throw std::logic_error("cannot copy an undefined tensor");
     if (is_contiguous()) return *this;
     Tensor output(shape_, dtype_, device());
-    if (dtype_ != DType::Float32) {
-        throw std::runtime_error("non-contiguous materialization currently requires float32");
-    }
-    runtime::copy_strided_float32(output.data(), data(), device(), shape_, strides_);
+    runtime::copy_strided(output.data(), data(), dtype_size(dtype_), device(), shape_, strides_);
     return output;
 }
 

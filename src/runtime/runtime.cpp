@@ -269,12 +269,14 @@ void copy_bytes(void* destination, Device destination_device, const void* source
 #endif
 }
 
-void copy_strided_float32(void* contiguous_destination, const void* strided_source,
-                          Device device, std::span<const std::int64_t> shape,
-                          std::span<const std::int64_t> strides) {
+void copy_strided(void* contiguous_destination, const void* strided_source,
+                  std::size_t element_bytes, Device device,
+                  std::span<const std::int64_t> shape,
+                  std::span<const std::int64_t> strides) {
     if (shape.size() != strides.size()) {
         throw std::invalid_argument("strided copy shape/stride rank mismatch");
     }
+    if (element_bytes == 0) throw std::invalid_argument("strided copy element size is zero");
     std::int64_t elements = 1;
     for (const auto dimension : shape) {
         if (dimension < 0 ||
@@ -288,8 +290,8 @@ void copy_strided_float32(void* contiguous_destination, const void* strided_sour
         throw std::invalid_argument("strided copy pointers must be non-null");
     }
     if (device.is_cpu()) {
-        auto* destination = static_cast<float*>(contiguous_destination);
-        const auto* source = static_cast<const float*>(strided_source);
+        auto* destination = static_cast<std::byte*>(contiguous_destination);
+        const auto* source = static_cast<const std::byte*>(strided_source);
         for (std::int64_t logical = 0; logical < elements; ++logical) {
             auto remainder = logical;
             std::int64_t source_index = 0;
@@ -299,16 +301,17 @@ void copy_strided_float32(void* contiguous_destination, const void* strided_sour
                 remainder /= shape[dim];
                 source_index += coordinate * strides[dim];
             }
-            destination[logical] = source[source_index];
+            std::memcpy(destination + static_cast<std::size_t>(logical) * element_bytes,
+                        source + static_cast<std::size_t>(source_index) * element_bytes,
+                        element_bytes);
         }
         return;
     }
 #if MICROLLM_HAS_HIP
     set_device(device);
-    detail::launch_strided_copy_float32(static_cast<float*>(contiguous_destination),
-                                        static_cast<const float*>(strided_source), elements,
-                                        static_cast<std::int64_t>(shape.size()), shape.data(),
-                                        strides.data());
+    detail::launch_strided_copy(contiguous_destination, strided_source, element_bytes,
+                                elements, static_cast<std::int64_t>(shape.size()),
+                                shape.data(), strides.data());
 #else
     throw std::runtime_error("HIP strided copy requested from a CPU-only build");
 #endif

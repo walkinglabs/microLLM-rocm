@@ -8,6 +8,24 @@
 #include <microllm/training/trainer.h>
 
 namespace microllm::ops {
+
+TEST(HipTensorDTypeTest, LowPrecisionTransferViewAndCastRoundTrip) {
+    if (runtime::hip_device_count() == 0) GTEST_SKIP() << "No visible HIP device";
+    const auto gpu = Device::hip(0);
+    for (const auto dtype : {DType::Float16, DType::BFloat16}) {
+        const auto cpu = Tensor::from_vector({0, 1, 2, 3, 4, 5}, {2, 3}, dtype);
+        const auto device_tensor = cpu.to(gpu);
+        EXPECT_EQ(device_tensor.dtype(), dtype);
+        EXPECT_EQ(device_tensor.storage().num_bytes(), 12U);
+        EXPECT_EQ(device_tensor.to_vector(), cpu.to_vector());
+        EXPECT_EQ(device_tensor.transpose(0, 1).contiguous().to_vector(),
+                  (std::vector<float>{0, 3, 1, 4, 2, 5}));
+        const auto float32 = device_tensor.cast(DType::Float32);
+        EXPECT_EQ(float32.device(), gpu);
+        EXPECT_EQ(float32.dtype(), DType::Float32);
+        EXPECT_EQ(float32.to_vector(), cpu.to_vector());
+    }
+}
 namespace {
 
 void require_gpu() {

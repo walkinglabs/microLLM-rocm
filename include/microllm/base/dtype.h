@@ -15,6 +15,11 @@ enum class DType : std::uint8_t {
     Int64,
 };
 
+[[nodiscard]] constexpr bool is_floating_point(DType dtype) noexcept {
+    return dtype == DType::Float32 || dtype == DType::Float16 ||
+           dtype == DType::BFloat16;
+}
+
 [[nodiscard]] constexpr std::size_t dtype_size(DType dtype) {
     switch (dtype) {
         case DType::Float32:

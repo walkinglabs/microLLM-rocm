@@ -1,11 +1,13 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 
 namespace microllm::runtime::detail {
 
-void launch_strided_copy_float32(float* destination, const float* source,
-                                 std::int64_t elements, std::int64_t rank,
-                                 const std::int64_t* shape, const std::int64_t* strides);
+void launch_strided_copy(void* destination, const void* source,
+                         std::size_t element_bytes, std::int64_t elements,
+                         std::int64_t rank, const std::int64_t* shape,
+                         const std::int64_t* strides);
 
 }  // namespace microllm::runtime::detail
