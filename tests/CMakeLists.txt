@@ -7,6 +7,7 @@ add_executable(microllm_tests
     runtime/runtime_test.cpp
     profiling/trace_test.cpp
     ops/ops_test.cpp
+    ops/property_test.cpp
     autograd/autograd_test.cpp
     graph/graph_construction_test.cpp
     graph/graph_gradient_alignment_test.cpp

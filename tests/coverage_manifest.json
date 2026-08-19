@@ -123,6 +123,7 @@
     "tests/multi_gpu/data_parallel_test.cpp",
     "tests/ops/hip_ops_test.cpp",
     "tests/ops/ops_test.cpp",
+    "tests/ops/property_test.cpp",
     "tests/profiling/trace_test.cpp",
     "tests/profiling/hip_trace_test.cpp",
     "tests/runtime/runtime_test.cpp",

@@ -14,12 +14,12 @@
 ## Current measured matrix
 
 ```text
-framework CPU                 116/116 pass
-CPU ASan/UBSan                114/114 pass
+framework CPU                 121/121 pass
+CPU ASan/UBSan                119/119 pass
 MI300X/gfx942 HIP              25/25 pass
 PyTorch CPU oracle/alignment      3/3 pass
 two-rank RCCL                  11/11 pass
-registered test files               32
+registered test files               33
 ```
 
 These counts describe the current commit. They do not imply every dtype, shape, GPU, or

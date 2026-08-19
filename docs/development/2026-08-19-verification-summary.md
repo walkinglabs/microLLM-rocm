@@ -6,8 +6,8 @@ Branch: `feat/bootstrap-engine-m0-n0`
 
 | Gate | Result |
 |---|---:|
-| normal CPU evidence | 116/116 |
-| CPU ASan/UBSan (dynamic bindings excluded) | 114/114 |
+| normal CPU evidence | 121/121 |
+| CPU ASan/UBSan (dynamic bindings excluded) | 119/119 |
 | MI300X/gfx942 HIP label | 25/25 |
 | two-rank RCCL label | 11/11 |
 | PyTorch 2.13 CPU Custom Op, oracle, and model alignment | 3/3 |
@@ -30,7 +30,7 @@ preload ordering. Those bindings pass separate normal CPU and HIP integration te
 - PyTorch CPU oracle: every public math operator, backward family, valid output shape,
   24 invalid shape/dtype contracts, SGD, two-step AdamW moments, and the full tiny GQA
   Transformer logits/loss/all-parameter gradients agree;
-- coverage audit: all 30 Tensor APIs, 29 graph/Value APIs, and 32 discovered test files
+- coverage audit: all 30 Tensor APIs, 29 graph/Value APIs, and 33 discovered test files
   have explicit gates and CMake/CTest registration;
 - same-weight microLLM/PyTorch tiny-model alignment: 58/58 forward, loss, and every
   named parameter-gradient checkpoints pass, with separate forward/backward timing;

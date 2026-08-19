@@ -4,14 +4,14 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| CPU configuration | smoke-tested | framework-only main configure/build; 116/116 CPU CTest | CI matrix |
+| CPU configuration | smoke-tested | framework-only main configure/build; 121/121 CPU CTest | CI matrix |
 | Device/DType | smoke-tested | unit and invalid-index tests | HIP runtime use |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
 | Tensor metadata/views | smoke-tested | hand values, randomized shapes, bounds | more dtypes |
 | HIP view materialization | smoke-tested | gfx942 transposed logical-order copy | rank>8/more dtypes |
 | Tensor PPM sample | smoke-tested | executable output/checksum | documented golden value |
 | HIP Storage/runtime | smoke-tested | gfx942 allocation, transfer, Stream/Event tests | CI on more GPUs |
-| CPU reference operators | smoke-tested | hand values plus PyTorch forward/backward oracle for every public math op | more dtypes |
+| CPU reference operators | smoke-tested | hand/PyTorch oracles plus deterministic rank/edge/shape properties and randomized finite differences | more dtypes |
 | HIP readable operators | smoke-tested | 24/24 gfx942 suite; ops, graph, and direct weight load | more architectures/optimized paths |
 | Operator context | smoke-tested | explicit Stream ordering and mismatch tests | low-level C descriptor |
 | CPU Transformer Autograd | smoke-tested | dedicated graph construction tests, finite differences, PyTorch full-graph gradients | more dtypes |

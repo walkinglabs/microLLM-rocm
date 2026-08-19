@@ -117,6 +117,8 @@ the next gate. Records are append-only except for factual corrections.
 - [2026-08-19-alignment-infrastructure.md](2026-08-19-alignment-infrastructure.md):
   four-pass microLLM/PyTorch forward/loss/gradient/timing traces, automatic comparison, and
   complete experiment manifests.
+- [2026-08-19-operator-property-matrix.md](2026-08-19-operator-property-matrix.md):
+  deterministic multi-rank shape/edge tests and randomized finite-difference gradients.
 - [2026-08-19-data-parallel-trainer.md](2026-08-19-data-parallel-trainer.md):
   reusable two-rank training step, bucketed gradient average, global-batch equivalence,
   stage profiling, and production reducer gaps.
