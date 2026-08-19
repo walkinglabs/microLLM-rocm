@@ -74,6 +74,61 @@ float sigmoid(float value) {
 
 }  // namespace
 
+void adamw_update_(Tensor& parameter, const Tensor& gradient,
+                   Tensor& first_moment, Tensor& second_moment,
+                   float learning_rate, float beta1, float beta2,
+                   float epsilon, float weight_decay,
+                   float first_correction, float second_correction,
+                   [[maybe_unused]] const OpContext& context) {
+    require_float(parameter, "parameter");
+    require_float(gradient, "gradient");
+    require_float(first_moment, "first_moment");
+    require_float(second_moment, "second_moment");
+    require_same_shape(parameter, gradient);
+    require_same_shape(parameter, first_moment);
+    require_same_shape(parameter, second_moment);
+    require_same_device(parameter, gradient);
+    require_same_device(parameter, first_moment);
+    require_same_device(parameter, second_moment);
+    if (!parameter.is_contiguous() || !gradient.is_contiguous() ||
+        !first_moment.is_contiguous() || !second_moment.is_contiguous()) {
+        throw std::invalid_argument("AdamW update requires contiguous tensors");
+    }
+    if (!(learning_rate > 0.0F) || beta1 < 0.0F || beta1 >= 1.0F ||
+        beta2 < 0.0F || beta2 >= 1.0F || !(epsilon > 0.0F) ||
+        weight_decay < 0.0F || !(first_correction > 0.0F) ||
+        !(second_correction > 0.0F)) {
+        throw std::invalid_argument("AdamW update hyperparameters are invalid");
+    }
+    if (parameter.device().is_hip()) {
+#if MICROLLM_HAS_HIP
+        hip::launch_adamw_update(
+            static_cast<float*>(parameter.data()),
+            static_cast<const float*>(gradient.data()),
+            static_cast<float*>(first_moment.data()),
+            static_cast<float*>(second_moment.data()), parameter.numel(), learning_rate,
+            beta1, beta2, epsilon, weight_decay, first_correction,
+            second_correction, context.native_stream(parameter.device()));
+        return;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    auto* values = parameter.data_float();
+    const auto* gradients = gradient.data_float();
+    auto* first = first_moment.data_float();
+    auto* second = second_moment.data_float();
+    for (std::int64_t index = 0; index < parameter.numel(); ++index) {
+        const auto offset = static_cast<std::size_t>(index);
+        const auto grad = gradients[offset];
+        first[offset] = beta1 * first[offset] + (1.0F - beta1) * grad;
+        second[offset] = beta2 * second[offset] + (1.0F - beta2) * grad * grad;
+        values[offset] *= 1.0F - learning_rate * weight_decay;
+        values[offset] -= learning_rate * (first[offset] / first_correction) /
+                          (std::sqrt(second[offset] / second_correction) + epsilon);
+    }
+}
+
 ScaledTensor quantize_fp8(const Tensor& input, DType fp8_dtype, float scale,
                           [[maybe_unused]] const OpContext& context) {
     if (!input.defined() || (input.dtype() != DType::Float32 &&

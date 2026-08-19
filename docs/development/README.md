@@ -132,6 +132,8 @@ the next gate. Records are append-only except for factual corrections.
   config, Q/K/V bias, split-half RoPE, exact parameter count, and remaining real-model gates.
 - [2026-08-19-deepseek-distill.md](2026-08-19-deepseek-distill.md): official dense
   Distill-Qwen checkpoint, reasoning chat, complete logits, KV tokens, and resource evidence.
+- [2026-08-19-device-native-adamw.md](2026-08-19-device-native-adamw.md): zero-transfer
+  HIP AdamW and an official Qwen2.5 loss/parameter-update comparison with PyTorch.
 - [2026-08-19-data-parallel-trainer.md](2026-08-19-data-parallel-trainer.md):
   reusable two-rank training step, bucketed gradient average, global-batch equivalence,
   stage profiling, and production reducer gaps.

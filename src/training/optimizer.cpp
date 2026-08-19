@@ -103,27 +103,12 @@ void AdamW::step() {
         if (parameter->grad().shape() != parameter->data().shape()) {
             throw std::invalid_argument("AdamW gradient shape mismatch");
         }
-        auto values = parameter->data().to_vector();
-        auto first = state_.first_moments[parameter_index].to_vector();
-        auto second = state_.second_moments[parameter_index].to_vector();
-        const auto gradients = parameter->grad().to_vector();
-        for (std::int64_t index = 0; index < parameter->data().numel(); ++index) {
-            const auto offset = static_cast<std::size_t>(index);
-            const auto gradient = gradients[offset];
-            first[offset] = config_.beta1 * first[offset] + (1.0F - config_.beta1) * gradient;
-            second[offset] = config_.beta2 * second[offset] +
-                             (1.0F - config_.beta2) * gradient * gradient;
-            const auto corrected_first = first[offset] / first_correction;
-            const auto corrected_second = second[offset] / second_correction;
-            values[offset] *= 1.0F - config_.learning_rate * config_.weight_decay;
-            values[offset] -= config_.learning_rate * corrected_first /
-                              (std::sqrt(corrected_second) + config_.epsilon);
-        }
-        const auto device = parameter->data().device();
-        const auto shape = parameter->data().shape();
-        parameter->mutable_data() = Tensor::from_vector(values, shape).to(device);
-        state_.first_moments[parameter_index] = Tensor::from_vector(first, shape).to(device);
-        state_.second_moments[parameter_index] = Tensor::from_vector(second, shape).to(device);
+        ops::adamw_update_(parameter->mutable_data(), parameter->grad(),
+                           state_.first_moments[parameter_index],
+                           state_.second_moments[parameter_index],
+                           config_.learning_rate, config_.beta1, config_.beta2,
+                           config_.epsilon, config_.weight_decay, first_correction,
+                           second_correction);
     }
 }
 

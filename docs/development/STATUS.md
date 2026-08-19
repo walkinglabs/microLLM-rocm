@@ -16,12 +16,12 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | HIP readable operators | smoke-tested | FP32 suite plus native FP16/BF16 basic kernels with zero host transfers | remaining low-precision forward/backward families |
 | MI300X precision capabilities | smoke-tested | dedicated gfx942 gate; FP32/FP16/BF16/FP8 hipBLASLt execution and Event speedup | INT8 probe and packed INT4 software path |
 | FP8 training/inference | smoke-tested | FNUZ kernels, scaled GEMM, FP32 master/backward, Transformer Linear policy and KV decode | dynamic amax/history and full training curve |
-| Qwen2.5-0.5B | smoke-tested | official checkpoint, full logits, 14-case byte-BPE, basic chat IDs and four greedy KV tokens match Transformers | per-layer trace/tool chat/BF16/SFT |
+| Qwen2.5-0.5B | smoke-tested | official checkpoint, logits/tokenizer/chat/KV plus one backward/AdamW step match PyTorch | per-layer trace/tool chat/BF16/multi-step SFT |
 | DeepSeek-R1-Distill-Qwen-1.5B | smoke-tested | official 339 tensors, full logits, reasoning chat and eight greedy tokens match Transformers on MI300X | longer reasoning/BF16/SFT |
 | Operator context | smoke-tested | explicit Stream ordering and mismatch tests | low-level C descriptor |
 | CPU Transformer Autograd | smoke-tested | dedicated graph construction tests, finite differences, PyTorch full-graph gradients | more dtypes |
 | HIP Autograd | smoke-tested | CPU/HIP full Transformer gradient comparison; zero host transfers during graph execution | optimized reductions/more dtypes |
-| SGD/AdamW | smoke-tested | PyTorch SGD and two-step AdamW parameter/moment parity plus restored next step | device-native HIP update/mixed precision |
+| SGD/AdamW | smoke-tested | PyTorch parity plus zero-transfer device-native HIP AdamW and real Qwen update | mixed precision/scaler |
 | Checkpoint | smoke-tested | atomic complete-state load, corruption, 3-step resume | mixed precision |
 | Model-S/Model-M config | smoke-tested | executable exact parameter/byte tests | model layers/training |
 | Model-S CPU forward | smoke-tested | 15,586,176 parameters and 8192 finite logits | training/HIP |

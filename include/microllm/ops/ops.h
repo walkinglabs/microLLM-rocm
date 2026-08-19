@@ -29,6 +29,12 @@ struct ScaledTensor {
                                 const OpContext& context = {});
 
 void fill_(Tensor& tensor, float value, const OpContext& context = {});
+void adamw_update_(Tensor& parameter, const Tensor& gradient,
+                   Tensor& first_moment, Tensor& second_moment,
+                   float learning_rate, float beta1, float beta2,
+                   float epsilon, float weight_decay,
+                   float first_correction, float second_correction,
+                   const OpContext& context = {});
 
 [[nodiscard]] Tensor add(const Tensor& left, const Tensor& right, const OpContext& context = {});
 [[nodiscard]] Tensor add_bias(const Tensor& input, const Tensor& bias,

@@ -21,9 +21,14 @@ target_link_libraries(microllm_hf_infer PRIVATE
 add_executable(microllm_hf_tokenize hf_tokenize.cpp)
 target_link_libraries(microllm_hf_tokenize PRIVATE microllm::io)
 
+add_executable(microllm_hf_train_step hf_train_step.cpp)
+target_link_libraries(microllm_hf_train_step PRIVATE
+    microllm::training microllm::model microllm::runtime)
+
 install(TARGETS microllm_train microllm_runtime_info microllm_alignment microllm_hf_inspect
         microllm_hf_infer
         microllm_hf_tokenize
+        microllm_hf_train_step
         RUNTIME DESTINATION bin)
 
 if(MICROLLM_HAS_RCCL)

@@ -8,7 +8,7 @@ Branch: `feat/bootstrap-engine-m0-n0`
 |---|---:|
 | normal CPU evidence | 143/143 |
 | CPU ASan/UBSan (dynamic bindings excluded) | 141/141 |
-| MI300X/gfx942 HIP label | 37/37 |
+| MI300X/gfx942 HIP label | 38/38 |
 | two-rank RCCL label | 11/11 |
 | PyTorch 2.13 CPU Custom Op, oracle, and model alignment | 3/3 |
 | committed JSON/JSONL parser | all records valid |

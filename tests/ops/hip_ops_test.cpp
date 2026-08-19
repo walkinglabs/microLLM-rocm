@@ -458,6 +458,29 @@ TEST(HipTrainingTest, TinyTransformerRunsBackwardAndLowersLoss) {
     EXPECT_EQ(model.device(), Device::hip());
 }
 
+TEST(HipTrainingTest, AdamWStepIsDeviceNativeAndMatchesCpu) {
+    require_gpu();
+    autograd::Value cpu(Tensor::from_vector({1.0F, -2.0F}, {2}), true);
+    autograd::Value gpu(cpu.data().to(Device::hip()), true);
+    cpu.set_grad(Tensor::from_vector({0.5F, -0.25F}, {2}));
+    gpu.set_grad(cpu.grad().to(Device::hip()));
+    const training::AdamWConfig config{.learning_rate = 0.01F,
+                                       .beta1 = 0.9F,
+                                       .beta2 = 0.99F,
+                                       .epsilon = 1.0e-8F,
+                                       .weight_decay = 0.1F};
+    training::AdamW cpu_optimizer({&cpu}, config);
+    training::AdamW gpu_optimizer({&gpu}, config);
+    cpu_optimizer.step();
+    runtime::reset_transfer_stats();
+    gpu_optimizer.step();
+    runtime::synchronize(Device::hip());
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    expect_near(gpu.data().to_vector(), cpu.data().to_vector(), 1.0e-6F);
+}
+
 TEST(HipAutogradTest, FullTransformerBackwardMatchesCpuWithoutHostTransfers) {
     require_gpu();
     const model::ModelConfig config{.vocabulary_size = 8,

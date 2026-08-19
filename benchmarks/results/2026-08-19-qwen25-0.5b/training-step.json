@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "tokens": [1, 2, 3, 4],
+  "learning_rate": 0.00001,
+  "microllm_loss": 6.83602953,
+  "pytorch_loss": 6.836015701293945,
+  "loss_abs_difference": 0.000013828706055,
+  "observed_parameter": "final_norm.weight[0]",
+  "parameter_before": 7.46875,
+  "microllm_parameter_after": 7.468739032745361,
+  "pytorch_parameter_after": 7.468739032745361,
+  "parameter_after_abs_difference": 0.0,
+  "microllm_step_ms": 2267.604255,
+  "microllm_optimizer_ms": 10.683131,
+  "optimizer_host_to_device_calls": 0,
+  "optimizer_device_to_host_calls": 0,
+  "engine_peak_bytes": 9557127072
+}

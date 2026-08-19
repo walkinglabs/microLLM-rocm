@@ -32,6 +32,23 @@ __global__ void fill_kernel(float* output, std::int64_t elements, float value) {
     if (index < elements) output[index] = value;
 }
 
+__global__ void adamw_update_kernel(
+    float* parameter, const float* gradient, float* first_moment,
+    float* second_moment, std::int64_t elements, float learning_rate,
+    float beta1, float beta2, float epsilon, float weight_decay,
+    float first_correction, float second_correction) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    if (index >= elements) return;
+    const auto grad = gradient[index];
+    const auto first = beta1 * first_moment[index] + (1.0F - beta1) * grad;
+    const auto second = beta2 * second_moment[index] + (1.0F - beta2) * grad * grad;
+    first_moment[index] = first;
+    second_moment[index] = second;
+    parameter[index] *= 1.0F - learning_rate * weight_decay;
+    parameter[index] -= learning_rate * (first / first_correction) /
+                        (sqrtf(second / second_correction) + epsilon);
+}
+
 __global__ void add_kernel(const float* left, const float* right, float* output,
                            std::int64_t elements) {
     const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
@@ -596,6 +613,21 @@ void launch_fill(float* output, std::int64_t elements, float value, void* stream
     hipLaunchKernelGGL(fill_kernel, dim3(grid_size(elements)), dim3(kBlockSize), 0,
                        as_stream(stream), output, elements, value);
     check_launch("fill_kernel");
+}
+
+void launch_adamw_update(float* parameter, const float* gradient,
+                         float* first_moment, float* second_moment,
+                         std::int64_t elements, float learning_rate,
+                         float beta1, float beta2, float epsilon,
+                         float weight_decay, float first_correction,
+                         float second_correction, void* stream) {
+    if (elements == 0) return;
+    hipLaunchKernelGGL(adamw_update_kernel, dim3(grid_size(elements)),
+                       dim3(kBlockSize), 0, as_stream(stream), parameter, gradient,
+                       first_moment, second_moment, elements, learning_rate, beta1,
+                       beta2, epsilon, weight_decay, first_correction,
+                       second_correction);
+    check_launch("adamw_update_kernel");
 }
 
 void launch_add(const float* left, const float* right, float* output,

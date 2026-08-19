@@ -123,7 +123,7 @@ Current `main` gates:
 |---|---:|---|
 | CPU tests | 143/143 | reference, Qwen/DeepSeek config/tokenizer/chat, graph, model, weights |
 | ASan/UBSan | 141/141 | host code; dynamic binding tests isolated |
-| MI300X/gfx942 HIP | 37/37 | Qwen checkpoint/KV regression, FP8, graph, weights, profiling |
+| MI300X/gfx942 HIP | 38/38 | Qwen training/inference, device AdamW, FP8, graph, profiling |
 | PyTorch CPU oracle/alignment | 3/3 | ops plus same-weight model value/timing trace |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
 | Registered test files | 34 | machine-audited CTest registration |

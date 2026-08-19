@@ -32,6 +32,7 @@
     "repeat_interleave_backward": {"torch": "graph_repeat_input_grad", "shape": "invalid_repeat_backward_shape"}
   },
   "operator_infrastructure": {
+    "adamw_update_": "tests/training/optimizer_test.cpp",
     "quantize_fp8": "tests/ops/ops_test.cpp",
     "dequantize_fp8": "tests/ops/ops_test.cpp",
     "fp8_matmul": "tests/ops/hip_ops_test.cpp",

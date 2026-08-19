@@ -39,6 +39,8 @@ repository's BF16 checkpoint metadata; its BF16 weight payload is 988,065,536 by
 - basic Instruct system/user/assistant rendering and all 30 chat token IDs match;
 - `Hello world` maps to `[9707,1879]` in both implementations;
 - four greedy KV-cache tokens match exactly: `[0,358,2776,264]`, text `! I'm a`.
+- one official-weight backward/AdamW step matches PyTorch loss within `1.383e-5` and
+  produces an identical observed parameter update.
 
 Measured MI300X smoke: load 10.14 s, first two-token forward 1.44 s, four-token greedy
 generation 345.54 ms, current engine memory 1.976 GB, peak 3.952 GB. Raw compact evidence is tracked under
