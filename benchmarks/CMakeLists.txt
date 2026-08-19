@@ -11,6 +11,10 @@ if(MICROLLM_HAS_RCCL)
     target_link_libraries(microllm_bench_allreduce PRIVATE
         microllm::multi_gpu microllm::ops microllm::runtime
     )
+    add_executable(microllm_bench_overlap distributed/benchmark_overlap.cpp)
+    target_link_libraries(microllm_bench_overlap PRIVATE
+        microllm::multi_gpu microllm::ops microllm::runtime
+    )
 endif()
 
 if(BUILD_TESTING)
@@ -42,6 +46,11 @@ if(BUILD_TESTING)
                  COMMAND microllm_bench_allreduce --ranks 2 --total-elements 1024
                          --bucket-elements 1024 --warmup 1 --repetitions 2)
         set_tests_properties(Benchmark.RcclSmoke PROPERTIES
+                             LABELS "hip;rccl;multi_gpu;benchmark;smoke")
+        add_test(NAME Benchmark.RcclOverlapSmoke
+                 COMMAND microllm_bench_overlap --payload-elements 1024
+                         --compute-elements 1024 --warmup 1 --repetitions 2)
+        set_tests_properties(Benchmark.RcclOverlapSmoke PROPERTIES
                              LABELS "hip;rccl;multi_gpu;benchmark;smoke")
     endif()
 endif()

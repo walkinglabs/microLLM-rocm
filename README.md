@@ -60,11 +60,12 @@ Every performance-sensitive operator will keep three paths where useful:
 | hipBLASLt + shape selector | smoke-tested | 2D FP32 correctness and Model-S measurements |
 | RCCL two-GPU equivalence | smoke-tested | XGMI ranks identical; single/multi diff 1.49e-08 |
 | RCCL gradient buckets | smoke-tested | 64→1 collectives: 6.676→0.225 ms |
+| RCCL compute overlap | smoke-tested | separate Streams improve synthetic step 30–33% |
 | RCCL four-GPU | blocked by environment | 64MB /dev/shm; failure evidence retained |
 | Model-S reference training report | planned | M3 next step |
 | Python/PyTorch bindings | planned | M4 |
 | Profiling/autotuning | smoke-tested | M5 evidence and registry |
-| RCCL overlap/four-GPU retry | planned | M6 next steps |
+| Backward-ready overlap/four-GPU retry | planned | M6 follow-up |
 
 See [STATUS.md](docs/development/STATUS.md) for the evidence gate behind each state.
 

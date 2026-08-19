@@ -6,6 +6,7 @@
 #include <string>
 
 #include <microllm/core/tensor.h>
+#include <microllm/runtime/runtime.h>
 
 #if MICROLLM_HAS_HIP
 #include "hip/kernels.h"
@@ -56,6 +57,7 @@ void binary_out(TensorView output, ConstTensorView left, ConstTensorView right,
         return;
     }
 #if MICROLLM_HAS_HIP
+    runtime::set_device(output.device);
     launch(static_cast<float*>(output.data), static_cast<const float*>(left.data),
            static_cast<const float*>(right.data), elements,
            context.native_stream(output.device));

@@ -23,6 +23,7 @@ struct OpContext {
     }
 
     [[nodiscard]] void* native_stream(Device device) const {
+        if (device.is_hip()) runtime::set_device(device);
         if (stream != nullptr && external_stream != nullptr) {
             throw std::invalid_argument("operator context cannot contain two streams");
         }

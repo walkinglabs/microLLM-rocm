@@ -42,3 +42,4 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | RCCL two-GPU baseline | smoke-tested | XGMI average and global-batch parameter equivalence | buckets/4 GPU/failure timing |
 | RCCL gradient buckets | smoke-tested | 1MB payload with 64/4/1 bucket matrix | overlap with backward |
 | RCCL four-GPU | draft | 3 stable init failures and debug root cause | environment with >87MB /dev/shm |
+| RCCL compute overlap | smoke-tested | 3 runs, 30–33% synthetic overlap gain | bucket readiness during real backward |

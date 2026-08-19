@@ -80,3 +80,5 @@ the next gate. Records are append-only except for factual corrections.
   bucket timing matrix and reproducible four-rank shared-memory failure.
 - [2026-08-19-m6-async-collective.md](2026-08-19-m6-async-collective.md): enqueue/wait
   collective split required for communication-compute overlap.
+- [2026-08-19-m6-overlap-experiment.md](2026-08-19-m6-overlap-experiment.md):
+  two-Stream overlap measurements and multi-GPU device-selection bug.
