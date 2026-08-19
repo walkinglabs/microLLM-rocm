@@ -3,9 +3,10 @@
 `microLLM-rocm` is a small, independently usable C++/HIP training and inference
 engine for teaching, measuring, and improving language-model systems on AMD GPUs.
 
-第一次阅读可以从[初中生也能读懂的中文设计说明](docs/DESIGN_FOR_BEGINNERS.zh-CN.md)
-开始，再使用[算子契约与 PyTorch 对照表](docs/OPERATOR_CONTRACTS.zh-CN.md)检查每个
-算子的输入 shape、输出 shape、误差和失败条件。
+框架技术契约在[算子契约与 PyTorch 对照表](docs/OPERATOR_CONTRACTS.zh-CN.md)。
+面向初中生的课程与 N0–N8/PA0–PA2 独立维护在
+[`tutorial/beginner-course`](https://github.com/walkinglabs/microLLM-rocm/tree/tutorial/beginner-course)，
+不与 `main` 的框架发布边界混在一起。
 
 The project is **pre-alpha**. CPU/HIP FP32 operators, the repository-owned autograd
 graph, tiny Transformer training, optional bindings, profiling, and two-rank RCCL have

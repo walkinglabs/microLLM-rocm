@@ -6,8 +6,8 @@ Branch: `feat/bootstrap-engine-m0-n0`
 
 | Gate | Result |
 |---|---:|
-| normal CPU evidence | 99/99 |
-| CPU ASan/UBSan (dynamic bindings excluded) | 97/97 |
+| normal CPU evidence | 98/98 |
+| CPU ASan/UBSan (dynamic bindings excluded) | 96/96 |
 | MI300X/gfx942 HIP label | 23/23 |
 | two-rank RCCL label | 7/7 |
 | PyTorch 2.13 CPU Custom Op and correctness oracle | 2/2 |

@@ -11,19 +11,6 @@ case "$MICROLLM_TASK_MODE" in
     *) echo "usage: $0 [cpu|hip|rccl]" >&2; exit 2 ;;
 esac
 
-for notebook in {0..8}; do
-    if ! compgen -G "${PROJECT_DIR}/notebooks/N${notebook}_*.md" >/dev/null; then
-        echo "missing notebook N${notebook}" >&2
-        exit 1
-    fi
-done
-for assignment in PA0 PA1 PA2; do
-    test -f "${PROJECT_DIR}/pa/${assignment}/README.md" || {
-        echo "missing ${assignment}/README.md" >&2
-        exit 1
-    }
-done
-
 python3 - "$PROJECT_DIR" <<'PY'
 import json
 import pathlib

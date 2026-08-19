@@ -104,3 +104,6 @@ the next gate. Records are append-only except for factual corrections.
 - [2026-08-19-pytorch-parity-and-graph-tests.md](2026-08-19-pytorch-parity-and-graph-tests.md):
   dedicated graph construction tests, full PyTorch operator/model/optimizer oracle, and
   machine-enforced test-file coverage.
+- [2026-08-19-branch-separation.md](2026-08-19-branch-separation.md): framework on
+  `main`, beginner course on `tutorial/beginner-course`, and independent verification
+  boundaries.

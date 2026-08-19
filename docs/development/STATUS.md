@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| CPU configuration | smoke-tested | clean CPU configure/build; 99/99 CPU CTest | CI matrix |
+| CPU configuration | smoke-tested | framework-only main configure/build; 98/98 CPU CTest | CI matrix |
 | Device/DType | smoke-tested | unit and invalid-index tests | HIP runtime use |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
 | Tensor metadata/views | smoke-tested | hand values, randomized shapes, bounds | more dtypes |
