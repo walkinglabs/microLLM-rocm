@@ -1,0 +1,53 @@
+# 构建产物
+build/
+build-*/
+cmake-build-*/
+
+# 编译产物
+*.o
+*.obj
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# HIP/ROCm
+*.hip.o
+*.hip.d
+
+# 数据文件 (大文件不入 git)
+data/*.bin
+data/*.jsonl
+data/*.txt
+!data/.gitkeep
+!data/README.md
+
+# 训练产物
+checkpoints/
+logs/
+*.pt
+*.ckpt
+
+# 性能分析
+*.prof
+*.trace
+rocprof*
+
+# Local run artifacts; curated evidence summaries live in docs/development/.
+runs/
+
+# Python 缓存 (如果用到辅助脚本)
+__pycache__/
+*.pyc

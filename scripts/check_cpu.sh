@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+MICROLLM_TASK_CHECK_DIR="${MICROLLM_CHECK_BUILD_DIR:-${PROJECT_DIR}/build-cpu-sanitize}"
+
+MICROLLM_BUILD_DIR="$MICROLLM_TASK_CHECK_DIR" \
+MICROLLM_BUILD_TYPE=Debug \
+    "$SCRIPT_DIR/configure.sh" \
+    -DMICROLLM_ENABLE_HIP=OFF \
+    -DMICROLLM_ENABLE_SANITIZERS=ON
+MICROLLM_BUILD_DIR="$MICROLLM_TASK_CHECK_DIR" "$SCRIPT_DIR/test.sh"
