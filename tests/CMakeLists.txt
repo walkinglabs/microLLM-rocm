@@ -7,10 +7,11 @@ add_executable(microllm_tests
     runtime/runtime_test.cpp
     ops/ops_test.cpp
     autograd/autograd_test.cpp
+    training/optimizer_test.cpp
 )
 
 target_link_libraries(microllm_tests PRIVATE
-    GTest::gtest_main microllm::core microllm::ops microllm::autograd
+    GTest::gtest_main microllm::core microllm::ops microllm::autograd microllm::training
 )
 
 include(GoogleTest)

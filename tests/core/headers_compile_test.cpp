@@ -9,5 +9,6 @@
 #include <microllm/ops/context.h>
 #include <microllm/ops/ops.h>
 #include <microllm/autograd/autograd.h>
+#include <microllm/training/optimizer.h>
 
 TEST(PublicHeaders, CanBeIncludedTogether) { SUCCEED(); }

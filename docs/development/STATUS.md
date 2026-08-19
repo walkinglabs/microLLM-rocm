@@ -14,6 +14,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | HIP readable operators | smoke-tested | gfx942 conformance for 11 kernels | more architectures/optimized paths |
 | Operator context | smoke-tested | explicit Stream ordering and mismatch tests | low-level C descriptor |
 | CPU Transformer Autograd | smoke-tested | 11 focused tests and finite differences | attention composition/GPU backward |
+| SGD/AdamW | smoke-tested | hand first step and state-restored next step | GPU update/mixed precision |
 | Checkpoint | draft | roadmap | multi-step resume |
 | Model-S | draft | corrected parameter budget | overfit and training run |
 | Python/PyTorch bridge | draft | ABI design | zero-copy implementation |
