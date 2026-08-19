@@ -69,6 +69,7 @@ Communicator& Communicator::operator=(Communicator&&) noexcept = default;
 std::size_t Communicator::size() const noexcept { return impl_->devices.size(); }
 const std::vector<int>& Communicator::devices() const noexcept { return impl_->devices; }
 bool Communicator::aborted() const noexcept { return impl_->aborted; }
+runtime::Stream& Communicator::stream(std::size_t rank) { return impl_->streams.at(rank); }
 
 void Communicator::all_reduce(std::vector<Tensor>& tensors, bool average) {
     if (impl_->aborted) throw std::logic_error("communicator has been aborted");

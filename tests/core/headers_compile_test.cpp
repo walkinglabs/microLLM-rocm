@@ -21,6 +21,7 @@
 #include <microllm/inference/generator.h>
 #if MICROLLM_HAS_RCCL
 #include <microllm/multi_gpu/communicator.h>
+#include <microllm/multi_gpu/gradient_bucket.h>
 #endif
 
 TEST(PublicHeaders, CanBeIncludedTogether) { SUCCEED(); }

@@ -46,6 +46,7 @@ if(MICROLLM_HAS_RCCL)
     add_executable(microllm_multi_gpu_tests
         multi_gpu/communicator_test.cpp
         multi_gpu/distributed_step_test.cpp
+        multi_gpu/gradient_bucket_test.cpp
     )
     target_link_libraries(microllm_multi_gpu_tests PRIVATE
         GTest::gtest_main microllm::multi_gpu microllm::training microllm::model

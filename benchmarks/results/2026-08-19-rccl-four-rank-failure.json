@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "status": "failed",
+  "attempts": 3,
+  "ranks": 4,
+  "visible_gpus": 4,
+  "rccl_version": "2.28.3",
+  "rocm_version": "7.13.0.1",
+  "error": "ncclCommInitAll: unhandled system error",
+  "root_cause_evidence": "RCCL attempted multiple 21823872-byte shared-memory segments and /dev/shm reported ENOSPC",
+  "dev_shm_size": "64M",
+  "dev_shm_available": "63M",
+  "rebuttal_environment": "NCCL_SHM_DISABLE=1",
+  "rebuttal_result": "same ENOSPC shared-memory path in this RCCL build",
+  "conclusion": "four-rank execution is not validated in the current container; two-rank execution is validated"
+}

@@ -76,3 +76,5 @@ the next gate. Records are append-only except for factual corrections.
   implementation override seam for offline tuning skills.
 - [2026-08-19-m6-rccl-equivalence.md](2026-08-19-m6-rccl-equivalence.md): real two-GPU
   all-reduce and single/global-batch training-step equivalence.
+- [2026-08-19-m6-buckets-and-four-rank-failure.md](2026-08-19-m6-buckets-and-four-rank-failure.md):
+  bucket timing matrix and reproducible four-rank shared-memory failure.

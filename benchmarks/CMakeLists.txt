@@ -6,6 +6,13 @@ target_link_libraries(microllm_bench_model PRIVATE
     microllm::training microllm::inference microllm::runtime
 )
 
+if(MICROLLM_HAS_RCCL)
+    add_executable(microllm_bench_allreduce distributed/benchmark_allreduce.cpp)
+    target_link_libraries(microllm_bench_allreduce PRIVATE
+        microllm::multi_gpu microllm::ops microllm::runtime
+    )
+endif()
+
 if(BUILD_TESTING)
     find_package(Python3 COMPONENTS Interpreter QUIET)
     add_test(NAME Benchmark.AddSmoke
@@ -29,5 +36,12 @@ if(BUILD_TESTING)
                  COMMAND microllm_bench_model --mode generate --model tiny --device hip
                          --steps 2 --warmup 1 --batch 1 --context 1 --new-tokens 4)
         set_tests_properties(Benchmark.HipGenerateSmoke PROPERTIES LABELS "hip;benchmark;model;smoke")
+    endif()
+    if(MICROLLM_HAS_RCCL)
+        add_test(NAME Benchmark.RcclSmoke
+                 COMMAND microllm_bench_allreduce --ranks 2 --total-elements 1024
+                         --bucket-elements 1024 --warmup 1 --repetitions 2)
+        set_tests_properties(Benchmark.RcclSmoke PROPERTIES
+                             LABELS "hip;rccl;multi_gpu;benchmark;smoke")
     endif()
 endif()

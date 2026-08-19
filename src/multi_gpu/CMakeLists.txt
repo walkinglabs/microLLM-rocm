@@ -1,4 +1,4 @@
-add_library(microllm_multi_gpu STATIC communicator.cpp)
+add_library(microllm_multi_gpu STATIC communicator.cpp gradient_bucket.cpp)
 add_library(microllm::multi_gpu ALIAS microllm_multi_gpu)
 
 target_include_directories(microllm_multi_gpu

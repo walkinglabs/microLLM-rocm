@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <microllm/core/tensor.h>
+#include <microllm/runtime/runtime.h>
 
 namespace microllm::multi_gpu {
 
@@ -20,6 +21,7 @@ public:
     [[nodiscard]] std::size_t size() const noexcept;
     [[nodiscard]] const std::vector<int>& devices() const noexcept;
     [[nodiscard]] bool aborted() const noexcept;
+    [[nodiscard]] runtime::Stream& stream(std::size_t rank);
 
     void all_reduce(std::vector<Tensor>& tensors, bool average = true);
     void synchronize();
