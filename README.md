@@ -178,7 +178,7 @@ python3 tools/alignment/run.py \
   --warmup 5 --repetitions 20
 ```
 
-See [Alignment experiments](docs/dev/alignment.md) for the trace schema, three-pass
+See [Alignment experiments](docs/dev/alignment.md) for the trace schema, four-pass
 measurement design, comparison metrics, artifact manifest, and model-extension process.
 
 ```bash

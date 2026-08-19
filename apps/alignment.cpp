@@ -120,7 +120,9 @@ int main(int argc, char** argv) {
         microllm::model::TransformerModel model(config, options.seed);
         model.to(device);
         auto tokens = microllm::Tensor::from_int32_vector({0, 1, 2, 3}, {1, 4});
+        auto targets = microllm::Tensor::from_int32_vector({1, 2, 3, 0}, {1, 4});
         if (device != microllm::Device::cpu()) tokens = tokens.to(device);
+        if (device != microllm::Device::cpu()) targets = targets.to(device);
 
         for (std::uint64_t iteration = 0; iteration < options.warmup; ++iteration) {
             (void)model.forward(tokens);
@@ -154,6 +156,30 @@ int main(int argc, char** argv) {
             (void)model.forward(tokens);
         }
         value_session.write_jsonl(options.output_directory / "microllm_values.jsonl");
+
+        microllm::profiling::TraceOptions training_value_options;
+        training_value_options.phase = "training_values";
+        training_value_options.record_operators = false;
+        training_value_options.record_layers = false;
+        training_value_options.record_model = false;
+        training_value_options.capture_values = true;
+        training_value_options.max_captured_elements = options.max_captured_elements;
+        microllm::profiling::TraceSession training_value_session(
+            "microllm", options.run_id, training_value_options);
+        for (auto* parameter : model.parameters()) parameter->zero_grad();
+        const auto training_loss = model.loss(tokens, targets);
+        training_loss.backward();
+        training_value_session.record(microllm::profiling::TraceKind::Output,
+                                      "training.loss", training_loss.data());
+        for (const auto& [name, parameter] : model.named_parameters()) {
+            if (!parameter->has_grad()) {
+                throw std::runtime_error("missing gradient for parameter: " + name);
+            }
+            training_value_session.record(microllm::profiling::TraceKind::Parameter,
+                                          "gradient." + name, parameter->grad());
+        }
+        training_value_session.write_jsonl(
+            options.output_directory / "microllm_training_values.jsonl");
 
         microllm::profiling::TraceOptions operator_options;
         operator_options.phase = "operator_timing";
@@ -189,6 +215,31 @@ int main(int argc, char** argv) {
             }
         }
         layer_session.write_jsonl(options.output_directory / "microllm_layer_timing.jsonl");
+
+        for (std::uint64_t iteration = 0; iteration < options.warmup; ++iteration) {
+            for (auto* parameter : model.parameters()) parameter->zero_grad();
+            model.loss(tokens, targets).backward();
+        }
+        microllm::profiling::TraceOptions backward_options;
+        backward_options.phase = "backward_timing";
+        backward_options.record_operators = false;
+        backward_options.record_layers = false;
+        backward_options.record_model = true;
+        backward_options.capture_values = false;
+        microllm::profiling::TraceSession backward_session(
+            "microllm", options.run_id, backward_options);
+        for (std::uint64_t iteration = 0; iteration < options.repetitions; ++iteration) {
+            for (auto* parameter : model.parameters()) parameter->zero_grad();
+            const auto loss = model.loss(tokens, targets);
+            backward_session.set_iteration(iteration);
+            microllm::profiling::ScopedTraceSession active(backward_session);
+            microllm::profiling::TraceTimer timer(
+                microllm::profiling::TraceKind::Model, "model.backward", device);
+            loss.backward();
+            timer.finish(loss.data());
+        }
+        backward_session.write_jsonl(
+            options.output_directory / "microllm_backward_timing.jsonl");
 
         write_run_metadata(options.output_directory / "microllm_run.json",
                            options, device, config);

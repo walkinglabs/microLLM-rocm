@@ -209,7 +209,8 @@ def markdown_report(report):
             f"{item['cosine']:.8f} |"
         )
     for title, key in (("Operator timing", "operator_timings"),
-                       ("Layer and model timing", "layer_timings")):
+                       ("Layer and model timing", "layer_timings"),
+                       ("Backward timing", "backward_timings")):
         lines += ["", f"## {title}", "",
                   "| Kind | Name | # | microLLM median ms | PyTorch median ms | PyTorch/microLLM |",
                   "|---|---|---:|---:|---:|---:|"]
@@ -240,6 +241,11 @@ def main():
         load_jsonl(args.pytorch / "pytorch_values.jsonl"),
         args.atol, args.rtol, args.allow_truncated,
     )
+    training_values = compare_values(
+        load_jsonl(args.microllm / "microllm_training_values.jsonl"),
+        load_jsonl(args.pytorch / "pytorch_training_values.jsonl"),
+        args.atol, args.rtol, args.allow_truncated,
+    )
     operator_timings = compare_timings(
         load_jsonl(args.microllm / "microllm_operator_timing.jsonl"),
         load_jsonl(args.pytorch / "pytorch_operator_timing.jsonl"),
@@ -248,6 +254,11 @@ def main():
         load_jsonl(args.microllm / "microllm_layer_timing.jsonl"),
         load_jsonl(args.pytorch / "pytorch_layer_timing.jsonl"),
     )
+    backward_timings = compare_timings(
+        load_jsonl(args.microllm / "microllm_backward_timing.jsonl"),
+        load_jsonl(args.pytorch / "pytorch_backward_timing.jsonl"),
+    )
+    values += training_values
     failures = [item for item in values if item["status"] != "pass"]
     report = {
         "schema_version": 1,
@@ -263,10 +274,12 @@ def main():
             "value_failed": len(failures),
             "operator_timing_records": len(operator_timings),
             "layer_timing_records": len(layer_timings),
+            "backward_timing_records": len(backward_timings),
         },
         "values": values,
         "operator_timings": operator_timings,
         "layer_timings": layer_timings,
+        "backward_timings": backward_timings,
     }
     (args.output / "comparison.json").write_text(
         json.dumps(report, indent=2, sort_keys=True) + "\n")

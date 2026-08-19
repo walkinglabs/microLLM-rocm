@@ -115,7 +115,7 @@ the next gate. Records are append-only except for factual corrections.
   professional README, developer documentation hierarchy, CMake presets, and explicit
   compiler/ROCm environment matrix.
 - [2026-08-19-alignment-infrastructure.md](2026-08-19-alignment-infrastructure.md):
-  three-pass microLLM/PyTorch model traces, automatic numerical/timing comparison, and
+  four-pass microLLM/PyTorch forward/loss/gradient/timing traces, automatic comparison, and
   complete experiment manifests.
 - [2026-08-19-data-parallel-trainer.md](2026-08-19-data-parallel-trainer.md):
   reusable two-rank training step, bucketed gradient average, global-batch equivalence,

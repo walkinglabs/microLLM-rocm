@@ -35,7 +35,8 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [ ] warm-up, repeated Event timing, median/percentiles, and end-to-end regression;
 - [ ] persistent tuning cache with version invalidation;
 - [x] schema-versioned `TraceSession`, scoped activation, and RAII `TraceTimer` C++ API;
-- [x] same-weight microLLM/PyTorch tiny-model value and timing runner;
+- [x] same-weight microLLM/PyTorch tiny-model forward, loss, every named gradient, and
+  forward/backward timing runner;
 - [x] manifest, raw JSONL, comparison JSON, and Markdown report artifacts;
 - [ ] optional Python context manager/decorator after the C++ profiler is stable;
 - [ ] rocprof marker correlation and Chrome/Perfetto export.

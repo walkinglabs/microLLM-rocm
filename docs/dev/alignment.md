@@ -40,7 +40,7 @@ Use `--pytorch-device cuda` when a working PyTorch ROCm environment is available
 Timing ratios are meaningful only when both sides run on the intended comparable
 hardware and mode.
 
-## Three-pass measurement
+## Four-pass measurement
 
 1. `values`: captures inputs, every autograd forward operator, layer outputs, model
    output, statistics, and full values up to the configured limit.
@@ -49,6 +49,9 @@ hardware and mode.
    implementation.
 3. `layer_timing`: disables operator timers and records embedding, each Transformer
    block, final norm, and full forward time without nested operator instrumentation.
+4. `training_values` and `backward_timing`: run the same cross-entropy objective,
+   capture the scalar loss and every named parameter gradient, then time backward in a
+   separate repetition pass. Forward construction is outside the backward timer.
 
 Separating passes prevents value serialization from being counted as operator latency
 and prevents nested operator synchronization from inflating the layer timing pass.
@@ -68,6 +71,10 @@ microllm_operator_timing.jsonl
 pytorch_operator_timing.jsonl
 microllm_layer_timing.jsonl
 pytorch_layer_timing.jsonl
+microllm_training_values.jsonl
+pytorch_training_values.jsonl
+microllm_backward_timing.jsonl
+pytorch_backward_timing.jsonl
 comparison.json
 report.md
 logs/{microllm,pytorch,compare}.{stdout,stderr}.txt
@@ -89,6 +96,11 @@ Records are paired by `kind + name + occurrence`. The comparison checks:
 - error index and both values at that index;
 - mean squared error;
 - cosine similarity.
+
+The training comparison uses targets `[1, 2, 3, 0]`. It refuses to pass if any named
+parameter has no gradient, if a gradient shape differs, or if any full gradient value
+is outside tolerance. A matching final loss alone is therefore not accepted as proof
+that the graph learns in the same direction.
 
 A truncated checkpoint fails by default because sampled values cannot prove full Tensor
 alignment. Increase `--max-captured-elements` or explicitly use the comparator's partial

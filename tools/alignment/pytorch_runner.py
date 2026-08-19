@@ -39,6 +39,13 @@ def load_parameters(path, device):
     return parameters
 
 
+def differentiable_parameters(parameters):
+    return {
+        name: tensor.detach().clone().requires_grad_(True)
+        for name, tensor in parameters.items()
+    }
+
+
 def rope(value, sequence_dim=2, position_offset=0, base=10000.0):
     width = value.shape[-1]
     positions = torch.arange(
@@ -154,6 +161,13 @@ def model_forward(session, parameters, tokens, config):
     return session.measure("model", "model.forward", body)
 
 
+def model_loss(session, parameters, tokens, targets, config):
+    logits = model_forward(session, parameters, tokens, config)
+    return F.cross_entropy(
+        logits.reshape(-1, config["vocabulary_size"]), targets.reshape(-1)
+    )
+
+
 def make_session(args, phase, device, **overrides):
     options = dict(
         record_operators=True,
@@ -175,6 +189,7 @@ def main():
     parameters = load_parameters(args.input / "microllm_parameters.jsonl", device)
     config = json.loads((args.input / "microllm_run.json").read_text())["model"]
     tokens = torch.tensor([[0, 1, 2, 3]], dtype=torch.int32, device=device)
+    targets = torch.tensor([[1, 2, 3, 0]], dtype=torch.int64, device=device)
 
     with torch.inference_mode():
         for _ in range(args.warmup):
@@ -207,6 +222,48 @@ def main():
             layers.iteration = iteration
             model_forward(layers, parameters, tokens, config)
         write_jsonl(args.output / "pytorch_layer_timing.jsonl", layers.records)
+
+    training_parameters = differentiable_parameters(parameters)
+    disabled = make_session(
+        args, "disabled", device,
+        record_operators=False, record_layers=False, record_model=False,
+        capture_values=False,
+    )
+    training_loss = model_loss(
+        disabled, training_parameters, tokens, targets, config
+    )
+    training_loss.backward()
+    training_values = make_session(
+        args, "training_values", device,
+        record_operators=False, record_layers=False, record_model=False,
+        capture_values=True,
+    )
+    training_values.record("output", "training.loss", training_loss)
+    for name, parameter in training_parameters.items():
+        if parameter.grad is None:
+            raise RuntimeError(f"missing gradient for parameter: {name}")
+        training_values.record("parameter", f"gradient.{name}", parameter.grad)
+    write_jsonl(args.output / "pytorch_training_values.jsonl", training_values.records)
+
+    for _ in range(args.warmup):
+        warmup_parameters = differentiable_parameters(parameters)
+        model_loss(disabled, warmup_parameters, tokens, targets, config).backward()
+    backward = make_session(
+        args, "backward_timing", device,
+        record_operators=False, record_layers=False, record_model=True,
+        capture_values=False,
+    )
+    for iteration in range(args.repetitions):
+        timing_parameters = differentiable_parameters(parameters)
+        loss = model_loss(disabled, timing_parameters, tokens, targets, config)
+        backward.iteration = iteration
+
+        def run_backward(loss=loss):
+            loss.backward()
+            return loss
+
+        backward.measure("model", "model.backward", run_backward)
+    write_jsonl(args.output / "pytorch_backward_timing.jsonl", backward.records)
 
     metadata = {
         "schema_version": 1,

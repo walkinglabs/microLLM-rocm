@@ -12,7 +12,8 @@ into accepted timing.
   JSONL export, capture limit, and CPU/HIP synchronization mode;
 - automatic forward operator instrumentation in the eager autograd path;
 - model checkpoints for input, embedding, each block, final norm, logits, and forward;
-- `microllm_alignment` values/operator-timing/layer-timing runner;
+- `microllm_alignment` forward values, training loss/gradients, operator timing, layer
+  timing, and backward timing runner;
 - PyTorch runner rebuilt from the exact microLLM parameter trace;
 - comparator for shape/dtype, full-value tolerance, max abs/rel, MSE, cosine, error
   index, timing median/p95, and PyTorch/microLLM ratio;
@@ -34,6 +35,12 @@ model now evaluates and names gate and up projections explicitly before SwiGLU.
 - 4 layer/model timing checkpoints;
 - MI300X microLLM versus PyTorch CPU numerical pass: 45/45;
 - maximum absolute difference in that run: 9.53674e-7.
+
+The extended CPU training trace passes 58/58 total checkpoints: the original 45
+forward checkpoints, one cross-entropy loss, and all 12 named parameter gradients.
+The loss is bit-identical for the fixed input; the largest gradient absolute difference
+is 1.4305115e-6, below the configured `3e-5 + 3e-5 × |reference|` gate. Backward has a
+separate five-repetition timing record so its work is not hidden in forward time.
 
 The HIP/CPU timing ratio is diagnostic only because the two frameworks ran on different
 devices. A direct speed claim waits for a working PyTorch ROCm environment and identical
