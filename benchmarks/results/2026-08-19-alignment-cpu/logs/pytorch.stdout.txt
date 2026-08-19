@@ -1,0 +1,4 @@
+alignment_output=/home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-19-alignment-cpu
+framework=pytorch
+device=cpu
+status=pass

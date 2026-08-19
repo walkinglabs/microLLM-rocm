@@ -36,44 +36,44 @@
 
 | Kind | Name | # | microLLM median ms | PyTorch median ms | PyTorch/microLLM |
 |---|---|---:|---:|---:|---:|
-| operator | `matmul` | 8 | 0.006394 | 0.003258 | 0.5095 |
-| operator | `matmul` | 6 | 0.0061515 | 0.0045225 | 0.7352 |
-| operator | `matmul` | 7 | 0.0060885 | 0.002906 | 0.4773 |
-| operator | `matmul` | 3 | 0.004431 | 0.0106485 | 2.403 |
-| operator | `matmul` | 0 | 0.004353 | 0.003363 | 0.7726 |
-| operator | `matmul` | 5 | 0.0042855 | 0.013141 | 3.066 |
-| operator | `matmul` | 4 | 0.004228 | 0.018862 | 4.461 |
-| operator | `matmul` | 9 | 0.0042265 | 0.0033725 | 0.7979 |
-| operator | `swiglu` | 0 | 0.0037895 | 0.009504 | 2.508 |
-| operator | `matmul` | 2 | 0.003183 | 0.002884 | 0.9061 |
-| operator | `repeat_interleave` | 1 | 0.0031245 | 0.0052585 | 1.683 |
-| operator | `matmul` | 1 | 0.00312 | 0.002969 | 0.9516 |
-| operator | `repeat_interleave` | 0 | 0.003095 | 0.009885 | 3.194 |
-| operator | `add` | 1 | 0.003009 | 0.0027875 | 0.9264 |
-| operator | `embedding` | 0 | 0.0029755 | 0.020134 | 6.767 |
-| operator | `rope` | 0 | 0.002846 | 0.105463 | 37.06 |
-| operator | `add` | 0 | 0.0028145 | 0.0065755 | 2.336 |
-| operator | `rms_norm` | 2 | 0.0027465 | 0.019276 | 7.018 |
-| operator | `rms_norm` | 1 | 0.002649 | 0.051533 | 19.45 |
-| operator | `rms_norm` | 0 | 0.0026235 | 0.01724 | 6.571 |
-| operator | `causal_softmax` | 0 | 0.002577 | 20.3782 | 7908 |
-| operator | `rope` | 1 | 0.0022735 | 0.0588455 | 25.88 |
-| operator | `scale` | 0 | 0.002266 | 0.0070865 | 3.127 |
-| operator | `contiguous` | 0 | 0.002219 | 0.008922 | 4.021 |
-| operator | `reshape` | 2 | 0.0007885 | 0.0021925 | 2.781 |
-| operator | `reshape` | 3 | 0.000611 | 0.002084 | 3.411 |
-| operator | `reshape` | 1 | 0.00061 | 0.002656 | 4.354 |
-| operator | `transpose` | 3 | 0.000598 | 0.0018675 | 3.123 |
-| operator | `transpose` | 2 | 0.0005885 | 0.0017135 | 2.912 |
-| operator | `transpose` | 1 | 0.0005785 | 0.0020235 | 3.498 |
+| operator | `matmul` | 8 | 0.0064825 | 0.003214 | 0.4958 |
+| operator | `matmul` | 6 | 0.006273 | 0.004486 | 0.7151 |
+| operator | `matmul` | 7 | 0.0061605 | 0.0028215 | 0.458 |
+| operator | `matmul` | 0 | 0.004475 | 0.0032815 | 0.7333 |
+| operator | `matmul` | 5 | 0.004367 | 0.010134 | 2.321 |
+| operator | `matmul` | 9 | 0.0042615 | 0.00316 | 0.7415 |
+| operator | `matmul` | 4 | 0.0042535 | 0.0136855 | 3.217 |
+| operator | `matmul` | 3 | 0.0042005 | 0.0109385 | 2.604 |
+| operator | `swiglu` | 0 | 0.0038505 | 0.0090725 | 2.356 |
+| operator | `matmul` | 1 | 0.003224 | 0.0028975 | 0.8987 |
+| operator | `matmul` | 2 | 0.0032 | 0.0028325 | 0.8852 |
+| operator | `repeat_interleave` | 1 | 0.003137 | 0.005048 | 1.609 |
+| operator | `repeat_interleave` | 0 | 0.0030675 | 0.009248 | 3.015 |
+| operator | `add` | 1 | 0.003005 | 0.0026615 | 0.8857 |
+| operator | `embedding` | 0 | 0.0029585 | 0.0190805 | 6.449 |
+| operator | `rope` | 0 | 0.0029025 | 0.101278 | 34.89 |
+| operator | `add` | 0 | 0.0028275 | 0.005008 | 1.771 |
+| operator | `rms_norm` | 2 | 0.0027665 | 0.018187 | 6.574 |
+| operator | `rms_norm` | 1 | 0.0026355 | 0.043976 | 16.69 |
+| operator | `rms_norm` | 0 | 0.0026235 | 0.0166885 | 6.361 |
+| operator | `causal_softmax` | 0 | 0.0025965 | 17.8667 | 6881 |
+| operator | `scale` | 0 | 0.0022575 | 0.0067205 | 2.977 |
+| operator | `rope` | 1 | 0.002221 | 0.0567535 | 25.55 |
+| operator | `contiguous` | 0 | 0.0022175 | 0.006978 | 3.147 |
+| operator | `reshape` | 2 | 0.0007915 | 0.002093 | 2.644 |
+| operator | `reshape` | 1 | 0.0006175 | 0.002456 | 3.977 |
+| operator | `reshape` | 3 | 0.000602 | 0.0020125 | 3.343 |
+| operator | `transpose` | 1 | 0.000583 | 0.0019645 | 3.37 |
+| operator | `transpose` | 3 | 0.000579 | 0.0017925 | 3.096 |
+| operator | `transpose` | 4 | 0.0005785 | 0.003197 | 5.526 |
 
 ## Layer and model timing
 
 | Kind | Name | # | microLLM median ms | PyTorch median ms | PyTorch/microLLM |
 |---|---|---:|---:|---:|---:|
-| model | `model.forward` | 0 | 0.158591 | 20.8477 | 131.5 |
-| layer | `model.blocks.0` | 0 | 0.136479 | 20.7709 | 152.2 |
-| layer | `model.embedding` | 0 | 0.004969 | 0.020312 | 4.088 |
-| layer | `model.final_norm` | 0 | 0.004224 | 0.0202 | 4.782 |
+| model | `model.forward` | 0 | 0.175438 | 22.2531 | 126.8 |
+| layer | `model.blocks.0` | 0 | 0.150972 | 22.1733 | 146.9 |
+| layer | `model.embedding` | 0 | 0.005489 | 0.0201535 | 3.672 |
+| layer | `model.final_norm` | 0 | 0.0044995 | 0.019869 | 4.416 |
 
 Positive PyTorch/microLLM values greater than 1 mean microLLM was faster for that measured checkpoint.

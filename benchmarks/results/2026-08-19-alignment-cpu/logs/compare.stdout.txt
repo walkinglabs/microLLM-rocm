@@ -1,0 +1,4 @@
+comparison_output=/home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-19-alignment-cpu
+value_records=45
+value_failed=0
+status=pass

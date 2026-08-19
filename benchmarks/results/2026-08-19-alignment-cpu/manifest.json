@@ -1,12 +1,12 @@
 {
   "artifacts": [
     "comparison.json",
-    "logs/compare.stderr.log",
-    "logs/compare.stdout.log",
-    "logs/microllm.stderr.log",
-    "logs/microllm.stdout.log",
-    "logs/pytorch.stderr.log",
-    "logs/pytorch.stdout.log",
+    "logs/compare.stderr.txt",
+    "logs/compare.stdout.txt",
+    "logs/microllm.stderr.txt",
+    "logs/microllm.stdout.txt",
+    "logs/pytorch.stderr.txt",
+    "logs/pytorch.stdout.txt",
     "microllm_layer_timing.jsonl",
     "microllm_operator_timing.jsonl",
     "microllm_parameters.jsonl",
@@ -69,7 +69,7 @@
       "4096"
     ]
   },
-  "completed_utc": "2026-08-19T11:01:53.998981+00:00",
+  "completed_utc": "2026-08-19T11:02:47.790951+00:00",
   "configuration": {
     "atol": 3e-05,
     "max_captured_elements": 4096,
@@ -82,7 +82,7 @@
     "seed": 211,
     "warmup": 5
   },
-  "created_utc": "2026-08-19T11:01:51.352537+00:00",
+  "created_utc": "2026-08-19T11:02:45.327116+00:00",
   "host": {
     "cmake": "cmake version 3.31.10",
     "g++": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
@@ -95,7 +95,7 @@
   },
   "repository": {
     "branch": "main",
-    "commit": "121257711815991c953bfd86f942b0f77648f6e0",
+    "commit": "5de03af1830f3fa786610f177d59aa99503298ae",
     "dirty": false,
     "path": "/home/devpod/github/microLLM-rocm"
   },
@@ -105,20 +105,20 @@
     "compare": {
       "returncode": 0,
       "status": "pass",
-      "stderr": "logs/compare.stderr.log",
-      "stdout": "logs/compare.stdout.log"
+      "stderr": "logs/compare.stderr.txt",
+      "stdout": "logs/compare.stdout.txt"
     },
     "microllm": {
       "returncode": 0,
       "status": "pass",
-      "stderr": "logs/microllm.stderr.log",
-      "stdout": "logs/microllm.stdout.log"
+      "stderr": "logs/microllm.stderr.txt",
+      "stdout": "logs/microllm.stdout.txt"
     },
     "pytorch": {
       "returncode": 0,
       "status": "pass",
-      "stderr": "logs/pytorch.stderr.log",
-      "stdout": "logs/pytorch.stdout.log"
+      "stderr": "logs/pytorch.stderr.txt",
+      "stdout": "logs/pytorch.stdout.txt"
     }
   },
   "status": "pass"
