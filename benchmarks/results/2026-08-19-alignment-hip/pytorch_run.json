@@ -12,7 +12,7 @@
     "vocabulary_size": 8
   },
   "repetitions": 20,
-  "run_id": "2026-08-19-alignment-hip",
+  "run_id": "tiny-alignment-hip",
   "schema_version": 1,
   "torch_hip_version": null,
   "torch_version": "2.13.0+cpu",

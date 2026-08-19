@@ -7,14 +7,18 @@
     "logs/microllm.stdout.txt",
     "logs/pytorch.stderr.txt",
     "logs/pytorch.stdout.txt",
+    "microllm_backward_timing.jsonl",
     "microllm_layer_timing.jsonl",
     "microllm_operator_timing.jsonl",
     "microllm_parameters.jsonl",
     "microllm_run.json",
+    "microllm_training_values.jsonl",
     "microllm_values.jsonl",
+    "pytorch_backward_timing.jsonl",
     "pytorch_layer_timing.jsonl",
     "pytorch_operator_timing.jsonl",
     "pytorch_run.json",
+    "pytorch_training_values.jsonl",
     "pytorch_values.jsonl",
     "report.md"
   ],
@@ -40,7 +44,7 @@
       "--device",
       "hip",
       "--run-id",
-      "2026-08-19-alignment-hip",
+      "tiny-alignment-hip",
       "--seed",
       "211",
       "--warmup",
@@ -60,7 +64,7 @@
       "--device",
       "cpu",
       "--run-id",
-      "2026-08-19-alignment-hip",
+      "tiny-alignment-hip",
       "--warmup",
       "5",
       "--repetitions",
@@ -69,7 +73,7 @@
       "4096"
     ]
   },
-  "completed_utc": "2026-08-19T11:03:18.527037+00:00",
+  "completed_utc": "2026-08-19T15:06:28.438298+00:00",
   "configuration": {
     "atol": 0.002,
     "max_captured_elements": 4096,
@@ -82,7 +86,7 @@
     "seed": 211,
     "warmup": 5
   },
-  "created_utc": "2026-08-19T11:03:15.562724+00:00",
+  "created_utc": "2026-08-19T15:06:23.010360+00:00",
   "host": {
     "cmake": "cmake version 3.31.10",
     "g++": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
@@ -95,11 +99,11 @@
   },
   "repository": {
     "branch": "main",
-    "commit": "13e7984477b0dd25b734e02ccf8b049742c8a310",
+    "commit": "2f8b2a175d484aca5b87fddff72854701943db12",
     "dirty": false,
     "path": "/home/devpod/github/microLLM-rocm"
   },
-  "run_id": "2026-08-19-alignment-hip",
+  "run_id": "tiny-alignment-hip",
   "schema_version": 1,
   "stages": {
     "compare": {

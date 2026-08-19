@@ -116,6 +116,14 @@ Tiny operators are dominated by dispatch and profiler overhead. Do not generaliz
 tiny-model speed ratio to Qwen or DeepSeek. Add the target model, shapes, dtype, warm-up,
 and end-to-end workload before making a performance claim.
 
+## Recorded smoke evidence
+
+The tracked CPU and MI300X experiment directories both pass 58/58 numerical
+checkpoints: 45 forward records, one loss, and 12 complete named gradients. The largest
+absolute difference is about `1.43e-6` on CPU and `3.34e-6` for microLLM MI300X versus
+the available PyTorch CPU oracle. The latter proves numerical agreement only; its
+cross-device timing ratio is not a speed comparison.
+
 ## Extending to a new model
 
 1. Add a microLLM runner that records a complete named parameter trace and stable

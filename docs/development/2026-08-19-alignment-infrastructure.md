@@ -33,8 +33,9 @@ model now evaluates and names gate and up projections explicitly before SwiGLU.
 - maximum absolute difference: 8.34465e-7;
 - 39 operator timing checkpoints;
 - 4 layer/model timing checkpoints;
-- MI300X microLLM versus PyTorch CPU numerical pass: 45/45;
-- maximum absolute difference in that run: 9.53674e-7.
+- MI300X microLLM versus PyTorch CPU numerical pass: 58/58 forward/loss/gradient
+  checkpoints;
+- maximum absolute difference in that extended run: 3.3378601e-6;
 
 The extended CPU training trace passes 58/58 total checkpoints: the original 45
 forward checkpoints, one cross-entropy loss, and all 12 named parameter gradients.

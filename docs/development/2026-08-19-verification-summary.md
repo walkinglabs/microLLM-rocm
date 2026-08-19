@@ -34,6 +34,8 @@ preload ordering. Those bindings pass separate normal CPU and HIP integration te
   have explicit gates and CMake/CTest registration;
 - same-weight microLLM/PyTorch tiny-model alignment: 58/58 forward, loss, and every
   named parameter-gradient checkpoints pass, with separate forward/backward timing;
+- the extended MI300X/PyTorch-CPU numerical trace also passes 58/58; its largest
+  absolute difference is 3.3378601e-6 (cross-device timing remains diagnostic only);
 - reusable two-rank DataParallelTrainer: three-step global-batch equivalence and zero
   cross-rank parameter difference.
 - Model-S measured generation: CPU 9.33, readable HIP 55.86, Auto hipBLASLt 187.10

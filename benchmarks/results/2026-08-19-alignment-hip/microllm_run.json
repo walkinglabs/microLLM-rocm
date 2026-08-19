@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "framework": "microllm",
-  "run_id": "2026-08-19-alignment-hip",
+  "run_id": "tiny-alignment-hip",
   "device": "hip:0",
   "seed": 211,
   "warmup": 5,
