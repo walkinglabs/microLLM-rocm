@@ -8,3 +8,5 @@ the next gate. Records are append-only except for factual corrections.
 - [STATUS.md](STATUS.md): current evidence state by subsystem.
 - [2026-08-19-m0-n0-bootstrap.md](2026-08-19-m0-n0-bootstrap.md): first engine
   bootstrap and CPU Tensor vertical slice.
+- [2026-08-19-m1-hip-runtime.md](2026-08-19-m1-hip-runtime.md): HIP allocation,
+  transfer, Stream, and Event boundary.

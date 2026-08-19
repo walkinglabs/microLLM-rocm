@@ -1,7 +1,6 @@
 #include <microllm/core/storage.h>
+#include <microllm/runtime/memory.h>
 
-#include <new>
-#include <stdexcept>
 #include <utility>
 
 namespace microllm {
@@ -11,18 +10,15 @@ struct Storage::Allocation {
     std::size_t num_bytes = 0;
     Device device = Device::cpu();
 
-    ~Allocation() { ::operator delete(data); }
+    ~Allocation() { runtime::deallocate(data, device); }
 };
 
 Storage::Storage(std::size_t num_bytes, Device device) {
-    if (!device.is_cpu()) {
-        throw std::runtime_error("HIP Storage is not available until the N1 runtime milestone");
-    }
     auto allocation = std::make_shared<Allocation>();
     allocation->num_bytes = num_bytes;
     allocation->device = device;
     if (num_bytes != 0) {
-        allocation->data = ::operator new(num_bytes);
+        allocation->data = runtime::allocate(num_bytes, device);
     }
     allocation_ = std::move(allocation);
 }

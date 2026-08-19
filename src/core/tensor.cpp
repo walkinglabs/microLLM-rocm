@@ -1,4 +1,5 @@
 #include <microllm/core/tensor.h>
+#include <microllm/runtime/memory.h>
 
 #include <algorithm>
 #include <cstring>
@@ -217,8 +218,16 @@ void Tensor::fill(float value) {
 }
 
 std::vector<float> Tensor::to_vector() const {
-    require_cpu_float32(*this, "to_vector");
+    if (dtype_ != DType::Float32) throw std::runtime_error("to_vector currently requires float32");
+    if (device().is_hip() && !is_contiguous()) {
+        throw std::runtime_error("non-contiguous HIP materialization is not implemented yet");
+    }
     std::vector<float> values(static_cast<std::size_t>(numel_));
+    if (device().is_hip()) {
+        runtime::copy_bytes(values.data(), Device::cpu(), data(), device(),
+                            byte_count(numel_, dtype_));
+        return values;
+    }
     const auto* base = static_cast<const float*>(storage_.data());
     for (std::int64_t logical = 0; logical < numel_; ++logical) {
         values[static_cast<std::size_t>(logical)] =
@@ -315,7 +324,15 @@ Tensor Tensor::contiguous() const {
 Tensor Tensor::to(Device target) const {
     if (!defined_) throw std::logic_error("cannot transfer an undefined tensor");
     if (target == device()) return *this;
-    throw std::runtime_error("cross-device transfer is not available until the N1 runtime milestone");
+    if (!is_contiguous()) {
+        if (device().is_hip()) {
+            throw std::runtime_error("non-contiguous HIP transfer is not implemented yet");
+        }
+        return contiguous().to(target);
+    }
+    Tensor result(shape_, dtype_, target);
+    runtime::copy_bytes(result.data(), target, data(), device(), byte_count(numel_, dtype_));
+    return result;
 }
 
 std::string Tensor::str() const {

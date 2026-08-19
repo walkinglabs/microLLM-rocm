@@ -11,7 +11,7 @@ target_include_directories(microllm_core
         $<INSTALL_INTERFACE:include>
 )
 target_link_libraries(microllm_core
-    PUBLIC microllm_project_options microllm_build_config
+    PUBLIC microllm_project_options microllm_build_config microllm::runtime
 )
 
 install(TARGETS microllm_core ARCHIVE DESTINATION lib)

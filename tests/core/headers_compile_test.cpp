@@ -4,5 +4,7 @@
 #include <microllm/core/storage.h>
 #include <microllm/core/tensor.h>
 #include <microllm/core/tensor_view.h>
+#include <microllm/runtime/memory.h>
+#include <microllm/runtime/runtime.h>
 
 TEST(PublicHeaders, CanBeIncludedTogether) { SUCCEED(); }

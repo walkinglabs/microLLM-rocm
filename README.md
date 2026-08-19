@@ -36,7 +36,8 @@ Every performance-sensitive operator will keep three paths where useful:
 | Device/Storage | smoke-tested | ownership and lifetime tests |
 | Tensor shape/stride/view | smoke-tested | deterministic and randomized tests |
 | N0 PPM example | smoke-tested | runnable example with checksum |
-| HIP runtime and operators | planned | M1 |
+| HIP runtime and Tensor transfer | smoke-tested | MI300X runtime tests |
+| CPU/HIP operators | planned | M1 next step |
 | Autograd and checkpointing | planned | M2 |
 | Model-S training/inference | planned | M3 |
 | Python/PyTorch bindings | planned | M4 |

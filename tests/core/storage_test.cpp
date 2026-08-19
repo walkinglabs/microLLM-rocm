@@ -32,7 +32,11 @@ TEST(StorageTest, ZeroByteStorageIsValidAndEmpty) {
 }
 
 TEST(StorageTest, HipAllocationIsExplicitlyUnavailableInN0) {
+#if MICROLLM_HAS_HIP
+    GTEST_SKIP() << "HIP allocation is covered by runtime tests in HIP builds";
+#else
     EXPECT_THROW((void)Storage(4, Device::hip()), std::runtime_error);
+#endif
 }
 
 }  // namespace microllm

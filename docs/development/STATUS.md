@@ -9,7 +9,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
 | Tensor metadata/views | smoke-tested | hand values, randomized shapes, bounds | more dtypes |
 | N0 PPM | smoke-tested | executable output/checksum | documented golden value |
-| HIP Storage/runtime | draft | build discovery only | implementation and GPU tests |
+| HIP Storage/runtime | smoke-tested | gfx942 allocation, transfer, Stream/Event tests | CI on more GPUs |
 | CPU/HIP operators | draft | directory design | reference/conformance tests |
 | Autograd | draft | roadmap | finite-difference tests |
 | Checkpoint | draft | roadmap | multi-step resume |

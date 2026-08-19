@@ -4,6 +4,7 @@ add_executable(microllm_tests
     core/storage_test.cpp
     core/tensor_test.cpp
     core/headers_compile_test.cpp
+    runtime/runtime_test.cpp
 )
 
 target_link_libraries(microllm_tests PRIVATE GTest::gtest_main microllm::core)
