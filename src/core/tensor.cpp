@@ -230,9 +230,7 @@ void Tensor::fill(float value) {
 
 std::vector<float> Tensor::to_vector() const {
     if (dtype_ != DType::Float32) throw std::runtime_error("to_vector currently requires float32");
-    if (device().is_hip() && !is_contiguous()) {
-        throw std::runtime_error("non-contiguous HIP materialization is not implemented yet");
-    }
+    if (device().is_hip() && !is_contiguous()) return contiguous().to_vector();
     std::vector<float> values(static_cast<std::size_t>(numel_));
     if (device().is_hip()) {
         runtime::copy_bytes(values.data(), Device::cpu(), data(), device(),
@@ -342,7 +340,12 @@ Tensor Tensor::squeeze(std::int64_t dim) const {
 Tensor Tensor::contiguous() const {
     if (!defined_) throw std::logic_error("cannot copy an undefined tensor");
     if (is_contiguous()) return *this;
-    return from_vector(to_vector(), shape_);
+    Tensor output(shape_, dtype_, device());
+    if (dtype_ != DType::Float32) {
+        throw std::runtime_error("non-contiguous materialization currently requires float32");
+    }
+    runtime::copy_strided_float32(output.data(), data(), device(), shape_, strides_);
+    return output;
 }
 
 Tensor Tensor::to(Device target) const {

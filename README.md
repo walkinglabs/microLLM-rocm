@@ -39,6 +39,7 @@ Every performance-sensitive operator will keep three paths where useful:
 | HIP runtime and Tensor transfer | smoke-tested | MI300X runtime tests |
 | CPU reference operators | smoke-tested | hand values and sanitizer tests |
 | HIP readable operators | smoke-tested | 11 kernels, gfx942 conformance |
+| HIP non-contiguous materialization | smoke-tested | generic rank≤8 stride-copy kernel |
 | CPU Transformer autograd | smoke-tested | hand gradients and finite differences |
 | SGD/AdamW | smoke-tested | hand first step and restored-state equivalence |
 | Versioned checkpoint | smoke-tested | complete state, corruption, resume trajectory |

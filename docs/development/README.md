@@ -50,3 +50,5 @@ the next gate. Records are append-only except for factual corrections.
   Model-S backward and AdamW update smoke.
 - [2026-08-19-m3-model-s-hip-forward.md](2026-08-19-m3-model-s-hip-forward.md):
   complete Model-S weight transfer and readable HIP forward comparison.
+- [2026-08-19-m3-hip-strided-copy.md](2026-08-19-m3-hip-strided-copy.md): generic
+  HIP view materialization required by backward and multi-token inference.

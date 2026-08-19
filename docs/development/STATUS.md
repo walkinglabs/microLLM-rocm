@@ -8,6 +8,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Device/DType | smoke-tested | unit and invalid-index tests | HIP runtime use |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
 | Tensor metadata/views | smoke-tested | hand values, randomized shapes, bounds | more dtypes |
+| HIP view materialization | smoke-tested | gfx942 transposed logical-order copy | rank>8/more dtypes |
 | N0 PPM | smoke-tested | executable output/checksum | documented golden value |
 | HIP Storage/runtime | smoke-tested | gfx942 allocation, transfer, Stream/Event tests | CI on more GPUs |
 | CPU reference operators | smoke-tested | 9 hand-value/stability/shape tests | gradient references |

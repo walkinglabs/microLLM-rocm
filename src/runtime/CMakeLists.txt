@@ -12,6 +12,7 @@ target_link_libraries(microllm_runtime
     PUBLIC microllm_project_options microllm_build_config
 )
 if(MICROLLM_HAS_HIP)
+    target_sources(microllm_runtime PRIVATE hip_strided_copy.hip)
     target_link_libraries(microllm_runtime PRIVATE hip::host)
 endif()
 

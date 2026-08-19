@@ -2,9 +2,14 @@
 #include <microllm/runtime/runtime.h>
 
 #include <cstring>
+#include <limits>
 #include <stdexcept>
 #include <string>
 #include <utility>
+
+#if MICROLLM_HAS_HIP
+#include "hip_strided_copy.h"
+#endif
 
 #if MICROLLM_HAS_HIP
 #include <hip/hip_runtime_api.h>
@@ -142,6 +147,51 @@ void copy_bytes(void* destination, Device destination_device, const void* source
               "hipMemcpy");
 #else
     throw std::runtime_error("HIP copy requested from a CPU-only build");
+#endif
+}
+
+void copy_strided_float32(void* contiguous_destination, const void* strided_source,
+                          Device device, std::span<const std::int64_t> shape,
+                          std::span<const std::int64_t> strides) {
+    if (shape.size() != strides.size()) {
+        throw std::invalid_argument("strided copy shape/stride rank mismatch");
+    }
+    std::int64_t elements = 1;
+    for (const auto dimension : shape) {
+        if (dimension < 0 ||
+            (elements != 0 && dimension > std::numeric_limits<std::int64_t>::max() / elements)) {
+            throw std::overflow_error("strided copy shape is invalid");
+        }
+        elements *= dimension;
+    }
+    if (elements == 0) return;
+    if (contiguous_destination == nullptr || strided_source == nullptr) {
+        throw std::invalid_argument("strided copy pointers must be non-null");
+    }
+    if (device.is_cpu()) {
+        auto* destination = static_cast<float*>(contiguous_destination);
+        const auto* source = static_cast<const float*>(strided_source);
+        for (std::int64_t logical = 0; logical < elements; ++logical) {
+            auto remainder = logical;
+            std::int64_t source_index = 0;
+            for (std::size_t reversed = shape.size(); reversed > 0; --reversed) {
+                const auto dim = reversed - 1;
+                const auto coordinate = remainder % shape[dim];
+                remainder /= shape[dim];
+                source_index += coordinate * strides[dim];
+            }
+            destination[logical] = source[source_index];
+        }
+        return;
+    }
+#if MICROLLM_HAS_HIP
+    set_device(device);
+    detail::launch_strided_copy_float32(static_cast<float*>(contiguous_destination),
+                                        static_cast<const float*>(strided_source), elements,
+                                        static_cast<std::int64_t>(shape.size()), shape.data(),
+                                        strides.data());
+#else
+    throw std::runtime_error("HIP strided copy requested from a CPU-only build");
 #endif
 }
 

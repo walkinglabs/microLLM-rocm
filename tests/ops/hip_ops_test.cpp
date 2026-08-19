@@ -131,4 +131,14 @@ TEST(HipModelTest, TinyOneTokenCachedForwardMatchesCpu) {
     expect_near(hip_model.forward_cached(token, hip_cache).to_vector(), expected, 2.0e-4F);
 }
 
+TEST(HipTensorTest, NonContiguousTransposeMaterializesInLogicalOrder) {
+    require_gpu();
+    const auto cpu = Tensor::from_vector({0, 1, 2, 3, 4, 5}, {2, 3});
+    const auto transposed = cpu.to(Device::hip()).transpose(0, 1);
+    ASSERT_FALSE(transposed.is_contiguous());
+    const auto contiguous = transposed.contiguous();
+    EXPECT_TRUE(contiguous.is_contiguous());
+    EXPECT_EQ(contiguous.to_vector(), (std::vector<float>{0, 3, 1, 4, 2, 5}));
+}
+
 }  // namespace microllm::ops
