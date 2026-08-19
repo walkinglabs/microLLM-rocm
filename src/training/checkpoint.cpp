@@ -207,20 +207,31 @@ void save_checkpoint(const std::filesystem::path& path, const NamedParameters& p
     write_config(payload, optimizer.config());
     write_state(payload, optimizer.state());
 
-    std::ofstream output(path, std::ios::binary | std::ios::trunc);
-    if (!output) throw std::runtime_error("cannot open checkpoint for writing");
-    output.write(kMagic.data(), static_cast<std::streamsize>(kMagic.size()));
-    Writer header;
-    header.integer<std::uint32_t>(kCheckpointFormatVersion);
-    header.integer<std::uint32_t>(kEndianMarker);
-    header.integer<std::uint64_t>(payload.bytes().size());
-    header.integer<std::uint64_t>(payload_checksum(payload.bytes()));
-    output.write(reinterpret_cast<const char*>(header.bytes().data()),
-                 static_cast<std::streamsize>(header.bytes().size()));
-    output.write(reinterpret_cast<const char*>(payload.bytes().data()),
-                 static_cast<std::streamsize>(payload.bytes().size()));
-    output.flush();
-    if (!output) throw std::runtime_error("checkpoint write failed");
+    auto temporary = path;
+    temporary += ".tmp";
+    try {
+        {
+            std::ofstream output(temporary, std::ios::binary | std::ios::trunc);
+            if (!output) throw std::runtime_error("cannot open checkpoint temporary file");
+            output.write(kMagic.data(), static_cast<std::streamsize>(kMagic.size()));
+            Writer header;
+            header.integer<std::uint32_t>(kCheckpointFormatVersion);
+            header.integer<std::uint32_t>(kEndianMarker);
+            header.integer<std::uint64_t>(payload.bytes().size());
+            header.integer<std::uint64_t>(payload_checksum(payload.bytes()));
+            output.write(reinterpret_cast<const char*>(header.bytes().data()),
+                         static_cast<std::streamsize>(header.bytes().size()));
+            output.write(reinterpret_cast<const char*>(payload.bytes().data()),
+                         static_cast<std::streamsize>(payload.bytes().size()));
+            output.flush();
+            if (!output) throw std::runtime_error("checkpoint write failed");
+        }
+        std::filesystem::rename(temporary, path);
+    } catch (...) {
+        std::error_code ignored;
+        (void)std::filesystem::remove(temporary, ignored);
+        throw;
+    }
 }
 
 LoadedCheckpoint load_checkpoint(const std::filesystem::path& path) {

@@ -17,7 +17,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | CPU Transformer Autograd | smoke-tested | focused tests and finite differences | more dtypes |
 | HIP Autograd | smoke-tested | tiny five-step training | device-native nonlinear backward |
 | SGD/AdamW | smoke-tested | CPU/HIP update and state-restored next step | device-native HIP update/mixed precision |
-| Checkpoint | smoke-tested | complete-state load, corruption, 3-step resume | atomic save/GPU tensors |
+| Checkpoint | smoke-tested | atomic complete-state load, corruption, 3-step resume | mixed precision |
 | Model-S/Model-M config | smoke-tested | executable exact parameter/byte tests | model layers/training |
 | Model-S CPU forward | smoke-tested | 15,586,176 parameters and 8192 finite logits | training/HIP |
 | Model-S CPU training | smoke-tested | 3-step loss trajectory, AdamW state, parameter delta | real corpus/HIP |

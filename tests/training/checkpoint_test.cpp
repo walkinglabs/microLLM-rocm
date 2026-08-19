@@ -35,6 +35,10 @@ TEST(CheckpointTest, SavesAndRestoresCompleteTrainingState) {
                                    .model_config = "dim=8,layers=1",
                                    .data_config = "generated-sequence-v1"};
     save_checkpoint(path, {{"weight", &parameter}}, optimizer, expected);
+    save_checkpoint(path, {{"weight", &parameter}}, optimizer, expected);
+    auto temporary = path;
+    temporary += ".tmp";
+    EXPECT_FALSE(std::filesystem::exists(temporary));
 
     Value restored(Tensor::from_vector({0, 0}, {2}), true);
     AdamW restored_optimizer({&restored}, config);

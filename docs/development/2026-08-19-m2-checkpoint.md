@@ -34,6 +34,7 @@ Checkpoint-focused tests pass 3/3:
 
 ## Boundary
 
-The current writer targets contiguous CPU float32 training state and writes directly
-to the requested path. Atomic temporary-file replacement and direct GPU Tensor
-serialization remain follow-up reliability work.
+The current writer snapshots contiguous float32 state through CPU representation. It
+writes a same-directory temporary file, flushes/closes it, then renames it over the
+target; failures remove the temporary file without touching the previous target.
+Mixed-precision optimizer state remains follow-up work.
