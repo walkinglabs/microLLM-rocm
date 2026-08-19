@@ -32,7 +32,9 @@ if(MICROLLM_HAS_HIP)
     add_executable(microllm_hip_tests
         ops/hip_ops_test.cpp
     )
-    target_link_libraries(microllm_hip_tests PRIVATE GTest::gtest_main microllm::ops microllm::model)
+    target_link_libraries(microllm_hip_tests PRIVATE
+        GTest::gtest_main microllm::ops microllm::model microllm::training
+    )
     gtest_discover_tests(microllm_hip_tests
         TEST_PREFIX "HIP."
         PROPERTIES LABELS "hip;conformance"

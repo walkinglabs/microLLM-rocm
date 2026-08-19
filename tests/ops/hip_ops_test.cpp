@@ -4,6 +4,7 @@
 #include <microllm/ops/ops.h>
 #include <microllm/runtime/runtime.h>
 #include <microllm/model/model.h>
+#include <microllm/training/trainer.h>
 
 namespace microllm::ops {
 namespace {
@@ -139,6 +140,37 @@ TEST(HipTensorTest, NonContiguousTransposeMaterializesInLogicalOrder) {
     const auto contiguous = transposed.contiguous();
     EXPECT_TRUE(contiguous.is_contiguous());
     EXPECT_EQ(contiguous.to_vector(), (std::vector<float>{0, 3, 1, 4, 2, 5}));
+}
+
+TEST(HipTrainingTest, TinyTransformerRunsBackwardAndLowersLoss) {
+    require_gpu();
+    const model::ModelConfig config{.vocabulary_size = 8,
+                                    .dimension = 8,
+                                    .layers = 1,
+                                    .heads = 2,
+                                    .kv_heads = 1,
+                                    .ffn_dimension = 16,
+                                    .max_sequence_length = 4,
+                                    .rope_base = 10000.0F,
+                                    .tie_embeddings = false};
+    model::TransformerModel model(config, 71);
+    model.to(Device::hip());
+    training::AdamW optimizer(model.parameters(), {.learning_rate = 0.02F,
+                                                    .beta1 = 0.9F,
+                                                    .beta2 = 0.99F,
+                                                    .epsilon = 1.0e-8F,
+                                                    .weight_decay = 0.0F});
+    const io::TokenBatch batch{Tensor::from_int32_vector({0, 1, 2, 3}, {1, 4}),
+                               Tensor::from_int32_vector({1, 2, 3, 0}, {1, 4})};
+    float first_loss = 0.0F;
+    float final_loss = 0.0F;
+    for (std::uint64_t step = 1; step <= 5; ++step) {
+        const auto metrics = training::train_step(model, optimizer, batch, step);
+        if (step == 1) first_loss = metrics.loss;
+        final_loss = metrics.loss;
+    }
+    EXPECT_LT(final_loss, first_loss);
+    EXPECT_EQ(model.device(), Device::hip());
 }
 
 }  // namespace microllm::ops

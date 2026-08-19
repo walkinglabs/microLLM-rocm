@@ -30,8 +30,8 @@ namespace {
 
 void require_value(const Value& value, const char* name) {
     if (!value.defined()) throw std::invalid_argument(std::string(name) + " is undefined");
-    if (!value.data().device().is_cpu() || value.data().dtype() != DType::Float32) {
-        throw std::invalid_argument(std::string(name) + " autograd requires CPU float32");
+    if (value.data().dtype() != DType::Float32) {
+        throw std::invalid_argument(std::string(name) + " autograd requires float32");
     }
 }
 
@@ -40,7 +40,10 @@ void accumulate(const std::shared_ptr<Value::Node>& node, const Tensor& gradient
     if (gradient.shape() != node->data.shape()) {
         throw std::invalid_argument("gradient shape does not match autograd value");
     }
-    node->gradient = node->gradient.defined() ? ops::add(node->gradient, gradient) : gradient;
+    auto prepared = gradient;
+    if (prepared.device() != node->data.device()) prepared = prepared.to(node->data.device());
+    if (!prepared.is_contiguous()) prepared = prepared.contiguous();
+    node->gradient = node->gradient.defined() ? ops::add(node->gradient, prepared) : prepared;
 }
 
 Value operation(Tensor data, std::vector<std::shared_ptr<Value::Node>> parents,
@@ -57,9 +60,13 @@ Value operation(Tensor data, std::vector<std::shared_ptr<Value::Node>> parents,
 }
 
 Tensor filled_like(const Tensor& input, float value) {
-    Tensor output(input.shape());
-    output.fill(value);
+    Tensor output(input.shape(), DType::Float32, input.device());
+    ops::fill_(output, value);
     return output;
+}
+
+Tensor values_on_device(const std::vector<float>& values, Shape shape, Device device) {
+    return Tensor::from_vector(values, std::move(shape)).to(device);
 }
 
 float sigmoid(float value) {
@@ -72,8 +79,8 @@ float sigmoid(float value) {
 
 Value::Value(Tensor data, bool requires_grad) : node_(std::make_shared<Node>()) {
     if (!data.defined()) throw std::invalid_argument("autograd Value data must be defined");
-    if (requires_grad && (!data.device().is_cpu() || data.dtype() != DType::Float32)) {
-        throw std::invalid_argument("the first autograd path supports CPU float32 only");
+    if (requires_grad && data.dtype() != DType::Float32) {
+        throw std::invalid_argument("autograd parameters must be float32");
     }
     node_->data = std::move(data);
     node_->requires_grad = requires_grad;
@@ -103,8 +110,8 @@ void Value::backward() const {
     if (data().numel() != 1) {
         throw std::invalid_argument("implicit backward gradient requires a scalar output");
     }
-    Tensor seed(data().shape());
-    seed.fill(1.0F);
+    Tensor seed(data().shape(), DType::Float32, data().device());
+    ops::fill_(seed, 1.0F);
     backward(seed);
 }
 
@@ -180,12 +187,15 @@ Value matmul(const Value& left, const Value& right) {
     auto right_node = right.node_;
     const auto left_last = left.data().ndim() - 1;
     const auto right_last = right.data().ndim() - 1;
-    return operation(ops::matmul(left.data(), right.data()), {left_node, right_node},
+    const auto left_forward = left.data().is_contiguous() ? left.data() : left.data().contiguous();
+    const auto right_forward =
+        right.data().is_contiguous() ? right.data() : right.data().contiguous();
+    return operation(ops::matmul(left_forward, right_forward), {left_node, right_node},
                      [left_node, right_node, left_last, right_last](const Tensor& gradient) {
                          const auto right_transposed =
-                             right_node->data.transpose(right_last - 1, right_last);
+                             right_node->data.transpose(right_last - 1, right_last).contiguous();
                          const auto left_transposed =
-                             left_node->data.transpose(left_last - 1, left_last);
+                             left_node->data.transpose(left_last - 1, left_last).contiguous();
                          accumulate(left_node, ops::matmul(gradient, right_transposed));
                          accumulate(right_node, ops::matmul(left_transposed, gradient));
                      });
@@ -196,7 +206,8 @@ Value sum(const Value& input) {
     auto input_node = input.node_;
     double total = 0.0;
     for (const auto value : input.data().to_vector()) total += value;
-    return operation(Tensor::from_vector({static_cast<float>(total)}, {}), {input_node},
+    return operation(values_on_device({static_cast<float>(total)}, {}, input.data().device()),
+                     {input_node},
                      [input_node](const Tensor& gradient) {
                          accumulate(input_node,
                                     filled_like(input_node->data, gradient.to_vector()[0]));
@@ -230,8 +241,8 @@ Value transpose(const Value& input, std::int64_t dim0, std::int64_t dim1) {
 
 Value embedding(const Value& weight, const Tensor& indices) {
     require_value(weight, "weight");
-    if (!indices.device().is_cpu() || indices.dtype() != DType::Int32) {
-        throw std::invalid_argument("autograd embedding indices must be CPU int32");
+    if (indices.dtype() != DType::Int32 || indices.device() != weight.data().device()) {
+        throw std::invalid_argument("autograd embedding indices must match weight device");
     }
     auto weight_node = weight.node_;
     const auto saved_indices = indices.to_int32_vector();
@@ -250,8 +261,9 @@ Value embedding(const Value& weight, const Tensor& indices) {
                                                      static_cast<std::size_t>(column)];
                              }
                          }
-                         accumulate(weight_node, Tensor::from_vector(
-                                                     weight_gradient, weight_node->data.shape()));
+                         accumulate(weight_node, values_on_device(
+                                                     weight_gradient, weight_node->data.shape(),
+                                                     weight_node->data.device()));
                      });
 }
 
@@ -278,8 +290,9 @@ Value softmax(const Value& input, std::int64_t dim) {
                                                          (output_gradient[index] - dot);
                              }
                          }
-                         accumulate(input_node, Tensor::from_vector(
-                                                    input_gradient, input_node->data.shape()));
+                         accumulate(input_node, values_on_device(
+                                                    input_gradient, input_node->data.shape(),
+                                                    input_node->data.device()));
                      });
 }
 
@@ -323,10 +336,12 @@ Value rms_norm(const Value& input, const Value& weight, float epsilon) {
                                      output_gradient[index] * input_values[index] * inverse_rms;
                              }
                          }
-                         accumulate(input_node, Tensor::from_vector(
-                                                    input_gradient, input_node->data.shape()));
-                         accumulate(weight_node, Tensor::from_vector(
-                                                     weight_gradient, weight_node->data.shape()));
+                         accumulate(input_node, values_on_device(
+                                                    input_gradient, input_node->data.shape(),
+                                                    input_node->data.device()));
+                         accumulate(weight_node, values_on_device(
+                                                     weight_gradient, weight_node->data.shape(),
+                                                     weight_node->data.device()));
                      });
 }
 
@@ -343,8 +358,9 @@ Value silu(const Value& input) {
                                                       (1.0F + values[index] *
                                                                   (1.0F - probability));
                          }
-                         accumulate(input_node, Tensor::from_vector(
-                                                    input_gradient, input_node->data.shape()));
+                         accumulate(input_node, values_on_device(
+                                                    input_gradient, input_node->data.shape(),
+                                                    input_node->data.device()));
                      });
 }
 
@@ -369,10 +385,11 @@ Value swiglu(const Value& gate, const Value& up) {
                                                                 (1.0F - probability));
                              up_gradient[index] = output_gradient[index] * silu_value;
                          }
-                         accumulate(gate_node, Tensor::from_vector(
-                                                   gate_gradient, gate_node->data.shape()));
-                         accumulate(up_node, Tensor::from_vector(up_gradient,
-                                                                 up_node->data.shape()));
+                         accumulate(gate_node, values_on_device(
+                                                   gate_gradient, gate_node->data.shape(),
+                                                   gate_node->data.device()));
+                         accumulate(up_node, values_on_device(up_gradient, up_node->data.shape(),
+                                                              up_node->data.device()));
                      });
 }
 
@@ -385,7 +402,9 @@ Value rope(const Value& input, std::int64_t sequence_dim, std::int64_t position_
     const auto head_width = shape.back();
     const auto sequence_stride = contiguous_strides(shape)[static_cast<std::size_t>(sequence_dim)];
     const auto sequence_size = shape[static_cast<std::size_t>(sequence_dim)];
-    return operation(ops::rope(input.data(), sequence_dim, position_offset, base), {input_node},
+    const auto forward_input =
+        input.data().is_contiguous() ? input.data() : input.data().contiguous();
+    return operation(ops::rope(forward_input, sequence_dim, position_offset, base), {input_node},
                      [input_node, head_width, sequence_stride, sequence_size, position_offset,
                       base](const Tensor& gradient) {
                          const auto values = gradient.to_vector();
@@ -406,15 +425,16 @@ Value rope(const Value& input, std::int64_t sequence_dim, std::int64_t position_
                                  input_gradient[odd] = -values[even] * sine + values[odd] * cosine;
                              }
                          }
-                         accumulate(input_node, Tensor::from_vector(
-                                                    input_gradient, input_node->data.shape()));
+                         accumulate(input_node, values_on_device(
+                                                    input_gradient, input_node->data.shape(),
+                                                    input_node->data.device()));
                      });
 }
 
 Value cross_entropy(const Value& logits, const Tensor& targets) {
     require_value(logits, "logits");
-    if (!targets.device().is_cpu() || targets.dtype() != DType::Int32) {
-        throw std::invalid_argument("autograd cross_entropy targets must be CPU int32");
+    if (targets.dtype() != DType::Int32 || targets.device() != logits.data().device()) {
+        throw std::invalid_argument("autograd cross_entropy targets must match logits device");
     }
     auto logits_node = logits.node_;
     const auto probabilities = ops::softmax(logits.data()).to_vector();
@@ -431,8 +451,9 @@ Value cross_entropy(const Value& logits, const Tensor& targets) {
                          }
                          const auto factor = gradient.to_vector()[0] / static_cast<float>(rows);
                          for (auto& value : logits_gradient) value *= factor;
-                         accumulate(logits_node, Tensor::from_vector(
-                                                     logits_gradient, logits_node->data.shape()));
+                         accumulate(logits_node, values_on_device(
+                                                     logits_gradient, logits_node->data.shape(),
+                                                     logits_node->data.device()));
                      });
 }
 
@@ -478,7 +499,8 @@ Value causal_softmax(const Value& scores) {
         }
     }
     auto score_node = scores.node_;
-    const auto output = Tensor::from_vector(probabilities, scores.data().shape());
+    const auto output = values_on_device(probabilities, scores.data().shape(),
+                                         scores.data().device());
     return operation(output, {score_node},
                      [score_node, probabilities, sequence, matrices](const Tensor& gradient) {
                          const auto output_gradient = gradient.to_vector();
@@ -499,8 +521,9 @@ Value causal_softmax(const Value& scores) {
                                  }
                              }
                          }
-                         accumulate(score_node, Tensor::from_vector(
-                                                    input_gradient, score_node->data.shape()));
+                         accumulate(score_node, values_on_device(
+                                                    input_gradient, score_node->data.shape(),
+                                                    score_node->data.device()));
                      });
 }
 
@@ -537,7 +560,8 @@ Value repeat_interleave(const Value& input, std::int64_t dim, std::int64_t repea
             input_values[static_cast<std::size_t>(input_index)];
     }
     auto input_node = input.node_;
-    return operation(Tensor::from_vector(output_values, output_shape), {input_node},
+    return operation(values_on_device(output_values, output_shape, input.data().device()),
+                     {input_node},
                      [input_node, input_shape, output_shape, input_strides, output_strides, dim,
                       repeats](const Tensor& gradient) {
                          const auto output_gradient = gradient.to_vector();
@@ -559,7 +583,9 @@ Value repeat_interleave(const Value& input, std::int64_t dim, std::int64_t repea
                              input_gradient[static_cast<std::size_t>(input_index)] +=
                                  output_gradient[static_cast<std::size_t>(output_index)];
                          }
-                         accumulate(input_node, Tensor::from_vector(input_gradient, input_shape));
+                         accumulate(input_node, values_on_device(
+                                                    input_gradient, input_shape,
+                                                    input_node->data.device()));
                      });
 }
 

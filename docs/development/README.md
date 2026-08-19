@@ -52,3 +52,5 @@ the next gate. Records are append-only except for factual corrections.
   complete Model-S weight transfer and readable HIP forward comparison.
 - [2026-08-19-m3-hip-strided-copy.md](2026-08-19-m3-hip-strided-copy.md): generic
   HIP view materialization required by backward and multi-token inference.
+- [2026-08-19-m3-hip-training.md](2026-08-19-m3-hip-training.md): first complete
+  GPU-resident Transformer training trajectory and its host-reference boundaries.

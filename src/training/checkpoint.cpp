@@ -202,7 +202,7 @@ void save_checkpoint(const std::filesystem::path& path, const NamedParameters& p
     payload.integer<std::uint64_t>(parameters.size());
     for (const auto& [name, parameter] : parameters) {
         payload.string(name);
-        payload.tensor(parameter->data());
+        payload.tensor(parameter->data().to(Device::cpu()));
     }
     write_config(payload, optimizer.config());
     write_state(payload, optimizer.state());
@@ -296,8 +296,9 @@ void restore_checkpoint(const LoadedCheckpoint& checkpoint, const NamedParameter
         if (saved.tensor.shape() != parameter->data().shape()) {
             throw std::invalid_argument("checkpoint parameter shape mismatch");
         }
+        const auto target_device = parameter->data().device();
         parameter->mutable_data() =
-            Tensor::from_vector(saved.tensor.to_vector(), saved.tensor.shape());
+            Tensor::from_vector(saved.tensor.to_vector(), saved.tensor.shape()).to(target_device);
     }
     optimizer.load_state(checkpoint.optimizer_state);
     experiment = checkpoint.experiment;

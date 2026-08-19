@@ -322,14 +322,14 @@ void TransformerModel::to(Device target) {
 }
 
 Value TransformerModel::forward(const Tensor& token_ids) {
-    if (!token_ids.device().is_cpu() || token_ids.dtype() != DType::Int32 ||
-        token_ids.ndim() != 2) {
-        throw std::invalid_argument("model token IDs must be a CPU int32 BxT tensor");
+    if (token_ids.dtype() != DType::Int32 || token_ids.ndim() != 2) {
+        throw std::invalid_argument("model token IDs must be an int32 BxT tensor");
     }
     if (token_ids.shape()[1] > impl_->config.max_sequence_length) {
         throw std::invalid_argument("token sequence exceeds configured maximum");
     }
-    auto hidden = autograd::embedding(impl_->token_embedding, token_ids);
+    const auto model_tokens = token_ids.device() == device() ? token_ids : token_ids.to(device());
+    auto hidden = autograd::embedding(impl_->token_embedding, model_tokens);
     for (auto& block : impl_->blocks) hidden = block->forward(hidden);
     hidden = impl_->final_norm.forward(hidden);
     const auto batch = token_ids.shape()[0];
@@ -348,7 +348,8 @@ Value TransformerModel::loss(const Tensor& token_ids, const Tensor& targets) {
     if (targets.shape() != token_ids.shape()) {
         throw std::invalid_argument("language-model targets must match token shape");
     }
-    return autograd::cross_entropy(forward(token_ids), targets);
+    const auto model_targets = targets.device() == device() ? targets : targets.to(device());
+    return autograd::cross_entropy(forward(token_ids), model_targets);
 }
 
 Tensor TransformerModel::forward_cached(const Tensor& token_id, inference::KVCache& cache) {

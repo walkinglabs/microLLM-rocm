@@ -5,6 +5,8 @@
 #include <string>
 #include <utility>
 
+#include <microllm/ops/ops.h>
+
 namespace microllm::training {
 namespace {
 
@@ -16,9 +18,8 @@ void validate_parameters(const Parameters& parameters) {
         if (!parameter->requires_grad()) {
             throw std::invalid_argument("optimizer parameters must require gradients");
         }
-        if (!parameter->data().device().is_cpu() || parameter->data().dtype() != DType::Float32 ||
-            !parameter->data().is_contiguous()) {
-            throw std::invalid_argument("the first optimizer path requires contiguous CPU float32");
+        if (parameter->data().dtype() != DType::Float32 || !parameter->data().is_contiguous()) {
+            throw std::invalid_argument("optimizer parameters must be contiguous float32");
         }
     }
 }
@@ -54,13 +55,15 @@ void SGD::step() {
         if (parameter->grad().shape() != parameter->data().shape()) {
             throw std::invalid_argument("SGD gradient shape mismatch");
         }
-        auto* values = parameter->mutable_data().data_float();
+        auto values = parameter->data().to_vector();
         const auto gradients = parameter->grad().to_vector();
         for (std::int64_t index = 0; index < parameter->data().numel(); ++index) {
             const auto offset = static_cast<std::size_t>(index);
             values[offset] -= learning_rate_ *
                               (gradients[offset] + weight_decay_ * values[offset]);
         }
+        const auto device = parameter->data().device();
+        parameter->mutable_data() = Tensor::from_vector(values, parameter->data().shape()).to(device);
     }
 }
 
@@ -81,10 +84,10 @@ AdamW::AdamW(Parameters parameters, AdamWConfig config)
     state_.first_moments.reserve(parameters_.size());
     state_.second_moments.reserve(parameters_.size());
     for (const auto* parameter : parameters_) {
-        Tensor first(parameter->data().shape());
-        Tensor second(parameter->data().shape());
-        first.fill(0.0F);
-        second.fill(0.0F);
+        Tensor first(parameter->data().shape(), DType::Float32, parameter->data().device());
+        Tensor second(parameter->data().shape(), DType::Float32, parameter->data().device());
+        ops::fill_(first, 0.0F);
+        ops::fill_(second, 0.0F);
         state_.first_moments.push_back(std::move(first));
         state_.second_moments.push_back(std::move(second));
     }
@@ -100,9 +103,9 @@ void AdamW::step() {
         if (parameter->grad().shape() != parameter->data().shape()) {
             throw std::invalid_argument("AdamW gradient shape mismatch");
         }
-        auto* values = parameter->mutable_data().data_float();
-        auto* first = state_.first_moments[parameter_index].data_float();
-        auto* second = state_.second_moments[parameter_index].data_float();
+        auto values = parameter->data().to_vector();
+        auto first = state_.first_moments[parameter_index].to_vector();
+        auto second = state_.second_moments[parameter_index].to_vector();
         const auto gradients = parameter->grad().to_vector();
         for (std::int64_t index = 0; index < parameter->data().numel(); ++index) {
             const auto offset = static_cast<std::size_t>(index);
@@ -116,6 +119,11 @@ void AdamW::step() {
             values[offset] -= config_.learning_rate * corrected_first /
                               (std::sqrt(corrected_second) + config_.epsilon);
         }
+        const auto device = parameter->data().device();
+        const auto shape = parameter->data().shape();
+        parameter->mutable_data() = Tensor::from_vector(values, shape).to(device);
+        state_.first_moments[parameter_index] = Tensor::from_vector(first, shape).to(device);
+        state_.second_moments[parameter_index] = Tensor::from_vector(second, shape).to(device);
     }
 }
 
@@ -144,12 +152,13 @@ void AdamW::load_state(AdamWState state) {
             state.second_moments[index].shape() != parameters_[index]->data().shape()) {
             throw std::invalid_argument("AdamW state shape mismatch");
         }
-        if (!state.first_moments[index].device().is_cpu() ||
-            !state.second_moments[index].device().is_cpu() ||
-            state.first_moments[index].dtype() != DType::Float32 ||
+        if (state.first_moments[index].dtype() != DType::Float32 ||
             state.second_moments[index].dtype() != DType::Float32) {
-            throw std::invalid_argument("AdamW state must be CPU float32");
+            throw std::invalid_argument("AdamW state must be float32");
         }
+        const auto device = parameters_[index]->data().device();
+        state.first_moments[index] = state.first_moments[index].to(device);
+        state.second_moments[index] = state.second_moments[index].to(device);
     }
     state_ = std::move(state);
 }
