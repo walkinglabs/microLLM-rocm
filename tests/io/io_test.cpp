@@ -101,6 +101,17 @@ TEST(ChatTemplateTest, RendersBasicQwenConversationAndRejectsToolRole) {
     EXPECT_THROW((void)render_qwen2_chat({{"tool", "result"}}), std::invalid_argument);
 }
 
+TEST(ChatTemplateTest, RendersDeepSeekDistillReasoningPrompt) {
+    EXPECT_EQ(render_deepseek_distill_chat({{"user", "What is 2+2?"}}),
+              "<｜begin▁of▁sentence｜><｜User｜>What is 2+2?"
+              "<｜Assistant｜><think>\n");
+    EXPECT_EQ(render_deepseek_distill_chat(
+                  {{"system", "Be precise"}, {"user", "Hi"},
+                   {"assistant", "<think>hidden</think>Answer"}}, false),
+              "<｜begin▁of▁sentence｜>Be precise<｜User｜>Hi"
+              "<｜Assistant｜>Answer<｜end▁of▁sentence｜>");
+}
+
 TEST(SftBatchTest, MasksPromptTargetsAndKeepsResponseTargets) {
     const auto batch = make_sft_batch({1, 2, 3}, {4, 5});
     EXPECT_EQ(batch.inputs.to_int32_vector(), (std::vector<std::int32_t>{1, 2, 3, 4}));

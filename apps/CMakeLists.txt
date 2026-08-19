@@ -47,6 +47,11 @@ if(BUILD_TESTING)
                      ${PROJECT_SOURCE_DIR}/tests/fixtures/qwen25-0.5b-config.json)
     set_tests_properties(HuggingFace.Qwen25Config PROPERTIES
                          LABELS "cpu;huggingface;qwen;integration")
+    add_test(NAME HuggingFace.DeepSeekDistillQwenConfig
+             COMMAND microllm_hf_inspect --config
+                     ${PROJECT_SOURCE_DIR}/tests/fixtures/deepseek-r1-distill-qwen-1.5b-config.json)
+    set_tests_properties(HuggingFace.DeepSeekDistillQwenConfig PROPERTIES
+                         LABELS "cpu;huggingface;deepseek;qwen;integration")
     set(MICROLLM_CLI_CHECKPOINT "${CMAKE_CURRENT_BINARY_DIR}/cli-smoke.ckpt")
     add_test(NAME TrainCLI.Save
              COMMAND microllm_train --data ${PROJECT_SOURCE_DIR}/data/generated-cycle.txt

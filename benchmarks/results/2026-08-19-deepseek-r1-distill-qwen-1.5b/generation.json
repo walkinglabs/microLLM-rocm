@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "prompt": "What is 2+2?",
+  "chat_token_ids": [151646, 151644, 3838, 374, 220, 17, 10, 17, 30, 151645, 151648, 198],
+  "chat_tokens_match_transformers": true,
+  "generated_tokens": [40, 1184, 311, 8253, 279, 2629, 315, 220],
+  "generated_text": "I need to determine the sum of ",
+  "generated_tokens_match_transformers": true,
+  "load_ms": 41237.53091,
+  "forward_ms": 1621.379397,
+  "generation_ms": 1674.32,
+  "engine_current_bytes": 7108352048,
+  "engine_peak_bytes": 14216704000
+}

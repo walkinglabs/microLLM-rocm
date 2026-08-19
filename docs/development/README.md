@@ -130,6 +130,8 @@ the next gate. Records are append-only except for factual corrections.
   FNUZ quantization kernels, scaled GEMM, FP32-master training op, and measured ratios.
 - [2026-08-19-qwen25-architecture.md](2026-08-19-qwen25-architecture.md): pinned HF
   config, Q/K/V bias, split-half RoPE, exact parameter count, and remaining real-model gates.
+- [2026-08-19-deepseek-distill.md](2026-08-19-deepseek-distill.md): official dense
+  Distill-Qwen checkpoint, reasoning chat, complete logits, KV tokens, and resource evidence.
 - [2026-08-19-data-parallel-trainer.md](2026-08-19-data-parallel-trainer.md):
   reusable two-rank training step, bucketed gradient average, global-batch equivalence,
   stage profiling, and production reducer gaps.

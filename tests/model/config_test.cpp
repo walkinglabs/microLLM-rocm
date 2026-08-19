@@ -89,4 +89,17 @@ TEST(HuggingFaceConfigTest, RejectsUnsupportedFamilyAndAttentionVariants) {
     std::filesystem::remove(path, ignored);
 }
 
+TEST(HuggingFaceConfigTest, ParsesPinnedDeepSeekDistillQwenParameterContract) {
+    const auto path = std::filesystem::path(MICROLLM_SOURCE_DIR) /
+                      "tests/fixtures/deepseek-r1-distill-qwen-1.5b-config.json";
+    const auto parsed = load_huggingface_config(path);
+    EXPECT_EQ(parsed.model.dimension, 1536);
+    EXPECT_EQ(parsed.model.layers, 28);
+    EXPECT_EQ(parsed.model.heads, 12);
+    EXPECT_EQ(parsed.model.kv_heads, 2);
+    EXPECT_EQ(parsed.model.ffn_dimension, 8960);
+    EXPECT_FALSE(parsed.model.tie_embeddings);
+    EXPECT_EQ(parsed.model.parameter_count(), 1'777'088'000U);
+}
+
 }  // namespace microllm::model

@@ -17,6 +17,7 @@
 #include <microllm/model/huggingface.h>
 #include <microllm/model/model.h>
 #include <microllm/io/huggingface_bpe_tokenizer.h>
+#include <microllm/io/chat_template.h>
 #include <microllm/runtime/runtime.h>
 #include <microllm/runtime/memory.h>
 #include <microllm/inference/generator.h>
@@ -34,6 +35,8 @@ struct Options {
     std::filesystem::path vocabulary;
     std::filesystem::path merges;
     std::int64_t new_tokens = 0;
+    std::string tokenizer_family = "qwen2";
+    std::string chat_user;
 };
 
 Options options(int argc, char** argv) {
@@ -51,13 +54,16 @@ Options options(int argc, char** argv) {
         else if (name == "--vocab") result.vocabulary = argv[index + 1];
         else if (name == "--merges") result.merges = argv[index + 1];
         else if (name == "--new-tokens") result.new_tokens = std::stoll(argv[index + 1]);
+        else if (name == "--tokenizer-family") result.tokenizer_family = argv[index + 1];
+        else if (name == "--chat-user") result.chat_user = argv[index + 1];
         else throw std::invalid_argument("unknown CLI option: " + name);
     }
     if (result.config.empty() || result.weights.empty()) {
         throw std::invalid_argument("--config and --weights are required");
     }
     const auto token_mode = !result.tokens.empty();
-    const auto text_mode = !result.text.empty() && !result.vocabulary.empty() && !result.merges.empty();
+    const auto text_mode = (!result.text.empty() || !result.chat_user.empty()) &&
+                           !result.vocabulary.empty() && !result.merges.empty();
     if (token_mode == text_mode) {
         throw std::invalid_argument(
             "provide either --tokens or all of --text/--vocab/--merges");
@@ -112,10 +118,28 @@ int main(int argc, char** argv) {
         } else {
             tokenizer = microllm::io::HuggingFaceBpeTokenizer::load(
                 command.vocabulary, command.merges);
-            tokenizer->add_special_token("<|endoftext|>", 151643);
-            tokenizer->add_special_token("<|im_start|>", 151644);
-            tokenizer->add_special_token("<|im_end|>", 151645);
-            ids = tokenizer->encode(command.text);
+            if (command.tokenizer_family == "deepseek-distill") {
+                tokenizer->add_special_token("<｜end▁of▁sentence｜>", 151643);
+                tokenizer->add_special_token("<｜User｜>", 151644);
+                tokenizer->add_special_token("<｜Assistant｜>", 151645);
+                tokenizer->add_special_token("<｜begin▁of▁sentence｜>", 151646);
+                tokenizer->add_special_token("<think>", 151648);
+                tokenizer->add_special_token("</think>", 151649);
+            } else if (command.tokenizer_family == "qwen2") {
+                tokenizer->add_special_token("<|endoftext|>", 151643);
+                tokenizer->add_special_token("<|im_start|>", 151644);
+                tokenizer->add_special_token("<|im_end|>", 151645);
+            } else {
+                throw std::invalid_argument("unknown tokenizer family");
+            }
+            const auto prompt = command.chat_user.empty()
+                                    ? command.text
+                                    : command.tokenizer_family == "deepseek-distill"
+                                          ? microllm::io::render_deepseek_distill_chat(
+                                                {{"user", command.chat_user}})
+                                          : microllm::io::render_qwen2_chat(
+                                                {{"user", command.chat_user}});
+            ids = tokenizer->encode(prompt);
         }
         if (ids.size() > static_cast<std::size_t>(external.model.max_sequence_length)) {
             throw std::invalid_argument("token sequence exceeds model context");

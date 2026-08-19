@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "model": "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
+  "revision": "ad9f0ae0864d7fbcd1cd905e3c6c5b069cc8b562",
+  "parameter_count": 1777088000,
+  "loaded_tensors": 339,
+  "tokens": [151646, 151644, 3838, 374, 220, 17, 10, 17, 30, 151645, 151648, 198],
+  "count": 151936,
+  "atol": 0.0003,
+  "max_abs": 0.000064091756939888,
+  "max_rel": 0.2963752746582031,
+  "mse": 1.1693285228986383e-10,
+  "cosine": 1.0000001192092896,
+  "maximum_error_index": 31011
+}

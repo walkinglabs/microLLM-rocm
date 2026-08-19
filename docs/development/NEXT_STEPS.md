@@ -56,10 +56,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 
 ## P3 — DeepSeek distill target
 
-- [ ] run one pinned DeepSeek-R1-Distill-Qwen checkpoint after its underlying Qwen
+- [x] run one pinned DeepSeek-R1-Distill-Qwen checkpoint after its underlying Qwen
   architecture passes;
-- [ ] compare official chat template, reasoning output tokens, logits, and memory;
-- [ ] publish the name “Distill” explicitly so it is not confused with flagship R1/V3.
+- [x] compare official chat template, reasoning output tokens, logits, and memory;
+- [x] publish the name “Distill” explicitly so it is not confused with flagship R1/V3.
 
 ## P4 — MoE/MLA flagship systems
 

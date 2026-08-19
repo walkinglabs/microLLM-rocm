@@ -9,6 +9,7 @@ and chronological engineering evidence.
 - [Architecture](ARCHITECTURE.md)
 - [Weight and safetensors API](WEIGHTS.md)
 - [Hugging Face and verified Qwen2.5 workflow](HUGGINGFACE.md)
+- [DeepSeek Distill support and flagship boundary](DEEPSEEK.md)
 - [Operator contracts and PyTorch tolerances](OPERATOR_CONTRACTS.zh-CN.md)
 - [Hardware and ROCm compatibility](COMPATIBILITY.md)
 - [Benchmarks](../benchmarks/README.md)

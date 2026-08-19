@@ -121,8 +121,8 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| CPU tests | 139/139 | reference, Qwen config/tokenizer, dtype/shape, graph, model, weights |
-| ASan/UBSan | 137/137 | host code; dynamic binding tests isolated |
+| CPU tests | 143/143 | reference, Qwen/DeepSeek config/tokenizer/chat, graph, model, weights |
+| ASan/UBSan | 141/141 | host code; dynamic binding tests isolated |
 | MI300X/gfx942 HIP | 37/37 | Qwen checkpoint/KV regression, FP8, graph, weights, profiling |
 | PyTorch CPU oracle/alignment | 3/3 | ops plus same-weight model value/timing trace |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
@@ -255,6 +255,7 @@ overlap or one-process-per-GPU production semantics. See
 - [Weights and safetensors](docs/WEIGHTS.md)
 - [Tensor dtypes and MI300/MI350 precision policy](docs/DTYPES.md)
 - [Hugging Face and verified Qwen2.5 workflow](docs/HUGGINGFACE.md)
+- [DeepSeek Distill support and flagship boundary](docs/DEEPSEEK.md)
 - [Hardware compatibility](docs/COMPATIBILITY.md)
 - [Alignment experiments](docs/dev/alignment.md)
 - [Distributed training](docs/dev/distributed-training.md)

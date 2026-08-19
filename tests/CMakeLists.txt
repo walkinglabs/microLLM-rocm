@@ -27,6 +27,9 @@ target_link_libraries(microllm_tests PRIVATE
     microllm::training microllm::model microllm::io
     microllm::inference
 )
+target_compile_definitions(microllm_tests PRIVATE
+    MICROLLM_SOURCE_DIR="${PROJECT_SOURCE_DIR}"
+)
 
 add_executable(microllm_safetensors_interop
     io/safetensors_interop_helper.cpp
