@@ -138,10 +138,12 @@ int main(int argc, char** argv) {
         const auto report = model.load_safetensors(command.weights, load_options);
         const auto load_finish = std::chrono::steady_clock::now();
         microllm::model::Bf16FfnPreparationReport bf16_report;
+        microllm::runtime::reset_allocation_peak(device);
         const auto preparation_start = std::chrono::steady_clock::now();
         if (command.bf16_ffn) bf16_report = model.prepare_bf16_ffn_inference();
         microllm::runtime::synchronize(device);
         const auto preparation_finish = std::chrono::steady_clock::now();
+        const auto preparation_allocation = microllm::runtime::allocation_stats(device);
         std::optional<microllm::io::HuggingFaceBpeTokenizer> tokenizer;
         std::vector<std::int32_t> ids;
         if (!command.tokens.empty()) {
@@ -295,6 +297,10 @@ int main(int argc, char** argv) {
                   << ",\"bf16_prepare_ms\":"
                   << std::chrono::duration<double, std::milli>(
                          preparation_finish - preparation_start).count()
+                  << ",\"preparation_current_bytes\":"
+                  << preparation_allocation.current_bytes
+                  << ",\"preparation_peak_bytes\":"
+                  << preparation_allocation.peak_bytes
                   << ",\"prefill_warmup\":" << command.prefill_warmup
                   << ",\"prefill_steps\":" << command.prefill_steps
                   << ",\"forward_ms\":"
