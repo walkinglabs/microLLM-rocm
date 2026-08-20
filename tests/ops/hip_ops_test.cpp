@@ -212,6 +212,33 @@ TEST(HipBf16FfnTest, ContinuousIslandMatchesCpuAndAvoidsHostTransfers) {
     expect_near(actual.to_vector(), expected.to_vector(), 7.5e-2F);
 }
 
+TEST(HipBf16FfnTest, QwenDecodeShapeFallsBackToDeviceCastAndRemainsReusable) {
+    require_gpu();
+    if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";
+    constexpr std::int64_t hidden = 896;
+    constexpr std::int64_t intermediate = 4864;
+    const auto gpu = Device::hip(0);
+    auto input = Tensor({1, hidden}, DType::Float32, gpu);
+    auto gate = Tensor({hidden, intermediate}, DType::BFloat16, gpu);
+    auto up = Tensor({hidden, intermediate}, DType::BFloat16, gpu);
+    auto down = Tensor({intermediate, hidden}, DType::BFloat16, gpu);
+    fill_(input, 0.0F);
+    fill_(gate, 0.0F);
+    fill_(up, 0.0F);
+    fill_(down, 0.0F);
+    runtime::reset_transfer_stats();
+    const auto first = bf16_ffn(input, gate, up, down);
+    const auto second = bf16_ffn(input, gate, up, down);
+    runtime::synchronize(gpu);
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    EXPECT_EQ(first.dtype(), DType::Float32);
+    EXPECT_EQ(second.dtype(), DType::Float32);
+    expect_near(first.to_vector(), std::vector<float>(hidden, 0.0F), 0.0F);
+    expect_near(second.to_vector(), first.to_vector(), 0.0F);
+}
+
 TEST(HipFp8OpsTest, QuantizeDequantizeAndScaledGemmAreDeviceNative) {
     require_gpu();
     if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";

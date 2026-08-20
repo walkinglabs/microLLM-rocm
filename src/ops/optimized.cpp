@@ -20,6 +20,13 @@ namespace {
 using MatmulShapeKey = std::tuple<std::int64_t, std::int64_t, std::int64_t>;
 std::mutex registry_mutex;
 std::map<MatmulShapeKey, MatmulImplementation> registry;
+#if MICROLLM_HAS_HIPBLASLT
+// A few gfx942 decode shapes cannot write BF16-input GEMM results directly to
+// FP32 even though the same problem can write BF16. Remember the observed
+// capability per shape so repeated transformer layers do not retry a rejected
+// library path on every token.
+std::map<MatmulShapeKey, bool> bf16_fp32_direct_registry;
+#endif
 }  // namespace
 
 bool hipblaslt_available() noexcept { return MICROLLM_HAS_HIPBLASLT != 0; }
@@ -209,6 +216,16 @@ Tensor hipblaslt_bf16_matmul(const Tensor& left, const Tensor& right,
     if (output_dtype != DType::Float32 && output_dtype != DType::BFloat16) {
         throw std::invalid_argument("BF16 matmul output must be FP32 or BF16");
     }
+    const MatmulShapeKey shape{rows, inner, columns};
+    if (output_dtype == DType::Float32) {
+        const std::lock_guard<std::mutex> lock(registry_mutex);
+        const auto found = bf16_fp32_direct_registry.find(shape);
+        if (found != bf16_fp32_direct_registry.end() && !found->second) {
+            return cast(hipblaslt_bf16_matmul(
+                            left, right, DType::BFloat16, context),
+                        DType::Float32, context);
+        }
+    }
     Tensor output({rows, columns}, output_dtype, left.device());
     static Handle handle;
     MatmulDescription operation;
@@ -220,13 +237,30 @@ Tensor hipblaslt_bf16_matmul(const Tensor& left, const Tensor& right,
                     static_cast<std::uint64_t>(rows), columns);
     const float alpha = 1.0F;
     const float beta = 0.0F;
-    check_status(hipblasLtMatmul(
-                     handle.get(), operation.get(), &alpha,
-                     right.data(), matrix_b.get(), left.data(), matrix_a.get(),
-                     &beta, output.data(), matrix_c.get(), output.data(), matrix_c.get(),
-                     nullptr, context.workspace, context.workspace_bytes,
-                     reinterpret_cast<hipStream_t>(context.native_stream(left.device()))),
-                 "hipblasLtMatmul(BF16->FP32)");
+    const auto status = hipblasLtMatmul(
+        handle.get(), operation.get(), &alpha,
+        right.data(), matrix_b.get(), left.data(), matrix_a.get(),
+        &beta, output.data(), matrix_c.get(), output.data(), matrix_c.get(),
+        nullptr, context.workspace, context.workspace_bytes,
+        reinterpret_cast<hipStream_t>(context.native_stream(left.device())));
+    if (status == HIPBLAS_STATUS_SUCCESS) {
+        if (output_dtype == DType::Float32) {
+            const std::lock_guard<std::mutex> lock(registry_mutex);
+            bf16_fp32_direct_registry[shape] = true;
+        }
+        return output;
+    }
+    if (output_dtype == DType::Float32 &&
+        (status == HIPBLAS_STATUS_INTERNAL_ERROR ||
+         status == HIPBLAS_STATUS_NOT_SUPPORTED)) {
+        {
+            const std::lock_guard<std::mutex> lock(registry_mutex);
+            bf16_fp32_direct_registry[shape] = false;
+        }
+        return cast(hipblaslt_bf16_matmul(left, right, DType::BFloat16, context),
+                    DType::Float32, context);
+    }
+    check_status(status, "hipblasLtMatmul(BF16)");
     return output;
 }
 

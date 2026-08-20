@@ -209,8 +209,8 @@ int main(int argc, char** argv) {
         const auto device = microllm::runtime::device_info(gpu);
         const auto accuracy_passed = options.path == "fp32" ||
                                      (maximum_error <= 0.25F && relative_l2 <= 0.05);
-        const auto explicit_cast_kernels = options.path == "per-linear" ? 3 :
-                                           options.path == "island" ? 1 : 0;
+        const auto explicit_input_cast_kernels = options.path == "per-linear" ? 3 :
+                                                 options.path == "island" ? 1 : 0;
         std::cout << std::setprecision(9)
                   << "{\"schema_version\":1,\"benchmark\":\"bf16_ffn\""
                   << ",\"path\":\"" << options.path << "\""
@@ -225,7 +225,7 @@ int main(int argc, char** argv) {
                   << ",\"device_ms_median\":" << percentile(device_times, 0.5)
                   << ",\"device_ms_p95\":" << percentile(device_times, 0.95)
                   << ",\"wall_ms_median\":" << percentile(wall_times, 0.5)
-                  << ",\"explicit_cast_kernels\":" << explicit_cast_kernels
+                  << ",\"explicit_input_cast_kernels\":" << explicit_input_cast_kernels
                   << ",\"max_abs_error_vs_fp32\":" << maximum_error
                   << ",\"relative_l2_error_vs_fp32\":" << relative_l2
                   << ",\"accuracy_passed\":" << (accuracy_passed ? "true" : "false")
