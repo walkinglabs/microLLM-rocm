@@ -1,6 +1,6 @@
-# Step 05 — device argmax, top-k and token loop
+# Step 05 — device greedy argmax and token loop
 
-Status: `planned`
+Status: `complete for greedy` — Experiment 005, `keep`
 
 ## Hypothesis
 
@@ -10,8 +10,7 @@ and synchronization.
 ## Design
 
 - block-parallel argmax with deterministic tie rule;
-- device top-k candidate selection;
-- temperature and RNG state with explicit seed;
+- stochastic top-k/temperature keeps the existing CPU reference in this experiment;
 - next token remains on GPU for Embedding;
 - copy final generated ID sequence only when returning text;
 - optional scalar EOS check separated from full-logit copy.
@@ -21,7 +20,7 @@ and synchronization.
 - hand logits, equal maxima and non-finite rejection;
 - vocabulary 32/8192/151936;
 - greedy/top-1 exact equality;
-- top-k fixed-seed equality within the agreed RNG contract;
+- top-k fixed-seed equality remains covered by the unchanged CPU path;
 - generated sequence bounds and EOS;
 - profiler proves full logits D2H is gone.
 
@@ -34,3 +33,16 @@ material bottleneck at the current token count; retain only if complexity is low
 
 All exact greedy tokens pass, no full-vocabulary D2H per token, and both official
 generation rows are non-regressing.
+
+## Measured result
+
+```text
+Qwen generate             85.64 → 93.34 token/s
+DeepSeek generate         35.79 → 38.99 token/s
+four-workload score       1.167931 → 1.219170
+profiled generated D2H records     9 → 1
+```
+
+The device result is a `[1,1]` int32 Tensor. The C++ API copies that one scalar to append
+to its returned token vector, while the same device Tensor feeds the next Embedding.
+Stochastic device top-k remains separate future work and is not claimed here.

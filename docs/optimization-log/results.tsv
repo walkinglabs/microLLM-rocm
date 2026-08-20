@@ -4,3 +4,4 @@ experiment	commit	date	status	score	qwen_train	qwen_generate	deepseek_train	deep
 002	f29566e	2026-08-20	keep	0.479227	0.755435	0.503757	0.852426	0.162589	0.896769	0.960639	0.797368	0.988725	transpose-aware GEMM; strided-copy time 62.33ms to 2.16ms
 003	12faec2	2026-08-20	keep	0.885816	1.384483	0.816751	1.826933	0.298040	0.896769	0.960639	0.797368	0.988725	block-parallel HIP RMSNorm; RMSNorm time 75.85ms to 1.55ms
 004	38f0e1c	2026-08-20	keep	1.167931	1.409241	1.220315	1.886431	0.573549	0.896769	0.960651	0.797368	0.988733	right-sized device KV cache and direct GQA; score crosses selected-matrix parity
+005	7e6c760	2026-08-20	keep	1.219170	1.409241	1.329965	1.886431	0.624872	0.896769	0.960651	0.797368	0.988733	device greedy argmax; generated-token D2H records 9 to 1

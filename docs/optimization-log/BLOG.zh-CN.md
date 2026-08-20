@@ -32,7 +32,7 @@ microLLM-rocm 已经可以：
 0.191660× PyTorch
 ```
 
-经过四个保留实验，当前实测已经到 `1.167931×`。这不是估计值：它来自同一张
+经过五个保留实验，当前实测已经到 `1.219170×`。这不是估计值：它来自同一张
 MI300X、同一组模型权重、同样的 2 次热身和 5 次正式测量。
 
 因此，本专项的故事不是“我们已经超过 PyTorch”，而是：
@@ -484,7 +484,41 @@ copyBuffer calls          2269 → 253
 `53.2/97.5/90.7/68.4 token/s`，峰值显存随请求容量缓慢增加。它没有证明完整 32K
 context，但排除了“只在一步 decode 生效”的解释。
 
-## 15. 怎样读进度图
+## 15. Experiment 005：为了找一个最大值，不要搬回十五万个数
+
+greedy 生成只需要回答：“哪个 token 的 logit 最大？”旧代码却把完整 vocabulary
+搬回 CPU。Qwen 每步约 151,936 个 float，最后只留下一个 int32。
+
+新 argmax 让 256 个线程分段寻找最大 `(value, index)`，再做 block reduction。相同
+最大值永远选择较小 index，因此结果与 CPU `max_element` 一致。遇到 NaN/Inf 时设备
+写 `-1`，C++ 读到后仍走原来的错误路径。
+
+输出不是普通 CPU 整数，而是 GPU 上的 `[1,1] int32 Tensor`：
+
+```text
+GPU logits
+→ GPU argmax
+→ 4-byte token ID copy for returned C++ vector
+↘ same GPU token Tensor goes directly into next Embedding
+```
+
+固定结果：
+
+| Workload | Step 04 | Step 05 | 本步加速 | 当前 PyTorch ratio |
+|---|---:|---:|---:|---:|
+| Qwen generate | 85.64 | 93.34 token/s | 1.09× | 1.3300 |
+| DeepSeek generate | 35.79 | 38.99 token/s | 1.09× | 0.6249 |
+
+```text
+four-workload score       1.167931 → 1.219170
+generated-loop D2H records       9 → 1
+```
+
+为什么不顺便写 device top-k RNG？greedy 和随机采样是两种不同合同。这个实验只对
+固定 benchmark 中实际使用的 greedy 路径负责；固定 seed 的随机 top-k 测试继续跑
+CPU reference。把它写成“device sampling 全部完成”会夸大事实。
+
+## 16. 怎样读进度图
 
 图中：
 
@@ -496,10 +530,10 @@ context，但排除了“只在一步 decode 生效”的解释。
 - 右侧条形：当前四项 workload ratio；
 - 底部卡片：计划步骤，不代表已经完成。
 
-当前有 baseline 和四个 keep 实验共五个绿色点。未来如果十个实验都失败，图上就
+当前有 baseline 和五个 keep 实验共六个绿色点。未来如果十个实验都失败，图上就
 应出现十个灰点，而不是凭空出现一条漂亮上升曲线。
 
-## 16. 什么才算从 0 到 1
+## 17. 什么才算从 0 到 1
 
 完成一个 Kernel 不是 1，某个 shape 跑得快也不是 1。
 
@@ -513,4 +547,4 @@ context，但排除了“只在一步 decode 生效”的解释。
 6. 新学习者能沿日志重放关键实验；
 7. 所有结论都写清适用 GPU、dtype、shape 和版本。
 
-下一篇更新进入 Step 05：device-side sampling，删除每个 token 的完整 logits D2H。
+下一篇更新进入 Step 06：stream-aware allocator，测量并减少 malloc/free 抖动。

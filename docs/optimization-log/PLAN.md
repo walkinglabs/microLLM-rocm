@@ -33,7 +33,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [02](steps/02-transpose-aware-gemm.md) | complete | 无复制 transpose GEMM | score 0.479227 |
 | [03](steps/03-parallel-rmsnorm.md) | complete | block-parallel RMSNorm | score 0.885816 |
 | [04](steps/04-device-kv-cache.md) | complete | 预分配 device KV/GQA | score 1.167931 |
-| [05](steps/05-device-sampling.md) | planned | device argmax/top-k | generate |
+| [05](steps/05-device-sampling.md) | complete | device greedy argmax；随机 top-k 保留 reference | score 1.219170 |
 | [06](steps/06-memory-pool.md) | planned | stream-aware allocator | API/launch gap |
 | [07](steps/07-autograd-buffers.md) | planned | in-place grad/buffer reuse | train |
 | [08](steps/08-batched-fmha.md) | planned | batched GEMM/Fused Attention | long context |
