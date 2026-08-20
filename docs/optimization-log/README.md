@@ -132,6 +132,12 @@ keep，不是“全面超越 PyTorch”。
 
 ![Official-model BF16 FFN inference](assets/bf16-model-inference.svg)
 
+Experiment 032 发现 prefill 测量前没有启用已保留的 allocator。修正生命周期边界后，
+Qwen/DeepSeek BF16 prefill 分别提高 `1.642×/1.535×`，decode 不退化。相对 PyTorch
+BF16 的四项现在三项过线，只剩 DeepSeek decode。
+
+![Prefill allocator before and after](assets/bf16-prefill-allocator.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -156,6 +162,8 @@ keep，不是“全面超越 PyTorch”。
 | [experiments/030-data/](experiments/030-data/) | 36 条 raw JSONL、摘要和 kernel trace |
 | [assets/bf16-model-inference.svg](assets/bf16-model-inference.svg) | 官方模型 BF16 FFN 与两条 reference |
 | [experiments/031-data/](experiments/031-data/) | 18 条 raw、准备峰值和聚合摘要 |
+| [assets/bf16-prefill-allocator.svg](assets/bf16-prefill-allocator.svg) | prefill allocator 前后与 PyTorch 门 |
+| [experiments/032-data/](experiments/032-data/) | 两模型/两策略三进程复测 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

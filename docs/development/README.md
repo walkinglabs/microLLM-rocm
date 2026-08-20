@@ -168,6 +168,8 @@ the next gate. Records are append-only except for factual corrections.
   BF16 FFN, real decode-shape fallback, 36-run matrix and generated evidence chart.
 - [2026-08-20-single-representation-bf16-ffn.md](2026-08-20-single-representation-bf16-ffn.md):
   one-way model preparation, official exact tokens, transactional peak and PyTorch BF16 gaps.
+- [2026-08-20-prefill-allocator-boundary.md](2026-08-20-prefill-allocator-boundary.md):
+  independent workload timing and 1.54×–1.64× official prefill improvement.
 - [2026-08-20-parallel-cross-entropy.md](2026-08-20-parallel-cross-entropy.md):
   Experiment 001 block-parallel CE, large-vocabulary/PyTorch gates, 66.1% score gain,
   profiler before/after and next-hotspot handoff.

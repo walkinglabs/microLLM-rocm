@@ -154,6 +154,33 @@ def validate_bf16_models(errors: list[str]) -> int:
     return len(records)
 
 
+def validate_bf16_prefill(errors: list[str]) -> int:
+    data = ROOT / "experiments" / "032-data"
+    records = [json.loads(line) for line in
+               (data / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    if len(records) != 12:
+        errors.append(f"BF16 prefill record count is {len(records)}, expected 12")
+    keys = {(row["model"], row["policy"], row["process_run"]) for row in records}
+    if len(keys) != len(records) or any(not row.get("exact_expected_tokens") for row in records):
+        errors.append("BF16 prefill records lack unique exact-token keys")
+    before = json.loads(
+        (ROOT / "experiments" / "031-data" / "summary.json").read_text(encoding="utf-8")
+    )
+    before_by_model = {row["model"]: row for row in before["rows"]}
+    after = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    if len(after.get("rows", [])) != 2:
+        errors.append("BF16 prefill summary must contain two rows")
+    for row in after.get("rows", []):
+        old = before_by_model[row["model"]]
+        if row["bf16_ffn_prefill_tokens_per_second"] <= \
+                old["bf16_ffn_prefill_tokens_per_second"] * 1.4:
+            errors.append(f'BF16 prefill gain is below retained gate: {row["model"]}')
+        if row["bf16_ffn_decode_tokens_per_second"] < \
+                old["bf16_ffn_decode_tokens_per_second"] * 0.95:
+            errors.append(f'BF16 decode regressed over 5%: {row["model"]}')
+    return len(records)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -171,7 +198,7 @@ def validate_links(errors: list[str]) -> int:
 def validate_assets(errors: list[str]) -> None:
     for name in ("progress.svg", "bottleneck-map.svg", "bf16-gemm.svg",
                  "bf16-model-policy.svg", "bf16-ffn-island.svg",
-                 "bf16-model-inference.svg"):
+                 "bf16-model-inference.svg", "bf16-prefill-allocator.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -195,6 +222,7 @@ def main() -> int:
     bf16_policy_count = validate_bf16_policy(errors)
     bf16_ffn_count = validate_bf16_ffn(errors)
     bf16_model_count = validate_bf16_models(errors)
+    bf16_prefill_count = validate_bf16_prefill(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -203,7 +231,8 @@ def main() -> int:
         return 1
     print(f"optimization log valid: results={result_count} steps={step_count} "
           f"bf16_policy={bf16_policy_count} bf16_ffn={bf16_ffn_count} "
-          f"bf16_models={bf16_model_count} links={link_count}")
+          f"bf16_models={bf16_model_count} bf16_prefill={bf16_prefill_count} "
+          f"links={link_count}")
     return 0
 
 

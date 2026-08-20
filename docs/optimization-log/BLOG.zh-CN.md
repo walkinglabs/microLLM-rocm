@@ -1010,3 +1010,18 @@ decode/prefill 仅 `0.741×/0.520×/0.681×`。
 所以代码保留，因为它确实更快、更省常驻内存；“≥ PyTorch”结论不成立，红条也留在图
 里。下一轮应该 profile BF16 full-sequence 和 DeepSeek decode，而不是把 partial keep
 写成全面胜利。
+
+## 49. Experiment 032：热点不一定在 Kernel 里面
+
+独立 `prefill` workload 显示，热身后仍没有启用项目已经实现的 caching allocator。
+换句话说，Kernel 数学没有错，生命周期边界错了：pool 直到 decode 热身后才打开。
+
+把“启用 pool + 重置计数”移动到 prefill 热身结束处，只改了执行阶段，不改 Tensor、
+权重或模型结构。三进程结果中，Qwen/DeepSeek BF16 prefill 提高 `1.642×/1.535×`；
+FP32 也提高 `1.636×/1.537×`，说明根因不是 BF16 特例。
+
+![Prefill allocator before and after](assets/bf16-prefill-allocator.svg)
+
+Qwen decode/prefill 和 DeepSeek prefill 现在分别达到 PyTorch BF16 的
+`1.179×/1.216×/1.046×`。DeepSeek decode 仍只有 `0.522×`。四条全绿的目标尚未完成，
+但下一步已经被压缩成一个明确 workload。

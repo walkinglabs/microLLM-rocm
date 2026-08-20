@@ -1,0 +1,39 @@
+{
+  "aggregation": "median of three independent process results by default",
+  "rows": [
+    {
+      "all_exact_expected_tokens": true,
+      "bf16_ffn_decode_tokens_per_second": 86.679164993,
+      "bf16_ffn_engine_current_bytes": 1349773832.0,
+      "bf16_ffn_prefill_tokens_per_second": 176.741731885,
+      "bf16_resident_weight_bytes": 1348558336.0,
+      "current_memory_ratio": 0.6826187446570064,
+      "decode_speedup": 1.1212689928589192,
+      "fp32_decode_tokens_per_second": 77.304523308,
+      "fp32_engine_current_bytes": 1977346568.0,
+      "fp32_prefill_tokens_per_second": 158.452632717,
+      "max_abs_logit_difference": 0.15113306045532227,
+      "model": "qwen2.5-0.5b",
+      "prefill_speedup": 1.1154231321650854,
+      "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987"
+    },
+    {
+      "all_exact_expected_tokens": true,
+      "bf16_ffn_decode_tokens_per_second": 29.549734939,
+      "bf16_ffn_engine_current_bytes": 4803534896.0,
+      "bf16_ffn_prefill_tokens_per_second": 660.468129243,
+      "bf16_resident_weight_bytes": 4796241920.0,
+      "current_memory_ratio": 0.6750666892743525,
+      "decode_speedup": 1.054768062356767,
+      "fp32_decode_tokens_per_second": 28.015386504,
+      "fp32_engine_current_bytes": 7115644976.0,
+      "fp32_prefill_tokens_per_second": 627.574473923,
+      "max_abs_logit_difference": 0.11044597625732422,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "prefill_speedup": 1.0524139471677043,
+      "revision": "ad9f0ae0864d7fbcd1cd905e3c6c5b069cc8b562"
+    }
+  ],
+  "schema_version": 1,
+  "track": "bf16_ffn_official_models"
+}
