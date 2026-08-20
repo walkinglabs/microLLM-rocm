@@ -5,8 +5,8 @@
 ```text
 M0 可信基线       0.1917×  已完成
 M1 删除串行热点   CE / RMSNorm / transpose（完成）
-M2 删除搬运抖动   KV Cache / sampling / allocator（进行中）
-M3 算子体系成熟   batched GEMM / plan / fusion / FMHA
+M2 删除搬运抖动   KV Cache / sampling / allocator（完成）
+M3 算子体系成熟   batched GEMM / plan / fusion / FMHA（进行中）
 M4 低精度         BF16 → FP8
 M5 系统调度       HIP Graph / overlap / persistent cache
 M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
@@ -18,8 +18,8 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 |---|---|---|---|
 | M0 baseline | complete | 多步 microLLM/PyTorch raw JSONL | 4/4 workload 可比 |
 | M1 serial kernels | complete | parallel CE、transpose GEMM、parallel RMSNorm | 三组旧热点均从 trace 主导位置消失 |
-| M2 data movement | in progress | preallocated KV、device sampling、pool allocator | measured decode 无 payload host roundtrip |
-| M3 optimized ops | planned | batched GEMM、hipBLASLt plan、FMHA/fusion | Model-S/M 与 HF 均改善 |
+| M2 data movement | complete | preallocated KV、device greedy、steady-state exact-size pool | measured decode 只回传 token scalar |
+| M3 optimized ops | in progress | batched GEMM、hipBLASLt plan、FMHA/fusion | Model-S/M 与 HF 均改善 |
 | M4 low precision | planned | BF16/FP8 独立 track | 同 dtype PyTorch 对照 |
 | M5 scheduling | planned | stable-address HIP Graph | launch/API 时间下降且数值不变 |
 | M6 report | planned | 博客、曲线、trace、失败图集 | selected matrix 达到最终门 |
@@ -34,7 +34,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [03](steps/03-parallel-rmsnorm.md) | complete | block-parallel RMSNorm | score 0.885816 |
 | [04](steps/04-device-kv-cache.md) | complete | 预分配 device KV/GQA | score 1.167931 |
 | [05](steps/05-device-sampling.md) | complete | device greedy argmax；随机 top-k 保留 reference | score 1.219170 |
-| [06](steps/06-memory-pool.md) | planned | stream-aware allocator | API/launch gap |
+| [06](steps/06-memory-pool.md) | complete | default-stream exact-size pool + external-stream fallback | score 1.700597 |
 | [07](steps/07-autograd-buffers.md) | planned | in-place grad/buffer reuse | train |
 | [08](steps/08-batched-fmha.md) | planned | batched GEMM/Fused Attention | long context |
 | [09](steps/09-fusion-autotune.md) | planned | QKV/FFN fusion与 plan cache | 全部 workload |

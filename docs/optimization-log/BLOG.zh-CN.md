@@ -32,7 +32,7 @@ microLLM-rocm 已经可以：
 0.191660× PyTorch
 ```
 
-经过五个保留实验，当前实测已经到 `1.219170×`。这不是估计值：它来自同一张
+经过六个保留实验，当前实测已经到 `1.700597×`。这不是估计值：它来自同一张
 MI300X、同一组模型权重、同样的 2 次热身和 5 次正式测量。
 
 因此，本专项的故事不是“我们已经超过 PyTorch”，而是：
@@ -518,7 +518,47 @@ generated-loop D2H records       9 → 1
 固定 benchmark 中实际使用的 greedy 路径负责；固定 seed 的随机 top-k 测试继续跑
 CPU reference。把它写成“device sampling 全部完成”会夸大事实。
 
-## 16. 怎样读进度图
+## 16. Experiment 006：内存池首先是生命周期问题
+
+一个简单内存池像把用完的作业纸放回抽屉，下次要同样大小就直接拿。但 GPU 有个
+麻烦：CPU 觉得 Tensor 析构了，不代表 GPU 已经读完那块内存。
+
+第一步不是写 pool，而是补计数。热身后的五次正式运行显示：
+
+```text
+Qwen generate       12,345 次 allocate/free
+DeepSeek generate   53,865 次 allocate/free
+Qwen train           9,200 次 allocate/free
+DeepSeek train      10,715 次 allocate/free
+```
+
+机会是真实的。保留版使用 exact-size block 和 HIP Event：析构时在默认 Stream 后面
+放一个完成标记，只有标记 ready 才能复用。只要程序创建 `Stream` 或传入 external
+stream，pool 就永久关闭并回到普通 `hipMalloc/hipFree`。这很保守，但不会拿异步正确性
+换速度。
+
+第一版仍然失败了：它从程序启动就缓存，连权重加载的巨大临时块也不释放，导致
+Qwen/DeepSeek inference reserved memory 约变成 3.96/14.29 GB。最终版在 warm-up
+同步完成后才显式启用，只学习 steady-state 尺寸。
+
+| Workload | Step 05 | Step 06 | 本步加速 | 当前 PyTorch ratio |
+|---|---:|---:|---:|---:|
+| Qwen train | 72.33 | 107.08 token/s | 1.48× | 2.0864 |
+| Qwen generate | 93.34 | 134.87 token/s | 1.45× | 1.9217 |
+| DeepSeek train | 49.47 | 69.77 token/s | 1.41× | 2.6603 |
+| DeepSeek generate | 38.99 | 48.93 token/s | 1.25× | 0.7842 |
+
+```text
+score                  1.219170 → 1.700597
+Qwen gen backend alloc    12,345 → 305
+DeepSeek gen backend alloc 53,865 → 810
+```
+
+这里也有反方向证据：rocprof 插桩下单次 Qwen decode 从 50.04 降到 46.89 token/s，
+因为它放大了数千次 Event API 的开销。固定的未插桩主指标明显提升，所以方案保留；
+但 Event batching 被记录成下一版问题，不能删掉这条不漂亮的数据。
+
+## 17. 怎样读进度图
 
 图中：
 
@@ -530,10 +570,10 @@ CPU reference。把它写成“device sampling 全部完成”会夸大事实。
 - 右侧条形：当前四项 workload ratio；
 - 底部卡片：计划步骤，不代表已经完成。
 
-当前有 baseline 和五个 keep 实验共六个绿色点。未来如果十个实验都失败，图上就
+当前有 baseline 和六个 keep 实验共七个绿色点。未来如果十个实验都失败，图上就
 应出现十个灰点，而不是凭空出现一条漂亮上升曲线。
 
-## 17. 什么才算从 0 到 1
+## 18. 什么才算从 0 到 1
 
 完成一个 Kernel 不是 1，某个 shape 跑得快也不是 1。
 
@@ -547,4 +587,4 @@ CPU reference。把它写成“device sampling 全部完成”会夸大事实。
 6. 新学习者能沿日志重放关键实验；
 7. 所有结论都写清适用 GPU、dtype、shape 和版本。
 
-下一篇更新进入 Step 06：stream-aware allocator，测量并减少 malloc/free 抖动。
+下一篇更新进入 Step 07/08：先依据新 trace 选择 gradient buffer reuse 或 Attention。

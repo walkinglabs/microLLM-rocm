@@ -66,6 +66,10 @@ deepseek_generate_mem 同上
 description      不含 tab 的单行说明
 ```
 
+`*_mem` 保持历史可比性，使用同一时刻的逻辑活跃 Tensor peak。启用 caching allocator
+后，实验报告和 raw JSONL 还必须单独给出 `cached_bytes` 与 `reserved_bytes`；pool
+保留的物理内存不能藏在逻辑 peak 后面，也不能混入旧行后重写历史分数。
+
 `commit` 是 Git commit 标识，不是文件内容校验值。
 
 ## 每个实验必须保存

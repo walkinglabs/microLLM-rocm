@@ -43,6 +43,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | SFT response masking | smoke-tested | CPU/HIP ignored targets and tiny response-loss curve | Model-S instruction corpus/run |
 | CPU/HIP KV cache | smoke-tested | request-bounded preallocation, stable address, every MHA/GQA prefix, zero-transfer MI300X decode; score 0.885816→1.167931 | batching, fused long-context attention |
 | Device greedy sampling | smoke-tested | deterministic 32/8192/151936 argmax, 4-byte/token D2H, exact official sequences; score 1.167931→1.219170 | stochastic device top-k/RNG |
+| HIP exact-size allocator | smoke-tested | steady-state-only Event retirement, Stream fallback, stress/exception tests; score 1.219170→1.700597 | Event batching, size classes and explicit multi-Stream ownership |
 | Token generation | smoke-tested | deterministic sampling and cache-backed length/bounds | trained text report |
 | Stable model failure | smoke-tested | low-loss cycle breaks beyond training context | rebuttal experiments |
 | PyTorch Custom Ops | smoke-tested on CPU | Torch 2.13 add/multiply via dispatcher | build/run with PyTorch ROCm |
@@ -59,7 +60,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | End-to-end benchmark | smoke-tested | matched Python/PyTorch ROCm built-in and official-HF JSONL ratios | longer contexts, repeated official training and tuned comparison |
 | Single-GPU model matrix | smoke-tested | MI300X tiny/Model-S/Model-M plus official Qwen0.5B/DeepSeek-Distill1.5B train+generate, parameters, time, tokens/s and engine peak bytes | repeated contexts/dtypes and external board-level memory sampling |
 | Python/PyTorch ROCm performance matrix | smoke-tested | matched FP32 built-ins plus official Qwen/DeepSeek Distill, raw Python data and automatic throughput/memory ratios | repeated official-model training and PyTorch version matrix |
-| Optimization experiment journal | implemented | baseline plus five measured keep experiments, rejected cache variant, raw profiler/JSONL and generated SVGs | execute Step 06 onward and accumulate keep/discard/crash rows |
+| Optimization experiment journal | implemented | baseline plus six measured keep experiments, two rejected variants, raw profiler/JSONL and generated SVGs | execute Step 07 onward and accumulate keep/discard/crash rows |
 | rocprofv3 workflow | smoke-tested | kernel/HIP API/memory/full trace generated | release artifact retention |
 | hipBLASLt matmul | smoke-tested | FP32 CPU comparison, shape matrix, Model-S e2e | batched/workspace/autotune cache |
 | Matmul tuning registry | smoke-tested | exact shape override/clear and availability gates | persistence/arch key |

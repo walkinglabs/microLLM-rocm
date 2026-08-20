@@ -16,7 +16,7 @@
 ```text
 framework CPU                 152/152 pass
 CPU ASan/UBSan                150/150 pass
-MI300X/gfx942 HIP              44/44 pass
+MI300X/gfx942 HIP              53/53 pass
 PyTorch CPU oracle/alignment      3/3 pass
 two-rank RCCL                  11/11 pass
 registered test files               34
