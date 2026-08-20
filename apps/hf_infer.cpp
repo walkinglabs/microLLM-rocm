@@ -42,6 +42,7 @@ struct Options {
     std::string tokenizer_family = "qwen2";
     std::string chat_user;
     bool bf16_ffn = false;
+    std::string workload = "both";
 };
 
 Options options(int argc, char** argv) {
@@ -74,7 +75,7 @@ Options options(int argc, char** argv) {
                 throw std::invalid_argument("--bf16-ffn must be true or false");
             }
             result.bf16_ffn = value == "true";
-        }
+        } else if (name == "--workload") result.workload = argv[index + 1];
         else throw std::invalid_argument("unknown CLI option: " + name);
     }
     if (result.config.empty() || result.weights.empty()) {
@@ -98,6 +99,16 @@ Options options(int argc, char** argv) {
     if (result.prefill_warmup < 0 || result.prefill_steps <= 0) {
         throw std::invalid_argument(
             "--prefill-warmup must be nonnegative and --prefill-steps positive");
+    }
+    if (result.workload != "both" && result.workload != "prefill" &&
+        result.workload != "decode") {
+        throw std::invalid_argument("--workload must be both, prefill, or decode");
+    }
+    if (result.workload == "decode" && result.new_tokens == 0) {
+        throw std::invalid_argument("decode workload requires positive --new-tokens");
+    }
+    if (result.workload == "prefill" && result.new_tokens != 0) {
+        throw std::invalid_argument("prefill workload requires --new-tokens 0");
     }
     return result;
 }
@@ -181,24 +192,36 @@ int main(int argc, char** argv) {
         auto token_tensor = microllm::Tensor::from_int32_vector(
             ids, {1, static_cast<std::int64_t>(ids.size())});
         if (device.is_hip()) token_tensor = token_tensor.to(device);
-        for (int iteration = 0; iteration < command.prefill_warmup; ++iteration) {
-            (void)model.forward_inference(token_tensor);
-        }
-        microllm::runtime::synchronize(device);
-        const auto forward_start = std::chrono::steady_clock::now();
         microllm::Tensor logits_tensor;
-        for (int iteration = 0; iteration < command.prefill_steps; ++iteration) {
-            logits_tensor = model.forward_inference(token_tensor);
+        double forward_ms = 0.0;
+        const auto run_prefill = command.workload != "decode";
+        const auto run_decode = command.workload != "prefill";
+        if (run_prefill) {
+            for (int iteration = 0; iteration < command.prefill_warmup; ++iteration) {
+                (void)model.forward_inference(token_tensor);
+            }
+            microllm::runtime::synchronize(device);
+            if (device.is_hip()) microllm::runtime::enable_hip_caching_allocator(device);
+            microllm::runtime::reset_allocation_peak(device);
+            const auto forward_start = std::chrono::steady_clock::now();
+            for (int iteration = 0; iteration < command.prefill_steps; ++iteration) {
+                logits_tensor = model.forward_inference(token_tensor);
+            }
+            microllm::runtime::synchronize(device);
+            const auto forward_finish = std::chrono::steady_clock::now();
+            forward_ms = std::chrono::duration<double, std::milli>(
+                             forward_finish - forward_start).count();
         }
-        microllm::runtime::synchronize(device);
-        const auto forward_finish = std::chrono::steady_clock::now();
-        const auto logits = logits_tensor.to_vector();
+        const auto logits = run_prefill ? logits_tensor.to_vector() : std::vector<float>{};
         const auto vocabulary = static_cast<std::size_t>(external.model.vocabulary_size);
         const auto offset = (ids.size() - 1) * vocabulary;
         std::vector<std::size_t> order(vocabulary);
         std::iota(order.begin(), order.end(), 0U);
         const auto selected = std::min<std::size_t>(static_cast<std::size_t>(command.top_k),
                                                     vocabulary);
+        if (!command.logits_output.empty() && !run_prefill) {
+            throw std::invalid_argument("--logits-output requires prefill or both workload");
+        }
         if (!command.logits_output.empty()) {
             std::ofstream output(command.logits_output, std::ios::binary | std::ios::trunc);
             if (!output) throw std::runtime_error("cannot open logits output");
@@ -206,15 +229,17 @@ int main(int argc, char** argv) {
                          static_cast<std::streamsize>(vocabulary * sizeof(float)));
             if (!output) throw std::runtime_error("failed writing logits output");
         }
-        std::partial_sort(order.begin(), order.begin() + static_cast<std::ptrdiff_t>(selected),
-                          order.end(), [&](std::size_t left, std::size_t right) {
-                              return logits[offset + left] > logits[offset + right];
-                          });
+        if (run_prefill) {
+            std::partial_sort(order.begin(), order.begin() + static_cast<std::ptrdiff_t>(selected),
+                              order.end(), [&](std::size_t left, std::size_t right) {
+                                  return logits[offset + left] > logits[offset + right];
+                              });
+        }
         double generation_ms = 0.0;
         double warmup_ms = 0.0;
         std::vector<std::int32_t> generated_suffix;
         std::string generated_text;
-        if (command.new_tokens > 0) {
+        if (run_decode && command.new_tokens > 0) {
             const auto run_generation = [&]() {
                 const auto generated = microllm::inference::generate(
                     model, ids, {.max_new_tokens = command.new_tokens,
@@ -254,8 +279,6 @@ int main(int argc, char** argv) {
         const auto info = device.is_cpu()
                               ? microllm::runtime::DeviceInfo{device, "host CPU", "host"}
                               : microllm::runtime::device_info(device);
-        const auto forward_ms =
-            std::chrono::duration<double, std::milli>(forward_finish - forward_start).count();
         std::cout << std::setprecision(9)
                   << "{\"schema_version\":1,\"status\":\"pass\""
                   << ",\"device\":\"" << device.str() << "\""
@@ -269,6 +292,7 @@ int main(int argc, char** argv) {
                   << ",\"inference_weight_policy\":\""
                   << (command.bf16_ffn ? "single_representation_bf16_ffn" : "float32")
                   << "\""
+                  << ",\"workload\":\"" << command.workload << "\""
                   << ",\"bf16_ffn_converted_tensors\":"
                   << bf16_report.converted_tensors
                   << ",\"fp32_weight_bytes_released\":"
@@ -301,13 +325,6 @@ int main(int argc, char** argv) {
                   << preparation_allocation.current_bytes
                   << ",\"preparation_peak_bytes\":"
                   << preparation_allocation.peak_bytes
-                  << ",\"prefill_warmup\":" << command.prefill_warmup
-                  << ",\"prefill_steps\":" << command.prefill_steps
-                  << ",\"forward_ms\":"
-                  << forward_ms / static_cast<double>(command.prefill_steps)
-                  << ",\"prefill_tokens_per_second\":"
-                  << static_cast<double>(ids.size()) * command.prefill_steps * 1000.0 /
-                         forward_ms
                   << ",\"engine_current_bytes\":" << allocation.current_bytes
                   << ",\"engine_peak_bytes\":" << allocation.peak_bytes
                   << ",\"engine_total_allocated_bytes\":"
@@ -320,14 +337,23 @@ int main(int argc, char** argv) {
                   << allocation.backend_deallocation_calls
                   << ",\"engine_cache_reuse_calls\":" << allocation.cache_reuse_calls
                   << ",\"engine_cached_bytes\":" << allocation.cached_bytes
-                  << ",\"engine_reserved_bytes\":" << allocation.reserved_bytes
-                  << ",\"top_logits\":[";
-        for (std::size_t index = 0; index < selected; ++index) {
-            if (index != 0) std::cout << ',';
-            std::cout << "{\"token\":" << order[index]
-                      << ",\"logit\":" << logits[offset + order[index]] << '}';
+                  << ",\"engine_reserved_bytes\":" << allocation.reserved_bytes;
+        if (run_prefill) {
+            std::cout << ",\"prefill_warmup\":" << command.prefill_warmup
+                      << ",\"prefill_steps\":" << command.prefill_steps
+                      << ",\"forward_ms\":"
+                      << forward_ms / static_cast<double>(command.prefill_steps)
+                      << ",\"prefill_tokens_per_second\":"
+                      << static_cast<double>(ids.size()) * command.prefill_steps * 1000.0 /
+                             forward_ms
+                      << ",\"top_logits\":[";
+            for (std::size_t index = 0; index < selected; ++index) {
+                if (index != 0) std::cout << ',';
+                std::cout << "{\"token\":" << order[index]
+                          << ",\"logit\":" << logits[offset + order[index]] << '}';
+            }
+            std::cout << ']';
         }
-        std::cout << ']';
         if (!generated_suffix.empty()) {
             const auto measured_tokens =
                 generated_suffix.size() * static_cast<std::size_t>(command.steps);
