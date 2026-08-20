@@ -935,3 +935,55 @@ activation island、packed weights、HIP Graph 或 prefill/backward 的新合同
 
 完整边界见 [局部优化饱和审计](SATURATION.md)。在新 track 有可靠 baseline 前，不再用
 旧 FP32 score 包装架构变化。
+
+## 43. Experiment 030：不要每做一步都换一次“作业本”
+
+第一次 BF16 模型策略失败，是因为每个 Linear 都把 activation 从 FP32 转成 BF16，算完
+又回 FP32，而且长期保存 FP32/BF16 两份权重。这一次先不碰整网开关，只连接 FFN：
+
+```text
+FP32 residual
+    ↓ 一次 cast
+BF16 gate ─┐
+BF16 up   ─┴→ BF16 SwiGLU → BF16 down
+                                  ↓
+                              FP32 residual
+```
+
+这就是 activation island：相邻、能接受同一 dtype 的算子住在一个“小岛”上，只在岛的
+入口和出口换格式。`bf16_ffn` 接收已经是 BF16 的三份权重，不偷偷缓存第二份权重。
+
+## 44. 小方阵通过，不代表真实模型 shape 通过
+
+128×128 smoke 全绿后，真实 Qwen decode `M=1,K=896,N=4864` 仍被 hipBLASLt 以状态 6
+拒绝。继续测 M=2/8/16/32 也失败，M=64 才成功。这里不能写死“MI300 阈值就是 64”，
+因为不同 K/N、ROCm 版本和算法可能不同。
+
+最终实现按 `(M,K,N)` 记住本机实际结果：直接 BF16 输入、FP32 输出失败时，改用 BF16
+输出再在 GPU 上 cast；同 shape 的后续层不再重复撞墙。这个失败被加入 Qwen decode
+shape 的 HIP test，而不是藏在实验笔记里。
+
+## 45. 三进程结果与新的 BF16 图
+
+![BF16 FFN activation island](assets/bf16-ffn-island.svg)
+
+四个固定 shape 全部通过误差与零 payload transfer 门：
+
+| Shape | 相对 FP32 | 相对逐 Linear BF16 |
+|---|---:|---:|
+| Qwen M=1 | 1.232× | 1.067× |
+| Qwen M=128 | 1.392× | 1.081× |
+| DeepSeek M=1 | 1.117× | 1.088× |
+| DeepSeek M=128 | 1.576× | 1.091× |
+
+每项都是三次独立进程中位数的中位数；每个进程先热身 5 次，再测 20 次。36 条 raw
+JSONL 全部保留。rocprof 只用于数 dispatch，不用于速度，因为插桩把单次时间放大到近
+一秒。去掉两条路径共同的 setup/reference 后，Qwen M=1 从 8 个 dispatch 降到 6 个，
+FP32→BF16 input cast 从 3 次降到 1 次。
+
+## 46. 为什么仍不能说“BF16 模型跑通了”
+
+当前证明的是一个 FFN 算子岛。模型还没有决定怎样只保存一份 BF16 inference 权重，
+也没有完成官方 Qwen/DeepSeek BF16 logits、token、整网显存和 PyTorch BF16 吞吐矩阵。
+因此 FP32 running-best 仍是 `2.478439`，新结果只画在 BF16 独立图。下一节点是单份权重
+模型集成；如果整网变慢，就保留算子、拒绝策略。

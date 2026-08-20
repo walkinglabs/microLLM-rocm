@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import csv
 import html
+import json
 import math
 import re
 import subprocess
@@ -98,6 +99,28 @@ def validate_bf16_policy(errors: list[str]) -> int:
     return len(rows)
 
 
+def validate_bf16_ffn(errors: list[str]) -> int:
+    data = ROOT / "experiments" / "030-data"
+    raw_path = data / "raw.jsonl"
+    summary_path = data / "summary.json"
+    records = [json.loads(line) for line in raw_path.read_text(encoding="utf-8").splitlines()]
+    if len(records) != 36:
+        errors.append(f"BF16 FFN raw record count is {len(records)}, expected 36")
+    keys = {(row["model"], row["tokens"], row["path"], row["process_run"])
+            for row in records}
+    if len(keys) != len(records):
+        errors.append("BF16 FFN raw records contain duplicate workload/run keys")
+    for row in records:
+        if not row["accuracy_passed"]:
+            errors.append("BF16 FFN raw record failed accuracy")
+        if row["host_to_device_calls_measured"] != 0 or row["device_to_host_calls_measured"] != 0:
+            errors.append("BF16 FFN measured region contains a host payload transfer")
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    if summary.get("track") != "bf16_ffn" or len(summary.get("rows", [])) != 4:
+        errors.append("BF16 FFN summary does not contain the fixed four-row matrix")
+    return len(records)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -114,7 +137,7 @@ def validate_links(errors: list[str]) -> int:
 
 def validate_assets(errors: list[str]) -> None:
     for name in ("progress.svg", "bottleneck-map.svg", "bf16-gemm.svg",
-                 "bf16-model-policy.svg"):
+                 "bf16-model-policy.svg", "bf16-ffn-island.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -136,6 +159,7 @@ def main() -> int:
     result_count = validate_results(errors)
     step_count = validate_steps(errors)
     bf16_policy_count = validate_bf16_policy(errors)
+    bf16_ffn_count = validate_bf16_ffn(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -143,7 +167,7 @@ def main() -> int:
             print(f"ERROR: {error}")
         return 1
     print(f"optimization log valid: results={result_count} steps={step_count} "
-          f"bf16_policy={bf16_policy_count} links={link_count}")
+          f"bf16_policy={bf16_policy_count} bf16_ffn={bf16_ffn_count} links={link_count}")
     return 0
 
 

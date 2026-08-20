@@ -164,6 +164,8 @@ the next gate. Records are append-only except for factual corrections.
   shared completion Events, allocator safety gates and four-workload speedup.
 - [2026-08-20-bf16-output-gemm.md](2026-08-20-bf16-output-gemm.md): explicit
   BF16-output/FP32-accumulate GEMM foundation for activation islands.
+- [2026-08-20-bf16-ffn-island.md](2026-08-20-bf16-ffn-island.md): continuous
+  BF16 FFN, real decode-shape fallback, 36-run matrix and generated evidence chart.
 - [2026-08-20-parallel-cross-entropy.md](2026-08-20-parallel-cross-entropy.md):
   Experiment 001 block-parallel CE, large-vocabulary/PyTorch gates, 66.1% score gain,
   profiler before/after and next-hotspot handoff.

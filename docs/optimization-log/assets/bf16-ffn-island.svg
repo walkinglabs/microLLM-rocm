@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="760" viewBox="0 0 1600 760">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="800.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 030 · Continuous BF16 FFN Island</text>
+<text x="800.0" y="80.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">MI300X · median of 3 process medians · device Event time · higher is better</text>
+<line x1="370.0" y1="115" x2="370.0" y2="620" stroke="#2563eb" stroke-width="2"/>
+<text x="370.0" y="650.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">1.0×</text>
+<line x1="520.8" y1="115" x2="520.8" y2="620" stroke="#e5e9f0" stroke-width="1"/>
+<text x="520.8" y="650.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">1.1×</text>
+<line x1="671.5" y1="115" x2="671.5" y2="620" stroke="#e5e9f0" stroke-width="1"/>
+<text x="671.5" y="650.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">1.2×</text>
+<line x1="822.3" y1="115" x2="822.3" y2="620" stroke="#e5e9f0" stroke-width="1"/>
+<text x="822.3" y="650.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">1.3×</text>
+<line x1="973.1" y1="115" x2="973.1" y2="620" stroke="#e5e9f0" stroke-width="1"/>
+<text x="973.1" y="650.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">1.4×</text>
+<line x1="1123.8" y1="115" x2="1123.8" y2="620" stroke="#e5e9f0" stroke-width="1"/>
+<text x="1123.8" y="650.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">1.5×</text>
+<line x1="1274.6" y1="115" x2="1274.6" y2="620" stroke="#e5e9f0" stroke-width="1"/>
+<text x="1274.6" y="650.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">1.6×</text>
+<text x="346.0" y="171.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="end" font-weight="700">Qwen  M=1</text>
+<rect x="370.0" y="145" width="350.3" height="28" rx="5" fill="#18a558"/>
+<text x="730.3" y="166.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#18a558" text-anchor="start" font-weight="700">1.232×  vs FP32</text>
+<rect x="370.0" y="185" width="101.7" height="28" rx="5" fill="#2563eb"/>
+<text x="481.7" y="206.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#2563eb" text-anchor="start" font-weight="700">1.067×  vs per-Linear BF16</text>
+<text x="346.0" y="211.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#6b7280" text-anchor="end" font-weight="400">relative L2 3.20%</text>
+<text x="346.0" y="289.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="end" font-weight="700">Qwen  M=128</text>
+<rect x="370.0" y="263" width="591.7" height="28" rx="5" fill="#18a558"/>
+<text x="971.7" y="284.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#18a558" text-anchor="start" font-weight="700">1.392×  vs FP32</text>
+<rect x="370.0" y="303" width="121.8" height="28" rx="5" fill="#2563eb"/>
+<text x="501.8" y="324.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#2563eb" text-anchor="start" font-weight="700">1.081×  vs per-Linear BF16</text>
+<text x="346.0" y="329.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#6b7280" text-anchor="end" font-weight="400">relative L2 2.60%</text>
+<text x="346.0" y="407.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="end" font-weight="700">Deepseek  M=1</text>
+<rect x="370.0" y="381" width="176.2" height="28" rx="5" fill="#18a558"/>
+<text x="556.2" y="402.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#18a558" text-anchor="start" font-weight="700">1.117×  vs FP32</text>
+<rect x="370.0" y="421" width="133.3" height="28" rx="5" fill="#2563eb"/>
+<text x="513.3" y="442.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#2563eb" text-anchor="start" font-weight="700">1.088×  vs per-Linear BF16</text>
+<text x="346.0" y="447.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#6b7280" text-anchor="end" font-weight="400">relative L2 1.62%</text>
+<text x="346.0" y="525.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="end" font-weight="700">Deepseek  M=128</text>
+<rect x="370.0" y="499" width="868.8" height="28" rx="5" fill="#18a558"/>
+<text x="1248.8" y="520.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#18a558" text-anchor="start" font-weight="700">1.576×  vs FP32</text>
+<rect x="370.0" y="539" width="137.5" height="28" rx="5" fill="#2563eb"/>
+<text x="517.5" y="560.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#2563eb" text-anchor="start" font-weight="700">1.091×  vs per-Linear BF16</text>
+<text x="346.0" y="565.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#6b7280" text-anchor="end" font-weight="400">relative L2 1.25%</text>
+<text x="800.0" y="705.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#9a4f00" text-anchor="middle" font-weight="600">The FP32 running-best curve is unchanged; this is a separate BF16 operator track</text>
+<text x="800.0" y="738.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#6b7280" text-anchor="middle" font-weight="400">Generated from experiments/030-data/summary.json</text>
+</svg>

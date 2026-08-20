@@ -39,7 +39,7 @@ MI300X 没有 CDNA4 的原生 MXFP4 Matrix Core。仓库可以保存 packed FP4 
 | view/contiguous/设备复制 | ✓ | ✓ | ✓ | 计划中 | 计划中 | 计划中 |
 | 基础逐元素/SiLU/SwiGLU/GEMM | ✓ | CPU/MI300X ✓ | CPU/MI300X ✓ | — | — | — |
 | hipBLASLt GEMM | FP32 ✓ | MI300X ✓ | MI300X ✓ | MI300X E4M3/E5M2 FNUZ ✓ | 计划中 | 软件解包后计算 |
-| Transformer Linear 训练/推理 | FP32 | 计划中 | 计划中 | FP8 forward + FP32 master/backward/KV decode ✓ | — | — |
+| Transformer Linear 训练/推理 | FP32 | 计划中 | FFN 算子岛 ✓；整网计划中 | FP8 forward + FP32 master/backward/KV decode ✓ | — | — |
 
 表格中的“计划中”不是支持声明。只有对应测试和真机记录完成后才会改成 ✓。
 
@@ -77,3 +77,28 @@ Python torch 重建算子或模型
 LibTorch 只用于可选的 Custom Op 桥接层。FP16/BF16 使用
 `torch.testing.assert_close` 和 dtype 对应容差；FP8/量化路径还要比较解量化后的
 FP32 数值、logits 和端到端生成结果。
+
+## 6. 什么是“激活岛”
+
+可以把 FP32 和 BF16 想成两种宽度不同的作业本。以前每做一道小题，都把答案从宽本
+抄到窄本，算完又抄回宽本：
+
+```text
+FP32 → BF16 gate → FP32
+FP32 → BF16 up   → FP32
+FP32 SwiGLU → BF16 down → FP32
+```
+
+抄写本身要花时间。连续 BF16 FFN 把三道相邻题放在同一本窄本里：
+
+```text
+FP32 → BF16 gate/up → BF16 SwiGLU → BF16 down → FP32
+         只进入一次                         只离开一次
+```
+
+矩阵乘法仍用 FP32 累加，减少的是中间结果占用和重复转换。`bf16_ffn` 要求输入是连续
+二维 FP32，三个权重是同一设备上的连续二维 BF16；shape 不匹配会直接报错。输出回到
+FP32，方便与 residual 相加。
+
+这还不等于“模型已经可以 BF16 推理”。模型层还要解决只保存一份推理权重、官方 logits
+和 token 对齐、Norm/Softmax 精度边界及整机性能。算子实测和整网声明是两道不同的门。

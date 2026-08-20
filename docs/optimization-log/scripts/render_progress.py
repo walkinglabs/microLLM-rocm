@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import csv
 import html
+import json
 import math
 from pathlib import Path
 
@@ -18,6 +19,8 @@ BF16_RESULTS = ROOT / "bf16-results.tsv"
 BF16_CHART = ROOT / "assets" / "bf16-gemm.svg"
 BF16_POLICY_RESULTS = ROOT / "bf16-model-policy.tsv"
 BF16_POLICY_CHART = ROOT / "assets" / "bf16-model-policy.svg"
+BF16_FFN_SUMMARY = ROOT / "experiments" / "030-data" / "summary.json"
+BF16_FFN_CHART = ROOT / "assets" / "bf16-ffn-island.svg"
 
 
 def rows() -> list[dict]:
@@ -307,12 +310,68 @@ def bf16_policy_svg() -> str:
     return "\n".join(parts)
 
 
+def bf16_ffn_svg() -> str:
+    summary = json.loads(BF16_FFN_SUMMARY.read_text(encoding="utf-8"))
+    data = summary["rows"]
+    width, height = 1600, 760
+    left, top, chart_w = 370, 145, 980
+    minimum, maximum = 1.0, 1.65
+
+    def px(value: float) -> float:
+        return left + chart_w * (value - minimum) / (maximum - minimum)
+
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 030 · Continuous BF16 FFN Island", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 80,
+             "MI300X · median of 3 process medians · device Event time · higher is better",
+             16, "#5b6474", anchor="middle"),
+    ]
+    for tick in (1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6):
+        x = px(tick)
+        parts.append(f'<line x1="{x:.1f}" y1="115" x2="{x:.1f}" y2="620" '
+                     f'stroke="{("#2563eb" if tick == 1.0 else "#e5e9f0")}" '
+                     f'stroke-width="{2 if tick == 1.0 else 1}"/>')
+        parts.append(text(x, 650, f"{tick:.1f}×", 14, "#5b6474", anchor="middle"))
+    for index, row in enumerate(data):
+        y = top + index * 118
+        label = f'{row["model"].capitalize()}  M={row["tokens"]}'
+        parts.append(text(left - 24, y + 26, label, 17, "#172033",
+                          anchor="end", weight=700))
+        for offset, (key, title, color) in enumerate((
+            ("island_speedup_vs_fp32", "vs FP32", "#18a558"),
+            ("island_speedup_vs_per_linear", "vs per-Linear BF16", "#2563eb"),
+        )):
+            ratio = float(row[key])
+            bar_y = y + offset * 40
+            x0, x1 = px(1.0), px(ratio)
+            parts.append(f'<rect x="{x0:.1f}" y="{bar_y}" '
+                         f'width="{max(x1-x0,2):.1f}" height="28" rx="5" fill="{color}"/>')
+            parts.append(text(x1 + 10, bar_y + 21, f"{ratio:.3f}×  {title}", 14,
+                              color, weight=700))
+        error = row["paths"]["island"]["relative_l2_error_vs_fp32"] * 100.0
+        parts.append(text(left - 24, y + 66, f"relative L2 {error:.2f}%", 13,
+                          "#6b7280", anchor="end"))
+    parts.append(text(width / 2, 705,
+                      "The FP32 running-best curve is unchanged; this is a separate BF16 operator track",
+                      16, "#9a4f00", anchor="middle", weight=600))
+    parts.append(text(width / 2, 738,
+                      "Generated from experiments/030-data/summary.json",
+                      14, "#6b7280", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
     expected = {PROGRESS: progress_svg(rows()), BOTTLENECK: bottleneck_svg(),
-                BF16_CHART: bf16_svg(), BF16_POLICY_CHART: bf16_policy_svg()}
+                BF16_CHART: bf16_svg(), BF16_POLICY_CHART: bf16_policy_svg(),
+                BF16_FFN_CHART: bf16_ffn_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

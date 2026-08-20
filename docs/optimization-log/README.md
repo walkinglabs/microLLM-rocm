@@ -118,6 +118,13 @@ Experiment 028 补测 Event batch 24，四项全部低于 batch 16。至此 8/16
 Experiment 029 跨 Block 融合 residual+Norm，少 28 个 launch 但 Qwen 退化 4.4%，调度
 重排删除。
 
+Experiment 030 没有重试被否决的“每层 cast + 双份权重”方案，而是先建立连续 BF16 FFN
+激活岛。固定 Qwen/DeepSeek、M=1/128 四组 shape 中，相对 FP32 为 `1.117×–1.576×`，
+相对逐 Linear BF16 为 `1.067×–1.091×`。真实 Qwen decode 还暴露并修复了小 M 直接
+BF16→FP32 输出失败。它仍是算子 track，不是整网 BF16 声明。
+
+![BF16 FFN activation island](assets/bf16-ffn-island.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -138,6 +145,8 @@ Experiment 029 跨 Block 融合 residual+Norm，少 28 个 launch 但 Qwen 退�
 | [bf16-results.tsv](bf16-results.tsv) | BF16 shape、速度、误差原始表 |
 | [assets/bf16-model-policy.svg](assets/bf16-model-policy.svg) | 被否决的官方模型 BF16 策略图 |
 | [bf16-model-policy.tsv](bf16-model-policy.tsv) | 三进程中位数、显存和 token gate |
+| [assets/bf16-ffn-island.svg](assets/bf16-ffn-island.svg) | 连续 BF16 FFN 激活岛独立曲线 |
+| [experiments/030-data/](experiments/030-data/) | 36 条 raw JSONL、摘要和 kernel trace |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 
