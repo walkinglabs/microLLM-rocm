@@ -117,6 +117,25 @@ TEST(CpuOpsTest, Bf16FfnKeepsIntermediateActivationsLowPrecision) {
                  std::invalid_argument);
 }
 
+TEST(CpuOpsTest, Bf16QkvProjectionCastsSharedInputOnceAndKeepsFp32Outputs) {
+    const auto input = Tensor::from_vector({1.1F, -0.5F, 0.25F, 2.0F, -1.0F, 0.75F},
+                                           {2, 3});
+    const auto query = Tensor::from_vector({0.5F, -1, 0.25F, 0.75F, -0.5F, 1.25F},
+                                           {3, 2}, DType::BFloat16);
+    const auto key = Tensor::from_vector({0.25F, 0.5F, -0.75F},
+                                         {3, 1}, DType::BFloat16);
+    const auto value = Tensor::from_vector({-1.0F, 0.125F, 0.875F},
+                                           {3, 1}, DType::BFloat16);
+    const auto output = bf16_qkv_projection(input, query, key, value);
+    expect_near(output.first.to_vector(), bf16_matmul(input, query).to_vector(), 0.0F);
+    expect_near(output.second.to_vector(), bf16_matmul(input, key).to_vector(), 0.0F);
+    expect_near(output.third.to_vector(), bf16_matmul(input, value).to_vector(), 0.0F);
+    EXPECT_EQ(output.first.dtype(), DType::Float32);
+    EXPECT_THROW((void)bf16_qkv_projection(input, query, key,
+                                            Tensor({4, 1}, DType::BFloat16)),
+                 std::invalid_argument);
+}
+
 TEST(CpuOpsTest, TransposeAwareMatmulCoversAllOperandLayoutsWithoutViews) {
     const auto logical_left = Tensor::from_vector({1, 2, 3, 4, 5, 6}, {2, 3});
     const auto logical_right = Tensor::from_vector(

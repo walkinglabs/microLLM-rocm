@@ -89,6 +89,13 @@ void emit_forward_cases() {
         {0.25F, -0.5F, 1.0F, 0.75F, -1.25F, 0.5F, 0.125F, -0.875F},
         {4, 2}, DType::BFloat16);
     emit("bf16_ffn", bf16_ffn(matrix_left, ffn_gate, ffn_up, ffn_down));
+    const auto qkv = bf16_qkv_projection(
+        matrix_left, cast(matrix_right, DType::BFloat16),
+        Tensor::from_vector({0.5F, -1.0F, 0.25F}, {3, 1}, DType::BFloat16),
+        Tensor::from_vector({-0.5F, 1.25F, 0.75F}, {3, 1}, DType::BFloat16));
+    emit("bf16_qkv_query", qkv.first);
+    emit("bf16_qkv_key", qkv.second);
+    emit("bf16_qkv_value", qkv.third);
     emit("matmul_readable",
          matmul_with_implementation(matrix_left, matrix_right,
                                     MatmulImplementation::Readable));
@@ -349,6 +356,11 @@ void emit_invalid_shape_cases() {
                   (void)bf16_ffn(matrix, bf16, bf16,
                                  Tensor({3, 2}, DType::BFloat16));
               }));
+    emit_bool("invalid_bf16_qkv_shape", rejected([&] {
+                  const auto bf16 = matrix.cast(DType::BFloat16);
+                  (void)bf16_qkv_projection(matrix, bf16, bf16,
+                                             Tensor({3, 1}, DType::BFloat16));
+              }));
     emit_bool("invalid_embedding_weight", rejected([&] {
                   (void)embedding(vector, Tensor::from_int32_vector({0}, {1}));
               }));
@@ -441,6 +453,11 @@ void emit_model_graph_case() {
         throw std::logic_error("tiny model BF16 FFN preparation count changed");
     }
     emit("model_bf16_ffn_logits", model.forward_inference(tokens));
+    const auto attention_preparation = model.prepare_bf16_attention_inference();
+    if (attention_preparation.converted_tensors != 4U) {
+        throw std::logic_error("tiny model BF16 Attention preparation count changed");
+    }
+    emit("model_bf16_attention_ffn_logits", model.forward_inference(tokens));
 }
 
 void emit_optimizer_cases() {

@@ -10,6 +10,7 @@
     "matmul": {"torch": "matmul_2d", "shape": "invalid_matmul_inner"},
     "bf16_matmul": {"torch": "bf16_mixed_matmul", "shape": "invalid_bf16_matmul_dtype"},
     "bf16_ffn": {"torch": "bf16_ffn", "shape": "invalid_bf16_ffn_shape"},
+    "bf16_qkv_projection": {"torch": "bf16_qkv_query", "shape": "invalid_bf16_qkv_shape"},
     "matmul_with_implementation": {"torch": "matmul_readable", "shape": "invalid_matmul_inner"},
     "embedding": {"torch": "embedding", "shape": "invalid_embedding_weight"},
     "softmax": {"torch": "softmax", "shape": "invalid_softmax_dim"},
@@ -93,7 +94,8 @@
     "sgd": ["optimizer_sgd_parameter_step1"],
     "adamw": ["optimizer_adamw_parameter_step1", "optimizer_adamw_parameter_step2", "optimizer_adamw_first_moment_step2", "optimizer_adamw_second_moment_step2"],
     "transformer_graph": ["model_logits", "model_loss", "model_grad:", "model_graph_has_topology"],
-    "bf16_ffn_model_inference": ["model_bf16_ffn_logits"]
+    "bf16_ffn_model_inference": ["model_bf16_ffn_logits"],
+    "bf16_attention_model_inference": ["model_bf16_attention_ffn_logits"]
   },
   "weight_api": {
     "save_safetensors": "tests/io/safetensors_test.cpp",
@@ -109,7 +111,9 @@
     "qwen_style_weight_mapping": "tests/model/weights_test.cpp",
     "forward_inference": "tests/model/model_test.cpp",
     "prepare_bf16_ffn_inference": "tests/model/model_test.cpp",
-    "bf16_ffn_inference_prepared": "tests/model/model_test.cpp"
+    "bf16_ffn_inference_prepared": "tests/model/model_test.cpp",
+    "prepare_bf16_attention_inference": "tests/model/model_test.cpp",
+    "bf16_attention_inference_prepared": "tests/model/model_test.cpp"
   },
   "profiling_api": {
     "TraceSession": "tests/profiling/trace_test.cpp",

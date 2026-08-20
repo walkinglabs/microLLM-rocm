@@ -14,6 +14,12 @@ struct TensorPair {
     Tensor second;
 };
 
+struct TensorTriple {
+    Tensor first;
+    Tensor second;
+    Tensor third;
+};
+
 struct ScaledTensor {
     Tensor values;
     Tensor scale;
@@ -43,6 +49,12 @@ struct ScaledTensor {
                               const Tensor& up_weight_bf16,
                               const Tensor& down_weight_bf16,
                               const OpContext& context = {});
+// Casts the shared FP32 activation once, then submits three BF16-weight
+// projections with FP32 outputs. Intended for Q/K/V inference projections.
+[[nodiscard]] TensorTriple bf16_qkv_projection(
+    const Tensor& input_fp32, const Tensor& query_weight_bf16,
+    const Tensor& key_weight_bf16, const Tensor& value_weight_bf16,
+    const OpContext& context = {});
 
 void fill_(Tensor& tensor, float value, const OpContext& context = {});
 void adamw_update_(Tensor& parameter, const Tensor& gradient,

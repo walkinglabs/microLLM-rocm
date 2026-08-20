@@ -487,6 +487,30 @@ Tensor bf16_ffn(const Tensor& input_fp32,
                               DType::Float32, context);
 }
 
+TensorTriple bf16_qkv_projection(const Tensor& input_fp32,
+                                 const Tensor& query_weight_bf16,
+                                 const Tensor& key_weight_bf16,
+                                 const Tensor& value_weight_bf16,
+                                 const OpContext& context) {
+    if (input_fp32.dtype() != DType::Float32 || input_fp32.ndim() != 2 ||
+        !input_fp32.is_contiguous()) {
+        throw std::invalid_argument("bf16_qkv_projection requires contiguous 2D FP32 input");
+    }
+    for (const auto* weight : {&query_weight_bf16, &key_weight_bf16,
+                               &value_weight_bf16}) {
+        if (weight->dtype() != DType::BFloat16 || weight->ndim() != 2 ||
+            !weight->is_contiguous() || weight->device() != input_fp32.device() ||
+            weight->shape()[0] != input_fp32.shape()[1]) {
+            throw std::invalid_argument(
+                "bf16_qkv_projection weights must be compatible contiguous BF16 matrices");
+        }
+    }
+    const auto input_bf16 = cast(input_fp32, DType::BFloat16, context);
+    return {bf16_matmul_output(input_bf16, query_weight_bf16, DType::Float32, context),
+            bf16_matmul_output(input_bf16, key_weight_bf16, DType::Float32, context),
+            bf16_matmul_output(input_bf16, value_weight_bf16, DType::Float32, context)};
+}
+
 Tensor fp8_matmul(const ScaledTensor& left, const ScaledTensor& right,
                   DType output_dtype, const OpContext& context) {
     if (left.values.device() != right.values.device()) {

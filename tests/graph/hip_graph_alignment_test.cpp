@@ -70,7 +70,7 @@ TEST(HipGraphAlignmentTest, FullTransformerForwardAndBackwardMatchCpuWithoutHost
     }
 }
 
-TEST(HipGraphAlignmentTest, Bf16FfnInferenceMatchesCpuAndStaysDeviceNative) {
+TEST(HipGraphAlignmentTest, Bf16LinearInferenceMatchesCpuAndStaysDeviceNative) {
     require_graph_gpu();
     const model::ModelConfig config{.vocabulary_size = 16,
                                     .dimension = 128,
@@ -85,12 +85,14 @@ TEST(HipGraphAlignmentTest, Bf16FfnInferenceMatchesCpuAndStaysDeviceNative) {
     model::TransformerModel cpu(config, 127);
     const auto cpu_report = cpu.prepare_bf16_ffn_inference();
     ASSERT_EQ(cpu_report.converted_tensors, 3U);
+    ASSERT_EQ(cpu.prepare_bf16_attention_inference().converted_tensors, 4U);
     const auto expected = cpu.forward_inference(tokens).to_vector();
 
     model::TransformerModel hip(config, 127);
     hip.to(Device::hip(0));
     const auto hip_report = hip.prepare_bf16_ffn_inference();
     EXPECT_EQ(hip_report.fp32_bytes_released, cpu_report.fp32_bytes_released);
+    EXPECT_EQ(hip.prepare_bf16_attention_inference().converted_tensors, 4U);
     const auto device_tokens = tokens.to(Device::hip(0));
     runtime::reset_transfer_stats();
     const auto actual = hip.forward_inference(device_tokens);
@@ -99,7 +101,7 @@ TEST(HipGraphAlignmentTest, Bf16FfnInferenceMatchesCpuAndStaysDeviceNative) {
     EXPECT_EQ(transfers.host_to_device_calls, 0U);
     EXPECT_EQ(transfers.device_to_host_calls, 0U);
     EXPECT_EQ(actual.device(), Device::hip(0));
-    expect_graph_near(actual.to_vector(), expected, 3.0e-2F);
+    expect_graph_near(actual.to_vector(), expected, 5.0e-2F);
 }
 
 }  // namespace microllm::autograd

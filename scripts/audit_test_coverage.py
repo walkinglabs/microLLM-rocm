@@ -24,7 +24,7 @@ def fail(messages):
 errors = []
 declared_ops = public_names(
     "include/microllm/ops/ops.h",
-    ["TensorPair", "Tensor", "bool", "MatmulImplementation", "void"],
+    ["TensorPair", "TensorTriple", "Tensor", "bool", "MatmulImplementation", "void"],
 )
 covered_ops = set(MANIFEST["tensor_ops"]) | set(MANIFEST["operator_infrastructure"])
 if declared_ops != covered_ops:

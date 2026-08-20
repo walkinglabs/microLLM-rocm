@@ -118,6 +118,36 @@ TEST(TransformerModelTest, Bf16FfnPreparationIsSingleRepresentationAndInferenceO
     EXPECT_THROW((void)model.prepare_bf16_ffn_inference(), std::logic_error);
 }
 
+TEST(TransformerModelTest, Bf16AttentionPreparationConvertsOnlyProjectionWeights) {
+    auto config = tiny_config();
+    config.attention_bias = true;
+    TransformerModel model(config, 18);
+    const auto input = Tensor::from_int32_vector({1, 2, 3, 4}, {1, 4});
+    const auto before = model.forward_inference(input).to_vector();
+    (void)model.prepare_bf16_ffn_inference();
+    const auto report = model.prepare_bf16_attention_inference();
+    EXPECT_TRUE(model.bf16_attention_inference_prepared());
+    EXPECT_EQ(report.converted_tensors, 4U);
+    EXPECT_EQ(report.fp32_bytes_released, 192U * sizeof(float));
+    EXPECT_EQ(report.bf16_bytes_retained, 192U * sizeof(std::uint16_t));
+    std::size_t attention_weights = 0;
+    for (const auto& [name, parameter] : model.named_parameters()) {
+        const auto selected = name.find(".attention.") != std::string::npos &&
+                              name.ends_with(".weight");
+        if (selected) {
+            ++attention_weights;
+            EXPECT_EQ(parameter->data().dtype(), DType::BFloat16) << name;
+            EXPECT_FALSE(parameter->requires_grad()) << name;
+        } else if (name.ends_with(".bias")) {
+            EXPECT_EQ(parameter->data().dtype(), DType::Float32) << name;
+        }
+    }
+    EXPECT_EQ(attention_weights, 4U);
+    expect_near(model.forward_inference(input).to_vector(), before, 5.0e-2F);
+    EXPECT_THROW((void)model.forward(input), std::logic_error);
+    EXPECT_THROW((void)model.prepare_bf16_attention_inference(), std::logic_error);
+}
+
 TEST(TransformerModelTest, Fp8LinearPolicyRunsFullForwardLossAndBackward) {
     auto config = tiny_config();
     config.linear_precision = LinearPrecision::Float8E4M3FNUZ;

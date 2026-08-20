@@ -42,6 +42,7 @@ struct Options {
     std::string tokenizer_family = "qwen2";
     std::string chat_user;
     bool bf16_ffn = false;
+    bool bf16_attention = false;
     std::string workload = "both";
 };
 
@@ -75,6 +76,12 @@ Options options(int argc, char** argv) {
                 throw std::invalid_argument("--bf16-ffn must be true or false");
             }
             result.bf16_ffn = value == "true";
+        } else if (name == "--bf16-attention") {
+            const std::string value = argv[index + 1];
+            if (value != "true" && value != "false") {
+                throw std::invalid_argument("--bf16-attention must be true or false");
+            }
+            result.bf16_attention = value == "true";
         } else if (name == "--workload") result.workload = argv[index + 1];
         else throw std::invalid_argument("unknown CLI option: " + name);
     }
@@ -109,6 +116,9 @@ Options options(int argc, char** argv) {
     }
     if (result.workload == "prefill" && result.new_tokens != 0) {
         throw std::invalid_argument("prefill workload requires --new-tokens 0");
+    }
+    if (result.bf16_attention && !result.bf16_ffn) {
+        throw std::invalid_argument("--bf16-attention requires --bf16-ffn true");
     }
     return result;
 }
@@ -149,9 +159,13 @@ int main(int argc, char** argv) {
         const auto report = model.load_safetensors(command.weights, load_options);
         const auto load_finish = std::chrono::steady_clock::now();
         microllm::model::Bf16FfnPreparationReport bf16_report;
+        microllm::model::Bf16WeightPreparationReport bf16_attention_report;
         microllm::runtime::reset_allocation_peak(device);
         const auto preparation_start = std::chrono::steady_clock::now();
         if (command.bf16_ffn) bf16_report = model.prepare_bf16_ffn_inference();
+        if (command.bf16_attention) {
+            bf16_attention_report = model.prepare_bf16_attention_inference();
+        }
         microllm::runtime::synchronize(device);
         const auto preparation_finish = std::chrono::steady_clock::now();
         const auto preparation_allocation = microllm::runtime::allocation_stats(device);
@@ -288,21 +302,32 @@ int main(int argc, char** argv) {
                   << microllm::runtime::hip_runtime_version()
                   << ",\"hip_driver_version\":" << microllm::runtime::hip_driver_version()
                   << ",\"compute_dtype\":\""
-                  << (command.bf16_ffn ? "float32_with_bf16_ffn" : "float32") << "\""
+                  << (command.bf16_attention
+                          ? "float32_with_bf16_ffn_attention"
+                          : command.bf16_ffn ? "float32_with_bf16_ffn" : "float32")
+                  << "\""
                   << ",\"inference_weight_policy\":\""
-                  << (command.bf16_ffn ? "single_representation_bf16_ffn" : "float32")
+                  << (command.bf16_attention
+                          ? "single_representation_bf16_ffn_attention"
+                          : command.bf16_ffn ? "single_representation_bf16_ffn" : "float32")
                   << "\""
                   << ",\"workload\":\"" << command.workload << "\""
                   << ",\"bf16_ffn_converted_tensors\":"
                   << bf16_report.converted_tensors
+                  << ",\"bf16_attention_converted_tensors\":"
+                  << bf16_attention_report.converted_tensors
                   << ",\"fp32_weight_bytes_released\":"
                   << bf16_report.fp32_bytes_released
+                  + bf16_attention_report.fp32_bytes_released
                   << ",\"bf16_weight_bytes_retained\":"
                   << bf16_report.bf16_bytes_retained
+                  + bf16_attention_report.bf16_bytes_retained
                   << ",\"resident_weight_bytes\":"
                   << external.model.weight_bytes(sizeof(float)) -
                          bf16_report.fp32_bytes_released +
-                         bf16_report.bf16_bytes_retained
+                         bf16_report.bf16_bytes_retained -
+                         bf16_attention_report.fp32_bytes_released +
+                         bf16_attention_report.bf16_bytes_retained
                   << ",\"measurement_profile\":\""
                   << (command.warmup > 0 || command.steps > 1 ||
                               command.prefill_warmup > 0 || command.prefill_steps > 1

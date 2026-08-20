@@ -42,11 +42,13 @@ struct LoadWeightsReport {
     }
 };
 
-struct Bf16FfnPreparationReport {
+struct Bf16WeightPreparationReport {
     std::size_t converted_tensors = 0;
     std::uint64_t fp32_bytes_released = 0;
     std::uint64_t bf16_bytes_retained = 0;
 };
+
+using Bf16FfnPreparationReport = Bf16WeightPreparationReport;
 
 [[nodiscard]] WeightMapping qwen_style_weight_mapping(const ModelConfig& config);
 
@@ -76,6 +78,8 @@ public:
     // No persistent FP32 copy remains inside the model after this call.
     [[nodiscard]] Bf16FfnPreparationReport prepare_bf16_ffn_inference();
     [[nodiscard]] bool bf16_ffn_inference_prepared() const noexcept;
+    [[nodiscard]] Bf16WeightPreparationReport prepare_bf16_attention_inference();
+    [[nodiscard]] bool bf16_attention_inference_prepared() const noexcept;
     [[nodiscard]] io::StateDict state_dict(Device target = Device::cpu());
     [[nodiscard]] LoadWeightsReport load_state_dict(
         const io::StateDict& state, const LoadWeightsOptions& options = {});

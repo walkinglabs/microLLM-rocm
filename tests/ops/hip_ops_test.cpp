@@ -239,6 +239,47 @@ TEST(HipBf16FfnTest, QwenDecodeShapeFallsBackToDeviceCastAndRemainsReusable) {
     expect_near(second.to_vector(), first.to_vector(), 0.0F);
 }
 
+TEST(HipBf16ProjectionTest, SharedQkvCastMatchesThreeCpuMixedGemms) {
+    require_gpu();
+    if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";
+    constexpr std::int64_t hidden = 128;
+    constexpr std::int64_t kv = 32;
+    const auto gpu = Device::hip(0);
+    std::vector<float> input_values(hidden);
+    std::vector<float> query_values(hidden * hidden);
+    std::vector<float> key_values(hidden * kv);
+    std::vector<float> value_values(hidden * kv);
+    for (std::size_t index = 0; index < query_values.size(); ++index) {
+        query_values[index] = static_cast<float>(static_cast<int>(index % 29) - 14) / 128.0F;
+    }
+    for (std::size_t index = 0; index < key_values.size(); ++index) {
+        key_values[index] = static_cast<float>(static_cast<int>(index % 31) - 15) / 128.0F;
+        value_values[index] = static_cast<float>(static_cast<int>(index % 37) - 18) / 128.0F;
+    }
+    for (std::size_t index = 0; index < input_values.size(); ++index) {
+        input_values[index] = static_cast<float>(static_cast<int>(index % 23) - 11) / 32.0F;
+    }
+    const auto input_cpu = Tensor::from_vector(input_values, {1, hidden});
+    const auto query_cpu = Tensor::from_vector(query_values, {hidden, hidden},
+                                                DType::BFloat16);
+    const auto key_cpu = Tensor::from_vector(key_values, {hidden, kv}, DType::BFloat16);
+    const auto value_cpu = Tensor::from_vector(value_values, {hidden, kv}, DType::BFloat16);
+    const auto expected = bf16_qkv_projection(input_cpu, query_cpu, key_cpu, value_cpu);
+    const auto input = input_cpu.to(gpu);
+    const auto query = query_cpu.to(gpu);
+    const auto key = key_cpu.to(gpu);
+    const auto value = value_cpu.to(gpu);
+    runtime::reset_transfer_stats();
+    const auto actual = bf16_qkv_projection(input, query, key, value);
+    runtime::synchronize(gpu);
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    expect_near(actual.first.to_vector(), expected.first.to_vector(), 3.0e-2F);
+    expect_near(actual.second.to_vector(), expected.second.to_vector(), 3.0e-2F);
+    expect_near(actual.third.to_vector(), expected.third.to_vector(), 3.0e-2F);
+}
+
 TEST(HipFp8OpsTest, QuantizeDequantizeAndScaledGemmAreDeviceNative) {
     require_gpu();
     if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";

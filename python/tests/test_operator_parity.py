@@ -96,6 +96,12 @@ def pytorch_references(actual):
     ffn_up_output = (ffn_input @ ffn_up).to(torch.bfloat16)
     ffn_activated = (F.silu(ffn_gate_output) * ffn_up_output).to(torch.bfloat16)
     record(refs, "bf16_ffn", (ffn_activated @ ffn_down).to(torch.float32))
+    qkv_input = matrix_left.to(torch.bfloat16).float()
+    record(refs, "bf16_qkv_query", qkv_input @ matrix_right.to(torch.bfloat16).float())
+    record(refs, "bf16_qkv_key",
+           qkv_input @ tensor([0.5, -1.0, 0.25], (3, 1)).to(torch.bfloat16).float())
+    record(refs, "bf16_qkv_value",
+           qkv_input @ tensor([-0.5, 1.25, 0.75], (3, 1)).to(torch.bfloat16).float())
     record(refs, "matmul_readable", matrix_left @ matrix_right)
     wide_right = tensor([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], (3, 4))
     transposed_left = matrix_left.transpose(0, 1).contiguous()
@@ -342,6 +348,46 @@ def pytorch_references(actual):
         bf16_hidden.reshape(4, 8) @ params["output_head.weight"].detach()
     ).reshape(1, 4, 8)
     record(refs, "model_bf16_ffn_logits", bf16_logits)
+    bf_attention_hidden = F.embedding(tokens, params["token_embedding.weight"].detach())
+    bf_attention_norm = F.rms_norm(
+        bf_attention_hidden, (8,),
+        params[f"{prefix}.attention_norm.weight"].detach(), 1.0e-5)
+    bf_attention_flat = bf_attention_norm.reshape(4, 8)
+    def bf16_weight_linear(value, weight):
+        return value.to(torch.bfloat16).float() @ weight.detach().to(torch.bfloat16).float()
+    bf_query = bf16_weight_linear(
+        bf_attention_flat, params[f"{prefix}.attention.q_proj.weight"]
+    ).reshape(1, 4, 2, 4).transpose(1, 2)
+    bf_key = bf16_weight_linear(
+        bf_attention_flat, params[f"{prefix}.attention.k_proj.weight"]
+    ).reshape(1, 4, 1, 4).transpose(1, 2)
+    bf_value = bf16_weight_linear(
+        bf_attention_flat, params[f"{prefix}.attention.v_proj.weight"]
+    ).reshape(1, 4, 1, 4).transpose(1, 2)
+    bf_query = rope(bf_query, sequence_dim=2)
+    bf_key = torch.repeat_interleave(rope(bf_key, sequence_dim=2), 2, dim=1)
+    bf_value = torch.repeat_interleave(bf_value, 2, dim=1)
+    bf_scores = torch.matmul(bf_query, bf_key.transpose(-2, -1)) / math.sqrt(4.0)
+    bf_probabilities = causal_softmax(bf_scores)
+    bf_context = torch.matmul(bf_probabilities, bf_value).transpose(1, 2).contiguous().reshape(4, 8)
+    bf_attention = bf16_weight_linear(
+        bf_context, params[f"{prefix}.attention.o_proj.weight"]
+    ).reshape(1, 4, 8)
+    bf_attention_hidden = bf_attention_hidden + bf_attention
+    bf_ffn_norm = F.rms_norm(
+        bf_attention_hidden, (8,), params[f"{prefix}.ffn_norm.weight"].detach(), 1.0e-5)
+    bf_ffn_flat = bf_ffn_norm.reshape(4, 8).to(torch.bfloat16)
+    bf_gate = (bf_ffn_flat @ bf16_gate_weight).to(torch.bfloat16)
+    bf_up = (bf_ffn_flat @ bf16_up_weight).to(torch.bfloat16)
+    bf_activated = (F.silu(bf_gate) * bf_up).to(torch.bfloat16)
+    bf_feed_forward = bf_activated.float() @ bf16_down_weight.float()
+    bf_attention_hidden = bf_attention_hidden + bf_feed_forward.reshape(1, 4, 8)
+    bf_attention_hidden = F.rms_norm(
+        bf_attention_hidden, (8,), params["final_norm.weight"].detach(), 1.0e-5)
+    bf_attention_logits = (
+        bf_attention_hidden.reshape(4, 8) @ params["output_head.weight"].detach()
+    ).reshape(1, 4, 8)
+    record(refs, "model_bf16_attention_ffn_logits", bf_attention_logits)
     gate = flat @ params[f"{prefix}.feed_forward.gate_proj.weight"]
     up = flat @ params[f"{prefix}.feed_forward.up_proj.weight"]
     feed_forward = (F.silu(gate) * up) @ params[f"{prefix}.feed_forward.down_proj.weight"]
@@ -424,8 +470,10 @@ class OperatorParityTest(unittest.TestCase):
                 tolerance = 3.0e-2
             elif name.startswith("fp16_"):
                 tolerance = 3.0e-3
+            elif name.startswith("model_bf16"):
+                tolerance = 3.0e-2
             elif (name.startswith("model_grad:") or
-                  name in {"model_logits", "model_loss", "model_bf16_ffn_logits"}):
+                  name in {"model_logits", "model_loss"}):
                 tolerance = 2.0e-3
             else:
                 tolerance = 3.0e-4 if name in looser else 3.0e-5
@@ -448,6 +496,7 @@ class OperatorParityTest(unittest.TestCase):
             "invalid_matmul_inner",
             "invalid_bf16_matmul_dtype",
             "invalid_bf16_ffn_shape",
+            "invalid_bf16_qkv_shape",
             "invalid_embedding_weight",
             "invalid_softmax_dim",
             "invalid_rms_weight",

@@ -54,6 +54,39 @@ Tensor random_tensor(Shape shape, std::mt19937_64& generator, float standard_dev
     return Tensor::from_vector(values, std::move(shape));
 }
 
+template <typename Predicate>
+Bf16WeightPreparationReport prepare_bf16_weights(
+    const NamedValues& named, std::size_t expected_count, Device device,
+    Predicate&& selected) {
+    struct Prepared {
+        Value* parameter = nullptr;
+        Tensor bf16;
+    };
+    std::vector<Prepared> prepared;
+    Bf16WeightPreparationReport report;
+    for (const auto& [name, parameter] : named) {
+        if (!selected(name)) continue;
+        if (parameter->data().dtype() != DType::Float32 ||
+            !parameter->data().is_contiguous()) {
+            throw std::logic_error(
+                "BF16 inference preparation requires contiguous FP32 source weights");
+        }
+        const auto elements = static_cast<std::uint64_t>(parameter->data().numel());
+        prepared.push_back({parameter, ops::cast(parameter->data(), DType::BFloat16)});
+        ++report.converted_tensors;
+        report.fp32_bytes_released += elements * sizeof(float);
+        report.bf16_bytes_retained += elements * sizeof(std::uint16_t);
+    }
+    if (report.converted_tensors != expected_count) {
+        throw std::logic_error("model exposed an unexpected BF16 inference weight count");
+    }
+    runtime::synchronize(device);
+    for (auto& item : prepared) {
+        *item.parameter = Value(std::move(item.bf16), false);
+    }
+    return report;
+}
+
 Value parameter(Shape shape, std::mt19937_64& generator, float standard_deviation) {
     return Value(random_tensor(std::move(shape), generator, standard_deviation), true);
 }
@@ -89,6 +122,9 @@ public:
                 ops::quantize_fp8(input, DType::Float8E4M3FNUZ, activation_scale_),
                 ops::quantize_fp8(weight_.data(), DType::Float8E4M3FNUZ, weight_scale_),
                 DType::Float32);
+        }
+        if (weight_.data().dtype() == DType::BFloat16) {
+            return ops::bf16_matmul(input, weight_.data());
         }
         return ops::matmul_with_implementation(input, weight_.data(),
                                                ops::MatmulImplementation::Auto);
@@ -198,16 +234,36 @@ public:
         const auto batch = input.shape()[0];
         const auto sequence = input.shape()[1];
         const auto flat = input.reshape({batch * sequence, config_.dimension});
-        auto query = query_.forward_tensor(flat)
+        Tensor query_projection;
+        Tensor key_projection;
+        Tensor value_projection;
+        if (query_.weight_data().dtype() == DType::BFloat16) {
+            const auto projections = ops::bf16_qkv_projection(
+                flat, query_.weight_data(), key_.weight_data(), value_.weight_data());
+            query_projection = query_.has_bias()
+                                   ? ops::add_bias(projections.first, query_.bias().data())
+                                   : projections.first;
+            key_projection = key_.has_bias()
+                                 ? ops::add_bias(projections.second, key_.bias().data())
+                                 : projections.second;
+            value_projection = value_.has_bias()
+                                   ? ops::add_bias(projections.third, value_.bias().data())
+                                   : projections.third;
+        } else {
+            query_projection = query_.forward_tensor(flat);
+            key_projection = key_.forward_tensor(flat);
+            value_projection = value_.forward_tensor(flat);
+        }
+        auto query = query_projection
                          .reshape({batch, sequence, config_.heads, config_.head_dimension()})
                          .transpose(1, 2)
                          .contiguous();
-        auto key = key_.forward_tensor(flat)
+        auto key = key_projection
                        .reshape({batch, sequence, config_.kv_heads,
                                  config_.head_dimension()})
                        .transpose(1, 2)
                        .contiguous();
-        auto value = value_.forward_tensor(flat)
+        auto value = value_projection
                          .reshape({batch, sequence, config_.kv_heads,
                                    config_.head_dimension()})
                          .transpose(1, 2)
@@ -246,15 +302,39 @@ public:
                                      query_.has_bias();
         const auto fuse_key_bias = config_.rope_layout == RopeLayout::SplitHalf &&
                                    key_.has_bias();
-        auto query = (fuse_query_bias ? query_.forward_tensor_without_bias(flat)
-                                      : query_.forward_tensor(flat))
+        Tensor query_projection;
+        Tensor key_projection;
+        Tensor value_projection;
+        if (query_.weight_data().dtype() == DType::BFloat16) {
+            const auto projections = ops::bf16_qkv_projection(
+                flat, query_.weight_data(), key_.weight_data(), value_.weight_data());
+            query_projection = fuse_query_bias
+                                   ? projections.first
+                                   : query_.has_bias()
+                                         ? ops::add_bias(projections.first, query_.bias().data())
+                                         : projections.first;
+            key_projection = fuse_key_bias
+                                 ? projections.second
+                                 : key_.has_bias()
+                                       ? ops::add_bias(projections.second, key_.bias().data())
+                                       : projections.second;
+            value_projection = value_.has_bias()
+                                   ? ops::add_bias(projections.third, value_.bias().data())
+                                   : projections.third;
+        } else {
+            query_projection = fuse_query_bias ? query_.forward_tensor_without_bias(flat)
+                                                : query_.forward_tensor(flat);
+            key_projection = fuse_key_bias ? key_.forward_tensor_without_bias(flat)
+                                            : key_.forward_tensor(flat);
+            value_projection = value_.forward_tensor(flat);
+        }
+        auto query = query_projection
                          .reshape({1, 1, config_.heads, config_.head_dimension()})
                          .transpose(1, 2);
-        auto key = (fuse_key_bias ? key_.forward_tensor_without_bias(flat)
-                                  : key_.forward_tensor(flat))
+        auto key = key_projection
                        .reshape({1, 1, config_.kv_heads, config_.head_dimension()})
                        .transpose(1, 2);
-        auto value = value_.forward_tensor(flat)
+        auto value = value_projection
                          .reshape({1, 1, config_.kv_heads, config_.head_dimension()})
                          .transpose(1, 2);
         if (config_.rope_layout == RopeLayout::SplitHalf) {
@@ -429,6 +509,7 @@ struct TransformerModel::Impl {
     Norm final_norm;
     std::unique_ptr<Linear> output_head;
     bool bf16_ffn_prepared = false;
+    bool bf16_attention_prepared = false;
 };
 
 TransformerModel::TransformerModel(ModelConfig config, std::uint64_t seed)
@@ -454,7 +535,7 @@ void TransformerModel::to(Device target) {
 }
 
 Value TransformerModel::forward(const Tensor& token_ids) {
-    if (impl_->bf16_ffn_prepared) {
+    if (impl_->bf16_ffn_prepared || impl_->bf16_attention_prepared) {
         throw std::logic_error(
             "autograd forward is unavailable after BF16 FFN inference preparation; "
             "use forward_inference or forward_cached");
@@ -598,42 +679,43 @@ Bf16FfnPreparationReport TransformerModel::prepare_bf16_ffn_inference() {
     if (impl_->bf16_ffn_prepared) {
         throw std::logic_error("BF16 FFN inference preparation is one-way and already complete");
     }
-    struct Prepared {
-        Value* parameter = nullptr;
-        Tensor bf16;
-    };
-    std::vector<Prepared> prepared;
-    Bf16FfnPreparationReport report;
-    for (const auto& [name, parameter] : named_parameters()) {
-        if (name.find(".feed_forward.") == std::string::npos) continue;
-        if (parameter->data().dtype() != DType::Float32 ||
-            !parameter->data().is_contiguous()) {
-            throw std::logic_error(
-                "BF16 FFN inference preparation requires contiguous FP32 source weights");
-        }
-        const auto elements = static_cast<std::uint64_t>(parameter->data().numel());
-        prepared.push_back({parameter, ops::cast(parameter->data(), DType::BFloat16)});
-        ++report.converted_tensors;
-        report.fp32_bytes_released += elements * sizeof(float);
-        report.bf16_bytes_retained += elements * sizeof(std::uint16_t);
+    if (impl_->config.linear_precision != LinearPrecision::Float32) {
+        throw std::logic_error("BF16 inference preparation requires FP32 Linear policy");
     }
-    if (report.converted_tensors != impl_->blocks.size() * 3U) {
-        throw std::logic_error("model did not expose exactly three FFN weights per layer");
-    }
-    // Conversion is transactional. Keep every FP32 source alive until all BF16
-    // allocations and asynchronous casts have completed; allocation or device
-    // failure therefore leaves the trainable model unchanged. The duplicate is
-    // temporary during this call, never persistent model state.
-    runtime::synchronize(device());
-    for (auto& item : prepared) {
-        *item.parameter = Value(std::move(item.bf16), false);
-    }
+    // Transactional helper keeps every FP32 source alive until all casts finish.
+    const auto report = prepare_bf16_weights(
+        named_parameters(), impl_->blocks.size() * 3U, device(),
+        [](const std::string& name) {
+            return name.find(".feed_forward.") != std::string::npos;
+        });
     impl_->bf16_ffn_prepared = true;
     return report;
 }
 
 bool TransformerModel::bf16_ffn_inference_prepared() const noexcept {
     return impl_->bf16_ffn_prepared;
+}
+
+Bf16WeightPreparationReport TransformerModel::prepare_bf16_attention_inference() {
+    if (impl_->bf16_attention_prepared) {
+        throw std::logic_error(
+            "BF16 Attention inference preparation is one-way and already complete");
+    }
+    if (impl_->config.linear_precision != LinearPrecision::Float32) {
+        throw std::logic_error("BF16 inference preparation requires FP32 Linear policy");
+    }
+    const auto report = prepare_bf16_weights(
+        named_parameters(), impl_->blocks.size() * 4U, device(),
+        [](const std::string& name) {
+            return name.find(".attention.") != std::string::npos &&
+                   name.ends_with(".weight");
+        });
+    impl_->bf16_attention_prepared = true;
+    return report;
+}
+
+bool TransformerModel::bf16_attention_inference_prepared() const noexcept {
+    return impl_->bf16_attention_prepared;
 }
 
 io::StateDict TransformerModel::state_dict(Device target) {
@@ -648,7 +730,7 @@ io::StateDict TransformerModel::state_dict(Device target) {
 
 LoadWeightsReport TransformerModel::load_state_dict(const io::StateDict& state,
                                                      const LoadWeightsOptions& options) {
-    if (impl_->bf16_ffn_prepared) {
+    if (impl_->bf16_ffn_prepared || impl_->bf16_attention_prepared) {
         throw std::logic_error(
             "load weights before one-way BF16 FFN inference preparation");
     }
