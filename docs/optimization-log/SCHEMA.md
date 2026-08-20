@@ -32,6 +32,10 @@ score = (qwen_train × qwen_generate × deepseek_train × deepseek_generate)^(1/
 
 使用几何平均是因为四项都是比值；任意一项接近 0 都会显著拉低总分。
 
+对于预期收益小于 10% 的候选，四项 ratio 使用至少三次独立进程的逐 workload
+中位数；每个进程内部仍是固定 warm-up/measured。一次进程的高点或低点不能独自决定
+keep/discard。
+
 ## 保留门
 
 一次实验只有同时满足以下条件才可标为 `keep`：

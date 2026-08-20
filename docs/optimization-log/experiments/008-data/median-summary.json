@@ -1,0 +1,84 @@
+{
+  "process_repeats": 3,
+  "schema_version": 1,
+  "within_process_measured_steps": 5,
+  "within_process_warmup": 2,
+  "workloads": {
+    "deepseek-r1-distill-qwen-1.5b:infer": {
+      "baseline": {
+        "median": 49.052652559,
+        "samples": [
+          48.928844357,
+          49.052652559,
+          51.370833848
+        ]
+      },
+      "candidate": {
+        "median": 48.935379201,
+        "samples": [
+          48.934859742,
+          51.290354664,
+          48.935379201
+        ]
+      },
+      "candidate_over_baseline": 0.9976092351405678
+    },
+    "deepseek-r1-distill-qwen-1.5b:train": {
+      "baseline": {
+        "median": 68.774100422,
+        "samples": [
+          69.770005503,
+          68.774100422,
+          68.411935409
+        ]
+      },
+      "candidate": {
+        "median": 67.309130825,
+        "samples": [
+          67.309130825,
+          69.020394961,
+          65.992926113
+        ]
+      },
+      "candidate_over_baseline": 0.9786988184794725
+    },
+    "qwen2.5-0.5b:infer": {
+      "baseline": {
+        "median": 134.868268195,
+        "samples": [
+          134.868268195,
+          118.239706138,
+          134.961390583
+        ]
+      },
+      "candidate": {
+        "median": 122.584231027,
+        "samples": [
+          126.926449188,
+          122.584231027,
+          122.576690995
+        ]
+      },
+      "candidate_over_baseline": 0.9089182553286806
+    },
+    "qwen2.5-0.5b:train": {
+      "baseline": {
+        "median": 107.080498814,
+        "samples": [
+          107.080498814,
+          104.986807568,
+          110.746535976
+        ]
+      },
+      "candidate": {
+        "median": 107.38938943,
+        "samples": [
+          112.909251154,
+          106.289210533,
+          107.38938943
+        ]
+      },
+      "candidate_over_baseline": 1.0028846579855455
+    }
+  }
+}

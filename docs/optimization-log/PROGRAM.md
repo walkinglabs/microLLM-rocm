@@ -106,6 +106,18 @@ python3 benchmarks/single_gpu/compare_frameworks.py \
   --output /tmp/experiment-comparison.jsonl
 ```
 
+### 小收益必须跨进程复测
+
+从 Experiment 008 起，若候选声称的主要收益小于 10%，必须运行至少三个独立进程：
+
+- 每个进程仍执行固定的 2 warm-up + 5 measured；
+- baseline 和 candidate 各自至少三次；
+- 对每个 workload 分别取中位数，再计算 score；
+- 不允许挑选对候选最有利的一次 baseline；
+- 原始六组 JSONL 必须保留。
+
+历史结果不回写；这条规则用于后续边缘优化，防止跨进程波动支配结论。
+
 ## 6. Profiler 规则
 
 以下改动必须保存 before/after rocprof：
