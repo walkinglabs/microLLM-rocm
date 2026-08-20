@@ -397,6 +397,42 @@ def validate_bf16_training_island(errors: list[str]) -> int:
     return len(records)
 
 
+def validate_bf16_training_shapes(errors: list[str]) -> int:
+    data = ROOT / "experiments" / "042-data"
+    records = [json.loads(line) for line in
+               (data / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    keys = {(row.get("framework"), row.get("batch"), row.get("context"),
+             row.get("process_run")) for row in records}
+    if len(records) != 24 or len(keys) != 24:
+        errors.append("official training shape raw matrix must contain 24 unique rows")
+    expected_shapes = {(1, 3), (2, 3), (1, 32), (1, 128)}
+    if {(row.get("batch"), row.get("context")) for row in records} != expected_shapes:
+        errors.append("official training shape matrix changed its fixed shapes")
+    for row in records:
+        if row.get("status") != "pass" or not row.get("parameter_changed") or \
+                row.get("trained_tokens") != row.get("batch") * row.get("context") * 2 or \
+                not math.isfinite(float(row.get("final_loss", math.nan))):
+            errors.append("official training shape row lacks finite update/token evidence")
+        if row.get("framework") == "microllm" and (
+                row.get("optimizer_host_to_device_calls") != 0 or
+                row.get("optimizer_device_to_host_calls") != 0):
+            errors.append("official training shape microLLM row copied optimizer payloads")
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    rows = summary.get("rows", [])
+    if summary.get("track") != "official_training_shape_matrix" or \
+            summary.get("runs_per_framework") != 3 or len(rows) != 4 or \
+            any(row.get("status") != "pass" for row in rows):
+        errors.append("official training shape summary contract changed")
+    by_shape = {(row["batch"], row["context"]): row for row in rows}
+    if len(by_shape) == 4 and (
+            by_shape[(1, 32)]["throughput_ratio_microllm_over_pytorch"] >= 0.2 or
+            by_shape[(1, 128)]["throughput_ratio_microllm_over_pytorch"] <=
+            by_shape[(1, 32)]["throughput_ratio_microllm_over_pytorch"] or
+            by_shape[(1, 128)]["peak_memory_ratio"] <= 1.0):
+        errors.append("official training shape bottleneck boundary changed")
+    return len(records)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -417,7 +453,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-model-inference.svg", "bf16-prefill-allocator.svg",
                  "bf16-attention.svg", "bf16-plan-cache.svg", "bf16-training.svg",
                  "bf16-training-qkv-discard.svg", "bf16-training-mirrors.svg",
-                 "bf16-training-ffn-island-discard.svg"):
+                 "bf16-training-ffn-island-discard.svg",
+                 "bf16-training-shape-matrix.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -452,6 +489,7 @@ def main() -> int:
     bf16_training_qkv_count = validate_bf16_training_qkv(errors)
     bf16_training_mirror_count = validate_bf16_training_mirrors(errors)
     bf16_training_island_count = validate_bf16_training_island(errors)
+    bf16_training_shape_count = validate_bf16_training_shapes(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -466,6 +504,7 @@ def main() -> int:
           f"bf16_training_qkv={bf16_training_qkv_count} "
           f"bf16_training_mirrors={bf16_training_mirror_count} "
           f"bf16_training_island={bf16_training_island_count} "
+          f"bf16_training_shapes={bf16_training_shape_count} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

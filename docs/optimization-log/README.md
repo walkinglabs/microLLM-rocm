@@ -182,6 +182,13 @@ Experiment 041 尝试连续 BF16 FFN 训练岛。完整 tiny Transformer logits/
 
 ![BF16 FFN training island discarded](assets/bf16-training-ffn-island-discard.svg)
 
+Experiment 042 建立新的官方训练 shape 基线。Qwen BF16 在 `1×3、2×3、1×32、1×128`
+上分别达到 PyTorch BF16 autocast 的 `0.413×、0.341×、0.131×、0.352×`。24 条 raw
+全部更新参数且 token 计数正确。context 32 反而明显慢于 128，说明下一步必须 profile
+shape-specific GEMM/调度，不能只用 Attention 复杂度解释。
+
+![Official training shape baseline](assets/bf16-training-shape-matrix.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -223,6 +230,8 @@ Experiment 041 尝试连续 BF16 FFN 训练岛。完整 tiny Transformer logits/
 | [experiments/040-data/](experiments/040-data/) | 两模型三进程镜像训练 raw/summary |
 | [assets/bf16-training-ffn-island-discard.svg](assets/bf16-training-ffn-island-discard.svg) | 同窗口 control 揭示共享 GPU 漂移与 1.1% 无效收益 |
 | [experiments/041-data/](experiments/041-data/) | Qwen raw、DeepSeek early-stop 与 profiler 聚合 |
+| [assets/bf16-training-shape-matrix.svg](assets/bf16-training-shape-matrix.svg) | Qwen batch/context 吞吐和显存曲线 |
+| [experiments/042-data/](experiments/042-data/) | 四 shape、两框架、三进程的 24 条 raw |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

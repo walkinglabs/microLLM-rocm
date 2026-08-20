@@ -1152,3 +1152,22 @@ transpose backward、AdamW、fill 和 cast 也一起慢了。于是同一时刻�
 
 这次最重要的优化不是代码，而是解释：旧基线与新候选若处在不同负载窗口，除法也会撒谎。
 候选 API/Kernel/测试全部删除，raw、early-stop 和 profiler 聚合留下来。
+
+## 59. Experiment 042：把一个点展开成一条 shape 曲线
+
+此前官方训练只有 `[batch=1, context=3]`。这不是“小 shape 也能代表大 shape”，而是根本
+没有第二个点。现在 C++ CLI、manifest、PyTorch 参考和比较器共同记录 batch、context 与
+`batch×context×steps`，CI 还会故意检查“请求 batch=2 却静默跑 batch=1”的失败。
+
+正式矩阵每个 shape 都跑两框架各三个新进程，并交换奇偶轮顺序：
+
+![Official training shape baseline](assets/bf16-training-shape-matrix.svg)
+
+microLLM/PyTorch 吞吐比从 `1×3` 的 `0.413×` 降到 `1×32` 的 `0.131×`，然后在
+`1×128` 回升到 `0.352×`。显存比则从 `0.967×` 增到 `1.053×`。所有 loss 有限，所有
+观测参数更新，microLLM optimizer 区域仍没有 Tensor payload 搬运。
+
+最反直觉的是，microLLM context 32 每步约 534 ms，context 128 反而约 195 ms。GPU 是
+异步的，标成 optimizer 的 488 ms 很可能是前面计算在同步点还债，并不能直接怪 AdamW。
+下一步同时 profile 32 和 128，看看是 GEMM solution、reduction、cast 还是 allocator 在
+不同 M 上发生了分岔。
