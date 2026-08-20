@@ -138,8 +138,8 @@ def progress_svg(data: list[dict]) -> str:
                  'stroke-dasharray="6 5"/>')
 
     # Roadmap ribbon: labels are plans, not measured points.
-    roadmap = (("M0", "Baseline", "complete"), ("M1", "Serial kernels", "active"),
-               ("M2", "Data movement", "planned"), ("M3", "Fused ops", "planned"),
+    roadmap = (("M0", "Baseline", "complete"), ("M1", "Serial kernels", "complete"),
+               ("M2", "Data movement", "active"), ("M3", "Fused ops", "planned"),
                ("M4", "BF16 / FP8", "planned"), ("M5", "HIP Graph", "planned"))
     box_w, gap, start_x, y = 220, 24, 90, 735
     parts.append(text(start_x, y - 25, "Roadmap (planned boxes are not results)", 18,

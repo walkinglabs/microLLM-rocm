@@ -26,13 +26,14 @@ DeepSeek-R1-Distill-Qwen-1.5B generate 0.1606
 ```text
 score = geometric_mean(workload throughput ratios)
 baseline = 0.191660
-current running best = 0.479227
+current running best = 0.885816
 selected-matrix parity target = 1.000000
 ```
 
-Experiment 001 并行化 CrossEntropy；Experiment 002 又让 GEMM 直接理解“转置读取”，
-不再先复制整块权重。当前 Qwen train/generate ratio 为 `0.755435/0.503757`，
-DeepSeek train/generate ratio 为 `0.852426/0.162589`。
+Experiment 001 并行化 CrossEntropy；Experiment 002 让 GEMM 直接理解“转置读取”；
+Experiment 003 再并行化 RMSNorm。当前 Qwen train/generate ratio 为
+`1.384483/0.816751`，DeepSeek train/generate ratio 为 `1.826933/0.298040`。
+训练比值超过 1 只适用于当前极短 context 的固定 FP32 测量，不能推广成完整训练领先。
 
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 

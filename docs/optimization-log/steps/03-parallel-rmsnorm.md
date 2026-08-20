@@ -1,6 +1,6 @@
 # Step 03 — block-parallel RMSNorm
 
-Status: `planned`
+Status: `complete` — Experiment 003, `keep`
 
 ## Hypothesis
 
@@ -35,3 +35,22 @@ synchronization is hiding the gain.
 - RMSNorm no longer dominates Qwen inference;
 - Qwen/DeepSeek train and generate ratios improve;
 - no atomic hot spot replaces the serial row loop.
+
+## Measured result
+
+```text
+Qwen train                 38.77 → 71.06 token/s
+Qwen generate              35.35 → 57.32 token/s
+DeepSeek train             22.36 → 47.91 token/s
+DeepSeek generate          10.15 → 18.60 token/s
+four-workload score       0.479227 → 0.885816
+RMSNorm Kernel time        75.85 ms → 1.55 ms
+RMSNorm Kernel share        64.31% → 3.59%
+```
+
+Backward first computes one inverse RMS per row, then a second Kernel reduces each
+weight-gradient column across rows. This avoids turning the old serial loop into an
+atomic-contention problem.
+
+See [Experiment 003](../experiments/003-parallel-rmsnorm.md) for correctness gates,
+raw results and the exact scope of the PyTorch comparison.

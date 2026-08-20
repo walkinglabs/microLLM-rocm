@@ -32,7 +32,7 @@ microLLM-rocm 已经可以：
 0.191660× PyTorch
 ```
 
-经过前两个保留实验，当前实测已经到 `0.479227×`。这不是估计值：它来自同一张
+经过前三个保留实验，当前实测已经到 `0.885816×`。这不是估计值：它来自同一张
 MI300X、同一组模型权重、同样的 2 次热身和 5 次正式测量。
 
 因此，本专项的故事不是“我们已经超过 PyTorch”，而是：
@@ -385,7 +385,57 @@ DeepSeek 生成几乎没变不是坏消息。它说明收益来自真正删掉�
 新 trace 中 RMSNorm forward/backward 已占 Kernel 时间 `64.31%`。因此 Step 03 将只改
 RMSNorm，而不会顺便加入 allocator、KV Cache 或低精度。
 
-## 13. 怎样读进度图
+## 13. Experiment 003：让一整组线程合作算平均值
+
+RMSNorm 要先算一行数字的平方平均值。旧 Kernel 像让一个学生独自把整排 1536 个数
+相加；GPU 虽然有许多线程，其他线程却没有参与。
+
+新 forward 把一行交给一个 256-thread block：
+
+```text
+每个线程读取几列
+→ 每个线程得到一个局部平方和
+→ block reduction 合成整行平方和
+→ 所有线程并行写归一化结果
+```
+
+backward 还需要 weight gradient。如果让每行都抢着原子加同一个 weight 位置，新的
+瓶颈可能只是从串行循环变成原子竞争。因此我们先保存每行一个 `inverse_rms`，再启动
+第二个 Kernel：一个线程负责一个 weight 列，并按行累加。这样写入位置互不争抢。
+
+测试不是只用 3 个数。专门的 HIP gate 覆盖：
+
+```text
+rows   = 1, 3, 32
+width  = 16, 384, 512, 896, 1536
+data   = 0、正数、负数、较大值
+check  = forward、input gradient、weight gradient、zero host transfer
+```
+
+固定端到端结果：
+
+| Workload | Step 02 | Step 03 | 本步加速 | 当前 PyTorch ratio |
+|---|---:|---:|---:|---:|
+| Qwen train | 38.77 | 71.06 token/s | 1.83× | 1.3845 |
+| Qwen generate | 35.35 | 57.32 token/s | 1.62× | 0.8168 |
+| DeepSeek train | 22.36 | 47.91 token/s | 2.14× | 1.8269 |
+| DeepSeek generate | 10.15 | 18.60 token/s | 1.83× | 0.2980 |
+
+```text
+four-workload score      0.479227 → 0.885816
+RMSNorm Kernel time      75.85 ms → 1.55 ms
+RMSNorm Kernel share      64.31% → 3.59%
+all Kernel time         117.94 ms → 43.25 ms
+```
+
+Qwen 和 DeepSeek 的训练 ratio 已超过 `1.0`，但这里必须克制：输入只有 4 个 token，
+batch 是 1，dtype 是 FP32。这只能说明固定短序列测试领先，不能说明长上下文完整训练
+已经超过 PyTorch。两个 generation ratio 仍低于 1，也说明系统工作远未结束。
+
+至此 M1 的三个串行/复制热点都完成。下一阶段转向数据路线：KV Cache、GQA 展开、
+sampling 和 allocator。
+
+## 14. 怎样读进度图
 
 图中：
 
@@ -397,10 +447,10 @@ RMSNorm，而不会顺便加入 allocator、KV Cache 或低精度。
 - 右侧条形：当前四项 workload ratio；
 - 底部卡片：计划步骤，不代表已经完成。
 
-当前有 baseline、Experiment 001 和 Experiment 002 三个绿色点。未来如果十个实验都失败，图上就
+当前有 baseline 和三个 keep 实验共四个绿色点。未来如果十个实验都失败，图上就
 应出现十个灰点，而不是凭空出现一条漂亮上升曲线。
 
-## 14. 什么才算从 0 到 1
+## 15. 什么才算从 0 到 1
 
 完成一个 Kernel 不是 1，某个 shape 跑得快也不是 1。
 
@@ -414,4 +464,4 @@ RMSNorm，而不会顺便加入 allocator、KV Cache 或低精度。
 6. 新学习者能沿日志重放关键实验；
 7. 所有结论都写清适用 GPU、dtype、shape 和版本。
 
-下一篇更新进入 Step 03：block-parallel RMSNorm。
+下一篇更新进入 Step 04：device-resident、预分配 KV Cache 与直接 GQA 映射。
