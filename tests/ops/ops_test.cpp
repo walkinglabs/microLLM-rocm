@@ -1,4 +1,5 @@
 #include <cmath>
+#include <limits>
 #include <stdexcept>
 #include <vector>
 
@@ -100,6 +101,17 @@ TEST(CpuOpsTest, CachedGqaAttentionStoresStablePrefixesAndRejectsBadContracts) {
     EXPECT_THROW((void)cached_gqa_attention(
                      Tensor::from_vector({1, 0, 0, 1}, {1, 2, 1, 2}),
                      cache, cache, 0, 1.0F), std::invalid_argument);
+}
+
+TEST(CpuOpsTest, ArgmaxUsesSmallestTieIndexAndMarksNonFiniteInput) {
+    EXPECT_EQ(argmax(Tensor::from_vector({-2, 5, 5, 4}, {4})).to_int32_vector(),
+              (std::vector<std::int32_t>{1}));
+    EXPECT_EQ(argmax(Tensor::from_vector({-3}, {1})).shape(), (Shape{1, 1}));
+    EXPECT_EQ(argmax(Tensor::from_vector(
+                         {1, std::numeric_limits<float>::infinity()}, {2}))
+                  .to_int32_vector(),
+              (std::vector<std::int32_t>{-1}));
+    EXPECT_THROW((void)argmax(Tensor({0})), std::invalid_argument);
 }
 
 TEST(CpuOpsTest, EmbeddingGathersRowsAndRejectsBadIndex) {

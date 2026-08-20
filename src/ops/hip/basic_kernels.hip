@@ -382,6 +382,48 @@ __device__ int block_reduce_sum_int(int value, int* scratch) {
     return scratch[0];
 }
 
+__global__ void argmax_kernel(const float* input, std::int32_t* output,
+                              std::int64_t elements) {
+    __shared__ float value_scratch[kBlockSize];
+    __shared__ std::int64_t index_scratch[kBlockSize];
+    __shared__ int invalid_scratch[kBlockSize];
+    float best_value = -INFINITY;
+    std::int64_t best_index = 0;
+    int invalid = 0;
+    for (std::int64_t index = threadIdx.x; index < elements; index += blockDim.x) {
+        const auto value = input[index];
+        if (!isfinite(value)) {
+            invalid = 1;
+        } else if (value > best_value || (value == best_value && index < best_index)) {
+            best_value = value;
+            best_index = index;
+        }
+    }
+    const auto lane = static_cast<unsigned>(threadIdx.x);
+    value_scratch[lane] = best_value;
+    index_scratch[lane] = best_index;
+    invalid_scratch[lane] = invalid;
+    __syncthreads();
+    for (unsigned stride = kBlockSize / 2; stride > 0; stride >>= 1) {
+        if (lane < stride) {
+            const auto other_value = value_scratch[lane + stride];
+            const auto other_index = index_scratch[lane + stride];
+            if (other_value > value_scratch[lane] ||
+                (other_value == value_scratch[lane] && other_index < index_scratch[lane])) {
+                value_scratch[lane] = other_value;
+                index_scratch[lane] = other_index;
+            }
+            invalid_scratch[lane] += invalid_scratch[lane + stride];
+        }
+        __syncthreads();
+    }
+    if (lane == 0) {
+        output[0] = invalid_scratch[0] != 0
+                        ? -1
+                        : static_cast<std::int32_t>(index_scratch[0]);
+    }
+}
+
 __global__ void cross_entropy_rows_kernel(const float* logits,
                                           const std::int32_t* targets,
                                           float* row_data, std::int64_t rows,
@@ -1310,6 +1352,13 @@ void launch_cached_attention_context(
                        value_cache, output, heads, sequence, cache_head_stride,
                        width, repeats);
     check_launch("cached_attention_context_kernel");
+}
+
+void launch_argmax(const float* input, std::int32_t* output,
+                   std::int64_t elements, void* stream) {
+    hipLaunchKernelGGL(argmax_kernel, dim3(1), dim3(kBlockSize), 0,
+                       as_stream(stream), input, output, elements);
+    check_launch("argmax_kernel");
 }
 
 void launch_silu_backward(const float* input, const float* gradient,

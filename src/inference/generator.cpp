@@ -6,6 +6,7 @@
 #include <stdexcept>
 
 #include <microllm/inference/kv_cache.h>
+#include <microllm/ops/ops.h>
 
 namespace microllm::inference {
 
@@ -74,11 +75,23 @@ std::vector<std::int32_t> generate(model::TransformerModel& model,
     std::mt19937_64 generator(config.seed);
     auto tokens = prompt;
     for (std::int64_t generated = 0; generated < config.max_new_tokens; ++generated) {
-        const auto next = sample_token(logits.to_vector(), config.temperature, config.top_k,
-                                       generator);
+        Tensor next_tensor;
+        std::int32_t next = 0;
+        if (logits.device().is_hip() &&
+            (config.temperature == 0.0F || config.top_k == 1)) {
+            next_tensor = ops::argmax(logits);
+            next = next_tensor.to_int32_vector().front();
+            if (next < 0) throw std::invalid_argument("sampling logits must be finite");
+        } else {
+            next = sample_token(logits.to_vector(), config.temperature, config.top_k,
+                                generator);
+        }
         tokens.push_back(next);
         if (generated + 1 < config.max_new_tokens) {
-            logits = model.forward_cached(Tensor::from_int32_vector({next}, {1, 1}), cache);
+            if (!next_tensor.defined()) {
+                next_tensor = Tensor::from_int32_vector({next}, {1, 1});
+            }
+            logits = model.forward_cached(next_tensor, cache);
         }
     }
     return tokens;

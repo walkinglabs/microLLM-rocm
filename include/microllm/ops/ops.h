@@ -130,5 +130,8 @@ void kv_cache_store_(Tensor& cache, const Tensor& current, std::int64_t position
                                           const Tensor& value_cache,
                                           std::int64_t repeats, float scale,
                                           const OpContext& context = {});
+// Returns one int32 index with a smallest-index tie rule.  The result is -1 when
+// any input is non-finite, allowing asynchronous device execution to stay visible.
+[[nodiscard]] Tensor argmax(const Tensor& input, const OpContext& context = {});
 
 }  // namespace microllm::ops

@@ -1,4 +1,5 @@
 #include <cmath>
+#include <limits>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -7,6 +8,7 @@
 #include <microllm/ops/ops.h>
 #include <microllm/ops/low_level.h>
 #include <microllm/runtime/runtime.h>
+#include <microllm/inference/generator.h>
 #include <microllm/model/model.h>
 #include <microllm/training/trainer.h>
 
@@ -326,6 +328,57 @@ TEST(HipRmsNormTest, BlockParallelForwardBackwardCoverModelWidthsWithoutHostTran
                         expected_backward.second.to_vector(), 4.0e-4F);
         }
     }
+}
+
+TEST(HipArgmaxTest, CoversLargeVocabulariesTiesAndScalarTransferContract) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    for (const auto vocabulary : {32LL, 8192LL, 151936LL}) {
+        std::vector<float> values(static_cast<std::size_t>(vocabulary), -3.0F);
+        const auto first = vocabulary / 3;
+        values[static_cast<std::size_t>(first)] = 7.0F;
+        values[static_cast<std::size_t>(first + 1)] = 7.0F;
+        const auto input = Tensor::from_vector(values, {1, 1, vocabulary}).to(gpu);
+        runtime::reset_transfer_stats();
+        const auto selected = argmax(input);
+        runtime::synchronize(gpu);
+        auto transfers = runtime::transfer_stats();
+        EXPECT_EQ(transfers.device_to_host_calls, 0U);
+        EXPECT_EQ(selected.to_int32_vector(),
+                  (std::vector<std::int32_t>{static_cast<std::int32_t>(first)}));
+        transfers = runtime::transfer_stats();
+        EXPECT_EQ(transfers.device_to_host_calls, 1U);
+        EXPECT_EQ(transfers.device_to_host_bytes, sizeof(std::int32_t));
+    }
+    const auto non_finite = Tensor::from_vector(
+        {1.0F, std::numeric_limits<float>::quiet_NaN()}, {2}).to(gpu);
+    EXPECT_EQ(argmax(non_finite).to_int32_vector(),
+              (std::vector<std::int32_t>{-1}));
+}
+
+TEST(HipGenerationTest, GreedyLoopKeepsSelectedTokenOnDevice) {
+    require_gpu();
+    const model::ModelConfig config{.vocabulary_size = 16,
+                                    .dimension = 8,
+                                    .layers = 1,
+                                    .heads = 2,
+                                    .kv_heads = 1,
+                                    .ffn_dimension = 16,
+                                    .max_sequence_length = 8,
+                                    .rope_base = 10000.0F,
+                                    .tie_embeddings = true};
+    model::TransformerModel model(config, 67);
+    model.to(Device::hip());
+    const std::vector<std::int32_t> prompt{1, 2};
+    runtime::reset_transfer_stats();
+    const auto generated = inference::generate(
+        model, prompt, {.max_new_tokens = 4, .temperature = 0.0F, .top_k = 1, .seed = 9});
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(generated.size(), 6U);
+    EXPECT_EQ(transfers.host_to_device_calls, prompt.size());
+    EXPECT_EQ(transfers.host_to_device_bytes, prompt.size() * sizeof(std::int32_t));
+    EXPECT_EQ(transfers.device_to_host_calls, 4U);
+    EXPECT_EQ(transfers.device_to_host_bytes, 4U * sizeof(std::int32_t));
 }
 
 TEST(HipOpsTest, RopeAndCrossEntropyMatchCpuReference) {

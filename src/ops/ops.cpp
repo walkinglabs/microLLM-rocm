@@ -1034,6 +1034,38 @@ Tensor cached_gqa_attention(const Tensor& query, const Tensor& key_cache,
     return Tensor::from_vector(output, {1, heads, 1, width});
 }
 
+Tensor argmax(const Tensor& input, [[maybe_unused]] const OpContext& context) {
+    require_float(input, "input");
+    if (input.numel() <= 0 || input.numel() > std::numeric_limits<std::int32_t>::max()) {
+        throw std::invalid_argument("argmax requires 1..INT32_MAX float32 elements");
+    }
+    if (input.device().is_hip()) {
+        require_contiguous(input, "input");
+        Tensor output({1, 1}, DType::Int32, input.device());
+#if MICROLLM_HAS_HIP
+        hip::launch_argmax(static_cast<const float*>(input.data()),
+                           static_cast<std::int32_t*>(output.data()), input.numel(),
+                           context.native_stream(input.device()));
+        return output;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    const auto values = input.to_vector();
+    auto best = -std::numeric_limits<float>::infinity();
+    std::int32_t index = 0;
+    for (std::size_t candidate = 0; candidate < values.size(); ++candidate) {
+        if (!std::isfinite(values[candidate])) {
+            return Tensor::from_int32_vector({-1}, {1, 1});
+        }
+        if (values[candidate] > best) {
+            best = values[candidate];
+            index = static_cast<std::int32_t>(candidate);
+        }
+    }
+    return Tensor::from_int32_vector({index}, {1, 1});
+}
+
 Tensor silu_backward(const Tensor& input, const Tensor& gradient,
                      [[maybe_unused]] const OpContext& context) {
     require_float(input, "input");

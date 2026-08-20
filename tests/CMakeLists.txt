@@ -82,6 +82,7 @@ if(MICROLLM_HAS_HIP)
     )
     target_link_libraries(microllm_hip_tests PRIVATE
         GTest::gtest_main microllm::ops microllm::model microllm::training
+        microllm::inference
     )
     gtest_discover_tests(microllm_hip_tests
         TEST_PREFIX "HIP."
