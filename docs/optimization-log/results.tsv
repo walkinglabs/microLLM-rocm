@@ -26,3 +26,4 @@ experiment	commit	date	status	score	qwen_train	qwen_generate	deepseek_train	deep
 026	4d3fb23	2026-08-20	discard	2.444395	3.095026	2.986911	3.091891	1.249035	0.896740	0.960651	0.797351	0.988733	fused V bias into cache store; allocations fell but both generation medians regressed
 027	8917151	2026-08-20	discard	2.469407	3.095026	3.130346	3.091891	1.241338	0.896740	0.960651	0.797351	0.988733	shared-memory cached Attention query; DeepSeek and score regressed
 028	9126cf7	2026-08-20	discard	2.430451	2.964739	3.115273	3.041864	1.242011	0.896740	0.960651	0.797351	0.988733	retirement batch 24; all four first-process workloads regressed versus batch 16
+029	4af2b6a	2026-08-20	discard	2.456886	3.095026	2.985666	3.091891	1.275295	0.896740	0.960651	0.797351	0.988733	cross-block residual plus next RMSNorm fusion; Qwen regression lowered score

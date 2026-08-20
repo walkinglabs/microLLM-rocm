@@ -115,6 +115,9 @@ score 退化，候选删除。
 Experiment 028 补测 Event batch 24，四项全部低于 batch 16。至此 8/16/24/32 容量搜索
 闭合，16 保持局部最优。
 
+Experiment 029 跨 Block 融合 residual+Norm，少 28 个 launch 但 Qwen 退化 4.4%，调度
+重排删除。
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
