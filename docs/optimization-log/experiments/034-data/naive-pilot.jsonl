@@ -1,0 +1,2 @@
+{"decode_tokens_per_second":86.170862274,"exact_expected_tokens":true,"model":"qwen2.5-0.5b","policy":"bf16_attention_per_linear_cast","prefill_tokens_per_second":185.637945822,"resident_weight_bytes":1260477952,"schema_version":1}
+{"decode_tokens_per_second":28.941937906,"exact_expected_tokens":true,"model":"deepseek-r1-distill-qwen-1.5b","policy":"bf16_attention_per_linear_cast","prefill_tokens_per_second":635.137778109,"resident_weight_bytes":4487960576,"schema_version":1}

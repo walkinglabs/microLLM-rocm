@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="700" viewBox="0 0 1600 700">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="800.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 034 · BF16 Attention Shared Cast</text>
+<text x="800.0" y="80.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">throughput relative to retained BF16-FFN model · median candidate vs one-run pilot</text>
+<line x1="486.4" y1="118" x2="486.4" y2="555" stroke="#e5e9f0" stroke-width="1"/>
+<text x="486.4" y="585.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">0.95×</text>
+<line x1="818.6" y1="118" x2="818.6" y2="555" stroke="#2563eb" stroke-width="2"/>
+<text x="818.6" y="585.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">1.00×</text>
+<line x1="1150.7" y1="118" x2="1150.7" y2="555" stroke="#e5e9f0" stroke-width="1"/>
+<text x="1150.7" y="585.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">1.05×</text>
+<text x="394.0" y="176.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="end" font-weight="700">Qwen2.5-0.5B</text>
+<rect x="779.6" y="150" width="39.0" height="26" rx="5" fill="#c8ced8"/>
+<text x="770.6" y="169.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#c8ced8" text-anchor="end" font-weight="700">0.994×  per-Linear cast decode</text>
+<rect x="818.6" y="188" width="334.4" height="26" rx="5" fill="#c8ced8"/>
+<text x="1161.9" y="207.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#c8ced8" text-anchor="start" font-weight="700">1.050×  per-Linear cast prefill</text>
+<rect x="818.6" y="226" width="192.5" height="26" rx="5" fill="#18a558"/>
+<text x="1020.1" y="245.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#18a558" text-anchor="start" font-weight="700">1.029×  shared cast decode</text>
+<rect x="818.6" y="264" width="457.5" height="26" rx="5" fill="#2563eb"/>
+<text x="1285.1" y="283.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#2563eb" text-anchor="start" font-weight="700">1.069×  shared cast prefill</text>
+<text x="394.0" y="371.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="end" font-weight="700">DeepSeek Distill 1.5B</text>
+<rect x="681.9" y="345" width="136.6" height="26" rx="5" fill="#c8ced8"/>
+<text x="672.9" y="364.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#c8ced8" text-anchor="end" font-weight="700">0.979×  per-Linear cast decode</text>
+<rect x="563.8" y="383" width="254.8" height="26" rx="5" fill="#c8ced8"/>
+<text x="554.8" y="402.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#c8ced8" text-anchor="end" font-weight="700">0.962×  per-Linear cast prefill</text>
+<rect x="818.6" y="421" width="131.4" height="26" rx="5" fill="#18a558"/>
+<text x="958.9" y="440.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#18a558" text-anchor="start" font-weight="700">1.020×  shared cast decode</text>
+<rect x="637.8" y="459" width="180.8" height="26" rx="5" fill="#f59e0b"/>
+<text x="628.8" y="478.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#f59e0b" text-anchor="end" font-weight="700">0.973×  shared cast prefill</text>
+<text x="800.0" y="635.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="600">Shared input cast turns both decode rows positive; DeepSeek prefill stays within −5% gate</text>
+<text x="800.0" y="678.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#9a4f00" text-anchor="middle" font-weight="400">DeepSeek decode remains 0.533× PyTorch BF16 — output head / broader islands remain</text>
+</svg>

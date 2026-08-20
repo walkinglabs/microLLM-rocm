@@ -33,8 +33,8 @@ needed to run a real training and generation loop:
 - named model state and F32/BF16/F16 safetensors loading;
 - MI300X FNUZ FP8 quantize/dequantize, scaled hipBLASLt GEMM, FP32-master Transformer
   training policy, and KV-cache decode;
-- single-representation BF16 FFN inference for pinned Qwen/DeepSeek, with exact-token,
-  memory, throughput and PyTorch BF16 evidence;
+- single-representation BF16 FFN/Attention projection inference for pinned Qwen/DeepSeek,
+  with shared QKV cast, exact-token, memory, throughput and PyTorch BF16 evidence;
 - C, Python ctypes, and optional PyTorch dispatcher adapters;
 - reproducible benchmarks, rocprofv3 workflows, hipBLASLt, and RCCL experiments.
 - a cross-framework trace runner for operator/layer values and latency comparisons.
@@ -123,9 +123,9 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| CPU tests | 161/161 | reference, Qwen/DeepSeek, graph/model/weights, benchmark, PyTorch and optimization-log schemas |
-| ASan/UBSan | 159/159 | host code; dynamic binding tests isolated |
-| MI300X/gfx942 HIP | 62/62 | paired KV store, allocator Events, fused ops, BF16/FP8 and model matrix |
+| CPU tests | 163/163 | reference, Qwen/DeepSeek, graph/model/weights, benchmark, PyTorch and optimization-log schemas |
+| ASan/UBSan | 161/161 | host code; dynamic binding tests isolated |
+| MI300X/gfx942 HIP | 63/63 | paired KV store, allocator Events, fused ops, BF16/FP8 and model matrix |
 | PyTorch CPU operator/model oracle | 4/4 | forward/backward/shape, mixed BF16 FFN model and optimizer parity |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
 | Registered test files | 34 | machine-audited CTest registration |

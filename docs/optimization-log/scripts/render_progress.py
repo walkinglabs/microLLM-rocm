@@ -25,6 +25,9 @@ BF16_MODEL_SUMMARY = ROOT / "experiments" / "031-data" / "summary.json"
 BF16_MODEL_CHART = ROOT / "assets" / "bf16-model-inference.svg"
 BF16_PREFILL_SUMMARY = ROOT / "experiments" / "032-data" / "summary.json"
 BF16_PREFILL_CHART = ROOT / "assets" / "bf16-prefill-allocator.svg"
+BF16_ATTENTION_SUMMARY = ROOT / "experiments" / "034-data" / "summary.json"
+BF16_ATTENTION_PILOT = ROOT / "experiments" / "034-data" / "naive-pilot.jsonl"
+BF16_ATTENTION_CHART = ROOT / "assets" / "bf16-attention.svg"
 
 
 def rows() -> list[dict]:
@@ -497,6 +500,72 @@ def bf16_prefill_allocator_svg() -> str:
     return "\n".join(parts)
 
 
+def bf16_attention_svg() -> str:
+    baseline = {row["model"]: row for row in
+                json.loads(BF16_PREFILL_SUMMARY.read_text(encoding="utf-8"))["rows"]}
+    candidate = json.loads(BF16_ATTENTION_SUMMARY.read_text(encoding="utf-8"))["rows"]
+    pilot = {row["model"]: row for row in
+             (json.loads(line) for line in BF16_ATTENTION_PILOT.read_text(
+                 encoding="utf-8").splitlines())}
+    width, height = 1600, 700
+    left, top, chart_w = 420, 150, 930
+    minimum, maximum = 0.94, 1.08
+
+    def px(value: float) -> float:
+        return left + chart_w * (value - minimum) / (maximum - minimum)
+
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 034 · BF16 Attention Shared Cast", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 80,
+             "throughput relative to retained BF16-FFN model · median candidate vs one-run pilot",
+             16, "#5b6474", anchor="middle"),
+    ]
+    for tick in (0.95, 1.0, 1.05):
+        x = px(tick)
+        parts.append(f'<line x1="{x:.1f}" y1="118" x2="{x:.1f}" y2="555" '
+                     f'stroke="{("#2563eb" if tick == 1.0 else "#e5e9f0")}" '
+                     f'stroke-width="{2 if tick == 1.0 else 1}"/>')
+        parts.append(text(x, 585, f"{tick:.2f}×", 14, "#5b6474", anchor="middle"))
+    for row_index, row in enumerate(candidate):
+        model = row["model"]
+        old = baseline[model]
+        first = pilot[model]
+        values = (
+            (first["decode_tokens_per_second"] / old["bf16_ffn_decode_tokens_per_second"],
+             "per-Linear cast decode", "#c8ced8"),
+            (first["prefill_tokens_per_second"] / old["bf16_ffn_prefill_tokens_per_second"],
+             "per-Linear cast prefill", "#c8ced8"),
+            (row["decode_speedup_vs_bf16_ffn"], "shared cast decode", "#18a558"),
+            (row["prefill_speedup_vs_bf16_ffn"], "shared cast prefill", "#2563eb"),
+        )
+        y = top + row_index * 195
+        label = "Qwen2.5-0.5B" if model.startswith("qwen") else "DeepSeek Distill 1.5B"
+        parts.append(text(left - 26, y + 26, label, 18, "#172033",
+                          anchor="end", weight=700))
+        for offset, (ratio, title, color) in enumerate(values):
+            bar_y = y + offset * 38
+            if ratio < 1.0 and "shared" in title:
+                color = "#f59e0b"
+            x0, x1 = px(1.0), px(ratio)
+            parts.append(f'<rect x="{min(x0,x1):.1f}" y="{bar_y}" '
+                         f'width="{max(abs(x1-x0),2):.1f}" height="26" rx="5" fill="{color}"/>')
+            parts.append(text(x1 + (9 if ratio >= 1.0 else -9), bar_y + 19,
+                              f"{ratio:.3f}×  {title}", 14, color,
+                              anchor="start" if ratio >= 1.0 else "end", weight=700))
+    parts.append(text(width / 2, 635,
+                      "Shared input cast turns both decode rows positive; DeepSeek prefill stays within −5% gate",
+                      16, "#5b6474", anchor="middle", weight=600))
+    parts.append(text(width / 2, 678,
+                      "DeepSeek decode remains 0.533× PyTorch BF16 — output head / broader islands remain",
+                      14, "#9a4f00", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -505,7 +574,8 @@ def main() -> int:
                 BF16_CHART: bf16_svg(), BF16_POLICY_CHART: bf16_policy_svg(),
                 BF16_FFN_CHART: bf16_ffn_svg(),
                 BF16_MODEL_CHART: bf16_model_inference_svg(),
-                BF16_PREFILL_CHART: bf16_prefill_allocator_svg()}
+                BF16_PREFILL_CHART: bf16_prefill_allocator_svg(),
+                BF16_ATTENTION_CHART: bf16_attention_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

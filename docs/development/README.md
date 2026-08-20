@@ -172,6 +172,8 @@ the next gate. Records are append-only except for factual corrections.
   independent workload timing and 1.54×–1.64× official prefill improvement.
 - [2026-08-20-deepseek-bf16-decode-profile.md](2026-08-20-deepseek-bf16-decode-profile.md):
   decode-only rocprof evidence and the bounded BF16 Attention handoff.
+- [2026-08-20-bf16-attention-shared-cast.md](2026-08-20-bf16-attention-shared-cast.md):
+  transactional Q/K/V/O weights, rejected per-Linear cast and retained shared cast.
 - [2026-08-20-parallel-cross-entropy.md](2026-08-20-parallel-cross-entropy.md):
   Experiment 001 block-parallel CE, large-vocabulary/PyTorch gates, 66.1% score gain,
   profiler before/after and next-hotspot handoff.

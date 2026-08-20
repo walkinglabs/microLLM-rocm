@@ -39,7 +39,7 @@ MI300X 没有 CDNA4 的原生 MXFP4 Matrix Core。仓库可以保存 packed FP4 
 | view/contiguous/设备复制 | ✓ | ✓ | ✓ | 计划中 | 计划中 | 计划中 |
 | 基础逐元素/SiLU/SwiGLU/GEMM | ✓ | CPU/MI300X ✓ | CPU/MI300X ✓ | — | — | — |
 | hipBLASLt GEMM | FP32 ✓ | MI300X ✓ | MI300X ✓ | MI300X E4M3/E5M2 FNUZ ✓ | 计划中 | 软件解包后计算 |
-| Transformer Linear 训练/推理 | FP32 | 计划中 | 单份 FFN 推理 ✓；混合训练计划中 | FP8 forward + FP32 master/backward/KV decode ✓ | — | — |
+| Transformer Linear 训练/推理 | FP32 | 计划中 | 单份 FFN + Attention projection 推理 ✓；混合训练计划中 | FP8 forward + FP32 master/backward/KV decode ✓ | — | — |
 
 表格中的“计划中”不是支持声明。只有对应测试和真机记录完成后才会改成 ✓。
 
@@ -100,7 +100,7 @@ FP32 → BF16 gate/up → BF16 SwiGLU → BF16 down → FP32
 二维 FP32，三个权重是同一设备上的连续二维 BF16；shape 不匹配会直接报错。输出回到
 FP32，方便与 residual 相加。
 
-官方 Qwen/DeepSeek 现在可以把 FFN 权重单向准备为单份 BF16，并完成 logits、exact token、
-显存和吞吐测试；Attention、Embedding、Norm 与输出头仍是 FP32。因此准确名称是
-“BF16 FFN 混合推理”，不是“整网 BF16”。对 PyTorch 全 BF16 的四项性能仍有三项低于
-1.0，算子实测和竞争性整网声明仍是两道不同的门。
+官方 Qwen/DeepSeek 现在可以把 FFN 与 Q/K/V/O projection 权重单向准备为单份 BF16，
+Q/K/V 共享一次 input cast；Embedding、Norm、KV cache 与 tied 输出头仍是 FP32。因此
+准确名称是“BF16 Linear 混合推理”，不是“整网 BF16”。DeepSeek decode 仍低于 PyTorch
+全 BF16，算子实测和竞争性整网声明仍是两道不同的门。

@@ -200,6 +200,32 @@ def validate_decode_profile(errors: list[str]) -> tuple[int, int]:
     return kernel_calls, api_calls
 
 
+def validate_bf16_attention(errors: list[str]) -> int:
+    data = ROOT / "experiments" / "034-data"
+    records = [json.loads(line) for line in
+               (data / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    if len(records) != 8:
+        errors.append(f"BF16 Attention raw count is {len(records)}, expected 8")
+    candidates = [row for row in records if row.get("record_type") ==
+                  "bf16_attention_candidate"]
+    if len(candidates) != 6 or any(not row.get("exact_expected_tokens") for row in candidates):
+        errors.append("BF16 Attention candidate rows lack exact-token evidence")
+    if len({(row["model"], row["process_run"]) for row in candidates}) != 6:
+        errors.append("BF16 Attention candidate process keys are not unique")
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    if len(summary.get("rows", [])) != 2:
+        errors.append("BF16 Attention summary must contain two rows")
+    for row in summary.get("rows", []):
+        if row["decode_speedup_vs_bf16_ffn"] <= 1.0 or \
+                row["prefill_speedup_vs_bf16_ffn"] < 0.95 or \
+                not row["all_exact_expected_tokens"]:
+            errors.append(f'BF16 Attention keep gate failed: {row["model"]}')
+    pilot = (data / "naive-pilot.jsonl").read_text(encoding="utf-8").splitlines()
+    if len(pilot) != 2:
+        errors.append("BF16 Attention naive pilot must contain two rows")
+    return len(records)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -217,7 +243,8 @@ def validate_links(errors: list[str]) -> int:
 def validate_assets(errors: list[str]) -> None:
     for name in ("progress.svg", "bottleneck-map.svg", "bf16-gemm.svg",
                  "bf16-model-policy.svg", "bf16-ffn-island.svg",
-                 "bf16-model-inference.svg", "bf16-prefill-allocator.svg"):
+                 "bf16-model-inference.svg", "bf16-prefill-allocator.svg",
+                 "bf16-attention.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -243,6 +270,7 @@ def main() -> int:
     bf16_model_count = validate_bf16_models(errors)
     bf16_prefill_count = validate_bf16_prefill(errors)
     profile_kernel_calls, profile_api_calls = validate_decode_profile(errors)
+    bf16_attention_count = validate_bf16_attention(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -252,6 +280,7 @@ def main() -> int:
     print(f"optimization log valid: results={result_count} steps={step_count} "
           f"bf16_policy={bf16_policy_count} bf16_ffn={bf16_ffn_count} "
           f"bf16_models={bf16_model_count} bf16_prefill={bf16_prefill_count} "
+          f"bf16_attention={bf16_attention_count} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls} links={link_count}")
     return 0
 

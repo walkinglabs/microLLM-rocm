@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| CPU configuration | smoke-tested | framework-only main configure/build; 161/161 CPU CTest | CI matrix |
+| CPU configuration | smoke-tested | framework-only main configure/build; 163/163 CPU CTest | CI matrix |
 | CPU code coverage | smoke-tested | 83.9% lines, 90.9% functions, 66.6% branches over `src/` + `include/` | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, native cast, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
@@ -47,7 +47,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Fused cached decode Attention | smoke-tested | FP32 MHA/GQA 1/32/128/512 + fallback; repeated-process score 1.752183; long decode up to +57.9% | one-token regression, prefill/backward/BF16 |
 | Fused Q/K bias + split-half RoPE | smoke-tested | CPU/HIP/PyTorch forward+backward; 1,120 fewer profiled launches; paired generation +13.7%/+6.6%; score 1.784147 | interleaved/low-precision variants and remaining launch fusion |
 | Fused cached residual + RMSNorm | smoke-tested | pair-output oracle, 532 fewer launches, 512-thread wide path; DeepSeek +9.6%; score 1.845199 | broader width matrix and training graph fusion |
-| BF16 GEMM/autograd/FFN inference | smoke-tested | transactional single-representation policy plus prefill allocator; exact tokens, ~32% current-memory reduction; 3/4 PyTorch BF16 rows pass | DeepSeek decode 0.522× PyTorch; mixed training |
+| BF16 GEMM/autograd/inference | smoke-tested | transactional FFN + Q/K/V/O weights, shared QKV cast, prefill allocator, exact official tokens | DeepSeek decode 0.533× PyTorch BF16; tied head/broader island/mixed training |
 | Token generation | smoke-tested | deterministic sampling and cache-backed length/bounds | trained text report |
 | Stable model failure | smoke-tested | low-loss cycle breaks beyond training context | rebuttal experiments |
 | PyTorch Custom Ops | smoke-tested on CPU | Torch 2.13 add/multiply via dispatcher | build/run with PyTorch ROCm |

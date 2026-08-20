@@ -1,0 +1,35 @@
+{
+  "aggregation": "median of three independent candidate processes by default",
+  "rows": [
+    {
+      "all_exact_expected_tokens": true,
+      "candidate_decode_tokens_per_second": 89.191425411,
+      "candidate_prefill_tokens_per_second": 188.91461864,
+      "decode_ratio_vs_pytorch_bf16": 1.2130531374314586,
+      "decode_speedup_vs_bf16_ffn": 1.028983440463494,
+      "engine_current_bytes": 1261693448.0,
+      "max_abs_logit_difference": 0.16619253158569336,
+      "model": "qwen2.5-0.5b",
+      "prefill_ratio_vs_pytorch_bf16": 1.2995429037969677,
+      "prefill_speedup_vs_bf16_ffn": 1.0688738682436385,
+      "resident_weight_bytes": 1260477952.0,
+      "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987"
+    },
+    {
+      "all_exact_expected_tokens": true,
+      "candidate_decode_tokens_per_second": 30.134117661,
+      "candidate_prefill_tokens_per_second": 642.495108337,
+      "decode_ratio_vs_pytorch_bf16": 0.532531418592402,
+      "decode_speedup_vs_bf16_ffn": 1.0197762424335228,
+      "engine_current_bytes": 4495253552.0,
+      "max_abs_logit_difference": 0.09690999984741211,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "prefill_ratio_vs_pytorch_bf16": 1.0171681640262944,
+      "prefill_speedup_vs_bf16_ffn": 0.9727874516419136,
+      "resident_weight_bytes": 4487960576.0,
+      "revision": "ad9f0ae0864d7fbcd1cd905e3c6c5b069cc8b562"
+    }
+  ],
+  "schema_version": 1,
+  "track": "bf16_attention_official_models"
+}

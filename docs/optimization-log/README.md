@@ -142,6 +142,13 @@ Experiment 033 只 profile 剩余的 DeepSeek decode 红条。GEMM 占 Kernel �
 并且调用数可还原为每层 7 个 Linear 加 tied output head；当前只有 3 个 FFN Linear
 进入 BF16。下一步边界因此是 Attention Linear 的单份 BF16，而不是继续改 prefill。
 
+Experiment 034 先保留“每个 Q/K/V 各 cast 一次”造成的回退，再加入共享 input cast。
+三进程 Qwen decode/prefill 提高 `2.9%/6.9%`，DeepSeek decode 提高 2.0%、prefill
+退化 2.7%（未越 5% 门），常驻权重继续下降；DeepSeek decode 仍只有 PyTorch BF16
+的 `0.533×`。
+
+![BF16 Attention shared cast](assets/bf16-attention.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -169,6 +176,8 @@ Experiment 033 只 profile 剩余的 DeepSeek decode 红条。GEMM 占 Kernel �
 | [assets/bf16-prefill-allocator.svg](assets/bf16-prefill-allocator.svg) | prefill allocator 前后与 PyTorch 门 |
 | [experiments/032-data/](experiments/032-data/) | 两模型/两策略三进程复测 |
 | [experiments/033-data/](experiments/033-data/) | DeepSeek decode kernel/HIP API 聚合统计 |
+| [assets/bf16-attention.svg](assets/bf16-attention.svg) | per-Linear cast 失败与 shared-cast 三进程结果 |
+| [experiments/034-data/](experiments/034-data/) | 官方 logits/token、candidate raw 与 pilot |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

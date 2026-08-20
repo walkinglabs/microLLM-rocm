@@ -20,7 +20,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | M1 serial kernels | complete | parallel CE、transpose GEMM、parallel RMSNorm | 三组旧热点均从 trace 主导位置消失 |
 | M2 data movement | complete | preallocated KV、device greedy、steady-state exact-size pool | measured decode 只回传 token scalar |
 | M3 optimized ops | in progress | batched GEMM、hipBLASLt plan、FMHA/fusion | Model-S/M 与 HF 均改善 |
-| M4 low precision | in progress | 单份 BF16 FFN + prefill allocator；DeepSeek decode GEMM 67.64% | BF16 Attention Linear；混合训练 |
+| M4 low precision | in progress | BF16 FFN + Attention shared cast；DeepSeek decode 0.533× PyTorch | re-profile output head/broader island；混合训练 |
 | M5 scheduling | planned | stable-address HIP Graph | launch/API 时间下降且数值不变 |
 | M6 report | in progress | 博客、曲线、trace、失败图集、局部饱和审计 | 新 track 仍待完成 |
 
@@ -38,7 +38,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [07](steps/07-autograd-buffers.md) | in progress | local COW add_ discarded；explicit liveness planned | train allocations |
 | [08](steps/08-batched-fmha.md) | in progress | cached decode fused；prefill/backward planned | score 1.752183 |
 | [09](steps/09-fusion-autotune.md) | in progress | fusion/wide-row kept；offline GEMM solution discarded | score 1.845199 |
-| [10](steps/10-bf16.md) | in progress | BF16 FFN official policy；prefill allocator keep | only DeepSeek decode below parity |
+| [10](steps/10-bf16.md) | in progress | BF16 FFN/Attention official policy；shared cast keep | DeepSeek decode remains below parity |
 | [11](steps/11-fp8.md) | planned | cached FP8 weight/dynamic scale | FP8 track |
 | [12](steps/12-hip-graph-final.md) | planned | HIP Graph 和最终报告 | launch + final score |
 

@@ -1038,3 +1038,17 @@ Qwen decode/prefill 和 DeepSeek prefill 现在分别达到 PyTorch BF16 的
 每层 7 个 Linear 里，只有 gate/up/down 三个 FFN 权重是 BF16；Q/K/V/O 仍是 FP32。
 PyTorch 对照却是整网 BF16。下一步因此只扩展 Attention Linear 的单份 BF16 所有权，
 第一版仍保留 FP32 KV cache、Norm 和 softmax，避免一次改变两类数值边界。
+
+## 51. Experiment 034：三个投影不要抄三次输入
+
+直接把 Q/K/V/O 权重换成 BF16 后，Q、K、V 各自把同一个 normalized input cast 一次。
+官方 pilot 中 DeepSeek decode/prefill 反而下降 `2.1%/3.8%`。这条失败没有删。
+
+第二版先 cast 一次，再把同一 BF16 input 交给三个 projection。三进程中，Qwen
+decode/prefill 提高 `2.9%/6.9%`；DeepSeek decode 提高 2.0%，prefill 下降 2.7%，仍在
+单项 5% 门内；权重再省约 88 MB/308 MB。
+
+![BF16 Attention shared cast](assets/bf16-attention.svg)
+
+DeepSeek decode 相对 PyTorch 只从 `0.522×` 到 `0.533×`。所以 shared cast 值得保留，
+但 Attention 权重 BF16 不是最终答案；下一步要重新 profile retained candidate。
