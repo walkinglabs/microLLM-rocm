@@ -13,6 +13,7 @@
     "embedding": {"torch": "embedding", "shape": "invalid_embedding_weight"},
     "softmax": {"torch": "softmax", "shape": "invalid_softmax_dim"},
     "rms_norm": {"torch": "rms_norm", "shape": "invalid_rms_weight"},
+    "add_rms_norm": {"torch": "add_rms_norm_normalized", "shape": "invalid_add_rms_norm_shape"},
     "silu": {"torch": "silu", "shape": "invalid_silu_dtype"},
     "swiglu": {"torch": "swiglu", "shape": "invalid_swiglu_shape"},
     "rope": {"torch": "rope", "shape": "invalid_rope_width"},

@@ -120,6 +120,9 @@ public:
     Tensor forward_tensor(const Tensor& input) {
         return ops::rms_norm(input, weight_.data(), epsilon_);
     }
+    ops::TensorPair add_forward_tensor(const Tensor& left, const Tensor& right) {
+        return ops::add_rms_norm(left, right, weight_.data(), epsilon_);
+    }
     Value& weight() noexcept { return weight_; }
 
 private:
@@ -306,10 +309,11 @@ public:
 
     Tensor forward_cached(const Tensor& input, inference::KVCache::LayerState& cache,
                           std::int64_t position, std::int64_t cache_capacity) {
-        auto hidden = ops::add(
-            input, attention_.forward_cached(attention_norm_.forward_tensor(input), cache,
-                                             position, cache_capacity));
-        return ops::add(hidden, feed_forward_.forward_tensor(ffn_norm_.forward_tensor(hidden)));
+        auto attention = attention_.forward_cached(attention_norm_.forward_tensor(input), cache,
+                                                   position, cache_capacity);
+        auto residual_and_norm = ffn_norm_.add_forward_tensor(input, attention);
+        return ops::add(residual_and_norm.first,
+                        feed_forward_.forward_tensor(residual_and_norm.second));
     }
 
     void append_named(const std::string& prefix, NamedValues& values) {

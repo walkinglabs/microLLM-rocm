@@ -70,6 +70,10 @@ def pytorch_references(actual):
     record(refs, "scale", left * -0.25)
     record(refs, "cast_bf16", left.to(torch.bfloat16))
     record(refs, "add_bias", left + tensor([0.5, -1.0, 2.0], (3,)))
+    residual_sum = left + right
+    record(refs, "add_rms_norm_sum", residual_sum)
+    record(refs, "add_rms_norm_normalized",
+           F.rms_norm(residual_sum, (3,), tensor([1, 0.5, 2], (3,)), 1.0e-5))
 
     matrix_left = tensor([1, 2, 3, 4, 5, 6], (2, 3))
     matrix_right = tensor([1, 2, 3, 4, 5, 6], (3, 2))
@@ -414,6 +418,7 @@ class OperatorParityTest(unittest.TestCase):
             "invalid_embedding_weight",
             "invalid_softmax_dim",
             "invalid_rms_weight",
+            "invalid_add_rms_norm_shape",
             "invalid_silu_dtype",
             "invalid_swiglu_shape",
             "invalid_rope_width",

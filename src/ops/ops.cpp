@@ -541,6 +541,46 @@ Tensor rms_norm(const Tensor& input, const Tensor& weight, float epsilon,
     return from_values(std::move(output), input.shape(), input.dtype());
 }
 
+TensorPair add_rms_norm(const Tensor& left, const Tensor& right,
+                        const Tensor& weight, float epsilon,
+                        [[maybe_unused]] const OpContext& context) {
+    require_forward_float(left, "left");
+    require_forward_float(right, "right");
+    require_forward_float(weight, "weight");
+    require_same_dtype(left, right);
+    require_same_shape(left, right);
+    require_same_device(left, right);
+    require_same_device(left, weight);
+    if (left.dtype() != DType::Float32 || weight.dtype() != DType::Float32 ||
+        epsilon <= 0.0F || left.ndim() == 0 || weight.ndim() != 1 ||
+        weight.shape()[0] != left.shape().back()) {
+        throw std::invalid_argument(
+            "add_rms_norm requires FP32 equal inputs and last-dimension weight");
+    }
+    if (left.device().is_hip()) {
+        require_contiguous(left, "left");
+        require_contiguous(right, "right");
+        require_contiguous(weight, "weight");
+        Tensor sum(left.shape(), DType::Float32, left.device());
+        Tensor normalized(left.shape(), DType::Float32, left.device());
+#if MICROLLM_HAS_HIP
+        const auto width = left.shape().back();
+        hip::launch_add_rms_norm(
+            static_cast<const float*>(left.data()),
+            static_cast<const float*>(right.data()),
+            static_cast<const float*>(weight.data()),
+            static_cast<float*>(sum.data()), static_cast<float*>(normalized.data()),
+            left.numel() / width, width, epsilon,
+            context.native_stream(left.device()));
+        return {std::move(sum), std::move(normalized)};
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    auto sum = add(left, right, context);
+    return {sum, rms_norm(sum, weight, epsilon, context)};
+}
+
 Tensor silu(const Tensor& input, [[maybe_unused]] const OpContext& context) {
     require_forward_float(input, "input");
     if (input.device().is_hip()) {

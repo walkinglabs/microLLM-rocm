@@ -631,6 +631,27 @@ TEST(HipBackwardOpsTest, DeviceNativePrimitivesMatchCpuReference) {
                 repeat_interleave_backward(repeat_gradient, {2, 2}, 0, 2).to_vector());
 }
 
+TEST(HipOpsTest, FusedResidualRmsNormMatchesComposedCpuWithoutTransfers) {
+    require_gpu();
+    const auto gpu = Device::hip();
+    const auto left = Tensor::from_vector({1, 2, 3, -1, -2, -3}, {2, 3});
+    const auto right = Tensor::from_vector({0.5F, -0.5F, 1, 2, 1, 0}, {2, 3});
+    const auto weight = Tensor::from_vector({1, 0.5F, 2}, {3});
+    const auto expected_sum = add(left, right);
+    const auto expected_norm = rms_norm(expected_sum, weight);
+    const auto device_left = left.to(gpu);
+    const auto device_right = right.to(gpu);
+    const auto device_weight = weight.to(gpu);
+    runtime::reset_transfer_stats();
+    const auto actual = add_rms_norm(device_left, device_right, device_weight);
+    runtime::synchronize(gpu);
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    expect_near(actual.first.to_vector(), expected_sum.to_vector());
+    expect_near(actual.second.to_vector(), expected_norm.to_vector(), 2.0e-4F);
+}
+
 TEST(HipAutogradTest, RepeatInterleaveMaterializesTransposedGqaValue) {
     require_gpu();
     autograd::Value input(

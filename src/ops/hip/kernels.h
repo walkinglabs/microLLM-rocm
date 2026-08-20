@@ -63,6 +63,9 @@ void launch_softmax(const float* input, float* output, std::int64_t rows,
 void launch_rms_norm(const float* input, const float* weight, float* output,
                      std::int64_t rows, std::int64_t width, float epsilon,
                      void* stream = nullptr);
+void launch_add_rms_norm(const float* left, const float* right, const float* weight,
+                         float* sum, float* normalized, std::int64_t rows,
+                         std::int64_t width, float epsilon, void* stream = nullptr);
 void launch_silu(const float* input, float* output, std::int64_t elements,
                  void* stream = nullptr);
 void launch_swiglu(const float* gate, const float* up, float* output,

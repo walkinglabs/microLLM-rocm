@@ -71,6 +71,10 @@ void clear_matmul_implementation_registry();
                              const OpContext& context = {});
 [[nodiscard]] Tensor rms_norm(const Tensor& input, const Tensor& weight,
                               float epsilon = 1.0e-5F, const OpContext& context = {});
+// Returns {left + right, rms_norm(left + right, weight)} in one HIP launch.
+[[nodiscard]] TensorPair add_rms_norm(const Tensor& left, const Tensor& right,
+                                      const Tensor& weight, float epsilon = 1.0e-5F,
+                                      const OpContext& context = {});
 [[nodiscard]] Tensor silu(const Tensor& input, const OpContext& context = {});
 [[nodiscard]] Tensor swiglu(const Tensor& gate, const Tensor& up,
                             const OpContext& context = {});

@@ -48,6 +48,18 @@ TEST(CpuOpsTest, FusedSplitHalfRopeBiasMatchesComposedProjectionPath) {
     EXPECT_THROW((void)rope_split_half_bias(input, Tensor({4})), std::invalid_argument);
 }
 
+TEST(CpuOpsTest, FusedResidualRmsNormReturnsBothComposedOutputs) {
+    const auto left = Tensor::from_vector({1, 2, 3, -1, -2, -3}, {2, 3});
+    const auto right = Tensor::from_vector({0.5F, -0.5F, 1, 2, 1, 0}, {2, 3});
+    const auto weight = Tensor::from_vector({1, 0.5F, 2}, {3});
+    const auto expected_sum = add(left, right);
+    const auto expected_norm = rms_norm(expected_sum, weight);
+    const auto actual = add_rms_norm(left, right, weight);
+    expect_near(actual.first.to_vector(), expected_sum.to_vector());
+    expect_near(actual.second.to_vector(), expected_norm.to_vector());
+    EXPECT_THROW((void)add_rms_norm(left, Tensor({3}), weight), std::invalid_argument);
+}
+
 TEST(CpuOpsTest, BatchedMatmulMatchesHandValues) {
     const auto left = Tensor::from_vector({1, 2, 3, 4, 5, 6, 1, 0, 0, 1, 1, 1}, {2, 2, 3});
     const auto right = Tensor::from_vector({1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6}, {2, 3, 2});
