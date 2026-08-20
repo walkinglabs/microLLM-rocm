@@ -32,7 +32,7 @@ microLLM-rocm 已经可以：
 0.191660× PyTorch
 ```
 
-经过十二个保留实验，当前重复进程 score 已到 `2.389841×`。这不是估计值：它来自同一张
+经过十三个保留实验，当前重复进程 score 已到 `2.470863×`。这不是估计值：它来自同一张
 MI300X、同一组模型权重、同样的 2 次热身和 5 次正式测量。
 
 因此，本专项的故事不是“我们已经超过 PyTorch”，而是：
@@ -850,7 +850,20 @@ score                   1.845199 → 2.389841
 Kernel launch 数完全没变，说明收益来自 allocator 生命周期开销，而不是偷偷换了计算。
 不满八块的尾批次会在显式 synchronize 前提交；external Stream 仍永久禁用 pool。
 
-## 33. 怎样读进度图
+## 33. Experiment 023：批次继续变大，必须重跑四项
+
+把 Event batch 从 8 调到 16 后，Event record 1,124→562。未插桩三进程结果是：
+
+```text
+Qwen train/generate      +2.6% / +8.4%
+DeepSeek train/generate  -1.1% / +3.8%
+score                    2.389841 → 2.470863
+```
+
+插桩 DeepSeek 反而变慢，backend allocation 也有小幅增加；这些代价都写进报告。16 被
+保留是因为固定矩阵通过，而不是因为“batch 越大越好”。
+
+## 34. 怎样读进度图
 
 图中：
 
@@ -862,11 +875,11 @@ Kernel launch 数完全没变，说明收益来自 allocator 生命周期开销�
 - 右侧条形：当前四项 workload ratio；
 - 底部卡片：计划步骤，不代表已经完成。
 
-FP32 主图当前有 baseline 和十二个 keep 实验共十三个绿色点，以及八个 discard 灰点；
+FP32 主图当前有 baseline 和十三个 keep 实验共十四个绿色点，以及八个 discard 灰点；
 BF16 独立图另有一个被否决的模型策略。未来如果十个实验都失败，图上就应出现十个
 灰点，而不是凭空出现一条漂亮上升曲线。
 
-## 34. 什么才算从 0 到 1
+## 35. 什么才算从 0 到 1
 
 完成一个 Kernel 不是 1，某个 shape 跑得快也不是 1。
 

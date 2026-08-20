@@ -26,7 +26,7 @@ DeepSeek-R1-Distill-Qwen-1.5B generate 0.1606
 ```text
 score = geometric_mean(workload throughput ratios)
 baseline = 0.191660
-current running best = 2.389841
+current running best = 2.470863
 selected-matrix parity target = 1.000000
 ```
 
@@ -96,6 +96,9 @@ Experiment 021 将重复 `hipSetDevice` 从 30,669 次降到 1 次，插桩运�
 Experiment 022 让八个默认 Stream retired blocks 共用一个完成 Event。Event record 调用
 约降 8×，四项 workload 中位数全部提高，DeepSeek generation 首次超过固定 PyTorch
 参考；当前 score 为 `2.389841`。
+
+Experiment 023 将批次从 8 调到 16。Event 再减半，三项 workload 改善、DeepSeek train
+退化 1.1%，score 提高到 `2.470863`；显存峰值不变。
 
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
