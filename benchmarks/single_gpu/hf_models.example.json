@@ -15,12 +15,16 @@
         "token_ids": [9707, 1879],
         "prompt_kind": "text",
         "prompt": "Hello world",
+        "warmup": 2,
+        "steps": 5,
         "new_tokens": 4,
         "expected_generated_tokens": [0, 358, 2776, 264]
       },
       "training": {
         "tokens": "1,2,3,4",
-        "learning_rate": 0.00001
+        "learning_rate": 0.00001,
+        "warmup": 2,
+        "steps": 5
       }
     },
     {
@@ -37,12 +41,16 @@
         "token_ids": [151646, 151644, 3838, 374, 220, 17, 10, 17, 30, 151645, 151648, 198],
         "prompt_kind": "chat_user",
         "prompt": "What is 2+2?",
+        "warmup": 2,
+        "steps": 5,
         "new_tokens": 8,
         "expected_generated_tokens": [40, 1184, 311, 8253, 279, 2629, 315, 220]
       },
       "training": {
         "tokens": "151646,151644,3838,374",
-        "learning_rate": 0.00001
+        "learning_rate": 0.00001,
+        "warmup": 2,
+        "steps": 5
       }
     }
   ]

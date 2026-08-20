@@ -58,3 +58,9 @@ over PyTorch. Each mode is a single short run, not a repeated performance distri
 Peak bytes are engine-owned allocations. The runner now samples them after generation,
 so cache activity contributes to the inference peak. Vendor/driver-private allocations
 still require an external sampler for board-level memory claims.
+
+## Multi-step follow-up
+
+The later Python/PyTorch comparison supersedes these first-step timings with two
+warm-up and five measured iterations. See
+[2026-08-20-pytorch-performance-comparison.md](2026-08-20-pytorch-performance-comparison.md).

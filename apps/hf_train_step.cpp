@@ -18,6 +18,12 @@
 
 namespace {
 
+struct StepResult {
+    float loss = 0.0F;
+    double optimizer_ms = 0.0;
+    microllm::runtime::TransferStats transfers;
+};
+
 std::vector<std::int32_t> parse_tokens(std::string_view text) {
     std::vector<std::int32_t> output;
     while (!text.empty()) {
@@ -46,6 +52,8 @@ int main(int argc, char** argv) {
         std::string token_text;
         std::string device_text = "hip";
         float learning_rate = 1.0e-5F;
+        int warmup = 0;
+        int steps = 1;
         for (int index = 1; index < argc; index += 2) {
             if (index + 1 >= argc) throw std::invalid_argument("missing CLI value");
             const std::string name = argv[index];
@@ -54,10 +62,15 @@ int main(int argc, char** argv) {
             else if (name == "--tokens") token_text = argv[index + 1];
             else if (name == "--device") device_text = argv[index + 1];
             else if (name == "--learning-rate") learning_rate = std::stof(argv[index + 1]);
+            else if (name == "--warmup") warmup = std::stoi(argv[index + 1]);
+            else if (name == "--steps") steps = std::stoi(argv[index + 1]);
             else throw std::invalid_argument("unknown option: " + name);
         }
         if (config_path.empty() || weights_path.empty() || token_text.empty()) {
             throw std::invalid_argument("--config, --weights, and --tokens are required");
+        }
+        if (warmup < 0 || steps <= 0) {
+            throw std::invalid_argument("--warmup must be nonnegative and --steps positive");
         }
         const auto device = device_text == "hip" ? microllm::Device::hip(0)
                                                    : microllm::Device::cpu();
@@ -91,26 +104,53 @@ int main(int argc, char** argv) {
             if (name == "final_norm.weight") observed = parameter;
         }
         if (observed == nullptr) throw std::logic_error("final_norm.weight is missing");
-        const auto before = observed->data().to_vector().front();
-        optimizer.zero_grad();
-        const auto start = std::chrono::steady_clock::now();
-        const auto loss = model.loss(inputs, targets);
-        const auto loss_value = loss.data().to_vector()[0];
-        loss.backward();
-        microllm::runtime::reset_transfer_stats();
-        const auto optimizer_start = std::chrono::steady_clock::now();
-        optimizer.step();
+        const auto run_step = [&]() {
+            optimizer.zero_grad();
+            const auto loss = model.loss(inputs, targets);
+            const auto loss_value = loss.data().to_vector()[0];
+            loss.backward();
+            microllm::runtime::reset_transfer_stats();
+            const auto optimizer_start = std::chrono::steady_clock::now();
+            optimizer.step();
+            microllm::runtime::synchronize(device);
+            const auto optimizer_finish = std::chrono::steady_clock::now();
+            return StepResult{
+                loss_value,
+                std::chrono::duration<double, std::milli>(optimizer_finish - optimizer_start)
+                    .count(),
+                microllm::runtime::transfer_stats()};
+        };
+        const auto warmup_start = std::chrono::steady_clock::now();
+        for (int iteration = 0; iteration < warmup; ++iteration) (void)run_step();
         microllm::runtime::synchronize(device);
+        const auto warmup_finish = std::chrono::steady_clock::now();
+        microllm::runtime::reset_allocation_peak(device);
+        const auto before = observed->data().to_vector().front();
+        float first_loss = 0.0F;
+        float final_loss = 0.0F;
+        double optimizer_ms = 0.0;
+        std::uint64_t optimizer_h2d = 0;
+        std::uint64_t optimizer_d2h = 0;
+        const auto start = std::chrono::steady_clock::now();
+        for (int iteration = 0; iteration < steps; ++iteration) {
+            const auto result = run_step();
+            if (iteration == 0) first_loss = result.loss;
+            final_loss = result.loss;
+            optimizer_ms += result.optimizer_ms;
+            optimizer_h2d += result.transfers.host_to_device_calls;
+            optimizer_d2h += result.transfers.device_to_host_calls;
+        }
         const auto finish = std::chrono::steady_clock::now();
-        const auto transfers = microllm::runtime::transfer_stats();
         const auto after = observed->data().to_vector().front();
         const auto allocation = microllm::runtime::allocation_stats(device);
         const auto info = device.is_cpu()
                               ? microllm::runtime::DeviceInfo{device, "host CPU", "host"}
                               : microllm::runtime::device_info(device);
-        const auto step_ms =
+        const auto measured_ms =
             std::chrono::duration<double, std::milli>(finish - start).count();
-        const auto trained_tokens = input_ids.size();
+        const auto warmup_ms =
+            std::chrono::duration<double, std::milli>(warmup_finish - warmup_start).count();
+        const auto trained_tokens = input_ids.size() * static_cast<std::size_t>(steps);
         std::cout << std::setprecision(9)
                   << "{\"schema_version\":1,\"status\":\"pass\""
                   << ",\"device\":\"" << device.str() << "\""
@@ -120,29 +160,38 @@ int main(int argc, char** argv) {
                   << microllm::runtime::hip_runtime_version()
                   << ",\"hip_driver_version\":" << microllm::runtime::hip_driver_version()
                   << ",\"compute_dtype\":\"float32\""
+                  << ",\"measurement_profile\":\""
+                  << (warmup > 0 || steps > 1 ? "comparison" : "smoke") << "\""
                   << ",\"loaded_tensors\":" << report.loaded.size()
                   << ",\"parameter_count\":" << model.parameter_count()
                   << ",\"fp32_weight_bytes\":"
                   << external.model.weight_bytes(sizeof(float))
+                  << ",\"warmup\":" << warmup
+                  << ",\"steps\":" << steps
+                  << ",\"warmup_ms\":" << warmup_ms
                   << ",\"trained_tokens\":" << trained_tokens
-                  << ",\"loss\":" << loss_value
+                  << ",\"first_loss\":" << first_loss
+                  << ",\"final_loss\":" << final_loss
+                  << ",\"loss\":" << final_loss
                   << ",\"observed_parameter_before\":" << before
                   << ",\"observed_parameter_after\":" << after
                   << ",\"parameter_changed\":" << (before != after ? "true" : "false")
-                  << ",\"step_ms\":" << step_ms
+                  << ",\"step_ms\":" << measured_ms
+                  << ",\"measured_ms\":" << measured_ms
+                  << ",\"mean_step_ms\":" << measured_ms / static_cast<double>(steps)
                   << ",\"tokens_per_second\":"
-                  << static_cast<double>(trained_tokens) * 1000.0 / step_ms
+                  << static_cast<double>(trained_tokens) * 1000.0 / measured_ms
                   << ",\"milliseconds_per_token\":"
-                  << step_ms / static_cast<double>(trained_tokens)
-                  << ",\"optimizer_ms\":"
-                  << std::chrono::duration<double, std::milli>(finish - optimizer_start).count()
-                  << ",\"optimizer_host_to_device_calls\":" << transfers.host_to_device_calls
-                  << ",\"optimizer_device_to_host_calls\":" << transfers.device_to_host_calls
+                  << measured_ms / static_cast<double>(trained_tokens)
+                  << ",\"optimizer_ms\":" << optimizer_ms
+                  << ",\"mean_optimizer_ms\":" << optimizer_ms / static_cast<double>(steps)
+                  << ",\"optimizer_host_to_device_calls\":" << optimizer_h2d
+                  << ",\"optimizer_device_to_host_calls\":" << optimizer_d2h
                   << ",\"engine_current_bytes\":" << allocation.current_bytes
                   << ",\"engine_peak_bytes\":" << allocation.peak_bytes
                   << ",\"engine_total_allocated_bytes\":"
                   << allocation.total_allocated_bytes << "}\n";
-        return before != after && std::isfinite(loss_value) ? 0 : 2;
+        return before != after && std::isfinite(final_loss) ? 0 : 2;
     } catch (const std::exception& error) {
         std::cerr << "microllm_hf_train_step: " << error.what() << '\n';
         return 1;

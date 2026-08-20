@@ -35,6 +35,8 @@ struct Options {
     std::filesystem::path vocabulary;
     std::filesystem::path merges;
     std::int64_t new_tokens = 0;
+    int warmup = 0;
+    int steps = 1;
     std::string tokenizer_family = "qwen2";
     std::string chat_user;
 };
@@ -54,6 +56,8 @@ Options options(int argc, char** argv) {
         else if (name == "--vocab") result.vocabulary = argv[index + 1];
         else if (name == "--merges") result.merges = argv[index + 1];
         else if (name == "--new-tokens") result.new_tokens = std::stoll(argv[index + 1]);
+        else if (name == "--warmup") result.warmup = std::stoi(argv[index + 1]);
+        else if (name == "--steps") result.steps = std::stoi(argv[index + 1]);
         else if (name == "--tokenizer-family") result.tokenizer_family = argv[index + 1];
         else if (name == "--chat-user") result.chat_user = argv[index + 1];
         else throw std::invalid_argument("unknown CLI option: " + name);
@@ -73,6 +77,9 @@ Options options(int argc, char** argv) {
     }
     if (result.top_k <= 0) throw std::invalid_argument("--top-k must be positive");
     if (result.new_tokens < 0) throw std::invalid_argument("--new-tokens cannot be negative");
+    if (result.warmup < 0 || result.steps <= 0) {
+        throw std::invalid_argument("--warmup must be nonnegative and --steps positive");
+    }
     return result;
 }
 
@@ -169,21 +176,42 @@ int main(int argc, char** argv) {
                               return logits[offset + left] > logits[offset + right];
                           });
         double generation_ms = 0.0;
+        double warmup_ms = 0.0;
         std::vector<std::int32_t> generated_suffix;
         std::string generated_text;
         if (command.new_tokens > 0) {
+            const auto run_generation = [&]() {
+                const auto generated = microllm::inference::generate(
+                    model, ids, {.max_new_tokens = command.new_tokens,
+                                 .temperature = 0.0F,
+                                 .top_k = 1,
+                                 .seed = 1});
+                return std::vector<std::int32_t>(
+                    generated.begin() + static_cast<std::ptrdiff_t>(ids.size()),
+                    generated.end());
+            };
+            const auto warmup_start = std::chrono::steady_clock::now();
+            for (int iteration = 0; iteration < command.warmup; ++iteration) {
+                (void)run_generation();
+            }
+            microllm::runtime::synchronize(device);
+            const auto warmup_finish = std::chrono::steady_clock::now();
+            warmup_ms = std::chrono::duration<double, std::milli>(warmup_finish - warmup_start)
+                            .count();
+            microllm::runtime::reset_allocation_peak(device);
             const auto generation_start = std::chrono::steady_clock::now();
-            const auto generated = microllm::inference::generate(
-                model, ids, {.max_new_tokens = command.new_tokens,
-                             .temperature = 0.0F,
-                             .top_k = 1,
-                             .seed = 1});
+            for (int iteration = 0; iteration < command.steps; ++iteration) {
+                const auto current = run_generation();
+                if (iteration != 0 && current != generated_suffix) {
+                    throw std::runtime_error("deterministic generation changed across steps");
+                }
+                generated_suffix = current;
+            }
+            microllm::runtime::synchronize(device);
             const auto generation_finish = std::chrono::steady_clock::now();
             generation_ms = std::chrono::duration<double, std::milli>(
                                 generation_finish - generation_start)
                                 .count();
-            generated_suffix.assign(
-                generated.begin() + static_cast<std::ptrdiff_t>(ids.size()), generated.end());
             if (tokenizer.has_value()) generated_text = tokenizer->decode(generated_suffix);
         }
         const auto allocation = microllm::runtime::allocation_stats(device);
@@ -201,11 +229,17 @@ int main(int argc, char** argv) {
                   << microllm::runtime::hip_runtime_version()
                   << ",\"hip_driver_version\":" << microllm::runtime::hip_driver_version()
                   << ",\"compute_dtype\":\"float32\""
+                  << ",\"measurement_profile\":\""
+                  << (command.warmup > 0 || command.steps > 1 ? "comparison" : "smoke")
+                  << "\""
                   << ",\"parameter_count\":" << model.parameter_count()
                   << ",\"fp32_weight_bytes\":"
                   << external.model.weight_bytes(sizeof(float))
                   << ",\"loaded_tensors\":" << report.loaded.size()
                   << ",\"token_count\":" << ids.size()
+                  << ",\"warmup\":" << command.warmup
+                  << ",\"steps\":" << command.steps
+                  << ",\"warmup_ms\":" << warmup_ms
                   << ",\"load_ms\":"
                   << std::chrono::duration<double, std::milli>(load_finish - load_start).count()
                   << ",\"forward_ms\":" << forward_ms
@@ -223,11 +257,16 @@ int main(int argc, char** argv) {
         }
         std::cout << ']';
         if (!generated_suffix.empty()) {
+            const auto measured_tokens =
+                generated_suffix.size() * static_cast<std::size_t>(command.steps);
             std::cout << ",\"generation_ms\":" << generation_ms
+                      << ",\"mean_generation_ms\":"
+                      << generation_ms / static_cast<double>(command.steps)
+                      << ",\"measured_tokens\":" << measured_tokens
                       << ",\"decode_tokens_per_second\":"
-                      << static_cast<double>(generated_suffix.size()) * 1000.0 / generation_ms
+                      << static_cast<double>(measured_tokens) * 1000.0 / generation_ms
                       << ",\"decode_milliseconds_per_token\":"
-                      << generation_ms / static_cast<double>(generated_suffix.size());
+                      << generation_ms / static_cast<double>(measured_tokens);
             std::cout << ",\"generated_tokens\":[";
             for (std::size_t index = 0; index < generated_suffix.size(); ++index) {
                 if (index != 0) std::cout << ',';

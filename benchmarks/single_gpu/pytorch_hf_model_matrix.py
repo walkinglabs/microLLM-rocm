@@ -169,37 +169,62 @@ def infer(model: dict, loaded, device: torch.device, base: dict) -> dict:
     inference = model["inference"]
     input_ids = torch.tensor([inference["token_ids"]], dtype=torch.long, device=device)
     attention_mask = torch.ones_like(input_ids)
-    with torch.inference_mode():
-        start = time.perf_counter()
-        loaded(input_ids=input_ids, attention_mask=attention_mask, use_cache=False)
-        synchronize(device)
-        finish = time.perf_counter()
-        generation_start = time.perf_counter()
-        generated = loaded.generate(
+    warmup = int(inference.get("warmup", 0))
+    steps = int(inference.get("steps", 1))
+
+    def generate_once():
+        return loaded.generate(
             input_ids=input_ids,
             attention_mask=attention_mask,
             max_new_tokens=inference["new_tokens"],
             do_sample=False,
             use_cache=True,
             pad_token_id=loaded.config.eos_token_id,
-        )
+        )[0, input_ids.shape[1]:].tolist()
+
+    with torch.inference_mode():
+        start = time.perf_counter()
+        loaded(input_ids=input_ids, attention_mask=attention_mask, use_cache=False)
+        synchronize(device)
+        finish = time.perf_counter()
+        warmup_start = time.perf_counter()
+        for _ in range(warmup):
+            generate_once()
+        synchronize(device)
+        warmup_finish = time.perf_counter()
+        if device.type == "cuda":
+            torch.cuda.reset_peak_memory_stats(device)
+        generation_start = time.perf_counter()
+        suffix = []
+        for _ in range(steps):
+            current = generate_once()
+            if suffix and current != suffix:
+                raise RuntimeError(f"{model['name']} generation changed across steps")
+            suffix = current
         synchronize(device)
         generation_finish = time.perf_counter()
-    suffix = generated[0, input_ids.shape[1]:].tolist()
     expected = inference.get("expected_generated_tokens")
     if expected is not None and suffix != expected:
         raise RuntimeError(f"{model['name']} PyTorch generated tokens changed: {suffix}")
     forward_ms = (finish - start) * 1000.0
     generation_ms = (generation_finish - generation_start) * 1000.0
+    warmup_ms = (warmup_finish - warmup_start) * 1000.0
+    measured_tokens = len(suffix) * steps
     base.update({
         "mode": "infer",
+        "measurement_profile": "comparison" if warmup > 0 or steps > 1 else "smoke",
         "token_count": input_ids.shape[1],
+        "warmup": warmup,
+        "steps": steps,
+        "warmup_ms": warmup_ms,
+        "measured_tokens": measured_tokens,
         "generated_tokens": suffix,
         "forward_ms": forward_ms,
         "prefill_tokens_per_second": input_ids.shape[1] * 1000.0 / forward_ms,
         "generation_ms": generation_ms,
-        "decode_tokens_per_second": len(suffix) * 1000.0 / generation_ms,
-        "decode_milliseconds_per_token": generation_ms / len(suffix),
+        "mean_generation_ms": generation_ms / steps,
+        "decode_tokens_per_second": measured_tokens * 1000.0 / generation_ms,
+        "decode_milliseconds_per_token": generation_ms / measured_tokens,
         **memory_fields(device),
     })
     return base
@@ -217,30 +242,62 @@ def train(model: dict, loaded, device: torch.device, base: dict) -> dict:
     observed = dict(loaded.named_parameters()).get("model.norm.weight")
     if observed is None:
         raise RuntimeError(f"{model['name']} is missing model.norm.weight")
+    warmup = int(training.get("warmup", 0))
+    steps = int(training.get("steps", 1))
+
+    def train_once():
+        optimizer.zero_grad(set_to_none=True)
+        logits = loaded(input_ids=inputs, use_cache=False).logits
+        loss = F.cross_entropy(logits.reshape(-1, logits.shape[-1]), targets.reshape(-1))
+        loss.backward()
+        optimizer_start = time.perf_counter()
+        optimizer.step()
+        synchronize(device)
+        return float(loss.detach()), (time.perf_counter() - optimizer_start) * 1000.0
+
+    warmup_start = time.perf_counter()
+    for _ in range(warmup):
+        train_once()
+    synchronize(device)
+    warmup_finish = time.perf_counter()
+    if device.type == "cuda":
+        torch.cuda.reset_peak_memory_stats(device)
     before = float(observed[0].detach())
-    optimizer.zero_grad(set_to_none=True)
+    first_loss = 0.0
+    final_loss = 0.0
+    optimizer_ms = 0.0
     start = time.perf_counter()
-    logits = loaded(input_ids=inputs, use_cache=False).logits
-    loss = F.cross_entropy(logits.reshape(-1, logits.shape[-1]), targets.reshape(-1))
-    loss.backward()
-    optimizer_start = time.perf_counter()
-    optimizer.step()
+    for iteration in range(steps):
+        loss_value, current_optimizer_ms = train_once()
+        if iteration == 0:
+            first_loss = loss_value
+        final_loss = loss_value
+        optimizer_ms += current_optimizer_ms
     synchronize(device)
     finish = time.perf_counter()
     after = float(observed[0].detach())
     step_ms = (finish - start) * 1000.0
-    trained_tokens = inputs.numel()
-    if not math.isfinite(float(loss)) or before == after:
+    trained_tokens = inputs.numel() * steps
+    if not math.isfinite(final_loss) or before == after:
         raise RuntimeError(f"{model['name']} PyTorch train step did not update")
     base.update({
         "mode": "train",
+        "measurement_profile": "comparison" if warmup > 0 or steps > 1 else "smoke",
+        "warmup": warmup,
+        "steps": steps,
+        "warmup_ms": (warmup_finish - warmup_start) * 1000.0,
         "trained_tokens": trained_tokens,
-        "loss": float(loss.detach()),
+        "first_loss": first_loss,
+        "final_loss": final_loss,
+        "loss": final_loss,
         "observed_parameter_before": before,
         "observed_parameter_after": after,
         "parameter_changed": True,
         "step_ms": step_ms,
-        "optimizer_ms": (finish - optimizer_start) * 1000.0,
+        "measured_ms": step_ms,
+        "mean_step_ms": step_ms / steps,
+        "optimizer_ms": optimizer_ms,
+        "mean_optimizer_ms": optimizer_ms / steps,
         "tokens_per_second": trained_tokens * 1000.0 / step_ms,
         "milliseconds_per_token": step_ms / trained_tokens,
         **memory_fields(device),

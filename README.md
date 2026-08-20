@@ -143,14 +143,15 @@ dtype, model size, context length, or GPU. Detailed gates are maintained in
 [Testing and evidence](docs/dev/testing.md) and
 [current status](docs/development/STATUS.md).
 
-Latest single-MI300X FP32 model matrix:
+Latest single-MI300X FP32 model matrix. Built-in rows are CI smoke measurements;
+official rows exclude two warm-up iterations and measure five iterations:
 
 | Model | Mode | Measured throughput | Peak engine memory |
 |---|---|---:|---:|
 | Model-S, 15.6M | train / generate | 1.111 / 1.217 token/s | 238.687 / 59.608 MiB |
 | Model-M, 31.3M | train / generate | 0.528 / 1.226 token/s | 478.765 / 119.754 MiB |
-| Qwen2.5-0.5B official | train / decode | 1.571 / 19.524 token/s | 8.901 / 3.681 GiB |
-| DeepSeek Distill Qwen 1.5B official | train / decode | 1.350 / 10.252 token/s | 26.514 / 13.240 GiB |
+| Qwen2.5-0.5B official | train / generate | 7.300 / 18.771 token/s | 8.901 / 2.349 GiB |
+| DeepSeek Distill Qwen 1.5B official | train / generate | 5.794 / 10.018 token/s | 26.514 / 6.622 GiB |
 
 These are short functional measurements with random built-in models or fixed official
 prompts, not long-context or stable serving claims. “Peak engine memory” excludes
@@ -163,13 +164,12 @@ Matched Python/PyTorch ROCm comparison on the same MI300X:
 |---|---|---:|---:|---:|
 | Model-S | train / generate | 13.57 / 139.22 token/s | 177.57 / 293.55 token/s | 0.076× / 0.474× |
 | Model-M | train / generate | 3.51 / 90.57 token/s | 59.94 / 237.60 token/s | 0.059× / 0.381× |
-| Qwen2.5-0.5B | decode | 19.524 token/s | 20.916 token/s | 0.933× |
-| DeepSeek Distill Qwen 1.5B | decode | 10.252 token/s | 31.505 token/s | 0.325× |
+| Qwen2.5-0.5B | train / generate | 7.30 / 18.77 token/s | 51.32 / 70.18 token/s | 0.142× / 0.267× |
+| DeepSeek Distill Qwen 1.5B | train / generate | 5.79 / 10.02 token/s | 26.23 / 62.40 token/s | 0.221× / 0.161× |
 
-The built-in rows use matched warm-up/repetition settings. Official-model training is
-also retained, but it is a first-step functional timing and is not presented here as
-steady-state throughput. See [Python/PyTorch comparison](docs/dev/pytorch-benchmark.md)
-for raw data, memory ratios, implementation differences and limitations.
+All comparison rows use matched warm-up/repetition settings and exclude warm-up from
+reported throughput. See [Python/PyTorch comparison](docs/dev/pytorch-benchmark.md) for
+raw data, memory ratios, implementation differences and limitations.
 
 ## External weights
 

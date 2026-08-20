@@ -33,9 +33,10 @@ Every model/mode runs in a fresh process on both sides, preventing a previous ro
 pre-initializing allocator or kernel state. The comparator refuses mismatched parameter
 count, dtype, batch, context, steps, warm-up, token count, or measurement profile.
 
-The official HF matrix remains a one-run inference and one-step training smoke. Its
-training ratio includes first-step kernel setup and is not a steady-state training
-claim.
+The official HF comparison uses two warm-up iterations followed by five measured
+iterations. Training measures 15 predicted tokens. Qwen generation measures 20 new
+tokens and DeepSeek generation measures 40. Peak allocator counters are reset after
+warm-up; model/optimizer state remains resident.
 
 ## Run the built-in comparison
 

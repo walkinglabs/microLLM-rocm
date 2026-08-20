@@ -108,6 +108,8 @@ def infer(binary: Path, model: dict, device: str) -> dict:
         "--vocab", model["vocab"], "--merges", model["merges"],
         "--tokenizer-family", model["tokenizer_family"], "--device", device,
         "--new-tokens", str(inference["new_tokens"]),
+        "--warmup", str(inference.get("warmup", 0)),
+        "--steps", str(inference.get("steps", 1)),
     ]
     prompt_kind = inference.get("prompt_kind", "text")
     if prompt_kind == "text":
@@ -119,13 +121,20 @@ def infer(binary: Path, model: dict, device: str) -> dict:
     record = run_json(command)
     validate_common(record, model, "infer", device)
     positive = ("forward_ms", "prefill_tokens_per_second", "generation_ms",
-                "decode_tokens_per_second", "decode_milliseconds_per_token")
+                "mean_generation_ms", "decode_tokens_per_second",
+                "decode_milliseconds_per_token")
     if any(not math.isfinite(float(record.get(field, 0))) or record.get(field, 0) <= 0
            for field in positive):
         raise RuntimeError(f"{model['name']}/infer has invalid timing metrics")
     expected_tokens = inference.get("expected_generated_tokens")
     if expected_tokens is not None and record.get("generated_tokens") != expected_tokens:
         raise RuntimeError(f"{model['name']}/infer generated tokens changed")
+    expected_warmup = int(inference.get("warmup", 0))
+    expected_steps = int(inference.get("steps", 1))
+    if record.get("warmup") != expected_warmup or record.get("steps") != expected_steps:
+        raise RuntimeError(f"{model['name']}/infer warm-up or step count changed")
+    if record.get("measured_tokens") != expected_steps * inference["new_tokens"]:
+        raise RuntimeError(f"{model['name']}/infer measured token count changed")
     return record
 
 
@@ -135,6 +144,8 @@ def train(binary: Path, model: dict, device: str) -> dict:
         str(binary), "--config", model["config"], "--weights", model["weights"],
         "--tokens", training["tokens"], "--device", device,
         "--learning-rate", str(training["learning_rate"]),
+        "--warmup", str(training.get("warmup", 0)),
+        "--steps", str(training.get("steps", 1)),
     ])
     validate_common(record, model, "train", device)
     positive = ("step_ms", "tokens_per_second", "milliseconds_per_token")
@@ -146,6 +157,13 @@ def train(binary: Path, model: dict, device: str) -> dict:
     if record.get("optimizer_host_to_device_calls") != 0 or \
        record.get("optimizer_device_to_host_calls") != 0:
         raise RuntimeError(f"{model['name']}/train optimizer copied Tensor payloads")
+    expected_warmup = int(training.get("warmup", 0))
+    expected_steps = int(training.get("steps", 1))
+    predicted_tokens = len(training["tokens"].split(",")) - 1
+    if record.get("warmup") != expected_warmup or record.get("steps") != expected_steps:
+        raise RuntimeError(f"{model['name']}/train warm-up or step count changed")
+    if record.get("trained_tokens") != expected_steps * predicted_tokens:
+        raise RuntimeError(f"{model['name']}/train measured token count changed")
     return record
 
 

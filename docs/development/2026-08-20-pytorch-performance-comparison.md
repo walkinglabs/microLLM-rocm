@@ -41,28 +41,30 @@ generation and 13–17x faster in these short training shapes.
 
 | Model | Mode | microLLM token/s | PyTorch token/s | microLLM/PyTorch | Peak memory ratio |
 |---|---|---:|---:|---:|---:|
-| Qwen2.5-0.5B | decode | 19.524 | 20.916 | 0.933 | 1.920 |
-| Qwen2.5-0.5B | one train step | 1.571 | 0.459 | 3.423 | 0.951 |
-| DeepSeek Distill 1.5B | decode | 10.252 | 31.505 | 0.325 | 1.976 |
-| DeepSeek Distill 1.5B | one train step | 1.350 | 0.446 | 3.026 | 0.797 |
+| Qwen2.5-0.5B | generate | 18.771 | 70.182 | 0.267 | 1.225 |
+| Qwen2.5-0.5B | train | 7.300 | 51.324 | 0.142 | 0.951 |
+| DeepSeek Distill 1.5B | generate | 10.018 | 62.397 | 0.161 | 0.989 |
+| DeepSeek Distill 1.5B | train | 5.794 | 26.226 | 0.221 | 0.797 |
 
-The inference rows compare complete `generate` calls after a separate full-logit
-forward on both sides. The train rows are first-step functional measurements without a
-training warm-up. Therefore the apparent 3x training advantage is not accepted as a
-steady-state performance claim. A multi-step official-model benchmark is still needed.
+Both sides first run two unmeasured warm-up iterations, reset their peak allocator
+counter, and then measure five iterations. Qwen measures 20 generated or 15 trained
+tokens; DeepSeek measures 40 generated or 15 trained tokens. The old first-step result
+was rejected as a performance conclusion because it incorrectly suggested a 3x
+microLLM training lead.
 
-The official one-step numerical checks remained aligned while measuring:
+The multi-step numerical trajectories remained aligned while measuring:
 
 ```text
-Qwen loss absolute difference       8.58e-6
-DeepSeek loss absolute difference   2.86e-6
-Qwen final_norm[0] after update     7.468739033 on both paths
-DeepSeek final_norm[0] after update 2.124989748 on both paths
+Qwen final loss absolute difference       5.43e-6
+DeepSeek final loss absolute difference   1.14e-4
+Qwen final_norm[0] after update           7.468698978 on both paths
+DeepSeek final_norm[0] after update       2.125010967 on both paths
 ```
 
-The inference memory gap supports the existing hypothesis that microLLM's external
-weight loading and dynamic cache path retain too much temporary data. DeepSeek decode
-throughput also makes device-native preallocated K/V cache the next measured target.
+After resetting peak memory following warm-up, DeepSeek inference allocator peaks are
+nearly equal, while microLLM Qwen remains 1.225x PyTorch allocated peak. The 3.7–6.2x
+generation and 4.5–7.0x training throughput gaps make fused/device-native Attention,
+preallocated K/V cache and optimized backward the next measured targets.
 
 ## Evidence boundary
 

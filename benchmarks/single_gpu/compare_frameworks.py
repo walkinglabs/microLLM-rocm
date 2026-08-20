@@ -95,9 +95,13 @@ def compare_builtin(key: tuple[str, str], micro: dict, torch: dict) -> dict:
 
 def compare_hf(key: tuple[str, str], micro: dict, torch: dict) -> dict:
     require_equal(key, micro, torch,
-                  ("parameter_count", "fp32_weight_bytes", "compute_dtype", "loaded_tensors"))
+                  ("parameter_count", "fp32_weight_bytes", "compute_dtype", "loaded_tensors",
+                   "measurement_profile", "warmup", "steps"))
+    if micro.get("measurement_profile") != "comparison":
+        raise RuntimeError(f"{key} is a smoke record, not a comparison-grade record")
     if key[1] == "infer":
-        require_equal(key, micro, torch, ("token_count", "generated_tokens"))
+        require_equal(key, micro, torch,
+                      ("token_count", "generated_tokens", "measured_tokens"))
         micro_throughput = positive(micro, "decode_tokens_per_second", key)
         torch_throughput = positive(torch, "decode_tokens_per_second", key)
         throughput_name = "decode_tokens_per_second"
@@ -116,6 +120,8 @@ def compare_hf(key: tuple[str, str], micro: dict, torch: dict) -> dict:
         "model": key[0],
         "mode": key[1],
         "parameter_count": micro["parameter_count"],
+        "warmup": micro["warmup"],
+        "steps": micro["steps"],
         "throughput_metric": throughput_name,
         "microllm_throughput": micro_throughput,
         "pytorch_throughput": torch_throughput,

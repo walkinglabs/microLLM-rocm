@@ -55,11 +55,34 @@ build/hip-release/apps/microllm_hf_infer \
   --merges /path/to/merges.txt \
   --text "Hello world" \
   --device hip \
-  --new-tokens 4
+  --new-tokens 4 \
+  --warmup 2 \
+  --steps 5
 ```
 
 固定实验生成 `[0,358,2776,264]`，文字是 `! I'm a`，与 Transformers FP32
 完全一致。
+
+`--warmup` 会运行完整生成但不计入吞吐；完成后框架重置峰值分配计数，再用
+`--steps` 次完整生成计算 `decode_tokens_per_second`。默认值仍是 `warmup=0`、
+`steps=1`，用于一次性正确性检查。
+
+多步训练使用相同规则：
+
+```bash
+build/hip-release/apps/microllm_hf_train_step \
+  --config /path/to/config.json \
+  --weights /path/to/model.safetensors \
+  --tokens 1,2,3,4 \
+  --device hip \
+  --learning-rate 0.00001 \
+  --warmup 2 \
+  --steps 5
+```
+
+输出分别保留 `warmup_ms`、`measured_ms`、`mean_step_ms`、15 个 measured token 的
+吞吐和 measured 区间峰值显存。不得把 warm-up 时间混入 measured throughput，也
+不得删除 setup/warm-up 字段后再发布结果。
 
 ## 6. 比较完整 logits
 
