@@ -43,6 +43,8 @@
     "dequantize_fp8": "tests/ops/ops_test.cpp",
     "fp8_matmul": "tests/ops/hip_ops_test.cpp",
     "bf16_matmul_output": "tests/ops/hip_ops_test.cpp",
+    "bf16_plan_cache_stats": "tests/ops/hip_ops_test.cpp",
+    "clear_bf16_plan_cache": "tests/ops/hip_ops_test.cpp",
     "hipblaslt_available": "tests/ops/hip_ops_test.cpp",
     "choose_matmul_implementation": "tests/ops/hip_ops_test.cpp",
     "register_matmul_implementation": "tests/ops/hip_ops_test.cpp",

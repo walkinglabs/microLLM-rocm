@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 
 #include <microllm/core/tensor.h>
@@ -8,6 +9,12 @@
 namespace microllm::ops {
 
 enum class MatmulImplementation { Auto, Readable, HipBLASLt };
+
+struct Bf16PlanCacheStats {
+    std::size_t entries = 0;
+    std::size_t hits = 0;
+    std::size_t misses = 0;
+};
 
 struct TensorPair {
     Tensor first;
@@ -75,6 +82,8 @@ void adamw_update_(Tensor& parameter, const Tensor& gradient,
 [[nodiscard]] Tensor matmul(const Tensor& left, const Tensor& right,
                             const OpContext& context = {});
 [[nodiscard]] bool hipblaslt_available() noexcept;
+[[nodiscard]] Bf16PlanCacheStats bf16_plan_cache_stats() noexcept;
+void clear_bf16_plan_cache() noexcept;
 [[nodiscard]] MatmulImplementation choose_matmul_implementation(
     const Tensor& left, const Tensor& right);
 void register_matmul_implementation(std::int64_t rows, std::int64_t inner,

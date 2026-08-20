@@ -19,6 +19,7 @@ def options():
     parser.add_argument("--raw-output", required=True, type=Path)
     parser.add_argument("--summary-output", required=True, type=Path)
     parser.add_argument("--runs", type=int, default=3)
+    parser.add_argument("--baseline-kind", choices=("ffn", "attention"), default="ffn")
     result = parser.parse_args()
     if result.runs <= 0:
         parser.error("runs must be positive")
@@ -122,12 +123,18 @@ def main():
         torch = pytorch[model["name"]]
         decode = median(candidate, "decode_tokens_per_second")
         prefill = median(candidate, "prefill_tokens_per_second")
-        rows.append({
+        old_decode_key = ("bf16_ffn_decode_tokens_per_second" if args.baseline_kind == "ffn"
+                          else "candidate_decode_tokens_per_second")
+        old_prefill_key = ("bf16_ffn_prefill_tokens_per_second" if args.baseline_kind == "ffn"
+                           else "candidate_prefill_tokens_per_second")
+        decode_speedup_key = ("decode_speedup_vs_bf16_ffn" if args.baseline_kind == "ffn"
+                              else "decode_speedup_vs_bf16_attention")
+        prefill_speedup_key = ("prefill_speedup_vs_bf16_ffn" if args.baseline_kind == "ffn"
+                               else "prefill_speedup_vs_bf16_attention")
+        row = {
             "model": model["name"], "revision": model["revision"],
             "candidate_decode_tokens_per_second": decode,
             "candidate_prefill_tokens_per_second": prefill,
-            "decode_speedup_vs_bf16_ffn": decode / old["bf16_ffn_decode_tokens_per_second"],
-            "prefill_speedup_vs_bf16_ffn": prefill / old["bf16_ffn_prefill_tokens_per_second"],
             "decode_ratio_vs_pytorch_bf16": decode /
                 torch["pytorch_bf16_decode_tokens_per_second"],
             "prefill_ratio_vs_pytorch_bf16": prefill /
@@ -137,7 +144,10 @@ def main():
             "max_abs_logit_difference": max(
                 row["max_abs_logit_difference_vs_fp32"] for row in candidate),
             "all_exact_expected_tokens": all(row["exact_expected_tokens"] for row in candidate),
-        })
+        }
+        row[decode_speedup_key] = decode / old[old_decode_key]
+        row[prefill_speedup_key] = prefill / old[old_prefill_key]
+        rows.append(row)
     summary = {"schema_version": 1, "track": "bf16_attention_official_models",
                "aggregation": "median of three independent candidate processes by default",
                "rows": rows}

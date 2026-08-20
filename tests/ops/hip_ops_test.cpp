@@ -280,6 +280,32 @@ TEST(HipBf16ProjectionTest, SharedQkvCastMatchesThreeCpuMixedGemms) {
     expect_near(actual.third.to_vector(), expected.third.to_vector(), 3.0e-2F);
 }
 
+TEST(HipBf16PlanCacheTest, ExactShapeMissesOnceThenReusesImmutableDescriptors) {
+    require_gpu();
+    if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";
+    const auto gpu = Device::hip(0);
+    auto left = Tensor({64, 128}, DType::BFloat16, gpu);
+    auto right = Tensor({128, 256}, DType::BFloat16, gpu);
+    fill_(left, 0.25F);
+    fill_(right, -0.125F);
+    clear_bf16_plan_cache();
+    EXPECT_EQ(bf16_plan_cache_stats().entries, 0U);
+    (void)bf16_matmul_output(left, right, DType::BFloat16);
+    runtime::synchronize(gpu);
+    const auto first = bf16_plan_cache_stats();
+    EXPECT_EQ(first.entries, 1U);
+    EXPECT_EQ(first.misses, 1U);
+    EXPECT_EQ(first.hits, 0U);
+    (void)bf16_matmul_output(left, right, DType::BFloat16);
+    runtime::synchronize(gpu);
+    const auto second = bf16_plan_cache_stats();
+    EXPECT_EQ(second.entries, 1U);
+    EXPECT_EQ(second.misses, 1U);
+    EXPECT_EQ(second.hits, 1U);
+    clear_bf16_plan_cache();
+    EXPECT_EQ(bf16_plan_cache_stats().entries, 0U);
+}
+
 TEST(HipFp8OpsTest, QuantizeDequantizeAndScaledGemmAreDeviceNative) {
     require_gpu();
     if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";

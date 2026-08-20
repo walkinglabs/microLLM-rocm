@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <string>
 #include <map>
+#include <memory>
 #include <mutex>
 #include <tuple>
 
@@ -25,7 +26,7 @@ std::map<MatmulShapeKey, MatmulImplementation> registry;
 // FP32 even though the same problem can write BF16. Remember the observed
 // capability per shape so repeated transformer layers do not retry a rejected
 // library path on every token.
-std::map<MatmulShapeKey, bool> bf16_fp32_direct_registry;
+thread_local std::map<MatmulShapeKey, bool> bf16_fp32_direct_registry;
 #endif
 }  // namespace
 
@@ -157,6 +158,58 @@ private:
     hipblasLtMatmulDesc_t value_ = nullptr;
 };
 
+using Bf16PlanKey = std::tuple<std::int64_t, std::int64_t, std::int64_t, DType>;
+
+class Bf16Plan {
+public:
+    Bf16Plan(std::int64_t rows, std::int64_t inner, std::int64_t columns,
+             DType output_dtype)
+        : matrix_b_(HIP_R_16BF, static_cast<std::uint64_t>(columns),
+                    static_cast<std::uint64_t>(inner), columns),
+          matrix_a_(HIP_R_16BF, static_cast<std::uint64_t>(inner),
+                    static_cast<std::uint64_t>(rows), inner),
+          matrix_c_(hip_dtype(output_dtype), static_cast<std::uint64_t>(columns),
+                    static_cast<std::uint64_t>(rows), columns) {}
+
+    [[nodiscard]] hipblasLtMatmulDesc_t operation() const noexcept {
+        return operation_.get();
+    }
+    [[nodiscard]] hipblasLtMatrixLayout_t matrix_b() const noexcept {
+        return matrix_b_.get();
+    }
+    [[nodiscard]] hipblasLtMatrixLayout_t matrix_a() const noexcept {
+        return matrix_a_.get();
+    }
+    [[nodiscard]] hipblasLtMatrixLayout_t matrix_c() const noexcept {
+        return matrix_c_.get();
+    }
+
+private:
+    MatmulDescription operation_;
+    Layout matrix_b_;
+    Layout matrix_a_;
+    Layout matrix_c_;
+};
+
+thread_local std::map<Bf16PlanKey, std::unique_ptr<Bf16Plan>> bf16_plans;
+thread_local std::size_t bf16_plan_hits = 0;
+thread_local std::size_t bf16_plan_misses = 0;
+
+Bf16Plan& bf16_plan(std::int64_t rows, std::int64_t inner,
+                    std::int64_t columns, DType output_dtype) {
+    const Bf16PlanKey key{rows, inner, columns, output_dtype};
+    const auto found = bf16_plans.find(key);
+    if (found != bf16_plans.end()) {
+        ++bf16_plan_hits;
+        return *found->second;
+    }
+    ++bf16_plan_misses;
+    auto plan = std::make_unique<Bf16Plan>(rows, inner, columns, output_dtype);
+    auto* result = plan.get();
+    bf16_plans.emplace(key, std::move(plan));
+    return *result;
+}
+
 Tensor hipblaslt_matmul(const Tensor& left, const Tensor& right,
                         bool transpose_left, bool transpose_right,
                         const OpContext& context) {
@@ -218,7 +271,6 @@ Tensor hipblaslt_bf16_matmul(const Tensor& left, const Tensor& right,
     }
     const MatmulShapeKey shape{rows, inner, columns};
     if (output_dtype == DType::Float32) {
-        const std::lock_guard<std::mutex> lock(registry_mutex);
         const auto found = bf16_fp32_direct_registry.find(shape);
         if (found != bf16_fp32_direct_registry.end() && !found->second) {
             return cast(hipblaslt_bf16_matmul(
@@ -228,24 +280,17 @@ Tensor hipblaslt_bf16_matmul(const Tensor& left, const Tensor& right,
     }
     Tensor output({rows, columns}, output_dtype, left.device());
     static Handle handle;
-    MatmulDescription operation;
-    Layout matrix_b(HIP_R_16BF, static_cast<std::uint64_t>(columns),
-                    static_cast<std::uint64_t>(inner), columns);
-    Layout matrix_a(HIP_R_16BF, static_cast<std::uint64_t>(inner),
-                    static_cast<std::uint64_t>(rows), inner);
-    Layout matrix_c(hip_dtype(output_dtype), static_cast<std::uint64_t>(columns),
-                    static_cast<std::uint64_t>(rows), columns);
+    auto& plan = bf16_plan(rows, inner, columns, output_dtype);
     const float alpha = 1.0F;
     const float beta = 0.0F;
     const auto status = hipblasLtMatmul(
-        handle.get(), operation.get(), &alpha,
-        right.data(), matrix_b.get(), left.data(), matrix_a.get(),
-        &beta, output.data(), matrix_c.get(), output.data(), matrix_c.get(),
+        handle.get(), plan.operation(), &alpha,
+        right.data(), plan.matrix_b(), left.data(), plan.matrix_a(),
+        &beta, output.data(), plan.matrix_c(), output.data(), plan.matrix_c(),
         nullptr, context.workspace, context.workspace_bytes,
         reinterpret_cast<hipStream_t>(context.native_stream(left.device())));
     if (status == HIPBLAS_STATUS_SUCCESS) {
         if (output_dtype == DType::Float32) {
-            const std::lock_guard<std::mutex> lock(registry_mutex);
             bf16_fp32_direct_registry[shape] = true;
         }
         return output;
@@ -253,10 +298,7 @@ Tensor hipblaslt_bf16_matmul(const Tensor& left, const Tensor& right,
     if (output_dtype == DType::Float32 &&
         (status == HIPBLAS_STATUS_INTERNAL_ERROR ||
          status == HIPBLAS_STATUS_NOT_SUPPORTED)) {
-        {
-            const std::lock_guard<std::mutex> lock(registry_mutex);
-            bf16_fp32_direct_registry[shape] = false;
-        }
+        bf16_fp32_direct_registry[shape] = false;
         return cast(hipblaslt_bf16_matmul(left, right, DType::BFloat16, context),
                     DType::Float32, context);
     }
@@ -311,6 +353,22 @@ Tensor hipblaslt_fp8_matmul(const ScaledTensor& left, const ScaledTensor& right,
 
 }  // namespace
 #endif
+
+Bf16PlanCacheStats bf16_plan_cache_stats() noexcept {
+#if MICROLLM_HAS_HIPBLASLT
+    return {bf16_plans.size(), bf16_plan_hits, bf16_plan_misses};
+#else
+    return {};
+#endif
+}
+
+void clear_bf16_plan_cache() noexcept {
+#if MICROLLM_HAS_HIPBLASLT
+    bf16_plans.clear();
+    bf16_plan_hits = 0;
+    bf16_plan_misses = 0;
+#endif
+}
 
 Tensor matmul_with_implementation(const Tensor& left, const Tensor& right,
                                   MatmulImplementation implementation,

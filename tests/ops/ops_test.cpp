@@ -136,6 +136,15 @@ TEST(CpuOpsTest, Bf16QkvProjectionCastsSharedInputOnceAndKeepsFp32Outputs) {
                  std::invalid_argument);
 }
 
+TEST(CpuOpsTest, Bf16PlanCacheIsEmptyWithoutHipblaslt) {
+    if (hipblaslt_available()) GTEST_SKIP() << "HIP build exercises cache statistics";
+    clear_bf16_plan_cache();
+    const auto stats = bf16_plan_cache_stats();
+    EXPECT_EQ(stats.entries, 0U);
+    EXPECT_EQ(stats.hits, 0U);
+    EXPECT_EQ(stats.misses, 0U);
+}
+
 TEST(CpuOpsTest, TransposeAwareMatmulCoversAllOperandLayoutsWithoutViews) {
     const auto logical_left = Tensor::from_vector({1, 2, 3, 4, 5, 6}, {2, 3});
     const auto logical_right = Tensor::from_vector(
