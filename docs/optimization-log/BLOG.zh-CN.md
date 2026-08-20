@@ -579,7 +579,27 @@ DeepSeek training          -5.2%
 
 这正是 autoresearch 风格记录的意义：running best 不下降，失败实验也不会消失。
 
-## 18. 怎样读进度图
+## 18. Experiment 008：一次快、一次慢时怎么办
+
+第二个候选只缓存 hipBLASLt 官方声明可序列化的 algorithm，不缓存 descriptor。
+Focused 测试仍全部通过。第一次结果低于 running best，但同一时段重新运行原版后，
+候选看起来又更快。
+
+这不是可以挑数据的理由，而是测量协议不够强的信号。我们让 baseline 和 candidate
+各运行三个独立进程，每个进程内部仍是 2 次热身、5 次正式计时，再逐 workload 取
+中位数：
+
+| Workload | Baseline median | Candidate median | Change |
+|---|---:|---:|---:|
+| Qwen train | 107.08 | 107.39 | +0.3% |
+| Qwen generate | 134.87 | 122.58 | -9.1% |
+| DeepSeek train | 68.77 | 67.31 | -2.1% |
+| DeepSeek generate | 49.05 | 48.94 | -0.2% |
+
+候选被 discard。比代码更重要的产物是新规则：从此声称小于 10% 的收益，至少需要
+三次 baseline 和三次 candidate 进程中位数。单次高点不能决定合入。
+
+## 19. 怎样读进度图
 
 图中：
 
@@ -591,10 +611,10 @@ DeepSeek training          -5.2%
 - 右侧条形：当前四项 workload ratio；
 - 底部卡片：计划步骤，不代表已经完成。
 
-当前有 baseline 和六个 keep 实验共七个绿色点，以及一个 discard 灰点。未来如果十个实验都失败，图上就
+当前有 baseline 和六个 keep 实验共七个绿色点，以及两个 discard 灰点。未来如果十个实验都失败，图上就
 应出现十个灰点，而不是凭空出现一条漂亮上升曲线。
 
-## 19. 什么才算从 0 到 1
+## 20. 什么才算从 0 到 1
 
 完成一个 Kernel 不是 1，某个 shape 跑得快也不是 1。
 

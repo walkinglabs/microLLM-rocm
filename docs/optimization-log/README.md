@@ -43,6 +43,10 @@ Experiment 007 的 hipBLASLt descriptor/layout cache 数值正确但被 discard�
 `1.669755` 低于 running best，Qwen generation 和 DeepSeek training 分别退化约
 6.1%/5.2%。灰点会保留在图上。
 
+Experiment 008 只缓存可序列化 algorithm，同样被 discard。它还暴露了进程间波动：
+单次比较会给出相反解释，三进程中位数最终确认 Qwen generation 退化 9.1%。此后
+小于 10% 的候选强制使用 baseline/candidate 各三进程中位数。
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
