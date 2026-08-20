@@ -4,10 +4,12 @@
 
 - `main` owns the framework: C++/HIP sources, public APIs, tests, bindings,
   benchmarks, technical contracts, and chronological development records.
-- `tutorial/beginner-course` owns N0–N8, PA0–PA2, and the beginner-facing course.
+- `tutorial/beginner-course` owns N0–N10, PA0–PA2, and the beginner-facing course.
 
-The tutorial branch is based on the tested framework commit so examples can consume the
-same engine. Course files are not release gates for the framework branch.
+The original tutorial branch was based on a tested framework commit. On 2026-08-20 it
+was made course-only: examples now consume a separate `main` checkout through
+`MICROLLM_ENGINE_DIR`, preventing a stale engine copy from living in the course branch.
+Course files are not release gates for the framework branch.
 
 ## Main changes
 
@@ -19,6 +21,6 @@ same engine. Course files are not release gates for the framework branch.
 
 ## Evidence
 
-After separation, framework-only CPU CTest passes 98/98 and the API/test-file coverage
-audit still passes. The tutorial branch remains available remotely with all N0–N8 and
-PA0–PA2 files.
+After separation, framework-only CPU CTest passed 98/98 and the API/test-file coverage
+audit passed. The tutorial branch remains available remotely. The 2026-08-20 follow-up
+retains N0–N10 and PA0–PA2 while removing the copied engine tree.

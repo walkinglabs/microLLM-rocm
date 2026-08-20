@@ -137,3 +137,6 @@ the next gate. Records are append-only except for factual corrections.
 - [2026-08-19-data-parallel-trainer.md](2026-08-19-data-parallel-trainer.md):
   reusable two-rank training step, bucketed gradient average, global-batch equivalence,
   stage profiling, and production reducer gaps.
+- [2026-08-20-course-only-branch.md](2026-08-20-course-only-branch.md): removed the
+  duplicated engine from the tutorial branch, added a course-only CI boundary, and
+  extended the curriculum through official HF models and FP8.

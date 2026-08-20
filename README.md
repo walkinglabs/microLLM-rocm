@@ -263,8 +263,9 @@ overlap or one-process-per-GPU production semantics. See
 - [Roadmap and explicit gaps](docs/development/NEXT_STEPS.md)
 - [Chronological development records](docs/development/README.md)
 
-The beginner course is maintained separately on
+The course-only N0–N10 curriculum is maintained separately on
 [`tutorial/beginner-course`](https://github.com/walkinglabs/microLLM-rocm/tree/tutorial/beginner-course).
+That branch contains teaching documents and assignments, not a copy of this engine.
 
 ## Contributing
 

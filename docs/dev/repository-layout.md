@@ -57,3 +57,5 @@ io ─────────────────────────�
 
 The beginner course is deliberately absent from `main`; it lives on
 `tutorial/beginner-course` and consumes the framework as a downstream deliverable.
+It must not mirror `src/`, `include/`, `tests/`, applications, bindings, or benchmarks;
+course commands use `MICROLLM_ENGINE_DIR` to point to an independent `main` checkout.

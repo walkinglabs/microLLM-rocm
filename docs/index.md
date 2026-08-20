@@ -37,6 +37,7 @@ and chronological engineering evidence.
 
 ## Course
 
-The beginner course, N0–N8, and PA0–PA2 are maintained on the separate
+The beginner course, N0–N10, and PA0–PA2 are maintained on the separate
 [`tutorial/beginner-course`](https://github.com/walkinglabs/microLLM-rocm/tree/tutorial/beginner-course)
-branch. Framework releases and course publication have independent acceptance gates.
+branch. It is course-only and runs examples/tests from an independent `main` checkout.
+Framework releases and course publication have independent acceptance gates.
