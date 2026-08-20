@@ -89,7 +89,10 @@ std::string ModelConfig::summary() const {
            << ",max_seq=" << max_sequence_length << ",rope_base=" << rope_base
            << ",tie_embeddings=" << (tie_embeddings ? "true" : "false")
            << ",linear_precision="
-           << (linear_precision == LinearPrecision::Float32 ? "fp32" : "fp8_e4m3_fnuz")
+           << (linear_precision == LinearPrecision::Float32
+                   ? "fp32"
+                   : linear_precision == LinearPrecision::BFloat16
+                         ? "bf16_fp32_master" : "fp8_e4m3_fnuz")
            << ",rms_eps=" << rms_norm_epsilon
            << ",attention_bias=" << (attention_bias ? "true" : "false")
            << ",rope_layout=" << (rope_layout == RopeLayout::Interleaved ? "interleaved" : "split_half")

@@ -107,6 +107,9 @@ public:
     }
 
     Value forward_without_bias(const Value& input) {
+        if (precision_ == LinearPrecision::BFloat16) {
+            return autograd::bf16_matmul(input, weight_);
+        }
         if (precision_ == LinearPrecision::Float8E4M3FNUZ) {
             return autograd::fp8_matmul(input, weight_, activation_scale_, weight_scale_);
         }
@@ -117,6 +120,9 @@ public:
         return has_bias_ ? autograd::add_bias(output, bias_) : output;
     }
     Tensor forward_tensor_without_bias(const Tensor& input) {
+        if (precision_ == LinearPrecision::BFloat16) {
+            return ops::bf16_matmul(input, ops::cast(weight_.data(), DType::BFloat16));
+        }
         if (precision_ == LinearPrecision::Float8E4M3FNUZ) {
             return ops::fp8_matmul(
                 ops::quantize_fp8(input, DType::Float8E4M3FNUZ, activation_scale_),

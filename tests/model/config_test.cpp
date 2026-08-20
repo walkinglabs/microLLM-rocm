@@ -28,6 +28,14 @@ TEST(ModelConfigTest, GqaBudgetUsesReducedKeyValueProjection) {
     EXPECT_EQ(config.kv_dimension(), 128);
 }
 
+TEST(ModelConfigTest, Bf16LinearPolicyIsVisibleInSummary) {
+    auto config = ModelConfig::model_s();
+    config.linear_precision = LinearPrecision::BFloat16;
+    config.validate();
+    EXPECT_NE(config.summary().find("linear_precision=bf16_fp32_master"),
+              std::string::npos);
+}
+
 TEST(ModelConfigTest, RejectsInvalidHeadAndRopeConfigurations) {
     auto config = ModelConfig::model_s();
     config.dimension = 383;

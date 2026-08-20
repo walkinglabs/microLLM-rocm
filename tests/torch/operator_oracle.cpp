@@ -458,6 +458,23 @@ void emit_model_graph_case() {
         throw std::logic_error("tiny model BF16 Attention preparation count changed");
     }
     emit("model_bf16_attention_ffn_logits", model.forward_inference(tokens));
+
+    auto bf16_training_config = config;
+    bf16_training_config.linear_precision =
+        microllm::model::LinearPrecision::BFloat16;
+    microllm::model::TransformerModel bf16_training_model(bf16_training_config, 211);
+    for (const auto& [name, parameter] : bf16_training_model.named_parameters()) {
+        emit("model_bf16_train_param:" + name, parameter->data());
+    }
+    const auto bf16_training_logits = bf16_training_model.forward(tokens);
+    emit("model_bf16_train_logits", bf16_training_logits.data());
+    const auto bf16_training_loss = microllm::autograd::cross_entropy(
+        bf16_training_logits, targets);
+    emit("model_bf16_train_loss", bf16_training_loss.data());
+    bf16_training_loss.backward();
+    for (const auto& [name, parameter] : bf16_training_model.named_parameters()) {
+        emit("model_bf16_train_grad:" + name, parameter->grad());
+    }
 }
 
 void emit_optimizer_cases() {

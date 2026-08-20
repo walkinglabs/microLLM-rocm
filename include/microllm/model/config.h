@@ -5,7 +5,7 @@
 
 namespace microllm::model {
 
-enum class LinearPrecision { Float32, Float8E4M3FNUZ };
+enum class LinearPrecision { Float32, BFloat16, Float8E4M3FNUZ };
 enum class RopeLayout { Interleaved, SplitHalf };
 
 struct ModelConfig {

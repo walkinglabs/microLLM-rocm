@@ -55,6 +55,50 @@ def causal_softmax(scores):
     return torch.softmax(scores.masked_fill(future, -torch.inf), dim=-1)
 
 
+class SteBf16Matmul(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, left, right):
+        ctx.save_for_backward(left, right)
+        return left.detach().to(torch.bfloat16).float() @ right.detach().to(torch.bfloat16).float()
+
+    @staticmethod
+    def backward(ctx, gradient):
+        left, right = ctx.saved_tensors
+        return gradient @ right.transpose(0, 1), left.transpose(0, 1) @ gradient
+
+
+def tiny_model_forward(params, tokens, targets, linear):
+    hidden = F.embedding(tokens, params["token_embedding.weight"])
+    prefix = "blocks.0"
+    normalized = F.rms_norm(hidden, (8,), params[f"{prefix}.attention_norm.weight"], 1.0e-5)
+    flat = normalized.reshape(4, 8)
+    query = linear(flat, params[f"{prefix}.attention.q_proj.weight"]).reshape(
+        1, 4, 2, 4).transpose(1, 2)
+    key = linear(flat, params[f"{prefix}.attention.k_proj.weight"]).reshape(
+        1, 4, 1, 4).transpose(1, 2)
+    value = linear(flat, params[f"{prefix}.attention.v_proj.weight"]).reshape(
+        1, 4, 1, 4).transpose(1, 2)
+    query = rope(query, sequence_dim=2)
+    key = torch.repeat_interleave(rope(key, sequence_dim=2), 2, dim=1)
+    value = torch.repeat_interleave(value, 2, dim=1)
+    scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(4.0)
+    probabilities = causal_softmax(scores)
+    context = torch.matmul(probabilities, value).transpose(1, 2).contiguous().reshape(4, 8)
+    attention = linear(context, params[f"{prefix}.attention.o_proj.weight"]).reshape(1, 4, 8)
+    hidden = hidden + attention
+    normalized = F.rms_norm(hidden, (8,), params[f"{prefix}.ffn_norm.weight"], 1.0e-5)
+    flat = normalized.reshape(4, 8)
+    gate = linear(flat, params[f"{prefix}.feed_forward.gate_proj.weight"])
+    up = linear(flat, params[f"{prefix}.feed_forward.up_proj.weight"])
+    feed_forward = linear(
+        F.silu(gate) * up, params[f"{prefix}.feed_forward.down_proj.weight"])
+    hidden = hidden + feed_forward.reshape(1, 4, 8)
+    hidden = F.rms_norm(hidden, (8,), params["final_norm.weight"], 1.0e-5)
+    logits = linear(hidden.reshape(4, 8), params["output_head.weight"]).reshape(1, 4, 8)
+    loss = F.cross_entropy(logits.reshape(4, 8), targets.reshape(4))
+    return logits, loss
+
+
 def record(mapping, name, value):
     detached = value.detach().to(torch.float32).cpu().clone()
     mapping[name] = (list(detached.shape), detached.reshape(-1))
@@ -306,31 +350,35 @@ def pytorch_references(actual):
     record(refs, "graph_reshape_input_grad", reshape_input.grad)
 
     params = {}
+    bf16_train_params = {}
     for case, (shape, values) in actual.items():
         if case.startswith("model_param:"):
             name = case.removeprefix("model_param:")
             parameter = values.reshape(shape).clone().requires_grad_(True)
             params[name] = parameter
             record(refs, case, parameter)
+        elif case.startswith("model_bf16_train_param:"):
+            name = case.removeprefix("model_bf16_train_param:")
+            parameter = values.reshape(shape).clone().requires_grad_(True)
+            bf16_train_params[name] = parameter
+            record(refs, case, parameter)
 
     tokens = torch.tensor([[0, 1, 2, 3]], dtype=torch.long)
     model_targets = torch.tensor([[1, 2, 3, 0]], dtype=torch.long)
-    hidden = F.embedding(tokens, params["token_embedding.weight"])
     prefix = "blocks.0"
+    # Keep the intermediate FP32 path below for the two inference-policy references.
+    hidden = F.embedding(tokens, params["token_embedding.weight"])
     normalized = F.rms_norm(hidden, (8,), params[f"{prefix}.attention_norm.weight"], 1.0e-5)
     flat = normalized.reshape(4, 8)
     query = (flat @ params[f"{prefix}.attention.q_proj.weight"]).reshape(1, 4, 2, 4).transpose(1, 2)
     key = (flat @ params[f"{prefix}.attention.k_proj.weight"]).reshape(1, 4, 1, 4).transpose(1, 2)
     value = (flat @ params[f"{prefix}.attention.v_proj.weight"]).reshape(1, 4, 1, 4).transpose(1, 2)
     query = rope(query, sequence_dim=2)
-    key = rope(key, sequence_dim=2)
-    key = torch.repeat_interleave(key, 2, dim=1)
+    key = torch.repeat_interleave(rope(key, sequence_dim=2), 2, dim=1)
     value = torch.repeat_interleave(value, 2, dim=1)
-    scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(4.0)
-    probabilities = causal_softmax(scores)
+    probabilities = causal_softmax(torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(4.0))
     context = torch.matmul(probabilities, value).transpose(1, 2).contiguous().reshape(4, 8)
-    attention = (context @ params[f"{prefix}.attention.o_proj.weight"]).reshape(1, 4, 8)
-    hidden = hidden + attention
+    hidden = hidden + (context @ params[f"{prefix}.attention.o_proj.weight"]).reshape(1, 4, 8)
     normalized = F.rms_norm(hidden, (8,), params[f"{prefix}.ffn_norm.weight"], 1.0e-5)
     flat = normalized.reshape(4, 8)
     bf16_flat = flat.detach().to(torch.bfloat16)
@@ -388,18 +436,21 @@ def pytorch_references(actual):
         bf_attention_hidden.reshape(4, 8) @ params["output_head.weight"].detach()
     ).reshape(1, 4, 8)
     record(refs, "model_bf16_attention_ffn_logits", bf_attention_logits)
-    gate = flat @ params[f"{prefix}.feed_forward.gate_proj.weight"]
-    up = flat @ params[f"{prefix}.feed_forward.up_proj.weight"]
-    feed_forward = (F.silu(gate) * up) @ params[f"{prefix}.feed_forward.down_proj.weight"]
-    hidden = hidden + feed_forward.reshape(1, 4, 8)
-    hidden = F.rms_norm(hidden, (8,), params["final_norm.weight"], 1.0e-5)
-    model_logits = (hidden.reshape(4, 8) @ params["output_head.weight"]).reshape(1, 4, 8)
-    model_loss = F.cross_entropy(model_logits.reshape(4, 8), model_targets.reshape(4))
+    model_logits, model_loss = tiny_model_forward(
+        params, tokens, model_targets, lambda left, right: left @ right)
     record(refs, "model_logits", model_logits)
     record(refs, "model_loss", model_loss)
     model_loss.backward()
     for name, parameter in params.items():
         record(refs, f"model_grad:{name}", parameter.grad)
+
+    bf16_train_logits, bf16_train_loss = tiny_model_forward(
+        bf16_train_params, tokens, model_targets, SteBf16Matmul.apply)
+    record(refs, "model_bf16_train_logits", bf16_train_logits)
+    record(refs, "model_bf16_train_loss", bf16_train_loss)
+    bf16_train_loss.backward()
+    for name, parameter in bf16_train_params.items():
+        record(refs, f"model_bf16_train_grad:{name}", parameter.grad)
 
     sgd_parameter = tensor([1.0, -2.0], (2,), True)
     sgd = torch.optim.SGD([sgd_parameter], lr=0.1, weight_decay=0.01)

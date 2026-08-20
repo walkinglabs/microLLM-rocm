@@ -54,6 +54,7 @@ int main(int argc, char** argv) {
         float learning_rate = 1.0e-5F;
         int warmup = 0;
         int steps = 1;
+        std::string linear_precision = "fp32";
         for (int index = 1; index < argc; index += 2) {
             if (index + 1 >= argc) throw std::invalid_argument("missing CLI value");
             const std::string name = argv[index];
@@ -64,6 +65,7 @@ int main(int argc, char** argv) {
             else if (name == "--learning-rate") learning_rate = std::stof(argv[index + 1]);
             else if (name == "--warmup") warmup = std::stoi(argv[index + 1]);
             else if (name == "--steps") steps = std::stoi(argv[index + 1]);
+            else if (name == "--linear-precision") linear_precision = argv[index + 1];
             else throw std::invalid_argument("unknown option: " + name);
         }
         if (config_path.empty() || weights_path.empty() || token_text.empty()) {
@@ -72,12 +74,18 @@ int main(int argc, char** argv) {
         if (warmup < 0 || steps <= 0) {
             throw std::invalid_argument("--warmup must be nonnegative and --steps positive");
         }
+        if (linear_precision != "fp32" && linear_precision != "bf16") {
+            throw std::invalid_argument("--linear-precision must be fp32 or bf16");
+        }
         const auto device = device_text == "hip" ? microllm::Device::hip(0)
                                                    : microllm::Device::cpu();
         if (device_text != "cpu" && device_text != "hip") {
             throw std::invalid_argument("--device must be cpu or hip");
         }
-        const auto external = microllm::model::load_huggingface_config(config_path);
+        auto external = microllm::model::load_huggingface_config(config_path);
+        if (linear_precision == "bf16") {
+            external.model.linear_precision = microllm::model::LinearPrecision::BFloat16;
+        }
         microllm::runtime::reset_allocation_peak(device);
         microllm::model::TransformerModel model(external.model, 1);
         model.to(device);
@@ -160,7 +168,9 @@ int main(int argc, char** argv) {
                   << ",\"hip_runtime_version\":"
                   << microllm::runtime::hip_runtime_version()
                   << ",\"hip_driver_version\":" << microllm::runtime::hip_driver_version()
-                  << ",\"compute_dtype\":\"float32\""
+                  << ",\"compute_dtype\":\""
+                  << (linear_precision == "bf16" ? "bf16_linear_fp32_master" : "float32")
+                  << "\""
                   << ",\"measurement_profile\":\""
                   << (warmup > 0 || steps > 1 ? "comparison" : "smoke") << "\""
                   << ",\"loaded_tensors\":" << report.loaded.size()

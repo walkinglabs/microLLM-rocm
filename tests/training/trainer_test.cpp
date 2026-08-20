@@ -44,6 +44,31 @@ TEST(TrainerTest, MultipleStepsLowerLossWithFiniteMetrics) {
     EXPECT_LT(last, first);
 }
 
+TEST(TrainerTest, Bf16LinearPolicyLowersLossWithFp32MasterAdamw) {
+    io::TokenDataset dataset({0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3}, 3);
+    auto config = tiny_config();
+    config.linear_precision = model::LinearPrecision::BFloat16;
+    model::TransformerModel transformer(config, 32);
+    AdamW optimizer(transformer.parameters(), {.learning_rate = 0.02F,
+                                                .beta1 = 0.9F,
+                                                .beta2 = 0.99F,
+                                                .epsilon = 1.0e-8F,
+                                                .weight_decay = 0.0F});
+    float first = 0.0F;
+    float last = 0.0F;
+    for (std::uint64_t step = 1; step <= 20; ++step) {
+        const auto metrics = train_step(transformer, optimizer, dataset.next_batch(2), step);
+        if (step == 1) first = metrics.loss;
+        last = metrics.loss;
+        EXPECT_TRUE(std::isfinite(metrics.loss));
+        EXPECT_TRUE(std::isfinite(metrics.gradient_l2_norm));
+    }
+    EXPECT_LT(last, first);
+    for (const auto& [name, parameter] : transformer.named_parameters()) {
+        EXPECT_EQ(parameter->data().dtype(), DType::Float32) << name;
+    }
+}
+
 TEST(TrainerTest, RejectsMismatchedBatchShapes) {
     model::TransformerModel model(tiny_config(), 37);
     AdamW optimizer(model.parameters());

@@ -169,6 +169,26 @@ TEST(TransformerModelTest, Fp8LinearPolicyRunsFullForwardLossAndBackward) {
     }
 }
 
+TEST(TransformerModelTest, Bf16LinearPolicyRunsFullForwardLossAndBackward) {
+    auto config = tiny_config();
+    config.linear_precision = LinearPrecision::BFloat16;
+    TransformerModel model(config, 12);
+    const auto tokens = Tensor::from_int32_vector({1, 2, 3, 4}, {1, 4});
+    const auto targets = Tensor::from_int32_vector({2, 3, 4, 5}, {1, 4});
+    const auto logits = model.forward(tokens);
+    EXPECT_EQ(logits.data().dtype(), DType::Float32);
+    EXPECT_EQ(logits.data().shape(), (Shape{1, 4, 16}));
+    const auto loss = model.loss(tokens, targets);
+    EXPECT_TRUE(std::isfinite(loss.data().to_vector()[0]));
+    loss.backward();
+    for (const auto& [name, parameter] : model.named_parameters()) {
+        ASSERT_TRUE(parameter->has_grad()) << name;
+        EXPECT_EQ(parameter->data().dtype(), DType::Float32) << name;
+        EXPECT_EQ(parameter->grad().dtype(), DType::Float32) << name;
+    }
+    EXPECT_THROW((void)model.prepare_bf16_ffn_inference(), std::logic_error);
+}
+
 TEST(TransformerModelTest, CausalPrefixLogitsIgnoreFutureTokens) {
     TransformerModel model(tiny_config(false), 19);
     const auto first = Tensor::from_int32_vector({1, 2, 3, 4}, {1, 4});

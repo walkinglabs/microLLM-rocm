@@ -97,7 +97,8 @@
     "adamw": ["optimizer_adamw_parameter_step1", "optimizer_adamw_parameter_step2", "optimizer_adamw_first_moment_step2", "optimizer_adamw_second_moment_step2"],
     "transformer_graph": ["model_logits", "model_loss", "model_grad:", "model_graph_has_topology"],
     "bf16_ffn_model_inference": ["model_bf16_ffn_logits"],
-    "bf16_attention_model_inference": ["model_bf16_attention_ffn_logits"]
+    "bf16_attention_model_inference": ["model_bf16_attention_ffn_logits"],
+    "bf16_linear_model_training": ["model_bf16_train_logits", "model_bf16_train_loss", "model_bf16_train_grad:"]
   },
   "weight_api": {
     "save_safetensors": "tests/io/safetensors_test.cpp",

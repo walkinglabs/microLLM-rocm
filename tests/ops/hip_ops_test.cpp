@@ -430,6 +430,36 @@ TEST(HipFp8TrainingTest, TransformerLinearPolicyRunsEndToEndOnMi300) {
     for (const auto value : decode_logits.to_vector()) EXPECT_TRUE(std::isfinite(value));
 }
 
+TEST(HipBf16TrainingTest, TransformerPolicyKeepsFp32MastersAndGradients) {
+    require_gpu();
+    if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";
+    const model::ModelConfig config{.vocabulary_size = 16,
+                                    .dimension = 128,
+                                    .layers = 1,
+                                    .heads = 4,
+                                    .kv_heads = 2,
+                                    .ffn_dimension = 256,
+                                    .max_sequence_length = 4,
+                                    .linear_precision = model::LinearPrecision::BFloat16};
+    model::TransformerModel transformer(config, 59);
+    transformer.to(Device::hip(0));
+    const auto tokens = Tensor::from_int32_vector({1, 2, 3, 4}, {1, 4}).to(Device::hip(0));
+    const auto targets = Tensor::from_int32_vector({2, 3, 4, 5}, {1, 4}).to(Device::hip(0));
+    runtime::reset_transfer_stats();
+    const auto loss = transformer.loss(tokens, targets);
+    loss.backward();
+    runtime::synchronize(Device::hip(0));
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    EXPECT_TRUE(std::isfinite(loss.data().to_vector()[0]));
+    for (const auto& [name, parameter] : transformer.named_parameters()) {
+        ASSERT_TRUE(parameter->has_grad()) << name;
+        EXPECT_EQ(parameter->data().dtype(), DType::Float32) << name;
+        EXPECT_EQ(parameter->grad().dtype(), DType::Float32) << name;
+    }
+}
+
 TEST(HipOpsTest, NaiveBatchedMatmulMatchesCpuReference) {
     require_gpu();
     const auto left_cpu = Tensor::from_vector({1, 2, 3, 4, 5, 6, 1, 0, 0, 1, 1, 1}, {2, 2, 3});
