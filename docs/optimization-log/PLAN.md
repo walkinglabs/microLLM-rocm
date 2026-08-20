@@ -32,7 +32,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [01](steps/01-parallel-cross-entropy.md) | complete | 并行 CE forward/backward | Qwen train 3.29× |
 | [02](steps/02-transpose-aware-gemm.md) | complete | 无复制 transpose GEMM | score 0.479227 |
 | [03](steps/03-parallel-rmsnorm.md) | complete | block-parallel RMSNorm | score 0.885816 |
-| [04](steps/04-device-kv-cache.md) | planned | 预分配 device KV/GQA | generate |
+| [04](steps/04-device-kv-cache.md) | complete | 预分配 device KV/GQA | score 1.167931 |
 | [05](steps/05-device-sampling.md) | planned | device argmax/top-k | generate |
 | [06](steps/06-memory-pool.md) | planned | stream-aware allocator | API/launch gap |
 | [07](steps/07-autograd-buffers.md) | planned | in-place grad/buffer reuse | train |

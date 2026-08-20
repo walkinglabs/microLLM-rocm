@@ -1,6 +1,6 @@
 # Step 04 — preallocated device KV Cache and direct GQA
 
-Status: `planned`
+Status: `complete` — Experiment 004, `keep`
 
 ## Hypothesis
 
@@ -40,3 +40,20 @@ projection/launch overhead is the stronger explanation.
 - no whole-cache allocation per token;
 - no physical GQA expansion;
 - context 1/32/128/512 curves retained.
+
+## Measured result
+
+```text
+Qwen generate             57.32 → 85.64 token/s
+DeepSeek generate         18.60 → 35.79 token/s
+four-workload score       0.885816 → 1.167931
+profiled Qwen hipMemcpy calls 2712 → 600
+profiled copyBuffer calls      2269 → 253
+```
+
+The first candidate allocated the model's theoretical maximum context and raised
+DeepSeek peak memory to 14.63 GB. It was rejected. The kept design reserves the known
+request bound (`prompt + max_new_tokens`), preserving stable addresses without that cost.
+
+See [Experiment 004](../experiments/004-device-kv-cache.md) and its retained context
+curve for the complete evidence.

@@ -32,7 +32,7 @@ microLLM-rocm 已经可以：
 0.191660× PyTorch
 ```
 
-经过前三个保留实验，当前实测已经到 `0.885816×`。这不是估计值：它来自同一张
+经过四个保留实验，当前实测已经到 `1.167931×`。这不是估计值：它来自同一张
 MI300X、同一组模型权重、同样的 2 次热身和 5 次正式测量。
 
 因此，本专项的故事不是“我们已经超过 PyTorch”，而是：
@@ -435,7 +435,56 @@ batch 是 1，dtype 是 FP32。这只能说明固定短序列测试领先，不�
 至此 M1 的三个串行/复制热点都完成。下一阶段转向数据路线：KV Cache、GQA 展开、
 sampling 和 allocator。
 
-## 14. 怎样读进度图
+## 14. Experiment 004：真正的 Cache 不能每次重抄旧作业
+
+旧 KV Cache 名字里虽然有 Cache，行为却更像每写一个新字，就把整页旧内容重抄到
+一张更大的纸上。GQA 还会把少量 KV head 复制成和 query head 一样多。
+
+新的数据结构只分配一次：
+
+```text
+backing storage [1, kv_heads, request_capacity, head_dim]
+logical prefix [1, kv_heads, current_length, head_dim]
+```
+
+每来一个 token，HIP Kernel 只写 `position` 那一小行。Tensor 的 shape 显示当前有效
+长度，底层 Storage 地址不变。计算 Attention 时，query head 通过整数除法找到自己的
+KV head，不再创建展开后的 K/V Tensor。
+
+这里出现了一个很有价值的失败。第一版按模型理论最大 context 分配：
+
+```text
+Qwen peak       1.98 GB → 2.78 GB
+DeepSeek peak   7.11 GB → 14.63 GB
+```
+
+速度变快不代表设计可以接受。生成请求一开始就知道最多会用多少 token，所以保留版
+按 `prompt + max_new_tokens` 分配。修正后 Qwen/DeepSeek peak 回到约 1.98/7.11 GB，
+Storage 地址仍然稳定。
+
+固定结果：
+
+| Workload | Step 03 | Step 04 | 本步加速 | 当前 PyTorch ratio |
+|---|---:|---:|---:|---:|
+| Qwen train | 71.06 | 72.33 token/s | 1.02× | 1.4092 |
+| Qwen generate | 57.32 | 85.64 token/s | 1.49× | 1.2203 |
+| DeepSeek train | 47.91 | 49.47 token/s | 1.03× | 1.8864 |
+| DeepSeek generate | 18.60 | 35.79 token/s | 1.92× | 0.5735 |
+
+```text
+four-workload score  0.885816 → 1.167931
+hipMemcpy calls           2712 → 600
+copyBuffer calls          2269 → 253
+```
+
+进度线第一次越过 1.0，但右边四根柱子更重要：DeepSeek generation 仍只有 PyTorch 的
+57.4%。因此“综合 parity”不能被写成“所有任务都超过 PyTorch”。
+
+长一点是否还能运行？Qwen 的 1/32/128/512 新 token 实测分别约为
+`53.2/97.5/90.7/68.4 token/s`，峰值显存随请求容量缓慢增加。它没有证明完整 32K
+context，但排除了“只在一步 decode 生效”的解释。
+
+## 15. 怎样读进度图
 
 图中：
 
@@ -447,10 +496,10 @@ sampling 和 allocator。
 - 右侧条形：当前四项 workload ratio；
 - 底部卡片：计划步骤，不代表已经完成。
 
-当前有 baseline 和三个 keep 实验共四个绿色点。未来如果十个实验都失败，图上就
+当前有 baseline 和四个 keep 实验共五个绿色点。未来如果十个实验都失败，图上就
 应出现十个灰点，而不是凭空出现一条漂亮上升曲线。
 
-## 15. 什么才算从 0 到 1
+## 16. 什么才算从 0 到 1
 
 完成一个 Kernel 不是 1，某个 shape 跑得快也不是 1。
 
@@ -464,4 +513,4 @@ sampling 和 allocator。
 6. 新学习者能沿日志重放关键实验；
 7. 所有结论都写清适用 GPU、dtype、shape 和版本。
 
-下一篇更新进入 Step 04：device-resident、预分配 KV Cache 与直接 GQA 映射。
+下一篇更新进入 Step 05：device-side sampling，删除每个 token 的完整 logits D2H。

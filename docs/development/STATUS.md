@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| CPU configuration | smoke-tested | framework-only main configure/build; 150/150 CPU CTest | CI matrix |
+| CPU configuration | smoke-tested | framework-only main configure/build; 151/151 CPU CTest | CI matrix |
 | CPU code coverage | smoke-tested | 83.9% lines, 90.9% functions, 66.6% branches over `src/` + `include/` | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, cast, views and transfer | low-precision math/device-native cast |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
@@ -41,7 +41,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Model-S TinyStories smoke | smoke-tested | immutable 1MiB train prefix, 10 HIP steps | full train/validation curve |
 | Tiny Transformer training | smoke-tested | 40-step overfit and finite gradients | validation split/Model-S |
 | SFT response masking | smoke-tested | CPU/HIP ignored targets and tiny response-loss curve | Model-S instruction corpus/run |
-| CPU KV cache | smoke-tested | every prefix, MHA/GQA logits tolerance | preallocation/HIP/batching |
+| CPU/HIP KV cache | smoke-tested | request-bounded preallocation, stable address, every MHA/GQA prefix, zero-transfer MI300X decode; score 0.885816→1.167931 | batching, fused long-context attention |
 | Token generation | smoke-tested | deterministic sampling and cache-backed length/bounds | trained text report |
 | Stable model failure | smoke-tested | low-loss cycle breaks beyond training context | rebuttal experiments |
 | PyTorch Custom Ops | smoke-tested on CPU | Torch 2.13 add/multiply via dispatcher | build/run with PyTorch ROCm |
@@ -58,7 +58,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | End-to-end benchmark | smoke-tested | matched Python/PyTorch ROCm built-in and official-HF JSONL ratios | longer contexts, repeated official training and tuned comparison |
 | Single-GPU model matrix | smoke-tested | MI300X tiny/Model-S/Model-M plus official Qwen0.5B/DeepSeek-Distill1.5B train+generate, parameters, time, tokens/s and engine peak bytes | repeated contexts/dtypes and external board-level memory sampling |
 | Python/PyTorch ROCm performance matrix | smoke-tested | matched FP32 built-ins plus official Qwen/DeepSeek Distill, raw Python data and automatic throughput/memory ratios | repeated official-model training and PyTorch version matrix |
-| Optimization experiment journal | implemented | baseline plus three measured keep experiments, raw profiler/JSONL, autoresearch-style result table and generated SVGs | execute Step 04 onward and accumulate keep/discard/crash rows |
+| Optimization experiment journal | implemented | baseline plus four measured keep experiments, rejected cache variant, raw profiler/JSONL and generated SVGs | execute Step 05 onward and accumulate keep/discard/crash rows |
 | rocprofv3 workflow | smoke-tested | kernel/HIP API/memory/full trace generated | release artifact retention |
 | hipBLASLt matmul | smoke-tested | FP32 CPU comparison, shape matrix, Model-S e2e | batched/workspace/autotune cache |
 | Matmul tuning registry | smoke-tested | exact shape override/clear and availability gates | persistence/arch key |
