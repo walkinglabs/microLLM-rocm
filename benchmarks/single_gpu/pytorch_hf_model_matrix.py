@@ -35,6 +35,7 @@ def options() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--manifest", required=True, type=Path)
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cuda")
+    parser.add_argument("--dtype", choices=("fp32", "bf16"), default="fp32")
     parser.add_argument("--modes", default="infer,train")
     parser.add_argument("--output", type=Path)
     parser.add_argument("--allow-unavailable", action="store_true")
@@ -116,12 +117,13 @@ def memory_fields(device: torch.device) -> dict:
     }
 
 
-def load_model(model: dict, device: torch.device):
+def load_model(model: dict, device: torch.device, dtype_name: str):
     clear_device(device)
     start = time.perf_counter()
+    dtype = torch.float32 if dtype_name == "fp32" else torch.bfloat16
     loaded = AutoModelForCausalLM.from_pretrained(
         Path(model["config"]).parent,
-        torch_dtype=torch.float32,
+        torch_dtype=dtype,
         local_files_only=True,
         attn_implementation="sdpa",
     ).to(device).eval()
@@ -140,7 +142,8 @@ def load_model(model: dict, device: torch.device):
 
 
 def common(model: dict, loaded, device: torch.device, workaround: str,
-           load_ms: float, parameter_count: int, tensor_count: int) -> dict:
+           load_ms: float, parameter_count: int, tensor_count: int,
+           dtype_name: str) -> dict:
     properties = torch.cuda.get_device_properties(device) if device.type == "cuda" else None
     return {
         "schema_version": 1,
@@ -154,11 +157,15 @@ def common(model: dict, loaded, device: torch.device, workaround: str,
         "device_name": properties.name if properties else "host CPU",
         "architecture": properties.gcnArchName if properties else "host",
         "device_discovery_workaround": workaround,
-        "compute_dtype": "float32",
+        "compute_dtype": dtype_name,
         "model": model["name"],
         "revision": model["revision"],
         "parameter_count": parameter_count,
         "fp32_weight_bytes": parameter_count * 4,
+        "resident_weight_bytes": sum(
+            parameter.numel() * parameter.element_size()
+            for parameter in loaded.parameters()
+        ),
         "loaded_tensors": model["loaded_tensors"],
         "pytorch_state_tensors": tensor_count,
         "load_ms": load_ms,
@@ -171,6 +178,8 @@ def infer(model: dict, loaded, device: torch.device, base: dict) -> dict:
     attention_mask = torch.ones_like(input_ids)
     warmup = int(inference.get("warmup", 0))
     steps = int(inference.get("steps", 1))
+    prefill_warmup = int(inference.get("prefill_warmup", warmup))
+    prefill_steps = int(inference.get("prefill_steps", steps))
 
     def generate_once():
         return loaded.generate(
@@ -183,8 +192,12 @@ def infer(model: dict, loaded, device: torch.device, base: dict) -> dict:
         )[0, input_ids.shape[1]:].tolist()
 
     with torch.inference_mode():
+        for _ in range(prefill_warmup):
+            loaded(input_ids=input_ids, attention_mask=attention_mask, use_cache=False)
+        synchronize(device)
         start = time.perf_counter()
-        loaded(input_ids=input_ids, attention_mask=attention_mask, use_cache=False)
+        for _ in range(prefill_steps):
+            loaded(input_ids=input_ids, attention_mask=attention_mask, use_cache=False)
         synchronize(device)
         finish = time.perf_counter()
         warmup_start = time.perf_counter()
@@ -216,11 +229,15 @@ def infer(model: dict, loaded, device: torch.device, base: dict) -> dict:
         "token_count": input_ids.shape[1],
         "warmup": warmup,
         "steps": steps,
+        "prefill_warmup": prefill_warmup,
+        "prefill_steps": prefill_steps,
         "warmup_ms": warmup_ms,
         "measured_tokens": measured_tokens,
         "generated_tokens": suffix,
-        "forward_ms": forward_ms,
-        "prefill_tokens_per_second": input_ids.shape[1] * 1000.0 / forward_ms,
+        "forward_ms": forward_ms / prefill_steps,
+        "prefill_tokens_per_second": (
+            input_ids.shape[1] * prefill_steps * 1000.0 / forward_ms
+        ),
         "generation_ms": generation_ms,
         "mean_generation_ms": generation_ms / steps,
         "decode_tokens_per_second": measured_tokens * 1000.0 / generation_ms,
@@ -305,10 +322,12 @@ def train(model: dict, loaded, device: torch.device, base: dict) -> dict:
     return base
 
 
-def run_worker(model: dict, mode: str, device_name: str, allow_fallback: bool) -> dict:
+def run_worker(model: dict, mode: str, device_name: str, allow_fallback: bool,
+               dtype_name: str) -> dict:
     device, workaround = prepare_device(device_name, allow_fallback)
-    loaded, load_ms, parameter_count, tensor_count = load_model(model, device)
-    base = common(model, loaded, device, workaround, load_ms, parameter_count, tensor_count)
+    loaded, load_ms, parameter_count, tensor_count = load_model(model, device, dtype_name)
+    base = common(model, loaded, device, workaround, load_ms, parameter_count, tensor_count,
+                  dtype_name)
     return infer(model, loaded, device, base) if mode == "infer" else train(
         model, loaded, device, base
     )
@@ -337,7 +356,7 @@ def main() -> int:
         if args.worker_model not in by_name:
             raise RuntimeError(f"unknown worker model: {args.worker_model}")
         print(json.dumps(run_worker(by_name[args.worker_model], args.worker_mode, args.device,
-                                    args.allow_amdsmi_fallback), sort_keys=True))
+                                    args.allow_amdsmi_fallback, args.dtype), sort_keys=True))
         return 0
 
     records: list[dict] = []
@@ -352,6 +371,7 @@ def main() -> int:
             command = [
                 sys.executable, str(Path(__file__).resolve()),
                 "--manifest", str(args.manifest), "--device", args.device,
+                "--dtype", args.dtype,
                 "--worker-model", model["name"], "--worker-mode", mode,
             ]
             if args.allow_amdsmi_fallback:
@@ -368,6 +388,7 @@ def main() -> int:
         "torch_hip_version": torch.version.hip,
         "transformers_version": transformers.__version__,
         "device": args.device,
+        "compute_dtype": args.dtype,
         "model_count": len(models),
         "requested_modes": args.modes,
         "measurement_count": len(records) - unavailable_count,
