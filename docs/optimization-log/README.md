@@ -81,6 +81,10 @@ Experiment 018 只将 hidden width 至少 1024 的 fused residual-Norm 改为 51
 DeepSeek generation 三进程中位数提高 9.6%，目标 Kernel 平均时间降低约 25%，恢复并
 超过 Experiment 016 的 DeepSeek 结果；当前 score 为 `1.845199`。
 
+Experiment 019 按 head width 将 cached Attention block 缩为 64/128 threads，但 Qwen 与
+DeepSeek generation 中位数分别退化 6.6%/4.9%，score 降到 `1.791371`。候选删除，
+失败数据进入灰点。
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录

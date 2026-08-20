@@ -16,3 +16,4 @@ experiment	commit	date	status	score	qwen_train	qwen_generate	deepseek_train	deep
 016	d8b4e4f	2026-08-20	keep	1.784147	2.190520	2.023477	2.570163	0.889440	0.896740	0.960651	0.797351	0.988733	fused Q/K projection bias plus split-half RoPE; paired inference medians improved 13.7% and 6.6%
 017	4d3559e	2026-08-20	keep	1.803226	2.190520	2.202850	2.570163	0.852525	0.896740	0.960651	0.797351	0.988733	fused cached residual add plus RMSNorm; Qwen gained 8.9% while DeepSeek regressed 4.2%
 018	d8a4eba	2026-08-20	keep	1.845199	2.190520	2.202850	2.570163	0.934716	0.896740	0.960651	0.797351	0.988733	512-thread wide residual normalization; DeepSeek generation median improved 9.6%
+019	39eabc4	2026-08-20	discard	1.791371	2.190520	2.056853	2.570163	0.889264	0.896740	0.960651	0.797351	0.988733	64/128-thread cached Attention blocks; both official generation medians regressed

@@ -57,3 +57,6 @@ Qwen 1-token curve           -7.8% stable failure
 ```
 
 Prefill, training backward and BF16 remain unfinished; this step is not marked complete.
+
+Experiment 019 also tested 64/128-thread blocks for head widths 64/128. Both official
+generation medians regressed, so the retained fused decode Kernel remains at 256 threads.
