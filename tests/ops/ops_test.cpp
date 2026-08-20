@@ -77,6 +77,12 @@ TEST(CpuOpsTest, DeviceStyleCastAndMixedBf16MatmulMatchRoundedReference) {
               input.cast(DType::BFloat16).to_vector());
     expect_near(bf16_matmul(input, weight.cast(DType::BFloat16)).to_vector(),
                 matmul(rounded_input, rounded_weight).to_vector());
+    const auto bf16_output = bf16_matmul_output(
+        input.cast(DType::BFloat16), weight.cast(DType::BFloat16), DType::BFloat16);
+    EXPECT_EQ(bf16_output.dtype(), DType::BFloat16);
+    expect_near(bf16_output.cast(DType::Float32).to_vector(),
+                matmul(rounded_input, rounded_weight).cast(DType::BFloat16)
+                    .cast(DType::Float32).to_vector());
 }
 
 TEST(CpuOpsTest, TransposeAwareMatmulCoversAllOperandLayoutsWithoutViews) {

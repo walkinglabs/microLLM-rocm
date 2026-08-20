@@ -147,6 +147,12 @@ TEST(HipBf16MixedGemmTest, NativeCastAndFp32OutputMatchRoundedCpuReference) {
     expect_near(restored.to_vector(), rounded_right.cast(DType::Float32).to_vector(), 0.0F);
     expect_near(actual.to_vector(), expected, 2.0e-2F);
     EXPECT_EQ(actual.dtype(), DType::Float32);
+    const auto bf16_output = bf16_matmul_output(
+        cast(device_left, DType::BFloat16), device_right_bf16, DType::BFloat16);
+    EXPECT_EQ(bf16_output.dtype(), DType::BFloat16);
+    expect_near(bf16_output.to_vector(),
+                bf16_matmul_output(cast(left, DType::BFloat16), rounded_right,
+                                   DType::BFloat16).to_vector(), 2.0e-2F);
 
     const auto special = Tensor::from_vector(
         {0.0F, -0.0F, std::numeric_limits<float>::infinity(),

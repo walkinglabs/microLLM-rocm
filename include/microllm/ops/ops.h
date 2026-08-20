@@ -31,6 +31,10 @@ struct ScaledTensor {
                           const OpContext& context = {});
 [[nodiscard]] Tensor bf16_matmul(const Tensor& left_fp32, const Tensor& right_bf16,
                                  const OpContext& context = {});
+[[nodiscard]] Tensor bf16_matmul_output(const Tensor& left_bf16,
+                                        const Tensor& right_bf16,
+                                        DType output_dtype,
+                                        const OpContext& context = {});
 
 void fill_(Tensor& tensor, float value, const OpContext& context = {});
 void adamw_update_(Tensor& parameter, const Tensor& gradient,

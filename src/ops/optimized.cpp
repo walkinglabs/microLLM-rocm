@@ -195,7 +195,7 @@ Tensor hipblaslt_matmul(const Tensor& left, const Tensor& right,
 }
 
 Tensor hipblaslt_bf16_matmul(const Tensor& left, const Tensor& right,
-                             const OpContext& context) {
+                             DType output_dtype, const OpContext& context) {
     if (!left.device().is_hip() || right.device() != left.device() ||
         left.dtype() != DType::BFloat16 || right.dtype() != DType::BFloat16 ||
         left.ndim() != 2 || right.ndim() != 2 || !left.is_contiguous() ||
@@ -206,14 +206,17 @@ Tensor hipblaslt_bf16_matmul(const Tensor& left, const Tensor& right,
     const auto rows = left.shape()[0];
     const auto inner = left.shape()[1];
     const auto columns = right.shape()[1];
-    Tensor output({rows, columns}, DType::Float32, left.device());
+    if (output_dtype != DType::Float32 && output_dtype != DType::BFloat16) {
+        throw std::invalid_argument("BF16 matmul output must be FP32 or BF16");
+    }
+    Tensor output({rows, columns}, output_dtype, left.device());
     static Handle handle;
     MatmulDescription operation;
     Layout matrix_b(HIP_R_16BF, static_cast<std::uint64_t>(columns),
                     static_cast<std::uint64_t>(inner), columns);
     Layout matrix_a(HIP_R_16BF, static_cast<std::uint64_t>(inner),
                     static_cast<std::uint64_t>(rows), inner);
-    Layout matrix_c(HIP_R_32F, static_cast<std::uint64_t>(columns),
+    Layout matrix_c(hip_dtype(output_dtype), static_cast<std::uint64_t>(columns),
                     static_cast<std::uint64_t>(rows), columns);
     const float alpha = 1.0F;
     const float beta = 0.0F;
@@ -382,10 +385,30 @@ Tensor bf16_matmul(const Tensor& left_fp32, const Tensor& right_bf16,
     }
     const auto left_bf16 = cast(left_fp32, DType::BFloat16, context);
 #if MICROLLM_HAS_HIPBLASLT
-    return hipblaslt_bf16_matmul(left_bf16, right_bf16, context);
+    return hipblaslt_bf16_matmul(left_bf16, right_bf16, DType::Float32, context);
 #else
     return matmul(cast(left_bf16, DType::Float32, context),
                   cast(right_bf16, DType::Float32, context), context);
+#endif
+}
+
+Tensor bf16_matmul_output(const Tensor& left_bf16, const Tensor& right_bf16,
+                          DType output_dtype, const OpContext& context) {
+    if (left_bf16.dtype() != DType::BFloat16 ||
+        right_bf16.dtype() != DType::BFloat16 ||
+        left_bf16.device() != right_bf16.device() ||
+        (output_dtype != DType::Float32 && output_dtype != DType::BFloat16)) {
+        throw std::invalid_argument("bf16_matmul_output requires BF16 inputs and FP32/BF16 output");
+    }
+    if (left_bf16.device().is_cpu()) {
+        auto output = matmul(left_bf16.cast(DType::Float32),
+                             right_bf16.cast(DType::Float32), context);
+        return output_dtype == DType::Float32 ? output : output.cast(DType::BFloat16);
+    }
+#if MICROLLM_HAS_HIPBLASLT
+    return hipblaslt_bf16_matmul(left_bf16, right_bf16, output_dtype, context);
+#else
+    throw std::runtime_error("BF16 output matmul requires hipBLASLt");
 #endif
 }
 
