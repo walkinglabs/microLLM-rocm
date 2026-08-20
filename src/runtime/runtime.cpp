@@ -111,7 +111,7 @@ HipExactSizePool& hip_pool() {
 }
 
 constexpr std::size_t kMaximumCachedBytesPerDevice = 8ULL * 1024ULL * 1024ULL * 1024ULL;
-constexpr std::size_t kRetirementBatchSize = 8;
+constexpr std::size_t kRetirementBatchSize = 16;
 
 void check_hip(hipError_t status, const char* operation) {
     if (status != hipSuccess) {

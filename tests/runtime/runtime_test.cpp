@@ -116,16 +116,16 @@ TEST(HipRuntimeTest, RetirementBatchReusesEveryBlockAfterOneCompletionBoundary) 
     reset_allocation_peak(gpu);
     {
         std::vector<Storage> blocks;
-        for (int index = 0; index < 8; ++index) blocks.emplace_back(4096, gpu);
+        for (int index = 0; index < 16; ++index) blocks.emplace_back(4096, gpu);
     }
     synchronize(gpu);
     {
         std::vector<Storage> blocks;
-        for (int index = 0; index < 8; ++index) blocks.emplace_back(4096, gpu);
+        for (int index = 0; index < 16; ++index) blocks.emplace_back(4096, gpu);
         const auto stats = allocation_stats(gpu);
-        EXPECT_EQ(stats.allocation_calls, 16U);
-        EXPECT_EQ(stats.backend_allocation_calls, 8U);
-        EXPECT_EQ(stats.cache_reuse_calls, 8U);
+        EXPECT_EQ(stats.allocation_calls, 32U);
+        EXPECT_EQ(stats.backend_allocation_calls, 16U);
+        EXPECT_EQ(stats.cache_reuse_calls, 16U);
     }
     synchronize(gpu);
 }
