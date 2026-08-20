@@ -173,6 +173,19 @@ All comparison rows use matched warm-up/repetition settings and exclude warm-up 
 reported throughput. See [Python/PyTorch comparison](docs/dev/pytorch-benchmark.md) for
 raw data, memory ratios, implementation differences and limitations.
 
+Separate BF16 inference track (single-representation FFN/Attention projections in
+microLLM versus full-model BF16 PyTorch, same pinned prompts and 2/5 warm-up/measured
+protocol):
+
+| Model | microLLM decode / prefill | PyTorch BF16 decode / prefill | Ratio |
+|---|---:|---:|---:|
+| Qwen2.5-0.5B | 261.37 / 517.21 token/s | 73.53 / 145.37 token/s | 3.555× / 3.558× |
+| DeepSeek Distill Qwen 1.5B | 76.83 / 1713.01 token/s | 56.59 / 631.65 token/s | 1.358× / 2.712× |
+
+All six candidate processes reproduce the expected greedy IDs. This is a short-prompt
+MI300X inference result, not a BF16 training, long-context, universal-model, or Radeon
+claim. See [Experiment 036](docs/optimization-log/experiments/036-bf16-immutable-plan-cache.md).
+
 ## External weights
 
 The framework supports independent named state dictionaries, strict/non-strict model

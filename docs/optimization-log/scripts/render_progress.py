@@ -28,6 +28,8 @@ BF16_PREFILL_CHART = ROOT / "assets" / "bf16-prefill-allocator.svg"
 BF16_ATTENTION_SUMMARY = ROOT / "experiments" / "034-data" / "summary.json"
 BF16_ATTENTION_PILOT = ROOT / "experiments" / "034-data" / "naive-pilot.jsonl"
 BF16_ATTENTION_CHART = ROOT / "assets" / "bf16-attention.svg"
+BF16_PLAN_SUMMARY = ROOT / "experiments" / "036-data" / "summary.json"
+BF16_PLAN_CHART = ROOT / "assets" / "bf16-plan-cache.svg"
 
 
 def rows() -> list[dict]:
@@ -566,6 +568,60 @@ def bf16_attention_svg() -> str:
     return "\n".join(parts)
 
 
+def bf16_plan_cache_svg() -> str:
+    data = json.loads(BF16_PLAN_SUMMARY.read_text(encoding="utf-8"))["rows"]
+    width, height = 1600, 700
+    left, top, chart_w = 420, 150, 930
+    minimum, maximum = 1.0, 3.8
+
+    def px(value: float) -> float:
+        return left + chart_w * (value - minimum) / (maximum - minimum)
+
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 036 · Immutable BF16 hipBLASLt Plans", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 80,
+             "median of 3 processes · exact tokens · no algorithm or memory-policy change",
+             16, "#5b6474", anchor="middle"),
+    ]
+    for tick in (1.0, 1.5, 2.0, 2.5, 3.0, 3.5):
+        x = px(tick)
+        parts.append(f'<line x1="{x:.1f}" y1="118" x2="{x:.1f}" y2="555" '
+                     f'stroke="{("#2563eb" if tick == 1.0 else "#e5e9f0")}" '
+                     f'stroke-width="{2 if tick == 1.0 else 1}"/>')
+        parts.append(text(x, 585, f"{tick:.1f}×", 14, "#5b6474", anchor="middle"))
+    metrics = (
+        ("decode_speedup_vs_bf16_attention", "decode vs Exp034", "#18a558"),
+        ("prefill_speedup_vs_bf16_attention", "prefill vs Exp034", "#4ec27e"),
+        ("decode_ratio_vs_pytorch_bf16", "decode vs PyTorch BF16", "#2563eb"),
+        ("prefill_ratio_vs_pytorch_bf16", "prefill vs PyTorch BF16", "#7c3aed"),
+    )
+    for row_index, row in enumerate(data):
+        y = top + row_index * 195
+        label = "Qwen2.5-0.5B" if row["model"].startswith("qwen") else "DeepSeek Distill 1.5B"
+        parts.append(text(left - 26, y + 26, label, 18, "#172033",
+                          anchor="end", weight=700))
+        for offset, (key, title, color) in enumerate(metrics):
+            ratio = float(row[key])
+            bar_y = y + offset * 38
+            x0, x1 = px(1.0), px(ratio)
+            parts.append(f'<rect x="{x0:.1f}" y="{bar_y}" width="{max(x1-x0,2):.1f}" '
+                         f'height="26" rx="5" fill="{color}"/>')
+            parts.append(text(x1 + 9, bar_y + 19, f"{ratio:.3f}×  {title}", 14,
+                              color, weight=700))
+    parts.append(text(width / 2, 635,
+                      "All four selected PyTorch BF16 throughput gates pass",
+                      17, "#16834a", anchor="middle", weight=700))
+    parts.append(text(width / 2, 678,
+                      "Scope: pinned short-prompt MI300X inference — not training or universal-model parity",
+                      14, "#9a4f00", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -575,7 +631,8 @@ def main() -> int:
                 BF16_FFN_CHART: bf16_ffn_svg(),
                 BF16_MODEL_CHART: bf16_model_inference_svg(),
                 BF16_PREFILL_CHART: bf16_prefill_allocator_svg(),
-                BF16_ATTENTION_CHART: bf16_attention_svg()}
+                BF16_ATTENTION_CHART: bf16_attention_svg(),
+                BF16_PLAN_CHART: bf16_plan_cache_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

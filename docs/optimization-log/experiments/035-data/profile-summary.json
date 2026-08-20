@@ -1,0 +1,18 @@
+{
+  "architecture": "gfx942:sramecc+:xnack-",
+  "bf16_attention_converted_tensors": 112,
+  "bf16_ffn_converted_tensors": 84,
+  "decode_prompt_tokens": 12,
+  "generated_tokens": 8,
+  "hip_api_calls": 152850,
+  "kernel_dispatches": 11214,
+  "kernel_time_ns": 109199051,
+  "categories": {
+    "gemm": {"calls": 3743, "time_ns": 70472660, "kernel_time_percent": 64.536},
+    "bf16_casts_including_preparation": {"calls": 2324, "time_ns": 10450512, "kernel_time_percent": 9.570},
+    "cached_attention": {"calls": 532, "time_ns": 8489462, "kernel_time_percent": 7.774},
+    "rope_split_half_bias": {"calls": 1064, "time_ns": 3366529, "kernel_time_percent": 3.083},
+    "rms_norm": {"calls": 551, "time_ns": 3225986, "kernel_time_percent": 2.954}
+  },
+  "note": "instrumented Kernel shares only; host descriptor construction is outside these Kernel durations"
+}

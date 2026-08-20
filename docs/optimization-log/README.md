@@ -149,6 +149,13 @@ Experiment 034 先保留“每个 Q/K/V 各 cast 一次”造成的回退，再�
 
 ![BF16 Attention shared cast](assets/bf16-attention.svg)
 
+Experiment 035 复测 retained Attention 后，GEMM Kernel 时间已经下降，但 3,743 次 BF16
+GEMM 仍在 host 重建 description/layout。Experiment 036 只为这条 BF16 path 增加
+thread-local immutable exact-shape plan；Qwen decode/prefill 提高 `2.93×/2.74×`，
+DeepSeek提高 `2.55×/2.67×`，固定 PyTorch BF16 四项全部过线。
+
+![BF16 immutable plan cache](assets/bf16-plan-cache.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -178,6 +185,9 @@ Experiment 034 先保留“每个 Q/K/V 各 cast 一次”造成的回退，再�
 | [experiments/033-data/](experiments/033-data/) | DeepSeek decode kernel/HIP API 聚合统计 |
 | [assets/bf16-attention.svg](assets/bf16-attention.svg) | per-Linear cast 失败与 shared-cast 三进程结果 |
 | [experiments/034-data/](experiments/034-data/) | 官方 logits/token、candidate raw 与 pilot |
+| [experiments/035-data/](experiments/035-data/) | retained Attention 后的 profiler 聚合 |
+| [assets/bf16-plan-cache.svg](assets/bf16-plan-cache.svg) | BF16 plan cache 与 PyTorch BF16 四项验收 |
+| [experiments/036-data/](experiments/036-data/) | plan-cache 三进程 official raw/summary |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

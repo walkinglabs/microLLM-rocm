@@ -1052,3 +1052,28 @@ decode/prefill 提高 `2.9%/6.9%`；DeepSeek decode 提高 2.0%，prefill 下降
 
 DeepSeek decode 相对 PyTorch 只从 `0.522×` 到 `0.533×`。所以 shared cast 值得保留，
 但 Attention 权重 BF16 不是最终答案；下一步要重新 profile retained candidate。
+
+## 52. Experiment 035：Kernel 变快以后，host 工作露出来了
+
+保留 Attention BF16 后再 profile，GEMM Kernel 总时间从 160.7 ms 降到 70.5 ms，
+但 dispatch 从 10,038 增到 11,214。每个 BF16 GEMM 仍在 host 创建并销毁一个
+description 和三个 layout；3,743 次重复工作不在 Kernel duration 里。
+
+这里不能直接复活 Experiment 007 的 FP32 cache。旧方案在固定矩阵上让 Qwen generation
+和 DeepSeek training 越过 5% 回退门。新问题只允许缓存 BF16 mixed/output path，key 是
+`(M,K,N,output dtype)`，thread-local、immutable，不碰 algorithm、FP32 或 FP8 scale pointer。
+
+## 53. Experiment 036：相同形状的“表格说明书”只写一次
+
+第一次 exact shape 创建 plan，以后只换数据地址并复用 description/layout。公开统计 API
+可以看 entries/hits/misses，测试强制“第一次 miss、第二次 hit、clear 后归零”。
+
+![BF16 immutable plan cache](assets/bf16-plan-cache.svg)
+
+三进程中，Qwen decode/prefill 达到 `261.37/517.21 token/s`，DeepSeek 达到
+`76.83/1713.01`。相对 Experiment 034 分别提高 `2.93×/2.74×` 与 `2.55×/2.67×`；
+相对 PyTorch 全 BF16 四项最低也有 `1.358×`。
+
+这让用户要求的固定 Qwen/DeepSeek 短 prompt inference 矩阵第一次 4/4 过线，但不是
+“框架全面完成”。训练、长上下文、batch>1、多卡、Radeon 与其他 ROCm 版本必须建立
+各自曲线，不能接在这条短 prompt 图后面。

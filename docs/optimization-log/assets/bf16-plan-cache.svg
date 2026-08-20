@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="700" viewBox="0 0 1600 700">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="800.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 036 · Immutable BF16 hipBLASLt Plans</text>
+<text x="800.0" y="80.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">median of 3 processes · exact tokens · no algorithm or memory-policy change</text>
+<line x1="420.0" y1="118" x2="420.0" y2="555" stroke="#2563eb" stroke-width="2"/>
+<text x="420.0" y="585.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">1.0×</text>
+<line x1="586.1" y1="118" x2="586.1" y2="555" stroke="#e5e9f0" stroke-width="1"/>
+<text x="586.1" y="585.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">1.5×</text>
+<line x1="752.1" y1="118" x2="752.1" y2="555" stroke="#e5e9f0" stroke-width="1"/>
+<text x="752.1" y="585.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">2.0×</text>
+<line x1="918.2" y1="118" x2="918.2" y2="555" stroke="#e5e9f0" stroke-width="1"/>
+<text x="918.2" y="585.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">2.5×</text>
+<line x1="1084.3" y1="118" x2="1084.3" y2="555" stroke="#e5e9f0" stroke-width="1"/>
+<text x="1084.3" y="585.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">3.0×</text>
+<line x1="1250.4" y1="118" x2="1250.4" y2="555" stroke="#e5e9f0" stroke-width="1"/>
+<text x="1250.4" y="585.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">3.5×</text>
+<text x="394.0" y="176.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="end" font-weight="700">Qwen2.5-0.5B</text>
+<rect x="420.0" y="150" width="641.2" height="26" rx="5" fill="#18a558"/>
+<text x="1070.2" y="169.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#18a558" text-anchor="start" font-weight="700">2.930×  decode vs Exp034</text>
+<rect x="420.0" y="188" width="577.2" height="26" rx="5" fill="#4ec27e"/>
+<text x="1006.2" y="207.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#4ec27e" text-anchor="start" font-weight="700">2.738×  prefill vs Exp034</text>
+<rect x="420.0" y="226" width="848.6" height="26" rx="5" fill="#2563eb"/>
+<text x="1277.6" y="245.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#2563eb" text-anchor="start" font-weight="700">3.555×  decode vs PyTorch BF16</text>
+<rect x="420.0" y="264" width="849.6" height="26" rx="5" fill="#7c3aed"/>
+<text x="1278.6" y="283.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#7c3aed" text-anchor="start" font-weight="700">3.558×  prefill vs PyTorch BF16</text>
+<text x="394.0" y="371.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="end" font-weight="700">DeepSeek Distill 1.5B</text>
+<rect x="420.0" y="345" width="514.6" height="26" rx="5" fill="#18a558"/>
+<text x="943.6" y="364.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#18a558" text-anchor="start" font-weight="700">2.549×  decode vs Exp034</text>
+<rect x="420.0" y="383" width="553.4" height="26" rx="5" fill="#4ec27e"/>
+<text x="982.4" y="402.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#4ec27e" text-anchor="start" font-weight="700">2.666×  prefill vs Exp034</text>
+<rect x="420.0" y="421" width="118.8" height="26" rx="5" fill="#2563eb"/>
+<text x="547.8" y="440.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#2563eb" text-anchor="start" font-weight="700">1.358×  decode vs PyTorch BF16</text>
+<rect x="420.0" y="459" width="568.6" height="26" rx="5" fill="#7c3aed"/>
+<text x="997.6" y="478.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#7c3aed" text-anchor="start" font-weight="700">2.712×  prefill vs PyTorch BF16</text>
+<text x="800.0" y="635.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#16834a" text-anchor="middle" font-weight="700">All four selected PyTorch BF16 throughput gates pass</text>
+<text x="800.0" y="678.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#9a4f00" text-anchor="middle" font-weight="400">Scope: pinned short-prompt MI300X inference — not training or universal-model parity</text>
+</svg>

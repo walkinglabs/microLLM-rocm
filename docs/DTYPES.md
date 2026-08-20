@@ -102,5 +102,7 @@ FP32，方便与 residual 相加。
 
 官方 Qwen/DeepSeek 现在可以把 FFN 与 Q/K/V/O projection 权重单向准备为单份 BF16，
 Q/K/V 共享一次 input cast；Embedding、Norm、KV cache 与 tied 输出头仍是 FP32。因此
-准确名称是“BF16 Linear 混合推理”，不是“整网 BF16”。DeepSeek decode 仍低于 PyTorch
-全 BF16，算子实测和竞争性整网声明仍是两道不同的门。
+准确名称是“BF16 Linear 混合推理”，不是“整网 BF16”。早期 DeepSeek decode 低于
+PyTorch 全 BF16 的问题已由 BF16 专用 immutable hipBLASLt plan 修复：固定短 prompt
+Qwen/DeepSeek 四项 inference throughput 全部过线。这个结论仍不能推广到训练、长上下文、
+batch>1、Radeon 或其他 ROCm 版本。

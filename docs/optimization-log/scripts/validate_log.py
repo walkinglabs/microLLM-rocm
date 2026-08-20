@@ -226,6 +226,46 @@ def validate_bf16_attention(errors: list[str]) -> int:
     return len(records)
 
 
+def validate_post_attention_profile(errors: list[str]) -> tuple[int, int]:
+    data = ROOT / "experiments" / "035-data"
+    with (data / "kernel-stats.csv").open(encoding="utf-8", newline="") as stream:
+        kernels = list(csv.DictReader(stream))
+    with (data / "hip-api-stats.csv").open(encoding="utf-8", newline="") as stream:
+        api = list(csv.DictReader(stream))
+    kernel_calls = sum(int(row["Calls"]) for row in kernels)
+    api_calls = sum(int(row["Calls"]) for row in api)
+    summary = json.loads((data / "profile-summary.json").read_text(encoding="utf-8"))
+    if kernel_calls != 11214 or summary.get("kernel_dispatches") != kernel_calls:
+        errors.append("post-Attention kernel aggregate mismatch")
+    if api_calls != 152850 or summary.get("hip_api_calls") != api_calls:
+        errors.append("post-Attention HIP API aggregate mismatch")
+    if summary["categories"]["gemm"]["calls"] != 3743:
+        errors.append("post-Attention GEMM count changed")
+    return kernel_calls, api_calls
+
+
+def validate_bf16_plan_cache(errors: list[str]) -> int:
+    data = ROOT / "experiments" / "036-data"
+    records = [json.loads(line) for line in
+               (data / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    candidates = [row for row in records if row.get("record_type") ==
+                  "bf16_attention_candidate"]
+    if len(records) != 8 or len(candidates) != 6:
+        errors.append("BF16 plan-cache raw matrix must contain 8/6 total/candidate rows")
+    if any(not row.get("exact_expected_tokens") for row in candidates):
+        errors.append("BF16 plan-cache candidate lacks exact-token evidence")
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    if len(summary.get("rows", [])) != 2:
+        errors.append("BF16 plan-cache summary must contain two rows")
+    for row in summary.get("rows", []):
+        if min(row["decode_speedup_vs_bf16_attention"],
+               row["prefill_speedup_vs_bf16_attention"],
+               row["decode_ratio_vs_pytorch_bf16"],
+               row["prefill_ratio_vs_pytorch_bf16"]) <= 1.0:
+            errors.append(f'BF16 plan-cache keep gate failed: {row["model"]}')
+    return len(records)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -244,7 +284,7 @@ def validate_assets(errors: list[str]) -> None:
     for name in ("progress.svg", "bottleneck-map.svg", "bf16-gemm.svg",
                  "bf16-model-policy.svg", "bf16-ffn-island.svg",
                  "bf16-model-inference.svg", "bf16-prefill-allocator.svg",
-                 "bf16-attention.svg"):
+                 "bf16-attention.svg", "bf16-plan-cache.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -271,6 +311,8 @@ def main() -> int:
     bf16_prefill_count = validate_bf16_prefill(errors)
     profile_kernel_calls, profile_api_calls = validate_decode_profile(errors)
     bf16_attention_count = validate_bf16_attention(errors)
+    post_profile_kernel_calls, post_profile_api_calls = validate_post_attention_profile(errors)
+    bf16_plan_count = validate_bf16_plan_cache(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -281,7 +323,9 @@ def main() -> int:
           f"bf16_policy={bf16_policy_count} bf16_ffn={bf16_ffn_count} "
           f"bf16_models={bf16_model_count} bf16_prefill={bf16_prefill_count} "
           f"bf16_attention={bf16_attention_count} "
-          f"profile_calls={profile_kernel_calls}/{profile_api_calls} links={link_count}")
+          f"bf16_plan={bf16_plan_count} "
+          f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
+          f"{post_profile_kernel_calls}/{post_profile_api_calls} links={link_count}")
     return 0
 
 
