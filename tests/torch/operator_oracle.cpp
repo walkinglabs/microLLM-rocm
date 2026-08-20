@@ -74,6 +74,9 @@ void emit_forward_cases() {
     emit("matmul_2d", matmul(matrix_left, matrix_right));
     emit("bf16_mixed_matmul",
          bf16_matmul(matrix_left, cast(matrix_right, DType::BFloat16)));
+    emit("bf16_output_matmul", bf16_matmul_output(
+        cast(matrix_left, DType::BFloat16), cast(matrix_right, DType::BFloat16),
+        DType::BFloat16));
     emit("matmul_readable",
          matmul_with_implementation(matrix_left, matrix_right,
                                     MatmulImplementation::Readable));

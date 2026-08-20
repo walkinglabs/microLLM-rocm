@@ -80,6 +80,8 @@ def pytorch_references(actual):
     record(refs, "matmul_2d", matrix_left @ matrix_right)
     record(refs, "bf16_mixed_matmul",
            matrix_left.to(torch.bfloat16).float() @ matrix_right.to(torch.bfloat16).float())
+    record(refs, "bf16_output_matmul",
+           (matrix_left.to(torch.bfloat16) @ matrix_right.to(torch.bfloat16)).to(torch.bfloat16))
     record(refs, "matmul_readable", matrix_left @ matrix_right)
     wide_right = tensor([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], (3, 4))
     transposed_left = matrix_left.transpose(0, 1).contiguous()
