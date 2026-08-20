@@ -156,6 +156,8 @@ the next gate. Records are append-only except for factual corrections.
   FP32-master BF16 autograd primitive, rejected official-model policy and raw evidence.
 - [2026-08-20-fused-bias-rope.md](2026-08-20-fused-bias-rope.md): first-class fused
   Q/K bias+RoPE forward/backward, paired official-model medians and profiler evidence.
+- [2026-08-20-fused-residual-rmsnorm.md](2026-08-20-fused-residual-rmsnorm.md): cached
+  pair-output residual+Norm fusion, launch reduction and recorded DeepSeek regression.
 - [2026-08-20-parallel-cross-entropy.md](2026-08-20-parallel-cross-entropy.md):
   Experiment 001 block-parallel CE, large-vocabulary/PyTorch gates, 66.1% score gain,
   profiler before/after and next-hotspot handoff.

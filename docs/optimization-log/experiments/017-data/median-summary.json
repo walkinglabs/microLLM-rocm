@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "process_repeats": 3,
+  "candidate_commit": "4d3559e",
+  "baseline_source": "experiments/016-data/candidate-run-{1,2,3}.jsonl",
+  "score": 1.80322555401251,
+  "previous_score": 1.7841471848029478,
+  "workloads": {
+    "qwen2.5-0.5b:infer": {
+      "baseline_median": 142.012466905,
+      "candidate_samples": [155.391233987, 144.27785306, 154.601319451],
+      "candidate_median": 154.601319451,
+      "candidate_over_baseline": 1.0886461084745565,
+      "candidate_over_pytorch": 2.202850466447653
+    },
+    "deepseek-r1-distill-qwen-1.5b:infer": {
+      "baseline_median": 55.498474373,
+      "candidate_samples": [53.170800617, 55.481399271, 53.195122971],
+      "candidate_median": 53.195122971,
+      "candidate_over_baseline": 0.9584970320711991,
+      "candidate_over_pytorch": 0.8525253864968771
+    },
+    "qwen2.5-0.5b:train": {
+      "reused_median": 112.426370565,
+      "candidate_over_pytorch": 2.1905196692049325
+    },
+    "deepseek-r1-distill-qwen-1.5b:train": {
+      "reused_median": 67.405561943,
+      "candidate_over_pytorch": 2.570163301386249
+    }
+  }
+}

@@ -122,9 +122,9 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| CPU tests | 156/156 | reference, Qwen/DeepSeek, graph/model/weights, benchmark, PyTorch and optimization-log schemas |
-| ASan/UBSan | 154/154 | host code; dynamic binding tests isolated |
-| MI300X/gfx942 HIP | 55/55 | BF16 mixed GEMM, fused cached Attention, allocator safety, FP8 and model matrix |
+| CPU tests | 157/157 | reference, Qwen/DeepSeek, graph/model/weights, benchmark, PyTorch and optimization-log schemas |
+| ASan/UBSan | 155/155 | host code; dynamic binding tests isolated |
+| MI300X/gfx942 HIP | 56/56 | fused norm/RoPE/Attention, allocator safety, BF16/FP8 and model matrix |
 | PyTorch CPU oracle/alignment | 3/3 | ops plus same-weight model value/timing trace |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
 | Registered test files | 34 | machine-audited CTest registration |

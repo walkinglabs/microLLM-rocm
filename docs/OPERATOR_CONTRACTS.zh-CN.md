@@ -24,6 +24,7 @@
 | `embedding` | weight `[V,D]`，index `S`，输出 `S+[D]` | `F.embedding` | 默认 | weight 非二维、index 非 Int32/越界、设备不同 |
 | `softmax` | `[...,D] -> [...,D]`，仅最后一维 | `torch.softmax(x,-1)` | `2e-6,2e-5` | 空最后维、非最后维 |
 | `rms_norm` | input `[...,D]`，weight `[D]` | `F.rms_norm` | `2e-4,2e-4` | weight shape 错、epsilon<=0 |
+| `add_rms_norm` | left/right `[...,D]`，weight `[D]`，返回 sum/norm 两个 Tensor | `s=x+y; (s,F.rms_norm(s))` | `2e-4,2e-4` | shape/dtype/device/weight/epsilon 错 |
 | `silu` | `S -> S` | `F.silu` | 默认 | 非 FP32 |
 | `swiglu` | gate/up 都是 `S` | `F.silu(gate)*up` | `2e-6,2e-5` | shape/device 不同 |
 | `rope` | `[...,T,...,H] -> same`，H 是偶数 | PyTorch `sin/cos` 组合 | `2e-5,2e-5` | rank<2、H 奇数、sequence_dim 错、offset/base 错 |

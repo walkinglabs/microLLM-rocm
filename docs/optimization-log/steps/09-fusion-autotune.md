@@ -28,6 +28,8 @@ Each bullet is a separate experiment:
 - Experiment 013: FP32 M=1 GroupedGemm returned no usable heuristic;
 - Experiment 016: Q/K projection bias + split-half RoPE removed 1,120 launches in the
   DeepSeek trace and raised the fixed score `1.770568 → 1.784147`.
+- Experiment 017: cached residual add + RMSNorm removed 532 more launches and raised the
+  score to `1.803226`, while DeepSeek's uninstrumented median regressed 4.2%.
 
 The remaining items are still separate hypotheses; the successful local fusion does not
 prove that every neighboring pair should be fused.

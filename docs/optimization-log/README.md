@@ -26,7 +26,7 @@ DeepSeek-R1-Distill-Qwen-1.5B generate 0.1606
 ```text
 score = geometric_mean(workload throughput ratios)
 baseline = 0.191660
-current running best = 1.784147
+current running best = 1.803226
 selected-matrix parity target = 1.000000
 ```
 
@@ -72,6 +72,10 @@ memory，所以模型策略和 CLI 被删除；经过 PyTorch 前向/反向对�
 Experiment 016 将 Q/K projection bias 与 split-half RoPE 合并。配对三进程中位数中，
 Qwen/DeepSeek generation 分别提高 13.7%/6.6%，两项训练变化为 +0.1%/+0.4%；
 当前 FP32 running-best score 为 `1.784147`。完整前向、反向、AdamW 和 token 门通过。
+
+Experiment 017 在 cached inference 中同时输出 residual sum 与 RMSNorm。Qwen generation
+中位数提高 8.9%，DeepSeek 退化 4.2%，综合 score 提高到 `1.803226`。DeepSeek 反例和
+profiler 中相反的 +5.2% 插桩结果都保留，没有用平均数掩盖单项。
 
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
