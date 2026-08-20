@@ -37,8 +37,11 @@ struct Options {
     std::int64_t new_tokens = 0;
     int warmup = 0;
     int steps = 1;
+    int prefill_warmup = 0;
+    int prefill_steps = 1;
     std::string tokenizer_family = "qwen2";
     std::string chat_user;
+    bool bf16_ffn = false;
 };
 
 Options options(int argc, char** argv) {
@@ -58,8 +61,20 @@ Options options(int argc, char** argv) {
         else if (name == "--new-tokens") result.new_tokens = std::stoll(argv[index + 1]);
         else if (name == "--warmup") result.warmup = std::stoi(argv[index + 1]);
         else if (name == "--steps") result.steps = std::stoi(argv[index + 1]);
+        else if (name == "--prefill-warmup") {
+            result.prefill_warmup = std::stoi(argv[index + 1]);
+        } else if (name == "--prefill-steps") {
+            result.prefill_steps = std::stoi(argv[index + 1]);
+        }
         else if (name == "--tokenizer-family") result.tokenizer_family = argv[index + 1];
         else if (name == "--chat-user") result.chat_user = argv[index + 1];
+        else if (name == "--bf16-ffn") {
+            const std::string value = argv[index + 1];
+            if (value != "true" && value != "false") {
+                throw std::invalid_argument("--bf16-ffn must be true or false");
+            }
+            result.bf16_ffn = value == "true";
+        }
         else throw std::invalid_argument("unknown CLI option: " + name);
     }
     if (result.config.empty() || result.weights.empty()) {
@@ -79,6 +94,10 @@ Options options(int argc, char** argv) {
     if (result.new_tokens < 0) throw std::invalid_argument("--new-tokens cannot be negative");
     if (result.warmup < 0 || result.steps <= 0) {
         throw std::invalid_argument("--warmup must be nonnegative and --steps positive");
+    }
+    if (result.prefill_warmup < 0 || result.prefill_steps <= 0) {
+        throw std::invalid_argument(
+            "--prefill-warmup must be nonnegative and --prefill-steps positive");
     }
     return result;
 }
@@ -118,6 +137,11 @@ int main(int argc, char** argv) {
         const auto load_start = std::chrono::steady_clock::now();
         const auto report = model.load_safetensors(command.weights, load_options);
         const auto load_finish = std::chrono::steady_clock::now();
+        microllm::model::Bf16FfnPreparationReport bf16_report;
+        const auto preparation_start = std::chrono::steady_clock::now();
+        if (command.bf16_ffn) bf16_report = model.prepare_bf16_ffn_inference();
+        microllm::runtime::synchronize(device);
+        const auto preparation_finish = std::chrono::steady_clock::now();
         std::optional<microllm::io::HuggingFaceBpeTokenizer> tokenizer;
         std::vector<std::int32_t> ids;
         if (!command.tokens.empty()) {
@@ -155,9 +179,18 @@ int main(int argc, char** argv) {
         auto token_tensor = microllm::Tensor::from_int32_vector(
             ids, {1, static_cast<std::int64_t>(ids.size())});
         if (device.is_hip()) token_tensor = token_tensor.to(device);
+        for (int iteration = 0; iteration < command.prefill_warmup; ++iteration) {
+            (void)model.forward_inference(token_tensor);
+        }
+        microllm::runtime::synchronize(device);
         const auto forward_start = std::chrono::steady_clock::now();
-        const auto logits = model.forward(token_tensor).data().to_vector();
+        microllm::Tensor logits_tensor;
+        for (int iteration = 0; iteration < command.prefill_steps; ++iteration) {
+            logits_tensor = model.forward_inference(token_tensor);
+        }
+        microllm::runtime::synchronize(device);
         const auto forward_finish = std::chrono::steady_clock::now();
+        const auto logits = logits_tensor.to_vector();
         const auto vocabulary = static_cast<std::size_t>(external.model.vocabulary_size);
         const auto offset = (ids.size() - 1) * vocabulary;
         std::vector<std::size_t> order(vocabulary);
@@ -229,9 +262,25 @@ int main(int argc, char** argv) {
                   << ",\"hip_runtime_version\":"
                   << microllm::runtime::hip_runtime_version()
                   << ",\"hip_driver_version\":" << microllm::runtime::hip_driver_version()
-                  << ",\"compute_dtype\":\"float32\""
+                  << ",\"compute_dtype\":\""
+                  << (command.bf16_ffn ? "float32_with_bf16_ffn" : "float32") << "\""
+                  << ",\"inference_weight_policy\":\""
+                  << (command.bf16_ffn ? "single_representation_bf16_ffn" : "float32")
+                  << "\""
+                  << ",\"bf16_ffn_converted_tensors\":"
+                  << bf16_report.converted_tensors
+                  << ",\"fp32_weight_bytes_released\":"
+                  << bf16_report.fp32_bytes_released
+                  << ",\"bf16_weight_bytes_retained\":"
+                  << bf16_report.bf16_bytes_retained
+                  << ",\"resident_weight_bytes\":"
+                  << external.model.weight_bytes(sizeof(float)) -
+                         bf16_report.fp32_bytes_released +
+                         bf16_report.bf16_bytes_retained
                   << ",\"measurement_profile\":\""
-                  << (command.warmup > 0 || command.steps > 1 ? "comparison" : "smoke")
+                  << (command.warmup > 0 || command.steps > 1 ||
+                              command.prefill_warmup > 0 || command.prefill_steps > 1
+                          ? "comparison" : "smoke")
                   << "\""
                   << ",\"parameter_count\":" << model.parameter_count()
                   << ",\"fp32_weight_bytes\":"
@@ -243,9 +292,16 @@ int main(int argc, char** argv) {
                   << ",\"warmup_ms\":" << warmup_ms
                   << ",\"load_ms\":"
                   << std::chrono::duration<double, std::milli>(load_finish - load_start).count()
-                  << ",\"forward_ms\":" << forward_ms
+                  << ",\"bf16_prepare_ms\":"
+                  << std::chrono::duration<double, std::milli>(
+                         preparation_finish - preparation_start).count()
+                  << ",\"prefill_warmup\":" << command.prefill_warmup
+                  << ",\"prefill_steps\":" << command.prefill_steps
+                  << ",\"forward_ms\":"
+                  << forward_ms / static_cast<double>(command.prefill_steps)
                   << ",\"prefill_tokens_per_second\":"
-                  << static_cast<double>(ids.size()) * 1000.0 / forward_ms
+                  << static_cast<double>(ids.size()) * command.prefill_steps * 1000.0 /
+                         forward_ms
                   << ",\"engine_current_bytes\":" << allocation.current_bytes
                   << ",\"engine_peak_bytes\":" << allocation.peak_bytes
                   << ",\"engine_total_allocated_bytes\":"

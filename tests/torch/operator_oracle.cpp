@@ -436,6 +436,11 @@ void emit_model_graph_case() {
     for (const auto& [name, parameter] : model.named_parameters()) {
         emit("model_grad:" + name, parameter->grad());
     }
+    const auto preparation = model.prepare_bf16_ffn_inference();
+    if (preparation.converted_tensors != 3U) {
+        throw std::logic_error("tiny model BF16 FFN preparation count changed");
+    }
+    emit("model_bf16_ffn_logits", model.forward_inference(tokens));
 }
 
 void emit_optimizer_cases() {

@@ -12,6 +12,7 @@
 
 #include <microllm/ops/ops.h>
 #include <microllm/profiling/trace.h>
+#include <microllm/runtime/runtime.h>
 
 namespace microllm::model {
 namespace {
@@ -97,6 +98,7 @@ public:
         return has_bias_ ? ops::add_bias(output, bias_.data()) : output;
     }
     Value& weight() noexcept { return weight_; }
+    [[nodiscard]] const Tensor& weight_data() const noexcept { return weight_.data(); }
     [[nodiscard]] bool has_bias() const noexcept { return has_bias_; }
     Value& bias() noexcept { return bias_; }
 
@@ -191,6 +193,49 @@ public:
                                  {batch, sequence, config_.dimension});
     }
 
+    Tensor forward_tensor(const Tensor& input) {
+        if (input.ndim() != 3) throw std::invalid_argument("attention input must be BxTxD");
+        const auto batch = input.shape()[0];
+        const auto sequence = input.shape()[1];
+        const auto flat = input.reshape({batch * sequence, config_.dimension});
+        auto query = query_.forward_tensor(flat)
+                         .reshape({batch, sequence, config_.heads, config_.head_dimension()})
+                         .transpose(1, 2)
+                         .contiguous();
+        auto key = key_.forward_tensor(flat)
+                       .reshape({batch, sequence, config_.kv_heads,
+                                 config_.head_dimension()})
+                       .transpose(1, 2)
+                       .contiguous();
+        auto value = value_.forward_tensor(flat)
+                         .reshape({batch, sequence, config_.kv_heads,
+                                   config_.head_dimension()})
+                         .transpose(1, 2)
+                         .contiguous();
+        if (config_.rope_layout == RopeLayout::SplitHalf) {
+            query = ops::rope_split_half(query, 2, 0, config_.rope_base);
+            key = ops::rope_split_half(key, 2, 0, config_.rope_base);
+        } else {
+            query = ops::rope(query, 2, 0, config_.rope_base);
+            key = ops::rope(key, 2, 0, config_.rope_base);
+        }
+        if (config_.kv_heads != config_.heads) {
+            const auto repeats = config_.heads / config_.kv_heads;
+            key = ops::repeat_interleave(key, 1, repeats);
+            value = ops::repeat_interleave(value, 1, repeats);
+        }
+        const auto scores = ops::scale(
+            ops::matmul(query, key.transpose(-2, -1).contiguous()),
+            1.0F / std::sqrt(static_cast<float>(config_.head_dimension())));
+        const auto probabilities = ops::causal_softmax(scores);
+        auto context = ops::matmul(probabilities, value)
+                           .transpose(1, 2)
+                           .contiguous()
+                           .reshape({batch * sequence, config_.dimension});
+        return output_.forward_tensor(context).reshape(
+            {batch, sequence, config_.dimension});
+    }
+
     Tensor forward_cached(const Tensor& input, inference::KVCache::LayerState& cache,
                           std::int64_t position, std::int64_t cache_capacity) {
         if (input.shape().size() != 3 || input.shape()[0] != 1 || input.shape()[1] != 1) {
@@ -280,10 +325,26 @@ public:
     }
 
     Tensor forward_tensor(const Tensor& input) {
-        const auto flat = input.reshape({1, config_.dimension});
-        const auto activated = ops::swiglu(gate_.forward_tensor(flat), up_.forward_tensor(flat));
-        return down_.forward_tensor(activated).reshape({1, 1, config_.dimension});
+        if (input.ndim() != 3) throw std::invalid_argument("FFN input must be BxTxD");
+        const auto batch = input.shape()[0];
+        const auto sequence = input.shape()[1];
+        const auto flat = input.reshape({batch * sequence, config_.dimension});
+        Tensor output;
+        if (gate_.weight_data().dtype() == DType::BFloat16) {
+            if (up_.weight_data().dtype() != DType::BFloat16 ||
+                down_.weight_data().dtype() != DType::BFloat16) {
+                throw std::logic_error("FFN inference weights have mixed preparation state");
+            }
+            output = ops::bf16_ffn(flat, gate_.weight_data(), up_.weight_data(),
+                                   down_.weight_data());
+        } else {
+            const auto activated = ops::swiglu(gate_.forward_tensor(flat),
+                                                up_.forward_tensor(flat));
+            output = down_.forward_tensor(activated);
+        }
+        return output.reshape({batch, sequence, config_.dimension});
     }
+
 
     void append_named(const std::string& prefix, NamedValues& values) {
         values.emplace_back(prefix + ".gate_proj.weight", &gate_.weight());
@@ -311,6 +372,13 @@ public:
         return autograd::add(hidden, feed_forward_.forward(ffn_norm_.forward(hidden)));
     }
 
+    Tensor forward_tensor(const Tensor& input) {
+        auto hidden = ops::add(input, attention_.forward_tensor(
+                                          attention_norm_.forward_tensor(input)));
+        return ops::add(hidden, feed_forward_.forward_tensor(
+                                    ffn_norm_.forward_tensor(hidden)));
+    }
+
     Tensor forward_cached(const Tensor& input, inference::KVCache::LayerState& cache,
                           std::int64_t position, std::int64_t cache_capacity) {
         auto attention = attention_.forward_cached(attention_norm_.forward_tensor(input), cache,
@@ -326,6 +394,7 @@ public:
         values.emplace_back(prefix + ".ffn_norm.weight", &ffn_norm_.weight());
         feed_forward_.append_named(prefix + ".feed_forward", values);
     }
+
 
 private:
     Norm attention_norm_;
@@ -359,6 +428,7 @@ struct TransformerModel::Impl {
     std::vector<std::unique_ptr<Block>> blocks;
     Norm final_norm;
     std::unique_ptr<Linear> output_head;
+    bool bf16_ffn_prepared = false;
 };
 
 TransformerModel::TransformerModel(ModelConfig config, std::uint64_t seed)
@@ -384,6 +454,11 @@ void TransformerModel::to(Device target) {
 }
 
 Value TransformerModel::forward(const Tensor& token_ids) {
+    if (impl_->bf16_ffn_prepared) {
+        throw std::logic_error(
+            "autograd forward is unavailable after BF16 FFN inference preparation; "
+            "use forward_inference or forward_cached");
+    }
     if (token_ids.dtype() != DType::Int32 || token_ids.ndim() != 2) {
         throw std::invalid_argument("model token IDs must be an int32 BxT tensor");
     }
@@ -423,6 +498,31 @@ Value TransformerModel::forward(const Tensor& token_ids) {
     if (trace != nullptr) trace->record(profiling::TraceKind::Output, "model.logits", output.data());
     model_timer.finish(output.data());
     return output;
+}
+
+Tensor TransformerModel::forward_inference(const Tensor& token_ids) {
+    if (token_ids.dtype() != DType::Int32 || token_ids.ndim() != 2) {
+        throw std::invalid_argument("model token IDs must be an int32 BxT tensor");
+    }
+    if (token_ids.shape()[1] > impl_->config.max_sequence_length) {
+        throw std::invalid_argument("token sequence exceeds configured maximum");
+    }
+    const auto model_tokens = token_ids.device() == device() ? token_ids : token_ids.to(device());
+    auto hidden = ops::embedding(impl_->token_embedding.data(), model_tokens);
+    for (auto& block : impl_->blocks) hidden = block->forward_tensor(hidden);
+    hidden = impl_->final_norm.forward_tensor(hidden);
+    const auto batch = token_ids.shape()[0];
+    const auto sequence = token_ids.shape()[1];
+    const auto flat = hidden.reshape({batch * sequence, impl_->config.dimension});
+    Tensor logits;
+    if (impl_->config.tie_embeddings) {
+        logits = ops::matmul_with_implementation(
+            flat, impl_->token_embedding.data(), ops::MatmulImplementation::Auto,
+            false, true);
+    } else {
+        logits = impl_->output_head->forward_tensor(flat);
+    }
+    return logits.reshape({batch, sequence, impl_->config.vocabulary_size});
 }
 
 Value TransformerModel::loss(const Tensor& token_ids, const Tensor& targets) {
@@ -494,6 +594,48 @@ std::uint64_t TransformerModel::parameter_count() {
     return count;
 }
 
+Bf16FfnPreparationReport TransformerModel::prepare_bf16_ffn_inference() {
+    if (impl_->bf16_ffn_prepared) {
+        throw std::logic_error("BF16 FFN inference preparation is one-way and already complete");
+    }
+    struct Prepared {
+        Value* parameter = nullptr;
+        Tensor bf16;
+    };
+    std::vector<Prepared> prepared;
+    Bf16FfnPreparationReport report;
+    for (const auto& [name, parameter] : named_parameters()) {
+        if (name.find(".feed_forward.") == std::string::npos) continue;
+        if (parameter->data().dtype() != DType::Float32 ||
+            !parameter->data().is_contiguous()) {
+            throw std::logic_error(
+                "BF16 FFN inference preparation requires contiguous FP32 source weights");
+        }
+        const auto elements = static_cast<std::uint64_t>(parameter->data().numel());
+        prepared.push_back({parameter, ops::cast(parameter->data(), DType::BFloat16)});
+        ++report.converted_tensors;
+        report.fp32_bytes_released += elements * sizeof(float);
+        report.bf16_bytes_retained += elements * sizeof(std::uint16_t);
+    }
+    if (report.converted_tensors != impl_->blocks.size() * 3U) {
+        throw std::logic_error("model did not expose exactly three FFN weights per layer");
+    }
+    // Conversion is transactional. Keep every FP32 source alive until all BF16
+    // allocations and asynchronous casts have completed; allocation or device
+    // failure therefore leaves the trainable model unchanged. The duplicate is
+    // temporary during this call, never persistent model state.
+    runtime::synchronize(device());
+    for (auto& item : prepared) {
+        *item.parameter = Value(std::move(item.bf16), false);
+    }
+    impl_->bf16_ffn_prepared = true;
+    return report;
+}
+
+bool TransformerModel::bf16_ffn_inference_prepared() const noexcept {
+    return impl_->bf16_ffn_prepared;
+}
+
 io::StateDict TransformerModel::state_dict(Device target) {
     io::StateDict state;
     for (const auto& [name, parameter] : named_parameters()) {
@@ -506,6 +648,10 @@ io::StateDict TransformerModel::state_dict(Device target) {
 
 LoadWeightsReport TransformerModel::load_state_dict(const io::StateDict& state,
                                                      const LoadWeightsOptions& options) {
+    if (impl_->bf16_ffn_prepared) {
+        throw std::logic_error(
+            "load weights before one-way BF16 FFN inference preparation");
+    }
     LoadWeightsReport report;
     const auto named = named_parameters();
     std::set<std::string> target_names;

@@ -104,6 +104,31 @@ TEST(ModelWeightsTest, StrictLoadClearsGradientsAndReproducesForward) {
               source.forward(tokens()).data().to_vector());
 }
 
+TEST(ModelWeightsTest, PreparedBf16FfnExportsFp32SnapshotAndRejectsReload) {
+    TransformerModel model(weight_config(), 319);
+    const auto before = model.state_dict();
+    const auto report = model.prepare_bf16_ffn_inference();
+    EXPECT_EQ(report.converted_tensors, 3U);
+    const auto snapshot = model.state_dict();
+    ASSERT_EQ(snapshot.size(), before.size());
+    for (const auto& [name, tensor] : snapshot) {
+        EXPECT_EQ(tensor.dtype(), DType::Float32) << name;
+        const auto expected = name.find("feed_forward") == std::string::npos
+                                  ? before.at(name)
+                                  : before.at(name).cast(DType::BFloat16)
+                                        .cast(DType::Float32);
+        EXPECT_EQ(tensor.to_vector(), expected.to_vector()) << name;
+    }
+    model.to(Device::cpu());
+    EXPECT_TRUE(model.bf16_ffn_inference_prepared());
+    for (const auto& [name, parameter] : model.named_parameters()) {
+        if (name.find("feed_forward") != std::string::npos) {
+            EXPECT_EQ(parameter->data().dtype(), DType::BFloat16) << name;
+        }
+    }
+    EXPECT_THROW((void)model.load_state_dict(before), std::logic_error);
+}
+
 TEST(ModelWeightsTest, QwenStyleMappingTransposesLinearWeights) {
     const auto config = weight_config();
     TransformerModel source(config, 331);

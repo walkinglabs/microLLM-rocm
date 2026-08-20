@@ -20,6 +20,14 @@ ModelConfig tiny_config(bool gqa = true) {
             .tie_embeddings = false};
 }
 
+void expect_near(const std::vector<float>& actual, const std::vector<float>& expected,
+                 float tolerance) {
+    ASSERT_EQ(actual.size(), expected.size());
+    for (std::size_t index = 0; index < actual.size(); ++index) {
+        EXPECT_NEAR(actual[index], expected[index], tolerance) << "index=" << index;
+    }
+}
+
 }  // namespace
 
 TEST(TransformerModelTest, ConstructedParametersMatchConfigAndHaveUniqueNames) {
@@ -68,6 +76,46 @@ TEST(TransformerModelTest, ForwardAndBackwardCoverEveryParameter) {
             EXPECT_TRUE(std::isfinite(value)) << name;
         }
     }
+}
+
+TEST(TransformerModelTest, GraphFreeInferenceMatchesAutogradForMhaAndGqa) {
+    const auto tokens = Tensor::from_int32_vector(
+        {1, 2, 3, 4, 4, 3, 2, 1}, {2, 4});
+    for (const auto gqa : {false, true}) {
+        TransformerModel model(tiny_config(gqa), 13);
+        const auto graph = model.forward(tokens).data().to_vector();
+        const auto inference = model.forward_inference(tokens);
+        EXPECT_EQ(inference.dtype(), DType::Float32);
+        EXPECT_EQ(inference.shape(), (Shape{2, 4, 16}));
+        expect_near(inference.to_vector(), graph, 2.0e-5F);
+    }
+}
+
+TEST(TransformerModelTest, Bf16FfnPreparationIsSingleRepresentationAndInferenceOnly) {
+    TransformerModel model(tiny_config(), 17);
+    const auto input = Tensor::from_int32_vector({1, 2, 3, 4}, {1, 4});
+    const auto before = model.forward_inference(input).to_vector();
+    const auto report = model.prepare_bf16_ffn_inference();
+    EXPECT_TRUE(model.bf16_ffn_inference_prepared());
+    EXPECT_EQ(report.converted_tensors, 3U);
+    EXPECT_EQ(report.fp32_bytes_released, 3U * 8U * 16U * sizeof(float));
+    EXPECT_EQ(report.bf16_bytes_retained, 3U * 8U * 16U * sizeof(std::uint16_t));
+
+    std::size_t bf16_weights = 0;
+    for (const auto& [name, parameter] : model.named_parameters()) {
+        const auto is_ffn = name.find("feed_forward") != std::string::npos;
+        EXPECT_EQ(parameter->data().dtype(),
+                  is_ffn ? DType::BFloat16 : DType::Float32) << name;
+        if (is_ffn) {
+            ++bf16_weights;
+            EXPECT_FALSE(parameter->requires_grad()) << name;
+        }
+    }
+    EXPECT_EQ(bf16_weights, 3U);
+    const auto after = model.forward_inference(input).to_vector();
+    expect_near(after, before, 2.0e-2F);
+    EXPECT_THROW((void)model.forward(input), std::logic_error);
+    EXPECT_THROW((void)model.prepare_bf16_ffn_inference(), std::logic_error);
 }
 
 TEST(TransformerModelTest, Fp8LinearPolicyRunsFullForwardLossAndBackward) {

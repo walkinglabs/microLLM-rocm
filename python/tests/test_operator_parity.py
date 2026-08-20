@@ -327,6 +327,21 @@ def pytorch_references(actual):
     hidden = hidden + attention
     normalized = F.rms_norm(hidden, (8,), params[f"{prefix}.ffn_norm.weight"], 1.0e-5)
     flat = normalized.reshape(4, 8)
+    bf16_flat = flat.detach().to(torch.bfloat16)
+    bf16_gate_weight = params[f"{prefix}.feed_forward.gate_proj.weight"].detach().to(torch.bfloat16)
+    bf16_up_weight = params[f"{prefix}.feed_forward.up_proj.weight"].detach().to(torch.bfloat16)
+    bf16_down_weight = params[f"{prefix}.feed_forward.down_proj.weight"].detach().to(torch.bfloat16)
+    bf16_gate = (bf16_flat @ bf16_gate_weight).to(torch.bfloat16)
+    bf16_up = (bf16_flat @ bf16_up_weight).to(torch.bfloat16)
+    bf16_activated = (F.silu(bf16_gate) * bf16_up).to(torch.bfloat16)
+    bf16_feed_forward = bf16_activated.float() @ bf16_down_weight.float()
+    bf16_hidden = hidden.detach() + bf16_feed_forward.reshape(1, 4, 8)
+    bf16_hidden = F.rms_norm(
+        bf16_hidden, (8,), params["final_norm.weight"].detach(), 1.0e-5)
+    bf16_logits = (
+        bf16_hidden.reshape(4, 8) @ params["output_head.weight"].detach()
+    ).reshape(1, 4, 8)
+    record(refs, "model_bf16_ffn_logits", bf16_logits)
     gate = flat @ params[f"{prefix}.feed_forward.gate_proj.weight"]
     up = flat @ params[f"{prefix}.feed_forward.up_proj.weight"]
     feed_forward = (F.silu(gate) * up) @ params[f"{prefix}.feed_forward.down_proj.weight"]
@@ -409,7 +424,8 @@ class OperatorParityTest(unittest.TestCase):
                 tolerance = 3.0e-2
             elif name.startswith("fp16_"):
                 tolerance = 3.0e-3
-            elif name.startswith("model_grad:") or name in {"model_logits", "model_loss"}:
+            elif (name.startswith("model_grad:") or
+                  name in {"model_logits", "model_loss", "model_bf16_ffn_logits"}):
                 tolerance = 2.0e-3
             else:
                 tolerance = 3.0e-4 if name in looser else 3.0e-5
