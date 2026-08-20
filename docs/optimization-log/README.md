@@ -156,6 +156,12 @@ DeepSeek提高 `2.55×/2.67×`，固定 PyTorch BF16 四项全部过线。
 
 ![BF16 immutable plan cache](assets/bf16-plan-cache.svg)
 
+Experiment 037 建立 BF16 Linear + FP32 master/gradient/AdamW 训练。两模型吞吐是 PyTorch
+BF16 autocast 的 `3.12×/2.58×`，loss 都下降；但相对 microLLM FP32 仅
+`0.918×/0.906×`，峰值显存完全不降，所以只保留训练地基，不宣称内部加速。
+
+![BF16 FP32-master training](assets/bf16-training.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -188,6 +194,8 @@ DeepSeek提高 `2.55×/2.67×`，固定 PyTorch BF16 四项全部过线。
 | [experiments/035-data/](experiments/035-data/) | retained Attention 后的 profiler 聚合 |
 | [assets/bf16-plan-cache.svg](assets/bf16-plan-cache.svg) | BF16 plan cache 与 PyTorch BF16 四项验收 |
 | [experiments/036-data/](experiments/036-data/) | plan-cache 三进程 official raw/summary |
+| [assets/bf16-training.svg](assets/bf16-training.svg) | FP32 master BF16 training 的成功与失败门 |
+| [experiments/037-data/](experiments/037-data/) | 18 条 official train raw、摘要和 native-BF16 失败 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

@@ -39,7 +39,7 @@ MI300X 没有 CDNA4 的原生 MXFP4 Matrix Core。仓库可以保存 packed FP4 
 | view/contiguous/设备复制 | ✓ | ✓ | ✓ | 计划中 | 计划中 | 计划中 |
 | 基础逐元素/SiLU/SwiGLU/GEMM | ✓ | CPU/MI300X ✓ | CPU/MI300X ✓ | — | — | — |
 | hipBLASLt GEMM | FP32 ✓ | MI300X ✓ | MI300X ✓ | MI300X E4M3/E5M2 FNUZ ✓ | 计划中 | 软件解包后计算 |
-| Transformer Linear 训练/推理 | FP32 | 计划中 | 单份 FFN + Attention projection 推理 ✓；混合训练计划中 | FP8 forward + FP32 master/backward/KV decode ✓ | — | — |
+| Transformer Linear 训练/推理 | FP32 | 计划中 | 单份 FFN+Attention 推理 ✓；FP32-master Linear训练 ✓ | FP8 forward + FP32 master/backward/KV decode ✓ | — | — |
 
 表格中的“计划中”不是支持声明。只有对应测试和真机记录完成后才会改成 ✓。
 
@@ -106,3 +106,7 @@ Q/K/V 共享一次 input cast；Embedding、Norm、KV cache 与 tied 输出头�
 PyTorch 全 BF16 的问题已由 BF16 专用 immutable hipBLASLt plan 修复：固定短 prompt
 Qwen/DeepSeek 四项 inference throughput 全部过线。这个结论仍不能推广到训练、长上下文、
 batch>1、Radeon 或其他 ROCm 版本。
+
+训练时不能删除 FP32 master。`LinearPrecision::BFloat16` 只让 Linear forward 使用 BF16
+舍入，backward、参数和 AdamW 仍为 FP32。官方多步 loss 与 PyTorch BF16 autocast 接近，
+但当前比 microLLM FP32 慢约 8%–9%，峰值不降；continuous BF16 training island 仍未完成。

@@ -1,0 +1,43 @@
+{
+  "aggregation": "median of three independent processes by default",
+  "rows": [
+    {
+      "all_updates_finite": true,
+      "bf16_peak_ratio_vs_microllm_fp32": 1.0,
+      "bf16_speedup_vs_microllm_fp32": 0.9184715594647601,
+      "microllm_bf16_final_loss": 0.002486547,
+      "microllm_bf16_first_loss": 1.003457665,
+      "microllm_bf16_peak_bytes": 9012293536.0,
+      "microllm_bf16_ratio_vs_pytorch_bf16_amp": 3.122062242955756,
+      "microllm_bf16_tokens_per_second": 138.658007899,
+      "microllm_fp32_peak_bytes": 9012293536.0,
+      "microllm_fp32_tokens_per_second": 150.966033156,
+      "model": "qwen2.5-0.5b",
+      "pytorch_bf16_amp_final_loss": 0.0033435027580708265,
+      "pytorch_bf16_amp_first_loss": 1.095703125,
+      "pytorch_bf16_amp_peak_allocated_bytes": 10064447488.0,
+      "pytorch_bf16_amp_tokens_per_second": 44.41231375570784,
+      "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987"
+    },
+    {
+      "all_updates_finite": true,
+      "bf16_peak_ratio_vs_microllm_fp32": 1.0,
+      "bf16_speedup_vs_microllm_fp32": 0.9063540918189527,
+      "microllm_bf16_final_loss": 9.268782616,
+      "microllm_bf16_first_loss": 10.489388466,
+      "microllm_bf16_peak_bytes": 28468424608.0,
+      "microllm_bf16_ratio_vs_pytorch_bf16_amp": 2.582795787483521,
+      "microllm_bf16_tokens_per_second": 74.064627817,
+      "microllm_fp32_peak_bytes": 28468424608.0,
+      "microllm_fp32_tokens_per_second": 81.717099846,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "pytorch_bf16_amp_final_loss": 9.291706085205078,
+      "pytorch_bf16_amp_first_loss": 10.464640617370605,
+      "pytorch_bf16_amp_peak_allocated_bytes": 35768904192.0,
+      "pytorch_bf16_amp_tokens_per_second": 28.67614550709908,
+      "revision": "ad9f0ae0864d7fbcd1cd905e3c6c5b069cc8b562"
+    }
+  ],
+  "schema_version": 1,
+  "track": "bf16_fp32_master_training"
+}

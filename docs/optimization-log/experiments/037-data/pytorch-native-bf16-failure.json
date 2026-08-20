@@ -1,0 +1,8 @@
+{
+  "model": "qwen2.5-0.5b",
+  "policy": "pytorch_native_bf16_parameters",
+  "learning_rate": 0.00001,
+  "status": "failed",
+  "stable_failure": "observed BF16 parameter did not change after optimizer steps",
+  "resolution": "use PyTorch BF16 autocast with FP32 parameters as the matched FP32-master reference"
+}

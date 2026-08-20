@@ -266,6 +266,33 @@ def validate_bf16_plan_cache(errors: list[str]) -> int:
     return len(records)
 
 
+def validate_bf16_training(errors: list[str]) -> int:
+    data = ROOT / "experiments" / "037-data"
+    records = [json.loads(line) for line in
+               (data / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    if len(records) != 18:
+        errors.append(f"BF16 training raw count is {len(records)}, expected 18")
+    if len({(row["model"], row["policy"], row["process_run"]) for row in records}) != 18:
+        errors.append("BF16 training process keys are not unique")
+    if any(not row.get("parameter_changed") or
+           not math.isfinite(float(row["final_loss"])) for row in records):
+        errors.append("BF16 training record lacks a finite parameter update")
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    if len(summary.get("rows", [])) != 2:
+        errors.append("BF16 training summary must contain two rows")
+    for row in summary.get("rows", []):
+        if row["microllm_bf16_ratio_vs_pytorch_bf16_amp"] <= 1.0 or \
+                row["bf16_speedup_vs_microllm_fp32"] >= 1.0 or \
+                row["bf16_peak_ratio_vs_microllm_fp32"] != 1.0 or \
+                row["microllm_bf16_final_loss"] >= row["microllm_bf16_first_loss"]:
+            errors.append(f'BF16 training evidence boundary changed: {row["model"]}')
+    failure = json.loads((data / "pytorch-native-bf16-failure.json").read_text(
+        encoding="utf-8"))
+    if failure.get("status") != "failed":
+        errors.append("native PyTorch BF16 parameter failure is missing")
+    return len(records)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -284,7 +311,7 @@ def validate_assets(errors: list[str]) -> None:
     for name in ("progress.svg", "bottleneck-map.svg", "bf16-gemm.svg",
                  "bf16-model-policy.svg", "bf16-ffn-island.svg",
                  "bf16-model-inference.svg", "bf16-prefill-allocator.svg",
-                 "bf16-attention.svg", "bf16-plan-cache.svg"):
+                 "bf16-attention.svg", "bf16-plan-cache.svg", "bf16-training.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -313,6 +340,7 @@ def main() -> int:
     bf16_attention_count = validate_bf16_attention(errors)
     post_profile_kernel_calls, post_profile_api_calls = validate_post_attention_profile(errors)
     bf16_plan_count = validate_bf16_plan_cache(errors)
+    bf16_training_count = validate_bf16_training(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -323,7 +351,7 @@ def main() -> int:
           f"bf16_policy={bf16_policy_count} bf16_ffn={bf16_ffn_count} "
           f"bf16_models={bf16_model_count} bf16_prefill={bf16_prefill_count} "
           f"bf16_attention={bf16_attention_count} "
-          f"bf16_plan={bf16_plan_count} "
+          f"bf16_plan={bf16_plan_count} bf16_training={bf16_training_count} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls} links={link_count}")
     return 0

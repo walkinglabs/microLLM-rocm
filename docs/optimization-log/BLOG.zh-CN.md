@@ -1077,3 +1077,19 @@ description 和三个 layout；3,743 次重复工作不在 Kernel duration 里�
 这让用户要求的固定 Qwen/DeepSeek 短 prompt inference 矩阵第一次 4/4 过线，但不是
 “框架全面完成”。训练、长上下文、batch>1、多卡、Radeon 与其他 ROCm 版本必须建立
 各自曲线，不能接在这条短 prompt 图后面。
+
+## 54. Experiment 037：训练不能把 FP32 master 扔掉
+
+推理可以只留 BF16 权重，训练不行。新策略只在 Linear forward 舍入到 BF16；参数、
+gradient 和 AdamW moment 都是 FP32。Python 用自定义 STE-BF16 autograd 重建了整个
+Transformer，不只对一个 GEMM；logits、loss 和每个参数梯度都通过。
+
+直接让 PyTorch 参数本身变成 BF16 时，`1e-5` 更新被舍入掉，观察参数完全不变。这个
+失败促使 reference 改为 PyTorch BF16 autocast + FP32 参数，与 microLLM master 合同一致。
+
+![BF16 FP32-master training](assets/bf16-training.svg)
+
+Qwen/DeepSeek microLLM BF16 训练是 PyTorch autocast 的 `3.12×/2.58×`，loss 轨迹接近；
+但只达到 microLLM FP32 的 `0.918×/0.906×`，峰值显存一字节也没少。结论是训练已经
+“能正确跑”，还没有成为本项目内部的性能优化。下一节点要减少 forward 中重复 cast，
+同时守住 FP32 master/gradient/update。

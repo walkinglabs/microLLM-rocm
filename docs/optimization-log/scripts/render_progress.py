@@ -30,6 +30,8 @@ BF16_ATTENTION_PILOT = ROOT / "experiments" / "034-data" / "naive-pilot.jsonl"
 BF16_ATTENTION_CHART = ROOT / "assets" / "bf16-attention.svg"
 BF16_PLAN_SUMMARY = ROOT / "experiments" / "036-data" / "summary.json"
 BF16_PLAN_CHART = ROOT / "assets" / "bf16-plan-cache.svg"
+BF16_TRAINING_SUMMARY = ROOT / "experiments" / "037-data" / "summary.json"
+BF16_TRAINING_CHART = ROOT / "assets" / "bf16-training.svg"
 
 
 def rows() -> list[dict]:
@@ -622,6 +624,64 @@ def bf16_plan_cache_svg() -> str:
     return "\n".join(parts)
 
 
+def bf16_training_svg() -> str:
+    data = json.loads(BF16_TRAINING_SUMMARY.read_text(encoding="utf-8"))["rows"]
+    width, height = 1600, 680
+    left, top, chart_w = 430, 160, 900
+    minimum, maximum = 0.75, 3.30
+
+    def px(value: float) -> float:
+        return left + chart_w * (value - minimum) / (maximum - minimum)
+
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 037 · BF16 Linear Training with FP32 Masters", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 80,
+             "2 warm-up + 5 measured steps · median of 3 processes · lower loss in every run",
+             16, "#5b6474", anchor="middle"),
+    ]
+    for tick in (1.0, 1.5, 2.0, 2.5, 3.0):
+        x = px(tick)
+        parts.append(f'<line x1="{x:.1f}" y1="125" x2="{x:.1f}" y2="520" '
+                     f'stroke="{("#2563eb" if tick == 1.0 else "#e5e9f0")}" '
+                     f'stroke-width="{2 if tick == 1.0 else 1}"/>')
+        parts.append(text(x, 550, f"{tick:.1f}×", 14, "#5b6474", anchor="middle"))
+    for index, row in enumerate(data):
+        y = top + index * 180
+        label = "Qwen2.5-0.5B" if row["model"].startswith("qwen") else "DeepSeek Distill 1.5B"
+        parts.append(text(left - 26, y + 26, label, 18, "#172033",
+                          anchor="end", weight=700))
+        values = (
+            (row["bf16_speedup_vs_microllm_fp32"], "vs microLLM FP32", "#f59e0b"),
+            (row["microllm_bf16_ratio_vs_pytorch_bf16_amp"],
+             "vs PyTorch BF16 autocast", "#18a558"),
+            (row["bf16_peak_ratio_vs_microllm_fp32"], "peak memory vs microLLM FP32", "#64748b"),
+        )
+        for offset, (ratio, title, color) in enumerate(values):
+            bar_y = y + offset * 42
+            x0, x1 = px(1.0), px(ratio)
+            parts.append(f'<rect x="{min(x0,x1):.1f}" y="{bar_y}" '
+                         f'width="{max(abs(x1-x0),2):.1f}" height="28" rx="5" fill="{color}"/>')
+            parts.append(text(x1 + (9 if ratio >= 1.0 else -9), bar_y + 21,
+                              f"{ratio:.3f}×  {title}", 14, color,
+                              anchor="start" if ratio >= 1.0 else "end", weight=700))
+        parts.append(text(left - 26, y + 68,
+                          f'loss {row["microllm_bf16_first_loss"]:.3f}→'
+                          f'{row["microllm_bf16_final_loss"]:.3f}',
+                          14, "#5b6474", anchor="end"))
+    parts.append(text(width / 2, 610,
+                      "Correct and faster than PyTorch reference, but slower than microLLM FP32 and no memory saving",
+                      16, "#9a4f00", anchor="middle", weight=600))
+    parts.append(text(width / 2, 654,
+                      "Next: continuous BF16 training islands / forward-weight lifecycle — not a larger accuracy claim",
+                      14, "#6b7280", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -632,7 +692,8 @@ def main() -> int:
                 BF16_MODEL_CHART: bf16_model_inference_svg(),
                 BF16_PREFILL_CHART: bf16_prefill_allocator_svg(),
                 BF16_ATTENTION_CHART: bf16_attention_svg(),
-                BF16_PLAN_CHART: bf16_plan_cache_svg()}
+                BF16_PLAN_CHART: bf16_plan_cache_svg(),
+                BF16_TRAINING_CHART: bf16_training_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

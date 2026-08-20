@@ -186,6 +186,12 @@ All six candidate processes reproduce the expected greedy IDs. This is a short-p
 MI300X inference result, not a BF16 training, long-context, universal-model, or Radeon
 claim. See [Experiment 036](docs/optimization-log/experiments/036-bf16-immutable-plan-cache.md).
 
+BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
+5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or
+3.122×/2.583× the matched PyTorch BF16-autocast reference. It is still 8%–9% slower than
+microLLM FP32 and has identical peak engine memory, so it is a correctness foundation,
+not a completed internal optimization. See [Experiment 037](docs/optimization-log/experiments/037-bf16-fp32-master-training.md).
+
 ## External weights
 
 The framework supports independent named state dictionaries, strict/non-strict model

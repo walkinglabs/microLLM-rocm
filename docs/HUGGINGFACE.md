@@ -107,5 +107,6 @@ python tools/huggingface/compare_logits.py \
 
 - 通过 0.5B 不等于所有 Qwen2.5 尺寸都已实测；
 - 基础 Instruct chat template 和三个特殊 token 已通过；工具调用模板尚未实现；
-- 当前 BF16 结果只覆盖 FFN 混合推理；完整 BF16 训练和 FP8 整网仍要分别报告；
+- 当前 BF16 覆盖单份 Linear 混合推理和 FP32-master Linear 训练；continuous BF16
+  training island 与 FP8 整网仍要分别报告；
 - Qwen3 的 QK-Norm、DeepSeek MLA/MoE 是不同结构。
