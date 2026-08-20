@@ -21,6 +21,8 @@ BF16_POLICY_RESULTS = ROOT / "bf16-model-policy.tsv"
 BF16_POLICY_CHART = ROOT / "assets" / "bf16-model-policy.svg"
 BF16_FFN_SUMMARY = ROOT / "experiments" / "030-data" / "summary.json"
 BF16_FFN_CHART = ROOT / "assets" / "bf16-ffn-island.svg"
+BF16_MODEL_SUMMARY = ROOT / "experiments" / "031-data" / "summary.json"
+BF16_MODEL_CHART = ROOT / "assets" / "bf16-model-inference.svg"
 
 
 def rows() -> list[dict]:
@@ -365,13 +367,75 @@ def bf16_ffn_svg() -> str:
     return "\n".join(parts)
 
 
+def bf16_model_inference_svg() -> str:
+    summary = json.loads(BF16_MODEL_SUMMARY.read_text(encoding="utf-8"))
+    data = summary["rows"]
+    width, height = 1600, 760
+    left, top, chart_w = 420, 150, 930
+    minimum, maximum = 0.45, 1.25
+
+    def px(value: float) -> float:
+        return left + chart_w * (value - minimum) / (maximum - minimum)
+
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 031 · Official-model BF16 FFN Inference", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 80,
+             "median of 3 processes · exact greedy tokens · mixed policy vs two references",
+             16, "#5b6474", anchor="middle"),
+    ]
+    for tick in (0.5, 0.75, 1.0, 1.25):
+        x = px(tick)
+        parts.append(f'<line x1="{x:.1f}" y1="118" x2="{x:.1f}" y2="600" '
+                     f'stroke="{("#2563eb" if tick == 1.0 else "#e5e9f0")}" '
+                     f'stroke-width="{2 if tick == 1.0 else 1}"/>')
+        parts.append(text(x, 630, f"{tick:.2f}×", 14, "#5b6474", anchor="middle"))
+    metrics = (
+        ("decode_speedup", "decode vs microLLM FP32", "#18a558"),
+        ("prefill_speedup", "prefill vs microLLM FP32", "#4ec27e"),
+        ("microllm_bf16_ffn_decode_ratio_vs_pytorch_bf16",
+         "decode vs PyTorch BF16", "#2563eb"),
+        ("microllm_bf16_ffn_prefill_ratio_vs_pytorch_bf16",
+         "prefill vs PyTorch BF16", "#7c3aed"),
+    )
+    for row_index, row in enumerate(data):
+        y = top + row_index * 220
+        label = "Qwen2.5-0.5B" if row["model"].startswith("qwen") else "DeepSeek Distill 1.5B"
+        parts.append(text(left - 26, y + 26, label, 18, "#172033",
+                          anchor="end", weight=700))
+        for offset, (key, title, base_color) in enumerate(metrics):
+            ratio = float(row[key])
+            bar_y = y + offset * 40
+            x0, x1 = px(minimum), px(ratio)
+            color = base_color if ratio >= 1.0 or "PyTorch" not in title else "#dc6b5a"
+            parts.append(f'<rect x="{x0:.1f}" y="{bar_y}" width="{max(x1-x0,2):.1f}" '
+                         f'height="27" rx="5" fill="{color}" opacity="0.9"/>')
+            parts.append(text(x1 + 9, bar_y + 20, f"{ratio:.3f}×  {title}", 14,
+                              color, weight=700))
+        saved = (1.0 - float(row["current_memory_ratio"])) * 100.0
+        parts.append(text(left - 26, y + 66, f"engine current −{saved:.1f}%", 14,
+                          "#16834a", anchor="end", weight=600))
+    parts.append(text(width / 2, 685,
+                      "Green: improves retained microLLM FP32 · red: selected PyTorch BF16 gate still fails",
+                      16, "#5b6474", anchor="middle", weight=600))
+    parts.append(text(width / 2, 728,
+                      "microLLM uses BF16 only for FFN weights/activations; PyTorch reference is full BF16",
+                      14, "#9a4f00", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
     expected = {PROGRESS: progress_svg(rows()), BOTTLENECK: bottleneck_svg(),
                 BF16_CHART: bf16_svg(), BF16_POLICY_CHART: bf16_policy_svg(),
-                BF16_FFN_CHART: bf16_ffn_svg()}
+                BF16_FFN_CHART: bf16_ffn_svg(),
+                BF16_MODEL_CHART: bf16_model_inference_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

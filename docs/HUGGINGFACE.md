@@ -20,7 +20,8 @@ tokenizer_config     特殊 token 和聊天模板
 
 当前通过真机验证的是 `Qwen/Qwen2.5-0.5B` revision
 `060db6499f32faf8b98477b0a26969ef7d8b9987`。它有 494,032,768 个参数和 290 个
-权重 Tensor。BF16 文件准确转换成 FP32，再在 MI300X 上执行 FP32 reference。
+权重 Tensor。默认路径把 BF16 文件准确转换成 FP32 reference；可选的单份 BF16 FFN
+准备路径已经在同一 revision 上完成 logits、exact token、显存和吞吐实测。
 
 ## 3. 先检查 config
 
@@ -106,5 +107,5 @@ python tools/huggingface/compare_logits.py \
 
 - 通过 0.5B 不等于所有 Qwen2.5 尺寸都已实测；
 - 基础 Instruct chat template 和三个特殊 token 已通过；工具调用模板尚未实现；
-- 当前真实模型对照是 FP32 compute，BF16/FP8 端到端仍要分别报告；
+- 当前 BF16 结果只覆盖 FFN 混合推理；完整 BF16 训练和 FP8 整网仍要分别报告；
 - Qwen3 的 QK-Norm、DeepSeek MLA/MoE 是不同结构。

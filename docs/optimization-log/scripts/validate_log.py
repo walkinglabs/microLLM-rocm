@@ -121,6 +121,39 @@ def validate_bf16_ffn(errors: list[str]) -> int:
     return len(records)
 
 
+def validate_bf16_models(errors: list[str]) -> int:
+    data = ROOT / "experiments" / "031-data"
+    records = [json.loads(line) for line in
+               (data / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    if len(records) != 18:
+        errors.append(f"BF16 official-model record count is {len(records)}, expected 18")
+    keys = {(row["model"], row["policy"], row["process_run"]) for row in records}
+    if len(keys) != len(records):
+        errors.append("BF16 official-model records contain duplicate keys")
+    if any(not row.get("exact_expected_tokens") for row in records):
+        errors.append("BF16 official-model record lacks exact expected token evidence")
+    micro_bf16 = [row for row in records if row["policy"] == "bf16_ffn"]
+    if any(row["max_abs_logit_difference_vs_fp32_run1"] > 0.2 for row in micro_bf16):
+        errors.append("BF16 official-model max logit difference exceeds 0.2")
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    if summary.get("track") != "bf16_ffn_official_models" or len(summary.get("rows", [])) != 2:
+        errors.append("BF16 official-model summary does not contain two model rows")
+    for row in summary.get("rows", []):
+        if row["current_memory_ratio"] >= 1.0 or row["decode_speedup"] <= 1.0:
+            errors.append(f'BF16 official-model self-baseline gate failed: {row["model"]}')
+    preparation = [json.loads(line) for line in
+                   (data / "preparation-smoke.jsonl").read_text(encoding="utf-8").splitlines()]
+    if len(preparation) != 2:
+        errors.append("BF16 preparation smoke must contain two model rows")
+    for row in preparation:
+        expected_peak = row["fp32_weight_bytes"] + row["bf16_weight_bytes_retained"]
+        if row["preparation_peak_bytes"] != expected_peak:
+            errors.append(f'BF16 preparation peak formula changed: {row["model"]}')
+        if row["preparation_current_bytes"] != row["resident_weight_bytes"]:
+            errors.append(f'BF16 preparation retained-byte mismatch: {row["model"]}')
+    return len(records)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -137,7 +170,8 @@ def validate_links(errors: list[str]) -> int:
 
 def validate_assets(errors: list[str]) -> None:
     for name in ("progress.svg", "bottleneck-map.svg", "bf16-gemm.svg",
-                 "bf16-model-policy.svg", "bf16-ffn-island.svg"):
+                 "bf16-model-policy.svg", "bf16-ffn-island.svg",
+                 "bf16-model-inference.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -160,6 +194,7 @@ def main() -> int:
     step_count = validate_steps(errors)
     bf16_policy_count = validate_bf16_policy(errors)
     bf16_ffn_count = validate_bf16_ffn(errors)
+    bf16_model_count = validate_bf16_models(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -167,7 +202,8 @@ def main() -> int:
             print(f"ERROR: {error}")
         return 1
     print(f"optimization log valid: results={result_count} steps={step_count} "
-          f"bf16_policy={bf16_policy_count} bf16_ffn={bf16_ffn_count} links={link_count}")
+          f"bf16_policy={bf16_policy_count} bf16_ffn={bf16_ffn_count} "
+          f"bf16_models={bf16_model_count} links={link_count}")
     return 0
 
 

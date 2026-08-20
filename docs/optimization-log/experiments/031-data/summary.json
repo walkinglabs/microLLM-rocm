@@ -1,0 +1,51 @@
+{
+  "aggregation": "median of three independent process results by default",
+  "rows": [
+    {
+      "all_exact_expected_tokens": true,
+      "all_pytorch_exact_expected_tokens": true,
+      "bf16_ffn_decode_tokens_per_second": 86.160542922,
+      "bf16_ffn_engine_current_bytes": 1349773832.0,
+      "bf16_ffn_prefill_tokens_per_second": 107.665809977,
+      "bf16_resident_weight_bytes": 1348558336.0,
+      "current_memory_ratio": 0.6826187446570064,
+      "decode_speedup": 1.1149568654016913,
+      "fp32_decode_tokens_per_second": 77.277019045,
+      "fp32_engine_current_bytes": 1977346568.0,
+      "fp32_prefill_tokens_per_second": 96.84904255,
+      "max_abs_logit_difference": 0.15113306045532227,
+      "microllm_bf16_ffn_decode_ratio_vs_pytorch_bf16": 1.1718314449254201,
+      "microllm_bf16_ffn_prefill_ratio_vs_pytorch_bf16": 0.7406326749323242,
+      "model": "qwen2.5-0.5b",
+      "prefill_speedup": 1.1116868803469653,
+      "pytorch_bf16_current_allocated_bytes": 1076014592.0,
+      "pytorch_bf16_decode_tokens_per_second": 73.52639604877952,
+      "pytorch_bf16_prefill_tokens_per_second": 145.37005133730838,
+      "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987"
+    },
+    {
+      "all_exact_expected_tokens": true,
+      "all_pytorch_exact_expected_tokens": true,
+      "bf16_ffn_decode_tokens_per_second": 29.440939075,
+      "bf16_ffn_engine_current_bytes": 4803534896.0,
+      "bf16_ffn_prefill_tokens_per_second": 430.172280916,
+      "bf16_resident_weight_bytes": 4796241920.0,
+      "current_memory_ratio": 0.6750666892743525,
+      "decode_speedup": 1.0509499150798889,
+      "fp32_decode_tokens_per_second": 28.013646181,
+      "fp32_engine_current_bytes": 7115644976.0,
+      "fp32_prefill_tokens_per_second": 408.43786058,
+      "max_abs_logit_difference": 0.11044597625732422,
+      "microllm_bf16_ffn_decode_ratio_vs_pytorch_bf16": 0.5202815369169813,
+      "microllm_bf16_ffn_prefill_ratio_vs_pytorch_bf16": 0.6810286078704655,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "prefill_speedup": 1.0532135299727996,
+      "pytorch_bf16_current_allocated_bytes": 3635704320.0,
+      "pytorch_bf16_decode_tokens_per_second": 56.58655359837945,
+      "pytorch_bf16_prefill_tokens_per_second": 631.6508233936343,
+      "revision": "ad9f0ae0864d7fbcd1cd905e3c6c5b069cc8b562"
+    }
+  ],
+  "schema_version": 1,
+  "track": "bf16_ffn_official_models"
+}

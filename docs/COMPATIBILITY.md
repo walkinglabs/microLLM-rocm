@@ -53,8 +53,9 @@ exact validated versions are maintained in [dev/build.md](dev/build.md).
 - If hipBLASLt is unavailable, Auto selects readable matmul.
 - Start with FP32, batch one, and short context.
 - BF16/FP16 storage, native basic kernels and tolerance tests pass on the recorded MI300X.
-  This does not mean whole-model mixed-precision training or inference is complete; the
-  first cached-weight BF16 model policy was measured and rejected.
+  A later single-representation BF16 FFN inference policy passes official Qwen/DeepSeek
+  exact-token and self-baseline gates. It is not full-model BF16, and 3/4 selected PyTorch
+  full-BF16 performance rows remain below parity.
 - A successful compile does not establish kernel correctness or performance.
 
 ## Publication rule

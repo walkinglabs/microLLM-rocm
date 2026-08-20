@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="760" viewBox="0 0 1600 760">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="800.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 031 · Official-model BF16 FFN Inference</text>
+<text x="800.0" y="80.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">median of 3 processes · exact greedy tokens · mixed policy vs two references</text>
+<line x1="478.1" y1="118" x2="478.1" y2="600" stroke="#e5e9f0" stroke-width="1"/>
+<text x="478.1" y="630.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">0.50×</text>
+<line x1="768.8" y1="118" x2="768.8" y2="600" stroke="#e5e9f0" stroke-width="1"/>
+<text x="768.8" y="630.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">0.75×</text>
+<line x1="1059.4" y1="118" x2="1059.4" y2="600" stroke="#2563eb" stroke-width="2"/>
+<text x="1059.4" y="630.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">1.00×</text>
+<line x1="1350.0" y1="118" x2="1350.0" y2="600" stroke="#e5e9f0" stroke-width="1"/>
+<text x="1350.0" y="630.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">1.25×</text>
+<text x="394.0" y="176.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="end" font-weight="700">Qwen2.5-0.5B</text>
+<rect x="420.0" y="150" width="773.0" height="27" rx="5" fill="#18a558" opacity="0.9"/>
+<text x="1202.0" y="170.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#18a558" text-anchor="start" font-weight="700">1.115×  decode vs microLLM FP32</text>
+<rect x="420.0" y="190" width="769.2" height="27" rx="5" fill="#4ec27e" opacity="0.9"/>
+<text x="1198.2" y="210.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#4ec27e" text-anchor="start" font-weight="700">1.112×  prefill vs microLLM FP32</text>
+<rect x="420.0" y="230" width="839.1" height="27" rx="5" fill="#2563eb" opacity="0.9"/>
+<text x="1268.1" y="250.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#2563eb" text-anchor="start" font-weight="700">1.172×  decode vs PyTorch BF16</text>
+<rect x="420.0" y="270" width="337.9" height="27" rx="5" fill="#dc6b5a" opacity="0.9"/>
+<text x="766.9" y="290.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#dc6b5a" text-anchor="start" font-weight="700">0.741×  prefill vs PyTorch BF16</text>
+<text x="394.0" y="216.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16834a" text-anchor="end" font-weight="600">engine current −31.7%</text>
+<text x="394.0" y="396.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="end" font-weight="700">DeepSeek Distill 1.5B</text>
+<rect x="420.0" y="370" width="698.6" height="27" rx="5" fill="#18a558" opacity="0.9"/>
+<text x="1127.6" y="390.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#18a558" text-anchor="start" font-weight="700">1.051×  decode vs microLLM FP32</text>
+<rect x="420.0" y="410" width="701.2" height="27" rx="5" fill="#4ec27e" opacity="0.9"/>
+<text x="1130.2" y="430.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#4ec27e" text-anchor="start" font-weight="700">1.053×  prefill vs microLLM FP32</text>
+<rect x="420.0" y="450" width="81.7" height="27" rx="5" fill="#dc6b5a" opacity="0.9"/>
+<text x="510.7" y="470.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#dc6b5a" text-anchor="start" font-weight="700">0.520×  decode vs PyTorch BF16</text>
+<rect x="420.0" y="490" width="268.6" height="27" rx="5" fill="#dc6b5a" opacity="0.9"/>
+<text x="697.6" y="510.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#dc6b5a" text-anchor="start" font-weight="700">0.681×  prefill vs PyTorch BF16</text>
+<text x="394.0" y="436.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16834a" text-anchor="end" font-weight="600">engine current −32.5%</text>
+<text x="800.0" y="685.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="600">Green: improves retained microLLM FP32 · red: selected PyTorch BF16 gate still fails</text>
+<text x="800.0" y="728.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#9a4f00" text-anchor="middle" font-weight="400">microLLM uses BF16 only for FFN weights/activations; PyTorch reference is full BF16</text>
+</svg>

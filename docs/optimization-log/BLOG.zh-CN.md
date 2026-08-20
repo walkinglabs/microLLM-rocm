@@ -983,7 +983,30 @@ FP32→BF16 input cast 从 3 次降到 1 次。
 
 ## 46. 为什么仍不能说“BF16 模型跑通了”
 
-当前证明的是一个 FFN 算子岛。模型还没有决定怎样只保存一份 BF16 inference 权重，
-也没有完成官方 Qwen/DeepSeek BF16 logits、token、整网显存和 PyTorch BF16 吞吐矩阵。
-因此 FP32 running-best 仍是 `2.478439`，新结果只画在 BF16 独立图。下一节点是单份权重
-模型集成；如果整网变慢，就保留算子、拒绝策略。
+Experiment 030 当时只证明了一个 FFN 算子岛，尚未决定怎样只保存一份 BF16 inference
+权重，也没有完成官方整网证据。因此它没有改动 FP32 running-best。下一节记录
+Experiment 031 怎样补上这道门，以及为什么补完后仍不能声称全面 PyTorch parity。
+
+## 47. Experiment 031：模型里只留一份 FFN 权重
+
+新的准备 API 先把每层三个 FFN 权重全部转换成功，再一次性替换原 FP32 权重。复制期间
+临时需要两份，成功后只留 BF16；如果分配或 GPU cast 失败，原 FP32 模型不变。准备后
+只能调用纯 Tensor `forward_inference` 或 cached forward，训练和再次 load 会直接报错。
+
+Qwen 72 个、DeepSeek 84 个 FFN Tensor 被替换。常驻权重分别从
+`1,976,131,072→1,348,558,336` 字节和
+`7,108,352,000→4,796,241,920` 字节。事务准备峰值也没有隐藏：分别是
+`2,603,703,808` 与 `9,420,462,080` 字节。
+
+## 48. 相对自己变快，不等于达到 PyTorch 门
+
+![Official-model BF16 FFN inference](assets/bf16-model-inference.svg)
+
+三进程 paired 中位数显示，Qwen/DeepSeek decode 相对 microLLM FP32 提高
+`1.115×/1.051×`，prefill 提高 `1.112×/1.053×`，exact token 全通过。但 PyTorch
+使用整网 BF16，四项对比只有 Qwen decode 为 `1.172×`；Qwen prefill、DeepSeek
+decode/prefill 仅 `0.741×/0.520×/0.681×`。
+
+所以代码保留，因为它确实更快、更省常驻内存；“≥ PyTorch”结论不成立，红条也留在图
+里。下一轮应该 profile BF16 full-sequence 和 DeepSeek decode，而不是把 partial keep
+写成全面胜利。

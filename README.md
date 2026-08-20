@@ -17,8 +17,7 @@ extending small decoder-only language models on AMD GPUs.
 
 > **Project maturity:** pre-alpha. The repository has measured CPU, MI300X, PyTorch
 > CPU-oracle, and two-rank RCCL evidence. It does not yet claim production readiness,
-> direct PyTorch ROCm parity, Radeon validation, reference-length training, or native
-> Qwen/DeepSeek execution.
+> all-workload PyTorch ROCm parity, Radeon validation, or reference-length training.
 
 ## Why this project exists
 
@@ -34,6 +33,8 @@ needed to run a real training and generation loop:
 - named model state and F32/BF16/F16 safetensors loading;
 - MI300X FNUZ FP8 quantize/dequantize, scaled hipBLASLt GEMM, FP32-master Transformer
   training policy, and KV-cache decode;
+- single-representation BF16 FFN inference for pinned Qwen/DeepSeek, with exact-token,
+  memory, throughput and PyTorch BF16 evidence;
 - C, Python ctypes, and optional PyTorch dispatcher adapters;
 - reproducible benchmarks, rocprofv3 workflows, hipBLASLt, and RCCL experiments.
 - a cross-framework trace runner for operator/layer values and latency comparisons.
@@ -122,10 +123,10 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| CPU tests | 157/157 | reference, Qwen/DeepSeek, graph/model/weights, benchmark, PyTorch and optimization-log schemas |
-| ASan/UBSan | 155/155 | host code; dynamic binding tests isolated |
-| MI300X/gfx942 HIP | 58/58 | paired KV store, batched allocator Events, fused norm/RoPE/Attention, BF16/FP8 and model matrix |
-| PyTorch CPU oracle/alignment | 3/3 | ops plus same-weight model value/timing trace |
+| CPU tests | 161/161 | reference, Qwen/DeepSeek, graph/model/weights, benchmark, PyTorch and optimization-log schemas |
+| ASan/UBSan | 159/159 | host code; dynamic binding tests isolated |
+| MI300X/gfx942 HIP | 62/62 | paired KV store, allocator Events, fused ops, BF16/FP8 and model matrix |
+| PyTorch CPU operator/model oracle | 4/4 | forward/backward/shape, mixed BF16 FFN model and optimizer parity |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
 | Registered test files | 34 | machine-audited CTest registration |
 | CPU source coverage | 83.9% lines / 66.6% branches | GCC 13.3 + gcovr 8.3; `src/` and `include/` |

@@ -131,7 +131,9 @@ options.dtype = io::WeightFileDType::BFloat16;
 model.save_safetensors("weights-bf16.safetensors", options);
 ```
 
-当前计算 Kernel 仍以 FP32 为主。能读取 BF16/F16 文件，不等于已经用 BF16/F16 Kernel 计算。
+默认计算仍是 FP32。推理可在加载后调用 `prepare_bf16_ffn_inference()`，事务式地把每层
+gate/up/down 权重替换成单份 BF16 并使用连续 BF16 FFN；Attention、Norm、Embedding 和
+输出头仍保持 FP32。能读取 BF16/F16 文件本身仍不等于启用了这条计算路径。
 
 ## 7. 单文件、多分片和 index
 

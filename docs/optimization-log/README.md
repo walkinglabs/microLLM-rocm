@@ -125,6 +125,13 @@ BF16→FP32 输出失败。它仍是算子 track，不是整网 BF16 声明。
 
 ![BF16 FFN activation island](assets/bf16-ffn-island.svg)
 
+Experiment 031 将官方模型的 FFN 权重事务式替换成单份 BF16。Qwen/DeepSeek 相对本项目
+FP32 decode 提高 `11.5%/5.1%`，常驻 engine memory 降约 32%，exact token 全通过；但
+对 PyTorch 全 BF16 的四项 prefill/decode 只有 Qwen decode 超过 1.0，所以状态是 partial
+keep，不是“全面超越 PyTorch”。
+
+![Official-model BF16 FFN inference](assets/bf16-model-inference.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -147,6 +154,8 @@ BF16→FP32 输出失败。它仍是算子 track，不是整网 BF16 声明。
 | [bf16-model-policy.tsv](bf16-model-policy.tsv) | 三进程中位数、显存和 token gate |
 | [assets/bf16-ffn-island.svg](assets/bf16-ffn-island.svg) | 连续 BF16 FFN 激活岛独立曲线 |
 | [experiments/030-data/](experiments/030-data/) | 36 条 raw JSONL、摘要和 kernel trace |
+| [assets/bf16-model-inference.svg](assets/bf16-model-inference.svg) | 官方模型 BF16 FFN 与两条 reference |
+| [experiments/031-data/](experiments/031-data/) | 18 条 raw、准备峰值和聚合摘要 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 
