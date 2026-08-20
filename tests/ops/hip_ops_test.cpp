@@ -1,4 +1,5 @@
 #include <cmath>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -621,6 +622,49 @@ TEST(HipOptimizedOpsTest, HipblasLtMatmulMatchesReadableReference) {
     EXPECT_EQ(choose_matmul_implementation(left_cpu.to(Device::hip()),
                                            right_cpu.to(Device::hip())),
               MatmulImplementation::Readable);
+}
+
+
+TEST(HipOptimizedOpsTest, TransposeAwareGemmCoversAllLayoutsAndLowPrecisions) {
+    require_gpu();
+    const auto gpu = Device::hip();
+    const std::vector<float> left_values{1, 2, 3, 4, 5, 6};
+    const std::vector<float> right_values{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+    const std::vector<float> left_transposed_values{1, 4, 2, 5, 3, 6};
+    const std::vector<float> right_transposed_values{
+        1, 5, 9, 2, 6, 10, 3, 7, 11, 4, 8, 12};
+    const std::vector<float> expected{38, 44, 50, 56, 83, 98, 113, 128};
+    for (const auto dtype : {DType::Float32, DType::Float16, DType::BFloat16}) {
+        const auto left = Tensor::from_vector(left_values, {2, 3}, dtype).to(gpu);
+        const auto right = Tensor::from_vector(right_values, {3, 4}, dtype).to(gpu);
+        const auto left_t = Tensor::from_vector(left_transposed_values, {3, 2}, dtype).to(gpu);
+        const auto right_t = Tensor::from_vector(right_transposed_values, {4, 3}, dtype).to(gpu);
+        for (const auto implementation : {MatmulImplementation::Readable,
+                                          MatmulImplementation::HipBLASLt}) {
+            for (const auto& test : {
+                     std::tuple<const Tensor*, const Tensor*, bool, bool>{
+                         &left, &right, false, false},
+                     std::tuple<const Tensor*, const Tensor*, bool, bool>{
+                         &left, &right_t, false, true},
+                     std::tuple<const Tensor*, const Tensor*, bool, bool>{
+                         &left_t, &right, true, false},
+                     std::tuple<const Tensor*, const Tensor*, bool, bool>{
+                         &left_t, &right_t, true, true}}) {
+                runtime::reset_transfer_stats();
+                const auto actual = matmul_with_implementation(
+                    *std::get<0>(test), *std::get<1>(test), implementation,
+                    std::get<2>(test), std::get<3>(test));
+                runtime::synchronize(gpu);
+                const auto transfers = runtime::transfer_stats();
+                EXPECT_EQ(transfers.host_to_device_calls, 0U);
+                EXPECT_EQ(transfers.device_to_host_calls, 0U);
+                const auto tolerance = dtype == DType::BFloat16 ? 0.55F
+                                      : dtype == DType::Float16 ? 0.08F : 3.0e-4F;
+                expect_near(actual.to_vector(), expected, tolerance);
+                EXPECT_EQ(actual.dtype(), dtype);
+            }
+        }
+    }
 }
 #endif
 

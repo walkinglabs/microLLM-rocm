@@ -47,6 +47,25 @@ TEST(GraphGradientAlignmentTest, ViewGraphRestoresLogicalGradientOrder) {
     expect_near(input.grad(), {1, 3, 5, 2, 4, 6});
 }
 
+TEST(GraphGradientAlignmentTest, TiedHeadMatchesHandForwardAndBothGradientsWithoutTransposeNode) {
+    Value hidden(Tensor::from_vector({1, 2, 3, 4, 5, 6}, {2, 3}), true);
+    Value weight(Tensor::from_vector(
+        {1, 0, -1, 2, 1, 0, -2, 0.5F, 1, 3, -1, 2}, {4, 3}), true);
+    const Value seed(Tensor::from_vector(
+        {1, -1, 0.5F, 2, -2, 1, 3, -0.5F}, {2, 4}));
+    const auto logits = matmul(hidden, weight, false, true);
+    expect_near(logits.data(), {-2, 4, 2, 7, -2, 13, 0.5F, 19});
+    const auto graph = inspect_graph(logits);
+    for (const auto& node : graph.nodes) {
+        EXPECT_NE(node.operation, "transpose");
+        EXPECT_NE(node.operation, "contiguous");
+    }
+    sum(multiply(logits, seed)).backward();
+    expect_near(hidden.grad(), {4, -2.75F, 3.5F, -7.5F, 3, 4});
+    expect_near(weight.grad(), {-7, -8, -9, 3, 3, 3,
+                                12.5F, 16, 19.5F, 0, 1.5F, 3});
+}
+
 TEST(GraphGradientAlignmentTest, RejectsBadBackwardSeedShape) {
     Value input(Tensor::from_vector({1, 2, 3}, {3}), true);
     const auto output = multiply(input, input);

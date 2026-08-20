@@ -211,6 +211,10 @@ Value scale(const Value& input, float factor) {
 Value matmul(const Value& left, const Value& right) {
     require_value(left, "left");
     require_value(right, "right");
+    if (left.data().ndim() == 2 && right.data().ndim() == 2 &&
+        left.data().is_contiguous() && right.data().is_contiguous()) {
+        return matmul(left, right, false, false);
+    }
     auto left_node = left.node_;
     auto right_node = right.node_;
     const auto left_last = left.data().ndim() - 1;
@@ -236,6 +240,46 @@ Value matmul(const Value& left, const Value& right) {
                                                     left_transposed, gradient,
                                                     ops::MatmulImplementation::Auto));
                      });
+}
+
+Value matmul(const Value& left, const Value& right,
+             bool transpose_left, bool transpose_right) {
+    require_value(left, "left");
+    require_value(right, "right");
+    auto left_node = left.node_;
+    auto right_node = right.node_;
+    auto output = profiled_tensor("matmul", left.data().device(), [&] {
+        return ops::matmul_with_implementation(
+            left.data(), right.data(), ops::MatmulImplementation::Auto,
+            transpose_left, transpose_right);
+    });
+    return operation(
+        "matmul", std::move(output), {left_node, right_node},
+        [left_node, right_node, transpose_left, transpose_right](const Tensor& gradient) {
+            Tensor left_gradient;
+            if (!transpose_left) {
+                left_gradient = ops::matmul_with_implementation(
+                    gradient, right_node->data, ops::MatmulImplementation::Auto,
+                    false, !transpose_right);
+            } else {
+                left_gradient = ops::matmul_with_implementation(
+                    right_node->data, gradient, ops::MatmulImplementation::Auto,
+                    transpose_right, true);
+            }
+
+            Tensor right_gradient;
+            if (!transpose_right) {
+                right_gradient = ops::matmul_with_implementation(
+                    left_node->data, gradient, ops::MatmulImplementation::Auto,
+                    !transpose_left, false);
+            } else {
+                right_gradient = ops::matmul_with_implementation(
+                    gradient, left_node->data, ops::MatmulImplementation::Auto,
+                    true, transpose_left);
+            }
+            accumulate(left_node, std::move(left_gradient));
+            accumulate(right_node, std::move(right_gradient));
+        });
 }
 
 Value fp8_matmul(const Value& left, const Value& right,

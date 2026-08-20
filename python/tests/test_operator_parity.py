@@ -74,6 +74,13 @@ def pytorch_references(actual):
     matrix_right = tensor([1, 2, 3, 4, 5, 6], (3, 2))
     record(refs, "matmul_2d", matrix_left @ matrix_right)
     record(refs, "matmul_readable", matrix_left @ matrix_right)
+    wide_right = tensor([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], (3, 4))
+    transposed_left = matrix_left.transpose(0, 1).contiguous()
+    transposed_right = wide_right.transpose(0, 1).contiguous()
+    record(refs, "matmul_nn", matrix_left @ wide_right)
+    record(refs, "matmul_nt", matrix_left @ transposed_right.transpose(0, 1))
+    record(refs, "matmul_tn", transposed_left.transpose(0, 1) @ wide_right)
+    record(refs, "matmul_tt", transposed_left.transpose(0, 1) @ transposed_right.transpose(0, 1))
     record(
         refs,
         "matmul_3d",
@@ -158,6 +165,15 @@ def pytorch_references(actual):
     ((mat_left @ mat_right) * mat_seed).sum().backward()
     record(refs, "graph_matmul_left_grad", mat_left.grad)
     record(refs, "graph_matmul_right_grad", mat_right.grad)
+
+    tied_hidden = tensor([1, 2, 3, 4, 5, 6], (2, 3), True)
+    tied_weight = tensor([1, 0, -1, 2, 1, 0, -2, 0.5, 1, 3, -1, 2], (4, 3), True)
+    tied_seed = tensor([1, -1, 0.5, 2, -2, 1, 3, -0.5], (2, 4))
+    tied_output = tied_hidden @ tied_weight.transpose(0, 1)
+    (tied_output * tied_seed).sum().backward()
+    record(refs, "graph_tied_matmul_output", tied_output)
+    record(refs, "graph_tied_matmul_hidden_grad", tied_hidden.grad)
+    record(refs, "graph_tied_matmul_weight_grad", tied_weight.grad)
 
     fp8_left = tensor([1, -2, 3, 4, 0.5, -0.25], (2, 3))
     fp8_right = tensor([1, 2, 3, 4, 5, 6], (3, 2))

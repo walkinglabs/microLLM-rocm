@@ -413,7 +413,7 @@ Value TransformerModel::forward(const Tensor& token_ids) {
     const auto flat = autograd::reshape(hidden, {batch * sequence, impl_->config.dimension});
     Value logits;
     if (impl_->config.tie_embeddings) {
-        logits = autograd::matmul(flat, autograd::transpose(impl_->token_embedding, 0, 1));
+        logits = autograd::matmul(flat, impl_->token_embedding, false, true);
     } else {
         logits = impl_->output_head->forward(flat);
     }
@@ -453,8 +453,9 @@ Tensor TransformerModel::forward_cached(const Tensor& token_id, inference::KVCac
     const auto flat = hidden.reshape({1, impl_->config.dimension});
     Tensor logits;
     if (impl_->config.tie_embeddings) {
-        logits = ops::matmul(
-            flat, impl_->token_embedding.data().transpose(0, 1).contiguous());
+        logits = ops::matmul_with_implementation(
+            flat, impl_->token_embedding.data(), ops::MatmulImplementation::Auto,
+            false, true);
     } else {
         logits = impl_->output_head->forward_tensor(flat);
     }

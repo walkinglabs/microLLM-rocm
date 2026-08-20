@@ -34,6 +34,11 @@ void launch_scale_typed(const void* input, void* output, DType dtype,
 void launch_matmul_typed(const void* left, const void* right, void* output, DType dtype,
                          std::int64_t batches, std::int64_t rows, std::int64_t inner,
                          std::int64_t columns, void* stream = nullptr);
+void launch_matmul_transposed_typed(
+    const void* left, const void* right, void* output, DType dtype,
+    std::int64_t left_rows, std::int64_t left_columns,
+    std::int64_t right_rows, std::int64_t right_columns,
+    bool transpose_left, bool transpose_right, void* stream = nullptr);
 void launch_silu_typed(const void* input, void* output, DType dtype,
                        std::int64_t elements, void* stream = nullptr);
 void launch_swiglu_typed(const void* gate, const void* up, void* output, DType dtype,

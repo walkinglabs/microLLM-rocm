@@ -70,6 +70,23 @@ void emit_forward_cases() {
     emit("matmul_readable",
          matmul_with_implementation(matrix_left, matrix_right,
                                     MatmulImplementation::Readable));
+    const auto wide_right = f32(
+        {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}, {3, 4});
+    const auto transposed_left = f32({1, 4, 2, 5, 3, 6}, {3, 2});
+    const auto transposed_right = f32(
+        {1, 5, 9, 2, 6, 10, 3, 7, 11, 4, 8, 12}, {4, 3});
+    emit("matmul_nn", matmul_with_implementation(
+                          matrix_left, wide_right, MatmulImplementation::Readable,
+                          false, false));
+    emit("matmul_nt", matmul_with_implementation(
+                          matrix_left, transposed_right, MatmulImplementation::Readable,
+                          false, true));
+    emit("matmul_tn", matmul_with_implementation(
+                          transposed_left, wide_right, MatmulImplementation::Readable,
+                          true, false));
+    emit("matmul_tt", matmul_with_implementation(
+                          transposed_left, transposed_right, MatmulImplementation::Readable,
+                          true, true));
     emit("matmul_3d",
          matmul(f32({1, 2, 3, 4, 5, 6, 1, 0, 0, 1, 1, 1}, {2, 2, 3}),
                 f32({1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6}, {2, 3, 2})));
@@ -168,6 +185,15 @@ void emit_graph_gradient_cases() {
     sum(multiply(matmul(mat_left, mat_right), mat_seed)).backward();
     emit("graph_matmul_left_grad", mat_left.grad());
     emit("graph_matmul_right_grad", mat_right.grad());
+
+    Value tied_hidden(f32({1, 2, 3, 4, 5, 6}, {2, 3}), true);
+    Value tied_weight(f32({1, 0, -1, 2, 1, 0, -2, 0.5F, 1, 3, -1, 2}, {4, 3}), true);
+    const Value tied_seed(f32({1, -1, 0.5F, 2, -2, 1, 3, -0.5F}, {2, 4}));
+    const auto tied_output = matmul(tied_hidden, tied_weight, false, true);
+    emit("graph_tied_matmul_output", tied_output.data());
+    sum(multiply(tied_output, tied_seed)).backward();
+    emit("graph_tied_matmul_hidden_grad", tied_hidden.grad());
+    emit("graph_tied_matmul_weight_grad", tied_weight.grad());
 
     Value fp8_left(f32({1, -2, 3, 4, 0.5F, -0.25F}, {2, 3}), true);
     Value fp8_right(f32({1, 2, 3, 4, 5, 6}, {3, 2}), true);

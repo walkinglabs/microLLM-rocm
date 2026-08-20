@@ -42,6 +42,34 @@ TEST(CpuOpsTest, BatchedMatmulMatchesHandValues) {
               (std::vector<float>{22, 28, 49, 64, 1, 2, 9, 12}));
 }
 
+TEST(CpuOpsTest, TransposeAwareMatmulCoversAllOperandLayoutsWithoutViews) {
+    const auto logical_left = Tensor::from_vector({1, 2, 3, 4, 5, 6}, {2, 3});
+    const auto logical_right = Tensor::from_vector(
+        {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}, {3, 4});
+    const auto transposed_left = Tensor::from_vector({1, 4, 2, 5, 3, 6}, {3, 2});
+    const auto transposed_right = Tensor::from_vector(
+        {1, 5, 9, 2, 6, 10, 3, 7, 11, 4, 8, 12}, {4, 3});
+    const std::vector<float> expected{38, 44, 50, 56, 83, 98, 113, 128};
+    for (const auto implementation : {MatmulImplementation::Readable,
+                                      MatmulImplementation::Auto}) {
+        expect_near(matmul_with_implementation(logical_left, logical_right,
+                                               implementation, false, false).to_vector(),
+                    expected);
+        expect_near(matmul_with_implementation(logical_left, transposed_right,
+                                               implementation, false, true).to_vector(),
+                    expected);
+        expect_near(matmul_with_implementation(transposed_left, logical_right,
+                                               implementation, true, false).to_vector(),
+                    expected);
+        expect_near(matmul_with_implementation(transposed_left, transposed_right,
+                                               implementation, true, true).to_vector(),
+                    expected);
+    }
+    EXPECT_THROW((void)matmul_with_implementation(
+                     logical_left, logical_right, MatmulImplementation::Readable,
+                     false, true), std::invalid_argument);
+}
+
 TEST(CpuOpsTest, EmbeddingGathersRowsAndRejectsBadIndex) {
     const auto weight = Tensor::from_vector({0, 1, 2, 3, 4, 5}, {3, 2});
     const auto indices = Tensor::from_int32_vector({2, 0, 1}, {3});

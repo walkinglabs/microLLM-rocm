@@ -155,6 +155,32 @@ __global__ void matmul_typed_kernel(const T* left, const T* right, T* output,
 }
 
 template <typename T>
+__global__ void matmul_transposed_typed_kernel(
+    const T* left, const T* right, T* output,
+    std::int64_t left_rows, std::int64_t left_columns,
+    std::int64_t right_rows, std::int64_t right_columns,
+    bool transpose_left, bool transpose_right) {
+    const auto rows = transpose_left ? left_columns : left_rows;
+    const auto inner = transpose_left ? left_rows : left_columns;
+    const auto columns = transpose_right ? right_rows : right_columns;
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    if (index >= rows * columns) return;
+    const auto row = index / columns;
+    const auto column = index % columns;
+    float sum = 0.0F;
+    for (std::int64_t reduction = 0; reduction < inner; ++reduction) {
+        const auto left_index = transpose_left
+                                    ? reduction * left_columns + row
+                                    : row * left_columns + reduction;
+        const auto right_index = transpose_right
+                                     ? column * right_columns + reduction
+                                     : reduction * right_columns + column;
+        sum += load_as_float(left[left_index]) * load_as_float(right[right_index]);
+    }
+    output[index] = store_from_float<T>(sum);
+}
+
+template <typename T>
 __global__ void silu_typed_kernel(const T* input, T* output, std::int64_t elements) {
     const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
     if (index < elements) {
@@ -889,6 +915,35 @@ void launch_matmul_typed(const void* left, const void* right, void* output, DTyp
     }
 #undef MICROLLM_MATMUL_CASE
     check_launch("matmul_typed_kernel");
+}
+
+void launch_matmul_transposed_typed(
+    const void* left, const void* right, void* output, DType dtype,
+    std::int64_t left_rows, std::int64_t left_columns,
+    std::int64_t right_rows, std::int64_t right_columns,
+    bool transpose_left, bool transpose_right, void* stream) {
+    const auto rows = transpose_left ? left_columns : left_rows;
+    const auto columns = transpose_right ? right_rows : right_columns;
+    const auto elements = rows * columns;
+    if (elements == 0) return;
+    const auto grid = dim3(grid_size(elements));
+    const auto block = dim3(kBlockSize);
+#define MICROLLM_TRANSPOSED_MATMUL_CASE(cpp_type, enum_value)                         \
+    case enum_value:                                                                  \
+        hipLaunchKernelGGL(matmul_transposed_typed_kernel<cpp_type>, grid, block, 0, \
+                           as_stream(stream), static_cast<const cpp_type*>(left),     \
+                           static_cast<const cpp_type*>(right),                       \
+                           static_cast<cpp_type*>(output), left_rows, left_columns,   \
+                           right_rows, right_columns, transpose_left, transpose_right); \
+        break
+    switch (dtype) {
+        MICROLLM_TRANSPOSED_MATMUL_CASE(float, DType::Float32);
+        MICROLLM_TRANSPOSED_MATMUL_CASE(__half, DType::Float16);
+        MICROLLM_TRANSPOSED_MATMUL_CASE(hip_bfloat16, DType::BFloat16);
+        default: throw std::invalid_argument("transpose-aware matmul requires a floating dtype");
+    }
+#undef MICROLLM_TRANSPOSED_MATMUL_CASE
+    check_launch("matmul_transposed_typed_kernel");
 }
 
 void launch_silu_typed(const void* input, void* output, DType dtype,

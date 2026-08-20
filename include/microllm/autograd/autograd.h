@@ -54,6 +54,7 @@ private:
     friend Value multiply(const Value&, const Value&);
     friend Value scale(const Value&, float);
     friend Value matmul(const Value&, const Value&);
+    friend Value matmul(const Value&, const Value&, bool, bool);
     friend Value fp8_matmul(const Value&, const Value&, float, float, DType);
     friend Value sum(const Value&);
     friend Value mean(const Value&);
@@ -78,6 +79,10 @@ private:
 [[nodiscard]] Value multiply(const Value& left, const Value& right);
 [[nodiscard]] Value scale(const Value& input, float factor);
 [[nodiscard]] Value matmul(const Value& left, const Value& right);
+// Two-dimensional transpose-aware GEMM.  The flags change how each input is
+// read; they do not allocate a transposed Tensor.
+[[nodiscard]] Value matmul(const Value& left, const Value& right,
+                           bool transpose_left, bool transpose_right);
 // FP8 forward with FP32 master inputs and straight-through FP32 gradients.
 [[nodiscard]] Value fp8_matmul(const Value& left, const Value& right,
                                float left_scale, float right_scale,

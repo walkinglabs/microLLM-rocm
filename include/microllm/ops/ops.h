@@ -56,6 +56,11 @@ void clear_matmul_implementation_registry();
 [[nodiscard]] Tensor matmul_with_implementation(
     const Tensor& left, const Tensor& right, MatmulImplementation implementation,
     const OpContext& context = {});
+// Computes op(left) @ op(right) without materializing either transpose.  This
+// first optimization contract is deliberately limited to contiguous 2D inputs.
+[[nodiscard]] Tensor matmul_with_implementation(
+    const Tensor& left, const Tensor& right, MatmulImplementation implementation,
+    bool transpose_left, bool transpose_right, const OpContext& context = {});
 [[nodiscard]] Tensor embedding(const Tensor& weight, const Tensor& indices,
                                const OpContext& context = {});
 [[nodiscard]] Tensor softmax(const Tensor& input, std::int64_t dim = -1,
