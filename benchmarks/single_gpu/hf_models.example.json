@@ -22,6 +22,7 @@
       },
       "training": {
         "tokens": "1,2,3,4",
+        "batch": 1,
         "learning_rate": 0.00001,
         "warmup": 2,
         "steps": 5
@@ -48,6 +49,7 @@
       },
       "training": {
         "tokens": "151646,151644,3838,374",
+        "batch": 1,
         "learning_rate": 0.00001,
         "warmup": 2,
         "steps": 5

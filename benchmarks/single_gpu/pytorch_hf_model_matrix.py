@@ -257,8 +257,11 @@ def infer(model: dict, loaded, device: torch.device, base: dict) -> dict:
 def train(model: dict, loaded, device: torch.device, base: dict) -> dict:
     training = model["training"]
     all_tokens = [int(value) for value in training["tokens"].split(",")]
-    inputs = torch.tensor([all_tokens[:-1]], dtype=torch.long, device=device)
-    targets = torch.tensor([all_tokens[1:]], dtype=torch.long, device=device)
+    batch = int(training.get("batch", 1))
+    if batch <= 0:
+        raise RuntimeError(f"{model['name']} training batch must be positive")
+    inputs = torch.tensor([all_tokens[:-1]], dtype=torch.long, device=device).repeat(batch, 1)
+    targets = torch.tensor([all_tokens[1:]], dtype=torch.long, device=device).repeat(batch, 1)
     optimizer = torch.optim.AdamW(
         loaded.parameters(), lr=float(training["learning_rate"]),
         betas=(0.9, 0.999), eps=1.0e-8, weight_decay=0.01
@@ -310,6 +313,8 @@ def train(model: dict, loaded, device: torch.device, base: dict) -> dict:
         "measurement_profile": "comparison" if warmup > 0 or steps > 1 else "smoke",
         "warmup": warmup,
         "steps": steps,
+        "batch": batch,
+        "context": inputs.shape[1],
         "warmup_ms": (warmup_finish - warmup_start) * 1000.0,
         "trained_tokens": trained_tokens,
         "first_loss": first_loss,

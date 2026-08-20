@@ -58,6 +58,11 @@ if(BUILD_TESTING)
                          --output ${CMAKE_CURRENT_BINARY_DIR}/hf-unavailable-matrix.jsonl)
         set_tests_properties(Benchmark.HfModelMatrixUnavailableSchema PROPERTIES
                              LABELS "cpu;benchmark;huggingface;memory;schema")
+        add_test(NAME Benchmark.HfBatchContract
+                 COMMAND ${Python3_EXECUTABLE}
+                         ${PROJECT_SOURCE_DIR}/python/tests/test_hf_benchmark_contract.py)
+        set_tests_properties(Benchmark.HfBatchContract PROPERTIES
+                             LABELS "cpu;benchmark;huggingface;batch;schema")
         add_test(NAME Benchmark.FrameworkComparisonBuiltinsSchema
                  COMMAND ${Python3_EXECUTABLE}
                          ${CMAKE_CURRENT_SOURCE_DIR}/single_gpu/compare_frameworks.py

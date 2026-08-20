@@ -54,6 +54,7 @@ int main(int argc, char** argv) {
         float learning_rate = 1.0e-5F;
         int warmup = 0;
         int steps = 1;
+        int batch_size = 1;
         std::string linear_precision = "fp32";
         bool bf16_weight_mirrors = true;
         for (int index = 1; index < argc; index += 2) {
@@ -66,6 +67,7 @@ int main(int argc, char** argv) {
             else if (name == "--learning-rate") learning_rate = std::stof(argv[index + 1]);
             else if (name == "--warmup") warmup = std::stoi(argv[index + 1]);
             else if (name == "--steps") steps = std::stoi(argv[index + 1]);
+            else if (name == "--batch") batch_size = std::stoi(argv[index + 1]);
             else if (name == "--linear-precision") linear_precision = argv[index + 1];
             else if (name == "--bf16-weight-mirrors") {
                 const std::string value = argv[index + 1];
@@ -80,8 +82,9 @@ int main(int argc, char** argv) {
         if (config_path.empty() || weights_path.empty() || token_text.empty()) {
             throw std::invalid_argument("--config, --weights, and --tokens are required");
         }
-        if (warmup < 0 || steps <= 0) {
-            throw std::invalid_argument("--warmup must be nonnegative and --steps positive");
+        if (warmup < 0 || steps <= 0 || batch_size <= 0) {
+            throw std::invalid_argument(
+                "--warmup must be nonnegative; --steps and --batch must be positive");
         }
         if (linear_precision != "fp32" && linear_precision != "bf16") {
             throw std::invalid_argument("--linear-precision must be fp32 or bf16");
@@ -115,10 +118,18 @@ int main(int argc, char** argv) {
         const auto all_tokens = parse_tokens(token_text);
         const std::vector<std::int32_t> input_ids(all_tokens.begin(), all_tokens.end() - 1);
         const std::vector<std::int32_t> target_ids(all_tokens.begin() + 1, all_tokens.end());
+        std::vector<std::int32_t> batched_inputs;
+        std::vector<std::int32_t> batched_targets;
+        batched_inputs.reserve(input_ids.size() * static_cast<std::size_t>(batch_size));
+        batched_targets.reserve(target_ids.size() * static_cast<std::size_t>(batch_size));
+        for (int batch = 0; batch < batch_size; ++batch) {
+            batched_inputs.insert(batched_inputs.end(), input_ids.begin(), input_ids.end());
+            batched_targets.insert(batched_targets.end(), target_ids.begin(), target_ids.end());
+        }
         auto inputs = microllm::Tensor::from_int32_vector(
-            input_ids, {1, static_cast<std::int64_t>(input_ids.size())});
+            batched_inputs, {batch_size, static_cast<std::int64_t>(input_ids.size())});
         auto targets = microllm::Tensor::from_int32_vector(
-            target_ids, {1, static_cast<std::int64_t>(target_ids.size())});
+            batched_targets, {batch_size, static_cast<std::int64_t>(target_ids.size())});
         if (device.is_hip()) { inputs = inputs.to(device); targets = targets.to(device); }
         auto named = model.named_parameters();
         microllm::autograd::Value* observed = nullptr;
@@ -173,7 +184,8 @@ int main(int argc, char** argv) {
             std::chrono::duration<double, std::milli>(finish - start).count();
         const auto warmup_ms =
             std::chrono::duration<double, std::milli>(warmup_finish - warmup_start).count();
-        const auto trained_tokens = input_ids.size() * static_cast<std::size_t>(steps);
+        const auto trained_tokens = input_ids.size() * static_cast<std::size_t>(batch_size) *
+                                    static_cast<std::size_t>(steps);
         std::cout << std::setprecision(9)
                   << "{\"schema_version\":1,\"status\":\"pass\""
                   << ",\"device\":\"" << device.str() << "\""
@@ -205,6 +217,8 @@ int main(int argc, char** argv) {
                      }()
                   << ",\"warmup\":" << warmup
                   << ",\"steps\":" << steps
+                  << ",\"batch\":" << batch_size
+                  << ",\"context\":" << input_ids.size()
                   << ",\"warmup_ms\":" << warmup_ms
                   << ",\"trained_tokens\":" << trained_tokens
                   << ",\"first_loss\":" << first_loss

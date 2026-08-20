@@ -58,6 +58,11 @@ def load_manifest(path: Path) -> list[dict]:
         names.add(model["name"])
         if int(model["parameter_count"]) <= 0 or int(model["loaded_tensors"]) <= 0:
             raise RuntimeError(f"{model['name']} has invalid expected counts")
+        training = model["training"]
+        if int(training.get("batch", 1)) <= 0:
+            raise RuntimeError(f"{model['name']} training.batch must be positive")
+        if len(str(training.get("tokens", "")).split(",")) < 2:
+            raise RuntimeError(f"{model['name']} training.tokens needs at least two IDs")
     return document["models"]
 
 
@@ -146,6 +151,7 @@ def train(binary: Path, model: dict, device: str) -> dict:
         "--learning-rate", str(training["learning_rate"]),
         "--warmup", str(training.get("warmup", 0)),
         "--steps", str(training.get("steps", 1)),
+        "--batch", str(training.get("batch", 1)),
     ])
     validate_common(record, model, "train", device)
     positive = ("step_ms", "tokens_per_second", "milliseconds_per_token")
@@ -159,10 +165,13 @@ def train(binary: Path, model: dict, device: str) -> dict:
         raise RuntimeError(f"{model['name']}/train optimizer copied Tensor payloads")
     expected_warmup = int(training.get("warmup", 0))
     expected_steps = int(training.get("steps", 1))
+    expected_batch = int(training.get("batch", 1))
     predicted_tokens = len(training["tokens"].split(",")) - 1
     if record.get("warmup") != expected_warmup or record.get("steps") != expected_steps:
         raise RuntimeError(f"{model['name']}/train warm-up or step count changed")
-    if record.get("trained_tokens") != expected_steps * predicted_tokens:
+    if record.get("batch") != expected_batch or record.get("context") != predicted_tokens:
+        raise RuntimeError(f"{model['name']}/train batch or context changed")
+    if record.get("trained_tokens") != expected_steps * expected_batch * predicted_tokens:
         raise RuntimeError(f"{model['name']}/train measured token count changed")
     return record
 
