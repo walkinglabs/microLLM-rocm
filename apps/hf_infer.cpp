@@ -198,6 +198,7 @@ int main(int argc, char** argv) {
             const auto warmup_finish = std::chrono::steady_clock::now();
             warmup_ms = std::chrono::duration<double, std::milli>(warmup_finish - warmup_start)
                             .count();
+            if (device.is_hip()) microllm::runtime::enable_hip_caching_allocator(device);
             microllm::runtime::reset_allocation_peak(device);
             const auto generation_start = std::chrono::steady_clock::now();
             for (int iteration = 0; iteration < command.steps; ++iteration) {
@@ -249,6 +250,15 @@ int main(int argc, char** argv) {
                   << ",\"engine_peak_bytes\":" << allocation.peak_bytes
                   << ",\"engine_total_allocated_bytes\":"
                   << allocation.total_allocated_bytes
+                  << ",\"engine_allocation_calls\":" << allocation.allocation_calls
+                  << ",\"engine_deallocation_calls\":" << allocation.deallocation_calls
+                  << ",\"engine_backend_allocation_calls\":"
+                  << allocation.backend_allocation_calls
+                  << ",\"engine_backend_deallocation_calls\":"
+                  << allocation.backend_deallocation_calls
+                  << ",\"engine_cache_reuse_calls\":" << allocation.cache_reuse_calls
+                  << ",\"engine_cached_bytes\":" << allocation.cached_bytes
+                  << ",\"engine_reserved_bytes\":" << allocation.reserved_bytes
                   << ",\"top_logits\":[";
         for (std::size_t index = 0; index < selected; ++index) {
             if (index != 0) std::cout << ',';

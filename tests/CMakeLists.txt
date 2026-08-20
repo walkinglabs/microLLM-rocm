@@ -75,6 +75,7 @@ gtest_discover_tests(microllm_tests
 if(MICROLLM_HAS_HIP)
     add_executable(microllm_hip_tests
         hardware/precision_capability_test.cpp
+        runtime/runtime_test.cpp
         ops/hip_ops_test.cpp
         graph/hip_graph_alignment_test.cpp
         io/hip_weights_test.cpp

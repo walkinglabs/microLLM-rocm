@@ -8,6 +8,7 @@
 #include <microllm/ops/ops.h>
 #include <microllm/ops/low_level.h>
 #include <microllm/runtime/runtime.h>
+#include <microllm/runtime/memory.h>
 #include <microllm/inference/generator.h>
 #include <microllm/model/model.h>
 #include <microllm/training/trainer.h>
@@ -379,6 +380,33 @@ TEST(HipGenerationTest, GreedyLoopKeepsSelectedTokenOnDevice) {
     EXPECT_EQ(transfers.host_to_device_bytes, prompt.size() * sizeof(std::int32_t));
     EXPECT_EQ(transfers.device_to_host_calls, 4U);
     EXPECT_EQ(transfers.device_to_host_bytes, 4U * sizeof(std::int32_t));
+}
+
+TEST(HipAllocatorStressTest, ReusedDefaultStreamBlocksPreserveAsyncKernelOrder) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    runtime::enable_hip_caching_allocator(gpu);
+    runtime::reset_allocation_peak(gpu);
+    for (int iteration = 0; iteration < 256; ++iteration) {
+        Tensor temporary({4096}, DType::Float32, gpu);
+        fill_(temporary, static_cast<float>(iteration));
+        if (iteration % 16 == 15) runtime::synchronize(gpu);
+    }
+    try {
+        Tensor temporary({4096}, DType::Float32, gpu);
+        fill_(temporary, -7.0F);
+        throw std::runtime_error("exercise exceptional destruction");
+    } catch (const std::runtime_error&) {
+    }
+    runtime::synchronize(gpu);
+    Tensor final({4096}, DType::Float32, gpu);
+    fill_(final, 42.0F);
+    const auto values = final.to_vector();
+    ASSERT_EQ(values.size(), 4096U);
+    for (const auto value : values) EXPECT_EQ(value, 42.0F);
+    const auto stats = runtime::allocation_stats(gpu);
+    EXPECT_GT(stats.cache_reuse_calls, 0U);
+    EXPECT_LT(stats.backend_allocation_calls, stats.allocation_calls);
 }
 
 TEST(HipOpsTest, RopeAndCrossEntropyMatchCpuReference) {

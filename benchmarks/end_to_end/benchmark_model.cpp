@@ -145,6 +145,7 @@ int main(int argc, char** argv) {
             const auto warmup_finish = std::chrono::steady_clock::now();
             warmup_seconds =
                 std::chrono::duration<double>(warmup_finish - warmup_start).count();
+            if (device.is_hip()) microllm::runtime::enable_hip_caching_allocator(device);
             const auto measured_start = std::chrono::steady_clock::now();
             for (int iteration = 0; iteration < options.steps; ++iteration) {
                 const auto metrics = microllm::training::train_step(
@@ -172,6 +173,7 @@ int main(int argc, char** argv) {
             const auto warmup_finish = std::chrono::steady_clock::now();
             warmup_seconds =
                 std::chrono::duration<double>(warmup_finish - warmup_start).count();
+            if (device.is_hip()) microllm::runtime::enable_hip_caching_allocator(device);
             const auto measured_start = std::chrono::steady_clock::now();
             for (int iteration = 0; iteration < options.steps; ++iteration) {
                 const auto generated = microllm::inference::generate(
@@ -232,6 +234,18 @@ int main(int argc, char** argv) {
                   << ",\"device_peak_engine_bytes\":" << device_memory.peak_bytes
                   << ",\"device_total_allocated_engine_bytes\":"
                   << device_memory.total_allocated_bytes
+                  << ",\"device_engine_allocation_calls\":"
+                  << device_memory.allocation_calls
+                  << ",\"device_engine_deallocation_calls\":"
+                  << device_memory.deallocation_calls
+                  << ",\"device_engine_backend_allocation_calls\":"
+                  << device_memory.backend_allocation_calls
+                  << ",\"device_engine_backend_deallocation_calls\":"
+                  << device_memory.backend_deallocation_calls
+                  << ",\"device_engine_cache_reuse_calls\":"
+                  << device_memory.cache_reuse_calls
+                  << ",\"device_engine_cached_bytes\":" << device_memory.cached_bytes
+                  << ",\"device_engine_reserved_bytes\":" << device_memory.reserved_bytes
                   << ",\"output_guard\":" << output_guard << "}\n";
         return std::isfinite(tokens_per_second) && tokens_per_second > 0.0 ? 0 : 2;
     } catch (const std::exception& error) {

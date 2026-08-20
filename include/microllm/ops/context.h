@@ -31,12 +31,14 @@ struct OpContext {
             if (stream->device() != device) {
                 throw std::invalid_argument("operator stream does not match tensor device");
             }
+            runtime::notify_non_default_stream(device);
             return stream->native_handle();
         }
         if (external_stream != nullptr) {
             if (external_stream_device != device) {
                 throw std::invalid_argument("external stream does not match tensor device");
             }
+            runtime::notify_non_default_stream(device);
             return external_stream;
         }
         return nullptr;

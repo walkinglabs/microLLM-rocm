@@ -58,6 +58,11 @@ void set_device(Device device);
 void synchronize(Device device);
 [[nodiscard]] TransferStats transfer_stats() noexcept;
 void reset_transfer_stats() noexcept;
+// The exact-size allocator cache is only safe for legacy-default-stream work.
+// Creating or passing any non-default stream permanently disables reuse on that device.
+void notify_non_default_stream(Device device) noexcept;
+void enable_hip_caching_allocator(Device device);
+[[nodiscard]] bool hip_caching_allocator_enabled(Device device) noexcept;
 
 class Stream {
 public:

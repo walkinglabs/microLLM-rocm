@@ -15,6 +15,13 @@ struct AllocationStats {
     std::size_t current_bytes = 0;
     std::size_t peak_bytes = 0;
     std::size_t total_allocated_bytes = 0;
+    std::size_t allocation_calls = 0;
+    std::size_t deallocation_calls = 0;
+    std::size_t backend_allocation_calls = 0;
+    std::size_t backend_deallocation_calls = 0;
+    std::size_t cache_reuse_calls = 0;
+    std::size_t cached_bytes = 0;
+    std::size_t reserved_bytes = 0;
 };
 
 [[nodiscard]] AllocationStats allocation_stats(Device device) noexcept;

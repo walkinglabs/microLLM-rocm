@@ -124,6 +124,7 @@ int main(int argc, char** argv) {
         for (int iteration = 0; iteration < warmup; ++iteration) (void)run_step();
         microllm::runtime::synchronize(device);
         const auto warmup_finish = std::chrono::steady_clock::now();
+        if (device.is_hip()) microllm::runtime::enable_hip_caching_allocator(device);
         microllm::runtime::reset_allocation_peak(device);
         const auto before = observed->data().to_vector().front();
         float first_loss = 0.0F;
@@ -190,7 +191,17 @@ int main(int argc, char** argv) {
                   << ",\"engine_current_bytes\":" << allocation.current_bytes
                   << ",\"engine_peak_bytes\":" << allocation.peak_bytes
                   << ",\"engine_total_allocated_bytes\":"
-                  << allocation.total_allocated_bytes << "}\n";
+                  << allocation.total_allocated_bytes
+                  << ",\"engine_allocation_calls\":" << allocation.allocation_calls
+                  << ",\"engine_deallocation_calls\":" << allocation.deallocation_calls
+                  << ",\"engine_backend_allocation_calls\":"
+                  << allocation.backend_allocation_calls
+                  << ",\"engine_backend_deallocation_calls\":"
+                  << allocation.backend_deallocation_calls
+                  << ",\"engine_cache_reuse_calls\":" << allocation.cache_reuse_calls
+                  << ",\"engine_cached_bytes\":" << allocation.cached_bytes
+                  << ",\"engine_reserved_bytes\":" << allocation.reserved_bytes
+                  << "}\n";
         return before != after && std::isfinite(final_loss) ? 0 : 2;
     } catch (const std::exception& error) {
         std::cerr << "microllm_hf_train_step: " << error.what() << '\n';

@@ -2,11 +2,15 @@
 #include <microllm/runtime/runtime.h>
 
 #include <cstring>
+#include <algorithm>
 #include <atomic>
 #include <limits>
+#include <map>
+#include <mutex>
 #include <stdexcept>
 #include <string>
 #include <utility>
+#include <vector>
 
 #if MICROLLM_HAS_HIP
 #include "hip_strided_copy.h"
@@ -23,6 +27,13 @@ struct AllocationCounters {
     std::atomic<std::size_t> current{0};
     std::atomic<std::size_t> peak{0};
     std::atomic<std::size_t> total{0};
+    std::atomic<std::size_t> allocation_calls{0};
+    std::atomic<std::size_t> deallocation_calls{0};
+    std::atomic<std::size_t> backend_allocation_calls{0};
+    std::atomic<std::size_t> backend_deallocation_calls{0};
+    std::atomic<std::size_t> cache_reuse_calls{0};
+    std::atomic<std::size_t> cached_bytes{0};
+    std::atomic<std::size_t> reserved_bytes{0};
 };
 
 AllocationCounters cpu_counters;
@@ -61,12 +72,34 @@ void record_allocation(Device device, std::size_t bytes) {
     auto& values = counters(device);
     const auto current = values.current.fetch_add(bytes) + bytes;
     values.total.fetch_add(bytes);
+    values.allocation_calls.fetch_add(1);
     auto peak = values.peak.load();
     while (current > peak && !values.peak.compare_exchange_weak(peak, current)) {
     }
 }
 
 #if MICROLLM_HAS_HIP
+struct RetiredBlock {
+    void* pointer = nullptr;
+    hipEvent_t ready = nullptr;
+};
+
+struct HipExactSizePool {
+    std::mutex mutex;
+    std::map<int, bool> enabled;
+    std::map<int, bool> forbidden;
+    std::map<std::pair<int, std::size_t>, std::vector<RetiredBlock>> retired;
+};
+
+HipExactSizePool& hip_pool() {
+    // Deliberately process-lifetime: HIP may already be shutting down when C++ static
+    // destructors run. The driver reclaims retained blocks at process exit.
+    static auto* pool = new HipExactSizePool();
+    return *pool;
+}
+
+constexpr std::size_t kMaximumCachedBytesPerDevice = 8ULL * 1024ULL * 1024ULL * 1024ULL;
+
 void check_hip(hipError_t status, const char* operation) {
     if (status != hipSuccess) {
         throw std::runtime_error(std::string(operation) + ": " + hipGetErrorString(status));
@@ -226,17 +259,82 @@ void reset_transfer_stats() noexcept {
     transfer_counters.device_to_device_bytes.store(0);
 }
 
+void notify_non_default_stream(Device device) noexcept {
+    if (device.is_cpu()) return;
+#if MICROLLM_HAS_HIP
+    auto& pool = hip_pool();
+    const std::lock_guard<std::mutex> lock(pool.mutex);
+    pool.enabled[device.index()] = false;
+    pool.forbidden[device.index()] = true;
+#else
+    (void)device;
+#endif
+}
+
+void enable_hip_caching_allocator(Device device) {
+    if (device.is_cpu()) return;
+#if MICROLLM_HAS_HIP
+    set_device(device);
+    auto& pool = hip_pool();
+    const std::lock_guard<std::mutex> lock(pool.mutex);
+    if (pool.forbidden[device.index()]) {
+        throw std::logic_error(
+            "HIP caching allocator cannot be enabled after non-default Stream use");
+    }
+    pool.enabled[device.index()] = true;
+#else
+    (void)device;
+    throw std::runtime_error("HIP caching allocator requested from a CPU-only build");
+#endif
+}
+
+bool hip_caching_allocator_enabled(Device device) noexcept {
+    if (device.is_cpu()) return false;
+#if MICROLLM_HAS_HIP
+    auto& pool = hip_pool();
+    const std::lock_guard<std::mutex> lock(pool.mutex);
+    return pool.enabled[device.index()];
+#else
+    (void)device;
+    return false;
+#endif
+}
+
 void* allocate(std::size_t num_bytes, Device device) {
     if (num_bytes == 0) return nullptr;
     if (device.is_cpu()) {
         auto* pointer = ::operator new(num_bytes);
+        counters(device).backend_allocation_calls.fetch_add(1);
+        counters(device).reserved_bytes.fetch_add(num_bytes);
         record_allocation(device, num_bytes);
         return pointer;
     }
 #if MICROLLM_HAS_HIP
     set_device(device);
+    {
+        auto& pool = hip_pool();
+        const std::lock_guard<std::mutex> lock(pool.mutex);
+        if (pool.enabled[device.index()]) {
+            auto& candidates = pool.retired[{device.index(), num_bytes}];
+            for (auto candidate = candidates.begin(); candidate != candidates.end(); ++candidate) {
+                const auto status = hipEventQuery(candidate->ready);
+                if (status == hipSuccess) {
+                    void* pointer = candidate->pointer;
+                    (void)hipEventDestroy(candidate->ready);
+                    candidates.erase(candidate);
+                    counters(device).cached_bytes.fetch_sub(num_bytes);
+                    counters(device).cache_reuse_calls.fetch_add(1);
+                    record_allocation(device, num_bytes);
+                    return pointer;
+                }
+                if (status != hipErrorNotReady) (void)hipGetLastError();
+            }
+        }
+    }
     void* pointer = nullptr;
     check_hip(hipMalloc(&pointer, num_bytes), "hipMalloc");
+    counters(device).backend_allocation_calls.fetch_add(1);
+    counters(device).reserved_bytes.fetch_add(num_bytes);
     record_allocation(device, num_bytes);
     return pointer;
 #else
@@ -249,11 +347,42 @@ void deallocate(void* pointer, Device device, std::size_t num_bytes) noexcept {
     if (device.is_cpu()) {
         ::operator delete(pointer);
         counters(device).current.fetch_sub(num_bytes);
+        counters(device).deallocation_calls.fetch_add(1);
+        counters(device).backend_deallocation_calls.fetch_add(1);
+        counters(device).reserved_bytes.fetch_sub(num_bytes);
         return;
     }
 #if MICROLLM_HAS_HIP
-    if (hipSetDevice(device.index()) == hipSuccess && hipFree(pointer) == hipSuccess) {
+    if (hipSetDevice(device.index()) != hipSuccess) return;
+    bool cached = false;
+    {
+        auto& pool = hip_pool();
+        const std::lock_guard<std::mutex> lock(pool.mutex);
+        const auto cached_bytes = counters(device).cached_bytes.load();
+        if (pool.enabled[device.index()] &&
+            num_bytes <= kMaximumCachedBytesPerDevice -
+                             std::min(cached_bytes, kMaximumCachedBytesPerDevice)) {
+            hipEvent_t ready = nullptr;
+            if (hipEventCreateWithFlags(&ready, hipEventDisableTiming) == hipSuccess &&
+                hipEventRecord(ready, nullptr) == hipSuccess) {
+                pool.retired[{device.index(), num_bytes}].push_back({pointer, ready});
+                counters(device).cached_bytes.fetch_add(num_bytes);
+                cached = true;
+            } else if (ready != nullptr) {
+                (void)hipEventDestroy(ready);
+            }
+        }
+    }
+    if (cached) {
         counters(device).current.fetch_sub(num_bytes);
+        counters(device).deallocation_calls.fetch_add(1);
+        return;
+    }
+    if (hipFree(pointer) == hipSuccess) {
+        counters(device).current.fetch_sub(num_bytes);
+        counters(device).deallocation_calls.fetch_add(1);
+        counters(device).backend_deallocation_calls.fetch_add(1);
+        counters(device).reserved_bytes.fetch_sub(num_bytes);
     }
 #else
     (void)device;
@@ -262,13 +391,22 @@ void deallocate(void* pointer, Device device, std::size_t num_bytes) noexcept {
 
 AllocationStats allocation_stats(Device device) noexcept {
     auto& values = counters(device);
-    return {values.current.load(), values.peak.load(), values.total.load()};
+    return {values.current.load(), values.peak.load(), values.total.load(),
+            values.allocation_calls.load(), values.deallocation_calls.load(),
+            values.backend_allocation_calls.load(), values.backend_deallocation_calls.load(),
+            values.cache_reuse_calls.load(), values.cached_bytes.load(),
+            values.reserved_bytes.load()};
 }
 
 void reset_allocation_peak(Device device) noexcept {
     auto& values = counters(device);
     values.peak.store(values.current.load());
     values.total.store(0);
+    values.allocation_calls.store(0);
+    values.deallocation_calls.store(0);
+    values.backend_allocation_calls.store(0);
+    values.backend_deallocation_calls.store(0);
+    values.cache_reuse_calls.store(0);
 }
 
 void copy_bytes(void* destination, Device destination_device, const void* source,
@@ -350,6 +488,7 @@ Stream::Stream(Device device, bool non_blocking) : impl_(std::make_unique<Impl>(
     impl_->device = device;
     if (device.is_cpu()) return;
 #if MICROLLM_HAS_HIP
+    notify_non_default_stream(device);
     set_device(device);
     hipStream_t stream = nullptr;
     check_hip(hipStreamCreateWithFlags(&stream, non_blocking ? hipStreamNonBlocking : hipStreamDefault),
