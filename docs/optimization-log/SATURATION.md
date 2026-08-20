@@ -45,6 +45,11 @@ extending the existing local curve:
 6. separate long-context and batch>1 matrices;
 7. multi-GPU overlap measured independently from this single-GPU curve.
 
+Experiment 040 closes one narrower lifecycle question: rebuilding BF16 Linear weights on
+every forward is measurably worse than persistent mirrors on both official models. It does
+not close the activation-cast or memory problem; the retained option adds 7.9%–10.8% peak
+engine memory and therefore cannot be treated as the universal BF16 layout.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

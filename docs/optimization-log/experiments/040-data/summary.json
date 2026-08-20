@@ -1,0 +1,33 @@
+{
+  "aggregation": "median of three independent candidate processes by default",
+  "rows": [
+    {
+      "all_updates_finite": true,
+      "candidate_tokens_per_second": 151.687581991,
+      "final_loss": 0.002401988,
+      "first_loss": 1.015199065,
+      "model": "qwen2.5-0.5b",
+      "peak_bytes": 9727946656.0,
+      "peak_ratio_vs_baseline": 1.079408545354331,
+      "ratio_vs_microllm_fp32": 1.0047795442452567,
+      "ratio_vs_pytorch_bf16_amp": 3.4154397545096424,
+      "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+      "speedup_vs_bf16_independent_linears": 1.0939691424204714
+    },
+    {
+      "all_updates_finite": true,
+      "candidate_tokens_per_second": 78.412397774,
+      "final_loss": 9.268294334,
+      "first_loss": 10.484343529,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "peak_bytes": 31555563424.0,
+      "peak_ratio_vs_baseline": 1.1084408026966295,
+      "ratio_vs_microllm_fp32": 0.9595592345025965,
+      "ratio_vs_pytorch_bf16_amp": 2.734412048320378,
+      "revision": "ad9f0ae0864d7fbcd1cd905e3c6c5b069cc8b562",
+      "speedup_vs_bf16_independent_linears": 1.0587023804094788
+    }
+  ],
+  "schema_version": 1,
+  "track": "bf16_training_weight_mirrors"
+}

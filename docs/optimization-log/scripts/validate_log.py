@@ -329,6 +329,35 @@ def validate_bf16_training_qkv(errors: list[str]) -> int:
     return len(records)
 
 
+def validate_bf16_training_mirrors(errors: list[str]) -> int:
+    data = ROOT / "experiments" / "040-data"
+    records = [json.loads(line) for line in
+               (data / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    if len(records) != 6 or len({(row["model"], row["process_run"])
+                                 for row in records}) != 6:
+        errors.append("BF16 training mirror raw matrix must contain six unique rows")
+    for row in records:
+        if row.get("record_type") != "bf16_training_weight_mirrors_candidate" or \
+                not row.get("parameter_changed") or \
+                not math.isfinite(float(row["final_loss"])) or \
+                row["final_loss"] >= row["first_loss"] or \
+                row.get("bf16_training_mirror_tensors", 0) <= 0 or \
+                row.get("bf16_training_mirror_bytes", 0) <= 0 or \
+                row.get("optimizer_host_to_device_calls") != 0 or \
+                row.get("optimizer_device_to_host_calls") != 0:
+            errors.append(f'BF16 training mirror evidence failed: {row.get("model")}')
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    if summary.get("track") != "bf16_training_weight_mirrors" or \
+            len(summary.get("rows", [])) != 2:
+        errors.append("BF16 training mirror summary must contain the fixed two-model track")
+    for row in summary.get("rows", []):
+        if row["speedup_vs_bf16_independent_linears"] <= 1.05 or \
+                row["peak_ratio_vs_baseline"] <= 1.0 or \
+                row["ratio_vs_pytorch_bf16_amp"] <= 1.0:
+            errors.append(f'BF16 training mirror trade-off boundary changed: {row["model"]}')
+    return len(records)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -348,7 +377,7 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-model-policy.svg", "bf16-ffn-island.svg",
                  "bf16-model-inference.svg", "bf16-prefill-allocator.svg",
                  "bf16-attention.svg", "bf16-plan-cache.svg", "bf16-training.svg",
-                 "bf16-training-qkv-discard.svg"):
+                 "bf16-training-qkv-discard.svg", "bf16-training-mirrors.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -381,6 +410,7 @@ def main() -> int:
     training_profile_kernel_calls, training_profile_api_calls = \
         validate_bf16_training_profile(errors)
     bf16_training_qkv_count = validate_bf16_training_qkv(errors)
+    bf16_training_mirror_count = validate_bf16_training_mirrors(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -393,6 +423,7 @@ def main() -> int:
           f"bf16_attention={bf16_attention_count} "
           f"bf16_plan={bf16_plan_count} bf16_training={bf16_training_count} "
           f"bf16_training_qkv={bf16_training_qkv_count} "
+          f"bf16_training_mirrors={bf16_training_mirror_count} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

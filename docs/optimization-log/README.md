@@ -168,6 +168,13 @@ GEMM 节省的 1.33 ms。Experiment 039 让训练 Q/K/V 共享 activation cast�
 
 ![BF16 training shared QKV discarded](assets/bf16-training-qkv-discard.svg)
 
+Experiment 040 不再每次 forward 重建 BF16 Linear 权重。每个 FP32 master 持有一个
+持久 BF16 镜像，AdamW 在同一个 HIP launch 中同时写回 master 和镜像；checkpoint 只存
+主状态，恢复 optimizer 时重建派生镜像。Qwen/DeepSeek 相对 Experiment 037 提高
+`9.4%/5.9%`，但峰值显存增加 `7.9%/10.8%`，因此作为显式速度/显存选项保留。
+
+![Persistent BF16 training mirrors](assets/bf16-training-mirrors.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -205,6 +212,8 @@ GEMM 节省的 1.33 ms。Experiment 039 让训练 Q/K/V 共享 activation cast�
 | [experiments/038-data/](experiments/038-data/) | Qwen FP32/BF16 单步 profiler 对照 |
 | [assets/bf16-training-qkv-discard.svg](assets/bf16-training-qkv-discard.svg) | 少 cast/allocation 但吞吐未改善 |
 | [experiments/039-data/](experiments/039-data/) | shared-QKV candidate 三进程 raw/summary |
+| [assets/bf16-training-mirrors.svg](assets/bf16-training-mirrors.svg) | 持久 BF16 权重镜像的吞吐/显存取舍 |
+| [experiments/040-data/](experiments/040-data/) | 两模型三进程镜像训练 raw/summary |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

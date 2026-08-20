@@ -1110,3 +1110,25 @@ Q/K/V 共用 input，理论上 Qwen 每 5 步少 `24×2×5=240` 次 cast/allocat
 
 因此训练 graph 的 ValueTriple/API 和模型分支删除。推理同名 shared-QKV op 仍保留，
 因为它有独立通过的证据。训练下一步必须形成更大的连续 FFN island，而不是继续堆小图节点。
+
+## 57. Experiment 040：别在每道题前重抄一次课本
+
+BF16 forward 需要 BF16 权重，AdamW 又必须保留 FP32 master。旧实现每次经过 Linear 都
+把 master 临时 cast 一次，相当于答每道题前重新抄一本课本。新的做法是在加载权重后建立
+一份 BF16 “影子课本”，以后 forward 直接读它。
+
+难点不是创建副本，而是保证它永远不旧。AdamW Kernel 现在先更新 FP32 master，再在同一
+个 GPU launch 中把新值舍入到 BF16 mirror。checkpoint 不保存这份派生数据；恢复 FP32
+权重和 optimizer state 后，`load_state` 会重建 mirror。测试还故意把 mirror 填成 99，
+确认恢复会纠正它。
+
+![Persistent BF16 training mirrors](assets/bf16-training-mirrors.svg)
+
+三进程中位数里，Qwen 从 `138.66` 提高到 `151.69 token/s`，DeepSeek 从 `74.06`
+提高到 `78.41 token/s`。两者都超过 5% 收益门，Qwen 还达到 microLLM FP32 的
+`1.005×`。代价也同样清楚：Qwen 多留约 683 MiB 镜像，DeepSeek 多留约 2.88 GiB，
+峰值显存分别增加 7.9% 和 10.8%。
+
+因此它不是“免费加速”，而是显式速度/显存选项。下一步不再复制权重，而是尝试让相邻
+Linear 共用更长的 BF16 activation island；如果只是减少 cast 数却不能提高两个模型的
+端到端吞吐，就像 Experiment 039 一样删除候选。

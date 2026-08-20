@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="650" viewBox="0 0 1500 650">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="750.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 040 · Persistent BF16 Training Weight Mirrors</text>
+<text x="750.0" y="80.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">median of 3 processes · throughput and peak engine memory vs Experiment 037</text>
+<line x1="430.0" y1="120" x2="430.0" y2="490" stroke="#e5e9f0" stroke-width="1"/>
+<text x="430.0" y="520.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">0.90×</text>
+<line x1="614.8" y1="120" x2="614.8" y2="490" stroke="#e5e9f0" stroke-width="1"/>
+<text x="614.8" y="520.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">0.95×</text>
+<line x1="799.6" y1="120" x2="799.6" y2="490" stroke="#2563eb" stroke-width="2"/>
+<text x="799.6" y="520.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">1.00×</text>
+<line x1="984.3" y1="120" x2="984.3" y2="490" stroke="#e5e9f0" stroke-width="1"/>
+<text x="984.3" y="520.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">1.05×</text>
+<line x1="1169.1" y1="120" x2="1169.1" y2="490" stroke="#e5e9f0" stroke-width="1"/>
+<text x="1169.1" y="520.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">1.10×</text>
+<text x="404.0" y="183.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="end" font-weight="700">Qwen2.5-0.5B</text>
+<rect x="799.6" y="155" width="347.3" height="28" rx="5" fill="#18a558"/>
+<text x="1155.8" y="176.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#18a558" text-anchor="start" font-weight="700">1.094×  throughput vs old BF16</text>
+<rect x="799.6" y="196" width="293.5" height="28" rx="5" fill="#dc6b5a"/>
+<text x="1102.0" y="217.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#dc6b5a" text-anchor="start" font-weight="700">1.079×  peak memory vs old BF16</text>
+<rect x="799.6" y="237" width="17.7" height="28" rx="5" fill="#f59e0b"/>
+<text x="826.2" y="258.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#f59e0b" text-anchor="start" font-weight="700">1.005×  throughput vs microLLM FP32</text>
+<text x="404.0" y="230.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="end" font-weight="400">3.415× PyTorch BF16 autocast</text>
+<text x="404.0" y="343.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="end" font-weight="700">DeepSeek Distill 1.5B</text>
+<rect x="799.6" y="315" width="216.9" height="28" rx="5" fill="#18a558"/>
+<text x="1025.5" y="336.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#18a558" text-anchor="start" font-weight="700">1.059×  throughput vs old BF16</text>
+<rect x="799.6" y="356" width="400.8" height="28" rx="5" fill="#dc6b5a"/>
+<text x="1209.3" y="377.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#dc6b5a" text-anchor="start" font-weight="700">1.108×  peak memory vs old BF16</text>
+<rect x="650.1" y="397" width="149.5" height="28" rx="5" fill="#f59e0b"/>
+<text x="641.1" y="418.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#f59e0b" text-anchor="end" font-weight="700">0.960×  throughput vs microLLM FP32</text>
+<text x="404.0" y="390.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="end" font-weight="400">2.734× PyTorch BF16 autocast</text>
+<text x="750.0" y="575.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#9a4f00" text-anchor="middle" font-weight="700">Both models pass the &gt;5% speed gate; peak memory rises 7.9% / 10.8%</text>
+<text x="750.0" y="620.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#6b7280" text-anchor="middle" font-weight="400">Kept as an explicit speed/memory trade-off · mirrors are derived checkpoint state</text>
+</svg>
