@@ -70,7 +70,7 @@ void launch_rope_split_half(const float* input, float* output,
                             std::int64_t position_offset, float base,
                             void* stream = nullptr);
 void launch_cross_entropy(const float* logits, const std::int32_t* targets, float* output,
-                          std::int64_t rows, std::int64_t classes,
+                          float* row_data, std::int64_t rows, std::int64_t classes,
                           void* stream = nullptr);
 void launch_reduce_sum(const float* input, float* output, std::int64_t elements,
                        void* stream = nullptr);
@@ -105,6 +105,7 @@ void launch_rope_split_half_backward(
     void* stream = nullptr);
 void launch_cross_entropy_backward(const float* logits, const std::int32_t* targets,
                                    const float* loss_gradient, float* logits_gradient,
+                                   float* row_stats, float* factor,
                                    std::int64_t rows, std::int64_t classes,
                                    void* stream = nullptr);
 void launch_causal_softmax(const float* scores, float* output, std::int64_t rows,

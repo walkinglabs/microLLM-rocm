@@ -1,3 +1,5 @@
+#include <cmath>
+#include <utility>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -296,6 +298,43 @@ TEST(HipOpsTest, MaskedCrossEntropyMatchesCpuReference) {
     const auto targets = Tensor::from_int32_vector({0, -100}, {2});
     expect_near(cross_entropy(logits.to(Device::hip()), targets.to(Device::hip())).to_vector(),
                 cross_entropy(logits, targets).to_vector());
+}
+
+TEST(HipCrossEntropyTest, ParallelForwardBackwardCoverLargeVocabularyWithoutHostTransfers) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    for (const auto& [rows, classes] :
+         {std::pair<std::int64_t, std::int64_t>{1, 2}, {3, 32}, {32, 8192},
+          {3, 151936}}) {
+        std::vector<float> values(static_cast<std::size_t>(rows * classes));
+        std::vector<std::int32_t> labels(static_cast<std::size_t>(rows));
+        for (std::size_t index = 0; index < values.size(); ++index) {
+            values[index] = static_cast<float>(static_cast<int>(index % 251) - 125) * 0.03125F;
+        }
+        for (std::int64_t row = 0; row < rows; ++row) {
+            labels[static_cast<std::size_t>(row)] =
+                static_cast<std::int32_t>((row * 7919 + 17) % classes);
+        }
+        if (rows > 1) labels.back() = -100;
+        const auto logits = Tensor::from_vector(values, {rows, classes});
+        const auto targets = Tensor::from_int32_vector(labels, {rows});
+        const auto seed = Tensor::from_vector({0.75F}, {});
+        const auto expected_loss = cross_entropy(logits, targets).to_vector();
+        const auto expected_gradient = cross_entropy_backward(logits, targets, seed).to_vector();
+        const auto device_logits = logits.to(gpu);
+        const auto device_targets = targets.to(gpu);
+        const auto device_seed = seed.to(gpu);
+        runtime::reset_transfer_stats();
+        const auto actual_loss = cross_entropy(device_logits, device_targets);
+        const auto actual_gradient =
+            cross_entropy_backward(device_logits, device_targets, device_seed);
+        runtime::synchronize(gpu);
+        const auto transfers = runtime::transfer_stats();
+        EXPECT_EQ(transfers.host_to_device_calls, 0U);
+        EXPECT_EQ(transfers.device_to_host_calls, 0U);
+        expect_near(actual_loss.to_vector(), expected_loss, 3.0e-5F);
+        expect_near(actual_gradient.to_vector(), expected_gradient, 3.0e-5F);
+    }
 }
 
 TEST(HipBackwardOpsTest, DeviceNativePrimitivesMatchCpuReference) {

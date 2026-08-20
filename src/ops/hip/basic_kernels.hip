@@ -319,33 +319,101 @@ __global__ void rope_split_half_kernel(
     output[second] = input[first] * sine + input[second] * cosine;
 }
 
-__global__ void cross_entropy_kernel(const float* logits, const std::int32_t* targets,
-                                     float* output, std::int64_t rows,
-                                     std::int64_t classes) {
-    if (blockIdx.x != 0 || threadIdx.x != 0) return;
-    double total = 0.0;
-    std::int64_t valid_rows = 0;
-    for (std::int64_t row = 0; row < rows; ++row) {
-        const auto label = static_cast<std::int64_t>(targets[row]);
-        if (label == -100) continue;
-        if (label < 0 || label >= classes) {
-            output[0] = nanf("");
-            return;
-        }
-        ++valid_rows;
-        float maximum = -INFINITY;
-        for (std::int64_t column = 0; column < classes; ++column) {
-            maximum = fmaxf(maximum, logits[row * classes + column]);
-        }
-        double denominator = 0.0;
-        for (std::int64_t column = 0; column < classes; ++column) {
-            denominator += exp(static_cast<double>(logits[row * classes + column] - maximum));
-        }
-        total += log(denominator) +
-                 static_cast<double>(maximum - logits[row * classes + label]);
+__device__ float block_reduce_max(float value, float* scratch) {
+    const auto lane = static_cast<unsigned>(threadIdx.x);
+    scratch[lane] = value;
+    __syncthreads();
+    for (unsigned stride = kBlockSize / 2; stride > 0; stride >>= 1) {
+        if (lane < stride) scratch[lane] = fmaxf(scratch[lane], scratch[lane + stride]);
+        __syncthreads();
     }
-    output[0] = valid_rows == 0 ? nanf("")
-                               : static_cast<float>(total / static_cast<double>(valid_rows));
+    return scratch[0];
+}
+
+__device__ float block_reduce_sum(float value, float* scratch) {
+    const auto lane = static_cast<unsigned>(threadIdx.x);
+    scratch[lane] = value;
+    __syncthreads();
+    for (unsigned stride = kBlockSize / 2; stride > 0; stride >>= 1) {
+        if (lane < stride) scratch[lane] += scratch[lane + stride];
+        __syncthreads();
+    }
+    return scratch[0];
+}
+
+__device__ int block_reduce_sum_int(int value, int* scratch) {
+    const auto lane = static_cast<unsigned>(threadIdx.x);
+    scratch[lane] = value;
+    __syncthreads();
+    for (unsigned stride = kBlockSize / 2; stride > 0; stride >>= 1) {
+        if (lane < stride) scratch[lane] += scratch[lane + stride];
+        __syncthreads();
+    }
+    return scratch[0];
+}
+
+__global__ void cross_entropy_rows_kernel(const float* logits,
+                                          const std::int32_t* targets,
+                                          float* row_data, std::int64_t rows,
+                                          std::int64_t classes) {
+    const auto row = static_cast<std::int64_t>(blockIdx.x);
+    if (row >= rows) return;
+    const auto label = static_cast<std::int64_t>(targets[row]);
+    if (label == -100) {
+        if (threadIdx.x == 0) {
+            row_data[row * 2] = 0.0F;
+            row_data[row * 2 + 1] = 0.0F;
+        }
+        return;
+    }
+    if (label < 0 || label >= classes) {
+        if (threadIdx.x == 0) {
+            row_data[row * 2] = nanf("");
+            row_data[row * 2 + 1] = -1.0F;
+        }
+        return;
+    }
+    __shared__ float scratch[kBlockSize];
+    const auto base = row * classes;
+    float local_maximum = -INFINITY;
+    for (std::int64_t column = threadIdx.x; column < classes; column += blockDim.x) {
+        local_maximum = fmaxf(local_maximum, logits[base + column]);
+    }
+    const auto maximum = block_reduce_max(local_maximum, scratch);
+    float local_sum = 0.0F;
+    for (std::int64_t column = threadIdx.x; column < classes; column += blockDim.x) {
+        local_sum += expf(logits[base + column] - maximum);
+    }
+    const auto denominator = block_reduce_sum(local_sum, scratch);
+    if (threadIdx.x == 0) {
+        row_data[row * 2] = logf(denominator) + maximum - logits[base + label];
+        row_data[row * 2 + 1] = 1.0F;
+    }
+}
+
+__global__ void cross_entropy_finalize_kernel(const float* row_data, float* output,
+                                              std::int64_t rows) {
+    __shared__ float sum_scratch[kBlockSize];
+    __shared__ int count_scratch[kBlockSize];
+    float local_sum = 0.0F;
+    int local_count = 0;
+    int local_invalid = 0;
+    for (std::int64_t row = threadIdx.x; row < rows; row += blockDim.x) {
+        const auto valid = row_data[row * 2 + 1];
+        if (valid < 0.0F) local_invalid = 1;
+        if (valid > 0.0F) {
+            local_sum += row_data[row * 2];
+            ++local_count;
+        }
+    }
+    const auto total = block_reduce_sum(local_sum, sum_scratch);
+    const auto valid_rows = block_reduce_sum_int(local_count, count_scratch);
+    const auto invalid_rows = block_reduce_sum_int(local_invalid, count_scratch);
+    if (threadIdx.x == 0) {
+        output[0] = invalid_rows != 0 || valid_rows == 0
+                        ? nanf("")
+                        : total / static_cast<float>(valid_rows);
+    }
 }
 
 __global__ void reduce_sum_kernel(const float* input, float* output,
@@ -482,45 +550,84 @@ __global__ void rope_split_half_backward_kernel(
     input_gradient[second] = -gradient[first] * sine + gradient[second] * cosine;
 }
 
-__global__ void cross_entropy_backward_kernel(const float* logits,
-                                              const std::int32_t* targets,
-                                              const float* loss_gradient,
-                                              float* logits_gradient,
-                                              std::int64_t rows,
-                                              std::int64_t classes) {
-    if (blockIdx.x != 0 || threadIdx.x != 0) return;
-    std::int64_t valid_rows = 0;
-    for (std::int64_t row = 0; row < rows; ++row) {
-        if (targets[row] != -100) ++valid_rows;
-    }
-    if (valid_rows == 0) {
-        if (rows * classes > 0) logits_gradient[0] = nanf("");
+__global__ void cross_entropy_backward_stats_kernel(
+    const float* logits, const std::int32_t* targets, float* row_stats,
+    std::int64_t rows, std::int64_t classes) {
+    const auto row = static_cast<std::int64_t>(blockIdx.x);
+    if (row >= rows) return;
+    const auto label = static_cast<std::int64_t>(targets[row]);
+    if (label == -100) {
+        if (threadIdx.x == 0) {
+            row_stats[row * 2] = 0.0F;
+            row_stats[row * 2 + 1] = 0.0F;
+        }
         return;
     }
-    const auto factor = loss_gradient[0] / static_cast<float>(valid_rows);
-    for (std::int64_t row = 0; row < rows; ++row) {
+    if (label < 0 || label >= classes) {
+        if (threadIdx.x == 0) {
+            row_stats[row * 2] = nanf("");
+            row_stats[row * 2 + 1] = nanf("");
+        }
+        return;
+    }
+    __shared__ float scratch[kBlockSize];
+    const auto base = row * classes;
+    float local_maximum = -INFINITY;
+    for (std::int64_t column = threadIdx.x; column < classes; column += blockDim.x) {
+        local_maximum = fmaxf(local_maximum, logits[base + column]);
+    }
+    const auto maximum = block_reduce_max(local_maximum, scratch);
+    float local_sum = 0.0F;
+    for (std::int64_t column = threadIdx.x; column < classes; column += blockDim.x) {
+        local_sum += expf(logits[base + column] - maximum);
+    }
+    const auto denominator = block_reduce_sum(local_sum, scratch);
+    if (threadIdx.x == 0) {
+        row_stats[row * 2] = maximum;
+        row_stats[row * 2 + 1] = 1.0F / denominator;
+    }
+}
+
+__global__ void cross_entropy_backward_factor_kernel(
+    const std::int32_t* targets, const float* loss_gradient, float* factor,
+    std::int64_t rows, std::int64_t classes) {
+    __shared__ int count_scratch[kBlockSize];
+    int local_count = 0;
+    int local_invalid = 0;
+    for (std::int64_t row = threadIdx.x; row < rows; row += blockDim.x) {
         const auto label = static_cast<std::int64_t>(targets[row]);
-        const auto base = row * classes;
-        if (label == -100) {
-            for (std::int64_t column = 0; column < classes; ++column) {
-                logits_gradient[base + column] = 0.0F;
-            }
-            continue;
-        }
-        float maximum = -INFINITY;
-        for (std::int64_t column = 0; column < classes; ++column) {
-            maximum = fmaxf(maximum, logits[base + column]);
-        }
-        float denominator = 0.0F;
-        for (std::int64_t column = 0; column < classes; ++column) {
-            denominator += expf(logits[base + column] - maximum);
-        }
-        for (std::int64_t column = 0; column < classes; ++column) {
-            auto probability = expf(logits[base + column] - maximum) / denominator;
-            if (column == label) probability -= 1.0F;
-            logits_gradient[base + column] = probability * factor;
+        if (label != -100) {
+            ++local_count;
+            if (label < 0 || label >= classes) local_invalid = 1;
         }
     }
+    const auto valid_rows = block_reduce_sum_int(local_count, count_scratch);
+    const auto invalid_rows = block_reduce_sum_int(local_invalid, count_scratch);
+    if (threadIdx.x == 0) {
+        factor[0] = invalid_rows != 0 || valid_rows == 0
+                        ? nanf("")
+                        : loss_gradient[0] / static_cast<float>(valid_rows);
+    }
+}
+
+__global__ void cross_entropy_backward_elements_kernel(
+    const float* logits, const std::int32_t* targets, const float* row_stats,
+    const float* factor, float* logits_gradient, std::int64_t elements,
+    std::int64_t classes) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    if (index >= elements) return;
+    const auto row = index / classes;
+    const auto column = index % classes;
+    const auto label = static_cast<std::int64_t>(targets[row]);
+    if (label == -100) {
+        logits_gradient[index] = 0.0F;
+        return;
+    }
+    const auto maximum = row_stats[row * 2];
+    const auto inverse_sum = row_stats[row * 2 + 1];
+    auto probability = expf(logits[index] - maximum) * inverse_sum;
+    if (column == label) probability -= 1.0F;
+    logits_gradient[index] = probability * factor[0];
 }
 
 __global__ void causal_softmax_kernel(const float* scores, float* output,
@@ -986,10 +1093,15 @@ void launch_rope_split_half(const float* input, float* output,
 }
 
 void launch_cross_entropy(const float* logits, const std::int32_t* targets, float* output,
-                          std::int64_t rows, std::int64_t classes, void* stream) {
-    hipLaunchKernelGGL(cross_entropy_kernel, dim3(1), dim3(1), 0, as_stream(stream),
-                       logits, targets, output, rows, classes);
-    check_launch("cross_entropy_kernel");
+                          float* row_data, std::int64_t rows,
+                          std::int64_t classes, void* stream) {
+    hipLaunchKernelGGL(cross_entropy_rows_kernel, dim3(static_cast<unsigned>(rows)),
+                       dim3(kBlockSize), 0, as_stream(stream), logits, targets,
+                       row_data, rows, classes);
+    check_launch("cross_entropy_rows_kernel");
+    hipLaunchKernelGGL(cross_entropy_finalize_kernel, dim3(1), dim3(kBlockSize), 0,
+                       as_stream(stream), row_data, output, rows);
+    check_launch("cross_entropy_finalize_kernel");
 }
 
 void launch_reduce_sum(const float* input, float* output, std::int64_t elements,
@@ -1084,11 +1196,20 @@ void launch_rope_split_half_backward(
 
 void launch_cross_entropy_backward(const float* logits, const std::int32_t* targets,
                                    const float* loss_gradient, float* logits_gradient,
+                                   float* row_stats, float* factor,
                                    std::int64_t rows, std::int64_t classes, void* stream) {
-    hipLaunchKernelGGL(cross_entropy_backward_kernel, dim3(1), dim3(1), 0,
-                       as_stream(stream), logits, targets, loss_gradient, logits_gradient,
-                       rows, classes);
-    check_launch("cross_entropy_backward_kernel");
+    hipLaunchKernelGGL(cross_entropy_backward_stats_kernel,
+                       dim3(static_cast<unsigned>(rows)), dim3(kBlockSize), 0,
+                       as_stream(stream), logits, targets, row_stats, rows, classes);
+    check_launch("cross_entropy_backward_stats_kernel");
+    hipLaunchKernelGGL(cross_entropy_backward_factor_kernel, dim3(1), dim3(kBlockSize), 0,
+                       as_stream(stream), targets, loss_gradient, factor, rows, classes);
+    check_launch("cross_entropy_backward_factor_kernel");
+    const auto elements = rows * classes;
+    hipLaunchKernelGGL(cross_entropy_backward_elements_kernel,
+                       dim3(grid_size(elements)), dim3(kBlockSize), 0, as_stream(stream),
+                       logits, targets, row_stats, factor, logits_gradient, elements, classes);
+    check_launch("cross_entropy_backward_elements_kernel");
 }
 
 void launch_causal_softmax(const float* scores, float* output, std::int64_t rows,

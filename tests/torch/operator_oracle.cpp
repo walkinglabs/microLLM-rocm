@@ -90,6 +90,14 @@ void emit_forward_cases() {
     const auto logits = f32({2, 1, 0, 100, -100, 0}, {2, 3});
     const auto targets = Tensor::from_int32_vector({0, -100}, {2});
     emit("cross_entropy", cross_entropy(logits, targets));
+    std::vector<float> large_logits_values(3 * 257);
+    for (std::size_t index = 0; index < large_logits_values.size(); ++index) {
+        large_logits_values[index] =
+            static_cast<float>(static_cast<int>(index % 251) - 125) * 0.03125F;
+    }
+    const auto large_logits = f32(std::move(large_logits_values), {3, 257});
+    const auto large_targets = Tensor::from_int32_vector({17, 241, -100}, {3});
+    emit("cross_entropy_large", cross_entropy(large_logits, large_targets));
     emit("reduce_sum", reduce_sum(left));
     emit("broadcast_scalar", broadcast_scalar(f32({2.5F}, {}), {2, 3}));
 
@@ -212,6 +220,16 @@ void emit_graph_gradient_cases() {
     cross_entropy(logits, Tensor::from_int32_vector({0, -100}, {2})).backward(
         f32({0.75F}, {}));
     emit("graph_cross_entropy_logits_grad", logits.grad());
+
+    std::vector<float> large_ce_values(3 * 257);
+    for (std::size_t element = 0; element < large_ce_values.size(); ++element) {
+        large_ce_values[element] =
+            static_cast<float>(static_cast<int>(element % 251) - 125) * 0.03125F;
+    }
+    Value large_ce_logits(f32(std::move(large_ce_values), {3, 257}), true);
+    cross_entropy(large_ce_logits, Tensor::from_int32_vector({17, 241, -100}, {3}))
+        .backward(f32({0.75F}, {}));
+    emit("graph_cross_entropy_large_logits_grad", large_ce_logits.grad());
 
     Value causal_input(f32({1, 2, 3, 4, 5, 6, 7, 8, 9}, {1, 3, 3}), true);
     const Value causal_seed(f32({1, 2, 3, -1, 0, 1, 2, -2, 0.5F}, {1, 3, 3}));

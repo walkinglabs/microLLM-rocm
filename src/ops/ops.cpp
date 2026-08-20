@@ -679,10 +679,12 @@ Tensor cross_entropy(const Tensor& logits, const Tensor& targets,
         require_contiguous(logits, "logits");
         require_contiguous(targets, "targets");
         Tensor output(Shape{}, DType::Float32, logits.device());
+        Tensor row_data({rows, 2}, DType::Float32, logits.device());
 #if MICROLLM_HAS_HIP
         hip::launch_cross_entropy(static_cast<const float*>(logits.data()),
                                   static_cast<const std::int32_t*>(targets.data()),
-                                  static_cast<float*>(output.data()), rows, classes,
+                                  static_cast<float*>(output.data()),
+                                  static_cast<float*>(row_data.data()), rows, classes,
                                   context.native_stream(logits.device()));
         return output;
 #else
@@ -1091,12 +1093,16 @@ Tensor cross_entropy_backward(const Tensor& logits, const Tensor& targets,
         require_contiguous(targets, "targets");
         require_contiguous(loss_gradient, "loss_gradient");
         Tensor logits_gradient(logits.shape(), DType::Float32, logits.device());
+        Tensor row_stats({rows, 2}, DType::Float32, logits.device());
+        Tensor factor(Shape{}, DType::Float32, logits.device());
 #if MICROLLM_HAS_HIP
         hip::launch_cross_entropy_backward(
             static_cast<const float*>(logits.data()),
             static_cast<const std::int32_t*>(targets.data()),
             static_cast<const float*>(loss_gradient.data()),
-            static_cast<float*>(logits_gradient.data()), rows, classes,
+            static_cast<float*>(logits_gradient.data()),
+            static_cast<float*>(row_stats.data()), static_cast<float*>(factor.data()),
+            rows, classes,
             context.native_stream(logits.device()));
         return logits_gradient;
 #else

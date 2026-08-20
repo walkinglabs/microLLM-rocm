@@ -97,6 +97,13 @@ def pytorch_references(actual):
     logits = tensor([2, 1, 0, 100, -100, 0], (2, 3))
     targets = torch.tensor([0, -100], dtype=torch.long)
     record(refs, "cross_entropy", F.cross_entropy(logits, targets, ignore_index=-100))
+    large_logits = torch.tensor(
+        [(index % 251 - 125) * 0.03125 for index in range(3 * 257)],
+        dtype=torch.float32,
+    ).reshape(3, 257)
+    large_targets = torch.tensor([17, 241, -100], dtype=torch.long)
+    record(refs, "cross_entropy_large",
+           F.cross_entropy(large_logits, large_targets, ignore_index=-100))
     record(refs, "reduce_sum", torch.sum(left))
     record(refs, "broadcast_scalar", torch.tensor(2.5).expand(2, 3).clone())
     scores = tensor([1, 2, 3, 4, 5, 6, 7, 8, 9], (1, 3, 3))
@@ -201,6 +208,13 @@ def pytorch_references(actual):
     ce_logits = tensor([2, 1, 0, 100, -100, 0], (2, 3), True)
     (F.cross_entropy(ce_logits, targets, ignore_index=-100) * 0.75).backward()
     record(refs, "graph_cross_entropy_logits_grad", ce_logits.grad)
+
+    large_ce_logits = torch.tensor(
+        [(index % 251 - 125) * 0.03125 for index in range(3 * 257)],
+        dtype=torch.float32,
+    ).reshape(3, 257).requires_grad_(True)
+    (F.cross_entropy(large_ce_logits, large_targets, ignore_index=-100) * 0.75).backward()
+    record(refs, "graph_cross_entropy_large_logits_grad", large_ce_logits.grad)
 
     causal_input = tensor([1, 2, 3, 4, 5, 6, 7, 8, 9], (1, 3, 3), True)
     causal_seed = tensor([1, 2, 3, -1, 0, 1, 2, -2, 0.5], (1, 3, 3))
