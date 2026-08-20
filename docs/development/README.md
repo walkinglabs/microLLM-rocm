@@ -158,6 +158,8 @@ the next gate. Records are append-only except for factual corrections.
   Q/K bias+RoPE forward/backward, paired official-model medians and profiler evidence.
 - [2026-08-20-fused-residual-rmsnorm.md](2026-08-20-fused-residual-rmsnorm.md): cached
   pair-output residual+Norm fusion, launch reduction and recorded DeepSeek regression.
+- [2026-08-20-wide-residual-norm.md](2026-08-20-wide-residual-norm.md): measured
+  256/512-thread width policy that resolves the preceding DeepSeek regression.
 - [2026-08-20-parallel-cross-entropy.md](2026-08-20-parallel-cross-entropy.md):
   Experiment 001 block-parallel CE, large-vocabulary/PyTorch gates, 66.1% score gain,
   profiler before/after and next-hotspot handoff.

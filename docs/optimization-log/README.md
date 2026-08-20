@@ -26,7 +26,7 @@ DeepSeek-R1-Distill-Qwen-1.5B generate 0.1606
 ```text
 score = geometric_mean(workload throughput ratios)
 baseline = 0.191660
-current running best = 1.803226
+current running best = 1.845199
 selected-matrix parity target = 1.000000
 ```
 
@@ -76,6 +76,10 @@ Qwen/DeepSeek generation 分别提高 13.7%/6.6%，两项训练变化为 +0.1%/+
 Experiment 017 在 cached inference 中同时输出 residual sum 与 RMSNorm。Qwen generation
 中位数提高 8.9%，DeepSeek 退化 4.2%，综合 score 提高到 `1.803226`。DeepSeek 反例和
 profiler 中相反的 +5.2% 插桩结果都保留，没有用平均数掩盖单项。
+
+Experiment 018 只将 hidden width 至少 1024 的 fused residual-Norm 改为 512 threads。
+DeepSeek generation 三进程中位数提高 9.6%，目标 Kernel 平均时间降低约 25%，恢复并
+超过 Experiment 016 的 DeepSeek 结果；当前 score 为 `1.845199`。
 
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 

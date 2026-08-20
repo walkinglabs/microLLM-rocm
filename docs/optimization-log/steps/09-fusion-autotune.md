@@ -30,6 +30,8 @@ Each bullet is a separate experiment:
   DeepSeek trace and raised the fixed score `1.770568 → 1.784147`.
 - Experiment 017: cached residual add + RMSNorm removed 532 more launches and raised the
   score to `1.803226`, while DeepSeek's uninstrumented median regressed 4.2%.
+- Experiment 018: 512 threads for width >=1024 cuts the target Kernel about 25%, improves
+  DeepSeek generation 9.6%, and raises the score to `1.845199`.
 
 The remaining items are still separate hypotheses; the successful local fusion does not
 prove that every neighboring pair should be fused.
