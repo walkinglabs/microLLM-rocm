@@ -36,6 +36,8 @@ BF16_TRAINING_QKV_SUMMARY = ROOT / "experiments" / "039-data" / "summary.json"
 BF16_TRAINING_QKV_CHART = ROOT / "assets" / "bf16-training-qkv-discard.svg"
 BF16_TRAINING_MIRROR_SUMMARY = ROOT / "experiments" / "040-data" / "summary.json"
 BF16_TRAINING_MIRROR_CHART = ROOT / "assets" / "bf16-training-mirrors.svg"
+BF16_TRAINING_ISLAND_SUMMARY = ROOT / "experiments" / "041-data" / "summary.json"
+BF16_TRAINING_ISLAND_CHART = ROOT / "assets" / "bf16-training-ffn-island-discard.svg"
 
 
 def rows() -> list[dict]:
@@ -800,6 +802,57 @@ def bf16_training_mirror_svg() -> str:
     return "\n".join(parts)
 
 
+def bf16_training_island_svg() -> str:
+    row = json.loads(BF16_TRAINING_ISLAND_SUMMARY.read_text(encoding="utf-8"))["qwen"]
+    width, height = 1500, 620
+    left, top, chart_w = 430, 150, 850
+    minimum, maximum = 0.98, 1.02
+
+    def px(value: float) -> float:
+        return left + chart_w * (value - minimum) / (maximum - minimum)
+
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 041 · BF16 FFN Training Island", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 80,
+             "same-window Qwen control · old absolute baseline invalidated by shared-GPU drift",
+             16, "#5b6474", anchor="middle"),
+    ]
+    for tick in (0.98, 0.99, 1.00, 1.01, 1.02):
+        x = px(tick)
+        parts.append(f'<line x1="{x:.1f}" y1="118" x2="{x:.1f}" y2="430" '
+                     f'stroke="{("#2563eb" if tick == 1.0 else "#e5e9f0")}" '
+                     f'stroke-width="{2 if tick == 1.0 else 1}"/>')
+        parts.append(text(x, 460, f"{tick:.2f}×", 14, "#5b6474", anchor="middle"))
+    values = (
+        (row["speedup_vs_same_window_control"], "throughput", "#f59e0b"),
+        (row["allocation_ratio"], "allocation calls", "#64748b"),
+        (row["peak_ratio"], "peak engine memory", "#64748b"),
+    )
+    for index, (ratio, label, color) in enumerate(values):
+        y = top + index * 85
+        parts.append(text(left - 24, y + 22, label, 18, "#172033",
+                          anchor="end", weight=700))
+        x0, x1 = px(1.0), px(ratio)
+        parts.append(f'<rect x="{min(x0,x1):.1f}" y="{y}" '
+                     f'width="{max(abs(x1-x0),2):.1f}" height="30" rx="5" '
+                     f'fill="{color}"/>')
+        parts.append(text(x1 + (10 if ratio >= 1.0 else -10), y + 23,
+                          f"{ratio:.3f}×", 15, color,
+                          anchor="start" if ratio >= 1.0 else "end", weight=700))
+    parts.append(text(width / 2, 520,
+                      "1.1% is below the 5% keep gate · candidate removed",
+                      17, "#b83f32", anchor="middle", weight=700))
+    parts.append(text(width / 2, 565,
+                      "DeepSeek early-stopped after >3 min because Qwen had already failed the gate",
+                      14, "#6b7280", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -813,7 +866,8 @@ def main() -> int:
                 BF16_PLAN_CHART: bf16_plan_cache_svg(),
                 BF16_TRAINING_CHART: bf16_training_svg(),
                 BF16_TRAINING_QKV_CHART: bf16_training_qkv_svg(),
-                BF16_TRAINING_MIRROR_CHART: bf16_training_mirror_svg()}
+                BF16_TRAINING_MIRROR_CHART: bf16_training_mirror_svg(),
+                BF16_TRAINING_ISLAND_CHART: bf16_training_island_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

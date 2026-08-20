@@ -358,6 +358,45 @@ def validate_bf16_training_mirrors(errors: list[str]) -> int:
     return len(records)
 
 
+def validate_bf16_training_island(errors: list[str]) -> int:
+    data = ROOT / "experiments" / "041-data"
+    records = [json.loads(line) for line in
+               (data / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    candidates = [row for row in records if row["record_type"] ==
+                  "bf16_training_ffn_islands_candidate"]
+    controls = [row for row in records if row["record_type"] ==
+                "bf16_training_weight_mirror_control"]
+    if len(records) != 4 or len(candidates) != 3 or len(controls) != 1 or \
+            len({row["process_run"] for row in candidates}) != 3:
+        errors.append("BF16 training island evidence must contain 3 candidates and 1 control")
+    if any(not row["parameter_changed"] or row["final_loss"] >= row["first_loss"] or
+           row["optimizer_host_to_device_calls"] != 0 or
+           row["optimizer_device_to_host_calls"] != 0 for row in records):
+        errors.append("BF16 training island/control correctness evidence failed")
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    qwen = summary.get("qwen", {})
+    if summary.get("decision") != "discard" or \
+            qwen.get("speedup_vs_same_window_control", 1.0) >= 1.05 or \
+            summary.get("deepseek", {}).get("status") != "early_stop":
+        errors.append("BF16 training island discard/early-stop boundary changed")
+    profile = json.loads((data / "profile-summary.json").read_text(encoding="utf-8"))
+    with (data / "kernel-stats.csv").open(encoding="utf-8", newline="") as stream:
+        kernels = list(csv.DictReader(stream))
+    with (data / "hip-api-stats.csv").open(encoding="utf-8", newline="") as stream:
+        api = list(csv.DictReader(stream))
+    if sum(int(row["Calls"]) for row in kernels) != profile.get("kernel_dispatches") or \
+            sum(int(row["Calls"]) for row in api) != profile.get("hip_api_calls"):
+        errors.append("BF16 training island profiler aggregates changed")
+    public_autograd = (REPOSITORY / "include" / "microllm" / "autograd" /
+                       "autograd.h").read_text(encoding="utf-8")
+    public_model = (REPOSITORY / "include" / "microllm" / "model" /
+                    "model.h").read_text(encoding="utf-8")
+    if "Value bf16_ffn" in public_autograd or \
+            "enable_bf16_ffn_training_islands" in public_model:
+        errors.append("discarded BF16 FFN training graph API remains public")
+    return len(records)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -377,7 +416,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-model-policy.svg", "bf16-ffn-island.svg",
                  "bf16-model-inference.svg", "bf16-prefill-allocator.svg",
                  "bf16-attention.svg", "bf16-plan-cache.svg", "bf16-training.svg",
-                 "bf16-training-qkv-discard.svg", "bf16-training-mirrors.svg"):
+                 "bf16-training-qkv-discard.svg", "bf16-training-mirrors.svg",
+                 "bf16-training-ffn-island-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -411,6 +451,7 @@ def main() -> int:
         validate_bf16_training_profile(errors)
     bf16_training_qkv_count = validate_bf16_training_qkv(errors)
     bf16_training_mirror_count = validate_bf16_training_mirrors(errors)
+    bf16_training_island_count = validate_bf16_training_island(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -424,6 +465,7 @@ def main() -> int:
           f"bf16_plan={bf16_plan_count} bf16_training={bf16_training_count} "
           f"bf16_training_qkv={bf16_training_qkv_count} "
           f"bf16_training_mirrors={bf16_training_mirror_count} "
+          f"bf16_training_island={bf16_training_island_count} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

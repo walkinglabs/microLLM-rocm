@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "status": "early_stop",
+  "model": "deepseek-r1-distill-qwen-1.5b",
+  "completed_processes": 0,
+  "elapsed_seconds_before_interrupt": 181,
+  "candidate_process_requested": 3,
+  "decision_was_already_determined_by": "Qwen same-window speedup 1.011 below 1.05 keep gate"
+}

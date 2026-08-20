@@ -175,6 +175,13 @@ Experiment 040 不再每次 forward 重建 BF16 Linear 权重。每个 FP32 mast
 
 ![Persistent BF16 training mirrors](assets/bf16-training-mirrors.svg)
 
+Experiment 041 尝试连续 BF16 FFN 训练岛。完整 tiny Transformer logits/loss/全部梯度
+与 PyTorch 对齐，Qwen 五步净少 120 次 allocation；但同一性能漂移窗口内只从
+`18.685→18.892 token/s`，即 `1.011×`，未过 5% 门。最初拿旧的 151.69 基线会误判
+为 8× 回退，同窗口 control 推翻了这个解释。候选代码删除，测量失败和早停记录保留。
+
+![BF16 FFN training island discarded](assets/bf16-training-ffn-island-discard.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -214,6 +221,8 @@ Experiment 040 不再每次 forward 重建 BF16 Linear 权重。每个 FP32 mast
 | [experiments/039-data/](experiments/039-data/) | shared-QKV candidate 三进程 raw/summary |
 | [assets/bf16-training-mirrors.svg](assets/bf16-training-mirrors.svg) | 持久 BF16 权重镜像的吞吐/显存取舍 |
 | [experiments/040-data/](experiments/040-data/) | 两模型三进程镜像训练 raw/summary |
+| [assets/bf16-training-ffn-island-discard.svg](assets/bf16-training-ffn-island-discard.svg) | 同窗口 control 揭示共享 GPU 漂移与 1.1% 无效收益 |
+| [experiments/041-data/](experiments/041-data/) | Qwen raw、DeepSeek early-stop 与 profiler 聚合 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

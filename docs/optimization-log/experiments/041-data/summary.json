@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "track": "bf16_training_ffn_island_early_stop",
+  "decision": "discard",
+  "measurement_scope": "same-window Qwen control; older absolute baseline invalidated by shared-GPU drift",
+  "qwen": {
+    "control_tokens_per_second": 18.684996928,
+    "candidate_median_tokens_per_second": 18.892251665,
+    "speedup_vs_same_window_control": 1.011091,
+    "invalid_ratio_vs_published_040": 0.124546,
+    "control_allocation_calls": 10160,
+    "candidate_allocation_calls": 10040,
+    "allocation_ratio": 0.988189,
+    "control_peak_bytes": 9727946656,
+    "candidate_peak_bytes": 9721642912,
+    "peak_ratio": 0.999352,
+    "all_updates_finite": true
+  },
+  "deepseek": {
+    "status": "early_stop",
+    "completed_processes": 0,
+    "elapsed_seconds_before_interrupt": 181,
+    "reason": "Qwen already failed the 5 percent keep gate and the first DeepSeek process had not completed"
+  }
+}

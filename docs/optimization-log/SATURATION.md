@@ -50,6 +50,13 @@ every forward is measurably worse than persistent mirrors on both official model
 not close the activation-cast or memory problem; the retained option adds 7.9%–10.8% peak
 engine memory and therefore cannot be treated as the universal BF16 layout.
 
+Experiment 041 closes the exact eager FFN-island retry: full graph parity and 120 fewer
+Qwen allocations produce only a 1.011× same-window throughput ratio. A future island must
+change the backward GEMM/storage contract or use another execution model; reintroducing the
+same four-parent eager graph node is not a new experiment. It also establishes a measurement
+rule: after large shared-GPU drift, an old absolute baseline is invalid until a same-window
+control is rerun.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

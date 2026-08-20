@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "workload": "Qwen island, warmup 0, one measured step, profiler includes startup",
+  "kernel_dispatches": 3224,
+  "kernel_time_ns": 192373102,
+  "hip_api_calls": 155543,
+  "hip_api_time_ns": 4457250470,
+  "selected_kernels": {
+    "fp32_transpose_matmul": {"calls": 169, "time_ns": 62681458},
+    "adamw_with_bf16_mirror": {"calls": 290, "time_ns": 42692901},
+    "fp32_to_bf16_cast": {"calls": 288, "time_ns": 18534771},
+    "bf16_swiglu_backward_candidate": {"calls": 24, "time_ns": 321412}
+  },
+  "interpretation": "unmodified kernels slowed together; same-window control was required"
+}

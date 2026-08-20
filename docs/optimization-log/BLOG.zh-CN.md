@@ -1132,3 +1132,23 @@ BF16 forward 需要 BF16 权重，AdamW 又必须保留 FP32 master。旧实现�
 因此它不是“免费加速”，而是显式速度/显存选项。下一步不再复制权重，而是尝试让相邻
 Linear 共用更长的 BF16 activation island；如果只是减少 cast 数却不能提高两个模型的
 端到端吞吐，就像 Experiment 039 一样删除候选。
+
+## 58. Experiment 041：先问尺子有没有变
+
+连续 FFN island 的数值门很顺利：入口只 cast 一次，gate/up/SwiGLU 保持 BF16，专用
+backward Kernel 读取 BF16 保存值但输出 FP32 梯度。tiny Transformer 的 logits、loss 和
+每个参数梯度都与 PyTorch 手写 oracle 对齐。
+
+性能第一眼却很吓人。三个 Qwen 进程只有 `18.74–18.92 token/s`，而 Experiment 040
+是 `151.69`。如果立刻写结论，会得到“新 graph 慢 8 倍”。Profiler 却显示没有修改的
+transpose backward、AdamW、fill 和 cast 也一起慢了。于是同一时刻重跑旧路径，结果也
+只有 `18.685 token/s`：变的是共享 GPU 执行窗口，不是单独一个新 Kernel。
+
+![BF16 FFN training island discarded](assets/bf16-training-ffn-island-discard.svg)
+
+有效比较只剩同窗口的 `18.892/18.685 = 1.011×`。虽然五步 allocation 从 10,160 降到
+10,040、峰值略降、参数更新正常，但 1.1% 没过 5% 保留门。DeepSeek 第一进程超过三分钟
+仍未结束，而 Qwen 已经决定 discard，因此按早停协议终止。
+
+这次最重要的优化不是代码，而是解释：旧基线与新候选若处在不同负载窗口，除法也会撒谎。
+候选 API/Kernel/测试全部删除，raw、early-stop 和 profiler 聚合留下来。
