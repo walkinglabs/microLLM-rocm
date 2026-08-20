@@ -805,7 +805,21 @@ score                 1.845199 → 1.791371
 较大 block 可能在隐藏串行 dot-product、内存访问或 occupancy 上更有利。候选代码删除，
 灰点保留。这再次说明“线程利用率看起来更高”不能替代端到端测量。
 
-## 30. 怎样读进度图
+## 30. Experiment 020：全算法搜索也要过模型门
+
+`hipblaslt-bench --algo_method all` 为 DeepSeek 的 `1×1536×1536` 找到了 explicit
+solution。初次结果看起来非常快，但 100 次稳定复测只有：
+
+```text
+explicit solution    9.50 μs
+default heuristic    9.87 μs
+DeepSeek median      58.32 → 56.39 token/s  -3.3%
+```
+
+Kernel 确实换了，数值也正确，但端到端没有兑现。版本/shape 硬编码全部删除。这个灰点
+比“调优成功”更重要：即使使用官方全搜索，仍不能跳过重复模型测量。
+
+## 31. 怎样读进度图
 
 图中：
 
@@ -817,11 +831,11 @@ score                 1.845199 → 1.791371
 - 右侧条形：当前四项 workload ratio；
 - 底部卡片：计划步骤，不代表已经完成。
 
-FP32 主图当前有 baseline 和十一个 keep 实验共十二个绿色点，以及六个 discard 灰点；
+FP32 主图当前有 baseline 和十一个 keep 实验共十二个绿色点，以及七个 discard 灰点；
 BF16 独立图另有一个被否决的模型策略。未来如果十个实验都失败，图上就应出现十个
 灰点，而不是凭空出现一条漂亮上升曲线。
 
-## 31. 什么才算从 0 到 1
+## 32. 什么才算从 0 到 1
 
 完成一个 Kernel 不是 1，某个 shape 跑得快也不是 1。
 

@@ -85,6 +85,10 @@ Experiment 019 按 head width 将 cached Attention block 缩为 64/128 threads�
 DeepSeek generation 中位数分别退化 6.6%/4.9%，score 降到 `1.791371`。候选删除，
 失败数据进入灰点。
 
+Experiment 020 使用官方 hipBLASLt 全算法搜索得到的 exact-shape solution。稳定复测只
+比默认 heuristic 快约 3.7%，DeepSeek 中位数反而退化 3.3%，因此版本/shape 硬编码被
+删除。它成为“GEMM 局部更快但模型不快”的直接反驳实验。
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
