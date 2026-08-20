@@ -26,7 +26,7 @@ DeepSeek-R1-Distill-Qwen-1.5B generate 0.1606
 ```text
 score = geometric_mean(workload throughput ratios)
 baseline = 0.191660
-current running best = 2.470863
+current running best = 2.478439
 selected-matrix parity target = 1.000000
 ```
 
@@ -102,6 +102,9 @@ Experiment 023 将批次从 8 调到 16。Event 再减半，三项 workload 改�
 
 Experiment 024 继续增到 32，但 score 降到 `2.462231`，Qwen generation 退化 4.8%，
 backend allocation 增加。代码恢复到实测局部最优 16。
+
+Experiment 025 将同 position 的 K/V cache store 合成一次 launch。两模型生成中位数均
+小幅提高，score 达到 `2.478439`。
 
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
