@@ -23,3 +23,4 @@ experiment	commit	date	status	score	qwen_train	qwen_generate	deepseek_train	deep
 023	b3e6a42	2026-08-20	keep	2.470863	3.095026	3.111942	3.091891	1.251627	0.896740	0.960651	0.797351	0.988733	tune retirement Event batch from eight to sixteen blocks; score improved 3.4%
 024	a1a5754	2026-08-20	discard	2.462231	3.107688	2.962352	3.165014	1.261436	0.896740	0.960651	0.797351	0.988733	retirement batch 32; delayed reuse regressed Qwen generation and score
 025	c00a6d4	2026-08-20	keep	2.478439	3.095026	3.124672	3.091891	1.261886	0.896740	0.960651	0.797351	0.988733	fused paired K/V cache store; both generation medians improved slightly
+026	4d3fb23	2026-08-20	discard	2.444395	3.095026	2.986911	3.091891	1.249035	0.896740	0.960651	0.797351	0.988733	fused V bias into cache store; allocations fell but both generation medians regressed

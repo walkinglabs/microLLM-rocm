@@ -106,6 +106,9 @@ backend allocation 增加。代码恢复到实测局部最优 16。
 Experiment 025 将同 position 的 K/V cache store 合成一次 launch。两模型生成中位数均
 小幅提高，score 达到 `2.478439`。
 
+Experiment 026 继续把 V bias 融入 store，allocation 明显减少但两模型中位数均退化，
+因此 API/Kernel/模型改动全部删除。
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
