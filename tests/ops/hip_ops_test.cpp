@@ -280,6 +280,54 @@ TEST(HipOpsTest, SoftmaxAndRmsNormMatchCpuReference) {
                 rms_norm(input_cpu, weight_cpu).to_vector(), 2.0e-4F);
 }
 
+TEST(HipRmsNormTest, BlockParallelForwardBackwardCoverModelWidthsWithoutHostTransfers) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    for (const auto width : {16LL, 384LL, 512LL, 896LL, 1536LL}) {
+        for (const auto rows : {1LL, 3LL, 32LL}) {
+            const auto epsilon = width == 1536 ? 1.0e-6F : 1.0e-5F;
+            std::vector<float> input_values(static_cast<std::size_t>(rows * width));
+            std::vector<float> gradient_values(input_values.size());
+            std::vector<float> weight_values(static_cast<std::size_t>(width));
+            for (std::size_t index = 0; index < input_values.size(); ++index) {
+                input_values[index] = index % 97 == 0
+                                          ? 0.0F
+                                          : static_cast<float>(static_cast<int>(index % 41) - 20) *
+                                                0.03125F;
+                gradient_values[index] =
+                    static_cast<float>(static_cast<int>(index % 29) - 14) * 0.015625F;
+            }
+            input_values.front() = 1000.0F;
+            if (input_values.size() > 1) input_values[1] = -1000.0F;
+            for (std::size_t column = 0; column < weight_values.size(); ++column) {
+                weight_values[column] = 0.5F + static_cast<float>(column % 17) * 0.03125F;
+            }
+            const auto input = Tensor::from_vector(input_values, {rows, width});
+            const auto weight = Tensor::from_vector(weight_values, {width});
+            const auto gradient = Tensor::from_vector(gradient_values, {rows, width});
+            const auto expected = rms_norm(input, weight, epsilon).to_vector();
+            const auto expected_backward =
+                rms_norm_backward(input, weight, gradient, epsilon);
+            const auto device_input = input.to(gpu);
+            const auto device_weight = weight.to(gpu);
+            const auto device_gradient = gradient.to(gpu);
+            runtime::reset_transfer_stats();
+            const auto actual = rms_norm(device_input, device_weight, epsilon);
+            const auto actual_backward =
+                rms_norm_backward(device_input, device_weight, device_gradient, epsilon);
+            runtime::synchronize(gpu);
+            const auto transfers = runtime::transfer_stats();
+            EXPECT_EQ(transfers.host_to_device_calls, 0U);
+            EXPECT_EQ(transfers.device_to_host_calls, 0U);
+            expect_near(actual.to_vector(), expected, 4.0e-4F);
+            expect_near(actual_backward.first.to_vector(),
+                        expected_backward.first.to_vector(), 4.0e-4F);
+            expect_near(actual_backward.second.to_vector(),
+                        expected_backward.second.to_vector(), 4.0e-4F);
+        }
+    }
+}
+
 TEST(HipOpsTest, RopeAndCrossEntropyMatchCpuReference) {
     require_gpu();
     const auto rope_input = Tensor::from_vector({1, 0, 0, 1, 1, 0, 0, 1}, {1, 2, 1, 4});

@@ -90,7 +90,8 @@ void launch_softmax_backward(const float* output, const float* gradient,
                              std::int64_t width, void* stream = nullptr);
 void launch_rms_norm_backward(const float* input, const float* weight,
                               const float* gradient, float* input_gradient,
-                              float* weight_gradient, std::int64_t rows,
+                              float* weight_gradient, float* row_inverse_rms,
+                              std::int64_t rows,
                               std::int64_t width, float epsilon, void* stream = nullptr);
 void launch_silu_backward(const float* input, const float* gradient,
                           float* input_gradient, std::int64_t elements,

@@ -27,6 +27,8 @@ unsigned grid_size(std::int64_t elements) {
     return static_cast<unsigned>((elements + block_size - 1) / block_size);
 }
 
+__device__ float block_reduce_sum(float value, float* scratch);
+
 __global__ void fill_kernel(float* output, std::int64_t elements, float value) {
     const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
     if (index < elements) output[index] = value;
@@ -273,16 +275,18 @@ __global__ void softmax_kernel(const float* input, float* output, std::int64_t r
 
 __global__ void rms_norm_kernel(const float* input, const float* weight, float* output,
                                 std::int64_t rows, std::int64_t width, float epsilon) {
-    const auto row = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    const auto row = static_cast<std::int64_t>(blockIdx.x);
     if (row >= rows) return;
     const auto base = row * width;
-    float square_sum = 0.0F;
-    for (std::int64_t column = 0; column < width; ++column) {
+    float local_square_sum = 0.0F;
+    for (std::int64_t column = threadIdx.x; column < width; column += blockDim.x) {
         const auto value = input[base + column];
-        square_sum += value * value;
+        local_square_sum += value * value;
     }
+    __shared__ float scratch[kBlockSize];
+    const auto square_sum = block_reduce_sum(local_square_sum, scratch);
     const auto inverse_rms = rsqrtf(square_sum / static_cast<float>(width) + epsilon);
-    for (std::int64_t column = 0; column < width; ++column) {
+    for (std::int64_t column = threadIdx.x; column < width; column += blockDim.x) {
         output[base + column] = input[base + column] * inverse_rms * weight[column];
     }
 }
@@ -490,27 +494,44 @@ __global__ void softmax_backward_kernel(const float* output, const float* gradie
 
 __global__ void rms_norm_backward_kernel(const float* input, const float* weight,
                                          const float* gradient, float* input_gradient,
-                                         float* weight_gradient, std::int64_t rows,
+                                         float* row_inverse_rms, std::int64_t rows,
                                          std::int64_t width, float epsilon) {
-    const auto row = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    const auto row = static_cast<std::int64_t>(blockIdx.x);
     if (row >= rows) return;
     const auto base = row * width;
-    float square_sum = 0.0F;
-    float weighted_dot = 0.0F;
-    for (std::int64_t column = 0; column < width; ++column) {
+    float local_square_sum = 0.0F;
+    float local_weighted_dot = 0.0F;
+    for (std::int64_t column = threadIdx.x; column < width; column += blockDim.x) {
         const auto index = base + column;
-        square_sum += input[index] * input[index];
-        weighted_dot += gradient[index] * weight[column] * input[index];
+        local_square_sum += input[index] * input[index];
+        local_weighted_dot += gradient[index] * weight[column] * input[index];
     }
+    __shared__ float square_scratch[kBlockSize];
+    __shared__ float dot_scratch[kBlockSize];
+    const auto square_sum = block_reduce_sum(local_square_sum, square_scratch);
+    const auto weighted_dot = block_reduce_sum(local_weighted_dot, dot_scratch);
     const auto inverse_rms = rsqrtf(square_sum / static_cast<float>(width) + epsilon);
     const auto correction = inverse_rms * inverse_rms * inverse_rms * weighted_dot /
                             static_cast<float>(width);
-    for (std::int64_t column = 0; column < width; ++column) {
+    if (threadIdx.x == 0) row_inverse_rms[row] = inverse_rms;
+    for (std::int64_t column = threadIdx.x; column < width; column += blockDim.x) {
         const auto index = base + column;
         input_gradient[index] =
             gradient[index] * weight[column] * inverse_rms - input[index] * correction;
-        atomicAdd(weight_gradient + column, gradient[index] * input[index] * inverse_rms);
     }
+}
+
+__global__ void rms_norm_weight_gradient_kernel(
+    const float* input, const float* gradient, const float* row_inverse_rms,
+    float* weight_gradient, std::int64_t rows, std::int64_t width) {
+    const auto column = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    if (column >= width) return;
+    float total = 0.0F;
+    for (std::int64_t row = 0; row < rows; ++row) {
+        const auto index = row * width + column;
+        total += gradient[index] * input[index] * row_inverse_rms[row];
+    }
+    weight_gradient[column] = total;
 }
 
 __global__ void silu_backward_kernel(const float* input, const float* gradient,
@@ -1102,7 +1123,7 @@ void launch_softmax(const float* input, float* output, std::int64_t rows,
 void launch_rms_norm(const float* input, const float* weight, float* output,
                      std::int64_t rows, std::int64_t width, float epsilon, void* stream) {
     if (rows == 0) return;
-    hipLaunchKernelGGL(rms_norm_kernel, dim3(grid_size(rows)), dim3(kBlockSize), 0,
+    hipLaunchKernelGGL(rms_norm_kernel, dim3(static_cast<unsigned>(rows)), dim3(kBlockSize), 0,
                        as_stream(stream), input, weight, output, rows, width, epsilon);
     check_launch("rms_norm_kernel");
 }
@@ -1196,13 +1217,18 @@ void launch_softmax_backward(const float* output, const float* gradient,
 
 void launch_rms_norm_backward(const float* input, const float* weight,
                               const float* gradient, float* input_gradient,
-                              float* weight_gradient, std::int64_t rows,
+                              float* weight_gradient, float* row_inverse_rms,
+                              std::int64_t rows,
                               std::int64_t width, float epsilon, void* stream) {
     if (rows == 0) return;
-    hipLaunchKernelGGL(rms_norm_backward_kernel, dim3(grid_size(rows)), dim3(kBlockSize),
+    hipLaunchKernelGGL(rms_norm_backward_kernel, dim3(static_cast<unsigned>(rows)), dim3(kBlockSize),
                        0, as_stream(stream), input, weight, gradient, input_gradient,
-                       weight_gradient, rows, width, epsilon);
+                       row_inverse_rms, rows, width, epsilon);
     check_launch("rms_norm_backward_kernel");
+    hipLaunchKernelGGL(rms_norm_weight_gradient_kernel, dim3(grid_size(width)),
+                       dim3(kBlockSize), 0, as_stream(stream), input, gradient,
+                       row_inverse_rms, weight_gradient, rows, width);
+    check_launch("rms_norm_weight_gradient_kernel");
 }
 
 void launch_silu_backward(const float* input, const float* gradient,

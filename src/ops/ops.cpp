@@ -861,14 +861,15 @@ TensorPair rms_norm_backward(const Tensor& input, const Tensor& weight,
         require_contiguous(gradient, "gradient");
         Tensor input_gradient(input.shape(), DType::Float32, input.device());
         Tensor weight_gradient(weight.shape(), DType::Float32, input.device());
-        fill_(weight_gradient, 0.0F, context);
+        Tensor row_inverse_rms({rows}, DType::Float32, input.device());
 #if MICROLLM_HAS_HIP
         hip::launch_rms_norm_backward(
             static_cast<const float*>(input.data()),
             static_cast<const float*>(weight.data()),
             static_cast<const float*>(gradient.data()),
             static_cast<float*>(input_gradient.data()),
-            static_cast<float*>(weight_gradient.data()), rows, width, epsilon,
+            static_cast<float*>(weight_gradient.data()),
+            static_cast<float*>(row_inverse_rms.data()), rows, width, epsilon,
             context.native_stream(input.device()));
         return {std::move(input_gradient), std::move(weight_gradient)};
 #else
