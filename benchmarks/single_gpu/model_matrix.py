@@ -29,6 +29,21 @@ PROFILES = {
     },
 }
 
+COMPARISON_SETTINGS = {
+    "tiny": {
+        "train": {"batch": 1, "context": 8, "steps": 10, "warmup": 3, "new_tokens": 8},
+        "generate": {"batch": 1, "context": 8, "steps": 10, "warmup": 3, "new_tokens": 8},
+    },
+    "model-s": {
+        "train": {"batch": 1, "context": 2, "steps": 3, "warmup": 1, "new_tokens": 2},
+        "generate": {"batch": 1, "context": 4, "steps": 3, "warmup": 1, "new_tokens": 2},
+    },
+    "model-m": {
+        "train": {"batch": 1, "context": 1, "steps": 3, "warmup": 1, "new_tokens": 2},
+        "generate": {"batch": 1, "context": 4, "steps": 3, "warmup": 1, "new_tokens": 2},
+    },
+}
+
 REQUIRED_FIELDS = {
     "schema_version",
     "mode",
@@ -72,6 +87,8 @@ def options() -> argparse.Namespace:
     parser.add_argument("--profiles", default="tiny,model-s,model-m")
     parser.add_argument("--modes", default="train,generate")
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--measurement-profile", choices=("smoke", "comparison"),
+                        default="smoke")
     result = parser.parse_args()
     result.profiles = comma_list(result.profiles, set(PROFILES), "profiles")
     result.modes = comma_list(result.modes, {"train", "generate"}, "modes")
@@ -80,8 +97,10 @@ def options() -> argparse.Namespace:
     return result
 
 
-def run_one(binary: Path, device: str, profile: str, mode: str) -> dict:
-    settings = PROFILES[profile][mode]
+def run_one(binary: Path, device: str, profile: str, mode: str,
+            measurement_profile: str) -> dict:
+    settings = (PROFILES[profile][mode] if measurement_profile == "smoke"
+                else COMPARISON_SETTINGS[profile][mode])
     command = [
         str(binary),
         "--mode", mode,
@@ -141,6 +160,7 @@ def run_one(binary: Path, device: str, profile: str, mode: str) -> dict:
         {
             "record_type": "single_gpu_model_measurement",
             "matrix_profile": profile,
+            "measurement_profile": measurement_profile,
             "status": "pass",
             "fp32_weight_gib": record["fp32_weight_bytes"] / (1024**3),
             "device_peak_engine_gib": record["device_peak_engine_bytes"] / (1024**3),
@@ -155,7 +175,7 @@ def run_one(binary: Path, device: str, profile: str, mode: str) -> dict:
 def main() -> int:
     args = options()
     records = [
-        run_one(args.benchmark, args.device, profile, mode)
+        run_one(args.benchmark, args.device, profile, mode, args.measurement_profile)
         for profile in args.profiles
         for mode in args.modes
     ]
@@ -167,6 +187,7 @@ def main() -> int:
         "profiles": args.profiles,
         "modes": args.modes,
         "measurement_count": len(records),
+        "measurement_profile": args.measurement_profile,
         "note": "performance is descriptive; no unstable speed threshold is enforced",
     }
     lines = [*(json.dumps(record, sort_keys=True) for record in records),

@@ -57,6 +57,28 @@ Start from `benchmarks/single_gpu/hf_models.example.json`. Without
 nonzero. With that flag, missing inputs are emitted as `unavailable` and the matrix
 summary is `incomplete`; they are never reported as passing measurements.
 
+Run the independent Python/PyTorch ROCm baseline with the same built-in comparison
+recipe, then compare machine-readable rows:
+
+```bash
+/path/to/python-with-pytorch-rocm \
+  benchmarks/single_gpu/pytorch_model_matrix.py \
+  --device cuda --profiles tiny,model-s,model-m --modes train,generate \
+  --measurement-profile comparison \
+  --output /tmp/pytorch-builtins.jsonl
+
+python3 benchmarks/single_gpu/compare_frameworks.py \
+  --kind builtins \
+  --microllm /tmp/microllm-builtins.jsonl \
+  --pytorch /tmp/pytorch-builtins.jsonl \
+  --output /tmp/framework-comparison.jsonl
+```
+
+The PyTorch runner uses an idiomatic eager Decoder with PyTorch SDPA, RMSNorm, RoPE,
+MHA/GQA, SwiGLU, AdamW, and a real K/V cache. Each row runs in a fresh Python process.
+See [PyTorch performance comparison](../docs/dev/pytorch-benchmark.md) for fairness,
+memory-counter, warm-up, and AMDSMI fallback rules.
+
 Capture HIP API, kernel, memory, and RCCL-ready runtime traces with the locally
 installed rocprofv3 interface:
 

@@ -75,9 +75,11 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 
 - [ ] complete Model-S train/validation curves and checkpoints;
 - [ ] real instruction-corpus SFT report;
-- [ ] direct PyTorch ROCm oracle environment;
+- [x] direct Python/PyTorch ROCm performance environment, currently requiring a
+  recorded AMDSMI-to-HIP-runtime device-count fallback;
+- [ ] direct PyTorch ROCm numerical oracle without the environment workaround;
 - [ ] Radeon run;
 - [ ] four-rank RCCL after shared-memory environment repair;
 - [ ] backward-ready bucket overlap;
-- [ ] comprehensive PyTorch/llama.cpp benchmarks;
+- [ ] broader context/batch/dtype PyTorch matrix and llama.cpp benchmarks;
 - [ ] learner-independent tutorial dry run on `tutorial/beginner-course`.

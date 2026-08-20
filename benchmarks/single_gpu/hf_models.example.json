@@ -12,6 +12,7 @@
       "merges": "/path/to/qwen2.5-0.5b/merges.txt",
       "tokenizer_family": "qwen2",
       "inference": {
+        "token_ids": [9707, 1879],
         "prompt_kind": "text",
         "prompt": "Hello world",
         "new_tokens": 4,
@@ -33,6 +34,7 @@
       "merges": "/path/to/deepseek-r1-distill-qwen-1.5b/merges.txt",
       "tokenizer_family": "deepseek-distill",
       "inference": {
+        "token_ids": [151646, 151644, 3838, 374, 220, 17, 10, 17, 30, 151645, 151648, 198],
         "prompt_kind": "chat_user",
         "prompt": "What is 2+2?",
         "new_tokens": 8,

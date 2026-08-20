@@ -121,8 +121,8 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| CPU tests | 145/145 | reference, Qwen/DeepSeek config/tokenizer/chat, graph, model, weights, benchmark schema |
-| ASan/UBSan | 143/143 | host code; dynamic binding tests isolated |
+| CPU tests | 147/147 | reference, Qwen/DeepSeek, graph/model/weights, benchmark and PyTorch comparison schemas |
+| ASan/UBSan | 145/145 | host code; dynamic binding tests isolated |
 | MI300X/gfx942 HIP | 39/39 | device AdamW, FP8, graph, profiling, three-size memory/performance matrix |
 | PyTorch CPU oracle/alignment | 3/3 | ops plus same-weight model value/timing trace |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
@@ -156,6 +156,20 @@ These are short functional measurements with random built-in models or fixed off
 prompts, not long-context or stable serving claims. “Peak engine memory” excludes
 driver/vendor-private allocations. Commands and raw JSONL are documented in
 [single-GPU benchmarking](docs/dev/single-gpu-benchmark.md).
+
+Matched Python/PyTorch ROCm comparison on the same MI300X:
+
+| Model | Mode | microLLM | PyTorch | microLLM/PyTorch |
+|---|---|---:|---:|---:|
+| Model-S | train / generate | 13.57 / 139.22 token/s | 177.57 / 293.55 token/s | 0.076× / 0.474× |
+| Model-M | train / generate | 3.51 / 90.57 token/s | 59.94 / 237.60 token/s | 0.059× / 0.381× |
+| Qwen2.5-0.5B | decode | 19.524 token/s | 20.916 token/s | 0.933× |
+| DeepSeek Distill Qwen 1.5B | decode | 10.252 token/s | 31.505 token/s | 0.325× |
+
+The built-in rows use matched warm-up/repetition settings. Official-model training is
+also retained, but it is a first-step functional timing and is not presented here as
+steady-state throughput. See [Python/PyTorch comparison](docs/dev/pytorch-benchmark.md)
+for raw data, memory ratios, implementation differences and limitations.
 
 ## External weights
 

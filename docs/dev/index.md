@@ -15,6 +15,8 @@ component has a public interface under `include/microllm`, an implementation und
 7. For RCCL training, read [distributed training](distributed-training.md).
 8. For model memory/throughput matrices, read
    [single-GPU benchmarking](single-gpu-benchmark.md).
+9. For matched Python/PyTorch data, read
+   [PyTorch performance comparison](pytorch-benchmark.md).
 
 ## Engineering rules
 

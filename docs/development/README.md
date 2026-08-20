@@ -146,3 +146,6 @@ the next gate. Records are append-only except for factual corrections.
 - [2026-08-20-single-gpu-hf-model-matrix.md](2026-08-20-single-gpu-hf-model-matrix.md):
   official Qwen2.5-0.5B and DeepSeek-R1-Distill-Qwen-1.5B inference/training time,
   throughput, memory and missing-checkpoint semantics.
+- [2026-08-20-pytorch-performance-comparison.md](2026-08-20-pytorch-performance-comparison.md):
+  independent Python/PyTorch ROCm built-in and official-model matrices with matched
+  workload enforcement and measured ratios.

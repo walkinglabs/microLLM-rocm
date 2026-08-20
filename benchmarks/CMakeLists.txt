@@ -55,6 +55,28 @@ if(BUILD_TESTING)
                          --output ${CMAKE_CURRENT_BINARY_DIR}/hf-unavailable-matrix.jsonl)
         set_tests_properties(Benchmark.HfModelMatrixUnavailableSchema PROPERTIES
                              LABELS "cpu;benchmark;huggingface;memory;schema")
+        add_test(NAME Benchmark.FrameworkComparisonBuiltinsSchema
+                 COMMAND ${Python3_EXECUTABLE}
+                         ${CMAKE_CURRENT_SOURCE_DIR}/single_gpu/compare_frameworks.py
+                         --kind builtins
+                         --microllm
+                         ${CMAKE_CURRENT_SOURCE_DIR}/results/2026-08-20-mi300x-pytorch-builtins-comparison/microLLM.jsonl
+                         --pytorch
+                         ${CMAKE_CURRENT_SOURCE_DIR}/results/2026-08-20-mi300x-pytorch-builtins-comparison/pytorch.jsonl
+                         --output ${CMAKE_CURRENT_BINARY_DIR}/framework-builtins-comparison.jsonl)
+        add_test(NAME Benchmark.FrameworkComparisonHfSchema
+                 COMMAND ${Python3_EXECUTABLE}
+                         ${CMAKE_CURRENT_SOURCE_DIR}/single_gpu/compare_frameworks.py
+                         --kind huggingface
+                         --microllm
+                         ${CMAKE_CURRENT_SOURCE_DIR}/results/2026-08-20-mi300x-pytorch-hf-comparison/microLLM.jsonl
+                         --pytorch
+                         ${CMAKE_CURRENT_SOURCE_DIR}/results/2026-08-20-mi300x-pytorch-hf-comparison/pytorch.jsonl
+                         --output ${CMAKE_CURRENT_BINARY_DIR}/framework-hf-comparison.jsonl)
+        set_tests_properties(
+            Benchmark.FrameworkComparisonBuiltinsSchema
+            Benchmark.FrameworkComparisonHfSchema
+            PROPERTIES LABELS "cpu;benchmark;pytorch;comparison;schema")
     endif()
     if(MICROLLM_HAS_HIP)
         add_test(NAME Benchmark.HipAddSmoke

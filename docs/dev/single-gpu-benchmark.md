@@ -93,3 +93,7 @@ python3 benchmarks/single_gpu/hf_model_matrix.py \
 
 The first curated official-weight result is under
 `benchmarks/results/2026-08-20-mi300x-single-gpu-hf-matrix/`.
+
+Matched Python/PyTorch ROCm runs and automatic ratios are documented in
+[PyTorch performance comparison](pytorch-benchmark.md). A microLLM-only row is not
+considered a framework comparison.

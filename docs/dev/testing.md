@@ -14,8 +14,8 @@
 ## Current measured matrix
 
 ```text
-framework CPU                 145/145 pass
-CPU ASan/UBSan                143/143 pass
+framework CPU                 147/147 pass
+CPU ASan/UBSan                145/145 pass
 MI300X/gfx942 HIP              39/39 pass
 PyTorch CPU oracle/alignment      3/3 pass
 two-rank RCCL                  11/11 pass
@@ -76,3 +76,8 @@ Performance changes require:
 The single-GPU model matrix is a HIP CTest gate and writes its raw build artifact to
 `build/hip-release/benchmarks/hip-model-matrix.jsonl`. It records performance without
 using a noisy throughput threshold as a correctness condition.
+
+Two additional CPU schema gates recompute built-in and official-HF microLLM/PyTorch
+ratios from committed raw JSONL. They reject mismatched workload fields and do not need
+PyTorch installed in ordinary CPU CI; generation of new PyTorch raw rows is a separate
+ROCm-machine workflow.
