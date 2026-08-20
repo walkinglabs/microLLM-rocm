@@ -105,23 +105,43 @@ int main(int argc, char** argv) {
         const auto transfers = microllm::runtime::transfer_stats();
         const auto after = observed->data().to_vector().front();
         const auto allocation = microllm::runtime::allocation_stats(device);
+        const auto info = device.is_cpu()
+                              ? microllm::runtime::DeviceInfo{device, "host CPU", "host"}
+                              : microllm::runtime::device_info(device);
+        const auto step_ms =
+            std::chrono::duration<double, std::milli>(finish - start).count();
+        const auto trained_tokens = input_ids.size();
         std::cout << std::setprecision(9)
                   << "{\"schema_version\":1,\"status\":\"pass\""
                   << ",\"device\":\"" << device.str() << "\""
+                  << ",\"device_name\":\"" << info.name << "\""
+                  << ",\"architecture\":\"" << info.architecture << "\""
+                  << ",\"hip_runtime_version\":"
+                  << microllm::runtime::hip_runtime_version()
+                  << ",\"hip_driver_version\":" << microllm::runtime::hip_driver_version()
+                  << ",\"compute_dtype\":\"float32\""
                   << ",\"loaded_tensors\":" << report.loaded.size()
                   << ",\"parameter_count\":" << model.parameter_count()
+                  << ",\"fp32_weight_bytes\":"
+                  << external.model.weight_bytes(sizeof(float))
+                  << ",\"trained_tokens\":" << trained_tokens
                   << ",\"loss\":" << loss_value
                   << ",\"observed_parameter_before\":" << before
                   << ",\"observed_parameter_after\":" << after
                   << ",\"parameter_changed\":" << (before != after ? "true" : "false")
-                  << ",\"step_ms\":"
-                  << std::chrono::duration<double, std::milli>(finish - start).count()
+                  << ",\"step_ms\":" << step_ms
+                  << ",\"tokens_per_second\":"
+                  << static_cast<double>(trained_tokens) * 1000.0 / step_ms
+                  << ",\"milliseconds_per_token\":"
+                  << step_ms / static_cast<double>(trained_tokens)
                   << ",\"optimizer_ms\":"
                   << std::chrono::duration<double, std::milli>(finish - optimizer_start).count()
                   << ",\"optimizer_host_to_device_calls\":" << transfers.host_to_device_calls
                   << ",\"optimizer_device_to_host_calls\":" << transfers.device_to_host_calls
                   << ",\"engine_current_bytes\":" << allocation.current_bytes
-                  << ",\"engine_peak_bytes\":" << allocation.peak_bytes << "}\n";
+                  << ",\"engine_peak_bytes\":" << allocation.peak_bytes
+                  << ",\"engine_total_allocated_bytes\":"
+                  << allocation.total_allocated_bytes << "}\n";
         return before != after && std::isfinite(loss_value) ? 0 : 2;
     } catch (const std::exception& error) {
         std::cerr << "microllm_hf_train_step: " << error.what() << '\n';

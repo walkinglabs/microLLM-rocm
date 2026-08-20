@@ -121,8 +121,8 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| CPU tests | 144/144 | reference, Qwen/DeepSeek config/tokenizer/chat, graph, model, weights, benchmark schema |
-| ASan/UBSan | 142/142 | host code; dynamic binding tests isolated |
+| CPU tests | 145/145 | reference, Qwen/DeepSeek config/tokenizer/chat, graph, model, weights, benchmark schema |
+| ASan/UBSan | 143/143 | host code; dynamic binding tests isolated |
 | MI300X/gfx942 HIP | 39/39 | device AdamW, FP8, graph, profiling, three-size memory/performance matrix |
 | PyTorch CPU oracle/alignment | 3/3 | ops plus same-weight model value/timing trace |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
@@ -142,6 +142,20 @@ These results cover the declared FP32 domain and representative shapes, not ever
 dtype, model size, context length, or GPU. Detailed gates are maintained in
 [Testing and evidence](docs/dev/testing.md) and
 [current status](docs/development/STATUS.md).
+
+Latest single-MI300X FP32 model matrix:
+
+| Model | Mode | Measured throughput | Peak engine memory |
+|---|---|---:|---:|
+| Model-S, 15.6M | train / generate | 1.111 / 1.217 token/s | 238.687 / 59.608 MiB |
+| Model-M, 31.3M | train / generate | 0.528 / 1.226 token/s | 478.765 / 119.754 MiB |
+| Qwen2.5-0.5B official | train / decode | 1.571 / 19.524 token/s | 8.901 / 3.681 GiB |
+| DeepSeek Distill Qwen 1.5B official | train / decode | 1.350 / 10.252 token/s | 26.514 / 13.240 GiB |
+
+These are short functional measurements with random built-in models or fixed official
+prompts, not long-context or stable serving claims. “Peak engine memory” excludes
+driver/vendor-private allocations. Commands and raw JSONL are documented in
+[single-GPU benchmarking](docs/dev/single-gpu-benchmark.md).
 
 ## External weights
 

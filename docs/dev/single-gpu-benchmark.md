@@ -63,6 +63,33 @@ The repository also has measured official-weight paths for:
 - DeepSeek-R1-Distill-Qwen-1.5B, 1,777,088,000 parameters.
 
 Those checkpoints are not stored in Git and therefore cannot be mandatory for every
-CTest runner. Their optional matrix must report `unavailable` when paths are absent,
-not convert a missing checkpoint into a passing model test. See the external-model
-section of this document after the corresponding runner is enabled.
+CTest runner. `hf_model_matrix.py` consumes an explicit manifest and records inference
+and/or a full backward/AdamW step. Start from:
+
+```text
+benchmarks/single_gpu/hf_models.example.json
+```
+
+Every successful inference row requires strict Tensor count, exact greedy tokens,
+positive prefill/decode timing, and current/peak/total engine memory. Every successful
+training row additionally requires a finite loss, a changed parameter, positive
+tokens/s, and zero optimizer Tensor-payload H2D/D2H calls.
+
+If any config, weight, vocab, or merges path is missing, the row is `unavailable` and
+the summary is `incomplete`. The regular CPU CTest exercises exactly this negative
+case. `--allow-unavailable` only lets that explicit incomplete report exit zero; it
+does not relabel the rows.
+
+Run real local files without that flag:
+
+```bash
+python3 benchmarks/single_gpu/hf_model_matrix.py \
+  --manifest /path/to/hf-models.local.json \
+  --infer-binary build/hip-release/apps/microllm_hf_infer \
+  --train-binary build/hip-release/apps/microllm_hf_train_step \
+  --device hip --modes infer,train \
+  --output /tmp/microllm-hf-matrix.jsonl
+```
+
+The first curated official-weight result is under
+`benchmarks/results/2026-08-20-mi300x-single-gpu-hf-matrix/`.

@@ -144,13 +144,13 @@ int main(int argc, char** argv) {
         if (ids.size() > static_cast<std::size_t>(external.model.max_sequence_length)) {
             throw std::invalid_argument("token sequence exceeds model context");
         }
+        if (ids.empty()) throw std::invalid_argument("token sequence cannot be empty");
         auto token_tensor = microllm::Tensor::from_int32_vector(
             ids, {1, static_cast<std::int64_t>(ids.size())});
         if (device.is_hip()) token_tensor = token_tensor.to(device);
         const auto forward_start = std::chrono::steady_clock::now();
         const auto logits = model.forward(token_tensor).data().to_vector();
         const auto forward_finish = std::chrono::steady_clock::now();
-        const auto allocation = microllm::runtime::allocation_stats(device);
         const auto vocabulary = static_cast<std::size_t>(external.model.vocabulary_size);
         const auto offset = (ids.size() - 1) * vocabulary;
         std::vector<std::size_t> order(vocabulary);
@@ -168,25 +168,9 @@ int main(int argc, char** argv) {
                           order.end(), [&](std::size_t left, std::size_t right) {
                               return logits[offset + left] > logits[offset + right];
                           });
-        std::cout << std::setprecision(9)
-                  << "{\"schema_version\":1,\"status\":\"pass\""
-                  << ",\"device\":\"" << device.str() << "\""
-                  << ",\"parameter_count\":" << model.parameter_count()
-                  << ",\"loaded_tensors\":" << report.loaded.size()
-                  << ",\"token_count\":" << ids.size()
-                  << ",\"load_ms\":"
-                  << std::chrono::duration<double, std::milli>(load_finish - load_start).count()
-                  << ",\"forward_ms\":"
-                  << std::chrono::duration<double, std::milli>(forward_finish - forward_start).count()
-                  << ",\"engine_current_bytes\":" << allocation.current_bytes
-                  << ",\"engine_peak_bytes\":" << allocation.peak_bytes
-                  << ",\"top_logits\":[";
-        for (std::size_t index = 0; index < selected; ++index) {
-            if (index != 0) std::cout << ',';
-            std::cout << "{\"token\":" << order[index]
-                      << ",\"logit\":" << logits[offset + order[index]] << '}';
-        }
-        std::cout << ']';
+        double generation_ms = 0.0;
+        std::vector<std::int32_t> generated_suffix;
+        std::string generated_text;
         if (command.new_tokens > 0) {
             const auto generation_start = std::chrono::steady_clock::now();
             const auto generated = microllm::inference::generate(
@@ -195,21 +179,64 @@ int main(int argc, char** argv) {
                              .top_k = 1,
                              .seed = 1});
             const auto generation_finish = std::chrono::steady_clock::now();
-            std::cout << ",\"generation_ms\":"
-                      << std::chrono::duration<double, std::milli>(
-                             generation_finish - generation_start).count();
+            generation_ms = std::chrono::duration<double, std::milli>(
+                                generation_finish - generation_start)
+                                .count();
+            generated_suffix.assign(
+                generated.begin() + static_cast<std::ptrdiff_t>(ids.size()), generated.end());
+            if (tokenizer.has_value()) generated_text = tokenizer->decode(generated_suffix);
+        }
+        const auto allocation = microllm::runtime::allocation_stats(device);
+        const auto info = device.is_cpu()
+                              ? microllm::runtime::DeviceInfo{device, "host CPU", "host"}
+                              : microllm::runtime::device_info(device);
+        const auto forward_ms =
+            std::chrono::duration<double, std::milli>(forward_finish - forward_start).count();
+        std::cout << std::setprecision(9)
+                  << "{\"schema_version\":1,\"status\":\"pass\""
+                  << ",\"device\":\"" << device.str() << "\""
+                  << ",\"device_name\":\"" << info.name << "\""
+                  << ",\"architecture\":\"" << info.architecture << "\""
+                  << ",\"hip_runtime_version\":"
+                  << microllm::runtime::hip_runtime_version()
+                  << ",\"hip_driver_version\":" << microllm::runtime::hip_driver_version()
+                  << ",\"compute_dtype\":\"float32\""
+                  << ",\"parameter_count\":" << model.parameter_count()
+                  << ",\"fp32_weight_bytes\":"
+                  << external.model.weight_bytes(sizeof(float))
+                  << ",\"loaded_tensors\":" << report.loaded.size()
+                  << ",\"token_count\":" << ids.size()
+                  << ",\"load_ms\":"
+                  << std::chrono::duration<double, std::milli>(load_finish - load_start).count()
+                  << ",\"forward_ms\":" << forward_ms
+                  << ",\"prefill_tokens_per_second\":"
+                  << static_cast<double>(ids.size()) * 1000.0 / forward_ms
+                  << ",\"engine_current_bytes\":" << allocation.current_bytes
+                  << ",\"engine_peak_bytes\":" << allocation.peak_bytes
+                  << ",\"engine_total_allocated_bytes\":"
+                  << allocation.total_allocated_bytes
+                  << ",\"top_logits\":[";
+        for (std::size_t index = 0; index < selected; ++index) {
+            if (index != 0) std::cout << ',';
+            std::cout << "{\"token\":" << order[index]
+                      << ",\"logit\":" << logits[offset + order[index]] << '}';
+        }
+        std::cout << ']';
+        if (!generated_suffix.empty()) {
+            std::cout << ",\"generation_ms\":" << generation_ms
+                      << ",\"decode_tokens_per_second\":"
+                      << static_cast<double>(generated_suffix.size()) * 1000.0 / generation_ms
+                      << ",\"decode_milliseconds_per_token\":"
+                      << generation_ms / static_cast<double>(generated_suffix.size());
             std::cout << ",\"generated_tokens\":[";
-            for (std::size_t index = ids.size(); index < generated.size(); ++index) {
-                if (index != ids.size()) std::cout << ',';
-                std::cout << generated[index];
+            for (std::size_t index = 0; index < generated_suffix.size(); ++index) {
+                if (index != 0) std::cout << ',';
+                std::cout << generated_suffix[index];
             }
             std::cout << ']';
             if (tokenizer.has_value()) {
                 std::cout << ",\"generated_text\":\"";
-                const std::vector<std::int32_t> suffix(
-                    generated.begin() + static_cast<std::ptrdiff_t>(ids.size()),
-                    generated.end());
-                for (const auto character : tokenizer->decode(suffix)) {
+                for (const auto character : generated_text) {
                     if (character == '"' || character == '\\') std::cout << '\\';
                     if (character == '\n') std::cout << "\\n";
                     else if (character == '\r') std::cout << "\\r";

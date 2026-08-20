@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "models": [
+    {
+      "name": "qwen2.5-0.5b",
+      "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+      "parameter_count": 494032768,
+      "loaded_tensors": 290,
+      "config": "/path/to/qwen2.5-0.5b/config.json",
+      "weights": "/path/to/qwen2.5-0.5b/model.safetensors",
+      "vocab": "/path/to/qwen2.5-0.5b/vocab.json",
+      "merges": "/path/to/qwen2.5-0.5b/merges.txt",
+      "tokenizer_family": "qwen2",
+      "inference": {
+        "prompt_kind": "text",
+        "prompt": "Hello world",
+        "new_tokens": 4,
+        "expected_generated_tokens": [0, 358, 2776, 264]
+      },
+      "training": {
+        "tokens": "1,2,3,4",
+        "learning_rate": 0.00001
+      }
+    },
+    {
+      "name": "deepseek-r1-distill-qwen-1.5b",
+      "revision": "ad9f0ae0864d7fbcd1cd905e3c6c5b069cc8b562",
+      "parameter_count": 1777088000,
+      "loaded_tensors": 339,
+      "config": "/path/to/deepseek-r1-distill-qwen-1.5b/config.json",
+      "weights": "/path/to/deepseek-r1-distill-qwen-1.5b/model.safetensors",
+      "vocab": "/path/to/deepseek-r1-distill-qwen-1.5b/vocab.json",
+      "merges": "/path/to/deepseek-r1-distill-qwen-1.5b/merges.txt",
+      "tokenizer_family": "deepseek-distill",
+      "inference": {
+        "prompt_kind": "chat_user",
+        "prompt": "What is 2+2?",
+        "new_tokens": 8,
+        "expected_generated_tokens": [40, 1184, 311, 8253, 279, 2629, 315, 220]
+      },
+      "training": {
+        "tokens": "151646,151644,3838,374",
+        "learning_rate": 0.00001
+      }
+    }
+  ]
+}

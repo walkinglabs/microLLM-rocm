@@ -44,6 +44,17 @@ if(BUILD_TESTING)
                          --output ${CMAKE_CURRENT_BINARY_DIR}/cpu-model-matrix.jsonl)
         set_tests_properties(Benchmark.ModelMatrixSchema
                              PROPERTIES LABELS "cpu;benchmark;model;memory;schema")
+        add_test(NAME Benchmark.HfModelMatrixUnavailableSchema
+                 COMMAND ${Python3_EXECUTABLE}
+                         ${CMAKE_CURRENT_SOURCE_DIR}/single_gpu/hf_model_matrix.py
+                         --manifest
+                         ${CMAKE_CURRENT_SOURCE_DIR}/single_gpu/hf_models.example.json
+                         --infer-binary $<TARGET_FILE:microllm_hf_infer>
+                         --train-binary $<TARGET_FILE:microllm_hf_train_step>
+                         --device cpu --modes infer,train --allow-unavailable
+                         --output ${CMAKE_CURRENT_BINARY_DIR}/hf-unavailable-matrix.jsonl)
+        set_tests_properties(Benchmark.HfModelMatrixUnavailableSchema PROPERTIES
+                             LABELS "cpu;benchmark;huggingface;memory;schema")
     endif()
     if(MICROLLM_HAS_HIP)
         add_test(NAME Benchmark.HipAddSmoke

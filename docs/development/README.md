@@ -143,3 +143,6 @@ the next gate. Records are append-only except for factual corrections.
 - [2026-08-20-single-gpu-model-matrix.md](2026-08-20-single-gpu-model-matrix.md):
   MI300X training/generation throughput and engine-owned memory for tiny, Model-S and
   Model-M, with a CTest schema gate.
+- [2026-08-20-single-gpu-hf-model-matrix.md](2026-08-20-single-gpu-hf-model-matrix.md):
+  official Qwen2.5-0.5B and DeepSeek-R1-Distill-Qwen-1.5B inference/training time,
+  throughput, memory and missing-checkpoint semantics.

@@ -40,6 +40,23 @@ that metrics are finite and internally consistent; it deliberately does not use 
 machine-noisy speed threshold as a correctness gate. See
 [single-GPU model benchmarking](../docs/dev/single-gpu-benchmark.md).
 
+Official checkpoints use a separate manifest because the files are intentionally not
+stored in Git:
+
+```bash
+python3 benchmarks/single_gpu/hf_model_matrix.py \
+  --manifest /path/to/hf-models.local.json \
+  --infer-binary build/hip-release/apps/microllm_hf_infer \
+  --train-binary build/hip-release/apps/microllm_hf_train_step \
+  --device hip --modes infer,train \
+  --output /tmp/microllm-hf-single-gpu.jsonl
+```
+
+Start from `benchmarks/single_gpu/hf_models.example.json`. Without
+`--allow-unavailable`, any missing checkpoint/config/tokenizer input makes the command
+nonzero. With that flag, missing inputs are emitted as `unavailable` and the matrix
+summary is `incomplete`; they are never reported as passing measurements.
+
 Capture HIP API, kernel, memory, and RCCL-ready runtime traces with the locally
 installed rocprofv3 interface:
 
