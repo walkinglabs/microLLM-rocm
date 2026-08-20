@@ -55,8 +55,9 @@ def validate_results(errors: list[str]) -> int:
             errors.append(f"score mismatch in experiment {experiment:03d}")
         if "\t" in row["description"] or not row["description"].strip():
             errors.append(f"invalid description in experiment {experiment:03d}")
-    if sorted(seen) != list(range(min(seen), max(seen) + 1)) if seen else []:
-        errors.append("experiment numbers are not contiguous")
+    ordered = [int(row["experiment"]) for row in rows]
+    if ordered != sorted(ordered):
+        errors.append("experiment numbers are not strictly increasing")
     return len(rows)
 
 

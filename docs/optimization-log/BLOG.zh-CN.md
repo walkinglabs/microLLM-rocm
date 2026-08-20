@@ -32,7 +32,7 @@ microLLM-rocm 已经可以：
 0.191660× PyTorch
 ```
 
-经过八个保留实验，当前重复进程 score 已到 `1.770568×`。这不是估计值：它来自同一张
+经过九个保留实验，当前重复进程 score 已到 `1.784147×`。这不是估计值：它来自同一张
 MI300X、同一组模型权重、同样的 2 次热身和 5 次正式测量。
 
 因此，本专项的故事不是“我们已经超过 PyTorch”，而是：
@@ -736,7 +736,32 @@ generated tokens   exact match
 BF16 舍入并以 FP32 累加，反向使用 FP32 master tensors 计算梯度。它通过独立 PyTorch
 前向/反向 oracle，但这只是一块训练地基，绝不等于“整网 BF16 已跑通”。
 
-## 26. 怎样读进度图
+## 26. Experiment 016：融合连续的两个小算子
+
+最新 DeepSeek trace 里，bias 和 split-half RoPE 分别占 4.9% 和 2.9% Kernel 时间。
+Q/K projection 总是先加 bias 再做 RoPE，所以候选让一个 Kernel 直接读取原 projection
+与 head-aware bias，并写出旋转后的结果；V bias 仍走原路径。
+
+这次没有只比较历史单点，而是在同一时段独立构建旧 commit，让 baseline/candidate
+各跑三进程中位数：
+
+```text
+Qwen train          112.32 → 112.43 token/s   +0.1%
+Qwen generate       124.88 → 142.01 token/s  +13.7%
+DeepSeek train       67.15 →  67.41 token/s   +0.4%
+DeepSeek generate    52.05 →  55.50 token/s   +6.6%
+fixed-reference score         1.770568 → 1.784147
+```
+
+Profiler 的因果链也吻合：总 Kernel 调用 11,804→10,684，正好少 1,120 次；add_bias
+1,680→560，旧 RoPE 1,120→0，新 fused Kernel 1,120 次。`hipLaunchKernel` API 时间
+77.80→65.26 ms，Qwen/DeepSeek inference allocation 分别减少 1,200/5,320 次。
+
+融合操作还有独立 CPU reference、HIP 对照与 PyTorch 前向/输入梯度/bias 梯度 oracle，
+不是只在模型里藏一个未经验证的 Kernel。候选保留，但 DeepSeek generation 仍只有
+PyTorch 的 0.889×，下一轮还要继续处理剩余 GEMM 和 launch 结构。
+
+## 27. 怎样读进度图
 
 图中：
 
@@ -748,11 +773,11 @@ BF16 舍入并以 FP32 累加，反向使用 FP32 master tensors 计算梯度。
 - 右侧条形：当前四项 workload ratio；
 - 底部卡片：计划步骤，不代表已经完成。
 
-FP32 主图当前有 baseline 和八个 keep 实验共九个绿色点，以及五个 discard 灰点；
+FP32 主图当前有 baseline 和九个 keep 实验共十个绿色点，以及五个 discard 灰点；
 BF16 独立图另有一个被否决的模型策略。未来如果十个实验都失败，图上就应出现十个
 灰点，而不是凭空出现一条漂亮上升曲线。
 
-## 27. 什么才算从 0 到 1
+## 28. 什么才算从 0 到 1
 
 完成一个 Kernel 不是 1，某个 shape 跑得快也不是 1。
 

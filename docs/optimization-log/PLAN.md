@@ -37,7 +37,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [06](steps/06-memory-pool.md) | complete | default-stream exact-size pool + external-stream fallback | score 1.700597 |
 | [07](steps/07-autograd-buffers.md) | in progress | local COW add_ discarded；explicit liveness planned | train allocations |
 | [08](steps/08-batched-fmha.md) | in progress | cached decode fused；prefill/backward planned | score 1.752183 |
-| [09](steps/09-fusion-autotune.md) | in progress | FP32 M=1 GroupedGemm unavailable；packed/BF16 probe planned | projection |
+| [09](steps/09-fusion-autotune.md) | in progress | GroupedGemm unavailable；Q/K bias+RoPE fused | score 1.784147 |
 | [10](steps/10-bf16.md) | in progress | BF16 算子/autograd；首个模型 policy discard | BF16 track |
 | [11](steps/11-fp8.md) | planned | cached FP8 weight/dynamic scale | FP8 track |
 | [12](steps/12-hip-graph-final.md) | planned | HIP Graph 和最终报告 | launch + final score |

@@ -1,6 +1,6 @@
 # Step 09 — projection fusion and persistent operator plans
 
-Status: `planned`
+Status: `in progress` — bias epilogue discarded; Q/K bias+RoPE fusion kept
 
 ## Hypothesis
 
@@ -21,6 +21,16 @@ Each bullet is a separate experiment:
 - fixed workspace pool;
 - offline exact-shape tuning;
 - grouped GEMM.
+
+## Measured progress
+
+- Experiment 011: hipBLASLt bias epilogue reduced allocations but regressed Qwen decode;
+- Experiment 013: FP32 M=1 GroupedGemm returned no usable heuristic;
+- Experiment 016: Q/K projection bias + split-half RoPE removed 1,120 launches in the
+  DeepSeek trace and raised the fixed score `1.770568 → 1.784147`.
+
+The remaining items are still separate hypotheses; the successful local fusion does not
+prove that every neighboring pair should be fused.
 
 ## Plan key
 

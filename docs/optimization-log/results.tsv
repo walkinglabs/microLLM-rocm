@@ -13,3 +13,4 @@ experiment	commit	date	status	score	qwen_train	qwen_generate	deepseek_train	deep
 011	929a7d4	2026-08-20	discard	1.725932	2.086361	1.869574	2.622345	0.867506	0.896769	0.960651	0.797368	0.988733	hipBLASLt bias epilogue; Qwen generation median regressed 7.8%
 012	c12b0f8	2026-08-20	keep	1.770568	2.086361	2.100335	2.622345	0.855230	0.896769	0.960651	0.797368	0.988733	two-stage large-vocabulary argmax; Kernel time reduced 96.7%
 013	a2db7d1	2026-08-20	discard	0	0	0	0	0	0	0	0	0	MI300X FP32 M=1 GroupedGemm returned no heuristic for QKV shapes
+016	d8b4e4f	2026-08-20	keep	1.784147	2.190520	2.023477	2.570163	0.889440	0.896740	0.960651	0.797351	0.988733	fused Q/K projection bias plus split-half RoPE; paired inference medians improved 13.7% and 6.6%

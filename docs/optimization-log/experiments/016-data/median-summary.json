@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "process_repeats": 3,
+  "baseline_commit": "914b2d6",
+  "candidate_commit": "d8b4e4f",
+  "fixed_pytorch_reference": "benchmarks/results/2026-08-20-mi300x-pytorch-hf-comparison/pytorch.jsonl",
+  "paired_baseline_score": 1.6982640616923945,
+  "candidate_score": 1.7841471848029478,
+  "historical_running_best_score": 1.770568111945745,
+  "workloads": {
+    "qwen2.5-0.5b:infer": {
+      "baseline_samples": [124.8847041, 129.871739774, 124.446768778],
+      "baseline_median": 124.8847041,
+      "candidate_samples": [153.862819557, 137.906391086, 142.012466905],
+      "candidate_median": 142.012466905,
+      "candidate_over_paired_baseline": 1.1371486038136836,
+      "candidate_over_pytorch": 2.02347709627544
+    },
+    "qwen2.5-0.5b:train": {
+      "baseline_samples": [110.241502458, 112.316854172, 118.192603436],
+      "baseline_median": 112.316854172,
+      "candidate_samples": [105.102791686, 116.236238966, 112.426370565],
+      "candidate_median": 112.426370565,
+      "candidate_over_paired_baseline": 1.000975066420862,
+      "candidate_over_pytorch": 2.1905196692049325
+    },
+    "deepseek-r1-distill-qwen-1.5b:infer": {
+      "baseline_samples": [51.173717048, 52.053155313, 55.5247579],
+      "baseline_median": 52.053155313,
+      "candidate_samples": [57.906732816, 54.891468657, 55.498474373],
+      "candidate_median": 55.498474373,
+      "candidate_over_paired_baseline": 1.066188476746184,
+      "candidate_over_pytorch": 0.8894397770378801
+    },
+    "deepseek-r1-distill-qwen-1.5b:train": {
+      "baseline_samples": [67.153454898, 68.429056406, 66.308721285],
+      "baseline_median": 67.153454898,
+      "candidate_samples": [66.082117472, 68.287063756, 67.405561943],
+      "candidate_median": 67.405561943,
+      "candidate_over_paired_baseline": 1.0037541932188436,
+      "candidate_over_pytorch": 2.570163301386249
+    }
+  }
+}

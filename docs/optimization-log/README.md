@@ -26,7 +26,7 @@ DeepSeek-R1-Distill-Qwen-1.5B generate 0.1606
 ```text
 score = geometric_mean(workload throughput ratios)
 baseline = 0.191660
-current running best = 1.752183
+current running best = 1.784147
 selected-matrix parity target = 1.000000
 ```
 
@@ -68,6 +68,10 @@ Experiment 014/015 建立独立 BF16 shape 与 autograd track。精确 shape all
 Qwen/DeepSeek 官方模型上仍分别退化 15.0%/2.8%，并增加 73.5 MiB/1.44 GiB engine
 memory，所以模型策略和 CLI 被删除；经过 PyTorch 前向/反向对齐的 BF16 自动求导
 原语保留。这个结果不进入 FP32 running-best 曲线。
+
+Experiment 016 将 Q/K projection bias 与 split-half RoPE 合并。配对三进程中位数中，
+Qwen/DeepSeek generation 分别提高 13.7%/6.6%，两项训练变化为 +0.1%/+0.4%；
+当前 FP32 running-best score 为 `1.784147`。完整前向、反向、AdamW 和 token 门通过。
 
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 

@@ -27,6 +27,7 @@
 | `silu` | `S -> S` | `F.silu` | 默认 | 非 FP32 |
 | `swiglu` | gate/up 都是 `S` | `F.silu(gate)*up` | `2e-6,2e-5` | shape/device 不同 |
 | `rope` | `[...,T,...,H] -> same`，H 是偶数 | PyTorch `sin/cos` 组合 | `2e-5,2e-5` | rank<2、H 奇数、sequence_dim 错、offset/base 错 |
+| `rope_split_half_bias` | input `[B,H,T,D]`、bias `[H*D]`，D 偶数 | `rope_split_half(x+bias.view(1,H,1,D))` | `3e-5,3e-5` | 非 FP32、rank/shape/device 错、offset/base 错 |
 | `cross_entropy` | logits `S+[C]`，targets `S`，输出 scalar | `F.cross_entropy(ignore_index=-100)` | `2e-5,2e-5` | target shape/dtype/device 错、无有效 target |
 | `reduce_sum` | `S -> scalar` | `torch.sum` | `2e-5,2e-5` | 非 FP32、HIP 非连续 |
 | `broadcast_scalar` | scalar + 目标 shape `S -> S` | `scalar.expand(S).clone()` | 精确 | source 不是单元素 |
@@ -69,6 +70,7 @@
 | `silu` | shape 不变 | 极大正负输入仍有限 |
 | `swiglu` | shape 不变 | gate/up 两条父边都有梯度 |
 | `rope` | shape 不变 | 旋转矩阵的转置作用于 seed |
+| `rope_split_half_bias` | `[B,H,T,D]` 不变 | input 收到逆旋转梯度；bias 对 B/T 求和 |
 | `cross_entropy` | logits 到 scalar | ignored row 梯度必须全 0 |
 | `contiguous` | shape 不变 | view 的逻辑顺序不能改变 |
 | `causal_softmax` | 方阵不变 | future 前向和反向都为 0 |
