@@ -1,0 +1,2 @@
+experiment	commit	date	status	score	qwen_train	qwen_generate	deepseek_train	deepseek_generate	qwen_train_mem	qwen_generate_mem	deepseek_train_mem	deepseek_generate_mem	description
+000	aa486c8	2026-08-20	baseline	0.191660	0.142235	0.267461	0.220921	0.160553	0.950951	1.225171	0.797368	0.988725	FP32 MI300X baseline; 2 warm-up and 5 measured iterations

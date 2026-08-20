@@ -34,6 +34,8 @@ and chronological engineering evidence.
 - [Roadmap](development/ROADMAP.md)
 - [Explicit next steps](development/NEXT_STEPS.md)
 - [Chronological development records](development/README.md)
+- [0→1 performance optimization log](optimization-log/README.md)
+- [Living optimization blog](optimization-log/BLOG.zh-CN.md)
 
 ## Course
 

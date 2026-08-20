@@ -77,6 +77,11 @@ if(BUILD_TESTING)
             Benchmark.FrameworkComparisonBuiltinsSchema
             Benchmark.FrameworkComparisonHfSchema
             PROPERTIES LABELS "cpu;benchmark;pytorch;comparison;schema")
+        add_test(NAME OptimizationLog.Validate
+                 COMMAND ${Python3_EXECUTABLE}
+                         ${PROJECT_SOURCE_DIR}/docs/optimization-log/scripts/validate_log.py)
+        set_tests_properties(OptimizationLog.Validate PROPERTIES
+                             LABELS "cpu;documentation;optimization;schema")
     endif()
     if(MICROLLM_HAS_HIP)
         add_test(NAME Benchmark.HipAddSmoke

@@ -12,6 +12,7 @@ extending small decoder-only language models on AMD GPUs.
 [Documentation](docs/index.md) · [Build](docs/dev/build.md) ·
 [Architecture](docs/ARCHITECTURE.md) · [Tests](docs/dev/testing.md) ·
 [Benchmarks](benchmarks/README.md) · [Roadmap](docs/development/NEXT_STEPS.md) ·
+[Optimization log](docs/optimization-log/README.md) ·
 [Beginner course](https://github.com/walkinglabs/microLLM-rocm/tree/tutorial/beginner-course)
 
 > **Project maturity:** pre-alpha. The repository has measured CPU, MI300X, PyTorch
@@ -121,8 +122,8 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| CPU tests | 147/147 | reference, Qwen/DeepSeek, graph/model/weights, benchmark and PyTorch comparison schemas |
-| ASan/UBSan | 145/145 | host code; dynamic binding tests isolated |
+| CPU tests | 148/148 | reference, Qwen/DeepSeek, graph/model/weights, benchmark, PyTorch and optimization-log schemas |
+| ASan/UBSan | 146/146 | host code; dynamic binding tests isolated |
 | MI300X/gfx942 HIP | 39/39 | device AdamW, FP8, graph, profiling, three-size memory/performance matrix |
 | PyTorch CPU oracle/alignment | 3/3 | ops plus same-weight model value/timing trace |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
@@ -290,6 +291,7 @@ overlap or one-process-per-GPU production semantics. See
 - [Current evidence status](docs/development/STATUS.md)
 - [Roadmap and explicit gaps](docs/development/NEXT_STEPS.md)
 - [Chronological development records](docs/development/README.md)
+- [Living 0→1 optimization blog and experiment log](docs/optimization-log/README.md)
 
 The course-only N0–N10 curriculum is maintained separately on
 [`tutorial/beginner-course`](https://github.com/walkinglabs/microLLM-rocm/tree/tutorial/beginner-course).
