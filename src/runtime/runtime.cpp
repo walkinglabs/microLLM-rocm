@@ -6,6 +6,7 @@
 #include <atomic>
 #include <limits>
 #include <map>
+#include <memory>
 #include <mutex>
 #include <stdexcept>
 #include <string>
@@ -79,9 +80,19 @@ void record_allocation(Device device, std::size_t bytes) {
 }
 
 #if MICROLLM_HAS_HIP
+struct SharedReadyEvent {
+    hipEvent_t value = nullptr;
+    ~SharedReadyEvent() { if (value != nullptr) (void)hipEventDestroy(value); }
+};
+
 struct RetiredBlock {
     void* pointer = nullptr;
-    hipEvent_t ready = nullptr;
+    std::shared_ptr<SharedReadyEvent> ready;
+};
+
+struct PendingBlock {
+    void* pointer = nullptr;
+    std::size_t bytes = 0;
 };
 
 struct HipExactSizePool {
@@ -89,6 +100,7 @@ struct HipExactSizePool {
     std::map<int, bool> enabled;
     std::map<int, bool> forbidden;
     std::map<std::pair<int, std::size_t>, std::vector<RetiredBlock>> retired;
+    std::map<int, std::vector<PendingBlock>> pending;
 };
 
 HipExactSizePool& hip_pool() {
@@ -99,6 +111,7 @@ HipExactSizePool& hip_pool() {
 }
 
 constexpr std::size_t kMaximumCachedBytesPerDevice = 8ULL * 1024ULL * 1024ULL * 1024ULL;
+constexpr std::size_t kRetirementBatchSize = 8;
 
 void check_hip(hipError_t status, const char* operation) {
     if (status != hipSuccess) {
@@ -108,6 +121,32 @@ void check_hip(hipError_t status, const char* operation) {
 
 hipStream_t as_stream(void* handle) { return reinterpret_cast<hipStream_t>(handle); }
 hipEvent_t as_event(void* handle) { return reinterpret_cast<hipEvent_t>(handle); }
+
+void flush_pending(HipExactSizePool& pool, Device device) noexcept {
+    auto& pending = pool.pending[device.index()];
+    if (pending.empty()) return;
+    hipEvent_t event = nullptr;
+    const auto created = hipEventCreateWithFlags(&event, hipEventDisableTiming);
+    const auto recorded = created == hipSuccess ? hipEventRecord(event, nullptr) : created;
+    if (created == hipSuccess && recorded == hipSuccess) {
+        auto ready = std::make_shared<SharedReadyEvent>();
+        ready->value = event;
+        for (const auto& block : pending) {
+            pool.retired[{device.index(), block.bytes}].push_back({block.pointer, ready});
+        }
+        pending.clear();
+        return;
+    }
+    if (event != nullptr) (void)hipEventDestroy(event);
+    for (const auto& block : pending) {
+        if (hipFree(block.pointer) == hipSuccess) {
+            counters(device).backend_deallocation_calls.fetch_add(1);
+            counters(device).cached_bytes.fetch_sub(block.bytes);
+            counters(device).reserved_bytes.fetch_sub(block.bytes);
+        }
+    }
+    pending.clear();
+}
 
 void select_copy_device(Device destination, Device source) {
     if (destination.is_hip()) {
@@ -235,6 +274,11 @@ void synchronize(Device device) {
     if (device.is_cpu()) return;
 #if MICROLLM_HAS_HIP
     set_device(device);
+    {
+        auto& pool = hip_pool();
+        const std::lock_guard<std::mutex> lock(pool.mutex);
+        flush_pending(pool, device);
+    }
     check_hip(hipDeviceSynchronize(), "hipDeviceSynchronize");
 #else
     throw std::runtime_error("microLLM was built without HIP support");
@@ -262,8 +306,10 @@ void reset_transfer_stats() noexcept {
 void notify_non_default_stream(Device device) noexcept {
     if (device.is_cpu()) return;
 #if MICROLLM_HAS_HIP
+    if (hipSetDevice(device.index()) != hipSuccess) return;
     auto& pool = hip_pool();
     const std::lock_guard<std::mutex> lock(pool.mutex);
+    flush_pending(pool, device);
     pool.enabled[device.index()] = false;
     pool.forbidden[device.index()] = true;
 #else
@@ -317,10 +363,9 @@ void* allocate(std::size_t num_bytes, Device device) {
         if (pool.enabled[device.index()]) {
             auto& candidates = pool.retired[{device.index(), num_bytes}];
             for (auto candidate = candidates.begin(); candidate != candidates.end(); ++candidate) {
-                const auto status = hipEventQuery(candidate->ready);
+                const auto status = hipEventQuery(candidate->ready->value);
                 if (status == hipSuccess) {
                     void* pointer = candidate->pointer;
-                    (void)hipEventDestroy(candidate->ready);
                     candidates.erase(candidate);
                     counters(device).cached_bytes.fetch_sub(num_bytes);
                     counters(device).cache_reuse_calls.fetch_add(1);
@@ -362,14 +407,11 @@ void deallocate(void* pointer, Device device, std::size_t num_bytes) noexcept {
         if (pool.enabled[device.index()] &&
             num_bytes <= kMaximumCachedBytesPerDevice -
                              std::min(cached_bytes, kMaximumCachedBytesPerDevice)) {
-            hipEvent_t ready = nullptr;
-            if (hipEventCreateWithFlags(&ready, hipEventDisableTiming) == hipSuccess &&
-                hipEventRecord(ready, nullptr) == hipSuccess) {
-                pool.retired[{device.index(), num_bytes}].push_back({pointer, ready});
-                counters(device).cached_bytes.fetch_add(num_bytes);
-                cached = true;
-            } else if (ready != nullptr) {
-                (void)hipEventDestroy(ready);
+            pool.pending[device.index()].push_back({pointer, num_bytes});
+            counters(device).cached_bytes.fetch_add(num_bytes);
+            cached = true;
+            if (pool.pending[device.index()].size() >= kRetirementBatchSize) {
+                flush_pending(pool, device);
             }
         }
     }

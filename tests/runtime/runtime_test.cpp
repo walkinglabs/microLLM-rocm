@@ -1,5 +1,6 @@
 #include <array>
 #include <stdexcept>
+#include <vector>
 
 #include <gtest/gtest.h>
 #include <microllm/core/tensor.h>
@@ -106,6 +107,27 @@ TEST(HipRuntimeTest, ExactSizePoolReusesCompletedDefaultStreamBlock) {
     EXPECT_EQ(stats.backend_deallocation_calls, 0U);
     EXPECT_EQ(stats.cached_bytes, baseline.cached_bytes + 4096U);
     EXPECT_EQ(stats.reserved_bytes, baseline.reserved_bytes + 4096U);
+}
+
+TEST(HipRuntimeTest, RetirementBatchReusesEveryBlockAfterOneCompletionBoundary) {
+    if (hip_device_count() == 0) GTEST_SKIP() << "No visible HIP device";
+    const auto gpu = Device::hip(0);
+    enable_hip_caching_allocator(gpu);
+    reset_allocation_peak(gpu);
+    {
+        std::vector<Storage> blocks;
+        for (int index = 0; index < 8; ++index) blocks.emplace_back(4096, gpu);
+    }
+    synchronize(gpu);
+    {
+        std::vector<Storage> blocks;
+        for (int index = 0; index < 8; ++index) blocks.emplace_back(4096, gpu);
+        const auto stats = allocation_stats(gpu);
+        EXPECT_EQ(stats.allocation_calls, 16U);
+        EXPECT_EQ(stats.backend_allocation_calls, 8U);
+        EXPECT_EQ(stats.cache_reuse_calls, 8U);
+    }
+    synchronize(gpu);
 }
 
 TEST(HipRuntimeTest, NonDefaultStreamPermanentlyDisablesPoolReuse) {
