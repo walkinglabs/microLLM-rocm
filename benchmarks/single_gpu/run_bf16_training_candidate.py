@@ -17,6 +17,8 @@ def options():
     parser.add_argument("--raw-output", required=True, type=Path)
     parser.add_argument("--summary-output", required=True, type=Path)
     parser.add_argument("--runs", type=int, default=3)
+    parser.add_argument("--candidate-name", choices=("shared_qkv", "weight_mirrors"),
+                        default="shared_qkv")
     result = parser.parse_args()
     if result.runs <= 0:
         parser.error("runs must be positive")
@@ -47,12 +49,16 @@ def main():
                 "--steps", str(training.get("steps", 5)),
                 "--linear-precision", "bf16",
             ]
+            if args.candidate_name == "weight_mirrors":
+                command.extend(("--bf16-weight-mirrors", "true"))
+            else:
+                command.extend(("--bf16-weight-mirrors", "false"))
             completed = subprocess.run(command, check=True, text=True, capture_output=True)
             record = json.loads(completed.stdout)
             if not record.get("parameter_changed") or not math.isfinite(record["final_loss"]):
                 raise RuntimeError(f"{model['name']} candidate did not make a finite update")
             record.update({
-                "record_type": "bf16_training_shared_qkv_candidate",
+                "record_type": f"bf16_training_{args.candidate_name}_candidate",
                 "model": model["name"], "revision": model["revision"],
                 "process_run": process_run,
             })
@@ -80,7 +86,7 @@ def main():
             "final_loss": median(group, "final_loss"),
             "all_updates_finite": all(row["parameter_changed"] for row in group),
         })
-    summary = {"schema_version": 1, "track": "bf16_training_shared_qkv",
+    summary = {"schema_version": 1, "track": f"bf16_training_{args.candidate_name}",
                "aggregation": "median of three independent candidate processes by default",
                "rows": rows}
     args.raw_output.parent.mkdir(parents=True, exist_ok=True)

@@ -16,6 +16,8 @@
 namespace microllm::model {
 
 using NamedValues = std::vector<std::pair<std::string, autograd::Value*>>;
+using Bf16TrainingMirrors =
+    std::vector<std::pair<autograd::Value*, Tensor*>>;
 
 enum class WeightTransform { Identity, Transpose2D };
 
@@ -80,6 +82,10 @@ public:
     [[nodiscard]] bool bf16_ffn_inference_prepared() const noexcept;
     [[nodiscard]] Bf16WeightPreparationReport prepare_bf16_attention_inference();
     [[nodiscard]] bool bf16_attention_inference_prepared() const noexcept;
+    // Creates persistent BF16 forward mirrors for every Linear FP32 master.
+    // Mirrors are derived runtime state and must be prepared after loading/restoring.
+    [[nodiscard]] Bf16TrainingMirrors prepare_bf16_training_mirrors();
+    [[nodiscard]] bool bf16_training_mirrors_prepared() const noexcept;
     [[nodiscard]] io::StateDict state_dict(Device target = Device::cpu());
     [[nodiscard]] LoadWeightsReport load_state_dict(
         const io::StateDict& state, const LoadWeightsOptions& options = {});

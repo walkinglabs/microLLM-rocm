@@ -49,11 +49,13 @@ TEST(TrainerTest, Bf16LinearPolicyLowersLossWithFp32MasterAdamw) {
     auto config = tiny_config();
     config.linear_precision = model::LinearPrecision::BFloat16;
     model::TransformerModel transformer(config, 32);
+    const auto mirrors = transformer.prepare_bf16_training_mirrors();
     AdamW optimizer(transformer.parameters(), {.learning_rate = 0.02F,
                                                 .beta1 = 0.9F,
                                                 .beta2 = 0.99F,
                                                 .epsilon = 1.0e-8F,
-                                                .weight_decay = 0.0F});
+                                                .weight_decay = 0.0F},
+                    mirrors);
     float first = 0.0F;
     float last = 0.0F;
     for (std::uint64_t step = 1; step <= 20; ++step) {

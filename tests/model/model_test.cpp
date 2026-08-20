@@ -189,6 +189,27 @@ TEST(TransformerModelTest, Bf16LinearPolicyRunsFullForwardLossAndBackward) {
     EXPECT_THROW((void)model.prepare_bf16_ffn_inference(), std::logic_error);
 }
 
+TEST(TransformerModelTest, Bf16TrainingMirrorsCoverEveryLinearAndPreserveForward) {
+    auto config = tiny_config();
+    config.linear_precision = LinearPrecision::BFloat16;
+    TransformerModel model(config, 14);
+    const auto tokens = Tensor::from_int32_vector({1, 2, 3, 4}, {1, 4});
+    const auto before = model.forward(tokens).data().to_vector();
+    const auto mirrors = model.prepare_bf16_training_mirrors();
+    EXPECT_TRUE(model.bf16_training_mirrors_prepared());
+    EXPECT_EQ(mirrors.size(), 8U);  // 7 block Linears + untied output head.
+    for (const auto& [master, mirror] : mirrors) {
+        ASSERT_NE(master, nullptr);
+        ASSERT_NE(mirror, nullptr);
+        EXPECT_EQ(master->data().dtype(), DType::Float32);
+        EXPECT_EQ(mirror->dtype(), DType::BFloat16);
+        EXPECT_EQ(mirror->shape(), master->data().shape());
+    }
+    EXPECT_EQ(model.forward(tokens).data().to_vector(), before);
+    EXPECT_THROW((void)model.prepare_bf16_training_mirrors(), std::logic_error);
+    EXPECT_THROW((void)model.load_state_dict(model.state_dict()), std::logic_error);
+}
+
 TEST(TransformerModelTest, CausalPrefixLogitsIgnoreFutureTokens) {
     TransformerModel model(tiny_config(false), 19);
     const auto first = Tensor::from_int32_vector({1, 2, 3, 4}, {1, 4});

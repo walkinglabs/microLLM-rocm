@@ -443,6 +443,8 @@ TEST(HipBf16TrainingTest, TransformerPolicyKeepsFp32MastersAndGradients) {
                                     .linear_precision = model::LinearPrecision::BFloat16};
     model::TransformerModel transformer(config, 59);
     transformer.to(Device::hip(0));
+    const auto mirrors = transformer.prepare_bf16_training_mirrors();
+    EXPECT_EQ(mirrors.size(), 8U);
     const auto tokens = Tensor::from_int32_vector({1, 2, 3, 4}, {1, 4}).to(Device::hip(0));
     const auto targets = Tensor::from_int32_vector({2, 3, 4, 5}, {1, 4}).to(Device::hip(0));
     runtime::reset_transfer_stats();
@@ -458,6 +460,26 @@ TEST(HipBf16TrainingTest, TransformerPolicyKeepsFp32MastersAndGradients) {
         EXPECT_EQ(parameter->data().dtype(), DType::Float32) << name;
         EXPECT_EQ(parameter->grad().dtype(), DType::Float32) << name;
     }
+}
+
+TEST(HipBf16TrainingTest, AdamwUpdatesMasterAndMirrorInOneDeviceLaunch) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    autograd::Value parameter(
+        Tensor::from_vector({1.0F, -2.0F, 3.0F}, {3}).to(gpu), true);
+    auto mirror = ops::cast(parameter.data(), DType::BFloat16);
+    training::AdamW optimizer(
+        {&parameter}, {.learning_rate = 0.01F, .weight_decay = 0.0F},
+        {{&parameter, &mirror}});
+    autograd::sum(autograd::scale(parameter, 2.0F)).backward();
+    runtime::reset_transfer_stats();
+    optimizer.step();
+    runtime::synchronize(gpu);
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    EXPECT_EQ(mirror.cast(DType::Float32).to_vector(),
+              parameter.data().cast(DType::BFloat16).cast(DType::Float32).to_vector());
 }
 
 TEST(HipOpsTest, NaiveBatchedMatmulMatchesCpuReference) {

@@ -108,7 +108,9 @@ public:
 
     Value forward_without_bias(const Value& input) {
         if (precision_ == LinearPrecision::BFloat16) {
-            return autograd::bf16_matmul(input, weight_);
+            return bf16_training_weight_.defined()
+                       ? autograd::bf16_matmul(input, weight_, bf16_training_weight_)
+                       : autograd::bf16_matmul(input, weight_);
         }
         if (precision_ == LinearPrecision::Float8E4M3FNUZ) {
             return autograd::fp8_matmul(input, weight_, activation_scale_, weight_scale_);
@@ -121,7 +123,10 @@ public:
     }
     Tensor forward_tensor_without_bias(const Tensor& input) {
         if (precision_ == LinearPrecision::BFloat16) {
-            return ops::bf16_matmul(input, ops::cast(weight_.data(), DType::BFloat16));
+            return ops::bf16_matmul(
+                input, bf16_training_weight_.defined()
+                           ? bf16_training_weight_
+                           : ops::cast(weight_.data(), DType::BFloat16));
         }
         if (precision_ == LinearPrecision::Float8E4M3FNUZ) {
             return ops::fp8_matmul(
@@ -143,6 +148,20 @@ public:
     [[nodiscard]] const Tensor& weight_data() const noexcept { return weight_.data(); }
     [[nodiscard]] bool has_bias() const noexcept { return has_bias_; }
     Value& bias() noexcept { return bias_; }
+    std::pair<Value*, Tensor*> prepare_bf16_training_mirror() {
+        if (precision_ != LinearPrecision::BFloat16 ||
+            weight_.data().dtype() != DType::Float32 ||
+            bf16_training_weight_.defined()) {
+            throw std::logic_error("Linear BF16 training mirror preparation is invalid");
+        }
+        bf16_training_weight_ = ops::cast(weight_.data(), DType::BFloat16);
+        return {&weight_, &bf16_training_weight_};
+    }
+    void move_bf16_training_mirror(Device device) {
+        if (bf16_training_weight_.defined()) {
+            bf16_training_weight_ = bf16_training_weight_.to(device);
+        }
+    }
 
 private:
     Value weight_;
@@ -151,6 +170,7 @@ private:
     float weight_scale_ = 1.0F;
     bool has_bias_ = false;
     Value bias_;
+    Tensor bf16_training_weight_;
 };
 
 class Norm {
@@ -382,6 +402,17 @@ public:
         values.emplace_back(prefix + ".o_proj.weight", &output_.weight());
     }
 
+    void append_bf16_training_mirrors(Bf16TrainingMirrors& mirrors) {
+        for (auto* linear : {&query_, &key_, &value_, &output_}) {
+            mirrors.push_back(linear->prepare_bf16_training_mirror());
+        }
+    }
+    void move_bf16_training_mirrors(Device device) {
+        for (auto* linear : {&query_, &key_, &value_, &output_}) {
+            linear->move_bf16_training_mirror(device);
+        }
+    }
+
 private:
     ModelConfig config_;
     Linear query_;
@@ -438,6 +469,17 @@ public:
         values.emplace_back(prefix + ".down_proj.weight", &down_.weight());
     }
 
+    void append_bf16_training_mirrors(Bf16TrainingMirrors& mirrors) {
+        for (auto* linear : {&gate_, &up_, &down_}) {
+            mirrors.push_back(linear->prepare_bf16_training_mirror());
+        }
+    }
+    void move_bf16_training_mirrors(Device device) {
+        for (auto* linear : {&gate_, &up_, &down_}) {
+            linear->move_bf16_training_mirror(device);
+        }
+    }
+
 private:
     ModelConfig config_;
     Linear gate_;
@@ -481,6 +523,15 @@ public:
         feed_forward_.append_named(prefix + ".feed_forward", values);
     }
 
+    void append_bf16_training_mirrors(Bf16TrainingMirrors& mirrors) {
+        attention_.append_bf16_training_mirrors(mirrors);
+        feed_forward_.append_bf16_training_mirrors(mirrors);
+    }
+    void move_bf16_training_mirrors(Device device) {
+        attention_.move_bf16_training_mirrors(device);
+        feed_forward_.move_bf16_training_mirrors(device);
+    }
+
 
 private:
     Norm attention_norm_;
@@ -516,6 +567,7 @@ struct TransformerModel::Impl {
     std::unique_ptr<Linear> output_head;
     bool bf16_ffn_prepared = false;
     bool bf16_attention_prepared = false;
+    bool bf16_training_mirrors_prepared = false;
 };
 
 TransformerModel::TransformerModel(ModelConfig config, std::uint64_t seed)
@@ -537,6 +589,10 @@ void TransformerModel::to(Device target) {
     for (auto* value : parameters()) {
         value->mutable_data() = value->data().to(target);
         value->zero_grad();
+    }
+    if (impl_->bf16_training_mirrors_prepared) {
+        for (auto& block : impl_->blocks) block->move_bf16_training_mirrors(target);
+        if (impl_->output_head) impl_->output_head->move_bf16_training_mirror(target);
     }
 }
 
@@ -724,6 +780,30 @@ bool TransformerModel::bf16_attention_inference_prepared() const noexcept {
     return impl_->bf16_attention_prepared;
 }
 
+Bf16TrainingMirrors TransformerModel::prepare_bf16_training_mirrors() {
+    if (impl_->config.linear_precision != LinearPrecision::BFloat16 ||
+        impl_->bf16_training_mirrors_prepared || impl_->bf16_ffn_prepared ||
+        impl_->bf16_attention_prepared) {
+        throw std::logic_error("BF16 training mirror preparation is invalid for model state");
+    }
+    Bf16TrainingMirrors mirrors;
+    const auto expected = impl_->blocks.size() * 7U + (impl_->output_head ? 1U : 0U);
+    mirrors.reserve(expected);
+    for (auto& block : impl_->blocks) block->append_bf16_training_mirrors(mirrors);
+    if (impl_->output_head) {
+        mirrors.push_back(impl_->output_head->prepare_bf16_training_mirror());
+    }
+    if (mirrors.size() != expected) {
+        throw std::logic_error("BF16 training mirror count does not match model Linears");
+    }
+    impl_->bf16_training_mirrors_prepared = true;
+    return mirrors;
+}
+
+bool TransformerModel::bf16_training_mirrors_prepared() const noexcept {
+    return impl_->bf16_training_mirrors_prepared;
+}
+
 io::StateDict TransformerModel::state_dict(Device target) {
     io::StateDict state;
     for (const auto& [name, parameter] : named_parameters()) {
@@ -736,9 +816,10 @@ io::StateDict TransformerModel::state_dict(Device target) {
 
 LoadWeightsReport TransformerModel::load_state_dict(const io::StateDict& state,
                                                      const LoadWeightsOptions& options) {
-    if (impl_->bf16_ffn_prepared || impl_->bf16_attention_prepared) {
+    if (impl_->bf16_ffn_prepared || impl_->bf16_attention_prepared ||
+        impl_->bf16_training_mirrors_prepared) {
         throw std::logic_error(
-            "load weights before one-way BF16 FFN inference preparation");
+            "load weights before preparing derived BF16 weights");
     }
     LoadWeightsReport report;
     const auto named = named_parameters();

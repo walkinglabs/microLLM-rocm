@@ -70,6 +70,13 @@ void adamw_update_(Tensor& parameter, const Tensor& gradient,
                    float epsilon, float weight_decay,
                    float first_correction, float second_correction,
                    const OpContext& context = {});
+void adamw_update_bf16_mirror_(Tensor& parameter, const Tensor& gradient,
+                               Tensor& first_moment, Tensor& second_moment,
+                               Tensor& bf16_mirror, float learning_rate,
+                               float beta1, float beta2, float epsilon,
+                               float weight_decay, float first_correction,
+                               float second_correction,
+                               const OpContext& context = {});
 
 [[nodiscard]] Tensor add(const Tensor& left, const Tensor& right, const OpContext& context = {});
 [[nodiscard]] Tensor add_bias(const Tensor& input, const Tensor& bias,

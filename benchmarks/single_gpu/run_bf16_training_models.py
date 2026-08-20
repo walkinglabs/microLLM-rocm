@@ -60,6 +60,8 @@ def main():
                     "--steps", str(training.get("steps", 5)),
                     "--linear-precision", precision,
                 ]
+                if precision == "bf16":
+                    command.extend(("--bf16-weight-mirrors", "false"))
                 record = run(command)
                 record.update({
                     "record_type": "bf16_training_official_model_measurement",

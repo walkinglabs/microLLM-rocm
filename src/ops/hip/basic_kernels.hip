@@ -36,7 +36,8 @@ __global__ void fill_kernel(float* output, std::int64_t elements, float value) {
 
 __global__ void adamw_update_kernel(
     float* parameter, const float* gradient, float* first_moment,
-    float* second_moment, std::int64_t elements, float learning_rate,
+    float* second_moment, hip_bfloat16* bf16_mirror,
+    std::int64_t elements, float learning_rate,
     float beta1, float beta2, float epsilon, float weight_decay,
     float first_correction, float second_correction) {
     const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
@@ -49,6 +50,7 @@ __global__ void adamw_update_kernel(
     parameter[index] *= 1.0F - learning_rate * weight_decay;
     parameter[index] -= learning_rate * (first / first_correction) /
                         (sqrtf(second / second_correction) + epsilon);
+    if (bf16_mirror != nullptr) bf16_mirror[index] = hip_bfloat16(parameter[index]);
 }
 
 __global__ void add_kernel(const float* left, const float* right, float* output,
@@ -1039,6 +1041,7 @@ void launch_fill(float* output, std::int64_t elements, float value, void* stream
 
 void launch_adamw_update(float* parameter, const float* gradient,
                          float* first_moment, float* second_moment,
+                         void* bf16_mirror,
                          std::int64_t elements, float learning_rate,
                          float beta1, float beta2, float epsilon,
                          float weight_decay, float first_correction,
@@ -1046,7 +1049,8 @@ void launch_adamw_update(float* parameter, const float* gradient,
     if (elements == 0) return;
     hipLaunchKernelGGL(adamw_update_kernel, dim3(grid_size(elements)),
                        dim3(kBlockSize), 0, as_stream(stream), parameter, gradient,
-                       first_moment, second_moment, elements, learning_rate, beta1,
+                       first_moment, second_moment,
+                       static_cast<hip_bfloat16*>(bf16_mirror), elements, learning_rate, beta1,
                        beta2, epsilon, weight_decay, first_correction,
                        second_correction);
     check_launch("adamw_update_kernel");

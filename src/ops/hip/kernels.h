@@ -9,6 +9,7 @@ namespace microllm::ops::hip {
 void launch_fill(float* output, std::int64_t elements, float value, void* stream = nullptr);
 void launch_adamw_update(float* parameter, const float* gradient,
                          float* first_moment, float* second_moment,
+                         void* bf16_mirror,
                          std::int64_t elements, float learning_rate,
                          float beta1, float beta2, float epsilon,
                          float weight_decay, float first_correction,

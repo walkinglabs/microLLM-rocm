@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <utility>
 #include <vector>
 
 #include <microllm/autograd/autograd.h>
@@ -8,6 +9,8 @@
 namespace microllm::training {
 
 using Parameters = std::vector<autograd::Value*>;
+using Bf16ParameterMirrors =
+    std::vector<std::pair<autograd::Value*, Tensor*>>;
 
 void zero_grad(const Parameters& parameters);
 
@@ -39,7 +42,8 @@ struct AdamWState {
 
 class AdamW {
 public:
-    AdamW(Parameters parameters, AdamWConfig config = {});
+    AdamW(Parameters parameters, AdamWConfig config = {},
+          Bf16ParameterMirrors bf16_mirrors = {});
     void step();
     void zero_grad();
 
@@ -51,6 +55,7 @@ private:
     Parameters parameters_;
     AdamWConfig config_;
     AdamWState state_;
+    std::vector<Tensor*> bf16_mirrors_;
 };
 
 }  // namespace microllm::training

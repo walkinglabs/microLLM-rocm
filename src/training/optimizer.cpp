@@ -3,6 +3,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <string>
+#include <unordered_map>
 #include <utility>
 
 #include <microllm/ops/ops.h>
@@ -69,8 +70,10 @@ void SGD::step() {
 
 void SGD::zero_grad() { training::zero_grad(parameters_); }
 
-AdamW::AdamW(Parameters parameters, AdamWConfig config)
-    : parameters_(std::move(parameters)), config_(config) {
+AdamW::AdamW(Parameters parameters, AdamWConfig config,
+             Bf16ParameterMirrors bf16_mirrors)
+    : parameters_(std::move(parameters)), config_(config),
+      bf16_mirrors_(parameters_.size(), nullptr) {
     validate_parameters(parameters_);
     if (!(config_.learning_rate > 0.0F)) {
         throw std::invalid_argument("AdamW learning rate must be positive");
@@ -91,6 +94,21 @@ AdamW::AdamW(Parameters parameters, AdamWConfig config)
         state_.first_moments.push_back(std::move(first));
         state_.second_moments.push_back(std::move(second));
     }
+    std::unordered_map<autograd::Value*, std::size_t> indices;
+    for (std::size_t index = 0; index < parameters_.size(); ++index) {
+        indices.emplace(parameters_[index], index);
+    }
+    for (const auto& [master, mirror] : bf16_mirrors) {
+        const auto found = indices.find(master);
+        if (found == indices.end() || mirror == nullptr || !mirror->defined() ||
+            mirror->dtype() != DType::BFloat16 ||
+            mirror->shape() != master->data().shape() ||
+            mirror->device() != master->data().device() || !mirror->is_contiguous() ||
+            bf16_mirrors_[found->second] != nullptr) {
+            throw std::invalid_argument("AdamW BF16 mirror mapping is invalid");
+        }
+        bf16_mirrors_[found->second] = mirror;
+    }
 }
 
 void AdamW::step() {
@@ -103,12 +121,22 @@ void AdamW::step() {
         if (parameter->grad().shape() != parameter->data().shape()) {
             throw std::invalid_argument("AdamW gradient shape mismatch");
         }
-        ops::adamw_update_(parameter->mutable_data(), parameter->grad(),
-                           state_.first_moments[parameter_index],
-                           state_.second_moments[parameter_index],
-                           config_.learning_rate, config_.beta1, config_.beta2,
-                           config_.epsilon, config_.weight_decay, first_correction,
-                           second_correction);
+        if (bf16_mirrors_[parameter_index] != nullptr) {
+            ops::adamw_update_bf16_mirror_(
+                parameter->mutable_data(), parameter->grad(),
+                state_.first_moments[parameter_index],
+                state_.second_moments[parameter_index],
+                *bf16_mirrors_[parameter_index], config_.learning_rate,
+                config_.beta1, config_.beta2, config_.epsilon,
+                config_.weight_decay, first_correction, second_correction);
+        } else {
+            ops::adamw_update_(parameter->mutable_data(), parameter->grad(),
+                               state_.first_moments[parameter_index],
+                               state_.second_moments[parameter_index],
+                               config_.learning_rate, config_.beta1, config_.beta2,
+                               config_.epsilon, config_.weight_decay, first_correction,
+                               second_correction);
+        }
     }
 }
 
@@ -146,6 +174,15 @@ void AdamW::load_state(AdamWState state) {
         state.second_moments[index] = state.second_moments[index].to(device);
     }
     state_ = std::move(state);
+    // BF16 forward copies are derived state: checkpoints keep the FP32 master
+    // weights only.  restore_checkpoint() loads those masters before it calls
+    // this method, so refresh every registered mirror here rather than storing
+    // a second, potentially stale, copy in the checkpoint.
+    for (std::size_t index = 0; index < parameters_.size(); ++index) {
+        if (bf16_mirrors_[index] != nullptr) {
+            *bf16_mirrors_[index] = parameters_[index]->data().cast(DType::BFloat16);
+        }
+    }
 }
 
 }  // namespace microllm::training

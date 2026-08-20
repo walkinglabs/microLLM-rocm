@@ -323,15 +323,31 @@ Value bf16_matmul(const Value& left, const Value& right) {
         throw std::invalid_argument(
             "BF16 autograd matmul requires FP32 master tensors");
     }
-    auto left_node = left.node_;
-    auto right_node = right.node_;
-    const auto left_forward = left.data().is_contiguous()
-                                  ? left.data() : left.data().contiguous();
     const auto right_forward = right.data().is_contiguous()
                                    ? right.data() : right.data().contiguous();
-    auto output = profiled_tensor("bf16_matmul", left.data().device(), [&] {
-        return ops::bf16_matmul(
-            left_forward, ops::cast(right_forward, DType::BFloat16));
+    const auto mirror = ops::cast(right_forward, DType::BFloat16);
+    return bf16_matmul(left, right, mirror);
+}
+
+Value bf16_matmul(const Value& left, const Value& right_master,
+                  const Tensor& right_bf16_mirror) {
+    require_value(left, "left");
+    require_value(right_master, "right_master");
+    if (left.data().ndim() != 2 || right_master.data().ndim() != 2 ||
+        right_bf16_mirror.ndim() != 2 ||
+        right_bf16_mirror.dtype() != DType::BFloat16 ||
+        right_bf16_mirror.shape() != right_master.data().shape() ||
+        right_bf16_mirror.device() != right_master.data().device() ||
+        !right_bf16_mirror.is_contiguous()) {
+        throw std::invalid_argument(
+            "BF16 cached autograd matmul requires a matching contiguous mirror");
+    }
+    auto left_node = left.node_;
+    auto right_node = right_master.node_;
+    const auto left_forward = left.data().is_contiguous()
+                                  ? left.data() : left.data().contiguous();
+    auto output = profiled_tensor("bf16_matmul_cached", left.data().device(), [&] {
+        return ops::bf16_matmul(left_forward, right_bf16_mirror);
     });
     return operation("bf16_matmul", std::move(output), {left_node, right_node},
                      [left_node, right_node](const Tensor& gradient) {

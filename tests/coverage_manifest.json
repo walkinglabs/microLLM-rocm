@@ -39,6 +39,7 @@
   },
   "operator_infrastructure": {
     "adamw_update_": "tests/training/optimizer_test.cpp",
+    "adamw_update_bf16_mirror_": "tests/training/optimizer_test.cpp",
     "quantize_fp8": "tests/ops/ops_test.cpp",
     "dequantize_fp8": "tests/ops/ops_test.cpp",
     "fp8_matmul": "tests/ops/hip_ops_test.cpp",
@@ -116,7 +117,9 @@
     "prepare_bf16_ffn_inference": "tests/model/model_test.cpp",
     "bf16_ffn_inference_prepared": "tests/model/model_test.cpp",
     "prepare_bf16_attention_inference": "tests/model/model_test.cpp",
-    "bf16_attention_inference_prepared": "tests/model/model_test.cpp"
+    "bf16_attention_inference_prepared": "tests/model/model_test.cpp",
+    "prepare_bf16_training_mirrors": "tests/model/model_test.cpp",
+    "bf16_training_mirrors_prepared": "tests/model/model_test.cpp"
   },
   "profiling_api": {
     "TraceSession": "tests/profiling/trace_test.cpp",

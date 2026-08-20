@@ -55,6 +55,7 @@ int main(int argc, char** argv) {
         int warmup = 0;
         int steps = 1;
         std::string linear_precision = "fp32";
+        bool bf16_weight_mirrors = true;
         for (int index = 1; index < argc; index += 2) {
             if (index + 1 >= argc) throw std::invalid_argument("missing CLI value");
             const std::string name = argv[index];
@@ -66,6 +67,14 @@ int main(int argc, char** argv) {
             else if (name == "--warmup") warmup = std::stoi(argv[index + 1]);
             else if (name == "--steps") steps = std::stoi(argv[index + 1]);
             else if (name == "--linear-precision") linear_precision = argv[index + 1];
+            else if (name == "--bf16-weight-mirrors") {
+                const std::string value = argv[index + 1];
+                if (value != "true" && value != "false") {
+                    throw std::invalid_argument(
+                        "--bf16-weight-mirrors must be true or false");
+                }
+                bf16_weight_mirrors = value == "true";
+            }
             else throw std::invalid_argument("unknown option: " + name);
         }
         if (config_path.empty() || weights_path.empty() || token_text.empty()) {
@@ -92,12 +101,17 @@ int main(int argc, char** argv) {
         microllm::model::LoadWeightsOptions load_options;
         load_options.mapping = microllm::model::qwen_style_weight_mapping(external.model);
         const auto report = model.load_safetensors(weights_path, load_options);
+        microllm::model::Bf16TrainingMirrors bf16_mirrors;
+        if (linear_precision == "bf16" && bf16_weight_mirrors) {
+            bf16_mirrors = model.prepare_bf16_training_mirrors();
+        }
         microllm::training::AdamW optimizer(
             model.parameters(), {.learning_rate = learning_rate,
                                  .beta1 = 0.9F,
                                  .beta2 = 0.999F,
                                  .epsilon = 1.0e-8F,
-                                 .weight_decay = 0.01F});
+                                 .weight_decay = 0.01F},
+            bf16_mirrors);
         const auto all_tokens = parse_tokens(token_text);
         const std::vector<std::int32_t> input_ids(all_tokens.begin(), all_tokens.end() - 1);
         const std::vector<std::int32_t> target_ids(all_tokens.begin() + 1, all_tokens.end());
@@ -171,12 +185,24 @@ int main(int argc, char** argv) {
                   << ",\"compute_dtype\":\""
                   << (linear_precision == "bf16" ? "bf16_linear_fp32_master" : "float32")
                   << "\""
+                  << ",\"bf16_weight_mirrors_enabled\":"
+                  << (!bf16_mirrors.empty() ? "true" : "false")
                   << ",\"measurement_profile\":\""
                   << (warmup > 0 || steps > 1 ? "comparison" : "smoke") << "\""
                   << ",\"loaded_tensors\":" << report.loaded.size()
                   << ",\"parameter_count\":" << model.parameter_count()
                   << ",\"fp32_weight_bytes\":"
                   << external.model.weight_bytes(sizeof(float))
+                  << ",\"bf16_training_mirror_tensors\":" << bf16_mirrors.size()
+                  << ",\"bf16_training_mirror_bytes\":"
+                  << [&] {
+                         std::uint64_t bytes = 0;
+                         for (const auto& [master, mirror] : bf16_mirrors) {
+                             (void)master;
+                             bytes += static_cast<std::uint64_t>(mirror->storage().num_bytes());
+                         }
+                         return bytes;
+                     }()
                   << ",\"warmup\":" << warmup
                   << ",\"steps\":" << steps
                   << ",\"warmup_ms\":" << warmup_ms

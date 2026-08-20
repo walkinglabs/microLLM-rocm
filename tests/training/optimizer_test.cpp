@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 #include <microllm/autograd/autograd.h>
+#include <microllm/ops/ops.h>
 #include <microllm/training/optimizer.h>
 
 namespace microllm::training {
@@ -53,6 +54,48 @@ TEST(AdamWTest, RestoredStateProducesTheSameNextStep) {
     second.step();
     EXPECT_EQ(restored.data().to_vector(), uninterrupted.data().to_vector());
     EXPECT_EQ(second.state().step, first.state().step);
+}
+
+TEST(AdamWTest, FusedBf16MirrorTracksUpdatedFp32Master) {
+    Value parameter(Tensor::from_vector({1.0F, -2.0F, 3.0F}, {3}), true);
+    auto mirror = parameter.data().cast(DType::BFloat16);
+    AdamW optimizer({&parameter}, {.learning_rate = 0.01F, .weight_decay = 0.0F},
+                    {{&parameter, &mirror}});
+    sum(scale(parameter, 2.0F)).backward();
+    optimizer.step();
+    EXPECT_EQ(mirror.dtype(), DType::BFloat16);
+    EXPECT_EQ(mirror.cast(DType::Float32).to_vector(),
+              parameter.data().cast(DType::BFloat16).cast(DType::Float32).to_vector());
+
+    Tensor bad({2}, DType::BFloat16);
+    EXPECT_THROW((void)AdamW({&parameter}, {}, {{&parameter, &bad}}),
+                 std::invalid_argument);
+}
+
+TEST(AdamWTest, RestoredStateKeepsDerivedBf16MirrorFresh) {
+    const AdamWConfig config{.learning_rate = 0.01F, .weight_decay = 0.0F};
+    Value first_master(Tensor::from_vector({1.0F, -2.0F}, {2}), true);
+    auto first_mirror = first_master.data().cast(DType::BFloat16);
+    AdamW first({&first_master}, config, {{&first_master, &first_mirror}});
+    sum(scale(first_master, 3.0F)).backward();
+    first.step();
+    first.zero_grad();
+
+    Value restored_master(
+        Tensor::from_vector(first_master.data().to_vector(), {2}), true);
+    auto restored_mirror = restored_master.data().cast(DType::BFloat16);
+    AdamW restored({&restored_master}, config,
+                   {{&restored_master, &restored_mirror}});
+    ops::fill_(restored_mirror, 99.0F);
+    restored.load_state(first.state());
+    EXPECT_EQ(restored_mirror.cast(DType::Float32).to_vector(),
+              restored_master.data().cast(DType::BFloat16).cast(DType::Float32).to_vector());
+    sum(scale(first_master, -2.0F)).backward();
+    sum(scale(restored_master, -2.0F)).backward();
+    first.step();
+    restored.step();
+    EXPECT_EQ(restored_master.data().to_vector(), first_master.data().to_vector());
+    EXPECT_EQ(restored_mirror.to_vector(), first_mirror.to_vector());
 }
 
 TEST(OptimizerTest, RejectsInvalidParametersAndState) {
