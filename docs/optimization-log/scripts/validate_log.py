@@ -293,6 +293,42 @@ def validate_bf16_training(errors: list[str]) -> int:
     return len(records)
 
 
+def validate_bf16_training_profile(errors: list[str]) -> tuple[int, int]:
+    data = ROOT / "experiments" / "038-data"
+    summary = json.loads((data / "profile-summary.json").read_text(encoding="utf-8"))
+    calls = []
+    for policy in ("fp32", "bf16"):
+        with (data / policy / "kernel-stats.csv").open(encoding="utf-8", newline="") as stream:
+            kernels = list(csv.DictReader(stream))
+        with (data / policy / "hip-api-stats.csv").open(encoding="utf-8", newline="") as stream:
+            api = list(csv.DictReader(stream))
+        kernel_calls = sum(int(row["Calls"]) for row in kernels)
+        api_calls = sum(int(row["Calls"]) for row in api)
+        expected = summary["bf16_fp32_master" if policy == "bf16" else "fp32"]
+        if kernel_calls != expected["kernel_dispatches"] or api_calls != expected["hip_api_calls"]:
+            errors.append(f"BF16 training {policy} profiler aggregate mismatch")
+        calls.extend((kernel_calls, api_calls))
+    return calls[0] + calls[2], calls[1] + calls[3]
+
+
+def validate_bf16_training_qkv(errors: list[str]) -> int:
+    data = ROOT / "experiments" / "039-data"
+    records = [json.loads(line) for line in
+               (data / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    if len(records) != 6 or len({(row["model"], row["process_run"]) for row in records}) != 6:
+        errors.append("BF16 training QKV raw matrix must contain six unique rows")
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    if len(summary.get("rows", [])) != 2:
+        errors.append("BF16 training QKV summary must contain two rows")
+    ratios = [row["speedup_vs_bf16_independent_linears"] for row in summary.get("rows", [])]
+    if len(ratios) == 2 and math.prod(ratios) ** 0.5 >= 1.0:
+        errors.append("BF16 training QKV discard boundary changed")
+    if "bf16_qkv_projection" in (REPOSITORY / "include" / "microllm" /
+                                  "autograd" / "autograd.h").read_text(encoding="utf-8"):
+        errors.append("discarded BF16 training QKV graph API remains in public header")
+    return len(records)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -311,7 +347,8 @@ def validate_assets(errors: list[str]) -> None:
     for name in ("progress.svg", "bottleneck-map.svg", "bf16-gemm.svg",
                  "bf16-model-policy.svg", "bf16-ffn-island.svg",
                  "bf16-model-inference.svg", "bf16-prefill-allocator.svg",
-                 "bf16-attention.svg", "bf16-plan-cache.svg", "bf16-training.svg"):
+                 "bf16-attention.svg", "bf16-plan-cache.svg", "bf16-training.svg",
+                 "bf16-training-qkv-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -341,6 +378,9 @@ def main() -> int:
     post_profile_kernel_calls, post_profile_api_calls = validate_post_attention_profile(errors)
     bf16_plan_count = validate_bf16_plan_cache(errors)
     bf16_training_count = validate_bf16_training(errors)
+    training_profile_kernel_calls, training_profile_api_calls = \
+        validate_bf16_training_profile(errors)
+    bf16_training_qkv_count = validate_bf16_training_qkv(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -352,8 +392,10 @@ def main() -> int:
           f"bf16_models={bf16_model_count} bf16_prefill={bf16_prefill_count} "
           f"bf16_attention={bf16_attention_count} "
           f"bf16_plan={bf16_plan_count} bf16_training={bf16_training_count} "
+          f"bf16_training_qkv={bf16_training_qkv_count} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
-          f"{post_profile_kernel_calls}/{post_profile_api_calls} links={link_count}")
+          f"{post_profile_kernel_calls}/{post_profile_api_calls},"
+          f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")
     return 0
 
 

@@ -162,6 +162,12 @@ BF16 autocast 的 `3.12×/2.58×`，loss 都下降；但相对 microLLM FP32 仅
 
 ![BF16 FP32-master training](assets/bf16-training.svg)
 
+Experiment 038 对照 trace 证明 BF16 GEMM 快 20.9%，但 360 个 cast 的 1.91 ms 超过
+GEMM 节省的 1.33 ms。Experiment 039 让训练 Q/K/V 共享 activation cast，allocation
+精确少 240/280 次，却使两模型几何吞吐变成约 `0.991×`；候选 graph API 删除，失败图保留。
+
+![BF16 training shared QKV discarded](assets/bf16-training-qkv-discard.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -196,6 +202,9 @@ BF16 autocast 的 `3.12×/2.58×`，loss 都下降；但相对 microLLM FP32 仅
 | [experiments/036-data/](experiments/036-data/) | plan-cache 三进程 official raw/summary |
 | [assets/bf16-training.svg](assets/bf16-training.svg) | FP32 master BF16 training 的成功与失败门 |
 | [experiments/037-data/](experiments/037-data/) | 18 条 official train raw、摘要和 native-BF16 失败 |
+| [experiments/038-data/](experiments/038-data/) | Qwen FP32/BF16 单步 profiler 对照 |
+| [assets/bf16-training-qkv-discard.svg](assets/bf16-training-qkv-discard.svg) | 少 cast/allocation 但吞吐未改善 |
+| [experiments/039-data/](experiments/039-data/) | shared-QKV candidate 三进程 raw/summary |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

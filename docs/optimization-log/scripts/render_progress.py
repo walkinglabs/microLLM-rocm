@@ -32,6 +32,8 @@ BF16_PLAN_SUMMARY = ROOT / "experiments" / "036-data" / "summary.json"
 BF16_PLAN_CHART = ROOT / "assets" / "bf16-plan-cache.svg"
 BF16_TRAINING_SUMMARY = ROOT / "experiments" / "037-data" / "summary.json"
 BF16_TRAINING_CHART = ROOT / "assets" / "bf16-training.svg"
+BF16_TRAINING_QKV_SUMMARY = ROOT / "experiments" / "039-data" / "summary.json"
+BF16_TRAINING_QKV_CHART = ROOT / "assets" / "bf16-training-qkv-discard.svg"
 
 
 def rows() -> list[dict]:
@@ -682,6 +684,60 @@ def bf16_training_svg() -> str:
     return "\n".join(parts)
 
 
+def bf16_training_qkv_svg() -> str:
+    data = json.loads(BF16_TRAINING_QKV_SUMMARY.read_text(encoding="utf-8"))["rows"]
+    width, height = 1500, 620
+    left, top, chart_w = 430, 150, 850
+    minimum, maximum = 0.85, 1.05
+
+    def px(value: float) -> float:
+        return left + chart_w * (value - minimum) / (maximum - minimum)
+
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 039 · Training Shared-QKV Cast", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 80,
+             "candidate throughput and allocation calls relative to retained BF16 training",
+             16, "#5b6474", anchor="middle"),
+    ]
+    for tick in (0.85, 0.90, 0.95, 1.0, 1.05):
+        x = px(tick)
+        parts.append(f'<line x1="{x:.1f}" y1="118" x2="{x:.1f}" y2="470" '
+                     f'stroke="{("#2563eb" if tick == 1.0 else "#e5e9f0")}" '
+                     f'stroke-width="{2 if tick == 1.0 else 1}"/>')
+        parts.append(text(x, 500, f"{tick:.2f}×", 14, "#5b6474", anchor="middle"))
+    allocation_ratios = {"qwen2.5-0.5b": 10760 / 11000,
+                         "deepseek-r1-distill-qwen-1.5b": 12545 / 12825}
+    for index, row in enumerate(data):
+        y = top + index * 155
+        label = "Qwen2.5-0.5B" if row["model"].startswith("qwen") else "DeepSeek Distill 1.5B"
+        parts.append(text(left - 26, y + 26, label, 18, "#172033",
+                          anchor="end", weight=700))
+        values = (
+            (row["speedup_vs_bf16_independent_linears"], "throughput vs BF16 baseline", "#f59e0b"),
+            (allocation_ratios[row["model"]], "allocation calls vs baseline", "#64748b"),
+            (row["ratio_vs_microllm_fp32"], "throughput vs microLLM FP32", "#dc6b5a"),
+        )
+        for offset, (ratio, title, color) in enumerate(values):
+            bar_y = y + offset * 39
+            x0, x1 = px(1.0), px(ratio)
+            parts.append(f'<rect x="{min(x0,x1):.1f}" y="{bar_y}" '
+                         f'width="{max(abs(x1-x0),2):.1f}" height="27" rx="5" fill="{color}"/>')
+            parts.append(text(x1 - 9, bar_y + 20, f"{ratio:.3f}×  {title}", 14,
+                              color, anchor="end", weight=700))
+    parts.append(text(width / 2, 555,
+                      "Allocation hypothesis passed; two-model throughput objective regressed to ~0.991×",
+                      16, "#b83f32", anchor="middle", weight=700))
+    parts.append(text(width / 2, 598,
+                      "Candidate graph API removed · raw results retained",
+                      14, "#6b7280", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -693,7 +749,8 @@ def main() -> int:
                 BF16_PREFILL_CHART: bf16_prefill_allocator_svg(),
                 BF16_ATTENTION_CHART: bf16_attention_svg(),
                 BF16_PLAN_CHART: bf16_plan_cache_svg(),
-                BF16_TRAINING_CHART: bf16_training_svg()}
+                BF16_TRAINING_CHART: bf16_training_svg(),
+                BF16_TRAINING_QKV_CHART: bf16_training_qkv_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

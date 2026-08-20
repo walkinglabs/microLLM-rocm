@@ -1,0 +1,27 @@
+{
+  "architecture": "gfx942:sramecc+:xnack-",
+  "model": "qwen2.5-0.5b",
+  "tokens_per_step": 3,
+  "measured_steps": 1,
+  "fp32": {
+    "kernel_dispatches": 2886,
+    "hip_api_calls": 100968,
+    "kernel_time_ns": 25154764,
+    "gemm_calls": 338,
+    "gemm_time_ns": 6389397,
+    "cast_calls": 0,
+    "cast_time_ns": 0,
+    "engine_allocation_calls": 1840
+  },
+  "bf16_fp32_master": {
+    "kernel_dispatches": 3247,
+    "hip_api_calls": 113398,
+    "kernel_time_ns": 26021031,
+    "gemm_calls": 338,
+    "gemm_time_ns": 5055013,
+    "cast_calls": 360,
+    "cast_time_ns": 1909377,
+    "engine_allocation_calls": 2201
+  },
+  "note": "instrumented single-step structure only; Experiment 037 provides uninstrumented throughput"
+}

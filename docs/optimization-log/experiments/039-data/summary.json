@@ -1,0 +1,33 @@
+{
+  "aggregation": "median of three independent candidate processes by default",
+  "rows": [
+    {
+      "all_updates_finite": true,
+      "candidate_tokens_per_second": 134.898281704,
+      "final_loss": 0.002486547,
+      "first_loss": 1.003457665,
+      "model": "qwen2.5-0.5b",
+      "peak_bytes": 9012293536.0,
+      "peak_ratio_vs_baseline": 1.0,
+      "ratio_vs_microllm_fp32": 0.8935671083349161,
+      "ratio_vs_pytorch_bf16_amp": 3.0374072030116412,
+      "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+      "speedup_vs_bf16_independent_linears": 0.9728848967905364
+    },
+    {
+      "all_updates_finite": true,
+      "candidate_tokens_per_second": 74.729888817,
+      "final_loss": 9.268782616,
+      "first_loss": 10.489388466,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "peak_bytes": 28468424608.0,
+      "peak_ratio_vs_baseline": 1.0,
+      "ratio_vs_microllm_fp32": 0.914495117396876,
+      "ratio_vs_pytorch_bf16_amp": 2.6059948956005905,
+      "revision": "ad9f0ae0864d7fbcd1cd905e3c6c5b069cc8b562",
+      "speedup_vs_bf16_independent_linears": 1.0089821689463387
+    }
+  ],
+  "schema_version": 1,
+  "track": "bf16_training_shared_qkv"
+}

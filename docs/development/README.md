@@ -178,6 +178,8 @@ the next gate. Records are append-only except for factual corrections.
   BF16 hipBLASLt plan reuse and four-row PyTorch BF16 performance pass.
 - [2026-08-20-bf16-fp32-master-training.md](2026-08-20-bf16-fp32-master-training.md):
   full-model STE gradients, official multi-step updates and internal performance failure.
+- [2026-08-20-bf16-training-qkv-discard.md](2026-08-20-bf16-training-qkv-discard.md):
+  paired cast profile and a measured shared-QKV graph rejection.
 - [2026-08-20-parallel-cross-entropy.md](2026-08-20-parallel-cross-entropy.md):
   Experiment 001 block-parallel CE, large-vocabulary/PyTorch gates, 66.1% score gain,
   profiler before/after and next-hotspot handoff.

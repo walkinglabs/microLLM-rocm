@@ -1093,3 +1093,20 @@ Qwen/DeepSeek microLLM BF16 训练是 PyTorch autocast 的 `3.12×/2.58×`，los
 但只达到 microLLM FP32 的 `0.918×/0.906×`，峰值显存一字节也没少。结论是训练已经
 “能正确跑”，还没有成为本项目内部的性能优化。下一节点要减少 forward 中重复 cast，
 同时守住 FP32 master/gradient/update。
+
+## 55. Experiment 038：GEMM 的收益被 cast 吃掉
+
+同一 Qwen 单步 trace 中，BF16 GEMM 从 6.39 ms 降到 5.06 ms，但新增 360 次 cast，耗时
+1.91 ms。结果是总 Kernel 时间反而从 25.15 ms 增到 26.02 ms，allocation 也从 1840
+增到 2201。低精度矩阵核确实更快，训练 step 却更慢，两句话可以同时成立。
+
+## 56. Experiment 039：少 240 次 allocation 还是不够
+
+Q/K/V 共用 input，理论上 Qwen 每 5 步少 `24×2×5=240` 次 cast/allocation，DeepSeek 少
+280 次；实测精确命中。但三进程吞吐相对 BF16 baseline 是 Qwen `0.973×`、DeepSeek
+`1.009×`，几何约 `0.991×`。
+
+![BF16 training shared QKV discarded](assets/bf16-training-qkv-discard.svg)
+
+因此训练 graph 的 ValueTriple/API 和模型分支删除。推理同名 shared-QKV op 仍保留，
+因为它有独立通过的证据。训练下一步必须形成更大的连续 FFN island，而不是继续堆小图节点。
