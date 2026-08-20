@@ -128,6 +128,7 @@ Experiment 029 跨 Block 融合 residual+Norm，少 28 个 launch 但 Qwen 退�
 | [PROGRAM.md](PROGRAM.md) | 人或 Coding Agent 执行实验时必须遵守的循环 |
 | [PLAN.md](PLAN.md) | 阶段路线、优先级和完成定义 |
 | [SCHEMA.md](SCHEMA.md) | 分数、状态、结果表和图表字段合同 |
+| [SATURATION.md](SATURATION.md) | 已穷举的局部搜索空间与架构级下一阶段边界 |
 | [results.tsv](results.tsv) | 一行一个实际实验；计划不进入结果表 |
 | [steps/](steps/) | 每个优化步骤的假设、边界、测试和反驳实验 |
 | [experiments/](experiments/) | 实际执行后新增的详细实验报告 |

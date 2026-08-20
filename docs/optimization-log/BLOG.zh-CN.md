@@ -926,3 +926,12 @@ BF16 独立图另有一个被否决的模型策略。未来如果十个实验都
 7. 所有结论都写清适用 GPU、dtype、shape 和版本。
 
 下一篇更新继续 Step 08 的 prefill/backward，或依据新 trace 选择更高收益热点。
+
+## 42. 当前为什么暂停局部 FP32 小改动
+
+最近的 allocator batch、Attention staging、bias/store 和跨 Block fusion 已形成连续反例。
+这不表示“无法继续优化”，而表示同一类局部 M=1 改动已经饱和。下一阶段必须建立 BF16
+activation island、packed weights、HIP Graph 或 prefill/backward 的新合同和新曲线。
+
+完整边界见 [局部优化饱和审计](SATURATION.md)。在新 track 有可靠 baseline 前，不再用
+旧 FP32 score 包装架构变化。

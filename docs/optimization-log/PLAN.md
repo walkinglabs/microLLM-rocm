@@ -22,7 +22,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | M3 optimized ops | in progress | batched GEMM、hipBLASLt plan、FMHA/fusion | Model-S/M 与 HF 均改善 |
 | M4 low precision | in progress | BF16 算子/autograd 已有；首个模型策略被否决 | 同 dtype PyTorch 对照 |
 | M5 scheduling | planned | stable-address HIP Graph | launch/API 时间下降且数值不变 |
-| M6 report | planned | 博客、曲线、trace、失败图集 | selected matrix 达到最终门 |
+| M6 report | in progress | 博客、曲线、trace、失败图集、局部饱和审计 | 新 track 仍待完成 |
 
 ## 步骤索引
 
