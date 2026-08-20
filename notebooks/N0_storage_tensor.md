@@ -16,9 +16,9 @@
 构建并运行：
 
 ```bash
-./scripts/configure.sh -DMICROLLM_ENABLE_HIP=OFF
-./scripts/build.sh
-./build/examples/microllm_n0_ppm /tmp/n0.ppm
+cmake --preset cpu-debug -S "$MICROLLM_ENGINE_DIR"
+cmake --build "$MICROLLM_ENGINE_DIR/build/cpu-debug" --parallel
+"$MICROLLM_ENGINE_DIR/build/cpu-debug/examples/microllm_n0_ppm" /tmp/n0.ppm
 ```
 
 示例创建一个 `8x8` CPU Tensor，返回共享 Storage 的 transpose view，再按逻辑
@@ -32,7 +32,7 @@ checksum_fnv1a=17940541173909021477
 
 如果 transpose 只交换 shape 而不交换 stride，输出像素顺序和 checksum 会变化。
 如果 view 复制 Storage，修改 view 后原 Tensor 不会变化。对应测试位于
-`tests/core/tensor_test.cpp`。
+`$MICROLLM_ENGINE_DIR/tests/core/tensor_test.cpp`。
 
 ## 当前契约
 

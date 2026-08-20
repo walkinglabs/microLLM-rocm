@@ -19,21 +19,22 @@ incorrect.
 ## Micro benchmark
 
 ```bash
-./scripts/configure.sh -DCMAKE_BUILD_TYPE=Release -DMICROLLM_ENABLE_HIP=ON
-./scripts/build.sh
-./build/benchmarks/microllm_bench_ops \
+cmake --preset hip-release -S "$MICROLLM_ENGINE_DIR"
+cmake --build "$MICROLLM_ENGINE_DIR/build/hip-release" --parallel
+"$MICROLLM_ENGINE_DIR/build/hip-release/benchmarks/microllm_bench_ops" \
   --op matmul --m 1 --k 384 --n 384 --size 384 \
   --warmup 10 --repetitions 50 --device hip --implementation readable
 ```
 
 Every JSON record includes Event and wall min/mean/max, correctness error, GPU/ROCm
-metadata, warm-up and repetitions. `benchmarks/validate_json.py` parses emitted JSON;
+metadata, warm-up and repetitions. The validator in
+`$MICROLLM_ENGINE_DIR/benchmarks/validate_json.py` parses emitted JSON;
 successful calculation alone is not sufficient evidence.
 
 ## End-to-end benchmark
 
 ```bash
-./build/benchmarks/microllm_bench_model \
+"$MICROLLM_ENGINE_DIR/build/hip-release/benchmarks/microllm_bench_model" \
   --mode train --model tiny --device hip \
   --steps 10 --warmup 3 --batch 1 --context 8 --new-tokens 8
 ```
@@ -51,8 +52,8 @@ the host boundary. “GPU available” does not imply “GPU faster.”
 ## rocprofv3
 
 ```bash
-./scripts/profile_hip.sh /tmp/microllm-trace -- \
-  ./build/benchmarks/microllm_bench_model \
+"$MICROLLM_ENGINE_DIR/scripts/profile_hip.sh" /tmp/microllm-trace -- \
+  "$MICROLLM_ENGINE_DIR/build/hip-release/benchmarks/microllm_bench_model" \
   --mode train --model tiny --device hip \
   --steps 2 --warmup 1 --batch 1 --context 8 --new-tokens 8
 ```

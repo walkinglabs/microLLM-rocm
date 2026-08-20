@@ -1,149 +1,112 @@
-# microLLM-rocm
+# microLLM-rocm 初学者课程
 
-`microLLM-rocm` is a small, independently usable C++/HIP training and inference
-engine for teaching, measuring, and improving language-model systems on AMD GPUs.
-
-第一次阅读可以从[初中生也能读懂的中文设计说明](docs/DESIGN_FOR_BEGINNERS.zh-CN.md)
-开始，再使用[算子契约与 PyTorch 对照表](docs/OPERATOR_CONTRACTS.zh-CN.md)检查每个
-算子的输入 shape、输出 shape、误差和失败条件。
-
-The project is **pre-alpha**. CPU/HIP FP32 operators, the repository-owned autograd
-graph, tiny Transformer training, optional bindings, profiling, and two-rank RCCL have
-smoke evidence. Reference-length training, PyTorch ROCm integration, Radeon validation,
-and four-rank execution remain outside release claims.
-
-## Product shape
+这是 `microLLM-rocm` 的**纯课程分支**。这里解释框架为什么这样设计，安排
+N0–N8 Notebook 和 PA0–PA2 作业，但不复制框架源码、测试、构建产物或实测结果。
 
 ```text
-Optional Python API / PyTorch Custom Ops
-                    ↓
-        C API and C++ engine API
-                    ↓
- Tensor → Ops → Autograd → Model → Train/Infer
-                    ↓
-       CPU reference / AMD HIP runtime
-                    ↓
-        hipBLASLt / RCCL when enabled
+main                       真实 C++/HIP 引擎、测试、Benchmark、开发记录
+tutorial/beginner-course   课程正文、作业、学习用小数据、课程结构校验
 ```
 
-Every performance-sensitive operator will keep three paths where useful:
+框架的唯一真实来源是
+[`main`](https://github.com/walkinglabs/microLLM-rocm/tree/main)。课程中出现的命令
+都在 `main` 工作树运行；这样课程不会悄悄使用一份过时的引擎副本。
 
-1. a readable CPU reference;
-2. a readable HIP implementation;
-3. a tuned implementation, which may use ROCm vendor libraries.
+## 从哪里开始
 
-## Current status
+第一次接触框架内部结构时，按下面顺序阅读：
 
-| Area | Status | Evidence |
-|---|---|---|
-| CPU build without ROCm | smoke-tested | CPU CMake preset and CTest |
-| Device/Storage | smoke-tested | ownership and lifetime tests |
-| Tensor shape/stride/view | smoke-tested | deterministic and randomized tests |
-| N0 PPM example | smoke-tested | runnable example with checksum |
-| HIP runtime and Tensor transfer | smoke-tested | MI300X runtime tests |
-| CPU reference operators | smoke-tested | hand values and sanitizer tests |
-| HIP readable operators | smoke-tested | forward/backward primitive and graph conformance on gfx942 |
-| HIP non-contiguous materialization | smoke-tested | generic rank≤8 stride-copy kernel |
-| CPU Transformer autograd | smoke-tested | hand gradients and finite differences |
-| HIP Transformer autograd | smoke-tested | device-native forward/backward graph; zero host transfers in graph test |
-| PyTorch operator/graph oracle | smoke-tested | all public math ops, shape rejection, SGD/AdamW, full tiny Transformer gradients |
-| SGD/AdamW | smoke-tested | hand first step and restored-state equivalence |
-| Versioned checkpoint | smoke-tested | complete state, corruption, resume trajectory |
-| Decoder Transformer | smoke-tested | tiny MHA/GQA forward, causal test, all-parameter backward |
-| Byte tokenizer/token dataset | smoke-tested | byte round-trip and cursor-resume batches |
-| BPE/token data source | smoke-tested | BPE + immutable TinyStories Model-S smoke |
-| C++ training CLI | smoke-tested | save/resume + 10-step Model-S TinyStories HIP smoke |
-| Tiny Transformer training | smoke-tested | 40-step overfit loss 1.81171 → 0.00673309 |
-| SFT response masking | smoke-tested | CPU/HIP ignored targets; tiny loss 1.88494 → 0.01067 |
-| CPU KV cache | smoke-tested | per-layer MHA/GQA cached/full logits comparison |
-| Token generation | smoke-tested | greedy/top-k/temperature/fixed-seed cache generation |
-| Model-S CPU forward | smoke-tested | real 15.6M model, 8192 finite logits |
-| Model-S CPU training | smoke-tested | 3-step loss 11.2473 → 1.98712 |
-| Model-S HIP forward | smoke-tested | MI300X CPU/HIP max logit error 4.05312e-06 |
-| Tiny HIP training | smoke-tested | MI300X 5-step loss 2.21512 → 1.11681 |
-| Model-M HIP train step | smoke-tested | 31.3M params; 518,798,856 peak engine bytes |
-| C ABI v1 | smoke-tested | pure C CPU/HIP tensor and operator client |
-| Python ctypes API | smoke-tested | dependency-free CPU/HIP integration tests |
-| PyTorch Custom Ops | CPU smoke-tested | Torch 2.13 CPU passes; ROCm path unverified |
-| Micro-benchmark harness | smoke-tested | CPU/HIP JSONL, Event/wall/error metadata |
-| End-to-end benchmark | smoke-tested | train/generate tokens/s and engine peak memory |
-| hipBLASLt + shape selector | smoke-tested | 2D FP32 correctness and Model-S measurements |
-| RCCL two-GPU equivalence | smoke-tested | XGMI ranks identical; single/multi diff 1.49e-08 |
-| RCCL gradient buckets | smoke-tested | 64→1 collectives: 6.676→0.225 ms |
-| RCCL compute overlap | smoke-tested | separate Streams improve synthetic step 30–33% |
-| RCCL four-GPU | blocked by environment | 64MB /dev/shm; failure evidence retained |
-| Reference-length Model-S/SFT report | planned | full dataset + validation run required |
-| Python/PyTorch bindings | mixed | ctypes CPU/HIP + Torch CPU tested; Torch ROCm pending |
-| Profiling/autotuning | smoke-tested | M5 evidence and registry |
-| Backward-ready overlap/four-GPU retry | planned | M6 follow-up |
+1. [把一串数字变成会学习的小模型](docs/DESIGN_FOR_BEGINNERS.zh-CN.md)
+2. [课程地图](notebooks/README.md)
+3. [N0：从数组到 Storage 与 Tensor](notebooks/N0_storage_tensor.md)
+4. [任务契约工作单](docs/TASK_CONTRACT.md)
+5. [算子 shape、精度和失败契约](docs/OPERATOR_CONTRACTS.zh-CN.md)
 
-See [STATUS.md](docs/development/STATUS.md) for the evidence gate behind each state.
+## 准备课程和引擎
 
-Run the unified artifact/test audit with:
+推荐使用两个相邻目录。第一个目录固定在 `main`，第二个目录只阅读课程：
 
 ```bash
-./scripts/verify_evidence.sh cpu
-MICROLLM_BUILD_DIR=build-hip ./scripts/verify_evidence.sh hip
-MICROLLM_BUILD_DIR=build-rccl ./scripts/verify_evidence.sh rccl
+git clone --branch main \
+  https://github.com/walkinglabs/microLLM-rocm.git microLLM-rocm-engine
+git clone --branch tutorial/beginner-course \
+  https://github.com/walkinglabs/microLLM-rocm.git microLLM-rocm-course
+
+cd microLLM-rocm-course
+export MICROLLM_ENGINE_DIR="$(cd ../microLLM-rocm-engine && pwd)"
 ```
 
-## Build and test
-
-CPU-only development does not require ROCm:
+检查变量指向真正的框架分支：
 
 ```bash
-./scripts/configure.sh -DMICROLLM_ENABLE_HIP=OFF
-./scripts/build.sh
-./scripts/test.sh
+test "$(git -C "$MICROLLM_ENGINE_DIR" branch --show-current)" = main
 ```
 
-Run the stricter host check with AddressSanitizer and UndefinedBehaviorSanitizer:
+然后按照 `main` 的
+[构建说明](https://github.com/walkinglabs/microLLM-rocm/blob/main/docs/dev/build.md)
+完成 CPU、HIP 或 RCCL 构建。课程只引用这些构建，不维护另一套 CMake 工程。
+
+## 学习主线
+
+```text
+数组和指针
+  ↓
+Storage：谁保管内存
+  ↓
+Tensor：怎样解释 shape、stride、dtype 和 device
+  ↓
+CPU reference：最容易检查的正确答案
+  ↓
+HIP Kernel：让 AMD GPU 计算同一道题
+  ↓
+Autograd：记录来路并计算梯度
+  ↓
+Transformer：把算子连接成语言模型
+  ↓
+训练、Checkpoint 和 KV Cache 生成
+  ↓
+性能测量、低精度和真实 Hugging Face 权重
+  ↓
+RCCL 多卡训练和证据图集
+```
+
+课程不是只读文章。每章都要求：先预测、运行旧办法、复现一个失败、写任务
+契约、运行 `main` 的测试、审查改动，并保留一个尚未解决的边界。
+
+## 分支中允许出现什么
+
+| 路径 | 内容 |
+|---|---|
+| `notebooks/` | N0–N8 连续课程 |
+| `pa/` | PA0–PA2 作业说明和极小独立练习 |
+| `docs/` | 初学者设计、算子契约、任务工作单 |
+| `data/` | 可以直接审阅的小型教学数据和登记说明 |
+| `course_tools/` | 只检查课程目录和 Markdown 链接的工具 |
+
+下面这些属于 `main`，不得再次放进课程分支：
+
+```text
+src/ include/ tests/ apps/ examples/ bindings/ benchmarks/ CMakeLists.txt
+```
+
+## 课程校验
+
+校验器不会编译框架。它只证明课程文件齐全、内部 Markdown 链接有效，并且
+课程分支没有重新引入引擎目录：
 
 ```bash
-./scripts/check_cpu.sh
+python3 course_tools/validate_course.py
 ```
 
-On a ROCm machine, `MICROLLM_ENABLE_HIP=AUTO` is the default. Use `ON` when a
-missing HIP toolchain should be a configuration error.
+框架的数值、梯度、单卡和多卡结果必须在 `main` 重新运行。课程不能把文字中的
+示例输出当作当前硬件证据。
 
-Run the first end-to-end artifact:
+## 作业
 
-```bash
-./build/examples/microllm_n0_ppm /tmp/microllm-n0.ppm
-```
+- [PA0：手算一次参数更新](pa/PA0/README.md)
+- [PA1：提交一个可复现的性能失败](pa/PA1/README.md)
+- [PA2：从稳定失败提出下一版系统](pa/PA2/README.md)
 
-With HIP enabled, run the explicit-Stream CPU/HIP comparison:
+## 许可证
 
-```bash
-./build/examples/microllm_n1_cpu_hip
-```
-
-Use the optional dependency-free Python API against a build tree:
-
-```bash
-PYTHONPATH=python \
-MICROLLM_LIBRARY=build/bindings/capi/libmicrollm.so \
-python3 -c 'import microllm as m; print((m.Tensor.from_f32([1,2], (2,)) * m.Tensor.from_f32([3,4], (2,))).tolist())'
-```
-
-## Models
-
-- **Model-S:** approximately 15.6M parameters / 62 MB of FP32 weights.
-- **Model-M:** approximately 31M parameters / 124 MB of FP32 weights (planned).
-
-Reports always state both parameter count and weight dtype. “64 MB model” is not
-used as a substitute for a parameter count.
-
-## Documentation
-
-- [Project charter](docs/PROJECT_CHARTER.md)
-- [Architecture and dependency rules](docs/ARCHITECTURE.md)
-- [Development roadmap](docs/development/ROADMAP.md)
-- [Development records](docs/development/README.md)
-- [Hardware/Radeon compatibility](docs/COMPATIBILITY.md)
-- [Contributor task contract](docs/TASK_CONTRACT.md)
-- [Contributing](CONTRIBUTING.md)
-
-## License
-
-Apache License 2.0. See [LICENSE](LICENSE).
+Apache License 2.0，见 [LICENSE](LICENSE)。

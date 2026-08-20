@@ -1,0 +1,15 @@
+name: Course structure
+
+on:
+  push:
+    branches: [tutorial/beginner-course]
+  pull_request:
+    branches: [tutorial/beginner-course]
+
+jobs:
+  validate-course:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check course-only layout and Markdown links
+        run: python3 course_tools/validate_course.py

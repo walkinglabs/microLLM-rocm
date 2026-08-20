@@ -1,9 +1,11 @@
 # PA0 — 规则小世界中的第一次学习
 
-Do not start from Autograd. Predict one update of `y = w*x + b` on paper, then run:
+Do not start from Autograd. Predict one update of `y = w*x + b` on paper, then compile
+the independent teaching program; it does not link the framework:
 
 ```bash
-./build/pa/PA0/microllm_pa0_linear
+g++ -std=c++20 -O2 pa/PA0/linear_update.cpp -o /tmp/microllm-pa0
+/tmp/microllm-pa0
 ```
 
 ## Part A: three regular samples

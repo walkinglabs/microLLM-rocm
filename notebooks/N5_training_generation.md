@@ -20,8 +20,8 @@ SFT claim is made.
 ## Model-S executable evidence
 
 ```bash
-./build/examples/microllm_model_s_smoke
-./build/examples/microllm_model_s_train_smoke
+"$MICROLLM_ENGINE_DIR/build/cpu-debug/examples/microllm_model_s_smoke"
+"$MICROLLM_ENGINE_DIR/build/cpu-debug/examples/microllm_model_s_train_smoke"
 ```
 
 Observed three-step CPU smoke:
@@ -36,9 +36,9 @@ not a pretraining curve.
 ## HIP forward and training
 
 ```bash
-ctest --test-dir build-hip -L hip --output-on-failure
-./build-hip/examples/microllm_model_s_hip_smoke
-./build-hip/examples/microllm_tiny_hip_train
+ctest --test-dir "$MICROLLM_ENGINE_DIR/build/hip-release" -L hip --output-on-failure
+"$MICROLLM_ENGINE_DIR/build/hip-release/examples/microllm_model_s_hip_smoke"
+"$MICROLLM_ENGINE_DIR/build/hip-release/examples/microllm_tiny_hip_train"
 ```
 
 On MI300X/gfx942, Model-S CPU/HIP maximum logit error was `4.05312e-06`. Tiny HIP
@@ -50,7 +50,8 @@ AdamW still cross the host boundary; N6 profiles this cost.
 For MHA and GQA, every cached prefix logit is compared with full-prefix logits:
 
 ```bash
-ctest --test-dir build --output-on-failure -R CachedLogits
+ctest --test-dir "$MICROLLM_ENGINE_DIR/build/cpu-debug" \
+  --output-on-failure -R CachedLogits
 ```
 
 Tolerance is `2e-5`; cache stores actual per-layer projected K/V, not token IDs.
@@ -60,13 +61,14 @@ Tolerance is `2e-5`; cache stores actual per-layer projected K/V, not token IDs.
 The generator supports greedy, temperature, top-k, and fixed seed:
 
 ```bash
-ctest --test-dir build --output-on-failure -R 'SamplingTest|GeneratorTest'
+ctest --test-dir "$MICROLLM_ENGINE_DIR/build/cpu-debug" \
+  --output-on-failure -R 'SamplingTest|GeneratorTest'
 ```
 
 ## SFT response masking
 
 ```bash
-./build/examples/microllm_tiny_sft
+"$MICROLLM_ENGINE_DIR/build/cpu-debug/examples/microllm_tiny_sft"
 ```
 
 Targets whose predicted token is still inside the prompt are set to `-100` and

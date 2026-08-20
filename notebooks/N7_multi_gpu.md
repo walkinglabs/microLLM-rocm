@@ -8,12 +8,10 @@ step if gradients are not reduced. Then write the equivalent single-rank global 
 ## 构建
 
 ```bash
-./scripts/configure.sh \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DMICROLLM_ENABLE_HIP=ON \
-  -DMICROLLM_ENABLE_RCCL=ON
-./scripts/build.sh
-ctest --test-dir build -L rccl --output-on-failure
+cmake --preset rccl-release -S "$MICROLLM_ENGINE_DIR"
+cmake --build "$MICROLLM_ENGINE_DIR/build/rccl-release" --parallel
+ctest --test-dir "$MICROLLM_ENGINE_DIR/build/rccl-release" \
+  -L rccl --output-on-failure
 ```
 
 Tests skip when fewer than two GPUs are visible. A skipped design is not reported as

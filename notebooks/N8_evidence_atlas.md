@@ -33,27 +33,27 @@ test, raw record, and scope.
 CPU:
 
 ```bash
-./scripts/check_cpu.sh
+"$MICROLLM_ENGINE_DIR/scripts/check_cpu.sh"
 ```
 
 HIP:
 
 ```bash
-ctest --test-dir build-hip -L hip --output-on-failure
+ctest --test-dir "$MICROLLM_ENGINE_DIR/build/hip-release" -L hip --output-on-failure
 ```
 
 RCCL:
 
 ```bash
-ctest --test-dir build-rccl -L rccl --output-on-failure
+ctest --test-dir "$MICROLLM_ENGINE_DIR/build/rccl-release" -L rccl --output-on-failure
 ```
 
 Benchmark JSON validity:
 
 ```bash
-python3 benchmarks/validate_json.py \
-  build/benchmarks/microllm_bench_ops \
-  build/benchmarks/microllm_bench_model
+python3 "$MICROLLM_ENGINE_DIR/benchmarks/validate_json.py" \
+  "$MICROLLM_ENGINE_DIR/build/hip-release/benchmarks/microllm_bench_ops" \
+  "$MICROLLM_ENGINE_DIR/build/hip-release/benchmarks/microllm_bench_model"
 ```
 
 ## Failure atlas

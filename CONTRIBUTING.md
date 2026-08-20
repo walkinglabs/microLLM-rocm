@@ -1,42 +1,44 @@
-# Contributing
+# 为初学者课程贡献内容
 
-microLLM-rocm accepts small changes with explicit contracts and reproducible
-evidence. A directory existing in the repository does not mean its feature is
-implemented.
+这个分支只接受课程材料，不接受框架实现。需要修改 C++/HIP 引擎、测试、命令行
+工具或 Benchmark 时，请在 `main` 分支提交改动，再让课程链接到新的公开接口。
 
-## Before implementation
+## 提交前先写清楚
 
-Create or reference a task contract using [docs/TASK_CONTRACT.md](docs/TASK_CONTRACT.md).
-The contract must identify the observed failure, allowed files, public interface,
-invariants, reference implementation, tests, and evidence.
+使用[任务契约](docs/TASK_CONTRACT.md)记录：
 
-## Dependency rules
+- 学习者当前会看见什么问题；
+- 本次只解释或练习什么；
+- 需要 `main` 的哪个命令或测试；
+- 哪个预测必须在运行前写下；
+- 怎样判断结果正确；
+- 本节仍然留下什么边界或反例。
 
-- `base` depends only on the C++ standard library.
-- `core` must remain usable in a CPU-only build.
-- low-level operators accept non-owning views and explicit output/workspace/stream;
-  they do not own Tensor lifetimes.
-- `reference` code never depends on HIP.
-- `hip_readable` is retained when a tuned implementation is added.
-- optional bindings cannot become dependencies of the core engine.
-- distributed code cannot change single-device numerical semantics.
+## 课程内容规则
 
-## Local checks
+- 使用初中生能够理解的短句解释第一个例子，再引入术语；
+- 一个小节只加入一个主要困难；
+- 示例输出必须标注为历史记录或要求学习者现场重跑；
+- 不把 `main` 的源码、测试、Benchmark 或开发日志复制到本分支；
+- 不把编译成功、跳过的测试或可见 GPU 写成实测支持；
+- 框架路径统一通过 `MICROLLM_ENGINE_DIR` 指向独立的 `main` 工作树；
+- 每章至少包含一次预测、一次运行、一次失败和一次证据判断。
+
+## 本地检查
 
 ```bash
-./scripts/check_cpu.sh
+python3 course_tools/validate_course.py
+g++ -std=c++20 -O2 pa/PA0/linear_update.cpp -o /tmp/microllm-pa0
+/tmp/microllm-pa0
 ```
 
-HIP changes must additionally run the matching `hip`-labelled CTest tests on a
-recorded GPU and ROCm version. Performance changes must include correctness
-regression results and raw benchmark metadata.
+课程校验只检查课程结构和链接。数值、梯度、HIP、性能与多卡证据必须在
+`main` 工作树运行对应测试。
 
-## Pull requests
+## Pull Request 应包含
 
-Include:
-
-1. the task contract;
-2. the unproven assumptions found during review;
-3. commands run and their results;
-4. one relevant negative or boundary case;
-5. status/documentation updates if the evidence state changed.
+1. 修改对应的学习问题；
+2. 学习者需要运行的精确命令；
+3. 已检查的内部链接；
+4. 一个容易误解的地方及其反例；
+5. 如果引用了新的框架能力，给出 `main` 中的测试或开发记录链接。

@@ -38,9 +38,10 @@ Boundary: readable CPU FP32 first; HIP must reuse the same semantics.
 ## 运行
 
 ```bash
-./scripts/configure.sh -DMICROLLM_ENABLE_HIP=OFF
-./scripts/build.sh
-ctest --test-dir build --output-on-failure -R AutogradTest
+cmake --preset cpu-debug -S "$MICROLLM_ENGINE_DIR"
+cmake --build "$MICROLLM_ENGINE_DIR/build/cpu-debug" --parallel
+ctest --test-dir "$MICROLLM_ENGINE_DIR/build/cpu-debug" \
+  --output-on-failure -R AutogradTest
 ```
 
 Focused evidence includes:
@@ -53,10 +54,10 @@ Focused evidence includes:
 - non-contiguous reshape/transpose backward;
 - repeated backward without stale intermediate gradients.
 
-Graph construction has its own `tests/graph/` directory. It inspects operation names,
+Graph construction has its own `$MICROLLM_ENGINE_DIR/tests/graph/` directory. It inspects operation names,
 parent edges, topological order, shared branches, root shapes, CPU/HIP graph structure,
 and every-parameter gradient alignment. PyTorch rebuilds the same operator and tiny
-Transformer graphs in `python/tests/test_operator_parity.py`.
+Transformer graphs in `$MICROLLM_ENGINE_DIR/python/tests/test_operator_parity.py`.
 
 ## 审查 Agent 改动
 

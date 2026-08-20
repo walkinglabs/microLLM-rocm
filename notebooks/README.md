@@ -1,7 +1,9 @@
 # microLLM-rocm course notebooks
 
-These Markdown notebooks are executable guides over the same engine source. They do
-not contain a second teaching-only implementation.
+These Markdown notebooks are executable guides for the engine on the repository's
+`main` branch. This course branch intentionally contains no engine copy. Before running
+commands, set `MICROLLM_ENGINE_DIR` to an absolute path of a separate `main` checkout as
+described in the [course README](../README.md).
 
 | Notebook | Engine evidence |
 |---|---|
@@ -17,3 +19,13 @@ not contain a second teaching-only implementation.
 
 Each notebook starts from a concrete old method, adds one failure condition, defines
 a task contract before implementation, and retains at least one limitation or failure.
+
+Commands use CMake presets from `main`:
+
+```bash
+cmake --build "$MICROLLM_ENGINE_DIR/build/cpu-debug" --parallel
+cmake --build "$MICROLLM_ENGINE_DIR/build/hip-release" --parallel
+cmake --build "$MICROLLM_ENGINE_DIR/build/rccl-release" --parallel
+```
+
+Run them from the engine checkout or use the absolute paths shown in each notebook.

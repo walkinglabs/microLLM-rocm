@@ -43,8 +43,9 @@ Future tokens must not affect earlier logits.
 ## 运行结构和因果测试
 
 ```bash
-ctest --test-dir build --output-on-failure -R TransformerModelTest
-./build/examples/microllm_model_info
+ctest --test-dir "$MICROLLM_ENGINE_DIR/build/cpu-debug" \
+  --output-on-failure -R TransformerModelTest
+"$MICROLLM_ENGINE_DIR/build/cpu-debug/examples/microllm_model_info"
 ```
 
 Model-S is exactly 15,586,176 parameters and 62,344,704 FP32 weight bytes. Model-M is
@@ -53,7 +54,7 @@ Model-S is exactly 15,586,176 parameters and 62,344,704 FP32 weight bytes. Model
 ## Tiny overfit
 
 ```bash
-./build/examples/microllm_tiny_overfit
+"$MICROLLM_ENGINE_DIR/build/cpu-debug/examples/microllm_tiny_overfit"
 ```
 
 Observed trajectory:

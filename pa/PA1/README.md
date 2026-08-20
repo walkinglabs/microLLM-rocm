@@ -19,12 +19,15 @@ fixed GPU/ROCm/model/shape/dtype
 Useful commands:
 
 ```bash
-MICROLLM_BENCH_DEVICE=hip ./scripts/run_benchmarks.sh
-./scripts/profile_hip.sh /tmp/pa1-trace -- \
-  ./build/benchmarks/microllm_bench_model \
+MICROLLM_BENCH_DEVICE=hip "$MICROLLM_ENGINE_DIR/scripts/run_benchmarks.sh"
+"$MICROLLM_ENGINE_DIR/scripts/profile_hip.sh" /tmp/pa1-trace -- \
+  "$MICROLLM_ENGINE_DIR/build/hip-release/benchmarks/microllm_bench_model" \
   --mode train --model tiny --device hip \
   --steps 10 --warmup 3 --batch 1 --context 8 --new-tokens 8
 ```
+
+`MICROLLM_ENGINE_DIR` must point to a separate checkout of the `main` branch, as
+described in the course root README.
 
 ## Submission template
 

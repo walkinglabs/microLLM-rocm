@@ -32,7 +32,8 @@ Acceptance: resumed next three updates exactly equal uninterrupted updates.
 ## 运行
 
 ```bash
-ctest --test-dir build --output-on-failure -R CheckpointTest
+ctest --test-dir "$MICROLLM_ENGINE_DIR/build/cpu-debug" \
+  --output-on-failure -R CheckpointTest
 ```
 
 The three tests prove:
@@ -44,7 +45,8 @@ The three tests prove:
 The dataset cursor has a separate equivalence test:
 
 ```bash
-ctest --test-dir build --output-on-failure -R TokenDatasetTest.RestoredCursor
+ctest --test-dir "$MICROLLM_ENGINE_DIR/build/cpu-debug" \
+  --output-on-failure -R TokenDatasetTest.RestoredCursor
 ```
 
 ## 审查点

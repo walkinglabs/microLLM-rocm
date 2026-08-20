@@ -11,10 +11,10 @@
 ## 运行
 
 ```bash
-./scripts/configure.sh -DMICROLLM_ENABLE_HIP=ON
-./scripts/build.sh
-./build/examples/microllm_n1_cpu_hip
-ctest --test-dir build -L hip --output-on-failure
+cmake --preset hip-release -S "$MICROLLM_ENGINE_DIR"
+cmake --build "$MICROLLM_ENGINE_DIR/build/hip-release" --parallel
+"$MICROLLM_ENGINE_DIR/build/hip-release/examples/microllm_n1_cpu_hip"
+ctest --test-dir "$MICROLLM_ENGINE_DIR/build/hip-release" -L hip --output-on-failure
 ```
 
 示例不使用一次全局设备同步修复异步问题。Kernel 和完成 Event 进入同一条
