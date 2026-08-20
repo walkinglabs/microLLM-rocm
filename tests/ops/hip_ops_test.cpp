@@ -381,9 +381,9 @@ TEST(HipArgmaxTest, CoversLargeVocabulariesTiesAndScalarTransferContract) {
     const auto gpu = Device::hip(0);
     for (const auto vocabulary : {32LL, 8192LL, 151936LL}) {
         std::vector<float> values(static_cast<std::size_t>(vocabulary), -3.0F);
-        const auto first = vocabulary / 3;
+        const auto first = 1LL;
         values[static_cast<std::size_t>(first)] = 7.0F;
-        values[static_cast<std::size_t>(first + 1)] = 7.0F;
+        values.back() = 7.0F;
         const auto input = Tensor::from_vector(values, {1, 1, vocabulary}).to(gpu);
         runtime::reset_transfer_stats();
         const auto selected = argmax(input);
@@ -399,6 +399,12 @@ TEST(HipArgmaxTest, CoversLargeVocabulariesTiesAndScalarTransferContract) {
     const auto non_finite = Tensor::from_vector(
         {1.0F, std::numeric_limits<float>::quiet_NaN()}, {2}).to(gpu);
     EXPECT_EQ(argmax(non_finite).to_int32_vector(),
+              (std::vector<std::int32_t>{-1}));
+    std::vector<float> large_non_finite(40000, -1.0F);
+    large_non_finite[17] = 3.0F;
+    large_non_finite.back() = std::numeric_limits<float>::infinity();
+    EXPECT_EQ(argmax(Tensor::from_vector(large_non_finite, {40000}).to(gpu))
+                  .to_int32_vector(),
               (std::vector<std::int32_t>{-1}));
 }
 

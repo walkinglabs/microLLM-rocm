@@ -1055,9 +1055,21 @@ Tensor argmax(const Tensor& input, [[maybe_unused]] const OpContext& context) {
         require_contiguous(input, "input");
         Tensor output({1, 1}, DType::Int32, input.device());
 #if MICROLLM_HAS_HIP
-        hip::launch_argmax(static_cast<const float*>(input.data()),
-                           static_cast<std::int32_t*>(output.data()), input.numel(),
-                           context.native_stream(input.device()));
+        constexpr std::int64_t kTwoStageThreshold = 32768;
+        if (input.numel() >= kTwoStageThreshold) {
+            const auto blocks = std::min<std::int64_t>(
+                256, (input.numel() + 255) / 256);
+            Tensor partials({blocks, 3}, DType::Float32, input.device());
+            hip::launch_argmax_two_stage(
+                static_cast<const float*>(input.data()),
+                static_cast<float*>(partials.data()),
+                static_cast<std::int32_t*>(output.data()), input.numel(), blocks,
+                context.native_stream(input.device()));
+        } else {
+            hip::launch_argmax(static_cast<const float*>(input.data()),
+                               static_cast<std::int32_t*>(output.data()), input.numel(),
+                               context.native_stream(input.device()));
+        }
         return output;
 #else
         throw std::runtime_error("microLLM was built without HIP operator support");
