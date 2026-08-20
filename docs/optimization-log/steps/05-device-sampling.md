@@ -46,3 +46,7 @@ profiled generated D2H records     9 → 1
 The device result is a `[1,1]` int32 Tensor. The C++ API copies that one scalar to append
 to its returned token vector, while the same device Tensor feeds the next Embedding.
 Stochastic device top-k remains separate future work and is not claimed here.
+
+Experiment 012 later split inputs `>=32768` into multi-block partial argmax plus one
+final block. The 151,936-vocabulary Kernel group changed `2.043 ms → 0.067 ms`; small
+vocabularies retain the original single-block implementation.

@@ -58,6 +58,9 @@ DeepSeek measured allocations 仍精确为 9,200/10,715，因主假设失败而 
 Experiment 011 的 hipBLASLt bias epilogue 确实减少 16–17% generation allocations，
 但 Qwen generation 中位数退化 7.8%，因此同样 discard。少一个 Kernel 不等于更快。
 
+Experiment 012 将大词表 argmax 改成两阶段 reduction，Kernel time 降低 96.7%。三进程
+Qwen/DeepSeek generation 中位数再提高 3.6%/0.6%，当前 robust score 为 `1.770568`。
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录

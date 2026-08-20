@@ -11,3 +11,4 @@ experiment	commit	date	status	score	qwen_train	qwen_generate	deepseek_train	deep
 009	60eaa20	2026-08-20	keep	1.752183	2.086361	2.026893	2.622345	0.849978	0.896769	0.960651	0.797368	0.988733	fused cached decode Attention; generation medians improved 5.5% and 8.1%
 010	25505f1	2026-08-20	discard	0	0	0	0	0	0	0	0	0	copy-on-write gradient add_; measured logical allocations unchanged
 011	929a7d4	2026-08-20	discard	1.725932	2.086361	1.869574	2.622345	0.867506	0.896769	0.960651	0.797368	0.988733	hipBLASLt bias epilogue; Qwen generation median regressed 7.8%
+012	c12b0f8	2026-08-20	keep	1.770568	2.086361	2.100335	2.622345	0.855230	0.896769	0.960651	0.797368	0.988733	two-stage large-vocabulary argmax; Kernel time reduced 96.7%
