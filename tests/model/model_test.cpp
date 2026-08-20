@@ -115,9 +115,13 @@ TEST(TransformerModelTest, RejectsBadTokenShapeAndLongSequence) {
 
 TEST(TransformerModelTest, CachedLogitsMatchFullPrefixForMhaAndGqa) {
     for (const auto gqa : {false, true}) {
-        TransformerModel model(tiny_config(gqa), 41);
+        auto config = tiny_config(gqa);
+        config.max_sequence_length = 4;
+        TransformerModel model(config, 41);
         inference::KVCache cache(model.config().layers, model.config().max_sequence_length);
         const std::vector<std::int32_t> tokens{1, 2, 3, 4};
+        const void* key_address = nullptr;
+        const void* value_address = nullptr;
         for (std::size_t position = 0; position < tokens.size(); ++position) {
             const auto cached =
                 model.forward_cached(Tensor::from_int32_vector({tokens[position]}, {1, 1}), cache)
@@ -134,12 +138,29 @@ TEST(TransformerModelTest, CachedLogitsMatchFullPrefixForMhaAndGqa) {
                 EXPECT_NEAR(cached[token], full[offset + token], 2.0e-5F)
                     << "gqa=" << gqa << " position=" << position << " token=" << token;
             }
+            if (position == 0) {
+                key_address = cache.layer(0).key.storage().data();
+                value_address = cache.layer(0).value.storage().data();
+            } else {
+                EXPECT_EQ(cache.layer(0).key.storage().data(), key_address);
+                EXPECT_EQ(cache.layer(0).value.storage().data(), value_address);
+            }
         }
         EXPECT_EQ(cache.position(), 4);
         EXPECT_EQ(cache.layer(0).key.shape()[2], 4);
+        EXPECT_THROW((void)model.forward_cached(
+                         Tensor::from_int32_vector({5}, {1, 1}), cache),
+                     std::out_of_range);
         cache.reset();
         EXPECT_EQ(cache.position(), 0);
         EXPECT_FALSE(cache.layer(0).key.defined());
+        const auto reused = model.forward_cached(
+            Tensor::from_int32_vector({tokens.front()}, {1, 1}), cache).to_vector();
+        TransformerModel fresh(config, 41);
+        inference::KVCache fresh_cache(config.layers, config.max_sequence_length);
+        EXPECT_EQ(reused, fresh.forward_cached(
+                              Tensor::from_int32_vector({tokens.front()}, {1, 1}),
+                              fresh_cache).to_vector());
     }
 }
 

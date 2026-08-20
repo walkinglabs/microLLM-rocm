@@ -62,7 +62,11 @@ std::vector<std::int32_t> generate(model::TransformerModel& model,
     }
     if (config.max_new_tokens == 0) return prompt;
 
-    KVCache cache(model.config().layers, model.config().max_sequence_length);
+    // Reserve exactly this request's upper bound.  The model may support a much
+    // larger context, but allocating that full theoretical capacity for a short
+    // generation needlessly turns stable cache addresses into a memory penalty.
+    KVCache cache(model.config().layers,
+                  static_cast<std::int64_t>(prompt.size()) + config.max_new_tokens);
     Tensor logits;
     for (const auto token : prompt) {
         logits = model.forward_cached(Tensor::from_int32_vector({token}, {1, 1}), cache);

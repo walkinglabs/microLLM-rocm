@@ -122,4 +122,13 @@ void clear_matmul_implementation_registry();
                                                 std::int64_t dim, std::int64_t repeats,
                                                 const OpContext& context = {});
 
+// Cached decoding primitives.  Cache storage is [1, kv_heads, capacity, width]
+// while its logical Tensor shape exposes only the initialized prefix.
+void kv_cache_store_(Tensor& cache, const Tensor& current, std::int64_t position,
+                     const OpContext& context = {});
+[[nodiscard]] Tensor cached_gqa_attention(const Tensor& query, const Tensor& key_cache,
+                                          const Tensor& value_cache,
+                                          std::int64_t repeats, float scale,
+                                          const OpContext& context = {});
+
 }  // namespace microllm::ops

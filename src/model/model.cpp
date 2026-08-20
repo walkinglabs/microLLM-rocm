@@ -18,38 +18,32 @@ namespace {
 
 using autograd::Value;
 
-Tensor append_cached_sequence(const Tensor& cached, const Tensor& current) {
+void append_cached_sequence(Tensor& cached, const Tensor& current,
+                            std::int64_t position, std::int64_t capacity) {
     if (current.dtype() != DType::Float32 || current.ndim() != 4) {
         throw std::invalid_argument("cached K/V tensors must be float32 rank four");
     }
-    if (!cached.defined()) return current.contiguous();
-    if (cached.ndim() != 4 || cached.shape()[0] != current.shape()[0] ||
-        cached.shape()[1] != current.shape()[1] || cached.shape()[3] != current.shape()[3]) {
-        throw std::invalid_argument("cached and current K/V shapes are incompatible");
+    if (position < 0 || position >= capacity || current.shape()[0] != 1 ||
+        current.shape()[2] != 1) {
+        throw std::out_of_range("cached K/V position is outside the preallocated capacity");
     }
-    const auto batch = current.shape()[0];
+    const auto packed = current.is_contiguous() ? current : current.contiguous();
     const auto heads = current.shape()[1];
-    const auto old_sequence = cached.shape()[2];
-    const auto new_sequence = current.shape()[2];
     const auto width = current.shape()[3];
-    const auto old_values = cached.to_vector();
-    const auto new_values = current.to_vector();
-    std::vector<float> output(static_cast<std::size_t>(
-        batch * heads * (old_sequence + new_sequence) * width));
-    for (std::int64_t batch_index = 0; batch_index < batch; ++batch_index) {
-        for (std::int64_t head = 0; head < heads; ++head) {
-            const auto old_base = (batch_index * heads + head) * old_sequence * width;
-            const auto new_base = (batch_index * heads + head) * new_sequence * width;
-            const auto output_base =
-                (batch_index * heads + head) * (old_sequence + new_sequence) * width;
-            std::copy_n(old_values.begin() + old_base, old_sequence * width,
-                        output.begin() + output_base);
-            std::copy_n(new_values.begin() + new_base, new_sequence * width,
-                        output.begin() + output_base + old_sequence * width);
-        }
+    if (!cached.defined()) {
+        if (position != 0) throw std::invalid_argument("KV cache must start at position zero");
+        Tensor backing({1, heads, capacity, width}, current.dtype(), current.device());
+        cached = Tensor::from_storage(backing.storage(), {1, heads, 1, width},
+                                      backing.strides(), 0, current.dtype());
+    } else if (cached.ndim() != 4 || cached.shape()[0] != 1 ||
+               cached.shape()[1] != heads || cached.shape()[2] != position ||
+               cached.shape()[3] != width || cached.device() != current.device()) {
+        throw std::invalid_argument("cached and current K/V shapes are incompatible");
+    } else {
+        cached = Tensor::from_storage(cached.storage(), {1, heads, position + 1, width},
+                                      cached.strides(), cached.storage_offset(), cached.dtype());
     }
-    return Tensor::from_vector(output, {batch, heads, old_sequence + new_sequence, width})
-        .to(current.device());
+    ops::kv_cache_store_(cached, packed, position);
 }
 
 Tensor random_tensor(Shape shape, std::mt19937_64& generator, float standard_deviation) {
@@ -177,7 +171,7 @@ public:
     }
 
     Tensor forward_cached(const Tensor& input, inference::KVCache::LayerState& cache,
-                          std::int64_t position) {
+                          std::int64_t position, std::int64_t cache_capacity) {
         if (input.shape().size() != 3 || input.shape()[0] != 1 || input.shape()[1] != 1) {
             throw std::invalid_argument("cached attention expects one B=1 token");
         }
@@ -197,44 +191,12 @@ public:
             query = ops::rope(query, 2, position, config_.rope_base);
             key = ops::rope(key, 2, position, config_.rope_base);
         }
-        cache.key = append_cached_sequence(cache.key, key);
-        cache.value = append_cached_sequence(cache.value, value);
-        auto expanded_key = cache.key;
-        auto expanded_value = cache.value;
-        if (config_.kv_heads != config_.heads) {
-            const auto repeats = config_.heads / config_.kv_heads;
-            const auto old_key = cache.key.to_vector();
-            const auto old_value = cache.value.to_vector();
-            const auto cached_sequence = cache.key.shape()[2];
-            std::vector<float> key_values(static_cast<std::size_t>(
-                config_.heads * cached_sequence * config_.head_dimension()));
-            std::vector<float> value_values(key_values.size());
-            for (std::int64_t head = 0; head < config_.heads; ++head) {
-                const auto source_head = head / repeats;
-                const auto source_base = source_head * cached_sequence * config_.head_dimension();
-                const auto destination_base = head * cached_sequence * config_.head_dimension();
-                std::copy_n(old_key.begin() + source_base,
-                            cached_sequence * config_.head_dimension(),
-                            key_values.begin() + destination_base);
-                std::copy_n(old_value.begin() + source_base,
-                            cached_sequence * config_.head_dimension(),
-                            value_values.begin() + destination_base);
-            }
-            expanded_key = Tensor::from_vector(
-                               key_values,
-                               {1, config_.heads, cached_sequence, config_.head_dimension()})
-                               .to(cache.key.device());
-            expanded_value = Tensor::from_vector(
-                                 value_values,
-                                 {1, config_.heads, cached_sequence, config_.head_dimension()})
-                                 .to(cache.value.device());
-        }
-        const auto transposed_key = expanded_key.transpose(-2, -1).contiguous();
-        const auto scores = ops::scale(
-            ops::matmul(query, transposed_key),
-            1.0F / std::sqrt(static_cast<float>(config_.head_dimension())));
-        const auto probabilities = ops::softmax(scores);
-        auto context = ops::matmul(probabilities, expanded_value)
+        append_cached_sequence(cache.key, key, position, cache_capacity);
+        append_cached_sequence(cache.value, value, position, cache_capacity);
+        const auto repeats = config_.heads / config_.kv_heads;
+        auto context = ops::cached_gqa_attention(
+                           query, cache.key, cache.value, repeats,
+                           1.0F / std::sqrt(static_cast<float>(config_.head_dimension())))
                            .transpose(1, 2)
                            .contiguous()
                            .reshape({1, config_.dimension});
@@ -312,9 +274,10 @@ public:
     }
 
     Tensor forward_cached(const Tensor& input, inference::KVCache::LayerState& cache,
-                          std::int64_t position) {
+                          std::int64_t position, std::int64_t cache_capacity) {
         auto hidden = ops::add(
-            input, attention_.forward_cached(attention_norm_.forward_tensor(input), cache, position));
+            input, attention_.forward_cached(attention_norm_.forward_tensor(input), cache,
+                                             position, cache_capacity));
         return ops::add(hidden, feed_forward_.forward_tensor(ffn_norm_.forward_tensor(hidden)));
     }
 
@@ -436,7 +399,7 @@ Tensor TransformerModel::forward_cached(const Tensor& token_id, inference::KVCac
         throw std::invalid_argument("cached forward expects one int32 token with shape 1x1");
     }
     if (cache.layer_count() != impl_->blocks.size() ||
-        cache.max_sequence_length() != impl_->config.max_sequence_length) {
+        cache.max_sequence_length() > impl_->config.max_sequence_length) {
         throw std::invalid_argument("KV cache does not match model configuration");
     }
     if (cache.position() >= cache.max_sequence_length()) {
@@ -447,7 +410,8 @@ Tensor TransformerModel::forward_cached(const Tensor& token_id, inference::KVCac
     auto hidden = ops::embedding(impl_->token_embedding.data(), device_token);
     for (std::size_t layer = 0; layer < impl_->blocks.size(); ++layer) {
         hidden = impl_->blocks[layer]->forward_cached(hidden, cache.mutable_layer(layer),
-                                                      cache.position());
+                                                      cache.position(),
+                                                      cache.max_sequence_length());
     }
     hidden = impl_->final_norm.forward_tensor(hidden);
     const auto flat = hidden.reshape({1, impl_->config.dimension});

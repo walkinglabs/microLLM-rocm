@@ -907,6 +907,133 @@ TensorPair rms_norm_backward(const Tensor& input, const Tensor& weight,
             from_values(std::move(weight_gradient), weight.shape())};
 }
 
+void kv_cache_store_(Tensor& cache, const Tensor& current, std::int64_t position,
+                     [[maybe_unused]] const OpContext& context) {
+    require_float(cache, "cache");
+    require_float(current, "current");
+    require_same_device(cache, current);
+    if (cache.dtype() != DType::Float32 || current.dtype() != DType::Float32 ||
+        cache.ndim() != 4 || current.ndim() != 4 || cache.shape()[0] != 1 ||
+        current.shape()[0] != 1 || current.shape()[2] != 1 ||
+        cache.shape()[1] != current.shape()[1] ||
+        cache.shape()[3] != current.shape()[3] || position < 0 ||
+        position >= cache.shape()[2] || position != cache.shape()[2] - 1 ||
+        cache.stride(3) != 1 || cache.stride(2) != cache.shape()[3]) {
+        throw std::invalid_argument("KV cache store shape, dtype, layout, or position is invalid");
+    }
+    require_contiguous(current, "current");
+    const auto heads = cache.shape()[1];
+    const auto width = cache.shape()[3];
+    const auto capacity = cache.stride(1) / width;
+    if (capacity < cache.shape()[2]) {
+        throw std::invalid_argument("KV cache backing capacity is smaller than its prefix");
+    }
+    if (cache.device().is_hip()) {
+#if MICROLLM_HAS_HIP
+        hip::launch_kv_cache_store(
+            static_cast<const float*>(current.data()), static_cast<float*>(cache.data()),
+            heads, capacity, width, position, context.native_stream(cache.device()));
+        return;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    const auto* source = current.data_float();
+    auto* destination = cache.data_float();
+    for (std::int64_t head = 0; head < heads; ++head) {
+        for (std::int64_t column = 0; column < width; ++column) {
+            destination[head * cache.stride(1) + position * cache.stride(2) + column] =
+                source[head * width + column];
+        }
+    }
+}
+
+Tensor cached_gqa_attention(const Tensor& query, const Tensor& key_cache,
+                            const Tensor& value_cache, std::int64_t repeats,
+                            float factor, [[maybe_unused]] const OpContext& context) {
+    require_float(query, "query");
+    require_float(key_cache, "key_cache");
+    require_float(value_cache, "value_cache");
+    require_same_device(query, key_cache);
+    require_same_device(query, value_cache);
+    require_same_shape(key_cache, value_cache);
+    if (query.dtype() != DType::Float32 || key_cache.dtype() != DType::Float32 ||
+        value_cache.dtype() != DType::Float32 || query.ndim() != 4 ||
+        key_cache.ndim() != 4 || query.shape()[0] != 1 || query.shape()[2] != 1 ||
+        key_cache.shape()[0] != 1 || query.shape()[3] != key_cache.shape()[3] ||
+        key_cache.shape()[2] <= 0 || repeats <= 0 ||
+        query.shape()[1] != key_cache.shape()[1] * repeats ||
+        !std::isfinite(factor) || factor <= 0.0F || key_cache.strides() != value_cache.strides()) {
+        throw std::invalid_argument("cached GQA attention shape, dtype, or scale is invalid");
+    }
+    require_contiguous(query, "query");
+    const auto heads = query.shape()[1];
+    [[maybe_unused]] const auto kv_heads = key_cache.shape()[1];
+    const auto sequence = key_cache.shape()[2];
+    const auto width = query.shape()[3];
+    const auto cache_head_stride = key_cache.stride(1);
+    if (key_cache.stride(3) != 1 || key_cache.stride(2) != width ||
+        cache_head_stride < sequence * width) {
+        throw std::invalid_argument("cached GQA attention requires a dense sequence prefix");
+    }
+    if (query.device().is_hip()) {
+#if MICROLLM_HAS_HIP
+        Tensor scores({1, heads, 1, sequence}, DType::Float32, query.device());
+        hip::launch_cached_attention_scores(
+            static_cast<const float*>(query.data()),
+            static_cast<const float*>(key_cache.data()),
+            static_cast<float*>(scores.data()), heads, kv_heads, sequence,
+            cache_head_stride, width, repeats, factor,
+            context.native_stream(query.device()));
+        const auto probabilities = softmax(scores, -1, context);
+        Tensor output({1, heads, 1, width}, DType::Float32, query.device());
+        hip::launch_cached_attention_context(
+            static_cast<const float*>(probabilities.data()),
+            static_cast<const float*>(value_cache.data()),
+            static_cast<float*>(output.data()), heads, kv_heads, sequence,
+            cache_head_stride, width, repeats, context.native_stream(query.device()));
+        return output;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+
+    const auto query_values = query.to_vector();
+    const auto key_values = key_cache.to_vector();
+    const auto value_values = value_cache.to_vector();
+    std::vector<float> output(static_cast<std::size_t>(heads * width));
+    std::vector<float> scores(static_cast<std::size_t>(sequence));
+    for (std::int64_t head = 0; head < heads; ++head) {
+        const auto kv_head = head / repeats;
+        float maximum = -std::numeric_limits<float>::infinity();
+        for (std::int64_t position = 0; position < sequence; ++position) {
+            float dot = 0.0F;
+            for (std::int64_t column = 0; column < width; ++column) {
+                dot += query_values[static_cast<std::size_t>(head * width + column)] *
+                       key_values[static_cast<std::size_t>(
+                           (kv_head * sequence + position) * width + column)];
+            }
+            scores[static_cast<std::size_t>(position)] = dot * factor;
+            maximum = std::max(maximum, dot * factor);
+        }
+        float denominator = 0.0F;
+        for (auto& score : scores) {
+            score = std::exp(score - maximum);
+            denominator += score;
+        }
+        for (std::int64_t column = 0; column < width; ++column) {
+            float total = 0.0F;
+            for (std::int64_t position = 0; position < sequence; ++position) {
+                total += scores[static_cast<std::size_t>(position)] / denominator *
+                         value_values[static_cast<std::size_t>(
+                             (kv_head * sequence + position) * width + column)];
+            }
+            output[static_cast<std::size_t>(head * width + column)] = total;
+        }
+    }
+    return Tensor::from_vector(output, {1, heads, 1, width});
+}
+
 Tensor silu_backward(const Tensor& input, const Tensor& gradient,
                      [[maybe_unused]] const OpContext& context) {
     require_float(input, "input");

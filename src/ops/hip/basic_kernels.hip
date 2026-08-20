@@ -534,6 +534,52 @@ __global__ void rms_norm_weight_gradient_kernel(
     weight_gradient[column] = total;
 }
 
+__global__ void kv_cache_store_kernel(const float* current, float* cache,
+                                      std::int64_t heads, std::int64_t capacity,
+                                      std::int64_t width, std::int64_t position) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    if (index >= heads * width) return;
+    const auto head = index / width;
+    const auto column = index % width;
+    cache[head * capacity * width + position * width + column] = current[index];
+}
+
+__global__ void cached_attention_scores_kernel(
+    const float* query, const float* key_cache, float* scores,
+    std::int64_t heads, std::int64_t sequence,
+    std::int64_t cache_head_stride, std::int64_t width,
+    std::int64_t repeats, float scale) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    if (index >= heads * sequence) return;
+    const auto head = index / sequence;
+    const auto position = index % sequence;
+    const auto kv_head = head / repeats;
+    float dot = 0.0F;
+    for (std::int64_t column = 0; column < width; ++column) {
+        dot += query[head * width + column] *
+               key_cache[kv_head * cache_head_stride + position * width + column];
+    }
+    scores[index] = dot * scale;
+}
+
+__global__ void cached_attention_context_kernel(
+    const float* probabilities, const float* value_cache, float* output,
+    std::int64_t heads, std::int64_t sequence,
+    std::int64_t cache_head_stride, std::int64_t width,
+    std::int64_t repeats) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    if (index >= heads * width) return;
+    const auto head = index / width;
+    const auto column = index % width;
+    const auto kv_head = head / repeats;
+    float total = 0.0F;
+    for (std::int64_t position = 0; position < sequence; ++position) {
+        total += probabilities[head * sequence + position] *
+                 value_cache[kv_head * cache_head_stride + position * width + column];
+    }
+    output[index] = total;
+}
+
 __global__ void silu_backward_kernel(const float* input, const float* gradient,
                                      float* input_gradient, std::int64_t elements) {
     const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
@@ -1229,6 +1275,41 @@ void launch_rms_norm_backward(const float* input, const float* weight,
                        dim3(kBlockSize), 0, as_stream(stream), input, gradient,
                        row_inverse_rms, weight_gradient, rows, width);
     check_launch("rms_norm_weight_gradient_kernel");
+}
+
+void launch_kv_cache_store(const float* current, float* cache,
+                           std::int64_t heads, std::int64_t capacity,
+                           std::int64_t width, std::int64_t position, void* stream) {
+    const auto elements = heads * width;
+    hipLaunchKernelGGL(kv_cache_store_kernel, dim3(grid_size(elements)),
+                       dim3(kBlockSize), 0, as_stream(stream), current, cache,
+                       heads, capacity, width, position);
+    check_launch("kv_cache_store_kernel");
+}
+
+void launch_cached_attention_scores(
+    const float* query, const float* key_cache, float* scores,
+    std::int64_t heads, [[maybe_unused]] std::int64_t kv_heads,
+    std::int64_t sequence, std::int64_t cache_head_stride,
+    std::int64_t width, std::int64_t repeats, float scale, void* stream) {
+    const auto elements = heads * sequence;
+    hipLaunchKernelGGL(cached_attention_scores_kernel, dim3(grid_size(elements)),
+                       dim3(kBlockSize), 0, as_stream(stream), query, key_cache,
+                       scores, heads, sequence, cache_head_stride, width, repeats, scale);
+    check_launch("cached_attention_scores_kernel");
+}
+
+void launch_cached_attention_context(
+    const float* probabilities, const float* value_cache, float* output,
+    std::int64_t heads, [[maybe_unused]] std::int64_t kv_heads,
+    std::int64_t sequence, std::int64_t cache_head_stride,
+    std::int64_t width, std::int64_t repeats, void* stream) {
+    const auto elements = heads * width;
+    hipLaunchKernelGGL(cached_attention_context_kernel, dim3(grid_size(elements)),
+                       dim3(kBlockSize), 0, as_stream(stream), probabilities,
+                       value_cache, output, heads, sequence, cache_head_stride,
+                       width, repeats);
+    check_launch("cached_attention_context_kernel");
 }
 
 void launch_silu_backward(const float* input, const float* gradient,

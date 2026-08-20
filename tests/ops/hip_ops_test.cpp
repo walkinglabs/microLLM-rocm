@@ -484,25 +484,44 @@ TEST(HipOpsTest, ExplicitStreamRejectsDeviceMismatch) {
     EXPECT_THROW((void)add(gpu, gpu, context), std::invalid_argument);
 }
 
-TEST(HipModelTest, TinyOneTokenCachedForwardMatchesCpu) {
+TEST(HipModelTest, PreallocatedGqaCacheMatchesCpuAndAvoidsPayloadTransfers) {
     require_gpu();
     const model::ModelConfig config{.vocabulary_size = 16,
                                     .dimension = 8,
                                     .layers = 1,
                                     .heads = 2,
-                                    .kv_heads = 2,
+                                    .kv_heads = 1,
                                     .ffn_dimension = 16,
                                     .max_sequence_length = 4,
                                     .rope_base = 10000.0F,
                                     .tie_embeddings = false};
-    const auto token = Tensor::from_int32_vector({3}, {1, 1});
     model::TransformerModel cpu_model(config, 61);
     inference::KVCache cpu_cache(config.layers, config.max_sequence_length);
-    const auto expected = cpu_model.forward_cached(token, cpu_cache).to_vector();
     model::TransformerModel hip_model(config, 61);
     hip_model.to(Device::hip());
     inference::KVCache hip_cache(config.layers, config.max_sequence_length);
-    expect_near(hip_model.forward_cached(token, hip_cache).to_vector(), expected, 2.0e-4F);
+    const std::vector<std::int32_t> tokens{3, 4, 5, 6};
+    const void* key_address = nullptr;
+    const void* value_address = nullptr;
+    for (const auto token : tokens) {
+        const auto host_token = Tensor::from_int32_vector({token}, {1, 1});
+        const auto expected = cpu_model.forward_cached(host_token, cpu_cache).to_vector();
+        const auto device_token = host_token.to(Device::hip());
+        runtime::reset_transfer_stats();
+        const auto actual = hip_model.forward_cached(device_token, hip_cache);
+        runtime::synchronize(Device::hip());
+        const auto transfers = runtime::transfer_stats();
+        EXPECT_EQ(transfers.host_to_device_calls, 0U);
+        EXPECT_EQ(transfers.device_to_host_calls, 0U);
+        expect_near(actual.to_vector(), expected, 3.0e-4F);
+        if (key_address == nullptr) {
+            key_address = hip_cache.layer(0).key.storage().data();
+            value_address = hip_cache.layer(0).value.storage().data();
+        } else {
+            EXPECT_EQ(hip_cache.layer(0).key.storage().data(), key_address);
+            EXPECT_EQ(hip_cache.layer(0).value.storage().data(), value_address);
+        }
+    }
 }
 
 TEST(HipTensorTest, NonContiguousTransposeMaterializesInLogicalOrder) {

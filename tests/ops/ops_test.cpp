@@ -70,6 +70,38 @@ TEST(CpuOpsTest, TransposeAwareMatmulCoversAllOperandLayoutsWithoutViews) {
                      false, true), std::invalid_argument);
 }
 
+TEST(CpuOpsTest, CachedGqaAttentionStoresStablePrefixesAndRejectsBadContracts) {
+    Tensor backing({1, 1, 4, 2});
+    auto cache = Tensor::from_storage(backing.storage(), {1, 1, 1, 2},
+                                      backing.strides(), 0, DType::Float32);
+    const auto address = cache.storage().data();
+    kv_cache_store_(cache, Tensor::from_vector({3, 4}, {1, 1, 1, 2}), 0);
+    const auto one = cached_gqa_attention(
+        Tensor::from_vector({1, 0, 0, 1}, {1, 2, 1, 2}), cache, cache, 2, 1.0F);
+    expect_near(one.to_vector(), {3, 4, 3, 4});
+
+    cache = Tensor::from_storage(cache.storage(), {1, 1, 2, 2},
+                                 cache.strides(), 0, DType::Float32);
+    kv_cache_store_(cache, Tensor::from_vector({1, 0}, {1, 1, 1, 2}), 1);
+    EXPECT_EQ(cache.storage().data(), address);
+    const auto two = cached_gqa_attention(
+        Tensor::from_vector({1, 0, 0, 1}, {1, 2, 1, 2}), cache, cache, 2, 1.0F);
+    const auto first_probability = std::exp(3.0F) / (std::exp(3.0F) + std::exp(1.0F));
+    const auto second_probability = std::exp(4.0F) / (std::exp(4.0F) + 1.0F);
+    expect_near(two.to_vector(),
+                {first_probability * 3.0F + (1.0F - first_probability),
+                 first_probability * 4.0F,
+                 second_probability * 3.0F + (1.0F - second_probability),
+                 second_probability * 4.0F}, 2.0e-5F);
+
+    EXPECT_THROW(kv_cache_store_(cache,
+                                 Tensor::from_vector({1, 2}, {1, 1, 1, 2}), 0),
+                 std::invalid_argument);
+    EXPECT_THROW((void)cached_gqa_attention(
+                     Tensor::from_vector({1, 0, 0, 1}, {1, 2, 1, 2}),
+                     cache, cache, 0, 1.0F), std::invalid_argument);
+}
+
 TEST(CpuOpsTest, EmbeddingGathersRowsAndRejectsBadIndex) {
     const auto weight = Tensor::from_vector({0, 1, 2, 3, 4, 5}, {3, 2});
     const auto indices = Tensor::from_int32_vector({2, 0, 1}, {3});
