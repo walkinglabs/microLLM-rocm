@@ -2,6 +2,11 @@
 
 Status: `planned`
 
+Experiment 021 showed that removing 30k repeated `hipSetDevice` calls can improve the
+instrumented timeline while regressing every uninstrumented workload. Future scheduling
+work must preserve external device-state semantics and pass the fixed model matrix; API
+count alone is not a keep gate.
+
 ## Prerequisites
 
 Do not begin until:

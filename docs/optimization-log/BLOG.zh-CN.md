@@ -819,7 +819,22 @@ DeepSeek median      58.32 → 56.39 token/s  -3.3%
 Kernel 确实换了，数值也正确，但端到端没有兑现。版本/shape 硬编码全部删除。这个灰点
 比“调优成功”更重要：即使使用官方全搜索，仍不能跳过重复模型测量。
 
-## 31. 怎样读进度图
+## 31. Experiment 021：API 调用少了，为什么还要拒绝
+
+thread-local device cache 把 DeepSeek trace 的 `hipSetDevice` 从 30,669 次降到 1 次，
+插桩 decode 也从 29.27 提高到 31.07 token/s。但未插桩四项全部下降：
+
+```text
+Qwen generate      -8.6%
+DeepSeek generate  -5.2%
+Qwen train         -4.9%
+DeepSeek train     -1.7%
+```
+
+此外，外部库若直接改变当前 HIP device，thread-local 假设可能过期。API 数量和 profiler
+都不能覆盖真实矩阵与互操作风险，所以代码删除。
+
+## 32. 怎样读进度图
 
 图中：
 
@@ -831,11 +846,11 @@ Kernel 确实换了，数值也正确，但端到端没有兑现。版本/shape 
 - 右侧条形：当前四项 workload ratio；
 - 底部卡片：计划步骤，不代表已经完成。
 
-FP32 主图当前有 baseline 和十一个 keep 实验共十二个绿色点，以及七个 discard 灰点；
+FP32 主图当前有 baseline 和十一个 keep 实验共十二个绿色点，以及八个 discard 灰点；
 BF16 独立图另有一个被否决的模型策略。未来如果十个实验都失败，图上就应出现十个
 灰点，而不是凭空出现一条漂亮上升曲线。
 
-## 32. 什么才算从 0 到 1
+## 33. 什么才算从 0 到 1
 
 完成一个 Kernel 不是 1，某个 shape 跑得快也不是 1。
 

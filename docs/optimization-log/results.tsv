@@ -18,3 +18,4 @@ experiment	commit	date	status	score	qwen_train	qwen_generate	deepseek_train	deep
 018	d8a4eba	2026-08-20	keep	1.845199	2.190520	2.202850	2.570163	0.934716	0.896740	0.960651	0.797351	0.988733	512-thread wide residual normalization; DeepSeek generation median improved 9.6%
 019	39eabc4	2026-08-20	discard	1.791371	2.190520	2.056853	2.570163	0.889264	0.896740	0.960651	0.797351	0.988733	64/128-thread cached Attention blocks; both official generation medians regressed
 020	256c3b4	2026-08-20	discard	1.829748	2.190520	2.202850	2.570163	0.903799	0.896740	0.960651	0.797351	0.988733	offline exact-shape hipBLASLt solution; local GEMM changed but DeepSeek median regressed 3.3%
+021	0492aa2	2026-08-20	discard	1.750336	2.082935	2.014301	2.525765	0.885711	0.896740	0.960651	0.797351	0.988733	thread-local HIP device selection cache; API calls vanished but every workload regressed

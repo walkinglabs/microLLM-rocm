@@ -89,6 +89,10 @@ Experiment 020 使用官方 hipBLASLt 全算法搜索得到的 exact-shape solut
 比默认 heuristic 快约 3.7%，DeepSeek 中位数反而退化 3.3%，因此版本/shape 硬编码被
 删除。它成为“GEMM 局部更快但模型不快”的直接反驳实验。
 
+Experiment 021 将重复 `hipSetDevice` 从 30,669 次降到 1 次，插桩运行也变快；但固定
+未插桩矩阵四项全退化，两项生成超过 5% 拒绝门。thread-local 设备缓存删除，避免
+破坏外部 HIP 调用的设备状态。
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
