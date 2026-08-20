@@ -51,6 +51,10 @@ Experiment 009 融合 cached decode 的 score 使用新中位数协议：Qwen/De
 generation 分别为 `2.026893×/0.849978×` PyTorch；训练路径未修改，因此复用 baseline
 训练中位数，不把时间漂移冒充成 Attention 收益。
 
+Experiment 010 的 copy-on-write gradient `add_` focused correctness 通过，但 Qwen 和
+DeepSeek measured allocations 仍精确为 9,200/10,715，因主假设失败而 discard；没有
+用一次较快训练进程冒充收益。
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录

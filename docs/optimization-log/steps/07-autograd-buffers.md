@@ -1,6 +1,6 @@
 # Step 07 — in-place gradient accumulation and buffer reuse
 
-Status: `planned`
+Status: `in progress` — local copy-on-write candidate discarded in Experiment 010
 
 ## Hypothesis
 
@@ -35,3 +35,10 @@ dominate. Do not add a complex planner before simple in-place accumulation is me
 
 Correctness unchanged, allocation/launch count reduced, training rows improve or memory
 drops materially without unexplained throughput regression.
+
+## Experiment 010 result
+
+A local `Storage::use_count()==1` condition was correct but reduced zero measured
+allocations: Qwen/DeepSeek remained 9,200/10,715. Backward gradients commonly still
+alias upstream nodes. The candidate was removed. Future work must explicitly model
+contribution count/liveness; this step is not complete.
