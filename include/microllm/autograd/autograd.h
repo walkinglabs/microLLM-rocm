@@ -56,6 +56,7 @@ private:
     friend Value matmul(const Value&, const Value&);
     friend Value matmul(const Value&, const Value&, bool, bool);
     friend Value fp8_matmul(const Value&, const Value&, float, float, DType);
+    friend Value bf16_matmul(const Value&, const Value&);
     friend Value sum(const Value&);
     friend Value mean(const Value&);
     friend Value reshape(const Value&, Shape);
@@ -87,6 +88,8 @@ private:
 [[nodiscard]] Value fp8_matmul(const Value& left, const Value& right,
                                float left_scale, float right_scale,
                                DType fp8_dtype = DType::Float8E4M3FNUZ);
+// BF16 rounded forward with FP32 master/straight-through gradients.
+[[nodiscard]] Value bf16_matmul(const Value& left, const Value& right);
 [[nodiscard]] Value sum(const Value& input);
 [[nodiscard]] Value mean(const Value& input);
 [[nodiscard]] Value reshape(const Value& input, Shape shape);

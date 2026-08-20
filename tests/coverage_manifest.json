@@ -53,6 +53,7 @@
     "scale": "graph_basic_output",
     "matmul": "graph_matmul_left_grad",
     "fp8_matmul": "graph_fp8_matmul_left_grad",
+    "bf16_matmul": "graph_bf16_matmul_left_grad",
     "sum": "graph_basic_loss",
     "mean": "graph_basic_loss",
     "reshape": "graph_reshape_input_grad",

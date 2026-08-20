@@ -207,6 +207,15 @@ void emit_graph_gradient_cases() {
     emit("graph_fp8_matmul_left_grad", fp8_left.grad());
     emit("graph_fp8_matmul_right_grad", fp8_right.grad());
 
+    Value bf16_left(f32({1, -2, 3, 4, 0.5F, -0.25F}, {2, 3}), true);
+    Value bf16_right(f32({1, 2, 3, 4, 5, 6}, {3, 2}), true);
+    const Value bf16_seed(f32({1, -1, 0.5F, 2}, {2, 2}));
+    const auto bf16_output = bf16_matmul(bf16_left, bf16_right);
+    emit("graph_bf16_matmul_output", bf16_output.data());
+    sum(multiply(bf16_output, bf16_seed)).backward();
+    emit("graph_bf16_matmul_left_grad", bf16_left.grad());
+    emit("graph_bf16_matmul_right_grad", bf16_right.grad());
+
     Value embed_weight(f32({0, 1, 2, 3, 4, 5, 6, 7}, {4, 2}), true);
     const auto index = Tensor::from_int32_vector({2, 0, 2}, {3});
     const Value embed_seed(f32({1, 2, 3, 4, 5, 6}, {3, 2}));

@@ -50,6 +50,22 @@ TEST(AutogradTest, Fp8MatmulUsesQuantizedForwardAndFp32MasterGradients) {
     EXPECT_EQ(right.grad().to_vector(), reference_right.grad().to_vector());
 }
 
+TEST(AutogradTest, Bf16MatmulUsesRoundedForwardAndFp32MasterGradients) {
+    Value left(Tensor::from_vector({1.1F, -2.2F, 3.3F, 4.4F, 0.55F, -0.27F}, {2, 3}), true);
+    Value right(Tensor::from_vector({1.2F, 2.3F, 3.4F, 4.5F, 5.6F, 6.7F}, {3, 2}), true);
+    const Value seed(Tensor::from_vector({1, -1, 0.5F, 2}, {2, 2}));
+    const auto output = bf16_matmul(left, right);
+    sum(multiply(output, seed)).backward();
+
+    Value reference_left(left.data(), true);
+    Value reference_right(right.data(), true);
+    sum(multiply(matmul(reference_left, reference_right), seed)).backward();
+    EXPECT_EQ(left.grad().to_vector(), reference_left.grad().to_vector());
+    EXPECT_EQ(right.grad().to_vector(), reference_right.grad().to_vector());
+    EXPECT_NE(output.data().to_vector(),
+              ops::matmul(left.data(), right.data()).to_vector());
+}
+
 TEST(AutogradTest, FiniteDifferenceChecksMultiplyAndMean) {
     const std::vector<float> initial{0.5F, -1.25F, 2.0F};
     const auto coefficient = Tensor::from_vector({2, -3, 4}, {3});

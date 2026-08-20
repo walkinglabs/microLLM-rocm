@@ -187,6 +187,15 @@ def pytorch_references(actual):
     record(refs, "graph_fp8_matmul_left_grad", fp8_seed @ fp8_right.transpose(0, 1))
     record(refs, "graph_fp8_matmul_right_grad", fp8_left.transpose(0, 1) @ fp8_seed)
 
+    bf16_left = tensor([1, -2, 3, 4, 0.5, -0.25], (2, 3), True)
+    bf16_right = tensor([1, 2, 3, 4, 5, 6], (3, 2), True)
+    bf16_seed = tensor([1, -1, 0.5, 2], (2, 2))
+    rounded_left = bf16_left.detach().to(torch.bfloat16).float()
+    rounded_right = bf16_right.detach().to(torch.bfloat16).float()
+    record(refs, "graph_bf16_matmul_output", rounded_left @ rounded_right)
+    record(refs, "graph_bf16_matmul_left_grad", bf16_seed @ bf16_right.detach().transpose(0, 1))
+    record(refs, "graph_bf16_matmul_right_grad", bf16_left.detach().transpose(0, 1) @ bf16_seed)
+
     embed_weight = tensor([0, 1, 2, 3, 4, 5, 6, 7], (4, 2), True)
     embed_seed = tensor([1, 2, 3, 4, 5, 6], (3, 2))
     (F.embedding(indices, embed_weight) * embed_seed).sum().backward()

@@ -312,6 +312,40 @@ Value fp8_matmul(const Value& left, const Value& right,
                      });
 }
 
+Value bf16_matmul(const Value& left, const Value& right) {
+    require_value(left, "left");
+    require_value(right, "right");
+    if (left.data().ndim() != 2 || right.data().ndim() != 2) {
+        throw std::invalid_argument("BF16 autograd matmul currently requires 2D tensors");
+    }
+    if (left.data().dtype() != DType::Float32 ||
+        right.data().dtype() != DType::Float32) {
+        throw std::invalid_argument(
+            "BF16 autograd matmul requires FP32 master tensors");
+    }
+    auto left_node = left.node_;
+    auto right_node = right.node_;
+    const auto left_forward = left.data().is_contiguous()
+                                  ? left.data() : left.data().contiguous();
+    const auto right_forward = right.data().is_contiguous()
+                                   ? right.data() : right.data().contiguous();
+    auto output = profiled_tensor("bf16_matmul", left.data().device(), [&] {
+        return ops::bf16_matmul(
+            left_forward, ops::cast(right_forward, DType::BFloat16));
+    });
+    return operation("bf16_matmul", std::move(output), {left_node, right_node},
+                     [left_node, right_node](const Tensor& gradient) {
+                         accumulate(left_node, ops::matmul_with_implementation(
+                                                   gradient, right_node->data,
+                                                   ops::MatmulImplementation::Auto,
+                                                   false, true));
+                         accumulate(right_node, ops::matmul_with_implementation(
+                                                    left_node->data, gradient,
+                                                    ops::MatmulImplementation::Auto,
+                                                    true, false));
+                     });
+}
+
 Value sum(const Value& input) {
     require_value(input, "input");
     auto input_node = input.node_;
