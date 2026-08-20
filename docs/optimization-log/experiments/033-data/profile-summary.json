@@ -1,0 +1,17 @@
+{
+  "architecture": "gfx942:sramecc+:xnack-",
+  "bf16_ffn_converted_tensors": 84,
+  "decode_prompt_tokens": 12,
+  "generated_tokens": 8,
+  "hip_api_calls": 147537,
+  "kernel_dispatches": 10038,
+  "kernel_time_ns": 237604188,
+  "categories": {
+    "gemm": {"calls": 3743, "time_ns": 160710039, "kernel_time_percent": 67.638},
+    "cached_attention": {"calls": 532, "time_ns": 24280961, "kernel_time_percent": 10.219},
+    "bf16_casts_including_preparation": {"calls": 1148, "time_ns": 14626811, "kernel_time_percent": 6.156},
+    "rope_split_half_bias": {"calls": 1064, "time_ns": 7549924, "kernel_time_percent": 3.178},
+    "rms_norm": {"calls": 551, "time_ns": 6616321, "kernel_time_percent": 2.785}
+  },
+  "note": "rocprof instrumentation and first-use module load invalidate wall-clock speed; categories are used only for dispatch/time share"
+}

@@ -181,6 +181,25 @@ def validate_bf16_prefill(errors: list[str]) -> int:
     return len(records)
 
 
+def validate_decode_profile(errors: list[str]) -> tuple[int, int]:
+    data = ROOT / "experiments" / "033-data"
+    with (data / "kernel-stats.csv").open(encoding="utf-8", newline="") as stream:
+        kernel_rows = list(csv.DictReader(stream))
+    with (data / "hip-api-stats.csv").open(encoding="utf-8", newline="") as stream:
+        api_rows = list(csv.DictReader(stream))
+    kernel_calls = sum(int(row["Calls"]) for row in kernel_rows)
+    api_calls = sum(int(row["Calls"]) for row in api_rows)
+    summary = json.loads((data / "profile-summary.json").read_text(encoding="utf-8"))
+    if kernel_calls != summary.get("kernel_dispatches") or kernel_calls != 10038:
+        errors.append("DeepSeek decode kernel aggregate does not match summary")
+    if api_calls != summary.get("hip_api_calls") or api_calls != 147537:
+        errors.append("DeepSeek decode HIP API aggregate does not match summary")
+    gemm = summary.get("categories", {}).get("gemm", {})
+    if gemm.get("calls") != 3743 or abs(gemm.get("kernel_time_percent", 0) - 67.638) > 0.001:
+        errors.append("DeepSeek decode GEMM category changed")
+    return kernel_calls, api_calls
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -223,6 +242,7 @@ def main() -> int:
     bf16_ffn_count = validate_bf16_ffn(errors)
     bf16_model_count = validate_bf16_models(errors)
     bf16_prefill_count = validate_bf16_prefill(errors)
+    profile_kernel_calls, profile_api_calls = validate_decode_profile(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -232,7 +252,7 @@ def main() -> int:
     print(f"optimization log valid: results={result_count} steps={step_count} "
           f"bf16_policy={bf16_policy_count} bf16_ffn={bf16_ffn_count} "
           f"bf16_models={bf16_model_count} bf16_prefill={bf16_prefill_count} "
-          f"links={link_count}")
+          f"profile_calls={profile_kernel_calls}/{profile_api_calls} links={link_count}")
     return 0
 
 

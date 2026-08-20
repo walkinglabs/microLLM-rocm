@@ -1025,3 +1025,16 @@ FP32 也提高 `1.636×/1.537×`，说明根因不是 BF16 特例。
 Qwen decode/prefill 和 DeepSeek prefill 现在分别达到 PyTorch BF16 的
 `1.179×/1.216×/1.046×`。DeepSeek decode 仍只有 `0.522×`。四条全绿的目标尚未完成，
 但下一步已经被压缩成一个明确 workload。
+
+## 50. Experiment 033：剩下的红条时间花在哪里
+
+用 `--workload decode` 单独抓 DeepSeek 后，10,038 个 dispatch 中，GEMM 占 Kernel 时间
+67.64%，fused cached Attention 占 10.22%，BF16 cast 占 6.16%。GEMM 调用数还能手算：
+
+```text
+28 层 × 19 次 cached forward × 每层 7 个 Linear + 19 次 output head = 3743
+```
+
+每层 7 个 Linear 里，只有 gate/up/down 三个 FFN 权重是 BF16；Q/K/V/O 仍是 FP32。
+PyTorch 对照却是整网 BF16。下一步因此只扩展 Attention Linear 的单份 BF16 所有权，
+第一版仍保留 FP32 KV cache、Norm 和 softmax，避免一次改变两类数值边界。
