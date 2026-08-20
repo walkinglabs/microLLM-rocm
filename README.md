@@ -124,7 +124,7 @@ Current `main` gates:
 |---|---:|---|
 | CPU tests | 152/152 | reference, Qwen/DeepSeek, graph/model/weights, benchmark, PyTorch and optimization-log schemas |
 | ASan/UBSan | 150/150 | host code; dynamic binding tests isolated |
-| MI300X/gfx942 HIP | 53/53 | allocator Stream safety, device AdamW/argmax, FP8, parallel CE/RMSNorm, graph and model matrix |
+| MI300X/gfx942 HIP | 54/54 | fused cached Attention, allocator Stream safety, device AdamW/argmax, FP8 and model matrix |
 | PyTorch CPU oracle/alignment | 3/3 | ops plus same-weight model value/timing trace |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
 | Registered test files | 34 | machine-audited CTest registration |

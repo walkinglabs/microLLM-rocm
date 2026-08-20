@@ -36,7 +36,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [05](steps/05-device-sampling.md) | complete | device greedy argmax；随机 top-k 保留 reference | score 1.219170 |
 | [06](steps/06-memory-pool.md) | complete | default-stream exact-size pool + external-stream fallback | score 1.700597 |
 | [07](steps/07-autograd-buffers.md) | planned | in-place grad/buffer reuse | train |
-| [08](steps/08-batched-fmha.md) | planned | batched GEMM/Fused Attention | long context |
+| [08](steps/08-batched-fmha.md) | in progress | cached decode fused；prefill/backward planned | score 1.752183 |
 | [09](steps/09-fusion-autotune.md) | planned | QKV/FFN fusion与 plan cache | 全部 workload |
 | [10](steps/10-bf16.md) | planned | 官方整网 BF16 | BF16 track |
 | [11](steps/11-fp8.md) | planned | cached FP8 weight/dynamic scale | FP8 track |

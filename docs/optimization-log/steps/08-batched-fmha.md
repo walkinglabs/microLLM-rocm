@@ -1,6 +1,6 @@
 # Step 08 — batched GEMM and fused Attention
 
-Status: `planned`
+Status: `in progress` — cached decode stage kept in Experiment 009
 
 ## Hypothesis
 
@@ -43,3 +43,17 @@ evidence and manageable complexity.
 
 Both operator and end-to-end context curves improve, peak score/probability memory drops,
 and readable Attention remains available.
+
+## Cached decode stage result
+
+The first retained stage fuses cached score, stable softmax and context for FP32
+sequence `<=4096`; longer sequences keep the readable fallback.
+
+```text
+Qwen generation median      134.87 → 142.25 token/s (+5.5%)
+DeepSeek generation median   49.05 → 53.04 token/s (+8.1%)
+Qwen 32/128/512 curve        +18.5% / +18.5% / +57.9%
+Qwen 1-token curve           -7.8% stable failure
+```
+
+Prefill, training backward and BF16 remain unfinished; this step is not marked complete.

@@ -32,7 +32,7 @@ microLLM-rocm 已经可以：
 0.191660× PyTorch
 ```
 
-经过六个保留实验，当前实测已经到 `1.700597×`。这不是估计值：它来自同一张
+经过七个保留实验，当前重复进程 score 已到 `1.752183×`。这不是估计值：它来自同一张
 MI300X、同一组模型权重、同样的 2 次热身和 5 次正式测量。
 
 因此，本专项的故事不是“我们已经超过 PyTorch”，而是：
@@ -599,7 +599,35 @@ Focused 测试仍全部通过。第一次结果低于 running best，但同一�
 候选被 discard。比代码更重要的产物是新规则：从此声称小于 10% 的收益，至少需要
 三次 baseline 和三次 candidate 进程中位数。单次高点不能决定合入。
 
-## 19. 怎样读进度图
+## 19. Experiment 009：融合也要保留短序列失败
+
+cached Attention 原来分三步：写 scores、softmax、再乘 V。每步之间都有 Tensor、
+allocator Event 和 Kernel launch。新路径让一个 block 负责一个 query head，概率只放
+shared memory；sequence 超过 4096 时仍回退旧实现。
+
+由于预期收益不大，这次直接使用三进程中位数。训练代码没改，所以 score 复用
+baseline 训练中位数，不把时间漂移算成 Attention 功劳：
+
+```text
+Qwen generation      134.87 → 142.25 token/s  +5.5%
+DeepSeek generation   49.05 → 53.04 token/s   +8.1%
+robust score         1.695566 → 1.752183
+```
+
+交错 context 曲线比短 benchmark 更有意思：
+
+```text
+1 token      -7.8%
+32 tokens   +18.5%
+128 tokens  +18.5%
+512 tokens  +57.9%
+```
+
+融合并非到处更快。一个 token 的工作太少，shared-memory 和融合 Kernel 启动成本反而
+更高。这个失败没有被条件分支“修饰掉”；当前只声明 32–512 点的收益，prefill、
+backward、BF16 也仍未完成。
+
+## 20. 怎样读进度图
 
 图中：
 
@@ -611,10 +639,10 @@ Focused 测试仍全部通过。第一次结果低于 running best，但同一�
 - 右侧条形：当前四项 workload ratio；
 - 底部卡片：计划步骤，不代表已经完成。
 
-当前有 baseline 和六个 keep 实验共七个绿色点，以及两个 discard 灰点。未来如果十个实验都失败，图上就
+当前有 baseline 和七个 keep 实验共八个绿色点，以及两个 discard 灰点。未来如果十个实验都失败，图上就
 应出现十个灰点，而不是凭空出现一条漂亮上升曲线。
 
-## 20. 什么才算从 0 到 1
+## 21. 什么才算从 0 到 1
 
 完成一个 Kernel 不是 1，某个 shape 跑得快也不是 1。
 
@@ -628,4 +656,4 @@ Focused 测试仍全部通过。第一次结果低于 running best，但同一�
 6. 新学习者能沿日志重放关键实验；
 7. 所有结论都写清适用 GPU、dtype、shape 和版本。
 
-下一篇更新进入 Step 07/08：先依据新 trace 选择 gradient buffer reuse 或 Attention。
+下一篇更新继续 Step 08 的 prefill/backward，或依据新 trace 选择更高收益热点。

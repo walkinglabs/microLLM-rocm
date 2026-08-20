@@ -1,0 +1,82 @@
+{
+  "note": "training path unchanged; result score reuses baseline training medians",
+  "process_repeats": 3,
+  "schema_version": 1,
+  "score": 1.7521831306919498,
+  "within_process_measured_steps": 5,
+  "within_process_warmup": 2,
+  "workloads": {
+    "deepseek-r1-distill-qwen-1.5b:infer": {
+      "baseline_median": 49.052652559,
+      "baseline_samples": [
+        48.928844357,
+        49.052652559,
+        51.370833848
+      ],
+      "candidate_observed_median": 53.03619494,
+      "candidate_over_baseline": 1.0812095202437553,
+      "candidate_samples": [
+        50.547047826,
+        55.055502257,
+        53.03619494
+      ],
+      "pytorch_throughput": 62.39711311071305,
+      "scored_candidate_median": 53.03619494,
+      "scored_ratio_over_pytorch": 0.8499783450861951
+    },
+    "deepseek-r1-distill-qwen-1.5b:train": {
+      "baseline_median": 68.774100422,
+      "baseline_samples": [
+        69.770005503,
+        68.774100422,
+        68.411935409
+      ],
+      "candidate_observed_median": 69.502719901,
+      "candidate_over_baseline": 1.0,
+      "candidate_samples": [
+        68.984986232,
+        69.608212912,
+        69.502719901
+      ],
+      "pytorch_throughput": 26.22617866601861,
+      "scored_candidate_median": 68.774100422,
+      "scored_ratio_over_pytorch": 2.6223454548149996
+    },
+    "qwen2.5-0.5b:infer": {
+      "baseline_median": 134.868268195,
+      "baseline_samples": [
+        134.868268195,
+        118.239706138,
+        134.961390583
+      ],
+      "candidate_observed_median": 142.252216323,
+      "candidate_over_baseline": 1.0547493359766722,
+      "candidate_samples": [
+        142.646067433,
+        120.606439329,
+        142.252216323
+      ],
+      "pytorch_throughput": 70.18239404162199,
+      "scored_candidate_median": 142.252216323,
+      "scored_ratio_over_pytorch": 2.0268931868958
+    },
+    "qwen2.5-0.5b:train": {
+      "baseline_median": 107.080498814,
+      "baseline_samples": [
+        107.080498814,
+        104.986807568,
+        110.746535976
+      ],
+      "candidate_observed_median": 118.676502554,
+      "candidate_over_baseline": 1.0,
+      "candidate_samples": [
+        118.676502554,
+        118.517986622,
+        118.728831194
+      ],
+      "pytorch_throughput": 51.324063483897454,
+      "scored_candidate_median": 107.080498814,
+      "scored_ratio_over_pytorch": 2.0863605012022424
+    }
+  }
+}

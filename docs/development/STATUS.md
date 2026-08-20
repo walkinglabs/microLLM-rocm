@@ -44,6 +44,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | CPU/HIP KV cache | smoke-tested | request-bounded preallocation, stable address, every MHA/GQA prefix, zero-transfer MI300X decode; score 0.885816→1.167931 | batching, fused long-context attention |
 | Device greedy sampling | smoke-tested | deterministic 32/8192/151936 argmax, 4-byte/token D2H, exact official sequences; score 1.167931→1.219170 | stochastic device top-k/RNG |
 | HIP exact-size allocator | smoke-tested | steady-state-only Event retirement, Stream fallback, stress/exception tests; score 1.219170→1.700597 | Event batching, size classes and explicit multi-Stream ownership |
+| Fused cached decode Attention | smoke-tested | FP32 MHA/GQA 1/32/128/512 + fallback; repeated-process score 1.752183; long decode up to +57.9% | one-token regression, prefill/backward/BF16 |
 | Token generation | smoke-tested | deterministic sampling and cache-backed length/bounds | trained text report |
 | Stable model failure | smoke-tested | low-loss cycle breaks beyond training context | rebuttal experiments |
 | PyTorch Custom Ops | smoke-tested on CPU | Torch 2.13 add/multiply via dispatcher | build/run with PyTorch ROCm |
@@ -60,7 +61,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | End-to-end benchmark | smoke-tested | matched Python/PyTorch ROCm built-in and official-HF JSONL ratios | longer contexts, repeated official training and tuned comparison |
 | Single-GPU model matrix | smoke-tested | MI300X tiny/Model-S/Model-M plus official Qwen0.5B/DeepSeek-Distill1.5B train+generate, parameters, time, tokens/s and engine peak bytes | repeated contexts/dtypes and external board-level memory sampling |
 | Python/PyTorch ROCm performance matrix | smoke-tested | matched FP32 built-ins plus official Qwen/DeepSeek Distill, raw Python data and automatic throughput/memory ratios | repeated official-model training and PyTorch version matrix |
-| Optimization experiment journal | implemented | baseline, six keep, two discards, two rejected variants, repeated-process medians and generated SVGs | execute next measured hotspot and retain failures |
+| Optimization experiment journal | implemented | baseline, seven keep, two discards, two rejected variants, repeated medians/context curves and generated SVGs | continue prefill/backward/fusion work |
 | rocprofv3 workflow | smoke-tested | kernel/HIP API/memory/full trace generated | release artifact retention |
 | hipBLASLt matmul | smoke-tested | FP32 CPU comparison, shape matrix, Model-S e2e | batched/workspace/autotune cache |
 | Matmul tuning registry | smoke-tested | exact shape override/clear and availability gates | persistence/arch key |

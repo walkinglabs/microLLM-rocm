@@ -8,3 +8,4 @@ experiment	commit	date	status	score	qwen_train	qwen_generate	deepseek_train	deep
 006	36fffbf	2026-08-20	keep	1.700597	2.086361	1.921682	2.660319	0.784152	0.896769	0.960651	0.797368	0.988733	steady-state exact-size HIP pool; measured backend allocations reduced 7x to 66x
 007	d1d0076	2026-08-20	discard	1.669755	2.188328	1.804502	2.522112	0.780506	0.896769	0.960651	0.797368	0.988733	thread-local hipBLASLt descriptor cache; Qwen generate and DeepSeek train regressed over 5%
 008	c4a15f4	2026-08-20	discard	1.646877	2.092379	1.746652	2.566486	0.784257	0.896769	0.960651	0.797368	0.988733	hipBLASLt algorithm cache; three-process Qwen generation median regressed 9.1%
+009	60eaa20	2026-08-20	keep	1.752183	2.086361	2.026893	2.622345	0.849978	0.896769	0.960651	0.797368	0.988733	fused cached decode Attention; generation medians improved 5.5% and 8.1%

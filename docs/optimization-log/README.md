@@ -26,7 +26,7 @@ DeepSeek-R1-Distill-Qwen-1.5B generate 0.1606
 ```text
 score = geometric_mean(workload throughput ratios)
 baseline = 0.191660
-current running best = 1.700597
+current running best = 1.752183
 selected-matrix parity target = 1.000000
 ```
 
@@ -46,6 +46,10 @@ Experiment 007 的 hipBLASLt descriptor/layout cache 数值正确但被 discard�
 Experiment 008 只缓存可序列化 algorithm，同样被 discard。它还暴露了进程间波动：
 单次比较会给出相反解释，三进程中位数最终确认 Qwen generation 退化 9.1%。此后
 小于 10% 的候选强制使用 baseline/candidate 各三进程中位数。
+
+Experiment 009 融合 cached decode 的 score 使用新中位数协议：Qwen/DeepSeek
+generation 分别为 `2.026893×/0.849978×` PyTorch；训练路径未修改，因此复用 baseline
+训练中位数，不把时间漂移冒充成 Attention 收益。
 
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
