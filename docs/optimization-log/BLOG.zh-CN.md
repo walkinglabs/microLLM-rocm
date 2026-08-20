@@ -32,6 +32,9 @@ microLLM-rocm 已经可以：
 0.191660× PyTorch
 ```
 
+经过前两个保留实验，当前实测已经到 `0.479227×`。这不是估计值：它来自同一张
+MI300X、同一组模型权重、同样的 2 次热身和 5 次正式测量。
+
 因此，本专项的故事不是“我们已经超过 PyTorch”，而是：
 
 > 一个正确但很慢的教学引擎，怎样经过可反驳的系统实验，一步步长成一个在固定
@@ -99,7 +102,7 @@ setup、warm-up 和 measured 必须分别报告。不能把不喜欢的时间藏
 
 ![当前瓶颈图](assets/bottleneck-map.svg)
 
-当前训练路径：
+优化起点的训练路径：
 
 ```text
 token
@@ -112,7 +115,7 @@ token
 → AdamW
 ```
 
-当前生成路径：
+优化起点的生成路径：
 
 ```text
 token
@@ -191,7 +194,7 @@ readable parallel HIP 和 optimized candidate。
 Qwen 使用 tied embedding。输出 logits 时，Embedding weight 既当输入表，又当输出
 投影矩阵。
 
-当前实现：
+优化前的实现：
 
 ```text
 [151936, 896]
@@ -209,6 +212,10 @@ Qwen 使用 tied embedding。输出 logits 时，Embedding weight 既当输入�
 
 Step 02 的验收不是“Kernel 变快”，而是 profiler 中整个权重 strided copy 消失，
 同时 logits 和梯度保持一致。
+
+这个问题可以把 GEMM 想成读一张表。过去为了“横着读”，程序先把整张大表抄成
+另一张表；现在我们只告诉 GEMM：“请交换行号和列号来读原表”。数字没有搬家，
+只是读取公式变了。
 
 ## 7. 第三个结构性错误：KV Cache 不是 Cache
 
@@ -331,7 +338,54 @@ RMSNorm forward            11.14%
 因此下一次实验不是继续微调 CE，而是 Step 02：让 tied output 和 backward GEMM 使用
 逻辑 transpose，删除完整权重复制。
 
-## 12. 怎样读进度图
+## 12. Experiment 002：不抄整张表，只改变读法
+
+这次我们给矩阵乘法增加两个布尔条件：左矩阵是否转置、右矩阵是否转置。
+`false/true` 的意思不是先创建一个转置 Tensor，而是在取第 `k` 个数时直接计算正确
+下标。CPU reference、可读 HIP 和 hipBLASLt 都遵守同一个公式：
+
+```text
+C = op(A) × op(B)
+op(A/B) 可以是原样，也可以是逻辑转置
+```
+
+为什么测试四种组合？因为只测 tied head 的 `A × Bᵀ`，很容易把 hipBLASLt 的
+行主序、列主序碰巧写对。NN、NT、TN、TT 四种都通过，才能说明接口本身成立。
+
+自动求导也不能偷偷抄表。以 tied head `Y = H × Wᵀ` 为例：
+
+```text
+dH = dY × W
+dW = dYᵀ × H
+```
+
+新的 backward 直接把这两个式子交给 transpose-aware GEMM。图测试还明确检查 forward
+图中没有 `transpose` 和 `contiguous` 节点。PyTorch oracle 同时比较输出、`dH` 和
+`dW`，不是只比较最后一个 loss。
+
+固定测量结果：
+
+| Workload | Step 01 | Step 02 | 本步加速 | 当前 PyTorch ratio |
+|---|---:|---:|---:|---:|
+| Qwen train | 24.03 | 38.77 token/s | 1.61× | 0.7554 |
+| Qwen generate | 18.85 | 35.35 token/s | 1.88× | 0.5038 |
+| DeepSeek train | 13.30 | 22.36 token/s | 1.68× | 0.8524 |
+| DeepSeek generate | 10.05 | 10.15 token/s | 1.01× | 0.1626 |
+
+```text
+four-workload score       0.318328 → 0.479227
+strided-copy Kernel time  62.33 ms → 2.16 ms
+strided-copy calls         1302 → 624
+```
+
+DeepSeek 生成几乎没变不是坏消息。它说明收益来自真正删掉的 tied-weight 转置路径，
+而不是测量噪声让所有数字一起“变漂亮”。Qwen 推理峰值从约 2.52 GB 降到 1.98 GB，
+也符合“没有再创建一块大副本”的解释。
+
+新 trace 中 RMSNorm forward/backward 已占 Kernel 时间 `64.31%`。因此 Step 03 将只改
+RMSNorm，而不会顺便加入 allocator、KV Cache 或低精度。
+
+## 13. 怎样读进度图
 
 图中：
 
@@ -343,10 +397,10 @@ RMSNorm forward            11.14%
 - 右侧条形：当前四项 workload ratio；
 - 底部卡片：计划步骤，不代表已经完成。
 
-当前有 baseline 和 Experiment 001 两个绿色点。未来如果十个实验都失败，图上就
+当前有 baseline、Experiment 001 和 Experiment 002 三个绿色点。未来如果十个实验都失败，图上就
 应出现十个灰点，而不是凭空出现一条漂亮上升曲线。
 
-## 13. 什么才算从 0 到 1
+## 14. 什么才算从 0 到 1
 
 完成一个 Kernel 不是 1，某个 shape 跑得快也不是 1。
 
@@ -360,4 +414,4 @@ RMSNorm forward            11.14%
 6. 新学习者能沿日志重放关键实验；
 7. 所有结论都写清适用 GPU、dtype、shape 和版本。
 
-下一篇更新进入 Step 02：transpose-aware GEMM。
+下一篇更新进入 Step 03：block-parallel RMSNorm。

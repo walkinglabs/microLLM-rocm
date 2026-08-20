@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| CPU configuration | smoke-tested | framework-only main configure/build; 148/148 CPU CTest | CI matrix |
+| CPU configuration | smoke-tested | framework-only main configure/build; 150/150 CPU CTest | CI matrix |
 | CPU code coverage | smoke-tested | 83.9% lines, 90.9% functions, 66.6% branches over `src/` + `include/` | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, cast, views and transfer | low-precision math/device-native cast |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
@@ -15,6 +15,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | CPU reference operators | smoke-tested | hand/PyTorch oracles plus deterministic rank/edge/shape properties and randomized finite differences | more dtypes |
 | HIP readable operators | smoke-tested | FP32 suite plus native FP16/BF16 basic kernels with zero host transfers | remaining low-precision forward/backward families |
 | Parallel HIP CrossEntropy | smoke-tested | rows 1/3/32, classes through 151936, PyTorch oracle; CE share 75.7%→0.62%, official train 3.29×/2.29× | additional dtype track and fusion with output head |
+| Transpose-aware GEMM | smoke-tested | CPU/readable HIP/hipBLASLt NN/NT/TN/TT in FP32/FP16/BF16; tied graph/PyTorch gradients; score 0.318328→0.479227 | batched transpose flags and descriptor/algorithm cache |
 | MI300X precision capabilities | smoke-tested | dedicated gfx942 gate; FP32/FP16/BF16/FP8 hipBLASLt execution and Event speedup | INT8 probe and packed INT4 software path |
 | FP8 training/inference | smoke-tested | FNUZ kernels, scaled GEMM, FP32 master/backward, Transformer Linear policy and KV decode | dynamic amax/history and full training curve |
 | Qwen2.5-0.5B | smoke-tested | official checkpoint, logits/tokenizer/chat/KV plus one backward/AdamW step match PyTorch | per-layer trace/tool chat/BF16/multi-step SFT |
@@ -56,7 +57,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | End-to-end benchmark | smoke-tested | matched Python/PyTorch ROCm built-in and official-HF JSONL ratios | longer contexts, repeated official training and tuned comparison |
 | Single-GPU model matrix | smoke-tested | MI300X tiny/Model-S/Model-M plus official Qwen0.5B/DeepSeek-Distill1.5B train+generate, parameters, time, tokens/s and engine peak bytes | repeated contexts/dtypes and external board-level memory sampling |
 | Python/PyTorch ROCm performance matrix | smoke-tested | matched FP32 built-ins plus official Qwen/DeepSeek Distill, raw Python data and automatic throughput/memory ratios | repeated official-model training and PyTorch version matrix |
-| Optimization experiment journal | implemented | committed baseline, 13 step contracts, autoresearch-style results table and generated SVGs | execute Step 01 onward and accumulate keep/discard/crash rows |
+| Optimization experiment journal | implemented | baseline plus two measured keep experiments, raw profiler/JSONL, autoresearch-style result table and generated SVGs | execute Step 03 onward and accumulate keep/discard/crash rows |
 | rocprofv3 workflow | smoke-tested | kernel/HIP API/memory/full trace generated | release artifact retention |
 | hipBLASLt matmul | smoke-tested | FP32 CPU comparison, shape matrix, Model-S e2e | batched/workspace/autotune cache |
 | Matmul tuning registry | smoke-tested | exact shape override/clear and availability gates | persistence/arch key |

@@ -14,9 +14,9 @@
 ## Current measured matrix
 
 ```text
-framework CPU                 148/148 pass
-CPU ASan/UBSan                146/146 pass
-MI300X/gfx942 HIP              40/40 pass
+framework CPU                 150/150 pass
+CPU ASan/UBSan                148/148 pass
+MI300X/gfx942 HIP              41/41 pass
 PyTorch CPU oracle/alignment      3/3 pass
 two-rank RCCL                  11/11 pass
 registered test files               34
@@ -27,7 +27,9 @@ external model is supported.
 
 ## Numerical gates
 
-The PyTorch oracle currently contains 70 deterministic FP32 numerical cases. Latest
+The PyTorch oracle includes deterministic FP32 numerical cases for ordinary and
+transpose-aware matmul, tied-head gradients, the operator family and complete tiny
+Transformer graphs. Latest
 measured maximum absolute differences are:
 
 ```text

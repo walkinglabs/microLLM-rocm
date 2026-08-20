@@ -17,7 +17,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | 里程碑 | 状态 | 主要产物 | 通过条件 |
 |---|---|---|---|
 | M0 baseline | complete | 多步 microLLM/PyTorch raw JSONL | 4/4 workload 可比 |
-| M1 serial kernels | in progress | parallel CE complete; RMSNorm/transpose planned | trace 中旧热点消失 |
+| M1 serial kernels | in progress | parallel CE and transpose GEMM complete; RMSNorm planned | trace 中旧热点消失 |
 | M2 data movement | planned | preallocated KV、device sampling、pool allocator | measured decode 无 payload host roundtrip |
 | M3 optimized ops | planned | batched GEMM、hipBLASLt plan、FMHA/fusion | Model-S/M 与 HF 均改善 |
 | M4 low precision | planned | BF16/FP8 独立 track | 同 dtype PyTorch 对照 |
@@ -30,7 +30,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 |---:|---|---|---|
 | [00](steps/00-baseline.md) | complete | 固定基线与 profiler | score 0.191660 |
 | [01](steps/01-parallel-cross-entropy.md) | complete | 并行 CE forward/backward | Qwen train 3.29× |
-| [02](steps/02-transpose-aware-gemm.md) | planned | 无复制 transpose GEMM | Qwen generate/train |
+| [02](steps/02-transpose-aware-gemm.md) | complete | 无复制 transpose GEMM | score 0.479227 |
 | [03](steps/03-parallel-rmsnorm.md) | planned | block-parallel RMSNorm | 全部 workload |
 | [04](steps/04-device-kv-cache.md) | planned | 预分配 device KV/GQA | generate |
 | [05](steps/05-device-sampling.md) | planned | device argmax/top-k | generate |
