@@ -1,6 +1,6 @@
 # Experiment 030 contract — BF16 activation island foundation
 
-Status: `contract`, implementation next
+Status: `foundation kept` — BF16-output GEMM implemented; FFN island next
 
 ## Failure being addressed
 
@@ -13,6 +13,10 @@ BF16 and avoid a permanent FP32+BF16 inference copy.
 ```text
 bf16_matmul(left_bf16, right_bf16, output_dtype=BFloat16)
 ```
+
+Implemented in commit `85438ed`. CPU rounded reference and MI300X hipBLASLt BF16-output
+paths pass focused dtype/value/zero-transfer and coverage gates. The legacy FP32-output
+entry point is unchanged.
 
 Requirements:
 
