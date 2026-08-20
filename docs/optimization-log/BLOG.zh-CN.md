@@ -885,7 +885,12 @@ V bias 融入 cache store 后，Qwen/DeepSeek allocation 少 600/2660 次，但 
 query 预载入 shared memory 后，Qwen +0.18%，DeepSeek -1.63%，score 下降。短 sequence
 下 global query 已被硬件 cache 命中，额外 copy/sync 反而不值，候选删除。
 
-## 38. 怎样读进度图
+## 38. Experiment 028：补完中间点再说局部最优
+
+Event batch 24 的首轮四项全部低于 16，score 仅 `2.430451`。结合 8/16/24/32 四点，
+当前矩阵的局部最优才可以写成 16，而不是只凭两个端点猜测。
+
+## 39. 怎样读进度图
 
 图中：
 
@@ -897,11 +902,11 @@ query 预载入 shared memory 后，Qwen +0.18%，DeepSeek -1.63%，score 下降
 - 右侧条形：当前四项 workload ratio；
 - 底部卡片：计划步骤，不代表已经完成。
 
-FP32 主图当前有 baseline 和十四个 keep 实验共十五个绿色点，以及十一个 discard 灰点；
+FP32 主图当前有 baseline 和十四个 keep 实验共十五个绿色点，以及十二个 discard 灰点；
 BF16 独立图另有一个被否决的模型策略。未来如果十个实验都失败，图上就应出现十个
 灰点，而不是凭空出现一条漂亮上升曲线。
 
-## 39. 什么才算从 0 到 1
+## 40. 什么才算从 0 到 1
 
 完成一个 Kernel 不是 1，某个 shape 跑得快也不是 1。
 

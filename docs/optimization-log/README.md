@@ -112,6 +112,9 @@ Experiment 026 继续把 V bias 融入 store，allocation 明显减少但两模�
 Experiment 027 将 cached Attention query 放入 shared memory，Qwen 微增但 DeepSeek 和
 score 退化，候选删除。
 
+Experiment 028 补测 Event batch 24，四项全部低于 batch 16。至此 8/16/24/32 容量搜索
+闭合，16 保持局部最优。
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
