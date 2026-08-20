@@ -68,6 +68,7 @@ private:
     friend Value swiglu(const Value&, const Value&);
     friend Value rope(const Value&, std::int64_t, std::int64_t, float);
     friend Value rope_split_half(const Value&, std::int64_t, std::int64_t, float);
+    friend Value rope_split_half_bias(const Value&, const Value&, std::int64_t, float);
     friend Value cross_entropy(const Value&, const Tensor&);
     friend Value contiguous(const Value&);
     friend Value causal_softmax(const Value&);
@@ -106,6 +107,9 @@ private:
                                     std::int64_t sequence_dim = 1,
                                     std::int64_t position_offset = 0,
                                     float base = 10000.0F);
+[[nodiscard]] Value rope_split_half_bias(const Value& input, const Value& bias,
+                                         std::int64_t position_offset = 0,
+                                         float base = 10000.0F);
 [[nodiscard]] Value cross_entropy(const Value& logits, const Tensor& targets);
 [[nodiscard]] Value contiguous(const Value& input);
 [[nodiscard]] Value causal_softmax(const Value& scores);

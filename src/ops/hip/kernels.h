@@ -77,6 +77,11 @@ void launch_rope_split_half(const float* input, float* output,
                             std::int64_t sequence_stride,
                             std::int64_t position_offset, float base,
                             void* stream = nullptr);
+void launch_rope_split_half_bias(const float* input, const float* bias, float* output,
+                                 std::int64_t elements, std::int64_t heads,
+                                 std::int64_t sequence_size, std::int64_t head_width,
+                                 std::int64_t position_offset, float base,
+                                 void* stream = nullptr);
 void launch_cross_entropy(const float* logits, const std::int32_t* targets, float* output,
                           float* row_data, std::int64_t rows, std::int64_t classes,
                           void* stream = nullptr);

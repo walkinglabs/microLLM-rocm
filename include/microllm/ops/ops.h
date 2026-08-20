@@ -82,6 +82,11 @@ void clear_matmul_implementation_registry();
                                      std::int64_t position_offset = 0,
                                      float base = 10000.0F,
                                      const OpContext& context = {});
+// Fuses a Q/K projection bias with split-half RoPE. Input is [B,H,T,D], bias is [H*D].
+[[nodiscard]] Tensor rope_split_half_bias(const Tensor& input, const Tensor& bias,
+                                          std::int64_t position_offset = 0,
+                                          float base = 10000.0F,
+                                          const OpContext& context = {});
 [[nodiscard]] Tensor cross_entropy(const Tensor& logits, const Tensor& targets,
                                    const OpContext& context = {});
 

@@ -507,6 +507,14 @@ TEST(HipOpsTest, RopeAndCrossEntropyMatchCpuReference) {
     expect_near(rope(rope_input.to(Device::hip())).to_vector(), rope(rope_input).to_vector());
     expect_near(rope_split_half(rope_input.to(Device::hip())).to_vector(),
                 rope_split_half(rope_input).to_vector());
+    const auto fused_input = Tensor::from_vector(
+        {1, 2, 3, 4, 5, 6, 7, 8,
+         -1, -2, -3, -4, -5, -6, -7, -8}, {1, 2, 2, 4});
+    const auto fused_bias = Tensor::from_vector(
+        {0.1F, 0.2F, 0.3F, 0.4F, -0.1F, -0.2F, -0.3F, -0.4F}, {8});
+    expect_near(rope_split_half_bias(fused_input.to(Device::hip()),
+                                     fused_bias.to(Device::hip())).to_vector(),
+                rope_split_half_bias(fused_input, fused_bias).to_vector());
 
     const auto logits_cpu = Tensor::from_vector({2, 1, 0, 0, 1, 2}, {2, 3});
     const auto targets_cpu = Tensor::from_int32_vector({0, 2}, {2});

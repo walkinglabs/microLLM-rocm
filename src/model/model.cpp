@@ -72,24 +72,28 @@ public:
         }
     }
 
-    Value forward(const Value& input) {
+    Value forward_without_bias(const Value& input) {
         if (precision_ == LinearPrecision::Float8E4M3FNUZ) {
-            auto output = autograd::fp8_matmul(input, weight_, activation_scale_, weight_scale_);
-            return has_bias_ ? autograd::add_bias(output, bias_) : output;
+            return autograd::fp8_matmul(input, weight_, activation_scale_, weight_scale_);
         }
-        auto output = autograd::matmul(input, weight_);
+        return autograd::matmul(input, weight_);
+    }
+    Value forward(const Value& input) {
+        auto output = forward_without_bias(input);
         return has_bias_ ? autograd::add_bias(output, bias_) : output;
     }
-    Tensor forward_tensor(const Tensor& input) {
+    Tensor forward_tensor_without_bias(const Tensor& input) {
         if (precision_ == LinearPrecision::Float8E4M3FNUZ) {
-            auto output = ops::fp8_matmul(
+            return ops::fp8_matmul(
                 ops::quantize_fp8(input, DType::Float8E4M3FNUZ, activation_scale_),
                 ops::quantize_fp8(weight_.data(), DType::Float8E4M3FNUZ, weight_scale_),
                 DType::Float32);
-            return has_bias_ ? ops::add_bias(output, bias_.data()) : output;
         }
-        auto output = ops::matmul_with_implementation(input, weight_.data(),
-                                                      ops::MatmulImplementation::Auto);
+        return ops::matmul_with_implementation(input, weight_.data(),
+                                               ops::MatmulImplementation::Auto);
+    }
+    Tensor forward_tensor(const Tensor& input) {
+        auto output = forward_tensor_without_bias(input);
         return has_bias_ ? ops::add_bias(output, bias_.data()) : output;
     }
     Value& weight() noexcept { return weight_; }
@@ -137,17 +141,31 @@ public:
         const auto batch = input.data().shape()[0];
         const auto sequence = input.data().shape()[1];
         const auto flat = autograd::reshape(input, {batch * sequence, config_.dimension});
-        auto query = autograd::reshape(query_.forward(flat),
+        const auto fuse_query_bias = config_.rope_layout == RopeLayout::SplitHalf &&
+                                     query_.has_bias();
+        const auto fuse_key_bias = config_.rope_layout == RopeLayout::SplitHalf &&
+                                   key_.has_bias();
+        auto query = autograd::reshape(
+            fuse_query_bias ? query_.forward_without_bias(flat) : query_.forward(flat),
                                        {batch, sequence, config_.heads, config_.head_dimension()});
-        auto key = autograd::reshape(key_.forward(flat),
+        auto key = autograd::reshape(
+            fuse_key_bias ? key_.forward_without_bias(flat) : key_.forward(flat),
                                      {batch, sequence, config_.kv_heads, config_.head_dimension()});
         auto value = autograd::reshape(value_.forward(flat),
                                        {batch, sequence, config_.kv_heads, config_.head_dimension()});
         const auto transposed_query = autograd::transpose(query, 1, 2);
         const auto transposed_key = autograd::transpose(key, 1, 2);
         if (config_.rope_layout == RopeLayout::SplitHalf) {
-            query = autograd::rope_split_half(transposed_query, 2, 0, config_.rope_base);
-            key = autograd::rope_split_half(transposed_key, 2, 0, config_.rope_base);
+            query = fuse_query_bias
+                        ? autograd::rope_split_half_bias(
+                              transposed_query, query_.bias(), 0, config_.rope_base)
+                        : autograd::rope_split_half(
+                              transposed_query, 2, 0, config_.rope_base);
+            key = fuse_key_bias
+                      ? autograd::rope_split_half_bias(
+                            transposed_key, key_.bias(), 0, config_.rope_base)
+                      : autograd::rope_split_half(
+                            transposed_key, 2, 0, config_.rope_base);
         } else {
             query = autograd::rope(transposed_query, 2, 0, config_.rope_base);
             key = autograd::rope(transposed_key, 2, 0, config_.rope_base);
@@ -175,18 +193,31 @@ public:
         if (input.shape().size() != 3 || input.shape()[0] != 1 || input.shape()[1] != 1) {
             throw std::invalid_argument("cached attention expects one B=1 token");
         }
-        auto query = query_.forward_tensor(input.reshape({1, config_.dimension}))
+        const auto flat = input.reshape({1, config_.dimension});
+        const auto fuse_query_bias = config_.rope_layout == RopeLayout::SplitHalf &&
+                                     query_.has_bias();
+        const auto fuse_key_bias = config_.rope_layout == RopeLayout::SplitHalf &&
+                                   key_.has_bias();
+        auto query = (fuse_query_bias ? query_.forward_tensor_without_bias(flat)
+                                      : query_.forward_tensor(flat))
                          .reshape({1, 1, config_.heads, config_.head_dimension()})
                          .transpose(1, 2);
-        auto key = key_.forward_tensor(input.reshape({1, config_.dimension}))
+        auto key = (fuse_key_bias ? key_.forward_tensor_without_bias(flat)
+                                  : key_.forward_tensor(flat))
                        .reshape({1, 1, config_.kv_heads, config_.head_dimension()})
                        .transpose(1, 2);
-        auto value = value_.forward_tensor(input.reshape({1, config_.dimension}))
+        auto value = value_.forward_tensor(flat)
                          .reshape({1, 1, config_.kv_heads, config_.head_dimension()})
                          .transpose(1, 2);
         if (config_.rope_layout == RopeLayout::SplitHalf) {
-            query = ops::rope_split_half(query, 2, position, config_.rope_base);
-            key = ops::rope_split_half(key, 2, position, config_.rope_base);
+            query = fuse_query_bias
+                        ? ops::rope_split_half_bias(
+                              query, query_.bias().data(), position, config_.rope_base)
+                        : ops::rope_split_half(query, 2, position, config_.rope_base);
+            key = fuse_key_bias
+                      ? ops::rope_split_half_bias(
+                            key, key_.bias().data(), position, config_.rope_base)
+                      : ops::rope_split_half(key, 2, position, config_.rope_base);
         } else {
             query = ops::rope(query, 2, position, config_.rope_base);
             key = ops::rope(key, 2, position, config_.rope_base);

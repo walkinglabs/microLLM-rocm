@@ -495,6 +495,29 @@ Value rope_split_half(const Value& input, std::int64_t sequence_dim,
                      });
 }
 
+Value rope_split_half_bias(const Value& input, const Value& bias,
+                           std::int64_t position_offset, float base) {
+    require_value(input, "input");
+    require_value(bias, "bias");
+    auto input_node = input.node_;
+    auto bias_node = bias.node_;
+    const auto forward_input =
+        input.data().is_contiguous() ? input.data() : input.data().contiguous();
+    auto output = profiled_tensor("rope_split_half_bias", input.data().device(), [&] {
+        return ops::rope_split_half_bias(forward_input, bias.data(), position_offset, base);
+    });
+    return operation("rope_split_half_bias", std::move(output), {input_node, bias_node},
+                     [input_node, bias_node, position_offset, base](const Tensor& gradient) {
+                         auto pre_rope = ops::rope_split_half_backward(
+                             gradient, 2, position_offset, base);
+                         accumulate(input_node, pre_rope);
+                         const auto& shape = pre_rope.shape();
+                         auto flat = pre_rope.transpose(1, 2).contiguous().reshape(
+                             {shape[0] * shape[2], shape[1] * shape[3]});
+                         accumulate(bias_node, ops::bias_gradient(flat));
+                     });
+}
+
 Value cross_entropy(const Value& logits, const Tensor& targets) {
     require_value(logits, "logits");
     if (targets.dtype() != DType::Int32 || targets.device() != logits.data().device()) {

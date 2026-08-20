@@ -35,6 +35,19 @@ TEST(CpuOpsTest, BiasBroadcastAndReductionMatchHandValues) {
     expect_near(bias_gradient(input).to_vector(), {5, 7, 9});
 }
 
+TEST(CpuOpsTest, FusedSplitHalfRopeBiasMatchesComposedProjectionPath) {
+    const auto flat = Tensor::from_vector(
+        {1, 2, 3, 4, 5, 6, 7, 8,
+         -1, -2, -3, -4, -5, -6, -7, -8}, {2, 8});
+    const auto bias = Tensor::from_vector(
+        {0.1F, 0.2F, 0.3F, 0.4F, -0.1F, -0.2F, -0.3F, -0.4F}, {8});
+    const auto input = flat.reshape({1, 2, 2, 4}).transpose(1, 2).contiguous();
+    const auto composed = rope_split_half(
+        add_bias(flat, bias).reshape({1, 2, 2, 4}).transpose(1, 2).contiguous(), 2);
+    expect_near(rope_split_half_bias(input, bias).to_vector(), composed.to_vector());
+    EXPECT_THROW((void)rope_split_half_bias(input, Tensor({4})), std::invalid_argument);
+}
+
 TEST(CpuOpsTest, BatchedMatmulMatchesHandValues) {
     const auto left = Tensor::from_vector({1, 2, 3, 4, 5, 6, 1, 0, 0, 1, 1, 1}, {2, 2, 3});
     const auto right = Tensor::from_vector({1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6}, {2, 3, 2});

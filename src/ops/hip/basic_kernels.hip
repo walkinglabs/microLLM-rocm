@@ -358,6 +358,33 @@ __global__ void rope_split_half_kernel(
     output[second] = input[first] * sine + input[second] * cosine;
 }
 
+__global__ void rope_split_half_bias_kernel(
+    const float* input, const float* bias, float* output, std::int64_t pairs,
+    std::int64_t heads, std::int64_t sequence_size, std::int64_t head_width,
+    std::int64_t position_offset, float base) {
+    const auto pair_index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    if (pair_index >= pairs) return;
+    const auto half = head_width / 2;
+    const auto head_instance = pair_index / half;
+    const auto pair = pair_index % half;
+    const auto first = head_instance * head_width + pair;
+    const auto second = first + half;
+    const auto head = (first / (sequence_size * head_width)) % heads;
+    const auto position = (first / head_width) % sequence_size;
+    const auto angle = static_cast<float>(position + position_offset) *
+                       powf(base, -2.0F * static_cast<float>(pair) /
+                                      static_cast<float>(head_width));
+    float sine = 0.0F;
+    float cosine = 0.0F;
+    sincosf(angle, &sine, &cosine);
+    const auto bias_first = head * head_width + pair;
+    const auto bias_second = bias_first + half;
+    const auto first_value = input[first] + bias[bias_first];
+    const auto second_value = input[second] + bias[bias_second];
+    output[first] = first_value * cosine - second_value * sine;
+    output[second] = first_value * sine + second_value * cosine;
+}
+
 __device__ float block_reduce_max(float value, float* scratch) {
     const auto lane = static_cast<unsigned>(threadIdx.x);
     scratch[lane] = value;
@@ -1407,6 +1434,18 @@ void launch_rope_split_half(const float* input, float* output,
                        dim3(kBlockSize), 0, as_stream(stream), input, output, pairs,
                        head_width, sequence_size, sequence_stride, position_offset, base);
     check_launch("rope_split_half_kernel");
+}
+
+void launch_rope_split_half_bias(const float* input, const float* bias, float* output,
+                                 std::int64_t elements, std::int64_t heads,
+                                 std::int64_t sequence_size, std::int64_t head_width,
+                                 std::int64_t position_offset, float base, void* stream) {
+    if (elements == 0) return;
+    const auto pairs = elements / 2;
+    hipLaunchKernelGGL(rope_split_half_bias_kernel, dim3(grid_size(pairs)),
+                       dim3(kBlockSize), 0, as_stream(stream), input, bias, output,
+                       pairs, heads, sequence_size, head_width, position_offset, base);
+    check_launch("rope_split_half_bias_kernel");
 }
 
 void launch_cross_entropy(const float* logits, const std::int32_t* targets, float* output,

@@ -66,6 +66,34 @@ TEST(AutogradTest, Bf16MatmulUsesRoundedForwardAndFp32MasterGradients) {
               ops::matmul(left.data(), right.data()).to_vector());
 }
 
+TEST(AutogradTest, FusedSplitHalfRopeBiasMatchesComposedForwardAndGradients) {
+    const auto raw = Tensor::from_vector(
+        {1, 2, 3, 4, 5, 6, 7, 8,
+         -1, -2, -3, -4, -5, -6, -7, -8}, {1, 2, 2, 4});
+    const auto bias_data = Tensor::from_vector(
+        {0.1F, 0.2F, 0.3F, 0.4F, -0.1F, -0.2F, -0.3F, -0.4F}, {8});
+    const Value seed(Tensor::from_vector(
+        {1, -1, 2, -2, 3, -3, 4, -4,
+         -1, 1, -2, 2, -3, 3, -4, 4}, {1, 2, 2, 4}));
+
+    Value fused_input(raw, true);
+    Value fused_bias(bias_data, true);
+    const auto fused = rope_split_half_bias(fused_input, fused_bias);
+    sum(multiply(fused, seed)).backward();
+
+    Value reference_input(raw, true);
+    Value reference_bias(bias_data, true);
+    auto flat = reshape(contiguous(transpose(reference_input, 1, 2)), {2, 8});
+    auto projected = add_bias(flat, reference_bias);
+    auto arranged = transpose(reshape(projected, {1, 2, 2, 4}), 1, 2);
+    const auto reference = rope_split_half(arranged, 2);
+    sum(multiply(reference, seed)).backward();
+
+    EXPECT_EQ(fused.data().to_vector(), reference.data().to_vector());
+    EXPECT_EQ(fused_input.grad().to_vector(), reference_input.grad().to_vector());
+    EXPECT_EQ(fused_bias.grad().to_vector(), reference_bias.grad().to_vector());
+}
+
 TEST(AutogradTest, FiniteDifferenceChecksMultiplyAndMean) {
     const std::vector<float> initial{0.5F, -1.25F, 2.0F};
     const auto coefficient = Tensor::from_vector({2, -3, 4}, {3});

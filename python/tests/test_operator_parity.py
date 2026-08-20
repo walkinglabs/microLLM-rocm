@@ -196,6 +196,21 @@ def pytorch_references(actual):
     record(refs, "graph_bf16_matmul_left_grad", bf16_seed @ bf16_right.detach().transpose(0, 1))
     record(refs, "graph_bf16_matmul_right_grad", bf16_left.detach().transpose(0, 1) @ bf16_seed)
 
+    fused_rope_input = tensor(
+        [1, 2, 3, 4, 5, 6, 7, 8,
+         -1, -2, -3, -4, -5, -6, -7, -8], (1, 2, 2, 4), True)
+    fused_rope_bias = tensor(
+        [0.1, 0.2, 0.3, 0.4, -0.1, -0.2, -0.3, -0.4], (8,), True)
+    fused_rope_seed = tensor(
+        [1, -1, 2, -2, 3, -3, 4, -4,
+         -1, 1, -2, 2, -3, 3, -4, 4], (1, 2, 2, 4))
+    fused_rope_output = rope_split_half(
+        fused_rope_input + fused_rope_bias.reshape(1, 2, 1, 4), sequence_dim=2)
+    (fused_rope_output * fused_rope_seed).sum().backward()
+    record(refs, "graph_rope_split_half_bias_output", fused_rope_output)
+    record(refs, "graph_rope_split_half_bias_input_grad", fused_rope_input.grad)
+    record(refs, "graph_rope_split_half_bias_bias_grad", fused_rope_bias.grad)
+
     embed_weight = tensor([0, 1, 2, 3, 4, 5, 6, 7], (4, 2), True)
     embed_seed = tensor([1, 2, 3, 4, 5, 6], (3, 2))
     (F.embedding(indices, embed_weight) * embed_seed).sum().backward()
@@ -403,6 +418,7 @@ class OperatorParityTest(unittest.TestCase):
             "invalid_swiglu_shape",
             "invalid_rope_width",
             "invalid_rope_split_half_width",
+            "invalid_rope_split_half_bias_shape",
             "invalid_cross_entropy_shape",
             "invalid_reduce_dtype",
             "invalid_broadcast_source",
