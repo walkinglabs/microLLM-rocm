@@ -141,6 +141,11 @@ void launch_cached_attention_context(
     std::int64_t heads, std::int64_t kv_heads, std::int64_t sequence,
     std::int64_t cache_head_stride, std::int64_t width,
     std::int64_t repeats, void* stream = nullptr);
+void launch_cached_attention_fused(
+    const float* query, const float* key_cache, const float* value_cache,
+    float* output, std::int64_t heads, std::int64_t sequence,
+    std::int64_t cache_head_stride, std::int64_t width,
+    std::int64_t repeats, float scale, void* stream = nullptr);
 void launch_argmax(const float* input, std::int32_t* output,
                    std::int64_t elements, void* stream = nullptr);
 

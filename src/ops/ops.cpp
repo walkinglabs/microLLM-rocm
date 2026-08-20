@@ -978,6 +978,18 @@ Tensor cached_gqa_attention(const Tensor& query, const Tensor& key_cache,
     }
     if (query.device().is_hip()) {
 #if MICROLLM_HAS_HIP
+        constexpr std::int64_t kMaximumFusedSequence = 4096;
+        if (sequence <= kMaximumFusedSequence) {
+            Tensor output({1, heads, 1, width}, DType::Float32, query.device());
+            hip::launch_cached_attention_fused(
+                static_cast<const float*>(query.data()),
+                static_cast<const float*>(key_cache.data()),
+                static_cast<const float*>(value_cache.data()),
+                static_cast<float*>(output.data()), heads, sequence,
+                cache_head_stride, width, repeats, factor,
+                context.native_stream(query.device()));
+            return output;
+        }
         Tensor scores({1, heads, 1, sequence}, DType::Float32, query.device());
         hip::launch_cached_attention_scores(
             static_cast<const float*>(query.data()),

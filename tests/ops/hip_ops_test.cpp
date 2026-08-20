@@ -331,6 +331,51 @@ TEST(HipRmsNormTest, BlockParallelForwardBackwardCoverModelWidthsWithoutHostTran
     }
 }
 
+TEST(HipCachedAttentionTest, FusedMhaGqaAndLongSequenceFallbackMatchCpu) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    constexpr std::int64_t heads = 4;
+    constexpr std::int64_t width = 16;
+    for (const auto gqa : {false, true}) {
+        const auto kv_heads = gqa ? 1LL : heads;
+        const auto repeats = heads / kv_heads;
+        std::vector<float> query_values(static_cast<std::size_t>(heads * width));
+        for (std::size_t index = 0; index < query_values.size(); ++index) {
+            query_values[index] =
+                static_cast<float>(static_cast<int>(index % 17) - 8) * 0.03125F;
+        }
+        const auto query = Tensor::from_vector(query_values, {1, heads, 1, width});
+        for (const auto sequence : {1LL, 32LL, 128LL, 512LL, 4097LL}) {
+            std::vector<float> key_values(
+                static_cast<std::size_t>(kv_heads * sequence * width));
+            std::vector<float> value_values(key_values.size());
+            for (std::size_t index = 0; index < key_values.size(); ++index) {
+                key_values[index] =
+                    static_cast<float>(static_cast<int>(index % 29) - 14) * 0.015625F;
+                value_values[index] =
+                    static_cast<float>(static_cast<int>(index % 31) - 15) * 0.0234375F;
+            }
+            const auto key = Tensor::from_vector(
+                key_values, {1, kv_heads, sequence, width});
+            const auto value = Tensor::from_vector(
+                value_values, {1, kv_heads, sequence, width});
+            const auto expected = cached_gqa_attention(
+                query, key, value, repeats, 0.25F).to_vector();
+            const auto device_query = query.to(gpu);
+            const auto device_key = key.to(gpu);
+            const auto device_value = value.to(gpu);
+            runtime::reset_transfer_stats();
+            const auto actual = cached_gqa_attention(
+                device_query, device_key, device_value, repeats, 0.25F);
+            runtime::synchronize(gpu);
+            const auto transfers = runtime::transfer_stats();
+            EXPECT_EQ(transfers.host_to_device_calls, 0U);
+            EXPECT_EQ(transfers.device_to_host_calls, 0U);
+            expect_near(actual.to_vector(), expected, 5.0e-4F);
+        }
+    }
+}
+
 TEST(HipArgmaxTest, CoversLargeVocabulariesTiesAndScalarTransferContract) {
     require_gpu();
     const auto gpu = Device::hip(0);

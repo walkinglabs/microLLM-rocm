@@ -622,6 +622,48 @@ __global__ void cached_attention_context_kernel(
     output[index] = total;
 }
 
+__global__ void cached_attention_fused_kernel(
+    const float* query, const float* key_cache, const float* value_cache,
+    float* output, std::int64_t heads, std::int64_t sequence,
+    std::int64_t cache_head_stride, std::int64_t width,
+    std::int64_t repeats, float scale) {
+    const auto head = static_cast<std::int64_t>(blockIdx.x);
+    if (head >= heads) return;
+    const auto kv_head = head / repeats;
+    extern __shared__ float shared_scores[];
+    __shared__ float reduction[kBlockSize];
+
+    float local_maximum = -INFINITY;
+    for (std::int64_t position = threadIdx.x; position < sequence;
+         position += blockDim.x) {
+        float dot = 0.0F;
+        for (std::int64_t column = 0; column < width; ++column) {
+            dot += query[head * width + column] *
+                   key_cache[kv_head * cache_head_stride + position * width + column];
+        }
+        const auto score = dot * scale;
+        shared_scores[position] = score;
+        local_maximum = fmaxf(local_maximum, score);
+    }
+    const auto maximum = block_reduce_max(local_maximum, reduction);
+    float local_denominator = 0.0F;
+    for (std::int64_t position = threadIdx.x; position < sequence;
+         position += blockDim.x) {
+        const auto probability = expf(shared_scores[position] - maximum);
+        shared_scores[position] = probability;
+        local_denominator += probability;
+    }
+    const auto denominator = block_reduce_sum(local_denominator, reduction);
+    for (std::int64_t column = threadIdx.x; column < width; column += blockDim.x) {
+        float total = 0.0F;
+        for (std::int64_t position = 0; position < sequence; ++position) {
+            total += shared_scores[position] / denominator *
+                     value_cache[kv_head * cache_head_stride + position * width + column];
+        }
+        output[head * width + column] = total;
+    }
+}
+
 __global__ void silu_backward_kernel(const float* input, const float* gradient,
                                      float* input_gradient, std::int64_t elements) {
     const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
@@ -1352,6 +1394,19 @@ void launch_cached_attention_context(
                        value_cache, output, heads, sequence, cache_head_stride,
                        width, repeats);
     check_launch("cached_attention_context_kernel");
+}
+
+void launch_cached_attention_fused(
+    const float* query, const float* key_cache, const float* value_cache,
+    float* output, std::int64_t heads, std::int64_t sequence,
+    std::int64_t cache_head_stride, std::int64_t width,
+    std::int64_t repeats, float scale, void* stream) {
+    hipLaunchKernelGGL(cached_attention_fused_kernel,
+                       dim3(static_cast<unsigned>(heads)), dim3(kBlockSize),
+                       static_cast<std::size_t>(sequence) * sizeof(float),
+                       as_stream(stream), query, key_cache, value_cache, output,
+                       heads, sequence, cache_head_stride, width, repeats, scale);
+    check_launch("cached_attention_fused_kernel");
 }
 
 void launch_argmax(const float* input, std::int32_t* output,
