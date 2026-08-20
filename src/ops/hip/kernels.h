@@ -142,6 +142,11 @@ void launch_kv_cache_store(const float* current, float* cache,
                            std::int64_t heads, std::int64_t capacity,
                            std::int64_t width, std::int64_t position,
                            void* stream = nullptr);
+void launch_kv_cache_store_pair(const float* current_key, const float* current_value,
+                                float* key_cache, float* value_cache,
+                                std::int64_t heads, std::int64_t capacity,
+                                std::int64_t width, std::int64_t position,
+                                void* stream = nullptr);
 void launch_cached_attention_scores(
     const float* query, const float* key_cache, float* scores,
     std::int64_t heads, std::int64_t kv_heads, std::int64_t sequence,

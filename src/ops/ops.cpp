@@ -1071,6 +1071,49 @@ void kv_cache_store_(Tensor& cache, const Tensor& current, std::int64_t position
     }
 }
 
+void kv_cache_store_pair_(Tensor& key_cache, Tensor& value_cache,
+                          const Tensor& current_key, const Tensor& current_value,
+                          std::int64_t position,
+                          [[maybe_unused]] const OpContext& context) {
+    require_same_shape(key_cache, value_cache);
+    require_same_shape(current_key, current_value);
+    require_same_device(key_cache, value_cache);
+    require_same_device(current_key, current_value);
+    require_same_device(key_cache, current_key);
+    if (!key_cache.device().is_hip()) {
+        kv_cache_store_(key_cache, current_key, position, context);
+        kv_cache_store_(value_cache, current_value, position, context);
+        return;
+    }
+    if (key_cache.dtype() != DType::Float32 || current_key.dtype() != DType::Float32 ||
+        key_cache.ndim() != 4 || current_key.ndim() != 4 ||
+        key_cache.shape()[0] != 1 || current_key.shape()[0] != 1 ||
+        current_key.shape()[2] != 1 || key_cache.shape()[1] != current_key.shape()[1] ||
+        key_cache.shape()[3] != current_key.shape()[3] || position < 0 ||
+        position >= key_cache.shape()[2] || position != key_cache.shape()[2] - 1 ||
+        key_cache.stride(3) != 1 || key_cache.stride(2) != key_cache.shape()[3] ||
+        key_cache.strides() != value_cache.strides()) {
+        throw std::invalid_argument("paired KV cache store contract is invalid");
+    }
+    require_contiguous(current_key, "current_key");
+    require_contiguous(current_value, "current_value");
+    [[maybe_unused]] const auto heads = key_cache.shape()[1];
+    const auto width = key_cache.shape()[3];
+    const auto capacity = key_cache.stride(1) / width;
+    if (capacity < key_cache.shape()[2]) {
+        throw std::invalid_argument("paired KV cache capacity is too small");
+    }
+#if MICROLLM_HAS_HIP
+    hip::launch_kv_cache_store_pair(
+        static_cast<const float*>(current_key.data()),
+        static_cast<const float*>(current_value.data()),
+        static_cast<float*>(key_cache.data()), static_cast<float*>(value_cache.data()),
+        heads, capacity, width, position, context.native_stream(key_cache.device()));
+#else
+    throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+}
+
 Tensor cached_gqa_attention(const Tensor& query, const Tensor& key_cache,
                             const Tensor& value_cache, std::int64_t repeats,
                             float factor, [[maybe_unused]] const OpContext& context) {

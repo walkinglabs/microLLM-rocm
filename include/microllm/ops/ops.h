@@ -139,6 +139,9 @@ void clear_matmul_implementation_registry();
 // while its logical Tensor shape exposes only the initialized prefix.
 void kv_cache_store_(Tensor& cache, const Tensor& current, std::int64_t position,
                      const OpContext& context = {});
+void kv_cache_store_pair_(Tensor& key_cache, Tensor& value_cache,
+                          const Tensor& current_key, const Tensor& current_value,
+                          std::int64_t position, const OpContext& context = {});
 [[nodiscard]] Tensor cached_gqa_attention(const Tensor& query, const Tensor& key_cache,
                                           const Tensor& value_cache,
                                           std::int64_t repeats, float scale,

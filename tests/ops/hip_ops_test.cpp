@@ -652,6 +652,29 @@ TEST(HipOpsTest, FusedResidualRmsNormMatchesComposedCpuWithoutTransfers) {
     expect_near(actual.second.to_vector(), expected_norm.to_vector(), 2.0e-4F);
 }
 
+TEST(HipOpsTest, PairedKvStoreMatchesTwoCpuStoresWithoutPayloadTransfers) {
+    require_gpu();
+    const auto gpu = Device::hip();
+    Tensor key_backing({1, 2, 2, 2}, DType::Float32, gpu);
+    Tensor value_backing({1, 2, 2, 2}, DType::Float32, gpu);
+    auto key_cache = Tensor::from_storage(key_backing.storage(), {1, 2, 1, 2},
+                                          key_backing.strides(), 0, DType::Float32);
+    auto value_cache = Tensor::from_storage(value_backing.storage(), {1, 2, 1, 2},
+                                            value_backing.strides(), 0, DType::Float32);
+    const auto key = Tensor::from_vector({1, 2, 3, 4}, {1, 2, 1, 2});
+    const auto value = Tensor::from_vector({5, 6, 7, 8}, {1, 2, 1, 2});
+    const auto device_key = key.to(gpu);
+    const auto device_value = value.to(gpu);
+    runtime::reset_transfer_stats();
+    kv_cache_store_pair_(key_cache, value_cache, device_key, device_value, 0);
+    runtime::synchronize(gpu);
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    expect_near(key_cache.to_vector(), key.to_vector());
+    expect_near(value_cache.to_vector(), value.to_vector());
+}
+
 TEST(HipAutogradTest, RepeatInterleaveMaterializesTransposedGqaValue) {
     require_gpu();
     autograd::Value input(

@@ -45,6 +45,7 @@
     "register_matmul_implementation": "tests/ops/hip_ops_test.cpp",
     "clear_matmul_implementation_registry": "tests/ops/hip_ops_test.cpp",
     "kv_cache_store_": "tests/ops/ops_test.cpp",
+    "kv_cache_store_pair_": "tests/ops/hip_ops_test.cpp",
     "cached_gqa_attention": "tests/ops/ops_test.cpp",
     "argmax": "tests/ops/ops_test.cpp"
   },

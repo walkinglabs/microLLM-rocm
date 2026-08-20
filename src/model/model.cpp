@@ -18,8 +18,8 @@ namespace {
 
 using autograd::Value;
 
-void append_cached_sequence(Tensor& cached, const Tensor& current,
-                            std::int64_t position, std::int64_t capacity) {
+Tensor prepare_cached_sequence(Tensor& cached, const Tensor& current,
+                               std::int64_t position, std::int64_t capacity) {
     if (current.dtype() != DType::Float32 || current.ndim() != 4) {
         throw std::invalid_argument("cached K/V tensors must be float32 rank four");
     }
@@ -43,7 +43,7 @@ void append_cached_sequence(Tensor& cached, const Tensor& current,
         cached = Tensor::from_storage(cached.storage(), {1, heads, position + 1, width},
                                       cached.strides(), cached.storage_offset(), cached.dtype());
     }
-    ops::kv_cache_store_(cached, packed, position);
+    return packed;
 }
 
 Tensor random_tensor(Shape shape, std::mt19937_64& generator, float standard_deviation) {
@@ -225,8 +225,12 @@ public:
             query = ops::rope(query, 2, position, config_.rope_base);
             key = ops::rope(key, 2, position, config_.rope_base);
         }
-        append_cached_sequence(cache.key, key, position, cache_capacity);
-        append_cached_sequence(cache.value, value, position, cache_capacity);
+        const auto packed_key =
+            prepare_cached_sequence(cache.key, key, position, cache_capacity);
+        const auto packed_value =
+            prepare_cached_sequence(cache.value, value, position, cache_capacity);
+        ops::kv_cache_store_pair_(cache.key, cache.value, packed_key, packed_value,
+                                  position);
         const auto repeats = config_.heads / config_.kv_heads;
         auto context = ops::cached_gqa_attention(
                            query, cache.key, cache.value, repeats,

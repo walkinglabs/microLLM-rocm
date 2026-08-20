@@ -711,6 +711,19 @@ __global__ void kv_cache_store_kernel(const float* current, float* cache,
     cache[head * capacity * width + position * width + column] = current[index];
 }
 
+__global__ void kv_cache_store_pair_kernel(
+    const float* current_key, const float* current_value,
+    float* key_cache, float* value_cache, std::int64_t heads,
+    std::int64_t capacity, std::int64_t width, std::int64_t position) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    if (index >= heads * width) return;
+    const auto head = index / width;
+    const auto column = index % width;
+    const auto destination = head * capacity * width + position * width + column;
+    key_cache[destination] = current_key[index];
+    value_cache[destination] = current_value[index];
+}
+
 __global__ void cached_attention_scores_kernel(
     const float* query, const float* key_cache, float* scores,
     std::int64_t heads, std::int64_t sequence,
@@ -1565,6 +1578,18 @@ void launch_kv_cache_store(const float* current, float* cache,
                        dim3(kBlockSize), 0, as_stream(stream), current, cache,
                        heads, capacity, width, position);
     check_launch("kv_cache_store_kernel");
+}
+
+void launch_kv_cache_store_pair(const float* current_key, const float* current_value,
+                                float* key_cache, float* value_cache,
+                                std::int64_t heads, std::int64_t capacity,
+                                std::int64_t width, std::int64_t position, void* stream) {
+    const auto elements = heads * width;
+    hipLaunchKernelGGL(kv_cache_store_pair_kernel, dim3(grid_size(elements)),
+                       dim3(kBlockSize), 0, as_stream(stream), current_key,
+                       current_value, key_cache, value_cache, heads, capacity,
+                       width, position);
+    check_launch("kv_cache_store_pair_kernel");
 }
 
 void launch_cached_attention_scores(
