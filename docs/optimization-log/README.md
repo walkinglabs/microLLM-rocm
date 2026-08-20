@@ -61,6 +61,9 @@ Experiment 011 的 hipBLASLt bias epilogue 确实减少 16–17% generation allo
 Experiment 012 将大词表 argmax 改成两阶段 reduction，Kernel time 降低 96.7%。三进程
 Qwen/DeepSeek generation 中位数再提高 3.6%/0.6%，当前 robust score 为 `1.770568`。
 
+Experiment 013 探测无权重复制的 GroupedGemm QKV：变宽和同宽 FP32 M=1 两种控制都
+没有可用 heuristic，因此直接 discard，没有拿三 GEMM fallback 冒充 grouped 加速。
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录

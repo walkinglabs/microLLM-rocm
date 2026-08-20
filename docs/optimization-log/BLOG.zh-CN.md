@@ -675,7 +675,22 @@ robust score     1.752183 → 1.770568
 一小部分时间。rocprof 插桩下整机甚至反向变慢，说明两次 Kernel 和 scratch/Event
 更容易被工具放大。代码保留，但结论只写“边缘端到端收益”。
 
-## 23. 怎样读进度图
+## 23. Experiment 013：官方有 API，不代表当前 shape 有 Kernel
+
+hipBLASLt extension 提供 GroupedGemm，看起来正适合 Q/K/V：三个权重、同一个输入、
+三个输出，而且不需要复制权重。
+
+实际 MI300X 探针：
+
+```text
+M=1 K=128 N={128,64,64}    no heuristic
+M=1 K=128 N={128,128,128}  no heuristic
+```
+
+变宽和同宽控制都 fallback。继续跑模型只能测三次旧 GEMM，所以实验在 operator gate
+就停止，API 和代码删除。以后可以在 BF16 或 prefill 的较大 M 重新问这个问题。
+
+## 24. 怎样读进度图
 
 图中：
 
@@ -687,10 +702,10 @@ robust score     1.752183 → 1.770568
 - 右侧条形：当前四项 workload ratio；
 - 底部卡片：计划步骤，不代表已经完成。
 
-当前有 baseline 和八个 keep 实验共九个绿色点，以及四个 discard 灰点。未来如果十个实验都失败，图上就
+当前有 baseline 和八个 keep 实验共九个绿色点，以及五个 discard 灰点。未来如果十个实验都失败，图上就
 应出现十个灰点，而不是凭空出现一条漂亮上升曲线。
 
-## 24. 什么才算从 0 到 1
+## 25. 什么才算从 0 到 1
 
 完成一个 Kernel 不是 1，某个 shape 跑得快也不是 1。
 
