@@ -880,7 +880,12 @@ K/V cache 原来分两次写同一 position。合并后 Qwen/DeepSeek generation
 V bias 融入 cache store 后，Qwen/DeepSeek allocation 少 600/2660 次，但 generation
 中位数下降 4.4%/1.0%。候选删除，说明 allocation 数也不能脱离端到端结果解释。
 
-## 37. 怎样读进度图
+## 37. Experiment 027：shared memory 不是免费缓存
+
+query 预载入 shared memory 后，Qwen +0.18%，DeepSeek -1.63%，score 下降。短 sequence
+下 global query 已被硬件 cache 命中，额外 copy/sync 反而不值，候选删除。
+
+## 38. 怎样读进度图
 
 图中：
 
@@ -892,11 +897,11 @@ V bias 融入 cache store 后，Qwen/DeepSeek allocation 少 600/2660 次，但 
 - 右侧条形：当前四项 workload ratio；
 - 底部卡片：计划步骤，不代表已经完成。
 
-FP32 主图当前有 baseline 和十四个 keep 实验共十五个绿色点，以及十个 discard 灰点；
+FP32 主图当前有 baseline 和十四个 keep 实验共十五个绿色点，以及十一个 discard 灰点；
 BF16 独立图另有一个被否决的模型策略。未来如果十个实验都失败，图上就应出现十个
 灰点，而不是凭空出现一条漂亮上升曲线。
 
-## 38. 什么才算从 0 到 1
+## 39. 什么才算从 0 到 1
 
 完成一个 Kernel 不是 1，某个 shape 跑得快也不是 1。
 

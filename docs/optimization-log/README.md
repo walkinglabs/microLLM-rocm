@@ -109,6 +109,9 @@ Experiment 025 将同 position 的 K/V cache store 合成一次 launch。两模�
 Experiment 026 继续把 V bias 融入 store，allocation 明显减少但两模型中位数均退化，
 因此 API/Kernel/模型改动全部删除。
 
+Experiment 027 将 cached Attention query 放入 shared memory，Qwen 微增但 DeepSeek 和
+score 退化，候选删除。
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
