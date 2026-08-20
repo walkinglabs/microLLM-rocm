@@ -558,7 +558,28 @@ DeepSeek gen backend alloc 53,865 → 810
 因为它放大了数千次 Event API 的开销。固定的未插桩主指标明显提升，所以方案保留；
 但 Event batching 被记录成下一版问题，不能删掉这条不漂亮的数据。
 
-## 17. 怎样读进度图
+## 17. Experiment 007：命中缓存不等于端到端更快
+
+最新 trace 中 projection GEMM 占比最高，于是候选缓存了 hipBLASLt operation
+descriptor 和三个 matrix layout。测试结果很漂亮：同一个 key 第一次 miss，之后 hit；
+NN/NT/TN/TT 和 dtype 不会串 key，数值也完全通过。
+
+但固定矩阵不接受“代码看起来合理”：
+
+```text
+running best score      1.700597
+candidate score         1.669755
+Qwen generation           -6.1%
+DeepSeek training          -5.2%
+```
+
+一个可能解释是 descriptor 创建原本就不是主要成本；另一个解释是长期保留 host 对象
+改变了 allocator/Event 的微小时序。当前证据不能区分，也没有必要靠猜测保留代码。
+候选被删除，raw JSONL 留下，进度图出现第一个灰点。
+
+这正是 autoresearch 风格记录的意义：running best 不下降，失败实验也不会消失。
+
+## 18. 怎样读进度图
 
 图中：
 
@@ -570,10 +591,10 @@ DeepSeek gen backend alloc 53,865 → 810
 - 右侧条形：当前四项 workload ratio；
 - 底部卡片：计划步骤，不代表已经完成。
 
-当前有 baseline 和六个 keep 实验共七个绿色点。未来如果十个实验都失败，图上就
+当前有 baseline 和六个 keep 实验共七个绿色点，以及一个 discard 灰点。未来如果十个实验都失败，图上就
 应出现十个灰点，而不是凭空出现一条漂亮上升曲线。
 
-## 18. 什么才算从 0 到 1
+## 19. 什么才算从 0 到 1
 
 完成一个 Kernel 不是 1，某个 shape 跑得快也不是 1。
 

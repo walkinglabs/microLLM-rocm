@@ -39,6 +39,10 @@ train/generate ratio 为 `2.086361/1.921682`，DeepSeek train/generate ratio 为
 训练比值超过 1 只适用于当前极短 context 的固定 FP32 测量，不能推广成完整训练领先。
 综合分数超过 1 也不表示每一项都达到 parity；DeepSeek generation 仍是明显缺口。
 
+Experiment 007 的 hipBLASLt descriptor/layout cache 数值正确但被 discard：候选分数
+`1.669755` 低于 running best，Qwen generation 和 DeepSeek training 分别退化约
+6.1%/5.2%。灰点会保留在图上。
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
