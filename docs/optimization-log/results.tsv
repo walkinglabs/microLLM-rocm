@@ -21,3 +21,4 @@ experiment	commit	date	status	score	qwen_train	qwen_generate	deepseek_train	deep
 021	0492aa2	2026-08-20	discard	1.750336	2.082935	2.014301	2.525765	0.885711	0.896740	0.960651	0.797351	0.988733	thread-local HIP device selection cache; API calls vanished but every workload regressed
 022	e59c3b3	2026-08-20	keep	2.389841	3.015829	2.869453	3.126155	1.205756	0.896740	0.960651	0.797351	0.988733	shared retirement Events for eight allocator blocks; all four workload medians improved
 023	b3e6a42	2026-08-20	keep	2.470863	3.095026	3.111942	3.091891	1.251627	0.896740	0.960651	0.797351	0.988733	tune retirement Event batch from eight to sixteen blocks; score improved 3.4%
+024	a1a5754	2026-08-20	discard	2.462231	3.107688	2.962352	3.165014	1.261436	0.896740	0.960651	0.797351	0.988733	retirement batch 32; delayed reuse regressed Qwen generation and score

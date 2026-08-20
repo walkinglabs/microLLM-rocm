@@ -100,6 +100,9 @@ Experiment 022 让八个默认 Stream retired blocks 共用一个完成 Event。
 Experiment 023 将批次从 8 调到 16。Event 再减半，三项 workload 改善、DeepSeek train
 退化 1.1%，score 提高到 `2.470863`；显存峰值不变。
 
+Experiment 024 继续增到 32，但 score 降到 `2.462231`，Qwen generation 退化 4.8%，
+backend allocation 增加。代码恢复到实测局部最优 16。
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
