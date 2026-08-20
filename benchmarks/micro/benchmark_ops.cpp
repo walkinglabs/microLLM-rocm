@@ -54,8 +54,9 @@ Options parse_options(int argc, char** argv) {
         else throw std::invalid_argument("unknown benchmark option: " + std::string(name));
     }
     if (options.operation != "add" && options.operation != "matmul" &&
+        options.operation != "bf16-mixed" &&
         options.operation != "softmax") {
-        throw std::invalid_argument("op must be add, matmul, or softmax");
+        throw std::invalid_argument("op must be add, matmul, bf16-mixed, or softmax");
     }
     if (options.device != "cpu" && options.device != "hip") {
         throw std::invalid_argument("device must be cpu or hip");
@@ -75,14 +76,15 @@ Options parse_options(int argc, char** argv) {
     if (options.size <= 0 || options.warmup < 0 || options.repetitions <= 0) {
         throw std::invalid_argument("size/repetition options are outside valid ranges");
     }
-    if ((options.operation == "matmul" || options.operation == "softmax") &&
+    if ((options.operation == "matmul" || options.operation == "bf16-mixed" ||
+         options.operation == "softmax") &&
         options.size > 16384) {
         throw std::invalid_argument("matrix benchmark size exceeds the safety limit");
     }
     if (options.operation == "add" && options.size > 100000000) {
         throw std::invalid_argument("elementwise benchmark size exceeds the safety limit");
     }
-    if (options.operation == "matmul") {
+    if (options.operation == "matmul" || options.operation == "bf16-mixed") {
         options.rows = options.rows == 0 ? options.size : options.rows;
         options.inner = options.inner == 0 ? options.size : options.inner;
         options.columns = options.columns == 0 ? options.size : options.columns;
@@ -116,6 +118,7 @@ microllm::Tensor run_operation(const std::string& operation, const microllm::Ten
                                                 : microllm::ops::MatmulImplementation::HipBLASLt,
             context);
     }
+    if (operation == "bf16-mixed") return microllm::ops::bf16_matmul(left, right, context);
     return microllm::ops::softmax(left, -1, context);
 }
 
@@ -144,11 +147,13 @@ int main(int argc, char** argv) {
         if (device.is_hip() && microllm::runtime::hip_device_count() == 0) {
             throw std::runtime_error("HIP benchmark requested without a visible GPU");
         }
-        const auto left_count = options.operation == "matmul"
+        const auto matrix_operation =
+            options.operation == "matmul" || options.operation == "bf16-mixed";
+        const auto left_count = matrix_operation
                                     ? options.rows * options.inner
                                     : options.operation == "add" ? options.size
                                                                   : options.size * options.size;
-        const auto right_count = options.operation == "matmul"
+        const auto right_count = matrix_operation
                                      ? options.inner * options.columns
                                      : left_count;
         std::vector<float> left_values(static_cast<std::size_t>(left_count));
@@ -162,14 +167,20 @@ int main(int argc, char** argv) {
         const microllm::Shape left_shape =
             options.operation == "add"
                 ? microllm::Shape{options.size}
-                : options.operation == "matmul"
+                : matrix_operation
                       ? microllm::Shape{options.rows, options.inner}
                       : microllm::Shape{options.size, options.size};
-        const microllm::Shape right_shape = options.operation == "matmul"
+        const microllm::Shape right_shape = matrix_operation
                                                 ? microllm::Shape{options.inner, options.columns}
                                                 : left_shape;
-        const auto left_cpu = microllm::Tensor::from_vector(left_values, left_shape, dtype);
-        const auto right_cpu = microllm::Tensor::from_vector(right_values, right_shape, dtype);
+        const auto left_dtype = options.operation == "bf16-mixed"
+                                    ? microllm::DType::Float32 : dtype;
+        const auto right_dtype = options.operation == "bf16-mixed"
+                                     ? microllm::DType::BFloat16 : dtype;
+        const auto left_cpu = microllm::Tensor::from_vector(
+            left_values, left_shape, left_dtype);
+        const auto right_cpu = microllm::Tensor::from_vector(
+            right_values, right_shape, right_dtype);
         const auto reference =
             run_operation(options.operation, left_cpu, right_cpu, "readable").to_vector();
         const auto left = left_cpu.to(device);

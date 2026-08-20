@@ -43,6 +43,17 @@ TEST(CpuOpsTest, BatchedMatmulMatchesHandValues) {
               (std::vector<float>{22, 28, 49, 64, 1, 2, 9, 12}));
 }
 
+TEST(CpuOpsTest, DeviceStyleCastAndMixedBf16MatmulMatchRoundedReference) {
+    const auto input = Tensor::from_vector({1.1F, -2.2F, 3.3F, 4.4F}, {2, 2});
+    const auto weight = Tensor::from_vector({0.5F, -1.25F, 2.0F, 0.75F}, {2, 2});
+    const auto rounded_input = input.cast(DType::BFloat16).cast(DType::Float32);
+    const auto rounded_weight = weight.cast(DType::BFloat16).cast(DType::Float32);
+    EXPECT_EQ(cast(input, DType::BFloat16).to_vector(),
+              input.cast(DType::BFloat16).to_vector());
+    expect_near(bf16_matmul(input, weight.cast(DType::BFloat16)).to_vector(),
+                matmul(rounded_input, rounded_weight).to_vector());
+}
+
 TEST(CpuOpsTest, TransposeAwareMatmulCoversAllOperandLayoutsWithoutViews) {
     const auto logical_left = Tensor::from_vector({1, 2, 3, 4, 5, 6}, {2, 3});
     const auto logical_right = Tensor::from_vector(

@@ -62,11 +62,14 @@ void emit_forward_cases() {
     emit("add", add(left, right));
     emit("multiply", multiply(left, right));
     emit("scale", scale(left, -0.25F));
+    emit("cast_bf16", cast(left, DType::BFloat16));
     emit("add_bias", add_bias(left, f32({0.5F, -1.0F, 2.0F}, {3})));
 
     const auto matrix_left = f32({1, 2, 3, 4, 5, 6}, {2, 3});
     const auto matrix_right = f32({1, 2, 3, 4, 5, 6}, {3, 2});
     emit("matmul_2d", matmul(matrix_left, matrix_right));
+    emit("bf16_mixed_matmul",
+         bf16_matmul(matrix_left, cast(matrix_right, DType::BFloat16)));
     emit("matmul_readable",
          matmul_with_implementation(matrix_left, matrix_right,
                                     MatmulImplementation::Readable));
@@ -292,7 +295,13 @@ void emit_invalid_shape_cases() {
     emit_bool("invalid_scale_dtype", rejected([&] {
                   (void)scale(Tensor::from_int32_vector({1, 2}, {2}), 2.0F);
               }));
+    emit_bool("invalid_cast_dtype", rejected([&] {
+                  (void)cast(Tensor::from_int32_vector({1, 2}, {2}), DType::BFloat16);
+              }));
     emit_bool("invalid_matmul_inner", rejected([&] { (void)matmul(matrix, f32({1, 2}, {2, 1, 1})); }));
+    emit_bool("invalid_bf16_matmul_dtype", rejected([&] {
+                  (void)bf16_matmul(matrix, matrix);
+              }));
     emit_bool("invalid_embedding_weight", rejected([&] {
                   (void)embedding(vector, Tensor::from_int32_vector({0}, {1}));
               }));

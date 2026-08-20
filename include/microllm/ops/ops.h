@@ -27,6 +27,10 @@ struct ScaledTensor {
 [[nodiscard]] Tensor fp8_matmul(const ScaledTensor& left, const ScaledTensor& right,
                                 DType output_dtype = DType::BFloat16,
                                 const OpContext& context = {});
+[[nodiscard]] Tensor cast(const Tensor& input, DType output_dtype,
+                          const OpContext& context = {});
+[[nodiscard]] Tensor bf16_matmul(const Tensor& left_fp32, const Tensor& right_bf16,
+                                 const OpContext& context = {});
 
 void fill_(Tensor& tensor, float value, const OpContext& context = {});
 void adamw_update_(Tensor& parameter, const Tensor& gradient,

@@ -74,6 +74,28 @@ float sigmoid(float value) {
 
 }  // namespace
 
+Tensor cast(const Tensor& input, DType output_dtype,
+            [[maybe_unused]] const OpContext& context) {
+    require_forward_float(input, "input");
+    if ((input.dtype() != DType::Float32 && input.dtype() != DType::Float16 &&
+         input.dtype() != DType::BFloat16) ||
+        (output_dtype != DType::Float32 && output_dtype != DType::Float16 &&
+         output_dtype != DType::BFloat16)) {
+        throw std::invalid_argument("cast supports FP32, FP16, and BF16");
+    }
+    if (input.dtype() == output_dtype) return input;
+    if (input.device().is_cpu()) return input.cast(output_dtype);
+    require_contiguous(input, "input");
+    Tensor output(input.shape(), output_dtype, input.device());
+#if MICROLLM_HAS_HIP
+    hip::launch_cast(input.data(), input.dtype(), output.data(), output_dtype,
+                     input.numel(), context.native_stream(input.device()));
+    return output;
+#else
+    throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+}
+
 void adamw_update_(Tensor& parameter, const Tensor& gradient,
                    Tensor& first_moment, Tensor& second_moment,
                    float learning_rate, float beta1, float beta2,

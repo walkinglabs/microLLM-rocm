@@ -68,11 +68,14 @@ def pytorch_references(actual):
     record(refs, "add", left + right)
     record(refs, "multiply", left * right)
     record(refs, "scale", left * -0.25)
+    record(refs, "cast_bf16", left.to(torch.bfloat16))
     record(refs, "add_bias", left + tensor([0.5, -1.0, 2.0], (3,)))
 
     matrix_left = tensor([1, 2, 3, 4, 5, 6], (2, 3))
     matrix_right = tensor([1, 2, 3, 4, 5, 6], (3, 2))
     record(refs, "matmul_2d", matrix_left @ matrix_right)
+    record(refs, "bf16_mixed_matmul",
+           matrix_left.to(torch.bfloat16).float() @ matrix_right.to(torch.bfloat16).float())
     record(refs, "matmul_readable", matrix_left @ matrix_right)
     wide_right = tensor([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], (3, 4))
     transposed_left = matrix_left.transpose(0, 1).contiguous()
@@ -381,7 +384,9 @@ class OperatorParityTest(unittest.TestCase):
             "invalid_add_bias_shape",
             "invalid_bias_gradient_rank",
             "invalid_scale_dtype",
+            "invalid_cast_dtype",
             "invalid_matmul_inner",
+            "invalid_bf16_matmul_dtype",
             "invalid_embedding_weight",
             "invalid_softmax_dim",
             "invalid_rms_weight",

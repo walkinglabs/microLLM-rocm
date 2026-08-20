@@ -194,6 +194,39 @@ Tensor hipblaslt_matmul(const Tensor& left, const Tensor& right,
     return output;
 }
 
+Tensor hipblaslt_bf16_matmul(const Tensor& left, const Tensor& right,
+                             const OpContext& context) {
+    if (!left.device().is_hip() || right.device() != left.device() ||
+        left.dtype() != DType::BFloat16 || right.dtype() != DType::BFloat16 ||
+        left.ndim() != 2 || right.ndim() != 2 || !left.is_contiguous() ||
+        !right.is_contiguous() || left.shape()[1] != right.shape()[0]) {
+        throw std::invalid_argument(
+            "BF16 mixed matmul requires matching contiguous 2D HIP tensors");
+    }
+    const auto rows = left.shape()[0];
+    const auto inner = left.shape()[1];
+    const auto columns = right.shape()[1];
+    Tensor output({rows, columns}, DType::Float32, left.device());
+    static Handle handle;
+    MatmulDescription operation;
+    Layout matrix_b(HIP_R_16BF, static_cast<std::uint64_t>(columns),
+                    static_cast<std::uint64_t>(inner), columns);
+    Layout matrix_a(HIP_R_16BF, static_cast<std::uint64_t>(inner),
+                    static_cast<std::uint64_t>(rows), inner);
+    Layout matrix_c(HIP_R_32F, static_cast<std::uint64_t>(columns),
+                    static_cast<std::uint64_t>(rows), columns);
+    const float alpha = 1.0F;
+    const float beta = 0.0F;
+    check_status(hipblasLtMatmul(
+                     handle.get(), operation.get(), &alpha,
+                     right.data(), matrix_b.get(), left.data(), matrix_a.get(),
+                     &beta, output.data(), matrix_c.get(), output.data(), matrix_c.get(),
+                     nullptr, context.workspace, context.workspace_bytes,
+                     reinterpret_cast<hipStream_t>(context.native_stream(left.device()))),
+                 "hipblasLtMatmul(BF16->FP32)");
+    return output;
+}
+
 Tensor hipblaslt_fp8_matmul(const ScaledTensor& left, const ScaledTensor& right,
                             DType output_dtype, const OpContext& context) {
     if (!left.values.device().is_hip() || right.values.device() != left.values.device() ||
@@ -333,6 +366,27 @@ Tensor matmul_with_implementation(const Tensor& left, const Tensor& right,
         }
     }
     return Tensor::from_vector(values, {rows, columns}, left.dtype());
+}
+
+Tensor bf16_matmul(const Tensor& left_fp32, const Tensor& right_bf16,
+                   const OpContext& context) {
+    if (left_fp32.dtype() != DType::Float32 ||
+        right_bf16.dtype() != DType::BFloat16 ||
+        left_fp32.device() != right_bf16.device()) {
+        throw std::invalid_argument(
+            "bf16_matmul requires FP32 left, BF16 right, and matching devices");
+    }
+    if (left_fp32.device().is_cpu()) {
+        return matmul(left_fp32.cast(DType::BFloat16).cast(DType::Float32),
+                      right_bf16.cast(DType::Float32), context);
+    }
+    const auto left_bf16 = cast(left_fp32, DType::BFloat16, context);
+#if MICROLLM_HAS_HIPBLASLT
+    return hipblaslt_bf16_matmul(left_bf16, right_bf16, context);
+#else
+    return matmul(cast(left_bf16, DType::Float32, context),
+                  cast(right_bf16, DType::Float32, context), context);
+#endif
 }
 
 Tensor fp8_matmul(const ScaledTensor& left, const ScaledTensor& right,

@@ -1,12 +1,14 @@
 {
   "tensor_ops": {
     "fill_": {"torch": "fill", "shape": "fill"},
+    "cast": {"torch": "cast_bf16", "shape": "invalid_cast_dtype"},
     "add": {"torch": "add", "shape": "invalid_add_shape"},
     "add_bias": {"torch": "add_bias", "shape": "invalid_add_bias_shape"},
     "bias_gradient": {"torch": "graph_add_bias_bias_grad", "shape": "invalid_bias_gradient_rank"},
     "multiply": {"torch": "multiply", "shape": "invalid_multiply_shape"},
     "scale": {"torch": "scale", "shape": "invalid_scale_dtype"},
     "matmul": {"torch": "matmul_2d", "shape": "invalid_matmul_inner"},
+    "bf16_matmul": {"torch": "bf16_mixed_matmul", "shape": "invalid_bf16_matmul_dtype"},
     "matmul_with_implementation": {"torch": "matmul_readable", "shape": "invalid_matmul_inner"},
     "embedding": {"torch": "embedding", "shape": "invalid_embedding_weight"},
     "softmax": {"torch": "softmax", "shape": "invalid_softmax_dim"},

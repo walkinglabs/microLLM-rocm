@@ -120,6 +120,47 @@ TEST(HipLowPrecisionOpsTest, NativeBasicKernelsMatchCpuAndAvoidHostTransfers) {
     }
 }
 
+TEST(HipBf16MixedGemmTest, NativeCastAndFp32OutputMatchRoundedCpuReference) {
+    require_gpu();
+    constexpr std::int64_t size = 128;
+    std::vector<float> left_values(static_cast<std::size_t>(size * size));
+    std::vector<float> right_values(left_values.size());
+    for (std::size_t index = 0; index < left_values.size(); ++index) {
+        left_values[index] = static_cast<float>(static_cast<int>(index % 37) - 18) * 0.015625F;
+        right_values[index] = static_cast<float>(static_cast<int>(index % 41) - 20) * 0.015625F;
+    }
+    const auto left = Tensor::from_vector(left_values, {size, size});
+    const auto right = Tensor::from_vector(right_values, {size, size});
+    const auto rounded_right = cast(right, DType::BFloat16);
+    const auto expected = bf16_matmul(left, rounded_right).to_vector();
+    const auto gpu = Device::hip();
+    const auto device_left = left.to(gpu);
+    const auto device_right = right.to(gpu);
+    runtime::reset_transfer_stats();
+    const auto device_right_bf16 = cast(device_right, DType::BFloat16);
+    const auto restored = cast(device_right_bf16, DType::Float32);
+    const auto actual = bf16_matmul(device_left, device_right_bf16);
+    runtime::synchronize(gpu);
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    expect_near(restored.to_vector(), rounded_right.cast(DType::Float32).to_vector(), 0.0F);
+    expect_near(actual.to_vector(), expected, 2.0e-2F);
+    EXPECT_EQ(actual.dtype(), DType::Float32);
+
+    const auto special = Tensor::from_vector(
+        {0.0F, -0.0F, std::numeric_limits<float>::infinity(),
+         -std::numeric_limits<float>::infinity(),
+         std::numeric_limits<float>::quiet_NaN()}, {5}).to(gpu);
+    const auto special_values = cast(cast(special, DType::BFloat16),
+                                     DType::Float32).to_vector();
+    EXPECT_EQ(special_values[0], 0.0F);
+    EXPECT_TRUE(std::signbit(special_values[1]));
+    EXPECT_TRUE(std::isinf(special_values[2]));
+    EXPECT_TRUE(std::isinf(special_values[3]));
+    EXPECT_TRUE(std::isnan(special_values[4]));
+}
+
 TEST(HipFp8OpsTest, QuantizeDequantizeAndScaledGemmAreDeviceNative) {
     require_gpu();
     if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";

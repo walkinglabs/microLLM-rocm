@@ -218,6 +218,15 @@ __global__ void dequantize_fp8_kernel(const Input* input, Output* output,
     }
 }
 
+template <typename Input, typename Output>
+__global__ void cast_kernel(const Input* input, Output* output,
+                            std::int64_t elements) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    if (index < elements) {
+        output[index] = store_from_float<Output>(load_as_float(input[index]));
+    }
+}
+
 __global__ void matmul_kernel(const float* left, const float* right, float* output,
                               std::int64_t batches, std::int64_t rows,
                               std::int64_t inner, std::int64_t columns) {
@@ -1265,6 +1274,26 @@ void launch_dequantize_for_input(const Input* input, void* output, DType output_
 #undef MICROLLM_DEQUANT_CASE
 }
 
+template <typename Input>
+void launch_cast_for_input(const Input* input, void* output, DType output_dtype,
+                           std::int64_t elements, hipStream_t stream) {
+    const auto grid = dim3(grid_size(elements));
+    const auto block = dim3(kBlockSize);
+#define MICROLLM_CAST_OUTPUT_CASE(cpp_type, enum_value)                         \
+    case enum_value:                                                            \
+        hipLaunchKernelGGL((cast_kernel<Input, cpp_type>), grid, block, 0,     \
+                           stream, input, static_cast<cpp_type*>(output),       \
+                           elements);                                           \
+        break
+    switch (output_dtype) {
+        MICROLLM_CAST_OUTPUT_CASE(float, DType::Float32);
+        MICROLLM_CAST_OUTPUT_CASE(__half, DType::Float16);
+        MICROLLM_CAST_OUTPUT_CASE(hip_bfloat16, DType::BFloat16);
+        default: throw std::invalid_argument("cast output must be FP32, FP16, or BF16");
+    }
+#undef MICROLLM_CAST_OUTPUT_CASE
+}
+
 void launch_dequantize_fp8(const void* input, DType fp8_dtype, void* output,
                            DType output_dtype, std::int64_t elements, float scale,
                            void* stream) {
@@ -1281,6 +1310,27 @@ void launch_dequantize_fp8(const void* input, DType fp8_dtype, void* output,
         throw std::invalid_argument("dequantize input must be an MI300 FNUZ FP8 dtype");
     }
     check_launch("dequantize_fp8_kernel");
+}
+
+void launch_cast(const void* input, DType input_dtype, void* output,
+                 DType output_dtype, std::int64_t elements, void* stream) {
+    if (elements == 0) return;
+    switch (input_dtype) {
+        case DType::Float32:
+            launch_cast_for_input(static_cast<const float*>(input), output,
+                                  output_dtype, elements, as_stream(stream));
+            break;
+        case DType::Float16:
+            launch_cast_for_input(static_cast<const __half*>(input), output,
+                                  output_dtype, elements, as_stream(stream));
+            break;
+        case DType::BFloat16:
+            launch_cast_for_input(static_cast<const hip_bfloat16*>(input), output,
+                                  output_dtype, elements, as_stream(stream));
+            break;
+        default: throw std::invalid_argument("cast input must be FP32, FP16, or BF16");
+    }
+    check_launch("cast_kernel");
 }
 
 void launch_matmul(const float* left, const float* right, float* output,
