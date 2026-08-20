@@ -643,7 +643,23 @@ DeepSeek train 10,715 → 10,715
 训练恰好较快不能覆盖“零分配减少”这个主指标。代码被删除；下一版若继续，必须显式
 计算每个节点还剩几个梯度贡献，才能安全转移所有权。
 
-## 21. 怎样读进度图
+## 21. Experiment 011：少一个 Kernel 也可能更慢
+
+Q/K/V projection 原来是 GEMM 后单独 add bias。hipBLASLt bias epilogue 可以在 GEMM
+内部完成，候选也真的减少了分配：Qwen 11,145→9,345，DeepSeek 48,545→40,565。
+
+但三进程中位数是：
+
+```text
+Qwen generation      -7.8%
+DeepSeek generation  +2.1%
+candidate score       1.725932 < 1.752183
+```
+
+Qwen 的融合 GEMM 路径显然付出了更大代价。这个实验再次说明不能用 Kernel 数量替代
+端到端测量。代码和 API 已删除，第四个灰点保留。
+
+## 22. 怎样读进度图
 
 图中：
 
@@ -655,10 +671,10 @@ DeepSeek train 10,715 → 10,715
 - 右侧条形：当前四项 workload ratio；
 - 底部卡片：计划步骤，不代表已经完成。
 
-当前有 baseline 和七个 keep 实验共八个绿色点，以及三个 discard 灰点。未来如果十个实验都失败，图上就
+当前有 baseline 和七个 keep 实验共八个绿色点，以及四个 discard 灰点。未来如果十个实验都失败，图上就
 应出现十个灰点，而不是凭空出现一条漂亮上升曲线。
 
-## 22. 什么才算从 0 到 1
+## 23. 什么才算从 0 到 1
 
 完成一个 Kernel 不是 1，某个 shape 跑得快也不是 1。
 

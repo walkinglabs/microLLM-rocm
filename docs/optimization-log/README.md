@@ -55,6 +55,9 @@ Experiment 010 的 copy-on-write gradient `add_` focused correctness 通过，�
 DeepSeek measured allocations 仍精确为 9,200/10,715，因主假设失败而 discard；没有
 用一次较快训练进程冒充收益。
 
+Experiment 011 的 hipBLASLt bias epilogue 确实减少 16–17% generation allocations，
+但 Qwen generation 中位数退化 7.8%，因此同样 discard。少一个 Kernel 不等于更快。
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
