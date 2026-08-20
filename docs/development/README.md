@@ -160,6 +160,8 @@ the next gate. Records are append-only except for factual corrections.
   pair-output residual+Norm fusion, launch reduction and recorded DeepSeek regression.
 - [2026-08-20-wide-residual-norm.md](2026-08-20-wide-residual-norm.md): measured
   256/512-thread width policy that resolves the preceding DeepSeek regression.
+- [2026-08-20-batched-retirement-events.md](2026-08-20-batched-retirement-events.md):
+  shared completion Events, allocator safety gates and four-workload speedup.
 - [2026-08-20-parallel-cross-entropy.md](2026-08-20-parallel-cross-entropy.md):
   Experiment 001 block-parallel CE, large-vocabulary/PyTorch gates, 66.1% score gain,
   profiler before/after and next-hotspot handoff.

@@ -2,6 +2,10 @@
 
 Status: `complete` — Experiment 006, `keep`
 
+Experiment 022 later batches eight retired blocks behind one shared completion Event.
+This preserves the exact-size/default-Stream contract while reducing Event create/record
+calls about 8× and raising the fixed score to `2.389841`.
+
 ## Hypothesis
 
 Thousands of hipMalloc/hipFree calls and implicit synchronization materially increase

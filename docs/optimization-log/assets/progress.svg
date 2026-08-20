@@ -1,87 +1,92 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
 <rect width="100%" height="100%" fill="#fbfcfe"/>
 <text x="800.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">microLLM-rocm Optimization Progress</text>
-<text x="800.0" y="79.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474" text-anchor="middle" font-weight="400">20 measured experiment(s) · target: selected-matrix PyTorch parity</text>
+<text x="800.0" y="79.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474" text-anchor="middle" font-weight="400">21 measured experiment(s) · target: selected-matrix PyTorch parity</text>
 <rect x="90" y="130" width="930" height="500" fill="#ffffff" stroke="#cbd3df" rx="8"/>
 <line x1="90" y1="630.0" x2="1020" y2="630.0" stroke="#e5e9f0"/>
 <text x="76.0" y="636.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="end" font-weight="400">0.00</text>
-<line x1="90" y1="511.0" x2="1020" y2="511.0" stroke="#e5e9f0"/>
-<text x="76.0" y="517.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="end" font-weight="400">0.25</text>
-<line x1="90" y1="391.9" x2="1020" y2="391.9" stroke="#e5e9f0"/>
-<text x="76.0" y="397.9" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="end" font-weight="400">0.50</text>
-<line x1="90" y1="272.9" x2="1020" y2="272.9" stroke="#e5e9f0"/>
-<text x="76.0" y="278.9" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="end" font-weight="400">0.75</text>
-<line x1="90" y1="153.8" x2="1020" y2="153.8" stroke="#e5e9f0"/>
-<text x="76.0" y="159.8" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="end" font-weight="400">1.00</text>
+<line x1="90" y1="530.0" x2="1020" y2="530.0" stroke="#e5e9f0"/>
+<text x="76.0" y="536.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="end" font-weight="400">0.50</text>
+<line x1="90" y1="430.0" x2="1020" y2="430.0" stroke="#e5e9f0"/>
+<text x="76.0" y="436.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="end" font-weight="400">1.00</text>
+<line x1="90" y1="330.0" x2="1020" y2="330.0" stroke="#e5e9f0"/>
+<text x="76.0" y="336.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="end" font-weight="400">1.50</text>
+<line x1="90" y1="230.0" x2="1020" y2="230.0" stroke="#e5e9f0"/>
+<text x="76.0" y="236.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="end" font-weight="400">2.00</text>
+<line x1="90" y1="130.0" x2="1020" y2="130.0" stroke="#e5e9f0"/>
+<text x="76.0" y="136.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="end" font-weight="400">2.50</text>
 <line x1="90.0" y1="130" x2="90.0" y2="630" stroke="#f0f2f6"/>
 <text x="90.0" y="658.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">0</text>
-<line x1="174.5" y1="130" x2="174.5" y2="630" stroke="#f0f2f6"/>
-<text x="174.5" y="658.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">2</text>
-<line x1="259.1" y1="130" x2="259.1" y2="630" stroke="#f0f2f6"/>
-<text x="259.1" y="658.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">4</text>
-<line x1="343.6" y1="130" x2="343.6" y2="630" stroke="#f0f2f6"/>
-<text x="343.6" y="658.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">6</text>
-<line x1="428.2" y1="130" x2="428.2" y2="630" stroke="#f0f2f6"/>
-<text x="428.2" y="658.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">8</text>
-<line x1="512.7" y1="130" x2="512.7" y2="630" stroke="#f0f2f6"/>
-<text x="512.7" y="658.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">10</text>
-<line x1="597.3" y1="130" x2="597.3" y2="630" stroke="#f0f2f6"/>
-<text x="597.3" y="658.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">12</text>
-<line x1="681.8" y1="130" x2="681.8" y2="630" stroke="#f0f2f6"/>
-<text x="681.8" y="658.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">14</text>
-<line x1="766.4" y1="130" x2="766.4" y2="630" stroke="#f0f2f6"/>
-<text x="766.4" y="658.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">16</text>
-<line x1="850.9" y1="130" x2="850.9" y2="630" stroke="#f0f2f6"/>
-<text x="850.9" y="658.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">18</text>
-<line x1="935.5" y1="130" x2="935.5" y2="630" stroke="#f0f2f6"/>
-<text x="935.5" y="658.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">20</text>
-<line x1="1020.0" y1="130" x2="1020.0" y2="630" stroke="#f0f2f6"/>
-<text x="1020.0" y="658.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">22</text>
-<line x1="90" y1="153.8" x2="1020" y2="153.8" stroke="#2563eb" stroke-width="2" stroke-dasharray="9 7"/>
-<text x="1008.0" y="143.8" font-family="Inter,Arial,sans-serif" font-size="15" fill="#2563eb" text-anchor="end" font-weight="600">PyTorch parity 1.0×</text>
-<circle cx="90.0" cy="538.7" r="8" fill="#18a558" stroke="#0e6938" stroke-width="2"/>
-<text x="102.0" y="526.7" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16834a" text-anchor="start" font-weight="400" transform="rotate(-24 102.0 526.7)">FP32 MI300X baseline; 2 warm-up and 5 measured iterations</text>
-<path d="M 90.0 538.7 H 132.3 V 478.4" fill="none" stroke="#4ec27e" stroke-width="4"/>
-<circle cx="132.3" cy="478.4" r="8" fill="#18a558" stroke="#0e6938" stroke-width="2"/>
-<text x="144.3" y="466.4" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16834a" text-anchor="start" font-weight="400" transform="rotate(-24 144.3 466.4)">parallel HIP CrossEntropy; CE kernel share 75.7% to 0.62%</text>
-<path d="M 132.3 478.4 H 174.5 V 401.8" fill="none" stroke="#4ec27e" stroke-width="4"/>
-<circle cx="174.5" cy="401.8" r="8" fill="#18a558" stroke="#0e6938" stroke-width="2"/>
-<text x="186.5" y="389.8" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16834a" text-anchor="start" font-weight="400" transform="rotate(-24 186.5 389.8)">transpose-aware GEMM; strided-copy time 62.33ms to 2.16ms</text>
-<path d="M 174.5 401.8 H 216.8 V 208.2" fill="none" stroke="#4ec27e" stroke-width="4"/>
-<circle cx="216.8" cy="208.2" r="8" fill="#18a558" stroke="#0e6938" stroke-width="2"/>
-<text x="228.8" y="196.2" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16834a" text-anchor="start" font-weight="400" transform="rotate(-24 228.8 196.2)">block-parallel HIP RMSNorm; RMSNorm time 75.85ms to 1.55ms</text>
-<path d="M 216.8 208.2 H 259.1 V 73.8" fill="none" stroke="#4ec27e" stroke-width="4"/>
-<circle cx="259.1" cy="73.8" r="8" fill="#18a558" stroke="#0e6938" stroke-width="2"/>
-<text x="271.1" y="61.8" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16834a" text-anchor="start" font-weight="400" transform="rotate(-24 271.1 61.8)">right-sized device KV cache and direct GQA; score crosses selected-matrix parity</text>
-<path d="M 259.1 73.8 H 301.4 V 49.4" fill="none" stroke="#4ec27e" stroke-width="4"/>
-<circle cx="301.4" cy="49.4" r="8" fill="#18a558" stroke="#0e6938" stroke-width="2"/>
-<text x="313.4" y="37.4" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16834a" text-anchor="start" font-weight="400" transform="rotate(-24 313.4 37.4)">device greedy argmax; generated-token D2H records 9 to 1</text>
-<path d="M 301.4 49.4 H 343.6 V -179.8" fill="none" stroke="#4ec27e" stroke-width="4"/>
-<circle cx="343.6" cy="-179.8" r="8" fill="#18a558" stroke="#0e6938" stroke-width="2"/>
-<text x="355.6" y="-191.8" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16834a" text-anchor="start" font-weight="400" transform="rotate(-24 355.6 -191.8)">steady-state exact-size HIP pool; measured backend allocations reduced 7x to 66x</text>
-<circle cx="385.9" cy="-165.1" r="8" fill="#c8ced8" stroke="#aeb6c2" stroke-width="2"/>
-<circle cx="428.2" cy="-154.2" r="8" fill="#c8ced8" stroke="#aeb6c2" stroke-width="2"/>
-<path d="M 343.6 -179.8 H 470.5 V -204.4" fill="none" stroke="#4ec27e" stroke-width="4"/>
-<circle cx="470.5" cy="-204.4" r="8" fill="#18a558" stroke="#0e6938" stroke-width="2"/>
-<text x="482.5" y="-216.4" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16834a" text-anchor="start" font-weight="400" transform="rotate(-24 482.5 -216.4)">fused cached decode Attention; generation medians improved 5.5% and 8.1%</text>
-<circle cx="512.7" cy="630.0" r="8" fill="#c8ced8" stroke="#aeb6c2" stroke-width="2"/>
-<circle cx="555.0" cy="-191.9" r="8" fill="#c8ced8" stroke="#aeb6c2" stroke-width="2"/>
-<path d="M 470.5 -204.4 H 597.3 V -213.1" fill="none" stroke="#4ec27e" stroke-width="4"/>
-<circle cx="597.3" cy="-213.1" r="8" fill="#18a558" stroke="#0e6938" stroke-width="2"/>
-<text x="609.3" y="-225.1" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16834a" text-anchor="start" font-weight="400" transform="rotate(-24 609.3 -225.1)">two-stage large-vocabulary argmax; Kernel time reduced 96.7%</text>
-<circle cx="639.5" cy="630.0" r="8" fill="#c8ced8" stroke="#aeb6c2" stroke-width="2"/>
-<path d="M 597.3 -213.1 H 766.4 V -219.6" fill="none" stroke="#4ec27e" stroke-width="4"/>
-<circle cx="766.4" cy="-219.6" r="8" fill="#18a558" stroke="#0e6938" stroke-width="2"/>
-<text x="778.4" y="-231.6" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16834a" text-anchor="start" font-weight="400" transform="rotate(-24 778.4 -231.6)">fused Q/K projection bias plus split-half RoPE; paired inference medians improved 13.7% and 6.6%</text>
-<path d="M 766.4 -219.6 H 808.6 V -228.7" fill="none" stroke="#4ec27e" stroke-width="4"/>
-<circle cx="808.6" cy="-228.7" r="8" fill="#18a558" stroke="#0e6938" stroke-width="2"/>
-<text x="820.6" y="-240.7" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16834a" text-anchor="start" font-weight="400" transform="rotate(-24 820.6 -240.7)">fused cached residual add plus RMSNorm; Qwen gained 8.9% while DeepSeek regressed 4.2%</text>
-<path d="M 808.6 -228.7 H 850.9 V -248.7" fill="none" stroke="#4ec27e" stroke-width="4"/>
-<circle cx="850.9" cy="-248.7" r="8" fill="#18a558" stroke="#0e6938" stroke-width="2"/>
-<text x="862.9" y="-260.7" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16834a" text-anchor="start" font-weight="400" transform="rotate(-24 862.9 -260.7)">512-thread wide residual normalization; DeepSeek generation median improved 9.6%</text>
-<circle cx="893.2" cy="-223.0" r="8" fill="#c8ced8" stroke="#aeb6c2" stroke-width="2"/>
-<circle cx="935.5" cy="-241.3" r="8" fill="#c8ced8" stroke="#aeb6c2" stroke-width="2"/>
-<circle cx="977.7" cy="-203.5" r="8" fill="#c8ced8" stroke="#aeb6c2" stroke-width="2"/>
+<line x1="170.9" y1="130" x2="170.9" y2="630" stroke="#f0f2f6"/>
+<text x="170.9" y="658.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">2</text>
+<line x1="251.7" y1="130" x2="251.7" y2="630" stroke="#f0f2f6"/>
+<text x="251.7" y="658.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">4</text>
+<line x1="332.6" y1="130" x2="332.6" y2="630" stroke="#f0f2f6"/>
+<text x="332.6" y="658.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">6</text>
+<line x1="413.5" y1="130" x2="413.5" y2="630" stroke="#f0f2f6"/>
+<text x="413.5" y="658.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">8</text>
+<line x1="494.3" y1="130" x2="494.3" y2="630" stroke="#f0f2f6"/>
+<text x="494.3" y="658.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">10</text>
+<line x1="575.2" y1="130" x2="575.2" y2="630" stroke="#f0f2f6"/>
+<text x="575.2" y="658.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">12</text>
+<line x1="656.1" y1="130" x2="656.1" y2="630" stroke="#f0f2f6"/>
+<text x="656.1" y="658.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">14</text>
+<line x1="737.0" y1="130" x2="737.0" y2="630" stroke="#f0f2f6"/>
+<text x="737.0" y="658.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">16</text>
+<line x1="817.8" y1="130" x2="817.8" y2="630" stroke="#f0f2f6"/>
+<text x="817.8" y="658.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">18</text>
+<line x1="898.7" y1="130" x2="898.7" y2="630" stroke="#f0f2f6"/>
+<text x="898.7" y="658.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">20</text>
+<line x1="979.6" y1="130" x2="979.6" y2="630" stroke="#f0f2f6"/>
+<text x="979.6" y="658.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">22</text>
+<line x1="90" y1="430.0" x2="1020" y2="430.0" stroke="#2563eb" stroke-width="2" stroke-dasharray="9 7"/>
+<text x="1008.0" y="420.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#2563eb" text-anchor="end" font-weight="600">PyTorch parity 1.0×</text>
+<circle cx="90.0" cy="591.7" r="8" fill="#18a558" stroke="#0e6938" stroke-width="2"/>
+<text x="102.0" y="579.7" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16834a" text-anchor="start" font-weight="400" transform="rotate(-24 102.0 579.7)">FP32 MI300X baseline; 2 warm-up and 5 measured iterations</text>
+<path d="M 90.0 591.7 H 130.4 V 566.3" fill="none" stroke="#4ec27e" stroke-width="4"/>
+<circle cx="130.4" cy="566.3" r="8" fill="#18a558" stroke="#0e6938" stroke-width="2"/>
+<text x="142.4" y="554.3" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16834a" text-anchor="start" font-weight="400" transform="rotate(-24 142.4 554.3)">parallel HIP CrossEntropy; CE kernel share 75.7% to 0.62%</text>
+<path d="M 130.4 566.3 H 170.9 V 534.2" fill="none" stroke="#4ec27e" stroke-width="4"/>
+<circle cx="170.9" cy="534.2" r="8" fill="#18a558" stroke="#0e6938" stroke-width="2"/>
+<text x="182.9" y="522.2" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16834a" text-anchor="start" font-weight="400" transform="rotate(-24 182.9 522.2)">transpose-aware GEMM; strided-copy time 62.33ms to 2.16ms</text>
+<path d="M 170.9 534.2 H 211.3 V 452.8" fill="none" stroke="#4ec27e" stroke-width="4"/>
+<circle cx="211.3" cy="452.8" r="8" fill="#18a558" stroke="#0e6938" stroke-width="2"/>
+<text x="223.3" y="440.8" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16834a" text-anchor="start" font-weight="400" transform="rotate(-24 223.3 440.8)">block-parallel HIP RMSNorm; RMSNorm time 75.85ms to 1.55ms</text>
+<path d="M 211.3 452.8 H 251.7 V 396.4" fill="none" stroke="#4ec27e" stroke-width="4"/>
+<circle cx="251.7" cy="396.4" r="8" fill="#18a558" stroke="#0e6938" stroke-width="2"/>
+<text x="263.7" y="384.4" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16834a" text-anchor="start" font-weight="400" transform="rotate(-24 263.7 384.4)">right-sized device KV cache and direct GQA; score crosses selected-matrix parity</text>
+<path d="M 251.7 396.4 H 292.2 V 386.2" fill="none" stroke="#4ec27e" stroke-width="4"/>
+<circle cx="292.2" cy="386.2" r="8" fill="#18a558" stroke="#0e6938" stroke-width="2"/>
+<text x="304.2" y="374.2" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16834a" text-anchor="start" font-weight="400" transform="rotate(-24 304.2 374.2)">device greedy argmax; generated-token D2H records 9 to 1</text>
+<path d="M 292.2 386.2 H 332.6 V 289.9" fill="none" stroke="#4ec27e" stroke-width="4"/>
+<circle cx="332.6" cy="289.9" r="8" fill="#18a558" stroke="#0e6938" stroke-width="2"/>
+<text x="344.6" y="277.9" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16834a" text-anchor="start" font-weight="400" transform="rotate(-24 344.6 277.9)">steady-state exact-size HIP pool; measured backend allocations reduced 7x to 66x</text>
+<circle cx="373.0" cy="296.0" r="8" fill="#c8ced8" stroke="#aeb6c2" stroke-width="2"/>
+<circle cx="413.5" cy="300.6" r="8" fill="#c8ced8" stroke="#aeb6c2" stroke-width="2"/>
+<path d="M 332.6 289.9 H 453.9 V 279.6" fill="none" stroke="#4ec27e" stroke-width="4"/>
+<circle cx="453.9" cy="279.6" r="8" fill="#18a558" stroke="#0e6938" stroke-width="2"/>
+<text x="465.9" y="267.6" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16834a" text-anchor="start" font-weight="400" transform="rotate(-24 465.9 267.6)">fused cached decode Attention; generation medians improved 5.5% and 8.1%</text>
+<circle cx="494.3" cy="630.0" r="8" fill="#c8ced8" stroke="#aeb6c2" stroke-width="2"/>
+<circle cx="534.8" cy="284.8" r="8" fill="#c8ced8" stroke="#aeb6c2" stroke-width="2"/>
+<path d="M 453.9 279.6 H 575.2 V 275.9" fill="none" stroke="#4ec27e" stroke-width="4"/>
+<circle cx="575.2" cy="275.9" r="8" fill="#18a558" stroke="#0e6938" stroke-width="2"/>
+<text x="587.2" y="263.9" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16834a" text-anchor="start" font-weight="400" transform="rotate(-24 587.2 263.9)">two-stage large-vocabulary argmax; Kernel time reduced 96.7%</text>
+<circle cx="615.7" cy="630.0" r="8" fill="#c8ced8" stroke="#aeb6c2" stroke-width="2"/>
+<path d="M 575.2 275.9 H 737.0 V 273.2" fill="none" stroke="#4ec27e" stroke-width="4"/>
+<circle cx="737.0" cy="273.2" r="8" fill="#18a558" stroke="#0e6938" stroke-width="2"/>
+<text x="749.0" y="261.2" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16834a" text-anchor="start" font-weight="400" transform="rotate(-24 749.0 261.2)">fused Q/K projection bias plus split-half RoPE; paired inference medians improved 13.7% and 6.6%</text>
+<path d="M 737.0 273.2 H 777.4 V 269.4" fill="none" stroke="#4ec27e" stroke-width="4"/>
+<circle cx="777.4" cy="269.4" r="8" fill="#18a558" stroke="#0e6938" stroke-width="2"/>
+<text x="789.4" y="257.4" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16834a" text-anchor="start" font-weight="400" transform="rotate(-24 789.4 257.4)">fused cached residual add plus RMSNorm; Qwen gained 8.9% while DeepSeek regressed 4.2%</text>
+<path d="M 777.4 269.4 H 817.8 V 261.0" fill="none" stroke="#4ec27e" stroke-width="4"/>
+<circle cx="817.8" cy="261.0" r="8" fill="#18a558" stroke="#0e6938" stroke-width="2"/>
+<text x="829.8" y="249.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16834a" text-anchor="start" font-weight="400" transform="rotate(-24 829.8 249.0)">512-thread wide residual normalization; DeepSeek generation median improved 9.6%</text>
+<circle cx="858.3" cy="271.7" r="8" fill="#c8ced8" stroke="#aeb6c2" stroke-width="2"/>
+<circle cx="898.7" cy="264.1" r="8" fill="#c8ced8" stroke="#aeb6c2" stroke-width="2"/>
+<circle cx="939.1" cy="279.9" r="8" fill="#c8ced8" stroke="#aeb6c2" stroke-width="2"/>
+<path d="M 817.8 261.0 H 979.6 V 152.0" fill="none" stroke="#4ec27e" stroke-width="4"/>
+<circle cx="979.6" cy="152.0" r="8" fill="#18a558" stroke="#0e6938" stroke-width="2"/>
+<text x="991.6" y="140.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16834a" text-anchor="start" font-weight="400" transform="rotate(-24 991.6 140.0)">shared retirement Events for eight allocator blocks; all four workload medians improved</text>
 <text x="555.0" y="695.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="middle" font-weight="600">Experiment #</text>
 <text x="28.0" y="380.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="middle" font-weight="600" transform="rotate(-90 28.0 380.0)">Geometric throughput parity score</text>
 <circle cx="720" cy="105" r="6" fill="#18a558"/>
@@ -94,19 +99,19 @@
 <text x="1100.0" y="165.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" text-anchor="start" font-weight="600">Qwen train</text>
 <rect x="1100" y="179" width="420" height="24" rx="5" fill="#e7ebf1"/>
 <rect x="1100" y="179" width="420.0" height="24" rx="5" fill="#4ec27e"/>
-<text x="1520.0" y="198.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="end" font-weight="700">2.191×</text>
+<text x="1520.0" y="198.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="end" font-weight="700">3.016×</text>
 <text x="1100.0" y="257.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" text-anchor="start" font-weight="600">Qwen generate</text>
 <rect x="1100" y="271" width="420" height="24" rx="5" fill="#e7ebf1"/>
 <rect x="1100" y="271" width="420.0" height="24" rx="5" fill="#4ec27e"/>
-<text x="1520.0" y="290.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="end" font-weight="700">2.203×</text>
+<text x="1520.0" y="290.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="end" font-weight="700">2.869×</text>
 <text x="1100.0" y="349.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" text-anchor="start" font-weight="600">DeepSeek train</text>
 <rect x="1100" y="363" width="420" height="24" rx="5" fill="#e7ebf1"/>
 <rect x="1100" y="363" width="420.0" height="24" rx="5" fill="#4ec27e"/>
-<text x="1520.0" y="382.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="end" font-weight="700">2.570×</text>
+<text x="1520.0" y="382.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="end" font-weight="700">3.126×</text>
 <text x="1100.0" y="441.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" text-anchor="start" font-weight="600">DeepSeek generate</text>
 <rect x="1100" y="455" width="420" height="24" rx="5" fill="#e7ebf1"/>
-<rect x="1100" y="455" width="392.6" height="24" rx="5" fill="#4ec27e"/>
-<text x="1520.0" y="474.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="end" font-weight="700">0.935×</text>
+<rect x="1100" y="455" width="420.0" height="24" rx="5" fill="#4ec27e"/>
+<text x="1520.0" y="474.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="end" font-weight="700">1.206×</text>
 <line x1="1520" y1="170" x2="1520" y2="585" stroke="#2563eb" stroke-width="2" stroke-dasharray="6 5"/>
 <text x="90.0" y="710.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="700">Roadmap (planned boxes are not results)</text>
 <rect x="90" y="735" width="220" height="88" rx="10" fill="#e0f6e9" stroke="#18a558" stroke-width="2"/>

@@ -43,7 +43,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | SFT response masking | smoke-tested | CPU/HIP ignored targets and tiny response-loss curve | Model-S instruction corpus/run |
 | CPU/HIP KV cache | smoke-tested | request-bounded preallocation, stable address, every MHA/GQA prefix, zero-transfer MI300X decode; score 0.885816→1.167931 | batching, fused long-context attention |
 | Device greedy sampling | smoke-tested | deterministic two-stage 151936 argmax (-96.7% Kernel), 4-byte/token D2H, robust score 1.770568 | stochastic device top-k/RNG |
-| HIP exact-size allocator | smoke-tested | steady-state-only Event retirement, Stream fallback, stress/exception tests; score 1.219170→1.700597 | Event batching, size classes and explicit multi-Stream ownership |
+| HIP exact-size allocator | smoke-tested | steady-state pool plus 8-block shared retirement Events; Event record ~8× lower; score 2.389841 | size classes and explicit multi-Stream ownership |
 | Fused cached decode Attention | smoke-tested | FP32 MHA/GQA 1/32/128/512 + fallback; repeated-process score 1.752183; long decode up to +57.9% | one-token regression, prefill/backward/BF16 |
 | Fused Q/K bias + split-half RoPE | smoke-tested | CPU/HIP/PyTorch forward+backward; 1,120 fewer profiled launches; paired generation +13.7%/+6.6%; score 1.784147 | interleaved/low-precision variants and remaining launch fusion |
 | Fused cached residual + RMSNorm | smoke-tested | pair-output oracle, 532 fewer launches, 512-thread wide path; DeepSeek +9.6%; score 1.845199 | broader width matrix and training graph fusion |
@@ -64,7 +64,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | End-to-end benchmark | smoke-tested | matched Python/PyTorch ROCm built-in and official-HF JSONL ratios | longer contexts, repeated official training and tuned comparison |
 | Single-GPU model matrix | smoke-tested | MI300X tiny/Model-S/Model-M plus official Qwen0.5B/DeepSeek-Distill1.5B train+generate, parameters, time, tokens/s and engine peak bytes | repeated contexts/dtypes and external board-level memory sampling |
 | Python/PyTorch ROCm performance matrix | smoke-tested | matched FP32 built-ins plus official Qwen/DeepSeek Distill, raw Python data and automatic throughput/memory ratios | repeated official-model training and PyTorch version matrix |
-| Optimization experiment journal | implemented | FP32 main track plus BF16 shape/model tracks, eleven keep, nine discards and repeated evidence | redesign GEMM structure/BF16 activation lifetime |
+| Optimization experiment journal | implemented | FP32 main track plus BF16 shape/model tracks, twelve keep, nine discards and repeated evidence | redesign GEMM structure/BF16 activation lifetime |
 | rocprofv3 workflow | smoke-tested | kernel/HIP API/memory/full trace generated | release artifact retention |
 | hipBLASLt matmul | smoke-tested | FP32 CPU comparison, shape matrix, Model-S e2e | batched/workspace/autotune cache |
 | Matmul tuning registry | smoke-tested | exact shape override/clear and availability gates | persistence/arch key |

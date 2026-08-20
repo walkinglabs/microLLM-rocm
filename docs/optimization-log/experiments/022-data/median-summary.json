@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "process_repeats": 3,
+  "candidate_commit": "e59c3b3",
+  "score": 2.3898407195697815,
+  "previous_score": 1.8451987247912383,
+  "workloads": {
+    "qwen2.5-0.5b:infer": {
+      "samples": [201.385108653, 213.357092779, 200.341508145],
+      "median": 201.385108653,
+      "pytorch_ratio": 2.8694533921651013
+    },
+    "qwen2.5-0.5b:train": {
+      "samples": [156.051973297, 154.784578614, 148.047949296],
+      "median": 154.784578614,
+      "pytorch_ratio": 3.015828601773952
+    },
+    "deepseek-r1-distill-qwen-1.5b:infer": {
+      "samples": [75.235706132, 74.527097525, 76.533272215],
+      "median": 75.235706132,
+      "pytorch_ratio": 1.2057562021901087
+    },
+    "deepseek-r1-distill-qwen-1.5b:train": {
+      "samples": [81.987096554, 79.906778408, 82.131024116],
+      "median": 81.987096554,
+      "pytorch_ratio": 3.1261548850893437
+    }
+  }
+}

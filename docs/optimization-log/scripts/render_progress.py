@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import csv
 import html
+import math
 from pathlib import Path
 
 
@@ -41,12 +42,13 @@ def progress_svg(data: list[dict]) -> str:
     chart_x, chart_y, chart_w, chart_h = 90, 130, 930, 500
     bar_x, bar_y, bar_w, bar_h = 1100, 165, 420, 420
     max_experiment = max(12, max(int(row["experiment"]) for row in data) + 1)
+    y_max = max(1.0, math.ceil(max(float(row["score"]) for row in data) * 2.0) / 2.0)
 
     def px(experiment: int) -> float:
         return chart_x + chart_w * experiment / max_experiment
 
     def py(score: float) -> float:
-        return chart_y + chart_h * (1.05 - score) / 1.05
+        return chart_y + chart_h * (y_max - score) / y_max
 
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
@@ -61,7 +63,9 @@ def progress_svg(data: list[dict]) -> str:
     # Main running-best plot.
     parts.append(f'<rect x="{chart_x}" y="{chart_y}" width="{chart_w}" height="{chart_h}" '
                  'fill="#ffffff" stroke="#cbd3df" rx="8"/>')
-    for tick in (0.0, 0.25, 0.5, 0.75, 1.0):
+    tick_step = 0.5 if y_max > 1.5 else 0.25
+    for index in range(int(round(y_max / tick_step)) + 1):
+        tick = index * tick_step
         y = py(tick)
         parts.append(f'<line x1="{chart_x}" y1="{y:.1f}" x2="{chart_x + chart_w}" '
                      f'y2="{y:.1f}" stroke="#e5e9f0"/>')
