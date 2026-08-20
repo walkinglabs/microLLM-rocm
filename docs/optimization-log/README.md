@@ -64,6 +64,11 @@ Qwen/DeepSeek generation 中位数再提高 3.6%/0.6%，当前 robust score 为 
 Experiment 013 探测无权重复制的 GroupedGemm QKV：变宽和同宽 FP32 M=1 两种控制都
 没有可用 heuristic，因此直接 discard，没有拿三 GEMM fallback 冒充 grouped 加速。
 
+Experiment 014/015 建立独立 BF16 shape 与 autograd track。精确 shape allow-list 在
+Qwen/DeepSeek 官方模型上仍分别退化 15.0%/2.8%，并增加 73.5 MiB/1.44 GiB engine
+memory，所以模型策略和 CLI 被删除；经过 PyTorch 前向/反向对齐的 BF16 自动求导
+原语保留。这个结果不进入 FP32 running-best 曲线。
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -81,6 +86,8 @@ Experiment 013 探测无权重复制的 GroupedGemm QKV：变宽和同宽 FP32 M
 | [assets/bottleneck-map.svg](assets/bottleneck-map.svg) | 当前瓶颈和目标架构图 |
 | [assets/bf16-gemm.svg](assets/bf16-gemm.svg) | BF16 mixed GEMM 独立 shape track |
 | [bf16-results.tsv](bf16-results.tsv) | BF16 shape、速度、误差原始表 |
+| [assets/bf16-model-policy.svg](assets/bf16-model-policy.svg) | 被否决的官方模型 BF16 策略图 |
+| [bf16-model-policy.tsv](bf16-model-policy.tsv) | 三进程中位数、显存和 token gate |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

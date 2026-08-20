@@ -708,10 +708,35 @@ BF16 track 先实现 device-native cast 和“BF16 输入、FP32 累加/输出�
 ```
 
 所有数字都包含 activation cast，输出保持 FP32。两个 shape 加速，三个 shape 退化，
-所以正确下一步是 per-shape policy 和 cached BF16 weights，而不是给模型加一个“全部
-BF16”按钮。这个结果单独画图，不能接到 FP32 1.770568 曲线上。
+所以当时的下一步是验证 per-shape policy 和 cached BF16 weights，而不是直接加一个
+“全部 BF16”按钮。Experiment 015 随后实测并否决了这条候选。BF16 结果单独画图，
+不能接到 FP32 1.770568 曲线上。
 
-## 25. 怎样读进度图
+## 25. Experiment 015：算子快，不等于把它塞进模型就会快
+
+Experiment 014 只有两个 shape 胜过 FP32。候选因此没有打开“全局 BF16”，而是只对
+`896×896` 和 `1536×8960` 做精确 allow-list，并缓存对应 BF16 权重。
+
+结果仍然失败：
+
+![BF16 model policy was rejected](assets/bf16-model-policy.svg)
+
+```text
+Qwen median       147.41 → 125.29 token/s  -15.0%
+DeepSeek median    53.36 →  51.85 token/s   -2.8%
+extra memory       +73.5 MiB / +1.44 GiB
+generated tokens   exact match
+```
+
+为什么“小算子加速”没有兑现？当前设计每次 Linear 仍要把 FP32 activation 转成 BF16，
+并长期保存一份额外的 BF16 权重。Kernel 选择、cast 和内存代价合起来超过了两个 shape
+的局部收益。因此模型 precision enum、cache 和 CLI 全部删除。
+
+保留下来的是更小、证据更完整的能力：`bf16_matmul` 自动求导原语。前向对两个输入按
+BF16 舍入并以 FP32 累加，反向使用 FP32 master tensors 计算梯度。它通过独立 PyTorch
+前向/反向 oracle，但这只是一块训练地基，绝不等于“整网 BF16 已跑通”。
+
+## 26. 怎样读进度图
 
 图中：
 
@@ -723,10 +748,11 @@ BF16”按钮。这个结果单独画图，不能接到 FP32 1.770568 曲线上�
 - 右侧条形：当前四项 workload ratio；
 - 底部卡片：计划步骤，不代表已经完成。
 
-当前有 baseline 和八个 keep 实验共九个绿色点，以及五个 discard 灰点。未来如果十个实验都失败，图上就
-应出现十个灰点，而不是凭空出现一条漂亮上升曲线。
+FP32 主图当前有 baseline 和八个 keep 实验共九个绿色点，以及五个 discard 灰点；
+BF16 独立图另有一个被否决的模型策略。未来如果十个实验都失败，图上就应出现十个
+灰点，而不是凭空出现一条漂亮上升曲线。
 
-## 26. 什么才算从 0 到 1
+## 27. 什么才算从 0 到 1
 
 完成一个 Kernel 不是 1，某个 shape 跑得快也不是 1。
 

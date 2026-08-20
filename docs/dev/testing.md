@@ -14,8 +14,8 @@
 ## Current measured matrix
 
 ```text
-framework CPU                 153/153 pass
-CPU ASan/UBSan                151/151 pass
+framework CPU                 154/154 pass
+CPU ASan/UBSan                152/152 pass
 MI300X/gfx942 HIP              55/55 pass
 PyTorch CPU oracle/alignment      3/3 pass
 two-rank RCCL                  11/11 pass
@@ -40,8 +40,9 @@ SGD/AdamW                     3.72529030e-08
 ```
 
 The detailed per-operator tolerances and shape contracts are in
-`docs/OPERATOR_CONTRACTS.zh-CN.md`. BF16/F16 safetensors conversion is tested, but
-BF16/F16 compute kernels are not yet a correctness claim.
+`docs/OPERATOR_CONTRACTS.zh-CN.md`. BF16/F16 safetensors conversion, native basic
+kernels and BF16 mixed GEMM are tested. Whole-model BF16 is not yet a correctness or
+performance claim; the first shape-selected policy was measured and rejected.
 
 ## Line and branch coverage
 

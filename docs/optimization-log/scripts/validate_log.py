@@ -22,6 +22,11 @@ EXPECTED_COLUMNS = [
 ]
 STATUSES = {"baseline", "keep", "discard", "crash", "invalid"}
 LINK = re.compile(r"(?<!!)\[[^\]]*\]\(([^)]+)\)")
+BF16_POLICY_COLUMNS = [
+    "model", "fp32_tokens_per_second", "bf16_policy_tokens_per_second",
+    "throughput_ratio", "fp32_engine_bytes", "bf16_engine_bytes",
+    "extra_engine_bytes", "exact_tokens", "decision",
+]
 
 
 def validate_results(errors: list[str]) -> int:
@@ -67,6 +72,31 @@ def validate_steps(errors: list[str]) -> int:
     return len(expected)
 
 
+def validate_bf16_policy(errors: list[str]) -> int:
+    path = ROOT / "bf16-model-policy.tsv"
+    with path.open(encoding="utf-8", newline="") as stream:
+        reader = csv.DictReader(stream, delimiter="\t")
+        if reader.fieldnames != BF16_POLICY_COLUMNS:
+            errors.append("bf16-model-policy.tsv header does not match its contract")
+            return 0
+        rows = list(reader)
+    for row in rows:
+        fp32 = float(row["fp32_tokens_per_second"])
+        candidate = float(row["bf16_policy_tokens_per_second"])
+        ratio = float(row["throughput_ratio"])
+        if abs(ratio - candidate / fp32) > 1.0e-6:
+            errors.append(f'BF16 policy ratio mismatch: {row["model"]}')
+        fp32_bytes = int(row["fp32_engine_bytes"])
+        candidate_bytes = int(row["bf16_engine_bytes"])
+        if int(row["extra_engine_bytes"]) != candidate_bytes - fp32_bytes:
+            errors.append(f'BF16 policy memory mismatch: {row["model"]}')
+        if row["exact_tokens"] not in {"true", "false"}:
+            errors.append(f'BF16 policy token gate is invalid: {row["model"]}')
+        if row["decision"] not in {"keep", "discard"}:
+            errors.append(f'BF16 policy decision is invalid: {row["model"]}')
+    return len(rows)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -82,7 +112,8 @@ def validate_links(errors: list[str]) -> int:
 
 
 def validate_assets(errors: list[str]) -> None:
-    for name in ("progress.svg", "bottleneck-map.svg", "bf16-gemm.svg"):
+    for name in ("progress.svg", "bottleneck-map.svg", "bf16-gemm.svg",
+                 "bf16-model-policy.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -103,13 +134,15 @@ def main() -> int:
     errors: list[str] = []
     result_count = validate_results(errors)
     step_count = validate_steps(errors)
+    bf16_policy_count = validate_bf16_policy(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
         for error in errors:
             print(f"ERROR: {error}")
         return 1
-    print(f"optimization log valid: results={result_count} steps={step_count} links={link_count}")
+    print(f"optimization log valid: results={result_count} steps={step_count} "
+          f"bf16_policy={bf16_policy_count} links={link_count}")
     return 0
 
 

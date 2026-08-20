@@ -52,7 +52,9 @@ exact validated versions are maintained in [dev/build.md](dev/build.md).
 - RCCL is off for one consumer GPU.
 - If hipBLASLt is unavailable, Auto selects readable matmul.
 - Start with FP32, batch one, and short context.
-- BF16/FP16 are enum/config placeholders until their kernels and tolerance tests pass.
+- BF16/FP16 storage, native basic kernels and tolerance tests pass on the recorded MI300X.
+  This does not mean whole-model mixed-precision training or inference is complete; the
+  first cached-weight BF16 model policy was measured and rejected.
 - A successful compile does not establish kernel correctness or performance.
 
 ## Publication rule

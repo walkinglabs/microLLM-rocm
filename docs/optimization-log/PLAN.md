@@ -20,7 +20,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | M1 serial kernels | complete | parallel CE、transpose GEMM、parallel RMSNorm | 三组旧热点均从 trace 主导位置消失 |
 | M2 data movement | complete | preallocated KV、device greedy、steady-state exact-size pool | measured decode 只回传 token scalar |
 | M3 optimized ops | in progress | batched GEMM、hipBLASLt plan、FMHA/fusion | Model-S/M 与 HF 均改善 |
-| M4 low precision | planned | BF16/FP8 独立 track | 同 dtype PyTorch 对照 |
+| M4 low precision | in progress | BF16 算子/autograd 已有；首个模型策略被否决 | 同 dtype PyTorch 对照 |
 | M5 scheduling | planned | stable-address HIP Graph | launch/API 时间下降且数值不变 |
 | M6 report | planned | 博客、曲线、trace、失败图集 | selected matrix 达到最终门 |
 
@@ -38,7 +38,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [07](steps/07-autograd-buffers.md) | in progress | local COW add_ discarded；explicit liveness planned | train allocations |
 | [08](steps/08-batched-fmha.md) | in progress | cached decode fused；prefill/backward planned | score 1.752183 |
 | [09](steps/09-fusion-autotune.md) | in progress | FP32 M=1 GroupedGemm unavailable；packed/BF16 probe planned | projection |
-| [10](steps/10-bf16.md) | planned | 官方整网 BF16 | BF16 track |
+| [10](steps/10-bf16.md) | in progress | BF16 算子/autograd；首个模型 policy discard | BF16 track |
 | [11](steps/11-fp8.md) | planned | cached FP8 weight/dynamic scale | FP8 track |
 | [12](steps/12-hip-graph-final.md) | planned | HIP Graph 和最终报告 | launch + final score |
 

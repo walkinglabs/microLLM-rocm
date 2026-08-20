@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="560" viewBox="0 0 1500 560">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="750.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 015 · BF16 Shape Policy</text>
+<text x="750.0" y="80.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">3-process median decode throughput relative to retained FP32 path</text>
+<line x1="523.3" y1="120" x2="523.3" y2="390" stroke="#e5e9f0" stroke-width="1"/>
+<text x="523.3" y="420.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">0.8×</text>
+<line x1="850.0" y1="120" x2="850.0" y2="390" stroke="#e5e9f0" stroke-width="1"/>
+<text x="850.0" y="420.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">0.9×</text>
+<line x1="1176.7" y1="120" x2="1176.7" y2="390" stroke="#2563eb" stroke-width="2"/>
+<text x="1176.7" y="420.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">1.0×</text>
+<text x="336.0" y="174.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" text-anchor="end" font-weight="600">Qwen2.5-0.5B</text>
+<rect x="686.5" y="150" width="490.2" height="34" rx="5" fill="#dc6b5a"/>
+<text x="676.5" y="174.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#b83f32" text-anchor="end" font-weight="700">0.850×</text>
+<text x="336.0" y="202.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#6b7280" text-anchor="end" font-weight="400">extra engine memory +0.07 GiB</text>
+<text x="336.0" y="294.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" text-anchor="end" font-weight="600">DeepSeek-R1-Distill-Qwen-1.5B</text>
+<rect x="1084.1" y="270" width="92.6" height="34" rx="5" fill="#dc6b5a"/>
+<text x="1074.1" y="294.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#b83f32" text-anchor="end" font-weight="700">0.972×</text>
+<text x="336.0" y="322.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#6b7280" text-anchor="end" font-weight="400">extra engine memory +1.44 GiB</text>
+<text x="750.0" y="485.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#b83f32" text-anchor="middle" font-weight="600">Both models generated the same token IDs; speed and memory gates failed</text>
+<text x="750.0" y="535.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#6b7280" text-anchor="middle" font-weight="400">Generated from docs/optimization-log/bf16-model-policy.tsv · higher is better</text>
+</svg>

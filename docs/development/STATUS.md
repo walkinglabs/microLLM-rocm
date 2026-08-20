@@ -4,9 +4,9 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| CPU configuration | smoke-tested | framework-only main configure/build; 152/152 CPU CTest | CI matrix |
+| CPU configuration | smoke-tested | framework-only main configure/build; 154/154 CPU CTest | CI matrix |
 | CPU code coverage | smoke-tested | 83.9% lines, 90.9% functions, 66.6% branches over `src/` + `include/` | split CPU/HIP reports and add justified thresholds |
-| Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, cast, views and transfer | low-precision math/device-native cast |
+| Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, native cast, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
 | Tensor metadata/views | smoke-tested | hand values, randomized shapes, bounds | more dtypes |
 | HIP view materialization | smoke-tested | gfx942 transposed logical-order copy | rank>8/more dtypes |
@@ -45,7 +45,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Device greedy sampling | smoke-tested | deterministic two-stage 151936 argmax (-96.7% Kernel), 4-byte/token D2H, robust score 1.770568 | stochastic device top-k/RNG |
 | HIP exact-size allocator | smoke-tested | steady-state-only Event retirement, Stream fallback, stress/exception tests; score 1.219170→1.700597 | Event batching, size classes and explicit multi-Stream ownership |
 | Fused cached decode Attention | smoke-tested | FP32 MHA/GQA 1/32/128/512 + fallback; repeated-process score 1.752183; long decode up to +57.9% | one-token regression, prefill/backward/BF16 |
-| BF16 mixed GEMM foundation | smoke-tested | native device cast, BF16 inputs/FP32 output, five MI300X M=1 shapes; 0.83×–1.15× FP32 | per-shape model policy, cached weights, whole-model PyTorch BF16 |
+| BF16 mixed GEMM/autograd foundation | smoke-tested | native device cast, BF16 inputs/FP32 output, nine supported MI300X shapes, FP32-master gradients aligned with PyTorch | activation islands, non-duplicated weights, whole-model PyTorch BF16 |
 | Token generation | smoke-tested | deterministic sampling and cache-backed length/bounds | trained text report |
 | Stable model failure | smoke-tested | low-loss cycle breaks beyond training context | rebuttal experiments |
 | PyTorch Custom Ops | smoke-tested on CPU | Torch 2.13 add/multiply via dispatcher | build/run with PyTorch ROCm |
@@ -62,7 +62,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | End-to-end benchmark | smoke-tested | matched Python/PyTorch ROCm built-in and official-HF JSONL ratios | longer contexts, repeated official training and tuned comparison |
 | Single-GPU model matrix | smoke-tested | MI300X tiny/Model-S/Model-M plus official Qwen0.5B/DeepSeek-Distill1.5B train+generate, parameters, time, tokens/s and engine peak bytes | repeated contexts/dtypes and external board-level memory sampling |
 | Python/PyTorch ROCm performance matrix | smoke-tested | matched FP32 built-ins plus official Qwen/DeepSeek Distill, raw Python data and automatic throughput/memory ratios | repeated official-model training and PyTorch version matrix |
-| Optimization experiment journal | implemented | FP32 main track plus BF16 shape track, eight keep, five discards and repeated evidence | continue model BF16 policy/prefill work |
+| Optimization experiment journal | implemented | FP32 main track plus BF16 shape/model tracks, eight keep, six discards and repeated evidence | redesign BF16 activation/weight lifetime and continue prefill work |
 | rocprofv3 workflow | smoke-tested | kernel/HIP API/memory/full trace generated | release artifact retention |
 | hipBLASLt matmul | smoke-tested | FP32 CPU comparison, shape matrix, Model-S e2e | batched/workspace/autotune cache |
 | Matmul tuning registry | smoke-tested | exact shape override/clear and availability gates | persistence/arch key |
