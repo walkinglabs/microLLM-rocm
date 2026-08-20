@@ -14,9 +14,9 @@
 ## Current measured matrix
 
 ```text
-framework CPU                 143/143 pass
-CPU ASan/UBSan                141/141 pass
-MI300X/gfx942 HIP              38/38 pass
+framework CPU                 144/144 pass
+CPU ASan/UBSan                142/142 pass
+MI300X/gfx942 HIP              39/39 pass
 PyTorch CPU oracle/alignment      3/3 pass
 two-rank RCCL                  11/11 pass
 registered test files               34
@@ -72,3 +72,7 @@ Performance changes require:
 4. raw JSONL and, for system claims, a profiler trace;
 5. both operator and end-to-end results;
 6. a documented regression or unsupported boundary where applicable.
+
+The single-GPU model matrix is a HIP CTest gate and writes its raw build artifact to
+`build/hip-release/benchmarks/hip-model-matrix.jsonl`. It records performance without
+using a noisy throughput threshold as a correctness condition.

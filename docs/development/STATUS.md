@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| CPU configuration | smoke-tested | framework-only main configure/build; 143/143 CPU CTest | CI matrix |
+| CPU configuration | smoke-tested | framework-only main configure/build; 144/144 CPU CTest | CI matrix |
 | CPU code coverage | smoke-tested | 83.9% lines, 90.9% functions, 66.6% branches over `src/` + `include/` | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, cast, views and transfer | low-precision math/device-native cast |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
@@ -53,6 +53,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Micro-benchmark harness | smoke-tested | CPU/HIP Event+wall JSONL and error gate | PyTorch comparison/more shapes |
 | Engine allocation tracker | smoke-tested | CPU/HIP current/peak/total accounting | external allocator integration |
 | End-to-end benchmark | smoke-tested | CPU/gfx942 train+generate raw JSONL | Model-S/PyTorch/tuned comparison |
+| Single-GPU model matrix | smoke-tested | MI300X tiny/Model-S/Model-M train+generate, parameters, time, tokens/s and engine peak bytes | repeated contexts/dtypes plus optional official HF matrix |
 | rocprofv3 workflow | smoke-tested | kernel/HIP API/memory/full trace generated | release artifact retention |
 | hipBLASLt matmul | smoke-tested | FP32 CPU comparison, shape matrix, Model-S e2e | batched/workspace/autotune cache |
 | Matmul tuning registry | smoke-tested | exact shape override/clear and availability gates | persistence/arch key |

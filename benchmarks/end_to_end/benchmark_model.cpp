@@ -53,8 +53,9 @@ Options parse(int argc, char** argv) {
     if (options.mode != "train" && options.mode != "generate") {
         throw std::invalid_argument("mode must be train or generate");
     }
-    if (options.model != "tiny" && options.model != "model-s") {
-        throw std::invalid_argument("model must be tiny or model-s");
+    if (options.model != "tiny" && options.model != "model-s" &&
+        options.model != "model-m") {
+        throw std::invalid_argument("model must be tiny, model-s, or model-m");
     }
     if (options.device != "cpu" && options.device != "hip") {
         throw std::invalid_argument("device must be cpu or hip");
@@ -71,6 +72,7 @@ Options parse(int argc, char** argv) {
 
 microllm::model::ModelConfig config_for(const Options& options) {
     if (options.model == "model-s") return microllm::model::ModelConfig::model_s();
+    if (options.model == "model-m") return microllm::model::ModelConfig::model_m();
     return {.vocabulary_size = 32,
             .dimension = 16,
             .layers = 2,
@@ -115,11 +117,16 @@ int main(int argc, char** argv) {
         const auto wall_start = std::chrono::steady_clock::now();
         microllm::model::TransformerModel model(config, 20260819);
         if (device.is_hip()) model.to(device);
+        microllm::runtime::synchronize(device);
+        const auto construction_finish = std::chrono::steady_clock::now();
+        const auto construction_seconds =
+            std::chrono::duration<double>(construction_finish - wall_start).count();
 
         float first_loss = 0.0F;
         float final_loss = 0.0F;
         double output_guard = 0.0;
         double measured_seconds = 0.0;
+        double warmup_seconds = 0.0;
         std::int64_t measured_tokens = 0;
         if (options.mode == "train") {
             microllm::training::AdamW optimizer(
@@ -129,10 +136,15 @@ int main(int argc, char** argv) {
                                      .epsilon = 1.0e-8F,
                                      .weight_decay = 0.01F});
             const auto batch = fixed_batch(config, options.batch, options.context);
+            const auto warmup_start = std::chrono::steady_clock::now();
             for (int iteration = 0; iteration < options.warmup; ++iteration) {
                 (void)microllm::training::train_step(model, optimizer, batch,
                                                       static_cast<std::uint64_t>(iteration));
             }
+            microllm::runtime::synchronize(device);
+            const auto warmup_finish = std::chrono::steady_clock::now();
+            warmup_seconds =
+                std::chrono::duration<double>(warmup_finish - warmup_start).count();
             const auto measured_start = std::chrono::steady_clock::now();
             for (int iteration = 0; iteration < options.steps; ++iteration) {
                 const auto metrics = microllm::training::train_step(
@@ -148,6 +160,7 @@ int main(int argc, char** argv) {
             output_guard = final_loss;
         } else {
             const std::vector<std::int32_t> prompt(static_cast<std::size_t>(options.context), 1);
+            const auto warmup_start = std::chrono::steady_clock::now();
             for (int iteration = 0; iteration < options.warmup; ++iteration) {
                 (void)microllm::inference::generate(
                     model, prompt, {.max_new_tokens = options.new_tokens,
@@ -155,6 +168,10 @@ int main(int argc, char** argv) {
                                     .top_k = 0,
                                     .seed = static_cast<std::uint64_t>(iteration)});
             }
+            microllm::runtime::synchronize(device);
+            const auto warmup_finish = std::chrono::steady_clock::now();
+            warmup_seconds =
+                std::chrono::duration<double>(warmup_finish - warmup_start).count();
             const auto measured_start = std::chrono::steady_clock::now();
             for (int iteration = 0; iteration < options.steps; ++iteration) {
                 const auto generated = microllm::inference::generate(
@@ -173,6 +190,8 @@ int main(int argc, char** argv) {
         const auto wall_finish = std::chrono::steady_clock::now();
         const auto total_wall = std::chrono::duration<double>(wall_finish - wall_start).count();
         const auto tokens_per_second = static_cast<double>(measured_tokens) / measured_seconds;
+        const auto milliseconds_per_token =
+            measured_seconds * 1000.0 / static_cast<double>(measured_tokens);
         const auto tokens_per_second_with_setup =
             static_cast<double>(measured_tokens) / total_wall;
         const auto cpu_memory = microllm::runtime::allocation_stats(microllm::Device::cpu());
@@ -189,6 +208,8 @@ int main(int argc, char** argv) {
                   << "\",\"hip_runtime_version\":" << microllm::runtime::hip_runtime_version()
                   << ",\"hip_driver_version\":" << microllm::runtime::hip_driver_version()
                   << ",\"dtype\":\"float32\",\"batch\":" << options.batch
+                  << ",\"parameter_count\":" << model.parameter_count()
+                  << ",\"fp32_weight_bytes\":" << config.weight_bytes(sizeof(float))
                   << ",\"context\":" << options.context
                   << ",\"steps\":" << options.steps
                   << ",\"warmup\":" << options.warmup
@@ -196,12 +217,21 @@ int main(int argc, char** argv) {
                   << ",\"measured_tokens\":" << measured_tokens
                   << ",\"measured_wall_seconds\":" << measured_seconds
                   << ",\"tokens_per_second\":" << tokens_per_second
+                  << ",\"milliseconds_per_token\":" << milliseconds_per_token
+                  << ",\"model_construction_seconds\":" << construction_seconds
+                  << ",\"warmup_seconds\":" << warmup_seconds
                   << ",\"wall_seconds_with_setup\":" << total_wall
                   << ",\"tokens_per_second_with_setup\":" << tokens_per_second_with_setup
                   << ",\"first_loss\":" << first_loss
                   << ",\"final_loss\":" << final_loss
+                  << ",\"cpu_current_engine_bytes\":" << cpu_memory.current_bytes
                   << ",\"cpu_peak_engine_bytes\":" << cpu_memory.peak_bytes
+                  << ",\"cpu_total_allocated_engine_bytes\":"
+                  << cpu_memory.total_allocated_bytes
+                  << ",\"device_current_engine_bytes\":" << device_memory.current_bytes
                   << ",\"device_peak_engine_bytes\":" << device_memory.peak_bytes
+                  << ",\"device_total_allocated_engine_bytes\":"
+                  << device_memory.total_allocated_bytes
                   << ",\"output_guard\":" << output_guard << "}\n";
         return std::isfinite(tokens_per_second) && tokens_per_second > 0.0 ? 0 : 2;
     } catch (const std::exception& error) {

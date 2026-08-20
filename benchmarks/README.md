@@ -22,6 +22,24 @@ run outputs are ignored unless curated with their environment and correctness da
 includes construction, device transfer, optimizer allocation, and warm-up. Both are
 reported so setup cannot disappear from the experiment.
 
+Run the built-in single-device model ladder as one validated JSONL matrix:
+
+```bash
+python3 benchmarks/single_gpu/model_matrix.py \
+  --benchmark build/hip-release/benchmarks/microllm_bench_model \
+  --device hip \
+  --profiles tiny,model-s,model-m \
+  --modes train,generate \
+  --output /tmp/microllm-single-gpu.jsonl
+```
+
+Each measurement includes exact parameter/FP32-weight bytes, model construction and
+warm-up time, measured and setup-inclusive throughput, milliseconds per generated or
+trained token, and current/peak/total engine-owned device bytes. The matrix checks
+that metrics are finite and internally consistent; it deliberately does not use a
+machine-noisy speed threshold as a correctness gate. See
+[single-GPU model benchmarking](../docs/dev/single-gpu-benchmark.md).
+
 Capture HIP API, kernel, memory, and RCCL-ready runtime traces with the locally
 installed rocprofv3 interface:
 

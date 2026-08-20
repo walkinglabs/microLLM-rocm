@@ -18,7 +18,18 @@ model = run(
     [sys.argv[2], "--mode", "train", "--model", "tiny", "--device", "cpu", "--steps", "1", "--warmup", "0", "--batch", "1", "--context", "2", "--new-tokens", "2"]
 )
 required_micro = {"kernel_ms_mean", "wall_ms_mean", "maximum_absolute_error"}
-required_model = {"measured_wall_seconds", "tokens_per_second", "device_peak_engine_bytes"}
+required_model = {
+    "parameter_count",
+    "fp32_weight_bytes",
+    "measured_wall_seconds",
+    "tokens_per_second",
+    "milliseconds_per_token",
+    "model_construction_seconds",
+    "warmup_seconds",
+    "device_current_engine_bytes",
+    "device_peak_engine_bytes",
+    "device_total_allocated_engine_bytes",
+}
 if not required_micro.issubset(micro):
     raise RuntimeError("micro benchmark record is missing required fields")
 if not required_model.issubset(model):

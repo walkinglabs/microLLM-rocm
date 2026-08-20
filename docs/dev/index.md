@@ -13,6 +13,8 @@ component has a public interface under `include/microllm`, an implementation und
 5. For performance work, follow [profiling](profiling.md).
 6. For cross-framework work, use [alignment experiments](alignment.md).
 7. For RCCL training, read [distributed training](distributed-training.md).
+8. For model memory/throughput matrices, read
+   [single-GPU benchmarking](single-gpu-benchmark.md).
 
 ## Engineering rules
 

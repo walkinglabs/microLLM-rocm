@@ -140,3 +140,6 @@ the next gate. Records are append-only except for factual corrections.
 - [2026-08-20-course-only-branch.md](2026-08-20-course-only-branch.md): removed the
   duplicated engine from the tutorial branch, added a course-only CI boundary, and
   extended the curriculum through official HF models and FP8.
+- [2026-08-20-single-gpu-model-matrix.md](2026-08-20-single-gpu-model-matrix.md):
+  MI300X training/generation throughput and engine-owned memory for tiny, Model-S and
+  Model-M, with a CTest schema gate.

@@ -36,6 +36,14 @@ if(BUILD_TESTING)
                  COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/validate_json.py
                          $<TARGET_FILE:microllm_bench_ops> $<TARGET_FILE:microllm_bench_model>)
         set_tests_properties(Benchmark.JsonSchema PROPERTIES LABELS "cpu;benchmark;schema")
+        add_test(NAME Benchmark.ModelMatrixSchema
+                 COMMAND ${Python3_EXECUTABLE}
+                         ${CMAKE_CURRENT_SOURCE_DIR}/single_gpu/model_matrix.py
+                         --benchmark $<TARGET_FILE:microllm_bench_model>
+                         --device cpu --profiles tiny --modes train,generate
+                         --output ${CMAKE_CURRENT_BINARY_DIR}/cpu-model-matrix.jsonl)
+        set_tests_properties(Benchmark.ModelMatrixSchema
+                             PROPERTIES LABELS "cpu;benchmark;model;memory;schema")
     endif()
     if(MICROLLM_HAS_HIP)
         add_test(NAME Benchmark.HipAddSmoke
@@ -60,6 +68,18 @@ if(BUILD_TESTING)
                  COMMAND microllm_bench_model --mode generate --model tiny --device hip
                          --steps 2 --warmup 1 --batch 1 --context 1 --new-tokens 4)
         set_tests_properties(Benchmark.HipGenerateSmoke PROPERTIES LABELS "hip;benchmark;model;smoke")
+        if(Python3_Interpreter_FOUND)
+            add_test(NAME Benchmark.HipModelMatrix
+                     COMMAND ${Python3_EXECUTABLE}
+                             ${CMAKE_CURRENT_SOURCE_DIR}/single_gpu/model_matrix.py
+                             --benchmark $<TARGET_FILE:microllm_bench_model>
+                             --device hip --profiles tiny,model-s,model-m
+                             --modes train,generate
+                             --output ${CMAKE_CURRENT_BINARY_DIR}/hip-model-matrix.jsonl)
+            set_tests_properties(Benchmark.HipModelMatrix PROPERTIES
+                                 LABELS "hip;benchmark;model;memory;performance;matrix;slow"
+                                 TIMEOUT 900)
+        endif()
     endif()
     if(MICROLLM_HAS_RCCL)
         add_test(NAME Benchmark.RcclSmoke
