@@ -85,6 +85,38 @@ TEST(CpuOpsTest, DeviceStyleCastAndMixedBf16MatmulMatchRoundedReference) {
                     .cast(DType::Float32).to_vector());
 }
 
+TEST(CpuOpsTest, Bf16FfnKeepsIntermediateActivationsLowPrecision) {
+    const auto input = Tensor::from_vector(
+        {1.1F, -0.5F, 0.25F, 2.0F, -1.0F, 0.75F}, {2, 3});
+    const auto gate = Tensor::from_vector(
+        {0.5F, -1.0F, 0.25F, 0.75F, 1.5F, -0.5F,
+         -0.25F, 0.5F, 1.0F, -1.25F, 0.125F, 0.875F},
+        {3, 4}, DType::BFloat16);
+    const auto up = Tensor::from_vector(
+        {1.0F, 0.5F, -0.75F, 0.25F, -0.5F, 1.25F,
+         0.625F, -1.0F, 0.75F, -0.25F, 1.5F, 0.5F},
+        {3, 4}, DType::BFloat16);
+    const auto down = Tensor::from_vector(
+        {0.25F, -0.5F, 1.0F, 0.75F, -1.25F, 0.5F, 0.125F, -0.875F},
+        {4, 2}, DType::BFloat16);
+    const auto rounded_input = input.cast(DType::BFloat16);
+    const auto gate_output = bf16_matmul_output(
+        rounded_input, gate, DType::BFloat16);
+    const auto up_output = bf16_matmul_output(
+        rounded_input, up, DType::BFloat16);
+    const auto expected = bf16_matmul_output(
+        swiglu(gate_output, up_output), down, DType::Float32);
+    const auto actual = bf16_ffn(input, gate, up, down);
+    EXPECT_EQ(actual.dtype(), DType::Float32);
+    EXPECT_EQ(actual.shape(), (Shape{2, 2}));
+    expect_near(actual.to_vector(), expected.to_vector(), 0.0F);
+
+    EXPECT_THROW((void)bf16_ffn(input.cast(DType::BFloat16), gate, up, down),
+                 std::invalid_argument);
+    EXPECT_THROW((void)bf16_ffn(input, gate, up, Tensor({3, 2}, DType::BFloat16)),
+                 std::invalid_argument);
+}
+
 TEST(CpuOpsTest, TransposeAwareMatmulCoversAllOperandLayoutsWithoutViews) {
     const auto logical_left = Tensor::from_vector({1, 2, 3, 4, 5, 6}, {2, 3});
     const auto logical_right = Tensor::from_vector(

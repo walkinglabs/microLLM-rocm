@@ -82,6 +82,20 @@ def pytorch_references(actual):
            matrix_left.to(torch.bfloat16).float() @ matrix_right.to(torch.bfloat16).float())
     record(refs, "bf16_output_matmul",
            (matrix_left.to(torch.bfloat16) @ matrix_right.to(torch.bfloat16)).to(torch.bfloat16))
+    ffn_gate = tensor(
+        [0.5, -1.0, 0.25, 0.75, 1.5, -0.5,
+         -0.25, 0.5, 1.0, -1.25, 0.125, 0.875], (3, 4)).to(torch.bfloat16)
+    ffn_up = tensor(
+        [1.0, 0.5, -0.75, 0.25, -0.5, 1.25,
+         0.625, -1.0, 0.75, -0.25, 1.5, 0.5], (3, 4)).to(torch.bfloat16)
+    ffn_down = tensor(
+        [0.25, -0.5, 1.0, 0.75, -1.25, 0.5, 0.125, -0.875],
+        (4, 2)).to(torch.bfloat16)
+    ffn_input = matrix_left.to(torch.bfloat16)
+    ffn_gate_output = (ffn_input @ ffn_gate).to(torch.bfloat16)
+    ffn_up_output = (ffn_input @ ffn_up).to(torch.bfloat16)
+    ffn_activated = (F.silu(ffn_gate_output) * ffn_up_output).to(torch.bfloat16)
+    record(refs, "bf16_ffn", (ffn_activated @ ffn_down).to(torch.float32))
     record(refs, "matmul_readable", matrix_left @ matrix_right)
     wide_right = tensor([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], (3, 4))
     transposed_left = matrix_left.transpose(0, 1).contiguous()
@@ -417,6 +431,7 @@ class OperatorParityTest(unittest.TestCase):
             "invalid_cast_dtype",
             "invalid_matmul_inner",
             "invalid_bf16_matmul_dtype",
+            "invalid_bf16_ffn_shape",
             "invalid_embedding_weight",
             "invalid_softmax_dim",
             "invalid_rms_weight",

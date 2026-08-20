@@ -412,6 +412,47 @@ Tensor bf16_matmul_output(const Tensor& left_bf16, const Tensor& right_bf16,
 #endif
 }
 
+Tensor bf16_ffn(const Tensor& input_fp32,
+                const Tensor& gate_weight_bf16,
+                const Tensor& up_weight_bf16,
+                const Tensor& down_weight_bf16,
+                const OpContext& context) {
+    if (input_fp32.dtype() != DType::Float32 ||
+        gate_weight_bf16.dtype() != DType::BFloat16 ||
+        up_weight_bf16.dtype() != DType::BFloat16 ||
+        down_weight_bf16.dtype() != DType::BFloat16) {
+        throw std::invalid_argument(
+            "bf16_ffn requires FP32 input and BF16 gate/up/down weights");
+    }
+    if (input_fp32.device() != gate_weight_bf16.device() ||
+        input_fp32.device() != up_weight_bf16.device() ||
+        input_fp32.device() != down_weight_bf16.device()) {
+        throw std::invalid_argument("bf16_ffn tensors must use one device");
+    }
+    if (input_fp32.ndim() != 2 || gate_weight_bf16.ndim() != 2 ||
+        up_weight_bf16.ndim() != 2 || down_weight_bf16.ndim() != 2 ||
+        !input_fp32.is_contiguous() || !gate_weight_bf16.is_contiguous() ||
+        !up_weight_bf16.is_contiguous() || !down_weight_bf16.is_contiguous()) {
+        throw std::invalid_argument("bf16_ffn requires contiguous 2D tensors");
+    }
+    const auto hidden = input_fp32.shape()[1];
+    const auto intermediate = gate_weight_bf16.shape()[1];
+    if (gate_weight_bf16.shape()[0] != hidden ||
+        up_weight_bf16.shape() != gate_weight_bf16.shape() ||
+        down_weight_bf16.shape()[0] != intermediate) {
+        throw std::invalid_argument("bf16_ffn weight shapes are incompatible");
+    }
+
+    const auto input_bf16 = cast(input_fp32, DType::BFloat16, context);
+    const auto gate = bf16_matmul_output(input_bf16, gate_weight_bf16,
+                                         DType::BFloat16, context);
+    const auto up = bf16_matmul_output(input_bf16, up_weight_bf16,
+                                       DType::BFloat16, context);
+    const auto activated = swiglu(gate, up, context);
+    return bf16_matmul_output(activated, down_weight_bf16,
+                              DType::Float32, context);
+}
+
 Tensor fp8_matmul(const ScaledTensor& left, const ScaledTensor& right,
                   DType output_dtype, const OpContext& context) {
     if (left.values.device() != right.values.device()) {

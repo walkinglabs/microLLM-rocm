@@ -35,6 +35,14 @@ struct ScaledTensor {
                                         const Tensor& right_bf16,
                                         DType output_dtype,
                                         const OpContext& context = {});
+// Runs gate/up -> SwiGLU -> down as one continuous BF16 activation island.
+// Input and output stay FP32 at the residual boundary; all three weights must
+// already be BF16 so the hot path never creates a hidden persistent copy.
+[[nodiscard]] Tensor bf16_ffn(const Tensor& input_fp32,
+                              const Tensor& gate_weight_bf16,
+                              const Tensor& up_weight_bf16,
+                              const Tensor& down_weight_bf16,
+                              const OpContext& context = {});
 
 void fill_(Tensor& tensor, float value, const OpContext& context = {});
 void adamw_update_(Tensor& parameter, const Tensor& gradient,

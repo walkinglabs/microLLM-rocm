@@ -77,6 +77,18 @@ void emit_forward_cases() {
     emit("bf16_output_matmul", bf16_matmul_output(
         cast(matrix_left, DType::BFloat16), cast(matrix_right, DType::BFloat16),
         DType::BFloat16));
+    const auto ffn_gate = Tensor::from_vector(
+        {0.5F, -1.0F, 0.25F, 0.75F, 1.5F, -0.5F,
+         -0.25F, 0.5F, 1.0F, -1.25F, 0.125F, 0.875F},
+        {3, 4}, DType::BFloat16);
+    const auto ffn_up = Tensor::from_vector(
+        {1.0F, 0.5F, -0.75F, 0.25F, -0.5F, 1.25F,
+         0.625F, -1.0F, 0.75F, -0.25F, 1.5F, 0.5F},
+        {3, 4}, DType::BFloat16);
+    const auto ffn_down = Tensor::from_vector(
+        {0.25F, -0.5F, 1.0F, 0.75F, -1.25F, 0.5F, 0.125F, -0.875F},
+        {4, 2}, DType::BFloat16);
+    emit("bf16_ffn", bf16_ffn(matrix_left, ffn_gate, ffn_up, ffn_down));
     emit("matmul_readable",
          matmul_with_implementation(matrix_left, matrix_right,
                                     MatmulImplementation::Readable));
@@ -331,6 +343,11 @@ void emit_invalid_shape_cases() {
     emit_bool("invalid_matmul_inner", rejected([&] { (void)matmul(matrix, f32({1, 2}, {2, 1, 1})); }));
     emit_bool("invalid_bf16_matmul_dtype", rejected([&] {
                   (void)bf16_matmul(matrix, matrix);
+              }));
+    emit_bool("invalid_bf16_ffn_shape", rejected([&] {
+                  const auto bf16 = matrix.cast(DType::BFloat16);
+                  (void)bf16_ffn(matrix, bf16, bf16,
+                                 Tensor({3, 2}, DType::BFloat16));
               }));
     emit_bool("invalid_embedding_weight", rejected([&] {
                   (void)embedding(vector, Tensor::from_int32_vector({0}, {1}));

@@ -9,6 +9,7 @@
     "scale": {"torch": "scale", "shape": "invalid_scale_dtype"},
     "matmul": {"torch": "matmul_2d", "shape": "invalid_matmul_inner"},
     "bf16_matmul": {"torch": "bf16_mixed_matmul", "shape": "invalid_bf16_matmul_dtype"},
+    "bf16_ffn": {"torch": "bf16_ffn", "shape": "invalid_bf16_ffn_shape"},
     "matmul_with_implementation": {"torch": "matmul_readable", "shape": "invalid_matmul_inner"},
     "embedding": {"torch": "embedding", "shape": "invalid_embedding_weight"},
     "softmax": {"torch": "softmax", "shape": "invalid_softmax_dim"},
