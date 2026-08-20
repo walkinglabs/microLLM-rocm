@@ -79,6 +79,8 @@ Experiment 013 探测无权重复制的 GroupedGemm QKV：变宽和同宽 FP32 M
 | [experiments/](experiments/) | 实际执行后新增的详细实验报告 |
 | [assets/progress.svg](assets/progress.svg) | 从 `results.tsv` 生成的当前进度图 |
 | [assets/bottleneck-map.svg](assets/bottleneck-map.svg) | 当前瓶颈和目标架构图 |
+| [assets/bf16-gemm.svg](assets/bf16-gemm.svg) | BF16 mixed GEMM 独立 shape track |
+| [bf16-results.tsv](bf16-results.tsv) | BF16 shape、速度、误差原始表 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

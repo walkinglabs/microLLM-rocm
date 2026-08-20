@@ -690,7 +690,28 @@ M=1 K=128 N={128,128,128}  no heuristic
 变宽和同宽控制都 fallback。继续跑模型只能测三次旧 GEMM，所以实验在 operator gate
 就停止，API 和代码删除。以后可以在 BF16 或 prefill 的较大 M 重新问这个问题。
 
-## 24. 怎样读进度图
+## 24. Experiment 014：BF16 不是一个全局开关
+
+BF16 track 先实现 device-native cast 和“BF16 输入、FP32 累加/输出”GEMM。它没有
+改 FP32 running-best，也没有提前声称整网 BF16。
+
+五个 M=1 shape 把问题说得很清楚：
+
+![BF16 mixed GEMM shape track](assets/bf16-gemm.svg)
+
+```text
+1×384×384    0.87× FP32
+1×896×896    1.07×
+1×896×4864   0.83×
+1×1536×1536  0.95×
+1×1536×8960  1.15×
+```
+
+所有数字都包含 activation cast，输出保持 FP32。两个 shape 加速，三个 shape 退化，
+所以正确下一步是 per-shape policy 和 cached BF16 weights，而不是给模型加一个“全部
+BF16”按钮。这个结果单独画图，不能接到 FP32 1.770568 曲线上。
+
+## 25. 怎样读进度图
 
 图中：
 
@@ -705,7 +726,7 @@ M=1 K=128 N={128,128,128}  no heuristic
 当前有 baseline 和八个 keep 实验共九个绿色点，以及五个 discard 灰点。未来如果十个实验都失败，图上就
 应出现十个灰点，而不是凭空出现一条漂亮上升曲线。
 
-## 25. 什么才算从 0 到 1
+## 26. 什么才算从 0 到 1
 
 完成一个 Kernel 不是 1，某个 shape 跑得快也不是 1。
 

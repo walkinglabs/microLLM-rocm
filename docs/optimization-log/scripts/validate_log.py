@@ -82,7 +82,7 @@ def validate_links(errors: list[str]) -> int:
 
 
 def validate_assets(errors: list[str]) -> None:
-    for name in ("progress.svg", "bottleneck-map.svg"):
+    for name in ("progress.svg", "bottleneck-map.svg", "bf16-gemm.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")

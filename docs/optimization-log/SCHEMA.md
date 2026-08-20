@@ -36,6 +36,10 @@ score = (qwen_train × qwen_generate × deepseek_train × deepseek_generate)^(1/
 中位数；每个进程内部仍是固定 warm-up/measured。一次进程的高点或低点不能独自决定
 keep/discard。
 
+改变 dtype 的实验不能追加到 FP32 `results.tsv` running-best 曲线。它们使用独立结果表
+和图，例如 `bf16-results.tsv`/`bf16-gemm.svg`，直到同 dtype 的完整 PyTorch/model
+矩阵建立后再定义该 track 的端到端 score。
+
 ## 保留门
 
 一次实验只有同时满足以下条件才可标为 `keep`：

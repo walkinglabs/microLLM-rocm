@@ -1,0 +1,6 @@
+case	commit	date	status	m	k	n	fp32_ms	bf16_mixed_ms	speedup	max_error	description
+model_s_square	a262eba	2026-08-20	slower	1	384	384	0.02535932	0.02927862	0.866138	0.000000119	activation cast included
+qwen_square	a262eba	2026-08-20	faster	1	896	896	0.03073640	0.02877434	1.068188	0.000000060	activation cast included
+qwen_ffn	a262eba	2026-08-20	slower	1	896	4864	0.02875912	0.03467582	0.829371	0.000000060	activation cast included
+deepseek_square	a262eba	2026-08-20	slower	1	1536	1536	0.02985752	0.03128892	0.954252	0.000000238	activation cast included
+deepseek_ffn	a262eba	2026-08-20	faster	1	1536	8960	0.04026374	0.03509434	1.147300	0.000000417	activation cast included

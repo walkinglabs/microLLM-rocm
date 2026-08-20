@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="700" viewBox="0 0 1500 700">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="750.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">MI300X BF16 Mixed GEMM · M=1</text>
+<text x="750.0" y="80.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">Includes FP32→BF16 activation cast · FP32 output</text>
+<line x1="468.9" y1="105" x2="468.9" y2="620" stroke="#e5e9f0" stroke-width="1"/>
+<text x="468.9" y="650.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">0.8×</text>
+<line x1="686.7" y1="105" x2="686.7" y2="620" stroke="#e5e9f0" stroke-width="1"/>
+<text x="686.7" y="650.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">0.9×</text>
+<line x1="904.4" y1="105" x2="904.4" y2="620" stroke="#2563eb" stroke-width="2"/>
+<text x="904.4" y="650.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">1.0×</text>
+<line x1="1122.2" y1="105" x2="1122.2" y2="620" stroke="#e5e9f0" stroke-width="1"/>
+<text x="1122.2" y="650.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">1.1×</text>
+<line x1="1340.0" y1="105" x2="1340.0" y2="620" stroke="#e5e9f0" stroke-width="1"/>
+<text x="1340.0" y="650.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">1.2×</text>
+<text x="336.0" y="149.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" text-anchor="end" font-weight="600">model_s_square  1×384×384</text>
+<rect x="612.9" y="125" width="291.5" height="34" rx="5" fill="#dc6b5a"/>
+<text x="602.9" y="149.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#dc6b5a" text-anchor="end" font-weight="700">0.866×</text>
+<text x="336.0" y="245.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" text-anchor="end" font-weight="600">qwen_square  1×896×896</text>
+<rect x="904.4" y="221" width="148.5" height="34" rx="5" fill="#18a558"/>
+<text x="1062.9" y="245.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#18a558" text-anchor="start" font-weight="700">1.068×</text>
+<text x="336.0" y="341.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" text-anchor="end" font-weight="600">qwen_ffn  1×896×4864</text>
+<rect x="532.9" y="317" width="371.6" height="34" rx="5" fill="#dc6b5a"/>
+<text x="522.9" y="341.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#dc6b5a" text-anchor="end" font-weight="700">0.829×</text>
+<text x="336.0" y="437.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" text-anchor="end" font-weight="600">deepseek_square  1×1536×1536</text>
+<rect x="804.8" y="413" width="99.6" height="34" rx="5" fill="#dc6b5a"/>
+<text x="794.8" y="437.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#dc6b5a" text-anchor="end" font-weight="700">0.954×</text>
+<text x="336.0" y="533.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" text-anchor="end" font-weight="600">deepseek_ffn  1×1536×8960</text>
+<rect x="904.4" y="509" width="320.8" height="34" rx="5" fill="#18a558"/>
+<text x="1235.2" y="533.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#18a558" text-anchor="start" font-weight="700">1.147×</text>
+<text x="750.0" y="685.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#6b7280" text-anchor="middle" font-weight="400">Generated from docs/optimization-log/bf16-results.tsv · higher is better</text>
+</svg>
