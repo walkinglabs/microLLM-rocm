@@ -28,6 +28,10 @@ Next-version proposal:
 - four-rank RCCL initialization fails under 64MB `/dev/shm`;
 - synthetic communication/compute overlap exists, but backward-ready overlap is not
   implemented.
+- pre-quantized FP8 GEMM is faster on one shape, but official Qwen whole-model FP8
+  speedup is still unverified;
+- Qwen/DeepSeek cached generation is correct, but device-native preallocated cache and
+  end-to-end decode profiling remain follow-up work.
 
 ## Agent boundary
 

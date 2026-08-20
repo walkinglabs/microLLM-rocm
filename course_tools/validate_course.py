@@ -40,6 +40,8 @@ REQUIRED = {
         "multi_gpu",
         "evidence_atlas",
     ))),
+    "notebooks/N9_huggingface_models.md",
+    "notebooks/N10_low_precision.md",
     "pa/PA0/README.md",
     "pa/PA1/README.md",
     "pa/PA2/README.md",

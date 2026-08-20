@@ -86,6 +86,8 @@ initialization dominates five tokens. Both facts are required in the report.
 
 ## 可反驳的下一步
 
-The current main hypothesis is host traffic/launch count. Preallocate device KV cache
-without changing matmul; if end-to-end speed does not improve, the hypothesis loses
-support. N7 applies the same evidence discipline to RCCL.
+The original trace supported host traffic/launch count rather than matmul alone. A
+later device-native AdamW experiment removed optimizer payload transfers, so that part
+of the hypothesis gained direct evidence. Preallocated device KV cache remains a
+separate experiment: if it removes cache copies but end-to-end decode does not improve,
+the cache hypothesis loses support. N7 applies the same discipline to RCCL.

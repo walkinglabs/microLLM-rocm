@@ -17,6 +17,19 @@ ctest --test-dir "$MICROLLM_ENGINE_DIR/build/rccl-release" \
 Tests skip when fewer than two GPUs are visible. A skipped design is not reported as
 a multi-GPU measurement.
 
+The current correctness-first trainer can also be run directly:
+
+```bash
+"$MICROLLM_ENGINE_DIR/build/rccl-release/apps/microllm_distributed_train" \
+  --steps 3 \
+  --bucket-bytes 4194304 \
+  --trace /tmp/microllm-ddp-trace.jsonl
+```
+
+It performs local forward/backward, averaged bucket all-reduce, identical AdamW updates
+and cross-rank parameter checks. The baseline uses one process to manage multiple local
+GPUs; it is not yet one process per GPU production DDP.
+
 ## 双卡等价
 
 The baseline uses one Stream/communicator per rank and averages every parameter

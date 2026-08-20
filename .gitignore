@@ -46,7 +46,7 @@ logs/
 *.trace
 rocprof*
 
-# Local run artifacts; curated evidence summaries live in docs/development/.
+# Local run artifacts; framework evidence belongs on main, not this course branch.
 runs/
 benchmark-results*.jsonl
 

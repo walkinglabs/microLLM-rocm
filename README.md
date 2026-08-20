@@ -1,7 +1,7 @@
 # microLLM-rocm 初学者课程
 
 这是 `microLLM-rocm` 的**纯课程分支**。这里解释框架为什么这样设计，安排
-N0–N8 Notebook 和 PA0–PA2 作业，但不复制框架源码、测试、构建产物或实测结果。
+N0–N10 Notebook 和 PA0–PA2 作业，但不复制框架源码、测试、构建产物或实测结果。
 
 ```text
 main                       真实 C++/HIP 引擎、测试、Benchmark、开发记录
@@ -65,7 +65,9 @@ Transformer：把算子连接成语言模型
   ↓
 训练、Checkpoint 和 KV Cache 生成
   ↓
-性能测量、低精度和真实 Hugging Face 权重
+性能测量和多卡训练
+  ↓
+真实 Hugging Face 权重与低精度
   ↓
 RCCL 多卡训练和证据图集
 ```
@@ -77,7 +79,7 @@ RCCL 多卡训练和证据图集
 
 | 路径 | 内容 |
 |---|---|
-| `notebooks/` | N0–N8 连续课程 |
+| `notebooks/` | N0–N10 连续课程 |
 | `pa/` | PA0–PA2 作业说明和极小独立练习 |
 | `docs/` | 初学者设计、算子契约、任务工作单 |
 | `data/` | 可以直接审阅的小型教学数据和登记说明 |

@@ -13,9 +13,9 @@ batch/context/dtype
 prompt set and generation seeds
 ```
 
-The current repository has a byte tokenizer and generated sequence dataset. The real
-Model-S corpus registry entry remains `planned`; therefore no real-corpus quality or
-SFT claim is made.
+The engine has byte/BPE/Hugging Face tokenizers and a pinned TinyStories smoke source.
+The retained run is intentionally short; there is still no reference-length Model-S
+quality curve or real instruction-corpus SFT claim.
 
 ## Model-S executable evidence
 
@@ -41,9 +41,11 @@ ctest --test-dir "$MICROLLM_ENGINE_DIR/build/hip-release" -L hip --output-on-fai
 "$MICROLLM_ENGINE_DIR/build/hip-release/examples/microllm_tiny_hip_train"
 ```
 
-On MI300X/gfx942, Model-S CPU/HIP maximum logit error was `4.05312e-06`. Tiny HIP
-training loss went from `2.21512` to `1.11681` in five steps. Nonlinear backward and
-AdamW still cross the host boundary; N6 profiles this cost.
+On MI300X/gfx942, the historical Model-S CPU/HIP maximum logit error was
+`4.05312e-06`. Tiny HIP training loss went from `2.21512` to `1.11681` in five steps.
+The complete tiny graph and the AdamW payload update now remain device-native; explicit
+metric reporting can still copy selected values to the host. N6 profiles the actual
+timeline instead of guessing where time goes.
 
 ## KV Cache correctness
 
@@ -83,7 +85,9 @@ ignored by CPU/HIP cross entropy and backward. Observed response-only loss:
 SFT uses the same optimizer and masked next-token loss. Tiny response masking is now
 measured. What is still missing is a licensed/versioned instruction corpus, documented
 split, Model-S SFT run, and fixed evaluation prompts. Until those artifacts exist,
-Model-S SFT remains an interface capability, not a quality result.
+Model-S SFT remains an interface capability, not a quality result. N9 separately
+checks official Qwen and DeepSeek Distill weights; it does not turn a one-step smoke
+into a complete fine-tuning report.
 
 ## 下一步
 

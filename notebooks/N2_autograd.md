@@ -78,10 +78,11 @@ and readable HIP kernels are implemented in this repository. The dedicated confo
 test compares every parameter gradient with the CPU reference and checks runtime transfer
 counters remain zero.
 
-This does not yet make the complete training step device-native: loss reporting,
-gradient-norm reporting, and AdamW still materialize host values. The first HIP kernels
-also favor readability over parallel reductions, so correctness is proven before
-competitive throughput.
+The AdamW parameter/moment update is now a device-native HIP kernel, and its dedicated
+test requires zero Tensor-payload H2D/D2H calls during the optimizer step. Explicit
+loss or parameter reporting still copies selected scalars to the host. The first HIP
+kernels also favor readability over parallel reductions, so correctness is proven
+before competitive throughput.
 
 ## 下一步
 

@@ -16,9 +16,15 @@ described in the [course README](../README.md).
 | [N6](N6_performance.md) | Event timing, rocprofv3, hipBLASLt |
 | [N7](N7_multi_gpu.md) | RCCL equivalence, buckets, overlap, failure |
 | [N8](N8_evidence_atlas.md) | unified pass/fail/unverified evidence atlas |
+| [N9](N9_huggingface_models.md) | official Qwen/DeepSeek config, tokenizer, weights, logits, train step |
+| [N10](N10_low_precision.md) | FP16/BF16/FP8 storage, scaled GEMM, accuracy and speed boundaries |
 
 Each notebook starts from a concrete old method, adds one failure condition, defines
 a task contract before implementation, and retains at least one limitation or failure.
+
+N0–N8 form the original “one allocation to multi-GPU” path. N9 and N10 are extension
+lessons that use the same engine to cross from a teaching model to official external
+weights and then to measured low-precision execution.
 
 Commands use CMake presets from `main`:
 

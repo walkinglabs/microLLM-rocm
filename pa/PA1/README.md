@@ -51,3 +51,7 @@ Unsupported conclusion:
 
 The repository's own example is deliberately mixed: hipBLASLt speeds Model-S's
 measured region but worsens five-token setup-inclusive throughput.
+
+For a low-precision experiment, separately time quantization/scale computation and
+GEMM. A pre-quantized FP8 matrix result is not an end-to-end model result. Compare
+against the same hipBLASLt FP32 shape, not only the readable teaching kernel.

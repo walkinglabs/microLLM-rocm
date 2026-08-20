@@ -25,7 +25,11 @@ test, raw record, and scope.
 | Python ctypes | pass CPU/HIP | unittest through C ABI |
 | PyTorch Custom Ops CPU | pass | Torch 2.13 dispatcher comparison |
 | PyTorch Custom Ops ROCm | environment failure | matching wheel Bus error on import |
-| Real-corpus pretraining/SFT | unverified | dataset registry still planned |
+| Official Qwen2.5-0.5B FP32 | pass on gfx942 | strict 290 tensors, full logits, 4 greedy tokens, one AdamW step |
+| DeepSeek-R1-Distill-Qwen-1.5B FP32 | pass on gfx942 | strict 339 tensors, full logits, 8 greedy tokens |
+| FP8 small Transformer | pass on gfx942 | scaled GEMM, FP32 master/backward, KV decode |
+| Official HF BF16/FP8 end to end | unverified | only FP32 whole-model alignment retained |
+| Reference-length pretraining/SFT | unverified | only short immutable-corpus smoke retained |
 | Radeon compatibility | unverified | no Radeon run record |
 
 ## Re-run evidence gates
@@ -83,3 +87,8 @@ the direct falsification test.
 
 Only rows marked pass with hardware/config scope may enter release claims. A planned
 recipe, compiled source, skipped test, or visible GPU is not a measurement.
+
+This table is a teaching snapshot. Before publishing a new claim, re-run the current
+`main` gates and read its
+[live evidence status](https://github.com/walkinglabs/microLLM-rocm/blob/main/docs/development/STATUS.md);
+do not assume the snapshot is newer than the engine.

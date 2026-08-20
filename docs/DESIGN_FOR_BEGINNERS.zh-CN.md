@@ -275,7 +275,10 @@ targets 的 shape 必须等于 logits 去掉最后一维后的 shape。`-100` �
 清空旧梯度 → forward → loss → backward → AdamW 更新参数和动量
 ```
 
-当前 FP32 Transformer 前向/反向图已经是 device-native。指标输出和 AdamW 仍是 correctness-first host 路径，所以“图不回 CPU”不能扩大成“整个训练 step 不回 CPU”。
+当前 FP32 Transformer 前向/反向图和 AdamW 参数更新已经有 device-native HIP
+路径。专门测试要求 AdamW 更新期间 Tensor payload 的 H2D/D2H 次数都是 0。打印
+loss 或参数时仍会显式读取少量值，所以“计算 payload 不回 CPU”不能扩大成“程序
+永远没有任何设备复制”。
 
 ## 15. Checkpoint 为什么不只是权重
 
@@ -338,6 +341,8 @@ GPU1 gradient ─┘
 
 ## 21. 代码地图
 
+下面的目录位于框架的 `main` 分支，不在这个纯课程分支：
+
 ```text
 include/microllm/core       Storage、Tensor、View 接口
 src/core                    CPU/HIP Tensor 实现
@@ -355,7 +360,32 @@ python/tests                PyTorch oracle 与绑定测试
 docs/development            里程碑证据和已知边界
 ```
 
-## 22. 最后记住三句话
+## 22. 外部模型不是只有权重
+
+要运行 Qwen，框架必须同时理解 config、tokenizer、权重名字、线性权重方向、bias、
+RoPE 排列、Norm epsilon 和 chat 特殊 token。正确验收顺序是：
+
+```text
+config 参数量 → tokenizer IDs → strict 权重加载 → 完整 logits → 连续生成 token
+```
+
+只比较一句漂亮文字不能证明模型正确。当前真机目标包括 Qwen2.5-0.5B 和
+DeepSeek-R1-Distill-Qwen-1.5B；后者仍是 Qwen 架构，不等于旗舰 DeepSeek MLA/MoE。
+
+## 23. 低精度是“数据加解释”
+
+FP8 Tensor 不能只有一串 8 位数字，还要有 scale：
+
+```text
+量化 q = round(x / scale)
+恢复 x ≈ q × scale
+```
+
+E4M3 更精细，E5M2 范围更大。选择格式时要测饱和、变零、反量化误差、logits、
+loss 和梯度。一个 GEMM 变快不等于整个 Qwen 变快；量化开销、其他算子和 KV
+Cache 复制都可能成为新瓶颈。
+
+## 24. 最后记住三句话
 
 1. Tensor 是“内存 + 阅读方法”。
 2. 自动求导图是“结果从哪里来”的记录，backward 按相反顺序把影响传回去。

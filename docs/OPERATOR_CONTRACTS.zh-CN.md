@@ -4,7 +4,8 @@
 
 ## 共同规则
 
-- 当前训练主路径只接受 FP32 数据；token/target 使用 Int32。
+- FP32 是完整 reference 主路径；token/target 使用 Int32。FP16/BF16/FP8 只在
+  下文明确列出的共同支持域内成立，不能由一个低精度 GEMM 推断整网支持。
 - 同一个算子的 Tensor 输入必须位于同一设备。
 - readable HIP 算子要求连续输入；view 先显式 materialize。
 - 不自动广播。`add` 和 `multiply` 要求 shape 完全相等。
@@ -34,6 +35,22 @@
 | `repeat_interleave` | 维 d 从 D 变为 `D×repeats` | `torch.repeat_interleave` | 精确 | dim 越界、repeats<=0、溢出 |
 
 `matmul_with_implementation` 的 `Readable` 和 `HipBLASLt` 是同一数学契约的不同执行办法；二者必须通过同一个 oracle。选择器和注册表只决定实现，不能改变 shape 或数值含义。
+
+## 低精度附加契约
+
+| 能力 | 当前支持域 | 必须额外检查 |
+|---|---|---|
+| FP16/BF16 Tensor | CPU/HIP storage、cast、view、copy | 真正字节数、逻辑顺序、往返误差 |
+| FP16/BF16 基础算子 | 同 dtype、同 shape、同 device | 输出 dtype、不允许隐式混合 |
+| FP16/BF16 hipBLASLt GEMM | 连续 2D、inner dimension 匹配 | FP32 reference、dtype 容差、真实 shape |
+| FP8 quantize | FP32/FP16/BF16 输入，FNUZ 输出 | scale 有限且大于 0、饱和和变零比例 |
+| FP8 dequantize | `ScaledTensor` 到指定浮点 dtype | 使用同一 scale、反量化误差 |
+| FP8 scaled GEMM | E4M3/E5M2 FNUZ 连续 2D | 左右 scale 不可交换、FP32 输出 reference |
+| FP8 Autograd Linear | FP8 forward、FP32 master 和 backward | 两侧梯度、loss、参数更新和非有限值 |
+
+当前模型级 FP8 策略使用 E4M3FNUZ Linear，Norm、Softmax、loss、gradient 和
+master weights 保持 FP32。E5M2 底层算子可用，但模型自动选择和动态 amax history
+尚未完成。官方 Qwen/DeepSeek Distill 当前只有 FP32 整网对齐证据。
 
 ## 反向原语
 
