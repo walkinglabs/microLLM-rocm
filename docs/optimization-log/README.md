@@ -12,7 +12,7 @@ best。图表、布局和数据均为本项目重新实现；没有复制原仓�
 
 ## 目标
 
-当前四项固定 workload 的 microLLM/PyTorch throughput 比值为：
+baseline 四项固定 workload 的 microLLM/PyTorch throughput 比值为：
 
 ```text
 Qwen2.5-0.5B train                  0.1422
@@ -26,8 +26,12 @@ DeepSeek-R1-Distill-Qwen-1.5B generate 0.1606
 ```text
 score = geometric_mean(workload throughput ratios)
 baseline = 0.191660
+current running best = 0.318328
 selected-matrix parity target = 1.000000
 ```
+
+Experiment 001 并行化 CrossEntropy 后，Qwen/DeepSeek train ratio 已分别提高到
+`0.468137` 和 `0.506955`；生成保持约 `0.268544` 和 `0.161117`。
 
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 

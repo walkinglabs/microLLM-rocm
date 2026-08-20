@@ -1,6 +1,6 @@
 # Step 01 — parallel CrossEntropy forward/backward
 
-Status: `planned`
+Status: `complete — experiment 001 kept`
 
 ## Hypothesis
 
@@ -46,3 +46,8 @@ transpose copies before adding more CE complexity.
 - CE is no longer the top 75% hotspot;
 - Qwen and DeepSeek train ratios improve;
 - generate ratios do not regress beyond noise.
+
+## Actual result
+
+All keep gates passed. Official train throughput improved 3.29× for Qwen and 2.29× for
+DeepSeek; generation did not regress; the four-workload score improved 66.1%.

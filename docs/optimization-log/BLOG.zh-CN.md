@@ -307,7 +307,31 @@ Inference
 可选后端可以使用 hipBLASLt、Composable Kernel 或其他 ROCm 原语，但核心依然保留
 CPU reference 和仓库自己的 readable HIP 路径。
 
-## 11. 怎样读进度图
+## 11. Experiment 001：第一条绿色阶梯
+
+Step 01 把 CrossEntropy 从单线程循环改成 block-parallel reduction。结果：
+
+```text
+CE Kernel share          75.73% → approximately 0.62%
+Qwen train               7.30 → 24.03 token/s
+DeepSeek train           5.79 → 13.30 token/s
+four-workload score      0.191660 → 0.318328
+```
+
+这是一次 `keep`。它没有改变推理路径，因此两个 generation row 保持在正常波动内。
+
+更重要的是，新 trace 把下一层瓶颈暴露出来：
+
+```text
+strided transpose copies   33.55%
+RMSNorm backward           30.54%
+RMSNorm forward            11.14%
+```
+
+因此下一次实验不是继续微调 CE，而是 Step 02：让 tied output 和 backward GEMM 使用
+逻辑 transpose，删除完整权重复制。
+
+## 12. 怎样读进度图
 
 图中：
 
@@ -319,10 +343,10 @@ CPU reference 和仓库自己的 readable HIP 路径。
 - 右侧条形：当前四项 workload ratio；
 - 底部卡片：计划步骤，不代表已经完成。
 
-当前只有 baseline，一个绿色点是诚实状态。未来如果十个实验都失败，图上就应出现
-十个灰点，而不是凭空出现一条漂亮上升曲线。
+当前有 baseline 和 Experiment 001 两个绿色点。未来如果十个实验都失败，图上就
+应出现十个灰点，而不是凭空出现一条漂亮上升曲线。
 
-## 12. 什么才算从 0 到 1
+## 13. 什么才算从 0 到 1
 
 完成一个 Kernel 不是 1，某个 shape 跑得快也不是 1。
 
@@ -336,5 +360,4 @@ CPU reference 和仓库自己的 readable HIP 路径。
 6. 新学习者能沿日志重放关键实验；
 7. 所有结论都写清适用 GPU、dtype、shape 和版本。
 
-下一篇更新从 Step 01 开始：把单线程 CrossEntropy 改成真正的 GPU reduction，
-然后观察 75.7% 的训练热点下降后，新的瓶颈到底出现在何处。
+下一篇更新进入 Step 02：transpose-aware GEMM。

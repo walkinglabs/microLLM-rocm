@@ -152,3 +152,6 @@ the next gate. Records are append-only except for factual corrections.
 - [2026-08-20-optimization-log.md](2026-08-20-optimization-log.md): living 0→1
   optimization blog, experiment protocol, 13 measured step contracts and generated
   autoresearch-style progress/bottleneck SVGs.
+- [2026-08-20-parallel-cross-entropy.md](2026-08-20-parallel-cross-entropy.md):
+  Experiment 001 block-parallel CE, large-vocabulary/PyTorch gates, 66.1% score gain,
+  profiler before/after and next-hotspot handoff.

@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
 <rect width="100%" height="100%" fill="#fbfcfe"/>
 <text x="800.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">microLLM-rocm Optimization Progress</text>
-<text x="800.0" y="79.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474" text-anchor="middle" font-weight="400">1 measured experiment(s) · target: selected-matrix PyTorch parity</text>
+<text x="800.0" y="79.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474" text-anchor="middle" font-weight="400">2 measured experiment(s) · target: selected-matrix PyTorch parity</text>
 <rect x="90" y="130" width="930" height="500" fill="#ffffff" stroke="#cbd3df" rx="8"/>
 <line x1="90" y1="630.0" x2="1020" y2="630.0" stroke="#e5e9f0"/>
 <text x="76.0" y="636.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="end" font-weight="400">0.00</text>
@@ -31,6 +31,9 @@
 <text x="1008.0" y="143.8" font-family="Inter,Arial,sans-serif" font-size="15" fill="#2563eb" text-anchor="end" font-weight="600">PyTorch parity 1.0×</text>
 <circle cx="90.0" cy="538.7" r="8" fill="#18a558" stroke="#0e6938" stroke-width="2"/>
 <text x="102.0" y="526.7" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16834a" text-anchor="start" font-weight="400" transform="rotate(-24 102.0 526.7)">FP32 MI300X baseline; 2 warm-up and 5 measured iterations</text>
+<path d="M 90.0 538.7 H 167.5 V 478.4" fill="none" stroke="#4ec27e" stroke-width="4"/>
+<circle cx="167.5" cy="478.4" r="8" fill="#18a558" stroke="#0e6938" stroke-width="2"/>
+<text x="179.5" y="466.4" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16834a" text-anchor="start" font-weight="400" transform="rotate(-24 179.5 466.4)">parallel HIP CrossEntropy; CE kernel share 75.7% to 0.62%</text>
 <text x="555.0" y="695.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="middle" font-weight="600">Experiment #</text>
 <text x="28.0" y="380.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="middle" font-weight="600" transform="rotate(-90 28.0 380.0)">Geometric throughput parity score</text>
 <circle cx="720" cy="105" r="6" fill="#18a558"/>
@@ -42,27 +45,27 @@
 <text x="1100.0" y="126.0" font-family="Inter,Arial,sans-serif" font-size="21" fill="#172033" text-anchor="start" font-weight="700">Current workload parity</text>
 <text x="1100.0" y="165.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" text-anchor="start" font-weight="600">Qwen train</text>
 <rect x="1100" y="179" width="420" height="24" rx="5" fill="#e7ebf1"/>
-<rect x="1100" y="179" width="59.7" height="24" rx="5" fill="#4ec27e"/>
-<text x="1520.0" y="198.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="end" font-weight="700">0.142×</text>
+<rect x="1100" y="179" width="196.6" height="24" rx="5" fill="#4ec27e"/>
+<text x="1520.0" y="198.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="end" font-weight="700">0.468×</text>
 <text x="1100.0" y="257.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" text-anchor="start" font-weight="600">Qwen generate</text>
 <rect x="1100" y="271" width="420" height="24" rx="5" fill="#e7ebf1"/>
-<rect x="1100" y="271" width="112.3" height="24" rx="5" fill="#4ec27e"/>
-<text x="1520.0" y="290.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="end" font-weight="700">0.267×</text>
+<rect x="1100" y="271" width="112.8" height="24" rx="5" fill="#4ec27e"/>
+<text x="1520.0" y="290.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="end" font-weight="700">0.269×</text>
 <text x="1100.0" y="349.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" text-anchor="start" font-weight="600">DeepSeek train</text>
 <rect x="1100" y="363" width="420" height="24" rx="5" fill="#e7ebf1"/>
-<rect x="1100" y="363" width="92.8" height="24" rx="5" fill="#4ec27e"/>
-<text x="1520.0" y="382.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="end" font-weight="700">0.221×</text>
+<rect x="1100" y="363" width="212.9" height="24" rx="5" fill="#4ec27e"/>
+<text x="1520.0" y="382.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="end" font-weight="700">0.507×</text>
 <text x="1100.0" y="441.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" text-anchor="start" font-weight="600">DeepSeek generate</text>
 <rect x="1100" y="455" width="420" height="24" rx="5" fill="#e7ebf1"/>
-<rect x="1100" y="455" width="67.4" height="24" rx="5" fill="#4ec27e"/>
+<rect x="1100" y="455" width="67.7" height="24" rx="5" fill="#4ec27e"/>
 <text x="1520.0" y="474.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="end" font-weight="700">0.161×</text>
 <line x1="1520" y1="170" x2="1520" y2="585" stroke="#2563eb" stroke-width="2" stroke-dasharray="6 5"/>
 <text x="90.0" y="710.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="700">Roadmap (planned boxes are not results)</text>
 <rect x="90" y="735" width="220" height="88" rx="10" fill="#e0f6e9" stroke="#18a558" stroke-width="2"/>
 <text x="108.0" y="766.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#16834a" text-anchor="start" font-weight="700">M0</text>
 <text x="108.0" y="796.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" text-anchor="start" font-weight="600">Baseline</text>
-<rect x="334" y="735" width="220" height="88" rx="10" fill="#f0f2f6" stroke="#c4cbd6" stroke-width="2"/>
-<text x="352.0" y="766.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#6b7280" text-anchor="start" font-weight="700">M1</text>
+<rect x="334" y="735" width="220" height="88" rx="10" fill="#fff1dc" stroke="#f97316" stroke-width="2"/>
+<text x="352.0" y="766.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#d45d00" text-anchor="start" font-weight="700">M1</text>
 <text x="352.0" y="796.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" text-anchor="start" font-weight="600">Serial kernels</text>
 <rect x="578" y="735" width="220" height="88" rx="10" fill="#f0f2f6" stroke="#c4cbd6" stroke-width="2"/>
 <text x="596.0" y="766.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#6b7280" text-anchor="start" font-weight="700">M2</text>

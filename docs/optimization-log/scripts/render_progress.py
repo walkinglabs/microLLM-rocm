@@ -138,20 +138,20 @@ def progress_svg(data: list[dict]) -> str:
                  'stroke-dasharray="6 5"/>')
 
     # Roadmap ribbon: labels are plans, not measured points.
-    roadmap = (("M0", "Baseline", True), ("M1", "Serial kernels", False),
-               ("M2", "Data movement", False), ("M3", "Fused ops", False),
-               ("M4", "BF16 / FP8", False), ("M5", "HIP Graph", False))
+    roadmap = (("M0", "Baseline", "complete"), ("M1", "Serial kernels", "active"),
+               ("M2", "Data movement", "planned"), ("M3", "Fused ops", "planned"),
+               ("M4", "BF16 / FP8", "planned"), ("M5", "HIP Graph", "planned"))
     box_w, gap, start_x, y = 220, 24, 90, 735
     parts.append(text(start_x, y - 25, "Roadmap (planned boxes are not results)", 18,
                       weight=700))
-    for index, (milestone, label, complete) in enumerate(roadmap):
+    for index, (milestone, label, status) in enumerate(roadmap):
         x = start_x + index * (box_w + gap)
-        fill = "#e0f6e9" if complete else "#f0f2f6"
-        stroke = "#18a558" if complete else "#c4cbd6"
+        fill = "#e0f6e9" if status == "complete" else "#fff1dc" if status == "active" else "#f0f2f6"
+        stroke = "#18a558" if status == "complete" else "#f97316" if status == "active" else "#c4cbd6"
         parts.append(f'<rect x="{x}" y="{y}" width="{box_w}" height="88" rx="10" '
                      f'fill="{fill}" stroke="{stroke}" stroke-width="2"/>')
         parts.append(text(x + 18, y + 31, milestone, 18,
-                          "#16834a" if complete else "#6b7280", weight=700))
+                          "#16834a" if status == "complete" else "#d45d00" if status == "active" else "#6b7280", weight=700))
         parts.append(text(x + 18, y + 61, label, 16, "#172033", weight=600))
     parts.append(text(90, 875, "Generated from docs/optimization-log/results.tsv · higher is better",
                       14, "#6b7280"))

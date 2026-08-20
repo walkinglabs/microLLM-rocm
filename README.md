@@ -124,7 +124,7 @@ Current `main` gates:
 |---|---:|---|
 | CPU tests | 148/148 | reference, Qwen/DeepSeek, graph/model/weights, benchmark, PyTorch and optimization-log schemas |
 | ASan/UBSan | 146/146 | host code; dynamic binding tests isolated |
-| MI300X/gfx942 HIP | 39/39 | device AdamW, FP8, graph, profiling, three-size memory/performance matrix |
+| MI300X/gfx942 HIP | 40/40 | device AdamW, FP8, parallel large-vocabulary CE, graph, profiling and model matrix |
 | PyTorch CPU oracle/alignment | 3/3 | ops plus same-weight model value/timing trace |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
 | Registered test files | 34 | machine-audited CTest registration |
@@ -151,8 +151,8 @@ official rows exclude two warm-up iterations and measure five iterations:
 |---|---|---:|---:|
 | Model-S, 15.6M | train / generate | 1.111 / 1.217 token/s | 238.687 / 59.608 MiB |
 | Model-M, 31.3M | train / generate | 0.528 / 1.226 token/s | 478.765 / 119.754 MiB |
-| Qwen2.5-0.5B official | train / generate | 7.300 / 18.771 token/s | 8.901 / 2.349 GiB |
-| DeepSeek Distill Qwen 1.5B official | train / generate | 5.794 / 10.018 token/s | 26.514 / 6.622 GiB |
+| Qwen2.5-0.5B official | train / generate | 24.027 / 18.847 token/s | 8.901 / 2.349 GiB |
+| DeepSeek Distill Qwen 1.5B official | train / generate | 13.295 / 10.053 token/s | 26.514 / 6.622 GiB |
 
 These are short functional measurements with random built-in models or fixed official
 prompts, not long-context or stable serving claims. “Peak engine memory” excludes
@@ -165,8 +165,8 @@ Matched Python/PyTorch ROCm comparison on the same MI300X:
 |---|---|---:|---:|---:|
 | Model-S | train / generate | 13.57 / 139.22 token/s | 177.57 / 293.55 token/s | 0.076× / 0.474× |
 | Model-M | train / generate | 3.51 / 90.57 token/s | 59.94 / 237.60 token/s | 0.059× / 0.381× |
-| Qwen2.5-0.5B | train / generate | 7.30 / 18.77 token/s | 51.32 / 70.18 token/s | 0.142× / 0.267× |
-| DeepSeek Distill Qwen 1.5B | train / generate | 5.79 / 10.02 token/s | 26.23 / 62.40 token/s | 0.221× / 0.161× |
+| Qwen2.5-0.5B | train / generate | 24.03 / 18.85 token/s | 51.32 / 70.18 token/s | 0.468× / 0.269× |
+| DeepSeek Distill Qwen 1.5B | train / generate | 13.30 / 10.05 token/s | 26.23 / 62.40 token/s | 0.507× / 0.161× |
 
 All comparison rows use matched warm-up/repetition settings and exclude warm-up from
 reported throughput. See [Python/PyTorch comparison](docs/dev/pytorch-benchmark.md) for
