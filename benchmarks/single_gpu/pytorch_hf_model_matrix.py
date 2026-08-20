@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import gc
 import json
 import math
@@ -35,7 +36,7 @@ def options() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--manifest", required=True, type=Path)
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cuda")
-    parser.add_argument("--dtype", choices=("fp32", "bf16"), default="fp32")
+    parser.add_argument("--dtype", choices=("fp32", "bf16", "bf16_amp"), default="fp32")
     parser.add_argument("--modes", default="infer,train")
     parser.add_argument("--output", type=Path)
     parser.add_argument("--allow-unavailable", action="store_true")
@@ -120,7 +121,7 @@ def memory_fields(device: torch.device) -> dict:
 def load_model(model: dict, device: torch.device, dtype_name: str):
     clear_device(device)
     start = time.perf_counter()
-    dtype = torch.float32 if dtype_name == "fp32" else torch.bfloat16
+    dtype = torch.bfloat16 if dtype_name == "bf16" else torch.float32
     loaded = AutoModelForCausalLM.from_pretrained(
         Path(model["config"]).parent,
         torch_dtype=dtype,
@@ -172,6 +173,12 @@ def common(model: dict, loaded, device: torch.device, workaround: str,
     }
 
 
+def autocast_context(device: torch.device, dtype_name: str):
+    if dtype_name == "bf16_amp":
+        return torch.autocast(device_type=device.type, dtype=torch.bfloat16)
+    return contextlib.nullcontext()
+
+
 def infer(model: dict, loaded, device: torch.device, base: dict) -> dict:
     inference = model["inference"]
     input_ids = torch.tensor([inference["token_ids"]], dtype=torch.long, device=device)
@@ -191,7 +198,7 @@ def infer(model: dict, loaded, device: torch.device, base: dict) -> dict:
             pad_token_id=loaded.config.eos_token_id,
         )[0, input_ids.shape[1]:].tolist()
 
-    with torch.inference_mode():
+    with torch.inference_mode(), autocast_context(device, base["compute_dtype"]):
         for _ in range(prefill_warmup):
             loaded(input_ids=input_ids, attention_mask=attention_mask, use_cache=False)
         synchronize(device)
@@ -264,8 +271,9 @@ def train(model: dict, loaded, device: torch.device, base: dict) -> dict:
 
     def train_once():
         optimizer.zero_grad(set_to_none=True)
-        logits = loaded(input_ids=inputs, use_cache=False).logits
-        loss = F.cross_entropy(logits.reshape(-1, logits.shape[-1]), targets.reshape(-1))
+        with autocast_context(device, base["compute_dtype"]):
+            logits = loaded(input_ids=inputs, use_cache=False).logits
+            loss = F.cross_entropy(logits.reshape(-1, logits.shape[-1]), targets.reshape(-1))
         loss.backward()
         optimizer_start = time.perf_counter()
         optimizer.step()
