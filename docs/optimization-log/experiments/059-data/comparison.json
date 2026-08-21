@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "experiment": 59,
+  "decision": "keep",
+  "candidate": "use one cooperative HIP block per hidden column for long RMSNorm weight-gradient reductions",
+  "rows": [
+    {
+      "model": "qwen2.5-0.5b",
+      "before_tokens_per_second": 2127.381964559,
+      "after_tokens_per_second": 2594.808611516,
+      "self_speedup": 1.219719192,
+      "before_peak_bytes": 13025380360,
+      "after_peak_bytes": 13025380360,
+      "peak_ratio": 1.0,
+      "pytorch_tokens_per_second_after": 8476.518607475,
+      "pytorch_ratio_after": 0.306117255
+    },
+    {
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "before_tokens_per_second": 1145.364035380,
+      "after_tokens_per_second": 1288.949946403,
+      "self_speedup": 1.125362685,
+      "before_peak_bytes": 37410926600,
+      "after_peak_bytes": 37410926600,
+      "peak_ratio": 1.0,
+      "pytorch_tokens_per_second_after": 4837.323202248,
+      "pytorch_ratio_after": 0.266459340
+    }
+  ],
+  "fallback128": {
+    "before_tokens_per_second": 803.929648317,
+    "after_tokens_per_second": 806.287723951,
+    "speedup": 1.002933187,
+    "before_peak_bytes": 10450205704,
+    "after_peak_bytes": 10450205704,
+    "peak_ratio": 1.0
+  },
+  "policy": "cooperative weight-gradient reduction is selected for rows>=256; smaller row counts retain the one-thread-per-column implementation",
+  "reason": "both models improve at least 12 percent with unchanged peak, the target Kernel improves 16.38x, and the short-row fallback does not regress"
+}

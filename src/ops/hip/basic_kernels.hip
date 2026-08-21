@@ -790,6 +790,21 @@ __global__ void rms_norm_weight_gradient_kernel(
     weight_gradient[column] = total;
 }
 
+__global__ void rms_norm_weight_gradient_rows_kernel(
+    const float* input, const float* gradient, const float* row_inverse_rms,
+    float* weight_gradient, std::int64_t rows, std::int64_t width) {
+    const auto column = static_cast<std::int64_t>(blockIdx.x);
+    if (column >= width) return;
+    float local_total = 0.0F;
+    for (std::int64_t row = threadIdx.x; row < rows; row += blockDim.x) {
+        const auto index = row * width + column;
+        local_total += gradient[index] * input[index] * row_inverse_rms[row];
+    }
+    __shared__ float reduction[kBlockSize];
+    const auto total = block_reduce_sum(local_total, reduction);
+    if (threadIdx.x == 0) weight_gradient[column] = total;
+}
+
 __global__ void kv_cache_store_kernel(const float* current, float* cache,
                                       std::int64_t heads, std::int64_t capacity,
                                       std::int64_t width, std::int64_t position) {
@@ -2044,10 +2059,18 @@ void launch_rms_norm_backward(const float* input, const float* weight,
                        0, as_stream(stream), input, weight, gradient, input_gradient,
                        row_inverse_rms, rows, width, epsilon);
     check_launch("rms_norm_backward_kernel");
-    hipLaunchKernelGGL(rms_norm_weight_gradient_kernel, dim3(grid_size(width)),
-                       dim3(kBlockSize), 0, as_stream(stream), input, gradient,
-                       row_inverse_rms, weight_gradient, rows, width);
-    check_launch("rms_norm_weight_gradient_kernel");
+    if (rows >= 256) {
+        hipLaunchKernelGGL(rms_norm_weight_gradient_rows_kernel,
+                           dim3(static_cast<unsigned>(width)), dim3(kBlockSize), 0,
+                           as_stream(stream), input, gradient, row_inverse_rms,
+                           weight_gradient, rows, width);
+        check_launch("rms_norm_weight_gradient_rows_kernel");
+    } else {
+        hipLaunchKernelGGL(rms_norm_weight_gradient_kernel, dim3(grid_size(width)),
+                           dim3(kBlockSize), 0, as_stream(stream), input, gradient,
+                           row_inverse_rms, weight_gradient, rows, width);
+        check_launch("rms_norm_weight_gradient_kernel");
+    }
 }
 
 void launch_kv_cache_store(const float* current, float* cache,

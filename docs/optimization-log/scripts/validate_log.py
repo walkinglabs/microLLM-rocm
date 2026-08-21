@@ -1161,6 +1161,57 @@ def validate_block_row_causal_softmax(errors: list[str]) -> tuple[int, int]:
     return len(formal), after.get("kernel_dispatches", 0)
 
 
+def validate_block_column_rmsnorm_weight_gradient(errors: list[str]) -> tuple[int, int]:
+    data = ROOT / "experiments" / "059-data"
+    pilot = [json.loads(line) for line in
+             (data / "pilot.jsonl").read_text(encoding="utf-8").splitlines()]
+    formal = [json.loads(line) for line in
+              (data / "formal" / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    fallback = [json.loads(line) for line in
+                (data / "fallback128.jsonl").read_text(encoding="utf-8").splitlines()]
+    keys = {(row.get("model"), row.get("framework"), row.get("process_run"))
+            for row in formal}
+    if len(pilot) != 1 or len(formal) != 12 or len(keys) != 12 or \
+            len(fallback) != 1 or any(row.get("status") != "pass" for row in
+                                      pilot + formal + fallback) or \
+            any(row.get("context") != 512 for row in formal) or \
+            fallback[0].get("context") != 128:
+        errors.append("block-column RMSNorm raw protocol changed")
+    comparison = json.loads((data / "comparison.json").read_text(encoding="utf-8"))
+    rows = comparison.get("rows", [])
+    fallback_summary = comparison.get("fallback128", {})
+    if comparison.get("decision") != "keep" or len(rows) != 2 or \
+            rows[0].get("self_speedup", 0.0) < 1.21 or \
+            rows[1].get("self_speedup", 0.0) < 1.12 or \
+            any(row.get("peak_ratio") != 1.0 for row in rows) or \
+            fallback_summary.get("speedup", 0.0) < 0.95 or \
+            fallback_summary.get("peak_ratio") != 1.0 or \
+            "rows>=256" not in comparison.get("policy", ""):
+        errors.append("block-column RMSNorm keep/fallback gate changed")
+    profile = json.loads((data / "profile-summary.json").read_text(encoding="utf-8"))
+    with (data / "profile" / "kernel-stats.csv").open(
+            encoding="utf-8", newline="") as stream:
+        kernels = list(csv.DictReader(stream))
+    with (data / "profile" / "hip-api-stats.csv").open(
+            encoding="utf-8", newline="") as stream:
+        api = list(csv.DictReader(stream))
+    before = profile.get("before", {})
+    after = profile.get("after", {})
+    if sum(int(row["Calls"]) for row in kernels) != after.get("kernel_dispatches") or \
+            sum(int(row["TotalDurationNs"]) for row in kernels) != \
+            after.get("kernel_time_ns") or \
+            sum(int(row["Calls"]) for row in api) != after.get("hip_api_calls") or \
+            sum(int(row["TotalDurationNs"]) for row in api) != \
+            after.get("hip_api_time_ns") or \
+            before.get("weight_gradient_calls") != 147 or \
+            after.get("weight_gradient_row_calls") != 147 or \
+            profile.get("weight_gradient_speedup", 0.0) < 16.3 or \
+            profile.get("kernel_time_speedup", 0.0) < 1.19 or \
+            profile.get("dispatch_ratio") != 1.0:
+        errors.append("block-column RMSNorm retained profile changed")
+    return len(formal), after.get("kernel_dispatches", 0)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -1198,7 +1249,8 @@ def validate_assets(errors: list[str]) -> None:
                  "saved-attention-probabilities.svg",
                  "batched-attention-forward.svg",
                  "full-batched-attention-backward.svg",
-                 "block-row-causal-softmax.svg"):
+                 "block-row-causal-softmax.svg",
+                 "block-column-rmsnorm-weight-gradient.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -1259,6 +1311,8 @@ def main() -> int:
         validate_full_batched_attention_backward(errors)
     block_softmax_records, block_softmax_calls = \
         validate_block_row_causal_softmax(errors)
+    block_rms_records, block_rms_calls = \
+        validate_block_column_rmsnorm_weight_gradient(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -1291,6 +1345,7 @@ def main() -> int:
           f"full_batched_backward={full_batched_backward_records}/"
           f"{full_batched_backward_calls} "
           f"block_softmax={block_softmax_records}/{block_softmax_calls} "
+          f"block_rms={block_rms_records}/{block_rms_calls} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

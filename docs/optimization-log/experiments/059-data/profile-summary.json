@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "before": {
+    "kernel_dispatches": 7631,
+    "kernel_time_ns": 772840361,
+    "hip_api_calls": 259388,
+    "hip_api_time_ns": 6283617315,
+    "weight_gradient_calls": 147,
+    "weight_gradient_time_ns": 142767893
+  },
+  "after": {
+    "kernel_dispatches": 7631,
+    "kernel_time_ns": 646973078,
+    "hip_api_calls": 253041,
+    "hip_api_time_ns": 6231060999,
+    "weight_gradient_row_calls": 147,
+    "weight_gradient_row_time_ns": 8717196
+  },
+  "weight_gradient_speedup": 16.377731211,
+  "kernel_time_speedup": 1.194547945,
+  "dispatch_ratio": 1.0,
+  "hip_api_call_ratio": 0.975530866,
+  "count_contract": "49 RMSNorm calls per Qwen step x three traced steps; one weight-gradient launch remains per call"
+}

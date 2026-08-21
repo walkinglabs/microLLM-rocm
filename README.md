@@ -49,6 +49,8 @@ needed to run a real training and generation loop:
   context-512 matrix improves another 1.201×/1.309× with unchanged measured peak.
 - T≥256 causal-softmax forward/backward uses one cooperative block per row; Qwen/DeepSeek
   context-512 training improves another 1.302×/1.196× with unchanged measured peak.
+- rows≥256 RMSNorm weight gradients use one cooperative block per hidden column; the same
+  training matrix improves another 1.220×/1.125× with unchanged measured peak.
 
 The design keeps three implementations where they provide engineering value:
 

@@ -299,6 +299,13 @@ Experiment 058 将 T≥256 causal softmax 的前向和反向从“一线程扫�
 
 ![Cooperative causal softmax](assets/block-row-causal-softmax.svg)
 
+Experiment 059 将 rows≥256 RMSNorm weight gradient 从“一线程扫全部 rows”改为“一
+block 合作一个 hidden column”。Qwen/DeepSeek T512 提高 `1.220×/1.125×`，peak
+不变，T128 `1.003×`。目标 Kernel `142.77→8.72ms`（`16.38×`），全 Kernel
+`772.84→646.97ms`，dispatch精确不变。
+
+![Cooperative RMSNorm weight gradient](assets/block-column-rmsnorm-weight-gradient.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -374,6 +381,8 @@ Experiment 058 将 T≥256 causal softmax 的前向和反向从“一线程扫�
 | [experiments/057-data/](experiments/057-data/) | 正式12条 raw、T128 fallback 与 retained profiler 聚合 |
 | [assets/block-row-causal-softmax.svg](assets/block-row-causal-softmax.svg) | T512 两模型吞吐与 softmax 前后向设备时间 |
 | [experiments/058-data/](experiments/058-data/) | 正式12条 raw、T128 fallback 与 retained profiler 聚合 |
+| [assets/block-column-rmsnorm-weight-gradient.svg](assets/block-column-rmsnorm-weight-gradient.svg) | T512 两模型吞吐与 RMSNorm weight-gradient 设备时间 |
+| [experiments/059-data/](experiments/059-data/) | 正式12条 raw、T128 fallback 与 retained profiler 聚合 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

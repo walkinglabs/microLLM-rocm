@@ -547,7 +547,7 @@ TEST(HipRmsNormTest, BlockParallelForwardBackwardCoverModelWidthsWithoutHostTran
     require_gpu();
     const auto gpu = Device::hip(0);
     for (const auto width : {16LL, 384LL, 512LL, 896LL, 1536LL}) {
-        for (const auto rows : {1LL, 3LL, 32LL}) {
+        for (const auto rows : {1LL, 3LL, 32LL, 256LL}) {
             const auto epsilon = width == 1536 ? 1.0e-6F : 1.0e-5F;
             std::vector<float> input_values(static_cast<std::size_t>(rows * width));
             std::vector<float> gradient_values(input_values.size());

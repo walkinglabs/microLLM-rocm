@@ -1457,3 +1457,18 @@ Qwen 三进程中位数 `1634.49→2127.38 tok/s`（`1.302×`），DeepSeek
 这一节点优化的是训练完整 step 中的 Attention 前/反向，不是 cached decode。它可能帮助
 使用 composed causal softmax 的 prefill，但没有推理 benchmark 就不写成推理收益。新最大
 柱子已经转移到 RMSNorm weight gradient、AdamW 和 bias gradient。
+
+## 76. Experiment 059：换一个方向，还是同一个串行错误
+
+RMSNorm weight gradient 让一个线程负责一个 hidden column，再串行扫描512行。候选仅在
+rows≥256时改成一个block负责一列，线程分摊rows并用shared reduction合并。测试新增
+rows=256 × width 16/384/512/896/1536，覆盖forward和两类gradient。
+
+![Cooperative RMSNorm weight gradient](assets/block-column-rmsnorm-weight-gradient.svg)
+
+Qwen `2127.38→2594.81 tok/s`（`1.220×`），DeepSeek `1145.36→1288.95`
+（`1.125×`），两者peak不变；T128为`1.003×`。目标Kernel `142.77→8.72ms`
+（`16.38×`），全Kernel `772.84→646.97ms`（`1.195×`），dispatch仍精确相同。
+
+候选保留。新最大柱子变成AdamW 128.56ms与bias gradient 118.18ms。AdamW已有多次
+失败搜索，bias gradient仍有同样的跨row串行结构，因此下一节点先反驳后者。

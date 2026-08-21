@@ -65,7 +65,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | End-to-end benchmark | smoke-tested | matched Python/PyTorch ROCm built-in and official-HF JSONL ratios | longer contexts, repeated official training and tuned comparison |
 | Single-GPU model matrix | smoke-tested | MI300X tiny/Model-S/Model-M plus official Qwen0.5B/DeepSeek-Distill1.5B train+generate, parameters, time, tokens/s and engine peak bytes | repeated contexts/dtypes and external board-level memory sampling |
 | Python/PyTorch ROCm performance matrix | smoke-tested | matched FP32 built-ins plus official Qwen/DeepSeek Distill, raw Python data and automatic throughput/memory ratios | repeated official-model training and PyTorch version matrix |
-| Optimization experiment journal | implemented | 58 numbered FP32/BF16/load/long-context experiments with generated figures, raw evidence and keep/discard gates | HIP Graph, Radeon and production data-parallel tracks |
+| Optimization experiment journal | implemented | 59 numbered FP32/BF16/load/long-context experiments with generated figures, raw evidence and keep/discard gates | HIP Graph, Radeon and production data-parallel tracks |
 | rocprofv3 workflow | smoke-tested | kernel/HIP API/memory/full trace generated | release artifact retention |
 | hipBLASLt matmul | smoke-tested | FP32/BF16, rank-N strided batches, four transpose contracts, Model-S and T≥256 Attention forward/backward | workspace and persistent versioned autotune cache |
 | Matmul tuning registry | smoke-tested | exact shape override/clear and availability gates | persistence/arch key |
