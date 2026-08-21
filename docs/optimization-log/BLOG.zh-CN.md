@@ -1171,3 +1171,25 @@ microLLM/PyTorch 吞吐比从 `1×3` 的 `0.413×` 降到 `1×32` 的 `0.131×`�
 异步的，标成 optimizer 的 488 ms 很可能是前面计算在同步点还债，并不能直接怪 AdamW。
 下一步同时 profile 32 和 128，看看是 GEMM solution、reduction、cast 还是 allocator 在
 不同 M 上发生了分岔。
+
+## 60. Experiment 043：不是矩阵小，而是看错了矩阵的方向
+
+profile 给出了非常集中的答案。context 32 有 507 次 readable
+`transpose(left) @ right`，总共 1.228 秒，占 Kernel 时间 75.75%；context 128 没有这
+一项。旧 Auto 规则要求 reduction K 至少 128 才进 hipBLASLt，恰好把 K=32 的权重梯度
+挡在库外。
+
+权重梯度虽然 reduction 小，输出却很宽。例如 `896×32×4864`。精确 micro-benchmark
+显示，hipBLASLt 在六个 K=3/32 shape 上快 `1.54×–21.99×`，最大误差只有 `2.4e-7`。
+因此新规则不降低所有 GEMM 门槛，只识别 `transpose(left)` 且输出两边都至少 128 的
+宽权重梯度；registry 仍可对 exact `(M,K,N)` 强制回退 readable。
+
+![Weight-gradient routing result](assets/bf16-weight-gradient-routing.svg)
+
+三进程官方结果中，`1×3、2×3、1×32、1×128` 分别提高
+`1.659×、2.020×、4.476×、1.007×`。context 32 总 Kernel 时间从 1.621 秒降到
+0.382 秒，507 次 readable transpose 热点消失；峰值显存四项完全不变。
+
+这次仍没有达到 PyTorch parity。优化后的最好一项是 0.734×，context 128 仍只有
+0.360×。但我们已经把“长 context 慢”改写成更准确的问题：哪些 backward shape 没有
+进入合适的 GEMM 实现。

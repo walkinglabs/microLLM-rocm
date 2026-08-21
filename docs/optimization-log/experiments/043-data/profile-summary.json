@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "before_context32": {"kernel_dispatches": 7750, "kernel_time_ns": 1621437765, "hip_api_calls": 222229, "readable_transpose_calls": 507, "readable_transpose_time_ns": 1228278911},
+  "before_context128": {"kernel_dispatches": 7678, "kernel_time_ns": 613933450, "hip_api_calls": 246678, "readable_transpose_calls": 0, "readable_transpose_time_ns": 0},
+  "after_context32": {"kernel_dispatches": 7750, "kernel_time_ns": 382220426, "hip_api_calls": 216170, "readable_transpose_calls": 0, "readable_transpose_time_ns": 0},
+  "context32_kernel_time_speedup": 4.242174,
+  "interpretation": "the old inner>=128 Auto threshold sent wide K=32 weight gradients to the readable kernel"
+}

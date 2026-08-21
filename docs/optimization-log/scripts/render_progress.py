@@ -40,6 +40,8 @@ BF16_TRAINING_ISLAND_SUMMARY = ROOT / "experiments" / "041-data" / "summary.json
 BF16_TRAINING_ISLAND_CHART = ROOT / "assets" / "bf16-training-ffn-island-discard.svg"
 BF16_TRAINING_SHAPE_SUMMARY = ROOT / "experiments" / "042-data" / "summary.json"
 BF16_TRAINING_SHAPE_CHART = ROOT / "assets" / "bf16-training-shape-matrix.svg"
+BF16_WEIGHT_GRADIENT_COMPARISON = ROOT / "experiments" / "043-data" / "comparison.json"
+BF16_WEIGHT_GRADIENT_CHART = ROOT / "assets" / "bf16-weight-gradient-routing.svg"
 
 
 def rows() -> list[dict]:
@@ -909,6 +911,83 @@ def bf16_training_shape_svg() -> str:
     return "\n".join(parts)
 
 
+def bf16_weight_gradient_svg() -> str:
+    rows = json.loads(BF16_WEIGHT_GRADIENT_COMPARISON.read_text(encoding="utf-8"))["rows"]
+    width, height = 1700, 760
+    panel_top, panel_height = 145, 440
+    left_x, right_x, panel_width = 105, 925, 690
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 043 · Wide Weight-Gradient GEMM Routing", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 80,
+             "Qwen BF16 training · median of 3 fresh processes · peak memory unchanged",
+             16, "#5b6474", anchor="middle"),
+        text(left_x + panel_width / 2, 118, "Speedup vs Experiment 042", 20,
+             anchor="middle", weight=700),
+        text(right_x + panel_width / 2, 118, "microLLM / PyTorch throughput", 20,
+             anchor="middle", weight=700),
+    ]
+    for x in (left_x, right_x):
+        parts.append(f'<rect x="{x}" y="{panel_top}" width="{panel_width}" '
+                     f'height="{panel_height}" fill="#ffffff" stroke="#cbd3df" rx="8"/>')
+
+    def left_y(value: float) -> float:
+        return panel_top + panel_height * (5.0 - value) / 5.0
+
+    def right_y(value: float) -> float:
+        return panel_top + panel_height * (1.0 - value)
+
+    for tick in range(6):
+        y = left_y(float(tick))
+        parts.append(f'<line x1="{left_x}" y1="{y:.1f}" x2="{left_x+panel_width}" '
+                     f'y2="{y:.1f}" stroke="#e5e9f0"/>')
+        parts.append(text(left_x - 10, y + 5, f"{tick}×", 13, "#5b6474", anchor="end"))
+    for tick in (0.0, 0.25, 0.5, 0.75, 1.0):
+        y = right_y(tick)
+        parts.append(f'<line x1="{right_x}" y1="{y:.1f}" '
+                     f'x2="{right_x+panel_width}" y2="{y:.1f}" '
+                     f'stroke="{("#2563eb" if tick == 1.0 else "#e5e9f0")}"/>')
+        parts.append(text(right_x - 10, y + 5, f"{tick:.2f}×", 13,
+                          "#5b6474", anchor="end"))
+    group = panel_width / len(rows)
+    for index, row in enumerate(rows):
+        label = f'{row["batch"]}×{row["context"]}'
+        center_left = left_x + group * (index + 0.5)
+        speedup = row["self_speedup"]
+        y = left_y(speedup)
+        parts.append(f'<rect x="{center_left-31:.1f}" y="{y:.1f}" width="62" '
+                     f'height="{left_y(0)-y:.1f}" rx="5" fill="#18a558"/>')
+        parts.append(text(center_left, y - 9, f"{speedup:.3f}×", 14, "#16834a",
+                          anchor="middle", weight=700))
+        parts.append(text(center_left, panel_top + panel_height + 32, label, 16,
+                          "#172033", anchor="middle", weight=700))
+
+        center_right = right_x + group * (index + 0.5)
+        for offset, (value, color) in enumerate((
+                (row["before_ratio_vs_pytorch"], "#c8ced8"),
+                (row["after_ratio_vs_pytorch"], "#18a558"))):
+            x = center_right - 49 + offset * 54
+            ry = right_y(value)
+            parts.append(f'<rect x="{x:.1f}" y="{ry:.1f}" width="44" '
+                         f'height="{right_y(0)-ry:.1f}" rx="4" fill="{color}"/>')
+        parts.append(text(center_right, panel_top + panel_height + 32, label, 16,
+                          "#172033", anchor="middle", weight=700))
+        parts.append(text(center_right, right_y(row["after_ratio_vs_pytorch"]) - 9,
+                          f'{row["after_ratio_vs_pytorch"]:.3f}×', 13, "#16834a",
+                          anchor="middle", weight=700))
+    parts.append(text(width / 2, 665,
+                      "context 32: readable transpose hotspot removed · 4.476× self speedup",
+                      17, "#16834a", anchor="middle", weight=700))
+    parts.append(text(width / 2, 712,
+                      "gray: before · green: retained route · no shape yet reaches PyTorch parity",
+                      14, "#6b7280", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -924,7 +1003,8 @@ def main() -> int:
                 BF16_TRAINING_QKV_CHART: bf16_training_qkv_svg(),
                 BF16_TRAINING_MIRROR_CHART: bf16_training_mirror_svg(),
                 BF16_TRAINING_ISLAND_CHART: bf16_training_island_svg(),
-                BF16_TRAINING_SHAPE_CHART: bf16_training_shape_svg()}
+                BF16_TRAINING_SHAPE_CHART: bf16_training_shape_svg(),
+                BF16_WEIGHT_GRADIENT_CHART: bf16_weight_gradient_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

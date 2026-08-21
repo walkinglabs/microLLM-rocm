@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "track": "wide_weight_gradient_hipblaslt",
+  "decision": "keep",
+  "baseline": "../042-data/summary.json",
+  "rows": [
+    {"batch": 1, "context": 3, "self_speedup": 1.658584526, "before_ratio_vs_pytorch": 0.413400239, "after_ratio_vs_pytorch": 0.734350519, "peak_ratio_after_vs_before": 1.0},
+    {"batch": 2, "context": 3, "self_speedup": 2.019542561, "before_ratio_vs_pytorch": 0.341148082, "after_ratio_vs_pytorch": 0.661151767, "peak_ratio_after_vs_before": 1.0},
+    {"batch": 1, "context": 32, "self_speedup": 4.475968363, "before_ratio_vs_pytorch": 0.131128621, "after_ratio_vs_pytorch": 0.547132509, "peak_ratio_after_vs_before": 1.0},
+    {"batch": 1, "context": 128, "self_speedup": 1.006796498, "before_ratio_vs_pytorch": 0.351662031, "after_ratio_vs_pytorch": 0.360172714, "peak_ratio_after_vs_before": 1.0}
+  ]
+}

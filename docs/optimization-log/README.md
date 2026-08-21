@@ -189,6 +189,13 @@ shape-specific GEMM/调度，不能只用 Attention 复杂度解释。
 
 ![Official training shape baseline](assets/bf16-training-shape-matrix.svg)
 
+Experiment 043 用 profiler 证明 context 32 的主要问题是 507 次 readable transpose
+weight-gradient GEMM，占 Kernel 时间 75.75%。精确 shape micro-benchmark 中 hipBLASLt
+快 `1.54×–21.99×`。只扩展这类宽输出 `transpose(left)` 的 Auto 路由后，四个 Qwen
+shape 分别提高 `1.659×、2.020×、4.476×、1.007×`，显存不变，候选保留。
+
+![Weight-gradient routing result](assets/bf16-weight-gradient-routing.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -232,6 +239,8 @@ shape-specific GEMM/调度，不能只用 Attention 复杂度解释。
 | [experiments/041-data/](experiments/041-data/) | Qwen raw、DeepSeek early-stop 与 profiler 聚合 |
 | [assets/bf16-training-shape-matrix.svg](assets/bf16-training-shape-matrix.svg) | Qwen batch/context 吞吐和显存曲线 |
 | [experiments/042-data/](experiments/042-data/) | 四 shape、两框架、三进程的 24 条 raw |
+| [assets/bf16-weight-gradient-routing.svg](assets/bf16-weight-gradient-routing.svg) | transpose weight-gradient 路由前后曲线 |
+| [experiments/043-data/](experiments/043-data/) | 24 条候选 raw、microbench 与三组 profiler 聚合 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

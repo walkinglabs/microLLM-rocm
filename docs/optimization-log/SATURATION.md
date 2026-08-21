@@ -57,6 +57,12 @@ same four-parent eager graph node is not a new experiment. It also establishes a
 rule: after large shared-GPU drift, an old absolute baseline is invalid until a same-window
 control is rerun.
 
+Experiment 043 reopens one previously broad “GEMM already optimized” assumption: the
+ordinary forward path was optimized, but wide small-K weight gradients were excluded by the
+Auto threshold. That exact space is now closed for Qwen K=3/32/128: K=3 and 32 route to
+hipBLASLt when `transpose(left)` produces a wide matrix, while K=128 already did. Further
+threshold changes need new exact shapes or registry evidence, not another global cutoff.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.
