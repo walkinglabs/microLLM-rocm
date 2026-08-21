@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 #include <string>
+#include <limits>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -119,6 +120,16 @@ public:
     ~Layout() { (void)hipblasLtMatrixLayoutDestroy(value_); }
     Layout(const Layout&) = delete;
     Layout& operator=(const Layout&) = delete;
+    void set_batch(std::int32_t count, std::int64_t stride) {
+        check_status(hipblasLtMatrixLayoutSetAttribute(
+                         value_, HIPBLASLT_MATRIX_LAYOUT_BATCH_COUNT,
+                         &count, sizeof(count)),
+                     "hipblasLtMatrixLayoutSetAttribute(BATCH_COUNT)");
+        check_status(hipblasLtMatrixLayoutSetAttribute(
+                         value_, HIPBLASLT_MATRIX_LAYOUT_STRIDED_BATCH_OFFSET,
+                         &stride, sizeof(stride)),
+                     "hipblasLtMatrixLayoutSetAttribute(STRIDED_BATCH_OFFSET)");
+    }
     hipblasLtMatrixLayout_t get() const noexcept { return value_; }
 
 private:
@@ -229,21 +240,35 @@ Tensor hipblaslt_matmul(const Tensor& left, const Tensor& right,
                         const OpContext& context) {
     if (!left.device().is_hip() || right.device() != left.device() ||
         !is_floating_point(left.dtype()) || right.dtype() != left.dtype() ||
-        left.ndim() != 2 || right.ndim() != 2 || !left.is_contiguous() ||
+        left.ndim() < 2 || right.ndim() != left.ndim() || !left.is_contiguous() ||
         !right.is_contiguous()) {
         throw std::invalid_argument(
-            "hipBLASLt matmul requires matching contiguous 2D floating tensors on one HIP device");
+            "hipBLASLt matmul requires matching contiguous floating tensors on one HIP device");
     }
-    const auto left_rows = left.shape()[0];
-    const auto left_columns = left.shape()[1];
-    const auto right_rows = right.shape()[0];
-    const auto right_columns = right.shape()[1];
+    const auto rank = static_cast<std::size_t>(left.ndim());
+    std::int64_t batches = 1;
+    Shape output_shape(left.shape().begin(), left.shape().end() - 2);
+    for (std::size_t dimension = 0; dimension + 2 < rank; ++dimension) {
+        if (left.shape()[dimension] != right.shape()[dimension]) {
+            throw std::invalid_argument("hipBLASLt matmul batch dimensions must match");
+        }
+        batches *= left.shape()[dimension];
+    }
+    if (batches > std::numeric_limits<std::int32_t>::max()) {
+        throw std::overflow_error("hipBLASLt matmul batch count exceeds int32");
+    }
+    const auto left_rows = left.shape()[rank - 2];
+    const auto left_columns = left.shape()[rank - 1];
+    const auto right_rows = right.shape()[rank - 2];
+    const auto right_columns = right.shape()[rank - 1];
     const auto rows = transpose_left ? left_columns : left_rows;
     const auto inner = transpose_left ? left_rows : left_columns;
     const auto right_inner = transpose_right ? right_columns : right_rows;
     const auto columns = transpose_right ? right_rows : right_columns;
     if (right_inner != inner) throw std::invalid_argument("matmul inner dimensions mismatch");
-    Tensor output({rows, columns}, left.dtype(), left.device());
+    output_shape.push_back(rows);
+    output_shape.push_back(columns);
+    Tensor output(output_shape, left.dtype(), left.device());
     static Handle handle;
     // The row-major expression is submitted as C^T=op(right)^T*op(left)^T.
     // Physical row-major memory is a column-major view of its transpose, so
@@ -256,6 +281,12 @@ Tensor hipblaslt_matmul(const Tensor& left, const Tensor& right,
                     static_cast<std::uint64_t>(left_rows), left_columns);
     Layout matrix_c(data_type, static_cast<std::uint64_t>(columns), static_cast<std::uint64_t>(rows),
                     columns);
+    if (batches > 1) {
+        const auto batch_count = static_cast<std::int32_t>(batches);
+        matrix_b.set_batch(batch_count, right_rows * right_columns);
+        matrix_a.set_batch(batch_count, left_rows * left_columns);
+        matrix_c.set_batch(batch_count, rows * columns);
+    }
     const float alpha = 1.0F;
     const float beta = 0.0F;
     check_status(hipblasLtMatmul(
@@ -405,16 +436,22 @@ Tensor matmul_with_implementation(const Tensor& left, const Tensor& right,
                                   MatmulImplementation implementation,
                                   bool transpose_left, bool transpose_right,
                                   [[maybe_unused]] const OpContext& context) {
-    if (left.ndim() != 2 || right.ndim() != 2 || !is_floating_point(left.dtype()) ||
+    if (left.ndim() < 2 || right.ndim() != left.ndim() || !is_floating_point(left.dtype()) ||
         right.dtype() != left.dtype() || left.device() != right.device() ||
         !left.is_contiguous() || !right.is_contiguous()) {
         throw std::invalid_argument(
-            "transpose-aware matmul requires matching contiguous 2D floating tensors");
+            "transpose-aware matmul requires matching-rank contiguous floating tensors");
     }
-    const auto left_rows = left.shape()[0];
-    const auto left_columns = left.shape()[1];
-    const auto right_rows = right.shape()[0];
-    const auto right_columns = right.shape()[1];
+    const auto rank = static_cast<std::size_t>(left.ndim());
+    for (std::size_t dimension = 0; dimension + 2 < rank; ++dimension) {
+        if (left.shape()[dimension] != right.shape()[dimension]) {
+            throw std::invalid_argument("transpose-aware matmul batch dimensions must match");
+        }
+    }
+    const auto left_rows = left.shape()[rank - 2];
+    const auto left_columns = left.shape()[rank - 1];
+    const auto right_rows = right.shape()[rank - 2];
+    const auto right_columns = right.shape()[rank - 1];
     const auto rows = transpose_left ? left_columns : left_rows;
     const auto inner = transpose_left ? left_rows : left_columns;
     const auto right_inner = transpose_right ? right_columns : right_rows;
@@ -431,6 +468,14 @@ Tensor matmul_with_implementation(const Tensor& left, const Tensor& right,
 #else
         throw std::runtime_error("microLLM was built without hipBLASLt");
 #endif
+    }
+
+    if (rank > 2) {
+        const auto left_operand = transpose_left
+                                      ? left.transpose(-2, -1).contiguous() : left;
+        const auto right_operand = transpose_right
+                                       ? right.transpose(-2, -1).contiguous() : right;
+        return matmul(left_operand, right_operand, context);
     }
 
     Tensor output({rows, columns}, left.dtype(), left.device());

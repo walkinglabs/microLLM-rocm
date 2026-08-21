@@ -876,6 +876,36 @@ def validate_split_kv_discard(errors: list[str]) -> tuple[int, int]:
     return len(pilot), kernel_calls
 
 
+def validate_batched_gemm(errors: list[str]) -> int:
+    data = ROOT / "experiments" / "053-data"
+    raw = [json.loads(line) for line in
+           (data / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    keys = {(row.get("implementation"), row.get("m"), row.get("k"), row.get("n"),
+             row.get("transpose_left"), row.get("transpose_right")) for row in raw}
+    if len(raw) != 6 or len(keys) != 6 or any(
+            row.get("batch") != 14 or row.get("warmup") != 3 or
+            row.get("repetitions") != 10 for row in raw):
+        errors.append("strided-batched GEMM raw protocol changed")
+    optimized = [row for row in raw if row.get("implementation") == "hipblaslt"]
+    invalid_readable = [row for row in raw if row.get("implementation") == "readable" and
+                        row.get("transpose_left") is True]
+    if len(optimized) != 3 or any(row.get("maximum_absolute_error", 1.0) > 2e-6
+                                  for row in optimized) or \
+            len(invalid_readable) != 1 or \
+            invalid_readable[0].get("maximum_absolute_error", 0.0) < 0.1:
+        errors.append("strided-batched GEMM correctness/invalid-control boundary changed")
+    comparison = json.loads((data / "comparison.json").read_text(encoding="utf-8"))
+    rows = comparison.get("rows", [])
+    valid = [row for row in rows if row.get("valid_speedup")]
+    invalid = [row for row in rows if not row.get("valid_speedup")]
+    if comparison.get("decision") != "keep" or len(rows) != 3 or len(valid) != 2 or \
+            any(row.get("speedup", 0.0) < 20.0 for row in valid) or \
+            len(invalid) != 1 or invalid[0].get("speedup") is not None or \
+            comparison.get("correctness", {}).get("transpose_layouts") != 4:
+        errors.append("strided-batched GEMM keep gate changed")
+    return len(raw)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -907,7 +937,8 @@ def validate_assets(errors: list[str]) -> None:
                  "vectorized-adamw-explicit.svg",
                  "streaming-safetensors-load.svg",
                  "context512-training-profile.svg",
-                 "split-kv-backward-discard.svg"):
+                 "split-kv-backward-discard.svg",
+                 "strided-batched-hipblaslt.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -958,6 +989,7 @@ def main() -> int:
     streaming_load_smoke, streaming_load_formal = validate_streaming_load(errors)
     context512_pilot, context512_formal = validate_context512(errors)
     split_kv_pilot, split_kv_kernel_calls = validate_split_kv_discard(errors)
+    batched_gemm_count = validate_batched_gemm(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -983,6 +1015,7 @@ def main() -> int:
           f"streaming_load={streaming_load_smoke}/{streaming_load_formal} "
           f"context512={context512_pilot}/{context512_formal} "
           f"split_kv={split_kv_pilot}/{split_kv_kernel_calls} "
+          f"batched_gemm={batched_gemm_count} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

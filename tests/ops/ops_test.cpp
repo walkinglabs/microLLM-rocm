@@ -1,6 +1,7 @@
 #include <cmath>
 #include <limits>
 #include <stdexcept>
+#include <tuple>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -85,6 +86,31 @@ TEST(CpuOpsTest, BatchedMatmulMatchesHandValues) {
     EXPECT_EQ(matmul(left, right).shape(), (Shape{2, 2, 2}));
     EXPECT_EQ(matmul(left, right).to_vector(),
               (std::vector<float>{22, 28, 49, 64, 1, 2, 9, 12}));
+}
+
+TEST(CpuOpsTest, TransposeAwareBatchedReadableMatchesMaterializedReference) {
+    const auto left = Tensor::from_vector(
+        {1, 2, 3, 4, 5, 6, 6, 5, 4, 3, 2, 1}, {2, 2, 3});
+    const auto right = Tensor::from_vector(
+        {1, 2, 3, 4, 5, 6, 6, 5, 4, 3, 2, 1}, {2, 3, 2});
+    const auto expected = matmul(left, right).to_vector();
+    const auto left_t = left.transpose(-2, -1).contiguous();
+    const auto right_t = right.transpose(-2, -1).contiguous();
+    for (const auto& test : {
+             std::tuple<const Tensor*, const Tensor*, bool, bool>{
+                 &left, &right, false, false},
+             std::tuple<const Tensor*, const Tensor*, bool, bool>{
+                 &left, &right_t, false, true},
+             std::tuple<const Tensor*, const Tensor*, bool, bool>{
+                 &left_t, &right, true, false},
+             std::tuple<const Tensor*, const Tensor*, bool, bool>{
+                 &left_t, &right_t, true, true}}) {
+        EXPECT_EQ(matmul_with_implementation(
+                      *std::get<0>(test), *std::get<1>(test),
+                      MatmulImplementation::Readable,
+                      std::get<2>(test), std::get<3>(test)).to_vector(),
+                  expected);
+    }
 }
 
 TEST(CpuOpsTest, DeviceStyleCastAndMixedBf16MatmulMatchRoundedReference) {

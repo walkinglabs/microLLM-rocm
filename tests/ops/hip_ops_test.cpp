@@ -1314,6 +1314,56 @@ TEST(HipOptimizedOpsTest, TransposeAwareGemmCoversAllLayoutsAndLowPrecisions) {
         }
     }
 }
+
+TEST(HipOptimizedOpsTest, StridedBatchedGemmCoversAttentionLayouts) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    constexpr std::int64_t batches = 6;
+    constexpr std::int64_t rows = 5;
+    constexpr std::int64_t inner = 7;
+    constexpr std::int64_t columns = 4;
+    std::vector<float> left_values(static_cast<std::size_t>(batches * rows * inner));
+    std::vector<float> right_values(static_cast<std::size_t>(batches * inner * columns));
+    for (std::size_t index = 0; index < left_values.size(); ++index) {
+        left_values[index] = static_cast<float>(static_cast<int>(index % 17) - 8) / 17.0F;
+    }
+    for (std::size_t index = 0; index < right_values.size(); ++index) {
+        right_values[index] = static_cast<float>(static_cast<int>(index % 13) - 6) / 13.0F;
+    }
+    for (const auto dtype : {DType::Float32, DType::BFloat16}) {
+        const auto left_cpu = Tensor::from_vector(
+            left_values, {2, 3, rows, inner}, dtype);
+        const auto right_cpu = Tensor::from_vector(
+            right_values, {2, 3, inner, columns}, dtype);
+        const auto expected = matmul(left_cpu, right_cpu).to_vector();
+        const auto left = left_cpu.to(gpu);
+        const auto right = right_cpu.to(gpu);
+        const auto left_t = left_cpu.transpose(-2, -1).contiguous().to(gpu);
+        const auto right_t = right_cpu.transpose(-2, -1).contiguous().to(gpu);
+        for (const auto& test : {
+                 std::tuple<const Tensor*, const Tensor*, bool, bool>{
+                     &left, &right, false, false},
+                 std::tuple<const Tensor*, const Tensor*, bool, bool>{
+                     &left, &right_t, false, true},
+                 std::tuple<const Tensor*, const Tensor*, bool, bool>{
+                     &left_t, &right, true, false},
+                 std::tuple<const Tensor*, const Tensor*, bool, bool>{
+                     &left_t, &right_t, true, true}}) {
+            runtime::reset_transfer_stats();
+            const auto actual = matmul_with_implementation(
+                *std::get<0>(test), *std::get<1>(test),
+                MatmulImplementation::HipBLASLt,
+                std::get<2>(test), std::get<3>(test));
+            runtime::synchronize(gpu);
+            const auto transfers = runtime::transfer_stats();
+            EXPECT_EQ(transfers.host_to_device_calls, 0U);
+            EXPECT_EQ(transfers.device_to_host_calls, 0U);
+            expect_near(actual.to_vector(), expected,
+                        dtype == DType::BFloat16 ? 0.2F : 3.0e-4F);
+            EXPECT_EQ(actual.shape(), (Shape{2, 3, rows, columns}));
+        }
+    }
+}
 #endif
 
 }  // namespace microllm::ops

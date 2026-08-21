@@ -40,6 +40,7 @@ needed to run a real training and generation loop:
 - a cross-framework trace runner for operator/layer values and latency comparisons.
 - explicit Scalar/Vectorized AdamW experiments with HIP Event micro-benchmarks; Auto remains
   on the model-validated scalar policy.
+- rank-N strided-batched hipBLASLt with last-two-dimension transpose contracts for Attention.
 
 The design keeps three implementations where they provide engineering value:
 
@@ -125,10 +126,10 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 252/252 | 181 CPU-labelled + 71 HIP-labelled gates; 2 intentional environment skips |
-| ASan/UBSan CPU | 174/174 | host code, CLI, model/graph, benchmark and evidence schemas |
-| MI300X/gfx942 HIP | 71/71 | allocator/stream, graph, BF16/FP8, weight streaming and model matrix |
-| PyTorch-enabled CPU build | 164/164 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
+| Full CPU/HIP configuration | 255/255 | 182 CPU-labelled + 73 HIP-labelled gates; 2 intentional environment skips |
+| ASan/UBSan CPU | 175/175 | host code, CLI, model/graph, benchmark and evidence schemas |
+| MI300X/gfx942 HIP | 73/73 | allocator/stream, graph, BF16/FP8, batched GEMM and model matrix |
+| PyTorch-enabled CPU build | 165/165 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
 | Registered test files | 36 | machine-audited CTest registration |
 | CPU source coverage | 83.9% lines / 66.6% branches | GCC 13.3 + gcovr 8.3; `src/` and `include/` |

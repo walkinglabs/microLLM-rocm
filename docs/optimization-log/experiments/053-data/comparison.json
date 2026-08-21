@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "experiment": 53,
+  "device": "AMD Instinct MI300X VF",
+  "architecture": "gfx942",
+  "batch_matrices": 14,
+  "warmup": 3,
+  "repetitions": 10,
+  "rows": [
+    {"name": "QK^T", "m": 512, "k": 64, "n": 512, "transpose_left": false, "transpose_right": true, "readable_ms": 4.75152516, "hipblaslt_ms": 0.181132501, "speedup": 26.232316861, "maximum_error": 0.000000536, "valid_speedup": true},
+    {"name": "PV/Qgrad", "m": 512, "k": 512, "n": 64, "transpose_left": false, "transpose_right": false, "readable_ms": 4.39830432, "hipblaslt_ms": 0.0387043, "speedup": 113.638647902, "maximum_error": 0.000001043, "valid_speedup": true},
+    {"name": "K/V grad transpose", "m": 512, "k": 512, "n": 64, "transpose_left": true, "transpose_right": false, "readable_ms": 6.36932349, "hipblaslt_ms": 0.0369721, "speedup": null, "maximum_error": 0.000001043, "valid_speedup": false, "invalid_reason": "readable benchmark temporary contiguous used the default stream while GEMM used an explicit stream"}
+  ],
+  "correctness": {
+    "ranks": [3, 4],
+    "dtypes": ["float32", "bfloat16"],
+    "transpose_layouts": 4,
+    "payload_transfers": 0
+  },
+  "policy": "explicit HipBLASLt implementation; Auto remains unchanged until Attention integration passes",
+  "decision": "keep",
+  "next_hypothesis": "generate causal probability/score-gradient rows once, then use strided-batched GEMM for Q/K/V gradients"
+}

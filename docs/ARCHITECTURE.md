@@ -66,6 +66,10 @@ The AdamW operator is a concrete example: `Scalar` and `Vectorized` are selectab
 `Auto` stays on Scalar because exact-shape float4 wins did not survive the official-model
 gate. Selection policy is evidence, not an alias for the newest Kernel.
 
+hipBLASLt GEMM also supports contiguous strided batches: leading Tensor dimensions become
+the batch count and last-two dimensions remain the matrix contract. Explicit batched
+selection is tested independently; Auto is not changed by operator-only timing.
+
 ## Stable integration boundary
 
 The long-term integration seam is a C-compatible descriptor plus explicit stream

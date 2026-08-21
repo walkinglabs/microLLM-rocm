@@ -36,6 +36,15 @@ AdamW has its own implementation-selectable benchmark:
 It reports HIP Event time, effective bytes/s and a sampled numerical guard. `Auto` remains
 the validated scalar policy; an explicit candidate result is not a default dispatch claim.
 
+`microllm_bench_ops` 的 matmul 路径还接受 `--batch`，例如：
+
+```bash
+./build/hip-release/benchmarks/microllm_bench_ops \
+  --op matmul --device hip --implementation hipblaslt \
+  --batch 14 --m 512 --k 64 --n 512 --transpose-right true \
+  --warmup 3 --repetitions 10
+```
+
 ### End-to-end benchmark
 
 ```bash

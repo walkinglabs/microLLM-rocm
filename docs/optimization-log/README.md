@@ -258,6 +258,12 @@ Q/K/V 数值通过，但 Qwen T=512 吞吐 `812.45→688.82 tok/s`；backward Ke
 
 ![Split K/V backward discarded](assets/split-kv-backward-discard.svg)
 
+Experiment 053 补上 strided-batched hipBLASLt。rank-4、FP32/BF16、四种 transpose 和零搬运
+对齐通过；Qwen T=512 的 `QKᵀ` 与 `PV/Qgrad` exact shapes 相对 readable 分别快
+`26.23×/113.64×`。transpose-left readable 计时受跨 Stream temporary 污染，明确排除。
+
+![Strided-batched hipBLASLt](assets/strided-batched-hipblaslt.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -321,6 +327,8 @@ Q/K/V 数值通过，但 Qwen T=512 吞吐 `812.45→688.82 tok/s`；backward Ke
 | [experiments/051-data/](experiments/051-data/) | pilot、12 条正式 raw 与 retained profiler 聚合 |
 | [assets/split-kv-backward-discard.svg](assets/split-kv-backward-discard.svg) | atomic 基线与两阶段 K/V 反例 |
 | [experiments/052-data/](experiments/052-data/) | pilot、candidate profiler 与 discard 合同 |
+| [assets/strided-batched-hipblaslt.svg](assets/strided-batched-hipblaslt.svg) | Qwen Attention batch GEMM exact-shape 加速 |
+| [experiments/053-data/](experiments/053-data/) | 6 条 Event raw、错误计时和 dispatch 合同 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

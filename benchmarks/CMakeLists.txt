@@ -134,6 +134,12 @@ if(BUILD_TESTING)
                              --warmup 1 --repetitions 2)
             set_tests_properties(Benchmark.HipTransposeMatmul PROPERTIES
                                  LABELS "hip;benchmark;matmul;transpose;smoke")
+            add_test(NAME Benchmark.HipStridedBatchedMatmul
+                     COMMAND microllm_bench_ops --op matmul --device hip
+                             --implementation hipblaslt --dtype fp32 --batch 2
+                             --m 32 --k 16 --n 24 --warmup 1 --repetitions 2)
+            set_tests_properties(Benchmark.HipStridedBatchedMatmul PROPERTIES
+                                 LABELS "hip;benchmark;matmul;batch;smoke")
         endif()
         add_test(NAME Benchmark.HipGenerateSmoke
                  COMMAND microllm_bench_model --mode generate --model tiny --device hip

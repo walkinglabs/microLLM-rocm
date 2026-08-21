@@ -25,6 +25,7 @@ struct Options {
     std::int64_t rows = 0;
     std::int64_t inner = 0;
     std::int64_t columns = 0;
+    std::int64_t batch = 1;
     bool transpose_left = false;
     bool transpose_right = false;
     int warmup = 5;
@@ -58,6 +59,7 @@ Options parse_options(int argc, char** argv) {
         else if (name == "--m") options.rows = parse_integer(argv[index + 1], "m");
         else if (name == "--k") options.inner = parse_integer(argv[index + 1], "k");
         else if (name == "--n") options.columns = parse_integer(argv[index + 1], "n");
+        else if (name == "--batch") options.batch = parse_integer(argv[index + 1], "batch");
         else if (name == "--transpose-left") {
             options.transpose_left = parse_boolean(argv[index + 1], "transpose-left");
         }
@@ -88,7 +90,8 @@ Options parse_options(int argc, char** argv) {
          !microllm::ops::hipblaslt_available())) {
         throw std::invalid_argument("hipblaslt requires an available HIP matmul build");
     }
-    if (options.size <= 0 || options.warmup < 0 || options.repetitions <= 0) {
+    if (options.size <= 0 || options.batch <= 0 || options.warmup < 0 ||
+        options.repetitions <= 0) {
         throw std::invalid_argument("size/repetition options are outside valid ranges");
     }
     if ((options.operation == "matmul" || options.operation == "bf16-mixed" ||
@@ -113,6 +116,9 @@ Options parse_options(int argc, char** argv) {
     if ((options.transpose_left || options.transpose_right) &&
         options.operation != "matmul") {
         throw std::invalid_argument("transpose flags are valid only for matmul");
+    }
+    if (options.batch != 1 && options.operation != "matmul") {
+        throw std::invalid_argument("batch greater than one is valid only for matmul");
     }
     return options;
 }
@@ -174,13 +180,14 @@ int main(int argc, char** argv) {
         const auto left_columns = options.transpose_left ? options.rows : options.inner;
         const auto right_rows = options.transpose_right ? options.columns : options.inner;
         const auto right_columns = options.transpose_right ? options.inner : options.columns;
-        const auto left_count = matrix_operation
+        const auto left_count = (matrix_operation
                                     ? left_rows * left_columns
                                     : options.operation == "add" ? options.size
-                                                                  : options.size * options.size;
-        const auto right_count = matrix_operation
+                                                                  : options.size * options.size) *
+                                (matrix_operation ? options.batch : 1);
+        const auto right_count = (matrix_operation
                                      ? right_rows * right_columns
-                                     : left_count;
+                                     : left_count) * (matrix_operation ? options.batch : 1);
         std::vector<float> left_values(static_cast<std::size_t>(left_count));
         std::vector<float> right_values(static_cast<std::size_t>(right_count));
         for (std::size_t index = 0; index < left_values.size(); ++index) {
@@ -189,13 +196,17 @@ int main(int argc, char** argv) {
         for (std::size_t index = 0; index < right_values.size(); ++index) {
             right_values[index] = static_cast<float>(static_cast<int>(index % 17) - 8) / 17.0F;
         }
-        const microllm::Shape left_shape =
-            options.operation == "add"
+        const microllm::Shape left_shape = options.batch > 1
+            ? microllm::Shape{options.batch, left_rows, left_columns}
+            : options.operation == "add"
                 ? microllm::Shape{options.size}
                 : matrix_operation
                       ? microllm::Shape{left_rows, left_columns}
                       : microllm::Shape{options.size, options.size};
-        const microllm::Shape right_shape = matrix_operation
+        const microllm::Shape right_shape = options.batch > 1
+                                                ? microllm::Shape{options.batch, right_rows,
+                                                                  right_columns}
+                                            : matrix_operation
                                                 ? microllm::Shape{right_rows, right_columns}
                                                 : left_shape;
         const auto left_dtype = options.operation == "bf16-mixed"
@@ -285,6 +296,7 @@ int main(int argc, char** argv) {
                   << ",\"m\":" << options.rows
                   << ",\"k\":" << options.inner
                   << ",\"n\":" << options.columns
+                  << ",\"batch\":" << options.batch
                   << ",\"transpose_left\":"
                   << (options.transpose_left ? "true" : "false")
                   << ",\"transpose_right\":"

@@ -1350,3 +1350,18 @@ position 和重复 head，加上 T² 写读，代价超过 atomic 冲突。
 
 候选删除。这次把下一空间缩小到 tiled GEMM/flash-style backward；再写一个标量 rescan Kernel
 已经没有研究价值。
+
+## 70. Experiment 053：先给框架补上“成批矩阵乘”
+
+optimized GEMM 以前只接收 2D，Attention 的 `[B,H,T,D]` 根本进不了 hipBLASLt。新布局把
+前置维度展成 strided batch，并把 batch count/offset 写入 hipBLASLt layout；四种 transpose、
+FP32/BF16 都与 reference 对齐。
+
+![Strided-batched hipBLASLt](assets/strided-batched-hipblaslt.svg)
+
+Qwen T=512 的 QKᵀ 从 4.752 降到 0.181 ms，PV/Qgrad 从 4.398 降到 0.0387 ms。
+transpose-left 的 library 结果误差只有 1.04e-6，但 readable benchmark 的临时 contiguous
+跨了 Stream，误差0.146，因此该 speedup 被排除。保留错误比拿 172× 数字更重要。
+
+这一步只保留算子能力，Auto 规则不变。下一节点才用它重写 Attention backward，并重新过
+T=128/T=512/显存门。

@@ -62,6 +62,8 @@ CONTEXT512_PROFILE = ROOT / "experiments" / "051-data" / "profile-summary.json"
 CONTEXT512_CHART = ROOT / "assets" / "context512-training-profile.svg"
 SPLIT_KV_COMPARISON = ROOT / "experiments" / "052-data" / "comparison.json"
 SPLIT_KV_CHART = ROOT / "assets" / "split-kv-backward-discard.svg"
+BATCHED_GEMM_COMPARISON = ROOT / "experiments" / "053-data" / "comparison.json"
+BATCHED_GEMM_CHART = ROOT / "assets" / "strided-batched-hipblaslt.svg"
 
 
 def rows() -> list[dict]:
@@ -1596,6 +1598,58 @@ def split_kv_backward_discard_svg() -> str:
     return "\n".join(parts)
 
 
+def strided_batched_hipblaslt_svg() -> str:
+    data = json.loads(BATCHED_GEMM_COMPARISON.read_text(encoding="utf-8"))
+    rows = data["rows"]
+    width, height = 1650, 720
+    chart_x, chart_y, chart_w, chart_h = 130, 145, 1390, 400
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 053 · Strided-Batched hipBLASLt", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 80,
+             "Qwen context-512 exact matrices · batch_heads=14 · HIP Event mean of 10",
+             16, "#5b6474", anchor="middle"),
+        f'<rect x="{chart_x}" y="{chart_y}" width="{chart_w}" height="{chart_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+    ]
+    maximum = 120.0
+    def y(value: float) -> float:
+        return chart_y + chart_h * (maximum - value) / maximum
+    for tick in (0, 25, 50, 75, 100):
+        position = y(float(tick))
+        parts.append(f'<line x1="{chart_x}" y1="{position:.1f}" '
+                     f'x2="{chart_x+chart_w}" y2="{position:.1f}" stroke="#e5e9f0"/>')
+        parts.append(text(chart_x - 12, position + 5, f"{tick}×", 13,
+                          "#5b6474", anchor="end"))
+    group = chart_w / len(rows)
+    for index, row in enumerate(rows):
+        center = chart_x + group * (index + 0.5)
+        if row["valid_speedup"]:
+            top = y(row["speedup"])
+            parts.append(f'<rect x="{center-70:.1f}" y="{top:.1f}" width="140" '
+                         f'height="{y(0)-top:.1f}" fill="#18a558" rx="6"/>')
+            parts.append(text(center, top - 12, f'{row["speedup"]:.1f}×', 20,
+                              "#16834a", anchor="middle", weight=700))
+        else:
+            top = y(12.0)
+            parts.append(f'<rect x="{center-70:.1f}" y="{top:.1f}" width="140" '
+                         f'height="{y(0)-top:.1f}" fill="#d6a33c" rx="6"/>')
+            parts.append(text(center, top - 12, "baseline invalid", 17,
+                              "#9a4f00", anchor="middle", weight=700))
+            parts.append(text(center, top + 42, f'{row["hipblaslt_ms"]:.3f} ms', 14,
+                              "#ffffff", anchor="middle", weight=700))
+        parts.append(text(center, chart_y + chart_h + 35, row["name"], 17,
+                          anchor="middle", weight=700))
+    parts.append(text(width / 2, 625,
+                      "All transpose layouts pass; Auto stays unchanged until model integration passes",
+                      17, "#2563eb", anchor="middle", weight=700))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -1621,7 +1675,8 @@ def main() -> int:
                 VECTORIZED_ADAMW_CHART: vectorized_adamw_explicit_svg(),
                 STREAMING_LOAD_CHART: streaming_safetensors_load_svg(),
                 CONTEXT512_CHART: context512_training_profile_svg(),
-                SPLIT_KV_CHART: split_kv_backward_discard_svg()}
+                SPLIT_KV_CHART: split_kv_backward_discard_svg(),
+                BATCHED_GEMM_CHART: strided_batched_hipblaslt_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]
