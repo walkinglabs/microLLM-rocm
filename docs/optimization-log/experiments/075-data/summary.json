@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "experiment": "request_cancellation_lifecycle",
+  "scheduler_cpu_tests": {"passed": 6, "total": 6},
+  "scheduler_hip_tests": {"passed": 4, "total": 4},
+  "full_cpu_tests": {"passed": 196, "total": 196},
+  "full_hip_tests": {"passed": 83, "total": 83},
+  "sanitizer_tests": {"passed": 194, "total": 194},
+  "contracts": {
+    "terminal_idempotent": true,
+    "cache_bytes_after_cancel": 0,
+    "cancelled_row_excluded_from_batch": true,
+    "survivor_matches_independent_generation": true
+  },
+  "performance_claim": "none; lifecycle correctness prerequisite"
+}

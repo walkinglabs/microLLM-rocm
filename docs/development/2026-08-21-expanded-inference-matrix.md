@@ -22,3 +22,17 @@ CPU result, while the CPU test independently checks the exact allocated Cache fo
 
 The measurements continue to use fresh processes and alternating microLLM/PyTorch order. A shape
 that is unsupported or out of memory remains a result rather than disappearing from the report.
+
+## Measured result
+
+The completed MI300X survey contains 120/120 successful process rows. BF16 Cache is exactly half
+the FP32 Cache at all 12 representative shapes and preserves microLLM's token suffix. The wider
+matrix also rejects a short-prompt generalization: Qwen T2048 B8 prefill is 0.173x PyTorch and
+DeepSeek is 0.465x. DeepSeek T2048 cached decode remains below PyTorch, while Qwen remains above it.
+
+Cross-framework generation is not universally exact: Qwen passes 18/18 cached comparisons;
+DeepSeek passes 10/18, with retained first-difference indices. The two frameworks still use
+different resident precision policies, so this is a recorded alignment failure and a request for
+a matched-dtype full-logit experiment, not proof of which implementation is wrong.
+
+See [Experiment 076](../optimization-log/experiments/076-expanded-inference-service-matrix.md).

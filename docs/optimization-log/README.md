@@ -505,6 +505,10 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/073-data/](experiments/073-data/) | CPU/HIP 24条static/reference raw与8条summary |
 | [assets/admission-batch-scheduler.svg](assets/admission-batch-scheduler.svg) | 分组吞吐、group数量和B4平台 |
 | [experiments/074-data/](experiments/074-data/) | CPU/HIP 30条raw、10条中位数和compatibility合同 |
+| [experiments/075-request-cancellation-lifecycle.md](experiments/075-request-cancellation-lifecycle.md) | 取消终态、幂等、立即Cache释放与batch排除 |
+| [experiments/075-data/](experiments/075-data/) | CPU/HIP/sanitizer生命周期门摘要 |
+| [assets/expanded-inference-service-matrix.svg](assets/expanded-inference-service-matrix.svg) | 长短context、batch效率、KV显存与精度分叉 |
+| [experiments/076-data/](experiments/076-data/) | 120条Qwen/DeepSeek prefill、FP32/BF16 cached raw与summary |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

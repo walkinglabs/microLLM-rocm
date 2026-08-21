@@ -132,6 +132,13 @@ def theoretical_kv_cache_bytes(layers: int, kv_heads: int, head_dimension: int,
     return 2 * layers * kv_heads * head_dimension * batch * tokens * element_bytes
 
 
+def first_sequence_difference(left: list[int], right: list[int]) -> int:
+    for index, (left_token, right_token) in enumerate(zip(left, right)):
+        if left_token != right_token:
+            return index
+    return min(len(left), len(right)) if len(left) != len(right) else -1
+
+
 def classify_failure(error: Exception | str) -> str:
     text = str(error).lower()
     if "out of memory" in text or "memory allocation" in text:
@@ -523,8 +530,14 @@ def summarize(records: list[dict], models: list[dict], contexts: list[int],
                             row["microllm_resident_weight_bytes"] / \
                             row["pytorch_resident_weight_bytes"]
                         if workload == "decode":
-                            row["cross_framework_tokens_equal"] = \
-                                row["microllm_generated_tokens"] == row["pytorch_generated_tokens"]
+                            difference = first_sequence_difference(
+                                row["microllm_generated_tokens"],
+                                row["pytorch_generated_tokens"])
+                            row["cross_framework_tokens_equal"] = difference == -1
+                            row["cross_framework_first_token_difference"] = difference
+                            row["cross_framework_matching_prefix_tokens"] = \
+                                len(row["microllm_generated_tokens"]) \
+                                if difference == -1 else difference
                         else:
                             micro_top = per_framework["microllm"][0].get("top_logits", [])
                             torch_top = per_framework["pytorch"][0].get("top_logits", [])
@@ -565,8 +578,11 @@ def summarize(records: list[dict], models: list[dict], contexts: list[int],
                 continue
             other = by_key.get((row["model"], row["context"], row["batch"], "uncached"))
             if other is not None and row.get(f"{framework}_status") == "pass":
-                row[f"{framework}_cache_tokens_equal"] = \
-                    row[f"{framework}_generated_tokens"] == other[f"{framework}_generated_tokens"]
+                difference = first_sequence_difference(
+                    row[f"{framework}_generated_tokens"],
+                    other[f"{framework}_generated_tokens"])
+                row[f"{framework}_cache_tokens_equal"] = difference == -1
+                row[f"{framework}_cache_first_token_difference"] = difference
                 row[f"{framework}_cache_speedup"] = \
                     row[f"{framework}_throughput_tokens_per_second"] / \
                     other[f"{framework}_throughput_tokens_per_second"]

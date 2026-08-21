@@ -95,7 +95,8 @@ PyTorch：整模型BF16
 8. batch吞吐扩展和效率以同context的B1作为基线；
 9. 参数量和revision没有改变。
 
-跨框架token不一致不是“性能失败”，而是数值对齐失败，必须保留首个分叉位置。
+跨框架token不一致不是“性能失败”，而是数值对齐失败。summary会保存相同前缀长度与首个
+分叉位置；`-1`表示整段完全相同。不能只打印`false`，否则不知道第一步就错还是最后一步才分叉。
 
 正式大模型矩阵之外，CI还有一套很小但真的执行计算的回归：
 
@@ -127,3 +128,6 @@ ROCR_VISIBLE_DEVICES=1 python3 \
 `raw.jsonl`保存每个新进程；`summary.json`只对完整成功的配对取中位数。正式结论还要记录
 GPU、ROCm、PyTorch/Transformers版本和失败行。`batch_efficiency=1`表示吞吐随batch理想线性
 增长；例如B4吞吐是B1的3.2倍，则效率是`3.2 / 4 = 0.8`，也就是80%。
+
+仓库当前的MI300X 120条实测、图和失败分析见
+[Experiment 076](../optimization-log/experiments/076-expanded-inference-service-matrix.md)。

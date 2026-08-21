@@ -1728,3 +1728,26 @@ Experiment 072的生命周期与这个计算积木连接。
 
 HIP 1/2/4请求为336/655/1260 tok/s。8/16请求拆成2/4个B4组后仍约1253/1259 tok/s，
 说明group串行导致平台。30/30进程输出一致；下一步必须token级slot refill，不能只扩大队列。
+
+## 92. Experiment 075：先定义slot什么时候真正空出来
+
+调度器加入`Cancelled`终态。decode中的请求取消前Cache非零，取消后立即为0；重复取消不会重复
+计数，已生成前缀保留，存活请求继续与独立生成一致。Admission分组也会把取消行排除。
+
+这是生命周期正确性节点，不宣称加速。没有这个合同，后续“补slot”可能只是覆盖仍被旧请求
+拥有的Cache。
+
+## 93. Experiment 076：一个短prompt无法代表推理
+
+真实Qwen/DeepSeek矩阵展开到T32/512/2048、B1/2/4/8，并分开prefill、FP32 Cache decode和
+BF16代表点，共120/120进程成功。
+
+![Expanded inference service matrix](assets/expanded-inference-service-matrix.svg)
+
+短context很好看，但Qwen T2048 B8 prefill只有PyTorch的0.173×，DeepSeek为0.465×。
+cached decode扩展明显更好；Qwen T2048 B8为1.180×，DeepSeek却只有0.652×。BF16 KV全部
+精确减半，代表点没有改变microLLM的8-token输出，但总峰值只下降3.4%–5.0%。
+
+精度也不是全绿：Qwen 18/18 suffix一致，DeepSeek只有10/18；T2048在第4个token分叉。
+当前两边驻留dtype政策不同，所以先记录反例，再用同dtype完整logits定位，不能把成功运行写成
+全面精度对齐。

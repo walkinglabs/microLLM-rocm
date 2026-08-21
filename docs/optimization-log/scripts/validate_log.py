@@ -1979,6 +1979,64 @@ def validate_admission_batch_scheduler(errors: list[str]) -> tuple[int, int]:
     return len(raw), len(rows)
 
 
+def validate_request_cancellation(errors: list[str]) -> tuple[int, int, int]:
+    summary = json.loads((ROOT / "experiments" / "075-data" / "summary.json").read_text(
+        encoding="utf-8"))
+    cpu = summary.get("scheduler_cpu_tests", {})
+    hip = summary.get("scheduler_hip_tests", {})
+    sanitizer = summary.get("sanitizer_tests", {})
+    contracts = summary.get("contracts", {})
+    if summary.get("status") != "pass" or cpu.get("passed") != cpu.get("total") or \
+            hip.get("passed") != hip.get("total") or \
+            sanitizer.get("passed") != sanitizer.get("total") or \
+            contracts.get("terminal_idempotent") is not True or \
+            contracts.get("cache_bytes_after_cancel") != 0 or \
+            contracts.get("cancelled_row_excluded_from_batch") is not True:
+        errors.append("request cancellation lifecycle evidence changed")
+    scheduler = (REPOSITORY / "include/microllm/inference/scheduler.h").read_text(
+        encoding="utf-8")
+    if "Cancelled" not in scheduler or "bool cancel(RequestId id)" not in scheduler:
+        errors.append("public request cancellation API is missing")
+    return int(cpu.get("total", 0)), int(hip.get("total", 0)), \
+        int(sanitizer.get("total", 0))
+
+
+def validate_expanded_inference_service_matrix(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "076-data"
+    collections = []
+    expected = {"prefill": 48, "cached-fp32": 48, "cached-bf16": 24}
+    for name, count in expected.items():
+        raw = [json.loads(line) for line in
+               (data / name / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+        if len(raw) != count or any(row.get("status") != "pass" for row in raw):
+            errors.append(f"expanded inference {name} raw protocol changed")
+        keys = {(row.get("model"), row.get("context"), row.get("batch"),
+                 row.get("framework")) for row in raw}
+        if len(keys) != count:
+            errors.append(f"expanded inference {name} shape keys changed")
+        collections.append(raw)
+    comparison = json.loads((data / "comparison.json").read_text(encoding="utf-8"))
+    reductions = comparison.get("bf16_comparison", [])
+    mismatches = comparison.get("token_mismatches", [])
+    if comparison.get("status") != "pass" or \
+            comparison.get("record_counts", {}).get("total") != 120 or \
+            len(reductions) != 12 or any(
+                abs(float(row.get("cache_reduction", 0.0)) - 2.0) > 1.0e-9
+                for row in reductions) or len(mismatches) != 8:
+        errors.append("expanded inference comparison contract changed")
+    runner = (REPOSITORY / "benchmarks/single_gpu/hf_inference_shape_matrix.py").read_text(
+        encoding="utf-8")
+    for token in ("MATRIX_SUITES", "batch_efficiency", "peak_bytes_per_request",
+                  "first_sequence_difference"):
+        if token not in runner:
+            errors.append(f"expanded inference runner is missing {token}")
+    for path in (REPOSITORY / "tests/inference/shape_matrix_test.cpp",
+                 REPOSITORY / "tests/inference/hip_shape_matrix_test.cpp"):
+        if not path.is_file():
+            errors.append(f"missing executable inference matrix gate: {path.name}")
+    return expected["prefill"], expected["cached-fp32"], expected["cached-bf16"]
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -2032,7 +2090,8 @@ def validate_assets(errors: list[str]) -> None:
                  "qwen-kv-prompt-failure.svg",
                  "reference-serving-scheduler.svg",
                  "static-batch-generation.svg",
-                 "admission-batch-scheduler.svg"):
+                 "admission-batch-scheduler.svg",
+                 "expanded-inference-service-matrix.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -2121,6 +2180,10 @@ def main() -> int:
         validate_reference_serving_scheduler(errors)
     static_batch_raw, static_batch_rows = validate_static_batch_generation(errors)
     admission_batch_raw, admission_batch_rows = validate_admission_batch_scheduler(errors)
+    cancellation_cpu, cancellation_hip, cancellation_sanitizer = \
+        validate_request_cancellation(errors)
+    expanded_prefill, expanded_fp32, expanded_bf16 = \
+        validate_expanded_inference_service_matrix(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -2176,6 +2239,10 @@ def main() -> int:
           f"serving_reference={serving_reference_raw}/{serving_reference_rows} "
           f"static_batch={static_batch_raw}/{static_batch_rows} "
           f"admission_batch={admission_batch_raw}/{admission_batch_rows} "
+          f"cancellation={cancellation_cpu}/{cancellation_hip}/"
+          f"{cancellation_sanitizer} "
+          f"expanded_inference={expanded_prefill}/{expanded_fp32}/"
+          f"{expanded_bf16} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

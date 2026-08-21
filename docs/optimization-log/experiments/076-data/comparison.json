@@ -1,0 +1,730 @@
+{
+  "bf16_comparison": [
+    {
+      "batch": 1,
+      "bf16_cache_bytes": 491520.0,
+      "bf16_over_pytorch": 3.527527794087584,
+      "cache_reduction": 2.0,
+      "context": 32,
+      "decode_speed_ratio_bf16_over_fp32": 1.0005106619618394,
+      "first_difference": -1,
+      "fp32_cache_bytes": 983040.0,
+      "model": "qwen2.5-0.5b",
+      "tokens_equal": true
+    },
+    {
+      "batch": 8,
+      "bf16_cache_bytes": 3932160.0,
+      "bf16_over_pytorch": 3.2894693102662402,
+      "cache_reduction": 2.0,
+      "context": 32,
+      "decode_speed_ratio_bf16_over_fp32": 1.000529556115805,
+      "first_difference": -1,
+      "fp32_cache_bytes": 7864320.0,
+      "model": "qwen2.5-0.5b",
+      "tokens_equal": true
+    },
+    {
+      "batch": 1,
+      "bf16_cache_bytes": 6389760.0,
+      "bf16_over_pytorch": 2.423672456111449,
+      "cache_reduction": 2.0,
+      "context": 512,
+      "decode_speed_ratio_bf16_over_fp32": 1.030264744129159,
+      "first_difference": -1,
+      "fp32_cache_bytes": 12779520.0,
+      "model": "qwen2.5-0.5b",
+      "tokens_equal": true
+    },
+    {
+      "batch": 8,
+      "bf16_cache_bytes": 51118080.0,
+      "bf16_over_pytorch": 2.3477527228645614,
+      "cache_reduction": 2.0,
+      "context": 512,
+      "decode_speed_ratio_bf16_over_fp32": 1.0537066392671413,
+      "first_difference": -1,
+      "fp32_cache_bytes": 102236160.0,
+      "model": "qwen2.5-0.5b",
+      "tokens_equal": true
+    },
+    {
+      "batch": 1,
+      "bf16_cache_bytes": 25264128.0,
+      "bf16_over_pytorch": 1.2382045185538955,
+      "cache_reduction": 2.0,
+      "context": 2048,
+      "decode_speed_ratio_bf16_over_fp32": 1.0597473217148274,
+      "first_difference": -1,
+      "fp32_cache_bytes": 50528256.0,
+      "model": "qwen2.5-0.5b",
+      "tokens_equal": true
+    },
+    {
+      "batch": 8,
+      "bf16_cache_bytes": 202113024.0,
+      "bf16_over_pytorch": 1.1992082016700993,
+      "cache_reduction": 2.0,
+      "context": 2048,
+      "decode_speed_ratio_bf16_over_fp32": 1.0400309668598153,
+      "first_difference": -1,
+      "fp32_cache_bytes": 404226048.0,
+      "model": "qwen2.5-0.5b",
+      "tokens_equal": true
+    },
+    {
+      "batch": 1,
+      "bf16_cache_bytes": 1146880.0,
+      "bf16_over_pytorch": 2.49670468117791,
+      "cache_reduction": 2.0,
+      "context": 32,
+      "decode_speed_ratio_bf16_over_fp32": 1.0049612033761015,
+      "first_difference": 6,
+      "fp32_cache_bytes": 2293760.0,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "tokens_equal": false
+    },
+    {
+      "batch": 8,
+      "bf16_cache_bytes": 9175040.0,
+      "bf16_over_pytorch": 2.39454172759358,
+      "cache_reduction": 2.0,
+      "context": 32,
+      "decode_speed_ratio_bf16_over_fp32": 1.0013637519223286,
+      "first_difference": -1,
+      "fp32_cache_bytes": 18350080.0,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "tokens_equal": true
+    },
+    {
+      "batch": 1,
+      "bf16_cache_bytes": 14909440.0,
+      "bf16_over_pytorch": 1.7544563283973982,
+      "cache_reduction": 2.0,
+      "context": 512,
+      "decode_speed_ratio_bf16_over_fp32": 1.099274737980505,
+      "first_difference": -1,
+      "fp32_cache_bytes": 29818880.0,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "tokens_equal": true
+    },
+    {
+      "batch": 8,
+      "bf16_cache_bytes": 119275520.0,
+      "bf16_over_pytorch": 1.4274416440344533,
+      "cache_reduction": 2.0,
+      "context": 512,
+      "decode_speed_ratio_bf16_over_fp32": 1.1689018783902307,
+      "first_difference": -1,
+      "fp32_cache_bytes": 238551040.0,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "tokens_equal": true
+    },
+    {
+      "batch": 1,
+      "bf16_cache_bytes": 58949632.0,
+      "bf16_over_pytorch": 0.8615438066536893,
+      "cache_reduction": 2.0,
+      "context": 2048,
+      "decode_speed_ratio_bf16_over_fp32": 1.198075573580629,
+      "first_difference": 3,
+      "fp32_cache_bytes": 117899264.0,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "tokens_equal": false
+    },
+    {
+      "batch": 8,
+      "bf16_cache_bytes": 471597056.0,
+      "bf16_over_pytorch": 0.7966387925229809,
+      "cache_reduction": 2.0,
+      "context": 2048,
+      "decode_speed_ratio_bf16_over_fp32": 1.1609877859029285,
+      "first_difference": 3,
+      "fp32_cache_bytes": 943194112.0,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "tokens_equal": false
+    }
+  ],
+  "cached_fp32": [
+    {
+      "batch": 1,
+      "context": 32,
+      "microllm_batch_efficiency": 1.0,
+      "microllm_peak_bytes": 1262968576.0,
+      "model": "qwen2.5-0.5b",
+      "pytorch_batch_efficiency": 1.0,
+      "pytorch_peak_bytes": 1096713216.0,
+      "throughput_ratio_microllm_over_pytorch": 3.2414887436610926
+    },
+    {
+      "batch": 2,
+      "context": 32,
+      "microllm_batch_efficiency": 0.9996688392715545,
+      "microllm_peak_bytes": 1265344512.0,
+      "model": "qwen2.5-0.5b",
+      "pytorch_batch_efficiency": 1.0061737578617491,
+      "pytorch_peak_bytes": 1117382144.0,
+      "throughput_ratio_microllm_over_pytorch": 3.2205325020340423
+    },
+    {
+      "batch": 4,
+      "context": 32,
+      "microllm_batch_efficiency": 0.9792901149471137,
+      "microllm_peak_bytes": 1270211072.0,
+      "model": "qwen2.5-0.5b",
+      "pytorch_batch_efficiency": 1.0438235372167177,
+      "pytorch_peak_bytes": 1160646144.0,
+      "throughput_ratio_microllm_over_pytorch": 3.0410867078585424
+    },
+    {
+      "batch": 8,
+      "context": 32,
+      "microllm_batch_efficiency": 0.9798829161366859,
+      "microllm_peak_bytes": 1279944192.0,
+      "model": "qwen2.5-0.5b",
+      "pytorch_batch_efficiency": 0.9871288540544823,
+      "pytorch_peak_bytes": 1241472512.0,
+      "throughput_ratio_microllm_over_pytorch": 3.2176948629520723
+    },
+    {
+      "batch": 1,
+      "context": 512,
+      "microllm_batch_efficiency": 1.0,
+      "microllm_peak_bytes": 1318350336.0,
+      "model": "qwen2.5-0.5b",
+      "pytorch_batch_efficiency": 1.0,
+      "pytorch_peak_bytes": 1401090560.0,
+      "throughput_ratio_microllm_over_pytorch": 2.225679797831746
+    },
+    {
+      "batch": 2,
+      "context": 512,
+      "microllm_batch_efficiency": 1.0108272093968784,
+      "microllm_peak_bytes": 1376222720.0,
+      "model": "qwen2.5-0.5b",
+      "pytorch_batch_efficiency": 1.0778018640896219,
+      "pytorch_peak_bytes": 1726137344.0,
+      "throughput_ratio_microllm_over_pytorch": 2.087375958431445
+    },
+    {
+      "batch": 4,
+      "context": 512,
+      "microllm_batch_efficiency": 0.9913228790433375,
+      "microllm_peak_bytes": 1491967488.0,
+      "model": "qwen2.5-0.5b",
+      "pytorch_batch_efficiency": 0.9819370398116307,
+      "pytorch_peak_bytes": 2377304576.0,
+      "throughput_ratio_microllm_over_pytorch": 2.2469539446627014
+    },
+    {
+      "batch": 8,
+      "context": 512,
+      "microllm_batch_efficiency": 0.9618304564569883,
+      "microllm_peak_bytes": 1723457024.0,
+      "model": "qwen2.5-0.5b",
+      "pytorch_batch_efficiency": 1.0131790335862814,
+      "pytorch_peak_bytes": 3686505984.0,
+      "throughput_ratio_microllm_over_pytorch": 2.112880887692889
+    },
+    {
+      "batch": 1,
+      "context": 2048,
+      "microllm_batch_efficiency": 1.0,
+      "microllm_peak_bytes": 1843699200.0,
+      "model": "qwen2.5-0.5b",
+      "pytorch_batch_efficiency": 1.0,
+      "pytorch_peak_bytes": 2376147456.0,
+      "throughput_ratio_microllm_over_pytorch": 1.169086324611871
+    },
+    {
+      "batch": 2,
+      "context": 2048,
+      "microllm_batch_efficiency": 0.9939160775591865,
+      "microllm_peak_bytes": 2426920448.0,
+      "model": "qwen2.5-0.5b",
+      "pytorch_batch_efficiency": 1.049650342547444,
+      "pytorch_peak_bytes": 3684847104.0,
+      "throughput_ratio_microllm_over_pytorch": 1.10701025568788
+    },
+    {
+      "batch": 4,
+      "context": 2048,
+      "microllm_batch_efficiency": 0.9863926957716421,
+      "microllm_peak_bytes": 3593362944.0,
+      "model": "qwen2.5-0.5b",
+      "pytorch_batch_efficiency": 0.9973444582933004,
+      "pytorch_peak_bytes": 6272577024.0,
+      "throughput_ratio_microllm_over_pytorch": 1.1562486779111738
+    },
+    {
+      "batch": 8,
+      "context": 2048,
+      "microllm_batch_efficiency": 0.952027698677965,
+      "microllm_peak_bytes": 5926247936.0,
+      "model": "qwen2.5-0.5b",
+      "pytorch_batch_efficiency": 0.9431507048712156,
+      "pytorch_peak_bytes": 11468684800.0,
+      "throughput_ratio_microllm_over_pytorch": 1.1800898386945458
+    },
+    {
+      "batch": 1,
+      "context": 32,
+      "microllm_batch_efficiency": 1.0,
+      "microllm_peak_bytes": 4492859648.0,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "pytorch_batch_efficiency": 1.0,
+      "pytorch_peak_bytes": 3657594880.0,
+      "throughput_ratio_microllm_over_pytorch": 2.181718820375026
+    },
+    {
+      "batch": 2,
+      "context": 32,
+      "microllm_batch_efficiency": 0.9784458440444345,
+      "microllm_peak_bytes": 4497758720.0,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "pytorch_batch_efficiency": 0.9707595636959918,
+      "pytorch_peak_bytes": 3679480320.0,
+      "throughput_ratio_microllm_over_pytorch": 2.1989932342690595
+    },
+    {
+      "batch": 4,
+      "context": 32,
+      "microllm_batch_efficiency": 0.9714287947804325,
+      "microllm_peak_bytes": 4507556864.0,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "pytorch_batch_efficiency": 0.9233016291283334,
+      "pytorch_peak_bytes": 3725772288.0,
+      "throughput_ratio_microllm_over_pytorch": 2.295441075120335
+    },
+    {
+      "batch": 8,
+      "context": 32,
+      "microllm_batch_efficiency": 0.9873535698692599,
+      "microllm_peak_bytes": 4527153152.0,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "pytorch_batch_efficiency": 0.9813918185883499,
+      "pytorch_peak_bytes": 3810796032.0,
+      "throughput_ratio_microllm_over_pytorch": 2.1949723086613515
+    },
+    {
+      "batch": 1,
+      "context": 512,
+      "microllm_batch_efficiency": 1.0,
+      "microllm_peak_bytes": 4570212352.0,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "pytorch_batch_efficiency": 1.0,
+      "pytorch_peak_bytes": 3978577408.0,
+      "throughput_ratio_microllm_over_pytorch": 1.623650349244703
+    },
+    {
+      "batch": 2,
+      "context": 512,
+      "microllm_batch_efficiency": 0.9987621125861604,
+      "microllm_peak_bytes": 4652464128.0,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "pytorch_batch_efficiency": 1.1058360152586457,
+      "pytorch_peak_bytes": 4320921600.0,
+      "throughput_ratio_microllm_over_pytorch": 1.4664384506717378
+    },
+    {
+      "batch": 4,
+      "context": 512,
+      "microllm_batch_efficiency": 0.9913434717099633,
+      "microllm_peak_bytes": 4816967680.0,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "pytorch_batch_efficiency": 1.0748310161551495,
+      "pytorch_peak_bytes": 5051040256.0,
+      "throughput_ratio_microllm_over_pytorch": 1.4975332399888586
+    },
+    {
+      "batch": 8,
+      "context": 512,
+      "microllm_batch_efficiency": 0.790330379332132,
+      "microllm_peak_bytes": 5145974784.0,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "pytorch_batch_efficiency": 1.074538923483896,
+      "pytorch_peak_bytes": 6380771840.0,
+      "throughput_ratio_microllm_over_pytorch": 1.1942054106898494
+    },
+    {
+      "batch": 1,
+      "context": 2048,
+      "microllm_batch_efficiency": 1.0,
+      "microllm_peak_bytes": 5117581312.0,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "pytorch_batch_efficiency": 1.0,
+      "pytorch_peak_bytes": 5049509376.0,
+      "throughput_ratio_microllm_over_pytorch": 0.7717852094590347
+    },
+    {
+      "batch": 2,
+      "context": 2048,
+      "microllm_batch_efficiency": 0.9911627475262131,
+      "microllm_peak_bytes": 5747202048.0,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "pytorch_batch_efficiency": 1.1115136264318393,
+      "pytorch_peak_bytes": 6375697408.0,
+      "throughput_ratio_microllm_over_pytorch": 0.6882189570299616
+    },
+    {
+      "batch": 4,
+      "context": 2048,
+      "microllm_batch_efficiency": 0.9582399476477352,
+      "microllm_peak_bytes": 7006443520.0,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "pytorch_batch_efficiency": 1.1334883309884247,
+      "pytorch_peak_bytes": 9112156672.0,
+      "throughput_ratio_microllm_over_pytorch": 0.6524596667549408
+    },
+    {
+      "batch": 8,
+      "context": 2048,
+      "microllm_batch_efficiency": 0.9550549992226768,
+      "microllm_peak_bytes": 9524926464.0,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "pytorch_batch_efficiency": 1.1299147674789285,
+      "pytorch_peak_bytes": 14587427328.0,
+      "throughput_ratio_microllm_over_pytorch": 0.6523477202307808
+    }
+  ],
+  "prefill": [
+    {
+      "batch": 1,
+      "context": 32,
+      "microllm_batch_efficiency": 1.0,
+      "microllm_peak_bytes": 1299488384.0,
+      "model": "qwen2.5-0.5b",
+      "pytorch_batch_efficiency": 1.0,
+      "pytorch_peak_bytes": 1095519744.0,
+      "throughput_ratio_microllm_over_pytorch": 1.391833084630092
+    },
+    {
+      "batch": 2,
+      "context": 32,
+      "microllm_batch_efficiency": 2.0187983454110268,
+      "microllm_peak_bytes": 1338498816.0,
+      "model": "qwen2.5-0.5b",
+      "pytorch_batch_efficiency": 0.9266486588579942,
+      "pytorch_peak_bytes": 1115024896.0,
+      "throughput_ratio_microllm_over_pytorch": 3.032249927175638
+    },
+    {
+      "batch": 4,
+      "context": 32,
+      "microllm_batch_efficiency": 1.8111427315499293,
+      "microllm_peak_bytes": 1416519680.0,
+      "model": "qwen2.5-0.5b",
+      "pytorch_batch_efficiency": 0.9735566641872385,
+      "pytorch_peak_bytes": 1155936256.0,
+      "throughput_ratio_microllm_over_pytorch": 2.5892775094534164
+    },
+    {
+      "batch": 8,
+      "context": 32,
+      "microllm_batch_efficiency": 1.489662596492533,
+      "microllm_peak_bytes": 1572561408.0,
+      "model": "qwen2.5-0.5b",
+      "pytorch_batch_efficiency": 0.9888619842479405,
+      "pytorch_peak_bytes": 1232057344.0,
+      "throughput_ratio_microllm_over_pytorch": 2.0967149306595387
+    },
+    {
+      "batch": 1,
+      "context": 512,
+      "microllm_batch_efficiency": 1.0,
+      "microllm_peak_bytes": 1884644864.0,
+      "model": "qwen2.5-0.5b",
+      "pytorch_batch_efficiency": 1.0,
+      "pytorch_peak_bytes": 1388100608.0,
+      "throughput_ratio_microllm_over_pytorch": 1.7034010397696482
+    },
+    {
+      "batch": 2,
+      "context": 512,
+      "microllm_batch_efficiency": 0.6807763858634974,
+      "microllm_peak_bytes": 2508811776.0,
+      "model": "qwen2.5-0.5b",
+      "pytorch_batch_efficiency": 0.9666027560341096,
+      "pytorch_peak_bytes": 1700187136.0,
+      "throughput_ratio_microllm_over_pytorch": 1.199701941972927
+    },
+    {
+      "batch": 4,
+      "context": 512,
+      "microllm_batch_efficiency": 0.40037164461484304,
+      "microllm_peak_bytes": 3757145600.0,
+      "model": "qwen2.5-0.5b",
+      "pytorch_batch_efficiency": 0.9114241197923781,
+      "pytorch_peak_bytes": 2325408768.0,
+      "throughput_ratio_microllm_over_pytorch": 0.748272358522359
+    },
+    {
+      "batch": 8,
+      "context": 512,
+      "microllm_batch_efficiency": 0.2218858054550633,
+      "microllm_peak_bytes": 6253813248.0,
+      "model": "qwen2.5-0.5b",
+      "pytorch_batch_efficiency": 0.6147392467251436,
+      "pytorch_peak_bytes": 3574803456.0,
+      "throughput_ratio_microllm_over_pytorch": 0.6148306192190636
+    },
+    {
+      "batch": 1,
+      "context": 2048,
+      "microllm_batch_efficiency": 1.0,
+      "microllm_peak_bytes": 3757145600.0,
+      "model": "qwen2.5-0.5b",
+      "pytorch_batch_efficiency": 1.0,
+      "pytorch_peak_bytes": 2325408768.0,
+      "throughput_ratio_microllm_over_pytorch": 0.539613959997501
+    },
+    {
+      "batch": 2,
+      "context": 2048,
+      "microllm_batch_efficiency": 0.5410936577825746,
+      "microllm_peak_bytes": 6253813248.0,
+      "model": "qwen2.5-0.5b",
+      "pytorch_batch_efficiency": 0.6605423436874298,
+      "pytorch_peak_bytes": 3574803456.0,
+      "throughput_ratio_microllm_over_pytorch": 0.4420332688675506
+    },
+    {
+      "batch": 4,
+      "context": 2048,
+      "microllm_batch_efficiency": 0.27886699917352653,
+      "microllm_peak_bytes": 11247148544.0,
+      "model": "qwen2.5-0.5b",
+      "pytorch_batch_efficiency": 0.4198076787594995,
+      "pytorch_peak_bytes": 6069398528.0,
+      "throughput_ratio_microllm_over_pytorch": 0.3584511035655786
+    },
+    {
+      "batch": 8,
+      "context": 2048,
+      "microllm_batch_efficiency": 0.074576975962897,
+      "microllm_peak_bytes": 21233819136.0,
+      "model": "qwen2.5-0.5b",
+      "pytorch_batch_efficiency": 0.23259132250576267,
+      "pytorch_peak_bytes": 11062782976.0,
+      "throughput_ratio_microllm_over_pytorch": 0.17301925493364115
+    },
+    {
+      "batch": 1,
+      "context": 32,
+      "microllm_batch_efficiency": 1.0,
+      "microllm_peak_bytes": 4527052928.0,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "pytorch_batch_efficiency": 1.0,
+      "pytorch_peak_bytes": 3655250432.0,
+      "throughput_ratio_microllm_over_pytorch": 2.1462869934635855
+    },
+    {
+      "batch": 2,
+      "context": 32,
+      "microllm_batch_efficiency": 0.9065649654741595,
+      "microllm_peak_bytes": 4566145280.0,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "pytorch_batch_efficiency": 0.927412036649703,
+      "pytorch_peak_bytes": 3674796544.0,
+      "throughput_ratio_microllm_over_pytorch": 2.098041126526688
+    },
+    {
+      "batch": 4,
+      "context": 32,
+      "microllm_batch_efficiency": 0.7780692473995816,
+      "microllm_peak_bytes": 4644329984.0,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "pytorch_batch_efficiency": 1.0264569383578914,
+      "pytorch_peak_bytes": 3715789824.0,
+      "throughput_ratio_microllm_over_pytorch": 1.6269166716134202
+    },
+    {
+      "batch": 8,
+      "context": 32,
+      "microllm_batch_efficiency": 0.6115669321810133,
+      "microllm_peak_bytes": 4800699392.0,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "pytorch_batch_efficiency": 0.8913608151598493,
+      "pytorch_peak_bytes": 3792074752.0,
+      "throughput_ratio_microllm_over_pytorch": 1.4725778044631064
+    },
+    {
+      "batch": 1,
+      "context": 512,
+      "microllm_batch_efficiency": 1.0,
+      "microllm_peak_bytes": 5113438208.0,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "pytorch_batch_efficiency": 1.0,
+      "pytorch_peak_bytes": 3948707840.0,
+      "throughput_ratio_microllm_over_pytorch": 1.0891843661537015
+    },
+    {
+      "batch": 2,
+      "context": 512,
+      "microllm_batch_efficiency": 0.6267233965103314,
+      "microllm_peak_bytes": 5738915840.0,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "pytorch_batch_efficiency": 0.7897519858709574,
+      "pytorch_peak_bytes": 4261187584.0,
+      "throughput_ratio_microllm_over_pytorch": 0.8643439175768498
+    },
+    {
+      "batch": 4,
+      "context": 512,
+      "microllm_batch_efficiency": 0.35384175496594306,
+      "microllm_peak_bytes": 6989871104.0,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "pytorch_batch_efficiency": 0.5382873373330983,
+      "pytorch_peak_bytes": 4887719936.0,
+      "throughput_ratio_microllm_over_pytorch": 0.7159724572209375
+    },
+    {
+      "batch": 8,
+      "context": 512,
+      "microllm_batch_efficiency": 0.19314739303190523,
+      "microllm_peak_bytes": 9491781632.0,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "pytorch_batch_efficiency": 0.33338114383667894,
+      "pytorch_peak_bytes": 6139736064.0,
+      "throughput_ratio_microllm_over_pytorch": 0.631028853139804
+    },
+    {
+      "batch": 1,
+      "context": 2048,
+      "microllm_batch_efficiency": 1.0,
+      "microllm_peak_bytes": 6989871104.0,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "pytorch_batch_efficiency": 1.0,
+      "pytorch_peak_bytes": 4887719936.0,
+      "throughput_ratio_microllm_over_pytorch": 0.624978338268058
+    },
+    {
+      "batch": 2,
+      "context": 2048,
+      "microllm_batch_efficiency": 0.540659837761019,
+      "microllm_peak_bytes": 9491781632.0,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "pytorch_batch_efficiency": 0.5591173472033297,
+      "pytorch_peak_bytes": 6139736064.0,
+      "throughput_ratio_microllm_over_pytorch": 0.6043466343198218
+    },
+    {
+      "batch": 4,
+      "context": 2048,
+      "microllm_batch_efficiency": 0.2576014650359296,
+      "microllm_peak_bytes": 14495602688.0,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "pytorch_batch_efficiency": 0.35974666125052296,
+      "pytorch_peak_bytes": 8639574016.0,
+      "throughput_ratio_microllm_over_pytorch": 0.4475241965941623
+    },
+    {
+      "batch": 8,
+      "context": 2048,
+      "microllm_batch_efficiency": 0.13639703498519845,
+      "microllm_peak_bytes": 24503244800.0,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "pytorch_batch_efficiency": 0.18334918527724142,
+      "pytorch_peak_bytes": 13643444224.0,
+      "throughput_ratio_microllm_over_pytorch": 0.464933575466074
+    }
+  ],
+  "protocol": {
+    "bf16_batches": [
+      1,
+      8
+    ],
+    "contexts": [
+      32,
+      512,
+      2048
+    ],
+    "decode_tokens": 8,
+    "full_batches": [
+      1,
+      2,
+      4,
+      8
+    ],
+    "models": 2,
+    "precision_note": "microLLM mixed BF16 weights and FP32 activations; PyTorch full BF16",
+    "runs": 1,
+    "steps": 3,
+    "warmup": 1
+  },
+  "record_counts": {
+    "cached_bf16": 24,
+    "cached_fp32": 48,
+    "prefill": 48,
+    "total": 120
+  },
+  "schema_version": 1,
+  "source_freeze": "f087fb4",
+  "status": "pass",
+  "token_mismatches": [
+    {
+      "batch": 1,
+      "cache_dtype": "fp32",
+      "context": 32,
+      "first_difference": 6,
+      "matching_prefix": 6,
+      "model": "deepseek-r1-distill-qwen-1.5b"
+    },
+    {
+      "batch": 1,
+      "cache_dtype": "fp32",
+      "context": 2048,
+      "first_difference": 3,
+      "matching_prefix": 3,
+      "model": "deepseek-r1-distill-qwen-1.5b"
+    },
+    {
+      "batch": 2,
+      "cache_dtype": "fp32",
+      "context": 2048,
+      "first_difference": 3,
+      "matching_prefix": 3,
+      "model": "deepseek-r1-distill-qwen-1.5b"
+    },
+    {
+      "batch": 4,
+      "cache_dtype": "fp32",
+      "context": 2048,
+      "first_difference": 3,
+      "matching_prefix": 3,
+      "model": "deepseek-r1-distill-qwen-1.5b"
+    },
+    {
+      "batch": 8,
+      "cache_dtype": "fp32",
+      "context": 2048,
+      "first_difference": 3,
+      "matching_prefix": 3,
+      "model": "deepseek-r1-distill-qwen-1.5b"
+    },
+    {
+      "batch": 1,
+      "cache_dtype": "bf16",
+      "context": 32,
+      "first_difference": 6,
+      "matching_prefix": 6,
+      "model": "deepseek-r1-distill-qwen-1.5b"
+    },
+    {
+      "batch": 1,
+      "cache_dtype": "bf16",
+      "context": 2048,
+      "first_difference": 3,
+      "matching_prefix": 3,
+      "model": "deepseek-r1-distill-qwen-1.5b"
+    },
+    {
+      "batch": 8,
+      "cache_dtype": "bf16",
+      "context": 2048,
+      "first_difference": 3,
+      "matching_prefix": 3,
+      "model": "deepseek-r1-distill-qwen-1.5b"
+    }
+  ]
+}

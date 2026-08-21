@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="950" viewBox="0 0 1500 950">
+  <rect width="1500" height="950" fill="#f8fafc"/>
+  <text x="750" y="52" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="30" font-weight="700" fill="#111827">Experiment 076 · inference shape matrix</text>
+  <text x="750" y="82" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="15" fill="#64748b">MI300X · 120 process rows · one-run survey · higher ratio is better</text>
+
+  <rect x="38" y="108" width="700" height="380" rx="14" fill="#ffffff" stroke="#dbe4ee"/>
+  <text x="62" y="142" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#111827">Prefill B8 · microLLM / PyTorch</text>
+  <line x1="402" y1="158" x2="402" y2="456" stroke="#ef4444" stroke-width="2" stroke-dasharray="6 5"/>
+  <text x="407" y="174" font-family="Inter,Arial,sans-serif" font-size="12" fill="#ef4444">parity 1.0×</text>
+  <g font-family="Inter,Arial,sans-serif" font-size="14" fill="#334155">
+    <text x="62" y="207">Qwen T32</text><rect x="262" y="190" width="294" height="20" rx="4" fill="#2563eb"/><text x="564" y="207">2.097×</text>
+    <text x="62" y="251">Qwen T512</text><rect x="262" y="234" width="86" height="20" rx="4" fill="#2563eb"/><text x="356" y="251">0.615×</text>
+    <text x="62" y="295">Qwen T2048</text><rect x="262" y="278" width="24" height="20" rx="4" fill="#2563eb"/><text x="294" y="295">0.173×</text>
+    <text x="62" y="353">DeepSeek T32</text><rect x="262" y="336" width="206" height="20" rx="4" fill="#0f766e"/><text x="476" y="353">1.473×</text>
+    <text x="62" y="397">DeepSeek T512</text><rect x="262" y="380" width="88" height="20" rx="4" fill="#0f766e"/><text x="358" y="397">0.631×</text>
+    <text x="62" y="441">DeepSeek T2048</text><rect x="262" y="424" width="65" height="20" rx="4" fill="#0f766e"/><text x="335" y="441">0.465×</text>
+  </g>
+
+  <rect x="762" y="108" width="700" height="380" rx="14" fill="#ffffff" stroke="#dbe4ee"/>
+  <text x="786" y="142" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#111827">Cached decode B8 · FP32 / BF16 Cache</text>
+  <line x1="1006" y1="158" x2="1006" y2="456" stroke="#ef4444" stroke-width="2" stroke-dasharray="6 5"/>
+  <g font-family="Inter,Arial,sans-serif" font-size="13" fill="#334155">
+    <text x="786" y="203">Qwen T32</text><rect x="906" y="184" width="322" height="12" fill="#1d4ed8"/><rect x="906" y="199" width="329" height="12" fill="#93c5fd"/><text x="1244" y="207">3.22 / 3.29×</text>
+    <text x="786" y="251">Qwen T512</text><rect x="906" y="232" width="211" height="12" fill="#1d4ed8"/><rect x="906" y="247" width="235" height="12" fill="#93c5fd"/><text x="1150" y="255">2.11 / 2.35×</text>
+    <text x="786" y="299">Qwen T2048</text><rect x="906" y="280" width="118" height="12" fill="#1d4ed8"/><rect x="906" y="295" width="120" height="12" fill="#93c5fd"/><text x="1036" y="303">1.18 / 1.20×</text>
+    <text x="786" y="357">DeepSeek T32</text><rect x="906" y="338" width="220" height="12" fill="#0f766e"/><rect x="906" y="353" width="240" height="12" fill="#5eead4"/><text x="1156" y="361">2.20 / 2.40×</text>
+    <text x="786" y="405">DeepSeek T512</text><rect x="906" y="386" width="119" height="12" fill="#0f766e"/><rect x="906" y="401" width="143" height="12" fill="#5eead4"/><text x="1059" y="409">1.19 / 1.43×</text>
+    <text x="786" y="453">DeepSeek T2048</text><rect x="906" y="434" width="65" height="12" fill="#0f766e"/><rect x="906" y="449" width="80" height="12" fill="#5eead4"/><text x="996" y="457">0.65 / 0.80×</text>
+  </g>
+
+  <rect x="38" y="512" width="700" height="374" rx="14" fill="#ffffff" stroke="#dbe4ee"/>
+  <text x="62" y="548" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#111827">KV Storage · T2048 B8</text>
+  <g font-family="Inter,Arial,sans-serif" font-size="14" fill="#334155">
+    <text x="62" y="604">Qwen FP32</text><rect x="210" y="587" width="193" height="22" rx="4" fill="#1d4ed8"/><text x="413" y="604">385.5 MiB</text>
+    <text x="62" y="648">Qwen BF16</text><rect x="210" y="631" width="96" height="22" rx="4" fill="#93c5fd"/><text x="316" y="648">192.75 MiB</text>
+    <text x="62" y="718">DeepSeek FP32</text><rect x="210" y="701" width="450" height="22" rx="4" fill="#0f766e"/><text x="570" y="718">899.5 MiB</text>
+    <text x="62" y="762">DeepSeek BF16</text><rect x="210" y="745" width="225" height="22" rx="4" fill="#5eead4"/><text x="445" y="762">449.75 MiB</text>
+  </g>
+  <text x="62" y="829" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="700" fill="#166534">Both caches are exactly 2.00× smaller</text>
+  <text x="62" y="855" font-family="Inter,Arial,sans-serif" font-size="13" fill="#64748b">Peak memory falls less: weights and temporary activations remain.</text>
+
+  <rect x="762" y="512" width="700" height="374" rx="14" fill="#ffffff" stroke="#dbe4ee"/>
+  <text x="786" y="548" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#111827">What the wider matrix changed</text>
+  <g font-family="Inter,Arial,sans-serif" font-size="16" fill="#334155">
+    <circle cx="799" cy="602" r="6" fill="#dc2626"/><text x="820" y="608">Qwen T2048 B8 prefill: 0.173× PyTorch</text>
+    <circle cx="799" cy="652" r="6" fill="#dc2626"/><text x="820" y="658">DeepSeek T2048 B8 decode: 0.652× / 0.797×</text>
+    <circle cx="799" cy="702" r="6" fill="#16a34a"/><text x="820" y="708">Qwen cached token suffix: 18 / 18 exact</text>
+    <circle cx="799" cy="752" r="6" fill="#f59e0b"/><text x="820" y="758">DeepSeek cached token suffix: 10 / 18 exact</text>
+    <circle cx="799" cy="802" r="6" fill="#2563eb"/><text x="820" y="808">Fast CI: 18 CPU + 24 HIP shape/dtype cases</text>
+  </g>
+  <text x="750" y="925" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" fill="#64748b">Raw evidence: docs/optimization-log/experiments/076-data · ratios are a one-process survey, not stable small-delta rankings</text>
+</svg>

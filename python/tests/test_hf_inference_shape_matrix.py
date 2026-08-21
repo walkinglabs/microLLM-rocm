@@ -92,6 +92,11 @@ class HfInferenceShapeMatrixTest(unittest.TestCase):
         self.assertEqual(MATRIX.classify_failure("HIP out of memory"), "oom")
         self.assertEqual(MATRIX.classify_failure("wrong answer"), "failed")
 
+    def test_first_sequence_difference_reports_exact_divergence(self):
+        self.assertEqual(MATRIX.first_sequence_difference([1, 2], [1, 2]), -1)
+        self.assertEqual(MATRIX.first_sequence_difference([1, 2], [1, 3]), 1)
+        self.assertEqual(MATRIX.first_sequence_difference([1], [1, 2]), 1)
+
     def test_case_filter_rejects_unknown_and_omits_unrequested_rows(self):
         self.assertEqual(MATRIX.case_list("prefill,cached"), ["prefill", "cached"])
         with self.assertRaisesRegex(Exception, "cases must contain"):
