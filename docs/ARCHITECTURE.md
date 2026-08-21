@@ -35,6 +35,9 @@ independent B=1 `KVCache`, RNG and lifecycle state. The scheduler releases Cache
 completion and exposes snapshots/metrics. It is intentionally serial; a future slot-batched
 scheduler must preserve this state machine. `forward_cached_rows()` is now the divergent-position
 model oracle: it serializes B1 views over shared batch Storage and does not claim parallel speed.
+`forward_prefill_cached_row()` is the matching admission oracle: it computes a new prompt in a
+temporary B1 Cache, copies the active prefix into one empty shared row on the same device, and
+leaves every other row untouched. Neither oracle is the final parallel serving path.
 See [serving scheduler](dev/serving-scheduler.zh-CN.md).
 
 

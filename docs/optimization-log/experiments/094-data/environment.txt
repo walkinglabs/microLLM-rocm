@@ -1,0 +1,14 @@
+date_utc=2026-08-21
+device=AMD Instinct MI300X VF
+architecture=gfx942:sramecc+:xnack-
+hip_runtime=71399004
+hip_driver=71399004
+cpu_filter=TransformerModelTest.RowPrefillReplacesOnlyAnEmptySharedCacheSlot
+hip_filter=HipInferenceShapeMatrixTest.RowPrefillPreservesOtherSlotAndMatchesCpu
+cache_dtypes=fp32,bf16
+batch=2
+prompt_tokens=2
+initial_positions=3,3
+reset_positions=0,3
+prefill_positions=2,3
+decode_positions=3,4

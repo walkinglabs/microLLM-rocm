@@ -81,6 +81,11 @@ public:
     // returns last-token logits [B,1,V]. The cache must be empty and fit B/T.
     [[nodiscard]] Tensor forward_prefill_cached(const Tensor& token_ids,
                                                 inference::KVCache& cache);
+    // Prefills one empty row of a shared batch cache without modifying other
+    // rows. A temporary B1 cache is copied into the row as the correctness
+    // reference for continuous slot admission.
+    [[nodiscard]] Tensor forward_prefill_cached_row(
+        const Tensor& token_ids, inference::KVCache& cache, std::int64_t row);
     [[nodiscard]] Tensor forward_cached(const Tensor& token_id,
                                         inference::KVCache& cache);
     // Correctness-first divergent-row decode. Each Bx1 row may have its own

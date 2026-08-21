@@ -137,6 +137,35 @@ Tensor cache_row_view(const Tensor& cached, std::int64_t row,
         cached.dtype());
 }
 
+void copy_cache_prefix_to_row(Tensor& destination, const Tensor& source,
+                              std::int64_t row, std::int64_t prefix) {
+    if (!destination.defined() || !source.defined() ||
+        destination.ndim() != 4 || source.ndim() != 4 ||
+        source.shape()[0] != 1 || destination.shape()[1] != source.shape()[1] ||
+        destination.shape()[3] != source.shape()[3] ||
+        source.shape()[2] != prefix || destination.dtype() != source.dtype() ||
+        destination.device() != source.device() || row < 0 ||
+        row >= destination.shape()[0]) {
+        throw std::invalid_argument("row prefill cache copy is incompatible");
+    }
+    const auto bytes = static_cast<std::size_t>(
+        prefix * source.shape()[3]) * dtype_size(source.dtype());
+    auto* destination_data = static_cast<std::byte*>(destination.data());
+    const auto* source_data = static_cast<const std::byte*>(source.data());
+    const auto element_bytes = dtype_size(source.dtype());
+    for (std::int64_t head = 0; head < source.shape()[1]; ++head) {
+        runtime::copy_bytes(
+            destination_data + static_cast<std::size_t>(
+                                   row * destination.stride(0) +
+                                   head * destination.stride(1)) *
+                                   element_bytes,
+            destination.device(),
+            source_data + static_cast<std::size_t>(head * source.stride(1)) *
+                              element_bytes,
+            source.device(), bytes);
+    }
+}
+
 Tensor random_tensor(Shape shape, std::mt19937_64& generator, float standard_deviation) {
     std::normal_distribution<float> distribution(0.0F, standard_deviation);
     std::vector<float> values(static_cast<std::size_t>(checked_numel(shape)));
@@ -859,6 +888,77 @@ Tensor TransformerModel::forward_prefill_cached(
         cache.reset();
         throw;
     }
+}
+
+Tensor TransformerModel::forward_prefill_cached_row(
+    const Tensor& token_ids, inference::KVCache& cache, std::int64_t row) {
+    if (!impl_->parameters_initialized) {
+        throw std::logic_error("model parameters must be loaded before cached prefill");
+    }
+    if (token_ids.dtype() != DType::Int32 || token_ids.ndim() != 2 ||
+        token_ids.shape()[0] != 1 || token_ids.shape()[1] <= 0) {
+        throw std::invalid_argument("row prefill expects a non-empty 1xT int32 sequence");
+    }
+    if (row < 0 || row >= cache.batch_size()) {
+        throw std::out_of_range("row prefill target is outside the KV cache batch");
+    }
+    const auto sequence = token_ids.shape()[1];
+    if (cache.layer_count() != impl_->blocks.size() ||
+        cache.row_position(row) != 0 || sequence > cache.max_sequence_length() ||
+        cache.max_sequence_length() > impl_->config.max_sequence_length) {
+        throw std::invalid_argument("row prefill requires an empty matching cache row");
+    }
+    if (cache.batch_size() == 1) return forward_prefill_cached(token_ids, cache);
+
+    const auto maximum_prefix = *std::max_element(
+        cache.row_positions().begin(), cache.row_positions().end());
+    const auto target_prefix = std::max(maximum_prefix, sequence);
+    std::vector<DType> layer_dtypes;
+    layer_dtypes.reserve(cache.layer_count());
+    for (std::size_t layer = 0; layer < cache.layer_count(); ++layer) {
+        const auto& state = cache.layer(layer);
+        if (state.key.defined() != state.value.defined() ||
+            (maximum_prefix > 0 && !state.key.defined())) {
+            throw std::invalid_argument("row prefill shared KV storage is incomplete");
+        }
+        layer_dtypes.push_back(cache.layer_dtype(layer));
+    }
+
+    inference::KVCache local_cache(
+        layer_dtypes, cache.max_sequence_length(), 1);
+    const auto logits = forward_prefill_cached(token_ids, local_cache);
+    const auto kv_heads = impl_->config.kv_heads;
+    const auto width = impl_->config.head_dimension();
+    const auto model_device = device();
+    for (std::size_t layer = 0; layer < cache.layer_count(); ++layer) {
+        auto& shared = cache.mutable_layer(layer);
+        if (!shared.key.defined()) {
+            ensure_batched_cache_tensor(
+                shared.key, cache.batch_size(), kv_heads, 0,
+                cache.max_sequence_length(), width, cache.layer_dtype(layer),
+                model_device);
+        }
+        if (!shared.value.defined()) {
+            ensure_batched_cache_tensor(
+                shared.value, cache.batch_size(), kv_heads, 0,
+                cache.max_sequence_length(), width, cache.layer_dtype(layer),
+                model_device);
+        }
+        ensure_batched_cache_tensor(
+            shared.key, cache.batch_size(), kv_heads, target_prefix,
+            cache.max_sequence_length(), width, cache.layer_dtype(layer),
+            model_device);
+        ensure_batched_cache_tensor(
+            shared.value, cache.batch_size(), kv_heads, target_prefix,
+            cache.max_sequence_length(), width, cache.layer_dtype(layer),
+            model_device);
+        copy_cache_prefix_to_row(shared.key, local_cache.layer(layer).key, row,
+                                 sequence);
+        copy_cache_prefix_to_row(shared.value, local_cache.layer(layer).value, row,
+                                 sequence);
+    }
+    cache.advance_row(row, sequence);
+    return logits;
 }
 
 Value TransformerModel::loss(const Tensor& token_ids, const Tensor& targets) {

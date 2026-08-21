@@ -50,3 +50,6 @@ B2先prefill到`[3,3]`，清空row 0得到`[0,3]`。实际B2结果分别与两�
 期间0次D2H，以及reset最大row后logical prefix从5缩到2。
 
 实验记录见[Experiment 093](../optimization-log/experiments/093-divergent-row-cache-reference.md)。
+
+当空row需要接收一段完整的新prompt时，继续阅读
+[单槽位prefill](slot-row-prefill.zh-CN.md)。

@@ -550,6 +550,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/092-data/](experiments/092-data/) | Value pair完整logit与T2048三对性能 |
 | [assets/divergent-cached-row-reference.svg](assets/divergent-cached-row-reference.svg) | shared Storage上的不同position与B1 view执行 |
 | [experiments/093-data/](experiments/093-data/) | 两步状态转移、CPU/HIP、dtype与serial边界 |
+| [assets/slot-row-prefill.svg](assets/slot-row-prefill.svg) | 新prompt进入一个空row且旧row保持不变 |
+| [experiments/094-data/](experiments/094-data/) | 单槽位prefill状态转移、CPU/HIP、dtype与失败合同 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

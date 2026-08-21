@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "feature": "shared-cache single-row prefill reference",
+  "state_transitions": [
+    {"positions": [3, 3], "event": "initial batch prefill"},
+    {"positions": [0, 3], "event": "reset row 0"},
+    {"positions": [2, 3], "event": "prefill two-token prompt into row 0"},
+    {"positions": [3, 4], "event": "one divergent decode step"}
+  ],
+  "contracts": {
+    "fp32_prefill_matches_independent_b1": true,
+    "bf16_prefill_matches_independent_b1": true,
+    "continued_decode_matches_independent_b1": true,
+    "other_row_key_value_preserved": true,
+    "shared_storage_address_stable": true,
+    "empty_nonzero_row_can_be_first_admission": true,
+    "nonempty_row_rejected": true,
+    "out_of_range_row_rejected": true,
+    "hip_matches_cpu": true,
+    "hip_payload_d2h_during_execution": 0,
+    "continuous_scheduler_complete": false,
+    "performance_claim": false
+  },
+  "implementation": {
+    "prefill_oracle": "existing full-prefill B1 path",
+    "temporary_b1_cache": true,
+    "copy": "same-device by layer and KV head",
+    "shared_capacity_reallocated": false,
+    "target_row_only_advanced": true
+  }
+}

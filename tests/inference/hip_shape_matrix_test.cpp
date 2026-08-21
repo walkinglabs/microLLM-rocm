@@ -135,4 +135,44 @@ TEST(HipInferenceShapeMatrixTest, DivergentRowsMatchCpuWithoutPayloadD2H) {
     }
 }
 
+TEST(HipInferenceShapeMatrixTest, RowPrefillPreservesOtherSlotAndMatchesCpu) {
+    if (runtime::hip_device_count() == 0) GTEST_SKIP() << "No visible HIP device";
+    auto config = hip_shape_matrix_config();
+    config.max_sequence_length = 8;
+    for (const auto dtype : {DType::Float32, DType::BFloat16}) {
+        model::TransformerModel cpu(config, 179);
+        model::TransformerModel hip(config, 179);
+        hip.to(Device::hip(0));
+        KVCache cpu_cache(config.layers, config.max_sequence_length, 2, dtype);
+        KVCache hip_cache(config.layers, config.max_sequence_length, 2, dtype);
+        const auto prefix = Tensor::from_int32_vector(
+            {1, 2, 3, 4, 3, 2}, {2, 3});
+        (void)cpu.forward_prefill_cached(prefix, cpu_cache);
+        (void)hip.forward_prefill_cached(prefix.to(Device::hip(0)), hip_cache);
+        const auto preserved_key = hip_cache.layer(0).key.slice(0, 1, 2).to_vector();
+        cpu_cache.reset_row(0);
+        hip_cache.reset_row(0);
+        const auto prompt = Tensor::from_int32_vector({7, 8}, {1, 2});
+        const auto device_prompt = prompt.to(Device::hip(0));
+        const auto expected = cpu.forward_prefill_cached_row(prompt, cpu_cache, 0).to_vector();
+        runtime::reset_transfer_stats();
+        const auto device_logits = hip.forward_prefill_cached_row(
+            device_prompt, hip_cache, 0);
+        runtime::synchronize(Device::hip(0));
+        EXPECT_EQ(runtime::transfer_stats().device_to_host_calls, 0U);
+        const auto actual = device_logits.to_vector();
+        const auto tolerance = dtype == DType::Float32 ? 2.0e-4F : 5.0e-2F;
+        ASSERT_EQ(actual.size(), expected.size());
+        for (std::size_t index = 0; index < actual.size(); ++index) {
+            EXPECT_NEAR(actual[index], expected[index], tolerance)
+                << "dtype=" << dtype_name(dtype) << " index=" << index;
+        }
+        EXPECT_EQ(hip_cache.row_positions(),
+                  (std::vector<std::int64_t>{2, 3}));
+        EXPECT_EQ(hip_cache.row_positions(), cpu_cache.row_positions());
+        EXPECT_EQ(hip_cache.layer(0).key.slice(0, 1, 2).to_vector(),
+                  preserved_key);
+    }
+}
+
 }  // namespace microllm::inference

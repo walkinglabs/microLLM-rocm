@@ -2857,6 +2857,54 @@ def validate_divergent_row_cache_reference(errors: list[str]) -> tuple[int, int,
         int(gates["focused"]["decode_steps"])
 
 
+def validate_slot_row_prefill(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "094-data"
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    transitions = summary.get("state_transitions", [])
+    contracts = summary.get("contracts", {})
+    expected = [[3, 3], [0, 3], [2, 3], [3, 4]]
+    if summary.get("status") != "pass" or \
+            [row.get("positions") for row in transitions] != expected or any(
+                contracts.get(name) is not True for name in (
+                    "fp32_prefill_matches_independent_b1",
+                    "bf16_prefill_matches_independent_b1",
+                    "continued_decode_matches_independent_b1",
+                    "other_row_key_value_preserved",
+                    "shared_storage_address_stable",
+                    "empty_nonzero_row_can_be_first_admission",
+                    "nonempty_row_rejected",
+                    "out_of_range_row_rejected",
+                    "hip_matches_cpu")) or \
+            contracts.get("hip_payload_d2h_during_execution") != 0 or \
+            contracts.get("continuous_scheduler_complete") is not False or \
+            contracts.get("performance_claim") is not False:
+        errors.append("single-row prefill reference evidence changed")
+    if gates.get("status") != "pass" or \
+            gates.get("full", {}).get("passed") != 302 or \
+            gates.get("cpu", {}).get("passed") != 211 or \
+            gates.get("hip", {}).get("passed") != 91 or \
+            gates.get("sanitizer", {}).get("passed") != 204 or \
+            gates.get("focused", {}).get("cache_dtypes") != 2 or \
+            gates.get("focused", {}).get("continued_decode_steps") != 1:
+        errors.append("single-row prefill final gates changed")
+    header = (REPOSITORY / "include" / "microllm" / "model" / "model.h").read_text(
+        encoding="utf-8")
+    source = (REPOSITORY / "src" / "model" / "model.cpp").read_text(
+        encoding="utf-8")
+    cpu_tests = (REPOSITORY / "tests" / "model" / "model_test.cpp").read_text(
+        encoding="utf-8")
+    hip_tests = (REPOSITORY / "tests" / "inference" /
+                 "hip_shape_matrix_test.cpp").read_text(encoding="utf-8")
+    if "forward_prefill_cached_row" not in header or \
+            "copy_cache_prefix_to_row" not in source or \
+            "RowPrefillReplacesOnlyAnEmptySharedCacheSlot" not in cpu_tests or \
+            "RowPrefillPreservesOtherSlotAndMatchesCpu" not in hip_tests:
+        errors.append("single-row prefill source or executable gate is missing")
+    return len(transitions), int(gates["focused"]["cache_dtypes"]), \
+        int(gates["focused"]["continued_decode_steps"])
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -2928,7 +2976,8 @@ def validate_assets(errors: list[str]) -> None:
                  "device-token-history.svg",
                  "normalize-cached-probabilities-discard.svg",
                  "bf16-paired-value-load-discard.svg",
-                 "divergent-cached-row-reference.svg"):
+                 "divergent-cached-row-reference.svg",
+                 "slot-row-prefill.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -3054,6 +3103,8 @@ def main() -> int:
         validate_bf16_paired_value_load_discard(errors)
     divergent_transitions, divergent_dtypes, divergent_steps = \
         validate_divergent_row_cache_reference(errors)
+    row_prefill_transitions, row_prefill_dtypes, row_prefill_steps = \
+        validate_slot_row_prefill(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -3145,6 +3196,8 @@ def main() -> int:
           f"{paired_value_b8} "
           f"divergent_rows={divergent_transitions}/{divergent_dtypes}/"
           f"{divergent_steps} "
+          f"row_prefill={row_prefill_transitions}/{row_prefill_dtypes}/"
+          f"{row_prefill_steps} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

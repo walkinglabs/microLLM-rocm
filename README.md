@@ -163,9 +163,9 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 300/300 | 210 CPU-labelled + 90 HIP-labelled gates; 2 intentional environment skips |
-| ASan/UBSan CPU | 203/203 | host code, CLI, model/graph, benchmark and evidence schemas |
-| MI300X/gfx942 HIP | 90/90 | allocator/stream, graph, BF16/FP8, batched GEMM and model matrix |
+| Full CPU/HIP configuration | 302/302 | 211 CPU-labelled + 91 HIP-labelled gates; 2 intentional environment skips |
+| ASan/UBSan CPU | 204/204 | host code, CLI, model/graph, benchmark and evidence schemas |
+| MI300X/gfx942 HIP | 91/91 | allocator/stream, graph, BF16/FP8, batched GEMM and model matrix |
 | PyTorch-enabled CPU build | 196/196 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
 | Registered test files | 37 | machine-audited CTest registration |

@@ -1991,3 +1991,18 @@ FP32/BF16、CPU/HIP通过，HIP执行区间0次D2H，Storage地址不变。reset
 
 这条路径串行执行B个B1，明确不报吞吐。下一步先接scheduler完成真实slot refill正确性，再用同一
 oracle验收positions-aware并行Kernel。
+
+## 111. Experiment 094：空座位可以换进新请求了
+
+上一节点能让`[0,3]`两行从不同页继续算，却还不能把一个两token prompt写进空的row 0。新接口
+`forward_prefill_cached_row()`先使用已有B1 full-prefill得到新请求的K/V和logits，再把有效前缀
+按layer/head在同一设备复制进共享Cache的目标row。
+
+![Shared-cache row prefill](assets/slot-row-prefill.svg)
+
+状态从`[3,3]`清空成`[0,3]`，补入两token后成为`[2,3]`，下一步decode得到`[3,4]`。FP32/BF16、
+CPU/HIP都与独立B1对齐；旧row每层K/V和共享Storage地址不变；HIP执行区间0次D2H payload。
+完整配置302/302，sanitizer 204/204。
+
+这是slot admission的正确性oracle，不是性能结论：临时B1 Cache和逐head D2D copy都有成本。
+下一节点可以把它与请求状态机接起来，首次跑通真正的“请求结束→清空→新请求补位→继续decode”。

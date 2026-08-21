@@ -130,6 +130,11 @@ GPU payload copy。它故意不修改共同`position()`：清掉旧草稿本不�
 continuous refill scheduler的oracle，不是最终性能实现。详细图解见
 [不同页数的KV row](divergent-kv-rows.zh-CN.md)。
 
+空row现在也能调用`forward_prefill_cached_row()`接收一个新`[1,T]` prompt。第一版先在临时B1
+Cache里跑已验证的full prefill，再把有效K/V逐层、逐head D2D复制进目标row。原有row的K/V、
+position和共享Storage地址都不变。它补齐了模型层的slot admission oracle，但scheduler还没有把
+结束、清空、补位和decode自动串起来。图解见[单槽位prefill](slot-row-prefill.zh-CN.md)。
+
 ## 8. 测试位置
 
 ```text
@@ -140,7 +145,7 @@ tests/ops/hip_ops_test.cpp
   HIP与CPU逐请求结果、取消行排除、Cache和调用指标对齐
 
 tests/inference/hip_shape_matrix_test.cpp
-  分叉row CPU/HIP、零D2H、FP32/BF16和公共Storage view对齐
+  分叉row与单槽位prefill的CPU/HIP、零D2H、FP32/BF16和公共Storage对齐
 
 benchmarks/end_to_end/benchmark_scheduler.cpp
   CPU/HIP 1/2/4/8请求的串行与静态batch基线

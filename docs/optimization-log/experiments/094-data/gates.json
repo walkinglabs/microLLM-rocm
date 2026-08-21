@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "full": {"passed": 302, "failed": 0, "skipped": 2},
+  "cpu": {"passed": 211, "failed": 0, "skipped": 2},
+  "hip": {"passed": 91, "failed": 0, "skipped": 0},
+  "sanitizer": {"passed": 204, "failed": 0, "skipped": 0},
+  "focused": {
+    "cpu_row_prefill_tests": 1,
+    "hip_row_prefill_tests": 1,
+    "cache_dtypes": 2,
+    "continued_decode_steps": 1
+  }
+}

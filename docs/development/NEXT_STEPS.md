@@ -56,6 +56,7 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] batch compatible equal-length requests through one public static generation path;
 - [x] group pending requests by compatibility with singleton fallback and cross-drain admission;
 - [x] execute unequal cache positions through a shared-Storage serial B1 oracle on CPU/HIP;
+- [x] prefill one empty shared Cache row from a temporary B1 oracle without changing other rows;
 - [ ] batch compatible active request slots without changing reference request semantics;
 - [ ] replace the divergent-row serial oracle with positions-aware parallel RoPE/store/Attention;
 
