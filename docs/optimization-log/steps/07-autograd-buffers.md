@@ -54,3 +54,16 @@ buffer address stable while separately tracking whether a current gradient is va
 This is narrower than a general liveness planner and directly enables the measured next
 optimization. It must prove repeated-backward semantics, address stability, no parameter
 alias, and zero optimizer payload transfers before multi-tensor AdamW is attempted.
+
+## Experiment 047 result
+
+The stable-address candidate passed those correctness tests but failed the matched Qwen
+`1×128` throughput gate: `802.70→757.48 token/s` (`−5.63%`). Peak memory fell 5.21%, but
+copying every first leaf contribution added a memory pass and launch. The implementation
+was removed.
+
+The revised optimizer design does not require stable addresses. It passes the current
+parameter/gradient/moment pointers in bounded groups as Kernel arguments. Sixteen tensors
+per launch keeps metadata bounded and should reduce 339 launches to about 22 without a
+pointer upload or gradient copy. This alternative must still pass scalar AdamW equality
+and end-to-end keep gates.

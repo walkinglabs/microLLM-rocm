@@ -595,6 +595,50 @@ def validate_deepseek_optimizer_profile(errors: list[str]) -> tuple[int, int]:
     return kernel_calls, api_calls
 
 
+def validate_stable_gradient_discard(errors: list[str]) -> tuple[int, int]:
+    data = ROOT / "experiments" / "047-data"
+    matched = [json.loads(line) for line in
+               (data / "candidate" / "raw.jsonl").read_text(
+                   encoding="utf-8").splitlines()]
+    mismatched = [json.loads(line) for line in
+                  (data / "protocol-mismatch" / "raw.jsonl").read_text(
+                      encoding="utf-8").splitlines()]
+    matched_keys = {(row.get("framework"), row.get("process_run")) for row in matched}
+    mismatch_keys = {(row.get("framework"), row.get("process_run")) for row in mismatched}
+    if len(matched) != 6 or len(matched_keys) != 6 or any(
+            row.get("status") != "pass" or row.get("batch") != 1 or
+            row.get("context") != 128 or row.get("warmup") != 1 or
+            row.get("steps") != 2 for row in matched):
+        errors.append("stable-gradient matched protocol evidence changed")
+    if len(mismatched) != 6 or len(mismatch_keys) != 6 or any(
+            row.get("status") != "pass" or row.get("warmup") != 2 or
+            row.get("steps") != 5 for row in mismatched):
+        errors.append("stable-gradient rejected protocol evidence changed")
+    summary = json.loads((data / "candidate" / "summary.json").read_text(encoding="utf-8"))
+    rows = summary.get("rows", [])
+    comparison = json.loads((data / "comparison.json").read_text(encoding="utf-8"))
+    baseline_records = [json.loads(line) for line in
+                        (ROOT / "experiments" / "044-data" / "candidate" /
+                         "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    baseline = sorted(float(row["tokens_per_second"]) for row in baseline_records
+                      if row.get("framework") == "microllm" and
+                      row.get("batch") == 1 and row.get("context") == 128)[1]
+    candidate = sorted(float(row["tokens_per_second"]) for row in matched
+                       if row.get("framework") == "microllm")[1]
+    candidate_peak = sorted(int(row["engine_peak_bytes"]) for row in matched
+                            if row.get("framework") == "microllm")[1]
+    if len(rows) != 1 or summary.get("runs_per_framework") != 3 or \
+            abs(rows[0].get("microllm_tokens_per_second", 0.0) - candidate) > 1e-6 or \
+            comparison.get("decision") != "discard" or \
+            abs(comparison.get("baseline_tokens_per_second", 0.0) - baseline) > 1e-6 or \
+            abs(comparison.get("candidate_tokens_per_second", 0.0) - candidate) > 1e-6 or \
+            comparison.get("candidate_peak_bytes") != candidate_peak or \
+            comparison.get("speed_ratio", 1.0) >= 0.95 or \
+            comparison.get("peak_ratio", 1.0) >= 0.95:
+        errors.append("stable-gradient discard boundary changed")
+    return len(matched), len(mismatched)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -620,7 +664,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-weight-gradient-routing.svg",
                  "fused-causal-gqa-training.svg",
                  "deepseek-training-shapes.svg",
-                 "deepseek-context128-profile.svg"):
+                 "deepseek-context128-profile.svg",
+                 "stable-gradient-buffer-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -662,6 +707,8 @@ def main() -> int:
     deepseek_pilot_count, deepseek_shape_count = validate_deepseek_shapes_and_load(errors)
     optimizer_profile_kernel_calls, optimizer_profile_api_calls = \
         validate_deepseek_optimizer_profile(errors)
+    stable_gradient_matched, stable_gradient_mismatched = \
+        validate_stable_gradient_discard(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -681,6 +728,7 @@ def main() -> int:
           f"fused_causal_gqa={fused_causal_gqa_count} "
           f"deepseek_shapes={deepseek_pilot_count}/{deepseek_shape_count} "
           f"optimizer_profile={optimizer_profile_kernel_calls}/{optimizer_profile_api_calls} "
+          f"stable_gradient={stable_gradient_matched}/{stable_gradient_mismatched} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

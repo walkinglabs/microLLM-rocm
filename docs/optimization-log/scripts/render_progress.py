@@ -49,6 +49,8 @@ DEEPSEEK_LOAD_SUMMARY = ROOT / "experiments" / "045-data" / "load-summary.json"
 DEEPSEEK_SHAPE_CHART = ROOT / "assets" / "deepseek-training-shapes.svg"
 DEEPSEEK_PROFILE_SUMMARY = ROOT / "experiments" / "046-data" / "profile-summary.json"
 DEEPSEEK_PROFILE_CHART = ROOT / "assets" / "deepseek-context128-profile.svg"
+STABLE_GRADIENT_COMPARISON = ROOT / "experiments" / "047-data" / "comparison.json"
+STABLE_GRADIENT_CHART = ROOT / "assets" / "stable-gradient-buffer-discard.svg"
 
 
 def rows() -> list[dict]:
@@ -1206,6 +1208,53 @@ def deepseek_context128_profile_svg() -> str:
     return "\n".join(parts)
 
 
+def stable_gradient_discard_svg() -> str:
+    data = json.loads(STABLE_GRADIENT_COMPARISON.read_text(encoding="utf-8"))
+    width, height = 1600, 720
+    panels = ((155, "Throughput", data["speed_ratio"], "#d04a3a",
+               f'{data["throughput_change_percent"]:.2f}%'),
+              (850, "Peak memory", data["peak_ratio"], "#2f9b68",
+               f'{data["peak_change_percent"]:.2f}%'))
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 047 · Stable Gradient Buffer Discarded", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 80,
+             "Qwen2.5-0.5B · BF16 Linear / FP32 master · batch 1 · context 128 · median of 3",
+             16, "#5b6474", anchor="middle"),
+    ]
+    for x, title, ratio, color, change in panels:
+        panel_w, panel_h, top = 590, 390, 135
+        parts.append(f'<rect x="{x}" y="{top}" width="{panel_w}" height="{panel_h}" '
+                     'fill="#ffffff" stroke="#cbd3df" rx="10"/>')
+        parts.append(text(x + panel_w / 2, top + 45, title, 22,
+                          anchor="middle", weight=700))
+        base_y, bar_h = top + 285, 210
+        for index, (label, value, fill) in enumerate((
+                ("Experiment 044", 1.0, "#64748b"),
+                ("stable buffer", ratio, color))):
+            bar_x = x + 130 + index * 190
+            height_value = bar_h * value / 1.05
+            parts.append(f'<rect x="{bar_x}" y="{base_y-height_value:.1f}" width="110" '
+                         f'height="{height_value:.1f}" rx="6" fill="{fill}"/>')
+            parts.append(text(bar_x + 55, base_y + 30, label, 14,
+                              "#445064", anchor="middle"))
+            parts.append(text(bar_x + 55, base_y - height_value - 10,
+                              f"{value:.3f}×", 17, fill, anchor="middle", weight=700))
+        parts.append(text(x + panel_w / 2, top + 360, change, 22, color,
+                          anchor="middle", weight=700))
+    parts.append(text(width / 2, 585,
+                      "Address tests passed, but one first-contribution copy per leaf crossed the −5% speed gate",
+                      17, "#b83f32", anchor="middle", weight=700))
+    parts.append(text(width / 2, 632,
+                      "Next: current pointers in 16-tensor Kernel-argument chunks · no persistent table · no gradient copy",
+                      16, "#2563eb", anchor="middle", weight=700))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -1225,7 +1274,8 @@ def main() -> int:
                 BF16_WEIGHT_GRADIENT_CHART: bf16_weight_gradient_svg(),
                 FUSED_CAUSAL_GQA_CHART: fused_causal_gqa_svg(),
                 DEEPSEEK_SHAPE_CHART: deepseek_shape_svg(),
-                DEEPSEEK_PROFILE_CHART: deepseek_context128_profile_svg()}
+                DEEPSEEK_PROFILE_CHART: deepseek_context128_profile_svg(),
+                STABLE_GRADIENT_CHART: stable_gradient_discard_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

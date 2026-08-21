@@ -1,0 +1,25 @@
+{
+  "pairing": "fresh processes; order alternates each run",
+  "precision": "bf16",
+  "rows": [
+    {
+      "batch": 1,
+      "context": 128,
+      "microllm_final_loss": 0.062321953,
+      "microllm_peak_bytes": 9905667080.0,
+      "microllm_tokens_per_second": 757.479573002,
+      "model": "qwen2.5-0.5b",
+      "peak_memory_ratio": 0.9803098996232797,
+      "pytorch_final_loss": 0.06679002195596695,
+      "pytorch_peak_allocated_bytes": 10104628224.0,
+      "pytorch_tokens_per_second": 2106.2641329661997,
+      "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+      "status": "pass",
+      "throughput_ratio_microllm_over_pytorch": 0.3596318055016492
+    }
+  ],
+  "runs_per_framework": 3,
+  "schema_version": 1,
+  "status": "pass",
+  "track": "official_training_shape_matrix"
+}

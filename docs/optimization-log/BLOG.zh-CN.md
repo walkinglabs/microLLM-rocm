@@ -1247,3 +1247,22 @@ DeepSeek `1×128` 的新 profile 从进程启动开始，覆盖 checkpoint 加�
 因此下一步不是泛化地“消灭 copy”，而是把每步 339 次 AdamW launch 合并。但一个细节挡在
 前面：现在 `zero_grad()` 会丢掉梯度 Tensor，下一步地址可能变化。直接缓存 device pointer
 会得到悬空地址。先把梯度 buffer 做成稳定资源，再做 multi-tensor optimizer，顺序不能反。
+
+## 64. Experiment 047：地址稳定了，速度却退了
+
+第一版让每个叶子持有自己的 FP32 梯度 buffer。`zero_grad()` 只把它标成无效，不释放
+Storage；下一次 backward 的首贡献通过 GPU copy 写入，后续分叉原地相加。CPU/HIP 地址、
+重复 backward、`set_grad()` 和零 payload transfer 测试都通过。
+
+第一次性能测试用了 `2+5`，而旧 baseline 是 `1+2`。755.14 和 802.70 看起来可以相除，
+协议不同却不能相除。错误协议的六条 raw 没有删除，随后用完全匹配的协议重跑三进程。
+
+![Stable gradient buffer discard](assets/stable-gradient-buffer-discard.svg)
+
+匹配后的吞吐是 `802.70→757.48 token/s`，退化 `5.63%`；峰值从 10.450 GB 降到
+9.906 GB。原因很直接：为地址稳定付出了每个叶子一次完整梯度 copy 和一次 launch。
+内存好看不覆盖吞吐红线，候选删除。
+
+这次失败还推翻了一个不必要的前提。multi-tensor Kernel 不必跨 step 缓存 gradient pointer；
+它可以在 launch 时接收当前地址。下一版每 16 个 Tensor 把指针、长度作为 Kernel 参数传入，
+约 339 次 launch 可以降到约 22 次，不需要持久 pointer table，也不需要复制梯度。

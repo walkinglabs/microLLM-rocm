@@ -217,6 +217,13 @@ launch 精确对应 339 个参数 × 3 个 step，占 Kernel 时间 `32.94%`，�
 
 ![DeepSeek context-128 optimizer profile](assets/deepseek-context128-profile.svg)
 
+Experiment 047 测试了 multi-tensor 的第一个前置方案：跨 `zero_grad()` 保留叶子梯度
+Storage。地址、数值和零 payload transfer 全部通过，但首贡献 copy 让 Qwen `1×128`
+匹配协议中位数从 `802.70` 降到 `757.48 token/s`（`−5.63%`）。峰值少 544.5 MB 仍不足以
+越过吞吐拒绝线；代码删除，下一版改用 16 个 tensor 一组的 Kernel 参数描述符。
+
+![Stable gradient buffer discard](assets/stable-gradient-buffer-discard.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -268,6 +275,8 @@ launch 精确对应 339 个参数 × 3 个 step，占 Kernel 时间 `32.94%`，�
 | [experiments/045-data/](experiments/045-data/) | 优化前 pilot、24 条正式 raw 与 load 摘要 |
 | [assets/deepseek-context128-profile.svg](assets/deepseek-context128-profile.svg) | DeepSeek context 128 训练热点与阶段污染边界 |
 | [experiments/046-data/](experiments/046-data/) | retained Kernel/HIP API 聚合与可验证 profile 合同 |
+| [assets/stable-gradient-buffer-discard.svg](assets/stable-gradient-buffer-discard.svg) | 稳定梯度地址的吞吐/显存反例 |
+| [experiments/047-data/](experiments/047-data/) | 匹配协议 raw、错误协议保留与 discard 合同 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 
