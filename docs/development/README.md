@@ -221,3 +221,5 @@ the next gate. Records are append-only except for factual corrections.
   no-drop-in-FMHA inventory and a 0.360x readable fused route rejection.
 - [2026-08-21-inplace-causal-softmax.md](2026-08-21-inplace-causal-softmax.md):
   internal score/probability Storage reuse with exact T² peak reduction and bit-exact logits.
+- [2026-08-21-stop-token-early-completion.md](2026-08-21-stop-token-early-completion.md):
+  explicit stop IDs, variable batch row lengths, completion reasons and immediate B1 Cache release.

@@ -168,7 +168,8 @@ int main(int argc, char** argv) {
                                     .temperature = 0.0F,
                                     .top_k = 0,
                                     .seed = static_cast<std::uint64_t>(iteration),
-                                    .kv_cache_layer_dtypes = {}});
+                                    .kv_cache_layer_dtypes = {},
+                                    .stop_tokens = {}});
             }
             microllm::runtime::synchronize(device);
             const auto warmup_finish = std::chrono::steady_clock::now();
@@ -182,7 +183,8 @@ int main(int argc, char** argv) {
                                     .temperature = 0.0F,
                                     .top_k = 0,
                                     .seed = static_cast<std::uint64_t>(iteration),
-                                    .kv_cache_layer_dtypes = {}});
+                                    .kv_cache_layer_dtypes = {},
+                                    .stop_tokens = {}});
                 for (const auto token : generated) output_guard += token;
                 microllm::runtime::synchronize(device);
             }

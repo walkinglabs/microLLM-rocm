@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "experiment": "stop_token_early_completion",
+  "cpu_tests": {"passed": 4, "total": 4},
+  "hip_tests": {"passed": 2, "total": 2},
+  "contracts": {
+    "single_request_stops_after_appending_token": true,
+    "batch_rows_match_independent_generation": true,
+    "batch_rows_may_have_different_lengths": true,
+    "finished_batch_rows_use_ignored_dummy_tokens": true,
+    "reference_scheduler_releases_cache_on_stop": true,
+    "completion_reason_is_explicit": true,
+    "stop_token_order_canonicalized_for_batching": true,
+    "duplicate_and_out_of_range_stop_tokens_rejected": true,
+    "static_batch_slot_reclaimed_before_group_end": false
+  },
+  "performance_claim": "none; lifecycle functionality and slot-refill prerequisite"
+}

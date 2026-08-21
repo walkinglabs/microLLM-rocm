@@ -46,6 +46,17 @@ void validate_request(const model::TransformerModel& model,
             throw std::out_of_range("scheduler prompt token is outside the vocabulary");
         }
     }
+    auto stop_tokens = config.stop_tokens;
+    std::sort(stop_tokens.begin(), stop_tokens.end());
+    if (std::adjacent_find(stop_tokens.begin(), stop_tokens.end()) !=
+        stop_tokens.end()) {
+        throw std::invalid_argument("scheduler stop tokens must be unique");
+    }
+    for (const auto token : stop_tokens) {
+        if (token < 0 || token >= model.config().vocabulary_size) {
+            throw std::out_of_range("scheduler stop token is outside the vocabulary");
+        }
+    }
 }
 
 std::size_t cache_bytes(const KVCache& cache) {
@@ -63,12 +74,18 @@ bool is_terminal(RequestState state) {
     return state == RequestState::Completed || state == RequestState::Cancelled;
 }
 
+bool is_stop_token(const GenerationConfig& config, std::int32_t token) {
+    return std::find(config.stop_tokens.begin(), config.stop_tokens.end(), token) !=
+           config.stop_tokens.end();
+}
+
 }  // namespace
 
 struct ReferenceScheduler::Impl {
     struct Request {
         RequestId id = 0;
         RequestState state = RequestState::PendingPrefill;
+        CompletionReason completion_reason = CompletionReason::None;
         std::vector<std::int32_t> prompt;
         std::vector<std::int32_t> generated;
         GenerationConfig config;
@@ -133,6 +150,7 @@ ReferenceScheduler& ReferenceScheduler::operator=(ReferenceScheduler&&) noexcept
 RequestId ReferenceScheduler::submit(std::vector<std::int32_t> prompt,
                                      GenerationConfig config) {
     validate_request(impl_->model, prompt, config);
+    std::sort(config.stop_tokens.begin(), config.stop_tokens.end());
     auto policy = cache_policy(impl_->model, config);
     const auto id = impl_->next_id++;
     Impl::Request request;
@@ -143,6 +161,7 @@ RequestId ReferenceScheduler::submit(std::vector<std::int32_t> prompt,
     request.arrival_step = impl_->metrics.scheduler_steps;
     if (request.config.max_new_tokens == 0) {
         request.state = RequestState::Completed;
+        request.completion_reason = CompletionReason::Length;
         request.completion_step = impl_->metrics.scheduler_steps;
         ++impl_->metrics.completed_requests;
     } else {
@@ -161,6 +180,7 @@ bool ReferenceScheduler::cancel(RequestId id) {
     auto& request = impl_->find(id);
     if (is_terminal(request.state)) return false;
     request.state = RequestState::Cancelled;
+    request.completion_reason = CompletionReason::Cancelled;
     request.completion_step = impl_->metrics.scheduler_steps;
     request.logits = {};
     request.cache.reset();
@@ -186,11 +206,15 @@ void ReferenceScheduler::step() {
         }
         const auto next = impl_->select(request);
         request.generated.push_back(next);
-        if (static_cast<std::int64_t>(request.generated.size()) ==
-            request.config.max_new_tokens) {
+        const auto stopped = is_stop_token(request.config, next);
+        if (stopped || static_cast<std::int64_t>(request.generated.size()) ==
+                           request.config.max_new_tokens) {
             request.state = RequestState::Completed;
+            request.completion_reason = stopped ? CompletionReason::StopToken
+                                                : CompletionReason::Length;
             request.completion_step = impl_->metrics.scheduler_steps;
             ++impl_->metrics.completed_requests;
+            if (stopped) ++impl_->metrics.stop_completed_requests;
             request.logits = {};
             request.cache.reset();
             continue;
@@ -233,6 +257,7 @@ RequestSnapshot ReferenceScheduler::request(RequestId id) const {
     const auto& request = impl_->find(id);
     return {.id = request.id,
             .state = request.state,
+            .completion_reason = request.completion_reason,
             .prompt = request.prompt,
             .generated = request.generated,
             .max_new_tokens = request.config.max_new_tokens,
@@ -259,6 +284,7 @@ struct AdmissionBatchScheduler::Impl {
         std::vector<std::int32_t> prompt;
         std::vector<std::int32_t> generated;
         GenerationConfig config;
+        CompletionReason completion_reason = CompletionReason::None;
         std::int64_t arrival_drain = 0;
         std::int64_t completion_drain = -1;
     };
@@ -269,6 +295,7 @@ struct AdmissionBatchScheduler::Impl {
         float temperature = 0.0F;
         std::int64_t top_k = 0;
         std::uint64_t seed = 0;
+        std::vector<std::int32_t> stop_tokens;
         DType cache_dtype = DType::Float32;
         std::vector<DType> layer_dtypes;
 
@@ -288,6 +315,7 @@ struct AdmissionBatchScheduler::Impl {
                 .temperature = request.config.temperature,
                 .top_k = request.config.top_k,
                 .seed = request.config.seed,
+                .stop_tokens = request.config.stop_tokens,
                 .cache_dtype = request.config.kv_cache_dtype,
                 .layer_dtypes = request.config.kv_cache_layer_dtypes};
     }
@@ -316,6 +344,7 @@ AdmissionBatchScheduler& AdmissionBatchScheduler::operator=(
 RequestId AdmissionBatchScheduler::submit(std::vector<std::int32_t> prompt,
                                           GenerationConfig config) {
     validate_request(impl_->model, prompt, config);
+    std::sort(config.stop_tokens.begin(), config.stop_tokens.end());
     (void)cache_policy(impl_->model, config);
     Impl::Request request;
     request.id = impl_->next_id++;
@@ -324,6 +353,7 @@ RequestId AdmissionBatchScheduler::submit(std::vector<std::int32_t> prompt,
     request.arrival_drain = impl_->metrics.drain_calls;
     if (request.config.max_new_tokens == 0) {
         request.state = RequestState::Completed;
+        request.completion_reason = CompletionReason::Length;
         request.completion_drain = impl_->metrics.drain_calls;
         ++impl_->metrics.completed_requests;
     }
@@ -337,6 +367,7 @@ bool AdmissionBatchScheduler::cancel(RequestId id) {
     auto& request = impl_->find(id);
     if (is_terminal(request.state)) return false;
     request.state = RequestState::Cancelled;
+    request.completion_reason = CompletionReason::Cancelled;
     request.completion_drain = impl_->metrics.drain_calls;
     ++impl_->metrics.cancelled_requests;
     return true;
@@ -383,8 +414,14 @@ void AdmissionBatchScheduler::drain() {
                     static_cast<std::ptrdiff_t>(request.prompt.size()),
                 generated[row].end());
             request.state = RequestState::Completed;
+            const auto stopped = !request.generated.empty() &&
+                                 is_stop_token(request.config,
+                                               request.generated.back());
+            request.completion_reason = stopped ? CompletionReason::StopToken
+                                                : CompletionReason::Length;
             request.completion_drain = impl_->metrics.drain_calls;
             ++impl_->metrics.completed_requests;
+            if (stopped) ++impl_->metrics.stop_completed_requests;
         }
     }
 }
@@ -401,6 +438,7 @@ RequestSnapshot AdmissionBatchScheduler::request(RequestId id) const {
     const auto& request = impl_->find(id);
     return {.id = request.id,
             .state = request.state,
+            .completion_reason = request.completion_reason,
             .prompt = request.prompt,
             .generated = request.generated,
             .max_new_tokens = request.config.max_new_tokens,

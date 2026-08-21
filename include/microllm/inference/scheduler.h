@@ -18,9 +18,17 @@ enum class RequestState : std::uint8_t {
     Cancelled,
 };
 
+enum class CompletionReason : std::uint8_t {
+    None,
+    Length,
+    StopToken,
+    Cancelled,
+};
+
 struct RequestSnapshot {
     RequestId id = 0;
     RequestState state = RequestState::PendingPrefill;
+    CompletionReason completion_reason = CompletionReason::None;
     std::vector<std::int32_t> prompt;
     std::vector<std::int32_t> generated;
     std::int64_t max_new_tokens = 0;
@@ -34,6 +42,7 @@ struct SchedulerMetrics {
     std::int64_t submitted_requests = 0;
     std::int64_t completed_requests = 0;
     std::int64_t cancelled_requests = 0;
+    std::int64_t stop_completed_requests = 0;
     std::int64_t prefill_calls = 0;
     std::int64_t decode_calls = 0;
     std::int64_t peak_active_requests = 0;
@@ -76,6 +85,7 @@ struct AdmissionBatchMetrics {
     std::int64_t submitted_requests = 0;
     std::int64_t completed_requests = 0;
     std::int64_t cancelled_requests = 0;
+    std::int64_t stop_completed_requests = 0;
     std::int64_t batch_groups = 0;
     std::int64_t singleton_groups = 0;
     std::int64_t batched_requests = 0;

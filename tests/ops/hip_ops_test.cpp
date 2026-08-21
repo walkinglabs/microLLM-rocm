@@ -867,7 +867,8 @@ TEST(HipGenerationTest, GreedyLoopKeepsSelectedTokenOnDevice) {
     runtime::reset_transfer_stats();
     const auto generated = inference::generate(
         model, prompt, {.max_new_tokens = 4, .temperature = 0.0F, .top_k = 1,
-                        .seed = 9, .kv_cache_layer_dtypes = {}});
+                        .seed = 9, .kv_cache_layer_dtypes = {},
+                        .stop_tokens = {}});
     const auto transfers = runtime::transfer_stats();
     EXPECT_EQ(generated.size(), 6U);
     EXPECT_EQ(transfers.host_to_device_calls, 1U);
@@ -894,10 +895,12 @@ TEST(HipSchedulerTest, DelayedIndependentRequestsMatchCpuReference) {
     inference::ReferenceScheduler hip_scheduler(hip_model);
     const inference::GenerationConfig first_config{
         .max_new_tokens = 4, .temperature = 0.0F, .top_k = 1,
-        .seed = 3, .kv_cache_layer_dtypes = {}};
+        .seed = 3, .kv_cache_layer_dtypes = {},
+        .stop_tokens = {}};
     const inference::GenerationConfig second_config{
         .max_new_tokens = 2, .temperature = 0.0F, .top_k = 1,
-        .seed = 5, .kv_cache_layer_dtypes = {}};
+        .seed = 5, .kv_cache_layer_dtypes = {},
+        .stop_tokens = {}};
     const auto cpu_first = cpu_scheduler.submit({1, 2, 3}, first_config);
     const auto hip_first = hip_scheduler.submit({1, 2, 3}, first_config);
     cpu_scheduler.step();
@@ -934,7 +937,8 @@ TEST(HipSchedulerTest, CancellationReleasesCacheAndPreservesSurvivor) {
     inference::ReferenceScheduler hip(hip_model);
     const inference::GenerationConfig generation{
         .max_new_tokens = 4, .temperature = 0.0F, .top_k = 1,
-        .seed = 7, .kv_cache_layer_dtypes = {}};
+        .seed = 7, .kv_cache_layer_dtypes = {},
+        .stop_tokens = {}};
     const auto hip_cancelled = hip.submit({1, 2, 3}, generation);
     const auto hip_survivor = hip.submit({4, 5, 6}, generation);
     const auto cpu_survivor = cpu.submit({4, 5, 6}, generation);
@@ -951,6 +955,40 @@ TEST(HipSchedulerTest, CancellationReleasesCacheAndPreservesSurvivor) {
     EXPECT_EQ(hip.metrics().cancelled_requests, 1);
     EXPECT_EQ(hip.metrics().completed_requests, 1);
     EXPECT_EQ(hip.metrics().active_cache_bytes, 0U);
+}
+
+TEST(HipSchedulerTest, StopTokenCompletesAndReleasesCacheImmediately) {
+    require_gpu();
+    const model::ModelConfig config{.vocabulary_size = 16,
+                                    .dimension = 8,
+                                    .layers = 1,
+                                    .heads = 2,
+                                    .kv_heads = 1,
+                                    .ffn_dimension = 16,
+                                    .max_sequence_length = 12,
+                                    .rope_base = 10000.0F,
+                                    .tie_embeddings = false};
+    const std::vector<std::int32_t> prompt{1, 2, 3};
+    const inference::GenerationConfig baseline{
+        .max_new_tokens = 4, .temperature = 0.0F, .top_k = 1,
+        .seed = 11, .kv_cache_layer_dtypes = {},
+        .stop_tokens = {}};
+    model::TransformerModel oracle(config, 131);
+    const auto generated = inference::generate(oracle, prompt, baseline);
+    auto stopped = baseline;
+    stopped.stop_tokens = {generated[prompt.size()]};
+    model::TransformerModel hip_model(config, 131);
+    hip_model.to(Device::hip(0));
+    inference::ReferenceScheduler scheduler(hip_model);
+    const auto id = scheduler.submit(prompt, stopped);
+    scheduler.step();
+    const auto snapshot = scheduler.request(id);
+    EXPECT_EQ(snapshot.state, inference::RequestState::Completed);
+    EXPECT_EQ(snapshot.completion_reason,
+              inference::CompletionReason::StopToken);
+    EXPECT_EQ(snapshot.generated.size(), 1U);
+    EXPECT_EQ(snapshot.cache_bytes, 0U);
+    EXPECT_EQ(scheduler.metrics().stop_completed_requests, 1);
 }
 
 TEST(HipGenerationTest, StaticBatchDifferentRowsMatchCpuReference) {
@@ -972,11 +1010,69 @@ TEST(HipGenerationTest, StaticBatchDifferentRowsMatchCpuReference) {
     const inference::GenerationConfig generation{
         .max_new_tokens = 4, .temperature = 0.0F, .top_k = 1,
         .seed = 7, .kv_cache_dtype = DType::BFloat16,
-        .kv_cache_layer_dtypes = {}};
+        .kv_cache_layer_dtypes = {},
+        .stop_tokens = {}};
     const auto expected = inference::generate_batch(cpu_model, prompts, generation);
     const auto actual = inference::generate_batch(hip_model, prompts, generation);
     EXPECT_EQ(actual, expected);
     EXPECT_NE(actual[0], actual[1]);
+}
+
+TEST(HipGenerationTest, StopTokenRowsMatchCpuAtDifferentLengths) {
+    require_gpu();
+    const model::ModelConfig config{.vocabulary_size = 32,
+                                    .dimension = 16,
+                                    .layers = 2,
+                                    .heads = 4,
+                                    .kv_heads = 2,
+                                    .ffn_dimension = 32,
+                                    .max_sequence_length = 12,
+                                    .rope_base = 10000.0F,
+                                    .tie_embeddings = false};
+    const std::vector<std::vector<std::int32_t>> prompts{
+        {1, 2, 3}, {4, 5, 6}, {7, 8, 9}, {10, 11, 12}};
+    const inference::GenerationConfig baseline{
+        .max_new_tokens = 6, .temperature = 0.0F, .top_k = 1,
+        .seed = 23, .kv_cache_layer_dtypes = {},
+        .stop_tokens = {}};
+    std::vector<std::vector<std::int32_t>> independent_rows;
+    for (const auto& prompt : prompts) {
+        model::TransformerModel row_model(config, 139);
+        independent_rows.push_back(inference::generate(row_model, prompt, baseline));
+    }
+    std::int32_t stop = -1;
+    for (std::int32_t token = 0; token < config.vocabulary_size; ++token) {
+        std::vector<std::size_t> positions;
+        for (std::size_t row = 0; row < prompts.size(); ++row) {
+            const auto begin = independent_rows[row].begin() +
+                               static_cast<std::ptrdiff_t>(prompts[row].size());
+            const auto found = std::find(begin, independent_rows[row].end(), token);
+            positions.push_back(
+                found == independent_rows[row].end()
+                    ? static_cast<std::size_t>(baseline.max_new_tokens)
+                    : static_cast<std::size_t>(std::distance(begin, found)));
+        }
+        if (*std::min_element(positions.begin(), positions.end()) <
+                static_cast<std::size_t>(baseline.max_new_tokens) &&
+            *std::min_element(positions.begin(), positions.end()) !=
+                *std::max_element(positions.begin(), positions.end())) {
+            stop = token;
+            break;
+        }
+    }
+    ASSERT_GE(stop, 0);
+    auto generation = baseline;
+    generation.stop_tokens = {stop};
+    model::TransformerModel cpu_model(config, 139);
+    model::TransformerModel hip_model(config, 139);
+    hip_model.to(Device::hip(0));
+    const auto expected = inference::generate_batch(cpu_model, prompts, generation);
+    const auto actual = inference::generate_batch(hip_model, prompts, generation);
+    EXPECT_EQ(actual, expected);
+    std::vector<std::size_t> lengths;
+    for (const auto& row : actual) lengths.push_back(row.size());
+    EXPECT_NE(*std::min_element(lengths.begin(), lengths.end()),
+              *std::max_element(lengths.begin(), lengths.end()));
 }
 
 TEST(HipSchedulerTest, AdmissionBucketsMatchCpuRowsAndGroups) {
@@ -997,7 +1093,8 @@ TEST(HipSchedulerTest, AdmissionBucketsMatchCpuRowsAndGroups) {
     inference::AdmissionBatchScheduler hip(hip_model);
     const inference::GenerationConfig generation{
         .max_new_tokens = 3, .temperature = 0.0F, .top_k = 1,
-        .seed = 13, .kv_cache_layer_dtypes = {}};
+        .seed = 13, .kv_cache_layer_dtypes = {},
+        .stop_tokens = {}};
     std::vector<inference::RequestId> cpu_ids;
     std::vector<inference::RequestId> hip_ids;
     for (const auto& prompt : std::vector<std::vector<std::int32_t>>{
@@ -1035,7 +1132,8 @@ TEST(HipSchedulerTest, AdmissionCancellationDoesNotEnterHipBatch) {
     inference::AdmissionBatchScheduler hip(hip_model);
     const inference::GenerationConfig generation{
         .max_new_tokens = 3, .temperature = 0.0F, .top_k = 1,
-        .seed = 17, .kv_cache_layer_dtypes = {}};
+        .seed = 17, .kv_cache_layer_dtypes = {},
+        .stop_tokens = {}};
     std::vector<inference::RequestId> cpu_ids;
     std::vector<inference::RequestId> hip_ids;
     for (const auto& prompt : std::vector<std::vector<std::int32_t>>{

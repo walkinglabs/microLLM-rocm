@@ -1820,3 +1820,16 @@ forward少一次。三对吞吐为1.017×/1.005×，16-shape最差0.990×。
 
 它仍物化一份probability T²，但证明生命周期优化可以在不改变Kernel数学的前提下获得大幅显存
 收益。彻底删除最后一份T²才需要真正的online MFMA Attention。
+
+## 99. Experiment 082：模型写出结束符，Cache生命周期才有依据
+
+GenerationConfig加入合法且唯一的stop token集合。token先进入输出，再让请求终止；单请求不再
+发下一次decode，ReferenceScheduler在同一步释放B1 Cache并记录`StopToken`原因。
+
+![Stop-token early completion](assets/stop-token-early-completion.svg)
+
+static batch允许row得到不同输出长度，CPU/HIP逐row等于独立生成。结束row用被忽略的dummy维持
+当前共同position，不再追加输出或推进RNG；因此正确性完成了，但物理slot仍要等整组结束。
+
+这个诚实边界把下一步说清：continuous refill必须加入per-slot position、Cache row reset/replace，
+而不是把dummy row称作动态调度。

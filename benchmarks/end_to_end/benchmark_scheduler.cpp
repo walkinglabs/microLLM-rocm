@@ -94,7 +94,8 @@ std::vector<WorkItem> workload(std::int64_t count, bool compatible,
                            .top_k = 1,
                            .seed = static_cast<std::uint64_t>(
                                admission_buckets ? group + 1 : request + 1),
-                           .kv_cache_layer_dtypes = {}}});
+                           .kv_cache_layer_dtypes = {},
+                           .stop_tokens = {}}});
     }
     return result;
 }

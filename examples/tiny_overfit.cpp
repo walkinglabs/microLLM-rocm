@@ -55,7 +55,8 @@ int main() {
         }
         const auto generated = microllm::inference::generate(
             model, {0}, {.max_new_tokens = 7, .temperature = 0.0F, .top_k = 0,
-                         .seed = 1, .kv_cache_layer_dtypes = {}});
+                         .seed = 1, .kv_cache_layer_dtypes = {},
+                         .stop_tokens = {}});
         const std::vector<std::int32_t> expected{0, 1, 2, 3, 0, 1, 2, 3};
         const std::vector<std::int32_t> expected_trained_prefix{0, 1, 2, 3, 0};
         std::cout << "generated=";

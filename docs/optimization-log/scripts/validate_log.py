@@ -2275,6 +2275,38 @@ def validate_inplace_causal_softmax(errors: list[str]) -> tuple[int, int, int]:
     return len(paired_raw), len(survey_raw), len(precision_rows)
 
 
+def validate_stop_token_early_completion(errors: list[str]) -> tuple[int, int]:
+    data = ROOT / "experiments" / "082-data"
+    cpu = json.loads((data / "cpu-tests.json").read_text(encoding="utf-8"))
+    hip = json.loads((data / "hip-tests.json").read_text(encoding="utf-8"))
+    if cpu.get("tests") != 4 or cpu.get("failures") != 0 or cpu.get("errors") != 0:
+        errors.append("stop-token CPU executable evidence changed")
+    if hip.get("tests") != 2 or hip.get("failures") != 0 or hip.get("errors") != 0:
+        errors.append("stop-token HIP executable evidence changed")
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    contracts = summary.get("contracts", {})
+    if summary.get("status") != "pass" or any(
+            contracts.get(name) is not True for name in (
+                "single_request_stops_after_appending_token",
+                "batch_rows_match_independent_generation",
+                "batch_rows_may_have_different_lengths",
+                "reference_scheduler_releases_cache_on_stop",
+                "completion_reason_is_explicit",
+                "stop_token_order_canonicalized_for_batching")) or \
+            contracts.get("static_batch_slot_reclaimed_before_group_end") is not False:
+        errors.append("stop-token lifecycle contract changed")
+    generator = (REPOSITORY / "include/microllm/inference/generator.h").read_text(
+        encoding="utf-8")
+    scheduler = (REPOSITORY / "include/microllm/inference/scheduler.h").read_text(
+        encoding="utf-8")
+    tests = (REPOSITORY / "tests/inference/generator_test.cpp").read_text(
+        encoding="utf-8")
+    if "stop_tokens" not in generator or "CompletionReason" not in scheduler or \
+            "StaticBatchStopRowsMatchIndependentVariableLengths" not in tests:
+        errors.append("stop-token public API or variable-row gate is missing")
+    return int(cpu.get("tests", 0)), int(hip.get("tests", 0))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -2334,7 +2366,8 @@ def validate_assets(errors: list[str]) -> None:
                  "folded-gqa-discard.svg",
                  "register-softmax.svg",
                  "readable-fused-attention-discard.svg",
-                 "inplace-causal-softmax.svg"):
+                 "inplace-causal-softmax.svg",
+                 "stop-token-early-completion.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -2437,6 +2470,7 @@ def main() -> int:
         validate_readable_fused_attention_discard(errors)
     inplace_softmax_paired, inplace_softmax_survey, inplace_softmax_precision = \
         validate_inplace_causal_softmax(errors)
+    stop_token_cpu, stop_token_hip = validate_stop_token_early_completion(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -2506,6 +2540,7 @@ def main() -> int:
           f"readable_fused={readable_fused_raw}/{readable_fused_pairs} "
           f"inplace_softmax={inplace_softmax_paired}/"
           f"{inplace_softmax_survey}/{inplace_softmax_precision} "
+          f"stop_token={stop_token_cpu}/{stop_token_hip} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

@@ -1,0 +1,84 @@
+{
+  "tests": 4,
+  "failures": 0,
+  "disabled": 0,
+  "errors": 0,
+  "timestamp": "2026-08-21T16:06:39Z",
+  "time": "0.027s",
+  "name": "AllTests",
+  "testsuites": [
+    {
+      "name": "GeneratorTest",
+      "tests": 2,
+      "failures": 0,
+      "disabled": 0,
+      "errors": 0,
+      "timestamp": "2026-08-21T16:06:39Z",
+      "time": "0.024s",
+      "testsuite": [
+        {
+          "name": "StopTokenEndsSingleRequestWithoutExtraDecode",
+          "file": "\/home\/devpod\/github\/microLLM-rocm\/tests\/inference\/generator_test.cpp",
+          "line": 134,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-08-21T16:06:39Z",
+          "time": "0.001s",
+          "classname": "GeneratorTest"
+        },
+        {
+          "name": "StaticBatchStopRowsMatchIndependentVariableLengths",
+          "file": "\/home\/devpod\/github\/microLLM-rocm\/tests\/inference\/generator_test.cpp",
+          "line": 163,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-08-21T16:06:39Z",
+          "time": "0.023s",
+          "classname": "GeneratorTest"
+        }
+      ]
+    },
+    {
+      "name": "ReferenceSchedulerTest",
+      "tests": 1,
+      "failures": 0,
+      "disabled": 0,
+      "errors": 0,
+      "timestamp": "2026-08-21T16:06:39Z",
+      "time": "0.001s",
+      "testsuite": [
+        {
+          "name": "StopTokenCompletesEarlyAndReleasesOnlyItsCache",
+          "file": "\/home\/devpod\/github\/microLLM-rocm\/tests\/inference\/scheduler_test.cpp",
+          "line": 135,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-08-21T16:06:39Z",
+          "time": "0.001s",
+          "classname": "ReferenceSchedulerTest"
+        }
+      ]
+    },
+    {
+      "name": "AdmissionBatchSchedulerTest",
+      "tests": 1,
+      "failures": 0,
+      "disabled": 0,
+      "errors": 0,
+      "timestamp": "2026-08-21T16:06:39Z",
+      "time": "0.001s",
+      "testsuite": [
+        {
+          "name": "StopCompletionReasonsMatchIndependentRows",
+          "file": "\/home\/devpod\/github\/microLLM-rocm\/tests\/inference\/scheduler_test.cpp",
+          "line": 269,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-08-21T16:06:39Z",
+          "time": "0.001s",
+          "classname": "AdmissionBatchSchedulerTest"
+        }
+      ]
+    }
+  ]
+}

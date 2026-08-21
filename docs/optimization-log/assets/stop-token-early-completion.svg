@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="760" viewBox="0 0 1400 760">
+  <rect width="1400" height="760" fill="#f8fafc"/>
+  <text x="700" y="52" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="30" font-weight="700" fill="#111827">Experiment 082 · stop-token early completion</text>
+  <text x="700" y="82" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="15" fill="#64748b">Different output lengths stay row-correct; physical slot refill is still explicit future work</text>
+
+  <rect x="38" y="112" width="1324" height="310" rx="14" fill="#fff" stroke="#dbe4ee"/>
+  <text x="62" y="152" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#111827">One static batch, one shared cache position</text>
+  <g font-family="Inter,Arial,sans-serif" font-size="15" fill="#334155">
+    <text x="62" y="220">row A</text><rect x="150" y="196" width="145" height="38" rx="6" fill="#86efac"/><text x="222" y="220" text-anchor="middle">token · STOP</text><rect x="310" y="196" width="145" height="38" rx="6" fill="#e2e8f0"/><text x="382" y="220" text-anchor="middle">dummy</text><rect x="470" y="196" width="145" height="38" rx="6" fill="#e2e8f0"/><text x="542" y="220" text-anchor="middle">dummy</text><rect x="630" y="196" width="145" height="38" rx="6" fill="#e2e8f0"/><text x="702" y="220" text-anchor="middle">dummy</text>
+    <text x="62" y="290">row B</text><rect x="150" y="266" width="145" height="38" rx="6" fill="#bfdbfe"/><text x="222" y="290" text-anchor="middle">token 1</text><rect x="310" y="266" width="145" height="38" rx="6" fill="#bfdbfe"/><text x="382" y="290" text-anchor="middle">token 2</text><rect x="470" y="266" width="145" height="38" rx="6" fill="#86efac"/><text x="542" y="290" text-anchor="middle">token · STOP</text><rect x="630" y="266" width="145" height="38" rx="6" fill="#e2e8f0"/><text x="702" y="290" text-anchor="middle">dummy</text>
+    <text x="62" y="360">row C</text><rect x="150" y="336" width="145" height="38" rx="6" fill="#bfdbfe"/><text x="222" y="360" text-anchor="middle">token 1</text><rect x="310" y="336" width="145" height="38" rx="6" fill="#bfdbfe"/><text x="382" y="360" text-anchor="middle">token 2</text><rect x="470" y="336" width="145" height="38" rx="6" fill="#bfdbfe"/><text x="542" y="360" text-anchor="middle">token 3</text><rect x="630" y="336" width="145" height="38" rx="6" fill="#fcd34d"/><text x="702" y="360" text-anchor="middle">length</text>
+  </g>
+  <text x="830" y="220" font-family="Inter,Arial,sans-serif" font-size="15" fill="#166534">Output A ends here</text>
+  <text x="830" y="290" font-family="Inter,Arial,sans-serif" font-size="15" fill="#166534">Output B ends here</text>
+  <text x="830" y="360" font-family="Inter,Arial,sans-serif" font-size="15" fill="#92400e">Cache rows remain until group end</text>
+
+  <rect x="38" y="452" width="642" height="226" rx="14" fill="#fff" stroke="#dbe4ee"/>
+  <text x="62" y="492" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#111827">B1 reference scheduler</text>
+  <rect x="62" y="530" width="160" height="44" rx="8" fill="#bfdbfe"/><text x="142" y="558" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="15">decode token</text>
+  <text x="240" y="558" font-family="Inter,Arial,sans-serif" font-size="24" fill="#64748b">→</text>
+  <rect x="280" y="530" width="160" height="44" rx="8" fill="#86efac"/><text x="360" y="558" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="15">StopToken</text>
+  <text x="458" y="558" font-family="Inter,Arial,sans-serif" font-size="24" fill="#64748b">→</text>
+  <rect x="498" y="530" width="150" height="44" rx="8" fill="#dcfce7"/><text x="573" y="558" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="15">Cache = 0</text>
+  <text x="62" y="624" font-family="Inter,Arial,sans-serif" font-size="14" fill="#64748b">The matching token stays in output; no next decode is launched.</text>
+
+  <rect x="714" y="452" width="648" height="226" rx="14" fill="#fff" stroke="#dbe4ee"/>
+  <text x="738" y="492" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#111827">Evidence and remaining boundary</text>
+  <g font-family="Inter,Arial,sans-serif" font-size="16" fill="#334155">
+    <circle cx="752" cy="542" r="6" fill="#16a34a"/><text x="772" y="548">CPU 4/4 · HIP 2/2</text>
+    <circle cx="752" cy="584" r="6" fill="#16a34a"/><text x="772" y="590">Variable rows = independent generation</text>
+    <circle cx="752" cy="626" r="6" fill="#f59e0b"/><text x="772" y="632">Static batch slot is not reclaimed early</text>
+  </g>
+  <rect x="38" y="702" width="1324" height="34" rx="10" fill="#fef3c7" stroke="#fde68a"/>
+  <text x="700" y="725" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="700" fill="#92400e">Next: per-slot position + Cache row reset/replace + true refill</text>
+</svg>

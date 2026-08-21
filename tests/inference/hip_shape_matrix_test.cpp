@@ -53,7 +53,8 @@ TEST(HipInferenceShapeMatrixTest, CpuTokensMatchAcrossContextBatchAndCacheDtype)
                     .top_k = 1,
                     .seed = 31,
                     .kv_cache_dtype = dtype,
-                    .kv_cache_layer_dtypes = {}};
+                    .kv_cache_layer_dtypes = {},
+                    .stop_tokens = {}};
                 const auto expected = generate_batch(cpu, input, generation);
                 const auto actual = generate_batch(hip, input, generation);
                 EXPECT_EQ(actual, expected)

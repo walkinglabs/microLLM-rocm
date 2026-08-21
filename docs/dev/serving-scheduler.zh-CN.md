@@ -27,6 +27,10 @@ PendingPrefill → Decoding → Completed
 `Completed`和`Cancelled`都是终态。再次取消它们会返回`false`，不会重复计数，也不会改变
 结果。未知请求ID会抛出错误，避免把写错ID误认为“取消成功”。
 
+状态只说明“还在不在运行”，`completion_reason`再说明为什么结束：达到长度、生成stop token，
+还是被调用者取消。可以把stop token理解成模型写出的“句号”：这个token属于答案，但写完后
+不应再让模型继续写下一页。
+
 `ReferenceScheduler`每一步按请求顺序逐个调用模型。它故意不做跨请求batch，因为后续
 优化必须先有一个最容易检查的正确答案。
 
@@ -39,7 +43,8 @@ auto alice = scheduler.submit(
     {1, 2, 3}, {.max_new_tokens = 4,
                 .temperature = 0.0F,
                 .top_k = 1,
-                .kv_cache_layer_dtypes = {}});
+                .kv_cache_layer_dtypes = {},
+                .stop_tokens = {2}});
 
 scheduler.step();  // Alice生成第一个token
 bool alice_was_cancelled = scheduler.cancel(alice);
@@ -66,6 +71,7 @@ auto bob_result = scheduler.request(bob);
 - 同时活跃请求峰值；
 - 当前和峰值Cache字节；
 - 提交、完成和取消请求数。
+- 其中有多少请求由stop token提前完成。
 
 Cache字节是引擎Storage实际分配，不是只看active view得到的估算。
 
@@ -107,6 +113,10 @@ request A forward
 
 它解决的是“入场时怎样分组”，没有解决“生成过程中怎样腾出并补充slot”。B4兼容组在HIP
 约1260 token/s，但8/16请求拆成2/4个B4组后吞吐保持平台。
+
+现在static batch允许某一row先生成stop token。它会停止追加该row的答案，但仍用dummy token
+维持共同position，直到整组结束。这保证答案正确，却没有释放物理slot。真正的slot refill还要
+支持清空某一row的旧K/V、写入新prompt和独立position。
 
 ## 8. 测试位置
 

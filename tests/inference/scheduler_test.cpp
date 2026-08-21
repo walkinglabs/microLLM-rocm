@@ -37,12 +37,14 @@ TEST(ReferenceSchedulerTest, DelayedRequestsMatchIndependentGeneration) {
                                         .temperature = 0.8F,
                                         .top_k = 3,
                                         .seed = 11,
-                                        .kv_cache_layer_dtypes = {}};
+                                        .kv_cache_layer_dtypes = {},
+                                        .stop_tokens = {}};
     const GenerationConfig second_config{.max_new_tokens = 2,
                                          .temperature = 0.0F,
                                          .top_k = 1,
                                          .seed = 17,
-                                         .kv_cache_layer_dtypes = {}};
+                                         .kv_cache_layer_dtypes = {},
+                                         .stop_tokens = {}};
     const auto first = scheduler.submit(first_prompt, first_config);
     scheduler.step();
     EXPECT_EQ(scheduler.request(first).generated.size(), 1U);
@@ -75,7 +77,8 @@ TEST(ReferenceSchedulerTest, ImmediateCompletionLimitsAndErrorsAreVisible) {
     model::TransformerModel model(scheduler_config(), 89);
     ReferenceScheduler scheduler(model);
     const auto immediate = scheduler.submit(
-        {1}, {.max_new_tokens = 0, .kv_cache_layer_dtypes = {}});
+        {1}, {.max_new_tokens = 0, .kv_cache_layer_dtypes = {},
+              .stop_tokens = {}});
     EXPECT_EQ(scheduler.request(immediate).state, RequestState::Completed);
     EXPECT_EQ(scheduler.request(immediate).completion_step, 0);
     EXPECT_FALSE(scheduler.has_active_requests());
@@ -86,7 +89,8 @@ TEST(ReferenceSchedulerTest, ImmediateCompletionLimitsAndErrorsAreVisible) {
         {1, 2}, {.max_new_tokens = 3,
                  .temperature = 0.0F,
                  .top_k = 1,
-                 .kv_cache_layer_dtypes = {}});
+                 .kv_cache_layer_dtypes = {},
+                 .stop_tokens = {}});
     EXPECT_THROW(scheduler.run_until_idle(1), std::runtime_error);
     EXPECT_EQ(scheduler.request(active).generated.size(), 1U);
     scheduler.run_until_idle();
@@ -103,7 +107,8 @@ TEST(ReferenceSchedulerTest, CancellationIsTerminalIdempotentAndReleasesCache) {
                                       .temperature = 0.0F,
                                       .top_k = 1,
                                       .seed = 3,
-                                      .kv_cache_layer_dtypes = {}};
+                                      .kv_cache_layer_dtypes = {},
+                                      .stop_tokens = {}};
     const auto cancelled = scheduler.submit({1, 2, 3}, generation);
     const auto survivor = scheduler.submit({4, 5, 6}, generation);
     scheduler.step();
@@ -132,6 +137,40 @@ TEST(ReferenceSchedulerTest, CancellationIsTerminalIdempotentAndReleasesCache) {
     EXPECT_THROW((void)scheduler.cancel(999), std::out_of_range);
 }
 
+TEST(ReferenceSchedulerTest, StopTokenCompletesEarlyAndReleasesOnlyItsCache) {
+    const auto config = scheduler_config();
+    const std::vector<std::int32_t> stopped_prompt{1, 2, 3};
+    const std::vector<std::int32_t> survivor_prompt{4, 5, 6};
+    const GenerationConfig baseline_config{.max_new_tokens = 4,
+                                           .temperature = 0.0F,
+                                           .top_k = 1,
+                                           .seed = 13,
+                                           .kv_cache_layer_dtypes = {},
+                                           .stop_tokens = {}};
+    model::TransformerModel oracle(config, 101);
+    const auto baseline = generate(oracle, stopped_prompt, baseline_config);
+    const auto stop = baseline[stopped_prompt.size()];
+    auto stop_config = baseline_config;
+    stop_config.stop_tokens = {stop};
+
+    model::TransformerModel scheduled_model(config, 101);
+    ReferenceScheduler scheduler(scheduled_model);
+    const auto stopped = scheduler.submit(stopped_prompt, stop_config);
+    const auto survivor = scheduler.submit(survivor_prompt, baseline_config);
+    scheduler.step();
+    const auto stopped_snapshot = scheduler.request(stopped);
+    EXPECT_EQ(stopped_snapshot.state, RequestState::Completed);
+    EXPECT_EQ(stopped_snapshot.completion_reason, CompletionReason::StopToken);
+    EXPECT_EQ(stopped_snapshot.generated, (std::vector<std::int32_t>{stop}));
+    EXPECT_EQ(stopped_snapshot.cache_bytes, 0U);
+    EXPECT_EQ(scheduler.active_request_count(), 1U);
+    EXPECT_GT(scheduler.request(survivor).cache_bytes, 0U);
+    scheduler.run_until_idle();
+    EXPECT_EQ(scheduler.request(survivor).completion_reason,
+              CompletionReason::Length);
+    EXPECT_EQ(scheduler.metrics().stop_completed_requests, 1);
+}
+
 TEST(AdmissionBatchSchedulerTest, StableBucketsMatchIndependentGeneration) {
     const auto config = scheduler_config();
     model::TransformerModel scheduled_model(config, 107);
@@ -140,12 +179,14 @@ TEST(AdmissionBatchSchedulerTest, StableBucketsMatchIndependentGeneration) {
                                   .temperature = 0.0F,
                                   .top_k = 1,
                                   .seed = 7,
-                                  .kv_cache_layer_dtypes = {}};
+                                  .kv_cache_layer_dtypes = {},
+                                  .stop_tokens = {}};
     const GenerationConfig different_seed{.max_new_tokens = 3,
                                           .temperature = 0.0F,
                                           .top_k = 1,
                                           .seed = 9,
-                                          .kv_cache_layer_dtypes = {}};
+                                          .kv_cache_layer_dtypes = {},
+                                          .stop_tokens = {}};
     const auto first = scheduler.submit({1, 2, 3}, common);
     const auto second = scheduler.submit({4, 5, 6}, common);
     const auto short_request = scheduler.submit({7, 8}, common);
@@ -185,13 +226,15 @@ TEST(AdmissionBatchSchedulerTest, ImmediateAndErrorRequestsAreExplicit) {
     model::TransformerModel model(scheduler_config(), 109);
     AdmissionBatchScheduler scheduler(model);
     const auto completed = scheduler.submit(
-        {1}, {.max_new_tokens = 0, .kv_cache_layer_dtypes = {}});
+        {1}, {.max_new_tokens = 0, .kv_cache_layer_dtypes = {},
+              .stop_tokens = {}});
     EXPECT_EQ(scheduler.request(completed).state, RequestState::Completed);
     scheduler.drain();
     EXPECT_EQ(scheduler.metrics().batch_groups, 0);
     EXPECT_THROW((void)scheduler.submit(
                      {16}, {.max_new_tokens = 0,
-                            .kv_cache_layer_dtypes = {}}),
+                            .kv_cache_layer_dtypes = {},
+                            .stop_tokens = {}}),
                  std::out_of_range);
     EXPECT_THROW((void)scheduler.request(999), std::out_of_range);
 }
@@ -204,7 +247,8 @@ TEST(AdmissionBatchSchedulerTest, CancellationExcludesRowsFromAdmissionGroups) {
                                       .temperature = 0.0F,
                                       .top_k = 1,
                                       .seed = 5,
-                                      .kv_cache_layer_dtypes = {}};
+                                      .kv_cache_layer_dtypes = {},
+                                      .stop_tokens = {}};
     const auto first = scheduler.submit({1, 2, 3}, generation);
     const auto cancelled = scheduler.submit({4, 5, 6}, generation);
     const auto third = scheduler.submit({7, 8, 9}, generation);
@@ -231,6 +275,46 @@ TEST(AdmissionBatchSchedulerTest, CancellationExcludesRowsFromAdmissionGroups) {
     EXPECT_EQ(metrics.maximum_batch_size, 2);
     EXPECT_FALSE(scheduler.cancel(first));
     EXPECT_THROW((void)scheduler.cancel(999), std::out_of_range);
+}
+
+TEST(AdmissionBatchSchedulerTest, StopCompletionReasonsMatchIndependentRows) {
+    const auto config = scheduler_config();
+    const std::vector<std::vector<std::int32_t>> prompts{{1, 2, 3}, {4, 5, 6}};
+    const GenerationConfig baseline_config{.max_new_tokens = 4,
+                                           .temperature = 0.0F,
+                                           .top_k = 1,
+                                           .seed = 19,
+                                           .kv_cache_layer_dtypes = {},
+                                           .stop_tokens = {}};
+    model::TransformerModel oracle(config, 127);
+    const auto baseline = generate(oracle, prompts.front(), baseline_config);
+    auto stopped_config = baseline_config;
+    const auto first_stop = baseline[prompts.front().size()];
+    const auto second_stop = static_cast<std::int32_t>(
+        (first_stop + 1) % config.vocabulary_size);
+    stopped_config.stop_tokens = {first_stop, second_stop};
+    auto reversed_config = stopped_config;
+    std::reverse(reversed_config.stop_tokens.begin(), reversed_config.stop_tokens.end());
+    model::TransformerModel scheduled_model(config, 127);
+    AdmissionBatchScheduler scheduler(scheduled_model);
+    std::vector<RequestId> ids;
+    ids.push_back(scheduler.submit(prompts[0], stopped_config));
+    ids.push_back(scheduler.submit(prompts[1], reversed_config));
+    scheduler.drain();
+    std::int64_t stopped_rows = 0;
+    for (std::size_t row = 0; row < prompts.size(); ++row) {
+        model::TransformerModel independent(config, 127);
+        EXPECT_EQ(scheduler.request(ids[row]).generated,
+                  suffix(generate(independent, prompts[row], stopped_config),
+                         prompts[row].size()));
+        if (scheduler.request(ids[row]).completion_reason ==
+            CompletionReason::StopToken) {
+            ++stopped_rows;
+        }
+    }
+    EXPECT_GE(stopped_rows, 1);
+    EXPECT_EQ(scheduler.metrics().stop_completed_requests, stopped_rows);
+    EXPECT_EQ(scheduler.metrics().maximum_batch_size, 2);
 }
 
 }  // namespace microllm::inference

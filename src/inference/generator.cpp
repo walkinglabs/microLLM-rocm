@@ -10,6 +10,28 @@
 #include <microllm/ops/ops.h>
 
 namespace microllm::inference {
+namespace {
+
+void validate_stop_tokens(const model::TransformerModel& model,
+                          const GenerationConfig& config) {
+    auto sorted = config.stop_tokens;
+    std::sort(sorted.begin(), sorted.end());
+    if (std::adjacent_find(sorted.begin(), sorted.end()) != sorted.end()) {
+        throw std::invalid_argument("generation stop tokens must be unique");
+    }
+    for (const auto token : sorted) {
+        if (token < 0 || token >= model.config().vocabulary_size) {
+            throw std::out_of_range("generation stop token is outside the vocabulary");
+        }
+    }
+}
+
+bool is_stop_token(const GenerationConfig& config, std::int32_t token) {
+    return std::find(config.stop_tokens.begin(), config.stop_tokens.end(), token) !=
+           config.stop_tokens.end();
+}
+
+}  // namespace
 
 std::int32_t sample_token(const std::vector<float>& logits, float temperature,
                           std::int64_t top_k, std::mt19937_64& generator) {
@@ -57,6 +79,7 @@ std::vector<std::int32_t> generate(model::TransformerModel& model,
         model.config().max_sequence_length) {
         throw std::invalid_argument("prompt plus generated tokens exceeds model context");
     }
+    validate_stop_tokens(model, config);
     for (const auto token : prompt) {
         if (token < 0 || token >= model.config().vocabulary_size) {
             throw std::out_of_range("prompt token is outside the model vocabulary");
@@ -97,6 +120,7 @@ std::vector<std::int32_t> generate(model::TransformerModel& model,
                                 generator);
         }
         tokens.push_back(next);
+        if (is_stop_token(config, next)) break;
         if (generated + 1 < config.max_new_tokens) {
             if (!next_tensor.defined()) {
                 next_tensor = Tensor::from_int32_vector({next}, {1, 1});
@@ -114,6 +138,7 @@ std::vector<std::vector<std::int32_t>> generate_batch(
     if (prompts.empty() || prompts.front().empty()) {
         throw std::invalid_argument("batched generation requires non-empty prompts");
     }
+    validate_stop_tokens(model, config);
     if (config.max_new_tokens < 0 || config.temperature < 0.0F ||
         !std::isfinite(config.temperature) || config.top_k < 0 ||
         config.top_k > model.config().vocabulary_size) {
@@ -156,6 +181,7 @@ std::vector<std::vector<std::int32_t>> generate_batch(
             flat, {batch, static_cast<std::int64_t>(prompt_length)}),
         cache);
     auto result = prompts;
+    std::vector<bool> finished(prompts.size(), false);
     std::vector<std::mt19937_64> random;
     random.reserve(prompts.size());
     for (std::size_t row = 0; row < prompts.size(); ++row) {
@@ -173,6 +199,10 @@ std::vector<std::vector<std::int32_t>> generate_batch(
             const auto vocabulary = static_cast<std::size_t>(model.config().vocabulary_size);
             selected.reserve(prompts.size());
             for (std::size_t row = 0; row < prompts.size(); ++row) {
+                if (finished[row]) {
+                    selected.push_back(0);
+                    continue;
+                }
                 const auto begin = values.begin() +
                                    static_cast<std::ptrdiff_t>(row * vocabulary);
                 selected.push_back(sample_token(
@@ -186,10 +216,21 @@ std::vector<std::vector<std::int32_t>> generate_batch(
             throw std::invalid_argument("batched generation logits are non-finite");
         }
         for (std::size_t row = 0; row < result.size(); ++row) {
+            if (finished[row]) continue;
             result[row].push_back(selected[row]);
+            if (is_stop_token(config, selected[row])) finished[row] = true;
         }
+        if (std::all_of(finished.begin(), finished.end(),
+                        [](bool value) { return value; })) break;
         if (generated + 1 < config.max_new_tokens) {
-            if (!next_tensor.defined()) {
+            if (!config.stop_tokens.empty()) {
+                auto feed = selected;
+                for (std::size_t row = 0; row < feed.size(); ++row) {
+                    if (finished[row]) feed[row] = 0;
+                }
+                next_tensor = Tensor::from_int32_vector(feed, {batch, 1});
+                if (model.device().is_hip()) next_tensor = next_tensor.to(model.device());
+            } else if (!next_tensor.defined()) {
                 next_tensor = Tensor::from_int32_vector(selected, {batch, 1});
             }
             logits = model.forward_cached(next_tensor, cache);

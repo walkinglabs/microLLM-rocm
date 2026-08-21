@@ -17,6 +17,9 @@ struct GenerationConfig {
     // Empty means every layer uses kv_cache_dtype. Otherwise the vector must
     // contain one FP32/BF16 entry per model layer.
     std::vector<DType> kv_cache_layer_dtypes;
+    // Generation stops after appending any listed token. Tokens must be unique
+    // vocabulary IDs. An empty vector disables content-based early stopping.
+    std::vector<std::int32_t> stop_tokens;
 };
 
 [[nodiscard]] std::int32_t sample_token(const std::vector<float>& logits,
@@ -29,7 +32,7 @@ struct GenerationConfig {
 
 // Static cross-request batch. Prompts may contain different tokens but must
 // share a non-zero length and one GenerationConfig. Returns full sequences in
-// input row order.
+// input row order; stop tokens may make row lengths differ.
 [[nodiscard]] std::vector<std::vector<std::int32_t>> generate_batch(
     model::TransformerModel& model,
     const std::vector<std::vector<std::int32_t>>& prompts,

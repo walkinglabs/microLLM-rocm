@@ -60,7 +60,8 @@ TEST(InferenceShapeMatrixTest, ShortMediumLongBatchAndCacheDtypesMatchB1) {
                     .top_k = 1,
                     .seed = 29,
                     .kv_cache_dtype = dtype,
-                    .kv_cache_layer_dtypes = {}};
+                    .kv_cache_layer_dtypes = {},
+                    .stop_tokens = {}};
                 model::TransformerModel batched_model(config, 131);
                 const auto actual = generate_batch(batched_model, input, generation);
                 ASSERT_EQ(actual.size(), input.size());
