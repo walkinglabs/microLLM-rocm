@@ -20,6 +20,7 @@ add_executable(microllm_tests
     io/safetensors_test.cpp
     training/trainer_test.cpp
     inference/generator_test.cpp
+    inference/shape_matrix_test.cpp
     inference/scheduler_test.cpp
 )
 
@@ -78,6 +79,7 @@ if(MICROLLM_HAS_HIP)
         hardware/precision_capability_test.cpp
         runtime/runtime_test.cpp
         ops/hip_ops_test.cpp
+        inference/hip_shape_matrix_test.cpp
         graph/hip_graph_alignment_test.cpp
         io/hip_weights_test.cpp
         profiling/hip_trace_test.cpp

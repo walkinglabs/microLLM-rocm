@@ -16,5 +16,9 @@ to derive batch efficiency and whole-device memory share themselves.
 - cached rows reject an active Cache larger than their allocated Storage;
 - the summary freezes the exact context, batch and case axes used by the run.
 
+The fast executable gates cover 18 CPU and 24 HIP combinations. They use three context lengths,
+B1/B2/B4 on CPU, B1/B2/B4/B8 on HIP, and both FP32/BF16 Cache. Every HIP output row must equal the
+CPU result, while the CPU test independently checks the exact allocated Cache formula.
+
 The measurements continue to use fresh processes and alternating microLLM/PyTorch order. A shape
 that is unsupported or out of memory remains a result rather than disappearing from the report.

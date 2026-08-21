@@ -97,6 +97,19 @@ PyTorch：整模型BF16
 
 跨框架token不一致不是“性能失败”，而是数值对齐失败，必须保留首个分叉位置。
 
+正式大模型矩阵之外，CI还有一套很小但真的执行计算的回归：
+
+```text
+tests/inference/shape_matrix_test.cpp
+  CPU：3种context × 3种batch × FP32/BF16 Cache
+
+tests/inference/hip_shape_matrix_test.cpp
+  HIP：3种context × 4种batch × FP32/BF16 Cache，逐行对齐CPU
+```
+
+它还按模型层数、KV head、容量、batch和dtype重新计算Cache Storage字节。这样以后修改Kernel，
+某个shape或低精度Cache做错时，不必等完整Qwen/DeepSeek跑分结束才发现。
+
 ## 运行方式
 
 ```bash
