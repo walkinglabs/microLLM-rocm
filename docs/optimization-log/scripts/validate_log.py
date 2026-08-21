@@ -1621,6 +1621,63 @@ def validate_bf16_kv_cache(errors: list[str]) -> tuple[int, int, int, int]:
         profile.get("after", {}).get("kernel_dispatches", 0)
 
 
+def validate_fused_prefix_pair_discard(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "066-data"
+    formal = [json.loads(line) for line in
+              (data / "formal-release" / "raw.jsonl").read_text(
+                  encoding="utf-8").splitlines()]
+    keys = {(row.get("model"), row.get("context"), row.get("batch"),
+             row.get("framework"), row.get("process_run")) for row in formal}
+    if len(formal) != 72 or len(keys) != 72 or any(
+            row.get("status") != "pass" or row.get("workload") != "decode" or
+            row.get("cache_mode") != "cached" for row in formal):
+        errors.append("fused prefix-pair formal protocol changed")
+    micro = [row for row in formal if row.get("framework") == "microllm"]
+    if len(micro) != 36 or any(
+            int(row.get("measured_d2d_calls", -1)) != 0 or
+            int(row.get("measured_d2d_bytes", -1)) != 0 for row in micro):
+        errors.append("fused prefix-pair zero-D2D contract changed")
+    comparison = json.loads((data / "comparison.json").read_text(encoding="utf-8"))
+    comparison_rows = comparison.get("rows", [])
+    qwen_long = next((row for row in comparison_rows
+                      if row.get("model") == "qwen2.5-0.5b" and
+                      row.get("context") == 2048 and row.get("batch") == 8), {})
+    if comparison.get("decision") != "discard" or len(comparison_rows) != 12 or \
+            float(qwen_long.get("prepare_speedup", 1.0)) >= 0.77 or \
+            float(qwen_long.get("end_to_end_speedup", 1.0)) >= 0.83 or any(
+                row.get("tokens_equal") is not True for row in comparison_rows):
+        errors.append("fused prefix-pair discard/formal failure changed")
+    precision = json.loads((data / "precision" / "summary.json").read_text(
+        encoding="utf-8"))
+    precision_rows = precision.get("records", [])
+    failed = [row for row in precision_rows if row.get("status") == "failed"]
+    if precision.get("status") != "failed" or len(precision_rows) != 12 or \
+            len(failed) != 1 or failed[0].get("context") != 512 or \
+            failed[0].get("batch") != 1:
+        errors.append("fused prefix-pair precision inheritance changed")
+    profile = json.loads((data / "profile-summary.json").read_text(encoding="utf-8"))
+    with (data / "profile" / "kernel-stats.csv").open(
+            encoding="utf-8", newline="") as stream:
+        kernels = list(csv.DictReader(stream))
+    with (data / "profile" / "hip-api-stats.csv").open(
+            encoding="utf-8", newline="") as stream:
+        api = list(csv.DictReader(stream))
+    candidate = profile.get("candidate", {})
+    if sum(int(row["Calls"]) for row in kernels) != \
+            candidate.get("kernel_dispatches") or sum(
+                int(row["TotalDurationNs"]) for row in kernels) != \
+            candidate.get("kernel_time_ns") or sum(
+                int(row["Calls"]) for row in api) != candidate.get("hip_api_calls") or \
+            candidate.get("prefix_pair_calls") != 48 or \
+            profile.get("ratios", {}).get("full_kernel_speedup", 0.0) < 1.02:
+        errors.append("fused prefix-pair retained profile changed")
+    for source in (REPOSITORY / "include/microllm/ops/ops.h",
+                   REPOSITORY / "src/ops/hip/basic_kernels.hip"):
+        if "kv_cache_store_prefix_pair" in source.read_text(encoding="utf-8"):
+            errors.append("discarded prefix-pair implementation remains in source")
+    return len(formal), len(precision_rows), candidate.get("kernel_dispatches", 0)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -1665,7 +1722,8 @@ def validate_assets(errors: list[str]) -> None:
                  "full-prefill-kv-cache.svg",
                  "device-rowwise-argmax.svg",
                  "batched-kv-cache.svg",
-                 "bf16-kv-cache.svg"):
+                 "bf16-kv-cache.svg",
+                 "fused-prefix-pair-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -1738,6 +1796,8 @@ def main() -> int:
         validate_batched_kv_cache(errors)
     bf16_kv_baseline, bf16_kv_formal, bf16_kv_precision, bf16_kv_calls = \
         validate_bf16_kv_cache(errors)
+    prefix_pair_formal, prefix_pair_precision, prefix_pair_calls = \
+        validate_fused_prefix_pair_discard(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -1780,6 +1840,8 @@ def main() -> int:
           f"batched_kv={batched_kv_records}/{batched_kv_pilot}/{batched_kv_calls} "
           f"bf16_kv={bf16_kv_baseline}/{bf16_kv_formal}/"
           f"{bf16_kv_precision}/{bf16_kv_calls} "
+          f"prefix_pair={prefix_pair_formal}/{prefix_pair_precision}/"
+          f"{prefix_pair_calls} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

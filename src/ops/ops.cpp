@@ -1247,6 +1247,7 @@ void kv_cache_store_pair_(Tensor& key_cache, Tensor& value_cache,
     require_same_shape(key_cache, value_cache);
     require_same_dtype(key_cache, value_cache);
     require_same_shape(current_key, current_value);
+    require_same_dtype(current_key, current_value);
     require_same_device(key_cache, value_cache);
     require_same_device(current_key, current_value);
     require_same_device(key_cache, current_key);

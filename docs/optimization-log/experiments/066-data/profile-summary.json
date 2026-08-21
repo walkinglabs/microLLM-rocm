@@ -1,0 +1,46 @@
+{
+  "application": {
+    "baseline_cache_prepare_ms": 136.944,
+    "baseline_measured_d2d_bytes": 201326592,
+    "baseline_measured_d2d_calls": 768,
+    "candidate_cache_prepare_ms": 133.297,
+    "candidate_measured_d2d_bytes": 0,
+    "candidate_measured_d2d_calls": 0
+  },
+  "baseline": {
+    "cached_attention_calls": 144,
+    "cached_attention_time_ns": 35685988,
+    "device_copy_kernel_calls": 1665,
+    "device_copy_kernel_time_ns": 6889819,
+    "fp32_to_bf16_cast_calls": 840,
+    "fp32_to_bf16_cast_time_ns": 9545678,
+    "hip_api_calls": 137404,
+    "hip_api_time_ns": 4569184916,
+    "kernel_dispatches": 6575,
+    "kernel_time_ns": 316195466,
+    "memory_copy_calls": 180,
+    "memory_copy_time_ns": 20148382
+  },
+  "candidate": {
+    "cached_attention_calls": 144,
+    "cached_attention_time_ns": 35705286,
+    "fp32_to_bf16_cast_calls": 744,
+    "fp32_to_bf16_cast_time_ns": 8555675,
+    "hip_api_calls": 137714,
+    "hip_api_time_ns": 4554349702,
+    "kernel_dispatches": 4991,
+    "kernel_time_ns": 309213356,
+    "memory_copy_calls": 180,
+    "memory_copy_time_ns": 20236559,
+    "prefix_pair_calls": 48,
+    "prefix_pair_time_ns": 638856
+  },
+  "profile": "qwen_context2048_batch8_release_warmup1_steps1",
+  "ratios": {
+    "cached_attention_ratio": 0.9994595198033143,
+    "full_kernel_speedup": 1.0225802342121342,
+    "profile_prepare_speedup": 1.0273599555878976,
+    "removed_cast_calls": 96
+  },
+  "schema_version": 1
+}

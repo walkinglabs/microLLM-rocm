@@ -238,6 +238,11 @@ and B2 T4097 fallback coverage. BF16 halves Cache bytes and improves 11/12 Relea
 retained DeepSeek T512 B1 RMSE failure keeps it opt-in instead of changing the default. See
 [Experiment 065](docs/optimization-log/experiments/065-bf16-kv-cache.md).
 
+Experiment 066 tests a one-Kernel BF16 prefix writer. It removes all measured D2D copies and
+improves the local profile, but Qwen T2048 B8 repeated cache preparation/end-to-end regress
+30.5%/21.1%; the candidate is removed and the failure remains published. See
+[Experiment 066](docs/optimization-log/experiments/066-fused-prefix-pair-discard.md).
+
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or
 3.122×/2.583× the matched PyTorch BF16-autocast reference. It is still 8%–9% slower than

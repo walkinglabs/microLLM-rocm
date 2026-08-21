@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "baseline_source": "Experiment 065 Release candidate 4b4b5c5",
+  "candidate_source": "Experiment 066 frozen worktree",
+  "build_type": "Release",
+  "release_flags": "-O3 -DNDEBUG",
+  "hip_architecture": "gfx942",
+  "device": "AMD Instinct MI300X VF",
+  "protocol": {
+    "contexts": [32, 512, 2048],
+    "batches": [1, 8],
+    "decode_tokens": 16,
+    "warmup": 2,
+    "steps": 5,
+    "fresh_process_runs": 3
+  }
+}

@@ -1072,6 +1072,9 @@ TEST(HipOpsTest, PairedBf16KvStoreRoundsOnDeviceWithoutPayloadTransfers) {
     EXPECT_EQ(transfers.device_to_host_calls, 0U);
     expect_near(key_cache.to_vector(), key.cast(DType::BFloat16).to_vector());
     expect_near(value_cache.to_vector(), value.cast(DType::BFloat16).to_vector());
+    EXPECT_THROW(kv_cache_store_pair_(key_cache, value_cache, device_key,
+                                      cast(device_value, DType::BFloat16), 0),
+                 std::invalid_argument);
 }
 
 TEST(HipAutogradTest, RepeatInterleaveMaterializesTransposedGqaValue) {

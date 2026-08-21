@@ -1,0 +1,62 @@
+{
+  "pairing": "fresh processes; framework order alternates by run",
+  "precision_boundary": {
+    "microllm": "mixed_bf16_weights_fp32_activations; cache=bf16",
+    "pytorch": "full_bf16_model"
+  },
+  "rows": [
+    {
+      "batch": 8,
+      "cache_mode": "cached",
+      "context": 2048,
+      "cross_framework_tokens_equal": true,
+      "microllm_generated_tokens": [
+        9707,
+        1879,
+        9707,
+        1879
+      ],
+      "microllm_kv_cache_actual_bytes": 201719808.0,
+      "microllm_kv_cache_allocation_efficiency": 1.0,
+      "microllm_kv_cache_share_of_peak": 0.03524264698055305,
+      "microllm_kv_cache_theoretical_bytes": 201719808.0,
+      "microllm_kv_cache_utilization": 0.999512671,
+      "microllm_latency_ms": 396.309709,
+      "microllm_mean_cache_prepare_ms": 1195.506112,
+      "microllm_mean_end_to_end_generation_ms": 1591.815821,
+      "microllm_peak_bytes": 5723741696.0,
+      "microllm_resident_weight_bytes": 1260477952.0,
+      "microllm_status": "pass",
+      "microllm_throughput_tokens_per_second": 80.744930728,
+      "model": "qwen2.5-0.5b",
+      "peak_memory_ratio_microllm_over_pytorch": 0.49909805319229344,
+      "pytorch_generated_tokens": [
+        9707,
+        1879,
+        9707,
+        1879
+      ],
+      "pytorch_kv_cache_actual_bytes": 201621504.0,
+      "pytorch_kv_cache_allocation_efficiency": 1.0,
+      "pytorch_kv_cache_share_of_peak": 0.017580964598459443,
+      "pytorch_kv_cache_theoretical_bytes": 201621504.0,
+      "pytorch_kv_cache_utilization": 1.0,
+      "pytorch_latency_ms": 30.386253027245402,
+      "pytorch_mean_cache_prepare_ms": 57.643752079457045,
+      "pytorch_mean_end_to_end_generation_ms": 88.03000510670245,
+      "pytorch_peak_bytes": 11468170752.0,
+      "pytorch_resident_weight_bytes": 988065536.0,
+      "pytorch_status": "pass",
+      "pytorch_throughput_tokens_per_second": 1053.1077975065782,
+      "resident_weight_ratio_microllm_over_pytorch": 1.2757027809135122,
+      "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+      "status": "pass",
+      "throughput_ratio_microllm_over_pytorch": 0.07667299674276282,
+      "workload": "decode"
+    }
+  ],
+  "runs_per_framework": 1,
+  "schema_version": 1,
+  "status": "pass",
+  "track": "official_inference_shape_matrix"
+}

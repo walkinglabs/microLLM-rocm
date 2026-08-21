@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="790" viewBox="0 0 1800 790">
+  <rect width="100%" height="100%" fill="#fbfcfe"/>
+  <text x="900" y="48" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 066 · Fused Prefix Pair Store · Discarded</text>
+  <text x="900" y="80" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle">MI300X · matched Release · three-process median · higher prepare ratio is better</text>
+  <rect x="70" y="125" width="1050" height="510" fill="#fff" stroke="#cbd3df" rx="10"/>
+  <text x="595" y="168" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">Cache-prepare speedup: Experiment 065 / candidate</text>
+  <line x1="145" y1="410" x2="1060" y2="410" stroke="#8893a5" stroke-width="2" stroke-dasharray="7 6"/>
+  <text x="130" y="415" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end">1.00×</text>
+  <line x1="145" y1="560" x2="1060" y2="560" stroke="#cbd3df"/>
+  <g font-family="Inter,Arial,sans-serif" font-size="12" text-anchor="middle">
+    <rect x="165" y="393" width="50" height="17" fill="#18a558"/><text x="190" y="380" fill="#16874b">1.03</text><text x="190" y="585" fill="#172033">Q32·1</text>
+    <rect x="235" y="130" width="50" height="280" fill="#18a558"/><text x="260" y="120" fill="#16874b">1.47</text><text x="260" y="585" fill="#172033">Q32·8</text>
+    <rect x="305" y="384" width="50" height="26" fill="#18a558"/><text x="330" y="371" fill="#16874b">1.04</text><text x="330" y="585" fill="#172033">Q512·1</text>
+    <rect x="375" y="354" width="50" height="56" fill="#18a558"/><text x="400" y="341" fill="#16874b">1.09</text><text x="400" y="585" fill="#172033">Q512·8</text>
+    <rect x="445" y="410" width="50" height="5" fill="#9aa4b2"/><text x="470" y="397" fill="#5b6474">0.99</text><text x="470" y="585" fill="#172033">Q2K·1</text>
+    <rect x="515" y="410" width="50" height="140" fill="#d9534f"/><text x="540" y="570" fill="#b33b37">0.77</text><text x="540" y="585" fill="#172033">Q2K·8</text>
+    <rect x="615" y="384" width="50" height="26" fill="#18a558"/><text x="640" y="371" fill="#16874b">1.04</text><text x="640" y="585" fill="#172033">D32·1</text>
+    <rect x="685" y="265" width="50" height="145" fill="#18a558"/><text x="710" y="252" fill="#16874b">1.24</text><text x="710" y="585" fill="#172033">D32·8</text>
+    <rect x="755" y="394" width="50" height="16" fill="#18a558"/><text x="780" y="381" fill="#16874b">1.03</text><text x="780" y="585" fill="#172033">D512·1</text>
+    <rect x="825" y="387" width="50" height="23" fill="#18a558"/><text x="850" y="374" fill="#16874b">1.04</text><text x="850" y="585" fill="#172033">D512·8</text>
+    <rect x="895" y="401" width="50" height="9" fill="#18a558"/><text x="920" y="388" fill="#16874b">1.01</text><text x="920" y="585" fill="#172033">D2K·1</text>
+    <rect x="965" y="407" width="50" height="3" fill="#9aa4b2"/><text x="990" y="394" fill="#5b6474">1.00</text><text x="990" y="585" fill="#172033">D2K·8</text>
+  </g>
+  <rect x="1160" y="125" width="570" height="510" fill="#fff" stroke="#cbd3df" rx="10"/>
+  <text x="1445" y="168" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">Why a cleaner trace still loses</text>
+  <rect x="1210" y="205" width="470" height="100" fill="#eefaf3" stroke="#9bd5b1" rx="8"/>
+  <text x="1235" y="238" font-family="Inter,Arial,sans-serif" font-size="16" fill="#16874b" font-weight="700">Local success</text>
+  <text x="1235" y="269" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033">D2D 201.3 MB → 0 · calls 6575 → 4991</text>
+  <text x="1235" y="292" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033">single profile prepare 136.94 → 133.30 ms</text>
+  <rect x="1210" y="335" width="470" height="135" fill="#fff0f0" stroke="#e6a2a0" rx="8"/>
+  <text x="1235" y="369" font-family="Inter,Arial,sans-serif" font-size="16" fill="#b33b37" font-weight="700">Formal counterexample · Qwen T2048 B8</text>
+  <text x="1235" y="402" font-family="Inter,Arial,sans-serif" font-size="17" fill="#b33b37">prepare 400.37 → 522.55 ms (+30.5%)</text>
+  <text x="1235" y="433" font-family="Inter,Arial,sans-serif" font-size="17" fill="#b33b37">end-to-end 543.79 → 658.59 ms (+21.1%)</text>
+  <text x="1235" y="457" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">three independent candidate runs: 522.55 / 541.00 / 522.25</text>
+  <rect x="1210" y="500" width="470" height="85" fill="#f5f7fa" stroke="#d8dee8" rx="8"/>
+  <text x="1235" y="534" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" font-weight="700">Decision</text>
+  <text x="1235" y="565" font-family="Inter,Arial,sans-serif" font-size="16" fill="#9a4f00">discard unconditional replacement; keep scalar path</text>
+  <text x="900" y="705" font-family="Inter,Arial,sans-serif" font-size="18" fill="#b33b37" text-anchor="middle" font-weight="700">Fewer copies and faster kernels are evidence—not permission to ignore the repeated end-to-end failure</text>
+</svg>

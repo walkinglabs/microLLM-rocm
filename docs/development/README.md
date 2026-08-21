@@ -188,4 +188,6 @@ the next gate. Records are append-only except for factual corrections.
   profiler before/after and next-hotspot handoff.
 - [2026-08-21-bf16-kv-cache.md](2026-08-21-bf16-kv-cache.md): FP32/BF16 Cache
   policy, exact half-size Storage, B2 T4097 fallback, complete-logit matrix and retained
-  DeepSeek long-context divergence.
+  DeepSeek RMSE failure.
+- [2026-08-21-fused-prefix-pair-discard.md](2026-08-21-fused-prefix-pair-discard.md):
+  zero-D2D prefix candidate, clean local profile, stable Qwen T2048 B8 regression and rollback.

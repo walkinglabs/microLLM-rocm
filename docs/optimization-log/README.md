@@ -350,6 +350,12 @@ T2048 B8提高24.8%，peak降约5%。完整logits仍有一个失败：DeepSeek T
 
 ![BF16 KV cache](assets/bf16-kv-cache.svg)
 
+Experiment 066尝试用一个prefix-pair Kernel删除BF16 prefill的96次cast和全部D2D。局部
+profile更干净，但正式Qwen T2048 B8 prepare慢30.5%、端到端慢21.1%，三轮复现。
+候选全部删除，只保留失败图和paired step-store的dtype合同修复。
+
+![Fused prefix pair discarded](assets/fused-prefix-pair-discard.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -439,6 +445,8 @@ T2048 B8提高24.8%，peak降约5%。完整logits仍有一个失败：DeepSeek T
 | [experiments/064-data/](experiments/064-data/) | pilot16条、正式48条、retained B8 profile |
 | [assets/bf16-kv-cache.svg](assets/bf16-kv-cache.svg) | Release吞吐、T2048 B8 Cache字节与精度门 |
 | [experiments/065-data/](experiments/065-data/) | Release前后各72条、12条完整logits、profile和被拒绝向量化 |
+| [assets/fused-prefix-pair-discard.svg](assets/fused-prefix-pair-discard.svg) | prepare矩阵、零D2D局部成功和长batch反例 |
+| [experiments/066-data/](experiments/066-data/) | 正式72条、精度12条、profile和discard决定 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

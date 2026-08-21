@@ -1601,3 +1601,22 @@ token分叉未在Release复现，仍作为build-sensitive反例保留。
 
 因此节点是conditional keep：API、Kernel和显存/速度能力保留，FP32仍默认。下一实验先
 删除full prefill的额外cast与per-head copy，同时必须重跑同一完整logit门。
+
+## 83. Experiment 066：复制全部归零，关键shape却慢了21%
+
+候选用一个Kernel同时完成FP32 K/V→BF16和capacity-strided双Cache写入。算子、B2 stride、
+零payload与完整logits通过；36条microLLM正式进程的D2D全部从数百/数千次变成0。
+
+![Fused prefix pair discarded](assets/fused-prefix-pair-discard.svg)
+
+短中shape部分改善：Qwen T32/T512 B8 prepare快1.47×/1.09×，DeepSeek T32 B8快1.24×。
+但Qwen T2048 B8 prepare `400.37→522.55ms`，端到端`543.79→658.59ms`，三轮都复现。
+这是主指标30.5%/21.1%的稳定回退，足以否决无条件替换。
+
+一次profile反而很好看：D2D 201.3MB→0，calls 6575→4991，Kernel
+`316.20→309.21ms`，新增prefix-pair仅0.639ms，单次prepare还快2.7%。它没有覆盖正式
+协议的五次重复prefill/allocator生命周期，因此不能推翻三进程结果。
+
+候选API/Kernel/路由/测试全部删除。只留下paired step store的dtype一致性检查，以及完整
+失败数据。下一次重试必须先做prefix microbenchmark、逐step allocator计数和同binary路由
+对照；“copy变少”不再被当作充分解释。
