@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "date_utc": "2026-08-21",
+  "device_name": "AMD Instinct MI300X VF",
+  "architecture": "gfx942:sramecc+:xnack-",
+  "hip_runtime_version": 71399004,
+  "hip_driver_version": 71399004,
+  "pytorch_version": "2.10.0+rocm7.13.0rc2",
+  "torch_hip_version": "7.13.99004",
+  "transformers_version": "5.8.1",
+  "physical_visibility": {
+    "core": "1",
+    "batch": "3",
+    "long_warm": "3",
+    "long_no_warm": "2"
+  },
+  "pairing_rule": "framework order alternates for the three-process core; every ratio is same-card and same-case",
+  "cross_card_rule": "absolute throughput from different physical visibility groups is not compared"
+}

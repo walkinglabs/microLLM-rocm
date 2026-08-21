@@ -17,7 +17,9 @@ component has a public interface under `include/microllm`, an implementation und
    [single-GPU benchmarking](single-gpu-benchmark.md).
 9. For matched Python/PyTorch data, read
    [PyTorch performance comparison](pytorch-benchmark.md).
-10. For the measured optimization loop, read the
+10. For context/batch/KV-cache inference evidence, read the
+    [simple inference-matrix guide](inference-matrix.zh-CN.md).
+11. For the measured optimization loop, read the
     [0→1 optimization log](../optimization-log/README.md).
 
 ## Engineering rules

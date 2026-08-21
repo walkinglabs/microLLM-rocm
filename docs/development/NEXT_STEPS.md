@@ -24,10 +24,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [ ] support tool-call/tool-response branches of the instruction chat template;
 - [x] add Q/K/V bias parameters, backward, HIP Kernel, and strict weight mapping;
 - [ ] add explicit attention head dimension and QK-Norm where required;
-- [ ] preallocate device-native KV cache;
+- [x] preallocate request-bounded device-native KV cache with stable Storage evidence;
 - [x] compare tokenizer IDs, complete logits, and greedy tokens with PyTorch on fixed prompts;
 - [ ] compare every per-layer hidden state with PyTorch;
-- [ ] record peak host/GPU memory, prefill/decode latency, and tokens/s.
+- [x] record engine peak, resident policy, prefill/decode latency, tokens/s and KV utilization;
 
 ## P2 — operator registry and profiler API
 
@@ -83,5 +83,6 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [ ] Radeon run;
 - [ ] four-rank RCCL after shared-memory environment repair;
 - [ ] backward-ready bucket overlap;
-- [ ] broader context/batch/dtype PyTorch matrix and llama.cpp benchmarks;
+- [x] broader context 8–2048 and batch 1–8 PyTorch inference matrix;
+- [ ] identical-residency dtype matrix and llama.cpp benchmarks;
 - [ ] learner-independent tutorial dry run on `tutorial/beginner-course`.

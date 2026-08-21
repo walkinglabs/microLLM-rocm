@@ -71,6 +71,11 @@ if(BUILD_TESTING)
                          ${PROJECT_SOURCE_DIR}/python/tests/test_hf_shape_matrix.py)
         set_tests_properties(Benchmark.HfShapeMatrixContract PROPERTIES
                              LABELS "cpu;benchmark;huggingface;batch;context;schema")
+        add_test(NAME Benchmark.HfInferenceShapeMatrixContract
+                 COMMAND ${Python3_EXECUTABLE}
+                         ${PROJECT_SOURCE_DIR}/python/tests/test_hf_inference_shape_matrix.py)
+        set_tests_properties(Benchmark.HfInferenceShapeMatrixContract PROPERTIES
+                             LABELS "cpu;benchmark;huggingface;inference;batch;context;kv-cache;schema")
         add_test(NAME Benchmark.FrameworkComparisonBuiltinsSchema
                  COMMAND ${Python3_EXECUTABLE}
                          ${CMAKE_CURRENT_SOURCE_DIR}/single_gpu/compare_frameworks.py

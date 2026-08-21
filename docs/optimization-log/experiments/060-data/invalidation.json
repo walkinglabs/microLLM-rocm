@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "decision": "invalid",
+  "scope": "invalid-pilots",
+  "reasons": [
+    "microLLM reported active Tensor-view bytes as allocated KV Storage bytes",
+    "the resulting integer division falsely inferred a three-byte KV element",
+    "microLLM cached decode included prompt ingestion while the comparison boundary was not matched",
+    "the PyTorch worker used high-level generate semantics rather than the same explicit greedy loop"
+  ],
+  "replacement": "core, batch and long-warm use Storage bytes, explicit precision policies and matched prefill/decode boundaries"
+}

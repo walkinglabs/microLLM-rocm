@@ -64,9 +64,29 @@ build/hip-release/apps/microllm_hf_infer \
 固定实验生成 `[0,358,2776,264]`，文字是 `! I'm a`，与 Transformers FP32
 完全一致。
 
-`--warmup` 会运行完整生成但不计入吞吐；完成后框架重置峰值分配计数，再用
-`--steps` 次完整生成计算 `decode_tokens_per_second`。默认值仍是 `warmup=0`、
-`steps=1`，用于一次性正确性检查。
+`--warmup` 会运行完整生成但不计入吞吐；完成后框架重置峰值分配计数。cached模式把
+prompt写入Cache的时间单独记为`mean_cache_prepare_ms`，`decode_tokens_per_second`只计算
+steady decode；两者之和写入`mean_end_to_end_generation_ms`。默认值仍是`warmup=0`、
+`steps=1`，只适合一次性正确性检查，不能与排除初始化的正式性能行比较。
+
+`--batch`支持full-sequence prefill和uncached reference decode。当前cached decode只支持
+batch1；B2/B4/B8会明确失败，不能静默退回B1。`--use-cache true|false`用于检查两条路径
+是否生成相同token。
+
+多context、batch和KV Cache显存矩阵见：
+
+```bash
+python3 benchmarks/single_gpu/hf_inference_shape_matrix.py \
+  --manifest /path/to/hf-models.local.json \
+  --micro-binary build/apps/microllm_hf_infer \
+  --pytorch-python /usr/local/bin/python3 \
+  --output-directory /tmp/inference-matrix \
+  --contexts 8,128,512 --batches 1,2,4,8 \
+  --decode-tokens 4 --warmup 1 --steps 2 --runs 3
+```
+
+runner分别记录microLLM混合驻留政策和PyTorch整网BF16，不能只写一个“BF16”掩盖
+常驻权重差异。详细解释见[推理矩阵设计](dev/inference-matrix.zh-CN.md)。
 
 多步训练使用相同规则：
 

@@ -57,6 +57,24 @@ Start from `benchmarks/single_gpu/hf_models.example.json`. Without
 nonzero. With that flag, missing inputs are emitted as `unavailable` and the matrix
 summary is `incomplete`; they are never reported as passing measurements.
 
+For phase-separated official inference across context, batch and cache modes:
+
+```bash
+ROCR_VISIBLE_DEVICES=1 python3 \
+  benchmarks/single_gpu/hf_inference_shape_matrix.py \
+  --manifest /path/to/hf-models.local.json \
+  --micro-binary build/hip-release/apps/microllm_hf_infer \
+  --pytorch-python /path/to/python-with-pytorch-rocm \
+  --output-directory /tmp/microllm-inference-matrix \
+  --contexts 8,128,512 --batches 1,2,4,8 \
+  --decode-tokens 4 --warmup 1 --steps 2 --runs 3
+```
+
+The runner separates prefill, cache preparation, steady cached decode and uncached
+reference decode. It records engine/framework peak, resident weight policy, KV Storage
+and active bytes, utilization, exact greedy tokens and explicit `unsupported`/`oom`
+rows. See the [simple inference-matrix guide](../docs/dev/inference-matrix.zh-CN.md).
+
 Run the independent Python/PyTorch ROCm baseline with the same built-in comparison
 recipe, then compare machine-readable rows:
 

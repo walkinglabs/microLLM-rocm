@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "experiment": 60,
+  "decision": "keep_infrastructure_and_falsify_old_parity_claim",
+  "core": {
+    "raw_records": 108,
+    "summary_rows": 18,
+    "all_records_pass": true,
+    "all_decode_token_pairs_equal": true,
+    "qwen": {
+      "prefill_ratio_by_context_8_128_512": [0.649102048, 0.253190179, 0.044408129],
+      "cached_decode_ratio_by_context_8_128_512": [1.048973109, 0.762397313, 0.317637759],
+      "cache_speedup_over_uncached_by_context_8_128_512": [2.644717023, 4.579407267, 10.450875129]
+    },
+    "deepseek": {
+      "prefill_ratio_by_context_8_128_512": [0.510116506, 0.194855129, 0.026132587],
+      "cached_decode_ratio_by_context_8_128_512": [0.844915986, 0.588402607, 0.267240030],
+      "cache_speedup_over_uncached_by_context_8_128_512": [2.447932241, 4.584919543, 14.428034216]
+    }
+  },
+  "long_warm": {
+    "raw_records": 24,
+    "summary_rows": 12,
+    "all_records_pass": true,
+    "all_decode_token_pairs_equal": true,
+    "qwen": {
+      "prefill_ratio_by_context_1024_2048": [0.011619516, 0.004351028],
+      "cached_decode_ratio_by_context_1024_2048": [0.203670144, 0.126181926],
+      "cache_speedup_over_uncached_by_context_1024_2048": [35.224780985, 81.427943201]
+    },
+    "deepseek": {
+      "prefill_ratio_by_context_1024_2048": [0.009469232, 0.003813133],
+      "cached_decode_ratio_by_context_1024_2048": [0.165807091, 0.089890235],
+      "cache_speedup_over_uncached_by_context_1024_2048": [48.051475702, 100.587250001]
+    }
+  },
+  "batch": {
+    "raw_records": 48,
+    "summary_rows": 24,
+    "pass_records": 42,
+    "unsupported_records": 6,
+    "unsupported_contract": "microLLM cached decode has no batch 2/4/8 API; PyTorch rows pass",
+    "qwen_batch8_efficiency_vs_batch1": {
+      "prefill": 0.803727947,
+      "uncached_decode": 0.366594272
+    },
+    "deepseek_batch8_efficiency_vs_batch1": {
+      "prefill": 0.557743419,
+      "uncached_decode": 0.383941674
+    }
+  },
+  "kv_cache": {
+    "microllm_element_bytes": 4,
+    "pytorch_element_bytes": 2,
+    "storage_formula_passed": true,
+    "qwen_allocated_bytes_context_8_128_512_1024_2048": [294912, 3244032, 12681216, 25214976, 50380800],
+    "deepseek_allocated_bytes_context_8_128_512_1024_2048": [688128, 7569408, 29589504, 58834944, 117555200],
+    "utilization_approaches_one_as_context_grows": true
+  },
+  "final_schema_smoke": {
+    "prefill_top_token_equal": true,
+    "prefill_top_logit_abs_difference": 0.076097488,
+    "qwen_context8_cached_steady_decode_ratio": 1.032741025,
+    "micro_cache_prepare_ms": 82.505185,
+    "pytorch_cache_prepare_ms": 12.628047,
+    "micro_end_to_end_generation_ms": 93.262272,
+    "pytorch_end_to_end_generation_ms": 23.737332
+  },
+  "falsified": [
+    "the old fixed short-prompt 4/4 inference parity result generalizes to longer contexts",
+    "active Tensor-view bytes equal allocated KV Storage bytes",
+    "steady decode alone describes end-to-end generation latency",
+    "batch-1 cached decode proves batched serving support"
+  ],
+  "next": [
+    "route long full-sequence inference QK/PV through the retained batched hipBLASLt path",
+    "add full-sequence prefill-to-KV-cache instead of token-by-token prompt ingestion",
+    "add a batched KV cache and cached decode API",
+    "keep batch argmax on device",
+    "make microLLM and PyTorch resident precision policies identical for a scientific dtype comparison"
+  ]
+}

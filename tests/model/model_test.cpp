@@ -264,6 +264,14 @@ TEST(TransformerModelTest, CachedLogitsMatchFullPrefixForMhaAndGqa) {
                 EXPECT_EQ(cache.layer(0).key.storage().data(), key_address);
                 EXPECT_EQ(cache.layer(0).value.storage().data(), value_address);
             }
+            const auto expected_cache_bytes = static_cast<std::size_t>(
+                config.kv_heads * config.max_sequence_length *
+                config.head_dimension()) * sizeof(float);
+            EXPECT_EQ(cache.layer(0).key.storage().num_bytes(), expected_cache_bytes);
+            EXPECT_EQ(cache.layer(0).value.storage().num_bytes(), expected_cache_bytes);
+            EXPECT_EQ(cache.layer(0).key.numel(),
+                      config.kv_heads * static_cast<std::int64_t>(position + 1) *
+                          config.head_dimension());
         }
         EXPECT_EQ(cache.position(), 4);
         EXPECT_EQ(cache.layer(0).key.shape()[2], 4);

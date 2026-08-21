@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <chrono>
 #include <charconv>
+#include <cmath>
 #include <cstdint>
 #include <filesystem>
 #include <iomanip>
@@ -21,6 +22,8 @@
 #include <microllm/runtime/runtime.h>
 #include <microllm/runtime/memory.h>
 #include <microllm/inference/generator.h>
+#include <microllm/inference/kv_cache.h>
+#include <microllm/ops/ops.h>
 
 namespace {
 
@@ -44,6 +47,8 @@ struct Options {
     bool bf16_ffn = false;
     bool bf16_attention = false;
     std::string workload = "both";
+    std::int64_t batch = 1;
+    bool use_cache = true;
 };
 
 Options options(int argc, char** argv) {
@@ -83,6 +88,14 @@ Options options(int argc, char** argv) {
             }
             result.bf16_attention = value == "true";
         } else if (name == "--workload") result.workload = argv[index + 1];
+        else if (name == "--batch") result.batch = std::stoll(argv[index + 1]);
+        else if (name == "--use-cache") {
+            const std::string value = argv[index + 1];
+            if (value != "true" && value != "false") {
+                throw std::invalid_argument("--use-cache must be true or false");
+            }
+            result.use_cache = value == "true";
+        }
         else throw std::invalid_argument("unknown CLI option: " + name);
     }
     if (result.config.empty() || result.weights.empty()) {
@@ -99,6 +112,7 @@ Options options(int argc, char** argv) {
         throw std::invalid_argument("--device must be cpu or hip");
     }
     if (result.top_k <= 0) throw std::invalid_argument("--top-k must be positive");
+    if (result.batch <= 0) throw std::invalid_argument("--batch must be positive");
     if (result.new_tokens < 0) throw std::invalid_argument("--new-tokens cannot be negative");
     if (result.warmup < 0 || result.steps <= 0) {
         throw std::invalid_argument("--warmup must be nonnegative and --steps positive");
@@ -114,6 +128,10 @@ Options options(int argc, char** argv) {
     if (result.workload == "decode" && result.new_tokens == 0) {
         throw std::invalid_argument("decode workload requires positive --new-tokens");
     }
+    if (result.workload != "prefill" && result.use_cache && result.batch != 1) {
+        throw std::invalid_argument(
+            "cached decode currently supports batch 1; use --use-cache false for larger batches");
+    }
     if (result.workload == "prefill" && result.new_tokens != 0) {
         throw std::invalid_argument("prefill workload requires --new-tokens 0");
     }
@@ -121,6 +139,114 @@ Options options(int argc, char** argv) {
         throw std::invalid_argument("--bf16-attention requires --bf16-ffn true");
     }
     return result;
+}
+
+struct GenerationRun {
+    std::vector<std::int32_t> suffix;
+    std::size_t kv_cache_actual_bytes = 0;
+    std::size_t kv_cache_active_bytes = 0;
+    std::size_t kv_cache_element_bytes = 0;
+    std::int64_t kv_cache_capacity_tokens = 0;
+    std::int64_t kv_cache_active_tokens = 0;
+};
+
+std::size_t tensor_bytes(const microllm::Tensor& tensor) {
+    return tensor.defined()
+               ? static_cast<std::size_t>(tensor.numel()) * microllm::dtype_size(tensor.dtype())
+               : 0;
+}
+
+struct CachedGenerationState {
+    CachedGenerationState(std::int64_t layers, std::int64_t capacity)
+        : cache(layers, capacity) {}
+    microllm::inference::KVCache cache;
+    microllm::Tensor logits;
+};
+
+CachedGenerationState prepare_cached(
+    microllm::model::TransformerModel& model,
+    const std::vector<std::int32_t>& prompt, std::int64_t new_tokens) {
+    CachedGenerationState state(
+        model.config().layers,
+        static_cast<std::int64_t>(prompt.size()) + new_tokens);
+    for (const auto token : prompt) {
+        state.logits = model.forward_cached(
+            microllm::Tensor::from_int32_vector({token}, {1, 1}), state.cache);
+    }
+    return state;
+}
+
+GenerationRun decode_cached(microllm::model::TransformerModel& model,
+                            CachedGenerationState& state,
+                            std::int64_t new_tokens) {
+    GenerationRun run;
+    run.kv_cache_capacity_tokens = state.cache.max_sequence_length();
+    for (std::int64_t generated = 0; generated < new_tokens; ++generated) {
+        auto next_tensor = microllm::ops::argmax(state.logits);
+        const auto next = next_tensor.to_int32_vector().front();
+        if (next < 0) throw std::runtime_error("cached generation produced non-finite logits");
+        run.suffix.push_back(next);
+        if (generated + 1 < new_tokens) {
+            state.logits = model.forward_cached(next_tensor, state.cache);
+        }
+    }
+    run.kv_cache_active_tokens = state.cache.position();
+    for (std::size_t layer = 0; layer < state.cache.layer_count(); ++layer) {
+        const auto& layer_state = state.cache.layer(layer);
+        for (const auto* tensor : {&layer_state.key, &layer_state.value}) {
+            if (!tensor->defined()) continue;
+            const auto element_bytes = microllm::dtype_size(tensor->dtype());
+            if (run.kv_cache_element_bytes != 0 &&
+                run.kv_cache_element_bytes != element_bytes) {
+                throw std::runtime_error("KV cache tensors use mixed element sizes");
+            }
+            run.kv_cache_element_bytes = element_bytes;
+            // The Tensor is an active-prefix view. Storage owns the full
+            // preallocated capacity and is the allocation evidence.
+            run.kv_cache_actual_bytes += tensor->storage().num_bytes();
+            run.kv_cache_active_bytes += tensor_bytes(*tensor);
+        }
+    }
+    return run;
+}
+
+GenerationRun generate_uncached(microllm::model::TransformerModel& model,
+                                const std::vector<std::int32_t>& prompt,
+                                std::int64_t batch, std::int64_t new_tokens) {
+    std::vector<std::vector<std::int32_t>> sequences(
+        static_cast<std::size_t>(batch), prompt);
+    GenerationRun run;
+    const auto vocabulary = model.config().vocabulary_size;
+    for (std::int64_t generated = 0; generated < new_tokens; ++generated) {
+        const auto length = static_cast<std::int64_t>(sequences.front().size());
+        std::vector<std::int32_t> flat;
+        flat.reserve(static_cast<std::size_t>(batch * length));
+        for (const auto& sequence : sequences) flat.insert(flat.end(), sequence.begin(), sequence.end());
+        auto token_tensor = microllm::Tensor::from_int32_vector(flat, {batch, length});
+        if (model.device().is_hip()) token_tensor = token_tensor.to(model.device());
+        auto last_logits = model.forward_inference(token_tensor)
+                               .slice(1, length - 1, length)
+                               .contiguous()
+                               .to_vector();
+        for (std::int64_t row = 0; row < batch; ++row) {
+            const auto begin = last_logits.begin() + row * vocabulary;
+            const auto end = begin + vocabulary;
+            const auto maximum = std::max_element(begin, end);
+            if (maximum == end || !std::isfinite(*maximum)) {
+                throw std::runtime_error("uncached generation produced non-finite logits");
+            }
+            sequences[static_cast<std::size_t>(row)].push_back(
+                static_cast<std::int32_t>(std::distance(begin, maximum)));
+        }
+    }
+    for (std::int64_t row = 1; row < batch; ++row) {
+        if (sequences[static_cast<std::size_t>(row)] != sequences.front()) {
+            throw std::runtime_error("identical batch rows generated different tokens");
+        }
+    }
+    run.suffix.assign(sequences.front().begin() + static_cast<std::ptrdiff_t>(prompt.size()),
+                      sequences.front().end());
+    return run;
 }
 
 std::vector<std::int32_t> tokens(std::string_view text) {
@@ -205,8 +331,13 @@ int main(int argc, char** argv) {
             throw std::invalid_argument("token sequence exceeds model context");
         }
         if (ids.empty()) throw std::invalid_argument("token sequence cannot be empty");
+        std::vector<std::int32_t> batched_ids;
+        batched_ids.reserve(ids.size() * static_cast<std::size_t>(command.batch));
+        for (std::int64_t row = 0; row < command.batch; ++row) {
+            batched_ids.insert(batched_ids.end(), ids.begin(), ids.end());
+        }
         auto token_tensor = microllm::Tensor::from_int32_vector(
-            ids, {1, static_cast<std::int64_t>(ids.size())});
+            batched_ids, {command.batch, static_cast<std::int64_t>(ids.size())});
         if (device.is_hip()) token_tensor = token_tensor.to(device);
         microllm::Tensor logits_tensor;
         double forward_ms = 0.0;
@@ -252,23 +383,21 @@ int main(int argc, char** argv) {
                               });
         }
         double generation_ms = 0.0;
+        double cache_prepare_ms = 0.0;
         double warmup_ms = 0.0;
         std::vector<std::int32_t> generated_suffix;
         std::string generated_text;
+        GenerationRun generation_evidence;
         if (run_decode && command.new_tokens > 0) {
-            const auto run_generation = [&]() {
-                const auto generated = microllm::inference::generate(
-                    model, ids, {.max_new_tokens = command.new_tokens,
-                                 .temperature = 0.0F,
-                                 .top_k = 1,
-                                 .seed = 1});
-                return std::vector<std::int32_t>(
-                    generated.begin() + static_cast<std::ptrdiff_t>(ids.size()),
-                    generated.end());
-            };
             const auto warmup_start = std::chrono::steady_clock::now();
             for (int iteration = 0; iteration < command.warmup; ++iteration) {
-                (void)run_generation();
+                if (command.use_cache) {
+                    auto state = prepare_cached(model, ids, command.new_tokens);
+                    (void)decode_cached(model, state, command.new_tokens);
+                } else {
+                    (void)generate_uncached(
+                        model, ids, command.batch, command.new_tokens);
+                }
             }
             microllm::runtime::synchronize(device);
             const auto warmup_finish = std::chrono::steady_clock::now();
@@ -276,19 +405,38 @@ int main(int argc, char** argv) {
                             .count();
             if (device.is_hip()) microllm::runtime::enable_hip_caching_allocator(device);
             microllm::runtime::reset_allocation_peak(device);
-            const auto generation_start = std::chrono::steady_clock::now();
             for (int iteration = 0; iteration < command.steps; ++iteration) {
-                const auto current = run_generation();
-                if (iteration != 0 && current != generated_suffix) {
+                GenerationRun current;
+                if (command.use_cache) {
+                    // Prompt ingestion establishes the cache but is a prefill
+                    // phase, so it is deliberately outside decode timing.
+                    const auto prepare_start = std::chrono::steady_clock::now();
+                    auto state = prepare_cached(model, ids, command.new_tokens);
+                    microllm::runtime::synchronize(device);
+                    const auto prepare_finish = std::chrono::steady_clock::now();
+                    cache_prepare_ms += std::chrono::duration<double, std::milli>(
+                                            prepare_finish - prepare_start).count();
+                    const auto decode_start = std::chrono::steady_clock::now();
+                    current = decode_cached(model, state, command.new_tokens);
+                    microllm::runtime::synchronize(device);
+                    const auto decode_finish = std::chrono::steady_clock::now();
+                    generation_ms += std::chrono::duration<double, std::milli>(
+                                         decode_finish - decode_start).count();
+                } else {
+                    const auto decode_start = std::chrono::steady_clock::now();
+                    current = generate_uncached(
+                        model, ids, command.batch, command.new_tokens);
+                    microllm::runtime::synchronize(device);
+                    const auto decode_finish = std::chrono::steady_clock::now();
+                    generation_ms += std::chrono::duration<double, std::milli>(
+                                         decode_finish - decode_start).count();
+                }
+                if (iteration != 0 && current.suffix != generated_suffix) {
                     throw std::runtime_error("deterministic generation changed across steps");
                 }
-                generated_suffix = current;
+                generated_suffix = current.suffix;
+                generation_evidence = current;
             }
-            microllm::runtime::synchronize(device);
-            const auto generation_finish = std::chrono::steady_clock::now();
-            generation_ms = std::chrono::duration<double, std::milli>(
-                                generation_finish - generation_start)
-                                .count();
             if (tokenizer.has_value()) generated_text = tokenizer->decode(generated_suffix);
         }
         const auto allocation = microllm::runtime::allocation_stats(device);
@@ -340,6 +488,8 @@ int main(int argc, char** argv) {
                   << external.model.weight_bytes(sizeof(float))
                   << ",\"loaded_tensors\":" << report.loaded.size()
                   << ",\"token_count\":" << ids.size()
+                  << ",\"batch\":" << command.batch
+                  << ",\"use_cache\":" << (command.use_cache ? "true" : "false")
                   << ",\"warmup\":" << command.warmup
                   << ",\"steps\":" << command.steps
                   << ",\"warmup_ms\":" << warmup_ms
@@ -371,8 +521,9 @@ int main(int argc, char** argv) {
                       << ",\"forward_ms\":"
                       << forward_ms / static_cast<double>(command.prefill_steps)
                       << ",\"prefill_tokens_per_second\":"
-                      << static_cast<double>(ids.size()) * command.prefill_steps * 1000.0 /
-                             forward_ms
+                      << static_cast<double>(ids.size()) *
+                             static_cast<double>(command.batch) *
+                             command.prefill_steps * 1000.0 / forward_ms
                       << ",\"top_logits\":[";
             for (std::size_t index = 0; index < selected; ++index) {
                 if (index != 0) std::cout << ',';
@@ -383,15 +534,41 @@ int main(int argc, char** argv) {
         }
         if (!generated_suffix.empty()) {
             const auto measured_tokens =
-                generated_suffix.size() * static_cast<std::size_t>(command.steps);
+                generated_suffix.size() * static_cast<std::size_t>(command.steps) *
+                static_cast<std::size_t>(command.batch);
             std::cout << ",\"generation_ms\":" << generation_ms
                       << ",\"mean_generation_ms\":"
                       << generation_ms / static_cast<double>(command.steps)
+                      << ",\"cache_prepare_ms\":" << cache_prepare_ms
+                      << ",\"mean_cache_prepare_ms\":"
+                      << cache_prepare_ms / static_cast<double>(command.steps)
+                      << ",\"mean_end_to_end_generation_ms\":"
+                      << (cache_prepare_ms + generation_ms) /
+                             static_cast<double>(command.steps)
                       << ",\"measured_tokens\":" << measured_tokens
                       << ",\"decode_tokens_per_second\":"
                       << static_cast<double>(measured_tokens) * 1000.0 / generation_ms
                       << ",\"decode_milliseconds_per_token\":"
-                      << generation_ms / static_cast<double>(measured_tokens);
+                      << generation_ms / static_cast<double>(measured_tokens)
+                      << ",\"kv_cache_actual_bytes\":"
+                      << generation_evidence.kv_cache_actual_bytes
+                      << ",\"kv_cache_active_bytes\":"
+                      << generation_evidence.kv_cache_active_bytes
+                      << ",\"kv_cache_capacity_tokens\":"
+                      << generation_evidence.kv_cache_capacity_tokens
+                      << ",\"kv_cache_active_tokens\":"
+                      << generation_evidence.kv_cache_active_tokens
+                      << ",\"kv_cache_layers\":" << external.model.layers
+                      << ",\"kv_cache_heads\":" << external.model.kv_heads
+                      << ",\"kv_cache_head_dimension\":"
+                      << external.model.head_dimension()
+                      << ",\"kv_cache_element_bytes\":"
+                      << generation_evidence.kv_cache_element_bytes
+                      << ",\"kv_cache_utilization\":"
+                      << (generation_evidence.kv_cache_actual_bytes == 0
+                              ? 0.0
+                              : static_cast<double>(generation_evidence.kv_cache_active_bytes) /
+                                    static_cast<double>(generation_evidence.kv_cache_actual_bytes));
             std::cout << ",\"generated_tokens\":[";
             for (std::size_t index = 0; index < generated_suffix.size(); ++index) {
                 if (index != 0) std::cout << ',';

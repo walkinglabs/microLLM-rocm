@@ -1212,6 +1212,100 @@ def validate_block_column_rmsnorm_weight_gradient(errors: list[str]) -> tuple[in
     return len(formal), after.get("kernel_dispatches", 0)
 
 
+def validate_inference_shape_matrix(errors: list[str]) -> tuple[int, int, int, int]:
+    data = ROOT / "experiments" / "060-data"
+
+    def raw(name: str) -> list[dict]:
+        return [json.loads(line) for line in
+                (data / name / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+
+    core = raw("core")
+    batch = raw("batch")
+    long_warm = raw("long-warm")
+    long_no_warm = raw("long-no-warm")
+    expected_key = lambda row: (
+        row.get("model"), row.get("context"), row.get("batch"),
+        row.get("workload"), row.get("cache_mode"), row.get("framework"),
+        row.get("process_run"))
+    if len(core) != 108 or len({expected_key(row) for row in core}) != 108 or \
+            any(row.get("status") != "pass" or row.get("warmup") != 1 or
+                row.get("steps") != 2 for row in core):
+        errors.append("inference core raw protocol changed")
+    unsupported = [row for row in batch if row.get("status") == "unsupported"]
+    if len(batch) != 48 or len({expected_key(row) for row in batch}) != 48 or \
+            len(unsupported) != 6 or any(
+                row.get("framework") != "microllm" or row.get("workload") != "decode" or
+                row.get("cache_mode") != "cached" or row.get("batch") not in {2, 4, 8}
+                for row in unsupported) or any(
+                row.get("status") not in {"pass", "unsupported"} for row in batch):
+        errors.append("inference batch pass/unsupported contract changed")
+    if len(long_warm) != 24 or any(row.get("status") != "pass" or
+                                   row.get("warmup") != 1 for row in long_warm):
+        errors.append("warm long-context inference protocol changed")
+    if len(long_no_warm) != 36 or any(row.get("status") != "pass" or
+                                      row.get("warmup") != 0 for row in long_no_warm):
+        errors.append("no-warm long-context feasibility protocol changed")
+
+    for row in core + batch + long_warm:
+        if row.get("status") != "pass":
+            continue
+        expected_precision = ("mixed_bf16_weights_fp32_activations"
+                              if row.get("framework") == "microllm"
+                              else "full_bf16_model")
+        if row.get("precision") != expected_precision:
+            errors.append("inference precision residency policy changed")
+            break
+        if row.get("workload") == "decode" and row.get("cache_mode") == "cached":
+            actual = int(row.get("kv_cache_actual_bytes", 0))
+            theoretical = int(row.get("kv_cache_theoretical_bytes", -1))
+            element_bytes = int(row.get("kv_cache_element_bytes", 0))
+            expected_element = 4 if row.get("framework") == "microllm" else 2
+            utilization = float(row.get("kv_cache_utilization", 0.0))
+            if actual <= 0 or actual != theoretical or element_bytes != expected_element or \
+                    not (0.0 < utilization <= 1.0):
+                errors.append("inference KV Storage/formula contract changed")
+                break
+
+    core_summary = json.loads((data / "core" / "summary.json").read_text(encoding="utf-8"))
+    batch_summary = json.loads((data / "batch" / "summary.json").read_text(encoding="utf-8"))
+    warm_summary = json.loads(
+        (data / "long-warm" / "summary.json").read_text(encoding="utf-8"))
+    no_warm_summary = json.loads(
+        (data / "long-no-warm" / "summary.json").read_text(encoding="utf-8"))
+    if core_summary.get("status") != "pass" or len(core_summary.get("rows", [])) != 18 or \
+            any(row.get("cross_framework_tokens_equal") is not True for row in
+                core_summary["rows"] if row.get("workload") == "decode"):
+        errors.append("inference core summary/token gate changed")
+    if batch_summary.get("status") != "complete_with_recorded_limits" or \
+            len(batch_summary.get("rows", [])) != 24:
+        errors.append("inference batch summary limit gate changed")
+    if warm_summary.get("status") != "pass" or len(warm_summary.get("rows", [])) != 12 or \
+            min(row.get("throughput_ratio_microllm_over_pytorch", 1.0)
+                for row in warm_summary["rows"] if row.get("workload") == "prefill") >= 0.01:
+        errors.append("warm long-context inference failure boundary changed")
+    if no_warm_summary.get("status") != "pass" or len(no_warm_summary.get("rows", [])) != 18:
+        errors.append("no-warm long-context summary changed")
+
+    invalidation = json.loads((data / "invalidation.json").read_text(encoding="utf-8"))
+    if invalidation.get("decision") != "invalid" or len(invalidation.get("reasons", [])) != 4:
+        errors.append("inference invalid-pilot decision changed")
+    smoke = raw("final-schema-smoke")
+    smoke_summary = json.loads(
+        (data / "final-schema-smoke" / "summary.json").read_text(encoding="utf-8"))
+    if len(smoke) != 6 or any(row.get("status") != "pass" for row in smoke) or \
+            smoke_summary.get("status") != "pass" or len(smoke_summary.get("rows", [])) != 3:
+        errors.append("final inference schema smoke changed")
+    else:
+        prefill = next(row for row in smoke_summary["rows"] if row["workload"] == "prefill")
+        cached = next(row for row in smoke_summary["rows"] if row["cache_mode"] == "cached")
+        if prefill.get("prefill_top_token_equal") is not True or \
+                prefill.get("prefill_top_logit_abs_difference", 1.0) >= 0.1 or \
+                cached.get("microllm_mean_cache_prepare_ms", 0.0) <= 0.0 or \
+                cached.get("pytorch_mean_cache_prepare_ms", 0.0) <= 0.0:
+            errors.append("final inference top-logit/cache-prepare gate changed")
+    return len(core), len(batch), len(long_warm), len(long_no_warm)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -1250,7 +1344,8 @@ def validate_assets(errors: list[str]) -> None:
                  "batched-attention-forward.svg",
                  "full-batched-attention-backward.svg",
                  "block-row-causal-softmax.svg",
-                 "block-column-rmsnorm-weight-gradient.svg"):
+                 "block-column-rmsnorm-weight-gradient.svg",
+                 "inference-context-batch-matrix.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -1313,6 +1408,8 @@ def main() -> int:
         validate_block_row_causal_softmax(errors)
     block_rms_records, block_rms_calls = \
         validate_block_column_rmsnorm_weight_gradient(errors)
+    inference_core, inference_batch, inference_long, inference_no_warm = \
+        validate_inference_shape_matrix(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -1346,6 +1443,8 @@ def main() -> int:
           f"{full_batched_backward_calls} "
           f"block_softmax={block_softmax_records}/{block_softmax_calls} "
           f"block_rms={block_rms_records}/{block_rms_calls} "
+          f"inference={inference_core}/{inference_batch}/{inference_long}/"
+          f"{inference_no_warm} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

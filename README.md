@@ -51,6 +51,8 @@ needed to run a real training and generation loop:
   context-512 training improves another 1.302×/1.196× with unchanged measured peak.
 - rows≥256 RMSNorm weight gradients use one cooperative block per hidden column; the same
   training matrix improves another 1.220×/1.125× with unchanged measured peak.
+- paired Qwen/DeepSeek inference matrices across context, batch and cache modes, including
+  KV Storage/active utilization and explicit unsupported/OOM rows.
 
 The design keeps three implementations where they provide engineering value:
 
@@ -136,12 +138,12 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 255/255 | 182 CPU-labelled + 73 HIP-labelled gates; 2 intentional environment skips |
-| ASan/UBSan CPU | 175/175 | host code, CLI, model/graph, benchmark and evidence schemas |
+| Full CPU/HIP configuration | 256/256 | 183 CPU-labelled + 73 HIP-labelled gates; 2 intentional environment skips |
+| ASan/UBSan CPU | 176/176 | host code, CLI, model/graph, benchmark and evidence schemas |
 | MI300X/gfx942 HIP | 73/73 | allocator/stream, graph, BF16/FP8, batched GEMM and model matrix |
-| PyTorch-enabled CPU build | 180/180 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
+| PyTorch-enabled CPU build | 181/181 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
-| Registered test files | 36 | machine-audited CTest registration |
+| Registered test files | 37 | machine-audited CTest registration |
 | CPU source coverage | 83.9% lines / 66.6% branches | GCC 13.3 + gcovr 8.3; `src/` and `include/` |
 
 Latest PyTorch-reference maximum absolute differences:
@@ -186,18 +188,19 @@ All comparison rows use matched warm-up/repetition settings and exclude warm-up 
 reported throughput. See [Python/PyTorch comparison](docs/dev/pytorch-benchmark.md) for
 raw data, memory ratios, implementation differences and limitations.
 
-Separate BF16 inference track (single-representation FFN/Attention projections in
-microLLM versus full-model BF16 PyTorch, same pinned prompts and 2/5 warm-up/measured
-protocol):
+Current BF16 inference matrix (microLLM mixed BF16-weight/FP32 paths versus full-model
+BF16 PyTorch; warm-up excluded; three-process median for context 8/128/512):
 
-| Model | microLLM decode / prefill | PyTorch BF16 decode / prefill | Ratio |
-|---|---:|---:|---:|
-| Qwen2.5-0.5B | 261.37 / 517.21 token/s | 73.53 / 145.37 token/s | 3.555× / 3.558× |
-| DeepSeek Distill Qwen 1.5B | 76.83 / 1713.01 token/s | 56.59 / 631.65 token/s | 1.358× / 2.712× |
+| Model | Context | Prefill ratio | Cached-decode ratio | Cache speedup vs micro uncached |
+|---|---:|---:|---:|---:|
+| Qwen2.5-0.5B | 8 / 128 / 512 | 0.649× / 0.253× / 0.044× | 1.049× / 0.762× / 0.318× | 2.64× / 4.58× / 10.45× |
+| DeepSeek Distill 1.5B | 8 / 128 / 512 | 0.510× / 0.195× / 0.026× | 0.845× / 0.588× / 0.267× | 2.45× / 4.58× / 14.43× |
 
-All six candidate processes reproduce the expected greedy IDs. This is a short-prompt
-MI300X inference result, not a BF16 training, long-context, universal-model, or Radeon
-claim. See [Experiment 036](docs/optimization-log/experiments/036-bf16-immutable-plan-cache.md).
+All core decode token pairs match. Context 1024/2048, batch 1/2/4/8, KV allocated/active
+bytes and explicit cached-batch limitations are reported separately. The older
+[Experiment 036](docs/optimization-log/experiments/036-bf16-immutable-plan-cache.md)
+remains historical short-shape evidence; its 4/4 performance result is superseded by the
+matched phase-separated [Experiment 060](docs/optimization-log/experiments/060-inference-context-batch-kv-matrix.md).
 
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or

@@ -306,6 +306,14 @@ block 合作一个 hidden column”。Qwen/DeepSeek T512 提高 `1.220×/1.125×
 
 ![Cooperative RMSNorm weight gradient](assets/block-column-rmsnorm-weight-gradient.svg)
 
+Experiment 060 不优化Kernel，先尝试推翻旧推理结论。新runner把prefill、cache prepare、
+steady decode、uncached decode分开，覆盖两模型、context 8–2048、batch 1–8、KV Storage/
+active利用率和精度驻留策略。108条核心记录全通过且decode token一致；48条batch记录中
+42条通过、6条microLLM cached B2/B4/B8明确unsupported。旧短prompt 4/4 parity不能推广：
+T512 prefill仅为PyTorch的`0.044×/0.026×`，cached decode为`0.318×/0.267×`。
+
+![Inference context, batch and KV matrix](assets/inference-context-batch-matrix.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -383,6 +391,8 @@ block 合作一个 hidden column”。Qwen/DeepSeek T512 提高 `1.220×/1.125×
 | [experiments/058-data/](experiments/058-data/) | 正式12条 raw、T128 fallback 与 retained profiler 聚合 |
 | [assets/block-column-rmsnorm-weight-gradient.svg](assets/block-column-rmsnorm-weight-gradient.svg) | T512 两模型吞吐与 RMSNorm weight-gradient 设备时间 |
 | [experiments/059-data/](experiments/059-data/) | 正式12条 raw、T128 fallback 与 retained profiler 聚合 |
+| [assets/inference-context-batch-matrix.svg](assets/inference-context-batch-matrix.svg) | context吞吐比、batch效率和KV Cache边界 |
+| [experiments/060-data/](experiments/060-data/) | 核心108条、batch48条、long60条、无效pilot和最终schema smoke |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

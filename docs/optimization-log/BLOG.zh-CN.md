@@ -1472,3 +1472,32 @@ Qwen `2127.38→2594.81 tok/s`（`1.220×`），DeepSeek `1145.36→1288.95`
 
 候选保留。新最大柱子变成AdamW 128.56ms与bias gradient 118.18ms。AdamW已有多次
 失败搜索，bias gradient仍有同样的跨row串行结构，因此下一节点先反驳后者。
+
+## 77. Experiment 060：最危险的优化结果，是换一个问题后还继续引用
+
+Experiment 036 的固定短prompt曾4/4超过PyTorch。扩到长context和batch前，先审查
+benchmark。subagent第一版把active view当allocated Storage，还让microLLM计入prompt
+ingestion、PyTorch使用高层generate。错误pilot没有删除，统一标invalid后重写计时边界。
+
+![Inference context, batch and KV matrix](assets/inference-context-batch-matrix.svg)
+
+修正版核心有108条raw：两模型、context8/128/512、prefill/cached/uncached、两框架、
+三进程。所有decode token一致，但旧性能解释被推翻：
+
+```text
+Qwen T512 prefill / cached decode     0.044× / 0.318× PyTorch
+DeepSeek T512                         0.026× / 0.267×
+Qwen T2048 warm prefill / cached      0.00435× / 0.126×
+DeepSeek T2048                        0.00381× / 0.0899×
+```
+
+Cache仍非常重要：T2048相对microLLM自身uncached快81×/101×。但Cache是FP32，元素字节
+是PyTorch BF16的两倍；cached batch2/4/8还没有API。batch矩阵42条pass、6条明确
+unsupported，绝不拿uncached冒充cached。
+
+最终schema还记录prompt Cache准备。Qwen T8 steady decode接近PyTorch，端到端却是
+`93.26ms vs 23.74ms`，因为prepare是`82.51ms vs 12.63ms`。到4096时逐token建立Cache
+已经需要分钟级。
+
+因此这一节点keep的是测量基础设施，不是性能。它纠正仓库README/STATUS，并给下一步
+明确排序：batched长prefill、full-sequence prefill-to-cache、batched KV和device batch argmax。
