@@ -64,6 +64,28 @@ TEST(HipOpsTest, FillAndElementwiseMatchCpuReference) {
     expect_near(scale(left, -0.25F).to_vector(), scale(left_cpu, -0.25F).to_vector());
 }
 
+TEST(HipOpsTest, CastOutAndTransposeWriteCallerStorageWithoutPayloadTransfers) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    const auto input = Tensor::from_vector({1, 2, 3, 4, 5, 6}, {2, 3},
+                                           DType::BFloat16).to(gpu);
+    Tensor casted({2, 3}, DType::Float32, gpu);
+    Tensor transposed({3, 2}, DType::Float32, gpu);
+    const auto* cast_address = casted.storage().data();
+    const auto* transpose_address = transposed.storage().data();
+    runtime::reset_transfer_stats();
+    cast_out_(input, casted);
+    cast_transpose_2d_out_(input, transposed);
+    runtime::synchronize(gpu);
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    EXPECT_EQ(casted.storage().data(), cast_address);
+    EXPECT_EQ(transposed.storage().data(), transpose_address);
+    EXPECT_EQ(casted.to_vector(), (std::vector<float>{1, 2, 3, 4, 5, 6}));
+    EXPECT_EQ(transposed.to_vector(), (std::vector<float>{1, 4, 2, 5, 3, 6}));
+}
+
 TEST(HipOpsTest, BiasForwardAndGradientStayOnDevice) {
     require_gpu();
     const auto gpu = Device::hip(0);

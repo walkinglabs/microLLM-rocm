@@ -110,3 +110,5 @@ python tools/huggingface/compare_logits.py \
 - 当前 BF16 覆盖单份 Linear 混合推理和 FP32-master Linear 训练；continuous BF16
   training island 与 FP8 整网仍要分别报告；
 - Qwen3 的 QK-Norm、DeepSeek MLA/MoE 是不同结构。
+- 未初始化 HIP 模型的单文件权重已使用 header 预检和低精度 streaming；多 shard/index
+  仍保留完整 StateDict 原子路径，不能把单文件加载速度推广到所有 checkpoint 布局。

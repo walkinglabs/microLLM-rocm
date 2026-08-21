@@ -46,13 +46,16 @@ if declared_graph != covered_graph:
     )
 
 declared_weight_io = public_names(
-    "include/microllm/io/safetensors.h", ["StateDict", "void"]
+    "include/microllm/io/safetensors.h",
+    ["StateDict", "std::vector<SafetensorsTensorInfo>", "void"],
 )
 expected_weight_io = {
     "save_safetensors",
     "load_safetensors",
     "load_safetensors_files",
     "load_safetensors_index",
+    "inspect_safetensors",
+    "visit_safetensors",
 }
 if declared_weight_io != expected_weight_io:
     errors.append(

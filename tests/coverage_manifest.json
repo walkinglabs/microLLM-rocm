@@ -40,6 +40,8 @@
     "repeat_interleave_backward": {"torch": "graph_repeat_input_grad", "shape": "invalid_repeat_backward_shape"}
   },
   "operator_infrastructure": {
+    "cast_out_": "tests/ops/ops_test.cpp",
+    "cast_transpose_2d_out_": "tests/ops/ops_test.cpp",
     "adamw_update_": "tests/training/optimizer_test.cpp",
     "adamw_update_bf16_mirror_": "tests/training/optimizer_test.cpp",
     "quantize_fp8": "tests/ops/ops_test.cpp",
@@ -109,6 +111,8 @@
     "load_safetensors": "tests/io/safetensors_test.cpp",
     "load_safetensors_files": "tests/io/safetensors_test.cpp",
     "load_safetensors_index": "tests/io/safetensors_test.cpp",
+    "inspect_safetensors": "tests/io/safetensors_test.cpp",
+    "visit_safetensors": "tests/io/safetensors_test.cpp",
     "state_dict": "tests/model/weights_test.cpp",
     "load_state_dict": "tests/model/weights_test.cpp",
     "model_load_safetensors": "tests/model/weights_test.cpp",

@@ -238,6 +238,13 @@ Experiment 049 改测单个大 Tensor 的数据通路。float4 在带 BF16 mirro
 
 ![Vectorized AdamW explicit policy](assets/vectorized-adamw-explicit.svg)
 
+Experiment 050 把未初始化 HIP 模型的单文件 safetensors 改为 header 预检 + payload 顺序
+streaming + 可复用低精度 staging + cast/transpose out。Qwen load `17.659→0.580s`
+（`30.45×`），DeepSeek `65.100→1.356s`（`48.02×`），H2D 正好等于 BF16 文件字节。
+DeepSeek 四 shape 训练吞吐变化在 `−0.4%–+0.1%`，峰值不变，候选保留。
+
+![Streaming safetensors load](assets/streaming-safetensors-load.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -295,6 +302,8 @@ Experiment 049 改测单个大 Tensor 的数据通路。float4 在带 BF16 mirro
 | [experiments/048-data/](experiments/048-data/) | 早停 pair、四 shape 24 条 raw 与 dispatch 合同 |
 | [assets/vectorized-adamw-explicit.svg](assets/vectorized-adamw-explicit.svg) | exact-shape 算子收益与官方模型反例 |
 | [experiments/049-data/](experiments/049-data/) | width4/8、sqrt/rsqrt、mirror/no-mirror 与 Qwen pilot raw |
+| [assets/streaming-safetensors-load.svg](assets/streaming-safetensors-load.svg) | Qwen/DeepSeek load、H2D 和训练非退化 |
+| [experiments/050-data/](experiments/050-data/) | load smoke、DeepSeek 24 条正式 raw 与安全合同 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

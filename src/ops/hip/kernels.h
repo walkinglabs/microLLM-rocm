@@ -60,6 +60,10 @@ void launch_dequantize_fp8(const void* input, DType fp8_dtype, void* output,
 void launch_cast(const void* input, DType input_dtype, void* output,
                  DType output_dtype, std::int64_t elements,
                  void* stream = nullptr);
+void launch_cast_transpose_2d(const void* input, DType input_dtype,
+                              void* output, DType output_dtype,
+                              std::int64_t rows, std::int64_t columns,
+                              void* stream = nullptr);
 void launch_matmul(const float* left, const float* right, float* output,
                    std::int64_t batches, std::int64_t rows, std::int64_t inner,
                    std::int64_t columns, void* stream = nullptr);

@@ -1,6 +1,7 @@
 #include <microllm/model/model.h>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <memory>
 #include <random>
@@ -951,7 +952,133 @@ LoadWeightsReport TransformerModel::load_state_dict(const io::StateDict& state,
 
 LoadWeightsReport TransformerModel::load_safetensors(
     const std::filesystem::path& path, const LoadWeightsOptions& options) {
-    return load_state_dict(io::load_safetensors(path, device()), options);
+    if (impl_->parameters_initialized || !device().is_hip()) {
+        return load_state_dict(io::load_safetensors(path, device()), options);
+    }
+
+    const auto metadata = io::inspect_safetensors(path);
+    std::map<std::string, const io::SafetensorsTensorInfo*> source_info;
+    for (const auto& info : metadata) source_info.emplace(info.name, &info);
+    const auto named = named_parameters();
+    std::set<std::string> target_names;
+    for (const auto& [name, parameter] : named) {
+        (void)parameter;
+        target_names.insert(name);
+    }
+    LoadWeightsReport report;
+    for (const auto& [target, source] : options.mapping) {
+        (void)source;
+        if (!target_names.contains(target)) {
+            report.incompatible.push_back("mapping target is not a model parameter: " + target);
+        }
+    }
+    struct StreamingTarget {
+        std::string name;
+        Value* parameter = nullptr;
+        WeightTransform transform = WeightTransform::Identity;
+    };
+    std::map<std::string, std::vector<StreamingTarget>> targets_by_source;
+    std::set<std::string> consumed;
+    for (const auto& [target_name, parameter] : named) {
+        const auto mapping = options.mapping.find(target_name);
+        const auto source_name = mapping == options.mapping.end()
+                                     ? target_name : mapping->second.name;
+        const auto transform = mapping == options.mapping.end()
+                                   ? WeightTransform::Identity : mapping->second.transform;
+        const auto found = source_info.find(source_name);
+        if (found == source_info.end()) {
+            report.missing.push_back(target_name + " <- " + source_name);
+            continue;
+        }
+        auto expected_shape = found->second->shape;
+        if (transform == WeightTransform::Transpose2D) {
+            if (expected_shape.size() != 2) {
+                report.incompatible.push_back(target_name + " transpose requires rank two");
+                continue;
+            }
+            std::swap(expected_shape[0], expected_shape[1]);
+        }
+        if (expected_shape != parameter->data().shape()) {
+            report.incompatible.push_back(target_name + " shape mismatch in safetensors header");
+            continue;
+        }
+        consumed.insert(source_name);
+        targets_by_source[source_name].push_back({target_name, parameter, transform});
+    }
+    for (const auto& info : metadata) {
+        if (!consumed.contains(info.name)) report.unexpected.push_back(info.name);
+    }
+    if (options.strict && !report.complete()) {
+        std::ostringstream message;
+        message << "strict weight load failed before streaming payload";
+        for (const auto& missing : report.missing) message << "\nmissing: " << missing;
+        for (const auto& unexpected : report.unexpected) message << "\nunexpected: " << unexpected;
+        for (const auto& incompatible : report.incompatible) {
+            message << "\nincompatible: " << incompatible;
+        }
+        throw std::invalid_argument(message.str());
+    }
+
+    const auto dtype_slot = [](DType dtype) -> std::size_t {
+        if (dtype == DType::Float32) return 0;
+        if (dtype == DType::Float16) return 1;
+        if (dtype == DType::BFloat16) return 2;
+        throw std::invalid_argument("streamed weight dtype is unsupported");
+    };
+    std::array<std::int64_t, 3> maximum_elements{};
+    std::array<bool, 3> needs_staging{};
+    for (const auto& info : metadata) {
+        const auto targets = targets_by_source.find(info.name);
+        if (targets == targets_by_source.end()) continue;
+        const auto needs = info.dtype != DType::Float32 || std::any_of(
+            targets->second.begin(), targets->second.end(), [](const auto& target) {
+                return target.transform == WeightTransform::Transpose2D;
+            });
+        if (!needs) continue;
+        const auto slot = dtype_slot(info.dtype);
+        needs_staging[slot] = true;
+        maximum_elements[slot] = std::max(maximum_elements[slot], checked_numel(info.shape));
+    }
+    std::array<Tensor, 3> staging;
+    for (std::size_t slot = 0; slot < staging.size(); ++slot) {
+        if (!needs_staging[slot]) continue;
+        const auto dtype = slot == 0 ? DType::Float32
+                         : slot == 1 ? DType::Float16 : DType::BFloat16;
+        staging[slot] = Tensor({maximum_elements[slot]}, dtype, device());
+    }
+
+    io::visit_safetensors(path, [&](const io::SafetensorsTensorInfo& info,
+                                    std::span<const std::byte> bytes) {
+        const auto found = targets_by_source.find(info.name);
+        if (found == targets_by_source.end()) return;
+        const auto requires_staging = info.dtype != DType::Float32 || std::any_of(
+            found->second.begin(), found->second.end(), [](const auto& target) {
+                return target.transform == WeightTransform::Transpose2D;
+            });
+        Tensor source;
+        if (requires_staging) {
+            const auto slot = dtype_slot(info.dtype);
+            source = Tensor::from_storage(staging[slot].storage(), info.shape,
+                                          contiguous_strides(info.shape), 0, info.dtype);
+            runtime::copy_bytes(source.data(), device(), bytes.data(), Device::cpu(),
+                                bytes.size());
+        }
+        for (auto& target : found->second) {
+            if (!requires_staging) {
+                runtime::copy_bytes(target.parameter->mutable_data().data(), device(),
+                                    bytes.data(), Device::cpu(), bytes.size());
+            } else if (target.transform == WeightTransform::Transpose2D) {
+                ops::cast_transpose_2d_out_(source, target.parameter->mutable_data());
+            } else {
+                ops::cast_out_(source, target.parameter->mutable_data());
+            }
+            target.parameter->zero_grad();
+            report.loaded.push_back(target.name);
+        }
+    });
+    runtime::synchronize(device());
+    if (report.complete()) impl_->parameters_initialized = true;
+    return report;
 }
 
 LoadWeightsReport TransformerModel::load_safetensors_files(

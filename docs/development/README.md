@@ -112,6 +112,9 @@ the next gate. Records are append-only except for factual corrections.
 - [2026-08-19-weight-api.md](2026-08-19-weight-api.md): named model state,
   safetensors/shards/index, official-package two-way interop, Qwen-style mappings,
   corruption tests, and direct HIP load.
+- [2026-08-21-streaming-safetensors-load.md](2026-08-21-streaming-safetensors-load.md):
+  strict metadata preflight, bounded low-precision staging, direct cast/transpose into
+  parameter Storage, and 30–48× pinned load speedups.
 - [2026-08-19-repository-presentation.md](2026-08-19-repository-presentation.md):
   professional README, developer documentation hierarchy, CMake presets, and explicit
   compiler/ROCm environment matrix.

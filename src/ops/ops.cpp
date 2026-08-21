@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 
+#include <microllm/runtime/memory.h>
+
 #if MICROLLM_HAS_HIP
 #include "hip/kernels.h"
 #endif
@@ -95,6 +97,58 @@ Tensor cast(const Tensor& input, DType output_dtype,
     hip::launch_cast(input.data(), input.dtype(), output.data(), output_dtype,
                      input.numel(), context.native_stream(input.device()));
     return output;
+#else
+    throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+}
+
+void cast_out_(const Tensor& input, Tensor& output,
+               [[maybe_unused]] const OpContext& context) {
+    require_forward_float(input, "input");
+    require_forward_float(output, "output");
+    require_same_shape(input, output);
+    require_same_device(input, output);
+    if (!input.is_contiguous() || !output.is_contiguous()) {
+        throw std::invalid_argument("cast_out requires contiguous tensors");
+    }
+    if (input.device().is_cpu()) {
+        const auto converted = input.cast(output.dtype());
+        runtime::copy_bytes(output.data(), output.device(), converted.data(),
+                            converted.device(), static_cast<std::size_t>(output.numel()) *
+                                                    dtype_size(output.dtype()));
+        return;
+    }
+#if MICROLLM_HAS_HIP
+    hip::launch_cast(input.data(), input.dtype(), output.data(), output.dtype(),
+                     input.numel(), context.native_stream(input.device()));
+#else
+    throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+}
+
+void cast_transpose_2d_out_(const Tensor& input, Tensor& output,
+                            [[maybe_unused]] const OpContext& context) {
+    require_forward_float(input, "input");
+    require_forward_float(output, "output");
+    require_same_device(input, output);
+    if (input.ndim() != 2 || output.ndim() != 2 ||
+        output.shape() != Shape({input.shape()[1], input.shape()[0]})) {
+        throw std::invalid_argument("cast transpose output must reverse a rank-two input shape");
+    }
+    if (!input.is_contiguous() || !output.is_contiguous()) {
+        throw std::invalid_argument("cast transpose requires contiguous tensors");
+    }
+    if (input.device().is_cpu()) {
+        const auto converted = input.transpose(0, 1).contiguous().cast(output.dtype());
+        runtime::copy_bytes(output.data(), output.device(), converted.data(),
+                            converted.device(), static_cast<std::size_t>(output.numel()) *
+                                                    dtype_size(output.dtype()));
+        return;
+    }
+#if MICROLLM_HAS_HIP
+    hip::launch_cast_transpose_2d(input.data(), input.dtype(), output.data(),
+                                  output.dtype(), input.shape()[0], input.shape()[1],
+                                  context.native_stream(input.device()));
 #else
     throw std::runtime_error("microLLM was built without HIP operator support");
 #endif

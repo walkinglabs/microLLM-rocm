@@ -43,6 +43,9 @@ struct ScaledTensor {
                                 const OpContext& context = {});
 [[nodiscard]] Tensor cast(const Tensor& input, DType output_dtype,
                           const OpContext& context = {});
+void cast_out_(const Tensor& input, Tensor& output, const OpContext& context = {});
+void cast_transpose_2d_out_(const Tensor& input, Tensor& output,
+                            const OpContext& context = {});
 [[nodiscard]] Tensor bf16_matmul(const Tensor& left_fp32, const Tensor& right_bf16,
                                  const OpContext& context = {});
 [[nodiscard]] Tensor bf16_matmul_output(const Tensor& left_bf16,

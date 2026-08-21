@@ -54,17 +54,36 @@ TEST(HipWeightsTest, LoadsSafetensorsDirectlyToGpuAndIntoGpuModel) {
         }
     }
 
-    model::TransformerModel target(config(), 409);
+    model::TransformerModel target(
+        config(), 409, model::ParameterInitialization::Uninitialized);
     target.to(Device::hip());
+    runtime::reset_transfer_stats();
     const auto report = target.load_safetensors(
         path, {.strict = true, .mapping = {}});
+    const auto transfers = runtime::transfer_stats();
     EXPECT_TRUE(report.complete());
+    EXPECT_EQ(transfers.host_to_device_bytes,
+              static_cast<std::size_t>(source.parameter_count()) * 2U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    EXPECT_EQ(transfers.device_to_device_calls, 0U);
     EXPECT_EQ(target.device(), Device::hip());
     const auto snapshot = target.state_dict(Device::hip());
     for (const auto& [name, tensor] : snapshot) {
-        (void)name;
         EXPECT_EQ(tensor.device(), Device::hip());
+        EXPECT_EQ(tensor.to_vector(), gpu_state.at(name).to_vector());
     }
+
+    auto incompatible_config = config();
+    incompatible_config.vocabulary_size += 1;
+    model::TransformerModel incompatible(
+        incompatible_config, 419, model::ParameterInitialization::Uninitialized);
+    incompatible.to(Device::hip());
+    runtime::reset_transfer_stats();
+    EXPECT_THROW((void)incompatible.load_safetensors(path), std::invalid_argument);
+    EXPECT_EQ(runtime::transfer_stats().host_to_device_calls, 0U);
+    EXPECT_THROW((void)incompatible.forward_inference(
+                     Tensor::from_int32_vector({1}, {1, 1}).to(Device::hip())),
+                 std::logic_error);
     std::error_code ignored;
     std::filesystem::remove(path, ignored);
 }

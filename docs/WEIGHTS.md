@@ -172,15 +172,33 @@ model.load_safetensors("model.safetensors");
 
 第二种写法会按照模型参数所在设备复制权重。加载后旧梯度会清空，避免用旧模型梯度更新新模型权重。
 
+如果模型以 `ParameterInitialization::Uninitialized` 创建并已经移动到 HIP，单文件
+`model.load_safetensors()` 会走流式快路径：先只检查完整 header，再按文件顺序读取 Tensor。
+BF16/F16 不在 CPU 展开成 FP32；它们以原始 2-byte payload 进入一块可复用 staging，随后
+cast 或 cast+transpose 直接写模型已有参数 Storage。
+
+只检查或自己消费原始 payload 可以使用：
+
+```cpp
+auto metadata = io::inspect_safetensors("model.safetensors");
+io::visit_safetensors("model.safetensors", [](const auto& info, auto bytes) {
+    // bytes 只在本次回调中有效；Tensor 按文件 offset 顺序到达。
+});
+```
+
 ## 9. 当前内存边界
 
-第一版先完整读取 StateDict，再验证并复制到模型。这很容易解释和测试，但加载大模型时会同时占用文件解码 Tensor 和模型 Tensor 两份内存。
+已初始化模型仍先完整读取 StateDict，再验证并一次提交，保持原子替换语义。未初始化 HIP
+模型的单文件快路径把临时峰值限制为“FP32 参数 + 最大低精度 staging”。固定 MI300X 实测：
 
-真正加载 Qwen 大模型和 DeepSeek-V3 还需要：
+- Qwen2.5-0.5B：17.659 秒降到 0.580 秒；
+- DeepSeek Distill 1.5B：65.100 秒降到 1.356 秒；
+- H2D 字节恰好等于 BF16 文件 payload，没有 D2H。
 
-- streaming：每次只读取一个 Tensor；
+继续扩展到任意大模型还需要：
+
 - memory mapping；
-- 分片直接送到目标 GPU/rank；
+- 对所有分片先做全局 header 预检，再直接送到目标 GPU/rank；
 - FP8、INT8、INT4 和对应 scale/zero-point；
 - tied weight 不重复分配；
 - 加载进度、取消和峰值内存报告。
@@ -203,6 +221,8 @@ Qwen2.5-0.5B 已经通过一个固定官方 checkpoint 的严格加载和 logits
 - 单文件、多个分片和 index；
 - 损坏 header、不支持 dtype、重复权重和不安全路径；
 - safetensors 直接加载到 HIP；
+- header inspection、payload-order visitor 和回调生命周期；
+- 未初始化 HIP 单文件的 BF16 原始字节数、staging 峰值与失败前零传输；
 - GPU 模型保持 GPU 参数。
 
 ### 用官方 safetensors 包做双向检查

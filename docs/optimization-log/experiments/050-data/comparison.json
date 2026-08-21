@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "experiment": 50,
+  "decision": "keep",
+  "path": "uninitialized HIP model + strict metadata preflight + payload-order streaming + reusable low-precision staging + cast/transpose out",
+  "load_rows": [
+    {
+      "model": "qwen2.5-0.5b",
+      "before_load_ms": 17658.598538,
+      "after_load_ms": 579.935829,
+      "speedup": 30.44922844,
+      "fp32_weight_bytes": 1976131072,
+      "file_payload_bytes": 988065536,
+      "load_current_engine_bytes": 1976131072,
+      "load_peak_engine_bytes": 2248400384,
+      "load_peak_to_weight_ratio": 1.137778974,
+      "host_to_device_calls": 290,
+      "device_to_host_calls": 0
+    },
+    {
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "before_load_ms": 65099.739495,
+      "after_load_ms": 1355.6834905,
+      "after_smoke_load_ms": 1140.216789,
+      "pytorch_load_ms": 2083.836490521,
+      "speedup": 48.019865958,
+      "speedup_vs_pytorch": 1.537111358,
+      "fp32_weight_bytes": 7108352000,
+      "file_payload_bytes": 3554176000,
+      "load_current_engine_bytes": 7108352000,
+      "load_peak_engine_bytes": 7575099392,
+      "load_peak_to_weight_ratio": 1.065661829,
+      "host_to_device_calls": 339,
+      "device_to_host_calls": 0
+    }
+  ],
+  "deepseek_training_rows": [
+    {"batch": 1, "context": 3, "self_speedup": 0.998951189, "peak_ratio": 1.0},
+    {"batch": 2, "context": 3, "self_speedup": 1.001444548, "peak_ratio": 1.0},
+    {"batch": 1, "context": 32, "self_speedup": 0.999990441, "peak_ratio": 1.0},
+    {"batch": 1, "context": 128, "self_speedup": 0.996317815, "peak_ratio": 1.0}
+  ],
+  "safety": {
+    "strict_metadata_preflight_before_payload_transfer": true,
+    "partial_io_failure_keeps_model_uninitialized": true,
+    "initialized_model_uses_atomic_state_dict_fallback": true,
+    "single_file_fast_path_only": true
+  },
+  "reason": "30 to 48 times faster load, exact BF16 payload H2D, no D2H, bounded staging peak, and unchanged four-shape training behavior"
+}

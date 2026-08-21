@@ -55,6 +55,8 @@ CHUNKED_ADAMW_COMPARISON = ROOT / "experiments" / "048-data" / "comparison.json"
 CHUNKED_ADAMW_CHART = ROOT / "assets" / "chunked-adamw-discard.svg"
 VECTORIZED_ADAMW_COMPARISON = ROOT / "experiments" / "049-data" / "comparison.json"
 VECTORIZED_ADAMW_CHART = ROOT / "assets" / "vectorized-adamw-explicit.svg"
+STREAMING_LOAD_COMPARISON = ROOT / "experiments" / "050-data" / "comparison.json"
+STREAMING_LOAD_CHART = ROOT / "assets" / "streaming-safetensors-load.svg"
 
 
 def rows() -> list[dict]:
@@ -1397,6 +1399,80 @@ def vectorized_adamw_explicit_svg() -> str:
     return "\n".join(parts)
 
 
+def streaming_safetensors_load_svg() -> str:
+    data = json.loads(STREAMING_LOAD_COMPARISON.read_text(encoding="utf-8"))
+    loads = data["load_rows"]
+    training = data["deepseek_training_rows"]
+    width, height = 1800, 800
+    left_x, right_x, top, panel_h = 105, 1080, 150, 470
+    left_w, right_w = 850, 610
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 050 · Streaming Safetensors Load", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 80,
+             "MI300X · strict header preflight · original BF16 payload · bounded staging",
+             16, "#5b6474", anchor="middle"),
+        f'<rect x="{left_x}" y="{top}" width="{left_w}" height="{panel_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+        f'<rect x="{right_x}" y="{top}" width="{right_w}" height="{panel_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+        text(left_x + left_w / 2, 125, "Checkpoint load seconds", 20,
+             anchor="middle", weight=700),
+        text(right_x + right_w / 2, 125, "DeepSeek training non-regression", 20,
+             anchor="middle", weight=700),
+    ]
+    def load_y(seconds: float) -> float:
+        return top + panel_h * (70.0 - seconds) / 70.0
+    group = left_w / len(loads)
+    for index, row in enumerate(loads):
+        center = left_x + group * (index + 0.5)
+        before = row["before_load_ms"] / 1000.0
+        after = row["after_load_ms"] / 1000.0
+        for offset, (value, color, label) in enumerate((
+                (before, "#aab2bf", "before"), (after, "#18a558", "stream"))):
+            x = center - 90 + offset * 100
+            y = load_y(value)
+            parts.append(f'<rect x="{x:.1f}" y="{y:.1f}" width="82" '
+                         f'height="{load_y(0)-y:.1f}" fill="{color}" rx="5"/>')
+            parts.append(text(x + 41, y - 9, f"{value:.3f}s", 14, color,
+                              anchor="middle", weight=700))
+            parts.append(text(x + 41, top + panel_h + 23, label, 12,
+                              "#5b6474", anchor="middle"))
+        model = "Qwen 0.5B" if row["model"].startswith("qwen") else "DeepSeek 1.5B"
+        parts.append(text(center, top + panel_h + 55, model, 16,
+                          anchor="middle", weight=700))
+        parts.append(text(center, top + 70, f'{row["speedup"]:.1f}× faster', 19,
+                          "#16834a", anchor="middle", weight=700))
+    def training_y(value: float) -> float:
+        return top + panel_h * (1.02 - value) / 0.04
+    for tick in (0.98, 0.99, 1.0, 1.01, 1.02):
+        y = training_y(tick)
+        parts.append(f'<line x1="{right_x}" y1="{y:.1f}" x2="{right_x+right_w}" '
+                     f'y2="{y:.1f}" stroke="{("#2563eb" if tick == 1.0 else "#e5e9f0")}"/>')
+    group = right_w / len(training)
+    for index, row in enumerate(training):
+        center = right_x + group * (index + 0.5)
+        base = training_y(1.0)
+        value_y = training_y(row["self_speedup"])
+        color = "#2f9b68" if row["self_speedup"] >= 1.0 else "#64748b"
+        parts.append(f'<rect x="{center-38:.1f}" y="{min(base,value_y):.1f}" width="76" '
+                     f'height="{max(3.0,abs(base-value_y)):.1f}" fill="{color}" rx="4"/>')
+        parts.append(text(center, top + panel_h + 31,
+                          f'{row["batch"]}×{row["context"]}', 14,
+                          anchor="middle", weight=700))
+        parts.append(text(center, value_y - 9 if row["self_speedup"] >= 1.0 else value_y + 20,
+                          f'{row["self_speedup"]:.3f}×', 13, color,
+                          anchor="middle", weight=700))
+    parts.append(text(width / 2, 715,
+                      "H2D equals the BF16 file bytes; no D2H; training throughput and peak remain unchanged",
+                      17, "#16834a", anchor="middle", weight=700))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -1419,7 +1495,8 @@ def main() -> int:
                 DEEPSEEK_PROFILE_CHART: deepseek_context128_profile_svg(),
                 STABLE_GRADIENT_CHART: stable_gradient_discard_svg(),
                 CHUNKED_ADAMW_CHART: chunked_adamw_discard_svg(),
-                VECTORIZED_ADAMW_CHART: vectorized_adamw_explicit_svg()}
+                VECTORIZED_ADAMW_CHART: vectorized_adamw_explicit_svg(),
+                STREAMING_LOAD_CHART: streaming_safetensors_load_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

@@ -1301,3 +1301,23 @@ launch 少不代表执行快。
 最后强制 Qwen 所有参数走 Vectorized，四 shape 都退化 0.6%–3.5%。所以 `Auto` 继续选择
 Scalar。Vectorized 和独立 benchmark 作为显式研究接口保留：它证明框架能注册、选择、测量
 优化实现，也证明局部快不能自动升级成默认策略。
+
+## 67. Experiment 050：模型有 7 GB，不代表加载要等 65 秒
+
+旧 loader 读到 BF16 后，先在 CPU 逐元素展开成 `vector<float>`，再传 4-byte FP32；GPU 上
+还同时保留完整 StateDict 和 prepared 参数。DeepSeek 文件约 3.55 GB，却走了远大于文件的
+CPU 解码、H2D 和临时所有权路径。
+
+新路径先只读 header。名字、mapping、rank 和 shape 全部通过后，才按 payload offset 顺序
+读取；一个低精度 staging 被所有层复用，cast 与 Linear transpose 直接写模型已有的 FP32
+参数 Storage。若文件中途失败，模型仍是 uninitialized，不能 forward。
+
+![Streaming safetensors load](assets/streaming-safetensors-load.svg)
+
+Qwen 从 17.659 秒降到 0.580 秒，DeepSeek 从 65.100 秒降到 1.356 秒。DeepSeek 同窗口
+PyTorch 是 2.084 秒。H2D 字节分别是 0.988/3.554 GB，恰好等于 BF16 payload，不再发送
+两倍大的 FP32。加载后 current bytes 恰好等于模型 FP32 权重；峰值只多一个最大 staging。
+
+最后重跑 DeepSeek 四 shape 三进程。吞吐相对旧版最多变化 0.4%，训练峰值完全相同；所以
+这次是加载架构优化，不是训练计时被移动。单文件 fast path 保留，多 shard/index 仍走原子
+StateDict 路径，等待全局 header 预检设计。

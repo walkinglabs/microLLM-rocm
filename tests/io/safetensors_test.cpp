@@ -70,6 +70,36 @@ TEST(SafetensorsTest, RoundTripsFloat32Bfloat16AndFloat16) {
     }
 }
 
+TEST(SafetensorsTest, InspectAndVisitExposeOrderedBoundedRawPayloads) {
+    TemporaryDirectory directory;
+    const auto path = directory.path() / "stream.safetensors";
+    const auto expected = fixture();
+    save_safetensors(path, expected,
+                     {.dtype = WeightFileDType::BFloat16, .atomic_replace = true});
+    const auto metadata = inspect_safetensors(path);
+    ASSERT_EQ(metadata.size(), expected.size());
+    std::uint64_t expected_bytes = 0;
+    for (const auto& info : metadata) {
+        EXPECT_TRUE(expected.contains(info.name));
+        EXPECT_EQ(info.dtype, DType::BFloat16);
+        EXPECT_EQ(info.shape, expected.at(info.name).shape());
+        EXPECT_EQ(info.data_bytes,
+                  static_cast<std::uint64_t>(expected.at(info.name).numel()) * 2U);
+        expected_bytes += info.data_bytes;
+    }
+    std::vector<std::string> visited;
+    std::uint64_t visited_bytes = 0;
+    visit_safetensors(path, [&](const SafetensorsTensorInfo& info,
+                                std::span<const std::byte> bytes) {
+        visited.push_back(info.name);
+        EXPECT_EQ(bytes.size(), info.data_bytes);
+        visited_bytes += bytes.size();
+    });
+    ASSERT_EQ(visited.size(), metadata.size());
+    EXPECT_EQ(visited_bytes, expected_bytes);
+    EXPECT_THROW(visit_safetensors(path, {}), std::invalid_argument);
+}
+
 TEST(SafetensorsTest, LoadsMultipleShardsAndIndexWeightMap) {
     TemporaryDirectory directory;
     const auto first_path = directory.path() / "model-00001.safetensors";

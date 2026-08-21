@@ -125,10 +125,10 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 249/249 | 179 CPU-labelled + 70 HIP-labelled gates; 2 intentional environment skips |
-| ASan/UBSan CPU | 172/172 | host code, CLI, model/graph, benchmark and evidence schemas |
-| MI300X/gfx942 HIP | 70/70 | allocator/stream, graph, BF16/FP8, vectorized AdamW and model matrix |
-| PyTorch-enabled CPU build | 162/162 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
+| Full CPU/HIP configuration | 252/252 | 181 CPU-labelled + 71 HIP-labelled gates; 2 intentional environment skips |
+| ASan/UBSan CPU | 174/174 | host code, CLI, model/graph, benchmark and evidence schemas |
+| MI300X/gfx942 HIP | 71/71 | allocator/stream, graph, BF16/FP8, weight streaming and model matrix |
+| PyTorch-enabled CPU build | 164/164 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
 | Registered test files | 36 | machine-audited CTest registration |
 | CPU source coverage | 83.9% lines / 66.6% branches | GCC 13.3 + gcovr 8.3; `src/` and `include/` |
@@ -198,6 +198,11 @@ not a completed internal optimization. See [Experiment 037](docs/optimization-lo
 
 The framework supports independent named state dictionaries, strict/non-strict model
 loading, Hugging Face-style name/transpose mapping, and single or sharded safetensors:
+
+For an uninitialized HIP model, the single-file path preflights metadata and streams the
+original low-precision payload through bounded staging directly into parameter Storage.
+Pinned MI300X measurements are 0.580 s for Qwen2.5-0.5B and a 1.356 s median for DeepSeek
+Distill 1.5B; multi-shard/index streaming remains future work.
 
 ```cpp
 #include <microllm/model/model.h>

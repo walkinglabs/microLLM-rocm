@@ -115,9 +115,12 @@ int main(int argc, char** argv) {
         microllm::model::LoadWeightsOptions load_options;
         load_options.mapping = microllm::model::qwen_style_weight_mapping(external.model);
         const auto load_start = std::chrono::steady_clock::now();
+        microllm::runtime::reset_transfer_stats();
         const auto report = model.load_safetensors(weights_path, load_options);
         microllm::runtime::synchronize(device);
         const auto load_finish = std::chrono::steady_clock::now();
+        const auto load_transfers = microllm::runtime::transfer_stats();
+        const auto load_allocation = microllm::runtime::allocation_stats(device);
         const auto load_ms = std::chrono::duration<double, std::milli>(
                                  load_finish - load_start).count();
         microllm::model::Bf16TrainingMirrors bf16_mirrors;
@@ -225,6 +228,16 @@ int main(int argc, char** argv) {
                   << (warmup > 0 || steps > 1 ? "comparison" : "smoke") << "\""
                   << ",\"loaded_tensors\":" << report.loaded.size()
                   << ",\"load_ms\":" << load_ms
+                  << ",\"load_current_engine_bytes\":" << load_allocation.current_bytes
+                  << ",\"load_peak_engine_bytes\":" << load_allocation.peak_bytes
+                  << ",\"load_host_to_device_calls\":"
+                  << load_transfers.host_to_device_calls
+                  << ",\"load_host_to_device_bytes\":"
+                  << load_transfers.host_to_device_bytes
+                  << ",\"load_device_to_host_calls\":"
+                  << load_transfers.device_to_host_calls
+                  << ",\"load_device_to_device_calls\":"
+                  << load_transfers.device_to_device_calls
                   << ",\"parameter_count\":" << model.parameter_count()
                   << ",\"fp32_weight_bytes\":"
                   << external.model.weight_bytes(sizeof(float))

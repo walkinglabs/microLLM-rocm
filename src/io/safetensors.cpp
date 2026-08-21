@@ -476,6 +476,55 @@ std::vector<TensorDescriptor> descriptors(const JsonObject& root) {
     return output;
 }
 
+DType tensor_dtype(const std::string& dtype) {
+    if (dtype == "F32") return DType::Float32;
+    if (dtype == "BF16") return DType::BFloat16;
+    if (dtype == "F16") return DType::Float16;
+    throw std::runtime_error("unsupported safetensors dtype: " + dtype);
+}
+
+struct ParsedSafetensorsFile {
+    std::uint64_t file_size = 0;
+    std::uint64_t data_start = 0;
+    std::vector<TensorDescriptor> tensors;
+};
+
+ParsedSafetensorsFile parse_file_header(std::ifstream& input,
+                                        const std::filesystem::path& path) {
+    input.seekg(0, std::ios::end);
+    const auto end_position = input.tellg();
+    if (end_position < std::streamoff{8}) {
+        throw std::runtime_error("safetensors file is too short");
+    }
+    ParsedSafetensorsFile result;
+    result.file_size = static_cast<std::uint64_t>(end_position);
+    input.seekg(0);
+    std::byte prefix[8]{};
+    input.read(reinterpret_cast<char*>(prefix), 8);
+    if (!input) throw std::runtime_error("cannot read safetensors header length");
+    const auto header_bytes = read_u64_le(prefix);
+    constexpr std::uint64_t kMaximumHeaderBytes = 256U * 1024U * 1024U;
+    if (header_bytes == 0 || header_bytes > kMaximumHeaderBytes ||
+        header_bytes > result.file_size - 8U) {
+        throw std::runtime_error("invalid safetensors header length");
+    }
+    std::string header(static_cast<std::size_t>(header_bytes), '\0');
+    input.read(header.data(), static_cast<std::streamsize>(header.size()));
+    if (!input) throw std::runtime_error("cannot read safetensors header");
+    result.tensors = descriptors(JsonParser(header).parse().object("safetensors header"));
+    if (result.tensors.empty()) throw std::runtime_error("safetensors file contains no tensors");
+    result.data_start = 8U + header_bytes;
+    const auto payload_bytes = result.file_size - result.data_start;
+    const auto last_end = std::max_element(
+        result.tensors.begin(), result.tensors.end(),
+        [](const auto& left, const auto& right) { return left.end < right.end; })->end;
+    if (last_end != payload_bytes) {
+        throw std::runtime_error("safetensors payload size does not match tensor ranges: " +
+                                 path.string());
+    }
+    return result;
+}
+
 std::string build_header(const StateDict& state, WeightFileDType dtype) {
     std::ostringstream header;
     header << '{';
@@ -502,46 +551,60 @@ std::string build_header(const StateDict& state, WeightFileDType dtype) {
 
 }  // namespace
 
+std::vector<SafetensorsTensorInfo> inspect_safetensors(
+    const std::filesystem::path& path) {
+    std::ifstream input(path, std::ios::binary);
+    if (!input) throw std::runtime_error("cannot open safetensors file: " + path.string());
+    const auto parsed = parse_file_header(input, path);
+    std::vector<SafetensorsTensorInfo> output;
+    output.reserve(parsed.tensors.size());
+    for (const auto& tensor : parsed.tensors) {
+        output.push_back({tensor.name, tensor_dtype(tensor.dtype), tensor.shape,
+                          tensor.end - tensor.begin});
+    }
+    return output;
+}
+
+void visit_safetensors(const std::filesystem::path& path,
+                       const SafetensorsTensorVisitor& visitor) {
+    if (!visitor) throw std::invalid_argument("safetensors visitor must be callable");
+    std::ifstream input(path, std::ios::binary);
+    if (!input) throw std::runtime_error("cannot open safetensors file: " + path.string());
+    auto parsed = parse_file_header(input, path);
+    std::sort(parsed.tensors.begin(), parsed.tensors.end(),
+              [](const auto& left, const auto& right) { return left.begin < right.begin; });
+    const auto maximum = std::max_element(
+        parsed.tensors.begin(), parsed.tensors.end(), [](const auto& left, const auto& right) {
+            return left.end - left.begin < right.end - right.begin;
+        });
+    std::vector<std::byte> buffer(static_cast<std::size_t>(maximum->end - maximum->begin));
+    for (const auto& tensor : parsed.tensors) {
+        const auto byte_count = static_cast<std::size_t>(tensor.end - tensor.begin);
+        input.seekg(static_cast<std::streamoff>(parsed.data_start + tensor.begin));
+        if (byte_count != 0) {
+            input.read(reinterpret_cast<char*>(buffer.data()),
+                       static_cast<std::streamsize>(byte_count));
+        }
+        if (!input) throw std::runtime_error("cannot read tensor data: " + tensor.name);
+        visitor({tensor.name, tensor_dtype(tensor.dtype), tensor.shape, byte_count},
+                std::span<const std::byte>(buffer.data(), byte_count));
+    }
+}
+
 StateDict load_safetensors(const std::filesystem::path& path, Device target) {
     std::ifstream input(path, std::ios::binary);
     if (!input) throw std::runtime_error("cannot open safetensors file: " + path.string());
-    input.seekg(0, std::ios::end);
-    const auto end_position = input.tellg();
-    if (end_position < std::streamoff{8}) throw std::runtime_error("safetensors file is too short");
-    const auto file_size = static_cast<std::uint64_t>(end_position);
-    input.seekg(0);
-    std::byte prefix[8]{};
-    input.read(reinterpret_cast<char*>(prefix), 8);
-    if (!input) throw std::runtime_error("cannot read safetensors header length");
-    const auto header_bytes = read_u64_le(prefix);
-    constexpr std::uint64_t kMaximumHeaderBytes = 256U * 1024U * 1024U;
-    if (header_bytes == 0 || header_bytes > kMaximumHeaderBytes || header_bytes > file_size - 8U) {
-        throw std::runtime_error("invalid safetensors header length");
-    }
-    std::string header(static_cast<std::size_t>(header_bytes), '\0');
-    input.read(header.data(), static_cast<std::streamsize>(header.size()));
-    if (!input) throw std::runtime_error("cannot read safetensors header");
-    const auto root = JsonParser(header).parse().object("safetensors header");
-    const auto parsed = descriptors(root);
-    if (parsed.empty()) throw std::runtime_error("safetensors file contains no tensors");
-    const auto data_start = 8U + header_bytes;
-    const auto payload_bytes = file_size - data_start;
-    const auto last_end = std::max_element(
-        parsed.begin(), parsed.end(),
-        [](const auto& left, const auto& right) { return left.end < right.end; })->end;
-    if (last_end != payload_bytes) {
-        throw std::runtime_error("safetensors payload size does not match tensor ranges");
-    }
+    const auto file = parse_file_header(input, path);
 
     StateDict state;
-    for (const auto& descriptor : parsed) {
-        if (descriptor.end > file_size - data_start) {
+    for (const auto& descriptor : file.tensors) {
+        if (descriptor.end > file.file_size - file.data_start) {
             throw std::runtime_error("tensor data range exceeds safetensors file: " +
                                      descriptor.name);
         }
         const auto byte_count = descriptor.end - descriptor.begin;
         std::vector<std::byte> bytes(static_cast<std::size_t>(byte_count));
-        input.seekg(static_cast<std::streamoff>(data_start + descriptor.begin));
+        input.seekg(static_cast<std::streamoff>(file.data_start + descriptor.begin));
         if (!bytes.empty()) {
             input.read(reinterpret_cast<char*>(bytes.data()),
                        static_cast<std::streamsize>(bytes.size()));

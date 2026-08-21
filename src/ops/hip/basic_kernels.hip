@@ -304,6 +304,18 @@ __global__ void cast_kernel(const Input* input, Output* output,
     }
 }
 
+template <typename Input, typename Output>
+__global__ void cast_transpose_2d_kernel(const Input* input, Output* output,
+                                         std::int64_t rows,
+                                         std::int64_t columns) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    const auto elements = rows * columns;
+    if (index >= elements) return;
+    const auto row = index / columns;
+    const auto column = index % columns;
+    output[column * rows + row] = store_from_float<Output>(load_as_float(input[index]));
+}
+
 __global__ void matmul_kernel(const float* left, const float* right, float* output,
                               std::int64_t batches, std::int64_t rows,
                               std::int64_t inner, std::int64_t columns) {
@@ -1596,6 +1608,27 @@ void launch_cast_for_input(const Input* input, void* output, DType output_dtype,
 #undef MICROLLM_CAST_OUTPUT_CASE
 }
 
+template <typename Input>
+void launch_cast_transpose_for_input(const Input* input, void* output,
+                                     DType output_dtype, std::int64_t rows,
+                                     std::int64_t columns, hipStream_t stream) {
+    const auto grid = dim3(grid_size(rows * columns));
+    const auto block = dim3(kBlockSize);
+#define MICROLLM_CAST_TRANSPOSE_OUTPUT_CASE(cpp_type, enum_value)                       \
+    case enum_value:                                                                    \
+        hipLaunchKernelGGL((cast_transpose_2d_kernel<Input, cpp_type>), grid, block, 0, \
+                           stream, input, static_cast<cpp_type*>(output), rows, columns); \
+        break
+    switch (output_dtype) {
+        MICROLLM_CAST_TRANSPOSE_OUTPUT_CASE(float, DType::Float32);
+        MICROLLM_CAST_TRANSPOSE_OUTPUT_CASE(__half, DType::Float16);
+        MICROLLM_CAST_TRANSPOSE_OUTPUT_CASE(hip_bfloat16, DType::BFloat16);
+        default: throw std::invalid_argument(
+            "cast transpose output must be FP32, FP16, or BF16");
+    }
+#undef MICROLLM_CAST_TRANSPOSE_OUTPUT_CASE
+}
+
 void launch_dequantize_fp8(const void* input, DType fp8_dtype, void* output,
                            DType output_dtype, std::int64_t elements, float scale,
                            void* stream) {
@@ -1633,6 +1666,30 @@ void launch_cast(const void* input, DType input_dtype, void* output,
         default: throw std::invalid_argument("cast input must be FP32, FP16, or BF16");
     }
     check_launch("cast_kernel");
+}
+
+void launch_cast_transpose_2d(const void* input, DType input_dtype,
+                              void* output, DType output_dtype,
+                              std::int64_t rows, std::int64_t columns,
+                              void* stream) {
+    if (rows == 0 || columns == 0) return;
+    switch (input_dtype) {
+        case DType::Float32:
+            launch_cast_transpose_for_input(static_cast<const float*>(input), output,
+                                            output_dtype, rows, columns, as_stream(stream));
+            break;
+        case DType::Float16:
+            launch_cast_transpose_for_input(static_cast<const __half*>(input), output,
+                                            output_dtype, rows, columns, as_stream(stream));
+            break;
+        case DType::BFloat16:
+            launch_cast_transpose_for_input(static_cast<const hip_bfloat16*>(input), output,
+                                            output_dtype, rows, columns, as_stream(stream));
+            break;
+        default: throw std::invalid_argument(
+            "cast transpose input must be FP32, FP16, or BF16");
+    }
+    check_launch("cast_transpose_2d_kernel");
 }
 
 void launch_matmul(const float* left, const float* right, float* output,

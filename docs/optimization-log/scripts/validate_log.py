@@ -752,6 +752,50 @@ def validate_vectorized_adamw(errors: list[str]) -> tuple[int, int]:
     return len(vector4) + len(vector8) + len(rsqrt) + len(no_mirror), len(pilot)
 
 
+def validate_streaming_load(errors: list[str]) -> tuple[int, int]:
+    data = ROOT / "experiments" / "050-data"
+    smoke = [json.loads(line) for line in
+             (data / "load-smoke.jsonl").read_text(encoding="utf-8").splitlines()]
+    formal = [json.loads(line) for line in
+              (data / "deepseek-formal" / "raw.jsonl").read_text(
+                  encoding="utf-8").splitlines()]
+    keys = {(row.get("framework"), row.get("batch"), row.get("context"),
+             row.get("process_run")) for row in formal}
+    if len(smoke) != 2 or any(row.get("status") != "pass" for row in smoke) or \
+            len(formal) != 24 or len(keys) != 24 or any(
+                row.get("status") != "pass" for row in formal):
+        errors.append("streaming load raw record contract changed")
+    for row in smoke:
+        if row.get("load_host_to_device_bytes") != row.get("parameter_count", 0) * 2 or \
+                row.get("load_current_engine_bytes") != row.get("fp32_weight_bytes") or \
+                row.get("load_device_to_host_calls") != 0 or \
+                row.get("load_device_to_device_calls") != 0 or \
+                not (1.0 < row.get("load_peak_engine_bytes", 0) /
+                     row.get("fp32_weight_bytes", 1) < 1.15):
+            errors.append(f'streaming load byte/peak contract changed: {row.get("model")}')
+    micro = [row for row in formal if row.get("framework") == "microllm"]
+    torch = [row for row in formal if row.get("framework") == "pytorch"]
+    if any(not (1000.0 < row.get("load_ms", 0.0) < 1500.0) or
+           row.get("adamw_implementation") != "auto" for row in micro) or \
+            any(not (1900.0 < row.get("load_ms", 0.0) < 2300.0) for row in torch):
+        errors.append("streaming load timing boundary changed")
+    comparison = json.loads((data / "comparison.json").read_text(encoding="utf-8"))
+    loads = comparison.get("load_rows", [])
+    training = comparison.get("deepseek_training_rows", [])
+    safety = comparison.get("safety", {})
+    if comparison.get("decision") != "keep" or len(loads) != 2 or \
+            loads[0].get("speedup", 0.0) < 30.0 or loads[1].get("speedup", 0.0) < 45.0 or \
+            loads[1].get("speedup_vs_pytorch", 0.0) < 1.4 or \
+            len(training) != 4 or any(
+                not (0.99 < row.get("self_speedup", 0.0) < 1.01) or
+                row.get("peak_ratio") != 1.0 for row in training) or \
+            not all((safety.get("strict_metadata_preflight_before_payload_transfer"),
+                     safety.get("partial_io_failure_keeps_model_uninitialized"),
+                     safety.get("initialized_model_uses_atomic_state_dict_fallback"))):
+        errors.append("streaming load keep/safety gate changed")
+    return len(smoke), len(formal)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -780,7 +824,8 @@ def validate_assets(errors: list[str]) -> None:
                  "deepseek-context128-profile.svg",
                  "stable-gradient-buffer-discard.svg",
                  "chunked-adamw-discard.svg",
-                 "vectorized-adamw-explicit.svg"):
+                 "vectorized-adamw-explicit.svg",
+                 "streaming-safetensors-load.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -828,6 +873,7 @@ def main() -> int:
         validate_chunked_adamw_discard(errors)
     vectorized_adamw_operator, vectorized_adamw_pilot = \
         validate_vectorized_adamw(errors)
+    streaming_load_smoke, streaming_load_formal = validate_streaming_load(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -850,6 +896,7 @@ def main() -> int:
           f"stable_gradient={stable_gradient_matched}/{stable_gradient_mismatched} "
           f"chunked_adamw={chunked_adamw_pilot}/{chunked_adamw_formal} "
           f"vectorized_adamw={vectorized_adamw_operator}/{vectorized_adamw_pilot} "
+          f"streaming_load={streaming_load_smoke}/{streaming_load_formal} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

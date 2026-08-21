@@ -28,6 +28,25 @@ TEST(CpuOpsTest, ElementwiseOpsMatchHandValues) {
     EXPECT_EQ(scale(left, 0.5F).to_vector(), (std::vector<float>{0.5F, -1, 1.5F}));
 }
 
+TEST(CpuOpsTest, CastOutAndTransposePreserveCallerStorage) {
+    const auto input = Tensor::from_vector({1, 2, 3, 4, 5, 6}, {2, 3},
+                                           DType::BFloat16);
+    Tensor casted({2, 3});
+    Tensor transposed({3, 2});
+    const auto* cast_address = casted.storage().data();
+    const auto* transpose_address = transposed.storage().data();
+    cast_out_(input, casted);
+    cast_transpose_2d_out_(input, transposed);
+    EXPECT_EQ(casted.storage().data(), cast_address);
+    EXPECT_EQ(transposed.storage().data(), transpose_address);
+    EXPECT_EQ(casted.to_vector(), (std::vector<float>{1, 2, 3, 4, 5, 6}));
+    EXPECT_EQ(transposed.to_vector(), (std::vector<float>{1, 4, 2, 5, 3, 6}));
+    Tensor bad_cast({6});
+    Tensor bad_transpose({2, 3});
+    EXPECT_THROW(cast_out_(input, bad_cast), std::invalid_argument);
+    EXPECT_THROW(cast_transpose_2d_out_(input, bad_transpose), std::invalid_argument);
+}
+
 TEST(CpuOpsTest, BiasBroadcastAndReductionMatchHandValues) {
     const auto input = Tensor::from_vector({1, 2, 3, 4, 5, 6}, {2, 3});
     const auto bias = Tensor::from_vector({0.5F, -1.0F, 2.0F}, {3});
