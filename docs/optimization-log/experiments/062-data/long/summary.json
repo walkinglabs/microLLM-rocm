@@ -1,0 +1,103 @@
+{
+  "pairing": "fresh processes; framework order alternates by run",
+  "precision_boundary": {
+    "microllm": "mixed_bf16_weights_fp32_activations",
+    "pytorch": "full_bf16_model"
+  },
+  "rows": [
+    {
+      "batch": 1,
+      "cache_mode": "cached",
+      "context": 2048,
+      "cross_framework_tokens_equal": true,
+      "microllm_generated_tokens": [
+        9707,
+        1879
+      ],
+      "microllm_kv_cache_actual_bytes": 50380800.0,
+      "microllm_kv_cache_allocation_efficiency": 1.0,
+      "microllm_kv_cache_share_of_peak": 0.027328118217440172,
+      "microllm_kv_cache_theoretical_bytes": 50380800.0,
+      "microllm_kv_cache_utilization": 0.999512195,
+      "microllm_latency_ms": 94.533204,
+      "microllm_mean_cache_prepare_ms": 156.51649,
+      "microllm_mean_end_to_end_generation_ms": 251.049694,
+      "microllm_peak_bytes": 1843551744.0,
+      "microllm_resident_weight_bytes": 1260477952.0,
+      "microllm_status": "pass",
+      "microllm_throughput_tokens_per_second": 21.156587478,
+      "model": "qwen2.5-0.5b",
+      "peak_memory_ratio_microllm_over_pytorch": 1.0670428460426487,
+      "pytorch_generated_tokens": [
+        9707,
+        1879
+      ],
+      "pytorch_kv_cache_actual_bytes": 25178112.0,
+      "pytorch_kv_cache_allocation_efficiency": 1.0,
+      "pytorch_kv_cache_share_of_peak": 0.014573024258146652,
+      "pytorch_kv_cache_theoretical_bytes": 25178112.0,
+      "pytorch_kv_cache_utilization": 1.0,
+      "pytorch_latency_ms": 12.414713855832815,
+      "pytorch_mean_cache_prepare_ms": 13.448331970721483,
+      "pytorch_mean_end_to_end_generation_ms": 25.8630458265543,
+      "pytorch_peak_bytes": 1727720448.0,
+      "pytorch_resident_weight_bytes": 988065536.0,
+      "pytorch_status": "pass",
+      "pytorch_throughput_tokens_per_second": 161.09916210918854,
+      "resident_weight_ratio_microllm_over_pytorch": 1.2757027809135122,
+      "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+      "status": "pass",
+      "throughput_ratio_microllm_over_pytorch": 0.13132648985263282,
+      "workload": "decode"
+    },
+    {
+      "batch": 1,
+      "cache_mode": "cached",
+      "context": 2048,
+      "cross_framework_tokens_equal": true,
+      "microllm_generated_tokens": [
+        30,
+        151643
+      ],
+      "microllm_kv_cache_actual_bytes": 117555200.0,
+      "microllm_kv_cache_allocation_efficiency": 1.0,
+      "microllm_kv_cache_share_of_peak": 0.022972395904830245,
+      "microllm_kv_cache_theoretical_bytes": 117555200.0,
+      "microllm_kv_cache_utilization": 0.999512195,
+      "microllm_latency_ms": 147.414281,
+      "microllm_mean_cache_prepare_ms": 231.400961,
+      "microllm_mean_end_to_end_generation_ms": 378.815242,
+      "microllm_peak_bytes": 5117237248.0,
+      "microllm_resident_weight_bytes": 4487960576.0,
+      "microllm_status": "pass",
+      "microllm_throughput_tokens_per_second": 13.567206559,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "peak_memory_ratio_microllm_over_pytorch": 1.1730329060797084,
+      "pytorch_generated_tokens": [
+        30,
+        151643
+      ],
+      "pytorch_kv_cache_actual_bytes": 58748928.0,
+      "pytorch_kv_cache_allocation_efficiency": 1.0,
+      "pytorch_kv_cache_share_of_peak": 0.013467115633116635,
+      "pytorch_kv_cache_theoretical_bytes": 58748928.0,
+      "pytorch_kv_cache_utilization": 1.0,
+      "pytorch_latency_ms": 14.203637838363647,
+      "pytorch_mean_cache_prepare_ms": 27.236972004175186,
+      "pytorch_mean_end_to_end_generation_ms": 41.440609842538834,
+      "pytorch_peak_bytes": 4362398720.0,
+      "pytorch_resident_weight_bytes": 3554176000.0,
+      "pytorch_status": "pass",
+      "pytorch_throughput_tokens_per_second": 140.8089971569152,
+      "resident_weight_ratio_microllm_over_pytorch": 1.2627288507941081,
+      "revision": "ad9f0ae0864d7fbcd1cd905e3c6c5b069cc8b562",
+      "status": "pass",
+      "throughput_ratio_microllm_over_pytorch": 0.09635184422115392,
+      "workload": "decode"
+    }
+  ],
+  "runs_per_framework": 1,
+  "schema_version": 1,
+  "status": "pass",
+  "track": "official_inference_shape_matrix"
+}

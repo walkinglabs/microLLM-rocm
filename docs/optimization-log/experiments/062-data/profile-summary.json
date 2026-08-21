@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "token": {"kernel_dispatches": 497177, "kernel_time_ns": 20275767156, "hip_api_calls": 4552067, "hip_api_time_ns": 20088692521, "prepare_ms": 10360.573920, "end_to_end_ms": 10392.798619},
+  "full": {"kernel_dispatches": 3201, "kernel_time_ns": 180475376, "hip_api_calls": 129885, "hip_api_time_ns": 4476422262, "prepare_ms": 37.705421, "end_to_end_ms": 69.746758},
+  "kernel_dispatch_reduction": 155.319275226,
+  "kernel_time_speedup": 112.346446398,
+  "hip_api_call_reduction": 35.046903030,
+  "hip_api_time_speedup": 4.487667013,
+  "prepare_speedup": 274.776773345,
+  "end_to_end_speedup": 149.007622964,
+  "token_cached_attention_calls": 24624,
+  "token_cached_attention_time_ns": 13074135782,
+  "contract": "same Qwen T512 executable and flags; only cache-prefill-mode changes token to full"
+}

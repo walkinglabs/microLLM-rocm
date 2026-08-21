@@ -288,6 +288,33 @@ TEST(TransformerModelTest, CachedLogitsMatchFullPrefixForMhaAndGqa) {
         EXPECT_EQ(reused, fresh.forward_cached(
                               Tensor::from_int32_vector({tokens.front()}, {1, 1}),
                               fresh_cache).to_vector());
+
+        cache.reset();
+        const auto prefix = Tensor::from_int32_vector({1, 2, 3}, {1, 3});
+        const auto prefilled = model.forward_prefill_cached(prefix, cache).to_vector();
+        const auto full_prefix = model.forward_inference(prefix).to_vector();
+        const auto prefix_offset = 2 * model.config().vocabulary_size;
+        expect_near(prefilled,
+                    std::vector<float>(full_prefix.begin() + prefix_offset,
+                                       full_prefix.end()),
+                    2.0e-5F);
+        EXPECT_EQ(cache.position(), 3);
+        EXPECT_EQ(cache.layer(0).key.shape()[2], 3);
+        const auto continued = model.forward_cached(
+            Tensor::from_int32_vector({4}, {1, 1}), cache).to_vector();
+        const auto full_four = model.forward_inference(
+            Tensor::from_int32_vector({1, 2, 3, 4}, {1, 4})).to_vector();
+        const auto last_offset = 3 * model.config().vocabulary_size;
+        expect_near(continued,
+                    std::vector<float>(full_four.begin() + last_offset, full_four.end()),
+                    2.0e-5F);
+
+        inference::KVCache invalid_cache(config.layers, config.max_sequence_length);
+        EXPECT_THROW((void)model.forward_prefill_cached(
+                         Tensor::from_int32_vector({1, 2}, {2, 1}), invalid_cache),
+                     std::invalid_argument);
+        EXPECT_EQ(invalid_cache.position(), 0);
+        EXPECT_FALSE(invalid_cache.layer(0).key.defined());
     }
 }
 

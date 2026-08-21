@@ -55,6 +55,8 @@ needed to run a real training and generation loop:
   KV Storage/active utilization and explicit unsupported/OOM rows.
 - graph-free long prefill reuses public causal GQA and batched hipBLASLt; Qwen/DeepSeek
   T512/T1024 gain 6.7×–16.7× with explicit T1024 memory cost.
+- B1 full-sequence prefill populates capacity-strided KV Storage directly; profiled Qwen
+  T512 cache preparation improves 275× over explicit token replay.
 
 The design keeps three implementations where they provide engineering value:
 
@@ -209,6 +211,12 @@ T512 prefill ratios become `0.308×` (Qwen) and `0.229×` (DeepSeek); T1024 reac
 `0.152×/0.156×`. This is 6.72×–16.73× faster than Experiment 060, while T1024 adds
 12%–33% microLLM peak. See
 [Experiment 061](docs/optimization-log/experiments/061-batched-long-prefill-inference.md).
+
+Experiment 062 removes prompt token replay. Qwen/DeepSeek T1024 cache preparation is now
+71/109 ms and end-to-end four-token generation is 228/351 ms; all token pairs match.
+The explicit Qwen T512 token/full profiler control reduces Kernel calls 155× and Kernel
+time 112×. See
+[Experiment 062](docs/optimization-log/experiments/062-full-sequence-prefill-to-cache.md).
 
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or

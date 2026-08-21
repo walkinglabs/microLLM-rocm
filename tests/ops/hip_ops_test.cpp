@@ -768,7 +768,7 @@ TEST(HipGenerationTest, GreedyLoopKeepsSelectedTokenOnDevice) {
         model, prompt, {.max_new_tokens = 4, .temperature = 0.0F, .top_k = 1, .seed = 9});
     const auto transfers = runtime::transfer_stats();
     EXPECT_EQ(generated.size(), 6U);
-    EXPECT_EQ(transfers.host_to_device_calls, prompt.size());
+    EXPECT_EQ(transfers.host_to_device_calls, 1U);
     EXPECT_EQ(transfers.host_to_device_bytes, prompt.size() * sizeof(std::int32_t));
     EXPECT_EQ(transfers.device_to_host_calls, 4U);
     EXPECT_EQ(transfers.device_to_host_bytes, 4U * sizeof(std::int32_t));
@@ -1047,6 +1047,29 @@ TEST(HipModelTest, PreallocatedGqaCacheMatchesCpuAndAvoidsPayloadTransfers) {
             EXPECT_EQ(hip_cache.layer(0).value.storage().data(), value_address);
         }
     }
+    cpu_cache.reset();
+    hip_cache.reset();
+    const auto host_prefix = Tensor::from_int32_vector({3, 4, 5}, {1, 3});
+    const auto device_prefix = host_prefix.to(Device::hip());
+    const auto expected_prefix =
+        cpu_model.forward_prefill_cached(host_prefix, cpu_cache).to_vector();
+    runtime::reset_transfer_stats();
+    const auto actual_prefix =
+        hip_model.forward_prefill_cached(device_prefix, hip_cache);
+    runtime::synchronize(Device::hip());
+    const auto prefix_transfers = runtime::transfer_stats();
+    EXPECT_EQ(prefix_transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(prefix_transfers.device_to_host_calls, 0U);
+    expect_near(actual_prefix.to_vector(), expected_prefix, 4.0e-4F);
+    EXPECT_EQ(hip_cache.position(), 3);
+    EXPECT_EQ(hip_cache.layer(0).key.storage().num_bytes(),
+              static_cast<std::size_t>(config.kv_heads * config.max_sequence_length *
+                                       config.head_dimension()) * sizeof(float));
+    const auto host_next = Tensor::from_int32_vector({6}, {1, 1});
+    const auto expected_next = cpu_model.forward_cached(host_next, cpu_cache).to_vector();
+    const auto actual_next = hip_model.forward_cached(
+        host_next.to(Device::hip()), hip_cache).to_vector();
+    expect_near(actual_next, expected_next, 4.0e-4F);
 }
 
 TEST(HipTensorTest, NonContiguousTransposeMaterializesInLogicalOrder) {

@@ -321,6 +321,14 @@ T1024增加33%/12%。全部top token一致，最大top-logit差0.195。
 
 ![Batched long-prefill inference](assets/batched-long-prefill-inference.svg)
 
+Experiment 062 新增B1 full-sequence prefill-to-cache。第一次整块复制破坏capacity head stride，
+继续decode测试失败；改为per-head D2D后通过。第二次返回完整`[T,V]`造成显存浪费，最终只
+返回last logits。正式T1024 prepare为Qwen/DeepSeek `71/109ms`，不再是旧warm-up的
+`38/55s`。同窗口Qwen T512 token/full profile：prepare `274.8×`、Kernel `112.3×`，
+Kernel calls减少155×。
+
+![Full-sequence prefill to KV cache](assets/full-prefill-kv-cache.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -402,6 +410,8 @@ T1024增加33%/12%。全部top token一致，最大top-logit差0.195。
 | [experiments/060-data/](experiments/060-data/) | 核心108条、batch48条、long60条、无效pilot和最终schema smoke |
 | [assets/batched-long-prefill-inference.svg](assets/batched-long-prefill-inference.svg) | T512/T1024 prefill自身加速、显存和profile |
 | [experiments/061-data/](experiments/061-data/) | 正式24条、T128 fallback、未命中pilot和前后profile |
+| [assets/full-prefill-kv-cache.svg](assets/full-prefill-kv-cache.svg) | cache prepare/end-to-end与token/full profile |
+| [experiments/062-data/](experiments/062-data/) | 正式36条、T2048、两条失败修复和前后profile |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

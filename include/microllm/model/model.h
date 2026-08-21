@@ -74,6 +74,10 @@ public:
     // Graph-free full-sequence inference. Unlike forward(), this never creates
     // autograd nodes and remains valid after BF16 FFN preparation.
     [[nodiscard]] Tensor forward_inference(const Tensor& token_ids);
+    // Full-sequence B=1 prefill that initializes every layer's KV cache and
+    // returns only last-token logits [1,1,V]. The cache must be empty and fit T.
+    [[nodiscard]] Tensor forward_prefill_cached(const Tensor& token_ids,
+                                                inference::KVCache& cache);
     [[nodiscard]] Tensor forward_cached(const Tensor& token_id,
                                         inference::KVCache& cache);
     [[nodiscard]] autograd::Value loss(const Tensor& token_ids, const Tensor& targets);

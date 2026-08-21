@@ -49,6 +49,7 @@ struct Options {
     std::string workload = "both";
     std::int64_t batch = 1;
     bool use_cache = true;
+    std::string cache_prefill_mode = "full";
 };
 
 Options options(int argc, char** argv) {
@@ -96,6 +97,7 @@ Options options(int argc, char** argv) {
             }
             result.use_cache = value == "true";
         }
+        else if (name == "--cache-prefill-mode") result.cache_prefill_mode = argv[index + 1];
         else throw std::invalid_argument("unknown CLI option: " + name);
     }
     if (result.config.empty() || result.weights.empty()) {
@@ -113,6 +115,9 @@ Options options(int argc, char** argv) {
     }
     if (result.top_k <= 0) throw std::invalid_argument("--top-k must be positive");
     if (result.batch <= 0) throw std::invalid_argument("--batch must be positive");
+    if (result.cache_prefill_mode != "full" && result.cache_prefill_mode != "token") {
+        throw std::invalid_argument("--cache-prefill-mode must be full or token");
+    }
     if (result.new_tokens < 0) throw std::invalid_argument("--new-tokens cannot be negative");
     if (result.warmup < 0 || result.steps <= 0) {
         throw std::invalid_argument("--warmup must be nonnegative and --steps positive");
@@ -165,13 +170,21 @@ struct CachedGenerationState {
 
 CachedGenerationState prepare_cached(
     microllm::model::TransformerModel& model,
-    const std::vector<std::int32_t>& prompt, std::int64_t new_tokens) {
+    const std::vector<std::int32_t>& prompt, std::int64_t new_tokens,
+    bool full_prefill) {
     CachedGenerationState state(
         model.config().layers,
         static_cast<std::int64_t>(prompt.size()) + new_tokens);
-    for (const auto token : prompt) {
-        state.logits = model.forward_cached(
-            microllm::Tensor::from_int32_vector({token}, {1, 1}), state.cache);
+    if (full_prefill) {
+        state.logits = model.forward_prefill_cached(
+            microllm::Tensor::from_int32_vector(
+                prompt, {1, static_cast<std::int64_t>(prompt.size())}),
+            state.cache);
+    } else {
+        for (const auto token : prompt) {
+            state.logits = model.forward_cached(
+                microllm::Tensor::from_int32_vector({token}, {1, 1}), state.cache);
+        }
     }
     return state;
 }
@@ -392,7 +405,9 @@ int main(int argc, char** argv) {
             const auto warmup_start = std::chrono::steady_clock::now();
             for (int iteration = 0; iteration < command.warmup; ++iteration) {
                 if (command.use_cache) {
-                    auto state = prepare_cached(model, ids, command.new_tokens);
+                    auto state = prepare_cached(
+                        model, ids, command.new_tokens,
+                        command.cache_prefill_mode == "full");
                     (void)decode_cached(model, state, command.new_tokens);
                 } else {
                     (void)generate_uncached(
@@ -411,7 +426,9 @@ int main(int argc, char** argv) {
                     // Prompt ingestion establishes the cache but is a prefill
                     // phase, so it is deliberately outside decode timing.
                     const auto prepare_start = std::chrono::steady_clock::now();
-                    auto state = prepare_cached(model, ids, command.new_tokens);
+                    auto state = prepare_cached(
+                        model, ids, command.new_tokens,
+                        command.cache_prefill_mode == "full");
                     microllm::runtime::synchronize(device);
                     const auto prepare_finish = std::chrono::steady_clock::now();
                     cache_prepare_ms += std::chrono::duration<double, std::milli>(
@@ -490,6 +507,8 @@ int main(int argc, char** argv) {
                   << ",\"token_count\":" << ids.size()
                   << ",\"batch\":" << command.batch
                   << ",\"use_cache\":" << (command.use_cache ? "true" : "false")
+                  << ",\"cache_prefill_mode\":\""
+                  << command.cache_prefill_mode << "\""
                   << ",\"warmup\":" << command.warmup
                   << ",\"steps\":" << command.steps
                   << ",\"warmup_ms\":" << warmup_ms

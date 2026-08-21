@@ -177,6 +177,7 @@ def micro_command(args: argparse.Namespace, model: dict, context: int, batch: in
         str(args.micro_binary), "--config", model["config"], "--weights", model["weights"],
         "--tokens", ",".join(str(token) for token in ids), "--device", "hip",
         "--top-k", "1", "--batch", str(batch), "--use-cache", str(cache == "cached").lower(),
+        "--cache-prefill-mode", "full",
         "--new-tokens", str(args.decode_tokens if workload == "decode" else 0),
         "--warmup", str(args.warmup), "--steps", str(args.steps),
         "--prefill-warmup", str(args.warmup), "--prefill-steps", str(args.steps),

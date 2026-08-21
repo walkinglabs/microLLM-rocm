@@ -1363,6 +1363,72 @@ def validate_batched_prefill_inference(errors: list[str]) -> tuple[int, int]:
     return len(formal), profile["after"].get("kernel_dispatches", 0)
 
 
+def validate_full_prefill_cache(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "062-data"
+    formal = [json.loads(line) for line in
+              (data / "formal" / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    long_rows = [json.loads(line) for line in
+                 (data / "long" / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    keys = {(row.get("model"), row.get("context"), row.get("framework"),
+             row.get("process_run")) for row in formal}
+    if len(formal) != 36 or len(keys) != 36 or any(
+            row.get("status") != "pass" or row.get("workload") != "decode" or
+            row.get("cache_mode") != "cached" or row.get("context") not in {8, 512, 1024}
+            for row in formal) or any(
+                row.get("cache_prefill_mode") != "full" for row in formal
+                if row.get("framework") == "microllm"):
+        errors.append("full prefill-cache formal protocol changed")
+    if len(long_rows) != 4 or any(row.get("status") != "pass" or
+                                  row.get("context") != 2048 for row in long_rows):
+        errors.append("full prefill-cache T2048 protocol changed")
+    for row in formal + long_rows:
+        if row.get("status") != "pass" or row.get("cache_mode") != "cached":
+            continue
+        if int(row.get("kv_cache_actual_bytes", 0)) != \
+                int(row.get("kv_cache_theoretical_bytes", -1)) or \
+                row.get("generated_tokens") is None:
+            errors.append("full prefill-cache KV/token formula changed")
+            break
+    summary = json.loads((data / "formal" / "summary.json").read_text(encoding="utf-8"))
+    long_summary = json.loads((data / "long" / "summary.json").read_text(encoding="utf-8"))
+    if summary.get("status") != "pass" or len(summary.get("rows", [])) != 6 or any(
+            row.get("cross_framework_tokens_equal") is not True or
+            row.get("microllm_mean_cache_prepare_ms", 0.0) <= 0.0 or
+            row.get("microllm_mean_end_to_end_generation_ms", 0.0) <= 0.0
+            for row in summary.get("rows", [])):
+        errors.append("full prefill-cache formal summary changed")
+    if long_summary.get("status") != "pass" or len(long_summary.get("rows", [])) != 2:
+        errors.append("full prefill-cache T2048 summary changed")
+    comparison = json.loads((data / "comparison.json").read_text(encoding="utf-8"))
+    if comparison.get("decision") != "keep" or len(comparison.get("rows", [])) != 6 or \
+            len(comparison.get("long_2048", [])) != 2 or \
+            len(comparison.get("falsification_events", [])) != 2 or \
+            comparison.get("same_window_profile", {}).get("prepare_speedup", 0.0) < 270.0:
+        errors.append("full prefill-cache keep/falsification contract changed")
+    profile = json.loads((data / "profile-summary.json").read_text(encoding="utf-8"))
+    for phase in ("token", "full"):
+        with (data / f"profile-{phase}" / "kernel-stats.csv").open(
+                encoding="utf-8", newline="") as stream:
+            kernels = list(csv.DictReader(stream))
+        with (data / f"profile-{phase}" / "hip-api-stats.csv").open(
+                encoding="utf-8", newline="") as stream:
+            api = list(csv.DictReader(stream))
+        recorded = profile[phase]
+        if sum(int(row["Calls"]) for row in kernels) != recorded["kernel_dispatches"] or \
+                sum(int(row["TotalDurationNs"]) for row in kernels) != \
+                recorded["kernel_time_ns"] or \
+                sum(int(row["Calls"]) for row in api) != recorded["hip_api_calls"] or \
+                sum(int(row["TotalDurationNs"]) for row in api) != \
+                recorded["hip_api_time_ns"]:
+            errors.append(f"full prefill-cache {phase} profile aggregate changed")
+    if profile.get("prepare_speedup", 0.0) < 270.0 or \
+            profile.get("kernel_time_speedup", 0.0) < 110.0 or \
+            profile.get("kernel_dispatch_reduction", 0.0) < 150.0 or \
+            profile.get("token_cached_attention_calls") != 24624:
+        errors.append("full prefill-cache profiler gate changed")
+    return len(formal), len(long_rows), profile["full"].get("kernel_dispatches", 0)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -1403,7 +1469,8 @@ def validate_assets(errors: list[str]) -> None:
                  "block-row-causal-softmax.svg",
                  "block-column-rmsnorm-weight-gradient.svg",
                  "inference-context-batch-matrix.svg",
-                 "batched-long-prefill-inference.svg"):
+                 "batched-long-prefill-inference.svg",
+                 "full-prefill-kv-cache.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -1469,6 +1536,7 @@ def main() -> int:
     inference_core, inference_batch, inference_long, inference_no_warm = \
         validate_inference_shape_matrix(errors)
     prefill_records, prefill_calls = validate_batched_prefill_inference(errors)
+    cache_records, cache_long_records, cache_calls = validate_full_prefill_cache(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -1505,6 +1573,7 @@ def main() -> int:
           f"inference={inference_core}/{inference_batch}/{inference_long}/"
           f"{inference_no_warm} "
           f"prefill={prefill_records}/{prefill_calls} "
+          f"cache_prefill={cache_records}/{cache_long_records}/{cache_calls} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

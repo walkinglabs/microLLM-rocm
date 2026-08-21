@@ -32,9 +32,11 @@ public:
     [[nodiscard]] const LayerState& layer(std::size_t index) const { return layers_.at(index); }
     [[nodiscard]] LayerState& mutable_layer(std::size_t index) { return layers_.at(index); }
 
-    void advance() {
-        if (position_ >= max_sequence_length_) throw std::out_of_range("KV cache is full");
-        ++position_;
+    void advance(std::int64_t count = 1) {
+        if (count <= 0 || count > max_sequence_length_ - position_) {
+            throw std::out_of_range("KV cache advance is outside capacity");
+        }
+        position_ += count;
     }
 
     void reset() {

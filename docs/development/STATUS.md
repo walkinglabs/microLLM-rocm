@@ -41,7 +41,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Model-S TinyStories smoke | smoke-tested | immutable 1MiB train prefix, 10 HIP steps | full train/validation curve |
 | Tiny Transformer training | smoke-tested | 40-step overfit and finite gradients | validation split/Model-S |
 | SFT response masking | smoke-tested | CPU/HIP ignored targets and tiny response-loss curve | Model-S instruction corpus/run |
-| CPU/HIP KV cache | smoke-tested | request-bounded Storage, stable address/bytes, active/capacity utilization, every MHA/GQA prefix and zero-transfer decode | BF16 cache, batched cache, full-sequence prefill-to-cache |
+| CPU/HIP KV cache | smoke-tested | request-bounded Storage, full-sequence B1 prefill, continuation logits, active/capacity utilization and zero-transfer decode | BF16 cache and batched cache |
 | Device greedy sampling | smoke-tested | deterministic two-stage 151936 argmax (-96.7% Kernel), 4-byte/token D2H, robust score 1.770568 | stochastic device top-k/RNG |
 | HIP exact-size allocator | smoke-tested | steady-state pool plus 16-block shared retirement Events; score 2.470863 | size classes and explicit multi-Stream ownership |
 | Fused cached decode Attention | smoke-tested | FP32 MHA/GQA 1/32/128/512 + fallback; repeated-process score 1.752183; long decode up to +57.9% | one-token regression, prefill/backward/BF16 |
@@ -65,7 +65,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | End-to-end benchmark | smoke-tested | matched Python/PyTorch ROCm official training plus phase-separated context/batch/cache inference JSONL | serving concurrency, board-level memory and llama.cpp |
 | Single-GPU model matrix | smoke-tested | MI300X tiny/Model-S/Model-M plus official Qwen0.5B/DeepSeek-Distill1.5B train+generate, parameters, time, tokens/s and engine peak bytes | repeated contexts/dtypes and external board-level memory sampling |
 | Python/PyTorch ROCm performance matrix | smoke-tested | official Qwen/DeepSeek train plus inference context 8–2048, batch 1–8, KV bytes, precision policies and token gates | identical residency policy, version matrix and llama.cpp |
-| Optimization experiment journal | implemented | 61 numbered FP32/BF16/load/training/inference experiments with generated figures, raw evidence and keep/discard/invalid gates | prefill-to-cache, batched cache, HIP Graph, Radeon and production data-parallel tracks |
+| Optimization experiment journal | implemented | 62 numbered FP32/BF16/load/training/inference experiments with generated figures, raw evidence and keep/discard/invalid gates | batched cache, HIP Graph, Radeon and production data-parallel tracks |
 | rocprofv3 workflow | smoke-tested | kernel/HIP API/memory/full trace generated | release artifact retention |
 | hipBLASLt matmul | smoke-tested | FP32/BF16, rank-N strided batches, four transpose contracts, Model-S and T≥256 Attention forward/backward | workspace and persistent versioned autotune cache |
 | Matmul tuning registry | smoke-tested | exact shape override/clear and availability gates | persistence/arch key |

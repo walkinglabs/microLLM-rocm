@@ -73,6 +73,9 @@ steady decode；两者之和写入`mean_end_to_end_generation_ms`。默认值仍
 batch1；B2/B4/B8会明确失败，不能静默退回B1。`--use-cache true|false`用于检查两条路径
 是否生成相同token。
 
+cached模式默认`--cache-prefill-mode full`，一次完整prompt直接填入每层预分配Storage。
+显式`token`会逐token重放，只用于复现旧性能失败和reference；发布结果必须记录所选模式。
+
 多context、batch和KV Cache显存矩阵见：
 
 ```bash

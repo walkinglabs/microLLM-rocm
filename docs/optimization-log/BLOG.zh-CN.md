@@ -1524,3 +1524,21 @@ T512 peak不变；T1024因GQA head展开和batched临时表增加33%/12%。top t
 readable Attention matmul从629.41ms归零，只新增约1.68ms library GEMM；全部Kernel
 `802.89→156.87ms`（5.12×）。候选保留，但0.15×PyTorch仍不是完成。下一根系统柱子
 是prompt必须逐token写Cache；需要full-sequence prefill-to-cache，而不是继续改steady decode。
+
+## 79. Experiment 062：prefill算完了，不能再把prompt重放一遍
+
+旧Cache只能一次写一个token。T1024 warm-up Qwen/DeepSeek要38.5/54.9秒，T2048达到
+115.6/171.2秒。新API一次full forward，把每层K/V直接写进预分配Storage并advance(T)。
+
+![Full-sequence prefill to KV cache](assets/full-prefill-kv-cache.svg)
+
+第一次实现full logits正确，继续decode却错：紧排head被整块写进capacity-strided Storage。
+按head分别D2D后才通过。第二版又因返回整个`[T,V]`让T1024 peak增加33%/12%；改成只返回
+last logits后，最终代价降为Qwen+11.5%、DeepSeek+3.4%。
+
+三进程T1024 prepare为`71/109ms`，end-to-end四token为`228/351ms`；T2048 prepare
+`157/231ms`。同一Qwen T512二进制显式切换token/full：prepare `10.36s→37.7ms`
+（275×），Kernel time `20.28s→180ms`（112×），calls `497177→3201`。
+
+B1长prompt已从分钟级变成毫秒级，但PyTorch prepare仍约12–27ms，steady decode也更快。
+下一节点必须给KV Cache增加batch维，关闭B2/B4/B8 unsupported，而不是继续只测B1。

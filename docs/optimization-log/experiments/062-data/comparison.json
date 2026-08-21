@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "experiment": 62,
+  "decision": "keep",
+  "candidate": "B1 full-sequence prefill directly populates capacity-strided per-layer KV Storage and returns last-token logits",
+  "rows": [
+    {"model": "qwen2.5-0.5b", "context": 8, "micro_prepare_ms": 13.009182, "pytorch_prepare_ms": 11.275747325, "micro_end_to_end_ms": 44.9277475, "pytorch_end_to_end_ms": 45.088876039, "steady_decode_ratio": 1.059214120, "peak_ratio_vs_token_replay": 1.0, "tokens_equal": true},
+    {"model": "qwen2.5-0.5b", "context": 512, "micro_prepare_ms": 37.204769, "pytorch_prepare_ms": 11.818979401, "micro_end_to_end_ms": 130.7615185, "pytorch_end_to_end_ms": 43.801731896, "steady_decode_ratio": 0.341838568, "peak_ratio_vs_token_replay": 1.034425940, "tokens_equal": true},
+    {"model": "qwen2.5-0.5b", "context": 1024, "micro_prepare_ms": 71.3312075, "pytorch_prepare_ms": 13.218056876, "micro_end_to_end_ms": 228.231356, "pytorch_end_to_end_ms": 52.612092812, "steady_decode_ratio": 0.252679484, "peak_ratio_vs_token_replay": 1.114795334, "tokens_equal": true},
+    {"model": "deepseek-r1-distill-qwen-1.5b", "context": 8, "micro_prepare_ms": 19.009918, "pytorch_prepare_ms": 13.989547500, "micro_end_to_end_ms": 68.935192, "pytorch_end_to_end_ms": 54.793013260, "steady_decode_ratio": 0.814966075, "peak_ratio_vs_token_replay": 1.0, "tokens_equal": true},
+    {"model": "deepseek-r1-distill-qwen-1.5b", "context": 512, "micro_prepare_ms": 57.888878, "pytorch_prepare_ms": 14.187323162, "micro_end_to_end_ms": 203.5954515, "pytorch_end_to_end_ms": 52.074078238, "steady_decode_ratio": 0.262242647, "peak_ratio_vs_token_replay": 1.011332546, "tokens_equal": true},
+    {"model": "deepseek-r1-distill-qwen-1.5b", "context": 1024, "micro_prepare_ms": 108.758233, "pytorch_prepare_ms": 17.547059106, "micro_end_to_end_ms": 351.200436, "pytorch_end_to_end_ms": 57.705925545, "steady_decode_ratio": 0.165715413, "peak_ratio_vs_token_replay": 1.033879876, "tokens_equal": true}
+  ],
+  "long_2048": [
+    {"model": "qwen2.5-0.5b", "micro_prepare_ms": 156.51649, "pytorch_prepare_ms": 13.448331971, "micro_end_to_end_ms": 251.049694, "pytorch_end_to_end_ms": 25.863045827, "peak_ratio_vs_token_replay": 1.405054025, "tokens_equal": true},
+    {"model": "deepseek-r1-distill-qwen-1.5b", "micro_prepare_ms": 231.400961, "pytorch_prepare_ms": 27.236972004, "micro_end_to_end_ms": 378.815242, "pytorch_end_to_end_ms": 41.440609843, "peak_ratio_vs_token_replay": 1.110813943, "tokens_equal": true}
+  ],
+  "same_window_profile": {"token_prepare_ms": 10360.573920, "full_prepare_ms": 37.705421, "prepare_speedup": 274.776773345, "token_end_to_end_ms": 10392.798619, "full_end_to_end_ms": 69.746758, "end_to_end_speedup": 149.007622964},
+  "falsification_events": ["bulk contiguous K/V copy violated capacity head strides and failed continuation logits", "full [T,V] logits made T1024 peak unnecessarily high; last-token-only output retained correctness and recovered memory"],
+  "reason": "all token pairs and continuation logits match, prepare falls from seconds/minutes to milliseconds, profile call/time gates pass, and the remaining long-context peak cost is explicit"
+}
