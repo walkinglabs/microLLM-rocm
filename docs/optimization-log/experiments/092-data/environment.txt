@@ -1,0 +1,11 @@
+date_utc=2026-08-21
+device=AMD Instinct MI300X VF
+architecture=gfx942:sramecc+:xnack-
+build_type=Release
+model=deepseek-r1-distill-qwen-1.5b
+context=2048
+batches=1,8
+decode_tokens=8
+baseline_binary=/tmp/microllm-exp090-token-history-release
+candidate_binary=/tmp/microllm-exp092-packed-value-release
+pair_runs=3

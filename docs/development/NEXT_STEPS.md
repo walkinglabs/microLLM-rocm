@@ -50,7 +50,8 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   legacy-default-Stream-only contract;
 - [ ] add a per-position dot/codegen gate before revisiting BF16 cached-Attention pair loads;
 - [x] retry and retain device token-history D2H batching after allocator stabilization;
-- [ ] test paired BF16 Value-column reads while preserving each column's position accumulation;
+- [x] test and reject paired BF16 Value-column reads despite bit-exact official logits;
+- [ ] design a score-level oracle before a wave/MFMA or online cached-Attention rewrite;
 - [x] add a delayed-arrival multi-request reference scheduler with independent Cache/RNG state;
 - [x] batch compatible equal-length requests through one public static generation path;
 - [x] group pending requests by compatibility with singleton fallback and cross-drain admission;

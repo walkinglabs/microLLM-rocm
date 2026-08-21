@@ -241,3 +241,5 @@ the next gate. Records are append-only except for factual corrections.
   caller-owned argmax outputs and one final greedy-history D2H after allocator stabilization.
 - [2026-08-21-normalize-cached-probabilities-discard.md](2026-08-21-normalize-cached-probabilities-discard.md):
   bit-exact shared normalization rejected by neutral-negative alternating performance.
+- [2026-08-21-bf16-paired-value-load-discard.md](2026-08-21-bf16-paired-value-load-discard.md):
+  bit-exact paired Value accumulation rejected and local scalar Attention search closed.

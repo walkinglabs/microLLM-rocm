@@ -1963,3 +1963,16 @@ measured的calls从24降到3，bytes仍是B1 96、B8 768。
 三对交替性能却只有0.994×/0.997×；allocator、D2H和peak均相同。编译器很可能已经把不变量division
 处理得足够好，新增shared写回与barrier没有收益。候选回退；“数值正确”只是进入性能门的资格，
 不是保留理由。
+
+## 109. Experiment 092：两个Value一起读，精度对了但线程少了
+
+一个线程分别维护相邻两个Value column的accumulator，每列仍按position顺序累加。百万logit位级
+一致，说明这个并行重排守住了数学轨迹。
+
+![BF16 paired Value load discard](assets/bf16-paired-value-load-discard.svg)
+
+但DeepSeek T2048 B1/B8三对只有0.988×/0.989×。原Value读取已经按column连续合并，pair写法把
+活跃lane减半并增加拆包，稳定变慢。候选回退。
+
+结合088–092与更早的thread/query-staging失败，本地标量cached Attention搜索关闭。下一次必须先
+建逐position score oracle，再进入wave/MFMA或online softmax的架构级改写。

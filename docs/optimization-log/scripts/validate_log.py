@@ -2775,6 +2775,41 @@ def validate_normalize_cached_probabilities_discard(
         int(precision_rows[8]["values"])
 
 
+def validate_bf16_paired_value_load_discard(
+        errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "092-data"
+    precision = json.loads(
+        (data / "precision-summary.json").read_text(encoding="utf-8"))
+    pair = json.loads((data / "pair-summary.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    precision_rows = {int(row.get("batch", -1)): row
+                      for row in precision.get("rows", [])}
+    performance_rows = {int(row.get("batch", -1)): row
+                        for row in pair.get("rows", [])}
+    if precision.get("status") != "pass" or set(precision_rows) != {1, 8} or any(
+            row.get("bit_exact") is not True or
+            float(row.get("max_abs_error", -1.0)) != 0.0 or
+            row.get("tokens_equal") is not True
+            for row in precision_rows.values()):
+        errors.append("paired Value complete-logit gate changed")
+    if pair.get("status") != "pass" or set(performance_rows) != {1, 8} or any(
+            not 0.97 < float(row.get("candidate_speedup", 0.0)) < 1.0 or
+            row.get("tokens_equal") is not True
+            for row in performance_rows.values()):
+        errors.append("paired Value performance rejection changed")
+    if gates.get("status") != "discard" or \
+            gates.get("official_precision", {}).get("bit_exact") is not True or \
+            gates.get("paired_performance", {}).get("failed") != 2 or \
+            gates.get("candidate_reverted") is not True:
+        errors.append("paired Value discard gates changed")
+    source = (REPOSITORY / "src" / "ops" / "hip" /
+              "basic_kernels.hip").read_text(encoding="utf-8")
+    if "second_total" in source:
+        errors.append("rejected paired Value accumulation remains in source")
+    return len(precision_rows), int(precision_rows[1]["values"]), \
+        int(precision_rows[8]["values"])
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -2844,7 +2879,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16x2-key-load-discard.svg",
                  "raw-packed-key-load-discard.svg",
                  "device-token-history.svg",
-                 "normalize-cached-probabilities-discard.svg"):
+                 "normalize-cached-probabilities-discard.svg",
+                 "bf16-paired-value-load-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -2966,6 +3002,8 @@ def main() -> int:
         validate_device_token_history(errors)
     normalize_rows, normalize_b1_values, normalize_b8_values = \
         validate_normalize_cached_probabilities_discard(errors)
+    paired_value_rows, paired_value_b1, paired_value_b8 = \
+        validate_bf16_paired_value_load_discard(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -3053,6 +3091,8 @@ def main() -> int:
           f"{token_history_d2h} "
           f"normalize_discard={normalize_rows}/{normalize_b1_values}/"
           f"{normalize_b8_values} "
+          f"paired_value_discard={paired_value_rows}/{paired_value_b1}/"
+          f"{paired_value_b8} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

@@ -1,0 +1,62 @@
+{
+  "rows": [
+    {
+      "baseline_tokens": [
+        151643,
+        151646,
+        151643,
+        151646,
+        3555,
+        374,
+        220,
+        17
+      ],
+      "batch": 1,
+      "bit_exact": true,
+      "candidate_tokens": [
+        151643,
+        151646,
+        151643,
+        151646,
+        3555,
+        374,
+        220,
+        17
+      ],
+      "max_abs_error": 0.0,
+      "rmse": 0.0,
+      "tokens_equal": true,
+      "values": 151936
+    },
+    {
+      "baseline_tokens": [
+        151643,
+        151646,
+        151643,
+        151646,
+        3555,
+        374,
+        220,
+        17
+      ],
+      "batch": 8,
+      "bit_exact": true,
+      "candidate_tokens": [
+        151643,
+        151646,
+        151643,
+        151646,
+        3555,
+        374,
+        220,
+        17
+      ],
+      "max_abs_error": 0.0,
+      "rmse": 0.0,
+      "tokens_equal": true,
+      "values": 1215488
+    }
+  ],
+  "schema_version": 1,
+  "status": "pass"
+}

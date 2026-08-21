@@ -546,6 +546,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/090-data/](experiments/090-data/) | T2048/T512交替对、六shape survey和公共API合同 |
 | [assets/normalize-cached-probabilities-discard.svg](assets/normalize-cached-probabilities-discard.svg) | 位级一致与中性负性能的对照 |
 | [experiments/091-data/](experiments/091-data/) | 百万logit exact门与T2048交替性能 |
+| [assets/bf16-paired-value-load-discard.svg](assets/bf16-paired-value-load-discard.svg) | 双column位级正确但lane减少的性能反例 |
+| [experiments/092-data/](experiments/092-data/) | Value pair完整logit与T2048三对性能 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="500" viewBox="0 0 1040 500" role="img" aria-labelledby="title desc">
+  <title id="title">BF16 paired Value load is bit exact but slower</title>
+  <desc id="desc">Pairing neighboring Value columns preserves all official logits but reduces active lanes and regresses alternating performance for batch one and eight.</desc>
+  <rect width="1040" height="500" fill="#0b1020"/>
+  <text x="40" y="44" fill="#f8fafc" font-family="sans-serif" font-size="24" font-weight="700">Experiment 092 · two exact accumulators, fewer active lanes</text>
+  <text x="40" y="72" fill="#94a3b8" font-family="sans-serif" font-size="14">BF16 paired Value read · DeepSeek T2048</text>
+
+  <rect x="40" y="110" width="440" height="286" rx="12" fill="#111827" stroke="#334155"/>
+  <text x="66" y="148" fill="#e2e8f0" font-family="sans-serif" font-size="18" font-weight="700">Correctness</text>
+  <circle cx="160" cy="238" r="54" fill="#14532d" stroke="#22c55e" stroke-width="5"/>
+  <text x="160" y="232" text-anchor="middle" fill="#dcfce7" font-family="sans-serif" font-size="18" font-weight="700">B1 exact</text>
+  <text x="160" y="255" text-anchor="middle" fill="#bbf7d0" font-family="sans-serif" font-size="12">151,936 logits</text>
+  <circle cx="360" cy="238" r="54" fill="#14532d" stroke="#22c55e" stroke-width="5"/>
+  <text x="360" y="232" text-anchor="middle" fill="#dcfce7" font-family="sans-serif" font-size="18" font-weight="700">B8 exact</text>
+  <text x="360" y="255" text-anchor="middle" fill="#bbf7d0" font-family="sans-serif" font-size="12">1,215,488 logits</text>
+  <text x="66" y="350" fill="#93c5fd" font-family="sans-serif" font-size="14">Each column keeps position order · max/RMSE 0</text>
+
+  <rect x="520" y="110" width="480" height="286" rx="12" fill="#111827" stroke="#334155"/>
+  <text x="546" y="148" fill="#e2e8f0" font-family="sans-serif" font-size="18" font-weight="700">Alternating Release performance</text>
+  <line x1="728" y1="180" x2="728" y2="326" stroke="#e2e8f0" stroke-dasharray="5 4"/>
+  <text x="716" y="346" fill="#e2e8f0" font-family="sans-serif" font-size="12">1×</text>
+  <text x="546" y="218" fill="#cbd5e1" font-family="sans-serif" font-size="15">T2048 B1</text>
+  <rect x="546" y="232" width="177" height="24" rx="3" fill="#f59e0b"/><text x="742" y="250" fill="#fef3c7" font-family="sans-serif" font-size="14">0.988×</text>
+  <text x="546" y="288" fill="#cbd5e1" font-family="sans-serif" font-size="15">T2048 B8</text>
+  <rect x="546" y="302" width="178" height="24" rx="3" fill="#f59e0b"/><text x="742" y="320" fill="#fef3c7" font-family="sans-serif" font-size="14">0.989×</text>
+  <text x="546" y="370" fill="#fbbf24" font-family="sans-serif" font-size="14" font-weight="700">Bit exact · consistently slower · DISCARD</text>
+
+  <text x="40" y="450" fill="#94a3b8" font-family="sans-serif" font-size="14">Local scalar cached-Attention search closed; next attempt needs a wave/MFMA or online algorithm.</text>
+</svg>

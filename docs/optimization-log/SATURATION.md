@@ -13,6 +13,7 @@ permute the same knobs would repeat rejected experiments rather than produce res
 | allocator retirement batch | historical 8/16/24/32 search superseded by immediate default-Stream exact-size reuse in Experiment 087 |
 | cached Attention block size | 64/128-thread specialization loses to 256 |
 | cached Attention query staging | shared-memory query lowers DeepSeek and score |
+| BF16 cached Attention local reads | Key pairs fail official logits; probability normalization and Value pairs are bit-exact but slower |
 | local bias fusion | hipBLASLt epilogue and V-bias/store both lose end-to-end |
 | Q/K/V grouping | FP32 M=1 GroupedGemm exposes no heuristic |
 | hipBLASLt host caching | descriptor and algorithm caches lose repeated matrices |
