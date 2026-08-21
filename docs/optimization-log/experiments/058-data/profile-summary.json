@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "before": {
+    "kernel_dispatches": 7631,
+    "kernel_time_ns": 988357465,
+    "hip_api_calls": 274847,
+    "hip_api_time_ns": 6368994668,
+    "forward_calls": 72,
+    "forward_time_ns": 169886480,
+    "backward_calls": 72,
+    "backward_time_ns": 108888992
+  },
+  "after": {
+    "kernel_dispatches": 7631,
+    "kernel_time_ns": 772840361,
+    "hip_api_calls": 259388,
+    "hip_api_time_ns": 6283617315,
+    "forward_row_calls": 72,
+    "forward_row_time_ns": 39944037,
+    "backward_row_calls": 72,
+    "backward_row_time_ns": 22678405
+  },
+  "forward_speedup": 4.253112423,
+  "backward_speedup": 4.801439607,
+  "combined_softmax_speedup": 4.451686378,
+  "kernel_time_speedup": 1.278863676,
+  "dispatch_ratio": 1.0,
+  "hip_api_call_ratio": 0.943754161,
+  "count_contract": "24 Qwen layers x three traced steps; each forward and backward keeps exactly one softmax launch"
+}

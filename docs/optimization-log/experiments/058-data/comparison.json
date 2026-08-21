@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "experiment": 58,
+  "decision": "keep",
+  "candidate": "use one cooperative HIP block per long causal-softmax row in forward and backward",
+  "rows": [
+    {
+      "model": "qwen2.5-0.5b",
+      "before_tokens_per_second": 1634.486693652,
+      "after_tokens_per_second": 2127.381964559,
+      "self_speedup": 1.301559672,
+      "before_peak_bytes": 13025380360,
+      "after_peak_bytes": 13025380360,
+      "peak_ratio": 1.0,
+      "pytorch_tokens_per_second_after": 8230.828773342,
+      "pytorch_ratio_after": 0.258465098
+    },
+    {
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "before_tokens_per_second": 957.648657718,
+      "after_tokens_per_second": 1145.364035380,
+      "self_speedup": 1.196016959,
+      "before_peak_bytes": 37410926600,
+      "after_peak_bytes": 37410926600,
+      "peak_ratio": 1.0,
+      "pytorch_tokens_per_second_after": 4757.741781006,
+      "pytorch_ratio_after": 0.240736906
+    }
+  ],
+  "fallback128": {
+    "before_tokens_per_second": 802.048685489,
+    "after_tokens_per_second": 803.929648317,
+    "speedup": 1.002345198,
+    "before_peak_bytes": 10450205704,
+    "after_peak_bytes": 10450205704,
+    "peak_ratio": 1.0
+  },
+  "policy": "cooperative row kernels are selected for T>=256; short rows retain the one-thread-per-row implementation",
+  "reason": "both official models improve at least 19 percent with unchanged peak, forward/backward softmax device time improves 4.45x together, and T128 does not regress"
+}

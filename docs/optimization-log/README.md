@@ -292,6 +292,13 @@ softmax backward stage 替代，全 Kernel 时间 `1185.53→988.36ms`。
 
 ![Fully batched Attention backward](assets/full-batched-attention-backward.svg)
 
+Experiment 058 将 T≥256 causal softmax 的前向和反向从“一线程扫一行”改成“一 block
+合作一行”。Qwen/DeepSeek T512 再提高 `1.302×/1.196×`，peak 不变；T128
+`1.002×`。forward/backward softmax 分别 `4.253×/4.801×`，全 Kernel 时间
+`988.36→772.84ms`，dispatch 数精确不变。
+
+![Cooperative causal softmax](assets/block-row-causal-softmax.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -365,6 +372,8 @@ softmax backward stage 替代，全 Kernel 时间 `1185.53→988.36ms`。
 | [experiments/056-data/](experiments/056-data/) | 正式12条 raw、T128 fallback 与 retained profiler 聚合 |
 | [assets/full-batched-attention-backward.svg](assets/full-batched-attention-backward.svg) | T512 两模型吞吐与完整 batched backward 设备时间 |
 | [experiments/057-data/](experiments/057-data/) | 正式12条 raw、T128 fallback 与 retained profiler 聚合 |
+| [assets/block-row-causal-softmax.svg](assets/block-row-causal-softmax.svg) | T512 两模型吞吐与 softmax 前后向设备时间 |
+| [experiments/058-data/](experiments/058-data/) | 正式12条 raw、T128 fallback 与 retained profiler 聚合 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

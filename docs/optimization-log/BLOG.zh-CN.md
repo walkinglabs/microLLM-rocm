@@ -1438,3 +1438,22 @@ softmax backward、dP/dQ GEMM、K/V repeat 和 dS scale 共约 `122.21ms`，即 
 
 候选保留。Attention 的新最大柱子变成 forward causal softmax 169.89ms，backward
 softmax 为108.89ms；下一节点应让一个 block 合作处理一行，而不是一个线程顺序扫描512项。
+
+## 75. Experiment 058：一行工作不能只让一个线程干
+
+旧 causal softmax 用一个线程负责一行。T=512 时，它独自求 max、exp、sum、归一化；
+backward 也独自求 dot 和每列梯度。新路径只在 T≥256 使用一个 256-thread block 分摊列，
+再用 shared-memory reduction 合并 max/sum/dot。短序列仍走旧 Kernel。
+
+![Cooperative causal softmax](assets/block-row-causal-softmax.svg)
+
+Qwen 三进程中位数 `1634.49→2127.38 tok/s`（`1.302×`），DeepSeek
+`957.65→1145.36 tok/s`（`1.196×`）；measured peak 都不变。T128 是 `1.002×`。
+
+设备时间给出了更强解释：forward `169.89→39.94ms`（`4.253×`），backward
+`108.89→22.68ms`（`4.801×`），合计 `4.452×`；全 Kernel `988.36→772.84ms`
+（`1.279×`）。dispatch 精确保持7631，排除了“少发 Kernel”的解释。
+
+这一节点优化的是训练完整 step 中的 Attention 前/反向，不是 cached decode。它可能帮助
+使用 composed causal softmax 的 prefill，但没有推理 benchmark 就不写成推理收益。新最大
+柱子已经转移到 RMSNorm weight gradient、AdamW 和 bias gradient。

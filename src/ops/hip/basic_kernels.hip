@@ -1330,6 +1330,36 @@ __global__ void causal_softmax_kernel(const float* scores, float* output,
     }
 }
 
+__global__ void causal_softmax_rows_kernel(const float* scores, float* output,
+                                           std::int64_t rows,
+                                           std::int64_t sequence) {
+    const auto row = static_cast<std::int64_t>(blockIdx.x);
+    if (row >= rows) return;
+    const auto visible = row % sequence;
+    const auto base = row * sequence;
+    __shared__ float reduction[kBlockSize];
+    float local_maximum = -INFINITY;
+    for (std::int64_t column = threadIdx.x; column <= visible;
+         column += blockDim.x) {
+        local_maximum = fmaxf(local_maximum, scores[base + column]);
+    }
+    const auto maximum = block_reduce_max(local_maximum, reduction);
+    float local_denominator = 0.0F;
+    for (std::int64_t column = threadIdx.x; column <= visible;
+         column += blockDim.x) {
+        const auto probability = expf(scores[base + column] - maximum);
+        output[base + column] = probability;
+        local_denominator += probability;
+    }
+    const auto denominator = block_reduce_sum(local_denominator, reduction);
+    for (std::int64_t column = threadIdx.x; column < sequence;
+         column += blockDim.x) {
+        output[base + column] = column <= visible
+                                    ? output[base + column] / denominator
+                                    : 0.0F;
+    }
+}
+
 __global__ void causal_softmax_backward_kernel(const float* output,
                                                const float* gradient,
                                                float* input_gradient,
@@ -1349,6 +1379,28 @@ __global__ void causal_softmax_backward_kernel(const float* output,
     }
     for (std::int64_t column = visible + 1; column < sequence; ++column) {
         input_gradient[base + column] = 0.0F;
+    }
+}
+
+__global__ void causal_softmax_backward_rows_kernel(
+    const float* output, const float* gradient, float* input_gradient,
+    std::int64_t rows, std::int64_t sequence) {
+    const auto row = static_cast<std::int64_t>(blockIdx.x);
+    if (row >= rows) return;
+    const auto visible = row % sequence;
+    const auto base = row * sequence;
+    __shared__ float reduction[kBlockSize];
+    float local_dot = 0.0F;
+    for (std::int64_t column = threadIdx.x; column <= visible;
+         column += blockDim.x) {
+        local_dot += gradient[base + column] * output[base + column];
+    }
+    const auto dot = block_reduce_sum(local_dot, reduction);
+    for (std::int64_t column = threadIdx.x; column < sequence;
+         column += blockDim.x) {
+        input_gradient[base + column] = column <= visible
+            ? output[base + column] * (gradient[base + column] - dot)
+            : 0.0F;
     }
 }
 
@@ -2142,6 +2194,13 @@ void launch_cross_entropy_backward(const float* logits, const std::int32_t* targ
 void launch_causal_softmax(const float* scores, float* output, std::int64_t rows,
                            std::int64_t sequence, void* stream) {
     if (rows == 0) return;
+    if (sequence >= 256) {
+        hipLaunchKernelGGL(causal_softmax_rows_kernel,
+                           dim3(static_cast<unsigned>(rows)), dim3(kBlockSize), 0,
+                           as_stream(stream), scores, output, rows, sequence);
+        check_launch("causal_softmax_rows_kernel");
+        return;
+    }
     hipLaunchKernelGGL(causal_softmax_kernel, dim3(grid_size(rows)), dim3(kBlockSize), 0,
                        as_stream(stream), scores, output, rows, sequence);
     check_launch("causal_softmax_kernel");
@@ -2151,6 +2210,14 @@ void launch_causal_softmax_backward(const float* output, const float* gradient,
                                     float* input_gradient, std::int64_t rows,
                                     std::int64_t sequence, void* stream) {
     if (rows == 0) return;
+    if (sequence >= 256) {
+        hipLaunchKernelGGL(causal_softmax_backward_rows_kernel,
+                           dim3(static_cast<unsigned>(rows)), dim3(kBlockSize), 0,
+                           as_stream(stream), output, gradient, input_gradient,
+                           rows, sequence);
+        check_launch("causal_softmax_backward_rows_kernel");
+        return;
+    }
     hipLaunchKernelGGL(causal_softmax_backward_kernel, dim3(grid_size(rows)),
                        dim3(kBlockSize), 0, as_stream(stream), output, gradient,
                        input_gradient, rows, sequence);
