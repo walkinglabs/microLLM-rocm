@@ -285,6 +285,13 @@ Qwen/DeepSeek T512 再提高 `1.091×/1.165×`，measured peak 不变；T128 fal
 
 ![Batched Attention forward](assets/batched-attention-forward.svg)
 
+Experiment 057 再把 saved backward 的 `dP/dQ` 接入 batched GEMM；`dK/dV` 已由前一
+节点使用同一路径。Qwen/DeepSeek T512 提高 `1.201×/1.309×`，peak 仍不变；T128
+单次 `0.987×`，在 5% 门内。旧 306.63ms saved-row Kernel 被 122.21ms 的 GEMM +
+softmax backward stage 替代，全 Kernel 时间 `1185.53→988.36ms`。
+
+![Fully batched Attention backward](assets/full-batched-attention-backward.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -356,6 +363,8 @@ Qwen/DeepSeek T512 再提高 `1.091×/1.165×`，measured peak 不变；T128 fal
 | [experiments/055-data/](experiments/055-data/) | 正式12条 raw、fallback 与 retained profile |
 | [assets/batched-attention-forward.svg](assets/batched-attention-forward.svg) | T512 两模型吞吐与 forward/全进程 Kernel 变化 |
 | [experiments/056-data/](experiments/056-data/) | 正式12条 raw、T128 fallback 与 retained profiler 聚合 |
+| [assets/full-batched-attention-backward.svg](assets/full-batched-attention-backward.svg) | T512 两模型吞吐与完整 batched backward 设备时间 |
+| [experiments/057-data/](experiments/057-data/) | 正式12条 raw、T128 fallback 与 retained profiler 聚合 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

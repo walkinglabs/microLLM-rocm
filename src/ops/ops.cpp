@@ -2097,6 +2097,39 @@ TensorTriple causal_gqa_attention_backward_saved(
         return causal_gqa_attention_backward(
             query, key, value, output_gradient, repeats, scale, context);
     }
+    if (sequence >= 256) {
+        const auto expanded_key = repeats == 1
+                                      ? key : repeat_interleave(key, 1, repeats, context);
+        const auto expanded_value = repeats == 1
+                                        ? value : repeat_interleave(value, 1, repeats, context);
+        const auto probability_gradient = matmul_with_implementation(
+            output_gradient, expanded_value, MatmulImplementation::HipBLASLt,
+            false, true, context);
+        auto scaled_score_gradients = ops::scale(
+            causal_softmax_backward(probabilities, probability_gradient, context),
+            scale, context);
+        auto query_gradient = matmul_with_implementation(
+            scaled_score_gradients, expanded_key,
+            MatmulImplementation::HipBLASLt, context);
+        auto expanded_key_gradient = matmul_with_implementation(
+            scaled_score_gradients, query, MatmulImplementation::HipBLASLt,
+            true, false, context);
+        auto expanded_value_gradient = matmul_with_implementation(
+            probabilities, output_gradient, MatmulImplementation::HipBLASLt,
+            true, false, context);
+        auto key_gradient = repeats == 1
+                                ? std::move(expanded_key_gradient)
+                                : repeat_interleave_backward(
+                                      expanded_key_gradient, key.shape(), 1,
+                                      repeats, context);
+        auto value_gradient = repeats == 1
+                                  ? std::move(expanded_value_gradient)
+                                  : repeat_interleave_backward(
+                                        expanded_value_gradient, value.shape(), 1,
+                                        repeats, context);
+        return {std::move(query_gradient), std::move(key_gradient),
+                std::move(value_gradient)};
+    }
     Tensor query_gradient(query.shape(), DType::Float32, query.device());
     Tensor scaled_score_gradients(probabilities.shape(), DType::Float32, query.device());
     fill_(scaled_score_gradients, 0.0F, context);

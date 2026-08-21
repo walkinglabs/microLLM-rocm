@@ -45,6 +45,8 @@ needed to run a real training and generation loop:
 - optional autograd probability saving for T≥256, reported as a long-sequence speed/memory trade-off.
 - T≥256 saved Attention forward using batched hipBLASLt for QK/PV; Qwen/DeepSeek context-512
   training improves another 1.091×/1.165× with unchanged measured peak.
+- T≥256 saved Attention backward using batched hipBLASLt for dP/dQ/dK/dV; the same
+  context-512 matrix improves another 1.201×/1.309× with unchanged measured peak.
 
 The design keeps three implementations where they provide engineering value:
 

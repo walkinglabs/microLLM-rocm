@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "experiment": 57,
+  "decision": "keep",
+  "candidate": "replace saved-row dP and dQ scalar loops with four strided-batched hipBLASLt backward GEMMs",
+  "rows": [
+    {
+      "model": "qwen2.5-0.5b",
+      "before_tokens_per_second": 1361.168790232,
+      "after_tokens_per_second": 1634.486693652,
+      "self_speedup": 1.200796481,
+      "before_peak_bytes": 13025380360,
+      "after_peak_bytes": 13025380360,
+      "peak_ratio": 1.0,
+      "pytorch_tokens_per_second_after": 8611.077107253,
+      "pytorch_ratio_after": 0.189812108
+    },
+    {
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "before_tokens_per_second": 731.340228663,
+      "after_tokens_per_second": 957.648657718,
+      "self_speedup": 1.309443430,
+      "before_peak_bytes": 37410926600,
+      "after_peak_bytes": 37410926600,
+      "peak_ratio": 1.0,
+      "pytorch_tokens_per_second_after": 4830.640396699,
+      "pytorch_ratio_after": 0.198244659
+    }
+  ],
+  "fallback128": {
+    "before_tokens_per_second": 812.364108105,
+    "after_tokens_per_second": 802.048685489,
+    "speedup": 0.987301971,
+    "before_peak_bytes": 10450205704,
+    "after_peak_bytes": 10450205704,
+    "peak_ratio": 1.0
+  },
+  "policy": "full batched saved backward is restricted to HIP T>=256 with hipBLASLt; short sequences and library-free builds retain the existing backward",
+  "reason": "both official models improve at least 20 percent with byte-identical measured peak, the replaced device stage is 2.509x faster, and the unchanged T128 path remains inside the 5 percent no-regression gate"
+}

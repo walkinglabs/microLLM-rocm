@@ -1418,3 +1418,23 @@ rocprof 给出了能反驳“只是 host 计时波动”的设备证据：旧 fo
 
 候选保留。新的 top-5 依次是 saved-row backward、causal softmax、RMSNorm weight
 gradient、AdamW 和 bias gradient。下一实验从新 trace 选择一个变量，而不是继续凭模块名猜。
+
+## 74. Experiment 057：把 backward 剩下的三重循环也交给 GEMM
+
+saved-row backward 虽然不再重算概率，但仍用普通循环算 `dP=dO·Vᵀ` 和 `dQ=dS·K`；
+72 次占 `306.63ms`。新实现把 dP、dQ、dK、dV 四个矩阵导数全部交给
+strided-batched hipBLASLt，手写部分只剩因果 softmax backward 和 GQA head reduction。
+
+![Fully batched Attention backward](assets/full-batched-attention-backward.svg)
+
+Qwen 三进程中位数 `1361.17→1634.49 tok/s`（`1.201×`），DeepSeek
+`731.34→957.65 tok/s`（`1.309×`）；两者 measured peak 仍逐字节相同。T128 没进入
+候选路径，单进程为 `0.987×`，没有越过 5% 回退线。
+
+设备证据比 host 的 optimizer 区间更直接：306.63ms row Kernel 完全消失；新增 causal
+softmax backward、dP/dQ GEMM、K/V repeat 和 dS scale 共约 `122.21ms`，即 `2.509×`。
+全进程 Kernel `1185.53→988.36ms`。dispatch 和 API 调用仍增加约 4%/3%，所以不是
+少 launch，而是把矩阵工作放到了矩阵实现上。
+
+候选保留。Attention 的新最大柱子变成 forward causal softmax 169.89ms，backward
+softmax 为108.89ms；下一节点应让一个 block 合作处理一行，而不是一个线程顺序扫描512项。

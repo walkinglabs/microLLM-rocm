@@ -1052,6 +1052,61 @@ def validate_batched_attention_forward(errors: list[str]) -> tuple[int, int]:
     return len(formal), after.get("kernel_dispatches", 0)
 
 
+def validate_full_batched_attention_backward(errors: list[str]) -> tuple[int, int]:
+    data = ROOT / "experiments" / "057-data"
+    pilot = [json.loads(line) for line in
+             (data / "pilot.jsonl").read_text(encoding="utf-8").splitlines()]
+    formal = [json.loads(line) for line in
+              (data / "formal" / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    fallback = [json.loads(line) for line in
+                (data / "fallback128.jsonl").read_text(encoding="utf-8").splitlines()]
+    keys = {(row.get("model"), row.get("framework"), row.get("process_run"))
+            for row in formal}
+    if len(pilot) != 1 or len(formal) != 12 or len(keys) != 12 or \
+            len(fallback) != 1 or any(row.get("status") != "pass" for row in
+                                      pilot + formal + fallback) or \
+            any(row.get("context") != 512 for row in formal) or \
+            fallback[0].get("context") != 128:
+        errors.append("full batched Attention backward raw protocol changed")
+    comparison = json.loads((data / "comparison.json").read_text(encoding="utf-8"))
+    rows = comparison.get("rows", [])
+    fallback_summary = comparison.get("fallback128", {})
+    if comparison.get("decision") != "keep" or len(rows) != 2 or \
+            rows[0].get("self_speedup", 0.0) < 1.20 or \
+            rows[1].get("self_speedup", 0.0) < 1.30 or \
+            any(row.get("peak_ratio") != 1.0 for row in rows) or \
+            fallback_summary.get("speedup", 0.0) < 0.95 or \
+            fallback_summary.get("peak_ratio") != 1.0 or \
+            "T>=256" not in comparison.get("policy", ""):
+        errors.append("full batched Attention backward keep/fallback gate changed")
+    profile = json.loads((data / "profile-summary.json").read_text(encoding="utf-8"))
+    with (data / "profile" / "kernel-stats.csv").open(
+            encoding="utf-8", newline="") as stream:
+        kernels = list(csv.DictReader(stream))
+    with (data / "profile" / "hip-api-stats.csv").open(
+            encoding="utf-8", newline="") as stream:
+        api = list(csv.DictReader(stream))
+    before = profile.get("before", {})
+    after = profile.get("after", {})
+    replacement = sum(after.get(name, 0) for name in (
+        "causal_softmax_backward_time_ns", "additional_repeat_time_ns",
+        "additional_score_scale_time_ns", "additional_batched_gemm_time_ns"))
+    if sum(int(row["Calls"]) for row in kernels) != after.get("kernel_dispatches") or \
+            sum(int(row["TotalDurationNs"]) for row in kernels) != \
+            after.get("kernel_time_ns") or \
+            sum(int(row["Calls"]) for row in api) != after.get("hip_api_calls") or \
+            sum(int(row["TotalDurationNs"]) for row in api) != \
+            after.get("hip_api_time_ns") or \
+            before.get("saved_row_calls") != 72 or after.get("saved_row_calls") != 0 or \
+            after.get("causal_softmax_backward_calls") != 72 or \
+            after.get("additional_batched_gemm_calls") != 144 or \
+            after.get("replacement_stage_time_ns") != replacement or \
+            profile.get("saved_backward_stage_speedup", 0.0) < 2.5 or \
+            profile.get("kernel_time_speedup", 0.0) < 1.19:
+        errors.append("full batched Attention backward retained profile changed")
+    return len(formal), after.get("kernel_dispatches", 0)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -1087,7 +1142,8 @@ def validate_assets(errors: list[str]) -> None:
                  "strided-batched-hipblaslt.svg",
                  "batched-attention-backward.svg",
                  "saved-attention-probabilities.svg",
-                 "batched-attention-forward.svg"):
+                 "batched-attention-forward.svg",
+                 "full-batched-attention-backward.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -1144,6 +1200,8 @@ def main() -> int:
     saved_attention_records, saved_attention_calls = validate_saved_attention(errors)
     batched_forward_records, batched_forward_calls = \
         validate_batched_attention_forward(errors)
+    full_batched_backward_records, full_batched_backward_calls = \
+        validate_full_batched_attention_backward(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -1173,6 +1231,8 @@ def main() -> int:
           f"batched_backward={batched_backward_records}/{batched_backward_calls} "
           f"saved_attention={saved_attention_records}/{saved_attention_calls} "
           f"batched_forward={batched_forward_records}/{batched_forward_calls} "
+          f"full_batched_backward={full_batched_backward_records}/"
+          f"{full_batched_backward_calls} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")
