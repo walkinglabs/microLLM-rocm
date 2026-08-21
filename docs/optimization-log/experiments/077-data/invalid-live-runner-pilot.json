@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "status": "invalid",
+  "reason": "the live runner changed while a multi-process baseline was still executing, so later PyTorch rows used last logits while earlier rows used full logits",
+  "excluded_directory": "/tmp/microllm-exp077/baseline",
+  "replacement": "full-logits and last-logit formal directories each rerun all rows with an explicit frozen mode"
+}

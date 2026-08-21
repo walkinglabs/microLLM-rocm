@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="950" viewBox="0 0 1500 950">
+  <rect width="1500" height="950" fill="#f8fafc"/>
+  <text x="750" y="52" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="30" font-weight="700" fill="#111827">Experiment 077 · serving last-logit prefill</text>
+  <text x="750" y="82" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="15" fill="#64748b">T2048 B8 · three-process medians + before/after rocprof · MI300X</text>
+
+  <rect x="38" y="108" width="700" height="330" rx="14" fill="#fff" stroke="#dbe4ee"/>
+  <text x="62" y="145" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#111827">microLLM input throughput</text>
+  <g font-family="Inter,Arial,sans-serif" font-size="14" fill="#334155">
+    <text x="62" y="207">Qwen full</text><rect x="210" y="190" width="110" height="22" rx="4" fill="#94a3b8"/><text x="330" y="207">43.7k tok/s</text>
+    <text x="62" y="251">Qwen last</text><rect x="210" y="234" width="327" height="22" rx="4" fill="#2563eb"/><text x="547" y="251">129.8k · 2.97×</text>
+    <text x="62" y="321">DeepSeek full</text><rect x="210" y="304" width="127" height="22" rx="4" fill="#94a3b8"/><text x="347" y="321">50.4k tok/s</text>
+    <text x="62" y="365">DeepSeek last</text><rect x="210" y="348" width="167" height="22" rx="4" fill="#0f766e"/><text x="387" y="365">66.4k · 1.32×</text>
+  </g>
+  <text x="62" y="411" font-family="Inter,Arial,sans-serif" font-size="13" fill="#64748b">Last still reaches 0.384× / 0.524× PyTorch: Attention remains unfinished.</text>
+
+  <rect x="762" y="108" width="700" height="330" rx="14" fill="#fff" stroke="#dbe4ee"/>
+  <text x="786" y="145" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#111827">Engine peak memory</text>
+  <g font-family="Inter,Arial,sans-serif" font-size="14" fill="#334155">
+    <text x="786" y="207">Qwen full</text><rect x="934" y="190" width="356" height="22" rx="4" fill="#fca5a5"/><text x="1300" y="207">19.78 GiB</text>
+    <text x="786" y="251">Qwen last</text><rect x="934" y="234" width="93" height="22" rx="4" fill="#2563eb"/><text x="1037" y="251">5.15 GiB · -74%</text>
+    <text x="786" y="321">DeepSeek full</text><rect x="934" y="304" width="411" height="22" rx="4" fill="#fca5a5"/><text x="1355" y="321">22.82 GiB</text>
+    <text x="786" y="365">DeepSeek last</text><rect x="934" y="348" width="144" height="22" rx="4" fill="#0f766e"/><text x="1088" y="365">8.00 GiB · -65%</text>
+  </g>
+  <text x="786" y="411" font-family="Inter,Arial,sans-serif" font-size="13" fill="#64748b">Measured D2H: 9.96 GB → 4.86 MB, exactly 2048× smaller.</text>
+
+  <rect x="38" y="462" width="700" height="386" rx="14" fill="#fff" stroke="#dbe4ee"/>
+  <text x="62" y="500" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#111827">Last-logit B8 · microLLM / PyTorch</text>
+  <line x1="402" y1="520" x2="402" y2="810" stroke="#ef4444" stroke-width="2" stroke-dasharray="6 5"/>
+  <text x="408" y="536" font-family="Inter,Arial,sans-serif" font-size="12" fill="#ef4444">parity 1.0×</text>
+  <g font-family="Inter,Arial,sans-serif" font-size="14" fill="#334155">
+    <text x="62" y="574">Qwen T32</text><rect x="262" y="557" width="356" height="20" rx="4" fill="#2563eb"/><text x="626" y="574">2.544×</text>
+    <text x="62" y="618">Qwen T512</text><rect x="262" y="601" width="109" height="20" rx="4" fill="#2563eb"/><text x="379" y="618">0.779×</text>
+    <text x="62" y="662">Qwen T2048</text><rect x="262" y="645" width="54" height="20" rx="4" fill="#2563eb"/><text x="324" y="662">0.387×</text>
+    <text x="62" y="720">DeepSeek T32</text><rect x="262" y="703" width="213" height="20" rx="4" fill="#0f766e"/><text x="483" y="720">1.522×</text>
+    <text x="62" y="764">DeepSeek T512</text><rect x="262" y="747" width="106" height="20" rx="4" fill="#0f766e"/><text x="376" y="764">0.754×</text>
+    <text x="62" y="808">DeepSeek T2048</text><rect x="262" y="791" width="74" height="20" rx="4" fill="#0f766e"/><text x="344" y="808">0.525×</text>
+  </g>
+
+  <rect x="762" y="462" width="700" height="386" rx="14" fill="#fff" stroke="#dbe4ee"/>
+  <text x="786" y="500" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#111827">What rocprof proved</text>
+  <g font-family="Inter,Arial,sans-serif" font-size="16" fill="#334155">
+    <circle cx="799" cy="558" r="6" fill="#16a34a"/><text x="820" y="564">Output-head GEMM: 148.68→0.92 ms (Qwen)</text>
+    <circle cx="799" cy="608" r="6" fill="#16a34a"/><text x="820" y="614">Output-head GEMM: 286.21→1.02 ms (DeepSeek)</text>
+    <circle cx="799" cy="658" r="6" fill="#2563eb"/><text x="820" y="664">Kernel total falls 23.0% / 23.9%</text>
+    <circle cx="799" cy="708" r="6" fill="#f59e0b"/><text x="820" y="714">Causal softmax stays ≈131–132 ms</text>
+    <circle cx="799" cy="758" r="6" fill="#f59e0b"/><text x="820" y="764">It becomes 26.1% / 13.4% of device time</text>
+    <circle cx="799" cy="808" r="6" fill="#16a34a"/><text x="820" y="814">24/24 survey top tokens match PyTorch</text>
+  </g>
+  <text x="750" y="920" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" fill="#64748b">Raw evidence: docs/optimization-log/experiments/077-data · full and last modes are explicit, never silently mixed</text>
+</svg>

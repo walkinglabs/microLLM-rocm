@@ -72,6 +72,8 @@ def options() -> argparse.Namespace:
     parser.add_argument("--micro-kv-cache-dtype", choices=("fp32", "bf16"),
                         default="fp32")
     parser.add_argument("--micro-kv-cache-fp32-layers", default="")
+    parser.add_argument("--prefill-logits-mode", choices=("last", "full"),
+                        default="last")
     parser.add_argument("--decode-tokens", type=int, default=16)
     parser.add_argument("--warmup", type=int, default=2)
     parser.add_argument("--steps", type=int, default=5)
@@ -161,7 +163,8 @@ def run_one_json(command: list[str], timeout: int) -> dict:
 
 def validate_measurement(record: dict, model: dict, framework: str, context: int,
                          batch: int, workload: str, cache: str,
-                         warmup: int, steps: int, decode_tokens: int) -> None:
+                         warmup: int, steps: int, decode_tokens: int,
+                         prefill_logits_mode: str = "last") -> None:
     required_equal = {
         "status": "pass", "model": model["name"], "parameter_count": model["parameter_count"],
         "context": context, "batch": batch, "workload": workload,
@@ -173,6 +176,9 @@ def validate_measurement(record: dict, model: dict, framework: str, context: int
                           if framework == "microllm" else "full_bf16_model")
     if record.get("precision") != expected_precision:
         raise RuntimeError(f"{model['name']} {framework} did not report its precision policy")
+    if workload == "prefill" and \
+            record.get("prefill_logits_mode") != prefill_logits_mode:
+        raise RuntimeError(f"{model['name']} {framework} changed prefill logits semantics")
     if int(record.get("peak_bytes", 0)) <= 0 or \
             int(record.get("device_total_bytes", 0)) <= 0 or \
             int(record.get("resident_weight_bytes", 0)) <= 0 or \
@@ -207,6 +213,7 @@ def micro_command(args: argparse.Namespace, model: dict, context: int, batch: in
         "--top-k", "1", "--batch", str(batch), "--use-cache", str(cache == "cached").lower(),
         "--cache-prefill-mode", "full",
         "--batch-argmax-mode", args.micro_batch_argmax_mode,
+        "--prefill-logits", getattr(args, "prefill_logits_mode", "last"),
         "--kv-cache-dtype", args.micro_kv_cache_dtype,
         "--new-tokens", str(args.decode_tokens if workload == "decode" else 0),
         "--warmup", str(args.warmup), "--steps", str(args.steps),
@@ -249,6 +256,8 @@ def normalize_micro(raw: dict, model: dict, context: int, batch: int,
         "kv_cache_fp32_layers": int(raw.get("kv_cache_fp32_layers", 0)),
         "kv_cache_bf16_layers": int(raw.get("kv_cache_bf16_layers", 0)),
         "precision_policy": raw.get("inference_weight_policy"),
+        "prefill_logits_mode": raw.get(
+            "prefill_logits_mode", getattr(args, "prefill_logits_mode", "last")),
         "warmup": args.warmup,
         "steps": args.steps, "decode_tokens": args.decode_tokens,
         "throughput_tokens_per_second": throughput,
@@ -311,7 +320,10 @@ def pytorch_worker(args: argparse.Namespace, model: dict) -> dict:
         raise RuntimeError("PyTorch parameter count changed")
 
     def prefill_once():
-        return loaded(input_ids=input_ids, use_cache=False).logits
+        arguments = {"input_ids": input_ids, "use_cache": False}
+        if args.prefill_logits_mode == "last":
+            arguments["logits_to_keep"] = 1
+        return loaded(**arguments).logits
 
     def decode_once(use_cache: bool) -> tuple[list[int], object | None]:
         suffix = []
@@ -434,6 +446,7 @@ def pytorch_worker(args: argparse.Namespace, model: dict) -> dict:
         "resident_weight_bytes": sum(
             parameter.numel() * parameter.element_size() for parameter in loaded.parameters()),
         "context": context, "batch": batch, "workload": workload, "cache_mode": cache,
+        "prefill_logits_mode": args.prefill_logits_mode,
         "warmup": args.warmup, "steps": args.steps, "decode_tokens": args.decode_tokens,
         "latency_ms": elapsed_ms / args.steps,
         "mean_cache_prepare_ms": cache_prepare_ms / args.steps,
@@ -460,7 +473,8 @@ def summarize(records: list[dict], models: list[dict], contexts: list[int],
               batches: list[int], runs: int,
               cases: list[str] | tuple[str, ...] = ("prefill", "cached", "uncached"),
               micro_kv_cache_dtype: str = "fp32",
-              micro_kv_cache_fp32_layers: str = "") -> dict:
+              micro_kv_cache_fp32_layers: str = "",
+              prefill_logits_mode: str = "last") -> dict:
     rows = []
     case_pairs = {
         "prefill": ("prefill", "uncached"),
@@ -588,6 +602,7 @@ def summarize(records: list[dict], models: list[dict], contexts: list[int],
                     other[f"{framework}_throughput_tokens_per_second"]
     return {
         "schema_version": 1, "track": "official_inference_shape_matrix",
+        "prefill_logits_mode": prefill_logits_mode,
         "axes": {"contexts": contexts, "batches": batches,
                  "cases": list(cases)},
         "precision_boundary": {
@@ -675,13 +690,15 @@ def main() -> int:
                                         "--worker-batch", str(batch),
                                         "--worker-workload", workload,
                                         "--worker-cache", cache,
+                                        "--prefill-logits-mode", args.prefill_logits_mode,
                                     ]
                                     if args.allow_amdsmi_fallback:
                                         command.append("--allow-amdsmi-fallback")
                                     record = run_one_json(command, args.timeout_seconds)
                                 validate_measurement(record, model, framework, context, batch,
                                                      workload, cache, args.warmup, args.steps,
-                                                     args.decode_tokens)
+                                                     args.decode_tokens,
+                                                     args.prefill_logits_mode)
                                 record.update({"process_run": process_run,
                                                "pair_order": list(order)})
                             except Exception as error:
@@ -690,7 +707,8 @@ def main() -> int:
                             save(record)
     summary = summarize(records, models, args.contexts, args.batches, args.runs,
                         args.cases, args.micro_kv_cache_dtype,
-                        args.micro_kv_cache_fp32_layers)
+                        args.micro_kv_cache_fp32_layers,
+                        args.prefill_logits_mode)
     (args.output_directory / "summary.json").write_text(
         json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return 0

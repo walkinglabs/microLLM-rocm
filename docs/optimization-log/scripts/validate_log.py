@@ -2037,6 +2037,65 @@ def validate_expanded_inference_service_matrix(errors: list[str]) -> tuple[int, 
     return expected["prefill"], expected["cached-fp32"], expected["cached-bf16"]
 
 
+def validate_serving_last_logit_prefill(errors: list[str]) -> tuple[int, int, int, int]:
+    data = ROOT / "experiments" / "077-data"
+    counts = {}
+    for name, expected_count, mode in (("full-logits", 12, "full"),
+                                       ("last-logit", 12, "last"),
+                                       ("shape-survey-last", 48, "last")):
+        raw = [json.loads(line) for line in
+               (data / name / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+        keys = {(row.get("model"), row.get("context"), row.get("batch"),
+                 row.get("framework"), row.get("process_run")) for row in raw}
+        if len(raw) != expected_count or len(keys) != expected_count or any(
+                row.get("status") != "pass" or
+                row.get("prefill_logits_mode") != mode for row in raw):
+            errors.append(f"serving prefill {name} raw protocol changed")
+        summary = json.loads((data / name / "summary.json").read_text(encoding="utf-8"))
+        if summary.get("status") != "pass" or summary.get("prefill_logits_mode") != mode:
+            errors.append(f"serving prefill {name} summary changed")
+        counts[name] = len(raw)
+    comparison = json.loads((data / "comparison.json").read_text(encoding="utf-8"))
+    rows = {row.get("model"): row for row in comparison.get("rows", [])}
+    qwen = rows.get("qwen2.5-0.5b", {})
+    deepseek = rows.get("deepseek-r1-distill-qwen-1.5b", {})
+    if comparison.get("status") != "pass" or len(rows) != 2 or \
+            float(qwen.get("micro_speedup", 0.0)) < 2.9 or \
+            float(deepseek.get("micro_speedup", 0.0)) < 1.3 or \
+            float(qwen.get("peak_reduction", 0.0)) < 0.73 or \
+            float(deepseek.get("peak_reduction", 0.0)) < 0.64 or \
+            float(qwen.get("d2h_reduction", 0.0)) != 2048.0 or \
+            float(deepseek.get("d2h_reduction", 0.0)) != 2048.0:
+        errors.append("serving last-logit formal comparison changed")
+    precision = json.loads((data / "precision" / "summary.json").read_text(
+        encoding="utf-8"))
+    precision_rows = precision.get("rows", [])
+    if precision.get("status") != "pass" or len(precision_rows) != 2 or any(
+            row.get("top_equal") is not True or
+            float(row.get("max_abs", 1.0)) > 1.0e-4 or
+            float(row.get("rmse", 1.0)) > 1.0e-5 for row in precision_rows):
+        errors.append("serving last-logit precision gate changed")
+    profile = json.loads((data / "profile" / "summary.json").read_text(
+        encoding="utf-8"))
+    profile_rows = profile.get("rows", [])
+    if profile.get("status") != "pass" or len(profile_rows) != 2 or any(
+            float(row.get("after_output_head_ms", 1.0)) /
+            float(row.get("before_output_head_ms", 1.0)) > 0.01 or
+            abs(float(row.get("after_softmax_ms", 0.0)) -
+                float(row.get("before_softmax_ms", 0.0))) > 2.0
+            for row in profile_rows):
+        errors.append("serving last-logit profile contract changed")
+    model_header = (REPOSITORY / "include/microllm/model/model.h").read_text(
+        encoding="utf-8")
+    runner = (REPOSITORY / "benchmarks/single_gpu/hf_inference_shape_matrix.py").read_text(
+        encoding="utf-8")
+    if "forward_inference_last_logits" not in model_header or \
+            "prefill-logits-mode" not in runner or "logits_to_keep" not in runner:
+        errors.append("serving last-logit public/benchmark API is missing")
+    return counts["full-logits"], counts["last-logit"], \
+        counts["shape-survey-last"], len(precision_rows)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -2091,7 +2150,8 @@ def validate_assets(errors: list[str]) -> None:
                  "reference-serving-scheduler.svg",
                  "static-batch-generation.svg",
                  "admission-batch-scheduler.svg",
-                 "expanded-inference-service-matrix.svg"):
+                 "expanded-inference-service-matrix.svg",
+                 "serving-last-logit-prefill.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -2184,6 +2244,8 @@ def main() -> int:
         validate_request_cancellation(errors)
     expanded_prefill, expanded_fp32, expanded_bf16 = \
         validate_expanded_inference_service_matrix(errors)
+    full_prefill, last_prefill, last_shape_survey, last_precision = \
+        validate_serving_last_logit_prefill(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -2243,6 +2305,8 @@ def main() -> int:
           f"{cancellation_sanitizer} "
           f"expanded_inference={expanded_prefill}/{expanded_fp32}/"
           f"{expanded_bf16} "
+          f"last_prefill={full_prefill}/{last_prefill}/"
+          f"{last_shape_survey}/{last_precision} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

@@ -1,0 +1,46 @@
+{
+  "experiment": "serving_last_logit_prefill",
+  "protocol": {
+    "batch": 8,
+    "context": 2048,
+    "runs": 3,
+    "steps": 3,
+    "warmup": 1
+  },
+  "rows": [
+    {
+      "d2h_reduction": 2048.0,
+      "full_d2h_bytes": 9957277696,
+      "full_last_top_logit_difference": 1.1443999998306253e-05,
+      "full_micro_peak_bytes": 21233819136.0,
+      "full_micro_tps": 43669.763716975,
+      "full_top_token": true,
+      "last_d2h_bytes": 4861952,
+      "last_micro_over_pytorch": 0.3843488161033899,
+      "last_micro_peak_bytes": 5526818304.0,
+      "last_micro_tps": 129814.645461062,
+      "last_pytorch_tps": 337752.16683935834,
+      "micro_speedup": 2.972643642003526,
+      "model": "qwen2.5-0.5b",
+      "peak_reduction": 0.7397162390523622
+    },
+    {
+      "d2h_reduction": 2048.0,
+      "full_d2h_bytes": 9957277696,
+      "full_last_top_logit_difference": 1.7166999999318477e-05,
+      "full_micro_peak_bytes": 24503244800.0,
+      "full_micro_tps": 50447.480917788,
+      "full_top_token": true,
+      "last_d2h_bytes": 4861952,
+      "last_micro_over_pytorch": 0.5236866638380689,
+      "last_micro_peak_bytes": 8586528768.0,
+      "last_micro_tps": 66444.191366587,
+      "last_pytorch_tps": 126877.76098711662,
+      "micro_speedup": 1.3170963179483255,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "peak_reduction": 0.6495758485015013
+    }
+  ],
+  "schema_version": 1,
+  "status": "pass"
+}

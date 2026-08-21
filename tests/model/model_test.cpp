@@ -89,6 +89,17 @@ TEST(TransformerModelTest, GraphFreeInferenceMatchesAutogradForMhaAndGqa) {
         EXPECT_EQ(inference.dtype(), DType::Float32);
         EXPECT_EQ(inference.shape(), (Shape{2, 4, 16}));
         expect_near(inference.to_vector(), graph, 2.0e-5F);
+        const auto last = model.forward_inference_last_logits(tokens);
+        EXPECT_EQ(last.dtype(), DType::Float32);
+        EXPECT_EQ(last.shape(), (Shape{2, 1, 16}));
+        const auto full = inference.to_vector();
+        std::vector<float> expected_last;
+        for (std::int64_t batch = 0; batch < 2; ++batch) {
+            const auto offset = static_cast<std::size_t>((batch * 4 + 3) * 16);
+            expected_last.insert(expected_last.end(), full.begin() + offset,
+                                 full.begin() + offset + 16U);
+        }
+        expect_near(last.to_vector(), expected_last, 2.0e-5F);
     }
 }
 

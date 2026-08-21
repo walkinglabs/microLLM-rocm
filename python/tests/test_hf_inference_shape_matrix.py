@@ -54,6 +54,23 @@ class HfInferenceShapeMatrixTest(unittest.TestCase):
             MATRIX.validate_measurement(
                 record, model, "microllm", 128, 2, "decode", "cached", 1, 2, 8)
 
+    def test_validator_rejects_prefill_semantic_drift(self):
+        model = {"name": "qwen", "parameter_count": 10}
+        record = {
+            "status": "pass", "model": "qwen", "parameter_count": 10,
+            "context": 128, "batch": 1, "workload": "prefill",
+            "cache_mode": "uncached", "prefill_logits_mode": "full",
+            "precision": "mixed_bf16_weights_fp32_activations",
+            "warmup": 1, "steps": 2, "peak_bytes": 100,
+            "device_total_bytes": 1000, "resident_weight_bytes": 80,
+            "throughput_tokens_per_second": 10.0,
+            "top_logits": [{"token": 1, "logit": 2.0}],
+        }
+        with self.assertRaisesRegex(RuntimeError, "prefill logits semantics"):
+            MATRIX.validate_measurement(
+                record, model, "microllm", 128, 1, "prefill", "uncached",
+                1, 2, 8, "last")
+
     def test_summary_preserves_limits_and_computes_paired_medians(self):
         model = {"name": "qwen", "revision": "fixed"}
         records = []
@@ -147,7 +164,8 @@ class HfInferenceShapeMatrixTest(unittest.TestCase):
             "micro_binary": Path("micro"), "decode_tokens": 4,
             "warmup": 1, "steps": 2, "micro_batch_argmax_mode": "device",
             "micro_kv_cache_dtype": "bf16",
-            "micro_kv_cache_fp32_layers": "0,2"})()
+            "micro_kv_cache_fp32_layers": "0,2",
+            "prefill_logits_mode": "last"})()
         model = {"config": "config.json", "weights": "weights.bin",
                  "inference": {"token_ids": [1, 2]}}
         command = MATRIX.micro_command(
@@ -158,6 +176,8 @@ class HfInferenceShapeMatrixTest(unittest.TestCase):
         self.assertEqual(command[batch + 1], "4")
         layers = command.index("--kv-cache-fp32-layers")
         self.assertEqual(command[layers + 1], "0,2")
+        logits = command.index("--prefill-logits")
+        self.assertEqual(command[logits + 1], "last")
 
     def test_mixed_layer_cache_theoretical_bytes_sum_each_dtype(self):
         args = type("Args", (), {"warmup": 1, "steps": 1,

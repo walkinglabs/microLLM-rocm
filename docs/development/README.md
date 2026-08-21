@@ -211,3 +211,5 @@ the next gate. Records are append-only except for factual corrections.
   cancellation, idempotency, immediate KV Cache release and cancelled-row batch exclusion.
 - [2026-08-21-expanded-inference-matrix.md](2026-08-21-expanded-inference-matrix.md):
   named short/long-context suites, batch efficiency and per-request/device-memory metrics.
+- [2026-08-21-serving-last-logit-prefill.md](2026-08-21-serving-last-logit-prefill.md):
+  explicit full/last logits semantics, matched PyTorch path and removal of historical-token output projection.

@@ -509,6 +509,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/075-data/](experiments/075-data/) | CPU/HIP/sanitizer生命周期门摘要 |
 | [assets/expanded-inference-service-matrix.svg](assets/expanded-inference-service-matrix.svg) | 长短context、batch效率、KV显存与精度分叉 |
 | [experiments/076-data/](experiments/076-data/) | 120条Qwen/DeepSeek prefill、FP32/BF16 cached raw与summary |
+| [assets/serving-last-logit-prefill.svg](assets/serving-last-logit-prefill.svg) | full→last吞吐、峰值、D2H和新Attention热点 |
+| [experiments/077-data/](experiments/077-data/) | full/last正式矩阵、48条shape、完整logits和前后profile统计 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

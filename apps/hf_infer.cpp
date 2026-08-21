@@ -51,6 +51,7 @@ struct Options {
     std::int64_t batch = 1;
     bool use_cache = true;
     std::string cache_prefill_mode = "full";
+    std::string prefill_logits_mode = "last";
     std::string batch_argmax_mode = "device";
     std::string kv_cache_dtype = "fp32";
     std::string kv_cache_fp32_layers;
@@ -105,6 +106,7 @@ Options options(int argc, char** argv) {
             result.use_cache = value == "true";
         }
         else if (name == "--cache-prefill-mode") result.cache_prefill_mode = argv[index + 1];
+        else if (name == "--prefill-logits") result.prefill_logits_mode = argv[index + 1];
         else if (name == "--batch-argmax-mode") result.batch_argmax_mode = argv[index + 1];
         else if (name == "--kv-cache-dtype") result.kv_cache_dtype = argv[index + 1];
         else if (name == "--kv-cache-fp32-layers") {
@@ -129,6 +131,9 @@ Options options(int argc, char** argv) {
     if (result.batch <= 0) throw std::invalid_argument("--batch must be positive");
     if (result.cache_prefill_mode != "full" && result.cache_prefill_mode != "token") {
         throw std::invalid_argument("--cache-prefill-mode must be full or token");
+    }
+    if (result.prefill_logits_mode != "last" && result.prefill_logits_mode != "full") {
+        throw std::invalid_argument("--prefill-logits must be last or full");
     }
     if (result.batch_argmax_mode != "device" && result.batch_argmax_mode != "host") {
         throw std::invalid_argument("--batch-argmax-mode must be device or host");
@@ -284,9 +289,8 @@ GenerationRun generate_uncached(microllm::model::TransformerModel& model,
         for (const auto& sequence : sequences) flat.insert(flat.end(), sequence.begin(), sequence.end());
         auto token_tensor = microllm::Tensor::from_int32_vector(flat, {batch, length});
         if (model.device().is_hip()) token_tensor = token_tensor.to(model.device());
-        auto last_logits = model.forward_inference(token_tensor)
-                               .slice(1, length - 1, length)
-                               .contiguous();
+        auto last_logits = model.forward_inference_last_logits(token_tensor)
+                               .reshape({batch, model.config().vocabulary_size});
         std::vector<std::int32_t> selected;
         if (device_argmax) {
             selected = microllm::ops::argmax_last_dim(last_logits).to_int32_vector();
@@ -448,8 +452,13 @@ int main(int argc, char** argv) {
         const auto run_prefill = command.workload != "decode";
         const auto run_decode = command.workload != "prefill";
         if (run_prefill) {
+            const auto prefill = [&]() {
+                return command.prefill_logits_mode == "last"
+                           ? model.forward_inference_last_logits(token_tensor)
+                           : model.forward_inference(token_tensor);
+            };
             for (int iteration = 0; iteration < command.prefill_warmup; ++iteration) {
-                (void)model.forward_inference(token_tensor);
+                (void)prefill();
             }
             microllm::runtime::synchronize(device);
             if (device.is_hip()) microllm::runtime::enable_hip_caching_allocator(device);
@@ -457,7 +466,7 @@ int main(int argc, char** argv) {
             microllm::runtime::reset_transfer_stats();
             const auto forward_start = std::chrono::steady_clock::now();
             for (int iteration = 0; iteration < command.prefill_steps; ++iteration) {
-                logits_tensor = model.forward_inference(token_tensor);
+                logits_tensor = prefill();
             }
             microllm::runtime::synchronize(device);
             const auto forward_finish = std::chrono::steady_clock::now();
@@ -466,7 +475,8 @@ int main(int argc, char** argv) {
         }
         const auto logits = run_prefill ? logits_tensor.to_vector() : std::vector<float>{};
         const auto vocabulary = static_cast<std::size_t>(external.model.vocabulary_size);
-        const auto offset = (ids.size() - 1) * vocabulary;
+        const auto offset = command.prefill_logits_mode == "last"
+                                ? 0U : (ids.size() - 1) * vocabulary;
         std::vector<std::size_t> order(vocabulary);
         std::iota(order.begin(), order.end(), 0U);
         const auto selected = std::min<std::size_t>(static_cast<std::size_t>(command.top_k),
@@ -621,6 +631,8 @@ int main(int argc, char** argv) {
                   << ",\"use_cache\":" << (command.use_cache ? "true" : "false")
                   << ",\"cache_prefill_mode\":\""
                   << command.cache_prefill_mode << "\""
+                  << ",\"prefill_logits_mode\":\""
+                  << command.prefill_logits_mode << "\""
                   << ",\"kv_cache_dtype\":\""
                   << command.kv_cache_dtype << "\""
                   << ",\"kv_cache_fp32_layer_policy\":\""

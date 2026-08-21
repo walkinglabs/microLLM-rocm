@@ -25,6 +25,10 @@ that is unsupported or out of memory remains a result rather than disappearing f
 
 ## Measured result
 
+Experiment 077 later classified the prefill rows below as explicit full-logits forward rather than
+serving TTFT. They remain valid for `[B,T,V]` output work, while last-logit serving numbers now live
+in the successor experiment. Cached-decode and KV conclusions remain current.
+
 The completed MI300X survey contains 120/120 successful process rows. BF16 Cache is exactly half
 the FP32 Cache at all 12 representative shapes and preserves microLLM's token suffix. The wider
 matrix also rejects a short-prompt generalization: Qwen T2048 B8 prefill is 0.173x PyTorch and

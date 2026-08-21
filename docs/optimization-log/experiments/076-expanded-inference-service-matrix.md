@@ -1,5 +1,9 @@
 # Experiment 076 — 推理不能只测一个短prompt
 
+> **后续修正：** Experiment 077的rocprof证明，本页prefill行计算并回传了完整`[B,T,V]`
+> logits，因此属于`full-logits prefill`，不是严格的服务TTFT。原始数据保留，但服务性能结论
+> 已由显式`last-logit prefill`矩阵取代；cached decode与KV结论不受影响。
+
 这次把正式checkpoint推理沿三条轴展开：Qwen2.5-0.5B与DeepSeek-R1-Distill-Qwen-1.5B，
 context 32/512/2048，以及batch 1/2/4/8。每个点分开测prefill与有Cache的steady decode；
 代表点再比较FP32/BF16 KV Cache。

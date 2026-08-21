@@ -24,6 +24,22 @@
 本仓库把三者分开。cached decode 的计时器在 prompt 已经写进 Cache 后才开始；否则长
 prompt会被错误算成“每个新token很慢”。
 
+## Prefill 还要分“全部 logits”和“最后 logits”
+
+语言模型训练需要每个位置的词表分数，因此完整前向输出`[B,T,V]`。生成服务只需要最后位置
+决定第一个新token，输出`[B,1,V]`即可。如果把两者都叫prefill，会多做`T`倍左右的output
+head工作，还可能把巨大的完整logits搬回CPU。
+
+本仓库明确分成：
+
+```text
+--prefill-logits-mode last   # 默认，服务TTFT语义
+--prefill-logits-mode full   # 显式完整logits/reference语义
+```
+
+microLLM分别调用`forward_inference_last_logits()`与`forward_inference()`；PyTorch的last路径
+使用`logits_to_keep=1`。runner会把模式写进每条raw和summary，模式不同不能放在同一性能表。
+
 ## KV Cache 像一本预留页数的笔记本
 
 生成新token时，模型不应每次重读所有旧token。KV Cache保存每层先前的K和V。
@@ -129,5 +145,7 @@ ROCR_VISIBLE_DEVICES=1 python3 \
 GPU、ROCm、PyTorch/Transformers版本和失败行。`batch_efficiency=1`表示吞吐随batch理想线性
 增长；例如B4吞吐是B1的3.2倍，则效率是`3.2 / 4 = 0.8`，也就是80%。
 
-仓库当前的MI300X 120条实测、图和失败分析见
-[Experiment 076](../optimization-log/experiments/076-expanded-inference-service-matrix.md)。
+仓库的MI300X 120条宽矩阵见
+[Experiment 076](../optimization-log/experiments/076-expanded-inference-service-matrix.md)。其中旧prefill
+行后来被确认是`full`语义，只作为完整logits证据保留；服务端修正版、profile和显存变化见
+[Experiment 077](../optimization-log/experiments/077-serving-last-logit-prefill.md)。

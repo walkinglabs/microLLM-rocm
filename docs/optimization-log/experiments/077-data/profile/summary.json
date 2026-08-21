@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "profile_scope": "one warm-up plus three measured T2048 B8 forwards",
+  "rows": [
+    {
+      "model": "qwen2.5-0.5b",
+      "before_forward_ms": 414.42,
+      "after_forward_ms": 214.91,
+      "forward_speedup": 1.928,
+      "before_kernel_ms": 651.52,
+      "after_kernel_ms": 501.81,
+      "before_output_head_ms": 148.68,
+      "after_output_head_ms": 0.92,
+      "before_softmax_ms": 131.45,
+      "after_softmax_ms": 130.72,
+      "before_peak_bytes": 21233819136,
+      "after_peak_bytes": 5526818304,
+      "before_d2h_bytes": 9957277696,
+      "after_d2h_bytes": 4861952
+    },
+    {
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "before_forward_ms": 324.56,
+      "after_forward_ms": 247.66,
+      "forward_speedup": 1.310,
+      "before_kernel_ms": 1292.85,
+      "after_kernel_ms": 984.43,
+      "before_output_head_ms": 286.21,
+      "after_output_head_ms": 1.02,
+      "before_softmax_ms": 132.03,
+      "after_softmax_ms": 131.81,
+      "before_peak_bytes": 24503244800,
+      "after_peak_bytes": 8586528768,
+      "before_d2h_bytes": 9957277696,
+      "after_d2h_bytes": 4861952
+    }
+  ]
+}

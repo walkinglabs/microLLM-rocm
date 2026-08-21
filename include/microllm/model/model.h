@@ -71,9 +71,12 @@ public:
     [[nodiscard]] Device device();
     void to(Device device);
     [[nodiscard]] autograd::Value forward(const Tensor& token_ids);
-    // Graph-free full-sequence inference. Unlike forward(), this never creates
-    // autograd nodes and remains valid after BF16 FFN preparation.
+    // Graph-free full-logits inference returning [B,T,V]. Unlike forward(),
+    // this never creates autograd nodes and remains valid after BF16 preparation.
     [[nodiscard]] Tensor forward_inference(const Tensor& token_ids);
+    // Serving prefill path: processes the full context but projects only the
+    // final hidden position, returning [B,1,V] instead of [B,T,V].
+    [[nodiscard]] Tensor forward_inference_last_logits(const Tensor& token_ids);
     // Full-sequence BxT prefill that initializes every layer's KV cache and
     // returns last-token logits [B,1,V]. The cache must be empty and fit B/T.
     [[nodiscard]] Tensor forward_prefill_cached(const Tensor& token_ids,
@@ -111,6 +114,8 @@ public:
         const io::SafetensorsSaveOptions& options = {});
 
 private:
+    [[nodiscard]] Tensor forward_inference_impl(const Tensor& token_ids,
+                                                bool last_logits_only);
     struct Impl;
     std::unique_ptr<Impl> impl_;
 };

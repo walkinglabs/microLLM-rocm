@@ -1,0 +1,44 @@
+date_utc=2026-08-21T14:49:59Z
+kernel=Linux 6.12.48+deb13-amd64 x86_64 GNU/Linux
+cmake=cmake version 3.31.10
+hipcc=HIP version: 7.13.99004-3309c6114a
+gpu_agents:
+  - gfx942
+  - gfx942
+  - gfx942
+  - gfx942
+topology:
+
+
+============================ ROCm System Management Interface ============================
+================================ Weight between two GPUs =================================
+       GPU0         GPU1         GPU2         GPU3         
+GPU0   0            15           15           15           
+GPU1   15           0            15           15           
+GPU2   15           15           0            15           
+GPU3   15           15           15           0            
+
+================================= Hops between two GPUs ==================================
+       GPU0         GPU1         GPU2         GPU3         
+GPU0   0            1            1            1            
+GPU1   1            0            1            1            
+GPU2   1            1            0            1            
+GPU3   1            1            1            0            
+
+=============================== Link Type between two GPUs ===============================
+       GPU0         GPU1         GPU2         GPU3         
+GPU0   0            XGMI         XGMI         XGMI         
+GPU1   XGMI         0            XGMI         XGMI         
+GPU2   XGMI         XGMI         0            XGMI         
+GPU3   XGMI         XGMI         XGMI         0            
+
+======================================= Numa Nodes =======================================
+GPU[0]		: (Topology) Numa Node: 0
+GPU[0]		: (Topology) Numa Affinity: 0
+GPU[1]		: (Topology) Numa Node: 0
+GPU[1]		: (Topology) Numa Affinity: 0
+GPU[2]		: (Topology) Numa Node: 0
+GPU[2]		: (Topology) Numa Affinity: 0
+GPU[3]		: (Topology) Numa Node: 0
+GPU[3]		: (Topology) Numa Affinity: 0
+================================== End of ROCm SMI Log ===================================

@@ -738,6 +738,15 @@ Value TransformerModel::forward(const Tensor& token_ids) {
 }
 
 Tensor TransformerModel::forward_inference(const Tensor& token_ids) {
+    return forward_inference_impl(token_ids, false);
+}
+
+Tensor TransformerModel::forward_inference_last_logits(const Tensor& token_ids) {
+    return forward_inference_impl(token_ids, true);
+}
+
+Tensor TransformerModel::forward_inference_impl(const Tensor& token_ids,
+                                                 bool last_logits_only) {
     if (!impl_->parameters_initialized) {
         throw std::logic_error("model parameters must be loaded before inference");
     }
@@ -753,7 +762,11 @@ Tensor TransformerModel::forward_inference(const Tensor& token_ids) {
     hidden = impl_->final_norm.forward_tensor(hidden);
     const auto batch = token_ids.shape()[0];
     const auto sequence = token_ids.shape()[1];
-    const auto flat = hidden.reshape({batch * sequence, impl_->config.dimension});
+    const auto selected = last_logits_only
+                              ? hidden.slice(1, sequence - 1, sequence).contiguous()
+                              : hidden;
+    const auto positions = last_logits_only ? 1 : sequence;
+    const auto flat = selected.reshape({batch * positions, impl_->config.dimension});
     Tensor logits;
     if (impl_->config.tie_embeddings) {
         logits = ops::matmul_with_implementation(
@@ -762,7 +775,7 @@ Tensor TransformerModel::forward_inference(const Tensor& token_ids) {
     } else {
         logits = impl_->output_head->forward_tensor(flat);
     }
-    return logits.reshape({batch, sequence, impl_->config.vocabulary_size});
+    return logits.reshape({batch, positions, impl_->config.vocabulary_size});
 }
 
 Tensor TransformerModel::forward_prefill_cached(

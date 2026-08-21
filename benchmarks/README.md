@@ -77,6 +77,11 @@ efficiency, tokens per peak GiB, exact greedy tokens and explicit `unsupported`/
 `smoke`, `standard`, and `extended` suites cover increasingly wide short/long-context and
 batch boundaries. See the [simple inference-matrix guide](../docs/dev/inference-matrix.zh-CN.md).
 
+Prefill defaults to serving semantics: both frameworks project only the final hidden
+position (`--prefill-logits-mode last`). Use `--prefill-logits-mode full` only when the
+workload intentionally requires `[B,T,V]` logits. The selected mode is part of every raw
+row and summary, so full-logits throughput cannot silently enter a TTFT comparison.
+
 Run the independent Python/PyTorch ROCm baseline with the same built-in comparison
 recipe, then compare machine-readable rows:
 

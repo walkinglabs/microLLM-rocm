@@ -1751,3 +1751,18 @@ cached decode扩展明显更好；Qwen T2048 B8为1.180×，DeepSeek却只有0.6
 精度也不是全绿：Qwen 18/18 suffix一致，DeepSeek只有10/18；T2048在第4个token分叉。
 当前两边驻留dtype政策不同，所以先记录反例，再用同dtype完整logits定位，不能把成功运行写成
 全面精度对齐。
+
+## 94. Experiment 077：最大热点原来是不该计算的logits
+
+rocprof发现Experiment 076的prefill为全部历史位置计算`[B,T,V]`，最大单Kernel是output
+head，每个进程还把约9.96 GB logits搬回CPU。这是完整logits forward，不是服务TTFT。
+
+新增显式`full|last`模式，两边last都只投影最后hidden position；PyTorch使用
+`logits_to_keep=1`。T2048 B8三进程中位数中，Qwen `43.7k→129.8k tok/s`（2.97×），
+DeepSeek `50.4k→66.4k`（1.32×）。峰值下降74%/65%，D2H精确缩小2048×。
+
+![Serving last-logit prefill](assets/serving-last-logit-prefill.svg)
+
+full与last完整词表max-abs不超过`3.1e-5`，24/24宽shape top token与PyTorch一致。新矩阵仍
+只有PyTorch的0.39×/0.53×；softmax时间保持约131–132ms并成为真实热点。旧prefill结果保留
+但改标full-logits，cached decode与KV结论不受影响。
