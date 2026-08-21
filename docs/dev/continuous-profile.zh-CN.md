@@ -59,3 +59,6 @@ materialization等来源。下一步可以测把token/position/row三份小H2D�
 Qwen/DeepSeek做profile；仍需先定合同再改。
 
 实验记录见 [Experiment 099](../optimization-log/experiments/099-continuous-profile-scatter-discard.md)。
+
+trace中的另一条线索——大量极小H2D——已在
+[packed decode metadata](packed-decode-metadata.zh-CN.md)中形成保留优化。

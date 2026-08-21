@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "status": "keep",
+  "feature": "pack token position and cache-row metadata into one H2D",
+  "mechanism": [
+    {"shape": "R8S4", "baseline_h2d_calls": 32, "candidate_h2d_calls": 16, "h2d_bytes_before": 596, "h2d_bytes_after": 596, "d2h_calls": 9, "d2h_bytes": 144, "d2d_calls": 159, "d2d_bytes": 113664},
+    {"shape": "R8S2", "baseline_h2d_calls": 56, "candidate_h2d_calls": 24, "h2d_bytes_before": 596, "h2d_bytes_after": 596, "d2h_calls": 17, "d2h_bytes": 136, "d2d_calls": 159, "d2d_bytes": 113664}
+  ],
+  "alternating_pairs": [
+    {"shape": "R8S4", "baseline_median_tps": 3730.61, "candidate_median_tps": 3852.46, "candidate_over_baseline": 1.03266, "baseline_normalized": 1.6438, "candidate_normalized": 1.6841, "reference_ratio": 1.0022, "all_pairs_candidate_faster": true},
+    {"shape": "R8S2", "baseline_median_tps": 2571.07, "candidate_median_tps": 2737.05, "candidate_over_baseline": 1.06456, "baseline_normalized": 1.1469, "candidate_normalized": 1.1964, "reference_ratio": 1.0125, "all_pairs_candidate_faster": true}
+  ],
+  "contracts": {
+    "single_packed_h2d_per_positions_call": true,
+    "device_token_fallback_preserved": true,
+    "h2d_bytes_unchanged": true,
+    "d2h_unchanged": true,
+    "d2d_unchanged": true,
+    "cache_bytes_unchanged": true,
+    "outputs_equal": true
+  }
+}

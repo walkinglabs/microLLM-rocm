@@ -64,6 +64,7 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [ ] batch compatible row prefills instead of running one temporary B1 prefill per admission;
 - [x] replace active divergent-row serial execution with positions-aware parallel RoPE/store/Attention;
 - [ ] keep positions and row mappings device-resident across scheduler steps;
+- [x] pack CPU token/position/row metadata into one H2D transfer per active step;
 - [x] profile the new positions-aware path before choosing its next Kernel optimization;
 - [x] test and reject a batched logits scatter despite correct Kernel routing;
 

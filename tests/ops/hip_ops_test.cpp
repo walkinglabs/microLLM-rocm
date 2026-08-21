@@ -1086,6 +1086,8 @@ TEST(HipSchedulerTest, ContinuousSlotsRefillAndMatchCpuWithOneSelectionCopyPerSt
         EXPECT_EQ(hip_metrics.active_cache_bytes, 0U);
         EXPECT_DOUBLE_EQ(hip_metrics.slot_utilization, 1.0);
         const auto transfers = runtime::transfer_stats();
+        EXPECT_EQ(transfers.host_to_device_calls, 6U);
+        EXPECT_EQ(transfers.host_to_device_bytes, 76U);
         EXPECT_EQ(transfers.device_to_host_calls,
                   static_cast<std::size_t>(hip_metrics.selection_calls));
         EXPECT_EQ(transfers.device_to_host_bytes,

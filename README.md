@@ -90,6 +90,8 @@ needed to run a real training and generation loop:
   rows; alternating Release medians improve another 1.295×–1.670× with exact request outputs.
 - `--continuous-only true` isolates scheduler profiling with exact transfer/allocation counters;
   its first trace rejected a logits-scatter candidate at 0.993×/0.973× baseline.
+- packed `[3,A]` token/position/cache-row metadata halves tiny H2D calls without changing bytes;
+  alternating Release throughput improves 1.033×/1.065×.
 
 The design keeps three implementations where they provide engineering value:
 

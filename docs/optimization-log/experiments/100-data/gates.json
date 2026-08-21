@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "status": "keep",
+  "full": {"passed": 312, "failed": 0, "skipped": 2},
+  "cpu": {"passed": 217, "failed": 0, "skipped": 2},
+  "hip": {"passed": 95, "failed": 0, "skipped": 0},
+  "sanitizer": {"passed": 210, "failed": 0, "skipped": 0},
+  "focused": {
+    "hip_scheduler_tests": 1,
+    "expected_h2d_calls": 6,
+    "expected_h2d_bytes": 76,
+    "continuous_profile_rows": 2,
+    "alternating_processes": 12,
+    "paired_shapes": 2
+  }
+}

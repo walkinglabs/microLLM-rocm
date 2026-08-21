@@ -2078,3 +2078,14 @@ GEMM占61.9%/62.9%，copyBuffer稳定约9.3%，positioned三Kernel只有5.84%/7.
 把逐row logits copy改成一次GPU scatter后，Kernel调用和输出都正确，但三对交替A/B只有0.993×和
 0.973×。scatter新增row mapping H2D与compute launch；而159次D2D还包含prefill Cache复制和Tensor
 materialization，不能全归因给logits回填。候选完整回退，profile模式、pftrace与负面证据保留。
+
+## 117. Experiment 100：596字节不变，调用数减半也能赢
+
+每个active step原来分别上传token、position和cache row。新路径先组成`[3,A]` Int32，一次H2D后
+切成三个共享Storage view。R8/S4 calls从32降到16，R8/S2从56降到24，bytes都保持596；D2H、
+D2D、Cache与checksum不变。
+
+![Packed decode metadata](assets/packed-decode-metadata.svg)
+
+三对交替A/B中R8/S4为1.033×、R8/S2为1.065×，6/6逐对candidate更快。它说明小数据传输的主要
+成本可以是API边界而不是带宽；同时也说明Experiment 099拒绝scatter不是“所有小调用都不值得合并”。

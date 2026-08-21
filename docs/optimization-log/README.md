@@ -562,6 +562,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/098-data/](experiments/098-data/) | 8条Release矩阵、18条交替A/B与4097 fallback证据 |
 | [assets/continuous-profile-scatter-discard.svg](assets/continuous-profile-scatter-discard.svg) | 干净Kernel组成与scatter负面A/B |
 | [experiments/099-data/](experiments/099-data/) | 两份pftrace、原始CSV、stdout与12条scatter交替数据 |
+| [assets/packed-decode-metadata.svg](assets/packed-decode-metadata.svg) | 三份小metadata合成一个H2D Storage |
+| [experiments/100-data/](experiments/100-data/) | 12条交替A/B与H2D/D2H/D2D精确counter |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

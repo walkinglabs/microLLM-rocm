@@ -48,6 +48,8 @@ untouched. Full, uniform slots still use the original parallel batch path.
 The active path is positions-aware rather than row-serial: device `positions[A]` and
 `cache_rows[A]` tensors parameterize decode-only RoPE, K/V store and cached Attention while QKV,
 FFN and output projection remain ordinary active-batch operations.
+For CPU-origin decode tokens, token/position/row metadata shares one `[3,A]` Storage transfer and
+is split into zero-copy device views; already-device token callers keep their explicit fallback.
 See [serving scheduler](dev/serving-scheduler.zh-CN.md).
 
 

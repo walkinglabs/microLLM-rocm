@@ -3378,6 +3378,75 @@ def validate_continuous_profile_scatter_discard(errors: list[str]) -> tuple[int,
     return len(profile_rows), pair_records, len(ratios)
 
 
+def validate_packed_decode_metadata(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "100-data"
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    profiles = []
+    pair_records = 0
+    ratios = []
+    expected_calls = {"r8s4": 16, "r8s2": 24}
+    baseline_calls = {"r8s4": 32, "r8s2": 56}
+    for shape in ("r8s4", "r8s2"):
+        directory = data / "paired" / shape
+        profile = json.loads((directory / "profile.json").read_text(encoding="utf-8"))
+        profiles.append(profile)
+        paths = sorted(path for path in directory.glob("pair*.json"))
+        rows = [json.loads(path.read_text(encoding="utf-8")) for path in paths]
+        baseline = [row for path, row in zip(paths, rows)
+                    if "baseline" in path.name]
+        candidate = [row for path, row in zip(paths, rows)
+                     if "candidate" in path.name]
+        pair_records += len(rows)
+        baseline_tps = sorted(float(row["continuous_tokens_per_second"])
+                              for row in baseline)[1]
+        candidate_tps = sorted(float(row["continuous_tokens_per_second"])
+                               for row in candidate)[1]
+        ratio = candidate_tps / baseline_tps
+        ratios.append(ratio)
+        if profile.get("scheduler") != "continuous_profile" or \
+                int(profile.get("measured_h2d_calls", -1)) != expected_calls[shape] or \
+                int(profile.get("measured_h2d_bytes", -1)) != 596 or \
+                len(rows) != 6 or not 1.02 < ratio < 1.08 or any(
+                    float(candidate[index]["continuous_tokens_per_second"]) <=
+                    float(baseline[index]["continuous_tokens_per_second"])
+                    for index in range(3)) or \
+                len({int(row["token_checksum"]) for row in rows}) != 1 or any(
+                    row.get("continuous_outputs_equal") is not True for row in rows):
+            errors.append(f"packed metadata evidence changed: {shape}")
+    mechanism = summary.get("mechanism", [])
+    contracts = summary.get("contracts", {})
+    if summary.get("status") != "keep" or len(mechanism) != 2 or any(
+            int(row.get("baseline_h2d_calls", -1)) != baseline_calls[
+                "r8s4" if row.get("shape") == "R8S4" else "r8s2"] or
+            int(row.get("h2d_bytes_before", -1)) !=
+            int(row.get("h2d_bytes_after", -2))
+            for row in mechanism) or any(
+                contracts.get(name) is not True for name in (
+                    "single_packed_h2d_per_positions_call",
+                    "device_token_fallback_preserved",
+                    "h2d_bytes_unchanged", "d2h_unchanged",
+                    "d2d_unchanged", "cache_bytes_unchanged",
+                    "outputs_equal")):
+        errors.append("packed metadata mechanism or contracts changed")
+    model_source = (REPOSITORY / "src" / "model" /
+                    "model.cpp").read_text(encoding="utf-8")
+    hip_tests = (REPOSITORY / "tests" / "ops" /
+                 "hip_ops_test.cpp").read_text(encoding="utf-8")
+    if "packed_values, {3, active}" not in model_source or \
+            "transfers.host_to_device_calls, 6U" not in hip_tests or \
+            "transfers.host_to_device_bytes, 76U" not in hip_tests:
+        errors.append("packed metadata source or exact transfer gate is missing")
+    if gates.get("status") != "keep" or \
+            gates.get("full", {}).get("passed") != 312 or \
+            gates.get("cpu", {}).get("passed") != 217 or \
+            gates.get("hip", {}).get("passed") != 95 or \
+            gates.get("sanitizer", {}).get("passed") != 210 or \
+            gates.get("focused", {}).get("alternating_processes") != 12:
+        errors.append("packed metadata final gates changed")
+    return len(profiles), pair_records, len(ratios)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -3455,7 +3524,8 @@ def validate_assets(errors: list[str]) -> None:
                  "continuous-slot-scheduler.svg",
                  "active-row-compaction.svg",
                  "positions-aware-decode.svg",
-                 "continuous-profile-scatter-discard.svg"):
+                 "continuous-profile-scatter-discard.svg",
+                 "packed-decode-metadata.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -3593,6 +3663,8 @@ def main() -> int:
         validate_positions_aware_decode(errors)
     profile_shapes, scatter_pairs, scatter_ratios = \
         validate_continuous_profile_scatter_discard(errors)
+    packed_profiles, packed_pairs, packed_ratios = \
+        validate_packed_decode_metadata(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -3696,6 +3768,8 @@ def main() -> int:
           f"{positions_speedups} "
           f"continuous_profile={profile_shapes}/{scatter_pairs}/"
           f"{scatter_ratios} "
+          f"packed_metadata={packed_profiles}/{packed_pairs}/"
+          f"{packed_ratios} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

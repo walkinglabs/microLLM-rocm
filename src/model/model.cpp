@@ -1340,16 +1340,37 @@ Tensor TransformerModel::forward_cached_active_rows(
         row_values.push_back(static_cast<std::int32_t>(row));
         host_positions.push_back(position);
     }
-    const auto model_tokens = token_ids.device() == model_device
-                                  ? token_ids
-                                  : token_ids.to(model_device);
-    auto positions = Tensor::from_int32_vector(
-        position_values, {static_cast<std::int64_t>(active_rows.size())});
-    auto rows = Tensor::from_int32_vector(
-        row_values, {static_cast<std::int64_t>(active_rows.size())});
-    if (model_device.is_hip()) {
-        positions = positions.to(model_device);
-        rows = rows.to(model_device);
+    Tensor model_tokens;
+    Tensor positions;
+    Tensor rows;
+    const auto active = static_cast<std::int64_t>(active_rows.size());
+    if (model_device.is_hip() && token_ids.device().is_cpu()) {
+        const auto token_values = token_ids.to_int32_vector();
+        std::vector<std::int32_t> packed_values;
+        packed_values.reserve(token_values.size() + position_values.size() +
+                              row_values.size());
+        packed_values.insert(packed_values.end(), token_values.begin(),
+                             token_values.end());
+        packed_values.insert(packed_values.end(), position_values.begin(),
+                             position_values.end());
+        packed_values.insert(packed_values.end(), row_values.begin(),
+                             row_values.end());
+        const auto packed = Tensor::from_int32_vector(
+                                packed_values, {3, active})
+                                .to(model_device);
+        model_tokens = packed.slice(0, 0, 1).reshape({active, 1});
+        positions = packed.slice(0, 1, 2).reshape({active});
+        rows = packed.slice(0, 2, 3).reshape({active});
+    } else {
+        model_tokens = token_ids.device() == model_device
+                           ? token_ids
+                           : token_ids.to(model_device);
+        positions = Tensor::from_int32_vector(position_values, {active});
+        rows = Tensor::from_int32_vector(row_values, {active});
+        if (model_device.is_hip()) {
+            positions = positions.to(model_device);
+            rows = rows.to(model_device);
+        }
     }
     auto hidden = ops::embedding(impl_->token_embedding.data(), model_tokens);
     for (std::size_t layer = 0; layer < impl_->blocks.size(); ++layer) {
