@@ -34,6 +34,14 @@ struct ScaledTensor {
     float scale_value = 1.0F;
 };
 
+struct Bf16FfnDiagnostics {
+    Tensor input_bf16;
+    Tensor gate;
+    Tensor up;
+    Tensor activated;
+    Tensor output;
+};
+
 [[nodiscard]] ScaledTensor quantize_fp8(const Tensor& input, DType fp8_dtype,
                                         float scale, const OpContext& context = {});
 [[nodiscard]] Tensor dequantize_fp8(const ScaledTensor& input, DType output_dtype,
@@ -60,6 +68,12 @@ void cast_transpose_2d_out_(const Tensor& input, Tensor& output,
                               const Tensor& up_weight_bf16,
                               const Tensor& down_weight_bf16,
                               const OpContext& context = {});
+// Diagnostic-only variant exposing the existing activation island boundaries.
+// It executes the same kernels as bf16_ffn and does not copy values to the host.
+[[nodiscard]] Bf16FfnDiagnostics bf16_ffn_diagnostics(
+    const Tensor& input_fp32, const Tensor& gate_weight_bf16,
+    const Tensor& up_weight_bf16, const Tensor& down_weight_bf16,
+    const OpContext& context = {});
 // Casts the shared FP32 activation once, then submits three BF16-weight
 // projections with FP32 outputs. Intended for Q/K/V inference projections.
 [[nodiscard]] TensorTriple bf16_qkv_projection(

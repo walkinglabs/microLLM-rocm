@@ -40,13 +40,16 @@ std::string escape_json(std::string_view value) {
 
 std::vector<double> tensor_values(const Tensor& tensor) {
     std::vector<double> output;
-    if (tensor.dtype() == DType::Float32) {
+    if (is_floating_point(tensor.dtype())) {
         const auto values = tensor.to_vector();
         output.assign(values.begin(), values.end());
     } else if (tensor.dtype() == DType::Int32) {
         const auto values = tensor.to_int32_vector();
         output.reserve(values.size());
         for (const auto value : values) output.push_back(static_cast<double>(value));
+    } else {
+        throw std::invalid_argument(
+            "trace value capture does not support this tensor dtype");
     }
     return output;
 }

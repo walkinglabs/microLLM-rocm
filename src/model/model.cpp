@@ -766,8 +766,23 @@ public:
                 down_.weight_data().dtype() != DType::BFloat16) {
                 throw std::logic_error("FFN inference weights have mixed preparation state");
             }
-            output = ops::bf16_ffn(flat, gate_.weight_data(), up_.weight_data(),
-                                   down_.weight_data());
+            if (trace_prefix.empty()) {
+                output = ops::bf16_ffn(
+                    flat, gate_.weight_data(), up_.weight_data(),
+                    down_.weight_data());
+            } else {
+                const auto diagnostics = ops::bf16_ffn_diagnostics(
+                    flat, gate_.weight_data(), up_.weight_data(),
+                    down_.weight_data());
+                trace_detail(trace_prefix, "input_bf16",
+                             diagnostics.input_bf16);
+                trace_detail(trace_prefix, "gate", diagnostics.gate);
+                trace_detail(trace_prefix, "up", diagnostics.up);
+                trace_detail(trace_prefix, "activated",
+                             diagnostics.activated);
+                trace_detail(trace_prefix, "down", diagnostics.output);
+                output = diagnostics.output;
+            }
         } else {
             const auto activated = ops::swiglu(gate_.forward_tensor(flat),
                                                 up_.forward_tensor(flat));

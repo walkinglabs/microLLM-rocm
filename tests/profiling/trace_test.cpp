@@ -15,7 +15,10 @@ TEST(TraceSessionTest, RecordsTensorMetadataStatisticsAndTruncatedValues) {
     session.set_iteration(7);
     session.record(TraceKind::Operator, "add",
                    Tensor::from_vector({-2, 0, 3, 4}, {2, 2}), 0.25);
-    ASSERT_EQ(session.records().size(), 1U);
+    session.record(TraceKind::Layer, "bf16",
+                   Tensor::from_vector({1.25F, -0.5F, 3.0F}, {1, 3},
+                                       DType::BFloat16));
+    ASSERT_EQ(session.records().size(), 2U);
     const auto& record = session.records()[0];
     EXPECT_EQ(record.sequence, 0U);
     EXPECT_EQ(record.iteration, 7U);
@@ -32,6 +35,11 @@ TEST(TraceSessionTest, RecordsTensorMetadataStatisticsAndTruncatedValues) {
     EXPECT_DOUBLE_EQ(record.statistics.mean, 1.25);
     EXPECT_TRUE(record.values_truncated);
     EXPECT_EQ(record.values, (std::vector<double>{-2, 0}));
+    const auto& low_precision = session.records()[1];
+    EXPECT_EQ(low_precision.dtype, DType::BFloat16);
+    EXPECT_EQ(low_precision.statistics.finite_count, 3);
+    EXPECT_TRUE(low_precision.values_truncated);
+    EXPECT_EQ(low_precision.values, (std::vector<double>{1.25, -0.5}));
 }
 
 TEST(TraceSessionTest, ScopedActivationRestoresPreviousSession) {

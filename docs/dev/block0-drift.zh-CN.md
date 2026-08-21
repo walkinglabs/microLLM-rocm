@@ -45,8 +45,8 @@ attention norm
 - residual add；
 - FFN之前的输入。
 
-下一步只需要打开`bf16_ffn`这个盒子：input cast、gate、up、SwiGLU、down。若gate/up就不同，重点是
-hipBLASLt M shape；若它们exact而SwiGLU不同，才检查激活Kernel；若只在down出现，则检查down GEMM。
+后续[FFN内部实验](bf16-ffn-drift.zh-CN.md)已完成：cast exact，gate GEMM首个非零，up也独立出现
+小差异。下一步比较M32/M64的hipBLASLt algorithm。
 
 ![Block0 drift](../optimization-log/assets/block0-drift.svg)
 

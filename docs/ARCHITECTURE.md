@@ -74,6 +74,9 @@ timing claims.
 When a layer trace is active, inference additionally records block-zero substage values. The scope
 is deliberately one block: it locates numerical drift without multiplying diagnostic storage by
 the model depth. The ordinary path and every block's computation graph remain unchanged.
+The fused BF16 FFN has a diagnostic-return variant exposing device-resident intermediates. The
+ordinary API passes a null diagnostic sink and retains no extra Tensor handles. Trace value capture
+supports all floating dtypes; unsupported captured integer formats fail instead of appearing empty.
 See [serving scheduler](dev/serving-scheduler.zh-CN.md).
 
 

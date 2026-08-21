@@ -49,11 +49,13 @@ component has a public interface under `include/microllm`, an implementation und
     [prefill layer-drift guide](prefill-layer-drift.zh-CN.md).
 25. For the block-zero Attention/FFN substage split, read the
     [block-zero drift guide](block0-drift.zh-CN.md).
-26. For FP32/BF16 cache policy and its numerical gates, read the
+26. For cast/gate/up/SwiGLU/down FFN drift, read the
+    [BF16 FFN drift guide](bf16-ffn-drift.zh-CN.md).
+27. For FP32/BF16 cache policy and its numerical gates, read the
     [KV-cache dtype guide](kv-cache-dtypes.zh-CN.md).
-27. For delayed multi-request serving semantics, read the
+28. For delayed multi-request serving semantics, read the
     [serving scheduler guide](serving-scheduler.zh-CN.md).
-28. For the measured optimization loop, read the
+29. For the measured optimization loop, read the
     [0→1 optimization log](../optimization-log/README.md).
 
 ## Engineering rules

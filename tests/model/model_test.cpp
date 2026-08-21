@@ -145,7 +145,24 @@ TEST(TransformerModelTest, Bf16FfnPreparationIsSingleRepresentationAndInferenceO
         }
     }
     EXPECT_EQ(bf16_weights, 3U);
-    const auto after = model.forward_inference(input).to_vector();
+    profiling::TraceOptions trace_options;
+    trace_options.record_operators = false;
+    trace_options.max_captured_elements = 256;
+    profiling::TraceSession trace("microllm", "bf16-ffn-inference",
+                                  trace_options);
+    std::vector<float> after;
+    {
+        profiling::ScopedTraceSession active(trace);
+        after = model.forward_inference(input).to_vector();
+    }
+    ASSERT_EQ(trace.records().size(), 23U);
+    EXPECT_EQ(trace.records()[13].name,
+              "inference.blocks.0.ffn.input_bf16");
+    EXPECT_EQ(trace.records()[14].name, "inference.blocks.0.ffn.gate");
+    EXPECT_EQ(trace.records()[15].name, "inference.blocks.0.ffn.up");
+    EXPECT_EQ(trace.records()[16].name,
+              "inference.blocks.0.ffn.activated");
+    EXPECT_EQ(trace.records()[17].name, "inference.blocks.0.ffn.down");
     expect_near(after, before, 2.0e-2F);
     EXPECT_THROW((void)model.forward(input), std::logic_error);
     EXPECT_THROW((void)model.prepare_bf16_ffn_inference(), std::logic_error);

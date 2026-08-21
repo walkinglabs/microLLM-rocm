@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="590" viewBox="0 0 1080 590" role="img" aria-labelledby="title desc">
+  <title id="title">BF16 FFN internal drift</title><desc id="desc">Cast is exact; gate GEMM is the first B1/B2 difference, followed by up, SwiGLU and down propagation.</desc>
+  <rect width="1080" height="590" fill="#0b1020"/>
+  <text x="48" y="58" fill="#f8fafc" font-family="sans-serif" font-size="30" font-weight="700">BF16 FFN · first nonzero operation</text>
+  <g font-family="sans-serif" font-size="16">
+    <rect x="55" y="135" width="170" height="70" rx="9" fill="#173421"/><text x="83" y="165" fill="#bbf7d0">BF16 cast</text><text x="102" y="191" fill="#86efac">exact</text>
+    <rect x="270" y="125" width="185" height="90" rx="9" fill="#3b1720"/><text x="316" y="158" fill="#fecaca" font-weight="700">gate GEMM</text><text x="302" y="188" fill="#fca5a5">max 0.015625</text>
+    <rect x="500" y="135" width="165" height="70" rx="9" fill="#3b2a14"/><text x="548" y="165" fill="#fde68a">up GEMM</text><text x="526" y="191" fill="#fcd34d">max 0.001953</text>
+    <rect x="710" y="135" width="145" height="70" rx="9" fill="#3b2a14"/><text x="748" y="165" fill="#fde68a">SwiGLU</text><text x="730" y="191" fill="#fcd34d">max 0.007812</text>
+    <rect x="900" y="135" width="135" height="70" rx="9" fill="#163149"/><text x="930" y="165" fill="#bae6fd">down</text><text x="914" y="191" fill="#7dd3fc">0.001350</text>
+    <path d="M225 170 L270 170 M455 170 L500 170 M665 170 L710 170 M855 170 L900 170" stroke="#f8fafc" stroke-width="3"/>
+  </g>
+  <rect x="48" y="290" width="984" height="74" rx="10" fill="#173421"/>
+  <text x="72" y="321" fill="#bbf7d0" font-family="sans-serif" font-size="18">B2 duplicate rows exact at all 48 stages</text>
+  <text x="72" y="347" fill="#86efac" font-family="sans-serif" font-size="15">Cast/row/SwiGLU-origin hypotheses refuted.</text>
+  <rect x="48" y="405" width="984" height="92" rx="10" fill="#202944"/>
+  <text x="72" y="438" fill="#ddd6fe" font-family="sans-serif" font-size="18">First attempt stopped: BF16 trace values were silently empty</text>
+  <text x="72" y="466" fill="#c4b5fd" font-family="sans-serif" font-size="15">TraceSession now captures FP16/BF16/FP8 floating values and honest truncation.</text>
+  <text x="72" y="545" fill="#fde68a" font-family="sans-serif" font-size="17">Next: compare hipBLASLt algorithm IDs for M32 and M64</text>
+</svg>

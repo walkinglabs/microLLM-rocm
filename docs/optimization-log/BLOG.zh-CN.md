@@ -2183,3 +2183,14 @@ norm的B1/B2完整值全为exact。第一个非零点是fused BF16 FFN output：
 
 这反驳了Attention、RoPE、Cache、norm和residual解释，也说明不是所有换M的BF16 GEMM都会产生可见
 差异。下一节点只打开`bf16_ffn`，检查cast、gate/up、SwiGLU和down。
+
+## 125. Experiment 108：cast exact，gate GEMM先出现0.015625差异
+
+第一次运行被合同拦住：TraceSession把BF16 values静默写空。修复全部浮点dtype捕获和截断语义后，
+三对48-stage数据稳定。input cast exact；gate max0.015625最先非零，up独立差0.001953125，SwiGLU
+和down继续传播。B2重复行全exact。
+
+![BF16 FFN drift](assets/bf16-ffn-drift.svg)
+
+证据已收敛到M32/M64的BF16 gate/up hipBLASLt路径。下一步记录algorithm ID并尝试same-algorithm
+反驳，不能直接用FP32回退掩盖问题。

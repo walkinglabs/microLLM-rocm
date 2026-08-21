@@ -109,6 +109,8 @@ needed to run a real training and generation loop:
   B1/B2 difference at block 0 and quantify final 151k-logit max-abs/relative-L2 as 0.1530/1.3777%.
 - block-zero detail proves Attention norm, Q/K/V, RoPE, context/output, residual and FFN norm are
   exact; the first nonzero value is the fused BF16 FFN output.
+- BF16 FFN detail shows cast is exact and gate/up GEMMs independently differ at M32/M64; low-precision
+  TraceSession capture now records real values and honest truncation.
 
 The design keeps three implementations where they provide engineering value:
 
@@ -368,6 +370,10 @@ accumulates through block 27. See
 Experiment 107 adds twelve block-zero substage records. Eleven stages through FFN norm are exact;
 the fused FFN output is the first difference at max 0.0013504. See
 [Experiment 107](docs/optimization-log/experiments/107-block0-drift.md).
+
+Experiment 108 opens the fused FFN. Gate GEMM is the first nonzero stage (max 0.015625), up differs
+independently, and SwiGLU/down propagate the drift. See
+[Experiment 108](docs/optimization-log/experiments/108-bf16-ffn-drift.md).
 
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or

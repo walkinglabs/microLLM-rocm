@@ -4006,6 +4006,65 @@ def validate_block0_drift(
     return len(raw), len(stages), len(exact_names), exact_duplicate
 
 
+def validate_bf16_ffn_drift(errors: list[str]) -> tuple[int, int, int, int]:
+    data = ROOT / "experiments" / "108-data"
+    raw = [json.loads(line) for line in
+           (data / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    if len(raw) != 3 or any(
+            row.get("status") != "pass" or len(row.get("stages", [])) != 48 or
+            row.get("trace_record_count_b1") != 50 or
+            row.get("trace_record_count_b2") != 50
+            for row in raw) or any(
+                row.get("stages") != raw[0].get("stages") for row in raw[1:]):
+        errors.append("BF16 FFN drift raw evidence changed")
+    stages = {row["name"]: row for row in summary.get("stages", [])}
+    if summary.get("stage_count") != 48 or summary.get("first_nonzero_stage") != \
+            "inference.blocks.0.ffn.gate" or \
+            summary.get("duplicate_b2_rows_exact_at_every_stage") is not True:
+        errors.append("BF16 FFN drift summary changed")
+    expected = {
+        "inference.blocks.0.ffn.input_bf16": (0.0, 0.0),
+        "inference.blocks.0.ffn.gate": (0.015625,
+            0.00006106343369635627),
+        "inference.blocks.0.ffn.up": (0.001953125,
+            0.000019422787601982993),
+        "inference.blocks.0.ffn.activated": (0.0078125,
+            0.00011019402428538509),
+        "inference.blocks.0.ffn.down": (0.00135040283203125,
+            0.00007269202489080616),
+    }
+    for name, (maximum, relative) in expected.items():
+        row = stages.get(name, {})
+        drift = row.get("b1_vs_b2_row0", {})
+        if abs(float(drift.get("max_abs", -1)) - maximum) > 1.0e-12 or \
+                abs(float(drift.get("relative_l2", -1)) - relative) > 1.0e-14 or \
+                row.get("b2_row0_vs_row1", {}).get("exact") is not True:
+            errors.append(f"BF16 FFN internal stage changed: {name}")
+    trace_source = (REPOSITORY / "src" / "profiling" /
+                    "trace.cpp").read_text(encoding="utf-8")
+    optimized = (REPOSITORY / "src" / "ops" /
+                 "optimized.cpp").read_text(encoding="utf-8")
+    model_source = (REPOSITORY / "src" / "model" /
+                    "model.cpp").read_text(encoding="utf-8")
+    tests = (REPOSITORY / "tests" / "profiling" /
+             "trace_test.cpp").read_text(encoding="utf-8")
+    if "is_floating_point(tensor.dtype())" not in trace_source or \
+            "bf16_ffn_diagnostics" not in optimized or \
+            'trace_detail(trace_prefix, "gate"' not in model_source or \
+            "low_precision.statistics.finite_count" not in tests:
+        errors.append("BF16 FFN drift source or low-precision trace tests are missing")
+    if gates.get("status") != "first_drift_is_gate_gemm" or \
+            gates.get("full", {}).get("passed") != 315 or \
+            gates.get("sanitizer", {}).get("passed") != 212 or \
+            gates.get("focused", {}).get("initial_low_precision_trace_failures") != 1:
+        errors.append("BF16 FFN drift final gates changed")
+    exact_duplicate = sum(row.get("b2_row0_vs_row1", {}).get("exact") is True
+                          for row in summary.get("stages", []))
+    return len(raw), len(stages), len(expected), exact_duplicate
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -4091,7 +4150,8 @@ def validate_assets(errors: list[str]) -> None:
                  "continuous-divergence.svg",
                  "prefill-row-audit.svg",
                  "prefill-layer-drift.svg",
-                 "block0-drift.svg"):
+                 "block0-drift.svg",
+                 "bf16-ffn-drift.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -4246,6 +4306,8 @@ def main() -> int:
         validate_prefill_layer_drift(errors)
     block0_raw, block0_stages, block0_exact, block0_duplicates = \
         validate_block0_drift(errors)
+    ffn_drift_raw, ffn_drift_stages, ffn_drift_internal, ffn_drift_exact = \
+        validate_bf16_ffn_drift(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -4366,6 +4428,8 @@ def main() -> int:
           f"{layer_drift_exact}/{layer_drift_logits} "
           f"block0_drift={block0_raw}/{block0_stages}/"
           f"{block0_exact}/{block0_duplicates} "
+          f"bf16_ffn_drift={ffn_drift_raw}/{ffn_drift_stages}/"
+          f"{ffn_drift_internal}/{ffn_drift_exact} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

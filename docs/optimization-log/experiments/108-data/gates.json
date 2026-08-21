@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "status": "first_drift_is_gate_gemm",
+  "full": {"passed": 315, "failed": 0, "skipped": 2},
+  "cpu": {"passed": 219, "failed": 0, "skipped": 2},
+  "hip": {"passed": 96, "failed": 0, "skipped": 0},
+  "sanitizer": {"passed": 212, "failed": 0, "skipped": 0},
+  "focused": {
+    "initial_low_precision_trace_failures": 1,
+    "fresh_pairs": 3,
+    "stage_count": 48,
+    "duplicate_row_exact_stages": 48,
+    "first_nonzero_stage_index": 14,
+    "bf16_trace_tests": 1,
+    "bf16_ffn_diagnostic_cpu_tests": 1,
+    "bf16_ffn_diagnostic_hip_tests": 1
+  }
+}

@@ -226,12 +226,17 @@ TEST(HipBf16FfnTest, ContinuousIslandMatchesCpuAndAvoidsHostTransfers) {
     const auto down = down_cpu.to(gpu);
 
     runtime::reset_transfer_stats();
-    const auto actual = bf16_ffn(input, gate, up, down);
+    const auto diagnostics = bf16_ffn_diagnostics(input, gate, up, down);
+    const auto actual = diagnostics.output;
     runtime::synchronize(gpu);
     const auto transfers = runtime::transfer_stats();
     EXPECT_EQ(transfers.host_to_device_calls, 0U);
     EXPECT_EQ(transfers.device_to_host_calls, 0U);
     EXPECT_EQ(actual.dtype(), DType::Float32);
+    EXPECT_EQ(diagnostics.input_bf16.dtype(), DType::BFloat16);
+    EXPECT_EQ(diagnostics.gate.dtype(), DType::BFloat16);
+    EXPECT_EQ(diagnostics.up.dtype(), DType::BFloat16);
+    EXPECT_EQ(diagnostics.activated.dtype(), DType::BFloat16);
     EXPECT_EQ(actual.shape(), (Shape{tokens, hidden}));
     expect_near(actual.to_vector(), expected.to_vector(), 7.5e-2F);
 }

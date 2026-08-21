@@ -21,7 +21,7 @@ def options() -> argparse.Namespace:
     parser.add_argument("--prompt-offset", type=int, default=5)
     parser.add_argument("--prompt-length", type=int, default=32)
     parser.add_argument("--runs", type=int, default=3)
-    parser.add_argument("--trace-max-elements", type=int, default=400000)
+    parser.add_argument("--trace-max-elements", type=int, default=700000)
     parser.add_argument("--timeout-seconds", type=int, default=900)
     parser.add_argument("--keep-traces", action="store_true")
     result = parser.parse_args()

@@ -151,10 +151,17 @@ TEST(CpuOpsTest, Bf16FfnKeepsIntermediateActivationsLowPrecision) {
         rounded_input, up, DType::BFloat16);
     const auto expected = bf16_matmul_output(
         swiglu(gate_output, up_output), down, DType::Float32);
-    const auto actual = bf16_ffn(input, gate, up, down);
+    const auto diagnostics = bf16_ffn_diagnostics(input, gate, up, down);
+    const auto actual = diagnostics.output;
+    EXPECT_EQ(diagnostics.input_bf16.dtype(), DType::BFloat16);
+    EXPECT_EQ(diagnostics.gate.dtype(), DType::BFloat16);
+    EXPECT_EQ(diagnostics.up.dtype(), DType::BFloat16);
+    EXPECT_EQ(diagnostics.activated.dtype(), DType::BFloat16);
     EXPECT_EQ(actual.dtype(), DType::Float32);
     EXPECT_EQ(actual.shape(), (Shape{2, 2}));
     expect_near(actual.to_vector(), expected.to_vector(), 0.0F);
+    expect_near(bf16_ffn(input, gate, up, down).to_vector(),
+                actual.to_vector(), 0.0F);
 
     EXPECT_THROW((void)bf16_ffn(input.cast(DType::BFloat16), gate, up, down),
                  std::invalid_argument);

@@ -554,11 +554,12 @@ Tensor bf16_matmul_output(const Tensor& left_bf16, const Tensor& right_bf16,
 #endif
 }
 
-Tensor bf16_ffn(const Tensor& input_fp32,
-                const Tensor& gate_weight_bf16,
-                const Tensor& up_weight_bf16,
-                const Tensor& down_weight_bf16,
-                const OpContext& context) {
+static Tensor bf16_ffn_impl(const Tensor& input_fp32,
+                            const Tensor& gate_weight_bf16,
+                            const Tensor& up_weight_bf16,
+                            const Tensor& down_weight_bf16,
+                            Bf16FfnDiagnostics* diagnostics,
+                            const OpContext& context) {
     if (input_fp32.dtype() != DType::Float32 ||
         gate_weight_bf16.dtype() != DType::BFloat16 ||
         up_weight_bf16.dtype() != DType::BFloat16 ||
@@ -591,8 +592,35 @@ Tensor bf16_ffn(const Tensor& input_fp32,
     const auto up = bf16_matmul_output(input_bf16, up_weight_bf16,
                                        DType::BFloat16, context);
     const auto activated = swiglu(gate, up, context);
-    return bf16_matmul_output(activated, down_weight_bf16,
-                              DType::Float32, context);
+    auto output = bf16_matmul_output(activated, down_weight_bf16,
+                                     DType::Float32, context);
+    if (diagnostics != nullptr) {
+        *diagnostics = {.input_bf16 = input_bf16,
+                        .gate = gate,
+                        .up = up,
+                        .activated = activated,
+                        .output = output};
+    }
+    return output;
+}
+
+Tensor bf16_ffn(const Tensor& input_fp32,
+                const Tensor& gate_weight_bf16,
+                const Tensor& up_weight_bf16,
+                const Tensor& down_weight_bf16,
+                const OpContext& context) {
+    return bf16_ffn_impl(input_fp32, gate_weight_bf16, up_weight_bf16,
+                         down_weight_bf16, nullptr, context);
+}
+
+Bf16FfnDiagnostics bf16_ffn_diagnostics(
+    const Tensor& input_fp32, const Tensor& gate_weight_bf16,
+    const Tensor& up_weight_bf16, const Tensor& down_weight_bf16,
+    const OpContext& context) {
+    Bf16FfnDiagnostics diagnostics;
+    (void)bf16_ffn_impl(input_fp32, gate_weight_bf16, up_weight_bf16,
+                        down_weight_bf16, &diagnostics, context);
+    return diagnostics;
 }
 
 TensorTriple bf16_qkv_projection(const Tensor& input_fp32,
