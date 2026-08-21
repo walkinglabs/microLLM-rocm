@@ -91,6 +91,10 @@ python3 benchmarks/single_gpu/hf_model_matrix.py \
   --output /tmp/microllm-hf-matrix.jsonl
 ```
 
+For an optimizer implementation experiment, `microllm_hf_train_step` also accepts
+`--adamw-implementation auto|scalar|vectorized`. Published model results use `auto`;
+explicit modes are counterfactual candidates and must be labeled as such.
+
 The first curated official-weight result is under
 `benchmarks/results/2026-08-20-mi300x-single-gpu-hf-matrix/`.
 

@@ -7,6 +7,9 @@ if(MICROLLM_HAS_HIP AND MICROLLM_HAS_HIPBLASLT)
     add_executable(microllm_bench_bf16_ffn micro/benchmark_bf16_ffn.cpp)
     target_link_libraries(microllm_bench_bf16_ffn PRIVATE
         microllm::ops microllm::runtime hip::host)
+    add_executable(microllm_bench_adamw micro/benchmark_adamw.cpp)
+    target_link_libraries(microllm_bench_adamw PRIVATE
+        microllm::ops microllm::runtime hip::host)
 endif()
 
 add_executable(microllm_bench_model end_to_end/benchmark_model.cpp)
@@ -110,6 +113,11 @@ if(BUILD_TESTING)
                              --hidden 128 --intermediate 256 --warmup 1 --repetitions 2)
             set_tests_properties(Benchmark.HipBf16FfnIsland
                                  PROPERTIES LABELS "hip;benchmark;dtype;bf16;smoke")
+            add_test(NAME Benchmark.HipAdamWVectorized
+                     COMMAND microllm_bench_adamw --elements 4099 --mirror true
+                             --implementation vectorized --warmup 1 --repetitions 2)
+            set_tests_properties(Benchmark.HipAdamWVectorized
+                                 PROPERTIES LABELS "hip;benchmark;optimizer;smoke")
             foreach(MICROLLM_LOW_DTYPE IN ITEMS fp16 bf16)
                 add_test(NAME Benchmark.HipMatmul.${MICROLLM_LOW_DTYPE}
                          COMMAND microllm_bench_ops --op matmul --size 128

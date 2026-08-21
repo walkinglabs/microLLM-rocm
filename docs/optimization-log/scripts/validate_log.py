@@ -697,6 +697,61 @@ def validate_chunked_adamw_discard(errors: list[str]) -> tuple[int, int]:
     return len(pilot), len(formal)
 
 
+def validate_vectorized_adamw(errors: list[str]) -> tuple[int, int]:
+    data = ROOT / "experiments" / "049-data"
+    vector4 = [json.loads(line) for line in
+               (data / "vector4-mirror.jsonl").read_text(encoding="utf-8").splitlines()]
+    vector8 = [json.loads(line) for line in
+               (data / "vector8-mirror.jsonl").read_text(encoding="utf-8").splitlines()]
+    rsqrt = [json.loads(line) for line in
+             (data / "rsqrt-mirror.jsonl").read_text(encoding="utf-8").splitlines()]
+    no_mirror = [json.loads(line) for line in
+                 (data / "vector4-no-mirror.jsonl").read_text(encoding="utf-8").splitlines()]
+    pilot = [json.loads(line) for line in
+             (data / "qwen-pilot" / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    keys = {(row.get("elements"), row.get("implementation")) for row in vector4}
+    if len(vector4) != 24 or len(keys) != 24 or any(
+            row.get("sample_maximum_absolute_error", 1.0) > 3e-8 or
+            row.get("warmup") != 3 or row.get("repetitions") != 10 or
+            row.get("bf16_mirror") is not True for row in vector4):
+        errors.append("vectorized AdamW float4 evidence changed")
+    if len(vector8) != 12 or len(rsqrt) != 12 or len(no_mirror) != 4 or \
+            any(row.get("sample_maximum_absolute_error", 1.0) > 3e-8
+                for row in vector8 + rsqrt + no_mirror):
+        errors.append("vectorized AdamW counterexample records changed")
+    scalar = {row["elements"]: row for row in vector4
+              if row["implementation"] == "scalar"}
+    float4 = {row["elements"]: row for row in vector4
+              if row["implementation"] == "vectorized"}
+    width8 = {row["elements"]: row for row in vector8}
+    corrected_rsqrt = {row["elements"]: row for row in rsqrt}
+    if set(scalar) != set(float4) or any(
+            width8[key]["kernel_ms_mean"] <= float4[key]["kernel_ms_mean"] or
+            corrected_rsqrt[key]["kernel_ms_mean"] <= float4[key]["kernel_ms_mean"]
+            for key in scalar):
+        errors.append("vector-width/rsqrt rejection boundary changed")
+    pilot_keys = {(row.get("framework"), row.get("batch"), row.get("context"))
+                  for row in pilot}
+    if len(pilot) != 8 or len(pilot_keys) != 8 or any(
+            row.get("status") != "pass" for row in pilot) or any(
+                row.get("adamw_implementation") != "vectorized"
+                for row in pilot if row.get("framework") == "microllm"):
+        errors.append("vectorized AdamW Qwen pilot changed")
+    comparison = json.loads((data / "comparison.json").read_text(encoding="utf-8"))
+    operator_rows = comparison.get("operator_rows", [])
+    model_rows = comparison.get("qwen_vectorized_pilot", [])
+    no_mirror_rows = comparison.get("no_mirror_rows", [])
+    if comparison.get("decision") != "keep-explicit-only" or \
+            len(operator_rows) != 12 or \
+            sum(row.get("speedup", 0.0) >= 1.05 for row in operator_rows) != 3 or \
+            any(row.get("speedup", 1.0) >= 1.0 for row in model_rows) or \
+            any(row.get("speedup", 1.0) >= 1.0 for row in no_mirror_rows) or \
+            comparison.get("maximum_sample_absolute_error", 1.0) > 3e-8 or \
+            "Auto remains Scalar" not in comparison.get("policy", ""):
+        errors.append("vectorized AdamW explicit-only policy changed")
+    return len(vector4) + len(vector8) + len(rsqrt) + len(no_mirror), len(pilot)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -724,7 +779,8 @@ def validate_assets(errors: list[str]) -> None:
                  "deepseek-training-shapes.svg",
                  "deepseek-context128-profile.svg",
                  "stable-gradient-buffer-discard.svg",
-                 "chunked-adamw-discard.svg"):
+                 "chunked-adamw-discard.svg",
+                 "vectorized-adamw-explicit.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -770,6 +826,8 @@ def main() -> int:
         validate_stable_gradient_discard(errors)
     chunked_adamw_pilot, chunked_adamw_formal = \
         validate_chunked_adamw_discard(errors)
+    vectorized_adamw_operator, vectorized_adamw_pilot = \
+        validate_vectorized_adamw(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -791,6 +849,7 @@ def main() -> int:
           f"optimizer_profile={optimizer_profile_kernel_calls}/{optimizer_profile_api_calls} "
           f"stable_gradient={stable_gradient_matched}/{stable_gradient_mismatched} "
           f"chunked_adamw={chunked_adamw_pilot}/{chunked_adamw_formal} "
+          f"vectorized_adamw={vectorized_adamw_operator}/{vectorized_adamw_pilot} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

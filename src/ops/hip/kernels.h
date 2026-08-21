@@ -14,6 +14,13 @@ void launch_adamw_update(float* parameter, const float* gradient,
                          float beta1, float beta2, float epsilon,
                          float weight_decay, float first_correction,
                          float second_correction, void* stream = nullptr);
+void launch_adamw_update_vectorized(float* parameter, const float* gradient,
+                                    float* first_moment, float* second_moment,
+                                    void* bf16_mirror, std::int64_t elements,
+                                    float learning_rate, float beta1, float beta2,
+                                    float epsilon, float weight_decay,
+                                    float first_correction, float second_correction,
+                                    void* stream = nullptr);
 void launch_add(const float* left, const float* right, float* output,
                 std::int64_t elements, void* stream = nullptr);
 void launch_add_bias(const float* input, const float* bias, float* output,

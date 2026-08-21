@@ -1,0 +1,70 @@
+{
+  "pairing": "fresh processes; order alternates each run",
+  "precision": "bf16",
+  "rows": [
+    {
+      "batch": 1,
+      "context": 3,
+      "microllm_final_loss": 1.010466933,
+      "microllm_peak_bytes": 9726620704.0,
+      "microllm_tokens_per_second": 32.357756328,
+      "model": "qwen2.5-0.5b",
+      "peak_memory_ratio": 0.9664335991402608,
+      "pytorch_final_loss": 1.0701497793197632,
+      "pytorch_peak_allocated_bytes": 10064448000.0,
+      "pytorch_tokens_per_second": 46.64842603862344,
+      "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+      "status": "pass",
+      "throughput_ratio_microllm_over_pytorch": 0.6936516207687005
+    },
+    {
+      "batch": 2,
+      "context": 3,
+      "microllm_final_loss": 1.013980269,
+      "microllm_peak_bytes": 9743986744.0,
+      "microllm_tokens_per_second": 64.153906419,
+      "model": "qwen2.5-0.5b",
+      "peak_memory_ratio": 0.9678981157906514,
+      "pytorch_final_loss": 1.0701497793197632,
+      "pytorch_peak_allocated_bytes": 10067161600.0,
+      "pytorch_tokens_per_second": 91.23246979614925,
+      "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+      "status": "pass",
+      "throughput_ratio_microllm_over_pytorch": 0.7031916001216029
+    },
+    {
+      "batch": 1,
+      "context": 32,
+      "microllm_final_loss": 0.212517709,
+      "microllm_peak_bytes": 9894492424.0,
+      "microllm_tokens_per_second": 293.875476649,
+      "model": "qwen2.5-0.5b",
+      "peak_memory_ratio": 0.9820871275993431,
+      "pytorch_final_loss": 0.23787850141525269,
+      "pytorch_peak_allocated_bytes": 10074963968.0,
+      "pytorch_tokens_per_second": 449.8096998940694,
+      "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+      "status": "pass",
+      "throughput_ratio_microllm_over_pytorch": 0.6533329021544176
+    },
+    {
+      "batch": 1,
+      "context": 128,
+      "microllm_final_loss": 0.062131196,
+      "microllm_peak_bytes": 10450205704.0,
+      "microllm_tokens_per_second": 788.924838899,
+      "model": "qwen2.5-0.5b",
+      "peak_memory_ratio": 1.0341999203077261,
+      "pytorch_final_loss": 0.06679002195596695,
+      "pytorch_peak_allocated_bytes": 10104628224.0,
+      "pytorch_tokens_per_second": 1785.89797136188,
+      "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+      "status": "pass",
+      "throughput_ratio_microllm_over_pytorch": 0.4417524693739285
+    }
+  ],
+  "runs_per_framework": 1,
+  "schema_version": 1,
+  "status": "pass",
+  "track": "official_training_shape_matrix"
+}

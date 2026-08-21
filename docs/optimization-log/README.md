@@ -231,6 +231,13 @@ Experiment 048 改成 launch 时传入当前指针。全量 16-Tensor 分组把 
 
 ![Chunked AdamW discard](assets/chunked-adamw-discard.svg)
 
+Experiment 049 改测单个大 Tensor 的数据通路。float4 在带 BF16 mirror 的部分 exact shape
+达到 `1.056×–1.194×`，但 width 8、rsqrt、无 mirror 大权重都有反例；强制全模型 Vectorized
+的四个 Qwen pilot 为 `0.965×–0.994×`。因此实现和独立 benchmark 作为显式研究路径保留，
+`Auto` 仍选择 Scalar，不把局部算子收益冒充模型加速。
+
+![Vectorized AdamW explicit policy](assets/vectorized-adamw-explicit.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -286,6 +293,8 @@ Experiment 048 改成 launch 时传入当前指针。全量 16-Tensor 分组把 
 | [experiments/047-data/](experiments/047-data/) | 匹配协议 raw、错误协议保留与 discard 合同 |
 | [assets/chunked-adamw-discard.svg](assets/chunked-adamw-discard.svg) | 全量/小 Tensor 分组与端到端反例 |
 | [experiments/048-data/](experiments/048-data/) | 早停 pair、四 shape 24 条 raw 与 dispatch 合同 |
+| [assets/vectorized-adamw-explicit.svg](assets/vectorized-adamw-explicit.svg) | exact-shape 算子收益与官方模型反例 |
+| [experiments/049-data/](experiments/049-data/) | width4/8、sqrt/rsqrt、mirror/no-mirror 与 Qwen pilot raw |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

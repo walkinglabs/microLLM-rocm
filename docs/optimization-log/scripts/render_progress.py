@@ -53,6 +53,8 @@ STABLE_GRADIENT_COMPARISON = ROOT / "experiments" / "047-data" / "comparison.jso
 STABLE_GRADIENT_CHART = ROOT / "assets" / "stable-gradient-buffer-discard.svg"
 CHUNKED_ADAMW_COMPARISON = ROOT / "experiments" / "048-data" / "comparison.json"
 CHUNKED_ADAMW_CHART = ROOT / "assets" / "chunked-adamw-discard.svg"
+VECTORIZED_ADAMW_COMPARISON = ROOT / "experiments" / "049-data" / "comparison.json"
+VECTORIZED_ADAMW_CHART = ROOT / "assets" / "vectorized-adamw-explicit.svg"
 
 
 def rows() -> list[dict]:
@@ -1324,6 +1326,77 @@ def chunked_adamw_discard_svg() -> str:
     return "\n".join(parts)
 
 
+def vectorized_adamw_explicit_svg() -> str:
+    data = json.loads(VECTORIZED_ADAMW_COMPARISON.read_text(encoding="utf-8"))
+    operator = data["operator_rows"]
+    model = data["qwen_vectorized_pilot"]
+    width, height = 1900, 820
+    left_x, right_x, top, panel_h = 95, 1300, 150, 500
+    left_w, right_w = 1100, 500
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 049 · Vectorized AdamW Is Explicit-Only", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 80,
+             "MI300X · exact checkpoint element counts · HIP Event mean of 10",
+             16, "#5b6474", anchor="middle"),
+        f'<rect x="{left_x}" y="{top}" width="{left_w}" height="{panel_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+        f'<rect x="{right_x}" y="{top}" width="{right_w}" height="{panel_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+        text(left_x + left_w / 2, 125, "float4 / scalar operator speedup (with mirror)", 20,
+             anchor="middle", weight=700),
+        text(right_x + right_w / 2, 125, "Forced Qwen speedup", 20,
+             anchor="middle", weight=700),
+    ]
+    def operator_y(value: float) -> float:
+        return top + panel_h * (1.25 - value) / 0.85
+    for tick in (0.5, 0.75, 1.0, 1.25):
+        y = operator_y(tick)
+        parts.append(f'<line x1="{left_x}" y1="{y:.1f}" x2="{left_x+left_w}" '
+                     f'y2="{y:.1f}" stroke="{("#2563eb" if tick == 1.0 else "#e5e9f0")}"/>')
+        parts.append(text(left_x - 10, y + 5, f"{tick:.2f}×", 13,
+                          "#5b6474", anchor="end"))
+    group = left_w / len(operator)
+    for index, row in enumerate(operator):
+        center = left_x + group * (index + 0.5)
+        base = operator_y(1.0)
+        value_y = operator_y(row["speedup"])
+        color = "#2f9b68" if row["speedup"] >= 1.05 else (
+            "#64748b" if row["speedup"] >= 1.0 else "#d04a3a")
+        parts.append(f'<rect x="{center-23:.1f}" y="{min(base,value_y):.1f}" width="46" '
+                     f'height="{max(3.0,abs(base-value_y)):.1f}" fill="{color}" rx="4"/>')
+        label = f'{row["elements"]/1e6:.1f}M' if row["elements"] >= 1000000 \
+            else f'{row["elements"]/1000:.0f}K'
+        parts.append(text(center, top + panel_h + 29, label, 12,
+                          "#445064", anchor="middle", rotate=-35))
+    def model_y(value: float) -> float:
+        return top + panel_h * (1.05 - value) / 0.15
+    for tick in (0.90, 0.95, 1.0, 1.05):
+        y = model_y(tick)
+        parts.append(f'<line x1="{right_x}" y1="{y:.1f}" x2="{right_x+right_w}" '
+                     f'y2="{y:.1f}" stroke="{("#2563eb" if tick == 1.0 else "#e5e9f0")}"/>')
+    group = right_w / len(model)
+    for index, row in enumerate(model):
+        center = right_x + group * (index + 0.5)
+        base = model_y(1.0)
+        value_y = model_y(row["speedup"])
+        parts.append(f'<rect x="{center-35:.1f}" y="{base:.1f}" width="70" '
+                     f'height="{max(3.0,value_y-base):.1f}" fill="#d04a3a" rx="4"/>')
+        parts.append(text(center, top + panel_h + 29,
+                          f'{row["batch"]}×{row["context"]}', 14,
+                          anchor="middle", weight=700))
+        parts.append(text(center, value_y + 22, f'{row["speedup"]:.3f}×', 13,
+                          "#b83f32", anchor="middle", weight=700))
+    parts.append(text(width / 2, 735,
+                      "Keep implementation + benchmark; Auto remains Scalar because every official row regresses",
+                      17, "#9a4f00", anchor="middle", weight=700))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -1345,7 +1418,8 @@ def main() -> int:
                 DEEPSEEK_SHAPE_CHART: deepseek_shape_svg(),
                 DEEPSEEK_PROFILE_CHART: deepseek_context128_profile_svg(),
                 STABLE_GRADIENT_CHART: stable_gradient_discard_svg(),
-                CHUNKED_ADAMW_CHART: chunked_adamw_discard_svg()}
+                CHUNKED_ADAMW_CHART: chunked_adamw_discard_svg(),
+                VECTORIZED_ADAMW_CHART: vectorized_adamw_explicit_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

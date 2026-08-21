@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1900" height="820" viewBox="0 0 1900 820">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="950.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 049 · Vectorized AdamW Is Explicit-Only</text>
+<text x="950.0" y="80.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">MI300X · exact checkpoint element counts · HIP Event mean of 10</text>
+<rect x="95" y="150" width="1100" height="500" fill="#ffffff" stroke="#cbd3df" rx="10"/>
+<rect x="1300" y="150" width="500" height="500" fill="#ffffff" stroke="#cbd3df" rx="10"/>
+<text x="645.0" y="125.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">float4 / scalar operator speedup (with mirror)</text>
+<text x="1550.0" y="125.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">Forced Qwen speedup</text>
+<line x1="95" y1="591.2" x2="1195" y2="591.2" stroke="#e5e9f0"/>
+<text x="85.0" y="596.2" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">0.50×</text>
+<line x1="95" y1="444.1" x2="1195" y2="444.1" stroke="#e5e9f0"/>
+<text x="85.0" y="449.1" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">0.75×</text>
+<line x1="95" y1="297.1" x2="1195" y2="297.1" stroke="#2563eb"/>
+<text x="85.0" y="302.1" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">1.00×</text>
+<line x1="95" y1="150.0" x2="1195" y2="150.0" stroke="#e5e9f0"/>
+<text x="85.0" y="155.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">1.25×</text>
+<rect x="117.8" y="297.1" width="46" height="293.2" fill="#d04a3a" rx="4"/>
+<text x="140.8" y="679.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#445064" text-anchor="middle" font-weight="400" transform="rotate(-35 140.8 679.0)">0K</text>
+<rect x="209.5" y="297.1" width="46" height="288.2" fill="#d04a3a" rx="4"/>
+<text x="232.5" y="679.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#445064" text-anchor="middle" font-weight="400" transform="rotate(-35 232.5 679.0)">0K</text>
+<rect x="301.2" y="297.1" width="46" height="316.1" fill="#d04a3a" rx="4"/>
+<text x="324.2" y="679.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#445064" text-anchor="middle" font-weight="400" transform="rotate(-35 324.2 679.0)">1K</text>
+<rect x="392.8" y="297.1" width="46" height="314.7" fill="#d04a3a" rx="4"/>
+<text x="415.8" y="679.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#445064" text-anchor="middle" font-weight="400" transform="rotate(-35 415.8 679.0)">2K</text>
+<rect x="484.5" y="297.1" width="46" height="206.7" fill="#d04a3a" rx="4"/>
+<text x="507.5" y="679.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#445064" text-anchor="middle" font-weight="400" transform="rotate(-35 507.5 679.0)">115K</text>
+<rect x="576.2" y="297.1" width="46" height="23.1" fill="#d04a3a" rx="4"/>
+<text x="599.2" y="679.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#445064" text-anchor="middle" font-weight="400" transform="rotate(-35 599.2 679.0)">393K</text>
+<rect x="667.8" y="183.2" width="46" height="113.9" fill="#2f9b68" rx="4"/>
+<text x="690.8" y="679.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#445064" text-anchor="middle" font-weight="400" transform="rotate(-35 690.8 679.0)">803K</text>
+<rect x="759.5" y="297.1" width="46" height="15.4" fill="#d04a3a" rx="4"/>
+<text x="782.5" y="679.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#445064" text-anchor="middle" font-weight="400" transform="rotate(-35 782.5 679.0)">2.4M</text>
+<rect x="851.2" y="290.5" width="46" height="6.6" fill="#64748b" rx="4"/>
+<text x="874.2" y="679.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#445064" text-anchor="middle" font-weight="400" transform="rotate(-35 874.2 679.0)">4.4M</text>
+<rect x="942.8" y="273.6" width="46" height="23.4" fill="#64748b" rx="4"/>
+<text x="965.8" y="679.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#445064" text-anchor="middle" font-weight="400" transform="rotate(-35 965.8 679.0)">13.8M</text>
+<rect x="1034.5" y="264.2" width="46" height="32.9" fill="#2f9b68" rx="4"/>
+<text x="1057.5" y="679.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#445064" text-anchor="middle" font-weight="400" transform="rotate(-35 1057.5 679.0)">136.1M</text>
+<rect x="1126.2" y="239.8" width="46" height="57.2" fill="#2f9b68" rx="4"/>
+<text x="1149.2" y="679.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#445064" text-anchor="middle" font-weight="400" transform="rotate(-35 1149.2 679.0)">233.4M</text>
+<line x1="1300" y1="650.0" x2="1800" y2="650.0" stroke="#e5e9f0"/>
+<line x1="1300" y1="483.3" x2="1800" y2="483.3" stroke="#e5e9f0"/>
+<line x1="1300" y1="316.7" x2="1800" y2="316.7" stroke="#2563eb"/>
+<line x1="1300" y1="150.0" x2="1800" y2="150.0" stroke="#e5e9f0"/>
+<rect x="1327.5" y="316.7" width="70" height="109.1" fill="#d04a3a" rx="4"/>
+<text x="1362.5" y="679.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#172033" text-anchor="middle" font-weight="700">1×3</text>
+<text x="1362.5" y="447.7" font-family="Inter,Arial,sans-serif" font-size="13" fill="#b83f32" text-anchor="middle" font-weight="700">0.967×</text>
+<rect x="1452.5" y="316.7" width="70" height="21.5" fill="#d04a3a" rx="4"/>
+<text x="1487.5" y="679.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#172033" text-anchor="middle" font-weight="700">2×3</text>
+<text x="1487.5" y="360.2" font-family="Inter,Arial,sans-serif" font-size="13" fill="#b83f32" text-anchor="middle" font-weight="700">0.994×</text>
+<rect x="1577.5" y="316.7" width="70" height="115.1" fill="#d04a3a" rx="4"/>
+<text x="1612.5" y="679.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#172033" text-anchor="middle" font-weight="700">1×32</text>
+<text x="1612.5" y="453.8" font-family="Inter,Arial,sans-serif" font-size="13" fill="#b83f32" text-anchor="middle" font-weight="700">0.965×</text>
+<rect x="1702.5" y="316.7" width="70" height="57.2" fill="#d04a3a" rx="4"/>
+<text x="1737.5" y="679.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#172033" text-anchor="middle" font-weight="700">1×128</text>
+<text x="1737.5" y="395.9" font-family="Inter,Arial,sans-serif" font-size="13" fill="#b83f32" text-anchor="middle" font-weight="700">0.983×</text>
+<text x="950.0" y="735.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#9a4f00" text-anchor="middle" font-weight="700">Keep implementation + benchmark; Auto remains Scalar because every official row regresses</text>
+</svg>

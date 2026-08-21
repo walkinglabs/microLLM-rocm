@@ -38,6 +38,8 @@ needed to run a real training and generation loop:
 - C, Python ctypes, and optional PyTorch dispatcher adapters;
 - reproducible benchmarks, rocprofv3 workflows, hipBLASLt, and RCCL experiments.
 - a cross-framework trace runner for operator/layer values and latency comparisons.
+- explicit Scalar/Vectorized AdamW experiments with HIP Event micro-benchmarks; Auto remains
+  on the model-validated scalar policy.
 
 The design keeps three implementations where they provide engineering value:
 
@@ -123,12 +125,12 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| CPU tests | 163/163 | reference, Qwen/DeepSeek, graph/model/weights, benchmark, PyTorch and optimization-log schemas |
-| ASan/UBSan | 161/161 | host code; dynamic binding tests isolated |
-| MI300X/gfx942 HIP | 63/63 | paired KV store, allocator Events, fused ops, BF16/FP8 and model matrix |
-| PyTorch CPU operator/model oracle | 4/4 | forward/backward/shape, mixed BF16 FFN model and optimizer parity |
+| Full CPU/HIP configuration | 249/249 | 179 CPU-labelled + 70 HIP-labelled gates; 2 intentional environment skips |
+| ASan/UBSan CPU | 172/172 | host code, CLI, model/graph, benchmark and evidence schemas |
+| MI300X/gfx942 HIP | 70/70 | allocator/stream, graph, BF16/FP8, vectorized AdamW and model matrix |
+| PyTorch-enabled CPU build | 162/162 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
-| Registered test files | 34 | machine-audited CTest registration |
+| Registered test files | 36 | machine-audited CTest registration |
 | CPU source coverage | 83.9% lines / 66.6% branches | GCC 13.3 + gcovr 8.3; `src/` and `include/` |
 
 Latest PyTorch-reference maximum absolute differences:
@@ -249,6 +251,11 @@ scope in [the Qwen2.5 development record](docs/development/2026-08-19-qwen25-arc
 MICROLLM_BUILD_DIR=build/hip-release \
 MICROLLM_BENCH_DEVICE=hip \
 ./scripts/run_benchmarks.sh
+
+# Explicit optimizer candidate comparison (Auto stays Scalar)
+./build/hip-release/benchmarks/microllm_bench_adamw \
+  --elements 802816 --mirror true \
+  --implementation vectorized --warmup 5 --repetitions 20
 
 # HIP API, kernel, memory, JSON/CSV and Perfetto traces
 ./scripts/profile_hip.sh /tmp/microllm-trace -- \

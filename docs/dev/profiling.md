@@ -21,6 +21,21 @@ MICROLLM_BENCH_DEVICE=hip \
 The harness records warm-up, repetitions, HIP Event time, synchronized wall time,
 numerical error, device metadata, and memory counters as JSON Lines.
 
+AdamW has its own implementation-selectable benchmark:
+
+```bash
+./build/hip-release/benchmarks/microllm_bench_adamw \
+  --elements 802816 --mirror true \
+  --implementation scalar --warmup 5 --repetitions 20
+
+./build/hip-release/benchmarks/microllm_bench_adamw \
+  --elements 802816 --mirror true \
+  --implementation vectorized --warmup 5 --repetitions 20
+```
+
+It reports HIP Event time, effective bytes/s and a sampled numerical guard. `Auto` remains
+the validated scalar policy; an explicit candidate result is not a default dispatch claim.
+
 ### End-to-end benchmark
 
 ```bash
@@ -44,7 +59,7 @@ output when supported by the installed rocprofv3.
 ## What remains
 
 There is no Python `@profile` decorator yet. The current stable entry points are the
-C++ RAII trace API and the alignment runner. Future work must correlate ranges with
+C++ RAII trace API, operator micro-benchmarks and the alignment runner. Future work must correlate ranges with
 rocprof markers, support asynchronous HIP Event completion without per-range device
 synchronization, and export Perfetto ranges directly.
 

@@ -79,3 +79,16 @@ No row met the 5% gate, and the code was removed.
 This falsifies launch count as the primary AdamW explanation. The retained profile time is
 mostly bytes moving through large parameter/gradient/moment tensors. The next candidate
 must benchmark vector-width/coalescing on exact large shapes before model integration.
+
+## Experiment 049 result and saturation boundary
+
+The exact-shape benchmark covers scalar/float4, width 8, sqrt/rsqrt, and mirror/no-mirror.
+Float4 wins 5.6%–19.4% on three mirrored counts, but the corresponding no-mirror output
+weights regress and an explicit all-parameter Qwen pilot regresses every formal shape.
+Width 8 and corrected rsqrt also lose.
+
+The float4 implementation remains explicit for research and benchmarking; `Auto` remains
+Scalar. Step 07 is complete at this boundary: three gradient-buffer/multi-tensor designs
+and the local vector-width space have been measured. Reopening it requires new trace
+evidence or a different optimizer-state representation, not another unmeasured launch
+rewrite.

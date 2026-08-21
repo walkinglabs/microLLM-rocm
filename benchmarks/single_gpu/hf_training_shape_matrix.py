@@ -52,6 +52,8 @@ def options() -> argparse.Namespace:
     parser.add_argument("--models", type=comma_names)
     parser.add_argument("--shapes", type=parse_shapes, default=parse_shapes("1x32,2x32,1x128"))
     parser.add_argument("--precision", choices=("fp32", "bf16"), default="bf16")
+    parser.add_argument("--micro-adamw-implementation",
+                        choices=("auto", "scalar", "vectorized"), default="auto")
     parser.add_argument("--warmup", type=int, default=2)
     parser.add_argument("--steps", type=int, default=5)
     parser.add_argument("--runs", type=int, default=3)
@@ -135,6 +137,7 @@ def micro_command(args: argparse.Namespace, model: dict, batch: int,
         "--learning-rate", str(model["training"]["learning_rate"]),
         "--warmup", str(args.warmup), "--steps", str(args.steps),
         "--batch", str(batch), "--linear-precision", args.precision,
+        "--adamw-implementation", args.micro_adamw_implementation,
     ]
     if args.precision == "bf16":
         command.extend(("--bf16-weight-mirrors", "true"))

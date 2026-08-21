@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <microllm/autograd/autograd.h>
+#include <microllm/ops/ops.h>
 
 namespace microllm::training {
 
@@ -43,7 +44,8 @@ struct AdamWState {
 class AdamW {
 public:
     AdamW(Parameters parameters, AdamWConfig config = {},
-          Bf16ParameterMirrors bf16_mirrors = {});
+          Bf16ParameterMirrors bf16_mirrors = {},
+          ops::AdamWImplementation implementation = ops::AdamWImplementation::Auto);
     void step();
     void zero_grad();
 
@@ -56,6 +58,7 @@ private:
     AdamWConfig config_;
     AdamWState state_;
     std::vector<Tensor*> bf16_mirrors_;
+    ops::AdamWImplementation implementation_;
 };
 
 }  // namespace microllm::training

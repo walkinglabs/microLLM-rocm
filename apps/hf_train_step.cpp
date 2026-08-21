@@ -56,6 +56,7 @@ int main(int argc, char** argv) {
         int steps = 1;
         int batch_size = 1;
         std::string linear_precision = "fp32";
+        std::string adamw_implementation = "auto";
         bool bf16_weight_mirrors = true;
         for (int index = 1; index < argc; index += 2) {
             if (index + 1 >= argc) throw std::invalid_argument("missing CLI value");
@@ -69,6 +70,9 @@ int main(int argc, char** argv) {
             else if (name == "--steps") steps = std::stoi(argv[index + 1]);
             else if (name == "--batch") batch_size = std::stoi(argv[index + 1]);
             else if (name == "--linear-precision") linear_precision = argv[index + 1];
+            else if (name == "--adamw-implementation") {
+                adamw_implementation = argv[index + 1];
+            }
             else if (name == "--bf16-weight-mirrors") {
                 const std::string value = argv[index + 1];
                 if (value != "true" && value != "false") {
@@ -88,6 +92,11 @@ int main(int argc, char** argv) {
         }
         if (linear_precision != "fp32" && linear_precision != "bf16") {
             throw std::invalid_argument("--linear-precision must be fp32 or bf16");
+        }
+        if (adamw_implementation != "auto" && adamw_implementation != "scalar" &&
+            adamw_implementation != "vectorized") {
+            throw std::invalid_argument(
+                "--adamw-implementation must be auto, scalar, or vectorized");
         }
         const auto device = device_text == "hip" ? microllm::Device::hip(0)
                                                    : microllm::Device::cpu();
@@ -121,7 +130,12 @@ int main(int argc, char** argv) {
                                  .beta2 = 0.999F,
                                  .epsilon = 1.0e-8F,
                                  .weight_decay = 0.01F},
-            bf16_mirrors);
+            bf16_mirrors,
+            adamw_implementation == "scalar"
+                ? microllm::ops::AdamWImplementation::Scalar
+                : adamw_implementation == "vectorized"
+                      ? microllm::ops::AdamWImplementation::Vectorized
+                      : microllm::ops::AdamWImplementation::Auto);
         const auto all_tokens = parse_tokens(token_text);
         const std::vector<std::int32_t> input_ids(all_tokens.begin(), all_tokens.end() - 1);
         const std::vector<std::int32_t> target_ids(all_tokens.begin() + 1, all_tokens.end());
@@ -206,6 +220,7 @@ int main(int argc, char** argv) {
                   << "\""
                   << ",\"bf16_weight_mirrors_enabled\":"
                   << (!bf16_mirrors.empty() ? "true" : "false")
+                  << ",\"adamw_implementation\":\"" << adamw_implementation << "\""
                   << ",\"measurement_profile\":\""
                   << (warmup > 0 || steps > 1 ? "comparison" : "smoke") << "\""
                   << ",\"loaded_tensors\":" << report.loaded.size()

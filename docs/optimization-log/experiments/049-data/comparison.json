@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "experiment": 49,
+  "device": "AMD Instinct MI300X VF",
+  "architecture": "gfx942",
+  "operator_protocol": {"warmup": 3, "repetitions": 10, "bf16_mirror": true},
+  "vector_width": 4,
+  "operator_rows": [
+    {"elements": 128, "scalar_ms": 0.0128415, "vector_ms": 0.0256065, "speedup": 0.501493761},
+    {"elements": 256, "scalar_ms": 0.0132745, "vector_ms": 0.0260274, "speedup": 0.510020213},
+    {"elements": 896, "scalar_ms": 0.014064, "vector_ms": 0.0303973, "speedup": 0.462672665},
+    {"elements": 1536, "scalar_ms": 0.0140277, "vector_ms": 0.0301649, "speedup": 0.465033862},
+    {"elements": 114688, "scalar_ms": 0.0230328, "vector_ms": 0.0355091, "speedup": 0.648644994},
+    {"elements": 393216, "scalar_ms": 0.0450307, "vector_ms": 0.0468672, "speedup": 0.960814815},
+    {"elements": 802816, "scalar_ms": 0.074458, "vector_ms": 0.0623825, "speedup": 1.193571924},
+    {"elements": 2359296, "scalar_ms": 0.194772197, "vector_ms": 0.2000089, "speedup": 0.97381765},
+    {"elements": 4358144, "scalar_ms": 0.356664801, "vector_ms": 0.352721003, "speedup": 1.011181069},
+    {"elements": 13762560, "scalar_ms": 1.13860489, "vector_ms": 1.0950242, "speedup": 1.039798837},
+    {"elements": 136134656, "scalar_ms": 11.2225857, "vector_ms": 10.6284677, "speedup": 1.055898744},
+    {"elements": 233373696, "scalar_ms": 19.4063766, "vector_ms": 17.6854631, "speedup": 1.097306669}
+  ],
+  "no_mirror_rows": [
+    {"elements": 136134656, "scalar_ms": 9.29874649, "vector_ms": 9.58878193, "speedup": 0.969752629},
+    {"elements": 233373696, "scalar_ms": 15.9873779, "vector_ms": 16.3113544, "speedup": 0.980137977}
+  ],
+  "discarded_variants": {
+    "vector_width_8": "slower on all twelve measured shapes",
+    "rsqrt": "zero second moment first produced NaN; corrected form remained slower than sqrt vector4"
+  },
+  "qwen_vectorized_pilot": [
+    {"batch": 1, "context": 3, "baseline_tokens_per_second": 33.452458094, "candidate_tokens_per_second": 32.357756328, "speedup": 0.967275895, "peak_ratio": 1.0},
+    {"batch": 2, "context": 3, "baseline_tokens_per_second": 64.570128058, "candidate_tokens_per_second": 64.153906419, "speedup": 0.99355396, "peak_ratio": 1.0},
+    {"batch": 1, "context": 32, "baseline_tokens_per_second": 304.384463679, "candidate_tokens_per_second": 293.875476649, "speedup": 0.965474627, "peak_ratio": 1.0},
+    {"batch": 1, "context": 128, "baseline_tokens_per_second": 802.696812957, "candidate_tokens_per_second": 788.924838899, "speedup": 0.982842869, "peak_ratio": 1.0}
+  ],
+  "maximum_sample_absolute_error": 2.98023224e-8,
+  "policy": "Auto remains Scalar; Vectorized is explicit-only for operator research",
+  "decision": "keep-explicit-only",
+  "reason": "some mirrored shapes gain 5.6 to 19.4 percent, but all official Qwen pilot rows regress and no-mirror large tensors regress"
+}

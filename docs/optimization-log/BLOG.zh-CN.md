@@ -1285,3 +1285,19 @@ launch 少不代表执行快。
 四项变化是 `−1.2%、+2.7%、+2.2%、+0.5%`，显存全部不变。39% 的 launch 减少没有转成
 5% 的端到端收益，因此这版也删除。Experiment 046 的 32.94% 并不主要是“小 Kernel 太多”，
 而是大参数、梯度和 moment 的内存路径。下一步测大 Tensor 向量化访存，不再围着 launch 数转。
+
+## 66. Experiment 049：算子快 19%，模型还是更慢
+
+新的 float4 AdamW 每线程处理 4 个连续 FP32 元素，并保留标量尾部和 16-byte 对齐检查。
+独立 Event benchmark 使用 Qwen/DeepSeek 真实参数元素数。802,816 元素带 mirror 时快
+`1.194×`，两个超大带 mirror shape 也快 `1.056×/1.097×`。
+
+![Vectorized AdamW explicit policy](assets/vectorized-adamw-explicit.svg)
+
+图的右边更重要。真实 embedding/output head 没有 BF16 mirror；去掉 mirror store 后，两个
+超大 shape 的 float4 反而只有 `0.970×/0.980×`。width 8 在全部 shape 上更慢。`rsqrt`
+变形第一次还在 zero moment 上产生 NaN；补齐 epsilon 边界后数值通过，速度仍更慢。
+
+最后强制 Qwen 所有参数走 Vectorized，四 shape 都退化 0.6%–3.5%。所以 `Auto` 继续选择
+Scalar。Vectorized 和独立 benchmark 作为显式研究接口保留：它证明框架能注册、选择、测量
+优化实现，也证明局部快不能自动升级成默认策略。

@@ -72,6 +72,10 @@ float sigmoid(float value) {
     return exponential / (1.0F + exponential);
 }
 
+[[maybe_unused]] bool is_aligned(const void* pointer, std::uintptr_t alignment) {
+    return reinterpret_cast<std::uintptr_t>(pointer) % alignment == 0;
+}
+
 }  // namespace
 
 Tensor cast(const Tensor& input, DType output_dtype,
@@ -101,7 +105,8 @@ void adamw_update_(Tensor& parameter, const Tensor& gradient,
                    float learning_rate, float beta1, float beta2,
                    float epsilon, float weight_decay,
                    float first_correction, float second_correction,
-                   [[maybe_unused]] const OpContext& context) {
+                   [[maybe_unused]] const OpContext& context,
+                   AdamWImplementation implementation) {
     require_float(parameter, "parameter");
     require_float(gradient, "gradient");
     require_float(first_moment, "first_moment");
@@ -124,18 +129,40 @@ void adamw_update_(Tensor& parameter, const Tensor& gradient,
     }
     if (parameter.device().is_hip()) {
 #if MICROLLM_HAS_HIP
-        hip::launch_adamw_update(
-            static_cast<float*>(parameter.data()),
-            static_cast<const float*>(gradient.data()),
-            static_cast<float*>(first_moment.data()),
-            static_cast<float*>(second_moment.data()), nullptr,
-            parameter.numel(), learning_rate,
-            beta1, beta2, epsilon, weight_decay, first_correction,
-            second_correction, context.native_stream(parameter.device()));
+        const auto aligned = is_aligned(parameter.data(), 16) &&
+                             is_aligned(gradient.data(), 16) &&
+                             is_aligned(first_moment.data(), 16) &&
+                             is_aligned(second_moment.data(), 16);
+        if (implementation == AdamWImplementation::Vectorized && !aligned) {
+            throw std::invalid_argument("vectorized AdamW requires 16-byte aligned tensors");
+        }
+        const auto vectorized = implementation == AdamWImplementation::Vectorized;
+        if (vectorized) {
+            hip::launch_adamw_update_vectorized(
+                static_cast<float*>(parameter.data()),
+                static_cast<const float*>(gradient.data()),
+                static_cast<float*>(first_moment.data()),
+                static_cast<float*>(second_moment.data()), nullptr,
+                parameter.numel(), learning_rate, beta1, beta2, epsilon,
+                weight_decay, first_correction, second_correction,
+                context.native_stream(parameter.device()));
+        } else {
+            hip::launch_adamw_update(
+                static_cast<float*>(parameter.data()),
+                static_cast<const float*>(gradient.data()),
+                static_cast<float*>(first_moment.data()),
+                static_cast<float*>(second_moment.data()), nullptr,
+                parameter.numel(), learning_rate,
+                beta1, beta2, epsilon, weight_decay, first_correction,
+                second_correction, context.native_stream(parameter.device()));
+        }
         return;
 #else
         throw std::runtime_error("microLLM was built without HIP operator support");
 #endif
+    }
+    if (implementation == AdamWImplementation::Vectorized) {
+        throw std::invalid_argument("vectorized AdamW requires a HIP tensor");
     }
     auto* values = parameter.data_float();
     const auto* gradients = gradient.data_float();
@@ -158,7 +185,8 @@ void adamw_update_bf16_mirror_(Tensor& parameter, const Tensor& gradient,
                                float beta1, float beta2, float epsilon,
                                float weight_decay, float first_correction,
                                float second_correction,
-                               const OpContext& context) {
+                               const OpContext& context,
+                               AdamWImplementation implementation) {
     if (bf16_mirror.dtype() != DType::BFloat16 ||
         bf16_mirror.shape() != parameter.shape() ||
         bf16_mirror.device() != parameter.device() ||
@@ -169,7 +197,7 @@ void adamw_update_bf16_mirror_(Tensor& parameter, const Tensor& gradient,
     if (parameter.device().is_cpu()) {
         adamw_update_(parameter, gradient, first_moment, second_moment,
                       learning_rate, beta1, beta2, epsilon, weight_decay,
-                      first_correction, second_correction, context);
+                      first_correction, second_correction, context, implementation);
         bf16_mirror = parameter.cast(DType::BFloat16);
         return;
     }
@@ -194,14 +222,33 @@ void adamw_update_bf16_mirror_(Tensor& parameter, const Tensor& gradient,
         throw std::invalid_argument("AdamW update hyperparameters are invalid");
     }
 #if MICROLLM_HAS_HIP
-    hip::launch_adamw_update(
-        static_cast<float*>(parameter.data()),
-        static_cast<const float*>(gradient.data()),
-        static_cast<float*>(first_moment.data()),
-        static_cast<float*>(second_moment.data()), bf16_mirror.data(),
-        parameter.numel(), learning_rate, beta1, beta2, epsilon,
-        weight_decay, first_correction, second_correction,
-        context.native_stream(parameter.device()));
+    const auto aligned = is_aligned(parameter.data(), 16) &&
+                         is_aligned(gradient.data(), 16) &&
+                         is_aligned(first_moment.data(), 16) &&
+                         is_aligned(second_moment.data(), 16);
+    if (implementation == AdamWImplementation::Vectorized && !aligned) {
+        throw std::invalid_argument("vectorized AdamW requires 16-byte aligned tensors");
+    }
+    const auto vectorized = implementation == AdamWImplementation::Vectorized;
+    if (vectorized) {
+        hip::launch_adamw_update_vectorized(
+            static_cast<float*>(parameter.data()),
+            static_cast<const float*>(gradient.data()),
+            static_cast<float*>(first_moment.data()),
+            static_cast<float*>(second_moment.data()), bf16_mirror.data(),
+            parameter.numel(), learning_rate, beta1, beta2, epsilon,
+            weight_decay, first_correction, second_correction,
+            context.native_stream(parameter.device()));
+    } else {
+        hip::launch_adamw_update(
+            static_cast<float*>(parameter.data()),
+            static_cast<const float*>(gradient.data()),
+            static_cast<float*>(first_moment.data()),
+            static_cast<float*>(second_moment.data()), bf16_mirror.data(),
+            parameter.numel(), learning_rate, beta1, beta2, epsilon,
+            weight_decay, first_correction, second_correction,
+            context.native_stream(parameter.device()));
+    }
 #else
     throw std::runtime_error("microLLM was built without HIP operator support");
 #endif

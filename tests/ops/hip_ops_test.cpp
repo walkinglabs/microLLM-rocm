@@ -1074,6 +1074,67 @@ TEST(HipTrainingTest, AdamWStepIsDeviceNativeAndMatchesCpu) {
     expect_near(gpu.data().to_vector(), cpu.data().to_vector(), 1.0e-6F);
 }
 
+TEST(HipTrainingTest, VectorizedAdamWMatchesScalarAcrossTailAndMirror) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    constexpr std::int64_t elements = 4099;
+    std::vector<float> parameter_values(static_cast<std::size_t>(elements));
+    std::vector<float> gradient_values(static_cast<std::size_t>(elements));
+    for (std::size_t index = 0; index < parameter_values.size(); ++index) {
+        parameter_values[index] = static_cast<float>(static_cast<int>(index % 31) - 15) / 17.0F;
+        gradient_values[index] = static_cast<float>(static_cast<int>(index % 13) - 6) / 19.0F;
+    }
+    auto scalar_parameter = Tensor::from_vector(parameter_values, {elements}).to(gpu);
+    auto vector_parameter = Tensor::from_vector(parameter_values, {elements}).to(gpu);
+    const auto gradient = Tensor::from_vector(gradient_values, {elements}).to(gpu);
+    Tensor scalar_first({elements}, DType::Float32, gpu);
+    Tensor scalar_second({elements}, DType::Float32, gpu);
+    Tensor vector_first({elements}, DType::Float32, gpu);
+    Tensor vector_second({elements}, DType::Float32, gpu);
+    fill_(scalar_first, 0.0F);
+    fill_(scalar_second, 0.0F);
+    fill_(vector_first, 0.0F);
+    fill_(vector_second, 0.0F);
+    auto scalar_mirror = scalar_parameter.cast(DType::BFloat16);
+    auto vector_mirror = vector_parameter.cast(DType::BFloat16);
+    runtime::reset_transfer_stats();
+    for (const auto step : {1, 2}) {
+        const auto first_correction = 1.0F - std::pow(0.9F, static_cast<float>(step));
+        const auto second_correction = 1.0F - std::pow(0.99F, static_cast<float>(step));
+        adamw_update_bf16_mirror_(
+            scalar_parameter, gradient, scalar_first, scalar_second, scalar_mirror,
+            0.01F, 0.9F, 0.99F, 1.0e-8F, 0.1F,
+            first_correction, second_correction, {}, AdamWImplementation::Scalar);
+        adamw_update_bf16_mirror_(
+            vector_parameter, gradient, vector_first, vector_second, vector_mirror,
+            0.01F, 0.9F, 0.99F, 1.0e-8F, 0.1F,
+            first_correction, second_correction, {}, AdamWImplementation::Vectorized);
+    }
+    runtime::synchronize(gpu);
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    expect_near(vector_parameter.to_vector(), scalar_parameter.to_vector(), 2.0e-6F);
+    expect_near(vector_first.to_vector(), scalar_first.to_vector(), 2.0e-6F);
+    expect_near(vector_second.to_vector(), scalar_second.to_vector(), 2.0e-6F);
+    EXPECT_EQ(vector_mirror.to_vector(), scalar_mirror.to_vector());
+
+    auto unaligned_parameter = Tensor({elements + 1}, DType::Float32, gpu).slice(
+        0, 1, elements + 1);
+    auto unaligned_gradient = Tensor({elements + 1}, DType::Float32, gpu).slice(
+        0, 1, elements + 1);
+    auto unaligned_first = Tensor({elements + 1}, DType::Float32, gpu).slice(
+        0, 1, elements + 1);
+    auto unaligned_second = Tensor({elements + 1}, DType::Float32, gpu).slice(
+        0, 1, elements + 1);
+    EXPECT_THROW(adamw_update_(
+                     unaligned_parameter, unaligned_gradient,
+                     unaligned_first, unaligned_second, 0.01F, 0.9F, 0.99F,
+                     1.0e-8F, 0.1F, 0.1F, 0.01F, {},
+                     AdamWImplementation::Vectorized),
+                 std::invalid_argument);
+}
+
 TEST(HipAutogradTest, FullTransformerBackwardMatchesCpuWithoutHostTransfers) {
     require_gpu();
     const model::ModelConfig config{.vocabulary_size = 8,

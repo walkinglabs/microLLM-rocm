@@ -62,6 +62,10 @@ vendor         ROCm library implementation such as hipBLASLt
 Dispatch may select among validated implementations. It may never bypass the
 correctness gate merely because a candidate benchmarks faster.
 
+The AdamW operator is a concrete example: `Scalar` and `Vectorized` are selectable, but
+`Auto` stays on Scalar because exact-shape float4 wins did not survive the official-model
+gate. Selection policy is evidence, not an alias for the newest Kernel.
+
 ## Stable integration boundary
 
 The long-term integration seam is a C-compatible descriptor plus explicit stream

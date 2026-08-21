@@ -95,6 +95,8 @@
 
 - SGD：一步更新与 `torch.optim.SGD` 对齐。
 - AdamW：至少比较前两步参数、一阶动量、二阶动量和恢复后的下一步。
+- AdamW 优化实现：Scalar/Vectorized 必须对齐参数、两组 moment、BF16 mirror 和非 4
+  倍数尾部；显式 Vectorized 的算子收益不能改变 `Auto`，除非官方模型矩阵也通过。
 - Transformer：相同权重、token、mask、RoPE 和 epsilon 下比较 logits、loss 和全部参数梯度。
 - KV Cache：full-prefix reference 与 cache 路径逐位置比较 logits。
 - SFT：`-100` prompt mask 与 PyTorch ignored target 行为一致。

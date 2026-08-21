@@ -71,9 +71,10 @@ void SGD::step() {
 void SGD::zero_grad() { training::zero_grad(parameters_); }
 
 AdamW::AdamW(Parameters parameters, AdamWConfig config,
-             Bf16ParameterMirrors bf16_mirrors)
+             Bf16ParameterMirrors bf16_mirrors,
+             ops::AdamWImplementation implementation)
     : parameters_(std::move(parameters)), config_(config),
-      bf16_mirrors_(parameters_.size(), nullptr) {
+      bf16_mirrors_(parameters_.size(), nullptr), implementation_(implementation) {
     validate_parameters(parameters_);
     if (!(config_.learning_rate > 0.0F)) {
         throw std::invalid_argument("AdamW learning rate must be positive");
@@ -128,14 +129,15 @@ void AdamW::step() {
                 state_.second_moments[parameter_index],
                 *bf16_mirrors_[parameter_index], config_.learning_rate,
                 config_.beta1, config_.beta2, config_.epsilon,
-                config_.weight_decay, first_correction, second_correction);
+                config_.weight_decay, first_correction, second_correction,
+                {}, implementation_);
         } else {
             ops::adamw_update_(parameter->mutable_data(), parameter->grad(),
                                state_.first_moments[parameter_index],
                                state_.second_moments[parameter_index],
                                config_.learning_rate, config_.beta1, config_.beta2,
                                config_.epsilon, config_.weight_decay, first_correction,
-                               second_correction);
+                               second_correction, {}, implementation_);
         }
     }
 }
