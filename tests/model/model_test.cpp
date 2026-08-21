@@ -318,4 +318,38 @@ TEST(TransformerModelTest, CachedLogitsMatchFullPrefixForMhaAndGqa) {
     }
 }
 
+TEST(TransformerModelTest, BatchedPrefillAndDecodeMatchIndependentFullSequences) {
+    auto config = tiny_config(true);
+    config.max_sequence_length = 4;
+    TransformerModel model(config, 43);
+    inference::KVCache cache(config.layers, config.max_sequence_length, 2);
+    const auto prefix = Tensor::from_int32_vector(
+        {1, 2, 3, 4, 3, 2}, {2, 3});
+    const auto prefilled = model.forward_prefill_cached(prefix, cache).to_vector();
+    const auto full_prefix = model.forward_inference(prefix).to_vector();
+    std::vector<float> expected_prefix;
+    for (std::int64_t batch = 0; batch < 2; ++batch) {
+        const auto offset = (batch * 3 + 2) * config.vocabulary_size;
+        expected_prefix.insert(expected_prefix.end(), full_prefix.begin() + offset,
+                               full_prefix.begin() + offset + config.vocabulary_size);
+    }
+    expect_near(prefilled, expected_prefix, 2.0e-5F);
+    EXPECT_EQ(cache.position(), 3);
+    EXPECT_EQ(cache.batch_size(), 2);
+    EXPECT_EQ(cache.layer(0).key.shape(), (Shape{2, config.kv_heads, 3,
+                                                 config.head_dimension()}));
+
+    const auto continued = model.forward_cached(
+        Tensor::from_int32_vector({4, 1}, {2, 1}), cache).to_vector();
+    const auto full = model.forward_inference(Tensor::from_int32_vector(
+        {1, 2, 3, 4, 4, 3, 2, 1}, {2, 4})).to_vector();
+    std::vector<float> expected_continued;
+    for (std::int64_t batch = 0; batch < 2; ++batch) {
+        const auto offset = (batch * 4 + 3) * config.vocabulary_size;
+        expected_continued.insert(expected_continued.end(), full.begin() + offset,
+                                  full.begin() + offset + config.vocabulary_size);
+    }
+    expect_near(continued, expected_continued, 2.0e-5F);
+}
+
 }  // namespace microllm::model

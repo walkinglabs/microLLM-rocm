@@ -1090,6 +1090,31 @@ TEST(HipModelTest, PreallocatedGqaCacheMatchesCpuAndAvoidsPayloadTransfers) {
     const auto actual_next = hip_model.forward_cached(
         host_next.to(Device::hip()), hip_cache).to_vector();
     expect_near(actual_next, expected_next, 4.0e-4F);
+
+    model::TransformerModel batch_cpu_model(config, 71);
+    model::TransformerModel batch_hip_model(config, 71);
+    batch_hip_model.to(Device::hip());
+    inference::KVCache batch_cpu_cache(config.layers, config.max_sequence_length, 2);
+    inference::KVCache batch_hip_cache(config.layers, config.max_sequence_length, 2);
+    const auto batch_prefix = Tensor::from_int32_vector(
+        {3, 4, 5, 6, 5, 4}, {2, 3});
+    const auto batch_expected = batch_cpu_model.forward_prefill_cached(
+        batch_prefix, batch_cpu_cache).to_vector();
+    const auto batch_device_prefix = batch_prefix.to(Device::hip());
+    runtime::reset_transfer_stats();
+    const auto batch_actual = batch_hip_model.forward_prefill_cached(
+        batch_device_prefix, batch_hip_cache);
+    runtime::synchronize(Device::hip());
+    const auto batch_transfers = runtime::transfer_stats();
+    EXPECT_EQ(batch_transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(batch_transfers.device_to_host_calls, 0U);
+    expect_near(batch_actual.to_vector(), batch_expected, 5.0e-4F);
+    const auto batch_next = Tensor::from_int32_vector({6, 3}, {2, 1});
+    const auto batch_expected_next = batch_cpu_model.forward_cached(
+        batch_next, batch_cpu_cache).to_vector();
+    const auto batch_actual_next = batch_hip_model.forward_cached(
+        batch_next.to(Device::hip()), batch_hip_cache).to_vector();
+    expect_near(batch_actual_next, batch_expected_next, 5.0e-4F);
 }
 
 TEST(HipTensorTest, NonContiguousTransposeMaterializesInLogicalOrder) {

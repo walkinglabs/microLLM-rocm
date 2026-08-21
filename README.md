@@ -59,6 +59,8 @@ needed to run a real training and generation loop:
   T512 cache preparation improves 275× over explicit token replay.
 - last-dimension row-wise GPU argmax keeps batched logits on device; Qwen/DeepSeek B8
   uncached reference decode gains 2.15×/1.68× with unchanged peak and tokens.
+- batch-aware full prefill, KV Storage, step store and cached GQA support B1/2/4/8;
+  official Qwen/DeepSeek cached decode scales at 98.1%/99.5% efficiency.
 
 The design keeps three implementations where they provide engineering value:
 
@@ -144,10 +146,10 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 258/258 | 184 CPU-labelled + 74 HIP-labelled gates; 2 intentional environment skips |
-| ASan/UBSan CPU | 177/177 | host code, CLI, model/graph, benchmark and evidence schemas |
+| Full CPU/HIP configuration | 260/260 | 186 CPU-labelled + 74 HIP-labelled gates; 2 intentional environment skips |
+| ASan/UBSan CPU | 179/179 | host code, CLI, model/graph, benchmark and evidence schemas |
 | MI300X/gfx942 HIP | 73/73 | allocator/stream, graph, BF16/FP8, batched GEMM and model matrix |
-| PyTorch-enabled CPU build | 182/182 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
+| PyTorch-enabled CPU build | 184/184 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
 | Registered test files | 37 | machine-audited CTest registration |
 | CPU source coverage | 83.9% lines / 66.6% branches | GCC 13.3 + gcovr 8.3; `src/` and `include/` |
@@ -224,6 +226,10 @@ Experiment 063 reduces each batch row on device. Same-card B1/2/4/8 uncached dec
 1.13×–2.15×; Qwen B8 D2H falls from 38,895,616 to 256 bytes. Cached batch remains a
 separate unsupported capability. See
 [Experiment 063](docs/optimization-log/experiments/063-device-rowwise-argmax.md).
+
+Experiment 064 closes cached batch `unsupported`: Qwen B1→B8 scales 91.9→721.1 tok/s,
+DeepSeek 62.2→494.6 tok/s, with exact paired tokens and explicit FP32-vs-BF16 KV bytes.
+See [Experiment 064](docs/optimization-log/experiments/064-batched-kv-cache.md).
 
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or

@@ -35,7 +35,7 @@ Tensor prepare_cached_sequence(Tensor& cached, const Tensor& current,
     if (current.dtype() != DType::Float32 || current.ndim() != 4) {
         throw std::invalid_argument("cached K/V tensors must be float32 rank four");
     }
-    if (position < 0 || position >= capacity || current.shape()[0] != 1 ||
+    if (position < 0 || position >= capacity || current.shape()[0] <= 0 ||
         current.shape()[2] != 1) {
         throw std::out_of_range("cached K/V position is outside the preallocated capacity");
     }
@@ -44,16 +44,19 @@ Tensor prepare_cached_sequence(Tensor& cached, const Tensor& current,
     const auto width = current.shape()[3];
     if (!cached.defined()) {
         if (position != 0) throw std::invalid_argument("KV cache must start at position zero");
-        Tensor backing({1, heads, capacity, width}, current.dtype(), current.device());
-        cached = Tensor::from_storage(backing.storage(), {1, heads, 1, width},
+        Tensor backing({current.shape()[0], heads, capacity, width},
+                       current.dtype(), current.device());
+        cached = Tensor::from_storage(
+            backing.storage(), {current.shape()[0], heads, 1, width},
                                       backing.strides(), 0, current.dtype());
-    } else if (cached.ndim() != 4 || cached.shape()[0] != 1 ||
+    } else if (cached.ndim() != 4 || cached.shape()[0] != current.shape()[0] ||
                cached.shape()[1] != heads || cached.shape()[2] != position ||
                cached.shape()[3] != width || cached.device() != current.device()) {
         throw std::invalid_argument("cached and current K/V shapes are incompatible");
     } else {
-        cached = Tensor::from_storage(cached.storage(), {1, heads, position + 1, width},
-                                      cached.strides(), cached.storage_offset(), cached.dtype());
+        cached = Tensor::from_storage(
+            cached.storage(), {current.shape()[0], heads, position + 1, width},
+            cached.strides(), cached.storage_offset(), cached.dtype());
     }
     return packed;
 }
@@ -61,16 +64,18 @@ Tensor prepare_cached_sequence(Tensor& cached, const Tensor& current,
 void prepare_cached_prefix(Tensor& cached, const Tensor& current,
                            std::int64_t capacity) {
     if (current.dtype() != DType::Float32 || current.ndim() != 4 ||
-        current.shape()[0] != 1 || current.shape()[2] <= 0 ||
+        current.shape()[0] <= 0 || current.shape()[2] <= 0 ||
         current.shape()[2] > capacity || cached.defined()) {
         throw std::invalid_argument(
-            "KV prefix requires an empty cache and B=1 sequence within capacity");
+            "KV prefix requires an empty cache and a sequence within capacity");
     }
     const auto packed = current.is_contiguous() ? current : current.contiguous();
-    Tensor backing({1, current.shape()[1], capacity, current.shape()[3]},
+    Tensor backing({current.shape()[0], current.shape()[1], capacity,
+                    current.shape()[3]},
                    current.dtype(), current.device());
     cached = Tensor::from_storage(
         backing.storage(), current.shape(), backing.strides(), 0, current.dtype());
+    const auto batches = static_cast<std::size_t>(current.shape()[0]);
     const auto heads = static_cast<std::size_t>(current.shape()[1]);
     const auto sequence = static_cast<std::size_t>(current.shape()[2]);
     const auto width = static_cast<std::size_t>(current.shape()[3]);
@@ -78,10 +83,15 @@ void prepare_cached_prefix(Tensor& cached, const Tensor& current,
     const auto head_bytes = sequence * width * element_bytes;
     auto* destination = static_cast<std::byte*>(cached.storage().data());
     const auto* source = static_cast<const std::byte*>(packed.data());
-    for (std::size_t head = 0; head < heads; ++head) {
-        runtime::copy_bytes(
-            destination + head * static_cast<std::size_t>(capacity) * width * element_bytes,
-            cached.device(), source + head * head_bytes, packed.device(), head_bytes);
+    for (std::size_t batch = 0; batch < batches; ++batch) {
+        for (std::size_t head = 0; head < heads; ++head) {
+            const auto instance = batch * heads + head;
+            runtime::copy_bytes(
+                destination + instance * static_cast<std::size_t>(capacity) *
+                                  width * element_bytes,
+                cached.device(), source + instance * head_bytes,
+                packed.device(), head_bytes);
+        }
     }
 }
 
@@ -350,9 +360,6 @@ public:
             key = ops::rope(key, 2, 0, config_.rope_base);
         }
         if (prefill_cache != nullptr) {
-            if (batch != 1) {
-                throw std::invalid_argument("KV cache prefill currently requires batch 1");
-            }
             prepare_cached_prefix(prefill_cache->key, key, cache_capacity);
             prepare_cached_prefix(prefill_cache->value, value, cache_capacity);
         }
@@ -370,10 +377,12 @@ public:
 
     Tensor forward_cached(const Tensor& input, inference::KVCache::LayerState& cache,
                           std::int64_t position, std::int64_t cache_capacity) {
-        if (input.shape().size() != 3 || input.shape()[0] != 1 || input.shape()[1] != 1) {
-            throw std::invalid_argument("cached attention expects one B=1 token");
+        if (input.shape().size() != 3 || input.shape()[0] <= 0 ||
+            input.shape()[1] != 1) {
+            throw std::invalid_argument("cached attention expects a non-empty Bx1 token step");
         }
-        const auto flat = input.reshape({1, config_.dimension});
+        const auto batch = input.shape()[0];
+        const auto flat = input.reshape({batch, config_.dimension});
         const auto fuse_query_bias = config_.rope_layout == RopeLayout::SplitHalf &&
                                      query_.has_bias();
         const auto fuse_key_bias = config_.rope_layout == RopeLayout::SplitHalf &&
@@ -405,13 +414,13 @@ public:
             value_projection = value_.forward_tensor(flat);
         }
         auto query = query_projection
-                         .reshape({1, 1, config_.heads, config_.head_dimension()})
+                         .reshape({batch, 1, config_.heads, config_.head_dimension()})
                          .transpose(1, 2);
         auto key = key_projection
-                       .reshape({1, 1, config_.kv_heads, config_.head_dimension()})
+                       .reshape({batch, 1, config_.kv_heads, config_.head_dimension()})
                        .transpose(1, 2);
         auto value = value_projection
-                         .reshape({1, 1, config_.kv_heads, config_.head_dimension()})
+                         .reshape({batch, 1, config_.kv_heads, config_.head_dimension()})
                          .transpose(1, 2);
         if (config_.rope_layout == RopeLayout::SplitHalf) {
             query = fuse_query_bias
@@ -438,8 +447,9 @@ public:
                            1.0F / std::sqrt(static_cast<float>(config_.head_dimension())))
                            .transpose(1, 2)
                            .contiguous()
-                           .reshape({1, config_.dimension});
-        return output_.forward_tensor(context).reshape({1, 1, config_.dimension});
+                           .reshape({batch, config_.dimension});
+        return output_.forward_tensor(context).reshape(
+            {batch, 1, config_.dimension});
     }
 
     void append_named(const std::string& prefix, NamedValues& values) {
@@ -748,11 +758,13 @@ Tensor TransformerModel::forward_prefill_cached(
         throw std::logic_error("model parameters must be loaded before cached prefill");
     }
     if (token_ids.dtype() != DType::Int32 || token_ids.ndim() != 2 ||
-        token_ids.shape()[0] != 1 || token_ids.shape()[1] <= 0) {
-        throw std::invalid_argument("cached prefill expects a non-empty B=1 int32 sequence");
+        token_ids.shape()[0] <= 0 || token_ids.shape()[1] <= 0) {
+        throw std::invalid_argument("cached prefill expects a non-empty BxT int32 sequence");
     }
+    const auto batch = token_ids.shape()[0];
     const auto sequence = token_ids.shape()[1];
-    if (cache.layer_count() != impl_->blocks.size() || cache.position() != 0 ||
+    if (cache.layer_count() != impl_->blocks.size() ||
+        cache.batch_size() != batch || cache.position() != 0 ||
         sequence > cache.max_sequence_length() ||
         cache.max_sequence_length() > impl_->config.max_sequence_length) {
         throw std::invalid_argument("cached prefill requires an empty matching KV cache");
@@ -768,7 +780,7 @@ Tensor TransformerModel::forward_prefill_cached(
         hidden = impl_->final_norm.forward_tensor(hidden);
         const auto last = hidden.slice(1, sequence - 1, sequence)
                               .contiguous()
-                              .reshape({1, impl_->config.dimension});
+                              .reshape({batch, impl_->config.dimension});
         Tensor logits;
         if (impl_->config.tie_embeddings) {
             logits = ops::matmul_with_implementation(
@@ -778,7 +790,7 @@ Tensor TransformerModel::forward_prefill_cached(
             logits = impl_->output_head->forward_tensor(last);
         }
         cache.advance(sequence);
-        return logits.reshape({1, 1, impl_->config.vocabulary_size});
+        return logits.reshape({batch, 1, impl_->config.vocabulary_size});
     } catch (...) {
         cache.reset();
         throw;
@@ -797,10 +809,13 @@ Tensor TransformerModel::forward_cached(const Tensor& token_id, inference::KVCac
     if (!impl_->parameters_initialized) {
         throw std::logic_error("model parameters must be loaded before cached inference");
     }
-    if (token_id.dtype() != DType::Int32 || token_id.shape() != Shape{1, 1}) {
-        throw std::invalid_argument("cached forward expects one int32 token with shape 1x1");
+    if (token_id.dtype() != DType::Int32 || token_id.ndim() != 2 ||
+        token_id.shape()[0] <= 0 || token_id.shape()[1] != 1) {
+        throw std::invalid_argument("cached forward expects int32 tokens with shape Bx1");
     }
+    const auto batch = token_id.shape()[0];
     if (cache.layer_count() != impl_->blocks.size() ||
+        cache.batch_size() != batch ||
         cache.max_sequence_length() > impl_->config.max_sequence_length) {
         throw std::invalid_argument("KV cache does not match model configuration");
     }
@@ -816,7 +831,7 @@ Tensor TransformerModel::forward_cached(const Tensor& token_id, inference::KVCac
                                                       cache.max_sequence_length());
     }
     hidden = impl_->final_norm.forward_tensor(hidden);
-    const auto flat = hidden.reshape({1, impl_->config.dimension});
+    const auto flat = hidden.reshape({batch, impl_->config.dimension});
     Tensor logits;
     if (impl_->config.tie_embeddings) {
         logits = ops::matmul_with_implementation(
@@ -826,7 +841,7 @@ Tensor TransformerModel::forward_cached(const Tensor& token_id, inference::KVCac
         logits = impl_->output_head->forward_tensor(flat);
     }
     cache.advance();
-    return logits.reshape({1, 1, impl_->config.vocabulary_size});
+    return logits.reshape({batch, 1, impl_->config.vocabulary_size});
 }
 
 NamedValues TransformerModel::named_parameters() {

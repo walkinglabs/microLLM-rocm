@@ -69,9 +69,9 @@ prompt写入Cache的时间单独记为`mean_cache_prepare_ms`，`decode_tokens_p
 steady decode；两者之和写入`mean_end_to_end_generation_ms`。默认值仍是`warmup=0`、
 `steps=1`，只适合一次性正确性检查，不能与排除初始化的正式性能行比较。
 
-`--batch`支持full-sequence prefill和uncached reference decode。当前cached decode只支持
-batch1；B2/B4/B8会明确失败，不能静默退回B1。`--use-cache true|false`用于检查两条路径
-是否生成相同token。
+`--batch`支持full-sequence prefill、cached decode和uncached reference decode。
+`--use-cache true|false`用于检查两条路径是否生成相同token；当前batch内所有请求必须共享
+长度和position，continuous batching/request scheduling仍是后续能力。
 
 cached模式默认`--cache-prefill-mode full`，一次完整prompt直接填入每层预分配Storage。
 显式`token`会逐token重放，只用于复现旧性能失败和reference；发布结果必须记录所选模式。

@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| CPU configuration | smoke-tested | full 258/258 CPU/HIP configuration includes 184 CPU-labelled and 74 HIP-labelled gates; ASan/UBSan 177/177 | broader compiler/OS CI matrix |
+| CPU configuration | smoke-tested | full 260/260 CPU/HIP configuration includes 186 CPU-labelled and 74 HIP-labelled gates; ASan/UBSan 179/179 | broader compiler/OS CI matrix |
 | CPU code coverage | smoke-tested | 83.9% lines, 90.9% functions, 66.6% branches over `src/` + `include/` | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, native cast, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
@@ -41,7 +41,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Model-S TinyStories smoke | smoke-tested | immutable 1MiB train prefix, 10 HIP steps | full train/validation curve |
 | Tiny Transformer training | smoke-tested | 40-step overfit and finite gradients | validation split/Model-S |
 | SFT response masking | smoke-tested | CPU/HIP ignored targets and tiny response-loss curve | Model-S instruction corpus/run |
-| CPU/HIP KV cache | smoke-tested | request-bounded Storage, full-sequence B1 prefill, continuation logits, active/capacity utilization and zero-transfer decode | BF16 cache and batched cache |
+| CPU/HIP KV cache | smoke-tested | batch-aware request Storage, full-sequence prefill, continuation logits, B1/2/4/8 scaling and zero-transfer compute | BF16 cache and request scheduling |
 | Device greedy sampling | smoke-tested | scalar/two-stage plus last-dim batched argmax; Qwen B8 D2H 38.9MB→256B with exact tokens | stochastic device top-k/RNG |
 | HIP exact-size allocator | smoke-tested | steady-state pool plus 16-block shared retirement Events; score 2.470863 | size classes and explicit multi-Stream ownership |
 | Fused cached decode Attention | smoke-tested | FP32 MHA/GQA 1/32/128/512 + fallback; repeated-process score 1.752183; long decode up to +57.9% | one-token regression, prefill/backward/BF16 |
@@ -52,7 +52,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Token generation | smoke-tested | deterministic sampling and cache-backed length/bounds | trained text report |
 | Stable model failure | smoke-tested | low-loss cycle breaks beyond training context | rebuttal experiments |
 | PyTorch Custom Ops | smoke-tested on CPU | Torch 2.13 add/multiply via dispatcher | build/run with PyTorch ROCm |
-| PyTorch correctness oracle | smoke-tested | PyTorch-enabled 182/182; 30+ Tensor APIs, 29 graph APIs, inference matrix and model/optimizer parity | broader direct PyTorch ROCm operator matrix |
+| PyTorch correctness oracle | smoke-tested | PyTorch-enabled 184/184; 30+ Tensor APIs, 29 graph APIs, inference matrix and model/optimizer parity | broader direct PyTorch ROCm operator matrix |
 | PyTorch ROCm environment | smoke-tested | Torch 2.10.0+rocm7.13 and Transformers 5.8.1 run official Qwen/DeepSeek BF16 training on MI300X with native device discovery | additional Torch/ROCm versions and Radeon |
 | C ABI v1 | smoke-tested | pure C CPU/HIP create/copy/ops/error client | zero-copy external views |
 | Python ctypes API | smoke-tested | CPU/HIP Tensor/ops/error unittest | packaging/broader ops |
@@ -65,7 +65,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | End-to-end benchmark | smoke-tested | matched Python/PyTorch ROCm official training plus phase-separated context/batch/cache inference JSONL | serving concurrency, board-level memory and llama.cpp |
 | Single-GPU model matrix | smoke-tested | MI300X tiny/Model-S/Model-M plus official Qwen0.5B/DeepSeek-Distill1.5B train+generate, parameters, time, tokens/s and engine peak bytes | repeated contexts/dtypes and external board-level memory sampling |
 | Python/PyTorch ROCm performance matrix | smoke-tested | official Qwen/DeepSeek train plus inference context 8–2048, batch 1–8, KV bytes, precision policies and token gates | identical residency policy, version matrix and llama.cpp |
-| Optimization experiment journal | implemented | 63 numbered FP32/BF16/load/training/inference experiments with generated figures, raw evidence and keep/discard/invalid gates | batched cache, HIP Graph, Radeon and production data-parallel tracks |
+| Optimization experiment journal | implemented | 64 numbered FP32/BF16/load/training/inference experiments with generated figures, raw evidence and keep/discard/invalid gates | BF16 cache, HIP Graph, Radeon and production data-parallel tracks |
 | rocprofv3 workflow | smoke-tested | kernel/HIP API/memory/full trace generated | release artifact retention |
 | hipBLASLt matmul | smoke-tested | FP32/BF16, rank-N strided batches, four transpose contracts, Model-S and T≥256 Attention forward/backward | workspace and persistent versioned autotune cache |
 | Matmul tuning registry | smoke-tested | exact shape override/clear and availability gates | persistence/arch key |

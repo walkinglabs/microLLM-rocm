@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "experiment": 64,
+  "decision": "keep",
+  "before": {"source": "Experiment 060 batch matrix", "micro_cached_batch_2_4_8_status": "unsupported", "unsupported_records": 6},
+  "rows": [
+    {"model": "qwen2.5-0.5b", "batch": 1, "micro_tokens_per_second": 91.873551262, "pytorch_tokens_per_second": 122.196720165, "micro_pytorch_ratio": 0.751849568, "peak_ratio": 1.151558323, "micro_prepare_ms": 18.188349, "pytorch_prepare_ms": 11.504203081, "micro_kv_bytes": 884736, "pytorch_kv_bytes": 430080, "tokens_equal": true},
+    {"model": "qwen2.5-0.5b", "batch": 2, "micro_tokens_per_second": 182.860409267, "pytorch_tokens_per_second": 242.307924448, "micro_pytorch_ratio": 0.754661284, "peak_ratio": 1.132344511, "micro_prepare_ms": 15.5323155, "pytorch_prepare_ms": 11.842167471, "micro_kv_bytes": 1769472, "pytorch_kv_bytes": 860160, "tokens_equal": true},
+    {"model": "qwen2.5-0.5b", "batch": 4, "micro_tokens_per_second": 363.172155337, "pytorch_tokens_per_second": 490.742847904, "micro_pytorch_ratio": 0.740045743, "peak_ratio": 1.094248442, "micro_prepare_ms": 21.2010895, "pytorch_prepare_ms": 11.782373069, "micro_kv_bytes": 3538944, "pytorch_kv_bytes": 1720320, "tokens_equal": true},
+    {"model": "qwen2.5-0.5b", "batch": 8, "micro_tokens_per_second": 721.114808339, "pytorch_tokens_per_second": 984.763093114, "micro_pytorch_ratio": 0.732272374, "peak_ratio": 1.030683434, "micro_prepare_ms": 29.8736865, "pytorch_prepare_ms": 12.218772899, "micro_kv_bytes": 7077888, "pytorch_kv_bytes": 3440640, "tokens_equal": true},
+    {"model": "deepseek-r1-distill-qwen-1.5b", "batch": 1, "micro_tokens_per_second": 62.161010272, "pytorch_tokens_per_second": 100.959424386, "micro_pytorch_ratio": 0.615702899, "peak_ratio": 1.228340976, "micro_prepare_ms": 20.8643945, "pytorch_prepare_ms": 13.765180949, "micro_kv_bytes": 2064384, "pytorch_kv_bytes": 1003520, "tokens_equal": true},
+    {"model": "deepseek-r1-distill-qwen-1.5b", "batch": 2, "micro_tokens_per_second": 124.019237461, "pytorch_tokens_per_second": 209.551608032, "micro_pytorch_ratio": 0.591831476, "peak_ratio": 1.222341868, "micro_prepare_ms": 23.6148375, "pytorch_prepare_ms": 14.002090553, "micro_kv_bytes": 4128768, "pytorch_kv_bytes": 2007040, "tokens_equal": true},
+    {"model": "deepseek-r1-distill-qwen-1.5b", "batch": 4, "micro_tokens_per_second": 247.070700818, "pytorch_tokens_per_second": 411.775842960, "micro_pytorch_ratio": 0.600012616, "peak_ratio": 1.209734911, "micro_prepare_ms": 32.55422, "pytorch_prepare_ms": 14.323811512, "micro_kv_bytes": 8257536, "pytorch_kv_bytes": 4014080, "tokens_equal": true},
+    {"model": "deepseek-r1-distill-qwen-1.5b", "batch": 8, "micro_tokens_per_second": 494.635186764, "pytorch_tokens_per_second": 824.596557914, "micro_pytorch_ratio": 0.599851142, "peak_ratio": 1.187786052, "micro_prepare_ms": 48.4411535, "pytorch_prepare_ms": 14.314127620, "micro_kv_bytes": 16515072, "pytorch_kv_bytes": 8028160, "tokens_equal": true}
+  ],
+  "batch8_efficiency": {"qwen": 0.981124054, "deepseek": 0.994665275},
+  "kv_byte_ratio_micro_over_pytorch": 2.057142857,
+  "reason": "six unsupported shapes become 48 passing paired records; throughput scales nearly linearly, tokens and KV formulas match, and peak ratios remain explicit"
+}

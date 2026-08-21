@@ -1,0 +1,2 @@
+"Name","Calls","TotalDurationNs","AverageNs","Percentage","MinNs","MaxNs","StdDev"
+"MEMORY_COPY_HOST_TO_DEVICE",177,20024975,113135.451977,100.00,15234,618613,129402.718772

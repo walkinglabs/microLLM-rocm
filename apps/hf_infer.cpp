@@ -138,10 +138,6 @@ Options options(int argc, char** argv) {
     if (result.workload == "decode" && result.new_tokens == 0) {
         throw std::invalid_argument("decode workload requires positive --new-tokens");
     }
-    if (result.workload != "prefill" && result.use_cache && result.batch != 1) {
-        throw std::invalid_argument(
-            "cached decode currently supports batch 1; use --use-cache false for larger batches");
-    }
     if (result.workload == "prefill" && result.new_tokens != 0) {
         throw std::invalid_argument("prefill workload requires --new-tokens 0");
     }
@@ -167,8 +163,9 @@ std::size_t tensor_bytes(const microllm::Tensor& tensor) {
 }
 
 struct CachedGenerationState {
-    CachedGenerationState(std::int64_t layers, std::int64_t capacity)
-        : cache(layers, capacity) {}
+    CachedGenerationState(std::int64_t layers, std::int64_t capacity,
+                          std::int64_t batch)
+        : cache(layers, capacity, batch) {}
     microllm::inference::KVCache cache;
     microllm::Tensor logits;
 };
@@ -176,19 +173,27 @@ struct CachedGenerationState {
 CachedGenerationState prepare_cached(
     microllm::model::TransformerModel& model,
     const std::vector<std::int32_t>& prompt, std::int64_t new_tokens,
-    bool full_prefill) {
+    std::int64_t batch, bool full_prefill) {
     CachedGenerationState state(
         model.config().layers,
-        static_cast<std::int64_t>(prompt.size()) + new_tokens);
+        static_cast<std::int64_t>(prompt.size()) + new_tokens, batch);
+    std::vector<std::int32_t> batched_prompt;
+    batched_prompt.reserve(prompt.size() * static_cast<std::size_t>(batch));
+    for (std::int64_t row = 0; row < batch; ++row) {
+        batched_prompt.insert(batched_prompt.end(), prompt.begin(), prompt.end());
+    }
     if (full_prefill) {
         state.logits = model.forward_prefill_cached(
             microllm::Tensor::from_int32_vector(
-                prompt, {1, static_cast<std::int64_t>(prompt.size())}),
+                batched_prompt, {batch, static_cast<std::int64_t>(prompt.size())}),
             state.cache);
     } else {
         for (const auto token : prompt) {
+            const std::vector<std::int32_t> row_tokens(
+                static_cast<std::size_t>(batch), token);
             state.logits = model.forward_cached(
-                microllm::Tensor::from_int32_vector({token}, {1, 1}), state.cache);
+                microllm::Tensor::from_int32_vector(row_tokens, {batch, 1}),
+                state.cache);
         }
     }
     return state;
@@ -200,9 +205,16 @@ GenerationRun decode_cached(microllm::model::TransformerModel& model,
     GenerationRun run;
     run.kv_cache_capacity_tokens = state.cache.max_sequence_length();
     for (std::int64_t generated = 0; generated < new_tokens; ++generated) {
-        auto next_tensor = microllm::ops::argmax(state.logits);
-        const auto next = next_tensor.to_int32_vector().front();
-        if (next < 0) throw std::runtime_error("cached generation produced non-finite logits");
+        auto next_tensor = microllm::ops::argmax_last_dim(state.logits);
+        const auto next_rows = next_tensor.to_int32_vector();
+        const auto next = next_rows.front();
+        if (next < 0 || std::any_of(next_rows.begin(), next_rows.end(),
+                                    [next](std::int32_t value) {
+                                        return value != next;
+                                    })) {
+            throw std::runtime_error(
+                "cached identical batch rows produced invalid or different tokens");
+        }
         run.suffix.push_back(next);
         if (generated + 1 < new_tokens) {
             state.logits = model.forward_cached(next_tensor, state.cache);
@@ -426,6 +438,7 @@ int main(int argc, char** argv) {
                 if (command.use_cache) {
                     auto state = prepare_cached(
                         model, ids, command.new_tokens,
+                        command.batch,
                         command.cache_prefill_mode == "full");
                     (void)decode_cached(model, state, command.new_tokens);
                 } else {
@@ -449,6 +462,7 @@ int main(int argc, char** argv) {
                     const auto prepare_start = std::chrono::steady_clock::now();
                     auto state = prepare_cached(
                         model, ids, command.new_tokens,
+                        command.batch,
                         command.cache_prefill_mode == "full");
                     microllm::runtime::synchronize(device);
                     const auto prepare_finish = std::chrono::steady_clock::now();

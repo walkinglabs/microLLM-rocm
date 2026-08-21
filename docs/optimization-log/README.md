@@ -336,6 +336,13 @@ Experiment 063 增加last-dim row-wise GPU argmax。Qwen/DeepSeek B1/2/4/8同卡
 
 ![Device row-wise argmax](assets/device-rowwise-argmax.svg)
 
+Experiment 064 把KV Storage、prefix、step store、cached GQA和模型扩到batch维。Experiment060
+的6条unsupported变成48条正式pass。Qwen B1→B8 `91.9→721.1 tok/s`、效率98.1%；
+DeepSeek `62.2→494.6`、效率99.5%；micro/PT稳定约0.59–0.75。token/KV公式一致，
+FP32 Cache字节仍为PyTorch BF16的2.057×。
+
+![Batched KV cache](assets/batched-kv-cache.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -421,6 +428,8 @@ Experiment 063 增加last-dim row-wise GPU argmax。Qwen/DeepSeek B1/2/4/8同卡
 | [experiments/062-data/](experiments/062-data/) | 正式36条、T2048、两条失败修复和前后profile |
 | [assets/device-rowwise-argmax.svg](assets/device-rowwise-argmax.svg) | batch shape加速、D2H字节和profile解释 |
 | [experiments/063-data/](experiments/063-data/) | host/device各16条、transfer control和前后profile |
+| [assets/batched-kv-cache.svg](assets/batched-kv-cache.svg) | cached batch吞吐、扩展效率、KV字节与profile |
+| [experiments/064-data/](experiments/064-data/) | pilot16条、正式48条、retained B8 profile |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

@@ -296,6 +296,19 @@ TEST(CpuOpsTest, CachedGqaAttentionStoresStablePrefixesAndRejectsBadContracts) {
                      cache, cache, 0, 1.0F), std::invalid_argument);
 }
 
+TEST(CpuOpsTest, BatchedCacheStoreAndGqaAttentionKeepRowsIndependent) {
+    Tensor backing({2, 1, 2, 2});
+    auto cache = Tensor::from_storage(backing.storage(), {2, 1, 1, 2},
+                                      backing.strides(), 0, DType::Float32);
+    kv_cache_store_(cache,
+                    Tensor::from_vector({3, 4, 5, 6}, {2, 1, 1, 2}), 0);
+    const auto query = Tensor::from_vector(
+        {1, 0, 0, 1, 1, 0, 0, 1}, {2, 2, 1, 2});
+    const auto output = cached_gqa_attention(query, cache, cache, 2, 1.0F);
+    EXPECT_EQ(output.shape(), (Shape{2, 2, 1, 2}));
+    expect_near(output.to_vector(), {3, 4, 3, 4, 5, 6, 5, 6});
+}
+
 TEST(CpuOpsTest, ArgmaxUsesSmallestTieIndexAndMarksNonFiniteInput) {
     EXPECT_EQ(argmax(Tensor::from_vector({-2, 5, 5, 4}, {4})).to_int32_vector(),
               (std::vector<std::int32_t>{1}));

@@ -1557,3 +1557,24 @@ DeepSeek为`1.13×/1.33×/1.49×/1.68×`。Qwen B8 D2H calls仍是8，但字节
 rocprof里device新增12次argmax、20.4ms，Kernel总时间反而略高；端到端仍2.06×。
 少Kernel不是目标，删除同步大传输才是原因。cached B2/B4/B8仍unsupported，下一节点
 终于可以在已有row argmax上扩展batch-aware KV Storage。
+
+## 81. Experiment 064：batch不是把吞吐乘一个数字
+
+旧cached B2/B4/B8在启动前unsupported。新`KVCache(batch)`把每层Storage改成
+`[B,KVH,capacity,D]`；prefix和step按batch/head stride写入，cached Attention grid扩成
+`B×heads`，模型接受`[B,T]`与`[B,1]`，row argmax负责每行token。
+
+![Batched KV cache](assets/batched-kv-cache.svg)
+
+CPU用不同的两行prefix/next token逐行对齐full forward；HIP B2 prefill/step和零payload
+transfer通过。正式48条全部pass：
+
+```text
+Qwen B1/B2/B4/B8     91.9 / 182.9 / 363.2 / 721.1 tok/s  efficiency 98.1%
+DeepSeek             62.2 / 124.0 / 247.1 / 494.6        efficiency 99.5%
+micro/PyTorch        Qwen 0.73–0.75; DeepSeek 0.59–0.62
+```
+
+Cache按batch线性增长；micro FP32仍是PyTorch BF16的2.057×。Qwen B8 profile只D2H
+256B，cached Attention45ms。旧版本没有before timeline，因为它在任何Kernel前失败；
+这个限制原样写进证据。下一节点自然是BF16 KV Cache，而不是再扩大FP32 Cache。

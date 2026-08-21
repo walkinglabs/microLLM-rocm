@@ -1490,6 +1490,65 @@ def validate_device_row_argmax(errors: list[str]) -> tuple[int, int, int]:
     return len(device), len(host), profile["device"].get("kernel_dispatches", 0)
 
 
+def validate_batched_kv_cache(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "064-data"
+    formal = [json.loads(line) for line in
+              (data / "formal" / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    pilot = [json.loads(line) for line in
+             (data / "pilot" / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    keys = {(row.get("model"), row.get("batch"), row.get("framework"),
+             row.get("process_run")) for row in formal}
+    if len(formal) != 48 or len(keys) != 48 or any(
+            row.get("status") != "pass" or row.get("workload") != "decode" or
+            row.get("cache_mode") != "cached" or row.get("batch") not in {1, 2, 4, 8}
+            for row in formal):
+        errors.append("batched KV formal raw protocol changed")
+    if len(pilot) != 16 or any(row.get("status") != "pass" for row in pilot):
+        errors.append("batched KV pilot protocol changed")
+    for row in formal:
+        if row.get("status") != "pass":
+            continue
+        if int(row.get("kv_cache_actual_bytes", 0)) != \
+                int(row.get("kv_cache_theoretical_bytes", -1)):
+            errors.append("batched KV byte formula changed")
+            break
+    summary = json.loads((data / "formal" / "summary.json").read_text(encoding="utf-8"))
+    if summary.get("status") != "pass" or len(summary.get("rows", [])) != 8 or any(
+            row.get("cross_framework_tokens_equal") is not True
+            for row in summary.get("rows", [])):
+        errors.append("batched KV formal summary/token gate changed")
+    comparison = json.loads((data / "comparison.json").read_text(encoding="utf-8"))
+    if comparison.get("decision") != "keep" or len(comparison.get("rows", [])) != 8 or \
+            comparison.get("before", {}).get("unsupported_records") != 6 or \
+            comparison.get("batch8_efficiency", {}).get("qwen", 0.0) < 0.98 or \
+            comparison.get("batch8_efficiency", {}).get("deepseek", 0.0) < 0.99 or any(
+                row.get("tokens_equal") is not True for row in comparison.get("rows", [])):
+        errors.append("batched KV keep/scaling contract changed")
+    profile = json.loads((data / "profile-summary.json").read_text(encoding="utf-8"))
+    with (data / "profile" / "kernel-stats.csv").open(
+            encoding="utf-8", newline="") as stream:
+        kernels = list(csv.DictReader(stream))
+    with (data / "profile" / "hip-api-stats.csv").open(
+            encoding="utf-8", newline="") as stream:
+        api = list(csv.DictReader(stream))
+    with (data / "profile" / "memory-copy-stats.csv").open(
+            encoding="utf-8", newline="") as stream:
+        copies = list(csv.DictReader(stream))
+    if sum(int(row["Calls"]) for row in kernels) != profile.get("kernel_dispatches") or \
+            sum(int(row["TotalDurationNs"]) for row in kernels) != \
+            profile.get("kernel_time_ns") or \
+            sum(int(row["Calls"]) for row in api) != profile.get("hip_api_calls") or \
+            sum(int(row["TotalDurationNs"]) for row in api) != \
+            profile.get("hip_api_time_ns") or \
+            sum(int(row["Calls"]) for row in copies
+                if row["Name"] == "MEMORY_COPY_DEVICE_TO_HOST") != \
+            profile.get("memory_copy_d2h_calls") or \
+            profile.get("measured_d2h_bytes") != 256 or \
+            profile.get("cached_attention_calls") != 216:
+        errors.append("batched KV retained profile contract changed")
+    return len(formal), len(pilot), profile.get("kernel_dispatches", 0)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -1532,7 +1591,8 @@ def validate_assets(errors: list[str]) -> None:
                  "inference-context-batch-matrix.svg",
                  "batched-long-prefill-inference.svg",
                  "full-prefill-kv-cache.svg",
-                 "device-rowwise-argmax.svg"):
+                 "device-rowwise-argmax.svg",
+                 "batched-kv-cache.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -1601,6 +1661,8 @@ def main() -> int:
     cache_records, cache_long_records, cache_calls = validate_full_prefill_cache(errors)
     row_argmax_records, row_argmax_host_records, row_argmax_calls = \
         validate_device_row_argmax(errors)
+    batched_kv_records, batched_kv_pilot, batched_kv_calls = \
+        validate_batched_kv_cache(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -1640,6 +1702,7 @@ def main() -> int:
           f"cache_prefill={cache_records}/{cache_long_records}/{cache_calls} "
           f"row_argmax={row_argmax_records}/{row_argmax_host_records}/"
           f"{row_argmax_calls} "
+          f"batched_kv={batched_kv_records}/{batched_kv_pilot}/{batched_kv_calls} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")
