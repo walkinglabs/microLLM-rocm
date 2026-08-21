@@ -1912,3 +1912,15 @@ deallocation，peak、KV和baseline token不变。
 
 这个节点保留。它没有让Attention少读一个字节，却先消除了小改动触发allocator风暴的随机性。
 Experiment 088现在可以干净地只改`cached_attention_fused_kernel`。
+
+## 105. Experiment 088：4个小测试全绿，百万logit仍然错
+
+候选只把BF16 Key相邻两元素重解释成内部vector类型一起读取，Value和softmax不变。现有4个
+focused HIP测试全部通过，但DeepSeek T2048完整cached logits立即反驳：B1 max/RMSE为
+0.0565/0.0132；B8达到11.978/1.528，并从第3个输出token开始分叉。
+
+![BF16x2 Key load discard](assets/bf16x2-key-load-discard.svg)
+
+B1的8-token suffix仍相同，再次证明top-1不能替代完整logits。候选没有进入性能测量并完整回退。
+下一次pair load只能从32-bit原始字中显式恢复两个公开BF16 scalar，不能继续把公开类型重解释为
+内部vector类型。

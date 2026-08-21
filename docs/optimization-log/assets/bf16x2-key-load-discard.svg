@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="500" viewBox="0 0 1040 500" role="img" aria-labelledby="title desc">
+  <title id="title">BF16 pair Key load rejected by official logits</title>
+  <desc id="desc">Focused operator tests pass, but full DeepSeek T2048 cached logits show large errors and the batch-eight token sequence diverges.</desc>
+  <rect width="1040" height="500" fill="#0b1020"/>
+  <text x="40" y="44" fill="#f8fafc" font-family="sans-serif" font-size="24" font-weight="700">Experiment 088 · small green gate, official red gate</text>
+  <text x="40" y="72" fill="#94a3b8" font-family="sans-serif" font-size="14">BF16x2 Key read · DeepSeek T2048 cached decode</text>
+
+  <rect x="40" y="108" width="280" height="290" rx="12" fill="#111827" stroke="#334155"/>
+  <circle cx="180" cy="192" r="54" fill="#14532d" stroke="#22c55e" stroke-width="5"/>
+  <text x="180" y="185" text-anchor="middle" fill="#dcfce7" font-family="sans-serif" font-size="18" font-weight="700">4 / 4</text>
+  <text x="180" y="211" text-anchor="middle" fill="#bbf7d0" font-family="sans-serif" font-size="13">focused HIP tests</text>
+  <text x="64" y="286" fill="#cbd5e1" font-family="sans-serif" font-size="14">MHA/GQA</text>
+  <text x="64" y="316" fill="#cbd5e1" font-family="sans-serif" font-size="14">BF16 batch</text>
+  <text x="64" y="346" fill="#cbd5e1" font-family="sans-serif" font-size="14">long fallback</text>
+  <text x="64" y="376" fill="#fbbf24" font-family="sans-serif" font-size="13">Not sufficient evidence</text>
+
+  <rect x="348" y="108" width="652" height="290" rx="12" fill="#111827" stroke="#334155"/>
+  <text x="376" y="148" fill="#e2e8f0" font-family="sans-serif" font-size="18" font-weight="700">Complete cached logits</text>
+  <g font-family="sans-serif" font-size="14">
+    <text x="376" y="194" fill="#cbd5e1">T2048 B1 · 151,936 values</text>
+    <rect x="376" y="208" width="150" height="24" rx="3" fill="#ef4444"/>
+    <text x="540" y="226" fill="#fecaca">max 0.0565 · RMSE 0.0132</text>
+    <text x="376" y="274" fill="#cbd5e1">T2048 B8 · 1,215,488 values</text>
+    <rect x="376" y="288" width="510" height="24" rx="3" fill="#dc2626"/>
+    <text x="900" y="306" fill="#fecaca">max 11.978 · RMSE 1.528</text>
+    <text x="376" y="352" fill="#fca5a5" font-weight="700">B8 diverges at output token 3 · DISCARD</text>
+  </g>
+
+  <path d="M320 250 L348 250" stroke="#f59e0b" stroke-width="4" marker-end="url(#arrow)"/>
+  <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#f59e0b"/></marker></defs>
+  <text x="40" y="450" fill="#94a3b8" font-family="sans-serif" font-size="14">No timing accepted · candidate fully reverted · full logits outrank top-1 tokens</text>
+</svg>

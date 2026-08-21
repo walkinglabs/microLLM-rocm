@@ -538,6 +538,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/086-data/](experiments/086-data/) | rocprof聚合表、三对交替进程和allocator counter |
 | [assets/immediate-default-stream-pool.svg](assets/immediate-default-stream-pool.svg) | 去除16-block相位后的allocation与吞吐门 |
 | [experiments/087-data/](experiments/087-data/) | T2048/T512交替对、官方shape survey与Stream安全合同 |
+| [assets/bf16x2-key-load-discard.svg](assets/bf16x2-key-load-discard.svg) | 小算子通过与百万官方logit失败的反例 |
+| [experiments/088-data/](experiments/088-data/) | T2048 B1/B8完整logit误差、token和rollback门 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

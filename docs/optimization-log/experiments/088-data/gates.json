@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "status": "discard",
+  "focused_hip_tests": {"passed": 4, "failed": 0},
+  "official_precision": {"passed": 0, "failed": 2},
+  "performance_runs": 0,
+  "candidate_reverted": true
+}

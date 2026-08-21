@@ -233,3 +233,5 @@ the next gate. Records are append-only except for factual corrections.
   T2048 hotspot trace and a device token-history candidate rejected by B8 allocator regression.
 - [2026-08-21-immediate-default-stream-pool.md](2026-08-21-immediate-default-stream-pool.md):
   phase-independent exact-size reuse with strict default/non-default Stream safety gates.
+- [2026-08-21-bf16x2-key-load-discard.md](2026-08-21-bf16x2-key-load-discard.md):
+  small-test pass rejected by official T2048 complete-logit and token failures.

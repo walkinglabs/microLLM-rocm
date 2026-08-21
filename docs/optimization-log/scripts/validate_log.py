@@ -2628,6 +2628,33 @@ def validate_immediate_default_stream_pool(errors: list[str]) -> tuple[int, int,
         int(summary["t2048_pairs"]["batch_8"]["backend_allocations"][1])
 
 
+def validate_bf16x2_key_load_discard(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "088-data"
+    precision = json.loads(
+        (data / "precision-summary.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    rows = {int(row.get("batch", -1)): row for row in precision.get("rows", [])}
+    if precision.get("status") != "pass" or set(rows) != {1, 8} or \
+            int(rows[1].get("values", 0)) != 151936 or \
+            float(rows[1].get("max_abs_error", 0.0)) < 0.05 or \
+            rows[1].get("tokens_equal") is not True or \
+            int(rows[8].get("values", 0)) != 1215488 or \
+            float(rows[8].get("max_abs_error", 0.0)) < 10.0 or \
+            rows[8].get("tokens_equal") is not False:
+        errors.append("BF16x2 official precision failure evidence changed")
+    if gates.get("status") != "discard" or \
+            gates.get("focused_hip_tests", {}).get("passed") != 4 or \
+            gates.get("official_precision", {}).get("failed") != 2 or \
+            gates.get("performance_runs") != 0 or \
+            gates.get("candidate_reverted") is not True:
+        errors.append("BF16x2 discard gates changed")
+    source = (REPOSITORY / "src" / "ops" / "hip" /
+              "basic_kernels.hip").read_text(encoding="utf-8")
+    if "cached_attention_fused_bf16x2_key_kernel" in source:
+        errors.append("rejected BF16x2 Key Kernel remains in retained source")
+    return len(rows), int(rows[1]["values"]), int(rows[8]["values"])
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -2693,7 +2720,8 @@ def validate_assets(errors: list[str]) -> None:
                  "kv-cache-per-row-positions.svg",
                  "steady-inference-shape-memory.svg",
                  "deepseek-steady-profile-d2h-discard.svg",
-                 "immediate-default-stream-pool.svg"):
+                 "immediate-default-stream-pool.svg",
+                 "bf16x2-key-load-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -2807,6 +2835,8 @@ def main() -> int:
         validate_deepseek_steady_profile_d2h_discard(errors)
     immediate_pool_raw, immediate_pool_micro, immediate_pool_allocations = \
         validate_immediate_default_stream_pool(errors)
+    bf16x2_rows, bf16x2_b1_values, bf16x2_b8_values = \
+        validate_bf16x2_key_load_discard(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -2886,6 +2916,8 @@ def main() -> int:
           f"{steady_profile_b8} "
           f"immediate_pool={immediate_pool_raw}/{immediate_pool_micro}/"
           f"{immediate_pool_allocations} "
+          f"bf16x2_discard={bf16x2_rows}/{bf16x2_b1_values}/"
+          f"{bf16x2_b8_values} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

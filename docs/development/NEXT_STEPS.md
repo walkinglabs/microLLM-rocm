@@ -48,7 +48,8 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   decode wall and B8 allocator/cache reuse is the second hotspot;
 - [x] remove B8 exact-size allocator phase sensitivity with immediate exact-size reuse under the
   legacy-default-Stream-only contract;
-- [ ] vectorize/tile DeepSeek T2048 BF16 cached Attention K/V reads and reduction;
+- [ ] vectorize/tile DeepSeek T2048 BF16 cached Attention without internal BF16 vector
+  reinterpretation; the first pair-load candidate failed official complete logits;
 - [x] add a delayed-arrival multi-request reference scheduler with independent Cache/RNG state;
 - [x] batch compatible equal-length requests through one public static generation path;
 - [x] group pending requests by compatibility with singleton fallback and cross-drain admission;
