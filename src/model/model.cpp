@@ -22,6 +22,16 @@ namespace {
 
 using autograd::Value;
 
+void trace_detail(const std::string& prefix, const char* suffix,
+                  const Tensor& tensor) {
+    if (prefix.empty()) return;
+    auto* trace = profiling::TraceSession::current();
+    if (trace != nullptr) {
+        trace->record(profiling::TraceKind::Layer,
+                      prefix + "." + suffix, tensor);
+    }
+}
+
 Tensor clone_tensor(const Tensor& source, Device target) {
     const auto packed = source.is_contiguous() ? source : source.contiguous();
     Tensor copy(packed.shape(), packed.dtype(), target);
@@ -438,7 +448,8 @@ public:
         const Tensor& input,
         inference::KVCache::LayerState* prefill_cache = nullptr,
         std::int64_t cache_capacity = 0,
-        DType cache_dtype = DType::Float32) {
+        DType cache_dtype = DType::Float32,
+        const std::string& trace_prefix = {}) {
         if (input.ndim() != 3) throw std::invalid_argument("attention input must be BxTxD");
         const auto batch = input.shape()[0];
         const auto sequence = input.shape()[1];
@@ -463,6 +474,9 @@ public:
             key_projection = key_.forward_tensor(flat);
             value_projection = value_.forward_tensor(flat);
         }
+        trace_detail(trace_prefix, "q_projection", query_projection);
+        trace_detail(trace_prefix, "k_projection", key_projection);
+        trace_detail(trace_prefix, "v_projection", value_projection);
         auto query = query_projection
                          .reshape({batch, sequence, config_.heads, config_.head_dimension()})
                          .transpose(1, 2)
@@ -484,6 +498,9 @@ public:
             query = ops::rope(query, 2, 0, config_.rope_base);
             key = ops::rope(key, 2, 0, config_.rope_base);
         }
+        trace_detail(trace_prefix, "q_rope", query);
+        trace_detail(trace_prefix, "k_rope", key);
+        trace_detail(trace_prefix, "value", value);
         if (prefill_cache != nullptr) {
             prepare_cached_prefix(prefill_cache->key, key, cache_capacity,
                                   cache_dtype);
@@ -498,8 +515,11 @@ public:
                            .transpose(1, 2)
                            .contiguous()
                            .reshape({batch * sequence, config_.dimension});
-        return output_.forward_tensor(context).reshape(
+        trace_detail(trace_prefix, "context", context);
+        auto output = output_.forward_tensor(context).reshape(
             {batch, sequence, config_.dimension});
+        trace_detail(trace_prefix, "output", output);
+        return output;
     }
 
     Tensor forward_cached(const Tensor& input, inference::KVCache::LayerState& cache,
@@ -734,7 +754,8 @@ public:
                                  {batch, sequence, config_.dimension});
     }
 
-    Tensor forward_tensor(const Tensor& input) {
+    Tensor forward_tensor(const Tensor& input,
+                          const std::string& trace_prefix = {}) {
         if (input.ndim() != 3) throw std::invalid_argument("FFN input must be BxTxD");
         const auto batch = input.shape()[0];
         const auto sequence = input.shape()[1];
@@ -752,7 +773,9 @@ public:
                                                 up_.forward_tensor(flat));
             output = down_.forward_tensor(activated);
         }
-        return output.reshape({batch, sequence, config_.dimension});
+        auto reshaped = output.reshape({batch, sequence, config_.dimension});
+        trace_detail(trace_prefix, "output", reshaped);
+        return reshaped;
     }
 
     void append_named(const std::string& prefix, NamedValues& values) {
@@ -793,11 +816,21 @@ public:
         return autograd::add(hidden, feed_forward_.forward(ffn_norm_.forward(hidden)));
     }
 
-    Tensor forward_tensor(const Tensor& input) {
-        auto hidden = ops::add(input, attention_.forward_tensor(
-                                          attention_norm_.forward_tensor(input)));
-        return ops::add(hidden, feed_forward_.forward_tensor(
-                                    ffn_norm_.forward_tensor(hidden)));
+    Tensor forward_tensor(const Tensor& input,
+                          const std::string& trace_prefix = {}) {
+        auto attention_input = attention_norm_.forward_tensor(input);
+        trace_detail(trace_prefix, "attention_norm", attention_input);
+        auto attention = attention_.forward_tensor(
+            attention_input, nullptr, 0, DType::Float32,
+            trace_prefix.empty() ? std::string{} : trace_prefix + ".attention");
+        auto hidden = ops::add(input, attention);
+        trace_detail(trace_prefix, "attention_residual", hidden);
+        auto ffn_input = ffn_norm_.forward_tensor(hidden);
+        trace_detail(trace_prefix, "ffn_norm", ffn_input);
+        auto ffn = feed_forward_.forward_tensor(
+            ffn_input,
+            trace_prefix.empty() ? std::string{} : trace_prefix + ".ffn");
+        return ops::add(hidden, ffn);
     }
 
     Tensor forward_prefill_cached(const Tensor& input,
@@ -1006,7 +1039,10 @@ Tensor TransformerModel::forward_inference_impl(const Tensor& token_ids,
         profiling::TraceTimer block_timer(
             profiling::TraceKind::Layer,
             "inference.blocks." + std::to_string(layer), device());
-        hidden = impl_->blocks[layer]->forward_tensor(hidden);
+        const auto detail_prefix = trace != nullptr && layer == 0
+                                       ? "inference.blocks.0"
+                                       : std::string{};
+        hidden = impl_->blocks[layer]->forward_tensor(hidden, detail_prefix);
         block_timer.finish(hidden);
     }
     profiling::TraceTimer norm_timer(

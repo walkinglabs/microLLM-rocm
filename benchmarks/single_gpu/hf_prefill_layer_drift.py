@@ -88,9 +88,10 @@ def compare_traces(b1: dict[str, dict], b2: dict[str, dict]) -> list[dict]:
             raise RuntimeError(f"trace values truncated: {name}")
         left_shape = [int(value) for value in left["shape"]]
         right_shape = [int(value) for value in right["shape"]]
-        if not left_shape or left_shape[0] != 1 or right_shape != [2, *left_shape[1:]]:
+        if not left_shape or right_shape[0] != 2 * left_shape[0] or \
+                right_shape[1:] != left_shape[1:]:
             raise RuntimeError(f"B1/B2 trace shape changed: {name}")
-        row_elements = math.prod(left_shape[1:])
+        row_elements = math.prod(left_shape)
         left_values = [float(value) for value in left["values"]]
         right_values = [float(value) for value in right["values"]]
         if len(left_values) != row_elements or len(right_values) != 2 * row_elements:

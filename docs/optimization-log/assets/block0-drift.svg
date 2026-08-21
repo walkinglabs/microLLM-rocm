@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="610" viewBox="0 0 1080 610" role="img" aria-labelledby="title desc">
+  <title id="title">Block zero drift split</title>
+  <desc id="desc">Attention and norm substages are exact; the first B1/B2 difference appears in the fused BF16 FFN output.</desc>
+  <rect width="1080" height="610" fill="#0b1020"/>
+  <text x="48" y="58" fill="#f8fafc" font-family="sans-serif" font-size="30" font-weight="700">Block 0 · first nonzero substage</text>
+  <text x="48" y="90" fill="#94a3b8" font-family="sans-serif" font-size="17">DeepSeek P5 B1/B2 · full values · 3 fresh pairs</text>
+  <g font-family="sans-serif" font-size="15">
+    <rect x="50" y="130" width="170" height="58" rx="9" fill="#173421"/><text x="72" y="164" fill="#bbf7d0">Attention norm = 0</text>
+    <rect x="245" y="130" width="170" height="58" rx="9" fill="#173421"/><text x="276" y="164" fill="#bbf7d0">Q/K/V = 0</text>
+    <rect x="440" y="130" width="170" height="58" rx="9" fill="#173421"/><text x="478" y="164" fill="#bbf7d0">RoPE = 0</text>
+    <rect x="635" y="130" width="170" height="58" rx="9" fill="#173421"/><text x="667" y="164" fill="#bbf7d0">Attention = 0</text>
+    <rect x="830" y="130" width="170" height="58" rx="9" fill="#173421"/><text x="864" y="164" fill="#bbf7d0">Residual = 0</text>
+    <path d="M220 159 L245 159 M415 159 L440 159 M610 159 L635 159 M805 159 L830 159" stroke="#86efac" stroke-width="3"/>
+    <rect x="250" y="256" width="240" height="72" rx="10" fill="#173421"/><text x="286" y="286" fill="#bbf7d0">FFN norm = 0</text><text x="286" y="312" fill="#86efac">input still exact</text>
+    <path d="M490 292 L590 292" stroke="#f8fafc" stroke-width="4" marker-end="url(#arrow)"/>
+    <rect x="600" y="246" width="330" height="92" rx="10" fill="#3b1720"/><text x="626" y="280" fill="#fecaca" font-size="18" font-weight="700">BF16 FFN output</text><text x="626" y="310" fill="#fca5a5">max 0.0013504 · first nonzero</text>
+  </g>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#f8fafc"/></marker></defs>
+  <rect x="48" y="400" width="984" height="72" rx="10" fill="#173421"/>
+  <text x="72" y="431" fill="#bbf7d0" font-family="sans-serif" font-size="18">B2 duplicate row0/row1 exact at all 43 stages</text>
+  <text x="72" y="457" fill="#86efac" font-family="sans-serif" font-size="15">Attention/Norm/Cache hypotheses refuted.</text>
+  <rect x="48" y="500" width="984" height="62" rx="9" fill="#3b2a14"/>
+  <text x="72" y="537" fill="#fde68a" font-family="sans-serif" font-size="17">Next: cast → gate/up → SwiGLU → down inside bf16_ffn</text>
+</svg>

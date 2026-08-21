@@ -71,6 +71,9 @@ Graph-free full/last-logit inference participates in the same opt-in TraceSessio
 contract as autograd forward. An inactive session performs no Tensor value copies. Full-value
 official diagnostics require a single, zero-warm-up prefill step and are explicitly excluded from
 timing claims.
+When a layer trace is active, inference additionally records block-zero substage values. The scope
+is deliberately one block: it locates numerical drift without multiplying diagnostic storage by
+the model depth. The ordinary path and every block's computation graph remain unchanged.
 See [serving scheduler](dev/serving-scheduler.zh-CN.md).
 
 

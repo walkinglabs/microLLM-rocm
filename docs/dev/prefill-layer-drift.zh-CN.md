@@ -49,9 +49,8 @@ max-abs不是每层严格增加，但mean、RMS和relative-L2总体累积。bloc
 
 ## 4. 下一步
 
-只拆block 0：attention norm、Q/K/V projection、RoPE、Attention output、residual、FFN norm和FFN output。
-如果第一个差异出现在BF16 QKV/FFN GEMM，就进一步固定Matmul实现；如果在它们之前出现，才回到
-Tensor布局或norm Kernel。
+后续[block0子阶段实验](block0-drift.zh-CN.md)已经完成：Attention、RoPE、residual和FFN norm
+全部exact，第一处差异只在BF16 FFN output。下一步继续拆cast、gate/up、SwiGLU和down。
 
 ![Prefill layer drift](../optimization-log/assets/prefill-layer-drift.svg)
 

@@ -2172,3 +2172,14 @@ embedding差异为0；block0首次出现max 0.001350、relative-L2 0.00005166。
 在既有官方BF16 0.2门内，却足以在0.000669 margin改变greedy token。
 
 下一节点只拆block0的norm、QKV、RoPE、Attention、residual和FFN，不再扩大scheduler矩阵。
+
+## 124. Experiment 107：不是Attention，第一处差异只在FFN output
+
+block0新增12个细粒度stage。attention norm、Q/K/V、RoPE、value、context/output、residual和FFN
+norm的B1/B2完整值全为exact。第一个非零点是fused BF16 FFN output：max0.0013504、relative-L2
+0.00007269。B2重复行43个stage仍全部exact。
+
+![Block0 drift](assets/block0-drift.svg)
+
+这反驳了Attention、RoPE、Cache、norm和residual解释，也说明不是所有换M的BF16 GEMM都会产生可见
+差异。下一节点只打开`bf16_ffn`，检查cast、gate/up、SwiGLU和down。

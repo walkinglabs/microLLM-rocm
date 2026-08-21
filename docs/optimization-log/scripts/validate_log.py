@@ -3934,6 +3934,78 @@ def validate_prefill_layer_drift(
         int(logits.get("elements", 0))
 
 
+def validate_block0_drift(
+        errors: list[str]) -> tuple[int, int, int, int]:
+    data = ROOT / "experiments" / "107-data"
+    raw = [json.loads(line) for line in
+           (data / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    if len(raw) != 3 or any(
+            row.get("status") != "pass" or len(row.get("stages", [])) != 43 or
+            row.get("trace_record_count_b1") != 45 or
+            row.get("trace_record_count_b2") != 45
+            for row in raw) or any(
+                row.get("stages") != raw[0].get("stages") for row in raw[1:]):
+        errors.append("block0 drift fresh-pair evidence changed")
+    stages = {row["name"]: row for row in summary.get("stages", [])}
+    if summary.get("track") != "official_prefill_layer_drift" or \
+            summary.get("status") != "pass" or summary.get("stage_count") != 43 or \
+            summary.get("first_nonzero_stage") != \
+            "inference.blocks.0.ffn.output" or \
+            summary.get("duplicate_b2_rows_exact_at_every_stage") is not True:
+        errors.append("block0 drift summary changed")
+    exact_names = (
+        "inference.blocks.0.attention_norm",
+        "inference.blocks.0.attention.q_projection",
+        "inference.blocks.0.attention.k_projection",
+        "inference.blocks.0.attention.v_projection",
+        "inference.blocks.0.attention.q_rope",
+        "inference.blocks.0.attention.k_rope",
+        "inference.blocks.0.attention.value",
+        "inference.blocks.0.attention.context",
+        "inference.blocks.0.attention.output",
+        "inference.blocks.0.attention_residual",
+        "inference.blocks.0.ffn_norm",
+    )
+    if any(stages.get(name, {}).get("b1_vs_b2_row0", {}).get("exact") is not True
+           for name in exact_names):
+        errors.append("block0 pre-FFN exact boundary changed")
+    ffn = stages.get("inference.blocks.0.ffn.output", {}).get(
+        "b1_vs_b2_row0", {})
+    block = stages.get("inference.blocks.0", {}).get("b1_vs_b2_row0", {})
+    if abs(float(ffn.get("max_abs", -1)) - 0.00135040283203125) > 1.0e-12 or \
+            abs(float(ffn.get("relative_l2", -1)) -
+                0.00007269202489080616) > 1.0e-14 or \
+            abs(float(block.get("max_abs", -1)) -
+                float(ffn.get("max_abs", -2))) > 1.0e-15:
+        errors.append("block0 FFN first-drift value changed")
+    model_source = (REPOSITORY / "src" / "model" /
+                    "model.cpp").read_text(encoding="utf-8")
+    model_tests = (REPOSITORY / "tests" / "model" /
+                   "model_test.cpp").read_text(encoding="utf-8")
+    runner = (REPOSITORY / "benchmarks" / "single_gpu" /
+              "hf_prefill_layer_drift.py").read_text(encoding="utf-8")
+    if 'trace_detail(trace_prefix, "q_projection"' not in model_source or \
+            'trace_detail(trace_prefix, "attention_norm"' not in model_source or \
+            'trace_detail(trace_prefix, "output", reshaped)' not in model_source or \
+            '"inference.blocks.0.attention.q_projection"' not in model_tests or \
+            "right_shape[0] != 2 * left_shape[0]" not in runner:
+        errors.append("block0 drift source or tests are missing")
+    if gates.get("status") != "first_drift_is_block0_ffn_output" or \
+            gates.get("full", {}).get("passed") != 315 or \
+            gates.get("cpu", {}).get("passed") != 219 or \
+            gates.get("hip", {}).get("passed") != 96 or \
+            gates.get("sanitizer", {}).get("passed") != 212 or \
+            gates.get("focused", {}).get(
+                "block0_exact_substages_before_ffn_output") != 11:
+        errors.append("block0 drift final gates changed")
+    exact_duplicate = sum(
+        row.get("b2_row0_vs_row1", {}).get("exact") is True
+        for row in summary.get("stages", []))
+    return len(raw), len(stages), len(exact_names), exact_duplicate
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -4018,7 +4090,8 @@ def validate_assets(errors: list[str]) -> None:
                  "continuous-slot-sweep.svg",
                  "continuous-divergence.svg",
                  "prefill-row-audit.svg",
-                 "prefill-layer-drift.svg"):
+                 "prefill-layer-drift.svg",
+                 "block0-drift.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -4171,6 +4244,8 @@ def main() -> int:
         validate_b2_prefill_row_audit(errors)
     layer_drift_raw, layer_drift_stages, layer_drift_exact, layer_drift_logits = \
         validate_prefill_layer_drift(errors)
+    block0_raw, block0_stages, block0_exact, block0_duplicates = \
+        validate_block0_drift(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -4289,6 +4364,8 @@ def main() -> int:
           f"{row_audit_b2}/{row_audit_argmax} "
           f"prefill_layer_drift={layer_drift_raw}/{layer_drift_stages}/"
           f"{layer_drift_exact}/{layer_drift_logits} "
+          f"block0_drift={block0_raw}/{block0_stages}/"
+          f"{block0_exact}/{block0_duplicates} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

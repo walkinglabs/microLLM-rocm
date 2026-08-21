@@ -253,5 +253,7 @@ the next gate. Records are append-only except for factual corrections.
   explicit prompt offsets, swapped/duplicate B2 rows and row-copy hypothesis rejection.
 - [2026-08-21-prefill-layer-drift.md](2026-08-21-prefill-layer-drift.md):
   complete values for embedding, 28 blocks, final norm and official-model logits.
+- [2026-08-21-block0-drift.md](2026-08-21-block0-drift.md):
+  block-zero norm/QKV/RoPE/Attention/residual/FFN split and first-drift isolation.
 - [2026-08-21-divergent-row-cache-reference.md](2026-08-21-divergent-row-cache-reference.md):
   unequal-position shared-Storage B1 oracle with CPU/HIP and reset-prefix gates.

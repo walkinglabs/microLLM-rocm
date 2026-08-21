@@ -77,7 +77,8 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] refute decode batching by serializing only prefill while preserving B4/B8 positions-aware decode;
 - [x] swap/duplicate B2 prefill local rows and refute row, order, stride and KV-copy defects;
 - [x] capture complete B1/B2 logits and all 28 block outputs for fixed P5;
-- [ ] split block 0 into norm/QKV/RoPE/Attention/residual/FFN substage drift records;
+- [x] split block 0 and isolate the first difference to fused BF16 FFN output;
+- [ ] split fused BF16 FFN into cast, gate/up, SwiGLU and down diagnostic substages;
 - [ ] add request-level TTFT and P50/P95 latency rather than throughput alone;
 
 ## P2 — operator registry and profiler API

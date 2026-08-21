@@ -871,6 +871,7 @@ int main(int argc, char** argv) {
         if (device.is_hip()) token_tensor = token_tensor.to(device);
         microllm::Tensor logits_tensor;
         double forward_ms = 0.0;
+        std::size_t trace_record_count = 0;
         const auto run_prefill = command.workload != "decode";
         const auto run_decode = command.workload != "prefill";
         if (run_prefill) {
@@ -913,6 +914,7 @@ int main(int argc, char** argv) {
             trace_scope.reset();
             if (trace_session != nullptr) {
                 trace_session->write_jsonl(command.trace_output);
+                trace_record_count = trace_session->records().size();
             }
             forward_ms = std::chrono::duration<double, std::milli>(
                              forward_finish - forward_start).count();
@@ -1068,9 +1070,7 @@ int main(int argc, char** argv) {
                   << ",\"device_name\":\"" << info.name << "\""
                   << ",\"architecture\":\"" << info.architecture << "\""
                   << ",\"trace_record_count\":"
-                  << (command.trace_output.empty()
-                          ? 0
-                          : static_cast<std::int64_t>(external.model.layers + 5))
+                  << trace_record_count
                   << ",\"device_total_bytes\":" << info.total_memory
                   << ",\"hip_runtime_version\":"
                   << microllm::runtime::hip_runtime_version()

@@ -576,6 +576,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/105-data/](experiments/105-data/) | 12条显式offset官方模型row/order证据 |
 | [assets/prefill-layer-drift.svg](assets/prefill-layer-drift.svg) | embedding到完整logits的relative-L2增长 |
 | [experiments/106-data/](experiments/106-data/) | 三对fresh B1/B2的31-stage完整值误差 |
+| [assets/block0-drift.svg](assets/block0-drift.svg) | block0 Attention exact到FFN首次非零的边界 |
+| [experiments/107-data/](experiments/107-data/) | 三对43-stage block0子阶段完整值误差 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

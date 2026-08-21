@@ -107,6 +107,8 @@ needed to run a real training and generation loop:
   show identical B2 logits and tokens across row zero/one, refuting a stride or KV-copy defect.
 - graph-free inference now supports opt-in layer traces; complete P5 snapshots locate the first
   B1/B2 difference at block 0 and quantify final 151k-logit max-abs/relative-L2 as 0.1530/1.3777%.
+- block-zero detail proves Attention norm, Q/K/V, RoPE, context/output, residual and FFN norm are
+  exact; the first nonzero value is the fused BF16 FFN output.
 
 The design keeps three implementations where they provide engineering value:
 
@@ -362,6 +364,10 @@ Experiment 106 compares every value after embedding, 28 blocks, final norm and t
 vocabulary. Embedding and duplicate B2 rows are exact at all stages; drift starts in block 0 and
 accumulates through block 27. See
 [Experiment 106](docs/optimization-log/experiments/106-prefill-layer-drift.md).
+
+Experiment 107 adds twelve block-zero substage records. Eleven stages through FFN norm are exact;
+the fused FFN output is the first difference at max 0.0013504. See
+[Experiment 107](docs/optimization-log/experiments/107-block0-drift.md).
 
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or

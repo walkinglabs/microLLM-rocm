@@ -97,12 +97,16 @@ TEST(TransformerModelTest, GraphFreeInferenceMatchesAutogradForMhaAndGqa) {
             profiling::ScopedTraceSession active(trace);
             inference = model.forward_inference(tokens);
         }
-        ASSERT_EQ(trace.records().size(), 6U);
+        ASSERT_EQ(trace.records().size(), 18U);
         EXPECT_EQ(trace.records()[1].name, "inference.embedding");
-        EXPECT_EQ(trace.records()[2].name, "inference.blocks.0");
-        EXPECT_EQ(trace.records()[3].name, "inference.final_norm");
-        EXPECT_EQ(trace.records()[4].name, "inference.logits");
-        EXPECT_EQ(trace.records()[4].values.size(), 128U);
+        EXPECT_EQ(trace.records()[2].name,
+                  "inference.blocks.0.attention_norm");
+        EXPECT_EQ(trace.records()[3].name,
+                  "inference.blocks.0.attention.q_projection");
+        EXPECT_EQ(trace.records()[14].name, "inference.blocks.0");
+        EXPECT_EQ(trace.records()[15].name, "inference.final_norm");
+        EXPECT_EQ(trace.records()[16].name, "inference.logits");
+        EXPECT_EQ(trace.records()[16].values.size(), 128U);
         EXPECT_EQ(inference.dtype(), DType::Float32);
         EXPECT_EQ(inference.shape(), (Shape{2, 4, 16}));
         expect_near(inference.to_vector(), graph, 2.0e-5F);
