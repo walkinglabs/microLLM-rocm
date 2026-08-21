@@ -1859,6 +1859,43 @@ def validate_kv_policy_prompt_robustness(errors: list[str]) -> tuple[int, int, i
     return len(layer1_records), len(first4_records), len(performance_raw)
 
 
+def validate_qwen_kv_prompt_failure(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "071-data"
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    uniform = summary.get("uniform", {})
+    first2 = summary.get("first2", {})
+    constant_long = summary.get("constant_t2048", {})
+    if summary.get("decision") != "require_fp32_fallback_for_constant_t2048" or \
+            uniform.get("records") != 14 or uniform.get("failed") != 3 or \
+            first2.get("records") != 14 or first2.get("failed") != 1 or \
+            constant_long.get("only_all_fp32_passes") is not True or \
+            constant_long.get("token_divergence") is not True or \
+            float(constant_long.get("worst_rmse", 0.0)) < 3.1:
+        errors.append("Qwen KV prompt failure/fallback decision changed")
+    uniform_records = []
+    for path in sorted((data / "uniform-patterns").glob("*/summary.json")):
+        uniform_records.extend(json.loads(path.read_text(encoding="utf-8")).get(
+            "records", []))
+    first2_records = []
+    for path in sorted((data / "first2-patterns").glob("*/summary.json")):
+        first2_records.extend(json.loads(path.read_text(encoding="utf-8")).get(
+            "records", []))
+    search_records = []
+    for path in sorted((data / "constant-search").glob("*/summary.json")):
+        search_records.extend(json.loads(path.read_text(encoding="utf-8")).get(
+            "records", []))
+    long_search = [row for row in search_records if row.get("context") == 2048]
+    if len(uniform_records) != 14 or sum(
+            row.get("status") == "failed" for row in uniform_records) != 3 or \
+            len(first2_records) != 14 or sum(
+                row.get("status") == "failed" for row in first2_records) != 1 or \
+            len(search_records) != 9 or len(long_search) != 4 or sum(
+                row.get("status") == "pass" for row in long_search) != 1 or \
+            not any(row.get("generated_tokens_equal") is False for row in long_search):
+        errors.append("Qwen KV prompt raw summaries changed")
+    return len(uniform_records), len(first2_records), len(search_records)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -1908,7 +1945,8 @@ def validate_assets(errors: list[str]) -> None:
                  "mixed-layer-kv-policy.svg",
                  "targeted-prefix-pair-discard.svg",
                  "same-binary-kv-policy.svg",
-                 "kv-policy-prompt-robustness.svg"):
+                 "kv-policy-prompt-robustness.svg",
+                 "qwen-kv-prompt-failure.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -1991,6 +2029,8 @@ def main() -> int:
         validate_same_binary_kv_policy(errors)
     prompt_policy_layer1, prompt_policy_first4, prompt_policy_performance = \
         validate_kv_policy_prompt_robustness(errors)
+    qwen_prompt_uniform, qwen_prompt_first2, qwen_prompt_search = \
+        validate_qwen_kv_prompt_failure(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -2041,6 +2081,8 @@ def main() -> int:
           f"same_binary_policy={same_binary_policy_raw}/{same_binary_policy_rows} "
           f"prompt_policy={prompt_policy_layer1}/{prompt_policy_first4}/"
           f"{prompt_policy_performance} "
+          f"qwen_prompt={qwen_prompt_uniform}/{qwen_prompt_first2}/"
+          f"{qwen_prompt_search} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

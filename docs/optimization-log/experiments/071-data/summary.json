@@ -1,0 +1,28 @@
+{
+  "constant_search": {
+    "failed": 4,
+    "pass": 5,
+    "records": 9
+  },
+  "constant_t2048": {
+    "only_all_fp32_passes": true,
+    "tested": 4,
+    "token_divergence": true,
+    "worst_rmse": 3.1479480565432505
+  },
+  "decision": "require_fp32_fallback_for_constant_t2048",
+  "first2": {
+    "failed": 1,
+    "pass": 13,
+    "records": 14,
+    "worst_rmse": 3.141156078597445
+  },
+  "schema_version": 1,
+  "track": "qwen_bf16_kv_prompt_robustness",
+  "uniform": {
+    "failed": 3,
+    "pass": 11,
+    "records": 14,
+    "worst_rmse": 0.14638948213774172
+  }
+}

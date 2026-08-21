@@ -1681,3 +1681,14 @@ constant 0/3通过；T512 max_abs 15.829、RMSE 2.995并发生token分叉。ramp
 
 因此layer 1降级为固定prompt结果，当前robust-strict升级为layers 0–3 FP32。它仍只对固定
 DeepSeek checkpoint和四类模式有证据，不会被模型名自动触发。
+
+## 88. Experiment 071：Qwen也没有免费的robust BF16 Cache
+
+Qwen uniform BF16在repeat/rotated/ramp共11条通过，但constant T32/512/2048全部超过
+logit门。first 2 FP32在T512刚好通过，搬到T2048却跳到RMSE 3.141并token分叉。
+
+![Qwen KV prompt failure](assets/qwen-kv-prompt-failure.svg)
+
+继续增加到前4/8/12层FP32，constant T2048 RMSE仍约3.14；只有全部24层FP32恢复一致。
+因此Qwen uniform BF16仍是显式速度/显存路径，不是普遍strict安全；遇到该稳定失败必须
+回退全FP32。成功模式和失败模式同时保留。

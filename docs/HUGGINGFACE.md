@@ -81,6 +81,9 @@ steady decode；两者之和写入`mean_end_to_end_generation_ms`。默认值仍
 layer 1只对原prompt有效；robust-strict使用layers 0–3 FP32、其余BF16，14/14多prompt
 挑战通过、Cache仍缩小1.75×。层选择来自固定checkpoint实验，因此不会自动启用。
 
+Qwen uniform BF16在repeat/rotated/ramp通过，但constant T32/512/2048完整logits失败；
+constant T2048只有全FP32 Cache通过。`fp32`默认值因此仍是必要fallback。
+
 `--cache-logits-output PATH`保存真正经过cached decode后的完整logits，只用于精度诊断，
 要求至少生成两个token；开启它的运行不作为正式性能排名。
 

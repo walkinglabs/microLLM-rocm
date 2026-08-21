@@ -199,3 +199,5 @@ the next gate. Records are append-only except for factual corrections.
   alternating uniform/strict policy runner and correction of a cross-window performance claim.
 - [2026-08-21-kv-policy-prompt-robustness.md](2026-08-21-kv-policy-prompt-robustness.md):
   deterministic prompt challenges, one-layer counterexample and first-four robust-strict policy.
+- [2026-08-21-qwen-kv-prompt-failure.md](2026-08-21-qwen-kv-prompt-failure.md):
+  constant-context complete-logit failure and required all-FP32 fallback.

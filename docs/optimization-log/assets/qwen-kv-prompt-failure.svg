@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="790" viewBox="0 0 1800 790">
+  <rect width="100%" height="100%" fill="#fbfcfe"/>
+  <text x="900" y="48" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 071 · Qwen BF16 KV Prompt Failure</text>
+  <text x="900" y="80" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle">Qwen2.5-0.5B · complete logits · MI300X Release</text>
+  <rect x="70" y="125" width="650" height="510" fill="#fff" stroke="#cbd3df" rx="10"/>
+  <text x="395" y="170" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">Uniform BF16 prompt challenge</text>
+  <g font-family="Inter,Arial,sans-serif" font-size="15">
+    <text x="125" y="240" fill="#172033">repeat</text><rect x="240" y="217" width="330" height="30" fill="#18a558"/><text x="590" y="239" fill="#16874b">3/3</text>
+    <text x="125" y="305" fill="#172033">rotated</text><rect x="240" y="282" width="330" height="30" fill="#18a558"/><text x="590" y="304" fill="#16874b">3/3</text>
+    <text x="125" y="370" fill="#172033">constant</text><rect x="240" y="347" width="330" height="30" fill="#d9534f"/><text x="590" y="369" fill="#b33b37">0/3</text>
+    <text x="125" y="435" fill="#172033">ramp</text><rect x="240" y="412" width="330" height="30" fill="#18a558"/><text x="590" y="434" fill="#16874b">5/5</text>
+  </g>
+  <rect x="120" y="500" width="550" height="95" fill="#fff0f0" stroke="#e6a2a0" rx="8"/>
+  <text x="150" y="535" font-family="Inter,Arial,sans-serif" font-size="16" fill="#b33b37" font-weight="700">Constant fails every tested context</text>
+  <text x="150" y="568" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033">uniform worst RMSE 0.146 · token still equal at four steps</text>
+
+  <rect x="760" y="125" width="970" height="510" fill="#fff" stroke="#cbd3df" rx="10"/>
+  <text x="1245" y="170" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">Constant T2048: partial FP32 cannot rescue it</text>
+  <line x1="850" y1="500" x2="1640" y2="500" stroke="#cbd3df"/>
+  <g font-family="Inter,Arial,sans-serif" font-size="14" text-anchor="middle">
+    <rect x="900" y="210" width="120" height="290" fill="#d9534f"/><text x="960" y="195" fill="#b33b37">RMSE 3.144</text><text x="960" y="535" fill="#172033">first 4 FP32</text><text x="960" y="560" fill="#5b6474">1.714× smaller</text>
+    <rect x="1070" y="210" width="120" height="290" fill="#d9534f"/><text x="1130" y="195" fill="#b33b37">3.146</text><text x="1130" y="535" fill="#172033">first 8</text><text x="1130" y="560" fill="#5b6474">1.500×</text>
+    <rect x="1240" y="210" width="120" height="290" fill="#d9534f"/><text x="1300" y="195" fill="#b33b37">3.148</text><text x="1300" y="535" fill="#172033">first 12</text><text x="1300" y="560" fill="#5b6474">1.333×</text>
+    <rect x="1410" y="490" width="120" height="10" fill="#18a558"/><text x="1470" y="475" fill="#16874b">0.000 pass</text><text x="1470" y="535" fill="#172033">all 24 FP32</text><text x="1470" y="560" fill="#5b6474">no reduction</text>
+  </g>
+  <rect x="850" y="585" width="790" height="35" fill="#fff7ed" stroke="#fdba74" rx="6"/>
+  <text x="1245" y="609" font-family="Inter,Arial,sans-serif" font-size="15" fill="#9a4f00" text-anchor="middle">first 2 passes T512, then T2048 jumps to RMSE 3.141 and changes a token</text>
+  <text x="900" y="705" font-family="Inter,Arial,sans-serif" font-size="18" fill="#b33b37" text-anchor="middle" font-weight="700">No universal low-precision Qwen KV policy is proven: long constant input requires the FP32 fallback</text>
+</svg>

@@ -117,6 +117,9 @@ KV Cache的形状、字节公式、API和精度失败见
 layers 0–3为FP32的robust-strict在四类prompt上14/14通过，Cache仍比全FP32小1.75×。
 它是显式策略，不是模型名触发的隐式默认。
 
+Qwen的constant T2048反例无法由前4/8/12层FP32修复，只有全FP32 Cache通过。低精度KV
+不能被描述为对所有prompt同步精度；调用方必须保留FP32 fallback。
+
 训练时不能删除 FP32 master。`LinearPrecision::BFloat16` 只让 Linear forward 使用 BF16
 舍入，backward、参数和 AdamW 仍为 FP32。官方多步 loss 与 PyTorch BF16 autocast 接近，
 但当前比 microLLM FP32 慢约 8%–9%，峰值不降；continuous BF16 training island 仍未完成。

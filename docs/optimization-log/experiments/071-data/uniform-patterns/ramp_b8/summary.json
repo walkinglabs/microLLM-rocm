@@ -1,0 +1,133 @@
+{
+  "records": [
+    {
+      "all_logits_finite": true,
+      "batch": 8,
+      "bf16_bf16_bytes": 50724864,
+      "bf16_bf16_layers": 24,
+      "bf16_cache_bytes": 50724864,
+      "bf16_fp32_bytes": 0,
+      "bf16_fp32_layer_policy": "",
+      "bf16_fp32_layers": 0,
+      "bf16_generated_tokens": [
+        9370,
+        29258,
+        30331,
+        29197
+      ],
+      "bf16_top_tokens": [
+        29197,
+        29197,
+        29197,
+        29197,
+        29197,
+        29197,
+        29197,
+        29197
+      ],
+      "cache_byte_reduction": 2.0,
+      "context": 512,
+      "decode_throughput_ratio_bf16_over_fp32": 1.024807586710374,
+      "decode_tokens": 4,
+      "expected_cache_byte_reduction": 2.0,
+      "fp32_cache_bytes": 101449728,
+      "fp32_generated_tokens": [
+        9370,
+        29258,
+        30331,
+        29197
+      ],
+      "fp32_top_tokens": [
+        29197,
+        29197,
+        29197,
+        29197,
+        29197,
+        29197,
+        29197,
+        29197
+      ],
+      "generated_tokens_equal": true,
+      "logit_count": 1215488,
+      "maximum_absolute_error": 0.10878515243530273,
+      "maximum_relative_error": 343.01345818676054,
+      "model": "qwen2.5-0.5b",
+      "peak_memory_ratio_bf16_over_fp32": 0.9705545191079689,
+      "record_type": "kv_cache_precision_comparison",
+      "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+      "rmse": 0.026542331638218154,
+      "schema_version": 1,
+      "status": "pass",
+      "token_pattern": "ramp",
+      "top_tokens_equal": true
+    },
+    {
+      "all_logits_finite": true,
+      "batch": 8,
+      "bf16_bf16_bytes": 201719808,
+      "bf16_bf16_layers": 24,
+      "bf16_cache_bytes": 201719808,
+      "bf16_fp32_bytes": 0,
+      "bf16_fp32_layer_policy": "",
+      "bf16_fp32_layers": 0,
+      "bf16_generated_tokens": [
+        8,
+        17877,
+        5140,
+        117
+      ],
+      "bf16_top_tokens": [
+        117,
+        117,
+        117,
+        117,
+        117,
+        117,
+        117,
+        117
+      ],
+      "cache_byte_reduction": 2.0,
+      "context": 2048,
+      "decode_throughput_ratio_bf16_over_fp32": 1.031970738952216,
+      "decode_tokens": 4,
+      "expected_cache_byte_reduction": 2.0,
+      "fp32_cache_bytes": 403439616,
+      "fp32_generated_tokens": [
+        8,
+        17877,
+        5140,
+        117
+      ],
+      "fp32_top_tokens": [
+        117,
+        117,
+        117,
+        117,
+        117,
+        117,
+        117,
+        117
+      ],
+      "generated_tokens_equal": true,
+      "logit_count": 1215488,
+      "maximum_absolute_error": 0.0708465576171875,
+      "maximum_relative_error": 89.0607111796271,
+      "model": "qwen2.5-0.5b",
+      "peak_memory_ratio_bf16_over_fp32": 0.9659571144182055,
+      "record_type": "kv_cache_precision_comparison",
+      "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+      "rmse": 0.01573842664763906,
+      "schema_version": 1,
+      "status": "pass",
+      "token_pattern": "ramp",
+      "top_tokens_equal": true
+    }
+  ],
+  "schema_version": 1,
+  "status": "pass",
+  "thresholds": {
+    "maximum_absolute_error": 0.25,
+    "rmse": 0.05
+  },
+  "track": "kv_cache_precision"
+}

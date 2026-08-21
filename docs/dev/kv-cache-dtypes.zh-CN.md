@@ -78,6 +78,9 @@ MI300X 实测中：
 有效，换constant/ramp后会失败。当前固定DeepSeek的robust-strict配方使用layers 0–3 FP32，
 14/14挑战通过，Cache仍缩小1.75×。它是checkpoint特定选项，不是新的默认值。
 
+Qwen没有找到同样的robust低精度配方。constant T2048中，前4/8/12层FP32仍发生巨大logit
+误差和token分叉，只有全FP32通过。因此需要严格门时必须允许按输入/策略回退FP32。
+
 ## 4. C++ API 怎样选择
 
 直接构造 Cache：

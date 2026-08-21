@@ -62,7 +62,7 @@ needed to run a real training and generation loop:
 - batch-aware full prefill, KV Storage, step store and cached GQA support B1/2/4/8;
   official Qwen/DeepSeek cached decode scales at 98.1%/99.5% efficiency.
 - opt-in BF16 KV Storage halves cache bytes with FP32 Attention accumulation; Qwen's
-  32–2048 context gate passes, while a retained DeepSeek RMSE failure keeps FP32 default.
+  repeat-prompt 32–2048 gate passes, while retained multi-prompt failures keep FP32 default.
 - explicit per-layer FP32/BF16 Cache policies can restore a strict complete-logit gate without
   hiding their extra Cache and long-batch prefill cost.
 
@@ -262,6 +262,11 @@ Experiment 070 challenges the one-layer policy with four prompt patterns; it pas
 The robust-strict pinned policy uses layers 0–3 FP32, passes 14/14, retains a 1.75× Cache reduction
 and stays within about 3% of uniform BF16. See
 [Experiment 070](docs/optimization-log/experiments/070-kv-policy-prompt-robustness.md).
+
+Experiment 071 applies the same prompt challenge to Qwen. Constant inputs fail at all tested
+contexts; at T2048 only an all-FP32 Cache restores logits and tokens. Uniform BF16 remains explicit,
+not universally strict-safe. See
+[Experiment 071](docs/optimization-log/experiments/071-qwen-kv-prompt-failure.md).
 
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or

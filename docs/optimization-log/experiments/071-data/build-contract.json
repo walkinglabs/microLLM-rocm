@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "model": "qwen2.5-0.5b",
+  "build_type": "Release",
+  "hip_architecture": "gfx942",
+  "patterns": ["repeat", "rotated", "constant", "ramp"],
+  "contexts": [32, 512, 2048],
+  "batches": [1, 8],
+  "precision_thresholds": {"maximum_absolute_error": 0.25, "rmse": 0.05}
+}

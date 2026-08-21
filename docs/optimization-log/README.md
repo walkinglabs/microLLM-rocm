@@ -378,6 +378,11 @@ RMSE达2.995并token分叉；前4层FP32策略14/14通过，Cache仍缩小1.75×
 
 ![KV policy prompt robustness](assets/kv-policy-prompt-robustness.svg)
 
+Experiment 071把同样挑战施加到Qwen。uniform BF16的constant三context全失败；first 2在
+T512通过却在T2048 RMSE 3.141并token分叉，前4/8/12也无法修复，只有全FP32通过。
+
+![Qwen KV prompt failure](assets/qwen-kv-prompt-failure.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -477,6 +482,8 @@ RMSE达2.995并token分叉；前4层FP32策略14/14通过，Cache仍缩小1.75×
 | [experiments/069-data/](experiments/069-data/) | 72条交替策略raw和12条同binary summary |
 | [assets/kv-policy-prompt-robustness.svg](assets/kv-policy-prompt-robustness.svg) | prompt反例、14/14 robust策略和代价 |
 | [experiments/070-data/](experiments/070-data/) | layer1挑战、constant搜索、first4精度/性能数据 |
+| [assets/qwen-kv-prompt-failure.svg](assets/qwen-kv-prompt-failure.svg) | Qwen pattern矩阵、context反例和FP32 fallback |
+| [experiments/071-data/](experiments/071-data/) | uniform/first2挑战和T512/T2048层数搜索 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

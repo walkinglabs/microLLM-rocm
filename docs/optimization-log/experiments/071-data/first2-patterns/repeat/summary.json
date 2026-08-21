@@ -1,0 +1,152 @@
+{
+  "records": [
+    {
+      "all_logits_finite": true,
+      "batch": 1,
+      "bf16_bf16_bytes": 405504,
+      "bf16_bf16_layers": 22,
+      "bf16_cache_bytes": 479232,
+      "bf16_fp32_bytes": 73728,
+      "bf16_fp32_layer_policy": "0,1",
+      "bf16_fp32_layers": 2,
+      "bf16_generated_tokens": [
+        9707,
+        1879,
+        9707,
+        1879
+      ],
+      "bf16_top_tokens": [
+        1879
+      ],
+      "cache_byte_reduction": 1.8461538461538463,
+      "context": 32,
+      "decode_throughput_ratio_bf16_over_fp32": 1.0015042809998833,
+      "decode_tokens": 4,
+      "expected_cache_byte_reduction": 1.8461538461538463,
+      "fp32_cache_bytes": 884736,
+      "fp32_generated_tokens": [
+        9707,
+        1879,
+        9707,
+        1879
+      ],
+      "fp32_top_tokens": [
+        1879
+      ],
+      "generated_tokens_equal": true,
+      "logit_count": 151936,
+      "maximum_absolute_error": 0.11504852771759033,
+      "maximum_relative_error": 314.55132411792874,
+      "model": "qwen2.5-0.5b",
+      "peak_memory_ratio_bf16_over_fp32": 0.999678902885759,
+      "record_type": "kv_cache_precision_comparison",
+      "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+      "rmse": 0.026161468025516946,
+      "schema_version": 1,
+      "status": "pass",
+      "token_pattern": "repeat",
+      "top_tokens_equal": true
+    },
+    {
+      "all_logits_finite": true,
+      "batch": 1,
+      "bf16_bf16_bytes": 5812224,
+      "bf16_bf16_layers": 22,
+      "bf16_cache_bytes": 6868992,
+      "bf16_fp32_bytes": 1056768,
+      "bf16_fp32_layer_policy": "0,1",
+      "bf16_fp32_layers": 2,
+      "bf16_generated_tokens": [
+        9707,
+        1879,
+        9707,
+        1879
+      ],
+      "bf16_top_tokens": [
+        1879
+      ],
+      "cache_byte_reduction": 1.8461538461538463,
+      "context": 512,
+      "decode_throughput_ratio_bf16_over_fp32": 1.0331110423221084,
+      "decode_tokens": 4,
+      "expected_cache_byte_reduction": 1.8461538461538463,
+      "fp32_cache_bytes": 12681216,
+      "fp32_generated_tokens": [
+        9707,
+        1879,
+        9707,
+        1879
+      ],
+      "fp32_top_tokens": [
+        1879
+      ],
+      "generated_tokens_equal": true,
+      "logit_count": 151936,
+      "maximum_absolute_error": 0.13800430297851562,
+      "maximum_relative_error": 455.7696089588929,
+      "model": "qwen2.5-0.5b",
+      "peak_memory_ratio_bf16_over_fp32": 0.9955909614710156,
+      "record_type": "kv_cache_precision_comparison",
+      "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+      "rmse": 0.0459582889174136,
+      "schema_version": 1,
+      "status": "pass",
+      "token_pattern": "repeat",
+      "top_tokens_equal": true
+    },
+    {
+      "all_logits_finite": true,
+      "batch": 1,
+      "bf16_bf16_bytes": 23113728,
+      "bf16_bf16_layers": 22,
+      "bf16_cache_bytes": 27316224,
+      "bf16_fp32_bytes": 4202496,
+      "bf16_fp32_layer_policy": "0,1",
+      "bf16_fp32_layers": 2,
+      "bf16_generated_tokens": [
+        9707,
+        1879,
+        9707,
+        1879
+      ],
+      "bf16_top_tokens": [
+        1879
+      ],
+      "cache_byte_reduction": 1.8461538461538463,
+      "context": 2048,
+      "decode_throughput_ratio_bf16_over_fp32": 1.0577729903821287,
+      "decode_tokens": 4,
+      "expected_cache_byte_reduction": 1.8461538461538463,
+      "fp32_cache_bytes": 50429952,
+      "fp32_generated_tokens": [
+        9707,
+        1879,
+        9707,
+        1879
+      ],
+      "fp32_top_tokens": [
+        1879
+      ],
+      "generated_tokens_equal": true,
+      "logit_count": 151936,
+      "maximum_absolute_error": 0.09868884086608887,
+      "maximum_relative_error": 333.90802098438144,
+      "model": "qwen2.5-0.5b",
+      "peak_memory_ratio_bf16_over_fp32": 0.9874627268569086,
+      "record_type": "kv_cache_precision_comparison",
+      "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+      "rmse": 0.022714057505862188,
+      "schema_version": 1,
+      "status": "pass",
+      "token_pattern": "repeat",
+      "top_tokens_equal": true
+    }
+  ],
+  "schema_version": 1,
+  "status": "pass",
+  "thresholds": {
+    "maximum_absolute_error": 0.25,
+    "rmse": 0.05
+  },
+  "track": "kv_cache_precision"
+}
