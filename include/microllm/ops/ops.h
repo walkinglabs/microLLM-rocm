@@ -93,6 +93,9 @@ void adamw_update_bf16_mirror_(Tensor& parameter, const Tensor& gradient,
 void clear_bf16_plan_cache() noexcept;
 [[nodiscard]] MatmulImplementation choose_matmul_implementation(
     const Tensor& left, const Tensor& right);
+[[nodiscard]] MatmulImplementation choose_matmul_implementation(
+    const Tensor& left, const Tensor& right,
+    bool transpose_left, bool transpose_right);
 void register_matmul_implementation(std::int64_t rows, std::int64_t inner,
                                     std::int64_t columns,
                                     MatmulImplementation implementation);

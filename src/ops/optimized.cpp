@@ -34,19 +34,33 @@ bool hipblaslt_available() noexcept { return MICROLLM_HAS_HIPBLASLT != 0; }
 
 MatmulImplementation choose_matmul_implementation(const Tensor& left,
                                                   const Tensor& right) {
+    return choose_matmul_implementation(left, right, false, false);
+}
+
+MatmulImplementation choose_matmul_implementation(const Tensor& left,
+                                                  const Tensor& right,
+                                                  bool transpose_left,
+                                                  bool transpose_right) {
     if (!hipblaslt_available() || !left.device().is_hip() || right.device() != left.device() ||
         left.ndim() != 2 || right.ndim() != 2 || !is_floating_point(left.dtype()) ||
-        right.dtype() != left.dtype() || !left.is_contiguous() || !right.is_contiguous() ||
-        left.shape()[1] != right.shape()[0]) {
+        right.dtype() != left.dtype() || !left.is_contiguous() || !right.is_contiguous()) {
         return MatmulImplementation::Readable;
     }
-    const MatmulShapeKey key{left.shape()[0], left.shape()[1], right.shape()[1]};
+    const auto rows = transpose_left ? left.shape()[1] : left.shape()[0];
+    const auto inner = transpose_left ? left.shape()[0] : left.shape()[1];
+    const auto right_inner = transpose_right ? right.shape()[1] : right.shape()[0];
+    const auto columns = transpose_right ? right.shape()[0] : right.shape()[1];
+    if (inner != right_inner) return MatmulImplementation::Readable;
+    const MatmulShapeKey key{rows, inner, columns};
     {
         const std::lock_guard<std::mutex> lock(registry_mutex);
         const auto found = registry.find(key);
         if (found != registry.end()) return found->second;
     }
-    return left.shape()[1] >= 128 && right.shape()[1] >= 128
+    // Ordinary GEMM needs a substantial reduction before the library setup pays.
+    // Weight-gradient GEMM is different: transpose(left) creates a wide output,
+    // and measured Qwen K=3/32 shapes are 1.5x-22x faster in hipBLASLt.
+    return columns >= 128 && (inner >= 128 || (transpose_left && rows >= 128))
                ? MatmulImplementation::HipBLASLt
                : MatmulImplementation::Readable;
 }
@@ -408,17 +422,8 @@ Tensor matmul_with_implementation(const Tensor& left, const Tensor& right,
     if (inner != right_inner) throw std::invalid_argument("matmul inner dimensions mismatch");
 
     if (implementation == MatmulImplementation::Auto) {
-        implementation = MatmulImplementation::Readable;
-        if (hipblaslt_available() && left.device().is_hip()) {
-            const MatmulShapeKey key{rows, inner, columns};
-            const std::lock_guard<std::mutex> lock(registry_mutex);
-            const auto found = registry.find(key);
-            implementation = found != registry.end()
-                                 ? found->second
-                                 : (inner >= 128 && columns >= 128
-                                        ? MatmulImplementation::HipBLASLt
-                                        : MatmulImplementation::Readable);
-        }
+        implementation = choose_matmul_implementation(
+            left, right, transpose_left, transpose_right);
     }
     if (implementation == MatmulImplementation::HipBLASLt) {
 #if MICROLLM_HAS_HIPBLASLT

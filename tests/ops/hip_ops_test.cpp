@@ -1111,6 +1111,18 @@ TEST(HipOptimizedOpsTest, HipblasLtMatmulMatchesReadableReference) {
     EXPECT_EQ(choose_matmul_implementation(left_cpu.to(Device::hip()),
                                            right_cpu.to(Device::hip())),
               MatmulImplementation::Readable);
+
+    const Tensor weight_gradient_left({32, 128}, DType::Float32, Device::hip());
+    const Tensor weight_gradient_right({32, 256}, DType::Float32, Device::hip());
+    EXPECT_EQ(choose_matmul_implementation(
+                  weight_gradient_left, weight_gradient_right, true, false),
+              MatmulImplementation::HipBLASLt);
+    register_matmul_implementation(128, 32, 256,
+                                   MatmulImplementation::Readable);
+    EXPECT_EQ(choose_matmul_implementation(
+                  weight_gradient_left, weight_gradient_right, true, false),
+              MatmulImplementation::Readable);
+    clear_matmul_implementation_registry();
 }
 
 
