@@ -47,6 +47,8 @@ FUSED_CAUSAL_GQA_CHART = ROOT / "assets" / "fused-causal-gqa-training.svg"
 DEEPSEEK_SHAPE_SUMMARY = ROOT / "experiments" / "045-data" / "candidate" / "summary.json"
 DEEPSEEK_LOAD_SUMMARY = ROOT / "experiments" / "045-data" / "load-summary.json"
 DEEPSEEK_SHAPE_CHART = ROOT / "assets" / "deepseek-training-shapes.svg"
+DEEPSEEK_PROFILE_SUMMARY = ROOT / "experiments" / "046-data" / "profile-summary.json"
+DEEPSEEK_PROFILE_CHART = ROOT / "assets" / "deepseek-context128-profile.svg"
 
 
 def rows() -> list[dict]:
@@ -1134,6 +1136,76 @@ def deepseek_shape_svg() -> str:
     return "\n".join(parts)
 
 
+def deepseek_context128_profile_svg() -> str:
+    data = json.loads(DEEPSEEK_PROFILE_SUMMARY.read_text(encoding="utf-8"))
+    categories = data["categories"]
+    width, height = 1800, 900
+    chart_x, chart_y, chart_w = 115, 150, 1030
+    panel_x, panel_y, panel_w, panel_h = 1225, 150, 470, 620
+    row_h, bar_h = 66, 28
+    maximum = max(row["kernel_time_percent"] for row in categories)
+    colors = ("#d04a3a", "#e49b38", "#7c5ce0", "#3b82c4", "#5ca46d",
+              "#8c69c8", "#2f9b8f", "#b36a85", "#aab2bf")
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 046 · DeepSeek Context-128 Profile", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 80,
+             "MI300X · checkpoint load + 1 warm-up + 2 measured steps · 1.369 s Kernel time",
+             16, "#5b6474", anchor="middle"),
+        text(chart_x, 119, "Kernel-time categories", 20, weight=700),
+        f'<rect x="{panel_x}" y="{panel_y}" width="{panel_w}" height="{panel_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+        text(panel_x + panel_w / 2, panel_y + 44, "What the counts prove", 21,
+             anchor="middle", weight=700),
+    ]
+    for index, (row, color) in enumerate(zip(categories, colors)):
+        y = chart_y + index * row_h
+        label = row["name"]
+        if len(label) > 37:
+            label = label[:36] + "…"
+        parts.append(text(chart_x, y + 18, label, 15, weight=600))
+        bar_y = y + 27
+        parts.append(f'<rect x="{chart_x}" y="{bar_y}" width="{chart_w}" '
+                     f'height="{bar_h}" rx="5" fill="#eef1f5"/>')
+        value_w = chart_w * row["kernel_time_percent"] / maximum
+        parts.append(f'<rect x="{chart_x}" y="{bar_y}" width="{value_w:.1f}" '
+                     f'height="{bar_h}" rx="5" fill="{color}"/>')
+        suffix = "training" if row["training_only"] else "mixed scope"
+        parts.append(text(chart_x + chart_w + 16, bar_y + 20,
+                          f'{row["kernel_time_percent"]:.2f}% · {row["calls"]:,} · {suffix}',
+                          14, "#445064"))
+
+    notes = (
+        ("339 × 3 = 1,017", "parameter tensors × steps", "#d04a3a"),
+        ("28 × 3 = 84", "Attention calls per direction", "#7c5ce0"),
+        ("23.00% is mixed", "copy includes load transpose", "#e49b38"),
+    )
+    for index, (headline, detail, color) in enumerate(notes):
+        y = panel_y + 105 + index * 115
+        parts.append(f'<circle cx="{panel_x + 46}" cy="{y - 8}" r="12" fill="{color}"/>')
+        parts.append(text(panel_x + 78, y, headline, 20, color, weight=700))
+        parts.append(text(panel_x + 78, y + 28, detail, 15, "#5b6474"))
+    divider_y = panel_y + 465
+    parts.append(f'<line x1="{panel_x + 35}" y1="{divider_y}" '
+                 f'x2="{panel_x + panel_w - 35}" y2="{divider_y}" stroke="#d7dde6"/>')
+    parts.append(text(panel_x + panel_w / 2, divider_y + 48, "Next falsifiable path", 18,
+                      anchor="middle", weight=700))
+    parts.append(text(panel_x + panel_w / 2, divider_y + 87, "stable gradient addresses", 17,
+                      "#2563eb", anchor="middle", weight=700))
+    parts.append(text(panel_x + panel_w / 2, divider_y + 120, "↓", 24,
+                      "#64748b", anchor="middle"))
+    parts.append(text(panel_x + panel_w / 2, divider_y + 154, "multi-tensor AdamW", 17,
+                      "#2563eb", anchor="middle", weight=700))
+    parts.append(text(width / 2, 845,
+                      "A large bar is not enough: phase boundaries and count identities decide attribution",
+                      16, "#9a4f00", anchor="middle", weight=700))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -1152,7 +1224,8 @@ def main() -> int:
                 BF16_TRAINING_SHAPE_CHART: bf16_training_shape_svg(),
                 BF16_WEIGHT_GRADIENT_CHART: bf16_weight_gradient_svg(),
                 FUSED_CAUSAL_GQA_CHART: fused_causal_gqa_svg(),
-                DEEPSEEK_SHAPE_CHART: deepseek_shape_svg()}
+                DEEPSEEK_SHAPE_CHART: deepseek_shape_svg(),
+                DEEPSEEK_PROFILE_CHART: deepseek_context128_profile_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

@@ -210,6 +210,13 @@ DeepSeek 四 shape 达到 PyTorch 的 `0.337×–0.532×`，峰值显存低 `8%�
 
 ![DeepSeek training shapes and load time](assets/deepseek-training-shapes.svg)
 
+Experiment 046 在 DeepSeek `1×128` 上保留一次完整进程 profile。AdamW 的 1,017 次
+launch 精确对应 339 个参数 × 3 个 step，占 Kernel 时间 `32.94%`，成为最干净的下一
+训练热点。`strided_copy` 的 `23.00%` 混有加载期 GPU transpose，不能全部归因于训练。
+因此下一节点先稳定梯度地址，再构建持久 pointer table 和 multi-tensor AdamW。
+
+![DeepSeek context-128 optimizer profile](assets/deepseek-context128-profile.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -259,6 +266,8 @@ DeepSeek 四 shape 达到 PyTorch 的 `0.337×–0.532×`，峰值显存低 `8%�
 | [experiments/044-data/](experiments/044-data/) | 24 条 raw、前后比较与 retained profiler |
 | [assets/deepseek-training-shapes.svg](assets/deepseek-training-shapes.svg) | DeepSeek shape 与 load gap 曲线 |
 | [experiments/045-data/](experiments/045-data/) | 优化前 pilot、24 条正式 raw 与 load 摘要 |
+| [assets/deepseek-context128-profile.svg](assets/deepseek-context128-profile.svg) | DeepSeek context 128 训练热点与阶段污染边界 |
+| [experiments/046-data/](experiments/046-data/) | retained Kernel/HIP API 聚合与可验证 profile 合同 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "experiment": 46,
+  "source_commit": "1d047b9",
+  "device": "AMD Instinct MI300X VF",
+  "architecture": "gfx942",
+  "model": "deepseek-r1-distill-qwen-1.5b",
+  "precision": "bf16_linear_fp32_master",
+  "batch": 1,
+  "context": 128,
+  "warmup_steps": 1,
+  "measured_steps": 2,
+  "profile_scope": "process-wide: checkpoint load, one warm-up step, and two measured steps",
+  "kernel_dispatches": 7890,
+  "kernel_time_ns": 1368721797,
+  "hip_api_calls": 203917,
+  "hip_api_time_ns": 5902693021,
+  "categories": [
+    {"name": "AdamW master and BF16 mirror update", "calls": 1017, "total_duration_ns": 450797967, "kernel_time_percent": 32.93569, "training_only": true},
+    {"name": "strided copy", "calls": 1037, "total_duration_ns": 314872532, "kernel_time_percent": 23.00486, "training_only": false},
+    {"name": "fused causal GQA backward", "calls": 84, "total_duration_ns": 183577440, "kernel_time_percent": 13.412327, "training_only": true},
+    {"name": "FP32 to BF16 cast", "calls": 788, "total_duration_ns": 82203553, "kernel_time_percent": 6.005863, "training_only": false},
+    {"name": "fill", "calls": 852, "total_duration_ns": 64438165, "kernel_time_percent": 4.707908, "training_only": false},
+    {"name": "fused causal GQA forward", "calls": 84, "total_duration_ns": 58024831, "kernel_time_percent": 4.239344, "training_only": true},
+    {"name": "RMSNorm weight gradient", "calls": 171, "total_duration_ns": 42840505, "kernel_time_percent": 3.129964, "training_only": true},
+    {"name": "bias gradient", "calls": 252, "total_duration_ns": 41592902, "kernel_time_percent": 3.038813, "training_only": true},
+    {"name": "all remaining kernels", "calls": 3605, "total_duration_ns": 130373902, "kernel_time_percent": 9.525231, "training_only": false}
+  ],
+  "clean_count_contracts": {
+    "parameter_tensors": 339,
+    "optimizer_steps_in_trace": 3,
+    "adamw_calls": 1017,
+    "transformer_layers": 28,
+    "attention_steps_in_trace": 3,
+    "attention_forward_calls": 84,
+    "attention_backward_calls": 84
+  },
+  "decision": "profile-only",
+  "next_hypothesis": "stable gradient addresses enable a persistent device pointer table and multi-tensor AdamW, reducing 339 optimizer launches per step",
+  "caveat": "strided-copy, cast, and fill totals cross loading and training boundaries; they are not training-only attribution"
+}

@@ -1230,3 +1230,20 @@ DeepSeek `load_ms` 稳定到约 65 秒，整个进程约 80 秒。它比以前�
 正式三进程中，DeepSeek `1×3、2×3、1×32、1×128` 分别达到 PyTorch 吞吐的
 `0.509×、0.532×、0.457×、0.337×`；显存峰值低 8%–12%。这证明前两轮 Qwen 优化可以
 迁移到 1.5B 架构，也把长上下文差距和加载差距明确留在图上。
+
+## 63. Experiment 046：最大的柱子也可能不属于训练
+
+DeepSeek `1×128` 的新 profile 从进程启动开始，覆盖 checkpoint 加载、一次 warm-up 和
+两次 measured step。7,890 次 Kernel 共用 1.369 秒。第一名 AdamW 占 `32.94%`，第二名
+`strided_copy` 占 `23.00%`。
+
+![DeepSeek context-128 optimizer profile](assets/deepseek-context128-profile.svg)
+
+不能只看第二根柱子的高度。Experiment 045 已把 Linear transpose 移到 GPU，所以
+`strided_copy` 同时记录了加载期和训练期。它没有单独时间边界。反过来，AdamW 的调用数
+恰好是 `339×3=1,017`；Attention 前后向也分别是 `28×3=84`。这两组计数给出了更强的
+阶段证据。
+
+因此下一步不是泛化地“消灭 copy”，而是把每步 339 次 AdamW launch 合并。但一个细节挡在
+前面：现在 `zero_grad()` 会丢掉梯度 Tensor，下一步地址可能变化。直接缓存 device pointer
+会得到悬空地址。先把梯度 buffer 做成稳定资源，再做 multi-tensor optimizer，顺序不能反。

@@ -556,6 +556,45 @@ def validate_deepseek_shapes_and_load(errors: list[str]) -> tuple[int, int]:
     return len(pilot), len(records)
 
 
+def validate_deepseek_optimizer_profile(errors: list[str]) -> tuple[int, int]:
+    data = ROOT / "experiments" / "046-data"
+    summary = json.loads((data / "profile-summary.json").read_text(encoding="utf-8"))
+    with (data / "profile" / "kernel-stats.csv").open(
+            encoding="utf-8", newline="") as stream:
+        kernels = list(csv.DictReader(stream))
+    with (data / "profile" / "hip-api-stats.csv").open(
+            encoding="utf-8", newline="") as stream:
+        api = list(csv.DictReader(stream))
+    kernel_calls = sum(int(row["Calls"]) for row in kernels)
+    kernel_time = sum(int(row["TotalDurationNs"]) for row in kernels)
+    api_calls = sum(int(row["Calls"]) for row in api)
+    api_time = sum(int(row["TotalDurationNs"]) for row in api)
+    if (kernel_calls, kernel_time, api_calls, api_time) != (
+            summary.get("kernel_dispatches"), summary.get("kernel_time_ns"),
+            summary.get("hip_api_calls"), summary.get("hip_api_time_ns")):
+        errors.append("DeepSeek optimizer profiler aggregate changed")
+    categories = summary.get("categories", [])
+    if len(categories) != 9 or \
+            sum(row.get("calls", 0) for row in categories) != kernel_calls or \
+            sum(row.get("total_duration_ns", 0) for row in categories) != kernel_time or \
+            abs(sum(row.get("kernel_time_percent", 0.0) for row in categories) - 100.0) > 1e-5:
+        errors.append("DeepSeek optimizer profile category partition changed")
+    by_name = {row.get("name"): row for row in categories}
+    adamw = by_name.get("AdamW master and BF16 mirror update", {})
+    copy = by_name.get("strided copy", {})
+    counts = summary.get("clean_count_contracts", {})
+    if adamw.get("calls") != 1017 or adamw.get("kernel_time_percent", 0.0) < 32.0 or \
+            adamw.get("training_only") is not True or \
+            copy.get("training_only") is not False or \
+            counts.get("parameter_tensors", 0) * counts.get("optimizer_steps_in_trace", 0) != \
+            counts.get("adamw_calls") or \
+            counts.get("transformer_layers", 0) * counts.get("attention_steps_in_trace", 0) != \
+            counts.get("attention_forward_calls") or \
+            counts.get("attention_forward_calls") != counts.get("attention_backward_calls"):
+        errors.append("DeepSeek optimizer profile attribution contract changed")
+    return kernel_calls, api_calls
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -580,7 +619,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-training-shape-matrix.svg",
                  "bf16-weight-gradient-routing.svg",
                  "fused-causal-gqa-training.svg",
-                 "deepseek-training-shapes.svg"):
+                 "deepseek-training-shapes.svg",
+                 "deepseek-context128-profile.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -620,6 +660,8 @@ def main() -> int:
         validate_weight_gradient_routing(errors)
     fused_causal_gqa_count = validate_fused_causal_gqa(errors)
     deepseek_pilot_count, deepseek_shape_count = validate_deepseek_shapes_and_load(errors)
+    optimizer_profile_kernel_calls, optimizer_profile_api_calls = \
+        validate_deepseek_optimizer_profile(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -638,6 +680,7 @@ def main() -> int:
           f"weight_gradient={weight_gradient_candidate_count}/{weight_gradient_micro_count} "
           f"fused_causal_gqa={fused_causal_gqa_count} "
           f"deepseek_shapes={deepseek_pilot_count}/{deepseek_shape_count} "
+          f"optimizer_profile={optimizer_profile_kernel_calls}/{optimizer_profile_api_calls} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

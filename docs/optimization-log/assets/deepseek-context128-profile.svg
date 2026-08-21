@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="900" viewBox="0 0 1800 900">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="900.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 046 · DeepSeek Context-128 Profile</text>
+<text x="900.0" y="80.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">MI300X · checkpoint load + 1 warm-up + 2 measured steps · 1.369 s Kernel time</text>
+<text x="115.0" y="119.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="start" font-weight="700">Kernel-time categories</text>
+<rect x="1225" y="150" width="470" height="620" fill="#ffffff" stroke="#cbd3df" rx="10"/>
+<text x="1460.0" y="194.0" font-family="Inter,Arial,sans-serif" font-size="21" fill="#172033" text-anchor="middle" font-weight="700">What the counts prove</text>
+<text x="115.0" y="168.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="start" font-weight="600">AdamW master and BF16 mirror update</text>
+<rect x="115" y="177" width="1030" height="28" rx="5" fill="#eef1f5"/>
+<rect x="115" y="177" width="1030.0" height="28" rx="5" fill="#d04a3a"/>
+<text x="1161.0" y="197.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#445064" text-anchor="start" font-weight="400">32.94% · 1,017 · training</text>
+<text x="115.0" y="234.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="start" font-weight="600">strided copy</text>
+<rect x="115" y="243" width="1030" height="28" rx="5" fill="#eef1f5"/>
+<rect x="115" y="243" width="719.4" height="28" rx="5" fill="#e49b38"/>
+<text x="1161.0" y="263.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#445064" text-anchor="start" font-weight="400">23.00% · 1,037 · mixed scope</text>
+<text x="115.0" y="300.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="start" font-weight="600">fused causal GQA backward</text>
+<rect x="115" y="309" width="1030" height="28" rx="5" fill="#eef1f5"/>
+<rect x="115" y="309" width="419.4" height="28" rx="5" fill="#7c5ce0"/>
+<text x="1161.0" y="329.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#445064" text-anchor="start" font-weight="400">13.41% · 84 · training</text>
+<text x="115.0" y="366.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="start" font-weight="600">FP32 to BF16 cast</text>
+<rect x="115" y="375" width="1030" height="28" rx="5" fill="#eef1f5"/>
+<rect x="115" y="375" width="187.8" height="28" rx="5" fill="#3b82c4"/>
+<text x="1161.0" y="395.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#445064" text-anchor="start" font-weight="400">6.01% · 788 · mixed scope</text>
+<text x="115.0" y="432.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="start" font-weight="600">fill</text>
+<rect x="115" y="441" width="1030" height="28" rx="5" fill="#eef1f5"/>
+<rect x="115" y="441" width="147.2" height="28" rx="5" fill="#5ca46d"/>
+<text x="1161.0" y="461.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#445064" text-anchor="start" font-weight="400">4.71% · 852 · mixed scope</text>
+<text x="115.0" y="498.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="start" font-weight="600">fused causal GQA forward</text>
+<rect x="115" y="507" width="1030" height="28" rx="5" fill="#eef1f5"/>
+<rect x="115" y="507" width="132.6" height="28" rx="5" fill="#8c69c8"/>
+<text x="1161.0" y="527.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#445064" text-anchor="start" font-weight="400">4.24% · 84 · training</text>
+<text x="115.0" y="564.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="start" font-weight="600">RMSNorm weight gradient</text>
+<rect x="115" y="573" width="1030" height="28" rx="5" fill="#eef1f5"/>
+<rect x="115" y="573" width="97.9" height="28" rx="5" fill="#2f9b8f"/>
+<text x="1161.0" y="593.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#445064" text-anchor="start" font-weight="400">3.13% · 171 · training</text>
+<text x="115.0" y="630.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="start" font-weight="600">bias gradient</text>
+<rect x="115" y="639" width="1030" height="28" rx="5" fill="#eef1f5"/>
+<rect x="115" y="639" width="95.0" height="28" rx="5" fill="#b36a85"/>
+<text x="1161.0" y="659.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#445064" text-anchor="start" font-weight="400">3.04% · 252 · training</text>
+<text x="115.0" y="696.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="start" font-weight="600">all remaining kernels</text>
+<rect x="115" y="705" width="1030" height="28" rx="5" fill="#eef1f5"/>
+<rect x="115" y="705" width="297.9" height="28" rx="5" fill="#aab2bf"/>
+<text x="1161.0" y="725.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#445064" text-anchor="start" font-weight="400">9.53% · 3,605 · mixed scope</text>
+<circle cx="1271" cy="247" r="12" fill="#d04a3a"/>
+<text x="1303.0" y="255.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#d04a3a" text-anchor="start" font-weight="700">339 × 3 = 1,017</text>
+<text x="1303.0" y="283.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="start" font-weight="400">parameter tensors × steps</text>
+<circle cx="1271" cy="362" r="12" fill="#7c5ce0"/>
+<text x="1303.0" y="370.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#7c5ce0" text-anchor="start" font-weight="700">28 × 3 = 84</text>
+<text x="1303.0" y="398.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="start" font-weight="400">Attention calls per direction</text>
+<circle cx="1271" cy="477" r="12" fill="#e49b38"/>
+<text x="1303.0" y="485.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#e49b38" text-anchor="start" font-weight="700">23.00% is mixed</text>
+<text x="1303.0" y="513.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="start" font-weight="400">copy includes load transpose</text>
+<line x1="1260" y1="615" x2="1660" y2="615" stroke="#d7dde6"/>
+<text x="1460.0" y="663.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="middle" font-weight="700">Next falsifiable path</text>
+<text x="1460.0" y="702.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#2563eb" text-anchor="middle" font-weight="700">stable gradient addresses</text>
+<text x="1460.0" y="735.0" font-family="Inter,Arial,sans-serif" font-size="24" fill="#64748b" text-anchor="middle" font-weight="400">↓</text>
+<text x="1460.0" y="769.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#2563eb" text-anchor="middle" font-weight="700">multi-tensor AdamW</text>
+<text x="900.0" y="845.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#9a4f00" text-anchor="middle" font-weight="700">A large bar is not enough: phase boundaries and count identities decide attribution</text>
+</svg>
