@@ -41,14 +41,25 @@ prompt会被错误算成“每个新token很慢”。
 - `capacity tokens`：最多预留多少token；
 - `active tokens`：已经写入多少token；
 - `utilization = active / allocated`；
-- `share of peak`：Cache占本次峰值显存多少。
+- `share of peak`：Cache占本次峰值显存多少；
+- `peak share of device`：引擎峰值占整张卡总显存多少，它不是GPU算力利用率；
+- `bytes per request`：batch增大后，每条请求平均承担多少Cache和峰值显存。
 
 Tensor view只展示活跃前缀，不能拿它的`numel`冒充完整Storage。测试会检查：shape随token
 增长，但Storage地址和预分配字节保持不变。
 
 ## 为什么要测多个context和batch
 
-固定矩阵至少分两条轴：
+脚本内置三套规模，避免每个人随手挑几个点：
+
+| 套件 | context | batch | 用途 |
+|---|---|---|---|
+| `smoke` | 8、128 | 1、2 | 几分钟内检查程序和JSON |
+| `standard` | 8、32、128、512、2048 | 1、2、4、8 | 日常正式对比 |
+| `extended` | 1、8、32、128、512、1024、2048、4096 | 1、2、4、8、16 | 找极端边界、OOM和退化点 |
+
+`--contexts`和`--batches`仍可覆盖套件，但正式报告会把最终使用的轴写进`summary.json`。
+这些点主要回答两类问题：
 
 | 轴 | 建议值 | 回答的问题 |
 |---|---|---|
@@ -79,8 +90,10 @@ PyTorch：整模型BF16
 3. cached与uncached token一致；
 4. microLLM与PyTorch token是否一致；
 5. KV理论/实际字节一致；
-6. latency、吞吐、peak为有限正数；
-7. 参数量和revision没有改变。
+6. active Cache不能大于allocated Cache；
+7. latency、吞吐、peak和整卡容量为有限正数；
+8. batch吞吐扩展和效率以同context的B1作为基线；
+9. 参数量和revision没有改变。
 
 跨框架token不一致不是“性能失败”，而是数值对齐失败，必须保留首个分叉位置。
 
@@ -94,10 +107,10 @@ ROCR_VISIBLE_DEVICES=1 python3 \
   --pytorch-python /usr/local/bin/python3 \
   --output-directory /tmp/microllm-inference-matrix \
   --models qwen2.5-0.5b,deepseek-r1-distill-qwen-1.5b \
-  --contexts 8,128,512 \
-  --batches 1,2,4 \
+  --suite standard \
   --decode-tokens 4 --warmup 1 --steps 2 --runs 3
 ```
 
 `raw.jsonl`保存每个新进程；`summary.json`只对完整成功的配对取中位数。正式结论还要记录
-GPU、ROCm、PyTorch/Transformers版本和失败行。
+GPU、ROCm、PyTorch/Transformers版本和失败行。`batch_efficiency=1`表示吞吐随batch理想线性
+增长；例如B4吞吐是B1的3.2倍，则效率是`3.2 / 4 = 0.8`，也就是80%。

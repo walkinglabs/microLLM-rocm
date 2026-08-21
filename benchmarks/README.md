@@ -66,14 +66,16 @@ ROCR_VISIBLE_DEVICES=1 python3 \
   --micro-binary build/hip-release/apps/microllm_hf_infer \
   --pytorch-python /path/to/python-with-pytorch-rocm \
   --output-directory /tmp/microllm-inference-matrix \
-  --contexts 8,128,512 --batches 1,2,4,8 \
+  --suite standard \
   --decode-tokens 4 --warmup 1 --steps 2 --runs 3
 ```
 
 The runner separates prefill, cache preparation, steady cached decode and uncached
 reference decode. It records engine/framework peak, resident weight policy, KV Storage
-and active bytes, utilization, exact greedy tokens and explicit `unsupported`/`oom`
-rows. See the [simple inference-matrix guide](../docs/dev/inference-matrix.zh-CN.md).
+and active bytes, device-memory share, per-request memory, B1-relative batch scaling and
+efficiency, tokens per peak GiB, exact greedy tokens and explicit `unsupported`/`oom` rows.
+`smoke`, `standard`, and `extended` suites cover increasingly wide short/long-context and
+batch boundaries. See the [simple inference-matrix guide](../docs/dev/inference-matrix.zh-CN.md).
 
 Run the independent Python/PyTorch ROCm baseline with the same built-in comparison
 recipe, then compare machine-readable rows:

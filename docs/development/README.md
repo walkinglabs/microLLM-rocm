@@ -209,3 +209,5 @@ the next gate. Records are append-only except for factual corrections.
   stable compatibility buckets, singleton fallback, late admission and B4 throughput plateau.
 - [2026-08-21-request-cancellation.md](2026-08-21-request-cancellation.md): terminal
   cancellation, idempotency, immediate KV Cache release and cancelled-row batch exclusion.
+- [2026-08-21-expanded-inference-matrix.md](2026-08-21-expanded-inference-matrix.md):
+  named short/long-context suites, batch efficiency and per-request/device-memory metrics.

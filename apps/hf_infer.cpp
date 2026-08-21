@@ -576,6 +576,7 @@ int main(int argc, char** argv) {
                   << ",\"device\":\"" << device.str() << "\""
                   << ",\"device_name\":\"" << info.name << "\""
                   << ",\"architecture\":\"" << info.architecture << "\""
+                  << ",\"device_total_bytes\":" << info.total_memory
                   << ",\"hip_runtime_version\":"
                   << microllm::runtime::hip_runtime_version()
                   << ",\"hip_driver_version\":" << microllm::runtime::hip_driver_version()
@@ -643,6 +644,11 @@ int main(int argc, char** argv) {
                   << preparation_allocation.peak_bytes
                   << ",\"engine_current_bytes\":" << allocation.current_bytes
                   << ",\"engine_peak_bytes\":" << allocation.peak_bytes
+                  << ",\"engine_peak_share_of_device\":"
+                  << (info.total_memory == 0
+                          ? 0.0
+                          : static_cast<double>(allocation.peak_bytes) /
+                                static_cast<double>(info.total_memory))
                   << ",\"engine_total_allocated_bytes\":"
                   << allocation.total_allocated_bytes
                   << ",\"engine_allocation_calls\":" << allocation.allocation_calls

@@ -20,6 +20,15 @@ import time
 from pathlib import Path
 
 
+MATRIX_SUITES = {
+    "smoke": {"contexts": [8, 128], "batches": [1, 2]},
+    "standard": {"contexts": [8, 32, 128, 512, 2048],
+                 "batches": [1, 2, 4, 8]},
+    "extended": {"contexts": [1, 8, 32, 128, 512, 1024, 2048, 4096],
+                 "batches": [1, 2, 4, 8, 16]},
+}
+
+
 def positive_int_list(text: str, name: str) -> list[int]:
     try:
         values = [int(value) for value in text.split(",")]
@@ -53,8 +62,9 @@ def options() -> argparse.Namespace:
     parser.add_argument("--pytorch-python", required=True, type=Path)
     parser.add_argument("--output-directory", required=True, type=Path)
     parser.add_argument("--models", type=name_list)
-    parser.add_argument("--contexts", default="8,128,512")
-    parser.add_argument("--batches", default="1,2,4")
+    parser.add_argument("--suite", choices=tuple(MATRIX_SUITES), default="standard")
+    parser.add_argument("--contexts")
+    parser.add_argument("--batches")
     parser.add_argument("--cases", type=case_list,
                         default=case_list("prefill,cached,uncached"))
     parser.add_argument("--micro-batch-argmax-mode", choices=("host", "device"),
@@ -76,8 +86,11 @@ def options() -> argparse.Namespace:
     parser.add_argument("--worker-cache", choices=("cached", "uncached"),
                         help=argparse.SUPPRESS)
     result = parser.parse_args()
-    result.contexts = positive_int_list(result.contexts, "contexts")
-    result.batches = positive_int_list(result.batches, "batches")
+    selected = MATRIX_SUITES[result.suite]
+    result.contexts = (positive_int_list(result.contexts, "contexts")
+                       if result.contexts else list(selected["contexts"]))
+    result.batches = (positive_int_list(result.batches, "batches")
+                      if result.batches else list(selected["batches"]))
     for path in (result.manifest, result.micro_binary, result.pytorch_python):
         if not path.is_file():
             parser.error(f"required input does not exist: {path}")
@@ -154,6 +167,7 @@ def validate_measurement(record: dict, model: dict, framework: str, context: int
     if record.get("precision") != expected_precision:
         raise RuntimeError(f"{model['name']} {framework} did not report its precision policy")
     if int(record.get("peak_bytes", 0)) <= 0 or \
+            int(record.get("device_total_bytes", 0)) <= 0 or \
             int(record.get("resident_weight_bytes", 0)) <= 0 or \
             not math.isfinite(float(record.get("throughput_tokens_per_second", math.nan))) or \
             float(record["throughput_tokens_per_second"]) <= 0:
@@ -163,8 +177,10 @@ def validate_measurement(record: dict, model: dict, framework: str, context: int
             raise RuntimeError(f"{model['name']} {framework} decode token accounting changed")
         expected = int(record.get("kv_cache_theoretical_bytes", -1))
         actual = int(record.get("kv_cache_actual_bytes", -1))
+        active = int(record.get("kv_cache_active_bytes", -1))
         utilization = float(record.get("kv_cache_utilization", 0.0))
         if cache == "cached" and (expected <= 0 or actual <= 0 or expected != actual or
+                                   active <= 0 or active > actual or
                                    not (0.0 < utilization <= 1.0)):
             raise RuntimeError(f"{model['name']} {framework} omitted cached KV bytes")
         if cache == "uncached" and (expected != 0 or actual != 0):
@@ -236,6 +252,8 @@ def normalize_micro(raw: dict, model: dict, context: int, batch: int,
                     raw.get("forward_ms" if workload == "prefill"
                             else "mean_generation_ms", 0.0))),
         "peak_bytes": raw["engine_peak_bytes"],
+        "device_total_bytes": raw["device_total_bytes"],
+        "peak_memory_share_of_device": raw["engine_peak_share_of_device"],
         "kv_cache_actual_bytes": actual, "kv_cache_theoretical_bytes": theoretical,
         "kv_cache_allocation_efficiency": theoretical / actual if actual else 0.0,
         "kv_cache_utilization": float(raw.get("kv_cache_utilization", 0.0)),
@@ -395,6 +413,7 @@ def pytorch_worker(args: argparse.Namespace, model: dict) -> dict:
         config.num_hidden_layers, kv_heads, head_dimension, batch,
         active_tokens, element_bytes) if tensors else 0
     peak = torch.cuda.max_memory_allocated(device)
+    device_total = int(torch.cuda.get_device_properties(device).total_memory)
     top_logits = []
     if workload == "prefill":
         value, token = torch.max(final[0, -1].float(), dim=0)
@@ -415,7 +434,8 @@ def pytorch_worker(args: argparse.Namespace, model: dict) -> dict:
             (cache_prepare_ms + elapsed_ms) / args.steps,
         "measured_tokens": measured,
         "throughput_tokens_per_second": measured * 1000.0 / elapsed_ms,
-        "peak_bytes": peak,
+        "peak_bytes": peak, "device_total_bytes": device_total,
+        "peak_memory_share_of_device": peak / device_total,
         "kv_cache_actual_bytes": actual, "kv_cache_theoretical_bytes": theoretical,
         "kv_cache_active_bytes": actual,
         "kv_cache_capacity_tokens": active_tokens,
@@ -467,6 +487,8 @@ def summarize(records: list[dict], models: list[dict], contexts: list[int],
                             row[f"{framework}_status"] = "pass"
                             for field in ("throughput_tokens_per_second", "latency_ms",
                                           "peak_bytes", "resident_weight_bytes",
+                                          "device_total_bytes",
+                                          "peak_memory_share_of_device",
                                           "kv_cache_actual_bytes",
                                           "kv_cache_theoretical_bytes",
                                           "kv_cache_allocation_efficiency",
@@ -479,6 +501,13 @@ def summarize(records: list[dict], models: list[dict], contexts: list[int],
                             if workload == "decode":
                                 row[f"{framework}_generated_tokens"] = measured[0][
                                     "generated_tokens"]
+                            peak = row[f"{framework}_peak_bytes"]
+                            throughput = row[f"{framework}_throughput_tokens_per_second"]
+                            row[f"{framework}_peak_bytes_per_request"] = peak / batch
+                            row[f"{framework}_kv_cache_bytes_per_request"] = \
+                                row[f"{framework}_kv_cache_actual_bytes"] / batch
+                            row[f"{framework}_throughput_per_peak_gib"] = \
+                                throughput / (peak / (1024.0 ** 3))
                         else:
                             statuses = sorted({record.get("status", "failed")
                                                for record in failures})
@@ -509,6 +538,25 @@ def summarize(records: list[dict], models: list[dict], contexts: list[int],
                     rows.append(row)
 
     for framework in ("microllm", "pytorch"):
+        batch_one = {
+            (row["model"], row["context"], row["workload"], row["cache_mode"]): row
+            for row in rows if row["batch"] == 1 and
+            row.get(f"{framework}_status") == "pass"
+        }
+        for row in rows:
+            if row.get(f"{framework}_status") != "pass":
+                continue
+            baseline = batch_one.get((row["model"], row["context"], row["workload"],
+                                      row["cache_mode"]))
+            if baseline is None:
+                continue
+            scaling = row[f"{framework}_throughput_tokens_per_second"] / \
+                baseline[f"{framework}_throughput_tokens_per_second"]
+            row[f"{framework}_batch_throughput_scaling"] = scaling
+            row[f"{framework}_batch_efficiency"] = scaling / row["batch"]
+            row[f"{framework}_peak_memory_scaling"] = \
+                row[f"{framework}_peak_bytes"] / baseline[f"{framework}_peak_bytes"]
+
         by_key = {(row["model"], row["context"], row["batch"], row["cache_mode"]): row
                   for row in rows if row["workload"] == "decode" and
                   row.get(f"{framework}_status") == "pass"}
@@ -524,6 +572,8 @@ def summarize(records: list[dict], models: list[dict], contexts: list[int],
                     other[f"{framework}_throughput_tokens_per_second"]
     return {
         "schema_version": 1, "track": "official_inference_shape_matrix",
+        "axes": {"contexts": contexts, "batches": batches,
+                 "cases": list(cases)},
         "precision_boundary": {
             "microllm": "mixed_bf16_weights_fp32_activations; cache=" +
                          micro_kv_cache_dtype + "; fp32_layers=" +
