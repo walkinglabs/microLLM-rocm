@@ -86,7 +86,15 @@ request A forward
 
 它必须逐请求对齐本页reference，包括延迟到达、随机状态、完成顺序和Cache释放。
 
-## 6. 测试位置
+## 6. 已有的静态batch积木
+
+`generate_batch()`已经能把等长、同配置请求放进一次`[B,T]`/`[B,1]` forward。prompt内容
+可以不同，CPU/HIP逐行与独立生成对齐。MI300X tiny B8达到7.31×串行reference、90.7%
+扩展效率。
+
+它仍不能接收晚到请求或为提前结束的请求补新slot，所以只是continuous batching的计算积木。
+
+## 7. 测试位置
 
 ```text
 tests/inference/scheduler_test.cpp
@@ -96,5 +104,5 @@ tests/ops/hip_ops_test.cpp
   HIP与CPU逐请求结果、Cache和调用指标对齐
 
 benchmarks/end_to_end/benchmark_scheduler.cpp
-  CPU/HIP 1/2/4/8请求的串行基线
+  CPU/HIP 1/2/4/8请求的串行与静态batch基线
 ```

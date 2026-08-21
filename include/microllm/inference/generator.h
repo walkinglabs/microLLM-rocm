@@ -27,4 +27,12 @@ struct GenerationConfig {
     model::TransformerModel& model, const std::vector<std::int32_t>& prompt,
     const GenerationConfig& config = {});
 
+// Static cross-request batch. Prompts may contain different tokens but must
+// share a non-zero length and one GenerationConfig. Returns full sequences in
+// input row order.
+[[nodiscard]] std::vector<std::vector<std::int32_t>> generate_batch(
+    model::TransformerModel& model,
+    const std::vector<std::vector<std::int32_t>>& prompts,
+    const GenerationConfig& config = {});
+
 }  // namespace microllm::inference

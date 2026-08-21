@@ -1925,6 +1925,32 @@ def validate_reference_serving_scheduler(errors: list[str]) -> tuple[int, int]:
     return len(raw), len(rows)
 
 
+def validate_static_batch_generation(errors: list[str]) -> tuple[int, int]:
+    data = ROOT / "experiments" / "073-data"
+    raw = [json.loads(line) for line in
+           (data / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    keys = {(row.get("device"), row.get("requests"), row.get("process_run"))
+            for row in raw}
+    if len(raw) != 24 or len(keys) != 24 or any(
+            row.get("status") != "pass" or row.get("static_batch_enabled") is not True or
+            row.get("static_outputs_equal") is not True for row in raw):
+        errors.append("static batch generation raw protocol changed")
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    rows = summary.get("rows", [])
+    hip_b8 = next((row for row in rows
+                   if row.get("device") == "hip" and row.get("requests") == 8), {})
+    if summary.get("status") != "pass" or len(rows) != 8 or any(
+            row.get("outputs_equal") is not True for row in rows) or \
+            float(hip_b8.get("speedup", 0.0)) < 7.3 or \
+            float(hip_b8.get("scaling_efficiency", 0.0)) < 0.90:
+        errors.append("static batch generation scaling contract changed")
+    generator = (REPOSITORY / "include/microllm/inference/generator.h").read_text(
+        encoding="utf-8")
+    if "generate_batch" not in generator:
+        errors.append("public static batch generation API is missing")
+    return len(raw), len(rows)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -1976,7 +2002,8 @@ def validate_assets(errors: list[str]) -> None:
                  "same-binary-kv-policy.svg",
                  "kv-policy-prompt-robustness.svg",
                  "qwen-kv-prompt-failure.svg",
-                 "reference-serving-scheduler.svg"):
+                 "reference-serving-scheduler.svg",
+                 "static-batch-generation.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -2063,6 +2090,7 @@ def main() -> int:
         validate_qwen_kv_prompt_failure(errors)
     serving_reference_raw, serving_reference_rows = \
         validate_reference_serving_scheduler(errors)
+    static_batch_raw, static_batch_rows = validate_static_batch_generation(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -2116,6 +2144,7 @@ def main() -> int:
           f"qwen_prompt={qwen_prompt_uniform}/{qwen_prompt_first2}/"
           f"{qwen_prompt_search} "
           f"serving_reference={serving_reference_raw}/{serving_reference_rows} "
+          f"static_batch={static_batch_raw}/{static_batch_rows} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

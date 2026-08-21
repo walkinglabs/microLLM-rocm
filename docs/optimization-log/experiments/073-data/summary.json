@@ -1,0 +1,96 @@
+{
+  "rows": [
+    {
+      "device": "cpu",
+      "engine_peak_bytes": 1306400,
+      "outputs_equal": true,
+      "peak_cache_bytes": 6144,
+      "reference_tokens_per_second": 332.417,
+      "requests": 1,
+      "scaling_efficiency": 1.0,
+      "speedup": 0.996965,
+      "static_tokens_per_second": 331.408
+    },
+    {
+      "device": "cpu",
+      "engine_peak_bytes": 1331008,
+      "outputs_equal": true,
+      "peak_cache_bytes": 12288,
+      "reference_tokens_per_second": 327.3,
+      "requests": 2,
+      "scaling_efficiency": 0.7445822068266306,
+      "speedup": 1.48061,
+      "static_tokens_per_second": 493.521
+    },
+    {
+      "device": "cpu",
+      "engine_peak_bytes": 1380224,
+      "outputs_equal": true,
+      "peak_cache_bytes": 24576,
+      "reference_tokens_per_second": 328.195,
+      "requests": 4,
+      "scaling_efficiency": 0.4883806365567518,
+      "speedup": 1.9786,
+      "static_tokens_per_second": 647.413
+    },
+    {
+      "device": "cpu",
+      "engine_peak_bytes": 1478656,
+      "outputs_equal": true,
+      "peak_cache_bytes": 49152,
+      "reference_tokens_per_second": 330.347,
+      "requests": 8,
+      "scaling_efficiency": 0.28363942632646166,
+      "speedup": 2.25453,
+      "static_tokens_per_second": 752.003
+    },
+    {
+      "device": "hip",
+      "engine_peak_bytes": 1306400,
+      "outputs_equal": true,
+      "peak_cache_bytes": 6144,
+      "reference_tokens_per_second": 334.346,
+      "requests": 1,
+      "scaling_efficiency": 1.0,
+      "speedup": 1.0084,
+      "static_tokens_per_second": 336.776
+    },
+    {
+      "device": "hip",
+      "engine_peak_bytes": 1331008,
+      "outputs_equal": true,
+      "peak_cache_bytes": 12288,
+      "reference_tokens_per_second": 332.158,
+      "requests": 2,
+      "scaling_efficiency": 0.9706674466113974,
+      "speedup": 1.95808,
+      "static_tokens_per_second": 653.795
+    },
+    {
+      "device": "hip",
+      "engine_peak_bytes": 1380224,
+      "outputs_equal": true,
+      "peak_cache_bytes": 24576,
+      "reference_tokens_per_second": 333.936,
+      "requests": 4,
+      "scaling_efficiency": 0.9326302943202602,
+      "speedup": 3.76224,
+      "static_tokens_per_second": 1256.35
+    },
+    {
+      "device": "hip",
+      "engine_peak_bytes": 1478656,
+      "outputs_equal": true,
+      "peak_cache_bytes": 49152,
+      "reference_tokens_per_second": 334.437,
+      "requests": 8,
+      "scaling_efficiency": 0.9066374979214671,
+      "speedup": 7.30614,
+      "static_tokens_per_second": 2442.67
+    }
+  ],
+  "runs": 3,
+  "schema_version": 1,
+  "status": "pass",
+  "track": "static_batch_generation"
+}

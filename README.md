@@ -67,6 +67,8 @@ needed to run a real training and generation loop:
   hiding their extra Cache and long-batch prefill cost.
 - a correctness-first multi-request scheduler supports delayed arrival, independent Cache/RNG,
   completion cleanup and CPU/HIP equivalence as the oracle for future slot batching.
+- static `generate_batch()` performs real cross-request `[B,T]`/`[B,1]` inference for compatible
+  requests, reaching 7.31× serial throughput at HIP B8 with exact row outputs.
 
 The design keeps three implementations where they provide engineering value:
 
@@ -152,10 +154,10 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 272/272 | 194 CPU-labelled + 78 HIP-labelled gates; 2 intentional environment skips |
-| ASan/UBSan CPU | 187/187 | host code, CLI, model/graph, benchmark and evidence schemas |
+| Full CPU/HIP configuration | 275/275 | 196 CPU-labelled + 79 HIP-labelled gates; 2 intentional environment skips |
+| ASan/UBSan CPU | 189/189 | host code, CLI, model/graph, benchmark and evidence schemas |
 | MI300X/gfx942 HIP | 73/73 | allocator/stream, graph, BF16/FP8, batched GEMM and model matrix |
-| PyTorch-enabled CPU build | 192/192 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
+| PyTorch-enabled CPU build | 194/194 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
 | Registered test files | 37 | machine-audited CTest registration |
 | CPU source coverage | 83.9% lines / 66.6% branches | GCC 13.3 + gcovr 8.3; `src/` and `include/` |
@@ -273,6 +275,11 @@ not universally strict-safe. See
 Experiment 072 establishes delayed multi-request serving semantics. CPU/HIP 1/2/4/8-request outputs
 match independent generation; the serial reference deliberately has zero batched-forward calls.
 See [Experiment 072](docs/optimization-log/experiments/072-reference-serving-scheduler.md).
+
+Experiment 073 connects compatible requests to one batched KV path. HIP B1→B8 scales
+337→2,443 token/s with 90.7% efficiency and exact per-row outputs. It remains static: no delayed
+arrival or slot refill. See
+[Experiment 073](docs/optimization-log/experiments/073-static-batch-generation.md).
 
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or

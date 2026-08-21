@@ -886,6 +886,32 @@ TEST(HipSchedulerTest, DelayedIndependentRequestsMatchCpuReference) {
     EXPECT_GT(hip_scheduler.metrics().peak_cache_bytes, 0U);
 }
 
+TEST(HipGenerationTest, StaticBatchDifferentRowsMatchCpuReference) {
+    require_gpu();
+    const model::ModelConfig config{.vocabulary_size = 16,
+                                    .dimension = 8,
+                                    .layers = 2,
+                                    .heads = 2,
+                                    .kv_heads = 1,
+                                    .ffn_dimension = 16,
+                                    .max_sequence_length = 12,
+                                    .rope_base = 10000.0F,
+                                    .tie_embeddings = false};
+    model::TransformerModel cpu_model(config, 103);
+    model::TransformerModel hip_model(config, 103);
+    hip_model.to(Device::hip());
+    const std::vector<std::vector<std::int32_t>> prompts{
+        {1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
+    const inference::GenerationConfig generation{
+        .max_new_tokens = 4, .temperature = 0.0F, .top_k = 1,
+        .seed = 7, .kv_cache_dtype = DType::BFloat16,
+        .kv_cache_layer_dtypes = {}};
+    const auto expected = inference::generate_batch(cpu_model, prompts, generation);
+    const auto actual = inference::generate_batch(hip_model, prompts, generation);
+    EXPECT_EQ(actual, expected);
+    EXPECT_NE(actual[0], actual[1]);
+}
+
 TEST(HipAllocatorStressTest, ReusedDefaultStreamBlocksPreserveAsyncKernelOrder) {
     require_gpu();
     const auto gpu = Device::hip(0);

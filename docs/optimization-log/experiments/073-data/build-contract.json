@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "model_parameter_count": 106816,
+  "model_dimension": 64,
+  "model_layers": 2,
+  "prompt_length": 8,
+  "new_tokens": 4,
+  "request_counts": [1, 2, 4, 8],
+  "warmup": 1,
+  "repetitions": 5,
+  "fresh_process_runs": 3,
+  "devices": ["cpu", "hip"],
+  "oracle": "ReferenceScheduler and independent generate"
+}

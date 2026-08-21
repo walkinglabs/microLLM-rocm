@@ -388,6 +388,11 @@ Experiment 072建立多请求serving reference：延迟到达、独立Cache/RNG�
 
 ![Reference serving scheduler](assets/reference-serving-scheduler.svg)
 
+Experiment 073新增静态跨请求`generate_batch()`。HIP B8相对serial为7.306×、扩展效率
+90.7%，24/24进程逐row输出一致；等长/同配置限制和缺少slot refill明确保留。
+
+![Static batch generation](assets/static-batch-generation.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -491,6 +496,8 @@ Experiment 072建立多请求serving reference：延迟到达、独立Cache/RNG�
 | [experiments/071-data/](experiments/071-data/) | uniform/first2挑战和T512/T2048层数搜索 |
 | [assets/reference-serving-scheduler.svg](assets/reference-serving-scheduler.svg) | 请求状态机、CPU/HIP吞吐与零batch边界 |
 | [experiments/072-data/](experiments/072-data/) | CPU/HIP 24条raw、8条中位数和fixed workload |
+| [assets/static-batch-generation.svg](assets/static-batch-generation.svg) | HIP batch吞吐、扩展效率和static限制 |
+| [experiments/073-data/](experiments/073-data/) | CPU/HIP 24条static/reference raw与8条summary |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

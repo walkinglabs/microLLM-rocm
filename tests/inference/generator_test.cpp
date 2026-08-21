@@ -98,4 +98,36 @@ TEST(GeneratorTest, RejectsInvalidSamplingAndContext) {
                  std::invalid_argument);
 }
 
+TEST(GeneratorTest, StaticBatchMatchesIndependentGreedyAndSampling) {
+    const std::vector<std::vector<std::int32_t>> prompts{{1, 2, 3}, {4, 5, 6}};
+    for (const auto stochastic : {false, true}) {
+        const GenerationConfig generation{
+            .max_new_tokens = 4,
+            .temperature = stochastic ? 0.8F : 0.0F,
+            .top_k = stochastic ? 3 : 1,
+            .seed = 23,
+            .kv_cache_layer_dtypes = {}};
+        model::TransformerModel batched_model(generation_config(), 59);
+        const auto batched = generate_batch(batched_model, prompts, generation);
+        ASSERT_EQ(batched.size(), prompts.size());
+        for (std::size_t row = 0; row < prompts.size(); ++row) {
+            model::TransformerModel independent(generation_config(), 59);
+            EXPECT_EQ(batched[row], generate(independent, prompts[row], generation));
+        }
+    }
+}
+
+TEST(GeneratorTest, StaticBatchRejectsIncompatibleRequests) {
+    model::TransformerModel model(generation_config(), 61);
+    EXPECT_THROW((void)generate_batch(model, {}, {}), std::invalid_argument);
+    EXPECT_THROW((void)generate_batch(model, {{1, 2}, {3}}, {}),
+                 std::invalid_argument);
+    EXPECT_THROW((void)generate_batch(
+                     model, {{1, 2}, {3, 4}},
+                     {.max_new_tokens = 1,
+                      .kv_cache_layer_dtypes = {DType::Float32,
+                                                DType::BFloat16}}),
+                 std::invalid_argument);
+}
+
 }  // namespace microllm::inference

@@ -19,6 +19,7 @@ struct Options {
     std::int64_t requests = 4;
     int warmup = 1;
     int repetitions = 3;
+    bool static_batch = false;
 };
 
 Options options(int argc, char** argv) {
@@ -30,6 +31,13 @@ Options options(int argc, char** argv) {
         else if (name == "--requests") result.requests = std::stoll(argv[index + 1]);
         else if (name == "--warmup") result.warmup = std::stoi(argv[index + 1]);
         else if (name == "--repetitions") result.repetitions = std::stoi(argv[index + 1]);
+        else if (name == "--static-batch") {
+            const std::string value = argv[index + 1];
+            if (value != "true" && value != "false") {
+                throw std::invalid_argument("--static-batch must be true or false");
+            }
+            result.static_batch = value == "true";
+        }
         else throw std::invalid_argument("unknown option: " + name);
     }
     if ((result.device != "cpu" && result.device != "hip") || result.requests <= 0 ||
@@ -56,18 +64,18 @@ struct WorkItem {
     microllm::inference::GenerationConfig generation;
 };
 
-std::vector<WorkItem> workload(std::int64_t count) {
+std::vector<WorkItem> workload(std::int64_t count, bool compatible) {
     std::vector<WorkItem> result;
     result.reserve(static_cast<std::size_t>(count));
     for (std::int64_t request = 0; request < count; ++request) {
-        const auto length = 4 + (request % 4) * 4;
+        const auto length = compatible ? 8 : 4 + (request % 4) * 4;
         std::vector<std::int32_t> prompt(static_cast<std::size_t>(length));
         for (std::int64_t token = 0; token < length; ++token) {
             prompt[static_cast<std::size_t>(token)] =
                 static_cast<std::int32_t>((request * 17 + token * 7 + 1) % 256);
         }
         result.push_back({std::move(prompt),
-                          {.max_new_tokens = 3 + request % 3,
+                          {.max_new_tokens = compatible ? 4 : 3 + request % 3,
                            .temperature = 0.0F,
                            .top_k = 1,
                            .seed = static_cast<std::uint64_t>(request + 1),
@@ -114,6 +122,24 @@ std::vector<std::vector<std::int32_t>> run_sequential(
     return result;
 }
 
+std::vector<std::vector<std::int32_t>> run_static_batch(
+    microllm::model::TransformerModel& model,
+    const std::vector<WorkItem>& work) {
+    std::vector<std::vector<std::int32_t>> prompts;
+    prompts.reserve(work.size());
+    for (const auto& item : work) prompts.push_back(item.prompt);
+    const auto full = microllm::inference::generate_batch(
+        model, prompts, work.front().generation);
+    std::vector<std::vector<std::int32_t>> result;
+    result.reserve(full.size());
+    for (std::size_t row = 0; row < full.size(); ++row) {
+        result.emplace_back(
+            full[row].begin() + static_cast<std::ptrdiff_t>(prompts[row].size()),
+            full[row].end());
+    }
+    return result;
+}
+
 void synchronize(microllm::Device device) {
     if (device.is_hip()) microllm::runtime::synchronize(device);
 }
@@ -130,19 +156,24 @@ int main(int argc, char** argv) {
         }
         auto scheduled_model = microllm::model::TransformerModel(config(), 101);
         auto sequential_model = microllm::model::TransformerModel(config(), 101);
+        auto static_model = microllm::model::TransformerModel(config(), 101);
         scheduled_model.to(device);
         sequential_model.to(device);
-        const auto work = workload(command.requests);
+        static_model.to(device);
+        const auto work = workload(command.requests, command.static_batch);
         for (int iteration = 0; iteration < command.warmup; ++iteration) {
             (void)run_scheduler(scheduled_model, work);
             (void)run_sequential(sequential_model, work);
+            if (command.static_batch) (void)run_static_batch(static_model, work);
         }
         synchronize(device);
         microllm::runtime::reset_allocation_peak(device);
         double scheduler_ms = 0.0;
         double sequential_ms = 0.0;
+        double static_ms = 0.0;
         Run last_scheduler;
         std::vector<std::vector<std::int32_t>> last_sequential;
+        std::vector<std::vector<std::int32_t>> last_static;
         for (int iteration = 0; iteration < command.repetitions; ++iteration) {
             auto start = std::chrono::steady_clock::now();
             last_scheduler = run_scheduler(scheduled_model, work);
@@ -154,9 +185,20 @@ int main(int argc, char** argv) {
             synchronize(device);
             finish = std::chrono::steady_clock::now();
             sequential_ms += std::chrono::duration<double, std::milli>(finish - start).count();
+            if (command.static_batch) {
+                start = std::chrono::steady_clock::now();
+                last_static = run_static_batch(static_model, work);
+                synchronize(device);
+                finish = std::chrono::steady_clock::now();
+                static_ms +=
+                    std::chrono::duration<double, std::milli>(finish - start).count();
+            }
         }
         if (last_scheduler.generated != last_sequential) {
             throw std::runtime_error("scheduler output differs from sequential generate");
+        }
+        if (command.static_batch && last_static != last_sequential) {
+            throw std::runtime_error("static batch output differs from sequential generate");
         }
         std::int64_t generated_per_repetition = 0;
         std::uint64_t checksum = 0;
@@ -184,6 +226,15 @@ int main(int argc, char** argv) {
                   << static_cast<double>(measured_tokens) * 1000.0 / sequential_ms
                   << ",\"scheduler_over_sequential\":"
                   << sequential_ms / scheduler_ms
+                  << ",\"static_batch_enabled\":"
+                  << (command.static_batch ? "true" : "false")
+                  << ",\"static_batch_ms\":" << static_ms
+                  << ",\"static_batch_tokens_per_second\":"
+                  << (command.static_batch
+                          ? static_cast<double>(measured_tokens) * 1000.0 / static_ms
+                          : 0.0)
+                  << ",\"static_batch_over_reference\":"
+                  << (command.static_batch ? scheduler_ms / static_ms : 0.0)
                   << ",\"scheduler_steps\":" << last_scheduler.metrics.scheduler_steps
                   << ",\"prefill_calls\":" << last_scheduler.metrics.prefill_calls
                   << ",\"decode_calls\":" << last_scheduler.metrics.decode_calls
@@ -192,6 +243,8 @@ int main(int argc, char** argv) {
                   << ",\"peak_cache_bytes\":" << last_scheduler.metrics.peak_cache_bytes
                   << ",\"engine_peak_bytes\":" << allocation.peak_bytes
                   << ",\"outputs_equal\":true"
+                  << ",\"static_outputs_equal\":"
+                  << (command.static_batch ? "true" : "false")
                   << ",\"token_checksum\":" << checksum << "}\n";
         return 0;
     } catch (const std::exception& error) {

@@ -21,7 +21,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | M2 data movement | complete | preallocated KV、device greedy、steady-state exact-size pool | measured decode 只回传 token scalar |
 | M3 optimized ops | in progress | batched GEMM、hipBLASLt plan、FMHA/fusion | Model-S/M 与 HF 均改善 |
 | M4 low precision | in progress | streaming load；batched backward；saved-prob T512 tradeoff | flash-style row/forward；multi-shard preflight |
-| M5 scheduling | in progress | serving reference；stable-address HIP Graph；slot batching | launch/API下降且请求语义不变 |
+| M5 scheduling | in progress | serving reference；static batch；stable-address HIP Graph；slot refill | 请求语义不变且活跃slot扩展 |
 | M6 report | in progress | 博客、曲线、trace、失败图集、局部饱和审计 | 新 track 仍待完成 |
 
 ## 步骤索引

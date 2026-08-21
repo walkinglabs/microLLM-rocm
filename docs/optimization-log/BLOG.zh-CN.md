@@ -1704,3 +1704,17 @@ RNG，按`PendingPrefill→Decoding→Completed`前进；完成立即释放Cache
 106,816参数tiny基线中，HIP 1/2/4/8请求都约331 tok/s，scheduler/sequential约0.992–0.994×，
 输出全部一致。吞吐不随请求数增长，因为batched forward calls明确为0。这是下一slot-batch
 候选必须超过的before，不是“服务优化完成”。
+
+## 90. Experiment 073：兼容请求终于进入同一次forward
+
+`generate_batch()`让不同prompt内容、相同长度/配置的请求共享`KVCache(B)`，prefill和decode
+分别走`[B,T]`与`[B,1]`，GPU按row选token。CPU greedy/随机采样和HIP不同row均与独立
+`generate()`对齐。
+
+![Static batch generation](assets/static-batch-generation.svg)
+
+HIP B1/2/4/8为337/654/1256/2443 tok/s，相对serial reference为1.01×/1.96×/3.76×/
+7.31×，B8扩展效率90.7%。CPU B8只有2.25×，说明同一接口在GPU上才真正吃到并行度。
+
+它仍是static batch：晚到、不同长度、提前完成和slot refill没有实现。下一节点必须把
+Experiment 072的生命周期与这个计算积木连接。

@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="790" viewBox="0 0 1800 790">
+  <rect width="100%" height="100%" fill="#fbfcfe"/>
+  <text x="900" y="48" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 073 · Static Cross-Request Batch Generation</text>
+  <text x="900" y="80" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle">different prompt rows · equal length/config · CPU/HIP · three-process median</text>
+  <rect x="70" y="125" width="1020" height="510" fill="#fff" stroke="#cbd3df" rx="10"/>
+  <text x="580" y="170" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">HIP generated token/s</text>
+  <line x1="150" y1="540" x2="1020" y2="540" stroke="#cbd3df"/>
+  <g font-family="Inter,Arial,sans-serif" font-size="14" text-anchor="middle">
+    <rect x="190" y="485" width="70" height="55" fill="#9aa4b2"/><rect x="270" y="484" width="70" height="56" fill="#18a558"/><text x="225" y="472" fill="#5b6474">334</text><text x="305" y="471" fill="#16874b">337</text><text x="265" y="572" fill="#172033">B1 · 1.01×</text>
+    <rect x="400" y="485" width="70" height="55" fill="#9aa4b2"/><rect x="480" y="432" width="70" height="108" fill="#18a558"/><text x="435" y="472" fill="#5b6474">332</text><text x="515" y="419" fill="#16874b">654</text><text x="475" y="572" fill="#172033">B2 · 1.96×</text>
+    <rect x="610" y="485" width="70" height="55" fill="#9aa4b2"/><rect x="690" y="332" width="70" height="208" fill="#18a558"/><text x="645" y="472" fill="#5b6474">334</text><text x="725" y="319" fill="#16874b">1256</text><text x="685" y="572" fill="#172033">B4 · 3.76×</text>
+    <rect x="820" y="485" width="70" height="55" fill="#9aa4b2"/><rect x="900" y="135" width="70" height="405" fill="#18a558"/><text x="855" y="472" fill="#5b6474">334</text><text x="935" y="122" fill="#16874b">2443</text><text x="895" y="572" fill="#172033">B8 · 7.31×</text>
+  </g>
+  <text x="580" y="610" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle">gray serial ReferenceScheduler · green generate_batch</text>
+
+  <rect x="1130" y="125" width="600" height="510" fill="#fff" stroke="#cbd3df" rx="10"/>
+  <text x="1430" y="170" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">Scaling and contract</text>
+  <rect x="1180" y="215" width="500" height="110" fill="#eefaf3" stroke="#9bd5b1" rx="8"/>
+  <text x="1210" y="250" font-family="Inter,Arial,sans-serif" font-size="16" fill="#16874b" font-weight="700">HIP scaling efficiency</text>
+  <text x="1210" y="285" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033">B2 97.1% · B4 93.3% · B8 90.7%</text>
+  <rect x="1180" y="355" width="500" height="105" fill="#f5f7fa" stroke="#d8dee8" rx="8"/>
+  <text x="1210" y="390" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" font-weight="700">Correctness</text>
+  <text x="1210" y="422" font-family="Inter,Arial,sans-serif" font-size="15" fill="#16874b">24/24 process outputs = sequential/reference</text>
+  <text x="1210" y="447" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">different prompt contents and row-wise tokens</text>
+  <rect x="1180" y="490" width="500" height="105" fill="#fff7ed" stroke="#fdba74" rx="8"/>
+  <text x="1210" y="525" font-family="Inter,Arial,sans-serif" font-size="16" fill="#9a4f00" font-weight="700">Still static</text>
+  <text x="1210" y="555" font-family="Inter,Arial,sans-serif" font-size="14" fill="#172033">equal prompt length · one max_new_tokens/config</text>
+  <text x="1210" y="580" font-family="Inter,Arial,sans-serif" font-size="14" fill="#172033">no late arrival, cancellation or slot refill yet</text>
+  <text x="900" y="705" font-family="Inter,Arial,sans-serif" font-size="18" fill="#16874b" text-anchor="middle" font-weight="700">First real cross-request batched forward: keep the primitive, then add slot lifecycle</text>
+</svg>

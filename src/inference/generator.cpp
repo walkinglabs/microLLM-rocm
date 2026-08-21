@@ -107,4 +107,95 @@ std::vector<std::int32_t> generate(model::TransformerModel& model,
     return tokens;
 }
 
+std::vector<std::vector<std::int32_t>> generate_batch(
+    model::TransformerModel& model,
+    const std::vector<std::vector<std::int32_t>>& prompts,
+    const GenerationConfig& config) {
+    if (prompts.empty() || prompts.front().empty()) {
+        throw std::invalid_argument("batched generation requires non-empty prompts");
+    }
+    if (config.max_new_tokens < 0 || config.temperature < 0.0F ||
+        !std::isfinite(config.temperature) || config.top_k < 0 ||
+        config.top_k > model.config().vocabulary_size) {
+        throw std::invalid_argument("batched generation configuration is invalid");
+    }
+    const auto prompt_length = prompts.front().size();
+    for (const auto& prompt : prompts) {
+        if (prompt.size() != prompt_length) {
+            throw std::invalid_argument("batched generation prompts must have equal length");
+        }
+        for (const auto token : prompt) {
+            if (token < 0 || token >= model.config().vocabulary_size) {
+                throw std::out_of_range("batched prompt token is outside the vocabulary");
+            }
+        }
+    }
+    if (static_cast<std::int64_t>(prompt_length) + config.max_new_tokens >
+        model.config().max_sequence_length) {
+        throw std::invalid_argument("batched generation exceeds model context");
+    }
+    if (config.max_new_tokens == 0) return prompts;
+    auto layer_dtypes = config.kv_cache_layer_dtypes;
+    if (layer_dtypes.empty()) {
+        layer_dtypes.assign(static_cast<std::size_t>(model.config().layers),
+                            config.kv_cache_dtype);
+    } else if (layer_dtypes.size() !=
+               static_cast<std::size_t>(model.config().layers)) {
+        throw std::invalid_argument(
+            "batched generation KV policy must contain one dtype per layer");
+    }
+    const auto batch = static_cast<std::int64_t>(prompts.size());
+    std::vector<std::int32_t> flat;
+    flat.reserve(prompts.size() * prompt_length);
+    for (const auto& prompt : prompts) flat.insert(flat.end(), prompt.begin(), prompt.end());
+    KVCache cache(std::move(layer_dtypes),
+                  static_cast<std::int64_t>(prompt_length) + config.max_new_tokens,
+                  batch);
+    auto logits = model.forward_prefill_cached(
+        Tensor::from_int32_vector(
+            flat, {batch, static_cast<std::int64_t>(prompt_length)}),
+        cache);
+    auto result = prompts;
+    std::vector<std::mt19937_64> random;
+    random.reserve(prompts.size());
+    for (std::size_t row = 0; row < prompts.size(); ++row) {
+        random.emplace_back(config.seed);
+    }
+    for (std::int64_t generated = 0; generated < config.max_new_tokens; ++generated) {
+        Tensor next_tensor;
+        std::vector<std::int32_t> selected;
+        if (logits.device().is_hip() &&
+            (config.temperature == 0.0F || config.top_k == 1)) {
+            next_tensor = ops::argmax_last_dim(logits);
+            selected = next_tensor.to_int32_vector();
+        } else {
+            const auto values = logits.to_vector();
+            const auto vocabulary = static_cast<std::size_t>(model.config().vocabulary_size);
+            selected.reserve(prompts.size());
+            for (std::size_t row = 0; row < prompts.size(); ++row) {
+                const auto begin = values.begin() +
+                                   static_cast<std::ptrdiff_t>(row * vocabulary);
+                selected.push_back(sample_token(
+                    std::vector<float>(begin, begin + static_cast<std::ptrdiff_t>(vocabulary)),
+                    config.temperature, config.top_k, random[row]));
+            }
+        }
+        if (selected.size() != prompts.size() ||
+            std::any_of(selected.begin(), selected.end(),
+                        [](std::int32_t token) { return token < 0; })) {
+            throw std::invalid_argument("batched generation logits are non-finite");
+        }
+        for (std::size_t row = 0; row < result.size(); ++row) {
+            result[row].push_back(selected[row]);
+        }
+        if (generated + 1 < config.max_new_tokens) {
+            if (!next_tensor.defined()) {
+                next_tensor = Tensor::from_int32_vector(selected, {batch, 1});
+            }
+            logits = model.forward_cached(next_tensor, cache);
+        }
+    }
+    return result;
+}
+
 }  // namespace microllm::inference
