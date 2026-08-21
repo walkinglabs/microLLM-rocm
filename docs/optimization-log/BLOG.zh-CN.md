@@ -1793,3 +1793,16 @@ spill。16-shape survey唯一0.830×异常在三对复测中变为稳定0.993×�
 
 T>2048不进入新路径。下一步要处理的结构问题是仍然物化完整`[B,H,T,T]`概率，而不是继续
 在同一softmax规约里堆更多寄存器。
+
+## 97. Experiment 080：没有T²，也可能慢三倍
+
+本机有rocWMMA，但没有可直接链接的CK/FMHA。仓库已有把分数留在shared memory的可读fused
+Attention，于是先问：只要不物化T²，是否就会更快？
+
+![Readable fused Attention discarded](assets/readable-fused-attention-discard.svg)
+
+Qwen T512 B1双binary两对中，library路径约93.3k tok/s，可读fused只有33.6k，0.360×；
+peak仅少1.7%。普通线程的标量D点积/PV循环完全抵消了省下的全局score Tensor。
+
+实验在T512立即停止并回退，没有虚构T2048结果。真正的online Attention必须同时有MFMA tile、
+online softmax和数据复用；“不分配T²”只是必要条件，不是FlashAttention实现。

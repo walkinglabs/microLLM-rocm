@@ -2200,6 +2200,29 @@ def validate_register_softmax(errors: list[str]) -> tuple[int, int, int, int]:
     return len(paired_raw), len(survey_raw), len(recheck_raw), len(precision_rows)
 
 
+def validate_readable_fused_attention_discard(errors: list[str]) -> tuple[int, int]:
+    data = ROOT / "experiments" / "080-data"
+    raw = [json.loads(line) for line in
+           (data / "paired" / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    summary = json.loads((data / "paired" / "summary.json").read_text(
+        encoding="utf-8"))
+    if len(raw) != 4 or summary.get("status") != "discard" or \
+            summary.get("pairs") != 2 or summary.get("top_tokens_equal") is not True or \
+            float(summary.get("median_ratio", 1.0)) > 0.37 or any(
+                float(ratio) > 0.37 for ratio in summary.get("pair_ratios", [])):
+        errors.append("readable fused Attention discard evidence changed")
+    inventory = json.loads((data / "backend-inventory.json").read_text(encoding="utf-8"))
+    if inventory.get("rocwmma_headers") is not True or \
+            inventory.get("composable_kernel_headers") is not False or \
+            inventory.get("fmha_runtime_library") is not False:
+        errors.append("Attention backend inventory changed")
+    source = (REPOSITORY / "src/ops/ops.cpp").read_text(encoding="utf-8")
+    if "use_long_library_attention" in source or \
+            "sequence >= 256 && hipblaslt_available()" not in source:
+        errors.append("discarded readable fused Attention route remains in source")
+    return len(raw), len(summary.get("pair_ratios", []))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -2257,7 +2280,8 @@ def validate_assets(errors: list[str]) -> None:
                  "expanded-inference-service-matrix.svg",
                  "serving-last-logit-prefill.svg",
                  "folded-gqa-discard.svg",
-                 "register-softmax.svg"):
+                 "register-softmax.svg",
+                 "readable-fused-attention-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -2356,6 +2380,8 @@ def main() -> int:
         validate_folded_gqa_discard(errors)
     register_softmax_paired, register_softmax_survey, register_softmax_recheck, \
         register_softmax_precision = validate_register_softmax(errors)
+    readable_fused_raw, readable_fused_pairs = \
+        validate_readable_fused_attention_discard(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -2422,6 +2448,7 @@ def main() -> int:
           f"register_softmax={register_softmax_paired}/"
           f"{register_softmax_survey}/{register_softmax_recheck}/"
           f"{register_softmax_precision} "
+          f"readable_fused={readable_fused_raw}/{readable_fused_pairs} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

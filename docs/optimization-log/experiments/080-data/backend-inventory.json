@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "status": "complete",
+  "rocwmma_headers": true,
+  "rocwmma_cmake_package": true,
+  "composable_kernel_headers": false,
+  "composable_kernel_cmake_package": false,
+  "fmha_runtime_library": false,
+  "conclusion": "the installed ROCm image has matrix-fragment building blocks but no drop-in FMHA backend"
+}

@@ -217,3 +217,5 @@ the next gate. Records are append-only except for factual corrections.
   smaller K/V-free grouped layout rejected by official complete-logit error.
 - [2026-08-21-register-softmax.md](2026-08-21-register-softmax.md): bit-identical
   register-cached exponentials, alternating binary evidence and no-spill profile.
+- [2026-08-21-readable-fused-attention-discard.md](2026-08-21-readable-fused-attention-discard.md):
+  no-drop-in-FMHA inventory and a 0.360x readable fused route rejection.

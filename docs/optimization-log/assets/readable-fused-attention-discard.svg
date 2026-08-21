@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="720" viewBox="0 0 1400 720">
+  <rect width="1400" height="720" fill="#f8fafc"/>
+  <text x="700" y="52" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="30" font-weight="700" fill="#111827">Experiment 080 · readable fused Attention route</text>
+  <text x="700" y="82" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="15" fill="#64748b">Qwen T512 B1 · alternating binary pairs · last-logit BF16 inference</text>
+
+  <rect x="38" y="112" width="650" height="320" rx="14" fill="#fff" stroke="#dbe4ee"/>
+  <text x="62" y="152" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#111827">Input throughput</text>
+  <g font-family="Inter,Arial,sans-serif" font-size="16" fill="#334155">
+    <text x="62" y="222">hipBLASLt + softmax</text><rect x="264" y="202" width="374" height="28" rx="5" fill="#2563eb"/><text x="540" y="222" fill="#fff">93,259 tok/s</text>
+    <text x="62" y="302">readable fused</text><rect x="264" y="282" width="135" height="28" rx="5" fill="#dc2626"/><text x="409" y="302">33,581 tok/s</text>
+  </g>
+  <text x="62" y="366" font-family="Inter,Arial,sans-serif" font-size="22" font-weight="700" fill="#991b1b">0.360× · 64% regression</text>
+  <text x="62" y="402" font-family="Inter,Arial,sans-serif" font-size="13" fill="#64748b">Two pair ratios: 0.359× / 0.361×</text>
+
+  <rect x="714" y="112" width="648" height="320" rx="14" fill="#fff" stroke="#dbe4ee"/>
+  <text x="738" y="152" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#111827">What was available</text>
+  <g font-family="Inter,Arial,sans-serif" font-size="16" fill="#334155">
+    <circle cx="752" cy="210" r="6" fill="#16a34a"/><text x="772" y="216">rocWMMA headers and CMake package</text>
+    <circle cx="752" cy="256" r="6" fill="#dc2626"/><text x="772" y="262">no Composable Kernel headers/package</text>
+    <circle cx="752" cy="302" r="6" fill="#dc2626"/><text x="772" y="308">no drop-in FMHA runtime library</text>
+    <circle cx="752" cy="348" r="6" fill="#f59e0b"/><text x="772" y="354">readable kernel uses scalar dot/PV loops, not MFMA</text>
+  </g>
+  <text x="738" y="402" font-family="Inter,Arial,sans-serif" font-size="13" fill="#64748b">Peak: 1.216 → 1.196 GiB (-1.7%); top token unchanged.</text>
+
+  <rect x="38" y="466" width="1324" height="164" rx="14" fill="#fff" stroke="#dbe4ee"/>
+  <text x="62" y="508" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#111827">Avoiding T² storage is only one requirement</text>
+  <g font-family="Inter,Arial,sans-serif" font-size="16" fill="#334155">
+    <text x="74" y="560">Needed:</text><text x="170" y="560" font-weight="700">MFMA/rocWMMA tiles → online max/sum → tiled PV reuse → causal/GQA contract</text>
+    <text x="74" y="602">Tested:</text><text x="170" y="602" font-weight="700" fill="#991b1b">one block per row → scalar D loop → scalar V accumulation</text>
+  </g>
+  <rect x="38" y="654" width="1324" height="34" rx="10" fill="#fee2e2" stroke="#fecaca"/>
+  <text x="700" y="677" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#991b1b">DISCARD · stopped at T512; no T2048 performance claim</text>
+</svg>

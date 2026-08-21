@@ -1,0 +1,26 @@
+{
+  "batch": 1,
+  "context": 512,
+  "fused_peak_bytes": 1284287488,
+  "fused_values": [
+    33581.639972943,
+    33580.924880324
+  ],
+  "library_peak_bytes": 1306176512,
+  "library_values": [
+    93569.879124895,
+    92947.330814073
+  ],
+  "median_fused_tps": 33581.282426633494,
+  "median_library_tps": 93258.604969484,
+  "median_ratio": 0.3600917616531585,
+  "model": "qwen2.5-0.5b",
+  "pair_ratios": [
+    0.3588936983462271,
+    0.3612898249600898
+  ],
+  "pairs": 2,
+  "schema_version": 1,
+  "status": "discard",
+  "top_tokens_equal": true
+}

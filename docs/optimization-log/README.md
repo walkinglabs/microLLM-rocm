@@ -515,6 +515,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/078-data/](experiments/078-data/) | 三进程候选、T2048 B8完整logits和机制profile |
 | [assets/register-softmax.svg](assets/register-softmax.svg) | softmax设备时间、配对吞吐、无spill和异常复测 |
 | [experiments/079-data/](experiments/079-data/) | bit-exact、A/B paired、16-shape survey、targeted recheck和profile |
+| [assets/readable-fused-attention-discard.svg](assets/readable-fused-attention-discard.svg) | 无T²可读Kernel的吞吐/显存反例与backend盘点 |
+| [experiments/080-data/](experiments/080-data/) | T512 B1 paired route pilot和ROCm backend inventory |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 
