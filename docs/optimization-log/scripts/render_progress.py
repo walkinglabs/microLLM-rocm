@@ -64,6 +64,9 @@ SPLIT_KV_COMPARISON = ROOT / "experiments" / "052-data" / "comparison.json"
 SPLIT_KV_CHART = ROOT / "assets" / "split-kv-backward-discard.svg"
 BATCHED_GEMM_COMPARISON = ROOT / "experiments" / "053-data" / "comparison.json"
 BATCHED_GEMM_CHART = ROOT / "assets" / "strided-batched-hipblaslt.svg"
+BATCHED_BACKWARD_COMPARISON = ROOT / "experiments" / "054-data" / "comparison.json"
+BATCHED_BACKWARD_PROFILE = ROOT / "experiments" / "054-data" / "profile-summary.json"
+BATCHED_BACKWARD_CHART = ROOT / "assets" / "batched-attention-backward.svg"
 
 
 def rows() -> list[dict]:
@@ -1650,6 +1653,82 @@ def strided_batched_hipblaslt_svg() -> str:
     return "\n".join(parts)
 
 
+def batched_attention_backward_svg() -> str:
+    comparison = json.loads(BATCHED_BACKWARD_COMPARISON.read_text(encoding="utf-8"))
+    profile = json.loads(BATCHED_BACKWARD_PROFILE.read_text(encoding="utf-8"))
+    rows = comparison["rows"]
+    width, height = 1800, 790
+    left_x, right_x, top, panel_h = 100, 1050, 150, 470
+    left_w, right_w = 820, 650
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 054 · Batched Attention Backward", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 80,
+             "context 512 · median of 3 fresh processes · measured peak unchanged",
+             16, "#5b6474", anchor="middle"),
+        f'<rect x="{left_x}" y="{top}" width="{left_w}" height="{panel_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+        f'<rect x="{right_x}" y="{top}" width="{right_w}" height="{panel_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+        text(left_x + left_w / 2, 125, "Official training ratios", 20,
+             anchor="middle", weight=700),
+        text(right_x + right_w / 2, 125, "Qwen process profile", 20,
+             anchor="middle", weight=700),
+    ]
+    def ratio_y(value: float) -> float:
+        return top + panel_h * (1.5 - value) / 1.5
+    for tick in (0.0, 0.5, 1.0, 1.5):
+        y = ratio_y(tick)
+        parts.append(f'<line x1="{left_x}" y1="{y:.1f}" x2="{left_x+left_w}" '
+                     f'y2="{y:.1f}" stroke="{("#2563eb" if tick == 1.0 else "#e5e9f0")}"/>')
+    group = left_w / len(rows)
+    for index, row in enumerate(rows):
+        center = left_x + group * (index + 0.5)
+        for offset, (value, color, label) in enumerate((
+                (row["self_speedup"], "#18a558", "self"),
+                (row["pytorch_ratio_after"], "#d04a3a", "vs PT"))):
+            x = center - 82 + offset * 88
+            y = ratio_y(value)
+            parts.append(f'<rect x="{x:.1f}" y="{y:.1f}" width="76" '
+                         f'height="{ratio_y(0)-y:.1f}" fill="{color}" rx="5"/>')
+            parts.append(text(x + 38, y - 9, f"{value:.3f}×", 14, color,
+                              anchor="middle", weight=700))
+            parts.append(text(x + 38, top + panel_h + 24, label, 12,
+                              "#5b6474", anchor="middle"))
+        label = "Qwen 0.5B" if row["model"].startswith("qwen") else "DeepSeek 1.5B"
+        parts.append(text(center, top + panel_h + 56, label, 16,
+                          anchor="middle", weight=700))
+    profile_rows = (
+        ("Total Kernel", profile["before"]["kernel_time_ns"],
+         profile["after"]["kernel_time_ns"]),
+        ("Attention backward", profile["before"]["atomic_backward_time_ns"],
+         profile["identified_backward_time_ns"]),
+    )
+    maximum = max(before for _, before, _ in profile_rows)
+    for index, (label, before, after) in enumerate(profile_rows):
+        y = top + 95 + index * 175
+        parts.append(text(right_x + 35, y - 30, label, 17, weight=700))
+        for offset, (value, color, name) in enumerate((
+                (before, "#aab2bf", "before"), (after, "#18a558", "after"))):
+            bar_y = y + offset * 52
+            bar_w = 470 * value / maximum
+            parts.append(f'<rect x="{right_x+35}" y="{bar_y}" width="470" height="30" '
+                         'fill="#eef1f5" rx="4"/>')
+            parts.append(f'<rect x="{right_x+35}" y="{bar_y}" width="{bar_w:.1f}" '
+                         f'height="30" fill="{color}" rx="4"/>')
+            parts.append(text(right_x + 525, bar_y + 21,
+                              f'{name} {value/1e6:.1f} ms', 13, color,
+                              anchor="start", weight=700))
+    parts.append(text(width / 2, 710,
+                      "Kernel time 1.350× faster despite +4.3% dispatches · T128 fallback 1.008×",
+                      17, "#16834a", anchor="middle", weight=700))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -1676,7 +1755,8 @@ def main() -> int:
                 STREAMING_LOAD_CHART: streaming_safetensors_load_svg(),
                 CONTEXT512_CHART: context512_training_profile_svg(),
                 SPLIT_KV_CHART: split_kv_backward_discard_svg(),
-                BATCHED_GEMM_CHART: strided_batched_hipblaslt_svg()}
+                BATCHED_GEMM_CHART: strided_batched_hipblaslt_svg(),
+                BATCHED_BACKWARD_CHART: batched_attention_backward_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

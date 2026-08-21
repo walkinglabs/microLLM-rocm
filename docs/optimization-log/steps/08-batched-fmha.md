@@ -77,3 +77,9 @@ score-gradient matrices, then gives each K/V output element a non-atomic reducti
 correctness passes, but backward time rises 34% and Qwen T=512 throughput falls 15%.
 The scalar rescan implementation is removed. The remaining credible space is tiled
 matrix/flash-style backward with score-tile reuse.
+
+Experiment 053 supplies strided-batched hipBLASLt, and Experiment 054 uses it for K/V
+gradients after one causal row-recompute pass. Qwen/DeepSeek T=512 improve 35.8%/36.5%
+with unchanged measured peak; T=128 remains on the old path. The candidate is retained.
+The row recompute Kernel (and the analogous forward row Kernel) is now the remaining
+Attention target.

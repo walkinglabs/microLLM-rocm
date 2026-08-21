@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "before": {"kernel_dispatches": 6767, "kernel_time_ns": 1946461231, "hip_api_calls": 246782, "atomic_backward_calls": 72, "atomic_backward_time_ns": 985611620},
+  "after": {"kernel_dispatches": 7055, "kernel_time_ns": 1442275737, "hip_api_calls": 259375, "hip_api_time_ns": 6947734524, "row_backward_calls": 72, "row_backward_time_ns": 473909338, "batched_gemm_calls": 144, "batched_gemm_time_ns": 1519780, "gqa_reduce_calls": 144, "gqa_reduce_time_ns": 4485503},
+  "kernel_time_speedup": 1.349576354,
+  "dispatch_ratio": 1.04255948,
+  "hip_api_call_ratio": 1.051028843,
+  "identified_backward_time_ns": 479914621,
+  "identified_backward_speedup": 2.053722,
+  "count_contract": "24 Qwen layers x three traced steps; two GEMMs and two GQA reductions per backward"
+}

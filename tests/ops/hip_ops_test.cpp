@@ -644,7 +644,7 @@ TEST(HipFullAttentionTest, CausalMhaGqaForwardBackwardMatchCpuWithoutTransfers) 
     for (const auto gqa : {false, true}) {
         const auto kv_heads = gqa ? 2LL : heads;
         const auto repeats = heads / kv_heads;
-        for (const auto sequence : {1LL, 3LL, 32LL, 128LL}) {
+        for (const auto sequence : {1LL, 3LL, 32LL, 128LL, 256LL}) {
             std::vector<float> query_values(
                 static_cast<std::size_t>(heads * sequence * width));
             std::vector<float> key_values(

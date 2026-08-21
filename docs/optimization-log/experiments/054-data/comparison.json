@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "experiment": 54,
+  "decision": "keep",
+  "candidate": "row recompute plus strided-batched hipBLASLt K/V gradients and GQA head reduction",
+  "context": 512,
+  "rows": [
+    {"model": "qwen2.5-0.5b", "before_tokens_per_second": 812.451687241, "after_tokens_per_second": 1103.053587123, "self_speedup": 1.357685145, "pytorch_ratio_before": 0.097806188, "pytorch_ratio_after": 0.129822011, "peak_ratio_after_vs_before": 1.0},
+    {"model": "deepseek-r1-distill-qwen-1.5b", "before_tokens_per_second": 400.154512787, "after_tokens_per_second": 546.069069887, "self_speedup": 1.364645537, "pytorch_ratio_before": 0.083164562, "pytorch_ratio_after": 0.115770916, "peak_ratio_after_vs_before": 1.0}
+  ],
+  "fallback128": {
+    "before_tokens_per_second": 802.696812957,
+    "after_tokens_per_second": 809.460683034,
+    "speedup": 1.008426581,
+    "peak_ratio": 1.0
+  },
+  "workspace_bytes": {"qwen": 29360128, "deepseek": 25165824},
+  "reason": "both official models improve over 35 percent, measured peak is unchanged, T128 does not regress, and retained Kernel time falls"
+}

@@ -1365,3 +1365,19 @@ transpose-left 的 library 结果误差只有 1.04e-6，但 readable benchmark �
 
 这一步只保留算子能力，Auto 规则不变。下一节点才用它重写 Attention backward，并重新过
 T=128/T=512/显存门。
+
+## 71. Experiment 054：把 114× 的算子接回模型
+
+T≥256 backward 现在先重算下三角概率和 scaled score gradient，同时算 Q gradient；随后
+两次 strided-batched GEMM 计算 K/V query-head 梯度，再用现有 reduction 合并 GQA heads。
+第一次 T=256 测试发现上三角没清零，batched GEMM 读到了“未来”；补零后 Q/K/V 全量通过。
+
+![Batched Attention backward](assets/batched-attention-backward.svg)
+
+Qwen/DeepSeek T=512 三进程中位数提高 `35.8%/36.5%`，peak 完全不变。Qwen 总 Kernel
+时间从 1.946 降到 1.442 秒；atomic backward 的 985.61 ms 变成 row 473.91 ms、batched
+GEMM 1.52 ms、GQA reduction 4.49 ms。dispatch 和 HIP API 反而增加约 4%/5%，再次说明
+“少 launch”不是目标，端到端设备时间才是。
+
+T=128 保留旧路径，单进程为 `1.008×`。候选保留，但相对 PyTorch 仍只有 0.130×/0.116×；
+下一热点是 forward 和 row recompute 本身，需要 flash-style tile reuse。

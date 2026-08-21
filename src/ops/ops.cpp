@@ -1885,11 +1885,47 @@ TensorTriple causal_gqa_attention_backward(
                 query, key, value, output_gradient, repeats, scale, context);
         }
         Tensor query_gradient(query.shape(), DType::Float32, query.device());
+#if MICROLLM_HAS_HIP
+        if (sequence >= 256 && hipblaslt_available()) {
+            Tensor probabilities({batches, heads, sequence, sequence},
+                                 DType::Float32, query.device());
+            Tensor scaled_score_gradients({batches, heads, sequence, sequence},
+                                          DType::Float32, query.device());
+            fill_(probabilities, 0.0F, context);
+            fill_(scaled_score_gradients, 0.0F, context);
+            hip::launch_causal_gqa_attention_backward_rows(
+                static_cast<const float*>(query.data()),
+                static_cast<const float*>(key.data()),
+                static_cast<const float*>(value.data()),
+                static_cast<const float*>(output_gradient.data()),
+                static_cast<float*>(query_gradient.data()),
+                static_cast<float*>(probabilities.data()),
+                static_cast<float*>(scaled_score_gradients.data()),
+                batches, heads, kv_heads, sequence, width, repeats, scale,
+                context.native_stream(query.device()));
+            auto expanded_key_gradient = matmul_with_implementation(
+                scaled_score_gradients, query, MatmulImplementation::HipBLASLt,
+                true, false, context);
+            auto expanded_value_gradient = matmul_with_implementation(
+                probabilities, output_gradient, MatmulImplementation::HipBLASLt,
+                true, false, context);
+            auto key_gradient = repeats == 1
+                                    ? std::move(expanded_key_gradient)
+                                    : repeat_interleave_backward(
+                                          expanded_key_gradient, key.shape(), 1,
+                                          repeats, context);
+            auto value_gradient = repeats == 1
+                                      ? std::move(expanded_value_gradient)
+                                      : repeat_interleave_backward(
+                                            expanded_value_gradient, value.shape(), 1,
+                                            repeats, context);
+            return {std::move(query_gradient), std::move(key_gradient),
+                    std::move(value_gradient)};
+        }
         Tensor key_gradient(key.shape(), DType::Float32, key.device());
         Tensor value_gradient(value.shape(), DType::Float32, value.device());
         fill_(key_gradient, 0.0F, context);
         fill_(value_gradient, 0.0F, context);
-#if MICROLLM_HAS_HIP
         hip::launch_causal_gqa_attention_backward(
             static_cast<const float*>(query.data()),
             static_cast<const float*>(key.data()),

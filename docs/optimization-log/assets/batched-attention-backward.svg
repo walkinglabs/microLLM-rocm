@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="790" viewBox="0 0 1800 790">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="900.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 054 · Batched Attention Backward</text>
+<text x="900.0" y="80.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">context 512 · median of 3 fresh processes · measured peak unchanged</text>
+<rect x="100" y="150" width="820" height="470" fill="#ffffff" stroke="#cbd3df" rx="10"/>
+<rect x="1050" y="150" width="650" height="470" fill="#ffffff" stroke="#cbd3df" rx="10"/>
+<text x="510.0" y="125.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">Official training ratios</text>
+<text x="1375.0" y="125.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">Qwen process profile</text>
+<line x1="100" y1="620.0" x2="920" y2="620.0" stroke="#e5e9f0"/>
+<line x1="100" y1="463.3" x2="920" y2="463.3" stroke="#e5e9f0"/>
+<line x1="100" y1="306.7" x2="920" y2="306.7" stroke="#2563eb"/>
+<line x1="100" y1="150.0" x2="920" y2="150.0" stroke="#e5e9f0"/>
+<rect x="223.0" y="194.6" width="76" height="425.4" fill="#18a558" rx="5"/>
+<text x="261.0" y="185.6" font-family="Inter,Arial,sans-serif" font-size="14" fill="#18a558" text-anchor="middle" font-weight="700">1.358×</text>
+<text x="261.0" y="644.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#5b6474" text-anchor="middle" font-weight="400">self</text>
+<rect x="311.0" y="579.3" width="76" height="40.7" fill="#d04a3a" rx="5"/>
+<text x="349.0" y="570.3" font-family="Inter,Arial,sans-serif" font-size="14" fill="#d04a3a" text-anchor="middle" font-weight="700">0.130×</text>
+<text x="349.0" y="644.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#5b6474" text-anchor="middle" font-weight="400">vs PT</text>
+<text x="305.0" y="676.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" text-anchor="middle" font-weight="700">Qwen 0.5B</text>
+<rect x="633.0" y="192.4" width="76" height="427.6" fill="#18a558" rx="5"/>
+<text x="671.0" y="183.4" font-family="Inter,Arial,sans-serif" font-size="14" fill="#18a558" text-anchor="middle" font-weight="700">1.365×</text>
+<text x="671.0" y="644.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#5b6474" text-anchor="middle" font-weight="400">self</text>
+<rect x="721.0" y="583.7" width="76" height="36.3" fill="#d04a3a" rx="5"/>
+<text x="759.0" y="574.7" font-family="Inter,Arial,sans-serif" font-size="14" fill="#d04a3a" text-anchor="middle" font-weight="700">0.116×</text>
+<text x="759.0" y="644.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#5b6474" text-anchor="middle" font-weight="400">vs PT</text>
+<text x="715.0" y="676.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" text-anchor="middle" font-weight="700">DeepSeek 1.5B</text>
+<text x="1085.0" y="215.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="start" font-weight="700">Total Kernel</text>
+<rect x="1085" y="245" width="470" height="30" fill="#eef1f5" rx="4"/>
+<rect x="1085" y="245" width="470.0" height="30" fill="#aab2bf" rx="4"/>
+<text x="1575.0" y="266.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#aab2bf" text-anchor="start" font-weight="700">before 1946.5 ms</text>
+<rect x="1085" y="297" width="470" height="30" fill="#eef1f5" rx="4"/>
+<rect x="1085" y="297" width="348.3" height="30" fill="#18a558" rx="4"/>
+<text x="1575.0" y="318.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#18a558" text-anchor="start" font-weight="700">after 1442.3 ms</text>
+<text x="1085.0" y="390.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="start" font-weight="700">Attention backward</text>
+<rect x="1085" y="420" width="470" height="30" fill="#eef1f5" rx="4"/>
+<rect x="1085" y="420" width="238.0" height="30" fill="#aab2bf" rx="4"/>
+<text x="1575.0" y="441.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#aab2bf" text-anchor="start" font-weight="700">before 985.6 ms</text>
+<rect x="1085" y="472" width="470" height="30" fill="#eef1f5" rx="4"/>
+<rect x="1085" y="472" width="115.9" height="30" fill="#18a558" rx="4"/>
+<text x="1575.0" y="493.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#18a558" text-anchor="start" font-weight="700">after 479.9 ms</text>
+<text x="900.0" y="710.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#16834a" text-anchor="middle" font-weight="700">Kernel time 1.350× faster despite +4.3% dispatches · T128 fallback 1.008×</text>
+</svg>

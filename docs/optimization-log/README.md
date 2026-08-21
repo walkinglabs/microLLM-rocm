@@ -264,6 +264,12 @@ Experiment 053 补上 strided-batched hipBLASLt。rank-4、FP32/BF16、四种 tr
 
 ![Strided-batched hipBLASLt](assets/strided-batched-hipblaslt.svg)
 
+Experiment 054 用 row recompute + 两次 strided-batched GEMM + GQA head reduction 重写
+T≥256 backward。Qwen/DeepSeek T=512 分别提高 `1.358×/1.365×`，measured peak 不变；
+T=128 fallback `1.008×`。Qwen 总 Kernel 时间 `1.946→1.442s`，候选保留。
+
+![Batched Attention backward](assets/batched-attention-backward.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -329,6 +335,8 @@ Experiment 053 补上 strided-batched hipBLASLt。rank-4、FP32/BF16、四种 tr
 | [experiments/052-data/](experiments/052-data/) | pilot、candidate profiler 与 discard 合同 |
 | [assets/strided-batched-hipblaslt.svg](assets/strided-batched-hipblaslt.svg) | Qwen Attention batch GEMM exact-shape 加速 |
 | [experiments/053-data/](experiments/053-data/) | 6 条 Event raw、错误计时和 dispatch 合同 |
+| [assets/batched-attention-backward.svg](assets/batched-attention-backward.svg) | T512 两模型吞吐与 retained profile |
+| [experiments/054-data/](experiments/054-data/) | 正式12条 raw、T128 fallback 与 profiler 聚合 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

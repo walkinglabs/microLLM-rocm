@@ -41,6 +41,7 @@ needed to run a real training and generation loop:
 - explicit Scalar/Vectorized AdamW experiments with HIP Event micro-benchmarks; Auto remains
   on the model-validated scalar policy.
 - rank-N strided-batched hipBLASLt with last-two-dimension transpose contracts for Attention.
+- T≥256 causal GQA backward using batched GEMM for K/V gradients, with short-sequence fallback.
 
 The design keeps three implementations where they provide engineering value:
 
