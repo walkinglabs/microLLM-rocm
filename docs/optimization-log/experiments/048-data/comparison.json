@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "experiment": 48,
+  "model": "qwen2.5-0.5b",
+  "precision": "bf16_linear_fp32_master",
+  "protocol": {"warmup": 1, "steps": 2, "runs": 3},
+  "baseline_experiment": 44,
+  "all_tensor_pilot": {
+    "status": "early-stop",
+    "runs_completed": 1,
+    "tensor_updates": 290,
+    "scalar_launches": 0,
+    "group_launches": 19,
+    "maximum_group_size": 16,
+    "baseline_tokens_per_second": 802.696812957,
+    "candidate_tokens_per_second": 462.999321505,
+    "speedup": 0.576804734,
+    "throughput_change_percent": -42.319527,
+    "peak_ratio": 1.0
+  },
+  "small_tensor_candidate": {
+    "tensor_element_limit": 4096,
+    "tensor_updates": 290,
+    "scalar_launches": 169,
+    "group_launches": 8,
+    "maximum_group_size": 16,
+    "dispatches_before": 290,
+    "dispatches_after": 177,
+    "dispatch_ratio": 0.610344828,
+    "rows": [
+      {"batch": 1, "context": 3, "before_tokens_per_second": 33.452458094, "after_tokens_per_second": 33.046350927, "speedup": 0.98786017, "peak_ratio": 1.0},
+      {"batch": 2, "context": 3, "before_tokens_per_second": 64.570128058, "after_tokens_per_second": 66.300106637, "speedup": 1.026792243, "peak_ratio": 1.0},
+      {"batch": 1, "context": 32, "before_tokens_per_second": 304.384463679, "after_tokens_per_second": 311.216939783, "speedup": 1.022446862, "peak_ratio": 1.0},
+      {"batch": 1, "context": 128, "before_tokens_per_second": 802.696812957, "after_tokens_per_second": 806.786211625, "speedup": 1.005094574, "peak_ratio": 1.0}
+    ]
+  },
+  "optimizer_payload_host_to_device_calls": 0,
+  "optimizer_payload_device_to_host_calls": 0,
+  "decision": "discard",
+  "reason": "no formal shape reaches the 1.05 keep gate; all-tensor grouping strongly regresses",
+  "next_hypothesis": "large-tensor AdamW is memory-path limited; benchmark vectorized contiguous loads/stores instead of reducing small launches"
+}

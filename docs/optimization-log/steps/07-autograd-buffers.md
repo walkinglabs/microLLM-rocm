@@ -67,3 +67,15 @@ parameter/gradient/moment pointers in bounded groups as Kernel arguments. Sixtee
 per launch keeps metadata bounded and should reduce 339 launches to about 22 without a
 pointer upload or gradient copy. This alternative must still pass scalar AdamW equality
 and end-to-end keep gates.
+
+## Experiment 048 result
+
+Passing fresh addresses in 16-Tensor Kernel arguments passed scalar CPU/HIP state equality.
+Grouping all 290 Qwen tensors reduced launches to 19 but regressed `1×128` throughput by
+42.3%, so the matrix early-stopped. Grouping only 121 tensors with at most 4,096 elements
+reduced launches to 177; four-shape speedups were `0.988×–1.027×`, with unchanged memory.
+No row met the 5% gate, and the code was removed.
+
+This falsifies launch count as the primary AdamW explanation. The retained profile time is
+mostly bytes moving through large parameter/gradient/moment tensors. The next candidate
+must benchmark vector-width/coalescing on exact large shapes before model integration.

@@ -639,6 +639,64 @@ def validate_stable_gradient_discard(errors: list[str]) -> tuple[int, int]:
     return len(matched), len(mismatched)
 
 
+def validate_chunked_adamw_discard(errors: list[str]) -> tuple[int, int]:
+    data = ROOT / "experiments" / "048-data"
+    pilot = [json.loads(line) for line in
+             (data / "all-tensor-early-stop" / "raw.jsonl").read_text(
+                 encoding="utf-8").splitlines()]
+    context128 = [json.loads(line) for line in
+                  (data / "small-tensor" / "context128" / "raw.jsonl").read_text(
+                      encoding="utf-8").splitlines()]
+    rest = [json.loads(line) for line in
+            (data / "small-tensor" / "rest" / "raw.jsonl").read_text(
+                encoding="utf-8").splitlines()]
+    formal = context128 + rest
+    keys = {(row.get("framework"), row.get("batch"), row.get("context"),
+             row.get("process_run")) for row in formal}
+    if len(pilot) != 2 or any(row.get("status") != "pass" for row in pilot) or \
+            len(formal) != 24 or len(keys) != 24 or any(
+                row.get("status") != "pass" or row.get("warmup") != 1 or
+                row.get("steps") != 2 for row in formal):
+        errors.append("chunked AdamW raw protocol changed")
+    micro = [row for row in formal if row.get("framework") == "microllm"]
+    if len(micro) != 12 or any(
+            row.get("optimizer_tensor_updates") != 290 or
+            row.get("optimizer_hip_scalar_launches") != 169 or
+            row.get("optimizer_hip_group_launches") != 8 or
+            row.get("optimizer_maximum_group_size") != 16 or
+            row.get("optimizer_host_to_device_calls") != 0 or
+            row.get("optimizer_device_to_host_calls") != 0 for row in micro):
+        errors.append("small-tensor AdamW dispatch/transfer contract changed")
+    comparison = json.loads((data / "comparison.json").read_text(encoding="utf-8"))
+    rows = comparison.get("small_tensor_candidate", {}).get("rows", [])
+    all_group = comparison.get("all_tensor_pilot", {})
+    if comparison.get("decision") != "discard" or len(rows) != 4 or \
+            any(row.get("speedup", 0.0) >= 1.05 or row.get("peak_ratio") != 1.0
+                for row in rows) or \
+            all_group.get("speedup", 1.0) >= 0.6 or \
+            all_group.get("group_launches") != 19 or \
+            comparison.get("small_tensor_candidate", {}).get("dispatches_after") != 177:
+        errors.append("chunked AdamW discard boundary changed")
+    baseline = json.loads((ROOT / "experiments" / "044-data" / "candidate" /
+                           "summary.json").read_text(encoding="utf-8"))
+    baseline_by_shape = {(row["batch"], row["context"]): row for row in baseline["rows"]}
+    formal_summaries = []
+    for path in (data / "small-tensor" / "context128" / "summary.json",
+                 data / "small-tensor" / "rest" / "summary.json"):
+        formal_summaries.extend(json.loads(path.read_text(encoding="utf-8"))["rows"])
+    candidate_by_shape = {(row["batch"], row["context"]): row
+                          for row in formal_summaries}
+    for row in rows:
+        key = (row["batch"], row["context"])
+        if key not in baseline_by_shape or key not in candidate_by_shape or \
+                abs(row["before_tokens_per_second"] -
+                    baseline_by_shape[key]["microllm_tokens_per_second"]) > 1e-6 or \
+                abs(row["after_tokens_per_second"] -
+                    candidate_by_shape[key]["microllm_tokens_per_second"]) > 1e-6:
+            errors.append(f"chunked AdamW shape comparison changed: {key}")
+    return len(pilot), len(formal)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -665,7 +723,8 @@ def validate_assets(errors: list[str]) -> None:
                  "fused-causal-gqa-training.svg",
                  "deepseek-training-shapes.svg",
                  "deepseek-context128-profile.svg",
-                 "stable-gradient-buffer-discard.svg"):
+                 "stable-gradient-buffer-discard.svg",
+                 "chunked-adamw-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -709,6 +768,8 @@ def main() -> int:
         validate_deepseek_optimizer_profile(errors)
     stable_gradient_matched, stable_gradient_mismatched = \
         validate_stable_gradient_discard(errors)
+    chunked_adamw_pilot, chunked_adamw_formal = \
+        validate_chunked_adamw_discard(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -729,6 +790,7 @@ def main() -> int:
           f"deepseek_shapes={deepseek_pilot_count}/{deepseek_shape_count} "
           f"optimizer_profile={optimizer_profile_kernel_calls}/{optimizer_profile_api_calls} "
           f"stable_gradient={stable_gradient_matched}/{stable_gradient_mismatched} "
+          f"chunked_adamw={chunked_adamw_pilot}/{chunked_adamw_formal} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

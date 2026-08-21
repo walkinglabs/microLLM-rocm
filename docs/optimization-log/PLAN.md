@@ -20,7 +20,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | M1 serial kernels | complete | parallel CE、transpose GEMM、parallel RMSNorm | 三组旧热点均从 trace 主导位置消失 |
 | M2 data movement | complete | preallocated KV、device greedy、steady-state exact-size pool | measured decode 只回传 token scalar |
 | M3 optimized ops | in progress | batched GEMM、hipBLASLt plan、FMHA/fusion | Model-S/M 与 HF 均改善 |
-| M4 low precision | in progress | Qwen/DeepSeek four-shape matrices；device-native load；retained optimizer profile；stable-gradient design discarded | kernel-argument multi-tensor AdamW；streaming/mapped load；T=512 |
+| M4 low precision | in progress | Qwen/DeepSeek four-shape matrices；device-native load；retained optimizer profile；two multi-tensor designs discarded | vectorized large-tensor AdamW；streaming/mapped load；T=512 |
 | M5 scheduling | planned | stable-address HIP Graph | launch/API 时间下降且数值不变 |
 | M6 report | in progress | 博客、曲线、trace、失败图集、局部饱和审计 | 新 track 仍待完成 |
 
@@ -35,7 +35,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [04](steps/04-device-kv-cache.md) | complete | 预分配 device KV/GQA | score 1.167931 |
 | [05](steps/05-device-sampling.md) | complete | device greedy argmax；随机 top-k 保留 reference | score 1.219170 |
 | [06](steps/06-memory-pool.md) | complete | exact-size pool + 16-block retirement Event batching | score 2.470863 |
-| [07](steps/07-autograd-buffers.md) | in progress | local COW and stable-address copy both discarded；bounded kernel-argument descriptors selected | train allocations / optimizer launches |
+| [07](steps/07-autograd-buffers.md) | in progress | COW、stable copy、all/small chunking discarded；large-tensor vectorization selected | optimizer memory path |
 | [08](steps/08-batched-fmha.md) | in progress | cached decode fused；prefill/backward planned | score 1.752183 |
 | [09](steps/09-fusion-autotune.md) | in progress | fusion/wide-row kept；offline GEMM solution discarded | score 1.845199 |
 | [10](steps/10-bf16.md) | in progress | inference 4/4；BF16 training mirrors improve 9.4%/5.9% with memory cost | activation islands and broader shapes |

@@ -51,6 +51,8 @@ DEEPSEEK_PROFILE_SUMMARY = ROOT / "experiments" / "046-data" / "profile-summary.
 DEEPSEEK_PROFILE_CHART = ROOT / "assets" / "deepseek-context128-profile.svg"
 STABLE_GRADIENT_COMPARISON = ROOT / "experiments" / "047-data" / "comparison.json"
 STABLE_GRADIENT_CHART = ROOT / "assets" / "stable-gradient-buffer-discard.svg"
+CHUNKED_ADAMW_COMPARISON = ROOT / "experiments" / "048-data" / "comparison.json"
+CHUNKED_ADAMW_CHART = ROOT / "assets" / "chunked-adamw-discard.svg"
 
 
 def rows() -> list[dict]:
@@ -1255,6 +1257,73 @@ def stable_gradient_discard_svg() -> str:
     return "\n".join(parts)
 
 
+def chunked_adamw_discard_svg() -> str:
+    data = json.loads(CHUNKED_ADAMW_COMPARISON.read_text(encoding="utf-8"))
+    rows = data["small_tensor_candidate"]["rows"]
+    pilot = data["all_tensor_pilot"]
+    width, height = 1700, 760
+    chart_x, chart_y, chart_w, chart_h = 100, 150, 1040, 410
+    panel_x, panel_y, panel_w, panel_h = 1210, 150, 390, 410
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 048 · Chunked AdamW Discarded", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 80,
+             "Qwen2.5-0.5B · matched 1 warm-up + 2 measured · median of 3 fresh processes",
+             16, "#5b6474", anchor="middle"),
+        f'<rect x="{chart_x}" y="{chart_y}" width="{chart_w}" height="{chart_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+        f'<rect x="{panel_x}" y="{panel_y}" width="{panel_w}" height="{panel_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+        text(chart_x + chart_w / 2, 125, "Small-tensor grouping speedup", 20,
+             anchor="middle", weight=700),
+        text(panel_x + panel_w / 2, 125, "All-tensor pilot", 20,
+             anchor="middle", weight=700),
+    ]
+    def y(value: float) -> float:
+        return chart_y + chart_h * (1.10 - value) / 0.20
+    for tick in (0.90, 0.95, 1.00, 1.05, 1.10):
+        position = y(tick)
+        color = "#2563eb" if tick == 1.0 else "#e5e9f0"
+        parts.append(f'<line x1="{chart_x}" y1="{position:.1f}" '
+                     f'x2="{chart_x+chart_w}" y2="{position:.1f}" stroke="{color}"/>')
+        parts.append(text(chart_x - 12, position + 5, f"{tick:.2f}×", 13,
+                          "#5b6474", anchor="end"))
+    group = chart_w / len(rows)
+    for index, row in enumerate(rows):
+        center = chart_x + group * (index + 0.5)
+        ratio = row["speedup"]
+        base = y(1.0)
+        top = y(ratio)
+        color = "#2f9b68" if ratio >= 1.0 else "#d04a3a"
+        parts.append(f'<rect x="{center-48:.1f}" y="{min(base, top):.1f}" width="96" '
+                     f'height="{max(4.0, abs(base-top)):.1f}" rx="5" fill="{color}"/>')
+        parts.append(text(center, chart_y + chart_h + 31,
+                          f'{row["batch"]}×{row["context"]}', 16,
+                          anchor="middle", weight=700))
+        parts.append(text(center, top - 10 if ratio >= 1 else top + 22,
+                          f"{ratio:.3f}×", 15, color, anchor="middle", weight=700))
+    parts.append(text(panel_x + panel_w / 2, panel_y + 105,
+                      f'{pilot["speedup"]:.3f}×', 54, "#d04a3a",
+                      anchor="middle", weight=700))
+    parts.append(text(panel_x + panel_w / 2, panel_y + 145,
+                      f'{pilot["throughput_change_percent"]:.1f}% throughput', 18,
+                      "#b83f32", anchor="middle", weight=700))
+    parts.append(text(panel_x + panel_w / 2, panel_y + 225, "290 → 19 launches", 24,
+                      "#172033", anchor="middle", weight=700))
+    parts.append(text(panel_x + panel_w / 2, panel_y + 270,
+                      "fewer launches", 16, "#64748b", anchor="middle"))
+    parts.append(text(panel_x + panel_w / 2, panel_y + 300,
+                      "≠ faster Kernel", 18, "#d04a3a", anchor="middle", weight=700))
+    parts.append(text(width / 2, 655,
+                      "Small grouping cuts dispatches 39%, but no official shape reaches the +5% keep gate",
+                      17, "#9a4f00", anchor="middle", weight=700))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -1275,7 +1344,8 @@ def main() -> int:
                 FUSED_CAUSAL_GQA_CHART: fused_causal_gqa_svg(),
                 DEEPSEEK_SHAPE_CHART: deepseek_shape_svg(),
                 DEEPSEEK_PROFILE_CHART: deepseek_context128_profile_svg(),
-                STABLE_GRADIENT_CHART: stable_gradient_discard_svg()}
+                STABLE_GRADIENT_CHART: stable_gradient_discard_svg(),
+                CHUNKED_ADAMW_CHART: chunked_adamw_discard_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

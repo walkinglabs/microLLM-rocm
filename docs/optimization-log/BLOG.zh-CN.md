@@ -1266,3 +1266,22 @@ Storage；下一次 backward 的首贡献通过 GPU copy 写入，后续分叉�
 这次失败还推翻了一个不必要的前提。multi-tensor Kernel 不必跨 step 缓存 gradient pointer；
 它可以在 launch 时接收当前地址。下一版每 16 个 Tensor 把指针、长度作为 Kernel 参数传入，
 约 339 次 launch 可以降到约 22 次，不需要持久 pointer table，也不需要复制梯度。
+
+## 65. Experiment 048：少了 271 次 launch，反而慢了 42%
+
+第二版不缓存地址。每次 launch 把最多 16 组当前 parameter、gradient、两个 moment 和可选
+BF16 mirror 指针作为 Kernel 参数。33 个不同大小 Tensor 的 CPU/HIP 参数、moment、mirror
+对齐全部通过，也没有 payload H2D/D2H。
+
+然后出现了本轮最强的反例：Qwen 的 290 次 AdamW launch 确实降到 19 次，`1×128` 却从
+802.70 降到 463.00 token/s。大 Kernel 的每个 block 都承担了较大的参数体和 Tensor 映射，
+launch 少不代表执行快。
+
+于是只分组小 Tensor。Qwen 有 121 个不超过 4,096 元素的 Norm/bias，DeepSeek 有 141 个；
+大矩阵恢复原 Kernel。Qwen dispatch 变成 177 次，再跑完整四-shape 三进程矩阵：
+
+![Chunked AdamW discard](assets/chunked-adamw-discard.svg)
+
+四项变化是 `−1.2%、+2.7%、+2.2%、+0.5%`，显存全部不变。39% 的 launch 减少没有转成
+5% 的端到端收益，因此这版也删除。Experiment 046 的 32.94% 并不主要是“小 Kernel 太多”，
+而是大参数、梯度和 moment 的内存路径。下一步测大 Tensor 向量化访存，不再围着 launch 数转。

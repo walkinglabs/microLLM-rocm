@@ -224,6 +224,13 @@ Storage。地址、数值和零 payload transfer 全部通过，但首贡献 cop
 
 ![Stable gradient buffer discard](assets/stable-gradient-buffer-discard.svg)
 
+Experiment 048 改成 launch 时传入当前指针。全量 16-Tensor 分组把 Qwen AdamW
+`290→19` 次，却让 `1×128` 吞吐降到 `0.577×`，立即早停。只融合不超过 4,096 元素的
+121 个小 Tensor 后，dispatch 为 177 次；四 shape speedup 为
+`0.988×、1.027×、1.022×、1.005×`，显存不变。没有一项过 5%，代码仍然删除。
+
+![Chunked AdamW discard](assets/chunked-adamw-discard.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -277,6 +284,8 @@ Storage。地址、数值和零 payload transfer 全部通过，但首贡献 cop
 | [experiments/046-data/](experiments/046-data/) | retained Kernel/HIP API 聚合与可验证 profile 合同 |
 | [assets/stable-gradient-buffer-discard.svg](assets/stable-gradient-buffer-discard.svg) | 稳定梯度地址的吞吐/显存反例 |
 | [experiments/047-data/](experiments/047-data/) | 匹配协议 raw、错误协议保留与 discard 合同 |
+| [assets/chunked-adamw-discard.svg](assets/chunked-adamw-discard.svg) | 全量/小 Tensor 分组与端到端反例 |
+| [experiments/048-data/](experiments/048-data/) | 早停 pair、四 shape 24 条 raw 与 dispatch 合同 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 
