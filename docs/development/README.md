@@ -257,5 +257,7 @@ the next gate. Records are append-only except for factual corrections.
   block-zero norm/QKV/RoPE/Attention/residual/FFN split and first-drift isolation.
 - [2026-08-21-bf16-ffn-drift.md](2026-08-21-bf16-ffn-drift.md):
   low-precision trace repair and gate/up/SwiGLU/down drift isolation.
+- [2026-08-21-bf16-algorithm-inventory.md](2026-08-21-bf16-algorithm-inventory.md):
+  M32/M64 solution-index, workspace and intersection evidence.
 - [2026-08-21-divergent-row-cache-reference.md](2026-08-21-divergent-row-cache-reference.md):
   unequal-position shared-Storage B1 oracle with CPU/HIP and reset-prefix gates.

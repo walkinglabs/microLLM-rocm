@@ -2194,3 +2194,10 @@ norm的B1/B2完整值全为exact。第一个非零点是fused BF16 FFN output：
 
 证据已收敛到M32/M64的BF16 gate/up hipBLASLt路径。下一步记录algorithm ID并尝试same-algorithm
 反驳，不能直接用FP32回退掩盖问题。
+
+## 126. Experiment 109：M32/M64有53个共同solution
+
+默认调用的algo为null，所以先用相同descriptor查询64个heuristic候选。两种shape各返回64个，在
+32MiB workspace限制下交集为53。same-algorithm反驳可做；index仅对当前hipBLASLt版本有效。
+
+![BF16 algorithm inventory](assets/bf16-algorithm-inventory.svg)

@@ -10,6 +10,10 @@ if(MICROLLM_HAS_HIP AND MICROLLM_HAS_HIPBLASLT)
     add_executable(microllm_bench_adamw micro/benchmark_adamw.cpp)
     target_link_libraries(microllm_bench_adamw PRIVATE
         microllm::ops microllm::runtime hip::host)
+    add_executable(microllm_bench_bf16_algorithms
+                   micro/benchmark_bf16_algorithms.cpp)
+    target_link_libraries(microllm_bench_bf16_algorithms PRIVATE
+        microllm::ops microllm::runtime hip::host roc::hipblaslt)
 endif()
 
 add_executable(microllm_bench_model end_to_end/benchmark_model.cpp)

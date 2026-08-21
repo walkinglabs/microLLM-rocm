@@ -79,7 +79,8 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] capture complete B1/B2 logits and all 28 block outputs for fixed P5;
 - [x] split block 0 and isolate the first difference to fused BF16 FFN output;
 - [x] split fused BF16 FFN and isolate first drift to gate/up BF16 GEMMs;
-- [ ] record and cross-check hipBLASLt algorithm IDs for M32/M64 gate/up shapes;
+- [x] inventory M32/M64 hipBLASLt solutions and find 53 common candidates;
+- [ ] inject one common version-local solution into both shapes for an official-model counterfactual;
 - [ ] add request-level TTFT and P50/P95 latency rather than throughput alone;
 
 ## P2 — operator registry and profiler API

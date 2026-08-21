@@ -4065,6 +4065,34 @@ def validate_bf16_ffn_drift(errors: list[str]) -> tuple[int, int, int, int]:
     return len(raw), len(stages), len(expected), exact_duplicate
 
 
+def validate_bf16_algorithm_inventory(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "109-data"
+    inventory = json.loads((data / "inventory.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    shapes = inventory.get("shapes", [])
+    if inventory.get("record_type") != "bf16_algorithm_inventory" or \
+            inventory.get("status") != "pass" or len(shapes) != 2 or \
+            [row.get("rows") for row in shapes] != [32, 64] or \
+            any(row.get("candidate_count") != 64 for row in shapes) or \
+            inventory.get("common_candidate_count") != 53 or \
+            len(inventory.get("common_indices", [])) != 53:
+        errors.append("BF16 algorithm inventory changed")
+    source = (REPOSITORY / "benchmarks" / "micro" /
+              "benchmark_bf16_algorithms.cpp").read_text(encoding="utf-8")
+    cmake = (REPOSITORY / "benchmarks" / "CMakeLists.txt").read_text(encoding="utf-8")
+    if "hipblasLtMatmulAlgoGetHeuristic" not in source or \
+            "getIndexFromAlgo" not in source or \
+            "microllm_bench_bf16_algorithms" not in cmake:
+        errors.append("BF16 algorithm inventory CLI is missing")
+    if gates.get("status") != "common_algorithms_available" or \
+            gates.get("focused", {}).get("common_candidates") != 53 or \
+            gates.get("focused", {}).get("invalid_cli_failures") != 1:
+        errors.append("BF16 algorithm inventory gates changed")
+    return shapes[0].get("candidate_count", 0), \
+        shapes[1].get("candidate_count", 0), \
+        inventory.get("common_candidate_count", 0)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -4151,7 +4179,8 @@ def validate_assets(errors: list[str]) -> None:
                  "prefill-row-audit.svg",
                  "prefill-layer-drift.svg",
                  "block0-drift.svg",
-                 "bf16-ffn-drift.svg"):
+                 "bf16-ffn-drift.svg",
+                 "bf16-algorithm-inventory.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -4308,6 +4337,7 @@ def main() -> int:
         validate_block0_drift(errors)
     ffn_drift_raw, ffn_drift_stages, ffn_drift_internal, ffn_drift_exact = \
         validate_bf16_ffn_drift(errors)
+    algo_m32, algo_m64, algo_common = validate_bf16_algorithm_inventory(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -4430,6 +4460,7 @@ def main() -> int:
           f"{block0_exact}/{block0_duplicates} "
           f"bf16_ffn_drift={ffn_drift_raw}/{ffn_drift_stages}/"
           f"{ffn_drift_internal}/{ffn_drift_exact} "
+          f"bf16_algorithms={algo_m32}/{algo_m64}/{algo_common} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

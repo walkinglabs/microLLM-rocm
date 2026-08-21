@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "status": "common_algorithms_available",
+  "full": {"passed": 315, "failed": 0, "skipped": 2},
+  "cpu": {"passed": 219, "failed": 0, "skipped": 2},
+  "hip": {"passed": 96, "failed": 0, "skipped": 0},
+  "sanitizer": {"passed": 212, "failed": 0, "skipped": 0},
+  "focused": {
+    "m32_candidates": 64,
+    "m64_candidates": 64,
+    "common_candidates": 53,
+    "inventory_runs": 2,
+    "invalid_cli_failures": 1
+  }
+}

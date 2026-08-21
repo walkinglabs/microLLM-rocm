@@ -1,0 +1,15 @@
+date_utc=2026-08-21
+device=AMD Instinct MI300X VF
+architecture=gfx942:sramecc+:xnack-
+hip_runtime=71399004
+hip_driver=71399004
+build_type=Release
+source_parent=e31b0ce
+dtype=bf16
+output_dtype=bf16
+rows=32,64
+inner=1536
+columns=8960
+requested_algorithms=64
+workspace_limit_bytes=33554432
+solution_indices_are_version_local=true

@@ -580,6 +580,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/107-data/](experiments/107-data/) | 三对43-stage block0子阶段完整值误差 |
 | [assets/bf16-ffn-drift.svg](assets/bf16-ffn-drift.svg) | cast exact到gate/up GEMM首次漂移 |
 | [experiments/108-data/](experiments/108-data/) | 三对48-stage FFN内部完整值误差 |
+| [assets/bf16-algorithm-inventory.svg](assets/bf16-algorithm-inventory.svg) | M32/M64候选集合与53个交集 |
+| [experiments/109-data/](experiments/109-data/) | solution index、workspace和waves原始JSON |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 
