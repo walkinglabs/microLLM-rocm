@@ -422,6 +422,35 @@ TEST(TransformerModelTest, ClearCacheRowRemovesOldPrefixAndPreservesOtherRows) {
     }
 }
 
+TEST(KVCacheTest, PerRowPositionsRejectAmbiguousUniformReads) {
+    inference::KVCache cache(2, 6, 3, DType::Float32);
+    EXPECT_TRUE(cache.positions_uniform());
+    EXPECT_EQ(cache.position(), 0);
+    EXPECT_EQ(cache.row_positions(), (std::vector<std::int64_t>{0, 0, 0}));
+    cache.advance_row(0, 2);
+    EXPECT_FALSE(cache.positions_uniform());
+    EXPECT_EQ(cache.row_position(0), 2);
+    EXPECT_EQ(cache.row_position(1), 0);
+    EXPECT_THROW((void)cache.position(), std::logic_error);
+    EXPECT_THROW(cache.advance_row(-1), std::out_of_range);
+    EXPECT_THROW(cache.advance_row(3), std::out_of_range);
+    EXPECT_THROW(cache.advance_row(0, 5), std::out_of_range);
+    EXPECT_THROW(cache.advance_row(1, 0), std::out_of_range);
+    cache.reset_row(0);
+    EXPECT_TRUE(cache.positions_uniform());
+    EXPECT_EQ(cache.position(), 0);
+    cache.advance(3);
+    EXPECT_EQ(cache.row_positions(), (std::vector<std::int64_t>{3, 3, 3}));
+    cache.reset_row(1);
+    EXPECT_EQ(cache.row_positions(), (std::vector<std::int64_t>{3, 0, 3}));
+    EXPECT_THROW((void)cache.position(), std::logic_error);
+    cache.advance_row(1, 3);
+    EXPECT_TRUE(cache.positions_uniform());
+    EXPECT_EQ(cache.position(), 3);
+    cache.reset();
+    EXPECT_EQ(cache.row_positions(), (std::vector<std::int64_t>{0, 0, 0}));
+}
+
 TEST(TransformerModelTest, Bf16KvCacheHalvesStorageAndTracksFp32Decode) {
     auto config = tiny_config(true);
     config.max_sequence_length = 8;

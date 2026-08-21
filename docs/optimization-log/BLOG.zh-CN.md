@@ -1845,3 +1845,15 @@ B2 BF16测试精确清192 bytes；清后旧prefix全0，其他row逐项不变，
 CPU/HIP整个Cache一致。它只解决Storage所有权，不声称已有per-slot position。
 
 下一节点要让每个row拥有独立可见长度；否则清空的slot仍只能跟随整batch共同前进。
+
+## 101. Experiment 084：position从一个数变成B个数
+
+KV Cache加入`row_positions[B]`、`advance_row()`和`reset_row()`。所有row相同时旧`position()`
+继续工作；一旦分叉，它明确抛错，不用max/min伪造共同位置。
+
+![KV Cache per-row positions](assets/kv-cache-per-row-positions.svg)
+
+CPU/HIP覆盖`[0,0,0]→[2,0,0]→[0,0,0]→[3,3,3]→[3,0,3]→[3,3,3]`，并验证row reset
+同时清Storage且零payload transfer。模型尚未消费分叉positions，旧uniform路径不变。
+
+下一步必须把positions传给RoPE、K/V store和cached Attention；状态能表达不等于Kernel已支持。

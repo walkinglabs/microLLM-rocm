@@ -523,6 +523,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/082-data/](experiments/082-data/) | CPU/HIP GoogleTest raw、生命周期合同和环境 |
 | [assets/kv-cache-clear-row.svg](assets/kv-cache-clear-row.svg) | B2完整capacity清零、其他row保护和shared-position边界 |
 | [experiments/083-data/](experiments/083-data/) | CPU/HIP storage对齐、零transfer与生命周期合同 |
+| [assets/kv-cache-per-row-positions.svg](assets/kv-cache-per-row-positions.svg) | uniform/divergent状态转移与严格失败边界 |
+| [experiments/084-data/](experiments/084-data/) | CPU/HIP metadata、reset/advance和错误合同 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

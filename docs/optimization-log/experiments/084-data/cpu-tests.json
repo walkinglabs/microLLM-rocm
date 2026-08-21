@@ -1,0 +1,53 @@
+{
+  "tests": 2,
+  "failures": 0,
+  "disabled": 0,
+  "errors": 0,
+  "timestamp": "2026-08-21T16:25:38Z",
+  "time": "0.001s",
+  "name": "AllTests",
+  "testsuites": [
+    {
+      "name": "TransformerModelTest",
+      "tests": 1,
+      "failures": 0,
+      "disabled": 0,
+      "errors": 0,
+      "timestamp": "2026-08-21T16:25:38Z",
+      "time": "0.001s",
+      "testsuite": [
+        {
+          "name": "ClearCacheRowRemovesOldPrefixAndPreservesOtherRows",
+          "file": "\/home\/devpod\/github\/microLLM-rocm\/tests\/model\/model_test.cpp",
+          "line": 368,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-08-21T16:25:38Z",
+          "time": "0s",
+          "classname": "TransformerModelTest"
+        }
+      ]
+    },
+    {
+      "name": "KVCacheTest",
+      "tests": 1,
+      "failures": 0,
+      "disabled": 0,
+      "errors": 0,
+      "timestamp": "2026-08-21T16:25:38Z",
+      "time": "0s",
+      "testsuite": [
+        {
+          "name": "PerRowPositionsRejectAmbiguousUniformReads",
+          "file": "\/home\/devpod\/github\/microLLM-rocm\/tests\/model\/model_test.cpp",
+          "line": 425,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-08-21T16:25:38Z",
+          "time": "0s",
+          "classname": "KVCacheTest"
+        }
+      ]
+    }
+  ]
+}

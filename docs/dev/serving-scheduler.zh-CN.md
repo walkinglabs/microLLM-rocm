@@ -120,7 +120,10 @@ request A forward
 
 `KVCache::clear_row(row)`已经能在CPU/HIP清空某一slot的完整capacity，其他row不变且没有
 GPU payload copy。它故意不修改共同`position()`：清掉旧草稿本不等于新同学已经写到相同页数。
-下一步的`positions[B]`才负责描述每个slot各自读到哪一页。
+
+现在Cache已经保存`row_positions[B]`。如果全部位置相同，旧`position()`继续工作；一旦分叉，
+旧接口明确报错，调用者必须逐row读取。`reset_row()`同时清Storage并把该row位置归0。模型
+Kernel尚未消费不同位置，所以这一步是“状态会表达”，下一步才是“计算会使用”。
 
 ## 8. 测试位置
 

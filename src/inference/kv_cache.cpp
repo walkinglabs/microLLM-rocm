@@ -39,4 +39,9 @@ void KVCache::clear_row(std::int64_t row) {
     }
 }
 
+void KVCache::reset_row(std::int64_t row) {
+    clear_row(row);
+    row_positions_[static_cast<std::size_t>(row)] = 0;
+}
+
 }  // namespace microllm::inference

@@ -225,3 +225,5 @@ the next gate. Records are append-only except for factual corrections.
   explicit stop IDs, variable batch row lengths, completion reasons and immediate B1 Cache release.
 - [2026-08-21-kv-cache-clear-row.md](2026-08-21-kv-cache-clear-row.md): device-native
   full-capacity row clearing, other-row preservation and explicit shared-position boundary.
+- [2026-08-21-kv-cache-per-row-positions.md](2026-08-21-kv-cache-per-row-positions.md):
+  per-row position metadata, strict ambiguous-read failure and reset/advance transitions.

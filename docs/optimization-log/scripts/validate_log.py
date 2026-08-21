@@ -2336,6 +2336,37 @@ def validate_kv_cache_clear_row(errors: list[str]) -> tuple[int, int, int]:
         int(summary.get("test_shape", {}).get("cleared_bytes", 0))
 
 
+def validate_kv_cache_per_row_positions(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "084-data"
+    cpu = json.loads((data / "cpu-tests.json").read_text(encoding="utf-8"))
+    hip = json.loads((data / "hip-tests.json").read_text(encoding="utf-8"))
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    transitions = summary.get("state_transitions", [])
+    contracts = summary.get("contracts", {})
+    expected = [[0, 0, 0], [2, 0, 0], [0, 0, 0],
+                [3, 3, 3], [3, 0, 3], [3, 3, 3]]
+    if cpu.get("tests") != 2 or cpu.get("failures") != 0 or \
+            hip.get("tests") != 1 or hip.get("failures") != 0 or \
+            summary.get("status") != "pass" or \
+            [row.get("positions") for row in transitions] != expected or any(
+                contracts.get(name) is not True for name in (
+                    "uniform_position_backward_compatible",
+                    "ambiguous_uniform_position_throws",
+                    "row_advance_capacity_checked",
+                    "reset_row_clears_storage_and_position")) or \
+            contracts.get("model_consumes_divergent_positions") is not False:
+        errors.append("KV Cache per-row position evidence changed")
+    header = (REPOSITORY / "include/microllm/inference/kv_cache.h").read_text(
+        encoding="utf-8")
+    tests = (REPOSITORY / "tests/model/model_test.cpp").read_text(encoding="utf-8")
+    for token in ("row_position", "row_positions", "positions_uniform", "advance_row"):
+        if token not in header:
+            errors.append(f"KV Cache per-row API is missing {token}")
+    if "PerRowPositionsRejectAmbiguousUniformReads" not in tests:
+        errors.append("KV Cache divergent-position executable gate is missing")
+    return int(cpu.get("tests", 0)), int(hip.get("tests", 0)), len(transitions)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -2397,7 +2428,8 @@ def validate_assets(errors: list[str]) -> None:
                  "readable-fused-attention-discard.svg",
                  "inplace-causal-softmax.svg",
                  "stop-token-early-completion.svg",
-                 "kv-cache-clear-row.svg"):
+                 "kv-cache-clear-row.svg",
+                 "kv-cache-per-row-positions.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -2502,6 +2534,8 @@ def main() -> int:
         validate_inplace_causal_softmax(errors)
     stop_token_cpu, stop_token_hip = validate_stop_token_early_completion(errors)
     clear_row_cpu, clear_row_hip, clear_row_bytes = validate_kv_cache_clear_row(errors)
+    row_position_cpu, row_position_hip, row_position_transitions = \
+        validate_kv_cache_per_row_positions(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -2573,6 +2607,8 @@ def main() -> int:
           f"{inplace_softmax_survey}/{inplace_softmax_precision} "
           f"stop_token={stop_token_cpu}/{stop_token_hip} "
           f"clear_row={clear_row_cpu}/{clear_row_hip}/{clear_row_bytes} "
+          f"row_positions={row_position_cpu}/{row_position_hip}/"
+          f"{row_position_transitions} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

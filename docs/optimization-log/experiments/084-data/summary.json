@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "experiment": "kv_cache_per_row_positions",
+  "cpu_tests": {"passed": 2, "total": 2},
+  "hip_tests": {"passed": 1, "total": 1},
+  "state_transitions": [
+    {"operation": "construct_B3", "positions": [0, 0, 0], "uniform": true},
+    {"operation": "advance_row_0_by_2", "positions": [2, 0, 0], "uniform": false},
+    {"operation": "reset_row_0", "positions": [0, 0, 0], "uniform": true},
+    {"operation": "advance_all_by_3", "positions": [3, 3, 3], "uniform": true},
+    {"operation": "reset_row_1", "positions": [3, 0, 3], "uniform": false},
+    {"operation": "advance_row_1_by_3", "positions": [3, 3, 3], "uniform": true}
+  ],
+  "contracts": {
+    "uniform_position_backward_compatible": true,
+    "ambiguous_uniform_position_throws": true,
+    "row_advance_capacity_checked": true,
+    "reset_row_clears_storage_and_position": true,
+    "reset_all_restores_uniform_zero": true,
+    "hip_metadata_matches_cpu": true,
+    "model_consumes_divergent_positions": false
+  },
+  "performance_claim": "none; explicit state model before per-row cached Attention"
+}

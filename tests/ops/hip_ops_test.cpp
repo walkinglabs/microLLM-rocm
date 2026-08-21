@@ -1559,6 +1559,19 @@ TEST(HipModelTest, ClearCacheRowIsDeviceNativeAndMatchesCpuStorage) {
         expect_near(hip_cache.layer(layer).value.to_vector(),
                     cpu_cache.layer(layer).value.to_vector());
     }
+    runtime::reset_transfer_stats();
+    cpu_cache.reset_row(0);
+    hip_cache.reset_row(0);
+    runtime::synchronize(Device::hip(0));
+    EXPECT_EQ(runtime::transfer_stats().host_to_device_calls, 0U);
+    EXPECT_EQ(runtime::transfer_stats().device_to_host_calls, 0U);
+    EXPECT_EQ(hip_cache.row_positions(), (std::vector<std::int64_t>{0, 4}));
+    EXPECT_THROW((void)hip_cache.position(), std::logic_error);
+    hip_cache.advance_row(0, 4);
+    cpu_cache.advance_row(0, 4);
+    EXPECT_TRUE(hip_cache.positions_uniform());
+    EXPECT_EQ(hip_cache.position(), 4);
+    EXPECT_EQ(cpu_cache.position(), 4);
 }
 
 TEST(HipModelTest, MixedLayerKvCacheMatchesCpuAndKeepsLayerDtypes) {
