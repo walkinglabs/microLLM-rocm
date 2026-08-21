@@ -27,11 +27,13 @@ component has a public interface under `include/microllm`, an implementation und
     [slot row-prefill guide](slot-row-prefill.zh-CN.md).
 14. For token-level refill across fixed shared-cache slots, read the
     [continuous slot-scheduler guide](continuous-slot-scheduler.zh-CN.md).
-15. For FP32/BF16 cache policy and its numerical gates, read the
+15. For removing inactive dummy model rows, read the
+    [active-row compaction guide](active-row-compaction.zh-CN.md).
+16. For FP32/BF16 cache policy and its numerical gates, read the
     [KV-cache dtype guide](kv-cache-dtypes.zh-CN.md).
-16. For delayed multi-request serving semantics, read the
+17. For delayed multi-request serving semantics, read the
     [serving scheduler guide](serving-scheduler.zh-CN.md).
-17. For the measured optimization loop, read the
+18. For the measured optimization loop, read the
     [0→1 optimization log](../optimization-log/README.md).
 
 ## Engineering rules

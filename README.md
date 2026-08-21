@@ -84,6 +84,8 @@ needed to run a real training and generation loop:
 - `ContinuousBatchScheduler` now owns fixed shared KV rows, refills completed/cancelled slots,
   preserves per-request RNG/stop state and reports slot/KV/dummy-row efficiency; divergent
   positions remain a measured performance gap rather than a claimed speedup.
+- active-row compaction removes inactive dummy model work while preserving fixed slot Storage;
+  five divergent Release shapes improve 1.134×–1.348× and reach 0.935×–0.985× serial reference.
 
 The design keeps three implementations where they provide engineering value:
 
@@ -169,9 +171,9 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 306/306 | 214 CPU-labelled + 92 HIP-labelled gates; 2 intentional environment skips |
-| ASan/UBSan CPU | 207/207 | host code, CLI, model/graph, benchmark and evidence schemas |
-| MI300X/gfx942 HIP | 92/92 | allocator/stream, graph, BF16/FP8, batched GEMM and model matrix |
+| Full CPU/HIP configuration | 308/308 | 215 CPU-labelled + 93 HIP-labelled gates; 2 intentional environment skips |
+| ASan/UBSan CPU | 208/208 | host code, CLI, model/graph, benchmark and evidence schemas |
+| MI300X/gfx942 HIP | 93/93 | allocator/stream, graph, BF16/FP8, batched GEMM and model matrix |
 | PyTorch-enabled CPU build | 196/196 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
 | Registered test files | 37 | machine-audited CTest registration |

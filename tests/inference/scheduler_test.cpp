@@ -371,9 +371,11 @@ TEST(ContinuousBatchSchedulerTest, RefillsFreedSlotAndMatchesIndependentRows) {
         EXPECT_EQ(metrics.row_prefill_calls, 3);
         EXPECT_EQ(metrics.batch_decode_calls, 3);
         EXPECT_EQ(metrics.uniform_batch_decode_calls, 1);
-        EXPECT_EQ(metrics.divergent_batch_decode_calls, 2);
+        EXPECT_EQ(metrics.divergent_batch_decode_calls, 1);
+        EXPECT_EQ(metrics.compacted_batch_decode_calls, 2);
         EXPECT_EQ(metrics.logical_decode_rows, 5);
-        EXPECT_EQ(metrics.dummy_decode_rows, 1);
+        EXPECT_EQ(metrics.dummy_decode_rows, 0);
+        EXPECT_EQ(metrics.inactive_rows_skipped, 1);
         EXPECT_EQ(metrics.selection_calls, 4);
         EXPECT_EQ(metrics.occupied_slot_steps, 8);
         EXPECT_DOUBLE_EQ(metrics.slot_utilization, 1.0);
@@ -414,7 +416,7 @@ TEST(ContinuousBatchSchedulerTest, DelayedSamplingMatchesIndependentRequests) {
     EXPECT_EQ(scheduler.request(first).completion_step, 4);
     EXPECT_EQ(scheduler.request(second).completion_step, 3);
     EXPECT_EQ(scheduler.metrics().slot_admissions, 2);
-    EXPECT_GE(scheduler.metrics().divergent_batch_decode_calls, 1);
+    EXPECT_GE(scheduler.metrics().compacted_batch_decode_calls, 1);
 }
 
 TEST(ContinuousBatchSchedulerTest, StopCancelAndPolicyErrorsAreExplicit) {

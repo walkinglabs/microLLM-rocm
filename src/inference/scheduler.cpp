@@ -771,25 +771,50 @@ void ContinuousBatchScheduler::step() {
     const auto survivor_count = static_cast<std::int64_t>(std::count(
         survivors.begin(), survivors.end(), true));
     if (survivor_count > 0) {
-        const auto uniform = impl_->cache.positions_uniform();
-        impl_->slot_logits = impl_->model.forward_cached_rows(
-            Tensor::from_int32_vector(
-                next_tokens, {impl_->config.max_slots, 1}),
-            impl_->cache);
-        ++impl_->metrics.batch_decode_calls;
-        impl_->metrics.logical_decode_rows += survivor_count;
-        impl_->metrics.dummy_decode_rows +=
-            impl_->config.max_slots - survivor_count;
-        if (uniform) {
+        std::vector<std::int64_t> active_rows;
+        std::vector<std::int32_t> active_tokens;
+        active_rows.reserve(static_cast<std::size_t>(survivor_count));
+        active_tokens.reserve(static_cast<std::size_t>(survivor_count));
+        for (std::int64_t slot = 0; slot < impl_->config.max_slots; ++slot) {
+            if (!survivors[static_cast<std::size_t>(slot)]) continue;
+            active_rows.push_back(slot);
+            active_tokens.push_back(next_tokens[static_cast<std::size_t>(slot)]);
+        }
+        const auto active_positions_uniform = std::all_of(
+            active_rows.begin() + 1, active_rows.end(),
+            [&impl = *impl_, first = impl_->cache.row_position(active_rows.front())](
+                std::int64_t row) {
+                return impl.cache.row_position(row) == first;
+            });
+        const auto full_uniform = survivor_count == impl_->config.max_slots &&
+                                  active_positions_uniform;
+        if (full_uniform) {
+            impl_->slot_logits = impl_->model.forward_cached_rows(
+                Tensor::from_int32_vector(
+                    next_tokens, {impl_->config.max_slots, 1}),
+                impl_->cache);
             ++impl_->metrics.uniform_batch_decode_calls;
         } else {
-            ++impl_->metrics.divergent_batch_decode_calls;
-        }
-        for (std::int64_t slot = 0; slot < impl_->config.max_slots; ++slot) {
-            if (!survivors[static_cast<std::size_t>(slot)]) {
-                impl_->cache.reset_row(slot);
+            const auto active_logits = impl_->model.forward_cached_active_rows(
+                Tensor::from_int32_vector(
+                    active_tokens, {survivor_count, 1}),
+                impl_->cache, active_rows);
+            for (std::size_t index = 0; index < active_rows.size(); ++index) {
+                impl_->copy_logits_to_slot(
+                    active_logits.slice(
+                        0, static_cast<std::int64_t>(index),
+                        static_cast<std::int64_t>(index + 1)),
+                    active_rows[index]);
+            }
+            ++impl_->metrics.compacted_batch_decode_calls;
+            if (!active_positions_uniform) {
+                ++impl_->metrics.divergent_batch_decode_calls;
             }
         }
+        ++impl_->metrics.batch_decode_calls;
+        impl_->metrics.logical_decode_rows += survivor_count;
+        impl_->metrics.inactive_rows_skipped +=
+            impl_->config.max_slots - survivor_count;
     }
     impl_->refresh_metrics();
 }

@@ -2036,3 +2036,18 @@ CPU/HIP、随机seed和独立B1都通过。
 Release uniform反驳实验则达到reference的1.434×/1.904×/2.356×，证明batch fast path有效；
 不过它仍只有static batch的0.680×/0.488×/0.308×。结论因此不是“调度器无效”，而是divergent Kernel、逐row
 prefill、dummy row和每step管理共同吃掉收益。下一节点必须动计算层，而不是继续盲目加slot。
+
+## 114. Experiment 097：空slot不再跑一遍完整模型
+
+新`forward_cached_active_rows()`只接收真实survivor token和固定row ID。inactive row的完整capacity、
+position和Storage地址不变；full+uniform仍走原batch fast path。scheduler因此不再让dummy写入KV后
+又清空整行。
+
+![Active row compaction](assets/active-row-compaction.svg)
+
+五个Release divergent shape全部加速1.134×–1.348×，continuous/reference从0.748×–0.858×提高
+到0.935×–0.985×。旧dummy 1/3/9/5/9精确变成skipped，Cache与请求生命周期不变。
+
+因为未改的uniform控制也有进程波动，又冻结096 binary做三对交替A/B：R4/S4中位1.292×，R8/S2
+中位1.226×，而reference中位只漂移-0.10%/-0.72%。因此保留候选。剩余差距不再是空row，而是
+多个真实divergent row仍逐个B1、logits scatter和逐row prefill。

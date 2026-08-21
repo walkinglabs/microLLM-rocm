@@ -60,7 +60,7 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] execute unequal cache positions through a shared-Storage serial B1 oracle on CPU/HIP;
 - [x] prefill one empty shared Cache row from a temporary B1 oracle without changing other rows;
 - [x] batch and refill active request slots without changing reference request semantics;
-- [ ] compact or mask inactive rows instead of advancing and resetting dummy rows;
+- [x] compact inactive rows instead of advancing and resetting dummy rows;
 - [ ] batch compatible row prefills instead of running one temporary B1 prefill per admission;
 - [ ] replace the divergent-row serial oracle with positions-aware parallel RoPE/store/Attention;
 

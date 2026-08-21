@@ -93,6 +93,12 @@ public:
     // views and serves as the oracle for a future positions-aware HIP Kernel.
     [[nodiscard]] Tensor forward_cached_rows(const Tensor& token_ids,
                                              inference::KVCache& cache);
+    // Advances only the listed shared-cache rows. token_ids has shape Ax1,
+    // active_rows is strictly increasing, and inactive rows remain untouched.
+    // This is the compacted correctness path used by continuous serving.
+    [[nodiscard]] Tensor forward_cached_active_rows(
+        const Tensor& token_ids, inference::KVCache& cache,
+        const std::vector<std::int64_t>& active_rows);
     [[nodiscard]] autograd::Value loss(const Tensor& token_ids, const Tensor& targets);
     [[nodiscard]] NamedValues named_parameters();
     [[nodiscard]] std::vector<autograd::Value*> parameters();

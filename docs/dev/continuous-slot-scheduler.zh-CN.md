@@ -96,3 +96,6 @@ benchmarks/end_to_end/benchmark_scheduler.cpp
 ```
 
 实验记录见 [Experiment 096](../optimization-log/experiments/096-continuous-slot-scheduler.md)。
+
+下一步已经在[active-row compaction](active-row-compaction.zh-CN.md)中实现：空slot不再执行dummy
+模型，也不再写入后清空整行；这里保留的Experiment 096数据仍是优化前baseline。

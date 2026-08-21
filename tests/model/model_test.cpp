@@ -558,6 +558,93 @@ TEST(TransformerModelTest, RowPrefillReplacesOnlyAnEmptySharedCacheSlot) {
     EXPECT_EQ(fresh_cache.row_positions(), (std::vector<std::int64_t>{0, 2}));
 }
 
+TEST(TransformerModelTest, ActiveCachedRowsSkipInactiveStorageAndMatchB1) {
+    auto config = tiny_config(true);
+    config.max_sequence_length = 8;
+    for (const auto dtype : {DType::Float32, DType::BFloat16}) {
+        TransformerModel batched(config, 173);
+        inference::KVCache cache(config.layers, config.max_sequence_length, 3, dtype);
+        (void)batched.forward_prefill_cached_row(
+            Tensor::from_int32_vector({1, 2}, {1, 2}), cache, 0);
+        (void)batched.forward_prefill_cached_row(
+            Tensor::from_int32_vector({3, 4, 5}, {1, 3}), cache, 1);
+        cache.reset_row(2);
+        const auto full_row = [&cache](const Tensor& tensor,
+                                       std::int64_t row) {
+            return Tensor::from_storage(
+                       tensor.storage(),
+                       {1, tensor.shape()[1], cache.max_sequence_length(),
+                        tensor.shape()[3]},
+                       tensor.strides(),
+                       tensor.storage_offset() + row * tensor.stride(0),
+                       tensor.dtype())
+                .to_vector();
+        };
+        std::vector<std::vector<float>> inactive;
+        for (std::size_t layer = 0; layer < cache.layer_count(); ++layer) {
+            inactive.push_back(full_row(cache.layer(layer).key, 2));
+            inactive.push_back(full_row(cache.layer(layer).value, 2));
+        }
+        const auto address = cache.layer(0).key.storage().data();
+
+        TransformerModel first(config, 173);
+        TransformerModel second(config, 173);
+        inference::KVCache first_cache(config.layers, config.max_sequence_length, 1, dtype);
+        inference::KVCache second_cache(config.layers, config.max_sequence_length, 1, dtype);
+        (void)first.forward_prefill_cached(
+            Tensor::from_int32_vector({1, 2}, {1, 2}), first_cache);
+        (void)second.forward_prefill_cached(
+            Tensor::from_int32_vector({3, 4, 5}, {1, 3}), second_cache);
+        const auto first_logits = first.forward_cached(
+            Tensor::from_int32_vector({9}, {1, 1}), first_cache);
+        const auto second_logits = second.forward_cached(
+            Tensor::from_int32_vector({10}, {1, 1}), second_cache);
+        const auto actual = batched.forward_cached_active_rows(
+            Tensor::from_int32_vector({9, 10}, {2, 1}), cache, {0, 1});
+        const auto tolerance = dtype == DType::Float32 ? 2.0e-5F : 5.0e-2F;
+        expect_near(actual.slice(0, 0, 1).to_vector(),
+                    first_logits.to_vector(), tolerance);
+        expect_near(actual.slice(0, 1, 2).to_vector(),
+                    second_logits.to_vector(), tolerance);
+        EXPECT_EQ(cache.row_positions(),
+                  (std::vector<std::int64_t>{3, 4, 0}));
+        EXPECT_EQ(cache.layer(0).key.storage().data(), address);
+        for (std::size_t layer = 0; layer < cache.layer_count(); ++layer) {
+            EXPECT_EQ(full_row(cache.layer(layer).key, 2),
+                      inactive[layer * 2]);
+            EXPECT_EQ(full_row(cache.layer(layer).value, 2),
+                      inactive[layer * 2 + 1]);
+        }
+        EXPECT_THROW((void)batched.forward_cached_active_rows(
+                         Tensor::from_int32_vector({}, {0, 1}), cache, {}),
+                     std::invalid_argument);
+        EXPECT_THROW((void)batched.forward_cached_active_rows(
+                         Tensor::from_int32_vector({1, 2}, {2, 1}), cache,
+                         {0, 0}),
+                     std::invalid_argument);
+        EXPECT_THROW((void)batched.forward_cached_active_rows(
+                         Tensor::from_int32_vector({1, 2}, {2, 1}), cache,
+                         {1, 0}),
+                     std::invalid_argument);
+        EXPECT_THROW((void)batched.forward_cached_active_rows(
+                         Tensor::from_int32_vector({1}, {1, 1}), cache, {3}),
+                     std::invalid_argument);
+    }
+
+    TransformerModel active_model(config, 179);
+    TransformerModel uniform_model(config, 179);
+    inference::KVCache active_cache(config.layers, config.max_sequence_length, 2);
+    inference::KVCache uniform_cache(config.layers, config.max_sequence_length, 2);
+    const auto prompts = Tensor::from_int32_vector({1, 2, 3, 4}, {2, 2});
+    (void)active_model.forward_prefill_cached(prompts, active_cache);
+    (void)uniform_model.forward_prefill_cached(prompts, uniform_cache);
+    const auto tokens = Tensor::from_int32_vector({5, 6}, {2, 1});
+    expect_near(active_model.forward_cached_active_rows(
+                    tokens, active_cache, {0, 1}).to_vector(),
+                uniform_model.forward_cached(tokens, uniform_cache).to_vector(),
+                2.0e-5F);
+}
+
 TEST(KVCacheTest, PerRowPositionsRejectAmbiguousUniformReads) {
     inference::KVCache cache(2, 6, 3, DType::Float32);
     EXPECT_TRUE(cache.positions_uniform());

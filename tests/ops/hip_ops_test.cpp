@@ -1074,8 +1074,10 @@ TEST(HipSchedulerTest, ContinuousSlotsRefillAndMatchCpuWithOneSelectionCopyPerSt
         EXPECT_EQ(hip_metrics.slot_admissions, 3);
         EXPECT_EQ(hip_metrics.slot_refills, 1);
         EXPECT_EQ(hip_metrics.batch_decode_calls, 3);
-        EXPECT_EQ(hip_metrics.divergent_batch_decode_calls, 2);
-        EXPECT_EQ(hip_metrics.dummy_decode_rows, 1);
+        EXPECT_EQ(hip_metrics.divergent_batch_decode_calls, 1);
+        EXPECT_EQ(hip_metrics.compacted_batch_decode_calls, 2);
+        EXPECT_EQ(hip_metrics.dummy_decode_rows, 0);
+        EXPECT_EQ(hip_metrics.inactive_rows_skipped, 1);
         EXPECT_EQ(hip_metrics.logical_decode_rows,
                   cpu_metrics.logical_decode_rows);
         EXPECT_EQ(hip_metrics.allocated_cache_bytes,

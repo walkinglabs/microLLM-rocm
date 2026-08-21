@@ -143,6 +143,10 @@ position和共享Storage地址都不变。它补齐了模型层的slot admission
 对照能达到1.511×–2.566×reference，却仍只有static batch的0.350×–0.768×。详细状态机、显存和
 反例见[continuous slot scheduler](continuous-slot-scheduler.zh-CN.md)。
 
+active-row compaction随后把空slot从模型输入中剔除，Release divergent五个shape提高
+1.134×–1.348×，dummy rows降到0；图解见[active-row compaction](active-row-compaction.zh-CN.md)。
+真实不同position的row仍逐rowB1，所以还不是最终并行实现。
+
 ## 8. 测试位置
 
 ```text

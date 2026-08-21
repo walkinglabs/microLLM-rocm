@@ -381,10 +381,14 @@ int main(int argc, char** argv) {
                   << last_continuous.metrics.uniform_batch_decode_calls
                   << ",\"continuous_divergent_batch_decode_calls\":"
                   << last_continuous.metrics.divergent_batch_decode_calls
+                  << ",\"continuous_compacted_batch_decode_calls\":"
+                  << last_continuous.metrics.compacted_batch_decode_calls
                   << ",\"continuous_logical_decode_rows\":"
                   << last_continuous.metrics.logical_decode_rows
                   << ",\"continuous_dummy_decode_rows\":"
                   << last_continuous.metrics.dummy_decode_rows
+                  << ",\"continuous_inactive_rows_skipped\":"
+                  << last_continuous.metrics.inactive_rows_skipped
                   << ",\"continuous_selection_calls\":"
                   << last_continuous.metrics.selection_calls
                   << ",\"continuous_peak_occupied_slots\":"

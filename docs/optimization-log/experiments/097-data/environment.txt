@@ -1,0 +1,15 @@
+date_utc=2026-08-21
+device=AMD Instinct MI300X VF
+architecture=gfx942:sramecc+:xnack-
+hip_runtime=71399004
+hip_driver=71399004
+build_type=Release
+baseline_commit=010e07b
+candidate_worktree=active-row-compaction
+matrix_warmup=2
+matrix_repetitions=10
+paired_order=baseline-candidate,candidate-baseline,baseline-candidate
+paired_shapes=requests4_slots4,requests8_slots2
+cache_dtypes_tested=fp32,bf16
+cpu_filter=TransformerModelTest.ActiveCachedRowsSkipInactiveStorageAndMatchB1,ContinuousBatchSchedulerTest.*
+hip_filter=HipInferenceShapeMatrixTest.ActiveRowsSkipInactiveSlotAndMatchCpu,HipSchedulerTest.ContinuousSlotsRefillAndMatchCpuWithOneSelectionCopyPerStep

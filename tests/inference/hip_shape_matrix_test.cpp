@@ -175,4 +175,61 @@ TEST(HipInferenceShapeMatrixTest, RowPrefillPreservesOtherSlotAndMatchesCpu) {
     }
 }
 
+TEST(HipInferenceShapeMatrixTest, ActiveRowsSkipInactiveSlotAndMatchCpu) {
+    if (runtime::hip_device_count() == 0) GTEST_SKIP() << "No visible HIP device";
+    auto config = hip_shape_matrix_config();
+    config.max_sequence_length = 8;
+    for (const auto dtype : {DType::Float32, DType::BFloat16}) {
+        model::TransformerModel cpu(config, 181);
+        model::TransformerModel hip(config, 181);
+        hip.to(Device::hip(0));
+        KVCache cpu_cache(config.layers, config.max_sequence_length, 3, dtype);
+        KVCache hip_cache(config.layers, config.max_sequence_length, 3, dtype);
+        const auto first = Tensor::from_int32_vector({1, 2}, {1, 2});
+        const auto second = Tensor::from_int32_vector({3, 4, 5}, {1, 3});
+        (void)cpu.forward_prefill_cached_row(first, cpu_cache, 0);
+        (void)cpu.forward_prefill_cached_row(second, cpu_cache, 1);
+        (void)hip.forward_prefill_cached_row(
+            first.to(Device::hip(0)), hip_cache, 0);
+        (void)hip.forward_prefill_cached_row(
+            second.to(Device::hip(0)), hip_cache, 1);
+        cpu_cache.reset_row(2);
+        hip_cache.reset_row(2);
+        const auto full_row = [&hip_cache](const Tensor& tensor,
+                                           std::int64_t row) {
+            return Tensor::from_storage(
+                       tensor.storage(),
+                       {1, tensor.shape()[1], hip_cache.max_sequence_length(),
+                        tensor.shape()[3]},
+                       tensor.strides(),
+                       tensor.storage_offset() + row * tensor.stride(0),
+                       tensor.dtype())
+                .to_vector();
+        };
+        const auto inactive_key = full_row(hip_cache.layer(0).key, 2);
+        const auto inactive_value = full_row(hip_cache.layer(0).value, 2);
+        const auto tokens = Tensor::from_int32_vector({9, 10}, {2, 1});
+        const auto device_tokens = tokens.to(Device::hip(0));
+        const auto expected = cpu.forward_cached_active_rows(
+            tokens, cpu_cache, {0, 1}).to_vector();
+        runtime::reset_transfer_stats();
+        const auto device_logits = hip.forward_cached_active_rows(
+            device_tokens, hip_cache, {0, 1});
+        runtime::synchronize(Device::hip(0));
+        EXPECT_EQ(runtime::transfer_stats().device_to_host_calls, 0U);
+        const auto actual = device_logits.to_vector();
+        const auto tolerance = dtype == DType::Float32 ? 2.0e-4F : 5.0e-2F;
+        ASSERT_EQ(actual.size(), expected.size());
+        for (std::size_t index = 0; index < actual.size(); ++index) {
+            EXPECT_NEAR(actual[index], expected[index], tolerance)
+                << "dtype=" << dtype_name(dtype) << " index=" << index;
+        }
+        EXPECT_EQ(hip_cache.row_positions(),
+                  (std::vector<std::int64_t>{3, 4, 0}));
+        EXPECT_EQ(hip_cache.row_positions(), cpu_cache.row_positions());
+        EXPECT_EQ(full_row(hip_cache.layer(0).key, 2), inactive_key);
+        EXPECT_EQ(full_row(hip_cache.layer(0).value, 2), inactive_value);
+    }
+}
+
 }  // namespace microllm::inference

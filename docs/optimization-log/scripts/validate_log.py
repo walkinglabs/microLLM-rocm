@@ -3084,6 +3084,105 @@ def validate_continuous_slot_scheduler(errors: list[str]) -> tuple[int, int, int
     return len(transitions), len(release_divergent), len(release_uniform)
 
 
+def validate_active_row_compaction(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "097-data"
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    candidate_paths = sorted((data / "release-matrix").glob("*.json"))
+    candidates = [json.loads(path.read_text(encoding="utf-8"))
+                  for path in candidate_paths]
+    divergent = [(path, row) for path, row in zip(candidate_paths, candidates)
+                 if path.name.startswith("divergent-")]
+    uniform = [(path, row) for path, row in zip(candidate_paths, candidates)
+               if path.name.startswith("uniform-")]
+    baseline_directory = ROOT / "experiments" / "096-data" / "hip-release"
+    speedups = []
+    for path, candidate in divergent:
+        baseline = json.loads(
+            (baseline_directory / path.name).read_text(encoding="utf-8"))
+        speedups.append(
+            float(candidate["continuous_tokens_per_second"]) /
+            float(baseline["continuous_tokens_per_second"]))
+    contracts = summary.get("contracts", {})
+    if summary.get("status") != "keep" or any(
+            contracts.get(name) is not True for name in (
+                "fp32_active_rows_match_independent_b1",
+                "bf16_active_rows_match_independent_b1",
+                "inactive_full_capacity_unchanged",
+                "inactive_positions_unchanged",
+                "shared_storage_address_stable",
+                "full_uniform_fast_path_preserved", "hip_matches_cpu")) or \
+            contracts.get("hip_payload_d2h_during_active_forward") != 0 or \
+            contracts.get("dummy_rows_executed") != 0 or \
+            contracts.get("cache_allocation_changed") is not False or \
+            contracts.get("slot_lifecycle_changed") is not False:
+        errors.append("active-row compaction semantic evidence changed")
+    if len(candidates) != 8 or len(divergent) != 5 or len(uniform) != 3 or any(
+            row.get("status") != "pass" or
+            row.get("continuous_outputs_equal") is not True
+            for row in candidates):
+        errors.append("active-row compaction Release matrix changed")
+    if any(not 1.1 < speedup < 1.4 for speedup in speedups) or any(
+            int(row.get("continuous_dummy_decode_rows", -1)) != 0 or
+            int(row.get("continuous_inactive_rows_skipped", 0)) <= 0 or
+            int(row.get("continuous_compacted_batch_decode_calls", 0)) <= 0 or
+            not 0.9 < float(row.get("continuous_over_reference", 0.0)) < 1.0
+            for _, row in divergent):
+        errors.append("active-row compaction divergent performance gate changed")
+    if any(int(row.get("continuous_compacted_batch_decode_calls", -1)) != 0 or
+           int(row.get("continuous_inactive_rows_skipped", -1)) != 0 or
+           row.get("static_outputs_equal") is not True
+           for _, row in uniform):
+        errors.append("active-row compaction uniform no-regression gate changed")
+    pair_records = 0
+    for shape in ("r4s4", "r8s2"):
+        paths = sorted((data / "paired" / shape).glob("*.json"))
+        rows = [json.loads(path.read_text(encoding="utf-8")) for path in paths]
+        baseline = [row for path, row in zip(paths, rows)
+                    if "baseline" in path.name]
+        candidate = [row for path, row in zip(paths, rows)
+                     if "candidate" in path.name]
+        pair_records += len(rows)
+        baseline_tps = sorted(float(row["continuous_tokens_per_second"])
+                              for row in baseline)[1]
+        candidate_tps = sorted(float(row["continuous_tokens_per_second"])
+                               for row in candidate)[1]
+        baseline_reference = sorted(float(row["scheduler_tokens_per_second"])
+                                    for row in baseline)[1]
+        candidate_reference = sorted(float(row["scheduler_tokens_per_second"])
+                                     for row in candidate)[1]
+        if len(rows) != 6 or len(baseline) != 3 or len(candidate) != 3 or \
+                not 1.2 < candidate_tps / baseline_tps < 1.35 or \
+                not 0.98 < candidate_reference / baseline_reference < 1.02 or \
+                len({int(row["token_checksum"]) for row in rows}) != 1 or any(
+                    row.get("continuous_outputs_equal") is not True for row in rows):
+            errors.append(f"active-row alternating pair changed: {shape}")
+    header = (REPOSITORY / "include" / "microllm" / "model" /
+              "model.h").read_text(encoding="utf-8")
+    model_source = (REPOSITORY / "src" / "model" /
+                    "model.cpp").read_text(encoding="utf-8")
+    scheduler_source = (REPOSITORY / "src" / "inference" /
+                        "scheduler.cpp").read_text(encoding="utf-8")
+    cpu_tests = (REPOSITORY / "tests" / "model" /
+                 "model_test.cpp").read_text(encoding="utf-8")
+    hip_tests = (REPOSITORY / "tests" / "inference" /
+                 "hip_shape_matrix_test.cpp").read_text(encoding="utf-8")
+    if "forward_cached_active_rows" not in header or \
+            "TransformerModel::forward_cached_active_rows" not in model_source or \
+            "inactive_rows_skipped" not in scheduler_source or \
+            "ActiveCachedRowsSkipInactiveStorageAndMatchB1" not in cpu_tests or \
+            "ActiveRowsSkipInactiveSlotAndMatchCpu" not in hip_tests:
+        errors.append("active-row compaction source or executable gate is missing")
+    if gates.get("status") != "keep" or \
+            gates.get("full", {}).get("passed") != 308 or \
+            gates.get("cpu", {}).get("passed") != 215 or \
+            gates.get("hip", {}).get("passed") != 93 or \
+            gates.get("sanitizer", {}).get("passed") != 208 or \
+            gates.get("focused", {}).get("alternating_processes") != 12:
+        errors.append("active-row compaction final gates changed")
+    return len(candidates), pair_records, len(speedups)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -3158,7 +3257,8 @@ def validate_assets(errors: list[str]) -> None:
                  "divergent-cached-row-reference.svg",
                  "slot-row-prefill.svg",
                  "serving-inference-efficiency.svg",
-                 "continuous-slot-scheduler.svg"):
+                 "continuous-slot-scheduler.svg",
+                 "active-row-compaction.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -3290,6 +3390,8 @@ def main() -> int:
         validate_serving_inference_efficiency(errors)
     continuous_transitions, continuous_divergent, continuous_uniform = \
         validate_continuous_slot_scheduler(errors)
+    active_matrix, active_pairs, active_speedups = \
+        validate_active_row_compaction(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -3387,6 +3489,8 @@ def main() -> int:
           f"{serving_rechecks} "
           f"continuous_slots={continuous_transitions}/{continuous_divergent}/"
           f"{continuous_uniform} "
+          f"active_compaction={active_matrix}/{active_pairs}/"
+          f"{active_speedups} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

@@ -42,6 +42,9 @@ leaves every other row untouched. Neither oracle is the final parallel serving p
 at scheduler-step boundaries, resets a row on length/stop/cancel, and reuses the lowest free slot.
 Its shared Cache allocation persists while active-prefix bytes fall to zero. Divergent decode still
 uses the serial B1 oracle; the scheduler API does not imply a parallel Kernel.
+`forward_cached_active_rows()` is the compact execution seam: it receives only survivor tokens and
+their fixed row IDs, advances those shared-Storage views, and leaves inactive full-capacity rows
+untouched. Full, uniform slots still use the original parallel batch path.
 See [serving scheduler](dev/serving-scheduler.zh-CN.md).
 
 

@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "status": "keep",
+  "feature": "skip inactive continuous-cache rows",
+  "contracts": {
+    "fp32_active_rows_match_independent_b1": true,
+    "bf16_active_rows_match_independent_b1": true,
+    "inactive_full_capacity_unchanged": true,
+    "inactive_positions_unchanged": true,
+    "shared_storage_address_stable": true,
+    "full_uniform_fast_path_preserved": true,
+    "hip_matches_cpu": true,
+    "hip_payload_d2h_during_active_forward": 0,
+    "dummy_rows_executed": 0,
+    "cache_allocation_changed": false,
+    "slot_lifecycle_changed": false
+  },
+  "release_divergent": [
+    {"requests": 2, "slots": 2, "baseline_tps": 1912.10, "candidate_tps": 2167.54, "candidate_over_baseline": 1.133591, "continuous_over_reference": 0.935175, "inactive_skipped": 1},
+    {"requests": 4, "slots": 2, "baseline_tps": 1879.86, "candidate_tps": 2296.98, "candidate_over_baseline": 1.221889, "continuous_over_reference": 0.960182, "inactive_skipped": 3},
+    {"requests": 8, "slots": 2, "baseline_tps": 1767.71, "candidate_tps": 2307.63, "candidate_over_baseline": 1.305435, "continuous_over_reference": 0.959377, "inactive_skipped": 9},
+    {"requests": 4, "slots": 4, "baseline_tps": 1683.76, "candidate_tps": 2268.93, "candidate_over_baseline": 1.347538, "continuous_over_reference": 0.962454, "inactive_skipped": 5},
+    {"requests": 8, "slots": 4, "baseline_tps": 1911.95, "candidate_tps": 2369.27, "candidate_over_baseline": 1.239190, "continuous_over_reference": 0.984517, "inactive_skipped": 9}
+  ],
+  "alternating_pairs": [
+    {"shape": "requests4_slots4", "baseline_median_tps": 1813.76, "candidate_median_tps": 2343.39, "candidate_over_baseline": 1.292000, "baseline_reference_median_tps": 2385.86, "candidate_reference_median_tps": 2383.38, "reference_ratio": 0.998960, "old_dummy_rows": 5, "inactive_rows_skipped": 5},
+    {"shape": "requests8_slots2", "baseline_median_tps": 1868.04, "candidate_median_tps": 2290.68, "candidate_over_baseline": 1.226249, "baseline_reference_median_tps": 2396.51, "candidate_reference_median_tps": 2379.33, "reference_ratio": 0.992831, "old_dummy_rows": 9, "inactive_rows_skipped": 9}
+  ],
+  "uniform_control": {
+    "rows": 3,
+    "compacted_calls": 0,
+    "dummy_rows": 0,
+    "outputs_equal": true,
+    "speed_change_attributed_to_candidate": false
+  }
+}
