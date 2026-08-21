@@ -54,7 +54,8 @@ needed to run a real training and generation loop:
 - rows≥256 RMSNorm weight gradients use one cooperative block per hidden column; the same
   training matrix improves another 1.220×/1.125× with unchanged measured peak.
 - paired Qwen/DeepSeek inference matrices across context, batch and cache modes, including
-  KV Storage/active utilization and explicit unsupported/OOM rows.
+  N1/8/32/64 output lengths, KV allocated/active/waste efficiency and explicit unsupported/OOM
+  rows; the T2048/B2/N64 gate records Qwen at 1.250× and DeepSeek at 0.868× PyTorch.
 - graph-free long prefill reuses public causal GQA and batched hipBLASLt; Qwen/DeepSeek
   T512/T1024 gain 6.7×–16.7× with explicit T1024 memory cost.
 - B1 full-sequence prefill populates capacity-strided KV Storage directly; profiled Qwen
@@ -78,6 +79,8 @@ needed to run a real training and generation loop:
   cross-drain arrivals; HIP plateaus near 1,260 token/s when queues split into B4 groups.
 - `forward_cached_rows()` consumes unequal per-row positions through shared-Storage B1 views;
   it is a CPU/HIP correctness oracle, while uniform rows keep the original parallel fast path.
+- `forward_prefill_cached_row()` admits a new prompt into one empty shared-cache row without
+  changing other rows, completing the model-level oracle needed by a future slot scheduler.
 
 The design keeps three implementations where they provide engineering value:
 

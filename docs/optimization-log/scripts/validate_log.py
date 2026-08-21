@@ -2905,6 +2905,83 @@ def validate_slot_row_prefill(errors: list[str]) -> tuple[int, int, int]:
         int(gates["focused"]["continued_decode_steps"])
 
 
+def validate_serving_inference_efficiency(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "095-data"
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    pilot_raw = [json.loads(line) for line in
+                 (data / "pilot-raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    pilot = json.loads((data / "pilot-summary.json").read_text(encoding="utf-8"))
+    long_raw = [json.loads(line) for line in
+                (data / "long-raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    long_summary = json.loads((data / "long-summary.json").read_text(encoding="utf-8"))
+    rechecks = [json.loads(path.read_text(encoding="utf-8")) for path in sorted(
+        (data / "qwen-t128-b4-n64-recheck").glob("run*.stdout"))]
+    suite = summary.get("serving_suite", {})
+    pilot_contract = summary.get("incremental_pilot", {})
+    failure = summary.get("observed_failure", {})
+    long_contract = summary.get("long_context", {})
+    if suite.get("contexts") != [1, 8, 32, 128, 512, 2048] or \
+            suite.get("batches") != [1, 2, 4, 8] or \
+            suite.get("decode_lengths") != [1, 8, 32, 64] or \
+            suite.get("paired_cached_cases_per_model") != 96:
+        errors.append("serving inference suite axes changed")
+    pilot_rows = pilot.get("rows", [])
+    paired_pass = [row for row in pilot_rows if row.get("status") == "pass"]
+    token_equal = [row for row in paired_pass
+                   if row.get("cross_framework_tokens_equal") is True]
+    failures = [row for row in pilot_raw if row.get("status") != "pass"]
+    if len(pilot_raw) != 24 or sum(row.get("status") == "pass" for row in pilot_raw) != 23 or \
+            len(failures) != 1 or len(pilot_rows) != 12 or len(paired_pass) != 11 or \
+            len(token_equal) != 8 or pilot_contract.get("raw_failed") != 1:
+        errors.append("N64 incremental inference pilot counts changed")
+    if not failures or failures[0].get("model") != "qwen2.5-0.5b" or \
+            failures[0].get("context") != 128 or failures[0].get("batch") != 4 or \
+            failures[0].get("framework") != "microllm":
+        errors.append("preserved Qwen batch-row failure changed")
+    if len(rechecks) != 3 or any(
+            row.get("status") != "pass" or row.get("token_count") != 128 or
+            row.get("batch") != 4 or row.get("decode_tokens_per_second", 0.0) < 1100.0 or
+            row.get("kv_cache_utilization") != 1.0 or
+            len(row.get("generated_tokens", [])) != 64 for row in rechecks) or \
+            len({tuple(row["generated_tokens"]) for row in rechecks}) != 1 or \
+            failure.get("classification") != "observed_once_not_stable" or \
+            failure.get("stable_indexing_bug_supported") is not False:
+        errors.append("Qwen non-stable failure recheck changed")
+    long_rows = long_summary.get("rows", [])
+    by_model = {row.get("model"): row for row in long_rows}
+    expected_ratios = {
+        "qwen2.5-0.5b": 1.2498952370244671,
+        "deepseek-r1-distill-qwen-1.5b": 0.8678597980876258,
+    }
+    if len(long_raw) != 4 or any(row.get("status") != "pass" for row in long_raw) or \
+            len(by_model) != 2 or any(
+                row.get("cross_framework_tokens_equal") is not True or
+                row.get("microllm_kv_cache_utilization") != 1.0 or
+                row.get("microllm_measured_d2h_calls") != 3.0 or
+                abs(float(row.get("throughput_ratio_microllm_over_pytorch", 0.0)) -
+                    expected_ratios[model]) > 1.0e-9
+                for model, row in by_model.items()) or \
+            long_contract.get("logical_forward_steps") != 384:
+        errors.append("T2048 B2 N64 paired evidence changed")
+    runner = (REPOSITORY / "benchmarks" / "single_gpu" /
+              "hf_inference_shape_matrix.py").read_text(encoding="utf-8")
+    tests = (REPOSITORY / "python" / "tests" /
+             "test_hf_inference_shape_matrix.py").read_text(encoding="utf-8")
+    required = ("\"serving\"", "kv_cache_waste_bytes",
+                "kv_cache_active_share_of_incremental_peak",
+                "non_kv_incremental_bytes")
+    if any(name not in runner for name in required) or \
+            "decode_lengths\"], [1, 8, 32, 64]" not in tests:
+        errors.append("serving inference runner or contract tests are missing")
+    if gates.get("status") != "pass_with_observed_limit" or \
+            gates.get("full", {}).get("passed") != 302 or \
+            gates.get("sanitizer", {}).get("passed") != 204 or \
+            gates.get("runner_contract_tests", {}).get("passed") != 15:
+        errors.append("serving inference final gates changed")
+    return len(pilot_raw), len(long_raw), len(rechecks)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -2977,7 +3054,8 @@ def validate_assets(errors: list[str]) -> None:
                  "normalize-cached-probabilities-discard.svg",
                  "bf16-paired-value-load-discard.svg",
                  "divergent-cached-row-reference.svg",
-                 "slot-row-prefill.svg"):
+                 "slot-row-prefill.svg",
+                 "serving-inference-efficiency.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -3105,6 +3183,8 @@ def main() -> int:
         validate_divergent_row_cache_reference(errors)
     row_prefill_transitions, row_prefill_dtypes, row_prefill_steps = \
         validate_slot_row_prefill(errors)
+    serving_pilot_raw, serving_long_raw, serving_rechecks = \
+        validate_serving_inference_efficiency(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -3198,6 +3278,8 @@ def main() -> int:
           f"{divergent_steps} "
           f"row_prefill={row_prefill_transitions}/{row_prefill_dtypes}/"
           f"{row_prefill_steps} "
+          f"serving_efficiency={serving_pilot_raw}/{serving_long_raw}/"
+          f"{serving_rechecks} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

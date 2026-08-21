@@ -40,6 +40,8 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] record engine peak, resident policy, prefill/decode latency, tokens/s and KV utilization;
 - [x] require one cached model forward per measured decode token and sweep output lengths
   1/8/32 across short/medium/long contexts and B1/B8;
+- [x] add a serving suite with output length 64, B2/B4, explicit KV waste and a paired
+  T2048/B2 long-context pilot;
 - [x] provide a dedicated 31/32/33, 127/128/129 and 511/512/513 dispatch-boundary
   suite plus odd batch 3;
 - [x] remove per-token selected-ID D2H for HIP greedy/no-stop generation after allocator

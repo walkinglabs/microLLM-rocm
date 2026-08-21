@@ -71,12 +71,13 @@ Tensor view只展示活跃前缀，不能拿它的`numel`冒充完整Storage。�
 
 ## 为什么要测多个context和batch
 
-脚本内置三套规模，避免每个人随手挑几个点：
+脚本内置多套规模，避免每个人随手挑几个点：
 
 | 套件 | context | batch | 输出长度 | 用途 |
 |---|---|---|---|---|
 | `smoke` | 8、128 | 1、2 | 1、4 | 几分钟内检查程序和JSON |
 | `standard` | 8、32、128、512、2048 | 1、2、4、8 | 16 | 日常正式对比 |
+| `serving` | 1、8、32、128、512、2048 | 1、2、4、8 | 1、8、32、64 | 服务短答、长答与batch效率 |
 | `extended` | 1、8、32、128、512、1024、2048、4096 | 1、2、4、8、16 | 1、8、32 | 找极端边界、OOM和退化点 |
 | `boundary` | 1、2、31/32/33、127/128/129、511/512/513、2048、4096 | 1、3、8 | 1 | 专门寻找tile边界与奇数batch错误 |
 
@@ -108,7 +109,9 @@ incremental peak            max(peak - resident weights, 0)
 KV allocated                草稿本预留了多少页
 KV active                   已经写了多少页
 KV utilization              active / allocated
+KV waste                    max(allocated - active, 0)，预留但还没写的页
 KV share of incremental     KV allocated / incremental peak
+non-KV incremental          max(incremental peak - KV allocated, 0)
 bytes per request           除以batch，比较每个请求的成本
 tokens/s per peak GiB        每GiB峰值显存换来多少吞吐
 ```
@@ -184,6 +187,8 @@ GPU、ROCm、PyTorch/Transformers版本和失败行。正式看P95时建议至�
 `process_latency_ms_p95`是各进程平均请求时间的P95，不是假装成逐token服务P99。
 `batch_efficiency=1`表示吞吐随batch理想线性
 增长；例如B4吞吐是B1的3.2倍，则效率是`3.2 / 4 = 0.8`，也就是80%。
+`kv_cache_waste_ratio=0.25`表示预留Cache里还有25%没有使用；这不是内存泄漏，而是固定容量策略
+为后续token留下的空间。比较框架时必须同时看各自的`kv_cache_reservation_policy`。
 
 仓库的MI300X 120条宽矩阵见
 [Experiment 076](../optimization-log/experiments/076-expanded-inference-service-matrix.md)。其中旧prefill
@@ -191,3 +196,5 @@ GPU、ROCm、PyTorch/Transformers版本和失败行。正式看P95时建议至�
 [Experiment 077](../optimization-log/experiments/077-serving-last-logit-prefill.md)。旧decode还把prefill
 免费产生的首token计入吞吐；一token一forward、输出长度/KV利用率和冻结Release对照见
 [Experiment 085](../optimization-log/experiments/085-inference-shape-memory-matrix.md)。
+N64、B2/B4、显式KV waste字段、T2048/B2长上下文以及一次未稳定复现的batch-row失败见
+[Experiment 095](../optimization-log/experiments/095-serving-inference-efficiency.md)。

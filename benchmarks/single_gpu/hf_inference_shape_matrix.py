@@ -25,6 +25,11 @@ MATRIX_SUITES = {
               "decode_lengths": [1, 4]},
     "standard": {"contexts": [8, 32, 128, 512, 2048],
                  "batches": [1, 2, 4, 8], "decode_lengths": [16]},
+    # A serving-oriented sweep that keeps both startup-dominated and steady
+    # output lengths while remaining smaller than the exhaustive suite.
+    "serving": {"contexts": [1, 8, 32, 128, 512, 2048],
+                "batches": [1, 2, 4, 8],
+                "decode_lengths": [1, 8, 32, 64]},
     "extended": {"contexts": [1, 8, 32, 128, 512, 1024, 2048, 4096],
                  "batches": [1, 2, 4, 8, 16],
                  "decode_lengths": [1, 8, 32]},
@@ -662,6 +667,16 @@ def summarize(records: list[dict], models: list[dict], contexts: list[int],
                                     active_bytes / active_tokens if active_tokens else 0.0
                                 row[f"{framework}_kv_cache_share_of_incremental_peak"] = \
                                     cache_bytes / incremental if incremental else 0.0
+                                cache_waste = max(0.0, cache_bytes - active_bytes)
+                                row[f"{framework}_kv_cache_waste_bytes"] = cache_waste
+                                row[f"{framework}_kv_cache_waste_bytes_per_request"] = \
+                                    cache_waste / batch
+                                row[f"{framework}_kv_cache_waste_ratio"] = \
+                                    cache_waste / cache_bytes if cache_bytes else 0.0
+                                row[f"{framework}_kv_cache_active_share_of_incremental_peak"] = \
+                                    active_bytes / incremental if incremental else 0.0
+                                row[f"{framework}_non_kv_incremental_bytes"] = \
+                                    max(0.0, incremental - cache_bytes)
                                 row[f"{framework}_throughput_per_peak_gib"] = \
                                     throughput / (peak / (1024.0 ** 3))
                                 row[f"{framework}_latency_ms_per_output_token"] = \

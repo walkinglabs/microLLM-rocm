@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "status": "pass_with_observed_limit",
+  "full": {"passed": 302, "failed": 0, "skipped": 2},
+  "sanitizer": {"passed": 204, "failed": 0, "skipped": 0},
+  "runner_contract_tests": {"passed": 15, "failed": 0},
+  "pilot": {"raw_records": 24, "passed": 23, "failed": 1, "oom": 0},
+  "recheck": {"fresh_processes": 3, "passed": 3, "failed": 0},
+  "long_context": {"raw_records": 4, "passed": 4, "tokens_equal_pairs": 2}
+}

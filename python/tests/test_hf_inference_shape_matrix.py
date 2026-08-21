@@ -19,6 +19,10 @@ class HfInferenceShapeMatrixTest(unittest.TestCase):
         self.assertIn(8, standard["contexts"])
         self.assertIn(2048, standard["contexts"])
         self.assertEqual(standard["batches"], [1, 2, 4, 8])
+        serving = MATRIX.MATRIX_SUITES["serving"]
+        self.assertEqual(serving["contexts"], [1, 8, 32, 128, 512, 2048])
+        self.assertEqual(serving["batches"], [1, 2, 4, 8])
+        self.assertEqual(serving["decode_lengths"], [1, 8, 32, 64])
         extended = MATRIX.MATRIX_SUITES["extended"]
         self.assertIn(1, extended["contexts"])
         self.assertIn(4096, extended["contexts"])
@@ -330,6 +334,13 @@ class HfInferenceShapeMatrixTest(unittest.TestCase):
             "microllm_peak_incremental_bytes_per_request"], 200.0)
         self.assertAlmostEqual(long_row[
             "microllm_kv_cache_share_of_incremental_peak"], 0.6)
+        self.assertEqual(long_row["microllm_kv_cache_waste_bytes"], 20.0)
+        self.assertEqual(long_row[
+            "microllm_kv_cache_waste_bytes_per_request"], 10.0)
+        self.assertAlmostEqual(long_row["microllm_kv_cache_waste_ratio"], 1.0 / 12.0)
+        self.assertAlmostEqual(long_row[
+            "microllm_kv_cache_active_share_of_incremental_peak"], 0.55)
+        self.assertEqual(long_row["microllm_non_kv_incremental_bytes"], 160.0)
         self.assertGreater(long_row[
             "microllm_decode_length_throughput_vs_shortest"], 1.0)
 

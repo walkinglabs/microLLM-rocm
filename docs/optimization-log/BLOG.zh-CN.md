@@ -2006,3 +2006,18 @@ CPU/HIP都与独立B1对齐；旧row每层K/V和共享Storage地址不变；HIP�
 
 这是slot admission的正确性oracle，不是性能结论：临时B1 Cache和逐head D2D copy都有成本。
 下一节点可以把它与请求状态机接起来，首次跑通真正的“请求结束→清空→新请求补位→继续decode”。
+
+## 112. Experiment 095：回答变成64 token后，长context把差距翻过来了
+
+新增`serving`矩阵固定T1–2048、B1/2/4/8和N1/8/32/64，并把Cache预留未使用字节、每请求浪费、
+active Cache占增量峰值与非Cache临时量写进summary。warmup仍与measured区间分开。
+
+![Serving inference efficiency matrix](assets/serving-inference-efficiency.svg)
+
+MI300X增量pilot先跑T1/32/128、B2/4、N64。成功shape中Qwen是PyTorch的2.92×–3.39×，DeepSeek
+是2.09×–2.44×。T2048/B2/N64时，Qwen降到1.250×，DeepSeek翻到0.868×；两模型64 token都
+完全一致，microLLM peak仍更低，KV双方分别为49.5/115.5MiB。
+
+pilot还出现一次Qwen T128/B4 batch内部row不一致。没有删除它，但同一冻结binary随后三次独立
+进程全部通过且suffix完全相同。因此它只能标成“观察一次、尚不稳定”，不能包装成稳定stride bug。
+这也是多case测试的价值：既找到失败，也阻止我们过度解释失败。

@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "status": "complete_with_observed_limit",
+  "feature": "service-oriented inference shape, memory and KV efficiency matrix",
+  "serving_suite": {
+    "contexts": [1, 8, 32, 128, 512, 2048],
+    "batches": [1, 2, 4, 8],
+    "decode_lengths": [1, 8, 32, 64],
+    "paired_cached_cases_per_model": 96
+  },
+  "incremental_pilot": {
+    "contexts": [1, 32, 128],
+    "batches": [2, 4],
+    "decode_length": 64,
+    "models": 2,
+    "raw_records": 24,
+    "raw_passed": 23,
+    "raw_failed": 1,
+    "paired_cases": 12,
+    "paired_passed": 11,
+    "cross_framework_tokens_equal": 8,
+    "cross_framework_tokens_diverged": 3,
+    "micro_d2h_calls_per_successful_case": 3,
+    "cache_utilization": 1.0
+  },
+  "observed_failure": {
+    "model": "qwen2.5-0.5b",
+    "context": 128,
+    "batch": 4,
+    "decode_length": 64,
+    "initial_observations": 1,
+    "fresh_process_rechecks_passed": 3,
+    "classification": "observed_once_not_stable",
+    "stable_indexing_bug_supported": false
+  },
+  "long_context": {
+    "context": 2048,
+    "batch": 2,
+    "decode_length": 64,
+    "raw_records": 4,
+    "paired_cases_passed": 2,
+    "tokens_equal": 2,
+    "active_and_capacity_tokens": 2112,
+    "logical_forward_steps": 384,
+    "micro_d2h_calls": 3,
+    "micro_d2h_bytes": 1536,
+    "qwen": {
+      "micro_tokens_per_second": 221.28094571,
+      "pytorch_tokens_per_second": 177.03959432375078,
+      "micro_over_pytorch": 1.2498952370244671,
+      "micro_peak_bytes": 1908006400,
+      "pytorch_peak_bytes": 3686550016,
+      "kv_bytes_each": 51904512
+    },
+    "deepseek": {
+      "micro_tokens_per_second": 132.460428584,
+      "pytorch_tokens_per_second": 152.62883345430154,
+      "micro_over_pytorch": 0.8678597980876258,
+      "micro_peak_bytes": 5229860864,
+      "pytorch_peak_bytes": 6381534720,
+      "kv_bytes_each": 121110528
+    }
+  },
+  "new_summary_fields": [
+    "kv_cache_waste_bytes",
+    "kv_cache_waste_bytes_per_request",
+    "kv_cache_waste_ratio",
+    "kv_cache_active_share_of_incremental_peak",
+    "non_kv_incremental_bytes"
+  ]
+}

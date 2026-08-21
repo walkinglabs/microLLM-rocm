@@ -70,11 +70,16 @@ ROCR_VISIBLE_DEVICES=1 python3 \
   --decode-tokens 4 --warmup 1 --steps 2 --runs 3
 ```
 
+For a service-focused cached-decode sweep with short/long contexts, batch scaling,
+1/8/32/64-token outputs, KV capacity/utilization/waste, peak memory and paired PyTorch rows, use
+`--suite serving --cases cached`. Warm-up executions are reported separately and excluded from
+the measured throughput.
+
 The runner separates prefill, cache preparation, steady cached decode and uncached
 reference decode. It records engine/framework peak, resident weight policy, KV Storage
 and active bytes, device-memory share, per-request memory, B1-relative batch scaling and
 efficiency, tokens per peak GiB, exact greedy tokens and explicit `unsupported`/`oom` rows.
-`smoke`, `standard`, and `extended` suites cover increasingly wide short/long-context and
+`smoke`, `standard`, `serving`, and `extended` suites cover increasingly wide short/long-context and
 batch boundaries. See the [simple inference-matrix guide](../docs/dev/inference-matrix.zh-CN.md).
 
 Prefill defaults to serving semantics: both frameworks project only the final hidden

@@ -552,6 +552,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/093-data/](experiments/093-data/) | 两步状态转移、CPU/HIP、dtype与serial边界 |
 | [assets/slot-row-prefill.svg](assets/slot-row-prefill.svg) | 新prompt进入一个空row且旧row保持不变 |
 | [experiments/094-data/](experiments/094-data/) | 单槽位prefill状态转移、CPU/HIP、dtype与失败合同 |
+| [assets/serving-inference-efficiency.svg](assets/serving-inference-efficiency.svg) | N64短中长context的吞吐、显存与不稳定失败 |
+| [experiments/095-data/](experiments/095-data/) | 28条paired raw、三次反驳复测和KV/forward/transfer证据 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

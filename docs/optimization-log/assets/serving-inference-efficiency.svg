@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="600" viewBox="0 0 1080 600" role="img" aria-labelledby="title desc">
+  <title id="title">Serving inference output-64 pilot and long-context comparison</title>
+  <desc id="desc">Short and medium contexts lead PyTorch for both models, while at context 2048 Qwen remains ahead and DeepSeek falls behind. One Qwen batch failure did not reproduce.</desc>
+  <rect width="1080" height="600" fill="#0b1020"/>
+  <text x="40" y="44" fill="#f8fafc" font-family="sans-serif" font-size="24" font-weight="700">Experiment 095 · N64 serving matrix</text>
+  <text x="40" y="72" fill="#94a3b8" font-family="sans-serif" font-size="14">microLLM throughput divided by paired PyTorch · MI300X · steady cached decode</text>
+
+  <line x1="92" y1="470" x2="1018" y2="470" stroke="#64748b"/>
+  <line x1="92" y1="126" x2="92" y2="470" stroke="#64748b"/>
+  <line x1="92" y1="374" x2="1018" y2="374" stroke="#f59e0b" stroke-dasharray="8 8"/>
+  <text x="48" y="379" fill="#fbbf24" font-family="sans-serif" font-size="13">1×</text>
+  <text x="40" y="138" fill="#94a3b8" font-family="sans-serif" font-size="12">4×</text>
+  <text x="40" y="235" fill="#94a3b8" font-family="sans-serif" font-size="12">3×</text>
+  <text x="40" y="331" fill="#94a3b8" font-family="sans-serif" font-size="12">2×</text>
+
+  <rect x="150" y="160" width="72" height="310" fill="#22c55e"/>
+  <rect x="232" y="229" width="72" height="241" fill="#3b82f6"/>
+  <rect x="402" y="145" width="72" height="325" fill="#22c55e"/>
+  <rect x="484" y="239" width="72" height="231" fill="#3b82f6"/>
+  <rect x="654" y="349" width="72" height="121" fill="#22c55e"/>
+  <rect x="736" y="386" width="72" height="84" fill="#3b82f6"/>
+  <text x="186" y="151" text-anchor="middle" fill="#bbf7d0" font-family="sans-serif" font-size="13">3.22×</text>
+  <text x="268" y="220" text-anchor="middle" fill="#bfdbfe" font-family="sans-serif" font-size="13">2.44×</text>
+  <text x="438" y="136" text-anchor="middle" fill="#bbf7d0" font-family="sans-serif" font-size="13">3.39×</text>
+  <text x="520" y="230" text-anchor="middle" fill="#bfdbfe" font-family="sans-serif" font-size="13">2.30×</text>
+  <text x="690" y="340" text-anchor="middle" fill="#bbf7d0" font-family="sans-serif" font-size="13">1.25×</text>
+  <text x="772" y="408" text-anchor="middle" fill="#bfdbfe" font-family="sans-serif" font-size="13">0.868×</text>
+  <text x="227" y="500" text-anchor="middle" fill="#cbd5e1" font-family="sans-serif" font-size="14">T1 · B2</text>
+  <text x="479" y="500" text-anchor="middle" fill="#cbd5e1" font-family="sans-serif" font-size="14">T32 · B4</text>
+  <text x="731" y="500" text-anchor="middle" fill="#cbd5e1" font-family="sans-serif" font-size="14">T2048 · B2</text>
+  <rect x="850" y="142" width="176" height="98" rx="10" fill="#111827" stroke="#334155"/>
+  <rect x="868" y="162" width="18" height="18" fill="#22c55e"/><text x="896" y="176" fill="#dcfce7" font-family="sans-serif" font-size="13">Qwen 0.5B</text>
+  <rect x="868" y="196" width="18" height="18" fill="#3b82f6"/><text x="896" y="210" fill="#dbeafe" font-family="sans-serif" font-size="13">DeepSeek 1.5B</text>
+  <rect x="92" y="532" width="934" height="42" rx="8" fill="#1f2937"/>
+  <text x="110" y="558" fill="#fbbf24" font-family="sans-serif" font-size="13">Observed once: Qwen T128/B4/N64 batch-row failure · 3/3 fresh-process rechecks passed · not stable</text>
+</svg>
