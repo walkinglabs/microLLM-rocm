@@ -57,6 +57,9 @@ VECTORIZED_ADAMW_COMPARISON = ROOT / "experiments" / "049-data" / "comparison.js
 VECTORIZED_ADAMW_CHART = ROOT / "assets" / "vectorized-adamw-explicit.svg"
 STREAMING_LOAD_COMPARISON = ROOT / "experiments" / "050-data" / "comparison.json"
 STREAMING_LOAD_CHART = ROOT / "assets" / "streaming-safetensors-load.svg"
+CONTEXT512_COMPARISON = ROOT / "experiments" / "051-data" / "comparison.json"
+CONTEXT512_PROFILE = ROOT / "experiments" / "051-data" / "profile-summary.json"
+CONTEXT512_CHART = ROOT / "assets" / "context512-training-profile.svg"
 
 
 def rows() -> list[dict]:
@@ -1473,6 +1476,74 @@ def streaming_safetensors_load_svg() -> str:
     return "\n".join(parts)
 
 
+def context512_training_profile_svg() -> str:
+    comparison = json.loads(CONTEXT512_COMPARISON.read_text(encoding="utf-8"))
+    profile = json.loads(CONTEXT512_PROFILE.read_text(encoding="utf-8"))
+    rows = comparison["rows"]
+    categories = profile["categories"]
+    width, height = 1850, 820
+    left_x, right_x, top, panel_h = 100, 1040, 150, 500
+    left_w, right_w = 820, 710
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 051 · Context-512 Stable Failure", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 80,
+             "BF16 Linear / FP32 master · median of 3 fresh processes · Qwen retained profile",
+             16, "#5b6474", anchor="middle"),
+        f'<rect x="{left_x}" y="{top}" width="{left_w}" height="{panel_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+        f'<rect x="{right_x}" y="{top}" width="{right_w}" height="{panel_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+        text(left_x + left_w / 2, 125, "microLLM / PyTorch", 20,
+             anchor="middle", weight=700),
+        text(right_x + right_w / 2, 125, "Qwen Kernel time categories", 20,
+             anchor="middle", weight=700),
+    ]
+    def ratio_y(value: float) -> float:
+        return top + panel_h * (1.30 - value) / 1.30
+    for tick in (0.0, 0.25, 0.5, 0.75, 1.0, 1.25):
+        y = ratio_y(tick)
+        parts.append(f'<line x1="{left_x}" y1="{y:.1f}" x2="{left_x+left_w}" '
+                     f'y2="{y:.1f}" stroke="{("#2563eb" if tick == 1.0 else "#e5e9f0")}"/>')
+    group = left_w / len(rows)
+    for index, row in enumerate(rows):
+        center = left_x + group * (index + 0.5)
+        for offset, (value, color, label) in enumerate((
+                (row["throughput_ratio"], "#d04a3a", "speed"),
+                (row["peak_ratio"], "#64748b", "peak"))):
+            x = center - 82 + offset * 88
+            y = ratio_y(value)
+            parts.append(f'<rect x="{x:.1f}" y="{y:.1f}" width="76" '
+                         f'height="{ratio_y(0)-y:.1f}" fill="{color}" rx="5"/>')
+            parts.append(text(x + 38, y - 9, f"{value:.3f}×", 14, color,
+                              anchor="middle", weight=700))
+            parts.append(text(x + 38, top + panel_h + 23, label, 12,
+                              "#5b6474", anchor="middle"))
+        label = "Qwen 0.5B" if row["model"].startswith("qwen") else "DeepSeek 1.5B"
+        parts.append(text(center, top + panel_h + 55, label, 16,
+                          anchor="middle", weight=700))
+    maximum = max(row["percent"] for row in categories)
+    for index, row in enumerate(categories):
+        y = top + 45 + index * 68
+        bar_w = 390 * row["percent"] / maximum
+        color = "#d04a3a" if "GQA" in row["name"] else "#64748b"
+        parts.append(text(right_x + 30, y, row["name"], 15, weight=600))
+        parts.append(f'<rect x="{right_x+270}" y="{y-18}" width="390" height="26" '
+                     'fill="#eef1f5" rx="4"/>')
+        parts.append(f'<rect x="{right_x+270}" y="{y-18}" width="{bar_w:.1f}" '
+                     f'height="26" fill="{color}" rx="4"/>')
+        parts.append(text(right_x + 675, y + 1, f'{row["percent"]:.2f}%', 13,
+                          color, anchor="end", weight=700))
+    parts.append(text(width / 2, 735,
+                      "Attention is 64.50% of Kernel time; backward atomics are the next falsifiable target",
+                      17, "#9a4f00", anchor="middle", weight=700))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -1496,7 +1567,8 @@ def main() -> int:
                 STABLE_GRADIENT_CHART: stable_gradient_discard_svg(),
                 CHUNKED_ADAMW_CHART: chunked_adamw_discard_svg(),
                 VECTORIZED_ADAMW_CHART: vectorized_adamw_explicit_svg(),
-                STREAMING_LOAD_CHART: streaming_safetensors_load_svg()}
+                STREAMING_LOAD_CHART: streaming_safetensors_load_svg(),
+                CONTEXT512_CHART: context512_training_profile_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

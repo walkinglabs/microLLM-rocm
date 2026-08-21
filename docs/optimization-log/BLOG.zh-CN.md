@@ -1321,3 +1321,18 @@ PyTorch 是 2.084 秒。H2D 字节分别是 0.988/3.554 GB，恰好等于 BF16 p
 最后重跑 DeepSeek 四 shape 三进程。吞吐相对旧版最多变化 0.4%，训练峰值完全相同；所以
 这次是加载架构优化，不是训练计时被移动。单文件 fast path 保留，多 shard/index 仍走原子
 StateDict 路径，等待全局 header 预检设计。
+
+## 68. Experiment 051：能跑 512 token，不等于 512 token 跑得好
+
+Qwen 和 DeepSeek 都在 T=512 完成三进程训练，loss 有限、参数更新、加载仍只传 BF16 文件
+字节。可吞吐只有 PyTorch 的 `9.78%/8.32%`；Qwen 峰值甚至是 PyTorch 的 1.239 倍。
+
+![Context-512 baseline and profile](assets/context512-training-profile.svg)
+
+host 计时把 optimizer 标成 0.49–1.01 秒，看起来像 Experiment 046 又回来了。但 rocprof
+给出不同答案：Qwen causal GQA backward 占 50.64%，forward 占 13.86%；AdamW 只有
+6.67%。optimizer 只是第一个同步点，替前面的 Attention 还债。
+
+当前 backward 每个 query row 重算 softmax，再用 atomicAdd 写共享 K/V gradient。下一版把
+row probability/score-gradient 与 K/V reduction 分开，只在长序列启用额外 T×T 临时表；
+它必须同时报告速度和新增显存，并保证 T=128 不退化。

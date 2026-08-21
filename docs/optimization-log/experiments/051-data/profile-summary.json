@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "model": "qwen2.5-0.5b",
+  "batch": 1,
+  "context": 512,
+  "scope": "single process: streaming load, one warm-up step, two measured steps",
+  "kernel_dispatches": 6767,
+  "kernel_time_ns": 1946461231,
+  "hip_api_calls": 246782,
+  "hip_api_time_ns": 7776030988,
+  "categories": [
+    {"name": "causal GQA backward", "calls": 72, "time_ns": 985611620, "percent": 50.637158},
+    {"name": "causal GQA forward", "calls": 72, "time_ns": 269851799, "percent": 13.864725},
+    {"name": "RMSNorm weight gradient", "calls": 147, "time_ns": 144391015, "percent": 7.418128},
+    {"name": "AdamW", "calls": 870, "time_ns": 129859800, "percent": 6.671583},
+    {"name": "bias gradient", "calls": 216, "time_ns": 115391262, "percent": 5.928254},
+    {"name": "all remaining kernels", "calls": 5390, "time_ns": 301355735, "percent": 15.480152}
+  ],
+  "attention_time_percent": 64.501883,
+  "count_contract": "24 layers x 3 traced steps = 72 forward and 72 backward calls"
+}

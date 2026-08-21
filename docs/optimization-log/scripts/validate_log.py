@@ -796,6 +796,50 @@ def validate_streaming_load(errors: list[str]) -> tuple[int, int]:
     return len(smoke), len(formal)
 
 
+def validate_context512(errors: list[str]) -> tuple[int, int]:
+    data = ROOT / "experiments" / "051-data"
+    pilot = [json.loads(line) for line in
+             (data / "pilot" / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    formal = [json.loads(line) for line in
+              (data / "formal" / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    keys = {(row.get("model"), row.get("framework"), row.get("process_run"))
+            for row in formal}
+    if len(pilot) != 4 or len(formal) != 12 or len(keys) != 12 or any(
+            row.get("status") != "pass" or row.get("batch") != 1 or
+            row.get("context") != 512 or row.get("warmup") != 1 or
+            row.get("steps") != 2 for row in pilot + formal):
+        errors.append("context-512 raw protocol changed")
+    comparison = json.loads((data / "comparison.json").read_text(encoding="utf-8"))
+    rows = comparison.get("rows", [])
+    if comparison.get("status") != "stable-failure" or len(rows) != 2 or any(
+            row.get("throughput_ratio", 1.0) >= 0.1 or
+            row.get("peak_ratio", 0.0) <= 1.0 or
+            row.get("parameter_changed") is not True for row in rows):
+        errors.append("context-512 stable-failure boundary changed")
+    profile = json.loads((data / "profile-summary.json").read_text(encoding="utf-8"))
+    with (data / "profile" / "kernel-stats.csv").open(
+            encoding="utf-8", newline="") as stream:
+        kernels = list(csv.DictReader(stream))
+    with (data / "profile" / "hip-api-stats.csv").open(
+            encoding="utf-8", newline="") as stream:
+        api = list(csv.DictReader(stream))
+    kernel_calls = sum(int(row["Calls"]) for row in kernels)
+    kernel_time = sum(int(row["TotalDurationNs"]) for row in kernels)
+    api_calls = sum(int(row["Calls"]) for row in api)
+    api_time = sum(int(row["TotalDurationNs"]) for row in api)
+    categories = profile.get("categories", [])
+    if (kernel_calls, kernel_time, api_calls, api_time) != (
+            profile.get("kernel_dispatches"), profile.get("kernel_time_ns"),
+            profile.get("hip_api_calls"), profile.get("hip_api_time_ns")) or \
+            len(categories) != 6 or \
+            sum(row.get("calls", 0) for row in categories) != kernel_calls or \
+            sum(row.get("time_ns", 0) for row in categories) != kernel_time or \
+            profile.get("attention_time_percent", 0.0) < 64.0 or \
+            categories[0].get("calls") != 72 or categories[1].get("calls") != 72:
+        errors.append("context-512 profiler/category contract changed")
+    return len(pilot), len(formal)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -825,7 +869,8 @@ def validate_assets(errors: list[str]) -> None:
                  "stable-gradient-buffer-discard.svg",
                  "chunked-adamw-discard.svg",
                  "vectorized-adamw-explicit.svg",
-                 "streaming-safetensors-load.svg"):
+                 "streaming-safetensors-load.svg",
+                 "context512-training-profile.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -874,6 +919,7 @@ def main() -> int:
     vectorized_adamw_operator, vectorized_adamw_pilot = \
         validate_vectorized_adamw(errors)
     streaming_load_smoke, streaming_load_formal = validate_streaming_load(errors)
+    context512_pilot, context512_formal = validate_context512(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -897,6 +943,7 @@ def main() -> int:
           f"chunked_adamw={chunked_adamw_pilot}/{chunked_adamw_formal} "
           f"vectorized_adamw={vectorized_adamw_operator}/{vectorized_adamw_pilot} "
           f"streaming_load={streaming_load_smoke}/{streaming_load_formal} "
+          f"context512={context512_pilot}/{context512_formal} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

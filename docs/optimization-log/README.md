@@ -245,6 +245,13 @@ DeepSeek 四 shape 训练吞吐变化在 `−0.4%–+0.1%`，峰值不变，候�
 
 ![Streaming safetensors load](assets/streaming-safetensors-load.svg)
 
+Experiment 051 将正式训练扩展到 context 512。Qwen/DeepSeek 数值与参数更新通过，但吞吐仅
+为 PyTorch 的 `0.0978×/0.0832×`，峰值为 `1.239×/1.033×`。Qwen retained profile 中
+causal GQA backward/forward 占 Kernel 时间 `50.64%/13.86%`，下一反驳实验锁定长序列
+Attention backward 的原子 K/V 累加。
+
+![Context-512 baseline and profile](assets/context512-training-profile.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -304,6 +311,8 @@ DeepSeek 四 shape 训练吞吐变化在 `−0.4%–+0.1%`，峰值不变，候�
 | [experiments/049-data/](experiments/049-data/) | width4/8、sqrt/rsqrt、mirror/no-mirror 与 Qwen pilot raw |
 | [assets/streaming-safetensors-load.svg](assets/streaming-safetensors-load.svg) | Qwen/DeepSeek load、H2D 和训练非退化 |
 | [experiments/050-data/](experiments/050-data/) | load smoke、DeepSeek 24 条正式 raw 与安全合同 |
+| [assets/context512-training-profile.svg](assets/context512-training-profile.svg) | T=512 PyTorch 比率、显存与 Kernel 类别 |
+| [experiments/051-data/](experiments/051-data/) | pilot、12 条正式 raw 与 retained profiler 聚合 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

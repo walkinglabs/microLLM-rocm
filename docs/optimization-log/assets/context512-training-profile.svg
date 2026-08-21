@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1850" height="820" viewBox="0 0 1850 820">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="925.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 051 · Context-512 Stable Failure</text>
+<text x="925.0" y="80.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">BF16 Linear / FP32 master · median of 3 fresh processes · Qwen retained profile</text>
+<rect x="100" y="150" width="820" height="500" fill="#ffffff" stroke="#cbd3df" rx="10"/>
+<rect x="1040" y="150" width="710" height="500" fill="#ffffff" stroke="#cbd3df" rx="10"/>
+<text x="510.0" y="125.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">microLLM / PyTorch</text>
+<text x="1395.0" y="125.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">Qwen Kernel time categories</text>
+<line x1="100" y1="650.0" x2="920" y2="650.0" stroke="#e5e9f0"/>
+<line x1="100" y1="553.8" x2="920" y2="553.8" stroke="#e5e9f0"/>
+<line x1="100" y1="457.7" x2="920" y2="457.7" stroke="#e5e9f0"/>
+<line x1="100" y1="361.5" x2="920" y2="361.5" stroke="#e5e9f0"/>
+<line x1="100" y1="265.4" x2="920" y2="265.4" stroke="#2563eb"/>
+<line x1="100" y1="169.2" x2="920" y2="169.2" stroke="#e5e9f0"/>
+<rect x="223.0" y="612.4" width="76" height="37.6" fill="#d04a3a" rx="5"/>
+<text x="261.0" y="603.4" font-family="Inter,Arial,sans-serif" font-size="14" fill="#d04a3a" text-anchor="middle" font-weight="700">0.098×</text>
+<text x="261.0" y="673.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#5b6474" text-anchor="middle" font-weight="400">speed</text>
+<rect x="311.0" y="173.4" width="76" height="476.6" fill="#64748b" rx="5"/>
+<text x="349.0" y="164.4" font-family="Inter,Arial,sans-serif" font-size="14" fill="#64748b" text-anchor="middle" font-weight="700">1.239×</text>
+<text x="349.0" y="673.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#5b6474" text-anchor="middle" font-weight="400">peak</text>
+<text x="305.0" y="705.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" text-anchor="middle" font-weight="700">Qwen 0.5B</text>
+<rect x="633.0" y="618.0" width="76" height="32.0" fill="#d04a3a" rx="5"/>
+<text x="671.0" y="609.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#d04a3a" text-anchor="middle" font-weight="700">0.083×</text>
+<text x="671.0" y="673.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#5b6474" text-anchor="middle" font-weight="400">speed</text>
+<rect x="721.0" y="252.6" width="76" height="397.4" fill="#64748b" rx="5"/>
+<text x="759.0" y="243.6" font-family="Inter,Arial,sans-serif" font-size="14" fill="#64748b" text-anchor="middle" font-weight="700">1.033×</text>
+<text x="759.0" y="673.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#5b6474" text-anchor="middle" font-weight="400">peak</text>
+<text x="715.0" y="705.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" text-anchor="middle" font-weight="700">DeepSeek 1.5B</text>
+<text x="1070.0" y="195.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="start" font-weight="600">causal GQA backward</text>
+<rect x="1310" y="177" width="390" height="26" fill="#eef1f5" rx="4"/>
+<rect x="1310" y="177" width="390.0" height="26" fill="#d04a3a" rx="4"/>
+<text x="1715.0" y="196.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#d04a3a" text-anchor="end" font-weight="700">50.64%</text>
+<text x="1070.0" y="263.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="start" font-weight="600">causal GQA forward</text>
+<rect x="1310" y="245" width="390" height="26" fill="#eef1f5" rx="4"/>
+<rect x="1310" y="245" width="106.8" height="26" fill="#d04a3a" rx="4"/>
+<text x="1715.0" y="264.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#d04a3a" text-anchor="end" font-weight="700">13.86%</text>
+<text x="1070.0" y="331.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="start" font-weight="600">RMSNorm weight gradient</text>
+<rect x="1310" y="313" width="390" height="26" fill="#eef1f5" rx="4"/>
+<rect x="1310" y="313" width="57.1" height="26" fill="#64748b" rx="4"/>
+<text x="1715.0" y="332.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#64748b" text-anchor="end" font-weight="700">7.42%</text>
+<text x="1070.0" y="399.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="start" font-weight="600">AdamW</text>
+<rect x="1310" y="381" width="390" height="26" fill="#eef1f5" rx="4"/>
+<rect x="1310" y="381" width="51.4" height="26" fill="#64748b" rx="4"/>
+<text x="1715.0" y="400.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#64748b" text-anchor="end" font-weight="700">6.67%</text>
+<text x="1070.0" y="467.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="start" font-weight="600">bias gradient</text>
+<rect x="1310" y="449" width="390" height="26" fill="#eef1f5" rx="4"/>
+<rect x="1310" y="449" width="45.7" height="26" fill="#64748b" rx="4"/>
+<text x="1715.0" y="468.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#64748b" text-anchor="end" font-weight="700">5.93%</text>
+<text x="1070.0" y="535.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="start" font-weight="600">all remaining kernels</text>
+<rect x="1310" y="517" width="390" height="26" fill="#eef1f5" rx="4"/>
+<rect x="1310" y="517" width="119.2" height="26" fill="#64748b" rx="4"/>
+<text x="1715.0" y="536.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#64748b" text-anchor="end" font-weight="700">15.48%</text>
+<text x="925.0" y="735.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#9a4f00" text-anchor="middle" font-weight="700">Attention is 64.50% of Kernel time; backward atomics are the next falsifiable target</text>
+</svg>

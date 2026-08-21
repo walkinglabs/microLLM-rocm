@@ -65,3 +65,9 @@ Experiment 044 completes the first full-sequence training forward/backward stage
 Attention activations. Direct GQA mapping and row-recomputed softmax improve all four Qwen
 BF16-training shapes by 1.052×–1.218× and reduce context-128 peak by 185.6 MB. T=512,
 batch-long and DeepSeek rows remain required before this step can be marked complete.
+
+Experiment 051 supplies the missing long-sequence boundary. Qwen/DeepSeek context 512 are
+correct but reach only 0.0978×/0.0832× PyTorch throughput. Qwen profiling attributes
+64.50% of Kernel time to causal GQA, with backward alone at 50.64%. The next candidate
+must replace atomic K/V accumulation for long sequences, report the T×T workspace cost,
+and preserve the retained T=128 path as a fallback.
