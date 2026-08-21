@@ -119,6 +119,13 @@ if(BUILD_TESTING)
                 set_tests_properties(Benchmark.HipMatmul.${MICROLLM_LOW_DTYPE}
                                      PROPERTIES LABELS "hip;benchmark;dtype;smoke")
             endforeach()
+            add_test(NAME Benchmark.HipTransposeMatmul
+                     COMMAND microllm_bench_ops --op matmul --device hip
+                             --implementation hipblaslt --dtype fp32
+                             --m 128 --k 32 --n 128 --transpose-left true
+                             --warmup 1 --repetitions 2)
+            set_tests_properties(Benchmark.HipTransposeMatmul PROPERTIES
+                                 LABELS "hip;benchmark;matmul;transpose;smoke")
         endif()
         add_test(NAME Benchmark.HipGenerateSmoke
                  COMMAND microllm_bench_model --mode generate --model tiny --device hip

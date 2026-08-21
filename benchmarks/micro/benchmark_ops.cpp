@@ -25,6 +25,8 @@ struct Options {
     std::int64_t rows = 0;
     std::int64_t inner = 0;
     std::int64_t columns = 0;
+    bool transpose_left = false;
+    bool transpose_right = false;
     int warmup = 5;
     int repetitions = 20;
 };
@@ -34,6 +36,13 @@ std::int64_t parse_integer(const char* value, const char* name) {
     const auto parsed = std::strtoll(value, &end, 10);
     if (end == value || *end != '\0') throw std::invalid_argument(std::string("invalid ") + name);
     return parsed;
+}
+
+bool parse_boolean(const char* value, const char* name) {
+    const std::string_view text(value);
+    if (text == "true") return true;
+    if (text == "false") return false;
+    throw std::invalid_argument(std::string(name) + " must be true or false");
 }
 
 Options parse_options(int argc, char** argv) {
@@ -49,6 +58,12 @@ Options parse_options(int argc, char** argv) {
         else if (name == "--m") options.rows = parse_integer(argv[index + 1], "m");
         else if (name == "--k") options.inner = parse_integer(argv[index + 1], "k");
         else if (name == "--n") options.columns = parse_integer(argv[index + 1], "n");
+        else if (name == "--transpose-left") {
+            options.transpose_left = parse_boolean(argv[index + 1], "transpose-left");
+        }
+        else if (name == "--transpose-right") {
+            options.transpose_right = parse_boolean(argv[index + 1], "transpose-right");
+        }
         else if (name == "--warmup") options.warmup = static_cast<int>(parse_integer(argv[index + 1], "warmup"));
         else if (name == "--repetitions") options.repetitions = static_cast<int>(parse_integer(argv[index + 1], "repetitions"));
         else throw std::invalid_argument("unknown benchmark option: " + std::string(name));
@@ -95,6 +110,10 @@ Options parse_options(int argc, char** argv) {
     } else if (options.rows != 0 || options.inner != 0 || options.columns != 0) {
         throw std::invalid_argument("m/k/n are valid only for matmul");
     }
+    if ((options.transpose_left || options.transpose_right) &&
+        options.operation != "matmul") {
+        throw std::invalid_argument("transpose flags are valid only for matmul");
+    }
     return options;
 }
 
@@ -107,6 +126,8 @@ microllm::DType parse_dtype(const std::string& value) {
 microllm::Tensor run_operation(const std::string& operation, const microllm::Tensor& left,
                                const microllm::Tensor& right,
                                const std::string& implementation,
+                               bool transpose_left = false,
+                               bool transpose_right = false,
                                const microllm::ops::OpContext& context = {}) {
     if (operation == "add") return microllm::ops::add(left, right, context);
     if (operation == "matmul") {
@@ -116,7 +137,7 @@ microllm::Tensor run_operation(const std::string& operation, const microllm::Ten
                 ? microllm::ops::MatmulImplementation::Auto
                 : implementation == "readable" ? microllm::ops::MatmulImplementation::Readable
                                                 : microllm::ops::MatmulImplementation::HipBLASLt,
-            context);
+            transpose_left, transpose_right, context);
     }
     if (operation == "bf16-mixed") return microllm::ops::bf16_matmul(left, right, context);
     return microllm::ops::softmax(left, -1, context);
@@ -149,12 +170,16 @@ int main(int argc, char** argv) {
         }
         const auto matrix_operation =
             options.operation == "matmul" || options.operation == "bf16-mixed";
+        const auto left_rows = options.transpose_left ? options.inner : options.rows;
+        const auto left_columns = options.transpose_left ? options.rows : options.inner;
+        const auto right_rows = options.transpose_right ? options.columns : options.inner;
+        const auto right_columns = options.transpose_right ? options.inner : options.columns;
         const auto left_count = matrix_operation
-                                    ? options.rows * options.inner
+                                    ? left_rows * left_columns
                                     : options.operation == "add" ? options.size
                                                                   : options.size * options.size;
         const auto right_count = matrix_operation
-                                     ? options.inner * options.columns
+                                     ? right_rows * right_columns
                                      : left_count;
         std::vector<float> left_values(static_cast<std::size_t>(left_count));
         std::vector<float> right_values(static_cast<std::size_t>(right_count));
@@ -168,10 +193,10 @@ int main(int argc, char** argv) {
             options.operation == "add"
                 ? microllm::Shape{options.size}
                 : matrix_operation
-                      ? microllm::Shape{options.rows, options.inner}
+                      ? microllm::Shape{left_rows, left_columns}
                       : microllm::Shape{options.size, options.size};
         const microllm::Shape right_shape = matrix_operation
-                                                ? microllm::Shape{options.inner, options.columns}
+                                                ? microllm::Shape{right_rows, right_columns}
                                                 : left_shape;
         const auto left_dtype = options.operation == "bf16-mixed"
                                     ? microllm::DType::Float32 : dtype;
@@ -182,7 +207,8 @@ int main(int argc, char** argv) {
         const auto right_cpu = microllm::Tensor::from_vector(
             right_values, right_shape, right_dtype);
         const auto reference =
-            run_operation(options.operation, left_cpu, right_cpu, "readable").to_vector();
+            run_operation(options.operation, left_cpu, right_cpu, "readable",
+                          options.transpose_left, options.transpose_right).to_vector();
         const auto left = left_cpu.to(device);
         const auto right = right_cpu.to(device);
         const auto memory_before = microllm::runtime::memory_info(device);
@@ -197,14 +223,14 @@ int main(int argc, char** argv) {
             const microllm::ops::OpContext context{&stream, nullptr, 0};
             for (int iteration = 0; iteration < options.warmup; ++iteration) {
                 output = run_operation(options.operation, left, right, options.implementation,
-                                       context);
+                                       options.transpose_left, options.transpose_right, context);
             }
             stream.synchronize();
             for (int iteration = 0; iteration < options.repetitions; ++iteration) {
                 const auto wall_start = std::chrono::steady_clock::now();
                 start.record(stream);
                 output = run_operation(options.operation, left, right, options.implementation,
-                                       context);
+                                       options.transpose_left, options.transpose_right, context);
                 finish.record(stream);
                 finish.synchronize();
                 const auto wall_finish = std::chrono::steady_clock::now();
@@ -215,11 +241,13 @@ int main(int argc, char** argv) {
             }
         } else {
             for (int iteration = 0; iteration < options.warmup; ++iteration) {
-                output = run_operation(options.operation, left, right, options.implementation);
+                output = run_operation(options.operation, left, right, options.implementation,
+                                       options.transpose_left, options.transpose_right);
             }
             for (int iteration = 0; iteration < options.repetitions; ++iteration) {
                 const auto start = std::chrono::steady_clock::now();
-                output = run_operation(options.operation, left, right, options.implementation);
+                output = run_operation(options.operation, left, right, options.implementation,
+                                       options.transpose_left, options.transpose_right);
                 const auto finish = std::chrono::steady_clock::now();
                 const auto elapsed =
                     std::chrono::duration<double, std::milli>(finish - start).count();
@@ -257,6 +285,10 @@ int main(int argc, char** argv) {
                   << ",\"m\":" << options.rows
                   << ",\"k\":" << options.inner
                   << ",\"n\":" << options.columns
+                  << ",\"transpose_left\":"
+                  << (options.transpose_left ? "true" : "false")
+                  << ",\"transpose_right\":"
+                  << (options.transpose_right ? "true" : "false")
                   << ",\"warmup\":" << options.warmup
                   << ",\"repetitions\":" << options.repetitions
                   << ",\"kernel_ms_min\":" << kernel.minimum
