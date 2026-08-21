@@ -525,6 +525,37 @@ def validate_fused_causal_gqa(errors: list[str]) -> int:
     return len(records)
 
 
+def validate_deepseek_shapes_and_load(errors: list[str]) -> tuple[int, int]:
+    data = ROOT / "experiments" / "045-data"
+    pilot = [json.loads(line) for line in
+             (data / "pilot-before-load.jsonl").read_text(encoding="utf-8").splitlines()]
+    records = [json.loads(line) for line in
+               (data / "candidate" / "raw.jsonl").read_text(
+                   encoding="utf-8").splitlines()]
+    keys = {(row.get("framework"), row.get("batch"), row.get("context"),
+             row.get("process_run")) for row in records}
+    if len(pilot) != 8 or len(records) != 24 or len(keys) != 24 or \
+            any(row.get("status") != "pass" for row in records):
+        errors.append("DeepSeek pilot/formal shape record counts changed")
+    micro = [row for row in records if row.get("framework") == "microllm"]
+    torch = [row for row in records if row.get("framework") == "pytorch"]
+    if any(not (60000.0 < row.get("load_ms", 0) < 70000.0) for row in micro) or \
+            any(not (0.0 < row.get("load_ms", 0) < 3000.0) for row in torch):
+        errors.append("DeepSeek load-time evidence boundary changed")
+    summary = json.loads((data / "candidate" / "summary.json").read_text(encoding="utf-8"))
+    rows = summary.get("rows", [])
+    if summary.get("runs_per_framework") != 3 or len(rows) != 4 or any(
+            row.get("status") != "pass" or
+            row["throughput_ratio_microllm_over_pytorch"] >= 0.6 or
+            not (0.85 < row["peak_memory_ratio"] < 1.0) for row in rows):
+        errors.append("DeepSeek shape baseline boundary changed")
+    load = json.loads((data / "load-summary.json").read_text(encoding="utf-8"))
+    if load.get("decision") != "keep" or \
+            load.get("before_observed_process_setup_seconds", {}).get("minimum") != 360:
+        errors.append("DeepSeek device-native load decision evidence changed")
+    return len(pilot), len(records)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -548,7 +579,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-training-ffn-island-discard.svg",
                  "bf16-training-shape-matrix.svg",
                  "bf16-weight-gradient-routing.svg",
-                 "fused-causal-gqa-training.svg"):
+                 "fused-causal-gqa-training.svg",
+                 "deepseek-training-shapes.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -587,6 +619,7 @@ def main() -> int:
     weight_gradient_candidate_count, weight_gradient_micro_count = \
         validate_weight_gradient_routing(errors)
     fused_causal_gqa_count = validate_fused_causal_gqa(errors)
+    deepseek_pilot_count, deepseek_shape_count = validate_deepseek_shapes_and_load(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -604,6 +637,7 @@ def main() -> int:
           f"bf16_training_shapes={bf16_training_shape_count} "
           f"weight_gradient={weight_gradient_candidate_count}/{weight_gradient_micro_count} "
           f"fused_causal_gqa={fused_causal_gqa_count} "
+          f"deepseek_shapes={deepseek_pilot_count}/{deepseek_shape_count} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

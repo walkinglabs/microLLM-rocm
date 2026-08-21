@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "track": "official_device_native_checkpoint_load",
+  "decision": "keep",
+  "before_observed_process_setup_seconds": {"minimum": 360, "maximum": 420, "precision": "interactive elapsed-time range"},
+  "after_microllm_load_ms_median_by_shape": {
+    "1x3": 65383.213526,
+    "2x3": 64971.472647,
+    "1x32": 65206.828369,
+    "1x128": 64875.231186
+  },
+  "pytorch_load_ms_median_by_shape": {
+    "1x3": 2268.328925,
+    "2x3": 1703.330866,
+    "1x32": 2003.775391,
+    "1x128": 1985.141326
+  },
+  "remaining_failure": "microLLM decode/read/transpose pipeline remains about 30x slower than PyTorch loading"
+}

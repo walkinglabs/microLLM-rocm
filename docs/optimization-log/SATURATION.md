@@ -68,6 +68,11 @@ T=3/32/128 Qwen training shapes. Direct GQA, fused causal softmax/context and re
 backward are retained. This does not close T=512, head widths above 256, sequence above
 4096 or alternative library FMHA backends; those require their own matrix evidence.
 
+Experiment 045 proves the retained training path on DeepSeek 1.5B for T=3/32/128 and batch
+2 at T=3. It also closes random initialization and CPU transpose as acceptable official
+load behavior. Remaining load work is file decode/streaming/mapping; remaining training
+work is the retained optimizer/reduction profile and longer-context matrix.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

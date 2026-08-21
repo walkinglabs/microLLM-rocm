@@ -1212,3 +1212,21 @@ context 128 `+21.8%`。context 128 峰值显存减少约 177 MiB，dispatch 少 
 这次还有一个有用的小失败：最初 trace alignment 报 14 个 missing checkpoint，但数值
 checkpoint 全通过。原因是 PyTorch trace 还把融合内部写成六个旧算子。把两边都对齐到
 `causal_gqa_attention` 公共边界后，数值、梯度和 trace 拓扑一起通过。
+
+## 62. Experiment 045：测量半秒，不该先等七分钟
+
+DeepSeek 的第一轮 shape pilot 暴露了另一个完全不同的瓶颈：每个 microLLM 进程大约
+6–7 分钟后才输出，而真正 measured step 只有 0.4–0.65 秒。代码先随机生成 1.78B 参数，
+把这些垃圾初值复制到 GPU，再从 safetensors 读取真正权重；大矩阵还在 CPU transpose，
+随后 `to_vector()` 再复制一次。
+
+新的未初始化模型在完整 strict load 前禁止 forward。移动到 GPU 只分配，不复制垃圾；
+safetensors 直接加载到模型设备，transpose 在 GPU，StateDict 与模型所有权仍独立。
+DeepSeek `load_ms` 稳定到约 65 秒，整个进程约 80 秒。它比以前快很多，但仍比 PyTorch
+约 2 秒的 load 慢约 30 倍，因此不是加载优化终点。
+
+![DeepSeek training shapes and load time](assets/deepseek-training-shapes.svg)
+
+正式三进程中，DeepSeek `1×3、2×3、1×32、1×128` 分别达到 PyTorch 吞吐的
+`0.509×、0.532×、0.457×、0.337×`；显存峰值低 8%–12%。这证明前两轮 Qwen 优化可以
+迁移到 1.5B 架构，也把长上下文差距和加载差距明确留在图上。

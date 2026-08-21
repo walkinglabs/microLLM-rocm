@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1700" height="760" viewBox="0 0 1700 760">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="850.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 045 · DeepSeek Training Shapes and Loading</text>
+<text x="850.0" y="80.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">DeepSeek-R1-Distill-Qwen-1.5B · median of 3 fresh processes</text>
+<text x="450.0" y="120.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">Training ratios</text>
+<text x="1270.0" y="120.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">Checkpoint load seconds</text>
+<rect x="110" y="150" width="680" height="430" fill="#ffffff" stroke="#cbd3df" rx="8"/>
+<rect x="930" y="150" width="680" height="430" fill="#ffffff" stroke="#cbd3df" rx="8"/>
+<line x1="110" y1="580.0" x2="790" y2="580.0" stroke="#e5e9f0"/>
+<text x="100.0" y="585.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">0.00×</text>
+<line x1="110" y1="472.5" x2="790" y2="472.5" stroke="#e5e9f0"/>
+<text x="100.0" y="477.5" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">0.25×</text>
+<line x1="110" y1="365.0" x2="790" y2="365.0" stroke="#e5e9f0"/>
+<text x="100.0" y="370.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">0.50×</text>
+<line x1="110" y1="257.5" x2="790" y2="257.5" stroke="#e5e9f0"/>
+<text x="100.0" y="262.5" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">0.75×</text>
+<line x1="110" y1="150.0" x2="790" y2="150.0" stroke="#2563eb"/>
+<text x="100.0" y="155.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">1.00×</text>
+<line x1="930" y1="580.0" x2="1610" y2="580.0" stroke="#e5e9f0"/>
+<text x="920.0" y="585.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">0s</text>
+<line x1="930" y1="457.1" x2="1610" y2="457.1" stroke="#e5e9f0"/>
+<text x="920.0" y="462.1" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">20s</text>
+<line x1="930" y1="334.3" x2="1610" y2="334.3" stroke="#e5e9f0"/>
+<text x="920.0" y="339.3" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">40s</text>
+<line x1="930" y1="211.4" x2="1610" y2="211.4" stroke="#e5e9f0"/>
+<text x="920.0" y="216.4" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">60s</text>
+<rect x="148.0" y="361.0" width="43" height="219.0" rx="4" fill="#dc6b5a"/>
+<rect x="199.0" y="200.7" width="43" height="379.3" rx="4" fill="#64748b"/>
+<text x="195.0" y="611.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="middle" font-weight="700">1×3</text>
+<text x="195.0" y="353.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#b83f32" text-anchor="middle" font-weight="700">0.509×</text>
+<rect x="968.0" y="178.4" width="43" height="401.6" rx="4" fill="#f59e0b"/>
+<rect x="1019.0" y="566.1" width="43" height="13.9" rx="4" fill="#18a558"/>
+<text x="1015.0" y="611.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="middle" font-weight="700">1×3</text>
+<text x="990.0" y="170.4" font-family="Inter,Arial,sans-serif" font-size="12" fill="#9a4f00" text-anchor="middle" font-weight="700">65.4s</text>
+<rect x="318.0" y="351.3" width="43" height="228.7" rx="4" fill="#dc6b5a"/>
+<rect x="369.0" y="200.3" width="43" height="379.7" rx="4" fill="#64748b"/>
+<text x="365.0" y="611.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="middle" font-weight="700">2×3</text>
+<text x="365.0" y="343.3" font-family="Inter,Arial,sans-serif" font-size="12" fill="#b83f32" text-anchor="middle" font-weight="700">0.532×</text>
+<rect x="1138.0" y="180.9" width="43" height="399.1" rx="4" fill="#f59e0b"/>
+<rect x="1189.0" y="569.5" width="43" height="10.5" rx="4" fill="#18a558"/>
+<text x="1185.0" y="611.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="middle" font-weight="700">2×3</text>
+<text x="1160.0" y="172.9" font-family="Inter,Arial,sans-serif" font-size="12" fill="#9a4f00" text-anchor="middle" font-weight="700">65.0s</text>
+<rect x="488.0" y="383.5" width="43" height="196.5" rx="4" fill="#dc6b5a"/>
+<rect x="539.0" y="197.0" width="43" height="383.0" rx="4" fill="#64748b"/>
+<text x="535.0" y="611.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="middle" font-weight="700">1×32</text>
+<text x="535.0" y="375.5" font-family="Inter,Arial,sans-serif" font-size="12" fill="#b83f32" text-anchor="middle" font-weight="700">0.457×</text>
+<rect x="1308.0" y="179.4" width="43" height="400.6" rx="4" fill="#f59e0b"/>
+<rect x="1359.0" y="567.7" width="43" height="12.3" rx="4" fill="#18a558"/>
+<text x="1355.0" y="611.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="middle" font-weight="700">1×32</text>
+<text x="1330.0" y="171.4" font-family="Inter,Arial,sans-serif" font-size="12" fill="#9a4f00" text-anchor="middle" font-weight="700">65.2s</text>
+<rect x="658.0" y="435.0" width="43" height="145.0" rx="4" fill="#dc6b5a"/>
+<rect x="709.0" y="184.8" width="43" height="395.2" rx="4" fill="#64748b"/>
+<text x="705.0" y="611.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="middle" font-weight="700">1×128</text>
+<text x="705.0" y="427.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#b83f32" text-anchor="middle" font-weight="700">0.337×</text>
+<rect x="1478.0" y="181.5" width="43" height="398.5" rx="4" fill="#f59e0b"/>
+<rect x="1529.0" y="567.8" width="43" height="12.2" rx="4" fill="#18a558"/>
+<text x="1525.0" y="611.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="middle" font-weight="700">1×128</text>
+<text x="1500.0" y="173.5" font-family="Inter,Arial,sans-serif" font-size="12" fill="#9a4f00" text-anchor="middle" font-weight="700">64.9s</text>
+<text x="850.0" y="655.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">left red: throughput · left gray: peak memory · right orange/green: microLLM/PyTorch load</text>
+<text x="850.0" y="705.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#9a4f00" text-anchor="middle" font-weight="700">Training uses less peak memory; loading remains ~30× slower</text>
+</svg>

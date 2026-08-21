@@ -44,6 +44,9 @@ BF16_WEIGHT_GRADIENT_COMPARISON = ROOT / "experiments" / "043-data" / "compariso
 BF16_WEIGHT_GRADIENT_CHART = ROOT / "assets" / "bf16-weight-gradient-routing.svg"
 FUSED_CAUSAL_GQA_COMPARISON = ROOT / "experiments" / "044-data" / "comparison.json"
 FUSED_CAUSAL_GQA_CHART = ROOT / "assets" / "fused-causal-gqa-training.svg"
+DEEPSEEK_SHAPE_SUMMARY = ROOT / "experiments" / "045-data" / "candidate" / "summary.json"
+DEEPSEEK_LOAD_SUMMARY = ROOT / "experiments" / "045-data" / "load-summary.json"
+DEEPSEEK_SHAPE_CHART = ROOT / "assets" / "deepseek-training-shapes.svg"
 
 
 def rows() -> list[dict]:
@@ -1047,6 +1050,90 @@ def fused_causal_gqa_svg() -> str:
     return "\n".join(parts)
 
 
+def deepseek_shape_svg() -> str:
+    rows = json.loads(DEEPSEEK_SHAPE_SUMMARY.read_text(encoding="utf-8"))["rows"]
+    loads = json.loads(DEEPSEEK_LOAD_SUMMARY.read_text(encoding="utf-8"))
+    width, height = 1700, 760
+    left_x, right_x, top, panel_w, panel_h = 110, 930, 150, 680, 430
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 045 · DeepSeek Training Shapes and Loading", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 80,
+             "DeepSeek-R1-Distill-Qwen-1.5B · median of 3 fresh processes",
+             16, "#5b6474", anchor="middle"),
+        text(left_x + panel_w / 2, 120, "Training ratios", 20,
+             anchor="middle", weight=700),
+        text(right_x + panel_w / 2, 120, "Checkpoint load seconds", 20,
+             anchor="middle", weight=700),
+    ]
+    for x in (left_x, right_x):
+        parts.append(f'<rect x="{x}" y="{top}" width="{panel_w}" height="{panel_h}" '
+                     f'fill="#ffffff" stroke="#cbd3df" rx="8"/>')
+
+    def ratio_y(value: float) -> float:
+        return top + panel_h * (1.0 - value)
+
+    def load_y(value: float) -> float:
+        return top + panel_h * (70.0 - value) / 70.0
+
+    for tick in (0.0, 0.25, 0.5, 0.75, 1.0):
+        y = ratio_y(tick)
+        parts.append(f'<line x1="{left_x}" y1="{y:.1f}" x2="{left_x+panel_w}" '
+                     f'y2="{y:.1f}" stroke="{("#2563eb" if tick == 1.0 else "#e5e9f0")}"/>')
+        parts.append(text(left_x - 10, y + 5, f"{tick:.2f}×", 13,
+                          "#5b6474", anchor="end"))
+    for tick in (0, 20, 40, 60):
+        y = load_y(float(tick))
+        parts.append(f'<line x1="{right_x}" y1="{y:.1f}" x2="{right_x+panel_w}" '
+                     f'y2="{y:.1f}" stroke="#e5e9f0"/>')
+        parts.append(text(right_x - 10, y + 5, f"{tick}s", 13,
+                          "#5b6474", anchor="end"))
+    group = panel_w / len(rows)
+    micro_loads = loads["after_microllm_load_ms_median_by_shape"]
+    torch_loads = loads["pytorch_load_ms_median_by_shape"]
+    for index, row in enumerate(rows):
+        label = f'{row["batch"]}×{row["context"]}'
+        key = f'{row["batch"]}x{row["context"]}'
+        center = left_x + group * (index + 0.5)
+        for offset, (value, color) in enumerate((
+                (row["throughput_ratio_microllm_over_pytorch"], "#dc6b5a"),
+                (row["peak_memory_ratio"], "#64748b"))):
+            x = center - 47 + offset * 51
+            y = ratio_y(value)
+            parts.append(f'<rect x="{x:.1f}" y="{y:.1f}" width="43" '
+                         f'height="{ratio_y(0)-y:.1f}" rx="4" fill="{color}"/>')
+        parts.append(text(center, top + panel_h + 31, label, 15,
+                          "#172033", anchor="middle", weight=700))
+        parts.append(text(center, ratio_y(row["throughput_ratio_microllm_over_pytorch"])-8,
+                          f'{row["throughput_ratio_microllm_over_pytorch"]:.3f}×', 12,
+                          "#b83f32", anchor="middle", weight=700))
+
+        load_center = right_x + group * (index + 0.5)
+        for offset, (milliseconds, color) in enumerate((
+                (micro_loads[key], "#f59e0b"), (torch_loads[key], "#18a558"))):
+            seconds = milliseconds / 1000.0
+            x = load_center - 47 + offset * 51
+            y = load_y(seconds)
+            parts.append(f'<rect x="{x:.1f}" y="{y:.1f}" width="43" '
+                         f'height="{load_y(0)-y:.1f}" rx="4" fill="{color}"/>')
+        parts.append(text(load_center, top + panel_h + 31, label, 15,
+                          "#172033", anchor="middle", weight=700))
+        parts.append(text(load_center - 25, load_y(micro_loads[key]/1000.0)-8,
+                          f'{micro_loads[key]/1000.0:.1f}s', 12, "#9a4f00",
+                          anchor="middle", weight=700))
+    parts.append(text(width / 2, 655,
+                      "left red: throughput · left gray: peak memory · right orange/green: microLLM/PyTorch load",
+                      14, "#5b6474", anchor="middle"))
+    parts.append(text(width / 2, 705,
+                      "Training uses less peak memory; loading remains ~30× slower",
+                      16, "#9a4f00", anchor="middle", weight=700))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -1064,7 +1151,8 @@ def main() -> int:
                 BF16_TRAINING_ISLAND_CHART: bf16_training_island_svg(),
                 BF16_TRAINING_SHAPE_CHART: bf16_training_shape_svg(),
                 BF16_WEIGHT_GRADIENT_CHART: bf16_weight_gradient_svg(),
-                FUSED_CAUSAL_GQA_CHART: fused_causal_gqa_svg()}
+                FUSED_CAUSAL_GQA_CHART: fused_causal_gqa_svg(),
+                DEEPSEEK_SHAPE_CHART: deepseek_shape_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

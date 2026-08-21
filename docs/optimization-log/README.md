@@ -203,6 +203,13 @@ trace 对齐通过。
 
 ![Fused causal GQA training](assets/fused-causal-gqa-training.svg)
 
+Experiment 045 将同一训练矩阵扩展到 DeepSeek 1.5B，并修复官方权重加载架构。未初始化
+模型不再生成/复制即将覆盖的 1.78B 随机参数；safetensors 直接进入设备，Linear transpose
+在 GPU 完成。观察到的进程准备从约 6–7 分钟降到约 80 秒，正式 `load_ms` 约 65 秒。
+DeepSeek 四 shape 达到 PyTorch 的 `0.337×–0.532×`，峰值显存低 `8%–12%`。
+
+![DeepSeek training shapes and load time](assets/deepseek-training-shapes.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -250,6 +257,8 @@ trace 对齐通过。
 | [experiments/043-data/](experiments/043-data/) | 24 条候选 raw、microbench 与三组 profiler 聚合 |
 | [assets/fused-causal-gqa-training.svg](assets/fused-causal-gqa-training.svg) | full-sequence Attention 融合前后吞吐/显存 |
 | [experiments/044-data/](experiments/044-data/) | 24 条 raw、前后比较与 retained profiler |
+| [assets/deepseek-training-shapes.svg](assets/deepseek-training-shapes.svg) | DeepSeek shape 与 load gap 曲线 |
+| [experiments/045-data/](experiments/045-data/) | 优化前 pilot、24 条正式 raw 与 load 摘要 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 
