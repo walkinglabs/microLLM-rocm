@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "before": {
+    "kernel_dispatches": 7055,
+    "kernel_time_ns": 1283845306,
+    "hip_api_calls": 259593,
+    "hip_api_time_ns": 6882845944,
+    "fused_forward_calls": 72,
+    "fused_forward_time_ns": 272520268
+  },
+  "after": {
+    "kernel_dispatches": 7343,
+    "kernel_time_ns": 1185531033,
+    "hip_api_calls": 266578,
+    "hip_api_time_ns": 6587377715,
+    "softmax_calls": 72,
+    "softmax_time_ns": 169927450,
+    "repeat_kv_calls": 144,
+    "repeat_kv_time_ns": 5414941,
+    "query_scale_calls": 72,
+    "query_scale_time_ns": 1202856,
+    "forward_batched_gemm_calls": 144,
+    "forward_batched_gemm_time_ns": 1748953,
+    "forward_stage_time_ns": 178294200
+  },
+  "kernel_time_speedup": 1.082928469,
+  "forward_stage_speedup": 1.528484302,
+  "kernel_dispatch_ratio": 1.040822112,
+  "hip_api_call_ratio": 1.026907119,
+  "count_contract": "24 Qwen layers x three traced steps; two forward GEMMs and two GQA repeat kernels per layer-step"
+}

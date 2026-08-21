@@ -1396,3 +1396,25 @@ backward 从 473.91 降到 305.15 ms，forward 因写 probability 从269.69微�
 
 这版保留为明确 speed/memory tradeoff，不把显存成本藏起来。forward 和 saved-row 已成为
 接近的两个热点，下一步只能靠 score/context tile reuse，而不是保存更多整表。
+
+## 73. Experiment 056：多发几个 Kernel，训练反而更快
+
+旧 long-sequence forward 把完整 QK、softmax 和 PV 放在一个容易阅读的 HIP Kernel 中。
+它 launch 少，却让每个线程顺序扫描大量 key。新路径只在 `T≥256` 且 hipBLASLt 可用时，
+把 K/V 扩到 query heads、query 乘 scale，然后调用两次 strided-batched GEMM，中间保留
+因果 softmax；T128 和 library-free build 不变。
+
+![Batched Attention forward](assets/batched-attention-forward.svg)
+
+正式三进程中位数中，Qwen `1248.17→1361.17 tok/s`（`1.091×`），DeepSeek
+`627.83→731.34 tok/s`（`1.165×`）；两者 measured peak 都逐字节不变。T128 是
+`802.47→812.36 tok/s`（`1.012×`），证明阈值没有把短序列拖入 library setup。
+
+rocprof 给出了能反驳“只是 host 计时波动”的设备证据：旧 forward 72 次共
+`272.52ms`；新 softmax、两次 GEMM、K/V repeat 和 scale 合计 `178.29ms`，即 `1.528×`。
+全进程 Kernel 时间 `1283.85→1185.53ms`。与此同时 dispatch `7055→7343`、HIP API
+调用 `259593→266578`。这次明确证明：少 launch 是手段，不是目标；更合适的矩阵硬件
+路径即使多发 Kernel，也能得到更快端到端训练。
+
+候选保留。新的 top-5 依次是 saved-row backward、causal softmax、RMSNorm weight
+gradient、AdamW 和 bias gradient。下一实验从新 trace 选择一个变量，而不是继续凭模块名猜。

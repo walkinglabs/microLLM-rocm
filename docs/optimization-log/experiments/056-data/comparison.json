@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "experiment": 56,
+  "decision": "keep",
+  "candidate": "route saved long-sequence Attention QK and PV forward through strided-batched hipBLASLt",
+  "rows": [
+    {
+      "model": "qwen2.5-0.5b",
+      "before_tokens_per_second": 1248.170435372,
+      "after_tokens_per_second": 1361.168790232,
+      "self_speedup": 1.090531190,
+      "before_peak_bytes": 13025380360,
+      "after_peak_bytes": 13025380360,
+      "peak_ratio": 1.0,
+      "pytorch_tokens_per_second_after": 7994.089160831,
+      "pytorch_ratio_after": 0.170271905
+    },
+    {
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "before_tokens_per_second": 627.832847026,
+      "after_tokens_per_second": 731.340228663,
+      "self_speedup": 1.164864553,
+      "before_peak_bytes": 37410926600,
+      "after_peak_bytes": 37410926600,
+      "peak_ratio": 1.0,
+      "pytorch_tokens_per_second_after": 4680.115001728,
+      "pytorch_ratio_after": 0.156265440
+    }
+  ],
+  "fallback128": {
+    "before_tokens_per_second": 802.467079713,
+    "after_tokens_per_second": 812.364108105,
+    "speedup": 1.012333253,
+    "before_peak_bytes": 10450205704,
+    "after_peak_bytes": 10450205704,
+    "peak_ratio": 1.0
+  },
+  "policy": "saved Attention forward uses batched hipBLASLt only for HIP T>=256 when the library is available; shorter, oversized and library-free cases retain the fused/readable paths",
+  "reason": "both official models improve by at least 9 percent with unchanged measured peak, the profiler identifies a 1.528x forward-stage speedup, and T128 does not regress"
+}

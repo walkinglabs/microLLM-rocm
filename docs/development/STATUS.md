@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| CPU configuration | smoke-tested | framework-only main configure/build; 167/167 CPU CTest | CI matrix |
+| CPU configuration | smoke-tested | full 255/255 CPU/HIP configuration includes 182 CPU-labelled gates; ASan/UBSan 175/175 | broader compiler/OS CI matrix |
 | CPU code coverage | smoke-tested | 83.9% lines, 90.9% functions, 66.6% branches over `src/` + `include/` | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, native cast, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
@@ -35,8 +35,8 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Decoder Transformer structure | smoke-tested | tiny GQA graph topology, PyTorch logits/loss/all-gradient parity, CPU/HIP parity | overfit/full recipe |
 | Byte tokenizer/token dataset | smoke-tested | all-byte round-trip and cursor equivalence | real-corpus run |
 | BPE/TinyStories source | smoke-tested | BPE round-trip + immutable licensed range + Model-S smoke | full corpus/reference train |
-| Weight/state API | smoke-tested | independent state_dict, atomic strict/non-strict load, Qwen-style transpose mapping | streaming load/model-specific architecture validation |
-| safetensors | smoke-tested | F32/BF16/F16, shards/index/corruption/CPU-HIP plus official Python package two-way interop | FP8/quantized formats/memory mapping |
+| Weight/state API | smoke-tested | independent state_dict, atomic strict/non-strict load, Qwen-style transpose mapping, official single-file device streaming | multi-shard streaming/model-specific architecture validation |
+| safetensors | smoke-tested | F32/BF16/F16, shards/index/corruption/CPU-HIP, Python two-way interop, low-precision single-file streaming | FP8/quantized formats, memory mapping and multi-shard streaming |
 | C++ training CLI | smoke-tested | CPU save/resume fixture and Model-S HIP real-text steps | validation/report CLI |
 | Model-S TinyStories smoke | smoke-tested | immutable 1MiB train prefix, 10 HIP steps | full train/validation curve |
 | Tiny Transformer training | smoke-tested | 40-step overfit and finite gradients | validation split/Model-S |
@@ -52,8 +52,8 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Token generation | smoke-tested | deterministic sampling and cache-backed length/bounds | trained text report |
 | Stable model failure | smoke-tested | low-loss cycle breaks beyond training context | rebuttal experiments |
 | PyTorch Custom Ops | smoke-tested on CPU | Torch 2.13 add/multiply via dispatcher | build/run with PyTorch ROCm |
-| PyTorch correctness oracle | smoke-tested on CPU | 30 Tensor APIs, 29 graph APIs, 25 test files audited; forward/backward/shape/model/optimizer parity | direct PyTorch ROCm run |
-| PyTorch ROCm environment | draft | matching 2.11/7.13 wheel Bus error on import | working Torch ROCm environment |
+| PyTorch correctness oracle | smoke-tested | PyTorch-enabled 180/180; 30 Tensor APIs, 29 graph APIs, 25 files audited; forward/backward/shape/model/optimizer parity | broader direct PyTorch ROCm operator matrix |
+| PyTorch ROCm environment | smoke-tested | Torch 2.10.0+rocm7.13 and Transformers 5.8.1 run official Qwen/DeepSeek BF16 training on MI300X with native device discovery | additional Torch/ROCm versions and Radeon |
 | C ABI v1 | smoke-tested | pure C CPU/HIP create/copy/ops/error client | zero-copy external views |
 | Python ctypes API | smoke-tested | CPU/HIP Tensor/ops/error unittest | packaging/broader ops |
 | External TensorView ops | smoke-tested | caller-owned CPU/HIP buffers and Stream | Torch build validation |
@@ -65,9 +65,9 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | End-to-end benchmark | smoke-tested | matched Python/PyTorch ROCm built-in and official-HF JSONL ratios | longer contexts, repeated official training and tuned comparison |
 | Single-GPU model matrix | smoke-tested | MI300X tiny/Model-S/Model-M plus official Qwen0.5B/DeepSeek-Distill1.5B train+generate, parameters, time, tokens/s and engine peak bytes | repeated contexts/dtypes and external board-level memory sampling |
 | Python/PyTorch ROCm performance matrix | smoke-tested | matched FP32 built-ins plus official Qwen/DeepSeek Distill, raw Python data and automatic throughput/memory ratios | repeated official-model training and PyTorch version matrix |
-| Optimization experiment journal | implemented | FP32 plus BF16 inference/training tracks through Experiment 039, generated figures and raw evidence | continuous training island, HIP Graph and long-context tracks |
+| Optimization experiment journal | implemented | 56 numbered FP32/BF16/load/long-context experiments with generated figures, raw evidence and keep/discard gates | HIP Graph, Radeon and production data-parallel tracks |
 | rocprofv3 workflow | smoke-tested | kernel/HIP API/memory/full trace generated | release artifact retention |
-| hipBLASLt matmul | smoke-tested | FP32 CPU comparison, shape matrix, Model-S e2e | batched/workspace/autotune cache |
+| hipBLASLt matmul | smoke-tested | FP32/BF16, rank-N strided batches, four transpose contracts, Model-S and T≥256 Attention forward/backward | workspace and persistent versioned autotune cache |
 | Matmul tuning registry | smoke-tested | exact shape override/clear and availability gates | persistence/arch key |
 | RCCL two-GPU baseline | smoke-tested | XGMI average and global-batch parameter equivalence | buckets/4 GPU/failure timing |
 | DataParallelTrainer | smoke-tested | 3-step two-rank/global-batch equivalence, rank diff 0, stage trace | one-process-per-GPU/gradient-ready overlap |

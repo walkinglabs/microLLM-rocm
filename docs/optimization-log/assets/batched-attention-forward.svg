@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="790" viewBox="0 0 1800 790">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="900" y="48" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 056 · Batched Attention Forward</text>
+<text x="900" y="80" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle">MI300X · BF16 training · batch 1 · context 512 · median of 3</text>
+<rect x="90" y="135" width="820" height="500" fill="#ffffff" stroke="#cbd3df" rx="10"/>
+<rect x="990" y="135" width="720" height="500" fill="#ffffff" stroke="#cbd3df" rx="10"/>
+<text x="500" y="180" font-family="Inter,Arial,sans-serif" font-size="21" fill="#172033" text-anchor="middle" font-weight="700">Official-model training throughput</text>
+<line x1="150" y1="550" x2="850" y2="550" stroke="#cbd3df"/>
+<rect x="220" y="255" width="105" height="295" fill="#aab2bf" rx="6"/>
+<rect x="345" y="228" width="105" height="322" fill="#18a558" rx="6"/>
+<text x="272" y="245" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="700">1248.17</text>
+<text x="397" y="218" font-family="Inter,Arial,sans-serif" font-size="14" fill="#18a558" text-anchor="middle" font-weight="700">1361.17</text>
+<text x="335" y="585" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" text-anchor="middle" font-weight="700">Qwen 0.5B · 1.091×</text>
+<rect x="560" y="401" width="105" height="149" fill="#aab2bf" rx="6"/>
+<rect x="685" y="377" width="105" height="173" fill="#18a558" rx="6"/>
+<text x="612" y="391" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="700">627.83</text>
+<text x="737" y="367" font-family="Inter,Arial,sans-serif" font-size="14" fill="#18a558" text-anchor="middle" font-weight="700">731.34</text>
+<text x="675" y="585" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" text-anchor="middle" font-weight="700">DeepSeek 1.5B · 1.165×</text>
+<text x="1110" y="180" font-family="Inter,Arial,sans-serif" font-size="21" fill="#172033" font-weight="700">Qwen retained profile</text>
+<text x="1040" y="235" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" font-weight="700">Attention forward stage</text>
+<rect x="1040" y="260" width="540" height="34" fill="#eef1f5" rx="4"/>
+<rect x="1040" y="260" width="540" height="34" fill="#aab2bf" rx="4"/>
+<text x="1600" y="283" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" font-weight="700">272.52 ms</text>
+<rect x="1040" y="312" width="540" height="34" fill="#eef1f5" rx="4"/>
+<rect x="1040" y="312" width="353" height="34" fill="#18a558" rx="4"/>
+<text x="1410" y="335" font-family="Inter,Arial,sans-serif" font-size="14" fill="#18a558" font-weight="700">178.29 ms · 1.528×</text>
+<text x="1040" y="405" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" font-weight="700">All Kernel time</text>
+<rect x="1040" y="430" width="540" height="34" fill="#eef1f5" rx="4"/>
+<rect x="1040" y="430" width="540" height="34" fill="#aab2bf" rx="4"/>
+<text x="1600" y="453" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" font-weight="700">1283.85 ms</text>
+<rect x="1040" y="482" width="540" height="34" fill="#eef1f5" rx="4"/>
+<rect x="1040" y="482" width="499" height="34" fill="#2563eb" rx="4"/>
+<text x="1555" y="505" font-family="Inter,Arial,sans-serif" font-size="14" fill="#2563eb" font-weight="700">1185.53 ms · 1.083×</text>
+<text x="900" y="700" font-family="Inter,Arial,sans-serif" font-size="18" fill="#9a4f00" text-anchor="middle" font-weight="700">Peak unchanged · T128 1.012× · dispatch rises 4.1%, so fewer launches are not the explanation</text>
+</svg>

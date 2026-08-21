@@ -43,6 +43,8 @@ needed to run a real training and generation loop:
 - rank-N strided-batched hipBLASLt with last-two-dimension transpose contracts for Attention.
 - T≥256 causal GQA backward using batched GEMM for K/V gradients, with short-sequence fallback.
 - optional autograd probability saving for T≥256, reported as a long-sequence speed/memory trade-off.
+- T≥256 saved Attention forward using batched hipBLASLt for QK/PV; Qwen/DeepSeek context-512
+  training improves another 1.091×/1.165× with unchanged measured peak.
 
 The design keeps three implementations where they provide engineering value:
 
@@ -131,7 +133,7 @@ Current `main` gates:
 | Full CPU/HIP configuration | 255/255 | 182 CPU-labelled + 73 HIP-labelled gates; 2 intentional environment skips |
 | ASan/UBSan CPU | 175/175 | host code, CLI, model/graph, benchmark and evidence schemas |
 | MI300X/gfx942 HIP | 73/73 | allocator/stream, graph, BF16/FP8, batched GEMM and model matrix |
-| PyTorch-enabled CPU build | 165/165 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
+| PyTorch-enabled CPU build | 180/180 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
 | Registered test files | 36 | machine-audited CTest registration |
 | CPU source coverage | 83.9% lines / 66.6% branches | GCC 13.3 + gcovr 8.3; `src/` and `include/` |

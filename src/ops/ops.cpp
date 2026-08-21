@@ -1887,6 +1887,24 @@ TensorPair causal_gqa_attention_saved(
         return causal_gqa_attention_saved_composed(
             query, key, value, repeats, scale, context);
     }
+    if (sequence >= 256 && hipblaslt_available()) {
+        // Long training sequences amortize the library setup and avoid the
+        // scalar fused kernel's repeated dot products.  Keep the readable
+        // fused path below for short sequences and library-free builds.
+        const auto expanded_key = repeats == 1
+                                      ? key : repeat_interleave(key, 1, repeats, context);
+        const auto expanded_value = repeats == 1
+                                        ? value : repeat_interleave(value, 1, repeats, context);
+        const auto scaled_query = ops::scale(query, scale, context);
+        const auto scores = matmul_with_implementation(
+            scaled_query, expanded_key, MatmulImplementation::HipBLASLt,
+            false, true, context);
+        auto probabilities = causal_softmax(scores, context);
+        auto output = matmul_with_implementation(
+            probabilities, expanded_value, MatmulImplementation::HipBLASLt,
+            context);
+        return {std::move(output), std::move(probabilities)};
+    }
     Tensor output(query.shape(), DType::Float32, query.device());
     Tensor probabilities({batches, heads, sequence, sequence},
                          DType::Float32, query.device());

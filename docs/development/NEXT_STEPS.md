@@ -9,7 +9,8 @@ roadmap. Passing a smaller smoke test does not complete a later item.
 - [x] strict/non-strict atomic model load;
 - [x] F32/BF16/F16 safetensors and sharded index;
 - [x] Qwen-style name and transpose mapping seam;
-- [ ] streaming/memory-mapped loading;
+- [x] single-file low-precision streaming into an uninitialized HIP model;
+- [ ] multi-shard/index streaming and memory-mapped loading;
 - [ ] FP8/INT8/INT4 tensors and quantization metadata;
 - [ ] official Qwen checkpoint fixture and tokenizer files.
 
@@ -75,9 +76,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 
 - [ ] complete Model-S train/validation curves and checkpoints;
 - [ ] real instruction-corpus SFT report;
-- [x] direct Python/PyTorch ROCm performance environment, currently requiring a
-  recorded AMDSMI-to-HIP-runtime device-count fallback;
-- [ ] direct PyTorch ROCm numerical oracle without the environment workaround;
+- [x] direct Python/PyTorch ROCm performance environment; the retained context-512
+  matrix reports native device discovery without the earlier AMDSMI fallback;
+- [ ] broaden the direct PyTorch ROCm numerical oracle beyond pinned official-model
+  loss/parameter checks to the full per-operator matrix;
 - [ ] Radeon run;
 - [ ] four-rank RCCL after shared-memory environment repair;
 - [ ] backward-ready bucket overlap;

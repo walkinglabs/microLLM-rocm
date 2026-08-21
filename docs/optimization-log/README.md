@@ -277,6 +277,14 @@ speed/memory tradeoff 保留。
 
 ![Saved Attention probabilities](assets/saved-attention-probabilities.svg)
 
+Experiment 056 把同一长序列 forward 的 `QKᵀ/PV` 接到 strided-batched hipBLASLt。
+Qwen/DeepSeek T512 再提高 `1.091×/1.165×`，measured peak 不变；T128 fallback
+`1.012×`。Qwen forward stage `272.52→178.29ms`，全 Kernel 时间
+`1283.85→1185.53ms`。dispatch 增加 4.1%，因此保留依据是设备时间和端到端收益，
+不是 launch 数。
+
+![Batched Attention forward](assets/batched-attention-forward.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -346,6 +354,8 @@ speed/memory tradeoff 保留。
 | [experiments/054-data/](experiments/054-data/) | 正式12条 raw、T128 fallback 与 profiler 聚合 |
 | [assets/saved-attention-probabilities.svg](assets/saved-attention-probabilities.svg) | T512 吞吐、固定显存成本与 row profile |
 | [experiments/055-data/](experiments/055-data/) | 正式12条 raw、fallback 与 retained profile |
+| [assets/batched-attention-forward.svg](assets/batched-attention-forward.svg) | T512 两模型吞吐与 forward/全进程 Kernel 变化 |
+| [experiments/056-data/](experiments/056-data/) | 正式12条 raw、T128 fallback 与 retained profiler 聚合 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 
