@@ -95,6 +95,43 @@ TEST(ReferenceSchedulerTest, ImmediateCompletionLimitsAndErrorsAreVisible) {
     EXPECT_THROW(scheduler.run_until_idle(-2), std::invalid_argument);
 }
 
+TEST(ReferenceSchedulerTest, CancellationIsTerminalIdempotentAndReleasesCache) {
+    const auto config = scheduler_config();
+    model::TransformerModel scheduled_model(config, 97);
+    ReferenceScheduler scheduler(scheduled_model);
+    const GenerationConfig generation{.max_new_tokens = 4,
+                                      .temperature = 0.0F,
+                                      .top_k = 1,
+                                      .seed = 3,
+                                      .kv_cache_layer_dtypes = {}};
+    const auto cancelled = scheduler.submit({1, 2, 3}, generation);
+    const auto survivor = scheduler.submit({4, 5, 6}, generation);
+    scheduler.step();
+    const auto before = scheduler.request(cancelled);
+    ASSERT_EQ(before.generated.size(), 1U);
+    EXPECT_GT(before.cache_bytes, 0U);
+
+    EXPECT_TRUE(scheduler.cancel(cancelled));
+    const auto after = scheduler.request(cancelled);
+    EXPECT_EQ(after.state, RequestState::Cancelled);
+    EXPECT_EQ(after.generated, before.generated);
+    EXPECT_EQ(after.completion_step, 1);
+    EXPECT_EQ(after.cache_bytes, 0U);
+    EXPECT_FALSE(scheduler.cancel(cancelled));
+    EXPECT_EQ(scheduler.active_request_count(), 1U);
+
+    scheduler.run_until_idle();
+    model::TransformerModel independent(config, 97);
+    EXPECT_EQ(scheduler.request(survivor).generated,
+              suffix(generate(independent, {4, 5, 6}, generation), 3));
+    const auto metrics = scheduler.metrics();
+    EXPECT_EQ(metrics.cancelled_requests, 1);
+    EXPECT_EQ(metrics.completed_requests, 1);
+    EXPECT_EQ(metrics.active_cache_bytes, 0U);
+    EXPECT_FALSE(scheduler.cancel(survivor));
+    EXPECT_THROW((void)scheduler.cancel(999), std::out_of_range);
+}
+
 TEST(AdmissionBatchSchedulerTest, StableBucketsMatchIndependentGeneration) {
     const auto config = scheduler_config();
     model::TransformerModel scheduled_model(config, 107);
@@ -157,6 +194,43 @@ TEST(AdmissionBatchSchedulerTest, ImmediateAndErrorRequestsAreExplicit) {
                             .kv_cache_layer_dtypes = {}}),
                  std::out_of_range);
     EXPECT_THROW((void)scheduler.request(999), std::out_of_range);
+}
+
+TEST(AdmissionBatchSchedulerTest, CancellationExcludesRowsFromAdmissionGroups) {
+    const auto config = scheduler_config();
+    model::TransformerModel scheduled_model(config, 113);
+    AdmissionBatchScheduler scheduler(scheduled_model);
+    const GenerationConfig generation{.max_new_tokens = 3,
+                                      .temperature = 0.0F,
+                                      .top_k = 1,
+                                      .seed = 5,
+                                      .kv_cache_layer_dtypes = {}};
+    const auto first = scheduler.submit({1, 2, 3}, generation);
+    const auto cancelled = scheduler.submit({4, 5, 6}, generation);
+    const auto third = scheduler.submit({7, 8, 9}, generation);
+    EXPECT_TRUE(scheduler.cancel(cancelled));
+    EXPECT_FALSE(scheduler.cancel(cancelled));
+    EXPECT_EQ(scheduler.pending_request_count(), 2U);
+    scheduler.drain();
+
+    EXPECT_EQ(scheduler.request(cancelled).state, RequestState::Cancelled);
+    EXPECT_TRUE(scheduler.request(cancelled).generated.empty());
+    EXPECT_EQ(scheduler.request(cancelled).completion_step, 0);
+    for (const auto& [id, prompt] : {
+             std::pair{first, std::vector<std::int32_t>{1, 2, 3}},
+             std::pair{third, std::vector<std::int32_t>{7, 8, 9}}}) {
+        model::TransformerModel independent(config, 113);
+        EXPECT_EQ(scheduler.request(id).generated,
+                  suffix(generate(independent, prompt, generation), prompt.size()));
+    }
+    const auto metrics = scheduler.metrics();
+    EXPECT_EQ(metrics.cancelled_requests, 1);
+    EXPECT_EQ(metrics.completed_requests, 2);
+    EXPECT_EQ(metrics.batch_groups, 1);
+    EXPECT_EQ(metrics.batched_requests, 2);
+    EXPECT_EQ(metrics.maximum_batch_size, 2);
+    EXPECT_FALSE(scheduler.cancel(first));
+    EXPECT_THROW((void)scheduler.cancel(999), std::out_of_range);
 }
 
 }  // namespace microllm::inference

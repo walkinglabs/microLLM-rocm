@@ -15,6 +15,7 @@ enum class RequestState : std::uint8_t {
     PendingPrefill,
     Decoding,
     Completed,
+    Cancelled,
 };
 
 struct RequestSnapshot {
@@ -32,6 +33,7 @@ struct SchedulerMetrics {
     std::int64_t scheduler_steps = 0;
     std::int64_t submitted_requests = 0;
     std::int64_t completed_requests = 0;
+    std::int64_t cancelled_requests = 0;
     std::int64_t prefill_calls = 0;
     std::int64_t decode_calls = 0;
     std::int64_t peak_active_requests = 0;
@@ -54,6 +56,7 @@ public:
     [[nodiscard]] RequestId submit(
         std::vector<std::int32_t> prompt,
         GenerationConfig config = {});
+    [[nodiscard]] bool cancel(RequestId id);
     void step();
     void run_until_idle(std::int64_t maximum_steps = -1);
 
@@ -72,6 +75,7 @@ struct AdmissionBatchMetrics {
     std::int64_t drain_calls = 0;
     std::int64_t submitted_requests = 0;
     std::int64_t completed_requests = 0;
+    std::int64_t cancelled_requests = 0;
     std::int64_t batch_groups = 0;
     std::int64_t singleton_groups = 0;
     std::int64_t batched_requests = 0;
@@ -93,6 +97,7 @@ public:
     [[nodiscard]] RequestId submit(
         std::vector<std::int32_t> prompt,
         GenerationConfig config = {});
+    [[nodiscard]] bool cancel(RequestId id);
     void drain();
     [[nodiscard]] std::size_t pending_request_count() const noexcept;
     [[nodiscard]] RequestSnapshot request(RequestId id) const;

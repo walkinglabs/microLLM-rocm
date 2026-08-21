@@ -59,6 +59,10 @@ std::size_t cache_bytes(const KVCache& cache) {
     return bytes;
 }
 
+bool is_terminal(RequestState state) {
+    return state == RequestState::Completed || state == RequestState::Cancelled;
+}
+
 }  // namespace
 
 struct ReferenceScheduler::Impl {
@@ -110,7 +114,7 @@ struct ReferenceScheduler::Impl {
         std::size_t active_bytes = 0;
         std::int64_t active = 0;
         for (const auto& request : requests) {
-            if (request.state == RequestState::Completed) continue;
+            if (is_terminal(request.state)) continue;
             ++active;
             if (request.cache) active_bytes += cache_bytes(*request.cache);
         }
@@ -153,11 +157,23 @@ RequestId ReferenceScheduler::submit(std::vector<std::int32_t> prompt,
     return id;
 }
 
+bool ReferenceScheduler::cancel(RequestId id) {
+    auto& request = impl_->find(id);
+    if (is_terminal(request.state)) return false;
+    request.state = RequestState::Cancelled;
+    request.completion_step = impl_->metrics.scheduler_steps;
+    request.logits = {};
+    request.cache.reset();
+    ++impl_->metrics.cancelled_requests;
+    impl_->refresh_cache_metrics();
+    return true;
+}
+
 void ReferenceScheduler::step() {
     if (!has_active_requests()) return;
     ++impl_->metrics.scheduler_steps;
     for (auto& request : impl_->requests) {
-        if (request.state == RequestState::Completed) continue;
+        if (is_terminal(request.state)) continue;
         if (request.state == RequestState::PendingPrefill) {
             request.logits = impl_->model.forward_prefill_cached(
                 Tensor::from_int32_vector(
@@ -201,7 +217,7 @@ void ReferenceScheduler::run_until_idle(std::int64_t maximum_steps) {
 bool ReferenceScheduler::has_active_requests() const noexcept {
     return std::any_of(impl_->requests.begin(), impl_->requests.end(),
                        [](const Impl::Request& request) {
-                           return request.state != RequestState::Completed;
+                           return !is_terminal(request.state);
                        });
 }
 
@@ -209,7 +225,7 @@ std::size_t ReferenceScheduler::active_request_count() const noexcept {
     return static_cast<std::size_t>(std::count_if(
         impl_->requests.begin(), impl_->requests.end(),
         [](const Impl::Request& request) {
-            return request.state != RequestState::Completed;
+            return !is_terminal(request.state);
         }));
 }
 
@@ -276,13 +292,17 @@ struct AdmissionBatchScheduler::Impl {
                 .layer_dtypes = request.config.kv_cache_layer_dtypes};
     }
 
-    const Request& find(RequestId id) const {
+    Request& find(RequestId id) {
         const auto found = std::find_if(requests.begin(), requests.end(),
                                         [id](const Request& request) {
                                             return request.id == id;
                                         });
         if (found == requests.end()) throw std::out_of_range("unknown admission request");
         return *found;
+    }
+
+    const Request& find(RequestId id) const {
+        return const_cast<Impl*>(this)->find(id);
     }
 };
 
@@ -313,12 +333,21 @@ RequestId AdmissionBatchScheduler::submit(std::vector<std::int32_t> prompt,
     return id;
 }
 
+bool AdmissionBatchScheduler::cancel(RequestId id) {
+    auto& request = impl_->find(id);
+    if (is_terminal(request.state)) return false;
+    request.state = RequestState::Cancelled;
+    request.completion_drain = impl_->metrics.drain_calls;
+    ++impl_->metrics.cancelled_requests;
+    return true;
+}
+
 void AdmissionBatchScheduler::drain() {
     ++impl_->metrics.drain_calls;
     std::vector<std::vector<std::size_t>> groups;
     std::vector<Impl::Key> keys;
     for (std::size_t index = 0; index < impl_->requests.size(); ++index) {
-        if (impl_->requests[index].state == RequestState::Completed) continue;
+        if (is_terminal(impl_->requests[index].state)) continue;
         const auto key = Impl::key(impl_->requests[index]);
         const auto found = std::find(keys.begin(), keys.end(), key);
         if (found == keys.end()) {
@@ -364,7 +393,7 @@ std::size_t AdmissionBatchScheduler::pending_request_count() const noexcept {
     return static_cast<std::size_t>(std::count_if(
         impl_->requests.begin(), impl_->requests.end(),
         [](const Impl::Request& request) {
-            return request.state != RequestState::Completed;
+            return !is_terminal(request.state);
         }));
 }
 

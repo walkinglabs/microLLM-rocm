@@ -12,15 +12,20 @@
 - 先完成的人及时释放草稿本；
 - 调度后的答案与每个人单独调用`generate()`相同。
 
-## 2. 三个状态
+## 2. 四个状态
 
 ```text
 PendingPrefill → Decoding → Completed
+       └───────────────→ Cancelled
 ```
 
 - `PendingPrefill`：prompt还没有写入Cache；
 - `Decoding`：已经有Cache，每个scheduler step生成一个token；
 - `Completed`：达到`max_new_tokens`，Cache立即释放。
+- `Cancelled`：调用者不再需要答案；保留已经生成的token，同时立即释放Cache。
+
+`Completed`和`Cancelled`都是终态。再次取消它们会返回`false`，不会重复计数，也不会改变
+结果。未知请求ID会抛出错误，避免把写错ID误认为“取消成功”。
 
 `ReferenceScheduler`每一步按请求顺序逐个调用模型。它故意不做跨请求batch，因为后续
 优化必须先有一个最容易检查的正确答案。
@@ -37,6 +42,7 @@ auto alice = scheduler.submit(
                 .kv_cache_layer_dtypes = {}});
 
 scheduler.step();  // Alice生成第一个token
+bool alice_was_cancelled = scheduler.cancel(alice);
 
 auto bob = scheduler.submit(
     {7, 8}, {.max_new_tokens = 2,
@@ -59,7 +65,7 @@ auto bob_result = scheduler.request(bob);
 - prefill/decode模型调用数；
 - 同时活跃请求峰值；
 - 当前和峰值Cache字节；
-- 提交和完成请求数。
+- 提交、完成和取消请求数。
 
 Cache字节是引擎Storage实际分配，不是只看active view得到的估算。
 
@@ -106,10 +112,10 @@ request A forward
 
 ```text
 tests/inference/scheduler_test.cpp
-  CPU延迟到达、随机采样、状态、错误与独立generate对齐
+  CPU延迟到达、随机采样、取消幂等、Cache释放、错误与独立generate对齐
 
 tests/ops/hip_ops_test.cpp
-  HIP与CPU逐请求结果、Cache和调用指标对齐
+  HIP与CPU逐请求结果、取消行排除、Cache和调用指标对齐
 
 benchmarks/end_to_end/benchmark_scheduler.cpp
   CPU/HIP 1/2/4/8请求的串行与静态batch基线

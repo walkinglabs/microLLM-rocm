@@ -207,3 +207,5 @@ the next gate. Records are append-only except for factual corrections.
   public compatible-request batch API, row correctness and 1–8 request CPU/HIP scaling.
 - [2026-08-21-admission-batch-scheduler.md](2026-08-21-admission-batch-scheduler.md):
   stable compatibility buckets, singleton fallback, late admission and B4 throughput plateau.
+- [2026-08-21-request-cancellation.md](2026-08-21-request-cancellation.md): terminal
+  cancellation, idempotency, immediate KV Cache release and cancelled-row batch exclusion.

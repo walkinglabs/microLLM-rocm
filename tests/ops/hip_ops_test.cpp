@@ -886,6 +886,43 @@ TEST(HipSchedulerTest, DelayedIndependentRequestsMatchCpuReference) {
     EXPECT_GT(hip_scheduler.metrics().peak_cache_bytes, 0U);
 }
 
+TEST(HipSchedulerTest, CancellationReleasesCacheAndPreservesSurvivor) {
+    require_gpu();
+    const model::ModelConfig config{.vocabulary_size = 16,
+                                    .dimension = 8,
+                                    .layers = 1,
+                                    .heads = 2,
+                                    .kv_heads = 1,
+                                    .ffn_dimension = 16,
+                                    .max_sequence_length = 12,
+                                    .rope_base = 10000.0F,
+                                    .tie_embeddings = false};
+    model::TransformerModel cpu_model(config, 101);
+    model::TransformerModel hip_model(config, 101);
+    hip_model.to(Device::hip());
+    inference::ReferenceScheduler cpu(cpu_model);
+    inference::ReferenceScheduler hip(hip_model);
+    const inference::GenerationConfig generation{
+        .max_new_tokens = 4, .temperature = 0.0F, .top_k = 1,
+        .seed = 7, .kv_cache_layer_dtypes = {}};
+    const auto hip_cancelled = hip.submit({1, 2, 3}, generation);
+    const auto hip_survivor = hip.submit({4, 5, 6}, generation);
+    const auto cpu_survivor = cpu.submit({4, 5, 6}, generation);
+    hip.step();
+    EXPECT_GT(hip.request(hip_cancelled).cache_bytes, 0U);
+    EXPECT_TRUE(hip.cancel(hip_cancelled));
+    EXPECT_EQ(hip.request(hip_cancelled).cache_bytes, 0U);
+    EXPECT_EQ(hip.request(hip_cancelled).state,
+              inference::RequestState::Cancelled);
+    hip.run_until_idle();
+    cpu.run_until_idle();
+    EXPECT_EQ(hip.request(hip_survivor).generated,
+              cpu.request(cpu_survivor).generated);
+    EXPECT_EQ(hip.metrics().cancelled_requests, 1);
+    EXPECT_EQ(hip.metrics().completed_requests, 1);
+    EXPECT_EQ(hip.metrics().active_cache_bytes, 0U);
+}
+
 TEST(HipGenerationTest, StaticBatchDifferentRowsMatchCpuReference) {
     require_gpu();
     const model::ModelConfig config{.vocabulary_size = 16,
@@ -948,6 +985,48 @@ TEST(HipSchedulerTest, AdmissionBucketsMatchCpuRowsAndGroups) {
     EXPECT_EQ(hip.metrics().singleton_groups, 1);
     EXPECT_EQ(hip.metrics().batched_requests, 3);
     EXPECT_EQ(hip.metrics().maximum_batch_size, 3);
+}
+
+TEST(HipSchedulerTest, AdmissionCancellationDoesNotEnterHipBatch) {
+    require_gpu();
+    const model::ModelConfig config{.vocabulary_size = 16,
+                                    .dimension = 8,
+                                    .layers = 2,
+                                    .heads = 2,
+                                    .kv_heads = 1,
+                                    .ffn_dimension = 16,
+                                    .max_sequence_length = 12,
+                                    .rope_base = 10000.0F,
+                                    .tie_embeddings = false};
+    model::TransformerModel cpu_model(config, 127);
+    model::TransformerModel hip_model(config, 127);
+    hip_model.to(Device::hip());
+    inference::AdmissionBatchScheduler cpu(cpu_model);
+    inference::AdmissionBatchScheduler hip(hip_model);
+    const inference::GenerationConfig generation{
+        .max_new_tokens = 3, .temperature = 0.0F, .top_k = 1,
+        .seed = 17, .kv_cache_layer_dtypes = {}};
+    std::vector<inference::RequestId> cpu_ids;
+    std::vector<inference::RequestId> hip_ids;
+    for (const auto& prompt : std::vector<std::vector<std::int32_t>>{
+             {1, 2, 3}, {4, 5, 6}, {7, 8, 9}}) {
+        cpu_ids.push_back(cpu.submit(prompt, generation));
+        hip_ids.push_back(hip.submit(prompt, generation));
+    }
+    EXPECT_TRUE(cpu.cancel(cpu_ids[1]));
+    EXPECT_TRUE(hip.cancel(hip_ids[1]));
+    cpu.drain();
+    hip.drain();
+    EXPECT_EQ(hip.request(hip_ids[1]).state,
+              inference::RequestState::Cancelled);
+    EXPECT_TRUE(hip.request(hip_ids[1]).generated.empty());
+    for (const auto index : {0U, 2U}) {
+        EXPECT_EQ(hip.request(hip_ids[index]).generated,
+                  cpu.request(cpu_ids[index]).generated);
+    }
+    EXPECT_EQ(hip.metrics().cancelled_requests, 1);
+    EXPECT_EQ(hip.metrics().batched_requests, 2);
+    EXPECT_EQ(hip.metrics().maximum_batch_size, 2);
 }
 
 TEST(HipAllocatorStressTest, ReusedDefaultStreamBlocksPreserveAsyncKernelOrder) {
