@@ -1779,3 +1779,17 @@ repeat Kernel 192/224次降到0，Qwen/DeepSeek快4.3%/7.4%，peak少3.2%/3.5%�
 
 候选标记`discard`并回退。数学公式等价不代表换一个hipBLASLt shape后数值轨迹仍满足官方
 模型门；下一轮改softmax时必须先跑完整logits，再跑性能。
+
+## 96. Experiment 079：少写一次显存，规约顺序不变
+
+T≤2048时，每个softmax线程最多处理8个值。候选把8个`exp`留在寄存器直到分母规约完成，
+删除未归一化概率的一次全局写回/读回，同时完全保留规约顺序。两模型151,936个logit位级一致。
+
+![Register-cached causal softmax](assets/register-softmax.svg)
+
+第一份cross-window Qwen median看似回退11.1%，但reference同期也漂移。交替双binary复测得到
+Qwen 1.046×、DeepSeek 1.022×；Qwen softmax设备时间降14.9%，无private memory或寄存器
+spill。16-shape survey唯一0.830×异常在三对复测中变为稳定0.993×，因此保留候选和异常证据。
+
+T>2048不进入新路径。下一步要处理的结构问题是仍然物化完整`[B,H,T,T]`概率，而不是继续
+在同一softmax规约里堆更多寄存器。

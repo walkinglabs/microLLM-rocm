@@ -1,0 +1,166 @@
+{
+  "rows": [
+    {
+      "batch": 1,
+      "context": 256,
+      "model": "qwen2.5-0.5b",
+      "peak_ratio": 1.0,
+      "ratio": 1.10271723106197,
+      "reference_tps": 53420.612969537,
+      "register_tps": 58907.830415401,
+      "top_token_equal": true
+    },
+    {
+      "batch": 8,
+      "context": 256,
+      "model": "qwen2.5-0.5b",
+      "peak_ratio": 1.0,
+      "ratio": 1.010780534454075,
+      "reference_tps": 186591.771612643,
+      "register_tps": 188603.33063536,
+      "top_token_equal": true
+    },
+    {
+      "batch": 1,
+      "context": 512,
+      "model": "qwen2.5-0.5b",
+      "peak_ratio": 1.0,
+      "ratio": 1.003285097039101,
+      "reference_tps": 92926.850959488,
+      "register_tps": 93232.124682428,
+      "top_token_equal": true
+    },
+    {
+      "batch": 8,
+      "context": 512,
+      "model": "qwen2.5-0.5b",
+      "peak_ratio": 1.0,
+      "ratio": 0.9966619851435289,
+      "reference_tps": 198707.47964352,
+      "register_tps": 198044.191124378,
+      "top_token_equal": true
+    },
+    {
+      "batch": 1,
+      "context": 1024,
+      "model": "qwen2.5-0.5b",
+      "peak_ratio": 1.0,
+      "ratio": 1.00755040588862,
+      "reference_tps": 111211.087658556,
+      "register_tps": 112050.776509693,
+      "top_token_equal": true
+    },
+    {
+      "batch": 8,
+      "context": 1024,
+      "model": "qwen2.5-0.5b",
+      "peak_ratio": 1.0,
+      "ratio": 1.0136320739881566,
+      "reference_tps": 167813.3239013,
+      "register_tps": 170100.967548921,
+      "top_token_equal": true
+    },
+    {
+      "batch": 1,
+      "context": 2048,
+      "model": "qwen2.5-0.5b",
+      "peak_ratio": 1.0,
+      "ratio": 1.0416988816662032,
+      "reference_tps": 101116.283281415,
+      "register_tps": 105332.719212493,
+      "top_token_equal": true
+    },
+    {
+      "batch": 8,
+      "context": 2048,
+      "model": "qwen2.5-0.5b",
+      "peak_ratio": 1.0,
+      "ratio": 1.042076874663478,
+      "reference_tps": 129987.679176857,
+      "register_tps": 135457.154461378,
+      "top_token_equal": true
+    },
+    {
+      "batch": 1,
+      "context": 256,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "peak_ratio": 1.0,
+      "ratio": 0.9957761468214142,
+      "reference_tps": 34058.329323645,
+      "register_tps": 33914.471941074,
+      "top_token_equal": true
+    },
+    {
+      "batch": 8,
+      "context": 256,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "peak_ratio": 1.0,
+      "ratio": 0.9913041621223704,
+      "reference_tps": 84092.639868342,
+      "register_tps": 83361.383905345,
+      "top_token_equal": true
+    },
+    {
+      "batch": 1,
+      "context": 512,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "peak_ratio": 1.0,
+      "ratio": 0.8301621436829092,
+      "reference_tps": 50570.405198006,
+      "register_tps": 41981.63598609,
+      "top_token_equal": true
+    },
+    {
+      "batch": 8,
+      "context": 512,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "peak_ratio": 1.0,
+      "ratio": 0.9865956144762296,
+      "reference_tps": 88782.217286023,
+      "register_tps": 87592.146217866,
+      "top_token_equal": true
+    },
+    {
+      "batch": 1,
+      "context": 1024,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "peak_ratio": 1.0,
+      "ratio": 1.0055683734768848,
+      "reference_tps": 61630.967249882,
+      "register_tps": 61974.151493271,
+      "top_token_equal": true
+    },
+    {
+      "batch": 8,
+      "context": 1024,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "peak_ratio": 1.0,
+      "ratio": 1.004556122338116,
+      "reference_tps": 83072.547696009,
+      "register_tps": 83451.036386251,
+      "top_token_equal": true
+    },
+    {
+      "batch": 1,
+      "context": 2048,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "peak_ratio": 1.0,
+      "ratio": 1.044541540349223,
+      "reference_tps": 58921.685398421,
+      "register_tps": 61546.148026039,
+      "top_token_equal": true
+    },
+    {
+      "batch": 8,
+      "context": 2048,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "peak_ratio": 1.0,
+      "ratio": 1.0219402276848617,
+      "reference_tps": 66262.092053269,
+      "register_tps": 67715.897439793,
+      "top_token_equal": true
+    }
+  ],
+  "schema_version": 1,
+  "status": "pass"
+}

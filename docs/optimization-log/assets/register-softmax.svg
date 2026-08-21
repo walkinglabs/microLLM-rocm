@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="820" viewBox="0 0 1400 820">
+  <rect width="1400" height="820" fill="#f8fafc"/>
+  <text x="700" y="52" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="30" font-weight="700" fill="#111827">Experiment 079 · register-cached causal softmax</text>
+  <text x="700" y="82" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="15" fill="#64748b">Bit-identical logits · alternating binaries · gfx942 code-object evidence</text>
+
+  <rect x="38" y="110" width="642" height="320" rx="14" fill="#fff" stroke="#dbe4ee"/>
+  <text x="62" y="150" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#111827">Qwen T2048 B8 device time</text>
+  <g font-family="Inter,Arial,sans-serif" font-size="15" fill="#334155">
+    <text x="62" y="210">softmax before</text><rect x="220" y="191" width="327" height="24" rx="4" fill="#94a3b8"/><text x="557" y="209">130.72 ms</text>
+    <text x="62" y="254">softmax register</text><rect x="220" y="235" width="278" height="24" rx="4" fill="#2563eb"/><text x="508" y="253">111.30 ms · -14.9%</text>
+    <text x="62" y="324">all kernels before</text><rect x="220" y="305" width="376" height="24" rx="4" fill="#cbd5e1"/><text x="606" y="323">501.81 ms</text>
+    <text x="62" y="368">all kernels register</text><rect x="220" y="349" width="361" height="24" rx="4" fill="#0f766e"/><text x="591" y="367">481.71 ms · -4.0%</text>
+  </g>
+  <text x="62" y="408" font-family="Inter,Arial,sans-serif" font-size="13" fill="#64748b">GEMM is unchanged; 19.42 of 20.11 ms saved comes from softmax.</text>
+
+  <rect x="706" y="110" width="656" height="320" rx="14" fill="#fff" stroke="#dbe4ee"/>
+  <text x="730" y="150" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#111827">Alternating same-window binaries</text>
+  <line x1="920" y1="174" x2="920" y2="365" stroke="#ef4444" stroke-width="2" stroke-dasharray="6 5"/>
+  <text x="926" y="190" font-family="Inter,Arial,sans-serif" font-size="12" fill="#ef4444">1.0×</text>
+  <g font-family="Inter,Arial,sans-serif" font-size="15" fill="#334155">
+    <text x="730" y="239">Qwen median pair</text><rect x="780" y="254" width="230" height="28" rx="5" fill="#2563eb"/><text x="1020" y="274">1.046×</text>
+    <text x="730" y="329">DeepSeek median pair</text><rect x="780" y="344" width="225" height="28" rx="5" fill="#0f766e"/><text x="1015" y="364">1.022×</text>
+  </g>
+  <text x="730" y="408" font-family="Inter,Arial,sans-serif" font-size="13" fill="#64748b">Absolute cross-window Qwen drift was retained but invalidated by A/B pairs.</text>
+
+  <rect x="38" y="456" width="642" height="286" rx="14" fill="#fff" stroke="#dbe4ee"/>
+  <text x="62" y="496" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#111827">Correctness and resource gate</text>
+  <g font-family="Inter,Arial,sans-serif" font-size="16" fill="#334155">
+    <circle cx="76" cy="550" r="6" fill="#16a34a"/><text x="96" y="556">Qwen / DeepSeek complete logits: max-abs 0, RMSE 0</text>
+    <circle cx="76" cy="596" r="6" fill="#16a34a"/><text x="96" y="602">private segment 0 · SGPR spill 0 · VGPR spill 0</text>
+    <circle cx="76" cy="642" r="6" fill="#16a34a"/><text x="96" y="648">LDS 1024 B unchanged · VGPR 20→22 · SGPR 46→48</text>
+    <circle cx="76" cy="688" r="6" fill="#16a34a"/><text x="96" y="694">16-shape survey top tokens equal · accepted min ratio 0.987×</text>
+  </g>
+
+  <rect x="706" y="456" width="656" height="286" rx="14" fill="#fff" stroke="#dbe4ee"/>
+  <text x="730" y="496" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#111827">Retained failures, not hidden</text>
+  <g font-family="Inter,Arial,sans-serif" font-size="16" fill="#334155">
+    <circle cx="744" cy="550" r="6" fill="#f59e0b"/><text x="764" y="556">Unpaired Qwen candidate median appeared 0.889×</text>
+    <circle cx="744" cy="596" r="6" fill="#f59e0b"/><text x="764" y="602">Reference drifted simultaneously; paired rerun replaced claim</text>
+    <circle cx="744" cy="642" r="6" fill="#f59e0b"/><text x="764" y="648">DeepSeek T512 B1 survey showed 0.830× once</text>
+    <circle cx="744" cy="688" r="6" fill="#16a34a"/><text x="764" y="694">Three-pair recheck: 0.9935 / 0.9934 / 0.9941×</text>
+  </g>
+
+  <rect x="38" y="764" width="1324" height="34" rx="10" fill="#dcfce7" stroke="#bbf7d0"/>
+  <text x="700" y="787" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#166534">KEEP · T≤2048 only; T&gt;2048 keeps the readable prior kernel</text>
+</svg>

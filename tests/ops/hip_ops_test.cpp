@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cmath>
 #include <limits>
 #include <tuple>
@@ -542,6 +543,35 @@ TEST(HipOpsTest, SoftmaxAndRmsNormMatchCpuReference) {
     expect_near(softmax(input_cpu.to(Device::hip())).to_vector(), softmax(input_cpu).to_vector());
     expect_near(rms_norm(input_cpu.to(Device::hip()), weight_cpu.to(Device::hip())).to_vector(),
                 rms_norm(input_cpu, weight_cpu).to_vector(), 2.0e-4F);
+}
+
+TEST(HipCausalSoftmaxTest, RegisterBoundaryT2048MatchesCpuAndZerosMask) {
+    require_gpu();
+    constexpr std::int64_t sequence = 2048;
+    std::vector<float> values(static_cast<std::size_t>(sequence * sequence));
+    for (std::size_t index = 0; index < values.size(); ++index) {
+        values[index] = static_cast<float>(static_cast<int>(index % 101U) - 50) *
+                        0.01F;
+    }
+    const auto scores = Tensor::from_vector(values, {1, 1, sequence, sequence});
+    const auto expected = causal_softmax(scores).to_vector();
+    const auto actual = causal_softmax(scores.to(Device::hip(0))).to_vector();
+    ASSERT_EQ(actual.size(), expected.size());
+    float maximum_error = 0.0F;
+    for (std::size_t index = 0; index < actual.size(); ++index) {
+        maximum_error = std::max(maximum_error,
+                                 std::abs(actual[index] - expected[index]));
+    }
+    EXPECT_LT(maximum_error, 2.0e-6F);
+    for (const auto row : {0LL, 1LL, 1023LL, 2047LL}) {
+        float total = 0.0F;
+        for (std::int64_t column = 0; column < sequence; ++column) {
+            const auto value = actual[static_cast<std::size_t>(row * sequence + column)];
+            if (column <= row) total += value;
+            else EXPECT_EQ(value, 0.0F) << "row=" << row << " column=" << column;
+        }
+        EXPECT_NEAR(total, 1.0F, 2.0e-5F) << "row=" << row;
+    }
 }
 
 TEST(HipRmsNormTest, BlockParallelForwardBackwardCoverModelWidthsWithoutHostTransfers) {

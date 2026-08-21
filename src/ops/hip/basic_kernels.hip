@@ -1437,6 +1437,42 @@ __global__ void causal_softmax_rows_kernel(const float* scores, float* output,
     }
 }
 
+__global__ void causal_softmax_rows_register_kernel(
+    const float* scores, float* output, std::int64_t rows,
+    std::int64_t sequence) {
+    constexpr unsigned kValuesPerThread = 8;
+    const auto row = static_cast<std::int64_t>(blockIdx.x);
+    if (row >= rows) return;
+    const auto visible = row % sequence;
+    const auto base = row * sequence;
+    __shared__ float reduction[kBlockSize];
+    float local_maximum = -INFINITY;
+    for (std::int64_t column = threadIdx.x; column <= visible;
+         column += blockDim.x) {
+        local_maximum = fmaxf(local_maximum, scores[base + column]);
+    }
+    const auto maximum = block_reduce_max(local_maximum, reduction);
+    float local_probabilities[kValuesPerThread];
+    unsigned local_count = 0;
+    float local_denominator = 0.0F;
+    for (std::int64_t column = threadIdx.x; column <= visible;
+         column += blockDim.x) {
+        const auto probability = expf(scores[base + column] - maximum);
+        local_probabilities[local_count++] = probability;
+        local_denominator += probability;
+    }
+    const auto denominator = block_reduce_sum(local_denominator, reduction);
+    local_count = 0;
+    for (std::int64_t column = threadIdx.x; column <= visible;
+         column += blockDim.x) {
+        output[base + column] = local_probabilities[local_count++] / denominator;
+    }
+    for (std::int64_t column = visible + 1 + threadIdx.x; column < sequence;
+         column += blockDim.x) {
+        output[base + column] = 0.0F;
+    }
+}
+
 __global__ void causal_softmax_backward_kernel(const float* output,
                                                const float* gradient,
                                                float* input_gradient,
@@ -2361,6 +2397,13 @@ void launch_causal_softmax(const float* scores, float* output, std::int64_t rows
                            std::int64_t sequence, void* stream) {
     if (rows == 0) return;
     if (sequence >= 256) {
+        if (sequence <= static_cast<std::int64_t>(kBlockSize) * 8) {
+            hipLaunchKernelGGL(causal_softmax_rows_register_kernel,
+                               dim3(static_cast<unsigned>(rows)), dim3(kBlockSize), 0,
+                               as_stream(stream), scores, output, rows, sequence);
+            check_launch("causal_softmax_rows_register_kernel");
+            return;
+        }
         hipLaunchKernelGGL(causal_softmax_rows_kernel,
                            dim3(static_cast<unsigned>(rows)), dim3(kBlockSize), 0,
                            as_stream(stream), scores, output, rows, sequence);

@@ -2137,6 +2137,69 @@ def validate_folded_gqa_discard(errors: list[str]) -> tuple[int, int, int]:
     return len(raw), len(precision_rows), len(profile_rows)
 
 
+def validate_register_softmax(errors: list[str]) -> tuple[int, int, int, int]:
+    data = ROOT / "experiments" / "079-data"
+    precision = json.loads((data / "precision" / "summary.json").read_text(
+        encoding="utf-8"))
+    precision_rows = precision.get("rows", [])
+    if len(precision_rows) != 2 or any(
+            row.get("top_equal") is not True or
+            float(row.get("max_abs", 1.0)) != 0.0 or
+            float(row.get("rmse", 1.0)) != 0.0 for row in precision_rows):
+        errors.append("register softmax bit-exact gate changed")
+    paired_raw = [json.loads(line) for line in
+                  (data / "paired" / "raw.jsonl").read_text(
+                      encoding="utf-8").splitlines()]
+    paired = json.loads((data / "paired" / "summary.json").read_text(
+        encoding="utf-8"))
+    paired_rows = {row.get("model"): row for row in paired.get("rows", [])}
+    if len(paired_raw) != 12 or paired.get("status") != "pass" or \
+            paired.get("pairs") != 3 or len(paired_rows) != 2 or \
+            float(paired_rows.get("qwen2.5-0.5b", {}).get(
+                "median_pair_ratio", 0.0)) < 1.04 or \
+            float(paired_rows.get("deepseek-r1-distill-qwen-1.5b", {}).get(
+                "median_pair_ratio", 0.0)) < 1.02:
+        errors.append("register softmax paired performance changed")
+    survey_raw = [json.loads(line) for line in
+                  (data / "shape-survey-paired" / "raw.jsonl").read_text(
+                      encoding="utf-8").splitlines()]
+    survey = json.loads((data / "shape-survey-paired" / "summary.json").read_text(
+        encoding="utf-8"))
+    survey_rows = survey.get("rows", [])
+    if len(survey_raw) != 32 or len(survey_rows) != 16 or any(
+            row.get("top_token_equal") is not True for row in survey_rows) or \
+            sum(float(row.get("ratio", 1.0)) < 0.90 for row in survey_rows) != 1:
+        errors.append("register softmax shape survey changed")
+    recheck_raw = [json.loads(line) for line in
+                   (data / "deepseek-t512-b1-recheck" / "raw.jsonl").read_text(
+                       encoding="utf-8").splitlines()]
+    recheck = json.loads((data / "deepseek-t512-b1-recheck" / "summary.json").read_text(
+        encoding="utf-8"))
+    if len(recheck_raw) != 6 or float(recheck.get("median_pair_ratio", 0.0)) < 0.99:
+        errors.append("register softmax targeted recheck changed")
+    comparison = json.loads((data / "comparison.json").read_text(encoding="utf-8"))
+    profile = comparison.get("profile", {})
+    if comparison.get("status") != "keep" or \
+            float(comparison.get("shape_survey", {}).get(
+                "accepted_min_ratio", 0.0)) < 0.98 or \
+            float(profile.get("softmax_speedup", 0.0)) < 1.17 or \
+            profile.get("private_segment_bytes") != 0 or \
+            profile.get("sgpr_spills") != 0 or profile.get("vgpr_spills") != 0:
+        errors.append("register softmax keep/profile contract changed")
+    invalidation = json.loads((data / "unpaired" / "invalidation.json").read_text(
+        encoding="utf-8"))
+    if invalidation.get("status") != "invalid":
+        errors.append("register softmax cross-window invalidation is missing")
+    source = (REPOSITORY / "src/ops/hip/basic_kernels.hip").read_text(encoding="utf-8")
+    tests = (REPOSITORY / "tests/ops/hip_ops_test.cpp").read_text(encoding="utf-8")
+    if "causal_softmax_rows_register_kernel" not in source or \
+            "kValuesPerThread = 8" not in source:
+        errors.append("register-cached causal softmax source is missing")
+    if "RegisterBoundaryT2048MatchesCpuAndZerosMask" not in tests:
+        errors.append("register softmax T2048 executable boundary gate is missing")
+    return len(paired_raw), len(survey_raw), len(recheck_raw), len(precision_rows)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -2193,7 +2256,8 @@ def validate_assets(errors: list[str]) -> None:
                  "admission-batch-scheduler.svg",
                  "expanded-inference-service-matrix.svg",
                  "serving-last-logit-prefill.svg",
-                 "folded-gqa-discard.svg"):
+                 "folded-gqa-discard.svg",
+                 "register-softmax.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -2290,6 +2354,8 @@ def main() -> int:
         validate_serving_last_logit_prefill(errors)
     folded_gqa_raw, folded_gqa_precision, folded_gqa_profile = \
         validate_folded_gqa_discard(errors)
+    register_softmax_paired, register_softmax_survey, register_softmax_recheck, \
+        register_softmax_precision = validate_register_softmax(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -2353,6 +2419,9 @@ def main() -> int:
           f"{last_shape_survey}/{last_precision} "
           f"folded_gqa={folded_gqa_raw}/{folded_gqa_precision}/"
           f"{folded_gqa_profile} "
+          f"register_softmax={register_softmax_paired}/"
+          f"{register_softmax_survey}/{register_softmax_recheck}/"
+          f"{register_softmax_precision} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

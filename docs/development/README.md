@@ -215,3 +215,5 @@ the next gate. Records are append-only except for factual corrections.
   explicit full/last logits semantics, matched PyTorch path and removal of historical-token output projection.
 - [2026-08-21-folded-gqa-discard.md](2026-08-21-folded-gqa-discard.md): faster and
   smaller K/V-free grouped layout rejected by official complete-logit error.
+- [2026-08-21-register-softmax.md](2026-08-21-register-softmax.md): bit-identical
+  register-cached exponentials, alternating binary evidence and no-spill profile.

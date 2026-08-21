@@ -1,0 +1,29 @@
+{
+  "reason": "absolute cross-window Qwen reference drifted while PyTorch stayed stable; replaced by alternating same-window binary pairs",
+  "schema_version": 1,
+  "status": "invalid",
+  "unpaired_candidate_median_ratio_vs_historical_reference": [
+    {
+      "model": "qwen2.5-0.5b",
+      "pytorch_tps": 337531.9175419832,
+      "reference_peak_bytes": 5526818304.0,
+      "reference_tps": 129814.645461062,
+      "register_over_pytorch": 0.3417953891202492,
+      "register_peak_bytes": 5526818304.0,
+      "register_tps": 115366.853096766,
+      "speedup": 0.8887044500026801,
+      "top_token_equal": true
+    },
+    {
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "pytorch_tps": 126827.72370806256,
+      "reference_peak_bytes": 8586528768.0,
+      "reference_tps": 66444.191366587,
+      "register_over_pytorch": 0.5356119866718825,
+      "register_peak_bytes": 8586528768.0,
+      "register_tps": 67930.449060348,
+      "speedup": 1.0223685120278008,
+      "top_token_equal": true
+    }
+  ]
+}
