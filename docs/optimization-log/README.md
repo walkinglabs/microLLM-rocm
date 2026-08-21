@@ -252,6 +252,12 @@ Attention backward 的原子 K/V 累加。
 
 ![Context-512 baseline and profile](assets/context512-training-profile.svg)
 
+Experiment 052 把 Attention backward 拆成 row 矩阵生成和无原子 K/V reduction。T=256
+Q/K/V 数值通过，但 Qwen T=512 吞吐 `812.45→688.82 tok/s`；backward Kernel 总时间
+`985.61→1320.85ms`。输出线程重复扫描 query/head 和 T² 写读比 atomic 更贵，代码删除。
+
+![Split K/V backward discarded](assets/split-kv-backward-discard.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -313,6 +319,8 @@ Attention backward 的原子 K/V 累加。
 | [experiments/050-data/](experiments/050-data/) | load smoke、DeepSeek 24 条正式 raw 与安全合同 |
 | [assets/context512-training-profile.svg](assets/context512-training-profile.svg) | T=512 PyTorch 比率、显存与 Kernel 类别 |
 | [experiments/051-data/](experiments/051-data/) | pilot、12 条正式 raw 与 retained profiler 聚合 |
+| [assets/split-kv-backward-discard.svg](assets/split-kv-backward-discard.svg) | atomic 基线与两阶段 K/V 反例 |
+| [experiments/052-data/](experiments/052-data/) | pilot、candidate profiler 与 discard 合同 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

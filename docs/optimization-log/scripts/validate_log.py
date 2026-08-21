@@ -840,6 +840,42 @@ def validate_context512(errors: list[str]) -> tuple[int, int]:
     return len(pilot), len(formal)
 
 
+def validate_split_kv_discard(errors: list[str]) -> tuple[int, int]:
+    data = ROOT / "experiments" / "052-data"
+    pilot = [json.loads(line) for line in
+             (data / "pilot.jsonl").read_text(encoding="utf-8").splitlines()]
+    if len(pilot) != 2 or any(row.get("status") != "pass" or
+                              row.get("context") != 512 for row in pilot):
+        errors.append("split K/V pilot protocol changed")
+    summary = json.loads((data / "profile-summary.json").read_text(encoding="utf-8"))
+    with (data / "profile" / "kernel-stats.csv").open(
+            encoding="utf-8", newline="") as stream:
+        kernels = list(csv.DictReader(stream))
+    with (data / "profile" / "hip-api-stats.csv").open(
+            encoding="utf-8", newline="") as stream:
+        api = list(csv.DictReader(stream))
+    kernel_calls = sum(int(row["Calls"]) for row in kernels)
+    kernel_time = sum(int(row["TotalDurationNs"]) for row in kernels)
+    api_calls = sum(int(row["Calls"]) for row in api)
+    api_time = sum(int(row["TotalDurationNs"]) for row in api)
+    if (kernel_calls, kernel_time, api_calls, api_time) != (
+            summary.get("kernel_dispatches"), summary.get("kernel_time_ns"),
+            summary.get("hip_api_calls"), summary.get("hip_api_time_ns")) or \
+            summary.get("split_rows_calls") != 72 or \
+            summary.get("split_kv_calls") != 72:
+        errors.append("split K/V profiler aggregate changed")
+    comparison = json.loads((data / "comparison.json").read_text(encoding="utf-8"))
+    if comparison.get("decision") != "discard" or \
+            comparison.get("throughput_ratio", 1.0) >= 0.9 or \
+            comparison.get("backward_speedup", 1.0) >= 0.8 or \
+            comparison.get("peak_ratio") != 1.0 or \
+            comparison.get("candidate_backward_time_ns") != \
+            comparison.get("candidate_row_time_ns", 0) + \
+            comparison.get("candidate_kv_time_ns", 0):
+        errors.append("split K/V discard boundary changed")
+    return len(pilot), kernel_calls
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -870,7 +906,8 @@ def validate_assets(errors: list[str]) -> None:
                  "chunked-adamw-discard.svg",
                  "vectorized-adamw-explicit.svg",
                  "streaming-safetensors-load.svg",
-                 "context512-training-profile.svg"):
+                 "context512-training-profile.svg",
+                 "split-kv-backward-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -920,6 +957,7 @@ def main() -> int:
         validate_vectorized_adamw(errors)
     streaming_load_smoke, streaming_load_formal = validate_streaming_load(errors)
     context512_pilot, context512_formal = validate_context512(errors)
+    split_kv_pilot, split_kv_kernel_calls = validate_split_kv_discard(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -944,6 +982,7 @@ def main() -> int:
           f"vectorized_adamw={vectorized_adamw_operator}/{vectorized_adamw_pilot} "
           f"streaming_load={streaming_load_smoke}/{streaming_load_formal} "
           f"context512={context512_pilot}/{context512_formal} "
+          f"split_kv={split_kv_pilot}/{split_kv_kernel_calls} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

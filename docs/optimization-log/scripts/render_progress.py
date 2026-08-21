@@ -60,6 +60,8 @@ STREAMING_LOAD_CHART = ROOT / "assets" / "streaming-safetensors-load.svg"
 CONTEXT512_COMPARISON = ROOT / "experiments" / "051-data" / "comparison.json"
 CONTEXT512_PROFILE = ROOT / "experiments" / "051-data" / "profile-summary.json"
 CONTEXT512_CHART = ROOT / "assets" / "context512-training-profile.svg"
+SPLIT_KV_COMPARISON = ROOT / "experiments" / "052-data" / "comparison.json"
+SPLIT_KV_CHART = ROOT / "assets" / "split-kv-backward-discard.svg"
 
 
 def rows() -> list[dict]:
@@ -1544,6 +1546,56 @@ def context512_training_profile_svg() -> str:
     return "\n".join(parts)
 
 
+def split_kv_backward_discard_svg() -> str:
+    data = json.loads(SPLIT_KV_COMPARISON.read_text(encoding="utf-8"))
+    metrics = (
+        ("End-to-end throughput", data["throughput_ratio"], "#d04a3a"),
+        ("Attention backward", data["backward_speedup"], "#d04a3a"),
+        ("Kernel dispatches", data["candidate_kernel_dispatches"] /
+         data["baseline_kernel_dispatches"], "#64748b"),
+        ("Measured peak", data["peak_ratio"], "#64748b"),
+    )
+    width, height = 1600, 720
+    chart_x, chart_y, chart_w, chart_h = 150, 150, 1300, 390
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 052 · Split K/V Backward Discarded", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 80,
+             "Qwen2.5-0.5B · context 512 · ratio is candidate / retained baseline",
+             16, "#5b6474", anchor="middle"),
+        f'<rect x="{chart_x}" y="{chart_y}" width="{chart_w}" height="{chart_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+    ]
+    def y(value: float) -> float:
+        return chart_y + chart_h * (1.10 - value) / 0.50
+    for tick in (0.6, 0.7, 0.8, 0.9, 1.0, 1.1):
+        position = y(tick)
+        parts.append(f'<line x1="{chart_x}" y1="{position:.1f}" '
+                     f'x2="{chart_x+chart_w}" y2="{position:.1f}" '
+                     f'stroke="{("#2563eb" if tick == 1.0 else "#e5e9f0")}"/>')
+        parts.append(text(chart_x - 12, position + 5, f"{tick:.1f}×", 13,
+                          "#5b6474", anchor="end"))
+    group = chart_w / len(metrics)
+    for index, (label, ratio, color) in enumerate(metrics):
+        center = chart_x + group * (index + 0.5)
+        base = y(0.6)
+        top = y(ratio)
+        parts.append(f'<rect x="{center-65:.1f}" y="{top:.1f}" width="130" '
+                     f'height="{base-top:.1f}" fill="{color}" rx="6"/>')
+        parts.append(text(center, top - 12, f"{ratio:.3f}×", 18, color,
+                          anchor="middle", weight=700))
+        parts.append(text(center, chart_y + chart_h + 34, label, 15,
+                          "#172033", anchor="middle", weight=700))
+    parts.append(text(width / 2, 620,
+                      "Rows 478 ms + K/V rescan 843 ms > atomic backward 986 ms · code removed",
+                      17, "#b83f32", anchor="middle", weight=700))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -1568,7 +1620,8 @@ def main() -> int:
                 CHUNKED_ADAMW_CHART: chunked_adamw_discard_svg(),
                 VECTORIZED_ADAMW_CHART: vectorized_adamw_explicit_svg(),
                 STREAMING_LOAD_CHART: streaming_safetensors_load_svg(),
-                CONTEXT512_CHART: context512_training_profile_svg()}
+                CONTEXT512_CHART: context512_training_profile_svg(),
+                SPLIT_KV_CHART: split_kv_backward_discard_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

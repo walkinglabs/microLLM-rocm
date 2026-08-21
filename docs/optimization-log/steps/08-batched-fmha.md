@@ -71,3 +71,9 @@ correct but reach only 0.0978×/0.0832× PyTorch throughput. Qwen profiling attr
 64.50% of Kernel time to causal GQA, with backward alone at 50.64%. The next candidate
 must replace atomic K/V accumulation for long sequences, report the T×T workspace cost,
 and preserve the retained T=128 path as a fallback.
+
+Experiment 052 tests the first long-sequence alternative. It writes probability and
+score-gradient matrices, then gives each K/V output element a non-atomic reduction. Q/K/V
+correctness passes, but backward time rises 34% and Qwen T=512 throughput falls 15%.
+The scalar rescan implementation is removed. The remaining credible space is tiled
+matrix/flash-style backward with score-tile reuse.

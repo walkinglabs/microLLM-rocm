@@ -1336,3 +1336,17 @@ host 计时把 optimizer 标成 0.49–1.01 秒，看起来像 Experiment 046 �
 当前 backward 每个 query row 重算 softmax，再用 atomicAdd 写共享 K/V gradient。下一版把
 row probability/score-gradient 与 K/V reduction 分开，只在长序列启用额外 T×T 临时表；
 它必须同时报告速度和新增显存，并保证 T=128 不退化。
+
+## 69. Experiment 052：没有 atomic，不代表没有重复工作
+
+候选先写两张 `[B,H,T,T]` 表，再让每个 K/V 输出元素独占写入。T=256 的 MHA/GQA
+Q/K/V 梯度都与 CPU 对齐，未来 token 也没有泄漏。Qwen 每层调用临时增加约 28 MiB。
+
+![Split K/V backward discarded](assets/split-kv-backward-discard.svg)
+
+但 T=512 吞吐从 812.45 降到 688.82 tok/s。原 atomic backward 三步共 985.61 ms；新 row
+阶段 478.27 ms，K/V reducer 842.58 ms，总计 1320.85 ms。每个输出线程重新扫描 query
+position 和重复 head，加上 T² 写读，代价超过 atomic 冲突。
+
+候选删除。这次把下一空间缩小到 tiled GEMM/flash-style backward；再写一个标量 rescan Kernel
+已经没有研究价值。

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "kernel_dispatches": 6695,
+  "kernel_time_ns": 2279474207,
+  "hip_api_calls": 248136,
+  "hip_api_time_ns": 7830929745,
+  "split_rows_calls": 72,
+  "split_rows_time_ns": 478267645,
+  "split_kv_calls": 72,
+  "split_kv_time_ns": 842578499,
+  "attention_forward_calls": 72,
+  "attention_forward_time_ns": 269413776,
+  "count_contract": "24 Qwen layers x three traced steps"
+}

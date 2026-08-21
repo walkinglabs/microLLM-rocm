@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="720" viewBox="0 0 1600 720">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="800.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 052 · Split K/V Backward Discarded</text>
+<text x="800.0" y="80.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">Qwen2.5-0.5B · context 512 · ratio is candidate / retained baseline</text>
+<rect x="150" y="150" width="1300" height="390" fill="#ffffff" stroke="#cbd3df" rx="10"/>
+<line x1="150" y1="540.0" x2="1450" y2="540.0" stroke="#e5e9f0"/>
+<text x="138.0" y="545.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">0.6×</text>
+<line x1="150" y1="462.0" x2="1450" y2="462.0" stroke="#e5e9f0"/>
+<text x="138.0" y="467.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">0.7×</text>
+<line x1="150" y1="384.0" x2="1450" y2="384.0" stroke="#e5e9f0"/>
+<text x="138.0" y="389.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">0.8×</text>
+<line x1="150" y1="306.0" x2="1450" y2="306.0" stroke="#e5e9f0"/>
+<text x="138.0" y="311.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">0.9×</text>
+<line x1="150" y1="228.0" x2="1450" y2="228.0" stroke="#2563eb"/>
+<text x="138.0" y="233.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">1.0×</text>
+<line x1="150" y1="150.0" x2="1450" y2="150.0" stroke="#e5e9f0"/>
+<text x="138.0" y="155.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">1.1×</text>
+<rect x="247.5" y="346.7" width="130" height="193.3" fill="#d04a3a" rx="6"/>
+<text x="312.5" y="334.7" font-family="Inter,Arial,sans-serif" font-size="18" fill="#d04a3a" text-anchor="middle" font-weight="700">0.848×</text>
+<text x="312.5" y="574.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="middle" font-weight="700">End-to-end throughput</text>
+<rect x="572.5" y="426.0" width="130" height="114.0" fill="#d04a3a" rx="6"/>
+<text x="637.5" y="414.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#d04a3a" text-anchor="middle" font-weight="700">0.746×</text>
+<text x="637.5" y="574.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="middle" font-weight="700">Attention backward</text>
+<rect x="897.5" y="236.3" width="130" height="303.7" fill="#64748b" rx="6"/>
+<text x="962.5" y="224.3" font-family="Inter,Arial,sans-serif" font-size="18" fill="#64748b" text-anchor="middle" font-weight="700">0.989×</text>
+<text x="962.5" y="574.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="middle" font-weight="700">Kernel dispatches</text>
+<rect x="1222.5" y="228.0" width="130" height="312.0" fill="#64748b" rx="6"/>
+<text x="1287.5" y="216.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#64748b" text-anchor="middle" font-weight="700">1.000×</text>
+<text x="1287.5" y="574.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="middle" font-weight="700">Measured peak</text>
+<text x="800.0" y="620.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#b83f32" text-anchor="middle" font-weight="700">Rows 478 ms + K/V rescan 843 ms &gt; atomic backward 986 ms · code removed</text>
+</svg>
