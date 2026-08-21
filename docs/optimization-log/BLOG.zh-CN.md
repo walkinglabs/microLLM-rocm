@@ -1833,3 +1833,15 @@ static batch允许row得到不同输出长度，CPU/HIP逐row等于独立生成�
 
 这个诚实边界把下一步说清：continuous refill必须加入per-slot position、Cache row reset/replace，
 而不是把dummy row称作动态调度。
+
+## 100. Experiment 083：先擦掉旧草稿，再谈新请求占slot
+
+`KVCache::clear_row()`在CPU/HIP清空某一batch row所有层、K/V和完整capacity，不改变其他row，
+也不改变当前shared position。HIP使用typed fill，H2D/D2H均为0。
+
+![KV Cache clear row](assets/kv-cache-clear-row.svg)
+
+B2 BF16测试精确清192 bytes；清后旧prefix全0，其他row逐项不变，共同decode仍能写下一位置，
+CPU/HIP整个Cache一致。它只解决Storage所有权，不声称已有per-slot position。
+
+下一节点要让每个row拥有独立可见长度；否则清空的slot仍只能跟随整batch共同前进。

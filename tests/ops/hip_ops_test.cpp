@@ -1512,6 +1512,55 @@ TEST(HipModelTest, PreallocatedGqaCacheMatchesCpuAndAvoidsPayloadTransfers) {
     expect_near(batch_actual_next, batch_expected_next, 5.0e-4F);
 }
 
+TEST(HipModelTest, ClearCacheRowIsDeviceNativeAndMatchesCpuStorage) {
+    require_gpu();
+    const model::ModelConfig config{.vocabulary_size = 16,
+                                    .dimension = 8,
+                                    .layers = 2,
+                                    .heads = 2,
+                                    .kv_heads = 1,
+                                    .ffn_dimension = 16,
+                                    .max_sequence_length = 6,
+                                    .rope_base = 10000.0F,
+                                    .tie_embeddings = false};
+    model::TransformerModel cpu_model(config, 75);
+    model::TransformerModel hip_model(config, 75);
+    hip_model.to(Device::hip(0));
+    inference::KVCache cpu_cache(config.layers, config.max_sequence_length, 2,
+                                 DType::BFloat16);
+    inference::KVCache hip_cache(config.layers, config.max_sequence_length, 2,
+                                 DType::BFloat16);
+    const auto prefix = Tensor::from_int32_vector({1, 2, 3, 4, 5, 6}, {2, 3});
+    (void)cpu_model.forward_prefill_cached(prefix, cpu_cache);
+    (void)hip_model.forward_prefill_cached(prefix.to(Device::hip(0)), hip_cache);
+    runtime::reset_transfer_stats();
+    cpu_cache.clear_row(0);
+    hip_cache.clear_row(0);
+    runtime::synchronize(Device::hip(0));
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    EXPECT_EQ(cpu_cache.position(), 3);
+    EXPECT_EQ(hip_cache.position(), 3);
+    for (std::size_t layer = 0; layer < hip_cache.layer_count(); ++layer) {
+        expect_near(hip_cache.layer(layer).key.to_vector(),
+                    cpu_cache.layer(layer).key.to_vector());
+        expect_near(hip_cache.layer(layer).value.to_vector(),
+                    cpu_cache.layer(layer).value.to_vector());
+    }
+    const auto next = Tensor::from_int32_vector({7, 8}, {2, 1});
+    const auto expected = cpu_model.forward_cached(next, cpu_cache).to_vector();
+    const auto actual = hip_model.forward_cached(next.to(Device::hip(0)), hip_cache)
+                            .to_vector();
+    expect_near(actual, expected, 8.0e-4F);
+    for (std::size_t layer = 0; layer < hip_cache.layer_count(); ++layer) {
+        expect_near(hip_cache.layer(layer).key.to_vector(),
+                    cpu_cache.layer(layer).key.to_vector());
+        expect_near(hip_cache.layer(layer).value.to_vector(),
+                    cpu_cache.layer(layer).value.to_vector());
+    }
+}
+
 TEST(HipModelTest, MixedLayerKvCacheMatchesCpuAndKeepsLayerDtypes) {
     require_gpu();
     const model::ModelConfig config{.vocabulary_size = 16,

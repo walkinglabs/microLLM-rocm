@@ -1,0 +1,32 @@
+{
+  "tests": 1,
+  "failures": 0,
+  "disabled": 0,
+  "errors": 0,
+  "timestamp": "2026-08-21T16:17:52Z",
+  "time": "0.2s",
+  "name": "AllTests",
+  "testsuites": [
+    {
+      "name": "HipModelTest",
+      "tests": 1,
+      "failures": 0,
+      "disabled": 0,
+      "errors": 0,
+      "timestamp": "2026-08-21T16:17:52Z",
+      "time": "0.2s",
+      "testsuite": [
+        {
+          "name": "ClearCacheRowIsDeviceNativeAndMatchesCpuStorage",
+          "file": "\/home\/devpod\/github\/microLLM-rocm\/tests\/ops\/hip_ops_test.cpp",
+          "line": 1515,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-08-21T16:17:52Z",
+          "time": "0.2s",
+          "classname": "HipModelTest"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "experiment": "kv_cache_clear_row",
+  "cpu_tests": {"passed": 1, "total": 1},
+  "hip_tests": {"passed": 1, "total": 1},
+  "test_shape": {
+    "layers": 2,
+    "batch": 2,
+    "kv_heads": 1,
+    "capacity": 6,
+    "head_dimension": 4,
+    "dtype": "bf16",
+    "cleared_bytes": 192
+  },
+  "contracts": {
+    "full_capacity_row_zeroed": true,
+    "other_row_prefix_unchanged": true,
+    "shared_position_unchanged_by_clear": true,
+    "next_shared_decode_writes_new_position": true,
+    "old_cleared_prefix_remains_zero": true,
+    "hip_clear_has_zero_payload_transfers": true,
+    "undefined_cache_clear_is_noop": true,
+    "invalid_row_rejected": true,
+    "per_slot_position_supported": false
+  },
+  "performance_claim": "none; storage ownership primitive for later slot refill"
+}

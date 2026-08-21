@@ -91,6 +91,11 @@ public:
         for (auto& layer_state : layers_) layer_state = {};
     }
 
+    // Clears one batch row across the full backing capacity without changing
+    // the shared logical position. This is a storage-ownership primitive;
+    // per-slot positions are a separate scheduler capability.
+    void clear_row(std::int64_t row);
+
 private:
     std::int64_t max_sequence_length_;
     std::int64_t batch_size_ = 1;

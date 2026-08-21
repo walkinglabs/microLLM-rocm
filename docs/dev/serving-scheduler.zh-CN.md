@@ -118,6 +118,10 @@ request A forward
 维持共同position，直到整组结束。这保证答案正确，却没有释放物理slot。真正的slot refill还要
 支持清空某一row的旧K/V、写入新prompt和独立position。
 
+`KVCache::clear_row(row)`已经能在CPU/HIP清空某一slot的完整capacity，其他row不变且没有
+GPU payload copy。它故意不修改共同`position()`：清掉旧草稿本不等于新同学已经写到相同页数。
+下一步的`positions[B]`才负责描述每个slot各自读到哪一页。
+
 ## 8. 测试位置
 
 ```text

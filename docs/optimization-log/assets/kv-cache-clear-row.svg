@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="740" viewBox="0 0 1400 740">
+  <rect width="1400" height="740" fill="#f8fafc"/>
+  <text x="700" y="52" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="30" font-weight="700" fill="#111827">Experiment 083 · KV Cache clear_row</text>
+  <text x="700" y="82" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="15" fill="#64748b">Full-capacity row ownership · other rows preserved · shared position intentionally unchanged</text>
+
+  <rect x="38" y="110" width="1324" height="330" rx="14" fill="#fff" stroke="#dbe4ee"/>
+  <text x="62" y="150" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#111827">B2 cache · capacity 6 · shared position = 3</text>
+  <g font-family="Inter,Arial,sans-serif" font-size="14" fill="#334155">
+    <text x="62" y="218">before row 0</text>
+    <rect x="180" y="194" width="90" height="38" rx="5" fill="#bfdbfe"/><text x="225" y="218" text-anchor="middle">K/V 0</text><rect x="280" y="194" width="90" height="38" rx="5" fill="#bfdbfe"/><text x="325" y="218" text-anchor="middle">K/V 1</text><rect x="380" y="194" width="90" height="38" rx="5" fill="#bfdbfe"/><text x="425" y="218" text-anchor="middle">K/V 2</text><rect x="480" y="194" width="90" height="38" rx="5" fill="#e2e8f0"/><text x="525" y="218" text-anchor="middle">capacity</text><rect x="580" y="194" width="90" height="38" rx="5" fill="#e2e8f0"/><rect x="680" y="194" width="90" height="38" rx="5" fill="#e2e8f0"/>
+
+    <text x="62" y="288">after row 0</text>
+    <rect x="180" y="264" width="590" height="38" rx="5" fill="#dcfce7"/><text x="475" y="288" text-anchor="middle" fill="#166534">all six capacity positions = 0</text>
+
+    <text x="62" y="358">row 1</text>
+    <rect x="180" y="334" width="290" height="38" rx="5" fill="#86efac"/><text x="325" y="358" text-anchor="middle" fill="#14532d">prefix bytes unchanged</text><rect x="480" y="334" width="290" height="38" rx="5" fill="#e2e8f0"/><text x="625" y="358" text-anchor="middle">unused capacity unchanged</text>
+  </g>
+  <text x="830" y="218" font-family="Inter,Arial,sans-serif" font-size="16" fill="#334155">clear_row(0)</text>
+  <text x="830" y="258" font-family="Inter,Arial,sans-serif" font-size="14" fill="#64748b">2 K/V × 2 layers × 1 head × 6 × 4 × BF16</text>
+  <text x="830" y="296" font-family="Inter,Arial,sans-serif" font-size="22" font-weight="700" fill="#166534">192 bytes cleared</text>
+  <text x="830" y="340" font-family="Inter,Arial,sans-serif" font-size="16" fill="#166534">HIP H2D = 0 · D2H = 0</text>
+  <text x="830" y="382" font-family="Inter,Arial,sans-serif" font-size="16" fill="#92400e">position stays 3</text>
+
+  <rect x="38" y="470" width="642" height="190" rx="14" fill="#fff" stroke="#dbe4ee"/>
+  <text x="62" y="510" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#111827">Next shared decode</text>
+  <rect x="62" y="548" width="370" height="42" rx="7" fill="#dcfce7"/><text x="247" y="575" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="15" fill="#14532d">row 0 positions 0–2 remain zero</text>
+  <rect x="444" y="548" width="202" height="42" rx="7" fill="#bfdbfe"/><text x="545" y="575" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="15">position 3 written</text>
+  <text x="62" y="628" font-family="Inter,Arial,sans-serif" font-size="14" fill="#64748b">Shared position advances 3→4; CPU and HIP storage match.</text>
+
+  <rect x="714" y="470" width="648" height="190" rx="14" fill="#fff" stroke="#dbe4ee"/>
+  <text x="738" y="510" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#111827">What this does not claim</text>
+  <g font-family="Inter,Arial,sans-serif" font-size="16" fill="#334155">
+    <circle cx="752" cy="558" r="6" fill="#16a34a"/><text x="772" y="564">old row ownership can be erased safely</text>
+    <circle cx="752" cy="604" r="6" fill="#f59e0b"/><text x="772" y="610">per-slot position is not implemented yet</text>
+  </g>
+  <rect x="38" y="690" width="1324" height="34" rx="10" fill="#fef3c7" stroke="#fde68a"/>
+  <text x="700" y="713" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="700" fill="#92400e">Next: positions[B] decides how much of each cleared/reused row is visible</text>
+</svg>

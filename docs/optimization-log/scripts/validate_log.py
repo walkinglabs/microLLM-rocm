@@ -2307,6 +2307,35 @@ def validate_stop_token_early_completion(errors: list[str]) -> tuple[int, int]:
     return int(cpu.get("tests", 0)), int(hip.get("tests", 0))
 
 
+def validate_kv_cache_clear_row(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "083-data"
+    cpu = json.loads((data / "cpu-tests.json").read_text(encoding="utf-8"))
+    hip = json.loads((data / "hip-tests.json").read_text(encoding="utf-8"))
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    contracts = summary.get("contracts", {})
+    if cpu.get("tests") != 1 or cpu.get("failures") != 0 or \
+            hip.get("tests") != 1 or hip.get("failures") != 0 or \
+            summary.get("status") != "pass" or \
+            summary.get("test_shape", {}).get("cleared_bytes") != 192 or any(
+                contracts.get(name) is not True for name in (
+                    "full_capacity_row_zeroed", "other_row_prefix_unchanged",
+                    "shared_position_unchanged_by_clear",
+                    "next_shared_decode_writes_new_position",
+                    "old_cleared_prefix_remains_zero",
+                    "hip_clear_has_zero_payload_transfers")) or \
+            contracts.get("per_slot_position_supported") is not False:
+        errors.append("KV Cache clear-row evidence changed")
+    header = (REPOSITORY / "include/microllm/inference/kv_cache.h").read_text(
+        encoding="utf-8")
+    source = (REPOSITORY / "src/inference/kv_cache.cpp").read_text(encoding="utf-8")
+    hip_tests = (REPOSITORY / "tests/ops/hip_ops_test.cpp").read_text(encoding="utf-8")
+    if "clear_row" not in header or "full_row" not in source or \
+            "ClearCacheRowIsDeviceNativeAndMatchesCpuStorage" not in hip_tests:
+        errors.append("KV Cache clear-row API or executable gate is missing")
+    return int(cpu.get("tests", 0)), int(hip.get("tests", 0)), \
+        int(summary.get("test_shape", {}).get("cleared_bytes", 0))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -2367,7 +2396,8 @@ def validate_assets(errors: list[str]) -> None:
                  "register-softmax.svg",
                  "readable-fused-attention-discard.svg",
                  "inplace-causal-softmax.svg",
-                 "stop-token-early-completion.svg"):
+                 "stop-token-early-completion.svg",
+                 "kv-cache-clear-row.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -2471,6 +2501,7 @@ def main() -> int:
     inplace_softmax_paired, inplace_softmax_survey, inplace_softmax_precision = \
         validate_inplace_causal_softmax(errors)
     stop_token_cpu, stop_token_hip = validate_stop_token_early_completion(errors)
+    clear_row_cpu, clear_row_hip, clear_row_bytes = validate_kv_cache_clear_row(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -2541,6 +2572,7 @@ def main() -> int:
           f"inplace_softmax={inplace_softmax_paired}/"
           f"{inplace_softmax_survey}/{inplace_softmax_precision} "
           f"stop_token={stop_token_cpu}/{stop_token_hip} "
+          f"clear_row={clear_row_cpu}/{clear_row_hip}/{clear_row_bytes} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

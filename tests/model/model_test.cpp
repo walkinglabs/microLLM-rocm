@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cmath>
 #include <set>
 #include <string>
@@ -362,6 +363,63 @@ TEST(TransformerModelTest, BatchedPrefillAndDecodeMatchIndependentFullSequences)
                                   full.begin() + offset + config.vocabulary_size);
     }
     expect_near(continued, expected_continued, 2.0e-5F);
+}
+
+TEST(TransformerModelTest, ClearCacheRowRemovesOldPrefixAndPreservesOtherRows) {
+    auto config = tiny_config(true);
+    config.max_sequence_length = 8;
+    for (const auto dtype : {DType::Float32, DType::BFloat16}) {
+        TransformerModel model(config, 45);
+        inference::KVCache cache(config.layers, config.max_sequence_length, 2, dtype);
+        const auto prefix = Tensor::from_int32_vector(
+            {1, 2, 3, 4, 5, 6}, {2, 3});
+        (void)model.forward_prefill_cached(prefix, cache);
+        std::vector<std::vector<float>> preserved;
+        for (std::size_t layer = 0; layer < cache.layer_count(); ++layer) {
+            preserved.push_back(cache.layer(layer).key.slice(0, 1, 2).to_vector());
+            preserved.push_back(cache.layer(layer).value.slice(0, 1, 2).to_vector());
+        }
+        EXPECT_THROW(cache.clear_row(-1), std::out_of_range);
+        EXPECT_THROW(cache.clear_row(2), std::out_of_range);
+        cache.clear_row(0);
+        EXPECT_EQ(cache.position(), 3);
+        for (std::size_t layer = 0; layer < cache.layer_count(); ++layer) {
+            for (const auto* tensor : {&cache.layer(layer).key,
+                                       &cache.layer(layer).value}) {
+                const auto cleared = tensor->slice(0, 0, 1).to_vector();
+                EXPECT_TRUE(std::all_of(cleared.begin(), cleared.end(),
+                                        [](float value) { return value == 0.0F; }));
+            }
+            EXPECT_EQ(cache.layer(layer).key.slice(0, 1, 2).to_vector(),
+                      preserved[layer * 2]);
+            EXPECT_EQ(cache.layer(layer).value.slice(0, 1, 2).to_vector(),
+                      preserved[layer * 2 + 1]);
+        }
+
+        (void)model.forward_cached(Tensor::from_int32_vector({7, 8}, {2, 1}), cache);
+        EXPECT_EQ(cache.position(), 4);
+        for (std::size_t layer = 0; layer < cache.layer_count(); ++layer) {
+            for (const auto* tensor : {&cache.layer(layer).key,
+                                       &cache.layer(layer).value}) {
+                const auto cleared = tensor->slice(0, 0, 1).to_vector();
+                bool wrote_new_position = false;
+                for (std::int64_t head = 0; head < config.kv_heads; ++head) {
+                    for (std::int64_t position = 0; position < 4; ++position) {
+                        for (std::int64_t column = 0;
+                             column < config.head_dimension(); ++column) {
+                            const auto index = static_cast<std::size_t>(
+                                (head * 4 + position) * config.head_dimension() + column);
+                            if (position < 3) EXPECT_EQ(cleared[index], 0.0F);
+                            else wrote_new_position |= cleared[index] != 0.0F;
+                        }
+                    }
+                }
+                EXPECT_TRUE(wrote_new_position);
+            }
+        }
+        cache.reset();
+        EXPECT_NO_THROW(cache.clear_row(0));
+    }
 }
 
 TEST(TransformerModelTest, Bf16KvCacheHalvesStorageAndTracksFp32Decode) {
