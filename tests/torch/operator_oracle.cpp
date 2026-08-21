@@ -149,6 +149,14 @@ void emit_forward_cases() {
 
     const auto scores = f32({1, 2, 3, 4, 5, 6, 7, 8, 9}, {1, 3, 3});
     emit("causal_softmax", causal_softmax(scores));
+    const auto attention_query = f32(
+        {0.5F, -1, 1.5F, 0.25F, -0.5F, 1,
+         0.75F, -0.25F, 1, 0.5F, -1, 0.25F}, {1, 2, 3, 2});
+    const auto attention_key = f32(
+        {0.5F, 1, -0.5F, 0.25F, 1.5F, -1}, {1, 1, 3, 2});
+    const auto attention_value = f32({1, 2, 3, 4, 5, 6}, {1, 1, 3, 2});
+    emit("causal_gqa_attention", causal_gqa_attention(
+        attention_query, attention_key, attention_value, 2, 0.5F));
     emit("repeat_interleave", repeat_interleave(f32({1, 2, 3, 4}, {2, 2}), 0, 2));
 }
 
@@ -314,6 +322,23 @@ void emit_graph_gradient_cases() {
     sum(multiply(causal_softmax(causal_input), causal_seed)).backward();
     emit("graph_causal_softmax_input_grad", causal_input.grad());
 
+    Value attention_query(f32(
+        {0.5F, -1, 1.5F, 0.25F, -0.5F, 1,
+         0.75F, -0.25F, 1, 0.5F, -1, 0.25F}, {1, 2, 3, 2}), true);
+    Value attention_key(f32(
+        {0.5F, 1, -0.5F, 0.25F, 1.5F, -1}, {1, 1, 3, 2}), true);
+    Value attention_value(f32({1, 2, 3, 4, 5, 6}, {1, 1, 3, 2}), true);
+    const Value attention_seed(f32(
+        {1, -1, 0.5F, 2, -0.5F, 1.5F,
+         2, 1, -1, 0.25F, 0.75F, -2}, {1, 2, 3, 2}));
+    const auto attention_output = causal_gqa_attention(
+        attention_query, attention_key, attention_value, 2, 0.5F);
+    emit("graph_causal_gqa_output", attention_output.data());
+    sum(multiply(attention_output, attention_seed)).backward();
+    emit("graph_causal_gqa_query_grad", attention_query.grad());
+    emit("graph_causal_gqa_key_grad", attention_key.grad());
+    emit("graph_causal_gqa_value_grad", attention_value.grad());
+
     Value repeat_input(f32({1, 2, 3, 4}, {2, 2}), true);
     const Value repeat_seed(f32({1, 2, 3, 4, 5, 6, 7, 8}, {4, 2}));
     sum(multiply(repeat_interleave(repeat_input, 0, 2), repeat_seed)).backward();
@@ -388,6 +413,11 @@ void emit_invalid_shape_cases() {
               }));
     emit_bool("invalid_broadcast_source", rejected([&] { (void)broadcast_scalar(vector, {2}); }));
     emit_bool("invalid_causal_shape", rejected([&] { (void)causal_softmax(f32({1, 2, 3, 4, 5, 6}, {2, 3})); }));
+    emit_bool("invalid_causal_gqa_shape", rejected([&] {
+                  const auto query = Tensor({1, 2, 3, 2});
+                  const auto key = Tensor({1, 1, 3, 2});
+                  (void)causal_gqa_attention(query, key, key, 3, 0.5F);
+              }));
     emit_bool("invalid_repeat_count", rejected([&] { (void)repeat_interleave(matrix, 0, 0); }));
 
     emit_bool("invalid_embedding_backward_shape", rejected([&] {

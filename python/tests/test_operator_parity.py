@@ -188,6 +188,16 @@ def pytorch_references(actual):
     record(refs, "broadcast_scalar", torch.tensor(2.5).expand(2, 3).clone())
     scores = tensor([1, 2, 3, 4, 5, 6, 7, 8, 9], (1, 3, 3))
     record(refs, "causal_softmax", causal_softmax(scores))
+    attention_query = tensor(
+        [0.5, -1, 1.5, 0.25, -0.5, 1, 0.75, -0.25, 1, 0.5, -1, 0.25],
+        (1, 2, 3, 2))
+    attention_key = tensor([0.5, 1, -0.5, 0.25, 1.5, -1], (1, 1, 3, 2))
+    attention_value = tensor([1, 2, 3, 4, 5, 6], (1, 1, 3, 2))
+    expanded_key = torch.repeat_interleave(attention_key, 2, dim=1)
+    expanded_value = torch.repeat_interleave(attention_value, 2, dim=1)
+    attention_probabilities = causal_softmax(
+        attention_query @ expanded_key.transpose(-2, -1) * 0.5)
+    record(refs, "causal_gqa_attention", attention_probabilities @ expanded_value)
     record(refs, "repeat_interleave", torch.repeat_interleave(tensor([1, 2, 3, 4], (2, 2)), 2, 0))
 
     for prefix, dtype in (("fp16", torch.float16), ("bf16", torch.bfloat16)):
@@ -333,6 +343,24 @@ def pytorch_references(actual):
     causal_seed = tensor([1, 2, 3, -1, 0, 1, 2, -2, 0.5], (1, 3, 3))
     (causal_softmax(causal_input) * causal_seed).sum().backward()
     record(refs, "graph_causal_softmax_input_grad", causal_input.grad)
+
+    attention_query = tensor(
+        [0.5, -1, 1.5, 0.25, -0.5, 1, 0.75, -0.25, 1, 0.5, -1, 0.25],
+        (1, 2, 3, 2), True)
+    attention_key = tensor([0.5, 1, -0.5, 0.25, 1.5, -1], (1, 1, 3, 2), True)
+    attention_value = tensor([1, 2, 3, 4, 5, 6], (1, 1, 3, 2), True)
+    attention_seed = tensor(
+        [1, -1, 0.5, 2, -0.5, 1.5, 2, 1, -1, 0.25, 0.75, -2],
+        (1, 2, 3, 2))
+    expanded_key = torch.repeat_interleave(attention_key, 2, dim=1)
+    expanded_value = torch.repeat_interleave(attention_value, 2, dim=1)
+    attention_output = causal_softmax(
+        attention_query @ expanded_key.transpose(-2, -1) * 0.5) @ expanded_value
+    (attention_output * attention_seed).sum().backward()
+    record(refs, "graph_causal_gqa_output", attention_output)
+    record(refs, "graph_causal_gqa_query_grad", attention_query.grad)
+    record(refs, "graph_causal_gqa_key_grad", attention_key.grad)
+    record(refs, "graph_causal_gqa_value_grad", attention_value.grad)
 
     repeat_input = tensor([1, 2, 3, 4], (2, 2), True)
     repeat_seed = tensor([1, 2, 3, 4, 5, 6, 7, 8], (4, 2))
@@ -561,6 +589,7 @@ class OperatorParityTest(unittest.TestCase):
             "invalid_reduce_dtype",
             "invalid_broadcast_source",
             "invalid_causal_shape",
+            "invalid_causal_gqa_shape",
             "invalid_repeat_count",
             "invalid_embedding_backward_shape",
             "invalid_softmax_backward_shape",

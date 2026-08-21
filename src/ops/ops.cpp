@@ -1626,6 +1626,257 @@ Tensor causal_softmax_backward(const Tensor& output, const Tensor& gradient,
     return from_values(std::move(input_gradient), output.shape());
 }
 
+namespace {
+
+void validate_causal_gqa(const Tensor& query, const Tensor& key,
+                         const Tensor& value, std::int64_t repeats,
+                         float scale) {
+    require_float(query, "query");
+    require_float(key, "key");
+    require_float(value, "value");
+    require_same_device(query, key);
+    require_same_device(query, value);
+    if (query.ndim() != 4 || key.ndim() != 4 || value.shape() != key.shape() ||
+        query.shape()[0] != key.shape()[0] ||
+        query.shape()[2] != key.shape()[2] ||
+        query.shape()[3] != key.shape()[3] ||
+        query.shape()[1] != key.shape()[1] * repeats || repeats <= 0 ||
+        query.shape()[2] <= 0 || query.shape()[3] <= 0 ||
+        !std::isfinite(scale) || !(scale > 0.0F) ||
+        !query.is_contiguous() || !key.is_contiguous() || !value.is_contiguous()) {
+        throw std::invalid_argument(
+            "causal GQA requires contiguous Q[B,H,T,D], K/V[B,KV,T,D] contracts");
+    }
+}
+
+Tensor causal_gqa_attention_composed(const Tensor& query, const Tensor& key,
+                                     const Tensor& value, std::int64_t repeats,
+                                     float scale, const OpContext& context) {
+    const auto expanded_key = repeats == 1 ? key : repeat_interleave(key, 1, repeats, context);
+    const auto expanded_value = repeats == 1 ? value : repeat_interleave(value, 1, repeats, context);
+    const auto scores = ops::scale(
+        matmul(query, expanded_key.transpose(-2, -1).contiguous(), context),
+        scale, context);
+    return matmul(causal_softmax(scores, context), expanded_value, context);
+}
+
+TensorTriple causal_gqa_attention_backward_composed(
+    const Tensor& query, const Tensor& key, const Tensor& value,
+    const Tensor& output_gradient, std::int64_t repeats, float scale,
+    const OpContext& context) {
+    const auto expanded_key = repeats == 1 ? key : repeat_interleave(key, 1, repeats, context);
+    const auto expanded_value = repeats == 1 ? value : repeat_interleave(value, 1, repeats, context);
+    const auto scores = ops::scale(
+        matmul(query, expanded_key.transpose(-2, -1).contiguous(), context),
+        scale, context);
+    const auto probabilities = causal_softmax(scores, context);
+    const auto probability_gradient = matmul(
+        output_gradient, expanded_value.transpose(-2, -1).contiguous(), context);
+    const auto score_gradient = ops::scale(
+        causal_softmax_backward(probabilities, probability_gradient, context),
+        scale, context);
+    auto query_gradient = matmul(score_gradient, expanded_key, context);
+    auto key_gradient = matmul(
+        score_gradient.transpose(-2, -1).contiguous(), query, context);
+    auto value_gradient = matmul(
+        probabilities.transpose(-2, -1).contiguous(), output_gradient, context);
+    if (repeats != 1) {
+        key_gradient = repeat_interleave_backward(
+            key_gradient, key.shape(), 1, repeats, context);
+        value_gradient = repeat_interleave_backward(
+            value_gradient, value.shape(), 1, repeats, context);
+    }
+    return {std::move(query_gradient), std::move(key_gradient),
+            std::move(value_gradient)};
+}
+
+}  // namespace
+
+Tensor causal_gqa_attention(const Tensor& query, const Tensor& key,
+                            const Tensor& value, std::int64_t repeats,
+                            float scale, const OpContext& context) {
+    validate_causal_gqa(query, key, value, repeats, scale);
+    const auto batches = query.shape()[0];
+    const auto heads = query.shape()[1];
+    const auto kv_heads = key.shape()[1];
+    const auto sequence = query.shape()[2];
+    const auto width = query.shape()[3];
+    if (query.device().is_hip()) {
+        if (sequence > 4096 || width > 256) {
+            return causal_gqa_attention_composed(
+                query, key, value, repeats, scale, context);
+        }
+        Tensor output(query.shape(), DType::Float32, query.device());
+#if MICROLLM_HAS_HIP
+        hip::launch_causal_gqa_attention(
+            static_cast<const float*>(query.data()),
+            static_cast<const float*>(key.data()),
+            static_cast<const float*>(value.data()),
+            static_cast<float*>(output.data()), batches, heads, kv_heads,
+            sequence, width, repeats, scale,
+            context.native_stream(query.device()));
+        return output;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    const auto queries = query.to_vector();
+    const auto keys = key.to_vector();
+    const auto values = value.to_vector();
+    std::vector<float> output(queries.size(), 0.0F);
+    std::vector<float> probabilities(static_cast<std::size_t>(sequence));
+    for (std::int64_t batch = 0; batch < batches; ++batch) {
+        for (std::int64_t head = 0; head < heads; ++head) {
+            const auto kv_head = head / repeats;
+            const auto kv_base = (batch * kv_heads + kv_head) * sequence * width;
+            for (std::int64_t position = 0; position < sequence; ++position) {
+                const auto query_base =
+                    ((batch * heads + head) * sequence + position) * width;
+                auto maximum = -std::numeric_limits<float>::infinity();
+                for (std::int64_t source = 0; source <= position; ++source) {
+                    float dot = 0.0F;
+                    for (std::int64_t column = 0; column < width; ++column) {
+                        dot += queries[static_cast<std::size_t>(query_base + column)] *
+                               keys[static_cast<std::size_t>(
+                                   kv_base + source * width + column)];
+                    }
+                    probabilities[static_cast<std::size_t>(source)] = dot * scale;
+                    maximum = std::max(maximum, dot * scale);
+                }
+                float denominator = 0.0F;
+                for (std::int64_t source = 0; source <= position; ++source) {
+                    auto& probability = probabilities[static_cast<std::size_t>(source)];
+                    probability = std::exp(probability - maximum);
+                    denominator += probability;
+                }
+                for (std::int64_t column = 0; column < width; ++column) {
+                    float total = 0.0F;
+                    for (std::int64_t source = 0; source <= position; ++source) {
+                        total += probabilities[static_cast<std::size_t>(source)] /
+                                 denominator * values[static_cast<std::size_t>(
+                                     kv_base + source * width + column)];
+                    }
+                    output[static_cast<std::size_t>(query_base + column)] = total;
+                }
+            }
+        }
+    }
+    return from_values(std::move(output), query.shape());
+}
+
+TensorTriple causal_gqa_attention_backward(
+    const Tensor& query, const Tensor& key, const Tensor& value,
+    const Tensor& output_gradient, std::int64_t repeats, float scale,
+    const OpContext& context) {
+    validate_causal_gqa(query, key, value, repeats, scale);
+    require_float(output_gradient, "output_gradient");
+    require_same_shape(query, output_gradient);
+    require_same_device(query, output_gradient);
+    require_contiguous(output_gradient, "output_gradient");
+    const auto batches = query.shape()[0];
+    const auto heads = query.shape()[1];
+    const auto kv_heads = key.shape()[1];
+    const auto sequence = query.shape()[2];
+    const auto width = query.shape()[3];
+    if (query.device().is_hip()) {
+        if (sequence > 4096 || width > 256) {
+            return causal_gqa_attention_backward_composed(
+                query, key, value, output_gradient, repeats, scale, context);
+        }
+        Tensor query_gradient(query.shape(), DType::Float32, query.device());
+        Tensor key_gradient(key.shape(), DType::Float32, key.device());
+        Tensor value_gradient(value.shape(), DType::Float32, value.device());
+        fill_(key_gradient, 0.0F, context);
+        fill_(value_gradient, 0.0F, context);
+#if MICROLLM_HAS_HIP
+        hip::launch_causal_gqa_attention_backward(
+            static_cast<const float*>(query.data()),
+            static_cast<const float*>(key.data()),
+            static_cast<const float*>(value.data()),
+            static_cast<const float*>(output_gradient.data()),
+            static_cast<float*>(query_gradient.data()),
+            static_cast<float*>(key_gradient.data()),
+            static_cast<float*>(value_gradient.data()), batches, heads, kv_heads,
+            sequence, width, repeats, scale,
+            context.native_stream(query.device()));
+        return {std::move(query_gradient), std::move(key_gradient),
+                std::move(value_gradient)};
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    const auto queries = query.to_vector();
+    const auto keys = key.to_vector();
+    const auto values = value.to_vector();
+    const auto gradients = output_gradient.to_vector();
+    std::vector<float> query_gradient(queries.size(), 0.0F);
+    std::vector<float> key_gradient(keys.size(), 0.0F);
+    std::vector<float> value_gradient(values.size(), 0.0F);
+    std::vector<float> probabilities(static_cast<std::size_t>(sequence));
+    std::vector<float> probability_gradients(static_cast<std::size_t>(sequence));
+    for (std::int64_t batch = 0; batch < batches; ++batch) {
+        for (std::int64_t head = 0; head < heads; ++head) {
+            const auto kv_head = head / repeats;
+            const auto kv_base = (batch * kv_heads + kv_head) * sequence * width;
+            for (std::int64_t position = 0; position < sequence; ++position) {
+                const auto query_base =
+                    ((batch * heads + head) * sequence + position) * width;
+                auto maximum = -std::numeric_limits<float>::infinity();
+                for (std::int64_t source = 0; source <= position; ++source) {
+                    float score = 0.0F;
+                    float probability_gradient = 0.0F;
+                    for (std::int64_t column = 0; column < width; ++column) {
+                        score += queries[static_cast<std::size_t>(query_base + column)] *
+                                 keys[static_cast<std::size_t>(
+                                     kv_base + source * width + column)];
+                        probability_gradient +=
+                            gradients[static_cast<std::size_t>(query_base + column)] *
+                            values[static_cast<std::size_t>(
+                                kv_base + source * width + column)];
+                    }
+                    probabilities[static_cast<std::size_t>(source)] = score * scale;
+                    probability_gradients[static_cast<std::size_t>(source)] =
+                        probability_gradient;
+                    maximum = std::max(maximum, score * scale);
+                }
+                float denominator = 0.0F;
+                for (std::int64_t source = 0; source <= position; ++source) {
+                    auto& probability = probabilities[static_cast<std::size_t>(source)];
+                    probability = std::exp(probability - maximum);
+                    denominator += probability;
+                }
+                float weighted_gradient = 0.0F;
+                for (std::int64_t source = 0; source <= position; ++source) {
+                    auto& probability = probabilities[static_cast<std::size_t>(source)];
+                    probability /= denominator;
+                    weighted_gradient += probability *
+                        probability_gradients[static_cast<std::size_t>(source)];
+                }
+                for (std::int64_t source = 0; source <= position; ++source) {
+                    const auto probability = probabilities[static_cast<std::size_t>(source)];
+                    const auto score_gradient = probability *
+                        (probability_gradients[static_cast<std::size_t>(source)] -
+                         weighted_gradient);
+                    for (std::int64_t column = 0; column < width; ++column) {
+                        const auto query_index = static_cast<std::size_t>(query_base + column);
+                        const auto kv_index = static_cast<std::size_t>(
+                            kv_base + source * width + column);
+                        query_gradient[query_index] +=
+                            score_gradient * scale * keys[kv_index];
+                        key_gradient[kv_index] +=
+                            score_gradient * scale * queries[query_index];
+                        value_gradient[kv_index] +=
+                            probability * gradients[query_index];
+                    }
+                }
+            }
+        }
+    }
+    return {from_values(std::move(query_gradient), query.shape()),
+            from_values(std::move(key_gradient), key.shape()),
+            from_values(std::move(value_gradient), value.shape())};
+}
+
 Tensor repeat_interleave(const Tensor& input, std::int64_t dim, std::int64_t repeats,
                          [[maybe_unused]] const OpContext& context) {
     require_float(input, "input");

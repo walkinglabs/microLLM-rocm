@@ -238,17 +238,10 @@ public:
             key = autograd::rope(transposed_key, 2, 0, config_.rope_base);
         }
         value = autograd::transpose(value, 1, 2);
-        if (config_.kv_heads != config_.heads) {
-            const auto repeats = config_.heads / config_.kv_heads;
-            key = autograd::repeat_interleave(key, 1, repeats);
-            value = autograd::repeat_interleave(value, 1, repeats);
-        }
-        const auto key_transposed = autograd::transpose(key, -2, -1);
-        const auto scores = autograd::scale(
-            autograd::matmul(query, key_transposed),
+        const auto repeats = config_.heads / config_.kv_heads;
+        auto context = autograd::causal_gqa_attention(
+            query, key, value, repeats,
             1.0F / std::sqrt(static_cast<float>(config_.head_dimension())));
-        const auto probabilities = autograd::causal_softmax(scores);
-        auto context = autograd::matmul(probabilities, value);
         context = autograd::contiguous(autograd::transpose(context, 1, 2));
         context = autograd::reshape(context, {batch * sequence, config_.dimension});
         return autograd::reshape(output_.forward(context),

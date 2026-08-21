@@ -33,7 +33,9 @@
     "rope_split_half_backward": {"torch": "graph_rope_split_half_input_grad", "shape": "invalid_rope_split_half_backward_width"},
     "cross_entropy_backward": {"torch": "graph_cross_entropy_logits_grad", "shape": "invalid_cross_entropy_backward_seed"},
     "causal_softmax": {"torch": "causal_softmax", "shape": "invalid_causal_shape"},
+    "causal_gqa_attention": {"torch": "causal_gqa_attention", "shape": "invalid_causal_gqa_shape"},
     "causal_softmax_backward": {"torch": "graph_causal_softmax_input_grad", "shape": "invalid_causal_backward_shape"},
+    "causal_gqa_attention_backward": {"torch": "graph_causal_gqa_key_grad", "shape": "invalid_causal_gqa_shape"},
     "repeat_interleave": {"torch": "repeat_interleave", "shape": "invalid_repeat_count"},
     "repeat_interleave_backward": {"torch": "graph_repeat_input_grad", "shape": "invalid_repeat_backward_shape"}
   },
@@ -78,6 +80,7 @@
     "cross_entropy": "graph_cross_entropy_logits_grad",
     "contiguous": "graph_view_input_grad",
     "causal_softmax": "graph_causal_softmax_input_grad",
+    "causal_gqa_attention": "graph_causal_gqa_query_grad",
     "repeat_interleave": "graph_repeat_input_grad"
   },
   "graph_infrastructure": {

@@ -571,6 +571,41 @@ Value causal_softmax(const Value& scores) {
                      });
 }
 
+Value causal_gqa_attention(const Value& query, const Value& key,
+                           const Value& value, std::int64_t repeats,
+                           float scale) {
+    require_value(query, "query");
+    require_value(key, "key");
+    require_value(value, "value");
+    auto query_node = query.node_;
+    auto key_node = key.node_;
+    auto value_node = value.node_;
+    const auto query_forward = query.data().is_contiguous()
+                                   ? query.data() : query.data().contiguous();
+    const auto key_forward = key.data().is_contiguous()
+                                 ? key.data() : key.data().contiguous();
+    const auto value_forward = value.data().is_contiguous()
+                                   ? value.data() : value.data().contiguous();
+    auto output = profiled_tensor("causal_gqa_attention", query.data().device(), [&] {
+        return ops::causal_gqa_attention(
+            query_forward, key_forward, value_forward, repeats, scale);
+    });
+    return operation(
+        "causal_gqa_attention", std::move(output),
+        {query_node, key_node, value_node},
+        [query_node, key_node, value_node, query_forward, key_forward,
+         value_forward, repeats, scale](const Tensor& gradient) {
+            const auto prepared_gradient = gradient.is_contiguous()
+                                               ? gradient : gradient.contiguous();
+            auto gradients = ops::causal_gqa_attention_backward(
+                query_forward, key_forward, value_forward,
+                prepared_gradient, repeats, scale);
+            accumulate(query_node, std::move(gradients.first));
+            accumulate(key_node, std::move(gradients.second));
+            accumulate(value_node, std::move(gradients.third));
+        });
+}
+
 Value repeat_interleave(const Value& input, std::int64_t dim, std::int64_t repeats) {
     require_value(input, "input");
     if (dim < 0) dim += input.data().ndim();

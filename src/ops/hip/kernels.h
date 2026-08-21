@@ -131,6 +131,18 @@ void launch_causal_softmax(const float* scores, float* output, std::int64_t rows
 void launch_causal_softmax_backward(const float* output, const float* gradient,
                                     float* input_gradient, std::int64_t rows,
                                     std::int64_t sequence, void* stream = nullptr);
+void launch_causal_gqa_attention(
+    const float* query, const float* key, const float* value, float* output,
+    std::int64_t batches, std::int64_t heads, std::int64_t kv_heads,
+    std::int64_t sequence, std::int64_t width, std::int64_t repeats,
+    float scale, void* stream = nullptr);
+void launch_causal_gqa_attention_backward(
+    const float* query, const float* key, const float* value,
+    const float* output_gradient, float* query_gradient,
+    float* key_gradient, float* value_gradient,
+    std::int64_t batches, std::int64_t heads, std::int64_t kv_heads,
+    std::int64_t sequence, std::int64_t width, std::int64_t repeats,
+    float scale, void* stream = nullptr);
 void launch_repeat_interleave(const float* input, float* output,
                               std::int64_t output_elements, std::int64_t repeated_width,
                               std::int64_t inner, std::int64_t repeats,

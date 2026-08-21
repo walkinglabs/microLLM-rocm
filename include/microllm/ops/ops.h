@@ -170,6 +170,17 @@ void clear_matmul_implementation_registry();
 [[nodiscard]] Tensor causal_softmax(const Tensor& scores, const OpContext& context = {});
 [[nodiscard]] Tensor causal_softmax_backward(const Tensor& output, const Tensor& gradient,
                                              const OpContext& context = {});
+// Full-sequence causal Attention without materializing repeated K/V heads or
+// the T×T score/probability tensors. Shapes are Q[B,H,T,D], K/V[B,KV,T,D].
+[[nodiscard]] Tensor causal_gqa_attention(const Tensor& query, const Tensor& key,
+                                          const Tensor& value,
+                                          std::int64_t repeats, float scale,
+                                          const OpContext& context = {});
+// Returns FP32 gradients for {query, key, value}; probabilities are recomputed.
+[[nodiscard]] TensorTriple causal_gqa_attention_backward(
+    const Tensor& query, const Tensor& key, const Tensor& value,
+    const Tensor& output_gradient, std::int64_t repeats, float scale,
+    const OpContext& context = {});
 [[nodiscard]] Tensor repeat_interleave(const Tensor& input, std::int64_t dim,
                                        std::int64_t repeats,
                                        const OpContext& context = {});

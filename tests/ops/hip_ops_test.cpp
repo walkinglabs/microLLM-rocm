@@ -614,6 +614,70 @@ TEST(HipCachedAttentionTest, FusedMhaGqaAndLongSequenceFallbackMatchCpu) {
     }
 }
 
+TEST(HipFullAttentionTest, CausalMhaGqaForwardBackwardMatchCpuWithoutTransfers) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    constexpr std::int64_t heads = 4;
+    constexpr std::int64_t width = 16;
+    for (const auto gqa : {false, true}) {
+        const auto kv_heads = gqa ? 2LL : heads;
+        const auto repeats = heads / kv_heads;
+        for (const auto sequence : {1LL, 3LL, 32LL, 128LL}) {
+            std::vector<float> query_values(
+                static_cast<std::size_t>(heads * sequence * width));
+            std::vector<float> key_values(
+                static_cast<std::size_t>(kv_heads * sequence * width));
+            std::vector<float> value_values(key_values.size());
+            std::vector<float> gradient_values(query_values.size());
+            for (std::size_t index = 0; index < query_values.size(); ++index) {
+                query_values[index] =
+                    static_cast<float>(static_cast<int>(index % 29) - 14) * 0.015625F;
+                gradient_values[index] =
+                    static_cast<float>(static_cast<int>(index % 31) - 15) * 0.0078125F;
+            }
+            for (std::size_t index = 0; index < key_values.size(); ++index) {
+                key_values[index] =
+                    static_cast<float>(static_cast<int>(index % 23) - 11) * 0.01953125F;
+                value_values[index] =
+                    static_cast<float>(static_cast<int>(index % 19) - 9) * 0.0234375F;
+            }
+            const auto query = Tensor::from_vector(
+                query_values, {1, heads, sequence, width});
+            const auto key = Tensor::from_vector(
+                key_values, {1, kv_heads, sequence, width});
+            const auto value = Tensor::from_vector(
+                value_values, {1, kv_heads, sequence, width});
+            const auto gradient = Tensor::from_vector(
+                gradient_values, {1, heads, sequence, width});
+            const auto expected = causal_gqa_attention(
+                query, key, value, repeats, 0.25F);
+            const auto expected_backward = causal_gqa_attention_backward(
+                query, key, value, gradient, repeats, 0.25F);
+            const auto device_query = query.to(gpu);
+            const auto device_key = key.to(gpu);
+            const auto device_value = value.to(gpu);
+            const auto device_gradient = gradient.to(gpu);
+            runtime::reset_transfer_stats();
+            const auto actual = causal_gqa_attention(
+                device_query, device_key, device_value, repeats, 0.25F);
+            const auto actual_backward = causal_gqa_attention_backward(
+                device_query, device_key, device_value, device_gradient,
+                repeats, 0.25F);
+            runtime::synchronize(gpu);
+            const auto transfers = runtime::transfer_stats();
+            EXPECT_EQ(transfers.host_to_device_calls, 0U);
+            EXPECT_EQ(transfers.device_to_host_calls, 0U);
+            expect_near(actual.to_vector(), expected.to_vector(), 8.0e-4F);
+            expect_near(actual_backward.first.to_vector(),
+                        expected_backward.first.to_vector(), 1.5e-3F);
+            expect_near(actual_backward.second.to_vector(),
+                        expected_backward.second.to_vector(), 2.0e-3F);
+            expect_near(actual_backward.third.to_vector(),
+                        expected_backward.third.to_vector(), 2.0e-3F);
+        }
+    }
+}
+
 TEST(HipArgmaxTest, CoversLargeVocabulariesTiesAndScalarTransferContract) {
     require_gpu();
     const auto gpu = Device::hip(0);

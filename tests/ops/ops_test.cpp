@@ -145,6 +145,52 @@ TEST(CpuOpsTest, Bf16PlanCacheIsEmptyWithoutHipblaslt) {
     EXPECT_EQ(stats.misses, 0U);
 }
 
+TEST(CpuOpsTest, CausalGqaAttentionMatchesComposedForwardAndBackward) {
+    const auto query = Tensor::from_vector(
+        {0.5F, -1, 1.5F, 0.25F, -0.5F, 1, 0.75F, -0.25F,
+         1, 0.5F, -1, 0.25F, 0.5F, 1.25F, -0.75F, 0.5F,
+         -0.25F, 0.75F, 1.5F, -1, 0.25F, -0.5F, 1, 0.5F},
+        {1, 4, 3, 2});
+    const auto key = Tensor::from_vector(
+        {0.5F, 1, -0.5F, 0.25F, 1.5F, -1,
+         0.75F, -0.25F, 1, 0.5F, -1, 1.25F}, {1, 2, 3, 2});
+    const auto value = Tensor::from_vector(
+        {1, 2, 3, 4, 5, 6, -1, -2, -3, -4, -5, -6}, {1, 2, 3, 2});
+    const auto gradient = Tensor::from_vector(
+        {1, -1, 0.5F, 2, -0.5F, 1.5F, 2, 1, -1, 0.25F, 0.75F, -2,
+         0.5F, 1, -1.5F, 0.25F, 2, -0.5F, 1.25F, -0.75F, 0.5F, 1.5F, -1, 2},
+        {1, 4, 3, 2});
+    constexpr std::int64_t repeats = 2;
+    constexpr float scale_factor = 0.5F;
+    const auto expanded_key = repeat_interleave(key, 1, repeats);
+    const auto expanded_value = repeat_interleave(value, 1, repeats);
+    const auto scores = scale(matmul(
+        query, expanded_key.transpose(-2, -1).contiguous()), scale_factor);
+    const auto probabilities = causal_softmax(scores);
+    const auto expected = matmul(probabilities, expanded_value);
+    expect_near(causal_gqa_attention(query, key, value, repeats, scale_factor).to_vector(),
+                expected.to_vector(), 1.0e-6F);
+
+    const auto probability_gradient = matmul(
+        gradient, expanded_value.transpose(-2, -1).contiguous());
+    const auto score_gradient = scale(
+        causal_softmax_backward(probabilities, probability_gradient), scale_factor);
+    const auto expected_query = matmul(score_gradient, expanded_key);
+    const auto expected_key = repeat_interleave_backward(
+        matmul(score_gradient.transpose(-2, -1).contiguous(), query),
+        key.shape(), 1, repeats);
+    const auto expected_value = repeat_interleave_backward(
+        matmul(probabilities.transpose(-2, -1).contiguous(), gradient),
+        value.shape(), 1, repeats);
+    const auto actual_backward = causal_gqa_attention_backward(
+        query, key, value, gradient, repeats, scale_factor);
+    expect_near(actual_backward.first.to_vector(), expected_query.to_vector(), 1.0e-6F);
+    expect_near(actual_backward.second.to_vector(), expected_key.to_vector(), 1.0e-6F);
+    expect_near(actual_backward.third.to_vector(), expected_value.to_vector(), 1.0e-6F);
+    EXPECT_THROW((void)causal_gqa_attention(query, key, value, 3, scale_factor),
+                 std::invalid_argument);
+}
+
 TEST(CpuOpsTest, TransposeAwareMatmulCoversAllOperandLayoutsWithoutViews) {
     const auto logical_left = Tensor::from_vector({1, 2, 3, 4, 5, 6}, {2, 3});
     const auto logical_right = Tensor::from_vector(

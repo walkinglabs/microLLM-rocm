@@ -73,6 +73,8 @@ private:
     friend Value cross_entropy(const Value&, const Tensor&);
     friend Value contiguous(const Value&);
     friend Value causal_softmax(const Value&);
+    friend Value causal_gqa_attention(const Value&, const Value&, const Value&,
+                                      std::int64_t, float);
     friend Value repeat_interleave(const Value&, std::int64_t, std::int64_t);
     friend GraphSnapshot inspect_graph(const Value&);
 };
@@ -117,6 +119,9 @@ private:
 [[nodiscard]] Value cross_entropy(const Value& logits, const Tensor& targets);
 [[nodiscard]] Value contiguous(const Value& input);
 [[nodiscard]] Value causal_softmax(const Value& scores);
+[[nodiscard]] Value causal_gqa_attention(const Value& query, const Value& key,
+                                         const Value& value,
+                                         std::int64_t repeats, float scale);
 [[nodiscard]] Value repeat_interleave(const Value& input, std::int64_t dim,
                                       std::int64_t repeats);
 [[nodiscard]] GraphSnapshot inspect_graph(const Value& root);

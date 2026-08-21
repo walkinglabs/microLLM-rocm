@@ -804,6 +804,142 @@ __global__ void cached_attention_fused_kernel(
     }
 }
 
+__global__ void causal_gqa_attention_kernel(
+    const float* query, const float* key, const float* value, float* output,
+    std::int64_t batches, std::int64_t heads, std::int64_t kv_heads,
+    std::int64_t sequence, std::int64_t width, std::int64_t repeats,
+    float scale) {
+    const auto row = static_cast<std::int64_t>(blockIdx.x);
+    const auto query_position = row % sequence;
+    const auto head_and_batch = row / sequence;
+    const auto head = head_and_batch % heads;
+    const auto batch = head_and_batch / heads;
+    if (batch >= batches) return;
+    const auto kv_head = head / repeats;
+    const auto query_base = ((batch * heads + head) * sequence + query_position) * width;
+    const auto kv_base = (batch * kv_heads + kv_head) * sequence * width;
+    const auto visible = query_position + 1;
+    extern __shared__ float attention_probabilities[];
+    __shared__ float reduction[kBlockSize];
+
+    float local_maximum = -INFINITY;
+    for (std::int64_t position = threadIdx.x; position < visible;
+         position += blockDim.x) {
+        float dot = 0.0F;
+        for (std::int64_t column = 0; column < width; ++column) {
+            dot += query[query_base + column] *
+                   key[kv_base + position * width + column];
+        }
+        const auto score = dot * scale;
+        attention_probabilities[position] = score;
+        local_maximum = fmaxf(local_maximum, score);
+    }
+    const auto maximum = block_reduce_max(local_maximum, reduction);
+    float local_denominator = 0.0F;
+    for (std::int64_t position = threadIdx.x; position < visible;
+         position += blockDim.x) {
+        const auto probability = expf(attention_probabilities[position] - maximum);
+        attention_probabilities[position] = probability;
+        local_denominator += probability;
+    }
+    const auto denominator = block_reduce_sum(local_denominator, reduction);
+    for (std::int64_t position = threadIdx.x; position < visible;
+         position += blockDim.x) {
+        attention_probabilities[position] /= denominator;
+    }
+    __syncthreads();
+    for (std::int64_t column = threadIdx.x; column < width; column += blockDim.x) {
+        float total = 0.0F;
+        for (std::int64_t position = 0; position < visible; ++position) {
+            total += attention_probabilities[position] *
+                     value[kv_base + position * width + column];
+        }
+        output[query_base + column] = total;
+    }
+}
+
+__global__ void causal_gqa_attention_backward_kernel(
+    const float* query, const float* key, const float* value,
+    const float* output_gradient, float* query_gradient,
+    float* key_gradient, float* value_gradient,
+    std::int64_t batches, std::int64_t heads, std::int64_t kv_heads,
+    std::int64_t sequence, std::int64_t width, std::int64_t repeats,
+    float scale) {
+    const auto row = static_cast<std::int64_t>(blockIdx.x);
+    const auto query_position = row % sequence;
+    const auto head_and_batch = row / sequence;
+    const auto head = head_and_batch % heads;
+    const auto batch = head_and_batch / heads;
+    if (batch >= batches) return;
+    const auto kv_head = head / repeats;
+    const auto query_base = ((batch * heads + head) * sequence + query_position) * width;
+    const auto kv_base = (batch * kv_heads + kv_head) * sequence * width;
+    const auto visible = query_position + 1;
+    extern __shared__ float shared[];
+    auto* backward_probabilities = shared;
+    auto* probability_gradients = shared + sequence;
+    __shared__ float reduction[kBlockSize];
+
+    float local_maximum = -INFINITY;
+    for (std::int64_t position = threadIdx.x; position < visible;
+         position += blockDim.x) {
+        float dot = 0.0F;
+        for (std::int64_t column = 0; column < width; ++column) {
+            dot += query[query_base + column] *
+                   key[kv_base + position * width + column];
+        }
+        const auto score = dot * scale;
+        backward_probabilities[position] = score;
+        local_maximum = fmaxf(local_maximum, score);
+    }
+    const auto maximum = block_reduce_max(local_maximum, reduction);
+    float local_denominator = 0.0F;
+    for (std::int64_t position = threadIdx.x; position < visible;
+         position += blockDim.x) {
+        const auto probability = expf(backward_probabilities[position] - maximum);
+        backward_probabilities[position] = probability;
+        local_denominator += probability;
+    }
+    const auto denominator = block_reduce_sum(local_denominator, reduction);
+    float local_weighted_gradient = 0.0F;
+    for (std::int64_t position = threadIdx.x; position < visible;
+         position += blockDim.x) {
+        const auto probability = backward_probabilities[position] / denominator;
+        backward_probabilities[position] = probability;
+        float probability_gradient = 0.0F;
+        for (std::int64_t column = 0; column < width; ++column) {
+            probability_gradient += output_gradient[query_base + column] *
+                                    value[kv_base + position * width + column];
+        }
+        probability_gradients[position] = probability_gradient;
+        local_weighted_gradient += probability * probability_gradient;
+    }
+    const auto weighted_gradient = block_reduce_sum(local_weighted_gradient, reduction);
+    __syncthreads();
+
+    for (std::int64_t column = threadIdx.x; column < width; column += blockDim.x) {
+        float total = 0.0F;
+        for (std::int64_t position = 0; position < visible; ++position) {
+            const auto score_gradient = backward_probabilities[position] *
+                (probability_gradients[position] - weighted_gradient);
+            total += score_gradient * key[kv_base + position * width + column];
+        }
+        query_gradient[query_base + column] = total * scale;
+    }
+    for (std::int64_t index = threadIdx.x; index < visible * width;
+         index += blockDim.x) {
+        const auto position = index / width;
+        const auto column = index % width;
+        const auto score_gradient = backward_probabilities[position] *
+            (probability_gradients[position] - weighted_gradient);
+        atomicAdd(key_gradient + kv_base + position * width + column,
+                  score_gradient * scale * query[query_base + column]);
+        atomicAdd(value_gradient + kv_base + position * width + column,
+                  backward_probabilities[position] *
+                      output_gradient[query_base + column]);
+    }
+}
+
 __global__ void silu_backward_kernel(const float* input, const float* gradient,
                                      float* input_gradient, std::int64_t elements) {
     const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
@@ -1731,6 +1867,37 @@ void launch_causal_softmax_backward(const float* output, const float* gradient,
                        dim3(kBlockSize), 0, as_stream(stream), output, gradient,
                        input_gradient, rows, sequence);
     check_launch("causal_softmax_backward_kernel");
+}
+
+void launch_causal_gqa_attention(
+    const float* query, const float* key, const float* value, float* output,
+    std::int64_t batches, std::int64_t heads, std::int64_t kv_heads,
+    std::int64_t sequence, std::int64_t width, std::int64_t repeats,
+    float scale, void* stream) {
+    const auto rows = batches * heads * sequence;
+    const auto shared_bytes = static_cast<std::size_t>(sequence) * sizeof(float);
+    hipLaunchKernelGGL(causal_gqa_attention_kernel,
+                       dim3(static_cast<unsigned>(rows)), dim3(kBlockSize), shared_bytes,
+                       as_stream(stream), query, key, value, output, batches, heads,
+                       kv_heads, sequence, width, repeats, scale);
+    check_launch("causal_gqa_attention_kernel");
+}
+
+void launch_causal_gqa_attention_backward(
+    const float* query, const float* key, const float* value,
+    const float* output_gradient, float* query_gradient,
+    float* key_gradient, float* value_gradient,
+    std::int64_t batches, std::int64_t heads, std::int64_t kv_heads,
+    std::int64_t sequence, std::int64_t width, std::int64_t repeats,
+    float scale, void* stream) {
+    const auto rows = batches * heads * sequence;
+    const auto shared_bytes = static_cast<std::size_t>(sequence) * 2U * sizeof(float);
+    hipLaunchKernelGGL(causal_gqa_attention_backward_kernel,
+                       dim3(static_cast<unsigned>(rows)), dim3(kBlockSize), shared_bytes,
+                       as_stream(stream), query, key, value, output_gradient,
+                       query_gradient, key_gradient, value_gradient, batches, heads,
+                       kv_heads, sequence, width, repeats, scale);
+    check_launch("causal_gqa_attention_backward_kernel");
 }
 
 void launch_repeat_interleave(const float* input, float* output,

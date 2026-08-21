@@ -75,6 +75,13 @@ def causal_softmax(scores):
     return torch.softmax(scores.masked_fill(future, -torch.inf), dim=-1)
 
 
+def causal_gqa_attention(query, key, value, repeats, scale):
+    if repeats != 1:
+        key = torch.repeat_interleave(key, repeats, dim=1)
+        value = torch.repeat_interleave(value, repeats, dim=1)
+    return causal_softmax(torch.matmul(query, key.transpose(-2, -1)) * scale) @ value
+
+
 def rms_norm(value, weight, epsilon=1.0e-5):
     return F.rms_norm(value, (value.shape[-1],), weight, epsilon)
 
@@ -116,14 +123,12 @@ def model_forward(session, parameters, tokens, config):
                 key = op("rope", lambda: rope(key, base=config["rope_base"]))
                 value = op("transpose", lambda: value.transpose(1, 2))
                 repeats = config["heads"] // config["kv_heads"]
-                if repeats != 1:
-                    key = op("repeat_interleave", lambda: torch.repeat_interleave(key, repeats, 1))
-                    value = op("repeat_interleave", lambda: torch.repeat_interleave(value, repeats, 1))
-                transposed_key = op("transpose", lambda: key.transpose(-2, -1))
-                scores = op("matmul", lambda: torch.matmul(query, transposed_key))
-                scores = op("scale", lambda: scores / math.sqrt(config["dimension"] // config["heads"]))
-                probabilities = op("causal_softmax", lambda: causal_softmax(scores))
-                context = op("matmul", lambda: torch.matmul(probabilities, value))
+                context = op(
+                    "causal_gqa_attention",
+                    lambda: causal_gqa_attention(
+                        query, key, value, repeats,
+                        1.0 / math.sqrt(config["dimension"] // config["heads"])),
+                )
                 context = op("transpose", lambda: context.transpose(1, 2))
                 context = op("contiguous", lambda: context.contiguous())
                 context = op("reshape", lambda: context.reshape(-1, config["dimension"]))

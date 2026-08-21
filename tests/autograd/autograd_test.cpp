@@ -264,6 +264,55 @@ TEST(AutogradTest, CausalSoftmaxMasksFutureAndBackpropagatesOnlyVisiblePositions
     EXPECT_EQ(gradient[5], 0.0F);
 }
 
+TEST(AutogradTest, CausalGqaAttentionMatchesComposedGraphAndLeafGradients) {
+    const auto query_data = Tensor::from_vector(
+        {0.5F, -1, 1.5F, 0.25F, -0.5F, 1, 0.75F, -0.25F,
+         1, 0.5F, -1, 0.25F, 0.5F, 1.25F, -0.75F, 0.5F,
+         -0.25F, 0.75F, 1.5F, -1, 0.25F, -0.5F, 1, 0.5F},
+        {1, 4, 3, 2});
+    const auto key_data = Tensor::from_vector(
+        {0.5F, 1, -0.5F, 0.25F, 1.5F, -1,
+         0.75F, -0.25F, 1, 0.5F, -1, 1.25F}, {1, 2, 3, 2});
+    const auto value_data = Tensor::from_vector(
+        {1, 2, 3, 4, 5, 6, -1, -2, -3, -4, -5, -6}, {1, 2, 3, 2});
+    const Value seed(Tensor::from_vector(
+        {1, -1, 0.5F, 2, -0.5F, 1.5F, 2, 1, -1, 0.25F, 0.75F, -2,
+         0.5F, 1, -1.5F, 0.25F, 2, -0.5F, 1.25F, -0.75F, 0.5F, 1.5F, -1, 2},
+        {1, 4, 3, 2}));
+    constexpr std::int64_t repeats = 2;
+    constexpr float scale_factor = 0.5F;
+
+    Value fused_query(query_data, true);
+    Value fused_key(key_data, true);
+    Value fused_value(value_data, true);
+    const auto fused = causal_gqa_attention(
+        fused_query, fused_key, fused_value, repeats, scale_factor);
+    sum(multiply(fused, seed)).backward();
+
+    Value reference_query(query_data, true);
+    Value reference_key(key_data, true);
+    Value reference_value(value_data, true);
+    const auto expanded_key = repeat_interleave(reference_key, 1, repeats);
+    const auto expanded_value = repeat_interleave(reference_value, 1, repeats);
+    const auto scores = scale(matmul(reference_query, transpose(expanded_key, -2, -1)),
+                              scale_factor);
+    const auto reference = matmul(causal_softmax(scores), expanded_value);
+    sum(multiply(reference, seed)).backward();
+
+    const auto expect_close = [](const Tensor& actual, const Tensor& expected) {
+        const auto left = actual.to_vector();
+        const auto right = expected.to_vector();
+        ASSERT_EQ(left.size(), right.size());
+        for (std::size_t index = 0; index < left.size(); ++index) {
+            EXPECT_NEAR(left[index], right[index], 1.0e-5F) << "index=" << index;
+        }
+    };
+    expect_close(fused.data(), reference.data());
+    expect_close(fused_query.grad(), reference_query.grad());
+    expect_close(fused_key.grad(), reference_key.grad());
+    expect_close(fused_value.grad(), reference_value.grad());
+}
+
 TEST(AutogradTest, ContiguousPreservesLogicalGradientOrderAfterTranspose) {
     Value input(Tensor::from_vector({1, 2, 3, 4, 5, 6}, {2, 3}), true);
     const auto reordered = contiguous(transpose(input, 0, 1));
