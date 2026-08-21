@@ -16,7 +16,7 @@ model::ModelConfig hip_shape_matrix_config() {
             .heads = 4,
             .kv_heads = 2,
             .ffn_dimension = 32,
-            .max_sequence_length = 20,
+            .max_sequence_length = 132,
             .rope_base = 10000.0F,
             .tie_embeddings = false};
 }
@@ -37,14 +37,14 @@ std::vector<std::vector<std::int32_t>> hip_prompts(std::int64_t context,
 
 }  // namespace
 
-TEST(HipInferenceShapeMatrixTest, CpuTokensMatchAcrossContextBatchAndCacheDtype) {
+TEST(HipInferenceShapeMatrixTest, CpuTokensMatchAcrossBoundaryContextBatchAndCacheDtype) {
     if (runtime::hip_device_count() == 0) GTEST_SKIP() << "No visible HIP device";
     const auto config = hip_shape_matrix_config();
     for (const auto dtype : {DType::Float32, DType::BFloat16}) {
         model::TransformerModel cpu(config, 137);
         model::TransformerModel hip(config, 137);
         hip.to(Device::hip(0));
-        for (const auto context : {1, 7, 16}) {
+        for (const auto context : {1, 7, 16, 31, 32, 33, 63, 64, 65, 127, 128}) {
             for (const auto batch : {1, 2, 4, 8}) {
                 const auto input = hip_prompts(context, batch);
                 const GenerationConfig generation{

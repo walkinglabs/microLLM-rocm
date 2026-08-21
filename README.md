@@ -60,7 +60,8 @@ needed to run a real training and generation loop:
 - last-dimension row-wise GPU argmax keeps batched logits on device; Qwen/DeepSeek B8
   uncached reference decode gains 2.15×/1.68× with unchanged peak and tokens.
 - batch-aware full prefill, KV Storage, step store and cached GQA support B1/2/4/8;
-  official Qwen/DeepSeek cached decode scales at 98.1%/99.5% efficiency.
+  the corrected steady-decode matrix records one real forward per measured token and exposes
+  long-context throughput as the current primary inference gap.
 - opt-in BF16 KV Storage halves cache bytes with FP32 Attention accumulation; Qwen's
   repeat-prompt 32–2048 gate passes, while retained multi-prompt failures keep FP32 default.
 - explicit per-layer FP32/BF16 Cache policies can restore a strict complete-logit gate without
@@ -206,19 +207,23 @@ All comparison rows use matched warm-up/repetition settings and exclude warm-up 
 reported throughput. See [Python/PyTorch comparison](docs/dev/pytorch-benchmark.md) for
 raw data, memory ratios, implementation differences and limitations.
 
-Current BF16 inference matrix (microLLM mixed BF16-weight/FP32 paths versus full-model
-BF16 PyTorch; warm-up excluded; three-process median for context 8/128/512):
+Current Release steady-decode matrix (microLLM mixed BF16-weight/FP32 paths versus full-model
+BF16 PyTorch; warm-up excluded; every measured token executes one post-prefill forward):
 
-| Model | Context | Prefill ratio | Cached-decode ratio | Cache speedup vs micro uncached |
-|---|---:|---:|---:|---:|
-| Qwen2.5-0.5B | 8 / 128 / 512 | 0.649× / 0.253× / 0.044× | 1.049× / 0.762× / 0.318× | 2.64× / 4.58× / 10.45× |
-| DeepSeek Distill 1.5B | 8 / 128 / 512 | 0.510× / 0.195× / 0.026× | 0.845× / 0.588× / 0.267× | 2.45× / 4.58× / 14.43× |
+| Model | T8 B1 / B8 | T512 B1 / B8 | T2048 B1 / B8 |
+|---|---:|---:|---:|
+| Qwen2.5-0.5B | 3.029× / 3.366× | 2.598× / 2.511× | 1.499× / 1.012× |
+| DeepSeek Distill 1.5B | 2.372× / 2.142× | 1.674× / 1.450× | 0.866× / 0.671× |
 
-All core decode token pairs match. Context 1024/2048, batch 1/2/4/8, KV allocated/active
-bytes and explicit cached-batch limitations are reported separately. The older
+Qwen token pairs match all six shapes. DeepSeek matches T8/T512 and retains a T2048
+cross-framework divergence, so the long-context rows are performance evidence with an explicit
+correctness limit, not a parity claim. At T2048 B8, microLLM/PyTorch peak is 3.58/10.68 GiB for
+Qwen and 6.93/13.59 GiB for DeepSeek. Output lengths 1/8/32, KV allocated/active bytes, boundary
+contexts and invalid free-first-token evidence are reported in
+[Experiment 085](docs/optimization-log/experiments/085-inference-shape-memory-matrix.md). The older
 [Experiment 036](docs/optimization-log/experiments/036-bf16-immutable-plan-cache.md)
 remains historical short-shape evidence; its 4/4 performance result is superseded by the
-matched phase-separated [Experiment 060](docs/optimization-log/experiments/060-inference-context-batch-kv-matrix.md).
+corrected steady-decode matrix.
 
 After Experiment 061 routes graph-free long prefill through batched hipBLASLt, the retained
 T512 prefill ratios become `0.308×` (Qwen) and `0.229×` (DeepSeek); T1024 reaches
@@ -240,6 +245,8 @@ separate unsupported capability. See
 Experiment 064 closes cached batch `unsupported`: Qwen B1→B8 scales 91.9→721.1 tok/s,
 DeepSeek 62.2→494.6 tok/s, with exact paired tokens and explicit FP32-vs-BF16 KV bytes.
 See [Experiment 064](docs/optimization-log/experiments/064-batched-kv-cache.md).
+Its historical generated-token accounting includes the first token already produced by prefill;
+Experiment 085 supersedes it for steady-decode throughput.
 
 Experiment 065 adds explicit FP32/BF16 KV Storage, FP32 accumulation, complete-logit diagnostics
 and B2 T4097 fallback coverage. BF16 halves Cache bytes and improves 11/12 Release shapes, but a

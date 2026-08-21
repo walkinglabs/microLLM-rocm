@@ -53,8 +53,10 @@ struct Options {
     std::string cache_prefill_mode = "full";
     std::string prefill_logits_mode = "last";
     std::string batch_argmax_mode = "device";
+    std::string decode_mode = "generation";
     std::string kv_cache_dtype = "fp32";
     std::string kv_cache_fp32_layers;
+    std::int64_t cache_capacity = 0;
 };
 
 Options options(int argc, char** argv) {
@@ -108,9 +110,13 @@ Options options(int argc, char** argv) {
         else if (name == "--cache-prefill-mode") result.cache_prefill_mode = argv[index + 1];
         else if (name == "--prefill-logits") result.prefill_logits_mode = argv[index + 1];
         else if (name == "--batch-argmax-mode") result.batch_argmax_mode = argv[index + 1];
+        else if (name == "--decode-mode") result.decode_mode = argv[index + 1];
         else if (name == "--kv-cache-dtype") result.kv_cache_dtype = argv[index + 1];
         else if (name == "--kv-cache-fp32-layers") {
             result.kv_cache_fp32_layers = argv[index + 1];
+        }
+        else if (name == "--cache-capacity") {
+            result.cache_capacity = std::stoll(argv[index + 1]);
         }
         else throw std::invalid_argument("unknown CLI option: " + name);
     }
@@ -138,10 +144,16 @@ Options options(int argc, char** argv) {
     if (result.batch_argmax_mode != "device" && result.batch_argmax_mode != "host") {
         throw std::invalid_argument("--batch-argmax-mode must be device or host");
     }
+    if (result.decode_mode != "generation" && result.decode_mode != "steady") {
+        throw std::invalid_argument("--decode-mode must be generation or steady");
+    }
     if (result.kv_cache_dtype != "fp32" && result.kv_cache_dtype != "bf16") {
         throw std::invalid_argument("--kv-cache-dtype must be fp32 or bf16");
     }
     if (result.new_tokens < 0) throw std::invalid_argument("--new-tokens cannot be negative");
+    if (result.cache_capacity < 0) {
+        throw std::invalid_argument("--cache-capacity cannot be negative");
+    }
     if (result.warmup < 0 || result.steps <= 0) {
         throw std::invalid_argument("--warmup must be nonnegative and --steps positive");
     }
@@ -199,11 +211,10 @@ struct CachedGenerationState {
 
 CachedGenerationState prepare_cached(
     microllm::model::TransformerModel& model,
-    const std::vector<std::int32_t>& prompt, std::int64_t new_tokens,
+    const std::vector<std::int32_t>& prompt, std::int64_t capacity,
     std::int64_t batch, bool full_prefill,
     const std::vector<microllm::DType>& cache_dtypes) {
-    CachedGenerationState state(
-        cache_dtypes, static_cast<std::int64_t>(prompt.size()) + new_tokens, batch);
+    CachedGenerationState state(cache_dtypes, capacity, batch);
     std::vector<std::int32_t> batched_prompt;
     batched_prompt.reserve(prompt.size() * static_cast<std::size_t>(batch));
     for (std::int64_t row = 0; row < batch; ++row) {
@@ -228,11 +239,15 @@ CachedGenerationState prepare_cached(
 
 GenerationRun decode_cached(microllm::model::TransformerModel& model,
                             CachedGenerationState& state,
-                            std::int64_t new_tokens) {
+                            std::int64_t new_tokens, bool steady = false) {
     GenerationRun run;
     run.kv_cache_capacity_tokens = state.cache.max_sequence_length();
+    auto next_tensor = microllm::ops::argmax_last_dim(state.logits);
     for (std::int64_t generated = 0; generated < new_tokens; ++generated) {
-        auto next_tensor = microllm::ops::argmax_last_dim(state.logits);
+        if (steady) {
+            state.logits = model.forward_cached(next_tensor, state.cache);
+            next_tensor = microllm::ops::argmax_last_dim(state.logits);
+        }
         const auto next_rows = next_tensor.to_int32_vector();
         const auto next = next_rows.front();
         if (next < 0 || std::any_of(next_rows.begin(), next_rows.end(),
@@ -243,8 +258,9 @@ GenerationRun decode_cached(microllm::model::TransformerModel& model,
                 "cached identical batch rows produced invalid or different tokens");
         }
         run.suffix.push_back(next);
-        if (generated + 1 < new_tokens) {
+        if (!steady && generated + 1 < new_tokens) {
             state.logits = model.forward_cached(next_tensor, state.cache);
+            next_tensor = microllm::ops::argmax_last_dim(state.logits);
         }
     }
     run.kv_cache_active_tokens = state.cache.position();
@@ -275,55 +291,70 @@ GenerationRun decode_cached(microllm::model::TransformerModel& model,
     return run;
 }
 
+using TokenRows = std::vector<std::vector<std::int32_t>>;
+
+std::vector<std::int32_t> uncached_step(
+    microllm::model::TransformerModel& model, TokenRows& sequences,
+    bool device_argmax) {
+    const auto batch = static_cast<std::int64_t>(sequences.size());
+    const auto length = static_cast<std::int64_t>(sequences.front().size());
+    std::vector<std::int32_t> flat;
+    flat.reserve(static_cast<std::size_t>(batch * length));
+    for (const auto& sequence : sequences) flat.insert(flat.end(), sequence.begin(), sequence.end());
+    auto token_tensor = microllm::Tensor::from_int32_vector(flat, {batch, length});
+    if (model.device().is_hip()) token_tensor = token_tensor.to(model.device());
+    auto last_logits = model.forward_inference_last_logits(token_tensor)
+                           .reshape({batch, model.config().vocabulary_size});
+    std::vector<std::int32_t> selected;
+    if (device_argmax) {
+        selected = microllm::ops::argmax_last_dim(last_logits).to_int32_vector();
+    } else {
+        const auto host_logits = last_logits.to_vector();
+        selected.resize(static_cast<std::size_t>(batch));
+        const auto vocabulary = model.config().vocabulary_size;
+        for (std::int64_t row = 0; row < batch; ++row) {
+            const auto begin = host_logits.begin() + row * vocabulary;
+            const auto maximum = std::max_element(begin, begin + vocabulary);
+            if (!std::isfinite(*maximum)) {
+                throw std::runtime_error("uncached generation produced non-finite logits");
+            }
+            selected[static_cast<std::size_t>(row)] =
+                static_cast<std::int32_t>(std::distance(begin, maximum));
+        }
+    }
+    for (std::int64_t row = 0; row < batch; ++row) {
+        const auto next = selected[static_cast<std::size_t>(row)];
+        if (next < 0) {
+            throw std::runtime_error("uncached generation produced non-finite logits");
+        }
+        sequences[static_cast<std::size_t>(row)].push_back(next);
+    }
+    return selected;
+}
+
+GenerationRun decode_uncached(microllm::model::TransformerModel& model,
+                              TokenRows& sequences, std::int64_t new_tokens,
+                              bool device_argmax) {
+    GenerationRun run;
+    for (std::int64_t generated = 0; generated < new_tokens; ++generated) {
+        const auto selected = uncached_step(model, sequences, device_argmax);
+        run.suffix.push_back(selected.front());
+    }
+    for (std::int64_t row = 1; row < static_cast<std::int64_t>(sequences.size()); ++row) {
+        if (sequences[static_cast<std::size_t>(row)] != sequences.front()) {
+            throw std::runtime_error("identical batch rows generated different tokens");
+        }
+    }
+    return run;
+}
+
 GenerationRun generate_uncached(microllm::model::TransformerModel& model,
                                 const std::vector<std::int32_t>& prompt,
                                 std::int64_t batch, std::int64_t new_tokens,
                                 bool device_argmax) {
     std::vector<std::vector<std::int32_t>> sequences(
         static_cast<std::size_t>(batch), prompt);
-    GenerationRun run;
-    for (std::int64_t generated = 0; generated < new_tokens; ++generated) {
-        const auto length = static_cast<std::int64_t>(sequences.front().size());
-        std::vector<std::int32_t> flat;
-        flat.reserve(static_cast<std::size_t>(batch * length));
-        for (const auto& sequence : sequences) flat.insert(flat.end(), sequence.begin(), sequence.end());
-        auto token_tensor = microllm::Tensor::from_int32_vector(flat, {batch, length});
-        if (model.device().is_hip()) token_tensor = token_tensor.to(model.device());
-        auto last_logits = model.forward_inference_last_logits(token_tensor)
-                               .reshape({batch, model.config().vocabulary_size});
-        std::vector<std::int32_t> selected;
-        if (device_argmax) {
-            selected = microllm::ops::argmax_last_dim(last_logits).to_int32_vector();
-        } else {
-            const auto host_logits = last_logits.to_vector();
-            selected.resize(static_cast<std::size_t>(batch));
-            const auto vocabulary = model.config().vocabulary_size;
-            for (std::int64_t row = 0; row < batch; ++row) {
-                const auto begin = host_logits.begin() + row * vocabulary;
-                const auto maximum = std::max_element(begin, begin + vocabulary);
-                if (!std::isfinite(*maximum)) {
-                    throw std::runtime_error("uncached generation produced non-finite logits");
-                }
-                selected[static_cast<std::size_t>(row)] =
-                    static_cast<std::int32_t>(std::distance(begin, maximum));
-            }
-        }
-        for (std::int64_t row = 0; row < batch; ++row) {
-            const auto next = selected[static_cast<std::size_t>(row)];
-            if (next < 0) {
-                throw std::runtime_error("uncached generation produced non-finite logits");
-            }
-            sequences[static_cast<std::size_t>(row)].push_back(next);
-        }
-    }
-    for (std::int64_t row = 1; row < batch; ++row) {
-        if (sequences[static_cast<std::size_t>(row)] != sequences.front()) {
-            throw std::runtime_error("identical batch rows generated different tokens");
-        }
-    }
-    run.suffix.assign(sequences.front().begin() + static_cast<std::ptrdiff_t>(prompt.size()),
-                      sequences.front().end());
-    return run;
+    return decode_uncached(model, sequences, new_tokens, device_argmax);
 }
 
 std::vector<std::int32_t> nonnegative_values(std::string_view text,
@@ -498,25 +529,44 @@ int main(int argc, char** argv) {
                               });
         }
         double generation_ms = 0.0;
-        double cache_prepare_ms = 0.0;
+        double decode_prepare_ms = 0.0;
         double warmup_ms = 0.0;
         std::vector<std::int32_t> generated_suffix;
         std::string generated_text;
         GenerationRun generation_evidence;
         microllm::Tensor cache_logits_evidence;
         if (run_decode && command.new_tokens > 0) {
+            const auto minimum_cache_capacity =
+                static_cast<std::int64_t>(ids.size()) + command.new_tokens;
+            const auto cache_capacity = command.cache_capacity == 0
+                                            ? minimum_cache_capacity
+                                            : command.cache_capacity;
+            if (command.use_cache && cache_capacity < minimum_cache_capacity) {
+                throw std::invalid_argument(
+                    "--cache-capacity is smaller than prompt plus decode steps");
+            }
             const auto warmup_start = std::chrono::steady_clock::now();
             for (int iteration = 0; iteration < command.warmup; ++iteration) {
                 if (command.use_cache) {
                     auto state = prepare_cached(
-                        model, ids, command.new_tokens,
+                        model, ids, cache_capacity,
                         command.batch,
                         command.cache_prefill_mode == "full", cache_dtypes);
-                    (void)decode_cached(model, state, command.new_tokens);
+                    (void)decode_cached(model, state, command.new_tokens,
+                                        command.decode_mode == "steady");
                 } else {
-                    (void)generate_uncached(
-                        model, ids, command.batch, command.new_tokens,
-                        command.batch_argmax_mode == "device");
+                    if (command.decode_mode == "steady") {
+                        TokenRows sequences(static_cast<std::size_t>(command.batch), ids);
+                        (void)uncached_step(
+                            model, sequences, command.batch_argmax_mode == "device");
+                        (void)decode_uncached(
+                            model, sequences, command.new_tokens,
+                            command.batch_argmax_mode == "device");
+                    } else {
+                        (void)generate_uncached(
+                            model, ids, command.batch, command.new_tokens,
+                            command.batch_argmax_mode == "device");
+                    }
                 }
             }
             microllm::runtime::synchronize(device);
@@ -533,15 +583,16 @@ int main(int argc, char** argv) {
                     // phase, so it is deliberately outside decode timing.
                     const auto prepare_start = std::chrono::steady_clock::now();
                     auto state = prepare_cached(
-                        model, ids, command.new_tokens,
+                        model, ids, cache_capacity,
                         command.batch,
                         command.cache_prefill_mode == "full", cache_dtypes);
                     microllm::runtime::synchronize(device);
                     const auto prepare_finish = std::chrono::steady_clock::now();
-                    cache_prepare_ms += std::chrono::duration<double, std::milli>(
+                    decode_prepare_ms += std::chrono::duration<double, std::milli>(
                                             prepare_finish - prepare_start).count();
                     const auto decode_start = std::chrono::steady_clock::now();
-                    current = decode_cached(model, state, command.new_tokens);
+                    current = decode_cached(model, state, command.new_tokens,
+                                            command.decode_mode == "steady");
                     microllm::runtime::synchronize(device);
                     const auto decode_finish = std::chrono::steady_clock::now();
                     generation_ms += std::chrono::duration<double, std::milli>(
@@ -550,10 +601,27 @@ int main(int argc, char** argv) {
                         cache_logits_evidence = state.logits;
                     }
                 } else {
+                    TokenRows steady_sequences;
+                    if (command.decode_mode == "steady") {
+                        steady_sequences = TokenRows(
+                            static_cast<std::size_t>(command.batch), ids);
+                        const auto prepare_start = std::chrono::steady_clock::now();
+                        (void)uncached_step(
+                            model, steady_sequences,
+                            command.batch_argmax_mode == "device");
+                        microllm::runtime::synchronize(device);
+                        const auto prepare_finish = std::chrono::steady_clock::now();
+                        decode_prepare_ms += std::chrono::duration<double, std::milli>(
+                                                 prepare_finish - prepare_start).count();
+                    }
                     const auto decode_start = std::chrono::steady_clock::now();
-                    current = generate_uncached(
-                        model, ids, command.batch, command.new_tokens,
-                        command.batch_argmax_mode == "device");
+                    current = command.decode_mode == "steady"
+                                  ? decode_uncached(
+                                        model, steady_sequences, command.new_tokens,
+                                        command.batch_argmax_mode == "device")
+                                  : generate_uncached(
+                                        model, ids, command.batch, command.new_tokens,
+                                        command.batch_argmax_mode == "device");
                     microllm::runtime::synchronize(device);
                     const auto decode_finish = std::chrono::steady_clock::now();
                     generation_ms += std::chrono::duration<double, std::milli>(
@@ -631,6 +699,8 @@ int main(int argc, char** argv) {
                   << ",\"use_cache\":" << (command.use_cache ? "true" : "false")
                   << ",\"cache_prefill_mode\":\""
                   << command.cache_prefill_mode << "\""
+                  << ",\"requested_cache_capacity\":"
+                  << command.cache_capacity
                   << ",\"prefill_logits_mode\":\""
                   << command.prefill_logits_mode << "\""
                   << ",\"kv_cache_dtype\":\""
@@ -642,6 +712,7 @@ int main(int argc, char** argv) {
                           ? 0 : command.new_tokens - 1)
                   << ",\"batch_argmax_mode\":\""
                   << command.batch_argmax_mode << "\""
+                  << ",\"decode_mode\":\"" << command.decode_mode << "\""
                   << ",\"warmup\":" << command.warmup
                   << ",\"steps\":" << command.steps
                   << ",\"warmup_ms\":" << warmup_ms
@@ -705,16 +776,35 @@ int main(int argc, char** argv) {
             const auto measured_tokens =
                 generated_suffix.size() * static_cast<std::size_t>(command.steps) *
                 static_cast<std::size_t>(command.batch);
+            const auto measured_forward_steps =
+                command.decode_mode == "steady" || !command.use_cache
+                    ? measured_tokens
+                    : (generated_suffix.empty() ? 0U : generated_suffix.size() - 1U) *
+                          static_cast<std::size_t>(command.steps) *
+                          static_cast<std::size_t>(command.batch);
             std::cout << ",\"generation_ms\":" << generation_ms
                       << ",\"mean_generation_ms\":"
                       << generation_ms / static_cast<double>(command.steps)
-                      << ",\"cache_prepare_ms\":" << cache_prepare_ms
+                      << ",\"decode_prepare_ms\":" << decode_prepare_ms
+                      << ",\"mean_decode_prepare_ms\":"
+                      << decode_prepare_ms / static_cast<double>(command.steps)
+                      << ",\"cache_prepare_ms\":"
+                      << (command.use_cache ? decode_prepare_ms : 0.0)
                       << ",\"mean_cache_prepare_ms\":"
-                      << cache_prepare_ms / static_cast<double>(command.steps)
+                      << (command.use_cache
+                              ? decode_prepare_ms / static_cast<double>(command.steps)
+                              : 0.0)
                       << ",\"mean_end_to_end_generation_ms\":"
-                      << (cache_prepare_ms + generation_ms) /
+                      << (decode_prepare_ms + generation_ms) /
                              static_cast<double>(command.steps)
                       << ",\"measured_tokens\":" << measured_tokens
+                      << ",\"measured_forward_steps\":"
+                      << measured_forward_steps
+                      << ",\"decode_step_semantics\":\""
+                      << (command.decode_mode == "steady" || !command.use_cache
+                              ? "one_model_forward_per_measured_token"
+                              : "generated_tokens_including_prefill_first")
+                      << "\""
                       << ",\"decode_tokens_per_second\":"
                       << static_cast<double>(measured_tokens) * 1000.0 / generation_ms
                       << ",\"decode_milliseconds_per_token\":"

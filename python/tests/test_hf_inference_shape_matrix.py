@@ -23,6 +23,11 @@ class HfInferenceShapeMatrixTest(unittest.TestCase):
         self.assertIn(1, extended["contexts"])
         self.assertIn(4096, extended["contexts"])
         self.assertIn(16, extended["batches"])
+        self.assertEqual(extended["decode_lengths"], [1, 8, 32])
+        boundary = MATRIX.MATRIX_SUITES["boundary"]
+        self.assertTrue({31, 32, 33, 127, 128, 129, 511, 512, 513} <=
+                        set(boundary["contexts"]))
+        self.assertIn(3, boundary["batches"])
 
     def test_context_batch_and_kv_formulas_are_explicit(self):
         self.assertEqual(MATRIX.positive_int_list("8,128,512", "contexts"),
@@ -155,6 +160,8 @@ class HfInferenceShapeMatrixTest(unittest.TestCase):
         self.assertEqual(record["kv_cache_theoretical_bytes"], 320)
         self.assertEqual(record["kv_cache_utilization"], 0.7)
         self.assertEqual(record["kv_cache_dtype"], "bf16")
+        self.assertEqual(record["kv_cache_reservation_policy"],
+                         "fixed_exact_capacity")
         self.assertEqual(record["peak_memory_share_of_device"], 0.2)
         self.assertEqual(record["precision"],
                          "mixed_bf16_weights_fp32_activations")
@@ -178,6 +185,10 @@ class HfInferenceShapeMatrixTest(unittest.TestCase):
         self.assertEqual(command[layers + 1], "0,2")
         logits = command.index("--prefill-logits")
         self.assertEqual(command[logits + 1], "last")
+        decode_mode = command.index("--decode-mode")
+        self.assertEqual(command[decode_mode + 1], "steady")
+        capacity = command.index("--cache-capacity")
+        self.assertEqual(command[capacity + 1], "12")
 
     def test_mixed_layer_cache_theoretical_bytes_sum_each_dtype(self):
         args = type("Args", (), {"warmup": 1, "steps": 1,
@@ -202,6 +213,21 @@ class HfInferenceShapeMatrixTest(unittest.TestCase):
         self.assertEqual(record["kv_cache_theoretical_bytes"], 192)
         self.assertEqual(record["kv_cache_fp32_layers"], 1)
         self.assertEqual(record["kv_cache_bf16_layers"], 1)
+
+    def test_sweep_capacity_exposes_unused_short_decode_pages(self):
+        args = type("Args", (), {
+            "micro_binary": Path("micro"), "decode_tokens": 1,
+            "decode_lengths": [1, 8], "micro_cache_capacity": "sweep-max",
+            "warmup": 1, "steps": 2, "micro_batch_argmax_mode": "device",
+            "micro_kv_cache_dtype": "bf16", "micro_kv_cache_fp32_layers": "",
+            "prefill_logits_mode": "last"})()
+        model = {"config": "config.json", "weights": "weights.bin",
+                 "inference": {"token_ids": [1, 2]}}
+        command = MATRIX.micro_command(
+            args, model, context=32, batch=4, workload="decode", cache="cached",
+            decode_tokens=1)
+        capacity = command.index("--cache-capacity")
+        self.assertEqual(command[capacity + 1], "40")
 
     def test_summary_computes_batch_and_memory_efficiency(self):
         model = {"name": "tiny", "revision": "fixed"}
@@ -235,6 +261,77 @@ class HfInferenceShapeMatrixTest(unittest.TestCase):
         self.assertEqual(row["microllm_kv_cache_bytes_per_request"], 100.0)
         self.assertEqual(row["microllm_peak_bytes_per_request"], 625.0)
         self.assertEqual(summary["axes"]["batches"], [1, 4])
+
+    def test_validator_checks_active_capacity_and_utilization(self):
+        model = {"name": "tiny", "parameter_count": 10}
+        record = {
+            "status": "pass", "model": "tiny", "parameter_count": 10,
+            "context": 8, "batch": 2, "workload": "decode",
+            "cache_mode": "cached",
+            "precision": "mixed_bf16_weights_fp32_activations",
+            "warmup": 1, "steps": 2, "measured_tokens": 16,
+            "measured_forward_steps": 16,
+            "peak_bytes": 1000, "device_total_bytes": 10000,
+            "resident_weight_bytes": 800,
+            "throughput_tokens_per_second": 20.0,
+            "decode_step_semantics": "one_model_forward_per_measured_token",
+            "kv_cache_theoretical_bytes": 120,
+            "kv_cache_actual_bytes": 120, "kv_cache_active_bytes": 120,
+            "kv_cache_capacity_tokens": 12, "kv_cache_active_tokens": 12,
+            "kv_cache_utilization": 1.0,
+        }
+        MATRIX.validate_measurement(
+            record, model, "microllm", 8, 2, "decode", "cached", 1, 2, 4)
+        record["kv_cache_active_tokens"] = 11
+        with self.assertRaisesRegex(RuntimeError, "KV token accounting"):
+            MATRIX.validate_measurement(
+                record, model, "microllm", 8, 2, "decode", "cached", 1, 2, 4)
+
+    def test_decode_length_axis_and_process_tail_metrics_are_preserved(self):
+        model = {"name": "tiny", "revision": "fixed"}
+        records = []
+        for decode_tokens in (1, 8):
+            for framework in ("microllm", "pytorch"):
+                for run, latency in enumerate((10.0, 12.0, 20.0), start=1):
+                    records.append({
+                        "model": "tiny", "context": 128, "batch": 2,
+                        "decode_tokens": decode_tokens,
+                        "workload": "decode", "cache_mode": "cached",
+                        "framework": framework, "status": "pass",
+                        "process_run": run,
+                        "throughput_tokens_per_second":
+                            decode_tokens * 2 * 1000.0 / latency,
+                        "latency_ms": latency, "peak_bytes": 1200,
+                        "device_total_bytes": 10000,
+                        "peak_memory_share_of_device": 0.12,
+                        "resident_weight_bytes": 800,
+                        "kv_cache_actual_bytes": 240,
+                        "kv_cache_active_bytes": 220,
+                        "kv_cache_theoretical_bytes": 240,
+                        "kv_cache_capacity_tokens": 136,
+                        "kv_cache_active_tokens": 135,
+                        "kv_cache_element_bytes": 2,
+                        "kv_cache_allocation_efficiency": 1.0,
+                        "kv_cache_utilization": 220 / 240,
+                        "kv_cache_share_of_peak": 0.2,
+                        "generated_tokens": list(range(decode_tokens)),
+                    })
+        summary = MATRIX.summarize(
+            records, [model], [128], [2], 3, cases=["cached"],
+            decode_lengths=[1, 8])
+        self.assertEqual(len(summary["rows"]), 2)
+        self.assertEqual(summary["axes"]["decode_lengths"], [1, 8])
+        long_row = summary["rows"][1]
+        self.assertEqual(long_row["decode_tokens"], 8)
+        self.assertEqual(long_row["microllm_process_latency_ms_p50"], 12.0)
+        self.assertAlmostEqual(long_row["microllm_process_latency_ms_p95"], 19.2)
+        self.assertEqual(long_row["microllm_peak_incremental_bytes"], 400.0)
+        self.assertEqual(long_row[
+            "microllm_peak_incremental_bytes_per_request"], 200.0)
+        self.assertAlmostEqual(long_row[
+            "microllm_kv_cache_share_of_incremental_peak"], 0.6)
+        self.assertGreater(long_row[
+            "microllm_decode_length_throughput_vs_shortest"], 1.0)
 
 
 if __name__ == "__main__":

@@ -39,6 +39,13 @@ train/generate ratio 为 `2.086361/1.921682`，DeepSeek train/generate ratio 为
 训练比值超过 1 只适用于当前极短 context 的固定 FP32 测量，不能推广成完整训练领先。
 综合分数超过 1 也不表示每一项都达到 parity；DeepSeek generation 仍是明显缺口。
 
+> **Decode口径修正：** Experiment 085证明，历史cached generation计时把prefill免费给出的
+> 第一个token计入了decode token数。它仍可用于同口径的microLLM候选前后筛选，但上面的
+> generation/PyTorch比值不能再解释成steady decode排名。现在正式矩阵要求每个measured token
+> 对应一次模型forward，并单独报告prefill准备时间。原始历史数据保留，不回填成新口径。
+> Experiment 085的冻结Release N8矩阵显示：Qwen六个shape均达到或超过当前PyTorch参考；
+> DeepSeek T8/T512过线，T2048 B1/B8仍为`0.866×/0.671×`，是新的明确优化目标。
+
 Experiment 007 的 hipBLASLt descriptor/layout cache 数值正确但被 discard：候选分数
 `1.669755` 低于 running best，Qwen generation 和 DeepSeek training 分别退化约
 6.1%/5.2%。灰点会保留在图上。

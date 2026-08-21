@@ -227,3 +227,5 @@ the next gate. Records are append-only except for factual corrections.
   full-capacity row clearing, other-row preservation and explicit shared-position boundary.
 - [2026-08-21-kv-cache-per-row-positions.md](2026-08-21-kv-cache-per-row-positions.md):
   per-row position metadata, strict ambiguous-read failure and reset/advance transitions.
+- [2026-08-21-inference-shape-memory-matrix.md](2026-08-21-inference-shape-memory-matrix.md):
+  boundary contexts, output-length sweeps, batch efficiency and strict KV/peak-memory accounting.

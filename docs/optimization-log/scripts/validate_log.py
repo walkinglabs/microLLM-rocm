@@ -2367,6 +2367,163 @@ def validate_kv_cache_per_row_positions(errors: list[str]) -> tuple[int, int, in
     return int(cpu.get("tests", 0)), int(hip.get("tests", 0)), len(transitions)
 
 
+def validate_inference_shape_memory_matrix(errors: list[str]) -> tuple[int, int, int, int]:
+    data = ROOT / "experiments" / "085-data"
+
+    def records(name: str) -> list[dict]:
+        return [json.loads(line) for line in
+                (data / name).read_text(encoding="utf-8").splitlines()]
+
+    qwen = records("qwen-raw.jsonl")
+    deepseek = records("deepseek-raw.jsonl")
+    formal = qwen + deepseek
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    qwen_release = records("qwen-release-raw.jsonl")
+    deepseek_release = records("deepseek-release-raw.jsonl")
+    release = qwen_release + deepseek_release
+    release_summary = json.loads(
+        (data / "release-summary.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    environment = (data / "environment.txt").read_text(encoding="utf-8")
+    invalid = records("invalid-free-first-token-pilot.jsonl")
+    mixed = records("mixed-qwen-runner-invalid.jsonl") + \
+        records("mixed-deepseek-runner-invalid.jsonl")
+
+    if len(qwen) != 36 or len(deepseek) != 36 or \
+            summary.get("status") != "pass" or len(summary.get("rows", [])) != 36:
+        errors.append("frozen inference shape matrix row counts changed")
+        return len(formal), len(summary.get("rows", [])), len(invalid), len(release)
+
+    expected_shapes = {(context, batch, decode)
+                       for context in (8, 512, 2048)
+                       for batch in (1, 8) for decode in (1, 8, 32)}
+    by_pair: dict[tuple, dict[str, dict]] = {}
+    for record in formal:
+        shape = (int(record.get("context", -1)), int(record.get("batch", -1)),
+                 int(record.get("decode_tokens", -1)))
+        if record.get("status") != "pass" or shape not in expected_shapes or \
+                record.get("decode_step_semantics") != \
+                "one_model_forward_per_measured_token" or \
+                int(record.get("measured_tokens", -1)) != \
+                int(record.get("measured_forward_steps", -2)):
+            errors.append("formal steady-decode execution contract changed")
+            continue
+        context, _, decode = shape
+        expected_active = context + decode
+        active = int(record.get("kv_cache_active_tokens", -1))
+        capacity = int(record.get("kv_cache_capacity_tokens", -1))
+        actual = int(record.get("kv_cache_actual_bytes", 0))
+        active_bytes = int(record.get("kv_cache_active_bytes", 0))
+        utilization = float(record.get("kv_cache_utilization", -1.0))
+        if record.get("framework") == "microllm":
+            expected_capacity = context + 32
+        else:
+            expected_capacity = expected_active
+        if active != expected_active or capacity != expected_capacity or actual <= 0 or \
+                active_bytes <= 0 or not math.isclose(
+                    utilization, active_bytes / actual, rel_tol=1.0e-6,
+                    abs_tol=1.0e-9):
+            errors.append("formal KV active/capacity/utilization contract changed")
+        key = (record.get("model"),) + shape
+        by_pair.setdefault(key, {})[str(record.get("framework"))] = record
+
+    matched = 0
+    for pair in by_pair.values():
+        if set(pair) == {"microllm", "pytorch"} and \
+                pair["microllm"].get("generated_tokens") == \
+                pair["pytorch"].get("generated_tokens"):
+            matched += 1
+    if len(by_pair) != 36 or matched != 36:
+        errors.append("formal inference token pairing changed")
+
+    long_rows = [row for row in summary["rows"]
+                 if row.get("context") == 2048 and row.get("batch") == 8]
+    if len(long_rows) != 6:
+        errors.append("semantic long-context survey rows changed")
+    memory_rows = [row for row in long_rows if row.get("decode_tokens") == 32]
+    if len(memory_rows) != 2 or any(
+            float(row.get("microllm_peak_bytes", math.inf)) >=
+            float(row.get("pytorch_peak_bytes", 0.0)) for row in memory_rows):
+        errors.append("recorded long-context peak-memory advantage disappeared")
+
+    if len(qwen_release) != 12 or len(deepseek_release) != 12 or \
+            release_summary.get("status") != "pass" or \
+            release_summary.get("build_type") != "Release" or \
+            len(release_summary.get("rows", [])) != 12:
+        errors.append("Release steady-decode matrix row counts changed")
+    release_pairs: dict[tuple, dict[str, dict]] = {}
+    for record in release:
+        context = int(record.get("context", -1))
+        batch = int(record.get("batch", -1))
+        if record.get("status") != "pass" or \
+                int(record.get("decode_tokens", -1)) != 8 or \
+                record.get("decode_step_semantics") != \
+                "one_model_forward_per_measured_token" or \
+                int(record.get("measured_tokens", -1)) != \
+                int(record.get("measured_forward_steps", -2)) or \
+                int(record.get("kv_cache_active_tokens", -1)) != context + 8 or \
+                int(record.get("kv_cache_capacity_tokens", -1)) != context + 8:
+            errors.append("Release steady-decode execution contract changed")
+        key = (record.get("model"), context, batch)
+        release_pairs.setdefault(key, {})[str(record.get("framework"))] = record
+    release_matched = sum(
+        set(pair) == {"microllm", "pytorch"} and
+        pair["microllm"].get("generated_tokens") ==
+        pair["pytorch"].get("generated_tokens")
+        for pair in release_pairs.values())
+    if len(release_pairs) != 12 or release_matched != 10:
+        errors.append("Release token-match boundary changed")
+    for row in release_summary.get("rows", []):
+        ratio = float(row.get("throughput_ratio_microllm_over_pytorch", 0.0))
+        model_name = str(row.get("model"))
+        context = int(row.get("context", -1))
+        expected_pass = model_name == "qwen2.5-0.5b" or context < 2048
+        if (ratio >= 1.0) != expected_pass:
+            errors.append("Release throughput parity boundary changed")
+    release_long_b8 = [row for row in release_summary.get("rows", [])
+                       if row.get("context") == 2048 and row.get("batch") == 8]
+    if len(release_long_b8) != 2 or any(
+            float(row.get("microllm_peak_bytes", math.inf)) >=
+            float(row.get("pytorch_peak_bytes", 0.0)) for row in release_long_b8):
+        errors.append("Release long-batch peak-memory boundary changed")
+
+    invalid_one = [record for record in invalid
+                   if record.get("decode_tokens") == 1]
+    missing_forward = sum("measured_forward_steps" not in record for record in mixed)
+    if len(invalid_one) != 4 or any(
+            record.get("decode_step_semantics") ==
+            "one_model_forward_per_measured_token" for record in invalid_one) or \
+            not 0 < missing_forward < len(mixed):
+        errors.append("invalid free-token or mixed-source counterexample changed")
+
+    if gates.get("status") != "pass" or \
+            gates.get("cpu", {}).get("passed") != 207 or \
+            gates.get("hip", {}).get("passed") != 88 or \
+            gates.get("sanitizer", {}).get("passed") != 200 or \
+            gates.get("python_matrix_contract", {}).get("passed") != 15 or \
+            gates.get("release_matrix", {}).get("records") != 24 or \
+            gates.get("release_matrix", {}).get("token_pairs_matched") != 10:
+        errors.append("inference matrix test gates changed")
+    if "semantic_build_type=unspecified" not in environment or \
+            "release_build_type=Release" not in environment:
+        errors.append("inference matrix build-type audit changed")
+
+    app = (REPOSITORY / "apps" / "hf_infer.cpp").read_text(encoding="utf-8")
+    runner = (REPOSITORY / "benchmarks" / "single_gpu" /
+              "hf_inference_shape_matrix.py").read_text(encoding="utf-8")
+    cpu_test = (REPOSITORY / "tests" / "inference" /
+                "shape_matrix_test.cpp").read_text(encoding="utf-8")
+    for token in ("--decode-mode", "--cache-capacity", "measured_forward_steps"):
+        if token not in app:
+            errors.append(f"steady-decode CLI evidence is missing {token}")
+    for token in ("boundary", "decode_lengths", "kv_cache_share_of_incremental_peak"):
+        if token not in runner:
+            errors.append(f"inference matrix runner evidence is missing {token}")
+    if "active_cache_bytes" not in cpu_test or "storage_before" not in cpu_test:
+        errors.append("tiny active/allocation KV evidence is missing")
+    return len(formal), matched, len(invalid), len(release)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -2429,7 +2586,8 @@ def validate_assets(errors: list[str]) -> None:
                  "inplace-causal-softmax.svg",
                  "stop-token-early-completion.svg",
                  "kv-cache-clear-row.svg",
-                 "kv-cache-per-row-positions.svg"):
+                 "kv-cache-per-row-positions.svg",
+                 "steady-inference-shape-memory.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -2536,6 +2694,9 @@ def main() -> int:
     clear_row_cpu, clear_row_hip, clear_row_bytes = validate_kv_cache_clear_row(errors)
     row_position_cpu, row_position_hip, row_position_transitions = \
         validate_kv_cache_per_row_positions(errors)
+    inference_matrix_raw, inference_matrix_matched, inference_matrix_invalid, \
+        inference_matrix_release = \
+        validate_inference_shape_memory_matrix(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -2609,6 +2770,8 @@ def main() -> int:
           f"clear_row={clear_row_cpu}/{clear_row_hip}/{clear_row_bytes} "
           f"row_positions={row_position_cpu}/{row_position_hip}/"
           f"{row_position_transitions} "
+          f"steady_inference={inference_matrix_raw}/{inference_matrix_matched}/"
+          f"{inference_matrix_invalid}/{inference_matrix_release} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

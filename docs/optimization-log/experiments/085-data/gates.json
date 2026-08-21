@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "cpu": {"passed": 207, "failed": 0, "skipped": 2},
+  "hip": {"passed": 88, "failed": 0, "skipped": 0},
+  "sanitizer": {"passed": 200, "failed": 0, "skipped": 0},
+  "python_matrix_contract": {"passed": 15, "failed": 0},
+  "tiny_shape_combinations": {"cpu": 66, "hip": 88},
+  "semantic_matrix": {"records": 72, "token_pairs_matched": 36, "token_pairs": 36},
+  "release_matrix": {"records": 24, "token_pairs_matched": 10, "token_pairs": 12}
+}

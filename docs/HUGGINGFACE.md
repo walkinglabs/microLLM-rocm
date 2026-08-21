@@ -102,11 +102,13 @@ python3 benchmarks/single_gpu/hf_inference_shape_matrix.py \
   --pytorch-python /usr/local/bin/python3 \
   --output-directory /tmp/inference-matrix \
   --contexts 8,128,512 --batches 1,2,4,8 \
-  --decode-tokens 4 --warmup 1 --steps 2 --runs 3
+  --decode-lengths 1,8,32 --warmup 1 --steps 3 --runs 3
 ```
 
 runner分别记录microLLM混合驻留政策和PyTorch整网BF16，不能只写一个“BF16”掩盖
-常驻权重差异。详细解释见[推理矩阵设计](dev/inference-matrix.zh-CN.md)。
+常驻权重差异。它还使用steady decode语义，保证每个计入吞吐的token真的执行一次模型
+forward，并分别记录KV Cache的预留、活跃字节、每请求成本和峰值显存。详细解释见
+[推理矩阵设计](dev/inference-matrix.zh-CN.md)。
 
 多步训练使用相同规则：
 

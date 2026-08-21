@@ -1857,3 +1857,26 @@ CPU/HIP覆盖`[0,0,0]→[2,0,0]→[0,0,0]→[3,3,3]→[3,0,3]→[3,3,3]`，并�
 同时清Storage且零payload transfer。模型尚未消费分叉positions，旧uniform路径不变。
 
 下一步必须把positions传给RoPE、K/V store和cached Attention；状态能表达不等于Kernel已支持。
+
+## 102. Experiment 085：先证明每个decode token真的算过模型
+
+把输出长度扩成1/8/32后，旧runner暴露了一个计时漏洞：prefill已经产生第一个token的logits，
+`new_tokens=1`因此只测argmax，没有cached Transformer forward。Qwen T8 B1的旧数据是microLLM
+400.6 tok/s、PyTorch 21,588.5 tok/s；修正为一token一forward后，冻结语义矩阵同时满足
+`measured_tokens == measured_forward_steps`与`active_tokens == context + decode`。
+
+运行中途还发生过binary重建；那72行被隔离成mixed-invalid。第二次冻结虽然36/36 shape token一致、
+KV公式全过，却又发现`CMAKE_BUILD_TYPE`为空，所以只接受语义、KV和显存，不发布速度。最后使用
+Release/gfx942对N8重跑24个进程记录。
+
+![Release steady decode and peak memory](assets/steady-inference-shape-memory.svg)
+
+Qwen T8/T512/T2048的B1/B8吞吐比为`3.029/3.366`、`2.598/2.511`、`1.499/1.012`；
+DeepSeek为`2.372/2.142`、`1.674/1.450`、`0.866/0.671`。因此“全部未追平”和“全部领先”
+都不成立：剩余性能缺口精确落在DeepSeek T2048。
+
+长batch峰值却明显占优：T2048 B8 Qwen为3.58/10.68 GiB，DeepSeek为6.93/13.59 GiB。
+Release token门是10/12；DeepSeek T2048 B1/B8在第3个输出token分叉，原样保留。
+
+下一步只profile DeepSeek T2048 steady decode，并先检查每token一次D2H选词同步、cached Attention
+读取/reduction和allocator各占多少。没有trace前不把“换FlashAttention”写成既定答案。

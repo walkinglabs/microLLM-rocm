@@ -38,6 +38,13 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] compare tokenizer IDs, complete logits, and greedy tokens with PyTorch on fixed prompts;
 - [ ] compare every per-layer hidden state with PyTorch;
 - [x] record engine peak, resident policy, prefill/decode latency, tokens/s and KV utilization;
+- [x] require one cached model forward per measured decode token and sweep output lengths
+  1/8/32 across short/medium/long contexts and B1/B8;
+- [x] provide a dedicated 31/32/33, 127/128/129 and 511/512/513 dispatch-boundary
+  suite plus odd batch 3;
+- [ ] remove the benchmark/serving loop's per-token selected-ID D2H synchronization;
+- [ ] profile the DeepSeek T2048 Release cached path; Qwen already meets the selected
+  T8/T512/T2048 B1/B8 PyTorch reference;
 - [x] add a delayed-arrival multi-request reference scheduler with independent Cache/RNG state;
 - [x] batch compatible equal-length requests through one public static generation path;
 - [x] group pending requests by compatibility with singleton fallback and cross-drain admission;
@@ -97,6 +104,6 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [ ] Radeon run;
 - [ ] four-rank RCCL after shared-memory environment repair;
 - [ ] backward-ready bucket overlap;
-- [x] broader context 8–2048 and batch 1–8 PyTorch inference matrix;
+- [x] broader context 8–2048, batch 1–8 and corrected steady-decode PyTorch inference matrix;
 - [ ] identical-residency dtype matrix and llama.cpp benchmarks;
 - [ ] learner-independent tutorial dry run on `tutorial/beginner-course`.
