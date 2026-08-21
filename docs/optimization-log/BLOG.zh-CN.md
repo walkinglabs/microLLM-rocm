@@ -1806,3 +1806,17 @@ peak仅少1.7%。普通线程的标量D点积/PV循环完全抵消了省下的�
 
 实验在T512立即停止并回退，没有虚构T2048结果。真正的online Attention必须同时有MFMA tile、
 online softmax和数据复用；“不分配T²”只是必要条件，不是FlashAttention实现。
+
+## 98. Experiment 081：同一块T² Storage先放scores，再放probabilities
+
+长library Attention以前同时持有QK scores和softmax probabilities两份T²。softmax完成所有
+score读取后原地覆盖输入，公共out-of-place reference不变。
+
+![In-place causal softmax](assets/inplace-causal-softmax.svg)
+
+Qwen/DeepSeek T2048 B8完整logits位级一致；peak分别5.147→3.397 GiB（-34%）和
+7.997→6.496 GiB（-18.8%）。删除字节精确等于`B×H×T²×4`，allocation calls也恰好每层每次
+forward少一次。三对吞吐为1.017×/1.005×，16-shape最差0.990×。
+
+它仍物化一份probability T²，但证明生命周期优化可以在不改变Kernel数学的前提下获得大幅显存
+收益。彻底删除最后一份T²才需要真正的online MFMA Attention。

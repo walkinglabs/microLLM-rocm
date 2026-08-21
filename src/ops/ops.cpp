@@ -1973,10 +1973,21 @@ TensorPair causal_gqa_attention_saved(
         const auto expanded_value = repeats == 1
                                         ? value : repeat_interleave(value, 1, repeats, context);
         const auto scaled_query = ops::scale(query, scale, context);
-        const auto scores = matmul_with_implementation(
+        auto probabilities = matmul_with_implementation(
             scaled_query, expanded_key, MatmulImplementation::HipBLASLt,
             false, true, context);
-        auto probabilities = causal_softmax(scores, context);
+#if MICROLLM_HAS_HIP
+        // The QK scores are dead after softmax. The cooperative kernels finish
+        // every score read before normalization writes, so input/output aliasing
+        // removes one [B,H,T,T] allocation without changing reduction order.
+        hip::launch_causal_softmax(
+            static_cast<const float*>(probabilities.data()),
+            static_cast<float*>(probabilities.data()),
+            probabilities.numel() / sequence, sequence,
+            context.native_stream(query.device()));
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
         auto output = matmul_with_implementation(
             probabilities, expanded_value, MatmulImplementation::HipBLASLt,
             context);

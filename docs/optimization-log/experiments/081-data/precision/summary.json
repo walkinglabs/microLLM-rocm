@@ -1,0 +1,36 @@
+{
+  "rows": [
+    {
+      "batch": 8,
+      "context": 2048,
+      "inplace_forward_ms": 118.525704,
+      "inplace_peak_bytes": 3642908160,
+      "inplace_top": 9707,
+      "max_abs": 0.0,
+      "model": "qwen2.5-0.5b",
+      "reference_forward_ms": 120.419394,
+      "reference_peak_bytes": 5521956352,
+      "reference_top": 9707,
+      "rmse": 0.0,
+      "top_equal": true,
+      "values": 151936
+    },
+    {
+      "batch": 8,
+      "context": 2048,
+      "inplace_forward_ms": 238.781846,
+      "inplace_peak_bytes": 6971054080,
+      "inplace_top": 30,
+      "max_abs": 0.0,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "reference_forward_ms": 241.148653,
+      "reference_peak_bytes": 8581666816,
+      "reference_top": 30,
+      "rmse": 0.0,
+      "top_equal": true,
+      "values": 151936
+    }
+  ],
+  "schema_version": 1,
+  "status": "pass"
+}

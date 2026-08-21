@@ -517,6 +517,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/079-data/](experiments/079-data/) | bit-exact、A/B paired、16-shape survey、targeted recheck和profile |
 | [assets/readable-fused-attention-discard.svg](assets/readable-fused-attention-discard.svg) | 无T²可读Kernel的吞吐/显存反例与backend盘点 |
 | [experiments/080-data/](experiments/080-data/) | T512 B1 paired route pilot和ROCm backend inventory |
+| [assets/inplace-causal-softmax.svg](assets/inplace-causal-softmax.svg) | score/prob生命周期、精确T²字节和context显存曲线 |
+| [experiments/081-data/](experiments/081-data/) | bit-exact、paired memory track、16-shape survey和alias profile |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

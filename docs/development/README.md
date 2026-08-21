@@ -219,3 +219,5 @@ the next gate. Records are append-only except for factual corrections.
   register-cached exponentials, alternating binary evidence and no-spill profile.
 - [2026-08-21-readable-fused-attention-discard.md](2026-08-21-readable-fused-attention-discard.md):
   no-drop-in-FMHA inventory and a 0.360x readable fused route rejection.
+- [2026-08-21-inplace-causal-softmax.md](2026-08-21-inplace-causal-softmax.md):
+  internal score/probability Storage reuse with exact T² peak reduction and bit-exact logits.

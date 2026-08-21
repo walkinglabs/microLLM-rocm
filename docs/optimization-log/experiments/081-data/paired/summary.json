@@ -1,0 +1,55 @@
+{
+  "pairs": 3,
+  "rows": [
+    {
+      "inplace_median_tps": 136557.458104939,
+      "inplace_peak_bytes": 3647770112,
+      "inplace_values": [
+        135719.136514496,
+        136557.458104939,
+        136857.868959927
+      ],
+      "median_pair_ratio": 1.0167631753366375,
+      "model": "qwen2.5-0.5b",
+      "pair_ratios": [
+        1.067999824066558,
+        1.0167631753366375,
+        1.0142232307990813
+      ],
+      "peak_reduction": 0.3399873288108731,
+      "reference_median_tps": 134306.062038219,
+      "reference_peak_bytes": 5526818304,
+      "reference_values": [
+        127077.864112118,
+        134306.062038219,
+        134938.606022759
+      ]
+    },
+    {
+      "inplace_median_tps": 68154.71393503,
+      "inplace_peak_bytes": 6975916032,
+      "inplace_values": [
+        68339.531224018,
+        68154.71393503,
+        68098.535449637
+      ],
+      "median_pair_ratio": 1.0045280723380696,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "pair_ratios": [
+        1.0045280723380696,
+        1.005433821483662,
+        1.0039036925717277
+      ],
+      "peak_reduction": 0.1875743713807121,
+      "reference_median_tps": 67833.733408418,
+      "reference_peak_bytes": 8586528768,
+      "reference_values": [
+        68031.479762388,
+        67786.374874935,
+        67833.733408418
+      ]
+    }
+  ],
+  "schema_version": 1,
+  "status": "pass"
+}

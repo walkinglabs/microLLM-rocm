@@ -2223,6 +2223,58 @@ def validate_readable_fused_attention_discard(errors: list[str]) -> tuple[int, i
     return len(raw), len(summary.get("pair_ratios", []))
 
 
+def validate_inplace_causal_softmax(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "081-data"
+    precision = json.loads((data / "precision" / "summary.json").read_text(
+        encoding="utf-8"))
+    precision_rows = precision.get("rows", [])
+    if len(precision_rows) != 2 or any(
+            row.get("top_equal") is not True or
+            float(row.get("max_abs", 1.0)) != 0.0 or
+            float(row.get("rmse", 1.0)) != 0.0 for row in precision_rows):
+        errors.append("in-place causal softmax bit-exact gate changed")
+    paired_raw = [json.loads(line) for line in
+                  (data / "paired" / "raw.jsonl").read_text(
+                      encoding="utf-8").splitlines()]
+    paired = json.loads((data / "paired" / "summary.json").read_text(
+        encoding="utf-8"))
+    paired_rows = {row.get("model"): row for row in paired.get("rows", [])}
+    if len(paired_raw) != 12 or paired.get("pairs") != 3 or len(paired_rows) != 2 or any(
+            float(row.get("median_pair_ratio", 0.0)) < 1.0
+            for row in paired_rows.values()) or \
+            float(paired_rows.get("qwen2.5-0.5b", {}).get(
+                "peak_reduction", 0.0)) < 0.33 or \
+            float(paired_rows.get("deepseek-r1-distill-qwen-1.5b", {}).get(
+                "peak_reduction", 0.0)) < 0.18:
+        errors.append("in-place causal softmax paired memory track changed")
+    survey_raw = [json.loads(line) for line in
+                  (data / "shape-survey" / "raw.jsonl").read_text(
+                      encoding="utf-8").splitlines()]
+    survey = json.loads((data / "shape-survey" / "summary.json").read_text(
+        encoding="utf-8"))
+    survey_rows = survey.get("rows", [])
+    if len(survey_raw) != 32 or len(survey_rows) != 16 or any(
+            row.get("top_token_equal") is not True or
+            float(row.get("tps_ratio", 0.0)) < 0.99 for row in survey_rows):
+        errors.append("in-place causal softmax shape survey changed")
+    comparison = json.loads((data / "comparison.json").read_text(encoding="utf-8"))
+    track_rows = comparison.get("paired_t2048_b8", [])
+    profile = comparison.get("profile", {})
+    if comparison.get("status") != "keep" or len(track_rows) != 2 or any(
+            row.get("removed_matches_one_score_tensor") is not True
+            for row in track_rows) or \
+            profile.get("qwen", {}).get("removed_allocation_calls") != 72 or \
+            profile.get("deepseek", {}).get("removed_allocation_calls") != 84 or \
+            profile.get("qwen", {}).get("extra_copy_calls") != 0 or \
+            profile.get("deepseek", {}).get("extra_copy_calls") != 0:
+        errors.append("in-place causal softmax mechanism evidence changed")
+    source = (REPOSITORY / "src/ops/ops.cpp").read_text(encoding="utf-8")
+    if "input/output aliasing" not in source or source.count(
+            "static_cast<float*>(probabilities.data())") < 1:
+        errors.append("in-place causal softmax source alias is missing")
+    return len(paired_raw), len(survey_raw), len(precision_rows)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -2281,7 +2333,8 @@ def validate_assets(errors: list[str]) -> None:
                  "serving-last-logit-prefill.svg",
                  "folded-gqa-discard.svg",
                  "register-softmax.svg",
-                 "readable-fused-attention-discard.svg"):
+                 "readable-fused-attention-discard.svg",
+                 "inplace-causal-softmax.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -2382,6 +2435,8 @@ def main() -> int:
         register_softmax_precision = validate_register_softmax(errors)
     readable_fused_raw, readable_fused_pairs = \
         validate_readable_fused_attention_discard(errors)
+    inplace_softmax_paired, inplace_softmax_survey, inplace_softmax_precision = \
+        validate_inplace_causal_softmax(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -2449,6 +2504,8 @@ def main() -> int:
           f"{register_softmax_survey}/{register_softmax_recheck}/"
           f"{register_softmax_precision} "
           f"readable_fused={readable_fused_raw}/{readable_fused_pairs} "
+          f"inplace_softmax={inplace_softmax_paired}/"
+          f"{inplace_softmax_survey}/{inplace_softmax_precision} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")
