@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "experiment": 63,
+  "decision": "keep",
+  "candidate": "reduce every logits row on GPU and transfer only B int32 token IDs",
+  "rows": [
+    {"model": "qwen2.5-0.5b", "batch": 1, "host_tokens_per_second": 49.804921903, "device_tokens_per_second": 59.052723888, "speedup": 1.185680484, "device_pytorch_ratio": 0.616030050, "peak_ratio": 1.0, "tokens_equal": true},
+    {"model": "qwen2.5-0.5b", "batch": 2, "host_tokens_per_second": 79.299255869, "device_tokens_per_second": 116.216610940, "speedup": 1.465544786, "device_pytorch_ratio": 0.637874520, "peak_ratio": 1.0, "tokens_equal": true},
+    {"model": "qwen2.5-0.5b", "batch": 4, "host_tokens_per_second": 99.298302957, "device_tokens_per_second": 175.679507611, "speedup": 1.769209567, "device_pytorch_ratio": 0.447392407, "peak_ratio": 1.0, "tokens_equal": true},
+    {"model": "qwen2.5-0.5b", "batch": 8, "host_tokens_per_second": 116.755144597, "device_tokens_per_second": 251.272295675, "speedup": 2.152130397, "device_pytorch_ratio": 0.322235035, "peak_ratio": 1.0, "tokens_equal": true},
+    {"model": "deepseek-r1-distill-qwen-1.5b", "batch": 1, "host_tokens_per_second": 38.853643642, "device_tokens_per_second": 43.850841210, "speedup": 1.128615931, "device_pytorch_ratio": 0.508636021, "peak_ratio": 1.0, "tokens_equal": true},
+    {"model": "deepseek-r1-distill-qwen-1.5b", "batch": 2, "host_tokens_per_second": 59.321886033, "device_tokens_per_second": 78.575562558, "speedup": 1.324562785, "device_pytorch_ratio": 0.471162154, "peak_ratio": 1.0, "tokens_equal": true},
+    {"model": "deepseek-r1-distill-qwen-1.5b", "batch": 4, "host_tokens_per_second": 76.907120544, "device_tokens_per_second": 114.290233648, "speedup": 1.486081300, "device_pytorch_ratio": 0.354803984, "peak_ratio": 1.0, "tokens_equal": true},
+    {"model": "deepseek-r1-distill-qwen-1.5b", "batch": 8, "host_tokens_per_second": 92.740899406, "device_tokens_per_second": 155.790874480, "speedup": 1.679850805, "device_pytorch_ratio": 0.258020159, "peak_ratio": 1.0, "tokens_equal": true}
+  ],
+  "transfer_control": {"host_d2h_calls": 8, "host_d2h_bytes": 38895616, "device_d2h_calls": 8, "device_d2h_bytes": 256, "d2h_byte_reduction": 151936.0, "host_tokens_per_second": 115.225487601, "device_tokens_per_second": 251.998831103, "speedup": 2.187005986},
+  "batch8_efficiency": {"qwen": 0.531881256, "deepseek": 0.444093175},
+  "reason": "all eight same-card shapes improve with identical peak/tokens; B8 direct and profiler controls both exceed 2x while D2H bytes fall by the vocabulary size"
+}

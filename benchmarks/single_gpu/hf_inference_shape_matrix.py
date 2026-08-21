@@ -57,6 +57,8 @@ def options() -> argparse.Namespace:
     parser.add_argument("--batches", default="1,2,4")
     parser.add_argument("--cases", type=case_list,
                         default=case_list("prefill,cached,uncached"))
+    parser.add_argument("--micro-batch-argmax-mode", choices=("host", "device"),
+                        default="device")
     parser.add_argument("--decode-tokens", type=int, default=16)
     parser.add_argument("--warmup", type=int, default=2)
     parser.add_argument("--steps", type=int, default=5)
@@ -178,6 +180,7 @@ def micro_command(args: argparse.Namespace, model: dict, context: int, batch: in
         "--tokens", ",".join(str(token) for token in ids), "--device", "hip",
         "--top-k", "1", "--batch", str(batch), "--use-cache", str(cache == "cached").lower(),
         "--cache-prefill-mode", "full",
+        "--batch-argmax-mode", args.micro_batch_argmax_mode,
         "--new-tokens", str(args.decode_tokens if workload == "decode" else 0),
         "--warmup", str(args.warmup), "--steps", str(args.steps),
         "--prefill-warmup", str(args.warmup), "--prefill-steps", str(args.steps),

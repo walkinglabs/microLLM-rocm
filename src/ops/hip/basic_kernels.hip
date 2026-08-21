@@ -586,6 +586,36 @@ __global__ void argmax_kernel(const float* input, std::int32_t* output,
     }
 }
 
+__global__ void argmax_last_dim_kernel(const float* input, std::int32_t* output,
+                                       std::int64_t rows,
+                                       std::int64_t classes) {
+    const auto row = static_cast<std::int64_t>(blockIdx.x);
+    if (row >= rows) return;
+    __shared__ float value_scratch[kBlockSize];
+    __shared__ std::int64_t index_scratch[kBlockSize];
+    __shared__ int invalid_scratch[kBlockSize];
+    const auto base = row * classes;
+    float best_value = -INFINITY;
+    std::int64_t best_index = 0;
+    int invalid = 0;
+    for (std::int64_t column = threadIdx.x; column < classes;
+         column += blockDim.x) {
+        const auto value = input[base + column];
+        if (!isfinite(value)) {
+            invalid = 1;
+        } else if (value > best_value ||
+                   (value == best_value && column < best_index)) {
+            best_value = value;
+            best_index = column;
+        }
+    }
+    block_reduce_argmax(best_value, best_index, invalid, value_scratch,
+                        index_scratch, invalid_scratch);
+    if (threadIdx.x == 0) {
+        output[row] = invalid != 0 ? -1 : static_cast<std::int32_t>(best_index);
+    }
+}
+
 __global__ void argmax_partial_kernel(const float* input, float* partials,
                                       std::int64_t elements) {
     __shared__ float value_scratch[kBlockSize];
@@ -2138,6 +2168,15 @@ void launch_argmax(const float* input, std::int32_t* output,
     hipLaunchKernelGGL(argmax_kernel, dim3(1), dim3(kBlockSize), 0,
                        as_stream(stream), input, output, elements);
     check_launch("argmax_kernel");
+}
+
+void launch_argmax_last_dim(const float* input, std::int32_t* output,
+                            std::int64_t rows, std::int64_t classes,
+                            void* stream) {
+    hipLaunchKernelGGL(argmax_last_dim_kernel,
+                       dim3(static_cast<unsigned>(rows)), dim3(kBlockSize), 0,
+                       as_stream(stream), input, output, rows, classes);
+    check_launch("argmax_last_dim_kernel");
 }
 
 void launch_argmax_two_stage(const float* input, float* partials,

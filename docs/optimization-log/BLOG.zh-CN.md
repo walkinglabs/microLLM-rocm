@@ -1542,3 +1542,18 @@ last logits后，最终代价降为Qwen+11.5%、DeepSeek+3.4%。
 
 B1长prompt已从分钟级变成毫秒级，但PyTorch prepare仍约12–27ms，steady decode也更快。
 下一节点必须给KV Cache增加batch维，关闭B2/B4/B8 unsupported，而不是继续只测B1。
+
+## 80. Experiment 063：GPU算完logits，不应把整张表搬回CPU找最大值
+
+uncached batch reference原来每个token把`B×151936`个FP32搬回host。新last-dim argmax
+一行一个block，只返回`B`个Int32。tie、非有限值、shape和零D2H Kernel合同都通过。
+
+![Device row-wise argmax](assets/device-rowwise-argmax.svg)
+
+同卡host/device矩阵八点全部变快：Qwen B1→B8为`1.18×/1.46×/1.77×/2.15×`，
+DeepSeek为`1.13×/1.33×/1.49×/1.68×`。Qwen B8 D2H calls仍是8，但字节
+`38,895,616→256`，吞吐`115.2→252.0 tok/s`。
+
+rocprof里device新增12次argmax、20.4ms，Kernel总时间反而略高；端到端仍2.06×。
+少Kernel不是目标，删除同步大传输才是原因。cached B2/B4/B8仍unsupported，下一节点
+终于可以在已有row argmax上扩展batch-aware KV Storage。

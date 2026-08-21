@@ -329,6 +329,13 @@ Kernel calls减少155×。
 
 ![Full-sequence prefill to KV cache](assets/full-prefill-kv-cache.svg)
 
+Experiment 063 增加last-dim row-wise GPU argmax。Qwen/DeepSeek B1/2/4/8同卡host/device
+全部变快`1.13×–2.15×`，peak/token不变。Qwen B8 measured D2H从38,895,616降到256B
+（正好少151,936×），吞吐`115.2→252.0 tok/s`。profile中Kernel时间略增，端到端仍
+2.06×，说明收益来自删除大传输/同步。
+
+![Device row-wise argmax](assets/device-rowwise-argmax.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -412,6 +419,8 @@ Kernel calls减少155×。
 | [experiments/061-data/](experiments/061-data/) | 正式24条、T128 fallback、未命中pilot和前后profile |
 | [assets/full-prefill-kv-cache.svg](assets/full-prefill-kv-cache.svg) | cache prepare/end-to-end与token/full profile |
 | [experiments/062-data/](experiments/062-data/) | 正式36条、T2048、两条失败修复和前后profile |
+| [assets/device-rowwise-argmax.svg](assets/device-rowwise-argmax.svg) | batch shape加速、D2H字节和profile解释 |
+| [experiments/063-data/](experiments/063-data/) | host/device各16条、transfer control和前后profile |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

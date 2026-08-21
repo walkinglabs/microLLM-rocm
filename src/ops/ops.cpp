@@ -1413,6 +1413,51 @@ Tensor argmax(const Tensor& input, [[maybe_unused]] const OpContext& context) {
     return Tensor::from_int32_vector({index}, {1, 1});
 }
 
+Tensor argmax_last_dim(const Tensor& input,
+                       [[maybe_unused]] const OpContext& context) {
+    require_float(input, "input");
+    if (input.ndim() <= 0 || input.shape().back() <= 0 ||
+        input.shape().back() > std::numeric_limits<std::int32_t>::max()) {
+        throw std::invalid_argument(
+            "argmax_last_dim requires a non-empty last dimension within int32");
+    }
+    const auto classes = input.shape().back();
+    const auto rows = input.numel() / classes;
+    auto output_shape = input.shape();
+    output_shape.pop_back();
+    if (input.device().is_hip()) {
+        require_contiguous(input, "input");
+        Tensor output(output_shape, DType::Int32, input.device());
+#if MICROLLM_HAS_HIP
+        hip::launch_argmax_last_dim(
+            static_cast<const float*>(input.data()),
+            static_cast<std::int32_t*>(output.data()), rows, classes,
+            context.native_stream(input.device()));
+        return output;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    const auto values = input.to_vector();
+    std::vector<std::int32_t> selected(static_cast<std::size_t>(rows), 0);
+    for (std::int64_t row = 0; row < rows; ++row) {
+        auto best = -std::numeric_limits<float>::infinity();
+        for (std::int64_t column = 0; column < classes; ++column) {
+            const auto value = values[static_cast<std::size_t>(row * classes + column)];
+            if (!std::isfinite(value)) {
+                selected[static_cast<std::size_t>(row)] = -1;
+                break;
+            }
+            if (value > best) {
+                best = value;
+                selected[static_cast<std::size_t>(row)] =
+                    static_cast<std::int32_t>(column);
+            }
+        }
+    }
+    return Tensor::from_int32_vector(selected, std::move(output_shape));
+}
+
 Tensor silu_backward(const Tensor& input, const Tensor& gradient,
                      [[maybe_unused]] const OpContext& context) {
     require_float(input, "input");

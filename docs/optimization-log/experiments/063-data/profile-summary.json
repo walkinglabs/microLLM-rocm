@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "host": {"kernel_dispatches": 7843, "kernel_time_ns": 403871864, "hip_api_calls": 168956, "hip_api_time_ns": 3475226900, "rocprof_d2h_calls": 12, "argmax_row_calls": 0, "argmax_row_time_ns": 0, "tokens_per_second": 121.065946234},
+  "device": {"kernel_dispatches": 7867, "kernel_time_ns": 424214968, "hip_api_calls": 168170, "hip_api_time_ns": 3448458429, "rocprof_d2h_calls": 0, "argmax_row_calls": 12, "argmax_row_time_ns": 20396201, "tokens_per_second": 249.361176602},
+  "profile_throughput_speedup": 2.059713605,
+  "kernel_time_speedup": 0.952045294,
+  "hip_api_time_speedup": 1.007762446,
+  "interpretation": "device Kernel time increases by the explicit reduction; removing large synchronized D2H/host argmax halves end-to-end time"
+}

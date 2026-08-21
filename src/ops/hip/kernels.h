@@ -203,6 +203,9 @@ void launch_cached_attention_fused(
     std::int64_t repeats, float scale, void* stream = nullptr);
 void launch_argmax(const float* input, std::int32_t* output,
                    std::int64_t elements, void* stream = nullptr);
+void launch_argmax_last_dim(const float* input, std::int32_t* output,
+                            std::int64_t rows, std::int64_t classes,
+                            void* stream = nullptr);
 void launch_argmax_two_stage(const float* input, float* partials,
                              std::int32_t* output, std::int64_t elements,
                              std::int64_t blocks, void* stream = nullptr);

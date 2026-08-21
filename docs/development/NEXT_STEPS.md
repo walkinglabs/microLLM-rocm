@@ -28,6 +28,7 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] route graph-free T>=256 prefill Attention through strided-batched hipBLASLt;
 - [x] populate B1 KV cache from one full-sequence prefill instead of token replay;
 - [ ] support batched cached decode with batch-aware KV Storage;
+- [x] keep uncached batch greedy row-wise argmax on device;
 - [x] compare tokenizer IDs, complete logits, and greedy tokens with PyTorch on fixed prompts;
 - [ ] compare every per-layer hidden state with PyTorch;
 - [x] record engine peak, resident policy, prefill/decode latency, tokens/s and KV utilization;

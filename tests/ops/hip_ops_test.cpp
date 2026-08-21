@@ -749,6 +749,26 @@ TEST(HipArgmaxTest, CoversLargeVocabulariesTiesAndScalarTransferContract) {
               (std::vector<std::int32_t>{-1}));
 }
 
+TEST(HipArgmaxTest, LastDimensionReducesEveryRowOnDevice) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    const auto input = Tensor::from_vector(
+        {1.0F, 7.0F, 7.0F, 2.0F,
+         -3.0F, -2.0F, -1.0F, -4.0F,
+         9.0F, 8.0F, 7.0F, 6.0F}, {3, 1, 4}).to(gpu);
+    runtime::reset_transfer_stats();
+    const auto selected = argmax_last_dim(input);
+    runtime::synchronize(gpu);
+    auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    EXPECT_EQ(selected.shape(), (Shape{3, 1}));
+    EXPECT_EQ(selected.to_int32_vector(),
+              (std::vector<std::int32_t>{1, 2, 0}));
+    transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.device_to_host_calls, 1U);
+    EXPECT_EQ(transfers.device_to_host_bytes, 3U * sizeof(std::int32_t));
+}
+
 TEST(HipGenerationTest, GreedyLoopKeepsSelectedTokenOnDevice) {
     require_gpu();
     const model::ModelConfig config{.vocabulary_size = 16,

@@ -218,5 +218,9 @@ void kv_cache_store_pair_(Tensor& key_cache, Tensor& value_cache,
 // Returns one int32 index with a smallest-index tie rule.  The result is -1 when
 // any input is non-finite, allowing asynchronous device execution to stay visible.
 [[nodiscard]] Tensor argmax(const Tensor& input, const OpContext& context = {});
+// Reduces only the last dimension and preserves every leading dimension.
+// Each row follows argmax's smallest-index and non-finite-to--1 contract.
+[[nodiscard]] Tensor argmax_last_dim(const Tensor& input,
+                                     const OpContext& context = {});
 
 }  // namespace microllm::ops

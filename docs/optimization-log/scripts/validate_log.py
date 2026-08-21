@@ -1429,6 +1429,67 @@ def validate_full_prefill_cache(errors: list[str]) -> tuple[int, int, int]:
     return len(formal), len(long_rows), profile["full"].get("kernel_dispatches", 0)
 
 
+def validate_device_row_argmax(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "063-data"
+    device = [json.loads(line) for line in
+              (data / "batch" / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    host = [json.loads(line) for line in
+            (data / "host-batch" / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    transfer = [json.loads(line) for line in
+                (data / "transfer-control.jsonl").read_text(encoding="utf-8").splitlines()]
+    if len(device) != 16 or len(host) != 16 or any(
+            row.get("status") != "pass" or row.get("workload") != "decode" or
+            row.get("cache_mode") != "uncached" for row in device + host):
+        errors.append("row-wise argmax batch raw protocol changed")
+    if any(row.get("batch_argmax_mode") != "device" for row in device
+           if row.get("framework") == "microllm") or any(
+            row.get("batch_argmax_mode") != "host" for row in host
+            if row.get("framework") == "microllm"):
+        errors.append("row-wise argmax explicit mode contract changed")
+    device_summary = json.loads((data / "batch" / "summary.json").read_text(encoding="utf-8"))
+    host_summary = json.loads(
+        (data / "host-batch" / "summary.json").read_text(encoding="utf-8"))
+    if device_summary.get("status") != "pass" or host_summary.get("status") != "pass" or \
+            len(device_summary.get("rows", [])) != 8 or \
+            len(host_summary.get("rows", [])) != 8 or any(
+                row.get("cross_framework_tokens_equal") is not True
+                for row in device_summary.get("rows", [])):
+        errors.append("row-wise argmax batch summary/token gate changed")
+    comparison = json.loads((data / "comparison.json").read_text(encoding="utf-8"))
+    if comparison.get("decision") != "keep" or len(comparison.get("rows", [])) != 8 or \
+            any(row.get("speedup", 0.0) < 1.12 or row.get("peak_ratio") != 1.0 or
+                row.get("tokens_equal") is not True for row in comparison.get("rows", [])) or \
+            comparison.get("transfer_control", {}).get("d2h_byte_reduction") != 151936.0:
+        errors.append("row-wise argmax keep/transfer contract changed")
+    if len(transfer) != 2 or transfer[0].get("batch_argmax_mode") != "host" or \
+            transfer[1].get("batch_argmax_mode") != "device" or \
+            transfer[0].get("measured_d2h_bytes") != 38895616 or \
+            transfer[1].get("measured_d2h_bytes") != 256:
+        errors.append("row-wise argmax direct transfer control changed")
+    profile = json.loads((data / "profile-summary.json").read_text(encoding="utf-8"))
+    for phase in ("host", "device"):
+        with (data / f"profile-{phase}" / "kernel-stats.csv").open(
+                encoding="utf-8", newline="") as stream:
+            kernels = list(csv.DictReader(stream))
+        with (data / f"profile-{phase}" / "hip-api-stats.csv").open(
+                encoding="utf-8", newline="") as stream:
+            api = list(csv.DictReader(stream))
+        recorded = profile[phase]
+        if sum(int(row["Calls"]) for row in kernels) != recorded["kernel_dispatches"] or \
+                sum(int(row["TotalDurationNs"]) for row in kernels) != \
+                recorded["kernel_time_ns"] or \
+                sum(int(row["Calls"]) for row in api) != recorded["hip_api_calls"] or \
+                sum(int(row["TotalDurationNs"]) for row in api) != \
+                recorded["hip_api_time_ns"]:
+            errors.append(f"row-wise argmax {phase} profile aggregate changed")
+    if profile.get("profile_throughput_speedup", 0.0) < 2.0 or \
+            profile["host"].get("rocprof_d2h_calls") != 12 or \
+            profile["device"].get("rocprof_d2h_calls") != 0 or \
+            profile["device"].get("argmax_row_calls") != 12:
+        errors.append("row-wise argmax profiler gate changed")
+    return len(device), len(host), profile["device"].get("kernel_dispatches", 0)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -1470,7 +1531,8 @@ def validate_assets(errors: list[str]) -> None:
                  "block-column-rmsnorm-weight-gradient.svg",
                  "inference-context-batch-matrix.svg",
                  "batched-long-prefill-inference.svg",
-                 "full-prefill-kv-cache.svg"):
+                 "full-prefill-kv-cache.svg",
+                 "device-rowwise-argmax.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -1537,6 +1599,8 @@ def main() -> int:
         validate_inference_shape_matrix(errors)
     prefill_records, prefill_calls = validate_batched_prefill_inference(errors)
     cache_records, cache_long_records, cache_calls = validate_full_prefill_cache(errors)
+    row_argmax_records, row_argmax_host_records, row_argmax_calls = \
+        validate_device_row_argmax(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -1574,6 +1638,8 @@ def main() -> int:
           f"{inference_no_warm} "
           f"prefill={prefill_records}/{prefill_calls} "
           f"cache_prefill={cache_records}/{cache_long_records}/{cache_calls} "
+          f"row_argmax={row_argmax_records}/{row_argmax_host_records}/"
+          f"{row_argmax_calls} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

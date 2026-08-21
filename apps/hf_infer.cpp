@@ -50,6 +50,7 @@ struct Options {
     std::int64_t batch = 1;
     bool use_cache = true;
     std::string cache_prefill_mode = "full";
+    std::string batch_argmax_mode = "device";
 };
 
 Options options(int argc, char** argv) {
@@ -98,6 +99,7 @@ Options options(int argc, char** argv) {
             result.use_cache = value == "true";
         }
         else if (name == "--cache-prefill-mode") result.cache_prefill_mode = argv[index + 1];
+        else if (name == "--batch-argmax-mode") result.batch_argmax_mode = argv[index + 1];
         else throw std::invalid_argument("unknown CLI option: " + name);
     }
     if (result.config.empty() || result.weights.empty()) {
@@ -117,6 +119,9 @@ Options options(int argc, char** argv) {
     if (result.batch <= 0) throw std::invalid_argument("--batch must be positive");
     if (result.cache_prefill_mode != "full" && result.cache_prefill_mode != "token") {
         throw std::invalid_argument("--cache-prefill-mode must be full or token");
+    }
+    if (result.batch_argmax_mode != "device" && result.batch_argmax_mode != "host") {
+        throw std::invalid_argument("--batch-argmax-mode must be device or host");
     }
     if (result.new_tokens < 0) throw std::invalid_argument("--new-tokens cannot be negative");
     if (result.warmup < 0 || result.steps <= 0) {
@@ -225,11 +230,11 @@ GenerationRun decode_cached(microllm::model::TransformerModel& model,
 
 GenerationRun generate_uncached(microllm::model::TransformerModel& model,
                                 const std::vector<std::int32_t>& prompt,
-                                std::int64_t batch, std::int64_t new_tokens) {
+                                std::int64_t batch, std::int64_t new_tokens,
+                                bool device_argmax) {
     std::vector<std::vector<std::int32_t>> sequences(
         static_cast<std::size_t>(batch), prompt);
     GenerationRun run;
-    const auto vocabulary = model.config().vocabulary_size;
     for (std::int64_t generated = 0; generated < new_tokens; ++generated) {
         const auto length = static_cast<std::int64_t>(sequences.front().size());
         std::vector<std::int32_t> flat;
@@ -239,17 +244,30 @@ GenerationRun generate_uncached(microllm::model::TransformerModel& model,
         if (model.device().is_hip()) token_tensor = token_tensor.to(model.device());
         auto last_logits = model.forward_inference(token_tensor)
                                .slice(1, length - 1, length)
-                               .contiguous()
-                               .to_vector();
+                               .contiguous();
+        std::vector<std::int32_t> selected;
+        if (device_argmax) {
+            selected = microllm::ops::argmax_last_dim(last_logits).to_int32_vector();
+        } else {
+            const auto host_logits = last_logits.to_vector();
+            selected.resize(static_cast<std::size_t>(batch));
+            const auto vocabulary = model.config().vocabulary_size;
+            for (std::int64_t row = 0; row < batch; ++row) {
+                const auto begin = host_logits.begin() + row * vocabulary;
+                const auto maximum = std::max_element(begin, begin + vocabulary);
+                if (!std::isfinite(*maximum)) {
+                    throw std::runtime_error("uncached generation produced non-finite logits");
+                }
+                selected[static_cast<std::size_t>(row)] =
+                    static_cast<std::int32_t>(std::distance(begin, maximum));
+            }
+        }
         for (std::int64_t row = 0; row < batch; ++row) {
-            const auto begin = last_logits.begin() + row * vocabulary;
-            const auto end = begin + vocabulary;
-            const auto maximum = std::max_element(begin, end);
-            if (maximum == end || !std::isfinite(*maximum)) {
+            const auto next = selected[static_cast<std::size_t>(row)];
+            if (next < 0) {
                 throw std::runtime_error("uncached generation produced non-finite logits");
             }
-            sequences[static_cast<std::size_t>(row)].push_back(
-                static_cast<std::int32_t>(std::distance(begin, maximum)));
+            sequences[static_cast<std::size_t>(row)].push_back(next);
         }
     }
     for (std::int64_t row = 1; row < batch; ++row) {
@@ -363,6 +381,7 @@ int main(int argc, char** argv) {
             microllm::runtime::synchronize(device);
             if (device.is_hip()) microllm::runtime::enable_hip_caching_allocator(device);
             microllm::runtime::reset_allocation_peak(device);
+            microllm::runtime::reset_transfer_stats();
             const auto forward_start = std::chrono::steady_clock::now();
             for (int iteration = 0; iteration < command.prefill_steps; ++iteration) {
                 logits_tensor = model.forward_inference(token_tensor);
@@ -411,7 +430,8 @@ int main(int argc, char** argv) {
                     (void)decode_cached(model, state, command.new_tokens);
                 } else {
                     (void)generate_uncached(
-                        model, ids, command.batch, command.new_tokens);
+                        model, ids, command.batch, command.new_tokens,
+                        command.batch_argmax_mode == "device");
                 }
             }
             microllm::runtime::synchronize(device);
@@ -420,6 +440,7 @@ int main(int argc, char** argv) {
                             .count();
             if (device.is_hip()) microllm::runtime::enable_hip_caching_allocator(device);
             microllm::runtime::reset_allocation_peak(device);
+            microllm::runtime::reset_transfer_stats();
             for (int iteration = 0; iteration < command.steps; ++iteration) {
                 GenerationRun current;
                 if (command.use_cache) {
@@ -442,7 +463,8 @@ int main(int argc, char** argv) {
                 } else {
                     const auto decode_start = std::chrono::steady_clock::now();
                     current = generate_uncached(
-                        model, ids, command.batch, command.new_tokens);
+                        model, ids, command.batch, command.new_tokens,
+                        command.batch_argmax_mode == "device");
                     microllm::runtime::synchronize(device);
                     const auto decode_finish = std::chrono::steady_clock::now();
                     generation_ms += std::chrono::duration<double, std::milli>(
@@ -457,6 +479,7 @@ int main(int argc, char** argv) {
             if (tokenizer.has_value()) generated_text = tokenizer->decode(generated_suffix);
         }
         const auto allocation = microllm::runtime::allocation_stats(device);
+        const auto measured_transfers = microllm::runtime::transfer_stats();
         const auto info = device.is_cpu()
                               ? microllm::runtime::DeviceInfo{device, "host CPU", "host"}
                               : microllm::runtime::device_info(device);
@@ -509,6 +532,8 @@ int main(int argc, char** argv) {
                   << ",\"use_cache\":" << (command.use_cache ? "true" : "false")
                   << ",\"cache_prefill_mode\":\""
                   << command.cache_prefill_mode << "\""
+                  << ",\"batch_argmax_mode\":\""
+                  << command.batch_argmax_mode << "\""
                   << ",\"warmup\":" << command.warmup
                   << ",\"steps\":" << command.steps
                   << ",\"warmup_ms\":" << warmup_ms
@@ -534,6 +559,18 @@ int main(int argc, char** argv) {
                   << ",\"engine_cache_reuse_calls\":" << allocation.cache_reuse_calls
                   << ",\"engine_cached_bytes\":" << allocation.cached_bytes
                   << ",\"engine_reserved_bytes\":" << allocation.reserved_bytes;
+        std::cout << ",\"measured_h2d_calls\":"
+                  << measured_transfers.host_to_device_calls
+                  << ",\"measured_h2d_bytes\":"
+                  << measured_transfers.host_to_device_bytes
+                  << ",\"measured_d2h_calls\":"
+                  << measured_transfers.device_to_host_calls
+                  << ",\"measured_d2h_bytes\":"
+                  << measured_transfers.device_to_host_bytes
+                  << ",\"measured_d2d_calls\":"
+                  << measured_transfers.device_to_device_calls
+                  << ",\"measured_d2d_bytes\":"
+                  << measured_transfers.device_to_device_bytes;
         if (run_prefill) {
             std::cout << ",\"prefill_warmup\":" << command.prefill_warmup
                       << ",\"prefill_steps\":" << command.prefill_steps

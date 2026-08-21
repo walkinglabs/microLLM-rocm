@@ -76,6 +76,9 @@ batch1；B2/B4/B8会明确失败，不能静默退回B1。`--use-cache true|fals
 cached模式默认`--cache-prefill-mode full`，一次完整prompt直接填入每层预分配Storage。
 显式`token`会逐token重放，只用于复现旧性能失败和reference；发布结果必须记录所选模式。
 
+uncached batch默认`--batch-argmax-mode device`，只把每行选中的Int32 token带回host。
+显式`host`会搬回完整`B×V` logits，仅用于性能反例；它不是生产默认。
+
 多context、batch和KV Cache显存矩阵见：
 
 ```bash

@@ -307,6 +307,22 @@ TEST(CpuOpsTest, ArgmaxUsesSmallestTieIndexAndMarksNonFiniteInput) {
     EXPECT_THROW((void)argmax(Tensor({0})), std::invalid_argument);
 }
 
+TEST(CpuOpsTest, ArgmaxLastDimReducesRowsWithTieAndNonFiniteContracts) {
+    const auto input = Tensor::from_vector(
+        {1.0F, 3.0F, 2.0F, 5.0F, 5.0F, 4.0F}, {2, 3});
+    const auto selected = argmax_last_dim(input);
+    EXPECT_EQ(selected.shape(), (Shape{2}));
+    EXPECT_EQ(selected.to_int32_vector(), (std::vector<std::int32_t>{1, 0}));
+    const auto non_finite = Tensor::from_vector(
+        {1.0F, 2.0F, 3.0F, 1.0F,
+         4.0F, std::numeric_limits<float>::quiet_NaN(), 2.0F, 3.0F},
+        {2, 2, 2});
+    EXPECT_EQ(argmax_last_dim(non_finite).shape(), (Shape{2, 2}));
+    EXPECT_EQ(argmax_last_dim(non_finite).to_int32_vector(),
+              (std::vector<std::int32_t>{1, 0, -1, 1}));
+    EXPECT_THROW((void)argmax_last_dim(Tensor({2, 0})), std::invalid_argument);
+}
+
 TEST(CpuOpsTest, EmbeddingGathersRowsAndRejectsBadIndex) {
     const auto weight = Tensor::from_vector({0, 1, 2, 3, 4, 5}, {3, 2});
     const auto indices = Tensor::from_int32_vector({2, 0, 1}, {3});
