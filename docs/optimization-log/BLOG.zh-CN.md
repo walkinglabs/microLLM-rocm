@@ -1952,3 +1952,14 @@ measured的calls从24降到3，bytes仍是B1 96、B8 768。
 
 公共`generate()`和`generate_batch()`也进入同一快路径；sampling与stop token仍保留逐步host
 决策。候选保留，它减少的是同步边界，不冒充Attention Kernel加速。
+
+## 108. Experiment 091：位级一致，但一条barrier也不能白加
+
+候选把cached Attention的shared `exp(score-max)`先统一除以denominator，再让所有Value column
+复用。DeepSeek T2048 B1/B8的151,936/1,215,488个logit全部位级一致。
+
+![Normalize cached probabilities discard](assets/normalize-cached-probabilities-discard.svg)
+
+三对交替性能却只有0.994×/0.997×；allocator、D2H和peak均相同。编译器很可能已经把不变量division
+处理得足够好，新增shared写回与barrier没有收益。候选回退；“数值正确”只是进入性能门的资格，
+不是保留理由。

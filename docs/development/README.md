@@ -239,3 +239,5 @@ the next gate. Records are append-only except for factual corrections.
   public-scalar reconstruction reproduces the same official failure and closes local pair loads.
 - [2026-08-21-device-token-history.md](2026-08-21-device-token-history.md):
   caller-owned argmax outputs and one final greedy-history D2H after allocator stabilization.
+- [2026-08-21-normalize-cached-probabilities-discard.md](2026-08-21-normalize-cached-probabilities-discard.md):
+  bit-exact shared normalization rejected by neutral-negative alternating performance.

@@ -1,0 +1,44 @@
+{
+  "rows": [
+    {
+      "baseline_decode_tokens_per_second": 67.301833705,
+      "baseline_engine_backend_allocation_calls": 94.0,
+      "baseline_engine_cache_reuse_calls": 16208.0,
+      "baseline_engine_peak_bytes": 4857305088.0,
+      "baseline_mean_generation_ms": 118.867489333,
+      "baseline_measured_d2h_calls": 3.0,
+      "batch": 1,
+      "candidate_decode_tokens_per_second": 66.903473183,
+      "candidate_engine_backend_allocation_calls": 94.0,
+      "candidate_engine_cache_reuse_calls": 16208.0,
+      "candidate_engine_peak_bytes": 4857305088.0,
+      "candidate_mean_generation_ms": 119.575257,
+      "candidate_measured_d2h_calls": 3.0,
+      "candidate_speedup": 0.9940809856125746,
+      "context": 2048,
+      "decode_tokens": 8,
+      "tokens_equal": true
+    },
+    {
+      "baseline_decode_tokens_per_second": 513.157642589,
+      "baseline_engine_backend_allocation_calls": 94.0,
+      "baseline_engine_cache_reuse_calls": 16211.0,
+      "baseline_engine_peak_bytes": 7442716672.0,
+      "baseline_mean_generation_ms": 124.71801,
+      "baseline_measured_d2h_calls": 3.0,
+      "batch": 8,
+      "candidate_decode_tokens_per_second": 511.840307189,
+      "candidate_engine_backend_allocation_calls": 94.0,
+      "candidate_engine_cache_reuse_calls": 16211.0,
+      "candidate_engine_peak_bytes": 7442716672.0,
+      "candidate_mean_generation_ms": 125.038999667,
+      "candidate_measured_d2h_calls": 3.0,
+      "candidate_speedup": 0.9974328836001471,
+      "context": 2048,
+      "decode_tokens": 8,
+      "tokens_equal": true
+    }
+  ],
+  "schema_version": 1,
+  "status": "pass"
+}

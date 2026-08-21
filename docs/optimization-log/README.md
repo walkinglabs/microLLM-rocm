@@ -544,6 +544,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/089-data/](experiments/089-data/) | public scalar恢复、相同误差和搜索关闭证据 |
 | [assets/device-token-history.svg](assets/device-token-history.svg) | allocator稳定后D2H 24→3与中性性能门 |
 | [experiments/090-data/](experiments/090-data/) | T2048/T512交替对、六shape survey和公共API合同 |
+| [assets/normalize-cached-probabilities-discard.svg](assets/normalize-cached-probabilities-discard.svg) | 位级一致与中性负性能的对照 |
+| [experiments/091-data/](experiments/091-data/) | 百万logit exact门与T2048交替性能 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 
