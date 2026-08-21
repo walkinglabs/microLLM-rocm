@@ -42,6 +42,7 @@ needed to run a real training and generation loop:
   on the model-validated scalar policy.
 - rank-N strided-batched hipBLASLt with last-two-dimension transpose contracts for Attention.
 - T≥256 causal GQA backward using batched GEMM for K/V gradients, with short-sequence fallback.
+- optional autograd probability saving for T≥256, reported as a long-sequence speed/memory trade-off.
 
 The design keeps three implementations where they provide engineering value:
 

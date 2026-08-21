@@ -950,6 +950,52 @@ def validate_batched_attention_backward(errors: list[str]) -> tuple[int, int]:
     return len(formal), after.get("kernel_dispatches", 0)
 
 
+def validate_saved_attention(errors: list[str]) -> tuple[int, int]:
+    data = ROOT / "experiments" / "055-data"
+    pilot = [json.loads(line) for line in
+             (data / "pilot.jsonl").read_text(encoding="utf-8").splitlines()]
+    formal = [json.loads(line) for line in
+              (data / "formal" / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    fallback = [json.loads(line) for line in
+                (data / "fallback128.jsonl").read_text(encoding="utf-8").splitlines()]
+    keys = {(row.get("model"), row.get("framework"), row.get("process_run"))
+            for row in formal}
+    if len(pilot) != 2 or len(formal) != 12 or len(keys) != 12 or \
+            len(fallback) != 1 or any(row.get("status") != "pass" for row in
+                                      pilot + formal + fallback) or \
+            fallback[0].get("context") != 128:
+        errors.append("saved Attention raw protocol changed")
+    comparison = json.loads((data / "comparison.json").read_text(encoding="utf-8"))
+    rows = comparison.get("rows", [])
+    fallback_summary = comparison.get("fallback128", {})
+    if comparison.get("decision") != "keep" or len(rows) != 2 or any(
+            row.get("self_speedup", 0.0) < 1.13 or
+            not (1.0 < row.get("peak_ratio", 0.0) < 1.03) or
+            row.get("peak_bytes_added") != 352321536 for row in rows) or \
+            fallback_summary.get("speedup", 0.0) < 0.99 or \
+            fallback_summary.get("peak_ratio") != 1.0 or \
+            "T>=256" not in comparison.get("policy", ""):
+        errors.append("saved Attention speed/memory policy changed")
+    profile = json.loads((data / "profile-summary.json").read_text(encoding="utf-8"))
+    with (data / "profile" / "kernel-stats.csv").open(
+            encoding="utf-8", newline="") as stream:
+        kernels = list(csv.DictReader(stream))
+    with (data / "profile" / "hip-api-stats.csv").open(
+            encoding="utf-8", newline="") as stream:
+        api = list(csv.DictReader(stream))
+    after = profile.get("after", {})
+    if sum(int(row["Calls"]) for row in kernels) != after.get("kernel_dispatches") or \
+            sum(int(row["TotalDurationNs"]) for row in kernels) != after.get("kernel_time_ns") or \
+            sum(int(row["Calls"]) for row in api) != after.get("hip_api_calls") or \
+            sum(int(row["TotalDurationNs"]) for row in api) != after.get("hip_api_time_ns") or \
+            after.get("saved_row_backward_calls") != 72 or after.get("forward_calls") != 72 or \
+            profile.get("kernel_time_speedup", 0.0) < 1.12 or \
+            profile.get("row_backward_speedup", 0.0) < 1.55 or \
+            profile.get("dispatch_ratio") != 1.0:
+        errors.append("saved Attention retained profile changed")
+    return len(formal), after.get("kernel_dispatches", 0)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -983,7 +1029,8 @@ def validate_assets(errors: list[str]) -> None:
                  "context512-training-profile.svg",
                  "split-kv-backward-discard.svg",
                  "strided-batched-hipblaslt.svg",
-                 "batched-attention-backward.svg"):
+                 "batched-attention-backward.svg",
+                 "saved-attention-probabilities.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -1037,6 +1084,7 @@ def main() -> int:
     batched_gemm_count = validate_batched_gemm(errors)
     batched_backward_records, batched_backward_calls = \
         validate_batched_attention_backward(errors)
+    saved_attention_records, saved_attention_calls = validate_saved_attention(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -1064,6 +1112,7 @@ def main() -> int:
           f"split_kv={split_kv_pilot}/{split_kv_kernel_calls} "
           f"batched_gemm={batched_gemm_count} "
           f"batched_backward={batched_backward_records}/{batched_backward_calls} "
+          f"saved_attention={saved_attention_records}/{saved_attention_calls} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

@@ -20,7 +20,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | M1 serial kernels | complete | parallel CE、transpose GEMM、parallel RMSNorm | 三组旧热点均从 trace 主导位置消失 |
 | M2 data movement | complete | preallocated KV、device greedy、steady-state exact-size pool | measured decode 只回传 token scalar |
 | M3 optimized ops | in progress | batched GEMM、hipBLASLt plan、FMHA/fusion | Model-S/M 与 HF 均改善 |
-| M4 low precision | in progress | Qwen/DeepSeek matrices；streaming load；batched hipBLASLt/backward；T512 +36% | flash-style row/forward；multi-shard preflight |
+| M4 low precision | in progress | streaming load；batched backward；saved-prob T512 tradeoff | flash-style row/forward；multi-shard preflight |
 | M5 scheduling | planned | stable-address HIP Graph | launch/API 时间下降且数值不变 |
 | M6 report | in progress | 博客、曲线、trace、失败图集、局部饱和审计 | 新 track 仍待完成 |
 

@@ -144,6 +144,7 @@ void launch_causal_softmax_backward(const float* output, const float* gradient,
                                     std::int64_t sequence, void* stream = nullptr);
 void launch_causal_gqa_attention(
     const float* query, const float* key, const float* value, float* output,
+    float* saved_probabilities,
     std::int64_t batches, std::int64_t heads, std::int64_t kv_heads,
     std::int64_t sequence, std::int64_t width, std::int64_t repeats,
     float scale, void* stream = nullptr);
@@ -158,6 +159,13 @@ void launch_causal_gqa_attention_backward_rows(
     const float* query, const float* key, const float* value,
     const float* output_gradient, float* query_gradient,
     float* probabilities, float* scaled_score_gradients,
+    std::int64_t batches, std::int64_t heads, std::int64_t kv_heads,
+    std::int64_t sequence, std::int64_t width, std::int64_t repeats,
+    float scale, void* stream = nullptr);
+void launch_causal_gqa_attention_backward_saved_rows(
+    const float* key, const float* value, const float* output_gradient,
+    const float* probabilities, float* query_gradient,
+    float* scaled_score_gradients,
     std::int64_t batches, std::int64_t heads, std::int64_t kv_heads,
     std::int64_t sequence, std::int64_t width, std::int64_t repeats,
     float scale, void* stream = nullptr);

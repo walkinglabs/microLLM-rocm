@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "experiment": 55,
+  "decision": "keep",
+  "candidate": "save long-sequence causal probabilities in forward and reuse them in batched backward",
+  "rows": [
+    {"model": "qwen2.5-0.5b", "before_tokens_per_second": 1103.053587123, "after_tokens_per_second": 1248.170435372, "self_speedup": 1.131559201, "before_peak_bytes": 12673058824, "after_peak_bytes": 13025380360, "peak_ratio": 1.027800829, "peak_bytes_added": 352321536, "pytorch_ratio_after": 0.159724867},
+    {"model": "deepseek-r1-distill-qwen-1.5b", "before_tokens_per_second": 546.069069887, "after_tokens_per_second": 627.832847026, "self_speedup": 1.149731566, "before_peak_bytes": 37058605064, "after_peak_bytes": 37410926600, "peak_ratio": 1.009507145, "peak_bytes_added": 352321536, "pytorch_ratio_after": 0.127558478}
+  ],
+  "fallback128": {"before_tokens_per_second": 809.460683034, "after_tokens_per_second": 802.467079713, "speedup": 0.991360169, "peak_ratio": 1.0},
+  "policy": "saved probabilities only for autograd T>=256 with hipBLASLt; standalone and short-sequence paths retain recompute",
+  "reason": "both models gain 13 to 15 percent for a fixed 336 MiB measured peak cost; T128 stays within the no-regression gate"
+}

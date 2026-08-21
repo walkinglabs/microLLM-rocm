@@ -67,6 +67,9 @@ BATCHED_GEMM_CHART = ROOT / "assets" / "strided-batched-hipblaslt.svg"
 BATCHED_BACKWARD_COMPARISON = ROOT / "experiments" / "054-data" / "comparison.json"
 BATCHED_BACKWARD_PROFILE = ROOT / "experiments" / "054-data" / "profile-summary.json"
 BATCHED_BACKWARD_CHART = ROOT / "assets" / "batched-attention-backward.svg"
+SAVED_ATTENTION_COMPARISON = ROOT / "experiments" / "055-data" / "comparison.json"
+SAVED_ATTENTION_PROFILE = ROOT / "experiments" / "055-data" / "profile-summary.json"
+SAVED_ATTENTION_CHART = ROOT / "assets" / "saved-attention-probabilities.svg"
 
 
 def rows() -> list[dict]:
@@ -1729,6 +1732,82 @@ def batched_attention_backward_svg() -> str:
     return "\n".join(parts)
 
 
+def saved_attention_probabilities_svg() -> str:
+    comparison = json.loads(SAVED_ATTENTION_COMPARISON.read_text(encoding="utf-8"))
+    profile = json.loads(SAVED_ATTENTION_PROFILE.read_text(encoding="utf-8"))
+    rows = comparison["rows"]
+    width, height = 1800, 790
+    left_x, right_x, top, panel_h = 100, 1080, 150, 470
+    left_w, right_w = 850, 620
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 055 · Saved Attention Probabilities", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 80,
+             "context 512 · explicit speed / memory trade-off · median of 3",
+             16, "#5b6474", anchor="middle"),
+        f'<rect x="{left_x}" y="{top}" width="{left_w}" height="{panel_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+        f'<rect x="{right_x}" y="{top}" width="{right_w}" height="{panel_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+        text(left_x + left_w / 2, 125, "Model speedup and peak cost", 20,
+             anchor="middle", weight=700),
+        text(right_x + right_w / 2, 125, "Qwen row/forward Kernel time", 20,
+             anchor="middle", weight=700),
+    ]
+    def ratio_y(value: float) -> float:
+        return top + panel_h * (1.20 - value) / 0.25
+    for tick in (0.95, 1.0, 1.05, 1.10, 1.15, 1.20):
+        y = ratio_y(tick)
+        parts.append(f'<line x1="{left_x}" y1="{y:.1f}" x2="{left_x+left_w}" '
+                     f'y2="{y:.1f}" stroke="{("#2563eb" if tick == 1.0 else "#e5e9f0")}"/>')
+    group = left_w / len(rows)
+    for index, row in enumerate(rows):
+        center = left_x + group * (index + 0.5)
+        for offset, (value, color, label) in enumerate((
+                (row["self_speedup"], "#18a558", "speed"),
+                (row["peak_ratio"], "#d6a33c", "peak"))):
+            x = center - 82 + offset * 88
+            base = ratio_y(1.0)
+            value_y = ratio_y(value)
+            parts.append(f'<rect x="{x:.1f}" y="{min(base,value_y):.1f}" width="76" '
+                         f'height="{max(3.0,abs(base-value_y)):.1f}" fill="{color}" rx="5"/>')
+            parts.append(text(x + 38, value_y - 9 if value >= 1 else value_y + 20,
+                              f"{value:.3f}×", 14, color, anchor="middle", weight=700))
+            parts.append(text(x + 38, top + panel_h + 24, label, 12,
+                              "#5b6474", anchor="middle"))
+        label = "Qwen 0.5B" if row["model"].startswith("qwen") else "DeepSeek 1.5B"
+        parts.append(text(center, top + panel_h + 56, label, 16,
+                          anchor="middle", weight=700))
+    kernel_rows = (
+        ("Backward row", profile["before"]["row_backward_time_ns"],
+         profile["after"]["saved_row_backward_time_ns"]),
+        ("Forward row", profile["before"]["forward_time_ns"],
+         profile["after"]["forward_time_ns"]),
+    )
+    maximum = max(before for _, before, _ in kernel_rows)
+    for index, (label, before, after) in enumerate(kernel_rows):
+        y = top + 95 + index * 175
+        parts.append(text(right_x + 35, y - 30, label, 17, weight=700))
+        for offset, (value, color, name) in enumerate((
+                (before, "#aab2bf", "before"), (after, "#18a558", "after"))):
+            bar_y = y + offset * 52
+            bar_w = 430 * value / maximum
+            parts.append(f'<rect x="{right_x+35}" y="{bar_y}" width="430" height="30" '
+                         'fill="#eef1f5" rx="4"/>')
+            parts.append(f'<rect x="{right_x+35}" y="{bar_y}" width="{bar_w:.1f}" '
+                         f'height="30" fill="{color}" rx="4"/>')
+            parts.append(text(right_x + 485, bar_y + 21,
+                              f'{name} {value/1e6:.1f} ms', 13, color, weight=700))
+    parts.append(text(width / 2, 710,
+                      "Both models +336 MiB peak · T128 fallback 0.991× · saved row 1.553× faster",
+                      17, "#9a4f00", anchor="middle", weight=700))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -1756,7 +1835,8 @@ def main() -> int:
                 CONTEXT512_CHART: context512_training_profile_svg(),
                 SPLIT_KV_CHART: split_kv_backward_discard_svg(),
                 BATCHED_GEMM_CHART: strided_batched_hipblaslt_svg(),
-                BATCHED_BACKWARD_CHART: batched_attention_backward_svg()}
+                BATCHED_BACKWARD_CHART: batched_attention_backward_svg(),
+                SAVED_ATTENTION_CHART: saved_attention_probabilities_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

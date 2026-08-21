@@ -270,6 +270,13 @@ T=128 fallback `1.008×`。Qwen 总 Kernel 时间 `1.946→1.442s`，候选保�
 
 ![Batched Attention backward](assets/batched-attention-backward.svg)
 
+Experiment 055 仅在 Autograd T≥256 保存 forward causal probability，backward 不再重算
+QK/softmax。Qwen/DeepSeek 再提高 `1.132×/1.150×`，代价是固定 +336 MiB measured peak；
+T128 fallback `0.991×`。Qwen row backward `473.91→305.15ms`，候选作为显式长序列
+speed/memory tradeoff 保留。
+
+![Saved Attention probabilities](assets/saved-attention-probabilities.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -337,6 +344,8 @@ T=128 fallback `1.008×`。Qwen 总 Kernel 时间 `1.946→1.442s`，候选保�
 | [experiments/053-data/](experiments/053-data/) | 6 条 Event raw、错误计时和 dispatch 合同 |
 | [assets/batched-attention-backward.svg](assets/batched-attention-backward.svg) | T512 两模型吞吐与 retained profile |
 | [experiments/054-data/](experiments/054-data/) | 正式12条 raw、T128 fallback 与 profiler 聚合 |
+| [assets/saved-attention-probabilities.svg](assets/saved-attention-probabilities.svg) | T512 吞吐、固定显存成本与 row profile |
+| [experiments/055-data/](experiments/055-data/) | 正式12条 raw、fallback 与 retained profile |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

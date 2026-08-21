@@ -183,11 +183,19 @@ void clear_matmul_implementation_registry();
                                           const Tensor& value,
                                           std::int64_t repeats, float scale,
                                           const OpContext& context = {});
+// Long-sequence training helper: returns {context, causal probabilities}.
+[[nodiscard]] TensorPair causal_gqa_attention_saved(
+    const Tensor& query, const Tensor& key, const Tensor& value,
+    std::int64_t repeats, float scale, const OpContext& context = {});
 // Returns FP32 gradients for {query, key, value}; probabilities are recomputed.
 [[nodiscard]] TensorTriple causal_gqa_attention_backward(
     const Tensor& query, const Tensor& key, const Tensor& value,
     const Tensor& output_gradient, std::int64_t repeats, float scale,
     const OpContext& context = {});
+[[nodiscard]] TensorTriple causal_gqa_attention_backward_saved(
+    const Tensor& query, const Tensor& key, const Tensor& value,
+    const Tensor& probabilities, const Tensor& output_gradient,
+    std::int64_t repeats, float scale, const OpContext& context = {});
 [[nodiscard]] Tensor repeat_interleave(const Tensor& input, std::int64_t dim,
                                        std::int64_t repeats,
                                        const OpContext& context = {});

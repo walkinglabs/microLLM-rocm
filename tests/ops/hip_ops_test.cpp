@@ -680,11 +680,22 @@ TEST(HipFullAttentionTest, CausalMhaGqaForwardBackwardMatchCpuWithoutTransfers) 
             const auto device_value = value.to(gpu);
             const auto device_gradient = gradient.to(gpu);
             runtime::reset_transfer_stats();
-            const auto actual = causal_gqa_attention(
-                device_query, device_key, device_value, repeats, 0.25F);
-            const auto actual_backward = causal_gqa_attention_backward(
-                device_query, device_key, device_value, device_gradient,
-                repeats, 0.25F);
+            Tensor actual;
+            TensorTriple actual_backward;
+            if (sequence >= 256) {
+                auto saved = causal_gqa_attention_saved(
+                    device_query, device_key, device_value, repeats, 0.25F);
+                actual = std::move(saved.first);
+                actual_backward = causal_gqa_attention_backward_saved(
+                    device_query, device_key, device_value, saved.second,
+                    device_gradient, repeats, 0.25F);
+            } else {
+                actual = causal_gqa_attention(
+                    device_query, device_key, device_value, repeats, 0.25F);
+                actual_backward = causal_gqa_attention_backward(
+                    device_query, device_key, device_value, device_gradient,
+                    repeats, 0.25F);
+            }
             runtime::synchronize(gpu);
             const auto transfers = runtime::transfer_stats();
             EXPECT_EQ(transfers.host_to_device_calls, 0U);

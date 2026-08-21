@@ -83,3 +83,8 @@ gradients after one causal row-recompute pass. Qwen/DeepSeek T=512 improve 35.8%
 with unchanged measured peak; T=128 remains on the old path. The candidate is retained.
 The row recompute Kernel (and the analogous forward row Kernel) is now the remaining
 Attention target.
+
+Experiment 055 saves long-sequence forward probabilities in the autograd closure. Qwen and
+DeepSeek improve another 13.2%/15.0%, with a fixed +336 MiB measured peak cost; T=128
+retains recomputation. The policy is kept as an explicit speed/memory trade-off. Forward
+and saved-row backward are now the two similarly sized hotspots.

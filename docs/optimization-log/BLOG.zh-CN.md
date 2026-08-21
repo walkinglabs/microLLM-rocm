@@ -1381,3 +1381,18 @@ GEMM 1.52 ms、GQA reduction 4.49 ms。dispatch 和 HIP API 反而增加约 4%/5
 
 T=128 保留旧路径，单进程为 `1.008×`。候选保留，但相对 PyTorch 仍只有 0.130×/0.116×；
 下一热点是 forward 和 row recompute 本身，需要 flash-style tile reuse。
+
+## 72. Experiment 055：少算一次 softmax，要付 336 MiB
+
+T≥256 的 Autograd forward 现在保存 causal probability；backward 直接计算 `dP` 和 softmax
+gradient，不再重算 QK、max、exp 和 denominator。第一次测试忘了清上三角，未来 token 进入
+batched GEMM；因果测试失败后补零，才开始跑性能。
+
+![Saved Attention probabilities](assets/saved-attention-probabilities.svg)
+
+Qwen/DeepSeek 再快 `13.2%/15.0%`，但两者 measured peak 都固定增加 336 MiB。Qwen row
+backward 从 473.91 降到 305.15 ms，forward 因写 probability 从269.69微增到272.52 ms；
+总 Kernel 再快 1.123×。T128 不保存，单进程0.991×且peak不变。
+
+这版保留为明确 speed/memory tradeoff，不把显存成本藏起来。forward 和 saved-row 已成为
+接近的两个热点，下一步只能靠 score/context tile reuse，而不是保存更多整表。

@@ -1750,15 +1750,24 @@ void validate_causal_gqa(const Tensor& query, const Tensor& key,
     }
 }
 
-Tensor causal_gqa_attention_composed(const Tensor& query, const Tensor& key,
-                                     const Tensor& value, std::int64_t repeats,
-                                     float scale, const OpContext& context) {
+TensorPair causal_gqa_attention_saved_composed(
+    const Tensor& query, const Tensor& key, const Tensor& value,
+    std::int64_t repeats, float scale, const OpContext& context) {
     const auto expanded_key = repeats == 1 ? key : repeat_interleave(key, 1, repeats, context);
     const auto expanded_value = repeats == 1 ? value : repeat_interleave(value, 1, repeats, context);
     const auto scores = ops::scale(
         matmul(query, expanded_key.transpose(-2, -1).contiguous(), context),
         scale, context);
-    return matmul(causal_softmax(scores, context), expanded_value, context);
+    auto probabilities = causal_softmax(scores, context);
+    auto output = matmul(probabilities, expanded_value, context);
+    return {std::move(output), std::move(probabilities)};
+}
+
+Tensor causal_gqa_attention_composed(const Tensor& query, const Tensor& key,
+                                     const Tensor& value, std::int64_t repeats,
+                                     float scale, const OpContext& context) {
+    return causal_gqa_attention_saved_composed(
+        query, key, value, repeats, scale, context).first;
 }
 
 TensorTriple causal_gqa_attention_backward_composed(
@@ -1813,7 +1822,7 @@ Tensor causal_gqa_attention(const Tensor& query, const Tensor& key,
             static_cast<const float*>(query.data()),
             static_cast<const float*>(key.data()),
             static_cast<const float*>(value.data()),
-            static_cast<float*>(output.data()), batches, heads, kv_heads,
+            static_cast<float*>(output.data()), nullptr, batches, heads, kv_heads,
             sequence, width, repeats, scale,
             context.native_stream(query.device()));
         return output;
@@ -1863,6 +1872,38 @@ Tensor causal_gqa_attention(const Tensor& query, const Tensor& key,
         }
     }
     return from_values(std::move(output), query.shape());
+}
+
+TensorPair causal_gqa_attention_saved(
+    const Tensor& query, const Tensor& key, const Tensor& value,
+    std::int64_t repeats, float scale, const OpContext& context) {
+    validate_causal_gqa(query, key, value, repeats, scale);
+    const auto batches = query.shape()[0];
+    const auto heads = query.shape()[1];
+    [[maybe_unused]] const auto kv_heads = key.shape()[1];
+    const auto sequence = query.shape()[2];
+    [[maybe_unused]] const auto width = query.shape()[3];
+    if (!query.device().is_hip() || sequence > 4096 || width > 256) {
+        return causal_gqa_attention_saved_composed(
+            query, key, value, repeats, scale, context);
+    }
+    Tensor output(query.shape(), DType::Float32, query.device());
+    Tensor probabilities({batches, heads, sequence, sequence},
+                         DType::Float32, query.device());
+    fill_(probabilities, 0.0F, context);
+#if MICROLLM_HAS_HIP
+    hip::launch_causal_gqa_attention(
+        static_cast<const float*>(query.data()),
+        static_cast<const float*>(key.data()),
+        static_cast<const float*>(value.data()),
+        static_cast<float*>(output.data()),
+        static_cast<float*>(probabilities.data()), batches, heads, kv_heads,
+        sequence, width, repeats, scale,
+        context.native_stream(query.device()));
+    return {std::move(output), std::move(probabilities)};
+#else
+    throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
 }
 
 TensorTriple causal_gqa_attention_backward(
@@ -2012,6 +2053,66 @@ TensorTriple causal_gqa_attention_backward(
     return {from_values(std::move(query_gradient), query.shape()),
             from_values(std::move(key_gradient), key.shape()),
             from_values(std::move(value_gradient), value.shape())};
+}
+
+TensorTriple causal_gqa_attention_backward_saved(
+    const Tensor& query, const Tensor& key, const Tensor& value,
+    const Tensor& probabilities, const Tensor& output_gradient,
+    std::int64_t repeats, float scale, const OpContext& context) {
+    validate_causal_gqa(query, key, value, repeats, scale);
+    require_float(probabilities, "probabilities");
+    require_float(output_gradient, "output_gradient");
+    require_same_shape(query, output_gradient);
+    require_same_device(query, output_gradient);
+    require_same_device(query, probabilities);
+    require_contiguous(output_gradient, "output_gradient");
+    require_contiguous(probabilities, "probabilities");
+    const auto batches = query.shape()[0];
+    const auto heads = query.shape()[1];
+    [[maybe_unused]] const auto kv_heads = key.shape()[1];
+    const auto sequence = query.shape()[2];
+    [[maybe_unused]] const auto width = query.shape()[3];
+    if (probabilities.shape() != Shape({batches, heads, sequence, sequence})) {
+        throw std::invalid_argument("saved causal GQA probabilities have the wrong shape");
+    }
+    if (!query.device().is_hip() || !hipblaslt_available()) {
+        return causal_gqa_attention_backward(
+            query, key, value, output_gradient, repeats, scale, context);
+    }
+    Tensor query_gradient(query.shape(), DType::Float32, query.device());
+    Tensor scaled_score_gradients(probabilities.shape(), DType::Float32, query.device());
+    fill_(scaled_score_gradients, 0.0F, context);
+#if MICROLLM_HAS_HIP
+    hip::launch_causal_gqa_attention_backward_saved_rows(
+        static_cast<const float*>(key.data()),
+        static_cast<const float*>(value.data()),
+        static_cast<const float*>(output_gradient.data()),
+        static_cast<const float*>(probabilities.data()),
+        static_cast<float*>(query_gradient.data()),
+        static_cast<float*>(scaled_score_gradients.data()),
+        batches, heads, kv_heads, sequence, width, repeats, scale,
+        context.native_stream(query.device()));
+    auto expanded_key_gradient = matmul_with_implementation(
+        scaled_score_gradients, query, MatmulImplementation::HipBLASLt,
+        true, false, context);
+    auto expanded_value_gradient = matmul_with_implementation(
+        probabilities, output_gradient, MatmulImplementation::HipBLASLt,
+        true, false, context);
+    auto key_gradient = repeats == 1
+                            ? std::move(expanded_key_gradient)
+                            : repeat_interleave_backward(
+                                  expanded_key_gradient, key.shape(), 1,
+                                  repeats, context);
+    auto value_gradient = repeats == 1
+                              ? std::move(expanded_value_gradient)
+                              : repeat_interleave_backward(
+                                    expanded_value_gradient, value.shape(), 1,
+                                    repeats, context);
+    return {std::move(query_gradient), std::move(key_gradient),
+            std::move(value_gradient)};
+#else
+    throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
 }
 
 Tensor repeat_interleave(const Tensor& input, std::int64_t dim, std::int64_t repeats,

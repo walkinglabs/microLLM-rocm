@@ -893,6 +893,7 @@ __global__ void cached_attention_fused_kernel(
 
 __global__ void causal_gqa_attention_kernel(
     const float* query, const float* key, const float* value, float* output,
+    float* saved_probabilities,
     std::int64_t batches, std::int64_t heads, std::int64_t kv_heads,
     std::int64_t sequence, std::int64_t width, std::int64_t repeats,
     float scale) {
@@ -933,6 +934,10 @@ __global__ void causal_gqa_attention_kernel(
     for (std::int64_t position = threadIdx.x; position < visible;
          position += blockDim.x) {
         attention_probabilities[position] /= denominator;
+        if (saved_probabilities != nullptr) {
+            saved_probabilities[row * sequence + position] =
+                attention_probabilities[position];
+        }
     }
     __syncthreads();
     for (std::int64_t column = threadIdx.x; column < width; column += blockDim.x) {
@@ -1099,6 +1104,59 @@ __global__ void causal_gqa_attention_backward_rows_kernel(
         float total = 0.0F;
         for (std::int64_t position = 0; position < visible; ++position) {
             const auto score_gradient = row_probabilities[position] *
+                (probability_gradients[position] - weighted_gradient);
+            total += score_gradient * key[kv_base + position * width + column];
+        }
+        query_gradient[query_base + column] = total * scale;
+    }
+}
+
+__global__ void causal_gqa_attention_backward_saved_rows_kernel(
+    const float* key, const float* value, const float* output_gradient,
+    const float* probabilities, float* query_gradient,
+    float* scaled_score_gradients,
+    std::int64_t batches, std::int64_t heads, std::int64_t kv_heads,
+    std::int64_t sequence, std::int64_t width, std::int64_t repeats,
+    float scale) {
+    const auto row = static_cast<std::int64_t>(blockIdx.x);
+    const auto query_position = row % sequence;
+    const auto head_and_batch = row / sequence;
+    const auto head = head_and_batch % heads;
+    const auto batch = head_and_batch / heads;
+    if (batch >= batches) return;
+    const auto kv_head = head / repeats;
+    const auto query_base = ((batch * heads + head) * sequence + query_position) * width;
+    const auto kv_base = (batch * kv_heads + kv_head) * sequence * width;
+    const auto visible = query_position + 1;
+    const auto matrix_base = row * sequence;
+    extern __shared__ float probability_gradients[];
+    __shared__ float reduction[kBlockSize];
+
+    float local_weighted_gradient = 0.0F;
+    for (std::int64_t position = threadIdx.x; position < visible;
+         position += blockDim.x) {
+        float probability_gradient = 0.0F;
+        for (std::int64_t column = 0; column < width; ++column) {
+            probability_gradient += output_gradient[query_base + column] *
+                                    value[kv_base + position * width + column];
+        }
+        probability_gradients[position] = probability_gradient;
+        local_weighted_gradient += probabilities[matrix_base + position] *
+                                   probability_gradient;
+    }
+    const auto weighted_gradient = block_reduce_sum(local_weighted_gradient, reduction);
+    __syncthreads();
+
+    for (std::int64_t position = threadIdx.x; position < visible;
+         position += blockDim.x) {
+        const auto score_gradient = probabilities[matrix_base + position] *
+            (probability_gradients[position] - weighted_gradient);
+        scaled_score_gradients[matrix_base + position] = score_gradient * scale;
+    }
+    for (std::int64_t column = threadIdx.x; column < width; column += blockDim.x) {
+        float total = 0.0F;
+        for (std::int64_t position = 0; position < visible; ++position) {
+            const auto score_gradient = probabilities[matrix_base + position] *
                 (probability_gradients[position] - weighted_gradient);
             total += score_gradient * key[kv_base + position * width + column];
         }
@@ -2101,6 +2159,7 @@ void launch_causal_softmax_backward(const float* output, const float* gradient,
 
 void launch_causal_gqa_attention(
     const float* query, const float* key, const float* value, float* output,
+    float* saved_probabilities,
     std::int64_t batches, std::int64_t heads, std::int64_t kv_heads,
     std::int64_t sequence, std::int64_t width, std::int64_t repeats,
     float scale, void* stream) {
@@ -2108,8 +2167,9 @@ void launch_causal_gqa_attention(
     const auto shared_bytes = static_cast<std::size_t>(sequence) * sizeof(float);
     hipLaunchKernelGGL(causal_gqa_attention_kernel,
                        dim3(static_cast<unsigned>(rows)), dim3(kBlockSize), shared_bytes,
-                       as_stream(stream), query, key, value, output, batches, heads,
-                       kv_heads, sequence, width, repeats, scale);
+                       as_stream(stream), query, key, value, output,
+                       saved_probabilities, batches, heads, kv_heads, sequence,
+                       width, repeats, scale);
     check_launch("causal_gqa_attention_kernel");
 }
 
@@ -2145,6 +2205,23 @@ void launch_causal_gqa_attention_backward_rows(
                        query_gradient, probabilities, scaled_score_gradients,
                        batches, heads, kv_heads, sequence, width, repeats, scale);
     check_launch("causal_gqa_attention_backward_rows_kernel");
+}
+
+void launch_causal_gqa_attention_backward_saved_rows(
+    const float* key, const float* value, const float* output_gradient,
+    const float* probabilities, float* query_gradient,
+    float* scaled_score_gradients,
+    std::int64_t batches, std::int64_t heads, std::int64_t kv_heads,
+    std::int64_t sequence, std::int64_t width, std::int64_t repeats,
+    float scale, void* stream) {
+    const auto rows = batches * heads * sequence;
+    const auto shared_bytes = static_cast<std::size_t>(sequence) * sizeof(float);
+    hipLaunchKernelGGL(causal_gqa_attention_backward_saved_rows_kernel,
+                       dim3(static_cast<unsigned>(rows)), dim3(kBlockSize), shared_bytes,
+                       as_stream(stream), key, value, output_gradient, probabilities,
+                       query_gradient, scaled_score_gradients, batches, heads,
+                       kv_heads, sequence, width, repeats, scale);
+    check_launch("causal_gqa_attention_backward_saved_rows_kernel");
 }
 
 void launch_repeat_interleave(const float* input, float* output,

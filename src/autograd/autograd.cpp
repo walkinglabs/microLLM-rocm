@@ -586,7 +586,15 @@ Value causal_gqa_attention(const Value& query, const Value& key,
                                  ? key.data() : key.data().contiguous();
     const auto value_forward = value.data().is_contiguous()
                                    ? value.data() : value.data().contiguous();
+    Tensor saved_probabilities;
     auto output = profiled_tensor("causal_gqa_attention", query.data().device(), [&] {
+        if (query_forward.device().is_hip() && query_forward.shape()[2] >= 256 &&
+            ops::hipblaslt_available()) {
+            auto result = ops::causal_gqa_attention_saved(
+                query_forward, key_forward, value_forward, repeats, scale);
+            saved_probabilities = std::move(result.second);
+            return std::move(result.first);
+        }
         return ops::causal_gqa_attention(
             query_forward, key_forward, value_forward, repeats, scale);
     });
@@ -594,12 +602,17 @@ Value causal_gqa_attention(const Value& query, const Value& key,
         "causal_gqa_attention", std::move(output),
         {query_node, key_node, value_node},
         [query_node, key_node, value_node, query_forward, key_forward,
-         value_forward, repeats, scale](const Tensor& gradient) {
+         value_forward, saved_probabilities, repeats, scale](const Tensor& gradient) {
             const auto prepared_gradient = gradient.is_contiguous()
                                                ? gradient : gradient.contiguous();
-            auto gradients = ops::causal_gqa_attention_backward(
-                query_forward, key_forward, value_forward,
-                prepared_gradient, repeats, scale);
+            auto gradients = saved_probabilities.defined()
+                                 ? ops::causal_gqa_attention_backward_saved(
+                                       query_forward, key_forward, value_forward,
+                                       saved_probabilities, prepared_gradient,
+                                       repeats, scale)
+                                 : ops::causal_gqa_attention_backward(
+                                       query_forward, key_forward, value_forward,
+                                       prepared_gradient, repeats, scale);
             accumulate(query_node, std::move(gradients.first));
             accumulate(key_node, std::move(gradients.second));
             accumulate(value_node, std::move(gradients.third));

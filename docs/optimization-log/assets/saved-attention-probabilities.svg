@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="790" viewBox="0 0 1800 790">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="900.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 055 · Saved Attention Probabilities</text>
+<text x="900.0" y="80.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">context 512 · explicit speed / memory trade-off · median of 3</text>
+<rect x="100" y="150" width="850" height="470" fill="#ffffff" stroke="#cbd3df" rx="10"/>
+<rect x="1080" y="150" width="620" height="470" fill="#ffffff" stroke="#cbd3df" rx="10"/>
+<text x="525.0" y="125.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">Model speedup and peak cost</text>
+<text x="1390.0" y="125.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">Qwen row/forward Kernel time</text>
+<line x1="100" y1="620.0" x2="950" y2="620.0" stroke="#e5e9f0"/>
+<line x1="100" y1="526.0" x2="950" y2="526.0" stroke="#2563eb"/>
+<line x1="100" y1="432.0" x2="950" y2="432.0" stroke="#e5e9f0"/>
+<line x1="100" y1="338.0" x2="950" y2="338.0" stroke="#e5e9f0"/>
+<line x1="100" y1="244.0" x2="950" y2="244.0" stroke="#e5e9f0"/>
+<line x1="100" y1="150.0" x2="950" y2="150.0" stroke="#e5e9f0"/>
+<rect x="230.5" y="278.7" width="76" height="247.3" fill="#18a558" rx="5"/>
+<text x="268.5" y="269.7" font-family="Inter,Arial,sans-serif" font-size="14" fill="#18a558" text-anchor="middle" font-weight="700">1.132×</text>
+<text x="268.5" y="644.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#5b6474" text-anchor="middle" font-weight="400">speed</text>
+<rect x="318.5" y="473.7" width="76" height="52.3" fill="#d6a33c" rx="5"/>
+<text x="356.5" y="464.7" font-family="Inter,Arial,sans-serif" font-size="14" fill="#d6a33c" text-anchor="middle" font-weight="700">1.028×</text>
+<text x="356.5" y="644.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#5b6474" text-anchor="middle" font-weight="400">peak</text>
+<text x="312.5" y="676.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" text-anchor="middle" font-weight="700">Qwen 0.5B</text>
+<rect x="655.5" y="244.5" width="76" height="281.5" fill="#18a558" rx="5"/>
+<text x="693.5" y="235.5" font-family="Inter,Arial,sans-serif" font-size="14" fill="#18a558" text-anchor="middle" font-weight="700">1.150×</text>
+<text x="693.5" y="644.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#5b6474" text-anchor="middle" font-weight="400">speed</text>
+<rect x="743.5" y="508.1" width="76" height="17.9" fill="#d6a33c" rx="5"/>
+<text x="781.5" y="499.1" font-family="Inter,Arial,sans-serif" font-size="14" fill="#d6a33c" text-anchor="middle" font-weight="700">1.010×</text>
+<text x="781.5" y="644.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#5b6474" text-anchor="middle" font-weight="400">peak</text>
+<text x="737.5" y="676.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" text-anchor="middle" font-weight="700">DeepSeek 1.5B</text>
+<text x="1115.0" y="215.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="start" font-weight="700">Backward row</text>
+<rect x="1115" y="245" width="430" height="30" fill="#eef1f5" rx="4"/>
+<rect x="1115" y="245" width="430.0" height="30" fill="#aab2bf" rx="4"/>
+<text x="1565.0" y="266.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#aab2bf" text-anchor="start" font-weight="700">before 473.9 ms</text>
+<rect x="1115" y="297" width="430" height="30" fill="#eef1f5" rx="4"/>
+<rect x="1115" y="297" width="276.9" height="30" fill="#18a558" rx="4"/>
+<text x="1565.0" y="318.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#18a558" text-anchor="start" font-weight="700">after 305.1 ms</text>
+<text x="1115.0" y="390.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="start" font-weight="700">Forward row</text>
+<rect x="1115" y="420" width="430" height="30" fill="#eef1f5" rx="4"/>
+<rect x="1115" y="420" width="244.7" height="30" fill="#aab2bf" rx="4"/>
+<text x="1565.0" y="441.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#aab2bf" text-anchor="start" font-weight="700">before 269.7 ms</text>
+<rect x="1115" y="472" width="430" height="30" fill="#eef1f5" rx="4"/>
+<rect x="1115" y="472" width="247.3" height="30" fill="#18a558" rx="4"/>
+<text x="1565.0" y="493.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#18a558" text-anchor="start" font-weight="700">after 272.5 ms</text>
+<text x="900.0" y="710.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#9a4f00" text-anchor="middle" font-weight="700">Both models +336 MiB peak · T128 fallback 0.991× · saved row 1.553× faster</text>
+</svg>

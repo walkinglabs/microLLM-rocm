@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "before": {"kernel_dispatches": 7055, "kernel_time_ns": 1442275737, "hip_api_calls": 259375, "row_backward_time_ns": 473909338, "forward_time_ns": 269688265},
+  "after": {"kernel_dispatches": 7055, "kernel_time_ns": 1283845306, "hip_api_calls": 259593, "hip_api_time_ns": 6882845944, "saved_row_backward_calls": 72, "saved_row_backward_time_ns": 305149624, "forward_calls": 72, "forward_time_ns": 272520268},
+  "kernel_time_speedup": 1.123403054,
+  "row_backward_speedup": 1.553039233,
+  "forward_speedup": 0.989608101,
+  "dispatch_ratio": 1.0,
+  "hip_api_call_ratio": 1.000840482,
+  "count_contract": "24 Qwen layers x three traced steps"
+}
