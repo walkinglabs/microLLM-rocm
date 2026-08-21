@@ -1501,3 +1501,26 @@ unsupported，绝不拿uncached冒充cached。
 
 因此这一节点keep的是测量基础设施，不是性能。它纠正仓库README/STATUS，并给下一步
 明确排序：batched长prefill、full-sequence prefill-to-cache、batched KV和device batch argmax。
+
+## 78. Experiment 061：有优化路由，不等于模型会走那条路
+
+第一版只在公共causal GQA里加入T≥256 batched QK/PV。Qwen T512只快0.39%。profile
+发现模型`forward_tensor`另写了一份repeat、QK、softmax、PV；144次readable matmul占
+629.41ms。算子优化没有进入模型，局部测试再绿也没用。
+
+![Batched long-prefill inference](assets/batched-long-prefill-inference.svg)
+
+第二版删除模型内副本，直接调用公共causal GQA。三进程结果：
+
+```text
+Qwen T512 / T1024      6.72× / 13.18× faster
+DeepSeek               8.40× / 16.73×
+current PyTorch ratio  0.229×–0.308× at T512; about 0.15× at T1024
+```
+
+T512 peak不变；T1024因GQA head展开和batched临时表增加33%/12%。top token全部一致，
+最大top-logit差0.195。T128也提高1.78×。
+
+readable Attention matmul从629.41ms归零，只新增约1.68ms library GEMM；全部Kernel
+`802.89→156.87ms`（5.12×）。候选保留，但0.15×PyTorch仍不是完成。下一根系统柱子
+是prompt必须逐token写Cache；需要full-sequence prefill-to-cache，而不是继续改steady decode。

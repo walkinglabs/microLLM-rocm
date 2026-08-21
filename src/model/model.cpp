@@ -318,16 +318,11 @@ public:
             query = ops::rope(query, 2, 0, config_.rope_base);
             key = ops::rope(key, 2, 0, config_.rope_base);
         }
-        if (config_.kv_heads != config_.heads) {
-            const auto repeats = config_.heads / config_.kv_heads;
-            key = ops::repeat_interleave(key, 1, repeats);
-            value = ops::repeat_interleave(value, 1, repeats);
-        }
-        const auto scores = ops::scale(
-            ops::matmul(query, key.transpose(-2, -1).contiguous()),
-            1.0F / std::sqrt(static_cast<float>(config_.head_dimension())));
-        const auto probabilities = ops::causal_softmax(scores);
-        auto context = ops::matmul(probabilities, value)
+        const auto repeats = config_.heads / config_.kv_heads;
+        auto context = ops::causal_gqa_attention(
+                           query, key, value, repeats,
+                           1.0F / std::sqrt(
+                                      static_cast<float>(config_.head_dimension())))
                            .transpose(1, 2)
                            .contiguous()
                            .reshape({batch * sequence, config_.dimension});

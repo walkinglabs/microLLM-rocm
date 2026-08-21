@@ -53,6 +53,8 @@ needed to run a real training and generation loop:
   training matrix improves another 1.220×/1.125× with unchanged measured peak.
 - paired Qwen/DeepSeek inference matrices across context, batch and cache modes, including
   KV Storage/active utilization and explicit unsupported/OOM rows.
+- graph-free long prefill reuses public causal GQA and batched hipBLASLt; Qwen/DeepSeek
+  T512/T1024 gain 6.7×–16.7× with explicit T1024 memory cost.
 
 The design keeps three implementations where they provide engineering value:
 
@@ -201,6 +203,12 @@ bytes and explicit cached-batch limitations are reported separately. The older
 [Experiment 036](docs/optimization-log/experiments/036-bf16-immutable-plan-cache.md)
 remains historical short-shape evidence; its 4/4 performance result is superseded by the
 matched phase-separated [Experiment 060](docs/optimization-log/experiments/060-inference-context-batch-kv-matrix.md).
+
+After Experiment 061 routes graph-free long prefill through batched hipBLASLt, the retained
+T512 prefill ratios become `0.308×` (Qwen) and `0.229×` (DeepSeek); T1024 reaches
+`0.152×/0.156×`. This is 6.72×–16.73× faster than Experiment 060, while T1024 adds
+12%–33% microLLM peak. See
+[Experiment 061](docs/optimization-log/experiments/061-batched-long-prefill-inference.md).
 
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or

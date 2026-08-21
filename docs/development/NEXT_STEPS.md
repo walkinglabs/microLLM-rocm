@@ -25,6 +25,9 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] add Q/K/V bias parameters, backward, HIP Kernel, and strict weight mapping;
 - [ ] add explicit attention head dimension and QK-Norm where required;
 - [x] preallocate request-bounded device-native KV cache with stable Storage evidence;
+- [x] route graph-free T>=256 prefill Attention through strided-batched hipBLASLt;
+- [ ] populate KV cache from one full-sequence prefill instead of token-by-token replay;
+- [ ] support batched cached decode with batch-aware KV Storage;
 - [x] compare tokenizer IDs, complete logits, and greedy tokens with PyTorch on fixed prompts;
 - [ ] compare every per-layer hidden state with PyTorch;
 - [x] record engine peak, resident policy, prefill/decode latency, tokens/s and KV utilization;

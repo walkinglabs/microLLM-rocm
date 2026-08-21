@@ -80,6 +80,25 @@ class HfInferenceShapeMatrixTest(unittest.TestCase):
         self.assertEqual(MATRIX.classify_failure("HIP out of memory"), "oom")
         self.assertEqual(MATRIX.classify_failure("wrong answer"), "failed")
 
+    def test_case_filter_rejects_unknown_and_omits_unrequested_rows(self):
+        self.assertEqual(MATRIX.case_list("prefill,cached"), ["prefill", "cached"])
+        with self.assertRaisesRegex(Exception, "cases must contain"):
+            MATRIX.case_list("prefill,magic")
+        model = {"name": "tiny", "revision": "fixed"}
+        records = []
+        for framework in ("microllm", "pytorch"):
+            records.append({
+                "model": "tiny", "context": 8, "batch": 1,
+                "workload": "prefill", "cache_mode": "uncached",
+                "framework": framework, "status": "pass",
+                "throughput_tokens_per_second": 1.0, "latency_ms": 1.0,
+                "peak_bytes": 10, "resident_weight_bytes": 8,
+            })
+        summary = MATRIX.summarize(
+            records, [model], [8], [1], 1, cases=["prefill"])
+        self.assertEqual(len(summary["rows"]), 1)
+        self.assertEqual(summary["status"], "pass")
+
     def test_micro_normalization_separates_storage_and_active_cache(self):
         args = type("Args", (), {"warmup": 1, "steps": 2, "decode_tokens": 4})()
         raw = {

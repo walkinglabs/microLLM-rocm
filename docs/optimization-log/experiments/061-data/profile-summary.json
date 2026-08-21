@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "before": {"kernel_dispatches": 2824, "kernel_time_ns": 802893381, "hip_api_calls": 236903, "hip_api_time_ns": 3899404235, "readable_attention_matmul_calls": 144, "readable_attention_matmul_time_ns": 629412523, "library_gemm_calls": 507, "library_gemm_time_ns": 10964762},
+  "after": {"kernel_dispatches": 2752, "kernel_time_ns": 156870227, "hip_api_calls": 137369, "hip_api_time_ns": 4533903272, "readable_attention_matmul_calls": 0, "readable_attention_matmul_time_ns": 0, "library_gemm_calls": 651, "library_gemm_time_ns": 12642547, "causal_softmax_calls": 72, "causal_softmax_time_ns": 39436686},
+  "kernel_time_speedup": 5.118201411,
+  "readable_attention_time_removed_ns": 629412523,
+  "additional_library_gemm_calls": 144,
+  "library_gemm_time_increment_ns": 1677785,
+  "dispatch_ratio": 0.974504249,
+  "hip_api_call_ratio": 0.579860112,
+  "count_contract": "24 Qwen layers x three traced forward passes; two Attention matmuls per layer move from readable to library"
+}

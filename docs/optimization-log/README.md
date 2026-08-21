@@ -314,6 +314,13 @@ T512 prefill仅为PyTorch的`0.044×/0.026×`，cached decode为`0.318×/0.267×
 
 ![Inference context, batch and KV matrix](assets/inference-context-batch-matrix.svg)
 
+Experiment 061 先出现一个0.39%的“假优化”：operator有batched路由，但模型仍手写两次
+readable matmul。rocprof显示144次占629.41ms。模型改为复用公共causal GQA后，
+Qwen/DeepSeek T512/T1024提高`6.72×/13.18×`与`8.40×/16.73×`；T512 peak不变，
+T1024增加33%/12%。全部top token一致，最大top-logit差0.195。
+
+![Batched long-prefill inference](assets/batched-long-prefill-inference.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -393,6 +400,8 @@ T512 prefill仅为PyTorch的`0.044×/0.026×`，cached decode为`0.318×/0.267×
 | [experiments/059-data/](experiments/059-data/) | 正式12条 raw、T128 fallback 与 retained profiler 聚合 |
 | [assets/inference-context-batch-matrix.svg](assets/inference-context-batch-matrix.svg) | context吞吐比、batch效率和KV Cache边界 |
 | [experiments/060-data/](experiments/060-data/) | 核心108条、batch48条、long60条、无效pilot和最终schema smoke |
+| [assets/batched-long-prefill-inference.svg](assets/batched-long-prefill-inference.svg) | T512/T1024 prefill自身加速、显存和profile |
+| [experiments/061-data/](experiments/061-data/) | 正式24条、T128 fallback、未命中pilot和前后profile |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

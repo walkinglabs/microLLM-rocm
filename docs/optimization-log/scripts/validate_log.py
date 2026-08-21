@@ -1306,6 +1306,63 @@ def validate_inference_shape_matrix(errors: list[str]) -> tuple[int, int, int, i
     return len(core), len(batch), len(long_warm), len(long_no_warm)
 
 
+def validate_batched_prefill_inference(errors: list[str]) -> tuple[int, int]:
+    data = ROOT / "experiments" / "061-data"
+    formal = [json.loads(line) for line in
+              (data / "formal" / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    keys = {(row.get("model"), row.get("context"), row.get("framework"),
+             row.get("process_run")) for row in formal}
+    if len(formal) != 24 or len(keys) != 24 or any(
+            row.get("status") != "pass" or row.get("workload") != "prefill" or
+            row.get("cache_mode") != "uncached" or row.get("context") not in {512, 1024}
+            for row in formal):
+        errors.append("batched prefill formal protocol changed")
+    summary = json.loads((data / "formal" / "summary.json").read_text(encoding="utf-8"))
+    if summary.get("status") != "pass" or len(summary.get("rows", [])) != 4 or any(
+            row.get("prefill_top_token_equal") is not True or
+            row.get("prefill_top_logit_abs_difference", 1.0) >= 0.2
+            for row in summary.get("rows", [])):
+        errors.append("batched prefill official top-logit gate changed")
+    comparison = json.loads((data / "comparison.json").read_text(encoding="utf-8"))
+    rows = comparison.get("rows", [])
+    if comparison.get("decision") != "keep" or len(rows) != 4 or any(
+            row.get("self_speedup", 0.0) < 6.7 or
+            row.get("top_token_equal") is not True or
+            row.get("top_logit_abs_difference", 1.0) >= 0.2
+            for row in rows) or \
+            comparison.get("fallback128", {}).get("speedup", 0.0) < 1.7:
+        errors.append("batched prefill keep/fallback contract changed")
+    pilots = []
+    for name in ("route-unused-pilot.jsonl", "integrated-pilot.jsonl",
+                 "fallback128.jsonl"):
+        pilots.extend(json.loads(line) for line in
+                      (data / name).read_text(encoding="utf-8").splitlines())
+    if len(pilots) != 3 or any(row.get("status") != "pass" for row in pilots):
+        errors.append("batched prefill pilot evidence changed")
+    profile = json.loads((data / "profile-summary.json").read_text(encoding="utf-8"))
+    for phase in ("before", "after"):
+        with (data / f"profile-{phase}" / "kernel-stats.csv").open(
+                encoding="utf-8", newline="") as stream:
+            kernels = list(csv.DictReader(stream))
+        with (data / f"profile-{phase}" / "hip-api-stats.csv").open(
+                encoding="utf-8", newline="") as stream:
+            api = list(csv.DictReader(stream))
+        recorded = profile[phase]
+        if sum(int(row["Calls"]) for row in kernels) != recorded["kernel_dispatches"] or \
+                sum(int(row["TotalDurationNs"]) for row in kernels) != \
+                recorded["kernel_time_ns"] or \
+                sum(int(row["Calls"]) for row in api) != recorded["hip_api_calls"] or \
+                sum(int(row["TotalDurationNs"]) for row in api) != \
+                recorded["hip_api_time_ns"]:
+            errors.append(f"batched prefill {phase} profiler aggregate changed")
+    if profile.get("kernel_time_speedup", 0.0) < 5.1 or \
+            profile["before"].get("readable_attention_matmul_calls") != 144 or \
+            profile["after"].get("readable_attention_matmul_calls") != 0 or \
+            profile.get("additional_library_gemm_calls") != 144:
+        errors.append("batched prefill profiler routing gate changed")
+    return len(formal), profile["after"].get("kernel_dispatches", 0)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -1345,7 +1402,8 @@ def validate_assets(errors: list[str]) -> None:
                  "full-batched-attention-backward.svg",
                  "block-row-causal-softmax.svg",
                  "block-column-rmsnorm-weight-gradient.svg",
-                 "inference-context-batch-matrix.svg"):
+                 "inference-context-batch-matrix.svg",
+                 "batched-long-prefill-inference.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -1410,6 +1468,7 @@ def main() -> int:
         validate_block_column_rmsnorm_weight_gradient(errors)
     inference_core, inference_batch, inference_long, inference_no_warm = \
         validate_inference_shape_matrix(errors)
+    prefill_records, prefill_calls = validate_batched_prefill_inference(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -1445,6 +1504,7 @@ def main() -> int:
           f"block_rms={block_rms_records}/{block_rms_calls} "
           f"inference={inference_core}/{inference_batch}/{inference_long}/"
           f"{inference_no_warm} "
+          f"prefill={prefill_records}/{prefill_calls} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

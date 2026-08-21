@@ -682,7 +682,10 @@ TEST(HipFullAttentionTest, CausalMhaGqaForwardBackwardMatchCpuWithoutTransfers) 
             runtime::reset_transfer_stats();
             Tensor actual;
             TensorTriple actual_backward;
+            Tensor plain_long_forward;
             if (sequence >= 256) {
+                plain_long_forward = causal_gqa_attention(
+                    device_query, device_key, device_value, repeats, 0.25F);
                 auto saved = causal_gqa_attention_saved(
                     device_query, device_key, device_value, repeats, 0.25F);
                 actual = std::move(saved.first);
@@ -701,6 +704,9 @@ TEST(HipFullAttentionTest, CausalMhaGqaForwardBackwardMatchCpuWithoutTransfers) 
             EXPECT_EQ(transfers.host_to_device_calls, 0U);
             EXPECT_EQ(transfers.device_to_host_calls, 0U);
             expect_near(actual.to_vector(), expected.to_vector(), 8.0e-4F);
+            if (plain_long_forward.defined()) {
+                expect_near(plain_long_forward.to_vector(), expected.to_vector(), 8.0e-4F);
+            }
             expect_near(actual_backward.first.to_vector(),
                         expected_backward.first.to_vector(), 1.5e-3F);
             expect_near(actual_backward.second.to_vector(),

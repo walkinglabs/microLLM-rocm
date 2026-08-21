@@ -37,6 +37,15 @@ def name_list(text: str) -> list[str]:
     return values
 
 
+def case_list(text: str) -> list[str]:
+    values = name_list(text)
+    allowed = {"prefill", "cached", "uncached"}
+    if not set(values) <= allowed:
+        raise argparse.ArgumentTypeError(
+            "cases must contain prefill, cached and/or uncached")
+    return values
+
+
 def options() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--manifest", required=True, type=Path)
@@ -46,6 +55,8 @@ def options() -> argparse.Namespace:
     parser.add_argument("--models", type=name_list)
     parser.add_argument("--contexts", default="8,128,512")
     parser.add_argument("--batches", default="1,2,4")
+    parser.add_argument("--cases", type=case_list,
+                        default=case_list("prefill,cached,uncached"))
     parser.add_argument("--decode-tokens", type=int, default=16)
     parser.add_argument("--warmup", type=int, default=2)
     parser.add_argument("--steps", type=int, default=5)
@@ -394,76 +405,81 @@ def pytorch_worker(args: argparse.Namespace, model: dict) -> dict:
 
 
 def summarize(records: list[dict], models: list[dict], contexts: list[int],
-              batches: list[int], runs: int) -> dict:
+              batches: list[int], runs: int,
+              cases: list[str] | tuple[str, ...] = ("prefill", "cached", "uncached")) -> dict:
     rows = []
+    case_pairs = {
+        "prefill": ("prefill", "uncached"),
+        "cached": ("decode", "cached"),
+        "uncached": ("decode", "uncached"),
+    }
     for model in models:
         for context in contexts:
             for batch in batches:
-                for workload, caches in (("prefill", ("uncached",)),
-                                         ("decode", ("cached", "uncached"))):
-                    for cache in caches:
-                        selected = [record for record in records
-                                    if record.get("model") == model["name"] and
-                                    record.get("context") == context and
-                                    record.get("batch") == batch and
-                                    record.get("workload") == workload and
-                                    record.get("cache_mode") == cache]
-                        row = {"model": model["name"], "revision": model["revision"],
-                               "context": context, "batch": batch, "workload": workload,
-                               "cache_mode": cache}
-                        per_framework = {}
-                        for framework in ("microllm", "pytorch"):
-                            measured = [record for record in selected
-                                        if record.get("framework") == framework and
-                                        record.get("status") == "pass"]
-                            failures = [record for record in selected
-                                        if record.get("framework") == framework and
-                                        record.get("status") != "pass"]
-                            if len(measured) == runs:
-                                per_framework[framework] = measured
-                                row[f"{framework}_status"] = "pass"
-                                for field in ("throughput_tokens_per_second", "latency_ms",
-                                              "peak_bytes", "resident_weight_bytes",
-                                              "kv_cache_actual_bytes",
-                                              "kv_cache_theoretical_bytes",
-                                              "kv_cache_allocation_efficiency",
-                                              "kv_cache_utilization",
-                                              "kv_cache_share_of_peak",
-                                              "mean_cache_prepare_ms",
-                                              "mean_end_to_end_generation_ms"):
-                                    row[f"{framework}_{field}"] = statistics.median(
-                                        float(record.get(field, 0.0)) for record in measured)
-                                if workload == "decode":
-                                    row[f"{framework}_generated_tokens"] = measured[0][
-                                        "generated_tokens"]
-                            else:
-                                statuses = sorted({record.get("status", "failed")
-                                                   for record in failures})
-                                row[f"{framework}_status"] = statuses[0] if len(statuses) == 1 \
-                                    else "incomplete"
-                        if len(per_framework) == 2:
-                            micro_tps = row["microllm_throughput_tokens_per_second"]
-                            torch_tps = row["pytorch_throughput_tokens_per_second"]
-                            row["throughput_ratio_microllm_over_pytorch"] = micro_tps / torch_tps
-                            row["peak_memory_ratio_microllm_over_pytorch"] = \
-                                row["microllm_peak_bytes"] / row["pytorch_peak_bytes"]
-                            row["resident_weight_ratio_microllm_over_pytorch"] = \
-                                row["microllm_resident_weight_bytes"] / \
-                                row["pytorch_resident_weight_bytes"]
+                for case in cases:
+                    workload, cache = case_pairs[case]
+                    selected = [record for record in records
+                                if record.get("model") == model["name"] and
+                                record.get("context") == context and
+                                record.get("batch") == batch and
+                                record.get("workload") == workload and
+                                record.get("cache_mode") == cache]
+                    row = {"model": model["name"], "revision": model["revision"],
+                           "context": context, "batch": batch, "workload": workload,
+                           "cache_mode": cache}
+                    per_framework = {}
+                    for framework in ("microllm", "pytorch"):
+                        measured = [record for record in selected
+                                    if record.get("framework") == framework and
+                                    record.get("status") == "pass"]
+                        failures = [record for record in selected
+                                    if record.get("framework") == framework and
+                                    record.get("status") != "pass"]
+                        if len(measured) == runs:
+                            per_framework[framework] = measured
+                            row[f"{framework}_status"] = "pass"
+                            for field in ("throughput_tokens_per_second", "latency_ms",
+                                          "peak_bytes", "resident_weight_bytes",
+                                          "kv_cache_actual_bytes",
+                                          "kv_cache_theoretical_bytes",
+                                          "kv_cache_allocation_efficiency",
+                                          "kv_cache_utilization",
+                                          "kv_cache_share_of_peak",
+                                          "mean_cache_prepare_ms",
+                                          "mean_end_to_end_generation_ms"):
+                                row[f"{framework}_{field}"] = statistics.median(
+                                    float(record.get(field, 0.0)) for record in measured)
                             if workload == "decode":
-                                row["cross_framework_tokens_equal"] = \
-                                    row["microllm_generated_tokens"] == row["pytorch_generated_tokens"]
-                            else:
-                                micro_top = per_framework["microllm"][0].get("top_logits", [])
-                                torch_top = per_framework["pytorch"][0].get("top_logits", [])
-                                if micro_top and torch_top:
-                                    row["prefill_top_token_equal"] = \
-                                        micro_top[0]["token"] == torch_top[0]["token"]
-                                    row["prefill_top_logit_abs_difference"] = abs(
-                                        float(micro_top[0]["logit"]) -
-                                        float(torch_top[0]["logit"]))
-                        row["status"] = "pass" if len(per_framework) == 2 else "limited"
-                        rows.append(row)
+                                row[f"{framework}_generated_tokens"] = measured[0][
+                                    "generated_tokens"]
+                        else:
+                            statuses = sorted({record.get("status", "failed")
+                                               for record in failures})
+                            row[f"{framework}_status"] = statuses[0] if len(statuses) == 1 \
+                                else "incomplete"
+                    if len(per_framework) == 2:
+                        micro_tps = row["microllm_throughput_tokens_per_second"]
+                        torch_tps = row["pytorch_throughput_tokens_per_second"]
+                        row["throughput_ratio_microllm_over_pytorch"] = micro_tps / torch_tps
+                        row["peak_memory_ratio_microllm_over_pytorch"] = \
+                            row["microllm_peak_bytes"] / row["pytorch_peak_bytes"]
+                        row["resident_weight_ratio_microllm_over_pytorch"] = \
+                            row["microllm_resident_weight_bytes"] / \
+                            row["pytorch_resident_weight_bytes"]
+                        if workload == "decode":
+                            row["cross_framework_tokens_equal"] = \
+                                row["microllm_generated_tokens"] == row["pytorch_generated_tokens"]
+                        else:
+                            micro_top = per_framework["microllm"][0].get("top_logits", [])
+                            torch_top = per_framework["pytorch"][0].get("top_logits", [])
+                            if micro_top and torch_top:
+                                row["prefill_top_token_equal"] = \
+                                    micro_top[0]["token"] == torch_top[0]["token"]
+                                row["prefill_top_logit_abs_difference"] = abs(
+                                    float(micro_top[0]["logit"]) -
+                                    float(torch_top[0]["logit"]))
+                    row["status"] = "pass" if len(per_framework) == 2 else "limited"
+                    rows.append(row)
 
     for framework in ("microllm", "pytorch"):
         by_key = {(row["model"], row["context"], row["batch"], row["cache_mode"]): row
@@ -516,9 +532,13 @@ def main() -> int:
     for model in models:
         for context in args.contexts:
             for batch in args.batches:
-                cases = (("prefill", "uncached"), ("decode", "cached"),
-                         ("decode", "uncached"))
-                for workload, cache in cases:
+                case_pairs = {
+                    "prefill": ("prefill", "uncached"),
+                    "cached": ("decode", "cached"),
+                    "uncached": ("decode", "uncached"),
+                }
+                for case in args.cases:
+                    workload, cache = case_pairs[case]
                     for process_run in range(1, args.runs + 1):
                         order = ("microllm", "pytorch") if process_run % 2 else \
                             ("pytorch", "microllm")
@@ -573,7 +593,7 @@ def main() -> int:
                                 record = {**base, "status": classify_failure(error),
                                           "error": str(error)}
                             save(record)
-    summary = summarize(records, models, args.contexts, args.batches, args.runs)
+    summary = summarize(records, models, args.contexts, args.batches, args.runs, args.cases)
     (args.output_directory / "summary.json").write_text(
         json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return 0

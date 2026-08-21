@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "experiment": 61,
+  "decision": "keep",
+  "candidate": "reuse public causal GQA in graph-free model inference and route T>=256 QK/PV through strided-batched hipBLASLt",
+  "rows": [
+    {"model": "qwen2.5-0.5b", "context": 512, "before_tokens_per_second": 2011.234812658, "after_tokens_per_second": 13522.216870265, "self_speedup": 6.723340699, "after_pytorch_ratio": 0.308301876, "before_peak_bytes": 1884644864, "after_peak_bytes": 1884644864, "peak_ratio": 1.0, "top_token_equal": true, "top_logit_abs_difference": 0.047857285},
+    {"model": "qwen2.5-0.5b", "context": 1024, "before_tokens_per_second": 1063.420789606, "after_tokens_per_second": 14011.848523105, "self_speedup": 13.176203305, "after_pytorch_ratio": 0.152133177, "before_peak_bytes": 1886481920, "after_peak_bytes": 2508811776, "peak_ratio": 1.329889118, "top_token_equal": true, "top_logit_abs_difference": 0.195058823},
+    {"model": "deepseek-r1-distill-qwen-1.5b", "context": 512, "before_tokens_per_second": 1030.265999509, "after_tokens_per_second": 8653.956725501, "self_speedup": 8.399730487, "after_pytorch_ratio": 0.229290266, "before_peak_bytes": 5113438208, "after_peak_bytes": 5113438208, "peak_ratio": 1.0, "top_token_equal": true, "top_logit_abs_difference": 0.055976868},
+    {"model": "deepseek-r1-distill-qwen-1.5b", "context": 1024, "before_tokens_per_second": 542.430043657, "after_tokens_per_second": 9073.320309663, "self_speedup": 16.727171394, "after_pytorch_ratio": 0.155894241, "before_peak_bytes": 5116585984, "after_peak_bytes": 5738915840, "peak_ratio": 1.121629903, "top_token_equal": true, "top_logit_abs_difference": 0.067556381}
+  ],
+  "fallback128": {"before_tokens_per_second": 2892.722308421, "after_tokens_per_second": 5159.829861866, "speedup": 1.783728029, "before_peak_bytes": 1416519680, "after_peak_bytes": 1416519680, "peak_ratio": 1.0},
+  "memory_policy": "T512 peak is unchanged; T1024 pays explicit GQA head-expansion and batched temporary costs",
+  "reason": "all four official rows gain 6.7x to 16.7x, top tokens match, maximum top-logit difference stays below 0.2, T128 improves, and the T1024 memory cost is explicit"
+}

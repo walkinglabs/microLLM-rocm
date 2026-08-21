@@ -1816,6 +1816,10 @@ Tensor causal_gqa_attention(const Tensor& query, const Tensor& key,
             return causal_gqa_attention_composed(
                 query, key, value, repeats, scale, context);
         }
+        if (sequence >= 256 && hipblaslt_available()) {
+            return causal_gqa_attention_saved(
+                query, key, value, repeats, scale, context).first;
+        }
         Tensor output(query.shape(), DType::Float32, query.device());
 #if MICROLLM_HAS_HIP
         hip::launch_causal_gqa_attention(
