@@ -43,8 +43,8 @@ P5的第一个prefill选择：
 因此当前证据推翻了“local row/stride/KV copy错误”。B1/B2差异只跟计算shape变化。结合默认B2
 在原请求上匹配PyTorch，最强解释变成BF16/hipBLASLt在M=32与M=64下的数值路径差异。
 
-这仍不是“所有算子已经证明正确”。下一步要保存B1/B2完整logits的max-abs/mean-abs，并在每个
-Transformer block找出差异首次明显增长的位置。
+后续[逐层漂移实验](prefill-layer-drift.zh-CN.md)已保存完整logits和28个block：embedding exact，
+首个非零点是block 0，最终logits max-abs 0.1530。下一步继续拆block 0子阶段。
 
 ![B2 prefill row audit](../optimization-log/assets/prefill-row-audit.svg)
 

@@ -25,6 +25,7 @@
 #include <microllm/inference/kv_cache.h>
 #include <microllm/inference/scheduler.h>
 #include <microllm/ops/ops.h>
+#include <microllm/profiling/trace.h>
 
 namespace {
 
@@ -64,6 +65,8 @@ struct Options {
     std::string continuous_prompt_offsets;
     bool continuous_prefill_batch = true;
     bool continuous_diagnostics = false;
+    std::filesystem::path trace_output;
+    std::int64_t trace_max_elements = 4096;
 };
 
 Options options(int argc, char** argv) {
@@ -153,6 +156,12 @@ Options options(int argc, char** argv) {
             }
             result.continuous_prefill_batch = value == "true";
         }
+        else if (name == "--trace-output") {
+            result.trace_output = argv[index + 1];
+        }
+        else if (name == "--trace-max-elements") {
+            result.trace_max_elements = std::stoll(argv[index + 1]);
+        }
         else throw std::invalid_argument("unknown CLI option: " + name);
     }
     if (result.config.empty() || result.weights.empty()) {
@@ -230,6 +239,15 @@ Options options(int argc, char** argv) {
         result.workload != "continuous") {
         throw std::invalid_argument(
             "--continuous-prompt-offsets requires continuous workload");
+    }
+    if (result.trace_max_elements <= 0) {
+        throw std::invalid_argument("--trace-max-elements must be positive");
+    }
+    if (!result.trace_output.empty() &&
+        (result.workload != "prefill" || result.prefill_warmup != 0 ||
+         result.prefill_steps != 1)) {
+        throw std::invalid_argument(
+            "--trace-output requires prefill workload, zero prefill warmup, and one prefill step");
     }
     if (!result.cache_logits_output.empty() &&
         (!result.use_cache || result.workload == "prefill" || result.new_tokens < 2)) {
@@ -868,12 +886,34 @@ int main(int argc, char** argv) {
             if (device.is_hip()) microllm::runtime::enable_hip_caching_allocator(device);
             microllm::runtime::reset_allocation_peak(device);
             microllm::runtime::reset_transfer_stats();
+            std::unique_ptr<microllm::profiling::TraceSession> trace_session;
+            std::unique_ptr<microllm::profiling::ScopedTraceSession> trace_scope;
+            if (!command.trace_output.empty()) {
+                microllm::profiling::TraceOptions trace_options;
+                trace_options.phase = "inference-values";
+                trace_options.record_operators = false;
+                trace_options.record_layers = true;
+                trace_options.record_model = true;
+                trace_options.capture_values = true;
+                trace_options.synchronize_device = true;
+                trace_options.max_captured_elements =
+                    static_cast<std::size_t>(command.trace_max_elements);
+                trace_session = std::make_unique<microllm::profiling::TraceSession>(
+                    "microllm", "hf-prefill", trace_options);
+                trace_scope =
+                    std::make_unique<microllm::profiling::ScopedTraceSession>(
+                        *trace_session);
+            }
             const auto forward_start = std::chrono::steady_clock::now();
             for (int iteration = 0; iteration < command.prefill_steps; ++iteration) {
                 logits_tensor = prefill();
             }
             microllm::runtime::synchronize(device);
             const auto forward_finish = std::chrono::steady_clock::now();
+            trace_scope.reset();
+            if (trace_session != nullptr) {
+                trace_session->write_jsonl(command.trace_output);
+            }
             forward_ms = std::chrono::duration<double, std::milli>(
                              forward_finish - forward_start).count();
         }
@@ -1027,6 +1067,10 @@ int main(int argc, char** argv) {
                   << ",\"device\":\"" << device.str() << "\""
                   << ",\"device_name\":\"" << info.name << "\""
                   << ",\"architecture\":\"" << info.architecture << "\""
+                  << ",\"trace_record_count\":"
+                  << (command.trace_output.empty()
+                          ? 0
+                          : static_cast<std::int64_t>(external.model.layers + 5))
                   << ",\"device_total_bytes\":" << info.total_memory
                   << ",\"hip_runtime_version\":"
                   << microllm::runtime::hip_runtime_version()

@@ -36,6 +36,12 @@ ROW_AUDIT_SPEC = importlib.util.spec_from_file_location(
 ROW_AUDIT = importlib.util.module_from_spec(ROW_AUDIT_SPEC)
 assert ROW_AUDIT_SPEC.loader is not None
 ROW_AUDIT_SPEC.loader.exec_module(ROW_AUDIT)
+LAYER_DRIFT_SPEC = importlib.util.spec_from_file_location(
+    "hf_prefill_layer_drift",
+    ROOT / "benchmarks/single_gpu/hf_prefill_layer_drift.py")
+LAYER_DRIFT = importlib.util.module_from_spec(LAYER_DRIFT_SPEC)
+assert LAYER_DRIFT_SPEC.loader is not None
+LAYER_DRIFT_SPEC.loader.exec_module(LAYER_DRIFT)
 
 
 class HfContinuousMatrixTest(unittest.TestCase):
@@ -231,6 +237,24 @@ class HfContinuousMatrixTest(unittest.TestCase):
                  "logit_batch_size": 2, "logit_source": "prefill"}
         self.assertEqual(ROW_AUDIT.numeric_signature(first),
                          ROW_AUDIT.numeric_signature(dict(first)))
+
+    def test_layer_drift_compares_complete_rows_and_rejects_truncation(self):
+        def record(shape, values):
+            return {"shape": shape, "values": values,
+                    "values_truncated": False}
+        compared = LAYER_DRIFT.compare_traces(
+            {"inference.embedding": record([1, 2, 2], [1, 2, 3, 4])},
+            {"inference.embedding": record(
+                [2, 2, 2], [1, 2, 3, 5, 1, 2, 3, 5])})
+        self.assertEqual(compared[0]["b1_vs_b2_row0"]["max_abs"], 1.0)
+        self.assertTrue(compared[0]["b2_row0_vs_row1"]["exact"])
+        truncated = record([1, 2, 2], [1, 2, 3, 4])
+        truncated["values_truncated"] = True
+        with self.assertRaisesRegex(RuntimeError, "truncated"):
+            LAYER_DRIFT.compare_traces(
+                {"inference.embedding": truncated},
+                {"inference.embedding": record(
+                    [2, 2, 2], [1, 2, 3, 4, 1, 2, 3, 4])})
 
 
 if __name__ == "__main__":

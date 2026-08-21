@@ -1,0 +1,17 @@
+date_utc=2026-08-21
+device=AMD Instinct MI300X VF
+architecture=gfx942:sramecc+:xnack-
+hip_runtime=71399004
+hip_driver=71399004
+build_type=Release
+source_parent=fe94c08
+model=deepseek-r1-distill-qwen-1.5b
+prompt_offset=5
+prompt_length=32
+batches=1,2_duplicate
+fresh_pairs=3
+trace_max_elements=400000
+cache_dtype=not_used
+linear_policy=bf16_ffn_and_attention
+host_full_value_snapshot=true
+performance_claim=false

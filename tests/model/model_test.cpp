@@ -6,6 +6,7 @@
 #include <gtest/gtest.h>
 #include <microllm/model/model.h>
 #include <microllm/ops/ops.h>
+#include <microllm/profiling/trace.h>
 
 namespace microllm::model {
 namespace {
@@ -86,7 +87,22 @@ TEST(TransformerModelTest, GraphFreeInferenceMatchesAutogradForMhaAndGqa) {
     for (const auto gqa : {false, true}) {
         TransformerModel model(tiny_config(gqa), 13);
         const auto graph = model.forward(tokens).data().to_vector();
-        const auto inference = model.forward_inference(tokens);
+        profiling::TraceOptions trace_options;
+        trace_options.record_operators = false;
+        trace_options.max_captured_elements = 256;
+        profiling::TraceSession trace("microllm", "inference-unit",
+                                      trace_options);
+        Tensor inference;
+        {
+            profiling::ScopedTraceSession active(trace);
+            inference = model.forward_inference(tokens);
+        }
+        ASSERT_EQ(trace.records().size(), 6U);
+        EXPECT_EQ(trace.records()[1].name, "inference.embedding");
+        EXPECT_EQ(trace.records()[2].name, "inference.blocks.0");
+        EXPECT_EQ(trace.records()[3].name, "inference.final_norm");
+        EXPECT_EQ(trace.records()[4].name, "inference.logits");
+        EXPECT_EQ(trace.records()[4].values.size(), 128U);
         EXPECT_EQ(inference.dtype(), DType::Float32);
         EXPECT_EQ(inference.shape(), (Shape{2, 4, 16}));
         expect_near(inference.to_vector(), graph, 2.0e-5F);

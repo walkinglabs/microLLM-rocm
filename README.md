@@ -105,6 +105,8 @@ needed to run a real training and generation loop:
   while PyTorch evidence rejects serial prefill as the production default.
 - explicit prompt offsets support official B2 row/order/duplicate audits; 12/12 DeepSeek processes
   show identical B2 logits and tokens across row zero/one, refuting a stride or KV-copy defect.
+- graph-free inference now supports opt-in layer traces; complete P5 snapshots locate the first
+  B1/B2 difference at block 0 and quantify final 151k-logit max-abs/relative-L2 as 0.1530/1.3777%.
 
 The design keeps three implementations where they provide engineering value:
 
@@ -355,6 +357,11 @@ Experiment 105 places the same DeepSeek P5 prompt in B2 row zero, row one, swapp
 duplicate rows. All B2 prefill signatures and complete outputs are identical while B1 remains
 different, so the difference does not follow local row, stride or cache-copy order. See
 [Experiment 105](docs/optimization-log/experiments/105-b2-prefill-row-audit.md).
+
+Experiment 106 compares every value after embedding, 28 blocks, final norm and the complete output
+vocabulary. Embedding and duplicate B2 rows are exact at all stages; drift starts in block 0 and
+accumulates through block 27. See
+[Experiment 106](docs/optimization-log/experiments/106-prefill-layer-drift.md).
 
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or

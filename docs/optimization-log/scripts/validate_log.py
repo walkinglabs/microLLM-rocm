@@ -3858,6 +3858,82 @@ def validate_b2_prefill_row_audit(
         gates.get("focused", {}).get("device_argmax_top1_mismatches", -1)
 
 
+def validate_prefill_layer_drift(
+        errors: list[str]) -> tuple[int, int, int, int]:
+    data = ROOT / "experiments" / "106-data"
+    raw = [json.loads(line) for line in
+           (data / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    if len(raw) != 3 or any(
+            row.get("status") != "pass" or len(row.get("stages", [])) != 31 or
+            row.get("trace_record_count_b1") != 33 or
+            row.get("trace_record_count_b2") != 33
+            for row in raw) or any(
+                row.get("stages") != raw[0].get("stages") for row in raw[1:]):
+        errors.append("prefill layer-drift fresh-pair evidence changed")
+    stages = {row["name"]: row for row in summary.get("stages", [])}
+    if summary.get("track") != "official_prefill_layer_drift" or \
+            summary.get("status") != "pass" or summary.get("runs") != 3 or \
+            summary.get("stage_count") != 31 or \
+            summary.get("first_nonzero_stage") != "inference.blocks.0" or \
+            summary.get("duplicate_b2_rows_exact_at_every_stage") is not True or \
+            "no performance claim" not in summary.get("measurement_boundary", ""):
+        errors.append("prefill layer-drift summary changed")
+    expected = {
+        "inference.embedding": (0.0, 0.0),
+        "inference.blocks.0": (0.00135040283203125,
+                               0.00005165932698272103),
+        "inference.blocks.27": (1.9002685546875,
+                                0.0062605414066010815),
+        "inference.final_norm": (0.3941173553466797,
+                                 0.00841151503415215),
+        "inference.logits": (0.1530160903930664,
+                             0.013777231522314946),
+    }
+    for name, (maximum, relative) in expected.items():
+        row = stages.get(name, {})
+        drift = row.get("b1_vs_b2_row0", {})
+        duplicate = row.get("b2_row0_vs_row1", {})
+        if abs(float(drift.get("max_abs", -1)) - maximum) > 1.0e-10 or \
+                abs(float(drift.get("relative_l2", -1)) - relative) > 1.0e-12 or \
+                duplicate.get("exact") is not True:
+            errors.append(f"prefill layer-drift stage changed: {name}")
+    logits = stages.get("inference.logits", {}).get("b1_vs_b2_row0", {})
+    if abs(float(logits.get("mean_abs", -1)) - 0.02892810391008479) > 1.0e-12 or \
+            int(logits.get("elements", 0)) != 151936:
+        errors.append("complete-logit drift evidence changed")
+    model_source = (REPOSITORY / "src" / "model" /
+                    "model.cpp").read_text(encoding="utf-8")
+    app = (REPOSITORY / "apps" / "hf_infer.cpp").read_text(encoding="utf-8")
+    runner = (REPOSITORY / "benchmarks" / "single_gpu" /
+              "hf_prefill_layer_drift.py").read_text(encoding="utf-8")
+    model_tests = (REPOSITORY / "tests" / "model" /
+                   "model_test.cpp").read_text(encoding="utf-8")
+    contracts = (REPOSITORY / "python" / "tests" /
+                 "test_hf_continuous_matrix.py").read_text(encoding="utf-8")
+    if '"inference.blocks."' not in model_source or \
+            "--trace-max-elements" not in app or \
+            "trace_scope.reset" not in app or \
+            "compare_traces" not in runner or \
+            '"inference.embedding"' not in model_tests or \
+            "test_layer_drift_compares_complete_rows_and_rejects_truncation" \
+            not in contracts:
+        errors.append("prefill layer-drift source or tests are missing")
+    if gates.get("status") != "first_drift_is_block0" or \
+            gates.get("full", {}).get("passed") != 315 or \
+            gates.get("cpu", {}).get("passed") != 219 or \
+            gates.get("hip", {}).get("passed") != 96 or \
+            gates.get("sanitizer", {}).get("passed") != 212 or \
+            gates.get("focused", {}).get("fresh_pairs") != 3:
+        errors.append("prefill layer-drift final gates changed")
+    exact_duplicate_stages = sum(
+        row.get("b2_row0_vs_row1", {}).get("exact") is True
+        for row in summary.get("stages", []))
+    return len(raw), len(stages), exact_duplicate_stages, \
+        int(logits.get("elements", 0))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -3941,7 +4017,8 @@ def validate_assets(errors: list[str]) -> None:
                  "official-continuous-serving.svg",
                  "continuous-slot-sweep.svg",
                  "continuous-divergence.svg",
-                 "prefill-row-audit.svg"):
+                 "prefill-row-audit.svg",
+                 "prefill-layer-drift.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -4092,6 +4169,8 @@ def main() -> int:
         divergence_counterfactual = validate_deepseek_prefill_divergence(errors)
     row_audit_raw, row_audit_targets, row_audit_b2, row_audit_argmax = \
         validate_b2_prefill_row_audit(errors)
+    layer_drift_raw, layer_drift_stages, layer_drift_exact, layer_drift_logits = \
+        validate_prefill_layer_drift(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -4208,6 +4287,8 @@ def main() -> int:
           f"{divergence_default}/{divergence_counterfactual} "
           f"prefill_row_audit={row_audit_raw}/{row_audit_targets}/"
           f"{row_audit_b2}/{row_audit_argmax} "
+          f"prefill_layer_drift={layer_drift_raw}/{layer_drift_stages}/"
+          f"{layer_drift_exact}/{layer_drift_logits} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

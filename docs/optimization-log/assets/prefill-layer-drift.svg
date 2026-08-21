@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="620" viewBox="0 0 1080 620" role="img" aria-labelledby="title desc">
+  <title id="title">B1/B2 prefill layer drift</title>
+  <desc id="desc">Relative L2 error begins at block zero and grows through block 27, final norm, and complete logits while duplicate B2 rows remain exact.</desc>
+  <rect width="1080" height="620" fill="#0b1020"/>
+  <text x="48" y="58" fill="#f8fafc" font-family="sans-serif" font-size="30" font-weight="700">P5 B1/B2 relative-L2 drift</text>
+  <text x="48" y="91" fill="#94a3b8" font-family="sans-serif" font-size="17">full tensors · three fresh pairs · host diagnostic only</text>
+  <line x1="90" y1="500" x2="1010" y2="500" stroke="#475569" stroke-width="2"/>
+  <line x1="90" y1="140" x2="90" y2="500" stroke="#475569" stroke-width="2"/>
+  <polyline points="90,500 120,499 390,489 690,473 810,448 930,337 970,282 1010,160" fill="none" stroke="#38bdf8" stroke-width="5"/>
+  <g fill="#7dd3fc">
+    <circle cx="90" cy="500" r="7"/><circle cx="120" cy="499" r="7"/><circle cx="390" cy="489" r="7"/><circle cx="690" cy="473" r="7"/><circle cx="810" cy="448" r="7"/><circle cx="930" cy="337" r="7"/><circle cx="970" cy="282" r="7"/><circle cx="1010" cy="160" r="7"/>
+  </g>
+  <g fill="#cbd5e1" font-family="sans-serif" font-size="14">
+    <text x="62" y="528">embed</text><text x="105" y="548">B0</text><text x="372" y="528">B9</text><text x="670" y="528">B19</text><text x="790" y="548">B23</text><text x="910" y="365">B27</text><text x="942" y="268">norm</text><text x="966" y="145">logits</text>
+  </g>
+  <text x="118" y="470" fill="#86efac" font-family="sans-serif" font-size="15">first nonzero: block 0 · 0.00005166</text>
+  <text x="760" y="205" fill="#bae6fd" font-family="sans-serif" font-size="16">complete logits relative-L2 0.013777</text>
+  <rect x="48" y="555" width="984" height="42" rx="8" fill="#173421"/>
+  <text x="72" y="582" fill="#bbf7d0" font-family="sans-serif" font-size="16">B2 duplicate row0 vs row1: exact at all 31 stages</text>
+</svg>

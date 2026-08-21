@@ -2159,3 +2159,16 @@ B2 local rows，区分正常GEMM shape漂移与row/copy缺陷。
 差异没有跟local row、physical slot、P4/P5顺序或duplicate copy移动，因此local row stride和KV
 prefix copy假设被反驳。剩余最强解释是BF16 GEMM从M32到M64时的数值路径差异。下一节点要看完整
 logits和每个block的误差增长，不能用top-2相同就宣布全部batched算子已证明正确。
+
+## 123. Experiment 106：embedding exact，第一处差异在block 0
+
+graph-free inference接入默认关闭的layer TraceSession。相同P5的B1与`[P5,P5]` B2完整捕获embedding、
+28个block、final norm和151936维logits。三对fresh process逐字段相同，B2重复行31个stage全部exact。
+
+![Prefill layer drift](assets/prefill-layer-drift.svg)
+
+embedding差异为0；block0首次出现max 0.001350、relative-L2 0.00005166。RMS/relative-L2总体逐层
+累积，block27达到max1.9003/relative0.006261，最终logits为max0.1530/relative0.013777。这个max仍
+在既有官方BF16 0.2门内，却足以在0.000669 margin改变greedy token。
+
+下一节点只拆block0的norm、QKV、RoPE、Attention、residual和FFN，不再扩大scheduler矩阵。

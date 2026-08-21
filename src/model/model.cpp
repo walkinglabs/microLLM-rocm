@@ -992,9 +992,27 @@ Tensor TransformerModel::forward_inference_impl(const Tensor& token_ids,
         throw std::invalid_argument("token sequence exceeds configured maximum");
     }
     const auto model_tokens = token_ids.device() == device() ? token_ids : token_ids.to(device());
+    auto* trace = profiling::TraceSession::current();
+    if (trace != nullptr) {
+        trace->record(profiling::TraceKind::Input, "inference.tokens", model_tokens);
+    }
+    profiling::TraceTimer model_timer(
+        profiling::TraceKind::Model, "inference.forward", device());
+    profiling::TraceTimer embedding_timer(
+        profiling::TraceKind::Layer, "inference.embedding", device());
     auto hidden = ops::embedding(impl_->token_embedding.data(), model_tokens);
-    for (auto& block : impl_->blocks) hidden = block->forward_tensor(hidden);
+    embedding_timer.finish(hidden);
+    for (std::size_t layer = 0; layer < impl_->blocks.size(); ++layer) {
+        profiling::TraceTimer block_timer(
+            profiling::TraceKind::Layer,
+            "inference.blocks." + std::to_string(layer), device());
+        hidden = impl_->blocks[layer]->forward_tensor(hidden);
+        block_timer.finish(hidden);
+    }
+    profiling::TraceTimer norm_timer(
+        profiling::TraceKind::Layer, "inference.final_norm", device());
     hidden = impl_->final_norm.forward_tensor(hidden);
+    norm_timer.finish(hidden);
     const auto batch = token_ids.shape()[0];
     const auto sequence = token_ids.shape()[1];
     const auto selected = last_logits_only
@@ -1010,7 +1028,13 @@ Tensor TransformerModel::forward_inference_impl(const Tensor& token_ids,
     } else {
         logits = impl_->output_head->forward_tensor(flat);
     }
-    return logits.reshape({batch, positions, impl_->config.vocabulary_size});
+    auto output = logits.reshape(
+        {batch, positions, impl_->config.vocabulary_size});
+    if (trace != nullptr) {
+        trace->record(profiling::TraceKind::Output, "inference.logits", output);
+    }
+    model_timer.finish(output);
+    return output;
 }
 
 Tensor TransformerModel::forward_prefill_cached(

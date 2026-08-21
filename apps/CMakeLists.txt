@@ -16,7 +16,7 @@ target_link_libraries(microllm_hf_inspect PRIVATE microllm::model)
 
 add_executable(microllm_hf_infer hf_infer.cpp)
 target_link_libraries(microllm_hf_infer PRIVATE
-    microllm::model microllm::runtime microllm::inference)
+    microllm::model microllm::runtime microllm::inference microllm::profiling)
 
 add_executable(microllm_hf_tokenize hf_tokenize.cpp)
 target_link_libraries(microllm_hf_tokenize PRIVATE microllm::io)

@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "status": "first_drift_is_block0",
+  "full": {"passed": 315, "failed": 0, "skipped": 2},
+  "cpu": {"passed": 219, "failed": 0, "skipped": 2},
+  "hip": {"passed": 96, "failed": 0, "skipped": 0},
+  "sanitizer": {"passed": 212, "failed": 0, "skipped": 0},
+  "focused": {
+    "fresh_pairs": 3,
+    "stage_count": 31,
+    "complete_trace_pairs": 3,
+    "duplicate_row_exact_stages": 31,
+    "first_nonzero_stage_index": 1,
+    "inference_trace_unit_tests": 2,
+    "layer_drift_contract_tests": 1
+  }
+}
