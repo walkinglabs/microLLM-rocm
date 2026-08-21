@@ -250,6 +250,10 @@ layer 1 FP32: complete-logit gates improve from 11/12 to 12/12 while Cache remai
 than FP32. It is not automatic because T2048 B8 end-to-end regresses 13.4%. See
 [Experiment 067](docs/optimization-log/experiments/067-mixed-layer-kv-policy.md).
 
+Experiment 068 retries prefix fusion only for that one FP32 layer. The same binary removes 160 D2D
+calls and 167.8 MB, yet prepare/end-to-end regress 1.53%/0.59%; the route is removed. See
+[Experiment 068](docs/optimization-log/experiments/068-targeted-prefix-pair-discard.md).
+
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or
 3.122×/2.583× the matched PyTorch BF16-autocast reference. It is still 8%–9% slower than

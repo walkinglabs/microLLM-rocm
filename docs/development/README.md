@@ -193,3 +193,5 @@ the next gate. Records are append-only except for factual corrections.
   zero-D2D prefix candidate, clean local profile, stable Qwen T2048 B8 regression and rollback.
 - [2026-08-21-mixed-layer-kv-policy.md](2026-08-21-mixed-layer-kv-policy.md): per-layer
   FP32/BF16 Cache API, sensitive-layer search, 12-shape strict precision pass and long-batch cost.
+- [2026-08-21-targeted-prefix-pair-discard.md](2026-08-21-targeted-prefix-pair-discard.md):
+  same-binary one-FP32-layer fusion retry, reduced D2D and failed prepare/E2E gate.

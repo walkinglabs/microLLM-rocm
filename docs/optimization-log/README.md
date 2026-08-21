@@ -362,6 +362,11 @@ T2048 B8端到端慢13.4%。机制作为显式strict策略保留，不改变FP32
 
 ![Mixed-layer KV policy](assets/mixed-layer-kv-policy.svg)
 
+Experiment 068只对strict策略的一个FP32层重试paired prefix。同binary D2D少160次/
+167.8MB，但prepare/E2E仍慢1.53%/0.59%；候选删除，这一copy-fusion搜索空间关闭。
+
+![Targeted prefix pair discarded](assets/targeted-prefix-pair-discard.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -455,6 +460,8 @@ T2048 B8端到端慢13.4%。机制作为显式strict策略保留，不改变FP32
 | [experiments/066-data/](experiments/066-data/) | 正式72条、精度12条、profile和discard决定 |
 | [assets/mixed-layer-kv-policy.svg](assets/mixed-layer-kv-policy.svg) | RMSE修复、Cache字节和显式性能代价 |
 | [experiments/067-data/](experiments/067-data/) | 16组搜索、两套12-shape精度、72条formal和profile |
+| [assets/targeted-prefix-pair-discard.svg](assets/targeted-prefix-pair-discard.svg) | 单FP32层D2D下降与同binary反例 |
+| [experiments/068-data/](experiments/068-data/) | reference/paired各6条、精度和discard决定 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

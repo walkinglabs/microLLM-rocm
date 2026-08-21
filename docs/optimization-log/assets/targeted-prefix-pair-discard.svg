@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="790" viewBox="0 0 1800 790">
+  <rect width="100%" height="100%" fill="#fbfcfe"/>
+  <text x="900" y="48" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 068 · Targeted FP32-Layer Prefix Pair · Discarded</text>
+  <text x="900" y="80" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle">DeepSeek T2048 B8 · same binary · Release · three-process median</text>
+  <rect x="90" y="130" width="760" height="500" fill="#fff" stroke="#cbd3df" rx="10"/>
+  <text x="470" y="175" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">Direct engineering target improves</text>
+  <g font-family="Inter,Arial,sans-serif" font-size="16">
+    <text x="145" y="245" fill="#172033" font-weight="700">Measured D2D calls</text>
+    <rect x="355" y="215" width="360" height="35" fill="#d5dae2" rx="4"/><text x="730" y="239" fill="#5b6474">4480 reference</text>
+    <rect x="355" y="265" width="347" height="35" fill="#18a558" rx="4"/><text x="715" y="289" fill="#16874b">4320 paired</text>
+    <text x="145" y="375" fill="#172033" font-weight="700">Measured D2D bytes</text>
+    <rect x="355" y="345" width="360" height="35" fill="#d5dae2" rx="4"/><text x="730" y="369" fill="#5b6474">2.433 GB</text>
+    <rect x="355" y="395" width="335" height="35" fill="#18a558" rx="4"/><text x="705" y="419" fill="#16874b">2.265 GB</text>
+  </g>
+  <rect x="145" y="490" width="650" height="95" fill="#eefaf3" stroke="#9bd5b1" rx="8"/>
+  <text x="175" y="526" font-family="Inter,Arial,sans-serif" font-size="16" fill="#16874b" font-weight="700">Only one FP32 layer changed</text>
+  <text x="175" y="558" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033">160 D2D calls and 167.8 MB removed · logits and peak unchanged</text>
+
+  <rect x="910" y="130" width="800" height="500" fill="#fff" stroke="#cbd3df" rx="10"/>
+  <text x="1310" y="175" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">Primary metrics still lose</text>
+  <line x1="990" y1="520" x2="1635" y2="520" stroke="#cbd3df"/>
+  <rect x="1060" y="260" width="180" height="260" fill="#9aa4b2" rx="5"/>
+  <rect x="1280" y="256" width="180" height="264" fill="#d9534f" rx="5"/>
+  <text x="1150" y="245" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474" text-anchor="middle">328.83 ms</text>
+  <text x="1370" y="241" font-family="Inter,Arial,sans-serif" font-size="18" fill="#b33b37" text-anchor="middle">333.87 ms</text>
+  <text x="1150" y="555" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="middle">reference prepare</text>
+  <text x="1370" y="555" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="middle">paired prepare</text>
+  <rect x="1010" y="585" width="600" height="34" fill="#fff0f0" stroke="#e6a2a0" rx="6"/>
+  <text x="1310" y="608" font-family="Inter,Arial,sans-serif" font-size="15" fill="#b33b37" text-anchor="middle">prepare +1.53% · E2E +0.59% · throughput unchanged</text>
+  <text x="900" y="705" font-family="Inter,Arial,sans-serif" font-size="18" fill="#b33b37" text-anchor="middle" font-weight="700">A narrower retry closes the hypothesis: removing this FP32-layer copy is not the strict-policy fix</text>
+</svg>

@@ -1639,3 +1639,15 @@ prepare慢27.9%、端到端慢13.4%。profile里138次BF16+6次FP32 cached Atten
 
 因此per-layer机制保留为显式strict-logit选项，不按模型名自动开启。系统默认仍是全FP32；
 uniform BF16是速度/显存选项；当前固定DeepSeek才有经过证据的layer 1 strict配方。
+
+## 85. Experiment 068：只改那一个FP32层，解释仍然不成立
+
+为避免重复Experiment 066，这次同binary开关只让strict策略的layer 1使用paired prefix；
+其余27个BF16层保持reference。DeepSeek T2048 B8的D2D calls`4480→4320`、字节少
+167.8MB，精度、peak和decode不变。
+
+![Targeted prefix pair discarded](assets/targeted-prefix-pair-discard.svg)
+
+但prepare`328.83→333.87ms`、端到端`573.23→576.60ms`，仍分别慢1.53%/0.59%。候选
+路由、Kernel和测试再次删除。这个更窄、同窗口反例关闭了“strict代价来自那一层copy”的
+解释；下一步不再改prefix copy，而转向allocator生命周期或更高层调度。

@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "source": "Experiment 068 single frozen worktree",
+  "build_type": "Release",
+  "release_flags": "-O3 -DNDEBUG",
+  "hip_architecture": "gfx942",
+  "model": "deepseek-r1-distill-qwen-1.5b",
+  "context": 2048,
+  "batch": 8,
+  "cache_policy": "layer 1 FP32; remaining layers BF16",
+  "decode_tokens": 16,
+  "warmup": 2,
+  "steps": 5,
+  "fresh_process_runs": 3
+}

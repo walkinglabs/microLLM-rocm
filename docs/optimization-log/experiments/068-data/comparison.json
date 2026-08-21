@@ -1,0 +1,93 @@
+{
+  "decision": "discard",
+  "paired": {
+    "cache_bytes": 490340352.0,
+    "end_to_end_ms": 576.604521,
+    "measured_d2d_bytes": [
+      2264924160,
+      2264924160,
+      2264924160
+    ],
+    "measured_d2d_calls": [
+      4320,
+      4320,
+      4320
+    ],
+    "peak_bytes": 9072072704.0,
+    "prepare_ms": 333.866497,
+    "process_prepare_ms": [
+      330.7039986,
+      387.933135,
+      333.866497
+    ],
+    "throughput": 524.265692889,
+    "tokens": [
+      30,
+      151643,
+      151646,
+      151643,
+      151646,
+      3555,
+      374,
+      220,
+      17,
+      10,
+      17,
+      1939,
+      151649,
+      271,
+      17,
+      488
+    ]
+  },
+  "ratios": {
+    "end_to_end_speedup": 0.9941487101173804,
+    "peak_ratio": 1.0,
+    "prepare_speedup": 0.9849137962471269,
+    "throughput_ratio": 1.0010235828918086
+  },
+  "reason": "same-binary paired route regressed cache prepare and end-to-end",
+  "reference": {
+    "cache_bytes": 490340352.0,
+    "end_to_end_ms": 573.2306408,
+    "measured_d2d_bytes": [
+      2432696320,
+      2432696320,
+      2432696320
+    ],
+    "measured_d2d_calls": [
+      4480,
+      4480,
+      4480
+    ],
+    "peak_bytes": 9072072704.0,
+    "prepare_ms": 328.829719,
+    "process_prepare_ms": [
+      331.7118726,
+      328.829719,
+      260.7379122
+    ],
+    "throughput": 523.729612218,
+    "tokens": [
+      30,
+      151643,
+      151646,
+      151643,
+      151646,
+      3555,
+      374,
+      220,
+      17,
+      10,
+      17,
+      1939,
+      151649,
+      271,
+      17,
+      488
+    ]
+  },
+  "schema_version": 1,
+  "tokens_equal": true,
+  "track": "targeted_fp32_layer_prefix_pair"
+}

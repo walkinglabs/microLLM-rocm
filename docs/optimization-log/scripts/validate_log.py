@@ -1745,6 +1745,40 @@ def validate_mixed_layer_kv_policy(errors: list[str]) -> tuple[int, int, int, in
         hybrid.get("kernel_dispatches", 0)
 
 
+def validate_targeted_prefix_pair_discard(errors: list[str]) -> tuple[int, int]:
+    data = ROOT / "experiments" / "068-data"
+    for name in ("reference", "paired"):
+        rows = [json.loads(line) for line in
+                (data / name / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+        if len(rows) != 6 or any(row.get("status") != "pass" for row in rows):
+            errors.append(f"targeted prefix-pair {name} protocol changed")
+    comparison = json.loads((data / "comparison.json").read_text(encoding="utf-8"))
+    reference = comparison.get("reference", {})
+    paired = comparison.get("paired", {})
+    ratios = comparison.get("ratios", {})
+    if comparison.get("decision") != "discard" or \
+            comparison.get("tokens_equal") is not True or \
+            ratios.get("prepare_speedup", 1.0) >= 1.0 or \
+            ratios.get("end_to_end_speedup", 1.0) >= 1.0 or \
+            any(int(value) != 4480 for value in
+                reference.get("measured_d2d_calls", [])) or \
+            any(int(value) != 4320 for value in
+                paired.get("measured_d2d_calls", [])):
+        errors.append("targeted prefix-pair same-binary discard changed")
+    precision = json.loads((data / "precision" / "summary.json").read_text(
+        encoding="utf-8"))
+    records = precision.get("records", [])
+    if precision.get("status") != "pass" or len(records) != 1 or \
+            records[0].get("status") != "pass":
+        errors.append("targeted prefix-pair precision control changed")
+    for source in (REPOSITORY / "include/microllm/inference/kv_cache.h",
+                   REPOSITORY / "include/microllm/ops/ops.h"):
+        if "PrefixStoreImplementation" in source.read_text(encoding="utf-8") or \
+                "kv_cache_store_prefix_pair_fp32" in source.read_text(encoding="utf-8"):
+            errors.append("discarded targeted prefix-pair route remains in source")
+    return 12, len(records)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -1791,7 +1825,8 @@ def validate_assets(errors: list[str]) -> None:
                  "batched-kv-cache.svg",
                  "bf16-kv-cache.svg",
                  "fused-prefix-pair-discard.svg",
-                 "mixed-layer-kv-policy.svg"):
+                 "mixed-layer-kv-policy.svg",
+                 "targeted-prefix-pair-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -1868,6 +1903,8 @@ def main() -> int:
         validate_fused_prefix_pair_discard(errors)
     mixed_kv_formal, mixed_kv_precision, mixed_kv_search, mixed_kv_calls = \
         validate_mixed_layer_kv_policy(errors)
+    targeted_prefix_rows, targeted_prefix_precision = \
+        validate_targeted_prefix_pair_discard(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -1914,6 +1951,7 @@ def main() -> int:
           f"{prefix_pair_calls} "
           f"mixed_kv={mixed_kv_formal}/{mixed_kv_precision}/"
           f"{mixed_kv_search}/{mixed_kv_calls} "
+          f"targeted_prefix={targeted_prefix_rows}/{targeted_prefix_precision} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")
