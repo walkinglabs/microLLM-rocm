@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "track": "fused_full_sequence_causal_gqa",
+  "decision": "keep",
+  "baseline": "../043-data/candidate/summary.json",
+  "rows": [
+    {"batch": 1, "context": 3, "self_speedup": 1.073175669, "ratio_vs_pytorch": 0.770931444, "peak_ratio_after_vs_before": 0.999863697, "peak_bytes_saved": 1325952},
+    {"batch": 2, "context": 3, "self_speedup": 1.052202877, "ratio_vs_pytorch": 0.682293807, "peak_ratio_after_vs_before": 0.999727916, "peak_bytes_saved": 2651904},
+    {"batch": 1, "context": 32, "self_speedup": 1.133102113, "ratio_vs_pytorch": 0.613994753, "peak_ratio_after_vs_before": 0.997819018, "peak_bytes_saved": 21626880},
+    {"batch": 1, "context": 128, "self_speedup": 1.217625238, "ratio_vs_pytorch": 0.438193121, "peak_ratio_after_vs_before": 0.982549701, "peak_bytes_saved": 185597952}
+  ]
+}

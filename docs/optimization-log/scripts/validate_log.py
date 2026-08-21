@@ -484,6 +484,47 @@ def validate_weight_gradient_routing(errors: list[str]) -> tuple[int, int]:
     return len(candidates), len(microbench)
 
 
+def validate_fused_causal_gqa(errors: list[str]) -> int:
+    data = ROOT / "experiments" / "044-data"
+    records = [json.loads(line) for line in
+               (data / "candidate" / "raw.jsonl").read_text(
+                   encoding="utf-8").splitlines()]
+    keys = {(row.get("framework"), row.get("batch"), row.get("context"),
+             row.get("process_run")) for row in records}
+    if len(records) != 24 or len(keys) != 24 or \
+            any(row.get("status") != "pass" for row in records):
+        errors.append("fused causal GQA matrix must contain 24 passing unique rows")
+    comparison = json.loads((data / "comparison.json").read_text(encoding="utf-8"))
+    rows = comparison.get("rows", [])
+    if comparison.get("decision") != "keep" or len(rows) != 4 or any(
+            row["self_speedup"] < 1.05 or
+            row["peak_ratio_after_vs_before"] >= 1.0 or
+            row["peak_bytes_saved"] <= 0 for row in rows):
+        errors.append("fused causal GQA official keep gate changed")
+
+    profile = json.loads((data / "profile-summary.json").read_text(encoding="utf-8"))
+    before_path = ROOT / "experiments" / "043-data" / "profile" / \
+        "before-context128"
+    after_path = data / "profile" / "after-context128"
+    for path, key in ((before_path, "before_context128"),
+                      (after_path, "after_context128")):
+        with (path / "kernel-stats.csv").open(encoding="utf-8", newline="") as stream:
+            kernels = list(csv.DictReader(stream))
+        with (path / "hip-api-stats.csv").open(encoding="utf-8", newline="") as stream:
+            api = list(csv.DictReader(stream))
+        expected = profile[key]
+        if sum(int(row["Calls"]) for row in kernels) != expected["kernel_dispatches"] or \
+                sum(int(row["TotalDurationNs"]) for row in kernels) != \
+                expected["kernel_time_ns"] or \
+                sum(int(row["Calls"]) for row in api) != expected["hip_api_calls"]:
+            errors.append(f"fused causal GQA {key} profiler aggregate changed")
+    if profile["dispatch_reduction"] != 1080 or \
+            profile["after_context128"]["fused_forward_calls"] != 72 or \
+            profile["after_context128"]["fused_backward_calls"] != 72:
+        errors.append("fused causal GQA dispatch/kernel boundary changed")
+    return len(records)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -506,7 +547,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-training-qkv-discard.svg", "bf16-training-mirrors.svg",
                  "bf16-training-ffn-island-discard.svg",
                  "bf16-training-shape-matrix.svg",
-                 "bf16-weight-gradient-routing.svg"):
+                 "bf16-weight-gradient-routing.svg",
+                 "fused-causal-gqa-training.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -544,6 +586,7 @@ def main() -> int:
     bf16_training_shape_count = validate_bf16_training_shapes(errors)
     weight_gradient_candidate_count, weight_gradient_micro_count = \
         validate_weight_gradient_routing(errors)
+    fused_causal_gqa_count = validate_fused_causal_gqa(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -560,6 +603,7 @@ def main() -> int:
           f"bf16_training_island={bf16_training_island_count} "
           f"bf16_training_shapes={bf16_training_shape_count} "
           f"weight_gradient={weight_gradient_candidate_count}/{weight_gradient_micro_count} "
+          f"fused_causal_gqa={fused_causal_gqa_count} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

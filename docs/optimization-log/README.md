@@ -196,6 +196,13 @@ shape 分别提高 `1.659×、2.020×、4.476×、1.007×`，显存不变，候�
 
 ![Weight-gradient routing result](assets/bf16-weight-gradient-routing.svg)
 
+Experiment 044 将 full-sequence QK、causal softmax、PV 与 GQA head mapping 合成一个
+前向/反向边界，不再保存 T×T scores/probabilities 或复制 K/V heads。四个 Qwen shape
+再提高 `1.052×–1.218×`，context 128 峰值少 185.6 MB；完整 PyTorch/CPU/HIP 梯度与
+trace 对齐通过。
+
+![Fused causal GQA training](assets/fused-causal-gqa-training.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -241,6 +248,8 @@ shape 分别提高 `1.659×、2.020×、4.476×、1.007×`，显存不变，候�
 | [experiments/042-data/](experiments/042-data/) | 四 shape、两框架、三进程的 24 条 raw |
 | [assets/bf16-weight-gradient-routing.svg](assets/bf16-weight-gradient-routing.svg) | transpose weight-gradient 路由前后曲线 |
 | [experiments/043-data/](experiments/043-data/) | 24 条候选 raw、microbench 与三组 profiler 聚合 |
+| [assets/fused-causal-gqa-training.svg](assets/fused-causal-gqa-training.svg) | full-sequence Attention 融合前后吞吐/显存 |
+| [experiments/044-data/](experiments/044-data/) | 24 条 raw、前后比较与 retained profiler |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

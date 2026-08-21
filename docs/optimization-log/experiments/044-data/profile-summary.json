@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "before_context128": {"kernel_dispatches": 7678, "kernel_time_ns": 613933450, "hip_api_calls": 246678},
+  "after_context128": {"kernel_dispatches": 6598, "kernel_time_ns": 505724630, "hip_api_calls": 222920, "fused_forward_calls": 72, "fused_forward_time_ns": 37646937, "fused_backward_calls": 72, "fused_backward_time_ns": 101483805},
+  "dispatch_reduction": 1080,
+  "kernel_time_speedup": 1.213962,
+  "interpretation": "direct GQA plus recomputed softmax removes repeated heads and T-by-T graph storage"
+}

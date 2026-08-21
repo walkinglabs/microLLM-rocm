@@ -1193,3 +1193,22 @@ profile 给出了非常集中的答案。context 32 有 507 次 readable
 这次仍没有达到 PyTorch parity。优化后的最好一项是 0.734×，context 128 仍只有
 0.360×。但我们已经把“长 context 慢”改写成更准确的问题：哪些 backward shape 没有
 进入合适的 GEMM 实现。
+
+## 61. Experiment 044：Attention 不一定需要那两张大表
+
+旧训练图先生成 T×T score，再生成 T×T probability；GQA 还会把 K/V head 复制到 query
+head 数。backward 保存并反向走过这些 Tensor。新的 causal GQA Kernel 直接从原始
+Q/K/V 计算每个因果行，在 shared memory 做稳定 softmax，然后写 context。
+
+反向不保存 probability 表，而是重新计算一行概率，再输出 FP32 Q/K/V 梯度。多个 query
+head 共享同一 KV head 时，用原子加法汇总 K/V 梯度。sequence 超过 4096 或 head width
+超过 256 时，仍走可读组合路径。
+
+![Fused causal GQA training](assets/fused-causal-gqa-training.svg)
+
+正式三进程中，四个 shape 都改善：短 shape `+5.2%–7.3%`，context 32 `+13.3%`，
+context 128 `+21.8%`。context 128 峰值显存减少约 177 MiB，dispatch 少 1080 次。
+
+这次还有一个有用的小失败：最初 trace alignment 报 14 个 missing checkpoint，但数值
+checkpoint 全通过。原因是 PyTorch trace 还把融合内部写成六个旧算子。把两边都对齐到
+`causal_gqa_attention` 公共边界后，数值、梯度和 trace 拓扑一起通过。

@@ -63,6 +63,11 @@ Auto threshold. That exact space is now closed for Qwen K=3/32/128: K=3 and 32 r
 hipBLASLt when `transpose(left)` produces a wide matrix, while K=128 already did. Further
 threshold changes need new exact shapes or registry evidence, not another global cutoff.
 
+Experiment 044 closes the materialized full-sequence Attention graph for the tested
+T=3/32/128 Qwen training shapes. Direct GQA, fused causal softmax/context and recomputed
+backward are retained. This does not close T=512, head widths above 256, sequence above
+4096 or alternative library FMHA backends; those require their own matrix evidence.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

@@ -60,3 +60,8 @@ Prefill, training backward and BF16 remain unfinished; this step is not marked c
 
 Experiment 019 also tested 64/128-thread blocks for head widths 64/128. Both official
 generation medians regressed, so the retained fused decode Kernel remains at 256 threads.
+
+Experiment 044 completes the first full-sequence training forward/backward stage for FP32
+Attention activations. Direct GQA mapping and row-recomputed softmax improve all four Qwen
+BF16-training shapes by 1.052×–1.218× and reduce context-128 peak by 185.6 MB. T=512,
+batch-long and DeepSeek rows remain required before this step can be marked complete.

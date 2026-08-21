@@ -42,6 +42,8 @@ BF16_TRAINING_SHAPE_SUMMARY = ROOT / "experiments" / "042-data" / "summary.json"
 BF16_TRAINING_SHAPE_CHART = ROOT / "assets" / "bf16-training-shape-matrix.svg"
 BF16_WEIGHT_GRADIENT_COMPARISON = ROOT / "experiments" / "043-data" / "comparison.json"
 BF16_WEIGHT_GRADIENT_CHART = ROOT / "assets" / "bf16-weight-gradient-routing.svg"
+FUSED_CAUSAL_GQA_COMPARISON = ROOT / "experiments" / "044-data" / "comparison.json"
+FUSED_CAUSAL_GQA_CHART = ROOT / "assets" / "fused-causal-gqa-training.svg"
 
 
 def rows() -> list[dict]:
@@ -988,6 +990,63 @@ def bf16_weight_gradient_svg() -> str:
     return "\n".join(parts)
 
 
+def fused_causal_gqa_svg() -> str:
+    rows = json.loads(FUSED_CAUSAL_GQA_COMPARISON.read_text(encoding="utf-8"))["rows"]
+    width, height = 1600, 710
+    left, top, chart_w, chart_h = 150, 145, 1300, 400
+
+    def py(value: float) -> float:
+        return top + chart_h * (1.25 - value) / 1.25
+
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 044 · Fused Full-Sequence Causal GQA", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 80,
+             "median of 3 processes · direct GQA · recomputed backward probabilities",
+             16, "#5b6474", anchor="middle"),
+        f'<rect x="{left}" y="{top}" width="{chart_w}" height="{chart_h}" '
+        f'fill="#ffffff" stroke="#cbd3df" rx="8"/>',
+    ]
+    for tick in (0.0, 0.25, 0.5, 0.75, 1.0, 1.25):
+        y = py(tick)
+        parts.append(f'<line x1="{left}" y1="{y:.1f}" x2="{left+chart_w}" '
+                     f'y2="{y:.1f}" stroke="{("#2563eb" if tick == 1.0 else "#e5e9f0")}" '
+                     f'stroke-width="{2 if tick == 1.0 else 1}"/>')
+        parts.append(text(left - 12, y + 5, f"{tick:.2f}×", 13,
+                          "#5b6474", anchor="end"))
+    group = chart_w / len(rows)
+    for index, row in enumerate(rows):
+        center = left + group * (index + 0.5)
+        values = ((row["self_speedup"], "#18a558"),
+                  (row["ratio_vs_pytorch"], "#dc6b5a"),
+                  (row["peak_ratio_after_vs_before"], "#64748b"))
+        for offset, (value, color) in enumerate(values):
+            x = center - 75 + offset * 52
+            y = py(value)
+            parts.append(f'<rect x="{x:.1f}" y="{y:.1f}" width="43" '
+                         f'height="{py(0)-y:.1f}" rx="4" fill="{color}"/>')
+            if offset == 0:
+                parts.append(text(x + 21.5, y - 8, f"{value:.3f}×", 13,
+                                  color, anchor="middle", weight=700))
+        parts.append(text(center, top + chart_h + 34,
+                          f'{row["batch"]}×{row["context"]}', 16,
+                          "#172033", anchor="middle", weight=700))
+        parts.append(text(center, top + chart_h + 57,
+                          f'-{row["peak_bytes_saved"]/1048576:.1f} MiB', 13,
+                          "#64748b", anchor="middle"))
+    parts.append(text(width / 2, 635,
+                      "green: self speedup · red: microLLM/PyTorch · gray: peak ratio",
+                      15, "#5b6474", anchor="middle"))
+    parts.append(text(width / 2, 680,
+                      "All selected shapes improve and allocate less; parity remains open",
+                      16, "#16834a", anchor="middle", weight=700))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -1004,7 +1063,8 @@ def main() -> int:
                 BF16_TRAINING_MIRROR_CHART: bf16_training_mirror_svg(),
                 BF16_TRAINING_ISLAND_CHART: bf16_training_island_svg(),
                 BF16_TRAINING_SHAPE_CHART: bf16_training_shape_svg(),
-                BF16_WEIGHT_GRADIENT_CHART: bf16_weight_gradient_svg()}
+                BF16_WEIGHT_GRADIENT_CHART: bf16_weight_gradient_svg(),
+                FUSED_CAUSAL_GQA_CHART: fused_causal_gqa_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]
