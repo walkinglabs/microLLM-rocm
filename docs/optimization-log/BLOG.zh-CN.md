@@ -2066,3 +2066,15 @@ continuous/reference达到1.151×–1.636×。单轮R8/S2负面被反驳但没�
 
 剩余热点已改变：position/row metadata每step仍由host创建并H2D，prefill仍逐row，固定KV容量利用率
 不变。下一次必须profile新时间线，不能继续沿用旧的“cached Attention必然最大”结论。
+
+## 116. Experiment 099：9.3%的copyBuffer，不等于scatter会赢
+
+新增`--continuous-only true`后，trace不再混入serial、sequential和static。R8/S4与R8/S2中typed
+GEMM占61.9%/62.9%，copyBuffer稳定约9.3%，positioned三Kernel只有5.84%/7.84%。应用counter还
+记录32/56次H2D、9/17次D2H与159次D2D。
+
+![Continuous-only profile and scatter discard](assets/continuous-profile-scatter-discard.svg)
+
+把逐row logits copy改成一次GPU scatter后，Kernel调用和输出都正确，但三对交替A/B只有0.993×和
+0.973×。scatter新增row mapping H2D与compute launch；而159次D2D还包含prefill Cache复制和Tensor
+materialization，不能全归因给logits回填。候选完整回退，profile模式、pftrace与负面证据保留。

@@ -88,6 +88,8 @@ needed to run a real training and generation loop:
   five divergent Release shapes improve 1.134×–1.348× and reach 0.935×–0.985× serial reference.
 - positions-aware RoPE, mapped KV store and per-row-prefix cached Attention batch real divergent
   rows; alternating Release medians improve another 1.295×–1.670× with exact request outputs.
+- `--continuous-only true` isolates scheduler profiling with exact transfer/allocation counters;
+  its first trace rejected a logits-scatter candidate at 0.993×/0.973× baseline.
 
 The design keeps three implementations where they provide engineering value:
 
@@ -173,8 +175,8 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 311/311 | 216 CPU-labelled + 95 HIP-labelled gates; 2 intentional environment skips |
-| ASan/UBSan CPU | 209/209 | host code, CLI, model/graph, benchmark and evidence schemas |
+| Full CPU/HIP configuration | 312/312 | 217 CPU-labelled + 95 HIP-labelled gates; 2 intentional environment skips |
+| ASan/UBSan CPU | 210/210 | host code, CLI, model/graph, benchmark and evidence schemas |
 | MI300X/gfx942 HIP | 95/95 | allocator/stream, graph, BF16/FP8, batched GEMM and model matrix |
 | PyTorch-enabled CPU build | 196/196 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |

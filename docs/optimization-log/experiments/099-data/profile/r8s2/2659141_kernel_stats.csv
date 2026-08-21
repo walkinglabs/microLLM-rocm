@@ -1,0 +1,16 @@
+"Name","Calls","TotalDurationNs","AverageNs","Percentage","MinNs","MaxNs","StdDev"
+"void microllm::ops::hip::(anonymous namespace)::matmul_typed_kernel<float>(float const*, float const*, float*, long, long, long, long)",720,7891251,10960.070833,62.89,7257,46346,4150.668461
+"__amd_rocclr_copyBuffer",477,1161516,2435.044025,9.26,682,6575,1390.044232
+"microllm::ops::hip::(anonymous namespace)::rms_norm_kernel(float const*, float const*, float*, long, long, float)",176,483471,2746.994318,3.85,2325,3648,247.428431
+"void microllm::ops::hip::(anonymous namespace)::cached_attention_fused_positions_kernel<float>(float const*, float const*, float const*, int const*, int const*, float*, long, long, long, long, long, long, long, long, float)",64,454035,7094.296875,3.62,5533,8780,916.215901
+"microllm::runtime::detail::(anonymous namespace)::strided_copy_kernel(std::byte*, std::byte const*, unsigned long, long, microllm::runtime::detail::(anonymous namespace)::Layout)",128,428693,3349.164062,3.42,1604,5012,552.466535
+"microllm::ops::hip::(anonymous namespace)::rope_positions_kernel(float const*, int const*, float*, long, long, long, float)",128,378179,2954.523438,3.01,1082,5332,722.987546
+"void microllm::ops::hip::(anonymous namespace)::add_typed_kernel<float>(float const*, float const*, float*, long)",128,344183,2688.929688,2.74,1444,3448,289.532999
+"void microllm::ops::hip::(anonymous namespace)::swiglu_typed_kernel<float>(float const*, float const*, float*, long)",96,328268,3419.458333,2.62,1563,11827,966.846452
+"microllm::ops::hip::(anonymous namespace)::causal_gqa_attention_kernel(float const*, float const*, float const*, float*, float*, long, long, long, long, long, long, float)",32,207437,6482.406250,1.65,5533,8299,716.292599
+"microllm::ops::hip::(anonymous namespace)::rope_kernel(float const*, float*, long, long, long, long, long, float)",64,204387,3193.546875,1.63,2406,4250,497.016525
+"void microllm::ops::hip::(anonymous namespace)::add_rms_norm_kernel<256u>(float const*, float const*, float const*, float*, float*, long, long, float)",64,192202,3003.156250,1.53,2726,3288,152.654420
+"void microllm::ops::hip::(anonymous namespace)::kv_cache_store_pair_positions_kernel<float>(float const*, float const*, int const*, int const*, float*, float*, long, long, long, long, long, long)",64,152191,2377.984375,1.21,1764,2727,175.251519
+"microllm::ops::hip::(anonymous namespace)::argmax_last_dim_kernel(float const*, int*, long, long)",34,120472,3543.294118,0.9601,3287,3969,165.582631
+"microllm::ops::hip::(anonymous namespace)::embedding_kernel(float const*, int const*, float*, long, long, long)",48,103915,2164.895833,0.8281,1684,4851,462.181149
+"void microllm::ops::hip::(anonymous namespace)::fill_typed_kernel<float>(float*, long, float)",64,98309,1536.078125,0.7834,1082,2647,219.534378

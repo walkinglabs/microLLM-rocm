@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "status": "discard",
+  "feature": "continuous-only profile and logits scatter candidate",
+  "clean_profiles": [
+    {"shape": "R8S4", "wall_ms": 12.9921, "kernel_ms": 8.766, "kernel_calls": 1679, "matmul_share": 0.6190, "copy_buffer_share": 0.0928, "positioned_kernel_share": 0.0584, "h2d_calls": 32, "h2d_bytes": 596, "d2h_calls": 9, "d2h_bytes": 144, "d2d_calls": 159, "d2d_bytes": 113664},
+    {"shape": "R8S2", "wall_ms": 19.7742, "kernel_ms": 12.549, "kernel_calls": 2287, "matmul_share": 0.6289, "copy_buffer_share": 0.0926, "positioned_kernel_share": 0.0784, "h2d_calls": 56, "h2d_bytes": 596, "d2h_calls": 17, "d2h_bytes": 136, "d2d_calls": 159, "d2d_bytes": 113664}
+  ],
+  "scatter_candidate": {
+    "correct_outputs": true,
+    "kernel_called_every_compacted_step": true,
+    "source_reverted": true,
+    "paired": [
+      {"shape": "R8S4", "baseline_median_tps": 3938.55, "candidate_median_tps": 3910.60, "candidate_over_baseline": 0.992903, "baseline_normalized": 1.6448, "candidate_normalized": 1.6172},
+      {"shape": "R8S2", "baseline_median_tps": 2772.30, "candidate_median_tps": 2697.71, "candidate_over_baseline": 0.973095, "baseline_normalized": 1.1582, "candidate_normalized": 1.1278}
+    ]
+  },
+  "interpretation": {
+    "hip_memcpy_api_duration_is_copy_bandwidth": false,
+    "all_copy_buffer_time_is_logit_scatter": false,
+    "positioned_attention_is_current_primary_hotspot": false,
+    "tiny_typed_gemm_generalizes_to_official_models": false
+  }
+}

@@ -46,6 +46,12 @@ if(BUILD_TESTING)
                      --warmup 0 --repetitions 1 --continuous-slots 2)
     set_tests_properties(Benchmark.SchedulerReferenceSmoke PROPERTIES
                          LABELS "cpu;benchmark;inference;scheduler;schema")
+    add_test(NAME Benchmark.SchedulerContinuousProfileSmoke
+             COMMAND microllm_bench_scheduler --device cpu --requests 3
+                     --warmup 0 --repetitions 1 --continuous-slots 2
+                     --continuous-only true)
+    set_tests_properties(Benchmark.SchedulerContinuousProfileSmoke PROPERTIES
+                         LABELS "cpu;benchmark;inference;scheduler;profile;schema")
     if(Python3_Interpreter_FOUND)
         add_test(NAME Benchmark.JsonSchema
                  COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/validate_json.py

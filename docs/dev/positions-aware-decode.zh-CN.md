@@ -54,4 +54,7 @@ score/softmax/context fallback。
 prefill也逐row执行。下一步应先profile新时间线，再选择持久device metadata或batched prefill，
 不能猜哪个更重要。
 
+这一步已经在[continuous-only profile](continuous-profile.zh-CN.md)完成；trace随后否定了GPU logits
+scatter候选，因此positions-aware主路径保持原实现。
+
 详细数据见 [Experiment 098](../optimization-log/experiments/098-positions-aware-decode.md)。

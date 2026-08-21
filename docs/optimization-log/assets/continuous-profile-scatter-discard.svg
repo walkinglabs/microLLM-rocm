@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="620" viewBox="0 0 1080 620" role="img" aria-labelledby="title desc">
+  <title id="title">Clean continuous profile and rejected logits scatter</title>
+  <desc id="desc">Kernel composition is shown for two shapes. Alternating scatter candidates remain at or below baseline.</desc>
+  <rect width="1080" height="620" fill="#0b1020"/>
+  <text x="40" y="44" fill="#f8fafc" font-family="sans-serif" font-size="24" font-weight="700">Experiment 099 · clean trace, failed scatter hypothesis</text>
+  <text x="40" y="72" fill="#94a3b8" font-family="sans-serif" font-size="14">continuous-only rocprofv3 · raw trace retained · candidate fully reverted</text>
+
+  <rect x="40" y="108" width="640" height="250" rx="12" fill="#111827" stroke="#334155"/>
+  <text x="64" y="144" fill="#e2e8f0" font-family="sans-serif" font-size="17" font-weight="700">Kernel time composition</text>
+  <text x="72" y="194" fill="#cbd5e1" font-family="sans-serif" font-size="14">R8/S4</text>
+  <rect x="145" y="168" width="315" height="36" fill="#3b82f6"/><rect x="460" y="168" width="47" height="36" fill="#f59e0b"/><rect x="507" y="168" width="30" height="36" fill="#22c55e"/><rect x="537" y="168" width="103" height="36" fill="#475569"/>
+  <text x="72" y="258" fill="#cbd5e1" font-family="sans-serif" font-size="14">R8/S2</text>
+  <rect x="145" y="232" width="320" height="36" fill="#3b82f6"/><rect x="465" y="232" width="47" height="36" fill="#f59e0b"/><rect x="512" y="232" width="40" height="36" fill="#22c55e"/><rect x="552" y="232" width="88" height="36" fill="#475569"/>
+  <rect x="84" y="300" width="16" height="16" fill="#3b82f6"/><text x="108" y="313" fill="#bfdbfe" font-family="sans-serif" font-size="12">typed GEMM ~62%</text><rect x="245" y="300" width="16" height="16" fill="#f59e0b"/><text x="269" y="313" fill="#fde68a" font-family="sans-serif" font-size="12">copyBuffer ~9.3%</text><rect x="420" y="300" width="16" height="16" fill="#22c55e"/><text x="444" y="313" fill="#bbf7d0" font-family="sans-serif" font-size="12">positioned 5.8–7.8%</text>
+
+  <rect x="720" y="108" width="320" height="250" rx="12" fill="#111827" stroke="#334155"/>
+  <text x="744" y="144" fill="#e2e8f0" font-family="sans-serif" font-size="17" font-weight="700">Scatter A/B</text>
+  <line x1="760" y1="298" x2="1000" y2="298" stroke="#64748b"/><line x1="760" y1="196" x2="1000" y2="196" stroke="#f59e0b" stroke-dasharray="7 7"/><text x="730" y="201" fill="#fbbf24" font-family="sans-serif" font-size="12">1×</text>
+  <rect x="800" y="198" width="66" height="100" fill="#ef4444"/><text x="833" y="188" text-anchor="middle" fill="#fecaca" font-family="sans-serif" font-size="13">0.993×</text><text x="833" y="322" text-anchor="middle" fill="#cbd5e1" font-family="sans-serif" font-size="12">R8/S4</text>
+  <rect x="910" y="201" width="66" height="97" fill="#ef4444"/><text x="943" y="191" text-anchor="middle" fill="#fecaca" font-family="sans-serif" font-size="13">0.973×</text><text x="943" y="322" text-anchor="middle" fill="#cbd5e1" font-family="sans-serif" font-size="12">R8/S2</text>
+
+  <rect x="40" y="394" width="1000" height="160" rx="12" fill="#111827" stroke="#334155"/>
+  <text x="64" y="430" fill="#e2e8f0" font-family="sans-serif" font-size="17" font-weight="700">Evidence boundary</text>
+  <text x="70" y="468" fill="#93c5fd" font-family="sans-serif" font-size="14">H2D: 32/56 calls but only 596 B · D2H: 9/17 calls · D2D: 159 calls / 113,664 B</text>
+  <text x="70" y="500" fill="#fbbf24" font-family="sans-serif" font-size="14">Synchronous hipMemcpy API duration is not copy bandwidth; copyBuffer has multiple sources.</text>
+  <text x="70" y="532" fill="#fca5a5" font-family="sans-serif" font-size="14">Decision: discard scatter · keep profile mode and raw failure evidence</text>
+  <text x="40" y="594" fill="#94a3b8" font-family="sans-serif" font-size="13">Correct code is only the first gate. A candidate stays only when alternating end-to-end evidence supports it.</text>
+</svg>

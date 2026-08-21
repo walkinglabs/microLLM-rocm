@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "status": "discard",
+  "full": {"passed": 312, "failed": 0, "skipped": 2},
+  "cpu": {"passed": 217, "failed": 0, "skipped": 2},
+  "hip": {"passed": 95, "failed": 0, "skipped": 0},
+  "sanitizer": {"passed": 210, "failed": 0, "skipped": 0},
+  "focused": {
+    "clean_profile_shapes": 2,
+    "pftrace_files": 2,
+    "alternating_processes": 12,
+    "paired_shapes": 2,
+    "profile_schema_ctest": 1,
+    "scatter_source_reverted": true
+  }
+}

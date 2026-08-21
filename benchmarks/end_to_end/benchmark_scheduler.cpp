@@ -22,6 +22,7 @@ struct Options {
     bool static_batch = false;
     bool admission_buckets = false;
     std::int64_t continuous_slots = 0;
+    bool continuous_only = false;
 };
 
 Options options(int argc, char** argv) {
@@ -50,12 +51,23 @@ Options options(int argc, char** argv) {
         else if (name == "--continuous-slots") {
             result.continuous_slots = std::stoll(argv[index + 1]);
         }
+        else if (name == "--continuous-only") {
+            const std::string value = argv[index + 1];
+            if (value != "true" && value != "false") {
+                throw std::invalid_argument("--continuous-only must be true or false");
+            }
+            result.continuous_only = value == "true";
+        }
         else throw std::invalid_argument("unknown option: " + name);
     }
     if ((result.device != "cpu" && result.device != "hip") || result.requests <= 0 ||
         result.warmup < 0 || result.repetitions <= 0 ||
         result.continuous_slots < 0) {
         throw std::invalid_argument("invalid scheduler benchmark options");
+    }
+    if (result.continuous_only && result.continuous_slots == 0) {
+        throw std::invalid_argument(
+            "--continuous-only requires positive --continuous-slots");
     }
     return result;
 }
@@ -217,6 +229,86 @@ int main(int argc, char** argv) {
                                                       : microllm::Device::cpu();
         if (device.is_hip() && microllm::runtime::hip_device_count() == 0) {
             throw std::runtime_error("HIP benchmark requested without a visible device");
+        }
+        if (command.continuous_only) {
+            auto model = microllm::model::TransformerModel(config(), 101);
+            model.to(device);
+            const auto work = workload(command.requests, command.static_batch,
+                                       command.admission_buckets);
+            for (int iteration = 0; iteration < command.warmup; ++iteration) {
+                (void)run_continuous(model, work, command.continuous_slots);
+            }
+            synchronize(device);
+            microllm::runtime::reset_allocation_peak(device);
+            microllm::runtime::reset_transfer_stats();
+            double continuous_ms = 0.0;
+            ContinuousRun last;
+            for (int iteration = 0; iteration < command.repetitions; ++iteration) {
+                const auto start = std::chrono::steady_clock::now();
+                last = run_continuous(model, work, command.continuous_slots);
+                synchronize(device);
+                const auto finish = std::chrono::steady_clock::now();
+                continuous_ms += std::chrono::duration<double, std::milli>(
+                                     finish - start).count();
+            }
+            std::int64_t generated_per_repetition = 0;
+            std::uint64_t checksum = 0;
+            for (const auto& item : work) {
+                generated_per_repetition += item.generation.max_new_tokens;
+            }
+            for (const auto& request : last.generated) {
+                for (const auto token : request) checksum = checksum * 131U + token;
+            }
+            const auto measured_tokens =
+                generated_per_repetition * command.repetitions;
+            const auto allocation = microllm::runtime::allocation_stats(device);
+            const auto transfers = microllm::runtime::transfer_stats();
+            std::cout << "{\"schema_version\":1,\"status\":\"pass\""
+                      << ",\"scheduler\":\"continuous_profile\""
+                      << ",\"device\":\"" << device.str() << "\""
+                      << ",\"requests\":" << command.requests
+                      << ",\"continuous_slots\":" << command.continuous_slots
+                      << ",\"warmup\":" << command.warmup
+                      << ",\"repetitions\":" << command.repetitions
+                      << ",\"measured_tokens\":" << measured_tokens
+                      << ",\"continuous_ms\":" << continuous_ms
+                      << ",\"continuous_tokens_per_second\":"
+                      << static_cast<double>(measured_tokens) * 1000.0 /
+                             continuous_ms
+                      << ",\"continuous_scheduler_steps\":"
+                      << last.metrics.scheduler_steps
+                      << ",\"continuous_row_prefill_calls\":"
+                      << last.metrics.row_prefill_calls
+                      << ",\"continuous_batch_decode_calls\":"
+                      << last.metrics.batch_decode_calls
+                      << ",\"continuous_positions_aware_batch_decode_calls\":"
+                      << last.metrics.positions_aware_batch_decode_calls
+                      << ",\"continuous_uniform_batch_decode_calls\":"
+                      << last.metrics.uniform_batch_decode_calls
+                      << ",\"continuous_inactive_rows_skipped\":"
+                      << last.metrics.inactive_rows_skipped
+                      << ",\"continuous_slot_utilization\":"
+                      << last.metrics.slot_utilization
+                      << ",\"continuous_allocated_cache_bytes\":"
+                      << last.metrics.allocated_cache_bytes
+                      << ",\"continuous_peak_active_cache_bytes\":"
+                      << last.metrics.peak_active_cache_bytes
+                      << ",\"measured_h2d_calls\":"
+                      << transfers.host_to_device_calls
+                      << ",\"measured_h2d_bytes\":"
+                      << transfers.host_to_device_bytes
+                      << ",\"measured_d2h_calls\":"
+                      << transfers.device_to_host_calls
+                      << ",\"measured_d2h_bytes\":"
+                      << transfers.device_to_host_bytes
+                      << ",\"measured_d2d_calls\":"
+                      << transfers.device_to_device_calls
+                      << ",\"measured_d2d_bytes\":"
+                      << transfers.device_to_device_bytes
+                      << ",\"engine_peak_bytes\":" << allocation.peak_bytes
+                      << ",\"correctness_gate\":\"external_full_suite\""
+                      << ",\"token_checksum\":" << checksum << "}\n";
+            return 0;
         }
         auto scheduled_model = microllm::model::TransformerModel(config(), 101);
         auto sequential_model = microllm::model::TransformerModel(config(), 101);

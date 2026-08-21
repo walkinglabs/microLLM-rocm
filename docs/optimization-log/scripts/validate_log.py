@@ -3289,6 +3289,95 @@ def validate_positions_aware_decode(errors: list[str]) -> tuple[int, int, int]:
     return len(records), pair_records, len(paired_speedups)
 
 
+def validate_continuous_profile_scatter_discard(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "099-data"
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    profile_rows = []
+    pftrace_count = 0
+    for shape in ("r8s4", "r8s2"):
+        directory = data / "profile" / shape
+        stdout = json.loads((directory / "stdout.json").read_text(encoding="utf-8"))
+        kernel_path = next(directory.glob("*_kernel_stats.csv"))
+        with kernel_path.open(encoding="utf-8", newline="") as stream:
+            kernels = list(csv.DictReader(stream))
+        matmul = next(row for row in kernels if "matmul_typed_kernel" in row["Name"])
+        copy_buffer = next(row for row in kernels if row["Name"] == "__amd_rocclr_copyBuffer")
+        positioned_share = sum(
+            float(row["Percentage"]) for row in kernels
+            if any(name in row["Name"] for name in (
+                "rope_positions_kernel",
+                "kv_cache_store_pair_positions_kernel",
+                "cached_attention_fused_positions_kernel"))) / 100.0
+        profile_rows.append((stdout, float(matmul["Percentage"]) / 100.0,
+                             float(copy_buffer["Percentage"]) / 100.0,
+                             positioned_share))
+        pftrace_count += len(list(directory.glob("*_results.pftrace")))
+    if summary.get("status") != "discard" or pftrace_count != 2 or any(
+            row.get("status") != "pass" or
+            row.get("scheduler") != "continuous_profile" or
+            row.get("correctness_gate") != "external_full_suite" or
+            int(row.get("measured_d2d_calls", -1)) != 159 or
+            int(row.get("measured_d2d_bytes", -1)) != 113664 or
+            not 0.60 < matmul_share < 0.65 or
+            not 0.08 < copy_share < 0.11 or
+            not 0.05 < positioned_share < 0.09
+            for row, matmul_share, copy_share, positioned_share in profile_rows):
+        errors.append("continuous-only clean profile evidence changed")
+    interpretation = summary.get("interpretation", {})
+    if any(interpretation.get(name) is not False for name in (
+            "hip_memcpy_api_duration_is_copy_bandwidth",
+            "all_copy_buffer_time_is_logit_scatter",
+            "positioned_attention_is_current_primary_hotspot",
+            "tiny_typed_gemm_generalizes_to_official_models")):
+        errors.append("continuous profile interpretation boundary changed")
+    pair_records = 0
+    ratios = []
+    for shape in ("r8s4", "r8s2"):
+        paths = sorted((data / "paired" / shape).glob("*.json"))
+        rows = [json.loads(path.read_text(encoding="utf-8")) for path in paths]
+        baseline = [row for path, row in zip(paths, rows)
+                    if "baseline" in path.name]
+        candidate = [row for path, row in zip(paths, rows)
+                     if "candidate" in path.name]
+        pair_records += len(rows)
+        baseline_tps = sorted(float(row["continuous_tokens_per_second"])
+                              for row in baseline)[1]
+        candidate_tps = sorted(float(row["continuous_tokens_per_second"])
+                               for row in candidate)[1]
+        ratio = candidate_tps / baseline_tps
+        ratios.append(ratio)
+        if len(rows) != 6 or not 0.95 < ratio < 1.01 or \
+                len({int(row["token_checksum"]) for row in rows}) != 1 or any(
+                    row.get("continuous_outputs_equal") is not True for row in rows):
+            errors.append(f"scatter discard alternating evidence changed: {shape}")
+    benchmark = (REPOSITORY / "benchmarks" / "end_to_end" /
+                 "benchmark_scheduler.cpp").read_text(encoding="utf-8")
+    cmake = (REPOSITORY / "benchmarks" / "CMakeLists.txt").read_text(
+        encoding="utf-8")
+    ops_header = (REPOSITORY / "include" / "microllm" / "ops" /
+                  "ops.h").read_text(encoding="utf-8")
+    kernels = (REPOSITORY / "src" / "ops" / "hip" /
+               "basic_kernels.hip").read_text(encoding="utf-8")
+    scheduler = (REPOSITORY / "src" / "inference" /
+                 "scheduler.cpp").read_text(encoding="utf-8")
+    if "--continuous-only" not in benchmark or \
+            "correctness_gate" not in benchmark or \
+            "SchedulerContinuousProfileSmoke" not in cmake:
+        errors.append("continuous-only profile mode or schema smoke is missing")
+    if "scatter_rows" in ops_header or "scatter_rows" in kernels or \
+            "scatter_rows" in scheduler or "logit_scatter_calls" in scheduler:
+        errors.append("rejected logits scatter remains in source")
+    if gates.get("status") != "discard" or \
+            gates.get("full", {}).get("passed") != 312 or \
+            gates.get("cpu", {}).get("passed") != 217 or \
+            gates.get("hip", {}).get("passed") != 95 or \
+            gates.get("sanitizer", {}).get("passed") != 210 or \
+            gates.get("focused", {}).get("scatter_source_reverted") is not True:
+        errors.append("continuous profile/scatter final gates changed")
+    return len(profile_rows), pair_records, len(ratios)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -3365,7 +3454,8 @@ def validate_assets(errors: list[str]) -> None:
                  "serving-inference-efficiency.svg",
                  "continuous-slot-scheduler.svg",
                  "active-row-compaction.svg",
-                 "positions-aware-decode.svg"):
+                 "positions-aware-decode.svg",
+                 "continuous-profile-scatter-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -3501,6 +3591,8 @@ def main() -> int:
         validate_active_row_compaction(errors)
     positions_matrix, positions_pairs, positions_speedups = \
         validate_positions_aware_decode(errors)
+    profile_shapes, scatter_pairs, scatter_ratios = \
+        validate_continuous_profile_scatter_discard(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -3602,6 +3694,8 @@ def main() -> int:
           f"{active_speedups} "
           f"positions_aware={positions_matrix}/{positions_pairs}/"
           f"{positions_speedups} "
+          f"continuous_profile={profile_shapes}/{scatter_pairs}/"
+          f"{scatter_ratios} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")
