@@ -12,12 +12,21 @@
 
 #include <microllm/ops/ops.h>
 #include <microllm/profiling/trace.h>
+#include <microllm/runtime/memory.h>
 #include <microllm/runtime/runtime.h>
 
 namespace microllm::model {
 namespace {
 
 using autograd::Value;
+
+Tensor clone_tensor(const Tensor& source, Device target) {
+    const auto packed = source.is_contiguous() ? source : source.contiguous();
+    Tensor copy(packed.shape(), packed.dtype(), target);
+    runtime::copy_bytes(copy.data(), target, packed.data(), packed.device(),
+                        static_cast<std::size_t>(packed.numel()) * dtype_size(packed.dtype()));
+    return copy;
+}
 
 Tensor prepare_cached_sequence(Tensor& cached, const Tensor& current,
                                std::int64_t position, std::int64_t capacity) {
@@ -87,22 +96,29 @@ Bf16WeightPreparationReport prepare_bf16_weights(
     return report;
 }
 
-Value parameter(Shape shape, std::mt19937_64& generator, float standard_deviation) {
-    return Value(random_tensor(std::move(shape), generator, standard_deviation), true);
+Value parameter(Shape shape, std::mt19937_64& generator, float standard_deviation,
+                ParameterInitialization initialization) {
+    return Value(initialization == ParameterInitialization::Random
+                     ? random_tensor(std::move(shape), generator, standard_deviation)
+                     : Tensor(std::move(shape)),
+                 true);
 }
 
 class Linear {
 public:
     Linear(std::int64_t input, std::int64_t output, std::mt19937_64& generator,
-           const ModelConfig& config, bool with_bias = false)
+           const ModelConfig& config, ParameterInitialization initialization,
+           bool with_bias = false)
         : weight_(parameter({input, output}, generator,
-                            1.0F / std::sqrt(static_cast<float>(input)))),
+                            1.0F / std::sqrt(static_cast<float>(input)), initialization)),
           precision_(config.linear_precision),
           activation_scale_(config.fp8_activation_scale),
           weight_scale_(config.fp8_weight_scale), has_bias_(with_bias) {
         if (has_bias_) {
             bias_ = Value(Tensor({output}), true);
-            bias_.mutable_data().fill(0.0F);
+            if (initialization == ParameterInitialization::Random) {
+                bias_.mutable_data().fill(0.0F);
+            }
         }
     }
 
@@ -175,9 +191,12 @@ private:
 
 class Norm {
 public:
-    explicit Norm(std::int64_t dimension, float epsilon = 1.0e-5F)
+    explicit Norm(std::int64_t dimension, float epsilon,
+                  ParameterInitialization initialization)
         : weight_(Tensor({dimension}), true), epsilon_(epsilon) {
-        weight_.mutable_data().fill(1.0F);
+        if (initialization == ParameterInitialization::Random) {
+            weight_.mutable_data().fill(1.0F);
+        }
     }
 
     Value forward(const Value& input) { return autograd::rms_norm(input, weight_, epsilon_); }
@@ -196,12 +215,16 @@ private:
 
 class Attention {
 public:
-    Attention(const ModelConfig& config, std::mt19937_64& generator)
+    Attention(const ModelConfig& config, std::mt19937_64& generator,
+              ParameterInitialization initialization)
         : config_(config),
-          query_(config.dimension, config.dimension, generator, config, config.attention_bias),
-          key_(config.dimension, config.kv_dimension(), generator, config, config.attention_bias),
-          value_(config.dimension, config.kv_dimension(), generator, config, config.attention_bias),
-          output_(config.dimension, config.dimension, generator, config) {}
+          query_(config.dimension, config.dimension, generator, config, initialization,
+                 config.attention_bias),
+          key_(config.dimension, config.kv_dimension(), generator, config, initialization,
+               config.attention_bias),
+          value_(config.dimension, config.kv_dimension(), generator, config, initialization,
+                 config.attention_bias),
+          output_(config.dimension, config.dimension, generator, config, initialization) {}
 
     Value forward(const Value& input) {
         if (input.data().ndim() != 3) throw std::invalid_argument("attention input must be BxTxD");
@@ -416,11 +439,12 @@ private:
 
 class FeedForward {
 public:
-    FeedForward(const ModelConfig& config, std::mt19937_64& generator)
+    FeedForward(const ModelConfig& config, std::mt19937_64& generator,
+                ParameterInitialization initialization)
         : config_(config),
-          gate_(config.dimension, config.ffn_dimension, generator, config),
-          up_(config.dimension, config.ffn_dimension, generator, config),
-          down_(config.ffn_dimension, config.dimension, generator, config) {}
+          gate_(config.dimension, config.ffn_dimension, generator, config, initialization),
+          up_(config.dimension, config.ffn_dimension, generator, config, initialization),
+          down_(config.ffn_dimension, config.dimension, generator, config, initialization) {}
 
     Value forward(const Value& input) {
         const auto batch = input.data().shape()[0];
@@ -482,11 +506,12 @@ private:
 
 class Block {
 public:
-    Block(const ModelConfig& config, std::mt19937_64& generator)
-        : attention_norm_(config.dimension, config.rms_norm_epsilon),
-          attention_(config, generator),
-          ffn_norm_(config.dimension, config.rms_norm_epsilon),
-          feed_forward_(config, generator) {}
+    Block(const ModelConfig& config, std::mt19937_64& generator,
+          ParameterInitialization initialization)
+        : attention_norm_(config.dimension, config.rms_norm_epsilon, initialization),
+          attention_(config, generator, initialization),
+          ffn_norm_(config.dimension, config.rms_norm_epsilon, initialization),
+          feed_forward_(config, generator, initialization) {}
 
     Value forward(const Value& input) {
         auto hidden = autograd::add(input, attention_.forward(attention_norm_.forward(input)));
@@ -536,19 +561,21 @@ private:
 }  // namespace
 
 struct TransformerModel::Impl {
-    Impl(ModelConfig model_config, std::uint64_t seed)
+    Impl(ModelConfig model_config, std::uint64_t seed,
+         ParameterInitialization initialization)
         : config(std::move(model_config)),
           generator(seed),
-          token_embedding(parameter({config.vocabulary_size, config.dimension}, generator, 0.02F)),
-          final_norm(config.dimension, config.rms_norm_epsilon) {
+          token_embedding(parameter({config.vocabulary_size, config.dimension}, generator,
+                                    0.02F, initialization)),
+          final_norm(config.dimension, config.rms_norm_epsilon, initialization) {
         config.validate();
         blocks.reserve(static_cast<std::size_t>(config.layers));
         for (std::int64_t layer = 0; layer < config.layers; ++layer) {
-            blocks.push_back(std::make_unique<Block>(config, generator));
+            blocks.push_back(std::make_unique<Block>(config, generator, initialization));
         }
         if (!config.tie_embeddings) {
             output_head = std::make_unique<Linear>(config.dimension, config.vocabulary_size,
-                                                   generator, config);
+                                                   generator, config, initialization);
         }
     }
 
@@ -561,10 +588,13 @@ struct TransformerModel::Impl {
     bool bf16_ffn_prepared = false;
     bool bf16_attention_prepared = false;
     bool bf16_training_mirrors_prepared = false;
+    bool parameters_initialized = true;
 };
 
-TransformerModel::TransformerModel(ModelConfig config, std::uint64_t seed)
-    : impl_(std::make_unique<Impl>(std::move(config), seed)) {
+TransformerModel::TransformerModel(ModelConfig config, std::uint64_t seed,
+                                   ParameterInitialization initialization)
+    : impl_(std::make_unique<Impl>(std::move(config), seed, initialization)) {
+    impl_->parameters_initialized = initialization == ParameterInitialization::Random;
     if (parameter_count() != impl_->config.parameter_count()) {
         throw std::logic_error("constructed model parameter count does not match ModelConfig");
     }
@@ -580,7 +610,9 @@ Device TransformerModel::device() {
 
 void TransformerModel::to(Device target) {
     for (auto* value : parameters()) {
-        value->mutable_data() = value->data().to(target);
+        value->mutable_data() = impl_->parameters_initialized
+                                    ? value->data().to(target)
+                                    : Tensor(value->data().shape(), value->data().dtype(), target);
         value->zero_grad();
     }
     if (impl_->bf16_training_mirrors_prepared) {
@@ -590,6 +622,9 @@ void TransformerModel::to(Device target) {
 }
 
 Value TransformerModel::forward(const Tensor& token_ids) {
+    if (!impl_->parameters_initialized) {
+        throw std::logic_error("model parameters must be loaded before forward");
+    }
     if (impl_->bf16_ffn_prepared || impl_->bf16_attention_prepared) {
         throw std::logic_error(
             "autograd forward is unavailable after BF16 FFN inference preparation; "
@@ -637,6 +672,9 @@ Value TransformerModel::forward(const Tensor& token_ids) {
 }
 
 Tensor TransformerModel::forward_inference(const Tensor& token_ids) {
+    if (!impl_->parameters_initialized) {
+        throw std::logic_error("model parameters must be loaded before inference");
+    }
     if (token_ids.dtype() != DType::Int32 || token_ids.ndim() != 2) {
         throw std::invalid_argument("model token IDs must be an int32 BxT tensor");
     }
@@ -670,6 +708,9 @@ Value TransformerModel::loss(const Tensor& token_ids, const Tensor& targets) {
 }
 
 Tensor TransformerModel::forward_cached(const Tensor& token_id, inference::KVCache& cache) {
+    if (!impl_->parameters_initialized) {
+        throw std::logic_error("model parameters must be loaded before cached inference");
+    }
     if (token_id.dtype() != DType::Int32 || token_id.shape() != Shape{1, 1}) {
         throw std::invalid_argument("cached forward expects one int32 token with shape 1x1");
     }
@@ -877,10 +918,11 @@ LoadWeightsReport TransformerModel::load_state_dict(const io::StateDict& state,
             report.incompatible.push_back(message.str());
             continue;
         }
-        auto copy = Tensor::from_vector(source.to_vector(), source.shape());
-        if (parameter->data().device() != Device::cpu()) {
-            copy = copy.to(parameter->data().device());
-        }
+        auto copy = transform == WeightTransform::Transpose2D
+                        ? source.device() == parameter->data().device()
+                              ? std::move(source)
+                              : source.to(parameter->data().device())
+                        : clone_tensor(source, parameter->data().device());
         prepared.push_back({target_name, parameter, std::move(copy)});
     }
     for (const auto& [name, tensor] : state) {
@@ -903,23 +945,24 @@ LoadWeightsReport TransformerModel::load_state_dict(const io::StateDict& state,
         item.parameter->zero_grad();
         report.loaded.push_back(std::move(item.name));
     }
+    if (report.complete()) impl_->parameters_initialized = true;
     return report;
 }
 
 LoadWeightsReport TransformerModel::load_safetensors(
     const std::filesystem::path& path, const LoadWeightsOptions& options) {
-    return load_state_dict(io::load_safetensors(path), options);
+    return load_state_dict(io::load_safetensors(path, device()), options);
 }
 
 LoadWeightsReport TransformerModel::load_safetensors_files(
     const std::vector<std::filesystem::path>& paths,
     const LoadWeightsOptions& options) {
-    return load_state_dict(io::load_safetensors_files(paths), options);
+    return load_state_dict(io::load_safetensors_files(paths, device()), options);
 }
 
 LoadWeightsReport TransformerModel::load_safetensors_index(
     const std::filesystem::path& index_path, const LoadWeightsOptions& options) {
-    return load_state_dict(io::load_safetensors_index(index_path), options);
+    return load_state_dict(io::load_safetensors_index(index_path, device()), options);
 }
 
 void TransformerModel::save_safetensors(

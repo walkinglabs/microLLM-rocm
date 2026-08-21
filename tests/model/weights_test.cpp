@@ -96,12 +96,15 @@ TEST(ModelWeightsTest, StrictLoadClearsGradientsAndReproducesForward) {
     const auto targets = Tensor::from_int32_vector({1, 2, 3, 0}, {1, 4});
     target.loss(tokens(), targets).backward();
     ASSERT_TRUE(target.parameters()[0]->has_grad());
-    const auto report = target.load_state_dict(source.state_dict());
+    auto source_state = source.state_dict();
+    const auto report = target.load_state_dict(source_state);
     EXPECT_TRUE(report.complete());
     EXPECT_EQ(report.loaded.size(), source.named_parameters().size());
     for (const auto* parameter : target.parameters()) EXPECT_FALSE(parameter->has_grad());
     EXPECT_EQ(target.forward(tokens()).data().to_vector(),
               source.forward(tokens()).data().to_vector());
+    source_state.begin()->second.fill(99.0F);
+    expect_state_equal(target.state_dict(), source.state_dict());
 }
 
 TEST(ModelWeightsTest, PreparedBf16FfnExportsFp32SnapshotAndRejectsReload) {
@@ -132,7 +135,8 @@ TEST(ModelWeightsTest, PreparedBf16FfnExportsFp32SnapshotAndRejectsReload) {
 TEST(ModelWeightsTest, QwenStyleMappingTransposesLinearWeights) {
     const auto config = weight_config();
     TransformerModel source(config, 331);
-    TransformerModel target(config, 337);
+    TransformerModel target(config, 337, ParameterInitialization::Uninitialized);
+    EXPECT_THROW((void)target.forward(tokens()), std::logic_error);
     const auto native = source.state_dict();
     const auto mapping = qwen_style_weight_mapping(config);
     io::StateDict external;

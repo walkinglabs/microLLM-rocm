@@ -99,11 +99,18 @@ int main(int argc, char** argv) {
             external.model.linear_precision = microllm::model::LinearPrecision::BFloat16;
         }
         microllm::runtime::reset_allocation_peak(device);
-        microllm::model::TransformerModel model(external.model, 1);
+        microllm::model::TransformerModel model(
+            external.model, 1,
+            microllm::model::ParameterInitialization::Uninitialized);
         model.to(device);
         microllm::model::LoadWeightsOptions load_options;
         load_options.mapping = microllm::model::qwen_style_weight_mapping(external.model);
+        const auto load_start = std::chrono::steady_clock::now();
         const auto report = model.load_safetensors(weights_path, load_options);
+        microllm::runtime::synchronize(device);
+        const auto load_finish = std::chrono::steady_clock::now();
+        const auto load_ms = std::chrono::duration<double, std::milli>(
+                                 load_finish - load_start).count();
         microllm::model::Bf16TrainingMirrors bf16_mirrors;
         if (linear_precision == "bf16" && bf16_weight_mirrors) {
             bf16_mirrors = model.prepare_bf16_training_mirrors();
@@ -202,6 +209,7 @@ int main(int argc, char** argv) {
                   << ",\"measurement_profile\":\""
                   << (warmup > 0 || steps > 1 ? "comparison" : "smoke") << "\""
                   << ",\"loaded_tensors\":" << report.loaded.size()
+                  << ",\"load_ms\":" << load_ms
                   << ",\"parameter_count\":" << model.parameter_count()
                   << ",\"fp32_weight_bytes\":"
                   << external.model.weight_bytes(sizeof(float))

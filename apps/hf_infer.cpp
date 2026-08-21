@@ -151,7 +151,9 @@ int main(int argc, char** argv) {
             throw std::runtime_error("HIP inference requested without a visible device");
         }
         microllm::runtime::reset_allocation_peak(device);
-        microllm::model::TransformerModel model(external.model, 1);
+        microllm::model::TransformerModel model(
+            external.model, 1,
+            microllm::model::ParameterInitialization::Uninitialized);
         model.to(device);
         microllm::model::LoadWeightsOptions load_options;
         load_options.mapping = microllm::model::qwen_style_weight_mapping(external.model);

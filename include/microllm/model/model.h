@@ -52,11 +52,15 @@ struct Bf16WeightPreparationReport {
 
 using Bf16FfnPreparationReport = Bf16WeightPreparationReport;
 
+enum class ParameterInitialization { Random, Uninitialized };
+
 [[nodiscard]] WeightMapping qwen_style_weight_mapping(const ModelConfig& config);
 
 class TransformerModel {
 public:
-    explicit TransformerModel(ModelConfig config, std::uint64_t seed = 1);
+    explicit TransformerModel(
+        ModelConfig config, std::uint64_t seed = 1,
+        ParameterInitialization initialization = ParameterInitialization::Random);
     ~TransformerModel();
     TransformerModel(TransformerModel&&) noexcept;
     TransformerModel& operator=(TransformerModel&&) noexcept;
