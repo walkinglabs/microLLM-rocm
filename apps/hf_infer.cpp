@@ -61,6 +61,8 @@ struct Options {
     std::int64_t continuous_slots = 0;
     std::string continuous_prompt_lengths;
     std::string continuous_new_token_lengths;
+    bool continuous_prefill_batch = true;
+    bool continuous_diagnostics = false;
 };
 
 Options options(int argc, char** argv) {
@@ -131,6 +133,22 @@ Options options(int argc, char** argv) {
         else if (name == "--continuous-new-token-lengths") {
             result.continuous_new_token_lengths = argv[index + 1];
         }
+        else if (name == "--continuous-diagnostics") {
+            const std::string value = argv[index + 1];
+            if (value != "true" && value != "false") {
+                throw std::invalid_argument(
+                    "--continuous-diagnostics must be true or false");
+            }
+            result.continuous_diagnostics = value == "true";
+        }
+        else if (name == "--continuous-prefill-batch") {
+            const std::string value = argv[index + 1];
+            if (value != "true" && value != "false") {
+                throw std::invalid_argument(
+                    "--continuous-prefill-batch must be true or false");
+            }
+            result.continuous_prefill_batch = value == "true";
+        }
         else throw std::invalid_argument("unknown CLI option: " + name);
     }
     if (result.config.empty() || result.weights.empty()) {
@@ -199,6 +217,10 @@ Options options(int argc, char** argv) {
           result.new_tokens != 0))) {
         throw std::invalid_argument(
             "continuous workload requires positive slots, prompt/new-token length lists, cache, and --new-tokens 0");
+    }
+    if (result.continuous_diagnostics && result.workload != "continuous") {
+        throw std::invalid_argument(
+            "--continuous-diagnostics requires continuous workload");
     }
     if (!result.cache_logits_output.empty() &&
         (!result.use_cache || result.workload == "prefill" || result.new_tokens < 2)) {
@@ -447,13 +469,15 @@ std::vector<microllm::DType> cache_layer_dtypes(
 struct ContinuousOfficialRun {
     std::vector<std::vector<std::int32_t>> generated;
     microllm::inference::ContinuousBatchMetrics metrics;
+    std::vector<microllm::inference::SelectionDiagnostic> diagnostics;
 };
 
 ContinuousOfficialRun run_continuous_official(
     microllm::model::TransformerModel& model,
     const std::vector<std::vector<std::int32_t>>& prompts,
     const std::vector<std::int64_t>& new_token_lengths,
-    std::int64_t slots, const std::vector<microllm::DType>& cache_dtypes) {
+    std::int64_t slots, const std::vector<microllm::DType>& cache_dtypes,
+    bool batch_equal_length_prefill, bool capture_diagnostics) {
     if (prompts.size() != new_token_lengths.size()) {
         throw std::invalid_argument(
             "continuous prompt and generation counts must match");
@@ -469,7 +493,9 @@ ContinuousOfficialRun run_continuous_official(
         model, {.max_slots = slots,
                 .max_sequence_length = cache_capacity,
                 .kv_cache_dtype = cache_dtypes.front(),
-                .kv_cache_layer_dtypes = cache_dtypes});
+                .kv_cache_layer_dtypes = cache_dtypes,
+                .batch_equal_length_prefill = batch_equal_length_prefill,
+                .capture_selection_diagnostics = capture_diagnostics});
     std::vector<microllm::inference::RequestId> ids;
     ids.reserve(prompts.size());
     for (std::size_t index = 0; index < prompts.size(); ++index) {
@@ -490,6 +516,7 @@ ContinuousOfficialRun run_continuous_official(
         result.generated.push_back(scheduler.request(id).generated);
     }
     result.metrics = scheduler.metrics();
+    result.diagnostics = scheduler.selection_diagnostics();
     return result;
 }
 
@@ -595,7 +622,8 @@ int main(int argc, char** argv) {
             for (int iteration = 0; iteration < command.warmup; ++iteration) {
                 (void)run_continuous_official(
                     model, prompts, new_token_lengths,
-                    command.continuous_slots, cache_dtypes);
+                    command.continuous_slots, cache_dtypes,
+                    command.continuous_prefill_batch, false);
             }
             microllm::runtime::synchronize(device);
             const auto warmup_finish = std::chrono::steady_clock::now();
@@ -611,7 +639,9 @@ int main(int argc, char** argv) {
                 const auto start = std::chrono::steady_clock::now();
                 auto current = run_continuous_official(
                     model, prompts, new_token_lengths,
-                    command.continuous_slots, cache_dtypes);
+                    command.continuous_slots, cache_dtypes,
+                    command.continuous_prefill_batch,
+                    command.continuous_diagnostics);
                 microllm::runtime::synchronize(device);
                 const auto finish = std::chrono::steady_clock::now();
                 measured_ms += std::chrono::duration<double, std::milli>(
@@ -663,6 +693,10 @@ int main(int argc, char** argv) {
                       << ",\"resident_weight_bytes\":" << resident_weight_bytes
                       << ",\"request_count\":" << prompts.size()
                       << ",\"continuous_slots\":" << command.continuous_slots
+                      << ",\"continuous_prefill_batch\":"
+                      << (command.continuous_prefill_batch ? "true" : "false")
+                      << ",\"continuous_diagnostics\":"
+                      << (command.continuous_diagnostics ? "true" : "false")
                       << ",\"warmup\":" << command.warmup
                       << ",\"steps\":" << command.steps
                       << ",\"warmup_ms\":"
@@ -745,6 +779,37 @@ int main(int argc, char** argv) {
                     std::cout << last.generated[request][index];
                 }
                 std::cout << ']';
+            }
+            std::cout << "],\"selection_diagnostic_count\":"
+                      << last.diagnostics.size()
+                      << ",\"selection_diagnostics\":[";
+            for (std::size_t index = 0; index < last.diagnostics.size(); ++index) {
+                if (index != 0) std::cout << ',';
+                const auto& diagnostic = last.diagnostics[index];
+                std::cout << "{\"scheduler_step\":"
+                          << diagnostic.scheduler_step
+                          << ",\"request_id\":" << diagnostic.request_id
+                          << ",\"slot\":" << diagnostic.slot
+                          << ",\"generated_index\":"
+                          << diagnostic.generated_index
+                          << ",\"cache_position\":"
+                          << diagnostic.cache_position
+                          << ",\"logit_batch_size\":"
+                          << diagnostic.logit_batch_size
+                          << ",\"logit_source\":\""
+                          << diagnostic.logit_source << "\""
+                          << ",\"device_selected_token\":"
+                          << diagnostic.device_selected_token
+                          << ",\"top1_token\":" << diagnostic.top1_token
+                          << ",\"top1_logit\":" << diagnostic.top1_logit
+                          << ",\"top2_token\":" << diagnostic.top2_token
+                          << ",\"top2_logit\":" << diagnostic.top2_logit
+                          << ",\"top1_top2_margin\":"
+                          << diagnostic.top1_top2_margin
+                          << ",\"device_argmax_matches_top1\":"
+                          << (diagnostic.device_argmax_matches_top1
+                                  ? "true" : "false")
+                          << '}';
             }
             std::cout << "],\"token_checksum\":" << checksum << "}\n";
             return 0;

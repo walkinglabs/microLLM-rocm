@@ -1,4 +1,5 @@
 import importlib.util
+import sys
 import unittest
 from pathlib import Path
 
@@ -10,6 +11,7 @@ SPEC = importlib.util.spec_from_file_location(
 MATRIX = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
 SPEC.loader.exec_module(MATRIX)
+sys.modules["hf_continuous_matrix"] = MATRIX
 TORCH_SPEC = importlib.util.spec_from_file_location(
     "pytorch_continuous_reference",
     ROOT / "benchmarks/single_gpu/pytorch_continuous_reference.py")
@@ -22,6 +24,12 @@ COMPARE_SPEC = importlib.util.spec_from_file_location(
 COMPARE = importlib.util.module_from_spec(COMPARE_SPEC)
 assert COMPARE_SPEC.loader is not None
 COMPARE_SPEC.loader.exec_module(COMPARE)
+DIVERGENCE_SPEC = importlib.util.spec_from_file_location(
+    "hf_continuous_divergence",
+    ROOT / "benchmarks/single_gpu/hf_continuous_divergence.py")
+DIVERGENCE = importlib.util.module_from_spec(DIVERGENCE_SPEC)
+assert DIVERGENCE_SPEC.loader is not None
+DIVERGENCE_SPEC.loader.exec_module(DIVERGENCE)
 
 
 class HfContinuousMatrixTest(unittest.TestCase):
@@ -141,6 +149,67 @@ class HfContinuousMatrixTest(unittest.TestCase):
         self.assertEqual(result["rows"][0]["accuracy_status"], "fail")
         self.assertEqual(result["rows"][0]["observed_service_throughput_ratio"], 2.0)
         self.assertIn("sequential requests", result["comparison_boundary"])
+
+    def test_divergence_summary_keeps_top2_source_and_margin(self):
+        model = self.model()
+        default_command = DIVERGENCE.command(
+            Path("micro"), model, DIVERGENCE.CASES["short_s4"])
+        serial_command = DIVERGENCE.command(
+            Path("micro"), model,
+            DIVERGENCE.CASES["short_s4_serial_prefill"])
+        self.assertEqual(
+            default_command[default_command.index("--continuous-diagnostics") + 1],
+            "true")
+        self.assertNotIn("--continuous-prefill-batch", default_command)
+        self.assertEqual(
+            serial_command[serial_command.index("--continuous-prefill-batch") + 1],
+            "false")
+        records = []
+        for case_name, case in DIVERGENCE.CASES.items():
+            slots = case["slots"]
+            changed = slots >= 4 and case["batch_equal_length_prefill"]
+            generated = [[1, 2] for _ in range(5)] + [
+                [1, 3 if changed else 2]]
+            diagnostics = [
+                {"request_id": 6, "generated_index": 0,
+                 "device_argmax_matches_top1": True},
+                {"request_id": 6, "generated_index": 1,
+                 "device_selected_token": generated[5][1],
+                 "top1_token": generated[5][1], "top1_logit": 5.0,
+                 "top2_token": 2 if changed else 3, "top2_logit": 4.99,
+                 "top1_top2_margin": 0.01, "logit_source": "uniform_decode",
+                 "logit_batch_size": slots, "cache_position": 9,
+                 "scheduler_step": 2, "device_argmax_matches_top1": True},
+            ]
+            records.append({
+                "case": case_name, "status": "pass",
+                "generated_tokens": generated,
+                "selection_diagnostic_count": sum(
+                    case["outputs"]),
+                "selection_diagnostics": diagnostics,
+            })
+            missing = sum(case["outputs"]) - 2
+            records[-1]["selection_diagnostics"].extend(
+                {"request_id": 99, "generated_index": index,
+                 "device_argmax_matches_top1": True}
+                for index in range(missing))
+        summary = DIVERGENCE.summarize(records, "deepseek", 1)
+        self.assertEqual(summary["first_difference"], {"request": 5, "token": 1})
+        self.assertEqual(summary["diagnostic_evidence"][2]["top2_tokens"], [2])
+        self.assertEqual(summary["diagnostic_evidence"][2]["logit_batch_sizes"], [4])
+        serial_s4 = next(row for row in summary["comparisons"]
+                         if row["case"] == "short_s4_serial_prefill")
+        self.assertTrue(serial_s4["difference_vs_s1"]["exact"])
+        self.assertIn("excluded", summary["measurement_boundary"])
+        reference = {"serving_mode": "sequential_requests",
+                     "precision": "full_bf16_model",
+                     "generated_tokens": [[1, 2] for _ in range(5)] + [[1, 3]]}
+        comparison = DIVERGENCE.compare_to_pytorch(records, reference)
+        self.assertTrue(
+            comparison["default_s4_matches_reference_at_original_divergence"])
+        self.assertFalse(
+            comparison["serial_s4_matches_reference_at_original_divergence"])
+        self.assertIn("not a matched scheduler", comparison["boundary"])
 
 
 if __name__ == "__main__":

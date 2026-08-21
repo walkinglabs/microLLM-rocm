@@ -2133,3 +2133,18 @@ fast path增加“所有layer Storage未定义”条件，并给CPU/HIP补单slo
 执行通过仍不等于精度通过：DeepSeek short的S1/S2和S4/S8形成两组答案，第6条请求从第5个
 生成token开始分叉。summary明确分开execution pass与accuracy failure。下一步要看首个分叉位置
 的logits margin，并研究长度感知Cache，而不是把S8吞吐当成免费收益。
+
+## 121. Experiment 104：0.000669的差距足以改写整段回答
+
+默认关闭的selection diagnostics记录每次选择的request/slot/position、logit来源与真实batch、GPU
+argmax和top-2 margin。DeepSeek分叉点的两个候选正好是23606与1196：S1/S2 margin为0.015623/
+0.011353，S4/S8只剩0.000669并交换第一名。GPU与host top-1完全一致，排除了argmax错误。
+
+![DeepSeek slot divergence](assets/continuous-divergence.svg)
+
+只关闭等长prompt batching，S4/S8仍使用positions-aware B4/B8 decode，但logits逐值回到S2，完整
+输出也回到S1组。由此推翻decode batch假设，确认prefill B1/B2是因果变量。
+
+这不等于应该回退：默认B2在原分叉请求选择1196，与PyTorch full-BF16相同；serial B1改成23606，
+反而新增外部差异。于是诊断API和反驳开关保留，生产默认仍batch prefill。下一节点继续交换和复制
+B2 local rows，区分正常GEMM shape漂移与row/copy缺陷。

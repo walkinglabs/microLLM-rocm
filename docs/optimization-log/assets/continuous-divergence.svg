@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="620" viewBox="0 0 1080 620" role="img" aria-labelledby="title desc">
+  <title id="title">DeepSeek prefill divergence</title>
+  <desc id="desc">Top-two logits swap at a low margin; serial-prefill counterfactual restores S1 logits while preserving B4 and B8 decode.</desc>
+  <rect width="1080" height="620" fill="#0b1020"/>
+  <text x="48" y="58" fill="#f8fafc" font-family="sans-serif" font-size="30" font-weight="700">DeepSeek request 5 · generated token 4</text>
+  <text x="48" y="91" fill="#94a3b8" font-family="sans-serif" font-size="17">top-1 vs top-2 margin · three fresh processes per case</text>
+  <g font-family="sans-serif" font-size="16">
+    <text x="52" y="152" fill="#e2e8f0">S1 · prefill B1</text><rect x="240" y="130" width="500" height="28" rx="6" fill="#22c55e"/><text x="760" y="151" fill="#bbf7d0">23606 wins · margin 0.015623</text>
+    <text x="52" y="212" fill="#e2e8f0">S2 · prefill B1</text><rect x="240" y="190" width="363" height="28" rx="6" fill="#22c55e"/><text x="623" y="211" fill="#bbf7d0">23606 wins · 0.011353</text>
+    <text x="52" y="272" fill="#e2e8f0">S4/S8 · prefill B2</text><rect x="240" y="250" width="22" height="28" rx="6" fill="#ef4444"/><text x="282" y="271" fill="#fecaca">1196 wins · margin 0.000669</text>
+  </g>
+  <path d="M255 320 L255 365 L615 365" fill="none" stroke="#38bdf8" stroke-width="4" marker-end="url(#arrow)"/>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#38bdf8"/></marker></defs>
+  <rect x="620" y="335" width="410" height="66" rx="9" fill="#163149"/>
+  <text x="642" y="362" fill="#bae6fd" font-family="sans-serif" font-size="17" font-weight="700">只关闭 batched prefill</text>
+  <text x="642" y="386" fill="#7dd3fc" font-family="sans-serif" font-size="15">decode仍为B4/B8</text>
+  <rect x="48" y="430" width="984" height="74" rx="10" fill="#173421"/>
+  <text x="72" y="460" fill="#bbf7d0" font-family="sans-serif" font-size="18">serial prefill → 23606 · margin 0.011353 · logits逐值回到S2</text>
+  <text x="72" y="486" fill="#86efac" font-family="sans-serif" font-size="16">结论：prefill shape是因果变量，decode batch假设被反驳</text>
+  <rect x="48" y="528" width="984" height="54" rx="9" fill="#3b2a14"/>
+  <text x="72" y="562" fill="#fde68a" font-family="sans-serif" font-size="16">默认B2在原分叉请求匹配PyTorch；serial B1新增外部差异，因此不回退默认优化。</text>
+</svg>

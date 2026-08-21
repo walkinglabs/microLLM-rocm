@@ -73,7 +73,9 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] hold one official request set fixed and sweep 1/2/4/8 slots for a fair batch-efficiency curve;
 - [x] fix full-row recycled Storage admission after the sweep exposed 18 stable refill failures;
 - [ ] replace max-length-per-slot reservation with length-aware Cache blocks and remeasure long S8;
-- [ ] locate the first DeepSeek token/logit divergence in short_s4 and make long-context parity a gate;
+- [x] locate the first DeepSeek token/logit divergence and record source, real batch, top-2 and margin;
+- [x] refute decode batching by serializing only prefill while preserving B4/B8 positions-aware decode;
+- [ ] swap/duplicate B2 prefill local rows to separate normal GEMM-shape drift from a row-copy defect;
 - [ ] add request-level TTFT and P50/P95 latency rather than throughput alone;
 
 ## P2 — operator registry and profiler API

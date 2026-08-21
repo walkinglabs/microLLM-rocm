@@ -165,6 +165,11 @@ DeepSeek仅1/4对齐，因此其余三组仍是明确失败。数据读法见
 执行通过。长请求S8效率只有约40%，DeepSeek short仍有跨slot token分叉。见
 [固定请求slot sweep](continuous-slot-sweep.zh-CN.md)。
 
+为了定位而不污染普通计时，scheduler现在提供默认关闭的selection diagnostics。它记录logit来源、
+真实batch、top-2和margin。DeepSeek反驳实验只关闭B2 prefill并保留B4/B8 decode，完整输出回到
+S1，证明prefill shape是因果变量；默认B2仍因更接近PyTorch而保留。见
+[低margin分叉诊断](continuous-divergence.zh-CN.md)。
+
 ## 8. 测试位置
 
 ```text

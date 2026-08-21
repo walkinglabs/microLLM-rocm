@@ -3697,6 +3697,93 @@ def validate_fixed_request_slot_sweep(
         len(expected_groups) - sum(expected_groups.values())
 
 
+def validate_deepseek_prefill_divergence(
+        errors: list[str]) -> tuple[int, int, int, int]:
+    data = ROOT / "experiments" / "104-data"
+    raw = [json.loads(line) for line in
+           (data / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    expected_cases = {
+        "short_s1", "short_s2", "short_s4", "short_s8",
+        "short_s4_serial_prefill", "short_s8_serial_prefill",
+    }
+    keys = {(row.get("case"), row.get("process_run")) for row in raw}
+    if len(raw) != 18 or len(keys) != 18 or \
+            {row.get("case") for row in raw} != expected_cases or any(
+                row.get("status") != "pass" or
+                row.get("selection_diagnostic_count") != 96 or
+                len(row.get("selection_diagnostics", [])) != 96 or
+                any(not diagnostic.get("device_argmax_matches_top1")
+                    for diagnostic in row.get("selection_diagnostics", []))
+                for row in raw):
+        errors.append("DeepSeek prefill divergence raw evidence changed")
+    if summary.get("track") != "official_continuous_slot_divergence" or \
+            summary.get("status") != "complete_with_recorded_accuracy_failure" or \
+            summary.get("runs") != 3 or \
+            summary.get("first_difference") != {"request": 5, "token": 4} or \
+            len(summary.get("diagnostic_evidence", [])) != 6 or \
+            "excluded" not in summary.get("measurement_boundary", ""):
+        errors.append("DeepSeek prefill divergence summary changed")
+    evidence = {row["case"]: row for row in summary.get("diagnostic_evidence", [])}
+    expected = {
+        "short_s1": ([23606], [1], 0.015623093),
+        "short_s2": ([23606], [2], 0.011352539),
+        "short_s4": ([1196], [4], 0.000669479),
+        "short_s8": ([1196], [8], 0.000669479),
+        "short_s4_serial_prefill": ([23606], [4], 0.011352539),
+        "short_s8_serial_prefill": ([23606], [8], 0.011352539),
+    }
+    for case, (tokens, batches, margin) in expected.items():
+        row = evidence.get(case, {})
+        if row.get("selected_tokens") != tokens or \
+                row.get("logit_batch_sizes") != batches or \
+                row.get("cache_positions") != [36] or \
+                row.get("stable_across_runs") is not True or \
+                abs(float(row.get("margin_p50", -1)) - margin) > 1.0e-7:
+            errors.append(f"DeepSeek divergence diagnostic changed: {case}")
+    comparisons = {row["case"]: row for row in summary.get("comparisons", [])}
+    if comparisons.get("short_s4", {}).get("difference_vs_s1", {}).get("exact") \
+            is not False or \
+            comparisons.get("short_s4_serial_prefill", {}).get(
+                "difference_vs_s1", {}).get("exact") is not True:
+        errors.append("DeepSeek prefill counterfactual no longer refutes decode")
+    pytorch = summary.get("pytorch_comparison", {})
+    pytorch_rows = {row["case"]: row for row in pytorch.get("comparisons", [])}
+    if pytorch.get("default_s4_matches_reference_at_original_divergence") is not True or \
+            pytorch.get("serial_s4_matches_reference_at_original_divergence") is not False or \
+            pytorch_rows.get("short_s4", {}).get(
+                "difference_vs_pytorch", {}).get("differing_requests") != [7] or \
+            pytorch_rows.get("short_s4_serial_prefill", {}).get(
+                "difference_vs_pytorch", {}).get("differing_requests") != [5, 7]:
+        errors.append("DeepSeek PyTorch no-rollback gate changed")
+    scheduler_header = (REPOSITORY / "include" / "microllm" / "inference" /
+                        "scheduler.h").read_text(encoding="utf-8")
+    scheduler_source = (REPOSITORY / "src" / "inference" /
+                        "scheduler.cpp").read_text(encoding="utf-8")
+    app = (REPOSITORY / "apps" / "hf_infer.cpp").read_text(encoding="utf-8")
+    tests = (REPOSITORY / "python" / "tests" /
+             "test_hf_continuous_matrix.py").read_text(encoding="utf-8")
+    if "SelectionDiagnostic" not in scheduler_header or \
+            "capture_selection_diagnostics" not in scheduler_source or \
+            "batch_equal_length_prefill" not in scheduler_source or \
+            "--continuous-diagnostics" not in app or \
+            "--continuous-prefill-batch" not in app or \
+            "test_divergence_summary_keeps_top2_source_and_margin" not in tests:
+        errors.append("DeepSeek divergence source or tests are missing")
+    if gates.get("status") != "keep_diagnostics_reject_serial_default" or \
+            gates.get("full", {}).get("passed") != 315 or \
+            gates.get("cpu", {}).get("passed") != 219 or \
+            gates.get("hip", {}).get("passed") != 96 or \
+            gates.get("sanitizer", {}).get("passed") != 212 or \
+            gates.get("focused", {}).get("diagnostic_processes") != 18 or \
+            gates.get("focused", {}).get("device_argmax_top1_mismatches") != 0:
+        errors.append("DeepSeek divergence final gates changed")
+    return len(raw), len(evidence), \
+        gates.get("focused", {}).get("default_processes", 0), \
+        gates.get("focused", {}).get("counterfactual_processes", 0)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -3778,7 +3865,8 @@ def validate_assets(errors: list[str]) -> None:
                  "packed-decode-metadata.svg",
                  "batched-slot-prefill.svg",
                  "official-continuous-serving.svg",
-                 "continuous-slot-sweep.svg"):
+                 "continuous-slot-sweep.svg",
+                 "continuous-divergence.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -3925,6 +4013,8 @@ def main() -> int:
         validate_official_continuous_serving(errors)
     slot_sweep_before, slot_sweep_after, slot_sweep_exact, \
         slot_sweep_mismatched = validate_fixed_request_slot_sweep(errors)
+    divergence_raw, divergence_cases, divergence_default, \
+        divergence_counterfactual = validate_deepseek_prefill_divergence(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -4037,6 +4127,8 @@ def main() -> int:
           f"{official_continuous_deepseek} "
           f"slot_sweep={slot_sweep_before}/{slot_sweep_after}/"
           f"{slot_sweep_exact}/{slot_sweep_mismatched} "
+          f"prefill_divergence={divergence_raw}/{divergence_cases}/"
+          f"{divergence_default}/{divergence_counterfactual} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

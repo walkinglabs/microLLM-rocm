@@ -1102,7 +1102,8 @@ TEST(HipSchedulerTest, ContinuousSlotsRefillAndMatchCpuWithOneSelectionCopyPerSt
         recycled_hip_model.to(Device::hip(0));
         const inference::ContinuousBatchConfig recycled_config{
             .max_slots = 1, .max_sequence_length = 6,
-            .kv_cache_dtype = dtype, .kv_cache_layer_dtypes = {}};
+            .kv_cache_dtype = dtype, .kv_cache_layer_dtypes = {},
+            .capture_selection_diagnostics = true};
         inference::ContinuousBatchScheduler recycled_cpu(
             recycled_cpu_model, recycled_config);
         inference::ContinuousBatchScheduler recycled_hip(
@@ -1122,6 +1123,18 @@ TEST(HipSchedulerTest, ContinuousSlotsRefillAndMatchCpuWithOneSelectionCopyPerSt
                       recycled_cpu.request(cpu_ids[index]).generated);
         }
         EXPECT_EQ(recycled_hip.metrics().slot_refills, 1);
+        ASSERT_EQ(recycled_hip.selection_diagnostics().size(),
+                  recycled_cpu.selection_diagnostics().size());
+        for (std::size_t index = 0;
+             index < recycled_hip.selection_diagnostics().size(); ++index) {
+            const auto& actual = recycled_hip.selection_diagnostics()[index];
+            const auto& expected = recycled_cpu.selection_diagnostics()[index];
+            EXPECT_TRUE(actual.device_argmax_matches_top1);
+            EXPECT_EQ(actual.device_selected_token, expected.device_selected_token);
+            EXPECT_EQ(actual.request_id, expected.request_id);
+            EXPECT_EQ(actual.generated_index, expected.generated_index);
+            EXPECT_EQ(actual.logit_source, expected.logit_source);
+        }
     }
 }
 

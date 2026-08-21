@@ -60,6 +60,10 @@ exact layer/head/element-size allocation formula instead of treating estimated m
 When every row returns to logical position zero, backing Storage remains available for reuse.
 Full-row admission may use the first-allocation fast path only if every layer's K/V Storage is
 undefined; otherwise it overwrites the reusable row prefixes through the existing-storage path.
+Selection diagnostics are opt-in and intentionally host-synchronizing. They expose request, slot,
+position, producer path/batch, device argmax and top-2 margin for numerical investigations. The
+default serving path performs none of these logit copies. Equal-length prefill batching also has an
+experimental off switch for controlled attribution; production/default behavior remains batched.
 See [serving scheduler](dev/serving-scheduler.zh-CN.md).
 
 

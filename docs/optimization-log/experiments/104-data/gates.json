@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "status": "keep_diagnostics_reject_serial_default",
+  "full": {"passed": 315, "failed": 0, "skipped": 2},
+  "cpu": {"passed": 219, "failed": 0, "skipped": 2},
+  "hip": {"passed": 96, "failed": 0, "skipped": 0},
+  "sanitizer": {"passed": 212, "failed": 0, "skipped": 0},
+  "focused": {
+    "diagnostic_processes": 18,
+    "default_processes": 12,
+    "counterfactual_processes": 6,
+    "stable_processes": 18,
+    "device_argmax_top1_mismatches": 0,
+    "cpu_diagnostic_test": 1,
+    "hip_diagnostic_test": 1,
+    "pytorch_default_s4_differing_requests": 1,
+    "pytorch_serial_s4_differing_requests": 2
+  }
+}

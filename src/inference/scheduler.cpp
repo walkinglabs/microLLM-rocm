@@ -461,6 +461,13 @@ AdmissionBatchMetrics AdmissionBatchScheduler::metrics() const noexcept {
 }
 
 struct ContinuousBatchScheduler::Impl {
+    enum class LogitSource : std::uint8_t {
+        None,
+        Prefill,
+        UniformDecode,
+        PositionsAwareDecode,
+    };
+
     struct Request {
         RequestId id = 0;
         RequestState state = RequestState::PendingPrefill;
@@ -517,7 +524,10 @@ struct ContinuousBatchScheduler::Impl {
           policy(configured_policy(value, config)),
           cache(policy, configured_capacity(value, config), config.max_slots),
           slots(static_cast<std::size_t>(config.max_slots), -1),
-          slot_ever_used(static_cast<std::size_t>(config.max_slots), false) {}
+          slot_ever_used(static_cast<std::size_t>(config.max_slots), false),
+          slot_logit_sources(static_cast<std::size_t>(config.max_slots),
+                             LogitSource::None),
+          slot_logit_batch_sizes(static_cast<std::size_t>(config.max_slots), 0) {}
 
     model::TransformerModel& model;
     ContinuousBatchConfig config;
@@ -527,6 +537,9 @@ struct ContinuousBatchScheduler::Impl {
     std::vector<Request> requests;
     std::vector<std::int64_t> slots;
     std::vector<bool> slot_ever_used;
+    std::vector<LogitSource> slot_logit_sources;
+    std::vector<std::int64_t> slot_logit_batch_sizes;
+    std::vector<SelectionDiagnostic> diagnostics;
     RequestId next_id = 1;
     ContinuousBatchMetrics metrics;
 
@@ -594,7 +607,20 @@ struct ContinuousBatchScheduler::Impl {
         }
     }
 
-    void copy_logits_to_slot(const Tensor& logits, std::int64_t slot) {
+    static const char* source_name(LogitSource source) noexcept {
+        switch (source) {
+            case LogitSource::Prefill: return "prefill";
+            case LogitSource::UniformDecode: return "uniform_decode";
+            case LogitSource::PositionsAwareDecode:
+                return "positions_aware_decode";
+            case LogitSource::None: return "none";
+        }
+        return "none";
+    }
+
+    void copy_logits_to_slot(const Tensor& logits, std::int64_t slot,
+                             LogitSource source,
+                             std::int64_t logit_batch_size) {
         if (logits.dtype() != DType::Float32 || logits.ndim() != 3 ||
             logits.shape()[0] != 1 || logits.shape()[1] != 1 ||
             logits.shape()[2] != model.config().vocabulary_size ||
@@ -615,6 +641,66 @@ struct ContinuousBatchScheduler::Impl {
             slot_logits.device(), logits.data(), logits.device(),
             static_cast<std::size_t>(model.config().vocabulary_size) *
                 sizeof(float));
+        slot_logit_sources[static_cast<std::size_t>(slot)] = source;
+        slot_logit_batch_sizes[static_cast<std::size_t>(slot)] =
+            logit_batch_size;
+    }
+
+    void capture_selection_diagnostics(
+        const std::vector<std::int32_t>& selected) {
+        if (!config.capture_selection_diagnostics) return;
+        for (std::int64_t slot = 0; slot < config.max_slots; ++slot) {
+            const auto request_index = slots[static_cast<std::size_t>(slot)];
+            if (request_index < 0) continue;
+            const auto values = slot_logits.slice(0, slot, slot + 1).to_vector();
+            float top1 = -std::numeric_limits<float>::infinity();
+            float top2 = -std::numeric_limits<float>::infinity();
+            std::int32_t top1_token = -1;
+            std::int32_t top2_token = -1;
+            for (std::size_t index = 0; index < values.size(); ++index) {
+                const auto value = values[index];
+                if (!std::isfinite(value)) continue;
+                const auto token = static_cast<std::int32_t>(index);
+                if (value > top1 ||
+                    (value == top1 &&
+                     (top1_token < 0 || token < top1_token))) {
+                    top2 = top1;
+                    top2_token = top1_token;
+                    top1 = value;
+                    top1_token = token;
+                } else if (value > top2 ||
+                           (value == top2 &&
+                            (top2_token < 0 || token < top2_token))) {
+                    top2 = value;
+                    top2_token = token;
+                }
+            }
+            if (top1_token < 0 || top2_token < 0) {
+                throw std::invalid_argument(
+                    "continuous diagnostic logits need two finite values");
+            }
+            const auto& request = requests[static_cast<std::size_t>(request_index)];
+            const auto device_selected = selected[static_cast<std::size_t>(slot)];
+            diagnostics.push_back({
+                .scheduler_step = metrics.scheduler_steps,
+                .request_id = request.id,
+                .slot = slot,
+                .generated_index =
+                    static_cast<std::int64_t>(request.generated.size()),
+                .cache_position = cache.row_position(slot),
+                .logit_batch_size =
+                    slot_logit_batch_sizes[static_cast<std::size_t>(slot)],
+                .logit_source = source_name(
+                    slot_logit_sources[static_cast<std::size_t>(slot)]),
+                .device_selected_token = device_selected,
+                .top1_token = top1_token,
+                .top1_logit = top1,
+                .top2_token = top2_token,
+                .top2_logit = top2,
+                .top1_top2_margin = top1 - top2,
+                .device_argmax_matches_top1 = device_selected == top1_token,
+            });
+        }
     }
 
     void admit_pending() {
@@ -632,9 +718,12 @@ struct ContinuousBatchScheduler::Impl {
             if (free_slots.empty() || first == requests.end()) break;
             const auto prompt_length = first->prompt.size();
             std::vector<std::int64_t> request_indices;
+            const auto admission_limit = config.batch_equal_length_prefill
+                                             ? free_slots.size()
+                                             : std::size_t{1};
             for (std::size_t index = 0;
                  index < requests.size() &&
-                 request_indices.size() < free_slots.size();
+                 request_indices.size() < admission_limit;
                  ++index) {
                 if (requests[index].state == RequestState::PendingPrefill &&
                     requests[index].prompt.size() == prompt_length) {
@@ -664,7 +753,8 @@ struct ContinuousBatchScheduler::Impl {
                     copy_logits_to_slot(
                         logits.slice(0, static_cast<std::int64_t>(index),
                                      static_cast<std::int64_t>(index + 1)),
-                        target_rows[index]);
+                        target_rows[index], LogitSource::Prefill,
+                        static_cast<std::int64_t>(request_indices.size()));
                 }
             } catch (...) {
                 for (const auto row : target_rows) cache.reset_row(row);
@@ -805,6 +895,7 @@ void ContinuousBatchScheduler::step() {
     if (occupied == 0) return;
     impl_->metrics.occupied_slot_steps += occupied;
     const auto selected = impl_->select_tokens();
+    impl_->capture_selection_diagnostics(selected);
     std::vector<std::int32_t> next_tokens(
         static_cast<std::size_t>(impl_->config.max_slots), 0);
     std::vector<bool> survivors(
@@ -854,6 +945,12 @@ void ContinuousBatchScheduler::step() {
                     next_tokens, {impl_->config.max_slots, 1}),
                 impl_->cache);
             ++impl_->metrics.uniform_batch_decode_calls;
+            for (const auto slot : active_rows) {
+                impl_->slot_logit_sources[static_cast<std::size_t>(slot)] =
+                    Impl::LogitSource::UniformDecode;
+                impl_->slot_logit_batch_sizes[static_cast<std::size_t>(slot)] =
+                    survivor_count;
+            }
         } else {
             const auto active_logits = impl_->model.forward_cached_active_rows(
                 Tensor::from_int32_vector(
@@ -864,7 +961,8 @@ void ContinuousBatchScheduler::step() {
                     active_logits.slice(
                         0, static_cast<std::int64_t>(index),
                         static_cast<std::int64_t>(index + 1)),
-                    active_rows[index]);
+                    active_rows[index], Impl::LogitSource::PositionsAwareDecode,
+                    survivor_count);
             }
             ++impl_->metrics.compacted_batch_decode_calls;
             ++impl_->metrics.positions_aware_batch_decode_calls;
@@ -942,6 +1040,11 @@ std::vector<RequestSnapshot> ContinuousBatchScheduler::requests() const {
 
 ContinuousBatchMetrics ContinuousBatchScheduler::metrics() const noexcept {
     return impl_->metrics;
+}
+
+const std::vector<SelectionDiagnostic>&
+ContinuousBatchScheduler::selection_diagnostics() const noexcept {
+    return impl_->diagnostics;
 }
 
 }  // namespace microllm::inference

@@ -388,12 +388,14 @@ TEST(ContinuousBatchSchedulerTest, RefillsFreedSlotAndMatchesIndependentRows) {
         EXPECT_GT(metrics.allocated_cache_bytes, 0U);
         EXPECT_EQ(metrics.active_cache_bytes, 0U);
         EXPECT_GT(metrics.peak_active_cache_bytes, 0U);
+        EXPECT_TRUE(scheduler.selection_diagnostics().empty());
 
         model::TransformerModel recycled_model(config, 149);
         ContinuousBatchScheduler recycled(
             recycled_model,
             {.max_slots = 1, .max_sequence_length = 6,
-             .kv_cache_dtype = dtype, .kv_cache_layer_dtypes = {}});
+             .kv_cache_dtype = dtype, .kv_cache_layer_dtypes = {},
+             .capture_selection_diagnostics = true});
         const auto recycled_first = recycled.submit(
             {1, 2, 3}, short_generation);
         const auto recycled_second = recycled.submit(
@@ -415,6 +417,38 @@ TEST(ContinuousBatchSchedulerTest, RefillsFreedSlotAndMatchesIndependentRows) {
                   static_cast<std::size_t>(2 * config.layers * config.kv_heads *
                                            config.head_dimension() * 6) *
                       dtype_size(dtype));
+        ASSERT_EQ(recycled.selection_diagnostics().size(), 4U);
+        for (const auto& diagnostic : recycled.selection_diagnostics()) {
+            EXPECT_EQ(diagnostic.logit_batch_size, 1);
+            EXPECT_EQ(diagnostic.device_selected_token, diagnostic.top1_token);
+            EXPECT_TRUE(diagnostic.device_argmax_matches_top1);
+            EXPECT_GE(diagnostic.top1_top2_margin, 0.0F);
+            EXPECT_NE(diagnostic.logit_source, "none");
+        }
+
+        model::TransformerModel serial_prefill_model(config, 149);
+        ContinuousBatchScheduler serial_prefill(
+            serial_prefill_model,
+            {.max_slots = 2, .max_sequence_length = 6,
+             .kv_cache_dtype = dtype, .kv_cache_layer_dtypes = {},
+             .batch_equal_length_prefill = false});
+        const auto serial_first = serial_prefill.submit(
+            {1, 2, 3}, short_generation);
+        const auto serial_second = serial_prefill.submit(
+            {4, 5, 6}, short_generation);
+        serial_prefill.run_until_idle();
+        EXPECT_EQ(serial_prefill.metrics().prefill_batch_calls, 2);
+        EXPECT_EQ(serial_prefill.metrics().batched_prefill_calls, 0);
+        for (const auto& [id, prompt] : {
+                 std::pair{serial_first,
+                           std::vector<std::int32_t>{1, 2, 3}},
+                 std::pair{serial_second,
+                           std::vector<std::int32_t>{4, 5, 6}}}) {
+            model::TransformerModel independent(config, 149);
+            EXPECT_EQ(serial_prefill.request(id).generated,
+                      suffix(generate(independent, prompt, short_generation),
+                             prompt.size()));
+        }
     }
 }
 

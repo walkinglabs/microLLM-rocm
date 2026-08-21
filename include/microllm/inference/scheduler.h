@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <string>
 #include <vector>
 
 #include <microllm/inference/generator.h>
@@ -129,6 +130,29 @@ struct ContinuousBatchConfig {
     DType kv_cache_dtype = DType::Float32;
     // Empty applies kv_cache_dtype to every layer.
     std::vector<DType> kv_cache_layer_dtypes;
+    // Experimental control used to separate prefill-shape effects from decode
+    // batching. Production/default behavior batches equal-length prompts.
+    bool batch_equal_length_prefill = true;
+    // Diagnostic mode copies logits after each scheduling decision. It is
+    // intentionally excluded from performance runs unless explicitly enabled.
+    bool capture_selection_diagnostics = false;
+};
+
+struct SelectionDiagnostic {
+    std::int64_t scheduler_step = 0;
+    RequestId request_id = 0;
+    std::int64_t slot = -1;
+    std::int64_t generated_index = 0;
+    std::int64_t cache_position = 0;
+    std::int64_t logit_batch_size = 0;
+    std::string logit_source;
+    std::int32_t device_selected_token = -1;
+    std::int32_t top1_token = -1;
+    float top1_logit = 0.0F;
+    std::int32_t top2_token = -1;
+    float top2_logit = 0.0F;
+    float top1_top2_margin = 0.0F;
+    bool device_argmax_matches_top1 = false;
 };
 
 struct ContinuousBatchMetrics {
@@ -190,6 +214,8 @@ public:
     [[nodiscard]] RequestSnapshot request(RequestId id) const;
     [[nodiscard]] std::vector<RequestSnapshot> requests() const;
     [[nodiscard]] ContinuousBatchMetrics metrics() const noexcept;
+    [[nodiscard]] const std::vector<SelectionDiagnostic>&
+    selection_diagnostics() const noexcept;
 
 private:
     struct Impl;

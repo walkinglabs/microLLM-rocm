@@ -71,8 +71,9 @@ parallel efficiency = speedup / x
 - DeepSeek short：S1/S2一致，S4/S8一致，但两组彼此不一致；
 - 分叉只出现在第6条请求，从第5个生成token开始。
 
-因此执行门是48/48通过，精度总门仍是失败。这个现象更像batch数值路径在接近argmax边界时改变
-了后续token，而不是refill崩溃；还需要保存首个分叉位置的logits和top-2 margin才能判断。
+因此执行门是48/48通过，精度总门仍是失败。后续
+[top-2诊断](continuous-divergence.zh-CN.md)已经证明prefill B1/B2是因果变量，S4/S8的margin只有
+0.000669；默认B2在该请求反而与PyTorch一致，因此不能简单回退成串行prefill。
 
 ![Fixed-request slot sweep](../optimization-log/assets/continuous-slot-sweep.svg)
 

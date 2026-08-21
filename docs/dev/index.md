@@ -41,11 +41,13 @@ component has a public interface under `include/microllm`, an implementation und
     [continuous serving matrix guide](official-continuous-serving.zh-CN.md).
 21. For a fixed-request 1/2/4/8-slot efficiency and Cache sweep, read the
     [continuous slot-sweep guide](continuous-slot-sweep.zh-CN.md).
-22. For FP32/BF16 cache policy and its numerical gates, read the
+22. For locating a low-margin cross-slot token divergence, read the
+    [continuous divergence guide](continuous-divergence.zh-CN.md).
+23. For FP32/BF16 cache policy and its numerical gates, read the
     [KV-cache dtype guide](kv-cache-dtypes.zh-CN.md).
-23. For delayed multi-request serving semantics, read the
+24. For delayed multi-request serving semantics, read the
     [serving scheduler guide](serving-scheduler.zh-CN.md).
-24. For the measured optimization loop, read the
+25. For the measured optimization loop, read the
     [0→1 optimization log](../optimization-log/README.md).
 
 ## Engineering rules

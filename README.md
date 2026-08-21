@@ -100,6 +100,9 @@ needed to run a real training and generation loop:
 - a fixed eight-request 1/2/4/8-slot sweep reports S1-relative efficiency and exact KV/peak bytes;
   it also turned an 18-process full-row recycle failure into 48/48 passing executions while
   preserving a DeepSeek short cross-slot token mismatch.
+- opt-in continuous diagnostics report producer path/batch and top-2 margin without changing the
+  default timed path; a prefill-only counterfactual isolates one DeepSeek low-margin divergence
+  while PyTorch evidence rejects serial prefill as the production default.
 
 The design keeps three implementations where they provide engineering value:
 
@@ -339,6 +342,12 @@ Experiment 103 holds the request set fixed while changing only 1/2/4/8 slots. It
 Short S8 reaches 4.32×/4.69× S1 throughput, while long S8 efficiency falls to about 40% and KV byte
 utilization to 46.85%. DeepSeek short still changes one request across slot counts. See
 [Experiment 103](docs/optimization-log/experiments/103-fixed-request-slot-sweep.md).
+
+Experiment 104 locates that DeepSeek split at request 5/token 4. S4/S8 swap the same two candidates
+at a 0.000669 margin. Serializing only prefill restores S1 logits while keeping B4/B8 decode,
+refuting decode batching as the cause; however default B2 matches PyTorch at this request and the
+serial control adds an external mismatch, so the optimization remains. See
+[Experiment 104](docs/optimization-log/experiments/104-deepseek-prefill-divergence.md).
 
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or

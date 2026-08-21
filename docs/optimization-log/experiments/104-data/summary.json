@@ -1,0 +1,559 @@
+{
+  "cases": {
+    "short_s1": {
+      "batch_equal_length_prefill": true,
+      "group": "short",
+      "outputs": [
+        8,
+        16,
+        8,
+        16,
+        8,
+        16,
+        8,
+        16
+      ],
+      "prompts": [
+        8,
+        8,
+        16,
+        16,
+        32,
+        32,
+        64,
+        64
+      ],
+      "slots": 1
+    },
+    "short_s2": {
+      "batch_equal_length_prefill": true,
+      "group": "short",
+      "outputs": [
+        8,
+        16,
+        8,
+        16,
+        8,
+        16,
+        8,
+        16
+      ],
+      "prompts": [
+        8,
+        8,
+        16,
+        16,
+        32,
+        32,
+        64,
+        64
+      ],
+      "slots": 2
+    },
+    "short_s4": {
+      "batch_equal_length_prefill": true,
+      "group": "short",
+      "outputs": [
+        8,
+        16,
+        8,
+        16,
+        8,
+        16,
+        8,
+        16
+      ],
+      "prompts": [
+        8,
+        8,
+        16,
+        16,
+        32,
+        32,
+        64,
+        64
+      ],
+      "slots": 4
+    },
+    "short_s4_serial_prefill": {
+      "batch_equal_length_prefill": false,
+      "group": "short",
+      "outputs": [
+        8,
+        16,
+        8,
+        16,
+        8,
+        16,
+        8,
+        16
+      ],
+      "prompts": [
+        8,
+        8,
+        16,
+        16,
+        32,
+        32,
+        64,
+        64
+      ],
+      "slots": 4
+    },
+    "short_s8": {
+      "batch_equal_length_prefill": true,
+      "group": "short",
+      "outputs": [
+        8,
+        16,
+        8,
+        16,
+        8,
+        16,
+        8,
+        16
+      ],
+      "prompts": [
+        8,
+        8,
+        16,
+        16,
+        32,
+        32,
+        64,
+        64
+      ],
+      "slots": 8
+    },
+    "short_s8_serial_prefill": {
+      "batch_equal_length_prefill": false,
+      "group": "short",
+      "outputs": [
+        8,
+        16,
+        8,
+        16,
+        8,
+        16,
+        8,
+        16
+      ],
+      "prompts": [
+        8,
+        8,
+        16,
+        16,
+        32,
+        32,
+        64,
+        64
+      ],
+      "slots": 8
+    }
+  },
+  "comparisons": [
+    {
+      "case": "short_s1",
+      "difference_vs_s1": {
+        "differing_request_count": 0,
+        "differing_requests": [],
+        "exact": true,
+        "first_difference": null
+      },
+      "slots": 1
+    },
+    {
+      "case": "short_s2",
+      "difference_vs_s1": {
+        "differing_request_count": 0,
+        "differing_requests": [],
+        "exact": true,
+        "first_difference": null
+      },
+      "slots": 2
+    },
+    {
+      "case": "short_s4",
+      "difference_vs_s1": {
+        "differing_request_count": 1,
+        "differing_requests": [
+          5
+        ],
+        "exact": false,
+        "first_difference": {
+          "request": 5,
+          "token": 4
+        }
+      },
+      "slots": 4
+    },
+    {
+      "case": "short_s8",
+      "difference_vs_s1": {
+        "differing_request_count": 1,
+        "differing_requests": [
+          5
+        ],
+        "exact": false,
+        "first_difference": {
+          "request": 5,
+          "token": 4
+        }
+      },
+      "slots": 8
+    },
+    {
+      "case": "short_s4_serial_prefill",
+      "difference_vs_s1": {
+        "differing_request_count": 0,
+        "differing_requests": [],
+        "exact": true,
+        "first_difference": null
+      },
+      "slots": 4
+    },
+    {
+      "case": "short_s8_serial_prefill",
+      "difference_vs_s1": {
+        "differing_request_count": 0,
+        "differing_requests": [],
+        "exact": true,
+        "first_difference": null
+      },
+      "slots": 8
+    }
+  ],
+  "diagnostic_evidence": [
+    {
+      "cache_positions": [
+        36
+      ],
+      "case": "short_s1",
+      "generated_index": 4,
+      "logit_batch_sizes": [
+        1
+      ],
+      "logit_sources": [
+        "uniform_decode"
+      ],
+      "margin_max": 0.015623093,
+      "margin_min": 0.015623093,
+      "margin_p50": 0.015623093,
+      "request": 5,
+      "scheduler_steps": [
+        61
+      ],
+      "selected_tokens": [
+        23606
+      ],
+      "slots": 1,
+      "stable_across_runs": true,
+      "top1_logit_max": 18.917285919,
+      "top1_logit_min": 18.917285919,
+      "top1_tokens": [
+        23606
+      ],
+      "top2_logit_max": 18.901662827,
+      "top2_logit_min": 18.901662827,
+      "top2_tokens": [
+        1196
+      ]
+    },
+    {
+      "cache_positions": [
+        36
+      ],
+      "case": "short_s2",
+      "generated_index": 4,
+      "logit_batch_sizes": [
+        2
+      ],
+      "logit_sources": [
+        "positions_aware_decode"
+      ],
+      "margin_max": 0.011352539,
+      "margin_min": 0.011352539,
+      "margin_p50": 0.011352539,
+      "request": 5,
+      "scheduler_steps": [
+        29
+      ],
+      "selected_tokens": [
+        23606
+      ],
+      "slots": 2,
+      "stable_across_runs": true,
+      "top1_logit_max": 18.915491104,
+      "top1_logit_min": 18.915491104,
+      "top1_tokens": [
+        23606
+      ],
+      "top2_logit_max": 18.904138565,
+      "top2_logit_min": 18.904138565,
+      "top2_tokens": [
+        1196
+      ]
+    },
+    {
+      "cache_positions": [
+        36
+      ],
+      "case": "short_s4",
+      "generated_index": 4,
+      "logit_batch_sizes": [
+        4
+      ],
+      "logit_sources": [
+        "positions_aware_decode"
+      ],
+      "margin_max": 0.000669479,
+      "margin_min": 0.000669479,
+      "margin_p50": 0.000669479,
+      "request": 5,
+      "scheduler_steps": [
+        13
+      ],
+      "selected_tokens": [
+        1196
+      ],
+      "slots": 4,
+      "stable_across_runs": true,
+      "top1_logit_max": 18.890232086,
+      "top1_logit_min": 18.890232086,
+      "top1_tokens": [
+        1196
+      ],
+      "top2_logit_max": 18.889562607,
+      "top2_logit_min": 18.889562607,
+      "top2_tokens": [
+        23606
+      ]
+    },
+    {
+      "cache_positions": [
+        36
+      ],
+      "case": "short_s8",
+      "generated_index": 4,
+      "logit_batch_sizes": [
+        8
+      ],
+      "logit_sources": [
+        "positions_aware_decode"
+      ],
+      "margin_max": 0.000669479,
+      "margin_min": 0.000669479,
+      "margin_p50": 0.000669479,
+      "request": 5,
+      "scheduler_steps": [
+        5
+      ],
+      "selected_tokens": [
+        1196
+      ],
+      "slots": 8,
+      "stable_across_runs": true,
+      "top1_logit_max": 18.890232086,
+      "top1_logit_min": 18.890232086,
+      "top1_tokens": [
+        1196
+      ],
+      "top2_logit_max": 18.889562607,
+      "top2_logit_min": 18.889562607,
+      "top2_tokens": [
+        23606
+      ]
+    },
+    {
+      "cache_positions": [
+        36
+      ],
+      "case": "short_s4_serial_prefill",
+      "generated_index": 4,
+      "logit_batch_sizes": [
+        4
+      ],
+      "logit_sources": [
+        "positions_aware_decode"
+      ],
+      "margin_max": 0.011352539,
+      "margin_min": 0.011352539,
+      "margin_p50": 0.011352539,
+      "request": 5,
+      "scheduler_steps": [
+        13
+      ],
+      "selected_tokens": [
+        23606
+      ],
+      "slots": 4,
+      "stable_across_runs": true,
+      "top1_logit_max": 18.915491104,
+      "top1_logit_min": 18.915491104,
+      "top1_tokens": [
+        23606
+      ],
+      "top2_logit_max": 18.904138565,
+      "top2_logit_min": 18.904138565,
+      "top2_tokens": [
+        1196
+      ]
+    },
+    {
+      "cache_positions": [
+        36
+      ],
+      "case": "short_s8_serial_prefill",
+      "generated_index": 4,
+      "logit_batch_sizes": [
+        8
+      ],
+      "logit_sources": [
+        "positions_aware_decode"
+      ],
+      "margin_max": 0.011352539,
+      "margin_min": 0.011352539,
+      "margin_p50": 0.011352539,
+      "request": 5,
+      "scheduler_steps": [
+        5
+      ],
+      "selected_tokens": [
+        23606
+      ],
+      "slots": 8,
+      "stable_across_runs": true,
+      "top1_logit_max": 18.915491104,
+      "top1_logit_min": 18.915491104,
+      "top1_tokens": [
+        23606
+      ],
+      "top2_logit_max": 18.904138565,
+      "top2_logit_min": 18.904138565,
+      "top2_tokens": [
+        1196
+      ]
+    }
+  ],
+  "first_difference": {
+    "request": 5,
+    "token": 4
+  },
+  "measurement_boundary": "diagnostic logits are copied to the host and are excluded from performance claims",
+  "model": "deepseek-r1-distill-qwen-1.5b",
+  "pytorch_comparison": {
+    "boundary": "PyTorch is sequential full-BF16; this comparison is a token oracle, not a matched scheduler performance result",
+    "comparisons": [
+      {
+        "batch_equal_length_prefill": true,
+        "case": "short_s1",
+        "difference_vs_pytorch": {
+          "differing_request_count": 2,
+          "differing_requests": [
+            5,
+            7
+          ],
+          "exact": false,
+          "first_difference": {
+            "request": 5,
+            "token": 4
+          }
+        },
+        "slots": 1
+      },
+      {
+        "batch_equal_length_prefill": true,
+        "case": "short_s2",
+        "difference_vs_pytorch": {
+          "differing_request_count": 2,
+          "differing_requests": [
+            5,
+            7
+          ],
+          "exact": false,
+          "first_difference": {
+            "request": 5,
+            "token": 4
+          }
+        },
+        "slots": 2
+      },
+      {
+        "batch_equal_length_prefill": true,
+        "case": "short_s4",
+        "difference_vs_pytorch": {
+          "differing_request_count": 1,
+          "differing_requests": [
+            7
+          ],
+          "exact": false,
+          "first_difference": {
+            "request": 7,
+            "token": 14
+          }
+        },
+        "slots": 4
+      },
+      {
+        "batch_equal_length_prefill": true,
+        "case": "short_s8",
+        "difference_vs_pytorch": {
+          "differing_request_count": 1,
+          "differing_requests": [
+            7
+          ],
+          "exact": false,
+          "first_difference": {
+            "request": 7,
+            "token": 14
+          }
+        },
+        "slots": 8
+      },
+      {
+        "batch_equal_length_prefill": false,
+        "case": "short_s4_serial_prefill",
+        "difference_vs_pytorch": {
+          "differing_request_count": 2,
+          "differing_requests": [
+            5,
+            7
+          ],
+          "exact": false,
+          "first_difference": {
+            "request": 5,
+            "token": 4
+          }
+        },
+        "slots": 4
+      },
+      {
+        "batch_equal_length_prefill": false,
+        "case": "short_s8_serial_prefill",
+        "difference_vs_pytorch": {
+          "differing_request_count": 2,
+          "differing_requests": [
+            5,
+            7
+          ],
+          "exact": false,
+          "first_difference": {
+            "request": 5,
+            "token": 4
+          }
+        },
+        "slots": 8
+      }
+    ],
+    "default_s4_matches_reference_at_original_divergence": true,
+    "original_divergence_request": 5,
+    "original_divergence_token": 4,
+    "reference_mode": "sequential_requests",
+    "reference_precision": "full_bf16_model",
+    "serial_s4_matches_reference_at_original_divergence": false
+  },
+  "runs": 3,
+  "schema_version": 1,
+  "status": "complete_with_recorded_accuracy_failure",
+  "track": "official_continuous_slot_divergence"
+}
