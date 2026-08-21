@@ -2810,6 +2810,53 @@ def validate_bf16_paired_value_load_discard(
         int(precision_rows[8]["values"])
 
 
+def validate_divergent_row_cache_reference(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "093-data"
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    transitions = summary.get("state_transitions", [])
+    contracts = summary.get("contracts", {})
+    expected = [[3, 3], [0, 3], [1, 4], [2, 5], [2, 0]]
+    if summary.get("status") != "pass" or \
+            [row.get("positions") for row in transitions] != expected or any(
+                contracts.get(name) is not True for name in (
+                    "fp32_rows_match_independent_b1",
+                    "bf16_rows_match_independent_b1",
+                    "second_step_rows_match_independent_b1",
+                    "uniform_positions_use_existing_batch_path",
+                    "shared_storage_address_stable",
+                    "reset_maximum_row_shrinks_logical_prefix",
+                    "missing_storage_for_nonzero_position_rejected",
+                    "hip_matches_cpu",
+                    "serial_b1_view_oracle")) or \
+            contracts.get("hip_payload_d2h_during_execution") != 0 or \
+            contracts.get("parallel_positions_aware_kernel") is not False:
+        errors.append("divergent cached-row reference evidence changed")
+    if gates.get("status") != "pass" or gates.get("cpu", {}).get("passed") != 210 or \
+            gates.get("hip", {}).get("passed") != 90 or \
+            gates.get("sanitizer", {}).get("passed") != 203 or \
+            gates.get("focused", {}).get("cache_dtypes") != 2 or \
+            gates.get("focused", {}).get("decode_steps") != 2:
+        errors.append("divergent cached-row final gates changed")
+    header = (REPOSITORY / "include" / "microllm" / "model" / "model.h").read_text(
+        encoding="utf-8")
+    source = (REPOSITORY / "src" / "model" / "model.cpp").read_text(
+        encoding="utf-8")
+    kv_source = (REPOSITORY / "src" / "inference" / "kv_cache.cpp").read_text(
+        encoding="utf-8")
+    cpu_tests = (REPOSITORY / "tests" / "model" / "model_test.cpp").read_text(
+        encoding="utf-8")
+    hip_tests = (REPOSITORY / "tests" / "inference" /
+                 "hip_shape_matrix_test.cpp").read_text(encoding="utf-8")
+    if "forward_cached_rows" not in header or "cache_row_view" not in source or \
+            "resize_shared_views" not in source or "resize_tensor_prefix" not in kv_source or \
+            "DivergentCachedRowsMatchIndependentB1References" not in cpu_tests or \
+            "DivergentRowsMatchCpuWithoutPayloadD2H" not in hip_tests:
+        errors.append("divergent cached-row source or executable gate is missing")
+    return len(transitions), int(gates["focused"]["cache_dtypes"]), \
+        int(gates["focused"]["decode_steps"])
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -2880,7 +2927,8 @@ def validate_assets(errors: list[str]) -> None:
                  "raw-packed-key-load-discard.svg",
                  "device-token-history.svg",
                  "normalize-cached-probabilities-discard.svg",
-                 "bf16-paired-value-load-discard.svg"):
+                 "bf16-paired-value-load-discard.svg",
+                 "divergent-cached-row-reference.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -3004,6 +3052,8 @@ def main() -> int:
         validate_normalize_cached_probabilities_discard(errors)
     paired_value_rows, paired_value_b1, paired_value_b8 = \
         validate_bf16_paired_value_load_discard(errors)
+    divergent_transitions, divergent_dtypes, divergent_steps = \
+        validate_divergent_row_cache_reference(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -3093,6 +3143,8 @@ def main() -> int:
           f"{normalize_b8_values} "
           f"paired_value_discard={paired_value_rows}/{paired_value_b1}/"
           f"{paired_value_b8} "
+          f"divergent_rows={divergent_transitions}/{divergent_dtypes}/"
+          f"{divergent_steps} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="560" viewBox="0 0 1080 560" role="img" aria-labelledby="title desc">
+  <title id="title">Divergent cached-row reference execution</title>
+  <desc id="desc">Two cache rows at positions zero and three use shared storage but separate B1 views, then advance independently to positions one and four.</desc>
+  <rect width="1080" height="560" fill="#0b1020"/>
+  <text x="40" y="44" fill="#f8fafc" font-family="sans-serif" font-size="24" font-weight="700">Experiment 093 · one Storage, different visible pages</text>
+  <text x="40" y="72" fill="#94a3b8" font-family="sans-serif" font-size="14">Correctness-first divergent-row cached decode</text>
+
+  <rect x="40" y="108" width="440" height="330" rx="12" fill="#111827" stroke="#334155"/>
+  <text x="66" y="146" fill="#e2e8f0" font-family="sans-serif" font-size="18" font-weight="700">Shared [B,H,capacity,D] Storage</text>
+  <text x="66" y="188" fill="#cbd5e1" font-family="sans-serif" font-size="15">row 0 · position 0</text>
+  <rect x="66" y="204" width="52" height="38" fill="#22c55e"/><rect x="122" y="204" width="52" height="38" fill="#1f2937"/><rect x="178" y="204" width="52" height="38" fill="#1f2937"/><rect x="234" y="204" width="52" height="38" fill="#1f2937"/><rect x="290" y="204" width="52" height="38" fill="#1f2937"/>
+  <text x="66" y="278" fill="#cbd5e1" font-family="sans-serif" font-size="15">row 1 · position 3</text>
+  <rect x="66" y="294" width="52" height="38" fill="#3b82f6"/><rect x="122" y="294" width="52" height="38" fill="#3b82f6"/><rect x="178" y="294" width="52" height="38" fill="#3b82f6"/><rect x="234" y="294" width="52" height="38" fill="#60a5fa"/><rect x="290" y="294" width="52" height="38" fill="#1f2937"/>
+  <text x="66" y="380" fill="#94a3b8" font-family="sans-serif" font-size="13">Green/blue: each row's own visible prefix</text>
+  <text x="66" y="407" fill="#94a3b8" font-family="sans-serif" font-size="13">Backing address and capacity do not change</text>
+
+  <rect x="540" y="108" width="500" height="330" rx="12" fill="#111827" stroke="#334155"/>
+  <text x="566" y="146" fill="#e2e8f0" font-family="sans-serif" font-size="18" font-weight="700">Reference execution</text>
+  <rect x="576" y="184" width="180" height="62" rx="8" fill="#14532d" stroke="#22c55e"/>
+  <text x="666" y="210" text-anchor="middle" fill="#dcfce7" font-family="sans-serif" font-size="14">row 0 B1 view</text>
+  <text x="666" y="232" text-anchor="middle" fill="#bbf7d0" font-family="sans-serif" font-size="12">RoPE 0 · visible 1</text>
+  <rect x="576" y="278" width="180" height="62" rx="8" fill="#172554" stroke="#3b82f6"/>
+  <text x="666" y="304" text-anchor="middle" fill="#dbeafe" font-family="sans-serif" font-size="14">row 1 B1 view</text>
+  <text x="666" y="326" text-anchor="middle" fill="#bfdbfe" font-family="sans-serif" font-size="12">RoPE 3 · visible 4</text>
+  <path d="M776 215 H858" stroke="#22c55e" stroke-width="4" marker-end="url(#arrowGreen)"/>
+  <path d="M776 309 H858" stroke="#3b82f6" stroke-width="4" marker-end="url(#arrowBlue)"/>
+  <rect x="864" y="214" width="138" height="118" rx="8" fill="#1f2937" stroke="#64748b"/>
+  <text x="933" y="250" text-anchor="middle" fill="#e2e8f0" font-family="sans-serif" font-size="14">merge logits</text>
+  <text x="933" y="275" text-anchor="middle" fill="#cbd5e1" font-family="sans-serif" font-size="13">[B,1,V]</text>
+  <text x="933" y="305" text-anchor="middle" fill="#f8fafc" font-family="sans-serif" font-size="14">[1,4]</text>
+  <defs><marker id="arrowGreen" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#22c55e"/></marker><marker id="arrowBlue" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#3b82f6"/></marker></defs>
+  <text x="566" y="388" fill="#fbbf24" font-family="sans-serif" font-size="13">Serial B1 oracle · not a parallel speed claim</text>
+  <text x="40" y="494" fill="#93c5fd" font-family="sans-serif" font-size="14">[3,3] → reset → [0,3] → decode → [1,4] → decode → [2,5]</text>
+  <text x="40" y="524" fill="#94a3b8" font-family="sans-serif" font-size="13">FP32/BF16 · CPU/HIP · zero execution D2H · uniform rows retain the existing fast path</text>
+</svg>

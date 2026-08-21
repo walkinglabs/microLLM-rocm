@@ -83,6 +83,11 @@ public:
                                                 inference::KVCache& cache);
     [[nodiscard]] Tensor forward_cached(const Tensor& token_id,
                                         inference::KVCache& cache);
+    // Correctness-first divergent-row decode. Each Bx1 row may have its own
+    // cache position; the first implementation serializes shared-Storage B1
+    // views and serves as the oracle for a future positions-aware HIP Kernel.
+    [[nodiscard]] Tensor forward_cached_rows(const Tensor& token_ids,
+                                             inference::KVCache& cache);
     [[nodiscard]] autograd::Value loss(const Tensor& token_ids, const Tensor& targets);
     [[nodiscard]] NamedValues named_parameters();
     [[nodiscard]] std::vector<autograd::Value*> parameters();

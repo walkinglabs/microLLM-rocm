@@ -76,6 +76,8 @@ needed to run a real training and generation loop:
   requests, reaching 7.31× serial throughput at HIP B8 with exact row outputs.
 - admission bucketing groups pending compatible requests with stable singleton fallback and
   cross-drain arrivals; HIP plateaus near 1,260 token/s when queues split into B4 groups.
+- `forward_cached_rows()` consumes unequal per-row positions through shared-Storage B1 views;
+  it is a CPU/HIP correctness oracle, while uniform rows keep the original parallel fast path.
 
 The design keeps three implementations where they provide engineering value:
 
@@ -161,9 +163,9 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 297/297 | 208 CPU-labelled + 89 HIP-labelled gates; 2 intentional environment skips |
-| ASan/UBSan CPU | 201/201 | host code, CLI, model/graph, benchmark and evidence schemas |
-| MI300X/gfx942 HIP | 89/89 | allocator/stream, graph, BF16/FP8, batched GEMM and model matrix |
+| Full CPU/HIP configuration | 300/300 | 210 CPU-labelled + 90 HIP-labelled gates; 2 intentional environment skips |
+| ASan/UBSan CPU | 203/203 | host code, CLI, model/graph, benchmark and evidence schemas |
+| MI300X/gfx942 HIP | 90/90 | allocator/stream, graph, BF16/FP8, batched GEMM and model matrix |
 | PyTorch-enabled CPU build | 196/196 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
 | Registered test files | 37 | machine-audited CTest registration |

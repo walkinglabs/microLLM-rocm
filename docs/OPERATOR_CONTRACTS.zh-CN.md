@@ -100,7 +100,8 @@
 - batched GEMM：两个输入 rank、所有 batch 维、dtype、device 必须相同；transpose 只作用
   于最后两维。hipBLASLt 必须与 materialized CPU reference 对齐，并单独记录 Stream 依赖。
 - Transformer：相同权重、token、mask、RoPE 和 epsilon 下比较 logits、loss 和全部参数梯度。
-- KV Cache：full-prefix reference 与 cache 路径逐位置比较 logits。
+- KV Cache：full-prefix reference 与 cache 路径逐位置比较 logits；分叉row必须分别等于独立B1，
+  `row_positions`、shared Storage地址和logical max-prefix同时检查。serial oracle不能写成并行性能。
 - SFT：`-100` prompt mask 与 PyTorch ignored target 行为一致。
 
 ## “全部覆盖”的机器规则

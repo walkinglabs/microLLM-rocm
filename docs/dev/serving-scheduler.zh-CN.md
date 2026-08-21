@@ -123,7 +123,12 @@ GPU payload copy。它故意不修改共同`position()`：清掉旧草稿本不�
 
 现在Cache已经保存`row_positions[B]`。如果全部位置相同，旧`position()`继续工作；一旦分叉，
 旧接口明确报错，调用者必须逐row读取。`reset_row()`同时清Storage并把该row位置归0。模型
-Kernel尚未消费不同位置，所以这一步是“状态会表达”，下一步才是“计算会使用”。
+提供`forward_cached_rows()`作为正确性优先的计算路径：每个row建立共享原Storage的B1 view，
+使用自己的RoPE位置、K/V写入位置和可见prefix，再合并logits。uniform位置仍走原batch快路径。
+
+这条路径会串行执行B个B1 forward，并用D2D合并输出，因此它是positions-aware HIP Kernel和
+continuous refill scheduler的oracle，不是最终性能实现。详细图解见
+[不同页数的KV row](divergent-kv-rows.zh-CN.md)。
 
 ## 8. 测试位置
 
@@ -133,6 +138,9 @@ tests/inference/scheduler_test.cpp
 
 tests/ops/hip_ops_test.cpp
   HIP与CPU逐请求结果、取消行排除、Cache和调用指标对齐
+
+tests/inference/hip_shape_matrix_test.cpp
+  分叉row CPU/HIP、零D2H、FP32/BF16和公共Storage view对齐
 
 benchmarks/end_to_end/benchmark_scheduler.cpp
   CPU/HIP 1/2/4/8请求的串行与静态batch基线

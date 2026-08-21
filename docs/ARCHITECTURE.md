@@ -33,7 +33,9 @@ course / apps / benchmarks ← public engine APIs
 Serving requests are owned by `ReferenceScheduler`, not by the model. Each request has an
 independent B=1 `KVCache`, RNG and lifecycle state. The scheduler releases Cache Storage on
 completion and exposes snapshots/metrics. It is intentionally serial; a future slot-batched
-scheduler must preserve this state machine. See [serving scheduler](dev/serving-scheduler.zh-CN.md).
+scheduler must preserve this state machine. `forward_cached_rows()` is now the divergent-position
+model oracle: it serializes B1 views over shared batch Storage and does not claim parallel speed.
+See [serving scheduler](dev/serving-scheduler.zh-CN.md).
 
 
 `Storage` owns an allocation through shared lifetime state. `Tensor` owns metadata

@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "feature": "divergent-position cached-row reference execution",
+  "state_transitions": [
+    {"positions": [3, 3], "logical_prefix": 3, "event": "prefill"},
+    {"positions": [0, 3], "logical_prefix": 3, "event": "reset row 0"},
+    {"positions": [1, 4], "logical_prefix": 4, "event": "first divergent decode"},
+    {"positions": [2, 5], "logical_prefix": 5, "event": "second divergent decode"},
+    {"positions": [2, 0], "logical_prefix": 2, "event": "reset maximum row"}
+  ],
+  "contracts": {
+    "fp32_rows_match_independent_b1": true,
+    "bf16_rows_match_independent_b1": true,
+    "second_step_rows_match_independent_b1": true,
+    "uniform_positions_use_existing_batch_path": true,
+    "shared_storage_address_stable": true,
+    "reset_maximum_row_shrinks_logical_prefix": true,
+    "missing_storage_for_nonzero_position_rejected": true,
+    "hip_matches_cpu": true,
+    "hip_payload_d2h_during_execution": 0,
+    "parallel_positions_aware_kernel": false,
+    "serial_b1_view_oracle": true
+  },
+  "implementation": {
+    "shared_batch_storage": true,
+    "per_row_storage_view": true,
+    "per_row_rope_position": true,
+    "per_row_kv_write_position": true,
+    "per_row_visible_prefix": true,
+    "row_logit_merge": "same-device copy",
+    "uniform_fast_path": "forward_cached"
+  }
+}

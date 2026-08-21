@@ -422,6 +422,81 @@ TEST(TransformerModelTest, ClearCacheRowRemovesOldPrefixAndPreservesOtherRows) {
     }
 }
 
+TEST(TransformerModelTest, DivergentCachedRowsMatchIndependentB1References) {
+    auto config = tiny_config(true);
+    config.max_sequence_length = 8;
+    for (const auto dtype : {DType::Float32, DType::BFloat16}) {
+        TransformerModel batched(config, 157);
+        inference::KVCache cache(config.layers, config.max_sequence_length, 2, dtype);
+        const auto prefix = Tensor::from_int32_vector(
+            {1, 2, 3, 4, 3, 2}, {2, 3});
+        (void)batched.forward_prefill_cached(prefix, cache);
+        const auto key_address = cache.layer(0).key.storage().data();
+        cache.reset_row(0);
+        EXPECT_EQ(cache.row_positions(), (std::vector<std::int64_t>{0, 3}));
+
+        TransformerModel first(config, 157);
+        inference::KVCache first_cache(config.layers, config.max_sequence_length, 1, dtype);
+        auto first_expected = first.forward_cached(
+            Tensor::from_int32_vector({7}, {1, 1}), first_cache);
+        TransformerModel second(config, 157);
+        inference::KVCache second_cache(config.layers, config.max_sequence_length, 1, dtype);
+        (void)second.forward_prefill_cached(
+            Tensor::from_int32_vector({4, 3, 2}, {1, 3}), second_cache);
+        auto second_expected = second.forward_cached(
+            Tensor::from_int32_vector({8}, {1, 1}), second_cache);
+
+        const auto actual = batched.forward_cached_rows(
+            Tensor::from_int32_vector({7, 8}, {2, 1}), cache);
+        const auto tolerance = dtype == DType::Float32 ? 2.0e-5F : 5.0e-2F;
+        expect_near(actual.slice(0, 0, 1).to_vector(),
+                    first_expected.to_vector(), tolerance);
+        expect_near(actual.slice(0, 1, 2).to_vector(),
+                    second_expected.to_vector(), tolerance);
+        EXPECT_EQ(cache.row_positions(), (std::vector<std::int64_t>{1, 4}));
+        EXPECT_EQ(cache.layer(0).key.shape()[2], 4);
+        EXPECT_EQ(cache.layer(0).key.storage().data(), key_address);
+
+        first_expected = first.forward_cached(
+            Tensor::from_int32_vector({9}, {1, 1}), first_cache);
+        second_expected = second.forward_cached(
+            Tensor::from_int32_vector({10}, {1, 1}), second_cache);
+        const auto next = batched.forward_cached_rows(
+            Tensor::from_int32_vector({9, 10}, {2, 1}), cache);
+        expect_near(next.slice(0, 0, 1).to_vector(),
+                    first_expected.to_vector(), tolerance);
+        expect_near(next.slice(0, 1, 2).to_vector(),
+                    second_expected.to_vector(), tolerance);
+        EXPECT_EQ(cache.row_positions(), (std::vector<std::int64_t>{2, 5}));
+        EXPECT_EQ(cache.layer(0).key.shape()[2], 5);
+        cache.reset_row(1);
+        EXPECT_EQ(cache.row_positions(), (std::vector<std::int64_t>{2, 0}));
+        EXPECT_EQ(cache.layer(0).key.shape()[2], 2);
+        EXPECT_EQ(cache.layer(0).key.storage().data(), key_address);
+    }
+}
+
+TEST(TransformerModelTest, CachedRowsKeepUniformFastPathAndRejectMissingStorage) {
+    auto config = tiny_config(true);
+    config.max_sequence_length = 6;
+    TransformerModel baseline(config, 163);
+    TransformerModel rows(config, 163);
+    inference::KVCache baseline_cache(config.layers, config.max_sequence_length, 2);
+    inference::KVCache rows_cache(config.layers, config.max_sequence_length, 2);
+    const auto prefix = Tensor::from_int32_vector({1, 2, 3, 4}, {2, 2});
+    (void)baseline.forward_prefill_cached(prefix, baseline_cache);
+    (void)rows.forward_prefill_cached(prefix, rows_cache);
+    const auto tokens = Tensor::from_int32_vector({5, 6}, {2, 1});
+    expect_near(rows.forward_cached_rows(tokens, rows_cache).to_vector(),
+                baseline.forward_cached(tokens, baseline_cache).to_vector(), 2.0e-5F);
+    EXPECT_TRUE(rows_cache.positions_uniform());
+
+    inference::KVCache invalid(config.layers, config.max_sequence_length, 2);
+    invalid.advance_row(0, 1);
+    EXPECT_THROW((void)rows.forward_cached_rows(tokens, invalid),
+                 std::invalid_argument);
+}
+
 TEST(KVCacheTest, PerRowPositionsRejectAmbiguousUniformReads) {
     inference::KVCache cache(2, 6, 3, DType::Float32);
     EXPECT_TRUE(cache.positions_uniform());

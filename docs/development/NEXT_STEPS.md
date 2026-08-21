@@ -55,7 +55,9 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] add a delayed-arrival multi-request reference scheduler with independent Cache/RNG state;
 - [x] batch compatible equal-length requests through one public static generation path;
 - [x] group pending requests by compatibility with singleton fallback and cross-drain admission;
+- [x] execute unequal cache positions through a shared-Storage serial B1 oracle on CPU/HIP;
 - [ ] batch compatible active request slots without changing reference request semantics;
+- [ ] replace the divergent-row serial oracle with positions-aware parallel RoPE/store/Attention;
 
 ## P2 — operator registry and profiler API
 

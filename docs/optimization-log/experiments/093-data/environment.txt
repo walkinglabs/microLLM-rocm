@@ -1,0 +1,11 @@
+date_utc=2026-08-21
+device=AMD Instinct MI300X VF
+architecture=gfx942:sramecc+:xnack-
+hip_runtime=71399004
+hip_driver=71399004
+cpu_filter=TransformerModelTest.DivergentCachedRowsMatchIndependentB1References,TransformerModelTest.CachedRowsKeepUniformFastPathAndRejectMissingStorage
+hip_filter=HipInferenceShapeMatrixTest.DivergentRowsMatchCpuWithoutPayloadD2H
+cache_dtypes=fp32,bf16
+batch=2
+initial_positions=0,3
+decode_steps=2

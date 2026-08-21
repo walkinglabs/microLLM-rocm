@@ -100,6 +100,43 @@ void prepare_cached_prefix(Tensor& cached, const Tensor& current,
     }
 }
 
+void ensure_batched_cache_tensor(Tensor& cached, std::int64_t batches,
+                                 std::int64_t heads, std::int64_t prefix,
+                                 std::int64_t capacity, std::int64_t width,
+                                 DType dtype, Device device) {
+    if (!cached.defined()) {
+        if (prefix != 0) {
+            throw std::invalid_argument(
+                "non-empty row positions require initialized KV storage");
+        }
+        Tensor backing({batches, heads, capacity, width}, dtype, device);
+        cached = Tensor::from_storage(
+            backing.storage(), {batches, heads, 0, width}, backing.strides(), 0,
+            dtype);
+        return;
+    }
+    if (cached.ndim() != 4 || cached.shape()[0] != batches ||
+        cached.shape()[1] != heads || cached.shape()[3] != width ||
+        cached.shape()[2] > capacity ||
+        cached.dtype() != dtype || cached.device() != device ||
+        cached.stride(3) != 1 || cached.stride(2) != width ||
+        cached.stride(1) != capacity * width ||
+        cached.stride(0) != heads * capacity * width || prefix > capacity) {
+        throw std::invalid_argument("divergent-row KV storage is incompatible");
+    }
+    cached = Tensor::from_storage(
+        cached.storage(), {batches, heads, prefix, width}, cached.strides(),
+        cached.storage_offset(), dtype);
+}
+
+Tensor cache_row_view(const Tensor& cached, std::int64_t row,
+                      std::int64_t prefix) {
+    return Tensor::from_storage(
+        cached.storage(), {1, cached.shape()[1], prefix, cached.shape()[3]},
+        cached.strides(), cached.storage_offset() + row * cached.stride(0),
+        cached.dtype());
+}
+
 Tensor random_tensor(Shape shape, std::mt19937_64& generator, float standard_deviation) {
     std::normal_distribution<float> distribution(0.0F, standard_deviation);
     std::vector<float> values(static_cast<std::size_t>(checked_numel(shape)));
@@ -870,6 +907,98 @@ Tensor TransformerModel::forward_cached(const Tensor& token_id, inference::KVCac
     }
     cache.advance();
     return logits.reshape({batch, 1, impl_->config.vocabulary_size});
+}
+
+Tensor TransformerModel::forward_cached_rows(const Tensor& token_ids,
+                                             inference::KVCache& cache) {
+    if (!impl_->parameters_initialized) {
+        throw std::logic_error("model parameters must be loaded before cached inference");
+    }
+    if (token_ids.dtype() != DType::Int32 || token_ids.ndim() != 2 ||
+        token_ids.shape()[0] <= 0 || token_ids.shape()[1] != 1) {
+        throw std::invalid_argument(
+            "divergent cached forward expects int32 tokens with shape Bx1");
+    }
+    const auto batch = token_ids.shape()[0];
+    if (cache.layer_count() != impl_->blocks.size() ||
+        cache.batch_size() != batch ||
+        cache.max_sequence_length() > impl_->config.max_sequence_length) {
+        throw std::invalid_argument("divergent KV cache does not match model configuration");
+    }
+    if (cache.positions_uniform()) return forward_cached(token_ids, cache);
+    if (std::any_of(cache.row_positions().begin(), cache.row_positions().end(),
+                    [&cache](std::int64_t position) {
+                        return position < 0 || position >= cache.max_sequence_length();
+                    })) {
+        throw std::out_of_range("a KV cache row has reached maximum sequence length");
+    }
+
+    const auto maximum_prefix = *std::max_element(
+        cache.row_positions().begin(), cache.row_positions().end());
+    const auto kv_heads = impl_->config.kv_heads;
+    const auto width = impl_->config.head_dimension();
+    const auto model_device = device();
+    std::vector<DType> layer_dtypes;
+    layer_dtypes.reserve(cache.layer_count());
+    for (std::size_t layer = 0; layer < cache.layer_count(); ++layer) {
+        auto& state = cache.mutable_layer(layer);
+        if (state.key.defined() != state.value.defined()) {
+            throw std::invalid_argument("divergent KV cache has an incomplete layer");
+        }
+        const auto dtype = cache.layer_dtype(layer);
+        layer_dtypes.push_back(dtype);
+        ensure_batched_cache_tensor(
+            state.key, batch, kv_heads, maximum_prefix,
+            cache.max_sequence_length(), width, dtype, model_device);
+        ensure_batched_cache_tensor(
+            state.value, batch, kv_heads, maximum_prefix,
+            cache.max_sequence_length(), width, dtype, model_device);
+    }
+
+    const auto resize_shared_views = [&]() {
+        const auto prefix = *std::max_element(
+            cache.row_positions().begin(), cache.row_positions().end());
+        for (std::size_t layer = 0; layer < cache.layer_count(); ++layer) {
+            auto& state = cache.mutable_layer(layer);
+            ensure_batched_cache_tensor(
+                state.key, batch, kv_heads, prefix, cache.max_sequence_length(),
+                width, cache.layer_dtype(layer), model_device);
+            ensure_batched_cache_tensor(
+                state.value, batch, kv_heads, prefix, cache.max_sequence_length(),
+                width, cache.layer_dtype(layer), model_device);
+        }
+    };
+
+    Tensor output({batch, 1, impl_->config.vocabulary_size},
+                  DType::Float32, model_device);
+    try {
+        for (std::int64_t row = 0; row < batch; ++row) {
+            const auto position = cache.row_position(row);
+            inference::KVCache row_cache(
+                layer_dtypes, cache.max_sequence_length(), 1);
+            if (position > 0) row_cache.advance(position);
+            for (std::size_t layer = 0; layer < cache.layer_count(); ++layer) {
+                const auto& shared = cache.layer(layer);
+                auto& local = row_cache.mutable_layer(layer);
+                local.key = cache_row_view(shared.key, row, position);
+                local.value = cache_row_view(shared.value, row, position);
+            }
+            const auto row_token = token_ids.slice(0, row, row + 1).contiguous();
+            const auto row_logits = forward_cached(row_token, row_cache);
+            runtime::copy_bytes(
+                static_cast<float*>(output.data()) +
+                    row * impl_->config.vocabulary_size,
+                output.device(), row_logits.data(), row_logits.device(),
+                static_cast<std::size_t>(impl_->config.vocabulary_size) *
+                    sizeof(float));
+            cache.advance_row(row);
+        }
+    } catch (...) {
+        resize_shared_views();
+        throw;
+    }
+    resize_shared_views();
+    return output;
 }
 
 NamedValues TransformerModel::named_parameters() {

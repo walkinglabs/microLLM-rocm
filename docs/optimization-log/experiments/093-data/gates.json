@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "cpu": {"passed": 210, "failed": 0, "skipped": 2},
+  "hip": {"passed": 90, "failed": 0, "skipped": 0},
+  "sanitizer": {"passed": 203, "failed": 0, "skipped": 0},
+  "focused": {
+    "cpu_model_tests": 2,
+    "hip_divergent_row_tests": 1,
+    "cache_dtypes": 2,
+    "decode_steps": 2
+  }
+}

@@ -1976,3 +1976,18 @@ measured的calls从24降到3，bytes仍是B1 96、B8 768。
 
 结合088–092与更早的thread/query-staging失败，本地标量cached Attention搜索关闭。下一次必须先
 建逐position score oracle，再进入wave/MFMA或online softmax的架构级改写。
+
+## 110. Experiment 093：同一个batch终于允许不同页数
+
+Cache早已能记录`row_positions[B]`，但模型看到分叉position就报错。新`forward_cached_rows()`
+先做正确性oracle：每个row建立共享原Storage的B1 view，用自己的RoPE、写入位置和可见prefix，
+再合并logits；uniform row仍走原batch快路径。
+
+![Divergent cached-row reference](assets/divergent-cached-row-reference.svg)
+
+B2从`[3,3]` reset到`[0,3]`，两次decode得到`[1,4]→[2,5]`，每一行都等于对应独立B1。
+FP32/BF16、CPU/HIP通过，HIP执行区间0次D2H，Storage地址不变。reset最大row后positions变
+`[2,0]`，logical prefix也从5缩到2。
+
+这条路径串行执行B个B1，明确不报吞吐。下一步先接scheduler完成真实slot refill正确性，再用同一
+oracle验收positions-aware并行Kernel。
