@@ -79,7 +79,7 @@ steady decode；两者之和写入`mean_end_to_end_generation_ms`。默认值仍
 
 `--kv-cache-fp32-layers 1,5`可以在BF16基础上让指定层使用FP32。固定DeepSeek实验的
 strict策略是layer 1 FP32、其余BF16：完整logits 12/12通过、Cache仍缩小1.931×，但
-T2048 B8端到端慢13.4%，因此不会自动启用。
+层选择来自固定checkpoint实验，因此不会自动启用。同binary重测未发现稳定长batch回退。
 
 `--cache-logits-output PATH`保存真正经过cached decode后的完整logits，只用于精度诊断，
 要求至少生成两个token；开启它的运行不作为正式性能排名。

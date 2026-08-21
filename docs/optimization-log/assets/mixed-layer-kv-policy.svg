@@ -38,9 +38,9 @@
   <text x="1295" y="244" font-family="Inter,Arial,sans-serif" font-size="16" fill="#16874b" font-weight="700">Precision recovered</text>
   <text x="1295" y="274" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033">DeepSeek RMSE 0.0586 → 0.0395</text>
   <rect x="1270" y="330" width="410" height="110" fill="#fff7ed" stroke="#fdba74" rx="8"/>
-  <text x="1295" y="364" font-family="Inter,Arial,sans-serif" font-size="16" fill="#9a4f00" font-weight="700">Performance cost</text>
+  <text x="1295" y="364" font-family="Inter,Arial,sans-serif" font-size="16" fill="#9a4f00" font-weight="700">Cross-window signal (superseded)</text>
   <text x="1295" y="394" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033">worst steady decode −2.43%</text>
-  <text x="1295" y="422" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033">DeepSeek T2048 B8 E2E −13.4%</text>
+  <text x="1295" y="422" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033">old T2048 B8 E2E −13.4% · see Experiment 069</text>
   <rect x="1270" y="470" width="410" height="115" fill="#f5f7fa" stroke="#d8dee8" rx="8"/>
   <text x="1295" y="504" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" font-weight="700">Policy order</text>
   <text x="1295" y="534" font-family="Inter,Arial,sans-serif" font-size="14" fill="#172033">default FP32 · speed uniform BF16</text>

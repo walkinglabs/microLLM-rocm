@@ -1638,7 +1638,8 @@ prepare慢27.9%、端到端慢13.4%。profile里138次BF16+6次FP32 cached Atten
 23+1层和两轮3-step decode，全Kernel只多0.66%；长batch代价主要仍在prefill生命周期。
 
 因此per-layer机制保留为显式strict-logit选项，不按模型名自动开启。系统默认仍是全FP32；
-uniform BF16是速度/显存选项；当前固定DeepSeek才有经过证据的layer 1 strict配方。
+uniform BF16是速度/显存选项；当前固定DeepSeek才有经过证据的layer 1 strict配方。这里
+记录的长batch代价随后被Experiment 069的同binary配对推翻，不能继续当作因果结论。
 
 ## 85. Experiment 068：只改那一个FP32层，解释仍然不成立
 
@@ -1651,3 +1652,18 @@ uniform BF16是速度/显存选项；当前固定DeepSeek才有经过证据的la
 但prepare`328.83→333.87ms`、端到端`573.23→576.60ms`，仍分别慢1.53%/0.59%。候选
 路由、Kernel和测试再次删除。这个更窄、同窗口反例关闭了“strict代价来自那一层copy”的
 解释；下一步不再改prefix copy，而转向allocator生命周期或更高层调度。
+
+## 86. Experiment 069：换策略时，也必须把时间窗口配对
+
+旧表用不同时段的uniform/strict summary相除，曾认为DeepSeek T2048 B8 strict端到端慢
+13.4%。新runner只运行microLLM：同一binary、每个shape三个新进程、策略顺序交替。
+
+![Same-binary KV policy](assets/same-binary-kv-policy.svg)
+
+72/72记录通过。DeepSeek六点decode比为`0.991×–1.040×`；T2048 B8 prepare`0.994×`、
+端到端`1.011×`，没有稳定回退。Qwen也没有跨shape一致方向。早期13.4%差异改标为
+cross-window漂移，不再作为strict缺点。
+
+strict仍然显式：layer 1来自固定checkpoint搜索，Cache比uniform多3.57%。但现在拒绝它的
+理由必须是可移植性，而不是一个已被反驳的性能数字。新policy runner保留为后续小差异的
+强制协议。

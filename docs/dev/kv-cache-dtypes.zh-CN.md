@@ -75,8 +75,8 @@ MI300X 实测中：
 默认值。
 
 现在还有第三种“混合草稿本”：只有敏感层用FP32，其余层用BF16。固定DeepSeek实验中，
-仅layer 1使用FP32就让12个shape全部通过完整logits门，同时Cache仍缩小1.931×。它的
-长batch端到端会变慢，所以名称是strict精度选项，不是新的默认值。
+仅layer 1使用FP32就让12个shape全部通过完整logits门，同时Cache仍缩小1.931×。它是
+checkpoint特定的strict精度选项，不是新的默认值；同binary配对没有证明长batch稳定变慢。
 
 ## 4. C++ API 怎样选择
 

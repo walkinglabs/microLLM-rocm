@@ -69,8 +69,9 @@ DeepSeek T512 B1从`max_abs/RMSE 0.2245/0.0586`变成`0.1851/0.0395`。Qwen也�
 
 ![Mixed-layer KV policy](../assets/mixed-layer-kv-policy.svg)
 
-steady decode最差回退2.43%，仍在3%门内；但DeepSeek T2048 B8 prepare慢27.9%、端到端
-慢13.4%。因此strict策略不能自动替换uniform BF16。
+这张跨时段表最初显示DeepSeek T2048 B8 prepare慢27.9%、端到端慢13.4%。Experiment 069
+用同binary、交替顺序重测后得到prepare`0.994×`、E2E`1.011×`，因此旧差异保留为漂移
+反例，不再解释为strict策略的因果代价。
 
 Qwen 24层时，1 FP32 + 23 BF16的Cache仍比全FP32小`1.920×`；DeepSeek 28层时为
 `1.931×`。T2048 B8分别是`201.6MiB/467.6MiB`，uniform BF16为`193.5/451.5MiB`。
@@ -89,5 +90,4 @@ profile的144次cached Attention可分解为138次BF16和6次FP32，精确对应
 ```
 
 layer 1不是对所有模型的普遍定律。换checkpoint、prompt、ROCm或误差门后必须重跑搜索和
-12-shape矩阵。下一问题是为何一个FP32层让长batch prepare显著变慢，而steady decode仅小幅
-变化。
+12-shape矩阵。小于10%的策略性能结论必须使用Experiment 069的同binary配对协议。

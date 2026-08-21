@@ -9,9 +9,9 @@ only Experiment 065 Release failure from RMSE 0.058645 to 0.039543. The complete
 passes logits, finite, top-token and suffix gates while retaining a 1.920x/1.931x Cache reduction for
 Qwen/DeepSeek.
 
-This is not a default optimization. DeepSeek steady decode regresses at most 2.43%, but T2048 B8
-cache preparation and end-to-end time regress 27.9%/13.4%. The policy remains an explicit strict
-logit-accuracy trade-off. See
+This is not an automatic default because the selected layer is checkpoint-specific and Cache is
+3.57%–4.17% larger than uniform BF16. Experiment 069 later invalidates this experiment's
+cross-window long-batch slowdown attribution with a same-binary paired matrix. See
 [Experiment 067](../optimization-log/experiments/067-mixed-layer-kv-policy.md) and
 [raw evidence](../optimization-log/experiments/067-data/).
 

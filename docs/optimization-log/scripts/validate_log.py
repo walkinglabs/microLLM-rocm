@@ -1779,6 +1779,40 @@ def validate_targeted_prefix_pair_discard(errors: list[str]) -> tuple[int, int]:
     return 12, len(records)
 
 
+def validate_same_binary_kv_policy(errors: list[str]) -> tuple[int, int]:
+    data = ROOT / "experiments" / "069-data"
+    raw = [json.loads(line) for line in
+           (data / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    keys = {(row.get("model"), row.get("context"), row.get("batch"),
+             row.get("policy"), row.get("process_run")) for row in raw}
+    if len(raw) != 72 or len(keys) != 72 or any(
+            row.get("status") != "pass" or row.get("policy") not in
+            {"uniform", "candidate"} for row in raw):
+        errors.append("same-binary KV policy raw protocol changed")
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    rows = summary.get("rows", [])
+    deepseek = [row for row in rows
+                if row.get("model") == "deepseek-r1-distill-qwen-1.5b"]
+    deepseek_long = next((row for row in deepseek
+                          if row.get("context") == 2048 and row.get("batch") == 8), {})
+    if summary.get("status") != "pass" or len(rows) != 12 or any(
+            row.get("tokens_equal") is not True for row in rows) or any(
+                float(row.get("throughput_ratio_candidate_over_uniform", 0.0)) < 0.99
+                for row in deepseek) or \
+            float(deepseek_long.get("end_to_end_speedup", 0.0)) < 1.0:
+        errors.append("same-binary KV policy conclusion changed")
+    old = json.loads((ROOT / "experiments/067-data/comparison.json").read_text(
+        encoding="utf-8"))
+    old_long = next((row for row in old.get("rows", [])
+                     if row.get("model") == "deepseek-r1-distill-qwen-1.5b" and
+                     row.get("context") == 2048 and row.get("batch") == 8), {})
+    if float(old_long.get("end_to_end_speedup", 1.0)) >= 0.87:
+        errors.append("cross-window KV policy rebuttal baseline changed")
+    if not (REPOSITORY / "benchmarks/single_gpu/compare_kv_cache_policies.py").is_file():
+        errors.append("same-binary KV policy runner is missing")
+    return len(raw), len(rows)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -1826,7 +1860,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-kv-cache.svg",
                  "fused-prefix-pair-discard.svg",
                  "mixed-layer-kv-policy.svg",
-                 "targeted-prefix-pair-discard.svg"):
+                 "targeted-prefix-pair-discard.svg",
+                 "same-binary-kv-policy.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -1905,6 +1940,8 @@ def main() -> int:
         validate_mixed_layer_kv_policy(errors)
     targeted_prefix_rows, targeted_prefix_precision = \
         validate_targeted_prefix_pair_discard(errors)
+    same_binary_policy_raw, same_binary_policy_rows = \
+        validate_same_binary_kv_policy(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -1952,6 +1989,7 @@ def main() -> int:
           f"mixed_kv={mixed_kv_formal}/{mixed_kv_precision}/"
           f"{mixed_kv_search}/{mixed_kv_calls} "
           f"targeted_prefix={targeted_prefix_rows}/{targeted_prefix_precision} "
+          f"same_binary_policy={same_binary_policy_raw}/{same_binary_policy_rows} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")
