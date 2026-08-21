@@ -532,6 +532,10 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/083-data/](experiments/083-data/) | CPU/HIP storage对齐、零transfer与生命周期合同 |
 | [assets/kv-cache-per-row-positions.svg](assets/kv-cache-per-row-positions.svg) | uniform/divergent状态转移与严格失败边界 |
 | [experiments/084-data/](experiments/084-data/) | CPU/HIP metadata、reset/advance和错误合同 |
+| [assets/steady-inference-shape-memory.svg](assets/steady-inference-shape-memory.svg) | 一token一forward的Release吞吐与长batch显存 |
+| [experiments/085-data/](experiments/085-data/) | semantic/Release矩阵、build-type审计和invalid runner证据 |
+| [assets/deepseek-steady-profile-d2h-discard.svg](assets/deepseek-steady-profile-d2h-discard.svg) | T2048热点组成与D2H候选的B8反例 |
+| [experiments/086-data/](experiments/086-data/) | rocprof聚合表、三对交替进程和allocator counter |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

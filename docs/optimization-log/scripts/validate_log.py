@@ -2524,6 +2524,47 @@ def validate_inference_shape_memory_matrix(errors: list[str]) -> tuple[int, int,
     return len(formal), matched, len(invalid), len(release)
 
 
+def validate_deepseek_steady_profile_d2h_discard(
+        errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "086-data"
+    profile = json.loads((data / "profile-summary.json").read_text(encoding="utf-8"))
+    pair = json.loads((data / "d2h-pair-summary.json").read_text(encoding="utf-8"))
+    raw = [json.loads(line) for line in
+           (data / "d2h-pair-raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    if profile.get("status") != "pass" or profile.get("build_type") != "Release" or \
+            profile.get("batch_1", {}).get("cached_attention_calls") != 448 or \
+            profile.get("batch_8", {}).get("cached_attention_calls") != 448 or \
+            profile.get("inference", {}).get(
+                "cached_attention_is_primary_decode_hotspot") is not True or \
+            profile.get("inference", {}).get(
+                "batch_8_allocator_thrash_is_secondary_hotspot") is not True or \
+            profile.get("inference", {}).get("argmax_kernel_is_primary_hotspot") is not False:
+        errors.append("DeepSeek steady profile evidence changed")
+    rows = pair.get("rows", [])
+    by_batch = {int(row.get("batch", -1)): row for row in rows}
+    if pair.get("status") != "pass" or len(raw) != 12 or set(by_batch) != {1, 8} or \
+            not 0.98 < float(by_batch[1].get("candidate_speedup", 0.0)) < 1.02 or \
+            float(by_batch[8].get("candidate_speedup", 1.0)) >= 0.9 or \
+            any(row.get("tokens_equal") is not True for row in rows) or \
+            by_batch[8].get("baseline_measured_d2h_calls") != 24.0 or \
+            by_batch[8].get("candidate_measured_d2h_calls") != 3.0 or \
+            by_batch[8].get("candidate_engine_backend_allocation_calls", 0) < 10000 or \
+            by_batch[8].get("baseline_engine_backend_allocation_calls", 10000) >= 2000:
+        errors.append("D2H discard paired-process evidence changed")
+    for name in ("b1-kernel-stats.csv", "b8-kernel-stats.csv"):
+        if "cached_attention_fused_kernel" not in \
+                (data / name).read_text(encoding="utf-8"):
+            errors.append(f"cached Attention profile row is missing from {name}")
+    header = (REPOSITORY / "include" / "microllm" / "ops" / "ops.h").read_text(
+        encoding="utf-8")
+    app = (REPOSITORY / "apps" / "hf_infer.cpp").read_text(encoding="utf-8")
+    if "argmax_out_" in header or "argmax_last_dim_out_" in header or \
+            "Tensor history" in app:
+        errors.append("rejected D2H candidate remains in retained source")
+    return len(raw), int(profile["batch_1"]["cached_attention_calls"]), \
+        int(profile["batch_8"]["cached_attention_calls"])
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -2587,7 +2628,8 @@ def validate_assets(errors: list[str]) -> None:
                  "stop-token-early-completion.svg",
                  "kv-cache-clear-row.svg",
                  "kv-cache-per-row-positions.svg",
-                 "steady-inference-shape-memory.svg"):
+                 "steady-inference-shape-memory.svg",
+                 "deepseek-steady-profile-d2h-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -2697,6 +2739,8 @@ def main() -> int:
     inference_matrix_raw, inference_matrix_matched, inference_matrix_invalid, \
         inference_matrix_release = \
         validate_inference_shape_memory_matrix(errors)
+    steady_profile_raw, steady_profile_b1, steady_profile_b8 = \
+        validate_deepseek_steady_profile_d2h_discard(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -2772,6 +2816,8 @@ def main() -> int:
           f"{row_position_transitions} "
           f"steady_inference={inference_matrix_raw}/{inference_matrix_matched}/"
           f"{inference_matrix_invalid}/{inference_matrix_release} "
+          f"steady_profile={steady_profile_raw}/{steady_profile_b1}/"
+          f"{steady_profile_b8} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

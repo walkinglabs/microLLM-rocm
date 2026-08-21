@@ -1880,3 +1880,19 @@ Release token门是10/12；DeepSeek T2048 B1/B8在第3个输出token分叉，原
 
 下一步只profile DeepSeek T2048 steady decode，并先检查每token一次D2H选词同步、cached Attention
 读取/reduction和allocator各占多少。没有trace前不把“换FlashAttention”写成既定答案。
+
+## 103. Experiment 086：同步少了，allocator却换了一种坏节奏
+
+DeepSeek T2048 Release trace把第一热点定在cached Attention：28层、16个warm-up/measured token
+恰好448 calls，B1/B8总时间158.86/167.87 ms，估算约占measured decode wall的62.1%/60.5%。
+KV store不足0.5%，argmax Kernel不足1.4%，都不是第一目标。
+
+![DeepSeek steady profile and D2H discard](assets/deepseek-steady-profile-d2h-discard.svg)
+
+先尝试最小同步候选：argmax直接写GPU history，N8、3次measured的D2H从24降到3。B1三对
+median为1.002×，但B8只有0.861×。候选改变了小Tensor分配相位，backend allocation从874
+暴涨到13,863，cache reuse从15,452跌到2,442；peak和token都没变。
+
+候选完整回退。这个失败说明当前exact-size allocator对分配数量过于敏感，会让本来正确的小优化
+随机触发大规模alloc/free。Experiment 087先稳定allocator，再重试D2H；cached Attention保持
+独立的设备Kernel主线，不把两个变量塞进同一次改动。

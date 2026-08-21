@@ -229,3 +229,5 @@ the next gate. Records are append-only except for factual corrections.
   per-row position metadata, strict ambiguous-read failure and reset/advance transitions.
 - [2026-08-21-inference-shape-memory-matrix.md](2026-08-21-inference-shape-memory-matrix.md):
   boundary contexts, output-length sweeps, batch efficiency and strict KV/peak-memory accounting.
+- [2026-08-21-deepseek-steady-profile-d2h-discard.md](2026-08-21-deepseek-steady-profile-d2h-discard.md):
+  T2048 hotspot trace and a device token-history candidate rejected by B8 allocator regression.

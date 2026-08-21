@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="560" viewBox="0 0 1080 560" role="img" aria-labelledby="title desc">
+  <title id="title">DeepSeek steady decode profile and rejected token-history candidate</title>
+  <desc id="desc">Cached Attention is the primary decode hotspot. Moving token copies to the end reduces D2H calls but destabilizes the batch-eight allocator and regresses throughput.</desc>
+  <rect width="1080" height="560" fill="#0b1020"/>
+  <text x="38" y="42" fill="#f8fafc" font-family="sans-serif" font-size="24" font-weight="700">Experiment 086 · profile first, reject on B8</text>
+  <text x="38" y="70" fill="#94a3b8" font-family="sans-serif" font-size="14">DeepSeek T2048 · Release/gfx942 · steady N8</text>
+
+  <rect x="38" y="102" width="486" height="390" rx="12" fill="#111827" stroke="#334155"/>
+  <text x="62" y="138" fill="#e2e8f0" font-family="sans-serif" font-size="18" font-weight="700">Kernel profile · full trace</text>
+  <text x="62" y="163" fill="#94a3b8" font-family="sans-serif" font-size="12">Trace includes prefill; cached Attention belongs only to decode</text>
+  <g font-family="sans-serif" font-size="13">
+    <text x="62" y="212" fill="#cbd5e1">B1 · 343.62 ms</text>
+    <rect x="62" y="226" width="185" height="34" fill="#ef4444"/><rect x="247" y="226" width="121" height="34" fill="#3b82f6"/><rect x="368" y="226" width="42" height="34" fill="#a855f7"/><rect x="410" y="226" width="78" height="34" fill="#475569"/>
+    <text x="62" y="305" fill="#cbd5e1">B8 · 767.81 ms</text>
+    <rect x="62" y="319" width="94" height="34" fill="#ef4444"/><rect x="156" y="319" width="211" height="34" fill="#3b82f6"/><rect x="367" y="319" width="26" height="34" fill="#a855f7"/><rect x="393" y="319" width="95" height="34" fill="#475569"/>
+    <rect x="62" y="390" width="14" height="14" fill="#ef4444"/><text x="84" y="402" fill="#cbd5e1">cached Attention 158.86 / 167.87 ms</text>
+    <rect x="62" y="418" width="14" height="14" fill="#3b82f6"/><text x="84" y="430" fill="#cbd5e1">GEMM incl. prefill 103.70 / 376.84 ms</text>
+    <rect x="62" y="446" width="14" height="14" fill="#a855f7"/><text x="84" y="458" fill="#cbd5e1">cast 36.08 / 45.96 ms</text>
+  </g>
+
+  <rect x="548" y="102" width="494" height="390" rx="12" fill="#111827" stroke="#334155"/>
+  <text x="572" y="138" fill="#e2e8f0" font-family="sans-serif" font-size="18" font-weight="700">GPU token history candidate</text>
+  <text x="572" y="164" fill="#94a3b8" font-family="sans-serif" font-size="12">Green mechanism succeeds; orange end-to-end gate fails</text>
+  <g font-family="sans-serif" font-size="14">
+    <text x="572" y="210" fill="#cbd5e1">Measured D2H calls</text>
+    <rect x="736" y="194" width="216" height="22" rx="3" fill="#64748b"/><text x="960" y="210" fill="#cbd5e1">24</text>
+    <rect x="736" y="226" width="27" height="22" rx="3" fill="#22c55e"/><text x="771" y="242" fill="#dcfce7">3</text>
+
+    <text x="572" y="292" fill="#cbd5e1">B1 median speed</text><text x="810" y="292" fill="#dcfce7" font-weight="700">1.002×</text>
+    <text x="572" y="324" fill="#cbd5e1">B8 median speed</text><text x="810" y="324" fill="#fbbf24" font-weight="700">0.861× · DISCARD</text>
+    <text x="572" y="376" fill="#cbd5e1">B8 backend allocations</text><text x="810" y="376" fill="#fca5a5">874 → 13,863</text>
+    <text x="572" y="408" fill="#cbd5e1">B8 cache reuse</text><text x="810" y="408" fill="#fca5a5">15,452 → 2,442</text>
+    <text x="572" y="452" fill="#94a3b8">Next: stabilize allocator phase before retrying D2H.</text>
+  </g>
+
+  <line x1="38" y1="520" x2="1042" y2="520" stroke="#334155"/>
+  <circle cx="64" cy="537" r="6" fill="#f59e0b"/>
+  <text x="78" y="542" fill="#94a3b8" font-family="sans-serif" font-size="13">A locally correct optimization is rejected when a required shape regresses.</text>
+</svg>

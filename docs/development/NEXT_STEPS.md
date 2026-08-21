@@ -42,9 +42,12 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   1/8/32 across short/medium/long contexts and B1/B8;
 - [x] provide a dedicated 31/32/33, 127/128/129 and 511/512/513 dispatch-boundary
   suite plus odd batch 3;
-- [ ] remove the benchmark/serving loop's per-token selected-ID D2H synchronization;
-- [ ] profile the DeepSeek T2048 Release cached path; Qwen already meets the selected
-  T8/T512/T2048 B1/B8 PyTorch reference;
+- [ ] remove per-token selected-ID D2H after allocator stabilization; the first device-history
+  candidate reduced calls 24→3 but was rejected at 0.861x B8;
+- [x] profile the DeepSeek T2048 Release cached path: cached Attention is about 60% of measured
+  decode wall and B8 allocator/cache reuse is the second hotspot;
+- [ ] remove B8 exact-size allocator phase sensitivity before retrying small allocation-count
+  changes; Qwen already meets the selected T8/T512/T2048 B1/B8 PyTorch reference;
 - [x] add a delayed-arrival multi-request reference scheduler with independent Cache/RNG state;
 - [x] batch compatible equal-length requests through one public static generation path;
 - [x] group pending requests by compatibility with singleton fallback and cross-drain admission;

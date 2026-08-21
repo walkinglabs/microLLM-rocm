@@ -1,0 +1,48 @@
+{
+  "rows": [
+    {
+      "baseline_decode_tokens_per_second": 66.730096775,
+      "baseline_engine_backend_allocation_calls": 1098.0,
+      "baseline_engine_cache_reuse_calls": 15225.0,
+      "baseline_engine_peak_bytes": 4857305088.0,
+      "baseline_mean_generation_ms": 119.885934333,
+      "baseline_measured_d2h_bytes": 96.0,
+      "baseline_measured_d2h_calls": 24.0,
+      "batch": 1,
+      "candidate_decode_tokens_per_second": 66.876084481,
+      "candidate_engine_backend_allocation_calls": 3688.0,
+      "candidate_engine_cache_reuse_calls": 12614.0,
+      "candidate_engine_peak_bytes": 4857305088.0,
+      "candidate_mean_generation_ms": 119.624228333,
+      "candidate_measured_d2h_bytes": 96.0,
+      "candidate_measured_d2h_calls": 3.0,
+      "candidate_speedup": 1.002187734066867,
+      "context": 2048,
+      "decode_tokens": 8,
+      "tokens_equal": true
+    },
+    {
+      "baseline_decode_tokens_per_second": 504.722691539,
+      "baseline_engine_backend_allocation_calls": 874.0,
+      "baseline_engine_cache_reuse_calls": 15452.0,
+      "baseline_engine_peak_bytes": 7442716672.0,
+      "baseline_mean_generation_ms": 126.802303667,
+      "baseline_measured_d2h_bytes": 768.0,
+      "baseline_measured_d2h_calls": 24.0,
+      "batch": 8,
+      "candidate_decode_tokens_per_second": 434.758843651,
+      "candidate_engine_backend_allocation_calls": 13863.0,
+      "candidate_engine_cache_reuse_calls": 2442.0,
+      "candidate_engine_peak_bytes": 7442716672.0,
+      "candidate_mean_generation_ms": 147.208046333,
+      "candidate_measured_d2h_bytes": 768.0,
+      "candidate_measured_d2h_calls": 3.0,
+      "candidate_speedup": 0.86138160803774,
+      "context": 2048,
+      "decode_tokens": 8,
+      "tokens_equal": true
+    }
+  ],
+  "schema_version": 1,
+  "status": "pass"
+}
