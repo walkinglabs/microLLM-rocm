@@ -1,0 +1,32 @@
+{
+  "constant_search": {
+    "all_pass": true,
+    "records": 4
+  },
+  "decision": "keep_first4_robust_strict",
+  "first4": {
+    "cache_byte_reduction": 1.75,
+    "pass": 14,
+    "records": 14,
+    "worst_max_abs": 0.18213212490081787,
+    "worst_rmse": 0.03282885830892782
+  },
+  "layer1": {
+    "failed": 5,
+    "pass": 9,
+    "records": 14,
+    "worst_max_abs": 15.82935094833374,
+    "worst_rmse": 2.9946743406036425
+  },
+  "performance": {
+    "all_tokens_equal": true,
+    "maximum_peak_ratio": 1.0074690142434626,
+    "minimum_end_to_end_speedup": 0.9718567956087587,
+    "minimum_prepare_speedup": 0.9986034995264038,
+    "minimum_throughput_ratio": 0.9695245445883189,
+    "rows": 6
+  },
+  "schema_version": 1,
+  "selected_policy": "0,1,2,3",
+  "track": "kv_policy_prompt_robustness"
+}

@@ -15,4 +15,6 @@ cross-window long-batch slowdown attribution with a same-binary paired matrix. S
 [Experiment 067](../optimization-log/experiments/067-mixed-layer-kv-policy.md) and
 [raw evidence](../optimization-log/experiments/067-data/).
 
-Final gates: full CPU/HIP 267/267, ASan/UBSan 183/183 and PyTorch-enabled CPU 188/188.
+Experiment 070 later demotes layer 1 to a fixed-prompt result and selects layers 0–3 for the broader
+prompt challenge. Final gates at this node were full CPU/HIP 267/267, ASan/UBSan 183/183 and
+PyTorch-enabled CPU 188/188.

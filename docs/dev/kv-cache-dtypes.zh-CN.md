@@ -74,9 +74,9 @@ MI300X 实测中：
 不能因为显存减半，就删掉RMSE失败、build-sensitive反例，或把BF16偷偷设成所有模型的
 默认值。
 
-现在还有第三种“混合草稿本”：只有敏感层用FP32，其余层用BF16。固定DeepSeek实验中，
-仅layer 1使用FP32就让12个shape全部通过完整logits门，同时Cache仍缩小1.931×。它是
-checkpoint特定的strict精度选项，不是新的默认值；同binary配对没有证明长batch稳定变慢。
+现在还有第三种“混合草稿本”：只有敏感层用FP32，其余层用BF16。单独layer 1只对原prompt
+有效，换constant/ramp后会失败。当前固定DeepSeek的robust-strict配方使用layers 0–3 FP32，
+14/14挑战通过，Cache仍缩小1.75×。它是checkpoint特定选项，不是新的默认值。
 
 ## 4. C++ API 怎样选择
 
@@ -130,7 +130,7 @@ build/apps/microllm_hf_infer \
 在BF16基础上覆盖个别FP32层：
 
 ```text
---kv-cache-dtype bf16 --kv-cache-fp32-layers 1
+--kv-cache-dtype bf16 --kv-cache-fp32-layers 0,1,2,3
 ```
 
 层编号从0开始，必须唯一且在模型层数内。输出会分开报告FP32/BF16层数和字节；混合

@@ -36,3 +36,6 @@ strict策略，而且没有跨shape一致方向。
 
 保留新的同-binary policy runner。今后小于10%的策略差异不能用跨时段summary相除，必须
 使用该交替协议。这个节点改变的是证据质量，不是假装又找到一个Kernel加速。
+
+Experiment 070随后证明layer 1不具备多prompt鲁棒性；本实验的同binary runner与性能结论
+仍有效，但推荐的robust-strict层集合更新为0–3。

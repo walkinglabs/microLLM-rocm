@@ -30,6 +30,9 @@ def options() -> argparse.Namespace:
     parser.add_argument("--warmup", type=int, default=1)
     parser.add_argument("--steps", type=int, default=1)
     parser.add_argument("--bf16-fp32-layers", default="")
+    parser.add_argument("--token-pattern",
+                        choices=("repeat", "rotated", "constant", "ramp"),
+                        default="repeat")
     parser.add_argument("--max-absolute-error", type=float, default=0.25)
     parser.add_argument("--maximum-rmse", type=float, default=0.05)
     parser.add_argument("--timeout-seconds", type=int, default=900)
@@ -49,8 +52,17 @@ def load_models(path: Path, selected: set[str]) -> list[dict]:
     return result
 
 
-def expanded_tokens(seed: list[int], context: int) -> list[int]:
-    return [seed[index % len(seed)] for index in range(context)]
+def expanded_tokens(seed: list[int], context: int, pattern: str,
+                    vocabulary: int) -> list[int]:
+    if pattern == "repeat":
+        return [seed[index % len(seed)] for index in range(context)]
+    if pattern == "rotated":
+        return [seed[(index + 1) % len(seed)] for index in range(context)]
+    if pattern == "constant":
+        return [seed[0]] * context
+    if pattern == "ramp":
+        return [(seed[0] + index * 7919) % vocabulary for index in range(context)]
+    raise ValueError(f"unknown token pattern: {pattern}")
 
 
 def run_json(command: list[str], timeout: int) -> dict:
@@ -77,7 +89,10 @@ def read_float32(path: Path) -> array:
 
 def one_run(args: argparse.Namespace, model: dict, context: int, batch: int,
             dtype: str, logits_path: Path) -> tuple[dict, array]:
-    tokens = expanded_tokens(model["inference"]["token_ids"], context)
+    config = json.loads(Path(model["config"]).read_text(encoding="utf-8"))
+    vocabulary = int(config["vocab_size"])
+    tokens = expanded_tokens(model["inference"]["token_ids"], context,
+                             args.token_pattern, vocabulary)
     command = [
         str(args.micro_binary), "--config", model["config"], "--weights", model["weights"],
         "--tokens", ",".join(str(token) for token in tokens), "--device", "hip",
@@ -93,8 +108,6 @@ def one_run(args: argparse.Namespace, model: dict, context: int, batch: int,
         command.extend(["--kv-cache-fp32-layers", args.bf16_fp32_layers])
     record = run_json(command, args.timeout_seconds)
     values = read_float32(logits_path)
-    vocabulary = int(json.loads(Path(model["config"]).read_text(
-        encoding="utf-8"))["vocab_size"])
     expected = batch * vocabulary
     if len(values) != expected:
         raise RuntimeError(f"cached logits count {len(values)} != expected {expected}")
@@ -131,6 +144,7 @@ def compare_case(args: argparse.Namespace, model: dict, context: int,
         "record_type": "kv_cache_precision_comparison",
         "model": model["name"], "revision": model["revision"],
         "context": context, "batch": batch, "decode_tokens": args.decode_tokens,
+        "token_pattern": args.token_pattern,
         "logit_count": len(differences), "maximum_absolute_error": maximum,
         "maximum_relative_error": maximum_relative, "rmse": rmse,
         "all_logits_finite": all_finite,

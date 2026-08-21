@@ -31,7 +31,7 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] add opt-in BF16 KV Storage with FP32 accumulation, complete-logit gates and a retained
   DeepSeek Release RMSE failure; keep FP32 as default;
 - [x] add explicit per-layer FP32/BF16 Cache policy and a pinned DeepSeek strict profile that
-  restores the complete-logit gate without becoming an automatic default;
+  restores multi-prompt complete-logit gates without becoming an automatic default;
 - [x] keep uncached batch greedy row-wise argmax on device;
 - [x] compare tokenizer IDs, complete logits, and greedy tokens with PyTorch on fixed prompts;
 - [ ] compare every per-layer hidden state with PyTorch;

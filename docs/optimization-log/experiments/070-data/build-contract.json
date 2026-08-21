@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "model": "deepseek-r1-distill-qwen-1.5b",
+  "build_type": "Release",
+  "hip_architecture": "gfx942",
+  "token_patterns": ["repeat", "rotated", "constant", "ramp"],
+  "contexts": [32, 512, 2048],
+  "selected_policy": "layers 0,1,2,3 FP32; remaining 24 layers BF16",
+  "precision_thresholds": {"maximum_absolute_error": 0.25, "rmse": 0.05},
+  "performance_pairing": "same binary; alternating policy order; three fresh processes"
+}

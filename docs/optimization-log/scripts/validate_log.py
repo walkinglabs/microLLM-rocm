@@ -1813,6 +1813,52 @@ def validate_same_binary_kv_policy(errors: list[str]) -> tuple[int, int]:
     return len(raw), len(rows)
 
 
+def validate_kv_policy_prompt_robustness(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "070-data"
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    layer1 = summary.get("layer1", {})
+    first4 = summary.get("first4", {})
+    performance = summary.get("performance", {})
+    if summary.get("decision") != "keep_first4_robust_strict" or \
+            layer1.get("records") != 14 or layer1.get("failed") != 5 or \
+            float(layer1.get("worst_rmse", 0.0)) < 2.9 or \
+            first4.get("records") != 14 or first4.get("pass") != 14 or \
+            float(first4.get("worst_rmse", 1.0)) >= 0.05 or \
+            first4.get("cache_byte_reduction") != 1.75 or \
+            performance.get("rows") != 6 or \
+            performance.get("all_tokens_equal") is not True or \
+            float(performance.get("minimum_throughput_ratio", 0.0)) < 0.969 or \
+            float(performance.get("minimum_end_to_end_speedup", 0.0)) < 0.971:
+        errors.append("KV policy prompt-robustness decision changed")
+    layer1_records = []
+    for path in sorted((data / "layer1-patterns").glob("*/summary.json")):
+        layer1_records.extend(json.loads(path.read_text(encoding="utf-8")).get(
+            "records", []))
+    first4_records = []
+    for path in sorted((data / "first4-patterns").glob("*/summary.json")):
+        first4_records.extend(json.loads(path.read_text(encoding="utf-8")).get(
+            "records", []))
+    if len(layer1_records) != 14 or sum(
+            row.get("status") == "failed" for row in layer1_records) != 5 or \
+            not any(row.get("generated_tokens_equal") is False
+                    for row in layer1_records) or len(first4_records) != 14 or any(
+                        row.get("status") != "pass" for row in first4_records):
+        errors.append("KV policy prompt raw summaries changed")
+    performance_raw = [json.loads(line) for line in
+                       (data / "first4-performance" / "raw.jsonl").read_text(
+                           encoding="utf-8").splitlines()]
+    performance_summary = json.loads((data / "first4-performance" / "summary.json").read_text(
+        encoding="utf-8"))
+    if len(performance_raw) != 36 or performance_summary.get("status") != "pass" or \
+            len(performance_summary.get("rows", [])) != 6:
+        errors.append("first-four KV performance pairing changed")
+    runner = (REPOSITORY / "benchmarks/single_gpu/compare_kv_cache_precision.py").read_text(
+        encoding="utf-8")
+    if "--token-pattern" not in runner or "rotated" not in runner or "ramp" not in runner:
+        errors.append("KV precision token-pattern runner is missing")
+    return len(layer1_records), len(first4_records), len(performance_raw)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -1861,7 +1907,8 @@ def validate_assets(errors: list[str]) -> None:
                  "fused-prefix-pair-discard.svg",
                  "mixed-layer-kv-policy.svg",
                  "targeted-prefix-pair-discard.svg",
-                 "same-binary-kv-policy.svg"):
+                 "same-binary-kv-policy.svg",
+                 "kv-policy-prompt-robustness.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -1942,6 +1989,8 @@ def main() -> int:
         validate_targeted_prefix_pair_discard(errors)
     same_binary_policy_raw, same_binary_policy_rows = \
         validate_same_binary_kv_policy(errors)
+    prompt_policy_layer1, prompt_policy_first4, prompt_policy_performance = \
+        validate_kv_policy_prompt_robustness(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -1990,6 +2039,8 @@ def main() -> int:
           f"{mixed_kv_search}/{mixed_kv_calls} "
           f"targeted_prefix={targeted_prefix_rows}/{targeted_prefix_precision} "
           f"same_binary_policy={same_binary_policy_raw}/{same_binary_policy_rows} "
+          f"prompt_policy={prompt_policy_layer1}/{prompt_policy_first4}/"
+          f"{prompt_policy_performance} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

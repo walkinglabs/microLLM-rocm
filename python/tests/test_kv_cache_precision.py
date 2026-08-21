@@ -33,7 +33,8 @@ class KvCachePrecisionTest(unittest.TestCase):
             args = type("Args", (), {"decode_tokens": 4,
                                       "max_absolute_error": 0.25,
                                       "maximum_rmse": 0.05,
-                                      "bf16_fp32_layers": ""})()
+                                      "bf16_fp32_layers": "",
+                                      "token_pattern": "repeat"})()
             raw = {
                 "generated_tokens": [2, 3, 1, 0],
                 "kv_cache_actual_bytes": 80,
@@ -62,6 +63,18 @@ class KvCachePrecisionTest(unittest.TestCase):
             self.assertTrue(result["top_tokens_equal"])
             self.assertTrue(result["generated_tokens_equal"])
             self.assertAlmostEqual(result["decode_throughput_ratio_bf16_over_fp32"], 1.1)
+
+    def test_token_patterns_are_deterministic_and_bounded(self):
+        seed = [10, 20, 30]
+        self.assertEqual(PRECISION.expanded_tokens(seed, 5, "repeat", 100),
+                         [10, 20, 30, 10, 20])
+        self.assertEqual(PRECISION.expanded_tokens(seed, 5, "rotated", 100),
+                         [20, 30, 10, 20, 30])
+        self.assertEqual(PRECISION.expanded_tokens(seed, 4, "constant", 100),
+                         [10, 10, 10, 10])
+        ramp = PRECISION.expanded_tokens(seed, 20, "ramp", 97)
+        self.assertEqual(len(ramp), 20)
+        self.assertTrue(all(0 <= token < 97 for token in ramp))
 
 
 if __name__ == "__main__":

@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="790" viewBox="0 0 1800 790">
+  <rect width="100%" height="100%" fill="#fbfcfe"/>
+  <text x="900" y="48" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 070 · KV Policy Prompt Robustness</text>
+  <text x="900" y="80" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle">DeepSeek Release · complete logits · repeat / rotated / constant / ramp</text>
+  <rect x="70" y="125" width="720" height="510" fill="#fff" stroke="#cbd3df" rx="10"/>
+  <text x="430" y="170" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">Layer-1 policy is not prompt robust</text>
+  <g font-family="Inter,Arial,sans-serif" font-size="15">
+    <text x="130" y="230" fill="#172033">repeat</text><rect x="245" y="207" width="360" height="30" fill="#18a558"/><text x="620" y="229" fill="#16874b">3/3</text>
+    <text x="130" y="290" fill="#172033">rotated</text><rect x="245" y="267" width="360" height="30" fill="#18a558"/><text x="620" y="289" fill="#16874b">3/3</text>
+    <text x="130" y="350" fill="#172033">constant</text><rect x="245" y="327" width="360" height="30" fill="#d9534f"/><text x="620" y="349" fill="#b33b37">0/3</text>
+    <text x="130" y="410" fill="#172033">ramp</text><rect x="245" y="387" width="216" height="30" fill="#f2a65a"/><rect x="461" y="387" width="144" height="30" fill="#d9534f"/><text x="620" y="409" fill="#9a4f00">3/5</text>
+  </g>
+  <rect x="125" y="475" width="610" height="110" fill="#fff0f0" stroke="#e6a2a0" rx="8"/>
+  <text x="155" y="511" font-family="Inter,Arial,sans-serif" font-size="16" fill="#b33b37" font-weight="700">Stable counterexample · constant T512</text>
+  <text x="155" y="545" font-family="Inter,Arial,sans-serif" font-size="17" fill="#b33b37">max abs 15.829 · RMSE 2.995 · generated token diverges</text>
+  <text x="155" y="573" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">9/14 pass is not a strict policy</text>
+
+  <rect x="830" y="125" width="900" height="510" fill="#fff" stroke="#cbd3df" rx="10"/>
+  <text x="1280" y="170" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">First four layers FP32: robust-strict candidate</text>
+  <rect x="900" y="215" width="760" height="80" fill="#eefaf3" stroke="#9bd5b1" rx="8"/>
+  <text x="1280" y="250" font-family="Inter,Arial,sans-serif" font-size="24" fill="#16874b" text-anchor="middle" font-weight="700">14 / 14 complete-logit cases pass</text>
+  <text x="1280" y="279" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle">worst max abs 0.182 · worst RMSE 0.0328 · suffix exact</text>
+  <g font-family="Inter,Arial,sans-serif" font-size="16">
+    <rect x="900" y="340" width="360" height="95" fill="#f5f7fa" stroke="#d8dee8" rx="8"/>
+    <text x="930" y="375" fill="#172033" font-weight="700">Memory trade-off</text>
+    <text x="930" y="408" fill="#16874b">1.75× smaller than all-FP32 Cache</text>
+    <rect x="1300" y="340" width="360" height="95" fill="#f5f7fa" stroke="#d8dee8" rx="8"/>
+    <text x="1330" y="375" fill="#172033" font-weight="700">Same-binary performance</text>
+    <text x="1330" y="408" fill="#9a4f00">worst decode / E2E 0.970× / 0.972×</text>
+  </g>
+  <rect x="900" y="480" width="760" height="105" fill="#fff7ed" stroke="#fdba74" rx="8"/>
+  <text x="930" y="515" font-family="Inter,Arial,sans-serif" font-size="16" fill="#9a4f00" font-weight="700">Evidence boundary</text>
+  <text x="930" y="547" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033">pinned checkpoint + four deterministic pattern families</text>
+  <text x="930" y="573" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033">still explicit; new prompts/checkpoints must rerun the gate</text>
+  <text x="900" y="705" font-family="Inter,Arial,sans-serif" font-size="18" fill="#16874b" text-anchor="middle" font-weight="700">Promote first-4 to robust-strict; demote layer-1 to a minimal fixed-prompt result</text>
+</svg>

@@ -89,5 +89,6 @@ profile的144次cached Attention可分解为138次BF16和6次FP32，精确对应
 显式strict logits：layer 1 FP32，其余BF16（当前固定DeepSeek实验）
 ```
 
-layer 1不是对所有模型的普遍定律。换checkpoint、prompt、ROCm或误差门后必须重跑搜索和
-12-shape矩阵。小于10%的策略性能结论必须使用Experiment 069的同binary配对协议。
+layer 1不是对所有模型的普遍定律。Experiment 070随后用constant/ramp推翻其prompt鲁棒性，
+当前robust-strict配方升级为前4层FP32；本实验保留为最小原prompt策略证据。小于10%的策略
+性能结论必须使用Experiment 069的同binary配对协议。

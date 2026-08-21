@@ -197,3 +197,5 @@ the next gate. Records are append-only except for factual corrections.
   same-binary one-FP32-layer fusion retry, reduced D2D and failed prepare/E2E gate.
 - [2026-08-21-same-binary-kv-policy.md](2026-08-21-same-binary-kv-policy.md):
   alternating uniform/strict policy runner and correction of a cross-window performance claim.
+- [2026-08-21-kv-policy-prompt-robustness.md](2026-08-21-kv-policy-prompt-robustness.md):
+  deterministic prompt challenges, one-layer counterexample and first-four robust-strict policy.

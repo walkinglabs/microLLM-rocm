@@ -246,8 +246,8 @@ improves the local profile, but Qwen T2048 B8 repeated cache preparation/end-to-
 [Experiment 066](docs/optimization-log/experiments/066-fused-prefix-pair-discard.md).
 
 Experiment 067 adds explicit per-layer Cache dtypes. The pinned DeepSeek strict policy keeps only
-layer 1 FP32: complete-logit gates improve from 11/12 to 12/12 while Cache remains 1.931× smaller
-than FP32. It is not automatic because the layer choice is checkpoint-specific. See
+layer 1 FP32 on the original prompt: complete-logit gates improve from 11/12 to 12/12 while Cache
+remains 1.931× smaller than FP32. See
 [Experiment 067](docs/optimization-log/experiments/067-mixed-layer-kv-policy.md).
 
 Experiment 068 retries prefix fusion only for that one FP32 layer. The same binary removes 160 D2D
@@ -257,6 +257,11 @@ calls and 167.8 MB, yet prepare/end-to-end regress 1.53%/0.59%; the route is rem
 Experiment 069 pairs uniform and strict policies in alternating fresh processes from one binary.
 It invalidates the earlier cross-window 13.4% slowdown claim; DeepSeek T2048 B8 same-window E2E is
 1.011×. See [Experiment 069](docs/optimization-log/experiments/069-same-binary-kv-policy.md).
+
+Experiment 070 challenges the one-layer policy with four prompt patterns; it passes only 9/14.
+The robust-strict pinned policy uses layers 0–3 FP32, passes 14/14, retains a 1.75× Cache reduction
+and stays within about 3% of uniform BF16. See
+[Experiment 070](docs/optimization-log/experiments/070-kv-policy-prompt-robustness.md).
 
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or

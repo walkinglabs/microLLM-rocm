@@ -372,6 +372,12 @@ Experiment 069用同binary、交替顺序重新配对uniform/strict。DeepSeek T
 
 ![Same-binary KV policy](assets/same-binary-kv-policy.svg)
 
+Experiment 070换repeat/rotated/constant/ramp挑战strict。layer 1只过9/14，constant T512
+RMSE达2.995并token分叉；前4层FP32策略14/14通过，Cache仍缩小1.75×，同binary性能最差
+约0.97×。robust-strict配方据此更新。
+
+![KV policy prompt robustness](assets/kv-policy-prompt-robustness.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -469,6 +475,8 @@ Experiment 069用同binary、交替顺序重新配对uniform/strict。DeepSeek T
 | [experiments/068-data/](experiments/068-data/) | reference/paired各6条、精度和discard决定 |
 | [assets/same-binary-kv-policy.svg](assets/same-binary-kv-policy.svg) | DeepSeek六shape策略比与跨窗口结论修正 |
 | [experiments/069-data/](experiments/069-data/) | 72条交替策略raw和12条同binary summary |
+| [assets/kv-policy-prompt-robustness.svg](assets/kv-policy-prompt-robustness.svg) | prompt反例、14/14 robust策略和代价 |
+| [experiments/070-data/](experiments/070-data/) | layer1挑战、constant搜索、first4精度/性能数据 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

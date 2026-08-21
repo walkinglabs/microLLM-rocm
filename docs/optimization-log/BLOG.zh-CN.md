@@ -1638,7 +1638,7 @@ prepare慢27.9%、端到端慢13.4%。profile里138次BF16+6次FP32 cached Atten
 23+1层和两轮3-step decode，全Kernel只多0.66%；长batch代价主要仍在prefill生命周期。
 
 因此per-layer机制保留为显式strict-logit选项，不按模型名自动开启。系统默认仍是全FP32；
-uniform BF16是速度/显存选项；当前固定DeepSeek才有经过证据的layer 1 strict配方。这里
+uniform BF16是速度/显存选项；layer 1只是原prompt上的最小配方。这里
 记录的长batch代价随后被Experiment 069的同binary配对推翻，不能继续当作因果结论。
 
 ## 85. Experiment 068：只改那一个FP32层，解释仍然不成立
@@ -1667,3 +1667,17 @@ cross-window漂移，不再作为strict缺点。
 strict仍然显式：layer 1来自固定checkpoint搜索，Cache比uniform多3.57%。但现在拒绝它的
 理由必须是可移植性，而不是一个已被反驳的性能数字。新policy runner保留为后续小差异的
 强制协议。
+
+## 87. Experiment 070：换一句prompt，最小strict就破了
+
+精度runner加入repeat、rotated、constant和ramp。layer 1在repeat/rotated通过，却在
+constant 0/3通过；T512 max_abs 15.829、RMSE 2.995并发生token分叉。ramp也有2/5失败。
+
+![KV policy prompt robustness](assets/kv-policy-prompt-robustness.svg)
+
+前4层FP32、其余24层BF16在14个短长/batch挑战中全部通过，worst max_abs/RMSE为
+0.182/0.0328，Cache仍比全FP32小1.75×。同binary六shape性能最差decode/E2E为
+0.9695×/0.9719×，peak最多增加0.75%。
+
+因此layer 1降级为固定prompt结果，当前robust-strict升级为layers 0–3 FP32。它仍只对固定
+DeepSeek checkpoint和四类模式有证据，不会被模型名自动触发。
