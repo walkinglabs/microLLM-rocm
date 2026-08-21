@@ -2021,3 +2021,18 @@ MI300X增量pilot先跑T1/32/128、B2/4、N64。成功shape中Qwen是PyTorch的2
 pilot还出现一次Qwen T128/B4 batch内部row不一致。没有删除它，但同一冻结binary随后三次独立
 进程全部通过且suffix完全相同。因此它只能标成“观察一次、尚不稳定”，不能包装成稳定stride bug。
 这也是多case测试的价值：既找到失败，也阻止我们过度解释失败。
+
+## 113. Experiment 096：补位第一次跑通，也第一次证明自己更慢
+
+固定共享KV rows的`ContinuousBatchScheduler`把pending请求放进空slot，length/stop/cancel后reset，
+下一step再把新prompt写进最低空slot。A、B开始，A完成后C进入row 0，B不受影响；FP32/BF16、
+CPU/HIP、随机seed和独立B1都通过。
+
+![Continuous slot scheduler](assets/continuous-slot-scheduler.svg)
+
+但不同prompt/生成长度的MI300X Release workload只有串行reference的0.748×–0.858×。所有decode call都
+走divergent串行B1 oracle，还有1–9个dummy row；4槽Cache预留128KiB，active峰值只有24–24.5KiB。
+
+Release uniform反驳实验则达到reference的1.434×/1.904×/2.356×，证明batch fast path有效；
+不过它仍只有static batch的0.680×/0.488×/0.308×。结论因此不是“调度器无效”，而是divergent Kernel、逐row
+prefill、dummy row和每step管理共同吃掉收益。下一节点必须动计算层，而不是继续盲目加slot。

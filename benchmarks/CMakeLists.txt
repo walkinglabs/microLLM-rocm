@@ -43,7 +43,7 @@ if(BUILD_TESTING)
     set_tests_properties(Benchmark.ModelTrainSmoke PROPERTIES LABELS "cpu;benchmark;model;smoke")
     add_test(NAME Benchmark.SchedulerReferenceSmoke
              COMMAND microllm_bench_scheduler --device cpu --requests 3
-                     --warmup 0 --repetitions 1)
+                     --warmup 0 --repetitions 1 --continuous-slots 2)
     set_tests_properties(Benchmark.SchedulerReferenceSmoke PROPERTIES
                          LABELS "cpu;benchmark;inference;scheduler;schema")
     if(Python3_Interpreter_FOUND)

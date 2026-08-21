@@ -38,6 +38,10 @@ model oracle: it serializes B1 views over shared batch Storage and does not clai
 `forward_prefill_cached_row()` is the matching admission oracle: it computes a new prompt in a
 temporary B1 Cache, copies the active prefix into one empty shared row on the same device, and
 leaves every other row untouched. Neither oracle is the final parallel serving path.
+`ContinuousBatchScheduler` owns the request-to-row map above these model primitives. It admits only
+at scheduler-step boundaries, resets a row on length/stop/cancel, and reuses the lowest free slot.
+Its shared Cache allocation persists while active-prefix bytes fall to zero. Divergent decode still
+uses the serial B1 oracle; the scheduler API does not imply a parallel Kernel.
 See [serving scheduler](dev/serving-scheduler.zh-CN.md).
 
 

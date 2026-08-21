@@ -132,8 +132,16 @@ continuous refill scheduler的oracle，不是最终性能实现。详细图解�
 
 空row现在也能调用`forward_prefill_cached_row()`接收一个新`[1,T]` prompt。第一版先在临时B1
 Cache里跑已验证的full prefill，再把有效K/V逐层、逐head D2D复制进目标row。原有row的K/V、
-position和共享Storage地址都不变。它补齐了模型层的slot admission oracle，但scheduler还没有把
-结束、清空、补位和decode自动串起来。图解见[单槽位prefill](slot-row-prefill.zh-CN.md)。
+position和共享Storage地址都不变。它补齐了模型层的slot admission oracle；图解见
+[单槽位prefill](slot-row-prefill.zh-CN.md)。
+
+现在`ContinuousBatchScheduler`已经把这些动作串起来：固定`max_slots`行共享Cache，请求在step边界
+入场，length/stop/cancel立即reset row，后来请求复用最低空slot。CPU/HIP、FP32/BF16、随机seed和
+独立B1结果都通过。greedy HIP每step只复制一次`[slots]`选择结果。
+
+这仍不是最终快路径。MI300X divergent workload只有串行reference的0.768×–0.878×；uniform
+对照能达到1.511×–2.566×reference，却仍只有static batch的0.350×–0.768×。详细状态机、显存和
+反例见[continuous slot scheduler](continuous-slot-scheduler.zh-CN.md)。
 
 ## 8. 测试位置
 

@@ -9,6 +9,8 @@
 
 #include <microllm/inference/kv_cache.h>
 #include <microllm/ops/ops.h>
+#include <microllm/runtime/memory.h>
+#include <microllm/runtime/runtime.h>
 
 namespace microllm::inference {
 namespace {
@@ -455,6 +457,404 @@ std::vector<RequestSnapshot> AdmissionBatchScheduler::requests() const {
 }
 
 AdmissionBatchMetrics AdmissionBatchScheduler::metrics() const noexcept {
+    return impl_->metrics;
+}
+
+struct ContinuousBatchScheduler::Impl {
+    struct Request {
+        RequestId id = 0;
+        RequestState state = RequestState::PendingPrefill;
+        CompletionReason completion_reason = CompletionReason::None;
+        std::vector<std::int32_t> prompt;
+        std::vector<std::int32_t> generated;
+        GenerationConfig config;
+        std::mt19937_64 random;
+        std::int64_t arrival_step = 0;
+        std::int64_t completion_step = -1;
+        std::int64_t slot = -1;
+    };
+
+    static std::vector<DType> configured_policy(
+        const model::TransformerModel& model,
+        const ContinuousBatchConfig& config) {
+        if (config.max_slots <= 0) {
+            throw std::invalid_argument("continuous scheduler max_slots must be positive");
+        }
+        auto policy = config.kv_cache_layer_dtypes;
+        if (policy.empty()) {
+            policy.assign(static_cast<std::size_t>(model.config().layers),
+                          config.kv_cache_dtype);
+        } else if (policy.size() !=
+                   static_cast<std::size_t>(model.config().layers)) {
+            throw std::invalid_argument(
+                "continuous scheduler cache policy must contain one dtype per layer");
+        }
+        for (const auto dtype : policy) {
+            if (dtype != DType::Float32 && dtype != DType::BFloat16) {
+                throw std::invalid_argument(
+                    "continuous scheduler cache dtype must be float32 or bfloat16");
+            }
+        }
+        return policy;
+    }
+
+    Impl(model::TransformerModel& value, ContinuousBatchConfig settings)
+        : model(value),
+          config(std::move(settings)),
+          policy(configured_policy(value, config)),
+          cache(policy, value.config().max_sequence_length, config.max_slots),
+          slots(static_cast<std::size_t>(config.max_slots), -1),
+          slot_ever_used(static_cast<std::size_t>(config.max_slots), false) {}
+
+    model::TransformerModel& model;
+    ContinuousBatchConfig config;
+    std::vector<DType> policy;
+    KVCache cache;
+    Tensor slot_logits;
+    std::vector<Request> requests;
+    std::vector<std::int64_t> slots;
+    std::vector<bool> slot_ever_used;
+    RequestId next_id = 1;
+    ContinuousBatchMetrics metrics;
+
+    std::size_t find_index(RequestId id) const {
+        const auto found = std::find_if(
+            requests.begin(), requests.end(),
+            [id](const Request& request) { return request.id == id; });
+        if (found == requests.end()) {
+            throw std::out_of_range("unknown continuous scheduler request");
+        }
+        return static_cast<std::size_t>(std::distance(requests.begin(), found));
+    }
+
+    Request& find(RequestId id) { return requests[find_index(id)]; }
+    const Request& find(RequestId id) const { return requests[find_index(id)]; }
+
+    void validate_policy(const GenerationConfig& generation) const {
+        if (cache_policy(model, generation) != policy) {
+            throw std::invalid_argument(
+                "request KV cache policy does not match continuous scheduler");
+        }
+    }
+
+    std::size_t row_capacity_bytes() const {
+        return config.max_slots > 0
+                   ? cache_bytes(cache) /
+                         static_cast<std::size_t>(config.max_slots)
+                   : 0U;
+    }
+
+    std::size_t active_prefix_bytes() const {
+        std::size_t bytes = 0;
+        std::int64_t active_tokens = 0;
+        for (const auto position : cache.row_positions()) {
+            active_tokens += position;
+        }
+        for (std::size_t layer = 0; layer < cache.layer_count(); ++layer) {
+            const auto& state = cache.layer(layer);
+            if (!state.key.defined()) continue;
+            const auto per_tensor = static_cast<std::size_t>(
+                active_tokens * state.key.shape()[1] * state.key.shape()[3]) *
+                dtype_size(state.key.dtype());
+            bytes += per_tensor * 2U;
+        }
+        return bytes;
+    }
+
+    void refresh_metrics() {
+        const auto occupied = static_cast<std::int64_t>(std::count_if(
+            slots.begin(), slots.end(),
+            [](std::int64_t value) { return value >= 0; }));
+        metrics.occupied_slots = occupied;
+        metrics.peak_occupied_slots =
+            std::max(metrics.peak_occupied_slots, occupied);
+        metrics.allocated_cache_bytes = cache_bytes(cache);
+        metrics.active_cache_bytes = active_prefix_bytes();
+        metrics.peak_active_cache_bytes =
+            std::max(metrics.peak_active_cache_bytes,
+                     metrics.active_cache_bytes);
+        if (metrics.scheduler_steps > 0) {
+            metrics.slot_utilization =
+                static_cast<double>(metrics.occupied_slot_steps) /
+                (static_cast<double>(metrics.scheduler_steps) *
+                 static_cast<double>(config.max_slots));
+        }
+    }
+
+    void copy_logits_to_slot(const Tensor& logits, std::int64_t slot) {
+        if (logits.dtype() != DType::Float32 || logits.ndim() != 3 ||
+            logits.shape()[0] != 1 || logits.shape()[1] != 1 ||
+            logits.shape()[2] != model.config().vocabulary_size ||
+            slot < 0 || slot >= config.max_slots) {
+            throw std::invalid_argument("continuous scheduler received incompatible logits");
+        }
+        if (!slot_logits.defined()) {
+            slot_logits = Tensor(
+                {config.max_slots, 1, model.config().vocabulary_size},
+                DType::Float32, logits.device());
+        }
+        if (slot_logits.device() != logits.device()) {
+            throw std::invalid_argument("continuous scheduler logits device changed");
+        }
+        runtime::copy_bytes(
+            static_cast<float*>(slot_logits.data()) +
+                slot * slot_logits.stride(0),
+            slot_logits.device(), logits.data(), logits.device(),
+            static_cast<std::size_t>(model.config().vocabulary_size) *
+                sizeof(float));
+    }
+
+    void admit_pending() {
+        for (std::int64_t slot = 0; slot < config.max_slots; ++slot) {
+            if (slots[static_cast<std::size_t>(slot)] >= 0) continue;
+            const auto found = std::find_if(
+                requests.begin(), requests.end(), [](const Request& request) {
+                    return request.state == RequestState::PendingPrefill;
+                });
+            if (found == requests.end()) break;
+            const auto index = static_cast<std::int64_t>(
+                std::distance(requests.begin(), found));
+            auto& request = *found;
+            try {
+                const auto logits = model.forward_prefill_cached_row(
+                    Tensor::from_int32_vector(
+                        request.prompt,
+                        {1, static_cast<std::int64_t>(request.prompt.size())}),
+                    cache, slot);
+                copy_logits_to_slot(logits, slot);
+            } catch (...) {
+                cache.reset_row(slot);
+                throw;
+            }
+            if (slot_ever_used[static_cast<std::size_t>(slot)]) {
+                ++metrics.slot_refills;
+            }
+            slot_ever_used[static_cast<std::size_t>(slot)] = true;
+            slots[static_cast<std::size_t>(slot)] = index;
+            request.slot = slot;
+            request.state = RequestState::Decoding;
+            ++metrics.slot_admissions;
+            ++metrics.row_prefill_calls;
+        }
+    }
+
+    std::vector<std::int32_t> select_tokens() {
+        if (!slot_logits.defined()) {
+            throw std::logic_error("continuous scheduler has no slot logits");
+        }
+        ++metrics.selection_calls;
+        const auto all_greedy = std::all_of(
+            slots.begin(), slots.end(), [this](std::int64_t index) {
+                if (index < 0) return true;
+                const auto& generation =
+                    requests[static_cast<std::size_t>(index)].config;
+                return generation.temperature == 0.0F || generation.top_k == 1;
+            });
+        std::vector<std::int32_t> selected(
+            static_cast<std::size_t>(config.max_slots), -1);
+        if (all_greedy) {
+            selected = ops::argmax_last_dim(slot_logits).to_int32_vector();
+            if (selected.size() != static_cast<std::size_t>(config.max_slots)) {
+                throw std::logic_error("continuous scheduler argmax row count changed");
+            }
+            return selected;
+        }
+        for (std::int64_t slot = 0; slot < config.max_slots; ++slot) {
+            const auto index = slots[static_cast<std::size_t>(slot)];
+            if (index < 0) continue;
+            auto& request = requests[static_cast<std::size_t>(index)];
+            const auto row = slot_logits.slice(0, slot, slot + 1).to_vector();
+            selected[static_cast<std::size_t>(slot)] = sample_token(
+                row, request.config.temperature, request.config.top_k,
+                request.random);
+        }
+        return selected;
+    }
+
+    void release_slot(Request& request) {
+        if (request.slot < 0) return;
+        const auto slot = request.slot;
+        cache.reset_row(slot);
+        slots[static_cast<std::size_t>(slot)] = -1;
+        request.slot = -1;
+    }
+
+    void complete(Request& request, CompletionReason reason) {
+        request.state = RequestState::Completed;
+        request.completion_reason = reason;
+        request.completion_step = metrics.scheduler_steps;
+        ++metrics.completed_requests;
+        if (reason == CompletionReason::StopToken) {
+            ++metrics.stop_completed_requests;
+        }
+        release_slot(request);
+    }
+};
+
+ContinuousBatchScheduler::ContinuousBatchScheduler(
+    model::TransformerModel& model, ContinuousBatchConfig config)
+    : impl_(std::make_unique<Impl>(model, std::move(config))) {}
+ContinuousBatchScheduler::~ContinuousBatchScheduler() = default;
+ContinuousBatchScheduler::ContinuousBatchScheduler(
+    ContinuousBatchScheduler&&) noexcept = default;
+ContinuousBatchScheduler& ContinuousBatchScheduler::operator=(
+    ContinuousBatchScheduler&&) noexcept = default;
+
+RequestId ContinuousBatchScheduler::submit(
+    std::vector<std::int32_t> prompt, GenerationConfig config) {
+    validate_request(impl_->model, prompt, config);
+    std::sort(config.stop_tokens.begin(), config.stop_tokens.end());
+    impl_->validate_policy(config);
+    Impl::Request request;
+    request.id = impl_->next_id++;
+    request.prompt = std::move(prompt);
+    request.random = std::mt19937_64(config.seed);
+    request.config = std::move(config);
+    request.arrival_step = impl_->metrics.scheduler_steps;
+    if (request.config.max_new_tokens == 0) {
+        request.state = RequestState::Completed;
+        request.completion_reason = CompletionReason::Length;
+        request.completion_step = impl_->metrics.scheduler_steps;
+        ++impl_->metrics.completed_requests;
+    }
+    const auto id = request.id;
+    impl_->requests.push_back(std::move(request));
+    ++impl_->metrics.submitted_requests;
+    impl_->refresh_metrics();
+    return id;
+}
+
+bool ContinuousBatchScheduler::cancel(RequestId id) {
+    auto& request = impl_->find(id);
+    if (is_terminal(request.state)) return false;
+    impl_->release_slot(request);
+    request.state = RequestState::Cancelled;
+    request.completion_reason = CompletionReason::Cancelled;
+    request.completion_step = impl_->metrics.scheduler_steps;
+    ++impl_->metrics.cancelled_requests;
+    impl_->refresh_metrics();
+    return true;
+}
+
+void ContinuousBatchScheduler::step() {
+    if (!has_active_requests()) return;
+    ++impl_->metrics.scheduler_steps;
+    impl_->admit_pending();
+    impl_->refresh_metrics();
+    const auto occupied = impl_->metrics.occupied_slots;
+    if (occupied == 0) return;
+    impl_->metrics.occupied_slot_steps += occupied;
+    const auto selected = impl_->select_tokens();
+    std::vector<std::int32_t> next_tokens(
+        static_cast<std::size_t>(impl_->config.max_slots), 0);
+    std::vector<bool> survivors(
+        static_cast<std::size_t>(impl_->config.max_slots), false);
+    for (std::int64_t slot = 0; slot < impl_->config.max_slots; ++slot) {
+        const auto index = impl_->slots[static_cast<std::size_t>(slot)];
+        if (index < 0) continue;
+        auto& request = impl_->requests[static_cast<std::size_t>(index)];
+        const auto token = selected[static_cast<std::size_t>(slot)];
+        if (token < 0) {
+            throw std::invalid_argument("continuous scheduler logits are non-finite");
+        }
+        request.generated.push_back(token);
+        if (is_stop_token(request.config, token)) {
+            impl_->complete(request, CompletionReason::StopToken);
+        } else if (static_cast<std::int64_t>(request.generated.size()) ==
+                   request.config.max_new_tokens) {
+            impl_->complete(request, CompletionReason::Length);
+        } else {
+            survivors[static_cast<std::size_t>(slot)] = true;
+            next_tokens[static_cast<std::size_t>(slot)] = token;
+        }
+    }
+    const auto survivor_count = static_cast<std::int64_t>(std::count(
+        survivors.begin(), survivors.end(), true));
+    if (survivor_count > 0) {
+        const auto uniform = impl_->cache.positions_uniform();
+        impl_->slot_logits = impl_->model.forward_cached_rows(
+            Tensor::from_int32_vector(
+                next_tokens, {impl_->config.max_slots, 1}),
+            impl_->cache);
+        ++impl_->metrics.batch_decode_calls;
+        impl_->metrics.logical_decode_rows += survivor_count;
+        impl_->metrics.dummy_decode_rows +=
+            impl_->config.max_slots - survivor_count;
+        if (uniform) {
+            ++impl_->metrics.uniform_batch_decode_calls;
+        } else {
+            ++impl_->metrics.divergent_batch_decode_calls;
+        }
+        for (std::int64_t slot = 0; slot < impl_->config.max_slots; ++slot) {
+            if (!survivors[static_cast<std::size_t>(slot)]) {
+                impl_->cache.reset_row(slot);
+            }
+        }
+    }
+    impl_->refresh_metrics();
+}
+
+void ContinuousBatchScheduler::run_until_idle(std::int64_t maximum_steps) {
+    if (maximum_steps < -1) throw std::invalid_argument("maximum_steps is invalid");
+    std::int64_t executed = 0;
+    while (has_active_requests() &&
+           (maximum_steps < 0 || executed < maximum_steps)) {
+        step();
+        ++executed;
+    }
+    if (has_active_requests()) {
+        throw std::runtime_error(
+            "continuous scheduler did not become idle within maximum_steps");
+    }
+}
+
+bool ContinuousBatchScheduler::has_active_requests() const noexcept {
+    return std::any_of(impl_->requests.begin(), impl_->requests.end(),
+                       [](const Impl::Request& request) {
+                           return !is_terminal(request.state);
+                       });
+}
+
+std::size_t ContinuousBatchScheduler::active_request_count() const noexcept {
+    return static_cast<std::size_t>(std::count_if(
+        impl_->requests.begin(), impl_->requests.end(),
+        [](const Impl::Request& request) {
+            return !is_terminal(request.state);
+        }));
+}
+
+std::size_t ContinuousBatchScheduler::pending_request_count() const noexcept {
+    return static_cast<std::size_t>(std::count_if(
+        impl_->requests.begin(), impl_->requests.end(),
+        [](const Impl::Request& request) {
+            return request.state == RequestState::PendingPrefill;
+        }));
+}
+
+RequestSnapshot ContinuousBatchScheduler::request(RequestId id) const {
+    const auto& request = impl_->find(id);
+    return {.id = request.id,
+            .state = request.state,
+            .completion_reason = request.completion_reason,
+            .prompt = request.prompt,
+            .generated = request.generated,
+            .max_new_tokens = request.config.max_new_tokens,
+            .arrival_step = request.arrival_step,
+            .completion_step = request.completion_step,
+            .cache_bytes = request.slot >= 0 ? impl_->row_capacity_bytes() : 0U,
+            .slot = request.slot};
+}
+
+std::vector<RequestSnapshot> ContinuousBatchScheduler::requests() const {
+    std::vector<RequestSnapshot> result;
+    result.reserve(impl_->requests.size());
+    for (const auto& request : impl_->requests) {
+        result.push_back(this->request(request.id));
+    }
+    return result;
+}
+
+ContinuousBatchMetrics ContinuousBatchScheduler::metrics() const noexcept {
     return impl_->metrics;
 }
 

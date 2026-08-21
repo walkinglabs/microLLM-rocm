@@ -21,6 +21,7 @@ struct Options {
     int repetitions = 3;
     bool static_batch = false;
     bool admission_buckets = false;
+    std::int64_t continuous_slots = 0;
 };
 
 Options options(int argc, char** argv) {
@@ -46,10 +47,14 @@ Options options(int argc, char** argv) {
             }
             result.admission_buckets = value == "true";
         }
+        else if (name == "--continuous-slots") {
+            result.continuous_slots = std::stoll(argv[index + 1]);
+        }
         else throw std::invalid_argument("unknown option: " + name);
     }
     if ((result.device != "cpu" && result.device != "hip") || result.requests <= 0 ||
-        result.warmup < 0 || result.repetitions <= 0) {
+        result.warmup < 0 || result.repetitions <= 0 ||
+        result.continuous_slots < 0) {
         throw std::invalid_argument("invalid scheduler benchmark options");
     }
     return result;
@@ -175,6 +180,30 @@ AdmissionRun run_admission(microllm::model::TransformerModel& model,
     return result;
 }
 
+struct ContinuousRun {
+    std::vector<std::vector<std::int32_t>> generated;
+    microllm::inference::ContinuousBatchMetrics metrics;
+};
+
+ContinuousRun run_continuous(microllm::model::TransformerModel& model,
+                             const std::vector<WorkItem>& work,
+                             std::int64_t slots) {
+    microllm::inference::ContinuousBatchScheduler scheduler(
+        model, {.max_slots = slots, .kv_cache_layer_dtypes = {}});
+    std::vector<microllm::inference::RequestId> ids;
+    ids.reserve(work.size());
+    for (const auto& item : work) {
+        ids.push_back(scheduler.submit(item.prompt, item.generation));
+    }
+    scheduler.run_until_idle();
+    ContinuousRun result;
+    for (const auto id : ids) {
+        result.generated.push_back(scheduler.request(id).generated);
+    }
+    result.metrics = scheduler.metrics();
+    return result;
+}
+
 void synchronize(microllm::Device device) {
     if (device.is_hip()) microllm::runtime::synchronize(device);
 }
@@ -193,10 +222,12 @@ int main(int argc, char** argv) {
         auto sequential_model = microllm::model::TransformerModel(config(), 101);
         auto static_model = microllm::model::TransformerModel(config(), 101);
         auto admission_model = microllm::model::TransformerModel(config(), 101);
+        auto continuous_model = microllm::model::TransformerModel(config(), 101);
         scheduled_model.to(device);
         sequential_model.to(device);
         static_model.to(device);
         admission_model.to(device);
+        continuous_model.to(device);
         const auto work = workload(command.requests, command.static_batch,
                                    command.admission_buckets);
         for (int iteration = 0; iteration < command.warmup; ++iteration) {
@@ -204,6 +235,10 @@ int main(int argc, char** argv) {
             (void)run_sequential(sequential_model, work);
             if (command.static_batch) (void)run_static_batch(static_model, work);
             if (command.admission_buckets) (void)run_admission(admission_model, work);
+            if (command.continuous_slots > 0) {
+                (void)run_continuous(
+                    continuous_model, work, command.continuous_slots);
+            }
         }
         synchronize(device);
         microllm::runtime::reset_allocation_peak(device);
@@ -211,10 +246,12 @@ int main(int argc, char** argv) {
         double sequential_ms = 0.0;
         double static_ms = 0.0;
         double admission_ms = 0.0;
+        double continuous_ms = 0.0;
         Run last_scheduler;
         std::vector<std::vector<std::int32_t>> last_sequential;
         std::vector<std::vector<std::int32_t>> last_static;
         AdmissionRun last_admission;
+        ContinuousRun last_continuous;
         for (int iteration = 0; iteration < command.repetitions; ++iteration) {
             auto start = std::chrono::steady_clock::now();
             last_scheduler = run_scheduler(scheduled_model, work);
@@ -242,6 +279,15 @@ int main(int argc, char** argv) {
                 admission_ms +=
                     std::chrono::duration<double, std::milli>(finish - start).count();
             }
+            if (command.continuous_slots > 0) {
+                start = std::chrono::steady_clock::now();
+                last_continuous = run_continuous(
+                    continuous_model, work, command.continuous_slots);
+                synchronize(device);
+                finish = std::chrono::steady_clock::now();
+                continuous_ms +=
+                    std::chrono::duration<double, std::milli>(finish - start).count();
+            }
         }
         if (last_scheduler.generated != last_sequential) {
             throw std::runtime_error("scheduler output differs from sequential generate");
@@ -252,6 +298,11 @@ int main(int argc, char** argv) {
         if (command.admission_buckets &&
             last_admission.generated != last_sequential) {
             throw std::runtime_error("admission batch output differs from sequential generate");
+        }
+        if (command.continuous_slots > 0 &&
+            last_continuous.generated != last_sequential) {
+            throw std::runtime_error(
+                "continuous batch output differs from sequential generate");
         }
         std::int64_t generated_per_repetition = 0;
         std::uint64_t checksum = 0;
@@ -305,6 +356,45 @@ int main(int argc, char** argv) {
                   << last_admission.metrics.batched_requests
                   << ",\"admission_maximum_batch_size\":"
                   << last_admission.metrics.maximum_batch_size
+                  << ",\"continuous_enabled\":"
+                  << (command.continuous_slots > 0 ? "true" : "false")
+                  << ",\"continuous_slots\":" << command.continuous_slots
+                  << ",\"continuous_ms\":" << continuous_ms
+                  << ",\"continuous_tokens_per_second\":"
+                  << (command.continuous_slots > 0
+                          ? static_cast<double>(measured_tokens) * 1000.0 /
+                                continuous_ms
+                          : 0.0)
+                  << ",\"continuous_over_reference\":"
+                  << (command.continuous_slots > 0
+                          ? scheduler_ms / continuous_ms
+                          : 0.0)
+                  << ",\"continuous_scheduler_steps\":"
+                  << last_continuous.metrics.scheduler_steps
+                  << ",\"continuous_slot_admissions\":"
+                  << last_continuous.metrics.slot_admissions
+                  << ",\"continuous_slot_refills\":"
+                  << last_continuous.metrics.slot_refills
+                  << ",\"continuous_batch_decode_calls\":"
+                  << last_continuous.metrics.batch_decode_calls
+                  << ",\"continuous_uniform_batch_decode_calls\":"
+                  << last_continuous.metrics.uniform_batch_decode_calls
+                  << ",\"continuous_divergent_batch_decode_calls\":"
+                  << last_continuous.metrics.divergent_batch_decode_calls
+                  << ",\"continuous_logical_decode_rows\":"
+                  << last_continuous.metrics.logical_decode_rows
+                  << ",\"continuous_dummy_decode_rows\":"
+                  << last_continuous.metrics.dummy_decode_rows
+                  << ",\"continuous_selection_calls\":"
+                  << last_continuous.metrics.selection_calls
+                  << ",\"continuous_peak_occupied_slots\":"
+                  << last_continuous.metrics.peak_occupied_slots
+                  << ",\"continuous_slot_utilization\":"
+                  << last_continuous.metrics.slot_utilization
+                  << ",\"continuous_allocated_cache_bytes\":"
+                  << last_continuous.metrics.allocated_cache_bytes
+                  << ",\"continuous_peak_active_cache_bytes\":"
+                  << last_continuous.metrics.peak_active_cache_bytes
                   << ",\"scheduler_steps\":" << last_scheduler.metrics.scheduler_steps
                   << ",\"prefill_calls\":" << last_scheduler.metrics.prefill_calls
                   << ",\"decode_calls\":" << last_scheduler.metrics.decode_calls
@@ -317,6 +407,8 @@ int main(int argc, char** argv) {
                   << (command.static_batch ? "true" : "false")
                   << ",\"admission_outputs_equal\":"
                   << (command.admission_buckets ? "true" : "false")
+                  << ",\"continuous_outputs_equal\":"
+                  << (command.continuous_slots > 0 ? "true" : "false")
                   << ",\"token_checksum\":" << checksum << "}\n";
         return 0;
     } catch (const std::exception& error) {

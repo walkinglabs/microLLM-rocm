@@ -2982,6 +2982,108 @@ def validate_serving_inference_efficiency(errors: list[str]) -> tuple[int, int, 
     return len(pilot_raw), len(long_raw), len(rechecks)
 
 
+def validate_continuous_slot_scheduler(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "096-data"
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    records = [json.loads(path.read_text(encoding="utf-8")) for path in sorted(
+        (data / "hip-benchmark").glob("*.json"))]
+    release_records = [json.loads(path.read_text(encoding="utf-8")) for path in sorted(
+        (data / "hip-release").glob("*.json"))]
+    divergent = [row for row in records
+                 if int(row.get("continuous_divergent_batch_decode_calls", 0)) > 0]
+    uniform = [row for row in records
+               if int(row.get("continuous_uniform_batch_decode_calls", 0)) > 0]
+    release_divergent = [row for row in release_records
+                         if int(row.get("continuous_divergent_batch_decode_calls", 0)) > 0]
+    release_uniform = [row for row in release_records
+                       if int(row.get("continuous_uniform_batch_decode_calls", 0)) > 0]
+    contracts = summary.get("contracts", {})
+    transitions = summary.get("state_transitions", [])
+    if summary.get("status") != "pass_with_negative_performance" or \
+            [row.get("slots") for row in transitions] != [
+                ["A", "B"], [None, "B"], ["C", "B"], [None, None]] or any(
+                contracts.get(name) is not True for name in (
+                    "length_refill_matches_independent_b1",
+                    "delayed_sampling_matches_independent_b1",
+                    "stop_releases_row", "cancel_releases_row",
+                    "lowest_free_slot_reused", "other_row_survives_refill",
+                    "fp32_cache", "bf16_cache", "hip_matches_cpu",
+                    "greedy_d2h_calls_equal_scheduler_steps",
+                    "allocated_cache_persists_after_active_bytes_zero",
+                    "policy_mismatch_rejected")) or \
+            contracts.get("positions_aware_parallel_kernel") is not False or \
+            contracts.get("performance_speedup_claim") is not False:
+        errors.append("continuous slot scheduler semantic evidence changed")
+    if len(records) != 8 or len(divergent) != 5 or len(uniform) != 3 or any(
+            row.get("status") != "pass" or
+            row.get("continuous_outputs_equal") is not True
+            for row in records):
+        errors.append("continuous slot scheduler benchmark rows changed")
+    if any(not 0.7 < float(row.get("continuous_over_reference", 0.0)) < 0.9 or
+           int(row.get("continuous_uniform_batch_decode_calls", -1)) != 0 or
+           int(row.get("continuous_dummy_decode_rows", 0)) <= 0
+           for row in divergent):
+        errors.append("divergent continuous negative performance gate changed")
+    if any(float(row.get("continuous_over_reference", 0.0)) <= 1.0 or
+           not 0.3 < float(row.get("continuous_tokens_per_second", 0.0)) /
+                     float(row.get("static_batch_tokens_per_second", 1.0)) < 0.8 or
+           int(row.get("continuous_divergent_batch_decode_calls", -1)) != 0 or
+           int(row.get("continuous_dummy_decode_rows", -1)) != 0 or
+           float(row.get("continuous_slot_utilization", 0.0)) != 1.0 or
+           row.get("static_outputs_equal") is not True
+           for row in uniform):
+        errors.append("uniform continuous control gate changed")
+    if len(release_records) != 8 or len(release_divergent) != 5 or \
+            len(release_uniform) != 3 or any(
+                row.get("status") != "pass" or
+                row.get("continuous_outputs_equal") is not True or
+                int(row.get("warmup", -1)) != 2 or
+                int(row.get("repetitions", -1)) != 10
+                for row in release_records):
+        errors.append("continuous Release benchmark rows changed")
+    if any(not 0.7 < float(row.get("continuous_over_reference", 0.0)) < 0.9 or
+           int(row.get("continuous_uniform_batch_decode_calls", -1)) != 0 or
+           int(row.get("continuous_dummy_decode_rows", 0)) <= 0
+           for row in release_divergent):
+        errors.append("divergent continuous Release gate changed")
+    if any(not 1.4 < float(row.get("continuous_over_reference", 0.0)) < 2.4 or
+           not 0.3 < float(row.get("continuous_tokens_per_second", 0.0)) /
+                     float(row.get("static_batch_tokens_per_second", 1.0)) < 0.7 or
+           int(row.get("continuous_divergent_batch_decode_calls", -1)) != 0 or
+           int(row.get("continuous_dummy_decode_rows", -1)) != 0 or
+           float(row.get("continuous_slot_utilization", 0.0)) != 1.0 or
+           row.get("static_outputs_equal") is not True
+           for row in release_uniform):
+        errors.append("uniform continuous Release control changed")
+    header = (REPOSITORY / "include" / "microllm" / "inference" /
+              "scheduler.h").read_text(encoding="utf-8")
+    source = (REPOSITORY / "src" / "inference" /
+              "scheduler.cpp").read_text(encoding="utf-8")
+    cpu_tests = (REPOSITORY / "tests" / "inference" /
+                 "scheduler_test.cpp").read_text(encoding="utf-8")
+    hip_tests = (REPOSITORY / "tests" / "ops" /
+                 "hip_ops_test.cpp").read_text(encoding="utf-8")
+    benchmark = (REPOSITORY / "benchmarks" / "end_to_end" /
+                 "benchmark_scheduler.cpp").read_text(encoding="utf-8")
+    if "class ContinuousBatchScheduler" not in header or \
+            "struct ContinuousBatchMetrics" not in header or \
+            "ContinuousBatchScheduler::step" not in source or \
+            "RefillsFreedSlotAndMatchesIndependentRows" not in cpu_tests or \
+            "ContinuousSlotsRefillAndMatchCpuWithOneSelectionCopyPerStep" not in hip_tests or \
+            "--continuous-slots" not in benchmark:
+        errors.append("continuous slot scheduler implementation gate is missing")
+    if gates.get("status") != "pass_with_negative_performance" or \
+            gates.get("full", {}).get("passed") != 306 or \
+            gates.get("cpu", {}).get("passed") != 214 or \
+            gates.get("hip", {}).get("passed") != 92 or \
+            gates.get("sanitizer", {}).get("passed") != 207 or \
+            gates.get("focused", {}).get("hip_benchmark_rows") != 16 or \
+            gates.get("focused", {}).get("release_rows") != 8:
+        errors.append("continuous slot scheduler final gates changed")
+    return len(transitions), len(release_divergent), len(release_uniform)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -3055,7 +3157,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-paired-value-load-discard.svg",
                  "divergent-cached-row-reference.svg",
                  "slot-row-prefill.svg",
-                 "serving-inference-efficiency.svg"):
+                 "serving-inference-efficiency.svg",
+                 "continuous-slot-scheduler.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -3185,6 +3288,8 @@ def main() -> int:
         validate_slot_row_prefill(errors)
     serving_pilot_raw, serving_long_raw, serving_rechecks = \
         validate_serving_inference_efficiency(errors)
+    continuous_transitions, continuous_divergent, continuous_uniform = \
+        validate_continuous_slot_scheduler(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -3280,6 +3385,8 @@ def main() -> int:
           f"{row_prefill_steps} "
           f"serving_efficiency={serving_pilot_raw}/{serving_long_raw}/"
           f"{serving_rechecks} "
+          f"continuous_slots={continuous_transitions}/{continuous_divergent}/"
+          f"{continuous_uniform} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

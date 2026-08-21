@@ -317,4 +317,157 @@ TEST(AdmissionBatchSchedulerTest, StopCompletionReasonsMatchIndependentRows) {
     EXPECT_EQ(scheduler.metrics().maximum_batch_size, 2);
 }
 
+TEST(ContinuousBatchSchedulerTest, RefillsFreedSlotAndMatchesIndependentRows) {
+    const auto config = scheduler_config();
+    for (const auto dtype : {DType::Float32, DType::BFloat16}) {
+        model::TransformerModel scheduled_model(config, 149);
+        ContinuousBatchScheduler scheduler(
+            scheduled_model,
+            {.max_slots = 2, .kv_cache_dtype = dtype,
+             .kv_cache_layer_dtypes = {}});
+        const GenerationConfig short_generation{
+            .max_new_tokens = 2, .temperature = 0.0F, .top_k = 1,
+            .seed = 3, .kv_cache_dtype = dtype,
+            .kv_cache_layer_dtypes = {}, .stop_tokens = {}};
+        const GenerationConfig long_generation{
+            .max_new_tokens = 4, .temperature = 0.0F, .top_k = 1,
+            .seed = 5, .kv_cache_dtype = dtype,
+            .kv_cache_layer_dtypes = {}, .stop_tokens = {}};
+        const std::vector<std::int32_t> first_prompt{1, 2, 3};
+        const std::vector<std::int32_t> second_prompt{4, 5, 6};
+        const std::vector<std::int32_t> late_prompt{7, 8};
+        const auto first = scheduler.submit(first_prompt, short_generation);
+        const auto second = scheduler.submit(second_prompt, long_generation);
+        scheduler.step();
+        EXPECT_EQ(scheduler.request(first).slot, 0);
+        EXPECT_EQ(scheduler.request(second).slot, 1);
+        const auto late = scheduler.submit(late_prompt, short_generation);
+        EXPECT_EQ(scheduler.request(late).slot, -1);
+        scheduler.step();
+        EXPECT_EQ(scheduler.request(first).state, RequestState::Completed);
+        EXPECT_EQ(scheduler.request(first).slot, -1);
+        EXPECT_EQ(scheduler.request(late).state, RequestState::PendingPrefill);
+        scheduler.step();
+        EXPECT_EQ(scheduler.request(late).slot, 0);
+        EXPECT_GT(scheduler.request(late).cache_bytes, 0U);
+        scheduler.run_until_idle();
+
+        for (const auto& [id, prompt, generation] : {
+                 std::tuple{first, first_prompt, short_generation},
+                 std::tuple{second, second_prompt, long_generation},
+                 std::tuple{late, late_prompt, short_generation}}) {
+            model::TransformerModel independent(config, 149);
+            EXPECT_EQ(scheduler.request(id).generated,
+                      suffix(generate(independent, prompt, generation),
+                             prompt.size()));
+            EXPECT_EQ(scheduler.request(id).state, RequestState::Completed);
+            EXPECT_EQ(scheduler.request(id).slot, -1);
+            EXPECT_EQ(scheduler.request(id).cache_bytes, 0U);
+        }
+        const auto metrics = scheduler.metrics();
+        EXPECT_EQ(metrics.scheduler_steps, 4);
+        EXPECT_EQ(metrics.slot_admissions, 3);
+        EXPECT_EQ(metrics.slot_refills, 1);
+        EXPECT_EQ(metrics.row_prefill_calls, 3);
+        EXPECT_EQ(metrics.batch_decode_calls, 3);
+        EXPECT_EQ(metrics.uniform_batch_decode_calls, 1);
+        EXPECT_EQ(metrics.divergent_batch_decode_calls, 2);
+        EXPECT_EQ(metrics.logical_decode_rows, 5);
+        EXPECT_EQ(metrics.dummy_decode_rows, 1);
+        EXPECT_EQ(metrics.selection_calls, 4);
+        EXPECT_EQ(metrics.occupied_slot_steps, 8);
+        EXPECT_DOUBLE_EQ(metrics.slot_utilization, 1.0);
+        EXPECT_EQ(metrics.occupied_slots, 0);
+        EXPECT_EQ(metrics.peak_occupied_slots, 2);
+        EXPECT_GT(metrics.allocated_cache_bytes, 0U);
+        EXPECT_EQ(metrics.active_cache_bytes, 0U);
+        EXPECT_GT(metrics.peak_active_cache_bytes, 0U);
+    }
+}
+
+TEST(ContinuousBatchSchedulerTest, DelayedSamplingMatchesIndependentRequests) {
+    const auto config = scheduler_config();
+    model::TransformerModel scheduled_model(config, 151);
+    ContinuousBatchScheduler scheduler(
+        scheduled_model, {.max_slots = 2, .kv_cache_dtype = DType::Float32,
+                          .kv_cache_layer_dtypes = {}});
+    const GenerationConfig first_generation{
+        .max_new_tokens = 4, .temperature = 0.8F, .top_k = 3,
+        .seed = 11, .kv_cache_layer_dtypes = {}, .stop_tokens = {}};
+    const GenerationConfig second_generation{
+        .max_new_tokens = 2, .temperature = 0.7F, .top_k = 4,
+        .seed = 17, .kv_cache_layer_dtypes = {}, .stop_tokens = {}};
+    const std::vector<std::int32_t> first_prompt{1, 2, 3};
+    const std::vector<std::int32_t> second_prompt{4, 5};
+    const auto first = scheduler.submit(first_prompt, first_generation);
+    scheduler.step();
+    const auto second = scheduler.submit(second_prompt, second_generation);
+    scheduler.run_until_idle();
+    model::TransformerModel first_oracle(config, 151);
+    model::TransformerModel second_oracle(config, 151);
+    EXPECT_EQ(scheduler.request(first).generated,
+              suffix(generate(first_oracle, first_prompt, first_generation),
+                     first_prompt.size()));
+    EXPECT_EQ(scheduler.request(second).generated,
+              suffix(generate(second_oracle, second_prompt, second_generation),
+                     second_prompt.size()));
+    EXPECT_EQ(scheduler.request(first).completion_step, 4);
+    EXPECT_EQ(scheduler.request(second).completion_step, 3);
+    EXPECT_EQ(scheduler.metrics().slot_admissions, 2);
+    EXPECT_GE(scheduler.metrics().divergent_batch_decode_calls, 1);
+}
+
+TEST(ContinuousBatchSchedulerTest, StopCancelAndPolicyErrorsAreExplicit) {
+    const auto config = scheduler_config();
+    const std::vector<std::int32_t> stopped_prompt{1, 2, 3};
+    const GenerationConfig baseline{
+        .max_new_tokens = 4, .temperature = 0.0F, .top_k = 1,
+        .seed = 19, .kv_cache_dtype = DType::BFloat16,
+        .kv_cache_layer_dtypes = {}, .stop_tokens = {}};
+    model::TransformerModel oracle(config, 157);
+    auto stopped = baseline;
+    stopped.stop_tokens = {
+        generate(oracle, stopped_prompt, baseline)[stopped_prompt.size()]};
+
+    model::TransformerModel model(config, 157);
+    ContinuousBatchScheduler scheduler(
+        model, {.max_slots = 2, .kv_cache_dtype = DType::BFloat16,
+                .kv_cache_layer_dtypes = {}});
+    const auto stopped_id = scheduler.submit(stopped_prompt, stopped);
+    const auto cancelled = scheduler.submit({4, 5, 6}, baseline);
+    scheduler.step();
+    EXPECT_EQ(scheduler.request(stopped_id).completion_reason,
+              CompletionReason::StopToken);
+    EXPECT_EQ(scheduler.request(stopped_id).slot, -1);
+    EXPECT_TRUE(scheduler.cancel(cancelled));
+    EXPECT_FALSE(scheduler.cancel(cancelled));
+    const auto replacement = scheduler.submit({7, 8}, baseline);
+    scheduler.step();
+    EXPECT_EQ(scheduler.request(replacement).slot, 0);
+    scheduler.run_until_idle();
+    model::TransformerModel replacement_oracle(config, 157);
+    EXPECT_EQ(scheduler.request(replacement).generated,
+              suffix(generate(replacement_oracle, {7, 8}, baseline), 2));
+    EXPECT_EQ(scheduler.metrics().stop_completed_requests, 1);
+    EXPECT_EQ(scheduler.metrics().cancelled_requests, 1);
+    EXPECT_GE(scheduler.metrics().slot_refills, 1);
+
+    EXPECT_THROW((void)scheduler.submit(
+                     {1}, {.max_new_tokens = 1,
+                           .kv_cache_dtype = DType::Float32,
+                           .kv_cache_layer_dtypes = {}, .stop_tokens = {}}),
+                 std::invalid_argument);
+    EXPECT_THROW((void)scheduler.request(999), std::out_of_range);
+    EXPECT_THROW(scheduler.run_until_idle(-2), std::invalid_argument);
+    EXPECT_THROW((void)ContinuousBatchScheduler(
+                     model, {.max_slots = 0,
+                             .kv_cache_layer_dtypes = {}}),
+                 std::invalid_argument);
+    EXPECT_THROW((void)ContinuousBatchScheduler(
+                     model, {.max_slots = 1,
+                             .kv_cache_layer_dtypes = {
+                                 DType::Float32, DType::BFloat16}}),
+                 std::invalid_argument);
+}
+
 }  // namespace microllm::inference

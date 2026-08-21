@@ -81,6 +81,9 @@ needed to run a real training and generation loop:
   it is a CPU/HIP correctness oracle, while uniform rows keep the original parallel fast path.
 - `forward_prefill_cached_row()` admits a new prompt into one empty shared-cache row without
   changing other rows, completing the model-level oracle needed by a future slot scheduler.
+- `ContinuousBatchScheduler` now owns fixed shared KV rows, refills completed/cancelled slots,
+  preserves per-request RNG/stop state and reports slot/KV/dummy-row efficiency; divergent
+  positions remain a measured performance gap rather than a claimed speedup.
 
 The design keeps three implementations where they provide engineering value:
 
@@ -166,9 +169,9 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 302/302 | 211 CPU-labelled + 91 HIP-labelled gates; 2 intentional environment skips |
-| ASan/UBSan CPU | 204/204 | host code, CLI, model/graph, benchmark and evidence schemas |
-| MI300X/gfx942 HIP | 91/91 | allocator/stream, graph, BF16/FP8, batched GEMM and model matrix |
+| Full CPU/HIP configuration | 306/306 | 214 CPU-labelled + 92 HIP-labelled gates; 2 intentional environment skips |
+| ASan/UBSan CPU | 207/207 | host code, CLI, model/graph, benchmark and evidence schemas |
+| MI300X/gfx942 HIP | 92/92 | allocator/stream, graph, BF16/FP8, batched GEMM and model matrix |
 | PyTorch-enabled CPU build | 196/196 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
 | Registered test files | 37 | machine-audited CTest registration |

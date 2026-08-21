@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "status": "pass_with_negative_performance",
+  "feature": "continuous shared-KV slot scheduler correctness reference",
+  "state_transitions": [
+    {"step": 1, "slots": ["A", "B"], "positions_after_decode": [4, 4]},
+    {"step": 2, "slots": [null, "B"], "positions_after_decode": [0, 5]},
+    {"step": 3, "slots": ["C", "B"], "positions_after_decode": [3, 6]},
+    {"step": 4, "slots": [null, null], "positions_after_decode": [0, 0]}
+  ],
+  "contracts": {
+    "length_refill_matches_independent_b1": true,
+    "delayed_sampling_matches_independent_b1": true,
+    "stop_releases_row": true,
+    "cancel_releases_row": true,
+    "lowest_free_slot_reused": true,
+    "other_row_survives_refill": true,
+    "fp32_cache": true,
+    "bf16_cache": true,
+    "hip_matches_cpu": true,
+    "greedy_d2h_calls_equal_scheduler_steps": true,
+    "allocated_cache_persists_after_active_bytes_zero": true,
+    "policy_mismatch_rejected": true,
+    "positions_aware_parallel_kernel": false,
+    "performance_speedup_claim": false
+  },
+  "hip_benchmark": [
+    {"requests": 2, "slots": 2, "continuous_over_reference": 0.877973, "slot_utilization": 0.875, "refills": 0, "divergent_calls": 3, "dummy_rows": 1, "allocated_cache_bytes": 65536, "peak_active_cache_bytes": 8192},
+    {"requests": 4, "slots": 2, "continuous_over_reference": 0.851589, "slot_utilization": 0.9375, "refills": 2, "divergent_calls": 7, "dummy_rows": 3, "allocated_cache_bytes": 65536, "peak_active_cache_bytes": 16896},
+    {"requests": 8, "slots": 2, "continuous_over_reference": 0.787061, "slot_utilization": 0.911765, "refills": 6, "divergent_calls": 16, "dummy_rows": 9, "allocated_cache_bytes": 65536, "peak_active_cache_bytes": 16896},
+    {"requests": 4, "slots": 4, "continuous_over_reference": 0.76844, "slot_utilization": 0.75, "refills": 0, "divergent_calls": 4, "dummy_rows": 5, "allocated_cache_bytes": 131072, "peak_active_cache_bytes": 24576},
+    {"requests": 8, "slots": 4, "continuous_over_reference": 0.790776, "slot_utilization": 0.861111, "refills": 4, "divergent_calls": 8, "dummy_rows": 9, "allocated_cache_bytes": 131072, "peak_active_cache_bytes": 25088}
+  ],
+  "uniform_control": [
+    {"requests": 2, "slots": 2, "continuous_over_reference": 1.51143, "continuous_over_static": 0.76778, "uniform_calls": 3, "divergent_calls": 0, "dummy_rows": 0, "slot_utilization": 1.0},
+    {"requests": 4, "slots": 4, "continuous_over_reference": 2.06954, "continuous_over_static": 0.542991, "uniform_calls": 3, "divergent_calls": 0, "dummy_rows": 0, "slot_utilization": 1.0},
+    {"requests": 8, "slots": 8, "continuous_over_reference": 2.56606, "continuous_over_static": 0.350114, "uniform_calls": 3, "divergent_calls": 0, "dummy_rows": 0, "slot_utilization": 1.0}
+  ],
+  "release_divergent": [
+    {"requests": 2, "slots": 2, "continuous_over_reference": 0.857627},
+    {"requests": 4, "slots": 2, "continuous_over_reference": 0.824218},
+    {"requests": 8, "slots": 2, "continuous_over_reference": 0.780616},
+    {"requests": 4, "slots": 4, "continuous_over_reference": 0.748386},
+    {"requests": 8, "slots": 4, "continuous_over_reference": 0.793776}
+  ],
+  "release_uniform": [
+    {"requests": 2, "slots": 2, "continuous_over_reference": 1.43378, "continuous_over_static": 0.679865},
+    {"requests": 4, "slots": 4, "continuous_over_reference": 1.90438, "continuous_over_static": 0.487782},
+    {"requests": 8, "slots": 8, "continuous_over_reference": 2.35564, "continuous_over_static": 0.308398}
+  ]
+}

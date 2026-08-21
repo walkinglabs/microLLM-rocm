@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "status": "pass_with_negative_performance",
+  "full": {"passed": 306, "failed": 0, "skipped": 2},
+  "cpu": {"passed": 214, "failed": 0, "skipped": 2},
+  "hip": {"passed": 92, "failed": 0, "skipped": 0},
+  "sanitizer": {"passed": 207, "failed": 0, "skipped": 0},
+  "focused": {
+    "cpu_continuous_tests": 3,
+    "hip_continuous_tests": 1,
+    "cache_dtypes": 2,
+    "hip_benchmark_rows": 16,
+    "benchmark_outputs_equal": 16,
+    "uniform_control_rows": 6,
+    "release_rows": 8
+  }
+}

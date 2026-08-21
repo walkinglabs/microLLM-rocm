@@ -1013,6 +1013,84 @@ TEST(HipSchedulerTest, StopTokenCompletesAndReleasesCacheImmediately) {
     EXPECT_EQ(scheduler.metrics().stop_completed_requests, 1);
 }
 
+TEST(HipSchedulerTest, ContinuousSlotsRefillAndMatchCpuWithOneSelectionCopyPerStep) {
+    require_gpu();
+    const model::ModelConfig config{.vocabulary_size = 16,
+                                    .dimension = 8,
+                                    .layers = 1,
+                                    .heads = 2,
+                                    .kv_heads = 1,
+                                    .ffn_dimension = 16,
+                                    .max_sequence_length = 16,
+                                    .rope_base = 10000.0F,
+                                    .tie_embeddings = false};
+    for (const auto dtype : {DType::Float32, DType::BFloat16}) {
+        model::TransformerModel cpu_model(config, 163);
+        model::TransformerModel hip_model(config, 163);
+        hip_model.to(Device::hip(0));
+        const inference::ContinuousBatchConfig scheduler_config{
+            .max_slots = 2, .kv_cache_dtype = dtype,
+            .kv_cache_layer_dtypes = {}};
+        inference::ContinuousBatchScheduler cpu(cpu_model, scheduler_config);
+        inference::ContinuousBatchScheduler hip(hip_model, scheduler_config);
+        const inference::GenerationConfig short_generation{
+            .max_new_tokens = 2, .temperature = 0.0F, .top_k = 1,
+            .seed = 3, .kv_cache_dtype = dtype,
+            .kv_cache_layer_dtypes = {}, .stop_tokens = {}};
+        const inference::GenerationConfig long_generation{
+            .max_new_tokens = 4, .temperature = 0.0F, .top_k = 1,
+            .seed = 5, .kv_cache_dtype = dtype,
+            .kv_cache_layer_dtypes = {}, .stop_tokens = {}};
+        const auto cpu_first = cpu.submit({1, 2, 3}, short_generation);
+        const auto cpu_second = cpu.submit({4, 5, 6}, long_generation);
+        const auto hip_first = hip.submit({1, 2, 3}, short_generation);
+        const auto hip_second = hip.submit({4, 5, 6}, long_generation);
+        runtime::reset_transfer_stats();
+        cpu.step();
+        hip.step();
+        const auto cpu_late = cpu.submit({7, 8}, short_generation);
+        const auto hip_late = hip.submit({7, 8}, short_generation);
+        cpu.step();
+        hip.step();
+        EXPECT_EQ(hip.request(hip_late).state,
+                  inference::RequestState::PendingPrefill);
+        cpu.step();
+        hip.step();
+        EXPECT_EQ(hip.request(hip_late).slot, 0);
+        cpu.run_until_idle();
+        hip.run_until_idle();
+        for (const auto& [cpu_id, hip_id] : {
+                 std::pair{cpu_first, hip_first},
+                 std::pair{cpu_second, hip_second},
+                 std::pair{cpu_late, hip_late}}) {
+            EXPECT_EQ(hip.request(hip_id).generated,
+                      cpu.request(cpu_id).generated);
+            EXPECT_EQ(hip.request(hip_id).completion_reason,
+                      cpu.request(cpu_id).completion_reason);
+        }
+        const auto cpu_metrics = cpu.metrics();
+        const auto hip_metrics = hip.metrics();
+        EXPECT_EQ(hip_metrics.scheduler_steps, 4);
+        EXPECT_EQ(hip_metrics.slot_admissions, 3);
+        EXPECT_EQ(hip_metrics.slot_refills, 1);
+        EXPECT_EQ(hip_metrics.batch_decode_calls, 3);
+        EXPECT_EQ(hip_metrics.divergent_batch_decode_calls, 2);
+        EXPECT_EQ(hip_metrics.dummy_decode_rows, 1);
+        EXPECT_EQ(hip_metrics.logical_decode_rows,
+                  cpu_metrics.logical_decode_rows);
+        EXPECT_EQ(hip_metrics.allocated_cache_bytes,
+                  cpu_metrics.allocated_cache_bytes);
+        EXPECT_EQ(hip_metrics.active_cache_bytes, 0U);
+        EXPECT_DOUBLE_EQ(hip_metrics.slot_utilization, 1.0);
+        const auto transfers = runtime::transfer_stats();
+        EXPECT_EQ(transfers.device_to_host_calls,
+                  static_cast<std::size_t>(hip_metrics.selection_calls));
+        EXPECT_EQ(transfers.device_to_host_bytes,
+                  static_cast<std::size_t>(hip_metrics.selection_calls * 2) *
+                      sizeof(std::int32_t));
+    }
+}
+
 TEST(HipGenerationTest, StaticBatchDifferentRowsMatchCpuReference) {
     require_gpu();
     const model::ModelConfig config{.vocabulary_size = 16,
