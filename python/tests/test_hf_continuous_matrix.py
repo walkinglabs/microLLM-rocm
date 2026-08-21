@@ -30,6 +30,12 @@ DIVERGENCE_SPEC = importlib.util.spec_from_file_location(
 DIVERGENCE = importlib.util.module_from_spec(DIVERGENCE_SPEC)
 assert DIVERGENCE_SPEC.loader is not None
 DIVERGENCE_SPEC.loader.exec_module(DIVERGENCE)
+ROW_AUDIT_SPEC = importlib.util.spec_from_file_location(
+    "hf_prefill_row_audit",
+    ROOT / "benchmarks/single_gpu/hf_prefill_row_audit.py")
+ROW_AUDIT = importlib.util.module_from_spec(ROW_AUDIT_SPEC)
+assert ROW_AUDIT_SPEC.loader is not None
+ROW_AUDIT_SPEC.loader.exec_module(ROW_AUDIT)
 
 
 class HfContinuousMatrixTest(unittest.TestCase):
@@ -210,6 +216,21 @@ class HfContinuousMatrixTest(unittest.TestCase):
         self.assertFalse(
             comparison["serial_s4_matches_reference_at_original_divergence"])
         self.assertIn("not a matched scheduler", comparison["boundary"])
+
+    def test_prefill_row_audit_command_preserves_explicit_offsets(self):
+        model = self.model()
+        case = ROW_AUDIT.CASES["pair_5_4"]
+        command = ROW_AUDIT.command(Path("micro"), model, case)
+        self.assertEqual(
+            command[command.index("--continuous-prompt-offsets") + 1], "5,4")
+        self.assertEqual(case["targets"], [0])
+        self.assertEqual(ROW_AUDIT.CASES["duplicate_5"]["offsets"], [5, 5])
+        first = {"device_selected_token": 3, "top1_token": 3,
+                 "top1_logit": 2.0, "top2_token": 4, "top2_logit": 1.0,
+                 "top1_top2_margin": 1.0, "cache_position": 32,
+                 "logit_batch_size": 2, "logit_source": "prefill"}
+        self.assertEqual(ROW_AUDIT.numeric_signature(first),
+                         ROW_AUDIT.numeric_signature(dict(first)))
 
 
 if __name__ == "__main__":

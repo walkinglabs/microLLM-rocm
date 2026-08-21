@@ -61,6 +61,7 @@ struct Options {
     std::int64_t continuous_slots = 0;
     std::string continuous_prompt_lengths;
     std::string continuous_new_token_lengths;
+    std::string continuous_prompt_offsets;
     bool continuous_prefill_batch = true;
     bool continuous_diagnostics = false;
 };
@@ -132,6 +133,9 @@ Options options(int argc, char** argv) {
         }
         else if (name == "--continuous-new-token-lengths") {
             result.continuous_new_token_lengths = argv[index + 1];
+        }
+        else if (name == "--continuous-prompt-offsets") {
+            result.continuous_prompt_offsets = argv[index + 1];
         }
         else if (name == "--continuous-diagnostics") {
             const std::string value = argv[index + 1];
@@ -221,6 +225,11 @@ Options options(int argc, char** argv) {
     if (result.continuous_diagnostics && result.workload != "continuous") {
         throw std::invalid_argument(
             "--continuous-diagnostics requires continuous workload");
+    }
+    if (!result.continuous_prompt_offsets.empty() &&
+        result.workload != "continuous") {
+        throw std::invalid_argument(
+            "--continuous-prompt-offsets requires continuous workload");
     }
     if (!result.cache_logits_output.empty() &&
         (!result.use_cache || result.workload == "prefill" || result.new_tokens < 2)) {
@@ -603,6 +612,19 @@ int main(int argc, char** argv) {
                 throw std::invalid_argument(
                     "continuous prompt and new-token lists must have equal nonzero length");
             }
+            std::vector<std::int32_t> prompt_offsets;
+            if (command.continuous_prompt_offsets.empty()) {
+                prompt_offsets.resize(prompt_lengths.size());
+                std::iota(prompt_offsets.begin(), prompt_offsets.end(), 0);
+            } else {
+                prompt_offsets = nonnegative_values(
+                    command.continuous_prompt_offsets,
+                    "--continuous-prompt-offsets must contain nonnegative comma-separated offsets");
+                if (prompt_offsets.size() != prompt_lengths.size()) {
+                    throw std::invalid_argument(
+                        "continuous prompt offsets must match request count");
+                }
+            }
             std::vector<std::vector<std::int32_t>> prompts;
             prompts.reserve(prompt_lengths.size());
             for (std::size_t request = 0; request < prompt_lengths.size(); ++request) {
@@ -614,7 +636,9 @@ int main(int argc, char** argv) {
                 std::vector<std::int32_t> prompt(
                     static_cast<std::size_t>(prompt_lengths[request]));
                 for (std::size_t index = 0; index < prompt.size(); ++index) {
-                    prompt[index] = ids[(index + request) % ids.size()];
+                    prompt[index] = ids[
+                        (index + static_cast<std::size_t>(
+                                     prompt_offsets[request])) % ids.size()];
                 }
                 prompts.push_back(std::move(prompt));
             }
@@ -767,6 +791,11 @@ int main(int argc, char** argv) {
             for (std::size_t index = 0; index < new_token_lengths.size(); ++index) {
                 if (index != 0) std::cout << ',';
                 std::cout << new_token_lengths[index];
+            }
+            std::cout << "],\"prompt_offsets\":[";
+            for (std::size_t index = 0; index < prompt_offsets.size(); ++index) {
+                if (index != 0) std::cout << ',';
+                std::cout << prompt_offsets[index];
             }
             std::cout << "],\"deterministic_across_steps\":true"
                       << ",\"generated_tokens\":[";

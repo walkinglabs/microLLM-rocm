@@ -64,6 +64,9 @@ Selection diagnostics are opt-in and intentionally host-synchronizing. They expo
 position, producer path/batch, device argmax and top-2 margin for numerical investigations. The
 default serving path performs none of these logit copies. Equal-length prefill batching also has an
 experimental off switch for controlled attribution; production/default behavior remains batched.
+Official diagnostic inputs may provide explicit prompt-seed offsets. This is a benchmark input
+contract used to hold token sequences constant while swapping or duplicating local batch rows; it
+does not alter scheduler admission semantics.
 See [serving scheduler](dev/serving-scheduler.zh-CN.md).
 
 

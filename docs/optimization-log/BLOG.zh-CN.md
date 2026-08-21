@@ -2148,3 +2148,14 @@ argmax和top-2 margin。DeepSeek分叉点的两个候选正好是23606与1196：
 这不等于应该回退：默认B2在原分叉请求选择1196，与PyTorch full-BF16相同；serial B1改成23606，
 反而新增外部差异。于是诊断API和反驳开关保留，生产默认仍batch prefill。下一节点继续交换和复制
 B2 local rows，区分正常GEMM shape漂移与row/copy缺陷。
+
+## 122. Experiment 105：如果是row错误，交换以后它应该跟着走
+
+显式prompt offsets把同一个P5分别放在B2 row1和row0，再把两行都设成P5。12/12 fresh processes
+中，四条B2 P5的prefill top-2/logits逐值相同，完整16-token输出也相同；B1仍形成另一条输出。
+
+![B2 prefill row audit](assets/prefill-row-audit.svg)
+
+差异没有跟local row、physical slot、P4/P5顺序或duplicate copy移动，因此local row stride和KV
+prefix copy假设被反驳。剩余最强解释是BF16 GEMM从M32到M64时的数值路径差异。下一节点要看完整
+logits和每个block的误差增长，不能用top-2相同就宣布全部batched算子已证明正确。

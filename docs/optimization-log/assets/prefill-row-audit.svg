@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="610" viewBox="0 0 1080 610" role="img" aria-labelledby="title desc">
+  <title id="title">B2 prefill row audit</title>
+  <desc id="desc">The same P5 prompt has identical B2 logits in row zero, row one, swapped order, and duplicate rows, while B1 remains different.</desc>
+  <rect width="1080" height="610" fill="#0b1020"/>
+  <text x="48" y="58" fill="#f8fafc" font-family="sans-serif" font-size="30" font-weight="700">Does the difference follow local row?</text>
+  <text x="48" y="91" fill="#94a3b8" font-family="sans-serif" font-size="17">DeepSeek P5 · prefill token 0 · three fresh processes</text>
+  <g font-family="sans-serif" font-size="17">
+    <rect x="50" y="132" width="220" height="70" rx="10" fill="#173421"/><text x="72" y="162" fill="#bbf7d0">B1 [P5]</text><text x="72" y="188" fill="#86efac">top1 12.352085</text>
+    <rect x="310" y="132" width="330" height="70" rx="10" fill="#163149"/><text x="332" y="162" fill="#bae6fd">B2 [P4, P5]</text><text x="332" y="188" fill="#7dd3fc">P5 row1 · 12.297267</text>
+    <rect x="680" y="132" width="330" height="70" rx="10" fill="#163149"/><text x="702" y="162" fill="#bae6fd">B2 [P5, P4]</text><text x="702" y="188" fill="#7dd3fc">P5 row0 · 12.297267</text>
+    <path d="M640 167 L680 167" stroke="#f8fafc" stroke-width="3" marker-end="url(#arrow)"/>
+    <rect x="310" y="248" width="700" height="86" rx="10" fill="#202944"/>
+    <text x="334" y="280" fill="#ddd6fe">B2 [P5, P5]</text>
+    <text x="334" y="310" fill="#c4b5fd">row0 = row1 = 12.297267 · full tokens identical</text>
+  </g>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#f8fafc"/></marker></defs>
+  <rect x="48" y="382" width="984" height="76" rx="10" fill="#173421"/>
+  <text x="72" y="414" fill="#bbf7d0" font-family="sans-serif" font-size="19" font-weight="700">Row/order hypothesis refuted</text>
+  <text x="72" y="442" fill="#86efac" font-family="sans-serif" font-size="16">B2 signature does not move with row0/row1, prompt order, or duplicate copy.</text>
+  <rect x="48" y="486" width="984" height="72" rx="10" fill="#3b2a14"/>
+  <text x="72" y="518" fill="#fde68a" font-family="sans-serif" font-size="18">Remaining hypothesis: BF16 GEMM M=32 vs M=64 numerical path</text>
+  <text x="72" y="544" fill="#fcd34d" font-family="sans-serif" font-size="15">Next gate: complete-logit and per-block error growth, not another row rewrite.</text>
+</svg>

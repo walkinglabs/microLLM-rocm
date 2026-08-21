@@ -75,7 +75,8 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [ ] replace max-length-per-slot reservation with length-aware Cache blocks and remeasure long S8;
 - [x] locate the first DeepSeek token/logit divergence and record source, real batch, top-2 and margin;
 - [x] refute decode batching by serializing only prefill while preserving B4/B8 positions-aware decode;
-- [ ] swap/duplicate B2 prefill local rows to separate normal GEMM-shape drift from a row-copy defect;
+- [x] swap/duplicate B2 prefill local rows and refute row, order, stride and KV-copy defects;
+- [ ] capture complete B1/B2 logits and per-block hidden/KV max-abs growth for the fixed P5 prompt;
 - [ ] add request-level TTFT and P50/P95 latency rather than throughput alone;
 
 ## P2 — operator registry and profiler API

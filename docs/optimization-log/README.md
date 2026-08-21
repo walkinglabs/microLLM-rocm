@@ -572,6 +572,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/103-data/](experiments/103-data/) | 修复前后各48进程、效率和跨slot token证据 |
 | [assets/continuous-divergence.svg](assets/continuous-divergence.svg) | top-2低margin翻转和prefill-only反驳实验 |
 | [experiments/104-data/](experiments/104-data/) | 18条诊断、serial counterfactual和PyTorch门 |
+| [assets/prefill-row-audit.svg](assets/prefill-row-audit.svg) | B2 row交换、重复prompt和row-copy反驳 |
+| [experiments/105-data/](experiments/105-data/) | 12条显式offset官方模型row/order证据 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

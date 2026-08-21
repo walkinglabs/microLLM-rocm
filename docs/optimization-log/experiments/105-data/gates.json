@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "status": "row_copy_refuted",
+  "full": {"passed": 315, "failed": 0, "skipped": 2},
+  "cpu": {"passed": 219, "failed": 0, "skipped": 2},
+  "hip": {"passed": 96, "failed": 0, "skipped": 0},
+  "sanitizer": {"passed": 212, "failed": 0, "skipped": 0},
+  "focused": {
+    "diagnostic_processes": 12,
+    "stable_processes": 12,
+    "b2_target_output_groups": 1,
+    "swapped_row_signature_groups": 1,
+    "duplicate_row_signature_groups": 1,
+    "device_argmax_top1_mismatches": 0,
+    "prompt_offset_contract_tests": 1
+  }
+}

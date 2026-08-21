@@ -103,6 +103,8 @@ needed to run a real training and generation loop:
 - opt-in continuous diagnostics report producer path/batch and top-2 margin without changing the
   default timed path; a prefill-only counterfactual isolates one DeepSeek low-margin divergence
   while PyTorch evidence rejects serial prefill as the production default.
+- explicit prompt offsets support official B2 row/order/duplicate audits; 12/12 DeepSeek processes
+  show identical B2 logits and tokens across row zero/one, refuting a stride or KV-copy defect.
 
 The design keeps three implementations where they provide engineering value:
 
@@ -348,6 +350,11 @@ at a 0.000669 margin. Serializing only prefill restores S1 logits while keeping 
 refuting decode batching as the cause; however default B2 matches PyTorch at this request and the
 serial control adds an external mismatch, so the optimization remains. See
 [Experiment 104](docs/optimization-log/experiments/104-deepseek-prefill-divergence.md).
+
+Experiment 105 places the same DeepSeek P5 prompt in B2 row zero, row one, swapped order and both
+duplicate rows. All B2 prefill signatures and complete outputs are identical while B1 remains
+different, so the difference does not follow local row, stride or cache-copy order. See
+[Experiment 105](docs/optimization-log/experiments/105-b2-prefill-row-audit.md).
 
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or

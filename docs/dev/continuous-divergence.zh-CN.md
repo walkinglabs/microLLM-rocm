@@ -76,8 +76,9 @@ PyTorch full-BF16 sequential reference是外部token参考。在原分叉请求�
 
 - scheduler、Cache refill和argmax不是这次分叉的原因；
 - prefill B1/B2是因果变量；
-- 当前证据更像BF16/hipBLASLt不同M shape的数值差异，但还没有排除B2 local-row/copy问题；
-- 下一实验应交换B2两行顺序并放入重复prompt，检查差异是否跟随row索引；
+- 后续[B2 row审计](prefill-row-audit.zh-CN.md)交换两行并复制相同prompt，证明差异不跟local
+  row、顺序或KV copy移动；
+- 当前最强解释是BF16/hipBLASLt不同M shape的数值差异，但仍需完整logit与block级误差；
 - 任何吞吐比较都必须使用关闭诊断的普通路径。
 
 ![DeepSeek slot divergence](../optimization-log/assets/continuous-divergence.svg)

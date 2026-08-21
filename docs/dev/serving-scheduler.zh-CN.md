@@ -170,6 +170,10 @@ DeepSeek仅1/4对齐，因此其余三组仍是明确失败。数据读法见
 S1，证明prefill shape是因果变量；默认B2仍因更接近PyTorch而保留。见
 [低margin分叉诊断](continuous-divergence.zh-CN.md)。
 
+显式`prompt_offsets`又把同一prompt放到B2 row0、row1并交换顺序；两行重复prompt的prefill
+signature和完整输出逐值一致，排除了local row/stride/KV copy错误。见
+[B2 prefill row审计](prefill-row-audit.zh-CN.md)。
+
 ## 8. 测试位置
 
 ```text

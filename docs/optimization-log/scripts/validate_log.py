@@ -3784,6 +3784,80 @@ def validate_deepseek_prefill_divergence(
         gates.get("focused", {}).get("counterfactual_processes", 0)
 
 
+def validate_b2_prefill_row_audit(
+        errors: list[str]) -> tuple[int, int, int, int]:
+    data = ROOT / "experiments" / "105-data"
+    raw = [json.loads(line) for line in
+           (data / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    expected_offsets = {
+        "single_5": [5], "pair_4_5": [4, 5],
+        "pair_5_4": [5, 4], "duplicate_5": [5, 5],
+    }
+    keys = {(row.get("case"), row.get("process_run")) for row in raw}
+    if len(raw) != 12 or len(keys) != 12 or any(
+            row.get("status") != "pass" or
+            row.get("prompt_offsets") != expected_offsets.get(row.get("case")) or
+            any(not diagnostic.get("device_argmax_matches_top1")
+                for diagnostic in row.get("selection_diagnostics", []))
+            for row in raw):
+        errors.append("B2 prefill row-audit raw evidence changed")
+    required_true = (
+        "b2_target_outputs_equal_across_row_order_and_duplicates",
+        "duplicate_b2_prefill_numeric_signatures_equal",
+        "swapped_b2_target_prefill_signatures_equal",
+        "single_and_b2_outputs_differ",
+    )
+    if summary.get("track") != "official_b2_prefill_row_audit" or \
+            summary.get("status") != "pass" or summary.get("runs") != 3 or \
+            any(summary.get(name) is not True for name in required_true) or \
+            "does not follow local row" not in summary.get("conclusion", "") or \
+            len(summary.get("target_rows", [])) != 5:
+        errors.append("B2 prefill row-audit summary changed")
+    rows = {(row["case"], row["request"]): row
+            for row in summary.get("target_rows", [])}
+    single = rows.get(("single_5", 0), {})
+    b2_keys = (("pair_4_5", 1), ("pair_5_4", 0),
+               ("duplicate_5", 0), ("duplicate_5", 1))
+    if single.get("generated_equal_to_single") is not True or \
+            single.get("decision_diagnostic", {}).get("top1_token") != 23606 or \
+            abs(float(single.get("prefill_diagnostic", {}).get(
+                "top1_logit", -1)) - 12.352085114) > 1.0e-7:
+        errors.append("B1 row-audit reference changed")
+    for key in b2_keys:
+        row = rows.get(key, {})
+        prefill = row.get("prefill_diagnostic", {})
+        decision = row.get("decision_diagnostic", {})
+        if row.get("generated_equal_to_single") is not False or \
+                row.get("first_difference_vs_single") != {
+                    "request": 0, "token": 4} or \
+                prefill.get("logit_batch_size") != 2 or \
+                abs(float(prefill.get("top1_logit", -1)) -
+                    12.29726696) > 1.0e-7 or \
+                decision.get("top1_token") != 1196:
+            errors.append(f"B2 row-audit target changed: {key}")
+    app = (REPOSITORY / "apps" / "hf_infer.cpp").read_text(encoding="utf-8")
+    runner = (REPOSITORY / "benchmarks" / "single_gpu" /
+              "hf_prefill_row_audit.py").read_text(encoding="utf-8")
+    tests = (REPOSITORY / "python" / "tests" /
+             "test_hf_continuous_matrix.py").read_text(encoding="utf-8")
+    if "--continuous-prompt-offsets" not in app or \
+            "prompt_offsets" not in app or \
+            '"duplicate_5"' not in runner or \
+            "test_prefill_row_audit_command_preserves_explicit_offsets" not in tests:
+        errors.append("B2 row-audit source or tests are missing")
+    if gates.get("status") != "row_copy_refuted" or \
+            gates.get("full", {}).get("passed") != 315 or \
+            gates.get("cpu", {}).get("passed") != 219 or \
+            gates.get("hip", {}).get("passed") != 96 or \
+            gates.get("sanitizer", {}).get("passed") != 212 or \
+            gates.get("focused", {}).get("diagnostic_processes") != 12:
+        errors.append("B2 row-audit final gates changed")
+    return len(raw), len(rows), len(b2_keys), \
+        gates.get("focused", {}).get("device_argmax_top1_mismatches", -1)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -3866,7 +3940,8 @@ def validate_assets(errors: list[str]) -> None:
                  "batched-slot-prefill.svg",
                  "official-continuous-serving.svg",
                  "continuous-slot-sweep.svg",
-                 "continuous-divergence.svg"):
+                 "continuous-divergence.svg",
+                 "prefill-row-audit.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -4015,6 +4090,8 @@ def main() -> int:
         slot_sweep_mismatched = validate_fixed_request_slot_sweep(errors)
     divergence_raw, divergence_cases, divergence_default, \
         divergence_counterfactual = validate_deepseek_prefill_divergence(errors)
+    row_audit_raw, row_audit_targets, row_audit_b2, row_audit_argmax = \
+        validate_b2_prefill_row_audit(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -4129,6 +4206,8 @@ def main() -> int:
           f"{slot_sweep_exact}/{slot_sweep_mismatched} "
           f"prefill_divergence={divergence_raw}/{divergence_cases}/"
           f"{divergence_default}/{divergence_counterfactual} "
+          f"prefill_row_audit={row_audit_raw}/{row_audit_targets}/"
+          f"{row_audit_b2}/{row_audit_argmax} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

@@ -1,0 +1,309 @@
+{
+  "b2_target_outputs_equal_across_row_order_and_duplicates": true,
+  "cases": {
+    "duplicate_5": {
+      "offsets": [
+        5,
+        5
+      ],
+      "outputs": [
+        16,
+        16
+      ],
+      "prompts": [
+        32,
+        32
+      ],
+      "slots": 2,
+      "targets": [
+        0,
+        1
+      ]
+    },
+    "pair_4_5": {
+      "offsets": [
+        4,
+        5
+      ],
+      "outputs": [
+        8,
+        16
+      ],
+      "prompts": [
+        32,
+        32
+      ],
+      "slots": 2,
+      "targets": [
+        1
+      ]
+    },
+    "pair_5_4": {
+      "offsets": [
+        5,
+        4
+      ],
+      "outputs": [
+        16,
+        8
+      ],
+      "prompts": [
+        32,
+        32
+      ],
+      "slots": 2,
+      "targets": [
+        0
+      ]
+    },
+    "single_5": {
+      "offsets": [
+        5
+      ],
+      "outputs": [
+        16
+      ],
+      "prompts": [
+        32
+      ],
+      "slots": 1,
+      "targets": [
+        0
+      ]
+    }
+  },
+  "conclusion": "the B1/B2 difference does not follow local row or prompt-copy order",
+  "duplicate_b2_prefill_numeric_signatures_equal": true,
+  "measurement_boundary": "host-copy diagnostics; no performance claim",
+  "model": "deepseek-r1-distill-qwen-1.5b",
+  "runs": 3,
+  "schema_version": 1,
+  "single_and_b2_outputs_differ": true,
+  "status": "pass",
+  "swapped_b2_target_prefill_signatures_equal": true,
+  "target_rows": [
+    {
+      "case": "single_5",
+      "decision_diagnostic": {
+        "cache_position": 36,
+        "device_argmax_matches_top1": true,
+        "device_selected_token": 23606,
+        "generated_index": 4,
+        "logit_batch_size": 1,
+        "logit_source": "uniform_decode",
+        "request_id": 1,
+        "scheduler_step": 5,
+        "slot": 0,
+        "top1_logit": 18.917285919,
+        "top1_token": 23606,
+        "top1_top2_margin": 0.015623093,
+        "top2_logit": 18.901662827,
+        "top2_token": 1196
+      },
+      "decision_signatures_stable": true,
+      "first_difference_vs_single": null,
+      "generated_equal_to_single": true,
+      "local_prefill_row": 0,
+      "offset": 5,
+      "prefill_diagnostic": {
+        "cache_position": 32,
+        "device_argmax_matches_top1": true,
+        "device_selected_token": 151643,
+        "generated_index": 0,
+        "logit_batch_size": 1,
+        "logit_source": "prefill",
+        "request_id": 1,
+        "scheduler_step": 1,
+        "slot": 0,
+        "top1_logit": 12.352085114,
+        "top1_token": 151643,
+        "top1_top2_margin": 1.647867203,
+        "top2_logit": 10.704217911,
+        "top2_token": 151648
+      },
+      "prefill_signatures_stable": true,
+      "request": 0
+    },
+    {
+      "case": "pair_4_5",
+      "decision_diagnostic": {
+        "cache_position": 36,
+        "device_argmax_matches_top1": true,
+        "device_selected_token": 1196,
+        "generated_index": 4,
+        "logit_batch_size": 2,
+        "logit_source": "uniform_decode",
+        "request_id": 2,
+        "scheduler_step": 5,
+        "slot": 1,
+        "top1_logit": 18.940937042,
+        "top1_token": 1196,
+        "top1_top2_margin": 0.083911896,
+        "top2_logit": 18.857025146,
+        "top2_token": 23606
+      },
+      "decision_signatures_stable": true,
+      "first_difference_vs_single": {
+        "request": 0,
+        "token": 4
+      },
+      "generated_equal_to_single": false,
+      "local_prefill_row": 1,
+      "offset": 5,
+      "prefill_diagnostic": {
+        "cache_position": 32,
+        "device_argmax_matches_top1": true,
+        "device_selected_token": 151643,
+        "generated_index": 0,
+        "logit_batch_size": 2,
+        "logit_source": "prefill",
+        "request_id": 2,
+        "scheduler_step": 1,
+        "slot": 1,
+        "top1_logit": 12.29726696,
+        "top1_token": 151643,
+        "top1_top2_margin": 1.525561333,
+        "top2_logit": 10.771705627,
+        "top2_token": 151648
+      },
+      "prefill_signatures_stable": true,
+      "request": 1
+    },
+    {
+      "case": "pair_5_4",
+      "decision_diagnostic": {
+        "cache_position": 36,
+        "device_argmax_matches_top1": true,
+        "device_selected_token": 1196,
+        "generated_index": 4,
+        "logit_batch_size": 2,
+        "logit_source": "uniform_decode",
+        "request_id": 1,
+        "scheduler_step": 5,
+        "slot": 0,
+        "top1_logit": 18.940937042,
+        "top1_token": 1196,
+        "top1_top2_margin": 0.083911896,
+        "top2_logit": 18.857025146,
+        "top2_token": 23606
+      },
+      "decision_signatures_stable": true,
+      "first_difference_vs_single": {
+        "request": 0,
+        "token": 4
+      },
+      "generated_equal_to_single": false,
+      "local_prefill_row": 0,
+      "offset": 5,
+      "prefill_diagnostic": {
+        "cache_position": 32,
+        "device_argmax_matches_top1": true,
+        "device_selected_token": 151643,
+        "generated_index": 0,
+        "logit_batch_size": 2,
+        "logit_source": "prefill",
+        "request_id": 1,
+        "scheduler_step": 1,
+        "slot": 0,
+        "top1_logit": 12.29726696,
+        "top1_token": 151643,
+        "top1_top2_margin": 1.525561333,
+        "top2_logit": 10.771705627,
+        "top2_token": 151648
+      },
+      "prefill_signatures_stable": true,
+      "request": 0
+    },
+    {
+      "case": "duplicate_5",
+      "decision_diagnostic": {
+        "cache_position": 36,
+        "device_argmax_matches_top1": true,
+        "device_selected_token": 1196,
+        "generated_index": 4,
+        "logit_batch_size": 2,
+        "logit_source": "uniform_decode",
+        "request_id": 1,
+        "scheduler_step": 5,
+        "slot": 0,
+        "top1_logit": 18.940937042,
+        "top1_token": 1196,
+        "top1_top2_margin": 0.083911896,
+        "top2_logit": 18.857025146,
+        "top2_token": 23606
+      },
+      "decision_signatures_stable": true,
+      "first_difference_vs_single": {
+        "request": 0,
+        "token": 4
+      },
+      "generated_equal_to_single": false,
+      "local_prefill_row": 0,
+      "offset": 5,
+      "prefill_diagnostic": {
+        "cache_position": 32,
+        "device_argmax_matches_top1": true,
+        "device_selected_token": 151643,
+        "generated_index": 0,
+        "logit_batch_size": 2,
+        "logit_source": "prefill",
+        "request_id": 1,
+        "scheduler_step": 1,
+        "slot": 0,
+        "top1_logit": 12.29726696,
+        "top1_token": 151643,
+        "top1_top2_margin": 1.525561333,
+        "top2_logit": 10.771705627,
+        "top2_token": 151648
+      },
+      "prefill_signatures_stable": true,
+      "request": 0
+    },
+    {
+      "case": "duplicate_5",
+      "decision_diagnostic": {
+        "cache_position": 36,
+        "device_argmax_matches_top1": true,
+        "device_selected_token": 1196,
+        "generated_index": 4,
+        "logit_batch_size": 2,
+        "logit_source": "uniform_decode",
+        "request_id": 2,
+        "scheduler_step": 5,
+        "slot": 1,
+        "top1_logit": 18.940937042,
+        "top1_token": 1196,
+        "top1_top2_margin": 0.083911896,
+        "top2_logit": 18.857025146,
+        "top2_token": 23606
+      },
+      "decision_signatures_stable": true,
+      "first_difference_vs_single": {
+        "request": 0,
+        "token": 4
+      },
+      "generated_equal_to_single": false,
+      "local_prefill_row": 1,
+      "offset": 5,
+      "prefill_diagnostic": {
+        "cache_position": 32,
+        "device_argmax_matches_top1": true,
+        "device_selected_token": 151643,
+        "generated_index": 0,
+        "logit_batch_size": 2,
+        "logit_source": "prefill",
+        "request_id": 2,
+        "scheduler_step": 1,
+        "slot": 1,
+        "top1_logit": 12.29726696,
+        "top1_token": 151643,
+        "top1_top2_margin": 1.525561333,
+        "top2_logit": 10.771705627,
+        "top2_token": 151648
+      },
+      "prefill_signatures_stable": true,
+      "request": 1
+    }
+  ],
+  "track": "official_b2_prefill_row_audit"
+}
