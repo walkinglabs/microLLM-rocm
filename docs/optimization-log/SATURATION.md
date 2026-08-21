@@ -10,7 +10,7 @@ permute the same knobs would repeat rejected experiments rather than produce res
 
 | Search space | Measured conclusion |
 |---|---|
-| allocator retirement batch | 8 works, 16 wins, 24 and 32 lose |
+| allocator retirement batch | historical 8/16/24/32 search superseded by immediate default-Stream exact-size reuse in Experiment 087 |
 | cached Attention block size | 64/128-thread specialization loses to 256 |
 | cached Attention query staging | shared-memory query lowers DeepSeek and score |
 | local bias fusion | hipBLASLt epilogue and V-bias/store both lose end-to-end |
@@ -28,7 +28,7 @@ permute the same knobs would repeat rejected experiments rather than produce res
 - device KV cache, direct GQA and fused cached Attention;
 - fused Q/K bias+RoPE and paired K/V store;
 - two-stage large-vocabulary argmax;
-- steady-state exact-size pool with 16-block shared retirement Events;
+- steady-state exact-size pool with phase-independent legacy-default-Stream reuse;
 - width-aware fused residual-Norm.
 
 ## Why the next work is architectural

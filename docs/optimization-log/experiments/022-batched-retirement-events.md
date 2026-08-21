@@ -1,5 +1,9 @@
 # Experiment 022 — batched allocator retirement Events
 
+> **后续实现修正：** Experiment 087证明，在已经强制的legacy default Stream边界内，exact-size
+> 地址可以按同一Stream顺序立即复用；16-block Event批次会引入分配相位敏感。本页性能数据保留，
+> 但当前main已使用Experiment 087的立即复用实现。
+
 Status: `keep`
 
 ## Observation

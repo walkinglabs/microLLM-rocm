@@ -536,6 +536,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/085-data/](experiments/085-data/) | semantic/Release矩阵、build-type审计和invalid runner证据 |
 | [assets/deepseek-steady-profile-d2h-discard.svg](assets/deepseek-steady-profile-d2h-discard.svg) | T2048热点组成与D2H候选的B8反例 |
 | [experiments/086-data/](experiments/086-data/) | rocprof聚合表、三对交替进程和allocator counter |
+| [assets/immediate-default-stream-pool.svg](assets/immediate-default-stream-pool.svg) | 去除16-block相位后的allocation与吞吐门 |
+| [experiments/087-data/](experiments/087-data/) | T2048/T512交替对、官方shape survey与Stream安全合同 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

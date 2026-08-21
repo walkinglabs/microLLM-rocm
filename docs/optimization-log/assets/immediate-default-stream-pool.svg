@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="560" viewBox="0 0 1080 560" role="img" aria-labelledby="title desc">
+  <title id="title">Immediate default-stream exact-size allocator results</title>
+  <desc id="desc">Immediate exact-size reuse removes allocation phase sensitivity, sharply reduces backend allocations, and modestly improves throughput without changing peak memory or tokens.</desc>
+  <rect width="1080" height="560" fill="#0b1020"/>
+  <text x="38" y="42" fill="#f8fafc" font-family="sans-serif" font-size="24" font-weight="700">Experiment 087 · remove the 16-block phase</text>
+  <text x="38" y="70" fill="#94a3b8" font-family="sans-serif" font-size="14">Immediate exact-size reuse · legacy default Stream only</text>
+
+  <rect x="38" y="104" width="500" height="390" rx="12" fill="#111827" stroke="#334155"/>
+  <text x="64" y="140" fill="#e2e8f0" font-family="sans-serif" font-size="18" font-weight="700">Backend allocations · median</text>
+  <g font-family="sans-serif" font-size="14">
+    <text x="64" y="190" fill="#cbd5e1">DeepSeek T2048 B1</text>
+    <rect x="230" y="174" width="240" height="20" rx="3" fill="#64748b"/><text x="478" y="190" fill="#cbd5e1">1,091</text>
+    <rect x="230" y="202" width="21" height="20" rx="3" fill="#22c55e"/><text x="259" y="218" fill="#dcfce7">94</text>
+
+    <text x="64" y="272" fill="#cbd5e1">DeepSeek T2048 B8</text>
+    <rect x="230" y="256" width="199" height="20" rx="3" fill="#64748b"/><text x="437" y="272" fill="#cbd5e1">903</text>
+    <rect x="230" y="284" width="21" height="20" rx="3" fill="#22c55e"/><text x="259" y="300" fill="#dcfce7">94</text>
+
+    <text x="64" y="354" fill="#cbd5e1">Qwen T512 B8</text>
+    <rect x="230" y="338" width="175" height="20" rx="3" fill="#64748b"/><text x="413" y="354" fill="#cbd5e1">797</text>
+    <rect x="230" y="366" width="19" height="20" rx="3" fill="#22c55e"/><text x="257" y="382" fill="#dcfce7">86</text>
+
+    <text x="64" y="432" fill="#94a3b8">Grey: event-batched baseline</text>
+    <text x="64" y="458" fill="#94a3b8">Green: immediate exact-size reuse</text>
+  </g>
+
+  <rect x="562" y="104" width="480" height="390" rx="12" fill="#111827" stroke="#334155"/>
+  <text x="588" y="140" fill="#e2e8f0" font-family="sans-serif" font-size="18" font-weight="700">Alternating Release throughput</text>
+  <line x1="748" y1="166" x2="748" y2="390" stroke="#e2e8f0" stroke-dasharray="5 4"/>
+  <text x="733" y="414" fill="#e2e8f0" font-family="sans-serif" font-size="12">1×</text>
+  <g font-family="sans-serif" font-size="14">
+    <text x="588" y="204" fill="#cbd5e1">Deep T2048 B1</text><rect x="588" y="218" width="162" height="22" rx="3" fill="#22c55e"/><text x="760" y="235" fill="#dcfce7">1.010×</text>
+    <text x="588" y="278" fill="#cbd5e1">Deep T2048 B8</text><rect x="588" y="292" width="166" height="22" rx="3" fill="#22c55e"/><text x="764" y="309" fill="#dcfce7">1.033×</text>
+    <text x="588" y="352" fill="#cbd5e1">Qwen T512 B8</text><rect x="588" y="366" width="162" height="22" rx="3" fill="#22c55e"/><text x="760" y="383" fill="#dcfce7">1.014×</text>
+    <text x="588" y="448" fill="#93c5fd">Peak memory unchanged · tokens unchanged</text>
+    <text x="588" y="474" fill="#94a3b8">Non-default Stream still disables the pool.</text>
+  </g>
+
+  <line x1="38" y1="520" x2="1042" y2="520" stroke="#334155"/>
+  <circle cx="64" cy="537" r="6" fill="#22c55e"/>
+  <text x="78" y="542" fill="#94a3b8" font-family="sans-serif" font-size="13">KEEP · deterministic reuse before the next cached Attention experiment</text>
+</svg>

@@ -1165,7 +1165,6 @@ TEST(HipAllocatorStressTest, ReusedDefaultStreamBlocksPreserveAsyncKernelOrder) 
     for (int iteration = 0; iteration < 256; ++iteration) {
         Tensor temporary({4096}, DType::Float32, gpu);
         fill_(temporary, static_cast<float>(iteration));
-        if (iteration % 16 == 15) runtime::synchronize(gpu);
     }
     try {
         Tensor temporary({4096}, DType::Float32, gpu);

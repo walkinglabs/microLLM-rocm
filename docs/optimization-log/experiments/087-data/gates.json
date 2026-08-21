@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "cpu": {"passed": 207, "failed": 0, "skipped": 2},
+  "hip": {"passed": 88, "failed": 0, "skipped": 0},
+  "sanitizer": {"passed": 200, "failed": 0, "skipped": 0},
+  "allocator_safety": {
+    "immediate_exact_size_reuse": true,
+    "no_sync_256_iteration_kernel_order": true,
+    "non_default_stream_disables_pool": true
+  }
+}

@@ -95,7 +95,6 @@ TEST(HipRuntimeTest, ExactSizePoolReusesCompletedDefaultStreamBlock) {
     {
         Storage first(4096, gpu);
     }
-    synchronize(gpu);
     {
         Storage second(4096, gpu);
     }
@@ -109,25 +108,24 @@ TEST(HipRuntimeTest, ExactSizePoolReusesCompletedDefaultStreamBlock) {
     EXPECT_EQ(stats.reserved_bytes, baseline.reserved_bytes + 4096U);
 }
 
-TEST(HipRuntimeTest, RetirementBatchReusesEveryBlockAfterOneCompletionBoundary) {
+TEST(HipRuntimeTest, DefaultStreamPoolReusesEveryExactSizeWithoutBatchPhase) {
     if (hip_device_count() == 0) GTEST_SKIP() << "No visible HIP device";
+    constexpr std::size_t kBytes = 4352;
     const auto gpu = Device::hip(0);
     enable_hip_caching_allocator(gpu);
     reset_allocation_peak(gpu);
     {
         std::vector<Storage> blocks;
-        for (int index = 0; index < 16; ++index) blocks.emplace_back(4096, gpu);
+        for (int index = 0; index < 16; ++index) blocks.emplace_back(kBytes, gpu);
     }
-    synchronize(gpu);
     {
         std::vector<Storage> blocks;
-        for (int index = 0; index < 16; ++index) blocks.emplace_back(4096, gpu);
+        for (int index = 0; index < 16; ++index) blocks.emplace_back(kBytes, gpu);
         const auto stats = allocation_stats(gpu);
         EXPECT_EQ(stats.allocation_calls, 32U);
         EXPECT_EQ(stats.backend_allocation_calls, 16U);
         EXPECT_EQ(stats.cache_reuse_calls, 16U);
     }
-    synchronize(gpu);
 }
 
 TEST(HipRuntimeTest, NonDefaultStreamPermanentlyDisablesPoolReuse) {

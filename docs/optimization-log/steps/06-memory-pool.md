@@ -9,6 +9,10 @@ calls about 8× and raising the fixed score to `2.389841`.
 Experiment 023 raises the measured batch to sixteen: Event calls halve again and the
 score reaches `2.470863`, with unchanged engine peak bytes.
 
+Experiment 087 later removes retirement batching under the already strict legacy-default-Stream
+contract. Immediate exact-size reuse eliminates allocation-count phase sensitivity; non-default
+Stream use still permanently disables the pool.
+
 ## Hypothesis
 
 Thousands of hipMalloc/hipFree calls and implicit synchronization materially increase

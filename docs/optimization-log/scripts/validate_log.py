@@ -2565,6 +2565,69 @@ def validate_deepseek_steady_profile_d2h_discard(
         int(profile["batch_8"]["cached_attention_calls"])
 
 
+def validate_immediate_default_stream_pool(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "087-data"
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    qwen_pair = json.loads(
+        (data / "qwen-t512-b8-pair-summary.json").read_text(encoding="utf-8"))
+    deepseek_pair = json.loads(
+        (data / "deepseek-t512-b8-pair-summary.json").read_text(encoding="utf-8"))
+
+    def records(name: str) -> list[dict]:
+        return [json.loads(line) for line in
+                (data / name).read_text(encoding="utf-8").splitlines()]
+
+    qwen = records("qwen-matrix-raw.jsonl")
+    deepseek = records("deepseek-matrix-raw.jsonl")
+    if summary.get("status") != "pass" or summary.get("decision") != "keep" or \
+            not 1.0 < float(summary["t2048_pairs"]["batch_1"]["speedup"]) < 1.05 or \
+            not 1.0 < float(summary["t2048_pairs"]["batch_8"]["speedup"]) < 1.10 or \
+            summary["t2048_pairs"]["batch_8"]["backend_allocations"] != [903, 94] or \
+            summary["t2048_pairs"]["batch_8"]["backend_deallocations"] != [352, 0] or \
+            summary.get("safety_contract", {}).get(
+                "non_default_stream_permanently_disables_pool") is not True:
+        errors.append("immediate allocator keep evidence changed")
+    if qwen_pair.get("status") != "pass" or deepseek_pair.get("status") != "pass" or \
+            not 1.0 < float(qwen_pair.get("candidate_speedup", 0.0)) < 1.05 or \
+            float(deepseek_pair.get("candidate_speedup", 0.0)) < 1.05 or \
+            qwen_pair.get("tokens_equal") is not True or \
+            deepseek_pair.get("tokens_equal") is not True:
+        errors.append("T512 B8 allocator recheck evidence changed")
+    if len(qwen) != 12 or len(deepseek) != 12 or any(
+            record.get("status") != "pass" for record in qwen + deepseek):
+        errors.append("allocator official matrix rows changed")
+    micro = [record for record in qwen + deepseek
+             if record.get("framework") == "microllm"]
+    if len(micro) != 12 or any(
+            not 82 <= int(record.get("engine_backend_allocation_calls", -1)) <= 94 or
+            int(record.get("engine_backend_deallocation_calls", -1)) != 0
+            for record in micro):
+        errors.append("allocator candidate reuse counters changed")
+    if gates.get("status") != "pass" or gates.get("cpu", {}).get("passed") != 207 or \
+            gates.get("hip", {}).get("passed") != 88 or \
+            gates.get("sanitizer", {}).get("passed") != 200 or any(
+                gates.get("allocator_safety", {}).get(name) is not True for name in (
+                    "immediate_exact_size_reuse",
+                    "no_sync_256_iteration_kernel_order",
+                    "non_default_stream_disables_pool")):
+        errors.append("immediate allocator safety gates changed")
+    runtime_source = (REPOSITORY / "src" / "runtime" / "runtime.cpp").read_text(
+        encoding="utf-8")
+    runtime_tests = (REPOSITORY / "tests" / "runtime" / "runtime_test.cpp").read_text(
+        encoding="utf-8")
+    stress_tests = (REPOSITORY / "tests" / "ops" / "hip_ops_test.cpp").read_text(
+        encoding="utf-8")
+    if "kRetirementBatchSize" in runtime_source or \
+            "std::vector<void*>" not in runtime_source or \
+            "notify_non_default_stream permanently disables" not in runtime_source or \
+            "DefaultStreamPoolReusesEveryExactSizeWithoutBatchPhase" not in runtime_tests or \
+            "if (iteration % 16" in stress_tests:
+        errors.append("immediate allocator source or safety gate changed")
+    return len(qwen) + len(deepseek), len(micro), \
+        int(summary["t2048_pairs"]["batch_8"]["backend_allocations"][1])
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -2629,7 +2692,8 @@ def validate_assets(errors: list[str]) -> None:
                  "kv-cache-clear-row.svg",
                  "kv-cache-per-row-positions.svg",
                  "steady-inference-shape-memory.svg",
-                 "deepseek-steady-profile-d2h-discard.svg"):
+                 "deepseek-steady-profile-d2h-discard.svg",
+                 "immediate-default-stream-pool.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -2741,6 +2805,8 @@ def main() -> int:
         validate_inference_shape_memory_matrix(errors)
     steady_profile_raw, steady_profile_b1, steady_profile_b8 = \
         validate_deepseek_steady_profile_d2h_discard(errors)
+    immediate_pool_raw, immediate_pool_micro, immediate_pool_allocations = \
+        validate_immediate_default_stream_pool(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -2818,6 +2884,8 @@ def main() -> int:
           f"{inference_matrix_invalid}/{inference_matrix_release} "
           f"steady_profile={steady_profile_raw}/{steady_profile_b1}/"
           f"{steady_profile_b8} "
+          f"immediate_pool={immediate_pool_raw}/{immediate_pool_micro}/"
+          f"{immediate_pool_allocations} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

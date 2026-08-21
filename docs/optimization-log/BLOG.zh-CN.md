@@ -1896,3 +1896,19 @@ median为1.002×，但B8只有0.861×。候选改变了小Tensor分配相位，b
 候选完整回退。这个失败说明当前exact-size allocator对分配数量过于敏感，会让本来正确的小优化
 随机触发大规模alloc/free。Experiment 087先稳定allocator，再重试D2H；cached Attention保持
 独立的设备Kernel主线，不把两个变量塞进同一次改动。
+
+## 104. Experiment 087：同一条Stream不需要等第16次释放
+
+旧pool只有凑满16个pending块才记录Event并允许复用。候选利用既有强合同：引擎只使用legacy
+default Stream，后提交的Kernel天然排在旧Kernel之后，所以同地址可以立即按exact size复用；
+一旦出现non-default Stream，pool仍永久禁用。
+
+![Immediate default-stream pool](assets/immediate-default-stream-pool.svg)
+
+无同步的256轮fill/destroy/reuse压力门通过。DeepSeek T2048 B1/B8三对median提高1.010×/1.033×，
+backend allocation从1,091/903降到94/94。Qwen/DeepSeek T512 B8反驳实验为1.014×/1.099×，
+推翻了宽矩阵的一次冷态负结果。所有candidate shape只有82–94次backend allocation、0次backend
+deallocation，peak、KV和baseline token不变。
+
+这个节点保留。它没有让Attention少读一个字节，却先消除了小改动触发allocator风暴的随机性。
+Experiment 088现在可以干净地只改`cached_attention_fused_kernel`。

@@ -37,6 +37,8 @@ needed to run a real training and generation loop:
   with shared QKV cast, exact-token, memory, throughput and PyTorch BF16 evidence;
 - C, Python ctypes, and optional PyTorch dispatcher adapters;
 - reproducible benchmarks, rocprofv3 workflows, hipBLASLt, and RCCL experiments.
+- a phase-independent exact-size HIP pool with immediate legacy-default-Stream reuse and strict
+  permanent disablement for non-default Streams;
 - a cross-framework trace runner for operator/layer values and latency comparisons.
 - explicit Scalar/Vectorized AdamW experiments with HIP Event micro-benchmarks; Auto remains
   on the model-validated scalar policy.
@@ -157,9 +159,9 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 278/278 | 198 CPU-labelled + 80 HIP-labelled gates; 2 intentional environment skips |
-| ASan/UBSan CPU | 191/191 | host code, CLI, model/graph, benchmark and evidence schemas |
-| MI300X/gfx942 HIP | 73/73 | allocator/stream, graph, BF16/FP8, batched GEMM and model matrix |
+| Full CPU/HIP configuration | 295/295 | 207 CPU-labelled + 88 HIP-labelled gates; 2 intentional environment skips |
+| ASan/UBSan CPU | 200/200 | host code, CLI, model/graph, benchmark and evidence schemas |
+| MI300X/gfx942 HIP | 88/88 | allocator/stream, graph, BF16/FP8, batched GEMM and model matrix |
 | PyTorch-enabled CPU build | 196/196 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
 | Registered test files | 37 | machine-audited CTest registration |
@@ -224,6 +226,12 @@ contexts and invalid free-first-token evidence are reported in
 [Experiment 036](docs/optimization-log/experiments/036-bf16-immutable-plan-cache.md)
 remains historical short-shape evidence; its 4/4 performance result is superseded by the
 corrected steady-decode matrix.
+
+Experiment 087 removes the exact-size allocator's 16-block retirement phase under its strict
+legacy-default-Stream-only contract. DeepSeek T2048 B1/B8 alternating medians improve
+`1.010×/1.033×`; backend allocations fall to 94 with unchanged peak, KV and tokens. Qwen/DeepSeek
+T512 B8 targeted rechecks improve `1.014×/1.099×`. See
+[allocator evidence](docs/optimization-log/experiments/087-immediate-default-stream-pool.md).
 
 After Experiment 061 routes graph-free long prefill through batched hipBLASLt, the retained
 T512 prefill ratios become `0.308×` (Qwen) and `0.229×` (DeepSeek); T1024 reaches

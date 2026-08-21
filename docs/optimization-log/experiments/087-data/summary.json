@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "decision": "keep",
+  "candidate": "legacy-default-stream immediate exact-size reuse",
+  "scope": {
+    "architecture": "gfx942",
+    "build_type": "Release",
+    "model": "deepseek-r1-distill-qwen-1.5b",
+    "context": 2048,
+    "decode_tokens": 8,
+    "process_pairs": 3
+  },
+  "t2048_pairs": {
+    "batch_1": {
+      "baseline_tokens_per_second": 66.595700254,
+      "candidate_tokens_per_second": 67.231162854,
+      "speedup": 1.0095420965,
+      "backend_allocations": [1091, 94],
+      "backend_deallocations": [113, 0],
+      "cache_reuse": [15232, 16229],
+      "peak_bytes_unchanged": true,
+      "tokens_equal": true
+    },
+    "batch_8": {
+      "baseline_tokens_per_second": 496.005387032,
+      "candidate_tokens_per_second": 512.386817888,
+      "speedup": 1.0330267196,
+      "backend_allocations": [903, 94],
+      "backend_deallocations": [352, 0],
+      "cache_reuse": [15423, 16232],
+      "peak_bytes_unchanged": true,
+      "tokens_equal": true
+    }
+  },
+  "t512_b8_rechecks": {
+    "qwen": {
+      "baseline_tokens_per_second": 1676.164305412,
+      "candidate_tokens_per_second": 1699.995130222,
+      "speedup": 1.0142174754,
+      "backend_allocations": [797, 86],
+      "tokens_equal": true
+    },
+    "deepseek": {
+      "baseline_tokens_per_second": 905.206066389,
+      "candidate_tokens_per_second": 994.718577976,
+      "speedup": 1.0988863364,
+      "backend_allocations": [958, 94],
+      "tokens_equal": true
+    }
+  },
+  "official_candidate_matrix": {
+    "process_records": 24,
+    "qwen_passed_shapes": 6,
+    "deepseek_passed_shapes": 6,
+    "qwen_tokens_match_pytorch": 6,
+    "deepseek_tokens_match_pytorch": 4,
+    "deepseek_t2048_divergence_retained": true,
+    "candidate_backend_allocation_min": 82,
+    "candidate_backend_allocation_max": 94,
+    "candidate_backend_deallocations": 0,
+    "peak_memory_changed": false
+  },
+  "safety_contract": {
+    "immediate_reuse_only_on_legacy_default_stream": true,
+    "same_stream_kernel_order_tested_without_intermediate_sync": true,
+    "non_default_stream_permanently_disables_pool": true,
+    "exact_size_only": true,
+    "cache_limit_bytes": 8589934592
+  }
+}

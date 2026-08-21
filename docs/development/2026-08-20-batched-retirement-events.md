@@ -1,5 +1,8 @@
 # 2026-08-20 — batched allocator retirement Events
 
+> Superseded by Experiment 087: the strict legacy-default-Stream contract now permits immediate
+> exact-size reuse. This file remains historical evidence for the earlier Event-batched design.
+
 The default-Stream exact-size allocator now retires sixteen blocks behind one shared HIP
 Event. Shared ownership keeps the Event alive until every associated block leaves the
 retired lists. Incomplete batches flush before explicit device synchronization, and

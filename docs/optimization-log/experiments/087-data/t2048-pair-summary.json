@@ -1,0 +1,52 @@
+{
+  "rows": [
+    {
+      "baseline_decode_tokens_per_second": 66.595700254,
+      "baseline_engine_allocation_calls": 16323.0,
+      "baseline_engine_backend_allocation_calls": 1091.0,
+      "baseline_engine_backend_deallocation_calls": 113.0,
+      "baseline_engine_cache_reuse_calls": 15232.0,
+      "baseline_engine_peak_bytes": 4857305088.0,
+      "baseline_engine_reserved_bytes": 13077328392.0,
+      "baseline_mean_generation_ms": 120.127875667,
+      "batch": 1,
+      "candidate_decode_tokens_per_second": 67.231162854,
+      "candidate_engine_allocation_calls": 16323.0,
+      "candidate_engine_backend_allocation_calls": 94.0,
+      "candidate_engine_backend_deallocation_calls": 0.0,
+      "candidate_engine_cache_reuse_calls": 16229.0,
+      "candidate_engine_peak_bytes": 4857305088.0,
+      "candidate_engine_reserved_bytes": 4978158088.0,
+      "candidate_mean_generation_ms": 118.992438333,
+      "candidate_speedup": 1.009542096525396,
+      "context": 2048,
+      "decode_tokens": 8,
+      "tokens_equal": true
+    },
+    {
+      "baseline_decode_tokens_per_second": 496.005387032,
+      "baseline_engine_allocation_calls": 16326.0,
+      "baseline_engine_backend_allocation_calls": 903.0,
+      "baseline_engine_backend_deallocation_calls": 352.0,
+      "baseline_engine_cache_reuse_calls": 15423.0,
+      "baseline_engine_peak_bytes": 7442716672.0,
+      "baseline_engine_reserved_bytes": 13073516608.0,
+      "baseline_mean_generation_ms": 129.030856667,
+      "batch": 8,
+      "candidate_decode_tokens_per_second": 512.386817888,
+      "candidate_engine_allocation_calls": 16326.0,
+      "candidate_engine_backend_allocation_calls": 94.0,
+      "candidate_engine_backend_deallocation_calls": 0.0,
+      "candidate_engine_cache_reuse_calls": 16232.0,
+      "candidate_engine_peak_bytes": 7442716672.0,
+      "candidate_engine_reserved_bytes": 8409540672.0,
+      "candidate_mean_generation_ms": 124.905633333,
+      "candidate_speedup": 1.0330267196371057,
+      "context": 2048,
+      "decode_tokens": 8,
+      "tokens_equal": true
+    }
+  ],
+  "schema_version": 1,
+  "status": "pass"
+}

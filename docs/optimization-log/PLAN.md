@@ -34,7 +34,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [03](steps/03-parallel-rmsnorm.md) | complete | block-parallel RMSNorm | score 0.885816 |
 | [04](steps/04-device-kv-cache.md) | complete | 预分配 device KV/GQA | score 1.167931 |
 | [05](steps/05-device-sampling.md) | complete | device greedy argmax；随机 top-k 保留 reference | score 1.219170 |
-| [06](steps/06-memory-pool.md) | complete | exact-size pool + 16-block retirement Event batching | score 2.470863 |
+| [06](steps/06-memory-pool.md) | complete | exact-size pool + phase-independent default-Stream reuse | score 2.470863 + Experiment 087 inference evidence |
 | [07](steps/07-autograd-buffers.md) | complete | COW/stable/chunking discarded；float4 explicit-only、Auto scalar | operator/model evidence boundary |
 | [08](steps/08-batched-fmha.md) | in progress | cached/full GQA；T512 batched backward retained | flash-style row/forward |
 | [09](steps/09-fusion-autotune.md) | in progress | fusion/wide-row kept；offline GEMM solution discarded | score 1.845199 |

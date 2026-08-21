@@ -1,0 +1,13 @@
+{
+  "baseline_backend_allocations": 958,
+  "baseline_tps": 905.206066389,
+  "batch": 8,
+  "candidate_backend_allocations": 94,
+  "candidate_speedup": 1.0988863363941854,
+  "candidate_tps": 994.718577976,
+  "context": 512,
+  "decode_tokens": 8,
+  "schema_version": 1,
+  "status": "pass",
+  "tokens_equal": true
+}
