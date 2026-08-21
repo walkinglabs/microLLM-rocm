@@ -1,0 +1,31 @@
+{
+  "experiment": "folded_gqa_gemm",
+  "rows": [
+    {
+      "folded_over_pytorch": 0.4024715112136263,
+      "folded_peak_bytes": 5350657536.0,
+      "folded_tps": 135372.161694875,
+      "model": "qwen2.5-0.5b",
+      "peak_reduction": 0.03187381207601936,
+      "pytorch_tps": 336352.1589060283,
+      "reference_peak_bytes": 5526818304.0,
+      "reference_tps": 129814.645461062,
+      "speedup": 1.0428111652123255,
+      "top_token_equal": true
+    },
+    {
+      "folded_over_pytorch": 0.5615489273286827,
+      "folded_peak_bytes": 8284538880.0,
+      "folded_tps": 71368.647850574,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "peak_reduction": 0.03517019463388349,
+      "pytorch_tps": 127092.48362396195,
+      "reference_peak_bytes": 8586528768.0,
+      "reference_tps": 66444.191366587,
+      "speedup": 1.0741141758625325,
+      "top_token_equal": true
+    }
+  ],
+  "schema_version": 1,
+  "status": "discard"
+}

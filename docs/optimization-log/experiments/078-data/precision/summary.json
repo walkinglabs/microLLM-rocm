@@ -1,0 +1,32 @@
+{
+  "rows": [
+    {
+      "batch": 8,
+      "context": 2048,
+      "folded_forward_ms": 121.347702,
+      "folded_top": 9707,
+      "max_abs": 0.07345008850097656,
+      "model": "qwen2.5-0.5b",
+      "reference_forward_ms": 125.512545,
+      "reference_top": 9707,
+      "rmse": 0.0156694558540688,
+      "top_equal": true,
+      "values": 151936
+    },
+    {
+      "batch": 8,
+      "context": 2048,
+      "folded_forward_ms": 231.331866,
+      "folded_top": 30,
+      "max_abs": 0.05631518363952637,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "reference_forward_ms": 247.743812,
+      "reference_top": 30,
+      "rmse": 0.011866830624587979,
+      "top_equal": true,
+      "values": 151936
+    }
+  ],
+  "schema_version": 1,
+  "status": "pass"
+}

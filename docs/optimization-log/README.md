@@ -511,6 +511,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/076-data/](experiments/076-data/) | 120条Qwen/DeepSeek prefill、FP32/BF16 cached raw与summary |
 | [assets/serving-last-logit-prefill.svg](assets/serving-last-logit-prefill.svg) | full→last吞吐、峰值、D2H和新Attention热点 |
 | [experiments/077-data/](experiments/077-data/) | full/last正式矩阵、48条shape、完整logits和前后profile统计 |
+| [assets/folded-gqa-discard.svg](assets/folded-gqa-discard.svg) | 性能/显存成功与完整logits反驳门 |
+| [experiments/078-data/](experiments/078-data/) | 三进程候选、T2048 B8完整logits和机制profile |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

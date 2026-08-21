@@ -1766,3 +1766,16 @@ DeepSeek `50.4k→66.4k`（1.32×）。峰值下降74%/65%，D2H精确缩小2048
 full与last完整词表max-abs不超过`3.1e-5`，24/24宽shape top token与PyTorch一致。新矩阵仍
 只有PyTorch的0.39×/0.53×；softmax时间保持约131–132ms并成为真实热点。旧prefill结果保留
 但改标full-logits，cached decode与KV结论不受影响。
+
+## 95. Experiment 078：更快、更省，但不能合入
+
+候选不再把GQA的K/V复制到每个query head，而是把共享head折进GEMM行维。机制完全命中：
+repeat Kernel 192/224次降到0，Qwen/DeepSeek快4.3%/7.4%，peak少3.2%/3.5%。
+
+![Folded GQA discarded](assets/folded-gqa-discard.svg)
+
+但T2048 B8的151,936个logit对照失败：Qwen max-abs/RMSE为0.0735/0.0157，DeepSeek为
+0.0563/0.0119，远高于`1e-4/1e-5`门。top token仍相同，恰好说明top-1不是充分证据。
+
+候选标记`discard`并回退。数学公式等价不代表换一个hipBLASLt shape后数值轨迹仍满足官方
+模型门；下一轮改softmax时必须先跑完整logits，再跑性能。

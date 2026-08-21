@@ -2096,6 +2096,47 @@ def validate_serving_last_logit_prefill(errors: list[str]) -> tuple[int, int, in
         counts["shape-survey-last"], len(precision_rows)
 
 
+def validate_folded_gqa_discard(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "078-data"
+    raw = [json.loads(line) for line in
+           (data / "formal" / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    keys = {(row.get("model"), row.get("framework"), row.get("process_run"))
+            for row in raw}
+    if len(raw) != 12 or len(keys) != 12 or any(
+            row.get("status") != "pass" or row.get("context") != 2048 or
+            row.get("batch") != 8 or row.get("prefill_logits_mode") != "last"
+            for row in raw):
+        errors.append("folded GQA formal protocol changed")
+    comparison = json.loads((data / "comparison.json").read_text(encoding="utf-8"))
+    rows = {row.get("model"): row for row in comparison.get("rows", [])}
+    if comparison.get("status") != "discard" or len(rows) != 2 or \
+            float(rows.get("qwen2.5-0.5b", {}).get("speedup", 0.0)) < 1.04 or \
+            float(rows.get("deepseek-r1-distill-qwen-1.5b", {}).get(
+                "speedup", 0.0)) < 1.07:
+        errors.append("folded GQA performance evidence changed")
+    precision = json.loads((data / "precision" / "summary.json").read_text(
+        encoding="utf-8"))
+    precision_rows = precision.get("rows", [])
+    if len(precision_rows) != 2 or any(
+            row.get("top_equal") is not True or
+            float(row.get("max_abs", 0.0)) < 0.05 or
+            float(row.get("rmse", 0.0)) < 0.01 for row in precision_rows):
+        errors.append("folded GQA retained precision failure changed")
+    profile = json.loads((data / "profile" / "summary.json").read_text(
+        encoding="utf-8"))
+    profile_rows = profile.get("rows", [])
+    if len(profile_rows) != 2 or any(
+            int(row.get("removed_repeat_calls", 0)) not in {192, 224} or
+            float(row.get("folded_repeat_ms", 1.0)) != 0.0 or
+            float(row.get("folded_kernel_ms", 1.0)) >=
+            float(row.get("reference_kernel_ms", 0.0)) for row in profile_rows):
+        errors.append("folded GQA mechanism profile changed")
+    source = (REPOSITORY / "src/ops/ops.cpp").read_text(encoding="utf-8")
+    if "grouped_rows" in source or "instead of being physically repeated" in source:
+        errors.append("discarded folded GQA candidate remains in source")
+    return len(raw), len(precision_rows), len(profile_rows)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -2151,7 +2192,8 @@ def validate_assets(errors: list[str]) -> None:
                  "static-batch-generation.svg",
                  "admission-batch-scheduler.svg",
                  "expanded-inference-service-matrix.svg",
-                 "serving-last-logit-prefill.svg"):
+                 "serving-last-logit-prefill.svg",
+                 "folded-gqa-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -2246,6 +2288,8 @@ def main() -> int:
         validate_expanded_inference_service_matrix(errors)
     full_prefill, last_prefill, last_shape_survey, last_precision = \
         validate_serving_last_logit_prefill(errors)
+    folded_gqa_raw, folded_gqa_precision, folded_gqa_profile = \
+        validate_folded_gqa_discard(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -2307,6 +2351,8 @@ def main() -> int:
           f"{expanded_bf16} "
           f"last_prefill={full_prefill}/{last_prefill}/"
           f"{last_shape_survey}/{last_precision} "
+          f"folded_gqa={folded_gqa_raw}/{folded_gqa_precision}/"
+          f"{folded_gqa_profile} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="780" viewBox="0 0 1400 780">
+  <rect width="1400" height="780" fill="#f8fafc"/>
+  <text x="700" y="52" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="30" font-weight="700" fill="#111827">Experiment 078 · folded GQA GEMM</text>
+  <text x="700" y="82" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="15" fill="#64748b">The performance mechanism worked; the complete-logit gate rejected it</text>
+
+  <rect x="38" y="110" width="424" height="500" rx="14" fill="#fff" stroke="#dbe4ee"/>
+  <text x="62" y="150" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#111827">Measured gains</text>
+  <g font-family="Inter,Arial,sans-serif" font-size="15" fill="#334155">
+    <text x="62" y="210">Qwen throughput</text><rect x="62" y="226" width="214" height="24" rx="4" fill="#2563eb"/><text x="288" y="244">+4.3%</text>
+    <text x="62" y="294">DeepSeek throughput</text><rect x="62" y="310" width="370" height="24" rx="4" fill="#0f766e"/><text x="350" y="328">+7.4%</text>
+    <text x="62" y="384">Qwen peak</text><text x="220" y="384" font-weight="700" fill="#166534">-3.19%</text>
+    <text x="62" y="424">DeepSeek peak</text><text x="220" y="424" font-weight="700" fill="#166534">-3.52%</text>
+    <text x="62" y="486">repeat calls</text><text x="220" y="486" font-weight="700">192 / 224 → 0</text>
+    <text x="62" y="526">Kernel total</text><text x="220" y="526" font-weight="700">-4.0% / -6.0%</text>
+    <text x="62" y="566">softmax</text><text x="220" y="566">unchanged</text>
+  </g>
+
+  <rect x="488" y="110" width="874" height="500" rx="14" fill="#fff" stroke="#dbe4ee"/>
+  <text x="512" y="150" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#111827">Complete logits falsified the candidate</text>
+  <g font-family="Inter,Arial,sans-serif" fill="#334155">
+    <text x="512" y="205" font-size="15">max-abs acceptance gate</text>
+    <rect x="730" y="187" width="2" height="22" fill="#16a34a"/><text x="740" y="204" font-size="14">0.0001</text>
+    <text x="512" y="263" font-size="15">Qwen actual</text><rect x="730" y="245" width="588" height="22" rx="4" fill="#dc2626"/><text x="1217" y="262" font-size="14" fill="#fff">0.07345 · 735× gate</text>
+    <text x="512" y="321" font-size="15">DeepSeek actual</text><rect x="730" y="303" width="451" height="22" rx="4" fill="#ef4444"/><text x="1080" y="320" font-size="14" fill="#fff">0.05632 · 563× gate</text>
+
+    <text x="512" y="391" font-size="15">RMSE gate</text><text x="730" y="391" font-size="15" font-weight="700">0.00001</text>
+    <text x="512" y="431" font-size="15">Qwen RMSE</text><text x="730" y="431" font-size="15" font-weight="700" fill="#dc2626">0.01567</text>
+    <text x="512" y="471" font-size="15">DeepSeek RMSE</text><text x="730" y="471" font-size="15" font-weight="700" fill="#dc2626">0.01187</text>
+    <text x="512" y="535" font-size="15">Top token</text><text x="730" y="535" font-size="15" font-weight="700" fill="#f59e0b">still equal — insufficient evidence</text>
+  </g>
+
+  <rect x="38" y="642" width="1324" height="92" rx="14" fill="#fee2e2" stroke="#fecaca"/>
+  <text x="700" y="682" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="26" font-weight="700" fill="#991b1b">DISCARD</text>
+  <text x="700" y="712" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="15" fill="#7f1d1d">Mathematically equivalent reshape changed hipBLASLt accumulation enough to violate the official-model precision gate</text>
+  <text x="700" y="765" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12" fill="#64748b">Raw evidence: docs/optimization-log/experiments/078-data</text>
+</svg>

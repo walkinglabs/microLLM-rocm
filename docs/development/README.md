@@ -213,3 +213,5 @@ the next gate. Records are append-only except for factual corrections.
   named short/long-context suites, batch efficiency and per-request/device-memory metrics.
 - [2026-08-21-serving-last-logit-prefill.md](2026-08-21-serving-last-logit-prefill.md):
   explicit full/last logits semantics, matched PyTorch path and removal of historical-token output projection.
+- [2026-08-21-folded-gqa-discard.md](2026-08-21-folded-gqa-discard.md): faster and
+  smaller K/V-free grouped layout rejected by official complete-logit error.
