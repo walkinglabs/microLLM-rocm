@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="500" viewBox="0 0 1040 500" role="img" aria-labelledby="title desc">
+  <title id="title">Raw packed BF16 Key load reproduces the prior failure</title>
+  <desc id="desc">Internal vector conversion and explicit public scalar reconstruction produce identical official-model errors, rejecting the internal-type-only explanation.</desc>
+  <rect width="1040" height="500" fill="#0b1020"/>
+  <text x="40" y="44" fill="#f8fafc" font-family="sans-serif" font-size="24" font-weight="700">Experiment 089 · different conversion, identical failure</text>
+  <text x="40" y="72" fill="#94a3b8" font-family="sans-serif" font-size="14">DeepSeek T2048 complete cached logits</text>
+
+  <rect x="40" y="112" width="430" height="260" rx="12" fill="#111827" stroke="#334155"/>
+  <text x="66" y="150" fill="#e2e8f0" font-family="sans-serif" font-size="17" font-weight="700">Experiment 088</text>
+  <text x="66" y="178" fill="#94a3b8" font-family="sans-serif" font-size="13">reinterpret public BF16 as internal pair</text>
+  <text x="66" y="226" fill="#fca5a5" font-family="sans-serif" font-size="15">B1 max / RMSE</text>
+  <text x="260" y="226" fill="#fecaca" font-family="monospace" font-size="15">0.05650 / 0.01323</text>
+  <text x="66" y="268" fill="#fca5a5" font-family="sans-serif" font-size="15">B8 max / RMSE</text>
+  <text x="260" y="268" fill="#fecaca" font-family="monospace" font-size="15">11.978 / 1.528</text>
+  <text x="66" y="326" fill="#fbbf24" font-family="sans-serif" font-size="14">Hypothesis A: internal type conversion</text>
+
+  <rect x="570" y="112" width="430" height="260" rx="12" fill="#111827" stroke="#334155"/>
+  <text x="596" y="150" fill="#e2e8f0" font-family="sans-serif" font-size="17" font-weight="700">Experiment 089</text>
+  <text x="596" y="178" fill="#94a3b8" font-family="sans-serif" font-size="13">raw uint32 → two public BF16 scalars</text>
+  <text x="596" y="226" fill="#fca5a5" font-family="sans-serif" font-size="15">B1 max / RMSE</text>
+  <text x="790" y="226" fill="#fecaca" font-family="monospace" font-size="15">0.05650 / 0.01323</text>
+  <text x="596" y="268" fill="#fca5a5" font-family="sans-serif" font-size="15">B8 max / RMSE</text>
+  <text x="790" y="268" fill="#fecaca" font-family="monospace" font-size="15">11.978 / 1.528</text>
+  <text x="596" y="326" fill="#fbbf24" font-family="sans-serif" font-size="14">Hypothesis B: pair-loop/codegen remains</text>
+
+  <path d="M470 242 L570 242" stroke="#ef4444" stroke-width="4" marker-end="url(#arrow)"/>
+  <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#ef4444"/></marker></defs>
+  <line x1="65" y1="312" x2="410" y2="338" stroke="#ef4444" stroke-width="4"/>
+  <text x="40" y="424" fill="#fca5a5" font-family="sans-serif" font-size="15" font-weight="700">Internal-type-only explanation rejected</text>
+  <text x="40" y="454" fill="#94a3b8" font-family="sans-serif" font-size="14">No timing · candidate fully reverted · local pair-load search closed</text>
+</svg>

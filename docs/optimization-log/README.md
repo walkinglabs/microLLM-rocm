@@ -540,6 +540,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/087-data/](experiments/087-data/) | T2048/T512交替对、官方shape survey与Stream安全合同 |
 | [assets/bf16x2-key-load-discard.svg](assets/bf16x2-key-load-discard.svg) | 小算子通过与百万官方logit失败的反例 |
 | [experiments/088-data/](experiments/088-data/) | T2048 B1/B8完整logit误差、token和rollback门 |
+| [assets/raw-packed-key-load-discard.svg](assets/raw-packed-key-load-discard.svg) | 两种pair转换得到相同失败的反驳实验 |
+| [experiments/089-data/](experiments/089-data/) | public scalar恢复、相同误差和搜索关闭证据 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

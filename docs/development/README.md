@@ -235,3 +235,5 @@ the next gate. Records are append-only except for factual corrections.
   phase-independent exact-size reuse with strict default/non-default Stream safety gates.
 - [2026-08-21-bf16x2-key-load-discard.md](2026-08-21-bf16x2-key-load-discard.md):
   small-test pass rejected by official T2048 complete-logit and token failures.
+- [2026-08-21-raw-packed-key-load-discard.md](2026-08-21-raw-packed-key-load-discard.md):
+  public-scalar reconstruction reproduces the same official failure and closes local pair loads.

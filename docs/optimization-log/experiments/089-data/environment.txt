@@ -1,0 +1,12 @@
+date_utc=2026-08-21
+device=AMD Instinct MI300X VF
+architecture=gfx942:sramecc+:xnack-
+build_type=Release
+model=deepseek-r1-distill-qwen-1.5b
+context=2048
+batches=1,8
+decode_tokens=8
+cache_dtype=bf16
+baseline_binary=/tmp/microllm-exp087-immediate-pool-release
+candidate_binary=/tmp/microllm-exp089-packed-key-release
+full_logits_directory=/tmp/microllm-exp089-precision

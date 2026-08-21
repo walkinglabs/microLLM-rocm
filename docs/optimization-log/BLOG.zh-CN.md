@@ -1924,3 +1924,17 @@ focused HIP测试全部通过，但DeepSeek T2048完整cached logits立即反驳
 B1的8-token suffix仍相同，再次证明top-1不能替代完整logits。候选没有进入性能测量并完整回退。
 下一次pair load只能从32-bit原始字中显式恢复两个公开BF16 scalar，不能继续把公开类型重解释为
 内部vector类型。
+
+## 106. Experiment 089：换掉vector类型，错误数字完全相同
+
+候选用一个32-bit原始读取，再把lower/upper 16 bits显式写回两个公开`hip_bfloat16` scalar。
+如果Experiment 088只错在内部vector转换，这次应该恢复正确。
+
+![Raw packed Key load discard](assets/raw-packed-key-load-discard.svg)
+
+但B1/B8的max、RMSE和suffix与Experiment 088逐项相同：0.0565/0.0132与11.978/1.528。
+“内部类型转换是唯一原因”被推翻；pair循环/Release codegen成为剩余解释。候选同样不计时并回退，
+本地pair-load搜索关闭，直到有逐position dot或反汇编门。
+
+Experiment 090回到D2H history。它在Experiment 086被allocator相位拖慢，而Experiment 087已经
+移除了这个混杂变量，现在可以做一次干净重试。
