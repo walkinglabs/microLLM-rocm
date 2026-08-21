@@ -160,6 +160,11 @@ KV利用率和峰值显存，并把Cache容量限制到当前请求真正需要�
 DeepSeek仅1/4对齐，因此其余三组仍是明确失败。数据读法见
 [官方连续推理矩阵](official-continuous-serving.zh-CN.md)。
 
+公平的1/2/4/8 slot sweep随后固定同一批8条请求。它暴露并修复了“所有row位置归零、Storage仍
+保留时误走首次prefill”的生命周期错误；同一48进程矩阵从30 pass/18 stable fail变成48/48
+执行通过。长请求S8效率只有约40%，DeepSeek short仍有跨slot token分叉。见
+[固定请求slot sweep](continuous-slot-sweep.zh-CN.md)。
+
 ## 8. 测试位置
 
 ```text

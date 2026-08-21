@@ -57,6 +57,9 @@ lengths remain separate stable groups.
 workload. Zero keeps the model maximum; a positive value must fit the model and every submitted
 request. Official serving runners choose the largest prompt-plus-output request, then verify the
 exact layer/head/element-size allocation formula instead of treating estimated memory as evidence.
+When every row returns to logical position zero, backing Storage remains available for reuse.
+Full-row admission may use the first-allocation fast path only if every layer's K/V Storage is
+undefined; otherwise it overwrites the reusable row prefixes through the existing-storage path.
 See [serving scheduler](dev/serving-scheduler.zh-CN.md).
 
 

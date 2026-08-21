@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "status": "complete_with_recorded_accuracy_failures",
+  "full": {"passed": 315, "failed": 0, "skipped": 2},
+  "cpu": {"passed": 219, "failed": 0, "skipped": 2},
+  "hip": {"passed": 96, "failed": 0, "skipped": 0},
+  "sanitizer": {"passed": 212, "failed": 0, "skipped": 0},
+  "focused": {
+    "before_processes": 48,
+    "before_passed": 30,
+    "before_stable_failures": 18,
+    "after_processes": 48,
+    "after_passed": 48,
+    "cpu_single_slot_refill": 1,
+    "hip_single_slot_refill": 1,
+    "exact_slot_groups": 3,
+    "mismatched_slot_groups": 1
+  }
+}

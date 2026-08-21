@@ -3609,6 +3609,94 @@ def validate_official_continuous_serving(
     return len(raw), len(pytorch), qwen_exact, deepseek_exact
 
 
+def validate_fixed_request_slot_sweep(
+        errors: list[str]) -> tuple[int, int, int, int]:
+    data = ROOT / "experiments" / "103-data"
+    before = [json.loads(line) for line in
+              (data / "before-fix-raw.jsonl").read_text(
+                  encoding="utf-8").splitlines()]
+    after = [json.loads(line) for line in
+             (data / "after-raw.jsonl").read_text(
+                 encoding="utf-8").splitlines()]
+    summary = json.loads((data / "after-summary.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    failed = [row for row in before if row.get("status") == "failed"]
+    expected_failed_cases = {"short_s1", "long_s1", "long_s2"}
+    if len(before) != 48 or len(failed) != 18 or \
+            {row.get("case") for row in failed} != expected_failed_cases or \
+            any("KV prefix requires an empty cache" not in row.get("error", "")
+                for row in failed) or \
+            len([row for row in before if row.get("status") == "pass"]) != 30:
+        errors.append("fixed-request pre-fix failure evidence changed")
+    after_keys = {(row.get("model"), row.get("case"), row.get("process_run"))
+                  for row in after}
+    if len(after) != 48 or len(after_keys) != 48 or any(
+            row.get("status") != "pass" or
+            row.get("allocated_cache_bytes") != row.get("expected_cache_bytes") or
+            row.get("deterministic_across_steps") is not True
+            for row in after):
+        errors.append("fixed-request post-fix execution evidence changed")
+    sweeps = summary.get("slot_sweeps", [])
+    by_group = {(row.get("model"), row.get("group")): row for row in sweeps}
+    expected_groups = {
+        ("qwen2.5-0.5b", "short"): True,
+        ("qwen2.5-0.5b", "long"): True,
+        ("deepseek-r1-distill-qwen-1.5b", "short"): False,
+        ("deepseek-r1-distill-qwen-1.5b", "long"): True,
+    }
+    if summary.get("execution_status") != "pass" or \
+            summary.get("status") != "complete_with_recorded_accuracy_failures" or \
+            len(sweeps) != 4 or set(by_group) != set(expected_groups):
+        errors.append("fixed-request slot-sweep summary changed")
+    for key, expected_exact in expected_groups.items():
+        sweep = by_group.get(key, {})
+        slots = sweep.get("slots", [])
+        if sweep.get("generated_tokens_equal_across_slots") is not expected_exact or \
+                [row.get("slots") for row in slots] != [1, 2, 4, 8] or \
+                len(slots) != 4:
+            errors.append(f"fixed-request slot contract changed: {key}")
+            continue
+        baseline_cache = slots[0]["allocated_cache_bytes"]
+        for row in slots:
+            slot = row["slots"]
+            if row["allocated_cache_bytes"] != baseline_cache * slot or \
+                    not 0 < row["parallel_efficiency_vs_s1"] <= 1.01 or \
+                    not 0 < row["kv_cache_byte_utilization"] <= 1 or \
+                    not 0 < row["slot_utilization"] <= 1:
+                errors.append(f"fixed-request efficiency/cache gate changed: {key} S{slot}")
+        if key == ("deepseek-r1-distill-qwen-1.5b", "short"):
+            for row in slots[2:]:
+                difference = row.get("token_difference_vs_s1", {})
+                if difference.get("differing_requests") != [5] or \
+                        difference.get("first_difference") != {
+                            "request": 5, "token": 4}:
+                    errors.append("DeepSeek short slot divergence changed")
+    model_source = (REPOSITORY / "src" / "model" /
+                    "model.cpp").read_text(encoding="utf-8")
+    cpu_tests = (REPOSITORY / "tests" / "inference" /
+                 "scheduler_test.cpp").read_text(encoding="utf-8")
+    hip_tests = (REPOSITORY / "tests" / "ops" /
+                 "hip_ops_test.cpp").read_text(encoding="utf-8")
+    runner = (REPOSITORY / "benchmarks" / "single_gpu" /
+              "hf_continuous_matrix.py").read_text(encoding="utf-8")
+    if "storage_is_empty" not in model_source or \
+            "&& storage_is_empty" not in model_source or \
+            "recycled.metrics().slot_refills" not in cpu_tests or \
+            "recycled_hip.metrics().slot_refills" not in hip_tests or \
+            '"slot-sweep"' not in runner or "token_difference" not in runner:
+        errors.append("fixed-request recycle source or tests are missing")
+    if gates.get("status") != "complete_with_recorded_accuracy_failures" or \
+            gates.get("full", {}).get("passed") != 315 or \
+            gates.get("cpu", {}).get("passed") != 219 or \
+            gates.get("hip", {}).get("passed") != 96 or \
+            gates.get("sanitizer", {}).get("passed") != 212 or \
+            gates.get("focused", {}).get("before_stable_failures") != 18 or \
+            gates.get("focused", {}).get("after_passed") != 48:
+        errors.append("fixed-request final gates changed")
+    return len(before), len(after), sum(expected_groups.values()), \
+        len(expected_groups) - sum(expected_groups.values())
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -3689,7 +3777,8 @@ def validate_assets(errors: list[str]) -> None:
                  "continuous-profile-scatter-discard.svg",
                  "packed-decode-metadata.svg",
                  "batched-slot-prefill.svg",
-                 "official-continuous-serving.svg"):
+                 "official-continuous-serving.svg",
+                 "continuous-slot-sweep.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -3834,6 +3923,8 @@ def main() -> int:
     official_continuous_raw, official_continuous_pytorch, \
         official_continuous_qwen, official_continuous_deepseek = \
         validate_official_continuous_serving(errors)
+    slot_sweep_before, slot_sweep_after, slot_sweep_exact, \
+        slot_sweep_mismatched = validate_fixed_request_slot_sweep(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -3944,6 +4035,8 @@ def main() -> int:
           f"official_continuous={official_continuous_raw}/"
           f"{official_continuous_pytorch}/{official_continuous_qwen}/"
           f"{official_continuous_deepseek} "
+          f"slot_sweep={slot_sweep_before}/{slot_sweep_after}/"
+          f"{slot_sweep_exact}/{slot_sweep_mismatched} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

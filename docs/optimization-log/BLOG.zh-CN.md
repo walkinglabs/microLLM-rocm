@@ -2117,3 +2117,19 @@ fresh process，保存完整token、KV allocated/active、slot利用率、transf
 microLLM相对PyTorch sequential的观察服务吞吐为1.97×–12.28×，但两边scheduler和权重驻留不同，
 DeepSeek还有精度失败，因此不能把这个数写成同算法加速。下一节点固定同一请求集扫1/2/4/8
 slots，并从DeepSeek第一个分叉token开始定位，而不是继续放大一条漂亮TPS。
+
+## 120. Experiment 103：把请求固定后，slot增加才有公平含义
+
+同一批8条short和8条long请求分别用1/2/4/8 slots，第一轮48进程只有30 pass。两个模型的short
+S1、long S1/S2共18次稳定触发相同KV-prefix错误，没有OOM。原因是所有row归零后Storage仍为复用
+而保留，full-row admission却误走只允许首次分配的prefill。
+
+![Fixed-request slot sweep](assets/continuous-slot-sweep.svg)
+
+fast path增加“所有layer Storage未定义”条件，并给CPU/HIP补单slot不同长度refill门后，原矩阵
+48/48执行通过。Qwen short S8相对S1为4.323×，DeepSeek为4.688×；long S8只有3.216×/3.137×，
+效率约40%。同时long S8 KV分配翻到193.5/451.5MiB，byte利用率仅46.85%。
+
+执行通过仍不等于精度通过：DeepSeek short的S1/S2和S4/S8形成两组答案，第6条请求从第5个
+生成token开始分叉。summary明确分开execution pass与accuracy failure。下一步要看首个分叉位置
+的logits margin，并研究长度感知Cache，而不是把S8吞吐当成免费收益。

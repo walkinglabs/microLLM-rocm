@@ -568,6 +568,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/101-data/](experiments/101-data/) | 18条交替A/B与logical/physical prefill计数 |
 | [assets/official-continuous-serving.svg](assets/official-continuous-serving.svg) | 官方Qwen/DeepSeek吞吐、KV利用率和精度红门 |
 | [experiments/102-data/](experiments/102-data/) | 24条microLLM多进程、8条PyTorch参考和逐token比较 |
+| [assets/continuous-slot-sweep.svg](assets/continuous-slot-sweep.svg) | 固定8请求的S1–S8效率、KV代价和失败修复 |
+| [experiments/103-data/](experiments/103-data/) | 修复前后各48进程、效率和跨slot token证据 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

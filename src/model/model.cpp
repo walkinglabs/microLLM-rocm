@@ -1161,7 +1161,13 @@ Tensor TransformerModel::forward_prefill_cached_rows(
         }
         all_rows = all_rows && row == static_cast<std::int64_t>(index);
     }
-    if (all_rows && cache.positions_uniform()) {
+    auto storage_is_empty = true;
+    for (std::size_t layer = 0; layer < cache.layer_count(); ++layer) {
+        const auto& state = cache.layer(layer);
+        storage_is_empty = storage_is_empty &&
+                           !state.key.defined() && !state.value.defined();
+    }
+    if (all_rows && cache.positions_uniform() && storage_is_empty) {
         return forward_prefill_cached(token_ids, cache);
     }
 

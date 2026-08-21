@@ -44,6 +44,16 @@ class HfContinuousMatrixTest(unittest.TestCase):
         self.assertGreater(len(standard["long_s4"]["prompts"]),
                            standard["long_s4"]["slots"])
 
+    def test_slot_sweep_holds_requests_fixed_across_one_two_four_eight_slots(self):
+        sweep = MATRIX.SUITES["slot-sweep"]
+        self.assertEqual({case["slots"] for case in sweep.values()}, {1, 2, 4, 8})
+        for group in ("short", "long"):
+            cases = [case for case in sweep.values() if case["group"] == group]
+            self.assertEqual(len(cases), 4)
+            self.assertEqual(len({tuple(case["prompts"]) for case in cases}), 1)
+            self.assertEqual(len({tuple(case["outputs"]) for case in cases}), 1)
+            self.assertTrue(all(len(case["prompts"]) == 8 for case in cases))
+
     def test_cache_formula_uses_request_bound_not_model_maximum(self):
         case = {"slots": 2, "prompts": [8, 32], "outputs": [4, 6]}
         layers, kv_heads, head_dimension = MATRIX.model_cache_shape(
@@ -51,6 +61,15 @@ class HfContinuousMatrixTest(unittest.TestCase):
         self.assertEqual(
             MATRIX.theoretical_cache_bytes(self.model(), case),
             2 * layers * kv_heads * head_dimension * 2 * 38 * 2)
+
+    def test_token_difference_keeps_accuracy_failure_as_data(self):
+        exact = MATRIX.token_difference([[1, 2], [3]], [[1, 2], [3]])
+        self.assertTrue(exact["exact"])
+        changed = MATRIX.token_difference([[1, 2], [3, 4]],
+                                          [[1, 2], [3, 5]])
+        self.assertFalse(changed["exact"])
+        self.assertEqual(changed["differing_requests"], [1])
+        self.assertEqual(changed["first_difference"], {"request": 1, "token": 1})
 
     def test_command_and_validator_preserve_exact_axes(self):
         case = {"slots": 2, "prompts": [8, 32], "outputs": [4, 6]}

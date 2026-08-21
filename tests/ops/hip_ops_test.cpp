@@ -1096,6 +1096,32 @@ TEST(HipSchedulerTest, ContinuousSlotsRefillAndMatchCpuWithOneSelectionCopyPerSt
         EXPECT_EQ(transfers.device_to_host_bytes,
                   static_cast<std::size_t>(hip_metrics.selection_calls * 2) *
                       sizeof(std::int32_t));
+
+        model::TransformerModel recycled_cpu_model(config, 167);
+        model::TransformerModel recycled_hip_model(config, 167);
+        recycled_hip_model.to(Device::hip(0));
+        const inference::ContinuousBatchConfig recycled_config{
+            .max_slots = 1, .max_sequence_length = 6,
+            .kv_cache_dtype = dtype, .kv_cache_layer_dtypes = {}};
+        inference::ContinuousBatchScheduler recycled_cpu(
+            recycled_cpu_model, recycled_config);
+        inference::ContinuousBatchScheduler recycled_hip(
+            recycled_hip_model, recycled_config);
+        std::vector<inference::RequestId> cpu_ids;
+        std::vector<inference::RequestId> hip_ids;
+        for (const auto& prompt : {
+                 std::vector<std::int32_t>{1, 2, 3},
+                 std::vector<std::int32_t>{4, 5, 6, 7}}) {
+            cpu_ids.push_back(recycled_cpu.submit(prompt, short_generation));
+            hip_ids.push_back(recycled_hip.submit(prompt, short_generation));
+        }
+        recycled_cpu.run_until_idle();
+        recycled_hip.run_until_idle();
+        for (std::size_t index = 0; index < cpu_ids.size(); ++index) {
+            EXPECT_EQ(recycled_hip.request(hip_ids[index]).generated,
+                      recycled_cpu.request(cpu_ids[index]).generated);
+        }
+        EXPECT_EQ(recycled_hip.metrics().slot_refills, 1);
     }
 }
 

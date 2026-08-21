@@ -245,5 +245,7 @@ the next gate. Records are append-only except for factual corrections.
   bit-exact paired Value accumulation rejected and local scalar Attention search closed.
 - [2026-08-21-official-continuous-serving.md](2026-08-21-official-continuous-serving.md):
   official Qwen/DeepSeek short/long 2/4-slot serving, exact request-bound KV bytes, memory and token gates.
+- [2026-08-21-fixed-request-slot-sweep.md](2026-08-21-fixed-request-slot-sweep.md):
+  fair 1/2/4/8-slot efficiency, full-row Storage recycle fix and DeepSeek cross-slot failure.
 - [2026-08-21-divergent-row-cache-reference.md](2026-08-21-divergent-row-cache-reference.md):
   unequal-position shared-Storage B1 oracle with CPU/HIP and reset-prefix gates.

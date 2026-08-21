@@ -107,6 +107,7 @@ PyTorch 参考用 `pytorch_continuous_reference.py` 对每组 case 单独运行�
 
 ## 7. 下一步还缺什么
 
-这四组已经覆盖短/长、2/4 slot 和补位，但 2-slot 与 4-slot 的请求集并不完全相同。因此下一组
-实验要固定同一批请求，只改变 slot 为 1/2/4/8，才能得到公平的 batch 效率曲线。之后再定位
-DeepSeek 首个分叉 token，并补 P50/P95 请求延迟；在这些门通过前，不宣称生产级服务。
+后续[固定请求slot sweep](continuous-slot-sweep.zh-CN.md)已经让同一批请求只改变1/2/4/8 slot，
+并发现、修复了全slot回收后的Cache复用错误。它也确认DeepSeek short会在S2与S4之间分叉。
+下一步应保存首个分叉token的logits/top-2 margin，并补P50/P95请求延迟；这些门通过前，不宣称
+生产级服务。

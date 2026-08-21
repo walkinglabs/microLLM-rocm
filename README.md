@@ -97,6 +97,9 @@ needed to run a real training and generation loop:
 - the official continuous-serving runner covers Qwen/DeepSeek short and 2048-token contexts,
   2/4 slots, refill, request-bounded BF16 KV bytes and engine peak memory; Qwen is exact in 4/4
   PyTorch cases while DeepSeek has three recorded token mismatches.
+- a fixed eight-request 1/2/4/8-slot sweep reports S1-relative efficiency and exact KV/peak bytes;
+  it also turned an 18-process full-row recycle failure into 48/48 passing executions while
+  preserving a DeepSeek short cross-slot token mismatch.
 
 The design keeps three implementations where they provide engineering value:
 
@@ -330,6 +333,12 @@ DeepSeek-R1-Distill-Qwen-1.5B. The 24/24 fresh microLLM processes are determinis
 exact KV allocation, active KV, slot use, transfers and peak memory. Qwen matches PyTorch tokens
 in 4/4 cases; DeepSeek matches 1/4, so long-context parity remains blocked. See
 [Experiment 102](docs/optimization-log/experiments/102-official-continuous-serving.md).
+
+Experiment 103 holds the request set fixed while changing only 1/2/4/8 slots. Its first run found
+18 stable full-row refill failures; the lifecycle fix passes the unchanged 48-process matrix.
+Short S8 reaches 4.32×/4.69× S1 throughput, while long S8 efficiency falls to about 40% and KV byte
+utilization to 46.85%. DeepSeek short still changes one request across slot counts. See
+[Experiment 103](docs/optimization-log/experiments/103-fixed-request-slot-sweep.md).
 
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or

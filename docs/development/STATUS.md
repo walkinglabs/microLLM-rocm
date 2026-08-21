@@ -50,7 +50,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | BF16 GEMM/autograd/inference | smoke-tested | transactional FFN/QKV/O, shared cast, immutable plans, batched T≥256 QK/PV and full logits/tokens | long prefill remains 0.15×–0.31×, cached batch and Radeon remain |
 | BF16 FP32-master training | smoke-tested | full STE graph/PyTorch gradients, CPU 20-step loss, HIP zero-transfer, 18 official rows; 3.12×/2.58× PyTorch AMP | 0.918×/0.906× micro FP32 and no peak-memory reduction; continuous islands |
 | Token generation | smoke-tested | deterministic sampling, cache-backed bounds and one-copy HIP greedy token history | stochastic device top-k/RNG and trained text report |
-| Serving scheduler | smoke-tested | delayed/static/admission, continuous refill, active compaction, positions-aware decode, packed metadata, batched prefill and official short/long 2/4-slot matrix | Qwen exact 4/4; DeepSeek only 1/4, then fixed-request 1/2/4/8 sweep, latency and persistent state |
+| Serving scheduler | smoke-tested | delayed/static/admission, continuous refill, recycled full-row fix, official fixed-request 1/2/4/8 slot/KV/peak matrix | 48/48 executes; DeepSeek short cross-slot mismatch, length-aware Cache, latency and persistent state |
 | Stable model failure | smoke-tested | low-loss cycle breaks beyond training context | rebuttal experiments |
 | PyTorch Custom Ops | smoke-tested on CPU | Torch 2.13 add/multiply via dispatcher | build/run with PyTorch ROCm |
 | PyTorch correctness oracle | smoke-tested | PyTorch-enabled 196/196; 30+ Tensor APIs, 29 graph APIs, inference matrix and model/optimizer parity | broader direct PyTorch ROCm operator matrix |
@@ -66,7 +66,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | End-to-end benchmark | smoke-tested | matched Python/PyTorch ROCm official training plus phase-separated prefill and one-forward-per-token steady-decode JSONL | serving concurrency, board-level memory and llama.cpp |
 | Single-GPU model matrix | smoke-tested | MI300X tiny/Model-S/Model-M plus official Qwen0.5B/DeepSeek-Distill1.5B train+generate, parameters, time, tokens/s and engine peak bytes | repeated contexts/dtypes and external board-level memory sampling |
 | Python/PyTorch ROCm performance matrix | smoke-tested | official Qwen/DeepSeek train plus inference context 1–2048, batch 1–8, output 1–64, KV allocated/active/waste, continuous slot metrics and token gates | DeepSeek continuous 3-case mismatch, identical residency policy, version matrix and llama.cpp |
-| Optimization experiment journal | implemented | 102 numbered FP32/BF16/load/training/inference experiments with generated figures, raw evidence and keep/discard/invalid gates | HIP Graph, Radeon and production data-parallel tracks |
+| Optimization experiment journal | implemented | 103 numbered FP32/BF16/load/training/inference experiments with generated figures, raw evidence and keep/discard/invalid gates | HIP Graph, Radeon and production data-parallel tracks |
 | rocprofv3 workflow | smoke-tested | kernel/HIP API/memory/full trace generated | release artifact retention |
 | hipBLASLt matmul | smoke-tested | FP32/BF16, rank-N strided batches, four transpose contracts, Model-S and T≥256 Attention forward/backward | workspace and persistent versioned autotune cache |
 | Matmul tuning registry | smoke-tested | exact shape override/clear and availability gates | persistence/arch key |

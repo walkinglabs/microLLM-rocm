@@ -388,6 +388,33 @@ TEST(ContinuousBatchSchedulerTest, RefillsFreedSlotAndMatchesIndependentRows) {
         EXPECT_GT(metrics.allocated_cache_bytes, 0U);
         EXPECT_EQ(metrics.active_cache_bytes, 0U);
         EXPECT_GT(metrics.peak_active_cache_bytes, 0U);
+
+        model::TransformerModel recycled_model(config, 149);
+        ContinuousBatchScheduler recycled(
+            recycled_model,
+            {.max_slots = 1, .max_sequence_length = 6,
+             .kv_cache_dtype = dtype, .kv_cache_layer_dtypes = {}});
+        const auto recycled_first = recycled.submit(
+            {1, 2, 3}, short_generation);
+        const auto recycled_second = recycled.submit(
+            {4, 5, 6, 7}, short_generation);
+        recycled.run_until_idle();
+        for (const auto& [id, prompt] : {
+                 std::pair{recycled_first,
+                           std::vector<std::int32_t>{1, 2, 3}},
+                 std::pair{recycled_second,
+                           std::vector<std::int32_t>{4, 5, 6, 7}}}) {
+            model::TransformerModel independent(config, 149);
+            EXPECT_EQ(recycled.request(id).generated,
+                      suffix(generate(independent, prompt, short_generation),
+                             prompt.size()));
+        }
+        EXPECT_EQ(recycled.metrics().slot_admissions, 2);
+        EXPECT_EQ(recycled.metrics().slot_refills, 1);
+        EXPECT_EQ(recycled.metrics().allocated_cache_bytes,
+                  static_cast<std::size_t>(2 * config.layers * config.kv_heads *
+                                           config.head_dimension() * 6) *
+                      dtype_size(dtype));
     }
 }
 

@@ -70,7 +70,9 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] test and reject a batched logits scatter despite correct Kernel routing;
 - [x] run official Qwen/DeepSeek continuous serving across short/long context and 2/4 slots,
   with exact request-bounded KV bytes, peak memory and complete generated-token evidence;
-- [ ] hold one official request set fixed and sweep 1/2/4/8 slots for a fair batch-efficiency curve;
+- [x] hold one official request set fixed and sweep 1/2/4/8 slots for a fair batch-efficiency curve;
+- [x] fix full-row recycled Storage admission after the sweep exposed 18 stable refill failures;
+- [ ] replace max-length-per-slot reservation with length-aware Cache blocks and remeasure long S8;
 - [ ] locate the first DeepSeek token/logit divergence in short_s4 and make long-context parity a gate;
 - [ ] add request-level TTFT and P50/P95 latency rather than throughput alone;
 

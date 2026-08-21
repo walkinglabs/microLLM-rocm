@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="620" viewBox="0 0 1080 620" role="img" aria-labelledby="title desc">
+  <title id="title">Fixed request slot sweep</title>
+  <desc id="desc">S1-relative throughput speedup and parallel efficiency for Qwen and DeepSeek short and long requests, plus the recorded DeepSeek short token mismatch.</desc>
+  <rect width="1080" height="620" fill="#0b1020"/>
+  <text x="48" y="56" fill="#f8fafc" font-family="sans-serif" font-size="30" font-weight="700">Fixed 8 requests · S1 → S2 → S4 → S8</text>
+  <text x="48" y="88" fill="#94a3b8" font-family="sans-serif" font-size="17">bar = speedup vs S1 · label = parallel efficiency</text>
+  <g font-family="sans-serif" font-size="15">
+    <text x="48" y="142" fill="#e2e8f0" font-size="19" font-weight="700">Qwen short</text>
+    <rect x="220" y="120" width="432" height="28" rx="6" fill="#22c55e"/><text x="666" y="141" fill="#f8fafc">S8 4.323× · 54.0%</text>
+    <text x="48" y="202" fill="#e2e8f0" font-size="19" font-weight="700">DeepSeek short</text>
+    <rect x="220" y="180" width="469" height="28" rx="6" fill="#f59e0b" stroke="#ef4444" stroke-width="3"/><text x="703" y="201" fill="#fca5a5">S8 4.688× · 58.6% · token mismatch</text>
+    <text x="48" y="262" fill="#e2e8f0" font-size="19" font-weight="700">Qwen long</text>
+    <rect x="220" y="240" width="322" height="28" rx="6" fill="#38bdf8"/><text x="556" y="261" fill="#f8fafc">S8 3.216× · 40.2%</text>
+    <text x="48" y="322" fill="#e2e8f0" font-size="19" font-weight="700">DeepSeek long</text>
+    <rect x="220" y="300" width="314" height="28" rx="6" fill="#38bdf8"/><text x="548" y="321" fill="#f8fafc">S8 3.137× · 39.2%</text>
+  </g>
+  <rect x="48" y="374" width="984" height="88" rx="10" fill="#172033"/>
+  <text x="72" y="406" fill="#e2e8f0" font-family="sans-serif" font-size="18" font-weight="700">KV allocated at long S8</text>
+  <text x="72" y="438" fill="#93c5fd" font-family="sans-serif" font-size="17">Qwen 193.5 MiB · DeepSeek 451.5 MiB · only 46.85% active at peak</text>
+  <rect x="48" y="486" width="984" height="86" rx="10" fill="#3b1720"/>
+  <text x="72" y="519" fill="#fecaca" font-family="sans-serif" font-size="18" font-weight="700">Failure-driven fix</text>
+  <text x="72" y="550" fill="#fca5a5" font-family="sans-serif" font-size="17">before: 30 pass + 18 stable refill failures → after: 48/48 execution pass</text>
+</svg>

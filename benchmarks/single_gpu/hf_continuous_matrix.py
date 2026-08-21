@@ -25,6 +25,26 @@ SUITES = {
                     "prompts": [256, 256, 512, 512, 1024, 1024, 2048, 2048],
                     "outputs": [8, 8, 8, 8, 16, 16, 16, 16]},
     },
+    "slot-sweep": {
+        **{
+            f"short_s{slots}": {
+                "slots": slots,
+                "group": "short",
+                "prompts": [8, 8, 16, 16, 32, 32, 64, 64],
+                "outputs": [8, 16, 8, 16, 8, 16, 8, 16],
+            }
+            for slots in (1, 2, 4, 8)
+        },
+        **{
+            f"long_s{slots}": {
+                "slots": slots,
+                "group": "long",
+                "prompts": [256, 256, 512, 512, 1024, 1024, 2048, 2048],
+                "outputs": [8, 8, 8, 8, 16, 16, 16, 16],
+            }
+            for slots in (1, 2, 4, 8)
+        },
+    },
 }
 
 
@@ -124,6 +144,31 @@ def validate(record: dict, model: dict, case_name: str, case: dict,
             "case": case_name, "expected_cache_bytes": expected_cache}
 
 
+def token_difference(reference: list[list[int]], actual: list[list[int]]) -> dict:
+    differing_requests = []
+    first = None
+    for request, (left, right) in enumerate(zip(reference, actual)):
+        if left == right:
+            continue
+        differing_requests.append(request)
+        if first is None:
+            limit = min(len(left), len(right))
+            token = next((index for index in range(limit)
+                          if left[index] != right[index]), limit)
+            first = {"request": request, "token": token}
+    if len(reference) != len(actual):
+        differing_requests.extend(range(min(len(reference), len(actual)),
+                                          max(len(reference), len(actual))))
+        if first is None:
+            first = {"request": min(len(reference), len(actual)), "token": 0}
+    return {
+        "exact": reference == actual,
+        "differing_request_count": len(differing_requests),
+        "differing_requests": differing_requests,
+        "first_difference": first,
+    }
+
+
 def main() -> int:
     args = options()
     models = load_models(args.manifest, args.models)
@@ -181,6 +226,60 @@ def main() -> int:
             else:
                 aggregate["status"] = "limited"
             aggregates.append(aggregate)
+    slot_sweeps = []
+    if args.suite == "slot-sweep":
+        for model in models:
+            for group in ("short", "long"):
+                selected = [row for row in aggregates
+                            if row["model"] == model["name"] and
+                            SUITES[args.suite][row["case"]]["group"] == group]
+                selected.sort(key=lambda row: SUITES[args.suite][row["case"]]["slots"])
+                if len(selected) != 4 or any(row["status"] != "pass" for row in selected):
+                    raise RuntimeError(f"incomplete slot sweep: {model['name']} {group}")
+                baseline_tps = float(selected[0]["tokens_per_second_p50"])
+                baseline_peak = int(selected[0]["engine_peak_bytes_p50"])
+                group_rows = []
+                expected_tokens = None
+                group_exact = True
+                for aggregate in selected:
+                    case = SUITES[args.suite][aggregate["case"]]
+                    slots = int(case["slots"])
+                    raw = [row for row in rows if row.get("model") == model["name"] and
+                           row.get("case") == aggregate["case"]]
+                    current_tokens = raw[0]["generated_tokens"]
+                    if any(row["generated_tokens"] != current_tokens for row in raw):
+                        raise RuntimeError("generated tokens changed within a slot case")
+                    if expected_tokens is None:
+                        expected_tokens = current_tokens
+                    difference = token_difference(expected_tokens, current_tokens)
+                    group_exact = group_exact and difference["exact"]
+                    tps = float(aggregate["tokens_per_second_p50"])
+                    peak = int(aggregate["engine_peak_bytes_p50"])
+                    group_rows.append({
+                        "slots": slots,
+                        "tokens_per_second_p50": tps,
+                        "speedup_vs_s1": tps / baseline_tps,
+                        "parallel_efficiency_vs_s1": tps / (baseline_tps * slots),
+                        "engine_peak_bytes_p50": peak,
+                        "engine_peak_growth_vs_s1": peak / baseline_peak,
+                        "allocated_cache_bytes": raw[0]["allocated_cache_bytes"],
+                        "peak_active_cache_bytes": raw[0]["peak_active_cache_bytes"],
+                        "kv_cache_byte_utilization": raw[0]["kv_cache_byte_utilization"],
+                        "slot_utilization": raw[0]["slot_utilization"],
+                        "generated_tokens_equal_to_s1": difference["exact"],
+                        "token_difference_vs_s1": difference,
+                    })
+                slot_sweeps.append({
+                    "model": model["name"],
+                    "group": group,
+                    "request_count": 8,
+                    "slots": group_rows,
+                    "generated_tokens_equal_across_slots": group_exact,
+                })
+    execution_status = "pass" if all(row["status"] == "pass" for row in rows) \
+        else "complete_with_recorded_limits"
+    accuracy_failures = args.suite == "slot-sweep" and any(
+        not row["generated_tokens_equal_across_slots"] for row in slot_sweeps)
     summary = {
         "schema_version": 1,
         "track": "official_continuous_serving_matrix",
@@ -190,10 +289,12 @@ def main() -> int:
         "runs": args.runs,
         "models": [model["name"] for model in models],
         "cases": SUITES[args.suite],
-        "status": "pass" if all(row["status"] == "pass" for row in rows)
-        else "complete_with_recorded_limits",
+        "status": "complete_with_recorded_accuracy_failures"
+        if execution_status == "pass" and accuracy_failures else execution_status,
+        "execution_status": execution_status,
         "rows": rows,
         "aggregates": aggregates,
+        "slot_sweeps": slot_sweeps,
         "pytorch_boundary": "not measured; no variable-position PyTorch serving oracle",
     }
     (args.output_directory / "summary.json").write_text(
