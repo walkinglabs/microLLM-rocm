@@ -1,0 +1,15 @@
+{
+  "backend_allocations": 86,
+  "baseline_d2h_calls": 24,
+  "baseline_tps": 1712.831566165,
+  "batch": 8,
+  "candidate_d2h_calls": 3,
+  "candidate_speedup": 0.9967538101855227,
+  "candidate_tps": 1707.271389781,
+  "context": 512,
+  "d2h_bytes": 768,
+  "decode_tokens": 8,
+  "schema_version": 1,
+  "status": "pass",
+  "tokens_equal": true
+}

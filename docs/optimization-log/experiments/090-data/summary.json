@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "decision": "keep",
+  "candidate": "caller-owned argmax output and device token history",
+  "t2048_pairs": {
+    "batch_1": {
+      "baseline_tokens_per_second": 67.294185507,
+      "candidate_tokens_per_second": 67.407006053,
+      "speedup": 1.0016765274,
+      "d2h_calls": [24, 3],
+      "d2h_bytes": [96, 96],
+      "backend_allocations": [94, 94],
+      "peak_bytes_unchanged": true,
+      "tokens_equal": true
+    },
+    "batch_8": {
+      "baseline_tokens_per_second": 512.057827032,
+      "candidate_tokens_per_second": 513.71249966,
+      "speedup": 1.0032314175,
+      "d2h_calls": [24, 3],
+      "d2h_bytes": [768, 768],
+      "backend_allocations": [94, 94],
+      "peak_bytes_unchanged": true,
+      "tokens_equal": true
+    }
+  },
+  "qwen_t512_b8_recheck": {
+    "baseline_tokens_per_second": 1712.831566165,
+    "candidate_tokens_per_second": 1707.271389781,
+    "speedup": 0.9967538102,
+    "d2h_calls": [24, 3],
+    "d2h_bytes": [768, 768],
+    "backend_allocations": [86, 86],
+    "peak_bytes_unchanged": true,
+    "tokens_equal": true
+  },
+  "official_candidate_matrix": {
+    "process_records": 24,
+    "micro_records": 12,
+    "d2h_calls_per_record": 3,
+    "qwen_tokens_match_pytorch": 6,
+    "deepseek_tokens_match_pytorch": 4,
+    "deepseek_t2048_divergence_retained": true,
+    "backend_allocation_min": 81,
+    "backend_allocation_max": 94,
+    "backend_deallocations": 0,
+    "peak_delta_is_only_history_storage_when_visible": true
+  },
+  "scope": {
+    "greedy_only": true,
+    "requires_empty_stop_tokens": true,
+    "sampling_and_stop_paths_unchanged": true,
+    "history_copy_once_per_measured_generation": true
+  }
+}

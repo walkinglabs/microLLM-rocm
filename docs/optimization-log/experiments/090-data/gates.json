@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "cpu": {"passed": 208, "failed": 0, "skipped": 2},
+  "hip": {"passed": 89, "failed": 0, "skipped": 0},
+  "sanitizer": {"passed": 201, "failed": 0, "skipped": 0},
+  "focused": {
+    "cpu_argmax_and_generation": 4,
+    "hip_argmax_and_generation": 5
+  },
+  "transfer_contract": {
+    "b1_n4_d2h_calls": 1,
+    "b3_n4_d2h_calls": 1,
+    "sampling_and_stop_fallback_passed": true
+  }
+}

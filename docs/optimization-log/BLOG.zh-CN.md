@@ -1938,3 +1938,17 @@ B1的8-token suffix仍相同，再次证明top-1不能替代完整logits。候�
 
 Experiment 090回到D2H history。它在Experiment 086被allocator相位拖慢，而Experiment 087已经
 移除了这个混杂变量，现在可以做一次干净重试。
+
+## 107. Experiment 090：同一个候选，先修allocator后才可以保留
+
+caller-owned argmax直接写`history[N,B]`，greedy/no-stop路径全部生成后只做一次D2H。N8、3次
+measured的calls从24降到3，bytes仍是B1 96、B8 768。
+
+![Device token history](assets/device-token-history.svg)
+
+这次两边allocator都稳定在86–94次backend allocation。DeepSeek T2048 B1/B8三对median为
+1.002×/1.003×，Qwen T512 B8为0.997×；peak、KV和token不变。Experiment 086的0.861×失败
+没有复现，证明它来自旧allocator相位，而不是history本身。
+
+公共`generate()`和`generate_batch()`也进入同一快路径；sampling与stop token仍保留逐步host
+决策。候选保留，它减少的是同步边界，不冒充Attention Kernel加速。

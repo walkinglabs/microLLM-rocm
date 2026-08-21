@@ -237,3 +237,5 @@ the next gate. Records are append-only except for factual corrections.
   small-test pass rejected by official T2048 complete-logit and token failures.
 - [2026-08-21-raw-packed-key-load-discard.md](2026-08-21-raw-packed-key-load-discard.md):
   public-scalar reconstruction reproduces the same official failure and closes local pair loads.
+- [2026-08-21-device-token-history.md](2026-08-21-device-token-history.md):
+  caller-owned argmax outputs and one final greedy-history D2H after allocator stabilization.

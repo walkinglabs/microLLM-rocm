@@ -850,6 +850,28 @@ TEST(HipArgmaxTest, LastDimensionReducesEveryRowOnDevice) {
     EXPECT_EQ(transfers.device_to_host_bytes, 3U * sizeof(std::int32_t));
 }
 
+TEST(HipArgmaxTest, OutVariantsFillDeviceHistoryWithoutIntermediateD2H) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    const auto first_input = Tensor::from_vector(
+        {1.0F, 7.0F, 2.0F, 9.0F, 3.0F, 4.0F}, {2, 1, 3}).to(gpu);
+    const auto second_input = Tensor::from_vector(
+        {8.0F, 7.0F, 6.0F, 1.0F, 2.0F, 5.0F}, {2, 1, 3}).to(gpu);
+    Tensor history({2, 2}, DType::Int32, gpu);
+    auto first = history.slice(0, 0, 1).reshape({2, 1});
+    auto second = history.slice(0, 1, 2).reshape({2, 1});
+    runtime::reset_transfer_stats();
+    argmax_last_dim_out_(first_input, first);
+    argmax_last_dim_out_(second_input, second);
+    runtime::synchronize(gpu);
+    EXPECT_EQ(runtime::transfer_stats().device_to_host_calls, 0U);
+    EXPECT_EQ(history.to_int32_vector(),
+              (std::vector<std::int32_t>{1, 0, 0, 2}));
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.device_to_host_calls, 1U);
+    EXPECT_EQ(transfers.device_to_host_bytes, 4U * sizeof(std::int32_t));
+}
+
 TEST(HipGenerationTest, GreedyLoopKeepsSelectedTokenOnDevice) {
     require_gpu();
     const model::ModelConfig config{.vocabulary_size = 16,
@@ -873,7 +895,7 @@ TEST(HipGenerationTest, GreedyLoopKeepsSelectedTokenOnDevice) {
     EXPECT_EQ(generated.size(), 6U);
     EXPECT_EQ(transfers.host_to_device_calls, 1U);
     EXPECT_EQ(transfers.host_to_device_bytes, prompt.size() * sizeof(std::int32_t));
-    EXPECT_EQ(transfers.device_to_host_calls, 4U);
+    EXPECT_EQ(transfers.device_to_host_calls, 1U);
     EXPECT_EQ(transfers.device_to_host_bytes, 4U * sizeof(std::int32_t));
 }
 
@@ -1013,9 +1035,15 @@ TEST(HipGenerationTest, StaticBatchDifferentRowsMatchCpuReference) {
         .kv_cache_layer_dtypes = {},
         .stop_tokens = {}};
     const auto expected = inference::generate_batch(cpu_model, prompts, generation);
+    runtime::reset_transfer_stats();
     const auto actual = inference::generate_batch(hip_model, prompts, generation);
     EXPECT_EQ(actual, expected);
     EXPECT_NE(actual[0], actual[1]);
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.device_to_host_calls, 1U);
+    EXPECT_EQ(transfers.device_to_host_bytes,
+              prompts.size() * static_cast<std::size_t>(generation.max_new_tokens) *
+                  sizeof(std::int32_t));
 }
 
 TEST(HipGenerationTest, StopTokenRowsMatchCpuAtDifferentLengths) {

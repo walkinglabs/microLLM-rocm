@@ -242,26 +242,33 @@ GenerationRun decode_cached(microllm::model::TransformerModel& model,
                             std::int64_t new_tokens, bool steady = false) {
     GenerationRun run;
     run.kv_cache_capacity_tokens = state.cache.max_sequence_length();
-    auto next_tensor = microllm::ops::argmax_last_dim(state.logits);
+    const auto batch = state.logits.shape()[0];
+    microllm::Tensor history(
+        {new_tokens, batch}, microllm::DType::Int32, state.logits.device());
+    microllm::Tensor next_tensor;
+    if (steady) next_tensor = microllm::ops::argmax_last_dim(state.logits);
     for (std::int64_t generated = 0; generated < new_tokens; ++generated) {
-        if (steady) {
+        auto history_slot = history.slice(0, generated, generated + 1)
+                                .reshape({batch, 1});
+        if (steady) state.logits = model.forward_cached(next_tensor, state.cache);
+        microllm::ops::argmax_last_dim_out_(state.logits, history_slot);
+        next_tensor = history_slot;
+        if (!steady && generated + 1 < new_tokens) {
             state.logits = model.forward_cached(next_tensor, state.cache);
-            next_tensor = microllm::ops::argmax_last_dim(state.logits);
         }
-        const auto next_rows = next_tensor.to_int32_vector();
-        const auto next = next_rows.front();
-        if (next < 0 || std::any_of(next_rows.begin(), next_rows.end(),
-                                    [next](std::int32_t value) {
-                                        return value != next;
-                                    })) {
+    }
+    const auto selected = history.to_int32_vector();
+    for (std::int64_t generated = 0; generated < new_tokens; ++generated) {
+        const auto offset = static_cast<std::size_t>(generated * batch);
+        const auto next = selected[offset];
+        if (next < 0 || std::any_of(
+                            selected.begin() + static_cast<std::ptrdiff_t>(offset),
+                            selected.begin() + static_cast<std::ptrdiff_t>(offset + batch),
+                            [next](std::int32_t value) { return value != next; })) {
             throw std::runtime_error(
                 "cached identical batch rows produced invalid or different tokens");
         }
         run.suffix.push_back(next);
-        if (!steady && generated + 1 < new_tokens) {
-            state.logits = model.forward_cached(next_tensor, state.cache);
-            next_tensor = microllm::ops::argmax_last_dim(state.logits);
-        }
     }
     run.kv_cache_active_tokens = state.cache.position();
     for (std::size_t layer = 0; layer < state.cache.layer_count(); ++layer) {

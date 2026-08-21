@@ -42,14 +42,14 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   1/8/32 across short/medium/long contexts and B1/B8;
 - [x] provide a dedicated 31/32/33, 127/128/129 and 511/512/513 dispatch-boundary
   suite plus odd batch 3;
-- [ ] remove per-token selected-ID D2H after allocator stabilization; the first device-history
-  candidate reduced calls 24→3 but was rejected at 0.861x B8;
+- [x] remove per-token selected-ID D2H for HIP greedy/no-stop generation after allocator
+  stabilization; calls fall 24→3 with neutral alternating performance;
 - [x] profile the DeepSeek T2048 Release cached path: cached Attention is about 60% of measured
   decode wall and B8 allocator/cache reuse is the second hotspot;
 - [x] remove B8 exact-size allocator phase sensitivity with immediate exact-size reuse under the
   legacy-default-Stream-only contract;
 - [ ] add a per-position dot/codegen gate before revisiting BF16 cached-Attention pair loads;
-- [ ] retry device token-history D2H batching now that allocator phase sensitivity is removed;
+- [x] retry and retain device token-history D2H batching after allocator stabilization;
 - [x] add a delayed-arrival multi-request reference scheduler with independent Cache/RNG state;
 - [x] batch compatible equal-length requests through one public static generation path;
 - [x] group pending requests by compatibility with singleton fallback and cross-drain admission;

@@ -105,6 +105,25 @@ std::vector<std::int32_t> generate(model::TransformerModel& model,
         Tensor::from_int32_vector(
             prompt, {1, static_cast<std::int64_t>(prompt.size())}),
         cache);
+    if (logits.device().is_hip() && config.stop_tokens.empty() &&
+        (config.temperature == 0.0F || config.top_k == 1)) {
+        Tensor history({config.max_new_tokens, 1}, DType::Int32, logits.device());
+        for (std::int64_t generated = 0; generated < config.max_new_tokens; ++generated) {
+            auto slot = history.slice(0, generated, generated + 1).reshape({1, 1});
+            ops::argmax_out_(logits, slot);
+            if (generated + 1 < config.max_new_tokens) {
+                logits = model.forward_cached(slot, cache);
+            }
+        }
+        const auto selected = history.to_int32_vector();
+        if (std::any_of(selected.begin(), selected.end(),
+                        [](std::int32_t token) { return token < 0; })) {
+            throw std::invalid_argument("sampling logits must be finite");
+        }
+        auto tokens = prompt;
+        tokens.insert(tokens.end(), selected.begin(), selected.end());
+        return tokens;
+    }
     std::mt19937_64 generator(config.seed);
     auto tokens = prompt;
     for (std::int64_t generated = 0; generated < config.max_new_tokens; ++generated) {
@@ -181,6 +200,31 @@ std::vector<std::vector<std::int32_t>> generate_batch(
             flat, {batch, static_cast<std::int64_t>(prompt_length)}),
         cache);
     auto result = prompts;
+    if (logits.device().is_hip() && config.stop_tokens.empty() &&
+        (config.temperature == 0.0F || config.top_k == 1)) {
+        Tensor history(
+            {config.max_new_tokens, batch}, DType::Int32, logits.device());
+        for (std::int64_t generated = 0; generated < config.max_new_tokens; ++generated) {
+            auto slot = history.slice(0, generated, generated + 1)
+                            .reshape({batch, 1});
+            ops::argmax_last_dim_out_(logits, slot);
+            if (generated + 1 < config.max_new_tokens) {
+                logits = model.forward_cached(slot, cache);
+            }
+        }
+        const auto selected = history.to_int32_vector();
+        if (std::any_of(selected.begin(), selected.end(),
+                        [](std::int32_t token) { return token < 0; })) {
+            throw std::invalid_argument("batched generation logits are non-finite");
+        }
+        for (std::int64_t generated = 0; generated < config.max_new_tokens; ++generated) {
+            for (std::int64_t row = 0; row < batch; ++row) {
+                result[static_cast<std::size_t>(row)].push_back(
+                    selected[static_cast<std::size_t>(generated * batch + row)]);
+            }
+        }
+        return result;
+    }
     std::vector<bool> finished(prompts.size(), false);
     std::vector<std::mt19937_64> random;
     random.reserve(prompts.size());

@@ -2558,9 +2558,12 @@ def validate_deepseek_steady_profile_d2h_discard(
     header = (REPOSITORY / "include" / "microllm" / "ops" / "ops.h").read_text(
         encoding="utf-8")
     app = (REPOSITORY / "apps" / "hf_infer.cpp").read_text(encoding="utf-8")
-    if "argmax_out_" in header or "argmax_last_dim_out_" in header or \
-            "Tensor history" in app:
-        errors.append("rejected D2H candidate remains in retained source")
+    retry = ROOT / "experiments" / "090-data" / "summary.json"
+    retry_kept = retry.is_file() and json.loads(
+        retry.read_text(encoding="utf-8")).get("decision") == "keep"
+    if ("argmax_out_" in header or "argmax_last_dim_out_" in header or
+            "Tensor history" in app) and not retry_kept:
+        errors.append("rejected D2H candidate returned without a retained retry gate")
     return len(raw), int(profile["batch_1"]["cached_attention_calls"]), \
         int(profile["batch_8"]["cached_attention_calls"])
 
@@ -2682,6 +2685,60 @@ def validate_raw_packed_key_load_discard(errors: list[str]) -> tuple[int, int, i
     return len(rows), int(rows[1]["values"]), int(rows[8]["values"])
 
 
+def validate_device_token_history(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "090-data"
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    qwen_pair = json.loads(
+        (data / "qwen-t512-b8-pair-summary.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+
+    def records(name: str) -> list[dict]:
+        return [json.loads(line) for line in
+                (data / name).read_text(encoding="utf-8").splitlines()]
+
+    qwen = records("qwen-matrix-raw.jsonl")
+    deepseek = records("deepseek-matrix-raw.jsonl")
+    if summary.get("status") != "pass" or summary.get("decision") != "keep" or \
+            not 0.98 < float(summary["t2048_pairs"]["batch_1"]["speedup"]) < 1.02 or \
+            not 0.98 < float(summary["t2048_pairs"]["batch_8"]["speedup"]) < 1.02 or \
+            summary["t2048_pairs"]["batch_8"]["d2h_calls"] != [24, 3] or \
+            summary.get("scope", {}).get("sampling_and_stop_paths_unchanged") is not True:
+        errors.append("device token-history keep evidence changed")
+    if qwen_pair.get("status") != "pass" or \
+            not 0.98 < float(qwen_pair.get("candidate_speedup", 0.0)) < 1.02 or \
+            qwen_pair.get("baseline_d2h_calls") != 24 or \
+            qwen_pair.get("candidate_d2h_calls") != 3 or \
+            qwen_pair.get("tokens_equal") is not True:
+        errors.append("token-history T512 B8 recheck changed")
+    if len(qwen) != 12 or len(deepseek) != 12 or any(
+            record.get("status") != "pass" for record in qwen + deepseek):
+        errors.append("token-history official matrix rows changed")
+    micro = [record for record in qwen + deepseek
+             if record.get("framework") == "microllm"]
+    if len(micro) != 12 or any(
+            int(record.get("measured_d2h_calls", -1)) != 3 or
+            not 81 <= int(record.get("engine_backend_allocation_calls", -1)) <= 94 or
+            int(record.get("engine_backend_deallocation_calls", -1)) != 0
+            for record in micro):
+        errors.append("token-history transfer or allocator counters changed")
+    if gates.get("status") != "pass" or gates.get("cpu", {}).get("passed") != 208 or \
+            gates.get("hip", {}).get("passed") != 89 or \
+            gates.get("sanitizer", {}).get("passed") != 201:
+        errors.append("token-history final test gates changed")
+    header = (REPOSITORY / "include" / "microllm" / "ops" / "ops.h").read_text(
+        encoding="utf-8")
+    generator = (REPOSITORY / "src" / "inference" / "generator.cpp").read_text(
+        encoding="utf-8")
+    app = (REPOSITORY / "apps" / "hf_infer.cpp").read_text(encoding="utf-8")
+    for token in ("argmax_out_", "argmax_last_dim_out_"):
+        if token not in header:
+            errors.append(f"token-history public operator is missing {token}")
+    if "Tensor history" not in generator or "Tensor history" not in app:
+        errors.append("token-history generation or benchmark path is missing")
+    return len(qwen) + len(deepseek), len(micro), \
+        int(summary["t2048_pairs"]["batch_8"]["d2h_calls"][1])
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -2749,7 +2806,8 @@ def validate_assets(errors: list[str]) -> None:
                  "deepseek-steady-profile-d2h-discard.svg",
                  "immediate-default-stream-pool.svg",
                  "bf16x2-key-load-discard.svg",
-                 "raw-packed-key-load-discard.svg"):
+                 "raw-packed-key-load-discard.svg",
+                 "device-token-history.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -2867,6 +2925,8 @@ def main() -> int:
         validate_bf16x2_key_load_discard(errors)
     packed_rows, packed_b1_values, packed_b8_values = \
         validate_raw_packed_key_load_discard(errors)
+    token_history_raw, token_history_micro, token_history_d2h = \
+        validate_device_token_history(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -2950,6 +3010,8 @@ def main() -> int:
           f"{bf16x2_b8_values} "
           f"packed_discard={packed_rows}/{packed_b1_values}/"
           f"{packed_b8_values} "
+          f"token_history={token_history_raw}/{token_history_micro}/"
+          f"{token_history_d2h} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

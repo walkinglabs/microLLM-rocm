@@ -61,6 +61,8 @@ needed to run a real training and generation loop:
   T512 cache preparation improves 275× over explicit token replay.
 - last-dimension row-wise GPU argmax keeps batched logits on device; Qwen/DeepSeek B8
   uncached reference decode gains 2.15×/1.68× with unchanged peak and tokens.
+- greedy generation without stop tokens writes argmax results into a device history and performs
+  one final D2H; N8×3 measured calls fall 24→3 with unchanged bytes and tokens.
 - batch-aware full prefill, KV Storage, step store and cached GQA support B1/2/4/8;
   the corrected steady-decode matrix records one real forward per measured token and exposes
   long-context throughput as the current primary inference gap.
@@ -159,9 +161,9 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 295/295 | 207 CPU-labelled + 88 HIP-labelled gates; 2 intentional environment skips |
-| ASan/UBSan CPU | 200/200 | host code, CLI, model/graph, benchmark and evidence schemas |
-| MI300X/gfx942 HIP | 88/88 | allocator/stream, graph, BF16/FP8, batched GEMM and model matrix |
+| Full CPU/HIP configuration | 297/297 | 208 CPU-labelled + 89 HIP-labelled gates; 2 intentional environment skips |
+| ASan/UBSan CPU | 201/201 | host code, CLI, model/graph, benchmark and evidence schemas |
+| MI300X/gfx942 HIP | 89/89 | allocator/stream, graph, BF16/FP8, batched GEMM and model matrix |
 | PyTorch-enabled CPU build | 196/196 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
 | Registered test files | 37 | machine-audited CTest registration |

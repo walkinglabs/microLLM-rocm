@@ -357,6 +357,30 @@ TEST(CpuOpsTest, ArgmaxLastDimReducesRowsWithTieAndNonFiniteContracts) {
     EXPECT_THROW((void)argmax_last_dim(Tensor({2, 0})), std::invalid_argument);
 }
 
+TEST(CpuOpsTest, ArgmaxOutWritesCallerOwnedHistoryViews) {
+    const auto scalar = Tensor::from_vector({-2.0F, 4.0F, 4.0F}, {3});
+    Tensor scalar_output({1, 1}, DType::Int32);
+    argmax_out_(scalar, scalar_output);
+    EXPECT_EQ(scalar_output.to_int32_vector(), (std::vector<std::int32_t>{1}));
+
+    Tensor history({2, 2}, DType::Int32);
+    auto first = history.slice(0, 0, 1).reshape({2});
+    auto second = history.slice(0, 1, 2).reshape({2});
+    argmax_last_dim_out_(
+        Tensor::from_vector({1.0F, 5.0F, 2.0F, 7.0F, 3.0F, 4.0F}, {2, 3}),
+        first);
+    argmax_last_dim_out_(
+        Tensor::from_vector({9.0F, 8.0F, 7.0F, 1.0F, 2.0F, 6.0F}, {2, 3}),
+        second);
+    EXPECT_EQ(history.to_int32_vector(),
+              (std::vector<std::int32_t>{1, 0, 0, 2}));
+
+    Tensor wrong_dtype({1, 1});
+    EXPECT_THROW(argmax_out_(scalar, wrong_dtype), std::invalid_argument);
+    Tensor wrong_shape({1}, DType::Int32);
+    EXPECT_THROW(argmax_out_(scalar, wrong_shape), std::invalid_argument);
+}
+
 TEST(CpuOpsTest, EmbeddingGathersRowsAndRejectsBadIndex) {
     const auto weight = Tensor::from_vector({0, 1, 2, 3, 4, 5}, {3, 2});
     const auto indices = Tensor::from_int32_vector({2, 0, 1}, {3});

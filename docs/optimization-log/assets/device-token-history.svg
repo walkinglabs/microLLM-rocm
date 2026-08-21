@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="540" viewBox="0 0 1080 540" role="img" aria-labelledby="title desc">
+  <title id="title">Device token history reduces D2H synchronization after allocator stabilization</title>
+  <desc id="desc">D2H calls fall from 24 to 3 while bytes, tokens, KV cache, peak memory and throughput remain stable.</desc>
+  <rect width="1080" height="540" fill="#0b1020"/>
+  <text x="40" y="44" fill="#f8fafc" font-family="sans-serif" font-size="24" font-weight="700">Experiment 090 · collect on GPU, copy once</text>
+  <text x="40" y="72" fill="#94a3b8" font-family="sans-serif" font-size="14">Greedy · no stop tokens · stable immediate allocator</text>
+
+  <rect x="40" y="108" width="480" height="342" rx="12" fill="#111827" stroke="#334155"/>
+  <text x="66" y="146" fill="#e2e8f0" font-family="sans-serif" font-size="18" font-weight="700">Measured D2H calls · N8 × 3 runs</text>
+  <g font-family="sans-serif" font-size="14">
+    <text x="66" y="204" fill="#cbd5e1">Exp087 per-token</text>
+    <rect x="210" y="186" width="240" height="26" rx="3" fill="#64748b"/>
+    <text x="460" y="205" fill="#cbd5e1">24</text>
+    <text x="66" y="270" fill="#cbd5e1">Exp090 history</text>
+    <rect x="210" y="252" width="30" height="26" rx="3" fill="#22c55e"/>
+    <text x="250" y="271" fill="#dcfce7">3</text>
+    <text x="66" y="330" fill="#93c5fd">B1 bytes: 96 → 96</text>
+    <text x="66" y="360" fill="#93c5fd">B8 bytes: 768 → 768</text>
+    <text x="66" y="410" fill="#bbf7d0" font-weight="700">87.5% fewer synchronization boundaries</text>
+  </g>
+
+  <rect x="550" y="108" width="490" height="342" rx="12" fill="#111827" stroke="#334155"/>
+  <text x="576" y="146" fill="#e2e8f0" font-family="sans-serif" font-size="18" font-weight="700">Alternating Release gates</text>
+  <g font-family="sans-serif" font-size="14">
+    <text x="576" y="204" fill="#cbd5e1">Deep T2048 B1</text><text x="850" y="204" fill="#dcfce7" font-weight="700">1.002×</text>
+    <text x="576" y="244" fill="#cbd5e1">Deep T2048 B8</text><text x="850" y="244" fill="#dcfce7" font-weight="700">1.003×</text>
+    <text x="576" y="284" fill="#cbd5e1">Qwen T512 B8</text><text x="850" y="284" fill="#e2e8f0" font-weight="700">0.997×</text>
+    <text x="576" y="338" fill="#93c5fd">Backend alloc: unchanged 86–94</text>
+    <text x="576" y="370" fill="#93c5fd">Peak / KV / tokens: unchanged</text>
+    <text x="576" y="412" fill="#bbf7d0" font-weight="700">KEEP · device-neutral, host-boundary win</text>
+  </g>
+
+  <path d="M70 490 H1010" stroke="#334155"/>
+  <circle cx="92" cy="508" r="6" fill="#22c55e"/>
+  <text x="106" y="513" fill="#94a3b8" font-family="sans-serif" font-size="13">Sampling and early-stop paths keep their original per-step host decisions.</text>
+</svg>

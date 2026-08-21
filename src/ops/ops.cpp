@@ -1397,14 +1397,19 @@ Tensor cached_gqa_attention(const Tensor& query, const Tensor& key_cache,
     return Tensor::from_vector(output, {batches, heads, 1, width});
 }
 
-Tensor argmax(const Tensor& input, [[maybe_unused]] const OpContext& context) {
+void argmax_out_(const Tensor& input, Tensor& output,
+                 [[maybe_unused]] const OpContext& context) {
     require_float(input, "input");
     if (input.numel() <= 0 || input.numel() > std::numeric_limits<std::int32_t>::max()) {
         throw std::invalid_argument("argmax requires 1..INT32_MAX float32 elements");
     }
+    require_same_device(input, output);
+    if (output.dtype() != DType::Int32 || output.shape() != Shape({1, 1}) ||
+        !output.is_contiguous()) {
+        throw std::invalid_argument("argmax output must be contiguous Int32 [1,1]");
+    }
     if (input.device().is_hip()) {
         require_contiguous(input, "input");
-        Tensor output({1, 1}, DType::Int32, input.device());
 #if MICROLLM_HAS_HIP
         constexpr std::int64_t kTwoStageThreshold = 32768;
         if (input.numel() >= kTwoStageThreshold) {
@@ -1421,7 +1426,7 @@ Tensor argmax(const Tensor& input, [[maybe_unused]] const OpContext& context) {
                                static_cast<std::int32_t*>(output.data()), input.numel(),
                                context.native_stream(input.device()));
         }
-        return output;
+        return;
 #else
         throw std::runtime_error("microLLM was built without HIP operator support");
 #endif
@@ -1431,18 +1436,25 @@ Tensor argmax(const Tensor& input, [[maybe_unused]] const OpContext& context) {
     std::int32_t index = 0;
     for (std::size_t candidate = 0; candidate < values.size(); ++candidate) {
         if (!std::isfinite(values[candidate])) {
-            return Tensor::from_int32_vector({-1}, {1, 1});
+            *static_cast<std::int32_t*>(output.data()) = -1;
+            return;
         }
         if (values[candidate] > best) {
             best = values[candidate];
             index = static_cast<std::int32_t>(candidate);
         }
     }
-    return Tensor::from_int32_vector({index}, {1, 1});
+    *static_cast<std::int32_t*>(output.data()) = index;
 }
 
-Tensor argmax_last_dim(const Tensor& input,
-                       [[maybe_unused]] const OpContext& context) {
+Tensor argmax(const Tensor& input, const OpContext& context) {
+    Tensor output({1, 1}, DType::Int32, input.device());
+    argmax_out_(input, output, context);
+    return output;
+}
+
+void argmax_last_dim_out_(const Tensor& input, Tensor& output,
+                          [[maybe_unused]] const OpContext& context) {
     require_float(input, "input");
     if (input.ndim() <= 0 || input.shape().back() <= 0 ||
         input.shape().back() > std::numeric_limits<std::int32_t>::max()) {
@@ -1453,15 +1465,20 @@ Tensor argmax_last_dim(const Tensor& input,
     const auto rows = input.numel() / classes;
     auto output_shape = input.shape();
     output_shape.pop_back();
+    require_same_device(input, output);
+    if (output.dtype() != DType::Int32 || output.shape() != output_shape ||
+        !output.is_contiguous()) {
+        throw std::invalid_argument(
+            "argmax_last_dim output shape, dtype, or layout is invalid");
+    }
     if (input.device().is_hip()) {
         require_contiguous(input, "input");
-        Tensor output(output_shape, DType::Int32, input.device());
 #if MICROLLM_HAS_HIP
         hip::launch_argmax_last_dim(
             static_cast<const float*>(input.data()),
             static_cast<std::int32_t*>(output.data()), rows, classes,
             context.native_stream(input.device()));
-        return output;
+        return;
 #else
         throw std::runtime_error("microLLM was built without HIP operator support");
 #endif
@@ -1483,7 +1500,16 @@ Tensor argmax_last_dim(const Tensor& input,
             }
         }
     }
-    return Tensor::from_int32_vector(selected, std::move(output_shape));
+    std::copy(selected.begin(), selected.end(),
+              static_cast<std::int32_t*>(output.data()));
+}
+
+Tensor argmax_last_dim(const Tensor& input, const OpContext& context) {
+    auto output_shape = input.shape();
+    if (!output_shape.empty()) output_shape.pop_back();
+    Tensor output(output_shape, DType::Int32, input.device());
+    argmax_last_dim_out_(input, output, context);
+    return output;
 }
 
 Tensor silu_backward(const Tensor& input, const Tensor& gradient,

@@ -93,6 +93,10 @@ cached模式默认`--cache-prefill-mode full`，一次完整prompt直接填入�
 uncached batch默认`--batch-argmax-mode device`，只把每行选中的Int32 token带回host。
 显式`host`会搬回完整`B×V` logits，仅用于性能反例；它不是生产默认。
 
+HIP greedy且没有stop token时，cached generation会把全部选中ID写进device token history，结束后
+一次带回host；随机sampling和提前停止仍逐步读取。接口、边界和测试见
+[GPU token history](dev/device-token-history.zh-CN.md)。
+
 多context、batch和KV Cache显存矩阵见：
 
 ```bash
