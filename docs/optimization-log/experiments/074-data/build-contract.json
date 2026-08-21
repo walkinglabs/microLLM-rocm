@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "model_parameter_count": 106816,
+  "request_counts": [1, 2, 4, 8, 16],
+  "compatibility_group_size": 4,
+  "group_key": ["prompt_length", "max_new_tokens", "temperature", "top_k", "seed", "cache_policy"],
+  "warmup": 1,
+  "repetitions": 5,
+  "fresh_process_runs": 3,
+  "devices": ["cpu", "hip"]
+}

@@ -94,7 +94,15 @@ request A forward
 
 它仍不能接收晚到请求或为提前结束的请求补新slot，所以只是continuous batching的计算积木。
 
-## 7. 测试位置
+## 7. Admission bucketing
+
+`AdmissionBatchScheduler`把当前等待请求按“prompt长度、生成配置、seed、Cache策略”分组。
+兼容请求走`generate_batch()`，不兼容请求走B1；下一次`drain()`可以接收后来到的请求。
+
+它解决的是“入场时怎样分组”，没有解决“生成过程中怎样腾出并补充slot”。B4兼容组在HIP
+约1260 token/s，但8/16请求拆成2/4个B4组后吞吐保持平台。
+
+## 8. 测试位置
 
 ```text
 tests/inference/scheduler_test.cpp

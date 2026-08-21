@@ -20,6 +20,7 @@ struct Options {
     int warmup = 1;
     int repetitions = 3;
     bool static_batch = false;
+    bool admission_buckets = false;
 };
 
 Options options(int argc, char** argv) {
@@ -37,6 +38,13 @@ Options options(int argc, char** argv) {
                 throw std::invalid_argument("--static-batch must be true or false");
             }
             result.static_batch = value == "true";
+        }
+        else if (name == "--admission-buckets") {
+            const std::string value = argv[index + 1];
+            if (value != "true" && value != "false") {
+                throw std::invalid_argument("--admission-buckets must be true or false");
+            }
+            result.admission_buckets = value == "true";
         }
         else throw std::invalid_argument("unknown option: " + name);
     }
@@ -64,21 +72,28 @@ struct WorkItem {
     microllm::inference::GenerationConfig generation;
 };
 
-std::vector<WorkItem> workload(std::int64_t count, bool compatible) {
+std::vector<WorkItem> workload(std::int64_t count, bool compatible,
+                               bool admission_buckets) {
     std::vector<WorkItem> result;
     result.reserve(static_cast<std::size_t>(count));
     for (std::int64_t request = 0; request < count; ++request) {
-        const auto length = compatible ? 8 : 4 + (request % 4) * 4;
+        const auto group = request / 4;
+        const auto length = compatible ? 8
+                            : admission_buckets ? 8 + (group % 2) * 4
+                                                : 4 + (request % 4) * 4;
         std::vector<std::int32_t> prompt(static_cast<std::size_t>(length));
         for (std::int64_t token = 0; token < length; ++token) {
             prompt[static_cast<std::size_t>(token)] =
                 static_cast<std::int32_t>((request * 17 + token * 7 + 1) % 256);
         }
         result.push_back({std::move(prompt),
-                          {.max_new_tokens = compatible ? 4 : 3 + request % 3,
+                          {.max_new_tokens = compatible ? 4
+                                             : admission_buckets ? 4 + group % 2
+                                                                 : 3 + request % 3,
                            .temperature = 0.0F,
                            .top_k = 1,
-                           .seed = static_cast<std::uint64_t>(request + 1),
+                           .seed = static_cast<std::uint64_t>(
+                               admission_buckets ? group + 1 : request + 1),
                            .kv_cache_layer_dtypes = {}}});
     }
     return result;
@@ -140,6 +155,25 @@ std::vector<std::vector<std::int32_t>> run_static_batch(
     return result;
 }
 
+struct AdmissionRun {
+    std::vector<std::vector<std::int32_t>> generated;
+    microllm::inference::AdmissionBatchMetrics metrics;
+};
+
+AdmissionRun run_admission(microllm::model::TransformerModel& model,
+                           const std::vector<WorkItem>& work) {
+    microllm::inference::AdmissionBatchScheduler scheduler(model);
+    std::vector<microllm::inference::RequestId> ids;
+    for (const auto& item : work) {
+        ids.push_back(scheduler.submit(item.prompt, item.generation));
+    }
+    scheduler.drain();
+    AdmissionRun result;
+    for (const auto id : ids) result.generated.push_back(scheduler.request(id).generated);
+    result.metrics = scheduler.metrics();
+    return result;
+}
+
 void synchronize(microllm::Device device) {
     if (device.is_hip()) microllm::runtime::synchronize(device);
 }
@@ -157,23 +191,29 @@ int main(int argc, char** argv) {
         auto scheduled_model = microllm::model::TransformerModel(config(), 101);
         auto sequential_model = microllm::model::TransformerModel(config(), 101);
         auto static_model = microllm::model::TransformerModel(config(), 101);
+        auto admission_model = microllm::model::TransformerModel(config(), 101);
         scheduled_model.to(device);
         sequential_model.to(device);
         static_model.to(device);
-        const auto work = workload(command.requests, command.static_batch);
+        admission_model.to(device);
+        const auto work = workload(command.requests, command.static_batch,
+                                   command.admission_buckets);
         for (int iteration = 0; iteration < command.warmup; ++iteration) {
             (void)run_scheduler(scheduled_model, work);
             (void)run_sequential(sequential_model, work);
             if (command.static_batch) (void)run_static_batch(static_model, work);
+            if (command.admission_buckets) (void)run_admission(admission_model, work);
         }
         synchronize(device);
         microllm::runtime::reset_allocation_peak(device);
         double scheduler_ms = 0.0;
         double sequential_ms = 0.0;
         double static_ms = 0.0;
+        double admission_ms = 0.0;
         Run last_scheduler;
         std::vector<std::vector<std::int32_t>> last_sequential;
         std::vector<std::vector<std::int32_t>> last_static;
+        AdmissionRun last_admission;
         for (int iteration = 0; iteration < command.repetitions; ++iteration) {
             auto start = std::chrono::steady_clock::now();
             last_scheduler = run_scheduler(scheduled_model, work);
@@ -193,12 +233,24 @@ int main(int argc, char** argv) {
                 static_ms +=
                     std::chrono::duration<double, std::milli>(finish - start).count();
             }
+            if (command.admission_buckets) {
+                start = std::chrono::steady_clock::now();
+                last_admission = run_admission(admission_model, work);
+                synchronize(device);
+                finish = std::chrono::steady_clock::now();
+                admission_ms +=
+                    std::chrono::duration<double, std::milli>(finish - start).count();
+            }
         }
         if (last_scheduler.generated != last_sequential) {
             throw std::runtime_error("scheduler output differs from sequential generate");
         }
         if (command.static_batch && last_static != last_sequential) {
             throw std::runtime_error("static batch output differs from sequential generate");
+        }
+        if (command.admission_buckets &&
+            last_admission.generated != last_sequential) {
+            throw std::runtime_error("admission batch output differs from sequential generate");
         }
         std::int64_t generated_per_repetition = 0;
         std::uint64_t checksum = 0;
@@ -235,6 +287,23 @@ int main(int argc, char** argv) {
                           : 0.0)
                   << ",\"static_batch_over_reference\":"
                   << (command.static_batch ? scheduler_ms / static_ms : 0.0)
+                  << ",\"admission_enabled\":"
+                  << (command.admission_buckets ? "true" : "false")
+                  << ",\"admission_ms\":" << admission_ms
+                  << ",\"admission_tokens_per_second\":"
+                  << (command.admission_buckets
+                          ? static_cast<double>(measured_tokens) * 1000.0 / admission_ms
+                          : 0.0)
+                  << ",\"admission_over_reference\":"
+                  << (command.admission_buckets ? scheduler_ms / admission_ms : 0.0)
+                  << ",\"admission_batch_groups\":"
+                  << last_admission.metrics.batch_groups
+                  << ",\"admission_singleton_groups\":"
+                  << last_admission.metrics.singleton_groups
+                  << ",\"admission_batched_requests\":"
+                  << last_admission.metrics.batched_requests
+                  << ",\"admission_maximum_batch_size\":"
+                  << last_admission.metrics.maximum_batch_size
                   << ",\"scheduler_steps\":" << last_scheduler.metrics.scheduler_steps
                   << ",\"prefill_calls\":" << last_scheduler.metrics.prefill_calls
                   << ",\"decode_calls\":" << last_scheduler.metrics.decode_calls
@@ -245,6 +314,8 @@ int main(int argc, char** argv) {
                   << ",\"outputs_equal\":true"
                   << ",\"static_outputs_equal\":"
                   << (command.static_batch ? "true" : "false")
+                  << ",\"admission_outputs_equal\":"
+                  << (command.admission_buckets ? "true" : "false")
                   << ",\"token_checksum\":" << checksum << "}\n";
         return 0;
     } catch (const std::exception& error) {

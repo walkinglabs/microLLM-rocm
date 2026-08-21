@@ -1951,6 +1951,34 @@ def validate_static_batch_generation(errors: list[str]) -> tuple[int, int]:
     return len(raw), len(rows)
 
 
+def validate_admission_batch_scheduler(errors: list[str]) -> tuple[int, int]:
+    data = ROOT / "experiments" / "074-data"
+    raw = [json.loads(line) for line in
+           (data / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    keys = {(row.get("device"), row.get("requests"), row.get("process_run"))
+            for row in raw}
+    if len(raw) != 30 or len(keys) != 30 or any(
+            row.get("status") != "pass" or row.get("admission_enabled") is not True or
+            row.get("admission_outputs_equal") is not True for row in raw):
+        errors.append("admission batch scheduler raw protocol changed")
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    rows = summary.get("rows", [])
+    hip = {row.get("requests"): row for row in rows if row.get("device") == "hip"}
+    if summary.get("status") != "pass" or len(rows) != 10 or any(
+            row.get("outputs_equal") is not True for row in rows) or \
+            float(hip.get(4, {}).get("speedup", 0.0)) < 3.7 or \
+            int(hip.get(8, {}).get("batch_groups", 0)) != 2 or \
+            int(hip.get(16, {}).get("batch_groups", 0)) != 4 or \
+            int(hip.get(16, {}).get("maximum_batch_size", 0)) != 4 or \
+            float(hip.get(16, {}).get("admission_tokens_per_second", 0.0)) < 1200:
+        errors.append("admission batch scheduler grouping/scaling changed")
+    scheduler = (REPOSITORY / "include/microllm/inference/scheduler.h").read_text(
+        encoding="utf-8")
+    if "AdmissionBatchScheduler" not in scheduler:
+        errors.append("public admission batch scheduler API is missing")
+    return len(raw), len(rows)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -2003,7 +2031,8 @@ def validate_assets(errors: list[str]) -> None:
                  "kv-policy-prompt-robustness.svg",
                  "qwen-kv-prompt-failure.svg",
                  "reference-serving-scheduler.svg",
-                 "static-batch-generation.svg"):
+                 "static-batch-generation.svg",
+                 "admission-batch-scheduler.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -2091,6 +2120,7 @@ def main() -> int:
     serving_reference_raw, serving_reference_rows = \
         validate_reference_serving_scheduler(errors)
     static_batch_raw, static_batch_rows = validate_static_batch_generation(errors)
+    admission_batch_raw, admission_batch_rows = validate_admission_batch_scheduler(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -2145,6 +2175,7 @@ def main() -> int:
           f"{qwen_prompt_search} "
           f"serving_reference={serving_reference_raw}/{serving_reference_rows} "
           f"static_batch={static_batch_raw}/{static_batch_rows} "
+          f"admission_batch={admission_batch_raw}/{admission_batch_rows} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

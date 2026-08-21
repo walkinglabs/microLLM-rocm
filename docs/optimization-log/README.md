@@ -393,6 +393,11 @@ Experiment 073新增静态跨请求`generate_batch()`。HIP B8相对serial为7.3
 
 ![Static batch generation](assets/static-batch-generation.svg)
 
+Experiment 074增加admission compatibility buckets、singleton fallback和跨drain到达。HIP B4
+达到3.78×，B8/B16拆成多个B4组后吞吐平台约1260 tok/s，明确留下slot refill目标。
+
+![Admission batch scheduler](assets/admission-batch-scheduler.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -498,6 +503,8 @@ Experiment 073新增静态跨请求`generate_batch()`。HIP B8相对serial为7.3
 | [experiments/072-data/](experiments/072-data/) | CPU/HIP 24条raw、8条中位数和fixed workload |
 | [assets/static-batch-generation.svg](assets/static-batch-generation.svg) | HIP batch吞吐、扩展效率和static限制 |
 | [experiments/073-data/](experiments/073-data/) | CPU/HIP 24条static/reference raw与8条summary |
+| [assets/admission-batch-scheduler.svg](assets/admission-batch-scheduler.svg) | 分组吞吐、group数量和B4平台 |
+| [experiments/074-data/](experiments/074-data/) | CPU/HIP 30条raw、10条中位数和compatibility合同 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

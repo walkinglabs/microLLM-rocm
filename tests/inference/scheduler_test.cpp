@@ -1,4 +1,5 @@
 #include <vector>
+#include <tuple>
 
 #include <gtest/gtest.h>
 #include <microllm/inference/scheduler.h>
@@ -92,6 +93,70 @@ TEST(ReferenceSchedulerTest, ImmediateCompletionLimitsAndErrorsAreVisible) {
     EXPECT_EQ(scheduler.request(active).state, RequestState::Completed);
     EXPECT_EQ(scheduler.requests().size(), 2U);
     EXPECT_THROW(scheduler.run_until_idle(-2), std::invalid_argument);
+}
+
+TEST(AdmissionBatchSchedulerTest, StableBucketsMatchIndependentGeneration) {
+    const auto config = scheduler_config();
+    model::TransformerModel scheduled_model(config, 107);
+    AdmissionBatchScheduler scheduler(scheduled_model);
+    const GenerationConfig common{.max_new_tokens = 3,
+                                  .temperature = 0.0F,
+                                  .top_k = 1,
+                                  .seed = 7,
+                                  .kv_cache_layer_dtypes = {}};
+    const GenerationConfig different_seed{.max_new_tokens = 3,
+                                          .temperature = 0.0F,
+                                          .top_k = 1,
+                                          .seed = 9,
+                                          .kv_cache_layer_dtypes = {}};
+    const auto first = scheduler.submit({1, 2, 3}, common);
+    const auto second = scheduler.submit({4, 5, 6}, common);
+    const auto short_request = scheduler.submit({7, 8}, common);
+    const auto other_config = scheduler.submit({9, 10, 11}, different_seed);
+    scheduler.drain();
+    EXPECT_EQ(scheduler.pending_request_count(), 0U);
+    for (const auto& [id, prompt, generation] : {
+             std::tuple{first, std::vector<std::int32_t>{1, 2, 3}, common},
+             std::tuple{second, std::vector<std::int32_t>{4, 5, 6}, common},
+             std::tuple{short_request, std::vector<std::int32_t>{7, 8}, common},
+             std::tuple{other_config, std::vector<std::int32_t>{9, 10, 11},
+                        different_seed}}) {
+        model::TransformerModel independent(config, 107);
+        EXPECT_EQ(scheduler.request(id).generated,
+                  suffix(generate(independent, prompt, generation), prompt.size()));
+    }
+    auto metrics = scheduler.metrics();
+    EXPECT_EQ(metrics.batch_groups, 3);
+    EXPECT_EQ(metrics.singleton_groups, 2);
+    EXPECT_EQ(metrics.batched_requests, 2);
+    EXPECT_EQ(metrics.maximum_batch_size, 2);
+
+    const auto late_first = scheduler.submit({12, 13}, common);
+    const auto late_second = scheduler.submit({14, 15}, common);
+    EXPECT_EQ(scheduler.request(late_first).arrival_step, 1);
+    scheduler.drain();
+    EXPECT_EQ(scheduler.request(late_first).completion_step, 2);
+    EXPECT_EQ(scheduler.request(late_second).completion_step, 2);
+    metrics = scheduler.metrics();
+    EXPECT_EQ(metrics.drain_calls, 2);
+    EXPECT_EQ(metrics.batch_groups, 4);
+    EXPECT_EQ(metrics.batched_requests, 4);
+    EXPECT_EQ(metrics.completed_requests, 6);
+}
+
+TEST(AdmissionBatchSchedulerTest, ImmediateAndErrorRequestsAreExplicit) {
+    model::TransformerModel model(scheduler_config(), 109);
+    AdmissionBatchScheduler scheduler(model);
+    const auto completed = scheduler.submit(
+        {1}, {.max_new_tokens = 0, .kv_cache_layer_dtypes = {}});
+    EXPECT_EQ(scheduler.request(completed).state, RequestState::Completed);
+    scheduler.drain();
+    EXPECT_EQ(scheduler.metrics().batch_groups, 0);
+    EXPECT_THROW((void)scheduler.submit(
+                     {16}, {.max_new_tokens = 0,
+                            .kv_cache_layer_dtypes = {}}),
+                 std::out_of_range);
+    EXPECT_THROW((void)scheduler.request(999), std::out_of_range);
 }
 
 }  // namespace microllm::inference

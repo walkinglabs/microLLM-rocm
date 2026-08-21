@@ -205,3 +205,5 @@ the next gate. Records are append-only except for factual corrections.
   delayed requests, independent state/Cache/RNG, CPU/HIP oracle and serial serving baseline.
 - [2026-08-21-static-batch-generation.md](2026-08-21-static-batch-generation.md):
   public compatible-request batch API, row correctness and 1–8 request CPU/HIP scaling.
+- [2026-08-21-admission-batch-scheduler.md](2026-08-21-admission-batch-scheduler.md):
+  stable compatibility buckets, singleton fallback, late admission and B4 throughput plateau.

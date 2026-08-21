@@ -40,6 +40,7 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] record engine peak, resident policy, prefill/decode latency, tokens/s and KV utilization;
 - [x] add a delayed-arrival multi-request reference scheduler with independent Cache/RNG state;
 - [x] batch compatible equal-length requests through one public static generation path;
+- [x] group pending requests by compatibility with singleton fallback and cross-drain admission;
 - [ ] batch compatible active request slots without changing reference request semantics;
 
 ## P2 — operator registry and profiler API

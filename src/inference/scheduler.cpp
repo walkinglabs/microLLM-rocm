@@ -236,4 +236,159 @@ SchedulerMetrics ReferenceScheduler::metrics() const noexcept {
     return impl_->metrics;
 }
 
+struct AdmissionBatchScheduler::Impl {
+    struct Request {
+        RequestId id = 0;
+        RequestState state = RequestState::PendingPrefill;
+        std::vector<std::int32_t> prompt;
+        std::vector<std::int32_t> generated;
+        GenerationConfig config;
+        std::int64_t arrival_drain = 0;
+        std::int64_t completion_drain = -1;
+    };
+
+    struct Key {
+        std::size_t prompt_length = 0;
+        std::int64_t max_new_tokens = 0;
+        float temperature = 0.0F;
+        std::int64_t top_k = 0;
+        std::uint64_t seed = 0;
+        DType cache_dtype = DType::Float32;
+        std::vector<DType> layer_dtypes;
+
+        bool operator==(const Key&) const = default;
+    };
+
+    explicit Impl(model::TransformerModel& value) : model(value) {}
+
+    model::TransformerModel& model;
+    std::vector<Request> requests;
+    RequestId next_id = 1;
+    AdmissionBatchMetrics metrics;
+
+    static Key key(const Request& request) {
+        return {.prompt_length = request.prompt.size(),
+                .max_new_tokens = request.config.max_new_tokens,
+                .temperature = request.config.temperature,
+                .top_k = request.config.top_k,
+                .seed = request.config.seed,
+                .cache_dtype = request.config.kv_cache_dtype,
+                .layer_dtypes = request.config.kv_cache_layer_dtypes};
+    }
+
+    const Request& find(RequestId id) const {
+        const auto found = std::find_if(requests.begin(), requests.end(),
+                                        [id](const Request& request) {
+                                            return request.id == id;
+                                        });
+        if (found == requests.end()) throw std::out_of_range("unknown admission request");
+        return *found;
+    }
+};
+
+AdmissionBatchScheduler::AdmissionBatchScheduler(model::TransformerModel& model)
+    : impl_(std::make_unique<Impl>(model)) {}
+AdmissionBatchScheduler::~AdmissionBatchScheduler() = default;
+AdmissionBatchScheduler::AdmissionBatchScheduler(AdmissionBatchScheduler&&) noexcept = default;
+AdmissionBatchScheduler& AdmissionBatchScheduler::operator=(
+    AdmissionBatchScheduler&&) noexcept = default;
+
+RequestId AdmissionBatchScheduler::submit(std::vector<std::int32_t> prompt,
+                                          GenerationConfig config) {
+    validate_request(impl_->model, prompt, config);
+    (void)cache_policy(impl_->model, config);
+    Impl::Request request;
+    request.id = impl_->next_id++;
+    request.prompt = std::move(prompt);
+    request.config = std::move(config);
+    request.arrival_drain = impl_->metrics.drain_calls;
+    if (request.config.max_new_tokens == 0) {
+        request.state = RequestState::Completed;
+        request.completion_drain = impl_->metrics.drain_calls;
+        ++impl_->metrics.completed_requests;
+    }
+    const auto id = request.id;
+    impl_->requests.push_back(std::move(request));
+    ++impl_->metrics.submitted_requests;
+    return id;
+}
+
+void AdmissionBatchScheduler::drain() {
+    ++impl_->metrics.drain_calls;
+    std::vector<std::vector<std::size_t>> groups;
+    std::vector<Impl::Key> keys;
+    for (std::size_t index = 0; index < impl_->requests.size(); ++index) {
+        if (impl_->requests[index].state == RequestState::Completed) continue;
+        const auto key = Impl::key(impl_->requests[index]);
+        const auto found = std::find(keys.begin(), keys.end(), key);
+        if (found == keys.end()) {
+            keys.push_back(key);
+            groups.push_back({index});
+        } else {
+            groups[static_cast<std::size_t>(std::distance(keys.begin(), found))]
+                .push_back(index);
+        }
+    }
+    for (const auto& group : groups) {
+        std::vector<std::vector<std::int32_t>> prompts;
+        prompts.reserve(group.size());
+        for (const auto index : group) prompts.push_back(impl_->requests[index].prompt);
+        const auto generated = generate_batch(
+            impl_->model, prompts, impl_->requests[group.front()].config);
+        if (generated.size() != group.size()) {
+            throw std::runtime_error("admission batch returned the wrong row count");
+        }
+        ++impl_->metrics.batch_groups;
+        impl_->metrics.maximum_batch_size = std::max(
+            impl_->metrics.maximum_batch_size,
+            static_cast<std::int64_t>(group.size()));
+        if (group.size() == 1) {
+            ++impl_->metrics.singleton_groups;
+        } else {
+            impl_->metrics.batched_requests += static_cast<std::int64_t>(group.size());
+        }
+        for (std::size_t row = 0; row < group.size(); ++row) {
+            auto& request = impl_->requests[group[row]];
+            request.generated.assign(
+                generated[row].begin() +
+                    static_cast<std::ptrdiff_t>(request.prompt.size()),
+                generated[row].end());
+            request.state = RequestState::Completed;
+            request.completion_drain = impl_->metrics.drain_calls;
+            ++impl_->metrics.completed_requests;
+        }
+    }
+}
+
+std::size_t AdmissionBatchScheduler::pending_request_count() const noexcept {
+    return static_cast<std::size_t>(std::count_if(
+        impl_->requests.begin(), impl_->requests.end(),
+        [](const Impl::Request& request) {
+            return request.state != RequestState::Completed;
+        }));
+}
+
+RequestSnapshot AdmissionBatchScheduler::request(RequestId id) const {
+    const auto& request = impl_->find(id);
+    return {.id = request.id,
+            .state = request.state,
+            .prompt = request.prompt,
+            .generated = request.generated,
+            .max_new_tokens = request.config.max_new_tokens,
+            .arrival_step = request.arrival_drain,
+            .completion_step = request.completion_drain,
+            .cache_bytes = 0};
+}
+
+std::vector<RequestSnapshot> AdmissionBatchScheduler::requests() const {
+    std::vector<RequestSnapshot> result;
+    result.reserve(impl_->requests.size());
+    for (const auto& request : impl_->requests) result.push_back(this->request(request.id));
+    return result;
+}
+
+AdmissionBatchMetrics AdmissionBatchScheduler::metrics() const noexcept {
+    return impl_->metrics;
+}
+
 }  // namespace microllm::inference

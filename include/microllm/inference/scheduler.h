@@ -68,4 +68,40 @@ private:
     std::unique_ptr<Impl> impl_;
 };
 
+struct AdmissionBatchMetrics {
+    std::int64_t drain_calls = 0;
+    std::int64_t submitted_requests = 0;
+    std::int64_t completed_requests = 0;
+    std::int64_t batch_groups = 0;
+    std::int64_t singleton_groups = 0;
+    std::int64_t batched_requests = 0;
+    std::int64_t maximum_batch_size = 0;
+};
+
+// Groups currently pending requests by an exact compatibility key and executes
+// each group through generate_batch(). Requests submitted after drain() wait for
+// the next admission window. This is admission batching, not token-level refill.
+class AdmissionBatchScheduler {
+public:
+    explicit AdmissionBatchScheduler(model::TransformerModel& model);
+    ~AdmissionBatchScheduler();
+    AdmissionBatchScheduler(AdmissionBatchScheduler&&) noexcept;
+    AdmissionBatchScheduler& operator=(AdmissionBatchScheduler&&) noexcept;
+    AdmissionBatchScheduler(const AdmissionBatchScheduler&) = delete;
+    AdmissionBatchScheduler& operator=(const AdmissionBatchScheduler&) = delete;
+
+    [[nodiscard]] RequestId submit(
+        std::vector<std::int32_t> prompt,
+        GenerationConfig config = {});
+    void drain();
+    [[nodiscard]] std::size_t pending_request_count() const noexcept;
+    [[nodiscard]] RequestSnapshot request(RequestId id) const;
+    [[nodiscard]] std::vector<RequestSnapshot> requests() const;
+    [[nodiscard]] AdmissionBatchMetrics metrics() const noexcept;
+
+private:
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
+};
+
 }  // namespace microllm::inference

@@ -1718,3 +1718,13 @@ HIP B1/2/4/8为337/654/1256/2443 tok/s，相对serial reference为1.01×/1.96×/
 
 它仍是static batch：晚到、不同长度、提前完成和slot refill没有实现。下一节点必须把
 Experiment 072的生命周期与这个计算积木连接。
+
+## 91. Experiment 074：入场分组正确，生成中还不会补位
+
+`AdmissionBatchScheduler`按prompt长度、生成配置、seed和Cache策略稳定分组；兼容组走
+`generate_batch()`，不兼容请求保留B1。CPU/HIP覆盖B3+singleton和跨drain晚到请求。
+
+![Admission batch scheduler](assets/admission-batch-scheduler.svg)
+
+HIP 1/2/4请求为336/655/1260 tok/s。8/16请求拆成2/4个B4组后仍约1253/1259 tok/s，
+说明group串行导致平台。30/30进程输出一致；下一步必须token级slot refill，不能只扩大队列。
