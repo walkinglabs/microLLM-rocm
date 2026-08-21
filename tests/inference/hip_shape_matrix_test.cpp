@@ -175,6 +175,47 @@ TEST(HipInferenceShapeMatrixTest, RowPrefillPreservesOtherSlotAndMatchesCpu) {
     }
 }
 
+TEST(HipInferenceShapeMatrixTest, BatchedRowPrefillMapsEqualPromptsAndMatchesCpu) {
+    if (runtime::hip_device_count() == 0) GTEST_SKIP() << "No visible HIP device";
+    auto config = hip_shape_matrix_config();
+    config.max_sequence_length = 8;
+    for (const auto dtype : {DType::Float32, DType::BFloat16}) {
+        model::TransformerModel cpu(config, 193);
+        model::TransformerModel hip(config, 193);
+        hip.to(Device::hip(0));
+        KVCache cpu_cache(config.layers, config.max_sequence_length, 4, dtype);
+        KVCache hip_cache(config.layers, config.max_sequence_length, 4, dtype);
+        const auto existing = Tensor::from_int32_vector({1, 2, 3}, {1, 3});
+        (void)cpu.forward_prefill_cached_row(existing, cpu_cache, 0);
+        (void)hip.forward_prefill_cached_row(
+            existing.to(Device::hip(0)), hip_cache, 0);
+        const auto preserved =
+            hip_cache.layer(0).key.slice(0, 0, 1).to_vector();
+        const auto prompts = Tensor::from_int32_vector(
+            {4, 5, 6, 7}, {2, 2});
+        const auto expected = cpu.forward_prefill_cached_rows(
+            prompts, cpu_cache, {1, 3}).to_vector();
+        const auto device_prompts = prompts.to(Device::hip(0));
+        runtime::reset_transfer_stats();
+        const auto device_logits = hip.forward_prefill_cached_rows(
+            device_prompts, hip_cache, {1, 3});
+        runtime::synchronize(Device::hip(0));
+        EXPECT_EQ(runtime::transfer_stats().device_to_host_calls, 0U);
+        const auto actual = device_logits.to_vector();
+        const auto tolerance = dtype == DType::Float32 ? 2.0e-4F : 5.0e-2F;
+        ASSERT_EQ(actual.size(), expected.size());
+        for (std::size_t index = 0; index < actual.size(); ++index) {
+            EXPECT_NEAR(actual[index], expected[index], tolerance)
+                << "dtype=" << dtype_name(dtype) << " index=" << index;
+        }
+        EXPECT_EQ(hip_cache.row_positions(),
+                  (std::vector<std::int64_t>{3, 2, 0, 2}));
+        EXPECT_EQ(hip_cache.row_positions(), cpu_cache.row_positions());
+        EXPECT_EQ(hip_cache.layer(0).key.slice(0, 0, 1).to_vector(),
+                  preserved);
+    }
+}
+
 TEST(HipInferenceShapeMatrixTest, ActiveRowsSkipInactiveSlotAndMatchCpu) {
     if (runtime::hip_device_count() == 0) GTEST_SKIP() << "No visible HIP device";
     auto config = hip_shape_matrix_config();

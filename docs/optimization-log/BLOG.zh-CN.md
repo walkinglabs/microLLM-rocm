@@ -2089,3 +2089,14 @@ D2D、Cache与checksum不变。
 
 三对交替A/B中R8/S4为1.033×、R8/S2为1.065×，6/6逐对candidate更快。它说明小数据传输的主要
 成本可以是API边界而不是带宽；同时也说明Experiment 099拒绝scatter不是“所有小调用都不值得合并”。
+
+## 118. Experiment 101：八个prompt不再排队做八次prefill
+
+相同长度pending请求现在一次执行`[A,T]`模型prefill，再把K/V映射进共享空slot。不同长度仍按最早
+pending长度稳定分组，不用padding隐藏无效token。指标同时保留8个logical rows和实际physical batches。
+
+![Batched slot prefill](assets/batched-slot-prefill.svg)
+
+uniform R8/S8物理prefill 8→1，中位吞吐提高2.931×并达到static的87.4%；R8/S4有6行合批，提高
+1.313×；R8/S2只有2行合批，提高1.056×。9/9逐对candidate更快。收益随8→6→2行衰减，直接支持
+“逐row prefill是uniform主要缺口”的解释。

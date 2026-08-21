@@ -35,11 +35,13 @@ component has a public interface under `include/microllm`, an implementation und
     [continuous-only profile guide](continuous-profile.zh-CN.md).
 18. For merging tiny token/position/row uploads, read the
     [packed decode-metadata guide](packed-decode-metadata.zh-CN.md).
-19. For FP32/BF16 cache policy and its numerical gates, read the
+19. For batching equal-length prompt admission, read the
+    [batched slot-prefill guide](batched-slot-prefill.zh-CN.md).
+20. For FP32/BF16 cache policy and its numerical gates, read the
     [KV-cache dtype guide](kv-cache-dtypes.zh-CN.md).
-20. For delayed multi-request serving semantics, read the
+21. For delayed multi-request serving semantics, read the
     [serving scheduler guide](serving-scheduler.zh-CN.md).
-21. For the measured optimization loop, read the
+22. For the measured optimization loop, read the
     [0→1 optimization log](../optimization-log/README.md).
 
 ## Engineering rules

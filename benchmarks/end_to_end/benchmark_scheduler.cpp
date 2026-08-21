@@ -279,6 +279,12 @@ int main(int argc, char** argv) {
                       << last.metrics.scheduler_steps
                       << ",\"continuous_row_prefill_calls\":"
                       << last.metrics.row_prefill_calls
+                      << ",\"continuous_prefill_batch_calls\":"
+                      << last.metrics.prefill_batch_calls
+                      << ",\"continuous_batched_prefill_calls\":"
+                      << last.metrics.batched_prefill_calls
+                      << ",\"continuous_batched_prefill_rows\":"
+                      << last.metrics.batched_prefill_rows
                       << ",\"continuous_batch_decode_calls\":"
                       << last.metrics.batch_decode_calls
                       << ",\"continuous_positions_aware_batch_decode_calls\":"
@@ -467,6 +473,12 @@ int main(int argc, char** argv) {
                   << last_continuous.metrics.slot_admissions
                   << ",\"continuous_slot_refills\":"
                   << last_continuous.metrics.slot_refills
+                  << ",\"continuous_prefill_batch_calls\":"
+                  << last_continuous.metrics.prefill_batch_calls
+                  << ",\"continuous_batched_prefill_calls\":"
+                  << last_continuous.metrics.batched_prefill_calls
+                  << ",\"continuous_batched_prefill_rows\":"
+                  << last_continuous.metrics.batched_prefill_rows
                   << ",\"continuous_batch_decode_calls\":"
                   << last_continuous.metrics.batch_decode_calls
                   << ",\"continuous_uniform_batch_decode_calls\":"

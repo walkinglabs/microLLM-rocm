@@ -151,6 +151,10 @@ positions-aware decode随后把`positions[A]`与`cache_rows[A]`送进RoPE、KV s
 divergent rows现在共享QKV/FFN/output batch。三组严格交替Release A/B提高1.295×–1.670×；图解见
 [positions-aware decode](positions-aware-decode.zh-CN.md)。
 
+同长度pending prompt现在也会调用`forward_prefill_cached_rows()`一起入场。uniform R8/S8的物理
+prefill从8次降到1次，Release continuous达到static batch的87.4%；图解见
+[batched slot prefill](batched-slot-prefill.zh-CN.md)。
+
 ## 8. 测试位置
 
 ```text

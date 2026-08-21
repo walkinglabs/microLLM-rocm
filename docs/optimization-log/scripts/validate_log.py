@@ -3434,7 +3434,6 @@ def validate_packed_decode_metadata(errors: list[str]) -> tuple[int, int, int]:
     hip_tests = (REPOSITORY / "tests" / "ops" /
                  "hip_ops_test.cpp").read_text(encoding="utf-8")
     if "packed_values, {3, active}" not in model_source or \
-            "transfers.host_to_device_calls, 6U" not in hip_tests or \
             "transfers.host_to_device_bytes, 76U" not in hip_tests:
         errors.append("packed metadata source or exact transfer gate is missing")
     if gates.get("status") != "keep" or \
@@ -3445,6 +3444,92 @@ def validate_packed_decode_metadata(errors: list[str]) -> tuple[int, int, int]:
             gates.get("focused", {}).get("alternating_processes") != 12:
         errors.append("packed metadata final gates changed")
     return len(profiles), pair_records, len(ratios)
+
+
+def validate_batched_slot_prefill(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "101-data"
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    expected = {
+        "uniform-r8s8": (1, 1, 8, 2.8, 3.1),
+        "r8s4": (5, 3, 6, 1.2, 1.4),
+        "r8s2": (7, 1, 2, 1.02, 1.12),
+    }
+    profile_count = 0
+    pair_records = 0
+    ratios = []
+    for shape, (batch_calls, batched_calls, batched_rows,
+                lower, upper) in expected.items():
+        directory = data / "paired" / shape
+        profile = json.loads((directory / "profile.json").read_text(encoding="utf-8"))
+        profile_count += 1
+        paths = sorted(directory.glob("pair*.json"))
+        rows = [json.loads(path.read_text(encoding="utf-8")) for path in paths]
+        baseline = [row for path, row in zip(paths, rows)
+                    if "baseline" in path.name]
+        candidate = [row for path, row in zip(paths, rows)
+                     if "candidate" in path.name]
+        pair_records += len(rows)
+        baseline_tps = sorted(float(row["continuous_tokens_per_second"])
+                              for row in baseline)[1]
+        candidate_tps = sorted(float(row["continuous_tokens_per_second"])
+                               for row in candidate)[1]
+        ratio = candidate_tps / baseline_tps
+        ratios.append(ratio)
+        if int(profile.get("continuous_row_prefill_calls", -1)) != 8 or \
+                int(profile.get("continuous_prefill_batch_calls", -1)) != batch_calls or \
+                int(profile.get("continuous_batched_prefill_calls", -1)) != batched_calls or \
+                int(profile.get("continuous_batched_prefill_rows", -1)) != batched_rows or \
+                len(rows) != 6 or not lower < ratio < upper or any(
+                    float(candidate[index]["continuous_tokens_per_second"]) <=
+                    float(baseline[index]["continuous_tokens_per_second"])
+                    for index in range(3)) or \
+                len({int(row["token_checksum"]) for row in rows}) != 1 or any(
+                    row.get("continuous_outputs_equal") is not True for row in rows):
+            errors.append(f"batched slot prefill evidence changed: {shape}")
+    contracts = summary.get("contracts", {})
+    memory_note = summary.get("memory_note", {})
+    if summary.get("status") != "keep" or any(
+            contracts.get(name) is not True for name in (
+                "equal_length_prompts_share_one_model_prefill",
+                "different_lengths_use_separate_stable_groups",
+                "logical_prefill_rows_unchanged",
+                "partial_shared_rows_supported", "existing_rows_preserved",
+                "fp32_cache", "bf16_cache", "hip_matches_cpu",
+                "outputs_equal", "allocated_cache_unchanged")) or \
+            contracts.get("hip_payload_d2h") != 0 or \
+            memory_note.get("classified_as_leak") is not False:
+        errors.append("batched slot prefill contracts changed")
+    model_header = (REPOSITORY / "include" / "microllm" / "model" /
+                    "model.h").read_text(encoding="utf-8")
+    model_source = (REPOSITORY / "src" / "model" /
+                    "model.cpp").read_text(encoding="utf-8")
+    scheduler_header = (REPOSITORY / "include" / "microllm" / "inference" /
+                        "scheduler.h").read_text(encoding="utf-8")
+    scheduler_source = (REPOSITORY / "src" / "inference" /
+                        "scheduler.cpp").read_text(encoding="utf-8")
+    cpu_tests = (REPOSITORY / "tests" / "model" /
+                 "model_test.cpp").read_text(encoding="utf-8")
+    hip_tests = (REPOSITORY / "tests" / "inference" /
+                 "hip_shape_matrix_test.cpp").read_text(encoding="utf-8")
+    if "forward_prefill_cached_rows" not in model_header or \
+            "TransformerModel::forward_prefill_cached_rows" not in model_source or \
+            "batched_prefill_rows" not in scheduler_header or \
+            "prompt_length" not in scheduler_source or \
+            "BatchedRowPrefillMapsEqualPromptsIntoEmptySlots" not in cpu_tests or \
+            "BatchedRowPrefillMapsEqualPromptsAndMatchesCpu" not in hip_tests or \
+            "transfers.host_to_device_calls, 5U" not in (
+                REPOSITORY / "tests" / "ops" / "hip_ops_test.cpp").read_text(
+                    encoding="utf-8"):
+        errors.append("batched slot prefill source or tests are missing")
+    if gates.get("status") != "keep" or \
+            gates.get("full", {}).get("passed") != 314 or \
+            gates.get("cpu", {}).get("passed") != 218 or \
+            gates.get("hip", {}).get("passed") != 96 or \
+            gates.get("sanitizer", {}).get("passed") != 211 or \
+            gates.get("focused", {}).get("alternating_processes") != 18:
+        errors.append("batched slot prefill final gates changed")
+    return profile_count, pair_records, len(ratios)
 
 
 def validate_links(errors: list[str]) -> int:
@@ -3525,7 +3610,8 @@ def validate_assets(errors: list[str]) -> None:
                  "active-row-compaction.svg",
                  "positions-aware-decode.svg",
                  "continuous-profile-scatter-discard.svg",
-                 "packed-decode-metadata.svg"):
+                 "packed-decode-metadata.svg",
+                 "batched-slot-prefill.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -3665,6 +3751,8 @@ def main() -> int:
         validate_continuous_profile_scatter_discard(errors)
     packed_profiles, packed_pairs, packed_ratios = \
         validate_packed_decode_metadata(errors)
+    prefill_profiles, prefill_pairs, prefill_ratios = \
+        validate_batched_slot_prefill(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -3770,6 +3858,8 @@ def main() -> int:
           f"{scatter_ratios} "
           f"packed_metadata={packed_profiles}/{packed_pairs}/"
           f"{packed_ratios} "
+          f"batched_prefill={prefill_profiles}/{prefill_pairs}/"
+          f"{prefill_ratios} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

@@ -50,6 +50,9 @@ The active path is positions-aware rather than row-serial: device `positions[A]`
 FFN and output projection remain ordinary active-batch operations.
 For CPU-origin decode tokens, token/position/row metadata shares one `[3,A]` Storage transfer and
 is split into zero-copy device views; already-device token callers keep their explicit fallback.
+Equal-length pending prompts use `forward_prefill_cached_rows()`: one temporary `[A,T]` cache runs
+the model batch, then each prefix is mapped into its target empty shared-cache row. Different prompt
+lengths remain separate stable groups.
 See [serving scheduler](dev/serving-scheduler.zh-CN.md).
 
 

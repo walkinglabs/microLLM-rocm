@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="600" viewBox="0 0 1080 600" role="img" aria-labelledby="title desc">
+  <title id="title">Batched equal-length slot prefill</title>
+  <desc id="desc">Eight row-prefill calls collapse according to compatible prompt groups, producing corresponding throughput gains.</desc>
+  <rect width="1080" height="600" fill="#0b1020"/>
+  <text x="40" y="44" fill="#f8fafc" font-family="sans-serif" font-size="24" font-weight="700">Experiment 101 · prompts enter shared slots together</text>
+  <text x="40" y="72" fill="#94a3b8" font-family="sans-serif" font-size="14">Stable prompt-length groups · one [A,T] prefill · mapped shared-cache rows</text>
+
+  <rect x="40" y="108" width="1000" height="190" rx="12" fill="#111827" stroke="#334155"/>
+  <text x="64" y="142" fill="#e2e8f0" font-family="sans-serif" font-size="17" font-weight="700">Uniform R8/S8 admission</text>
+  <g fill="#172554" stroke="#3b82f6"><rect x="80" y="170" width="86" height="42" rx="5"/><rect x="176" y="170" width="86" height="42" rx="5"/><rect x="272" y="170" width="86" height="42" rx="5"/><rect x="368" y="170" width="86" height="42" rx="5"/><rect x="464" y="170" width="86" height="42" rx="5"/><rect x="560" y="170" width="86" height="42" rx="5"/><rect x="656" y="170" width="86" height="42" rx="5"/><rect x="752" y="170" width="86" height="42" rx="5"/></g>
+  <text x="459" y="197" text-anchor="middle" fill="#dbeafe" font-family="sans-serif" font-size="14">8 equal prompts</text>
+  <path d="M850 191 H902" stroke="#22c55e" stroke-width="4" marker-end="url(#arrow)"/>
+  <rect x="916" y="158" width="92" height="66" rx="7" fill="#14532d" stroke="#22c55e"/><text x="962" y="184" text-anchor="middle" fill="#dcfce7" font-family="sans-serif" font-size="14">1 batch</text><text x="962" y="205" text-anchor="middle" fill="#bbf7d0" font-family="sans-serif" font-size="12">[8,T]</text>
+  <text x="80" y="258" fill="#93c5fd" font-family="sans-serif" font-size="14">Logical rows remain 8 · physical prefill calls 8→1 · Cache rows mapped afterward</text>
+
+  <rect x="40" y="332" width="1000" height="210" rx="12" fill="#111827" stroke="#334155"/>
+  <text x="64" y="368" fill="#e2e8f0" font-family="sans-serif" font-size="17" font-weight="700">Alternating Release candidate / baseline</text>
+  <line x1="120" y1="498" x2="960" y2="498" stroke="#64748b"/><line x1="120" y1="462" x2="960" y2="462" stroke="#f59e0b" stroke-dasharray="8 8"/><text x="82" y="467" fill="#fbbf24" font-family="sans-serif" font-size="13">1×</text>
+  <rect x="190" y="356" width="150" height="142" fill="#22c55e"/><text x="265" y="346" text-anchor="middle" fill="#bbf7d0" font-family="sans-serif" font-size="15">2.931×</text><text x="265" y="526" text-anchor="middle" fill="#cbd5e1" font-family="sans-serif" font-size="13">uniform · 8 rows</text>
+  <rect x="465" y="438" width="150" height="60" fill="#22c55e"/><text x="540" y="428" text-anchor="middle" fill="#bbf7d0" font-family="sans-serif" font-size="15">1.313×</text><text x="540" y="526" text-anchor="middle" fill="#cbd5e1" font-family="sans-serif" font-size="13">R8/S4 · 6 rows</text>
+  <rect x="740" y="451" width="150" height="47" fill="#22c55e"/><text x="815" y="441" text-anchor="middle" fill="#bbf7d0" font-family="sans-serif" font-size="15">1.056×</text><text x="815" y="526" text-anchor="middle" fill="#cbd5e1" font-family="sans-serif" font-size="13">R8/S2 · 2 rows</text>
+  <text x="40" y="578" fill="#94a3b8" font-family="sans-serif" font-size="13">9/9 pairs faster · uniform continuous reaches 87.4% static · exact outputs and mapped KV</text>
+  <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#22c55e"/></marker></defs>
+</svg>

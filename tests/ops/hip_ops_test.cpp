@@ -1073,6 +1073,9 @@ TEST(HipSchedulerTest, ContinuousSlotsRefillAndMatchCpuWithOneSelectionCopyPerSt
         EXPECT_EQ(hip_metrics.scheduler_steps, 4);
         EXPECT_EQ(hip_metrics.slot_admissions, 3);
         EXPECT_EQ(hip_metrics.slot_refills, 1);
+        EXPECT_EQ(hip_metrics.prefill_batch_calls, 2);
+        EXPECT_EQ(hip_metrics.batched_prefill_calls, 1);
+        EXPECT_EQ(hip_metrics.batched_prefill_rows, 2);
         EXPECT_EQ(hip_metrics.batch_decode_calls, 3);
         EXPECT_EQ(hip_metrics.divergent_batch_decode_calls, 1);
         EXPECT_EQ(hip_metrics.compacted_batch_decode_calls, 2);
@@ -1086,7 +1089,7 @@ TEST(HipSchedulerTest, ContinuousSlotsRefillAndMatchCpuWithOneSelectionCopyPerSt
         EXPECT_EQ(hip_metrics.active_cache_bytes, 0U);
         EXPECT_DOUBLE_EQ(hip_metrics.slot_utilization, 1.0);
         const auto transfers = runtime::transfer_stats();
-        EXPECT_EQ(transfers.host_to_device_calls, 6U);
+        EXPECT_EQ(transfers.host_to_device_calls, 5U);
         EXPECT_EQ(transfers.host_to_device_bytes, 76U);
         EXPECT_EQ(transfers.device_to_host_calls,
                   static_cast<std::size_t>(hip_metrics.selection_calls));

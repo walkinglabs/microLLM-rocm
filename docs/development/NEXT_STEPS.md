@@ -61,7 +61,8 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] prefill one empty shared Cache row from a temporary B1 oracle without changing other rows;
 - [x] batch and refill active request slots without changing reference request semantics;
 - [x] compact inactive rows instead of advancing and resetting dummy rows;
-- [ ] batch compatible row prefills instead of running one temporary B1 prefill per admission;
+- [x] batch compatible equal-length row prefills instead of one B1 prefill per admission;
+- [ ] evaluate bounded padding or packed prefill for mixed prompt lengths;
 - [x] replace active divergent-row serial execution with positions-aware parallel RoPE/store/Attention;
 - [ ] keep positions and row mappings device-resident across scheduler steps;
 - [x] pack CPU token/position/row metadata into one H2D transfer per active step;

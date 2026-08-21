@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "status": "keep",
+  "feature": "batch equal-length prompt admission into shared cache rows",
+  "alternating_pairs": [
+    {"shape": "uniform_R8S8", "baseline_median_tps": 5418.05, "candidate_median_tps": 15880.60, "candidate_over_baseline": 2.93068, "candidate_over_static": 0.8743, "reference_ratio": 1.0093, "prefill_batch_calls": 1, "batched_prefill_calls": 1, "batched_prefill_rows": 8},
+    {"shape": "R8S4", "baseline_median_tps": 3829.64, "candidate_median_tps": 5029.89, "candidate_over_baseline": 1.31341, "reference_ratio": 0.9980, "prefill_batch_calls": 5, "batched_prefill_calls": 3, "batched_prefill_rows": 6},
+    {"shape": "R8S2", "baseline_median_tps": 2733.47, "candidate_median_tps": 2887.69, "candidate_over_baseline": 1.05642, "reference_ratio": 1.00002, "prefill_batch_calls": 7, "batched_prefill_calls": 1, "batched_prefill_rows": 2}
+  ],
+  "contracts": {
+    "equal_length_prompts_share_one_model_prefill": true,
+    "different_lengths_use_separate_stable_groups": true,
+    "logical_prefill_rows_unchanged": true,
+    "partial_shared_rows_supported": true,
+    "existing_rows_preserved": true,
+    "fp32_cache": true,
+    "bf16_cache": true,
+    "hip_matches_cpu": true,
+    "hip_payload_d2h": 0,
+    "outputs_equal": true,
+    "allocated_cache_unchanged": true
+  },
+  "memory_note": {
+    "r8s4_peak_active_cache_may_increase": true,
+    "reason": "faster stable grouping can keep more real requests resident concurrently",
+    "classified_as_leak": false
+  }
+}

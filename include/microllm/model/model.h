@@ -86,6 +86,11 @@ public:
     // reference for continuous slot admission.
     [[nodiscard]] Tensor forward_prefill_cached_row(
         const Tensor& token_ids, inference::KVCache& cache, std::int64_t row);
+    // Batched form for equal-length prompts entering arbitrary empty rows of a
+    // larger shared cache. Returns [A,1,V] logits in active_rows order.
+    [[nodiscard]] Tensor forward_prefill_cached_rows(
+        const Tensor& token_ids, inference::KVCache& cache,
+        const std::vector<std::int64_t>& active_rows);
     [[nodiscard]] Tensor forward_cached(const Tensor& token_id,
                                         inference::KVCache& cache);
     // Correctness-first divergent-row decode. Each Bx1 row may have its own

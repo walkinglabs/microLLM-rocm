@@ -137,6 +137,9 @@ struct ContinuousBatchMetrics {
     std::int64_t slot_admissions = 0;
     std::int64_t slot_refills = 0;
     std::int64_t row_prefill_calls = 0;
+    std::int64_t prefill_batch_calls = 0;
+    std::int64_t batched_prefill_calls = 0;
+    std::int64_t batched_prefill_rows = 0;
     std::int64_t batch_decode_calls = 0;
     std::int64_t uniform_batch_decode_calls = 0;
     std::int64_t divergent_batch_decode_calls = 0;

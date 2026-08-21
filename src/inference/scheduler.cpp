@@ -605,36 +605,78 @@ struct ContinuousBatchScheduler::Impl {
     }
 
     void admit_pending() {
-        for (std::int64_t slot = 0; slot < config.max_slots; ++slot) {
-            if (slots[static_cast<std::size_t>(slot)] >= 0) continue;
-            const auto found = std::find_if(
+        while (true) {
+            std::vector<std::int64_t> free_slots;
+            for (std::int64_t slot = 0; slot < config.max_slots; ++slot) {
+                if (slots[static_cast<std::size_t>(slot)] < 0) {
+                    free_slots.push_back(slot);
+                }
+            }
+            const auto first = std::find_if(
                 requests.begin(), requests.end(), [](const Request& request) {
                     return request.state == RequestState::PendingPrefill;
                 });
-            if (found == requests.end()) break;
-            const auto index = static_cast<std::int64_t>(
-                std::distance(requests.begin(), found));
-            auto& request = *found;
+            if (free_slots.empty() || first == requests.end()) break;
+            const auto prompt_length = first->prompt.size();
+            std::vector<std::int64_t> request_indices;
+            for (std::size_t index = 0;
+                 index < requests.size() &&
+                 request_indices.size() < free_slots.size();
+                 ++index) {
+                if (requests[index].state == RequestState::PendingPrefill &&
+                    requests[index].prompt.size() == prompt_length) {
+                    request_indices.push_back(static_cast<std::int64_t>(index));
+                }
+            }
+            std::vector<std::int32_t> prompt_values;
+            prompt_values.reserve(request_indices.size() * prompt_length);
+            std::vector<std::int64_t> target_rows;
+            target_rows.reserve(request_indices.size());
+            for (std::size_t index = 0; index < request_indices.size(); ++index) {
+                const auto& request =
+                    requests[static_cast<std::size_t>(request_indices[index])];
+                prompt_values.insert(prompt_values.end(), request.prompt.begin(),
+                                     request.prompt.end());
+                target_rows.push_back(free_slots[index]);
+            }
+            Tensor logits;
             try {
-                const auto logits = model.forward_prefill_cached_row(
+                logits = model.forward_prefill_cached_rows(
                     Tensor::from_int32_vector(
-                        request.prompt,
-                        {1, static_cast<std::int64_t>(request.prompt.size())}),
-                    cache, slot);
-                copy_logits_to_slot(logits, slot);
+                        prompt_values,
+                        {static_cast<std::int64_t>(request_indices.size()),
+                         static_cast<std::int64_t>(prompt_length)}),
+                    cache, target_rows);
+                for (std::size_t index = 0; index < target_rows.size(); ++index) {
+                    copy_logits_to_slot(
+                        logits.slice(0, static_cast<std::int64_t>(index),
+                                     static_cast<std::int64_t>(index + 1)),
+                        target_rows[index]);
+                }
             } catch (...) {
-                cache.reset_row(slot);
+                for (const auto row : target_rows) cache.reset_row(row);
                 throw;
             }
-            if (slot_ever_used[static_cast<std::size_t>(slot)]) {
-                ++metrics.slot_refills;
+            ++metrics.prefill_batch_calls;
+            if (request_indices.size() > 1) {
+                ++metrics.batched_prefill_calls;
+                metrics.batched_prefill_rows +=
+                    static_cast<std::int64_t>(request_indices.size());
             }
-            slot_ever_used[static_cast<std::size_t>(slot)] = true;
-            slots[static_cast<std::size_t>(slot)] = index;
-            request.slot = slot;
-            request.state = RequestState::Decoding;
-            ++metrics.slot_admissions;
-            ++metrics.row_prefill_calls;
+            for (std::size_t index = 0; index < request_indices.size(); ++index) {
+                const auto slot = target_rows[index];
+                auto& request = requests[
+                    static_cast<std::size_t>(request_indices[index])];
+                if (slot_ever_used[static_cast<std::size_t>(slot)]) {
+                    ++metrics.slot_refills;
+                }
+                slot_ever_used[static_cast<std::size_t>(slot)] = true;
+                slots[static_cast<std::size_t>(slot)] = request_indices[index];
+                request.slot = slot;
+                request.state = RequestState::Decoding;
+                ++metrics.slot_admissions;
+                ++metrics.row_prefill_calls;
+            }
         }
     }
 

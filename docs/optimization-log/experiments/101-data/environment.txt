@@ -1,0 +1,12 @@
+date_utc=2026-08-21
+device=AMD Instinct MI300X VF
+architecture=gfx942:sramecc+:xnack-
+hip_runtime=71399004
+hip_driver=71399004
+build_type=Release
+baseline_commit=c802c04
+paired_shapes=uniform_requests8_slots8,requests8_slots4,requests8_slots2
+paired_order=baseline-candidate,candidate-baseline,baseline-candidate
+paired_warmup=2
+paired_repetitions=10
+profile_mode=continuous-only

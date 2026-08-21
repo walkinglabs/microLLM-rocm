@@ -558,6 +558,47 @@ TEST(TransformerModelTest, RowPrefillReplacesOnlyAnEmptySharedCacheSlot) {
     EXPECT_EQ(fresh_cache.row_positions(), (std::vector<std::int64_t>{0, 2}));
 }
 
+TEST(TransformerModelTest, BatchedRowPrefillMapsEqualPromptsIntoEmptySlots) {
+    auto config = tiny_config(true);
+    config.max_sequence_length = 8;
+    for (const auto dtype : {DType::Float32, DType::BFloat16}) {
+        TransformerModel shared_model(config, 191);
+        inference::KVCache shared(config.layers, config.max_sequence_length, 4,
+                                  dtype);
+        (void)shared_model.forward_prefill_cached_row(
+            Tensor::from_int32_vector({1, 2, 3}, {1, 3}), shared, 0);
+        std::vector<std::vector<float>> preserved;
+        for (std::size_t layer = 0; layer < shared.layer_count(); ++layer) {
+            preserved.push_back(shared.layer(layer).key.slice(0, 0, 1).to_vector());
+            preserved.push_back(shared.layer(layer).value.slice(0, 0, 1).to_vector());
+        }
+        TransformerModel oracle(config, 191);
+        inference::KVCache oracle_cache(config.layers,
+                                         config.max_sequence_length, 2, dtype);
+        const auto prompts = Tensor::from_int32_vector(
+            {4, 5, 6, 7}, {2, 2});
+        const auto expected = oracle.forward_prefill_cached(prompts, oracle_cache);
+        const auto actual = shared_model.forward_prefill_cached_rows(
+            prompts, shared, {1, 3});
+        expect_near(actual.to_vector(), expected.to_vector(),
+                    dtype == DType::Float32 ? 2.0e-5F : 5.0e-2F);
+        EXPECT_EQ(shared.row_positions(),
+                  (std::vector<std::int64_t>{3, 2, 0, 2}));
+        for (std::size_t layer = 0; layer < shared.layer_count(); ++layer) {
+            EXPECT_EQ(shared.layer(layer).key.slice(0, 0, 1).slice(2, 0, 3).to_vector(),
+                      preserved[layer * 2]);
+            EXPECT_EQ(shared.layer(layer).value.slice(0, 0, 1).slice(2, 0, 3).to_vector(),
+                      preserved[layer * 2 + 1]);
+        }
+        EXPECT_THROW((void)shared_model.forward_prefill_cached_rows(
+                         prompts, shared, {2, 2}),
+                     std::invalid_argument);
+        EXPECT_THROW((void)shared_model.forward_prefill_cached_rows(
+                         prompts, shared, {3, 1}),
+                     std::invalid_argument);
+    }
+}
+
 TEST(TransformerModelTest, ActiveCachedRowsSkipInactiveStorageAndMatchB1) {
     auto config = tiny_config(true);
     config.max_sequence_length = 8;

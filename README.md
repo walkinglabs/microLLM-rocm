@@ -92,6 +92,8 @@ needed to run a real training and generation loop:
   its first trace rejected a logits-scatter candidate at 0.993×/0.973× baseline.
 - packed `[3,A]` token/position/cache-row metadata halves tiny H2D calls without changing bytes;
   alternating Release throughput improves 1.033×/1.065×.
+- stable equal-length admission groups batch prompt prefill into arbitrary shared-cache rows;
+  uniform R8/S8 improves 2.931× and reaches 87.4% of static batch throughput.
 
 The design keeps three implementations where they provide engineering value:
 
@@ -177,9 +179,9 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 312/312 | 217 CPU-labelled + 95 HIP-labelled gates; 2 intentional environment skips |
-| ASan/UBSan CPU | 210/210 | host code, CLI, model/graph, benchmark and evidence schemas |
-| MI300X/gfx942 HIP | 95/95 | allocator/stream, graph, BF16/FP8, batched GEMM and model matrix |
+| Full CPU/HIP configuration | 314/314 | 218 CPU-labelled + 96 HIP-labelled gates; 2 intentional environment skips |
+| ASan/UBSan CPU | 211/211 | host code, CLI, model/graph, benchmark and evidence schemas |
+| MI300X/gfx942 HIP | 96/96 | allocator/stream, graph, BF16/FP8, batched GEMM and model matrix |
 | PyTorch-enabled CPU build | 196/196 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
 | Registered test files | 37 | machine-audited CTest registration |

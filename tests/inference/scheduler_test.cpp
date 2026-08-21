@@ -369,6 +369,9 @@ TEST(ContinuousBatchSchedulerTest, RefillsFreedSlotAndMatchesIndependentRows) {
         EXPECT_EQ(metrics.slot_admissions, 3);
         EXPECT_EQ(metrics.slot_refills, 1);
         EXPECT_EQ(metrics.row_prefill_calls, 3);
+        EXPECT_EQ(metrics.prefill_batch_calls, 2);
+        EXPECT_EQ(metrics.batched_prefill_calls, 1);
+        EXPECT_EQ(metrics.batched_prefill_rows, 2);
         EXPECT_EQ(metrics.batch_decode_calls, 3);
         EXPECT_EQ(metrics.uniform_batch_decode_calls, 1);
         EXPECT_EQ(metrics.divergent_batch_decode_calls, 1);
