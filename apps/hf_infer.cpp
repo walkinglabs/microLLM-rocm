@@ -23,6 +23,7 @@
 #include <microllm/runtime/memory.h>
 #include <microllm/inference/generator.h>
 #include <microllm/inference/kv_cache.h>
+#include <microllm/inference/scheduler.h>
 #include <microllm/ops/ops.h>
 
 namespace {
@@ -57,6 +58,9 @@ struct Options {
     std::string kv_cache_dtype = "fp32";
     std::string kv_cache_fp32_layers;
     std::int64_t cache_capacity = 0;
+    std::int64_t continuous_slots = 0;
+    std::string continuous_prompt_lengths;
+    std::string continuous_new_token_lengths;
 };
 
 Options options(int argc, char** argv) {
@@ -118,6 +122,15 @@ Options options(int argc, char** argv) {
         else if (name == "--cache-capacity") {
             result.cache_capacity = std::stoll(argv[index + 1]);
         }
+        else if (name == "--continuous-slots") {
+            result.continuous_slots = std::stoll(argv[index + 1]);
+        }
+        else if (name == "--continuous-prompt-lengths") {
+            result.continuous_prompt_lengths = argv[index + 1];
+        }
+        else if (name == "--continuous-new-token-lengths") {
+            result.continuous_new_token_lengths = argv[index + 1];
+        }
         else throw std::invalid_argument("unknown CLI option: " + name);
     }
     if (result.config.empty() || result.weights.empty()) {
@@ -162,8 +175,9 @@ Options options(int argc, char** argv) {
             "--prefill-warmup must be nonnegative and --prefill-steps positive");
     }
     if (result.workload != "both" && result.workload != "prefill" &&
-        result.workload != "decode") {
-        throw std::invalid_argument("--workload must be both, prefill, or decode");
+        result.workload != "decode" && result.workload != "continuous") {
+        throw std::invalid_argument(
+            "--workload must be both, prefill, decode, or continuous");
     }
     if (result.workload == "decode" && result.new_tokens == 0) {
         throw std::invalid_argument("decode workload requires positive --new-tokens");
@@ -173,6 +187,18 @@ Options options(int argc, char** argv) {
     }
     if (result.bf16_attention && !result.bf16_ffn) {
         throw std::invalid_argument("--bf16-attention requires --bf16-ffn true");
+    }
+    const auto continuous_arguments = result.continuous_slots > 0 ||
+                                      !result.continuous_prompt_lengths.empty() ||
+                                      !result.continuous_new_token_lengths.empty();
+    if ((result.workload == "continuous") != continuous_arguments ||
+        (continuous_arguments &&
+         (result.continuous_slots <= 0 ||
+          result.continuous_prompt_lengths.empty() ||
+          result.continuous_new_token_lengths.empty() || !result.use_cache ||
+          result.new_tokens != 0))) {
+        throw std::invalid_argument(
+            "continuous workload requires positive slots, prompt/new-token length lists, cache, and --new-tokens 0");
     }
     if (!result.cache_logits_output.empty() &&
         (!result.use_cache || result.workload == "prefill" || result.new_tokens < 2)) {
@@ -386,6 +412,18 @@ std::vector<std::int32_t> tokens(std::string_view text) {
         text, "--tokens must be comma-separated nonnegative IDs");
 }
 
+std::vector<std::int64_t> positive_lengths(std::string_view text,
+                                           const char* error) {
+    const auto parsed = nonnegative_values(text, error);
+    std::vector<std::int64_t> result;
+    result.reserve(parsed.size());
+    for (const auto value : parsed) {
+        if (value <= 0) throw std::invalid_argument(error);
+        result.push_back(value);
+    }
+    return result;
+}
+
 std::vector<microllm::DType> cache_layer_dtypes(
     std::int64_t layers, microllm::DType base_dtype,
     std::string_view fp32_layers) {
@@ -403,6 +441,55 @@ std::vector<microllm::DType> cache_layer_dtypes(
         seen[static_cast<std::size_t>(layer)] = true;
         result[static_cast<std::size_t>(layer)] = microllm::DType::Float32;
     }
+    return result;
+}
+
+struct ContinuousOfficialRun {
+    std::vector<std::vector<std::int32_t>> generated;
+    microllm::inference::ContinuousBatchMetrics metrics;
+};
+
+ContinuousOfficialRun run_continuous_official(
+    microllm::model::TransformerModel& model,
+    const std::vector<std::vector<std::int32_t>>& prompts,
+    const std::vector<std::int64_t>& new_token_lengths,
+    std::int64_t slots, const std::vector<microllm::DType>& cache_dtypes) {
+    if (prompts.size() != new_token_lengths.size()) {
+        throw std::invalid_argument(
+            "continuous prompt and generation counts must match");
+    }
+    std::int64_t cache_capacity = 0;
+    for (std::size_t index = 0; index < prompts.size(); ++index) {
+        cache_capacity = std::max(
+            cache_capacity,
+            static_cast<std::int64_t>(prompts[index].size()) +
+                new_token_lengths[index]);
+    }
+    microllm::inference::ContinuousBatchScheduler scheduler(
+        model, {.max_slots = slots,
+                .max_sequence_length = cache_capacity,
+                .kv_cache_dtype = cache_dtypes.front(),
+                .kv_cache_layer_dtypes = cache_dtypes});
+    std::vector<microllm::inference::RequestId> ids;
+    ids.reserve(prompts.size());
+    for (std::size_t index = 0; index < prompts.size(); ++index) {
+        ids.push_back(scheduler.submit(
+            prompts[index],
+            {.max_new_tokens = new_token_lengths[index],
+             .temperature = 0.0F,
+             .top_k = 1,
+             .seed = static_cast<std::uint64_t>(index + 1),
+             .kv_cache_dtype = cache_dtypes.front(),
+             .kv_cache_layer_dtypes = cache_dtypes,
+             .stop_tokens = {}}));
+    }
+    scheduler.run_until_idle();
+    ContinuousOfficialRun result;
+    result.generated.reserve(ids.size());
+    for (const auto id : ids) {
+        result.generated.push_back(scheduler.request(id).generated);
+    }
+    result.metrics = scheduler.metrics();
     return result;
 }
 
@@ -477,6 +564,191 @@ int main(int argc, char** argv) {
             throw std::invalid_argument("token sequence exceeds model context");
         }
         if (ids.empty()) throw std::invalid_argument("token sequence cannot be empty");
+        if (command.workload == "continuous") {
+            const auto prompt_lengths = positive_lengths(
+                command.continuous_prompt_lengths,
+                "--continuous-prompt-lengths must contain positive comma-separated lengths");
+            const auto new_token_lengths = positive_lengths(
+                command.continuous_new_token_lengths,
+                "--continuous-new-token-lengths must contain positive comma-separated lengths");
+            if (prompt_lengths.empty() ||
+                prompt_lengths.size() != new_token_lengths.size()) {
+                throw std::invalid_argument(
+                    "continuous prompt and new-token lists must have equal nonzero length");
+            }
+            std::vector<std::vector<std::int32_t>> prompts;
+            prompts.reserve(prompt_lengths.size());
+            for (std::size_t request = 0; request < prompt_lengths.size(); ++request) {
+                if (prompt_lengths[request] + new_token_lengths[request] >
+                    external.model.max_sequence_length) {
+                    throw std::invalid_argument(
+                        "continuous request exceeds model context");
+                }
+                std::vector<std::int32_t> prompt(
+                    static_cast<std::size_t>(prompt_lengths[request]));
+                for (std::size_t index = 0; index < prompt.size(); ++index) {
+                    prompt[index] = ids[(index + request) % ids.size()];
+                }
+                prompts.push_back(std::move(prompt));
+            }
+            const auto warmup_start = std::chrono::steady_clock::now();
+            for (int iteration = 0; iteration < command.warmup; ++iteration) {
+                (void)run_continuous_official(
+                    model, prompts, new_token_lengths,
+                    command.continuous_slots, cache_dtypes);
+            }
+            microllm::runtime::synchronize(device);
+            const auto warmup_finish = std::chrono::steady_clock::now();
+            if (device.is_hip()) {
+                microllm::runtime::enable_hip_caching_allocator(device);
+            }
+            microllm::runtime::reset_allocation_peak(device);
+            microllm::runtime::reset_transfer_stats();
+            double measured_ms = 0.0;
+            ContinuousOfficialRun last;
+            std::vector<std::vector<std::int32_t>> expected;
+            for (int iteration = 0; iteration < command.steps; ++iteration) {
+                const auto start = std::chrono::steady_clock::now();
+                auto current = run_continuous_official(
+                    model, prompts, new_token_lengths,
+                    command.continuous_slots, cache_dtypes);
+                microllm::runtime::synchronize(device);
+                const auto finish = std::chrono::steady_clock::now();
+                measured_ms += std::chrono::duration<double, std::milli>(
+                                   finish - start).count();
+                if (iteration == 0) {
+                    expected = current.generated;
+                } else if (current.generated != expected) {
+                    throw std::runtime_error(
+                        "continuous official generation changed across measured runs");
+                }
+                last = std::move(current);
+            }
+            std::int64_t tokens_per_run = 0;
+            std::uint64_t checksum = 0;
+            for (std::size_t request = 0; request < last.generated.size(); ++request) {
+                if (last.generated[request].size() !=
+                    static_cast<std::size_t>(new_token_lengths[request])) {
+                    throw std::runtime_error(
+                        "continuous official generation returned the wrong length");
+                }
+                tokens_per_run += new_token_lengths[request];
+                for (const auto token : last.generated[request]) {
+                    checksum = checksum * 131U +
+                               static_cast<std::uint64_t>(token);
+                }
+            }
+            const auto measured_tokens = tokens_per_run * command.steps;
+            const auto allocation = microllm::runtime::allocation_stats(device);
+            const auto transfers = microllm::runtime::transfer_stats();
+            const auto info = device.is_cpu()
+                                  ? microllm::runtime::DeviceInfo{
+                                        device, "host CPU", "host"}
+                                  : microllm::runtime::device_info(device);
+            const auto resident_weight_bytes =
+                external.model.weight_bytes(sizeof(float)) -
+                bf16_report.fp32_bytes_released +
+                bf16_report.bf16_bytes_retained -
+                bf16_attention_report.fp32_bytes_released +
+                bf16_attention_report.bf16_bytes_retained;
+            std::cout << std::setprecision(9)
+                      << "{\"schema_version\":1,\"status\":\"pass\""
+                      << ",\"record_type\":\"official_continuous_serving_measurement\""
+                      << ",\"device\":\"" << device.str() << "\""
+                      << ",\"device_name\":\"" << info.name << "\""
+                      << ",\"architecture\":\"" << info.architecture << "\""
+                      << ",\"device_total_bytes\":" << info.total_memory
+                      << ",\"parameter_count\":" << model.parameter_count()
+                      << ",\"loaded_tensors\":" << report.loaded.size()
+                      << ",\"resident_weight_bytes\":" << resident_weight_bytes
+                      << ",\"request_count\":" << prompts.size()
+                      << ",\"continuous_slots\":" << command.continuous_slots
+                      << ",\"warmup\":" << command.warmup
+                      << ",\"steps\":" << command.steps
+                      << ",\"warmup_ms\":"
+                      << std::chrono::duration<double, std::milli>(
+                             warmup_finish - warmup_start).count()
+                      << ",\"measured_ms\":" << measured_ms
+                      << ",\"measured_tokens\":" << measured_tokens
+                      << ",\"tokens_per_second\":"
+                      << static_cast<double>(measured_tokens) * 1000.0 /
+                             measured_ms
+                      << ",\"scheduler_steps\":"
+                      << last.metrics.scheduler_steps
+                      << ",\"slot_admissions\":"
+                      << last.metrics.slot_admissions
+                      << ",\"slot_refills\":" << last.metrics.slot_refills
+                      << ",\"row_prefill_calls\":"
+                      << last.metrics.row_prefill_calls
+                      << ",\"prefill_batch_calls\":"
+                      << last.metrics.prefill_batch_calls
+                      << ",\"batched_prefill_calls\":"
+                      << last.metrics.batched_prefill_calls
+                      << ",\"batched_prefill_rows\":"
+                      << last.metrics.batched_prefill_rows
+                      << ",\"batch_decode_calls\":"
+                      << last.metrics.batch_decode_calls
+                      << ",\"positions_aware_batch_decode_calls\":"
+                      << last.metrics.positions_aware_batch_decode_calls
+                      << ",\"uniform_batch_decode_calls\":"
+                      << last.metrics.uniform_batch_decode_calls
+                      << ",\"inactive_rows_skipped\":"
+                      << last.metrics.inactive_rows_skipped
+                      << ",\"slot_utilization\":"
+                      << last.metrics.slot_utilization
+                      << ",\"allocated_cache_bytes\":"
+                      << last.metrics.allocated_cache_bytes
+                      << ",\"peak_active_cache_bytes\":"
+                      << last.metrics.peak_active_cache_bytes
+                      << ",\"kv_cache_byte_utilization\":"
+                      << (last.metrics.allocated_cache_bytes == 0
+                              ? 0.0
+                              : static_cast<double>(
+                                    last.metrics.peak_active_cache_bytes) /
+                                    static_cast<double>(
+                                        last.metrics.allocated_cache_bytes))
+                      << ",\"engine_peak_bytes\":" << allocation.peak_bytes
+                      << ",\"engine_backend_allocation_calls\":"
+                      << allocation.backend_allocation_calls
+                      << ",\"engine_cache_reuse_calls\":"
+                      << allocation.cache_reuse_calls
+                      << ",\"measured_h2d_calls\":"
+                      << transfers.host_to_device_calls
+                      << ",\"measured_h2d_bytes\":"
+                      << transfers.host_to_device_bytes
+                      << ",\"measured_d2h_calls\":"
+                      << transfers.device_to_host_calls
+                      << ",\"measured_d2h_bytes\":"
+                      << transfers.device_to_host_bytes
+                      << ",\"measured_d2d_calls\":"
+                      << transfers.device_to_device_calls
+                      << ",\"measured_d2d_bytes\":"
+                      << transfers.device_to_device_bytes
+                      << ",\"prompt_lengths\":[";
+            for (std::size_t index = 0; index < prompt_lengths.size(); ++index) {
+                if (index != 0) std::cout << ',';
+                std::cout << prompt_lengths[index];
+            }
+            std::cout << "],\"new_token_lengths\":[";
+            for (std::size_t index = 0; index < new_token_lengths.size(); ++index) {
+                if (index != 0) std::cout << ',';
+                std::cout << new_token_lengths[index];
+            }
+            std::cout << "],\"deterministic_across_steps\":true"
+                      << ",\"generated_tokens\":[";
+            for (std::size_t request = 0; request < last.generated.size(); ++request) {
+                if (request != 0) std::cout << ',';
+                std::cout << '[';
+                for (std::size_t index = 0;
+                     index < last.generated[request].size(); ++index) {
+                    if (index != 0) std::cout << ',';
+                    std::cout << last.generated[request][index];
+                }
+                std::cout << ']';
+            }
+            std::cout << "],\"token_checksum\":" << checksum << "}\n";
+            return 0;
+        }
         std::vector<std::int32_t> batched_ids;
         batched_ids.reserve(ids.size() * static_cast<std::size_t>(command.batch));
         for (std::int64_t row = 0; row < command.batch; ++row) {

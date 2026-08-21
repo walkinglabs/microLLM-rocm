@@ -2100,3 +2100,20 @@ pending长度稳定分组，不用padding隐藏无效token。指标同时保留8
 uniform R8/S8物理prefill 8→1，中位吞吐提高2.931×并达到static的87.4%；R8/S4有6行合批，提高
 1.313×；R8/S2只有2行合批，提高1.056×。9/9逐对candidate更快。收益随8→6→2行衰减，直接支持
 “逐row prefill是uniform主要缺口”的解释。
+
+## 119. Experiment 102：tiny model快，不等于真实服务已经过关
+
+官方Qwen2.5-0.5B和DeepSeek-R1-Distill-Qwen-1.5B现在直接进入continuous slot scheduler。
+四组case覆盖短/2048-token长context、2/4 slots、补位和8/16-token混合输出；每组运行三个
+fresh process，保存完整token、KV allocated/active、slot利用率、transfer和engine peak。
+
+![Official continuous serving matrix](assets/official-continuous-serving.svg)
+
+测试首先发现一个测量设计错误：模型允许32768 token时，短请求也按最大长度预留Cache。
+新增request-bound capacity后，runner按本组最大的prompt+output分配，24/24记录与理论公式逐字节
+一致。microLLM三进程都稳定，Qwen四组与PyTorch逐token相同；DeepSeek只有short_s2相同，另外
+三组明确标红。
+
+microLLM相对PyTorch sequential的观察服务吞吐为1.97×–12.28×，但两边scheduler和权重驻留不同，
+DeepSeek还有精度失败，因此不能把这个数写成同算法加速。下一节点固定同一请求集扫1/2/4/8
+slots，并从DeepSeek第一个分叉token开始定位，而不是继续放大一条漂亮TPS。

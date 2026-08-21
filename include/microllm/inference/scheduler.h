@@ -123,6 +123,9 @@ private:
 
 struct ContinuousBatchConfig {
     std::int64_t max_slots = 1;
+    // Zero uses the model maximum. A positive value bounds shared KV capacity
+    // for a known serving workload and must not exceed the model maximum.
+    std::int64_t max_sequence_length = 0;
     DType kv_cache_dtype = DType::Float32;
     // Empty applies kv_cache_dtype to every layer.
     std::vector<DType> kv_cache_layer_dtypes;

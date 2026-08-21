@@ -53,6 +53,10 @@ is split into zero-copy device views; already-device token callers keep their ex
 Equal-length pending prompts use `forward_prefill_cached_rows()`: one temporary `[A,T]` cache runs
 the model batch, then each prefix is mapped into its target empty shared-cache row. Different prompt
 lengths remain separate stable groups.
+`ContinuousBatchConfig::max_sequence_length` bounds the persistent shared Cache for a known
+workload. Zero keeps the model maximum; a positive value must fit the model and every submitted
+request. Official serving runners choose the largest prompt-plus-output request, then verify the
+exact layer/head/element-size allocation formula instead of treating estimated memory as evidence.
 See [serving scheduler](dev/serving-scheduler.zh-CN.md).
 
 

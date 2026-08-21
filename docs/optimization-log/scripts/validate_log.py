@@ -3532,6 +3532,83 @@ def validate_batched_slot_prefill(errors: list[str]) -> tuple[int, int, int]:
     return profile_count, pair_records, len(ratios)
 
 
+def validate_official_continuous_serving(
+        errors: list[str]) -> tuple[int, int, int, int]:
+    data = ROOT / "experiments" / "102-data"
+    raw = [json.loads(line) for line in
+           (data / "micro-raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    summary = json.loads((data / "micro-summary.json").read_text(encoding="utf-8"))
+    comparison = json.loads((data / "comparison.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    pytorch = [json.loads(path.read_text(encoding="utf-8")) for path in
+               sorted((data / "pytorch").glob("*/*.json"))]
+    keys = {(row.get("model"), row.get("case"), row.get("process_run"))
+            for row in raw}
+    if len(raw) != 24 or len(keys) != 24 or any(
+            row.get("status") != "pass" or
+            row.get("deterministic_across_steps") is not True or
+            row.get("allocated_cache_bytes") != row.get("expected_cache_bytes") or
+            not 0 < row.get("peak_active_cache_bytes", 0) <=
+            row.get("allocated_cache_bytes", 0) or
+            not 0 < row.get("kv_cache_byte_utilization", 0) <= 1 or
+            len(row.get("generated_tokens", [])) != row.get("request_count") or
+            any(len(tokens) != expected for tokens, expected in zip(
+                row.get("generated_tokens", []), row.get("new_token_lengths", [])))
+            for row in raw):
+        errors.append("official continuous microLLM raw evidence changed")
+    if summary.get("track") != "official_continuous_serving_matrix" or \
+            summary.get("status") != "pass" or summary.get("runs") != 3 or \
+            len(summary.get("aggregates", [])) != 8 or any(
+                row.get("successful_runs") != 3 or row.get("status") != "pass"
+                for row in summary.get("aggregates", [])):
+        errors.append("official continuous microLLM aggregate changed")
+    if len(pytorch) != 8 or any(
+            row.get("record_type") != "pytorch_sequential_request_reference" or
+            row.get("serving_mode") != "sequential_requests" or
+            row.get("status") != "pass" or
+            row.get("deterministic_across_steps") is not True
+            for row in pytorch):
+        errors.append("official continuous PyTorch reference changed")
+    rows = comparison.get("rows", [])
+    qwen_exact = sum(row.get("exact_generated_tokens") is True for row in rows
+                     if row.get("model") == "qwen2.5-0.5b")
+    deepseek_exact = sum(row.get("exact_generated_tokens") is True for row in rows
+                         if row.get("model") ==
+                         "deepseek-r1-distill-qwen-1.5b")
+    if comparison.get("status") != "complete_with_recorded_accuracy_failures" or \
+            "sequential requests" not in comparison.get("comparison_boundary", "") or \
+            len(rows) != 8 or qwen_exact != 4 or deepseek_exact != 1 or any(
+                not math.isfinite(row.get("observed_service_throughput_ratio", 0)) or
+                row.get("observed_service_throughput_ratio", 0) <= 0 or
+                not 0 < row.get("micro_kv_cache_byte_utilization", 0) <= 1 or
+                not 0 < row.get("micro_slot_utilization", 0) <= 1
+                for row in rows):
+        errors.append("official continuous comparison boundary or accuracy gate changed")
+    scheduler_header = (REPOSITORY / "include" / "microllm" / "inference" /
+                        "scheduler.h").read_text(encoding="utf-8")
+    scheduler_source = (REPOSITORY / "src" / "inference" /
+                        "scheduler.cpp").read_text(encoding="utf-8")
+    app = (REPOSITORY / "apps" / "hf_infer.cpp").read_text(encoding="utf-8")
+    contracts = (REPOSITORY / "python" / "tests" /
+                 "test_hf_continuous_matrix.py").read_text(encoding="utf-8")
+    if "max_sequence_length" not in scheduler_header or \
+            "configured_capacity" not in scheduler_source or \
+            'workload == "continuous"' not in app or \
+            "generated_tokens" not in app or \
+            "test_cache_formula_uses_request_bound_not_model_maximum" not in contracts or \
+            "test_comparison_marks_token_mismatch_and_names_boundary" not in contracts:
+        errors.append("official continuous source or contract tests are missing")
+    if gates.get("status") != "complete_with_recorded_accuracy_failures" or \
+            gates.get("full", {}).get("passed") != 315 or \
+            gates.get("cpu", {}).get("passed") != 219 or \
+            gates.get("hip", {}).get("passed") != 96 or \
+            gates.get("sanitizer", {}).get("passed") != 212 or \
+            gates.get("focused", {}).get("micro_processes") != 24 or \
+            gates.get("focused", {}).get("deepseek_mismatched_cases") != 3:
+        errors.append("official continuous final gates changed")
+    return len(raw), len(pytorch), qwen_exact, deepseek_exact
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -3611,7 +3688,8 @@ def validate_assets(errors: list[str]) -> None:
                  "positions-aware-decode.svg",
                  "continuous-profile-scatter-discard.svg",
                  "packed-decode-metadata.svg",
-                 "batched-slot-prefill.svg"):
+                 "batched-slot-prefill.svg",
+                 "official-continuous-serving.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -3753,6 +3831,9 @@ def main() -> int:
         validate_packed_decode_metadata(errors)
     prefill_profiles, prefill_pairs, prefill_ratios = \
         validate_batched_slot_prefill(errors)
+    official_continuous_raw, official_continuous_pytorch, \
+        official_continuous_qwen, official_continuous_deepseek = \
+        validate_official_continuous_serving(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -3860,6 +3941,9 @@ def main() -> int:
           f"{packed_ratios} "
           f"batched_prefill={prefill_profiles}/{prefill_pairs}/"
           f"{prefill_ratios} "
+          f"official_continuous={official_continuous_raw}/"
+          f"{official_continuous_pytorch}/{official_continuous_qwen}/"
+          f"{official_continuous_deepseek} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

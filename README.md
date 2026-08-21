@@ -94,6 +94,9 @@ needed to run a real training and generation loop:
   alternating Release throughput improves 1.033×/1.065×.
 - stable equal-length admission groups batch prompt prefill into arbitrary shared-cache rows;
   uniform R8/S8 improves 2.931× and reaches 87.4% of static batch throughput.
+- the official continuous-serving runner covers Qwen/DeepSeek short and 2048-token contexts,
+  2/4 slots, refill, request-bounded BF16 KV bytes and engine peak memory; Qwen is exact in 4/4
+  PyTorch cases while DeepSeek has three recorded token mismatches.
 
 The design keeps three implementations where they provide engineering value:
 
@@ -321,6 +324,12 @@ arrival or slot refill. See
 Experiment 074 adds stable admission buckets and singleton fallback. HIP B4 reaches 3.78× serial;
 B8/B16 queues split into multiple B4 groups and correctly plateau, exposing the need for token-level
 slot refill. See [Experiment 074](docs/optimization-log/experiments/074-admission-batch-scheduler.md).
+
+Experiment 102 runs the real continuous scheduler on pinned Qwen2.5-0.5B and
+DeepSeek-R1-Distill-Qwen-1.5B. The 24/24 fresh microLLM processes are deterministic and report
+exact KV allocation, active KV, slot use, transfers and peak memory. Qwen matches PyTorch tokens
+in 4/4 cases; DeepSeek matches 1/4, so long-context parity remains blocked. See
+[Experiment 102](docs/optimization-log/experiments/102-official-continuous-serving.md).
 
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or

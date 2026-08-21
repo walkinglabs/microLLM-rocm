@@ -91,6 +91,11 @@ if(BUILD_TESTING)
                          ${PROJECT_SOURCE_DIR}/python/tests/test_hf_inference_shape_matrix.py)
         set_tests_properties(Benchmark.HfInferenceShapeMatrixContract PROPERTIES
                              LABELS "cpu;benchmark;huggingface;inference;batch;context;kv-cache;schema")
+        add_test(NAME Benchmark.HfContinuousMatrixContract
+                 COMMAND ${Python3_EXECUTABLE}
+                         ${PROJECT_SOURCE_DIR}/python/tests/test_hf_continuous_matrix.py)
+        set_tests_properties(Benchmark.HfContinuousMatrixContract PROPERTIES
+                             LABELS "cpu;benchmark;huggingface;inference;scheduler;batch;context;kv-cache;schema")
         add_test(NAME Benchmark.KvCachePrecisionContract
                  COMMAND ${Python3_EXECUTABLE}
                          ${PROJECT_SOURCE_DIR}/python/tests/test_kv_cache_precision.py)

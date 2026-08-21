@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="610" viewBox="0 0 1080 610" role="img" aria-labelledby="title desc">
+  <title id="title">Official continuous serving matrix</title>
+  <desc id="desc">Qwen and DeepSeek throughput, KV utilization and exact-token status for short and long two-slot and four-slot cases.</desc>
+  <rect width="1080" height="610" fill="#0b1020"/>
+  <text x="48" y="58" fill="#f8fafc" font-family="sans-serif" font-size="30" font-weight="700">Official continuous serving · MI300X</text>
+  <text x="48" y="90" fill="#94a3b8" font-family="sans-serif" font-size="17">bar = microLLM p50 tok/s · dot = KV byte utilization · border = token parity</text>
+  <g font-family="sans-serif" font-size="15">
+    <text x="48" y="140" fill="#e2e8f0" font-size="20" font-weight="700">Qwen2.5-0.5B · 4/4 exact</text>
+    <text x="48" y="180" fill="#cbd5e1">short s2</text><rect x="160" y="160" width="194" height="24" rx="5" fill="#22c55e"/><text x="365" y="179" fill="#f8fafc">387.0</text><circle cx="760" cy="172" r="7" fill="#38bdf8"/><text x="780" y="178" fill="#cbd5e1">64.6% KV</text>
+    <text x="48" y="220" fill="#cbd5e1">short s4</text><rect x="160" y="200" width="382" height="24" rx="5" fill="#22c55e"/><text x="553" y="219" fill="#f8fafc">763.2</text><circle cx="726" cy="212" r="7" fill="#38bdf8"/><text x="746" y="218" fill="#cbd5e1">59.1% KV</text>
+    <text x="48" y="260" fill="#cbd5e1">long s2</text><rect x="160" y="240" width="86" height="24" rx="5" fill="#22c55e"/><text x="257" y="259" fill="#f8fafc">171.7</text><circle cx="749" cy="252" r="7" fill="#38bdf8"/><text x="769" y="258" fill="#cbd5e1">62.5% KV</text>
+    <text x="48" y="300" fill="#cbd5e1">long s4</text><rect x="160" y="280" width="207" height="24" rx="5" fill="#22c55e"/><text x="378" y="299" fill="#f8fafc">414.6</text><circle cx="823" cy="292" r="7" fill="#38bdf8"/><text x="843" y="298" fill="#cbd5e1">75.1% KV</text>
+    <text x="48" y="356" fill="#e2e8f0" font-size="20" font-weight="700">DeepSeek-R1-Distill-Qwen-1.5B · 1/4 exact</text>
+    <text x="48" y="396" fill="#cbd5e1">short s2</text><rect x="160" y="376" width="130" height="24" rx="5" fill="#22c55e" stroke="#86efac" stroke-width="3"/><text x="301" y="395" fill="#f8fafc">260.4 · exact</text>
+    <text x="48" y="436" fill="#cbd5e1">short s4</text><rect x="160" y="416" width="238" height="24" rx="5" fill="#f59e0b" stroke="#ef4444" stroke-width="3"/><text x="409" y="435" fill="#fca5a5">476.2 · mismatch</text>
+    <text x="48" y="476" fill="#cbd5e1">long s2</text><rect x="160" y="456" width="51" height="24" rx="5" fill="#f59e0b" stroke="#ef4444" stroke-width="3"/><text x="222" y="475" fill="#fca5a5">101.1 · mismatch</text>
+    <text x="48" y="516" fill="#cbd5e1">long s4</text><rect x="160" y="496" width="120" height="24" rx="5" fill="#f59e0b" stroke="#ef4444" stroke-width="3"/><text x="291" y="515" fill="#fca5a5">240.0 · mismatch</text>
+  </g>
+  <rect x="48" y="550" width="984" height="40" rx="8" fill="#172033"/>
+  <text x="68" y="576" fill="#fbbf24" font-family="sans-serif" font-size="16">性能记录保留，但 DeepSeek 3 个红框阻止“长上下文精度已对齐”的结论。</text>
+</svg>

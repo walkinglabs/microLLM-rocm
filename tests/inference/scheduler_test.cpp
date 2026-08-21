@@ -474,6 +474,16 @@ TEST(ContinuousBatchSchedulerTest, StopCancelAndPolicyErrorsAreExplicit) {
                              .kv_cache_layer_dtypes = {
                                  DType::Float32, DType::BFloat16}}),
                  std::invalid_argument);
+    ContinuousBatchScheduler bounded(
+        model, {.max_slots = 1, .max_sequence_length = 4,
+                .kv_cache_dtype = DType::BFloat16,
+                .kv_cache_layer_dtypes = {}});
+    EXPECT_THROW((void)bounded.submit({1, 2, 3}, baseline),
+                 std::invalid_argument);
+    EXPECT_THROW((void)ContinuousBatchScheduler(
+                     model, {.max_slots = 1, .max_sequence_length = 17,
+                             .kv_cache_layer_dtypes = {}}),
+                 std::invalid_argument);
 }
 
 }  // namespace microllm::inference

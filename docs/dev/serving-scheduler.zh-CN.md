@@ -155,6 +155,11 @@ divergent rows现在共享QKV/FFN/output batch。三组严格交替Release A/B�
 prefill从8次降到1次，Release continuous达到static batch的87.4%；图解见
 [batched slot prefill](batched-slot-prefill.zh-CN.md)。
 
+真实模型也已经进入相同路径。官方runner覆盖Qwen/DeepSeek、短/长context、2/4 slot、补位、
+KV利用率和峰值显存，并把Cache容量限制到当前请求真正需要的最大长度。Qwen 4/4逐token对齐；
+DeepSeek仅1/4对齐，因此其余三组仍是明确失败。数据读法见
+[官方连续推理矩阵](official-continuous-serving.zh-CN.md)。
+
 ## 8. 测试位置
 
 ```text
@@ -169,4 +174,10 @@ tests/inference/hip_shape_matrix_test.cpp
 
 benchmarks/end_to_end/benchmark_scheduler.cpp
   CPU/HIP 1/2/4/8请求的串行与静态batch基线
+
+benchmarks/single_gpu/hf_continuous_matrix.py
+  官方Qwen/DeepSeek多进程短/长context、slot、KV与显存矩阵
+
+python/tests/test_hf_continuous_matrix.py
+  suite轴、Cache公式、命令/schema和PyTorch比较边界合同
 ```

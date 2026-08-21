@@ -68,6 +68,11 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] pack CPU token/position/row metadata into one H2D transfer per active step;
 - [x] profile the new positions-aware path before choosing its next Kernel optimization;
 - [x] test and reject a batched logits scatter despite correct Kernel routing;
+- [x] run official Qwen/DeepSeek continuous serving across short/long context and 2/4 slots,
+  with exact request-bounded KV bytes, peak memory and complete generated-token evidence;
+- [ ] hold one official request set fixed and sweep 1/2/4/8 slots for a fair batch-efficiency curve;
+- [ ] locate the first DeepSeek token/logit divergence in short_s4 and make long-context parity a gate;
+- [ ] add request-level TTFT and P50/P95 latency rather than throughput alone;
 
 ## P2 — operator registry and profiler API
 

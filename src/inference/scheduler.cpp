@@ -498,11 +498,24 @@ struct ContinuousBatchScheduler::Impl {
         return policy;
     }
 
+    static std::int64_t configured_capacity(
+        const model::TransformerModel& model,
+        const ContinuousBatchConfig& config) {
+        if (config.max_sequence_length < 0 ||
+            config.max_sequence_length > model.config().max_sequence_length) {
+            throw std::invalid_argument(
+                "continuous scheduler cache capacity is outside model bounds");
+        }
+        return config.max_sequence_length == 0
+                   ? model.config().max_sequence_length
+                   : config.max_sequence_length;
+    }
+
     Impl(model::TransformerModel& value, ContinuousBatchConfig settings)
         : model(value),
           config(std::move(settings)),
           policy(configured_policy(value, config)),
-          cache(policy, value.config().max_sequence_length, config.max_slots),
+          cache(policy, configured_capacity(value, config), config.max_slots),
           slots(static_cast<std::size_t>(config.max_slots), -1),
           slot_ever_used(static_cast<std::size_t>(config.max_slots), false) {}
 
@@ -747,6 +760,11 @@ RequestId ContinuousBatchScheduler::submit(
     validate_request(impl_->model, prompt, config);
     std::sort(config.stop_tokens.begin(), config.stop_tokens.end());
     impl_->validate_policy(config);
+    if (static_cast<std::int64_t>(prompt.size()) + config.max_new_tokens >
+        impl_->cache.max_sequence_length()) {
+        throw std::invalid_argument(
+            "request exceeds continuous scheduler cache capacity");
+    }
     Impl::Request request;
     request.id = impl_->next_id++;
     request.prompt = std::move(prompt);
