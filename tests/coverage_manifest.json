@@ -160,6 +160,7 @@
     "tests/graph/hip_graph_alignment_test.cpp",
     "tests/hardware/precision_capability_test.cpp",
     "tests/inference/generator_test.cpp",
+    "tests/inference/scheduler_test.cpp",
     "tests/io/hip_weights_test.cpp",
     "tests/io/io_test.cpp",
     "tests/io/safetensors_test.cpp",

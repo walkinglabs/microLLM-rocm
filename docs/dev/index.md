@@ -21,7 +21,9 @@ component has a public interface under `include/microllm`, an implementation und
     [simple inference-matrix guide](inference-matrix.zh-CN.md).
 11. For FP32/BF16 cache policy and its numerical gates, read the
     [KV-cache dtype guide](kv-cache-dtypes.zh-CN.md).
-12. For the measured optimization loop, read the
+12. For delayed multi-request serving semantics, read the
+    [serving scheduler guide](serving-scheduler.zh-CN.md).
+13. For the measured optimization loop, read the
     [0→1 optimization log](../optimization-log/README.md).
 
 ## Engineering rules

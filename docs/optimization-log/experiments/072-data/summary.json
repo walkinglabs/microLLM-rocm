@@ -1,0 +1,91 @@
+{
+  "model_dimension": 64,
+  "model_layers": 2,
+  "parameter_count": 106816,
+  "rows": [
+    {
+      "device": "cpu",
+      "outputs_equal": true,
+      "peak_active_requests": 1,
+      "peak_cache_bytes": 3584,
+      "requests": 1,
+      "scheduler_over_sequential": 0.988111,
+      "scheduler_tokens_per_second": 404.966,
+      "sequential_tokens_per_second": 404.323
+    },
+    {
+      "device": "cpu",
+      "outputs_equal": true,
+      "peak_active_requests": 2,
+      "peak_cache_bytes": 9728,
+      "requests": 2,
+      "scheduler_over_sequential": 0.98206,
+      "scheduler_tokens_per_second": 383.427,
+      "sequential_tokens_per_second": 390.432
+    },
+    {
+      "device": "cpu",
+      "outputs_equal": true,
+      "peak_active_requests": 4,
+      "peak_cache_bytes": 28160,
+      "requests": 4,
+      "scheduler_over_sequential": 0.993164,
+      "scheduler_tokens_per_second": 331.951,
+      "sequential_tokens_per_second": 337.361
+    },
+    {
+      "device": "cpu",
+      "outputs_equal": true,
+      "peak_active_requests": 8,
+      "peak_cache_bytes": 56832,
+      "requests": 8,
+      "scheduler_over_sequential": 1.01589,
+      "scheduler_tokens_per_second": 343.17,
+      "sequential_tokens_per_second": 337.802
+    },
+    {
+      "device": "hip",
+      "outputs_equal": true,
+      "peak_active_requests": 1,
+      "peak_cache_bytes": 3584,
+      "requests": 1,
+      "scheduler_over_sequential": 0.99098,
+      "scheduler_tokens_per_second": 332.279,
+      "sequential_tokens_per_second": 335.061
+    },
+    {
+      "device": "hip",
+      "outputs_equal": true,
+      "peak_active_requests": 2,
+      "peak_cache_bytes": 9728,
+      "requests": 2,
+      "scheduler_over_sequential": 0.992984,
+      "scheduler_tokens_per_second": 333.487,
+      "sequential_tokens_per_second": 335.825
+    },
+    {
+      "device": "hip",
+      "outputs_equal": true,
+      "peak_active_requests": 4,
+      "peak_cache_bytes": 28160,
+      "requests": 4,
+      "scheduler_over_sequential": 0.994444,
+      "scheduler_tokens_per_second": 332.861,
+      "sequential_tokens_per_second": 334.796
+    },
+    {
+      "device": "hip",
+      "outputs_equal": true,
+      "peak_active_requests": 8,
+      "peak_cache_bytes": 56832,
+      "requests": 8,
+      "scheduler_over_sequential": 0.990284,
+      "scheduler_tokens_per_second": 332.598,
+      "sequential_tokens_per_second": 335.615
+    }
+  ],
+  "runs": 3,
+  "schema_version": 1,
+  "status": "pass",
+  "track": "reference_scheduler_baseline"
+}

@@ -25,6 +25,7 @@
 #include <microllm/io/safetensors.h>
 #include <microllm/training/trainer.h>
 #include <microllm/inference/kv_cache.h>
+#include <microllm/inference/scheduler.h>
 #include <microllm/inference/generator.h>
 #if MICROLLM_HAS_RCCL
 #include <microllm/multi_gpu/communicator.h>

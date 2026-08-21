@@ -30,6 +30,12 @@ course / apps / benchmarks ← public engine APIs
 
 ## Tensor ownership boundary
 
+Serving requests are owned by `ReferenceScheduler`, not by the model. Each request has an
+independent B=1 `KVCache`, RNG and lifecycle state. The scheduler releases Cache Storage on
+completion and exposes snapshots/metrics. It is intentionally serial; a future slot-batched
+scheduler must preserve this state machine. See [serving scheduler](dev/serving-scheduler.zh-CN.md).
+
+
 `Storage` owns an allocation through shared lifetime state. `Tensor` owns metadata
 and shares Storage. `TensorView` is non-owning and is the low-level operator seam.
 

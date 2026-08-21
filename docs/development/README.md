@@ -201,3 +201,5 @@ the next gate. Records are append-only except for factual corrections.
   deterministic prompt challenges, one-layer counterexample and first-four robust-strict policy.
 - [2026-08-21-qwen-kv-prompt-failure.md](2026-08-21-qwen-kv-prompt-failure.md):
   constant-context complete-logit failure and required all-FP32 fallback.
+- [2026-08-21-reference-serving-scheduler.md](2026-08-21-reference-serving-scheduler.md):
+  delayed requests, independent state/Cache/RNG, CPU/HIP oracle and serial serving baseline.

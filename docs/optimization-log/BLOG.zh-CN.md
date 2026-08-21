@@ -1692,3 +1692,15 @@ logit门。first 2 FP32在T512刚好通过，搬到T2048却跳到RMSE 3.141并to
 继续增加到前4/8/12层FP32，constant T2048 RMSE仍约3.14；只有全部24层FP32恢复一致。
 因此Qwen uniform BF16仍是显式速度/显存路径，不是普遍strict安全；遇到该稳定失败必须
 回退全FP32。成功模式和失败模式同时保留。
+
+## 89. Experiment 072：continuous batching的第一步不是batch
+
+真实请求会晚到、早结束、长度不同。`ReferenceScheduler`让每条请求拥有独立B=1 Cache和
+RNG，按`PendingPrefill→Decoding→Completed`前进；完成立即释放Cache。CPU/HIP都与独立
+`generate()`逐请求对齐。
+
+![Reference serving scheduler](assets/reference-serving-scheduler.svg)
+
+106,816参数tiny基线中，HIP 1/2/4/8请求都约331 tok/s，scheduler/sequential约0.992–0.994×，
+输出全部一致。吞吐不随请求数增长，因为batched forward calls明确为0。这是下一slot-batch
+候选必须超过的before，不是“服务优化完成”。

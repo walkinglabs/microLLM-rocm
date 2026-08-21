@@ -1,5 +1,6 @@
 add_library(microllm_inference STATIC
     generator.cpp
+    scheduler.cpp
 )
 add_library(microllm::inference ALIAS microllm_inference)
 

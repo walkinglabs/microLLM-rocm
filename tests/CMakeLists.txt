@@ -20,6 +20,7 @@ add_executable(microllm_tests
     io/safetensors_test.cpp
     training/trainer_test.cpp
     inference/generator_test.cpp
+    inference/scheduler_test.cpp
 )
 
 target_link_libraries(microllm_tests PRIVATE

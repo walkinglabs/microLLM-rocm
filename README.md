@@ -65,6 +65,8 @@ needed to run a real training and generation loop:
   repeat-prompt 32–2048 gate passes, while retained multi-prompt failures keep FP32 default.
 - explicit per-layer FP32/BF16 Cache policies can restore a strict complete-logit gate without
   hiding their extra Cache and long-batch prefill cost.
+- a correctness-first multi-request scheduler supports delayed arrival, independent Cache/RNG,
+  completion cleanup and CPU/HIP equivalence as the oracle for future slot batching.
 
 The design keeps three implementations where they provide engineering value:
 
@@ -150,10 +152,10 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 268/268 | 191 CPU-labelled + 77 HIP-labelled gates; 2 intentional environment skips |
-| ASan/UBSan CPU | 184/184 | host code, CLI, model/graph, benchmark and evidence schemas |
+| Full CPU/HIP configuration | 272/272 | 194 CPU-labelled + 78 HIP-labelled gates; 2 intentional environment skips |
+| ASan/UBSan CPU | 187/187 | host code, CLI, model/graph, benchmark and evidence schemas |
 | MI300X/gfx942 HIP | 73/73 | allocator/stream, graph, BF16/FP8, batched GEMM and model matrix |
-| PyTorch-enabled CPU build | 189/189 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
+| PyTorch-enabled CPU build | 192/192 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
 | Registered test files | 37 | machine-audited CTest registration |
 | CPU source coverage | 83.9% lines / 66.6% branches | GCC 13.3 + gcovr 8.3; `src/` and `include/` |
@@ -267,6 +269,10 @@ Experiment 071 applies the same prompt challenge to Qwen. Constant inputs fail a
 contexts; at T2048 only an all-FP32 Cache restores logits and tokens. Uniform BF16 remains explicit,
 not universally strict-safe. See
 [Experiment 071](docs/optimization-log/experiments/071-qwen-kv-prompt-failure.md).
+
+Experiment 072 establishes delayed multi-request serving semantics. CPU/HIP 1/2/4/8-request outputs
+match independent generation; the serial reference deliberately has zero batched-forward calls.
+See [Experiment 072](docs/optimization-log/experiments/072-reference-serving-scheduler.md).
 
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or

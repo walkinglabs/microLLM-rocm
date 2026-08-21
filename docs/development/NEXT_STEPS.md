@@ -38,6 +38,8 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] compare tokenizer IDs, complete logits, and greedy tokens with PyTorch on fixed prompts;
 - [ ] compare every per-layer hidden state with PyTorch;
 - [x] record engine peak, resident policy, prefill/decode latency, tokens/s and KV utilization;
+- [x] add a delayed-arrival multi-request reference scheduler with independent Cache/RNG state;
+- [ ] batch compatible active request slots without changing reference request semantics;
 
 ## P2 — operator registry and profiler API
 

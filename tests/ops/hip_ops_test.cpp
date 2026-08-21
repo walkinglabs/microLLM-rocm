@@ -10,6 +10,7 @@
 #include <microllm/runtime/runtime.h>
 #include <microllm/runtime/memory.h>
 #include <microllm/inference/generator.h>
+#include <microllm/inference/scheduler.h>
 #include <microllm/model/model.h>
 #include <microllm/training/trainer.h>
 
@@ -843,6 +844,46 @@ TEST(HipGenerationTest, GreedyLoopKeepsSelectedTokenOnDevice) {
     EXPECT_EQ(transfers.host_to_device_bytes, prompt.size() * sizeof(std::int32_t));
     EXPECT_EQ(transfers.device_to_host_calls, 4U);
     EXPECT_EQ(transfers.device_to_host_bytes, 4U * sizeof(std::int32_t));
+}
+
+TEST(HipSchedulerTest, DelayedIndependentRequestsMatchCpuReference) {
+    require_gpu();
+    const model::ModelConfig config{.vocabulary_size = 16,
+                                    .dimension = 8,
+                                    .layers = 1,
+                                    .heads = 2,
+                                    .kv_heads = 1,
+                                    .ffn_dimension = 16,
+                                    .max_sequence_length = 12,
+                                    .rope_base = 10000.0F,
+                                    .tie_embeddings = false};
+    model::TransformerModel cpu_model(config, 97);
+    model::TransformerModel hip_model(config, 97);
+    hip_model.to(Device::hip());
+    inference::ReferenceScheduler cpu_scheduler(cpu_model);
+    inference::ReferenceScheduler hip_scheduler(hip_model);
+    const inference::GenerationConfig first_config{
+        .max_new_tokens = 4, .temperature = 0.0F, .top_k = 1,
+        .seed = 3, .kv_cache_layer_dtypes = {}};
+    const inference::GenerationConfig second_config{
+        .max_new_tokens = 2, .temperature = 0.0F, .top_k = 1,
+        .seed = 5, .kv_cache_layer_dtypes = {}};
+    const auto cpu_first = cpu_scheduler.submit({1, 2, 3}, first_config);
+    const auto hip_first = hip_scheduler.submit({1, 2, 3}, first_config);
+    cpu_scheduler.step();
+    hip_scheduler.step();
+    const auto cpu_second = cpu_scheduler.submit({4, 5}, second_config);
+    const auto hip_second = hip_scheduler.submit({4, 5}, second_config);
+    cpu_scheduler.run_until_idle();
+    hip_scheduler.run_until_idle();
+    EXPECT_EQ(hip_scheduler.request(hip_first).generated,
+              cpu_scheduler.request(cpu_first).generated);
+    EXPECT_EQ(hip_scheduler.request(hip_second).generated,
+              cpu_scheduler.request(cpu_second).generated);
+    EXPECT_EQ(hip_scheduler.metrics().scheduler_steps, 4);
+    EXPECT_EQ(hip_scheduler.metrics().prefill_calls, 2);
+    EXPECT_EQ(hip_scheduler.metrics().decode_calls, 4);
+    EXPECT_GT(hip_scheduler.metrics().peak_cache_bytes, 0U);
 }
 
 TEST(HipAllocatorStressTest, ReusedDefaultStreamBlocksPreserveAsyncKernelOrder) {

@@ -383,6 +383,11 @@ T512通过却在T2048 RMSE 3.141并token分叉，前4/8/12也无法修复，只�
 
 ![Qwen KV prompt failure](assets/qwen-kv-prompt-failure.svg)
 
+Experiment 072建立多请求serving reference：延迟到达、独立Cache/RNG、完成释放和CPU/HIP
+对齐。1–8请求HIP吞吐约331 tok/s且不扩展，明确留下slot batching的before。
+
+![Reference serving scheduler](assets/reference-serving-scheduler.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -484,6 +489,8 @@ T512通过却在T2048 RMSE 3.141并token分叉，前4/8/12也无法修复，只�
 | [experiments/070-data/](experiments/070-data/) | layer1挑战、constant搜索、first4精度/性能数据 |
 | [assets/qwen-kv-prompt-failure.svg](assets/qwen-kv-prompt-failure.svg) | Qwen pattern矩阵、context反例和FP32 fallback |
 | [experiments/071-data/](experiments/071-data/) | uniform/first2挑战和T512/T2048层数搜索 |
+| [assets/reference-serving-scheduler.svg](assets/reference-serving-scheduler.svg) | 请求状态机、CPU/HIP吞吐与零batch边界 |
+| [experiments/072-data/](experiments/072-data/) | CPU/HIP 24条raw、8条中位数和fixed workload |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

@@ -1896,6 +1896,35 @@ def validate_qwen_kv_prompt_failure(errors: list[str]) -> tuple[int, int, int]:
     return len(uniform_records), len(first2_records), len(search_records)
 
 
+def validate_reference_serving_scheduler(errors: list[str]) -> tuple[int, int]:
+    data = ROOT / "experiments" / "072-data"
+    raw = [json.loads(line) for line in
+           (data / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    keys = {(row.get("device"), row.get("requests"), row.get("process_run"))
+            for row in raw}
+    if len(raw) != 24 or len(keys) != 24 or any(
+            row.get("status") != "pass" or row.get("scheduler") != "serial_reference" or
+            row.get("outputs_equal") is not True or row.get("requests") not in {1, 2, 4, 8}
+            for row in raw):
+        errors.append("reference serving scheduler raw protocol changed")
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    rows = summary.get("rows", [])
+    hip_rows = [row for row in rows if row.get("device") == "hip"]
+    if summary.get("status") != "pass" or summary.get("parameter_count") != 106816 or \
+            len(rows) != 8 or any(row.get("outputs_equal") is not True for row in rows) or \
+            len(hip_rows) != 4 or any(
+                float(row.get("scheduler_over_sequential", 0.0)) < 0.98 or
+                float(row.get("scheduler_over_sequential", 2.0)) > 1.02
+                for row in hip_rows):
+        errors.append("reference serving scheduler baseline changed")
+    for path in (REPOSITORY / "include/microllm/inference/scheduler.h",
+                 REPOSITORY / "src/inference/scheduler.cpp",
+                 REPOSITORY / "benchmarks/end_to_end/benchmark_scheduler.cpp"):
+        if not path.is_file():
+            errors.append(f"missing serving scheduler artifact: {path.name}")
+    return len(raw), len(rows)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -1946,7 +1975,8 @@ def validate_assets(errors: list[str]) -> None:
                  "targeted-prefix-pair-discard.svg",
                  "same-binary-kv-policy.svg",
                  "kv-policy-prompt-robustness.svg",
-                 "qwen-kv-prompt-failure.svg"):
+                 "qwen-kv-prompt-failure.svg",
+                 "reference-serving-scheduler.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -2031,6 +2061,8 @@ def main() -> int:
         validate_kv_policy_prompt_robustness(errors)
     qwen_prompt_uniform, qwen_prompt_first2, qwen_prompt_search = \
         validate_qwen_kv_prompt_failure(errors)
+    serving_reference_raw, serving_reference_rows = \
+        validate_reference_serving_scheduler(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -2083,6 +2115,7 @@ def main() -> int:
           f"{prompt_policy_performance} "
           f"qwen_prompt={qwen_prompt_uniform}/{qwen_prompt_first2}/"
           f"{qwen_prompt_search} "
+          f"serving_reference={serving_reference_raw}/{serving_reference_rows} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

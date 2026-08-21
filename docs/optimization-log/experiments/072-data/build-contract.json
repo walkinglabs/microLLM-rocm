@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "model": {
+    "parameter_count": 106816,
+    "dimension": 64,
+    "layers": 2,
+    "heads": 4,
+    "kv_heads": 2,
+    "ffn_dimension": 128,
+    "vocabulary": 256,
+    "maximum_context": 64
+  },
+  "request_counts": [1, 2, 4, 8],
+  "prompt_lengths": [4, 8, 12, 16],
+  "new_token_lengths": [3, 4, 5],
+  "warmup": 1,
+  "repetitions": 5,
+  "fresh_process_runs": 3,
+  "devices": ["cpu", "hip"]
+}

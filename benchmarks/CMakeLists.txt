@@ -16,6 +16,10 @@ add_executable(microllm_bench_model end_to_end/benchmark_model.cpp)
 target_link_libraries(microllm_bench_model PRIVATE
     microllm::training microllm::inference microllm::runtime
 )
+add_executable(microllm_bench_scheduler end_to_end/benchmark_scheduler.cpp)
+target_link_libraries(microllm_bench_scheduler PRIVATE
+    microllm::inference microllm::runtime
+)
 
 if(MICROLLM_HAS_RCCL)
     add_executable(microllm_bench_allreduce distributed/benchmark_allreduce.cpp)
@@ -37,6 +41,11 @@ if(BUILD_TESTING)
              COMMAND microllm_bench_model --mode train --model tiny --device cpu
                      --steps 2 --warmup 1 --batch 1 --context 4 --new-tokens 4)
     set_tests_properties(Benchmark.ModelTrainSmoke PROPERTIES LABELS "cpu;benchmark;model;smoke")
+    add_test(NAME Benchmark.SchedulerReferenceSmoke
+             COMMAND microllm_bench_scheduler --device cpu --requests 3
+                     --warmup 0 --repetitions 1)
+    set_tests_properties(Benchmark.SchedulerReferenceSmoke PROPERTIES
+                         LABELS "cpu;benchmark;inference;scheduler;schema")
     if(Python3_Interpreter_FOUND)
         add_test(NAME Benchmark.JsonSchema
                  COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/validate_json.py
