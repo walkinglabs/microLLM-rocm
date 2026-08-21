@@ -147,6 +147,10 @@ active-row compaction随后把空slot从模型输入中剔除，Release divergen
 1.134×–1.348×，dummy rows降到0；图解见[active-row compaction](active-row-compaction.zh-CN.md)。
 真实不同position的row仍逐rowB1，所以还不是最终并行实现。
 
+positions-aware decode随后把`positions[A]`与`cache_rows[A]`送进RoPE、KV store和Attention，真实
+divergent rows现在共享QKV/FFN/output batch。三组严格交替Release A/B提高1.295×–1.670×；图解见
+[positions-aware decode](positions-aware-decode.zh-CN.md)。
+
 ## 8. 测试位置
 
 ```text

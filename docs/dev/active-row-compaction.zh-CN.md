@@ -58,3 +58,6 @@ Cache容量没有减少：compaction减少的是本步计算，不是固定KV预
 并行Kernel，才能让多个真实但不同position的row一起算，而不是逐row B1。
 
 实验与图见 [Experiment 097](../optimization-log/experiments/097-active-row-compaction.md)。
+
+下一步已经在[positions-aware decode](positions-aware-decode.zh-CN.md)完成：多个真实但position不同的
+active row不再逐个B1，而是让RoPE、KV store和Attention直接读取逐row位置表。

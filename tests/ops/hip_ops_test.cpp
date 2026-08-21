@@ -1076,6 +1076,7 @@ TEST(HipSchedulerTest, ContinuousSlotsRefillAndMatchCpuWithOneSelectionCopyPerSt
         EXPECT_EQ(hip_metrics.batch_decode_calls, 3);
         EXPECT_EQ(hip_metrics.divergent_batch_decode_calls, 1);
         EXPECT_EQ(hip_metrics.compacted_batch_decode_calls, 2);
+        EXPECT_EQ(hip_metrics.positions_aware_batch_decode_calls, 2);
         EXPECT_EQ(hip_metrics.dummy_decode_rows, 0);
         EXPECT_EQ(hip_metrics.inactive_rows_skipped, 1);
         EXPECT_EQ(hip_metrics.logical_decode_rows,
@@ -1495,6 +1496,122 @@ TEST(HipOpsTest, PairedBf16KvStoreRoundsOnDeviceWithoutPayloadTransfers) {
     EXPECT_THROW(kv_cache_store_pair_(key_cache, value_cache, device_key,
                                       cast(device_value, DType::BFloat16), 0),
                  std::invalid_argument);
+}
+
+TEST(HipPositionedDecodeTest, RopeStoreAndAttentionMatchCpuWithoutPayloadTransfers) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    const auto rope_input = Tensor::from_vector(
+        {1, 2, 3, 4, 5, 6, 7, 8,
+         2, 3, 4, 5, 6, 7, 8, 9},
+        {2, 2, 1, 4});
+    const auto positions = Tensor::from_int32_vector({0, 2}, {2});
+    const auto rows = Tensor::from_int32_vector({2, 0}, {2});
+    const auto bias = Tensor::from_vector(
+        {0.1F, 0.2F, 0.3F, 0.4F, -0.1F, -0.2F, -0.3F, -0.4F}, {8});
+    const auto device_input = rope_input.to(gpu);
+    const auto device_positions = positions.to(gpu);
+    const auto device_rows = rows.to(gpu);
+    const auto device_bias = bias.to(gpu);
+    runtime::reset_transfer_stats();
+    const auto interleaved = rope_positions(device_input, device_positions);
+    const auto split = rope_split_half_positions(device_input, device_positions);
+    const auto fused = rope_split_half_bias_positions(
+        device_input, device_bias, device_positions);
+    runtime::synchronize(gpu);
+    EXPECT_EQ(runtime::transfer_stats().device_to_host_calls, 0U);
+    expect_near(interleaved.to_vector(),
+                rope_positions(rope_input, positions).to_vector(), 2.0e-5F);
+    expect_near(split.to_vector(),
+                rope_split_half_positions(rope_input, positions).to_vector(),
+                2.0e-5F);
+    expect_near(fused.to_vector(),
+                rope_split_half_bias_positions(
+                    rope_input, bias, positions).to_vector(),
+                2.0e-5F);
+
+    const auto current_key = Tensor::from_vector(
+        {3.01953125F, 4.02734375F, 1.00390625F, 2.01171875F},
+        {2, 1, 1, 2});
+    const auto current_value = Tensor::from_vector(
+        {7.05078125F, 8.05859375F, 5.03515625F, 6.04296875F},
+        {2, 1, 1, 2});
+    const auto query = Tensor::from_vector(
+        {1, 0, 0, 1, 1, 0, 0, 1}, {2, 2, 1, 2});
+    for (const auto dtype : {DType::Float32, DType::BFloat16}) {
+        Tensor cpu_key_backing({3, 1, 4, 2}, dtype);
+        Tensor cpu_value_backing({3, 1, 4, 2}, dtype);
+        fill_(cpu_key_backing, 0.0F);
+        fill_(cpu_value_backing, 0.0F);
+        auto cpu_key = Tensor::from_storage(
+            cpu_key_backing.storage(), {3, 1, 3, 2},
+            cpu_key_backing.strides(), 0, dtype);
+        auto cpu_value = Tensor::from_storage(
+            cpu_value_backing.storage(), {3, 1, 3, 2},
+            cpu_value_backing.strides(), 0, dtype);
+        kv_cache_store_pair_positions_(
+            cpu_key, cpu_value, current_key, current_value, positions, rows);
+        const auto expected = cached_gqa_attention_positions(
+            query, cpu_key, cpu_value, positions, rows, 2, 1.0F).to_vector();
+
+        Tensor key_backing({3, 1, 4, 2}, dtype, gpu);
+        Tensor value_backing({3, 1, 4, 2}, dtype, gpu);
+        fill_(key_backing, 0.0F);
+        fill_(value_backing, 0.0F);
+        auto key_cache = Tensor::from_storage(
+            key_backing.storage(), {3, 1, 3, 2}, key_backing.strides(), 0,
+            dtype);
+        auto value_cache = Tensor::from_storage(
+            value_backing.storage(), {3, 1, 3, 2}, value_backing.strides(), 0,
+            dtype);
+        const auto device_key = current_key.to(gpu);
+        const auto device_value = current_value.to(gpu);
+        const auto device_query = query.to(gpu);
+        runtime::reset_transfer_stats();
+        kv_cache_store_pair_positions_(
+            key_cache, value_cache, device_key, device_value,
+            device_positions, device_rows);
+        const auto actual = cached_gqa_attention_positions(
+            device_query, key_cache, value_cache, device_positions,
+            device_rows, 2, 1.0F);
+        runtime::synchronize(gpu);
+        const auto transfers = runtime::transfer_stats();
+        EXPECT_EQ(transfers.host_to_device_calls, 0U);
+        EXPECT_EQ(transfers.device_to_host_calls, 0U);
+        expect_near(actual.to_vector(), expected,
+                    dtype == DType::Float32 ? 2.0e-5F : 3.0e-2F);
+        expect_near(key_cache.to_vector(), cpu_key.to_vector(), 3.0e-2F);
+        expect_near(value_cache.to_vector(), cpu_value.to_vector(), 3.0e-2F);
+    }
+}
+
+TEST(HipPositionedDecodeTest, LongFallbackMasksEachActivePrefix) {
+    require_gpu();
+    constexpr std::int64_t sequence = 4097;
+    std::vector<float> cache_values(static_cast<std::size_t>(2 * sequence * 2));
+    for (std::size_t index = 0; index < cache_values.size(); ++index) {
+        cache_values[index] =
+            static_cast<float>(static_cast<int>(index % 37U) - 18) * 0.03125F;
+    }
+    const auto cache = Tensor::from_vector(cache_values, {2, 1, sequence, 2});
+    const auto query = Tensor::from_vector({1, -0.5F, -0.25F, 0.75F},
+                                           {2, 1, 1, 2});
+    const auto positions = Tensor::from_int32_vector({0, 4096}, {2});
+    const auto rows = Tensor::from_int32_vector({0, 1}, {2});
+    const auto expected = cached_gqa_attention_positions(
+        query, cache, cache, positions, rows, 1, 0.70710678F).to_vector();
+    const auto gpu = Device::hip(0);
+    const auto device_query = query.to(gpu);
+    const auto device_cache = cache.to(gpu);
+    const auto device_positions = positions.to(gpu);
+    const auto device_rows = rows.to(gpu);
+    runtime::reset_transfer_stats();
+    const auto actual = cached_gqa_attention_positions(
+        device_query, device_cache, device_cache, device_positions,
+        device_rows, 1, 0.70710678F);
+    runtime::synchronize(gpu);
+    EXPECT_EQ(runtime::transfer_stats().device_to_host_calls, 0U);
+    expect_near(actual.to_vector(), expected, 4.0e-4F);
 }
 
 TEST(HipAutogradTest, RepeatInterleaveMaterializesTransposedGqaValue) {

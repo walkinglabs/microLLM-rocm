@@ -309,6 +309,80 @@ TEST(CpuOpsTest, BatchedCacheStoreAndGqaAttentionKeepRowsIndependent) {
     expect_near(output.to_vector(), {3, 4, 3, 4, 5, 6, 5, 6});
 }
 
+TEST(CpuOpsTest, PositionedRopeStoreAndAttentionMatchRowReferences) {
+    const auto rope_input = Tensor::from_vector(
+        {1, 2, 3, 4, 5, 6, 7, 8,
+         2, 3, 4, 5, 6, 7, 8, 9},
+        {2, 2, 1, 4});
+    const auto positions = Tensor::from_int32_vector({0, 2}, {2});
+    const auto bias = Tensor::from_vector(
+        {0.1F, 0.2F, 0.3F, 0.4F, -0.1F, -0.2F, -0.3F, -0.4F}, {8});
+    const auto interleaved = rope_positions(rope_input, positions);
+    const auto split = rope_split_half_positions(rope_input, positions);
+    for (std::int64_t row = 0; row < 2; ++row) {
+        const auto position = row == 0 ? 0 : 2;
+        const auto input_row = rope_input.slice(0, row, row + 1);
+        expect_near(interleaved.slice(0, row, row + 1).to_vector(),
+                    rope(input_row, 2, position).to_vector(), 2.0e-5F);
+        expect_near(split.slice(0, row, row + 1).to_vector(),
+                    rope_split_half(input_row, 2, position).to_vector(),
+                    2.0e-5F);
+    }
+    const auto biased = rope_split_half_bias_positions(
+        rope_input, bias, positions);
+    for (std::int64_t row = 0; row < 2; ++row) {
+        expect_near(
+            biased.slice(0, row, row + 1).to_vector(),
+            rope_split_half_bias(rope_input.slice(0, row, row + 1), bias,
+                                 row == 0 ? 0 : 2).to_vector(),
+            2.0e-5F);
+    }
+
+    for (const auto dtype : {DType::Float32, DType::BFloat16}) {
+        Tensor key_backing({3, 1, 4, 2}, dtype);
+        Tensor value_backing({3, 1, 4, 2}, dtype);
+        fill_(key_backing, 0.0F);
+        fill_(value_backing, 0.0F);
+        auto key_cache = Tensor::from_storage(
+            key_backing.storage(), {3, 1, 3, 2}, key_backing.strides(), 0, dtype);
+        auto value_cache = Tensor::from_storage(
+            value_backing.storage(), {3, 1, 3, 2}, value_backing.strides(), 0, dtype);
+        const auto current_key = Tensor::from_vector(
+            {3.01953125F, 4.02734375F, 1.00390625F, 2.01171875F},
+            {2, 1, 1, 2});
+        const auto current_value = Tensor::from_vector(
+            {7.05078125F, 8.05859375F, 5.03515625F, 6.04296875F},
+            {2, 1, 1, 2});
+        const auto rows = Tensor::from_int32_vector({2, 0}, {2});
+        kv_cache_store_pair_positions_(
+            key_cache, value_cache, current_key, current_value, positions, rows);
+        const auto query = Tensor::from_vector(
+            {1, 0, 0, 1, 1, 0, 0, 1}, {2, 2, 1, 2});
+        const auto actual = cached_gqa_attention_positions(
+            query, key_cache, value_cache, positions, rows, 2, 1.0F);
+        for (std::int64_t active = 0; active < 2; ++active) {
+            const auto cache_row = active == 0 ? 2 : 0;
+            const auto visible = active == 0 ? 1 : 3;
+            const auto key_row = Tensor::from_storage(
+                key_cache.storage(), {1, 1, visible, 2}, key_cache.strides(),
+                cache_row * key_cache.stride(0), dtype);
+            const auto value_row = Tensor::from_storage(
+                value_cache.storage(), {1, 1, visible, 2}, value_cache.strides(),
+                cache_row * value_cache.stride(0), dtype);
+            expect_near(
+                actual.slice(0, active, active + 1).to_vector(),
+                cached_gqa_attention(
+                    query.slice(0, active, active + 1), key_row, value_row, 2,
+                    1.0F).to_vector(),
+                dtype == DType::Float32 ? 2.0e-5F : 3.0e-2F);
+        }
+        EXPECT_THROW(kv_cache_store_pair_positions_(
+                         key_cache, value_cache, current_key, current_value,
+                         positions, Tensor::from_int32_vector({2, 3}, {2})),
+                     std::out_of_range);
+    }
+}
+
 TEST(CpuOpsTest, Bf16CacheRoundsStorageAndKeepsFp32AttentionOutput) {
     Tensor backing({2, 1, 3, 2}, DType::BFloat16);
     auto cache = Tensor::from_storage(backing.storage(), {2, 1, 1, 2},

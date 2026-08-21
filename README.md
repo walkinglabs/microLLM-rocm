@@ -86,6 +86,8 @@ needed to run a real training and generation loop:
   positions remain a measured performance gap rather than a claimed speedup.
 - active-row compaction removes inactive dummy model work while preserving fixed slot Storage;
   five divergent Release shapes improve 1.134×–1.348× and reach 0.935×–0.985× serial reference.
+- positions-aware RoPE, mapped KV store and per-row-prefix cached Attention batch real divergent
+  rows; alternating Release medians improve another 1.295×–1.670× with exact request outputs.
 
 The design keeps three implementations where they provide engineering value:
 
@@ -171,9 +173,9 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 308/308 | 215 CPU-labelled + 93 HIP-labelled gates; 2 intentional environment skips |
-| ASan/UBSan CPU | 208/208 | host code, CLI, model/graph, benchmark and evidence schemas |
-| MI300X/gfx942 HIP | 93/93 | allocator/stream, graph, BF16/FP8, batched GEMM and model matrix |
+| Full CPU/HIP configuration | 311/311 | 216 CPU-labelled + 95 HIP-labelled gates; 2 intentional environment skips |
+| ASan/UBSan CPU | 209/209 | host code, CLI, model/graph, benchmark and evidence schemas |
+| MI300X/gfx942 HIP | 95/95 | allocator/stream, graph, BF16/FP8, batched GEMM and model matrix |
 | PyTorch-enabled CPU build | 196/196 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
 | Registered test files | 37 | machine-audited CTest registration |

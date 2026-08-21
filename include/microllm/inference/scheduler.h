@@ -141,6 +141,7 @@ struct ContinuousBatchMetrics {
     std::int64_t uniform_batch_decode_calls = 0;
     std::int64_t divergent_batch_decode_calls = 0;
     std::int64_t compacted_batch_decode_calls = 0;
+    std::int64_t positions_aware_batch_decode_calls = 0;
     std::int64_t logical_decode_rows = 0;
     std::int64_t dummy_decode_rows = 0;
     std::int64_t inactive_rows_skipped = 0;

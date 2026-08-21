@@ -383,6 +383,8 @@ int main(int argc, char** argv) {
                   << last_continuous.metrics.divergent_batch_decode_calls
                   << ",\"continuous_compacted_batch_decode_calls\":"
                   << last_continuous.metrics.compacted_batch_decode_calls
+                  << ",\"continuous_positions_aware_batch_decode_calls\":"
+                  << last_continuous.metrics.positions_aware_batch_decode_calls
                   << ",\"continuous_logical_decode_rows\":"
                   << last_continuous.metrics.logical_decode_rows
                   << ",\"continuous_dummy_decode_rows\":"

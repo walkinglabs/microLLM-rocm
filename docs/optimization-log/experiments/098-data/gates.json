@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "status": "keep",
+  "full": {"passed": 311, "failed": 0, "skipped": 2},
+  "cpu": {"passed": 216, "failed": 0, "skipped": 2},
+  "hip": {"passed": 95, "failed": 0, "skipped": 0},
+  "sanitizer": {"passed": 209, "failed": 0, "skipped": 0},
+  "focused": {
+    "cpu_positioned_operator_tests": 1,
+    "hip_positioned_operator_tests": 2,
+    "cache_dtypes": 2,
+    "rope_layouts": 2,
+    "attention_bias": true,
+    "long_fallback_prefix": 4097,
+    "release_matrix_rows": 8,
+    "alternating_processes": 18,
+    "paired_shapes": 3
+  }
+}

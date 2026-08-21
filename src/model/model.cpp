@@ -63,6 +63,59 @@ Tensor prepare_cached_sequence(Tensor& cached, const Tensor& current,
     return packed;
 }
 
+Tensor prepare_cached_active_sequence(
+    Tensor& cached, const Tensor& current, std::int64_t cache_batches,
+    const std::vector<std::int64_t>& positions, std::int64_t capacity,
+    DType cache_dtype) {
+    if (current.dtype() != DType::Float32 || current.ndim() != 4 ||
+        current.shape()[0] != static_cast<std::int64_t>(positions.size()) ||
+        current.shape()[0] <= 0 || current.shape()[2] != 1 ||
+        cache_batches <= 0) {
+        throw std::invalid_argument(
+            "active cached K/V tensors must be FP32 [A,H,1,D]");
+    }
+    const auto maximum = *std::max_element(positions.begin(), positions.end());
+    if (positions.empty() || maximum < 0 || maximum >= capacity ||
+        std::any_of(positions.begin(), positions.end(),
+                    [capacity](std::int64_t position) {
+                        return position < 0 || position >= capacity;
+                    })) {
+        throw std::out_of_range("active cached K/V positions exceed capacity");
+    }
+    const auto packed = current.is_contiguous() ? current : current.contiguous();
+    const auto heads = current.shape()[1];
+    const auto width = current.shape()[3];
+    const auto target_prefix = maximum + 1;
+    if (!cached.defined()) {
+        if (maximum != 0) {
+            throw std::invalid_argument(
+                "nonzero active positions require initialized KV storage");
+        }
+        Tensor backing({cache_batches, heads, capacity, width}, cache_dtype,
+                       current.device());
+        cached = Tensor::from_storage(
+            backing.storage(), {cache_batches, heads, target_prefix, width},
+            backing.strides(), 0, cache_dtype);
+    } else {
+        if (cached.ndim() != 4 || cached.shape()[0] != cache_batches ||
+            cached.shape()[1] != heads || cached.shape()[3] != width ||
+            cached.shape()[2] > capacity || cached.device() != current.device() ||
+            cached.dtype() != cache_dtype || cached.stride(3) != 1 ||
+            cached.stride(2) != width ||
+            cached.stride(1) != capacity * width ||
+            cached.stride(0) != heads * capacity * width) {
+            throw std::invalid_argument(
+                "active cached and current K/V layouts are incompatible");
+        }
+        cached = Tensor::from_storage(
+            cached.storage(),
+            {cache_batches, heads,
+             std::max(cached.shape()[2], target_prefix), width},
+            cached.strides(), cached.storage_offset(), cached.dtype());
+    }
+    return packed;
+}
+
 void prepare_cached_prefix(Tensor& cached, const Tensor& current,
                            std::int64_t capacity, DType cache_dtype) {
     if (current.dtype() != DType::Float32 || current.ndim() != 4 ||
@@ -529,6 +582,108 @@ public:
             {batch, 1, config_.dimension});
     }
 
+    Tensor forward_cached_positions(
+        const Tensor& input, inference::KVCache::LayerState& cache,
+        const Tensor& positions, const Tensor& cache_rows,
+        const std::vector<std::int64_t>& host_positions,
+        std::int64_t cache_batches, std::int64_t cache_capacity,
+        DType cache_dtype) {
+        if (input.shape().size() != 3 || input.shape()[0] <= 0 ||
+            input.shape()[1] != 1 ||
+            positions.shape() != Shape({input.shape()[0]}) ||
+            cache_rows.shape() != positions.shape()) {
+            throw std::invalid_argument(
+                "positioned cached attention expects active Bx1 rows");
+        }
+        const auto batch = input.shape()[0];
+        const auto flat = input.reshape({batch, config_.dimension});
+        const auto fuse_query_bias = config_.rope_layout == RopeLayout::SplitHalf &&
+                                     query_.has_bias();
+        const auto fuse_key_bias = config_.rope_layout == RopeLayout::SplitHalf &&
+                                   key_.has_bias();
+        Tensor query_projection;
+        Tensor key_projection;
+        Tensor value_projection;
+        if (query_.weight_data().dtype() == DType::BFloat16) {
+            const auto projections = ops::bf16_qkv_projection(
+                flat, query_.weight_data(), key_.weight_data(),
+                value_.weight_data());
+            query_projection = fuse_query_bias
+                                   ? projections.first
+                                   : query_.has_bias()
+                                         ? ops::add_bias(projections.first,
+                                                         query_.bias().data())
+                                         : projections.first;
+            key_projection = fuse_key_bias
+                                 ? projections.second
+                                 : key_.has_bias()
+                                       ? ops::add_bias(projections.second,
+                                                       key_.bias().data())
+                                       : projections.second;
+            value_projection = value_.has_bias()
+                                   ? ops::add_bias(projections.third,
+                                                   value_.bias().data())
+                                   : projections.third;
+        } else {
+            query_projection = fuse_query_bias
+                                   ? query_.forward_tensor_without_bias(flat)
+                                   : query_.forward_tensor(flat);
+            key_projection = fuse_key_bias
+                                 ? key_.forward_tensor_without_bias(flat)
+                                 : key_.forward_tensor(flat);
+            value_projection = value_.forward_tensor(flat);
+        }
+        auto query = query_projection
+                         .reshape({batch, 1, config_.heads,
+                                   config_.head_dimension()})
+                         .transpose(1, 2);
+        auto key = key_projection
+                       .reshape({batch, 1, config_.kv_heads,
+                                 config_.head_dimension()})
+                       .transpose(1, 2);
+        auto value = value_projection
+                         .reshape({batch, 1, config_.kv_heads,
+                                   config_.head_dimension()})
+                         .transpose(1, 2);
+        if (config_.rope_layout == RopeLayout::SplitHalf) {
+            query = fuse_query_bias
+                        ? ops::rope_split_half_bias_positions(
+                              query, query_.bias().data(), positions,
+                              config_.rope_base)
+                        : ops::rope_split_half_positions(
+                              query, positions, config_.rope_base);
+            key = fuse_key_bias
+                      ? ops::rope_split_half_bias_positions(
+                            key, key_.bias().data(), positions,
+                            config_.rope_base)
+                      : ops::rope_split_half_positions(
+                            key, positions, config_.rope_base);
+        } else {
+            query = ops::rope_positions(query, positions, config_.rope_base);
+            key = ops::rope_positions(key, positions, config_.rope_base);
+        }
+        const auto packed_key = prepare_cached_active_sequence(
+            cache.key, key, cache_batches, host_positions, cache_capacity,
+            cache_dtype);
+        const auto packed_value = prepare_cached_active_sequence(
+            cache.value, value, cache_batches, host_positions, cache_capacity,
+            cache_dtype);
+        ops::kv_cache_store_pair_positions_(
+            cache.key, cache.value, packed_key, packed_value, positions,
+            cache_rows);
+        const auto repeats = config_.heads / config_.kv_heads;
+        auto context = ops::cached_gqa_attention_positions(
+                           query, cache.key, cache.value, positions, cache_rows,
+                           repeats,
+                           1.0F / std::sqrt(static_cast<float>(
+                                      config_.head_dimension())))
+                           .transpose(1, 2)
+                           .contiguous()
+                           .reshape({batch, config_.dimension});
+        return output_.forward_tensor(context).reshape(
+            {batch, 1, config_.dimension});
+    }
+
     void append_named(const std::string& prefix, NamedValues& values) {
         values.emplace_back(prefix + ".q_proj.weight", &query_.weight());
         if (query_.has_bias()) values.emplace_back(prefix + ".q_proj.bias", &query_.bias());
@@ -661,6 +816,20 @@ public:
                           DType cache_dtype) {
         auto attention = attention_.forward_cached(attention_norm_.forward_tensor(input), cache,
                                                    position, cache_capacity, cache_dtype);
+        auto residual_and_norm = ffn_norm_.add_forward_tensor(input, attention);
+        return ops::add(residual_and_norm.first,
+                        feed_forward_.forward_tensor(residual_and_norm.second));
+    }
+
+    Tensor forward_cached_positions(
+        const Tensor& input, inference::KVCache::LayerState& cache,
+        const Tensor& positions, const Tensor& cache_rows,
+        const std::vector<std::int64_t>& host_positions,
+        std::int64_t cache_batches, std::int64_t cache_capacity,
+        DType cache_dtype) {
+        auto attention = attention_.forward_cached_positions(
+            attention_norm_.forward_tensor(input), cache, positions, cache_rows,
+            host_positions, cache_batches, cache_capacity, cache_dtype);
         auto residual_and_norm = ffn_norm_.add_forward_tensor(input, attention);
         return ops::add(residual_and_norm.first,
                         feed_forward_.forward_tensor(residual_and_norm.second));
@@ -1140,79 +1309,70 @@ Tensor TransformerModel::forward_cached_active_rows(
         return forward_cached(token_ids, cache);
     }
 
-    const auto maximum_prefix = *std::max_element(
-        cache.row_positions().begin(), cache.row_positions().end());
-    const auto kv_heads = impl_->config.kv_heads;
-    const auto width = impl_->config.head_dimension();
     const auto model_device = device();
-    std::vector<DType> layer_dtypes;
-    layer_dtypes.reserve(cache.layer_count());
     for (std::size_t layer = 0; layer < cache.layer_count(); ++layer) {
-        auto& state = cache.mutable_layer(layer);
+        const auto& state = cache.layer(layer);
         if (state.key.defined() != state.value.defined()) {
             throw std::invalid_argument("active-row KV cache has an incomplete layer");
         }
-        const auto dtype = cache.layer_dtype(layer);
-        layer_dtypes.push_back(dtype);
-        ensure_batched_cache_tensor(
-            state.key, cache.batch_size(), kv_heads, maximum_prefix,
-            cache.max_sequence_length(), width, dtype, model_device);
-        ensure_batched_cache_tensor(
-            state.value, cache.batch_size(), kv_heads, maximum_prefix,
-            cache.max_sequence_length(), width, dtype, model_device);
-    }
-    const auto resize_shared_views = [&]() {
-        const auto prefix = *std::max_element(
-            cache.row_positions().begin(), cache.row_positions().end());
-        for (std::size_t layer = 0; layer < cache.layer_count(); ++layer) {
-            auto& state = cache.mutable_layer(layer);
-            ensure_batched_cache_tensor(
-                state.key, cache.batch_size(), kv_heads, prefix,
-                cache.max_sequence_length(), width, cache.layer_dtype(layer),
-                model_device);
-            ensure_batched_cache_tensor(
-                state.value, cache.batch_size(), kv_heads, prefix,
-                cache.max_sequence_length(), width, cache.layer_dtype(layer),
-                model_device);
+        if (!state.key.defined() && std::any_of(
+                active_rows.begin(), active_rows.end(), [&cache](std::int64_t row) {
+                    return cache.row_position(row) != 0;
+                })) {
+            throw std::invalid_argument(
+                "nonzero active rows require initialized KV storage");
         }
-    };
-
-    Tensor output({static_cast<std::int64_t>(active_rows.size()), 1,
-                   impl_->config.vocabulary_size},
-                  DType::Float32, model_device);
-    try {
-        for (std::size_t index = 0; index < active_rows.size(); ++index) {
-            const auto row = active_rows[index];
-            const auto position = cache.row_position(row);
-            inference::KVCache row_cache(
-                layer_dtypes, cache.max_sequence_length(), 1);
-            if (position > 0) row_cache.advance(position);
-            for (std::size_t layer = 0; layer < cache.layer_count(); ++layer) {
-                const auto& shared = cache.layer(layer);
-                auto& local = row_cache.mutable_layer(layer);
-                local.key = cache_row_view(shared.key, row, position);
-                local.value = cache_row_view(shared.value, row, position);
-            }
-            const auto row_token = token_ids
-                                       .slice(0, static_cast<std::int64_t>(index),
-                                              static_cast<std::int64_t>(index + 1))
-                                       .contiguous();
-            const auto row_logits = forward_cached(row_token, row_cache);
-            runtime::copy_bytes(
-                static_cast<float*>(output.data()) +
-                    static_cast<std::int64_t>(index) *
-                        impl_->config.vocabulary_size,
-                output.device(), row_logits.data(), row_logits.device(),
-                static_cast<std::size_t>(impl_->config.vocabulary_size) *
-                    sizeof(float));
-            cache.advance_row(row);
-        }
-    } catch (...) {
-        resize_shared_views();
-        throw;
     }
-    resize_shared_views();
-    return output;
+    std::vector<std::int32_t> position_values;
+    std::vector<std::int32_t> row_values;
+    std::vector<std::int64_t> host_positions;
+    position_values.reserve(active_rows.size());
+    row_values.reserve(active_rows.size());
+    host_positions.reserve(active_rows.size());
+    for (const auto row : active_rows) {
+        const auto position = cache.row_position(row);
+        if (position > std::numeric_limits<std::int32_t>::max() ||
+            row > std::numeric_limits<std::int32_t>::max()) {
+            throw std::out_of_range(
+                "active row or position exceeds the Int32 Kernel contract");
+        }
+        position_values.push_back(static_cast<std::int32_t>(position));
+        row_values.push_back(static_cast<std::int32_t>(row));
+        host_positions.push_back(position);
+    }
+    const auto model_tokens = token_ids.device() == model_device
+                                  ? token_ids
+                                  : token_ids.to(model_device);
+    auto positions = Tensor::from_int32_vector(
+        position_values, {static_cast<std::int64_t>(active_rows.size())});
+    auto rows = Tensor::from_int32_vector(
+        row_values, {static_cast<std::int64_t>(active_rows.size())});
+    if (model_device.is_hip()) {
+        positions = positions.to(model_device);
+        rows = rows.to(model_device);
+    }
+    auto hidden = ops::embedding(impl_->token_embedding.data(), model_tokens);
+    for (std::size_t layer = 0; layer < impl_->blocks.size(); ++layer) {
+        hidden = impl_->blocks[layer]->forward_cached_positions(
+            hidden, cache.mutable_layer(layer), positions, rows,
+            host_positions, cache.batch_size(), cache.max_sequence_length(),
+            cache.layer_dtype(layer));
+    }
+    hidden = impl_->final_norm.forward_tensor(hidden);
+    const auto flat = hidden.reshape(
+        {static_cast<std::int64_t>(active_rows.size()), impl_->config.dimension});
+    Tensor logits;
+    if (impl_->config.tie_embeddings) {
+        logits = ops::matmul_with_implementation(
+            flat, impl_->token_embedding.data(),
+            ops::MatmulImplementation::Auto, false, true);
+    } else {
+        logits = impl_->output_head->forward_tensor(flat);
+    }
+    for (const auto row : active_rows) cache.advance_row(row);
+    return logits.reshape(
+        {static_cast<std::int64_t>(active_rows.size()), 1,
+         impl_->config.vocabulary_size});
 }
 
 NamedValues TransformerModel::named_parameters() {

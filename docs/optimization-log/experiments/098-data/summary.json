@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "status": "keep",
+  "feature": "positions-aware parallel active-row cached decode",
+  "contracts": {
+    "interleaved_rope_matches_scalar_rows": true,
+    "split_half_rope_matches_scalar_rows": true,
+    "split_half_bias_rope_matches_scalar_rows": true,
+    "mapped_kv_store_fp32": true,
+    "mapped_kv_store_bf16": true,
+    "per_row_visible_attention_prefix": true,
+    "long_prefix_fallback_above_4096": true,
+    "full_model_rows_match_independent_b1": true,
+    "inactive_full_capacity_unchanged": true,
+    "hip_matches_cpu": true,
+    "hip_payload_d2h": 0,
+    "cache_bytes_changed": false,
+    "request_semantics_changed": false
+  },
+  "release_matrix": [
+    {"shape": "R2S2", "candidate_over_exp097": 1.263225, "continuous_over_reference": 1.21291},
+    {"shape": "R4S2", "candidate_over_exp097": 1.180341, "continuous_over_reference": 1.19565},
+    {"shape": "R8S2", "candidate_over_exp097": 0.854309, "continuous_over_reference": 0.89914, "classification": "single_run_negative_outlier"},
+    {"shape": "R4S4", "candidate_over_exp097": 1.459847, "continuous_over_reference": 1.57419},
+    {"shape": "R8S4", "candidate_over_exp097": 1.555184, "continuous_over_reference": 1.61718}
+  ],
+  "alternating_pairs": [
+    {"shape": "R8S2", "baseline_median_tps": 2141.39, "candidate_median_tps": 2773.93, "candidate_over_baseline": 1.29539, "baseline_continuous_over_reference": 0.953, "candidate_continuous_over_reference": 1.151, "all_pairs_candidate_faster": true},
+    {"shape": "R8S4", "baseline_median_tps": 2352.76, "candidate_median_tps": 3929.77, "candidate_over_baseline": 1.67028, "baseline_continuous_over_reference": 0.990, "candidate_continuous_over_reference": 1.636, "all_pairs_candidate_faster": true},
+    {"shape": "R4S4", "baseline_median_tps": 2343.20, "candidate_median_tps": 3772.16, "candidate_over_baseline": 1.60982, "baseline_continuous_over_reference": 0.980, "candidate_continuous_over_reference": 1.586, "all_pairs_candidate_faster": true}
+  ],
+  "mechanism": {
+    "positions_aware_calls_equal_compacted_calls": true,
+    "dummy_rows": 0,
+    "inactive_skipped_unchanged": true,
+    "uniform_path_positions_aware_calls": 0
+  }
+}

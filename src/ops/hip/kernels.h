@@ -97,6 +97,18 @@ void launch_rope_split_half_bias(const float* input, const float* bias, float* o
                                  std::int64_t sequence_size, std::int64_t head_width,
                                  std::int64_t position_offset, float base,
                                  void* stream = nullptr);
+void launch_rope_positions(const float* input, const std::int32_t* positions,
+                           float* output, std::int64_t batches,
+                           std::int64_t heads, std::int64_t head_width,
+                           float base, void* stream = nullptr);
+void launch_rope_split_half_positions(
+    const float* input, const std::int32_t* positions, float* output,
+    std::int64_t batches, std::int64_t heads, std::int64_t head_width,
+    float base, void* stream = nullptr);
+void launch_rope_split_half_bias_positions(
+    const float* input, const float* bias, const std::int32_t* positions,
+    float* output, std::int64_t batches, std::int64_t heads,
+    std::int64_t head_width, float base, void* stream = nullptr);
 void launch_cross_entropy(const float* logits, const std::int32_t* targets, float* output,
                           float* row_data, std::int64_t rows, std::int64_t classes,
                           void* stream = nullptr);
@@ -189,6 +201,14 @@ void launch_kv_cache_store_pair(const float* current_key, const float* current_v
                                 std::int64_t capacity,
                                 std::int64_t width, std::int64_t position,
                                 void* stream = nullptr);
+void launch_kv_cache_store_pair_positions(
+    const float* current_key, const float* current_value,
+    const std::int32_t* positions, const std::int32_t* cache_rows,
+    void* key_cache, void* value_cache, DType cache_dtype,
+    std::int64_t active_batches, std::int64_t cache_batches,
+    std::int64_t heads, std::int64_t capacity,
+    std::int64_t logical_prefix, std::int64_t width,
+    void* stream = nullptr);
 void launch_cached_attention_scores(
     const float* query, const void* key_cache, DType cache_dtype, float* scores,
     std::int64_t batches, std::int64_t heads, std::int64_t kv_heads,
@@ -208,6 +228,30 @@ void launch_cached_attention_fused(
     std::int64_t sequence, std::int64_t cache_batch_stride,
     std::int64_t cache_head_stride, std::int64_t width,
     std::int64_t repeats, float scale, void* stream = nullptr);
+void launch_cached_attention_fused_positions(
+    const float* query, const void* key_cache, const void* value_cache,
+    const std::int32_t* positions, const std::int32_t* cache_rows,
+    DType cache_dtype, float* output, std::int64_t active_batches,
+    std::int64_t cache_batches, std::int64_t heads,
+    std::int64_t logical_prefix, std::int64_t cache_batch_stride,
+    std::int64_t cache_head_stride, std::int64_t width,
+    std::int64_t repeats, float scale, void* stream = nullptr);
+void launch_cached_attention_scores_positions(
+    const float* query, const void* key_cache, const std::int32_t* positions,
+    const std::int32_t* cache_rows, DType cache_dtype, float* scores,
+    std::int64_t active_batches, std::int64_t cache_batches,
+    std::int64_t heads, std::int64_t logical_prefix,
+    std::int64_t cache_batch_stride, std::int64_t cache_head_stride,
+    std::int64_t width, std::int64_t repeats, float scale,
+    void* stream = nullptr);
+void launch_cached_attention_context_positions(
+    const float* probabilities, const void* value_cache,
+    const std::int32_t* positions, const std::int32_t* cache_rows,
+    DType cache_dtype, float* output, std::int64_t active_batches,
+    std::int64_t cache_batches, std::int64_t heads,
+    std::int64_t logical_prefix, std::int64_t cache_batch_stride,
+    std::int64_t cache_head_stride, std::int64_t width,
+    std::int64_t repeats, void* stream = nullptr);
 void launch_argmax(const float* input, std::int32_t* output,
                    std::int64_t elements, void* stream = nullptr);
 void launch_argmax_last_dim(const float* input, std::int32_t* output,

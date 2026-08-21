@@ -62,7 +62,9 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] batch and refill active request slots without changing reference request semantics;
 - [x] compact inactive rows instead of advancing and resetting dummy rows;
 - [ ] batch compatible row prefills instead of running one temporary B1 prefill per admission;
-- [ ] replace the divergent-row serial oracle with positions-aware parallel RoPE/store/Attention;
+- [x] replace active divergent-row serial execution with positions-aware parallel RoPE/store/Attention;
+- [ ] keep positions and row mappings device-resident across scheduler steps;
+- [ ] profile the new positions-aware path before choosing its next Kernel optimization;
 
 ## P2 — operator registry and profiler API
 

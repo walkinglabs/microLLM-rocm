@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="620" viewBox="0 0 1080 620" role="img" aria-labelledby="title desc">
+  <title id="title">Positions-aware parallel continuous decode</title>
+  <desc id="desc">Different cache positions feed one active batch. Alternating pairs show speedups for R8S2, R8S4 and R4S4.</desc>
+  <rect width="1080" height="620" fill="#0b1020"/>
+  <text x="40" y="44" fill="#f8fafc" font-family="sans-serif" font-size="24" font-weight="700">Experiment 098 · different pages, one active batch</text>
+  <text x="40" y="72" fill="#94a3b8" font-family="sans-serif" font-size="14">positions[A] + cache_rows[A] drive RoPE, KV store and visible Attention prefix</text>
+
+  <rect x="40" y="108" width="1000" height="220" rx="12" fill="#111827" stroke="#334155"/>
+  <rect x="70" y="158" width="200" height="58" rx="8" fill="#172554" stroke="#3b82f6"/>
+  <text x="170" y="184" text-anchor="middle" fill="#dbeafe" font-family="sans-serif" font-size="14">active hidden [A,1,D]</text><text x="170" y="204" text-anchor="middle" fill="#bfdbfe" font-family="sans-serif" font-size="12">one batched QKV / FFN</text>
+  <path d="M282 187 H376" stroke="#60a5fa" stroke-width="4" marker-end="url(#arrow)"/>
+  <rect x="390" y="132" width="260" height="110" rx="8" fill="#14532d" stroke="#22c55e"/>
+  <text x="520" y="162" text-anchor="middle" fill="#dcfce7" font-family="sans-serif" font-size="14">positions = [3,6,...]</text>
+  <text x="520" y="188" text-anchor="middle" fill="#bbf7d0" font-family="sans-serif" font-size="13">RoPE angle · KV write · visible prefix</text>
+  <text x="520" y="216" text-anchor="middle" fill="#bbf7d0" font-family="sans-serif" font-size="13">cache_rows = [0,1,...]</text>
+  <path d="M664 187 H758" stroke="#22c55e" stroke-width="4" marker-end="url(#arrow)"/>
+  <rect x="772" y="158" width="220" height="58" rx="8" fill="#713f12" stroke="#f59e0b"/>
+  <text x="882" y="184" text-anchor="middle" fill="#fef3c7" font-family="sans-serif" font-size="14">active logits [A,1,V]</text><text x="882" y="204" text-anchor="middle" fill="#fde68a" font-family="sans-serif" font-size="12">fixed slots unchanged</text>
+  <text x="70" y="286" fill="#94a3b8" font-family="sans-serif" font-size="13">Inactive capacity untouched · FP32/BF16 · split-half+bias · fused and >4096 fallback</text>
+
+  <rect x="40" y="356" width="1000" height="208" rx="12" fill="#111827" stroke="#334155"/>
+  <text x="64" y="390" fill="#e2e8f0" font-family="sans-serif" font-size="17" font-weight="700">Alternating Release candidate / Experiment 097</text>
+  <line x1="110" y1="520" x2="970" y2="520" stroke="#64748b"/>
+  <line x1="110" y1="484" x2="970" y2="484" stroke="#f59e0b" stroke-dasharray="8 8"/>
+  <text x="70" y="489" fill="#fbbf24" font-family="sans-serif" font-size="13">1×</text>
+  <rect x="200" y="449" width="140" height="71" fill="#22c55e"/><text x="270" y="439" text-anchor="middle" fill="#bbf7d0" font-family="sans-serif" font-size="15">1.295×</text>
+  <rect x="470" y="394" width="140" height="126" fill="#22c55e"/><text x="540" y="384" text-anchor="middle" fill="#bbf7d0" font-family="sans-serif" font-size="15">1.670×</text>
+  <rect x="740" y="405" width="140" height="115" fill="#22c55e"/><text x="810" y="395" text-anchor="middle" fill="#bbf7d0" font-family="sans-serif" font-size="15">1.610×</text>
+  <text x="270" y="546" text-anchor="middle" fill="#cbd5e1" font-family="sans-serif" font-size="13">R8/S2</text><text x="540" y="546" text-anchor="middle" fill="#cbd5e1" font-family="sans-serif" font-size="13">R8/S4</text><text x="810" y="546" text-anchor="middle" fill="#cbd5e1" font-family="sans-serif" font-size="13">R4/S4</text>
+  <text x="64" y="594" fill="#94a3b8" font-family="sans-serif" font-size="13">9/9 pairs faster · exact checksums · normalized continuous/reference reaches 1.151×–1.636×</text>
+  <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#60a5fa"/></marker></defs>
+</svg>

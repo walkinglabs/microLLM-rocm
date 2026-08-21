@@ -179,6 +179,7 @@ TEST(HipInferenceShapeMatrixTest, ActiveRowsSkipInactiveSlotAndMatchCpu) {
     if (runtime::hip_device_count() == 0) GTEST_SKIP() << "No visible HIP device";
     auto config = hip_shape_matrix_config();
     config.max_sequence_length = 8;
+    config.attention_bias = true;
     for (const auto dtype : {DType::Float32, DType::BFloat16}) {
         model::TransformerModel cpu(config, 181);
         model::TransformerModel hip(config, 181);

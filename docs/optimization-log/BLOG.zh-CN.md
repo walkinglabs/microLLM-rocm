@@ -2051,3 +2051,18 @@ position和Storage地址不变；full+uniform仍走原batch fast path。schedule
 因为未改的uniform控制也有进程波动，又冻结096 binary做三对交替A/B：R4/S4中位1.292×，R8/S2
 中位1.226×，而reference中位只漂移-0.10%/-0.72%。因此保留候选。剩余差距不再是空row，而是
 多个真实divergent row仍逐个B1、logits scatter和逐row prefill。
+
+## 115. Experiment 098：不同页数的真实请求终于一起算
+
+active batch现在共享Embedding、QKV、FFN和output head。`positions[A]`与`cache_rows[A]`只进入RoPE、
+KV pair store和cached Attention；每row有自己的角度、写入位置和可见prefix。FP32/BF16、Qwen
+split-half+bias与4097 fallback都有CPU/HIP门。
+
+![Positions-aware decode](assets/positions-aware-decode.svg)
+
+首轮Release四个shape提高18%–56%，R8/S2却下降14.6%。保留失败后冻结097做三shape交替A/B，
+R8/S2中位反而提高1.295×，R8/S4为1.670×，R4/S4为1.610×；9/9逐对candidate更快，normalized
+continuous/reference达到1.151×–1.636×。单轮R8/S2负面被反驳但没有从raw删除。
+
+剩余热点已改变：position/row metadata每step仍由host创建并H2D，prefill仍逐row，固定KV容量利用率
+不变。下一次必须profile新时间线，不能继续沿用旧的“cached Attention必然最大”结论。

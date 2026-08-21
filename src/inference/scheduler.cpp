@@ -807,6 +807,7 @@ void ContinuousBatchScheduler::step() {
                     active_rows[index]);
             }
             ++impl_->metrics.compacted_batch_decode_calls;
+            ++impl_->metrics.positions_aware_batch_decode_calls;
             if (!active_positions_uniform) {
                 ++impl_->metrics.divergent_batch_decode_calls;
             }

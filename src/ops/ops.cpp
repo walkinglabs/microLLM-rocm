@@ -940,6 +940,181 @@ Tensor rope_split_half_bias(const Tensor& input, const Tensor& bias,
     return from_values(std::move(output), input.shape());
 }
 
+Tensor rope_positions(const Tensor& input, const Tensor& positions, float base,
+                      [[maybe_unused]] const OpContext& context) {
+    require_float(input, "input");
+    require_same_device(input, positions);
+    if (positions.dtype() != DType::Int32 || input.ndim() != 4 ||
+        input.shape()[0] <= 0 || input.shape()[2] != 1 ||
+        input.shape()[3] % 2 != 0 || positions.shape() != Shape({input.shape()[0]}) ||
+        base <= 0.0F) {
+        throw std::invalid_argument(
+            "positioned rope requires FP32 [B,H,1,even-D] and Int32 [B]");
+    }
+    require_contiguous(input, "input");
+    require_contiguous(positions, "positions");
+    const auto batches = input.shape()[0];
+    const auto heads = input.shape()[1];
+    const auto width = input.shape()[3];
+    if (input.device().is_hip()) {
+        Tensor output(input.shape(), DType::Float32, input.device());
+#if MICROLLM_HAS_HIP
+        hip::launch_rope_positions(
+            static_cast<const float*>(input.data()),
+            static_cast<const std::int32_t*>(positions.data()),
+            static_cast<float*>(output.data()), batches, heads, width, base,
+            context.native_stream(input.device()));
+        return output;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    const auto values = input.to_vector();
+    const auto offsets = positions.to_int32_vector();
+    auto output = values;
+    for (std::int64_t batch = 0; batch < batches; ++batch) {
+        const auto position = offsets[static_cast<std::size_t>(batch)];
+        if (position < 0) throw std::out_of_range("rope position cannot be negative");
+        for (std::int64_t head = 0; head < heads; ++head) {
+            const auto row = (batch * heads + head) * width;
+            for (std::int64_t pair = 0; pair < width / 2; ++pair) {
+                const auto angle = static_cast<float>(position) *
+                                   std::pow(base, -2.0F * static_cast<float>(pair) /
+                                                      static_cast<float>(width));
+                const auto cosine = std::cos(angle);
+                const auto sine = std::sin(angle);
+                const auto first = static_cast<std::size_t>(row + pair * 2);
+                const auto second = first + 1;
+                output[first] = values[first] * cosine - values[second] * sine;
+                output[second] = values[first] * sine + values[second] * cosine;
+            }
+        }
+    }
+    return Tensor::from_vector(output, input.shape());
+}
+
+Tensor rope_split_half_positions(const Tensor& input, const Tensor& positions,
+                                 float base,
+                                 [[maybe_unused]] const OpContext& context) {
+    require_float(input, "input");
+    require_same_device(input, positions);
+    if (positions.dtype() != DType::Int32 || input.ndim() != 4 ||
+        input.shape()[0] <= 0 || input.shape()[2] != 1 ||
+        input.shape()[3] % 2 != 0 || positions.shape() != Shape({input.shape()[0]}) ||
+        base <= 0.0F) {
+        throw std::invalid_argument(
+            "positioned split-half rope requires FP32 [B,H,1,even-D] and Int32 [B]");
+    }
+    require_contiguous(input, "input");
+    require_contiguous(positions, "positions");
+    const auto batches = input.shape()[0];
+    const auto heads = input.shape()[1];
+    const auto width = input.shape()[3];
+    if (input.device().is_hip()) {
+        Tensor output(input.shape(), DType::Float32, input.device());
+#if MICROLLM_HAS_HIP
+        hip::launch_rope_split_half_positions(
+            static_cast<const float*>(input.data()),
+            static_cast<const std::int32_t*>(positions.data()),
+            static_cast<float*>(output.data()), batches, heads, width, base,
+            context.native_stream(input.device()));
+        return output;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    const auto values = input.to_vector();
+    const auto offsets = positions.to_int32_vector();
+    auto output = values;
+    const auto half = width / 2;
+    for (std::int64_t batch = 0; batch < batches; ++batch) {
+        const auto position = offsets[static_cast<std::size_t>(batch)];
+        if (position < 0) throw std::out_of_range("rope position cannot be negative");
+        for (std::int64_t head = 0; head < heads; ++head) {
+            const auto row = (batch * heads + head) * width;
+            for (std::int64_t pair = 0; pair < half; ++pair) {
+                const auto angle = static_cast<float>(position) *
+                                   std::pow(base, -2.0F * static_cast<float>(pair) /
+                                                      static_cast<float>(width));
+                const auto cosine = std::cos(angle);
+                const auto sine = std::sin(angle);
+                const auto first = static_cast<std::size_t>(row + pair);
+                const auto second = static_cast<std::size_t>(row + pair + half);
+                output[first] = values[first] * cosine - values[second] * sine;
+                output[second] = values[first] * sine + values[second] * cosine;
+            }
+        }
+    }
+    return Tensor::from_vector(output, input.shape());
+}
+
+Tensor rope_split_half_bias_positions(
+    const Tensor& input, const Tensor& bias, const Tensor& positions,
+    float base, [[maybe_unused]] const OpContext& context) {
+    require_float(input, "input");
+    require_float(bias, "bias");
+    require_same_device(input, bias);
+    require_same_device(input, positions);
+    if (positions.dtype() != DType::Int32 || input.ndim() != 4 ||
+        input.shape()[0] <= 0 || input.shape()[2] != 1 ||
+        input.shape()[3] % 2 != 0 || bias.ndim() != 1 ||
+        bias.shape()[0] != input.shape()[1] * input.shape()[3] ||
+        positions.shape() != Shape({input.shape()[0]}) || base <= 0.0F) {
+        throw std::invalid_argument(
+            "positioned split-half rope+bias requires input [B,H,1,D], bias [H*D], positions [B]");
+    }
+    require_contiguous(input, "input");
+    require_contiguous(bias, "bias");
+    require_contiguous(positions, "positions");
+    const auto batches = input.shape()[0];
+    const auto heads = input.shape()[1];
+    const auto width = input.shape()[3];
+    if (input.device().is_hip()) {
+        Tensor output(input.shape(), DType::Float32, input.device());
+#if MICROLLM_HAS_HIP
+        hip::launch_rope_split_half_bias_positions(
+            static_cast<const float*>(input.data()),
+            static_cast<const float*>(bias.data()),
+            static_cast<const std::int32_t*>(positions.data()),
+            static_cast<float*>(output.data()), batches, heads, width, base,
+            context.native_stream(input.device()));
+        return output;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    const auto values = input.to_vector();
+    const auto bias_values = bias.to_vector();
+    const auto offsets = positions.to_int32_vector();
+    auto output = values;
+    const auto half = width / 2;
+    for (std::int64_t batch = 0; batch < batches; ++batch) {
+        const auto position = offsets[static_cast<std::size_t>(batch)];
+        if (position < 0) throw std::out_of_range("rope position cannot be negative");
+        for (std::int64_t head = 0; head < heads; ++head) {
+            const auto row = (batch * heads + head) * width;
+            const auto bias_row = head * width;
+            for (std::int64_t pair = 0; pair < half; ++pair) {
+                const auto angle = static_cast<float>(position) *
+                                   std::pow(base, -2.0F * static_cast<float>(pair) /
+                                                      static_cast<float>(width));
+                const auto cosine = std::cos(angle);
+                const auto sine = std::sin(angle);
+                const auto first = static_cast<std::size_t>(row + pair);
+                const auto second = static_cast<std::size_t>(row + pair + half);
+                const auto first_value =
+                    values[first] + bias_values[static_cast<std::size_t>(bias_row + pair)];
+                const auto second_value =
+                    values[second] +
+                    bias_values[static_cast<std::size_t>(bias_row + pair + half)];
+                output[first] = first_value * cosine - second_value * sine;
+                output[second] = first_value * sine + second_value * cosine;
+            }
+        }
+    }
+    return Tensor::from_vector(output, input.shape());
+}
+
 Tensor cross_entropy(const Tensor& logits, const Tensor& targets,
                      [[maybe_unused]] const OpContext& context) {
     require_forward_float(logits, "logits");
@@ -1290,6 +1465,95 @@ void kv_cache_store_pair_(Tensor& key_cache, Tensor& value_cache,
 #endif
 }
 
+void kv_cache_store_pair_positions_(
+    Tensor& key_cache, Tensor& value_cache, const Tensor& current_key,
+    const Tensor& current_value, const Tensor& positions,
+    const Tensor& cache_rows, [[maybe_unused]] const OpContext& context) {
+    require_same_shape(key_cache, value_cache);
+    require_same_dtype(key_cache, value_cache);
+    require_same_shape(current_key, current_value);
+    require_same_dtype(current_key, current_value);
+    require_same_device(key_cache, value_cache);
+    require_same_device(current_key, current_value);
+    require_same_device(key_cache, current_key);
+    require_same_device(key_cache, positions);
+    require_same_device(key_cache, cache_rows);
+    const auto active = current_key.shape().empty() ? 0 : current_key.shape()[0];
+    if ((key_cache.dtype() != DType::Float32 &&
+         key_cache.dtype() != DType::BFloat16) ||
+        current_key.dtype() != DType::Float32 || key_cache.ndim() != 4 ||
+        current_key.ndim() != 4 || key_cache.shape()[0] <= 0 || active <= 0 ||
+        current_key.shape()[2] != 1 ||
+        key_cache.shape()[1] != current_key.shape()[1] ||
+        key_cache.shape()[3] != current_key.shape()[3] ||
+        positions.dtype() != DType::Int32 || cache_rows.dtype() != DType::Int32 ||
+        positions.shape() != Shape({active}) ||
+        cache_rows.shape() != Shape({active}) ||
+        key_cache.stride(3) != 1 ||
+        key_cache.stride(2) != key_cache.shape()[3] ||
+        key_cache.strides() != value_cache.strides()) {
+        throw std::invalid_argument("positioned paired KV store contract is invalid");
+    }
+    require_contiguous(current_key, "current_key");
+    require_contiguous(current_value, "current_value");
+    require_contiguous(positions, "positions");
+    require_contiguous(cache_rows, "cache_rows");
+    const auto cache_batches = key_cache.shape()[0];
+    const auto heads = key_cache.shape()[1];
+    const auto logical_prefix = key_cache.shape()[2];
+    const auto width = key_cache.shape()[3];
+    const auto capacity = key_cache.stride(1) / width;
+    if (logical_prefix <= 0 || capacity < logical_prefix) {
+        throw std::invalid_argument("positioned paired KV cache capacity is invalid");
+    }
+    if (key_cache.device().is_hip()) {
+#if MICROLLM_HAS_HIP
+        hip::launch_kv_cache_store_pair_positions(
+            static_cast<const float*>(current_key.data()),
+            static_cast<const float*>(current_value.data()),
+            static_cast<const std::int32_t*>(positions.data()),
+            static_cast<const std::int32_t*>(cache_rows.data()),
+            key_cache.data(), value_cache.data(), key_cache.dtype(), active,
+            cache_batches, heads, capacity, logical_prefix, width,
+            context.native_stream(key_cache.device()));
+        return;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    const auto position_values = positions.to_int32_vector();
+    const auto row_values = cache_rows.to_int32_vector();
+    const auto converted_key = current_key.cast(key_cache.dtype());
+    const auto converted_value = current_value.cast(value_cache.dtype());
+    const auto element_bytes = dtype_size(key_cache.dtype());
+    const auto row_bytes = static_cast<std::size_t>(width) * element_bytes;
+    const auto* source_key = static_cast<const std::byte*>(converted_key.data());
+    const auto* source_value = static_cast<const std::byte*>(converted_value.data());
+    auto* destination_key = static_cast<std::byte*>(key_cache.data());
+    auto* destination_value = static_cast<std::byte*>(value_cache.data());
+    for (std::int64_t index = 0; index < active; ++index) {
+        const auto row = row_values[static_cast<std::size_t>(index)];
+        const auto position = position_values[static_cast<std::size_t>(index)];
+        if (row < 0 || row >= cache_batches || position < 0 ||
+            position >= logical_prefix) {
+            throw std::out_of_range("positioned KV store row or position is invalid");
+        }
+        for (std::int64_t head = 0; head < heads; ++head) {
+            const auto source_offset = static_cast<std::size_t>(
+                (index * heads + head) * width) * element_bytes;
+            const auto destination_offset = static_cast<std::size_t>(
+                row * key_cache.stride(0) + head * key_cache.stride(1) +
+                position * key_cache.stride(2)) * element_bytes;
+            runtime::copy_bytes(destination_key + destination_offset,
+                                key_cache.device(), source_key + source_offset,
+                                converted_key.device(), row_bytes);
+            runtime::copy_bytes(destination_value + destination_offset,
+                                value_cache.device(), source_value + source_offset,
+                                converted_value.device(), row_bytes);
+        }
+    }
+}
+
 Tensor cached_gqa_attention(const Tensor& query, const Tensor& key_cache,
                             const Tensor& value_cache, std::int64_t repeats,
                             float factor, [[maybe_unused]] const OpContext& context) {
@@ -1395,6 +1659,149 @@ Tensor cached_gqa_attention(const Tensor& query, const Tensor& key_cache,
         }
     }
     return Tensor::from_vector(output, {batches, heads, 1, width});
+}
+
+Tensor cached_gqa_attention_positions(
+    const Tensor& query, const Tensor& key_cache, const Tensor& value_cache,
+    const Tensor& positions, const Tensor& cache_rows, std::int64_t repeats,
+    float factor, [[maybe_unused]] const OpContext& context) {
+    require_float(query, "query");
+    require_forward_float(key_cache, "key_cache");
+    require_forward_float(value_cache, "value_cache");
+    require_same_device(query, key_cache);
+    require_same_device(query, value_cache);
+    require_same_device(query, positions);
+    require_same_device(query, cache_rows);
+    require_same_shape(key_cache, value_cache);
+    require_same_dtype(key_cache, value_cache);
+    const auto active = query.shape().empty() ? 0 : query.shape()[0];
+    if (query.dtype() != DType::Float32 ||
+        (key_cache.dtype() != DType::Float32 &&
+         key_cache.dtype() != DType::BFloat16) ||
+        query.ndim() != 4 || key_cache.ndim() != 4 || active <= 0 ||
+        query.shape()[2] != 1 || key_cache.shape()[0] <= 0 ||
+        query.shape()[3] != key_cache.shape()[3] ||
+        key_cache.shape()[2] <= 0 || repeats <= 0 ||
+        query.shape()[1] != key_cache.shape()[1] * repeats ||
+        positions.dtype() != DType::Int32 || cache_rows.dtype() != DType::Int32 ||
+        positions.shape() != Shape({active}) ||
+        cache_rows.shape() != Shape({active}) ||
+        !std::isfinite(factor) || factor <= 0.0F ||
+        key_cache.strides() != value_cache.strides()) {
+        throw std::invalid_argument(
+            "positioned cached GQA attention contract is invalid");
+    }
+    require_contiguous(query, "query");
+    require_contiguous(positions, "positions");
+    require_contiguous(cache_rows, "cache_rows");
+    const auto cache_batches = key_cache.shape()[0];
+    const auto heads = query.shape()[1];
+    const auto kv_heads = key_cache.shape()[1];
+    const auto sequence = key_cache.shape()[2];
+    const auto width = query.shape()[3];
+    const auto cache_head_stride = key_cache.stride(1);
+    [[maybe_unused]] const auto cache_batch_stride = key_cache.stride(0);
+    if (key_cache.stride(3) != 1 || key_cache.stride(2) != width ||
+        cache_head_stride < sequence * width) {
+        throw std::invalid_argument(
+            "positioned cached attention requires a dense sequence prefix");
+    }
+    if (query.device().is_hip()) {
+#if MICROLLM_HAS_HIP
+        constexpr std::int64_t kMaximumFusedSequence = 4096;
+        if (sequence <= kMaximumFusedSequence) {
+            Tensor output({active, heads, 1, width}, DType::Float32,
+                          query.device());
+            hip::launch_cached_attention_fused_positions(
+                static_cast<const float*>(query.data()), key_cache.data(),
+                value_cache.data(),
+                static_cast<const std::int32_t*>(positions.data()),
+                static_cast<const std::int32_t*>(cache_rows.data()),
+                key_cache.dtype(), static_cast<float*>(output.data()), active,
+                cache_batches, heads, sequence, cache_batch_stride,
+                cache_head_stride, width, repeats, factor,
+                context.native_stream(query.device()));
+            return output;
+        }
+        Tensor scores({active, heads, 1, sequence}, DType::Float32,
+                      query.device());
+        hip::launch_cached_attention_scores_positions(
+            static_cast<const float*>(query.data()), key_cache.data(),
+            static_cast<const std::int32_t*>(positions.data()),
+            static_cast<const std::int32_t*>(cache_rows.data()),
+            key_cache.dtype(), static_cast<float*>(scores.data()), active,
+            cache_batches, heads, sequence, cache_batch_stride,
+            cache_head_stride, width, repeats, factor,
+            context.native_stream(query.device()));
+        const auto probabilities = softmax(scores, -1, context);
+        Tensor output({active, heads, 1, width}, DType::Float32,
+                      query.device());
+        hip::launch_cached_attention_context_positions(
+            static_cast<const float*>(probabilities.data()), value_cache.data(),
+            static_cast<const std::int32_t*>(positions.data()),
+            static_cast<const std::int32_t*>(cache_rows.data()),
+            value_cache.dtype(), static_cast<float*>(output.data()), active,
+            cache_batches, heads, sequence, cache_batch_stride,
+            cache_head_stride, width, repeats,
+            context.native_stream(query.device()));
+        return output;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+
+    const auto query_values = query.to_vector();
+    const auto key_values = key_cache.to_vector();
+    const auto value_values = value_cache.to_vector();
+    const auto position_values = positions.to_int32_vector();
+    const auto row_values = cache_rows.to_int32_vector();
+    std::vector<float> output(
+        static_cast<std::size_t>(active * heads * width));
+    std::vector<float> scores(static_cast<std::size_t>(sequence));
+    for (std::int64_t batch = 0; batch < active; ++batch) {
+        const auto cache_batch = row_values[static_cast<std::size_t>(batch)];
+        const auto visible =
+            static_cast<std::int64_t>(position_values[static_cast<std::size_t>(batch)]) + 1;
+        if (cache_batch < 0 || cache_batch >= cache_batches || visible <= 0 ||
+            visible > sequence) {
+            throw std::out_of_range(
+                "positioned cached attention row or prefix is invalid");
+        }
+        for (std::int64_t head = 0; head < heads; ++head) {
+            const auto kv_head = head / repeats;
+            const auto query_base = (batch * heads + head) * width;
+            const auto kv_base =
+                (cache_batch * kv_heads + kv_head) * sequence * width;
+            float maximum = -std::numeric_limits<float>::infinity();
+            for (std::int64_t position = 0; position < visible; ++position) {
+                float dot = 0.0F;
+                for (std::int64_t column = 0; column < width; ++column) {
+                    dot += query_values[static_cast<std::size_t>(query_base + column)] *
+                           key_values[static_cast<std::size_t>(
+                               kv_base + position * width + column)];
+                }
+                scores[static_cast<std::size_t>(position)] = dot * factor;
+                maximum = std::max(maximum, dot * factor);
+            }
+            float denominator = 0.0F;
+            for (std::int64_t position = 0; position < visible; ++position) {
+                auto& score = scores[static_cast<std::size_t>(position)];
+                score = std::exp(score - maximum);
+                denominator += score;
+            }
+            for (std::int64_t column = 0; column < width; ++column) {
+                float total = 0.0F;
+                for (std::int64_t position = 0; position < visible; ++position) {
+                    total += scores[static_cast<std::size_t>(position)] /
+                             denominator *
+                             value_values[static_cast<std::size_t>(
+                                 kv_base + position * width + column)];
+                }
+                output[static_cast<std::size_t>(query_base + column)] = total;
+            }
+        }
+    }
+    return Tensor::from_vector(output, {active, heads, 1, width});
 }
 
 void argmax_out_(const Tensor& input, Tensor& output,

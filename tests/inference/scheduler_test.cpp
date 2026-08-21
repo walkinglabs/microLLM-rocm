@@ -373,6 +373,7 @@ TEST(ContinuousBatchSchedulerTest, RefillsFreedSlotAndMatchesIndependentRows) {
         EXPECT_EQ(metrics.uniform_batch_decode_calls, 1);
         EXPECT_EQ(metrics.divergent_batch_decode_calls, 1);
         EXPECT_EQ(metrics.compacted_batch_decode_calls, 2);
+        EXPECT_EQ(metrics.positions_aware_batch_decode_calls, 2);
         EXPECT_EQ(metrics.logical_decode_rows, 5);
         EXPECT_EQ(metrics.dummy_decode_rows, 0);
         EXPECT_EQ(metrics.inactive_rows_skipped, 1);

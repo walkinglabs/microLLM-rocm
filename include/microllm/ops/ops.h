@@ -141,6 +141,17 @@ void clear_matmul_implementation_registry();
                                           std::int64_t position_offset = 0,
                                           float base = 10000.0F,
                                           const OpContext& context = {});
+// Decode-only RoPE for [A,H,1,D]. positions[A] supplies one absolute
+// position per active request row.
+[[nodiscard]] Tensor rope_positions(const Tensor& input, const Tensor& positions,
+                                    float base = 10000.0F,
+                                    const OpContext& context = {});
+[[nodiscard]] Tensor rope_split_half_positions(
+    const Tensor& input, const Tensor& positions, float base = 10000.0F,
+    const OpContext& context = {});
+[[nodiscard]] Tensor rope_split_half_bias_positions(
+    const Tensor& input, const Tensor& bias, const Tensor& positions,
+    float base = 10000.0F, const OpContext& context = {});
 [[nodiscard]] Tensor cross_entropy(const Tensor& logits, const Tensor& targets,
                                    const OpContext& context = {});
 
@@ -212,10 +223,20 @@ void kv_cache_store_(Tensor& cache, const Tensor& current, std::int64_t position
 void kv_cache_store_pair_(Tensor& key_cache, Tensor& value_cache,
                           const Tensor& current_key, const Tensor& current_value,
                           std::int64_t position, const OpContext& context = {});
+// Stores A active rows into arbitrary cache rows/positions. positions[A] and
+// cache_rows[A] are contiguous Int32 tensors on the same device.
+void kv_cache_store_pair_positions_(
+    Tensor& key_cache, Tensor& value_cache, const Tensor& current_key,
+    const Tensor& current_value, const Tensor& positions,
+    const Tensor& cache_rows, const OpContext& context = {});
 [[nodiscard]] Tensor cached_gqa_attention(const Tensor& query, const Tensor& key_cache,
                                           const Tensor& value_cache,
                                           std::int64_t repeats, float scale,
                                           const OpContext& context = {});
+[[nodiscard]] Tensor cached_gqa_attention_positions(
+    const Tensor& query, const Tensor& key_cache, const Tensor& value_cache,
+    const Tensor& positions, const Tensor& cache_rows,
+    std::int64_t repeats, float scale, const OpContext& context = {});
 // Returns one int32 index with a smallest-index tie rule.  The result is -1 when
 // any input is non-finite, allowing asynchronous device execution to stay visible.
 [[nodiscard]] Tensor argmax(const Tensor& input, const OpContext& context = {});

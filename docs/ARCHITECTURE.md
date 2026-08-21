@@ -45,6 +45,9 @@ uses the serial B1 oracle; the scheduler API does not imply a parallel Kernel.
 `forward_cached_active_rows()` is the compact execution seam: it receives only survivor tokens and
 their fixed row IDs, advances those shared-Storage views, and leaves inactive full-capacity rows
 untouched. Full, uniform slots still use the original parallel batch path.
+The active path is positions-aware rather than row-serial: device `positions[A]` and
+`cache_rows[A]` tensors parameterize decode-only RoPE, K/V store and cached Attention while QKV,
+FFN and output projection remain ordinary active-batch operations.
 See [serving scheduler](dev/serving-scheduler.zh-CN.md).
 
 

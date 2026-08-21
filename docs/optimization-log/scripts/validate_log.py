@@ -3183,6 +3183,112 @@ def validate_active_row_compaction(errors: list[str]) -> tuple[int, int, int]:
     return len(candidates), pair_records, len(speedups)
 
 
+def validate_positions_aware_decode(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "098-data"
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    paths = sorted((data / "release-matrix").glob("*.json"))
+    records = [json.loads(path.read_text(encoding="utf-8")) for path in paths]
+    divergent = [(path, row) for path, row in zip(paths, records)
+                 if path.name.startswith("divergent-")]
+    uniform = [(path, row) for path, row in zip(paths, records)
+               if path.name.startswith("uniform-")]
+    baseline_directory = ROOT / "experiments" / "097-data" / "release-matrix"
+    speedups = []
+    for path, candidate in divergent:
+        baseline = json.loads(
+            (baseline_directory / path.name).read_text(encoding="utf-8"))
+        speedups.append(
+            float(candidate["continuous_tokens_per_second"]) /
+            float(baseline["continuous_tokens_per_second"]))
+    contracts = summary.get("contracts", {})
+    if summary.get("status") != "keep" or any(
+            contracts.get(name) is not True for name in (
+                "interleaved_rope_matches_scalar_rows",
+                "split_half_rope_matches_scalar_rows",
+                "split_half_bias_rope_matches_scalar_rows",
+                "mapped_kv_store_fp32", "mapped_kv_store_bf16",
+                "per_row_visible_attention_prefix",
+                "long_prefix_fallback_above_4096",
+                "full_model_rows_match_independent_b1",
+                "inactive_full_capacity_unchanged", "hip_matches_cpu")) or \
+            contracts.get("hip_payload_d2h") != 0 or \
+            contracts.get("cache_bytes_changed") is not False or \
+            contracts.get("request_semantics_changed") is not False:
+        errors.append("positions-aware decode semantic evidence changed")
+    if len(records) != 8 or len(divergent) != 5 or len(uniform) != 3 or any(
+            row.get("status") != "pass" or
+            row.get("continuous_outputs_equal") is not True
+            for row in records):
+        errors.append("positions-aware Release matrix changed")
+    if sum(speedup > 1.1 for speedup in speedups) != 4 or \
+            sum(speedup < 0.9 for speedup in speedups) != 1 or any(
+                int(row.get("continuous_positions_aware_batch_decode_calls", -1)) !=
+                int(row.get("continuous_compacted_batch_decode_calls", -2)) or
+                int(row.get("continuous_dummy_decode_rows", -1)) != 0
+                for _, row in divergent):
+        errors.append("positions-aware matrix mechanism or retained outlier changed")
+    if any(int(row.get("continuous_positions_aware_batch_decode_calls", -1)) != 0 or
+           row.get("static_outputs_equal") is not True for _, row in uniform):
+        errors.append("positions-aware uniform control changed")
+    pair_records = 0
+    paired_speedups = []
+    for shape in ("r8s2", "r8s4", "r4s4"):
+        pair_paths = sorted((data / "paired" / shape).glob("*.json"))
+        rows = [json.loads(path.read_text(encoding="utf-8")) for path in pair_paths]
+        baseline = [row for path, row in zip(pair_paths, rows)
+                    if "baseline" in path.name]
+        candidate = [row for path, row in zip(pair_paths, rows)
+                     if "candidate" in path.name]
+        pair_records += len(rows)
+        baseline_tps = sorted(float(row["continuous_tokens_per_second"])
+                              for row in baseline)[1]
+        candidate_tps = sorted(float(row["continuous_tokens_per_second"])
+                               for row in candidate)[1]
+        ratio = candidate_tps / baseline_tps
+        paired_speedups.append(ratio)
+        if len(rows) != 6 or len(baseline) != 3 or len(candidate) != 3 or \
+                not 1.25 < ratio < 1.75 or \
+                len({int(row["token_checksum"]) for row in rows}) != 1 or any(
+                    row.get("continuous_outputs_equal") is not True
+                    for row in rows) or any(
+                    float(candidate[index]["continuous_tokens_per_second"]) <=
+                    float(baseline[index]["continuous_tokens_per_second"])
+                    for index in range(3)):
+            errors.append(f"positions-aware alternating pair changed: {shape}")
+    ops_header = (REPOSITORY / "include" / "microllm" / "ops" /
+                  "ops.h").read_text(encoding="utf-8")
+    ops_source = (REPOSITORY / "src" / "ops" /
+                  "ops.cpp").read_text(encoding="utf-8")
+    kernels = (REPOSITORY / "src" / "ops" / "hip" /
+               "basic_kernels.hip").read_text(encoding="utf-8")
+    model_source = (REPOSITORY / "src" / "model" /
+                    "model.cpp").read_text(encoding="utf-8")
+    cpu_tests = (REPOSITORY / "tests" / "ops" /
+                 "ops_test.cpp").read_text(encoding="utf-8")
+    hip_tests = (REPOSITORY / "tests" / "ops" /
+                 "hip_ops_test.cpp").read_text(encoding="utf-8")
+    required = ("rope_positions", "rope_split_half_positions",
+                "kv_cache_store_pair_positions_",
+                "cached_gqa_attention_positions")
+    if any(name not in ops_header or name not in ops_source
+           for name in required) or \
+            "cached_attention_fused_positions_kernel" not in kernels or \
+            "forward_cached_positions" not in model_source or \
+            "PositionedRopeStoreAndAttentionMatchRowReferences" not in cpu_tests or \
+            "LongFallbackMasksEachActivePrefix" not in hip_tests:
+        errors.append("positions-aware source or executable gate is missing")
+    if gates.get("status") != "keep" or \
+            gates.get("full", {}).get("passed") != 311 or \
+            gates.get("cpu", {}).get("passed") != 216 or \
+            gates.get("hip", {}).get("passed") != 95 or \
+            gates.get("sanitizer", {}).get("passed") != 209 or \
+            gates.get("focused", {}).get("long_fallback_prefix") != 4097 or \
+            gates.get("focused", {}).get("alternating_processes") != 18:
+        errors.append("positions-aware final gates changed")
+    return len(records), pair_records, len(paired_speedups)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -3258,7 +3364,8 @@ def validate_assets(errors: list[str]) -> None:
                  "slot-row-prefill.svg",
                  "serving-inference-efficiency.svg",
                  "continuous-slot-scheduler.svg",
-                 "active-row-compaction.svg"):
+                 "active-row-compaction.svg",
+                 "positions-aware-decode.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -3392,6 +3499,8 @@ def main() -> int:
         validate_continuous_slot_scheduler(errors)
     active_matrix, active_pairs, active_speedups = \
         validate_active_row_compaction(errors)
+    positions_matrix, positions_pairs, positions_speedups = \
+        validate_positions_aware_decode(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -3491,6 +3600,8 @@ def main() -> int:
           f"{continuous_uniform} "
           f"active_compaction={active_matrix}/{active_pairs}/"
           f"{active_speedups} "
+          f"positions_aware={positions_matrix}/{positions_pairs}/"
+          f"{positions_speedups} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

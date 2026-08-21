@@ -29,11 +29,13 @@ component has a public interface under `include/microllm`, an implementation und
     [continuous slot-scheduler guide](continuous-slot-scheduler.zh-CN.md).
 15. For removing inactive dummy model rows, read the
     [active-row compaction guide](active-row-compaction.zh-CN.md).
-16. For FP32/BF16 cache policy and its numerical gates, read the
+16. For batching real rows with different cache positions, read the
+    [positions-aware decode guide](positions-aware-decode.zh-CN.md).
+17. For FP32/BF16 cache policy and its numerical gates, read the
     [KV-cache dtype guide](kv-cache-dtypes.zh-CN.md).
-17. For delayed multi-request serving semantics, read the
+18. For delayed multi-request serving semantics, read the
     [serving scheduler guide](serving-scheduler.zh-CN.md).
-18. For the measured optimization loop, read the
+19. For the measured optimization loop, read the
     [0→1 optimization log](../optimization-log/README.md).
 
 ## Engineering rules

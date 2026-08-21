@@ -502,6 +502,95 @@ __global__ void rope_split_half_bias_kernel(
     output[second] = first_value * sine + second_value * cosine;
 }
 
+__global__ void rope_positions_kernel(
+    const float* input, const std::int32_t* positions, float* output,
+    std::int64_t pairs, std::int64_t heads, std::int64_t head_width,
+    float base) {
+    const auto pair_index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x +
+                            threadIdx.x;
+    if (pair_index >= pairs) return;
+    const auto even = pair_index * 2;
+    const auto batch = even / (heads * head_width);
+    const auto pair = (even % head_width) / 2;
+    const auto position = positions[batch];
+    if (position < 0) {
+        output[even] = 0.0F;
+        output[even + 1] = 0.0F;
+        return;
+    }
+    const auto angle = static_cast<float>(position) *
+                       powf(base, -2.0F * static_cast<float>(pair) /
+                                      static_cast<float>(head_width));
+    float sine = 0.0F;
+    float cosine = 0.0F;
+    sincosf(angle, &sine, &cosine);
+    output[even] = input[even] * cosine - input[even + 1] * sine;
+    output[even + 1] = input[even] * sine + input[even + 1] * cosine;
+}
+
+__global__ void rope_split_half_positions_kernel(
+    const float* input, const std::int32_t* positions, float* output,
+    std::int64_t pairs, std::int64_t heads, std::int64_t head_width,
+    float base) {
+    const auto pair_index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x +
+                            threadIdx.x;
+    if (pair_index >= pairs) return;
+    const auto half = head_width / 2;
+    const auto head_instance = pair_index / half;
+    const auto pair = pair_index % half;
+    const auto batch = head_instance / heads;
+    const auto first = head_instance * head_width + pair;
+    const auto second = first + half;
+    const auto position = positions[batch];
+    if (position < 0) {
+        output[first] = 0.0F;
+        output[second] = 0.0F;
+        return;
+    }
+    const auto angle = static_cast<float>(position) *
+                       powf(base, -2.0F * static_cast<float>(pair) /
+                                      static_cast<float>(head_width));
+    float sine = 0.0F;
+    float cosine = 0.0F;
+    sincosf(angle, &sine, &cosine);
+    output[first] = input[first] * cosine - input[second] * sine;
+    output[second] = input[first] * sine + input[second] * cosine;
+}
+
+__global__ void rope_split_half_bias_positions_kernel(
+    const float* input, const float* bias, const std::int32_t* positions,
+    float* output, std::int64_t pairs, std::int64_t heads,
+    std::int64_t head_width, float base) {
+    const auto pair_index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x +
+                            threadIdx.x;
+    if (pair_index >= pairs) return;
+    const auto half = head_width / 2;
+    const auto head_instance = pair_index / half;
+    const auto pair = pair_index % half;
+    const auto batch = head_instance / heads;
+    const auto head = head_instance % heads;
+    const auto first = head_instance * head_width + pair;
+    const auto second = first + half;
+    const auto bias_first = head * head_width + pair;
+    const auto bias_second = bias_first + half;
+    const auto position = positions[batch];
+    if (position < 0) {
+        output[first] = 0.0F;
+        output[second] = 0.0F;
+        return;
+    }
+    const auto angle = static_cast<float>(position) *
+                       powf(base, -2.0F * static_cast<float>(pair) /
+                                      static_cast<float>(head_width));
+    float sine = 0.0F;
+    float cosine = 0.0F;
+    sincosf(angle, &sine, &cosine);
+    const auto first_value = input[first] + bias[bias_first];
+    const auto second_value = input[second] + bias[bias_second];
+    output[first] = first_value * cosine - second_value * sine;
+    output[second] = first_value * sine + second_value * cosine;
+}
+
 __device__ float block_reduce_max(float value, float* scratch) {
     const auto lane = static_cast<unsigned>(threadIdx.x);
     scratch[lane] = value;
@@ -869,6 +958,31 @@ __global__ void kv_cache_store_pair_kernel(
 }
 
 template <typename Cache>
+__global__ void kv_cache_store_pair_positions_kernel(
+    const float* current_key, const float* current_value,
+    const std::int32_t* positions, const std::int32_t* cache_rows,
+    Cache* key_cache, Cache* value_cache, std::int64_t active_batches,
+    std::int64_t cache_batches, std::int64_t heads,
+    std::int64_t capacity, std::int64_t logical_prefix,
+    std::int64_t width) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x +
+                       threadIdx.x;
+    if (index >= active_batches * heads * width) return;
+    const auto active_head = index / width;
+    const auto active = active_head / heads;
+    const auto head = active_head % heads;
+    const auto column = index % width;
+    const auto row = static_cast<std::int64_t>(cache_rows[active]);
+    const auto position = static_cast<std::int64_t>(positions[active]);
+    if (row < 0 || row >= cache_batches || position < 0 ||
+        position >= logical_prefix || position >= capacity) return;
+    const auto destination =
+        ((row * heads + head) * capacity + position) * width + column;
+    key_cache[destination] = Cache(current_key[index]);
+    value_cache[destination] = Cache(current_value[index]);
+}
+
+template <typename Cache>
 __global__ void cached_attention_scores_kernel(
     const float* query, const Cache* key_cache, float* scores,
     std::int64_t batches, std::int64_t heads, std::int64_t sequence,
@@ -966,6 +1080,136 @@ __global__ void cached_attention_fused_kernel(
         }
         output[(batch * heads + head) * width + column] = total;
     }
+}
+
+template <typename Cache>
+__global__ void cached_attention_fused_positions_kernel(
+    const float* query, const Cache* key_cache, const Cache* value_cache,
+    const std::int32_t* positions, const std::int32_t* cache_rows,
+    float* output, std::int64_t active_batches, std::int64_t cache_batches,
+    std::int64_t heads, std::int64_t logical_prefix,
+    std::int64_t cache_batch_stride, std::int64_t cache_head_stride,
+    std::int64_t width, std::int64_t repeats, float scale) {
+    const auto instance = static_cast<std::int64_t>(blockIdx.x);
+    const auto active = instance / heads;
+    const auto head = instance % heads;
+    if (active >= active_batches) return;
+    const auto row = static_cast<std::int64_t>(cache_rows[active]);
+    const auto visible = static_cast<std::int64_t>(positions[active]) + 1;
+    if (row < 0 || row >= cache_batches || visible <= 0 ||
+        visible > logical_prefix) {
+        for (std::int64_t column = threadIdx.x; column < width;
+             column += blockDim.x) {
+            output[(active * heads + head) * width + column] = 0.0F;
+        }
+        return;
+    }
+    const auto kv_head = head / repeats;
+    extern __shared__ float shared_scores[];
+    __shared__ float reduction[kBlockSize];
+    float local_maximum = -INFINITY;
+    for (std::int64_t position = threadIdx.x; position < visible;
+         position += blockDim.x) {
+        float dot = 0.0F;
+        const auto query_base = (active * heads + head) * width;
+        const auto cache_base = row * cache_batch_stride +
+                                kv_head * cache_head_stride + position * width;
+        for (std::int64_t column = 0; column < width; ++column) {
+            dot += query[query_base + column] *
+                   static_cast<float>(key_cache[cache_base + column]);
+        }
+        const auto score = dot * scale;
+        shared_scores[position] = score;
+        local_maximum = fmaxf(local_maximum, score);
+    }
+    const auto maximum = block_reduce_max(local_maximum, reduction);
+    float local_denominator = 0.0F;
+    for (std::int64_t position = threadIdx.x; position < visible;
+         position += blockDim.x) {
+        const auto probability = expf(shared_scores[position] - maximum);
+        shared_scores[position] = probability;
+        local_denominator += probability;
+    }
+    const auto denominator = block_reduce_sum(local_denominator, reduction);
+    for (std::int64_t column = threadIdx.x; column < width;
+         column += blockDim.x) {
+        float total = 0.0F;
+        for (std::int64_t position = 0; position < visible; ++position) {
+            total += shared_scores[position] / denominator *
+                     static_cast<float>(value_cache[
+                         row * cache_batch_stride + kv_head * cache_head_stride +
+                         position * width + column]);
+        }
+        output[(active * heads + head) * width + column] = total;
+    }
+}
+
+template <typename Cache>
+__global__ void cached_attention_scores_positions_kernel(
+    const float* query, const Cache* key_cache,
+    const std::int32_t* positions, const std::int32_t* cache_rows,
+    float* scores, std::int64_t active_batches, std::int64_t cache_batches,
+    std::int64_t heads, std::int64_t logical_prefix,
+    std::int64_t cache_batch_stride, std::int64_t cache_head_stride,
+    std::int64_t width, std::int64_t repeats, float scale) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x +
+                       threadIdx.x;
+    if (index >= active_batches * heads * logical_prefix) return;
+    const auto active_head = index / logical_prefix;
+    const auto active = active_head / heads;
+    const auto head = active_head % heads;
+    const auto position = index % logical_prefix;
+    const auto row = static_cast<std::int64_t>(cache_rows[active]);
+    const auto visible = static_cast<std::int64_t>(positions[active]) + 1;
+    if (row < 0 || row >= cache_batches || visible <= 0 ||
+        visible > logical_prefix || position >= visible) {
+        scores[index] = -INFINITY;
+        return;
+    }
+    const auto kv_head = head / repeats;
+    float dot = 0.0F;
+    const auto query_base = (active * heads + head) * width;
+    const auto cache_base = row * cache_batch_stride +
+                            kv_head * cache_head_stride + position * width;
+    for (std::int64_t column = 0; column < width; ++column) {
+        dot += query[query_base + column] *
+               static_cast<float>(key_cache[cache_base + column]);
+    }
+    scores[index] = dot * scale;
+}
+
+template <typename Cache>
+__global__ void cached_attention_context_positions_kernel(
+    const float* probabilities, const Cache* value_cache,
+    const std::int32_t* positions, const std::int32_t* cache_rows,
+    float* output, std::int64_t active_batches, std::int64_t cache_batches,
+    std::int64_t heads, std::int64_t logical_prefix,
+    std::int64_t cache_batch_stride, std::int64_t cache_head_stride,
+    std::int64_t width, std::int64_t repeats) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x +
+                       threadIdx.x;
+    if (index >= active_batches * heads * width) return;
+    const auto active_head = index / width;
+    const auto active = active_head / heads;
+    const auto head = active_head % heads;
+    const auto column = index % width;
+    const auto row = static_cast<std::int64_t>(cache_rows[active]);
+    const auto visible = static_cast<std::int64_t>(positions[active]) + 1;
+    if (row < 0 || row >= cache_batches || visible <= 0 ||
+        visible > logical_prefix) {
+        output[index] = 0.0F;
+        return;
+    }
+    const auto kv_head = head / repeats;
+    float total = 0.0F;
+    for (std::int64_t position = 0; position < visible; ++position) {
+        total += probabilities[(active * heads + head) * logical_prefix +
+                               position] *
+                 static_cast<float>(value_cache[
+                     row * cache_batch_stride + kv_head * cache_head_stride +
+                     position * width + column]);
+    }
+    output[index] = total;
 }
 
 __global__ void causal_gqa_attention_kernel(
@@ -2100,6 +2344,41 @@ void launch_rope_split_half_bias(const float* input, const float* bias, float* o
     check_launch("rope_split_half_bias_kernel");
 }
 
+void launch_rope_positions(const float* input, const std::int32_t* positions,
+                           float* output, std::int64_t batches,
+                           std::int64_t heads, std::int64_t head_width,
+                           float base, void* stream) {
+    const auto pairs = batches * heads * head_width / 2;
+    hipLaunchKernelGGL(rope_positions_kernel, dim3(grid_size(pairs)),
+                       dim3(kBlockSize), 0, as_stream(stream), input, positions,
+                       output, pairs, heads, head_width, base);
+    check_launch("rope_positions_kernel");
+}
+
+void launch_rope_split_half_positions(
+    const float* input, const std::int32_t* positions, float* output,
+    std::int64_t batches, std::int64_t heads, std::int64_t head_width,
+    float base, void* stream) {
+    const auto pairs = batches * heads * head_width / 2;
+    hipLaunchKernelGGL(rope_split_half_positions_kernel,
+                       dim3(grid_size(pairs)), dim3(kBlockSize), 0,
+                       as_stream(stream), input, positions, output, pairs,
+                       heads, head_width, base);
+    check_launch("rope_split_half_positions_kernel");
+}
+
+void launch_rope_split_half_bias_positions(
+    const float* input, const float* bias, const std::int32_t* positions,
+    float* output, std::int64_t batches, std::int64_t heads,
+    std::int64_t head_width, float base, void* stream) {
+    const auto pairs = batches * heads * head_width / 2;
+    hipLaunchKernelGGL(rope_split_half_bias_positions_kernel,
+                       dim3(grid_size(pairs)), dim3(kBlockSize), 0,
+                       as_stream(stream), input, bias, positions, output, pairs,
+                       heads, head_width, base);
+    check_launch("rope_split_half_bias_positions_kernel");
+}
+
 void launch_cross_entropy(const float* logits, const std::int32_t* targets, float* output,
                           float* row_data, std::int64_t rows,
                           std::int64_t classes, void* stream) {
@@ -2220,6 +2499,36 @@ void launch_kv_cache_store_pair(const float* current_key, const float* current_v
     check_launch("kv_cache_store_pair_kernel");
 }
 
+void launch_kv_cache_store_pair_positions(
+    const float* current_key, const float* current_value,
+    const std::int32_t* positions, const std::int32_t* cache_rows,
+    void* key_cache, void* value_cache, DType cache_dtype,
+    std::int64_t active_batches, std::int64_t cache_batches,
+    std::int64_t heads, std::int64_t capacity,
+    std::int64_t logical_prefix, std::int64_t width, void* stream) {
+    const auto elements = active_batches * heads * width;
+    if (cache_dtype == DType::Float32) {
+        hipLaunchKernelGGL(kv_cache_store_pair_positions_kernel<float>,
+                           dim3(grid_size(elements)), dim3(kBlockSize), 0,
+                           as_stream(stream), current_key, current_value,
+                           positions, cache_rows, static_cast<float*>(key_cache),
+                           static_cast<float*>(value_cache), active_batches,
+                           cache_batches, heads, capacity, logical_prefix, width);
+    } else if (cache_dtype == DType::BFloat16) {
+        hipLaunchKernelGGL(
+            kv_cache_store_pair_positions_kernel<hip_bfloat16>,
+            dim3(grid_size(elements)), dim3(kBlockSize), 0,
+            as_stream(stream), current_key, current_value, positions,
+            cache_rows, static_cast<hip_bfloat16*>(key_cache),
+            static_cast<hip_bfloat16*>(value_cache), active_batches,
+            cache_batches, heads, capacity, logical_prefix, width);
+    } else {
+        throw std::invalid_argument(
+            "positioned paired KV store supports FP32 and BF16");
+    }
+    check_launch("kv_cache_store_pair_positions_kernel");
+}
+
 void launch_cached_attention_scores(
     const float* query, const void* key_cache, DType cache_dtype, float* scores,
     std::int64_t batches, std::int64_t heads,
@@ -2301,6 +2610,106 @@ void launch_cached_attention_fused(
         throw std::invalid_argument("cached attention supports FP32 and BF16 cache");
     }
     check_launch("cached_attention_fused_kernel");
+}
+
+void launch_cached_attention_fused_positions(
+    const float* query, const void* key_cache, const void* value_cache,
+    const std::int32_t* positions, const std::int32_t* cache_rows,
+    DType cache_dtype, float* output, std::int64_t active_batches,
+    std::int64_t cache_batches, std::int64_t heads,
+    std::int64_t logical_prefix, std::int64_t cache_batch_stride,
+    std::int64_t cache_head_stride, std::int64_t width,
+    std::int64_t repeats, float scale, void* stream) {
+    const auto grid = dim3(static_cast<unsigned>(active_batches * heads));
+    const auto shared_bytes =
+        static_cast<std::size_t>(logical_prefix) * sizeof(float);
+    if (cache_dtype == DType::Float32) {
+        hipLaunchKernelGGL(
+            cached_attention_fused_positions_kernel<float>, grid,
+            dim3(kBlockSize), shared_bytes, as_stream(stream), query,
+            static_cast<const float*>(key_cache),
+            static_cast<const float*>(value_cache), positions, cache_rows,
+            output, active_batches, cache_batches, heads, logical_prefix,
+            cache_batch_stride, cache_head_stride, width, repeats, scale);
+    } else if (cache_dtype == DType::BFloat16) {
+        hipLaunchKernelGGL(
+            cached_attention_fused_positions_kernel<hip_bfloat16>, grid,
+            dim3(kBlockSize), shared_bytes, as_stream(stream), query,
+            static_cast<const hip_bfloat16*>(key_cache),
+            static_cast<const hip_bfloat16*>(value_cache), positions,
+            cache_rows, output, active_batches, cache_batches, heads,
+            logical_prefix, cache_batch_stride, cache_head_stride, width,
+            repeats, scale);
+    } else {
+        throw std::invalid_argument(
+            "positioned cached attention supports FP32 and BF16 cache");
+    }
+    check_launch("cached_attention_fused_positions_kernel");
+}
+
+void launch_cached_attention_scores_positions(
+    const float* query, const void* key_cache, const std::int32_t* positions,
+    const std::int32_t* cache_rows, DType cache_dtype, float* scores,
+    std::int64_t active_batches, std::int64_t cache_batches,
+    std::int64_t heads, std::int64_t logical_prefix,
+    std::int64_t cache_batch_stride, std::int64_t cache_head_stride,
+    std::int64_t width, std::int64_t repeats, float scale, void* stream) {
+    const auto elements = active_batches * heads * logical_prefix;
+    if (cache_dtype == DType::Float32) {
+        hipLaunchKernelGGL(
+            cached_attention_scores_positions_kernel<float>,
+            dim3(grid_size(elements)), dim3(kBlockSize), 0,
+            as_stream(stream), query, static_cast<const float*>(key_cache),
+            positions, cache_rows, scores, active_batches, cache_batches,
+            heads, logical_prefix, cache_batch_stride, cache_head_stride,
+            width, repeats, scale);
+    } else if (cache_dtype == DType::BFloat16) {
+        hipLaunchKernelGGL(
+            cached_attention_scores_positions_kernel<hip_bfloat16>,
+            dim3(grid_size(elements)), dim3(kBlockSize), 0,
+            as_stream(stream), query,
+            static_cast<const hip_bfloat16*>(key_cache), positions,
+            cache_rows, scores, active_batches, cache_batches, heads,
+            logical_prefix, cache_batch_stride, cache_head_stride, width,
+            repeats, scale);
+    } else {
+        throw std::invalid_argument(
+            "positioned cached attention supports FP32 and BF16 cache");
+    }
+    check_launch("cached_attention_scores_positions_kernel");
+}
+
+void launch_cached_attention_context_positions(
+    const float* probabilities, const void* value_cache,
+    const std::int32_t* positions, const std::int32_t* cache_rows,
+    DType cache_dtype, float* output, std::int64_t active_batches,
+    std::int64_t cache_batches, std::int64_t heads,
+    std::int64_t logical_prefix, std::int64_t cache_batch_stride,
+    std::int64_t cache_head_stride, std::int64_t width,
+    std::int64_t repeats, void* stream) {
+    const auto elements = active_batches * heads * width;
+    if (cache_dtype == DType::Float32) {
+        hipLaunchKernelGGL(
+            cached_attention_context_positions_kernel<float>,
+            dim3(grid_size(elements)), dim3(kBlockSize), 0,
+            as_stream(stream), probabilities,
+            static_cast<const float*>(value_cache), positions, cache_rows,
+            output, active_batches, cache_batches, heads, logical_prefix,
+            cache_batch_stride, cache_head_stride, width, repeats);
+    } else if (cache_dtype == DType::BFloat16) {
+        hipLaunchKernelGGL(
+            cached_attention_context_positions_kernel<hip_bfloat16>,
+            dim3(grid_size(elements)), dim3(kBlockSize), 0,
+            as_stream(stream), probabilities,
+            static_cast<const hip_bfloat16*>(value_cache), positions,
+            cache_rows, output, active_batches, cache_batches, heads,
+            logical_prefix, cache_batch_stride, cache_head_stride, width,
+            repeats);
+    } else {
+        throw std::invalid_argument(
+            "positioned cached attention supports FP32 and BF16 cache");
+    }
+    check_launch("cached_attention_context_positions_kernel");
 }
 
 void launch_argmax(const float* input, std::int32_t* output,
