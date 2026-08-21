@@ -59,6 +59,8 @@ def options() -> argparse.Namespace:
                         default=case_list("prefill,cached,uncached"))
     parser.add_argument("--micro-batch-argmax-mode", choices=("host", "device"),
                         default="device")
+    parser.add_argument("--micro-kv-cache-dtype", choices=("fp32", "bf16"),
+                        default="fp32")
     parser.add_argument("--decode-tokens", type=int, default=16)
     parser.add_argument("--warmup", type=int, default=2)
     parser.add_argument("--steps", type=int, default=5)
@@ -181,6 +183,7 @@ def micro_command(args: argparse.Namespace, model: dict, context: int, batch: in
         "--top-k", "1", "--batch", str(batch), "--use-cache", str(cache == "cached").lower(),
         "--cache-prefill-mode", "full",
         "--batch-argmax-mode", args.micro_batch_argmax_mode,
+        "--kv-cache-dtype", args.micro_kv_cache_dtype,
         "--new-tokens", str(args.decode_tokens if workload == "decode" else 0),
         "--warmup", str(args.warmup), "--steps", str(args.steps),
         "--prefill-warmup", str(args.warmup), "--prefill-steps", str(args.steps),
@@ -204,6 +207,8 @@ def normalize_micro(raw: dict, model: dict, context: int, batch: int,
         "framework": "microllm", "model": model["name"], "revision": model["revision"],
         "status": "pass", "context": context, "batch": batch, "workload": workload,
         "cache_mode": cache, "precision": "mixed_bf16_weights_fp32_activations",
+        "kv_cache_dtype": raw.get(
+            "kv_cache_dtype", getattr(args, "micro_kv_cache_dtype", "fp32")),
         "precision_policy": raw.get("inference_weight_policy"),
         "warmup": args.warmup,
         "steps": args.steps, "decode_tokens": args.decode_tokens,
@@ -410,7 +415,8 @@ def pytorch_worker(args: argparse.Namespace, model: dict) -> dict:
 
 def summarize(records: list[dict], models: list[dict], contexts: list[int],
               batches: list[int], runs: int,
-              cases: list[str] | tuple[str, ...] = ("prefill", "cached", "uncached")) -> dict:
+              cases: list[str] | tuple[str, ...] = ("prefill", "cached", "uncached"),
+              micro_kv_cache_dtype: str = "fp32") -> dict:
     rows = []
     case_pairs = {
         "prefill": ("prefill", "uncached"),
@@ -502,7 +508,8 @@ def summarize(records: list[dict], models: list[dict], contexts: list[int],
     return {
         "schema_version": 1, "track": "official_inference_shape_matrix",
         "precision_boundary": {
-            "microllm": "mixed_bf16_weights_fp32_activations",
+            "microllm": "mixed_bf16_weights_fp32_activations; cache=" +
+                         micro_kv_cache_dtype,
             "pytorch": "full_bf16_model"
         }, "runs_per_framework": runs,
         "pairing": "fresh processes; framework order alternates by run",
@@ -597,7 +604,8 @@ def main() -> int:
                                 record = {**base, "status": classify_failure(error),
                                           "error": str(error)}
                             save(record)
-    summary = summarize(records, models, args.contexts, args.batches, args.runs, args.cases)
+    summary = summarize(records, models, args.contexts, args.batches, args.runs,
+                        args.cases, args.micro_kv_cache_dtype)
     (args.output_directory / "summary.json").write_text(
         json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return 0

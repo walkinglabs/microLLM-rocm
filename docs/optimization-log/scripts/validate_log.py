@@ -1549,6 +1549,78 @@ def validate_batched_kv_cache(errors: list[str]) -> tuple[int, int, int]:
     return len(formal), len(pilot), profile.get("kernel_dispatches", 0)
 
 
+def validate_bf16_kv_cache(errors: list[str]) -> tuple[int, int, int, int]:
+    data = ROOT / "experiments" / "065-data"
+    baseline = [json.loads(line) for line in
+                (data / "baseline-release" / "raw.jsonl").read_text(
+                    encoding="utf-8").splitlines()]
+    formal = [json.loads(line) for line in
+              (data / "formal-release" / "raw.jsonl").read_text(
+                  encoding="utf-8").splitlines()]
+    for name, rows, element_bytes in (("baseline", baseline, 4),
+                                      ("formal", formal, 2)):
+        keys = {(row.get("model"), row.get("context"), row.get("batch"),
+                 row.get("framework"), row.get("process_run")) for row in rows}
+        if len(rows) != 72 or len(keys) != 72 or any(
+                row.get("status") != "pass" or row.get("workload") != "decode" or
+                row.get("cache_mode") != "cached" or row.get("context") not in
+                {32, 512, 2048} or row.get("batch") not in {1, 8}
+                for row in rows):
+            errors.append(f"BF16 KV {name} Release protocol changed")
+        micro_rows = [row for row in rows if row.get("framework") == "microllm"]
+        if any(int(row.get("kv_cache_actual_bytes", 0)) !=
+               int(row.get("kv_cache_theoretical_bytes", -1)) or
+               int(row.get("kv_cache_element_bytes", -1)) != element_bytes
+               for row in micro_rows):
+            errors.append(f"BF16 KV {name} byte/dtype contract changed")
+    comparison = json.loads((data / "release-comparison.json").read_text(
+        encoding="utf-8"))
+    comparison_rows = comparison.get("rows", [])
+    if comparison.get("decision") != "keep_opt_in" or len(comparison_rows) != 12 or any(
+            row.get("cache_byte_reduction") != 2.0 or
+            row.get("micro_tokens_equal") is not True or
+            float(row.get("throughput_ratio_bf16_over_fp32", 0.0)) < 0.99
+            for row in comparison_rows) or sum(
+                float(row["throughput_ratio_bf16_over_fp32"]) >= 1.0
+                for row in comparison_rows) != 11:
+        errors.append("BF16 KV Release keep/throughput/token contract changed")
+    precision = json.loads((data / "precision" / "summary.json").read_text(
+        encoding="utf-8"))
+    precision_rows = precision.get("records", [])
+    failed = [row for row in precision_rows if row.get("status") == "failed"]
+    if precision.get("status") != "failed" or len(precision_rows) != 12 or \
+            len(failed) != 1 or failed[0].get("model") != \
+            "deepseek-r1-distill-qwen-1.5b" or failed[0].get("context") != 512 or \
+            failed[0].get("batch") != 1 or any(
+                row.get("all_logits_finite") is not True or
+                row.get("top_tokens_equal") is not True or
+                row.get("generated_tokens_equal") is not True or
+                row.get("cache_byte_reduction") != 2.0 for row in precision_rows):
+        errors.append("BF16 KV precision failure contract changed")
+    profile = json.loads((data / "profile-summary.json").read_text(encoding="utf-8"))
+    for phase in ("before", "after"):
+        with (data / f"profile-{phase}" / "kernel-stats.csv").open(
+                encoding="utf-8", newline="") as stream:
+            kernels = list(csv.DictReader(stream))
+        with (data / f"profile-{phase}" / "hip-api-stats.csv").open(
+                encoding="utf-8", newline="") as stream:
+            api = list(csv.DictReader(stream))
+        recorded = profile.get(phase, {})
+        if sum(int(row["Calls"]) for row in kernels) != \
+                recorded.get("kernel_dispatches") or sum(
+                    int(row["TotalDurationNs"]) for row in kernels) != \
+                recorded.get("kernel_time_ns") or sum(
+                    int(row["Calls"]) for row in api) != recorded.get("hip_api_calls") or \
+                sum(int(row["TotalDurationNs"]) for row in api) != \
+                recorded.get("hip_api_time_ns"):
+            errors.append(f"BF16 KV {phase} profile aggregate changed")
+    if profile.get("ratios", {}).get("cached_attention_speedup", 0.0) < 1.15 or \
+            profile.get("ratios", {}).get("additional_cast_calls") != 96:
+        errors.append("BF16 KV retained profile explanation changed")
+    return len(baseline), len(formal), len(precision_rows), \
+        profile.get("after", {}).get("kernel_dispatches", 0)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -1592,7 +1664,8 @@ def validate_assets(errors: list[str]) -> None:
                  "batched-long-prefill-inference.svg",
                  "full-prefill-kv-cache.svg",
                  "device-rowwise-argmax.svg",
-                 "batched-kv-cache.svg"):
+                 "batched-kv-cache.svg",
+                 "bf16-kv-cache.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -1663,6 +1736,8 @@ def main() -> int:
         validate_device_row_argmax(errors)
     batched_kv_records, batched_kv_pilot, batched_kv_calls = \
         validate_batched_kv_cache(errors)
+    bf16_kv_baseline, bf16_kv_formal, bf16_kv_precision, bf16_kv_calls = \
+        validate_bf16_kv_cache(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -1703,6 +1778,8 @@ def main() -> int:
           f"row_argmax={row_argmax_records}/{row_argmax_host_records}/"
           f"{row_argmax_calls} "
           f"batched_kv={batched_kv_records}/{batched_kv_pilot}/{batched_kv_calls} "
+          f"bf16_kv={bf16_kv_baseline}/{bf16_kv_formal}/"
+          f"{bf16_kv_precision}/{bf16_kv_calls} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

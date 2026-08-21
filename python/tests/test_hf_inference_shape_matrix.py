@@ -100,26 +100,42 @@ class HfInferenceShapeMatrixTest(unittest.TestCase):
         self.assertEqual(summary["status"], "pass")
 
     def test_micro_normalization_separates_storage_and_active_cache(self):
-        args = type("Args", (), {"warmup": 1, "steps": 2, "decode_tokens": 4})()
+        args = type("Args", (), {"warmup": 1, "steps": 2, "decode_tokens": 4,
+                                  "micro_kv_cache_dtype": "bf16"})()
         raw = {
             "decode_tokens_per_second": 50.0, "mean_generation_ms": 8.0,
             "engine_peak_bytes": 2000, "measured_tokens": 8,
             "resident_weight_bytes": 1000,
             "inference_weight_policy": "single_representation_bf16_ffn_attention",
-            "kv_cache_actual_bytes": 640, "kv_cache_active_bytes": 448,
+            "kv_cache_actual_bytes": 320, "kv_cache_active_bytes": 224,
             "kv_cache_capacity_tokens": 10, "kv_cache_active_tokens": 7,
             "kv_cache_layers": 2, "kv_cache_heads": 1,
-            "kv_cache_head_dimension": 4, "kv_cache_element_bytes": 4,
+            "kv_cache_head_dimension": 4, "kv_cache_element_bytes": 2,
             "kv_cache_utilization": 0.7,
         }
         record = MATRIX.normalize_micro(
             raw, {"name": "tiny", "revision": "fixed"}, 6, 1,
             "decode", "cached", args)
-        self.assertEqual(record["kv_cache_actual_bytes"], 640)
-        self.assertEqual(record["kv_cache_theoretical_bytes"], 640)
+        self.assertEqual(record["kv_cache_actual_bytes"], 320)
+        self.assertEqual(record["kv_cache_theoretical_bytes"], 320)
         self.assertEqual(record["kv_cache_utilization"], 0.7)
+        self.assertEqual(record["kv_cache_dtype"], "bf16")
         self.assertEqual(record["precision"],
                          "mixed_bf16_weights_fp32_activations")
+
+    def test_micro_command_propagates_explicit_bf16_cache_policy(self):
+        args = type("Args", (), {
+            "micro_binary": Path("micro"), "decode_tokens": 4,
+            "warmup": 1, "steps": 2, "micro_batch_argmax_mode": "device",
+            "micro_kv_cache_dtype": "bf16"})()
+        model = {"config": "config.json", "weights": "weights.bin",
+                 "inference": {"token_ids": [1, 2]}}
+        command = MATRIX.micro_command(
+            args, model, context=8, batch=4, workload="decode", cache="cached")
+        policy = command.index("--kv-cache-dtype")
+        self.assertEqual(command[policy + 1], "bf16")
+        batch = command.index("--batch")
+        self.assertEqual(command[batch + 1], "4")
 
 
 if __name__ == "__main__":

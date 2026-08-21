@@ -61,6 +61,8 @@ needed to run a real training and generation loop:
   uncached reference decode gains 2.15×/1.68× with unchanged peak and tokens.
 - batch-aware full prefill, KV Storage, step store and cached GQA support B1/2/4/8;
   official Qwen/DeepSeek cached decode scales at 98.1%/99.5% efficiency.
+- opt-in BF16 KV Storage halves cache bytes with FP32 Attention accumulation; Qwen's
+  32–2048 context gate passes, while a retained DeepSeek RMSE failure keeps FP32 default.
 
 The design keeps three implementations where they provide engineering value:
 
@@ -146,10 +148,10 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 260/260 | 186 CPU-labelled + 74 HIP-labelled gates; 2 intentional environment skips |
-| ASan/UBSan CPU | 179/179 | host code, CLI, model/graph, benchmark and evidence schemas |
+| Full CPU/HIP configuration | 265/265 | 189 CPU-labelled + 76 HIP-labelled gates; 2 intentional environment skips |
+| ASan/UBSan CPU | 182/182 | host code, CLI, model/graph, benchmark and evidence schemas |
 | MI300X/gfx942 HIP | 73/73 | allocator/stream, graph, BF16/FP8, batched GEMM and model matrix |
-| PyTorch-enabled CPU build | 184/184 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
+| PyTorch-enabled CPU build | 187/187 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
 | Registered test files | 37 | machine-audited CTest registration |
 | CPU source coverage | 83.9% lines / 66.6% branches | GCC 13.3 + gcovr 8.3; `src/` and `include/` |
@@ -230,6 +232,11 @@ separate unsupported capability. See
 Experiment 064 closes cached batch `unsupported`: Qwen B1→B8 scales 91.9→721.1 tok/s,
 DeepSeek 62.2→494.6 tok/s, with exact paired tokens and explicit FP32-vs-BF16 KV bytes.
 See [Experiment 064](docs/optimization-log/experiments/064-batched-kv-cache.md).
+
+Experiment 065 adds explicit FP32/BF16 KV Storage, FP32 accumulation, complete-logit diagnostics
+and B2 T4097 fallback coverage. BF16 halves Cache bytes and improves 11/12 Release shapes, but a
+retained DeepSeek T512 B1 RMSE failure keeps it opt-in instead of changing the default. See
+[Experiment 065](docs/optimization-log/experiments/065-bf16-kv-cache.md).
 
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or

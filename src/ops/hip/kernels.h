@@ -177,32 +177,34 @@ void launch_repeat_interleave_backward(const float* gradient, float* input_gradi
                                        std::int64_t input_elements,
                                        std::int64_t input_width, std::int64_t inner,
                                        std::int64_t repeats, void* stream = nullptr);
-void launch_kv_cache_store(const float* current, float* cache,
+void launch_kv_cache_store(const float* current, void* cache, DType cache_dtype,
                            std::int64_t batches, std::int64_t heads,
                            std::int64_t capacity,
                            std::int64_t width, std::int64_t position,
                            void* stream = nullptr);
 void launch_kv_cache_store_pair(const float* current_key, const float* current_value,
-                                float* key_cache, float* value_cache,
+                                void* key_cache, void* value_cache,
+                                DType cache_dtype,
                                 std::int64_t batches, std::int64_t heads,
                                 std::int64_t capacity,
                                 std::int64_t width, std::int64_t position,
                                 void* stream = nullptr);
 void launch_cached_attention_scores(
-    const float* query, const float* key_cache, float* scores,
+    const float* query, const void* key_cache, DType cache_dtype, float* scores,
     std::int64_t batches, std::int64_t heads, std::int64_t kv_heads,
     std::int64_t sequence, std::int64_t cache_batch_stride,
     std::int64_t cache_head_stride, std::int64_t width,
     std::int64_t repeats, float scale, void* stream = nullptr);
 void launch_cached_attention_context(
-    const float* probabilities, const float* value_cache, float* output,
+    const float* probabilities, const void* value_cache, DType cache_dtype,
+    float* output,
     std::int64_t batches, std::int64_t heads, std::int64_t kv_heads,
     std::int64_t sequence, std::int64_t cache_batch_stride,
     std::int64_t cache_head_stride, std::int64_t width,
     std::int64_t repeats, void* stream = nullptr);
 void launch_cached_attention_fused(
-    const float* query, const float* key_cache, const float* value_cache,
-    float* output, std::int64_t batches, std::int64_t heads,
+    const float* query, const void* key_cache, const void* value_cache,
+    DType cache_dtype, float* output, std::int64_t batches, std::int64_t heads,
     std::int64_t sequence, std::int64_t cache_batch_stride,
     std::int64_t cache_head_stride, std::int64_t width,
     std::int64_t repeats, float scale, void* stream = nullptr);

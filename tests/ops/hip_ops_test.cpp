@@ -636,6 +636,56 @@ TEST(HipCachedAttentionTest, FusedMhaGqaAndLongSequenceFallbackMatchCpu) {
     }
 }
 
+TEST(HipCachedAttentionTest, Bf16BatchFusedAndLongFallbackMatchRoundedCpu) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    constexpr std::int64_t batches = 2;
+    constexpr std::int64_t heads = 2;
+    constexpr std::int64_t kv_heads = 1;
+    constexpr std::int64_t width = 8;
+    constexpr std::int64_t repeats = heads / kv_heads;
+    std::vector<float> query_values(
+        static_cast<std::size_t>(batches * heads * width));
+    for (std::size_t index = 0; index < query_values.size(); ++index) {
+        query_values[index] =
+            static_cast<float>(static_cast<int>(index % 13) - 6) * 0.03125F;
+    }
+    const auto query = Tensor::from_vector(
+        query_values, {batches, heads, 1, width});
+    for (const auto sequence : {32LL, 4097LL}) {
+        std::vector<float> key_values(
+            static_cast<std::size_t>(batches * kv_heads * sequence * width));
+        std::vector<float> value_values(key_values.size());
+        for (std::size_t index = 0; index < key_values.size(); ++index) {
+            const auto batch = static_cast<std::int64_t>(index) /
+                               (kv_heads * sequence * width);
+            key_values[index] =
+                static_cast<float>(static_cast<int>(index % 23) - 11) * 0.01953125F +
+                static_cast<float>(batch) * 0.25F;
+            value_values[index] =
+                static_cast<float>(static_cast<int>(index % 19) - 9) * 0.0234375F +
+                static_cast<float>(batch) * 0.5F;
+        }
+        const auto key = Tensor::from_vector(
+            key_values, {batches, kv_heads, sequence, width}, DType::BFloat16);
+        const auto value = Tensor::from_vector(
+            value_values, {batches, kv_heads, sequence, width}, DType::BFloat16);
+        const auto expected = cached_gqa_attention(
+            query, key, value, repeats, 0.25F).to_vector();
+        const auto device_query = query.to(gpu);
+        const auto device_key = key.to(gpu);
+        const auto device_value = value.to(gpu);
+        runtime::reset_transfer_stats();
+        const auto actual = cached_gqa_attention(
+            device_query, device_key, device_value, repeats, 0.25F);
+        runtime::synchronize(gpu);
+        const auto transfers = runtime::transfer_stats();
+        EXPECT_EQ(transfers.host_to_device_calls, 0U);
+        EXPECT_EQ(transfers.device_to_host_calls, 0U);
+        expect_near(actual.to_vector(), expected, 8.0e-4F);
+    }
+}
+
 TEST(HipFullAttentionTest, CausalMhaGqaForwardBackwardMatchCpuWithoutTransfers) {
     require_gpu();
     const auto gpu = Device::hip(0);
@@ -993,6 +1043,35 @@ TEST(HipOpsTest, PairedKvStoreMatchesTwoCpuStoresWithoutPayloadTransfers) {
     EXPECT_EQ(transfers.device_to_host_calls, 0U);
     expect_near(key_cache.to_vector(), key.to_vector());
     expect_near(value_cache.to_vector(), value.to_vector());
+}
+
+TEST(HipOpsTest, PairedBf16KvStoreRoundsOnDeviceWithoutPayloadTransfers) {
+    require_gpu();
+    const auto gpu = Device::hip();
+    Tensor key_backing({2, 1, 2, 2}, DType::BFloat16, gpu);
+    Tensor value_backing({2, 1, 2, 2}, DType::BFloat16, gpu);
+    auto key_cache = Tensor::from_storage(key_backing.storage(), {2, 1, 1, 2},
+                                          key_backing.strides(), 0,
+                                          DType::BFloat16);
+    auto value_cache = Tensor::from_storage(value_backing.storage(), {2, 1, 1, 2},
+                                            value_backing.strides(), 0,
+                                            DType::BFloat16);
+    const auto key = Tensor::from_vector(
+        {1.00390625F, 2.01171875F, 3.01953125F, 4.02734375F},
+        {2, 1, 1, 2});
+    const auto value = Tensor::from_vector(
+        {5.03515625F, 6.04296875F, 7.05078125F, 8.05859375F},
+        {2, 1, 1, 2});
+    const auto device_key = key.to(gpu);
+    const auto device_value = value.to(gpu);
+    runtime::reset_transfer_stats();
+    kv_cache_store_pair_(key_cache, value_cache, device_key, device_value, 0);
+    runtime::synchronize(gpu);
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    expect_near(key_cache.to_vector(), key.cast(DType::BFloat16).to_vector());
+    expect_near(value_cache.to_vector(), value.cast(DType::BFloat16).to_vector());
 }
 
 TEST(HipAutogradTest, RepeatInterleaveMaterializesTransposedGqaValue) {

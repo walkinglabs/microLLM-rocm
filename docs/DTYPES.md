@@ -101,11 +101,17 @@ FP32 → BF16 gate/up → BF16 SwiGLU → BF16 down → FP32
 FP32，方便与 residual 相加。
 
 官方 Qwen/DeepSeek 现在可以把 FFN 与 Q/K/V/O projection 权重单向准备为单份 BF16，
-Q/K/V 共享一次 input cast；Embedding、Norm、KV cache 与 tied 输出头仍是 FP32。因此
-准确名称是“BF16 Linear 混合推理”，不是“整网 BF16”。早期 DeepSeek decode 低于
+Q/K/V 共享一次 input cast；Embedding、Norm 与 tied 输出头仍是 FP32。KV Cache默认
+FP32，也可显式选择BF16 Storage并保持FP32 Attention累加。由于DeepSeek T512 B1的
+Release RMSE超过固定门，且普通构建出现过build-sensitive token分叉，它还不是默认策略。
+因此准确名称仍是“BF16 Linear混合推理”，
+不是“整网BF16”。早期 DeepSeek decode 低于
 PyTorch 全 BF16 的问题已由 BF16 专用 immutable hipBLASLt plan 修复：固定短 prompt
 Qwen/DeepSeek 四项 inference throughput 全部过线。这个结论仍不能推广到训练、长上下文、
 batch>1、Radeon 或其他 ROCm 版本。
+
+KV Cache的形状、字节公式、API和精度失败见
+[KV Cache数据类型设计](dev/kv-cache-dtypes.zh-CN.md)。
 
 训练时不能删除 FP32 master。`LinearPrecision::BFloat16` 只让 Linear forward 使用 BF16
 舍入，backward、参数和 AdamW 仍为 FP32。官方多步 loss 与 PyTorch BF16 autocast 接近，

@@ -17,12 +17,17 @@ public:
     };
 
     KVCache(std::int64_t layers, std::int64_t max_sequence_length,
-            std::int64_t batch_size = 1)
+            std::int64_t batch_size = 1,
+            DType dtype = DType::Float32)
         : max_sequence_length_(max_sequence_length),
           batch_size_(batch_size),
+          dtype_(dtype),
           layers_(static_cast<std::size_t>(layers)) {
         if (layers <= 0 || max_sequence_length <= 0 || batch_size <= 0) {
             throw std::invalid_argument("KV cache dimensions must be positive");
+        }
+        if (dtype != DType::Float32 && dtype != DType::BFloat16) {
+            throw std::invalid_argument("KV cache dtype must be float32 or bfloat16");
         }
     }
 
@@ -31,6 +36,7 @@ public:
         return max_sequence_length_;
     }
     [[nodiscard]] std::int64_t batch_size() const noexcept { return batch_size_; }
+    [[nodiscard]] DType dtype() const noexcept { return dtype_; }
     [[nodiscard]] std::size_t layer_count() const noexcept { return layers_.size(); }
     [[nodiscard]] const LayerState& layer(std::size_t index) const { return layers_.at(index); }
     [[nodiscard]] LayerState& mutable_layer(std::size_t index) { return layers_.at(index); }
@@ -50,6 +56,7 @@ public:
 private:
     std::int64_t max_sequence_length_;
     std::int64_t batch_size_ = 1;
+    DType dtype_ = DType::Float32;
     std::int64_t position_ = 0;
     std::vector<LayerState> layers_;
 };

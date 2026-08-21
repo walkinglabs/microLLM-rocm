@@ -67,7 +67,8 @@ std::vector<std::int32_t> generate(model::TransformerModel& model,
     // larger context, but allocating that full theoretical capacity for a short
     // generation needlessly turns stable cache addresses into a memory penalty.
     KVCache cache(model.config().layers,
-                  static_cast<std::int64_t>(prompt.size()) + config.max_new_tokens);
+                  static_cast<std::int64_t>(prompt.size()) + config.max_new_tokens,
+                  1, config.kv_cache_dtype);
     auto logits = model.forward_prefill_cached(
         Tensor::from_int32_vector(
             prompt, {1, static_cast<std::int64_t>(prompt.size())}),

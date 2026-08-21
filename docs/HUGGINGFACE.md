@@ -73,6 +73,13 @@ steady decode；两者之和写入`mean_end_to_end_generation_ms`。默认值仍
 `--use-cache true|false`用于检查两条路径是否生成相同token；当前batch内所有请求必须共享
 长度和position，continuous batching/request scheduling仍是后续能力。
 
+`--kv-cache-dtype fp32|bf16`选择Cache Storage类型。默认FP32；BF16严格把Cache字节
+减半，但当前是显式实验策略，因为DeepSeek长context已观察到token分叉。完整设计、API和
+误差门见[KV Cache数据类型](dev/kv-cache-dtypes.zh-CN.md)。
+
+`--cache-logits-output PATH`保存真正经过cached decode后的完整logits，只用于精度诊断，
+要求至少生成两个token；开启它的运行不作为正式性能排名。
+
 cached模式默认`--cache-prefill-mode full`，一次完整prompt直接填入每层预分配Storage。
 显式`token`会逐token重放，只用于复现旧性能失败和reference；发布结果必须记录所选模式。
 

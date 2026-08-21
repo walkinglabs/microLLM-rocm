@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "baseline_source": "main 2666207",
+  "candidate_source": "Experiment 065 frozen worktree",
+  "build_type": "Release",
+  "release_flags": "-O3 -DNDEBUG",
+  "cxx_compiler": "/usr/bin/c++",
+  "hip_compiler": "/opt/python/lib/python3.13/site-packages/_rocm_sdk_devel/lib/llvm/bin/clang++",
+  "hip_architecture": "gfx942",
+  "device": "AMD Instinct MI300X VF",
+  "rocm_runtime": 71399004,
+  "rocm_driver": 71399004,
+  "protocol": {
+    "contexts": [32, 512, 2048],
+    "batches": [1, 8],
+    "decode_tokens": 16,
+    "warmup": 2,
+    "steps": 5,
+    "fresh_process_runs": 3
+  }
+}

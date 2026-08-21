@@ -1578,3 +1578,26 @@ micro/PyTorch        Qwen 0.73–0.75; DeepSeek 0.59–0.62
 Cache按batch线性增长；micro FP32仍是PyTorch BF16的2.057×。Qwen B8 profile只D2H
 256B，cached Attention45ms。旧版本没有before timeline，因为它在任何Kernel前失败；
 这个限制原样写进证据。下一节点自然是BF16 KV Cache，而不是再扩大FP32 Cache。
+
+## 82. Experiment 065：把草稿本减半，先问答案有没有变
+
+BF16 Cache只改变K/V Storage：4字节变2字节；Query、softmax、累加和输出继续FP32。
+第一轮普通构建曾在DeepSeek T2048看到token分叉；审查后发现before是Release、current不是，
+这组速度对比被标invalid。重新冻结前后源码并都用`-O3/gfx942`，72/72进程成功。
+
+![BF16 KV Cache](assets/bf16-kv-cache.svg)
+
+Release的12个shape中Cache全部精确减半，16-token suffix全部一致，11个shape加速。Qwen
+T32 B8轻微回退0.43%；DeepSeek T512/T2048 B8分别提高19.4%/24.8%，T2048 B8 Cache
+`903→451.5MiB`、整机peak下降约5%。Qwen T2048 B8 cached Attention
+`41.095→35.686ms`（1.152×），全Kernel只提高1.019×，因为prefix新增96次cast。
+
+完整logits没有全绿。预先固定`max_abs≤0.25、RMSE≤0.05`后，Qwen 6/6通过，DeepSeek
+5/6通过；DeepSeek T512 B1的最大误差0.225通过，但RMSE 0.0586失败。普通构建的T2048
+token分叉未在Release复现，仍作为build-sensitive反例保留。
+
+还尝试了`bfloat162`成对读取。全pair候选把Qwen T512 B1/B8比值压到0.470/0.372；只
+向量化key dot仍是0.697。减少指令却减少了context阶段活跃线程，代码删除、raw保留。
+
+因此节点是conditional keep：API、Kernel和显存/速度能力保留，FP32仍默认。下一实验先
+删除full prefill的额外cast与per-head copy，同时必须重跑同一完整logit门。

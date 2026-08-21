@@ -343,6 +343,13 @@ FP32 Cache字节仍为PyTorch BF16的2.057×。
 
 ![Batched KV cache](assets/batched-kv-cache.svg)
 
+Experiment 065只把K/V Storage从FP32改成BF16，Attention仍FP32累加。匹配Release矩阵
+72/72进程成功：Cache全部减半、16-token suffix 12/12一致、11/12 shape加速；DeepSeek
+T2048 B8提高24.8%，peak降约5%。完整logits仍有一个失败：DeepSeek T512 B1 RMSE
+`0.0586>0.05`，所以BF16 Cache保留为opt-in，FP32仍默认。
+
+![BF16 KV cache](assets/bf16-kv-cache.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -430,6 +437,8 @@ FP32 Cache字节仍为PyTorch BF16的2.057×。
 | [experiments/063-data/](experiments/063-data/) | host/device各16条、transfer control和前后profile |
 | [assets/batched-kv-cache.svg](assets/batched-kv-cache.svg) | cached batch吞吐、扩展效率、KV字节与profile |
 | [experiments/064-data/](experiments/064-data/) | pilot16条、正式48条、retained B8 profile |
+| [assets/bf16-kv-cache.svg](assets/bf16-kv-cache.svg) | Release吞吐、T2048 B8 Cache字节与精度门 |
+| [experiments/065-data/](experiments/065-data/) | Release前后各72条、12条完整logits、profile和被拒绝向量化 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

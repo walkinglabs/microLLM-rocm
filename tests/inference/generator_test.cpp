@@ -54,6 +54,15 @@ TEST(GeneratorTest, UsesCacheAndReturnsRequestedValidTokens) {
         EXPECT_GE(token, 0);
         EXPECT_LT(token, model.config().vocabulary_size);
     }
+    model::TransformerModel bf16_model(generation_config(), 47);
+    const auto bf16_tokens = generate(
+        bf16_model, {1, 2, 3},
+        {.max_new_tokens = 5,
+         .temperature = 0.0F,
+         .top_k = 0,
+         .seed = 99,
+         .kv_cache_dtype = DType::BFloat16});
+    EXPECT_EQ(bf16_tokens, tokens);
 }
 
 TEST(GeneratorTest, RejectsInvalidSamplingAndContext) {

@@ -13,6 +13,7 @@ struct GenerationConfig {
     float temperature = 1.0F;
     std::int64_t top_k = 0;
     std::uint64_t seed = 1;
+    DType kv_cache_dtype = DType::Float32;
 };
 
 [[nodiscard]] std::int32_t sample_token(const std::vector<float>& logits,

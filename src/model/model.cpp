@@ -31,7 +31,8 @@ Tensor clone_tensor(const Tensor& source, Device target) {
 }
 
 Tensor prepare_cached_sequence(Tensor& cached, const Tensor& current,
-                               std::int64_t position, std::int64_t capacity) {
+                               std::int64_t position, std::int64_t capacity,
+                               DType cache_dtype) {
     if (current.dtype() != DType::Float32 || current.ndim() != 4) {
         throw std::invalid_argument("cached K/V tensors must be float32 rank four");
     }
@@ -45,13 +46,14 @@ Tensor prepare_cached_sequence(Tensor& cached, const Tensor& current,
     if (!cached.defined()) {
         if (position != 0) throw std::invalid_argument("KV cache must start at position zero");
         Tensor backing({current.shape()[0], heads, capacity, width},
-                       current.dtype(), current.device());
+                       cache_dtype, current.device());
         cached = Tensor::from_storage(
             backing.storage(), {current.shape()[0], heads, 1, width},
-                                      backing.strides(), 0, current.dtype());
+            backing.strides(), 0, cache_dtype);
     } else if (cached.ndim() != 4 || cached.shape()[0] != current.shape()[0] ||
                cached.shape()[1] != heads || cached.shape()[2] != position ||
-               cached.shape()[3] != width || cached.device() != current.device()) {
+               cached.shape()[3] != width || cached.device() != current.device() ||
+               cached.dtype() != cache_dtype) {
         throw std::invalid_argument("cached and current K/V shapes are incompatible");
     } else {
         cached = Tensor::from_storage(
@@ -62,24 +64,27 @@ Tensor prepare_cached_sequence(Tensor& cached, const Tensor& current,
 }
 
 void prepare_cached_prefix(Tensor& cached, const Tensor& current,
-                           std::int64_t capacity) {
+                           std::int64_t capacity, DType cache_dtype) {
     if (current.dtype() != DType::Float32 || current.ndim() != 4 ||
         current.shape()[0] <= 0 || current.shape()[2] <= 0 ||
         current.shape()[2] > capacity || cached.defined()) {
         throw std::invalid_argument(
             "KV prefix requires an empty cache and a sequence within capacity");
     }
-    const auto packed = current.is_contiguous() ? current : current.contiguous();
+    const auto contiguous = current.is_contiguous() ? current : current.contiguous();
+    const auto packed = contiguous.dtype() == cache_dtype
+                            ? contiguous
+                            : ops::cast(contiguous, cache_dtype);
     Tensor backing({current.shape()[0], current.shape()[1], capacity,
                     current.shape()[3]},
-                   current.dtype(), current.device());
+                   cache_dtype, current.device());
     cached = Tensor::from_storage(
-        backing.storage(), current.shape(), backing.strides(), 0, current.dtype());
+        backing.storage(), current.shape(), backing.strides(), 0, cache_dtype);
     const auto batches = static_cast<std::size_t>(current.shape()[0]);
     const auto heads = static_cast<std::size_t>(current.shape()[1]);
     const auto sequence = static_cast<std::size_t>(current.shape()[2]);
     const auto width = static_cast<std::size_t>(current.shape()[3]);
-    const auto element_bytes = dtype_size(current.dtype());
+    const auto element_bytes = dtype_size(cache_dtype);
     const auto head_bytes = sequence * width * element_bytes;
     auto* destination = static_cast<std::byte*>(cached.storage().data());
     const auto* source = static_cast<const std::byte*>(packed.data());
@@ -313,7 +318,8 @@ public:
     Tensor forward_tensor(
         const Tensor& input,
         inference::KVCache::LayerState* prefill_cache = nullptr,
-        std::int64_t cache_capacity = 0) {
+        std::int64_t cache_capacity = 0,
+        DType cache_dtype = DType::Float32) {
         if (input.ndim() != 3) throw std::invalid_argument("attention input must be BxTxD");
         const auto batch = input.shape()[0];
         const auto sequence = input.shape()[1];
@@ -360,8 +366,10 @@ public:
             key = ops::rope(key, 2, 0, config_.rope_base);
         }
         if (prefill_cache != nullptr) {
-            prepare_cached_prefix(prefill_cache->key, key, cache_capacity);
-            prepare_cached_prefix(prefill_cache->value, value, cache_capacity);
+            prepare_cached_prefix(prefill_cache->key, key, cache_capacity,
+                                  cache_dtype);
+            prepare_cached_prefix(prefill_cache->value, value, cache_capacity,
+                                  cache_dtype);
         }
         const auto repeats = config_.heads / config_.kv_heads;
         auto context = ops::causal_gqa_attention(
@@ -376,7 +384,8 @@ public:
     }
 
     Tensor forward_cached(const Tensor& input, inference::KVCache::LayerState& cache,
-                          std::int64_t position, std::int64_t cache_capacity) {
+                          std::int64_t position, std::int64_t cache_capacity,
+                          DType cache_dtype) {
         if (input.shape().size() != 3 || input.shape()[0] <= 0 ||
             input.shape()[1] != 1) {
             throw std::invalid_argument("cached attention expects a non-empty Bx1 token step");
@@ -436,9 +445,11 @@ public:
             key = ops::rope(key, 2, position, config_.rope_base);
         }
         const auto packed_key =
-            prepare_cached_sequence(cache.key, key, position, cache_capacity);
+            prepare_cached_sequence(cache.key, key, position, cache_capacity,
+                                    cache_dtype);
         const auto packed_value =
-            prepare_cached_sequence(cache.value, value, position, cache_capacity);
+            prepare_cached_sequence(cache.value, value, position, cache_capacity,
+                                    cache_dtype);
         ops::kv_cache_store_pair_(cache.key, cache.value, packed_key, packed_value,
                                   position);
         const auto repeats = config_.heads / config_.kv_heads;
@@ -570,18 +581,20 @@ public:
 
     Tensor forward_prefill_cached(const Tensor& input,
                                   inference::KVCache::LayerState& cache,
-                                  std::int64_t cache_capacity) {
+                                  std::int64_t cache_capacity,
+                                  DType cache_dtype) {
         auto hidden = ops::add(
             input, attention_.forward_tensor(attention_norm_.forward_tensor(input),
-                                             &cache, cache_capacity));
+                                             &cache, cache_capacity, cache_dtype));
         return ops::add(hidden, feed_forward_.forward_tensor(
                                     ffn_norm_.forward_tensor(hidden)));
     }
 
     Tensor forward_cached(const Tensor& input, inference::KVCache::LayerState& cache,
-                          std::int64_t position, std::int64_t cache_capacity) {
+                          std::int64_t position, std::int64_t cache_capacity,
+                          DType cache_dtype) {
         auto attention = attention_.forward_cached(attention_norm_.forward_tensor(input), cache,
-                                                   position, cache_capacity);
+                                                   position, cache_capacity, cache_dtype);
         auto residual_and_norm = ffn_norm_.add_forward_tensor(input, attention);
         return ops::add(residual_and_norm.first,
                         feed_forward_.forward_tensor(residual_and_norm.second));
@@ -775,7 +788,8 @@ Tensor TransformerModel::forward_prefill_cached(
         auto hidden = ops::embedding(impl_->token_embedding.data(), model_tokens);
         for (std::size_t layer = 0; layer < impl_->blocks.size(); ++layer) {
             hidden = impl_->blocks[layer]->forward_prefill_cached(
-                hidden, cache.mutable_layer(layer), cache.max_sequence_length());
+                hidden, cache.mutable_layer(layer), cache.max_sequence_length(),
+                cache.dtype());
         }
         hidden = impl_->final_norm.forward_tensor(hidden);
         const auto last = hidden.slice(1, sequence - 1, sequence)
@@ -828,7 +842,8 @@ Tensor TransformerModel::forward_cached(const Tensor& token_id, inference::KVCac
     for (std::size_t layer = 0; layer < impl_->blocks.size(); ++layer) {
         hidden = impl_->blocks[layer]->forward_cached(hidden, cache.mutable_layer(layer),
                                                       cache.position(),
-                                                      cache.max_sequence_length());
+                                                      cache.max_sequence_length(),
+                                                      cache.dtype());
     }
     hidden = impl_->final_norm.forward_tensor(hidden);
     const auto flat = hidden.reshape({batch, impl_->config.dimension});

@@ -835,7 +835,8 @@ __global__ void rms_norm_weight_gradient_rows_kernel(
     if (threadIdx.x == 0) weight_gradient[column] = total;
 }
 
-__global__ void kv_cache_store_kernel(const float* current, float* cache,
+template <typename Cache>
+__global__ void kv_cache_store_kernel(const float* current, Cache* cache,
                                       std::int64_t batches, std::int64_t heads,
                                       std::int64_t capacity,
                                       std::int64_t width, std::int64_t position) {
@@ -846,12 +847,13 @@ __global__ void kv_cache_store_kernel(const float* current, float* cache,
     const auto head = batch_head % heads;
     const auto column = index % width;
     cache[((batch * heads + head) * capacity + position) * width + column] =
-        current[index];
+        Cache(current[index]);
 }
 
+template <typename Cache>
 __global__ void kv_cache_store_pair_kernel(
     const float* current_key, const float* current_value,
-    float* key_cache, float* value_cache, std::int64_t batches,
+    Cache* key_cache, Cache* value_cache, std::int64_t batches,
     std::int64_t heads,
     std::int64_t capacity, std::int64_t width, std::int64_t position) {
     const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
@@ -862,12 +864,13 @@ __global__ void kv_cache_store_pair_kernel(
     const auto column = index % width;
     const auto destination =
         ((batch * heads + head) * capacity + position) * width + column;
-    key_cache[destination] = current_key[index];
-    value_cache[destination] = current_value[index];
+    key_cache[destination] = Cache(current_key[index]);
+    value_cache[destination] = Cache(current_value[index]);
 }
 
+template <typename Cache>
 __global__ void cached_attention_scores_kernel(
-    const float* query, const float* key_cache, float* scores,
+    const float* query, const Cache* key_cache, float* scores,
     std::int64_t batches, std::int64_t heads, std::int64_t sequence,
     std::int64_t cache_batch_stride, std::int64_t cache_head_stride,
     std::int64_t width,
@@ -880,16 +883,19 @@ __global__ void cached_attention_scores_kernel(
     const auto position = index % sequence;
     const auto kv_head = head / repeats;
     float dot = 0.0F;
+    const auto query_base = (batch * heads + head) * width;
+    const auto cache_base = batch * cache_batch_stride +
+                            kv_head * cache_head_stride + position * width;
     for (std::int64_t column = 0; column < width; ++column) {
-        dot += query[(batch * heads + head) * width + column] *
-               key_cache[batch * cache_batch_stride +
-                         kv_head * cache_head_stride + position * width + column];
+        dot += query[query_base + column] *
+               static_cast<float>(key_cache[cache_base + column]);
     }
     scores[index] = dot * scale;
 }
 
+template <typename Cache>
 __global__ void cached_attention_context_kernel(
-    const float* probabilities, const float* value_cache, float* output,
+    const float* probabilities, const Cache* value_cache, float* output,
     std::int64_t batches, std::int64_t heads, std::int64_t sequence,
     std::int64_t cache_batch_stride, std::int64_t cache_head_stride,
     std::int64_t width,
@@ -903,15 +909,17 @@ __global__ void cached_attention_context_kernel(
     const auto kv_head = head / repeats;
     float total = 0.0F;
     for (std::int64_t position = 0; position < sequence; ++position) {
-        total += probabilities[head * sequence + position] *
-                 value_cache[batch * cache_batch_stride +
-                             kv_head * cache_head_stride + position * width + column];
+        total += probabilities[(batch * heads + head) * sequence + position] *
+                 static_cast<float>(value_cache[batch * cache_batch_stride +
+                                                kv_head * cache_head_stride +
+                                                position * width + column]);
     }
     output[index] = total;
 }
 
+template <typename Cache>
 __global__ void cached_attention_fused_kernel(
-    const float* query, const float* key_cache, const float* value_cache,
+    const float* query, const Cache* key_cache, const Cache* value_cache,
     float* output, std::int64_t batches, std::int64_t heads,
     std::int64_t sequence, std::int64_t cache_batch_stride,
     std::int64_t cache_head_stride, std::int64_t width,
@@ -928,10 +936,12 @@ __global__ void cached_attention_fused_kernel(
     for (std::int64_t position = threadIdx.x; position < sequence;
          position += blockDim.x) {
         float dot = 0.0F;
+        const auto query_base = (batch * heads + head) * width;
+        const auto cache_base = batch * cache_batch_stride +
+                                kv_head * cache_head_stride + position * width;
         for (std::int64_t column = 0; column < width; ++column) {
-            dot += query[(batch * heads + head) * width + column] *
-                   key_cache[batch * cache_batch_stride +
-                             kv_head * cache_head_stride + position * width + column];
+            dot += query[query_base + column] *
+                   static_cast<float>(key_cache[cache_base + column]);
         }
         const auto score = dot * scale;
         shared_scores[position] = score;
@@ -950,8 +960,9 @@ __global__ void cached_attention_fused_kernel(
         float total = 0.0F;
         for (std::int64_t position = 0; position < sequence; ++position) {
             total += shared_scores[position] / denominator *
-            value_cache[batch * cache_batch_stride +
-                        kv_head * cache_head_stride + position * width + column];
+                     static_cast<float>(value_cache[
+                         batch * cache_batch_stride + kv_head * cache_head_stride +
+                         position * width + column]);
         }
         output[(batch * heads + head) * width + column] = total;
     }
@@ -2124,71 +2135,135 @@ void launch_rms_norm_backward(const float* input, const float* weight,
     }
 }
 
-void launch_kv_cache_store(const float* current, float* cache,
+void launch_kv_cache_store(const float* current, void* cache, DType cache_dtype,
                            std::int64_t batches, std::int64_t heads,
                            std::int64_t capacity,
                            std::int64_t width, std::int64_t position, void* stream) {
     const auto elements = batches * heads * width;
-    hipLaunchKernelGGL(kv_cache_store_kernel, dim3(grid_size(elements)),
-                       dim3(kBlockSize), 0, as_stream(stream), current, cache,
-                       batches, heads, capacity, width, position);
+    if (cache_dtype == DType::Float32) {
+        hipLaunchKernelGGL(kv_cache_store_kernel<float>, dim3(grid_size(elements)),
+                           dim3(kBlockSize), 0, as_stream(stream), current,
+                           static_cast<float*>(cache), batches, heads, capacity,
+                           width, position);
+    } else if (cache_dtype == DType::BFloat16) {
+        hipLaunchKernelGGL(kv_cache_store_kernel<hip_bfloat16>,
+                           dim3(grid_size(elements)), dim3(kBlockSize), 0,
+                           as_stream(stream), current,
+                           static_cast<hip_bfloat16*>(cache), batches, heads,
+                           capacity, width, position);
+    } else {
+        throw std::invalid_argument("KV cache store supports FP32 and BF16");
+    }
     check_launch("kv_cache_store_kernel");
 }
 
 void launch_kv_cache_store_pair(const float* current_key, const float* current_value,
-                                float* key_cache, float* value_cache,
+                                void* key_cache, void* value_cache,
+                                DType cache_dtype,
                                 std::int64_t batches, std::int64_t heads,
                                 std::int64_t capacity,
                                 std::int64_t width, std::int64_t position, void* stream) {
     const auto elements = batches * heads * width;
-    hipLaunchKernelGGL(kv_cache_store_pair_kernel, dim3(grid_size(elements)),
-                       dim3(kBlockSize), 0, as_stream(stream), current_key,
-                       current_value, key_cache, value_cache, batches, heads, capacity,
-                       width, position);
+    if (cache_dtype == DType::Float32) {
+        hipLaunchKernelGGL(kv_cache_store_pair_kernel<float>,
+                           dim3(grid_size(elements)), dim3(kBlockSize), 0,
+                           as_stream(stream), current_key, current_value,
+                           static_cast<float*>(key_cache),
+                           static_cast<float*>(value_cache), batches, heads,
+                           capacity, width, position);
+    } else if (cache_dtype == DType::BFloat16) {
+        hipLaunchKernelGGL(kv_cache_store_pair_kernel<hip_bfloat16>,
+                           dim3(grid_size(elements)), dim3(kBlockSize), 0,
+                           as_stream(stream), current_key, current_value,
+                           static_cast<hip_bfloat16*>(key_cache),
+                           static_cast<hip_bfloat16*>(value_cache), batches,
+                           heads, capacity, width, position);
+    } else {
+        throw std::invalid_argument("paired KV cache store supports FP32 and BF16");
+    }
     check_launch("kv_cache_store_pair_kernel");
 }
 
 void launch_cached_attention_scores(
-    const float* query, const float* key_cache, float* scores,
+    const float* query, const void* key_cache, DType cache_dtype, float* scores,
     std::int64_t batches, std::int64_t heads,
     [[maybe_unused]] std::int64_t kv_heads, std::int64_t sequence,
     std::int64_t cache_batch_stride, std::int64_t cache_head_stride,
     std::int64_t width, std::int64_t repeats, float scale, void* stream) {
     const auto elements = batches * heads * sequence;
-    hipLaunchKernelGGL(cached_attention_scores_kernel, dim3(grid_size(elements)),
-                       dim3(kBlockSize), 0, as_stream(stream), query, key_cache,
-                       scores, batches, heads, sequence, cache_batch_stride,
-                       cache_head_stride, width, repeats, scale);
+    if (cache_dtype == DType::Float32) {
+        hipLaunchKernelGGL(cached_attention_scores_kernel<float>,
+                           dim3(grid_size(elements)), dim3(kBlockSize), 0,
+                           as_stream(stream), query,
+                           static_cast<const float*>(key_cache), scores, batches,
+                           heads, sequence, cache_batch_stride, cache_head_stride,
+                           width, repeats, scale);
+    } else if (cache_dtype == DType::BFloat16) {
+        hipLaunchKernelGGL(cached_attention_scores_kernel<hip_bfloat16>,
+                           dim3(grid_size(elements)), dim3(kBlockSize), 0,
+                           as_stream(stream), query,
+                           static_cast<const hip_bfloat16*>(key_cache), scores,
+                           batches, heads, sequence, cache_batch_stride,
+                           cache_head_stride, width, repeats, scale);
+    } else {
+        throw std::invalid_argument("cached attention supports FP32 and BF16 cache");
+    }
     check_launch("cached_attention_scores_kernel");
 }
 
 void launch_cached_attention_context(
-    const float* probabilities, const float* value_cache, float* output,
+    const float* probabilities, const void* value_cache, DType cache_dtype,
+    float* output,
     std::int64_t batches, std::int64_t heads,
     [[maybe_unused]] std::int64_t kv_heads, std::int64_t sequence,
     std::int64_t cache_batch_stride, std::int64_t cache_head_stride,
     std::int64_t width, std::int64_t repeats, void* stream) {
     const auto elements = batches * heads * width;
-    hipLaunchKernelGGL(cached_attention_context_kernel, dim3(grid_size(elements)),
-                       dim3(kBlockSize), 0, as_stream(stream), probabilities,
-                       value_cache, output, batches, heads, sequence,
-                       cache_batch_stride, cache_head_stride,
-                       width, repeats);
+    if (cache_dtype == DType::Float32) {
+        hipLaunchKernelGGL(cached_attention_context_kernel<float>,
+                           dim3(grid_size(elements)), dim3(kBlockSize), 0,
+                           as_stream(stream), probabilities,
+                           static_cast<const float*>(value_cache), output,
+                           batches, heads, sequence, cache_batch_stride,
+                           cache_head_stride, width, repeats);
+    } else if (cache_dtype == DType::BFloat16) {
+        hipLaunchKernelGGL(cached_attention_context_kernel<hip_bfloat16>,
+                           dim3(grid_size(elements)), dim3(kBlockSize), 0,
+                           as_stream(stream), probabilities,
+                           static_cast<const hip_bfloat16*>(value_cache), output,
+                           batches, heads, sequence, cache_batch_stride,
+                           cache_head_stride, width, repeats);
+    } else {
+        throw std::invalid_argument("cached attention supports FP32 and BF16 cache");
+    }
     check_launch("cached_attention_context_kernel");
 }
 
 void launch_cached_attention_fused(
-    const float* query, const float* key_cache, const float* value_cache,
-    float* output, std::int64_t batches, std::int64_t heads,
+    const float* query, const void* key_cache, const void* value_cache,
+    DType cache_dtype, float* output, std::int64_t batches, std::int64_t heads,
     std::int64_t sequence, std::int64_t cache_batch_stride,
     std::int64_t cache_head_stride, std::int64_t width,
     std::int64_t repeats, float scale, void* stream) {
-    hipLaunchKernelGGL(cached_attention_fused_kernel,
-                       dim3(static_cast<unsigned>(batches * heads)), dim3(kBlockSize),
-                       static_cast<std::size_t>(sequence) * sizeof(float),
-                       as_stream(stream), query, key_cache, value_cache, output,
-                       batches, heads, sequence, cache_batch_stride,
-                       cache_head_stride, width, repeats, scale);
+    const auto grid = dim3(static_cast<unsigned>(batches * heads));
+    const auto shared_bytes = static_cast<std::size_t>(sequence) * sizeof(float);
+    if (cache_dtype == DType::Float32) {
+        hipLaunchKernelGGL(cached_attention_fused_kernel<float>, grid,
+                           dim3(kBlockSize), shared_bytes, as_stream(stream), query,
+                           static_cast<const float*>(key_cache),
+                           static_cast<const float*>(value_cache), output, batches,
+                           heads, sequence, cache_batch_stride, cache_head_stride,
+                           width, repeats, scale);
+    } else if (cache_dtype == DType::BFloat16) {
+        hipLaunchKernelGGL(cached_attention_fused_kernel<hip_bfloat16>, grid,
+                           dim3(kBlockSize), shared_bytes, as_stream(stream), query,
+                           static_cast<const hip_bfloat16*>(key_cache),
+                           static_cast<const hip_bfloat16*>(value_cache), output,
+                           batches, heads, sequence, cache_batch_stride,
+                           cache_head_stride, width, repeats, scale);
+    } else {
+        throw std::invalid_argument("cached attention supports FP32 and BF16 cache");
+    }
     check_launch("cached_attention_fused_kernel");
 }
 

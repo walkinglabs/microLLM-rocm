@@ -204,8 +204,9 @@ void clear_matmul_implementation_registry();
                                                 std::int64_t dim, std::int64_t repeats,
                                                 const OpContext& context = {});
 
-// Cached decoding primitives.  Cache storage is [1, kv_heads, capacity, width]
-// while its logical Tensor shape exposes only the initialized prefix.
+// Cached decoding primitives. Cache storage is [B, kv_heads, capacity, width]
+// while its logical Tensor shape exposes only the initialized prefix. Query/current
+// values are FP32; cache storage may be FP32 or BF16 and accumulation stays FP32.
 void kv_cache_store_(Tensor& cache, const Tensor& current, std::int64_t position,
                      const OpContext& context = {});
 void kv_cache_store_pair_(Tensor& key_cache, Tensor& value_cache,

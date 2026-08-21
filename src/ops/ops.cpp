@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <limits>
 #include <stdexcept>
 #include <string>
@@ -1189,10 +1190,11 @@ TensorPair rms_norm_backward(const Tensor& input, const Tensor& weight,
 
 void kv_cache_store_(Tensor& cache, const Tensor& current, std::int64_t position,
                      [[maybe_unused]] const OpContext& context) {
-    require_float(cache, "cache");
+    require_forward_float(cache, "cache");
     require_float(current, "current");
     require_same_device(cache, current);
-    if (cache.dtype() != DType::Float32 || current.dtype() != DType::Float32 ||
+    if ((cache.dtype() != DType::Float32 && cache.dtype() != DType::BFloat16) ||
+        current.dtype() != DType::Float32 ||
         cache.ndim() != 4 || current.ndim() != 4 || cache.shape()[0] <= 0 ||
         cache.shape()[0] != current.shape()[0] || current.shape()[2] != 1 ||
         cache.shape()[1] != current.shape()[1] ||
@@ -1212,7 +1214,7 @@ void kv_cache_store_(Tensor& cache, const Tensor& current, std::int64_t position
     if (cache.device().is_hip()) {
 #if MICROLLM_HAS_HIP
         hip::launch_kv_cache_store(
-            static_cast<const float*>(current.data()), static_cast<float*>(cache.data()),
+            static_cast<const float*>(current.data()), cache.data(), cache.dtype(),
             batches, heads, capacity, width, position,
             context.native_stream(cache.device()));
         return;
@@ -1220,15 +1222,20 @@ void kv_cache_store_(Tensor& cache, const Tensor& current, std::int64_t position
         throw std::runtime_error("microLLM was built without HIP operator support");
 #endif
     }
-    const auto* source = current.data_float();
-    auto* destination = cache.data_float();
+    const auto converted = current.cast(cache.dtype());
+    const auto element_bytes = dtype_size(cache.dtype());
+    const auto row_bytes = static_cast<std::size_t>(width) * element_bytes;
+    const auto* source = static_cast<const std::byte*>(converted.data());
+    auto* destination = static_cast<std::byte*>(cache.data());
     for (std::int64_t batch = 0; batch < batches; ++batch) {
         for (std::int64_t head = 0; head < heads; ++head) {
-            for (std::int64_t column = 0; column < width; ++column) {
-                destination[batch * cache.stride(0) + head * cache.stride(1) +
-                            position * cache.stride(2) + column] =
-                    source[(batch * heads + head) * width + column];
-            }
+            const auto source_offset =
+                static_cast<std::size_t>((batch * heads + head) * width) * element_bytes;
+            const auto destination_offset = static_cast<std::size_t>(
+                batch * cache.stride(0) + head * cache.stride(1) +
+                position * cache.stride(2)) * element_bytes;
+            runtime::copy_bytes(destination + destination_offset, cache.device(),
+                                source + source_offset, converted.device(), row_bytes);
         }
     }
 }
@@ -1238,6 +1245,7 @@ void kv_cache_store_pair_(Tensor& key_cache, Tensor& value_cache,
                           std::int64_t position,
                           [[maybe_unused]] const OpContext& context) {
     require_same_shape(key_cache, value_cache);
+    require_same_dtype(key_cache, value_cache);
     require_same_shape(current_key, current_value);
     require_same_device(key_cache, value_cache);
     require_same_device(current_key, current_value);
@@ -1247,7 +1255,9 @@ void kv_cache_store_pair_(Tensor& key_cache, Tensor& value_cache,
         kv_cache_store_(value_cache, current_value, position, context);
         return;
     }
-    if (key_cache.dtype() != DType::Float32 || current_key.dtype() != DType::Float32 ||
+    if ((key_cache.dtype() != DType::Float32 &&
+         key_cache.dtype() != DType::BFloat16) ||
+        current_key.dtype() != DType::Float32 ||
         key_cache.ndim() != 4 || current_key.ndim() != 4 ||
         key_cache.shape()[0] <= 0 ||
         key_cache.shape()[0] != current_key.shape()[0] ||
@@ -1271,8 +1281,8 @@ void kv_cache_store_pair_(Tensor& key_cache, Tensor& value_cache,
     hip::launch_kv_cache_store_pair(
         static_cast<const float*>(current_key.data()),
         static_cast<const float*>(current_value.data()),
-        static_cast<float*>(key_cache.data()), static_cast<float*>(value_cache.data()),
-        batches, heads, capacity, width, position,
+        key_cache.data(), value_cache.data(), key_cache.dtype(), batches, heads,
+        capacity, width, position,
         context.native_stream(key_cache.device()));
 #else
     throw std::runtime_error("microLLM was built without HIP operator support");
@@ -1283,13 +1293,15 @@ Tensor cached_gqa_attention(const Tensor& query, const Tensor& key_cache,
                             const Tensor& value_cache, std::int64_t repeats,
                             float factor, [[maybe_unused]] const OpContext& context) {
     require_float(query, "query");
-    require_float(key_cache, "key_cache");
-    require_float(value_cache, "value_cache");
+    require_forward_float(key_cache, "key_cache");
+    require_forward_float(value_cache, "value_cache");
     require_same_device(query, key_cache);
     require_same_device(query, value_cache);
     require_same_shape(key_cache, value_cache);
-    if (query.dtype() != DType::Float32 || key_cache.dtype() != DType::Float32 ||
-        value_cache.dtype() != DType::Float32 || query.ndim() != 4 ||
+    require_same_dtype(key_cache, value_cache);
+    if (query.dtype() != DType::Float32 ||
+        (key_cache.dtype() != DType::Float32 &&
+         key_cache.dtype() != DType::BFloat16) || query.ndim() != 4 ||
         key_cache.ndim() != 4 || query.shape()[0] <= 0 || query.shape()[2] != 1 ||
         key_cache.shape()[0] != query.shape()[0] ||
         query.shape()[3] != key_cache.shape()[3] ||
@@ -1317,8 +1329,7 @@ Tensor cached_gqa_attention(const Tensor& query, const Tensor& key_cache,
             Tensor output({batches, heads, 1, width}, DType::Float32, query.device());
             hip::launch_cached_attention_fused(
                 static_cast<const float*>(query.data()),
-                static_cast<const float*>(key_cache.data()),
-                static_cast<const float*>(value_cache.data()),
+                key_cache.data(), value_cache.data(), key_cache.dtype(),
                 static_cast<float*>(output.data()), batches, heads, sequence,
                 cache_batch_stride, cache_head_stride, width, repeats, factor,
                 context.native_stream(query.device()));
@@ -1327,7 +1338,7 @@ Tensor cached_gqa_attention(const Tensor& query, const Tensor& key_cache,
         Tensor scores({batches, heads, 1, sequence}, DType::Float32, query.device());
         hip::launch_cached_attention_scores(
             static_cast<const float*>(query.data()),
-            static_cast<const float*>(key_cache.data()),
+            key_cache.data(), key_cache.dtype(),
             static_cast<float*>(scores.data()), batches, heads, kv_heads, sequence,
             cache_batch_stride, cache_head_stride, width, repeats, factor,
             context.native_stream(query.device()));
@@ -1335,7 +1346,7 @@ Tensor cached_gqa_attention(const Tensor& query, const Tensor& key_cache,
         Tensor output({batches, heads, 1, width}, DType::Float32, query.device());
         hip::launch_cached_attention_context(
             static_cast<const float*>(probabilities.data()),
-            static_cast<const float*>(value_cache.data()),
+            value_cache.data(), value_cache.dtype(),
             static_cast<float*>(output.data()), batches, heads, kv_heads, sequence,
             cache_batch_stride, cache_head_stride, width, repeats,
             context.native_stream(query.device()));

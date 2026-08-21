@@ -4,6 +4,7 @@
 
 #include <gtest/gtest.h>
 #include <microllm/model/model.h>
+#include <microllm/ops/ops.h>
 
 namespace microllm::model {
 namespace {
@@ -350,6 +351,36 @@ TEST(TransformerModelTest, BatchedPrefillAndDecodeMatchIndependentFullSequences)
                                   full.begin() + offset + config.vocabulary_size);
     }
     expect_near(continued, expected_continued, 2.0e-5F);
+}
+
+TEST(TransformerModelTest, Bf16KvCacheHalvesStorageAndTracksFp32Decode) {
+    auto config = tiny_config(true);
+    config.max_sequence_length = 8;
+    TransformerModel fp32_model(config, 47);
+    TransformerModel bf16_model(config, 47);
+    inference::KVCache fp32_cache(config.layers, config.max_sequence_length, 2,
+                                  DType::Float32);
+    inference::KVCache bf16_cache(config.layers, config.max_sequence_length, 2,
+                                  DType::BFloat16);
+    EXPECT_THROW((inference::KVCache(config.layers, config.max_sequence_length, 2,
+                                     DType::Float16)),
+                 std::invalid_argument);
+    const auto prefix = Tensor::from_int32_vector(
+        {1, 2, 3, 4, 3, 2, 1, 2}, {2, 4});
+    const auto fp32_prefill = fp32_model.forward_prefill_cached(prefix, fp32_cache);
+    const auto bf16_prefill = bf16_model.forward_prefill_cached(prefix, bf16_cache);
+    EXPECT_EQ(bf16_cache.dtype(), DType::BFloat16);
+    EXPECT_EQ(bf16_cache.layer(0).key.dtype(), DType::BFloat16);
+    EXPECT_EQ(bf16_cache.layer(0).key.storage().num_bytes() * 2U,
+              fp32_cache.layer(0).key.storage().num_bytes());
+    expect_near(bf16_prefill.to_vector(), fp32_prefill.to_vector(), 2.0e-2F);
+
+    const auto next = Tensor::from_int32_vector({4, 1}, {2, 1});
+    const auto fp32_decode = fp32_model.forward_cached(next, fp32_cache);
+    const auto bf16_decode = bf16_model.forward_cached(next, bf16_cache);
+    expect_near(bf16_decode.to_vector(), fp32_decode.to_vector(), 2.0e-2F);
+    EXPECT_EQ(ops::argmax_last_dim(bf16_decode).to_int32_vector(),
+              ops::argmax_last_dim(fp32_decode).to_int32_vector());
 }
 
 }  // namespace microllm::model

@@ -19,7 +19,9 @@ component has a public interface under `include/microllm`, an implementation und
    [PyTorch performance comparison](pytorch-benchmark.md).
 10. For context/batch/KV-cache inference evidence, read the
     [simple inference-matrix guide](inference-matrix.zh-CN.md).
-11. For the measured optimization loop, read the
+11. For FP32/BF16 cache policy and its numerical gates, read the
+    [KV-cache dtype guide](kv-cache-dtypes.zh-CN.md).
+12. For the measured optimization loop, read the
     [0→1 optimization log](../optimization-log/README.md).
 
 ## Engineering rules

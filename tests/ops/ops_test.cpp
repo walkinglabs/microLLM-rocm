@@ -309,6 +309,27 @@ TEST(CpuOpsTest, BatchedCacheStoreAndGqaAttentionKeepRowsIndependent) {
     expect_near(output.to_vector(), {3, 4, 3, 4, 5, 6, 5, 6});
 }
 
+TEST(CpuOpsTest, Bf16CacheRoundsStorageAndKeepsFp32AttentionOutput) {
+    Tensor backing({2, 1, 3, 2}, DType::BFloat16);
+    auto cache = Tensor::from_storage(backing.storage(), {2, 1, 1, 2},
+                                      backing.strides(), 0, DType::BFloat16);
+    const auto current = Tensor::from_vector(
+        {1.00390625F, -2.01171875F, 3.01953125F, 4.02734375F},
+        {2, 1, 1, 2});
+    kv_cache_store_(cache, current, 0);
+    EXPECT_EQ(cache.dtype(), DType::BFloat16);
+    EXPECT_EQ(cache.storage().num_bytes(), 2U * 1U * 3U * 2U * 2U);
+    expect_near(cache.to_vector(), current.cast(DType::BFloat16).to_vector());
+
+    const auto query = Tensor::from_vector({1, 0, 0, 1}, {2, 1, 1, 2});
+    const auto output = cached_gqa_attention(query, cache, cache, 1, 1.0F);
+    EXPECT_EQ(output.dtype(), DType::Float32);
+    expect_near(output.to_vector(), cache.to_vector());
+    EXPECT_THROW((void)cached_gqa_attention(
+                     query, cache, cache.cast(DType::Float32), 1, 1.0F),
+                 std::invalid_argument);
+}
+
 TEST(CpuOpsTest, ArgmaxUsesSmallestTieIndexAndMarksNonFiniteInput) {
     EXPECT_EQ(argmax(Tensor::from_vector({-2, 5, 5, 4}, {4})).to_int32_vector(),
               (std::vector<std::int32_t>{1}));

@@ -34,6 +34,7 @@ struct Options {
     std::string device = "cpu";
     std::int64_t top_k = 10;
     std::filesystem::path logits_output;
+    std::filesystem::path cache_logits_output;
     std::string text;
     std::filesystem::path vocabulary;
     std::filesystem::path merges;
@@ -51,6 +52,7 @@ struct Options {
     bool use_cache = true;
     std::string cache_prefill_mode = "full";
     std::string batch_argmax_mode = "device";
+    std::string kv_cache_dtype = "fp32";
 };
 
 Options options(int argc, char** argv) {
@@ -64,6 +66,9 @@ Options options(int argc, char** argv) {
         else if (name == "--device") result.device = argv[index + 1];
         else if (name == "--top-k") result.top_k = std::stoll(argv[index + 1]);
         else if (name == "--logits-output") result.logits_output = argv[index + 1];
+        else if (name == "--cache-logits-output") {
+            result.cache_logits_output = argv[index + 1];
+        }
         else if (name == "--text") result.text = argv[index + 1];
         else if (name == "--vocab") result.vocabulary = argv[index + 1];
         else if (name == "--merges") result.merges = argv[index + 1];
@@ -100,6 +105,7 @@ Options options(int argc, char** argv) {
         }
         else if (name == "--cache-prefill-mode") result.cache_prefill_mode = argv[index + 1];
         else if (name == "--batch-argmax-mode") result.batch_argmax_mode = argv[index + 1];
+        else if (name == "--kv-cache-dtype") result.kv_cache_dtype = argv[index + 1];
         else throw std::invalid_argument("unknown CLI option: " + name);
     }
     if (result.config.empty() || result.weights.empty()) {
@@ -123,6 +129,9 @@ Options options(int argc, char** argv) {
     if (result.batch_argmax_mode != "device" && result.batch_argmax_mode != "host") {
         throw std::invalid_argument("--batch-argmax-mode must be device or host");
     }
+    if (result.kv_cache_dtype != "fp32" && result.kv_cache_dtype != "bf16") {
+        throw std::invalid_argument("--kv-cache-dtype must be fp32 or bf16");
+    }
     if (result.new_tokens < 0) throw std::invalid_argument("--new-tokens cannot be negative");
     if (result.warmup < 0 || result.steps <= 0) {
         throw std::invalid_argument("--warmup must be nonnegative and --steps positive");
@@ -144,6 +153,11 @@ Options options(int argc, char** argv) {
     if (result.bf16_attention && !result.bf16_ffn) {
         throw std::invalid_argument("--bf16-attention requires --bf16-ffn true");
     }
+    if (!result.cache_logits_output.empty() &&
+        (!result.use_cache || result.workload == "prefill" || result.new_tokens < 2)) {
+        throw std::invalid_argument(
+            "--cache-logits-output requires cached decode with at least two new tokens");
+    }
     return result;
 }
 
@@ -164,8 +178,8 @@ std::size_t tensor_bytes(const microllm::Tensor& tensor) {
 
 struct CachedGenerationState {
     CachedGenerationState(std::int64_t layers, std::int64_t capacity,
-                          std::int64_t batch)
-        : cache(layers, capacity, batch) {}
+                          std::int64_t batch, microllm::DType dtype)
+        : cache(layers, capacity, batch, dtype) {}
     microllm::inference::KVCache cache;
     microllm::Tensor logits;
 };
@@ -173,10 +187,10 @@ struct CachedGenerationState {
 CachedGenerationState prepare_cached(
     microllm::model::TransformerModel& model,
     const std::vector<std::int32_t>& prompt, std::int64_t new_tokens,
-    std::int64_t batch, bool full_prefill) {
+    std::int64_t batch, bool full_prefill, microllm::DType cache_dtype) {
     CachedGenerationState state(
         model.config().layers,
-        static_cast<std::int64_t>(prompt.size()) + new_tokens, batch);
+        static_cast<std::int64_t>(prompt.size()) + new_tokens, batch, cache_dtype);
     std::vector<std::int32_t> batched_prompt;
     batched_prompt.reserve(prompt.size() * static_cast<std::size_t>(batch));
     for (std::int64_t row = 0; row < batch; ++row) {
@@ -432,6 +446,10 @@ int main(int argc, char** argv) {
         std::vector<std::int32_t> generated_suffix;
         std::string generated_text;
         GenerationRun generation_evidence;
+        microllm::Tensor cache_logits_evidence;
+        const auto cache_dtype = command.kv_cache_dtype == "bf16"
+                                     ? microllm::DType::BFloat16
+                                     : microllm::DType::Float32;
         if (run_decode && command.new_tokens > 0) {
             const auto warmup_start = std::chrono::steady_clock::now();
             for (int iteration = 0; iteration < command.warmup; ++iteration) {
@@ -439,7 +457,7 @@ int main(int argc, char** argv) {
                     auto state = prepare_cached(
                         model, ids, command.new_tokens,
                         command.batch,
-                        command.cache_prefill_mode == "full");
+                        command.cache_prefill_mode == "full", cache_dtype);
                     (void)decode_cached(model, state, command.new_tokens);
                 } else {
                     (void)generate_uncached(
@@ -463,7 +481,7 @@ int main(int argc, char** argv) {
                     auto state = prepare_cached(
                         model, ids, command.new_tokens,
                         command.batch,
-                        command.cache_prefill_mode == "full");
+                        command.cache_prefill_mode == "full", cache_dtype);
                     microllm::runtime::synchronize(device);
                     const auto prepare_finish = std::chrono::steady_clock::now();
                     cache_prepare_ms += std::chrono::duration<double, std::milli>(
@@ -474,6 +492,9 @@ int main(int argc, char** argv) {
                     const auto decode_finish = std::chrono::steady_clock::now();
                     generation_ms += std::chrono::duration<double, std::milli>(
                                          decode_finish - decode_start).count();
+                    if (iteration == 0 && !command.cache_logits_output.empty()) {
+                        cache_logits_evidence = state.logits;
+                    }
                 } else {
                     const auto decode_start = std::chrono::steady_clock::now();
                     current = generate_uncached(
@@ -494,6 +515,15 @@ int main(int argc, char** argv) {
         }
         const auto allocation = microllm::runtime::allocation_stats(device);
         const auto measured_transfers = microllm::runtime::transfer_stats();
+        if (!command.cache_logits_output.empty()) {
+            const auto cache_logits = cache_logits_evidence.to_vector();
+            std::ofstream output(command.cache_logits_output,
+                                 std::ios::binary | std::ios::trunc);
+            if (!output) throw std::runtime_error("cannot open cached logits output");
+            output.write(reinterpret_cast<const char*>(cache_logits.data()),
+                         static_cast<std::streamsize>(cache_logits.size() * sizeof(float)));
+            if (!output) throw std::runtime_error("failed writing cached logits output");
+        }
         const auto info = device.is_cpu()
                               ? microllm::runtime::DeviceInfo{device, "host CPU", "host"}
                               : microllm::runtime::device_info(device);
@@ -546,6 +576,11 @@ int main(int argc, char** argv) {
                   << ",\"use_cache\":" << (command.use_cache ? "true" : "false")
                   << ",\"cache_prefill_mode\":\""
                   << command.cache_prefill_mode << "\""
+                  << ",\"kv_cache_dtype\":\""
+                  << command.kv_cache_dtype << "\""
+                  << ",\"cache_logits_step\":"
+                  << (command.cache_logits_output.empty()
+                          ? 0 : command.new_tokens - 1)
                   << ",\"batch_argmax_mode\":\""
                   << command.batch_argmax_mode << "\""
                   << ",\"warmup\":" << command.warmup
