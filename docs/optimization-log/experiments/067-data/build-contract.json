@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "baseline_source": "Experiment 065 uniform BF16 Release",
+  "candidate_source": "Experiment 067 mixed layer policy frozen worktree",
+  "build_type": "Release",
+  "release_flags": "-O3 -DNDEBUG",
+  "hip_architecture": "gfx942",
+  "selected_policy": "layer 1 FP32; every other layer BF16",
+  "protocol": {
+    "contexts": [32, 512, 2048],
+    "batches": [1, 8],
+    "decode_tokens": 16,
+    "warmup": 2,
+    "steps": 5,
+    "fresh_process_runs": 3
+  }
+}

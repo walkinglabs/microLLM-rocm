@@ -789,7 +789,7 @@ Tensor TransformerModel::forward_prefill_cached(
         for (std::size_t layer = 0; layer < impl_->blocks.size(); ++layer) {
             hidden = impl_->blocks[layer]->forward_prefill_cached(
                 hidden, cache.mutable_layer(layer), cache.max_sequence_length(),
-                cache.dtype());
+                cache.layer_dtype(layer));
         }
         hidden = impl_->final_norm.forward_tensor(hidden);
         const auto last = hidden.slice(1, sequence - 1, sequence)
@@ -843,7 +843,7 @@ Tensor TransformerModel::forward_cached(const Tensor& token_id, inference::KVCac
         hidden = impl_->blocks[layer]->forward_cached(hidden, cache.mutable_layer(layer),
                                                       cache.position(),
                                                       cache.max_sequence_length(),
-                                                      cache.dtype());
+                                                      cache.layer_dtype(layer));
     }
     hidden = impl_->final_norm.forward_tensor(hidden);
     const auto flat = hidden.reshape({batch, impl_->config.dimension});

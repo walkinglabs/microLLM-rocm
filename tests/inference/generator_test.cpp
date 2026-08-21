@@ -46,7 +46,8 @@ TEST(GeneratorTest, UsesCacheAndReturnsRequestedValidTokens) {
                                  {.max_new_tokens = 5,
                                   .temperature = 0.0F,
                                   .top_k = 0,
-                                  .seed = 99});
+                                  .seed = 99,
+                                  .kv_cache_layer_dtypes = {}});
     ASSERT_EQ(tokens.size(), 8U);
     EXPECT_EQ(std::vector<std::int32_t>(tokens.begin(), tokens.begin() + 3),
               (std::vector<std::int32_t>{1, 2, 3}));
@@ -61,8 +62,18 @@ TEST(GeneratorTest, UsesCacheAndReturnsRequestedValidTokens) {
          .temperature = 0.0F,
          .top_k = 0,
          .seed = 99,
-         .kv_cache_dtype = DType::BFloat16});
+         .kv_cache_dtype = DType::BFloat16,
+         .kv_cache_layer_dtypes = {}});
     EXPECT_EQ(bf16_tokens, tokens);
+    model::TransformerModel explicit_policy_model(generation_config(), 47);
+    const auto explicit_policy_tokens = generate(
+        explicit_policy_model, {1, 2, 3},
+        {.max_new_tokens = 5,
+         .temperature = 0.0F,
+         .top_k = 0,
+         .seed = 99,
+         .kv_cache_layer_dtypes = {DType::BFloat16}});
+    EXPECT_EQ(explicit_policy_tokens, tokens);
 }
 
 TEST(GeneratorTest, RejectsInvalidSamplingAndContext) {
@@ -71,9 +82,20 @@ TEST(GeneratorTest, RejectsInvalidSamplingAndContext) {
     EXPECT_THROW((void)sample_token({1, 2}, -1.0F, 0, generator), std::invalid_argument);
     model::TransformerModel model(generation_config(), 53);
     EXPECT_THROW((void)generate(model, {}, {}), std::invalid_argument);
-    EXPECT_THROW((void)generate(model, {1, 2, 3}, {.max_new_tokens = 10}),
+    EXPECT_THROW((void)generate(
+                     model, {1, 2, 3},
+                     {.max_new_tokens = 10, .kv_cache_layer_dtypes = {}}),
                  std::invalid_argument);
-    EXPECT_THROW((void)generate(model, {8}, {.max_new_tokens = 0}), std::out_of_range);
+    EXPECT_THROW((void)generate(
+                     model, {8},
+                     {.max_new_tokens = 0, .kv_cache_layer_dtypes = {}}),
+                 std::out_of_range);
+    EXPECT_THROW((void)generate(
+                     model, {1, 2},
+                     {.max_new_tokens = 1,
+                      .kv_cache_layer_dtypes = {DType::Float32,
+                                                DType::BFloat16}}),
+                 std::invalid_argument);
 }
 
 }  // namespace microllm::inference

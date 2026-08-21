@@ -1678,6 +1678,73 @@ def validate_fused_prefix_pair_discard(errors: list[str]) -> tuple[int, int, int
     return len(formal), len(precision_rows), candidate.get("kernel_dispatches", 0)
 
 
+def validate_mixed_layer_kv_policy(errors: list[str]) -> tuple[int, int, int, int]:
+    data = ROOT / "experiments" / "067-data"
+    formal = [json.loads(line) for line in
+              (data / "formal-release" / "raw.jsonl").read_text(
+                  encoding="utf-8").splitlines()]
+    keys = {(row.get("model"), row.get("context"), row.get("batch"),
+             row.get("framework"), row.get("process_run")) for row in formal}
+    if len(formal) != 72 or len(keys) != 72 or any(
+            row.get("status") != "pass" for row in formal):
+        errors.append("mixed-layer KV formal protocol changed")
+    micro = [row for row in formal if row.get("framework") == "microllm"]
+    if len(micro) != 36 or any(
+            row.get("kv_cache_fp32_layer_policy") != "1" or
+            int(row.get("kv_cache_fp32_layers", 0)) != 1 or
+            int(row.get("kv_cache_actual_bytes", 0)) !=
+            int(row.get("kv_cache_theoretical_bytes", -1)) or
+            (int(row.get("kv_cache_bf16_layers", 0)) not in {23, 27})
+            for row in micro):
+        errors.append("mixed-layer KV dtype/byte policy changed")
+    comparison = json.loads((data / "comparison.json").read_text(encoding="utf-8"))
+    comparison_rows = comparison.get("rows", [])
+    deepseek_long = next((row for row in comparison_rows
+                          if row.get("model") == "deepseek-r1-distill-qwen-1.5b" and
+                          row.get("context") == 2048 and row.get("batch") == 8), {})
+    if comparison.get("decision") != "keep_explicit" or len(comparison_rows) != 12 or any(
+            float(row.get("throughput_ratio_hybrid_over_uniform", 0.0)) < 0.975 or
+            row.get("tokens_equal") is not True for row in comparison_rows) or \
+            float(deepseek_long.get("end_to_end_speedup", 1.0)) >= 0.87:
+        errors.append("mixed-layer KV explicit keep/tradeoff changed")
+    precision = json.loads((data / "layer1-precision" / "summary.json").read_text(
+        encoding="utf-8"))
+    precision_rows = precision.get("records", [])
+    if precision.get("status") != "pass" or len(precision_rows) != 12 or any(
+            row.get("status") != "pass" or row.get("all_logits_finite") is not True or
+            row.get("top_tokens_equal") is not True or
+            row.get("generated_tokens_equal") is not True or
+            row.get("bf16_fp32_layer_policy") != "1"
+            for row in precision_rows):
+        errors.append("mixed-layer KV 12-shape precision pass changed")
+    layer0 = json.loads((data / "layer0-full" / "summary.json").read_text(
+        encoding="utf-8"))
+    layer0_failed = [row for row in layer0.get("records", [])
+                     if row.get("status") == "failed"]
+    if layer0.get("status") != "failed" or len(layer0_failed) != 1 or \
+            layer0_failed[0].get("context") != 32 or \
+            layer0_failed[0].get("batch") != 1:
+        errors.append("mixed-layer KV layer0 rebuttal changed")
+    search = json.loads((data / "search-summary.json").read_text(encoding="utf-8"))
+    if search.get("selected_policy") != "1" or len(search.get("rows", [])) != 16:
+        errors.append("mixed-layer KV policy search changed")
+    profile = json.loads((data / "profile-summary.json").read_text(encoding="utf-8"))
+    with (data / "profile" / "kernel-stats.csv").open(
+            encoding="utf-8", newline="") as stream:
+        kernels = list(csv.DictReader(stream))
+    hybrid = profile.get("hybrid", {})
+    if sum(int(row["Calls"]) for row in kernels) != hybrid.get("kernel_dispatches") or \
+            sum(int(row["TotalDurationNs"]) for row in kernels) != \
+            hybrid.get("kernel_time_ns") or hybrid.get("cached_attention_bf16_calls") != 138 or \
+            hybrid.get("cached_attention_fp32_calls") != 6:
+        errors.append("mixed-layer KV profile/layer decomposition changed")
+    if "layer_dtype" not in (REPOSITORY / "include/microllm/inference/kv_cache.h").read_text(
+            encoding="utf-8"):
+        errors.append("mixed-layer KV public policy API is missing")
+    return len(formal), len(precision_rows), len(search.get("rows", [])), \
+        hybrid.get("kernel_dispatches", 0)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -1723,7 +1790,8 @@ def validate_assets(errors: list[str]) -> None:
                  "device-rowwise-argmax.svg",
                  "batched-kv-cache.svg",
                  "bf16-kv-cache.svg",
-                 "fused-prefix-pair-discard.svg"):
+                 "fused-prefix-pair-discard.svg",
+                 "mixed-layer-kv-policy.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -1798,6 +1866,8 @@ def main() -> int:
         validate_bf16_kv_cache(errors)
     prefix_pair_formal, prefix_pair_precision, prefix_pair_calls = \
         validate_fused_prefix_pair_discard(errors)
+    mixed_kv_formal, mixed_kv_precision, mixed_kv_search, mixed_kv_calls = \
+        validate_mixed_layer_kv_policy(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -1842,6 +1912,8 @@ def main() -> int:
           f"{bf16_kv_precision}/{bf16_kv_calls} "
           f"prefix_pair={prefix_pair_formal}/{prefix_pair_precision}/"
           f"{prefix_pair_calls} "
+          f"mixed_kv={mixed_kv_formal}/{mixed_kv_precision}/"
+          f"{mixed_kv_search}/{mixed_kv_calls} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

@@ -74,8 +74,12 @@ steady decode；两者之和写入`mean_end_to_end_generation_ms`。默认值仍
 长度和position，continuous batching/request scheduling仍是后续能力。
 
 `--kv-cache-dtype fp32|bf16`选择Cache Storage类型。默认FP32；BF16严格把Cache字节
-减半，但当前是显式实验策略，因为DeepSeek长context已观察到token分叉。完整设计、API和
+减半，但当前是显式实验策略，因为DeepSeek有一条Release RMSE门失败。完整设计、API和
 误差门见[KV Cache数据类型](dev/kv-cache-dtypes.zh-CN.md)。
+
+`--kv-cache-fp32-layers 1,5`可以在BF16基础上让指定层使用FP32。固定DeepSeek实验的
+strict策略是layer 1 FP32、其余BF16：完整logits 12/12通过、Cache仍缩小1.931×，但
+T2048 B8端到端慢13.4%，因此不会自动启用。
 
 `--cache-logits-output PATH`保存真正经过cached decode后的完整logits，只用于精度诊断，
 要求至少生成两个token；开启它的运行不作为正式性能排名。

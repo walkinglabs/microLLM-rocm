@@ -167,7 +167,8 @@ int main(int argc, char** argv) {
                     model, prompt, {.max_new_tokens = options.new_tokens,
                                     .temperature = 0.0F,
                                     .top_k = 0,
-                                    .seed = static_cast<std::uint64_t>(iteration)});
+                                    .seed = static_cast<std::uint64_t>(iteration),
+                                    .kv_cache_layer_dtypes = {}});
             }
             microllm::runtime::synchronize(device);
             const auto warmup_finish = std::chrono::steady_clock::now();
@@ -180,7 +181,8 @@ int main(int argc, char** argv) {
                     model, prompt, {.max_new_tokens = options.new_tokens,
                                     .temperature = 0.0F,
                                     .top_k = 0,
-                                    .seed = static_cast<std::uint64_t>(iteration)});
+                                    .seed = static_cast<std::uint64_t>(iteration),
+                                    .kv_cache_layer_dtypes = {}});
                 for (const auto token : generated) output_guard += token;
                 microllm::runtime::synchronize(device);
             }

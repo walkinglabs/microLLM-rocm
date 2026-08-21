@@ -835,7 +835,8 @@ TEST(HipGenerationTest, GreedyLoopKeepsSelectedTokenOnDevice) {
     const std::vector<std::int32_t> prompt{1, 2};
     runtime::reset_transfer_stats();
     const auto generated = inference::generate(
-        model, prompt, {.max_new_tokens = 4, .temperature = 0.0F, .top_k = 1, .seed = 9});
+        model, prompt, {.max_new_tokens = 4, .temperature = 0.0F, .top_k = 1,
+                        .seed = 9, .kv_cache_layer_dtypes = {}});
     const auto transfers = runtime::transfer_stats();
     EXPECT_EQ(generated.size(), 6U);
     EXPECT_EQ(transfers.host_to_device_calls, 1U);
@@ -1197,6 +1198,44 @@ TEST(HipModelTest, PreallocatedGqaCacheMatchesCpuAndAvoidsPayloadTransfers) {
     const auto batch_actual_next = batch_hip_model.forward_cached(
         batch_next.to(Device::hip()), batch_hip_cache).to_vector();
     expect_near(batch_actual_next, batch_expected_next, 5.0e-4F);
+}
+
+TEST(HipModelTest, MixedLayerKvCacheMatchesCpuAndKeepsLayerDtypes) {
+    require_gpu();
+    const model::ModelConfig config{.vocabulary_size = 16,
+                                    .dimension = 8,
+                                    .layers = 2,
+                                    .heads = 2,
+                                    .kv_heads = 1,
+                                    .ffn_dimension = 16,
+                                    .max_sequence_length = 4,
+                                    .rope_base = 10000.0F,
+                                    .tie_embeddings = false};
+    const std::vector<DType> policy{DType::BFloat16, DType::Float32};
+    model::TransformerModel cpu_model(config, 73);
+    model::TransformerModel hip_model(config, 73);
+    hip_model.to(Device::hip());
+    inference::KVCache cpu_cache(policy, config.max_sequence_length);
+    inference::KVCache hip_cache(policy, config.max_sequence_length);
+    const auto prefix = Tensor::from_int32_vector({1, 2, 3}, {1, 3});
+    const auto expected = cpu_model.forward_prefill_cached(prefix, cpu_cache).to_vector();
+    const auto device_prefix = prefix.to(Device::hip());
+    runtime::reset_transfer_stats();
+    const auto actual = hip_model.forward_prefill_cached(device_prefix, hip_cache);
+    runtime::synchronize(Device::hip());
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    expect_near(actual.to_vector(), expected, 6.0e-4F);
+    EXPECT_EQ(hip_cache.layer(0).key.dtype(), DType::BFloat16);
+    EXPECT_EQ(hip_cache.layer(1).key.dtype(), DType::Float32);
+    EXPECT_EQ(hip_cache.layer(0).key.storage().num_bytes() * 2U,
+              hip_cache.layer(1).key.storage().num_bytes());
+    const auto next = Tensor::from_int32_vector({4}, {1, 1});
+    const auto expected_next = cpu_model.forward_cached(next, cpu_cache).to_vector();
+    const auto actual_next = hip_model.forward_cached(
+        next.to(Device::hip()), hip_cache).to_vector();
+    expect_near(actual_next, expected_next, 6.0e-4F);
 }
 
 TEST(HipTensorTest, NonContiguousTransposeMaterializesInLogicalOrder) {

@@ -32,7 +32,8 @@ class KvCachePrecisionTest(unittest.TestCase):
                      "inference": {"token_ids": [1, 2]}}
             args = type("Args", (), {"decode_tokens": 4,
                                       "max_absolute_error": 0.25,
-                                      "maximum_rmse": 0.05})()
+                                      "maximum_rmse": 0.05,
+                                      "bf16_fp32_layers": ""})()
             raw = {
                 "generated_tokens": [2, 3, 1, 0],
                 "kv_cache_actual_bytes": 80,
@@ -44,6 +45,10 @@ class KvCachePrecisionTest(unittest.TestCase):
                 if dtype == "fp32":
                     return raw, array("f", [0.0, 1.0, 3.0, 2.0])
                 bf16 = {**raw, "kv_cache_actual_bytes": 40,
+                        "kv_cache_fp32_layers": 0,
+                        "kv_cache_bf16_layers": 2,
+                        "kv_cache_fp32_bytes": 0,
+                        "kv_cache_bf16_bytes": 40,
                         "decode_tokens_per_second": 11.0,
                         "engine_peak_bytes": 960}
                 return bf16, array("f", [0.01, 1.01, 2.98, 2.0])

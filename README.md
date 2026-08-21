@@ -63,6 +63,8 @@ needed to run a real training and generation loop:
   official Qwen/DeepSeek cached decode scales at 98.1%/99.5% efficiency.
 - opt-in BF16 KV Storage halves cache bytes with FP32 Attention accumulation; Qwen's
   32–2048 context gate passes, while a retained DeepSeek RMSE failure keeps FP32 default.
+- explicit per-layer FP32/BF16 Cache policies can restore a strict complete-logit gate without
+  hiding their extra Cache and long-batch prefill cost.
 
 The design keeps three implementations where they provide engineering value:
 
@@ -148,10 +150,10 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 265/265 | 189 CPU-labelled + 76 HIP-labelled gates; 2 intentional environment skips |
-| ASan/UBSan CPU | 182/182 | host code, CLI, model/graph, benchmark and evidence schemas |
+| Full CPU/HIP configuration | 267/267 | 190 CPU-labelled + 77 HIP-labelled gates; 2 intentional environment skips |
+| ASan/UBSan CPU | 183/183 | host code, CLI, model/graph, benchmark and evidence schemas |
 | MI300X/gfx942 HIP | 73/73 | allocator/stream, graph, BF16/FP8, batched GEMM and model matrix |
-| PyTorch-enabled CPU build | 187/187 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
+| PyTorch-enabled CPU build | 188/188 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
 | Registered test files | 37 | machine-audited CTest registration |
 | CPU source coverage | 83.9% lines / 66.6% branches | GCC 13.3 + gcovr 8.3; `src/` and `include/` |
@@ -242,6 +244,11 @@ Experiment 066 tests a one-Kernel BF16 prefix writer. It removes all measured D2
 improves the local profile, but Qwen T2048 B8 repeated cache preparation/end-to-end regress
 30.5%/21.1%; the candidate is removed and the failure remains published. See
 [Experiment 066](docs/optimization-log/experiments/066-fused-prefix-pair-discard.md).
+
+Experiment 067 adds explicit per-layer Cache dtypes. The pinned DeepSeek strict policy keeps only
+layer 1 FP32: complete-logit gates improve from 11/12 to 12/12 while Cache remains 1.931× smaller
+than FP32. It is not automatic because T2048 B8 end-to-end regresses 13.4%. See
+[Experiment 067](docs/optimization-log/experiments/067-mixed-layer-kv-policy.md).
 
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or

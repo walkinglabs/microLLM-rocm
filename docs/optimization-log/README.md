@@ -356,6 +356,12 @@ profile更干净，但正式Qwen T2048 B8 prepare慢30.5%、端到端慢21.1%，
 
 ![Fused prefix pair discarded](assets/fused-prefix-pair-discard.svg)
 
+Experiment 067用逐层dtype修复uniform BF16唯一RMSE失败。仅layer 1 FP32就让完整logits
+12/12通过，Cache仍缩小1.920×/1.931×；steady decode最差回退2.43%，但DeepSeek
+T2048 B8端到端慢13.4%。机制作为显式strict策略保留，不改变FP32默认。
+
+![Mixed-layer KV policy](assets/mixed-layer-kv-policy.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -447,6 +453,8 @@ profile更干净，但正式Qwen T2048 B8 prepare慢30.5%、端到端慢21.1%，
 | [experiments/065-data/](experiments/065-data/) | Release前后各72条、12条完整logits、profile和被拒绝向量化 |
 | [assets/fused-prefix-pair-discard.svg](assets/fused-prefix-pair-discard.svg) | prepare矩阵、零D2D局部成功和长batch反例 |
 | [experiments/066-data/](experiments/066-data/) | 正式72条、精度12条、profile和discard决定 |
+| [assets/mixed-layer-kv-policy.svg](assets/mixed-layer-kv-policy.svg) | RMSE修复、Cache字节和显式性能代价 |
+| [experiments/067-data/](experiments/067-data/) | 16组搜索、两套12-shape精度、72条formal和profile |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

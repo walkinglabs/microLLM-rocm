@@ -14,6 +14,9 @@ struct GenerationConfig {
     std::int64_t top_k = 0;
     std::uint64_t seed = 1;
     DType kv_cache_dtype = DType::Float32;
+    // Empty means every layer uses kv_cache_dtype. Otherwise the vector must
+    // contain one FP32/BF16 entry per model layer.
+    std::vector<DType> kv_cache_layer_dtypes;
 };
 
 [[nodiscard]] std::int32_t sample_token(const std::vector<float>& logits,

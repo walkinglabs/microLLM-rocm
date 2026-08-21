@@ -113,6 +113,10 @@ batch>1、Radeon 或其他 ROCm 版本。
 KV Cache的形状、字节公式、API和精度失败见
 [KV Cache数据类型设计](dev/kv-cache-dtypes.zh-CN.md)。
 
+逐层Cache策略允许极少数敏感层保留FP32。固定DeepSeek实验中，仅layer 1为FP32就让
+12-shape完整logits全部过门，Cache仍比全FP32小1.931×；长batch端到端代价最高13.4%，
+所以它是显式strict策略，不是模型名触发的隐式默认。
+
 训练时不能删除 FP32 master。`LinearPrecision::BFloat16` 只让 Linear forward 使用 BF16
 舍入，backward、参数和 AdamW 仍为 FP32。官方多步 loss 与 PyTorch BF16 autocast 接近，
 但当前比 microLLM FP32 慢约 8%–9%，峰值不降；continuous BF16 training island 仍未完成。

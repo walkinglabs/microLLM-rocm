@@ -127,7 +127,8 @@ class HfInferenceShapeMatrixTest(unittest.TestCase):
         args = type("Args", (), {
             "micro_binary": Path("micro"), "decode_tokens": 4,
             "warmup": 1, "steps": 2, "micro_batch_argmax_mode": "device",
-            "micro_kv_cache_dtype": "bf16"})()
+            "micro_kv_cache_dtype": "bf16",
+            "micro_kv_cache_fp32_layers": "0,2"})()
         model = {"config": "config.json", "weights": "weights.bin",
                  "inference": {"token_ids": [1, 2]}}
         command = MATRIX.micro_command(
@@ -136,6 +137,31 @@ class HfInferenceShapeMatrixTest(unittest.TestCase):
         self.assertEqual(command[policy + 1], "bf16")
         batch = command.index("--batch")
         self.assertEqual(command[batch + 1], "4")
+        layers = command.index("--kv-cache-fp32-layers")
+        self.assertEqual(command[layers + 1], "0,2")
+
+    def test_mixed_layer_cache_theoretical_bytes_sum_each_dtype(self):
+        args = type("Args", (), {"warmup": 1, "steps": 1,
+                                  "decode_tokens": 4,
+                                  "micro_kv_cache_dtype": "bf16"})()
+        raw = {
+            "decode_tokens_per_second": 10.0, "mean_generation_ms": 1.0,
+            "engine_peak_bytes": 1000, "measured_tokens": 4,
+            "resident_weight_bytes": 800,
+            "inference_weight_policy": "single_representation_bf16_ffn_attention",
+            "kv_cache_actual_bytes": 192, "kv_cache_active_bytes": 192,
+            "kv_cache_capacity_tokens": 4, "kv_cache_active_tokens": 4,
+            "kv_cache_layers": 2, "kv_cache_heads": 1,
+            "kv_cache_head_dimension": 4, "kv_cache_element_bytes": 0,
+            "kv_cache_fp32_layers": 1, "kv_cache_bf16_layers": 1,
+            "kv_cache_utilization": 1.0,
+        }
+        record = MATRIX.normalize_micro(
+            raw, {"name": "tiny", "revision": "fixed"}, 4, 1,
+            "decode", "cached", args)
+        self.assertEqual(record["kv_cache_theoretical_bytes"], 192)
+        self.assertEqual(record["kv_cache_fp32_layers"], 1)
+        self.assertEqual(record["kv_cache_bf16_layers"], 1)
 
 
 if __name__ == "__main__":

@@ -29,6 +29,7 @@ def options() -> argparse.Namespace:
     parser.add_argument("--decode-tokens", type=int, default=4)
     parser.add_argument("--warmup", type=int, default=1)
     parser.add_argument("--steps", type=int, default=1)
+    parser.add_argument("--bf16-fp32-layers", default="")
     parser.add_argument("--max-absolute-error", type=float, default=0.25)
     parser.add_argument("--maximum-rmse", type=float, default=0.05)
     parser.add_argument("--timeout-seconds", type=int, default=900)
@@ -88,6 +89,8 @@ def one_run(args: argparse.Namespace, model: dict, context: int, batch: int,
         "--batch-argmax-mode", "device", "--kv-cache-dtype", dtype,
         "--cache-logits-output", str(logits_path),
     ]
+    if dtype == "bf16" and args.bf16_fp32_layers:
+        command.extend(["--kv-cache-fp32-layers", args.bf16_fp32_layers])
     record = run_json(command, args.timeout_seconds)
     values = read_float32(logits_path)
     vocabulary = int(json.loads(Path(model["config"]).read_text(
@@ -139,6 +142,11 @@ def compare_case(args: argparse.Namespace, model: dict, context: int,
         "bf16_generated_tokens": raw["bf16"]["generated_tokens"],
         "fp32_cache_bytes": raw["fp32"]["kv_cache_actual_bytes"],
         "bf16_cache_bytes": raw["bf16"]["kv_cache_actual_bytes"],
+        "bf16_fp32_layer_policy": args.bf16_fp32_layers,
+        "bf16_fp32_layers": raw["bf16"].get("kv_cache_fp32_layers", 0),
+        "bf16_bf16_layers": raw["bf16"].get("kv_cache_bf16_layers", 0),
+        "bf16_fp32_bytes": raw["bf16"].get("kv_cache_fp32_bytes", 0),
+        "bf16_bf16_bytes": raw["bf16"].get("kv_cache_bf16_bytes", 0),
         "cache_byte_reduction": raw["fp32"]["kv_cache_actual_bytes"] /
                                 raw["bf16"]["kv_cache_actual_bytes"],
         "decode_throughput_ratio_bf16_over_fp32":
@@ -147,11 +155,16 @@ def compare_case(args: argparse.Namespace, model: dict, context: int,
         "peak_memory_ratio_bf16_over_fp32":
             raw["bf16"]["engine_peak_bytes"] / raw["fp32"]["engine_peak_bytes"],
     }
+    total_layers = result["bf16_fp32_layers"] + result["bf16_bf16_layers"]
+    expected_reduction = 2.0 * total_layers / (
+        total_layers + result["bf16_fp32_layers"])
+    result["expected_cache_byte_reduction"] = expected_reduction
     result["status"] = "pass" if (
         all_finite and maximum <= args.max_absolute_error and
         rmse <= args.maximum_rmse and
         result["top_tokens_equal"] and result["generated_tokens_equal"] and
-        math.isclose(result["cache_byte_reduction"], 2.0, rel_tol=0.0, abs_tol=0.0)
+        math.isclose(result["cache_byte_reduction"], expected_reduction,
+                     rel_tol=1.0e-12, abs_tol=0.0)
     ) else "failed"
     return result
 

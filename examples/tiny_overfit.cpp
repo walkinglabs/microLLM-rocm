@@ -54,7 +54,8 @@ int main() {
             throw std::runtime_error("tiny Transformer did not reach the overfit gate");
         }
         const auto generated = microllm::inference::generate(
-            model, {0}, {.max_new_tokens = 7, .temperature = 0.0F, .top_k = 0, .seed = 1});
+            model, {0}, {.max_new_tokens = 7, .temperature = 0.0F, .top_k = 0,
+                         .seed = 1, .kv_cache_layer_dtypes = {}});
         const std::vector<std::int32_t> expected{0, 1, 2, 3, 0, 1, 2, 3};
         const std::vector<std::int32_t> expected_trained_prefix{0, 1, 2, 3, 0};
         std::cout << "generated=";

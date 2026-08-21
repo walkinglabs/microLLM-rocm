@@ -4,6 +4,7 @@
 #include <cmath>
 #include <numeric>
 #include <stdexcept>
+#include <utility>
 
 #include <microllm/inference/kv_cache.h>
 #include <microllm/ops/ops.h>
@@ -66,9 +67,17 @@ std::vector<std::int32_t> generate(model::TransformerModel& model,
     // Reserve exactly this request's upper bound.  The model may support a much
     // larger context, but allocating that full theoretical capacity for a short
     // generation needlessly turns stable cache addresses into a memory penalty.
-    KVCache cache(model.config().layers,
-                  static_cast<std::int64_t>(prompt.size()) + config.max_new_tokens,
-                  1, config.kv_cache_dtype);
+    auto layer_dtypes = config.kv_cache_layer_dtypes;
+    if (layer_dtypes.empty()) {
+        layer_dtypes.assign(static_cast<std::size_t>(model.config().layers),
+                            config.kv_cache_dtype);
+    } else if (layer_dtypes.size() !=
+               static_cast<std::size_t>(model.config().layers)) {
+        throw std::invalid_argument(
+            "generation KV cache policy must contain one dtype per layer");
+    }
+    KVCache cache(std::move(layer_dtypes),
+                  static_cast<std::int64_t>(prompt.size()) + config.max_new_tokens);
     auto logits = model.forward_prefill_cached(
         Tensor::from_int32_vector(
             prompt, {1, static_cast<std::int64_t>(prompt.size())}),

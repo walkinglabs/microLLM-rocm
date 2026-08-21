@@ -1620,3 +1620,22 @@ token分叉未在Release复现，仍作为build-sensitive反例保留。
 候选API/Kernel/路由/测试全部删除。只留下paired step store的dtype一致性检查，以及完整
 失败数据。下一次重试必须先做prefix microbenchmark、逐step allocator计数和同binary路由
 对照；“copy变少”不再被当作充分解释。
+
+## 84. Experiment 067：不是所有层都必须用同一本作业本
+
+uniform BF16只剩DeepSeek T512 B1 RMSE失败。逐层搜索先制造了一个新陷阱：layer 0在
+T512把RMSE降到0.0268，但换T32最大误差升到0.313并失败。layer 1同时通过T32/T512，
+最终12-shape完整矩阵全部过门。
+
+![Mixed-layer KV policy](assets/mixed-layer-kv-policy.svg)
+
+选择仅layer 1 FP32、其余BF16。DeepSeek T512 B1 RMSE`0.0586→0.0395`，max_abs
+`0.2245→0.1851`；Qwen/DeepSeek 12/12 finite、top token和suffix一致。Cache仍比全FP32
+小1.920×/1.931×。
+
+代价不能隐藏。相对uniform BF16，steady decode最差回退2.43%，但DeepSeek T2048 B8
+prepare慢27.9%、端到端慢13.4%。profile里138次BF16+6次FP32 cached Attention精确还原
+23+1层和两轮3-step decode，全Kernel只多0.66%；长batch代价主要仍在prefill生命周期。
+
+因此per-layer机制保留为显式strict-logit选项，不按模型名自动开启。系统默认仍是全FP32；
+uniform BF16是速度/显存选项；当前固定DeepSeek才有经过证据的layer 1 strict配方。

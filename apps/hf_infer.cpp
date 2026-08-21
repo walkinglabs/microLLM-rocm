@@ -53,6 +53,7 @@ struct Options {
     std::string cache_prefill_mode = "full";
     std::string batch_argmax_mode = "device";
     std::string kv_cache_dtype = "fp32";
+    std::string kv_cache_fp32_layers;
 };
 
 Options options(int argc, char** argv) {
@@ -106,6 +107,9 @@ Options options(int argc, char** argv) {
         else if (name == "--cache-prefill-mode") result.cache_prefill_mode = argv[index + 1];
         else if (name == "--batch-argmax-mode") result.batch_argmax_mode = argv[index + 1];
         else if (name == "--kv-cache-dtype") result.kv_cache_dtype = argv[index + 1];
+        else if (name == "--kv-cache-fp32-layers") {
+            result.kv_cache_fp32_layers = argv[index + 1];
+        }
         else throw std::invalid_argument("unknown CLI option: " + name);
     }
     if (result.config.empty() || result.weights.empty()) {
@@ -166,6 +170,10 @@ struct GenerationRun {
     std::size_t kv_cache_actual_bytes = 0;
     std::size_t kv_cache_active_bytes = 0;
     std::size_t kv_cache_element_bytes = 0;
+    std::size_t kv_cache_fp32_bytes = 0;
+    std::size_t kv_cache_bf16_bytes = 0;
+    std::int64_t kv_cache_fp32_layers = 0;
+    std::int64_t kv_cache_bf16_layers = 0;
     std::int64_t kv_cache_capacity_tokens = 0;
     std::int64_t kv_cache_active_tokens = 0;
 };
@@ -177,9 +185,9 @@ std::size_t tensor_bytes(const microllm::Tensor& tensor) {
 }
 
 struct CachedGenerationState {
-    CachedGenerationState(std::int64_t layers, std::int64_t capacity,
-                          std::int64_t batch, microllm::DType dtype)
-        : cache(layers, capacity, batch, dtype) {}
+    CachedGenerationState(std::vector<microllm::DType> layer_dtypes,
+                          std::int64_t capacity, std::int64_t batch)
+        : cache(std::move(layer_dtypes), capacity, batch) {}
     microllm::inference::KVCache cache;
     microllm::Tensor logits;
 };
@@ -187,10 +195,10 @@ struct CachedGenerationState {
 CachedGenerationState prepare_cached(
     microllm::model::TransformerModel& model,
     const std::vector<std::int32_t>& prompt, std::int64_t new_tokens,
-    std::int64_t batch, bool full_prefill, microllm::DType cache_dtype) {
+    std::int64_t batch, bool full_prefill,
+    const std::vector<microllm::DType>& cache_dtypes) {
     CachedGenerationState state(
-        model.config().layers,
-        static_cast<std::int64_t>(prompt.size()) + new_tokens, batch, cache_dtype);
+        cache_dtypes, static_cast<std::int64_t>(prompt.size()) + new_tokens, batch);
     std::vector<std::int32_t> batched_prompt;
     batched_prompt.reserve(prompt.size() * static_cast<std::size_t>(batch));
     for (std::int64_t row = 0; row < batch; ++row) {
@@ -237,20 +245,28 @@ GenerationRun decode_cached(microllm::model::TransformerModel& model,
     run.kv_cache_active_tokens = state.cache.position();
     for (std::size_t layer = 0; layer < state.cache.layer_count(); ++layer) {
         const auto& layer_state = state.cache.layer(layer);
+        if (state.cache.layer_dtype(layer) == microllm::DType::Float32) {
+            ++run.kv_cache_fp32_layers;
+        } else {
+            ++run.kv_cache_bf16_layers;
+        }
         for (const auto* tensor : {&layer_state.key, &layer_state.value}) {
             if (!tensor->defined()) continue;
-            const auto element_bytes = microllm::dtype_size(tensor->dtype());
-            if (run.kv_cache_element_bytes != 0 &&
-                run.kv_cache_element_bytes != element_bytes) {
-                throw std::runtime_error("KV cache tensors use mixed element sizes");
-            }
-            run.kv_cache_element_bytes = element_bytes;
             // The Tensor is an active-prefix view. Storage owns the full
             // preallocated capacity and is the allocation evidence.
             run.kv_cache_actual_bytes += tensor->storage().num_bytes();
             run.kv_cache_active_bytes += tensor_bytes(*tensor);
+            if (tensor->dtype() == microllm::DType::Float32) {
+                run.kv_cache_fp32_bytes += tensor->storage().num_bytes();
+            } else {
+                run.kv_cache_bf16_bytes += tensor->storage().num_bytes();
+            }
         }
     }
+    run.kv_cache_element_bytes = run.kv_cache_fp32_layers > 0 &&
+                                         run.kv_cache_bf16_layers > 0
+                                     ? 0U
+                                     : run.kv_cache_fp32_layers > 0 ? 4U : 2U;
     return run;
 }
 
@@ -306,7 +322,8 @@ GenerationRun generate_uncached(microllm::model::TransformerModel& model,
     return run;
 }
 
-std::vector<std::int32_t> tokens(std::string_view text) {
+std::vector<std::int32_t> nonnegative_values(std::string_view text,
+                                             const char* error) {
     std::vector<std::int32_t> output;
     while (!text.empty()) {
         const auto comma = text.find(',');
@@ -314,12 +331,37 @@ std::vector<std::int32_t> tokens(std::string_view text) {
         std::int32_t value = 0;
         const auto parsed = std::from_chars(item.data(), item.data() + item.size(), value);
         if (item.empty() || parsed.ec != std::errc{} || parsed.ptr != item.data() + item.size() ||
-            value < 0) throw std::invalid_argument("--tokens must be comma-separated nonnegative IDs");
+            value < 0) throw std::invalid_argument(error);
         output.push_back(value);
         if (comma == std::string_view::npos) break;
         text.remove_prefix(comma + 1);
     }
     return output;
+}
+
+std::vector<std::int32_t> tokens(std::string_view text) {
+    return nonnegative_values(
+        text, "--tokens must be comma-separated nonnegative IDs");
+}
+
+std::vector<microllm::DType> cache_layer_dtypes(
+    std::int64_t layers, microllm::DType base_dtype,
+    std::string_view fp32_layers) {
+    std::vector<microllm::DType> result(
+        static_cast<std::size_t>(layers), base_dtype);
+    if (fp32_layers.empty()) return result;
+    std::vector<bool> seen(static_cast<std::size_t>(layers), false);
+    for (const auto layer : nonnegative_values(
+             fp32_layers,
+             "--kv-cache-fp32-layers must be comma-separated nonnegative indices")) {
+        if (layer >= layers || seen[static_cast<std::size_t>(layer)]) {
+            throw std::invalid_argument(
+                "--kv-cache-fp32-layers must contain unique in-range layer indices");
+        }
+        seen[static_cast<std::size_t>(layer)] = true;
+        result[static_cast<std::size_t>(layer)] = microllm::DType::Float32;
+    }
+    return result;
 }
 
 }  // namespace
@@ -328,6 +370,11 @@ int main(int argc, char** argv) {
     try {
         const auto command = options(argc, argv);
         auto external = microllm::model::load_huggingface_config(command.config);
+        const auto cache_dtype = command.kv_cache_dtype == "bf16"
+                                     ? microllm::DType::BFloat16
+                                     : microllm::DType::Float32;
+        const auto cache_dtypes = cache_layer_dtypes(
+            external.model.layers, cache_dtype, command.kv_cache_fp32_layers);
         const auto device = command.device == "hip" ? microllm::Device::hip(0)
                                                      : microllm::Device::cpu();
         if (device.is_hip() && microllm::runtime::hip_device_count() == 0) {
@@ -447,9 +494,6 @@ int main(int argc, char** argv) {
         std::string generated_text;
         GenerationRun generation_evidence;
         microllm::Tensor cache_logits_evidence;
-        const auto cache_dtype = command.kv_cache_dtype == "bf16"
-                                     ? microllm::DType::BFloat16
-                                     : microllm::DType::Float32;
         if (run_decode && command.new_tokens > 0) {
             const auto warmup_start = std::chrono::steady_clock::now();
             for (int iteration = 0; iteration < command.warmup; ++iteration) {
@@ -457,7 +501,7 @@ int main(int argc, char** argv) {
                     auto state = prepare_cached(
                         model, ids, command.new_tokens,
                         command.batch,
-                        command.cache_prefill_mode == "full", cache_dtype);
+                        command.cache_prefill_mode == "full", cache_dtypes);
                     (void)decode_cached(model, state, command.new_tokens);
                 } else {
                     (void)generate_uncached(
@@ -481,7 +525,7 @@ int main(int argc, char** argv) {
                     auto state = prepare_cached(
                         model, ids, command.new_tokens,
                         command.batch,
-                        command.cache_prefill_mode == "full", cache_dtype);
+                        command.cache_prefill_mode == "full", cache_dtypes);
                     microllm::runtime::synchronize(device);
                     const auto prepare_finish = std::chrono::steady_clock::now();
                     cache_prepare_ms += std::chrono::duration<double, std::milli>(
@@ -578,6 +622,8 @@ int main(int argc, char** argv) {
                   << command.cache_prefill_mode << "\""
                   << ",\"kv_cache_dtype\":\""
                   << command.kv_cache_dtype << "\""
+                  << ",\"kv_cache_fp32_layer_policy\":\""
+                  << command.kv_cache_fp32_layers << "\""
                   << ",\"cache_logits_step\":"
                   << (command.cache_logits_output.empty()
                           ? 0 : command.new_tokens - 1)
@@ -669,6 +715,14 @@ int main(int argc, char** argv) {
                       << external.model.head_dimension()
                       << ",\"kv_cache_element_bytes\":"
                       << generation_evidence.kv_cache_element_bytes
+                      << ",\"kv_cache_fp32_layers\":"
+                      << generation_evidence.kv_cache_fp32_layers
+                      << ",\"kv_cache_bf16_layers\":"
+                      << generation_evidence.kv_cache_bf16_layers
+                      << ",\"kv_cache_fp32_bytes\":"
+                      << generation_evidence.kv_cache_fp32_bytes
+                      << ",\"kv_cache_bf16_bytes\":"
+                      << generation_evidence.kv_cache_bf16_bytes
                       << ",\"kv_cache_utilization\":"
                       << (generation_evidence.kv_cache_actual_bytes == 0
                               ? 0.0

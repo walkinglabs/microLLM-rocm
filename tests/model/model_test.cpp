@@ -383,4 +383,39 @@ TEST(TransformerModelTest, Bf16KvCacheHalvesStorageAndTracksFp32Decode) {
               ops::argmax_last_dim(fp32_decode).to_int32_vector());
 }
 
+TEST(TransformerModelTest, MixedLayerKvCacheUsesEachLayerPolicy) {
+    auto config = tiny_config(true);
+    config.layers = 2;
+    config.max_sequence_length = 6;
+    TransformerModel reference_model(config, 53);
+    TransformerModel mixed_model(config, 53);
+    inference::KVCache reference_cache(config.layers, config.max_sequence_length);
+    inference::KVCache mixed_cache(
+        {DType::BFloat16, DType::Float32}, config.max_sequence_length);
+    EXPECT_TRUE(mixed_cache.has_mixed_dtypes());
+    EXPECT_THROW((void)mixed_cache.dtype(), std::logic_error);
+    EXPECT_EQ(mixed_cache.layer_dtype(0), DType::BFloat16);
+    EXPECT_EQ(mixed_cache.layer_dtype(1), DType::Float32);
+
+    const auto prefix = Tensor::from_int32_vector({1, 2, 3}, {1, 3});
+    const auto reference = reference_model.forward_prefill_cached(
+        prefix, reference_cache);
+    const auto mixed = mixed_model.forward_prefill_cached(prefix, mixed_cache);
+    EXPECT_EQ(mixed_cache.layer(0).key.dtype(), DType::BFloat16);
+    EXPECT_EQ(mixed_cache.layer(1).key.dtype(), DType::Float32);
+    EXPECT_EQ(mixed_cache.layer(0).key.storage().num_bytes() * 2U,
+              mixed_cache.layer(1).key.storage().num_bytes());
+    expect_near(mixed.to_vector(), reference.to_vector(), 2.0e-2F);
+
+    const auto next = Tensor::from_int32_vector({4}, {1, 1});
+    expect_near(mixed_model.forward_cached(next, mixed_cache).to_vector(),
+                reference_model.forward_cached(next, reference_cache).to_vector(),
+                2.0e-2F);
+    EXPECT_THROW((inference::KVCache(std::vector<DType>{}, 4)),
+                 std::invalid_argument);
+    EXPECT_THROW((inference::KVCache(-1, 4)), std::invalid_argument);
+    EXPECT_THROW((inference::KVCache({DType::Float16}, 4)),
+                 std::invalid_argument);
+}
+
 }  // namespace microllm::model

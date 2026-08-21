@@ -1,0 +1,37 @@
+{
+  "hybrid": {
+    "cached_attention_bf16_calls": 138,
+    "cached_attention_calls": 144,
+    "cached_attention_fp32_calls": 6,
+    "cached_attention_time_ns": 35937973,
+    "fp32_to_bf16_cast_calls": 836,
+    "fp32_to_bf16_cast_time_ns": 9616163,
+    "hip_api_calls": 137794,
+    "hip_api_time_ns": 4523347153,
+    "kernel_dispatches": 6571,
+    "kernel_time_ns": 318278921,
+    "memory_copy_calls": 180,
+    "memory_copy_time_ns": 20224667
+  },
+  "profile": "qwen_context2048_batch8_mixed_layer1_release",
+  "ratios": {
+    "cached_attention_hybrid_over_uniform": 1.0070611748230145,
+    "full_kernel_hybrid_over_uniform": 1.0065891362275259,
+    "removed_cast_calls": 4
+  },
+  "schema_version": 1,
+  "uniform_bf16": {
+    "cached_attention_calls": 144,
+    "cached_attention_time_ns": 35685988,
+    "device_copy_kernel_calls": 1665,
+    "device_copy_kernel_time_ns": 6889819,
+    "fp32_to_bf16_cast_calls": 840,
+    "fp32_to_bf16_cast_time_ns": 9545678,
+    "hip_api_calls": 137404,
+    "hip_api_time_ns": 4569184916,
+    "kernel_dispatches": 6575,
+    "kernel_time_ns": 316195466,
+    "memory_copy_calls": 180,
+    "memory_copy_time_ns": 20148382
+  }
+}

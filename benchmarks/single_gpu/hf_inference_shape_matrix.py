@@ -61,6 +61,7 @@ def options() -> argparse.Namespace:
                         default="device")
     parser.add_argument("--micro-kv-cache-dtype", choices=("fp32", "bf16"),
                         default="fp32")
+    parser.add_argument("--micro-kv-cache-fp32-layers", default="")
     parser.add_argument("--decode-tokens", type=int, default=16)
     parser.add_argument("--warmup", type=int, default=2)
     parser.add_argument("--steps", type=int, default=5)
@@ -177,7 +178,7 @@ def validate_measurement(record: dict, model: dict, framework: str, context: int
 def micro_command(args: argparse.Namespace, model: dict, context: int, batch: int,
                   workload: str, cache: str) -> list[str]:
     ids = expanded_tokens(model["inference"]["token_ids"], context)
-    return [
+    command = [
         str(args.micro_binary), "--config", model["config"], "--weights", model["weights"],
         "--tokens", ",".join(str(token) for token in ids), "--device", "hip",
         "--top-k", "1", "--batch", str(batch), "--use-cache", str(cache == "cached").lower(),
@@ -189,6 +190,11 @@ def micro_command(args: argparse.Namespace, model: dict, context: int, batch: in
         "--prefill-warmup", str(args.warmup), "--prefill-steps", str(args.steps),
         "--bf16-ffn", "true", "--bf16-attention", "true", "--workload", workload,
     ]
+    fp32_layers = getattr(args, "micro_kv_cache_fp32_layers", "")
+    if fp32_layers:
+        command.extend(["--kv-cache-fp32-layers",
+                        fp32_layers])
+    return command
 
 
 def normalize_micro(raw: dict, model: dict, context: int, batch: int,
@@ -198,10 +204,17 @@ def normalize_micro(raw: dict, model: dict, context: int, batch: int,
     actual = int(raw.get("kv_cache_actual_bytes", 0)) if cache == "cached" else 0
     element_bytes = int(raw.get("kv_cache_element_bytes", 0)) if cache == "cached" else 0
     capacity_tokens = int(raw.get("kv_cache_capacity_tokens", 0)) if cache == "cached" else 0
-    theoretical = theoretical_kv_cache_bytes(
-        int(raw.get("kv_cache_layers", 0)), int(raw.get("kv_cache_heads", 0)),
-        int(raw.get("kv_cache_head_dimension", 0)), batch, capacity_tokens,
-        element_bytes) if cache == "cached" else 0
+    if cache == "cached" and element_bytes == 0:
+        theoretical = (2 * int(raw.get("kv_cache_heads", 0)) *
+                       int(raw.get("kv_cache_head_dimension", 0)) * batch *
+                       capacity_tokens *
+                       (4 * int(raw.get("kv_cache_fp32_layers", 0)) +
+                        2 * int(raw.get("kv_cache_bf16_layers", 0))))
+    else:
+        theoretical = theoretical_kv_cache_bytes(
+            int(raw.get("kv_cache_layers", 0)), int(raw.get("kv_cache_heads", 0)),
+            int(raw.get("kv_cache_head_dimension", 0)), batch, capacity_tokens,
+            element_bytes) if cache == "cached" else 0
     return {
         **raw, "schema_version": 1, "record_type": "official_inference_shape_measurement",
         "framework": "microllm", "model": model["name"], "revision": model["revision"],
@@ -209,6 +222,9 @@ def normalize_micro(raw: dict, model: dict, context: int, batch: int,
         "cache_mode": cache, "precision": "mixed_bf16_weights_fp32_activations",
         "kv_cache_dtype": raw.get(
             "kv_cache_dtype", getattr(args, "micro_kv_cache_dtype", "fp32")),
+        "kv_cache_fp32_layer_policy": raw.get("kv_cache_fp32_layer_policy", ""),
+        "kv_cache_fp32_layers": int(raw.get("kv_cache_fp32_layers", 0)),
+        "kv_cache_bf16_layers": int(raw.get("kv_cache_bf16_layers", 0)),
         "precision_policy": raw.get("inference_weight_policy"),
         "warmup": args.warmup,
         "steps": args.steps, "decode_tokens": args.decode_tokens,
@@ -416,7 +432,8 @@ def pytorch_worker(args: argparse.Namespace, model: dict) -> dict:
 def summarize(records: list[dict], models: list[dict], contexts: list[int],
               batches: list[int], runs: int,
               cases: list[str] | tuple[str, ...] = ("prefill", "cached", "uncached"),
-              micro_kv_cache_dtype: str = "fp32") -> dict:
+              micro_kv_cache_dtype: str = "fp32",
+              micro_kv_cache_fp32_layers: str = "") -> dict:
     rows = []
     case_pairs = {
         "prefill": ("prefill", "uncached"),
@@ -509,7 +526,8 @@ def summarize(records: list[dict], models: list[dict], contexts: list[int],
         "schema_version": 1, "track": "official_inference_shape_matrix",
         "precision_boundary": {
             "microllm": "mixed_bf16_weights_fp32_activations; cache=" +
-                         micro_kv_cache_dtype,
+                         micro_kv_cache_dtype + "; fp32_layers=" +
+                         micro_kv_cache_fp32_layers,
             "pytorch": "full_bf16_model"
         }, "runs_per_framework": runs,
         "pairing": "fresh processes; framework order alternates by run",
@@ -605,7 +623,8 @@ def main() -> int:
                                           "error": str(error)}
                             save(record)
     summary = summarize(records, models, args.contexts, args.batches, args.runs,
-                        args.cases, args.micro_kv_cache_dtype)
+                        args.cases, args.micro_kv_cache_dtype,
+                        args.micro_kv_cache_fp32_layers)
     (args.output_directory / "summary.json").write_text(
         json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return 0
