@@ -84,6 +84,7 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [ ] extend strict/fast solution policy across Qwen/DeepSeek FFN shape families;
 - [x] test and reject Qwen solution 75789: neutral speed but nonexact logits;
 - [ ] scan remaining Qwen common candidates with a complete-logit gate;
+- [x] scan all 56 common Qwen candidates: supported, but none tensor-exact;
 - [ ] add request-level TTFT and P50/P95 latency rather than throughput alone;
 
 ## P2 — operator registry and profiler API

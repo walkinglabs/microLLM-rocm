@@ -1,0 +1,412 @@
+{
+  "exact_candidate": null,
+  "model": "qwen2.5-0.5b",
+  "requested_candidates": [
+    75890,
+    75874,
+    75870,
+    75899,
+    75866,
+    75895,
+    75851,
+    75850,
+    75817,
+    75886,
+    76011,
+    76017,
+    76023,
+    76050,
+    76048,
+    76026,
+    76016,
+    76051,
+    76036,
+    76049,
+    76090,
+    76089,
+    76091,
+    76102,
+    76103,
+    76104,
+    76101,
+    76115,
+    76314,
+    76111,
+    76311,
+    76112,
+    76331,
+    76330,
+    76131,
+    76344,
+    76346,
+    76350,
+    76146,
+    76358
+  ],
+  "rows": [
+    {
+      "candidate": 75890,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.1281750202178955,
+      "mean_abs": 0.0310461199366738,
+      "rms_abs": 0.036272737206276946,
+      "status": "pass"
+    },
+    {
+      "candidate": 75874,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.10369503498077393,
+      "mean_abs": 0.021454014930797287,
+      "rms_abs": 0.026201944702173085,
+      "status": "pass"
+    },
+    {
+      "candidate": 75870,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.1281750202178955,
+      "mean_abs": 0.0310461199366738,
+      "rms_abs": 0.036272737206276946,
+      "status": "pass"
+    },
+    {
+      "candidate": 75899,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.10369503498077393,
+      "mean_abs": 0.021454014930797287,
+      "rms_abs": 0.026201944702173085,
+      "status": "pass"
+    },
+    {
+      "candidate": 75866,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.1281750202178955,
+      "mean_abs": 0.0310461199366738,
+      "rms_abs": 0.036272737206276946,
+      "status": "pass"
+    },
+    {
+      "candidate": 75895,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.10369503498077393,
+      "mean_abs": 0.021454014930797287,
+      "rms_abs": 0.026201944702173085,
+      "status": "pass"
+    },
+    {
+      "candidate": 75851,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.10934305191040039,
+      "mean_abs": 0.02015369017140277,
+      "rms_abs": 0.024293360224601945,
+      "status": "pass"
+    },
+    {
+      "candidate": 75850,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.10934305191040039,
+      "mean_abs": 0.02015369017140277,
+      "rms_abs": 0.024293360224601945,
+      "status": "pass"
+    },
+    {
+      "candidate": 75817,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.10369503498077393,
+      "mean_abs": 0.021454014930797287,
+      "rms_abs": 0.026201944702173085,
+      "status": "pass"
+    },
+    {
+      "candidate": 75886,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.07760238647460938,
+      "mean_abs": 0.011886526964531376,
+      "rms_abs": 0.015268095188195016,
+      "status": "pass"
+    },
+    {
+      "candidate": 76011,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.1281750202178955,
+      "mean_abs": 0.0310461199366738,
+      "rms_abs": 0.036272737206276946,
+      "status": "pass"
+    },
+    {
+      "candidate": 76017,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.07760238647460938,
+      "mean_abs": 0.011886526964531376,
+      "rms_abs": 0.015268095188195016,
+      "status": "pass"
+    },
+    {
+      "candidate": 76023,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.10934305191040039,
+      "mean_abs": 0.02015369017140277,
+      "rms_abs": 0.024293360224601945,
+      "status": "pass"
+    },
+    {
+      "candidate": 76050,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.07760238647460938,
+      "mean_abs": 0.011886526964531376,
+      "rms_abs": 0.015268095188195016,
+      "status": "pass"
+    },
+    {
+      "candidate": 76048,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.07760238647460938,
+      "mean_abs": 0.011886526964531376,
+      "rms_abs": 0.015268095188195016,
+      "status": "pass"
+    },
+    {
+      "candidate": 76026,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.10934305191040039,
+      "mean_abs": 0.02015369017140277,
+      "rms_abs": 0.024293360224601945,
+      "status": "pass"
+    },
+    {
+      "candidate": 76016,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.07760238647460938,
+      "mean_abs": 0.011886526964531376,
+      "rms_abs": 0.015268095188195016,
+      "status": "pass"
+    },
+    {
+      "candidate": 76051,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.07760238647460938,
+      "mean_abs": 0.011886526964531376,
+      "rms_abs": 0.015268095188195016,
+      "status": "pass"
+    },
+    {
+      "candidate": 76036,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.10934305191040039,
+      "mean_abs": 0.02015369017140277,
+      "rms_abs": 0.024293360224601945,
+      "status": "pass"
+    },
+    {
+      "candidate": 76049,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.07760238647460938,
+      "mean_abs": 0.011886526964531376,
+      "rms_abs": 0.015268095188195016,
+      "status": "pass"
+    },
+    {
+      "candidate": 76090,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.07760238647460938,
+      "mean_abs": 0.011886526964531376,
+      "rms_abs": 0.015268095188195016,
+      "status": "pass"
+    },
+    {
+      "candidate": 76089,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.07760238647460938,
+      "mean_abs": 0.011886526964531376,
+      "rms_abs": 0.015268095188195016,
+      "status": "pass"
+    },
+    {
+      "candidate": 76091,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.07760238647460938,
+      "mean_abs": 0.011886526964531376,
+      "rms_abs": 0.015268095188195016,
+      "status": "pass"
+    },
+    {
+      "candidate": 76102,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.07760238647460938,
+      "mean_abs": 0.011886526964531376,
+      "rms_abs": 0.015268095188195016,
+      "status": "pass"
+    },
+    {
+      "candidate": 76103,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.07760238647460938,
+      "mean_abs": 0.011886526964531376,
+      "rms_abs": 0.015268095188195016,
+      "status": "pass"
+    },
+    {
+      "candidate": 76104,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.07760238647460938,
+      "mean_abs": 0.011886526964531376,
+      "rms_abs": 0.015268095188195016,
+      "status": "pass"
+    },
+    {
+      "candidate": 76101,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.07760238647460938,
+      "mean_abs": 0.011886526964531376,
+      "rms_abs": 0.015268095188195016,
+      "status": "pass"
+    },
+    {
+      "candidate": 76115,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.07760238647460938,
+      "mean_abs": 0.011886526964531376,
+      "rms_abs": 0.015268095188195016,
+      "status": "pass"
+    },
+    {
+      "candidate": 76314,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.07760238647460938,
+      "mean_abs": 0.011886526964531376,
+      "rms_abs": 0.015268095188195016,
+      "status": "pass"
+    },
+    {
+      "candidate": 76111,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.07760238647460938,
+      "mean_abs": 0.011886526964531376,
+      "rms_abs": 0.015268095188195016,
+      "status": "pass"
+    },
+    {
+      "candidate": 76311,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.07760238647460938,
+      "mean_abs": 0.011886526964531376,
+      "rms_abs": 0.015268095188195016,
+      "status": "pass"
+    },
+    {
+      "candidate": 76112,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.07760238647460938,
+      "mean_abs": 0.011886526964531376,
+      "rms_abs": 0.015268095188195016,
+      "status": "pass"
+    },
+    {
+      "candidate": 76331,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.07760238647460938,
+      "mean_abs": 0.011886526964531376,
+      "rms_abs": 0.015268095188195016,
+      "status": "pass"
+    },
+    {
+      "candidate": 76330,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.07760238647460938,
+      "mean_abs": 0.011886526964531376,
+      "rms_abs": 0.015268095188195016,
+      "status": "pass"
+    },
+    {
+      "candidate": 76131,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.07760238647460938,
+      "mean_abs": 0.011886526964531376,
+      "rms_abs": 0.015268095188195016,
+      "status": "pass"
+    },
+    {
+      "candidate": 76344,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.07760238647460938,
+      "mean_abs": 0.011886526964531376,
+      "rms_abs": 0.015268095188195016,
+      "status": "pass"
+    },
+    {
+      "candidate": 76346,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.07760238647460938,
+      "mean_abs": 0.011886526964531376,
+      "rms_abs": 0.015268095188195016,
+      "status": "pass"
+    },
+    {
+      "candidate": 76350,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.07760238647460938,
+      "mean_abs": 0.011886526964531376,
+      "rms_abs": 0.015268095188195016,
+      "status": "pass"
+    },
+    {
+      "candidate": 76146,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.07760238647460938,
+      "mean_abs": 0.011886526964531376,
+      "rms_abs": 0.015268095188195016,
+      "status": "pass"
+    },
+    {
+      "candidate": 76358,
+      "elements": 151936,
+      "exact": false,
+      "max_abs": 0.07760238647460938,
+      "mean_abs": 0.011886526964531376,
+      "rms_abs": 0.015268095188195016,
+      "status": "pass"
+    }
+  ],
+  "schema_version": 1,
+  "status": "searched_without_exact",
+  "tested_candidates": 40,
+  "track": "bf16_algorithm_exact_search"
+}

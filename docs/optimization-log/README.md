@@ -586,6 +586,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/110-data/](experiments/110-data/) | 3对精度和12条无trace性能A/B |
 | [assets/qwen-common-algorithm-discard.svg](assets/qwen-common-algorithm-discard.svg) | Qwen中性性能但非exact的拒绝证据 |
 | [experiments/111-data/](experiments/111-data/) | 56候选inventory、精度和性能A/B |
+| [assets/qwen-algorithm-search.svg](assets/qwen-algorithm-search.svg) | 56受支持、0 exact与最佳误差 |
+| [experiments/112-data/](experiments/112-data/) | 全56候选完整logits搜索 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

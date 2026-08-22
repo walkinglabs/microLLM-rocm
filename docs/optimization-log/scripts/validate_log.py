@@ -4141,6 +4141,18 @@ def validate_qwen_common_discard(errors: list[str]) -> tuple[int, int, int]:
     return inventory.get("common_candidate_count", 0), 3, 12
 
 
+def validate_qwen_algorithm_search(errors: list[str]) -> tuple[int, int]:
+    data = ROOT / "experiments" / "112-data"
+    first = json.loads((data / "first16-summary.json").read_text(encoding="utf-8"))
+    rest = json.loads((data / "rest40-summary.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    if first.get("tested_candidates") != 16 or rest.get("tested_candidates") != 40 or \
+            first.get("exact_candidate") is not None or rest.get("exact_candidate") is not None or \
+            gates.get("best_candidate") != 75886:
+        errors.append("Qwen full algorithm search changed")
+    return 56, 0
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -4230,7 +4242,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-ffn-drift.svg",
                  "bf16-algorithm-inventory.svg",
                  "bf16-same-algorithm.svg",
-                 "qwen-common-algorithm-discard.svg"):
+                 "qwen-common-algorithm-discard.svg",
+                 "qwen-algorithm-search.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -4390,6 +4403,7 @@ def main() -> int:
     algo_m32, algo_m64, algo_common = validate_bf16_algorithm_inventory(errors)
     same_precision, same_performance, same_exact = validate_bf16_same_algorithm(errors)
     qwen_common, qwen_precision, qwen_performance = validate_qwen_common_discard(errors)
+    qwen_search_tested, qwen_search_exact = validate_qwen_algorithm_search(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -4515,6 +4529,7 @@ def main() -> int:
           f"bf16_algorithms={algo_m32}/{algo_m64}/{algo_common} "
           f"same_algorithm={same_precision}/{same_performance}/{same_exact} "
           f"qwen_common_discard={qwen_common}/{qwen_precision}/{qwen_performance} "
+          f"qwen_search={qwen_search_tested}/{qwen_search_exact} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

@@ -2215,3 +2215,10 @@ norm的B1/B2完整值全为exact。第一个非零点是fused BF16 FFN output：
 它被拒绝为strict策略，保留原始数据并继续扫描其它共同候选。
 
 ![Qwen common algorithm discard](assets/qwen-common-algorithm-discard.svg)
+
+## 129. Experiment 112：56个共同候选没有一个tensor exact
+
+完整logits门扫描全部56个共同index，全部受支持但0 exact。最佳RMS0.015268；候选聚成少量相同
+signature。Qwen token本已稳定，关闭当前heuristic strict搜索，不用FP32回退。
+
+![Qwen algorithm search](assets/qwen-algorithm-search.svg)
