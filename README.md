@@ -400,6 +400,9 @@ loss and worse completion/tail latency, so the policy remains opt-in.
 [Experiment 115](docs/optimization-log/experiments/115-bucket-pareto.md) adds an idle-gated
 1/2/4-bucket sweep: two B4 pools form the current balanced point, while one B8 pool remains the
 throughput/tail-latency default.
+The [continuous arrival guide](docs/dev/continuous-arrivals.zh-CN.md) explains skewed lengths,
+logical delayed submission, focus-request P95 and the physical-GPU idle gate in beginner-friendly
+terms.
 
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or

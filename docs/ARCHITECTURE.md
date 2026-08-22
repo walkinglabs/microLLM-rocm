@@ -73,6 +73,9 @@ request arrays and derive P50/P95 with linear interpolation.
 `LengthBucketedBatchScheduler` composes multiple fixed-capacity continuous schedulers. Every child
 references the same `TransformerModel` but owns a separate KV cache. The smallest compatible bucket
 is deterministic; the first version intentionally has no cross-bucket batching or slot stealing.
+Official continuous workloads may delay individual submissions by a logical arrival step. Request
+wall latency starts at actual submission; the logical clock is a state-machine axis, not a fixed-QPS
+wall-time load generator.
 Graph-free full/last-logit inference participates in the same opt-in TraceSession layer/model
 contract as autograd forward. An inactive session performs no Tensor value copies. Full-value
 official diagnostics require a single, zero-warm-up prefill step and are explicitly excluded from

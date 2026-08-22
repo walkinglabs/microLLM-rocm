@@ -50,7 +50,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | BF16 GEMM/autograd/inference | smoke-tested | transactional FFN/QKV/O, shared cast, immutable plans, batched T≥256 QK/PV and full logits/tokens | long prefill remains 0.15×–0.31×, cached batch and Radeon remain |
 | BF16 FP32-master training | smoke-tested | full STE graph/PyTorch gradients, CPU 20-step loss, HIP zero-transfer, 18 official rows; 3.12×/2.58× PyTorch AMP | 0.918×/0.906× micro FP32 and no peak-memory reduction; continuous islands |
 | Token generation | smoke-tested | deterministic sampling, cache-backed bounds and one-copy HIP greedy token history | stochastic device top-k/RNG and trained text report |
-| Serving scheduler | smoke-tested | continuous refill/compaction/positions-aware decode, request TTFT, and shared-weight length buckets; idle-gated 1/2/4-bucket MI300X matrix is 18/18 token-exact | skewed/delayed traffic before slot stealing, cross-bucket decode or paged Cache |
+| Serving scheduler | smoke-tested | continuous refill/compaction/positions-aware decode, request TTFT, shared-weight length buckets, logical delayed arrivals and focus P95; idle-gated 1/2/4-bucket matrix is 18/18 token-exact | skewed/delayed MI300X matrix is gate-blocked pending an idle device |
 | Stable model failure | smoke-tested | low-loss cycle breaks beyond training context | rebuttal experiments |
 | PyTorch Custom Ops | smoke-tested on CPU | Torch 2.13 add/multiply via dispatcher | build/run with PyTorch ROCm |
 | PyTorch correctness oracle | smoke-tested | PyTorch-enabled 196/196; 30+ Tensor APIs, 29 graph APIs, inference matrix and model/optimizer parity | broader direct PyTorch ROCm operator matrix |
