@@ -80,7 +80,8 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] split block 0 and isolate the first difference to fused BF16 FFN output;
 - [x] split fused BF16 FFN and isolate first drift to gate/up BF16 GEMMs;
 - [x] inventory M32/M64 hipBLASLt solutions and find 53 common candidates;
-- [ ] inject one common version-local solution into both shapes for an official-model counterfactual;
+- [x] inject common solution 75892: all stages exact at 1.3%–3.8% prefill cost;
+- [ ] extend strict/fast solution policy across Qwen/DeepSeek FFN shape families;
 - [ ] add request-level TTFT and P50/P95 latency rather than throughput alone;
 
 ## P2 — operator registry and profiler API

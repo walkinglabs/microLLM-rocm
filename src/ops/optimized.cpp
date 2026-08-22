@@ -6,13 +6,16 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <tuple>
+#include <vector>
 
 #if MICROLLM_HAS_HIP
 #include "hip/kernels.h"
 #endif
 
 #if MICROLLM_HAS_HIPBLASLT
+#include <hipblaslt/hipblaslt-ext.hpp>
 #include <hipblaslt/hipblaslt.h>
 #endif
 
@@ -184,17 +187,44 @@ private:
 };
 
 using Bf16PlanKey = std::tuple<std::int64_t, std::int64_t, std::int64_t, DType>;
+using Bf16PlanCacheKey = std::tuple<std::int64_t, std::int64_t, std::int64_t,
+                                    DType, std::int32_t>;
 
 class Bf16Plan {
 public:
-    Bf16Plan(std::int64_t rows, std::int64_t inner, std::int64_t columns,
-             DType output_dtype)
+    Bf16Plan(Handle& handle, std::int64_t rows, std::int64_t inner,
+             std::int64_t columns, DType output_dtype, Device device,
+             std::optional<int> solution_index)
         : matrix_b_(HIP_R_16BF, static_cast<std::uint64_t>(columns),
                     static_cast<std::uint64_t>(inner), columns),
           matrix_a_(HIP_R_16BF, static_cast<std::uint64_t>(inner),
                     static_cast<std::uint64_t>(rows), inner),
           matrix_c_(hip_dtype(output_dtype), static_cast<std::uint64_t>(columns),
-                    static_cast<std::uint64_t>(rows), columns) {}
+                    static_cast<std::uint64_t>(rows), columns) {
+        if (!solution_index.has_value()) return;
+        std::vector<int> indices{*solution_index};
+        std::vector<hipblasLtMatmulHeuristicResult_t> results;
+        check_status(hipblaslt_ext::getAlgosFromIndex(
+                         handle.get(), indices, results),
+                     "getAlgosFromIndex");
+        const float alpha = 1.0F;
+        const float beta = 0.0F;
+        for (auto& result : results) {
+            auto candidate = result.algo;
+            std::size_t workspace_bytes = 0;
+            if (hipblaslt_ext::matmulIsAlgoSupported(
+                    handle.get(), operation_.get(), &alpha, matrix_b_.get(),
+                    matrix_a_.get(), &beta, matrix_c_.get(), matrix_c_.get(),
+                    candidate, workspace_bytes) != HIPBLAS_STATUS_SUCCESS) {
+                continue;
+            }
+            algorithm_ = candidate;
+            workspace_ = Storage(workspace_bytes, device);
+            return;
+        }
+        throw std::invalid_argument(
+            "registered BF16 solution does not support the exact shape");
+    }
 
     [[nodiscard]] hipblasLtMatmulDesc_t operation() const noexcept {
         return operation_.get();
@@ -208,28 +238,45 @@ public:
     [[nodiscard]] hipblasLtMatrixLayout_t matrix_c() const noexcept {
         return matrix_c_.get();
     }
+    [[nodiscard]] const hipblasLtMatmulAlgo_t* algorithm() const noexcept {
+        return algorithm_.has_value() ? &*algorithm_ : nullptr;
+    }
+    [[nodiscard]] void* workspace() noexcept { return workspace_.data(); }
+    [[nodiscard]] std::size_t workspace_bytes() const noexcept {
+        return workspace_.num_bytes();
+    }
 
 private:
     MatmulDescription operation_;
     Layout matrix_b_;
     Layout matrix_a_;
     Layout matrix_c_;
+    std::optional<hipblasLtMatmulAlgo_t> algorithm_;
+    Storage workspace_;
 };
 
-thread_local std::map<Bf16PlanKey, std::unique_ptr<Bf16Plan>> bf16_plans;
+thread_local std::map<Bf16PlanCacheKey, std::unique_ptr<Bf16Plan>> bf16_plans;
+thread_local std::map<Bf16PlanKey, int> bf16_algorithm_registry;
 thread_local std::size_t bf16_plan_hits = 0;
 thread_local std::size_t bf16_plan_misses = 0;
 
-Bf16Plan& bf16_plan(std::int64_t rows, std::int64_t inner,
-                    std::int64_t columns, DType output_dtype) {
-    const Bf16PlanKey key{rows, inner, columns, output_dtype};
+Bf16Plan& bf16_plan(Handle& handle, std::int64_t rows, std::int64_t inner,
+                    std::int64_t columns, DType output_dtype, Device device) {
+    const Bf16PlanKey registry_key{rows, inner, columns, output_dtype};
+    const Bf16PlanCacheKey key{rows, inner, columns, output_dtype,
+                               device.index()};
     const auto found = bf16_plans.find(key);
     if (found != bf16_plans.end()) {
         ++bf16_plan_hits;
         return *found->second;
     }
     ++bf16_plan_misses;
-    auto plan = std::make_unique<Bf16Plan>(rows, inner, columns, output_dtype);
+    const auto registered = bf16_algorithm_registry.find(registry_key);
+    const auto solution = registered == bf16_algorithm_registry.end()
+                              ? std::optional<int>{}
+                              : std::optional<int>{registered->second};
+    auto plan = std::make_unique<Bf16Plan>(
+        handle, rows, inner, columns, output_dtype, device, solution);
     auto* result = plan.get();
     bf16_plans.emplace(key, std::move(plan));
     return *result;
@@ -325,14 +372,18 @@ Tensor hipblaslt_bf16_matmul(const Tensor& left, const Tensor& right,
     }
     Tensor output({rows, columns}, output_dtype, left.device());
     static Handle handle;
-    auto& plan = bf16_plan(rows, inner, columns, output_dtype);
+    auto& plan = bf16_plan(handle, rows, inner, columns, output_dtype,
+                           left.device());
     const float alpha = 1.0F;
     const float beta = 0.0F;
     const auto status = hipblasLtMatmul(
         handle.get(), plan.operation(), &alpha,
         right.data(), plan.matrix_b(), left.data(), plan.matrix_a(),
         &beta, output.data(), plan.matrix_c(), output.data(), plan.matrix_c(),
-        nullptr, context.workspace, context.workspace_bytes,
+        plan.algorithm(), plan.algorithm() == nullptr ? context.workspace
+                                                      : plan.workspace(),
+        plan.algorithm() == nullptr ? context.workspace_bytes
+                                    : plan.workspace_bytes(),
         reinterpret_cast<hipStream_t>(context.native_stream(left.device())));
     if (status == HIPBLAS_STATUS_SUCCESS) {
         if (output_dtype == DType::Float32) {
@@ -412,6 +463,42 @@ void clear_bf16_plan_cache() noexcept {
     bf16_plans.clear();
     bf16_plan_hits = 0;
     bf16_plan_misses = 0;
+#endif
+}
+
+void register_bf16_algorithm(std::int64_t rows, std::int64_t inner,
+                             std::int64_t columns, DType output_dtype,
+                             int solution_index) {
+#if MICROLLM_HAS_HIPBLASLT
+    if (rows <= 0 || inner <= 0 || columns <= 0 || solution_index < 0 ||
+        (output_dtype != DType::Float32 && output_dtype != DType::BFloat16)) {
+        throw std::invalid_argument("invalid BF16 algorithm registration");
+    }
+    bf16_algorithm_registry[{rows, inner, columns, output_dtype}] =
+        solution_index;
+    bf16_plans.clear();
+#else
+    (void)rows;
+    (void)inner;
+    (void)columns;
+    (void)output_dtype;
+    (void)solution_index;
+    throw std::runtime_error("BF16 algorithm registry requires hipBLASLt");
+#endif
+}
+
+void clear_bf16_algorithm_registry() noexcept {
+#if MICROLLM_HAS_HIPBLASLT
+    bf16_algorithm_registry.clear();
+    bf16_plans.clear();
+#endif
+}
+
+std::size_t bf16_registered_algorithm_count() noexcept {
+#if MICROLLM_HAS_HIPBLASLT
+    return bf16_algorithm_registry.size();
+#else
+    return 0;
 #endif
 }
 

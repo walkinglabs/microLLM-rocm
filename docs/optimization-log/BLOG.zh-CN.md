@@ -2201,3 +2201,10 @@ norm的B1/B2完整值全为exact。第一个非零点是fused BF16 FFN output：
 32MiB workspace限制下交集为53。same-algorithm反驳可做；index仅对当前hipBLASLt版本有效。
 
 ![BF16 algorithm inventory](assets/bf16-algorithm-inventory.svg)
+
+## 127. Experiment 110：全阶段exact的成本是1.3%–3.8%
+
+共同index75892让B1/B2的48个stage和完整logits全部exact。无trace A/B显示B1/B2吞吐为默认的
+0.9623×/0.9873×。保留显式、版本局部strict registry，不硬编码为默认。
+
+![Same BF16 algorithm](assets/bf16-same-algorithm.svg)

@@ -318,6 +318,11 @@ TEST(HipBf16PlanCacheTest, ExactShapeMissesOnceThenReusesImmutableDescriptors) {
     fill_(left, 0.25F);
     fill_(right, -0.125F);
     clear_bf16_plan_cache();
+    clear_bf16_algorithm_registry();
+    EXPECT_EQ(bf16_registered_algorithm_count(), 0U);
+    EXPECT_THROW(register_bf16_algorithm(
+                     0, 128, 256, DType::BFloat16, 1),
+                 std::invalid_argument);
     EXPECT_EQ(bf16_plan_cache_stats().entries, 0U);
     (void)bf16_matmul_output(left, right, DType::BFloat16);
     runtime::synchronize(gpu);

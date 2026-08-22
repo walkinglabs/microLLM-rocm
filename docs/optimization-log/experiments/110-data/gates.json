@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "status": "keep_optional_strict_algorithm",
+  "full": {"passed": 315, "failed": 0, "skipped": 2},
+  "cpu": {"passed": 219, "failed": 0, "skipped": 2},
+  "hip": {"passed": 96, "failed": 0, "skipped": 0},
+  "sanitizer": {"passed": 212, "failed": 0, "skipped": 0},
+  "focused": {"precision_pairs": 3, "exact_stages": 48,
+    "performance_processes": 12, "b1_ratio": 0.96234,
+    "b2_ratio": 0.987262, "registry_hip_tests": 1}
+}

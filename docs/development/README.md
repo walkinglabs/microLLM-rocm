@@ -259,5 +259,7 @@ the next gate. Records are append-only except for factual corrections.
   low-precision trace repair and gate/up/SwiGLU/down drift isolation.
 - [2026-08-21-bf16-algorithm-inventory.md](2026-08-21-bf16-algorithm-inventory.md):
   M32/M64 solution-index, workspace and intersection evidence.
+- [2026-08-22-bf16-same-algorithm.md](2026-08-22-bf16-same-algorithm.md):
+  version-local strict registry, exact logits and no-trace performance cost.
 - [2026-08-21-divergent-row-cache-reference.md](2026-08-21-divergent-row-cache-reference.md):
   unequal-position shared-Storage B1 oracle with CPU/HIP and reset-prefix gates.

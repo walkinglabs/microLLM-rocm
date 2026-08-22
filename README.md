@@ -113,6 +113,8 @@ needed to run a real training and generation loop:
   TraceSession capture now records real values and honest truncation.
 - a standalone hipBLASLt inventory finds 53 common solution indices across the M32/M64 DeepSeek
   gate shape without changing default dispatch.
+- optional solution 75892 restores all B1/B2 values exactly with 1.3%–3.8% prefill cost; no
+  version-local index is hard-coded as default.
 
 The design keeps three implementations where they provide engineering value:
 
@@ -379,6 +381,9 @@ independently, and SwiGLU/down propagate the drift. See
 
 Experiment 109 queries 64 M32 and 64 M64 BF16 candidates and finds a 53-index intersection. See
 [Experiment 109](docs/optimization-log/experiments/109-bf16-algorithm-inventory.md).
+
+Experiment 110 injects common solution 75892 and eliminates all 48-stage drift. See
+[Experiment 110](docs/optimization-log/experiments/110-bf16-same-algorithm.md).
 
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or

@@ -24,18 +24,21 @@ def options() -> argparse.Namespace:
     parser.add_argument("--trace-max-elements", type=int, default=700000)
     parser.add_argument("--timeout-seconds", type=int, default=900)
     parser.add_argument("--keep-traces", action="store_true")
+    parser.add_argument("--algorithm-index", type=int, default=-1)
     result = parser.parse_args()
     if not result.manifest.is_file() or not result.binary.is_file():
         parser.error("manifest and binary must exist")
     if result.prompt_offset < 0 or result.prompt_length <= 0 or result.runs <= 0 or \
-            result.trace_max_elements <= 0 or result.timeout_seconds <= 0:
+            result.trace_max_elements <= 0 or result.timeout_seconds <= 0 or \
+            result.algorithm_index < -1:
         parser.error("offset must be nonnegative and other numeric inputs positive")
     return result
 
 
 def command(binary: Path, model: dict, tokens: list[int], batch: int,
-            trace: Path, trace_max_elements: int) -> list[str]:
-    return [
+            trace: Path, trace_max_elements: int,
+            algorithm_index: int = -1) -> list[str]:
+    result = [
         str(binary), "--config", model["config"], "--weights", model["weights"],
         "--tokens", ",".join(map(str, tokens)), "--device", "hip",
         "--top-k", "1", "--new-tokens", "0", "--workload", "prefill",
@@ -45,6 +48,9 @@ def command(binary: Path, model: dict, tokens: list[int], batch: int,
         "--trace-output", str(trace),
         "--trace-max-elements", str(trace_max_elements),
     ]
+    if algorithm_index >= 0:
+        result.extend(["--bf16-algorithm-index", str(algorithm_index)])
+    return result
 
 
 def load_trace(path: Path) -> dict[str, dict]:
@@ -124,7 +130,7 @@ def main() -> int:
             trace_path = args.output_directory / f"run{process_run}-b{batch}.jsonl"
             completed = subprocess.run(
                 command(args.binary, model, tokens, batch, trace_path,
-                        args.trace_max_elements),
+                        args.trace_max_elements, args.algorithm_index),
                 capture_output=True, text=True, timeout=args.timeout_seconds)
             if completed.returncode != 0:
                 raise RuntimeError(completed.stderr.strip() or completed.stdout.strip())
@@ -145,6 +151,7 @@ def main() -> int:
             "process_run": process_run,
             "prompt_offset": args.prompt_offset,
             "prompt_length": args.prompt_length,
+            "algorithm_index": args.algorithm_index,
             "trace_record_count_b1": app_records[1]["trace_record_count"],
             "trace_record_count_b2": app_records[2]["trace_record_count"],
             "stages": stages,
@@ -159,8 +166,6 @@ def main() -> int:
         raise RuntimeError("layer drift metrics changed across fresh processes")
     first_nonzero = next((row["name"] for row in first
                           if not row["b1_vs_b2_row0"]["exact"]), None)
-    if first_nonzero is None:
-        raise RuntimeError("B1/B2 layer audit expected a measured difference")
     if any(not row["b2_row0_vs_row1"]["exact"] for row in first):
         raise RuntimeError("duplicate B2 rows diverged inside the model")
     summary = {
@@ -172,8 +177,10 @@ def main() -> int:
         "runs": args.runs,
         "prompt_offset": args.prompt_offset,
         "prompt_length": args.prompt_length,
+        "algorithm_index": args.algorithm_index,
         "stage_count": len(first),
         "first_nonzero_stage": first_nonzero,
+        "b1_b2_exact_at_every_stage": first_nonzero is None,
         "duplicate_b2_rows_exact_at_every_stage": True,
         "stages": first,
         "measurement_boundary": "full host snapshots; no performance claim",

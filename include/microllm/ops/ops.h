@@ -112,6 +112,11 @@ void adamw_update_bf16_mirror_(Tensor& parameter, const Tensor& gradient,
 [[nodiscard]] bool hipblaslt_available() noexcept;
 [[nodiscard]] Bf16PlanCacheStats bf16_plan_cache_stats() noexcept;
 void clear_bf16_plan_cache() noexcept;
+void register_bf16_algorithm(std::int64_t rows, std::int64_t inner,
+                             std::int64_t columns, DType output_dtype,
+                             int solution_index);
+void clear_bf16_algorithm_registry() noexcept;
+[[nodiscard]] std::size_t bf16_registered_algorithm_count() noexcept;
 [[nodiscard]] MatmulImplementation choose_matmul_implementation(
     const Tensor& left, const Tensor& right);
 [[nodiscard]] MatmulImplementation choose_matmul_implementation(

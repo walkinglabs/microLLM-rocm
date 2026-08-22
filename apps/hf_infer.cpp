@@ -67,6 +67,7 @@ struct Options {
     bool continuous_diagnostics = false;
     std::filesystem::path trace_output;
     std::int64_t trace_max_elements = 4096;
+    int bf16_algorithm_index = -1;
 };
 
 Options options(int argc, char** argv) {
@@ -162,6 +163,9 @@ Options options(int argc, char** argv) {
         else if (name == "--trace-max-elements") {
             result.trace_max_elements = std::stoll(argv[index + 1]);
         }
+        else if (name == "--bf16-algorithm-index") {
+            result.bf16_algorithm_index = std::stoi(argv[index + 1]);
+        }
         else throw std::invalid_argument("unknown CLI option: " + name);
     }
     if (result.config.empty() || result.weights.empty()) {
@@ -248,6 +252,12 @@ Options options(int argc, char** argv) {
          result.prefill_steps != 1)) {
         throw std::invalid_argument(
             "--trace-output requires prefill workload, zero prefill warmup, and one prefill step");
+    }
+    if (result.bf16_algorithm_index < -1 ||
+        (result.bf16_algorithm_index >= 0 &&
+         (result.workload != "prefill" || !result.bf16_ffn))) {
+        throw std::invalid_argument(
+            "--bf16-algorithm-index requires BF16 FFN prefill workload");
     }
     if (!result.cache_logits_output.empty() &&
         (!result.use_cache || result.workload == "prefill" || result.new_tokens < 2)) {
@@ -618,6 +628,14 @@ int main(int argc, char** argv) {
             throw std::invalid_argument("token sequence exceeds model context");
         }
         if (ids.empty()) throw std::invalid_argument("token sequence cannot be empty");
+        if (command.bf16_algorithm_index >= 0) {
+            microllm::ops::clear_bf16_algorithm_registry();
+            microllm::ops::register_bf16_algorithm(
+                command.batch * static_cast<std::int64_t>(ids.size()),
+                external.model.dimension, external.model.ffn_dimension,
+                microllm::DType::BFloat16,
+                command.bf16_algorithm_index);
+        }
         if (command.workload == "continuous") {
             const auto prompt_lengths = positive_lengths(
                 command.continuous_prompt_lengths,
@@ -1071,6 +1089,8 @@ int main(int argc, char** argv) {
                   << ",\"architecture\":\"" << info.architecture << "\""
                   << ",\"trace_record_count\":"
                   << trace_record_count
+                  << ",\"bf16_algorithm_index\":"
+                  << command.bf16_algorithm_index
                   << ",\"device_total_bytes\":" << info.total_memory
                   << ",\"hip_runtime_version\":"
                   << microllm::runtime::hip_runtime_version()

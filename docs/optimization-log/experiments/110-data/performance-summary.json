@@ -1,0 +1,25 @@
+{
+  "algorithm_index": 75892,
+  "boundary": "no trace; fresh-process prefill timing",
+  "model": "deepseek-r1-distill-qwen-1.5b",
+  "rows": [
+    {
+      "batch": 1,
+      "common_over_default": 0.9623401538276161,
+      "common_tokens_per_second_p50": 5517.734170052,
+      "default_tokens_per_second_p50": 5733.66303807
+    },
+    {
+      "batch": 2,
+      "common_over_default": 0.9872618801774182,
+      "common_tokens_per_second_p50": 10519.438706419,
+      "default_tokens_per_second_p50": 10655.165481046
+    }
+  ],
+  "runs": 3,
+  "schema_version": 1,
+  "status": "pass",
+  "steps": 5,
+  "track": "bf16_algorithm_prefill_ab",
+  "warmup": 1
+}

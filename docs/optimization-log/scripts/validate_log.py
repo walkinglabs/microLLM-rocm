@@ -4093,6 +4093,38 @@ def validate_bf16_algorithm_inventory(errors: list[str]) -> tuple[int, int, int]
         inventory.get("common_candidate_count", 0)
 
 
+def validate_bf16_same_algorithm(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "110-data"
+    precision = json.loads((data / "precision-summary.json").read_text(encoding="utf-8"))
+    performance = json.loads((data / "performance-summary.json").read_text(encoding="utf-8"))
+    precision_raw = [json.loads(line) for line in
+                     (data / "precision-raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    performance_raw = [json.loads(line) for line in
+                       (data / "performance-raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    if len(precision_raw) != 3 or precision.get("algorithm_index") != 75892 or \
+            precision.get("first_nonzero_stage") is not None or \
+            precision.get("b1_b2_exact_at_every_stage") is not True or \
+            precision.get("duplicate_b2_rows_exact_at_every_stage") is not True:
+        errors.append("same-algorithm precision evidence changed")
+    ratios = {row["batch"]: row["common_over_default"]
+              for row in performance.get("rows", [])}
+    if len(performance_raw) != 12 or performance.get("algorithm_index") != 75892 or \
+            not 0.95 < ratios.get(1, 0) < 0.98 or \
+            not 0.97 < ratios.get(2, 0) < 1.0:
+        errors.append("same-algorithm performance evidence changed")
+    optimized = (REPOSITORY / "src" / "ops" / "optimized.cpp").read_text(encoding="utf-8")
+    app = (REPOSITORY / "apps" / "hf_infer.cpp").read_text(encoding="utf-8")
+    if "register_bf16_algorithm" not in optimized or \
+            "matmulIsAlgoSupported" not in optimized or \
+            "--bf16-algorithm-index" not in app:
+        errors.append("same-algorithm registry source is missing")
+    if gates.get("status") != "keep_optional_strict_algorithm" or \
+            gates.get("focused", {}).get("exact_stages") != 48:
+        errors.append("same-algorithm gates changed")
+    return len(precision_raw), len(performance_raw), 48
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -4180,7 +4212,8 @@ def validate_assets(errors: list[str]) -> None:
                  "prefill-layer-drift.svg",
                  "block0-drift.svg",
                  "bf16-ffn-drift.svg",
-                 "bf16-algorithm-inventory.svg"):
+                 "bf16-algorithm-inventory.svg",
+                 "bf16-same-algorithm.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -4338,6 +4371,7 @@ def main() -> int:
     ffn_drift_raw, ffn_drift_stages, ffn_drift_internal, ffn_drift_exact = \
         validate_bf16_ffn_drift(errors)
     algo_m32, algo_m64, algo_common = validate_bf16_algorithm_inventory(errors)
+    same_precision, same_performance, same_exact = validate_bf16_same_algorithm(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -4461,6 +4495,7 @@ def main() -> int:
           f"bf16_ffn_drift={ffn_drift_raw}/{ffn_drift_stages}/"
           f"{ffn_drift_internal}/{ffn_drift_exact} "
           f"bf16_algorithms={algo_m32}/{algo_m64}/{algo_common} "
+          f"same_algorithm={same_precision}/{same_performance}/{same_exact} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

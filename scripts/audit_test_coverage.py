@@ -26,7 +26,7 @@ declared_ops = public_names(
     "include/microllm/ops/ops.h",
     ["TensorPair", "TensorTriple", "Tensor", "Bf16FfnDiagnostics",
      "Bf16PlanCacheStats", "bool",
-     "MatmulImplementation", "void"],
+     "MatmulImplementation", "std::size_t", "void"],
 )
 covered_ops = set(MANIFEST["tensor_ops"]) | set(MANIFEST["operator_infrastructure"])
 if declared_ops != covered_ops:
