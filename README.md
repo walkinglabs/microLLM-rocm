@@ -397,6 +397,9 @@ memory formula, shared-weight ownership, CLI, tests and current no-work-stealing
 [Experiment 114](docs/optimization-log/experiments/114-length-bucketed-cache.md) records the
 official MI300X result: 52.9% less KV backing and lower median TTFT, with a measured 42% throughput
 loss and worse completion/tail latency, so the policy remains opt-in.
+[Experiment 115](docs/optimization-log/experiments/115-bucket-pareto.md) adds an idle-gated
+1/2/4-bucket sweep: two B4 pools form the current balanced point, while one B8 pool remains the
+throughput/tail-latency default.
 
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or

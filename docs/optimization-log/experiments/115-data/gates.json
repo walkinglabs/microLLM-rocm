@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "status": "pass_with_retained_contaminated_window",
+  "full_release": {
+    "passed": 318,
+    "failed": 0,
+    "skipped": 2
+  },
+  "sanitizer": {
+    "passed": 214,
+    "failed": 0
+  },
+  "python_contract": {
+    "passed": 13,
+    "failed": 0
+  },
+  "official_matrix": {
+    "passed": 18,
+    "failed": 0,
+    "pre_vram_percent_max": 0,
+    "post_vram_percent_max": 2,
+    "allowed_idle_vram_percent": 5,
+    "token_exact_models": 2
+  },
+  "rejected_window": {
+    "classification": "partial_invalid_external_gpu_occupancy",
+    "first_external_vram_percent": 60,
+    "maximum_external_vram_percent": 96,
+    "performance_rows_accepted": 0
+  },
+  "decision": {
+    "default_bucket_count": 1,
+    "balanced_opt_in_bucket_count": 2,
+    "four_bucket_use": "extreme_kv_budget_only"
+  }
+}

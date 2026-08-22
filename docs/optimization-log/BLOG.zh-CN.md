@@ -2241,3 +2241,16 @@ TTFT p95也增加约20%。engine peak只降6.5%–7.5%，说明权重和临时Te
 Cache复杂度。
 
 ![Length bucket tradeoff](assets/length-bucket-tradeoff.svg)
+
+## 132. Experiment 115：两个B4桶是当前Pareto拐点
+
+先拒绝一轮“程序18/18成功、但DeepSeek阶段被外部作业占60%–96% VRAM”的假性能结果，并给
+runner增加每个fresh process前后的物理GPU显存门。正式18条pre均0%、post最大2%，两模型跨
+1/2/4桶token exact。
+
+两个B4桶相对统一B8：KV少37.4%，median TTFT改善约35%，吞吐只损失约14%；completion p50
+增加约19%–20%，TTFT p95增加约7%。四个B2桶继续省KV，但吞吐损失陡增到42%。默认仍用一个
+桶；两个桶保留为balanced opt-in。下一步测试偏斜请求和延迟到达，不能从完美均分负载直接设计
+slot stealing。
+
+![Bucket Pareto sweep](assets/bucket-pareto-sweep.svg)

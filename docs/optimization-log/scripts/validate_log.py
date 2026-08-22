@@ -4224,6 +4224,57 @@ def validate_length_bucket_tradeoff(errors: list[str]) -> tuple[int, int, int]:
     return len(raw), len(comparisons), len(utilization)
 
 
+def validate_bucket_pareto(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "115-data"
+    raw = [json.loads(line) for line in
+           (data / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    rejected = [json.loads(line) for line in
+                (data / "rejected-partial-raw.jsonl").read_text(
+                    encoding="utf-8").splitlines()]
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    telemetry = (data / "rejected-gpu3-telemetry.log").read_text(
+        encoding="utf-8").splitlines()
+    vram = [int(line.rsplit(":", 1)[-1].strip()) for line in telemetry
+            if "GPU[3]" in line and "VRAM%" in line]
+    if len(raw) != 18 or any(row.get("status") != "pass" for row in raw) or \
+            any(row.get("pre_run_gpu_state", {}).get("vram_percent") != 0 or
+                not 0 <= row.get("post_run_gpu_state", {}).get(
+                    "vram_percent", 99) <= 2 for row in raw):
+        errors.append("idle-gated bucket Pareto raw evidence changed")
+    sweeps = summary.get("bucket_sweeps", [])
+    if summary.get("status") != "pass" or len(sweeps) != 2 or any(
+            row.get("generated_tokens_equal_across_bucket_counts") is not True or
+            [point.get("bucket_count") for point in row.get("rows", [])] !=
+            [1, 2, 4] or
+            abs(float(row["rows"][1].get("allocated_cache_ratio", 0.0)) -
+                0.625968992248062) > 1.0e-12 or
+            abs(float(row["rows"][2].get("allocated_cache_ratio", 0.0)) -
+                0.47093023255813954) > 1.0e-12 or
+            not 0.84 < float(row["rows"][1].get(
+                "tokens_per_second_ratio", 0.0)) < 0.89 or
+            not 0.50 < float(row["rows"][2].get(
+                "tokens_per_second_ratio", 0.0)) < 0.60
+            for row in sweeps):
+        errors.append("bucket Pareto aggregate evidence changed")
+    if len(rejected) != 18 or len(vram) < 130 or max(vram, default=0) < 96 or \
+            not any(value >= 60 for value in vram):
+        errors.append("retained contaminated bucket window changed")
+    if gates.get("status") != "pass_with_retained_contaminated_window" or \
+            gates.get("official_matrix", {}).get("passed") != 18 or \
+            gates.get("official_matrix", {}).get("post_vram_percent_max") != 2 or \
+            gates.get("rejected_window", {}).get("performance_rows_accepted") != 0 or \
+            gates.get("python_contract", {}).get("passed") != 13:
+        errors.append("bucket Pareto gates changed")
+    runner = (REPOSITORY / "benchmarks" / "single_gpu" /
+              "hf_continuous_matrix.py").read_text(encoding="utf-8")
+    if "--physical-gpu-index" not in runner or \
+            "--max-idle-vram-percent" not in runner or \
+            "pre_run_gpu_state" not in runner:
+        errors.append("physical GPU idle gate source is missing")
+    return len(raw), len(rejected), len(vram)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -4316,7 +4367,8 @@ def validate_assets(errors: list[str]) -> None:
                  "qwen-common-algorithm-discard.svg",
                  "qwen-algorithm-search.svg",
                  "request-latency.svg",
-                 "length-bucket-tradeoff.svg"):
+                 "length-bucket-tradeoff.svg",
+                 "bucket-pareto-sweep.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -4480,6 +4532,8 @@ def main() -> int:
     latency_raw, latency_aggregates = validate_request_latency(errors)
     length_bucket_raw, length_bucket_comparisons, length_bucket_samples = \
         validate_length_bucket_tradeoff(errors)
+    bucket_pareto_raw, bucket_pareto_rejected, bucket_pareto_samples = \
+        validate_bucket_pareto(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -4609,6 +4663,8 @@ def main() -> int:
           f"request_latency={latency_raw}/{latency_aggregates} "
           f"length_buckets={length_bucket_raw}/{length_bucket_comparisons}/"
           f"{length_bucket_samples} "
+          f"bucket_pareto={bucket_pareto_raw}/{bucket_pareto_rejected}/"
+          f"{bucket_pareto_samples} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

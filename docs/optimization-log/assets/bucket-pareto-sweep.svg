@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="560" viewBox="0 0 1000 560" role="img" aria-labelledby="title desc">
+  <title id="title">One two and four bucket Pareto sweep</title>
+  <desc id="desc">Normalized cache, throughput, median first token latency and completion latency for Qwen and DeepSeek.</desc>
+  <rect width="1000" height="560" rx="18" fill="#0b1020"/>
+  <text x="52" y="52" fill="#f8fafc" font-size="28" font-family="sans-serif" font-weight="700">1 / 2 / 4 桶 Pareto：统一池 = 100%</text>
+  <text x="52" y="82" fill="#94a3b8" font-size="16" font-family="sans-serif">实线 Qwen，虚线 DeepSeek；低于100%对KV/TTFT更好，对吞吐更差</text>
+  <g stroke="#334155" stroke-width="1">
+    <line x1="100" y1="130" x2="940" y2="130"/><line x1="100" y1="230" x2="940" y2="230"/>
+    <line x1="100" y1="330" x2="940" y2="330"/><line x1="100" y1="430" x2="940" y2="430"/>
+  </g>
+  <g fill="#cbd5e1" font-size="15" font-family="sans-serif">
+    <text x="45" y="435">40%</text><text x="45" y="335">80%</text><text x="37" y="235">120%</text><text x="37" y="135">160%</text>
+    <text x="192" y="482">1 bucket</text><text x="482" y="482">2 buckets</text><text x="772" y="482">4 buckets</text>
+  </g>
+  <line x1="100" y1="280" x2="940" y2="280" stroke="#f8fafc" stroke-opacity="0.45" stroke-dasharray="6 6"/>
+  <text x="105" y="272" fill="#cbd5e1" font-size="14" font-family="sans-serif">100%</text>
+  <polyline points="220,280 510,374 800,412" fill="none" stroke="#22c55e" stroke-width="5"/>
+  <polyline points="220,280 510,374 800,412" fill="none" stroke="#22c55e" stroke-width="3" stroke-dasharray="9 7"/>
+  <polyline points="220,280 510,315 800,386" fill="none" stroke="#38bdf8" stroke-width="5"/>
+  <polyline points="220,280 510,314 800,385" fill="none" stroke="#38bdf8" stroke-width="3" stroke-dasharray="9 7"/>
+  <polyline points="220,280 510,366 800,421" fill="none" stroke="#a78bfa" stroke-width="5"/>
+  <polyline points="220,280 510,367 800,420" fill="none" stroke="#a78bfa" stroke-width="3" stroke-dasharray="9 7"/>
+  <polyline points="220,280 510,230 800,89" fill="none" stroke="#fb7185" stroke-width="5"/>
+  <polyline points="220,280 510,232 800,96" fill="none" stroke="#fb7185" stroke-width="3" stroke-dasharray="9 7"/>
+  <g fill="#f8fafc">
+    <circle cx="220" cy="280" r="7"/><circle cx="510" cy="374" r="7"/><circle cx="800" cy="412" r="7"/>
+  </g>
+  <g font-family="sans-serif" font-size="15" fill="#e2e8f0">
+    <rect x="110" y="510" width="16" height="16" rx="3" fill="#22c55e"/><text x="136" y="524">KV backing</text>
+    <rect x="285" y="510" width="16" height="16" rx="3" fill="#38bdf8"/><text x="311" y="524">throughput</text>
+    <rect x="465" y="510" width="16" height="16" rx="3" fill="#a78bfa"/><text x="491" y="524">TTFT p50</text>
+    <rect x="635" y="510" width="16" height="16" rx="3" fill="#fb7185"/><text x="661" y="524">completion p50</text>
+  </g>
+</svg>

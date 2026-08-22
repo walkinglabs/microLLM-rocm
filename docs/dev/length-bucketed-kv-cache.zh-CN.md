@@ -145,6 +145,10 @@ fresh process，并记录了 GPU 空闲窗口。
 吞吐下降约 42%，completion p50 增加 74%–76%。所以它保留为显式可选策略，默认仍是统一池。
 原始数组、图和解释见 [Experiment 114](../optimization-log/experiments/114-length-bucketed-cache.md)。
 
+后续 1/2/4 桶扫描发现两个 B4 桶是当前固定请求的折中点：KV 少 37.4%，median TTFT 改善约
+35%，吞吐损失约 14%。但尾延迟仍变差，且请求分布刚好均匀，所以不能自动设成默认。详见
+[Experiment 115](../optimization-log/experiments/115-bucket-pareto.md)。
+
 ## 当前边界
 
 - 各桶按顺序提交 GPU 工作，还没有多 stream 并发；
