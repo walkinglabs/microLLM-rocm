@@ -117,6 +117,8 @@ needed to run a real training and generation loop:
   version-local index is hard-coded as default.
 - continuous serving reports raw per-request TTFT/completion and P50/P95; long-context S4 minimizes
   median TTFT while S8 maximizes throughput at lower KV utilization.
+- explicit length buckets share one model while splitting KV capacity; the first policy keeps total
+  slots fixed and exposes routing/memory/latency evidence without claiming unmeasured speedup.
 
 The design keeps three implementations where they provide engineering value:
 
@@ -389,6 +391,9 @@ Experiment 110 injects common solution 75892 and eliminates all 48-stage drift. 
 
 Experiment 113 adds request-level latency across the official S1–S8 matrix. See
 [Experiment 113](docs/optimization-log/experiments/113-request-latency.md).
+
+The [length-bucketed KV-cache guide](docs/dev/length-bucketed-kv-cache.zh-CN.md) explains the
+memory formula, shared-weight ownership, CLI, tests and current no-work-stealing boundary.
 
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or

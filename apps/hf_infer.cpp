@@ -60,6 +60,7 @@ struct Options {
     std::string kv_cache_fp32_layers;
     std::int64_t cache_capacity = 0;
     std::int64_t continuous_slots = 0;
+    std::string continuous_cache_buckets;
     std::string continuous_prompt_lengths;
     std::string continuous_new_token_lengths;
     std::string continuous_prompt_offsets;
@@ -131,6 +132,9 @@ Options options(int argc, char** argv) {
         }
         else if (name == "--continuous-slots") {
             result.continuous_slots = std::stoll(argv[index + 1]);
+        }
+        else if (name == "--continuous-cache-buckets") {
+            result.continuous_cache_buckets = argv[index + 1];
         }
         else if (name == "--continuous-prompt-lengths") {
             result.continuous_prompt_lengths = argv[index + 1];
@@ -238,6 +242,11 @@ Options options(int argc, char** argv) {
     if (result.continuous_diagnostics && result.workload != "continuous") {
         throw std::invalid_argument(
             "--continuous-diagnostics requires continuous workload");
+    }
+    if (!result.continuous_cache_buckets.empty() &&
+        (result.workload != "continuous" || result.continuous_diagnostics)) {
+        throw std::invalid_argument(
+            "--continuous-cache-buckets requires continuous workload without diagnostics");
     }
     if (!result.continuous_prompt_offsets.empty() &&
         result.workload != "continuous") {
@@ -483,6 +492,41 @@ std::vector<std::int64_t> positive_lengths(std::string_view text,
     return result;
 }
 
+std::vector<microllm::inference::LengthBucketConfig> cache_buckets(
+    std::string_view text) {
+    std::vector<microllm::inference::LengthBucketConfig> result;
+    while (!text.empty()) {
+        const auto comma = text.find(',');
+        const auto item = text.substr(0, comma);
+        const auto colon = item.find(':');
+        std::int64_t capacity = 0;
+        std::int64_t slots = 0;
+        const auto capacity_text = item.substr(0, colon);
+        const auto slots_text = colon == std::string_view::npos
+                                    ? std::string_view{}
+                                    : item.substr(colon + 1);
+        const auto parsed_capacity = std::from_chars(
+            capacity_text.data(), capacity_text.data() + capacity_text.size(),
+            capacity);
+        const auto parsed_slots = std::from_chars(
+            slots_text.data(), slots_text.data() + slots_text.size(), slots);
+        if (colon == std::string_view::npos || capacity_text.empty() ||
+            slots_text.empty() || parsed_capacity.ec != std::errc{} ||
+            parsed_capacity.ptr != capacity_text.data() + capacity_text.size() ||
+            parsed_slots.ec != std::errc{} ||
+            parsed_slots.ptr != slots_text.data() + slots_text.size() ||
+            capacity <= 0 || slots <= 0) {
+            throw std::invalid_argument(
+                "--continuous-cache-buckets must be capacity:slots pairs");
+        }
+        result.push_back({.max_sequence_length = capacity,
+                          .max_slots = slots});
+        if (comma == std::string_view::npos) break;
+        text.remove_prefix(comma + 1);
+    }
+    return result;
+}
+
 std::vector<microllm::DType> cache_layer_dtypes(
     std::int64_t layers, microllm::DType base_dtype,
     std::string_view fp32_layers) {
@@ -509,6 +553,9 @@ struct ContinuousOfficialRun {
     std::vector<double> request_completion_ms;
     microllm::inference::ContinuousBatchMetrics metrics;
     std::vector<microllm::inference::SelectionDiagnostic> diagnostics;
+    bool bucketed_cache = false;
+    std::vector<microllm::inference::LengthBucketConfig> cache_buckets;
+    std::vector<std::size_t> request_bucket_indices;
 };
 
 double percentile(std::vector<double> values, double quantile) {
@@ -528,7 +575,8 @@ ContinuousOfficialRun run_continuous_official(
     const std::vector<std::vector<std::int32_t>>& prompts,
     const std::vector<std::int64_t>& new_token_lengths,
     std::int64_t slots, const std::vector<microllm::DType>& cache_dtypes,
-    bool batch_equal_length_prefill, bool capture_diagnostics) {
+    bool batch_equal_length_prefill, bool capture_diagnostics,
+    const std::vector<microllm::inference::LengthBucketConfig>& buckets) {
     if (prompts.size() != new_token_lengths.size()) {
         throw std::invalid_argument(
             "continuous prompt and generation counts must match");
@@ -540,45 +588,109 @@ ContinuousOfficialRun run_continuous_official(
             static_cast<std::int64_t>(prompts[index].size()) +
                 new_token_lengths[index]);
     }
-    microllm::inference::ContinuousBatchScheduler scheduler(
-        model, {.max_slots = slots,
-                .max_sequence_length = cache_capacity,
-                .kv_cache_dtype = cache_dtypes.front(),
-                .kv_cache_layer_dtypes = cache_dtypes,
-                .batch_equal_length_prefill = batch_equal_length_prefill,
-                .capture_selection_diagnostics = capture_diagnostics});
-    std::vector<microllm::inference::RequestId> ids;
-    ids.reserve(prompts.size());
-    for (std::size_t index = 0; index < prompts.size(); ++index) {
-        ids.push_back(scheduler.submit(
-            prompts[index],
-            {.max_new_tokens = new_token_lengths[index],
-             .temperature = 0.0F,
-             .top_k = 1,
-             .seed = static_cast<std::uint64_t>(index + 1),
-             .kv_cache_dtype = cache_dtypes.front(),
-             .kv_cache_layer_dtypes = cache_dtypes,
-             .stop_tokens = {}}));
-    }
-    scheduler.run_until_idle();
     ContinuousOfficialRun result;
-    result.generated.reserve(ids.size());
-    result.request_ttft_ms.reserve(ids.size());
-    result.request_completion_ms.reserve(ids.size());
-    for (const auto id : ids) {
-        const auto snapshot = scheduler.request(id);
-        if (snapshot.time_to_first_token_ms < 0.0 ||
-            snapshot.completion_latency_ms < snapshot.time_to_first_token_ms) {
-            throw std::runtime_error(
-                "continuous request latency lifecycle is incomplete");
+    const auto execute = [&](auto& scheduler) {
+        std::vector<microllm::inference::RequestId> ids;
+        ids.reserve(prompts.size());
+        for (std::size_t index = 0; index < prompts.size(); ++index) {
+            ids.push_back(scheduler.submit(
+                prompts[index],
+                {.max_new_tokens = new_token_lengths[index],
+                 .temperature = 0.0F,
+                 .top_k = 1,
+                 .seed = static_cast<std::uint64_t>(index + 1),
+                 .kv_cache_dtype = cache_dtypes.front(),
+                 .kv_cache_layer_dtypes = cache_dtypes,
+                 .stop_tokens = {}}));
         }
-        result.generated.push_back(snapshot.generated);
-        result.request_ttft_ms.push_back(snapshot.time_to_first_token_ms);
-        result.request_completion_ms.push_back(
-            snapshot.completion_latency_ms);
+        scheduler.run_until_idle();
+        result.generated.reserve(ids.size());
+        result.request_ttft_ms.reserve(ids.size());
+        result.request_completion_ms.reserve(ids.size());
+        for (const auto id : ids) {
+            const auto snapshot = scheduler.request(id);
+            if (snapshot.time_to_first_token_ms < 0.0 ||
+                snapshot.completion_latency_ms <
+                    snapshot.time_to_first_token_ms) {
+                throw std::runtime_error(
+                    "continuous request latency lifecycle is incomplete");
+            }
+            result.generated.push_back(snapshot.generated);
+            result.request_ttft_ms.push_back(snapshot.time_to_first_token_ms);
+            result.request_completion_ms.push_back(
+                snapshot.completion_latency_ms);
+        }
+    };
+    if (buckets.empty()) {
+        microllm::inference::ContinuousBatchScheduler scheduler(
+            model, {.max_slots = slots,
+                    .max_sequence_length = cache_capacity,
+                    .kv_cache_dtype = cache_dtypes.front(),
+                    .kv_cache_layer_dtypes = cache_dtypes,
+                    .batch_equal_length_prefill = batch_equal_length_prefill,
+                    .capture_selection_diagnostics = capture_diagnostics});
+        execute(scheduler);
+        result.metrics = scheduler.metrics();
+        result.diagnostics = scheduler.selection_diagnostics();
+    } else {
+        microllm::inference::LengthBucketedBatchScheduler scheduler(
+            model, {.buckets = buckets,
+                    .kv_cache_dtype = cache_dtypes.front(),
+                    .kv_cache_layer_dtypes = cache_dtypes,
+                    .batch_equal_length_prefill = batch_equal_length_prefill});
+        execute(scheduler);
+        const auto bucketed = scheduler.metrics();
+        result.bucketed_cache = true;
+        result.cache_buckets = buckets;
+        result.metrics.scheduler_steps = bucketed.scheduler_steps;
+        result.metrics.occupied_slot_steps = bucketed.occupied_slot_steps;
+        result.metrics.occupied_slots = bucketed.occupied_slots;
+        result.metrics.peak_occupied_slots = bucketed.peak_occupied_slots;
+        result.metrics.slot_utilization = bucketed.slot_utilization;
+        result.metrics.allocated_cache_bytes = bucketed.allocated_cache_bytes;
+        result.metrics.active_cache_bytes = bucketed.active_cache_bytes;
+        result.metrics.peak_active_cache_bytes =
+            bucketed.peak_active_cache_bytes;
+        for (const auto& child : bucketed.buckets) {
+            result.metrics.submitted_requests += child.submitted_requests;
+            result.metrics.completed_requests += child.completed_requests;
+            result.metrics.cancelled_requests += child.cancelled_requests;
+            result.metrics.stop_completed_requests +=
+                child.stop_completed_requests;
+            result.metrics.slot_admissions += child.slot_admissions;
+            result.metrics.slot_refills += child.slot_refills;
+            result.metrics.row_prefill_calls += child.row_prefill_calls;
+            result.metrics.prefill_batch_calls += child.prefill_batch_calls;
+            result.metrics.batched_prefill_calls += child.batched_prefill_calls;
+            result.metrics.batched_prefill_rows += child.batched_prefill_rows;
+            result.metrics.batch_decode_calls += child.batch_decode_calls;
+            result.metrics.uniform_batch_decode_calls +=
+                child.uniform_batch_decode_calls;
+            result.metrics.divergent_batch_decode_calls +=
+                child.divergent_batch_decode_calls;
+            result.metrics.compacted_batch_decode_calls +=
+                child.compacted_batch_decode_calls;
+            result.metrics.positions_aware_batch_decode_calls +=
+                child.positions_aware_batch_decode_calls;
+            result.metrics.logical_decode_rows += child.logical_decode_rows;
+            result.metrics.dummy_decode_rows += child.dummy_decode_rows;
+            result.metrics.inactive_rows_skipped +=
+                child.inactive_rows_skipped;
+            result.metrics.selection_calls += child.selection_calls;
+        }
+        result.request_bucket_indices.reserve(prompts.size());
+        for (std::size_t index = 0; index < prompts.size(); ++index) {
+            const auto required = static_cast<std::int64_t>(prompts[index].size()) +
+                                  new_token_lengths[index];
+            const auto found = std::find_if(
+                buckets.begin(), buckets.end(),
+                [required](const auto& bucket) {
+                    return required <= bucket.max_sequence_length;
+                });
+            result.request_bucket_indices.push_back(
+                static_cast<std::size_t>(std::distance(buckets.begin(), found)));
+        }
     }
-    result.metrics = scheduler.metrics();
-    result.diagnostics = scheduler.selection_diagnostics();
     return result;
 }
 
@@ -673,6 +785,19 @@ int main(int argc, char** argv) {
                 throw std::invalid_argument(
                     "continuous prompt and new-token lists must have equal nonzero length");
             }
+            const auto continuous_buckets =
+                cache_buckets(command.continuous_cache_buckets);
+            if (!continuous_buckets.empty()) {
+                const auto bucket_slots = std::accumulate(
+                    continuous_buckets.begin(), continuous_buckets.end(),
+                    std::int64_t{0}, [](std::int64_t total, const auto& bucket) {
+                        return total + bucket.max_slots;
+                    });
+                if (bucket_slots != command.continuous_slots) {
+                    throw std::invalid_argument(
+                        "continuous cache bucket slots must sum to --continuous-slots");
+                }
+            }
             std::vector<std::int32_t> prompt_offsets;
             if (command.continuous_prompt_offsets.empty()) {
                 prompt_offsets.resize(prompt_lengths.size());
@@ -708,7 +833,8 @@ int main(int argc, char** argv) {
                 (void)run_continuous_official(
                     model, prompts, new_token_lengths,
                     command.continuous_slots, cache_dtypes,
-                    command.continuous_prefill_batch, false);
+                    command.continuous_prefill_batch, false,
+                    continuous_buckets);
             }
             microllm::runtime::synchronize(device);
             const auto warmup_finish = std::chrono::steady_clock::now();
@@ -726,7 +852,7 @@ int main(int argc, char** argv) {
                     model, prompts, new_token_lengths,
                     command.continuous_slots, cache_dtypes,
                     command.continuous_prefill_batch,
-                    command.continuous_diagnostics);
+                    command.continuous_diagnostics, continuous_buckets);
                 microllm::runtime::synchronize(device);
                 const auto finish = std::chrono::steady_clock::now();
                 measured_ms += std::chrono::duration<double, std::milli>(
@@ -778,6 +904,8 @@ int main(int argc, char** argv) {
                       << ",\"resident_weight_bytes\":" << resident_weight_bytes
                       << ",\"request_count\":" << prompts.size()
                       << ",\"continuous_slots\":" << command.continuous_slots
+                      << ",\"bucketed_cache\":"
+                      << (last.bucketed_cache ? "true" : "false")
                       << ",\"continuous_prefill_batch\":"
                       << (command.continuous_prefill_batch ? "true" : "false")
                       << ",\"continuous_diagnostics\":"
@@ -860,6 +988,21 @@ int main(int argc, char** argv) {
             for (std::size_t index = 0; index < new_token_lengths.size(); ++index) {
                 if (index != 0) std::cout << ',';
                 std::cout << new_token_lengths[index];
+            }
+            std::cout << "],\"continuous_cache_buckets\":[";
+            for (std::size_t index = 0;
+                 index < last.cache_buckets.size(); ++index) {
+                if (index != 0) std::cout << ',';
+                std::cout << "{\"max_sequence_length\":"
+                          << last.cache_buckets[index].max_sequence_length
+                          << ",\"max_slots\":"
+                          << last.cache_buckets[index].max_slots << '}';
+            }
+            std::cout << "],\"request_bucket_indices\":[";
+            for (std::size_t index = 0;
+                 index < last.request_bucket_indices.size(); ++index) {
+                if (index != 0) std::cout << ',';
+                std::cout << last.request_bucket_indices[index];
             }
             std::cout << "],\"prompt_offsets\":[";
             for (std::size_t index = 0; index < prompt_offsets.size(); ++index) {

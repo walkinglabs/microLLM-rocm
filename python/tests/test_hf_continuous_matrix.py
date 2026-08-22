@@ -82,6 +82,21 @@ class HfContinuousMatrixTest(unittest.TestCase):
             MATRIX.theoretical_cache_bytes(self.model(), case),
             2 * layers * kv_heads * head_dimension * 2 * 38 * 2)
 
+    def test_length_buckets_hold_total_slots_and_reduce_theoretical_cache(self):
+        cases = MATRIX.SUITES["length-buckets"]
+        uniform = cases["long_uniform_s8"]
+        bucketed = cases["long_bucketed_s8"]
+        self.assertEqual(sum(bucket["max_slots"]
+                             for bucket in bucketed["buckets"]), 8)
+        self.assertEqual(bucketed["prompts"], uniform["prompts"])
+        self.assertEqual(bucketed["outputs"], uniform["outputs"])
+        self.assertLess(MATRIX.theoretical_cache_bytes(self.model(), bucketed),
+                        MATRIX.theoretical_cache_bytes(self.model(), uniform))
+        command = MATRIX.command(Path("micro"), self.model(), bucketed, 1, 3)
+        self.assertEqual(
+            command[command.index("--continuous-cache-buckets") + 1],
+            "264:2,520:2,1040:2,2064:2")
+
     def test_token_difference_keeps_accuracy_failure_as_data(self):
         exact = MATRIX.token_difference([[1, 2], [3]], [[1, 2], [3]])
         self.assertTrue(exact["exact"])
@@ -108,6 +123,9 @@ class HfContinuousMatrixTest(unittest.TestCase):
             "prompt_lengths": [8, 32],
             "new_token_lengths": [4, 6],
             "deterministic_across_steps": True,
+            "bucketed_cache": False,
+            "continuous_cache_buckets": [],
+            "request_bucket_indices": [],
             "allocated_cache_bytes": expected_cache,
             "peak_active_cache_bytes": expected_cache // 2,
             "kv_cache_byte_utilization": 0.5,

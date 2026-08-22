@@ -1148,6 +1148,75 @@ TEST(HipSchedulerTest, ContinuousSlotsRefillAndMatchCpuWithOneSelectionCopyPerSt
     }
 }
 
+TEST(HipSchedulerTest, LengthBucketsMatchCpuAndShareOneModel) {
+    require_gpu();
+    const model::ModelConfig config{.vocabulary_size = 16,
+                                    .dimension = 8,
+                                    .layers = 1,
+                                    .heads = 2,
+                                    .kv_heads = 1,
+                                    .ffn_dimension = 16,
+                                    .max_sequence_length = 16,
+                                    .rope_base = 10000.0F,
+                                    .tie_embeddings = false};
+    model::TransformerModel cpu_model(config, 173);
+    model::TransformerModel hip_model(config, 173);
+    hip_model.to(Device::hip(0));
+    const inference::LengthBucketedBatchConfig scheduler_config{
+        .buckets = {{.max_sequence_length = 6, .max_slots = 2},
+                    {.max_sequence_length = 16, .max_slots = 1}},
+        .kv_cache_dtype = DType::BFloat16,
+        .kv_cache_layer_dtypes = {},
+        .batch_equal_length_prefill = true};
+    inference::LengthBucketedBatchScheduler cpu(cpu_model, scheduler_config);
+    inference::LengthBucketedBatchScheduler hip(hip_model, scheduler_config);
+    const inference::GenerationConfig short_generation{
+        .max_new_tokens = 2, .temperature = 0.0F, .top_k = 1,
+        .seed = 3, .kv_cache_dtype = DType::BFloat16,
+        .kv_cache_layer_dtypes = {}, .stop_tokens = {}};
+    const inference::GenerationConfig long_generation{
+        .max_new_tokens = 4, .temperature = 0.0F, .top_k = 1,
+        .seed = 5, .kv_cache_dtype = DType::BFloat16,
+        .kv_cache_layer_dtypes = {}, .stop_tokens = {}};
+    const std::vector<std::vector<std::int32_t>> prompts{
+        {1, 2, 3}, {4, 5, 6}, {7, 8, 9, 10, 11, 12, 13, 14}};
+    const std::vector<inference::GenerationConfig> generations{
+        short_generation, short_generation, long_generation};
+    std::vector<inference::RequestId> cpu_ids;
+    std::vector<inference::RequestId> hip_ids;
+    for (std::size_t index = 0; index < prompts.size(); ++index) {
+        cpu_ids.push_back(cpu.submit(prompts[index], generations[index]));
+        hip_ids.push_back(hip.submit(prompts[index], generations[index]));
+    }
+    runtime::reset_transfer_stats();
+    cpu.run_until_idle();
+    hip.run_until_idle();
+    for (std::size_t index = 0; index < prompts.size(); ++index) {
+        EXPECT_EQ(hip.request(hip_ids[index]).generated,
+                  cpu.request(cpu_ids[index]).generated);
+        EXPECT_EQ(hip.request(hip_ids[index]).completion_reason,
+                  cpu.request(cpu_ids[index]).completion_reason);
+    }
+    const auto cpu_metrics = cpu.metrics();
+    const auto hip_metrics = hip.metrics();
+    EXPECT_EQ(hip_metrics.total_slots, 3);
+    EXPECT_EQ(hip_metrics.buckets.size(), 2U);
+    EXPECT_EQ(hip_metrics.allocated_cache_bytes,
+              cpu_metrics.allocated_cache_bytes);
+    EXPECT_LT(hip_metrics.allocated_cache_bytes,
+              static_cast<std::size_t>(
+                  2 * config.layers * config.kv_heads *
+                  config.head_dimension() * 16 * 3 *
+                  dtype_size(DType::BFloat16)));
+    EXPECT_EQ(hip_metrics.active_cache_bytes, 0U);
+    EXPECT_GT(hip_metrics.peak_active_cache_bytes, 0U);
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.device_to_host_calls,
+              static_cast<std::size_t>(
+                  hip_metrics.buckets[0].selection_calls +
+                  hip_metrics.buckets[1].selection_calls));
+}
+
 TEST(HipGenerationTest, StaticBatchDifferentRowsMatchCpuReference) {
     require_gpu();
     const model::ModelConfig config{.vocabulary_size = 16,

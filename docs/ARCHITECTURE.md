@@ -70,6 +70,9 @@ does not alter scheduler admission semantics.
 Continuous request snapshots expose submission-to-first-token and submission-to-terminal wall
 latency. Negative values mean the lifecycle event has not occurred. Official reports preserve raw
 request arrays and derive P50/P95 with linear interpolation.
+`LengthBucketedBatchScheduler` composes multiple fixed-capacity continuous schedulers. Every child
+references the same `TransformerModel` but owns a separate KV cache. The smallest compatible bucket
+is deterministic; the first version intentionally has no cross-bucket batching or slot stealing.
 Graph-free full/last-logit inference participates in the same opt-in TraceSession layer/model
 contract as autograd forward. An inactive session performs no Tensor value copies. Full-value
 official diagnostics require a single, zero-warm-up prefill step and are explicitly excluded from

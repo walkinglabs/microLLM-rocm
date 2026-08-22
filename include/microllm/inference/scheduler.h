@@ -225,4 +225,68 @@ private:
     std::unique_ptr<Impl> impl_;
 };
 
+// One fixed-capacity KV-cache pool. Requests are routed to the smallest pool
+// whose sequence capacity can hold prompt + generated tokens.
+struct LengthBucketConfig {
+    std::int64_t max_sequence_length = 0;
+    std::int64_t max_slots = 0;
+};
+
+struct LengthBucketedBatchConfig {
+    std::vector<LengthBucketConfig> buckets;
+    DType kv_cache_dtype = DType::Float32;
+    std::vector<DType> kv_cache_layer_dtypes;
+    bool batch_equal_length_prefill = true;
+};
+
+struct LengthBucketedBatchMetrics {
+    std::int64_t scheduler_steps = 0;
+    std::int64_t total_slots = 0;
+    std::int64_t occupied_slot_steps = 0;
+    std::int64_t occupied_slots = 0;
+    std::int64_t peak_occupied_slots = 0;
+    double slot_utilization = 0.0;
+    std::size_t allocated_cache_bytes = 0;
+    std::size_t active_cache_bytes = 0;
+    std::size_t peak_active_cache_bytes = 0;
+    std::vector<ContinuousBatchMetrics> buckets;
+};
+
+// Continuous serving with several fixed-capacity KV-cache pools. Model weights
+// are shared because every inner scheduler references the same model; only KV
+// storage is separated. There is intentionally no work stealing in the first
+// version: a short request waits for its smallest compatible pool even if a
+// larger pool is idle. This keeps the memory policy deterministic and testable.
+class LengthBucketedBatchScheduler {
+public:
+    explicit LengthBucketedBatchScheduler(
+        model::TransformerModel& model,
+        LengthBucketedBatchConfig config);
+    ~LengthBucketedBatchScheduler();
+    LengthBucketedBatchScheduler(LengthBucketedBatchScheduler&&) noexcept;
+    LengthBucketedBatchScheduler& operator=(
+        LengthBucketedBatchScheduler&&) noexcept;
+    LengthBucketedBatchScheduler(const LengthBucketedBatchScheduler&) = delete;
+    LengthBucketedBatchScheduler& operator=(
+        const LengthBucketedBatchScheduler&) = delete;
+
+    [[nodiscard]] RequestId submit(
+        std::vector<std::int32_t> prompt,
+        GenerationConfig config = {});
+    [[nodiscard]] bool cancel(RequestId id);
+    void step();
+    void run_until_idle(std::int64_t maximum_steps = -1);
+
+    [[nodiscard]] bool has_active_requests() const noexcept;
+    [[nodiscard]] std::size_t active_request_count() const noexcept;
+    [[nodiscard]] std::size_t pending_request_count() const noexcept;
+    [[nodiscard]] RequestSnapshot request(RequestId id) const;
+    [[nodiscard]] std::vector<RequestSnapshot> requests() const;
+    [[nodiscard]] LengthBucketedBatchMetrics metrics() const;
+
+private:
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
+};
+
 }  // namespace microllm::inference

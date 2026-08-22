@@ -72,7 +72,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   with exact request-bounded KV bytes, peak memory and complete generated-token evidence;
 - [x] hold one official request set fixed and sweep 1/2/4/8 slots for a fair batch-efficiency curve;
 - [x] fix full-row recycled Storage admission after the sweep exposed 18 stable refill failures;
-- [ ] replace max-length-per-slot reservation with length-aware Cache blocks and remeasure long S8;
+- [x] add a deterministic fixed-capacity length-bucket composition that shares model weights,
+  preserves eight total slots and exposes exact routing/cache-byte evidence;
+- [ ] rerun the uniform-vs-length-bucket long-S8 matrix on an uncontended MI300X before deciding
+  whether the next step is slot stealing, paged blocks or cross-bucket decode batching;
 - [x] locate the first DeepSeek token/logit divergence and record source, real batch, top-2 and margin;
 - [x] refute decode batching by serializing only prefill while preserving B4/B8 positions-aware decode;
 - [x] swap/duplicate B2 prefill local rows and refute row, order, stride and KV-copy defects;
@@ -85,7 +88,6 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] test and reject Qwen solution 75789: neutral speed but nonexact logits;
 - [ ] scan remaining Qwen common candidates with a complete-logit gate;
 - [x] scan all 56 common Qwen candidates: supported, but none tensor-exact;
-- [ ] add request-level TTFT and P50/P95 latency rather than throughput alone;
 - [x] add raw request TTFT/completion plus P50/P95 across short/long S1–S8;
 
 ## P2 — operator registry and profiler API

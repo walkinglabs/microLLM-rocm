@@ -1068,4 +1068,246 @@ ContinuousBatchScheduler::selection_diagnostics() const noexcept {
     return impl_->diagnostics;
 }
 
+struct LengthBucketedBatchScheduler::Impl {
+    struct RoutedRequest {
+        RequestId id = 0;
+        std::size_t bucket = 0;
+        RequestId local_id = 0;
+        std::int64_t arrival_step = 0;
+        std::int64_t completion_step = -1;
+    };
+
+    Impl(model::TransformerModel& value, LengthBucketedBatchConfig settings)
+        : model(value), config(std::move(settings)) {
+        if (config.buckets.empty()) {
+            throw std::invalid_argument(
+                "length-bucketed scheduler needs at least one bucket");
+        }
+        std::int64_t previous_capacity = 0;
+        for (const auto& bucket : config.buckets) {
+            if (bucket.max_slots <= 0 || bucket.max_sequence_length <= 0 ||
+                bucket.max_sequence_length > model.config().max_sequence_length ||
+                bucket.max_sequence_length <= previous_capacity) {
+                throw std::invalid_argument(
+                    "length buckets need positive slots and strictly increasing in-range capacities");
+            }
+            previous_capacity = bucket.max_sequence_length;
+            total_slots += bucket.max_slots;
+            schedulers.emplace_back(
+                model,
+                ContinuousBatchConfig{
+                    .max_slots = bucket.max_slots,
+                    .max_sequence_length = bucket.max_sequence_length,
+                    .kv_cache_dtype = config.kv_cache_dtype,
+                    .kv_cache_layer_dtypes = config.kv_cache_layer_dtypes,
+                    .batch_equal_length_prefill =
+                        config.batch_equal_length_prefill,
+                    .capture_selection_diagnostics = false});
+            previous_occupied_slot_steps.push_back(0);
+        }
+    }
+
+    model::TransformerModel& model;
+    LengthBucketedBatchConfig config;
+    std::vector<ContinuousBatchScheduler> schedulers;
+    std::vector<std::int64_t> previous_occupied_slot_steps;
+    std::vector<RoutedRequest> requests;
+    RequestId next_id = 1;
+    std::int64_t scheduler_steps = 0;
+    std::int64_t total_slots = 0;
+    std::int64_t occupied_slot_steps = 0;
+    std::int64_t peak_occupied_slots = 0;
+    std::size_t peak_active_cache_bytes = 0;
+
+    std::size_t find_index(RequestId id) const {
+        const auto found = std::find_if(
+            requests.begin(), requests.end(),
+            [id](const RoutedRequest& request) { return request.id == id; });
+        if (found == requests.end()) {
+            throw std::out_of_range(
+                "unknown length-bucketed scheduler request");
+        }
+        return static_cast<std::size_t>(
+            std::distance(requests.begin(), found));
+    }
+
+    RoutedRequest& find(RequestId id) { return requests[find_index(id)]; }
+    const RoutedRequest& find(RequestId id) const {
+        return requests[find_index(id)];
+    }
+
+    std::size_t bucket_for(std::int64_t required_capacity) const {
+        const auto found = std::find_if(
+            config.buckets.begin(), config.buckets.end(),
+            [required_capacity](const LengthBucketConfig& bucket) {
+                return required_capacity <= bucket.max_sequence_length;
+            });
+        if (found == config.buckets.end()) {
+            throw std::invalid_argument(
+                "request exceeds every length-bucket capacity");
+        }
+        return static_cast<std::size_t>(
+            std::distance(config.buckets.begin(), found));
+    }
+
+    void observe_terminal_requests() {
+        for (auto& routed : requests) {
+            if (routed.completion_step >= 0) continue;
+            const auto snapshot =
+                schedulers[routed.bucket].request(routed.local_id);
+            if (is_terminal(snapshot.state)) {
+                routed.completion_step = scheduler_steps;
+            }
+        }
+    }
+
+    LengthBucketedBatchMetrics collect_metrics() const {
+        LengthBucketedBatchMetrics result;
+        result.scheduler_steps = scheduler_steps;
+        result.total_slots = total_slots;
+        result.occupied_slot_steps = occupied_slot_steps;
+        result.peak_occupied_slots = peak_occupied_slots;
+        result.peak_active_cache_bytes = peak_active_cache_bytes;
+        result.buckets.reserve(schedulers.size());
+        for (const auto& scheduler : schedulers) {
+            const auto current = scheduler.metrics();
+            result.occupied_slots += current.occupied_slots;
+            result.allocated_cache_bytes += current.allocated_cache_bytes;
+            result.active_cache_bytes += current.active_cache_bytes;
+            result.buckets.push_back(current);
+        }
+        if (scheduler_steps > 0 && total_slots > 0) {
+            result.slot_utilization =
+                static_cast<double>(occupied_slot_steps) /
+                (static_cast<double>(scheduler_steps) *
+                 static_cast<double>(total_slots));
+        }
+        return result;
+    }
+};
+
+LengthBucketedBatchScheduler::LengthBucketedBatchScheduler(
+    model::TransformerModel& model, LengthBucketedBatchConfig config)
+    : impl_(std::make_unique<Impl>(model, std::move(config))) {}
+LengthBucketedBatchScheduler::~LengthBucketedBatchScheduler() = default;
+LengthBucketedBatchScheduler::LengthBucketedBatchScheduler(
+    LengthBucketedBatchScheduler&&) noexcept = default;
+LengthBucketedBatchScheduler& LengthBucketedBatchScheduler::operator=(
+    LengthBucketedBatchScheduler&&) noexcept = default;
+
+RequestId LengthBucketedBatchScheduler::submit(
+    std::vector<std::int32_t> prompt, GenerationConfig config) {
+    validate_request(impl_->model, prompt, config);
+    const auto required_capacity =
+        static_cast<std::int64_t>(prompt.size()) + config.max_new_tokens;
+    const auto bucket = impl_->bucket_for(required_capacity);
+    const auto local_id =
+        impl_->schedulers[bucket].submit(std::move(prompt), std::move(config));
+    const auto id = impl_->next_id++;
+    const auto local = impl_->schedulers[bucket].request(local_id);
+    impl_->requests.push_back({.id = id,
+                               .bucket = bucket,
+                               .local_id = local_id,
+                               .arrival_step = impl_->scheduler_steps,
+                               .completion_step = is_terminal(local.state)
+                                                      ? impl_->scheduler_steps
+                                                      : -1});
+    return id;
+}
+
+bool LengthBucketedBatchScheduler::cancel(RequestId id) {
+    auto& routed = impl_->find(id);
+    const auto changed =
+        impl_->schedulers[routed.bucket].cancel(routed.local_id);
+    if (changed) routed.completion_step = impl_->scheduler_steps;
+    return changed;
+}
+
+void LengthBucketedBatchScheduler::step() {
+    if (!has_active_requests()) return;
+    ++impl_->scheduler_steps;
+    for (auto& scheduler : impl_->schedulers) {
+        if (!scheduler.has_active_requests()) continue;
+        scheduler.step();
+        const auto sampled = impl_->collect_metrics();
+        impl_->peak_active_cache_bytes = std::max(
+            impl_->peak_active_cache_bytes, sampled.active_cache_bytes);
+    }
+    impl_->observe_terminal_requests();
+    const auto current = impl_->collect_metrics();
+    std::int64_t occupied_this_step = 0;
+    for (std::size_t index = 0; index < current.buckets.size(); ++index) {
+        const auto occupied = current.buckets[index].occupied_slot_steps;
+        occupied_this_step +=
+            occupied - impl_->previous_occupied_slot_steps[index];
+        impl_->previous_occupied_slot_steps[index] = occupied;
+    }
+    impl_->occupied_slot_steps += occupied_this_step;
+    impl_->peak_occupied_slots =
+        std::max(impl_->peak_occupied_slots, occupied_this_step);
+}
+
+void LengthBucketedBatchScheduler::run_until_idle(
+    std::int64_t maximum_steps) {
+    if (maximum_steps < -1) {
+        throw std::invalid_argument("maximum_steps is invalid");
+    }
+    std::int64_t executed = 0;
+    while (has_active_requests() &&
+           (maximum_steps < 0 || executed < maximum_steps)) {
+        step();
+        ++executed;
+    }
+    if (has_active_requests()) {
+        throw std::runtime_error(
+            "length-bucketed scheduler did not become idle within maximum_steps");
+    }
+}
+
+bool LengthBucketedBatchScheduler::has_active_requests() const noexcept {
+    return std::any_of(
+        impl_->schedulers.begin(), impl_->schedulers.end(),
+        [](const ContinuousBatchScheduler& scheduler) {
+            return scheduler.has_active_requests();
+        });
+}
+
+std::size_t LengthBucketedBatchScheduler::active_request_count() const noexcept {
+    std::size_t result = 0;
+    for (const auto& scheduler : impl_->schedulers) {
+        result += scheduler.active_request_count();
+    }
+    return result;
+}
+
+std::size_t LengthBucketedBatchScheduler::pending_request_count() const noexcept {
+    std::size_t result = 0;
+    for (const auto& scheduler : impl_->schedulers) {
+        result += scheduler.pending_request_count();
+    }
+    return result;
+}
+
+RequestSnapshot LengthBucketedBatchScheduler::request(RequestId id) const {
+    const auto& routed = impl_->find(id);
+    auto result = impl_->schedulers[routed.bucket].request(routed.local_id);
+    result.id = routed.id;
+    result.arrival_step = routed.arrival_step;
+    result.completion_step = routed.completion_step;
+    return result;
+}
+
+std::vector<RequestSnapshot> LengthBucketedBatchScheduler::requests() const {
+    std::vector<RequestSnapshot> result;
+    result.reserve(impl_->requests.size());
+    for (const auto& routed : impl_->requests) {
+        result.push_back(request(routed.id));
+    }
+    return result;
+}
+
+LengthBucketedBatchMetrics LengthBucketedBatchScheduler::metrics() const {
+    return impl_->collect_metrics();
+}
+
 }  // namespace microllm::inference

@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| CPU configuration | smoke-tested | full 314/314 configuration includes 218 CPU-labelled and 96 HIP-labelled gates; ASan/UBSan 211/211 | broader compiler/OS CI matrix |
+| CPU configuration | smoke-tested | last full gate 315/315; current length-bucket change passes ASan/UBSan 214/214 plus its dedicated HIP gate | rerun the full mixed suite after uncontended GPU access; broader compiler/OS CI matrix |
 | CPU code coverage | smoke-tested | 83.9% lines, 90.9% functions, 66.6% branches over `src/` + `include/` | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, native cast, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
@@ -50,7 +50,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | BF16 GEMM/autograd/inference | smoke-tested | transactional FFN/QKV/O, shared cast, immutable plans, batched T≥256 QK/PV and full logits/tokens | long prefill remains 0.15×–0.31×, cached batch and Radeon remain |
 | BF16 FP32-master training | smoke-tested | full STE graph/PyTorch gradients, CPU 20-step loss, HIP zero-transfer, 18 official rows; 3.12×/2.58× PyTorch AMP | 0.918×/0.906× micro FP32 and no peak-memory reduction; continuous islands |
 | Token generation | smoke-tested | deterministic sampling, cache-backed bounds and one-copy HIP greedy token history | stochastic device top-k/RNG and trained text report |
-| Serving scheduler | smoke-tested | S1–S8 through BF16 FFN cast/gate/up/SwiGLU/down full-value split | gate GEMM first drift; algorithm-ID audit, Cache and latency |
+| Serving scheduler | smoke-tested | continuous refill/compaction/positions-aware decode, request TTFT, and CPU-tested shared-weight length buckets | uncontended uniform/bucketed MI300X A/B; slot stealing or paged Cache only after evidence |
 | Stable model failure | smoke-tested | low-loss cycle breaks beyond training context | rebuttal experiments |
 | PyTorch Custom Ops | smoke-tested on CPU | Torch 2.13 add/multiply via dispatcher | build/run with PyTorch ROCm |
 | PyTorch correctness oracle | smoke-tested | PyTorch-enabled 196/196; 30+ Tensor APIs, 29 graph APIs, inference matrix and model/optimizer parity | broader direct PyTorch ROCm operator matrix |

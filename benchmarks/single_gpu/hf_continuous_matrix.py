@@ -45,6 +45,26 @@ SUITES = {
             for slots in (1, 2, 4, 8)
         },
     },
+    "length-buckets": {
+        "long_uniform_s8": {
+            "slots": 8,
+            "policy": "uniform",
+            "prompts": [256, 256, 512, 512, 1024, 1024, 2048, 2048],
+            "outputs": [8, 8, 8, 8, 16, 16, 16, 16],
+        },
+        "long_bucketed_s8": {
+            "slots": 8,
+            "policy": "length_bucketed",
+            "buckets": [
+                {"max_sequence_length": 264, "max_slots": 2},
+                {"max_sequence_length": 520, "max_slots": 2},
+                {"max_sequence_length": 1040, "max_slots": 2},
+                {"max_sequence_length": 2064, "max_slots": 2},
+            ],
+            "prompts": [256, 256, 512, 512, 1024, 1024, 2048, 2048],
+            "outputs": [8, 8, 8, 8, 16, 16, 16, 16],
+        },
+    },
 }
 
 
@@ -93,10 +113,15 @@ def model_cache_shape(config_path: str | Path) -> tuple[int, int, int]:
 
 def theoretical_cache_bytes(model: dict, case: dict, element_bytes: int = 2) -> int:
     layers, kv_heads, head_dimension = model_cache_shape(model["config"])
-    capacity = max(prompt + output for prompt, output in
-                   zip(case["prompts"], case["outputs"]))
-    return (2 * layers * kv_heads * head_dimension * int(case["slots"]) *
-            capacity * element_bytes)
+    if case.get("buckets"):
+        token_slots = sum(int(bucket["max_sequence_length"]) *
+                          int(bucket["max_slots"])
+                          for bucket in case["buckets"])
+    else:
+        capacity = max(prompt + output for prompt, output in
+                       zip(case["prompts"], case["outputs"]))
+        token_slots = int(case["slots"]) * capacity
+    return 2 * layers * kv_heads * head_dimension * token_slots * element_bytes
 
 
 def percentile(values: list[float], quantile: float) -> float:
@@ -113,7 +138,7 @@ def percentile(values: list[float], quantile: float) -> float:
 def command(binary: Path, model: dict, case: dict,
             warmup: int, steps: int) -> list[str]:
     tokens = model["inference"]["token_ids"]
-    return [
+    result = [
         str(binary), "--config", model["config"], "--weights", model["weights"],
         "--tokens", ",".join(str(token) for token in tokens),
         "--device", "hip", "--top-k", "1", "--new-tokens", "0",
@@ -124,6 +149,14 @@ def command(binary: Path, model: dict, case: dict,
         "--continuous-prompt-lengths", ",".join(map(str, case["prompts"])),
         "--continuous-new-token-lengths", ",".join(map(str, case["outputs"])),
     ]
+    if case.get("buckets"):
+        result.extend([
+            "--continuous-cache-buckets",
+            ",".join(
+                f"{bucket['max_sequence_length']}:{bucket['max_slots']}"
+                for bucket in case["buckets"]),
+        ])
+    return result
 
 
 def validate(record: dict, model: dict, case_name: str, case: dict,
@@ -141,6 +174,7 @@ def validate(record: dict, model: dict, case_name: str, case: dict,
         "prompt_lengths": case["prompts"],
         "new_token_lengths": case["outputs"],
         "deterministic_across_steps": True,
+        "bucketed_cache": bool(case.get("buckets")),
     }
     if any(record.get(key) != value for key, value in required.items()):
         raise RuntimeError(f"{model['name']} {case_name} changed its serving contract")
@@ -151,6 +185,20 @@ def validate(record: dict, model: dict, case_name: str, case: dict,
             int(record.get("engine_peak_bytes", 0)) <= 0 or \
             int(record.get("resident_weight_bytes", 0)) <= 0:
         raise RuntimeError(f"{model['name']} {case_name} has invalid memory/timing evidence")
+    expected_buckets = case.get("buckets", [])
+    expected_routes = []
+    if expected_buckets:
+        if sum(int(bucket["max_slots"]) for bucket in expected_buckets) != \
+                int(case["slots"]):
+            raise RuntimeError("length bucket slots changed the total concurrency")
+        for prompt, output in zip(case["prompts"], case["outputs"]):
+            required_tokens = prompt + output
+            expected_routes.append(next(
+                index for index, bucket in enumerate(expected_buckets)
+                if required_tokens <= int(bucket["max_sequence_length"])))
+    if record.get("continuous_cache_buckets") != expected_buckets or \
+            record.get("request_bucket_indices") != expected_routes:
+        raise RuntimeError(f"{model['name']} {case_name} has invalid bucket routing")
     ttft = record.get("request_ttft_ms", [])
     completion = record.get("request_completion_ms", [])
     if len(ttft) != len(case["prompts"]) or len(completion) != len(ttft) or \
@@ -313,6 +361,35 @@ def main() -> int:
                     "slots": group_rows,
                     "generated_tokens_equal_across_slots": group_exact,
                 })
+    bucket_comparisons = []
+    if args.suite == "length-buckets":
+        for model in models:
+            uniform = next(row for row in rows
+                           if row.get("model") == model["name"] and
+                           row.get("case") == "long_uniform_s8")
+            bucketed = next(row for row in rows
+                            if row.get("model") == model["name"] and
+                            row.get("case") == "long_bucketed_s8")
+            if uniform.get("status") != "pass" or bucketed.get("status") != "pass":
+                continue
+            difference = token_difference(
+                uniform["generated_tokens"], bucketed["generated_tokens"])
+            bucket_comparisons.append({
+                "model": model["name"],
+                "token_difference": difference,
+                "allocated_cache_ratio": (
+                    bucketed["allocated_cache_bytes"] /
+                    uniform["allocated_cache_bytes"]),
+                "tokens_per_second_ratio": (
+                    bucketed["tokens_per_second"] /
+                    uniform["tokens_per_second"]),
+                "request_ttft_p50_ratio": (
+                    bucketed["request_ttft_p50_ms"] /
+                    uniform["request_ttft_p50_ms"]),
+                "request_completion_p50_ratio": (
+                    bucketed["request_completion_p50_ms"] /
+                    uniform["request_completion_p50_ms"]),
+            })
     execution_status = "pass" if all(row["status"] == "pass" for row in rows) \
         else "complete_with_recorded_limits"
     accuracy_failures = args.suite == "slot-sweep" and any(
@@ -332,6 +409,7 @@ def main() -> int:
         "rows": rows,
         "aggregates": aggregates,
         "slot_sweeps": slot_sweeps,
+        "bucket_comparisons": bucket_comparisons,
         "pytorch_boundary": "not measured; no variable-position PyTorch serving oracle",
     }
     (args.output_directory / "summary.json").write_text(

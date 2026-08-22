@@ -550,4 +550,116 @@ TEST(ContinuousBatchSchedulerTest, StopCancelAndPolicyErrorsAreExplicit) {
                  std::invalid_argument);
 }
 
+TEST(LengthBucketedBatchSchedulerTest,
+     RoutesToSmallestCacheAndMatchesIndependentRequests) {
+    const auto config = scheduler_config();
+    model::TransformerModel scheduled_model(config, 163);
+    LengthBucketedBatchScheduler scheduler(
+        scheduled_model,
+        {.buckets = {{.max_sequence_length = 6, .max_slots = 2},
+                     {.max_sequence_length = 16, .max_slots = 1}},
+         .kv_cache_dtype = DType::BFloat16,
+         .kv_cache_layer_dtypes = {},
+         .batch_equal_length_prefill = true});
+    const GenerationConfig short_generation{
+        .max_new_tokens = 2, .temperature = 0.0F, .top_k = 1,
+        .seed = 3, .kv_cache_dtype = DType::BFloat16,
+        .kv_cache_layer_dtypes = {}, .stop_tokens = {}};
+    const GenerationConfig long_generation{
+        .max_new_tokens = 4, .temperature = 0.0F, .top_k = 1,
+        .seed = 5, .kv_cache_dtype = DType::BFloat16,
+        .kv_cache_layer_dtypes = {}, .stop_tokens = {}};
+    const std::vector<std::int32_t> short_prompt{1, 2, 3};
+    const std::vector<std::int32_t> other_short_prompt{4, 5, 6};
+    const std::vector<std::int32_t> long_prompt{7, 8, 9, 10, 11, 12, 13, 14};
+    const auto short_id = scheduler.submit(short_prompt, short_generation);
+    const auto other_short_id =
+        scheduler.submit(other_short_prompt, short_generation);
+    const auto long_id = scheduler.submit(long_prompt, long_generation);
+    EXPECT_EQ(scheduler.active_request_count(), 3U);
+    EXPECT_EQ(scheduler.pending_request_count(), 3U);
+    scheduler.run_until_idle();
+
+    for (const auto& [id, prompt, generation] : {
+             std::tuple{short_id, short_prompt, short_generation},
+             std::tuple{other_short_id, other_short_prompt, short_generation},
+             std::tuple{long_id, long_prompt, long_generation}}) {
+        model::TransformerModel independent(config, 163);
+        const auto snapshot = scheduler.request(id);
+        EXPECT_EQ(snapshot.generated,
+                  suffix(generate(independent, prompt, generation),
+                         prompt.size()));
+        EXPECT_EQ(snapshot.state, RequestState::Completed);
+        EXPECT_GE(snapshot.time_to_first_token_ms, 0.0);
+        EXPECT_GE(snapshot.completion_latency_ms,
+                  snapshot.time_to_first_token_ms);
+    }
+    EXPECT_EQ(scheduler.requests().size(), 3U);
+    const auto metrics = scheduler.metrics();
+    ASSERT_EQ(metrics.buckets.size(), 2U);
+    EXPECT_EQ(metrics.total_slots, 3);
+    EXPECT_EQ(metrics.peak_occupied_slots, 3);
+    EXPECT_EQ(metrics.occupied_slots, 0);
+    EXPECT_GT(metrics.occupied_slot_steps, 0);
+    EXPECT_GT(metrics.slot_utilization, 0.0);
+    EXPECT_LE(metrics.slot_utilization, 1.0);
+    const auto expected_cache_bytes = static_cast<std::size_t>(
+        2 * config.layers * config.kv_heads * config.head_dimension() *
+        (6 * 2 + 16) * dtype_size(DType::BFloat16));
+    EXPECT_EQ(metrics.allocated_cache_bytes, expected_cache_bytes);
+    EXPECT_GT(metrics.peak_active_cache_bytes, 0U);
+    EXPECT_LT(metrics.allocated_cache_bytes,
+              static_cast<std::size_t>(
+                  2 * config.layers * config.kv_heads *
+                  config.head_dimension() * 16 * 3 *
+                  dtype_size(DType::BFloat16)));
+}
+
+TEST(LengthBucketedBatchSchedulerTest,
+     KeepsSmallRequestsQueuedAndRejectsInvalidPolicies) {
+    const auto config = scheduler_config();
+    model::TransformerModel model(config, 167);
+    LengthBucketedBatchScheduler scheduler(
+        model, {.buckets = {{.max_sequence_length = 4, .max_slots = 1},
+                            {.max_sequence_length = 16, .max_slots = 1}},
+                .kv_cache_dtype = DType::Float32,
+                .kv_cache_layer_dtypes = {}});
+    const GenerationConfig generation{
+        .max_new_tokens = 2, .temperature = 0.0F, .top_k = 1,
+        .seed = 7, .kv_cache_dtype = DType::Float32,
+        .kv_cache_layer_dtypes = {}, .stop_tokens = {}};
+    const auto first = scheduler.submit({1, 2}, generation);
+    const auto second = scheduler.submit({3, 4}, generation);
+    scheduler.step();
+    EXPECT_EQ(scheduler.request(first).generated.size(), 1U);
+    EXPECT_EQ(scheduler.request(second).state, RequestState::PendingPrefill);
+    EXPECT_EQ(scheduler.metrics().buckets[1].slot_admissions, 0);
+    EXPECT_TRUE(scheduler.cancel(second));
+    EXPECT_FALSE(scheduler.cancel(second));
+    scheduler.run_until_idle();
+    EXPECT_EQ(scheduler.request(first).completion_step, 2);
+    EXPECT_EQ(scheduler.request(second).completion_step, 1);
+    EXPECT_THROW((void)scheduler.request(999), std::out_of_range);
+    EXPECT_THROW((void)scheduler.submit(
+                     std::vector<std::int32_t>(16, 1), generation),
+                 std::invalid_argument);
+    EXPECT_THROW(scheduler.run_until_idle(-2), std::invalid_argument);
+
+    EXPECT_THROW((void)LengthBucketedBatchScheduler(
+                     model, {.buckets = {},
+                             .kv_cache_layer_dtypes = {}}),
+                 std::invalid_argument);
+    EXPECT_THROW((void)LengthBucketedBatchScheduler(
+                     model, {.buckets = {
+                                 {.max_sequence_length = 8, .max_slots = 1},
+                                 {.max_sequence_length = 4, .max_slots = 1}},
+                             .kv_cache_layer_dtypes = {}}),
+                 std::invalid_argument);
+    EXPECT_THROW((void)LengthBucketedBatchScheduler(
+                     model, {.buckets = {
+                                 {.max_sequence_length = 4, .max_slots = 0}},
+                             .kv_cache_layer_dtypes = {}}),
+                 std::invalid_argument);
+}
+
 }  // namespace microllm::inference
