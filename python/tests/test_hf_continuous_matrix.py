@@ -97,6 +97,30 @@ class HfContinuousMatrixTest(unittest.TestCase):
             command[command.index("--continuous-cache-buckets") + 1],
             "264:2,520:2,1040:2,2064:2")
 
+    def test_bucket_sweep_holds_requests_and_total_slots_fixed(self):
+        cases = MATRIX.SUITES["bucket-sweep"]
+        self.assertEqual([case["bucket_count"] for case in cases.values()],
+                         [1, 2, 4])
+        self.assertEqual(len({tuple(case["prompts"])
+                              for case in cases.values()}), 1)
+        self.assertEqual(len({tuple(case["outputs"])
+                              for case in cases.values()}), 1)
+        for case in cases.values():
+            self.assertEqual(sum(bucket["max_slots"]
+                                 for bucket in case.get("buckets",
+                                                        [{"max_slots": 8}])),
+                             8)
+        cache = [MATRIX.theoretical_cache_bytes(self.model(), case)
+                 for case in cases.values()]
+        self.assertGreater(cache[0], cache[1])
+        self.assertGreater(cache[1], cache[2])
+        two_bucket_command = MATRIX.command(
+            Path("micro"), self.model(), cases["long_buckets_2"], 1, 3)
+        self.assertEqual(
+            two_bucket_command[
+                two_bucket_command.index("--continuous-cache-buckets") + 1],
+            "520:4,2064:4")
+
     def test_token_difference_keeps_accuracy_failure_as_data(self):
         exact = MATRIX.token_difference([[1, 2], [3]], [[1, 2], [3]])
         self.assertTrue(exact["exact"])

@@ -65,6 +65,39 @@ SUITES = {
             "outputs": [8, 8, 8, 8, 16, 16, 16, 16],
         },
     },
+    "bucket-sweep": {
+        "long_buckets_1": {
+            "slots": 8,
+            "bucket_count": 1,
+            "policy": "uniform",
+            "prompts": [256, 256, 512, 512, 1024, 1024, 2048, 2048],
+            "outputs": [8, 8, 8, 8, 16, 16, 16, 16],
+        },
+        "long_buckets_2": {
+            "slots": 8,
+            "bucket_count": 2,
+            "policy": "length_bucketed",
+            "buckets": [
+                {"max_sequence_length": 520, "max_slots": 4},
+                {"max_sequence_length": 2064, "max_slots": 4},
+            ],
+            "prompts": [256, 256, 512, 512, 1024, 1024, 2048, 2048],
+            "outputs": [8, 8, 8, 8, 16, 16, 16, 16],
+        },
+        "long_buckets_4": {
+            "slots": 8,
+            "bucket_count": 4,
+            "policy": "length_bucketed",
+            "buckets": [
+                {"max_sequence_length": 264, "max_slots": 2},
+                {"max_sequence_length": 520, "max_slots": 2},
+                {"max_sequence_length": 1040, "max_slots": 2},
+                {"max_sequence_length": 2064, "max_slots": 2},
+            ],
+            "prompts": [256, 256, 512, 512, 1024, 1024, 2048, 2048],
+            "outputs": [8, 8, 8, 8, 16, 16, 16, 16],
+        },
+    },
 }
 
 
@@ -396,10 +429,63 @@ def main() -> int:
                     bucketed_aggregate["request_completion_p50_ms_p50"] /
                     uniform_aggregate["request_completion_p50_ms_p50"]),
             })
+    bucket_sweeps = []
+    if args.suite == "bucket-sweep":
+        for model in models:
+            selected = []
+            baseline_tokens = None
+            baseline_cache = None
+            baseline_tps = None
+            all_exact = True
+            for case_name, case in SUITES[args.suite].items():
+                raw = [row for row in rows
+                       if row.get("model") == model["name"] and
+                       row.get("case") == case_name]
+                aggregate = next(row for row in aggregates
+                                 if row.get("model") == model["name"] and
+                                 row.get("case") == case_name)
+                if len(raw) != args.runs or aggregate.get("status") != "pass":
+                    continue
+                current_tokens = raw[0]["generated_tokens"]
+                if baseline_tokens is None:
+                    baseline_tokens = current_tokens
+                    baseline_cache = int(raw[0]["allocated_cache_bytes"])
+                    baseline_tps = float(aggregate["tokens_per_second_p50"])
+                difference = token_difference(baseline_tokens, current_tokens)
+                all_exact = all_exact and difference["exact"]
+                selected.append({
+                    "bucket_count": int(case["bucket_count"]),
+                    "allocated_cache_bytes": int(raw[0]["allocated_cache_bytes"]),
+                    "allocated_cache_ratio": (
+                        int(raw[0]["allocated_cache_bytes"]) / baseline_cache),
+                    "tokens_per_second_p50": aggregate["tokens_per_second_p50"],
+                    "tokens_per_second_ratio": (
+                        float(aggregate["tokens_per_second_p50"]) / baseline_tps),
+                    "request_ttft_p50_ms": aggregate["request_ttft_p50_ms_p50"],
+                    "request_ttft_p95_ms": aggregate["request_ttft_p95_ms_p50"],
+                    "request_completion_p50_ms": (
+                        aggregate["request_completion_p50_ms_p50"]),
+                    "request_completion_p95_ms": (
+                        aggregate["request_completion_p95_ms_p50"]),
+                    "engine_peak_bytes_p50": aggregate["engine_peak_bytes_p50"],
+                    "token_difference_vs_one_bucket": difference,
+                })
+            selected.sort(key=lambda row: row["bucket_count"])
+            bucket_sweeps.append({
+                "model": model["name"],
+                "request_count": 8,
+                "rows": selected,
+                "generated_tokens_equal_across_bucket_counts": all_exact,
+            })
     execution_status = "pass" if all(row["status"] == "pass" for row in rows) \
         else "complete_with_recorded_limits"
-    accuracy_failures = args.suite == "slot-sweep" and any(
-        not row["generated_tokens_equal_across_slots"] for row in slot_sweeps)
+    accuracy_failures = (
+        args.suite == "slot-sweep" and any(
+            not row["generated_tokens_equal_across_slots"]
+            for row in slot_sweeps)) or (
+        args.suite == "bucket-sweep" and any(
+            not row["generated_tokens_equal_across_bucket_counts"]
+            for row in bucket_sweeps))
     summary = {
         "schema_version": 1,
         "track": "official_continuous_serving_matrix",
@@ -416,6 +502,7 @@ def main() -> int:
         "aggregates": aggregates,
         "slot_sweeps": slot_sweeps,
         "bucket_comparisons": bucket_comparisons,
+        "bucket_sweeps": bucket_sweeps,
         "pytorch_boundary": "not measured; no variable-position PyTorch serving oracle",
     }
     (args.output_directory / "summary.json").write_text(
