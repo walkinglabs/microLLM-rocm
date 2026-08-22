@@ -64,6 +64,7 @@ struct Options {
     std::string continuous_prompt_lengths;
     std::string continuous_new_token_lengths;
     std::string continuous_prompt_offsets;
+    std::string continuous_arrival_steps;
     bool continuous_prefill_batch = true;
     bool continuous_diagnostics = false;
     std::filesystem::path trace_output;
@@ -144,6 +145,9 @@ Options options(int argc, char** argv) {
         }
         else if (name == "--continuous-prompt-offsets") {
             result.continuous_prompt_offsets = argv[index + 1];
+        }
+        else if (name == "--continuous-arrival-steps") {
+            result.continuous_arrival_steps = argv[index + 1];
         }
         else if (name == "--continuous-diagnostics") {
             const std::string value = argv[index + 1];
@@ -252,6 +256,11 @@ Options options(int argc, char** argv) {
         result.workload != "continuous") {
         throw std::invalid_argument(
             "--continuous-prompt-offsets requires continuous workload");
+    }
+    if (!result.continuous_arrival_steps.empty() &&
+        result.workload != "continuous") {
+        throw std::invalid_argument(
+            "--continuous-arrival-steps requires continuous workload");
     }
     if (result.trace_max_elements <= 0) {
         throw std::invalid_argument("--trace-max-elements must be positive");
@@ -574,10 +583,12 @@ ContinuousOfficialRun run_continuous_official(
     microllm::model::TransformerModel& model,
     const std::vector<std::vector<std::int32_t>>& prompts,
     const std::vector<std::int64_t>& new_token_lengths,
+    const std::vector<std::int32_t>& arrival_steps,
     std::int64_t slots, const std::vector<microllm::DType>& cache_dtypes,
     bool batch_equal_length_prefill, bool capture_diagnostics,
     const std::vector<microllm::inference::LengthBucketConfig>& buckets) {
-    if (prompts.size() != new_token_lengths.size()) {
+    if (prompts.size() != new_token_lengths.size() ||
+        prompts.size() != arrival_steps.size()) {
         throw std::invalid_argument(
             "continuous prompt and generation counts must match");
     }
@@ -590,20 +601,28 @@ ContinuousOfficialRun run_continuous_official(
     }
     ContinuousOfficialRun result;
     const auto execute = [&](auto& scheduler) {
-        std::vector<microllm::inference::RequestId> ids;
-        ids.reserve(prompts.size());
-        for (std::size_t index = 0; index < prompts.size(); ++index) {
-            ids.push_back(scheduler.submit(
-                prompts[index],
-                {.max_new_tokens = new_token_lengths[index],
-                 .temperature = 0.0F,
-                 .top_k = 1,
-                 .seed = static_cast<std::uint64_t>(index + 1),
-                 .kv_cache_dtype = cache_dtypes.front(),
-                 .kv_cache_layer_dtypes = cache_dtypes,
-                 .stop_tokens = {}}));
+        std::vector<microllm::inference::RequestId> ids(prompts.size(), 0);
+        std::size_t submitted = 0;
+        std::int64_t arrival_clock = 0;
+        while (submitted < prompts.size() || scheduler.has_active_requests()) {
+            for (std::size_t index = 0; index < prompts.size(); ++index) {
+                if (ids[index] != 0 || arrival_steps[index] > arrival_clock) {
+                    continue;
+                }
+                ids[index] = scheduler.submit(
+                    prompts[index],
+                    {.max_new_tokens = new_token_lengths[index],
+                     .temperature = 0.0F,
+                     .top_k = 1,
+                     .seed = static_cast<std::uint64_t>(index + 1),
+                     .kv_cache_dtype = cache_dtypes.front(),
+                     .kv_cache_layer_dtypes = cache_dtypes,
+                     .stop_tokens = {}});
+                ++submitted;
+            }
+            if (scheduler.has_active_requests()) scheduler.step();
+            ++arrival_clock;
         }
-        scheduler.run_until_idle();
         result.generated.reserve(ids.size());
         result.request_ttft_ms.reserve(ids.size());
         result.request_completion_ms.reserve(ids.size());
@@ -785,6 +804,18 @@ int main(int argc, char** argv) {
                 throw std::invalid_argument(
                     "continuous prompt and new-token lists must have equal nonzero length");
             }
+            std::vector<std::int32_t> arrival_steps;
+            if (command.continuous_arrival_steps.empty()) {
+                arrival_steps.assign(prompt_lengths.size(), 0);
+            } else {
+                arrival_steps = nonnegative_values(
+                    command.continuous_arrival_steps,
+                    "--continuous-arrival-steps must contain nonnegative comma-separated steps");
+                if (arrival_steps.size() != prompt_lengths.size()) {
+                    throw std::invalid_argument(
+                        "continuous arrival steps must match request count");
+                }
+            }
             const auto continuous_buckets =
                 cache_buckets(command.continuous_cache_buckets);
             if (!continuous_buckets.empty()) {
@@ -831,7 +862,7 @@ int main(int argc, char** argv) {
             const auto warmup_start = std::chrono::steady_clock::now();
             for (int iteration = 0; iteration < command.warmup; ++iteration) {
                 (void)run_continuous_official(
-                    model, prompts, new_token_lengths,
+                    model, prompts, new_token_lengths, arrival_steps,
                     command.continuous_slots, cache_dtypes,
                     command.continuous_prefill_batch, false,
                     continuous_buckets);
@@ -849,7 +880,7 @@ int main(int argc, char** argv) {
             for (int iteration = 0; iteration < command.steps; ++iteration) {
                 const auto start = std::chrono::steady_clock::now();
                 auto current = run_continuous_official(
-                    model, prompts, new_token_lengths,
+                    model, prompts, new_token_lengths, arrival_steps,
                     command.continuous_slots, cache_dtypes,
                     command.continuous_prefill_batch,
                     command.continuous_diagnostics, continuous_buckets);
@@ -1003,6 +1034,11 @@ int main(int argc, char** argv) {
                  index < last.request_bucket_indices.size(); ++index) {
                 if (index != 0) std::cout << ',';
                 std::cout << last.request_bucket_indices[index];
+            }
+            std::cout << "],\"arrival_steps\":[";
+            for (std::size_t index = 0; index < arrival_steps.size(); ++index) {
+                if (index != 0) std::cout << ',';
+                std::cout << arrival_steps[index];
             }
             std::cout << "],\"prompt_offsets\":[";
             for (std::size_t index = 0; index < prompt_offsets.size(); ++index) {

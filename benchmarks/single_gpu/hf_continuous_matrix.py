@@ -98,6 +98,58 @@ SUITES = {
             "outputs": [8, 8, 8, 8, 16, 16, 16, 16],
         },
     },
+    "traffic-skew": {
+        "short_heavy_uniform": {
+            "slots": 8, "group": "short_heavy", "policy": "uniform",
+            "focus_indices": [0, 1, 2, 3, 4, 5],
+            "prompts": [256, 256, 512, 512, 256, 512, 1024, 2048],
+            "outputs": [8, 8, 8, 8, 8, 8, 16, 16],
+        },
+        "short_heavy_bucket2": {
+            "slots": 8, "group": "short_heavy", "policy": "bucketed",
+            "focus_indices": [0, 1, 2, 3, 4, 5],
+            "buckets": [
+                {"max_sequence_length": 520, "max_slots": 4},
+                {"max_sequence_length": 2064, "max_slots": 4},
+            ],
+            "prompts": [256, 256, 512, 512, 256, 512, 1024, 2048],
+            "outputs": [8, 8, 8, 8, 8, 8, 16, 16],
+        },
+        "long_heavy_uniform": {
+            "slots": 8, "group": "long_heavy", "policy": "uniform",
+            "focus_indices": [2, 3, 4, 5, 6, 7],
+            "prompts": [256, 512, 1024, 1024, 2048, 2048, 1024, 2048],
+            "outputs": [8, 8, 16, 16, 16, 16, 16, 16],
+        },
+        "long_heavy_bucket2": {
+            "slots": 8, "group": "long_heavy", "policy": "bucketed",
+            "focus_indices": [2, 3, 4, 5, 6, 7],
+            "buckets": [
+                {"max_sequence_length": 520, "max_slots": 4},
+                {"max_sequence_length": 2064, "max_slots": 4},
+            ],
+            "prompts": [256, 512, 1024, 1024, 2048, 2048, 1024, 2048],
+            "outputs": [8, 8, 16, 16, 16, 16, 16, 16],
+        },
+        "delayed_uniform": {
+            "slots": 8, "group": "delayed", "policy": "uniform",
+            "focus_indices": [4, 5, 6, 7],
+            "arrivals": [0, 0, 0, 0, 4, 4, 4, 4],
+            "prompts": [256, 256, 512, 512, 1024, 1024, 2048, 2048],
+            "outputs": [8, 8, 8, 8, 16, 16, 16, 16],
+        },
+        "delayed_bucket2": {
+            "slots": 8, "group": "delayed", "policy": "bucketed",
+            "focus_indices": [4, 5, 6, 7],
+            "arrivals": [0, 0, 0, 0, 4, 4, 4, 4],
+            "buckets": [
+                {"max_sequence_length": 520, "max_slots": 4},
+                {"max_sequence_length": 2064, "max_slots": 4},
+            ],
+            "prompts": [256, 256, 512, 512, 1024, 1024, 2048, 2048],
+            "outputs": [8, 8, 8, 8, 16, 16, 16, 16],
+        },
+    },
 }
 
 
@@ -228,6 +280,11 @@ def command(binary: Path, model: dict, case: dict,
                 f"{bucket['max_sequence_length']}:{bucket['max_slots']}"
                 for bucket in case["buckets"]),
         ])
+    if case.get("arrivals"):
+        result.extend([
+            "--continuous-arrival-steps",
+            ",".join(map(str, case["arrivals"])),
+        ])
     return result
 
 
@@ -247,6 +304,7 @@ def validate(record: dict, model: dict, case_name: str, case: dict,
         "new_token_lengths": case["outputs"],
         "deterministic_across_steps": True,
         "bucketed_cache": bool(case.get("buckets")),
+        "arrival_steps": case.get("arrivals", [0] * len(case["prompts"])),
     }
     if any(record.get(key) != value for key, value in required.items()):
         raise RuntimeError(f"{model['name']} {case_name} changed its serving contract")
@@ -525,6 +583,60 @@ def main() -> int:
                 "rows": selected,
                 "generated_tokens_equal_across_bucket_counts": all_exact,
             })
+    traffic_comparisons = []
+    if args.suite == "traffic-skew":
+        for model in models:
+            for group in ("short_heavy", "long_heavy", "delayed"):
+                cases = [(name, case) for name, case in SUITES[args.suite].items()
+                         if case["group"] == group]
+                by_policy = {}
+                for case_name, case in cases:
+                    selected = [row for row in rows
+                                if row.get("model") == model["name"] and
+                                row.get("case") == case_name and
+                                row.get("status") == "pass"]
+                    aggregate = next(row for row in aggregates
+                                     if row.get("model") == model["name"] and
+                                     row.get("case") == case_name)
+                    focus = case["focus_indices"]
+                    by_policy[case["policy"]] = {
+                        "raw": selected,
+                        "aggregate": aggregate,
+                        "focus_ttft_p50_ms": statistics.median(
+                            percentile([row["request_ttft_ms"][index]
+                                        for index in focus], 0.50)
+                            for row in selected),
+                        "focus_completion_p50_ms": statistics.median(
+                            percentile([row["request_completion_ms"][index]
+                                        for index in focus], 0.50)
+                            for row in selected),
+                    }
+                uniform = by_policy["uniform"]
+                bucketed = by_policy["bucketed"]
+                difference = token_difference(
+                    uniform["raw"][0]["generated_tokens"],
+                    bucketed["raw"][0]["generated_tokens"])
+                traffic_comparisons.append({
+                    "model": model["name"],
+                    "group": group,
+                    "focus_indices": next(case["focus_indices"] for _, case in cases),
+                    "token_difference": difference,
+                    "bucketed_over_uniform_tps": (
+                        bucketed["aggregate"]["tokens_per_second_p50"] /
+                        uniform["aggregate"]["tokens_per_second_p50"]),
+                    "bucketed_over_uniform_focus_ttft": (
+                        bucketed["focus_ttft_p50_ms"] /
+                        uniform["focus_ttft_p50_ms"]),
+                    "bucketed_over_uniform_focus_completion": (
+                        bucketed["focus_completion_p50_ms"] /
+                        uniform["focus_completion_p50_ms"]),
+                    "uniform_focus_ttft_p50_ms": uniform["focus_ttft_p50_ms"],
+                    "bucketed_focus_ttft_p50_ms": bucketed["focus_ttft_p50_ms"],
+                    "uniform_focus_completion_p50_ms":
+                        uniform["focus_completion_p50_ms"],
+                    "bucketed_focus_completion_p50_ms":
+                        bucketed["focus_completion_p50_ms"],
+                })
     execution_status = "pass" if all(row["status"] == "pass" for row in rows) \
         else "complete_with_recorded_limits"
     accuracy_failures = (
@@ -533,7 +645,10 @@ def main() -> int:
             for row in slot_sweeps)) or (
         args.suite == "bucket-sweep" and any(
             not row["generated_tokens_equal_across_bucket_counts"]
-            for row in bucket_sweeps))
+            for row in bucket_sweeps)) or (
+        args.suite == "traffic-skew" and any(
+            row["token_difference"]["exact"] is not True
+            for row in traffic_comparisons))
     summary = {
         "schema_version": 1,
         "track": "official_continuous_serving_matrix",
@@ -551,6 +666,7 @@ def main() -> int:
         "slot_sweeps": slot_sweeps,
         "bucket_comparisons": bucket_comparisons,
         "bucket_sweeps": bucket_sweeps,
+        "traffic_comparisons": traffic_comparisons,
         "pytorch_boundary": "not measured; no variable-position PyTorch serving oracle",
     }
     (args.output_directory / "summary.json").write_text(

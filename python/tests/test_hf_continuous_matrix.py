@@ -140,6 +140,22 @@ class HfContinuousMatrixTest(unittest.TestCase):
                 two_bucket_command.index("--continuous-cache-buckets") + 1],
             "520:4,2064:4")
 
+    def test_traffic_skew_pairs_policies_and_records_delayed_arrivals(self):
+        cases = MATRIX.SUITES["traffic-skew"]
+        for group in ("short_heavy", "long_heavy", "delayed"):
+            paired = [case for case in cases.values() if case["group"] == group]
+            self.assertEqual({case["policy"] for case in paired},
+                             {"uniform", "bucketed"})
+            self.assertEqual(len({tuple(case["prompts"]) for case in paired}), 1)
+            self.assertEqual(len({tuple(case["outputs"]) for case in paired}), 1)
+        delayed = cases["delayed_bucket2"]
+        command = MATRIX.command(Path("micro"), self.model(), delayed, 1, 3)
+        self.assertEqual(
+            command[command.index("--continuous-arrival-steps") + 1],
+            "0,0,0,0,4,4,4,4")
+        self.assertEqual(cases["short_heavy_bucket2"]["focus_indices"],
+                         [0, 1, 2, 3, 4, 5])
+
     def test_token_difference_keeps_accuracy_failure_as_data(self):
         exact = MATRIX.token_difference([[1, 2], [3]], [[1, 2], [3]])
         self.assertTrue(exact["exact"])
@@ -169,6 +185,7 @@ class HfContinuousMatrixTest(unittest.TestCase):
             "bucketed_cache": False,
             "continuous_cache_buckets": [],
             "request_bucket_indices": [],
+            "arrival_steps": [0, 0],
             "allocated_cache_bytes": expected_cache,
             "peak_active_cache_bytes": expected_cache // 2,
             "kv_cache_byte_utilization": 0.5,
