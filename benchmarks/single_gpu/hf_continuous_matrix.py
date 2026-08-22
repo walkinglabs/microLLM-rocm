@@ -606,9 +606,17 @@ def main() -> int:
                             percentile([row["request_ttft_ms"][index]
                                         for index in focus], 0.50)
                             for row in selected),
+                        "focus_ttft_p95_ms": statistics.median(
+                            percentile([row["request_ttft_ms"][index]
+                                        for index in focus], 0.95)
+                            for row in selected),
                         "focus_completion_p50_ms": statistics.median(
                             percentile([row["request_completion_ms"][index]
                                         for index in focus], 0.50)
+                            for row in selected),
+                        "focus_completion_p95_ms": statistics.median(
+                            percentile([row["request_completion_ms"][index]
+                                        for index in focus], 0.95)
                             for row in selected),
                     }
                 uniform = by_policy["uniform"]
@@ -627,15 +635,27 @@ def main() -> int:
                     "bucketed_over_uniform_focus_ttft": (
                         bucketed["focus_ttft_p50_ms"] /
                         uniform["focus_ttft_p50_ms"]),
+                    "bucketed_over_uniform_focus_ttft_p95": (
+                        bucketed["focus_ttft_p95_ms"] /
+                        uniform["focus_ttft_p95_ms"]),
                     "bucketed_over_uniform_focus_completion": (
                         bucketed["focus_completion_p50_ms"] /
                         uniform["focus_completion_p50_ms"]),
+                    "bucketed_over_uniform_focus_completion_p95": (
+                        bucketed["focus_completion_p95_ms"] /
+                        uniform["focus_completion_p95_ms"]),
                     "uniform_focus_ttft_p50_ms": uniform["focus_ttft_p50_ms"],
                     "bucketed_focus_ttft_p50_ms": bucketed["focus_ttft_p50_ms"],
+                    "uniform_focus_ttft_p95_ms": uniform["focus_ttft_p95_ms"],
+                    "bucketed_focus_ttft_p95_ms": bucketed["focus_ttft_p95_ms"],
                     "uniform_focus_completion_p50_ms":
                         uniform["focus_completion_p50_ms"],
                     "bucketed_focus_completion_p50_ms":
                         bucketed["focus_completion_p50_ms"],
+                    "uniform_focus_completion_p95_ms":
+                        uniform["focus_completion_p95_ms"],
+                    "bucketed_focus_completion_p95_ms":
+                        bucketed["focus_completion_p95_ms"],
                 })
     execution_status = "pass" if all(row["status"] == "pass" for row in rows) \
         else "complete_with_recorded_limits"
