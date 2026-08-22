@@ -370,6 +370,12 @@ def main() -> int:
             bucketed = next(row for row in rows
                             if row.get("model") == model["name"] and
                             row.get("case") == "long_bucketed_s8")
+            uniform_aggregate = next(row for row in aggregates
+                                     if row.get("model") == model["name"] and
+                                     row.get("case") == "long_uniform_s8")
+            bucketed_aggregate = next(row for row in aggregates
+                                      if row.get("model") == model["name"] and
+                                      row.get("case") == "long_bucketed_s8")
             if uniform.get("status") != "pass" or bucketed.get("status") != "pass":
                 continue
             difference = token_difference(
@@ -381,14 +387,14 @@ def main() -> int:
                     bucketed["allocated_cache_bytes"] /
                     uniform["allocated_cache_bytes"]),
                 "tokens_per_second_ratio": (
-                    bucketed["tokens_per_second"] /
-                    uniform["tokens_per_second"]),
+                    bucketed_aggregate["tokens_per_second_p50"] /
+                    uniform_aggregate["tokens_per_second_p50"]),
                 "request_ttft_p50_ratio": (
-                    bucketed["request_ttft_p50_ms"] /
-                    uniform["request_ttft_p50_ms"]),
+                    bucketed_aggregate["request_ttft_p50_ms_p50"] /
+                    uniform_aggregate["request_ttft_p50_ms_p50"]),
                 "request_completion_p50_ratio": (
-                    bucketed["request_completion_p50_ms"] /
-                    uniform["request_completion_p50_ms"]),
+                    bucketed_aggregate["request_completion_p50_ms_p50"] /
+                    uniform_aggregate["request_completion_p50_ms_p50"]),
             })
     execution_status = "pass" if all(row["status"] == "pass" for row in rows) \
         else "complete_with_recorded_limits"

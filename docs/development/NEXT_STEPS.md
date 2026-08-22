@@ -74,8 +74,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] fix full-row recycled Storage admission after the sweep exposed 18 stable refill failures;
 - [x] add a deterministic fixed-capacity length-bucket composition that shares model weights,
   preserves eight total slots and exposes exact routing/cache-byte evidence;
-- [ ] rerun the uniform-vs-length-bucket long-S8 matrix on an uncontended MI300X before deciding
-  whether the next step is slot stealing, paged blocks or cross-bucket decode batching;
+- [x] run the uniform-vs-four-bucket long-S8 matrix on an uncontended MI300X: KV backing -52.91%
+  and median TTFT -56% to -57%, but throughput -42% and completion latency +74% to +76%;
+- [ ] sweep one/two/four length buckets with the same eight requests before deciding whether the
+  next mechanism should be cross-bucket decode, slot stealing or paged blocks;
 - [x] locate the first DeepSeek token/logit divergence and record source, real batch, top-2 and margin;
 - [x] refute decode batching by serializing only prefill while preserving B4/B8 positions-aware decode;
 - [x] swap/duplicate B2 prefill local rows and refute row, order, stride and KV-copy defects;

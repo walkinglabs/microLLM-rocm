@@ -394,6 +394,9 @@ Experiment 113 adds request-level latency across the official S1–S8 matrix. Se
 
 The [length-bucketed KV-cache guide](docs/dev/length-bucketed-kv-cache.zh-CN.md) explains the
 memory formula, shared-weight ownership, CLI, tests and current no-work-stealing boundary.
+[Experiment 114](docs/optimization-log/experiments/114-length-bucketed-cache.md) records the
+official MI300X result: 52.9% less KV backing and lower median TTFT, with a measured 42% throughput
+loss and worse completion/tail latency, so the policy remains opt-in.
 
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or

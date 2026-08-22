@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "status": "keep_as_opt_in_memory_policy_with_measured_throughput_limit",
+  "full_release": {
+    "passed": 318,
+    "failed": 0,
+    "skipped": 2
+  },
+  "sanitizer": {
+    "passed": 214,
+    "failed": 0
+  },
+  "python_contract": {
+    "passed": 11,
+    "failed": 0
+  },
+  "official_matrix": {
+    "passed": 12,
+    "failed": 0,
+    "oom": 0,
+    "timeout": 0,
+    "token_exact_models": 2
+  },
+  "decision": {
+    "default_policy_changed": false,
+    "length_bucket_policy_retained": true,
+    "reason": "cache and median TTFT improve, but throughput, tail TTFT and completion latency regress"
+  }
+}

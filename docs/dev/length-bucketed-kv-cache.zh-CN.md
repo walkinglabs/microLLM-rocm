@@ -138,8 +138,12 @@ build/apps/microllm_hf_infer \
 - `python/tests/test_hf_continuous_matrix.py`：CLI 字符串、8-slot 不变量和理论 Cache 下降；
 - `benchmarks/single_gpu/hf_continuous_matrix.py --suite length-buckets`：官方 Qwen/DeepSeek A/B 矩阵。
 
-CPU sanitizer 已覆盖组合调度器。GPU A/B 只有在设备没有其他负载、完成热身并重复运行后，才会
-写入优化日志。
+CPU sanitizer 已覆盖组合调度器，MI300X Release 全套测试为 318/318。正式 A/B 使用 12 个
+fresh process，并记录了 GPU 空闲窗口。
+
+结果不是“分桶全面更快”：两模型 KV backing 都减少 52.91%，median TTFT 改善 56%–57%，但
+吞吐下降约 42%，completion p50 增加 74%–76%。所以它保留为显式可选策略，默认仍是统一池。
+原始数组、图和解释见 [Experiment 114](../optimization-log/experiments/114-length-bucketed-cache.md)。
 
 ## 当前边界
 

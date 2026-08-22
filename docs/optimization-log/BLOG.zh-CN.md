@@ -2229,3 +2229,15 @@ signature。Qwen token本已稳定，关闭当前heuristic strict搜索，不用
 吞吐最高、KV利用率仅46.85%。在线长请求先选S4，离线吞吐再选S8。
 
 ![Request latency](assets/request-latency.svg)
+
+## 131. Experiment 114：省52.9% KV，不等于整机更快
+
+统一S8为所有row按最长请求预留Cache；四个B2长度桶共享同一份权重，只拆KV。Qwen/DeepSeek
+12个Release进程全部通过且token exact。KV backing下降52.91%，利用率46.85%→99.49%，median
+TTFT下降56%–57%。但B8 decode被拆成四个B2，吞吐下降约42%，completion p50增加74%–76%，
+TTFT p95也增加约20%。engine peak只降6.5%–7.5%，说明权重和临时Tensor仍是大头。
+
+保留为显式memory/median-TTFT policy，不改默认。下一节点测1/2/4桶Pareto，而不是直接增加paged
+Cache复杂度。
+
+![Length bucket tradeoff](assets/length-bucket-tradeoff.svg)

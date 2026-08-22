@@ -4173,6 +4173,57 @@ def validate_request_latency(errors: list[str]) -> tuple[int, int]:
     return len(raw), len(aggregates)
 
 
+def validate_length_bucket_tradeoff(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "114-data"
+    raw = [json.loads(line) for line in
+           (data / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    telemetry = (data / "gpu3-telemetry.log").read_text(
+        encoding="utf-8").splitlines()
+    utilization = [line for line in telemetry if
+                   "GPU[3]" in line and "GPU use (%)" in line]
+    if len(raw) != 12 or any(row.get("status") != "pass" for row in raw) or \
+            sum(row.get("bucketed_cache") is True for row in raw) != 6 or \
+            sum(row.get("bucketed_cache") is False for row in raw) != 6:
+        errors.append("length-bucket raw process evidence changed")
+    models = {row.get("model") for row in raw}
+    for model in models:
+        uniform = [row for row in raw if row.get("model") == model and
+                   row.get("case") == "long_uniform_s8"]
+        bucketed = [row for row in raw if row.get("model") == model and
+                    row.get("case") == "long_bucketed_s8"]
+        if len(uniform) != 3 or len(bucketed) != 3 or \
+                len({json.dumps(row.get("generated_tokens"))
+                     for row in uniform + bucketed}) != 1 or \
+                any(row.get("request_bucket_indices") !=
+                    [0, 0, 1, 1, 2, 2, 3, 3] for row in bucketed):
+            errors.append(f"length-bucket token or routing evidence changed: {model}")
+    aggregates = summary.get("aggregates", [])
+    comparisons = summary.get("bucket_comparisons", [])
+    if summary.get("status") != "pass" or len(aggregates) != 4 or \
+            any(row.get("successful_runs") != 3 for row in aggregates) or \
+            len(comparisons) != 2 or any(
+                row.get("token_difference", {}).get("exact") is not True or
+                abs(float(row.get("allocated_cache_ratio", 0.0)) -
+                    0.47093023255813954) > 1.0e-12 or
+                not 0.55 < float(row.get("tokens_per_second_ratio", 0.0)) < 0.60 or
+                not 0.40 < float(row.get("request_ttft_p50_ratio", 0.0)) < 0.46 or
+                not 1.70 < float(row.get("request_completion_p50_ratio", 0.0)) < 1.80
+                for row in comparisons):
+        errors.append("length-bucket aggregate tradeoff changed")
+    if gates.get("status") != \
+            "keep_as_opt_in_memory_policy_with_measured_throughput_limit" or \
+            gates.get("full_release", {}).get("passed") != 318 or \
+            gates.get("sanitizer", {}).get("passed") != 214 or \
+            gates.get("official_matrix", {}).get("passed") != 12:
+        errors.append("length-bucket test gates changed")
+    if len(utilization) < 80 or utilization[0].split(":")[-1].strip() != "0" or \
+            utilization[-1].split(":")[-1].strip() != "0":
+        errors.append("length-bucket GPU telemetry boundary changed")
+    return len(raw), len(comparisons), len(utilization)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -4264,7 +4315,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-same-algorithm.svg",
                  "qwen-common-algorithm-discard.svg",
                  "qwen-algorithm-search.svg",
-                 "request-latency.svg"):
+                 "request-latency.svg",
+                 "length-bucket-tradeoff.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -4426,6 +4478,8 @@ def main() -> int:
     qwen_common, qwen_precision, qwen_performance = validate_qwen_common_discard(errors)
     qwen_search_tested, qwen_search_exact = validate_qwen_algorithm_search(errors)
     latency_raw, latency_aggregates = validate_request_latency(errors)
+    length_bucket_raw, length_bucket_comparisons, length_bucket_samples = \
+        validate_length_bucket_tradeoff(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -4553,6 +4607,8 @@ def main() -> int:
           f"qwen_common_discard={qwen_common}/{qwen_precision}/{qwen_performance} "
           f"qwen_search={qwen_search_tested}/{qwen_search_exact} "
           f"request_latency={latency_raw}/{latency_aggregates} "
+          f"length_buckets={length_bucket_raw}/{length_bucket_comparisons}/"
+          f"{length_bucket_samples} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")
