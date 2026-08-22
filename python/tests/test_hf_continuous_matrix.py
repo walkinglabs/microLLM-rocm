@@ -99,7 +99,15 @@ class HfContinuousMatrixTest(unittest.TestCase):
             stderr="")
         with mock.patch.object(MATRIX.subprocess, "run", return_value=occupied):
             with self.assertRaisesRegex(RuntimeError, "VRAM 81% exceeds 5%"):
-                MATRIX.require_idle_gpu(3, 5, "test pre")
+                MATRIX.require_idle_gpu(3, 5, 10, "test pre")
+        busy = mock.Mock(
+            returncode=0,
+            stdout='{"card3":{"GPU use (%)":"75",'
+                   '"GPU Memory Allocated (VRAM%)":"1"}}',
+            stderr="")
+        with mock.patch.object(MATRIX.subprocess, "run", return_value=busy):
+            with self.assertRaisesRegex(RuntimeError, "use 75% exceeds 10%"):
+                MATRIX.require_idle_gpu(3, 5, 10, "test pre")
 
     def test_length_buckets_hold_total_slots_and_reduce_theoretical_cache(self):
         cases = MATRIX.SUITES["length-buckets"]

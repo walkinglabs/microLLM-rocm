@@ -166,12 +166,14 @@ def options() -> argparse.Namespace:
     parser.add_argument("--timeout-seconds", type=int, default=900)
     parser.add_argument("--physical-gpu-index", type=int)
     parser.add_argument("--max-idle-vram-percent", type=int, default=5)
+    parser.add_argument("--max-idle-use-percent", type=int, default=10)
     result = parser.parse_args()
     if not result.manifest.is_file() or not result.binary.is_file():
         parser.error("manifest and binary must exist")
     if result.warmup < 0 or result.steps <= 0 or result.runs <= 0 or \
             result.timeout_seconds <= 0 or \
-            not 0 <= result.max_idle_vram_percent <= 100:
+            not 0 <= result.max_idle_vram_percent <= 100 or \
+            not 0 <= result.max_idle_use_percent <= 100:
         parser.error("warmup must be nonnegative and steps/runs/timeout positive")
     if result.physical_gpu_index is not None and result.physical_gpu_index < 0:
         parser.error("physical GPU index must be nonnegative")
@@ -207,7 +209,7 @@ def parse_gpu_state(text: str, physical_index: int) -> dict:
 
 
 def require_idle_gpu(physical_index: int | None, maximum_vram: int,
-                     boundary: str) -> dict | None:
+                     maximum_use: int, boundary: str) -> dict | None:
     if physical_index is None:
         return None
     completed = subprocess.run(
@@ -222,6 +224,10 @@ def require_idle_gpu(physical_index: int | None, maximum_vram: int,
         raise RuntimeError(
             f"physical GPU {physical_index} is externally occupied at {boundary}: "
             f"VRAM {state['vram_percent']}% exceeds {maximum_vram}%")
+    if state["gpu_use_percent"] > maximum_use:
+        raise RuntimeError(
+            f"physical GPU {physical_index} is externally busy at {boundary}: "
+            f"use {state['gpu_use_percent']}% exceeds {maximum_use}%")
     return state
 
 
@@ -384,12 +390,14 @@ def main() -> int:
             for process_run in range(1, args.runs + 1):
                 pre_gpu_state = require_idle_gpu(
                     args.physical_gpu_index, args.max_idle_vram_percent,
+                    args.max_idle_use_percent,
                     f"{model['name']} {case_name} run {process_run} pre")
                 completed = subprocess.run(
                     command(args.binary, model, case, args.warmup, args.steps),
                     capture_output=True, text=True, timeout=args.timeout_seconds)
                 post_gpu_state = require_idle_gpu(
                     args.physical_gpu_index, args.max_idle_vram_percent,
+                    args.max_idle_use_percent,
                     f"{model['name']} {case_name} run {process_run} post")
                 if completed.returncode == 0:
                     lines = [line for line in completed.stdout.splitlines() if line.strip()]
