@@ -99,6 +99,17 @@ def theoretical_cache_bytes(model: dict, case: dict, element_bytes: int = 2) -> 
             capacity * element_bytes)
 
 
+def percentile(values: list[float], quantile: float) -> float:
+    ordered = sorted(float(value) for value in values)
+    if not ordered or not 0.0 <= quantile <= 1.0:
+        raise RuntimeError("percentile input is invalid")
+    position = quantile * (len(ordered) - 1)
+    lower = int(position)
+    upper = min(lower + 1, len(ordered) - 1)
+    fraction = position - lower
+    return ordered[lower] * (1.0 - fraction) + ordered[upper] * fraction
+
+
 def command(binary: Path, model: dict, case: dict,
             warmup: int, steps: int) -> list[str]:
     tokens = model["inference"]["token_ids"]
@@ -140,6 +151,20 @@ def validate(record: dict, model: dict, case_name: str, case: dict,
             int(record.get("engine_peak_bytes", 0)) <= 0 or \
             int(record.get("resident_weight_bytes", 0)) <= 0:
         raise RuntimeError(f"{model['name']} {case_name} has invalid memory/timing evidence")
+    ttft = record.get("request_ttft_ms", [])
+    completion = record.get("request_completion_ms", [])
+    if len(ttft) != len(case["prompts"]) or len(completion) != len(ttft) or \
+            any(float(first) < 0 or float(last) < float(first)
+                for first, last in zip(ttft, completion)) or \
+            abs(float(record.get("request_ttft_p50_ms", -1)) -
+                percentile(ttft, 0.50)) > 1.0e-5 or \
+            abs(float(record.get("request_ttft_p95_ms", -1)) -
+                percentile(ttft, 0.95)) > 1.0e-5 or \
+            abs(float(record.get("request_completion_p50_ms", -1)) -
+                percentile(completion, 0.50)) > 1.0e-5 or \
+            abs(float(record.get("request_completion_p95_ms", -1)) -
+                percentile(completion, 0.95)) > 1.0e-5:
+        raise RuntimeError(f"{model['name']} {case_name} has invalid request latency evidence")
     return {**record, "model": model["name"], "revision": model["revision"],
             "case": case_name, "expected_cache_bytes": expected_cache}
 
@@ -213,6 +238,14 @@ def main() -> int:
                     raise RuntimeError(f"{model['name']} {case_name} checksum changed across runs")
                 throughput = sorted(float(row["tokens_per_second"]) for row in selected)
                 peak = sorted(int(row["engine_peak_bytes"]) for row in selected)
+                ttft_p50 = sorted(float(row["request_ttft_p50_ms"])
+                                  for row in selected)
+                ttft_p95 = sorted(float(row["request_ttft_p95_ms"])
+                                  for row in selected)
+                completion_p50 = sorted(float(row["request_completion_p50_ms"])
+                                        for row in selected)
+                completion_p95 = sorted(float(row["request_completion_p95_ms"])
+                                        for row in selected)
                 aggregate.update({
                     "status": "pass",
                     "tokens_per_second_min": throughput[0],
@@ -221,6 +254,10 @@ def main() -> int:
                     "engine_peak_bytes_min": peak[0],
                     "engine_peak_bytes_p50": statistics.median(peak),
                     "engine_peak_bytes_max": peak[-1],
+                    "request_ttft_p50_ms_p50": statistics.median(ttft_p50),
+                    "request_ttft_p95_ms_p50": statistics.median(ttft_p95),
+                    "request_completion_p50_ms_p50": statistics.median(completion_p50),
+                    "request_completion_p95_ms_p50": statistics.median(completion_p95),
                     "token_checksum": checksums.pop(),
                 })
             else:

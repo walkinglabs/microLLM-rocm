@@ -2222,3 +2222,10 @@ norm的B1/B2完整值全为exact。第一个非零点是fused BF16 FFN output：
 signature。Qwen token本已稳定，关闭当前heuristic strict搜索，不用FP32回退。
 
 ![Qwen algorithm search](assets/qwen-algorithm-search.svg)
+
+## 130. Experiment 113：长context不是slot越多median越低
+
+48条矩阵加入逐请求TTFT/completion和P50/P95。short S8最好；long S4的TTFT p50低于S8，而S8
+吞吐最高、KV利用率仅46.85%。在线长请求先选S4，离线吞吐再选S8。
+
+![Request latency](assets/request-latency.svg)

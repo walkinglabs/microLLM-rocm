@@ -38,6 +38,9 @@ struct RequestSnapshot {
     std::size_t cache_bytes = 0;
     // Active slot in a shared continuous batch. -1 means pending or terminal.
     std::int64_t slot = -1;
+    // Wall-clock serving latency. Negative means the event has not happened.
+    double time_to_first_token_ms = -1.0;
+    double completion_latency_ms = -1.0;
 };
 
 struct SchedulerMetrics {

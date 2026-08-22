@@ -115,6 +115,8 @@ needed to run a real training and generation loop:
   gate shape without changing default dispatch.
 - optional solution 75892 restores all B1/B2 values exactly with 1.3%–3.8% prefill cost; no
   version-local index is hard-coded as default.
+- continuous serving reports raw per-request TTFT/completion and P50/P95; long-context S4 minimizes
+  median TTFT while S8 maximizes throughput at lower KV utilization.
 
 The design keeps three implementations where they provide engineering value:
 
@@ -384,6 +386,9 @@ Experiment 109 queries 64 M32 and 64 M64 BF16 candidates and finds a 53-index in
 
 Experiment 110 injects common solution 75892 and eliminates all 48-stage drift. See
 [Experiment 110](docs/optimization-log/experiments/110-bf16-same-algorithm.md).
+
+Experiment 113 adds request-level latency across the official S1–S8 matrix. See
+[Experiment 113](docs/optimization-log/experiments/113-request-latency.md).
 
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or

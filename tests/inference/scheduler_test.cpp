@@ -363,6 +363,9 @@ TEST(ContinuousBatchSchedulerTest, RefillsFreedSlotAndMatchesIndependentRows) {
             EXPECT_EQ(scheduler.request(id).state, RequestState::Completed);
             EXPECT_EQ(scheduler.request(id).slot, -1);
             EXPECT_EQ(scheduler.request(id).cache_bytes, 0U);
+            EXPECT_GE(scheduler.request(id).time_to_first_token_ms, 0.0);
+            EXPECT_GE(scheduler.request(id).completion_latency_ms,
+                      scheduler.request(id).time_to_first_token_ms);
         }
         const auto metrics = scheduler.metrics();
         EXPECT_EQ(metrics.scheduler_steps, 4);

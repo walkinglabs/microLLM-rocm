@@ -67,6 +67,9 @@ experimental off switch for controlled attribution; production/default behavior 
 Official diagnostic inputs may provide explicit prompt-seed offsets. This is a benchmark input
 contract used to hold token sequences constant while swapping or duplicating local batch rows; it
 does not alter scheduler admission semantics.
+Continuous request snapshots expose submission-to-first-token and submission-to-terminal wall
+latency. Negative values mean the lifecycle event has not occurred. Official reports preserve raw
+request arrays and derive P50/P95 with linear interpolation.
 Graph-free full/last-logit inference participates in the same opt-in TraceSession layer/model
 contract as autograd forward. An inactive session performs no Tensor value copies. Full-value
 official diagnostics require a single, zero-warm-up prefill step and are explicitly excluded from

@@ -588,6 +588,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/111-data/](experiments/111-data/) | 56候选inventory、精度和性能A/B |
 | [assets/qwen-algorithm-search.svg](assets/qwen-algorithm-search.svg) | 56受支持、0 exact与最佳误差 |
 | [experiments/112-data/](experiments/112-data/) | 全56候选完整logits搜索 |
+| [assets/request-latency.svg](assets/request-latency.svg) | short/long slot延迟权衡 |
+| [experiments/113-data/](experiments/113-data/) | 48条请求级TTFT/completion/KV数据 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

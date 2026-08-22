@@ -86,6 +86,7 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [ ] scan remaining Qwen common candidates with a complete-logit gate;
 - [x] scan all 56 common Qwen candidates: supported, but none tensor-exact;
 - [ ] add request-level TTFT and P50/P95 latency rather than throughput alone;
+- [x] add raw request TTFT/completion plus P50/P95 across short/long S1–S8;
 
 ## P2 — operator registry and profiler API
 

@@ -4153,6 +4153,26 @@ def validate_qwen_algorithm_search(errors: list[str]) -> tuple[int, int]:
     return 56, 0
 
 
+def validate_request_latency(errors: list[str]) -> tuple[int, int]:
+    data = ROOT / "experiments" / "113-data"
+    raw = [json.loads(line) for line in
+           (data / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    if len(raw) != 48 or any(
+            len(row.get("request_ttft_ms", [])) != row.get("request_count") or
+            len(row.get("request_completion_ms", [])) != row.get("request_count") or
+            any(done < first for first, done in zip(
+                row.get("request_ttft_ms", []), row.get("request_completion_ms", [])))
+            for row in raw):
+        errors.append("request latency raw evidence changed")
+    aggregates = summary.get("aggregates", [])
+    if len(aggregates) != 16 or any(
+            row.get("request_ttft_p95_ms_p50", -1) <
+            row.get("request_ttft_p50_ms_p50", 0) for row in aggregates):
+        errors.append("request latency aggregates changed")
+    return len(raw), len(aggregates)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -4243,7 +4263,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-algorithm-inventory.svg",
                  "bf16-same-algorithm.svg",
                  "qwen-common-algorithm-discard.svg",
-                 "qwen-algorithm-search.svg"):
+                 "qwen-algorithm-search.svg",
+                 "request-latency.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -4404,6 +4425,7 @@ def main() -> int:
     same_precision, same_performance, same_exact = validate_bf16_same_algorithm(errors)
     qwen_common, qwen_precision, qwen_performance = validate_qwen_common_discard(errors)
     qwen_search_tested, qwen_search_exact = validate_qwen_algorithm_search(errors)
+    latency_raw, latency_aggregates = validate_request_latency(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -4530,6 +4552,7 @@ def main() -> int:
           f"same_algorithm={same_precision}/{same_performance}/{same_exact} "
           f"qwen_common_discard={qwen_common}/{qwen_precision}/{qwen_performance} "
           f"qwen_search={qwen_search_tested}/{qwen_search_exact} "
+          f"request_latency={latency_raw}/{latency_aggregates} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

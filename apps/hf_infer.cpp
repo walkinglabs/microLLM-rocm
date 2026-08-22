@@ -505,9 +505,23 @@ std::vector<microllm::DType> cache_layer_dtypes(
 
 struct ContinuousOfficialRun {
     std::vector<std::vector<std::int32_t>> generated;
+    std::vector<double> request_ttft_ms;
+    std::vector<double> request_completion_ms;
     microllm::inference::ContinuousBatchMetrics metrics;
     std::vector<microllm::inference::SelectionDiagnostic> diagnostics;
 };
+
+double percentile(std::vector<double> values, double quantile) {
+    if (values.empty() || quantile < 0.0 || quantile > 1.0) {
+        throw std::invalid_argument("percentile input is invalid");
+    }
+    std::sort(values.begin(), values.end());
+    const auto position = quantile * static_cast<double>(values.size() - 1U);
+    const auto lower = static_cast<std::size_t>(std::floor(position));
+    const auto upper = static_cast<std::size_t>(std::ceil(position));
+    const auto fraction = position - static_cast<double>(lower);
+    return values[lower] * (1.0 - fraction) + values[upper] * fraction;
+}
 
 ContinuousOfficialRun run_continuous_official(
     microllm::model::TransformerModel& model,
@@ -549,8 +563,19 @@ ContinuousOfficialRun run_continuous_official(
     scheduler.run_until_idle();
     ContinuousOfficialRun result;
     result.generated.reserve(ids.size());
+    result.request_ttft_ms.reserve(ids.size());
+    result.request_completion_ms.reserve(ids.size());
     for (const auto id : ids) {
-        result.generated.push_back(scheduler.request(id).generated);
+        const auto snapshot = scheduler.request(id);
+        if (snapshot.time_to_first_token_ms < 0.0 ||
+            snapshot.completion_latency_ms < snapshot.time_to_first_token_ms) {
+            throw std::runtime_error(
+                "continuous request latency lifecycle is incomplete");
+        }
+        result.generated.push_back(snapshot.generated);
+        result.request_ttft_ms.push_back(snapshot.time_to_first_token_ms);
+        result.request_completion_ms.push_back(
+            snapshot.completion_latency_ms);
     }
     result.metrics = scheduler.metrics();
     result.diagnostics = scheduler.selection_diagnostics();
@@ -801,6 +826,14 @@ int main(int argc, char** argv) {
                                     last.metrics.peak_active_cache_bytes) /
                                     static_cast<double>(
                                         last.metrics.allocated_cache_bytes))
+                      << ",\"request_ttft_p50_ms\":"
+                      << percentile(last.request_ttft_ms, 0.50)
+                      << ",\"request_ttft_p95_ms\":"
+                      << percentile(last.request_ttft_ms, 0.95)
+                      << ",\"request_completion_p50_ms\":"
+                      << percentile(last.request_completion_ms, 0.50)
+                      << ",\"request_completion_p95_ms\":"
+                      << percentile(last.request_completion_ms, 0.95)
                       << ",\"engine_peak_bytes\":" << allocation.peak_bytes
                       << ",\"engine_backend_allocation_calls\":"
                       << allocation.backend_allocation_calls
@@ -832,6 +865,18 @@ int main(int argc, char** argv) {
             for (std::size_t index = 0; index < prompt_offsets.size(); ++index) {
                 if (index != 0) std::cout << ',';
                 std::cout << prompt_offsets[index];
+            }
+            std::cout << "],\"request_ttft_ms\":[";
+            for (std::size_t index = 0;
+                 index < last.request_ttft_ms.size(); ++index) {
+                if (index != 0) std::cout << ',';
+                std::cout << last.request_ttft_ms[index];
+            }
+            std::cout << "],\"request_completion_ms\":[";
+            for (std::size_t index = 0;
+                 index < last.request_completion_ms.size(); ++index) {
+                if (index != 0) std::cout << ',';
+                std::cout << last.request_completion_ms[index];
             }
             std::cout << "],\"deterministic_across_steps\":true"
                       << ",\"generated_tokens\":[";

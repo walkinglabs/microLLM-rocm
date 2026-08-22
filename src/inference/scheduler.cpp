@@ -1,6 +1,7 @@
 #include <microllm/inference/scheduler.h>
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <limits>
 #include <random>
@@ -479,6 +480,9 @@ struct ContinuousBatchScheduler::Impl {
         std::int64_t arrival_step = 0;
         std::int64_t completion_step = -1;
         std::int64_t slot = -1;
+        std::chrono::steady_clock::time_point submitted_at;
+        std::chrono::steady_clock::time_point first_token_at;
+        std::chrono::steady_clock::time_point completed_at;
     };
 
     static std::vector<DType> configured_policy(
@@ -828,6 +832,7 @@ struct ContinuousBatchScheduler::Impl {
         request.state = RequestState::Completed;
         request.completion_reason = reason;
         request.completion_step = metrics.scheduler_steps;
+        request.completed_at = std::chrono::steady_clock::now();
         ++metrics.completed_requests;
         if (reason == CompletionReason::StopToken) {
             ++metrics.stop_completed_requests;
@@ -861,10 +866,13 @@ RequestId ContinuousBatchScheduler::submit(
     request.random = std::mt19937_64(config.seed);
     request.config = std::move(config);
     request.arrival_step = impl_->metrics.scheduler_steps;
+    request.submitted_at = std::chrono::steady_clock::now();
     if (request.config.max_new_tokens == 0) {
         request.state = RequestState::Completed;
         request.completion_reason = CompletionReason::Length;
         request.completion_step = impl_->metrics.scheduler_steps;
+        request.first_token_at = request.submitted_at;
+        request.completed_at = request.submitted_at;
         ++impl_->metrics.completed_requests;
     }
     const auto id = request.id;
@@ -881,6 +889,7 @@ bool ContinuousBatchScheduler::cancel(RequestId id) {
     request.state = RequestState::Cancelled;
     request.completion_reason = CompletionReason::Cancelled;
     request.completion_step = impl_->metrics.scheduler_steps;
+    request.completed_at = std::chrono::steady_clock::now();
     ++impl_->metrics.cancelled_requests;
     impl_->refresh_metrics();
     return true;
@@ -895,6 +904,7 @@ void ContinuousBatchScheduler::step() {
     if (occupied == 0) return;
     impl_->metrics.occupied_slot_steps += occupied;
     const auto selected = impl_->select_tokens();
+    const auto selection_finished = std::chrono::steady_clock::now();
     impl_->capture_selection_diagnostics(selected);
     std::vector<std::int32_t> next_tokens(
         static_cast<std::size_t>(impl_->config.max_slots), 0);
@@ -907,6 +917,9 @@ void ContinuousBatchScheduler::step() {
         const auto token = selected[static_cast<std::size_t>(slot)];
         if (token < 0) {
             throw std::invalid_argument("continuous scheduler logits are non-finite");
+        }
+        if (request.generated.empty()) {
+            request.first_token_at = selection_finished;
         }
         request.generated.push_back(token);
         if (is_stop_token(request.config, token)) {
@@ -1017,6 +1030,12 @@ std::size_t ContinuousBatchScheduler::pending_request_count() const noexcept {
 
 RequestSnapshot ContinuousBatchScheduler::request(RequestId id) const {
     const auto& request = impl_->find(id);
+    const auto elapsed = [&request](
+                             std::chrono::steady_clock::time_point event) {
+        if (event == std::chrono::steady_clock::time_point{}) return -1.0;
+        return std::chrono::duration<double, std::milli>(
+                   event - request.submitted_at).count();
+    };
     return {.id = request.id,
             .state = request.state,
             .completion_reason = request.completion_reason,
@@ -1026,7 +1045,9 @@ RequestSnapshot ContinuousBatchScheduler::request(RequestId id) const {
             .arrival_step = request.arrival_step,
             .completion_step = request.completion_step,
             .cache_bytes = request.slot >= 0 ? impl_->row_capacity_bytes() : 0U,
-            .slot = request.slot};
+            .slot = request.slot,
+            .time_to_first_token_ms = elapsed(request.first_token_at),
+            .completion_latency_ms = elapsed(request.completed_at)};
 }
 
 std::vector<RequestSnapshot> ContinuousBatchScheduler::requests() const {

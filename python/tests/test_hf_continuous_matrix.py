@@ -114,6 +114,12 @@ class HfContinuousMatrixTest(unittest.TestCase):
             "tokens_per_second": 10.0,
             "engine_peak_bytes": 1000,
             "resident_weight_bytes": 800,
+            "request_ttft_ms": [2.0, 4.0],
+            "request_completion_ms": [6.0, 8.0],
+            "request_ttft_p50_ms": 3.0,
+            "request_ttft_p95_ms": 3.9,
+            "request_completion_p50_ms": 7.0,
+            "request_completion_p95_ms": 7.9,
         }
         normalized = MATRIX.validate(
             record, self.model(), "case", case, 1, 3)

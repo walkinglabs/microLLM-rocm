@@ -1,0 +1,1 @@
+{"schema_version":1,"status":"latency_tradeoff_measured","full":{"passed":315,"failed":0,"skipped":2},"cpu":{"passed":219,"failed":0,"skipped":2},"hip":{"passed":96,"failed":0,"skipped":0},"sanitizer":{"passed":212,"failed":0,"skipped":0},"focused":{"processes":48,"latency_arrays":48,"short_best_slots":8,"long_ttft_best_slots":4}}
