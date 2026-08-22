@@ -112,12 +112,17 @@ def options() -> argparse.Namespace:
     parser.add_argument("--steps", type=int, default=3)
     parser.add_argument("--runs", type=int, default=1)
     parser.add_argument("--timeout-seconds", type=int, default=900)
+    parser.add_argument("--physical-gpu-index", type=int)
+    parser.add_argument("--max-idle-vram-percent", type=int, default=5)
     result = parser.parse_args()
     if not result.manifest.is_file() or not result.binary.is_file():
         parser.error("manifest and binary must exist")
     if result.warmup < 0 or result.steps <= 0 or result.runs <= 0 or \
-            result.timeout_seconds <= 0:
+            result.timeout_seconds <= 0 or \
+            not 0 <= result.max_idle_vram_percent <= 100:
         parser.error("warmup must be nonnegative and steps/runs/timeout positive")
+    if result.physical_gpu_index is not None and result.physical_gpu_index < 0:
+        parser.error("physical GPU index must be nonnegative")
     result.models = result.models.split(",") if result.models else None
     return result
 
@@ -132,6 +137,40 @@ def load_models(path: Path, selected: list[str] | None = None) -> list[dict]:
     if None in by_name or len(by_name) != len(models) or not set(names) <= set(by_name):
         raise RuntimeError("manifest model names are missing, duplicate, or unknown")
     return [by_name[name] for name in names]
+
+
+def parse_gpu_state(text: str, physical_index: int) -> dict:
+    document = json.loads(text)
+    card = document.get(f"card{physical_index}")
+    if not isinstance(card, dict):
+        raise RuntimeError(f"rocm-smi did not report physical GPU {physical_index}")
+    try:
+        return {
+            "physical_gpu_index": physical_index,
+            "gpu_use_percent": int(card["GPU use (%)"]),
+            "vram_percent": int(card["GPU Memory Allocated (VRAM%)"]),
+        }
+    except (KeyError, TypeError, ValueError) as error:
+        raise RuntimeError("rocm-smi idle-state schema changed") from error
+
+
+def require_idle_gpu(physical_index: int | None, maximum_vram: int,
+                     boundary: str) -> dict | None:
+    if physical_index is None:
+        return None
+    completed = subprocess.run(
+        ["rocm-smi", "--showuse", "--showmemuse", "--json"],
+        capture_output=True, text=True)
+    if completed.returncode != 0:
+        raise RuntimeError(
+            f"cannot verify {boundary} GPU state: " +
+            (completed.stderr.strip() or completed.stdout.strip()))
+    state = parse_gpu_state(completed.stdout, physical_index)
+    if state["vram_percent"] > maximum_vram:
+        raise RuntimeError(
+            f"physical GPU {physical_index} is externally occupied at {boundary}: "
+            f"VRAM {state['vram_percent']}% exceeds {maximum_vram}%")
+    return state
 
 
 def model_cache_shape(config_path: str | Path) -> tuple[int, int, int]:
@@ -285,9 +324,15 @@ def main() -> int:
     for model in models:
         for case_name, case in SUITES[args.suite].items():
             for process_run in range(1, args.runs + 1):
+                pre_gpu_state = require_idle_gpu(
+                    args.physical_gpu_index, args.max_idle_vram_percent,
+                    f"{model['name']} {case_name} run {process_run} pre")
                 completed = subprocess.run(
                     command(args.binary, model, case, args.warmup, args.steps),
                     capture_output=True, text=True, timeout=args.timeout_seconds)
+                post_gpu_state = require_idle_gpu(
+                    args.physical_gpu_index, args.max_idle_vram_percent,
+                    f"{model['name']} {case_name} run {process_run} post")
                 if completed.returncode == 0:
                     lines = [line for line in completed.stdout.splitlines() if line.strip()]
                     if len(lines) != 1:
@@ -302,6 +347,9 @@ def main() -> int:
                               "model": model["name"], "revision": model["revision"],
                               "case": case_name, "error": text}
                 record["process_run"] = process_run
+                if pre_gpu_state is not None:
+                    record["pre_run_gpu_state"] = pre_gpu_state
+                    record["post_run_gpu_state"] = post_gpu_state
                 rows.append(record)
                 with raw_path.open("a", encoding="utf-8") as stream:
                     stream.write(json.dumps(record, sort_keys=True) + "\n")

@@ -1,6 +1,7 @@
 import importlib.util
 import sys
 import unittest
+from unittest import mock
 from pathlib import Path
 
 
@@ -81,6 +82,24 @@ class HfContinuousMatrixTest(unittest.TestCase):
         self.assertEqual(
             MATRIX.theoretical_cache_bytes(self.model(), case),
             2 * layers * kv_heads * head_dimension * 2 * 38 * 2)
+
+    def test_physical_gpu_idle_schema_is_explicit(self):
+        state = MATRIX.parse_gpu_state(
+            '{"card3":{"GPU use (%)":"7",'
+            '"GPU Memory Allocated (VRAM%)":"2"}}', 3)
+        self.assertEqual(state, {"physical_gpu_index": 3,
+                                 "gpu_use_percent": 7,
+                                 "vram_percent": 2})
+        with self.assertRaisesRegex(RuntimeError, "physical GPU 2"):
+            MATRIX.parse_gpu_state('{"card3":{}}', 2)
+        occupied = mock.Mock(
+            returncode=0,
+            stdout='{"card3":{"GPU use (%)":"100",'
+                   '"GPU Memory Allocated (VRAM%)":"81"}}',
+            stderr="")
+        with mock.patch.object(MATRIX.subprocess, "run", return_value=occupied):
+            with self.assertRaisesRegex(RuntimeError, "VRAM 81% exceeds 5%"):
+                MATRIX.require_idle_gpu(3, 5, "test pre")
 
     def test_length_buckets_hold_total_slots_and_reduce_theoretical_cache(self):
         cases = MATRIX.SUITES["length-buckets"]
