@@ -1,0 +1,25 @@
+{
+  "algorithm_index": 75789,
+  "boundary": "no trace; fresh-process prefill timing",
+  "model": "qwen2.5-0.5b",
+  "rows": [
+    {
+      "batch": 1,
+      "common_over_default": 0.9932051130253768,
+      "common_tokens_per_second_p50": 4365.070487704,
+      "default_tokens_per_second_p50": 4394.933564536
+    },
+    {
+      "batch": 2,
+      "common_over_default": 1.0004486190992354,
+      "common_tokens_per_second_p50": 18724.157006269,
+      "default_tokens_per_second_p50": 18715.760758536
+    }
+  ],
+  "runs": 3,
+  "schema_version": 1,
+  "status": "pass",
+  "steps": 5,
+  "track": "bf16_algorithm_prefill_ab",
+  "warmup": 1
+}

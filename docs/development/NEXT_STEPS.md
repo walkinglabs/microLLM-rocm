@@ -82,6 +82,8 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] inventory M32/M64 hipBLASLt solutions and find 53 common candidates;
 - [x] inject common solution 75892: all stages exact at 1.3%–3.8% prefill cost;
 - [ ] extend strict/fast solution policy across Qwen/DeepSeek FFN shape families;
+- [x] test and reject Qwen solution 75789: neutral speed but nonexact logits;
+- [ ] scan remaining Qwen common candidates with a complete-logit gate;
 - [ ] add request-level TTFT and P50/P95 latency rather than throughput alone;
 
 ## P2 — operator registry and profiler API

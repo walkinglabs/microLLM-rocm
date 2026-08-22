@@ -4125,6 +4125,22 @@ def validate_bf16_same_algorithm(errors: list[str]) -> tuple[int, int, int]:
     return len(precision_raw), len(performance_raw), 48
 
 
+def validate_qwen_common_discard(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "111-data"
+    inventory = json.loads((data / "inventory.json").read_text(encoding="utf-8"))
+    precision = json.loads((data / "precision-summary.json").read_text(encoding="utf-8"))
+    performance = json.loads((data / "performance-summary.json").read_text(encoding="utf-8"))
+    if inventory.get("common_candidate_count") != 56 or \
+            precision.get("algorithm_index") != 75789 or \
+            precision.get("first_nonzero_stage") != "inference.blocks.0.ffn.gate" or \
+            precision.get("b1_b2_exact_at_every_stage") is not False:
+        errors.append("Qwen common-algorithm discard precision changed")
+    ratios = {row["batch"]: row["common_over_default"] for row in performance.get("rows", [])}
+    if not 0.98 < ratios.get(1, 0) < 1.01 or not 0.98 < ratios.get(2, 0) < 1.02:
+        errors.append("Qwen common-algorithm discard performance changed")
+    return inventory.get("common_candidate_count", 0), 3, 12
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -4213,7 +4229,8 @@ def validate_assets(errors: list[str]) -> None:
                  "block0-drift.svg",
                  "bf16-ffn-drift.svg",
                  "bf16-algorithm-inventory.svg",
-                 "bf16-same-algorithm.svg"):
+                 "bf16-same-algorithm.svg",
+                 "qwen-common-algorithm-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -4372,6 +4389,7 @@ def main() -> int:
         validate_bf16_ffn_drift(errors)
     algo_m32, algo_m64, algo_common = validate_bf16_algorithm_inventory(errors)
     same_precision, same_performance, same_exact = validate_bf16_same_algorithm(errors)
+    qwen_common, qwen_precision, qwen_performance = validate_qwen_common_discard(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -4496,6 +4514,7 @@ def main() -> int:
           f"{ffn_drift_internal}/{ffn_drift_exact} "
           f"bf16_algorithms={algo_m32}/{algo_m64}/{algo_common} "
           f"same_algorithm={same_precision}/{same_performance}/{same_exact} "
+          f"qwen_common_discard={qwen_common}/{qwen_precision}/{qwen_performance} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

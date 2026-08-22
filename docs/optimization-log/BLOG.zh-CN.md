@@ -2208,3 +2208,10 @@ norm的B1/B2完整值全为exact。第一个非零点是fused BF16 FFN output：
 0.9623×/0.9873×。保留显式、版本局部strict registry，不硬编码为默认。
 
 ![Same BF16 algorithm](assets/bf16-same-algorithm.svg)
+
+## 128. Experiment 111：Qwen 75789不慢，但也不exact
+
+75789的B1/B2性能为默认0.9932×/1.00045×，但完整logits仍有0.083515 max drift，首差仍在gate。
+它被拒绝为strict策略，保留原始数据并继续扫描其它共同候选。
+
+![Qwen common algorithm discard](assets/qwen-common-algorithm-discard.svg)

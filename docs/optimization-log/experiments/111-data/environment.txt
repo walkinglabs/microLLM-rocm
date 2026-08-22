@@ -1,0 +1,8 @@
+date_utc=2026-08-22
+device=AMD Instinct MI300X VF
+source_parent=f55c768
+model=qwen2.5-0.5b
+shape_pair=32x896x4864,64x896x4864
+candidate_index=75789
+precision_pairs=3
+performance_processes=12
