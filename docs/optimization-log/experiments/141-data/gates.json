@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "status": "mixed_error_sources_require_combined_software_counterfactual",
+  "evidence": {
+    "fresh_build_steps": 50,
+    "binary_contract_passed": true,
+    "formal_workers": 24,
+    "fp8_diagnostic_workers": 8,
+    "execution_failures": 0,
+    "recorded_precision_failures": 8,
+    "stderr_bytes": 0,
+    "complete_logits_per_fp8_worker": 151936,
+    "top_token_equal_all": true,
+    "native_fp8_dispatches": 0
+  },
+  "decision": {
+    "qwen_weight_rounding_dominates_all_reported_metrics": true,
+    "deepseek_has_one_universal_dominant_source": false,
+    "weight_rounding_can_be_ignored": false,
+    "activation_rounding_can_be_ignored": false,
+    "diagnostic_throughput_is_fp8_performance_evidence": false,
+    "combined_roundtrip_fp32_gemm_counterfactual_required": true,
+    "new_default_precision_policy_accepted": false
+  }
+}

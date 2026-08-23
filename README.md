@@ -492,6 +492,9 @@ static-scale precision gate fails, so FP8 remains experimental and opt-in.
 shows that restoring the highest-cancellation block to FP32 still fails all complete-logit gates.
 The retained [error-attribution modes](docs/dev/fp8-error-attribution.zh-CN.md) therefore isolate
 weight and activation rounding before another precision policy is proposed.
+[Experiment 141](docs/optimization-log/experiments/141-fp8-error-source-isolation.md) finds that
+Qwen is weight-error dominated while DeepSeek RMS is activation-error dominated; every isolated
+complete-logit gate still fails, so neither one-sided fix is accepted as a cross-model default.
 
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or

@@ -19,3 +19,8 @@ now defaults such calls to `full`, while CLI parsing remains strict. Final Relea
 356/356 pass, CPU label 248, HIP label 108, two intentional environment skips. The HIP diagnostic
 test proves 0 payload H2D/D2H after preparation and zero native FP8 GEMM dispatch for both isolated
 modes.
+
+Exp141 then executed 24 official-model workers. Qwen weight-only dominates both complete-logit
+metrics at T8/T512. DeepSeek activation-only dominates RMS, while T512 max-abs is weight-dominated.
+All eight diagnostic precision gates fail. A combined-roundtrip FP32-GEMM mode is required before
+attributing the gap to operand rounding versus native FP8 GEMM behavior.

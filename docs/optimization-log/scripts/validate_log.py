@@ -5639,6 +5639,75 @@ def validate_fp8_selective_block_counterfactual(
     return formal_workers, precision_failures, len(suites)
 
 
+def validate_fp8_error_source_isolation(
+        errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "141-data"
+    verification = json.loads((data / "verification.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    build = (data / "fresh-build.log").read_text(encoding="utf-8")
+    contract = (data / "hf-cli-binary-contract.log").read_text(encoding="utf-8")
+    suites = verification.get("suites", [])
+    if verification.get("all_suites_passed") is not True or len(suites) != 2:
+        errors.append("FP8 error-source combined verification changed")
+        return 0, 0, 0
+    by_mode = {row["mode"]: row for row in suites}
+    for mode, expected_converted, q_calls, deep_calls in (
+            ("weight-only", {168, 197}, 0, 0),
+            ("activation-only", {0}, 96, 113)):
+        suite = by_mode[mode]
+        directory = data / mode
+        raw_rows = sum(1 for line in (directory / "raw.jsonl").read_text(
+            encoding="utf-8").splitlines() if line.strip())
+        preflight_rows = sum(1 for line in (directory / "gpu2-preflight.jsonl").read_text(
+            encoding="utf-8").splitlines() if line.strip())
+        checks = suite.get("fp8_checks", [])
+        by_model = {row["model"]: row for row in checks if row["context"] == 8}
+        if suite.get("all_contract_checks_passed") is not True or \
+                suite.get("worker_rows") != 12 or suite.get("fp8_worker_rows") != 4 or \
+                raw_rows != 12 or preflight_rows != 3 or \
+                (directory / "stderr.log").stat().st_size != 0 or \
+                (directory / "exit-code.txt").read_text(encoding="utf-8").strip() != "0" or \
+                len(checks) != 4 or {row["converted_tensors"] for row in checks} != \
+                expected_converted:
+            errors.append(f"FP8 error-source {mode} execution contract changed")
+            continue
+        qwen = by_model["qwen2.5-0.5b"]
+        deep = by_model["deepseek-r1-distill-qwen-1.5b"]
+        if qwen["fp8_linears_covered"] != 168 or \
+                deep["fp8_linears_covered"] != 197 or \
+                qwen["dynamic_tensor_calls"] != q_calls or \
+                deep["dynamic_tensor_calls"] != deep_calls or \
+                any(row["logit_count"] != 151936 or
+                    row["top_token_equal"] is not True or
+                    row["native_shapes"] != 0 or
+                    row["software_fallback_calls"] != 0
+                    for row in checks):
+            errors.append(f"FP8 error-source {mode} machine counters changed")
+    comparisons = {(row["model"], row["context"]): row
+                   for row in verification.get("comparisons", [])}
+    q8 = comparisons[("qwen2.5-0.5b", 8)]
+    q512 = comparisons[("qwen2.5-0.5b", 512)]
+    d8 = comparisons[("deepseek-r1-distill-qwen-1.5b", 8)]
+    d512 = comparisons[("deepseek-r1-distill-qwen-1.5b", 512)]
+    if q8["dominant_source_by_rms"] != "weight-only" or \
+            q512["dominant_source_by_max_abs"] != "weight-only" or \
+            not 1.60 < q512["weight_over_activation"][
+                "root_mean_square_error_ratio"] < 1.63 or \
+            d8["dominant_source_by_max_abs"] != "comparable-within-5-percent" or \
+            d8["dominant_source_by_rms"] != "activation-only" or \
+            d512["dominant_source_by_max_abs"] != "weight-only" or \
+            d512["dominant_source_by_rms"] != "activation-only":
+        errors.append("FP8 error-source attribution changed")
+    decision = gates.get("decision", {})
+    if decision.get("qwen_weight_rounding_dominates_all_reported_metrics") is not True or \
+            decision.get("deepseek_has_one_universal_dominant_source") is not False or \
+            decision.get("diagnostic_throughput_is_fp8_performance_evidence") is not False or \
+            decision.get("combined_roundtrip_fp32_gemm_counterfactual_required") is not True or \
+            "[50/50]" not in build or "binary contract: pass" not in contract:
+        errors.append("FP8 error-source decision/build gates changed")
+    return sum(row["worker_rows"] for row in suites), 8, 151936
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -5757,7 +5826,8 @@ def validate_assets(errors: list[str]) -> None:
                  "fp8-layer-drift.svg",
                  "fp8-block-detail.svg",
                  "fp8-residual-cancellation.svg",
-                 "fp8-selective-block-counterfactual.svg"):
+                 "fp8-selective-block-counterfactual.svg",
+                 "fp8-error-source-isolation.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -5971,6 +6041,8 @@ def main() -> int:
         validate_fp8_residual_cancellation(errors)
     selective_workers, selective_failures, selective_models = \
         validate_fp8_selective_block_counterfactual(errors)
+    source_workers, source_failures, source_logits = \
+        validate_fp8_error_source_isolation(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -6140,6 +6212,7 @@ def main() -> int:
           f"cancellation={cancellation_rows}/{cancellation_qwen}/{cancellation_deep} "
           f"selective_fp32={selective_workers}/{selective_failures}/"
           f"{selective_models} "
+          f"fp8_sources={source_workers}/{source_failures}/{source_logits} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

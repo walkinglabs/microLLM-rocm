@@ -1,0 +1,374 @@
+{
+  "all_suites_passed": true,
+  "attribution_conclusion": {
+    "deepseek-r1-distill-qwen-1.5b": "Activation roundtrip dominates RMS at T8 and T512; max-abs is comparable at T8 and weight-dominated at T512. No single source dominates both metrics in every DeepSeek case.",
+    "qwen2.5-0.5b": "Weight roundtrip dominates both max-abs and RMS at T8 and T512."
+  },
+  "binary": "/tmp/microllm-exp141-build.Y0xI1A/apps/microllm_hf_infer",
+  "build": {
+    "build_exit_code": 0,
+    "build_log": "/tmp/microllm-exp141-build.Y0xI1A/build.log",
+    "configure_exit_code": 0,
+    "configure_log": "/tmp/microllm-exp141-build.Y0xI1A/configure.log",
+    "directory": "/tmp/microllm-exp141-build.Y0xI1A",
+    "hf_cli_binary_contract_exit_code": 0,
+    "hf_cli_binary_contract_log": "/tmp/microllm-exp141-build.Y0xI1A/hf-cli-binary-contract.log",
+    "steps_completed": 50
+  },
+  "comparisons": [
+    {
+      "activation_only": {
+        "maximum_absolute_error": 0.5741438865661621,
+        "reference_top_token": 9707,
+        "root_mean_square_error": 0.12910205783966186,
+        "top_token": 9707
+      },
+      "context": 8,
+      "dominant_source_by_max_abs": "weight-only",
+      "dominant_source_by_rms": "weight-only",
+      "model": "qwen2.5-0.5b",
+      "weight_only": {
+        "maximum_absolute_error": 0.7664623260498047,
+        "reference_top_token": 9707,
+        "root_mean_square_error": 0.17737868685301908,
+        "top_token": 9707
+      },
+      "weight_over_activation": {
+        "maximum_absolute_error_ratio": 1.3349655791579704,
+        "root_mean_square_error_ratio": 1.373941591801072
+      }
+    },
+    {
+      "activation_only": {
+        "maximum_absolute_error": 0.8475049734115601,
+        "reference_top_token": 9707,
+        "root_mean_square_error": 0.1793956135981997,
+        "top_token": 9707
+      },
+      "context": 512,
+      "dominant_source_by_max_abs": "weight-only",
+      "dominant_source_by_rms": "weight-only",
+      "model": "qwen2.5-0.5b",
+      "weight_only": {
+        "maximum_absolute_error": 1.1862072944641113,
+        "reference_top_token": 9707,
+        "root_mean_square_error": 0.29010954117951376,
+        "top_token": 9707
+      },
+      "weight_over_activation": {
+        "maximum_absolute_error_ratio": 1.3996464111462774,
+        "root_mean_square_error_ratio": 1.6171495799740396
+      }
+    },
+    {
+      "activation_only": {
+        "maximum_absolute_error": 0.6880174279212952,
+        "reference_top_token": 10,
+        "root_mean_square_error": 0.2175672221347881,
+        "top_token": 10
+      },
+      "context": 8,
+      "dominant_source_by_max_abs": "comparable-within-5-percent",
+      "dominant_source_by_rms": "activation-only",
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "weight_only": {
+        "maximum_absolute_error": 0.6945091485977173,
+        "reference_top_token": 10,
+        "root_mean_square_error": 0.15011903311544117,
+        "top_token": 10
+      },
+      "weight_over_activation": {
+        "maximum_absolute_error_ratio": 1.0094354015072489,
+        "root_mean_square_error_ratio": 0.6899891980164128
+      }
+    },
+    {
+      "activation_only": {
+        "maximum_absolute_error": 0.7363395690917969,
+        "reference_top_token": 30,
+        "root_mean_square_error": 0.16537469831048665,
+        "top_token": 30
+      },
+      "context": 512,
+      "dominant_source_by_max_abs": "weight-only",
+      "dominant_source_by_rms": "activation-only",
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "weight_only": {
+        "maximum_absolute_error": 0.8871645405888557,
+        "reference_top_token": 30,
+        "root_mean_square_error": 0.14643044668917285,
+        "top_token": 30
+      },
+      "weight_over_activation": {
+        "maximum_absolute_error_ratio": 1.204830730043595,
+        "root_mean_square_error_ratio": 0.8854464932371549
+      }
+    }
+  ],
+  "contexts": [
+    8,
+    512
+  ],
+  "dominance_rule": "A source is called dominant for one metric only when its isolated error is over 5% larger; otherwise the metric is comparable. RMS is the primary distributed-error view, while max-abs captures a worst coordinate.",
+  "experiment": "Exp141",
+  "manifest": "/tmp/microllm-bf16-model-manifest.json",
+  "physical_gpu_index": 2,
+  "revision": "86826018609322600520f54f62955dee066326d7",
+  "runs": 1,
+  "schema_version": 1,
+  "steps": 1,
+  "suites": [
+    {
+      "all_contract_checks_passed": true,
+      "command": "/tmp/microllm-exp141-weight-only-final/command.txt",
+      "directory": "/tmp/microllm-exp141-weight-only-final",
+      "execution_status": "pass",
+      "exit_code": 0,
+      "exit_code_path": "/tmp/microllm-exp141-weight-only-final/exit-code.txt",
+      "fp8_checks": [
+        {
+          "complete_contract_passed": true,
+          "context": 8,
+          "converted_tensors": 168,
+          "dynamic_row_calls": 0,
+          "dynamic_tensor_calls": 0,
+          "expected_converted_tensors": 168,
+          "expected_dynamic_tensor_calls": 0,
+          "expected_linears_covered": 168,
+          "fp8_linears_covered": 168,
+          "logit_count": 151936,
+          "maximum_absolute_error": 0.7664623260498047,
+          "model": "qwen2.5-0.5b",
+          "native_shapes": 0,
+          "root_mean_square_error": 0.17737868685301908,
+          "software_fallback_calls": 0,
+          "software_fallback_shapes": 0,
+          "top_token_equal": true
+        },
+        {
+          "complete_contract_passed": true,
+          "context": 512,
+          "converted_tensors": 168,
+          "dynamic_row_calls": 0,
+          "dynamic_tensor_calls": 0,
+          "expected_converted_tensors": 168,
+          "expected_dynamic_tensor_calls": 0,
+          "expected_linears_covered": 168,
+          "fp8_linears_covered": 168,
+          "logit_count": 151936,
+          "maximum_absolute_error": 1.1862072944641113,
+          "model": "qwen2.5-0.5b",
+          "native_shapes": 0,
+          "root_mean_square_error": 0.29010954117951376,
+          "software_fallback_calls": 0,
+          "software_fallback_shapes": 0,
+          "top_token_equal": true
+        },
+        {
+          "complete_contract_passed": true,
+          "context": 8,
+          "converted_tensors": 197,
+          "dynamic_row_calls": 0,
+          "dynamic_tensor_calls": 0,
+          "expected_converted_tensors": 197,
+          "expected_dynamic_tensor_calls": 0,
+          "expected_linears_covered": 197,
+          "fp8_linears_covered": 197,
+          "logit_count": 151936,
+          "maximum_absolute_error": 0.6945091485977173,
+          "model": "deepseek-r1-distill-qwen-1.5b",
+          "native_shapes": 0,
+          "root_mean_square_error": 0.15011903311544117,
+          "software_fallback_calls": 0,
+          "software_fallback_shapes": 0,
+          "top_token_equal": true
+        },
+        {
+          "complete_contract_passed": true,
+          "context": 512,
+          "converted_tensors": 197,
+          "dynamic_row_calls": 0,
+          "dynamic_tensor_calls": 0,
+          "expected_converted_tensors": 197,
+          "expected_dynamic_tensor_calls": 0,
+          "expected_linears_covered": 197,
+          "fp8_linears_covered": 197,
+          "logit_count": 151936,
+          "maximum_absolute_error": 0.8871645405888557,
+          "model": "deepseek-r1-distill-qwen-1.5b",
+          "native_shapes": 0,
+          "root_mean_square_error": 0.14643044668917285,
+          "software_fallback_calls": 0,
+          "software_fallback_shapes": 0,
+          "top_token_equal": true
+        }
+      ],
+      "fp8_worker_rows": 4,
+      "gpu_gate": {
+        "post_max_use": 4,
+        "post_max_vram": 2,
+        "pre_max_use": 1,
+        "pre_max_vram": 0
+      },
+      "mode": "weight-only",
+      "preflight": [
+        {
+          "gpu_use_percent": 0,
+          "physical_gpu_index": 2,
+          "sample": 1,
+          "timestamp_utc": "2026-08-23T13:30:29.179326+00:00",
+          "vram_percent": 0
+        },
+        {
+          "gpu_use_percent": 0,
+          "physical_gpu_index": 2,
+          "sample": 2,
+          "timestamp_utc": "2026-08-23T13:30:39.297555+00:00",
+          "vram_percent": 0
+        },
+        {
+          "gpu_use_percent": 0,
+          "physical_gpu_index": 2,
+          "sample": 3,
+          "timestamp_utc": "2026-08-23T13:30:49.417388+00:00",
+          "vram_percent": 0
+        }
+      ],
+      "preflight_path": "/tmp/microllm-exp141-weight-only-final/gpu2-preflight.jsonl",
+      "raw": "/tmp/microllm-exp141-weight-only-final/raw.jsonl",
+      "stderr": "/tmp/microllm-exp141-weight-only-final/stderr.log",
+      "stderr_bytes": 0,
+      "stdout": "/tmp/microllm-exp141-weight-only-final/stdout.jsonl",
+      "summary": "/tmp/microllm-exp141-weight-only-final/summary.json",
+      "summary_status": "complete_with_recorded_accuracy_failures",
+      "worker_rows": 12
+    },
+    {
+      "all_contract_checks_passed": true,
+      "command": "/tmp/microllm-exp141-activation-only-final/command.txt",
+      "directory": "/tmp/microllm-exp141-activation-only-final",
+      "execution_status": "pass",
+      "exit_code": 0,
+      "exit_code_path": "/tmp/microllm-exp141-activation-only-final/exit-code.txt",
+      "fp8_checks": [
+        {
+          "complete_contract_passed": true,
+          "context": 8,
+          "converted_tensors": 0,
+          "dynamic_row_calls": 0,
+          "dynamic_tensor_calls": 96,
+          "expected_converted_tensors": 0,
+          "expected_dynamic_tensor_calls": 96,
+          "expected_linears_covered": 168,
+          "fp8_linears_covered": 168,
+          "logit_count": 151936,
+          "maximum_absolute_error": 0.5741438865661621,
+          "model": "qwen2.5-0.5b",
+          "native_shapes": 0,
+          "root_mean_square_error": 0.12910205783966186,
+          "software_fallback_calls": 0,
+          "software_fallback_shapes": 0,
+          "top_token_equal": true
+        },
+        {
+          "complete_contract_passed": true,
+          "context": 512,
+          "converted_tensors": 0,
+          "dynamic_row_calls": 0,
+          "dynamic_tensor_calls": 96,
+          "expected_converted_tensors": 0,
+          "expected_dynamic_tensor_calls": 96,
+          "expected_linears_covered": 168,
+          "fp8_linears_covered": 168,
+          "logit_count": 151936,
+          "maximum_absolute_error": 0.8475049734115601,
+          "model": "qwen2.5-0.5b",
+          "native_shapes": 0,
+          "root_mean_square_error": 0.1793956135981997,
+          "software_fallback_calls": 0,
+          "software_fallback_shapes": 0,
+          "top_token_equal": true
+        },
+        {
+          "complete_contract_passed": true,
+          "context": 8,
+          "converted_tensors": 0,
+          "dynamic_row_calls": 0,
+          "dynamic_tensor_calls": 113,
+          "expected_converted_tensors": 0,
+          "expected_dynamic_tensor_calls": 113,
+          "expected_linears_covered": 197,
+          "fp8_linears_covered": 197,
+          "logit_count": 151936,
+          "maximum_absolute_error": 0.6880174279212952,
+          "model": "deepseek-r1-distill-qwen-1.5b",
+          "native_shapes": 0,
+          "root_mean_square_error": 0.2175672221347881,
+          "software_fallback_calls": 0,
+          "software_fallback_shapes": 0,
+          "top_token_equal": true
+        },
+        {
+          "complete_contract_passed": true,
+          "context": 512,
+          "converted_tensors": 0,
+          "dynamic_row_calls": 0,
+          "dynamic_tensor_calls": 113,
+          "expected_converted_tensors": 0,
+          "expected_dynamic_tensor_calls": 113,
+          "expected_linears_covered": 197,
+          "fp8_linears_covered": 197,
+          "logit_count": 151936,
+          "maximum_absolute_error": 0.7363395690917969,
+          "model": "deepseek-r1-distill-qwen-1.5b",
+          "native_shapes": 0,
+          "root_mean_square_error": 0.16537469831048665,
+          "software_fallback_calls": 0,
+          "software_fallback_shapes": 0,
+          "top_token_equal": true
+        }
+      ],
+      "fp8_worker_rows": 4,
+      "gpu_gate": {
+        "post_max_use": 3,
+        "post_max_vram": 2,
+        "pre_max_use": 1,
+        "pre_max_vram": 0
+      },
+      "mode": "activation-only",
+      "preflight": [
+        {
+          "gpu_use_percent": 0,
+          "physical_gpu_index": 2,
+          "sample": 1,
+          "timestamp_utc": "2026-08-23T13:32:20.732285+00:00",
+          "vram_percent": 0
+        },
+        {
+          "gpu_use_percent": 0,
+          "physical_gpu_index": 2,
+          "sample": 2,
+          "timestamp_utc": "2026-08-23T13:32:30.851841+00:00",
+          "vram_percent": 0
+        },
+        {
+          "gpu_use_percent": 0,
+          "physical_gpu_index": 2,
+          "sample": 3,
+          "timestamp_utc": "2026-08-23T13:32:40.968843+00:00",
+          "vram_percent": 0
+        }
+      ],
+      "preflight_path": "/tmp/microllm-exp141-activation-only-final/gpu2-preflight.jsonl",
+      "raw": "/tmp/microllm-exp141-activation-only-final/raw.jsonl",
+      "stderr": "/tmp/microllm-exp141-activation-only-final/stderr.log",
+      "stderr_bytes": 0,
+      "stdout": "/tmp/microllm-exp141-activation-only-final/stdout.jsonl",
+      "summary": "/tmp/microllm-exp141-activation-only-final/summary.json",
+      "summary_status": "complete_with_recorded_accuracy_failures",
+      "worker_rows": 12
+    }
+  ],
+  "throughput_boundary": "Both diagnostic modes dequantize/roundtrip into FP32 GEMM and have zero native FP8 dispatch; their reported TPS is diagnostic overhead and must not be interpreted as FP8 performance.",
+  "warmup": 0
+}

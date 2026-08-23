@@ -1,0 +1,130 @@
+[1/50] Building CXX object src/core/CMakeFiles/microllm_core.dir/device.cpp.o
+[2/50] Building CXX object src/io/CMakeFiles/microllm_io.dir/byte_tokenizer.cpp.o
+[3/50] Building CXX object src/core/CMakeFiles/microllm_core.dir/storage.cpp.o
+[4/50] Building CXX object apps/CMakeFiles/microllm_runtime_info.dir/runtime_info.cpp.o
+[5/50] Building CXX object apps/CMakeFiles/microllm_hf_inspect.dir/hf_inspect.cpp.o
+[6/50] Building CXX object src/model/CMakeFiles/microllm_model.dir/config.cpp.o
+[7/50] Building CXX object src/io/CMakeFiles/microllm_io.dir/chat_template.cpp.o
+[8/50] Building CXX object src/inference/CMakeFiles/microllm_inference.dir/kv_cache.cpp.o
+[9/50] Building CXX object src/io/CMakeFiles/microllm_io.dir/token_dataset.cpp.o
+[10/50] Building CXX object apps/CMakeFiles/microllm_hf_tokenize.dir/hf_tokenize.cpp.o
+[11/50] Building CXX object src/io/CMakeFiles/microllm_io.dir/sft.cpp.o
+[12/50] Building CXX object src/ops/CMakeFiles/microllm_ops.dir/low_level.cpp.o
+[13/50] Building CXX object src/training/CMakeFiles/microllm_training.dir/trainer.cpp.o
+[14/50] Building CXX object src/model/CMakeFiles/microllm_model.dir/huggingface.cpp.o
+[15/50] Building CXX object src/io/CMakeFiles/microllm_io.dir/bpe_tokenizer.cpp.o
+[16/50] Building CXX object src/training/CMakeFiles/microllm_training.dir/optimizer.cpp.o
+[17/50] Building CXX object src/runtime/CMakeFiles/microllm_runtime.dir/runtime.cpp.o
+[18/50] Building CXX object apps/CMakeFiles/microllm_train.dir/train.cpp.o
+[19/50] Building CXX object src/core/CMakeFiles/microllm_core.dir/tensor.cpp.o
+[20/50] Building CXX object src/profiling/CMakeFiles/microllm_profiling.dir/trace.cpp.o
+[21/50] Building HIP object src/runtime/CMakeFiles/microllm_runtime.dir/hip_strided_copy.hip.o
+[22/50] Linking HIP static library src/runtime/libmicrollm_runtime.a
+[23/50] Linking HIP static library src/core/libmicrollm_core.a
+[24/50] Linking HIP static library src/profiling/libmicrollm_profiling.a
+[25/50] Linking HIP executable apps/microllm_runtime_info
+[26/50] Building CXX object apps/CMakeFiles/microllm_hf_train_step.dir/hf_train_step.cpp.o
+[27/50] Building CXX object apps/CMakeFiles/microllm_alignment.dir/alignment.cpp.o
+[28/50] Building CXX object src/training/CMakeFiles/microllm_training.dir/checkpoint.cpp.o
+[29/50] Building CXX object src/inference/CMakeFiles/microllm_inference.dir/generator.cpp.o
+[30/50] Building CXX object src/io/CMakeFiles/microllm_io.dir/huggingface_bpe_tokenizer.cpp.o
+[31/50] Building CXX object src/ops/CMakeFiles/microllm_ops.dir/optimized.cpp.o
+[32/50] Building CXX object src/autograd/CMakeFiles/microllm_autograd.dir/autograd.cpp.o
+[33/50] Building CXX object src/io/CMakeFiles/microllm_io.dir/safetensors.cpp.o
+[34/50] Linking HIP static library src/io/libmicrollm_io.a
+[35/50] Linking HIP executable apps/microllm_hf_tokenize
+[36/50] Building CXX object src/inference/CMakeFiles/microllm_inference.dir/scheduler.cpp.o
+[37/50] Building CXX object src/ops/CMakeFiles/microllm_ops.dir/ops.cpp.o
+[38/50] Building CXX object apps/CMakeFiles/microllm_hf_infer.dir/hf_infer.cpp.o
+[39/50] Building HIP object src/ops/CMakeFiles/microllm_ops.dir/hip/basic_kernels.hip.o
+/home/devpod/github/microLLM-rocm/src/ops/hip/basic_kernels.hip:660:51: warning: unused parameter 'rows' [-Wunused-parameter]
+  660 |                                      std::int64_t rows,
+      |                                                   ^
+/home/devpod/github/microLLM-rocm/src/ops/hip/basic_kernels.hip:2218:61: warning: implicit conversion loses integer precision: 'std::int64_t' (aka 'long') to 'uint32_t' (aka 'unsigned int') [-Wshorten-64-to-32]
+ 2218 |     hipLaunchKernelGGL(fp8_tensor_scale_kernel<Input>, dim3(partial_count),
+      |                                                        ~~~~ ^~~~~~~~~~~~~
+/home/devpod/github/microLLM-rocm/src/ops/hip/basic_kernels.hip:2255:13: note: in instantiation of function template specialization 'microllm::ops::hip::launch_dynamic_quantize_for_input<float>' requested here
+ 2255 |             launch_dynamic_quantize_for_input(
+      |             ^
+/home/devpod/github/microLLM-rocm/src/ops/hip/basic_kernels.hip:2218:61: warning: implicit conversion loses integer precision: 'std::int64_t' (aka 'long') to 'uint32_t' (aka 'unsigned int') [-Wshorten-64-to-32]
+ 2218 |     hipLaunchKernelGGL(fp8_tensor_scale_kernel<Input>, dim3(partial_count),
+      |                                                        ~~~~ ^~~~~~~~~~~~~
+/home/devpod/github/microLLM-rocm/src/ops/hip/basic_kernels.hip:2261:13: note: in instantiation of function template specialization 'microllm::ops::hip::launch_dynamic_quantize_for_input<__half>' requested here
+ 2261 |             launch_dynamic_quantize_for_input(
+      |             ^
+/home/devpod/github/microLLM-rocm/src/ops/hip/basic_kernels.hip:2218:61: warning: implicit conversion loses integer precision: 'std::int64_t' (aka 'long') to 'uint32_t' (aka 'unsigned int') [-Wshorten-64-to-32]
+ 2218 |     hipLaunchKernelGGL(fp8_tensor_scale_kernel<Input>, dim3(partial_count),
+      |                                                        ~~~~ ^~~~~~~~~~~~~
+/home/devpod/github/microLLM-rocm/src/ops/hip/basic_kernels.hip:2267:13: note: in instantiation of function template specialization 'microllm::ops::hip::launch_dynamic_quantize_for_input<hip_bfloat16>' requested here
+ 2267 |             launch_dynamic_quantize_for_input(
+      |             ^
+/home/devpod/github/microLLM-rocm/src/ops/hip/basic_kernels.hip:2283:58: warning: implicit conversion loses integer precision: 'std::int64_t' (aka 'long') to 'uint32_t' (aka 'unsigned int') [-Wshorten-64-to-32]
+ 2283 |     hipLaunchKernelGGL(fp8_row_scale_kernel<Input>, dim3(rows),
+      |                                                     ~~~~ ^~~~
+/home/devpod/github/microLLM-rocm/src/ops/hip/basic_kernels.hip:2313:13: note: in instantiation of function template specialization 'microllm::ops::hip::launch_row_quantize_for_input<float>' requested here
+ 2313 |             launch_row_quantize_for_input(static_cast<const float*>(input),
+      |             ^
+/home/devpod/github/microLLM-rocm/src/ops/hip/basic_kernels.hip:2283:58: warning: implicit conversion loses integer precision: 'std::int64_t' (aka 'long') to 'uint32_t' (aka 'unsigned int') [-Wshorten-64-to-32]
+ 2283 |     hipLaunchKernelGGL(fp8_row_scale_kernel<Input>, dim3(rows),
+      |                                                     ~~~~ ^~~~
+/home/devpod/github/microLLM-rocm/src/ops/hip/basic_kernels.hip:2317:13: note: in instantiation of function template specialization 'microllm::ops::hip::launch_row_quantize_for_input<__half>' requested here
+ 2317 |             launch_row_quantize_for_input(static_cast<const __half*>(input),
+      |             ^
+/home/devpod/github/microLLM-rocm/src/ops/hip/basic_kernels.hip:2283:58: warning: implicit conversion loses integer precision: 'std::int64_t' (aka 'long') to 'uint32_t' (aka 'unsigned int') [-Wshorten-64-to-32]
+ 2283 |     hipLaunchKernelGGL(fp8_row_scale_kernel<Input>, dim3(rows),
+      |                                                     ~~~~ ^~~~
+/home/devpod/github/microLLM-rocm/src/ops/hip/basic_kernels.hip:2321:13: note: in instantiation of function template specialization 'microllm::ops::hip::launch_row_quantize_for_input<hip_bfloat16>' requested here
+ 2321 |             launch_row_quantize_for_input(static_cast<const hip_bfloat16*>(input),
+      |             ^
+7 warnings generated when compiling for gfx942.
+/home/devpod/github/microLLM-rocm/src/ops/hip/basic_kernels.hip:660:51: warning: unused parameter 'rows' [-Wunused-parameter]
+  660 |                                      std::int64_t rows,
+      |                                                   ^
+/home/devpod/github/microLLM-rocm/src/ops/hip/basic_kernels.hip:2218:61: warning: implicit conversion loses integer precision: 'std::int64_t' (aka 'long') to 'uint32_t' (aka 'unsigned int') [-Wshorten-64-to-32]
+ 2218 |     hipLaunchKernelGGL(fp8_tensor_scale_kernel<Input>, dim3(partial_count),
+      |                                                        ~~~~ ^~~~~~~~~~~~~
+/home/devpod/github/microLLM-rocm/src/ops/hip/basic_kernels.hip:2255:13: note: in instantiation of function template specialization 'microllm::ops::hip::launch_dynamic_quantize_for_input<float>' requested here
+ 2255 |             launch_dynamic_quantize_for_input(
+      |             ^
+/home/devpod/github/microLLM-rocm/src/ops/hip/basic_kernels.hip:2218:61: warning: implicit conversion loses integer precision: 'std::int64_t' (aka 'long') to 'uint32_t' (aka 'unsigned int') [-Wshorten-64-to-32]
+ 2218 |     hipLaunchKernelGGL(fp8_tensor_scale_kernel<Input>, dim3(partial_count),
+      |                                                        ~~~~ ^~~~~~~~~~~~~
+/home/devpod/github/microLLM-rocm/src/ops/hip/basic_kernels.hip:2261:13: note: in instantiation of function template specialization 'microllm::ops::hip::launch_dynamic_quantize_for_input<__half>' requested here
+ 2261 |             launch_dynamic_quantize_for_input(
+      |             ^
+/home/devpod/github/microLLM-rocm/src/ops/hip/basic_kernels.hip:2218:61: warning: implicit conversion loses integer precision: 'std::int64_t' (aka 'long') to 'uint32_t' (aka 'unsigned int') [-Wshorten-64-to-32]
+ 2218 |     hipLaunchKernelGGL(fp8_tensor_scale_kernel<Input>, dim3(partial_count),
+      |                                                        ~~~~ ^~~~~~~~~~~~~
+/home/devpod/github/microLLM-rocm/src/ops/hip/basic_kernels.hip:2267:13: note: in instantiation of function template specialization 'microllm::ops::hip::launch_dynamic_quantize_for_input<hip_bfloat16>' requested here
+ 2267 |             launch_dynamic_quantize_for_input(
+      |             ^
+/home/devpod/github/microLLM-rocm/src/ops/hip/basic_kernels.hip:2283:58: warning: implicit conversion loses integer precision: 'std::int64_t' (aka 'long') to 'uint32_t' (aka 'unsigned int') [-Wshorten-64-to-32]
+ 2283 |     hipLaunchKernelGGL(fp8_row_scale_kernel<Input>, dim3(rows),
+      |                                                     ~~~~ ^~~~
+/home/devpod/github/microLLM-rocm/src/ops/hip/basic_kernels.hip:2313:13: note: in instantiation of function template specialization 'microllm::ops::hip::launch_row_quantize_for_input<float>' requested here
+ 2313 |             launch_row_quantize_for_input(static_cast<const float*>(input),
+      |             ^
+/home/devpod/github/microLLM-rocm/src/ops/hip/basic_kernels.hip:2283:58: warning: implicit conversion loses integer precision: 'std::int64_t' (aka 'long') to 'uint32_t' (aka 'unsigned int') [-Wshorten-64-to-32]
+ 2283 |     hipLaunchKernelGGL(fp8_row_scale_kernel<Input>, dim3(rows),
+      |                                                     ~~~~ ^~~~
+/home/devpod/github/microLLM-rocm/src/ops/hip/basic_kernels.hip:2317:13: note: in instantiation of function template specialization 'microllm::ops::hip::launch_row_quantize_for_input<__half>' requested here
+ 2317 |             launch_row_quantize_for_input(static_cast<const __half*>(input),
+      |             ^
+/home/devpod/github/microLLM-rocm/src/ops/hip/basic_kernels.hip:2283:58: warning: implicit conversion loses integer precision: 'std::int64_t' (aka 'long') to 'uint32_t' (aka 'unsigned int') [-Wshorten-64-to-32]
+ 2283 |     hipLaunchKernelGGL(fp8_row_scale_kernel<Input>, dim3(rows),
+      |                                                     ~~~~ ^~~~
+/home/devpod/github/microLLM-rocm/src/ops/hip/basic_kernels.hip:2321:13: note: in instantiation of function template specialization 'microllm::ops::hip::launch_row_quantize_for_input<hip_bfloat16>' requested here
+ 2321 |             launch_row_quantize_for_input(static_cast<const hip_bfloat16*>(input),
+      |             ^
+7 warnings generated when compiling for host.
+[40/50] Linking HIP static library src/ops/libmicrollm_ops.a
+[41/50] Linking HIP static library src/autograd/libmicrollm_autograd.a
+[42/50] Building CXX object src/model/CMakeFiles/microllm_model.dir/model.cpp.o
+[43/50] Linking HIP static library src/model/libmicrollm_model.a
+[44/50] Linking HIP static library src/training/libmicrollm_training.a
+[45/50] Linking HIP static library src/inference/libmicrollm_inference.a
+[46/50] Linking HIP executable apps/microllm_hf_inspect
+[47/50] Linking HIP executable apps/microllm_alignment
+[48/50] Linking HIP executable apps/microllm_hf_infer
+[49/50] Linking HIP executable apps/microllm_train
+[50/50] Linking HIP executable apps/microllm_hf_train_step

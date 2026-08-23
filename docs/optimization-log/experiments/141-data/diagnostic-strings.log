@@ -1,0 +1,9 @@
+572:activation-only
+695:,"fp8_linears_covered":
+804:weight-only
+1003:--fp8-diagnostic-mode
+1192:weight-only FP8 diagnostic does not quantize activations
+1306:--fp8-diagnostic-mode requires --fp8-linear true
+1355:--fp8-diagnostic-mode must be full, weight-only, or activation-only
+1359:activation-only diagnostic cannot replace FP32 weights
+1597:activation-only FP8 inference preparation is invalid

@@ -2473,3 +2473,14 @@ gate/up并未爆炸。证据支持残差抵消放大解释，但缺block input�
 地点，不等于主要误差源。保留选择性FP32 API做诊断，不设默认；下一步分别隔离权重和激活量化。
 
 ![Selective FP32 counterfactual](assets/fp8-selective-block-counterfactual.svg)
+
+## 158. Experiment 141：Qwen偏权重，DeepSeek偏激活RMS
+
+把FP8 Linear拆成weight-only和activation-only，两条都还原后使用FP32 GEMM。Qwen T8/T512的
+权重RMS分别比激活大1.37×/1.62×；DeepSeek激活RMS反而大1.45×/1.13×，而T512 Max又由
+权重主导。24/24 worker执行成功，八个诊断精度门全红，top token全相同。
+
+没有跨模型的单一坏边。两条diagnostic native dispatch都为0，TPS不进入性能结论。下一步让
+两边同时舍入但继续用FP32 GEMM，区分共同舍入传播与真实FP8 GEMM。
+
+![FP8 error source isolation](assets/fp8-error-source-isolation.svg)

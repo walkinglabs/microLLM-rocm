@@ -111,3 +111,12 @@ FP32同引擎路径是本实验的直接差分参考；PyTorch仍用于支持域
 
 这些测试证明“隔离开关按设计工作”，不能提前证明哪个误差源占主导。主导来源必须由两个官方
 模型、短/长上下文的完整logits实测决定。
+
+## 7. Exp141实际看到了什么
+
+正式24个worker显示：Qwen的weight-only在T8/T512的Max和RMS都比activation-only大；DeepSeek
+则是activation-only的RMS更大，但T512最坏坐标由weight-only主导。八个诊断精度门都失败。
+
+所以不能写成“FP8只需要修一边”。下一项`both-roundtrip`会让两边同时经历FP8舍入、再用
+FP32 GEMM；它用于区分双侧舍入共同传播和真实FP8 GEMM本身。完整数据见
+[Experiment 141](../optimization-log/experiments/141-fp8-error-source-isolation.md)。

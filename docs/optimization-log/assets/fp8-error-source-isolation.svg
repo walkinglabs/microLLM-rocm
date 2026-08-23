@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1160" height="650" viewBox="0 0 1160 650" role="img" aria-labelledby="title desc">
+  <title id="title">FP8 weight and activation error isolation</title>
+  <desc id="desc">Complete-logit RMS errors for isolated weight and activation FP8 roundtrips across Qwen and DeepSeek contexts.</desc>
+  <rect width="1160" height="650" rx="20" fill="#0b1020"/>
+  <text x="56" y="58" fill="#f8fafc" font-size="29" font-family="sans-serif" font-weight="700">FP8误差来源：Qwen偏权重，DeepSeek偏激活RMS</text>
+  <text x="56" y="91" fill="#94a3b8" font-size="16" font-family="sans-serif">完整151,936维logits RMS；橙=只量化权重，蓝=只量化激活。越低越好。</text>
+  <line x1="100" y1="500" x2="1080" y2="500" stroke="#475569" stroke-width="2"/>
+  <line x1="100" y1="195" x2="1080" y2="195" stroke="#1e293b"/><text x="30" y="201" fill="#94a3b8" font-size="14" font-family="sans-serif">0.30</text>
+  <line x1="100" y1="398" x2="1080" y2="398" stroke="#1e293b"/><text x="30" y="404" fill="#94a3b8" font-size="14" font-family="sans-serif">0.10</text>
+  <rect x="155" y="320" width="72" height="180" fill="#f59e0b"/><rect x="232" y="369" width="72" height="131" fill="#38bdf8"/>
+  <rect x="395" y="205" width="72" height="295" fill="#f59e0b"/><rect x="472" y="318" width="72" height="182" fill="#38bdf8"/>
+  <rect x="655" y="348" width="72" height="152" fill="#f59e0b"/><rect x="732" y="279" width="72" height="221" fill="#38bdf8"/>
+  <rect x="895" y="351" width="72" height="149" fill="#f59e0b"/><rect x="972" y="332" width="72" height="168" fill="#38bdf8"/>
+  <g fill="#f8fafc" font-size="14" font-family="sans-serif"><text x="158" y="309">.177</text><text x="235" y="358">.129</text><text x="398" y="194">.290</text><text x="475" y="307">.179</text><text x="658" y="337">.150</text><text x="735" y="268">.218</text><text x="898" y="340">.146</text><text x="975" y="321">.165</text></g>
+  <g fill="#cbd5e1" font-size="15" font-family="sans-serif"><text x="172" y="535">Q T8</text><text x="405" y="535">Q T512</text><text x="666" y="535">Deep T8</text><text x="900" y="535">Deep T512</text></g>
+  <rect x="160" y="573" width="20" height="20" fill="#f59e0b"/><text x="190" y="589" fill="#cbd5e1" font-size="15" font-family="sans-serif">weight-only</text><rect x="330" y="573" width="20" height="20" fill="#38bdf8"/><text x="360" y="589" fill="#cbd5e1" font-size="15" font-family="sans-serif">activation-only</text>
+  <text x="580" y="591" fill="#fbbf24" font-size="16" font-family="sans-serif">两边都失败；下一步需要both-roundtrip区分共同传播与原生GEMM</text>
+</svg>

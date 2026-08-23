@@ -644,6 +644,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/139-data/](experiments/139-data/) | 两模型完整值代数与重建门 |
 | [assets/fp8-selective-block-counterfactual.svg](assets/fp8-selective-block-counterfactual.svg) | 关键层FP32的短/长context精度反例与显存代价 |
 | [experiments/140-data/](experiments/140-data/) | 36个正式worker、fresh build、完整logits与策略拒绝门 |
+| [assets/fp8-error-source-isolation.svg](assets/fp8-error-source-isolation.svg) | 权重/激活单侧舍入的完整logits RMS对比 |
+| [experiments/141-data/](experiments/141-data/) | 24个正式worker、两种诊断合同和误差归因 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

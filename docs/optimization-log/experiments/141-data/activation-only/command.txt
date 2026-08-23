@@ -1,0 +1,3 @@
+revision=86826018609322600520f54f62955dee066326d7
+binary=/tmp/microllm-exp141-build.Y0xI1A/apps/microllm_hf_infer
+HIP_VISIBLE_DEVICES=2 /usr/local/bin/python3 benchmarks/single_gpu/hf_fp8_matrix.py --manifest /tmp/microllm-bf16-model-manifest.json --binary /tmp/microllm-exp141-build.Y0xI1A/apps/microllm_hf_infer --output-directory /tmp/microllm-exp141-activation-only-final --models qwen2.5-0.5b,deepseek-r1-distill-qwen-1.5b --contexts 8,512 --warmup 0 --steps 1 --runs 1 --fp8-activation-scale 0.2 --fp8-activation-minimum-scale 0.0001 --fp8-weight-scale 0.005 --fp8-weight-scale-mode device-tensor-amax --fp8-activation-scale-mode tensor-amax --fp8-diagnostic-mode activation-only --physical-gpu-index 2 --max-idle-vram-percent 5 --max-idle-use-percent 10
