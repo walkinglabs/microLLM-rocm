@@ -38,6 +38,9 @@ def options() -> argparse.Namespace:
     parser.add_argument("--models")
     parser.add_argument("--contexts", default="8,512")
     parser.add_argument("--fractions", default="1,0.75,0.5,0.25")
+    parser.add_argument("--fp8-weight-scale", type=float, default=0.005)
+    parser.add_argument("--fp8-activation-minimum-scale", type=float,
+                        default=0.0001)
     parser.add_argument("--physical-gpu-index", type=int)
     parser.add_argument("--max-idle-vram-percent", type=int, default=5)
     parser.add_argument("--max-idle-use-percent", type=int, default=10)
@@ -48,8 +51,12 @@ def options() -> argparse.Namespace:
     except ValueError as error:
         parser.error(str(error))
     if not args.manifest.is_file() or not args.binary.is_file() or \
-            not args.contexts or any(value <= 0 for value in args.contexts):
-        parser.error("manifest, binary or contexts are invalid")
+            not args.contexts or any(value <= 0 for value in args.contexts) or \
+            not math.isfinite(args.fp8_weight_scale) or \
+            args.fp8_weight_scale <= 0 or \
+            not math.isfinite(args.fp8_activation_minimum_scale) or \
+            args.fp8_activation_minimum_scale <= 0:
+        parser.error("manifest, binary, contexts or scales are invalid")
     args.models = args.models.split(",") if args.models else None
     return args
 
@@ -61,9 +68,9 @@ def worker_command(args: argparse.Namespace, model: dict, context: int,
         warmup=0,
         steps=1,
         fp8_activation_scale=0.2,
-        fp8_activation_minimum_scale=0.0001,
+        fp8_activation_minimum_scale=args.fp8_activation_minimum_scale,
         fp8_activation_amax_fraction=1.0 if fraction is None else fraction,
-        fp8_weight_scale=0.0001,
+        fp8_weight_scale=args.fp8_weight_scale,
         fp8_weight_scale_mode="output-channel-amax",
         fp8_weight_scale_scope="attention-output-only",
         fp8_activation_scale_mode="tensor-amax",
@@ -206,6 +213,8 @@ def main() -> int:
         "models": [model["name"] for model in models],
         "contexts": args.contexts,
         "fractions": args.fractions,
+        "fp8_weight_scale": args.fp8_weight_scale,
+        "fp8_activation_minimum_scale": args.fp8_activation_minimum_scale,
         "worker_rows": sum(row["record_type"].endswith("worker") for row in rows),
         "comparison_rows": len(comparisons),
         "throughput_is_performance_evidence": False,

@@ -6,6 +6,8 @@ references and extends the time window in which an external GPU task can contami
 `hf_fp8_fraction_pilot.py` runs one FP32 oracle for each model/context and four FP8 fractions by
 default. For Qwen/DeepSeek at T8/T512 this is 20 workers instead of 48. It always uses the retained
 Attention O-projection weight scope and warm-up/steps `0/1`; throughput is explicitly non-evidence.
+The retained weight minimum is an explicit runner argument and defaults to 0.005, matching Exp148;
+the activation minimum defaults to 0.0001.
 
 Every fraction still compares all 151,936 logits. The selector minimizes worst-case RMS normalized
 by the 0.05 gate, requires stable top tokens, and accepts a clipped fraction only when it strictly
@@ -22,7 +24,8 @@ python3 benchmarks/single_gpu/hf_fp8_fraction_pilot.py \
   --output-directory /tmp/fraction-pilot \
   --models qwen2.5-0.5b,deepseek-r1-distill-qwen-1.5b \
   --contexts 8,512 \
-  --fractions 1,0.75,0.5,0.25
+  --fractions 1,0.75,0.5,0.25 \
+  --fp8-weight-scale 0.005
 ```
 
 The CPU contract tests fraction parsing, retained scope construction, fixed numerical workload and

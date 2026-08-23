@@ -21,7 +21,9 @@ class HfFp8FractionPilotTest(unittest.TestCase):
                 PILOT.parse_fractions(invalid)
 
     def test_worker_command_uses_retained_weight_scope_and_fraction(self):
-        args = argparse.Namespace(binary=Path("micro"))
+        args = argparse.Namespace(
+            binary=Path("micro"), fp8_weight_scale=0.005,
+            fp8_activation_minimum_scale=0.0001)
         model = {"config": "config.json", "weights": "model.bin",
                  "inference": {"token_ids": [1, 2]}}
         command = PILOT.worker_command(
@@ -31,6 +33,8 @@ class HfFp8FractionPilotTest(unittest.TestCase):
         self.assertEqual(command[command.index("--fp8-activation-amax-fraction") + 1],
                          "0.5")
         self.assertEqual(command[command.index("--prefill-warmup") + 1], "0")
+        self.assertEqual(command[command.index("--fp8-weight-scale") + 1],
+                         "0.005")
 
     def test_selection_requires_strict_worst_rms_improvement_and_stable_top(self):
         rows = [
