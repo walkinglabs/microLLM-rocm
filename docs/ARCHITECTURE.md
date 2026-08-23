@@ -223,6 +223,12 @@ layouts together. This preserves outputs but does not merge Storage or remove by
 policy is default-off because halving repeat launches improved profiler totals yet regressed
 official Qwen training.
 
+For GQA only, `attention_probability_value_gqa_bthd` can avoid expanded Value Storage by
+using a zero matrix-batch stride inside each KV group. The implementation submits one
+batched GEMM per `(outer batch, KV head)`. This is intentionally not a default: extra GEMM
+submissions lose on width-64 Qwen and MHA, while width-128 DeepSeek wins strongly. A later
+graph policy must include matching backward layouts and an explicit width gate.
+
 ## Stable integration boundary
 
 The long-term integration seam is a C-compatible descriptor plus explicit stream

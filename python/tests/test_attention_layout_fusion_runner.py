@@ -25,6 +25,12 @@ PLAN_MATRIX_SPEC = importlib.util.spec_from_file_location(
 PLAN_MATRIX = importlib.util.module_from_spec(PLAN_MATRIX_SPEC)
 assert PLAN_MATRIX_SPEC.loader is not None
 PLAN_MATRIX_SPEC.loader.exec_module(PLAN_MATRIX)
+GQA_MATRIX_PATH = ROOT / "benchmarks/single_gpu/attention_gqa_broadcast_matrix.py"
+GQA_MATRIX_SPEC = importlib.util.spec_from_file_location(
+    "attention_gqa_broadcast_matrix", GQA_MATRIX_PATH)
+GQA_MATRIX = importlib.util.module_from_spec(GQA_MATRIX_SPEC)
+assert GQA_MATRIX_SPEC.loader is not None
+GQA_MATRIX_SPEC.loader.exec_module(GQA_MATRIX)
 
 
 class AttentionLayoutFusionRunnerTest(unittest.TestCase):
@@ -146,6 +152,19 @@ class AttentionLayoutFusionRunnerTest(unittest.TestCase):
         self.assertEqual(cached[implementation + 1], "interleaved")
         self.assertEqual(uncached[plan + 1], "false")
         self.assertEqual(cached[plan + 1], "true")
+
+    def test_gqa_broadcast_matrix_preserves_head_contract(self):
+        shape = GQA_MATRIX.parse_shape("qwen:2:14:2:512:64")
+        self.assertEqual(shape["heads"] // shape["kv_heads"], 7)
+        matrix_args = types.SimpleNamespace(
+            binary=pathlib.Path("/fixture/microllm_bench_attention_gqa_broadcast"),
+            warmup=3,
+            repetitions=20,
+        )
+        command = GQA_MATRIX.command(matrix_args, shape, "broadcast")
+        self.assertEqual(command[command.index("--heads") + 1], "14")
+        self.assertEqual(command[command.index("--kv-heads") + 1], "2")
+        self.assertEqual(command[command.index("--implementation") + 1], "broadcast")
 
 
 if __name__ == "__main__":

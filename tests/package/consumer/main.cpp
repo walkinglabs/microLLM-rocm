@@ -48,6 +48,10 @@ int main() {
     const auto paired_repeat = microllm::ops::repeat_gqa_kv_bthd(
         microllm::Tensor::from_vector({1.0F, 2.0F}, {1, 1, 1, 2}),
         microllm::Tensor::from_vector({3.0F, 4.0F}, {1, 1, 1, 2}), 1);
+    const auto broadcast_context =
+        microllm::ops::attention_probability_value_gqa_bthd(
+            microllm::Tensor::from_vector({1.0F}, {1, 1, 1, 1}),
+            microllm::Tensor::from_vector({2.0F, 3.0F}, {1, 1, 1, 2}), 1);
     microllm::autograd::enable_gradient_accumulation_diagnostics(false);
     microllm::runtime::enable_strided_copy_diagnostics(false);
     microllm::autograd::enable_attention_rope_layout_fusion(false);
@@ -89,6 +93,7 @@ int main() {
         scaled_product.to_vector() != std::vector<float>({5.5F}) ||
         paired_repeat.first.to_vector() != std::vector<float>({1.0F, 2.0F}) ||
         paired_repeat.second.to_vector() != std::vector<float>({3.0F, 4.0F}) ||
+        broadcast_context.to_vector() != std::vector<float>({2.0F, 3.0F}) ||
         !microllm::autograd::attention_context_layout_fusion_enabled() ||
         attention_plan_stats.entries != 0 || attention_plan_stats.hits != 0 ||
         attention_plan_stats.misses != 0 ||

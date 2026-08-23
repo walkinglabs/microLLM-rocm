@@ -7372,6 +7372,42 @@ def validate_paired_gqa_repeat_discard(
     return len(training), separate_calls, paired_calls
 
 
+def validate_gqa_zero_stride_value_broadcast(
+        errors: list[str]) -> tuple[int, int, float]:
+    data = REPOSITORY / "benchmarks/results/2026-08-23-attention-gqa-zero-stride-broadcast"
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    rows = {row["name"]: row for row in summary.get("rows", [])}
+    qwen = rows.get("qwen_t512", {})
+    deep = rows.get("deepseek_t512", {})
+    mha = rows.get("mha_counterexample", {})
+    if verification.get("status") != "pass" or summary.get("status") != "reject" or \
+            verification.get("model_default_changed") is not False or \
+            verification.get("regression", {}).get("full_cpu_hip") != "405/405" or \
+            verification.get("regression", {}).get("hip_label") != "130/130" or \
+            len(raw) != 30 or len(rows) != 5 or \
+            qwen.get("wall_speedup", 2) >= 1.0 or \
+            deep.get("wall_speedup", 0) < 1.5 or \
+            mha.get("wall_speedup", 2) >= 1.0 or \
+            any(row.get("maximum_absolute_error", 1) > 1e-6 or
+                row.get("rms_error", 1) > 1e-7 or
+                row.get("host_to_device_calls") != 0 or
+                row.get("device_to_host_calls") != 0 for row in raw):
+        errors.append("GQA zero-stride Value broadcast evidence changed")
+    source = (REPOSITORY / "src/ops/optimized.cpp").read_text(encoding="utf-8")
+    tests = "\n".join((REPOSITORY / path).read_text(encoding="utf-8") for path in (
+        "tests/ops/ops_test.cpp", "tests/ops/hip_ops_test.cpp",
+        "python/tests/test_operator_parity.py"))
+    if "matrix_value.set_batch(batch_count, 0)" not in source or \
+            "GqaProbabilityValueZeroStrideBroadcastMatchesCpuForBatchTwo" not in tests or \
+            "attention_probability_value_gqa_bthd" not in tests:
+        errors.append("GQA zero-stride Value source/test contract changed")
+    return len(raw), len(rows), float(deep.get("wall_speedup", 0))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -7518,7 +7554,8 @@ def validate_assets(errors: list[str]) -> None:
                  "post-layout-training-profile.svg",
                  "attention-layout-plan-cache-discard.svg",
                  "attention-gemm-scale-fusion-discard.svg",
-                 "paired-gqa-repeat-discard.svg"):
+                 "paired-gqa-repeat-discard.svg",
+                 "gqa-zero-stride-value-broadcast.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -7790,6 +7827,8 @@ def main() -> int:
         validate_attention_gemm_scale_fusion_discard(errors)
     paired_model_rows, paired_separate_calls, paired_fused_calls = \
         validate_paired_gqa_repeat_discard(errors)
+    broadcast_rows, broadcast_shapes, broadcast_deep = \
+        validate_gqa_zero_stride_value_broadcast(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -8007,6 +8046,8 @@ def main() -> int:
           f"{scale_deep_allocations} "
           f"paired_gqa={paired_model_rows}/{paired_separate_calls}/"
           f"{paired_fused_calls} "
+          f"gqa_broadcast={broadcast_rows}/{broadcast_shapes}/"
+          f"{broadcast_deep:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

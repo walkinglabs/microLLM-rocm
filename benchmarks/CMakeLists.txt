@@ -36,6 +36,10 @@ if(MICROLLM_HAS_HIP AND MICROLLM_HAS_HIPBLASLT)
                    micro/benchmark_attention_layout.cpp)
     target_link_libraries(microllm_bench_attention_layout PRIVATE
         microllm::ops microllm::runtime hip::host roc::hipblaslt)
+    add_executable(microllm_bench_attention_gqa_broadcast
+                   micro/benchmark_attention_gqa_broadcast.cpp)
+    target_link_libraries(microllm_bench_attention_gqa_broadcast PRIVATE
+        microllm::ops microllm::runtime hip::host roc::hipblaslt)
 endif()
 
 add_executable(microllm_bench_model end_to_end/benchmark_model.cpp)

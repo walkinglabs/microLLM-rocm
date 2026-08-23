@@ -2808,3 +2808,17 @@ profile看起来成功：repeat family 432→216 calls、2.105→1.330ms，总Ke
 方向已经关闭。
 
 ![Paired GQA repeat discarded](assets/paired-gqa-repeat-discard.svg)
+
+## 186. Experiment 169：同一份Value可以广播，但不是每种宽度都划算
+
+对一个KV head的多个query head，hipBLASLt把Value batch stride设成0，就能反复读同一T×D矩阵，
+不用expanded Value。B2地址、完整输出和零host copy都通过，worst误差只有7.6e-8。
+
+速度却按shape分叉：Qwen T128/T512为0.946×/0.937×，Deep T512是1.603×，MHA反例仅0.726×。
+原因是广播路线把一个H-batch GEMM拆成每KV head一次；width64省下的copy不够付额外提交，width128
+才划算。
+
+因此不设全局默认。原语保留，下一步只为D≥128补dP/dQ与完整backward，并要求Qwen继续走旧路。
+这不是按模型名字硬编码，而是由head width这个执行shape决定。
+
+![GQA zero-stride Value broadcast](assets/gqa-zero-stride-value-broadcast.svg)

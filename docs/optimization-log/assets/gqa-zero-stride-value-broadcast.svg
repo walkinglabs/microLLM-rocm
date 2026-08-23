@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="920" viewBox="0 0 1800 920">
+  <rect width="1800" height="920" fill="#f8fafc"/>
+  <text x="900" y="52" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 169 · Zero-stride GQA Value Broadcast</text>
+  <text x="900" y="84" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle">One V matrix shared by a query-head group · complete-output MI300X matrix</text>
+
+  <rect x="55" y="125" width="650" height="650" rx="14" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="380" y="168" font-family="Inter,Arial,sans-serif" font-size="21" fill="#172033" text-anchor="middle" font-weight="700">No expanded Value Tensor</text>
+  <rect x="115" y="225" width="530" height="90" rx="10" fill="#dcfce7" stroke="#4ade80"/>
+  <text x="380" y="260" font-family="monospace" font-size="17" fill="#166534" text-anchor="middle">V[B,T,KV,D]</text>
+  <text x="380" y="290" font-family="Inter,Arial,sans-serif" font-size="15" fill="#166534" text-anchor="middle">matrix batch stride = 0</text>
+  <path d="M380 315 V370" stroke="#64748b" stroke-width="4" marker-end="url(#arrow169)"/>
+  <rect x="115" y="370" width="530" height="130" rx="10" fill="#eff6ff" stroke="#93c5fd"/>
+  <text x="380" y="407" font-family="Inter,Arial,sans-serif" font-size="17" fill="#1e40af" text-anchor="middle" font-weight="700">per (batch, KV head)</text>
+  <text x="380" y="447" font-family="monospace" font-size="16" fill="#334155" text-anchor="middle">batch_count = repeats</text>
+  <text x="380" y="477" font-family="Inter,Arial,sans-serif" font-size="14" fill="#64748b" text-anchor="middle">P advances T² · output advances D</text>
+  <path d="M380 500 V555" stroke="#64748b" stroke-width="4" marker-end="url(#arrow169)"/>
+  <rect x="115" y="555" width="530" height="90" rx="10" fill="#dbeafe" stroke="#60a5fa"/>
+  <text x="380" y="590" font-family="monospace" font-size="17" fill="#1e3a8a" text-anchor="middle">context[B,T,H,D]</text>
+  <text x="380" y="620" font-family="Inter,Arial,sans-serif" font-size="14" fill="#475569" text-anchor="middle">direct interleaved write</text>
+  <text x="380" y="710" font-family="Inter,Arial,sans-serif" font-size="15" fill="#64748b" text-anchor="middle">worst Max/RMS = 7.6e-8 / 1.4e-8 · H2D/D2H = 0</text>
+
+  <rect x="750" y="125" width="995" height="650" rx="14" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="1248" y="168" font-family="Inter,Arial,sans-serif" font-size="21" fill="#172033" text-anchor="middle" font-weight="700">Repeated path / broadcast wall speedup</text>
+  <line x1="845" y1="620" x2="1670" y2="620" stroke="#94a3b8" stroke-width="2"/>
+  <line x1="845" y1="470" x2="1670" y2="470" stroke="#2563eb" stroke-width="2" stroke-dasharray="8 6"/>
+  <text x="1680" y="475" font-family="Inter,Arial,sans-serif" font-size="14" fill="#2563eb">1.0×</text>
+  <rect x="900" y="495" width="95" height="125" fill="#dc5a4a"/><text x="948" y="480" font-family="Inter,Arial,sans-serif" font-size="15" fill="#991b1b" text-anchor="middle" font-weight="700">0.917×</text><text x="948" y="655" font-family="Inter,Arial,sans-serif" font-size="14" fill="#334155" text-anchor="middle">edge</text>
+  <rect x="1050" y="488" width="95" height="132" fill="#dc5a4a"/><text x="1098" y="473" font-family="Inter,Arial,sans-serif" font-size="15" fill="#991b1b" text-anchor="middle" font-weight="700">0.946×</text><text x="1098" y="655" font-family="Inter,Arial,sans-serif" font-size="14" fill="#334155" text-anchor="middle">Q T128</text>
+  <rect x="1200" y="490" width="95" height="130" fill="#dc5a4a"/><text x="1248" y="475" font-family="Inter,Arial,sans-serif" font-size="15" fill="#991b1b" text-anchor="middle" font-weight="700">0.937×</text><text x="1248" y="655" font-family="Inter,Arial,sans-serif" font-size="14" fill="#334155" text-anchor="middle">Q T512</text>
+  <rect x="1350" y="225" width="95" height="395" fill="#2f9b68"/><text x="1398" y="210" font-family="Inter,Arial,sans-serif" font-size="16" fill="#166534" text-anchor="middle" font-weight="700">1.603×</text><text x="1398" y="655" font-family="Inter,Arial,sans-serif" font-size="14" fill="#334155" text-anchor="middle">Deep T512</text>
+  <rect x="1500" y="535" width="95" height="85" fill="#991b1b"/><text x="1548" y="520" font-family="Inter,Arial,sans-serif" font-size="15" fill="#991b1b" text-anchor="middle" font-weight="700">0.726×</text><text x="1548" y="655" font-family="Inter,Arial,sans-serif" font-size="14" fill="#334155" text-anchor="middle">MHA</text>
+  <rect x="845" y="700" width="825" height="45" rx="8" fill="#fff7ed" stroke="#fdba74"/>
+  <text x="1258" y="728" font-family="Inter,Arial,sans-serif" font-size="16" fill="#9a3412" text-anchor="middle" font-weight="700">Reject universal route · investigate width ≥128 only</text>
+
+  <rect x="55" y="825" width="1690" height="66" rx="12" fill="#172033"/>
+  <text x="900" y="854" font-family="Inter,Arial,sans-serif" font-size="18" fill="#ffffff" text-anchor="middle" font-weight="700">One backend capability, opposite model-shape outcomes</text>
+  <text x="900" y="879" font-family="Inter,Arial,sans-serif" font-size="14" fill="#cbd5e1" text-anchor="middle">No model default changes until width-selective dP/dQ and complete gradients pass</text>
+  <defs><marker id="arrow169" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#64748b"/></marker></defs>
+</svg>

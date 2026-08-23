@@ -629,6 +629,24 @@ TEST(CpuOpsTest, AttentionProbabilityValueWritesInterleavedBthdLayout) {
                  std::invalid_argument);
 }
 
+TEST(CpuOpsTest, AttentionProbabilityValueGqaBroadcastMatchesRepeatedReference) {
+    const auto probabilities = Tensor::from_vector(
+        {1, 0, 0.25F, 0.75F, 1, 0, 0.5F, 0.5F,
+         1, 0, 0.75F, 0.25F, 1, 0, 0.1F, 0.9F},
+        {1, 4, 2, 2});
+    const auto value = Tensor::from_vector(
+        {1, 2, 10, 20, 3, 4, 30, 40}, {1, 2, 2, 2});
+    const auto expected = attention_probability_value_bthd(
+        probabilities, repeat_interleave(value, 2, 2));
+    const auto actual = attention_probability_value_gqa_bthd(
+        probabilities, value, 2);
+    EXPECT_EQ(actual.shape(), (Shape{1, 2, 4, 2}));
+    expect_near(actual.to_vector(), expected.to_vector());
+    EXPECT_THROW((void)attention_probability_value_gqa_bthd(
+                     probabilities, Tensor({1, 2, 1, 2}), 2),
+                 std::invalid_argument);
+}
+
 TEST(CpuOpsTest, AttentionLayoutPlanCacheIsUnavailableWithoutHipblaslt) {
     if (hipblaslt_available()) GTEST_SKIP() << "hipBLASLt build has the real cache";
     clear_attention_layout_plan_cache();

@@ -207,6 +207,15 @@ def pytorch_references(actual):
         "attention_probability_value_bthd",
         (layout_probabilities @ layout_value.transpose(1, 2)).transpose(1, 2),
     )
+    gqa_probabilities = tensor(
+        [1, 0, 0.25, 0.75, 1, 0, 0.5, 0.5,
+         1, 0, 0.75, 0.25, 1, 0, 0.1, 0.9], (1, 4, 2, 2))
+    record(
+        refs,
+        "attention_probability_value_gqa_bthd",
+        (gqa_probabilities @
+         torch.repeat_interleave(layout_value, 2, dim=2).transpose(1, 2)).transpose(1, 2),
+    )
     record(refs, "repeat_interleave", torch.repeat_interleave(tensor([1, 2, 3, 4], (2, 2)), 2, 0))
     paired_key = tensor([1, 2, 3, 4, 10, 20, 30, 40], (1, 2, 2, 2))
     paired_value = tensor([5, 6, 50, 60, 7, 8, 70, 80], (1, 2, 2, 2))
@@ -673,6 +682,7 @@ class OperatorParityTest(unittest.TestCase):
             "invalid_causal_shape",
             "invalid_causal_gqa_shape",
             "invalid_attention_probability_value_bthd_shape",
+            "invalid_attention_probability_value_gqa_bthd_shape",
             "invalid_attention_probability_gradient_bthd_shape",
             "invalid_attention_value_gradient_bthd_shape",
             "invalid_causal_gqa_bthd_shape",

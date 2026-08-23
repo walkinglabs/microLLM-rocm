@@ -107,6 +107,10 @@ expanded Tensors. Repeat-family profile time improves, but Qwen falls to 0.976×
 DeepSeek remains below 1.01×. A new GQA candidate must eliminate expansion Storage or use a
 different GEMM batch mapping; combining identical traffic in one launch is saturated.
 
+Experiment 169 reopens a narrower GQA space by eliminating expanded Value Storage with
+zero batch stride. Universal routing is closed because Qwen and MHA regress; width-128
+DeepSeek P×V improves 1.60×. Only a width-selective full-backward experiment remains open.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

@@ -384,6 +384,11 @@ void embedding_backward_add_(Tensor& weight_gradient, const Tensor& gradient,
 [[nodiscard]] Tensor attention_probability_value_bthd(
     const Tensor& probabilities, const Tensor& value,
     const OpContext& context = {});
+// GQA variant: broadcasts each V[B,T,KV,D] head across `repeats` query heads
+// through a zero batch stride and writes context [B,T,H,D] directly.
+[[nodiscard]] Tensor attention_probability_value_gqa_bthd(
+    const Tensor& probabilities, const Tensor& value,
+    std::int64_t repeats, const OpContext& context = {});
 // Computes dP[B,H,T,T] from dO/V in interleaved [B,T,H,D] order.
 [[nodiscard]] Tensor attention_probability_gradient_bthd(
     const Tensor& output_gradient, const Tensor& value,

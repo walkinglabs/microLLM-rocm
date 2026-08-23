@@ -166,6 +166,11 @@ void emit_forward_cases() {
              f32({1, 0, 0.25F, 0.75F,
                   1, 0, 0.5F, 0.5F}, {1, 2, 2, 2}),
              f32({1, 2, 10, 20, 3, 4, 30, 40}, {1, 2, 2, 2})));
+    emit("attention_probability_value_gqa_bthd",
+         attention_probability_value_gqa_bthd(
+             f32({1, 0, 0.25F, 0.75F, 1, 0, 0.5F, 0.5F,
+                  1, 0, 0.75F, 0.25F, 1, 0, 0.1F, 0.9F}, {1, 4, 2, 2}),
+             f32({1, 2, 10, 20, 3, 4, 30, 40}, {1, 2, 2, 2}), 2));
     emit("repeat_interleave", repeat_interleave(f32({1, 2, 3, 4}, {2, 2}), 0, 2));
     const auto paired_repeat = repeat_gqa_kv_bthd(
         f32({1, 2, 3, 4, 10, 20, 30, 40}, {1, 2, 2, 2}),
@@ -497,6 +502,10 @@ void emit_invalid_shape_cases() {
     emit_bool("invalid_attention_probability_value_bthd_shape", rejected([&] {
                   (void)attention_probability_value_bthd(
                       Tensor({1, 2, 3, 3}), Tensor({1, 3, 1, 2}));
+              }));
+    emit_bool("invalid_attention_probability_value_gqa_bthd_shape", rejected([&] {
+                  (void)attention_probability_value_gqa_bthd(
+                      Tensor({1, 4, 2, 2}), Tensor({1, 2, 1, 2}), 2);
               }));
     emit_bool("invalid_attention_probability_gradient_bthd_shape", rejected([&] {
                   (void)attention_probability_gradient_bthd(

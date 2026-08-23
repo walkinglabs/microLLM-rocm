@@ -700,6 +700,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/167-attention-gemm-scale-fusion-discard.md](experiments/167-attention-gemm-scale-fusion-discard.md) | alpha算子、12模型进程、rounding与profile |
 | [assets/paired-gqa-repeat-discard.svg](assets/paired-gqa-repeat-discard.svg) | repeat Kernel减半与Qwen反例 |
 | [experiments/168-paired-gqa-repeat-discard.md](experiments/168-paired-gqa-repeat-discard.md) | 成对前后向、12模型进程与完整profile |
+| [assets/gqa-zero-stride-value-broadcast.svg](assets/gqa-zero-stride-value-broadcast.svg) | Qwen/DeepSeek相反的零stride P×V结果 |
+| [experiments/169-gqa-zero-stride-value-broadcast.md](experiments/169-gqa-zero-stride-value-broadcast.md) | 30算子进程、MHA反例与width-selective下一门 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

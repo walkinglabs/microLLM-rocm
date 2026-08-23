@@ -2180,6 +2180,33 @@ TEST(HipOpsTest, AttentionProbabilityValueInterleavedLayoutMatchesCpuWithoutTran
                 expected_value_gradient.to_vector(), 2.0e-5F);
 }
 
+TEST(HipOpsTest, GqaProbabilityValueZeroStrideBroadcastMatchesCpuForBatchTwo) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    const auto probabilities = Tensor::from_vector(
+        {1, 0, 0.25F, 0.75F, 1, 0, 0.5F, 0.5F,
+         1, 0, 0.75F, 0.25F, 1, 0, 0.1F, 0.9F,
+         1, 0, 0.2F, 0.8F, 1, 0, 0.4F, 0.6F,
+         1, 0, 0.6F, 0.4F, 1, 0, 0.8F, 0.2F},
+        {2, 4, 2, 2});
+    const auto value = Tensor::from_vector(
+        {1, 2, 10, 20, 3, 4, 30, 40,
+         -1, -2, -10, -20, -3, -4, -30, -40},
+        {2, 2, 2, 2});
+    const auto expected = attention_probability_value_gqa_bthd(
+        probabilities, value, 2);
+    const auto device_probabilities = probabilities.to(gpu);
+    const auto device_value = value.to(gpu);
+    runtime::reset_transfer_stats();
+    const auto actual = attention_probability_value_gqa_bthd(
+        device_probabilities, device_value, 2);
+    runtime::synchronize(gpu);
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    expect_near(actual.to_vector(), expected.to_vector(), 2.0e-5F);
+}
+
 TEST(HipAttentionLayoutPlanCacheTest, ExactModesAndShapesHitWithoutChangingOutputs) {
     require_gpu();
     const auto gpu = Device::hip(0);

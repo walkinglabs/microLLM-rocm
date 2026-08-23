@@ -100,6 +100,9 @@ needed to run a real training and generation loop:
 - paired GQA K/V repeat/reduction primitives preserve BHTD/BTHD contracts and halve the
   repeat-family launches, but remain default-off: profile Kernel time improves while official
   Qwen/DeepSeek T512 reaches only 0.976×/1.008×;
+- zero-batch-stride GQA P×V can broadcast V[B,T,KV,D] without an expanded Tensor; complete
+  MI300 outputs pass, but the operator is shape-selective (Qwen T512 0.937×, DeepSeek T512
+  1.603×), so it remains an explicit primitive pending a width-128 full-backward gate;
 - a phase-independent exact-size HIP pool with immediate legacy-default-Stream reuse and strict
   permanent disablement for non-default Streams;
 - a cross-framework trace runner for operator/layer values and latency comparisons.
