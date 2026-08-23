@@ -327,5 +327,7 @@ the next gate. Records are append-only except for factual corrections.
   cached A-side outer-vector capability probe and scalar post-scale fallback.
 - [2026-08-23-fp8-weight-reconstruction-audit.md](2026-08-23-fp8-weight-reconstruction-audit.md):
   external scalar/column weight-error audit and family aggregation contract.
+- [2026-08-23-fp8-output-head-only-scope.md](2026-08-23-fp8-output-head-only-scope.md):
+  tied/untied routing, strict CLI scope and single-head device preparation.
 - [2026-08-21-divergent-row-cache-reference.md](2026-08-21-divergent-row-cache-reference.md):
   unequal-position shared-Storage B1 oracle with CPU/HIP and reset-prefix gates.

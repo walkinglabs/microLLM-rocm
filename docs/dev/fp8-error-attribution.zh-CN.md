@@ -154,3 +154,12 @@ python3 benchmarks/single_gpu/hf_fp8_weight_audit.py \
   --models qwen2.5-0.5b,deepseek-r1-distill-qwen-1.5b \
   --device cuda:0
 ```
+
+如果审计选择独立LM head，可以用最小范围而不是全模型每列scale：
+
+```bash
+--fp8-weight-scale-mode output-channel-amax \
+--fp8-output-channel-scope output-head-only
+```
+
+对于tied embedding模型，这个范围没有独立head，因此所有block权重自动保持device Tensor-amax。

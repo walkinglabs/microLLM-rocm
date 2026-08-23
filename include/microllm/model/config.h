@@ -10,6 +10,7 @@ enum class LinearPrecision { Float32, BFloat16, Float8E4M3FNUZ };
 enum class Fp8WeightScaleMode {
     Fixed, TensorAmax, DeviceTensorAmax, OutputChannelAmax
 };
+enum class Fp8OutputChannelScope { All, OutputHeadOnly };
 enum class Fp8ActivationScaleMode { Fixed, TensorAmax, FfnOuterRow };
 // Full uses native FP8 GEMM. The other modes are deliberately slow,
 // inference-only counterfactuals that isolate one source of quantization error.
@@ -31,6 +32,8 @@ struct ModelConfig {
     float fp8_activation_minimum_scale = 1.0e-4F;
     float fp8_weight_scale = 0.005F;
     Fp8WeightScaleMode fp8_weight_scale_mode = Fp8WeightScaleMode::Fixed;
+    Fp8OutputChannelScope fp8_output_channel_scope =
+        Fp8OutputChannelScope::All;
     Fp8ActivationScaleMode fp8_activation_scale_mode =
         Fp8ActivationScaleMode::Fixed;
     Fp8DiagnosticMode fp8_diagnostic_mode = Fp8DiagnosticMode::Full;

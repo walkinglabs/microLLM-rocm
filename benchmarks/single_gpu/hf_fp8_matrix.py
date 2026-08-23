@@ -36,6 +36,8 @@ def options() -> argparse.Namespace:
                         choices=("fixed", "tensor-amax", "device-tensor-amax",
                                  "output-channel-amax"),
                         default="fixed")
+    parser.add_argument("--fp8-output-channel-scope",
+                        choices=("all", "output-head-only"), default="all")
     parser.add_argument("--fp8-activation-scale-mode",
                         choices=("fixed", "tensor-amax", "ffn-outer-row"),
                         default="fixed")
@@ -122,6 +124,7 @@ def command(args: argparse.Namespace, model: dict, context: int,
         result.extend(["--bf16-ffn", "true", "--bf16-attention", "true"])
     elif policy == "fp8":
         diagnostic_mode = getattr(args, "fp8_diagnostic_mode", "full")
+        output_channel_scope = getattr(args, "fp8_output_channel_scope", "all")
         result.extend([
             "--fp8-linear", "true",
             "--fp8-activation-scale", str(args.fp8_activation_scale),
@@ -129,6 +132,7 @@ def command(args: argparse.Namespace, model: dict, context: int,
             str(args.fp8_activation_minimum_scale),
             "--fp8-weight-scale", str(args.fp8_weight_scale),
             "--fp8-weight-scale-mode", args.fp8_weight_scale_mode,
+            "--fp8-output-channel-scope", output_channel_scope,
             "--fp8-activation-scale-mode", args.fp8_activation_scale_mode,
             "--fp8-diagnostic-mode", diagnostic_mode,
         ])
@@ -163,7 +167,8 @@ def compare_logits(actual: list[float], reference: list[float]) -> dict:
 
 def experiment_boundary(weight_scale_mode: str,
                         activation_scale_mode: str = "fixed",
-                        diagnostic_mode: str = "full") -> str:
+                        diagnostic_mode: str = "full",
+                        output_channel_scope: str = "all") -> str:
     weight_boundary = (
         "per-Tensor weight amax with one-time host scan"
         if weight_scale_mode == "tensor-amax"
@@ -181,6 +186,7 @@ def experiment_boundary(weight_scale_mode: str,
     return (
         f"{weight_boundary}; {activation_boundary}; "
         f"diagnostic mode={diagnostic_mode}; "
+        f"output-channel scope={output_channel_scope}; "
         "single-representation Linear weights; FP32 Embedding/Norm/tied head; "
         "FP32 logits are the internal oracle; no PyTorch FP8 reference")
 
@@ -276,6 +282,7 @@ def main() -> int:
                             args.fp8_activation_minimum_scale,
                         "fp8_weight_scale": args.fp8_weight_scale,
                         "fp8_weight_scale_mode": args.fp8_weight_scale_mode,
+                        "fp8_output_channel_scope": args.fp8_output_channel_scope,
                         "fp8_activation_scale_mode": args.fp8_activation_scale_mode,
                         "fp8_diagnostic_mode": args.fp8_diagnostic_mode,
                         "fp8_fp32_layers": args.fp8_fp32_layers,
@@ -368,6 +375,7 @@ def main() -> int:
         "fp8_activation_minimum_scale": args.fp8_activation_minimum_scale,
         "fp8_weight_scale": args.fp8_weight_scale,
         "fp8_weight_scale_mode": args.fp8_weight_scale_mode,
+        "fp8_output_channel_scope": args.fp8_output_channel_scope,
         "fp8_activation_scale_mode": args.fp8_activation_scale_mode,
         "fp8_diagnostic_mode": args.fp8_diagnostic_mode,
         "fp8_fp32_layers": args.fp8_fp32_layers,
@@ -376,7 +384,7 @@ def main() -> int:
         "accuracy_failures": accuracy_failures,
         "boundary": experiment_boundary(
             args.fp8_weight_scale_mode, args.fp8_activation_scale_mode,
-            args.fp8_diagnostic_mode),
+            args.fp8_diagnostic_mode, args.fp8_output_channel_scope),
     }
     (args.output_directory / "summary.json").write_text(
         json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")

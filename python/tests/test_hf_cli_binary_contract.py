@@ -26,6 +26,7 @@ def main() -> int:
         b"fp8_dynamic_column_calls",
         b"output-channel-amax",
         b"fp8_output_column_native_status",
+        b"--fp8-output-channel-scope",
     )
     missing = [value.decode() for value in required if value not in payload]
     if missing:

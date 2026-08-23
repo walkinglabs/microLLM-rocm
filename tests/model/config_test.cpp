@@ -73,6 +73,12 @@ TEST(ModelConfigTest, Fp8OutputChannelWeightPolicyIsVisibleInSummary) {
     config.validate();
     EXPECT_NE(config.summary().find("fp8_weight_scale_mode=output_channel_amax"),
               std::string::npos);
+    config.fp8_output_channel_scope = Fp8OutputChannelScope::OutputHeadOnly;
+    config.validate();
+    EXPECT_NE(config.summary().find("fp8_output_channel_scope=output_head_only"),
+              std::string::npos);
+    config.fp8_weight_scale_mode = Fp8WeightScaleMode::DeviceTensorAmax;
+    EXPECT_THROW(config.validate(), std::invalid_argument);
 }
 
 TEST(ModelConfigTest, Fp8DiagnosticModesAreExplicitAndRequireFp8Linear) {
