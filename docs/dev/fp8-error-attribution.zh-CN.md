@@ -123,3 +123,18 @@ FP32同引擎路径是本实验的直接差分参考；PyTorch仍用于支持域
 所以不能写成“FP8只需要修一边”。`both-roundtrip`现已实现：两边同时经历FP8舍入、再用
 FP32 GEMM；它用于区分双侧舍入共同传播和真实FP8 GEMM本身。完整Exp141数据见
 [Experiment 141](../optimization-log/experiments/141-fp8-error-source-isolation.md)。
+
+不能用两个独立summary的RMS差值代替直接比较。专用runner会在同一模型/上下文中轮换FP32、
+`full`和`both-roundtrip`，并保存三组完整向量差：
+
+```bash
+python3 benchmarks/single_gpu/hf_fp8_native_roundtrip.py \
+  --manifest /path/model-manifest.json \
+  --binary build/apps/microllm_hf_infer \
+  --output-directory /tmp/native-roundtrip \
+  --models qwen2.5-0.5b,deepseek-r1-distill-qwen-1.5b \
+  --contexts 8,512 \
+  --physical-gpu-index 2
+```
+
+`pairs.jsonl`中的`full_vs_both_roundtrip`才是判断原生GEMM额外差异的直接证据。

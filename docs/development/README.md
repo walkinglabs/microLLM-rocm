@@ -317,5 +317,7 @@ the next gate. Records are append-only except for factual corrections.
   weight-only/activation-only inference counterfactuals, CLI schema and CPU/HIP gates.
 - [2026-08-23-fp8-both-roundtrip-diagnostic.md](2026-08-23-fp8-both-roundtrip-diagnostic.md):
   both-operands FP8 rounding with FP32 GEMM for native-GEMM attribution.
+- [2026-08-23-fp8-native-roundtrip-runner.md](2026-08-23-fp8-native-roundtrip-runner.md):
+  direct full/both-roundtrip/FP32 complete-logit comparison and order rotation.
 - [2026-08-21-divergent-row-cache-reference.md](2026-08-21-divergent-row-cache-reference.md):
   unequal-position shared-Storage B1 oracle with CPU/HIP and reset-prefix gates.
