@@ -1168,9 +1168,11 @@ Tensor TransformerModel::forward_inference_impl(const Tensor& token_ids,
         profiling::TraceTimer block_timer(
             profiling::TraceKind::Layer,
             "inference.blocks." + std::to_string(layer), device());
-        const auto detail_prefix = trace != nullptr && layer == 0
-                                       ? "inference.blocks.0"
-                                       : std::string{};
+        const auto detail_prefix =
+            trace != nullptr &&
+                    (layer == 0 || trace->options().record_all_layer_details)
+                ? "inference.blocks." + std::to_string(layer)
+                : std::string{};
         hidden = impl_->blocks[layer]->forward_tensor(hidden, detail_prefix);
         block_timer.finish(hidden);
     }

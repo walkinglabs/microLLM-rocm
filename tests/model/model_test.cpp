@@ -125,6 +125,33 @@ TEST(TransformerModelTest, GraphFreeInferenceMatchesAutogradForMhaAndGqa) {
     }
 }
 
+TEST(TransformerModelTest, TraceAllLayerDetailsExposesEveryLinearInputBoundary) {
+    auto config = tiny_config();
+    config.layers = 2;
+    TransformerModel model(config, 31);
+    profiling::TraceOptions options;
+    options.record_operators = false;
+    options.record_all_layer_details = true;
+    options.capture_values = false;
+    profiling::TraceSession trace("microllm", "all-layer-details", options);
+    {
+        profiling::ScopedTraceSession active(trace);
+        (void)model.forward_inference(
+            Tensor::from_int32_vector({1, 2}, {1, 2}));
+    }
+    const auto has = [&](const std::string& name) {
+        return std::any_of(trace.records().begin(), trace.records().end(),
+                           [&](const auto& record) { return record.name == name; });
+    };
+    for (const auto layer : {0, 1}) {
+        const auto prefix = "inference.blocks." + std::to_string(layer);
+        EXPECT_TRUE(has(prefix + ".attention_norm"));
+        EXPECT_TRUE(has(prefix + ".attention.context"));
+        EXPECT_TRUE(has(prefix + ".ffn_norm"));
+        EXPECT_TRUE(has(prefix + ".ffn.activated"));
+    }
+}
+
 TEST(TransformerModelTest, Bf16FfnPreparationIsSingleRepresentationAndInferenceOnly) {
     TransformerModel model(tiny_config(), 17);
     const auto input = Tensor::from_int32_vector({1, 2, 3, 4}, {1, 4});

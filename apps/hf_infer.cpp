@@ -74,6 +74,7 @@ struct Options {
     bool continuous_bucket_overflow = false;
     std::filesystem::path trace_output;
     std::int64_t trace_max_elements = 4096;
+    bool trace_all_layer_details = false;
     int bf16_algorithm_index = -1;
 };
 
@@ -200,6 +201,14 @@ Options options(int argc, char** argv) {
         else if (name == "--trace-max-elements") {
             result.trace_max_elements = std::stoll(argv[index + 1]);
         }
+        else if (name == "--trace-all-layer-details") {
+            const std::string value = argv[index + 1];
+            if (value != "true" && value != "false") {
+                throw std::invalid_argument(
+                    "--trace-all-layer-details must be true or false");
+            }
+            result.trace_all_layer_details = value == "true";
+        }
         else if (name == "--bf16-algorithm-index") {
             result.bf16_algorithm_index = std::stoi(argv[index + 1]);
         }
@@ -317,6 +326,10 @@ Options options(int argc, char** argv) {
          result.prefill_steps != 1)) {
         throw std::invalid_argument(
             "--trace-output requires prefill workload, zero prefill warmup, and one prefill step");
+    }
+    if (result.trace_all_layer_details && result.trace_output.empty()) {
+        throw std::invalid_argument(
+            "--trace-all-layer-details requires --trace-output");
     }
     if (result.bf16_algorithm_index < -1 ||
         (result.bf16_algorithm_index >= 0 &&
@@ -1238,6 +1251,8 @@ int main(int argc, char** argv) {
                 trace_options.record_model = true;
                 trace_options.capture_values = true;
                 trace_options.synchronize_device = true;
+                trace_options.record_all_layer_details =
+                    command.trace_all_layer_details;
                 trace_options.max_captured_elements =
                     static_cast<std::size_t>(command.trace_max_elements);
                 trace_session = std::make_unique<microllm::profiling::TraceSession>(

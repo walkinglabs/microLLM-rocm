@@ -20,6 +20,7 @@ struct TraceOptions {
     bool record_model = true;
     bool capture_values = true;
     bool synchronize_device = true;
+    bool record_all_layer_details = false;
     std::size_t max_captured_elements = 4096;
 };
 
