@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="580" viewBox="0 0 1040 580" role="img" aria-labelledby="title desc">
+  <title id="title">Official model FP8 static-scale speed memory and accuracy</title>
+  <desc id="desc">FP8 over BF16 throughput, resident memory ratio and RMS relative to the precision threshold.</desc>
+  <rect width="1040" height="580" rx="18" fill="#0b1020"/>
+  <text x="52" y="52" fill="#f8fafc" font-size="28" font-family="sans-serif" font-weight="700">官方模型 FP8：内存成功，精度失败</text>
+  <text x="52" y="82" fill="#94a3b8" font-size="16" font-family="sans-serif">静态 activation=0.025 / weight=0.005</text>
+  <g font-family="sans-serif" font-size="18" fill="#e2e8f0"><text x="80" y="145">Qwen T8</text><text x="315" y="145">Qwen T512</text><text x="550" y="145">Deep T8</text><text x="785" y="145">Deep T512</text></g>
+  <g stroke="#334155"><line x1="60" y1="470" x2="980" y2="470"/><line x1="60" y1="370" x2="980" y2="370"/><line x1="60" y1="270" x2="980" y2="270"/><line x1="60" y1="170" x2="980" y2="170"/></g>
+  <g>
+    <rect x="90" y="329" width="45" height="141" fill="#38bdf8"/><rect x="140" y="327" width="45" height="143" fill="#22c55e"/><rect x="190" y="95" width="45" height="375" fill="#fb7185"/>
+    <rect x="325" y="273" width="45" height="197" fill="#38bdf8"/><rect x="375" y="327" width="45" height="143" fill="#22c55e"/><rect x="425" y="75" width="45" height="395" fill="#fb7185"/>
+    <rect x="560" y="277" width="45" height="193" fill="#38bdf8"/><rect x="610" y="360" width="45" height="110" fill="#22c55e"/><rect x="660" y="125" width="45" height="345" fill="#fb7185"/>
+    <rect x="795" y="261" width="45" height="209" fill="#38bdf8"/><rect x="845" y="360" width="45" height="110" fill="#22c55e"/><rect x="895" y="145" width="45" height="325" fill="#fb7185"/>
+  </g>
+  <g font-family="sans-serif" font-size="14" fill="#f8fafc"><text x="88" y="322">speed .71×</text><text x="138" y="320">mem .72×</text><text x="188" y="90">RMS 59×门</text><text x="323" y="266">.99×</text><text x="423" y="70">70×门</text><text x="558" y="270">.97×</text><text x="608" y="353">.55×</text><text x="658" y="120">51×门</text><text x="793" y="254">1.04×</text><text x="893" y="140">43×门</text></g>
+  <g font-family="sans-serif" font-size="15" fill="#cbd5e1"><rect x="210" y="530" width="16" height="16" fill="#38bdf8"/><text x="236" y="544">FP8/BF16 speed</text><rect x="430" y="530" width="16" height="16" fill="#22c55e"/><text x="456" y="544">resident ratio</text><rect x="630" y="530" width="16" height="16" fill="#fb7185"/><text x="656" y="544">RMS / 0.05 gate</text></g>
+</svg>

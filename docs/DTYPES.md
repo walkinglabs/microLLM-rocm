@@ -39,7 +39,7 @@ MI300X 没有 CDNA4 的原生 MXFP4 Matrix Core。仓库可以保存 packed FP4 
 | view/contiguous/设备复制 | ✓ | ✓ | ✓ | 计划中 | 计划中 | 计划中 |
 | 基础逐元素/SiLU/SwiGLU/GEMM | ✓ | CPU/MI300X ✓ | CPU/MI300X ✓ | — | — | — |
 | hipBLASLt GEMM | FP32 ✓ | MI300X ✓ | MI300X ✓ | MI300X E4M3/E5M2 FNUZ ✓ | raw INT8×INT8→INT32 probe ✓；公共API未实现 | 软件解包后计算 |
-| Transformer Linear 训练/推理 | FP32 | 计划中 | 单份 FFN+Attention 推理 ✓；FP32-master Linear训练 ✓ | FP8 forward + FP32 master/backward/KV decode ✓ | — | — |
+| Transformer Linear 训练/推理 | FP32 | 计划中 | 单份 FFN+Attention 推理 ✓；FP32-master Linear训练 ✓ | 单份Linear权重与official执行 ✓；静态scale精度失败，不是可用模型策略 | — | — |
 
 表格中的“计划中”不是支持声明。只有对应测试和真机记录完成后才会改成 ✓。
 
@@ -61,6 +61,11 @@ hipBLASLt FP32 为 `0.919×–0.966×`，1024³ 才达到 `1.107×`；该点 FP8
 独立raw INT8 probe已实际提交hipBLASLt Kernel：4096³达到416.03 TOPS、官方峰值15.91%，每个
 shape五个CPU整数抽样点exact。它不改变上表中Tensor/Transformer INT8仍未实现的状态；详见
 [Experiment 121](optimization-log/experiments/121-int8-executed-probe.md)。
+
+官方Qwen/DeepSeek静态scale FP8矩阵已能完整执行并显著降低resident weights，但T8/T512四个
+aggregate全部超过`max≤0.2/RMS≤0.05`门，Qwen T512还改变top token。Deep T8包含1个不受
+native FP8支持的down shape和112次BF16软件回退。准确状态是“模型执行地基已建立，scale策略
+不可用”，详见[Experiment 122](optimization-log/experiments/122-official-fp8-static-scale.md)。
 
 ## 4. 类型提升规则
 

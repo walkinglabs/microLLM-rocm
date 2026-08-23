@@ -2311,3 +2311,12 @@ CPU抽样点exact。4096达到416TOPS、官方峰值15.91%。这仍不是公共T
 zero-point、量化器和Transformer路径全部明确未实现。
 
 ![MI300 INT8 probe](assets/mi300-int8-probe.svg)
+
+## 139. Experiment 122：FP8权重减半，四个精度门全红
+
+单份FP8 Linear权重和persistent scale让Qwen/DeepSeek official worker完整执行。Deep T8的
+M8×8960×1536不支持native FP8，精确记录为1个shape/112次BF16软件回退。FP8 resident仅为
+FP32的35%–46%，Deep T512比BF16快4.4%；但四个FP8 aggregate max/RMS均巨大，Qwen T512
+top token翻转。保留基础设施，拒绝静态全局scale和默认FP8。
+
+![Official FP8 static scale](assets/official-fp8-static-scale.svg)

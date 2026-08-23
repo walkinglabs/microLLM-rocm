@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "status": "keep_fp8_infrastructure_reject_static_scale_model_policy",
+  "full_release": {
+    "passed": 326,
+    "failed": 0,
+    "skipped": 2,
+    "cpu_labelled": 226,
+    "hip_labelled": 100
+  },
+  "sanitizer": {
+    "passed": 219,
+    "failed": 0
+  },
+  "python_contract": {
+    "passed": 3,
+    "failed": 0
+  },
+  "official_matrix": {
+    "workers_passed": 36,
+    "workers_failed": 0,
+    "aggregates": 12,
+    "fp8_precision_failures": 4,
+    "pre_vram_percent_max": 0,
+    "pre_use_percent_max": 1,
+    "post_vram_percent_max": 2,
+    "post_use_percent_max": 4
+  },
+  "rejected_worker_attempt": {
+    "accepted_qwen_rows": 18,
+    "deepseek_fp8_status": 6,
+    "summary_written": false
+  },
+  "decision": {
+    "single_representation_weight_cache_retained": true,
+    "unsupported_shape_fallback_retained": true,
+    "static_global_scale_policy_accepted": false,
+    "default_fp8": false,
+    "official_fp8_inference_supported": false
+  }
+}

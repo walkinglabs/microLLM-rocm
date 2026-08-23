@@ -420,6 +420,9 @@ matrix to 2048/4096 with an explicit FP32 GPU-reference boundary; FP8 reaches 47
 [Experiment 121](docs/optimization-log/experiments/121-int8-executed-probe.md) executes raw
 hipBLASLt INT8xINT8→INT32 through 4096³ (416 TOPS, exact CPU samples) while explicitly keeping
 public Tensor and Transformer INT8 support out of scope.
+[Experiment 122](docs/optimization-log/experiments/122-official-fp8-static-scale.md) runs official
+Qwen/DeepSeek with single-representation FP8 Linear weights. Residency drops sharply, but every
+static-scale precision gate fails, so FP8 remains experimental and opt-in.
 
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or

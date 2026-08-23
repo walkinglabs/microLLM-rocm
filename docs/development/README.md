@@ -279,5 +279,7 @@ the next gate. Records are append-only except for factual corrections.
   explicit FP32 GPU reference and 2048/4096 FP8 speedup/peak-utilization evidence.
 - [2026-08-23-int8-executed-probe.md](2026-08-23-int8-executed-probe.md):
   raw hipBLASLt INT8 execution, exact sample gates and explicit non-model boundary.
+- [2026-08-23-official-fp8-static-scale.md](2026-08-23-official-fp8-static-scale.md):
+  single-representation official weights, unsupported-shape fallback and four precision failures.
 - [2026-08-21-divergent-row-cache-reference.md](2026-08-21-divergent-row-cache-reference.md):
   unequal-position shared-Storage B1 oracle with CPU/HIP and reset-prefix gates.

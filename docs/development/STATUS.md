@@ -18,7 +18,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Transpose-aware GEMM | smoke-tested | CPU/readable HIP/hipBLASLt NN/NT/TN/TT in FP32/FP16/BF16; tied graph/PyTorch gradients; score 0.318328→0.479227 | batched transpose flags and descriptor/algorithm cache |
 | Parallel HIP RMSNorm | smoke-tested | rows 1/3/32 × widths 16/384/512/896/1536; forward/backward/PyTorch gates; RMSNorm 75.85ms→1.55ms; score 0.479227→0.885816 | low-precision path and fusion |
 | MI300X precision capabilities | smoke-tested | 4096 FP8 477 TFLOPS/18.25% peak; raw INT8xINT8→INT32 416 TOPS/15.91% peak with exact CPU samples | public weight-only INT8 Tensor/scale contract, official-model FP8 policy and packed INT4 software path |
-| FP8 training/inference | smoke-tested | FNUZ kernels, scaled GEMM, FP32 master/backward, Transformer Linear policy and KV decode | dynamic amax/history and full training curve |
+| FP8 training/inference | smoke-tested | single-representation official Linear weights, persistent scales, 36-worker Qwen/DeepSeek matrix and explicit native/BF16 fallback counts | four static-scale precision gates fail; per-weight scales, activation amax/history and full training curve |
 | Qwen2.5-0.5B | smoke-tested | official weights, full-logit oracle and Release steady decode at 1.01x–3.39x PyTorch over T1–2048/B1–8/N1–64 | repeated-process full matrix, tool chat and multi-step SFT |
 | DeepSeek-R1-Distill-Qwen-1.5B | smoke-tested | official 339 tensors plus Release steady decode above PyTorch at T1–512/N1–64 | T2048 is 0.868x at B2/N64 and 0.866x/0.671x at prior B1/B8; longer reasoning/SFT |
 | Operator context | smoke-tested | explicit Stream ordering and mismatch tests | low-level C descriptor |
@@ -66,7 +66,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | End-to-end benchmark | smoke-tested | matched Python/PyTorch ROCm official training plus phase-separated prefill and one-forward-per-token steady-decode JSONL | serving concurrency, board-level memory and llama.cpp |
 | Single-GPU model matrix | smoke-tested | MI300X tiny/Model-S/Model-M plus official Qwen0.5B/DeepSeek-Distill1.5B train+generate, parameters, time, tokens/s and engine peak bytes | repeated contexts/dtypes and external board-level memory sampling |
 | Python/PyTorch ROCm performance matrix | smoke-tested | official Qwen/DeepSeek train plus inference context 1–2048, batch 1–8, output 1–64, KV allocated/active/waste, continuous slot metrics and token gates | DeepSeek continuous 3-case mismatch, identical residency policy, version matrix and llama.cpp |
-| Optimization experiment journal | implemented | 121 experiments; raw INT8 execution, exact integer samples and model-support boundary added | HIP Graph, Radeon and production data-parallel tracks |
+| Optimization experiment journal | implemented | 122 experiments; official FP8 execution, worker fallback and static-scale rejection added | HIP Graph, Radeon and production data-parallel tracks |
 | rocprofv3 workflow | smoke-tested | kernel/HIP API/memory/full trace generated | release artifact retention |
 | hipBLASLt matmul | smoke-tested | FP32/BF16, rank-N strided batches, four transpose contracts, Model-S and T≥256 Attention forward/backward | workspace and persistent versioned autotune cache |
 | Matmul tuning registry | smoke-tested | exact shape override/clear and availability gates | persistence/arch key |

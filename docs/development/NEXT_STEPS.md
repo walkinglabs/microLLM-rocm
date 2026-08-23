@@ -145,7 +145,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] execute raw hipBLASLt INT8xINT8→INT32 for 128–4096 with exact CPU samples;
   4096 reaches 416 TOPS and 15.91% official peak;
 - [ ] decide and implement a weight-only INT8 Tensor/scale contract before any model claim;
-- [ ] FP8 weight/activation scales and accumulation policy for official-model end-to-end runs;
+- [x] run official Qwen/DeepSeek T8/T512 with single-representation FP8 Linear weights;
+  all four static-global-scale precision gates fail despite 35%–46% FP32 residency;
+- [ ] replace global FP8 scales with weight per-tensor and activation per-row/token amax,
+  starting from saturation/trace evidence rather than top-token search;
 - [ ] expert/tensor/data parallel weight placement and communication;
 - [ ] multi-node fault handling and profiler timeline;
 - [ ] DeepSeek-V3/R1 checkpoint conversion and official-logit comparison.

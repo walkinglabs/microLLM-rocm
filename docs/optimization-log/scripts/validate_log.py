@@ -4643,6 +4643,77 @@ def validate_int8_executed_probe(errors: list[str]) -> tuple[int, int, int]:
     return len(raw), sum(row["sample_count"] for row in raw), 1
 
 
+def validate_official_fp8_static_scale(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "122-data"
+    raw = [json.loads(line) for line in
+           (data / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    rejected = [json.loads(line) for line in
+                (data / "rejected-worker-raw.jsonl").read_text(
+                    encoding="utf-8").splitlines()]
+    preflight = [json.loads(line) for line in
+                 (data / "gpu2-preflight.jsonl").read_text(
+                     encoding="utf-8").splitlines()]
+    if len(raw) != 36 or any(row.get("status") != "pass" for row in raw) or \
+            any(row.get("pre_run_gpu_state", {}).get("vram_percent") != 0 or
+                row.get("pre_run_gpu_state", {}).get("gpu_use_percent", 99) > 1 or
+                row.get("post_run_gpu_state", {}).get("vram_percent", 99) > 2 or
+                row.get("post_run_gpu_state", {}).get("gpu_use_percent", 99) > 4
+                for row in raw):
+        errors.append("official FP8 raw or idle-gate evidence changed")
+    aggregates = summary.get("aggregates", [])
+    fp8_rows = [row for row in aggregates if row.get("policy") == "fp8"]
+    bf16_rows = [row for row in aggregates if row.get("policy") == "bf16"]
+    if summary.get("status") != "complete_with_recorded_accuracy_failures" or \
+            summary.get("execution_status") != "pass" or len(aggregates) != 12 or \
+            len(fp8_rows) != 4 or len(bf16_rows) != 4 or \
+            summary.get("accuracy_failure_count") != 4 or any(
+                row.get("successful_runs") != 3 for row in aggregates) or any(
+                row.get("precision_gate_passed_all") is not False or
+                row.get("maximum_absolute_error_max", 0.0) < 11.0 or
+                row.get("root_mean_square_error_max", 0.0) < 2.0
+                for row in fp8_rows) or any(
+                row.get("precision_gate_passed_all") is not True
+                for row in bf16_rows):
+        errors.append("official FP8 aggregate precision evidence changed")
+    by_key = {(row["model"], row["context"], row["policy"]): row
+              for row in aggregates}
+    qwen8 = by_key["qwen2.5-0.5b", 8, "fp8"]
+    qwen512 = by_key["qwen2.5-0.5b", 512, "fp8"]
+    deep8 = by_key["deepseek-r1-distill-qwen-1.5b", 8, "fp8"]
+    deep512 = by_key["deepseek-r1-distill-qwen-1.5b", 512, "fp8"]
+    if qwen8.get("top_token_equal_all") is not True or \
+            qwen512.get("top_token_equal_all") is not False or \
+            deep8.get("fp8_software_fallback_shapes_max") != 1 or \
+            deep8.get("fp8_software_fallback_calls_p50") != 112 or \
+            deep512.get("fp8_software_fallback_shapes_max") != 0 or \
+            deep512.get("fp8_native_shapes_max") != 5:
+        errors.append("official FP8 top-token or fallback evidence changed")
+    if not 0.40 < qwen8["resident_weight_bytes"] / \
+            by_key["qwen2.5-0.5b", 8, "fp32"]["resident_weight_bytes"] < 0.50 or \
+            not 0.30 < deep8["resident_weight_bytes"] / \
+            by_key["deepseek-r1-distill-qwen-1.5b", 8, "fp32"]["resident_weight_bytes"] < 0.40:
+        errors.append("official FP8 residency reduction changed")
+    if len(rejected) != 18 or len(preflight) != 3:
+        errors.append("official FP8 rejected worker or preflight evidence changed")
+    if gates.get("status") != \
+            "keep_fp8_infrastructure_reject_static_scale_model_policy" or \
+            gates.get("full_release", {}).get("passed") != 326 or \
+            gates.get("sanitizer", {}).get("passed") != 219 or \
+            gates.get("decision", {}).get("static_global_scale_policy_accepted") is not False:
+        errors.append("official FP8 final gates changed")
+    model_source = (REPOSITORY / "src" / "model" / "model.cpp").read_text(
+        encoding="utf-8")
+    op_source = (REPOSITORY / "src" / "ops" / "optimized.cpp").read_text(
+        encoding="utf-8")
+    if "prepare_fp8_inference_weights" not in model_source or \
+            "fp8_native_matrix_registry" not in op_source or \
+            "fp8_software_fallback_calls" not in op_source:
+        errors.append("official FP8 weight cache or fallback source missing")
+    return len(raw), len(fp8_rows), len(rejected)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -4742,7 +4813,8 @@ def validate_assets(errors: list[str]) -> None:
                  "slot-ratio-sweep.svg",
                  "mi300-precision-roofline.svg",
                  "large-precision-roofline.svg",
-                 "mi300-int8-probe.svg"):
+                 "mi300-int8-probe.svg",
+                 "official-fp8-static-scale.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -4918,6 +4990,8 @@ def main() -> int:
     large_roofline_raw, large_roofline_sizes, large_roofline_dtypes = \
         validate_large_precision_roofline(errors)
     int8_raw, int8_samples, int8_paths = validate_int8_executed_probe(errors)
+    official_fp8_raw, official_fp8_failures, official_fp8_rejected = \
+        validate_official_fp8_static_scale(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -5059,6 +5133,8 @@ def main() -> int:
           f"large_roofline={large_roofline_raw}/{large_roofline_sizes}/"
           f"{large_roofline_dtypes} "
           f"int8_probe={int8_raw}/{int8_samples}/{int8_paths} "
+          f"official_fp8={official_fp8_raw}/{official_fp8_failures}/"
+          f"{official_fp8_rejected} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")
