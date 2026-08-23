@@ -4275,6 +4275,71 @@ def validate_bucket_pareto(errors: list[str]) -> tuple[int, int, int]:
     return len(raw), len(rejected), len(vram)
 
 
+def validate_traffic_skew(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "116-data"
+    raw = [json.loads(line) for line in
+           (data / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    preflight = [json.loads(line) for line in
+                 (data / "gpu2-preflight.jsonl").read_text(
+                     encoding="utf-8").splitlines()]
+    rejected_monitor = [json.loads(line) for line in
+                        (data / "rejected-monitor-timeout.jsonl").read_text(
+                            encoding="utf-8").splitlines()]
+    rejected_post = [json.loads(line) for line in
+                     (data / "rejected-post-gate-selection.jsonl").read_text(
+                         encoding="utf-8").splitlines()]
+    if len(raw) != 36 or any(row.get("status") != "pass" for row in raw) or \
+            any(not 0 <= row.get("pre_run_gpu_state", {}).get(
+                    "vram_percent", 99) <= 1 or
+                not 0 <= row.get("pre_run_gpu_state", {}).get(
+                    "gpu_use_percent", 99) <= 2 or
+                not 0 <= row.get("post_run_gpu_state", {}).get(
+                    "vram_percent", 99) <= 2 or
+                not 0 <= row.get("post_run_gpu_state", {}).get(
+                    "gpu_use_percent", 99) <= 5 for row in raw):
+        errors.append("traffic-skew raw or idle-gate evidence changed")
+    comparisons = summary.get("traffic_comparisons", [])
+    by_group = {}
+    for row in comparisons:
+        by_group.setdefault(row.get("group"), []).append(row)
+    if summary.get("status") != "pass" or len(comparisons) != 6 or \
+            any(row.get("token_difference", {}).get("exact") is not True
+                for row in comparisons) or \
+            set(by_group) != {"short_heavy", "long_heavy", "delayed"} or \
+            any(len(rows) != 2 for rows in by_group.values()):
+        errors.append("traffic-skew comparison contracts changed")
+    if any(not 0.71 < row.get("bucketed_over_uniform_tps", 0.0) < 0.75 or
+           row.get("bucketed_over_uniform_focus_ttft", 9.0) > 0.32 or
+           row.get("bucketed_over_uniform_focus_ttft_p95", 0.0) < 3.1 or
+           row.get("bucketed_over_uniform_focus_completion_p95", 0.0) < 2.2
+           for row in by_group.get("short_heavy", [])):
+        errors.append("short-heavy median/tail failure changed")
+    if any(not 0.55 < row.get("bucketed_over_uniform_tps", 0.0) < 0.59 or
+           row.get("bucketed_over_uniform_focus_ttft_p95", 0.0) < 2.9 or
+           not 1.70 < row.get("bucketed_over_uniform_focus_completion_p95", 0.0) < 1.80
+           for row in by_group.get("long_heavy", [])):
+        errors.append("long-heavy tail failure changed")
+    if any(not 0.93 < row.get("bucketed_over_uniform_tps", 0.0) < 0.95 or
+           not 1.06 < row.get("bucketed_over_uniform_focus_ttft", 0.0) < 1.10 or
+           not 1.06 < row.get("bucketed_over_uniform_focus_completion", 0.0) < 1.09
+           for row in by_group.get("delayed", [])):
+        errors.append("delayed-arrival regression changed")
+    if len(preflight) != 3 or any(
+            row.get("card2", {}).get("GPU use (%)") != "0" or
+            row.get("card2", {}).get("GPU Memory Allocated (VRAM%)") != "0"
+            for row in preflight) or len(rejected_monitor) != 180 or \
+            len(rejected_post) != 1:
+        errors.append("traffic-skew preflight or rejected windows changed")
+    if gates.get("status") != "pass_with_no_work_stealing_tail_failure" or \
+            gates.get("official_matrix", {}).get("passed") != 36 or \
+            gates.get("official_matrix", {}).get("token_exact_comparisons") != 6 or \
+            gates.get("decision", {}).get("median_only_decision_rejected") is not True:
+        errors.append("traffic-skew gates changed")
+    return len(raw), len(comparisons), len(rejected_monitor)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -4368,7 +4433,8 @@ def validate_assets(errors: list[str]) -> None:
                  "qwen-algorithm-search.svg",
                  "request-latency.svg",
                  "length-bucket-tradeoff.svg",
-                 "bucket-pareto-sweep.svg"):
+                 "bucket-pareto-sweep.svg",
+                 "traffic-skew-tail.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -4534,6 +4600,8 @@ def main() -> int:
         validate_length_bucket_tradeoff(errors)
     bucket_pareto_raw, bucket_pareto_rejected, bucket_pareto_samples = \
         validate_bucket_pareto(errors)
+    traffic_skew_raw, traffic_skew_comparisons, traffic_skew_rejected = \
+        validate_traffic_skew(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -4665,6 +4733,8 @@ def main() -> int:
           f"{length_bucket_samples} "
           f"bucket_pareto={bucket_pareto_raw}/{bucket_pareto_rejected}/"
           f"{bucket_pareto_samples} "
+          f"traffic_skew={traffic_skew_raw}/{traffic_skew_comparisons}/"
+          f"{traffic_skew_rejected} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "status": "pass_with_no_work_stealing_tail_failure",
+  "full_release": {
+    "passed": 318,
+    "failed": 0,
+    "skipped": 2
+  },
+  "sanitizer": {
+    "passed": 214,
+    "failed": 0
+  },
+  "python_contract": {
+    "passed": 14,
+    "failed": 0
+  },
+  "official_matrix": {
+    "passed": 36,
+    "failed": 0,
+    "comparisons": 6,
+    "token_exact_comparisons": 6,
+    "pre_vram_percent_max": 1,
+    "pre_use_percent_max": 2,
+    "post_vram_percent_max": 2,
+    "post_use_percent_max": 5
+  },
+  "rejected_windows": {
+    "post_gate_vram_percent": 61,
+    "post_gate_raw_rows": 0,
+    "monitor_samples": 180,
+    "monitor_started_benchmark": false
+  },
+  "decision": {
+    "two_bucket_default": false,
+    "median_only_decision_rejected": true,
+    "next_gate": "focus request TTFT and completion P95"
+  }
+}

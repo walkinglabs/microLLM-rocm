@@ -100,3 +100,8 @@ HIP_VISIBLE_DEVICES=3 python3 benchmarks/single_gpu/hf_continuous_matrix.py \
 
 正式矩阵未通过设备门时，状态只能写 `gate_blocked / no_measurement`，不能从空 raw 推断 policy
 好坏。
+
+正式 36 进程最终在空闲 GPU2 完成。short/long-heavy 中，两个固定桶的 focus TTFT P50 看起来
+更好，但 P95 约为统一池的 3 倍；delayed 场景则全面小幅退化。因此默认仍是统一池，不能只凭
+median 自动启用分桶。完整原始数组见
+[Experiment 116](../optimization-log/experiments/116-traffic-skew.md)。

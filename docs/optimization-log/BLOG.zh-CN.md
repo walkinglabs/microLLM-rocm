@@ -2254,3 +2254,14 @@ runner增加每个fresh process前后的物理GPU显存门。正式18条pre均0%
 slot stealing。
 
 ![Bucket Pareto sweep](assets/bucket-pareto-sweep.svg)
+
+## 133. Experiment 116：P50改善70%，P95却慢三倍
+
+两次被设备门阻断后，physical GPU2连续三次0/0，正式36进程全部通过且六组token exact。
+short-heavy中两个B4桶让TTFT P50改善约70%，但排队请求的P95变成uniform的3.28×/3.14×；
+long-heavy吞吐只剩57%，P95约3×。delayed流量没有收益，吞吐与延迟全面小幅回退。
+
+固定桶不能根据median自动启用。下一候选只允许短请求溢出借用兼容的大桶slot，并以focus P95
+为主门；长请求装不进小桶的反例继续保留。
+
+![Traffic skew tail failure](assets/traffic-skew-tail.svg)

@@ -594,6 +594,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/114-data/](experiments/114-data/) | 12条Release A/B、路由、token和GPU负载证据 |
 | [assets/bucket-pareto-sweep.svg](assets/bucket-pareto-sweep.svg) | 1/2/4桶的Cache、吞吐和延迟Pareto曲线 |
 | [experiments/115-data/](experiments/115-data/) | 18条idle-gated正式矩阵和一轮污染拒绝证据 |
+| [assets/traffic-skew-tail.svg](assets/traffic-skew-tail.svg) | 固定桶的median改善与P95排队反例 |
+| [experiments/116-data/](experiments/116-data/) | 36条偏斜/延迟到达矩阵和两次设备门阻断记录 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

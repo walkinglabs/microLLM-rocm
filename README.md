@@ -403,6 +403,8 @@ throughput/tail-latency default.
 The [continuous arrival guide](docs/dev/continuous-arrivals.zh-CN.md) explains skewed lengths,
 logical delayed submission, focus-request P95 and the physical-GPU idle gate in beginner-friendly
 terms.
+[Experiment 116](docs/optimization-log/experiments/116-traffic-skew.md) proves why this matters:
+fixed buckets can improve median TTFT while making queued-request P95 roughly three times worse.
 
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or
