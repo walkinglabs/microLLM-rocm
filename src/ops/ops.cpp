@@ -17,6 +17,8 @@
 namespace microllm::ops {
 namespace {
 
+thread_local Fp8DynamicQuantStats dynamic_quant_stats;
+
 void require_float(const Tensor& tensor, const char* name) {
     if (!tensor.defined()) throw std::invalid_argument(std::string(name) + " is undefined");
     if (tensor.dtype() != DType::Float32) {
@@ -371,6 +373,8 @@ ScaledTensor quantize_fp8_dynamic(
         throw std::invalid_argument(
             "dynamic FP8 quantize requires an FNUZ dtype and positive minimum scale");
     }
+    ++dynamic_quant_stats.tensor_calls;
+    dynamic_quant_stats.tensor_elements += static_cast<std::uint64_t>(input.numel());
     if (input.device().is_cpu()) {
         const auto values = input.to_vector();
         float maximum = 0.0F;
@@ -415,6 +419,8 @@ ScaledTensor quantize_fp8_rows_dynamic(
     }
     const auto rows = input.shape()[0];
     const auto columns = input.shape()[1];
+    ++dynamic_quant_stats.row_calls;
+    dynamic_quant_stats.row_elements += static_cast<std::uint64_t>(input.numel());
     if (input.device().is_cpu()) {
         const auto values = input.to_vector();
         std::vector<float> scales(static_cast<std::size_t>(rows), minimum_scale);
@@ -449,6 +455,14 @@ ScaledTensor quantize_fp8_rows_dynamic(
 #else
     throw std::runtime_error("microLLM was built without HIP operator support");
 #endif
+}
+
+Fp8DynamicQuantStats fp8_dynamic_quant_stats() noexcept {
+    return dynamic_quant_stats;
+}
+
+void clear_fp8_dynamic_quant_stats() noexcept {
+    dynamic_quant_stats = {};
 }
 
 Tensor dequantize_fp8(const ScaledTensor& input, DType output_dtype,

@@ -470,6 +470,7 @@ TEST(HipFp8OpsTest, DynamicTensorScaleQuantizeAndDequantizeStayOnDevice) {
     const auto cpu = Tensor::from_vector(
         {-3.0F, -0.5F, 0.0F, 2.0F, 9.0F, -12.0F}, {2, 3});
     const auto input = cpu.to(gpu);
+    clear_fp8_dynamic_quant_stats();
     runtime::reset_transfer_stats();
     const auto dynamic = quantize_fp8_dynamic(
         input, DType::Float8E4M3FNUZ, 0.001F);
@@ -479,6 +480,8 @@ TEST(HipFp8OpsTest, DynamicTensorScaleQuantizeAndDequantizeStayOnDevice) {
     const auto transfers = runtime::transfer_stats();
     EXPECT_EQ(transfers.host_to_device_calls, 0U);
     EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    EXPECT_EQ(fp8_dynamic_quant_stats().tensor_calls, 1U);
+    EXPECT_EQ(fp8_dynamic_quant_stats().tensor_elements, 6U);
     const auto scale = dynamic.scale.to_vector()[0];
     EXPECT_NEAR(scale, 12.0F / 240.0F, 1.0e-7F);
     expect_near(restored.to_vector(), cpu.to_vector(), 0.5F);
@@ -567,6 +570,7 @@ TEST(HipFp8OpsTest, PreparedTransformerWeightsMatchLazyInferenceWithoutPayloadTr
     const auto before = model.forward_inference(tokens).to_vector();
     const auto report = model.prepare_fp8_inference_weights();
     runtime::reset_transfer_stats();
+    clear_fp8_dynamic_quant_stats();
     const auto after_tensor = model.forward_inference(tokens);
     runtime::synchronize(Device::hip(0));
     const auto transfers = runtime::transfer_stats();
@@ -612,12 +616,15 @@ TEST(HipFp8OpsTest, TensorAmaxPreparedWeightsScanOnceAndLeaveHotPathTransferFree
     EXPECT_GE(preparation_transfers.device_to_host_calls,
               report.converted_tensors);
     EXPECT_GT(report.maximum_weight_scale, report.minimum_weight_scale);
+    clear_fp8_dynamic_quant_stats();
     runtime::reset_transfer_stats();
     const auto after_tensor = model.forward_inference(tokens);
     runtime::synchronize(Device::hip(0));
     const auto hot_path_transfers = runtime::transfer_stats();
     EXPECT_EQ(hot_path_transfers.host_to_device_calls, 0U);
     EXPECT_EQ(hot_path_transfers.device_to_host_calls, 0U);
+    EXPECT_EQ(fp8_dynamic_quant_stats().tensor_calls, 5U);
+    EXPECT_EQ(fp8_dynamic_quant_stats().row_calls, 0U);
     EXPECT_EQ(after_tensor.to_vector(), before);
 }
 
@@ -634,7 +641,8 @@ TEST(HipFp8OpsTest, FfnOuterRowRoutesOnlyThreeLinearsWithoutPayloadTransfers) {
                               .rope_base = 10000.0F,
                               .tie_embeddings = false,
                               .linear_precision = model::LinearPrecision::Float8E4M3FNUZ,
-                              .fp8_activation_scale = 1.0e-4F,
+                              .fp8_activation_scale = 0.2F,
+                              .fp8_activation_minimum_scale = 1.0e-4F,
                               .fp8_weight_scale = 0.005F,
                               .fp8_activation_scale_mode =
                                   model::Fp8ActivationScaleMode::FfnOuterRow};
@@ -645,6 +653,7 @@ TEST(HipFp8OpsTest, FfnOuterRowRoutesOnlyThreeLinearsWithoutPayloadTransfers) {
     const auto report = model.prepare_fp8_inference_weights();
     EXPECT_EQ(report.scale_bytes_retained, 13U * sizeof(float));
     clear_fp8_dispatch_registry();
+    clear_fp8_dynamic_quant_stats();
     runtime::reset_transfer_stats();
     const auto output = model.forward_inference(tokens);
     runtime::synchronize(Device::hip(0));
@@ -654,6 +663,8 @@ TEST(HipFp8OpsTest, FfnOuterRowRoutesOnlyThreeLinearsWithoutPayloadTransfers) {
     EXPECT_EQ(transfers.device_to_host_calls, 0U);
     EXPECT_EQ(stats.outer_row_fallback_calls, 3U);
     EXPECT_EQ(stats.outer_row_native_status, 0);
+    EXPECT_EQ(fp8_dynamic_quant_stats().tensor_calls, 0U);
+    EXPECT_EQ(fp8_dynamic_quant_stats().row_calls, 2U);
     for (const auto value : output.to_vector()) EXPECT_TRUE(std::isfinite(value));
 }
 

@@ -235,6 +235,14 @@ def main() -> int:
                             "fp8_outer_row_fallback_calls", 0),
                         "fp8_outer_row_native_status": output.get(
                             "fp8_outer_row_native_status", -1),
+                        "fp8_dynamic_tensor_calls": output.get(
+                            "fp8_dynamic_tensor_calls", 0),
+                        "fp8_dynamic_row_calls": output.get(
+                            "fp8_dynamic_row_calls", 0),
+                        "fp8_dynamic_tensor_elements": output.get(
+                            "fp8_dynamic_tensor_elements", 0),
+                        "fp8_dynamic_row_elements": output.get(
+                            "fp8_dynamic_row_elements", 0),
                         "fp8_activation_scale": args.fp8_activation_scale,
                         "fp8_activation_minimum_scale":
                             args.fp8_activation_minimum_scale,
@@ -298,6 +306,10 @@ def main() -> int:
                         row["fp8_outer_row_fallback_calls"] for row in selected),
                     "fp8_outer_row_native_statuses": sorted(set(
                         row["fp8_outer_row_native_status"] for row in selected)),
+                    "fp8_dynamic_tensor_calls_p50": statistics.median(
+                        row["fp8_dynamic_tensor_calls"] for row in selected),
+                    "fp8_dynamic_row_calls_p50": statistics.median(
+                        row["fp8_dynamic_row_calls"] for row in selected),
                 })
     accuracy_failures = [row for row in aggregates
                          if row["policy"] != "fp32" and

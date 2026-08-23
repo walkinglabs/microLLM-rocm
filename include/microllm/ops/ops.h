@@ -26,6 +26,13 @@ struct Fp8DispatchStats {
     int outer_row_native_status = -1;
 };
 
+struct Fp8DynamicQuantStats {
+    std::size_t tensor_calls = 0;
+    std::size_t row_calls = 0;
+    std::uint64_t tensor_elements = 0;
+    std::uint64_t row_elements = 0;
+};
+
 struct TensorPair {
     Tensor first;
     Tensor second;
@@ -143,6 +150,8 @@ void clear_bf16_algorithm_registry() noexcept;
 [[nodiscard]] std::size_t bf16_registered_algorithm_count() noexcept;
 [[nodiscard]] Fp8DispatchStats fp8_dispatch_stats() noexcept;
 void clear_fp8_dispatch_registry() noexcept;
+[[nodiscard]] Fp8DynamicQuantStats fp8_dynamic_quant_stats() noexcept;
+void clear_fp8_dynamic_quant_stats() noexcept;
 [[nodiscard]] MatmulImplementation choose_matmul_implementation(
     const Tensor& left, const Tensor& right);
 [[nodiscard]] MatmulImplementation choose_matmul_implementation(

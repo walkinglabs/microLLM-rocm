@@ -342,6 +342,50 @@ public:
         auto output = forward_without_bias(input);
         return has_bias_ ? autograd::add_bias(output, bias_) : output;
     }
+    [[nodiscard]] bool shares_dynamic_activation() const noexcept {
+        return precision_ == LinearPrecision::Float8E4M3FNUZ &&
+               activation_scale_mode_ != Fp8ActivationScaleMode::Fixed;
+    }
+    [[nodiscard]] ops::ScaledTensor quantize_activation(const Tensor& input) const {
+        if (!shares_dynamic_activation()) {
+            throw std::logic_error(
+                "shared FP8 activation requires a dynamic scale mode");
+        }
+        return activation_scale_mode_ == Fp8ActivationScaleMode::FfnOuterRow
+                   ? ops::quantize_fp8_rows_dynamic(
+                         input, DType::Float8E4M3FNUZ,
+                         activation_minimum_scale_)
+                   : ops::quantize_fp8_dynamic(
+                         input, DType::Float8E4M3FNUZ,
+                         activation_minimum_scale_);
+    }
+    Tensor forward_scaled_input_without_bias(
+        const ops::ScaledTensor& scaled_input) {
+        if (precision_ != LinearPrecision::Float8E4M3FNUZ) {
+            throw std::logic_error(
+                "scaled FP8 input requires an FP8 Linear");
+        }
+        ops::ScaledTensor scaled_weight;
+        if (fp8_inference_scale_.defined()) {
+            scaled_weight = {weight_.data(), fp8_inference_scale_, weight_scale_,
+                             fp8_inference_host_scale_available_};
+        } else if (weight_scale_mode_ == Fp8WeightScaleMode::DeviceTensorAmax) {
+            scaled_weight = ops::quantize_fp8_dynamic(
+                weight_.data(), DType::Float8E4M3FNUZ, weight_scale_);
+        } else {
+            const auto lazy_weight_scale =
+                weight_scale_mode_ == Fp8WeightScaleMode::TensorAmax
+                    ? tensor_amax_scale(weight_.data(), weight_scale_)
+                    : weight_scale_;
+            scaled_weight = ops::quantize_fp8(
+                weight_.data(), DType::Float8E4M3FNUZ, lazy_weight_scale);
+        }
+        return ops::fp8_matmul(scaled_input, scaled_weight, DType::Float32);
+    }
+    Tensor forward_scaled_input(const ops::ScaledTensor& scaled_input) {
+        auto output = forward_scaled_input_without_bias(scaled_input);
+        return has_bias_ ? ops::add_bias(output, bias_.data()) : output;
+    }
     Tensor forward_tensor_without_bias(const Tensor& input) {
         if (precision_ == LinearPrecision::BFloat16) {
             return ops::bf16_matmul(
@@ -350,23 +394,6 @@ public:
                            : ops::cast(weight_.data(), DType::BFloat16));
         }
         if (precision_ == LinearPrecision::Float8E4M3FNUZ) {
-            ops::ScaledTensor scaled_weight;
-            if (fp8_inference_scale_.defined()) {
-                scaled_weight = {weight_.data(), fp8_inference_scale_, weight_scale_,
-                                 fp8_inference_host_scale_available_};
-            } else {
-                if (weight_scale_mode_ == Fp8WeightScaleMode::DeviceTensorAmax) {
-                    scaled_weight = ops::quantize_fp8_dynamic(
-                        weight_.data(), DType::Float8E4M3FNUZ, weight_scale_);
-                } else {
-                    const auto lazy_weight_scale =
-                        weight_scale_mode_ == Fp8WeightScaleMode::TensorAmax
-                            ? tensor_amax_scale(weight_.data(), weight_scale_)
-                            : weight_scale_;
-                    scaled_weight = ops::quantize_fp8(
-                        weight_.data(), DType::Float8E4M3FNUZ, lazy_weight_scale);
-                }
-            }
             ops::ScaledTensor scaled_input;
             if (activation_scale_mode_ == Fp8ActivationScaleMode::TensorAmax) {
                 scaled_input = ops::quantize_fp8_dynamic(
@@ -383,10 +410,7 @@ public:
                 scaled_input = ops::quantize_fp8(
                     input, DType::Float8E4M3FNUZ, activation_scale_);
             }
-            return ops::fp8_matmul(
-                scaled_input,
-                scaled_weight,
-                DType::Float32);
+            return forward_scaled_input_without_bias(scaled_input);
         }
         if (weight_.data().dtype() == DType::BFloat16) {
             return ops::bf16_matmul(input, weight_.data());
@@ -584,6 +608,13 @@ public:
             value_projection = value_.has_bias()
                                    ? ops::add_bias(projections.third, value_.bias().data())
                                    : projections.third;
+        } else if (query_.shares_dynamic_activation() &&
+                   key_.shares_dynamic_activation() &&
+                   value_.shares_dynamic_activation()) {
+            const auto scaled = query_.quantize_activation(flat);
+            query_projection = query_.forward_scaled_input(scaled);
+            key_projection = key_.forward_scaled_input(scaled);
+            value_projection = value_.forward_scaled_input(scaled);
         } else {
             query_projection = query_.forward_tensor(flat);
             key_projection = key_.forward_tensor(flat);
@@ -912,8 +943,18 @@ public:
                 output = diagnostics.output;
             }
         } else {
-            const auto activated = ops::swiglu(gate_.forward_tensor(flat),
-                                                up_.forward_tensor(flat));
+            Tensor gate;
+            Tensor up;
+            if (gate_.shares_dynamic_activation() &&
+                up_.shares_dynamic_activation()) {
+                const auto scaled = gate_.quantize_activation(flat);
+                gate = gate_.forward_scaled_input(scaled);
+                up = up_.forward_scaled_input(scaled);
+            } else {
+                gate = gate_.forward_tensor(flat);
+                up = up_.forward_tensor(flat);
+            }
+            const auto activated = ops::swiglu(gate, up);
             auto* trace = profiling::TraceSession::current();
             if (trace != nullptr &&
                 trace->options().record_all_layer_details) {

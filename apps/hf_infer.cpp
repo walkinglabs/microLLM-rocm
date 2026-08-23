@@ -883,6 +883,7 @@ int main(int argc, char** argv) {
         if (command.fp8_linear) {
             fp8_report = model.prepare_fp8_inference_weights();
             microllm::ops::clear_fp8_dispatch_registry();
+            microllm::ops::clear_fp8_dynamic_quant_stats();
         }
         microllm::runtime::synchronize(device);
         const auto preparation_finish = std::chrono::steady_clock::now();
@@ -1117,6 +1118,14 @@ int main(int argc, char** argv) {
                       << microllm::ops::fp8_dispatch_stats().outer_row_fallback_calls
                       << ",\"fp8_outer_row_native_status\":"
                       << microllm::ops::fp8_dispatch_stats().outer_row_native_status
+                      << ",\"fp8_dynamic_tensor_calls\":"
+                      << microllm::ops::fp8_dynamic_quant_stats().tensor_calls
+                      << ",\"fp8_dynamic_row_calls\":"
+                      << microllm::ops::fp8_dynamic_quant_stats().row_calls
+                      << ",\"fp8_dynamic_tensor_elements\":"
+                      << microllm::ops::fp8_dynamic_quant_stats().tensor_elements
+                      << ",\"fp8_dynamic_row_elements\":"
+                      << microllm::ops::fp8_dynamic_quant_stats().row_elements
                       << ",\"request_count\":" << prompts.size()
                       << ",\"continuous_slots\":" << command.continuous_slots
                       << ",\"bucketed_cache\":"
@@ -1552,6 +1561,14 @@ int main(int argc, char** argv) {
                   << microllm::ops::fp8_dispatch_stats().outer_row_fallback_calls
                   << ",\"fp8_outer_row_native_status\":"
                   << microllm::ops::fp8_dispatch_stats().outer_row_native_status
+                  << ",\"fp8_dynamic_tensor_calls\":"
+                  << microllm::ops::fp8_dynamic_quant_stats().tensor_calls
+                  << ",\"fp8_dynamic_row_calls\":"
+                  << microllm::ops::fp8_dynamic_quant_stats().row_calls
+                  << ",\"fp8_dynamic_tensor_elements\":"
+                  << microllm::ops::fp8_dynamic_quant_stats().tensor_elements
+                  << ",\"fp8_dynamic_row_elements\":"
+                  << microllm::ops::fp8_dynamic_quant_stats().row_elements
                   << ",\"fp8_activation_scale\":"
                   << command.fp8_activation_scale
                   << ",\"fp8_activation_minimum_scale\":"

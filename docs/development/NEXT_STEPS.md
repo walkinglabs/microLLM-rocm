@@ -182,7 +182,9 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   gains 15.5x/20.6x with unchanged complete-logit errors;
 - [x] profile retained T512: dynamic scale/finalize/quantize consumes 2.12/3.11ms,
   40.5%/36.0% of dynamic+GEMM attributable time;
-- [ ] share one quantized activation across Q/K/V and one across gate/up, preserving exact logits;
+- [x] share one quantized activation across Q/K/V and gate/up; tiny machine gates reduce
+  Tensor calls 8→5 and FFN row calls 3→2 with exact outputs;
+- [ ] verify official Qwen/Deep T512 calls 168→96 and 197→113, exact errors and throughput;
 - [ ] replace the one-block reduction only if the next accepted numerical policy reuses it;
 - [ ] replace global FP8 scales with weight per-tensor and activation per-row/token amax,
   starting from saturation/trace evidence rather than top-token search;
