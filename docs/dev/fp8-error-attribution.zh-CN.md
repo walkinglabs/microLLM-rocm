@@ -167,3 +167,12 @@ Exp146曾实现独立LM head最小范围，但同revision control证明Max/RMS�
 ```
 
 FFN和独立LM head仍使用device Tensor-amax。这个参数只表示候选范围，不表示正式精度已经通过。
+
+如果只检查Attention结果之后的O projection：
+
+```bash
+--fp8-weight-scale-mode output-channel-amax \
+--fp8-weight-scale-scope attention-output-only
+```
+
+此时Q/K/V也保持device Tensor-amax，用来隔离长上下文Attention内部影响。

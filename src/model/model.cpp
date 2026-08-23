@@ -300,7 +300,8 @@ public:
     Linear(std::int64_t input, std::int64_t output, std::mt19937_64& generator,
            const ModelConfig& config, ParameterInitialization initialization,
            bool with_bias = false, bool ffn_linear = false,
-           bool attention_linear = false)
+           bool attention_linear = false,
+           bool attention_output_linear = false)
         : weight_(parameter({input, output}, generator,
                             1.0F / std::sqrt(static_cast<float>(input)), initialization)),
           precision_(config.linear_precision),
@@ -310,9 +311,12 @@ public:
           weight_scale_mode_(
               config.fp8_weight_scale_mode ==
                           Fp8WeightScaleMode::OutputChannelAmax &&
-                      config.fp8_weight_scale_scope ==
-                          Fp8WeightScaleScope::AttentionOnly &&
-                      !attention_linear
+                      ((config.fp8_weight_scale_scope ==
+                            Fp8WeightScaleScope::AttentionOnly &&
+                        !attention_linear) ||
+                       (config.fp8_weight_scale_scope ==
+                            Fp8WeightScaleScope::AttentionOutputOnly &&
+                        !attention_output_linear))
                   ? Fp8WeightScaleMode::DeviceTensorAmax
                   : config.fp8_weight_scale_mode),
           diagnostic_mode_(config.fp8_diagnostic_mode),
@@ -606,7 +610,7 @@ public:
           value_(config.dimension, config.kv_dimension(), generator, config, initialization,
                  config.attention_bias, false, true),
           output_(config.dimension, config.dimension, generator, config, initialization,
-                  false, false, true) {}
+                  false, false, true, true) {}
 
     Value forward(const Value& input) {
         if (input.data().ndim() != 3) throw std::invalid_argument("attention input must be BxTxD");

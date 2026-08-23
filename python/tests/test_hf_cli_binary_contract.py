@@ -27,6 +27,7 @@ def main() -> int:
         b"output-channel-amax",
         b"fp8_output_column_native_status",
         b"--fp8-weight-scale-scope",
+        b"attention-output-only",
     )
     missing = [value.decode() for value in required if value not in payload]
     if missing:

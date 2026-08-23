@@ -100,6 +100,10 @@ class HfFp8MatrixTest(unittest.TestCase):
         attention = MATRIX.experiment_boundary(
             "output-channel-amax", "tensor-amax", "full", "attention-only")
         self.assertIn("weight scale scope=attention-only", attention)
+        output = MATRIX.experiment_boundary(
+            "output-channel-amax", "tensor-amax", "full",
+            "attention-output-only")
+        self.assertIn("weight scale scope=attention-output-only", output)
 
 
 if __name__ == "__main__":
