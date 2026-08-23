@@ -1,0 +1,241 @@
+{
+  "accuracy_failure_count": 1,
+  "accuracy_failures": [
+    {
+      "context": 8,
+      "engine_peak_bytes_p50": 903896256,
+      "fp8_native_shapes_max": 4,
+      "fp8_software_fallback_calls_p50": 0,
+      "fp8_software_fallback_shapes_max": 0,
+      "maximum_absolute_error_max": 0.9994700998067856,
+      "model": "qwen2.5-0.5b",
+      "policy": "fp8",
+      "precision_gate_passed_all": false,
+      "prefill_tokens_per_second_p50": 1507.571305767,
+      "resident_weight_bytes": 902652064,
+      "root_mean_square_error_max": 0.19245532295273582,
+      "successful_runs": 1,
+      "top_token_equal_all": true,
+      "weight_preparation_ms_p50": 2873.642208
+    }
+  ],
+  "aggregates": [
+    {
+      "context": 8,
+      "engine_peak_bytes_p50": 1977375264,
+      "fp8_native_shapes_max": 0,
+      "fp8_software_fallback_calls_p50": 0,
+      "fp8_software_fallback_shapes_max": 0,
+      "maximum_absolute_error_max": 0.0,
+      "model": "qwen2.5-0.5b",
+      "policy": "fp32",
+      "precision_gate_passed_all": true,
+      "prefill_tokens_per_second_p50": 1859.701197159,
+      "resident_weight_bytes": 1976131072,
+      "root_mean_square_error_max": 0.0,
+      "successful_runs": 1,
+      "top_token_equal_all": true,
+      "weight_preparation_ms_p50": 0.001014
+    },
+    {
+      "context": 8,
+      "engine_peak_bytes_p50": 1261722144,
+      "fp8_native_shapes_max": 0,
+      "fp8_software_fallback_calls_p50": 0,
+      "fp8_software_fallback_shapes_max": 0,
+      "maximum_absolute_error_max": 0.0921170711517334,
+      "model": "qwen2.5-0.5b",
+      "policy": "bf16",
+      "precision_gate_passed_all": true,
+      "prefill_tokens_per_second_p50": 2267.402526963,
+      "resident_weight_bytes": 1260477952,
+      "root_mean_square_error_max": 0.016540306239139265,
+      "successful_runs": 1,
+      "top_token_equal_all": true,
+      "weight_preparation_ms_p50": 14.825407
+    },
+    {
+      "context": 8,
+      "engine_peak_bytes_p50": 903896256,
+      "fp8_native_shapes_max": 4,
+      "fp8_software_fallback_calls_p50": 0,
+      "fp8_software_fallback_shapes_max": 0,
+      "maximum_absolute_error_max": 0.9994700998067856,
+      "model": "qwen2.5-0.5b",
+      "policy": "fp8",
+      "precision_gate_passed_all": false,
+      "prefill_tokens_per_second_p50": 1507.571305767,
+      "resident_weight_bytes": 902652064,
+      "root_mean_square_error_max": 0.19245532295273582,
+      "successful_runs": 1,
+      "top_token_equal_all": true,
+      "weight_preparation_ms_p50": 2873.642208
+    }
+  ],
+  "boundary": "per-Tensor weight amax with one-time host scan; device per-input-Tensor activation amax; single-representation Linear weights; FP32 Embedding/Norm/tied head; FP32 logits are the internal oracle; no PyTorch FP8 reference",
+  "contexts": [
+    8
+  ],
+  "execution_status": "pass",
+  "fp8_activation_scale": 0.0001,
+  "fp8_activation_scale_mode": "tensor-amax",
+  "fp8_weight_scale": 0.005,
+  "fp8_weight_scale_mode": "tensor-amax",
+  "models": [
+    "qwen2.5-0.5b"
+  ],
+  "policies": [
+    "fp32",
+    "bf16",
+    "fp8"
+  ],
+  "rows": [
+    {
+      "context": 8,
+      "converted_tensors": 0,
+      "engine_peak_bytes": 1977375264,
+      "fp8_activation_scale": 0.0001,
+      "fp8_activation_scale_mode": "tensor-amax",
+      "fp8_native_shapes": 0,
+      "fp8_software_fallback_calls": 0,
+      "fp8_software_fallback_shapes": 0,
+      "fp8_weight_bytes_scanned": 0,
+      "fp8_weight_scale": 0.005,
+      "fp8_weight_scale_max": 0.0,
+      "fp8_weight_scale_min": 0.0,
+      "fp8_weight_scale_mode": "tensor-amax",
+      "logit_count": 151936,
+      "maximum_absolute_error": 0.0,
+      "model": "qwen2.5-0.5b",
+      "policy": "fp32",
+      "policy_order": [
+        "fp32",
+        "bf16",
+        "fp8"
+      ],
+      "post_run_gpu_state": {
+        "gpu_use_percent": 2,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "pre_run_gpu_state": {
+        "gpu_use_percent": 0,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "precision_gate_passed": true,
+      "prefill_tokens_per_second": 1859.701197159,
+      "process_run": 1,
+      "reference_top_token": 9707,
+      "resident_weight_bytes": 1976131072,
+      "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+      "root_mean_square_error": 0.0,
+      "schema_version": 1,
+      "status": "pass",
+      "top_token": 9707,
+      "top_token_equal": true,
+      "track": "official_fp8_inference_matrix",
+      "weight_preparation_ms": 0.001014
+    },
+    {
+      "context": 8,
+      "converted_tensors": 72,
+      "engine_peak_bytes": 1261722144,
+      "fp8_activation_scale": 0.0001,
+      "fp8_activation_scale_mode": "tensor-amax",
+      "fp8_native_shapes": 0,
+      "fp8_software_fallback_calls": 0,
+      "fp8_software_fallback_shapes": 0,
+      "fp8_weight_bytes_scanned": 0,
+      "fp8_weight_scale": 0.005,
+      "fp8_weight_scale_max": 0.0,
+      "fp8_weight_scale_min": 0.0,
+      "fp8_weight_scale_mode": "tensor-amax",
+      "logit_count": 151936,
+      "maximum_absolute_error": 0.0921170711517334,
+      "model": "qwen2.5-0.5b",
+      "policy": "bf16",
+      "policy_order": [
+        "fp32",
+        "bf16",
+        "fp8"
+      ],
+      "post_run_gpu_state": {
+        "gpu_use_percent": 2,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "pre_run_gpu_state": {
+        "gpu_use_percent": 1,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "precision_gate_passed": true,
+      "prefill_tokens_per_second": 2267.402526963,
+      "process_run": 1,
+      "reference_top_token": 9707,
+      "resident_weight_bytes": 1260477952,
+      "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+      "root_mean_square_error": 0.016540306239139265,
+      "schema_version": 1,
+      "status": "pass",
+      "top_token": 9707,
+      "top_token_equal": true,
+      "track": "official_fp8_inference_matrix",
+      "weight_preparation_ms": 14.825407
+    },
+    {
+      "context": 8,
+      "converted_tensors": 168,
+      "engine_peak_bytes": 903896256,
+      "fp8_activation_scale": 0.0001,
+      "fp8_activation_scale_mode": "tensor-amax",
+      "fp8_native_shapes": 4,
+      "fp8_software_fallback_calls": 0,
+      "fp8_software_fallback_shapes": 0,
+      "fp8_weight_bytes_scanned": 1431306240,
+      "fp8_weight_scale": 0.005,
+      "fp8_weight_scale_max": 0.006933594,
+      "fp8_weight_scale_min": 0.000349935,
+      "fp8_weight_scale_mode": "tensor-amax",
+      "logit_count": 151936,
+      "maximum_absolute_error": 0.9994700998067856,
+      "model": "qwen2.5-0.5b",
+      "policy": "fp8",
+      "policy_order": [
+        "fp32",
+        "bf16",
+        "fp8"
+      ],
+      "post_run_gpu_state": {
+        "gpu_use_percent": 2,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "pre_run_gpu_state": {
+        "gpu_use_percent": 1,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "precision_gate_passed": false,
+      "prefill_tokens_per_second": 1507.571305767,
+      "process_run": 1,
+      "reference_top_token": 9707,
+      "resident_weight_bytes": 902652064,
+      "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+      "root_mean_square_error": 0.19245532295273582,
+      "schema_version": 1,
+      "status": "pass",
+      "top_token": 9707,
+      "top_token_equal": true,
+      "track": "official_fp8_inference_matrix",
+      "weight_preparation_ms": 2873.642208
+    }
+  ],
+  "runs": 1,
+  "schema_version": 1,
+  "status": "complete_with_recorded_accuracy_failures",
+  "steps": 3,
+  "track": "official_fp8_inference_matrix",
+  "warmup": 1
+}

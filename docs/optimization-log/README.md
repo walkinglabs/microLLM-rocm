@@ -620,6 +620,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/127-data/](experiments/127-data/) | 36条正式矩阵、3条pilot和15条被拒绝的计时缺失数据 |
 | [assets/fp8-activation-range.svg](assets/fp8-activation-range.svg) | 全层Linear输入相对固定FP8范围的冲突 |
 | [experiments/128-data/](experiments/128-data/) | 208个正式activation边界、完整trace、pilot和一次合同失败 |
+| [assets/fp8-device-activation-amax.svg](assets/fp8-device-activation-amax.svg) | device动态scale的RMS改善与长context性能失败 |
+| [experiments/129-data/](experiments/129-data/) | 36条正式FP32/BF16/dynamic-FP8与3条pilot |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

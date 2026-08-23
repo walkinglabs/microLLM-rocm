@@ -1,0 +1,2 @@
+revision=91c11693f6cc3a9ab74775cc1ad25297c8e286a1
+HIP_VISIBLE_DEVICES=2 /usr/local/bin/python3 benchmarks/single_gpu/hf_fp8_matrix.py --manifest /tmp/microllm-bf16-model-manifest.json --binary build-hipblaslt/apps/microllm_hf_infer --output-directory /tmp/microllm-exp129-device-activation-amax-pilot --models qwen2.5-0.5b --contexts 8 --warmup 1 --steps 3 --runs 1 --fp8-activation-scale 0.0001 --fp8-weight-scale 0.005 --fp8-weight-scale-mode tensor-amax --fp8-activation-scale-mode tensor-amax --physical-gpu-index 2 --max-idle-vram-percent 5 --max-idle-use-percent 10

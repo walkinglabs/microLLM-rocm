@@ -50,7 +50,9 @@ CLI：
 - HIP transfer counter：动态量化+反量化0 H2D、0 D2H；
 - prepared Transformer同时使用weight/activation tensor-amax，热路径0 payload transfer；
 - 动态activation不保留无用的persistent scale，报告字节数减少一半；
-- official完整logits与吞吐尚未运行，不能声称精度或性能改善。
+- official完整logits与吞吐：36/36执行；RMS相对weight-only下降63%–81%，但0/4过门；
+  single-block amax让T512相对BF16只剩4.4%–5.3%吞吐。保留基础设施，拒绝当前模型策略，
+  详见[Experiment 129](../optimization-log/experiments/129-fp8-device-activation-amax.md)。
 
 第一版amax用一个256-thread block扫描完整Tensor，是正确性候选。正式模型若精度过门，再根据
 trace决定是否做多block reduction；不能先用更复杂Kernel掩盖数值策略错误。

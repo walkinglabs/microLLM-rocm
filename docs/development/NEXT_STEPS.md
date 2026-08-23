@@ -161,8 +161,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   static point but all four gates still fail; Qwen/Deep preparation costs 2.8/12.2 seconds;
 - [x] capture 208 all-layer activation boundaries: fixed scale 0.2 potentially saturates
   16 FFN inputs by as much as 64.2x while ordinary Attention inputs use little of the range;
-- [ ] implement device-side per-Linear-input Tensor amax/scale without D2H or per-layer host
-  synchronization; only move to per-row/per-token if within-Tensor evidence requires it;
+- [x] implement device-side per-Linear-input Tensor amax/scale with no payload H2D/D2H;
+  official RMS improves 63%–81%, but 0/4 gates pass and single-block T512 loses 95% throughput;
+- [ ] measure within-Tensor row/token amax distributions before selecting finer scale granularity;
+- [ ] replace the one-block reduction only if the next accepted numerical policy reuses it;
 - [ ] replace global FP8 scales with weight per-tensor and activation per-row/token amax,
   starting from saturation/trace evidence rather than top-token search;
 - [ ] expert/tensor/data parallel weight placement and communication;

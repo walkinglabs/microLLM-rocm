@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "status": "keep_device_scale_infrastructure_reject_current_model_policy",
+  "full_release": {
+    "passed": 336,
+    "failed": 0,
+    "skipped": 2,
+    "cpu_labelled": 234,
+    "hip_labelled": 102
+  },
+  "sanitizer_targeted": {
+    "passed": 6,
+    "failed": 0
+  },
+  "official_matrix": {
+    "workers_passed": 36,
+    "workers_failed": 0,
+    "fp8_precision_failures": 4,
+    "fp8_top_token_equal": 4
+  },
+  "decision": {
+    "device_scale_contract_retained": true,
+    "device_dequantize_fallback_retained": true,
+    "current_tensor_amax_model_policy_accepted": false,
+    "single_block_reduction_accepted": false,
+    "within_tensor_range_evidence_required": true,
+    "default_fp8": false
+  }
+}

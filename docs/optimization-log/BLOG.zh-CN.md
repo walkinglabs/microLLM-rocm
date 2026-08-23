@@ -2371,3 +2371,12 @@ Qwen 1.6/3.2的9个进程全部执行，8/8 top相同但0/8过门。最佳RMS继
 保留。下一节点先做device per-input-Tensor amax，不越级声称必须per-token。
 
 ![FP8 activation range](assets/fp8-activation-range.svg)
+
+## 146. Experiment 129：误差降八成，T512慢二十倍
+
+device Tensor amax让scale全程留在GPU，四个RMS相对weight-only再降63%–81%，但仍全部超过
+完整logits门。更严重的是单个256-thread block扫描完整Tensor：Qwen/Deep T512吞吐只剩BF16的
+5.27%/4.40%。保留host-free device-scale合同，拒绝当前模型策略和reduction Kernel；下一步先看
+Tensor内部row/token范围，再决定粒度。
+
+![FP8 device activation amax](assets/fp8-device-activation-amax.svg)

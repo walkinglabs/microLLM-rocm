@@ -5096,6 +5096,89 @@ def validate_fp8_activation_range(errors: list[str]) -> tuple[int, int, int]:
     return len(raw), summary.get("potential_saturation_rows", 0), len(rejected_trace)
 
 
+def validate_fp8_device_activation_amax(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "129-data"
+    raw = [json.loads(line) for line in
+           (data / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    pilot = [json.loads(line) for line in
+             (data / "pilot-raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    preflight = [json.loads(line) for line in
+                 (data / "gpu2-preflight.jsonl").read_text(
+                     encoding="utf-8").splitlines()]
+    if len(raw) != 36 or any(row.get("status") != "pass" for row in raw) or any(
+            row.get("pre_run_gpu_state", {}).get("vram_percent") != 0 or
+            row.get("pre_run_gpu_state", {}).get("gpu_use_percent", 99) > 1 or
+            row.get("post_run_gpu_state", {}).get("vram_percent", 99) > 2 or
+            row.get("post_run_gpu_state", {}).get("gpu_use_percent", 99) > 4
+            for row in raw):
+        errors.append("FP8 device activation amax raw or idle-gate evidence changed")
+    aggregates = summary.get("aggregates", [])
+    fp8_rows = [row for row in aggregates if row.get("policy") == "fp8"]
+    if summary.get("status") != "complete_with_recorded_accuracy_failures" or \
+            summary.get("accuracy_failure_count") != 4 or len(aggregates) != 12 or \
+            len(fp8_rows) != 4 or \
+            summary.get("fp8_weight_scale_mode") != "tensor-amax" or \
+            summary.get("fp8_activation_scale_mode") != "tensor-amax" or \
+            "device per-input-Tensor activation amax" not in \
+            summary.get("boundary", "") or any(
+                row.get("precision_gate_passed_all") is not False or
+                row.get("top_token_equal_all") is not True
+                for row in fp8_rows):
+        errors.append("FP8 device activation amax aggregate contract changed")
+    by_key = {(row["model"], row["context"]): row for row in fp8_rows}
+    expected = {
+        ("qwen2.5-0.5b", 8): (0.18, 0.20, 1400.0, 1600.0),
+        ("qwen2.5-0.5b", 512): (0.28, 0.31, 4700.0, 5100.0),
+        ("deepseek-r1-distill-qwen-1.5b", 8): (0.42, 0.45, 800.0, 900.0),
+        ("deepseek-r1-distill-qwen-1.5b", 512): (0.24, 0.26, 2100.0, 2250.0),
+    }
+    for key, (rms_low, rms_high, tps_low, tps_high) in expected.items():
+        row = by_key[key]
+        if not rms_low < row.get("root_mean_square_error_max", 0.0) < rms_high or \
+                not tps_low < row.get("prefill_tokens_per_second_p50", 0.0) < tps_high:
+            errors.append(f"FP8 device activation amax result changed for {key}")
+    all_aggregates = {(row["model"], row["context"], row["policy"]): row
+                      for row in aggregates}
+    if by_key["qwen2.5-0.5b", 512]["prefill_tokens_per_second_p50"] / \
+            all_aggregates["qwen2.5-0.5b", 512, "bf16"][
+                "prefill_tokens_per_second_p50"] > 0.06 or \
+            by_key["deepseek-r1-distill-qwen-1.5b", 512][
+                "prefill_tokens_per_second_p50"] / \
+            all_aggregates["deepseek-r1-distill-qwen-1.5b", 512, "bf16"][
+                "prefill_tokens_per_second_p50"] > 0.05:
+        errors.append("FP8 single-block long-context failure changed")
+    if by_key["deepseek-r1-distill-qwen-1.5b", 8].get(
+            "fp8_software_fallback_calls_p50") != 112 or \
+            by_key["deepseek-r1-distill-qwen-1.5b", 512].get(
+                "fp8_software_fallback_calls_p50") != 0:
+        errors.append("FP8 device-scale fallback evidence changed")
+    if len(pilot) != 3 or len(preflight) != 3 or any(
+            row.get("card2", {}).get("GPU use (%)") != "0" or
+            row.get("card2", {}).get("GPU Memory Allocated (VRAM%)") != "0"
+            for row in preflight):
+        errors.append("FP8 device activation pilot/preflight changed")
+    if gates.get("status") != \
+            "keep_device_scale_infrastructure_reject_current_model_policy" or \
+            gates.get("full_release", {}).get("passed") != 336 or \
+            gates.get("decision", {}).get("device_scale_contract_retained") is not True or \
+            gates.get("decision", {}).get(
+                "current_tensor_amax_model_policy_accepted") is not False or \
+            gates.get("decision", {}).get("single_block_reduction_accepted") is not False:
+        errors.append("FP8 device activation amax gates changed")
+    op_source = (REPOSITORY / "src" / "ops" / "ops.cpp").read_text(
+        encoding="utf-8")
+    kernel_source = (REPOSITORY / "src" / "ops" / "hip" /
+                     "basic_kernels.hip").read_text(encoding="utf-8")
+    if "quantize_fp8_dynamic" not in op_source or \
+            "host_scale_available" not in op_source or \
+            "fp8_tensor_scale_kernel" not in kernel_source or \
+            "dequantize_fp8_device_scale_kernel" not in kernel_source:
+        errors.append("FP8 device activation amax implementation missing")
+    return len(raw), len(fp8_rows), len(pilot)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -5202,7 +5285,8 @@ def validate_assets(errors: list[str]) -> None:
                  "fp8-scale-turn.svg",
                  "qwen-fp8-scale-closure.svg",
                  "fp8-tensor-amax-weight.svg",
-                 "fp8-activation-range.svg"):
+                 "fp8-activation-range.svg",
+                 "fp8-device-activation-amax.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -5392,6 +5476,8 @@ def main() -> int:
         validate_fp8_tensor_amax_weight(errors)
     activation_range_raw, activation_range_saturation, activation_range_rejected = \
         validate_fp8_activation_range(errors)
+    device_amax_raw, device_amax_failures, device_amax_pilot = \
+        validate_fp8_device_activation_amax(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -5544,6 +5630,8 @@ def main() -> int:
           f"fp8_amax={fp8_amax_raw}/{fp8_amax_failures}/{fp8_amax_rejected} "
           f"activation_range={activation_range_raw}/{activation_range_saturation}/"
           f"{activation_range_rejected} "
+          f"device_amax={device_amax_raw}/{device_amax_failures}/"
+          f"{device_amax_pilot} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

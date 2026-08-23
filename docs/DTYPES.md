@@ -73,6 +73,11 @@ native FP8支持的down shape和112次BF16软件回退。准确状态是“模�
 详见[Experiment 123](optimization-log/experiments/123-fp8-global-scale-grid.md)至
 [Experiment 127](optimization-log/experiments/127-fp8-tensor-amax-weight.md)。
 
+device per-input-Tensor activation amax不经host传递scale，把四个RMS再降低63%–81%，但仍为门的
+3.85×–8.76×；single-block reduction还让T512相对BF16只剩4.4%–5.3%吞吐。device-scale
+基础设施已实现，当前模型策略和Kernel都未接受。详见
+[Experiment 129](optimization-log/experiments/129-fp8-device-activation-amax.md)。
+
 ## 4. 类型提升规则
 
 第一版不做隐式混合，避免程序悄悄改变精度：
