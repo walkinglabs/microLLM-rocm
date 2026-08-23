@@ -2429,3 +2429,11 @@ QKV和gate/up共享量化让每forward动态调用Qwen168→96、Deep197→113�
 5.85×/4.98×。保留无损性能优化，不把速度胜出写成FP8模型可用。
 
 ![Shared activation quantization](assets/fp8-shared-activation-quantization.svg)
+
+## 153. Experiment 136：profile确认收益，优先级转回精度
+
+共享后Qwen/Deep dynamic三段降45.6%/43.6%，known-forward降20.5%/17.1%；launch少216/252，
+GEMM与other calls不变，隔离归因成立。GEMM现占可归因时间约72%/75%，但Deep已快过BF16，
+而FP8精度仍差约5倍门槛。暂停增加性能复杂度，转向逐层精度证据。
+
+![Shared activation profile](assets/fp8-shared-activation-profile.svg)

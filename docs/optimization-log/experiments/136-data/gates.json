@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "status": "shared_quantization_profile_confirmed_shift_to_precision",
+  "profiles": {"passed": 2},
+  "decision": {
+    "shared_quantization_attribution_confirmed": true,
+    "gemm_calls_unchanged": true,
+    "dynamic_calls_reduced": true,
+    "continue_performance_complexity_now": false,
+    "shift_to_precision_evidence": true
+  }
+}

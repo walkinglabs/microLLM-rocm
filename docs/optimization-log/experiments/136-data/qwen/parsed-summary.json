@@ -1,0 +1,387 @@
+{
+  "application": {
+    "architecture": "gfx942:sramecc+:xnack-",
+    "device_name": "AMD Instinct MI300X VF",
+    "engine_peak_bytes": 946038948,
+    "forward_ms": 4585.948708,
+    "fp8_dynamic_row_calls": 0,
+    "fp8_dynamic_row_elements": 0,
+    "fp8_dynamic_tensor_calls": 96,
+    "fp8_dynamic_tensor_elements": 92798976,
+    "fp8_native_shapes": 4,
+    "fp8_software_fallback_calls": 0,
+    "fp8_software_fallback_shapes": 0,
+    "prefill_tokens_per_second": 111.645383017,
+    "resident_weight_bytes": 902652064,
+    "status": "pass",
+    "weight_preparation_ms": 2890.903864
+  },
+  "binary": "/tmp/microllm-exp135-build.VfFrpF/apps/microllm_hf_infer",
+  "binary_revision": "f29e384975e2cc4ee1143ca3f452962a33784a11",
+  "comparison_to_exp134": {
+    "api_kernel_launch_call_reduction": 216,
+    "dynamic_call_percent_reduction": 42.85714285714286,
+    "dynamic_call_reduction": 72,
+    "exp134_api_kernel_launch_calls": 1613,
+    "exp134_dynamic_tensor_calls": 168,
+    "exp134_gemm_total_ms": 3.118825,
+    "exp134_kernel_total_calls": 1905,
+    "exp134_kernel_total_ms": 16.210481,
+    "exp134_known_forward_total_ms": 5.24109,
+    "exp134_scale_total_ms": 2.122265,
+    "exp136_api_kernel_launch_calls": 1397,
+    "exp136_dynamic_tensor_calls": 96,
+    "exp136_gemm_total_ms": 3.01271,
+    "exp136_kernel_total_calls": 1689,
+    "exp136_kernel_total_ms": 14.994339,
+    "exp136_known_forward_total_ms": 4.167181,
+    "exp136_scale_total_ms": 1.154471,
+    "gemm_time_percent_change": -3.40240314862168,
+    "gemm_time_ratio": 0.9659759685137832,
+    "kernel_call_reduction": 216,
+    "kernel_total_time_percent_change": -7.502195647371601,
+    "known_forward_time_percent_change": -20.490184293725157,
+    "scale_time_percent_change": -45.60193943734642,
+    "scale_time_ratio": 0.5439806056265358
+  },
+  "dynamic_call_check": {
+    "actual_row_calls": 0,
+    "actual_tensor_calls": 96,
+    "expected_tensor_calls": 96,
+    "passed": true
+  },
+  "experiment": "Exp136",
+  "hip_api_categories": [
+    {
+      "calls": 1397,
+      "category": "kernel_launch",
+      "percent": 0.6061461972619051,
+      "total_time_ms": 24.133056,
+      "total_time_ns": 24133056,
+      "unique_entries": 2
+    },
+    {
+      "calls": 630,
+      "category": "memory_transfer",
+      "percent": 14.765173989905017,
+      "total_time_ms": 587.859451,
+      "total_time_ns": 587859451,
+      "unique_entries": 2
+    },
+    {
+      "calls": 821,
+      "category": "allocation",
+      "percent": 0.5621903392367472,
+      "total_time_ms": 22.383001,
+      "total_time_ns": 22383001,
+      "unique_entries": 2
+    },
+    {
+      "calls": 5,
+      "category": "synchronization",
+      "percent": 0.007758392106023555,
+      "total_time_ms": 0.308892,
+      "total_time_ns": 308892,
+      "unique_entries": 1
+    },
+    {
+      "calls": 22,
+      "category": "module_loading",
+      "percent": 81.88047496552365,
+      "total_time_ms": 3259.982652,
+      "total_time_ns": 3259982652,
+      "unique_entries": 2
+    },
+    {
+      "calls": 92731,
+      "category": "device_queries",
+      "percent": 2.1747443793380077,
+      "total_time_ms": 86.585098,
+      "total_time_ns": 86585098,
+      "unique_entries": 7
+    },
+    {
+      "calls": 1191,
+      "category": "other",
+      "percent": 0.0035117366286462237,
+      "total_time_ms": 0.139816,
+      "total_time_ns": 139816,
+      "unique_entries": 1
+    }
+  ],
+  "hip_api_stats_file": "/tmp/microllm-exp136-profile/qwen/up-cmsebbixh000vbsoh769vhx8z/3915721_hip_api_stats.csv",
+  "hip_api_total": {
+    "calls": 96797,
+    "total_time_ms": 3981.391966,
+    "total_time_ns": 3981391966
+  },
+  "kernel_categories": [
+    {
+      "calls": 96,
+      "category": "fp8_tensor_scale_kernel",
+      "percent": 2.6826057487429087,
+      "total_time_ms": 0.402239,
+      "total_time_ns": 402239,
+      "unique_entries": 1
+    },
+    {
+      "calls": 96,
+      "category": "fp8_finalize_scale_kernel",
+      "percent": 2.424801786861028,
+      "total_time_ms": 0.363583,
+      "total_time_ns": 363583,
+      "unique_entries": 1
+    },
+    {
+      "calls": 96,
+      "category": "quantize_fp8_device_scale_kernel",
+      "percent": 2.59197154339381,
+      "total_time_ms": 0.388649,
+      "total_time_ns": 388649,
+      "unique_entries": 1
+    },
+    {
+      "calls": 217,
+      "category": "hipBLASLt/Tensile GEMM",
+      "percent": 20.092316173457196,
+      "total_time_ms": 3.01271,
+      "total_time_ns": 3012710,
+      "unique_entries": 7
+    },
+    {
+      "calls": 0,
+      "category": "dequant/fallback",
+      "percent": 0.0,
+      "total_time_ms": 0.0,
+      "total_time_ns": 0,
+      "unique_entries": 0
+    },
+    {
+      "calls": 1184,
+      "category": "other",
+      "percent": 72.20830474754506,
+      "total_time_ms": 10.827158,
+      "total_time_ns": 10827158,
+      "unique_entries": 15
+    }
+  ],
+  "kernel_stats_file": "/tmp/microllm-exp136-profile/qwen/up-cmsebbixh000vbsoh769vhx8z/3915721_kernel_stats.csv",
+  "kernel_total": {
+    "calls": 1689,
+    "total_time_ms": 14.994339,
+    "total_time_ns": 14994339
+  },
+  "manifest": "/tmp/microllm-bf16-model-manifest.json",
+  "measured_forward_attributable": {
+    "categories": [
+      {
+        "calls": 96,
+        "category": "fp8_tensor_scale_kernel",
+        "percent": 2.6826057487429087,
+        "total_time_ms": 0.402239,
+        "total_time_ns": 402239,
+        "unique_entries": 1
+      },
+      {
+        "calls": 96,
+        "category": "fp8_finalize_scale_kernel",
+        "percent": 2.424801786861028,
+        "total_time_ms": 0.363583,
+        "total_time_ns": 363583,
+        "unique_entries": 1
+      },
+      {
+        "calls": 96,
+        "category": "quantize_fp8_device_scale_kernel",
+        "percent": 2.59197154339381,
+        "total_time_ms": 0.388649,
+        "total_time_ns": 388649,
+        "unique_entries": 1
+      },
+      {
+        "calls": 217,
+        "category": "hipBLASLt/Tensile GEMM",
+        "percent": 20.092316173457196,
+        "total_time_ms": 3.01271,
+        "total_time_ns": 3012710,
+        "unique_entries": 7
+      },
+      {
+        "calls": 0,
+        "category": "dequant/fallback",
+        "percent": 0.0,
+        "total_time_ms": 0.0,
+        "total_time_ns": 0,
+        "unique_entries": 0
+      }
+    ],
+    "classification_boundary": "Known measured-forward kernels only: dynamic activation amax/finalize/quantize, hipBLASLt/Tensile GEMM, and dequant/fallback. Whole-process other is intentionally not attributed because the trace also includes model load and host weight preparation.",
+    "known_calls": 505,
+    "known_total_time_ms": 4.167181,
+    "known_total_time_ns": 4167181,
+    "percent_of_whole_process_kernel_time": 27.791695252454943
+  },
+  "model": "qwen2.5-0.5b",
+  "physical_gpu_index": 2,
+  "policy": {
+    "batch": 1,
+    "context": 512,
+    "fp8_activation_minimum_scale": 0.0001,
+    "fp8_activation_scale": 0.2,
+    "fp8_activation_scale_mode": "tensor-amax",
+    "fp8_weight_scale": 0.005,
+    "fp8_weight_scale_mode": "tensor-amax",
+    "new_tokens": 0,
+    "prefill_logits": "last",
+    "prefill_steps": 1,
+    "prefill_warmup": 0,
+    "use_cache": true,
+    "workload": "prefill"
+  },
+  "schema_version": 1,
+  "top_hip_apis": [
+    {
+      "calls": 4,
+      "name": "hipModuleLoad",
+      "percent": 81.87941779756935,
+      "total_time_ms": 3259.940562,
+      "total_time_ns": 3259940562
+    },
+    {
+      "calls": 628,
+      "name": "hipMemcpy",
+      "percent": 14.764246223929815,
+      "total_time_ms": 587.822513,
+      "total_time_ns": 587822513
+    },
+    {
+      "calls": 3,
+      "name": "hipGetDeviceCount",
+      "percent": 1.8871469737626934,
+      "total_time_ms": 75.134718,
+      "total_time_ns": 75134718
+    },
+    {
+      "calls": 1180,
+      "name": "hipLaunchKernel",
+      "percent": 0.5651181343645681,
+      "total_time_ms": 22.499568,
+      "total_time_ns": 22499568
+    },
+    {
+      "calls": 169,
+      "name": "hipFree",
+      "percent": 0.3003878066297379,
+      "total_time_ms": 11.959616,
+      "total_time_ns": 11959616
+    },
+    {
+      "calls": 652,
+      "name": "hipMalloc",
+      "percent": 0.2618025326070093,
+      "total_time_ms": 10.423385,
+      "total_time_ns": 10423385
+    },
+    {
+      "calls": 34422,
+      "name": "hipDeviceGetAttribute",
+      "percent": 0.14349200100837295,
+      "total_time_ms": 5.712979,
+      "total_time_ns": 5712979
+    },
+    {
+      "calls": 18085,
+      "name": "hipGetDevicePropertiesR0600",
+      "percent": 0.07664213988620883,
+      "total_time_ms": 3.051424,
+      "total_time_ns": 3051424
+    },
+    {
+      "calls": 217,
+      "name": "hipExtModuleLaunchKernel",
+      "percent": 0.041028062897336945,
+      "total_time_ms": 1.633488,
+      "total_time_ns": 1633488
+    },
+    {
+      "calls": 18083,
+      "name": "hipGetDevice",
+      "percent": 0.031700043873550125,
+      "total_time_ms": 1.262103,
+      "total_time_ns": 1262103
+    }
+  ],
+  "top_kernels": [
+    {
+      "calls": 168,
+      "name": "void microllm::ops::hip::(anonymous namespace)::cast_transpose_2d_kernel<hip_bfloat16, float>(hip_bfloat16 const*, float*, long, long)",
+      "percent": 32.4450114139743,
+      "total_time_ms": 4.864915,
+      "total_time_ns": 4864915
+    },
+    {
+      "calls": 290,
+      "name": "__amd_rocclr_copyBuffer",
+      "percent": 10.336440972823144,
+      "total_time_ms": 1.549881,
+      "total_time_ns": 1549881
+    },
+    {
+      "calls": 168,
+      "name": "void microllm::ops::hip::(anonymous namespace)::quantize_fp8_kernel<float, __hip_fp8_e4m3_fnuz>(float const*, __hip_fp8_e4m3_fnuz*, long, float)",
+      "percent": 8.60280003006468,
+      "total_time_ms": 1.289933,
+      "total_time_ns": 1289933
+    },
+    {
+      "calls": 48,
+      "name": "Cijk_Ailk_Bljk_F8NSS_BH_Bias_SHB_HA_S_SAB_SAV_UserArgs_MT128x64x128_MI16x16x1_SN_LDSB0_AFC1_AG0_AFEM1_AFEM1_ASEM1_CLR1_CADS0_DTLA0_DTLB0_DTVA1_DTVB0_DTVMXSA0_DTVMXSB0_DTVSM0_DPLB0_EPS0_ELFLR0_EMLLn1_FDSI1_GRPM1_GRVWA4_GRVWB16_GSUAMBSK_GLS0_ISA942_IU1_K1_LDSTI0_LBSPPA0_LBSPPB256_LBSPPM0_LPA0_LPB32_LPM0_LRVW16_LWPMn1_MIAV0_MIWT4_2_MO40_MGRIPM1_NTn1_NTA0_NTB0_NTC0_NTD4_NTM0_NEPBS8_NLCA1_NLCB1_ONLL0_PGR2_PLR1_PKA1_SGROB0_SIA3_SS1_SPO0_SRVW0_SSO0_SVW4_SK0_SKFTR0_SKXCCM0_SGRO0_TDMI0_TIN0_TLDS1_TLDSM1_ULSGRO0_USL1_USLMX0_UIOFGRO0_UPLRP0_USFGROn1_USI0_VSn1_VWA4_VWB2_WSGRA0_WSGRB0_WS64_WG32_8_1",
+      "percent": 4.8710650066001575,
+      "total_time_ms": 0.730384,
+      "total_time_ns": 730384
+    },
+    {
+      "calls": 96,
+      "name": "microllm::runtime::detail::(anonymous namespace)::strided_copy_kernel(std::byte*, std::byte const*, unsigned long, long, microllm::runtime::detail::(anonymous namespace)::Layout)",
+      "percent": 3.596483979720613,
+      "total_time_ms": 0.539269,
+      "total_time_ns": 539269
+    },
+    {
+      "calls": 24,
+      "name": "Cijk_Ailk_Bljk_F8NSS_BH_Bias_SHB_HA_S_SAB_SAV_UserArgs_MT64x32x512_MI16x16x1_SN_LDSB1_AFC1_AG0_AFEM1_AFEM1_ASEM1_CLR1_CADS0_DTLA0_DTLB0_DTVA0_DTVB0_DTVMXSA0_DTVMXSB0_DTVSM0_DPLB0_EPS0_ELFLR0_EMLLn1_FDSI1_GRPM1_GRVWA16_GRVWB16_GSUAMBSK_GLS0_ISA942_IU1_K1_LDSTI0_LBSPPA1024_LBSPPB1024_LBSPPM0_LPA64_LPB32_LPM0_LRVW16_LWPMn1_MIAV0_MIWT4_2_MO40_MGRIPM1_NTn1_NTA0_NTB0_NTC0_NTD4_NTM0_NEPBS8_NLCA1_NLCB1_ONLL0_PGR2_PLR1_PKA1_SGROB0_SIA3_SS1_SPO0_SRVW0_SSO0_SVW4_SK0_SKFTR0_SKXCCM0_SGRO0_TDMI0_TIN0_TLDS1_TLDSM1_ULSGRO0_USL1_USLMX0_UIOFGRO0_UPLRP0_USFGROn1_USI0_VSn1_VWA4_VWB2_WSGRA0_WSGRB0_WS64_WG16_4_4",
+      "percent": 3.5074370400722565,
+      "total_time_ms": 0.525917,
+      "total_time_ns": 525917
+    },
+    {
+      "calls": 122,
+      "name": "void microllm::ops::hip::(anonymous namespace)::cast_kernel<hip_bfloat16, float>(hip_bfloat16 const*, float*, long)",
+      "percent": 3.472117043638936,
+      "total_time_ms": 0.520621,
+      "total_time_ns": 520621
+    },
+    {
+      "calls": 24,
+      "name": "microllm::ops::hip::(anonymous namespace)::causal_softmax_rows_register_kernel(float const*, float*, long, long)",
+      "percent": 3.459292203544284,
+      "total_time_ms": 0.518698,
+      "total_time_ns": 518698
+    },
+    {
+      "calls": 48,
+      "name": "Cijk_Ailk_Bljk_F8NSS_BH_Bias_SHB_HA_S_SAB_SAV_UserArgs_MT64x32x256_MI16x16x1_SN_LDSB1_AFC1_AG0_AFEM1_AFEM1_ASEM1_CLR1_CADS0_DTLA0_DTLB0_DTVA0_DTVB0_DTVMXSA0_DTVMXSB0_DTVSM0_DPLB0_EPS0_ELFLR0_EMLLn1_FDSI1_GRPM1_GRVWA16_GRVWB16_GSUAMBSK_GLS0_ISA942_IU1_K1_LDSTI0_LBSPPA1024_LBSPPB512_LBSPPM0_LPA32_LPB32_LPM0_LRVW16_LWPMn1_MIAV0_MIWT2_2_MO40_MGRIPM1_NTn1_NTA0_NTB0_NTC0_NTD4_NTM0_NEPBS8_NLCA1_NLCB1_ONLL0_PGR2_PLR1_PKA1_SGROB0_SIA3_SS1_SPO0_SRVW0_SSO0_SVW2_SK0_SKFTR0_SKXCCM0_SGRO0_TDMI0_TIN0_TLDS1_TLDSM1_ULSGRO1_USL1_USLMX0_UIOFGRO0_UPLRP0_USFGROn1_USI0_VSn1_VWA2_VWB2_WSGRA0_WSGRB0_WS64_WG32_4_2",
+      "percent": 3.3587876064426716,
+      "total_time_ms": 0.503628,
+      "total_time_ns": 503628
+    },
+    {
+      "calls": 48,
+      "name": "Cijk_Ailk_Bljk_F8NSS_BH_Bias_SHB_HA_S_SAB_SAV_UserArgs_MT16x16x256_MI16x16x1_SN_LDSB0_AFC1_AG0_AFEM1_AFEM1_ASEM1_CLR1_CADS0_DTLA0_DTLB0_DTVA0_DTVB0_DTVMXSA0_DTVMXSB0_DTVSM0_DPLB0_EPS0_ELFLR0_EMLLn1_FDSI1_GRPM1_GRVWA16_GRVWB16_GSUAMBSK_GLS0_ISA942_IU1_K1_LDSTI0_LBSPPA256_LBSPPB256_LBSPPM0_LPA16_LPB32_LPM0_LRVW16_LWPMn1_MIAV0_MIWT1_1_MO40_MGRIPM1_NTn1_NTA0_NTB0_NTC0_NTD4_NTM0_NEPBS8_NLCA1_NLCB1_ONLL0_PGR2_PLR1_PKA1_SGROB0_SIA3_SS1_SPO0_SRVW0_SSO0_SVW1_SK0_SKFTR0_SKXCCM0_SGRO0_TDMI0_TIN0_TLDS1_TLDSM1_ULSGRO0_USL1_USLMX0_UIOFGRO0_UPLRP0_USFGROn1_USI0_VSn1_VWA1_VWB1_WSGRA0_WSGRB0_WS64_WG16_4_4",
+      "percent": 2.841172258410324,
+      "total_time_ms": 0.426015,
+      "total_time_ns": 426015
+    }
+  ],
+  "whole_process_boundary": "rocprofv3 covered startup, model load, host tensor-amax weight preparation, one measured prefill, and teardown; percentages use all captured kernel/API time."
+}

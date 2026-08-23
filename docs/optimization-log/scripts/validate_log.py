@@ -5458,6 +5458,34 @@ def validate_fp8_shared_activation(errors: list[str]) -> tuple[int, int, int]:
         int(deep["fp8_dynamic_tensor_calls_p50"])
 
 
+def validate_fp8_shared_profile(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "136-data"
+    qwen = json.loads((data / "qwen" / "parsed-summary.json").read_text(encoding="utf-8"))
+    deep = json.loads((data / "deepseek" / "parsed-summary.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    for model, calls, scale_ms, known_ms, reduction, call_reduction in (
+            (qwen, 96, 1.154471, 4.167181, -20.490184293725157, 216),
+            (deep, 113, 1.754955, 7.155494, -17.066683634660095, 252)):
+        comparison = model.get("comparison_to_exp134", {})
+        categories = {row["category"]: row for row in model["kernel_categories"]}
+        actual_scale = sum(categories[name]["total_time_ms"] for name in (
+            "fp8_tensor_scale_kernel", "fp8_finalize_scale_kernel",
+            "quantize_fp8_device_scale_kernel"))
+        if any(categories[name]["calls"] != calls for name in (
+                "fp8_tensor_scale_kernel", "fp8_finalize_scale_kernel",
+                "quantize_fp8_device_scale_kernel")) or \
+                abs(actual_scale - scale_ms) > 1.0e-6 or \
+                abs(model["measured_forward_attributable"]["known_total_time_ms"] - known_ms) > 1.0e-6 or \
+                abs(comparison.get("known_forward_time_percent_change", 0) - reduction) > 1.0e-9 or \
+                comparison.get("kernel_call_reduction") != call_reduction:
+            errors.append(f"shared profile evidence changed for {model['model']}")
+    if gates.get("decision", {}).get("shared_quantization_attribution_confirmed") is not True or \
+            gates.get("decision", {}).get("gemm_calls_unchanged") is not True or \
+            gates.get("decision", {}).get("continue_performance_complexity_now") is not False:
+        errors.append("shared profile gates changed")
+    return qwen["kernel_total"]["calls"] + deep["kernel_total"]["calls"], 96, 113
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -5571,7 +5599,8 @@ def validate_assets(errors: list[str]) -> None:
                  "fp8-device-weight-amax.svg",
                  "fp8-multiblock-amax.svg",
                  "fp8-dynamic-activation-profile.svg",
-                 "fp8-shared-activation-quantization.svg"):
+                 "fp8-shared-activation-quantization.svg",
+                 "fp8-shared-activation-profile.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -5775,6 +5804,8 @@ def main() -> int:
         validate_fp8_dynamic_profile(errors)
     shared_raw, shared_qwen_calls, shared_deep_calls = \
         validate_fp8_shared_activation(errors)
+    shared_profile_calls, shared_profile_qwen, shared_profile_deep = \
+        validate_fp8_shared_profile(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -5937,6 +5968,8 @@ def main() -> int:
           f"dynamic_profile={dynamic_profile_calls}/{dynamic_profile_qwen}/"
           f"{dynamic_profile_deep} "
           f"shared_activation={shared_raw}/{shared_qwen_calls}/{shared_deep_calls} "
+          f"shared_profile={shared_profile_calls}/{shared_profile_qwen}/"
+          f"{shared_profile_deep} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

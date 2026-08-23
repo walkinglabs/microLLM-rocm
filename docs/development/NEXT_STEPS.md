@@ -186,7 +186,9 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   Tensor calls 8→5 and FFN row calls 3→2 with exact outputs;
 - [x] verify official T512 calls 168→96 and 197→113; errors are exact and throughput
   improves 12.81%/12.39%, with Deep FP8 reaching 1.028x BF16 but failing precision;
-- [ ] re-profile shared T512 path before selecting another performance hotspot;
+- [x] re-profile shared T512: dynamic time drops 45.6%/43.6% and attributable
+  forward time drops 20.5%/17.1%, while GEMM/other calls stay unchanged;
+- [ ] prioritize per-layer FP8 precision attribution/calibration before more GEMM complexity;
 - [ ] replace the one-block reduction only if the next accepted numerical policy reuses it;
 - [ ] replace global FP8 scales with weight per-tensor and activation per-row/token amax,
   starting from saturation/trace evidence rather than top-token search;

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="570" viewBox="0 0 1040 570" role="img" aria-labelledby="title desc">
+  <title id="title">Shared activation profile before and after</title><desc id="desc">Sharing quantized activation inputs reduces dynamic scale kernels and attributable forward time.</desc>
+  <rect width="1040" height="570" rx="18" fill="#0b1020"/><text x="52" y="52" fill="#f8fafc" font-size="28" font-family="sans-serif" font-weight="700">共享量化profile：scale时间降约45%</text>
+  <text x="52" y="82" fill="#94a3b8" font-size="16" font-family="sans-serif">蓝=Exp134；绿=Exp136 known-forward毫秒</text>
+  <line x1="80" y1="450" x2="960" y2="450" stroke="#334155"/>
+  <rect x="150" y="240" width="130" height="210" fill="#38bdf8"/><rect x="295" y="283" width="130" height="167" fill="#22c55e"/><rect x="620" y="105" width="130" height="345" fill="#38bdf8"/><rect x="765" y="164" width="130" height="286" fill="#22c55e"/>
+  <g fill="#f8fafc" font-family="sans-serif" font-size="15"><text x="150" y="230">Q 5.241ms</text><text x="295" y="273">Q 4.167ms</text><text x="620" y="95">D 8.628ms</text><text x="765" y="154">D 7.155ms</text></g>
+  <g fill="#cbd5e1" font-family="sans-serif" font-size="15"><text x="150" y="500">calls 168→96 · -20.5%</text><text x="620" y="500">197→113 · -17.1%</text><text x="180" y="545">GEMM现在占known-forward约72%/75%；优先级转回精度</text></g>
+</svg>
