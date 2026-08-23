@@ -602,6 +602,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/118-data/](experiments/118-data/) | 48条2:6/4:4/6:2正式矩阵 |
 | [assets/mi300-precision-roofline.svg](assets/mi300-precision-roofline.svg) | 128–1024的FP32/16/BF16/FP8 achieved TFLOPS |
 | [experiments/119-data/](experiments/119-data/) | 20条executed precision与roofline证据 |
+| [assets/large-precision-roofline.svg](assets/large-precision-roofline.svg) | 2048/4096低精度TFLOPS与峰值利用率 |
+| [experiments/120-data/](experiments/120-data/) | 10条FP32-reference大GEMM证据 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

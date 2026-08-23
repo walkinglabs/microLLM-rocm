@@ -414,6 +414,9 @@ model name is therefore rejected.
 [Experiment 119](docs/optimization-log/experiments/119-mi300-precision-roofline.md) replaces
 peak-speculation with executed FP32/FP16/BF16/FP8 roofline data: FP8 is slower through 512 and only
 1.107x FP32 at 1024, far below MI300X peak utilization.
+[Experiment 120](docs/optimization-log/experiments/120-large-precision-roofline.md) extends the
+matrix to 2048/4096 with an explicit FP32 GPU-reference boundary; FP8 reaches 477 TFLOPS at 4096,
+4.31x FP32 but only 18.25% of its official peak.
 
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or

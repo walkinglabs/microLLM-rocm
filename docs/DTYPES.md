@@ -53,6 +53,11 @@ hipBLASLt FP32 为 `0.919×–0.966×`，1024³ 才达到 `1.107×`；该点 FP8
 这证明部分模型decode超过PyTorch来自更短的软件路径，不是GEMM已经吃满硬件。详见
 [Experiment 119](optimization-log/experiments/119-mi300-precision-roofline.md)。
 
+2048/4096 使用显式 FP32 GPU reference 后，FP8 分别达到99.06/477.19 TFLOPS，是FP32的
+1.73×/4.31×、FP16的1.10×/1.42×。4096 FP8仍只占官方峰值18.25%，而FP32达到67.83%。
+大矩阵证明FP8有真实加速，也证明当前低精度路径尚未饱和。详见
+[Experiment 120](optimization-log/experiments/120-large-precision-roofline.md)。
+
 ## 4. 类型提升规则
 
 第一版不做隐式混合，避免程序悄悄改变精度：

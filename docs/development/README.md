@@ -275,5 +275,7 @@ the next gate. Records are append-only except for factual corrections.
   matrix, workload-matched static optima and the dynamic-capacity handoff.
 - [2026-08-23-mi300-precision-roofline.md](2026-08-23-mi300-precision-roofline.md):
   20 executed dtype/size rows, achieved TFLOPS and FP8 peak-utilization boundary.
+- [2026-08-23-large-precision-roofline.md](2026-08-23-large-precision-roofline.md):
+  explicit FP32 GPU reference and 2048/4096 FP8 speedup/peak-utilization evidence.
 - [2026-08-21-divergent-row-cache-reference.md](2026-08-21-divergent-row-cache-reference.md):
   unequal-position shared-Storage B1 oracle with CPU/HIP and reset-prefix gates.

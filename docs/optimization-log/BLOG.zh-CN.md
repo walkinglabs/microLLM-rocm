@@ -2295,3 +2295,11 @@ long-heavy吞吐只剩57%，P95约3×。delayed流量没有收益，吞吐与延
 饱和MI300X，不能用2.6PFLOPS直接推导模型tokens/s，也不能说低精度天然更快。
 
 ![MI300 precision roofline](assets/mi300-precision-roofline.svg)
+
+## 137. Experiment 120：4096³ FP8达到477TFLOPS
+
+显式FP32 GPU reference解除CPU大矩阵瓶颈。2048/4096的FP8分别为99/477TFLOPS，相对FP32
+1.73×/4.31×，相对FP16 1.10×/1.42×。FP32在4096达到官方峰值67.8%，FP8却只有18.25%，
+说明低精度已经有真实加速但仍未饱和。reference边界、0.04级误差和无INT8执行都写进raw。
+
+![Large precision roofline](assets/large-precision-roofline.svg)

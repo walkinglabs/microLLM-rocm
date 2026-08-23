@@ -140,7 +140,9 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   dispatch/combine;
 - [x] execute FP32/FP16/BF16/FP8 E4M3-FNUZ across 128–1024 square GEMMs with
   accuracy, Event P95, achieved TFLOPS and MI300 peak/bandwidth roofline;
-- [ ] add large-shape 2048/4096 GPU-reference roofline and a separate executed INT8 probe;
+- [x] add explicit FP32-GPU-reference 2048/4096 roofline: FP8 reaches 477 TFLOPS,
+  4.31x FP32 and 1.42x FP16, but only 18.25% of official FP8 peak;
+- [ ] add a separate executed INT8 probe with integer accumulation/output contracts;
 - [ ] FP8 weight/activation scales and accumulation policy for official-model end-to-end runs;
 - [ ] expert/tensor/data parallel weight placement and communication;
 - [ ] multi-node fault handling and profiler timeline;

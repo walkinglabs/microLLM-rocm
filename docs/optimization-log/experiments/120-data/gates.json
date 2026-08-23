@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "status": "keep_large_shape_fp8_speedup_with_reference_boundary",
+  "full_release": {
+    "passed": 319,
+    "failed": 0,
+    "skipped": 2
+  },
+  "sanitizer": {
+    "passed": 215,
+    "failed": 0
+  },
+  "python_contract": {
+    "passed": 4,
+    "failed": 0
+  },
+  "formal_matrix": {
+    "passed": 10,
+    "failed": 0,
+    "sizes": 2,
+    "executed_paths": 5,
+    "reference": "fp32",
+    "pre_vram_percent_max": 0,
+    "pre_use_percent_max": 1,
+    "post_vram_percent_max": 0,
+    "post_use_percent_max": 3
+  },
+  "decision": {
+    "large_shape_fp8_speedup": true,
+    "fp8_peak_saturation": false,
+    "independent_large_fp32_reference": false,
+    "int8_executed": false
+  }
+}

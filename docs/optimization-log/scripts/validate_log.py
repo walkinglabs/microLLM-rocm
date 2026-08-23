@@ -4536,6 +4536,63 @@ def validate_mi300_precision_roofline(errors: list[str]) -> tuple[int, int, int]
     return len(raw), len(sizes), len(dtypes)
 
 
+def validate_large_precision_roofline(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "120-data"
+    raw = [json.loads(line) for line in
+           (data / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    preflight = [json.loads(line) for line in
+                 (data / "gpu2-preflight.jsonl").read_text(
+                     encoding="utf-8").splitlines()]
+    sizes = {row.get("size") for row in raw}
+    dtypes = {row.get("dtype") for row in raw}
+    expected_dtypes = {"fp32_readable", "fp32", "fp16", "bf16",
+                       "fp8_e4m3_fnuz"}
+    if len(raw) != 10 or sizes != {2048, 4096} or dtypes != expected_dtypes or \
+            any(row.get("reference") != "fp32" or
+                row.get("accuracy_passed") is not True or
+                row.get("pre_run_gpu_state", {}).get("vram_percent") != 0 or
+                row.get("pre_run_gpu_state", {}).get("gpu_use_percent", 99) > 1 or
+                row.get("post_run_gpu_state", {}).get("vram_percent") != 0 or
+                row.get("post_run_gpu_state", {}).get("gpu_use_percent", 99) > 3
+                for row in raw):
+        errors.append("large precision roofline raw/reference evidence changed")
+    by_key = {(row["size"], row["dtype"]): row for row in raw}
+    if not 1.65 < by_key[2048, "fp8_e4m3_fnuz"]["achieved_tflops"] / \
+            by_key[2048, "fp32"]["achieved_tflops"] < 1.80 or \
+            not 4.20 < by_key[4096, "fp8_e4m3_fnuz"]["achieved_tflops"] / \
+            by_key[4096, "fp32"]["achieved_tflops"] < 4.40 or \
+            not 1.35 < by_key[4096, "fp8_e4m3_fnuz"]["achieved_tflops"] / \
+            by_key[4096, "fp16"]["achieved_tflops"] < 1.50 or \
+            not 470.0 < by_key[4096, "fp8_e4m3_fnuz"][
+                "achieved_tflops"] < 485.0 or \
+            not 0.17 < by_key[4096, "fp8_e4m3_fnuz"][
+                "official_peak_utilization"] < 0.19 or \
+            not 0.65 < by_key[4096, "fp32"][
+                "official_peak_utilization"] < 0.70:
+        errors.append("large precision roofline speedup/utilization changed")
+    if summary.get("status") != "pass" or summary.get("reference") != "fp32" or \
+            summary.get("sizes") != [2048, 4096]:
+        errors.append("large precision roofline summary changed")
+    if len(preflight) != 3 or any(
+            row.get("card2", {}).get("GPU use (%)") != "0" or
+            row.get("card2", {}).get("GPU Memory Allocated (VRAM%)") != "0"
+            for row in preflight):
+        errors.append("large precision roofline preflight changed")
+    if gates.get("status") != \
+            "keep_large_shape_fp8_speedup_with_reference_boundary" or \
+            gates.get("formal_matrix", {}).get("passed") != 10 or \
+            gates.get("decision", {}).get("independent_large_fp32_reference") is not False:
+        errors.append("large precision roofline gates changed")
+    worker = (REPOSITORY / "benchmarks" / "micro" /
+              "benchmark_precision.cpp").read_text(encoding="utf-8")
+    if 'result.reference = argv[index + 1]' not in worker or \
+            'result.reference != "cpu" && result.reference != "fp32"' not in worker:
+        errors.append("large precision explicit reference mode is missing")
+    return len(raw), len(sizes), len(dtypes)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -4633,7 +4690,8 @@ def validate_assets(errors: list[str]) -> None:
                  "traffic-skew-tail.svg",
                  "compatible-overflow.svg",
                  "slot-ratio-sweep.svg",
-                 "mi300-precision-roofline.svg"):
+                 "mi300-precision-roofline.svg",
+                 "large-precision-roofline.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -4806,6 +4864,8 @@ def main() -> int:
     ratio_raw, ratio_sweeps, ratio_preflight = validate_slot_ratio_sweep(errors)
     roofline_raw, roofline_sizes, roofline_dtypes = \
         validate_mi300_precision_roofline(errors)
+    large_roofline_raw, large_roofline_sizes, large_roofline_dtypes = \
+        validate_large_precision_roofline(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -4944,6 +5004,8 @@ def main() -> int:
           f"slot_ratios={ratio_raw}/{ratio_sweeps}/{ratio_preflight} "
           f"precision_roofline={roofline_raw}/{roofline_sizes}/"
           f"{roofline_dtypes} "
+          f"large_roofline={large_roofline_raw}/{large_roofline_sizes}/"
+          f"{large_roofline_dtypes} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")
