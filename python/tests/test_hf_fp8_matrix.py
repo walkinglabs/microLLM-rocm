@@ -84,6 +84,8 @@ class HfFp8MatrixTest(unittest.TestCase):
         self.assertIn("FFN-only outer-row activation scales", ffn)
         device = MATRIX.experiment_boundary("device-tensor-amax", "fixed")
         self.assertIn("device per-Tensor weight amax", device)
+        columns = MATRIX.experiment_boundary("output-channel-amax", "tensor-amax")
+        self.assertIn("device per-output-channel weight amax", columns)
         activation_only = MATRIX.experiment_boundary(
             "device-tensor-amax", "tensor-amax", "activation-only")
         self.assertIn("diagnostic mode=activation-only", activation_only)

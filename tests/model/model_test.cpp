@@ -316,6 +316,30 @@ TEST(TransformerModelTest, Fp8TensorAmaxPreparationReportsIndependentWeightScale
     EXPECT_THROW((void)model.forward(tokens), std::logic_error);
 }
 
+TEST(TransformerModelTest, Fp8OutputChannelPreparationRetainsEveryColumnScale) {
+    auto config = tiny_config();
+    config.linear_precision = LinearPrecision::Float8E4M3FNUZ;
+    config.fp8_weight_scale = 1.0e-4F;
+    config.fp8_weight_scale_mode = Fp8WeightScaleMode::OutputChannelAmax;
+    config.fp8_activation_scale_mode = Fp8ActivationScaleMode::TensorAmax;
+    TransformerModel model(config, 27);
+    const auto tokens = Tensor::from_int32_vector({1, 2, 3, 4}, {1, 4});
+    const auto before = model.forward_inference(tokens).to_vector();
+    ops::clear_fp8_dynamic_quant_stats();
+    const auto report = model.prepare_fp8_inference_weights();
+    EXPECT_EQ(report.linears_covered, 8U);
+    EXPECT_EQ(report.converted_tensors, 8U);
+    EXPECT_EQ(report.scale_bytes_retained, 80U * sizeof(float));
+    EXPECT_EQ(report.weight_bytes_scanned, report.fp32_bytes_released);
+    EXPECT_EQ(report.device_amax_tensors, 0U);
+    EXPECT_FALSE(report.host_scale_summary_available);
+    EXPECT_EQ(ops::fp8_dynamic_quant_stats().column_calls, 8U);
+    ops::clear_fp8_dynamic_quant_stats();
+    EXPECT_EQ(model.forward_inference(tokens).to_vector(), before);
+    EXPECT_EQ(ops::fp8_dynamic_quant_stats().column_calls, 0U);
+    EXPECT_EQ(ops::fp8_dynamic_quant_stats().tensor_calls, 5U);
+}
+
 TEST(TransformerModelTest, Fp8TensorAmaxPreparationRejectsNonfiniteWeightTransactionally) {
     auto config = tiny_config();
     config.linear_precision = LinearPrecision::Float8E4M3FNUZ;

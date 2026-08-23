@@ -33,7 +33,8 @@ def options() -> argparse.Namespace:
     parser.add_argument("--fp8-activation-minimum-scale", type=float, default=0.0001)
     parser.add_argument("--fp8-weight-scale", type=float, default=0.005)
     parser.add_argument("--fp8-weight-scale-mode",
-                        choices=("fixed", "tensor-amax", "device-tensor-amax"),
+                        choices=("fixed", "tensor-amax", "device-tensor-amax",
+                                 "output-channel-amax"),
                         default="fixed")
     parser.add_argument("--fp8-activation-scale-mode",
                         choices=("fixed", "tensor-amax", "ffn-outer-row"),
@@ -168,6 +169,8 @@ def experiment_boundary(weight_scale_mode: str,
         if weight_scale_mode == "tensor-amax"
         else "device per-Tensor weight amax"
         if weight_scale_mode == "device-tensor-amax"
+        else "device per-output-channel weight amax"
+        if weight_scale_mode == "output-channel-amax"
         else "static global weight scale")
     activation_boundary = (
         "device per-input-Tensor activation amax"
@@ -248,6 +251,8 @@ def main() -> int:
                             "fp8_outer_row_fallback_calls", 0),
                         "fp8_outer_row_native_status": output.get(
                             "fp8_outer_row_native_status", -1),
+                        "fp8_output_column_scale_calls": output.get(
+                            "fp8_output_column_scale_calls", 0),
                         "fp8_dynamic_tensor_calls": output.get(
                             "fp8_dynamic_tensor_calls", 0),
                         "fp8_dynamic_row_calls": output.get(
@@ -256,6 +261,10 @@ def main() -> int:
                             "fp8_dynamic_tensor_elements", 0),
                         "fp8_dynamic_row_elements": output.get(
                             "fp8_dynamic_row_elements", 0),
+                        "fp8_dynamic_column_calls": output.get(
+                            "fp8_dynamic_column_calls", 0),
+                        "fp8_dynamic_column_elements": output.get(
+                            "fp8_dynamic_column_elements", 0),
                         "fp8_activation_scale": args.fp8_activation_scale,
                         "fp8_activation_minimum_scale":
                             args.fp8_activation_minimum_scale,
@@ -321,10 +330,14 @@ def main() -> int:
                         row["fp8_outer_row_fallback_calls"] for row in selected),
                     "fp8_outer_row_native_statuses": sorted(set(
                         row["fp8_outer_row_native_status"] for row in selected)),
+                    "fp8_output_column_scale_calls_p50": statistics.median(
+                        row["fp8_output_column_scale_calls"] for row in selected),
                     "fp8_dynamic_tensor_calls_p50": statistics.median(
                         row["fp8_dynamic_tensor_calls"] for row in selected),
                     "fp8_dynamic_row_calls_p50": statistics.median(
                         row["fp8_dynamic_row_calls"] for row in selected),
+                    "fp8_dynamic_column_calls_p50": statistics.median(
+                        row["fp8_dynamic_column_calls"] for row in selected),
                 })
     accuracy_failures = [row for row in aggregates
                          if row["policy"] != "fp32" and

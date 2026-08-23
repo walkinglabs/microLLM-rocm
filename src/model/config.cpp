@@ -113,7 +113,10 @@ std::string ModelConfig::summary() const {
            << (fp8_weight_scale_mode == Fp8WeightScaleMode::Fixed
                    ? "fixed"
                    : fp8_weight_scale_mode == Fp8WeightScaleMode::TensorAmax
-                         ? "tensor_amax" : "device_tensor_amax")
+                         ? "tensor_amax"
+                         : fp8_weight_scale_mode ==
+                                   Fp8WeightScaleMode::DeviceTensorAmax
+                               ? "device_tensor_amax" : "output_channel_amax")
            << ",fp8_activation_scale_mode="
            << (fp8_activation_scale_mode == Fp8ActivationScaleMode::Fixed
                    ? "fixed"

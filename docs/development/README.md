@@ -321,5 +321,7 @@ the next gate. Records are append-only except for factual corrections.
   direct full/both-roundtrip/FP32 complete-logit comparison and order rotation.
 - [2026-08-23-fp8-output-column-scale-operator.md](2026-08-23-fp8-output-column-scale-operator.md):
   device per-column weight quantization and native scalar-GEMM post-scale algebra.
+- [2026-08-23-fp8-output-channel-model-policy.md](2026-08-23-fp8-output-channel-model-policy.md):
+  single-representation model preparation, CLI counters and CPU/HIP hot-path gates.
 - [2026-08-21-divergent-row-cache-reference.md](2026-08-21-divergent-row-cache-reference.md):
   unequal-position shared-Storage B1 oracle with CPU/HIP and reset-prefix gates.

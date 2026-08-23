@@ -23,5 +23,6 @@ column-scale launch. A 128x128 MI300 test proves native dispatch, one post-scale
 zero hot-path H2D/D2H and agreement with the FP32 matrix reference. CPU tests cover independent
 column ranges, dequantization, matmul and invalid rank.
 
-This node exposes the operator only. Model preparation and official-model evidence are separate
-nodes; operator correctness is not yet a claim that per-column weights improve an LLM.
+The model now exposes this operator through an opt-in preparation policy, but official-model evidence
+remains a separate node; operator correctness is not yet a claim that per-column weights improve an
+LLM.

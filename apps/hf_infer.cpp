@@ -301,9 +301,10 @@ Options options(int argc, char** argv) {
     }
     if (result.fp8_weight_scale_mode != "fixed" &&
         result.fp8_weight_scale_mode != "tensor-amax" &&
-        result.fp8_weight_scale_mode != "device-tensor-amax") {
+        result.fp8_weight_scale_mode != "device-tensor-amax" &&
+        result.fp8_weight_scale_mode != "output-channel-amax") {
         throw std::invalid_argument(
-            "--fp8-weight-scale-mode must be fixed, tensor-amax, or device-tensor-amax");
+            "--fp8-weight-scale-mode must be fixed, tensor-amax, device-tensor-amax, or output-channel-amax");
     }
     if (result.fp8_activation_scale_mode != "fixed" &&
         result.fp8_activation_scale_mode != "tensor-amax" &&
@@ -395,6 +396,9 @@ Options options(int argc, char** argv) {
 std::string fp8_compute_policy(const Options& command) {
     const auto weight_name = command.fp8_weight_scale_mode == "device-tensor-amax"
                                  ? "device_tensor_amax_weight"
+                                 : command.fp8_weight_scale_mode ==
+                                           "output-channel-amax"
+                                       ? "output_channel_amax_weight"
                                  : command.fp8_weight_scale_mode == "tensor-amax"
                                        ? "tensor_amax_weight" : "fixed_weight";
     const auto activation_name =
@@ -898,6 +902,8 @@ int main(int argc, char** argv) {
                     ? microllm::model::Fp8WeightScaleMode::TensorAmax
                     : command.fp8_weight_scale_mode == "device-tensor-amax"
                     ? microllm::model::Fp8WeightScaleMode::DeviceTensorAmax
+                    : command.fp8_weight_scale_mode == "output-channel-amax"
+                    ? microllm::model::Fp8WeightScaleMode::OutputChannelAmax
                     : microllm::model::Fp8WeightScaleMode::Fixed;
             external.model.fp8_activation_scale_mode =
                 command.fp8_activation_scale_mode == "tensor-amax"

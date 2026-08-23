@@ -24,6 +24,7 @@ def main() -> int:
         b"both-roundtrip",
         b"fp8_output_column_scale_calls",
         b"fp8_dynamic_column_calls",
+        b"output-channel-amax",
     )
     missing = [value.decode() for value in required if value not in payload]
     if missing:

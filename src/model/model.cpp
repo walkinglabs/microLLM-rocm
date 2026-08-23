@@ -392,7 +392,12 @@ public:
         ops::ScaledTensor result;
         if (fp8_inference_scale_.defined()) {
             result = {weight_.data(), fp8_inference_scale_, weight_scale_,
-                      fp8_inference_host_scale_available_};
+                      fp8_inference_host_scale_available_,
+                      fp8_inference_scale_mode_};
+        } else if (weight_scale_mode_ ==
+                   Fp8WeightScaleMode::OutputChannelAmax) {
+            result = ops::quantize_fp8_columns_dynamic(
+                weight_.data(), DType::Float8E4M3FNUZ, weight_scale_);
         } else if (weight_scale_mode_ == Fp8WeightScaleMode::DeviceTensorAmax) {
             result = ops::quantize_fp8_dynamic(
                 weight_.data(), DType::Float8E4M3FNUZ, weight_scale_);
@@ -484,6 +489,10 @@ public:
             return ops::quantize_fp8_dynamic(
                 weight_.data(), DType::Float8E4M3FNUZ, weight_scale_);
         }
+        if (weight_scale_mode_ == Fp8WeightScaleMode::OutputChannelAmax) {
+            return ops::quantize_fp8_columns_dynamic(
+                weight_.data(), DType::Float8E4M3FNUZ, weight_scale_);
+        }
         const auto scale = weight_scale_mode_ == Fp8WeightScaleMode::TensorAmax
                                ? tensor_amax_scale(weight_.data(), weight_scale_)
                                : weight_scale_;
@@ -509,6 +518,7 @@ public:
         }
         weight_scale_ = candidate.scale_value;
         fp8_inference_host_scale_available_ = candidate.host_scale_available;
+        fp8_inference_scale_mode_ = candidate.scale_mode;
         fp8_inference_scale_ = std::move(candidate.scale);
         fp8_inference_activation_scale_ = std::move(activation_scale);
         weight_ = Value(std::move(candidate.values), false);
@@ -548,6 +558,7 @@ private:
     Tensor bf16_training_weight_;
     Tensor fp8_inference_scale_;
     bool fp8_inference_host_scale_available_ = true;
+    ops::Fp8ScaleMode fp8_inference_scale_mode_ = ops::Fp8ScaleMode::Scalar;
     Tensor fp8_inference_activation_scale_;
 };
 
@@ -1968,13 +1979,20 @@ Fp8WeightPreparationReport TransformerModel::prepare_fp8_inference_weights() {
                 report.maximum_weight_scale, actual_scale);
         } else {
             report.host_scale_summary_available = false;
-            ++report.device_amax_tensors;
-            report.device_weight_bytes_scanned += elements * sizeof(float);
+            if (linear->weight_data().device().is_hip()) {
+                ++report.device_amax_tensors;
+                report.device_weight_bytes_scanned += elements * sizeof(float);
+            } else if (impl_->config.fp8_weight_scale_mode ==
+                       Fp8WeightScaleMode::OutputChannelAmax) {
+                report.weight_bytes_scanned += elements * sizeof(float);
+            }
         }
         ++report.converted_tensors;
         report.fp32_bytes_released += elements * sizeof(float);
         report.fp8_bytes_retained += elements;
-        report.scale_bytes_retained += sizeof(float);
+        report.scale_bytes_retained +=
+            static_cast<std::uint64_t>(prepared_weight.scale.numel()) *
+            sizeof(float);
         if (candidates.back().activation_scale.defined()) {
             report.scale_bytes_retained += sizeof(float);
         }
