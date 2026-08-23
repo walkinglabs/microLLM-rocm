@@ -12,4 +12,5 @@ Kernel完成前不会被错误覆盖。
 fallback门全部继续通过。
 
 完整Release/MI300回归348/348通过，2个条件跳过，包含fresh CLI binary contract。性能结论仍需
-分别重跑device weight冷启动和T512 dynamic activation，不能由Kernel结构推导。
+分别重跑后，Qwen/Deep weight准备提升24.6×/73.3×，T512 activation提升15.5×/20.6×，且
+max/RMS逐值不变。详见[Experiment 133](../optimization-log/experiments/133-fp8-multiblock-amax.md)。

@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "status": "keep_multiblock_amax_precision_unchanged",
+  "fresh_build": {"steps_passed": 34},
+  "weight_suite": {"workers_passed": 18, "precision_failures": 2},
+  "activation_suite": {"workers_passed": 18, "precision_failures": 2},
+  "decision": {
+    "multiblock_reduction_retained": true,
+    "weight_error_signature_unchanged": true,
+    "activation_error_signature_unchanged": true,
+    "fp8_model_policy_accepted": false
+  }
+}

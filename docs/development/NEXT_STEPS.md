@@ -178,7 +178,9 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] compare official host/device weight amax: device cuts preparation 82%–83%, removes
   host payload scans and keeps TPS within ±2.3%, but is not bit-exact and FP8 gates still fail;
 - [x] replace single-block Tensor amax with at most 1024 partial blocks plus one finalize block;
-- [ ] remeasure official device-weight preparation and full-Tensor activation T512 throughput;
+- [x] remeasure multi-block amax: weight prep gains 24.6x/73.3x and T512 activation
+  gains 15.5x/20.6x with unchanged complete-logit errors;
+- [ ] profile retained multi-block T512 path to separate reduction, quantize, GEMM and fallback time;
 - [ ] replace the one-block reduction only if the next accepted numerical policy reuses it;
 - [ ] replace global FP8 scales with weight per-tensor and activation per-row/token amax,
   starting from saturation/trace evidence rather than top-token search;

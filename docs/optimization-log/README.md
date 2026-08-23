@@ -628,6 +628,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/131-data/](experiments/131-data/) | 36条正式矩阵与3条pilot |
 | [assets/fp8-device-weight-amax.svg](assets/fp8-device-weight-amax.svg) | host/device权重准备时间与冷启动加速 |
 | [experiments/132-data/](experiments/132-data/) | 36条正式、fresh pilot、stale binary与fresh-build失败证据 |
+| [assets/fp8-multiblock-amax.svg](assets/fp8-multiblock-amax.svg) | weight冷启动与T512 activation双重加速 |
+| [experiments/133-data/](experiments/133-data/) | 两套18-worker矩阵与fresh build |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

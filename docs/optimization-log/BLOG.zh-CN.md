@@ -2405,3 +2405,11 @@ device weight amax让Qwen/Deep准备从约2.9/12.3秒降到0.50/2.11秒，host�
 binary contract转绿才正式跑36进程。logits不bit-exact、四个精度门仍失败，所以只保留准备优化。
 
 ![Device weight amax](assets/fp8-device-weight-amax.svg)
+
+## 150. Experiment 133：冷启动快73倍，T512快21倍
+
+最多1024个partial blocks加finalize block，让Qwen/Deep weight准备从501/2112ms降到20/29ms；
+全Tensor dynamic activation T512从4874/2181提升到75518/44975 TPS。两套完整logits误差与
+single-block逐值相同，证明是纯性能优化。FP8精度门仍失败且仍慢于BF16，模型策略不改。
+
+![Multi-block amax](assets/fp8-multiblock-amax.svg)

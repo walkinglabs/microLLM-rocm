@@ -5344,6 +5344,51 @@ def validate_fp8_device_weight_amax(errors: list[str]) -> tuple[int, int, int]:
     return len(raw), len(fp8), len(pilot)
 
 
+def validate_fp8_multiblock_amax(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "133-data"
+    weight_raw = [json.loads(line) for line in (data / "weight" / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines()]
+    activation_raw = [json.loads(line) for line in
+                      (data / "activation" / "raw.jsonl").read_text(
+                          encoding="utf-8").splitlines()]
+    weight = json.loads((data / "weight" / "summary.json").read_text(encoding="utf-8"))
+    activation = json.loads((data / "activation" / "summary.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    build = (data / "fresh-build.log").read_text(encoding="utf-8")
+    if len(weight_raw) != 18 or len(activation_raw) != 18 or any(
+            row.get("status") != "pass" for row in weight_raw + activation_raw):
+        errors.append("multi-block amax raw contract changed")
+    if weight.get("accuracy_failure_count") != 2 or \
+            activation.get("accuracy_failure_count") != 2 or \
+            weight.get("fp8_weight_scale_mode") != "device-tensor-amax" or \
+            activation.get("fp8_activation_scale_mode") != "tensor-amax":
+        errors.append("multi-block amax suite contract changed")
+    weight_fp8 = {row["model"]: row for row in weight["aggregates"]
+                  if row["policy"] == "fp8"}
+    activation_fp8 = {row["model"]: row for row in activation["aggregates"]
+                      if row["policy"] == "fp8"}
+    q_weight = weight_fp8["qwen2.5-0.5b"]
+    d_weight = weight_fp8["deepseek-r1-distill-qwen-1.5b"]
+    q_activation = activation_fp8["qwen2.5-0.5b"]
+    d_activation = activation_fp8["deepseek-r1-distill-qwen-1.5b"]
+    if not 19 < q_weight["weight_preparation_ms_p50"] < 22 or \
+            not 27 < d_weight["weight_preparation_ms_p50"] < 31 or \
+            not 75000 < q_activation["prefill_tokens_per_second_p50"] < 76000 or \
+            not 44000 < d_activation["prefill_tokens_per_second_p50"] < 46000 or \
+            q_weight["root_mean_square_error_max"] != 0.6643638885201558 or \
+            d_weight["root_mean_square_error_max"] != 1.111237406654093 or \
+            q_activation["root_mean_square_error_max"] != 0.2925066092695958 or \
+            d_activation["root_mean_square_error_max"] != 0.249140100254465:
+        errors.append("multi-block amax performance or exact error evidence changed")
+    if "[34/34] Linking HIP executable" not in build or \
+            gates.get("decision", {}).get("multiblock_reduction_retained") is not True or \
+            gates.get("decision", {}).get("weight_error_signature_unchanged") is not True or \
+            gates.get("decision", {}).get("activation_error_signature_unchanged") is not True or \
+            gates.get("decision", {}).get("fp8_model_policy_accepted") is not False:
+        errors.append("multi-block amax build/gates changed")
+    return len(weight_raw) + len(activation_raw), 2, 2
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -5454,7 +5499,8 @@ def validate_assets(errors: list[str]) -> None:
                  "fp8-device-activation-amax.svg",
                  "fp8-activation-row-range.svg",
                  "fp8-ffn-outer-row.svg",
-                 "fp8-device-weight-amax.svg"):
+                 "fp8-device-weight-amax.svg",
+                 "fp8-multiblock-amax.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -5652,6 +5698,8 @@ def main() -> int:
         validate_fp8_ffn_outer_row(errors)
     device_weight_raw, device_weight_failures, device_weight_pilot = \
         validate_fp8_device_weight_amax(errors)
+    multiblock_raw, multiblock_suites, multiblock_failures = \
+        validate_fp8_multiblock_amax(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -5810,6 +5858,7 @@ def main() -> int:
           f"ffn_row={ffn_row_raw}/{ffn_row_failures}/{ffn_row_pilot} "
           f"device_weight={device_weight_raw}/{device_weight_failures}/"
           f"{device_weight_pilot} "
+          f"multiblock={multiblock_raw}/{multiblock_suites}/{multiblock_failures} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

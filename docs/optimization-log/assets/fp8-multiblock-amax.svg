@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="570" viewBox="0 0 1040 570" role="img" aria-labelledby="title desc">
+  <title id="title">FP8 multi-block amax speedups</title><desc id="desc">Multi-block reduction accelerates weight preparation and long-context activation scaling without changing logits errors.</desc>
+  <rect width="1040" height="570" rx="18" fill="#0b1020"/><text x="52" y="52" fill="#f8fafc" font-size="28" font-family="sans-serif" font-weight="700">multi-block amax：冷启动与T512同时恢复</text>
+  <text x="52" y="82" fill="#94a3b8" font-size="16" font-family="sans-serif">相对single-block加速；完整logits误差逐值不变</text>
+  <line x1="70" y1="450" x2="970" y2="450" stroke="#334155"/>
+  <rect x="120" y="351" width="130" height="99" fill="#38bdf8"/><rect x="320" y="157" width="130" height="293" fill="#38bdf8"/><rect x="590" y="388" width="130" height="62" fill="#22c55e"/><rect x="790" y="368" width="130" height="82" fill="#22c55e"/>
+  <g fill="#f8fafc" font-family="sans-serif" font-size="15"><text x="120" y="340">Q weight 24.6×</text><text x="320" y="146">Deep weight 73.3×</text><text x="590" y="377">Q T512 15.5×</text><text x="790" y="357">Deep T512 20.6×</text></g>
+  <g fill="#cbd5e1" font-family="sans-serif" font-size="15"><text x="140" y="500">Q/Deep weight prep：20.3/28.8ms</text><text x="570" y="500">T512达到BF16的81.8%/90.8%</text><text x="210" y="545">性能节点保留；FP8完整精度门仍失败，不改变默认策略</text></g>
+</svg>
