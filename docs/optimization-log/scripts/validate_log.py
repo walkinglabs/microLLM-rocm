@@ -4593,6 +4593,56 @@ def validate_large_precision_roofline(errors: list[str]) -> tuple[int, int, int]
     return len(raw), len(sizes), len(dtypes)
 
 
+def validate_int8_executed_probe(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "121-data"
+    raw = [json.loads(line) for line in
+           (data / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    preflight = [json.loads(line) for line in
+                 (data / "gpu2-preflight.jsonl").read_text(
+                     encoding="utf-8").splitlines()]
+    sizes = {row.get("size") for row in raw}
+    if len(raw) != 6 or sizes != {128, 256, 512, 1024, 2048, 4096} or any(
+            row.get("op") != "int8_matmul" or
+            row.get("input_dtype") != "int8" or
+            row.get("output_dtype") != "int32" or
+            row.get("sample_count") != 5 or
+            row.get("maximum_sample_error") != 0 or
+            row.get("accuracy_passed") is not True or
+            row.get("pre_run_gpu_state", {}).get("vram_percent") != 0 or
+            row.get("pre_run_gpu_state", {}).get("gpu_use_percent", 99) > 1 or
+            row.get("post_run_gpu_state", {}).get("vram_percent") != 0 or
+            row.get("post_run_gpu_state", {}).get("gpu_use_percent", 99) > 4
+            for row in raw):
+        errors.append("INT8 executed probe raw/exact evidence changed")
+    by_size = {row["size"]: row for row in raw}
+    if not 290.0 < by_size[2048]["achieved_tops"] < 310.0 or \
+            not 405.0 < by_size[4096]["achieved_tops"] < 425.0 or \
+            not 0.15 < by_size[4096]["official_peak_utilization"] < 0.17:
+        errors.append("INT8 executed probe TOPS/utilization changed")
+    if summary.get("status") != "pass" or \
+            summary.get("best", {}).get("size") != 4096 or \
+            "no public Tensor dtype" not in summary.get("boundary", ""):
+        errors.append("INT8 executed probe summary/boundary changed")
+    if len(preflight) != 3 or any(
+            row.get("card2", {}).get("GPU use (%)") != "0" or
+            row.get("card2", {}).get("GPU Memory Allocated (VRAM%)") != "0"
+            for row in preflight):
+        errors.append("INT8 executed probe preflight changed")
+    if gates.get("status") != "keep_raw_int8_executed_probe" or \
+            gates.get("formal_matrix", {}).get("passed") != 6 or \
+            gates.get("decision", {}).get("raw_int8_kernel_executed") is not True or \
+            gates.get("decision", {}).get("public_tensor_int8") is not False:
+        errors.append("INT8 executed probe gates changed")
+    worker = (REPOSITORY / "benchmarks" / "micro" /
+              "benchmark_int8.cpp").read_text(encoding="utf-8")
+    if "HIPBLAS_COMPUTE_32I" not in worker or "HIP_R_8I" not in worker or \
+            "maximum_sample_error" not in worker:
+        errors.append("INT8 raw worker execution or exact-sample gate missing")
+    return len(raw), sum(row["sample_count"] for row in raw), 1
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -4691,7 +4741,8 @@ def validate_assets(errors: list[str]) -> None:
                  "compatible-overflow.svg",
                  "slot-ratio-sweep.svg",
                  "mi300-precision-roofline.svg",
-                 "large-precision-roofline.svg"):
+                 "large-precision-roofline.svg",
+                 "mi300-int8-probe.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -4866,6 +4917,7 @@ def main() -> int:
         validate_mi300_precision_roofline(errors)
     large_roofline_raw, large_roofline_sizes, large_roofline_dtypes = \
         validate_large_precision_roofline(errors)
+    int8_raw, int8_samples, int8_paths = validate_int8_executed_probe(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -5006,6 +5058,7 @@ def main() -> int:
           f"{roofline_dtypes} "
           f"large_roofline={large_roofline_raw}/{large_roofline_sizes}/"
           f"{large_roofline_dtypes} "
+          f"int8_probe={int8_raw}/{int8_samples}/{int8_paths} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

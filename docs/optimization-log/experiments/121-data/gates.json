@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "status": "keep_raw_int8_executed_probe",
+  "full_release": {
+    "passed": 319,
+    "failed": 0,
+    "skipped": 2
+  },
+  "sanitizer": {
+    "passed": 215,
+    "failed": 0
+  },
+  "python_contract": {
+    "passed": 3,
+    "failed": 0
+  },
+  "hip_smoke": {
+    "passed": 1,
+    "failed": 0
+  },
+  "formal_matrix": {
+    "passed": 6,
+    "failed": 0,
+    "exact_sample_shapes": 6,
+    "pre_vram_percent_max": 0,
+    "pre_use_percent_max": 1,
+    "post_vram_percent_max": 0,
+    "post_use_percent_max": 4
+  },
+  "decision": {
+    "raw_int8_kernel_executed": true,
+    "public_tensor_int8": false,
+    "transformer_int8": false,
+    "int4_executed": false
+  }
+}

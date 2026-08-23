@@ -417,6 +417,9 @@ peak-speculation with executed FP32/FP16/BF16/FP8 roofline data: FP8 is slower t
 [Experiment 120](docs/optimization-log/experiments/120-large-precision-roofline.md) extends the
 matrix to 2048/4096 with an explicit FP32 GPU-reference boundary; FP8 reaches 477 TFLOPS at 4096,
 4.31x FP32 but only 18.25% of its official peak.
+[Experiment 121](docs/optimization-log/experiments/121-int8-executed-probe.md) executes raw
+hipBLASLt INT8xINT8→INT32 through 4096³ (416 TOPS, exact CPU samples) while explicitly keeping
+public Tensor and Transformer INT8 support out of scope.
 
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or

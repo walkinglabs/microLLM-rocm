@@ -38,7 +38,7 @@ MI300X 没有 CDNA4 的原生 MXFP4 Matrix Core。仓库可以保存 packed FP4 
 | CPU 构造/读取/cast | ✓ | ✓ | ✓ | 计划中 | 计划中 | 计划中 |
 | view/contiguous/设备复制 | ✓ | ✓ | ✓ | 计划中 | 计划中 | 计划中 |
 | 基础逐元素/SiLU/SwiGLU/GEMM | ✓ | CPU/MI300X ✓ | CPU/MI300X ✓ | — | — | — |
-| hipBLASLt GEMM | FP32 ✓ | MI300X ✓ | MI300X ✓ | MI300X E4M3/E5M2 FNUZ ✓ | 计划中 | 软件解包后计算 |
+| hipBLASLt GEMM | FP32 ✓ | MI300X ✓ | MI300X ✓ | MI300X E4M3/E5M2 FNUZ ✓ | raw INT8×INT8→INT32 probe ✓；公共API未实现 | 软件解包后计算 |
 | Transformer Linear 训练/推理 | FP32 | 计划中 | 单份 FFN+Attention 推理 ✓；FP32-master Linear训练 ✓ | FP8 forward + FP32 master/backward/KV decode ✓ | — | — |
 
 表格中的“计划中”不是支持声明。只有对应测试和真机记录完成后才会改成 ✓。
@@ -57,6 +57,10 @@ hipBLASLt FP32 为 `0.919×–0.966×`，1024³ 才达到 `1.107×`；该点 FP8
 1.73×/4.31×、FP16的1.10×/1.42×。4096 FP8仍只占官方峰值18.25%，而FP32达到67.83%。
 大矩阵证明FP8有真实加速，也证明当前低精度路径尚未饱和。详见
 [Experiment 120](optimization-log/experiments/120-large-precision-roofline.md)。
+
+独立raw INT8 probe已实际提交hipBLASLt Kernel：4096³达到416.03 TOPS、官方峰值15.91%，每个
+shape五个CPU整数抽样点exact。它不改变上表中Tensor/Transformer INT8仍未实现的状态；详见
+[Experiment 121](optimization-log/experiments/121-int8-executed-probe.md)。
 
 ## 4. 类型提升规则
 

@@ -1,0 +1,273 @@
+{
+  "architecture": "gfx942",
+  "best": {
+    "accuracy_passed": true,
+    "achieved_tops": 416.032225606,
+    "arithmetic_intensity_ops_per_byte": 1365.3333333333333,
+    "bandwidth_bound_tops": 7236.266666666666,
+    "input_dtype": "int8",
+    "maximum_sample_error": 0,
+    "median_ms": 0.330356508,
+    "official_peak_tops": 2614.9,
+    "official_peak_utilization": 0.159100625,
+    "op": "int8_matmul",
+    "output_dtype": "int32",
+    "p95_ms": 0.352570055,
+    "post_run_gpu_state": {
+      "gpu_use_percent": 4,
+      "physical_gpu_index": 2,
+      "vram_percent": 0
+    },
+    "pre_run_gpu_state": {
+      "gpu_use_percent": 1,
+      "physical_gpu_index": 2,
+      "vram_percent": 0
+    },
+    "repetitions": 20,
+    "roofline_bound_tops": 2614.9,
+    "roofline_utilization": 0.1591006254946652,
+    "sample_count": 5,
+    "schema_version": 1,
+    "shape": [
+      4096,
+      4096,
+      4096
+    ],
+    "size": 4096,
+    "warmup": 5
+  },
+  "boundary": "raw hipBLASLt INT8xINT8->INT32 square GEMM; five exact CPU samples; no public Tensor dtype, quantizer, scale/zero-point, or Transformer policy",
+  "official_memory_bandwidth_tbps": 5.3,
+  "official_peak_tops": 2614.9,
+  "repetitions": 20,
+  "rows": [
+    {
+      "accuracy_passed": true,
+      "achieved_tops": 0.402369907,
+      "arithmetic_intensity_ops_per_byte": 42.666666666666664,
+      "bandwidth_bound_tops": 226.13333333333333,
+      "input_dtype": "int8",
+      "maximum_sample_error": 0,
+      "median_ms": 0.010424,
+      "official_peak_tops": 2614.9,
+      "official_peak_utilization": 0.000153876,
+      "op": "int8_matmul",
+      "output_dtype": "int32",
+      "p95_ms": 0.011472,
+      "post_run_gpu_state": {
+        "gpu_use_percent": 3,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "pre_run_gpu_state": {
+        "gpu_use_percent": 0,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "repetitions": 20,
+      "roofline_bound_tops": 226.13333333333333,
+      "roofline_utilization": 0.0017793480557193398,
+      "sample_count": 5,
+      "schema_version": 1,
+      "shape": [
+        128,
+        128,
+        128
+      ],
+      "size": 128,
+      "warmup": 5
+    },
+    {
+      "accuracy_passed": true,
+      "achieved_tops": 2.547792921,
+      "arithmetic_intensity_ops_per_byte": 85.33333333333333,
+      "bandwidth_bound_tops": 452.26666666666665,
+      "input_dtype": "int8",
+      "maximum_sample_error": 0,
+      "median_ms": 0.01317,
+      "official_peak_tops": 2614.9,
+      "official_peak_utilization": 0.000974337,
+      "op": "int8_matmul",
+      "output_dtype": "int32",
+      "p95_ms": 0.014241,
+      "post_run_gpu_state": {
+        "gpu_use_percent": 3,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "pre_run_gpu_state": {
+        "gpu_use_percent": 1,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "repetitions": 20,
+      "roofline_bound_tops": 452.26666666666665,
+      "roofline_utilization": 0.005633386470371463,
+      "sample_count": 5,
+      "schema_version": 1,
+      "shape": [
+        256,
+        256,
+        256
+      ],
+      "size": 256,
+      "warmup": 5
+    },
+    {
+      "accuracy_passed": true,
+      "achieved_tops": 16.90825418,
+      "arithmetic_intensity_ops_per_byte": 170.66666666666666,
+      "bandwidth_bound_tops": 904.5333333333333,
+      "input_dtype": "int8",
+      "maximum_sample_error": 0,
+      "median_ms": 0.015876001,
+      "official_peak_tops": 2614.9,
+      "official_peak_utilization": 0.006466119,
+      "op": "int8_matmul",
+      "output_dtype": "int32",
+      "p95_ms": 0.016494,
+      "post_run_gpu_state": {
+        "gpu_use_percent": 4,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "pre_run_gpu_state": {
+        "gpu_use_percent": 1,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "repetitions": 20,
+      "roofline_bound_tops": 904.5333333333333,
+      "roofline_utilization": 0.01869279279923349,
+      "sample_count": 5,
+      "schema_version": 1,
+      "shape": [
+        512,
+        512,
+        512
+      ],
+      "size": 512,
+      "warmup": 5
+    },
+    {
+      "accuracy_passed": true,
+      "achieved_tops": 66.871678641,
+      "arithmetic_intensity_ops_per_byte": 341.3333333333333,
+      "bandwidth_bound_tops": 1809.0666666666666,
+      "input_dtype": "int8",
+      "maximum_sample_error": 0,
+      "median_ms": 0.0321135,
+      "official_peak_tops": 2614.9,
+      "official_peak_utilization": 0.025573322,
+      "op": "int8_matmul",
+      "output_dtype": "int32",
+      "p95_ms": 0.033386351,
+      "post_run_gpu_state": {
+        "gpu_use_percent": 3,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "pre_run_gpu_state": {
+        "gpu_use_percent": 1,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "repetitions": 20,
+      "roofline_bound_tops": 1809.0666666666666,
+      "roofline_utilization": 0.036964739814821644,
+      "sample_count": 5,
+      "schema_version": 1,
+      "shape": [
+        1024,
+        1024,
+        1024
+      ],
+      "size": 1024,
+      "warmup": 5
+    },
+    {
+      "accuracy_passed": true,
+      "achieved_tops": 299.141904297,
+      "arithmetic_intensity_ops_per_byte": 682.6666666666666,
+      "bandwidth_bound_tops": 3618.133333333333,
+      "input_dtype": "int8",
+      "maximum_sample_error": 0,
+      "median_ms": 0.0574305,
+      "official_peak_tops": 2614.9,
+      "official_peak_utilization": 0.114398984,
+      "op": "int8_matmul",
+      "output_dtype": "int32",
+      "p95_ms": 0.062735751,
+      "post_run_gpu_state": {
+        "gpu_use_percent": 3,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "pre_run_gpu_state": {
+        "gpu_use_percent": 1,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "repetitions": 20,
+      "roofline_bound_tops": 2614.9,
+      "roofline_utilization": 0.1143989843959616,
+      "sample_count": 5,
+      "schema_version": 1,
+      "shape": [
+        2048,
+        2048,
+        2048
+      ],
+      "size": 2048,
+      "warmup": 5
+    },
+    {
+      "accuracy_passed": true,
+      "achieved_tops": 416.032225606,
+      "arithmetic_intensity_ops_per_byte": 1365.3333333333333,
+      "bandwidth_bound_tops": 7236.266666666666,
+      "input_dtype": "int8",
+      "maximum_sample_error": 0,
+      "median_ms": 0.330356508,
+      "official_peak_tops": 2614.9,
+      "official_peak_utilization": 0.159100625,
+      "op": "int8_matmul",
+      "output_dtype": "int32",
+      "p95_ms": 0.352570055,
+      "post_run_gpu_state": {
+        "gpu_use_percent": 4,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "pre_run_gpu_state": {
+        "gpu_use_percent": 1,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "repetitions": 20,
+      "roofline_bound_tops": 2614.9,
+      "roofline_utilization": 0.1591006254946652,
+      "sample_count": 5,
+      "schema_version": 1,
+      "shape": [
+        4096,
+        4096,
+        4096
+      ],
+      "size": 4096,
+      "warmup": 5
+    }
+  ],
+  "schema_version": 1,
+  "sizes": [
+    128,
+    256,
+    512,
+    1024,
+    2048,
+    4096
+  ],
+  "status": "pass",
+  "track": "mi300_executed_int8_probe",
+  "warmup": 5
+}

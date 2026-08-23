@@ -142,7 +142,9 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   accuracy, Event P95, achieved TFLOPS and MI300 peak/bandwidth roofline;
 - [x] add explicit FP32-GPU-reference 2048/4096 roofline: FP8 reaches 477 TFLOPS,
   4.31x FP32 and 1.42x FP16, but only 18.25% of official FP8 peak;
-- [ ] add a separate executed INT8 probe with integer accumulation/output contracts;
+- [x] execute raw hipBLASLt INT8xINT8→INT32 for 128–4096 with exact CPU samples;
+  4096 reaches 416 TOPS and 15.91% official peak;
+- [ ] decide and implement a weight-only INT8 Tensor/scale contract before any model claim;
 - [ ] FP8 weight/activation scales and accumulation policy for official-model end-to-end runs;
 - [ ] expert/tensor/data parallel weight placement and communication;
 - [ ] multi-node fault handling and profiler timeline;

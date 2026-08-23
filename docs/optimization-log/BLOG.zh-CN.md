@@ -2303,3 +2303,11 @@ long-heavy吞吐只剩57%，P95约3×。delayed流量没有收益，吞吐与延
 说明低精度已经有真实加速但仍未饱和。reference边界、0.04级误差和无INT8执行都写进raw。
 
 ![Large precision roofline](assets/large-precision-roofline.svg)
+
+## 138. Experiment 121：INT8真实跑到416 TOPS
+
+能力表升级为executed证据：raw hipBLASLt INT8×INT8→INT32覆盖128–4096，六个shape每个5个
+CPU抽样点exact。4096达到416TOPS、官方峰值15.91%。这仍不是公共Tensor或模型INT8；scale、
+zero-point、量化器和Transformer路径全部明确未实现。
+
+![MI300 INT8 probe](assets/mi300-int8-probe.svg)
