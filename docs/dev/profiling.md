@@ -85,6 +85,19 @@ The schema-versioned JSONL loader is transactional. Architecture, HIP runtime/dr
 hipBLASLt mismatches are reported as stale and never activated. Persistence does not turn
 registration into an autotuner; correctness-before-timing is still required.
 
+The matmul harness now implements that missing order:
+
+```bash
+./build/hip-release/benchmarks/microllm_tune_matmul \
+  --m 128 --k 128 --n 128 --dtype fp32 \
+  --warmup 3 --repetitions 10 --mode inference --accept false
+```
+
+Every candidate first compares its complete output with Readable. A failed candidate has
+zero timing fields. Passing candidates receive default-Stream HIP Event and synchronized
+wall P50/P95. The command only screens by default; `--accept true --cache-output ...` is
+explicit and still requires a separate model end-to-end regression.
+
 `microllm_bench_ops` 的 matmul 路径还接受 `--batch`，例如：
 
 ```bash

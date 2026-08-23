@@ -70,6 +70,8 @@
     "clear_matmul_implementation_registry": "tests/ops/hip_ops_test.cpp",
     "matmul_registered_implementation_count": "tests/ops/hip_ops_test.cpp",
     "save_matmul_tuning_cache": "tests/ops/ops_test.cpp",
+    "autotune_matmul": "tests/ops/hip_ops_test.cpp",
+    "register_matmul_autotune_winner": "tests/ops/hip_ops_test.cpp",
     "kv_cache_store_": "tests/ops/ops_test.cpp",
     "kv_cache_store_pair_": "tests/ops/hip_ops_test.cpp",
     "kv_cache_store_pair_positions_": "tests/ops/ops_test.cpp",

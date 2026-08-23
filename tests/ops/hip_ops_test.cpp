@@ -9,6 +9,7 @@
 #include <gtest/gtest.h>
 #include <microllm/ops/ops.h>
 #include <microllm/ops/low_level.h>
+#include <microllm/ops/tuning.h>
 #include <microllm/runtime/runtime.h>
 #include <microllm/runtime/memory.h>
 #include <microllm/inference/generator.h>
@@ -2906,6 +2907,72 @@ TEST(HipOptimizedOpsTest, MatmulTuningCacheRestoresOnlyCurrentEnvironment) {
     clear_matmul_implementation_registry();
     std::error_code ignored;
     std::filesystem::remove(path, ignored);
+}
+
+TEST(HipOptimizedOpsTest, MatmulAutotuneChecksCorrectnessBeforeTiming) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    std::vector<float> left_values(64 * 64);
+    std::vector<float> right_values(64 * 64);
+    for (std::size_t index = 0; index < left_values.size(); ++index) {
+        left_values[index] =
+            static_cast<float>(static_cast<int>(index % 29) - 14) / 29.0F;
+        right_values[index] =
+            static_cast<float>(static_cast<int>(index % 17) - 8) / 17.0F;
+    }
+    const auto left = Tensor::from_vector(left_values, {64, 64}).to(gpu);
+    const auto right = Tensor::from_vector(right_values, {64, 64}).to(gpu);
+    runtime::enable_hip_caching_allocator(gpu);
+    ASSERT_TRUE(runtime::hip_caching_allocator_enabled(gpu));
+    MatmulAutotuneOptions options;
+    options.warmup = 1;
+    options.repetitions = 5;
+    options.mode = OpMode::Inference;
+    const auto report = autotune_matmul(left, right, false, false, options);
+    EXPECT_EQ(report.reference_elements, 4096);
+    EXPECT_EQ(report.key.mode, OpMode::Inference);
+    ASSERT_EQ(report.candidates.size(), 2U);
+    for (const auto& candidate : report.candidates) {
+        EXPECT_TRUE(candidate.supported) << candidate.failure;
+        EXPECT_TRUE(candidate.correctness_passed) << candidate.failure;
+        EXPECT_TRUE(candidate.finite);
+        EXPECT_GT(candidate.event_ms_p50, 0.0);
+        EXPECT_GE(candidate.event_ms_p95, candidate.event_ms_p50);
+        EXPECT_GT(candidate.wall_ms_p50, 0.0);
+        EXPECT_GE(candidate.wall_ms_p95, candidate.wall_ms_p50);
+    }
+    EXPECT_NE(report.recommended, MatmulImplementation::Auto);
+    EXPECT_TRUE(runtime::hip_caching_allocator_enabled(gpu))
+        << "autotune must not create a non-default Stream and disable the pool";
+    clear_matmul_implementation_registry();
+    register_matmul_autotune_winner(report);
+    EXPECT_EQ(matmul_registered_implementation_count(), 1U);
+    EXPECT_EQ(choose_matmul_implementation(left, right, false, false,
+                                            OpContext{.mode = OpMode::Inference}),
+              report.recommended);
+    clear_matmul_implementation_registry();
+
+    const auto fp16_left = Tensor::from_vector(
+        left_values, {64, 64}, DType::Float16).to(gpu);
+    const auto fp16_right = Tensor::from_vector(
+        right_values, {64, 64}, DType::Float16).to(gpu);
+    MatmulAutotuneOptions exact = options;
+    exact.repetitions = 3;
+    exact.maximum_absolute_tolerance = 0.0F;
+    exact.rms_tolerance = 0.0F;
+    const auto strict = autotune_matmul(
+        fp16_left, fp16_right, false, false, exact);
+    const auto hipblaslt = std::find_if(
+        strict.candidates.begin(), strict.candidates.end(),
+        [](const auto& candidate) {
+            return candidate.implementation == MatmulImplementation::HipBLASLt;
+        });
+    ASSERT_NE(hipblaslt, strict.candidates.end());
+    EXPECT_TRUE(hipblaslt->supported);
+    EXPECT_FALSE(hipblaslt->correctness_passed);
+    EXPECT_EQ(hipblaslt->event_ms_p50, 0.0)
+        << "a failed correctness candidate must never enter timing";
+    EXPECT_EQ(strict.recommended, MatmulImplementation::Readable);
 }
 
 

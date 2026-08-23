@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "fp32_64": {
+    "complete_candidates": 2,
+    "correct_candidates": 2,
+    "accepted": false
+  },
+  "fp32_128": {
+    "complete_candidates": 2,
+    "correct_candidates": 2,
+    "recommended": "hipblaslt",
+    "accepted": true,
+    "cache_entries": 1
+  },
+  "fp16_zero_tolerance": {
+    "readable_correct": true,
+    "hipblaslt_correct": false,
+    "hipblaslt_event_ms_p50": 0.0,
+    "hipblaslt_event_ms_p95": 0.0,
+    "recommended": "readable"
+  },
+  "default_stream_allocator_preserved": true,
+  "automatic_registration": false,
+  "end_to_end_acceptance_external": true,
+  "full_cpu_tests": "254/254",
+  "full_cpu_hip_tests": "375/375",
+  "asan_ubsan_tests": "252/252",
+  "pytorch_enabled_cpu_tests": "228/228"
+}

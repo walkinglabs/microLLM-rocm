@@ -17,6 +17,7 @@ TEST(RuntimeTest, CpuStreamAndEventHaveSynchronousSemantics) {
     EXPECT_TRUE(event.ready());
     event.wait(stream);
     stream.synchronize();
+    EXPECT_THROW(event.record_default_stream(), std::runtime_error);
 }
 
 TEST(RuntimeTest, CpuCopyRoundTripsBytes) {

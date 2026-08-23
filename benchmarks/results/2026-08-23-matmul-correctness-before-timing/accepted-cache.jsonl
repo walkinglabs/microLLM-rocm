@@ -1,0 +1,2 @@
+{"schema_version":1,"kind":"microllm_matmul_tuning_cache"}
+{"schema_version":1,"kind":"entry","rows":128,"inner":128,"columns":128,"dtype":"float32","transpose_left":false,"transpose_right":false,"left_strides":[128,1],"right_strides":[128,1],"architecture":"gfx942:sramecc+:xnack-","hip_runtime_version":71399004,"hip_driver_version":71399004,"hipblaslt_version":10300,"mode":"inference","workspace_limit":0,"implementation":"hipblaslt"}

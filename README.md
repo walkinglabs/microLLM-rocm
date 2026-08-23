@@ -63,6 +63,8 @@ needed to run a real training and generation loop:
 - an exact matmul tuning key covering dtype, layout/strides, GPU architecture, HIP/driver/
   hipBLASLt versions, inference/training mode and workspace budget, plus transactional persistent
   JSONL save/load with stale-environment filtering;
+- correctness-before-timing matmul autotuning: complete finite Max/RMS gates precede default-Stream
+  HIP Event and wall P50/P95; screening never registers a winner without explicit acceptance;
 - deterministic block reductions with a post-read barrier; the fix turns repeated fused Attention
   from 20/20 differing outputs to bit-exact while keeping measured T128/B8 training neutral;
 - a phase-independent exact-size HIP pool with immediate legacy-default-Stream reuse and strict
@@ -324,14 +326,14 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 372/372 | 258 CPU-labelled + 115 HIP-labelled gates; the package gate belongs to both labels; 2 intentional environment skips |
-| ASan/UBSan CPU | 251/251 | host code, CLI, model/graph, benchmark and evidence schemas |
-| MI300X/gfx942 HIP preset | 115/115 | 114 allocator/stream, graph, BF16/FP8, batched GEMM and model gates + 1 installed-package gate |
-| PyTorch-enabled CPU build | 227/227 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
+| Full CPU/HIP configuration | 375/375 | 259 CPU-labelled + 117 HIP-labelled gates; the package gate belongs to both labels; 2 intentional environment skips |
+| ASan/UBSan CPU | 252/252 | host code, CLI, model/graph, benchmark and evidence schemas |
+| MI300X/gfx942 HIP preset | 117/117 | 116 allocator/stream, graph, autotune, BF16/FP8 and model gates + 1 installed-package gate |
+| PyTorch-enabled CPU build | 228/228 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
 | Registered test files | 54 | machine-audited CTest registration |
 | Installed CMake package | CPU + HIP + RCCL pass | relocated prefix, external `find_package`, components, compile, static link and run |
-| CPU source coverage | 82.7% lines / 63.4% branches | 6,837/8,265 lines and 6,647/10,476 branches; GCC 13.3 + gcovr 8.3 |
+| CPU source coverage | 81.5% lines / 62.7% branches | 6,854/8,411 lines and 6,669/10,644 branches; GCC 13.3 + gcovr 8.3 |
 
 Latest PyTorch-reference maximum absolute differences:
 

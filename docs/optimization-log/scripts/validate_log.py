@@ -6792,6 +6792,68 @@ def validate_matmul_persistent_cache(errors: list[str]) -> tuple[int, int]:
     return len(contracts), int(verification.get("status") == "pass")
 
 
+def validate_matmul_correctness_before_timing(
+        errors: list[str]) -> tuple[int, int, int]:
+    data = REPOSITORY / (
+        "benchmarks/results/2026-08-23-matmul-correctness-before-timing")
+    verification = json.loads(
+        (data / "verification.json").read_text(encoding="utf-8"))
+    small = json.loads((data / "fp32-64-screen.json").read_text(encoding="utf-8"))
+    accepted = json.loads((data / "fp32-128-accepted.json").read_text(
+        encoding="utf-8"))
+    strict = json.loads((data / "fp16-strict-rejection.json").read_text(
+        encoding="utf-8"))
+    cache_lines = [json.loads(line) for line in (
+        data / "accepted-cache.jsonl").read_text(encoding="utf-8").splitlines()
+                   if line.strip()]
+    if verification.get("status") != "pass" or \
+            verification.get("automatic_registration") is not False or \
+            verification.get("end_to_end_acceptance_external") is not True or \
+            verification.get("full_cpu_hip_tests") != "375/375" or \
+            small.get("accepted") is not False or \
+            len(small.get("candidates", [])) != 2 or \
+            any(candidate.get("correctness_passed") is not True or
+                not candidate.get("event_ms_p50", 0) > 0 or
+                not candidate.get("event_ms_p95", 0) >=
+                    candidate.get("event_ms_p50", 0)
+                for candidate in small.get("candidates", [])):
+        errors.append("matmul autotune FP32 screening evidence changed")
+    if accepted.get("accepted") is not True or \
+            accepted.get("recommended") != "hipblaslt" or \
+            len(cache_lines) != 2 or cache_lines[0].get("schema_version") != 1 or \
+            cache_lines[1].get("implementation") != "hipblaslt" or \
+            cache_lines[1].get("rows") != 128:
+        errors.append("matmul autotune explicit acceptance/cache evidence changed")
+    strict_by_name = {
+        candidate["implementation"]: candidate
+        for candidate in strict.get("candidates", [])
+    }
+    rejected = strict_by_name.get("hipblaslt", {})
+    if strict.get("recommended") != "readable" or \
+            strict_by_name.get("readable", {}).get("correctness_passed") is not True or \
+            rejected.get("correctness_passed") is not False or \
+            rejected.get("event_ms_p50") != 0.0 or \
+            rejected.get("event_ms_p95") != 0.0 or \
+            rejected.get("wall_ms_p50") != 0.0 or \
+            rejected.get("failure") != "complete-output correctness gate failed":
+        errors.append("matmul autotune correctness-before-timing rejection changed")
+    source = (REPOSITORY / "src/ops/tuning.cpp").read_text(encoding="utf-8")
+    tests = (REPOSITORY / "tests/ops/hip_ops_test.cpp").read_text(encoding="utf-8")
+    cli = (REPOSITORY / "benchmarks/micro/tune_matmul.cpp").read_text(
+        encoding="utf-8")
+    if "const auto error = compare_complete" not in source or \
+            source.find("const auto error = compare_complete") > \
+                source.find("start.record_default_stream") or \
+            "runtime::Stream" in source or \
+            "register_matmul_autotune_winner" not in source or \
+            "MatmulAutotuneChecksCorrectnessBeforeTiming" not in tests or \
+            "end-to-end acceptance remains external" not in cli:
+        errors.append("matmul autotune source/test ordering contract changed")
+    return len(small.get("candidates", [])), \
+        int(rejected.get("correctness_passed") is False), \
+        len(cache_lines) - 1
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -7174,6 +7236,8 @@ def main() -> int:
         validate_block_reduction_determinism(errors)
     registry_fields, registry_passed = validate_matmul_exact_registry(errors)
     cache_contracts, cache_passed = validate_matmul_persistent_cache(errors)
+    tune_candidates, tune_rejected, tune_cache_entries = \
+        validate_matmul_correctness_before_timing(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -7369,6 +7433,8 @@ def main() -> int:
           f"{reduction_full} "
           f"exact_registry={registry_fields}/{registry_passed} "
           f"persistent_registry={cache_contracts}/{cache_passed} "
+          f"matmul_autotune={tune_candidates}/{tune_rejected}/"
+          f"{tune_cache_entries} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

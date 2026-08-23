@@ -105,8 +105,9 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] make the matmul registry key exact over its implicit op identity, GPU architecture,
   dtype, shape, strides/layout, mode, workspace limit, and library/runtime versions;
 - [ ] register multiple candidates for every hotspot, not only 2D matmul;
-- [ ] correctness gate before timing;
-- [ ] warm-up, repeated Event timing, median/percentiles, and end-to-end regression;
+- [x] gate every matmul candidate with complete finite Max/RMS before timing;
+- [x] warm up and repeat HIP Event/wall timing with P50/P95 for passing candidates;
+- [ ] automate the model end-to-end regression before accepting a recommendation;
 - [x] persist exact matmul decisions with schema validation, atomic replacement,
   transactional duplicate/corruption rejection and environment-version invalidation;
 - [x] schema-versioned `TraceSession`, scoped activation, and RAII `TraceTimer` C++ API;

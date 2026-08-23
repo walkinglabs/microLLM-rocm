@@ -4,8 +4,8 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| CPU configuration | smoke-tested | full CPU/HIP gate 372/372 with 258 CPU and 115 HIP labels; ASan/UBSan 251/251 | broader compiler/OS CI matrix |
-| CPU code coverage | smoke-tested | 82.7% lines, 90.7% functions, 63.4% branches over `src/` + `include/` | split CPU/HIP reports and add justified thresholds |
+| CPU configuration | smoke-tested | full CPU/HIP gate 375/375 with 259 CPU and 117 HIP labels; ASan/UBSan 252/252 | broader compiler/OS CI matrix |
+| CPU code coverage | smoke-tested | 81.5% lines, 90.1% functions, 62.7% branches over `src/` + `include/` | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, native cast, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
 | Tensor metadata/views | smoke-tested | hand values, randomized shapes, bounds | more dtypes |
@@ -53,14 +53,14 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Serving scheduler | smoke-tested | slot-ratio matrix 48/48 token-exact; matched 6:2 short and 2:6 long retain 85%–87% throughput while reducing KV 56%/19% | safe dynamic ratio transition and allocator cost; uniform remains default, overflow opt-in |
 | Stable model failure | smoke-tested | low-loss cycle breaks beyond training context | rebuttal experiments |
 | PyTorch Custom Ops | smoke-tested on CPU | Torch 2.13 add/multiply via dispatcher | build/run with PyTorch ROCm |
-| PyTorch correctness oracle | smoke-tested | PyTorch-enabled 227/227; 30+ Tensor APIs, 29 graph APIs, inference matrix and model/optimizer parity | broader direct PyTorch ROCm operator matrix |
+| PyTorch correctness oracle | smoke-tested | PyTorch-enabled 228/228; 30+ Tensor APIs, 29 graph APIs, inference matrix and model/optimizer parity | broader direct PyTorch ROCm operator matrix |
 | PyTorch ROCm environment | smoke-tested | Torch 2.10.0+rocm7.13 and Transformers 5.8.1 run official Qwen/DeepSeek BF16 training on MI300X with native device discovery | additional Torch/ROCm versions and Radeon |
 | C ABI v1 | smoke-tested | pure C CPU/HIP create/copy/ops/error client | zero-copy external views |
 | Python ctypes API | smoke-tested | CPU/HIP Tensor/ops/error unittest | packaging/broader ops |
 | External TensorView ops | smoke-tested | caller-owned CPU/HIP buffers and Stream | Torch build validation |
 | In-process profiling | smoke-tested | TraceSession/TraceTimer, values/operator/layer passes, CPU/HIP tests | async Event completion/rocprof markers/Python decorator |
 | Cross-framework alignment | smoke-tested | CPU and MI300X both pass 58/58 forward/loss/all-parameter-gradient checkpoints, plus op/layer/backward timings | Qwen/DeepSeek runners/direct PyTorch ROCm |
-| Profiling/autotune | smoke-tested | rocprofv3, exact environment registry, persistent version-filtered cache and continuous-only raw pftrace | correctness-before-timing candidate tuner and official-model serving trace |
+| Profiling/autotune | smoke-tested | rocprofv3, exact persistent registry, complete-output-before-Event matmul tuner and continuous-only raw pftrace | automated model regression and official-model serving trace |
 | Micro-benchmark harness | smoke-tested | CPU/HIP Event+wall JSONL and error gate | PyTorch operator timing/more shapes |
 | Engine allocation tracker | smoke-tested | CPU/HIP current/peak/total accounting | external allocator integration |
 | End-to-end benchmark | smoke-tested | matched Python/PyTorch ROCm official training plus phase-separated prefill and one-forward-per-token steady-decode JSONL | serving concurrency, board-level memory and llama.cpp |
@@ -69,7 +69,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Optimization experiment journal | implemented | experiments through 156; raw evidence, rejection gates and generated SVGs validated in CTest | HIP Graph, Radeon and production data-parallel tracks |
 | rocprofv3 workflow | smoke-tested | kernel/HIP API/memory/full trace generated | release artifact retention |
 | hipBLASLt matmul | smoke-tested | FP32/BF16, rank-N strided batches, four transpose contracts, Model-S and T≥256 Attention forward/backward | workspace-aware candidate enumeration/timing |
-| Matmul tuning registry | smoke-tested | exact key plus deterministic atomic JSONL cache and stale-version filtering | correctness-before-timing autotuner |
+| Matmul tuning registry | smoke-tested | exact persistent key plus complete-output gate, Event/wall P50/P95 and explicit acceptance | solution-index enumeration and automatic model regression |
 | RCCL two-GPU baseline | smoke-tested | XGMI average and global-batch parameter equivalence | buckets/4 GPU/failure timing |
 | DataParallelTrainer | smoke-tested | 3-step two-rank/global-batch equivalence, rank diff 0, stage trace | one-process-per-GPU/gradient-ready overlap |
 | RCCL gradient buckets | smoke-tested | 1MB payload with 64/4/1 bucket matrix | overlap with backward |

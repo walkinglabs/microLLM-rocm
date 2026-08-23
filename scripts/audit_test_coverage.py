@@ -29,6 +29,10 @@ declared_ops = public_names(
      "Bf16PlanCacheStats", "bool",
      "MatmulImplementation", "std::size_t", "void"],
 )
+declared_ops |= public_names(
+    "include/microllm/ops/tuning.h",
+    ["MatmulAutotuneReport", "void"],
+)
 covered_ops = set(MANIFEST["tensor_ops"]) | set(MANIFEST["operator_infrastructure"])
 if declared_ops != covered_ops:
     errors.append(

@@ -94,6 +94,9 @@ public:
     [[nodiscard]] Device device() const noexcept;
     [[nodiscard]] void* native_handle() const noexcept;
     void record(const Stream& stream);
+    // Records on the legacy default Stream without creating a non-default
+    // Stream or disabling the exact-size allocator contract.
+    void record_default_stream();
     void wait(const Stream& stream) const;
     void synchronize() const;
     [[nodiscard]] bool ready() const;

@@ -80,6 +80,8 @@ the next gate. Records are append-only except for factual corrections.
   isolates choices by dtype, layout, architecture, versions, mode and workspace.
 - [2026-08-23-matmul-persistent-cache.md](2026-08-23-matmul-persistent-cache.md):
   deterministic JSONL save/load, atomic replacement and environment-version invalidation.
+- [2026-08-23-matmul-correctness-before-timing.md](2026-08-23-matmul-correctness-before-timing.md):
+  complete-output gates before HIP Event P50/P95 and explicit acceptance.
 - [2026-08-23-block-reduction-determinism.md](2026-08-23-block-reduction-determinism.md):
   fixes scratch reuse before all lanes read the previous Attention reduction result.
 - [2026-08-19-m6-rccl-equivalence.md](2026-08-19-m6-rccl-equivalence.md): real two-GPU

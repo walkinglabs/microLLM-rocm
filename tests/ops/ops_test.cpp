@@ -11,6 +11,7 @@
 #include <gtest/gtest.h>
 #include <microllm/ops/ops.h>
 #include <microllm/ops/low_level.h>
+#include <microllm/ops/tuning.h>
 
 namespace microllm::ops {
 namespace {
@@ -223,6 +224,20 @@ TEST(CpuOpsTest, MatmulTuningCacheRoundTripsAndRejectsStaleCorruptData) {
     std::filesystem::remove(second, ignored);
     std::filesystem::remove(corrupt, ignored);
     std::filesystem::remove(duplicate, ignored);
+}
+
+TEST(CpuOpsTest, MatmulAutotuneRejectsCpuAndAbstractCandidateLists) {
+    const Tensor left({2, 3});
+    const Tensor right({3, 4});
+    EXPECT_THROW((void)autotune_matmul(left, right), std::invalid_argument);
+    MatmulAutotuneOptions automatic;
+    automatic.candidates = {MatmulImplementation::Auto};
+    EXPECT_THROW((void)autotune_matmul(left, right, false, false, automatic),
+                 std::invalid_argument);
+    automatic.candidates = {
+        MatmulImplementation::Readable, MatmulImplementation::Readable};
+    EXPECT_THROW((void)autotune_matmul(left, right, false, false, automatic),
+                 std::invalid_argument);
 }
 
 TEST(CpuOpsTest, TransposeAwareBatchedReadableMatchesMaterializedReference) {

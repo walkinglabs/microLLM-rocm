@@ -17,6 +17,18 @@ Result schema version 1 fields are emitted directly by `microllm_bench_ops`.
 Representative committed smoke results live under `benchmarks/results/`; full local
 run outputs are ignored unless curated with their environment and correctness data.
 
+Screen and time the two matmul implementations in the required order:
+
+```bash
+./build/hip-release/benchmarks/microllm_tune_matmul \
+  --m 128 --k 128 --n 128 --dtype fp32 \
+  --warmup 3 --repetitions 10 --mode inference --accept false
+```
+
+Complete finite Max/RMS runs before timing. Only passing candidates receive HIP Event and
+wall P50/P95. The default does not mutate the registry; explicit acceptance can write the
+schema-versioned cache, but model-level regression remains a separate gate.
+
 `microllm_bench_model` measures train or cache-backed generation throughput. Its
 `tokens_per_second` excludes construction and warm-up; `tokens_per_second_with_setup`
 includes construction, device transfer, optimizer allocation, and warm-up. Both are

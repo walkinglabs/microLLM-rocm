@@ -560,6 +560,19 @@ void Event::record(const Stream& stream) {
 #endif
 }
 
+void Event::record_default_stream() {
+    if (impl_->device.is_cpu()) {
+        throw std::runtime_error("CPU events do not record device work");
+    }
+#if MICROLLM_HAS_HIP
+    set_device(impl_->device);
+    check_hip(hipEventRecord(as_event(impl_->handle), nullptr),
+              "hipEventRecord(default stream)");
+#else
+    throw std::runtime_error("microLLM was built without HIP support");
+#endif
+}
+
 void Event::wait(const Stream& stream) const {
     if (stream.device() != impl_->device) throw std::invalid_argument("event/stream device mismatch");
     if (impl_->device.is_cpu()) return;
