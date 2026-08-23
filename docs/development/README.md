@@ -305,5 +305,7 @@ the next gate. Records are append-only except for factual corrections.
   evidence-routed FFN-only model policy and explicit runtime fallback counters.
 - [2026-08-23-fp8-device-weight-amax.md](2026-08-23-fp8-device-weight-amax.md):
   zero-D2H weight preparation contract and separated host/device scan evidence.
+- [2026-08-23-hf-cli-binary-contract.md](2026-08-23-hf-cli-binary-contract.md):
+  stale binary detection, fresh-build compile failure and repaired CLI evidence gate.
 - [2026-08-21-divergent-row-cache-reference.md](2026-08-21-divergent-row-cache-reference.md):
   unequal-position shared-Storage B1 oracle with CPU/HIP and reset-prefix gates.

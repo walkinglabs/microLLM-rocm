@@ -210,6 +210,7 @@
     "python/tests/test_hf_fp8_scale_grid.py",
     "python/tests/test_hf_activation_range.py",
     "python/tests/test_hf_activation_row_range.py",
+    "python/tests/test_hf_cli_binary_contract.py",
     "python/tests/test_kv_cache_precision.py",
     "python/tests/test_kv_cache_policy_comparison.py",
     "python/tests/test_operator_parity.py",

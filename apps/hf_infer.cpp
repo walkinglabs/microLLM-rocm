@@ -376,7 +376,8 @@ std::string fp8_compute_policy(const Options& command) {
                                  : command.fp8_weight_scale_mode == "tensor-amax"
                                        ? "tensor_amax_weight" : "fixed_weight";
     if (command.fp8_activation_scale_mode == "ffn-outer-row") {
-        return "fp8_e4m3_fnuz_" + weight_name + "_ffn_outer_row";
+        return std::string("fp8_e4m3_fnuz_") + weight_name +
+               "_ffn_outer_row";
     }
     if (command.fp8_activation_scale_mode == "tensor-amax" &&
         command.fp8_weight_scale_mode == "tensor-amax") {

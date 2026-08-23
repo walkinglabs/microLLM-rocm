@@ -56,6 +56,14 @@ set_tests_properties(PackageConfig.InstalledConsumer PROPERTIES
 
 if(Python3_Interpreter_FOUND)
     add_test(
+        NAME HfCLI.BinaryContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_hf_cli_binary_contract.py
+                --binary $<TARGET_FILE:microllm_hf_infer>
+    )
+    set_tests_properties(HfCLI.BinaryContract PROPERTIES
+        LABELS "cpu;cli;binary;schema")
+    add_test(
         NAME Coverage.OperatorAndTestFiles
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/audit_test_coverage.py
     )
