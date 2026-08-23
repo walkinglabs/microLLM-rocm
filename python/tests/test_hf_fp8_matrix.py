@@ -30,6 +30,7 @@ class HfFp8MatrixTest(unittest.TestCase):
         args = type("Args", (), {
             "binary": Path("micro"), "warmup": 1, "steps": 3,
             "fp8_activation_scale": 0.025, "fp8_weight_scale": 0.005,
+            "fp8_activation_minimum_scale": 0.0001,
             "fp8_weight_scale_mode": "fixed",
             "fp8_activation_scale_mode": "fixed"})()
         model = {"config": "config.json", "weights": "model.bin",
@@ -38,6 +39,9 @@ class HfFp8MatrixTest(unittest.TestCase):
         self.assertEqual(command[command.index("--fp8-linear") + 1], "true")
         self.assertEqual(command[command.index("--fp8-activation-scale") + 1],
                          "0.025")
+        self.assertEqual(
+            command[command.index("--fp8-activation-minimum-scale") + 1],
+            "0.0001")
         self.assertEqual(command[command.index("--fp8-weight-scale-mode") + 1],
                          "fixed")
         self.assertNotIn("--bf16-ffn", command)
@@ -46,6 +50,7 @@ class HfFp8MatrixTest(unittest.TestCase):
         args = type("Args", (), {
             "binary": Path("micro"), "warmup": 1, "steps": 3,
             "fp8_activation_scale": 0.2, "fp8_weight_scale": 0.005,
+            "fp8_activation_minimum_scale": 0.0001,
             "fp8_weight_scale_mode": "tensor-amax",
             "fp8_activation_scale_mode": "tensor-amax"})()
         model = {"config": "config.json", "weights": "model.bin",

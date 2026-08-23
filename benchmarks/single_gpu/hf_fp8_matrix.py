@@ -30,6 +30,7 @@ def options() -> argparse.Namespace:
     parser.add_argument("--steps", type=int, default=3)
     parser.add_argument("--runs", type=int, default=3)
     parser.add_argument("--fp8-activation-scale", type=float, default=0.025)
+    parser.add_argument("--fp8-activation-minimum-scale", type=float, default=0.0001)
     parser.add_argument("--fp8-weight-scale", type=float, default=0.005)
     parser.add_argument("--fp8-weight-scale-mode", choices=("fixed", "tensor-amax"),
                         default="fixed")
@@ -49,6 +50,8 @@ def options() -> argparse.Namespace:
             result.warmup < 0 or result.steps <= 0 or result.runs <= 0 or \
             not math.isfinite(result.fp8_activation_scale) or \
             result.fp8_activation_scale <= 0 or \
+            not math.isfinite(result.fp8_activation_minimum_scale) or \
+            result.fp8_activation_minimum_scale <= 0 or \
             not math.isfinite(result.fp8_weight_scale) or \
             result.fp8_weight_scale <= 0:
         parser.error("manifest, binary, contexts, runs or scales are invalid")
@@ -114,6 +117,8 @@ def command(args: argparse.Namespace, model: dict, context: int,
         result.extend([
             "--fp8-linear", "true",
             "--fp8-activation-scale", str(args.fp8_activation_scale),
+            "--fp8-activation-minimum-scale",
+            str(args.fp8_activation_minimum_scale),
             "--fp8-weight-scale", str(args.fp8_weight_scale),
             "--fp8-weight-scale-mode", args.fp8_weight_scale_mode,
             "--fp8-activation-scale-mode", args.fp8_activation_scale_mode,
@@ -227,6 +232,8 @@ def main() -> int:
                         "fp8_outer_row_native_status": output.get(
                             "fp8_outer_row_native_status", -1),
                         "fp8_activation_scale": args.fp8_activation_scale,
+                        "fp8_activation_minimum_scale":
+                            args.fp8_activation_minimum_scale,
                         "fp8_weight_scale": args.fp8_weight_scale,
                         "fp8_weight_scale_mode": args.fp8_weight_scale_mode,
                         "fp8_activation_scale_mode": args.fp8_activation_scale_mode,
@@ -296,6 +303,7 @@ def main() -> int:
         "policies": ["fp32", "bf16", "fp8"],
         "runs": args.runs, "warmup": args.warmup, "steps": args.steps,
         "fp8_activation_scale": args.fp8_activation_scale,
+        "fp8_activation_minimum_scale": args.fp8_activation_minimum_scale,
         "fp8_weight_scale": args.fp8_weight_scale,
         "fp8_weight_scale_mode": args.fp8_weight_scale_mode,
         "fp8_activation_scale_mode": args.fp8_activation_scale_mode,

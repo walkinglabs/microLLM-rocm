@@ -51,6 +51,7 @@ struct Options {
     bool bf16_attention = false;
     bool fp8_linear = false;
     float fp8_activation_scale = 0.025F;
+    float fp8_activation_minimum_scale = 1.0e-4F;
     float fp8_weight_scale = 0.005F;
     std::string fp8_weight_scale_mode = "fixed";
     std::string fp8_activation_scale_mode = "fixed";
@@ -129,6 +130,9 @@ Options options(int argc, char** argv) {
         }
         else if (name == "--fp8-activation-scale") {
             result.fp8_activation_scale = std::stof(argv[index + 1]);
+        }
+        else if (name == "--fp8-activation-minimum-scale") {
+            result.fp8_activation_minimum_scale = std::stof(argv[index + 1]);
         }
         else if (name == "--fp8-weight-scale") {
             result.fp8_weight_scale = std::stof(argv[index + 1]);
@@ -280,6 +284,8 @@ Options options(int argc, char** argv) {
     if ((result.fp8_linear && (result.bf16_ffn || result.bf16_attention)) ||
         !std::isfinite(result.fp8_activation_scale) ||
         result.fp8_activation_scale <= 0.0F ||
+        !std::isfinite(result.fp8_activation_minimum_scale) ||
+        result.fp8_activation_minimum_scale <= 0.0F ||
         !std::isfinite(result.fp8_weight_scale) ||
         result.fp8_weight_scale <= 0.0F) {
         throw std::invalid_argument(
@@ -822,6 +828,8 @@ int main(int argc, char** argv) {
             external.model.linear_precision =
                 microllm::model::LinearPrecision::Float8E4M3FNUZ;
             external.model.fp8_activation_scale = command.fp8_activation_scale;
+            external.model.fp8_activation_minimum_scale =
+                command.fp8_activation_minimum_scale;
             external.model.fp8_weight_scale = command.fp8_weight_scale;
             external.model.fp8_weight_scale_mode =
                 command.fp8_weight_scale_mode == "tensor-amax"
@@ -1068,6 +1076,8 @@ int main(int argc, char** argv) {
                       << "\""
                       << ",\"fp8_activation_scale\":"
                       << command.fp8_activation_scale
+                      << ",\"fp8_activation_minimum_scale\":"
+                      << command.fp8_activation_minimum_scale
                       << ",\"fp8_weight_scale\":"
                       << command.fp8_weight_scale
                       << ",\"fp8_weight_scale_mode\":\""
@@ -1529,6 +1539,8 @@ int main(int argc, char** argv) {
                   << microllm::ops::fp8_dispatch_stats().outer_row_native_status
                   << ",\"fp8_activation_scale\":"
                   << command.fp8_activation_scale
+                  << ",\"fp8_activation_minimum_scale\":"
+                  << command.fp8_activation_minimum_scale
                   << ",\"fp8_weight_scale\":"
                   << command.fp8_weight_scale
                   << ",\"fp8_weight_scale_mode\":\""

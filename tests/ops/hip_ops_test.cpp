@@ -572,7 +572,8 @@ TEST(HipFp8OpsTest, TensorAmaxPreparedWeightsScanOnceAndLeaveHotPathTransferFree
                               .rope_base = 10000.0F,
                               .tie_embeddings = false,
                               .linear_precision = model::LinearPrecision::Float8E4M3FNUZ,
-                              .fp8_activation_scale = 1.0e-4F,
+                              .fp8_activation_scale = 0.2F,
+                              .fp8_activation_minimum_scale = 1.0e-4F,
                               .fp8_weight_scale = 0.005F,
                               .fp8_weight_scale_mode =
                                   model::Fp8WeightScaleMode::TensorAmax,

@@ -38,6 +38,8 @@ void ModelConfig::validate() const {
     }
     if (linear_precision == LinearPrecision::Float8E4M3FNUZ &&
         (!std::isfinite(fp8_activation_scale) || fp8_activation_scale <= 0.0F ||
+         !std::isfinite(fp8_activation_minimum_scale) ||
+         fp8_activation_minimum_scale <= 0.0F ||
          !std::isfinite(fp8_weight_scale) || fp8_weight_scale <= 0.0F)) {
         throw std::invalid_argument("FP8 Linear scales must be finite and positive");
     }
@@ -101,6 +103,7 @@ std::string ModelConfig::summary() const {
                    ? "fixed"
                    : fp8_activation_scale_mode == Fp8ActivationScaleMode::TensorAmax
                          ? "tensor_amax" : "ffn_outer_row")
+           << ",fp8_activation_minimum_scale=" << fp8_activation_minimum_scale
            << ",rms_eps=" << rms_norm_epsilon
            << ",attention_bias=" << (attention_bias ? "true" : "false")
            << ",rope_layout=" << (rope_layout == RopeLayout::Interleaved ? "interleaved" : "split_half")

@@ -170,6 +170,7 @@ HuggingFaceModelConfig load_huggingface_config(const std::filesystem::path& path
                     .tie_embeddings = boolean(text, "tie_word_embeddings"),
                     .linear_precision = LinearPrecision::Float32,
                     .fp8_activation_scale = 0.025F,
+                    .fp8_activation_minimum_scale = 1.0e-4F,
                     .fp8_weight_scale = 0.005F,
                     .fp8_weight_scale_mode = Fp8WeightScaleMode::Fixed,
                     .fp8_activation_scale_mode = Fp8ActivationScaleMode::Fixed,

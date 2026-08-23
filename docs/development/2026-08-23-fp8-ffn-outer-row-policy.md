@@ -3,6 +3,10 @@
 `Fp8ActivationScaleMode::FfnOuterRow`只路由FFN gate/up/down三个Linear。Attention Q/K/V/O和
 untied output head继续使用固定activation scale，严格对应Experiment 130的范围证据。
 
+公共配置把两个含义拆开：`fp8_activation_scale`是Attention/output的固定scale，
+`fp8_activation_minimum_scale`只是Tensor/row amax的下限。官方候选使用0.2与0.0001，避免让
+FFN下限被固定Attention范围绑死。
+
 准备阶段不为FFN保存无用scalar activation scale。一层untied tiny模型有8个Linear：8份weight
 scale加5份非FFN activation scale，共13个FP32值；静态策略为16份。
 

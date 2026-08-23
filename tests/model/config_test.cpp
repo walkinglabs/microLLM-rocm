@@ -68,6 +68,9 @@ TEST(ModelConfigTest, RejectsInvalidHeadAndRopeConfigurations) {
     config.linear_precision = LinearPrecision::Float8E4M3FNUZ;
     config.fp8_activation_scale = 0.0F;
     EXPECT_THROW(config.validate(), std::invalid_argument);
+    config.fp8_activation_scale = 0.025F;
+    config.fp8_activation_minimum_scale = 0.0F;
+    EXPECT_THROW(config.validate(), std::invalid_argument);
 }
 
 TEST(HuggingFaceConfigTest, ParsesPinnedQwen25AndMatchesCheckpointParameterCount) {

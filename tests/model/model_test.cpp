@@ -360,7 +360,8 @@ TEST(TransformerModelTest, Fp8DynamicActivationScaleNeedsNoPersistentScaleTensor
 TEST(TransformerModelTest, Fp8FfnOuterRowPreparesScalesOnlyForNonFfnLinears) {
     auto config = tiny_config();
     config.linear_precision = LinearPrecision::Float8E4M3FNUZ;
-    config.fp8_activation_scale = 1.0e-4F;
+    config.fp8_activation_scale = 0.2F;
+    config.fp8_activation_minimum_scale = 1.0e-4F;
     config.fp8_activation_scale_mode = Fp8ActivationScaleMode::FfnOuterRow;
     TransformerModel model(config, 41);
     const auto tokens = Tensor::from_int32_vector({1, 2, 3, 4}, {1, 4});
