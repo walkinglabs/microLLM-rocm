@@ -1,4 +1,5 @@
 #include <microllm/runtime/memory.h>
+#include <microllm/runtime/diagnostics.h>
 #include <microllm/runtime/runtime.h>
 
 #include <cstring>
@@ -50,6 +51,37 @@ struct TransferCounters {
 };
 
 TransferCounters transfer_counters;
+
+thread_local bool strided_copy_diagnostics_enabled = false;
+thread_local std::vector<StridedCopyRecord> strided_copy_diagnostic_records;
+
+void record_strided_copy(std::size_t element_bytes, Device device,
+                         std::span<const std::int64_t> shape,
+                         std::span<const std::int64_t> strides,
+                         std::int64_t elements) {
+    if (!strided_copy_diagnostics_enabled) return;
+    const auto found = std::find_if(
+        strided_copy_diagnostic_records.begin(),
+        strided_copy_diagnostic_records.end(), [&](const auto& record) {
+            return record.element_bytes == element_bytes && record.device == device &&
+                   std::equal(record.shape.begin(), record.shape.end(),
+                              shape.begin(), shape.end()) &&
+                   std::equal(record.strides.begin(), record.strides.end(),
+                              strides.begin(), strides.end());
+        });
+    const auto new_record = found == strided_copy_diagnostic_records.end();
+    auto* record = new_record ? &strided_copy_diagnostic_records.emplace_back()
+                              : &*found;
+    if (new_record) {
+        record->shape.assign(shape.begin(), shape.end());
+        record->strides.assign(strides.begin(), strides.end());
+        record->element_bytes = element_bytes;
+        record->device = device;
+    }
+    ++record->calls;
+    record->elements += static_cast<std::uint64_t>(elements);
+    record->bytes += static_cast<std::uint64_t>(elements) * element_bytes;
+}
 
 void record_transfer(Device destination, Device source, std::size_t bytes) {
     if (destination.is_cpu() && source.is_cpu()) return;
@@ -401,6 +433,25 @@ void reset_allocation_peak(Device device) noexcept {
     values.cache_reuse_calls.store(0);
 }
 
+void enable_strided_copy_diagnostics(bool enabled) noexcept {
+    strided_copy_diagnostics_enabled = enabled;
+}
+
+void reset_strided_copy_diagnostics() noexcept {
+    strided_copy_diagnostic_records.clear();
+}
+
+StridedCopyDiagnostics strided_copy_diagnostics() {
+    StridedCopyDiagnostics result;
+    result.records = strided_copy_diagnostic_records;
+    for (const auto& record : result.records) {
+        result.calls += record.calls;
+        result.elements += record.elements;
+        result.bytes += record.bytes;
+    }
+    return result;
+}
+
 void copy_bytes(void* destination, Device destination_device, const void* source,
                 Device source_device, std::size_t num_bytes) {
     if (num_bytes == 0) return;
@@ -440,6 +491,7 @@ void copy_strided(void* contiguous_destination, const void* strided_source,
         elements *= dimension;
     }
     if (elements == 0) return;
+    record_strided_copy(element_bytes, device, shape, strides, elements);
     if (contiguous_destination == nullptr || strided_source == nullptr) {
         throw std::invalid_argument("strided copy pointers must be non-null");
     }

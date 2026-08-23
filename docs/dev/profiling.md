@@ -131,6 +131,18 @@ experiments; solution indices are backend-version local and are not a persistent
   --warmup 3 --repetitions 10
 ```
 
+### Autograd and strided-layout attribution
+
+`microllm_hf_train_step --diagnostics-output /tmp/diagnostics.json` enables two
+thread-local metadata counters only for measured steps. Autograd records target
+operation/shape, first contribution source, later add source and materialization;
+Runtime records exact strided-copy shape/stride, calls, elements and bytes. Values are
+not copied to host. The diagnostic bookkeeping is intentionally excluded from performance
+measurements and is disabled by default.
+
+The retained tied-weight optimization can be rebutted with the same binary using
+`--tied-embedding-sparse-add true/false`.
+
 ### End-to-end benchmark
 
 ```bash

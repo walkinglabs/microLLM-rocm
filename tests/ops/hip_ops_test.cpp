@@ -2220,6 +2220,29 @@ TEST(HipBackwardOpsTest, DeviceNativePrimitivesMatchCpuReference) {
                 repeat_interleave_backward(repeat_gradient, {2, 2}, 0, 2).to_vector());
 }
 
+TEST(HipBackwardOpsTest, EmbeddingBackwardAddMatchesDenseReferenceWithoutTransfers) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    const auto initial = Tensor::from_vector(
+        {10, 20, 30, 40, 50, 60, 70, 80}, {4, 2});
+    const auto gradient = Tensor::from_vector({1, 2, 3, 4, 5, 6}, {3, 2});
+    const auto indices = Tensor::from_int32_vector({1, 3, 1}, {3});
+    const auto expected = add(
+        initial, embedding_backward(gradient, indices, 4));
+    auto actual = initial.to(gpu);
+    const auto* address = actual.storage().data();
+    const auto device_gradient = gradient.to(gpu);
+    const auto device_indices = indices.to(gpu);
+    runtime::reset_transfer_stats();
+    embedding_backward_add_(actual, device_gradient, device_indices);
+    runtime::synchronize(gpu);
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    EXPECT_EQ(actual.storage().data(), address);
+    expect_near(actual.to_vector(), expected.to_vector(), 1.0e-6F);
+}
+
 TEST(HipOpsTest, FusedResidualRmsNormMatchesComposedCpuWithoutTransfers) {
     require_gpu();
     const auto gpu = Device::hip();

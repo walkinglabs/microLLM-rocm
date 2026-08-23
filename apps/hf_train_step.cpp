@@ -3,6 +3,7 @@
 #include <cmath>
 #include <cstdint>
 #include <filesystem>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <limits>
@@ -14,6 +15,8 @@
 
 #include <microllm/model/huggingface.h>
 #include <microllm/model/model.h>
+#include <microllm/autograd/diagnostics.h>
+#include <microllm/runtime/diagnostics.h>
 #include <microllm/runtime/memory.h>
 #include <microllm/runtime/runtime.h>
 #include <microllm/training/optimizer.h>
@@ -86,6 +89,69 @@ std::vector<std::int32_t> parse_tokens(std::string_view text) {
     return output;
 }
 
+void write_diagnostics(
+    const std::filesystem::path& path,
+    const microllm::autograd::GradientAccumulationDiagnostics& accumulation,
+    const microllm::runtime::StridedCopyDiagnostics& strided) {
+    if (path.has_parent_path()) std::filesystem::create_directories(path.parent_path());
+    std::ofstream output(path, std::ios::trunc);
+    if (!output) throw std::runtime_error("cannot open diagnostics output");
+    output << "{\"schema_version\":1,\"status\":\"pass\""
+           << ",\"gradient_accumulation\":{\"first_assignments\":"
+           << accumulation.first_assignments
+           << ",\"add_calls\":" << accumulation.add_calls
+           << ",\"materializations\":" << accumulation.materializations
+           << ",\"sparse_embedding_add_calls\":"
+           << accumulation.sparse_embedding_add_calls
+           << ",\"added_elements\":" << accumulation.added_elements
+           << ",\"materialized_elements\":" << accumulation.materialized_elements
+           << ",\"records\":[";
+    for (std::size_t index = 0; index < accumulation.records.size(); ++index) {
+        if (index != 0) output << ',';
+        const auto& record = accumulation.records[index];
+        output << "{\"target_operation\":\"" << record.target_operation
+               << "\",\"first_source\":\"" << record.first_source
+               << "\",\"last_add_source\":\"" << record.last_add_source
+               << "\",\"shape\":[";
+        for (std::size_t dimension = 0; dimension < record.shape.size(); ++dimension) {
+            if (dimension != 0) output << ',';
+            output << record.shape[dimension];
+        }
+        output << "],\"first_assignments\":" << record.first_assignments
+               << ",\"add_calls\":" << record.add_calls
+               << ",\"materializations\":" << record.materializations
+               << ",\"sparse_embedding_add_calls\":"
+               << record.sparse_embedding_add_calls
+               << ",\"added_elements\":" << record.added_elements
+               << ",\"materialized_elements\":" << record.materialized_elements
+               << '}';
+    }
+    output << "]},\"strided_copy\":{\"calls\":" << strided.calls
+           << ",\"elements\":" << strided.elements
+           << ",\"bytes\":" << strided.bytes << ",\"records\":[";
+    for (std::size_t index = 0; index < strided.records.size(); ++index) {
+        if (index != 0) output << ',';
+        const auto& record = strided.records[index];
+        output << "{\"shape\":[";
+        for (std::size_t dimension = 0; dimension < record.shape.size(); ++dimension) {
+            if (dimension != 0) output << ',';
+            output << record.shape[dimension];
+        }
+        output << "],\"strides\":[";
+        for (std::size_t dimension = 0; dimension < record.strides.size(); ++dimension) {
+            if (dimension != 0) output << ',';
+            output << record.strides[dimension];
+        }
+        output << "],\"element_bytes\":" << record.element_bytes
+               << ",\"device\":\"" << record.device.str()
+               << "\",\"calls\":" << record.calls
+               << ",\"elements\":" << record.elements
+               << ",\"bytes\":" << record.bytes << '}';
+    }
+    output << "]}}\n";
+    if (!output) throw std::runtime_error("cannot write diagnostics output");
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -101,7 +167,9 @@ int main(int argc, char** argv) {
         std::string linear_precision = "fp32";
         std::string adamw_implementation = "auto";
         std::string bf16_algorithm_text;
+        std::filesystem::path diagnostics_output;
         bool bf16_weight_mirrors = true;
+        bool tied_embedding_sparse_add = true;
         for (int index = 1; index < argc; index += 2) {
             if (index + 1 >= argc) throw std::invalid_argument("missing CLI value");
             const std::string name = argv[index];
@@ -119,6 +187,17 @@ int main(int argc, char** argv) {
             }
             else if (name == "--bf16-algorithms") {
                 bf16_algorithm_text = argv[index + 1];
+            }
+            else if (name == "--diagnostics-output") {
+                diagnostics_output = argv[index + 1];
+            }
+            else if (name == "--tied-embedding-sparse-add") {
+                const std::string value = argv[index + 1];
+                if (value != "true" && value != "false") {
+                    throw std::invalid_argument(
+                        "--tied-embedding-sparse-add must be true or false");
+                }
+                tied_embedding_sparse_add = value == "true";
             }
             else if (name == "--bf16-weight-mirrors") {
                 const std::string value = argv[index + 1];
@@ -146,6 +225,8 @@ int main(int argc, char** argv) {
                 "--adamw-implementation must be auto, scalar, or vectorized");
         }
         const auto bf16_algorithms = parse_bf16_algorithms(bf16_algorithm_text);
+        microllm::autograd::enable_tied_embedding_sparse_add(
+            tied_embedding_sparse_add);
         if (!bf16_algorithms.empty() &&
             (linear_precision != "bf16" || device_text != "hip")) {
             throw std::invalid_argument(
@@ -242,6 +323,12 @@ int main(int argc, char** argv) {
         const auto warmup_finish = std::chrono::steady_clock::now();
         if (device.is_hip()) microllm::runtime::enable_hip_caching_allocator(device);
         microllm::runtime::reset_allocation_peak(device);
+        if (!diagnostics_output.empty()) {
+            microllm::autograd::reset_gradient_accumulation_diagnostics();
+            microllm::runtime::reset_strided_copy_diagnostics();
+            microllm::autograd::enable_gradient_accumulation_diagnostics(true);
+            microllm::runtime::enable_strided_copy_diagnostics(true);
+        }
         const auto before = observed->data().to_vector().front();
         float first_loss = 0.0F;
         float final_loss = 0.0F;
@@ -258,6 +345,14 @@ int main(int argc, char** argv) {
             optimizer_d2h += result.transfers.device_to_host_calls;
         }
         const auto finish = std::chrono::steady_clock::now();
+        microllm::autograd::enable_gradient_accumulation_diagnostics(false);
+        microllm::runtime::enable_strided_copy_diagnostics(false);
+        if (!diagnostics_output.empty()) {
+            write_diagnostics(
+                diagnostics_output,
+                microllm::autograd::gradient_accumulation_diagnostics(),
+                microllm::runtime::strided_copy_diagnostics());
+        }
         const auto after = observed->data().to_vector().front();
         const auto allocation = microllm::runtime::allocation_stats(device);
         const auto info = device.is_cpu()
@@ -286,6 +381,10 @@ int main(int argc, char** argv) {
                   << ",\"bf16_algorithm_registrations\":"
                   << bf16_algorithms.size()
                   << ",\"bf16_algorithm_spec\":\"" << bf16_algorithm_text << "\""
+                  << ",\"diagnostics_enabled\":"
+                  << (!diagnostics_output.empty() ? "true" : "false")
+                  << ",\"tied_embedding_sparse_add\":"
+                  << (tied_embedding_sparse_add ? "true" : "false")
                   << ",\"measurement_profile\":\""
                   << (warmup > 0 || steps > 1 ? "comparison" : "smoke") << "\""
                   << ",\"loaded_tensors\":" << report.loaded.size()

@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "experiment": "Exp161",
+  "attribution": {
+    "qwen_gradient_add_calls": 121,
+    "qwen_dense_add_calls_after": 120,
+    "qwen_sparse_embedding_add_calls": 1,
+    "qwen_tied_dense_elements_avoided": 136134656,
+    "qwen_tied_dense_bytes_avoided_per_step": 544538624,
+    "qwen_first_source": "matmul_right",
+    "qwen_old_last_source": "embedding_backward",
+    "qwen_new_last_source": "embedding_backward_sparse_add",
+    "deepseek_sparse_embedding_add_calls": 0,
+    "qwen_strided_layouts": 4,
+    "deepseek_strided_layouts": 4
+  },
+  "training": {
+    "runs_per_model_policy": 3,
+    "qwen_throughput_speedup": 1.017981002,
+    "qwen_peak_ratio": 0.918928298,
+    "qwen_peak_bytes_saved": 1055989760,
+    "qwen_loss_relative_difference": 0.000207103,
+    "deepseek_throughput_speedup": 1.006036122,
+    "deepseek_peak_ratio": 1.0,
+    "deepseek_loss_relative_difference": 0.0,
+    "observed_parameter_after_equal": true
+  },
+  "profile": {
+    "dense_add_calls": 507,
+    "sparse_add_calls": 504,
+    "dense_fill_calls": 586,
+    "sparse_fill_calls": 583,
+    "dense_kernel_time_ns": 116410645,
+    "sparse_kernel_time_ns": 113197145,
+    "kernel_time_ratio": 0.972394835
+  },
+  "regression": {
+    "cpu": "259/259",
+    "asan_ubsan": "257/257",
+    "pytorch_enabled_cpu": "233/233",
+    "full_cpu_hip": "387/387",
+    "hip_label": "124/124",
+    "conditional_skips": 2,
+    "package_consumer": "pass",
+    "coverage_lines_percent": 80.3,
+    "coverage_branches_percent": 61.4
+  },
+  "decision": "keep as a tied-model memory optimization with neutral throughput"
+}

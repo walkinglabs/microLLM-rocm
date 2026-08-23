@@ -4,6 +4,7 @@
 #include <cmath>
 #include <functional>
 #include <limits>
+#include <map>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -12,6 +13,7 @@
 #include <vector>
 
 #include <microllm/ops/ops.h>
+#include <microllm/autograd/diagnostics.h>
 #include <microllm/profiling/trace.h>
 
 namespace microllm::autograd {
@@ -31,6 +33,21 @@ struct ValueAccess {
 
 namespace {
 
+thread_local bool accumulation_diagnostics_enabled = false;
+thread_local bool tied_embedding_sparse_add = true;
+thread_local std::map<std::pair<std::string, Shape>, GradientAccumulationRecord>
+    accumulation_diagnostic_records;
+
+GradientAccumulationRecord& accumulation_record(const Value::Node& node) {
+    const auto key = std::pair{node.operation, node.data.shape()};
+    auto [iterator, inserted] = accumulation_diagnostic_records.try_emplace(key);
+    if (inserted) {
+        iterator->second.target_operation = node.operation;
+        iterator->second.shape = node.data.shape();
+    }
+    return iterator->second;
+}
+
 void require_value(const Value& value, const char* name) {
     if (!value.defined()) throw std::invalid_argument(std::string(name) + " is undefined");
     if (value.data().dtype() != DType::Float32) {
@@ -46,15 +63,61 @@ Tensor profiled_tensor(const char* name, Device device, Forward&& forward) {
     return output;
 }
 
-void accumulate(const std::shared_ptr<Value::Node>& node, const Tensor& gradient) {
+void accumulate(const std::shared_ptr<Value::Node>& node, const Tensor& gradient,
+                const char* source = "generic") {
     if (!node->requires_grad) return;
     if (gradient.shape() != node->data.shape()) {
         throw std::invalid_argument("gradient shape does not match autograd value");
     }
     auto prepared = gradient;
     if (prepared.device() != node->data.device()) prepared = prepared.to(node->data.device());
-    if (!prepared.is_contiguous()) prepared = prepared.contiguous();
-    node->gradient = node->gradient.defined() ? ops::add(node->gradient, prepared) : prepared;
+    const auto needs_materialization = !prepared.is_contiguous();
+    if (accumulation_diagnostics_enabled) {
+        auto& record = accumulation_record(*node);
+        if (needs_materialization) {
+            ++record.materializations;
+            record.materialized_elements += static_cast<std::uint64_t>(prepared.numel());
+        }
+        if (node->gradient.defined()) {
+            ++record.add_calls;
+            record.added_elements += static_cast<std::uint64_t>(prepared.numel());
+            record.last_add_source = source;
+        } else {
+            ++record.first_assignments;
+            if (record.first_source.empty()) record.first_source = source;
+        }
+    }
+    if (needs_materialization) prepared = prepared.contiguous();
+    node->gradient = node->gradient.defined()
+                         ? ops::add(node->gradient, prepared)
+                         : prepared;
+}
+
+void accumulate_embedding(const std::shared_ptr<Value::Node>& node,
+                          const Tensor& gradient, const Tensor& indices,
+                          std::int64_t vocabulary) {
+    if (tied_embedding_sparse_add && node->requires_grad &&
+        node->gradient.defined() &&
+        node->gradient.shape() == Shape({vocabulary, gradient.shape().back()}) &&
+        node->gradient.is_contiguous()) {
+        const auto storage = node->gradient.storage();
+        // storage is one temporary owner here; count==2 means the node is the
+        // only persistent owner and can safely receive sparse row additions.
+        if (storage.use_count() == 2) {
+            if (accumulation_diagnostics_enabled) {
+                auto& record = accumulation_record(*node);
+                ++record.add_calls;
+                record.added_elements +=
+                    static_cast<std::uint64_t>(node->gradient.numel());
+                record.last_add_source = "embedding_backward_sparse_add";
+                ++record.sparse_embedding_add_calls;
+            }
+            ops::embedding_backward_add_(node->gradient, gradient, indices);
+            return;
+        }
+    }
+    accumulate(node, ops::embedding_backward(gradient, indices, vocabulary),
+               "embedding_backward_dense");
 }
 
 Value operation(const char* operation_name, Tensor data,
@@ -73,6 +136,38 @@ Value operation(const char* operation_name, Tensor data,
 }
 
 }  // namespace
+
+void enable_gradient_accumulation_diagnostics(bool enabled) noexcept {
+    accumulation_diagnostics_enabled = enabled;
+}
+
+void reset_gradient_accumulation_diagnostics() noexcept {
+    accumulation_diagnostic_records.clear();
+}
+
+GradientAccumulationDiagnostics gradient_accumulation_diagnostics() {
+    GradientAccumulationDiagnostics result;
+    result.records.reserve(accumulation_diagnostic_records.size());
+    for (const auto& [key, record] : accumulation_diagnostic_records) {
+        (void)key;
+        result.records.push_back(record);
+        result.first_assignments += record.first_assignments;
+        result.add_calls += record.add_calls;
+        result.materializations += record.materializations;
+        result.sparse_embedding_add_calls += record.sparse_embedding_add_calls;
+        result.added_elements += record.added_elements;
+        result.materialized_elements += record.materialized_elements;
+    }
+    return result;
+}
+
+void enable_tied_embedding_sparse_add(bool enabled) noexcept {
+    tied_embedding_sparse_add = enabled;
+}
+
+bool tied_embedding_sparse_add_enabled() noexcept {
+    return tied_embedding_sparse_add;
+}
 
 Value::Value(Tensor data, bool requires_grad) : node_(std::make_shared<Node>()) {
     if (!data.defined()) throw std::invalid_argument("autograd Value data must be defined");
@@ -238,7 +333,8 @@ Value matmul(const Value& left, const Value& right) {
                                                    ops::MatmulImplementation::Auto));
                          accumulate(right_node, ops::matmul_with_implementation(
                                                     left_transposed, gradient,
-                                                    ops::MatmulImplementation::Auto));
+                                                    ops::MatmulImplementation::Auto),
+                                    "matmul_right");
                      });
 }
 
@@ -278,7 +374,7 @@ Value matmul(const Value& left, const Value& right,
                     true, transpose_left);
             }
             accumulate(left_node, std::move(left_gradient));
-            accumulate(right_node, std::move(right_gradient));
+            accumulate(right_node, std::move(right_gradient), "matmul_right");
         });
 }
 
@@ -311,7 +407,8 @@ Value fp8_matmul(const Value& left, const Value& right,
                                                    ops::MatmulImplementation::Auto));
                          accumulate(right_node, ops::matmul_with_implementation(
                                                     left_transposed, gradient,
-                                                    ops::MatmulImplementation::Auto));
+                                                    ops::MatmulImplementation::Auto),
+                                    "fp8_matmul_right");
                      });
 }
 
@@ -361,7 +458,8 @@ Value bf16_matmul(const Value& left, const Value& right_master,
                          accumulate(right_node, ops::matmul_with_implementation(
                                                     left_node->data, gradient,
                                                     ops::MatmulImplementation::Auto,
-                                                    true, false));
+                                                    true, false),
+                                    "bf16_matmul_right");
                      });
 }
 
@@ -417,8 +515,7 @@ Value embedding(const Value& weight, const Tensor& indices) {
                                   [&] { return ops::embedding(weight.data(), indices); });
     return operation("embedding", std::move(output), {weight_node},
                      [weight_node, indices, vocabulary](const Tensor& gradient) {
-                         accumulate(weight_node,
-                                    ops::embedding_backward(gradient, indices, vocabulary));
+                         accumulate_embedding(weight_node, gradient, indices, vocabulary);
                      });
 }
 

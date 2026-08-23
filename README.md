@@ -76,6 +76,9 @@ needed to run a real training and generation loop:
 - BF16 training solution-index screening over eight exact shapes and 1,536 complete-output
   candidates; isolated medians improve up to 1.189×, but all-shape/selective model policies
   reach only 0.995×–1.020× on Qwen and 1.005×–1.007× on DeepSeek, so no default is retained;
+- source-aware Autograd and strided-layout diagnostics identify one Qwen tied embedding/head
+  accumulation as 71.2% of added gradient elements; sparse token-row accumulation removes a
+  mostly-zero 544 MB Tensor, cuts Qwen peak 8.11%, and keeps throughput neutral-positive;
 - a phase-independent exact-size HIP pool with immediate legacy-default-Stream reuse and strict
   permanent disablement for non-default Streams;
 - a cross-framework trace runner for operator/layer values and latency comparisons.
@@ -369,14 +372,14 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 381/381 | 260 CPU-labelled + 122 HIP-labelled gates; the package gate belongs to both labels; 2 intentional environment skips |
-| ASan/UBSan CPU | 253/253 | host code, CLI, model/graph, benchmark and evidence schemas |
+| Full CPU/HIP configuration | 387/387 | 264 CPU-labelled + 124 HIP-labelled gates; the package gate belongs to both labels; 2 intentional environment skips |
+| ASan/UBSan CPU | 257/257 | host code, CLI, model/graph, benchmark and evidence schemas |
 | MI300X/gfx942 HIP preset | 117/117 | 116 allocator/stream, graph, autotune, BF16/FP8 and model gates + 1 installed-package gate |
-| PyTorch-enabled CPU build | 229/229 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
+| PyTorch-enabled CPU build | 233/233 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
 | Registered test files | 54 | machine-audited CTest registration |
 | Installed CMake package | CPU + HIP + RCCL pass | relocated prefix, external `find_package`, components, compile, static link and run |
-| CPU source coverage | 80.0% lines / 61.3% branches | 7,130/8,907 lines and 6,990/11,402 branches; GCC 13.3 + gcovr 8.3 |
+| CPU source coverage | 80.3% lines / 61.4% branches | 7,254/9,036 lines and 7,076/11,517 branches; GCC 13.3 + gcovr 8.3 |
 
 Latest PyTorch-reference maximum absolute differences:
 

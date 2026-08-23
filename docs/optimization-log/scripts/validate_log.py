@@ -7054,6 +7054,68 @@ def validate_bf16_training_solution_discard(
     return len(raw), candidate_evaluations, len(comparisons)
 
 
+def validate_tied_embedding_sparse_add(
+        errors: list[str]) -> tuple[int, int, int]:
+    data = REPOSITORY / "benchmarks/results/2026-08-23-tied-embedding-sparse-add"
+    verification = json.loads((data / "verification.json").read_text(encoding="utf-8"))
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    training = [json.loads(line) for line in (data / "training.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = {row["model"]: row for row in summary.get("comparisons", [])}
+    qwen = comparisons.get("qwen2.5-0.5b", {})
+    deep = comparisons.get("deepseek-r1-distill-qwen-1.5b", {})
+    diagnostics = summary.get("diagnostics", {})
+    dense_records = diagnostics.get("dense_qwen", {}).get(
+        "gradient_accumulation", {}).get("records", [])
+    sparse_records = diagnostics.get("sparse_qwen", {}).get(
+        "gradient_accumulation", {}).get("records", [])
+    tied_shape = [151936, 896]
+    dense_tied = next((row for row in dense_records
+                       if row.get("target_operation") == "leaf" and
+                       row.get("shape") == tied_shape), {})
+    sparse_tied = next((row for row in sparse_records
+                        if row.get("target_operation") == "leaf" and
+                        row.get("shape") == tied_shape), {})
+    deep_sparse_calls = diagnostics.get("sparse_deepseek", {}).get(
+        "gradient_accumulation", {}).get("sparse_embedding_add_calls", -1)
+    profile = summary.get("profile", {})
+    if verification.get("status") != "pass" or summary.get("status") != "pass" or \
+            verification.get("regression", {}).get("full_cpu_hip") != "387/387" or \
+            verification.get("regression", {}).get("asan_ubsan") != "257/257" or \
+            verification.get("regression", {}).get(
+                "pytorch_enabled_cpu") != "233/233" or \
+            len(training) != 12 or len(comparisons) != 2 or \
+            qwen.get("peak_ratio", 1) > 0.95 or \
+            qwen.get("throughput_speedup", 0) < 0.98 or \
+            deep.get("throughput_speedup", 0) < 0.98 or \
+            qwen.get("loss_relative_difference", 1) > 0.005 or \
+            qwen.get("observed_parameter_after_equal") is not True or \
+            deep.get("observed_parameter_after_equal") is not True:
+        errors.append("tied embedding sparse model/memory gate changed")
+    if dense_tied.get("first_source") != "matmul_right" or \
+            dense_tied.get("last_add_source") != "embedding_backward" or \
+            sparse_tied.get("last_add_source") != "embedding_backward_sparse_add" or \
+            sparse_tied.get("sparse_embedding_add_calls") != 1 or \
+            deep_sparse_calls != 0:
+        errors.append("tied embedding source/routing attribution changed")
+    if profile.get("add", {}).get("dense", {}).get("calls") != 507 or \
+            profile.get("add", {}).get("sparse", {}).get("calls") != 504 or \
+            profile.get("fill", {}).get("dense", {}).get("calls") != 586 or \
+            profile.get("fill", {}).get("sparse", {}).get("calls") != 583:
+        errors.append("tied embedding sparse profile changed")
+    autograd = (REPOSITORY / "src/autograd/autograd.cpp").read_text(encoding="utf-8")
+    ops_source = (REPOSITORY / "src/ops/ops.cpp").read_text(encoding="utf-8")
+    tests = "\n".join((REPOSITORY / path).read_text(encoding="utf-8") for path in (
+        "tests/autograd/autograd_test.cpp", "tests/ops/hip_ops_test.cpp"))
+    if "storage.use_count() == 2" not in autograd or \
+            "embedding_backward_add_" not in ops_source or \
+            "TiedEmbeddingUsesSparseAddAfterDenseHeadGradient" not in tests or \
+            "EmbeddingBackwardAddMatchesDenseReferenceWithoutTransfers" not in tests:
+        errors.append("tied embedding sparse source/test contract changed")
+    return len(training), int(sparse_tied.get("sparse_embedding_add_calls", 0)), \
+        int(qwen.get("peak_bytes_saved", 0))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -7192,7 +7254,8 @@ def validate_assets(errors: list[str]) -> None:
                  "adamw-correctness-before-timing.svg",
                  "cooperative-bias-gradient.svg",
                  "post-bias-training-profile.svg",
-                 "bf16-training-solution-discard.svg"):
+                 "bf16-training-solution-discard.svg",
+                 "tied-embedding-sparse-add.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -7450,6 +7513,8 @@ def main() -> int:
         validate_post_bias_training_profile(errors)
     solution_rows, solution_candidates, solution_models = \
         validate_bf16_training_solution_discard(errors)
+    tied_rows, tied_sparse_calls, tied_bytes_saved = \
+        validate_tied_embedding_sparse_add(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -7654,6 +7719,7 @@ def main() -> int:
           f"phase_delta={phase_categories}/{phase_gemm_share:.3f} "
           f"bf16_solutions={solution_rows}/{solution_candidates}/"
           f"{solution_models} "
+          f"tied_sparse={tied_rows}/{tied_sparse_calls}/{tied_bytes_saved} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

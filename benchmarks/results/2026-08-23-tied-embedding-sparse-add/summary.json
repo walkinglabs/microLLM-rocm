@@ -1,0 +1,1701 @@
+{
+  "comparisons": [
+    {
+      "loss_relative_difference": 0.0,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "observed_parameter_after_equal": true,
+      "peak_bytes_saved": 0,
+      "peak_ratio": 1.0,
+      "policies": {
+        "dense": {
+          "engine_allocation_calls": 4456,
+          "engine_peak_bytes": 37410926600,
+          "final_loss": 4.036802292,
+          "observed_parameter_after": 2.124970913,
+          "tokens_per_second": 6065.088073104
+        },
+        "sparse": {
+          "engine_allocation_calls": 4456,
+          "engine_peak_bytes": 37410926600,
+          "final_loss": 4.036802292,
+          "observed_parameter_after": 2.124970913,
+          "tokens_per_second": 6101.69768655
+        }
+      },
+      "throughput_speedup": 1.0060361223126089
+    },
+    {
+      "loss_relative_difference": 0.00020710300030929186,
+      "model": "qwen2.5-0.5b",
+      "observed_parameter_after_equal": true,
+      "peak_bytes_saved": 1055989760,
+      "peak_ratio": 0.9189282976147961,
+      "policies": {
+        "dense": {
+          "engine_allocation_calls": 3824,
+          "engine_peak_bytes": 13025380360,
+          "final_loss": 0.016914289,
+          "observed_parameter_after": 7.468718052,
+          "tokens_per_second": 14290.773474717
+        },
+        "sparse": {
+          "engine_allocation_calls": 3820,
+          "engine_peak_bytes": 11969390600,
+          "final_loss": 0.016910786,
+          "observed_parameter_after": 7.468718052,
+          "tokens_per_second": 14547.735894947
+        }
+      },
+      "throughput_speedup": 1.0179810015661233
+    }
+  ],
+  "decision": "keep sparse tied-embedding accumulation as a memory optimization",
+  "diagnostics": {
+    "dense_qwen": {
+      "gradient_accumulation": {
+        "add_calls": 121,
+        "added_elements": 191184896,
+        "first_assignments": 991,
+        "materializations": 96,
+        "materialized_elements": 25165824,
+        "records": [
+          {
+            "add_calls": 47,
+            "added_elements": 21561344,
+            "first_assignments": 48,
+            "first_source": "generic",
+            "last_add_source": "generic",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              1,
+              512,
+              896
+            ],
+            "target_operation": "add"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 24,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              512,
+              128
+            ],
+            "target_operation": "add_bias"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 48,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              512,
+              128
+            ],
+            "target_operation": "bf16_matmul"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 72,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              512,
+              896
+            ],
+            "target_operation": "bf16_matmul"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 48,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              512,
+              4864
+            ],
+            "target_operation": "bf16_matmul"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 24,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 24,
+            "materialized_elements": 11010048,
+            "shape": [
+              1,
+              14,
+              512,
+              64
+            ],
+            "target_operation": "causal_gqa_attention"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 24,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              1,
+              512,
+              14,
+              64
+            ],
+            "target_operation": "contiguous"
+          },
+          {
+            "add_calls": 1,
+            "added_elements": 458752,
+            "first_assignments": 1,
+            "first_source": "generic",
+            "last_add_source": "generic",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              1,
+              512,
+              896
+            ],
+            "target_operation": "embedding"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 48,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              128
+            ],
+            "target_operation": "leaf"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 73,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              896
+            ],
+            "target_operation": "leaf"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 48,
+            "first_source": "bf16_matmul_right",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              896,
+              128
+            ],
+            "target_operation": "leaf"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 48,
+            "first_source": "bf16_matmul_right",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              896,
+              896
+            ],
+            "target_operation": "leaf"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 48,
+            "first_source": "bf16_matmul_right",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              896,
+              4864
+            ],
+            "target_operation": "leaf"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 24,
+            "first_source": "bf16_matmul_right",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              4864,
+              896
+            ],
+            "target_operation": "leaf"
+          },
+          {
+            "add_calls": 1,
+            "added_elements": 136134656,
+            "first_assignments": 1,
+            "first_source": "matmul_right",
+            "last_add_source": "embedding_backward",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              151936,
+              896
+            ],
+            "target_operation": "leaf"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 1,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              512,
+              151936
+            ],
+            "target_operation": "matmul"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 48,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 48,
+            "materialized_elements": 3145728,
+            "shape": [
+              1,
+              512,
+              2,
+              64
+            ],
+            "target_operation": "reshape"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 24,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 24,
+            "materialized_elements": 11010048,
+            "shape": [
+              1,
+              512,
+              14,
+              64
+            ],
+            "target_operation": "reshape"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 48,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              1,
+              512,
+              896
+            ],
+            "target_operation": "reshape"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 1,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              1,
+              512,
+              151936
+            ],
+            "target_operation": "reshape"
+          },
+          {
+            "add_calls": 72,
+            "added_elements": 33030144,
+            "first_assignments": 73,
+            "first_source": "generic",
+            "last_add_source": "generic",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              512,
+              896
+            ],
+            "target_operation": "reshape"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 49,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              1,
+              512,
+              896
+            ],
+            "target_operation": "rms_norm"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 24,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              1,
+              2,
+              512,
+              64
+            ],
+            "target_operation": "rope_split_half_bias"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 24,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              1,
+              14,
+              512,
+              64
+            ],
+            "target_operation": "rope_split_half_bias"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 24,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              512,
+              4864
+            ],
+            "target_operation": "swiglu"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 48,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              1,
+              2,
+              512,
+              64
+            ],
+            "target_operation": "transpose"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 24,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              1,
+              14,
+              512,
+              64
+            ],
+            "target_operation": "transpose"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 24,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              1,
+              512,
+              14,
+              64
+            ],
+            "target_operation": "transpose"
+          }
+        ]
+      },
+      "schema_version": 1,
+      "status": "pass",
+      "strided_copy": {
+        "bytes": 251658240,
+        "calls": 240,
+        "elements": 62914560,
+        "records": [
+          {
+            "bytes": 88080384,
+            "calls": 48,
+            "device": "hip:0",
+            "element_bytes": 4,
+            "elements": 22020096,
+            "shape": [
+              1,
+              14,
+              512,
+              64
+            ],
+            "strides": [
+              458752,
+              64,
+              896,
+              1
+            ]
+          },
+          {
+            "bytes": 12582912,
+            "calls": 48,
+            "device": "hip:0",
+            "element_bytes": 4,
+            "elements": 3145728,
+            "shape": [
+              1,
+              2,
+              512,
+              64
+            ],
+            "strides": [
+              65536,
+              64,
+              128,
+              1
+            ]
+          },
+          {
+            "bytes": 132120576,
+            "calls": 72,
+            "device": "hip:0",
+            "element_bytes": 4,
+            "elements": 33030144,
+            "shape": [
+              1,
+              512,
+              14,
+              64
+            ],
+            "strides": [
+              458752,
+              64,
+              32768,
+              1
+            ]
+          },
+          {
+            "bytes": 18874368,
+            "calls": 72,
+            "device": "hip:0",
+            "element_bytes": 4,
+            "elements": 4718592,
+            "shape": [
+              1,
+              512,
+              2,
+              64
+            ],
+            "strides": [
+              65536,
+              64,
+              32768,
+              1
+            ]
+          }
+        ]
+      }
+    },
+    "sparse_deepseek": {
+      "gradient_accumulation": {
+        "add_calls": 140,
+        "added_elements": 110100480,
+        "first_assignments": 1156,
+        "materializations": 112,
+        "materialized_elements": 51380224,
+        "records": [
+          {
+            "add_calls": 55,
+            "added_elements": 43253760,
+            "first_assignments": 56,
+            "first_source": "generic",
+            "last_add_source": "generic",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              1,
+              512,
+              1536
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "add"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 28,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              512,
+              256
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "add_bias"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 56,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              512,
+              256
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "bf16_matmul"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 84,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              512,
+              1536
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "bf16_matmul"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 56,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              512,
+              8960
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "bf16_matmul"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 1,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              512,
+              151936
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "bf16_matmul"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 28,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 28,
+            "materialized_elements": 22020096,
+            "shape": [
+              1,
+              12,
+              512,
+              128
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "causal_gqa_attention"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 28,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              1,
+              512,
+              12,
+              128
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "contiguous"
+          },
+          {
+            "add_calls": 1,
+            "added_elements": 786432,
+            "first_assignments": 1,
+            "first_source": "generic",
+            "last_add_source": "generic",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              1,
+              512,
+              1536
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "embedding"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 56,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              256
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "leaf"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 85,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              1536
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "leaf"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 56,
+            "first_source": "bf16_matmul_right",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              1536,
+              256
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "leaf"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 56,
+            "first_source": "bf16_matmul_right",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              1536,
+              1536
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "leaf"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 56,
+            "first_source": "bf16_matmul_right",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              1536,
+              8960
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "leaf"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 1,
+            "first_source": "bf16_matmul_right",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              1536,
+              151936
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "leaf"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 28,
+            "first_source": "bf16_matmul_right",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              8960,
+              1536
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "leaf"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 1,
+            "first_source": "embedding_backward_dense",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              151936,
+              1536
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "leaf"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 56,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 56,
+            "materialized_elements": 7340032,
+            "shape": [
+              1,
+              512,
+              2,
+              128
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "reshape"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 28,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 28,
+            "materialized_elements": 22020096,
+            "shape": [
+              1,
+              512,
+              12,
+              128
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "reshape"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 56,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              1,
+              512,
+              1536
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "reshape"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 1,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              1,
+              512,
+              151936
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "reshape"
+          },
+          {
+            "add_calls": 84,
+            "added_elements": 66060288,
+            "first_assignments": 85,
+            "first_source": "generic",
+            "last_add_source": "generic",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              512,
+              1536
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "reshape"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 57,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              1,
+              512,
+              1536
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "rms_norm"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 28,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              1,
+              2,
+              512,
+              128
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "rope_split_half_bias"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 28,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              1,
+              12,
+              512,
+              128
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "rope_split_half_bias"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 28,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              512,
+              8960
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "swiglu"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 56,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              1,
+              2,
+              512,
+              128
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "transpose"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 28,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              1,
+              12,
+              512,
+              128
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "transpose"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 28,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              1,
+              512,
+              12,
+              128
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "transpose"
+          }
+        ],
+        "sparse_embedding_add_calls": 0
+      },
+      "schema_version": 1,
+      "status": "pass",
+      "strided_copy": {
+        "bytes": 513802240,
+        "calls": 280,
+        "elements": 128450560,
+        "records": [
+          {
+            "bytes": 176160768,
+            "calls": 56,
+            "device": "hip:0",
+            "element_bytes": 4,
+            "elements": 44040192,
+            "shape": [
+              1,
+              12,
+              512,
+              128
+            ],
+            "strides": [
+              786432,
+              128,
+              1536,
+              1
+            ]
+          },
+          {
+            "bytes": 29360128,
+            "calls": 56,
+            "device": "hip:0",
+            "element_bytes": 4,
+            "elements": 7340032,
+            "shape": [
+              1,
+              2,
+              512,
+              128
+            ],
+            "strides": [
+              131072,
+              128,
+              256,
+              1
+            ]
+          },
+          {
+            "bytes": 264241152,
+            "calls": 84,
+            "device": "hip:0",
+            "element_bytes": 4,
+            "elements": 66060288,
+            "shape": [
+              1,
+              512,
+              12,
+              128
+            ],
+            "strides": [
+              786432,
+              128,
+              65536,
+              1
+            ]
+          },
+          {
+            "bytes": 44040192,
+            "calls": 84,
+            "device": "hip:0",
+            "element_bytes": 4,
+            "elements": 11010048,
+            "shape": [
+              1,
+              512,
+              2,
+              128
+            ],
+            "strides": [
+              131072,
+              128,
+              65536,
+              1
+            ]
+          }
+        ]
+      }
+    },
+    "sparse_qwen": {
+      "gradient_accumulation": {
+        "add_calls": 121,
+        "added_elements": 191184896,
+        "first_assignments": 991,
+        "materializations": 96,
+        "materialized_elements": 25165824,
+        "records": [
+          {
+            "add_calls": 47,
+            "added_elements": 21561344,
+            "first_assignments": 48,
+            "first_source": "generic",
+            "last_add_source": "generic",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              1,
+              512,
+              896
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "add"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 24,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              512,
+              128
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "add_bias"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 48,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              512,
+              128
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "bf16_matmul"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 72,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              512,
+              896
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "bf16_matmul"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 48,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              512,
+              4864
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "bf16_matmul"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 24,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 24,
+            "materialized_elements": 11010048,
+            "shape": [
+              1,
+              14,
+              512,
+              64
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "causal_gqa_attention"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 24,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              1,
+              512,
+              14,
+              64
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "contiguous"
+          },
+          {
+            "add_calls": 1,
+            "added_elements": 458752,
+            "first_assignments": 1,
+            "first_source": "generic",
+            "last_add_source": "generic",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              1,
+              512,
+              896
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "embedding"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 48,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              128
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "leaf"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 73,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              896
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "leaf"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 48,
+            "first_source": "bf16_matmul_right",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              896,
+              128
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "leaf"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 48,
+            "first_source": "bf16_matmul_right",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              896,
+              896
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "leaf"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 48,
+            "first_source": "bf16_matmul_right",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              896,
+              4864
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "leaf"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 24,
+            "first_source": "bf16_matmul_right",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              4864,
+              896
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "leaf"
+          },
+          {
+            "add_calls": 1,
+            "added_elements": 136134656,
+            "first_assignments": 1,
+            "first_source": "matmul_right",
+            "last_add_source": "embedding_backward_sparse_add",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              151936,
+              896
+            ],
+            "sparse_embedding_add_calls": 1,
+            "target_operation": "leaf"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 1,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              512,
+              151936
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "matmul"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 48,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 48,
+            "materialized_elements": 3145728,
+            "shape": [
+              1,
+              512,
+              2,
+              64
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "reshape"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 24,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 24,
+            "materialized_elements": 11010048,
+            "shape": [
+              1,
+              512,
+              14,
+              64
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "reshape"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 48,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              1,
+              512,
+              896
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "reshape"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 1,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              1,
+              512,
+              151936
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "reshape"
+          },
+          {
+            "add_calls": 72,
+            "added_elements": 33030144,
+            "first_assignments": 73,
+            "first_source": "generic",
+            "last_add_source": "generic",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              512,
+              896
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "reshape"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 49,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              1,
+              512,
+              896
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "rms_norm"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 24,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              1,
+              2,
+              512,
+              64
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "rope_split_half_bias"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 24,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              1,
+              14,
+              512,
+              64
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "rope_split_half_bias"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 24,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              512,
+              4864
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "swiglu"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 48,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              1,
+              2,
+              512,
+              64
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "transpose"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 24,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              1,
+              14,
+              512,
+              64
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "transpose"
+          },
+          {
+            "add_calls": 0,
+            "added_elements": 0,
+            "first_assignments": 24,
+            "first_source": "generic",
+            "last_add_source": "",
+            "materializations": 0,
+            "materialized_elements": 0,
+            "shape": [
+              1,
+              512,
+              14,
+              64
+            ],
+            "sparse_embedding_add_calls": 0,
+            "target_operation": "transpose"
+          }
+        ],
+        "sparse_embedding_add_calls": 1
+      },
+      "schema_version": 1,
+      "status": "pass",
+      "strided_copy": {
+        "bytes": 251658240,
+        "calls": 240,
+        "elements": 62914560,
+        "records": [
+          {
+            "bytes": 88080384,
+            "calls": 48,
+            "device": "hip:0",
+            "element_bytes": 4,
+            "elements": 22020096,
+            "shape": [
+              1,
+              14,
+              512,
+              64
+            ],
+            "strides": [
+              458752,
+              64,
+              896,
+              1
+            ]
+          },
+          {
+            "bytes": 12582912,
+            "calls": 48,
+            "device": "hip:0",
+            "element_bytes": 4,
+            "elements": 3145728,
+            "shape": [
+              1,
+              2,
+              512,
+              64
+            ],
+            "strides": [
+              65536,
+              64,
+              128,
+              1
+            ]
+          },
+          {
+            "bytes": 132120576,
+            "calls": 72,
+            "device": "hip:0",
+            "element_bytes": 4,
+            "elements": 33030144,
+            "shape": [
+              1,
+              512,
+              14,
+              64
+            ],
+            "strides": [
+              458752,
+              64,
+              32768,
+              1
+            ]
+          },
+          {
+            "bytes": 18874368,
+            "calls": 72,
+            "device": "hip:0",
+            "element_bytes": 4,
+            "elements": 4718592,
+            "shape": [
+              1,
+              512,
+              2,
+              64
+            ],
+            "strides": [
+              65536,
+              64,
+              32768,
+              1
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "keep_gate": {
+    "deepseek_throughput_ratio_minimum": 0.98,
+    "loss_relative_difference_maximum": 0.005,
+    "qwen_peak_ratio_maximum": 0.95,
+    "qwen_throughput_ratio_minimum": 0.98
+  },
+  "profile": {
+    "add": {
+      "dense": {
+        "calls": 507,
+        "time_ns": 3920783
+      },
+      "sparse": {
+        "calls": 504,
+        "time_ns": 2370328
+      }
+    },
+    "embedding_backward": {
+      "dense": {
+        "calls": 3,
+        "time_ns": 17640
+      },
+      "sparse": {
+        "calls": 3,
+        "time_ns": 17078
+      }
+    },
+    "fill": {
+      "dense": {
+        "calls": 586,
+        "time_ns": 3937417
+      },
+      "sparse": {
+        "calls": 583,
+        "time_ns": 3130872
+      }
+    },
+    "total_kernel_time_ns": {
+      "dense": 116410645,
+      "sparse": 113197145
+    }
+  },
+  "runs_per_model_policy": 3,
+  "schema_version": 1,
+  "status": "pass",
+  "track": "tied_embedding_sparse_accumulation"
+}

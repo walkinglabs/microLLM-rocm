@@ -1537,6 +1537,55 @@ Tensor embedding_backward(const Tensor& gradient, const Tensor& indices,
     return from_values(std::move(result), output.shape());
 }
 
+void embedding_backward_add_(Tensor& weight_gradient, const Tensor& gradient,
+                             const Tensor& indices,
+                             [[maybe_unused]] const OpContext& context) {
+    require_float(weight_gradient, "weight_gradient");
+    require_float(gradient, "gradient");
+    if (indices.dtype() != DType::Int32 ||
+        indices.device() != gradient.device() ||
+        weight_gradient.device() != gradient.device() ||
+        weight_gradient.ndim() != 2 || gradient.ndim() < 1 ||
+        gradient.numel() != indices.numel() * gradient.shape().back() ||
+        weight_gradient.shape()[1] != gradient.shape().back()) {
+        throw std::invalid_argument(
+            "embedding backward add requires matching dense weight gradient");
+    }
+    if (!weight_gradient.is_contiguous() || !gradient.is_contiguous() ||
+        !indices.is_contiguous()) {
+        throw std::invalid_argument(
+            "embedding backward add requires contiguous tensors");
+    }
+    const auto vocabulary = weight_gradient.shape()[0];
+    const auto width = weight_gradient.shape()[1];
+    if (gradient.device().is_hip()) {
+#if MICROLLM_HAS_HIP
+        hip::launch_embedding_backward(
+            static_cast<const float*>(gradient.data()),
+            static_cast<const std::int32_t*>(indices.data()),
+            static_cast<float*>(weight_gradient.data()), indices.numel(),
+            vocabulary, width, context.native_stream(gradient.device()));
+        return;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    const auto values = gradient.to_vector();
+    const auto labels = indices.to_int32_vector();
+    auto* result = weight_gradient.data_float();
+    for (std::size_t token = 0; token < labels.size(); ++token) {
+        const auto label = static_cast<std::int64_t>(labels[token]);
+        if (label < 0 || label >= vocabulary) {
+            throw std::out_of_range("embedding index out of range");
+        }
+        for (std::int64_t column = 0; column < width; ++column) {
+            result[static_cast<std::size_t>(label * width + column)] +=
+                values[token * static_cast<std::size_t>(width) +
+                       static_cast<std::size_t>(column)];
+        }
+    }
+}
+
 Tensor softmax_backward(const Tensor& output, const Tensor& gradient,
                         [[maybe_unused]] const OpContext& context) {
     require_float(output, "output");

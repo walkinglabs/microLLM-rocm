@@ -6,6 +6,7 @@
 #include <microllm/core/tensor.h>
 #include <microllm/runtime/memory.h>
 #include <microllm/runtime/runtime.h>
+#include <microllm/runtime/diagnostics.h>
 
 namespace microllm::runtime {
 
@@ -46,6 +47,28 @@ TEST(RuntimeTest, TracksCurrentPeakAndTotalEngineAllocations) {
     EXPECT_EQ(after.allocation_calls, 2U);
     EXPECT_EQ(after.deallocation_calls, 2U);
     EXPECT_EQ(after.backend_deallocation_calls, 2U);
+}
+
+TEST(RuntimeTest, StridedCopyDiagnosticsAggregateExactLayoutOnlyWhenEnabled) {
+    reset_strided_copy_diagnostics();
+    enable_strided_copy_diagnostics(true);
+    const auto input = Tensor::from_vector({1, 2, 3, 4, 5, 6}, {2, 3});
+    const auto view = input.transpose(0, 1);
+    (void)view.contiguous();
+    (void)view.contiguous();
+    enable_strided_copy_diagnostics(false);
+    const auto snapshot = strided_copy_diagnostics();
+    ASSERT_EQ(snapshot.records.size(), 1U);
+    EXPECT_EQ(snapshot.calls, 2U);
+    EXPECT_EQ(snapshot.elements, 12U);
+    EXPECT_EQ(snapshot.bytes, 48U);
+    EXPECT_EQ(snapshot.records[0].shape, (std::vector<std::int64_t>{3, 2}));
+    EXPECT_EQ(snapshot.records[0].strides, (std::vector<std::int64_t>{1, 3}));
+    EXPECT_EQ(snapshot.records[0].device, Device::cpu());
+    (void)view.contiguous();
+    EXPECT_EQ(strided_copy_diagnostics().calls, 2U)
+        << "disabled diagnostics must have no hot-path side effects";
+    reset_strided_copy_diagnostics();
 }
 
 #if MICROLLM_HAS_HIP

@@ -315,6 +315,9 @@ void save_matmul_tuning_cache(const std::filesystem::path& path);
 [[nodiscard]] Tensor embedding_backward(const Tensor& gradient, const Tensor& indices,
                                         std::int64_t vocabulary,
                                         const OpContext& context = {});
+void embedding_backward_add_(Tensor& weight_gradient, const Tensor& gradient,
+                             const Tensor& indices,
+                             const OpContext& context = {});
 [[nodiscard]] Tensor softmax_backward(const Tensor& output, const Tensor& gradient,
                                       const OpContext& context = {});
 [[nodiscard]] TensorPair rms_norm_backward(const Tensor& input, const Tensor& weight,

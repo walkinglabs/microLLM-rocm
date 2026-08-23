@@ -1,8 +1,10 @@
+#include <algorithm>
 #include <cmath>
 #include <vector>
 
 #include <gtest/gtest.h>
 #include <microllm/autograd/autograd.h>
+#include <microllm/autograd/diagnostics.h>
 #include <microllm/ops/ops.h>
 
 namespace microllm::autograd {
@@ -355,6 +357,82 @@ TEST(AutogradTest, RepeatInterleaveExpandsHeadsAndReducesTheirGradients) {
               (std::vector<float>{1, 2, 1, 2, 1, 2, 3, 4, 3, 4, 3, 4}));
     sum(repeated).backward();
     EXPECT_EQ(input.grad().to_vector(), (std::vector<float>{3, 3, 3, 3}));
+}
+
+TEST(AutogradDiagnosticsTest, AttributesAddsAndMaterializationByTargetOperation) {
+    reset_gradient_accumulation_diagnostics();
+    enable_gradient_accumulation_diagnostics(true);
+    Value shared(Tensor::from_vector({1, 2, 3, 4}, {2, 2}), true);
+    sum(add(shared, shared)).backward();
+    Value viewed(Tensor::from_vector({1, 2, 3, 4}, {2, 2}), true);
+    sum(transpose(viewed, 0, 1)).backward();
+    enable_gradient_accumulation_diagnostics(false);
+    const auto snapshot = gradient_accumulation_diagnostics();
+    EXPECT_EQ(snapshot.add_calls, 1U);
+    EXPECT_EQ(snapshot.added_elements, 4U);
+    EXPECT_EQ(snapshot.materializations, 1U);
+    EXPECT_EQ(snapshot.materialized_elements, 4U);
+    EXPECT_GE(snapshot.first_assignments, 2U);
+    const auto leaf = std::find_if(
+        snapshot.records.begin(), snapshot.records.end(), [](const auto& record) {
+            return record.target_operation == "leaf" && record.shape == Shape({2, 2});
+        });
+    ASSERT_NE(leaf, snapshot.records.end());
+    EXPECT_EQ(leaf->add_calls, 1U);
+    EXPECT_EQ(leaf->materializations, 1U);
+    const auto before = gradient_accumulation_diagnostics().add_calls;
+    Value disabled(Tensor::from_vector({1, 2}, {2}), true);
+    sum(add(disabled, disabled)).backward();
+    EXPECT_EQ(gradient_accumulation_diagnostics().add_calls, before);
+    reset_gradient_accumulation_diagnostics();
+}
+
+TEST(AutogradDiagnosticsTest, TiedEmbeddingUsesSparseAddAfterDenseHeadGradient) {
+    const auto values = Tensor::from_vector(
+        {1, 2, 3, 4, 5, 6, 7, 8}, {4, 2});
+    const auto indices = Tensor::from_int32_vector({1, 3, 1}, {3});
+    reset_gradient_accumulation_diagnostics();
+    enable_gradient_accumulation_diagnostics(true);
+    Value tied(values, true);
+    const auto tied_hidden = embedding(tied, indices);
+    sum(matmul(tied_hidden, tied, false, true)).backward();
+    enable_gradient_accumulation_diagnostics(false);
+
+    Value embedding_weight(values, true);
+    Value head_weight(values, true);
+    const auto reference_hidden = embedding(embedding_weight, indices);
+    sum(matmul(reference_hidden, head_weight, false, true)).backward();
+    const auto expected = ops::add(embedding_weight.grad(), head_weight.grad());
+    const auto actual = tied.grad().to_vector();
+    const auto reference = expected.to_vector();
+    ASSERT_EQ(actual.size(), reference.size());
+    for (std::size_t index = 0; index < actual.size(); ++index) {
+        EXPECT_NEAR(actual[index], reference[index], 1.0e-5F) << "index=" << index;
+    }
+    const auto diagnostics = gradient_accumulation_diagnostics();
+    EXPECT_EQ(diagnostics.sparse_embedding_add_calls, 1U);
+    const auto tied_record = std::find_if(
+        diagnostics.records.begin(), diagnostics.records.end(),
+        [](const auto& record) {
+            return record.target_operation == "leaf" &&
+                   record.shape == Shape({4, 2});
+        });
+    ASSERT_NE(tied_record, diagnostics.records.end());
+    EXPECT_EQ(tied_record->first_source, "matmul_right");
+    EXPECT_EQ(tied_record->last_add_source, "embedding_backward_sparse_add");
+    EXPECT_EQ(tied_record->sparse_embedding_add_calls, 1U);
+    enable_tied_embedding_sparse_add(false);
+    Value dense_baseline(values, true);
+    const auto dense_hidden = embedding(dense_baseline, indices);
+    sum(matmul(dense_hidden, dense_baseline, false, true)).backward();
+    enable_tied_embedding_sparse_add(true);
+    const auto dense_values = dense_baseline.grad().to_vector();
+    ASSERT_EQ(dense_values.size(), actual.size());
+    for (std::size_t index = 0; index < actual.size(); ++index) {
+        EXPECT_NEAR(actual[index], dense_values[index], 1.0e-5F) << "index=" << index;
+    }
+    EXPECT_TRUE(tied_embedding_sparse_add_enabled());
+    reset_gradient_accumulation_diagnostics();
 }
 
 }  // namespace microllm::autograd

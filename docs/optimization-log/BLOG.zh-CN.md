@@ -2693,3 +2693,15 @@ GEMM solution-index枚举。下一节点不再优化假热点，也不重复已�
 保留诊断tuner、matrix和process-local CLI，不设默认、不持久化版本相关index。
 
 ![BF16 training solution discard](assets/bf16-training-solution-discard.svg)
+
+## 178. Experiment 161：别为512行，再造一张1.36亿格的大表
+
+新诊断把121次gradient add按来源和shape拆开。Qwen tied embedding/head这一条独占1.361亿
+added elements（71.2%）：先到的是dense `matmul_right`，后到的是只有512个token行的
+`embedding_backward`。旧路径却分配、清零544MB dense表再全量相加。
+
+唯一Storage门允许后，embedding贡献直接atomic scatter-add进已有dense head gradient。Qwen峰值
+13.025→11.969GB（-8.11%），吞吐1.018×；Deep untied零命中、1.006×中性。loss差0.0207%，
+参数guard相等。profile少3次add和3次fill，总Kernel 116.41→113.20ms。按内存门保留。
+
+![Tied embedding sparse add](assets/tied-embedding-sparse-add.svg)

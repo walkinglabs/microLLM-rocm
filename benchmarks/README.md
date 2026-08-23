@@ -68,6 +68,12 @@ Screen version-local hipBLASLt BF16 solution indices without installing a defaul
 `hf_train_step --bf16-algorithms M:K:N:index,...` is an explicit process-local research
 seam. It is not an environment-safe default or persistent cache.
 
+For source/shape attribution without changing the default hot path, add
+`--diagnostics-output /path/diagnostics.json` to `microllm_hf_train_step`. It records
+Autograd first/add sources and Runtime strided-copy layouts only during measured steps.
+`--tied-embedding-sparse-add true/false` provides same-binary A/B for the retained
+Qwen tied-weight memory optimization.
+
 `microllm_bench_model` measures train or cache-backed generation throughput. Its
 `tokens_per_second` excludes construction and warm-up; `tokens_per_second_with_setup`
 includes construction, device transfer, optimizer allocation, and warm-up. Both are

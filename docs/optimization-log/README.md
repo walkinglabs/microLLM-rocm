@@ -684,6 +684,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/159-post-bias-training-profile.md](experiments/159-post-bias-training-profile.md) | 1步/3步相位差分与53.47% GEMM结论 |
 | [assets/bf16-training-solution-discard.svg](assets/bf16-training-solution-discard.svg) | 八shape算子收益、两种模型策略与拒绝门 |
 | [experiments/160-bf16-training-solution-discard.md](experiments/160-bf16-training-solution-discard.md) | 1536候选、24进程和同revision整机反驳 |
+| [assets/tied-embedding-sparse-add.svg](assets/tied-embedding-sparse-add.svg) | gradient来源、Qwen峰值与稀疏累加路径 |
+| [experiments/161-tied-embedding-sparse-add.md](experiments/161-tied-embedding-sparse-add.md) | 71.2%元素归因、两模型A/B和profile归因 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

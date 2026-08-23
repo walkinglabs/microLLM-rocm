@@ -45,6 +45,7 @@
 | microLLM backward | 返回 shape | PyTorch reference | FP32 阈值 | 必测非法输入 |
 |---|---|---|---|---|
 | `embedding_backward` | `[V,D]` | `F.embedding(...).backward(seed)` | `2e-5,2e-5` | gradient/index 数量错、V<=0、dtype/device 错 |
+| `embedding_backward_add_` | 在调用者 `[V,D]` 中累加token行 | dense `embedding_backward + add` | `2e-5,2e-5` | destination/gradient/index shape、dtype、device或连续性错 |
 | `bias_gradient` | `[...,D] -> [D]`，前面各维求和 | `(input+bias).backward(seed)` | Max `3e-5`、RMS `1e-5` | scalar、非 FP32、HIP 非连续 |
 | `softmax_backward` | 与 output 相同 | `softmax(...).backward(seed)` | `2e-5,2e-5` | output/seed shape/device 不同 |
 | `rms_norm_backward` | input grad `[...,D]`，weight grad `[D]` | `F.rms_norm(...).backward(seed)` | `3e-4,3e-4` | input/weight/seed 契约错 |

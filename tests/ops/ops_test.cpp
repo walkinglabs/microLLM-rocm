@@ -34,6 +34,22 @@ TEST(CpuOpsTest, ElementwiseOpsMatchHandValues) {
     EXPECT_EQ(scale(left, 0.5F).to_vector(), (std::vector<float>{0.5F, -1, 1.5F}));
 }
 
+TEST(CpuOpsTest, EmbeddingBackwardAddAccumulatesDuplicateRowsInCallerStorage) {
+    auto weight_gradient = Tensor::from_vector(
+        {10, 20, 30, 40, 50, 60, 70, 80}, {4, 2});
+    const auto* address = weight_gradient.storage().data();
+    const auto gradient = Tensor::from_vector({1, 2, 3, 4, 5, 6}, {3, 2});
+    const auto indices = Tensor::from_int32_vector({1, 3, 1}, {3});
+    embedding_backward_add_(weight_gradient, gradient, indices);
+    EXPECT_EQ(weight_gradient.storage().data(), address);
+    EXPECT_EQ(weight_gradient.to_vector(),
+              (std::vector<float>{10, 20, 36, 48, 50, 60, 73, 84}));
+    EXPECT_THROW(embedding_backward_add_(
+                     weight_gradient, gradient,
+                     Tensor::from_int32_vector({1, 3}, {2})),
+                 std::invalid_argument);
+}
+
 TEST(CpuOpsTest, CastOutAndTransposePreserveCallerStorage) {
     const auto input = Tensor::from_vector({1, 2, 3, 4, 5, 6}, {2, 3},
                                            DType::BFloat16);

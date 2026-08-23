@@ -4,8 +4,8 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| CPU configuration | smoke-tested | full CPU/HIP gate 381/381 with 260 CPU and 122 HIP labels; ASan/UBSan 253/253 | broader compiler/OS CI matrix |
-| CPU code coverage | smoke-tested | 80.0% lines, 89.5% functions, 61.3% branches over `src/` + `include/`; HIP-only tuner/Kernel paths remain visible as CPU gaps | split CPU/HIP reports and add justified thresholds |
+| CPU configuration | smoke-tested | full CPU/HIP gate 387/387 with 264 CPU and 124 HIP labels; ASan/UBSan 257/257 | broader compiler/OS CI matrix |
+| CPU code coverage | smoke-tested | 80.3% lines, 89.7% functions, 61.4% branches over `src/` + `include/`; HIP-only tuner/Kernel paths remain visible as CPU gaps | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, native cast, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
 | Tensor metadata/views | smoke-tested | hand values, randomized shapes, bounds | more dtypes |
@@ -24,6 +24,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Operator context | smoke-tested | explicit Stream ordering and mismatch tests | low-level C descriptor |
 | CPU Transformer Autograd | smoke-tested | dedicated graph construction tests, finite differences, PyTorch full-graph gradients | more dtypes |
 | HIP Autograd | smoke-tested | CPU/HIP full Transformer gradient comparison; zero host transfers during graph execution | optimized reductions/more dtypes |
+| Tied embedding accumulation | smoke-tested | source order, CPU/HIP duplicate-row gates, Qwen peak -8.11%, throughput 1.018× and untied DeepSeek zero routing | more tied model families and longer training trajectory |
 | HIP bias gradient | smoke-tested | 78 complete-output process rows; T512 operator 3.21×–3.27× and Qwen/DeepSeek training 1.222×/1.111× at unchanged peak | low-precision gradients and broader GPUs |
 | SGD/AdamW | smoke-tested | PyTorch parity, zero-transfer HIP update, exact persistent Scalar/Vectorized registry and 15-process complete-state-before-timing matrix | mixed precision/scaler and a candidate clearing the 1.05 model gate |
 | Checkpoint | smoke-tested | atomic complete-state load, corruption, 3-step resume | mixed precision |
@@ -54,14 +55,14 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Serving scheduler | smoke-tested | slot-ratio matrix 48/48 token-exact; matched 6:2 short and 2:6 long retain 85%–87% throughput while reducing KV 56%/19% | safe dynamic ratio transition and allocator cost; uniform remains default, overflow opt-in |
 | Stable model failure | smoke-tested | low-loss cycle breaks beyond training context | rebuttal experiments |
 | PyTorch Custom Ops | smoke-tested on CPU | Torch 2.13 add/multiply via dispatcher | build/run with PyTorch ROCm |
-| PyTorch correctness oracle | smoke-tested | PyTorch-enabled 229/229; 30+ Tensor APIs, 29 graph APIs, inference matrix and model/optimizer parity | broader direct PyTorch ROCm operator matrix |
+| PyTorch correctness oracle | smoke-tested | PyTorch-enabled 233/233; 30+ Tensor APIs, 29 graph APIs, inference matrix and model/optimizer parity | broader direct PyTorch ROCm operator matrix |
 | PyTorch ROCm environment | smoke-tested | Torch 2.10.0+rocm7.13 and Transformers 5.8.1 run official Qwen/DeepSeek BF16 training on MI300X with native device discovery | additional Torch/ROCm versions and Radeon |
 | C ABI v1 | smoke-tested | pure C CPU/HIP create/copy/ops/error client | zero-copy external views |
 | Python ctypes API | smoke-tested | CPU/HIP Tensor/ops/error unittest | packaging/broader ops |
 | External TensorView ops | smoke-tested | caller-owned CPU/HIP buffers and Stream | Torch build validation |
 | In-process profiling | smoke-tested | TraceSession/TraceTimer, values/operator/layer passes, CPU/HIP tests | async Event completion/rocprof markers/Python decorator |
 | Cross-framework alignment | smoke-tested | CPU and MI300X both pass 58/58 forward/loss/all-parameter-gradient checkpoints, plus op/layer/backward timings | Qwen/DeepSeek runners/direct PyTorch ROCm |
-| Profiling/autotune | smoke-tested | rocprofv3, exact persistent matmul/AdamW registries, complete output/state before Event timing, continuous-only raw pftrace and training phase-delta classification | exact training-GEMM solution enumeration and automated model regression |
+| Profiling/autotune | smoke-tested | rocprofv3, exact registries, complete output/state before timing, training phase delta, Autograd source and strided-layout diagnostics | automated model regression and broader trace correlation |
 | Micro-benchmark harness | smoke-tested | CPU/HIP Event+wall JSONL and error gate | PyTorch operator timing/more shapes |
 | Engine allocation tracker | smoke-tested | CPU/HIP current/peak/total accounting | external allocator integration |
 | End-to-end benchmark | smoke-tested | matched Python/PyTorch ROCm official training plus phase-separated prefill and one-forward-per-token steady-decode JSONL | serving concurrency, board-level memory and llama.cpp |
