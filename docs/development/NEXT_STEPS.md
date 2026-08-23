@@ -198,7 +198,8 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] run Qwen21/Deep27 FP32-block counterfactual on complete logits and performance;
 - [x] exhaustively screen every single FP32 block at T8: Qwen layer 9 improves both
   metrics, while no DeepSeek layer keeps both Max/RMS non-worse;
-- [ ] run the selected Qwen layer 9 candidate through repeated T8/T512 gates;
+- [x] run the selected Qwen layer 9 candidate through repeated T8/T512 gates:
+  T8 improves, but T512 Max/RMS regress 5.3%/36.4%, closing the one-block policy;
 - [x] test and reject model-level E5 activations: all eight Max/RMS metrics worsen
   1.51x–3.43x while the mixed-format operator primitive remains supported;
 - [ ] replace the one-block reduction only if the next accepted numerical policy reuses it;

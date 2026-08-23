@@ -49,8 +49,8 @@ needed to run a real training and generation loop:
   effects; it has independent CPU/HIP routing gates and is not a default;
 - explicit per-block FP32 counterfactuals inside an FP8 model for precision attribution;
   selected blocks remain single-representation FP32 and are never silently quantized;
-- exhaustive one-block leave-one-out finds Qwen layer 9 improves Max/RMS by 28.7%/33.4%, while
-  no DeepSeek layer keeps both metrics non-worse; only the Qwen candidate advances to formal gates;
+- exhaustive one-block leave-one-out finds no safe DeepSeek layer; Qwen layer 9 improves T8
+  Max/RMS by 28.7%/33.4% but formal T512 Max/RMS regress 5.3%/36.4%, closing the one-block policy;
 - explicit FP8 weight-only, activation-only and both-roundtrip error-attribution modes; all use
   FP32 GEMM, are inference-only diagnostics, and cannot be reported as FP8 speed paths;
 - a direct native-FP8/both-roundtrip/FP32 complete-logit runner with rotated process order;

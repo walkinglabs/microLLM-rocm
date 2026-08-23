@@ -1,0 +1,159 @@
+{
+  "all_checks_passed": true,
+  "build_reference": {
+    "binary": "/tmp/microllm-exp154-build.blZShW/apps/microllm_hf_infer",
+    "build": "/tmp/microllm-exp154-build.blZShW/build.log",
+    "configure": "/tmp/microllm-exp154-build.blZShW/configure.log",
+    "directory": "/tmp/microllm-exp154-build.blZShW",
+    "hf_cli": "/tmp/microllm-exp154-build.blZShW/hf-cli-binary-contract.log",
+    "matrix": "/tmp/microllm-exp154-build.blZShW/hf-fp8-matrix-contract.log"
+  },
+  "comparisons": [
+    {
+      "candidate": {
+        "gate": false,
+        "max": 0.8654556274414062,
+        "peak": 948748364,
+        "resident": 947462696,
+        "rms": 0.18497003428334774,
+        "tps": 1850.37169727
+      },
+      "context": 8,
+      "control": {
+        "gate": false,
+        "max": 1.2144723534584045,
+        "peak": 904023652,
+        "resident": 902737984,
+        "rms": 0.2778311788476209,
+        "tps": 1555.868717353
+      },
+      "delta": {
+        "max_not_worse": true,
+        "max_ratio": 0.7126186322618895,
+        "peak": 44724712,
+        "resident": 44724712,
+        "rms_not_worse": true,
+        "rms_ratio": 0.6657641343587154,
+        "t512_pass": false,
+        "tps_percent": 18.92852376504093
+      }
+    },
+    {
+      "candidate": {
+        "gate": false,
+        "max": 1.9266479015350342,
+        "peak": 991457324,
+        "resident": 947462696,
+        "rms": 0.4681664311350482,
+        "tps": 83262.35344186
+      },
+      "context": 512,
+      "control": {
+        "gate": false,
+        "max": 1.830350399017334,
+        "peak": 946732612,
+        "resident": 902737984,
+        "rms": 0.3432300639202133,
+        "tps": 83998.614022869
+      },
+      "delta": {
+        "max_not_worse": false,
+        "max_ratio": 1.0526115122926187,
+        "peak": 44724712,
+        "resident": 44724712,
+        "rms_not_worse": false,
+        "rms_ratio": 1.3640018178707018,
+        "t512_pass": true,
+        "tps_percent": -0.876515153938795
+      }
+    }
+  ],
+  "complete_precision": {
+    "passes": 0,
+    "total": 2
+  },
+  "experiment": "Exp155",
+  "interpretation": "Reject layer9 as a two-context policy: T8 improves strongly, but T512 Max and RMS both regress. T512 TPS passes and memory cost is reported.",
+  "keep": {
+    "four_metrics_not_worse": false,
+    "keep": false,
+    "one_improved": true,
+    "t512_pass": true
+  },
+  "revision": "147864a0374fc51e27bfe4df5001652ec7e9c16d",
+  "schema_version": 1,
+  "suites": {
+    "candidate": {
+      "counts": {
+        "dynamic": [
+          368
+        ],
+        "fallback_calls": [
+          0
+        ],
+        "fallback_shapes": [
+          0
+        ],
+        "layers": [
+          "9"
+        ],
+        "linears": [
+          161
+        ],
+        "logits": [
+          151936
+        ],
+        "native": [
+          4
+        ],
+        "passed": true,
+        "post": [
+          92
+        ],
+        "rows": 6
+      },
+      "directory": "/tmp/microllm-exp155-qwen-layer9-final",
+      "exit": 0,
+      "fp8": 6,
+      "stderr": 0,
+      "workers": 18
+    },
+    "combined_fp8": 12,
+    "combined_workers": 36,
+    "control": {
+      "counts": {
+        "dynamic": [
+          384
+        ],
+        "fallback_calls": [
+          0
+        ],
+        "fallback_shapes": [
+          0
+        ],
+        "layers": [
+          ""
+        ],
+        "linears": [
+          168
+        ],
+        "logits": [
+          151936
+        ],
+        "native": [
+          4
+        ],
+        "passed": true,
+        "post": [
+          96
+        ],
+        "rows": 6
+      },
+      "directory": "/tmp/microllm-exp155-qwen-control-final",
+      "exit": 0,
+      "fp8": 6,
+      "stderr": 0,
+      "workers": 18
+    }
+  }
+}

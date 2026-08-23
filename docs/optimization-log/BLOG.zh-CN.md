@@ -2619,3 +2619,15 @@ operand autograd与MI300原生E5×E4测试保留，清楚区分“硬件会算�
 只进入T8/T512三进程正式反驳。搜索轮吞吐未轮换、未重复，明确不参与选择。
 
 ![FP8 layer leave-one-out](assets/fp8-layer-leave-one-out.svg)
+
+## 172. Experiment 155：搜索最优层，到长上下文RMS反而恶化36%
+
+Qwen layer9在正式T8复现了搜索收益：Max/RMS改善28.74%/33.42%。但同revision T512的Max/RMS
+同时恶化5.26%/36.40%。T512吞吐只慢0.88%且过门，resident/peak增加44,724,712B，完整
+precision仍0/2。
+
+候选和control各18个worker，完整logits与routing计数都稳定，所以不能归因于单次噪声。搜索只
+回答“短上下文谁最好”，不能把答案外推到长上下文。结合Deep 0/28安全层，单FP32 block方向
+关闭，诊断API保留但不设模型默认。
+
+![Qwen layer9 formal discard](assets/fp8-qwen-layer9-formal-discard.svg)

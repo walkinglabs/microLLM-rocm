@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1160" height="680" viewBox="0 0 1160 680" role="img" aria-labelledby="title desc">
+  <title id="title">Qwen layer nine short and long context comparison</title>
+  <desc id="desc">Layer nine improves short-context errors but worsens both long-context errors.</desc>
+  <rect width="1160" height="680" rx="20" fill="#0b1020"/>
+  <text x="56" y="58" fill="#f8fafc" font-size="29" font-family="sans-serif" font-weight="700">Qwen layer9：T8改善，T512 RMS反而恶化36%</text>
+  <text x="56" y="91" fill="#94a3b8" font-size="16" font-family="sans-serif">相对同revision control；绿色向下=改善，红色向上=回归</text>
+  <line x1="90" y1="330" x2="1070" y2="330" stroke="#64748b" stroke-width="2"/>
+  <rect x="150" y="330" width="150" height="144" fill="#22c55e"/>
+  <rect x="340" y="330" width="150" height="167" fill="#38bdf8"/>
+  <rect x="670" y="304" width="150" height="26" fill="#ef4444"/>
+  <rect x="860" y="148" width="150" height="182" fill="#ef4444"/>
+  <g fill="#f8fafc" font-size="16" font-family="sans-serif" font-weight="700">
+    <text x="164" y="505">T8 Max -28.74%</text><text x="348" y="528">T8 RMS -33.42%</text>
+    <text x="682" y="290">T512 Max +5.26%</text><text x="862" y="132">T512 RMS +36.40%</text>
+  </g>
+  <g fill="#cbd5e1" font-size="18" font-family="sans-serif">
+    <text x="245" y="570">短上下文搜索命中</text><text x="780" y="570">长上下文正式门失败</text>
+  </g>
+  <rect x="145" y="602" width="870" height="50" rx="12" fill="#111827" stroke="#334155"/>
+  <text x="205" y="632" fill="#fbbf24" font-size="16" font-family="sans-serif">T512 TPS -0.88%过门 · 显存 +44,724,712B · keep=false · precision 0/2</text>
+</svg>

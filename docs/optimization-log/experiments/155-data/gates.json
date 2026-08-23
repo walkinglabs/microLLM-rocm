@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "status": "qwen_layer9_formal_discard",
+  "evidence": {
+    "fresh_build_steps": 50,
+    "contracts_passed": 2,
+    "combined_workers": 36,
+    "combined_fp8_workers": 12,
+    "complete_logits_per_fp8_worker": 151936,
+    "t8_max_improvement_percent": 28.7381,
+    "t8_rms_improvement_percent": 33.4236,
+    "t512_max_regression_percent": 5.2612,
+    "t512_rms_regression_percent": 36.4002,
+    "t512_performance_gate_passed": true,
+    "resident_and_peak_delta_bytes": 44724712,
+    "complete_precision_gates_passed": 0
+  },
+  "decision": {
+    "targeted_keep": false,
+    "qwen_layer9_long_context_viable": false,
+    "single_fp32_block_direction_closed": true,
+    "retain_fp32_layer_diagnostic_api": true,
+    "set_model_default": false,
+    "complete_fp8_precision_available": false
+  }
+}

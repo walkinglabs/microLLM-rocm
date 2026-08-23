@@ -6564,6 +6564,105 @@ def validate_fp8_layer_leave_one_out(
             "both_non_worse_count", -1)
 
 
+def validate_fp8_qwen_layer9_formal(
+        errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "155-data"
+    candidate = data / "candidate"
+    control = data / "control"
+    verification = json.loads(
+        (candidate / "verification.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    candidate_summary = json.loads(
+        (candidate / "summary.json").read_text(encoding="utf-8"))
+    control_summary = json.loads(
+        (control / "summary.json").read_text(encoding="utf-8"))
+    candidate_raw = sum(1 for line in (candidate / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip())
+    control_raw = sum(1 for line in (control / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip())
+    candidate_preflight = sum(1 for line in (
+        candidate / "gpu2-preflight.jsonl").read_text(
+            encoding="utf-8").splitlines() if line.strip())
+    control_preflight = sum(1 for line in (
+        control / "gpu2-preflight.jsonl").read_text(
+            encoding="utf-8").splitlines() if line.strip())
+    suites = verification.get("suites", {})
+    if verification.get("all_checks_passed") is not True or \
+            verification.get("revision") != \
+            "147864a0374fc51e27bfe4df5001652ec7e9c16d" or \
+            suites.get("combined_workers") != 36 or \
+            suites.get("combined_fp8") != 12 or \
+            candidate_raw != 18 or control_raw != 18 or \
+            candidate_preflight != 3 or control_preflight != 3 or \
+            (candidate / "stderr.log").stat().st_size != 0 or \
+            (control / "stderr.log").stat().st_size != 0 or \
+            (candidate / "exit-code.txt").read_text(encoding="utf-8").strip() != "0" or \
+            (control / "exit-code.txt").read_text(encoding="utf-8").strip() != "0":
+        errors.append("FP8 Qwen layer9 formal execution contract changed")
+    if candidate_summary.get("fp8_fp32_layers") != "9" or \
+            control_summary.get("fp8_fp32_layers") != "" or \
+            len(candidate_summary.get("rows", [])) != 18 or \
+            len(control_summary.get("rows", [])) != 18:
+        errors.append("FP8 Qwen layer9 policy identity changed")
+    comparisons = {row["context"]: row for row in verification.get("comparisons", [])}
+    short = comparisons.get(8, {})
+    long = comparisons.get(512, {})
+    short_delta = short.get("delta", {})
+    long_delta = long.get("delta", {})
+    if set(comparisons) != {8, 512} or \
+            not 0.71 < short_delta.get("max_ratio", 0) < 0.72 or \
+            not 0.66 < short_delta.get("rms_ratio", 0) < 0.67 or \
+            not 1.05 < long_delta.get("max_ratio", 0) < 1.06 or \
+            not 1.36 < long_delta.get("rms_ratio", 0) < 1.37 or \
+            long_delta.get("max_not_worse") is not False or \
+            long_delta.get("rms_not_worse") is not False or \
+            long_delta.get("t512_pass") is not True or \
+            short.get("candidate", {}).get("resident", 0) - \
+            short.get("control", {}).get("resident", 0) != 44724712 or \
+            long.get("candidate", {}).get("peak", 0) - \
+            long.get("control", {}).get("peak", 0) != 44724712:
+        errors.append("FP8 Qwen layer9 short/long comparison changed")
+    candidate_counts = suites.get("candidate", {}).get("counts", {})
+    control_counts = suites.get("control", {}).get("counts", {})
+    if candidate_counts.get("passed") is not True or \
+            candidate_counts.get("rows") != 6 or \
+            candidate_counts.get("layers") != ["9"] or \
+            candidate_counts.get("linears") != [161] or \
+            candidate_counts.get("dynamic") != [368] or \
+            candidate_counts.get("post") != [92] or \
+            control_counts.get("passed") is not True or \
+            control_counts.get("rows") != 6 or \
+            control_counts.get("layers") != [""] or \
+            control_counts.get("linears") != [168] or \
+            control_counts.get("dynamic") != [384] or \
+            control_counts.get("post") != [96] or \
+            candidate_counts.get("native") != [4] or \
+            control_counts.get("native") != [4] or \
+            candidate_counts.get("fallback_calls") != [0] or \
+            control_counts.get("fallback_calls") != [0]:
+        errors.append("FP8 Qwen layer9 routing counters changed")
+    keep = verification.get("keep", {})
+    precision = verification.get("complete_precision", {})
+    decision = gates.get("decision", {})
+    if keep.get("keep") is not False or \
+            keep.get("four_metrics_not_worse") is not False or \
+            keep.get("one_improved") is not True or \
+            keep.get("t512_pass") is not True or \
+            precision.get("passes") != 0 or precision.get("total") != 2 or \
+            decision.get("targeted_keep") is not False or \
+            decision.get("single_fp32_block_direction_closed") is not True or \
+            decision.get("retain_fp32_layer_diagnostic_api") is not True or \
+            "[50/50]" not in (data / "fresh-build.log").read_text(
+                encoding="utf-8") or \
+            "contract: pass" not in (data / "hf-cli-binary-contract.log").read_text(
+                encoding="utf-8") or \
+            "OK" not in (data / "hf-fp8-matrix-contract.log").read_text(
+                encoding="utf-8"):
+        errors.append("FP8 Qwen layer9 decision/build gates changed")
+    return suites.get("combined_workers", 0), suites.get("combined_fp8", 0), \
+        precision.get("passes", -1)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -6696,7 +6795,8 @@ def validate_assets(errors: list[str]) -> None:
                  "fp8-clipped-coarse-grid.svg",
                  "fp8-clipped-fine-grid.svg",
                  "fp8-e5-activation-discard.svg",
-                 "fp8-layer-leave-one-out.svg"):
+                 "fp8-layer-leave-one-out.svg",
+                 "fp8-qwen-layer9-formal-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -6938,6 +7038,8 @@ def main() -> int:
         validate_fp8_e5_activation_discard(errors)
     layer_rows, layer_candidates, layer_deep_nonworse = \
         validate_fp8_layer_leave_one_out(errors)
+    qwen9_workers, qwen9_fp8, qwen9_precision = \
+        validate_fp8_qwen_layer9_formal(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -7128,6 +7230,7 @@ def main() -> int:
           f"e5_activation={e5_workers}/{e5_fp8}/{e5_precision} "
           f"layer_leave_one_out={layer_rows}/{layer_candidates}/"
           f"{layer_deep_nonworse} "
+          f"qwen_layer9={qwen9_workers}/{qwen9_fp8}/{qwen9_precision} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")
