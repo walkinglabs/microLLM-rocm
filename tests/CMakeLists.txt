@@ -49,8 +49,15 @@ add_test(
         -DMICROLLM_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/package-consumer-prefix
         -P ${PROJECT_SOURCE_DIR}/cmake/RunInstalledConsumer.cmake
 )
+set(microllm_package_test_labels cpu package install integration)
+if(MICROLLM_HAS_HIP)
+    list(APPEND microllm_package_test_labels hip)
+endif()
+if(MICROLLM_HAS_RCCL)
+    list(APPEND microllm_package_test_labels rccl)
+endif()
 set_tests_properties(PackageConfig.InstalledConsumer PROPERTIES
-    LABELS "cpu;package;install;integration"
+    LABELS "${microllm_package_test_labels}"
     RUN_SERIAL TRUE
 )
 

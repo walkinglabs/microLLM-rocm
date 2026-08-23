@@ -135,6 +135,20 @@ as `microLLM::core`, `microLLM::model` or `microLLM::inference`. Linking a highe
 target propagates its public microLLM dependencies. A package produced by a HIP build
 also resolves HIP and hipBLASLt; an RCCL build additionally resolves RCCL.
 
+Think of the Config package as an installed instruction card: the consumer names the
+capability it needs, while CMake reads the card and supplies include directories,
+libraries, compile requirements, and backend dependencies. A minimal consumer uses:
+
+```cmake
+find_package(microLLM 0.1 CONFIG REQUIRED COMPONENTS inference)
+target_link_libraries(app PRIVATE microLLM::inference)
+```
+
+Point `CMAKE_PREFIX_PATH` at the installation root. As a narrower alternative, set
+`microLLM_DIR` to the directory containing `microLLMConfig.cmake`. Neither variable
+should point at the microLLM source tree. Pre-1.0 compatibility is limited to the
+installed `0.1.x` line.
+
 To use a nonstandard package directory inside the prefix:
 
 ```bash
@@ -143,9 +157,11 @@ cmake -S . -B build/install \
 ```
 
 `PackageConfig.InstalledConsumer` is not a source-tree link test. It installs into a
-fresh temporary prefix, configures a separate CMake project, checks every expected
-target, builds it and runs the executable. The recorded CPU-only and HIP configurations
-both pass this gate.
+fresh temporary prefix, moves the prefix to prove relocatability, configures a separate
+CMake project, checks every expected target, builds it and runs the executable. A
+second configure intentionally asks for a nonexistent required component and must
+fail. A third configure requests an incompatible pre-1.0 minor version and must also
+fail. CPU, HIP, and RCCL presets label and execute the same contract.
 
 ## Build options
 
@@ -190,3 +206,20 @@ Use `rocminfo` to find the `gfx` name and pass it through
 
 Install a system GoogleTest development package or configure once in a network-enabled
 environment. Production/offline builds should pin and provide dependencies explicitly.
+
+### `find_package(microLLM)` cannot find the package
+
+First confirm that `microLLMConfig.cmake` exists under the chosen installation prefix.
+Then pass either the prefix root:
+
+```bash
+cmake -S . -B build -DCMAKE_PREFIX_PATH=/absolute/prefix
+```
+
+or the exact Config directory:
+
+```bash
+cmake -S . -B build -DmicroLLM_DIR=/absolute/prefix/lib/cmake/microLLM
+```
+
+Do not combine a Config file from one installation with libraries from another.

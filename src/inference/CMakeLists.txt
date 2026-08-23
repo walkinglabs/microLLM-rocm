@@ -9,7 +9,7 @@ set_target_properties(microllm_inference PROPERTIES EXPORT_NAME inference)
 target_include_directories(microllm_inference
     PUBLIC
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-        $<INSTALL_INTERFACE:include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_link_libraries(microllm_inference
     PUBLIC microllm::model microllm_project_options microllm_build_config

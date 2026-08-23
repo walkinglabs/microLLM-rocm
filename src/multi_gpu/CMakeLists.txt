@@ -9,7 +9,7 @@ set_target_properties(microllm_multi_gpu PROPERTIES EXPORT_NAME multi_gpu)
 target_include_directories(microllm_multi_gpu
     PUBLIC
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-        $<INSTALL_INTERFACE:include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_link_libraries(microllm_multi_gpu
     PUBLIC microllm::model microllm::training microllm::profiling

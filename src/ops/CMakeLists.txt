@@ -9,7 +9,7 @@ set_target_properties(microllm_ops PROPERTIES EXPORT_NAME ops)
 target_include_directories(microllm_ops
     PUBLIC
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-        $<INSTALL_INTERFACE:include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_link_libraries(microllm_ops
     PUBLIC microllm::core microllm_project_options microllm_build_config

@@ -9,7 +9,7 @@ set_target_properties(microllm_training PROPERTIES EXPORT_NAME training)
 target_include_directories(microllm_training
     PUBLIC
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-        $<INSTALL_INTERFACE:include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_link_libraries(microllm_training
     PUBLIC microllm::autograd microllm::model microllm::io

@@ -9,7 +9,7 @@ set_target_properties(microllm_core PROPERTIES EXPORT_NAME core)
 target_include_directories(microllm_core
     PUBLIC
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-        $<INSTALL_INTERFACE:include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_link_libraries(microllm_core
     PUBLIC microllm_project_options microllm_build_config microllm::runtime

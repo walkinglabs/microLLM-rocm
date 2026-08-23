@@ -7,7 +7,7 @@ set_target_properties(microllm_autograd PROPERTIES EXPORT_NAME autograd)
 target_include_directories(microllm_autograd
     PUBLIC
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-        $<INSTALL_INTERFACE:include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_link_libraries(microllm_autograd
     PUBLIC microllm::ops microllm::profiling microllm_project_options microllm_build_config
