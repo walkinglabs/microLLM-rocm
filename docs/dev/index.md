@@ -67,6 +67,8 @@ component has a public interface under `include/microllm`, an implementation und
     [serving scheduler guide](serving-scheduler.zh-CN.md).
 34. For the measured optimization loop, read the
     [0→1 optimization log](../optimization-log/README.md).
+35. For separating FP8 weight and activation error, read the
+    [FP8 error-attribution guide](fp8-error-attribution.zh-CN.md).
 
 ## Engineering rules
 

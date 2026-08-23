@@ -307,6 +307,7 @@ public:
           activation_minimum_scale_(config.fp8_activation_minimum_scale),
           weight_scale_(config.fp8_weight_scale),
           weight_scale_mode_(config.fp8_weight_scale_mode),
+          diagnostic_mode_(config.fp8_diagnostic_mode),
           activation_scale_mode_(
               config.fp8_activation_scale_mode ==
                       Fp8ActivationScaleMode::FfnOuterRow
@@ -329,6 +330,10 @@ public:
                        : autograd::bf16_matmul(input, weight_);
         }
         if (precision_ == LinearPrecision::Float8E4M3FNUZ) {
+            if (diagnostic_mode_ != Fp8DiagnosticMode::Full) {
+                throw std::logic_error(
+                    "FP8 diagnostic modes are graph-free inference-only");
+            }
             if (weight_scale_mode_ != Fp8WeightScaleMode::Fixed ||
                 activation_scale_mode_ != Fp8ActivationScaleMode::Fixed) {
                 throw std::logic_error(
@@ -344,6 +349,7 @@ public:
     }
     [[nodiscard]] bool shares_dynamic_activation() const noexcept {
         return precision_ == LinearPrecision::Float8E4M3FNUZ &&
+               diagnostic_mode_ != Fp8DiagnosticMode::WeightOnly &&
                activation_scale_mode_ != Fp8ActivationScaleMode::Fixed;
     }
     [[nodiscard]] ops::ScaledTensor quantize_activation(const Tensor& input) const {
@@ -365,22 +371,34 @@ public:
             throw std::logic_error(
                 "scaled FP8 input requires an FP8 Linear");
         }
-        ops::ScaledTensor scaled_weight;
+        if (diagnostic_mode_ == Fp8DiagnosticMode::WeightOnly) {
+            throw std::logic_error(
+                "weight-only FP8 diagnostic does not quantize activations");
+        }
+        if (diagnostic_mode_ == Fp8DiagnosticMode::ActivationOnly) {
+            return ops::matmul_with_implementation(
+                ops::dequantize_fp8(scaled_input, DType::Float32),
+                weight_.data(), ops::MatmulImplementation::Auto);
+        }
+        return ops::fp8_matmul(scaled_input, scaled_weight(), DType::Float32);
+    }
+    [[nodiscard]] ops::ScaledTensor scaled_weight() const {
+        ops::ScaledTensor result;
         if (fp8_inference_scale_.defined()) {
-            scaled_weight = {weight_.data(), fp8_inference_scale_, weight_scale_,
-                             fp8_inference_host_scale_available_};
+            result = {weight_.data(), fp8_inference_scale_, weight_scale_,
+                      fp8_inference_host_scale_available_};
         } else if (weight_scale_mode_ == Fp8WeightScaleMode::DeviceTensorAmax) {
-            scaled_weight = ops::quantize_fp8_dynamic(
+            result = ops::quantize_fp8_dynamic(
                 weight_.data(), DType::Float8E4M3FNUZ, weight_scale_);
         } else {
             const auto lazy_weight_scale =
                 weight_scale_mode_ == Fp8WeightScaleMode::TensorAmax
                     ? tensor_amax_scale(weight_.data(), weight_scale_)
                     : weight_scale_;
-            scaled_weight = ops::quantize_fp8(
+            result = ops::quantize_fp8(
                 weight_.data(), DType::Float8E4M3FNUZ, lazy_weight_scale);
         }
-        return ops::fp8_matmul(scaled_input, scaled_weight, DType::Float32);
+        return result;
     }
     Tensor forward_scaled_input(const ops::ScaledTensor& scaled_input) {
         auto output = forward_scaled_input_without_bias(scaled_input);
@@ -394,6 +412,12 @@ public:
                            : ops::cast(weight_.data(), DType::BFloat16));
         }
         if (precision_ == LinearPrecision::Float8E4M3FNUZ) {
+            if (diagnostic_mode_ == Fp8DiagnosticMode::WeightOnly) {
+                return ops::matmul_with_implementation(
+                    input,
+                    ops::dequantize_fp8(scaled_weight(), DType::Float32),
+                    ops::MatmulImplementation::Auto);
+            }
             ops::ScaledTensor scaled_input;
             if (activation_scale_mode_ == Fp8ActivationScaleMode::TensorAmax) {
                 scaled_input = ops::quantize_fp8_dynamic(
@@ -445,6 +469,7 @@ public:
     }
     [[nodiscard]] ops::ScaledTensor prepare_fp8_inference_candidate() const {
         if (precision_ != LinearPrecision::Float8E4M3FNUZ ||
+            diagnostic_mode_ == Fp8DiagnosticMode::ActivationOnly ||
             weight_.data().dtype() != DType::Float32 ||
             fp8_inference_scale_.defined()) {
             throw std::logic_error("Linear FP8 inference preparation is invalid");
@@ -460,7 +485,8 @@ public:
             weight_.data(), DType::Float8E4M3FNUZ, scale);
     }
     [[nodiscard]] Tensor prepare_fp8_activation_scale_candidate() const {
-        if (activation_scale_mode_ != Fp8ActivationScaleMode::Fixed) {
+        if (diagnostic_mode_ == Fp8DiagnosticMode::WeightOnly ||
+            activation_scale_mode_ != Fp8ActivationScaleMode::Fixed) {
             return {};
         }
         auto result = Tensor::from_vector(
@@ -471,11 +497,25 @@ public:
     }
     void commit_fp8_inference_candidate(
         ops::ScaledTensor candidate, Tensor activation_scale) {
+        if (diagnostic_mode_ == Fp8DiagnosticMode::ActivationOnly) {
+            throw std::logic_error(
+                "activation-only diagnostic cannot replace FP32 weights");
+        }
         weight_scale_ = candidate.scale_value;
         fp8_inference_host_scale_available_ = candidate.host_scale_available;
         fp8_inference_scale_ = std::move(candidate.scale);
         fp8_inference_activation_scale_ = std::move(activation_scale);
         weight_ = Value(std::move(candidate.values), false);
+    }
+    void commit_fp8_activation_only_candidate(Tensor activation_scale) {
+        if (diagnostic_mode_ != Fp8DiagnosticMode::ActivationOnly ||
+            weight_.data().dtype() != DType::Float32 ||
+            fp8_inference_scale_.defined() ||
+            fp8_inference_activation_scale_.defined()) {
+            throw std::logic_error(
+                "activation-only FP8 inference preparation is invalid");
+        }
+        fp8_inference_activation_scale_ = std::move(activation_scale);
     }
     void move_fp8_inference_scale(Device device) {
         if (fp8_inference_scale_.defined()) {
@@ -494,6 +534,7 @@ private:
     float activation_minimum_scale_ = 1.0e-4F;
     float weight_scale_ = 1.0F;
     Fp8WeightScaleMode weight_scale_mode_ = Fp8WeightScaleMode::Fixed;
+    Fp8DiagnosticMode diagnostic_mode_ = Fp8DiagnosticMode::Full;
     Fp8ActivationScaleMode activation_scale_mode_ =
         Fp8ActivationScaleMode::Fixed;
     bool has_bias_ = false;
@@ -1877,13 +1918,33 @@ Fp8WeightPreparationReport TransformerModel::prepare_fp8_inference_weights() {
     if (linears.size() != expected) {
         throw std::logic_error("FP8 inference Linear count changed");
     }
+    Fp8WeightPreparationReport report;
+    report.linears_covered = linears.size();
+    if (impl_->config.fp8_diagnostic_mode ==
+        Fp8DiagnosticMode::ActivationOnly) {
+        std::vector<Tensor> activation_scales;
+        activation_scales.reserve(linears.size());
+        for (const auto* linear : linears) {
+            activation_scales.push_back(
+                linear->prepare_fp8_activation_scale_candidate());
+            if (activation_scales.back().defined()) {
+                report.scale_bytes_retained += sizeof(float);
+            }
+        }
+        runtime::synchronize(device());
+        for (std::size_t index = 0; index < linears.size(); ++index) {
+            linears[index]->commit_fp8_activation_only_candidate(
+                std::move(activation_scales[index]));
+        }
+        impl_->fp8_inference_prepared = true;
+        return report;
+    }
     struct Candidate {
         ops::ScaledTensor weight;
         Tensor activation_scale;
     };
     std::vector<Candidate> candidates;
     candidates.reserve(linears.size());
-    Fp8WeightPreparationReport report;
     for (const auto* linear : linears) {
         const auto elements = static_cast<std::uint64_t>(
             linear->weight_data().numel());

@@ -748,6 +748,54 @@ TEST(HipFp8OpsTest, SelectedFp32BlockRunsInsidePreparedHipModel) {
     for (const auto value : output.to_vector()) EXPECT_TRUE(std::isfinite(value));
 }
 
+TEST(HipFp8OpsTest, DiagnosticModesStayOnDeviceAndUseOnlySelectedRounding) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    for (const auto mode : {model::Fp8DiagnosticMode::WeightOnly,
+                            model::Fp8DiagnosticMode::ActivationOnly}) {
+        model::ModelConfig config{.vocabulary_size = 16,
+                                  .dimension = 8,
+                                  .layers = 1,
+                                  .heads = 2,
+                                  .kv_heads = 1,
+                                  .ffn_dimension = 16,
+                                  .max_sequence_length = 8,
+                                  .rope_base = 10000.0F,
+                                  .tie_embeddings = false,
+                                  .linear_precision =
+                                      model::LinearPrecision::Float8E4M3FNUZ,
+                                  .fp8_activation_scale = 0.2F,
+                                  .fp8_activation_minimum_scale = 1.0e-4F,
+                                  .fp8_weight_scale = 1.0e-4F,
+                                  .fp8_weight_scale_mode =
+                                      model::Fp8WeightScaleMode::DeviceTensorAmax,
+                                  .fp8_activation_scale_mode =
+                                      model::Fp8ActivationScaleMode::TensorAmax,
+                                  .fp8_diagnostic_mode = mode};
+        model::TransformerModel transformer(config, 241);
+        transformer.to(gpu);
+        const auto report = transformer.prepare_fp8_inference_weights();
+        EXPECT_EQ(report.linears_covered, 8U);
+        EXPECT_EQ(report.converted_tensors,
+                  mode == model::Fp8DiagnosticMode::WeightOnly ? 8U : 0U);
+        const auto tokens = Tensor::from_int32_vector({1, 2, 3, 4}, {1, 4})
+                                .to(gpu);
+        clear_fp8_dispatch_registry();
+        clear_fp8_dynamic_quant_stats();
+        runtime::reset_transfer_stats();
+        const auto output = transformer.forward_inference(tokens);
+        runtime::synchronize(gpu);
+        const auto transfers = runtime::transfer_stats();
+        EXPECT_EQ(transfers.host_to_device_calls, 0U);
+        EXPECT_EQ(transfers.device_to_host_calls, 0U);
+        EXPECT_EQ(fp8_dynamic_quant_stats().tensor_calls,
+                  mode == model::Fp8DiagnosticMode::ActivationOnly ? 5U : 0U);
+        EXPECT_EQ(fp8_dispatch_stats().native_shapes, 0U);
+        EXPECT_EQ(fp8_dispatch_stats().software_fallback_calls, 0U);
+        for (const auto value : output.to_vector()) EXPECT_TRUE(std::isfinite(value));
+    }
+}
+
 TEST(HipFp8OpsTest, DeepSeekLinearShapesAcceptFp32OutputOrBf16Fallback) {
     require_gpu();
     if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";

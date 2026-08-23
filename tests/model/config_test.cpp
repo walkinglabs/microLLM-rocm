@@ -66,6 +66,20 @@ TEST(ModelConfigTest, Fp8DeviceWeightAmaxPolicyIsVisibleInSummary) {
               std::string::npos);
 }
 
+TEST(ModelConfigTest, Fp8DiagnosticModesAreExplicitAndRequireFp8Linear) {
+    auto config = ModelConfig::model_s();
+    config.linear_precision = LinearPrecision::Float8E4M3FNUZ;
+    config.fp8_diagnostic_mode = Fp8DiagnosticMode::WeightOnly;
+    config.validate();
+    EXPECT_NE(config.summary().find("fp8_diagnostic_mode=weight_only"),
+              std::string::npos);
+    config.fp8_diagnostic_mode = Fp8DiagnosticMode::ActivationOnly;
+    EXPECT_NE(config.summary().find("fp8_diagnostic_mode=activation_only"),
+              std::string::npos);
+    config.linear_precision = LinearPrecision::Float32;
+    EXPECT_THROW(config.validate(), std::invalid_argument);
+}
+
 TEST(ModelConfigTest, Fp8Fp32LayerOverridesAreStrictlyIncreasingAndInRange) {
     auto config = ModelConfig::model_s();
     config.linear_precision = LinearPrecision::Float8E4M3FNUZ;

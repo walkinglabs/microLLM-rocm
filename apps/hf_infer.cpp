@@ -55,6 +55,7 @@ struct Options {
     float fp8_weight_scale = 0.005F;
     std::string fp8_weight_scale_mode = "fixed";
     std::string fp8_activation_scale_mode = "fixed";
+    std::string fp8_diagnostic_mode = "full";
     std::string fp8_fp32_layers;
     std::string workload = "both";
     std::int64_t batch = 1;
@@ -143,6 +144,9 @@ Options options(int argc, char** argv) {
         }
         else if (name == "--fp8-activation-scale-mode") {
             result.fp8_activation_scale_mode = argv[index + 1];
+        }
+        else if (name == "--fp8-diagnostic-mode") {
+            result.fp8_diagnostic_mode = argv[index + 1];
         }
         else if (name == "--fp8-fp32-layers") {
             result.fp8_fp32_layers = argv[index + 1];
@@ -307,6 +311,16 @@ Options options(int argc, char** argv) {
         throw std::invalid_argument(
             "--fp8-activation-scale-mode must be fixed, tensor-amax, or ffn-outer-row");
     }
+    if (result.fp8_diagnostic_mode != "full" &&
+        result.fp8_diagnostic_mode != "weight-only" &&
+        result.fp8_diagnostic_mode != "activation-only") {
+        throw std::invalid_argument(
+            "--fp8-diagnostic-mode must be full, weight-only, or activation-only");
+    }
+    if (result.fp8_diagnostic_mode != "full" && !result.fp8_linear) {
+        throw std::invalid_argument(
+            "--fp8-diagnostic-mode requires --fp8-linear true");
+    }
     if (!result.fp8_fp32_layers.empty() && !result.fp8_linear) {
         throw std::invalid_argument("--fp8-fp32-layers requires --fp8-linear true");
     }
@@ -382,6 +396,19 @@ std::string fp8_compute_policy(const Options& command) {
                                  ? "device_tensor_amax_weight"
                                  : command.fp8_weight_scale_mode == "tensor-amax"
                                        ? "tensor_amax_weight" : "fixed_weight";
+    if (command.fp8_diagnostic_mode == "weight-only") {
+        return std::string("fp8_e4m3_fnuz_weight_only_diagnostic_") +
+               weight_name;
+    }
+    if (command.fp8_diagnostic_mode == "activation-only") {
+        const auto activation_name =
+            command.fp8_activation_scale_mode == "ffn-outer-row"
+                ? "ffn_outer_row_activation"
+                : command.fp8_activation_scale_mode == "tensor-amax"
+                      ? "tensor_amax_activation" : "fixed_activation";
+        return std::string("fp8_e4m3_fnuz_activation_only_diagnostic_") +
+               activation_name;
+    }
     if (command.fp8_activation_scale_mode == "ffn-outer-row") {
         return std::string("fp8_e4m3_fnuz_") + weight_name +
                "_ffn_outer_row";
@@ -403,7 +430,20 @@ std::string fp8_compute_policy(const Options& command) {
 }
 
 std::string fp8_storage_policy(const Options& command) {
+    if (command.fp8_diagnostic_mode == "activation-only") {
+        return "fp32_linear_weights_with_" + fp8_compute_policy(command);
+    }
     return "single_representation_fp8_linear_" + fp8_compute_policy(command);
+}
+
+std::string fp8_compute_dtype(const Options& command) {
+    if (command.fp8_diagnostic_mode == "weight-only") {
+        return "fp32_gemm_with_fp8_roundtrip_weight";
+    }
+    if (command.fp8_diagnostic_mode == "activation-only") {
+        return "fp32_gemm_with_fp8_roundtrip_activation";
+    }
+    return "fp8_e4m3_fnuz_linear_with_fp32_boundaries";
 }
 
 struct GenerationRun {
@@ -857,6 +897,12 @@ int main(int argc, char** argv) {
                     : command.fp8_activation_scale_mode == "ffn-outer-row"
                     ? microllm::model::Fp8ActivationScaleMode::FfnOuterRow
                     : microllm::model::Fp8ActivationScaleMode::Fixed;
+            external.model.fp8_diagnostic_mode =
+                command.fp8_diagnostic_mode == "weight-only"
+                    ? microllm::model::Fp8DiagnosticMode::WeightOnly
+                    : command.fp8_diagnostic_mode == "activation-only"
+                    ? microllm::model::Fp8DiagnosticMode::ActivationOnly
+                    : microllm::model::Fp8DiagnosticMode::Full;
             for (const auto layer : nonnegative_values(
                      command.fp8_fp32_layers,
                      "--fp8-fp32-layers must be comma-separated nonnegative indices")) {
@@ -1106,6 +1152,8 @@ int main(int argc, char** argv) {
                       << command.fp8_weight_scale_mode << "\""
                       << ",\"fp8_activation_scale_mode\":\""
                       << command.fp8_activation_scale_mode << "\""
+                      << ",\"fp8_diagnostic_mode\":\""
+                      << command.fp8_diagnostic_mode << "\""
                       << ",\"fp8_fp32_layers\":\""
                       << command.fp8_fp32_layers << "\""
                       << ",\"fp8_weight_scale_min\":"
@@ -1122,6 +1170,8 @@ int main(int argc, char** argv) {
                       << (fp8_report.host_scale_summary_available ? "true" : "false")
                       << ",\"fp8_converted_tensors\":"
                       << fp8_report.converted_tensors
+                      << ",\"fp8_linears_covered\":"
+                      << fp8_report.linears_covered
                       << ",\"fp8_native_shapes\":"
                       << microllm::ops::fp8_dispatch_stats().native_shapes
                       << ",\"fp8_software_fallback_shapes\":"
@@ -1546,7 +1596,7 @@ int main(int argc, char** argv) {
                   << ",\"hip_driver_version\":" << microllm::runtime::hip_driver_version()
                   << ",\"compute_dtype\":\""
                   << (command.fp8_linear
-                          ? "fp8_e4m3_fnuz_linear_with_fp32_boundaries"
+                          ? fp8_compute_dtype(command)
                           : command.bf16_attention
                           ? "float32_with_bf16_ffn_attention"
                           : command.bf16_ffn ? "float32_with_bf16_ffn" : "float32")
@@ -1565,6 +1615,8 @@ int main(int argc, char** argv) {
                   << bf16_attention_report.converted_tensors
                   << ",\"fp8_converted_tensors\":"
                   << fp8_report.converted_tensors
+                  << ",\"fp8_linears_covered\":"
+                  << fp8_report.linears_covered
                   << ",\"fp8_native_shapes\":"
                   << microllm::ops::fp8_dispatch_stats().native_shapes
                   << ",\"fp8_software_fallback_shapes\":"
@@ -1593,6 +1645,8 @@ int main(int argc, char** argv) {
                   << command.fp8_weight_scale_mode << "\""
                   << ",\"fp8_activation_scale_mode\":\""
                   << command.fp8_activation_scale_mode << "\""
+                  << ",\"fp8_diagnostic_mode\":\""
+                  << command.fp8_diagnostic_mode << "\""
                   << ",\"fp8_fp32_layers\":\""
                   << command.fp8_fp32_layers << "\""
                   << ",\"fp8_weight_scale_min\":"

@@ -51,6 +51,7 @@ struct Bf16WeightPreparationReport {
 };
 
 struct Fp8WeightPreparationReport {
+    std::size_t linears_covered = 0;
     std::size_t converted_tensors = 0;
     std::uint64_t fp32_bytes_released = 0;
     std::uint64_t fp8_bytes_retained = 0;

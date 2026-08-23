@@ -9,6 +9,9 @@ namespace microllm::model {
 enum class LinearPrecision { Float32, BFloat16, Float8E4M3FNUZ };
 enum class Fp8WeightScaleMode { Fixed, TensorAmax, DeviceTensorAmax };
 enum class Fp8ActivationScaleMode { Fixed, TensorAmax, FfnOuterRow };
+// Full uses native FP8 GEMM. The other two modes are deliberately slow,
+// inference-only counterfactuals that isolate one source of quantization error.
+enum class Fp8DiagnosticMode { Full, WeightOnly, ActivationOnly };
 enum class RopeLayout { Interleaved, SplitHalf };
 
 struct ModelConfig {
@@ -28,6 +31,7 @@ struct ModelConfig {
     Fp8WeightScaleMode fp8_weight_scale_mode = Fp8WeightScaleMode::Fixed;
     Fp8ActivationScaleMode fp8_activation_scale_mode =
         Fp8ActivationScaleMode::Fixed;
+    Fp8DiagnosticMode fp8_diagnostic_mode = Fp8DiagnosticMode::Full;
     std::vector<std::int64_t> fp8_fp32_layers = {};
     float rms_norm_epsilon = 1.0e-5F;
     bool attention_bias = false;

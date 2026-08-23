@@ -313,5 +313,7 @@ the next gate. Records are append-only except for factual corrections.
   caller-owned ScaledTensor reuse across QKV/gate-up and machine call counters.
 - [2026-08-23-fp8-selective-fp32-blocks.md](2026-08-23-fp8-selective-fp32-blocks.md):
   validated mixed block construction and official counterfactual API.
+- [2026-08-23-fp8-error-source-diagnostics.md](2026-08-23-fp8-error-source-diagnostics.md):
+  weight-only/activation-only inference counterfactuals, CLI schema and CPU/HIP gates.
 - [2026-08-21-divergent-row-cache-reference.md](2026-08-21-divergent-row-cache-reference.md):
   unequal-position shared-Storage B1 oracle with CPU/HIP and reset-prefix gates.

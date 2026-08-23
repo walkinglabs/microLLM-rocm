@@ -43,6 +43,11 @@ void ModelConfig::validate() const {
          !std::isfinite(fp8_weight_scale) || fp8_weight_scale <= 0.0F)) {
         throw std::invalid_argument("FP8 Linear scales must be finite and positive");
     }
+    if (linear_precision != LinearPrecision::Float8E4M3FNUZ &&
+        fp8_diagnostic_mode != Fp8DiagnosticMode::Full) {
+        throw std::invalid_argument(
+            "FP8 diagnostic mode requires FP8 Linear precision");
+    }
     std::int64_t previous = -1;
     for (const auto layer : fp8_fp32_layers) {
         if (linear_precision != LinearPrecision::Float8E4M3FNUZ ||
@@ -115,6 +120,11 @@ std::string ModelConfig::summary() const {
                    : fp8_activation_scale_mode == Fp8ActivationScaleMode::TensorAmax
                          ? "tensor_amax" : "ffn_outer_row")
            << ",fp8_activation_minimum_scale=" << fp8_activation_minimum_scale
+           << ",fp8_diagnostic_mode="
+           << (fp8_diagnostic_mode == Fp8DiagnosticMode::Full
+                   ? "full"
+                   : fp8_diagnostic_mode == Fp8DiagnosticMode::WeightOnly
+                         ? "weight_only" : "activation_only")
            << ",fp8_fp32_layers=";
     for (std::size_t index = 0; index < fp8_fp32_layers.size(); ++index) {
         if (index != 0) output << ':';

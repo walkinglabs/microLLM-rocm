@@ -33,6 +33,7 @@ class HfFp8MatrixTest(unittest.TestCase):
             "fp8_activation_minimum_scale": 0.0001,
             "fp8_weight_scale_mode": "fixed",
             "fp8_activation_scale_mode": "fixed",
+            "fp8_diagnostic_mode": "full",
             "fp8_fp32_layers": ""})()
         model = {"config": "config.json", "weights": "model.bin",
                  "inference": {"token_ids": [1, 2]}}
@@ -54,6 +55,7 @@ class HfFp8MatrixTest(unittest.TestCase):
             "fp8_activation_minimum_scale": 0.0001,
             "fp8_weight_scale_mode": "tensor-amax",
             "fp8_activation_scale_mode": "tensor-amax",
+            "fp8_diagnostic_mode": "weight-only",
             "fp8_fp32_layers": "21"})()
         model = {"config": "config.json", "weights": "model.bin",
                  "inference": {"token_ids": [1, 2]}}
@@ -63,6 +65,8 @@ class HfFp8MatrixTest(unittest.TestCase):
         self.assertEqual(command[command.index("--fp8-activation-scale-mode") + 1],
                          "tensor-amax")
         self.assertEqual(command[command.index("--fp8-fp32-layers") + 1], "21")
+        self.assertEqual(command[command.index("--fp8-diagnostic-mode") + 1],
+                         "weight-only")
 
     def test_complete_logit_metrics_do_not_replace_preparation_evidence(self):
         comparison = MATRIX.compare_logits([1.0, 2.0], [1.0, 2.0])
@@ -80,6 +84,9 @@ class HfFp8MatrixTest(unittest.TestCase):
         self.assertIn("FFN-only outer-row activation scales", ffn)
         device = MATRIX.experiment_boundary("device-tensor-amax", "fixed")
         self.assertIn("device per-Tensor weight amax", device)
+        activation_only = MATRIX.experiment_boundary(
+            "device-tensor-amax", "tensor-amax", "activation-only")
+        self.assertIn("diagnostic mode=activation-only", activation_only)
 
 
 if __name__ == "__main__":

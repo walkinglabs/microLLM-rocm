@@ -39,6 +39,8 @@ needed to run a real training and generation loop:
   evidence; device mode does not copy weight payloads to CPU;
 - explicit per-block FP32 counterfactuals inside an FP8 model for precision attribution;
   selected blocks remain single-representation FP32 and are never silently quantized;
+- explicit FP8 weight-only and activation-only error-attribution modes; both use FP32 GEMM,
+  are inference-only diagnostics, and cannot be reported as FP8 speed paths;
 - single-representation BF16 FFN/Attention projection inference for pinned Qwen/DeepSeek,
   with shared QKV cast, exact-token, memory, throughput and PyTorch BF16 evidence;
 - C, Python ctypes, and optional PyTorch dispatcher adapters;
@@ -266,9 +268,9 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 353/353 | 246 CPU-labelled + 107 HIP-labelled gates; 2 intentional environment skips |
+| Full CPU/HIP configuration | 356/356 | 248 CPU-labelled + 108 HIP-labelled gates; 2 intentional environment skips |
 | ASan/UBSan CPU | 211/211 | host code, CLI, model/graph, benchmark and evidence schemas |
-| MI300X/gfx942 HIP | 107/107 | allocator/stream, graph, BF16/FP8, batched GEMM and model matrix |
+| MI300X/gfx942 HIP | 108/108 | allocator/stream, graph, BF16/FP8, batched GEMM and model matrix |
 | PyTorch-enabled CPU build | 196/196 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
 | Registered test files | 52 | machine-audited CTest registration |
@@ -486,6 +488,10 @@ public Tensor and Transformer INT8 support out of scope.
 [Experiment 122](docs/optimization-log/experiments/122-official-fp8-static-scale.md) runs official
 Qwen/DeepSeek with single-representation FP8 Linear weights. Residency drops sharply, but every
 static-scale precision gate fails, so FP8 remains experimental and opt-in.
+[Experiment 140](docs/optimization-log/experiments/140-fp8-selective-block-counterfactual.md)
+shows that restoring the highest-cancellation block to FP32 still fails all complete-logit gates.
+The retained [error-attribution modes](docs/dev/fp8-error-attribution.zh-CN.md) therefore isolate
+weight and activation rounding before another precision policy is proposed.
 
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or
