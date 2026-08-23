@@ -175,6 +175,34 @@ for _case_name, _case in SUITES["traffic-skew"].items():
         _overflow_case["expected_overflow"] = 0
     SUITES["traffic-overflow"][_overflow_name] = _overflow_case
 
+SUITES["slot-ratio-sweep"] = {}
+for _group in ("short_heavy", "long_heavy"):
+    _uniform_name, _uniform_case = next(
+        (name, case) for name, case in SUITES["traffic-skew"].items()
+        if case["group"] == _group and case["policy"] == "uniform")
+    SUITES["slot-ratio-sweep"][_uniform_name] = {
+        **_uniform_case, "policy": "uniform", "small_slots": 0,
+        "large_slots": 0,
+    }
+    _, _bucket_case = next(
+        (name, case) for name, case in SUITES["traffic-skew"].items()
+        if case["group"] == _group and case["policy"] == "bucketed")
+    for _small_slots in (2, 4, 6):
+        _large_slots = 8 - _small_slots
+        SUITES["slot-ratio-sweep"][
+            f"{_group}_ratio_{_small_slots}_{_large_slots}"] = {
+                **_bucket_case,
+                "policy": f"ratio_{_small_slots}_{_large_slots}",
+                "small_slots": _small_slots,
+                "large_slots": _large_slots,
+                "buckets": [
+                    {"max_sequence_length": 520,
+                     "max_slots": _small_slots},
+                    {"max_sequence_length": 2064,
+                     "max_slots": _large_slots},
+                ],
+            }
+
 
 def options() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
@@ -768,6 +796,69 @@ def main() -> int:
                     "uniform_focus_completion_p95_ms": uniform[
                         "focus_completion_p95_ms"],
                 })
+    slot_ratio_sweeps = []
+    if args.suite == "slot-ratio-sweep":
+        for model in models:
+            for group in ("short_heavy", "long_heavy"):
+                cases = [(name, case) for name, case in SUITES[args.suite].items()
+                         if case["group"] == group]
+                by_policy = {}
+                case_by_policy = {}
+                for case_name, case in cases:
+                    selected = [row for row in rows
+                                if row.get("model") == model["name"] and
+                                row.get("case") == case_name and
+                                row.get("status") == "pass"]
+                    aggregate = next(row for row in aggregates
+                                     if row.get("model") == model["name"] and
+                                     row.get("case") == case_name)
+                    by_policy[case["policy"]] = focused_policy_summary(
+                        selected, aggregate, case["focus_indices"])
+                    case_by_policy[case["policy"]] = case
+                uniform = by_policy["uniform"]
+                sweep_rows = []
+                all_exact = True
+                for policy in ("ratio_2_6", "ratio_4_4", "ratio_6_2"):
+                    current = by_policy[policy]
+                    case = case_by_policy[policy]
+                    difference = token_difference(
+                        uniform["raw"][0]["generated_tokens"],
+                        current["raw"][0]["generated_tokens"])
+                    all_exact = all_exact and difference["exact"]
+                    sweep_rows.append({
+                        "small_slots": case["small_slots"],
+                        "large_slots": case["large_slots"],
+                        "allocated_cache_bytes": current["raw"][0][
+                            "allocated_cache_bytes"],
+                        "tokens_per_second_p50": current["aggregate"][
+                            "tokens_per_second_p50"],
+                        "throughput_ratio_vs_uniform": (
+                            current["aggregate"]["tokens_per_second_p50"] /
+                            uniform["aggregate"]["tokens_per_second_p50"]),
+                        "focus_ttft_p95_ms": current["focus_ttft_p95_ms"],
+                        "focus_ttft_p95_ratio_vs_uniform": (
+                            current["focus_ttft_p95_ms"] /
+                            uniform["focus_ttft_p95_ms"]),
+                        "focus_completion_p95_ms": current[
+                            "focus_completion_p95_ms"],
+                        "focus_completion_p95_ratio_vs_uniform": (
+                            current["focus_completion_p95_ms"] /
+                            uniform["focus_completion_p95_ms"]),
+                        "request_bucket_indices": current["raw"][0][
+                            "request_bucket_indices"],
+                        "token_difference_vs_uniform": difference,
+                    })
+                slot_ratio_sweeps.append({
+                    "model": model["name"],
+                    "group": group,
+                    "uniform_tokens_per_second_p50": uniform["aggregate"][
+                        "tokens_per_second_p50"],
+                    "uniform_focus_ttft_p95_ms": uniform["focus_ttft_p95_ms"],
+                    "uniform_focus_completion_p95_ms": uniform[
+                        "focus_completion_p95_ms"],
+                    "rows": sweep_rows,
+                    "generated_tokens_equal_across_ratios": all_exact,
+                })
     execution_status = "pass" if all(row["status"] == "pass" for row in rows) \
         else "complete_with_recorded_limits"
     accuracy_failures = (
@@ -783,7 +874,10 @@ def main() -> int:
         args.suite == "traffic-overflow" and any(
             row["token_difference_vs_fixed"]["exact"] is not True or
             row["token_difference_vs_uniform"]["exact"] is not True
-            for row in overflow_comparisons))
+            for row in overflow_comparisons)) or (
+        args.suite == "slot-ratio-sweep" and any(
+            row["generated_tokens_equal_across_ratios"] is not True
+            for row in slot_ratio_sweeps))
     summary = {
         "schema_version": 1,
         "track": "official_continuous_serving_matrix",
@@ -803,6 +897,7 @@ def main() -> int:
         "bucket_sweeps": bucket_sweeps,
         "traffic_comparisons": traffic_comparisons,
         "overflow_comparisons": overflow_comparisons,
+        "slot_ratio_sweeps": slot_ratio_sweeps,
         "pytorch_boundary": "not measured; no variable-position PyTorch serving oracle",
     }
     (args.output_directory / "summary.json").write_text(

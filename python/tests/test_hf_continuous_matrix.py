@@ -184,6 +184,30 @@ class HfContinuousMatrixTest(unittest.TestCase):
             command[command.index("--continuous-bucket-overflow") + 1],
             "true")
 
+    def test_slot_ratio_sweep_holds_total_slots_and_traffic_fixed(self):
+        cases = MATRIX.SUITES["slot-ratio-sweep"]
+        for group in ("short_heavy", "long_heavy"):
+            selected = [case for case in cases.values()
+                        if case["group"] == group]
+            self.assertEqual({case["policy"] for case in selected},
+                             {"uniform", "ratio_2_6", "ratio_4_4",
+                              "ratio_6_2"})
+            self.assertEqual(len({tuple(case["prompts"])
+                                  for case in selected}), 1)
+            bucketed = [case for case in selected if case.get("buckets")]
+            self.assertTrue(all(case["small_slots"] + case["large_slots"] == 8
+                                for case in bucketed))
+            cache = [MATRIX.theoretical_cache_bytes(self.model(), case)
+                     for case in sorted(bucketed,
+                                        key=lambda row: row["small_slots"])]
+            self.assertGreater(cache[0], cache[1])
+            self.assertGreater(cache[1], cache[2])
+        ratio = cases["long_heavy_ratio_2_6"]
+        command = MATRIX.command(Path("micro"), self.model(), ratio, 1, 3)
+        self.assertEqual(
+            command[command.index("--continuous-cache-buckets") + 1],
+            "520:2,2064:6")
+
     def test_token_difference_keeps_accuracy_failure_as_data(self):
         exact = MATRIX.token_difference([[1, 2], [3]], [[1, 2], [3]])
         self.assertTrue(exact["exact"])
