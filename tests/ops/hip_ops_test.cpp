@@ -394,6 +394,51 @@ TEST(HipFp8OpsTest, QuantizeDequantizeAndScaledGemmAreDeviceNative) {
     EXPECT_LE(maximum_gemm_error, 0.5F);
 }
 
+TEST(HipFp8OpsTest, MixedE5ActivationAndE4WeightExecuteWithExplicitDispatch) {
+    require_gpu();
+    if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";
+    constexpr std::int64_t size = 128;
+    std::vector<float> activation_values(static_cast<std::size_t>(size * size));
+    std::vector<float> weight_values(activation_values.size());
+    for (std::size_t index = 0; index < activation_values.size(); ++index) {
+        activation_values[index] =
+            static_cast<float>(static_cast<int>(index % 29) - 14) * 50.0F;
+        weight_values[index] =
+            static_cast<float>(static_cast<int>(index % 17) - 8) / 17.0F;
+    }
+    const auto activation_cpu = Tensor::from_vector(
+        activation_values, {size, size});
+    const auto weight_cpu = Tensor::from_vector(weight_values, {size, size});
+    const auto gpu = Device::hip(0);
+    const auto activation = quantize_fp8_dynamic(
+        activation_cpu.to(gpu), DType::Float8E5M2FNUZ, 1.0e-4F);
+    const auto weight = quantize_fp8_dynamic(
+        weight_cpu.to(gpu), DType::Float8E4M3FNUZ, 1.0e-4F);
+    clear_fp8_dispatch_registry();
+    runtime::reset_transfer_stats();
+    const auto output = fp8_matmul(activation, weight, DType::Float32);
+    runtime::synchronize(gpu);
+    const auto transfers = runtime::transfer_stats();
+    const auto dispatch = fp8_dispatch_stats();
+    RecordProperty("mixed_e5e4_native_shapes", dispatch.native_shapes);
+    RecordProperty("mixed_e5e4_fallback_calls",
+                   dispatch.software_fallback_calls);
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    EXPECT_EQ(dispatch.native_shapes + dispatch.software_fallback_shapes, 1U);
+    EXPECT_TRUE(dispatch.native_shapes == 1U ||
+                dispatch.software_fallback_calls == 1U);
+    const auto actual = output.to_vector();
+    const auto reference = matmul(
+        dequantize_fp8(activation, DType::Float32).to(Device::cpu()),
+        dequantize_fp8(weight, DType::Float32).to(Device::cpu())).to_vector();
+    float maximum = 0.0F;
+    for (std::size_t index = 0; index < actual.size(); ++index) {
+        maximum = std::max(maximum, std::abs(actual[index] - reference[index]));
+    }
+    EXPECT_LT(maximum, 400.0F);
+}
+
 TEST(HipFp8TrainingTest, ForwardAndStraightThroughBackwardKeepFp32MastersOnDevice) {
     require_gpu();
     if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";

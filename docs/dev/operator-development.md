@@ -46,3 +46,7 @@ instead of silently falling back when outer-vector scale is unavailable.
 For outlier clipping in dynamic FP8 Tensor scales, read the
 [clipped dynamic quantization record](../development/2026-08-23-fp8-clipped-dynamic-quantization.md).
 The default fraction is compatibility-preserving; model policy requires separate evidence.
+
+For mixed FP8 formats, see the
+[E5M2 activation/E4M3 weight probe](../development/2026-08-23-fp8-mixed-e5-activation-probe.md).
+Header availability is not accepted; the probe records native dispatch and fallback counts.

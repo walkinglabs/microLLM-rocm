@@ -710,6 +710,24 @@ TEST(CpuFp8OpsTest, DynamicColumnScalesPreserveIndependentWeightRanges) {
                  std::invalid_argument);
 }
 
+TEST(CpuFp8OpsTest, MixedE5ActivationAndE4WeightMatchDequantizedReference) {
+    const auto activation = Tensor::from_vector(
+        {1.0F, -20.0F, 300.0F, -4.0F, 50.0F, -1000.0F}, {2, 3});
+    const auto weight = Tensor::from_vector(
+        {1.0F, 2.0F, -3.0F, 4.0F, 5.0F, -6.0F}, {3, 2});
+    const auto activation_fp8 = quantize_fp8_dynamic(
+        activation, DType::Float8E5M2FNUZ, 1.0e-4F);
+    const auto weight_fp8 = quantize_fp8_dynamic(
+        weight, DType::Float8E4M3FNUZ, 1.0e-4F);
+    const auto output = fp8_matmul(
+        activation_fp8, weight_fp8, DType::Float32);
+    const auto reference = matmul(
+        dequantize_fp8(activation_fp8, DType::Float32),
+        dequantize_fp8(weight_fp8, DType::Float32));
+    EXPECT_EQ(output.to_vector(), reference.to_vector());
+    EXPECT_FLOAT_EQ(activation_fp8.scale_value, 1000.0F / 57344.0F);
+}
+
 TEST(LowLevelOpsTest, OperatesOnCallerOwnedCpuBuffers) {
     const Shape shape{2, 2};
     const Strides strides{2, 1};
