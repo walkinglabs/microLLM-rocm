@@ -1,4 +1,8 @@
 import importlib.util
+import json
+import os
+import subprocess
+import sys
 import unittest
 from pathlib import Path
 
@@ -9,6 +13,13 @@ SPEC = importlib.util.spec_from_file_location(
 MATRIX = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
 SPEC.loader.exec_module(MATRIX)
+
+SEARCH_SPEC = importlib.util.spec_from_file_location(
+    "hf_fp8_layer_leave_one_out",
+    ROOT / "benchmarks/single_gpu/hf_fp8_layer_leave_one_out.py")
+SEARCH = importlib.util.module_from_spec(SEARCH_SPEC)
+assert SEARCH_SPEC.loader is not None
+SEARCH_SPEC.loader.exec_module(SEARCH)
 
 
 class HfFp8MatrixTest(unittest.TestCase):
@@ -102,6 +113,98 @@ class HfFp8MatrixTest(unittest.TestCase):
             "output-channel-amax", "tensor-amax", "full",
             "attention-output-only")
         self.assertIn("weight scale scope=attention-output-only", output)
+
+    def test_layer_leave_one_out_uses_retained_policy_and_explicit_layer(self):
+        args = type("Args", (), {
+            "binary": Path("micro"), "context": 8, "warmup": 0, "steps": 1,
+            "fp8_activation_scale": 0.2,
+            "fp8_activation_minimum_scale": 0.0001,
+            "fp8_weight_scale": 0.005})()
+        model = {"config": "config.json", "weights": "model.bin",
+                 "inference": {"token_ids": [1, 2]}}
+        command = SEARCH.command(
+            args, model, "fp8", Path("logits.bin"), 21)
+        self.assertEqual(
+            command[command.index("--fp8-weight-scale-mode") + 1],
+            "output-channel-amax")
+        self.assertEqual(
+            command[command.index("--fp8-weight-scale-scope") + 1],
+            "attention-output-only")
+        self.assertEqual(
+            command[command.index("--fp8-activation-scale-mode") + 1],
+            "tensor-amax")
+        self.assertEqual(command[command.index("--fp8-fp32-layers") + 1],
+                         "21")
+
+    def test_layer_leave_one_out_ranks_complete_error_before_layer(self):
+        rows = [
+            {"fp32_layer": 3, "precision_gate_passed": False,
+             "top_token_equal": True, "root_mean_square_error": 0.2,
+             "maximum_absolute_error": 1.0},
+            {"fp32_layer": 1, "precision_gate_passed": False,
+             "top_token_equal": True, "root_mean_square_error": 0.1,
+             "maximum_absolute_error": 2.0},
+        ]
+        self.assertEqual(SEARCH.rank_candidates(rows)[0]["fp32_layer"], 1)
+
+    def test_layer_count_rejects_missing_or_boolean_metadata(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "config.json"
+            path.write_text('{"num_hidden_layers": 24}')
+            self.assertEqual(SEARCH.model_layer_count(path), 24)
+            path.write_text('{"num_hidden_layers": true}')
+            with self.assertRaises(RuntimeError):
+                SEARCH.model_layer_count(path)
+
+    def test_layer_leave_one_out_runs_complete_synthetic_matrix(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            config = root / "config.json"
+            config.write_text('{"num_hidden_layers": 2}')
+            weights = root / "weights.bin"
+            weights.write_bytes(b"fixture")
+            manifest = root / "manifest.json"
+            manifest.write_text(json.dumps({
+                "schema_version": 1,
+                "models": [{
+                    "name": "fixture", "revision": "fixed",
+                    "config": str(config), "weights": str(weights),
+                    "inference": {"token_ids": [1, 2]},
+                }],
+            }))
+            worker = root / "worker.py"
+            worker.write_text(
+                "#!/usr/bin/env python3\n"
+                "import json,struct,sys\n"
+                "a=sys.argv[1:]\n"
+                "def value(name, default=''):\n"
+                " return a[a.index(name)+1] if name in a else default\n"
+                "layer=value('--fp8-fp32-layers')\n"
+                "values=[1.0,2.0,3.0,4.0]\n"
+                "if '--fp8-linear' in a:\n"
+                " values[1]+=0.3 if layer=='' else 0.1 if layer=='0' else 0.2\n"
+                "open(value('--logits-output'),'wb').write(struct.pack('4f',*values))\n"
+                "print(json.dumps({'status':'pass','prefill_tokens_per_second':1.0,"
+                "'resident_weight_bytes':16,'engine_peak_bytes':32,"
+                "'fp8_fp32_layers':layer}))\n")
+            os.chmod(worker, 0o755)
+            output = root / "output"
+            completed = subprocess.run([
+                sys.executable,
+                str(ROOT / "benchmarks/single_gpu/hf_fp8_layer_leave_one_out.py"),
+                "--manifest", str(manifest), "--binary", str(worker),
+                "--output-directory", str(output), "--context", "2",
+            ], capture_output=True, text=True)
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            summary = json.loads((output / "summary.json").read_text())
+            self.assertEqual(summary["candidate_count"], 2)
+            self.assertEqual(len(summary["rows"]), 4)
+            selected = summary["by_model"]["fixture"]
+            self.assertEqual(selected["best_candidate"]["fp32_layer"], 0)
+            self.assertTrue(all(row["logit_count"] == 4
+                                for row in summary["rows"]))
 
 
 if __name__ == "__main__":

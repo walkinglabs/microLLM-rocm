@@ -57,6 +57,24 @@ Start from `benchmarks/single_gpu/hf_models.example.json`. Without
 nonzero. With that flag, missing inputs are emitted as `unavailable` and the matrix
 summary is `incomplete`; they are never reported as passing measurements.
 
+When an FP8 error trace identifies where drift grows but not where it originates,
+screen every single-block FP32 counterfactual against the same complete-logit oracle:
+
+```bash
+HIP_VISIBLE_DEVICES=2 python3 \
+  benchmarks/single_gpu/hf_fp8_layer_leave_one_out.py \
+  --manifest /path/to/hf-models.local.json \
+  --binary build/hip-release/apps/microllm_hf_infer \
+  --output-directory /tmp/fp8-layer-search \
+  --models qwen2.5-0.5b,deepseek-r1-distill-qwen-1.5b \
+  --context 8 --physical-gpu-index 2
+```
+
+The runner fixes the retained E4/O-projection/dynamic-amax policy, executes one fresh
+process per restored block, and ranks full-vocabulary Max/RMS. It is a screening tool:
+single-process throughput is diagnostic, and the best layer must pass a separate
+three-process short/long-context matrix before any policy is retained.
+
 For phase-separated official inference across context, batch and cache modes:
 
 ```bash

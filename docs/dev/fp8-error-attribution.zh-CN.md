@@ -185,3 +185,18 @@ Exp147曾测试Q/K/V/O四个projection，但被Exp148的O-only严格支配，因
 Exp151/152已经测试0.25–0.95的模型activation clipping，全部比1.0更差。ModelConfig、CLI和
 专用pilot runner随后删除；底层C++算子仍可由新研究显式调用。旧命令只存在于实验归档，不能
 当作当前接口。
+
+关键block反事实失败后，不再根据layer drift图片手选下一层。逐层leave-one-out搜索固定当前
+E4/O-only/dynamic基线，每次只恢复一个block，并用完整logits排序：
+
+```bash
+HIP_VISIBLE_DEVICES=2 python3 \
+  benchmarks/single_gpu/hf_fp8_layer_leave_one_out.py \
+  --manifest /path/to/hf-models.local.json \
+  --binary build/hip-release/apps/microllm_hf_infer \
+  --output-directory /tmp/fp8-layer-search \
+  --models qwen2.5-0.5b,deepseek-r1-distill-qwen-1.5b \
+  --context 8 --physical-gpu-index 2
+```
+
+单次搜索只选择正式实验候选，不能用于吞吐结论。最佳层仍需T8/T512各三进程正式对照。
