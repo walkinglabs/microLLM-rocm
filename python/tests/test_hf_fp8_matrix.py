@@ -30,7 +30,8 @@ class HfFp8MatrixTest(unittest.TestCase):
         args = type("Args", (), {
             "binary": Path("micro"), "warmup": 1, "steps": 3,
             "fp8_activation_scale": 0.025, "fp8_weight_scale": 0.005,
-            "fp8_weight_scale_mode": "fixed"})()
+            "fp8_weight_scale_mode": "fixed",
+            "fp8_activation_scale_mode": "fixed"})()
         model = {"config": "config.json", "weights": "model.bin",
                  "inference": {"token_ids": [1, 2]}}
         command = MATRIX.command(args, model, 8, "fp8", Path("logits.bin"))
@@ -45,11 +46,14 @@ class HfFp8MatrixTest(unittest.TestCase):
         args = type("Args", (), {
             "binary": Path("micro"), "warmup": 1, "steps": 3,
             "fp8_activation_scale": 0.2, "fp8_weight_scale": 0.005,
-            "fp8_weight_scale_mode": "tensor-amax"})()
+            "fp8_weight_scale_mode": "tensor-amax",
+            "fp8_activation_scale_mode": "tensor-amax"})()
         model = {"config": "config.json", "weights": "model.bin",
                  "inference": {"token_ids": [1, 2]}}
         command = MATRIX.command(args, model, 8, "fp8", Path("logits.bin"))
         self.assertEqual(command[command.index("--fp8-weight-scale-mode") + 1],
+                         "tensor-amax")
+        self.assertEqual(command[command.index("--fp8-activation-scale-mode") + 1],
                          "tensor-amax")
 
     def test_complete_logit_metrics_do_not_replace_preparation_evidence(self):
@@ -62,6 +66,8 @@ class HfFp8MatrixTest(unittest.TestCase):
         tensor = MATRIX.experiment_boundary("tensor-amax")
         self.assertIn("per-Tensor weight amax", tensor)
         self.assertIn("fixed global activation", tensor)
+        dynamic = MATRIX.experiment_boundary("tensor-amax", "tensor-amax")
+        self.assertIn("device per-input-Tensor activation amax", dynamic)
 
 
 if __name__ == "__main__":

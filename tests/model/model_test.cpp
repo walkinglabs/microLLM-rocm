@@ -342,6 +342,21 @@ TEST(TransformerModelTest, Fp8TensorAmaxPreparationRejectsNonfiniteWeightTransac
     }
 }
 
+TEST(TransformerModelTest, Fp8DynamicActivationScaleNeedsNoPersistentScaleTensor) {
+    auto config = tiny_config();
+    config.linear_precision = LinearPrecision::Float8E4M3FNUZ;
+    config.fp8_activation_scale = 1.0e-4F;
+    config.fp8_activation_scale_mode = Fp8ActivationScaleMode::TensorAmax;
+    TransformerModel model(config, 37);
+    const auto tokens = Tensor::from_int32_vector({1, 2, 3, 4}, {1, 4});
+    const auto before = model.forward_inference(tokens).to_vector();
+    const auto report = model.prepare_fp8_inference_weights();
+    EXPECT_EQ(report.scale_bytes_retained,
+              report.converted_tensors * sizeof(float));
+    EXPECT_EQ(model.forward_inference(tokens).to_vector(), before);
+    EXPECT_THROW((void)model.forward(tokens), std::logic_error);
+}
+
 TEST(TransformerModelTest, Bf16LinearPolicyRunsFullForwardLossAndBackward) {
     auto config = tiny_config();
     config.linear_precision = LinearPrecision::BFloat16;

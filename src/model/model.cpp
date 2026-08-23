@@ -305,7 +305,9 @@ public:
           precision_(config.linear_precision),
           activation_scale_(config.fp8_activation_scale),
           weight_scale_(config.fp8_weight_scale),
-          weight_scale_mode_(config.fp8_weight_scale_mode), has_bias_(with_bias) {
+          weight_scale_mode_(config.fp8_weight_scale_mode),
+          activation_scale_mode_(config.fp8_activation_scale_mode),
+          has_bias_(with_bias) {
         if (has_bias_) {
             bias_ = Value(Tensor({output}), true);
             if (initialization == ParameterInitialization::Random) {
@@ -321,9 +323,10 @@ public:
                        : autograd::bf16_matmul(input, weight_);
         }
         if (precision_ == LinearPrecision::Float8E4M3FNUZ) {
-            if (weight_scale_mode_ == Fp8WeightScaleMode::TensorAmax) {
+            if (weight_scale_mode_ == Fp8WeightScaleMode::TensorAmax ||
+                activation_scale_mode_ == Fp8ActivationScaleMode::TensorAmax) {
                 throw std::logic_error(
-                    "FP8 tensor-amax weight scale is inference-only");
+                    "FP8 tensor-amax scale is inference-only");
             }
             return autograd::fp8_matmul(input, weight_, activation_scale_, weight_scale_);
         }
@@ -352,16 +355,18 @@ public:
                 scaled_weight = ops::quantize_fp8(
                     weight_.data(), DType::Float8E4M3FNUZ, lazy_weight_scale);
             }
-            const auto scaled_input = fp8_inference_activation_scale_.defined()
-                                          ? ops::quantize_fp8_with_scale(
-                                                input,
-                                                DType::Float8E4M3FNUZ,
-                                                activation_scale_,
-                                                fp8_inference_activation_scale_)
-                                          : ops::quantize_fp8(
-                                                input,
-                                                DType::Float8E4M3FNUZ,
-                                                activation_scale_);
+            ops::ScaledTensor scaled_input;
+            if (activation_scale_mode_ == Fp8ActivationScaleMode::TensorAmax) {
+                scaled_input = ops::quantize_fp8_dynamic(
+                    input, DType::Float8E4M3FNUZ, activation_scale_);
+            } else if (fp8_inference_activation_scale_.defined()) {
+                scaled_input = ops::quantize_fp8_with_scale(
+                    input, DType::Float8E4M3FNUZ, activation_scale_,
+                    fp8_inference_activation_scale_);
+            } else {
+                scaled_input = ops::quantize_fp8(
+                    input, DType::Float8E4M3FNUZ, activation_scale_);
+            }
             return ops::fp8_matmul(
                 scaled_input,
                 scaled_weight,
@@ -408,6 +413,9 @@ public:
             weight_.data(), DType::Float8E4M3FNUZ, scale);
     }
     [[nodiscard]] Tensor prepare_fp8_activation_scale_candidate() const {
+        if (activation_scale_mode_ == Fp8ActivationScaleMode::TensorAmax) {
+            return {};
+        }
         auto result = Tensor::from_vector(
             {activation_scale_}, {}, DType::Float32);
         return weight_.data().device().is_hip()
@@ -437,6 +445,8 @@ private:
     float activation_scale_ = 1.0F;
     float weight_scale_ = 1.0F;
     Fp8WeightScaleMode weight_scale_mode_ = Fp8WeightScaleMode::Fixed;
+    Fp8ActivationScaleMode activation_scale_mode_ =
+        Fp8ActivationScaleMode::Fixed;
     bool has_bias_ = false;
     Value bias_;
     Tensor bf16_training_weight_;
@@ -1804,7 +1814,10 @@ Fp8WeightPreparationReport TransformerModel::prepare_fp8_inference_weights() {
         ++report.converted_tensors;
         report.fp32_bytes_released += elements * sizeof(float);
         report.fp8_bytes_retained += elements;
-        report.scale_bytes_retained += 2U * sizeof(float);
+        report.scale_bytes_retained += sizeof(float);
+        if (candidates.back().activation_scale.defined()) {
+            report.scale_bytes_retained += sizeof(float);
+        }
         if (impl_->config.fp8_weight_scale_mode == Fp8WeightScaleMode::TensorAmax) {
             report.weight_bytes_scanned += elements * sizeof(float);
         }

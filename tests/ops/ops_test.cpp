@@ -632,6 +632,26 @@ TEST(CpuFp8OpsTest, QuantizeDequantizeAndScaledMatmulMatchFloatReference) {
                  std::invalid_argument);
 }
 
+TEST(CpuFp8OpsTest, DynamicTensorScaleUsesAmaxAndMinimumWithoutLosingHostOracle) {
+    const auto input = Tensor::from_vector({-3.0F, -0.5F, 0.0F, 2.0F}, {2, 2});
+    const auto dynamic = quantize_fp8_dynamic(
+        input, DType::Float8E4M3FNUZ, 0.001F);
+    EXPECT_TRUE(dynamic.host_scale_available);
+    EXPECT_FLOAT_EQ(dynamic.scale_value, 3.0F / 240.0F);
+    EXPECT_FLOAT_EQ(dynamic.scale.to_vector()[0], dynamic.scale_value);
+    expect_near(dequantize_fp8(dynamic, DType::Float32).to_vector(),
+                input.to_vector(), 0.15F);
+    const auto minimum = quantize_fp8_dynamic(
+        Tensor::from_vector({-0.01F, 0.01F}, {2}),
+        DType::Float8E4M3FNUZ, 0.001F);
+    EXPECT_FLOAT_EQ(minimum.scale_value, 0.001F);
+    EXPECT_THROW((void)quantize_fp8_dynamic(
+                     Tensor::from_vector(
+                         {std::numeric_limits<float>::infinity()}, {1}),
+                     DType::Float8E4M3FNUZ, 0.001F),
+                 std::invalid_argument);
+}
+
 TEST(LowLevelOpsTest, OperatesOnCallerOwnedCpuBuffers) {
     const Shape shape{2, 2};
     const Strides strides{2, 1};

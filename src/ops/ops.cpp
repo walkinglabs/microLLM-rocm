@@ -356,6 +356,48 @@ ScaledTensor quantize_fp8(const Tensor& input, DType fp8_dtype, float scale,
         input, fp8_dtype, scale, scale_tensor, context);
 }
 
+ScaledTensor quantize_fp8_dynamic(
+    const Tensor& input, DType fp8_dtype, float minimum_scale,
+    [[maybe_unused]] const OpContext& context) {
+    if (!input.defined() || (input.dtype() != DType::Float32 &&
+                             input.dtype() != DType::Float16 &&
+                             input.dtype() != DType::BFloat16) ||
+        !input.is_contiguous()) {
+        throw std::invalid_argument(
+            "dynamic FP8 quantize requires contiguous FP32, FP16, or BF16 input");
+    }
+    if (!is_fp8_fnuz(fp8_dtype) || !std::isfinite(minimum_scale) ||
+        minimum_scale <= 0.0F) {
+        throw std::invalid_argument(
+            "dynamic FP8 quantize requires an FNUZ dtype and positive minimum scale");
+    }
+    if (input.device().is_cpu()) {
+        const auto values = input.to_vector();
+        float maximum = 0.0F;
+        for (const auto value : values) {
+            if (!std::isfinite(value)) {
+                throw std::invalid_argument(
+                    "dynamic FP8 quantize requires finite input");
+            }
+            maximum = std::max(maximum, std::abs(value));
+        }
+        return quantize_fp8(
+            input, fp8_dtype, std::max(maximum / 240.0F, minimum_scale),
+            context);
+    }
+    Tensor scale(Shape{}, DType::Float32, input.device());
+    Tensor output(input.shape(), fp8_dtype, input.device());
+#if MICROLLM_HAS_HIP
+    hip::launch_quantize_fp8_dynamic(
+        input.data(), input.dtype(), output.data(), fp8_dtype,
+        static_cast<float*>(scale.data()), input.numel(), minimum_scale,
+        context.native_stream(input.device()));
+    return {std::move(output), std::move(scale), minimum_scale, false};
+#else
+    throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+}
+
 Tensor dequantize_fp8(const ScaledTensor& input, DType output_dtype,
                       [[maybe_unused]] const OpContext& context) {
     if (!input.values.defined() || !is_fp8_fnuz(input.values.dtype())) {
@@ -365,19 +407,40 @@ Tensor dequantize_fp8(const ScaledTensor& input, DType output_dtype,
         output_dtype != DType::BFloat16) {
         throw std::invalid_argument("FP8 dequantize output must be FP32, FP16, or BF16");
     }
-    if (!std::isfinite(input.scale_value) || input.scale_value <= 0.0F) {
-        throw std::invalid_argument("FP8 dequantize scale must be finite and positive");
+    if (!input.scale.defined() || input.scale.dtype() != DType::Float32 ||
+        input.scale.numel() != 1 || input.scale.device() != input.values.device() ||
+        !input.scale.is_contiguous()) {
+        throw std::invalid_argument(
+            "FP8 dequantize scale Tensor must be one contiguous same-device FP32 value");
+    }
+    if (input.host_scale_available &&
+        (!std::isfinite(input.scale_value) || input.scale_value <= 0.0F)) {
+        throw std::invalid_argument(
+            "FP8 dequantize host scale must be finite and positive when available");
     }
     Tensor output(input.values.shape(), output_dtype, input.values.device());
     if (input.values.device().is_cpu()) {
+        if (!input.host_scale_available) {
+            throw std::invalid_argument(
+                "CPU FP8 dequantize requires an available host scale");
+        }
         auto values = input.values.to_vector();
         for (auto& value : values) value *= input.scale_value;
         return Tensor::from_vector(values, input.values.shape(), output_dtype);
     }
 #if MICROLLM_HAS_HIP
-    hip::launch_dequantize_fp8(input.values.data(), input.values.dtype(), output.data(),
-                               output_dtype, input.values.numel(), input.scale_value,
-                               context.native_stream(input.values.device()));
+    if (input.host_scale_available) {
+        hip::launch_dequantize_fp8(
+            input.values.data(), input.values.dtype(), output.data(),
+            output_dtype, input.values.numel(), input.scale_value,
+            context.native_stream(input.values.device()));
+    } else {
+        hip::launch_dequantize_fp8_device_scale(
+            input.values.data(), input.values.dtype(), output.data(),
+            output_dtype, input.values.numel(),
+            static_cast<const float*>(input.scale.data()),
+            context.native_stream(input.values.device()));
+    }
     return output;
 #else
     throw std::runtime_error("microLLM was built without HIP operator support");

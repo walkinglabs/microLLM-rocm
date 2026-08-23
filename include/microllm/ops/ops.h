@@ -38,6 +38,7 @@ struct ScaledTensor {
     Tensor values;
     Tensor scale;
     float scale_value = 1.0F;
+    bool host_scale_available = true;
 };
 
 struct Bf16FfnDiagnostics {
@@ -53,6 +54,11 @@ struct Bf16FfnDiagnostics {
 [[nodiscard]] ScaledTensor quantize_fp8_with_scale(
     const Tensor& input, DType fp8_dtype, float scale_value,
     const Tensor& scale_tensor, const OpContext& context = {});
+// Computes one scale for the complete input Tensor on its current device.
+// On HIP the returned scale Tensor is authoritative and no scalar is copied to host.
+[[nodiscard]] ScaledTensor quantize_fp8_dynamic(
+    const Tensor& input, DType fp8_dtype, float minimum_scale,
+    const OpContext& context = {});
 [[nodiscard]] Tensor dequantize_fp8(const ScaledTensor& input, DType output_dtype,
                                     const OpContext& context = {});
 [[nodiscard]] Tensor fp8_matmul(const ScaledTensor& left, const ScaledTensor& right,

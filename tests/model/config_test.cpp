@@ -40,8 +40,11 @@ TEST(ModelConfigTest, Fp8TensorAmaxPolicyIsVisibleInSummary) {
     auto config = ModelConfig::model_s();
     config.linear_precision = LinearPrecision::Float8E4M3FNUZ;
     config.fp8_weight_scale_mode = Fp8WeightScaleMode::TensorAmax;
+    config.fp8_activation_scale_mode = Fp8ActivationScaleMode::TensorAmax;
     config.validate();
     EXPECT_NE(config.summary().find("fp8_weight_scale_mode=tensor_amax"),
+              std::string::npos);
+    EXPECT_NE(config.summary().find("fp8_activation_scale_mode=tensor_amax"),
               std::string::npos);
 }
 

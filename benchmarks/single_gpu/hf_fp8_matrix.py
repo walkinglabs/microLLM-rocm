@@ -33,6 +33,8 @@ def options() -> argparse.Namespace:
     parser.add_argument("--fp8-weight-scale", type=float, default=0.005)
     parser.add_argument("--fp8-weight-scale-mode", choices=("fixed", "tensor-amax"),
                         default="fixed")
+    parser.add_argument("--fp8-activation-scale-mode",
+                        choices=("fixed", "tensor-amax"), default="fixed")
     parser.add_argument("--physical-gpu-index", type=int)
     parser.add_argument("--max-idle-vram-percent", type=int, default=5)
     parser.add_argument("--max-idle-use-percent", type=int, default=10)
@@ -113,6 +115,7 @@ def command(args: argparse.Namespace, model: dict, context: int,
             "--fp8-activation-scale", str(args.fp8_activation_scale),
             "--fp8-weight-scale", str(args.fp8_weight_scale),
             "--fp8-weight-scale-mode", args.fp8_weight_scale_mode,
+            "--fp8-activation-scale-mode", args.fp8_activation_scale_mode,
         ])
     return result
 
@@ -141,12 +144,17 @@ def compare_logits(actual: list[float], reference: list[float]) -> dict:
                                      actual_top == reference_top}
 
 
-def experiment_boundary(weight_scale_mode: str) -> str:
+def experiment_boundary(weight_scale_mode: str,
+                        activation_scale_mode: str = "fixed") -> str:
     weight_boundary = (
         "per-Tensor weight amax with one-time host scan"
         if weight_scale_mode == "tensor-amax" else "static global weight scale")
+    activation_boundary = (
+        "device per-input-Tensor activation amax"
+        if activation_scale_mode == "tensor-amax"
+        else "fixed global activation scale")
     return (
-        f"{weight_boundary}; fixed global activation scale; "
+        f"{weight_boundary}; {activation_boundary}; "
         "single-representation Linear weights; FP32 Embedding/Norm/tied head; "
         "FP32 logits are the internal oracle; no PyTorch FP8 reference")
 
@@ -214,6 +222,7 @@ def main() -> int:
                         "fp8_activation_scale": args.fp8_activation_scale,
                         "fp8_weight_scale": args.fp8_weight_scale,
                         "fp8_weight_scale_mode": args.fp8_weight_scale_mode,
+                        "fp8_activation_scale_mode": args.fp8_activation_scale_mode,
                         "fp8_weight_scale_min": output.get(
                             "fp8_weight_scale_min", 0.0),
                         "fp8_weight_scale_max": output.get(
@@ -278,10 +287,12 @@ def main() -> int:
         "fp8_activation_scale": args.fp8_activation_scale,
         "fp8_weight_scale": args.fp8_weight_scale,
         "fp8_weight_scale_mode": args.fp8_weight_scale_mode,
+        "fp8_activation_scale_mode": args.fp8_activation_scale_mode,
         "rows": rows, "aggregates": aggregates,
         "accuracy_failure_count": len(accuracy_failures),
         "accuracy_failures": accuracy_failures,
-        "boundary": experiment_boundary(args.fp8_weight_scale_mode),
+        "boundary": experiment_boundary(
+            args.fp8_weight_scale_mode, args.fp8_activation_scale_mode),
     }
     (args.output_directory / "summary.json").write_text(
         json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")

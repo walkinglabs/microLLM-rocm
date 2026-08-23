@@ -172,6 +172,7 @@ HuggingFaceModelConfig load_huggingface_config(const std::filesystem::path& path
                     .fp8_activation_scale = 0.025F,
                     .fp8_weight_scale = 0.005F,
                     .fp8_weight_scale_mode = Fp8WeightScaleMode::Fixed,
+                    .fp8_activation_scale_mode = Fp8ActivationScaleMode::Fixed,
                     .rms_norm_epsilon = static_cast<float>(number(text, "rms_norm_eps")),
                     .attention_bias = true,
                     .rope_layout = RopeLayout::SplitHalf};

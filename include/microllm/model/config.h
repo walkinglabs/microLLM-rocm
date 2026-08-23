@@ -7,6 +7,7 @@ namespace microllm::model {
 
 enum class LinearPrecision { Float32, BFloat16, Float8E4M3FNUZ };
 enum class Fp8WeightScaleMode { Fixed, TensorAmax };
+enum class Fp8ActivationScaleMode { Fixed, TensorAmax };
 enum class RopeLayout { Interleaved, SplitHalf };
 
 struct ModelConfig {
@@ -23,6 +24,8 @@ struct ModelConfig {
     float fp8_activation_scale = 0.025F;
     float fp8_weight_scale = 0.005F;
     Fp8WeightScaleMode fp8_weight_scale_mode = Fp8WeightScaleMode::Fixed;
+    Fp8ActivationScaleMode fp8_activation_scale_mode =
+        Fp8ActivationScaleMode::Fixed;
     float rms_norm_epsilon = 1.0e-5F;
     bool attention_bias = false;
     RopeLayout rope_layout = RopeLayout::Interleaved;

@@ -53,6 +53,7 @@ struct Options {
     float fp8_activation_scale = 0.025F;
     float fp8_weight_scale = 0.005F;
     std::string fp8_weight_scale_mode = "fixed";
+    std::string fp8_activation_scale_mode = "fixed";
     std::string workload = "both";
     std::int64_t batch = 1;
     bool use_cache = true;
@@ -133,6 +134,9 @@ Options options(int argc, char** argv) {
         }
         else if (name == "--fp8-weight-scale-mode") {
             result.fp8_weight_scale_mode = argv[index + 1];
+        }
+        else if (name == "--fp8-activation-scale-mode") {
+            result.fp8_activation_scale_mode = argv[index + 1];
         }
         else if (name == "--batch") result.batch = std::stoll(argv[index + 1]);
         else if (name == "--use-cache") {
@@ -282,6 +286,11 @@ Options options(int argc, char** argv) {
         throw std::invalid_argument(
             "--fp8-weight-scale-mode must be fixed or tensor-amax");
     }
+    if (result.fp8_activation_scale_mode != "fixed" &&
+        result.fp8_activation_scale_mode != "tensor-amax") {
+        throw std::invalid_argument(
+            "--fp8-activation-scale-mode must be fixed or tensor-amax");
+    }
     const auto continuous_arguments = result.continuous_slots > 0 ||
                                       !result.continuous_prompt_lengths.empty() ||
                                       !result.continuous_new_token_lengths.empty();
@@ -343,6 +352,24 @@ Options options(int argc, char** argv) {
             "--cache-logits-output requires cached decode with at least two new tokens");
     }
     return result;
+}
+
+std::string fp8_compute_policy(const Options& command) {
+    if (command.fp8_activation_scale_mode == "tensor-amax" &&
+        command.fp8_weight_scale_mode == "tensor-amax") {
+        return "fp8_e4m3_fnuz_tensor_amax_weight_activation";
+    }
+    if (command.fp8_activation_scale_mode == "tensor-amax") {
+        return "fp8_e4m3_fnuz_tensor_amax_activation";
+    }
+    if (command.fp8_weight_scale_mode == "tensor-amax") {
+        return "fp8_e4m3_fnuz_tensor_amax_weight";
+    }
+    return "fp8_e4m3_fnuz_static_scale";
+}
+
+std::string fp8_storage_policy(const Options& command) {
+    return "single_representation_fp8_linear_" + fp8_compute_policy(command);
 }
 
 struct GenerationRun {
@@ -786,6 +813,10 @@ int main(int argc, char** argv) {
                 command.fp8_weight_scale_mode == "tensor-amax"
                     ? microllm::model::Fp8WeightScaleMode::TensorAmax
                     : microllm::model::Fp8WeightScaleMode::Fixed;
+            external.model.fp8_activation_scale_mode =
+                command.fp8_activation_scale_mode == "tensor-amax"
+                    ? microllm::model::Fp8ActivationScaleMode::TensorAmax
+                    : microllm::model::Fp8ActivationScaleMode::Fixed;
         }
         const auto cache_dtype = command.kv_cache_dtype == "bf16"
                                      ? microllm::DType::BFloat16
@@ -1013,9 +1044,7 @@ int main(int argc, char** argv) {
                       << ",\"resident_weight_bytes\":" << resident_weight_bytes
                       << ",\"linear_precision_policy\":\""
                       << (command.fp8_linear
-                              ? command.fp8_weight_scale_mode == "tensor-amax"
-                                    ? "fp8_e4m3_fnuz_tensor_amax_weight"
-                                    : "fp8_e4m3_fnuz_static_scale"
+                              ? fp8_compute_policy(command)
                                              : command.bf16_attention
                                                    ? "bf16_ffn_attention"
                                                    : command.bf16_ffn ? "bf16_ffn"
@@ -1027,6 +1056,8 @@ int main(int argc, char** argv) {
                       << command.fp8_weight_scale
                       << ",\"fp8_weight_scale_mode\":\""
                       << command.fp8_weight_scale_mode << "\""
+                      << ",\"fp8_activation_scale_mode\":\""
+                      << command.fp8_activation_scale_mode << "\""
                       << ",\"fp8_weight_scale_min\":"
                       << fp8_report.minimum_weight_scale
                       << ",\"fp8_weight_scale_max\":"
@@ -1442,9 +1473,7 @@ int main(int argc, char** argv) {
                   << "\""
                   << ",\"inference_weight_policy\":\""
                   << (command.fp8_linear
-                          ? command.fp8_weight_scale_mode == "tensor-amax"
-                                ? "single_representation_fp8_linear_tensor_amax_weight"
-                                : "single_representation_fp8_linear_static_scale"
+                          ? fp8_storage_policy(command)
                           : command.bf16_attention
                           ? "single_representation_bf16_ffn_attention"
                           : command.bf16_ffn ? "single_representation_bf16_ffn" : "float32")
@@ -1468,6 +1497,8 @@ int main(int argc, char** argv) {
                   << command.fp8_weight_scale
                   << ",\"fp8_weight_scale_mode\":\""
                   << command.fp8_weight_scale_mode << "\""
+                  << ",\"fp8_activation_scale_mode\":\""
+                  << command.fp8_activation_scale_mode << "\""
                   << ",\"fp8_weight_scale_min\":"
                   << fp8_report.minimum_weight_scale
                   << ",\"fp8_weight_scale_max\":"

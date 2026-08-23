@@ -96,6 +96,9 @@ std::string ModelConfig::summary() const {
            << ",fp8_weight_scale_mode="
            << (fp8_weight_scale_mode == Fp8WeightScaleMode::Fixed
                    ? "fixed" : "tensor_amax")
+           << ",fp8_activation_scale_mode="
+           << (fp8_activation_scale_mode == Fp8ActivationScaleMode::Fixed
+                   ? "fixed" : "tensor_amax")
            << ",rms_eps=" << rms_norm_epsilon
            << ",attention_bias=" << (attention_bias ? "true" : "false")
            << ",rope_layout=" << (rope_layout == RopeLayout::Interleaved ? "interleaved" : "split_half")

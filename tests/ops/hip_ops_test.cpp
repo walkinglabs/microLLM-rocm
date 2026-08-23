@@ -464,6 +464,26 @@ TEST(HipFp8TrainingTest, TransformerLinearPolicyRunsEndToEndOnMi300) {
     for (const auto value : decode_logits.to_vector()) EXPECT_TRUE(std::isfinite(value));
 }
 
+TEST(HipFp8OpsTest, DynamicTensorScaleQuantizeAndDequantizeStayOnDevice) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    const auto cpu = Tensor::from_vector(
+        {-3.0F, -0.5F, 0.0F, 2.0F, 9.0F, -12.0F}, {2, 3});
+    const auto input = cpu.to(gpu);
+    runtime::reset_transfer_stats();
+    const auto dynamic = quantize_fp8_dynamic(
+        input, DType::Float8E4M3FNUZ, 0.001F);
+    EXPECT_FALSE(dynamic.host_scale_available);
+    const auto restored = dequantize_fp8(dynamic, DType::Float32);
+    runtime::synchronize(gpu);
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    const auto scale = dynamic.scale.to_vector()[0];
+    EXPECT_NEAR(scale, 12.0F / 240.0F, 1.0e-7F);
+    expect_near(restored.to_vector(), cpu.to_vector(), 0.5F);
+}
+
 TEST(HipFp8OpsTest, PreparedTransformerWeightsMatchLazyInferenceWithoutPayloadTransfers) {
     require_gpu();
     if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";
@@ -509,10 +529,12 @@ TEST(HipFp8OpsTest, TensorAmaxPreparedWeightsScanOnceAndLeaveHotPathTransferFree
                               .rope_base = 10000.0F,
                               .tie_embeddings = false,
                               .linear_precision = model::LinearPrecision::Float8E4M3FNUZ,
-                              .fp8_activation_scale = 0.2F,
+                              .fp8_activation_scale = 1.0e-4F,
                               .fp8_weight_scale = 0.005F,
                               .fp8_weight_scale_mode =
-                                  model::Fp8WeightScaleMode::TensorAmax};
+                                  model::Fp8WeightScaleMode::TensorAmax,
+                              .fp8_activation_scale_mode =
+                                  model::Fp8ActivationScaleMode::TensorAmax};
     model::TransformerModel model(config, 227);
     model.to(Device::hip(0));
     const auto tokens = Tensor::from_int32_vector({1, 2, 3, 4}, {1, 4})
@@ -523,6 +545,8 @@ TEST(HipFp8OpsTest, TensorAmaxPreparedWeightsScanOnceAndLeaveHotPathTransferFree
     const auto preparation_transfers = runtime::transfer_stats();
     EXPECT_EQ(report.converted_tensors, 8U);
     EXPECT_EQ(report.weight_bytes_scanned, report.fp32_bytes_released);
+    EXPECT_EQ(report.scale_bytes_retained,
+              report.converted_tensors * sizeof(float));
     EXPECT_GE(preparation_transfers.device_to_host_calls,
               report.converted_tensors);
     EXPECT_GT(report.maximum_weight_scale, report.minimum_weight_scale);

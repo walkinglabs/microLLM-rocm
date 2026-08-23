@@ -54,9 +54,17 @@ void launch_swiglu_typed(const void* gate, const void* up, void* output, DType d
 void launch_quantize_fp8(const void* input, DType input_dtype, void* output,
                          DType fp8_dtype, std::int64_t elements, float inverse_scale,
                          void* stream = nullptr);
+void launch_quantize_fp8_dynamic(const void* input, DType input_dtype,
+                                 void* output, DType fp8_dtype,
+                                 float* scale, std::int64_t elements,
+                                 float minimum_scale,
+                                 void* stream = nullptr);
 void launch_dequantize_fp8(const void* input, DType fp8_dtype, void* output,
                            DType output_dtype, std::int64_t elements, float scale,
                            void* stream = nullptr);
+void launch_dequantize_fp8_device_scale(
+    const void* input, DType fp8_dtype, void* output, DType output_dtype,
+    std::int64_t elements, const float* scale, void* stream = nullptr);
 void launch_cast(const void* input, DType input_dtype, void* output,
                  DType output_dtype, std::int64_t elements,
                  void* stream = nullptr);

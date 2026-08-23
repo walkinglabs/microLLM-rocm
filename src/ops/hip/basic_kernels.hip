@@ -602,6 +602,47 @@ __device__ float block_reduce_max(float value, float* scratch) {
     return scratch[0];
 }
 
+template <typename Input>
+__global__ void fp8_tensor_scale_kernel(const Input* input, float* scale,
+                                        std::int64_t elements,
+                                        float minimum_scale) {
+    __shared__ float scratch[kBlockSize];
+    float local_maximum = 0.0F;
+    for (std::int64_t index = threadIdx.x; index < elements;
+         index += blockDim.x) {
+        local_maximum = fmaxf(
+            local_maximum, fabsf(static_cast<float>(input[index])));
+    }
+    const auto maximum = block_reduce_max(local_maximum, scratch);
+    if (threadIdx.x == 0) {
+        scale[0] = fmaxf(maximum / 240.0F, minimum_scale);
+    }
+}
+
+template <typename Input, typename Output>
+__global__ void quantize_fp8_device_scale_kernel(
+    const Input* input, Output* output, std::int64_t elements,
+    const float* scale) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x +
+                       threadIdx.x;
+    if (index < elements) {
+        output[index] = static_cast<Output>(
+            static_cast<float>(input[index]) / scale[0]);
+    }
+}
+
+template <typename Input, typename Output>
+__global__ void dequantize_fp8_device_scale_kernel(
+    const Input* input, Output* output, std::int64_t elements,
+    const float* scale) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x +
+                       threadIdx.x;
+    if (index < elements) {
+        output[index] = static_cast<Output>(
+            static_cast<float>(input[index]) * scale[0]);
+    }
+}
+
 __device__ float block_reduce_sum(float value, float* scratch) {
     const auto lane = static_cast<unsigned>(threadIdx.x);
     scratch[lane] = value;
@@ -2114,6 +2155,59 @@ void launch_quantize_fp8(const void* input, DType input_dtype, void* output,
 }
 
 template <typename Input>
+void launch_dynamic_quantize_for_input(
+    const Input* input, void* output, DType fp8_dtype, float* scale,
+    std::int64_t elements, float minimum_scale, hipStream_t stream) {
+    hipLaunchKernelGGL(fp8_tensor_scale_kernel<Input>, dim3(1),
+                       dim3(kBlockSize), 0, stream, input, scale, elements,
+                       minimum_scale);
+    check_launch("fp8_tensor_scale_kernel");
+    const auto grid = dim3(grid_size(elements));
+    const auto block = dim3(kBlockSize);
+    if (fp8_dtype == DType::Float8E4M3FNUZ) {
+        hipLaunchKernelGGL(
+            (quantize_fp8_device_scale_kernel<Input, __hip_fp8_e4m3_fnuz>),
+            grid, block, 0, stream, input,
+            static_cast<__hip_fp8_e4m3_fnuz*>(output), elements, scale);
+    } else if (fp8_dtype == DType::Float8E5M2FNUZ) {
+        hipLaunchKernelGGL(
+            (quantize_fp8_device_scale_kernel<Input, __hip_fp8_e5m2_fnuz>),
+            grid, block, 0, stream, input,
+            static_cast<__hip_fp8_e5m2_fnuz*>(output), elements, scale);
+    } else {
+        throw std::invalid_argument(
+            "dynamic quantize output must be an MI300 FNUZ FP8 dtype");
+    }
+    check_launch("quantize_fp8_device_scale_kernel");
+}
+
+void launch_quantize_fp8_dynamic(
+    const void* input, DType input_dtype, void* output, DType fp8_dtype,
+    float* scale, std::int64_t elements, float minimum_scale, void* stream) {
+    if (elements == 0) return;
+    switch (input_dtype) {
+        case DType::Float32:
+            launch_dynamic_quantize_for_input(
+                static_cast<const float*>(input), output, fp8_dtype, scale,
+                elements, minimum_scale, as_stream(stream));
+            break;
+        case DType::Float16:
+            launch_dynamic_quantize_for_input(
+                static_cast<const __half*>(input), output, fp8_dtype, scale,
+                elements, minimum_scale, as_stream(stream));
+            break;
+        case DType::BFloat16:
+            launch_dynamic_quantize_for_input(
+                static_cast<const hip_bfloat16*>(input), output, fp8_dtype,
+                scale, elements, minimum_scale, as_stream(stream));
+            break;
+        default:
+            throw std::invalid_argument(
+                "dynamic quantize input must be FP32, FP16, or BF16");
+    }
+}
+
+template <typename Input>
 void launch_dequantize_for_input(const Input* input, void* output, DType output_dtype,
                                  std::int64_t elements, float scale,
                                  hipStream_t stream) {
@@ -2191,6 +2285,48 @@ void launch_dequantize_fp8(const void* input, DType fp8_dtype, void* output,
         throw std::invalid_argument("dequantize input must be an MI300 FNUZ FP8 dtype");
     }
     check_launch("dequantize_fp8_kernel");
+}
+
+template <typename Input>
+void launch_device_scale_dequantize_for_input(
+    const Input* input, void* output, DType output_dtype,
+    std::int64_t elements, const float* scale, hipStream_t stream) {
+    const auto grid = dim3(grid_size(elements));
+    const auto block = dim3(kBlockSize);
+#define MICROLLM_DEVICE_SCALE_DEQUANT_CASE(cpp_type, enum_value)                   \
+    case enum_value:                                                              \
+        hipLaunchKernelGGL(                                                       \
+            (dequantize_fp8_device_scale_kernel<Input, cpp_type>), grid, block,  \
+            0, stream, input, static_cast<cpp_type*>(output), elements, scale);  \
+        break
+    switch (output_dtype) {
+        MICROLLM_DEVICE_SCALE_DEQUANT_CASE(float, DType::Float32);
+        MICROLLM_DEVICE_SCALE_DEQUANT_CASE(__half, DType::Float16);
+        MICROLLM_DEVICE_SCALE_DEQUANT_CASE(hip_bfloat16, DType::BFloat16);
+        default:
+            throw std::invalid_argument(
+                "device-scale dequantize output must be a floating dtype");
+    }
+#undef MICROLLM_DEVICE_SCALE_DEQUANT_CASE
+    check_launch("dequantize_fp8_device_scale_kernel");
+}
+
+void launch_dequantize_fp8_device_scale(
+    const void* input, DType fp8_dtype, void* output, DType output_dtype,
+    std::int64_t elements, const float* scale, void* stream) {
+    if (elements == 0) return;
+    if (fp8_dtype == DType::Float8E4M3FNUZ) {
+        launch_device_scale_dequantize_for_input(
+            static_cast<const __hip_fp8_e4m3_fnuz*>(input), output,
+            output_dtype, elements, scale, as_stream(stream));
+    } else if (fp8_dtype == DType::Float8E5M2FNUZ) {
+        launch_device_scale_dequantize_for_input(
+            static_cast<const __hip_fp8_e5m2_fnuz*>(input), output,
+            output_dtype, elements, scale, as_stream(stream));
+    } else {
+        throw std::invalid_argument(
+            "device-scale dequantize input must be an MI300 FNUZ dtype");
+    }
 }
 
 void launch_cast(const void* input, DType input_dtype, void* output,
