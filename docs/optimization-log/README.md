@@ -676,6 +676,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/155-data/](experiments/155-data/) | candidate/control共36 worker、显存/速度/精度拒绝门 |
 | [assets/block-reduction-determinism.svg](assets/block-reduction-determinism.svg) | reduction数据竞争从20/20不同到bit-exact |
 | [experiments/156-data/](experiments/156-data/) | 旧revision反例、20进程门与三进程性能证据 |
+| [assets/adamw-correctness-before-timing.svg](assets/adamw-correctness-before-timing.svg) | 完整optimizer状态门、真实参数量速度与Scalar保留结论 |
+| [experiments/157-adamw-correctness-before-timing.md](experiments/157-adamw-correctness-before-timing.md) | exact key/cache、15进程MI300矩阵与端到端中性回归 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

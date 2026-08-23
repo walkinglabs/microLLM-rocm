@@ -70,8 +70,9 @@ needed to run a real training and generation loop:
 - a phase-independent exact-size HIP pool with immediate legacy-default-Stream reuse and strict
   permanent disablement for non-default Streams;
 - a cross-framework trace runner for operator/layer values and latency comparisons.
-- explicit Scalar/Vectorized AdamW experiments with HIP Event micro-benchmarks; Auto remains
-  on the model-validated scalar policy.
+- correctness-before-timing AdamW tuning with exact element/mirror/alignment/environment keys,
+  transactional cache and complete parameter/moment/mirror gates; 15 fresh MI300 processes find
+  no aligned case above the 1.05 keep gate, so Auto remains on the model-validated Scalar policy;
 - rank-N strided-batched hipBLASLt with last-two-dimension transpose contracts for Attention.
 - T≥256 causal GQA backward using batched GEMM for K/V gradients, with short-sequence fallback.
 - optional autograd probability saving for T≥256, reported as a long-sequence speed/memory trade-off.
@@ -359,14 +360,14 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 375/375 | 259 CPU-labelled + 117 HIP-labelled gates; the package gate belongs to both labels; 2 intentional environment skips |
-| ASan/UBSan CPU | 252/252 | host code, CLI, model/graph, benchmark and evidence schemas |
+| Full CPU/HIP configuration | 378/378 | 260 CPU-labelled + 119 HIP-labelled gates; the package gate belongs to both labels; 2 intentional environment skips |
+| ASan/UBSan CPU | 253/253 | host code, CLI, model/graph, benchmark and evidence schemas |
 | MI300X/gfx942 HIP preset | 117/117 | 116 allocator/stream, graph, autotune, BF16/FP8 and model gates + 1 installed-package gate |
-| PyTorch-enabled CPU build | 228/228 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
+| PyTorch-enabled CPU build | 229/229 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
 | Registered test files | 54 | machine-audited CTest registration |
 | Installed CMake package | CPU + HIP + RCCL pass | relocated prefix, external `find_package`, components, compile, static link and run |
-| CPU source coverage | 81.5% lines / 62.7% branches | 6,854/8,411 lines and 6,669/10,644 branches; GCC 13.3 + gcovr 8.3 |
+| CPU source coverage | 80.0% lines / 61.3% branches | 7,126/8,903 lines and 6,987/11,399 branches; GCC 13.3 + gcovr 8.3 |
 
 Latest PyTorch-reference maximum absolute differences:
 

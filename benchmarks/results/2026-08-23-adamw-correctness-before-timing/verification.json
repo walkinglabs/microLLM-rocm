@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "experiment": "Exp157",
+  "architecture": "gfx942:sramecc+:xnack-",
+  "matrix": {
+    "cases": 5,
+    "fresh_processes": 15,
+    "warmup": 3,
+    "repetitions": 20,
+    "complete_state_cases_passed": 5,
+    "aligned_vectorized_cases_passed": 4,
+    "unaligned_rejected_before_timing": true,
+    "unaligned_vectorized_event_ms": 0.0,
+    "unaligned_vectorized_wall_ms": 0.0
+  },
+  "vectorized_speedup": {
+    "tail_4099_mirror": 1.0,
+    "qwen_mid_mirror": 0.8599776201788709,
+    "qwen_embedding": 0.9590063833913228,
+    "deepseek_embedding": 1.0095523273689193,
+    "cases_at_or_above_1_05": 0
+  },
+  "persistent_acceptance": {
+    "explicit": true,
+    "entries": 1,
+    "accepted_implementation": "scalar",
+    "environment_keyed": true
+  },
+  "end_to_end": {
+    "workload": "tiny FP32 training T128 B8 warmup2 steps20",
+    "fresh_processes": 3,
+    "previous_tokens_per_second_p50": 231939.503,
+    "current_tokens_per_second_p50": 231046.812,
+    "change_percent": -0.384880966
+  },
+  "regression": {
+    "cpu": "255/255",
+    "asan_ubsan": "253/253",
+    "pytorch_enabled_cpu": "229/229",
+    "full_cpu_hip": "378/378",
+    "hip_label": "119/119",
+    "conditional_skips": 2,
+    "package_consumer": "pass",
+    "coverage_lines_percent": 80.0,
+    "coverage_branches_percent": 61.3
+  },
+  "decision": "keep correctness-first registry infrastructure; keep Auto scalar"
+}

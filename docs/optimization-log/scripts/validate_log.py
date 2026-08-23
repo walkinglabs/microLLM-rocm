@@ -6854,6 +6854,79 @@ def validate_matmul_correctness_before_timing(
         len(cache_lines) - 1
 
 
+def validate_adamw_correctness_before_timing(
+        errors: list[str]) -> tuple[int, int, int]:
+    data = REPOSITORY / (
+        "benchmarks/results/2026-08-23-adamw-correctness-before-timing")
+    verification = json.loads(
+        (data / "verification.json").read_text(encoding="utf-8"))
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    accepted = json.loads((data / "accepted-report.json").read_text(
+        encoding="utf-8"))
+    cache = [json.loads(line) for line in (data / "accepted-cache.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    end_to_end = [json.loads(line) for line in (data / "end-to-end.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    summaries = summary.get("summaries", [])
+    measured_tps = statistics.median(
+        row.get("tokens_per_second", 0) for row in end_to_end)
+    unaligned = next((row for row in raw if not row.get("aligned16")), {})
+    unaligned_vector = next((candidate for candidate in unaligned.get("candidates", [])
+                             if candidate.get("implementation") == "vectorized"), {})
+    aligned = [row for row in summaries if row.get("aligned16")]
+    if verification.get("status") != "pass" or \
+            verification.get("matrix", {}).get("fresh_processes") != 15 or \
+            verification.get("vectorized_speedup", {}).get(
+                "cases_at_or_above_1_05") != 0 or \
+            verification.get("regression", {}).get("full_cpu_hip") != "378/378" or \
+            verification.get("regression", {}).get("asan_ubsan") != "253/253" or \
+            verification.get("regression", {}).get(
+                "pytorch_enabled_cpu") != "229/229" or \
+            summary.get("status") != "pass" or len(summaries) != 5 or \
+            len(raw) != 15 or len(end_to_end) != 3 or len(aligned) != 4 or \
+            not math.isclose(measured_tps, verification.get(
+                "end_to_end", {}).get("current_tokens_per_second_p50", 0),
+                rel_tol=0, abs_tol=1e-6) or \
+            abs(verification.get("end_to_end", {}).get(
+                "change_percent", 100)) >= 1.0 or \
+            any(row.get("complete_state_passed") is not True for row in summaries) or \
+            any(row.get("vectorized_speedup", 0) >= 1.05 for row in aligned):
+        errors.append("AdamW complete-state matrix evidence changed")
+    if unaligned_vector.get("supported") is not False or \
+            unaligned_vector.get("correctness_passed") is not False or \
+            unaligned_vector.get("event_ms_p50") != 0.0 or \
+            unaligned_vector.get("event_ms_p95") != 0.0 or \
+            unaligned_vector.get("wall_ms_p50") != 0.0 or \
+            "16-byte aligned" not in unaligned_vector.get("failure", ""):
+        errors.append("AdamW pre-timing alignment rejection changed")
+    if accepted.get("accepted") is not True or \
+            accepted.get("recommended") != "scalar" or len(cache) != 2 or \
+            cache[0].get("kind") != "microllm_adamw_tuning_cache" or \
+            cache[1].get("implementation") != "scalar" or \
+            cache[1].get("elements") != 4099 or \
+            cache[1].get("parameter_aligned16") is not False:
+        errors.append("AdamW explicit acceptance/cache evidence changed")
+    source = (REPOSITORY / "src/ops/adamw_tuning.cpp").read_text(encoding="utf-8")
+    header = (REPOSITORY / "include/microllm/ops/tuning.h").read_text(
+        encoding="utf-8")
+    tests = (REPOSITORY / "tests/ops/hip_ops_test.cpp").read_text(encoding="utf-8")
+    runner = (REPOSITORY / (
+        "benchmarks/single_gpu/adamw_autotune_matrix.py")).read_text(encoding="utf-8")
+    compare_position = source.find("candidate.parameter = compare_complete")
+    timing_position = source.find("start.record_default_stream", compare_position)
+    if compare_position < 0 or timing_position < 0 or compare_position > timing_position or \
+            "std::atomic<std::size_t> adamw_registry_entries" not in source or \
+            "std::filesystem::rename(temporary, path" not in source or \
+            "register_adamw_autotune_winner" not in header or \
+            "AdamWAutotuneChecksEveryStateBeforeTimingAndRegistration" not in tests or \
+            "DEFAULT_CASES" not in runner:
+        errors.append("AdamW tuner source/test ordering contract changed")
+    return len(raw), sum(row.get("complete_state_passed") is True for row in summaries), \
+        sum(row.get("vectorized_speedup", 0) >= 1.05 for row in aligned)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -6988,7 +7061,8 @@ def validate_assets(errors: list[str]) -> None:
                  "fp8-e5-activation-discard.svg",
                  "fp8-layer-leave-one-out.svg",
                  "fp8-qwen-layer9-formal-discard.svg",
-                 "block-reduction-determinism.svg"):
+                 "block-reduction-determinism.svg",
+                 "adamw-correctness-before-timing.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -7238,6 +7312,8 @@ def main() -> int:
     cache_contracts, cache_passed = validate_matmul_persistent_cache(errors)
     tune_candidates, tune_rejected, tune_cache_entries = \
         validate_matmul_correctness_before_timing(errors)
+    adamw_rows, adamw_state_cases, adamw_kept_candidates = \
+        validate_adamw_correctness_before_timing(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -7435,6 +7511,8 @@ def main() -> int:
           f"persistent_registry={cache_contracts}/{cache_passed} "
           f"matmul_autotune={tune_candidates}/{tune_rejected}/"
           f"{tune_cache_entries} "
+          f"adamw_autotune={adamw_rows}/{adamw_state_cases}/"
+          f"{adamw_kept_candidates} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

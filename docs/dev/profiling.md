@@ -51,10 +51,21 @@ AdamW has its own implementation-selectable benchmark:
   --implementation vectorized --warmup 5 --repetitions 20
 ```
 
-It reports HIP Event time, effective bytes/s and a sampled numerical guard. `Auto` remains
-the validated scalar policy; an explicit candidate result is not a default dispatch claim.
+The legacy comparison reports HIP Event time, effective bytes/s and a sampled numerical
+guard. Use the correctness-first tuner for a dispatch decision:
 
-### Exact matmul implementation registry
+```bash
+./build/hip-release/benchmarks/microllm_tune_adamw \
+  --elements 802816 --mirror true --aligned true \
+  --warmup 3 --repetitions 20 --mode training --accept false
+```
+
+It compares every parameter, first moment, second moment and optional BF16 mirror value
+before timing. Its exact key also isolates alignment, mirror, architecture, HIP versions
+and mode. Screening does not mutate `Auto`; explicit acceptance and cache persistence must
+follow a separate end-to-end regression. The current MI300 matrix keeps Scalar as fallback.
+
+### Exact operator implementation registries
 
 After a candidate passes the numerical and repeated-timing gates, register it with a key
 made from the real operands and execution context:

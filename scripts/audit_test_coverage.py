@@ -27,11 +27,13 @@ declared_ops = public_names(
     ["TensorPair", "TensorTriple", "Tensor", "Bf16FfnDiagnostics",
      "Fp8DispatchStats", "Fp8DynamicQuantStats",
      "Bf16PlanCacheStats", "bool",
-     "MatmulImplementation", "std::size_t", "void"],
+     "MatmulImplementation", "AdamWTuningKey",
+     "AdamWTuningCacheLoadReport", "AdamWImplementation",
+     "std::size_t", "void"],
 )
 declared_ops |= public_names(
     "include/microllm/ops/tuning.h",
-    ["MatmulAutotuneReport", "void"],
+    ["MatmulAutotuneReport", "AdamWAutotuneReport", "void"],
 )
 covered_ops = set(MANIFEST["tensor_ops"]) | set(MANIFEST["operator_infrastructure"])
 if declared_ops != covered_ops:

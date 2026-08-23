@@ -40,6 +40,31 @@ struct MatmulTuningCacheLoadReport {
     std::size_t stale_entries = 0;
 };
 
+struct AdamWTuningKey {
+    std::int64_t elements = 0;
+    DType parameter_dtype = DType::Float32;
+    DType gradient_dtype = DType::Float32;
+    DType first_moment_dtype = DType::Float32;
+    DType second_moment_dtype = DType::Float32;
+    bool bf16_mirror = false;
+    bool parameter_aligned16 = false;
+    bool gradient_aligned16 = false;
+    bool first_moment_aligned16 = false;
+    bool second_moment_aligned16 = false;
+    std::string architecture;
+    int hip_runtime_version = 0;
+    int hip_driver_version = 0;
+    OpMode mode = OpMode::Unspecified;
+
+    auto operator<=>(const AdamWTuningKey&) const = default;
+};
+
+struct AdamWTuningCacheLoadReport {
+    std::size_t parsed_entries = 0;
+    std::size_t loaded_entries = 0;
+    std::size_t stale_entries = 0;
+};
+
 struct Bf16PlanCacheStats {
     std::size_t entries = 0;
     std::size_t hits = 0;
@@ -169,6 +194,22 @@ void adamw_update_bf16_mirror_(Tensor& parameter, const Tensor& gradient,
                                const OpContext& context = {},
                                AdamWImplementation implementation =
                                    AdamWImplementation::Auto);
+[[nodiscard]] AdamWTuningKey make_adamw_tuning_key(
+    const Tensor& parameter, const Tensor& gradient,
+    const Tensor& first_moment, const Tensor& second_moment,
+    const Tensor* bf16_mirror = nullptr, const OpContext& context = {});
+[[nodiscard]] AdamWImplementation choose_adamw_implementation(
+    const Tensor& parameter, const Tensor& gradient,
+    const Tensor& first_moment, const Tensor& second_moment,
+    const Tensor* bf16_mirror = nullptr, const OpContext& context = {});
+void register_adamw_implementation(const AdamWTuningKey& key,
+                                   AdamWImplementation implementation);
+void clear_adamw_implementation_registry();
+[[nodiscard]] std::size_t adamw_registered_implementation_count() noexcept;
+void save_adamw_tuning_cache(const std::filesystem::path& path);
+[[nodiscard]] AdamWTuningCacheLoadReport load_adamw_tuning_cache(
+    const std::filesystem::path& path, Device device,
+    bool replace_existing = true);
 
 [[nodiscard]] Tensor add(const Tensor& left, const Tensor& right, const OpContext& context = {});
 [[nodiscard]] Tensor add_bias(const Tensor& input, const Tensor& bias,

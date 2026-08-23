@@ -19,14 +19,21 @@
 - non-owning output/view boundary: `include/microllm/ops/low_level.h`;
 - Stream/workspace selection: `include/microllm/ops/context.h`;
 - readable HIP launch declarations: `src/ops/hip/kernels.h`;
-- optimized implementation policy: `src/ops/optimized.cpp`.
+- optimized matmul policy: `src/ops/optimized.cpp`;
+- correctness-first matmul/AdamW tuners: `src/ops/tuning.cpp` and
+  `src/ops/adamw_tuning.cpp`.
 
 ## Candidate selection today
 
-The current registry covers exact 2D matmul shapes and selects between readable HIP and
-hipBLASLt. It is a tested seam, not a mature general autotuner. A production registry
-still needs architecture, dtype, layout, mode, workspace, runtime/library version,
-candidate metadata, persistent cache, and invalidation keys.
+The current registries cover exact 2D matmul problems and flat AdamW state updates.
+Matmul isolates dtype, layout/strides, mode, workspace and backend versions; AdamW isolates
+element count, mirror presence, every state pointer's alignment, mode and HIP environment.
+Both have transactional persistent caches and reject stale environments. Their tuners
+compare complete output/state before timing and never register a winner implicitly.
+
+This is a measured offline selection seam, not permission to generalize one result to all
+shapes or models. Each additional operator still needs its own exact key, supported-domain
+checks, correctness evidence and end-to-end acceptance.
 
 ## Acceptance rule
 

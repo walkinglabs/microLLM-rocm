@@ -116,6 +116,7 @@ void AdamW::step() {
     ++state_.step;
     const auto first_correction = 1.0F - std::pow(config_.beta1, static_cast<float>(state_.step));
     const auto second_correction = 1.0F - std::pow(config_.beta2, static_cast<float>(state_.step));
+    const ops::OpContext training_context{.mode = ops::OpMode::Training};
     for (std::size_t parameter_index = 0; parameter_index < parameters_.size(); ++parameter_index) {
         auto* parameter = parameters_[parameter_index];
         if (!parameter->has_grad()) continue;
@@ -130,14 +131,14 @@ void AdamW::step() {
                 *bf16_mirrors_[parameter_index], config_.learning_rate,
                 config_.beta1, config_.beta2, config_.epsilon,
                 config_.weight_decay, first_correction, second_correction,
-                {}, implementation_);
+                training_context, implementation_);
         } else {
             ops::adamw_update_(parameter->mutable_data(), parameter->grad(),
                                state_.first_moments[parameter_index],
                                state_.second_moments[parameter_index],
                                config_.learning_rate, config_.beta1, config_.beta2,
                                config_.epsilon, config_.weight_decay, first_correction,
-                               second_correction, {}, implementation_);
+                               second_correction, training_context, implementation_);
         }
     }
 }

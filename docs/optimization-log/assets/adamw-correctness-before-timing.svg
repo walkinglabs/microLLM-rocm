@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="900" viewBox="0 0 1800 900">
+  <rect width="1800" height="900" fill="#f8fafc"/>
+  <text x="900" y="52" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 157 · AdamW Correctness Before Timing</text>
+  <text x="900" y="84" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle">MI300X gfx942 · 3 fresh processes · complete parameter / m / v / BF16 mirror comparison</text>
+
+  <rect x="80" y="145" width="1080" height="570" rx="12" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="620" y="130" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">Vectorized / Scalar Event P50 speedup</text>
+  <line x1="130" y1="650" x2="1110" y2="650" stroke="#e2e8f0"/>
+  <line x1="130" y1="500" x2="1110" y2="500" stroke="#e2e8f0"/>
+  <line x1="130" y1="350" x2="1110" y2="350" stroke="#2563eb" stroke-width="2"/>
+  <line x1="130" y1="275" x2="1110" y2="275" stroke="#16a34a" stroke-width="2" stroke-dasharray="9 7"/>
+  <line x1="130" y1="200" x2="1110" y2="200" stroke="#e2e8f0"/>
+  <text x="118" y="655" font-family="Inter,Arial,sans-serif" font-size="13" fill="#64748b" text-anchor="end">0.80×</text>
+  <text x="118" y="505" font-family="Inter,Arial,sans-serif" font-size="13" fill="#64748b" text-anchor="end">0.90×</text>
+  <text x="118" y="355" font-family="Inter,Arial,sans-serif" font-size="13" fill="#2563eb" text-anchor="end">1.00×</text>
+  <text x="118" y="280" font-family="Inter,Arial,sans-serif" font-size="13" fill="#15803d" text-anchor="end">1.05× keep</text>
+  <text x="118" y="205" font-family="Inter,Arial,sans-serif" font-size="13" fill="#64748b" text-anchor="end">1.10×</text>
+
+  <rect x="185" y="350" width="145" height="300" rx="5" fill="#64748b"/>
+  <text x="257" y="334" font-family="Inter,Arial,sans-serif" font-size="17" fill="#334155" text-anchor="middle" font-weight="700">1.000×</text>
+  <text x="257" y="680" font-family="Inter,Arial,sans-serif" font-size="14" fill="#334155" text-anchor="middle" font-weight="700">4,099 + mirror</text>
+
+  <rect x="425" y="560" width="145" height="90" rx="5" fill="#dc5a4a"/>
+  <text x="497" y="544" font-family="Inter,Arial,sans-serif" font-size="17" fill="#b83f32" text-anchor="middle" font-weight="700">0.860×</text>
+  <text x="497" y="680" font-family="Inter,Arial,sans-serif" font-size="14" fill="#334155" text-anchor="middle" font-weight="700">802,816 + mirror</text>
+
+  <rect x="665" y="412" width="145" height="238" rx="5" fill="#dc5a4a"/>
+  <text x="737" y="396" font-family="Inter,Arial,sans-serif" font-size="17" fill="#b83f32" text-anchor="middle" font-weight="700">0.959×</text>
+  <text x="737" y="680" font-family="Inter,Arial,sans-serif" font-size="14" fill="#334155" text-anchor="middle" font-weight="700">Qwen 136.1M</text>
+
+  <rect x="905" y="336" width="145" height="314" rx="5" fill="#d69a2d"/>
+  <text x="977" y="320" font-family="Inter,Arial,sans-serif" font-size="17" fill="#9a6700" text-anchor="middle" font-weight="700">1.010×</text>
+  <text x="977" y="680" font-family="Inter,Arial,sans-serif" font-size="14" fill="#334155" text-anchor="middle" font-weight="700">DeepSeek 233.4M</text>
+
+  <rect x="1215" y="145" width="505" height="570" rx="12" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="1468" y="185" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">Evidence gate</text>
+  <rect x="1260" y="220" width="415" height="82" rx="10" fill="#eff6ff" stroke="#93c5fd"/>
+  <text x="1468" y="251" font-family="Inter,Arial,sans-serif" font-size="16" fill="#1e40af" text-anchor="middle" font-weight="700">1 · clone caller state</text>
+  <text x="1468" y="278" font-family="Inter,Arial,sans-serif" font-size="14" fill="#475569" text-anchor="middle">parameter + gradient + first + second + mirror</text>
+  <text x="1468" y="329" font-family="Inter,Arial,sans-serif" font-size="26" fill="#94a3b8" text-anchor="middle">↓</text>
+  <rect x="1260" y="350" width="415" height="96" rx="10" fill="#ecfdf5" stroke="#86efac"/>
+  <text x="1468" y="382" font-family="Inter,Arial,sans-serif" font-size="16" fill="#166534" text-anchor="middle" font-weight="700">2 · compare every element</text>
+  <text x="1468" y="409" font-family="Inter,Arial,sans-serif" font-size="14" fill="#475569" text-anchor="middle">15/15 processes finite and complete-state pass</text>
+  <text x="1468" y="432" font-family="Inter,Arial,sans-serif" font-size="14" fill="#475569" text-anchor="middle">unaligned Vectorized rejected · timing stays 0</text>
+  <text x="1468" y="473" font-family="Inter,Arial,sans-serif" font-size="26" fill="#94a3b8" text-anchor="middle">↓</text>
+  <rect x="1260" y="494" width="415" height="88" rx="10" fill="#fff7ed" stroke="#fdba74"/>
+  <text x="1468" y="527" font-family="Inter,Arial,sans-serif" font-size="16" fill="#9a3412" text-anchor="middle" font-weight="700">3 · only then record Event + wall P50/P95</text>
+  <text x="1468" y="555" font-family="Inter,Arial,sans-serif" font-size="14" fill="#475569" text-anchor="middle">screening never mutates Auto dispatch</text>
+  <text x="1468" y="609" font-family="Inter,Arial,sans-serif" font-size="26" fill="#94a3b8" text-anchor="middle">↓</text>
+  <rect x="1260" y="625" width="415" height="58" rx="10" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text x="1468" y="660" font-family="Inter,Arial,sans-serif" font-size="16" fill="#334155" text-anchor="middle" font-weight="700">0/4 aligned cases reach 1.05× · Auto stays Scalar</text>
+
+  <rect x="80" y="755" width="1640" height="88" rx="12" fill="#172033"/>
+  <text x="900" y="790" font-family="Inter,Arial,sans-serif" font-size="18" fill="#ffffff" text-anchor="middle" font-weight="700">Keep the safe tuning mechanism; reject a global Vectorized policy</text>
+  <text x="900" y="820" font-family="Inter,Arial,sans-serif" font-size="15" fill="#cbd5e1" text-anchor="middle">Tiny T128/B8 training: 231,940 → 231,047 token/s (-0.38%, neutral) · exact accepted choices remain environment/alignment/mode scoped</text>
+</svg>

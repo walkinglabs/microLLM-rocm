@@ -9,6 +9,7 @@ int main() {
     const auto device = microllm::Device::cpu();
     const auto config = microllm::model::ModelConfig::model_s();
     bool rejected_cpu_tuning = false;
+    bool rejected_cpu_adamw_tuning = false;
     try {
         const microllm::Tensor left({2, 2});
         const microllm::Tensor right({2, 2});
@@ -16,8 +17,18 @@ int main() {
     } catch (const std::invalid_argument&) {
         rejected_cpu_tuning = true;
     }
+    try {
+        const microllm::Tensor parameter({4});
+        const microllm::Tensor gradient({4});
+        const microllm::Tensor first({4});
+        const microllm::Tensor second({4});
+        (void)microllm::ops::autotune_adamw(
+            parameter, gradient, first, second);
+    } catch (const std::invalid_argument&) {
+        rejected_cpu_adamw_tuning = true;
+    }
     if (!device.is_cpu() || config.parameter_count() == 0 ||
-        !rejected_cpu_tuning) return 1;
+        !rejected_cpu_tuning || !rejected_cpu_adamw_tuning) return 1;
     std::cout << "microLLM package consumer: pass\n";
     return 0;
 }

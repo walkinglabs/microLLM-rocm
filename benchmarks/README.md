@@ -29,6 +29,20 @@ Complete finite Max/RMS runs before timing. Only passing candidates receive HIP 
 wall P50/P95. The default does not mutate the registry; explicit acceptance can write the
 schema-versioned cache, but model-level regression remains a separate gate.
 
+AdamW uses a separate in-place-state tuner. It clones the caller's parameter, gradient,
+first/second moments and optional BF16 mirror, compares every updated element against
+Scalar, and only then records default-Stream Event and wall P50/P95:
+
+```bash
+./build/hip-release/benchmarks/microllm_tune_adamw \
+  --elements 802816 --mirror true --aligned true \
+  --warmup 3 --repetitions 20 --mode training --accept false
+```
+
+Run the five-case fresh-process matrix with
+`benchmarks/single_gpu/adamw_autotune_matrix.py`. Screening never changes `Auto`;
+`--accept true --cache-output /path/cache.jsonl` is an explicit post-regression action.
+
 `microllm_bench_model` measures train or cache-backed generation throughput. Its
 `tokens_per_second` excludes construction and warm-up; `tokens_per_second_with_setup`
 includes construction, device transfer, optimizer allocation, and warm-up. Both are

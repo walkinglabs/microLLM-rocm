@@ -240,6 +240,141 @@ TEST(CpuOpsTest, MatmulAutotuneRejectsCpuAndAbstractCandidateLists) {
                  std::invalid_argument);
 }
 
+TEST(CpuOpsTest, AdamWTuningKeyAndPersistentCacheAreExactAndTransactional) {
+    const auto directory = std::filesystem::temp_directory_path();
+    const auto cache = directory / "microllm-adamw-tuning-cache-test.jsonl";
+    const auto corrupt = directory / "microllm-adamw-tuning-cache-corrupt.jsonl";
+    Tensor parameter({17});
+    Tensor gradient({17});
+    Tensor first({17});
+    Tensor second({17});
+    Tensor mirror({17}, DType::BFloat16);
+    OpContext context;
+    context.mode = OpMode::Training;
+    const auto key = make_adamw_tuning_key(
+        parameter, gradient, first, second, &mirror, context);
+    EXPECT_EQ(key.elements, 17);
+    EXPECT_EQ(key.parameter_dtype, DType::Float32);
+    EXPECT_TRUE(key.bf16_mirror);
+    EXPECT_EQ(key.architecture, "host");
+    EXPECT_EQ(key.hip_runtime_version, 0);
+    EXPECT_EQ(key.hip_driver_version, 0);
+    EXPECT_EQ(key.mode, OpMode::Training);
+
+    clear_adamw_implementation_registry();
+    register_adamw_implementation(key, AdamWImplementation::Scalar);
+    EXPECT_EQ(adamw_registered_implementation_count(), 1U);
+    EXPECT_THROW(register_adamw_implementation(key, AdamWImplementation::Auto),
+                 std::invalid_argument);
+    auto incomplete = key;
+    incomplete.architecture.clear();
+    EXPECT_THROW(register_adamw_implementation(
+                     incomplete, AdamWImplementation::Scalar),
+                 std::invalid_argument);
+    save_adamw_tuning_cache(cache);
+    std::ifstream cache_input(cache);
+    const std::string cache_payload{
+        std::istreambuf_iterator<char>(cache_input),
+        std::istreambuf_iterator<char>()};
+    EXPECT_NE(cache_payload.find("\"kind\":\"microllm_adamw_tuning_cache\""),
+              std::string::npos);
+    clear_adamw_implementation_registry();
+    const auto loaded = load_adamw_tuning_cache(cache, Device::cpu());
+    EXPECT_EQ(loaded.parsed_entries, 1U);
+    EXPECT_EQ(loaded.loaded_entries, 1U);
+    EXPECT_EQ(loaded.stale_entries, 0U);
+    EXPECT_EQ(adamw_registered_implementation_count(), 1U);
+
+    {
+        std::ofstream output(corrupt);
+        output << "{\"schema_version\":2,\"kind\":"
+                  "\"microllm_adamw_tuning_cache\"}\n";
+    }
+    EXPECT_THROW((void)load_adamw_tuning_cache(corrupt, Device::cpu()),
+                 std::runtime_error);
+    EXPECT_EQ(adamw_registered_implementation_count(), 1U)
+        << "a corrupt cache must not replace the live registry";
+
+    auto malformed_bool = cache_payload;
+    const auto bool_position = malformed_bool.find("\"bf16_mirror\":true");
+    ASSERT_NE(bool_position, std::string::npos);
+    malformed_bool.replace(
+        bool_position, std::string("\"bf16_mirror\":true").size(),
+        "\"bf16_mirror\":truejunk");
+    {
+        std::ofstream output(corrupt);
+        output << malformed_bool;
+    }
+    EXPECT_THROW((void)load_adamw_tuning_cache(corrupt, Device::cpu()),
+                 std::runtime_error);
+    EXPECT_EQ(adamw_registered_implementation_count(), 1U);
+
+    std::istringstream cache_lines(cache_payload);
+    std::string cache_header;
+    std::string cache_entry;
+    ASSERT_TRUE(static_cast<bool>(std::getline(cache_lines, cache_header)));
+    ASSERT_TRUE(static_cast<bool>(std::getline(cache_lines, cache_entry)));
+    {
+        std::ofstream output(corrupt);
+        output << cache_header << '\n' << cache_entry << '\n'
+               << cache_entry << '\n';
+    }
+    EXPECT_THROW((void)load_adamw_tuning_cache(corrupt, Device::cpu()),
+                 std::runtime_error);
+    EXPECT_EQ(adamw_registered_implementation_count(), 1U)
+        << "duplicate rejection must be transactional";
+
+    auto unsafe_vector = cache_payload;
+    const auto alignment_position =
+        unsafe_vector.find("\"parameter_aligned16\":true");
+    const auto implementation_position =
+        unsafe_vector.find("\"implementation\":\"scalar\"");
+    ASSERT_NE(alignment_position, std::string::npos);
+    ASSERT_NE(implementation_position, std::string::npos);
+    unsafe_vector.replace(
+        implementation_position, std::string("\"implementation\":\"scalar\"").size(),
+        "\"implementation\":\"vectorized\"");
+    unsafe_vector.replace(
+        alignment_position, std::string("\"parameter_aligned16\":true").size(),
+        "\"parameter_aligned16\":false");
+    {
+        std::ofstream output(corrupt);
+        output << unsafe_vector;
+    }
+    EXPECT_THROW((void)load_adamw_tuning_cache(corrupt, Device::cpu()),
+                 std::invalid_argument);
+    EXPECT_EQ(adamw_registered_implementation_count(), 1U)
+        << "an unsafe cached choice must not replace the live registry";
+
+    clear_adamw_implementation_registry();
+    auto stale_key = key;
+    stale_key.architecture = "stale-host";
+    register_adamw_implementation(stale_key, AdamWImplementation::Scalar);
+    save_adamw_tuning_cache(cache);
+    clear_adamw_implementation_registry();
+    const auto stale = load_adamw_tuning_cache(cache, Device::cpu());
+    EXPECT_EQ(stale.parsed_entries, 1U);
+    EXPECT_EQ(stale.loaded_entries, 0U);
+    EXPECT_EQ(stale.stale_entries, 1U);
+    EXPECT_EQ(adamw_registered_implementation_count(), 0U);
+
+    EXPECT_EQ(choose_adamw_implementation(
+                  parameter, gradient, first, second, &mirror, context),
+              AdamWImplementation::Scalar);
+    EXPECT_THROW((void)autotune_adamw(
+                     parameter, gradient, first, second, &mirror),
+                 std::invalid_argument);
+    AdamWAutotuneOptions invalid;
+    invalid.candidates = {AdamWImplementation::Auto};
+    EXPECT_THROW((void)autotune_adamw(
+                     parameter, gradient, first, second, &mirror, invalid),
+                 std::invalid_argument);
+
+    std::error_code ignored;
+    std::filesystem::remove(cache, ignored);
+    std::filesystem::remove(corrupt, ignored);
+}
+
 TEST(CpuOpsTest, TransposeAwareBatchedReadableMatchesMaterializedReference) {
     const auto left = Tensor::from_vector(
         {1, 2, 3, 4, 5, 6, 6, 5, 4, 3, 2, 1}, {2, 2, 3});

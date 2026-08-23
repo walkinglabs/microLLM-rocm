@@ -192,14 +192,19 @@ void adamw_update_(Tensor& parameter, const Tensor& gradient,
     }
     if (parameter.device().is_hip()) {
 #if MICROLLM_HAS_HIP
+        const auto selected = implementation == AdamWImplementation::Auto
+                                  ? choose_adamw_implementation(
+                                        parameter, gradient, first_moment,
+                                        second_moment, nullptr, context)
+                                  : implementation;
         const auto aligned = is_aligned(parameter.data(), 16) &&
                              is_aligned(gradient.data(), 16) &&
                              is_aligned(first_moment.data(), 16) &&
                              is_aligned(second_moment.data(), 16);
-        if (implementation == AdamWImplementation::Vectorized && !aligned) {
+        if (selected == AdamWImplementation::Vectorized && !aligned) {
             throw std::invalid_argument("vectorized AdamW requires 16-byte aligned tensors");
         }
-        const auto vectorized = implementation == AdamWImplementation::Vectorized;
+        const auto vectorized = selected == AdamWImplementation::Vectorized;
         if (vectorized) {
             hip::launch_adamw_update_vectorized(
                 static_cast<float*>(parameter.data()),
@@ -285,14 +290,19 @@ void adamw_update_bf16_mirror_(Tensor& parameter, const Tensor& gradient,
         throw std::invalid_argument("AdamW update hyperparameters are invalid");
     }
 #if MICROLLM_HAS_HIP
+    const auto selected = implementation == AdamWImplementation::Auto
+                              ? choose_adamw_implementation(
+                                    parameter, gradient, first_moment,
+                                    second_moment, &bf16_mirror, context)
+                              : implementation;
     const auto aligned = is_aligned(parameter.data(), 16) &&
                          is_aligned(gradient.data(), 16) &&
                          is_aligned(first_moment.data(), 16) &&
                          is_aligned(second_moment.data(), 16);
-    if (implementation == AdamWImplementation::Vectorized && !aligned) {
+    if (selected == AdamWImplementation::Vectorized && !aligned) {
         throw std::invalid_argument("vectorized AdamW requires 16-byte aligned tensors");
     }
-    const auto vectorized = implementation == AdamWImplementation::Vectorized;
+    const auto vectorized = selected == AdamWImplementation::Vectorized;
     if (vectorized) {
         hip::launch_adamw_update_vectorized(
             static_cast<float*>(parameter.data()),

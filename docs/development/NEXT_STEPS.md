@@ -105,7 +105,11 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] make the matmul registry key exact over its implicit op identity, GPU architecture,
   dtype, shape, strides/layout, mode, workspace limit, and library/runtime versions;
 - [ ] register multiple candidates for every hotspot, not only 2D matmul;
+- [x] add exact Scalar/Vectorized AdamW selection over elements, mirror, state alignment,
+  mode and HIP environment, with transactional persistence and Scalar fallback;
 - [x] gate every matmul candidate with complete finite Max/RMS before timing;
+- [x] gate AdamW candidates over complete parameter, first/second moment and BF16 mirror
+  state before Event/wall timing; reject unaligned Vectorized input with zero timing;
 - [x] warm up and repeat HIP Event/wall timing with P50/P95 for passing candidates;
 - [ ] automate the model end-to-end regression before accepting a recommendation;
 - [x] persist exact matmul decisions with schema validation, atomic replacement,

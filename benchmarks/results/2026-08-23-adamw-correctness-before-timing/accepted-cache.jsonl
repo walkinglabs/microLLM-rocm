@@ -1,0 +1,2 @@
+{"schema_version":1,"kind":"microllm_adamw_tuning_cache"}
+{"schema_version":1,"kind":"entry","elements":4099,"parameter_dtype":"float32","gradient_dtype":"float32","first_moment_dtype":"float32","second_moment_dtype":"float32","bf16_mirror":false,"parameter_aligned16":false,"gradient_aligned16":false,"first_moment_aligned16":false,"second_moment_aligned16":false,"architecture":"gfx942:sramecc+:xnack-","hip_runtime_version":71399004,"hip_driver_version":71399004,"mode":"training","implementation":"scalar"}

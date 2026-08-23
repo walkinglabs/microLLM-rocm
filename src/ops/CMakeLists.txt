@@ -3,6 +3,7 @@ add_library(microllm_ops STATIC
     low_level.cpp
     optimized.cpp
     tuning.cpp
+    adamw_tuning.cpp
 )
 add_library(microllm::ops ALIAS microllm_ops)
 set_target_properties(microllm_ops PROPERTIES EXPORT_NAME ops)

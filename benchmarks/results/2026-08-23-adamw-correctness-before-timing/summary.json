@@ -1,0 +1,116 @@
+{
+  "gpu": 0,
+  "raw_rows": 15,
+  "repetitions": 20,
+  "schema_version": 1,
+  "status": "pass",
+  "summaries": [
+    {
+      "aligned16": true,
+      "architecture": "gfx942:sramecc+:xnack-",
+      "bf16_mirror": true,
+      "case": "tail-4099-mirror",
+      "complete_state_passed": true,
+      "elements": 4099,
+      "recommendations": [
+        "vectorized",
+        "scalar",
+        "scalar"
+      ],
+      "runs": 3,
+      "scalar_event_ms_p50_median": 0.00597300008,
+      "schema_version": 1,
+      "status": "pass",
+      "vectorized_correctness_passed": true,
+      "vectorized_event_ms_p50_median": 0.00597300008,
+      "vectorized_speedup": 1.0,
+      "vectorized_supported": true
+    },
+    {
+      "aligned16": false,
+      "architecture": "gfx942:sramecc+:xnack-",
+      "bf16_mirror": false,
+      "case": "tail-4099-unaligned",
+      "complete_state_passed": true,
+      "elements": 4099,
+      "recommendations": [
+        "scalar",
+        "scalar",
+        "scalar"
+      ],
+      "runs": 3,
+      "scalar_event_ms_p50_median": 0.00593299977,
+      "schema_version": 1,
+      "status": "pass",
+      "vectorized_correctness_passed": false,
+      "vectorized_event_ms_p50_median": 0.0,
+      "vectorized_speedup": 0.0,
+      "vectorized_supported": false
+    },
+    {
+      "aligned16": true,
+      "architecture": "gfx942:sramecc+:xnack-",
+      "bf16_mirror": true,
+      "case": "qwen-mid-mirror",
+      "complete_state_passed": true,
+      "elements": 802816,
+      "recommendations": [
+        "scalar",
+        "scalar",
+        "scalar"
+      ],
+      "runs": 3,
+      "scalar_event_ms_p50_median": 0.0123079997,
+      "schema_version": 1,
+      "status": "pass",
+      "vectorized_correctness_passed": true,
+      "vectorized_event_ms_p50_median": 0.014312,
+      "vectorized_speedup": 0.8599776201788709,
+      "vectorized_supported": true
+    },
+    {
+      "aligned16": true,
+      "architecture": "gfx942:sramecc+:xnack-",
+      "bf16_mirror": false,
+      "case": "qwen-embedding",
+      "complete_state_passed": true,
+      "elements": 136134656,
+      "recommendations": [
+        "scalar",
+        "scalar",
+        "scalar"
+      ],
+      "runs": 3,
+      "scalar_event_ms_p50_median": 1.196769,
+      "schema_version": 1,
+      "status": "pass",
+      "vectorized_correctness_passed": true,
+      "vectorized_event_ms_p50_median": 1.247926,
+      "vectorized_speedup": 0.9590063833913228,
+      "vectorized_supported": true
+    },
+    {
+      "aligned16": true,
+      "architecture": "gfx942:sramecc+:xnack-",
+      "bf16_mirror": false,
+      "case": "deepseek-embedding",
+      "complete_state_passed": true,
+      "elements": 233373696,
+      "recommendations": [
+        "scalar",
+        "vectorized",
+        "vectorized"
+      ],
+      "runs": 3,
+      "scalar_event_ms_p50_median": 2.04662704,
+      "schema_version": 1,
+      "status": "pass",
+      "vectorized_correctness_passed": true,
+      "vectorized_event_ms_p50_median": 2.02726197,
+      "vectorized_speedup": 1.0095523273689193,
+      "vectorized_supported": true
+    }
+  ],
+  "track": "adamw_correctness_before_timing_matrix",
+  "warmup": 3
+}

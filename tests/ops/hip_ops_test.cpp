@@ -2723,6 +2723,125 @@ TEST(HipTrainingTest, VectorizedAdamWMatchesScalarAcrossTailAndMirror) {
                  std::invalid_argument);
 }
 
+TEST(HipTrainingTest, AdamWAutotuneChecksEveryStateBeforeTimingAndRegistration) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    constexpr std::int64_t elements = 4099;
+    std::vector<float> parameter_values(static_cast<std::size_t>(elements));
+    std::vector<float> gradient_values(static_cast<std::size_t>(elements));
+    std::vector<float> first_values(static_cast<std::size_t>(elements));
+    std::vector<float> second_values(static_cast<std::size_t>(elements));
+    for (std::size_t index = 0; index < parameter_values.size(); ++index) {
+        parameter_values[index] =
+            static_cast<float>(static_cast<int>(index % 31) - 15) / 17.0F;
+        gradient_values[index] =
+            static_cast<float>(static_cast<int>(index % 13) - 6) / 19.0F;
+        first_values[index] =
+            static_cast<float>(static_cast<int>(index % 7) - 3) / 101.0F;
+        second_values[index] =
+            static_cast<float>(index % 11) / 97.0F;
+    }
+    const auto parameter = Tensor::from_vector(parameter_values, {elements}).to(gpu);
+    const auto gradient = Tensor::from_vector(gradient_values, {elements}).to(gpu);
+    const auto first = Tensor::from_vector(first_values, {elements}).to(gpu);
+    const auto second = Tensor::from_vector(second_values, {elements}).to(gpu);
+    const auto mirror = parameter.cast(DType::BFloat16);
+    AdamWAutotuneOptions options;
+    options.warmup = 1;
+    options.repetitions = 5;
+    options.mode = OpMode::Training;
+    const auto before_parameter = parameter.to_vector();
+    const auto before_first = first.to_vector();
+    clear_adamw_implementation_registry();
+    const auto report = autotune_adamw(
+        parameter, gradient, first, second, &mirror, options);
+    EXPECT_EQ(report.reference_elements, elements);
+    EXPECT_EQ(report.key.mode, OpMode::Training);
+    EXPECT_TRUE(report.key.bf16_mirror);
+    EXPECT_TRUE(report.key.parameter_aligned16);
+    EXPECT_EQ(parameter.to_vector(), before_parameter)
+        << "screening must not mutate the caller's parameter";
+    EXPECT_EQ(first.to_vector(), before_first)
+        << "screening must not mutate the caller's moment";
+    EXPECT_EQ(adamw_registered_implementation_count(), 0U)
+        << "screening must not change live Auto dispatch";
+    ASSERT_EQ(report.candidates.size(), 2U);
+    for (const auto& candidate : report.candidates) {
+        EXPECT_TRUE(candidate.supported) << candidate.failure;
+        EXPECT_TRUE(candidate.correctness_passed) << candidate.failure;
+        EXPECT_TRUE(candidate.finite);
+        EXPECT_LE(candidate.parameter.maximum_absolute_error,
+                  report.maximum_absolute_tolerance);
+        EXPECT_LE(candidate.first_moment.maximum_absolute_error,
+                  report.maximum_absolute_tolerance);
+        EXPECT_LE(candidate.second_moment.maximum_absolute_error,
+                  report.maximum_absolute_tolerance);
+        EXPECT_LE(candidate.bf16_mirror.maximum_absolute_error,
+                  report.maximum_absolute_tolerance);
+        EXPECT_GT(candidate.event_ms_p50, 0.0);
+        EXPECT_GE(candidate.event_ms_p95, candidate.event_ms_p50);
+        EXPECT_GT(candidate.wall_ms_p50, 0.0);
+        EXPECT_GE(candidate.wall_ms_p95, candidate.wall_ms_p50);
+    }
+    EXPECT_NE(report.recommended, AdamWImplementation::Auto);
+    register_adamw_autotune_winner(report);
+    EXPECT_EQ(adamw_registered_implementation_count(), 1U);
+    EXPECT_EQ(choose_adamw_implementation(
+                  parameter, gradient, first, second, &mirror,
+                  OpContext{.mode = OpMode::Training}),
+              report.recommended);
+    EXPECT_EQ(choose_adamw_implementation(
+                  parameter, gradient, first, second, &mirror),
+              AdamWImplementation::Scalar)
+        << "a training-mode result must not leak into unspecified mode";
+    const auto cache = std::filesystem::temp_directory_path() /
+                       "microllm-adamw-tuning-cache-hip.jsonl";
+    save_adamw_tuning_cache(cache);
+    clear_adamw_implementation_registry();
+    const auto loaded = load_adamw_tuning_cache(cache, gpu);
+    EXPECT_EQ(loaded.parsed_entries, 1U);
+    EXPECT_EQ(loaded.loaded_entries, 1U);
+    EXPECT_EQ(loaded.stale_entries, 0U);
+    EXPECT_EQ(choose_adamw_implementation(
+                  parameter, gradient, first, second, &mirror,
+                  OpContext{.mode = OpMode::Training}),
+              report.recommended);
+    clear_adamw_implementation_registry();
+    std::error_code ignored;
+    std::filesystem::remove(cache, ignored);
+
+    auto unaligned_parameter = Tensor({elements + 1}, DType::Float32, gpu).slice(
+        0, 1, elements + 1);
+    auto unaligned_gradient = Tensor({elements + 1}, DType::Float32, gpu).slice(
+        0, 1, elements + 1);
+    auto unaligned_first = Tensor({elements + 1}, DType::Float32, gpu).slice(
+        0, 1, elements + 1);
+    auto unaligned_second = Tensor({elements + 1}, DType::Float32, gpu).slice(
+        0, 1, elements + 1);
+    fill_(unaligned_parameter, 1.0F);
+    fill_(unaligned_gradient, 0.5F);
+    fill_(unaligned_first, 0.0F);
+    fill_(unaligned_second, 0.0F);
+    const auto rejected = autotune_adamw(
+        unaligned_parameter, unaligned_gradient, unaligned_first,
+        unaligned_second, nullptr, options);
+    const auto vectorized = std::find_if(
+        rejected.candidates.begin(), rejected.candidates.end(),
+        [](const auto& candidate) {
+            return candidate.implementation == AdamWImplementation::Vectorized;
+        });
+    ASSERT_NE(vectorized, rejected.candidates.end());
+    EXPECT_FALSE(vectorized->supported);
+    EXPECT_FALSE(vectorized->correctness_passed);
+    EXPECT_EQ(vectorized->event_ms_p50, 0.0);
+    EXPECT_EQ(vectorized->wall_ms_p50, 0.0);
+    EXPECT_NE(vectorized->failure.find("16-byte aligned"), std::string::npos);
+    EXPECT_EQ(rejected.recommended, AdamWImplementation::Scalar);
+    EXPECT_THROW(register_adamw_implementation(
+                     rejected.key, AdamWImplementation::Vectorized),
+                 std::invalid_argument);
+}
+
 TEST(HipAutogradTest, FullTransformerBackwardMatchesCpuWithoutHostTransfers) {
     require_gpu();
     const model::ModelConfig config{.vocabulary_size = 8,

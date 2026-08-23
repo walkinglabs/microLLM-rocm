@@ -2643,3 +2643,16 @@ block reduction最后一次同步发生在读取`scratch[0]`之前，快lane会�
 20/20进程通过。T128/B8 tiny train中位数231,623→231,940 tok/s，无性能回退。
 
 ![Block reduction determinism](assets/block-reduction-determinism.svg)
+
+## 174. Experiment 157：一次处理四个数，不等于训练会更快
+
+旧AdamW基准只抽查首尾参数，而且Auto没有shape、对齐和环境隔离。新tuner先克隆参数、梯度、
+一阶/二阶moment和可选BF16 mirror，对每个元素完成Max/RMS与finite检查，之后才记录默认Stream
+Event和墙钟P50/P95。筛选不改调用者状态，也不改live registry；接受与持久化必须显式执行。
+
+5个case、15个fresh process全部跑完。对齐Vectorized相对Scalar为1.000×、0.860×、0.959×、
+1.010×，0/4达到1.05门；未对齐反例在计时前拒绝，两种时间都是0。tiny T128/B8训练
+231,940→231,047 token/s（-0.38%，中性）。因此保留精确key、事务cache、完整状态门和CLI，
+但Auto继续Scalar，不把微基准噪声写成全局优化。
+
+![AdamW correctness before timing](assets/adamw-correctness-before-timing.svg)
