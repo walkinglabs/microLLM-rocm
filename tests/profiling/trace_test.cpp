@@ -128,4 +128,24 @@ TEST(TraceSessionTest, SerializesNonFiniteValuesAsExplicitJsonStrings) {
     std::filesystem::remove(path, ignored);
 }
 
+TEST(TraceSessionTest, ValueFiltersKeepMetadataButCaptureOnlyMatchingNames) {
+    TraceOptions options;
+    options.value_name_filters = {"ffn.activated"};
+    TraceSession session("microllm", "filtered", options);
+    const auto tensor = Tensor::from_vector({-2.0F, 3.0F}, {2});
+    session.record(TraceKind::Layer, "blocks.0.attention_norm", tensor);
+    session.record(TraceKind::Layer, "blocks.0.ffn.activated", tensor);
+    ASSERT_EQ(session.records().size(), 2U);
+    EXPECT_TRUE(session.records()[0].values.empty());
+    EXPECT_EQ(session.records()[0].statistics.finite_count, 0);
+    EXPECT_EQ(session.records()[0].statistics.numel, 2);
+    EXPECT_EQ(session.records()[1].values.size(), 2U);
+    EXPECT_EQ(session.records()[1].statistics.finite_count, 2);
+    EXPECT_DOUBLE_EQ(session.records()[1].statistics.minimum, -2.0);
+    EXPECT_DOUBLE_EQ(session.records()[1].statistics.maximum, 3.0);
+    options.value_name_filters = {""};
+    EXPECT_THROW((void)TraceSession("microllm", "bad-filter", options),
+                 std::invalid_argument);
+}
+
 }  // namespace microllm::profiling

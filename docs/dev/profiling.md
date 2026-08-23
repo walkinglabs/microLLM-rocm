@@ -19,10 +19,12 @@ Official-model value diagnosis can opt into every Transformer block's detail rec
   --warmup 0 --steps 1 --prefill-warmup 0 --prefill-steps 1 \
   --prefill-logits last --workload prefill --use-cache true \
   --kv-cache-dtype fp32 --trace-output /tmp/all-layers.jsonl \
-  --trace-max-elements 1 --trace-all-layer-details true
+  --trace-max-elements 1 --trace-all-layer-details true \
+  --trace-value-filter attention_norm,attention.context,ffn_norm,ffn.activated
 ```
 
 `trace-max-elements=1`只限制JSON中保存的样例值；min/max/mean/L2统计仍扫描完整Tensor。
+`trace-value-filter`让未匹配记录只保留名字、shape和numel，避免为了一个问题搬运所有中间值。
 全层trace会同步并把诊断值带回CPU，所以只能回答数值范围问题，不能作为性能数据。默认仍只记录
 block 0细节，旧trace的数量和名字不会改变。
 

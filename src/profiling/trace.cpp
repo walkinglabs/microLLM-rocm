@@ -103,6 +103,11 @@ TraceSession::TraceSession(std::string framework, std::string run_id,
     if (framework_.empty()) throw std::invalid_argument("trace framework cannot be empty");
     if (run_id_.empty()) throw std::invalid_argument("trace run ID cannot be empty");
     if (options_.phase.empty()) throw std::invalid_argument("trace phase cannot be empty");
+    if (std::any_of(options_.value_name_filters.begin(),
+                    options_.value_name_filters.end(),
+                    [](const auto& value) { return value.empty(); })) {
+        throw std::invalid_argument("trace value filters cannot be empty");
+    }
 }
 
 void TraceSession::set_iteration(std::uint64_t iteration) noexcept { iteration_ = iteration; }
@@ -136,12 +141,16 @@ void TraceSession::record(TraceKind kind, std::string name, const Tensor& tensor
     record.sequence = next_sequence_++;
     record.iteration = iteration_;
     record.kind = kind;
+    const auto capture_record_values = options_.capture_values &&
+        (options_.value_name_filters.empty() || std::any_of(
+            options_.value_name_filters.begin(), options_.value_name_filters.end(),
+            [&](const auto& filter) { return name.find(filter) != std::string::npos; }));
     record.name = std::move(name);
     record.shape = tensor.shape();
     record.dtype = tensor.dtype();
     record.device = tensor.device();
     record.wall_ms = wall_ms;
-    if (options_.capture_values) {
+    if (capture_record_values) {
         auto values = tensor_values(tensor);
         record.statistics = statistics(values, tensor.numel());
         const auto captured = std::min(values.size(), options_.max_captured_elements);

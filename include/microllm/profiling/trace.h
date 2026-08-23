@@ -21,6 +21,7 @@ struct TraceOptions {
     bool capture_values = true;
     bool synchronize_device = true;
     bool record_all_layer_details = false;
+    std::vector<std::string> value_name_filters;
     std::size_t max_captured_elements = 4096;
 };
 

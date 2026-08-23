@@ -76,6 +76,7 @@ struct Options {
     std::filesystem::path trace_output;
     std::int64_t trace_max_elements = 4096;
     bool trace_all_layer_details = false;
+    std::string trace_value_filter;
     int bf16_algorithm_index = -1;
 };
 
@@ -213,6 +214,9 @@ Options options(int argc, char** argv) {
             }
             result.trace_all_layer_details = value == "true";
         }
+        else if (name == "--trace-value-filter") {
+            result.trace_value_filter = argv[index + 1];
+        }
         else if (name == "--bf16-algorithm-index") {
             result.bf16_algorithm_index = std::stoi(argv[index + 1]);
         }
@@ -339,6 +343,10 @@ Options options(int argc, char** argv) {
     if (result.trace_all_layer_details && result.trace_output.empty()) {
         throw std::invalid_argument(
             "--trace-all-layer-details requires --trace-output");
+    }
+    if (!result.trace_value_filter.empty() && result.trace_output.empty()) {
+        throw std::invalid_argument(
+            "--trace-value-filter requires --trace-output");
     }
     if (result.bf16_algorithm_index < -1 ||
         (result.bf16_algorithm_index >= 0 &&
@@ -1284,6 +1292,18 @@ int main(int argc, char** argv) {
                 trace_options.synchronize_device = true;
                 trace_options.record_all_layer_details =
                     command.trace_all_layer_details;
+                auto filters = command.trace_value_filter;
+                while (!filters.empty()) {
+                    const auto comma = filters.find(',');
+                    const auto value = filters.substr(0, comma);
+                    if (value.empty()) {
+                        throw std::invalid_argument(
+                            "--trace-value-filter contains an empty item");
+                    }
+                    trace_options.value_name_filters.push_back(value);
+                    if (comma == std::string::npos) break;
+                    filters.erase(0, comma + 1);
+                }
                 trace_options.max_captured_elements =
                     static_cast<std::size_t>(command.trace_max_elements);
                 trace_session = std::make_unique<microllm::profiling::TraceSession>(
