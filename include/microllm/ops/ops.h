@@ -25,6 +25,8 @@ struct Fp8DispatchStats {
     // -1 unknown, 0 rejected by the installed runtime, 1 native execution observed.
     int outer_row_native_status = -1;
     std::size_t output_column_scale_calls = 0;
+    // -1 unknown, 0 rejected by the installed runtime, 1 native execution observed.
+    int output_column_native_status = -1;
 };
 
 struct Fp8DynamicQuantStats {

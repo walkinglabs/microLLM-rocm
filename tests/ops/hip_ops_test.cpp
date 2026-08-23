@@ -586,11 +586,18 @@ TEST(HipFp8OpsTest, OutputColumnScaleUsesNativeGemmAndDevicePostScale) {
     runtime::synchronize(gpu);
     const auto transfers = runtime::transfer_stats();
     const auto dispatch = fp8_dispatch_stats();
+    RecordProperty("output_column_native_status",
+                   dispatch.output_column_native_status);
+    RecordProperty("output_column_scale_calls",
+                   dispatch.output_column_scale_calls);
     EXPECT_EQ(transfers.host_to_device_calls, 0U);
     EXPECT_EQ(transfers.device_to_host_calls, 0U);
     EXPECT_EQ(dispatch.native_shapes, 1U);
     EXPECT_EQ(dispatch.software_fallback_calls, 0U);
-    EXPECT_EQ(dispatch.output_column_scale_calls, 1U);
+    ASSERT_TRUE(dispatch.output_column_native_status == 0 ||
+                dispatch.output_column_native_status == 1);
+    EXPECT_EQ(dispatch.output_column_scale_calls,
+              dispatch.output_column_native_status == 1 ? 0U : 1U);
 
     const auto actual = output.to_vector();
     const auto expected = matmul(left_cpu, weight_cpu).to_vector();

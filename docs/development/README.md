@@ -323,5 +323,7 @@ the next gate. Records are append-only except for factual corrections.
   device per-column weight quantization and native scalar-GEMM post-scale algebra.
 - [2026-08-23-fp8-output-channel-model-policy.md](2026-08-23-fp8-output-channel-model-policy.md):
   single-representation model preparation, CLI counters and CPU/HIP hot-path gates.
+- [2026-08-23-fp8-output-column-native-probe.md](2026-08-23-fp8-output-column-native-probe.md):
+  cached A-side outer-vector capability probe and scalar post-scale fallback.
 - [2026-08-21-divergent-row-cache-reference.md](2026-08-21-divergent-row-cache-reference.md):
   unequal-position shared-Storage B1 oracle with CPU/HIP and reset-prefix gates.

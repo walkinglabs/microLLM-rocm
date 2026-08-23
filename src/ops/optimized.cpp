@@ -37,6 +37,7 @@ thread_local std::size_t fp8_software_fallback_calls = 0;
 thread_local std::optional<bool> fp8_outer_row_native;
 thread_local std::size_t fp8_outer_row_fallback_calls = 0;
 thread_local std::size_t fp8_output_column_scale_calls = 0;
+thread_local std::optional<bool> fp8_output_column_native;
 #endif
 }  // namespace
 
@@ -489,6 +490,14 @@ Tensor hipblaslt_fp8_matmul(const ScaledTensor& left, const ScaledTensor& right,
         set_scale_mode(operation.get(), HIPBLASLT_MATMUL_DESC_B_SCALE_MODE,
                        HIPBLASLT_MATMUL_MATRIX_SCALE_OUTER_VEC_32F);
     }
+    const auto try_native_output_column =
+        right.scale_mode == Fp8ScaleMode::OuterColumn &&
+        (!fp8_output_column_native.has_value() ||
+         *fp8_output_column_native);
+    if (try_native_output_column) {
+        set_scale_mode(operation.get(), HIPBLASLT_MATMUL_DESC_A_SCALE_MODE,
+                       HIPBLASLT_MATMUL_MATRIX_SCALE_OUTER_VEC_32F);
+    }
     Layout matrix_b(hip_dtype(right.values.dtype()),
                     static_cast<std::uint64_t>(columns),
                     static_cast<std::uint64_t>(inner), columns);
@@ -513,7 +522,9 @@ Tensor hipblaslt_fp8_matmul(const ScaledTensor& left, const ScaledTensor& right,
         if (output_dtype == DType::Float32) {
             fp8_fp32_direct_registry[shape] = true;
         }
-        if (right.scale_mode == Fp8ScaleMode::OuterColumn) {
+        if (try_native_output_column) {
+            fp8_output_column_native = true;
+        } else if (right.scale_mode == Fp8ScaleMode::OuterColumn) {
             hip::launch_scale_columns_by_first(
                 output.data(), output.dtype(), rows, columns,
                 static_cast<const float*>(right.scale.data()),
@@ -521,6 +532,13 @@ Tensor hipblaslt_fp8_matmul(const ScaledTensor& left, const ScaledTensor& right,
             ++fp8_output_column_scale_calls;
         }
         return output;
+    }
+    if (try_native_output_column &&
+        (status == HIPBLAS_STATUS_INVALID_VALUE ||
+         status == HIPBLAS_STATUS_INTERNAL_ERROR ||
+         status == HIPBLAS_STATUS_NOT_SUPPORTED)) {
+        fp8_output_column_native = false;
+        return hipblaslt_fp8_matmul(left, right, output_dtype, context);
     }
     if (left.scale_mode == Fp8ScaleMode::OuterRow &&
         (status == HIPBLAS_STATUS_INVALID_VALUE ||
@@ -621,7 +639,9 @@ Fp8DispatchStats fp8_dispatch_stats() noexcept {
             fp8_outer_row_fallback_calls,
             fp8_outer_row_native.has_value()
                 ? *fp8_outer_row_native ? 1 : 0 : -1,
-            fp8_output_column_scale_calls};
+            fp8_output_column_scale_calls,
+            fp8_output_column_native.has_value()
+                ? *fp8_output_column_native ? 1 : 0 : -1};
 #else
     return {};
 #endif
@@ -635,6 +655,7 @@ void clear_fp8_dispatch_registry() noexcept {
     fp8_outer_row_native.reset();
     fp8_outer_row_fallback_calls = 0;
     fp8_output_column_scale_calls = 0;
+    fp8_output_column_native.reset();
 #endif
 }
 

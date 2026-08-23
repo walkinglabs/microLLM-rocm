@@ -23,6 +23,10 @@ column-scale launch. A 128x128 MI300 test proves native dispatch, one post-scale
 zero hot-path H2D/D2H and agreement with the FP32 matrix reference. CPU tests cover independent
 column ranges, dequantization, matmul and invalid rank.
 
+The weight-side outer-vector API is now probed once before this workaround. The measured stack
+returns status 0 (rejected), so subsequent calls use scalar+post directly; other stacks can report
+status 1 and omit the post kernel without changing the public operator.
+
 The model now exposes this operator through an opt-in preparation policy, but official-model evidence
 remains a separate node; operator correctness is not yet a claim that per-column weights improve an
 LLM.

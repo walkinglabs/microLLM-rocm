@@ -1200,6 +1200,8 @@ int main(int argc, char** argv) {
                       << microllm::ops::fp8_dispatch_stats().outer_row_native_status
                       << ",\"fp8_output_column_scale_calls\":"
                       << microllm::ops::fp8_dispatch_stats().output_column_scale_calls
+                      << ",\"fp8_output_column_native_status\":"
+                      << microllm::ops::fp8_dispatch_stats().output_column_native_status
                       << ",\"fp8_dynamic_tensor_calls\":"
                       << microllm::ops::fp8_dynamic_quant_stats().tensor_calls
                       << ",\"fp8_dynamic_row_calls\":"
@@ -1651,6 +1653,8 @@ int main(int argc, char** argv) {
                   << microllm::ops::fp8_dispatch_stats().outer_row_native_status
                   << ",\"fp8_output_column_scale_calls\":"
                   << microllm::ops::fp8_dispatch_stats().output_column_scale_calls
+                  << ",\"fp8_output_column_native_status\":"
+                  << microllm::ops::fp8_dispatch_stats().output_column_native_status
                   << ",\"fp8_dynamic_tensor_calls\":"
                   << microllm::ops::fp8_dynamic_quant_stats().tensor_calls
                   << ",\"fp8_dynamic_row_calls\":"
