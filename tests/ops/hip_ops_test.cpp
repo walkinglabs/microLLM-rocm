@@ -2135,6 +2135,33 @@ TEST(HipOpsTest, RopeAndCrossEntropyMatchCpuReference) {
                 cross_entropy(logits_cpu, targets_cpu).to_vector());
 }
 
+TEST(HipOpsTest, AttentionProbabilityValueInterleavedLayoutMatchesCpuWithoutTransfers) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    const auto probabilities = Tensor::from_vector(
+        {1, 0, 0, 0.25F, 0.75F, 0, 0.1F, 0.2F, 0.7F,
+         1, 0, 0, 0.5F, 0.5F, 0, 0.2F, 0.3F, 0.5F,
+         1, 0, 0, 0.4F, 0.6F, 0, 0.3F, 0.3F, 0.4F,
+         1, 0, 0, 0.6F, 0.4F, 0, 0.2F, 0.5F, 0.3F},
+        {2, 2, 3, 3});
+    const auto value = Tensor::from_vector(
+        {1, 2, 10, 20, 3, 4, 30, 40, 5, 6, 50, 60,
+         -1, -2, -10, -20, -3, -4, -30, -40, -5, -6, -50, -60},
+        {2, 3, 2, 2});
+    const auto expected = attention_probability_value_bthd(probabilities, value);
+    const auto device_probabilities = probabilities.to(gpu);
+    const auto device_value = value.to(gpu);
+    runtime::reset_transfer_stats();
+    const auto actual = attention_probability_value_bthd(
+        device_probabilities, device_value);
+    runtime::synchronize(gpu);
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    EXPECT_EQ(actual.shape(), value.shape());
+    expect_near(actual.to_vector(), expected.to_vector(), 2.0e-5F);
+}
+
 TEST(HipOpsTest, MaskedCrossEntropyMatchesCpuReference) {
     require_gpu();
     const auto logits = Tensor::from_vector({2, 1, 0, 100, -100, 0}, {2, 3});

@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "experiment": "Exp163",
+  "decision": "keep interleaved-head Attention P*V primitive",
+  "operator_matrix": {
+    "fresh_process_rows": 30,
+    "shapes": 5,
+    "implementations": 2,
+    "runs_per_shape_implementation": 3,
+    "complete_outputs_finite": true,
+    "maximum_absolute_error": 0.0,
+    "rms_error": 0.0,
+    "timed_host_to_device_calls": 0,
+    "timed_device_to_host_calls": 0,
+    "qwen_t512_event_speedup": 1.41462007,
+    "qwen_t512_wall_speedup": 1.329982011,
+    "deepseek_t512_event_speedup": 2.199954021,
+    "deepseek_t512_wall_speedup": 2.135937455,
+    "edge_event_speedup": 1.006032091
+  },
+  "correctness": {
+    "cpu_materialized_reference": "pass",
+    "pytorch_independent_reference": "pass",
+    "hip_batch2_no_payload_transfer": "pass",
+    "invalid_shape_contract": "pass",
+    "installed_package_symbol": "pass"
+  },
+  "regression": {
+    "cpu_debug": "264/264",
+    "asan_ubsan": "262/262",
+    "pytorch_enabled_cpu": "238/238",
+    "full_cpu_hip": "393/393",
+    "hip_label": "125/125",
+    "conditional_skips": 2,
+    "package_consumer": "pass",
+    "coverage_lines_percent": 80.9,
+    "coverage_functions_percent": 89.8,
+    "coverage_branches_percent": 62.0
+  },
+  "scope": "operator primitive only; model graph route is unchanged"
+}

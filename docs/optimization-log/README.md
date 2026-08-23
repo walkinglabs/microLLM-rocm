@@ -688,6 +688,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/161-tied-embedding-sparse-add.md](experiments/161-tied-embedding-sparse-add.md) | 71.2%元素归因、两模型A/B和profile归因 |
 | [assets/attention-rope-layout-fusion.svg](assets/attention-rope-layout-fusion.svg) | Q/K布局复制、两模型T512与rocprofv3归因 |
 | [experiments/162-attention-rope-layout-fusion.md](experiments/162-attention-rope-layout-fusion.md) | 前向/双梯度门、60% copy消除与保留结论 |
+| [assets/attention-interleaved-pv.svg](assets/attention-interleaved-pv.svg) | 交错head地址、五shape算子速度与边界反例 |
+| [experiments/163-attention-interleaved-pv.md](experiments/163-attention-interleaved-pv.md) | 30进程完整输出与hipBLASLt布局能力证据 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

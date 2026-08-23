@@ -2722,3 +2722,18 @@ Attention里的Q/K投影原本是一张`[批次, token, 头, 每头宽度]`的�
 112.22→110.51ms。按布局/内存门保留，不把Qwen的中性结果写成速度胜利。
 
 ![Attention RoPE layout fusion](assets/attention-rope-layout-fusion.svg)
+
+## 180. Experiment 163：让矩阵库隔着座位读每个组
+
+上一步还剩最大的context换序。只把换序塞进BF16 cast并不诚实：反向算weight gradient时仍需要
+FP32 BTHD，复制会原样回来。真正的出口是让Attention的`概率×Value`直接写BTHD。
+
+可以把一行token想成H个相邻小组，每组D个人。固定一个head时，相邻token之间跨`H×D`格；换到
+下一个head只跨D格。hipBLASLt的leading dimension与batch stride刚好能描述这件事，不用先把
+每个小组抄成独立名单。
+
+5 shape×2路径×3进程共30行全量输出都是bit-exact，计时区H2D/D2H为0。小到2×2×3×2只有
+1.006×，Qwen T512为1.415×，DeepSeek T512为2.200×。收益随T/D增长，支持“省的是布局搬运”
+这个解释。原语保留，但在反向和整图接入前，不把它写成模型加速。
+
+![Interleaved Attention P×V](assets/attention-interleaved-pv.svg)

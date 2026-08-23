@@ -13,6 +13,12 @@ SPEC = importlib.util.spec_from_file_location("attention_layout_runner", MODULE_
 RUNNER = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
 SPEC.loader.exec_module(RUNNER)
+MATRIX_PATH = ROOT / "benchmarks/single_gpu/attention_layout_matrix.py"
+MATRIX_SPEC = importlib.util.spec_from_file_location(
+    "attention_layout_matrix", MATRIX_PATH)
+MATRIX = importlib.util.module_from_spec(MATRIX_SPEC)
+assert MATRIX_SPEC.loader is not None
+MATRIX_SPEC.loader.exec_module(MATRIX)
 
 
 class AttentionLayoutFusionRunnerTest(unittest.TestCase):
@@ -53,6 +59,24 @@ class AttentionLayoutFusionRunnerTest(unittest.TestCase):
         self.assertEqual(command[command.index("--steps") + 1], "1")
         self.assertEqual(
             command[command.index("--diagnostics-output") + 1], str(destination))
+
+    def test_operator_matrix_preserves_batch_head_sequence_width(self):
+        shape = MATRIX.parse_shape("qwen:2:14:512:64")
+        self.assertEqual(
+            shape,
+            {"name": "qwen", "batch": 2, "heads": 14,
+             "sequence": 512, "width": 64},
+        )
+        matrix_args = types.SimpleNamespace(
+            binary=pathlib.Path("/fixture/microllm_bench_attention_layout"),
+            warmup=3,
+            repetitions=20,
+        )
+        command = MATRIX.command(matrix_args, shape, "interleaved")
+        self.assertEqual(command[command.index("--batch") + 1], "2")
+        self.assertEqual(command[command.index("--heads") + 1], "14")
+        self.assertEqual(command[command.index("--sequence") + 1], "512")
+        self.assertEqual(command[command.index("--width") + 1], "64")
 
 
 if __name__ == "__main__":

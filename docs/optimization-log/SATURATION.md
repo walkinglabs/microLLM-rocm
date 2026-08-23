@@ -80,6 +80,11 @@ reduces both official-model peaks, and passes throughput non-regression. The rem
 belongs to Value input and context-output layout changes; repeating the Q/K transpose fusion
 with different indexing is not a new search space.
 
+Experiment 163 proves that gfx942 hipBLASLt accepts interleaved-head P×V input/output
+layouts and that the official T512 operator shapes benefit. It does not close the context
+graph boundary: probability-gradient, value-gradient, GQA head reduction and full Autograd
+still need matching BTHD contracts before the model can remove those copies.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

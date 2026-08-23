@@ -586,6 +586,28 @@ TEST(CpuOpsTest, CausalGqaAttentionMatchesComposedForwardAndBackward) {
                  std::invalid_argument);
 }
 
+TEST(CpuOpsTest, AttentionProbabilityValueWritesInterleavedBthdLayout) {
+    const auto probabilities = Tensor::from_vector(
+        {1, 0, 0, 0.25F, 0.75F, 0, 0.1F, 0.2F, 0.7F,
+         1, 0, 0, 0.5F, 0.5F, 0, 0.2F, 0.3F, 0.5F,
+         1, 0, 0, 0.4F, 0.6F, 0, 0.3F, 0.3F, 0.4F,
+         1, 0, 0, 0.6F, 0.4F, 0, 0.2F, 0.5F, 0.3F},
+        {2, 2, 3, 3});
+    const auto value = Tensor::from_vector(
+        {1, 2, 10, 20, 3, 4, 30, 40, 5, 6, 50, 60,
+         -1, -2, -10, -20, -3, -4, -30, -40, -5, -6, -50, -60},
+        {2, 3, 2, 2});
+    const auto expected = matmul(
+        probabilities, value.transpose(1, 2).contiguous())
+                              .transpose(1, 2).contiguous();
+    const auto actual = attention_probability_value_bthd(probabilities, value);
+    EXPECT_EQ(actual.shape(), value.shape());
+    expect_near(actual.to_vector(), expected.to_vector());
+    EXPECT_THROW((void)attention_probability_value_bthd(
+                     probabilities, Tensor({2, 3, 1, 2})),
+                 std::invalid_argument);
+}
+
 TEST(CpuOpsTest, TransposeAwareMatmulCoversAllOperandLayoutsWithoutViews) {
     const auto logical_left = Tensor::from_vector({1, 2, 3, 4, 5, 6}, {2, 3});
     const auto logical_right = Tensor::from_vector(

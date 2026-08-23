@@ -32,6 +32,10 @@ int main() {
         microllm::ops::rope_split_half_bias_bthd_backward(
             microllm::Tensor::from_vector(
                 {1.0F, 1.0F, 1.0F, 1.0F}, {1, 1, 1, 4}));
+    const auto layout_context =
+        microllm::ops::attention_probability_value_bthd(
+            microllm::Tensor::from_vector({1.0F}, {1, 1, 1, 1}),
+            microllm::Tensor::from_vector({2.0F, 3.0F}, {1, 1, 1, 2}));
     microllm::autograd::enable_gradient_accumulation_diagnostics(false);
     microllm::runtime::enable_strided_copy_diagnostics(false);
     microllm::autograd::enable_attention_rope_layout_fusion(false);
@@ -63,6 +67,7 @@ int main() {
             std::vector<float>({1.5F, 2.5F, 3.5F, 4.5F}) ||
         layout_gradient.to_vector() !=
             std::vector<float>({1.0F, 1.0F, 1.0F, 1.0F}) ||
+        layout_context.to_vector() != std::vector<float>({2.0F, 3.0F}) ||
         !microllm::autograd::attention_rope_layout_fusion_enabled() ||
         !rejected_cpu_tuning || !rejected_cpu_adamw_tuning) return 1;
     std::cout << "microLLM package consumer: pass\n";

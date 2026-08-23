@@ -83,6 +83,10 @@ needed to run a real training and generation loop:
   `[B,H,T,D]` directly in forward and reverses the mapping in backward; independent PyTorch
   gradients pass, diagnosed strided-copy bytes fall 60%, and official T512 peaks fall on both
   Qwen and DeepSeek without a throughput regression;
+- hipBLASLt interleaved-head `P×V` consumes probabilities `[B,H,T,T]` and value
+  `[B,T,H,D]`, then writes context `[B,T,H,D]` directly; the complete-output MI300 matrix
+  is bit-exact and improves Qwen/DeepSeek T512 operator Event time by 1.415×/2.200× versus
+  two explicit layout materializations;
 - a phase-independent exact-size HIP pool with immediate legacy-default-Stream reuse and strict
   permanent disablement for non-default Streams;
 - a cross-framework trace runner for operator/layer values and latency comparisons.

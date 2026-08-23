@@ -37,6 +37,7 @@
     "causal_softmax": {"torch": "causal_softmax", "shape": "invalid_causal_shape"},
     "causal_gqa_attention": {"torch": "causal_gqa_attention", "shape": "invalid_causal_gqa_shape"},
     "causal_softmax_backward": {"torch": "graph_causal_softmax_input_grad", "shape": "invalid_causal_backward_shape"},
+    "attention_probability_value_bthd": {"torch": "attention_probability_value_bthd", "shape": "invalid_attention_probability_value_bthd_shape"},
     "causal_gqa_attention_backward": {"torch": "graph_causal_gqa_key_grad", "shape": "invalid_causal_gqa_shape"},
     "repeat_interleave": {"torch": "repeat_interleave", "shape": "invalid_repeat_count"},
     "repeat_interleave_backward": {"torch": "graph_repeat_input_grad", "shape": "invalid_repeat_backward_shape"}

@@ -7116,6 +7116,46 @@ def validate_tied_embedding_sparse_add(
         int(qwen.get("peak_bytes_saved", 0))
 
 
+def validate_attention_interleaved_pv(
+        errors: list[str]) -> tuple[int, int, float, float]:
+    data = REPOSITORY / "benchmarks/results/2026-08-23-attention-interleaved-pv"
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    rows = {row["name"]: row for row in summary.get("rows", [])}
+    qwen = rows.get("qwen_t512", {})
+    deep = rows.get("deepseek_t512", {})
+    if verification.get("status") != "pass" or summary.get("status") != "pass" or \
+            verification.get("regression", {}).get("full_cpu_hip") != "393/393" or \
+            verification.get("regression", {}).get("hip_label") != "125/125" or \
+            len(raw) != 30 or len(rows) != 5 or \
+            any(row.get("finite") is not True or
+                row.get("maximum_absolute_error") != 0 or
+                row.get("rms_error") != 0 or
+                row.get("host_to_device_calls") != 0 or
+                row.get("device_to_host_calls") != 0
+                for row in raw) or \
+            qwen.get("event_speedup", 0) < 1.05 or \
+            deep.get("event_speedup", 0) < 1.05:
+        errors.append("interleaved Attention P*V evidence changed")
+    source = (REPOSITORY / "src/ops/optimized.cpp").read_text(encoding="utf-8")
+    benchmark = (REPOSITORY / "benchmarks/micro/benchmark_attention_layout.cpp").read_text(
+        encoding="utf-8")
+    tests = "\n".join((REPOSITORY / path).read_text(encoding="utf-8") for path in (
+        "tests/ops/ops_test.cpp", "tests/ops/hip_ops_test.cpp",
+        "python/tests/test_operator_parity.py"))
+    if "matrix_value.set_batch(batch_count, width)" not in source or \
+            "matrix_context.set_batch(batch_count, width)" not in source or \
+            "Attention layout complete-output gate failed" not in benchmark or \
+            "AttentionProbabilityValueInterleavedLayoutMatchesCpuWithoutTransfers" not in tests or \
+            "attention_probability_value_bthd" not in tests:
+        errors.append("interleaved Attention P*V source/test contract changed")
+    return len(raw), len(rows), float(qwen.get("event_speedup", 0)), \
+        float(deep.get("event_speedup", 0))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -7255,7 +7295,9 @@ def validate_assets(errors: list[str]) -> None:
                  "cooperative-bias-gradient.svg",
                  "post-bias-training-profile.svg",
                  "bf16-training-solution-discard.svg",
-                 "tied-embedding-sparse-add.svg"):
+                 "tied-embedding-sparse-add.svg",
+                 "attention-rope-layout-fusion.svg",
+                 "attention-interleaved-pv.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -7515,6 +7557,8 @@ def main() -> int:
         validate_bf16_training_solution_discard(errors)
     tied_rows, tied_sparse_calls, tied_bytes_saved = \
         validate_tied_embedding_sparse_add(errors)
+    interleaved_rows, interleaved_shapes, interleaved_qwen, interleaved_deep = \
+        validate_attention_interleaved_pv(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -7720,6 +7764,8 @@ def main() -> int:
           f"bf16_solutions={solution_rows}/{solution_candidates}/"
           f"{solution_models} "
           f"tied_sparse={tied_rows}/{tied_sparse_calls}/{tied_bytes_saved} "
+          f"interleaved_pv={interleaved_rows}/{interleaved_shapes}/"
+          f"{interleaved_qwen:.3f}/{interleaved_deep:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

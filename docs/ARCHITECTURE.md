@@ -176,6 +176,21 @@ offset and positive base. CPU reference, HIP, the eager graph and independent Py
 autograd all test the same boundary. `--attention-rope-layout-fusion false` keeps the older
 materialized graph available for same-binary diagnosis.
 
+The next building block keeps a whole `P×V` result in BTHD. For one fixed head, the value
+matrix is still an ordinary `T×D` matrix. Heads are merely interleaved in memory:
+
+```text
+address(batch, token, head, column)
+  = batch_base + token * (H*D) + head * D + column
+```
+
+hipBLASLt expresses this without a copy by setting the matrix leading dimension to `H*D`
+and the strided-batch offset to `D`. Each head touches disjoint columns of the same token
+rows. `attention_probability_value_bthd(P[B,H,T,T], V[B,T,H,D])` therefore writes
+`[B,T,H,D]` directly. For `B>1`, the engine submits one H-head batched GEMM per outer batch,
+because the jump from the last head of one batch to the first head of the next is not a
+constant `D` stride.
+
 ## Stable integration boundary
 
 The long-term integration seam is a C-compatible descriptor plus explicit stream

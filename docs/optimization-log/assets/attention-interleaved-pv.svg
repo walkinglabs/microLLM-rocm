@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="900" viewBox="0 0 1800 900">
+  <rect width="1800" height="900" fill="#f8fafc"/>
+  <text x="900" y="52" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 163 · Interleaved-head Attention P×V</text>
+  <text x="900" y="84" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle">30 fresh-process rows · complete output · MI300X gfx942</text>
+
+  <rect x="65" y="130" width="650" height="590" rx="14" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="390" y="174" font-family="Inter,Arial,sans-serif" font-size="21" fill="#172033" text-anchor="middle" font-weight="700">One matrix, interleaved heads</text>
+  <text x="115" y="228" font-family="monospace" font-size="17" fill="#1e3a8a">value[token][head][D]</text>
+  <g font-family="monospace" font-size="15" text-anchor="middle">
+    <rect x="115" y="260" width="120" height="52" fill="#dbeafe" stroke="#60a5fa"/><text x="175" y="292" fill="#1e3a8a">t0 h0</text>
+    <rect x="235" y="260" width="120" height="52" fill="#dcfce7" stroke="#4ade80"/><text x="295" y="292" fill="#166534">t0 h1</text>
+    <rect x="355" y="260" width="120" height="52" fill="#fef3c7" stroke="#f59e0b"/><text x="415" y="292" fill="#92400e">t0 h2</text>
+    <rect x="115" y="312" width="120" height="52" fill="#dbeafe" stroke="#60a5fa"/><text x="175" y="344" fill="#1e3a8a">t1 h0</text>
+    <rect x="235" y="312" width="120" height="52" fill="#dcfce7" stroke="#4ade80"/><text x="295" y="344" fill="#166534">t1 h1</text>
+    <rect x="355" y="312" width="120" height="52" fill="#fef3c7" stroke="#f59e0b"/><text x="415" y="344" fill="#92400e">t1 h2</text>
+  </g>
+  <path d="M175 380 V470" stroke="#2563eb" stroke-width="5"/>
+  <path d="M295 380 V470" stroke="#16a34a" stroke-width="5"/>
+  <path d="M415 380 V470" stroke="#d97706" stroke-width="5"/>
+  <text x="535" y="410" font-family="Inter,Arial,sans-serif" font-size="16" fill="#334155">ld = H×D</text>
+  <text x="535" y="442" font-family="Inter,Arial,sans-serif" font-size="16" fill="#334155">head stride = D</text>
+  <rect x="115" y="500" width="500" height="125" rx="10" fill="#eff6ff" stroke="#93c5fd"/>
+  <text x="365" y="538" font-family="Inter,Arial,sans-serif" font-size="17" fill="#1e40af" text-anchor="middle" font-weight="700">No BTHD → BHTD copy</text>
+  <text x="365" y="575" font-family="monospace" font-size="16" fill="#334155" text-anchor="middle">P[B,H,T,T] × V[B,T,H,D]</text>
+  <text x="365" y="605" font-family="monospace" font-size="16" fill="#334155" text-anchor="middle">→ context[B,T,H,D]</text>
+
+  <rect x="765" y="130" width="970" height="590" rx="14" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="1250" y="174" font-family="Inter,Arial,sans-serif" font-size="21" fill="#172033" text-anchor="middle" font-weight="700">Materialized path / interleaved Event speedup</text>
+  <line x1="965" y1="625" x2="1650" y2="625" stroke="#94a3b8" stroke-width="2"/>
+  <line x1="965" y1="250" x2="965" y2="625" stroke="#94a3b8" stroke-width="2"/>
+  <line x1="965" y1="550" x2="1650" y2="550" stroke="#cbd5e1" stroke-dasharray="6 5"/>
+  <text x="945" y="555" font-family="Inter,Arial,sans-serif" font-size="14" fill="#64748b" text-anchor="end">0.5× gain</text>
+  <rect x="1020" y="618" width="80" height="7" fill="#94a3b8"/><text x="1060" y="655" font-family="Inter,Arial,sans-serif" font-size="14" fill="#334155" text-anchor="middle">edge</text>
+  <rect x="1140" y="583" width="80" height="42" fill="#60a5fa"/><text x="1180" y="655" font-family="Inter,Arial,sans-serif" font-size="14" fill="#334155" text-anchor="middle">T32</text>
+  <rect x="1260" y="388" width="80" height="237" fill="#3b82f6"/><text x="1300" y="655" font-family="Inter,Arial,sans-serif" font-size="14" fill="#334155" text-anchor="middle">T128</text>
+  <rect x="1380" y="314" width="80" height="311" fill="#2f9b68"/><text x="1420" y="655" font-family="Inter,Arial,sans-serif" font-size="14" fill="#334155" text-anchor="middle">Qwen</text>
+  <rect x="1500" y="200" width="80" height="425" fill="#16834a"/><text x="1540" y="655" font-family="Inter,Arial,sans-serif" font-size="14" fill="#334155" text-anchor="middle">DeepSeek</text>
+  <text x="1060" y="602" font-family="Inter,Arial,sans-serif" font-size="14" fill="#334155" text-anchor="middle">1.006×</text>
+  <text x="1180" y="567" font-family="Inter,Arial,sans-serif" font-size="14" fill="#334155" text-anchor="middle">1.056×</text>
+  <text x="1300" y="372" font-family="Inter,Arial,sans-serif" font-size="14" fill="#1e40af" text-anchor="middle" font-weight="700">1.316×</text>
+  <text x="1420" y="298" font-family="Inter,Arial,sans-serif" font-size="14" fill="#166534" text-anchor="middle" font-weight="700">1.415×</text>
+  <text x="1540" y="184" font-family="Inter,Arial,sans-serif" font-size="14" fill="#166534" text-anchor="middle" font-weight="700">2.200×</text>
+  <text x="1250" y="695" font-family="Inter,Arial,sans-serif" font-size="14" fill="#64748b" text-anchor="middle">all Max/RMS errors = 0 · timed H2D/D2H calls = 0</text>
+
+  <rect x="65" y="775" width="1670" height="76" rx="12" fill="#172033"/>
+  <text x="900" y="807" font-family="Inter,Arial,sans-serif" font-size="18" fill="#ffffff" text-anchor="middle" font-weight="700">Keep the primitive; do not claim model speed until backward and the complete graph use BTHD</text>
+  <text x="900" y="835" font-family="Inter,Arial,sans-serif" font-size="14" fill="#cbd5e1" text-anchor="middle">The tiny edge case is neutral; the measured benefit grows with context and width</text>
+</svg>

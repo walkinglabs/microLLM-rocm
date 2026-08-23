@@ -983,6 +983,56 @@ Tensor hipblaslt_fp8_matmul(const ScaledTensor& left, const ScaledTensor& right,
     return output;
 }
 
+Tensor hipblaslt_attention_probability_value_bthd(
+    const Tensor& probabilities, const Tensor& value,
+    const OpContext& context) {
+    const auto batches = probabilities.shape()[0];
+    const auto heads = probabilities.shape()[1];
+    const auto sequence = probabilities.shape()[2];
+    const auto width = value.shape()[3];
+    if (heads > std::numeric_limits<std::int32_t>::max()) {
+        throw std::overflow_error("Attention head count exceeds hipBLASLt batch range");
+    }
+    Tensor output({batches, sequence, heads, width}, DType::Float32,
+                  probabilities.device());
+    static Handle handle;
+    MatmulDescription operation;
+    Layout matrix_value(HIP_R_32F, static_cast<std::uint64_t>(width),
+                        static_cast<std::uint64_t>(sequence), heads * width);
+    Layout matrix_probability(HIP_R_32F,
+                              static_cast<std::uint64_t>(sequence),
+                              static_cast<std::uint64_t>(sequence), sequence);
+    Layout matrix_context(HIP_R_32F, static_cast<std::uint64_t>(width),
+                          static_cast<std::uint64_t>(sequence), heads * width);
+    const auto batch_count = static_cast<std::int32_t>(heads);
+    matrix_value.set_batch(batch_count, width);
+    matrix_probability.set_batch(batch_count, sequence * sequence);
+    matrix_context.set_batch(batch_count, width);
+    const auto probability_batch_elements = heads * sequence * sequence;
+    const auto value_batch_elements = sequence * heads * width;
+    const auto* probability_data =
+        static_cast<const float*>(probabilities.data());
+    const auto* value_data = static_cast<const float*>(value.data());
+    auto* output_data = static_cast<float*>(output.data());
+    const float alpha = 1.0F;
+    const float beta = 0.0F;
+    for (std::int64_t batch = 0; batch < batches; ++batch) {
+        check_status(
+            hipblasLtMatmul(
+                handle.get(), operation.get(), &alpha,
+                value_data + batch * value_batch_elements, matrix_value.get(),
+                probability_data + batch * probability_batch_elements,
+                matrix_probability.get(), &beta,
+                output_data + batch * value_batch_elements, matrix_context.get(),
+                output_data + batch * value_batch_elements, matrix_context.get(),
+                nullptr, context.workspace, context.workspace_bytes,
+                reinterpret_cast<hipStream_t>(
+                    context.native_stream(probabilities.device()))),
+            "hipblasLtMatmul(Attention BTHD P*V)");
+    }
+    return output;
+}
+
 }  // namespace
 #endif
 
@@ -1167,6 +1217,36 @@ Tensor matmul_with_implementation(const Tensor& left, const Tensor& right,
         }
     }
     return Tensor::from_vector(values, {rows, columns}, left.dtype());
+}
+
+Tensor attention_probability_value_bthd(
+    const Tensor& probabilities, const Tensor& value,
+    const OpContext& context) {
+    if (probabilities.dtype() != DType::Float32 ||
+        value.dtype() != DType::Float32 || probabilities.device() != value.device() ||
+        probabilities.ndim() != 4 || value.ndim() != 4 ||
+        probabilities.shape()[0] != value.shape()[0] ||
+        probabilities.shape()[1] != value.shape()[2] ||
+        probabilities.shape()[2] != probabilities.shape()[3] ||
+        probabilities.shape()[2] != value.shape()[1] ||
+        probabilities.shape()[2] <= 0 || value.shape()[3] <= 0 ||
+        !probabilities.is_contiguous() || !value.is_contiguous()) {
+        throw std::invalid_argument(
+            "Attention P*V BTHD requires contiguous FP32 probabilities [B,H,T,T] "
+            "and value [B,T,H,D]");
+    }
+    if (probabilities.device().is_hip()) {
+#if MICROLLM_HAS_HIPBLASLT
+        return hipblaslt_attention_probability_value_bthd(
+            probabilities, value, context);
+#else
+        throw std::runtime_error(
+            "Attention P*V BTHD on HIP requires hipBLASLt");
+#endif
+    }
+    const auto value_bhtd = value.transpose(1, 2).contiguous();
+    return matmul(probabilities, value_bhtd, context)
+        .transpose(1, 2).contiguous();
 }
 
 Tensor bf16_matmul(const Tensor& left_fp32, const Tensor& right_bf16,

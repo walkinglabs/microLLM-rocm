@@ -356,6 +356,13 @@ void embedding_backward_add_(Tensor& weight_gradient, const Tensor& gradient,
 [[nodiscard]] Tensor causal_softmax(const Tensor& scores, const OpContext& context = {});
 [[nodiscard]] Tensor causal_softmax_backward(const Tensor& output, const Tensor& gradient,
                                              const OpContext& context = {});
+// Multiplies causal probabilities [B,H,T,T] by values already stored in
+// projection order [B,T,H,D], and writes context in the same [B,T,H,D]
+// order. The hipBLASLt path represents interleaved heads with a wide leading
+// dimension instead of materializing BHTD inputs and outputs.
+[[nodiscard]] Tensor attention_probability_value_bthd(
+    const Tensor& probabilities, const Tensor& value,
+    const OpContext& context = {});
 // Full-sequence causal Attention without materializing repeated K/V heads or
 // the T×T score/probability tensors. Shapes are Q[B,H,T,D], K/V[B,KV,T,D].
 [[nodiscard]] Tensor causal_gqa_attention(const Tensor& query, const Tensor& key,
