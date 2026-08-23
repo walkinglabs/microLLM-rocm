@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "status": "keep_shared_quantization_precision_still_rejected",
+  "fresh_build": {"steps_passed": 50, "binary_contract": true},
+  "formal_matrix": {"workers_passed": 18, "precision_failures": 2},
+  "decision": {
+    "shared_qkv_quantization_retained": true,
+    "shared_gate_up_quantization_retained": true,
+    "complete_logit_errors_unchanged": true,
+    "fp8_model_policy_accepted": false
+  }
+}

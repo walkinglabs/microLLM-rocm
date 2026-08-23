@@ -11,5 +11,6 @@ FFN同样为gate/up共享一次。O、down和非tied output仍各自量化。GEM
 门不变。
 
 完整回归首次为347/348：唯一失败是coverage audit尚未识别新统计返回类型；扩展审计器后该门和
-全部受影响测试通过。不能把首次结果写成全绿。正式Qwen/DeepSeek T512需验证96/113调用、完整
-logits逐值相同和Release吞吐。
+全部受影响测试通过。不能把首次结果写成全绿。官方T512随后验证96/113调用，完整max/RMS逐值
+相同，吞吐提升12.81%/12.39%；Deep FP8达到1.028× BF16但精度仍失败。详见
+[Experiment 135](../optimization-log/experiments/135-fp8-shared-activation-quantization.md)。

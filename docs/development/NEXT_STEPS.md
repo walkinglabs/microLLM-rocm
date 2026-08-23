@@ -184,7 +184,9 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   40.5%/36.0% of dynamic+GEMM attributable time;
 - [x] share one quantized activation across Q/K/V and gate/up; tiny machine gates reduce
   Tensor calls 8→5 and FFN row calls 3→2 with exact outputs;
-- [ ] verify official Qwen/Deep T512 calls 168→96 and 197→113, exact errors and throughput;
+- [x] verify official T512 calls 168→96 and 197→113; errors are exact and throughput
+  improves 12.81%/12.39%, with Deep FP8 reaching 1.028x BF16 but failing precision;
+- [ ] re-profile shared T512 path before selecting another performance hotspot;
 - [ ] replace the one-block reduction only if the next accepted numerical policy reuses it;
 - [ ] replace global FP8 scales with weight per-tensor and activation per-row/token amax,
   starting from saturation/trace evidence rather than top-token search;

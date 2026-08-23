@@ -632,6 +632,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/133-data/](experiments/133-data/) | 两套18-worker矩阵与fresh build |
 | [assets/fp8-dynamic-activation-profile.svg](assets/fp8-dynamic-activation-profile.svg) | dynamic三段与GEMM可归因时间 |
 | [experiments/134-data/](experiments/134-data/) | 两模型parsed profile与kernel/API stats |
+| [assets/fp8-shared-activation-quantization.svg](assets/fp8-shared-activation-quantization.svg) | QKV/gate-up共享后的T512吞吐 |
+| [experiments/135-data/](experiments/135-data/) | 18条正式矩阵、verification与fresh build |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

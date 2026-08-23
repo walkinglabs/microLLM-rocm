@@ -2421,3 +2421,11 @@ T512 rocprof显示Qwen/Deep dynamic scale+finalize+quantize为2.12/3.11ms，GEMM
 输入。whole-process cast热点来自加载，不冒充前向。下一节点共享QKV与gate/up量化结果。
 
 ![Dynamic activation profile](assets/fp8-dynamic-activation-profile.svg)
+
+## 152. Experiment 135：Deep T512首次快过BF16，精度仍红
+
+QKV和gate/up共享量化让每forward动态调用Qwen168→96、Deep197→113。T512吞吐提升
+12.81%/12.39%，Deep达到BF16的1.028×。完整max/RMS与Exp133逐值相同，但仍是精度门的
+5.85×/4.98×。保留无损性能优化，不把速度胜出写成FP8模型可用。
+
+![Shared activation quantization](assets/fp8-shared-activation-quantization.svg)

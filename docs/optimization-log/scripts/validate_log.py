@@ -5423,6 +5423,41 @@ def validate_fp8_dynamic_profile(errors: list[str]) -> tuple[int, int, int]:
     return qwen["kernel_total"]["calls"] + deep["kernel_total"]["calls"], 168, 197
 
 
+def validate_fp8_shared_activation(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "135-data"
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines()]
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    build = (data / "fresh-build.log").read_text(encoding="utf-8")
+    if len(raw) != 18 or any(row.get("status") != "pass" for row in raw) or \
+            summary.get("accuracy_failure_count") != 2:
+        errors.append("shared activation raw/summary contract changed")
+    fp8 = {row["model"]: row for row in summary["aggregates"]
+           if row["policy"] == "fp8"}
+    qwen = fp8["qwen2.5-0.5b"]
+    deep = fp8["deepseek-r1-distill-qwen-1.5b"]
+    if qwen.get("fp8_dynamic_tensor_calls_p50") != 384 or \
+            deep.get("fp8_dynamic_tensor_calls_p50") != 452 or \
+            qwen.get("fp8_dynamic_row_calls_p50") != 0 or \
+            deep.get("fp8_dynamic_row_calls_p50") != 0 or \
+            not 84000 < qwen.get("prefill_tokens_per_second_p50", 0) < 86000 or \
+            not 50000 < deep.get("prefill_tokens_per_second_p50", 0) < 51000 or \
+            qwen.get("root_mean_square_error_max") != 0.2925066092695958 or \
+            deep.get("root_mean_square_error_max") != 0.249140100254465:
+        errors.append("shared activation calls/performance/error evidence changed")
+    if verification.get("all_expected_checks_passed") is not True or \
+            verification.get("build", {}).get("steps_completed") != 50 or \
+            "[50/50] Linking HIP executable" not in build or \
+            gates.get("decision", {}).get("shared_qkv_quantization_retained") is not True or \
+            gates.get("decision", {}).get("complete_logit_errors_unchanged") is not True or \
+            gates.get("decision", {}).get("fp8_model_policy_accepted") is not False:
+        errors.append("shared activation build/verification/gates changed")
+    return len(raw), int(qwen["fp8_dynamic_tensor_calls_p50"]), \
+        int(deep["fp8_dynamic_tensor_calls_p50"])
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -5535,7 +5570,8 @@ def validate_assets(errors: list[str]) -> None:
                  "fp8-ffn-outer-row.svg",
                  "fp8-device-weight-amax.svg",
                  "fp8-multiblock-amax.svg",
-                 "fp8-dynamic-activation-profile.svg"):
+                 "fp8-dynamic-activation-profile.svg",
+                 "fp8-shared-activation-quantization.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -5737,6 +5773,8 @@ def main() -> int:
         validate_fp8_multiblock_amax(errors)
     dynamic_profile_calls, dynamic_profile_qwen, dynamic_profile_deep = \
         validate_fp8_dynamic_profile(errors)
+    shared_raw, shared_qwen_calls, shared_deep_calls = \
+        validate_fp8_shared_activation(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -5898,6 +5936,7 @@ def main() -> int:
           f"multiblock={multiblock_raw}/{multiblock_suites}/{multiblock_failures} "
           f"dynamic_profile={dynamic_profile_calls}/{dynamic_profile_qwen}/"
           f"{dynamic_profile_deep} "
+          f"shared_activation={shared_raw}/{shared_qwen_calls}/{shared_deep_calls} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

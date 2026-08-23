@@ -1,0 +1,97 @@
+{
+  "all_expected_checks_passed": true,
+  "binary": "/tmp/microllm-exp135-build.VfFrpF/apps/microllm_hf_infer",
+  "build": {
+    "build_exit_code": 0,
+    "build_log": "/tmp/microllm-exp135-build.VfFrpF/build.log",
+    "configure_exit_code": 0,
+    "configure_log": "/tmp/microllm-exp135-build.VfFrpF/configure.log",
+    "hf_cli_binary_contract_exit_code": 0,
+    "hf_cli_binary_contract_log": "/tmp/microllm-exp135-build.VfFrpF/hf-cli-binary-contract.log",
+    "steps_completed": 50
+  },
+  "execution": {
+    "accuracy_failure_count": 2,
+    "execution_status": "pass",
+    "exit_code": 0,
+    "status": "complete_with_recorded_accuracy_failures",
+    "stderr_bytes": 0,
+    "worker_rows": 18
+  },
+  "experiment": "Exp135",
+  "models": [
+    {
+      "dynamic_row_calls_per_process": [
+        0
+      ],
+      "dynamic_tensor_calls_per_process": [
+        384
+      ],
+      "engine_peak_bytes_p50": 946646692,
+      "engine_peak_delta_vs_exp133": 4325380,
+      "errors_exactly_equal_exp133": true,
+      "exp133_fp8_tps_p50": 75517.560782787,
+      "exp135_fp8_over_bf16_tps_ratio": 0.9227674786230515,
+      "exp135_fp8_tps_p50": 85193.327565405,
+      "expected_dynamic_tensor_calls": 384,
+      "maximum_absolute_error": 1.4751496315002441,
+      "model": "qwen2.5-0.5b",
+      "precision_gate_passed_all": false,
+      "resident_weight_bytes": 902652064,
+      "root_mean_square_error": 0.2925066092695958,
+      "successful_runs": 3,
+      "top_token_equal_all": true,
+      "tps_percent_change_vs_exp133": 12.812605018385902,
+      "tps_ratio_vs_exp133": 1.128126050183859
+    },
+    {
+      "dynamic_row_calls_per_process": [
+        0
+      ],
+      "dynamic_tensor_calls_per_process": [
+        452
+      ],
+      "engine_peak_bytes_p50": 2556766488,
+      "engine_peak_delta_vs_exp133": 7733252,
+      "errors_exactly_equal_exp133": true,
+      "exp133_fp8_tps_p50": 44975.032707917,
+      "exp135_fp8_over_bf16_tps_ratio": 1.0276452003110539,
+      "exp135_fp8_tps_p50": 50545.7476366,
+      "expected_dynamic_tensor_calls": 452,
+      "maximum_absolute_error": 1.2399201393127441,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "precision_gate_passed_all": false,
+      "resident_weight_bytes": 2477644564,
+      "root_mean_square_error": 0.249140100254465,
+      "successful_runs": 3,
+      "top_token_equal_all": true,
+      "tps_percent_change_vs_exp133": 12.386238749087951,
+      "tps_ratio_vs_exp133": 1.1238623874908795
+    }
+  ],
+  "preflight": [
+    {
+      "gpu_use_percent": 0,
+      "physical_gpu_index": 2,
+      "sample": 1,
+      "timestamp_utc": "2026-08-23T12:19:10.327227+00:00",
+      "vram_percent": 0
+    },
+    {
+      "gpu_use_percent": 0,
+      "physical_gpu_index": 2,
+      "sample": 2,
+      "timestamp_utc": "2026-08-23T12:19:20.443434+00:00",
+      "vram_percent": 0
+    },
+    {
+      "gpu_use_percent": 0,
+      "physical_gpu_index": 2,
+      "sample": 3,
+      "timestamp_utc": "2026-08-23T12:19:30.559491+00:00",
+      "vram_percent": 0
+    }
+  ],
+  "revision": "f29e384975e2cc4ee1143ca3f452962a33784a11",
+  "schema_version": 1
+}
