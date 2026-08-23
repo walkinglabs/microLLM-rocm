@@ -2461,3 +2461,15 @@ gate/up并未爆炸。证据支持残差抵消放大解释，但缺block input�
 证明；下一mixed FP32 block只回答“能否修复”，不再用于证明几何现象。
 
 ![Residual cancellation](assets/fp8-residual-cancellation.svg)
+
+## 157. Experiment 140：关键层改回FP32，长上下文反而更差
+
+只把Qwen block21和DeepSeek block27的7个Linear保留为FP32，其余层仍走相同FP8路径。
+两模型各18个worker正常结束，每个worker比较151,936个完整logits。T8 RMS改善3.21%/13.41%，
+但T512 RMS反而恶化3.89%/6.05%，常驻权重多42.66/133.87 MiB，吞吐低1.47%/3.49%；
+四个精度门仍全红。
+
+这推翻“误差主要在高抵消block内产生，改回FP32就能修好”的解释。高抵消block是误差放大的
+地点，不等于主要误差源。保留选择性FP32 API做诊断，不设默认；下一步分别隔离权重和激活量化。
+
+![Selective FP32 counterfactual](assets/fp8-selective-block-counterfactual.svg)

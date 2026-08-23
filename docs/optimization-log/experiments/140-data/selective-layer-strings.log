@@ -1,0 +1,6 @@
+571:--fp8-fp32-layers
+610:,"fp8_fp32_layers":"
+647:,fp8_fp32_layers=
+932:,"fp8_dynamic_tensor_calls":
+1439:--fp8-fp32-layers must be comma-separated nonnegative indices
+1543:--fp8-fp32-layers requires --fp8-linear true

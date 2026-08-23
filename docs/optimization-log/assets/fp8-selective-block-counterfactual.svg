@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="650" viewBox="0 0 1120 650" role="img" aria-labelledby="title desc">
+  <title id="title">Selective FP32 block counterfactual</title>
+  <desc id="desc">Critical FP32 blocks improve short-context RMS but worsen long-context RMS and consume more memory.</desc>
+  <rect width="1120" height="650" rx="20" fill="#0b1020"/>
+  <text x="56" y="58" fill="#f8fafc" font-size="29" font-family="sans-serif" font-weight="700">关键层改回FP32：短上下文变好，长上下文反而变差</text>
+  <text x="56" y="91" fill="#94a3b8" font-size="16" font-family="sans-serif">柱越低越好；绿色=误差下降，红色=误差上升。四个完整精度门仍失败。</text>
+  <line x1="90" y1="315" x2="1030" y2="315" stroke="#64748b" stroke-width="2"/>
+  <text x="24" y="320" fill="#cbd5e1" font-size="14" font-family="sans-serif">0%</text>
+  <rect x="150" y="315" width="125" height="58" fill="#22c55e"/><text x="160" y="400" fill="#f8fafc" font-size="15" font-family="sans-serif">Qwen T8 -3.21%</text>
+  <rect x="320" y="245" width="125" height="70" fill="#fb7185"/><text x="321" y="225" fill="#f8fafc" font-size="15" font-family="sans-serif">Qwen T512 +3.89%</text>
+  <rect x="650" y="315" width="125" height="241" fill="#22c55e"/><text x="645" y="583" fill="#f8fafc" font-size="15" font-family="sans-serif">Deep T8 -13.41%</text>
+  <rect x="820" y="206" width="125" height="109" fill="#fb7185"/><text x="805" y="186" fill="#f8fafc" font-size="15" font-family="sans-serif">Deep T512 +6.05%</text>
+  <rect x="80" y="472" width="430" height="122" rx="12" fill="#111a2e" stroke="#334155"/>
+  <text x="104" y="507" fill="#f8fafc" font-size="18" font-family="sans-serif" font-weight="700">代价</text>
+  <text x="104" y="540" fill="#cbd5e1" font-size="16" font-family="sans-serif">Qwen：+42.66 MiB，T512 TPS -1.47%</text>
+  <text x="104" y="568" fill="#cbd5e1" font-size="16" font-family="sans-serif">Deep：+133.87 MiB，T512 TPS -3.49%</text>
+  <text x="560" y="625" fill="#fbbf24" font-size="17" font-family="sans-serif">结论：这里会放大误差，但不是稳定、可直接替换的误差源</text>
+</svg>

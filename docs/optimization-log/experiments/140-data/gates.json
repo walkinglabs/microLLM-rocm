@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "status": "reject_critical_block_as_model_policy_keep_counterfactual_api",
+  "evidence": {
+    "fresh_build_steps": 50,
+    "binary_contract_passed": true,
+    "formal_workers": 36,
+    "execution_failures": 0,
+    "recorded_precision_failures": 4,
+    "stderr_bytes": 0,
+    "complete_logits_per_worker": 151936,
+    "top_token_equal_all": true
+  },
+  "decision": {
+    "selective_fp32_api_retained": true,
+    "critical_block_model_policy_accepted": false,
+    "critical_block_is_error_amplification_location": true,
+    "critical_block_is_primary_error_source": false,
+    "upstream_error_remains_dominant_explanation": true,
+    "enable_by_default": false
+  }
+}

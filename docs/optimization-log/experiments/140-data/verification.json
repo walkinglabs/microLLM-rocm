@@ -1,0 +1,344 @@
+{
+  "all_suites_passed": true,
+  "binary": "/tmp/microllm-exp140-build.k3jyo7/apps/microllm_hf_infer",
+  "experiment": "Exp140",
+  "revision": "b9a5ca5c67418733f095b3741e7800aa970515d5",
+  "schema_version": 1,
+  "suites": [
+    {
+      "all_execution_and_contract_checks_passed": true,
+      "binary": "/tmp/microllm-exp140-build.k3jyo7/apps/microllm_hf_infer",
+      "build": {
+        "build_exit_code": 0,
+        "build_log": "/tmp/microllm-exp140-build.k3jyo7/build.log",
+        "configure_exit_code": 0,
+        "configure_log": "/tmp/microllm-exp140-build.k3jyo7/configure.log",
+        "directory": "/tmp/microllm-exp140-build.k3jyo7",
+        "hf_cli_binary_contract_exit_code": 0,
+        "hf_cli_binary_contract_log": "/tmp/microllm-exp140-build.k3jyo7/hf-cli-binary-contract.log",
+        "steps_completed": 50
+      },
+      "comparisons": [
+        {
+          "baseline": {
+            "engine_peak_bytes_p50": 903896256,
+            "maximum_absolute_error": 0.9994700998067856,
+            "precision_gate_passed_all": false,
+            "prefill_tokens_per_second_p50": 1503.511356804,
+            "resident_weight_bytes": 902652064,
+            "root_mean_square_error": 0.19245532295273582,
+            "top_token_equal_all": true
+          },
+          "baseline_source": "/tmp/microllm-exp129-device-activation-amax-final/summary.json",
+          "context": 8,
+          "delta": {
+            "engine_peak_bytes": 44769768,
+            "engine_peak_ratio": 1.0495297637343017,
+            "maximum_absolute_error": -0.13184185326099396,
+            "maximum_absolute_error_ratio": 0.868088246675432,
+            "prefill_tokens_per_second": 178.2375611660002,
+            "resident_weight_bytes": 44728292,
+            "resident_weight_ratio": 1.0495520852207345,
+            "root_mean_square_error": -0.006169013411434249,
+            "root_mean_square_error_ratio": 0.9679457376559584,
+            "tps_percent_change": 11.85475323211913,
+            "tps_ratio": 1.1185475323211913
+          },
+          "selective_fp32": {
+            "converted_tensors": 161,
+            "dynamic_tensor_calls_p50": 368,
+            "engine_peak_bytes_p50": 948666024,
+            "maximum_absolute_error": 0.8676282465457916,
+            "precision_gate_passed_all": false,
+            "prefill_tokens_per_second_p50": 1681.74891797,
+            "resident_weight_bytes": 947380356,
+            "root_mean_square_error": 0.18628630954130157,
+            "software_fallback_calls_p50": 0,
+            "top_token_equal_all": true
+          }
+        },
+        {
+          "baseline": {
+            "engine_peak_bytes_p50": 946646692,
+            "maximum_absolute_error": 1.4751496315002441,
+            "precision_gate_passed_all": false,
+            "prefill_tokens_per_second_p50": 85193.327565405,
+            "resident_weight_bytes": 902652064,
+            "root_mean_square_error": 0.2925066092695958,
+            "top_token_equal_all": true
+          },
+          "baseline_source": "/tmp/microllm-exp135-shared-activation-final/summary.json",
+          "context": 512,
+          "delta": {
+            "engine_peak_bytes": 44728292,
+            "engine_peak_ratio": 1.0472491927326146,
+            "maximum_absolute_error": 0.07042503356933594,
+            "maximum_absolute_error_ratio": 1.047740942386782,
+            "prefill_tokens_per_second": -1252.8282637069933,
+            "resident_weight_bytes": 44728292,
+            "resident_weight_ratio": 1.0495520852207345,
+            "root_mean_square_error": 0.011385497380115794,
+            "root_mean_square_error_ratio": 1.0389238978515596,
+            "tps_percent_change": -1.4705708762756897,
+            "tps_ratio": 0.9852942912372431
+          },
+          "selective_fp32": {
+            "converted_tensors": 161,
+            "dynamic_tensor_calls_p50": 368,
+            "engine_peak_bytes_p50": 991374984,
+            "maximum_absolute_error": 1.54557466506958,
+            "precision_gate_passed_all": false,
+            "prefill_tokens_per_second_p50": 83940.499301698,
+            "resident_weight_bytes": 947380356,
+            "root_mean_square_error": 0.3038921066497116,
+            "software_fallback_calls_p50": 0,
+            "top_token_equal_all": true
+          }
+        }
+      ],
+      "complete_logits": {
+        "logit_count_values": [
+          151936
+        ],
+        "per_context_metrics_stable_across_runs": true,
+        "top_token_equal_all": true
+      },
+      "contexts": [
+        8,
+        512
+      ],
+      "counter_checks": {
+        "converted_tensors_values": [
+          161
+        ],
+        "dynamic_row_calls_values": [
+          0
+        ],
+        "expected_converted_tensors": 161,
+        "expected_t512_dynamic_tensor_calls": 368,
+        "fp8_fp32_layers_values": [
+          "21"
+        ],
+        "software_fallback_shapes_values": [
+          0
+        ],
+        "t512_dynamic_tensor_calls_values": [
+          368
+        ],
+        "t8_dynamic_tensor_calls_values": [
+          368
+        ]
+      },
+      "execution": {
+        "accuracy_failure_count": 2,
+        "execution_status": "pass",
+        "exit_code": 0,
+        "status": "complete_with_recorded_accuracy_failures",
+        "stderr_bytes": 0,
+        "worker_rows": 18
+      },
+      "experiment": "Exp140",
+      "fp8_fp32_layers": "21",
+      "internal_gpu_gates": {
+        "post_max_use_percent": 3,
+        "post_max_vram_percent": 0,
+        "pre_max_use_percent": 1,
+        "pre_max_vram_percent": 0
+      },
+      "model": "qwen2.5-0.5b",
+      "preflight": [
+        {
+          "gpu_use_percent": 0,
+          "physical_gpu_index": 2,
+          "sample": 1,
+          "timestamp_utc": "2026-08-23T13:04:30.386398+00:00",
+          "vram_percent": 0
+        },
+        {
+          "gpu_use_percent": 0,
+          "physical_gpu_index": 2,
+          "sample": 2,
+          "timestamp_utc": "2026-08-23T13:04:40.506439+00:00",
+          "vram_percent": 0
+        },
+        {
+          "gpu_use_percent": 0,
+          "physical_gpu_index": 2,
+          "sample": 3,
+          "timestamp_utc": "2026-08-23T13:04:50.626332+00:00",
+          "vram_percent": 0
+        }
+      ],
+      "revision": "b9a5ca5c67418733f095b3741e7800aa970515d5",
+      "schema_version": 1
+    },
+    {
+      "all_execution_and_contract_checks_passed": true,
+      "binary": "/tmp/microllm-exp140-build.k3jyo7/apps/microllm_hf_infer",
+      "build": {
+        "build_exit_code": 0,
+        "build_log": "/tmp/microllm-exp140-build.k3jyo7/build.log",
+        "configure_exit_code": 0,
+        "configure_log": "/tmp/microllm-exp140-build.k3jyo7/configure.log",
+        "directory": "/tmp/microllm-exp140-build.k3jyo7",
+        "hf_cli_binary_contract_exit_code": 0,
+        "hf_cli_binary_contract_log": "/tmp/microllm-exp140-build.k3jyo7/hf-cli-binary-contract.log",
+        "steps_completed": 50
+      },
+      "comparisons": [
+        {
+          "baseline": {
+            "engine_peak_bytes_p50": 2506598712,
+            "maximum_absolute_error": 1.243237018585205,
+            "precision_gate_passed_all": false,
+            "prefill_tokens_per_second_p50": 843.703415048,
+            "resident_weight_bytes": 2477644564,
+            "root_mean_square_error": 0.43789038513215195,
+            "top_token_equal_all": true
+          },
+          "baseline_source": "/tmp/microllm-exp129-device-activation-amax-final/summary.json",
+          "context": 8,
+          "delta": {
+            "engine_peak_bytes": 140951524,
+            "engine_peak_ratio": 1.0562321856008359,
+            "maximum_absolute_error": -0.06390571594238281,
+            "maximum_absolute_error_ratio": 0.9485973189447761,
+            "prefill_tokens_per_second": 398.27862061300004,
+            "resident_weight_bytes": 140378084,
+            "resident_weight_ratio": 1.056657878228251,
+            "root_mean_square_error": -0.05872222093022533,
+            "root_mean_square_error_ratio": 0.8658974416337015,
+            "tps_percent_change": 47.20599840055657,
+            "tps_ratio": 1.4720599840055657
+          },
+          "selective_fp32": {
+            "converted_tensors": 190,
+            "dynamic_tensor_calls_p50": 436,
+            "engine_peak_bytes_p50": 2647550236,
+            "maximum_absolute_error": 1.1793313026428223,
+            "precision_gate_passed_all": false,
+            "prefill_tokens_per_second_p50": 1241.982035661,
+            "resident_weight_bytes": 2618022648,
+            "root_mean_square_error": 0.3791681642019266,
+            "software_fallback_calls_p50": 108,
+            "top_token_equal_all": true
+          }
+        },
+        {
+          "baseline": {
+            "engine_peak_bytes_p50": 2556766488,
+            "maximum_absolute_error": 1.2399201393127441,
+            "precision_gate_passed_all": false,
+            "prefill_tokens_per_second_p50": 50545.7476366,
+            "resident_weight_bytes": 2477644564,
+            "root_mean_square_error": 0.249140100254465,
+            "top_token_equal_all": true
+          },
+          "baseline_source": "/tmp/microllm-exp135-shared-activation-final/summary.json",
+          "context": 512,
+          "delta": {
+            "engine_peak_bytes": 140378084,
+            "engine_peak_ratio": 1.0549045384703117,
+            "maximum_absolute_error": -0.0971684455871582,
+            "maximum_absolute_error_ratio": 0.9216333032214348,
+            "prefill_tokens_per_second": -1765.7896445279985,
+            "resident_weight_bytes": 140378084,
+            "resident_weight_ratio": 1.056657878228251,
+            "root_mean_square_error": 0.015078802908685879,
+            "root_mean_square_error_ratio": 1.0605233878178775,
+            "tps_percent_change": -3.4934484641976016,
+            "tps_ratio": 0.965065515358024
+          },
+          "selective_fp32": {
+            "converted_tensors": 190,
+            "dynamic_tensor_calls_p50": 436,
+            "engine_peak_bytes_p50": 2697144572,
+            "maximum_absolute_error": 1.142751693725586,
+            "precision_gate_passed_all": false,
+            "prefill_tokens_per_second_p50": 48779.957992072,
+            "resident_weight_bytes": 2618022648,
+            "root_mean_square_error": 0.2642189031631509,
+            "software_fallback_calls_p50": 0,
+            "top_token_equal_all": true
+          }
+        }
+      ],
+      "complete_logits": {
+        "logit_count_values": [
+          151936
+        ],
+        "per_context_metrics_stable_across_runs": true,
+        "top_token_equal_all": true
+      },
+      "contexts": [
+        8,
+        512
+      ],
+      "counter_checks": {
+        "converted_tensors_values": [
+          190
+        ],
+        "dynamic_row_calls_values": [
+          0
+        ],
+        "expected_converted_tensors": 190,
+        "expected_t512_dynamic_tensor_calls": 436,
+        "fp8_fp32_layers_values": [
+          "27"
+        ],
+        "software_fallback_shapes_values": [
+          0,
+          1
+        ],
+        "t512_dynamic_tensor_calls_values": [
+          436
+        ],
+        "t8_dynamic_tensor_calls_values": [
+          436
+        ]
+      },
+      "execution": {
+        "accuracy_failure_count": 2,
+        "execution_status": "pass",
+        "exit_code": 0,
+        "status": "complete_with_recorded_accuracy_failures",
+        "stderr_bytes": 0,
+        "worker_rows": 18
+      },
+      "experiment": "Exp140",
+      "fp8_fp32_layers": "27",
+      "internal_gpu_gates": {
+        "post_max_use_percent": 4,
+        "post_max_vram_percent": 2,
+        "pre_max_use_percent": 1,
+        "pre_max_vram_percent": 0
+      },
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "preflight": [
+        {
+          "gpu_use_percent": 0,
+          "physical_gpu_index": 2,
+          "sample": 1,
+          "timestamp_utc": "2026-08-23T13:07:22.767898+00:00",
+          "vram_percent": 0
+        },
+        {
+          "gpu_use_percent": 0,
+          "physical_gpu_index": 2,
+          "sample": 2,
+          "timestamp_utc": "2026-08-23T13:07:32.887421+00:00",
+          "vram_percent": 0
+        },
+        {
+          "gpu_use_percent": 0,
+          "physical_gpu_index": 2,
+          "sample": 3,
+          "timestamp_utc": "2026-08-23T13:07:43.002912+00:00",
+          "vram_percent": 0
+        }
+      ],
+      "revision": "b9a5ca5c67418733f095b3741e7800aa970515d5",
+      "schema_version": 1
+    }
+  ]
+}

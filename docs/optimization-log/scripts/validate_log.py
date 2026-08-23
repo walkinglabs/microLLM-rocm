@@ -5585,6 +5585,60 @@ def validate_fp8_residual_cancellation(errors: list[str]) -> tuple[int, int, int
     return 2, 21, 27
 
 
+def validate_fp8_selective_block_counterfactual(
+        errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "140-data"
+    verification = json.loads((data / "verification.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    build = (data / "fresh-build.log").read_text(encoding="utf-8")
+    binary_contract = (data / "hf-cli-binary-contract.log").read_text(encoding="utf-8")
+    if verification.get("all_suites_passed") is not True or \
+            len(verification.get("suites", [])) != 2:
+        errors.append("selective FP32 combined verification changed")
+        return 0, 0, 0
+    suites = {row["model"]: row for row in verification["suites"]}
+    qwen = suites["qwen2.5-0.5b"]
+    deep = suites["deepseek-r1-distill-qwen-1.5b"]
+    formal_workers = sum(row["execution"]["worker_rows"] for row in suites.values())
+    precision_failures = sum(
+        row["execution"]["accuracy_failure_count"] for row in suites.values())
+    for name, suite, layer, converted, calls in (
+            ("qwen", qwen, "21", 161, 368),
+            ("deepseek", deep, "27", 190, 436)):
+        raw_rows = sum(1 for line in (data / name / "raw.jsonl").read_text(
+            encoding="utf-8").splitlines() if line.strip())
+        preflight_rows = sum(1 for line in (data / name / "gpu2-preflight.jsonl").read_text(
+            encoding="utf-8").splitlines() if line.strip())
+        if raw_rows != 18 or preflight_rows != 3 or \
+                (data / name / "stderr.log").stat().st_size != 0 or \
+                suite["fp8_fp32_layers"] != layer or \
+                suite["counter_checks"]["expected_converted_tensors"] != converted or \
+                suite["counter_checks"]["expected_t512_dynamic_tensor_calls"] != calls or \
+                suite["complete_logits"]["logit_count_values"] != [151936] or \
+                suite["complete_logits"]["top_token_equal_all"] is not True:
+            errors.append(f"selective FP32 {name} execution contract changed")
+    q_t8, q_t512 = qwen["comparisons"]
+    d_t8, d_t512 = deep["comparisons"]
+    if not 0.96 < q_t8["delta"]["root_mean_square_error_ratio"] < 0.98 or \
+            not 1.03 < q_t512["delta"]["root_mean_square_error_ratio"] < 1.05 or \
+            not 0.85 < d_t8["delta"]["root_mean_square_error_ratio"] < 0.88 or \
+            not 1.05 < d_t512["delta"]["root_mean_square_error_ratio"] < 1.07 or \
+            not 0.98 < q_t512["delta"]["tps_ratio"] < 1.0 or \
+            not 0.96 < d_t512["delta"]["tps_ratio"] < 0.98:
+        errors.append("selective FP32 precision/performance evidence changed")
+    if formal_workers != 36 or precision_failures != 4 or \
+            "[50/50] Linking HIP executable" not in build or \
+            "binary contract: pass" not in binary_contract:
+        errors.append("selective FP32 build/worker evidence changed")
+    decision = gates.get("decision", {})
+    if decision.get("selective_fp32_api_retained") is not True or \
+            decision.get("critical_block_model_policy_accepted") is not False or \
+            decision.get("critical_block_is_primary_error_source") is not False or \
+            decision.get("enable_by_default") is not False:
+        errors.append("selective FP32 decision gates changed")
+    return formal_workers, precision_failures, len(suites)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -5702,7 +5756,8 @@ def validate_assets(errors: list[str]) -> None:
                  "fp8-shared-activation-profile.svg",
                  "fp8-layer-drift.svg",
                  "fp8-block-detail.svg",
-                 "fp8-residual-cancellation.svg"):
+                 "fp8-residual-cancellation.svg",
+                 "fp8-selective-block-counterfactual.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -5914,6 +5969,8 @@ def main() -> int:
         validate_fp8_block_detail(errors)
     cancellation_rows, cancellation_qwen, cancellation_deep = \
         validate_fp8_residual_cancellation(errors)
+    selective_workers, selective_failures, selective_models = \
+        validate_fp8_selective_block_counterfactual(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -6081,6 +6138,8 @@ def main() -> int:
           f"layer_drift={layer_drift_stages}/{layer_drift_qwen}/{layer_drift_deep} "
           f"block_detail={block_detail_stages}/{block_detail_qwen}/{block_detail_deep} "
           f"cancellation={cancellation_rows}/{cancellation_qwen}/{cancellation_deep} "
+          f"selective_fp32={selective_workers}/{selective_failures}/"
+          f"{selective_models} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")
