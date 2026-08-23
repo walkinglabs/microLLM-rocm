@@ -300,7 +300,6 @@ public:
     Linear(std::int64_t input, std::int64_t output, std::mt19937_64& generator,
            const ModelConfig& config, ParameterInitialization initialization,
            bool with_bias = false, bool ffn_linear = false,
-           bool attention_linear = false,
            bool attention_output_linear = false)
         : weight_(parameter({input, output}, generator,
                             1.0F / std::sqrt(static_cast<float>(input)), initialization)),
@@ -601,13 +600,13 @@ public:
               ParameterInitialization initialization)
         : config_(config),
           query_(config.dimension, config.dimension, generator, config, initialization,
-                 config.attention_bias, false, true),
+                 config.attention_bias),
           key_(config.dimension, config.kv_dimension(), generator, config, initialization,
-               config.attention_bias, false, true),
+               config.attention_bias),
           value_(config.dimension, config.kv_dimension(), generator, config, initialization,
-                 config.attention_bias, false, true),
+                 config.attention_bias),
           output_(config.dimension, config.dimension, generator, config, initialization,
-                  false, false, true, true) {}
+                  false, false, true) {}
 
     Value forward(const Value& input) {
         if (input.data().ndim() != 3) throw std::invalid_argument("attention input must be BxTxD");

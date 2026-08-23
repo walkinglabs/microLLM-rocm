@@ -485,6 +485,16 @@ TEST(HipFp8OpsTest, DynamicTensorScaleQuantizeAndDequantizeStayOnDevice) {
     const auto scale = dynamic.scale.to_vector()[0];
     EXPECT_NEAR(scale, 12.0F / 240.0F, 1.0e-7F);
     expect_near(restored.to_vector(), cpu.to_vector(), 0.5F);
+
+    clear_fp8_dynamic_quant_stats();
+    const auto clipped_input = Tensor::from_vector(
+        {1.0F, 100.0F}, {1, 2}).to(gpu);
+    const auto clipped = quantize_fp8_dynamic(
+        clipped_input, DType::Float8E4M3FNUZ, 1.0e-4F, {}, 0.5F);
+    const auto clipped_values = dequantize_fp8(
+        clipped, DType::Float32).to_vector();
+    EXPECT_NEAR(clipped_values[1], 50.0F, 0.5F);
+    EXPECT_EQ(fp8_dynamic_quant_stats().clipped_tensor_calls, 1U);
 }
 
 TEST(HipFp8OpsTest, MultiBlockDynamicScaleFindsMaximumInLastPartition) {

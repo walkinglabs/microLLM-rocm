@@ -28,6 +28,7 @@ def main() -> int:
         b"fp8_output_column_native_status",
         b"--fp8-weight-scale-scope",
         b"attention-output-only",
+        b"fp8_dynamic_clipped_tensor_calls",
     )
     missing = [value.decode() for value in required if value not in payload]
     if missing:

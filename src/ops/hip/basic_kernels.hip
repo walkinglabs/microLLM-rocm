@@ -620,7 +620,7 @@ __global__ void fp8_tensor_scale_kernel(const Input* input, float* partial_maxim
 
 __global__ void fp8_finalize_scale_kernel(
     const float* partial_maxima, float* scale, std::int64_t partial_count,
-    float minimum_scale) {
+    float minimum_scale, float maximum_fraction, float quantized_maximum) {
     __shared__ float scratch[kBlockSize];
     float local_maximum = 0.0F;
     for (std::int64_t index = threadIdx.x; index < partial_count;
@@ -628,18 +628,24 @@ __global__ void fp8_finalize_scale_kernel(
         local_maximum = fmaxf(local_maximum, partial_maxima[index]);
     }
     const auto maximum = block_reduce_max(local_maximum, scratch);
-    if (threadIdx.x == 0) scale[0] = fmaxf(maximum / 240.0F, minimum_scale);
+    if (threadIdx.x == 0) {
+        scale[0] = fmaxf(maximum * maximum_fraction / quantized_maximum,
+                         minimum_scale);
+    }
 }
 
 template <typename Input, typename Output>
 __global__ void quantize_fp8_device_scale_kernel(
     const Input* input, Output* output, std::int64_t elements,
-    const float* scale) {
+    const float* scale, float quantized_maximum) {
     const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x +
                        threadIdx.x;
     if (index < elements) {
-        output[index] = static_cast<Output>(
-            static_cast<float>(input[index]) / scale[0]);
+        const auto value = fminf(
+            quantized_maximum,
+            fmaxf(-quantized_maximum,
+                  static_cast<float>(input[index]) / scale[0]));
+        output[index] = static_cast<Output>(value);
     }
 }
 
@@ -2268,14 +2274,18 @@ template <typename Input>
 void launch_dynamic_quantize_for_input(
     const Input* input, void* output, DType fp8_dtype, float* scale,
     float* partial_maxima, std::int64_t partial_count,
-    std::int64_t elements, float minimum_scale, hipStream_t stream) {
-    hipLaunchKernelGGL(fp8_tensor_scale_kernel<Input>, dim3(partial_count),
+    std::int64_t elements, float minimum_scale, float maximum_fraction,
+    hipStream_t stream) {
+    hipLaunchKernelGGL(fp8_tensor_scale_kernel<Input>,
+                       dim3(static_cast<unsigned>(partial_count)),
                        dim3(kBlockSize), 0, stream, input, partial_maxima,
                        elements);
     check_launch("fp8_tensor_scale_kernel");
+    const auto quantized_maximum =
+        fp8_dtype == DType::Float8E4M3FNUZ ? 240.0F : 57344.0F;
     hipLaunchKernelGGL(fp8_finalize_scale_kernel, dim3(1), dim3(kBlockSize),
                        0, stream, partial_maxima, scale, partial_count,
-                       minimum_scale);
+                       minimum_scale, maximum_fraction, quantized_maximum);
     check_launch("fp8_finalize_scale_kernel");
     const auto grid = dim3(grid_size(elements));
     const auto block = dim3(kBlockSize);
@@ -2283,12 +2293,14 @@ void launch_dynamic_quantize_for_input(
         hipLaunchKernelGGL(
             (quantize_fp8_device_scale_kernel<Input, __hip_fp8_e4m3_fnuz>),
             grid, block, 0, stream, input,
-            static_cast<__hip_fp8_e4m3_fnuz*>(output), elements, scale);
+            static_cast<__hip_fp8_e4m3_fnuz*>(output), elements, scale,
+            quantized_maximum);
     } else if (fp8_dtype == DType::Float8E5M2FNUZ) {
         hipLaunchKernelGGL(
             (quantize_fp8_device_scale_kernel<Input, __hip_fp8_e5m2_fnuz>),
             grid, block, 0, stream, input,
-            static_cast<__hip_fp8_e5m2_fnuz*>(output), elements, scale);
+            static_cast<__hip_fp8_e5m2_fnuz*>(output), elements, scale,
+            quantized_maximum);
     } else {
         throw std::invalid_argument(
             "dynamic quantize output must be an MI300 FNUZ FP8 dtype");
@@ -2299,7 +2311,8 @@ void launch_dynamic_quantize_for_input(
 void launch_quantize_fp8_dynamic(
     const void* input, DType input_dtype, void* output, DType fp8_dtype,
     float* scale, float* partial_maxima, std::int64_t partial_count,
-    std::int64_t elements, float minimum_scale, void* stream) {
+    std::int64_t elements, float minimum_scale, float maximum_fraction,
+    void* stream) {
     if (elements == 0) return;
     if (partial_count <= 0 || partial_count > 1024) {
         throw std::invalid_argument("dynamic FP8 partial count is invalid");
@@ -2309,19 +2322,19 @@ void launch_quantize_fp8_dynamic(
             launch_dynamic_quantize_for_input(
                 static_cast<const float*>(input), output, fp8_dtype, scale,
                 partial_maxima, partial_count,
-                elements, minimum_scale, as_stream(stream));
+                elements, minimum_scale, maximum_fraction, as_stream(stream));
             break;
         case DType::Float16:
             launch_dynamic_quantize_for_input(
                 static_cast<const __half*>(input), output, fp8_dtype, scale,
                 partial_maxima, partial_count,
-                elements, minimum_scale, as_stream(stream));
+                elements, minimum_scale, maximum_fraction, as_stream(stream));
             break;
         case DType::BFloat16:
             launch_dynamic_quantize_for_input(
                 static_cast<const hip_bfloat16*>(input), output, fp8_dtype,
                 scale, partial_maxima, partial_count, elements, minimum_scale,
-                as_stream(stream));
+                maximum_fraction, as_stream(stream));
             break;
         default:
             throw std::invalid_argument(

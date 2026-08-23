@@ -42,3 +42,7 @@ For FP8 Linear weights with different output-channel ranges, see the
 [output-column scale operator record](../development/2026-08-23-fp8-output-column-scale-operator.md).
 It explains why the MI300 path uses native scalar-scale GEMM followed by a device column scale,
 instead of silently falling back when outer-vector scale is unavailable.
+
+For outlier clipping in dynamic FP8 Tensor scales, read the
+[clipped dynamic quantization record](../development/2026-08-23-fp8-clipped-dynamic-quantization.md).
+The default fraction is compatibility-preserving; model policy requires separate evidence.

@@ -36,6 +36,7 @@ struct Fp8DynamicQuantStats {
     std::uint64_t row_elements = 0;
     std::size_t column_calls = 0;
     std::uint64_t column_elements = 0;
+    std::size_t clipped_tensor_calls = 0;
 };
 
 struct TensorPair {
@@ -76,7 +77,7 @@ struct Bf16FfnDiagnostics {
 // On HIP the returned scale Tensor is authoritative and no scalar is copied to host.
 [[nodiscard]] ScaledTensor quantize_fp8_dynamic(
     const Tensor& input, DType fp8_dtype, float minimum_scale,
-    const OpContext& context = {});
+    const OpContext& context = {}, float maximum_fraction = 1.0F);
 [[nodiscard]] ScaledTensor quantize_fp8_rows_dynamic(
     const Tensor& input, DType fp8_dtype, float minimum_scale,
     const OpContext& context = {});

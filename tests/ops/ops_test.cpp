@@ -633,6 +633,7 @@ TEST(CpuFp8OpsTest, QuantizeDequantizeAndScaledMatmulMatchFloatReference) {
 }
 
 TEST(CpuFp8OpsTest, DynamicTensorScaleUsesAmaxAndMinimumWithoutLosingHostOracle) {
+    clear_fp8_dynamic_quant_stats();
     const auto input = Tensor::from_vector({-3.0F, -0.5F, 0.0F, 2.0F}, {2, 2});
     const auto dynamic = quantize_fp8_dynamic(
         input, DType::Float8E4M3FNUZ, 0.001F);
@@ -645,10 +646,24 @@ TEST(CpuFp8OpsTest, DynamicTensorScaleUsesAmaxAndMinimumWithoutLosingHostOracle)
         Tensor::from_vector({-0.01F, 0.01F}, {2}),
         DType::Float8E4M3FNUZ, 0.001F);
     EXPECT_FLOAT_EQ(minimum.scale_value, 0.001F);
+    const auto clipped = quantize_fp8_dynamic(
+        input, DType::Float8E4M3FNUZ, 0.001F, {}, 0.5F);
+    EXPECT_FLOAT_EQ(clipped.scale_value, 1.5F / 240.0F);
+    const auto clipped_values = dequantize_fp8(
+        clipped, DType::Float32).to_vector();
+    EXPECT_NEAR(clipped_values[0], -1.5F, 0.02F);
+    EXPECT_EQ(fp8_dynamic_quant_stats().clipped_tensor_calls, 1U);
+    const auto e5 = quantize_fp8_dynamic(
+        Tensor::from_vector({-57344.0F, 57344.0F}, {2}),
+        DType::Float8E5M2FNUZ, 0.001F);
+    EXPECT_FLOAT_EQ(e5.scale_value, 1.0F);
     EXPECT_THROW((void)quantize_fp8_dynamic(
                      Tensor::from_vector(
                          {std::numeric_limits<float>::infinity()}, {1}),
                      DType::Float8E4M3FNUZ, 0.001F),
+                 std::invalid_argument);
+    EXPECT_THROW((void)quantize_fp8_dynamic(
+                     input, DType::Float8E4M3FNUZ, 0.001F, {}, 0.0F),
                  std::invalid_argument);
 }
 

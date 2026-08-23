@@ -333,5 +333,7 @@ the next gate. Records are append-only except for factual corrections.
   rejected Q/K/V/O routing experiment and removal after O-only dominance.
 - [2026-08-23-fp8-attention-output-scope.md](2026-08-23-fp8-attention-output-scope.md):
   O-projection-only routing and long-context counterfactual contract.
+- [2026-08-23-fp8-clipped-dynamic-quantization.md](2026-08-23-fp8-clipped-dynamic-quantization.md):
+  explicit amax fraction, finite saturation and E4M3/E5M2 format maxima.
 - [2026-08-21-divergent-row-cache-reference.md](2026-08-21-divergent-row-cache-reference.md):
   unequal-position shared-Storage B1 oracle with CPU/HIP and reset-prefix gates.

@@ -35,6 +35,8 @@ needed to run a real training and generation loop:
   training policy, and KV-cache decode;
 - opt-in FP8 scalar, device Tensor-amax and FFN-only outer-row activation policies with
   explicit native/fallback counters; none is a default precision claim;
+- explicit clipped dynamic FP8 Tensor quantization with finite saturation, a compatibility-preserving
+  fraction of 1.0, and separate clipped-call counters; model clipping is not enabled by default;
 - host and device-only FP8 weight-amax preparation policies with separate scan/transfer
   evidence; device mode does not copy weight payloads to CPU;
 - opt-in device per-output-column FP8 weight preparation with native scalar GEMM plus an

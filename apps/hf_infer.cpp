@@ -1243,6 +1243,8 @@ int main(int argc, char** argv) {
                       << microllm::ops::fp8_dynamic_quant_stats().column_calls
                       << ",\"fp8_dynamic_column_elements\":"
                       << microllm::ops::fp8_dynamic_quant_stats().column_elements
+                      << ",\"fp8_dynamic_clipped_tensor_calls\":"
+                      << microllm::ops::fp8_dynamic_quant_stats().clipped_tensor_calls
                       << ",\"request_count\":" << prompts.size()
                       << ",\"continuous_slots\":" << command.continuous_slots
                       << ",\"bucketed_cache\":"
@@ -1696,6 +1698,8 @@ int main(int argc, char** argv) {
                   << microllm::ops::fp8_dynamic_quant_stats().column_calls
                   << ",\"fp8_dynamic_column_elements\":"
                   << microllm::ops::fp8_dynamic_quant_stats().column_elements
+                  << ",\"fp8_dynamic_clipped_tensor_calls\":"
+                  << microllm::ops::fp8_dynamic_quant_stats().clipped_tensor_calls
                   << ",\"fp8_activation_scale\":"
                   << command.fp8_activation_scale
                   << ",\"fp8_activation_minimum_scale\":"

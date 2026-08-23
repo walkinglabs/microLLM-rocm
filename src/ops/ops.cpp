@@ -19,6 +19,12 @@ namespace {
 
 thread_local Fp8DynamicQuantStats dynamic_quant_stats;
 
+float fp8_finite_maximum(DType dtype) {
+    if (dtype == DType::Float8E4M3FNUZ) return 240.0F;
+    if (dtype == DType::Float8E5M2FNUZ) return 57344.0F;
+    throw std::invalid_argument("FP8 maximum requires an FNUZ dtype");
+}
+
 void require_float(const Tensor& tensor, const char* name) {
     if (!tensor.defined()) throw std::invalid_argument(std::string(name) + " is undefined");
     if (tensor.dtype() != DType::Float32) {
@@ -360,7 +366,7 @@ ScaledTensor quantize_fp8(const Tensor& input, DType fp8_dtype, float scale,
 
 ScaledTensor quantize_fp8_dynamic(
     const Tensor& input, DType fp8_dtype, float minimum_scale,
-    [[maybe_unused]] const OpContext& context) {
+    [[maybe_unused]] const OpContext& context, float maximum_fraction) {
     if (!input.defined() || (input.dtype() != DType::Float32 &&
                              input.dtype() != DType::Float16 &&
                              input.dtype() != DType::BFloat16) ||
@@ -369,11 +375,13 @@ ScaledTensor quantize_fp8_dynamic(
             "dynamic FP8 quantize requires contiguous FP32, FP16, or BF16 input");
     }
     if (!is_fp8_fnuz(fp8_dtype) || !std::isfinite(minimum_scale) ||
-        minimum_scale <= 0.0F) {
+        minimum_scale <= 0.0F || !std::isfinite(maximum_fraction) ||
+        maximum_fraction <= 0.0F || maximum_fraction > 1.0F) {
         throw std::invalid_argument(
-            "dynamic FP8 quantize requires an FNUZ dtype and positive minimum scale");
+            "dynamic FP8 quantize requires an FNUZ dtype, positive minimum scale, and maximum fraction in (0,1]");
     }
     ++dynamic_quant_stats.tensor_calls;
+    if (maximum_fraction < 1.0F) ++dynamic_quant_stats.clipped_tensor_calls;
     dynamic_quant_stats.tensor_elements += static_cast<std::uint64_t>(input.numel());
     if (input.device().is_cpu()) {
         const auto values = input.to_vector();
@@ -385,9 +393,19 @@ ScaledTensor quantize_fp8_dynamic(
             }
             maximum = std::max(maximum, std::abs(value));
         }
-        return quantize_fp8(
-            input, fp8_dtype, std::max(maximum / 240.0F, minimum_scale),
-            context);
+        const auto quantized_maximum = fp8_finite_maximum(fp8_dtype);
+        const auto scale = std::max(
+            maximum * maximum_fraction / quantized_maximum, minimum_scale);
+        if (maximum_fraction < 1.0F) {
+            auto quantized = input.to_vector();
+            for (auto& value : quantized) {
+                value = std::clamp(value / scale, -quantized_maximum,
+                                   quantized_maximum);
+            }
+            return {Tensor::from_vector(quantized, input.shape(), fp8_dtype),
+                    Tensor::from_vector({scale}, {}, DType::Float32), scale};
+        }
+        return quantize_fp8(input, fp8_dtype, scale, context);
     }
     Tensor scale(Shape{}, DType::Float32, input.device());
     Tensor output(input.shape(), fp8_dtype, input.device());
@@ -399,7 +417,7 @@ ScaledTensor quantize_fp8_dynamic(
         input.data(), input.dtype(), output.data(), fp8_dtype,
         static_cast<float*>(scale.data()),
         static_cast<float*>(partial_maxima.data()), partial_count,
-        input.numel(), minimum_scale,
+        input.numel(), minimum_scale, maximum_fraction,
         context.native_stream(input.device()));
     return {std::move(output), std::move(scale), minimum_scale, false};
 #else
