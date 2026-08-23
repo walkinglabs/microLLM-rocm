@@ -168,7 +168,9 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [ ] define an FFN-only row-scale output-rescaling contract compatible with hipBLASLt;
 - [x] confirm the installed hipBLASLt exposes native FP32 outer-vector scale mode and
   derive that user-left row scales map to descriptor B after row-major transpose submission;
-- [ ] implement/test `Scalar/OuterRow` ScaledTensor modes and explicit unsupported-shape fallback;
+- [x] implement/test `Scalar/OuterRow`, row quantize/dequantize and FP32-output GEMM;
+  gfx942 returns status 3 for native outer-vector, so cache the capability and use device BF16 fallback;
+- [ ] connect OuterRow only to FFN activation inputs and measure precision/cost before any default claim;
 - [ ] replace the one-block reduction only if the next accepted numerical policy reuses it;
 - [ ] replace global FP8 scales with weight per-tensor and activation per-row/token amax,
   starting from saturation/trace evidence rather than top-token search;

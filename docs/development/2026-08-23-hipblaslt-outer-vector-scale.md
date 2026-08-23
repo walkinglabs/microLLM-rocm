@@ -26,3 +26,13 @@ M个row scales在当前hipBLASLt描述中属于`B_SCALE_POINTER/B_SCALE_MODE`；
 
 这是当前安装版本的本地头文件能力证据，不外推到所有ROCm版本。构建信息和正式probe结果会在
 实现节点中进入JSON。
+
+## gfx942执行结果
+
+实际`128³` E4M3-FNUZ probe对FP32和BF16输出都返回status 3。也就是说，当前头文件暴露API，
+但MI300X/当前库组合不接受这个数据类型与outer-vector模式。实现保留显式`OuterRow`合同，并在
+第一次失败后缓存能力结论，后续通过device row-scale反量化到BF16再GEMM；不会污染scalar shape
+registry，也不会每层重复提交已知失败的library call。
+
+HIP测试使用首行100倍幅值的矩阵证明row对应关系，fallback全程0 D2H；只有右侧固定weight
+scalar产生一次预期H2D。当前节点接受正确性fallback，不声称native vector scale已执行。

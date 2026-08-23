@@ -34,11 +34,14 @@ struct TensorTriple {
     Tensor third;
 };
 
+enum class Fp8ScaleMode { Scalar, OuterRow };
+
 struct ScaledTensor {
     Tensor values;
     Tensor scale;
     float scale_value = 1.0F;
     bool host_scale_available = true;
+    Fp8ScaleMode scale_mode = Fp8ScaleMode::Scalar;
 };
 
 struct Bf16FfnDiagnostics {
@@ -57,6 +60,9 @@ struct Bf16FfnDiagnostics {
 // Computes one scale for the complete input Tensor on its current device.
 // On HIP the returned scale Tensor is authoritative and no scalar is copied to host.
 [[nodiscard]] ScaledTensor quantize_fp8_dynamic(
+    const Tensor& input, DType fp8_dtype, float minimum_scale,
+    const OpContext& context = {});
+[[nodiscard]] ScaledTensor quantize_fp8_rows_dynamic(
     const Tensor& input, DType fp8_dtype, float minimum_scale,
     const OpContext& context = {});
 [[nodiscard]] Tensor dequantize_fp8(const ScaledTensor& input, DType output_dtype,

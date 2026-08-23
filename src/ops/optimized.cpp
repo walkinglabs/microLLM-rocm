@@ -34,6 +34,7 @@ thread_local std::map<MatmulShapeKey, bool> bf16_fp32_direct_registry;
 thread_local std::map<MatmulShapeKey, bool> fp8_fp32_direct_registry;
 thread_local std::map<MatmulShapeKey, bool> fp8_native_matrix_registry;
 thread_local std::size_t fp8_software_fallback_calls = 0;
+thread_local std::optional<bool> fp8_outer_row_native;
 #endif
 }  // namespace
 
@@ -161,6 +162,14 @@ void set_scale_pointer(hipblasLtMatmulDesc_t description,
     check_status(hipblasLtMatmulDescSetAttribute(
                      description, attribute, &pointer, sizeof(pointer)),
                  "hipblasLtMatmulDescSetAttribute(scale)");
+}
+
+void set_scale_mode(hipblasLtMatmulDesc_t description,
+                    hipblasLtMatmulDescAttributes_t attribute,
+                    hipblasLtMatmulMatrixScale_t mode) {
+    check_status(hipblasLtMatmulDescSetAttribute(
+                     description, attribute, &mode, sizeof(mode)),
+                 "hipblasLtMatmulDescSetAttribute(scale mode)");
 }
 
 class MatmulDescription {
@@ -421,6 +430,12 @@ Tensor hipblaslt_fp8_matmul(const ScaledTensor& left, const ScaledTensor& right,
     const auto inner = left.values.shape()[1];
     const auto columns = right.values.shape()[1];
     if (right.values.shape()[0] != inner) throw std::invalid_argument("FP8 matmul inner mismatch");
+    if (right.scale_mode != Fp8ScaleMode::Scalar || right.scale.numel() != 1 ||
+        (left.scale_mode == Fp8ScaleMode::Scalar && left.scale.numel() != 1) ||
+        (left.scale_mode == Fp8ScaleMode::OuterRow && left.scale.numel() != rows)) {
+        throw std::invalid_argument(
+            "FP8 matmul supports scalar right scale and scalar or outer-row left scale");
+    }
     const MatmulShapeKey shape{rows, inner, columns};
     const auto bf16_software_fallback = [&] {
         ++fp8_software_fallback_calls;
@@ -431,6 +446,10 @@ Tensor hipblaslt_fp8_matmul(const ScaledTensor& left, const ScaledTensor& right,
         return bf16_matmul_output(
             left_bf16, right_bf16, output_dtype, context);
     };
+    if (left.scale_mode == Fp8ScaleMode::OuterRow &&
+        fp8_outer_row_native.has_value() && !*fp8_outer_row_native) {
+        return bf16_software_fallback();
+    }
     const auto native = fp8_native_matrix_registry.find(shape);
     if (native != fp8_native_matrix_registry.end() && !native->second) {
         return bf16_software_fallback();
@@ -452,6 +471,10 @@ Tensor hipblaslt_fp8_matmul(const ScaledTensor& left, const ScaledTensor& right,
                       right.scale.data());
     set_scale_pointer(operation.get(), HIPBLASLT_MATMUL_DESC_B_SCALE_POINTER,
                       left.scale.data());
+    if (left.scale_mode == Fp8ScaleMode::OuterRow) {
+        set_scale_mode(operation.get(), HIPBLASLT_MATMUL_DESC_B_SCALE_MODE,
+                       HIPBLASLT_MATMUL_MATRIX_SCALE_OUTER_VEC_32F);
+    }
     Layout matrix_b(hip_dtype(right.values.dtype()),
                     static_cast<std::uint64_t>(columns),
                     static_cast<std::uint64_t>(inner), columns);
@@ -469,11 +492,21 @@ Tensor hipblaslt_fp8_matmul(const ScaledTensor& left, const ScaledTensor& right,
         context.workspace_bytes,
         reinterpret_cast<hipStream_t>(context.native_stream(left.values.device())));
     if (status == HIPBLAS_STATUS_SUCCESS) {
+        if (left.scale_mode == Fp8ScaleMode::OuterRow) {
+            fp8_outer_row_native = true;
+        }
         fp8_native_matrix_registry[shape] = true;
         if (output_dtype == DType::Float32) {
             fp8_fp32_direct_registry[shape] = true;
         }
         return output;
+    }
+    if (left.scale_mode == Fp8ScaleMode::OuterRow &&
+        (status == HIPBLAS_STATUS_INVALID_VALUE ||
+         status == HIPBLAS_STATUS_INTERNAL_ERROR ||
+         status == HIPBLAS_STATUS_NOT_SUPPORTED)) {
+        fp8_outer_row_native = false;
+        return bf16_software_fallback();
     }
     if (output_dtype == DType::Float32 &&
         (status == HIPBLAS_STATUS_INTERNAL_ERROR ||
@@ -574,6 +607,7 @@ void clear_fp8_dispatch_registry() noexcept {
     fp8_fp32_direct_registry.clear();
     fp8_native_matrix_registry.clear();
     fp8_software_fallback_calls = 0;
+    fp8_outer_row_native.reset();
 #endif
 }
 

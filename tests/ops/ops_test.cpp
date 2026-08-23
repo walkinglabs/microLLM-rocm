@@ -652,6 +652,21 @@ TEST(CpuFp8OpsTest, DynamicTensorScaleUsesAmaxAndMinimumWithoutLosingHostOracle)
                  std::invalid_argument);
 }
 
+TEST(CpuFp8OpsTest, DynamicRowScalesPreserveIndependentRanges) {
+    const auto input = Tensor::from_vector(
+        {1.0F, -2.0F, 0.5F, 100.0F, -200.0F, 50.0F}, {2, 3});
+    const auto rows = quantize_fp8_rows_dynamic(
+        input, DType::Float8E4M3FNUZ, 1.0e-4F);
+    EXPECT_EQ(rows.scale_mode, Fp8ScaleMode::OuterRow);
+    EXPECT_FALSE(rows.host_scale_available);
+    const auto scales = rows.scale.to_vector();
+    ASSERT_EQ(scales.size(), 2U);
+    EXPECT_FLOAT_EQ(scales[0], 2.0F / 240.0F);
+    EXPECT_FLOAT_EQ(scales[1], 200.0F / 240.0F);
+    expect_near(dequantize_fp8(rows, DType::Float32).to_vector(),
+                input.to_vector(), 5.0F);
+}
+
 TEST(LowLevelOpsTest, OperatesOnCallerOwnedCpuBuffers) {
     const Shape shape{2, 2};
     const Strides strides{2, 1};

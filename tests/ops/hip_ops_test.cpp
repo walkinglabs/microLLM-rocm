@@ -484,6 +484,47 @@ TEST(HipFp8OpsTest, DynamicTensorScaleQuantizeAndDequantizeStayOnDevice) {
     expect_near(restored.to_vector(), cpu.to_vector(), 0.5F);
 }
 
+TEST(HipFp8OpsTest, OuterRowScaleGemmMatchesIndependentRangeReference) {
+    require_gpu();
+    if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";
+    constexpr std::int64_t size = 128;
+    std::vector<float> left_values(static_cast<std::size_t>(size * size));
+    std::vector<float> right_values(left_values.size());
+    for (std::int64_t row = 0; row < size; ++row) {
+        const auto factor = row == 0 ? 100.0F : 0.1F + static_cast<float>(row) / 128.0F;
+        for (std::int64_t column = 0; column < size; ++column) {
+            left_values[static_cast<std::size_t>(row * size + column)] =
+                factor * static_cast<float>((column % 7) - 3) / 3.0F;
+            right_values[static_cast<std::size_t>(row * size + column)] =
+                static_cast<float>((row + column) % 5 - 2) / 16.0F;
+        }
+    }
+    const auto left_cpu = Tensor::from_vector(left_values, {size, size});
+    const auto right_cpu = Tensor::from_vector(right_values, {size, size});
+    const auto gpu = Device::hip(0);
+    const auto left = left_cpu.to(gpu);
+    const auto right = right_cpu.to(gpu);
+    clear_fp8_dispatch_registry();
+    runtime::reset_transfer_stats();
+    const auto left_fp8 = quantize_fp8_rows_dynamic(
+        left, DType::Float8E4M3FNUZ, 1.0e-4F);
+    const auto right_fp8 = quantize_fp8(
+        right, DType::Float8E4M3FNUZ, 1.0F / 240.0F);
+    const auto output = fp8_matmul(left_fp8, right_fp8, DType::Float32);
+    runtime::synchronize(gpu);
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 1U);  // fixed right scalar only
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    EXPECT_EQ(fp8_dispatch_stats().software_fallback_calls, 1U);
+    const auto actual = output.to_vector();
+    const auto expected = matmul(left_cpu, right_cpu).to_vector();
+    float maximum = 0.0F;
+    for (std::size_t index = 0; index < actual.size(); ++index) {
+        maximum = std::max(maximum, std::abs(actual[index] - expected[index]));
+    }
+    EXPECT_LT(maximum, 8.0F);
+}
+
 TEST(HipFp8OpsTest, PreparedTransformerWeightsMatchLazyInferenceWithoutPayloadTransfers) {
     require_gpu();
     if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";

@@ -398,6 +398,54 @@ ScaledTensor quantize_fp8_dynamic(
 #endif
 }
 
+ScaledTensor quantize_fp8_rows_dynamic(
+    const Tensor& input, DType fp8_dtype, float minimum_scale,
+    [[maybe_unused]] const OpContext& context) {
+    if (!input.defined() || input.ndim() != 2 || !input.is_contiguous() ||
+        (input.dtype() != DType::Float32 && input.dtype() != DType::Float16 &&
+         input.dtype() != DType::BFloat16) || !is_fp8_fnuz(fp8_dtype) ||
+        !std::isfinite(minimum_scale) || minimum_scale <= 0.0F) {
+        throw std::invalid_argument(
+            "row FP8 quantize requires contiguous rank-two floating input, FNUZ output, and positive minimum scale");
+    }
+    const auto rows = input.shape()[0];
+    const auto columns = input.shape()[1];
+    if (input.device().is_cpu()) {
+        const auto values = input.to_vector();
+        std::vector<float> scales(static_cast<std::size_t>(rows), minimum_scale);
+        auto quantized = values;
+        for (std::int64_t row = 0; row < rows; ++row) {
+            float maximum = 0.0F;
+            for (std::int64_t column = 0; column < columns; ++column) {
+                const auto value = values[static_cast<std::size_t>(row * columns + column)];
+                if (!std::isfinite(value)) throw std::invalid_argument("row FP8 quantize requires finite input");
+                maximum = std::max(maximum, std::abs(value));
+            }
+            scales[static_cast<std::size_t>(row)] =
+                std::max(maximum / 240.0F, minimum_scale);
+            for (std::int64_t column = 0; column < columns; ++column) {
+                quantized[static_cast<std::size_t>(row * columns + column)] /=
+                    scales[static_cast<std::size_t>(row)];
+            }
+        }
+        return {Tensor::from_vector(quantized, input.shape(), fp8_dtype),
+                Tensor::from_vector(scales, {rows}), minimum_scale, false,
+                Fp8ScaleMode::OuterRow};
+    }
+    Tensor scales({rows}, DType::Float32, input.device());
+    Tensor output(input.shape(), fp8_dtype, input.device());
+#if MICROLLM_HAS_HIP
+    hip::launch_quantize_fp8_rows_dynamic(
+        input.data(), input.dtype(), output.data(), fp8_dtype,
+        static_cast<float*>(scales.data()), rows, columns, minimum_scale,
+        context.native_stream(input.device()));
+    return {std::move(output), std::move(scales), minimum_scale, false,
+            Fp8ScaleMode::OuterRow};
+#else
+    throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+}
+
 Tensor dequantize_fp8(const ScaledTensor& input, DType output_dtype,
                       [[maybe_unused]] const OpContext& context) {
     if (!input.values.defined() || !is_fp8_fnuz(input.values.dtype())) {
@@ -407,8 +455,10 @@ Tensor dequantize_fp8(const ScaledTensor& input, DType output_dtype,
         output_dtype != DType::BFloat16) {
         throw std::invalid_argument("FP8 dequantize output must be FP32, FP16, or BF16");
     }
+    const auto expected_scales = input.scale_mode == Fp8ScaleMode::OuterRow
+                                     ? input.values.shape()[0] : 1;
     if (!input.scale.defined() || input.scale.dtype() != DType::Float32 ||
-        input.scale.numel() != 1 || input.scale.device() != input.values.device() ||
+        input.scale.numel() != expected_scales || input.scale.device() != input.values.device() ||
         !input.scale.is_contiguous()) {
         throw std::invalid_argument(
             "FP8 dequantize scale Tensor must be one contiguous same-device FP32 value");
@@ -420,16 +470,27 @@ Tensor dequantize_fp8(const ScaledTensor& input, DType output_dtype,
     }
     Tensor output(input.values.shape(), output_dtype, input.values.device());
     if (input.values.device().is_cpu()) {
-        if (!input.host_scale_available) {
-            throw std::invalid_argument(
-                "CPU FP8 dequantize requires an available host scale");
-        }
         auto values = input.values.to_vector();
-        for (auto& value : values) value *= input.scale_value;
+        if (input.scale_mode == Fp8ScaleMode::OuterRow) {
+            const auto scales = input.scale.to_vector();
+            const auto columns = input.values.shape()[1];
+            for (std::size_t index = 0; index < values.size(); ++index) {
+                values[index] *= scales[index / static_cast<std::size_t>(columns)];
+            }
+        } else {
+            if (!input.host_scale_available) throw std::invalid_argument("CPU scalar FP8 dequantize requires host scale");
+            for (auto& value : values) value *= input.scale_value;
+        }
         return Tensor::from_vector(values, input.values.shape(), output_dtype);
     }
 #if MICROLLM_HAS_HIP
-    if (input.host_scale_available) {
+    if (input.scale_mode == Fp8ScaleMode::OuterRow) {
+        hip::launch_dequantize_fp8_row_scales(
+            input.values.data(), input.values.dtype(), output.data(), output_dtype,
+            input.values.shape()[0], input.values.shape()[1],
+            static_cast<const float*>(input.scale.data()),
+            context.native_stream(input.values.device()));
+    } else if (input.host_scale_available) {
         hip::launch_dequantize_fp8(
             input.values.data(), input.values.dtype(), output.data(),
             output_dtype, input.values.numel(), input.scale_value,
