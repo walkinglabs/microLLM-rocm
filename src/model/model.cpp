@@ -878,6 +878,11 @@ public:
         } else {
             const auto activated = ops::swiglu(gate_.forward_tensor(flat),
                                                 up_.forward_tensor(flat));
+            auto* trace = profiling::TraceSession::current();
+            if (trace != nullptr &&
+                trace->options().record_all_layer_details) {
+                trace_detail(trace_prefix, "activated", activated);
+            }
             output = down_.forward_tensor(activated);
         }
         auto reshaped = output.reshape({batch, sequence, config_.dimension});
