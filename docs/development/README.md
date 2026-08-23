@@ -341,5 +341,7 @@ the next gate. Records are append-only except for factual corrections.
   archived single-oracle pilot and removal after the search direction closed.
 - [2026-08-23-fp8-mixed-e5-activation-probe.md](2026-08-23-fp8-mixed-e5-activation-probe.md):
   native E5M2-activation/E4M3-weight execution and explicit fallback counters.
+- [2026-08-23-fp8-e5-activation-model.md](2026-08-23-fp8-e5-activation-model.md):
+  ModelConfig/CLI format, mixed autograd and CPU/HIP Transformer gates.
 - [2026-08-21-divergent-row-cache-reference.md](2026-08-21-divergent-row-cache-reference.md):
   unequal-position shared-Storage B1 oracle with CPU/HIP and reset-prefix gates.

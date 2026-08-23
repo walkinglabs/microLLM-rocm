@@ -101,6 +101,10 @@ class HfFp8MatrixTest(unittest.TestCase):
             "output-channel-amax", "tensor-amax", "full",
             "attention-output-only")
         self.assertIn("weight scale scope=attention-output-only", output)
+        mixed = MATRIX.experiment_boundary(
+            "output-channel-amax", "tensor-amax", "full",
+            "attention-output-only", "e5m2-fnuz")
+        self.assertIn("activation format=e5m2-fnuz", mixed)
 
 
 if __name__ == "__main__":

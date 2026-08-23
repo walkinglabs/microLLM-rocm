@@ -247,6 +247,32 @@ TEST(TransformerModelTest, Fp8LinearPolicyRunsFullForwardLossAndBackward) {
     }
 }
 
+TEST(TransformerModelTest, Fp8E5ActivationRunsTrainingAndPreparedInference) {
+    auto training_config = tiny_config();
+    training_config.linear_precision = LinearPrecision::Float8E4M3FNUZ;
+    training_config.fp8_activation_format = Fp8ActivationFormat::E5M2FNUZ;
+    TransformerModel training(training_config, 17);
+    const auto tokens = Tensor::from_int32_vector({1, 2, 3, 4}, {1, 4});
+    const auto targets = Tensor::from_int32_vector({2, 3, 4, 5}, {1, 4});
+    const auto loss = training.loss(tokens, targets);
+    loss.backward();
+    EXPECT_TRUE(std::isfinite(loss.data().to_vector()[0]));
+    for (const auto& [name, parameter] : training.named_parameters()) {
+        EXPECT_EQ(parameter->data().dtype(), DType::Float32) << name;
+        EXPECT_EQ(parameter->grad().dtype(), DType::Float32) << name;
+    }
+
+    auto inference_config = training_config;
+    inference_config.fp8_weight_scale_mode = Fp8WeightScaleMode::DeviceTensorAmax;
+    inference_config.fp8_activation_scale_mode = Fp8ActivationScaleMode::TensorAmax;
+    TransformerModel inference(inference_config, 17);
+    (void)inference.prepare_fp8_inference_weights();
+    ops::clear_fp8_dynamic_quant_stats();
+    const auto logits = inference.forward_inference(tokens).to_vector();
+    EXPECT_EQ(ops::fp8_dynamic_quant_stats().tensor_calls, 5U);
+    for (const auto value : logits) EXPECT_TRUE(std::isfinite(value));
+}
+
 TEST(TransformerModelTest, Fp8InferencePreparationCachesOneByteLinearWeights) {
     auto config = tiny_config();
     config.linear_precision = LinearPrecision::Float8E4M3FNUZ;

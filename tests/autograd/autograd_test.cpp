@@ -50,6 +50,24 @@ TEST(AutogradTest, Fp8MatmulUsesQuantizedForwardAndFp32MasterGradients) {
     EXPECT_EQ(right.grad().to_vector(), reference_right.grad().to_vector());
 }
 
+TEST(AutogradTest, MixedFp8FormatsUseE5ActivationE4WeightAndFp32Gradients) {
+    Value left(Tensor::from_vector(
+        {1, -20, 300, 4, 50, -1000}, {2, 3}), true);
+    Value right(Tensor::from_vector({1, 2, 3, 4, 5, 6}, {3, 2}), true);
+    const auto output = fp8_matmul(
+        left, right, 1000.0F / 57344.0F, 6.0F / 240.0F,
+        DType::Float8E5M2FNUZ, DType::Float8E4M3FNUZ);
+    const auto expected = ops::fp8_matmul(
+        ops::quantize_fp8(left.data(), DType::Float8E5M2FNUZ,
+                          1000.0F / 57344.0F),
+        ops::quantize_fp8(right.data(), DType::Float8E4M3FNUZ,
+                          6.0F / 240.0F), DType::Float32);
+    EXPECT_EQ(output.data().to_vector(), expected.to_vector());
+    mean(output).backward();
+    EXPECT_EQ(left.grad().dtype(), DType::Float32);
+    EXPECT_EQ(right.grad().dtype(), DType::Float32);
+}
+
 TEST(AutogradTest, Bf16MatmulUsesRoundedForwardAndFp32MasterGradients) {
     Value left(Tensor::from_vector({1.1F, -2.2F, 3.3F, 4.4F, 0.55F, -0.27F}, {2, 3}), true);
     Value right(Tensor::from_vector({1.2F, 2.3F, 3.4F, 4.5F, 5.6F, 6.7F}, {3, 2}), true);

@@ -155,6 +155,15 @@ python3 benchmarks/single_gpu/hf_fp8_weight_audit.py \
   --device cuda:0
 ```
 
+Activation格式也必须作为显式单变量测试：
+
+```bash
+--fp8-linear true \
+--fp8-activation-format e5m2-fnuz
+```
+
+权重仍是E4M3。E5M2范围更大但尾数更少，不能从名称判断更准，必须回到完整logits。
+
 Exp146曾实现独立LM head最小范围，但同revision control证明Max/RMS完全不变，因此公共scope已
 删除。命令和失败证据仍保存在[Experiment 146](../optimization-log/experiments/146-fp8-output-head-only.md)，
 不能继续复制旧参数当作当前API。

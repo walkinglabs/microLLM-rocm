@@ -509,6 +509,45 @@ TEST(HipFp8TrainingTest, TransformerLinearPolicyRunsEndToEndOnMi300) {
     for (const auto value : decode_logits.to_vector()) EXPECT_TRUE(std::isfinite(value));
 }
 
+TEST(HipFp8OpsTest, E5ActivationTransformerUsesMixedNativeFormats) {
+    require_gpu();
+    model::ModelConfig config{.vocabulary_size = 16,
+                              .dimension = 8,
+                              .layers = 1,
+                              .heads = 2,
+                              .kv_heads = 1,
+                              .ffn_dimension = 16,
+                              .max_sequence_length = 8,
+                              .rope_base = 10000.0F,
+                              .tie_embeddings = false,
+                              .linear_precision =
+                                  model::LinearPrecision::Float8E4M3FNUZ,
+                              .fp8_activation_scale = 0.2F,
+                              .fp8_activation_minimum_scale = 1.0e-4F,
+                              .fp8_weight_scale = 1.0e-4F,
+                              .fp8_weight_scale_mode =
+                                  model::Fp8WeightScaleMode::DeviceTensorAmax,
+                              .fp8_activation_scale_mode =
+                                  model::Fp8ActivationScaleMode::TensorAmax,
+                              .fp8_activation_format =
+                                  model::Fp8ActivationFormat::E5M2FNUZ};
+    model::TransformerModel transformer(config, 253);
+    const auto gpu = Device::hip(0);
+    transformer.to(gpu);
+    (void)transformer.prepare_fp8_inference_weights();
+    const auto tokens = Tensor::from_int32_vector({1, 2, 3, 4}, {1, 4}).to(gpu);
+    clear_fp8_dispatch_registry();
+    runtime::reset_transfer_stats();
+    const auto output = transformer.forward_inference(tokens);
+    runtime::synchronize(gpu);
+    const auto transfers = runtime::transfer_stats();
+    const auto dispatch = fp8_dispatch_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    EXPECT_GT(dispatch.native_shapes + dispatch.software_fallback_shapes, 0U);
+    for (const auto value : output.to_vector()) EXPECT_TRUE(std::isfinite(value));
+}
+
 TEST(HipFp8OpsTest, DynamicTensorScaleQuantizeAndDequantizeStayOnDevice) {
     require_gpu();
     const auto gpu = Device::hip(0);

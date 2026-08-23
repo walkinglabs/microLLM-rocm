@@ -55,7 +55,8 @@ private:
     friend Value scale(const Value&, float);
     friend Value matmul(const Value&, const Value&);
     friend Value matmul(const Value&, const Value&, bool, bool);
-    friend Value fp8_matmul(const Value&, const Value&, float, float, DType);
+    friend Value fp8_matmul(const Value&, const Value&, float, float, DType,
+                            DType);
     friend Value bf16_matmul(const Value&, const Value&);
     friend Value bf16_matmul(const Value&, const Value&, const Tensor&);
     friend Value sum(const Value&);
@@ -91,7 +92,8 @@ private:
 // FP8 forward with FP32 master inputs and straight-through FP32 gradients.
 [[nodiscard]] Value fp8_matmul(const Value& left, const Value& right,
                                float left_scale, float right_scale,
-                               DType fp8_dtype = DType::Float8E4M3FNUZ);
+                               DType left_fp8_dtype = DType::Float8E4M3FNUZ,
+                               DType right_fp8_dtype = DType::Float8E4M3FNUZ);
 // BF16 rounded forward with FP32 master/straight-through gradients.
 [[nodiscard]] Value bf16_matmul(const Value& left, const Value& right);
 // Uses a caller-owned BF16 mirror for forward while gradients target the FP32 master.

@@ -322,6 +322,9 @@ public:
                   ? ffn_linear ? Fp8ActivationScaleMode::FfnOuterRow
                                : Fp8ActivationScaleMode::Fixed
                   : config.fp8_activation_scale_mode),
+          activation_fp8_dtype_(
+              config.fp8_activation_format == Fp8ActivationFormat::E5M2FNUZ
+                  ? DType::Float8E5M2FNUZ : DType::Float8E4M3FNUZ),
           has_bias_(with_bias) {
         if (has_bias_) {
             bias_ = Value(Tensor({output}), true);
@@ -347,7 +350,9 @@ public:
                 throw std::logic_error(
                     "FP8 tensor-amax scale is inference-only");
             }
-            return autograd::fp8_matmul(input, weight_, activation_scale_, weight_scale_);
+            return autograd::fp8_matmul(
+                input, weight_, activation_scale_, weight_scale_,
+                activation_fp8_dtype_, DType::Float8E4M3FNUZ);
         }
         return autograd::matmul(input, weight_);
     }
@@ -367,10 +372,10 @@ public:
         }
         return activation_scale_mode_ == Fp8ActivationScaleMode::FfnOuterRow
                    ? ops::quantize_fp8_rows_dynamic(
-                         input, DType::Float8E4M3FNUZ,
+                         input, activation_fp8_dtype_,
                          activation_minimum_scale_)
                    : ops::quantize_fp8_dynamic(
-                         input, DType::Float8E4M3FNUZ,
+                         input, activation_fp8_dtype_,
                          activation_minimum_scale_);
     }
     Tensor forward_scaled_input_without_bias(
@@ -440,18 +445,18 @@ public:
             ops::ScaledTensor scaled_input;
             if (activation_scale_mode_ == Fp8ActivationScaleMode::TensorAmax) {
                 scaled_input = ops::quantize_fp8_dynamic(
-                    input, DType::Float8E4M3FNUZ, activation_minimum_scale_);
+                    input, activation_fp8_dtype_, activation_minimum_scale_);
             } else if (activation_scale_mode_ ==
                        Fp8ActivationScaleMode::FfnOuterRow) {
                 scaled_input = ops::quantize_fp8_rows_dynamic(
-                    input, DType::Float8E4M3FNUZ, activation_minimum_scale_);
+                    input, activation_fp8_dtype_, activation_minimum_scale_);
             } else if (fp8_inference_activation_scale_.defined()) {
                 scaled_input = ops::quantize_fp8_with_scale(
-                    input, DType::Float8E4M3FNUZ, activation_scale_,
+                    input, activation_fp8_dtype_, activation_scale_,
                     fp8_inference_activation_scale_);
             } else {
                 scaled_input = ops::quantize_fp8(
-                    input, DType::Float8E4M3FNUZ, activation_scale_);
+                    input, activation_fp8_dtype_, activation_scale_);
             }
             return forward_scaled_input_without_bias(scaled_input);
         }
@@ -561,6 +566,7 @@ private:
     Fp8DiagnosticMode diagnostic_mode_ = Fp8DiagnosticMode::Full;
     Fp8ActivationScaleMode activation_scale_mode_ =
         Fp8ActivationScaleMode::Fixed;
+    DType activation_fp8_dtype_ = DType::Float8E4M3FNUZ;
     bool has_bias_ = false;
     Value bias_;
     Tensor bf16_training_weight_;

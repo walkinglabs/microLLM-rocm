@@ -283,7 +283,8 @@ Value matmul(const Value& left, const Value& right,
 }
 
 Value fp8_matmul(const Value& left, const Value& right,
-                 float left_scale, float right_scale, DType fp8_dtype) {
+                 float left_scale, float right_scale, DType left_fp8_dtype,
+                 DType right_fp8_dtype) {
     require_value(left, "left");
     require_value(right, "right");
     auto left_node = left.node_;
@@ -293,8 +294,10 @@ Value fp8_matmul(const Value& left, const Value& right,
     const auto left_forward = left.data().is_contiguous() ? left.data() : left.data().contiguous();
     const auto right_forward = right.data().is_contiguous() ? right.data() : right.data().contiguous();
     auto output = profiled_tensor("fp8_matmul", left.data().device(), [&] {
-        const auto quantized_left = ops::quantize_fp8(left_forward, fp8_dtype, left_scale);
-        const auto quantized_right = ops::quantize_fp8(right_forward, fp8_dtype, right_scale);
+        const auto quantized_left = ops::quantize_fp8(
+            left_forward, left_fp8_dtype, left_scale);
+        const auto quantized_right = ops::quantize_fp8(
+            right_forward, right_fp8_dtype, right_scale);
         return ops::fp8_matmul(quantized_left, quantized_right, DType::Float32);
     });
     return operation("fp8_matmul", std::move(output), {left_node, right_node},
