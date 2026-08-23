@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <set>
 #include <string>
 
@@ -233,6 +234,9 @@ TEST(TransformerModelTest, Fp8InferencePreparationCachesOneByteLinearWeights) {
     EXPECT_EQ(report.fp32_bytes_released, report.fp8_bytes_retained * 4U);
     EXPECT_EQ(report.scale_bytes_retained,
               report.converted_tensors * 2U * sizeof(float));
+    EXPECT_EQ(report.weight_bytes_scanned, 0U);
+    EXPECT_FLOAT_EQ(report.minimum_weight_scale, config.fp8_weight_scale);
+    EXPECT_FLOAT_EQ(report.maximum_weight_scale, config.fp8_weight_scale);
     EXPECT_TRUE(model.fp8_inference_weights_prepared());
     std::size_t fp8_weights = 0;
     for (const auto& [name, parameter] : model.named_parameters()) {
@@ -254,6 +258,61 @@ TEST(TransformerModelTest, Fp8InferencePreparationCachesOneByteLinearWeights) {
         config, 19, ParameterInitialization::Uninitialized);
     EXPECT_THROW((void)unloaded.prepare_fp8_inference_weights(),
                  std::logic_error);
+}
+
+TEST(TransformerModelTest, Fp8TensorAmaxPreparationReportsIndependentWeightScales) {
+    auto config = tiny_config();
+    config.linear_precision = LinearPrecision::Float8E4M3FNUZ;
+    config.fp8_activation_scale = 0.2F;
+    config.fp8_weight_scale = 0.005F;
+    config.fp8_weight_scale_mode = Fp8WeightScaleMode::TensorAmax;
+    TransformerModel model(config, 23);
+    auto state = model.state_dict();
+    float multiplier = 1.0F;
+    for (auto& [name, tensor] : state) {
+        if (name.ends_with(".weight") && name.find("norm") == std::string::npos &&
+            name != "token_embedding.weight") {
+            auto values = tensor.to_vector();
+            for (auto& value : values) value *= multiplier;
+            tensor = Tensor::from_vector(values, tensor.shape());
+            multiplier *= 1.5F;
+        }
+    }
+    ASSERT_TRUE(model.load_state_dict(state).complete());
+    const auto report = model.prepare_fp8_inference_weights();
+    EXPECT_EQ(report.converted_tensors, 8U);
+    EXPECT_EQ(report.weight_bytes_scanned, report.fp32_bytes_released);
+    EXPECT_GT(report.minimum_weight_scale, 0.0F);
+    EXPECT_GT(report.maximum_weight_scale, report.minimum_weight_scale);
+    EXPECT_TRUE(model.fp8_inference_weights_prepared());
+    const auto tokens = Tensor::from_int32_vector({1, 2}, {1, 2});
+    EXPECT_THROW((void)model.forward(tokens), std::logic_error);
+}
+
+TEST(TransformerModelTest, Fp8TensorAmaxPreparationRejectsNonfiniteWeightTransactionally) {
+    auto config = tiny_config();
+    config.linear_precision = LinearPrecision::Float8E4M3FNUZ;
+    config.fp8_weight_scale_mode = Fp8WeightScaleMode::TensorAmax;
+    TransformerModel model(config, 29);
+    auto state = model.state_dict();
+    auto selected = std::find_if(
+        state.begin(), state.end(), [](const auto& entry) {
+            return entry.first.ends_with(".weight") &&
+                   entry.first.find("norm") == std::string::npos &&
+                   entry.first != "token_embedding.weight";
+        });
+    ASSERT_NE(selected, state.end());
+    auto values = selected->second.to_vector();
+    values[0] = std::numeric_limits<float>::infinity();
+    selected->second = Tensor::from_vector(values, selected->second.shape());
+    ASSERT_TRUE(model.load_state_dict(state).complete());
+    EXPECT_THROW((void)model.prepare_fp8_inference_weights(), std::invalid_argument);
+    EXPECT_FALSE(model.fp8_inference_weights_prepared());
+    for (const auto& [name, parameter] : model.named_parameters()) {
+        if (name.ends_with(".weight")) {
+            EXPECT_EQ(parameter->data().dtype(), DType::Float32) << name;
+        }
+    }
 }
 
 TEST(TransformerModelTest, Bf16LinearPolicyRunsFullForwardLossAndBackward) {

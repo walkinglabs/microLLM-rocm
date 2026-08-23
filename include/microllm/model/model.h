@@ -55,6 +55,9 @@ struct Fp8WeightPreparationReport {
     std::uint64_t fp32_bytes_released = 0;
     std::uint64_t fp8_bytes_retained = 0;
     std::uint64_t scale_bytes_retained = 0;
+    std::uint64_t weight_bytes_scanned = 0;
+    float minimum_weight_scale = 0.0F;
+    float maximum_weight_scale = 0.0F;
 };
 
 using Bf16FfnPreparationReport = Bf16WeightPreparationReport;
@@ -122,7 +125,8 @@ public:
     [[nodiscard]] Bf16WeightPreparationReport prepare_bf16_attention_inference();
     [[nodiscard]] bool bf16_attention_inference_prepared() const noexcept;
     // One-way inference preparation for every Linear. FP32 Embedding/Norm and
-    // a tied output head remain unchanged. Static scales come from ModelConfig.
+    // a tied output head remain unchanged. Weight scale is either fixed or
+    // computed independently from each Linear Tensor; activation scale remains fixed.
     [[nodiscard]] Fp8WeightPreparationReport prepare_fp8_inference_weights();
     [[nodiscard]] bool fp8_inference_weights_prepared() const noexcept;
     // Creates persistent BF16 forward mirrors for every Linear FP32 master.

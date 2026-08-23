@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstddef>
 #include <memory>
+#include <limits>
 #include <optional>
 #include <random>
 #include <set>
@@ -22,6 +23,22 @@ namespace microllm::model {
 namespace {
 
 using autograd::Value;
+
+constexpr float kFp8E4M3FnuzMaximum = 240.0F;
+
+float tensor_amax_scale(const Tensor& tensor, float zero_fallback) {
+    const auto values = tensor.to_vector();
+    float maximum = 0.0F;
+    for (const auto value : values) {
+        if (!std::isfinite(value)) {
+            throw std::invalid_argument(
+                "FP8 tensor-amax weight preparation requires finite values");
+        }
+        maximum = std::max(maximum, std::abs(value));
+    }
+    const auto result = maximum / kFp8E4M3FnuzMaximum;
+    return result > 0.0F ? result : zero_fallback;
+}
 
 void trace_detail(const std::string& prefix, const char* suffix,
                   const Tensor& tensor) {
@@ -287,7 +304,8 @@ public:
                             1.0F / std::sqrt(static_cast<float>(input)), initialization)),
           precision_(config.linear_precision),
           activation_scale_(config.fp8_activation_scale),
-          weight_scale_(config.fp8_weight_scale), has_bias_(with_bias) {
+          weight_scale_(config.fp8_weight_scale),
+          weight_scale_mode_(config.fp8_weight_scale_mode), has_bias_(with_bias) {
         if (has_bias_) {
             bias_ = Value(Tensor({output}), true);
             if (initialization == ParameterInitialization::Random) {
@@ -303,6 +321,10 @@ public:
                        : autograd::bf16_matmul(input, weight_);
         }
         if (precision_ == LinearPrecision::Float8E4M3FNUZ) {
+            if (weight_scale_mode_ == Fp8WeightScaleMode::TensorAmax) {
+                throw std::logic_error(
+                    "FP8 tensor-amax weight scale is inference-only");
+            }
             return autograd::fp8_matmul(input, weight_, activation_scale_, weight_scale_);
         }
         return autograd::matmul(input, weight_);
@@ -319,15 +341,17 @@ public:
                            : ops::cast(weight_.data(), DType::BFloat16));
         }
         if (precision_ == LinearPrecision::Float8E4M3FNUZ) {
-            const auto scaled_weight = fp8_inference_scale_.defined()
-                                           ? ops::ScaledTensor{
-                                                 weight_.data(),
-                                                 fp8_inference_scale_,
-                                                 weight_scale_}
-                                           : ops::quantize_fp8(
-                                                 weight_.data(),
-                                                 DType::Float8E4M3FNUZ,
-                                                 weight_scale_);
+            ops::ScaledTensor scaled_weight;
+            if (fp8_inference_scale_.defined()) {
+                scaled_weight = {weight_.data(), fp8_inference_scale_, weight_scale_};
+            } else {
+                const auto lazy_weight_scale =
+                    weight_scale_mode_ == Fp8WeightScaleMode::TensorAmax
+                        ? tensor_amax_scale(weight_.data(), weight_scale_)
+                        : weight_scale_;
+                scaled_weight = ops::quantize_fp8(
+                    weight_.data(), DType::Float8E4M3FNUZ, lazy_weight_scale);
+            }
             const auto scaled_input = fp8_inference_activation_scale_.defined()
                                           ? ops::quantize_fp8_with_scale(
                                                 input,
@@ -377,8 +401,11 @@ public:
             fp8_inference_scale_.defined()) {
             throw std::logic_error("Linear FP8 inference preparation is invalid");
         }
+        const auto scale = weight_scale_mode_ == Fp8WeightScaleMode::TensorAmax
+                               ? tensor_amax_scale(weight_.data(), weight_scale_)
+                               : weight_scale_;
         return ops::quantize_fp8(
-            weight_.data(), DType::Float8E4M3FNUZ, weight_scale_);
+            weight_.data(), DType::Float8E4M3FNUZ, scale);
     }
     [[nodiscard]] Tensor prepare_fp8_activation_scale_candidate() const {
         auto result = Tensor::from_vector(
@@ -389,6 +416,7 @@ public:
     }
     void commit_fp8_inference_candidate(
         ops::ScaledTensor candidate, Tensor activation_scale) {
+        weight_scale_ = candidate.scale_value;
         fp8_inference_scale_ = std::move(candidate.scale);
         fp8_inference_activation_scale_ = std::move(activation_scale);
         weight_ = Value(std::move(candidate.values), false);
@@ -408,6 +436,7 @@ private:
     LinearPrecision precision_ = LinearPrecision::Float32;
     float activation_scale_ = 1.0F;
     float weight_scale_ = 1.0F;
+    Fp8WeightScaleMode weight_scale_mode_ = Fp8WeightScaleMode::Fixed;
     bool has_bias_ = false;
     Value bias_;
     Tensor bf16_training_weight_;
@@ -1758,10 +1787,20 @@ Fp8WeightPreparationReport TransformerModel::prepare_fp8_inference_weights() {
         candidates.push_back({
             linear->prepare_fp8_inference_candidate(),
             linear->prepare_fp8_activation_scale_candidate()});
+        const auto actual_scale = candidates.back().weight.scale_value;
+        report.minimum_weight_scale = report.converted_tensors == 0
+                                          ? actual_scale
+                                          : std::min(report.minimum_weight_scale,
+                                                     actual_scale);
+        report.maximum_weight_scale = std::max(
+            report.maximum_weight_scale, actual_scale);
         ++report.converted_tensors;
         report.fp32_bytes_released += elements * sizeof(float);
         report.fp8_bytes_retained += elements;
         report.scale_bytes_retained += 2U * sizeof(float);
+        if (impl_->config.fp8_weight_scale_mode == Fp8WeightScaleMode::TensorAmax) {
+            report.weight_bytes_scanned += elements * sizeof(float);
+        }
     }
     runtime::synchronize(device());
     for (std::size_t index = 0; index < linears.size(); ++index) {

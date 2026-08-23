@@ -31,6 +31,8 @@ def options() -> argparse.Namespace:
     parser.add_argument("--runs", type=int, default=3)
     parser.add_argument("--fp8-activation-scale", type=float, default=0.025)
     parser.add_argument("--fp8-weight-scale", type=float, default=0.005)
+    parser.add_argument("--fp8-weight-scale-mode", choices=("fixed", "tensor-amax"),
+                        default="fixed")
     parser.add_argument("--physical-gpu-index", type=int)
     parser.add_argument("--max-idle-vram-percent", type=int, default=5)
     parser.add_argument("--max-idle-use-percent", type=int, default=10)
@@ -110,6 +112,7 @@ def command(args: argparse.Namespace, model: dict, context: int,
             "--fp8-linear", "true",
             "--fp8-activation-scale", str(args.fp8_activation_scale),
             "--fp8-weight-scale", str(args.fp8_weight_scale),
+            "--fp8-weight-scale-mode", args.fp8_weight_scale_mode,
         ])
     return result
 
@@ -198,6 +201,13 @@ def main() -> int:
                             "fp8_software_fallback_calls", 0),
                         "fp8_activation_scale": args.fp8_activation_scale,
                         "fp8_weight_scale": args.fp8_weight_scale,
+                        "fp8_weight_scale_mode": args.fp8_weight_scale_mode,
+                        "fp8_weight_scale_min": output.get(
+                            "fp8_weight_scale_min", 0.0),
+                        "fp8_weight_scale_max": output.get(
+                            "fp8_weight_scale_max", 0.0),
+                        "fp8_weight_bytes_scanned": output.get(
+                            "fp8_weight_bytes_scanned", 0),
                         "logit_count": len(values),
                         **comparison,
                     }
@@ -253,6 +263,7 @@ def main() -> int:
         "runs": args.runs, "warmup": args.warmup, "steps": args.steps,
         "fp8_activation_scale": args.fp8_activation_scale,
         "fp8_weight_scale": args.fp8_weight_scale,
+        "fp8_weight_scale_mode": args.fp8_weight_scale_mode,
         "rows": rows, "aggregates": aggregates,
         "accuracy_failure_count": len(accuracy_failures),
         "accuracy_failures": accuracy_failures,

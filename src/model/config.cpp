@@ -93,6 +93,9 @@ std::string ModelConfig::summary() const {
                    ? "fp32"
                    : linear_precision == LinearPrecision::BFloat16
                          ? "bf16_fp32_master" : "fp8_e4m3_fnuz")
+           << ",fp8_weight_scale_mode="
+           << (fp8_weight_scale_mode == Fp8WeightScaleMode::Fixed
+                   ? "fixed" : "tensor_amax")
            << ",rms_eps=" << rms_norm_epsilon
            << ",attention_bias=" << (attention_bias ? "true" : "false")
            << ",rope_layout=" << (rope_layout == RopeLayout::Interleaved ? "interleaved" : "split_half")

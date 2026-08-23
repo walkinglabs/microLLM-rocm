@@ -36,6 +36,15 @@ TEST(ModelConfigTest, Bf16LinearPolicyIsVisibleInSummary) {
               std::string::npos);
 }
 
+TEST(ModelConfigTest, Fp8TensorAmaxPolicyIsVisibleInSummary) {
+    auto config = ModelConfig::model_s();
+    config.linear_precision = LinearPrecision::Float8E4M3FNUZ;
+    config.fp8_weight_scale_mode = Fp8WeightScaleMode::TensorAmax;
+    config.validate();
+    EXPECT_NE(config.summary().find("fp8_weight_scale_mode=tensor_amax"),
+              std::string::npos);
+}
+
 TEST(ModelConfigTest, RejectsInvalidHeadAndRopeConfigurations) {
     auto config = ModelConfig::model_s();
     config.dimension = 383;
