@@ -174,6 +174,7 @@ int main(int argc, char** argv) {
         bool attention_context_layout_fusion = true;
         bool attention_layout_plan_cache = false;
         bool attention_gemm_scale_fusion = false;
+        bool attention_paired_gqa_repeat = false;
         for (int index = 1; index < argc; index += 2) {
             if (index + 1 >= argc) throw std::invalid_argument("missing CLI value");
             const std::string name = argv[index];
@@ -235,6 +236,14 @@ int main(int argc, char** argv) {
                 }
                 attention_gemm_scale_fusion = value == "true";
             }
+            else if (name == "--attention-paired-gqa-repeat") {
+                const std::string value = argv[index + 1];
+                if (value != "true" && value != "false") {
+                    throw std::invalid_argument(
+                        "--attention-paired-gqa-repeat must be true or false");
+                }
+                attention_paired_gqa_repeat = value == "true";
+            }
             else if (name == "--bf16-weight-mirrors") {
                 const std::string value = argv[index + 1];
                 if (value != "true" && value != "false") {
@@ -271,6 +280,8 @@ int main(int argc, char** argv) {
             attention_layout_plan_cache);
         microllm::ops::enable_attention_gemm_scale_fusion(
             attention_gemm_scale_fusion);
+        microllm::ops::enable_attention_paired_gqa_repeat(
+            attention_paired_gqa_repeat);
         if (!bf16_algorithms.empty() &&
             (linear_precision != "bf16" || device_text != "hip")) {
             throw std::invalid_argument(
@@ -445,6 +456,8 @@ int main(int argc, char** argv) {
                   << attention_plan_stats.misses
                   << ",\"attention_gemm_scale_fusion\":"
                   << (attention_gemm_scale_fusion ? "true" : "false")
+                  << ",\"attention_paired_gqa_repeat\":"
+                  << (attention_paired_gqa_repeat ? "true" : "false")
                   << ",\"measurement_profile\":\""
                   << (warmup > 0 || steps > 1 ? "comparison" : "smoke") << "\""
                   << ",\"loaded_tensors\":" << report.loaded.size()

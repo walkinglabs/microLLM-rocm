@@ -242,6 +242,8 @@ attention_layout_plan_cache_stats() noexcept;
 void clear_attention_layout_plan_cache() noexcept;
 void enable_attention_gemm_scale_fusion(bool enabled) noexcept;
 [[nodiscard]] bool attention_gemm_scale_fusion_enabled() noexcept;
+void enable_attention_paired_gqa_repeat(bool enabled) noexcept;
+[[nodiscard]] bool attention_paired_gqa_repeat_enabled() noexcept;
 void register_bf16_algorithm(std::int64_t rows, std::int64_t inner,
                              std::int64_t columns, DType output_dtype,
                              int solution_index);
@@ -433,6 +435,14 @@ void embedding_backward_add_(Tensor& weight_gradient, const Tensor& gradient,
                                                 const Shape& input_shape,
                                                 std::int64_t dim, std::int64_t repeats,
                                                 const OpContext& context = {});
+// Expands K[B,KV,T,D] and V[B,T,KV,D] to H=KV*repeats in one pass.
+[[nodiscard]] TensorPair repeat_gqa_kv_bthd(
+    const Tensor& key, const Tensor& value, std::int64_t repeats,
+    const OpContext& context = {});
+// Reduces expanded dK[B,H,T,D] and dV[B,T,H,D] to KV heads in one pass.
+[[nodiscard]] TensorPair repeat_gqa_kv_bthd_backward(
+    const Tensor& key_gradient, const Tensor& value_gradient,
+    std::int64_t repeats, const OpContext& context = {});
 
 // Cached decoding primitives. Cache storage is [B, kv_heads, capacity, width]
 // while its logical Tensor shape exposes only the initialized prefix. Query/current

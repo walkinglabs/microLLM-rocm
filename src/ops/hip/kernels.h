@@ -232,6 +232,17 @@ void launch_repeat_interleave_backward(const float* gradient, float* input_gradi
                                        std::int64_t input_elements,
                                        std::int64_t input_width, std::int64_t inner,
                                        std::int64_t repeats, void* stream = nullptr);
+void launch_repeat_gqa_kv_bthd(
+    const float* key, const float* value, float* expanded_key,
+    float* expanded_value, std::int64_t batches, std::int64_t kv_heads,
+    std::int64_t sequence, std::int64_t width, std::int64_t repeats,
+    void* stream = nullptr);
+void launch_repeat_gqa_kv_bthd_backward(
+    const float* key_gradient, const float* value_gradient,
+    float* reduced_key_gradient, float* reduced_value_gradient,
+    std::int64_t batches, std::int64_t kv_heads,
+    std::int64_t sequence, std::int64_t width, std::int64_t repeats,
+    void* stream = nullptr);
 void launch_kv_cache_store(const float* current, void* cache, DType cache_dtype,
                            std::int64_t batches, std::int64_t heads,
                            std::int64_t capacity,

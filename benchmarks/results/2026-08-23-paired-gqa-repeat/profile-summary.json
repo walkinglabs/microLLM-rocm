@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "model": "qwen2.5-0.5b",
+  "context": 512,
+  "executed_steps": 3,
+  "separate": {
+    "kernel_dispatches": 6907,
+    "kernel_time_ns": 110668341,
+    "repeat_forward_calls": 288,
+    "repeat_forward_time_ns": 1312478,
+    "repeat_backward_calls": 144,
+    "repeat_backward_time_ns": 792523
+  },
+  "paired": {
+    "kernel_dispatches": 6689,
+    "kernel_time_ns": 109359605,
+    "repeat_forward_calls": 144,
+    "repeat_forward_time_ns": 834547,
+    "repeat_backward_calls": 72,
+    "repeat_backward_time_ns": 495691
+  },
+  "ratios": {
+    "repeat_family_time": 0.631769,
+    "kernel_dispatches": 0.968438,
+    "kernel_time": 0.988174
+  },
+  "instrumented_throughput_used_for_decision": false
+}

@@ -23,7 +23,7 @@ def options() -> argparse.Namespace:
     parser.add_argument("--steps", type=int, default=2)
     parser.add_argument("--collect-diagnostics", action="store_true")
     parser.add_argument(
-        "--policy", choices=("rope", "context", "plan", "scale"), default="rope",
+        "--policy", choices=("rope", "context", "plan", "scale", "pair"), default="rope",
         help="the one layout policy changed by the A/B")
     result = parser.parse_args()
     if result.runs <= 0 or result.context < 2 or result.warmup < 0 or result.steps <= 0:
@@ -51,7 +51,8 @@ def command(args: argparse.Namespace, model: dict, enabled: bool,
     rope_enabled = enabled if args.policy == "rope" else True
     context_enabled = enabled if args.policy == "context" else True
     plan_cache_enabled = enabled if args.policy == "plan" else False
-    scale_fusion_enabled = enabled if args.policy == "scale" else True
+    scale_fusion_enabled = enabled if args.policy == "scale" else False
+    paired_repeat_enabled = enabled if args.policy == "pair" else False
     result = [
         str(args.binary),
         "--config", model["config"],
@@ -69,6 +70,7 @@ def command(args: argparse.Namespace, model: dict, enabled: bool,
         "--attention-context-layout-fusion", "true" if context_enabled else "false",
         "--attention-layout-plan-cache", "true" if plan_cache_enabled else "false",
         "--attention-gemm-scale-fusion", "true" if scale_fusion_enabled else "false",
+        "--attention-paired-gqa-repeat", "true" if paired_repeat_enabled else "false",
     ]
     if diagnostics:
         result.extend(("--diagnostics-output", str(diagnostics)))
@@ -90,6 +92,7 @@ def execute(args: argparse.Namespace, model: dict, enabled: bool,
         "context": "attention_context_layout_fusion",
         "plan": "attention_layout_plan_cache",
         "scale": "attention_gemm_scale_fusion",
+        "pair": "attention_paired_gqa_repeat",
     }[args.policy]
     if record.get(field) is not enabled:
         raise RuntimeError(f"{model['name']} reported the wrong layout policy")
@@ -183,6 +186,7 @@ def main() -> int:
         "track": ({
             "plan": "attention_layout_plan_cache",
             "scale": "attention_gemm_scale_fusion",
+            "pair": "attention_paired_gqa_repeat",
         }.get(args.policy, f"attention_{args.policy}_layout_fusion")),
         "policy": args.policy,
         "context": args.context,
@@ -192,7 +196,7 @@ def main() -> int:
         "aggregation": "median of fresh processes with alternating policy order",
         "comparisons": comparisons,
         "keep_gate": {
-            "throughput_ratio_minimum": 1.01 if args.policy in {"plan", "scale"} else 0.98,
+            "throughput_ratio_minimum": 1.01 if args.policy in {"plan", "scale", "pair"} else 0.98,
             "loss_relative_difference_maximum": 0.005,
             "observed_parameter_after_equal": True,
         },
@@ -200,17 +204,17 @@ def main() -> int:
     summary["gate_results"] = {
         "throughput": all(
             row["throughput_speedup"] >=
-            (1.01 if args.policy in {"plan", "scale"} else 0.98)
+            (1.01 if args.policy in {"plan", "scale", "pair"} else 0.98)
             for row in comparisons),
         "loss": all(
             row["loss_relative_difference"] <= 0.005 for row in comparisons),
         "parameter": all(
             row["observed_parameter_after_equal"] for row in comparisons),
-        ("strided_copy_unchanged_zero" if args.policy in {"plan", "scale"} else
+        ("strided_copy_unchanged_zero" if args.policy in {"plan", "scale", "pair"} else
          "strided_copy_reduced"): all(
             (row.get("strided_copy", {}).get("fused", {}).get("bytes") == 0 and
              row.get("strided_copy", {}).get("materialized", {}).get("bytes") == 0)
-            if args.policy in {"plan", "scale"} else
+            if args.policy in {"plan", "scale", "pair"} else
             row.get("strided_copy", {}).get("fused", {}).get("bytes", math.inf) <
             row.get("strided_copy", {}).get("materialized", {}).get("bytes", -math.inf)
             for row in comparisons) if args.collect_diagnostics else None,
@@ -222,6 +226,7 @@ def main() -> int:
         subject = {
             "plan": "plan cache",
             "scale": "GEMM scale fusion",
+            "pair": "paired GQA repeat",
         }.get(args.policy, "layout fusion")
         summary["decision"] = f"{'keep' if accepted else 'reject'} {subject}"
     (args.output_directory / "training.jsonl").write_text(

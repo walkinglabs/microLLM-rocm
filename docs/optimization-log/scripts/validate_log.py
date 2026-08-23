@@ -7327,6 +7327,51 @@ def validate_attention_gemm_scale_fusion_discard(
         int(deep.get("allocation_calls_saved", 0))
 
 
+def validate_paired_gqa_repeat_discard(
+        errors: list[str]) -> tuple[int, int, int]:
+    data = REPOSITORY / "benchmarks/results/2026-08-23-paired-gqa-repeat"
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    training = [json.loads(line) for line in (data / "training.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = {row["model"]: row for row in summary.get("comparisons", [])}
+    qwen = comparisons.get("qwen2.5-0.5b", {})
+    deep = comparisons.get("deepseek-r1-distill-qwen-1.5b", {})
+    profile = json.loads((data / "profile-summary.json").read_text(
+        encoding="utf-8"))
+    separate_calls = (profile.get("separate", {}).get("repeat_forward_calls", 0) +
+                      profile.get("separate", {}).get("repeat_backward_calls", 0))
+    paired_calls = (profile.get("paired", {}).get("repeat_forward_calls", 0) +
+                    profile.get("paired", {}).get("repeat_backward_calls", 0))
+    if verification.get("status") != "pass" or summary.get("status") != "pass" or \
+            summary.get("decision") != "reject paired GQA repeat" or \
+            verification.get("defaults") != {"engine": False, "training_cli": False} or \
+            verification.get("regression", {}).get("full_cpu_hip") != "403/403" or \
+            verification.get("regression", {}).get("hip_label") != "129/129" or \
+            len(training) != 12 or len(comparisons) != 2 or \
+            qwen.get("throughput_speedup", 2) >= 1.01 or \
+            deep.get("throughput_speedup", 2) >= 1.01 or \
+            qwen.get("observed_parameter_after_equal") is not True or \
+            deep.get("observed_parameter_after_equal") is not True or \
+            separate_calls != 432 or paired_calls != 216 or \
+            profile.get("paired", {}).get("kernel_dispatches", 10000) >= \
+            profile.get("separate", {}).get("kernel_dispatches", 0):
+        errors.append("paired GQA repeat rejection evidence changed")
+    source = (REPOSITORY / "src/ops/ops.cpp").read_text(encoding="utf-8")
+    cli = (REPOSITORY / "apps/hf_train_step.cpp").read_text(encoding="utf-8")
+    tests = "\n".join((REPOSITORY / path).read_text(encoding="utf-8") for path in (
+        "tests/ops/ops_test.cpp", "tests/ops/hip_ops_test.cpp",
+        "python/tests/test_operator_parity.py"))
+    if "attention_paired_gqa_repeat = false" not in source or \
+            "bool attention_paired_gqa_repeat = false" not in cli or \
+            "repeat_gqa_kv_bthd_backward" not in source or \
+            "PairedGqaRepeatForwardBackwardMatchSeparateWithoutTransfers" not in tests or \
+            "repeat_gqa_kv_bthd_backward_key" not in tests:
+        errors.append("paired GQA repeat default/source contract changed")
+    return len(training), separate_calls, paired_calls
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -7472,7 +7517,8 @@ def validate_assets(errors: list[str]) -> None:
                  "attention-context-layout-fusion.svg",
                  "post-layout-training-profile.svg",
                  "attention-layout-plan-cache-discard.svg",
-                 "attention-gemm-scale-fusion-discard.svg"):
+                 "attention-gemm-scale-fusion-discard.svg",
+                 "paired-gqa-repeat-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -7742,6 +7788,8 @@ def main() -> int:
         validate_attention_layout_plan_cache_discard(errors)
     scale_model_rows, scale_qwen_allocations, scale_deep_allocations = \
         validate_attention_gemm_scale_fusion_discard(errors)
+    paired_model_rows, paired_separate_calls, paired_fused_calls = \
+        validate_paired_gqa_repeat_discard(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -7957,6 +8005,8 @@ def main() -> int:
           f"{plan_route_rows} "
           f"attention_scale={scale_model_rows}/{scale_qwen_allocations}/"
           f"{scale_deep_allocations} "
+          f"paired_gqa={paired_model_rows}/{paired_separate_calls}/"
+          f"{paired_fused_calls} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

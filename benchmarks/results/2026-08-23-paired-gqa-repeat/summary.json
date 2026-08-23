@@ -1,0 +1,107 @@
+{
+  "aggregation": "median of fresh processes with alternating policy order",
+  "comparisons": [
+    {
+      "allocation_calls_saved": 0.0,
+      "loss_relative_difference": 0.00018672108489150568,
+      "model": "qwen2.5-0.5b",
+      "observed_parameter_after_equal": true,
+      "peak_bytes_saved": 0.0,
+      "peak_ratio": 1.0,
+      "policies": {
+        "fused": {
+          "engine_allocation_calls": 3340.0,
+          "engine_peak_bytes": 11824424968.0,
+          "final_loss": 0.016910728,
+          "mean_optimizer_ms": 13.462398,
+          "mean_step_ms": 34.311726,
+          "observed_parameter_after": 7.468718052,
+          "tokens_per_second": 14922.012375594
+        },
+        "materialized": {
+          "engine_allocation_calls": 3340.0,
+          "engine_peak_bytes": 11824424968.0,
+          "final_loss": 0.016907571,
+          "mean_optimizer_ms": 13.3750015,
+          "mean_step_ms": 33.481175,
+          "observed_parameter_after": 7.468718052,
+          "tokens_per_second": 15292.17537915
+        }
+      },
+      "strided_copy": {
+        "fused": {
+          "bytes": 0,
+          "calls": 0,
+          "elements": 0
+        },
+        "materialized": {
+          "bytes": 0,
+          "calls": 0,
+          "elements": 0
+        }
+      },
+      "throughput_speedup": 0.9757939603504224
+    },
+    {
+      "allocation_calls_saved": 0.0,
+      "loss_relative_difference": 0.0,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "observed_parameter_after_equal": true,
+      "peak_bytes_saved": 0.0,
+      "peak_ratio": 1.0,
+      "policies": {
+        "fused": {
+          "engine_allocation_calls": 3896.0,
+          "engine_peak_bytes": 37102645256.0,
+          "final_loss": 4.036802292,
+          "mean_optimizer_ms": 49.859514,
+          "mean_step_ms": 80.7103905,
+          "observed_parameter_after": 2.124970913,
+          "tokens_per_second": 6343.668972832
+        },
+        "materialized": {
+          "engine_allocation_calls": 3896.0,
+          "engine_peak_bytes": 37102645256.0,
+          "final_loss": 4.036802292,
+          "mean_optimizer_ms": 49.6754515,
+          "mean_step_ms": 81.3849785,
+          "observed_parameter_after": 2.124970913,
+          "tokens_per_second": 6291.087242838
+        }
+      },
+      "strided_copy": {
+        "fused": {
+          "bytes": 0,
+          "calls": 0,
+          "elements": 0
+        },
+        "materialized": {
+          "bytes": 0,
+          "calls": 0,
+          "elements": 0
+        }
+      },
+      "throughput_speedup": 1.0083581307911222
+    }
+  ],
+  "context": 512,
+  "decision": "reject paired GQA repeat",
+  "gate_results": {
+    "loss": true,
+    "parameter": true,
+    "strided_copy_unchanged_zero": true,
+    "throughput": false
+  },
+  "keep_gate": {
+    "loss_relative_difference_maximum": 0.005,
+    "observed_parameter_after_equal": true,
+    "throughput_ratio_minimum": 1.01
+  },
+  "policy": "pair",
+  "runs_per_model_policy": 3,
+  "schema_version": 1,
+  "status": "pass",
+  "steps": 2,
+  "track": "attention_paired_gqa_repeat",
+  "warmup": 1
+}

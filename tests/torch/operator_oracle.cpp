@@ -167,6 +167,18 @@ void emit_forward_cases() {
                   1, 0, 0.5F, 0.5F}, {1, 2, 2, 2}),
              f32({1, 2, 10, 20, 3, 4, 30, 40}, {1, 2, 2, 2})));
     emit("repeat_interleave", repeat_interleave(f32({1, 2, 3, 4}, {2, 2}), 0, 2));
+    const auto paired_repeat = repeat_gqa_kv_bthd(
+        f32({1, 2, 3, 4, 10, 20, 30, 40}, {1, 2, 2, 2}),
+        f32({5, 6, 50, 60, 7, 8, 70, 80}, {1, 2, 2, 2}), 2);
+    emit("repeat_gqa_kv_bthd_key", paired_repeat.first);
+    emit("repeat_gqa_kv_bthd_value", paired_repeat.second);
+    const auto paired_repeat_backward = repeat_gqa_kv_bthd_backward(
+        f32({1, 2, 3, 4, 5, 6, 7, 8,
+             9, 10, 11, 12, 13, 14, 15, 16}, {1, 4, 2, 2}),
+        f32({16, 15, 14, 13, 12, 11, 10, 9,
+             8, 7, 6, 5, 4, 3, 2, 1}, {1, 2, 4, 2}), 2);
+    emit("repeat_gqa_kv_bthd_backward_key", paired_repeat_backward.first);
+    emit("repeat_gqa_kv_bthd_backward_value", paired_repeat_backward.second);
 }
 
 void emit_low_precision_forward_cases() {
@@ -500,6 +512,10 @@ void emit_invalid_shape_cases() {
                       Tensor({1, 3, 2, 2}), 2, 0.5F);
               }));
     emit_bool("invalid_repeat_count", rejected([&] { (void)repeat_interleave(matrix, 0, 0); }));
+    emit_bool("invalid_repeat_gqa_kv_bthd_shape", rejected([&] {
+                  (void)repeat_gqa_kv_bthd(
+                      Tensor({1, 2, 3, 2}), Tensor({1, 3, 1, 2}), 2);
+              }));
 
     emit_bool("invalid_embedding_backward_shape", rejected([&] {
                   (void)embedding_backward(matrix, Tensor::from_int32_vector({0}, {1}), 3);
@@ -533,6 +549,10 @@ void emit_invalid_shape_cases() {
               }));
     emit_bool("invalid_repeat_backward_shape", rejected([&] {
                   (void)repeat_interleave_backward(matrix, {2, 2}, 0, 2);
+              }));
+    emit_bool("invalid_repeat_gqa_kv_bthd_backward_shape", rejected([&] {
+                  (void)repeat_gqa_kv_bthd_backward(
+                      Tensor({1, 4, 2, 2}), Tensor({1, 2, 3, 2}), 2);
               }));
 }
 

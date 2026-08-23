@@ -19,6 +19,7 @@ namespace {
 
 thread_local Fp8DynamicQuantStats dynamic_quant_stats;
 thread_local bool attention_gemm_scale_fusion = false;
+thread_local bool attention_paired_gqa_repeat = false;
 
 float fp8_finite_maximum(DType dtype) {
     if (dtype == DType::Float8E4M3FNUZ) return 240.0F;
@@ -556,6 +557,14 @@ void enable_attention_gemm_scale_fusion(bool enabled) noexcept {
 
 bool attention_gemm_scale_fusion_enabled() noexcept {
     return attention_gemm_scale_fusion;
+}
+
+void enable_attention_paired_gqa_repeat(bool enabled) noexcept {
+    attention_paired_gqa_repeat = enabled;
+}
+
+bool attention_paired_gqa_repeat_enabled() noexcept {
+    return attention_paired_gqa_repeat;
 }
 
 Tensor dequantize_fp8(const ScaledTensor& input, DType output_dtype,
@@ -3201,10 +3210,19 @@ TensorPair causal_gqa_attention_bthd_saved(
     std::int64_t repeats, float scale, const OpContext& context) {
     validate_causal_gqa_bthd(query, key, value, repeats, scale);
     const auto sequence = query.shape()[2];
-    const auto expanded_key = repeats == 1
-                                  ? key : repeat_interleave(key, 1, repeats, context);
-    const auto expanded_value = repeats == 1
-                                    ? value : repeat_interleave(value, 2, repeats, context);
+    Tensor expanded_key;
+    Tensor expanded_value;
+    if (repeats == 1) {
+        expanded_key = key;
+        expanded_value = value;
+    } else if (attention_paired_gqa_repeat) {
+        auto expanded = repeat_gqa_kv_bthd(key, value, repeats, context);
+        expanded_key = std::move(expanded.first);
+        expanded_value = std::move(expanded.second);
+    } else {
+        expanded_key = repeat_interleave(key, 1, repeats, context);
+        expanded_value = repeat_interleave(value, 2, repeats, context);
+    }
     if (query.device().is_hip() && sequence >= 256 && hipblaslt_available()) {
         auto probabilities = attention_gemm_scale_fusion
                                  ? matmul_scaled_with_implementation(
@@ -3272,10 +3290,19 @@ TensorTriple causal_gqa_attention_bthd_backward_saved(
         gradients.third = gradients.third.transpose(1, 2).contiguous();
         return gradients;
     }
-    const auto expanded_key = repeats == 1
-                                  ? key : repeat_interleave(key, 1, repeats, context);
-    const auto expanded_value = repeats == 1
-                                    ? value : repeat_interleave(value, 2, repeats, context);
+    Tensor expanded_key;
+    Tensor expanded_value;
+    if (repeats == 1) {
+        expanded_key = key;
+        expanded_value = value;
+    } else if (attention_paired_gqa_repeat) {
+        auto expanded = repeat_gqa_kv_bthd(key, value, repeats, context);
+        expanded_key = std::move(expanded.first);
+        expanded_value = std::move(expanded.second);
+    } else {
+        expanded_key = repeat_interleave(key, 1, repeats, context);
+        expanded_value = repeat_interleave(value, 2, repeats, context);
+    }
     const auto probability_gradient = attention_probability_gradient_bthd(
         output_gradient, expanded_value, context);
     auto score_gradients = causal_softmax_backward(
@@ -3301,16 +3328,22 @@ TensorTriple causal_gqa_attention_bthd_backward_saved(
     }
     auto expanded_value_gradient = attention_value_gradient_bthd(
         probabilities, output_gradient, context);
-    auto key_gradient = repeats == 1
-                            ? std::move(expanded_key_gradient)
-                            : repeat_interleave_backward(
-                                  expanded_key_gradient, key.shape(), 1,
-                                  repeats, context);
-    auto value_gradient = repeats == 1
-                              ? std::move(expanded_value_gradient)
-                              : repeat_interleave_backward(
-                                    expanded_value_gradient, value.shape(), 2,
-                                    repeats, context);
+    Tensor key_gradient;
+    Tensor value_gradient;
+    if (repeats == 1) {
+        key_gradient = std::move(expanded_key_gradient);
+        value_gradient = std::move(expanded_value_gradient);
+    } else if (attention_paired_gqa_repeat) {
+        auto reduced = repeat_gqa_kv_bthd_backward(
+            expanded_key_gradient, expanded_value_gradient, repeats, context);
+        key_gradient = std::move(reduced.first);
+        value_gradient = std::move(reduced.second);
+    } else {
+        key_gradient = repeat_interleave_backward(
+            expanded_key_gradient, key.shape(), 1, repeats, context);
+        value_gradient = repeat_interleave_backward(
+            expanded_value_gradient, value.shape(), 2, repeats, context);
+    }
     return {std::move(query_gradient), std::move(key_gradient),
             std::move(value_gradient)};
 }
@@ -3415,6 +3448,95 @@ Tensor repeat_interleave_backward(const Tensor& gradient, const Shape& input_sha
         result[static_cast<std::size_t>(index)] = total;
     }
     return from_values(std::move(result), input_shape);
+}
+
+TensorPair repeat_gqa_kv_bthd(const Tensor& key, const Tensor& value,
+                              std::int64_t repeats,
+                              [[maybe_unused]] const OpContext& context) {
+    require_float(key, "key");
+    require_float(value, "value");
+    require_same_device(key, value);
+    if (key.ndim() != 4 || value.ndim() != 4 || repeats <= 0 ||
+        key.shape()[0] != value.shape()[0] ||
+        key.shape()[1] != value.shape()[2] ||
+        key.shape()[2] != value.shape()[1] ||
+        key.shape()[3] != value.shape()[3] ||
+        key.shape()[1] > std::numeric_limits<std::int64_t>::max() / repeats) {
+        throw std::invalid_argument(
+            "paired GQA repeat requires K[B,KV,T,D], V[B,T,KV,D], and positive repeats");
+    }
+    require_contiguous(key, "key");
+    require_contiguous(value, "value");
+    const auto batches = key.shape()[0];
+    const auto kv_heads = key.shape()[1];
+    const auto sequence = key.shape()[2];
+    const auto width = key.shape()[3];
+    const auto heads = kv_heads * repeats;
+    if (key.device().is_hip()) {
+        Tensor expanded_key({batches, heads, sequence, width},
+                            DType::Float32, key.device());
+        Tensor expanded_value({batches, sequence, heads, width},
+                              DType::Float32, key.device());
+#if MICROLLM_HAS_HIP
+        hip::launch_repeat_gqa_kv_bthd(
+            static_cast<const float*>(key.data()),
+            static_cast<const float*>(value.data()),
+            static_cast<float*>(expanded_key.data()),
+            static_cast<float*>(expanded_value.data()), batches, kv_heads,
+            sequence, width, repeats, context.native_stream(key.device()));
+        return {std::move(expanded_key), std::move(expanded_value)};
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    return {repeat_interleave(key, 1, repeats, context),
+            repeat_interleave(value, 2, repeats, context)};
+}
+
+TensorPair repeat_gqa_kv_bthd_backward(
+    const Tensor& key_gradient, const Tensor& value_gradient,
+    std::int64_t repeats, [[maybe_unused]] const OpContext& context) {
+    require_float(key_gradient, "key_gradient");
+    require_float(value_gradient, "value_gradient");
+    require_same_device(key_gradient, value_gradient);
+    if (key_gradient.ndim() != 4 || value_gradient.ndim() != 4 ||
+        repeats <= 0 || key_gradient.shape()[0] != value_gradient.shape()[0] ||
+        key_gradient.shape()[1] != value_gradient.shape()[2] ||
+        key_gradient.shape()[2] != value_gradient.shape()[1] ||
+        key_gradient.shape()[3] != value_gradient.shape()[3] ||
+        key_gradient.shape()[1] % repeats != 0) {
+        throw std::invalid_argument(
+            "paired GQA repeat backward requires dK[B,H,T,D], dV[B,T,H,D]");
+    }
+    require_contiguous(key_gradient, "key_gradient");
+    require_contiguous(value_gradient, "value_gradient");
+    const auto batches = key_gradient.shape()[0];
+    const auto heads = key_gradient.shape()[1];
+    const auto kv_heads = heads / repeats;
+    const auto sequence = key_gradient.shape()[2];
+    const auto width = key_gradient.shape()[3];
+    const Shape key_shape{batches, kv_heads, sequence, width};
+    const Shape value_shape{batches, sequence, kv_heads, width};
+    if (key_gradient.device().is_hip()) {
+        Tensor reduced_key(key_shape, DType::Float32, key_gradient.device());
+        Tensor reduced_value(value_shape, DType::Float32, key_gradient.device());
+#if MICROLLM_HAS_HIP
+        hip::launch_repeat_gqa_kv_bthd_backward(
+            static_cast<const float*>(key_gradient.data()),
+            static_cast<const float*>(value_gradient.data()),
+            static_cast<float*>(reduced_key.data()),
+            static_cast<float*>(reduced_value.data()), batches, kv_heads,
+            sequence, width, repeats,
+            context.native_stream(key_gradient.device()));
+        return {std::move(reduced_key), std::move(reduced_value)};
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    return {repeat_interleave_backward(
+                key_gradient, key_shape, 1, repeats, context),
+            repeat_interleave_backward(
+                value_gradient, value_shape, 2, repeats, context)};
 }
 
 }  // namespace microllm::ops

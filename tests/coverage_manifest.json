@@ -45,7 +45,9 @@
     "causal_gqa_attention_bthd": {"torch": "graph_causal_gqa_bthd_output", "shape": "invalid_causal_gqa_bthd_shape"},
     "causal_gqa_attention_bthd_backward": {"torch": "graph_causal_gqa_bthd_value_grad", "shape": "invalid_causal_gqa_bthd_shape"},
     "repeat_interleave": {"torch": "repeat_interleave", "shape": "invalid_repeat_count"},
-    "repeat_interleave_backward": {"torch": "graph_repeat_input_grad", "shape": "invalid_repeat_backward_shape"}
+    "repeat_interleave_backward": {"torch": "graph_repeat_input_grad", "shape": "invalid_repeat_backward_shape"},
+    "repeat_gqa_kv_bthd": {"torch": "repeat_gqa_kv_bthd_key", "shape": "invalid_repeat_gqa_kv_bthd_shape"},
+    "repeat_gqa_kv_bthd_backward": {"torch": "repeat_gqa_kv_bthd_backward_key", "shape": "invalid_repeat_gqa_kv_bthd_backward_shape"}
   },
   "operator_infrastructure": {
     "cast_out_": "tests/ops/ops_test.cpp",
@@ -79,6 +81,8 @@
     "clear_attention_layout_plan_cache": "tests/ops/hip_ops_test.cpp",
     "enable_attention_gemm_scale_fusion": "tests/ops/hip_ops_test.cpp",
     "attention_gemm_scale_fusion_enabled": "tests/ops/hip_ops_test.cpp",
+    "enable_attention_paired_gqa_repeat": "tests/ops/hip_ops_test.cpp",
+    "attention_paired_gqa_repeat_enabled": "tests/ops/hip_ops_test.cpp",
     "register_bf16_algorithm": "tests/ops/hip_ops_test.cpp",
     "clear_bf16_algorithm_registry": "tests/ops/hip_ops_test.cpp",
     "bf16_registered_algorithm_count": "tests/ops/hip_ops_test.cpp",

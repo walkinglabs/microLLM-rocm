@@ -101,6 +101,18 @@ class AttentionLayoutFusionRunnerTest(unittest.TestCase):
         self.assertEqual(explicit[scale + 1], "false")
         self.assertEqual(fused[scale + 1], "true")
 
+    def test_pair_policy_keeps_rejected_controls_off(self):
+        self.args.policy = "pair"
+        separate = RUNNER.command(self.args, self.model, False)
+        paired = RUNNER.command(self.args, self.model, True)
+        plan = separate.index("--attention-layout-plan-cache")
+        scale = separate.index("--attention-gemm-scale-fusion")
+        pair = separate.index("--attention-paired-gqa-repeat")
+        self.assertEqual(separate[plan + 1], "false")
+        self.assertEqual(separate[scale + 1], "false")
+        self.assertEqual(separate[pair + 1], "false")
+        self.assertEqual(paired[pair + 1], "true")
+
     def test_operator_matrix_preserves_batch_head_sequence_width(self):
         shape = MATRIX.parse_shape("qwen:2:14:512:64")
         self.assertEqual(

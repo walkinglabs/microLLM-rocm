@@ -208,6 +208,22 @@ def pytorch_references(actual):
         (layout_probabilities @ layout_value.transpose(1, 2)).transpose(1, 2),
     )
     record(refs, "repeat_interleave", torch.repeat_interleave(tensor([1, 2, 3, 4], (2, 2)), 2, 0))
+    paired_key = tensor([1, 2, 3, 4, 10, 20, 30, 40], (1, 2, 2, 2))
+    paired_value = tensor([5, 6, 50, 60, 7, 8, 70, 80], (1, 2, 2, 2))
+    record(refs, "repeat_gqa_kv_bthd_key",
+           torch.repeat_interleave(paired_key, 2, dim=1))
+    record(refs, "repeat_gqa_kv_bthd_value",
+           torch.repeat_interleave(paired_value, 2, dim=2))
+    paired_key_gradient = tensor(
+        [1, 2, 3, 4, 5, 6, 7, 8,
+         9, 10, 11, 12, 13, 14, 15, 16], (1, 4, 2, 2))
+    paired_value_gradient = tensor(
+        [16, 15, 14, 13, 12, 11, 10, 9,
+         8, 7, 6, 5, 4, 3, 2, 1], (1, 2, 4, 2))
+    record(refs, "repeat_gqa_kv_bthd_backward_key",
+           paired_key_gradient.reshape(1, 2, 2, 2, 2).sum(dim=2))
+    record(refs, "repeat_gqa_kv_bthd_backward_value",
+           paired_value_gradient.reshape(1, 2, 2, 2, 2).sum(dim=3))
 
     for prefix, dtype in (("fp16", torch.float16), ("bf16", torch.bfloat16)):
         low_left = left.to(dtype)
@@ -661,6 +677,7 @@ class OperatorParityTest(unittest.TestCase):
             "invalid_attention_value_gradient_bthd_shape",
             "invalid_causal_gqa_bthd_shape",
             "invalid_repeat_count",
+            "invalid_repeat_gqa_kv_bthd_shape",
             "invalid_embedding_backward_shape",
             "invalid_softmax_backward_shape",
             "invalid_rms_backward_shape",
@@ -672,6 +689,7 @@ class OperatorParityTest(unittest.TestCase):
             "invalid_cross_entropy_backward_seed",
             "invalid_causal_backward_shape",
             "invalid_repeat_backward_shape",
+            "invalid_repeat_gqa_kv_bthd_backward_shape",
         }
         self.assertEqual(set(self.rejections), expected)
         self.assertTrue(all(self.rejections.values()))

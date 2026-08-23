@@ -102,6 +102,11 @@ fixed parameter changes under the altered FP32 rounding order. Reapplying alpha 
 or one gradient at a time needs a new numerical hypothesis; merely deleting the same scale
 Kernel is not enough.
 
+Experiment 168 closes pairing K/V repeat and reduction Kernels while retaining the same
+expanded Tensors. Repeat-family profile time improves, but Qwen falls to 0.976× and
+DeepSeek remains below 1.01×. A new GQA candidate must eliminate expansion Storage or use a
+different GEMM batch mapping; combining identical traffic in one launch is saturated.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

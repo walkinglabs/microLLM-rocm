@@ -97,6 +97,9 @@ needed to run a real training and generation loop:
 - scaled hipBLASLt matmul exposes finite alpha with CPU/PyTorch/HIP parity, while Attention
   alpha fusion remains default-off: it deletes every target scale Kernel but yields mixed
   Qwen/DeepSeek `0.987×/1.011×` throughput and changes the DeepSeek parameter guard;
+- paired GQA K/V repeat/reduction primitives preserve BHTD/BTHD contracts and halve the
+  repeat-family launches, but remain default-off: profile Kernel time improves while official
+  Qwen/DeepSeek T512 reaches only 0.976×/1.008×;
 - a phase-independent exact-size HIP pool with immediate legacy-default-Stream reuse and strict
   permanent disablement for non-default Streams;
 - a cross-framework trace runner for operator/layer values and latency comparisons.

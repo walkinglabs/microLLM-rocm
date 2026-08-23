@@ -2794,3 +2794,17 @@ scaled matmul作为通用、可测试原语保留，Attention alpha开关默认f
 必须同时过速度和数值路径门。
 
 ![Attention GEMM scale fusion discarded](assets/attention-gemm-scale-fusion-discard.svg)
+
+## 185. Experiment 168：两趟合成一趟，线程却背了两份行李
+
+GQA的K是BHTD、V是BTHD。新Kernel用同一个`(b,h,t,d)`同时写两种布局；反向也用两个accumulator
+一起归并。CPU、PyTorch、HIP四个输出都精确相等，零host copy。
+
+profile看起来成功：repeat family 432→216 calls、2.105→1.330ms，总Kernel少1.18%。但Storage和
+总字节没少，每线程要做两套地址、读写和累加。正式T512的Qwen降到0.9758×，Deep也只有1.0084×。
+因此默认false，不能用插桩总时间覆盖unprofiled模型结果。
+
+下一次GQA优化必须不生成expanded Tensor，或改变GEMM的batch mapping；只把两次copy绑在一起的
+方向已经关闭。
+
+![Paired GQA repeat discarded](assets/paired-gqa-repeat-discard.svg)

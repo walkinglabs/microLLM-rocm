@@ -37,7 +37,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [06](steps/06-memory-pool.md) | complete | exact-size pool + phase-independent default-Stream reuse | score 2.470863 + Experiment 087 inference evidence |
 | [07](steps/07-autograd-buffers.md) | complete | COW/stable/chunking discarded；float4 explicit-only、Auto scalar | operator/model evidence boundary |
 | [08](steps/08-batched-fmha.md) | complete | cached/full GQA；Q/K RoPE；BTHD P×V/dP/dV | diagnosed layout copies = 0 |
-| [09](steps/09-fusion-autotune.md) | in progress | layout complete；plan/alpha defaults rejected | next boundary must exceed local launch edits |
+| [09](steps/09-fusion-autotune.md) | in progress | plan/alpha/paired-repeat defaults rejected | next GQA boundary must remove expanded tensors |
 | [10](steps/10-bf16.md) | in progress | DeepSeek first-four robust-strict；Qwen long-constant要求全FP32 fallback | broader checkpoints and prompt families |
 | [11](steps/11-fp8.md) | planned | cached FP8 weight/dynamic scale | FP8 track |
 | [12](steps/12-hip-graph-final.md) | planned | HIP Graph 和最终报告 | launch + final score |

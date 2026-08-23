@@ -217,6 +217,12 @@ the primitive experimentally to fuse `1/sqrt(D)` into QK/dQ/dK, but that policy 
 by default: moving scale from each operand to the post-accumulation alpha changes FP32
 rounding order and failed the joint official-model gate.
 
+GQA K/V head expansion also has explicit paired forward/backward operators. They compute
+one logical `(batch,head-or-kv,token,column)` coordinate and write the K BHTD and V BTHD
+layouts together. This preserves outputs but does not merge Storage or remove bytes. The
+policy is default-off because halving repeat launches improved profiler totals yet regressed
+official Qwen training.
+
 ## Stable integration boundary
 
 The long-term integration seam is a C-compatible descriptor plus explicit stream

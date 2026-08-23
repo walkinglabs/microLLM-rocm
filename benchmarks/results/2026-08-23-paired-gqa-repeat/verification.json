@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "experiment": "Exp168",
+  "decision": "reject production default; retain explicit paired operators",
+  "correctness": {
+    "cpu_forward_backward_vs_separate": "pass",
+    "pytorch_key_value_forward_backward": "pass",
+    "hip_four_outputs_exact": "pass",
+    "hip_no_payload_transfer": "pass",
+    "invalid_shape_contracts": "pass",
+    "hip_t256_attention_all_gradients": "pass",
+    "full_transformer_cpu_hip": "pass",
+    "installed_package_symbols": "pass"
+  },
+  "training": {
+    "fresh_process_rows": 12,
+    "context": 512,
+    "runs_per_model_policy": 3,
+    "qwen_throughput_speedup": 0.97579396,
+    "deepseek_throughput_speedup": 1.008358131,
+    "throughput_keep_minimum": 1.01,
+    "qwen_loss_relative_difference": 0.000186721,
+    "deepseek_loss_relative_difference": 0.0,
+    "peak_ratio": 1.0,
+    "allocation_calls_equal": true,
+    "observed_parameter_after_equal": true
+  },
+  "profile": {
+    "separate_repeat_calls": 432,
+    "paired_repeat_calls": 216,
+    "separate_repeat_time_ns": 2105001,
+    "paired_repeat_time_ns": 1330238,
+    "kernel_dispatches": "6907->6689",
+    "kernel_time_ns": "110668341->109359605",
+    "instrumented_throughput_used_for_decision": false
+  },
+  "regression": {
+    "cpu_debug": "270/270",
+    "asan_ubsan": "268/268",
+    "pytorch_enabled_cpu": "244/244",
+    "full_cpu_hip": "403/403",
+    "hip_label": "129/129",
+    "conditional_skips": 3,
+    "package_consumer": "pass",
+    "runner_contract_cases": "9/9",
+    "coverage_lines_percent": 81.1,
+    "coverage_functions_percent": 90.4,
+    "coverage_branches_percent": 61.9
+  },
+  "defaults": {
+    "engine": false,
+    "training_cli": false
+  }
+}

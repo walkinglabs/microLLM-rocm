@@ -706,6 +706,42 @@ TEST(CpuOpsTest, AttentionBthdBackwardPrimitivesAndGqaMatchMaterializedReference
                  std::invalid_argument);
 }
 
+TEST(CpuOpsTest, PairedGqaRepeatMatchesSeparateKeyValuePaths) {
+    const auto key = Tensor::from_vector(
+        {1, 2, 3, 4, 10, 20, 30, 40}, {1, 2, 2, 2});
+    const auto value = Tensor::from_vector(
+        {5, 6, 50, 60, 7, 8, 70, 80}, {1, 2, 2, 2});
+    const auto actual = repeat_gqa_kv_bthd(key, value, 2);
+    expect_near(actual.first.to_vector(),
+                repeat_interleave(key, 1, 2).to_vector());
+    expect_near(actual.second.to_vector(),
+                repeat_interleave(value, 2, 2).to_vector());
+    const auto key_gradient = Tensor::from_vector(
+        {1, 2, 3, 4, 5, 6, 7, 8,
+         9, 10, 11, 12, 13, 14, 15, 16}, {1, 4, 2, 2});
+    const auto value_gradient = Tensor::from_vector(
+        {16, 15, 14, 13, 12, 11, 10, 9,
+         8, 7, 6, 5, 4, 3, 2, 1}, {1, 2, 4, 2});
+    const auto gradients = repeat_gqa_kv_bthd_backward(
+        key_gradient, value_gradient, 2);
+    expect_near(gradients.first.to_vector(),
+                repeat_interleave_backward(
+                    key_gradient, key.shape(), 1, 2).to_vector());
+    expect_near(gradients.second.to_vector(),
+                repeat_interleave_backward(
+                    value_gradient, value.shape(), 2, 2).to_vector());
+    EXPECT_THROW((void)repeat_gqa_kv_bthd(key, Tensor({1, 2, 1, 2}), 2),
+                 std::invalid_argument);
+    EXPECT_THROW((void)repeat_gqa_kv_bthd_backward(
+                     key_gradient, Tensor({1, 2, 3, 2}), 2),
+                 std::invalid_argument);
+    enable_attention_paired_gqa_repeat(false);
+    EXPECT_FALSE(attention_paired_gqa_repeat_enabled());
+    enable_attention_paired_gqa_repeat(true);
+    EXPECT_TRUE(attention_paired_gqa_repeat_enabled());
+    enable_attention_paired_gqa_repeat(false);
+}
+
 TEST(CpuOpsTest, TransposeAwareMatmulCoversAllOperandLayoutsWithoutViews) {
     const auto logical_left = Tensor::from_vector({1, 2, 3, 4, 5, 6}, {2, 3});
     const auto logical_right = Tensor::from_vector(

@@ -162,6 +162,10 @@ entries/hits/misses without copying Tensor payloads.
 default is false after Experiment 167. The generic scaled-matmul operator remains available;
 explicit Attention routing should be used only for numerical/performance rebuttals.
 
+`--attention-paired-gqa-repeat true/false` selects the paired K/V expansion/reduction
+experiment. It defaults false after Experiment 168. Both explicit operators stay available
+for shape and Kernel diagnosis.
+
 ### End-to-end benchmark
 
 ```bash

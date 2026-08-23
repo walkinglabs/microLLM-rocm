@@ -2061,6 +2061,59 @@ __global__ void repeat_interleave_backward_kernel(const float* gradient,
     input_gradient[index] = total;
 }
 
+__global__ void repeat_gqa_kv_bthd_kernel(
+    const float* key, const float* value, float* expanded_key,
+    float* expanded_value, std::int64_t output_elements,
+    std::int64_t heads, std::int64_t kv_heads,
+    std::int64_t sequence, std::int64_t width, std::int64_t repeats) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x +
+                       threadIdx.x;
+    if (index >= output_elements) return;
+    const auto column = index % width;
+    const auto position = (index / width) % sequence;
+    const auto head = (index / (width * sequence)) % heads;
+    const auto batch = index / (width * sequence * heads);
+    const auto kv_head = head / repeats;
+    const auto source_key =
+        ((batch * kv_heads + kv_head) * sequence + position) * width + column;
+    const auto source_value =
+        ((batch * sequence + position) * kv_heads + kv_head) * width + column;
+    const auto destination_value =
+        ((batch * sequence + position) * heads + head) * width + column;
+    expanded_key[index] = key[source_key];
+    expanded_value[destination_value] = value[source_value];
+}
+
+__global__ void repeat_gqa_kv_bthd_backward_kernel(
+    const float* key_gradient, const float* value_gradient,
+    float* reduced_key_gradient, float* reduced_value_gradient,
+    std::int64_t output_elements, std::int64_t heads,
+    std::int64_t kv_heads, std::int64_t sequence,
+    std::int64_t width, std::int64_t repeats) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x +
+                       threadIdx.x;
+    if (index >= output_elements) return;
+    const auto column = index % width;
+    const auto position = (index / width) % sequence;
+    const auto kv_head = (index / (width * sequence)) % kv_heads;
+    const auto batch = index / (width * sequence * kv_heads);
+    float key_total = 0.0F;
+    float value_total = 0.0F;
+    for (std::int64_t repeat = 0; repeat < repeats; ++repeat) {
+        const auto head = kv_head * repeats + repeat;
+        const auto source_key =
+            ((batch * heads + head) * sequence + position) * width + column;
+        const auto source_value =
+            ((batch * sequence + position) * heads + head) * width + column;
+        key_total += key_gradient[source_key];
+        value_total += value_gradient[source_value];
+    }
+    const auto destination_value =
+        ((batch * sequence + position) * kv_heads + kv_head) * width + column;
+    reduced_key_gradient[index] = key_total;
+    reduced_value_gradient[destination_value] = value_total;
+}
+
 }  // namespace
 
 void launch_fill(float* output, std::int64_t elements, float value, void* stream) {
@@ -3566,6 +3619,40 @@ void launch_repeat_interleave_backward(const float* gradient, float* input_gradi
                        as_stream(stream), gradient, input_gradient, input_elements,
                        input_width, inner, repeats);
     check_launch("repeat_interleave_backward_kernel");
+}
+
+void launch_repeat_gqa_kv_bthd(
+    const float* key, const float* value, float* expanded_key,
+    float* expanded_value, std::int64_t batches, std::int64_t kv_heads,
+    std::int64_t sequence, std::int64_t width, std::int64_t repeats,
+    void* stream) {
+    const auto heads = kv_heads * repeats;
+    const auto output_elements = batches * heads * sequence * width;
+    if (output_elements == 0) return;
+    hipLaunchKernelGGL(
+        repeat_gqa_kv_bthd_kernel, dim3(grid_size(output_elements)),
+        dim3(kBlockSize), 0, as_stream(stream), key, value, expanded_key,
+        expanded_value, output_elements, heads, kv_heads, sequence, width,
+        repeats);
+    check_launch("repeat_gqa_kv_bthd_kernel");
+}
+
+void launch_repeat_gqa_kv_bthd_backward(
+    const float* key_gradient, const float* value_gradient,
+    float* reduced_key_gradient, float* reduced_value_gradient,
+    std::int64_t batches, std::int64_t kv_heads,
+    std::int64_t sequence, std::int64_t width, std::int64_t repeats,
+    void* stream) {
+    const auto heads = kv_heads * repeats;
+    const auto output_elements = batches * kv_heads * sequence * width;
+    if (output_elements == 0) return;
+    hipLaunchKernelGGL(
+        repeat_gqa_kv_bthd_backward_kernel,
+        dim3(grid_size(output_elements)), dim3(kBlockSize), 0,
+        as_stream(stream), key_gradient, value_gradient,
+        reduced_key_gradient, reduced_value_gradient, output_elements,
+        heads, kv_heads, sequence, width, repeats);
+    check_launch("repeat_gqa_kv_bthd_backward_kernel");
 }
 
 }  // namespace microllm::ops::hip

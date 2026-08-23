@@ -2238,6 +2238,48 @@ TEST(HipAttentionLayoutPlanCacheTest, ExactModesAndShapesHitWithoutChangingOutpu
     enable_attention_layout_plan_cache(false);
 }
 
+TEST(HipOpsTest, PairedGqaRepeatForwardBackwardMatchSeparateWithoutTransfers) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    const auto key = Tensor::from_vector(
+        {1, 2, 3, 4, 10, 20, 30, 40}, {1, 2, 2, 2});
+    const auto value = Tensor::from_vector(
+        {5, 6, 50, 60, 7, 8, 70, 80}, {1, 2, 2, 2});
+    const auto key_gradient = Tensor::from_vector(
+        {1, 2, 3, 4, 5, 6, 7, 8,
+         9, 10, 11, 12, 13, 14, 15, 16}, {1, 4, 2, 2});
+    const auto value_gradient = Tensor::from_vector(
+        {16, 15, 14, 13, 12, 11, 10, 9,
+         8, 7, 6, 5, 4, 3, 2, 1}, {1, 2, 4, 2});
+    const auto expected = repeat_gqa_kv_bthd(key, value, 2);
+    const auto expected_gradients = repeat_gqa_kv_bthd_backward(
+        key_gradient, value_gradient, 2);
+    const auto device_key = key.to(gpu);
+    const auto device_value = value.to(gpu);
+    const auto device_key_gradient = key_gradient.to(gpu);
+    const auto device_value_gradient = value_gradient.to(gpu);
+    runtime::reset_transfer_stats();
+    const auto actual = repeat_gqa_kv_bthd(
+        device_key, device_value, 2);
+    const auto actual_gradients = repeat_gqa_kv_bthd_backward(
+        device_key_gradient, device_value_gradient, 2);
+    runtime::synchronize(gpu);
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    expect_near(actual.first.to_vector(), expected.first.to_vector(), 0.0F);
+    expect_near(actual.second.to_vector(), expected.second.to_vector(), 0.0F);
+    expect_near(actual_gradients.first.to_vector(),
+                expected_gradients.first.to_vector(), 0.0F);
+    expect_near(actual_gradients.second.to_vector(),
+                expected_gradients.second.to_vector(), 0.0F);
+    enable_attention_paired_gqa_repeat(false);
+    EXPECT_FALSE(attention_paired_gqa_repeat_enabled());
+    enable_attention_paired_gqa_repeat(true);
+    EXPECT_TRUE(attention_paired_gqa_repeat_enabled());
+    enable_attention_paired_gqa_repeat(false);
+}
+
 TEST(HipOpsTest, LongCausalGqaBthdForwardBackwardMatchCpuWithoutTransfers) {
     require_gpu();
     constexpr std::int64_t batches = 1;

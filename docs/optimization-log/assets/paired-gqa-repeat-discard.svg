@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="920" viewBox="0 0 1800 920">
+  <rect width="1800" height="920" fill="#f8fafc"/>
+  <text x="900" y="52" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 168 · Paired GQA Repeat · Discard Default</text>
+  <text x="900" y="84" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle">K BHTD + V BTHD · paired forward/backward · MI300X T512</text>
+
+  <rect x="55" y="125" width="760" height="650" rx="14" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="435" y="168" font-family="Inter,Arial,sans-serif" font-size="21" fill="#172033" text-anchor="middle" font-weight="700">Profiler mechanism improved</text>
+  <text x="115" y="235" font-family="Inter,Arial,sans-serif" font-size="16" fill="#334155">Separate repeat family</text>
+  <rect x="115" y="255" width="620" height="52" rx="7" fill="#dc5a4a"/>
+  <text x="715" y="288" font-family="Inter,Arial,sans-serif" font-size="15" fill="#ffffff" text-anchor="end" font-weight="700">432 calls · 2.105 ms</text>
+  <text x="115" y="360" font-family="Inter,Arial,sans-serif" font-size="16" fill="#334155">Paired repeat family</text>
+  <rect x="115" y="380" width="392" height="52" rx="7" fill="#2f9b68"/>
+  <text x="522" y="413" font-family="Inter,Arial,sans-serif" font-size="15" fill="#166534" font-weight="700">216 calls · 1.330 ms</text>
+  <rect x="115" y="500" width="620" height="150" rx="10" fill="#eff6ff" stroke="#93c5fd"/>
+  <text x="425" y="538" font-family="Inter,Arial,sans-serif" font-size="18" fill="#1e40af" text-anchor="middle" font-weight="700">Qwen profile · 3 steps</text>
+  <text x="425" y="580" font-family="Inter,Arial,sans-serif" font-size="17" fill="#334155" text-anchor="middle">dispatches 6,907 → 6,689</text>
+  <text x="425" y="615" font-family="Inter,Arial,sans-serif" font-size="17" fill="#334155" text-anchor="middle">Kernel 110.67 → 109.36 ms</text>
+
+  <rect x="865" y="125" width="880" height="650" rx="14" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="1305" y="168" font-family="Inter,Arial,sans-serif" font-size="21" fill="#172033" text-anchor="middle" font-weight="700">Official model gate disagreed</text>
+  <rect x="945" y="230" width="350" height="150" rx="10" fill="#fee2e2" stroke="#f87171"/>
+  <text x="1120" y="267" font-family="Inter,Arial,sans-serif" font-size="18" fill="#991b1b" text-anchor="middle" font-weight="700">Qwen</text>
+  <text x="1120" y="315" font-family="Inter,Arial,sans-serif" font-size="31" fill="#991b1b" text-anchor="middle" font-weight="700">0.9758×</text>
+  <text x="1120" y="350" font-family="Inter,Arial,sans-serif" font-size="14" fill="#475569" text-anchor="middle">peak / allocations unchanged</text>
+  <rect x="1370" y="230" width="295" height="150" rx="10" fill="#fff7ed" stroke="#fdba74"/>
+  <text x="1517" y="267" font-family="Inter,Arial,sans-serif" font-size="18" fill="#9a3412" text-anchor="middle" font-weight="700">DeepSeek</text>
+  <text x="1517" y="315" font-family="Inter,Arial,sans-serif" font-size="31" fill="#9a3412" text-anchor="middle" font-weight="700">1.0084×</text>
+  <text x="1517" y="350" font-family="Inter,Arial,sans-serif" font-size="14" fill="#475569" text-anchor="middle">below 1.01 gate</text>
+  <rect x="945" y="455" width="720" height="155" rx="10" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text x="1305" y="494" font-family="Inter,Arial,sans-serif" font-size="18" fill="#334155" text-anchor="middle" font-weight="700">Why launches are not the whole cost</text>
+  <text x="1305" y="535" font-family="Inter,Arial,sans-serif" font-size="16" fill="#475569" text-anchor="middle">each thread performs two unrelated reads + writes</text>
+  <text x="1305" y="568" font-family="Inter,Arial,sans-serif" font-size="16" fill="#475569" text-anchor="middle">backward carries two accumulators through the repeat loop</text>
+  <text x="1305" y="595" font-family="Inter,Arial,sans-serif" font-size="14" fill="#64748b" text-anchor="middle">Storage count and total bytes do not change</text>
+  <rect x="945" y="650" width="720" height="70" rx="10" fill="#fee2e2" stroke="#f87171"/>
+  <text x="1305" y="692" font-family="Inter,Arial,sans-serif" font-size="19" fill="#991b1b" text-anchor="middle" font-weight="700">Default OFF · joint 1.01 gate failed</text>
+
+  <rect x="55" y="825" width="1690" height="66" rx="12" fill="#172033"/>
+  <text x="900" y="854" font-family="Inter,Arial,sans-serif" font-size="18" fill="#ffffff" text-anchor="middle" font-weight="700">Profiler totals improved; uninstrumented Qwen still decides the rejection</text>
+  <text x="900" y="879" font-family="Inter,Arial,sans-serif" font-size="14" fill="#cbd5e1" text-anchor="middle">Next GQA idea must avoid repeated tensors, not merely pair their copies</text>
+</svg>
