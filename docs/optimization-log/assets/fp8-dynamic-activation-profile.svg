@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="570" viewBox="0 0 1040 570" role="img" aria-labelledby="title desc">
+  <title id="title">Dynamic activation profile categories</title><desc id="desc">Device scale reduction and quantization consume a material fraction of attributable FP8 forward kernel time.</desc>
+  <rect width="1040" height="570" rx="18" fill="#0b1020"/><text x="52" y="52" fill="#f8fafc" font-size="28" font-family="sans-serif" font-weight="700">T512 profile：动态量化接近GEMM成本</text>
+  <text x="52" y="82" fill="#94a3b8" font-size="16" font-family="sans-serif">只画名字明确的measured-forward Kernel；other不强行归因</text>
+  <g fill="#e2e8f0" font-family="sans-serif" font-size="18"><text x="190" y="145">Qwen</text><text x="690" y="145">DeepSeek</text></g>
+  <rect x="140" y="300" width="140" height="150" fill="#fb7185"/><rect x="295" y="230" width="140" height="220" fill="#38bdf8"/><rect x="640" y="285" width="140" height="165" fill="#fb7185"/><rect x="795" y="195" width="140" height="255" fill="#38bdf8"/>
+  <g fill="#f8fafc" font-family="sans-serif" font-size="15"><text x="140" y="290">scale+quant 2.12ms</text><text x="295" y="220">GEMM 3.12ms</text><text x="640" y="275">scale+quant 3.11ms</text><text x="795" y="185">GEMM 5.52ms</text></g>
+  <g fill="#cbd5e1" font-family="sans-serif" font-size="15"><text x="130" y="500">168 dynamic calls · 40.5% of attributable</text><text x="625" y="500">197 calls · 36.0%</text><text x="180" y="545">QKV与gate/up重复量化同一输入 → 下一节点共享量化结果</text></g>
+</svg>

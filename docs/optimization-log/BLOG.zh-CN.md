@@ -2413,3 +2413,11 @@ binary contract转绿才正式跑36进程。logits不bit-exact、四个精度门
 single-block逐值相同，证明是纯性能优化。FP8精度门仍失败且仍慢于BF16，模型策略不改。
 
 ![Multi-block amax](assets/fp8-multiblock-amax.svg)
+
+## 151. Experiment 134：动态量化占可归因时间四成
+
+T512 rocprof显示Qwen/Deep dynamic scale+finalize+quantize为2.12/3.11ms，GEMM为3.12/5.52ms；
+前者占两类合计40.5%/36.0%。168/197次调用说明每个Linear都独立量化，尽管QKV和gate/up共享
+输入。whole-process cast热点来自加载，不冒充前向。下一节点共享QKV与gate/up量化结果。
+
+![Dynamic activation profile](assets/fp8-dynamic-activation-profile.svg)

@@ -180,7 +180,9 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] replace single-block Tensor amax with at most 1024 partial blocks plus one finalize block;
 - [x] remeasure multi-block amax: weight prep gains 24.6x/73.3x and T512 activation
   gains 15.5x/20.6x with unchanged complete-logit errors;
-- [ ] profile retained multi-block T512 path to separate reduction, quantize, GEMM and fallback time;
+- [x] profile retained T512: dynamic scale/finalize/quantize consumes 2.12/3.11ms,
+  40.5%/36.0% of dynamic+GEMM attributable time;
+- [ ] share one quantized activation across Q/K/V and one across gate/up, preserving exact logits;
 - [ ] replace the one-block reduction only if the next accepted numerical policy reuses it;
 - [ ] replace global FP8 scales with weight per-tensor and activation per-row/token amax,
   starting from saturation/trace evidence rather than top-token search;

@@ -1,0 +1,351 @@
+{
+  "application": {
+    "architecture": "gfx942:sramecc+:xnack-",
+    "device_name": "AMD Instinct MI300X VF",
+    "engine_peak_bytes": 2548425492,
+    "forward_ms": 4529.217501,
+    "fp8_native_shapes": 5,
+    "fp8_software_fallback_calls": 0,
+    "fp8_software_fallback_shapes": 0,
+    "prefill_tokens_per_second": 113.043809419,
+    "resident_weight_bytes": 2477644564,
+    "status": "pass",
+    "weight_preparation_ms": 12345.848845
+  },
+  "binary": "/tmp/microllm-exp133-build.VkBSLo/apps/microllm_hf_infer",
+  "binary_revision": "70725ffb764c2d41a54f460566df40f65de1f4d6",
+  "experiment": "Exp134",
+  "hip_api_categories": [
+    {
+      "calls": 1886,
+      "category": "kernel_launch",
+      "percent": 0.5792537033649774,
+      "total_time_ms": 28.207364,
+      "total_time_ns": 28207364,
+      "unique_entries": 2
+    },
+    {
+      "calls": 737,
+      "category": "memory_transfer",
+      "percent": 30.889672634045965,
+      "total_time_ms": 1504.204867,
+      "total_time_ns": 1504204867,
+      "unique_entries": 2
+    },
+    {
+      "calls": 959,
+      "category": "allocation",
+      "percent": 0.6848621788361565,
+      "total_time_ms": 33.350079,
+      "total_time_ns": 33350079,
+      "unique_entries": 2
+    },
+    {
+      "calls": 5,
+      "category": "synchronization",
+      "percent": 0.06820422577938225,
+      "total_time_ms": 3.321276,
+      "total_time_ns": 3321276,
+      "unique_entries": 1
+    },
+    {
+      "calls": 21,
+      "category": "module_loading",
+      "percent": 66.2475456142954,
+      "total_time_ms": 3225.993416,
+      "total_time_ns": 3225993416,
+      "unique_entries": 2
+    },
+    {
+      "calls": 94441,
+      "category": "device_queries",
+      "percent": 1.5262914076164498,
+      "total_time_ms": 74.324354,
+      "total_time_ns": 74324354,
+      "unique_entries": 7
+    },
+    {
+      "calls": 1643,
+      "category": "other",
+      "percent": 0.004170236061658914,
+      "total_time_ms": 0.203074,
+      "total_time_ns": 203074,
+      "unique_entries": 1
+    }
+  ],
+  "hip_api_stats_file": "/tmp/microllm-exp134-profile/deepseek/up-cmsebbixh000vbsoh769vhx8z/3899874_hip_api_stats.csv",
+  "hip_api_total": {
+    "calls": 99692,
+    "total_time_ms": 4869.60443,
+    "total_time_ns": 4869604430
+  },
+  "kernel_categories": [
+    {
+      "calls": 197,
+      "category": "fp8_tensor_scale_kernel",
+      "percent": 2.1881910401344458,
+      "total_time_ms": 0.875186,
+      "total_time_ns": 875186,
+      "unique_entries": 1
+    },
+    {
+      "calls": 197,
+      "category": "fp8_finalize_scale_kernel",
+      "percent": 2.0252392072101046,
+      "total_time_ms": 0.810012,
+      "total_time_ns": 810012,
+      "unique_entries": 1
+    },
+    {
+      "calls": 197,
+      "category": "quantize_fp8_device_scale_kernel",
+      "percent": 3.5600677549990913,
+      "total_time_ms": 1.42388,
+      "total_time_ns": 1423880,
+      "unique_entries": 1
+    },
+    {
+      "calls": 253,
+      "category": "hipBLASLt/Tensile GEMM",
+      "percent": 13.798752911175724,
+      "total_time_ms": 5.518931,
+      "total_time_ns": 5518931,
+      "unique_entries": 7
+    },
+    {
+      "calls": 0,
+      "category": "dequant/fallback",
+      "percent": 0.0,
+      "total_time_ms": 0.0,
+      "total_time_ns": 0,
+      "unique_entries": 0
+    },
+    {
+      "calls": 1383,
+      "category": "other",
+      "percent": 78.42774908648063,
+      "total_time_ms": 31.367859,
+      "total_time_ns": 31367859,
+      "unique_entries": 15
+    }
+  ],
+  "kernel_stats_file": "/tmp/microllm-exp134-profile/deepseek/up-cmsebbixh000vbsoh769vhx8z/3899874_kernel_stats.csv",
+  "kernel_total": {
+    "calls": 2227,
+    "total_time_ms": 39.995868,
+    "total_time_ns": 39995868
+  },
+  "manifest": "/tmp/microllm-bf16-model-manifest.json",
+  "model": "deepseek-r1-distill-qwen-1.5b",
+  "physical_gpu_index": 2,
+  "policy": {
+    "batch": 1,
+    "context": 512,
+    "fp8_activation_minimum_scale": 0.0001,
+    "fp8_activation_scale": 0.2,
+    "fp8_activation_scale_mode": "tensor-amax",
+    "fp8_weight_scale": 0.005,
+    "fp8_weight_scale_mode": "tensor-amax",
+    "new_tokens": 0,
+    "prefill_logits": "last",
+    "prefill_steps": 1,
+    "prefill_warmup": 0,
+    "use_cache": true,
+    "workload": "prefill"
+  },
+  "schema_version": 1,
+  "top_hip_apis": [
+    {
+      "calls": 4,
+      "name": "hipModuleLoad",
+      "percent": 66.24676596164507,
+      "total_time_ms": 3225.95545,
+      "total_time_ns": 3225955450
+    },
+    {
+      "calls": 735,
+      "name": "hipMemcpy",
+      "percent": 30.888958695152166,
+      "total_time_ms": 1504.170101,
+      "total_time_ns": 1504170101
+    },
+    {
+      "calls": 3,
+      "name": "hipGetDeviceCount",
+      "percent": 1.2958478025698692,
+      "total_time_ms": 63.102662,
+      "total_time_ns": 63102662
+    },
+    {
+      "calls": 1633,
+      "name": "hipLaunchKernel",
+      "percent": 0.5364986905106787,
+      "total_time_ms": 26.125364,
+      "total_time_ns": 26125364
+    },
+    {
+      "calls": 761,
+      "name": "hipMalloc",
+      "percent": 0.3885557291560128,
+      "total_time_ms": 18.921127,
+      "total_time_ns": 18921127
+    },
+    {
+      "calls": 198,
+      "name": "hipFree",
+      "percent": 0.29630644968014375,
+      "total_time_ms": 14.428952,
+      "total_time_ns": 14428952
+    },
+    {
+      "calls": 34422,
+      "name": "hipDeviceGetAttribute",
+      "percent": 0.11454638831926642,
+      "total_time_ms": 5.577956,
+      "total_time_ns": 5577956
+    },
+    {
+      "calls": 5,
+      "name": "hipDeviceSynchronize",
+      "percent": 0.06820422577938225,
+      "total_time_ms": 3.321276,
+      "total_time_ns": 3321276
+    },
+    {
+      "calls": 18229,
+      "name": "hipGetDevicePropertiesR0600",
+      "percent": 0.05799883831631885,
+      "total_time_ms": 2.824314,
+      "total_time_ns": 2824314
+    },
+    {
+      "calls": 253,
+      "name": "hipExtModuleLaunchKernel",
+      "percent": 0.042755012854298724,
+      "total_time_ms": 2.082,
+      "total_time_ns": 2082000
+    }
+  ],
+  "top_kernels": [
+    {
+      "calls": 197,
+      "name": "void microllm::ops::hip::(anonymous namespace)::cast_transpose_2d_kernel<hip_bfloat16, float>(hip_bfloat16 const*, float*, long, long)",
+      "percent": 53.72479727155815,
+      "total_time_ms": 21.487699,
+      "total_time_ns": 21487699
+    },
+    {
+      "calls": 197,
+      "name": "void microllm::ops::hip::(anonymous namespace)::quantize_fp8_kernel<float, __hip_fp8_e4m3_fnuz>(float const*, __hip_fp8_e4m3_fnuz*, long, float)",
+      "percent": 9.402896319189772,
+      "total_time_ms": 3.76077,
+      "total_time_ns": 3760770
+    },
+    {
+      "calls": 56,
+      "name": "Cijk_Ailk_Bljk_F8NSS_BH_Bias_SHB_HA_S_SAB_SAV_UserArgs_MT256x64x128_MI16x16x1_SN_LDSB0_AFC1_AG0_AFEM1_AFEM1_ASEM1_CLR1_CADS0_DTLA0_DTLB0_DTVA1_DTVB0_DTVMXSA0_DTVMXSB0_DTVSM0_DPLB0_EPS0_ELFLR0_EMLLn1_FDSI1_GRPM1_GRVWA4_GRVWB16_GSUAMBSK_GLS0_ISA942_IU1_K1_LDSTI0_LBSPPA0_LBSPPB512_LBSPPM0_LPA0_LPB32_LPM0_LRVW16_LWPMn1_MIAV0_MIWT4_4_MO40_MGRIPM1_NTn1_NTA0_NTB0_NTC0_NTD4_NTM0_NEPBS8_NLCA1_NLCB1_ONLL0_PGR2_PLR1_PKA1_SGROB0_SIA3_SS1_SPO0_SRVW0_SSO0_SVW4_SK0_SKFTR0_SKXCCM0_SGRO0_TDMI0_TIN0_TLDS1_TLDSM1_ULSGRO0_USL1_USLMX0_UIOFGRO0_UPLRP0_USFGROn1_USI0_VSn1_VWA4_VWB4_WSGRA0_WSGRB0_WS64_WG64_4_1",
+      "percent": 4.178154103318873,
+      "total_time_ms": 1.671089,
+      "total_time_ns": 1671089
+    },
+    {
+      "calls": 339,
+      "name": "__amd_rocclr_copyBuffer",
+      "percent": 3.7835758433846216,
+      "total_time_ms": 1.513274,
+      "total_time_ns": 1513274
+    },
+    {
+      "calls": 28,
+      "name": "Cijk_Ailk_Bljk_F8NSS_BH_Bias_SHB_HA_S_SAB_SAV_UserArgs_MT64x48x256_MI16x16x1_SN_LDSB1_AFC1_AG0_AFEM1_AFEM1_ASEM1_CLR1_CADS0_DTLA0_DTLB0_DTVA0_DTVB0_DTVMXSA0_DTVMXSB0_DTVSM0_DPLB0_EPS0_ELFLR0_EMLLn1_FDSI1_GRPM1_GRVWA16_GRVWB16_GSUAMBSK_GLS0_ISA942_IU1_K1_LDSTI0_LBSPPA1024_LBSPPB256_LBSPPM0_LPA64_LPB32_LPM0_LRVW16_LWPMn1_MIAV0_MIWT4_3_MO40_MGRIPM1_NTn1_NTA0_NTB0_NTC0_NTD4_NTM0_NEPBS8_NLCA1_NLCB1_ONLL0_PGR2_PLR1_PKA1_SGROB0_SIA3_SS1_SPO0_SRVW0_SSO0_SVW4_SK0_SKFTR0_SKXCCM0_SGRO0_TDMI0_TIN0_TLDS1_TLDSM1_ULSGRO1_USL1_USLMX0_UIOFGRO0_UPLRP0_USFGROn1_USI0_VSn1_VWA4_VWB1_WSGRA0_WSGRB0_WS64_WG16_4_4",
+      "percent": 3.5743042256265074,
+      "total_time_ms": 1.429574,
+      "total_time_ns": 1429574
+    },
+    {
+      "calls": 197,
+      "name": "void microllm::ops::hip::(anonymous namespace)::quantize_fp8_device_scale_kernel<float, __hip_fp8_e4m3_fnuz>(float const*, __hip_fp8_e4m3_fnuz*, long, float const*)",
+      "percent": 3.5600677549990913,
+      "total_time_ms": 1.42388,
+      "total_time_ns": 1423880
+    },
+    {
+      "calls": 197,
+      "name": "void microllm::ops::hip::(anonymous namespace)::fp8_tensor_scale_kernel<float>(float const*, float*, long)",
+      "percent": 2.1881910401344458,
+      "total_time_ms": 0.875186,
+      "total_time_ns": 875186
+    },
+    {
+      "calls": 112,
+      "name": "microllm::runtime::detail::(anonymous namespace)::strided_copy_kernel(std::byte*, std::byte const*, unsigned long, long, microllm::runtime::detail::(anonymous namespace)::Layout)",
+      "percent": 2.0529995748560825,
+      "total_time_ms": 0.821115,
+      "total_time_ns": 821115
+    },
+    {
+      "calls": 197,
+      "name": "microllm::ops::hip::(anonymous namespace)::fp8_finalize_scale_kernel(float const*, float*, long, float)",
+      "percent": 2.0252392072101046,
+      "total_time_ms": 0.810012,
+      "total_time_ns": 810012
+    },
+    {
+      "calls": 56,
+      "name": "Cijk_Ailk_Bljk_F8NSS_BH_Bias_SHB_HA_S_SAB_SAV_UserArgs_MT64x64x256_MI16x16x1_SN_LDSB1_AFC1_AG0_AFEM1_AFEM1_ASEM1_CLR1_CADS0_DTLA0_DTLB0_DTVA0_DTVB0_DTVMXSA0_DTVMXSB0_DTVSM0_DPLB0_EPS0_ELFLR0_EMLLn1_FDSI1_GRPM1_GRVWA16_GRVWB16_GSUAMBSK_GLS0_ISA942_IU1_K1_LDSTI0_LBSPPA1024_LBSPPB1024_LBSPPM0_LPA64_LPB32_LPM0_LRVW16_LWPMn1_MIAV0_MIWT4_4_MO40_MGRIPM1_NTn1_NTA0_NTB0_NTC0_NTD4_NTM0_NEPBS8_NLCA1_NLCB1_ONLL0_PGR2_PLR1_PKA1_SGROB0_SIA3_SS1_SPO0_SRVW0_SSO0_SVW4_SK0_SKFTR0_SKXCCM0_SGRO0_TDMI0_TIN0_TLDS1_TLDSM1_ULSGRO1_USL1_USLMX0_UIOFGRO0_UPLRP0_USFGROn1_USI0_VSn1_VWA4_VWB4_WSGRA0_WSGRB0_WS64_WG16_4_4",
+      "percent": 2.002876897183479,
+      "total_time_ms": 0.801068,
+      "total_time_ns": 801068
+    }
+  ],
+  "measured_forward_attributable": {
+    "classification_boundary": "Known measured-forward kernels only: dynamic activation amax/finalize/quantize, hipBLASLt/Tensile GEMM, and dequant/fallback. Whole-process other is intentionally not attributed because the trace also includes model load and host weight preparation.",
+    "categories": [
+      {
+        "calls": 197,
+        "category": "fp8_tensor_scale_kernel",
+        "percent": 2.1881910401344458,
+        "total_time_ms": 0.875186,
+        "total_time_ns": 875186,
+        "unique_entries": 1
+      },
+      {
+        "calls": 197,
+        "category": "fp8_finalize_scale_kernel",
+        "percent": 2.0252392072101046,
+        "total_time_ms": 0.810012,
+        "total_time_ns": 810012,
+        "unique_entries": 1
+      },
+      {
+        "calls": 197,
+        "category": "quantize_fp8_device_scale_kernel",
+        "percent": 3.5600677549990913,
+        "total_time_ms": 1.42388,
+        "total_time_ns": 1423880,
+        "unique_entries": 1
+      },
+      {
+        "calls": 253,
+        "category": "hipBLASLt/Tensile GEMM",
+        "percent": 13.798752911175724,
+        "total_time_ms": 5.518931,
+        "total_time_ns": 5518931,
+        "unique_entries": 7
+      },
+      {
+        "calls": 0,
+        "category": "dequant/fallback",
+        "percent": 0.0,
+        "total_time_ms": 0.0,
+        "total_time_ns": 0,
+        "unique_entries": 0
+      }
+    ],
+    "known_calls": 844,
+    "known_total_time_ns": 8628009,
+    "known_total_time_ms": 8.628009,
+    "percent_of_whole_process_kernel_time": 21.572250913519365
+  },
+  "whole_process_boundary": "rocprofv3 covered startup, model load, host tensor-amax weight preparation, one measured prefill, and teardown; percentages use all captured kernel/API time."
+}

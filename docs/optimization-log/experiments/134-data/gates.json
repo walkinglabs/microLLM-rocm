@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "status": "profile_supports_shared_activation_quantization",
+  "profiles": {"passed": 2, "gpu_preflight_clean": 2},
+  "decision": {
+    "shared_qkv_quantization_supported": true,
+    "shared_gate_up_quantization_supported": true,
+    "whole_process_other_is_forward_only": false,
+    "profile_throughput_comparable_to_release": false
+  }
+}

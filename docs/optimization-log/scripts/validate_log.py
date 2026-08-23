@@ -5389,6 +5389,40 @@ def validate_fp8_multiblock_amax(errors: list[str]) -> tuple[int, int, int]:
     return len(weight_raw) + len(activation_raw), 2, 2
 
 
+def validate_fp8_dynamic_profile(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "134-data"
+    qwen = json.loads((data / "qwen" / "parsed-summary.json").read_text(encoding="utf-8"))
+    deep = json.loads((data / "deepseek" / "parsed-summary.json").read_text(encoding="utf-8"))
+    combined = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    for model, expected_calls, scale_ms, gemm_ms in (
+            (qwen, 168, 2.122265, 3.118825),
+            (deep, 197, 3.109078, 5.518931)):
+        categories = {row["category"]: row for row in model["kernel_categories"]}
+        scale_total = sum(categories[name]["total_time_ms"] for name in (
+            "fp8_tensor_scale_kernel", "fp8_finalize_scale_kernel",
+            "quantize_fp8_device_scale_kernel"))
+        if any(categories[name]["calls"] != expected_calls for name in (
+                "fp8_tensor_scale_kernel", "fp8_finalize_scale_kernel",
+                "quantize_fp8_device_scale_kernel")) or \
+                abs(scale_total - scale_ms) > 1.0e-6 or \
+                abs(categories["hipBLASLt/Tensile GEMM"]["total_time_ms"] - gemm_ms) > 1.0e-6 or \
+                categories["dequant/fallback"]["calls"] != 0:
+            errors.append(f"dynamic profile categories changed for {model['model']}")
+        attributable = model.get("measured_forward_attributable", {})
+        if attributable.get("known_calls") != expected_calls * 3 + \
+                categories["hipBLASLt/Tensile GEMM"]["calls"] or \
+                "Whole-process other" not in attributable.get(
+                    "classification_boundary", ""):
+            errors.append(f"dynamic profile boundary changed for {model['model']}")
+    if len(combined.get("profiles", [])) != 2 or \
+            gates.get("decision", {}).get("shared_qkv_quantization_supported") is not True or \
+            gates.get("decision", {}).get("shared_gate_up_quantization_supported") is not True or \
+            gates.get("decision", {}).get("whole_process_other_is_forward_only") is not False:
+        errors.append("dynamic profile combined/gates changed")
+    return qwen["kernel_total"]["calls"] + deep["kernel_total"]["calls"], 168, 197
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -5500,7 +5534,8 @@ def validate_assets(errors: list[str]) -> None:
                  "fp8-activation-row-range.svg",
                  "fp8-ffn-outer-row.svg",
                  "fp8-device-weight-amax.svg",
-                 "fp8-multiblock-amax.svg"):
+                 "fp8-multiblock-amax.svg",
+                 "fp8-dynamic-activation-profile.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -5700,6 +5735,8 @@ def main() -> int:
         validate_fp8_device_weight_amax(errors)
     multiblock_raw, multiblock_suites, multiblock_failures = \
         validate_fp8_multiblock_amax(errors)
+    dynamic_profile_calls, dynamic_profile_qwen, dynamic_profile_deep = \
+        validate_fp8_dynamic_profile(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -5859,6 +5896,8 @@ def main() -> int:
           f"device_weight={device_weight_raw}/{device_weight_failures}/"
           f"{device_weight_pilot} "
           f"multiblock={multiblock_raw}/{multiblock_suites}/{multiblock_failures} "
+          f"dynamic_profile={dynamic_profile_calls}/{dynamic_profile_qwen}/"
+          f"{dynamic_profile_deep} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")
