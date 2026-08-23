@@ -2265,3 +2265,14 @@ long-heavy吞吐只剩57%，P95约3×。delayed流量没有收益，吞吐与延
 为主门；长请求装不进小桶的反例继续保留。
 
 ![Traffic skew tail failure](assets/traffic-skew-tail.svg)
+
+## 134. Experiment 117：借两个兼容slot，P95恢复六成
+
+第一次正式运行被route合同拦下：pending被双计，4-slot桶在2条请求时就误判满。修复并增加
+4-slot阈值测试后，54进程全部通过。short-heavy中第5/6条短请求进入大桶，吞吐相对fixed提高
+约13%，TTFT P95下降61%–62%，completion P95下降约40%；long/delayed无overflow时保持中性。
+
+候选仍比uniform少约17%吞吐，P95高23%–35%，所以保留显式开关但不改默认。long-heavy无法
+借小桶，下一节点比较slot比例或paged Cache，而不是继续叠加错误的“万能”规则。
+
+![Compatible overflow](assets/compatible-overflow.svg)

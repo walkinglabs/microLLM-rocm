@@ -405,6 +405,9 @@ logical delayed submission, focus-request P95 and the physical-GPU idle gate in 
 terms.
 [Experiment 116](docs/optimization-log/experiments/116-traffic-skew.md) proves why this matters:
 fixed buckets can improve median TTFT while making queued-request P95 roughly three times worse.
+[Experiment 117](docs/optimization-log/experiments/117-compatible-overflow.md) adds an opt-in
+compatible overflow rule. It recovers about 13% throughput and 61%–62% TTFT P95 versus fixed
+buckets under short-heavy traffic, without claiming uniform-pool parity.
 
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or

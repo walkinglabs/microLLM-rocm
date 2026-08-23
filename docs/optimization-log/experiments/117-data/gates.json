@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "status": "keep_optional_compatible_overflow",
+  "full_release": {
+    "passed": 319,
+    "failed": 0,
+    "skipped": 2,
+    "cpu_labelled": 222,
+    "hip_labelled": 97
+  },
+  "sanitizer": {
+    "passed": 215,
+    "failed": 0
+  },
+  "python_contract": {
+    "passed": 15,
+    "failed": 0
+  },
+  "official_matrix": {
+    "passed": 54,
+    "failed": 0,
+    "comparisons": 6,
+    "token_exact_vs_fixed": 6,
+    "token_exact_vs_uniform": 6,
+    "pre_vram_percent_max": 1,
+    "pre_use_percent_max": 2,
+    "post_vram_percent_max": 3,
+    "post_use_percent_max": 5
+  },
+  "rejected_routing_attempt": {
+    "accepted_rows": 6,
+    "overflow_row_written": false,
+    "cause": "pending requests counted twice in bucket load"
+  },
+  "decision": {
+    "default_enabled": false,
+    "optional_policy_retained": true,
+    "short_heavy_tail_improved": true,
+    "uniform_tail_parity_reached": false,
+    "long_heavy_fixed": false
+  }
+}

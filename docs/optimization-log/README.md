@@ -596,6 +596,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/115-data/](experiments/115-data/) | 18条idle-gated正式矩阵和一轮污染拒绝证据 |
 | [assets/traffic-skew-tail.svg](assets/traffic-skew-tail.svg) | 固定桶的median改善与P95排队反例 |
 | [experiments/116-data/](experiments/116-data/) | 36条偏斜/延迟到达矩阵和两次设备门阻断记录 |
+| [assets/compatible-overflow.svg](assets/compatible-overflow.svg) | 短请求借大桶后的吞吐与P95恢复 |
+| [experiments/117-data/](experiments/117-data/) | 54条三策略矩阵和一次路由合同失败 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

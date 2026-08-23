@@ -4340,6 +4340,78 @@ def validate_traffic_skew(errors: list[str]) -> tuple[int, int, int]:
     return len(raw), len(comparisons), len(rejected_monitor)
 
 
+def validate_compatible_overflow(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "117-data"
+    raw = [json.loads(line) for line in
+           (data / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    preflight = [json.loads(line) for line in
+                 (data / "gpu2-preflight.jsonl").read_text(
+                     encoding="utf-8").splitlines()]
+    rejected = [json.loads(line) for line in
+                (data / "rejected-routing-raw.jsonl").read_text(
+                    encoding="utf-8").splitlines()]
+    rejected_preflight = [json.loads(line) for line in
+                          (data / "rejected-routing-preflight.jsonl").read_text(
+                              encoding="utf-8").splitlines()]
+    if len(raw) != 54 or any(row.get("status") != "pass" for row in raw) or \
+            any(not 0 <= row.get("pre_run_gpu_state", {}).get(
+                    "vram_percent", 99) <= 1 or
+                not 0 <= row.get("pre_run_gpu_state", {}).get(
+                    "gpu_use_percent", 99) <= 2 or
+                not 0 <= row.get("post_run_gpu_state", {}).get(
+                    "vram_percent", 99) <= 3 or
+                not 0 <= row.get("post_run_gpu_state", {}).get(
+                    "gpu_use_percent", 99) <= 5 for row in raw):
+        errors.append("compatible-overflow raw or idle-gate evidence changed")
+    comparisons = summary.get("overflow_comparisons", [])
+    by_group = {}
+    for row in comparisons:
+        by_group.setdefault(row.get("group"), []).append(row)
+    if summary.get("status") != "pass" or len(comparisons) != 6 or \
+            any(row.get("token_difference_vs_fixed", {}).get("exact") is not True or
+                row.get("token_difference_vs_uniform", {}).get("exact") is not True
+                for row in comparisons) or \
+            set(by_group) != {"short_heavy", "long_heavy", "delayed"} or \
+            any(len(rows) != 2 for rows in by_group.values()):
+        errors.append("compatible-overflow comparison contracts changed")
+    expected_short_route = [0, 0, 0, 0, 1, 1, 1, 1]
+    if any(row.get("overflow_routes") != expected_short_route or
+           row.get("overflow_routed_requests") != 2 or
+           not 1.12 < row.get("overflow_over_fixed_tps", 0.0) < 1.14 or
+           not 0.37 < row.get("overflow_over_fixed_focus_ttft_p95", 9.0) < 0.40 or
+           not 0.59 < row.get("overflow_over_fixed_focus_completion_p95", 9.0) < 0.62 or
+           not 0.81 < row.get("overflow_over_uniform_tps", 0.0) < 0.84 or
+           not 1.20 < row.get("overflow_over_uniform_focus_ttft_p95", 0.0) < 1.25
+           for row in by_group.get("short_heavy", [])):
+        errors.append("short-heavy compatible-overflow recovery changed")
+    for group in ("long_heavy", "delayed"):
+        if any(row.get("overflow_routed_requests") != 0 or
+               not 0.98 < row.get("overflow_over_fixed_tps", 0.0) < 1.02 or
+               not 0.98 < row.get("overflow_over_fixed_focus_ttft_p95", 0.0) < 1.02 or
+               not 0.98 < row.get("overflow_over_fixed_focus_completion_p95", 0.0) < 1.02
+               for row in by_group.get(group, [])):
+            errors.append(f"{group} overflow no-op boundary changed")
+    if len(preflight) != 3 or len(rejected) != 6 or \
+            len(rejected_preflight) != 3:
+        errors.append("compatible-overflow preflight or rejected route evidence changed")
+    if gates.get("status") != "keep_optional_compatible_overflow" or \
+            gates.get("full_release", {}).get("passed") != 319 or \
+            gates.get("sanitizer", {}).get("passed") != 215 or \
+            gates.get("official_matrix", {}).get("passed") != 54 or \
+            gates.get("decision", {}).get("default_enabled") is not False:
+        errors.append("compatible-overflow final gates changed")
+    source = (REPOSITORY / "src" / "inference" / "scheduler.cpp").read_text(
+        encoding="utf-8")
+    tests = (REPOSITORY / "tests" / "inference" /
+             "scheduler_test.cpp").read_text(encoding="utf-8")
+    if "const auto load = schedulers[index].active_request_count();" not in source or \
+            "CompatibleOverflowBorrowsLargerCapacityWithoutMovingRequests" not in tests:
+        errors.append("compatible-overflow pending-count fix or threshold test missing")
+    return len(raw), len(comparisons), len(rejected)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -4434,7 +4506,8 @@ def validate_assets(errors: list[str]) -> None:
                  "request-latency.svg",
                  "length-bucket-tradeoff.svg",
                  "bucket-pareto-sweep.svg",
-                 "traffic-skew-tail.svg"):
+                 "traffic-skew-tail.svg",
+                 "compatible-overflow.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -4602,6 +4675,8 @@ def main() -> int:
         validate_bucket_pareto(errors)
     traffic_skew_raw, traffic_skew_comparisons, traffic_skew_rejected = \
         validate_traffic_skew(errors)
+    overflow_raw, overflow_comparisons, overflow_rejected = \
+        validate_compatible_overflow(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -4735,6 +4810,8 @@ def main() -> int:
           f"{bucket_pareto_samples} "
           f"traffic_skew={traffic_skew_raw}/{traffic_skew_comparisons}/"
           f"{traffic_skew_rejected} "
+          f"compatible_overflow={overflow_raw}/{overflow_comparisons}/"
+          f"{overflow_rejected} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

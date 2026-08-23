@@ -269,5 +269,7 @@ the next gate. Records are append-only except for factual corrections.
   logical arrivals, focus tail latency, skew suites and a real post-process idle-gate rejection.
 - [2026-08-23-traffic-skew-tail.md](2026-08-23-traffic-skew-tail.md): clean 36-process
   skew matrix, median/tail split and the bounded compatible-overflow follow-up contract.
+- [2026-08-23-compatible-overflow.md](2026-08-23-compatible-overflow.md): route-contract
+  failure, pending double-count fix and the formal short-heavy P95 recovery.
 - [2026-08-21-divergent-row-cache-reference.md](2026-08-21-divergent-row-cache-reference.md):
   unequal-position shared-Storage B1 oracle with CPU/HIP and reset-prefix gates.

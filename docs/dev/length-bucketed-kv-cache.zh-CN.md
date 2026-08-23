@@ -173,3 +173,8 @@ MI300X P95 数据通过前不会自动启用。
 
 长请求无法装进小桶，因此该候选只可能修复 short-heavy，不会解决 long-heavy。这个反例是 API
 合同的一部分，不是待删除的难看数据。
+
+正式 54 进程证明：short-heavy 相对固定桶吞吐提高约 13%，TTFT P95 下降 61%–62%，completion
+P95 下降约 40%；不发生溢出的 long/delayed 与固定路径基本一致。但候选仍未追平 uniform，
+因此默认继续关闭。详见
+[Experiment 117](../optimization-log/experiments/117-compatible-overflow.md)。
