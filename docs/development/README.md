@@ -125,6 +125,8 @@ the next gate. Records are append-only except for factual corrections.
   deterministic multi-rank shape/edge tests and randomized finite-difference gradients.
 - [2026-08-19-cpu-code-coverage.md](2026-08-19-cpu-code-coverage.md): measured
   GCC/gcovr line, function, and branch coverage plus the remaining blind spots.
+- [2026-08-23-repeatable-cpu-coverage.md](2026-08-23-repeatable-cpu-coverage.md):
+  removes stale runtime profiles and proves two consecutive coverage summaries are identical.
 - [2026-08-19-low-precision-tensor-storage.md](2026-08-19-low-precision-tensor-storage.md):
   real FP16/BF16 storage, cast/view/device-copy semantics, and MI300/MI350 boundaries.
 - [2026-08-19-mi300x-precision-capabilities.md](2026-08-19-mi300x-precision-capabilities.md):

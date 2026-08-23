@@ -1,0 +1,718 @@
+Preset CMake variables:
+
+  CMAKE_BUILD_TYPE="Debug"
+  CMAKE_EXPORT_COMPILE_COMMANDS="ON"
+  MICROLLM_BUILD_BENCHMARKS="ON"
+  MICROLLM_BUILD_CAPI="OFF"
+  MICROLLM_BUILD_EXAMPLES="ON"
+  MICROLLM_BUILD_PYTHON="OFF"
+  MICROLLM_BUILD_TESTS="ON"
+  MICROLLM_BUILD_TORCH_OPS="OFF"
+  MICROLLM_ENABLE_COVERAGE="ON"
+  MICROLLM_ENABLE_HIP="OFF"
+
+-- 
+-- microLLM-rocm 0.1.0
+--   HIP:          OFF
+--   HIP arch:     
+--   hipBLASLt:    OFF
+--   RCCL:         OFF
+--   Tests:        ON
+--   Examples:     ON
+--   Sanitizers:   OFF
+--   Coverage:     ON
+-- 
+-- Configuring done (0.9s)
+-- Generating done (0.1s)
+-- Build files have been written to: /home/devpod/github/microLLM-rocm/build/cpu-coverage
+coverage_stale_profiles_removed=59
+[  1%] Building CXX object src/runtime/CMakeFiles/microllm_runtime.dir/runtime.cpp.o
+[  2%] Building CXX object _deps/googletest-build/googletest/CMakeFiles/gtest.dir/src/gtest-all.cc.o
+[  3%] Linking CXX static library libmicrollm_runtime.a
+[  3%] Built target microllm_runtime
+[  4%] Building CXX object src/core/CMakeFiles/microllm_core.dir/device.cpp.o
+[  5%] Building CXX object src/core/CMakeFiles/microllm_core.dir/storage.cpp.o
+[  6%] Building CXX object src/core/CMakeFiles/microllm_core.dir/tensor.cpp.o
+[  7%] Linking CXX static library libmicrollm_core.a
+[  7%] Built target microllm_core
+[  8%] Building CXX object src/profiling/CMakeFiles/microllm_profiling.dir/trace.cpp.o
+[  9%] Building CXX object src/ops/CMakeFiles/microllm_ops.dir/ops.cpp.o
+[ 10%] Building CXX object src/io/CMakeFiles/microllm_io.dir/byte_tokenizer.cpp.o
+[ 12%] Building CXX object apps/CMakeFiles/microllm_runtime_info.dir/runtime_info.cpp.o
+[ 12%] Building CXX object src/ops/CMakeFiles/microllm_ops.dir/low_level.cpp.o
+[ 13%] Building CXX object src/io/CMakeFiles/microllm_io.dir/token_dataset.cpp.o
+[ 15%] Building CXX object examples/CMakeFiles/microllm_tensor_ppm.dir/tensor_ppm.cpp.o
+[ 16%] Building CXX object src/io/CMakeFiles/microllm_io.dir/bpe_tokenizer.cpp.o
+[ 16%] Building CXX object src/ops/CMakeFiles/microllm_ops.dir/optimized.cpp.o
+[ 18%] Building CXX object src/io/CMakeFiles/microllm_io.dir/sft.cpp.o
+[ 17%] Building CXX object src/io/CMakeFiles/microllm_io.dir/chat_template.cpp.o
+[ 18%] Building CXX object src/io/CMakeFiles/microllm_io.dir/huggingface_bpe_tokenizer.cpp.o
+[ 19%] Building CXX object src/io/CMakeFiles/microllm_io.dir/safetensors.cpp.o
+[ 19%] Linking CXX executable microllm_runtime_info
+[ 19%] Built target microllm_runtime_info
+[ 20%] Linking CXX executable microllm_tensor_ppm
+[ 20%] Built target microllm_tensor_ppm
+[ 21%] Linking CXX static library libmicrollm_profiling.a
+[ 21%] Built target microllm_profiling
+[ 22%] Linking CXX static library libmicrollm_ops.a
+[ 22%] Built target microllm_ops
+[ 23%] Building CXX object src/autograd/CMakeFiles/microllm_autograd.dir/autograd.cpp.o
+[ 24%] Building CXX object benchmarks/CMakeFiles/microllm_bench_ops.dir/micro/benchmark_ops.cpp.o
+[ 25%] Building CXX object examples/CMakeFiles/microllm_cpu_hip_compare.dir/cpu_hip_compare.cpp.o
+[ 26%] Linking CXX executable microllm_cpu_hip_compare
+[ 26%] Built target microllm_cpu_hip_compare
+[ 27%] Linking CXX static library libmicrollm_io.a
+[ 27%] Built target microllm_io
+[ 28%] Building CXX object apps/CMakeFiles/microllm_hf_tokenize.dir/hf_tokenize.cpp.o
+[ 29%] Building CXX object tests/CMakeFiles/microllm_safetensors_interop.dir/io/safetensors_interop_helper.cpp.o
+[ 30%] Linking CXX executable microllm_bench_ops
+[ 30%] Built target microllm_bench_ops
+[ 31%] Linking CXX static library ../../../lib/libgtest.a
+[ 31%] Built target gtest
+[ 31%] Building CXX object _deps/googletest-build/googlemock/CMakeFiles/gmock.dir/src/gmock-all.cc.o
+[ 32%] Building CXX object _deps/googletest-build/googletest/CMakeFiles/gtest_main.dir/src/gtest_main.cc.o
+[ 33%] Linking CXX executable microllm_hf_tokenize
+[ 33%] Built target microllm_hf_tokenize
+[ 34%] Linking CXX executable microllm_safetensors_interop
+[ 34%] Built target microllm_safetensors_interop
+[ 35%] Linking CXX static library ../../../lib/libgtest_main.a
+[ 35%] Built target gtest_main
+[ 36%] Linking CXX static library libmicrollm_autograd.a
+[ 36%] Built target microllm_autograd
+[ 37%] Building CXX object src/model/CMakeFiles/microllm_model.dir/huggingface.cpp.o
+[ 38%] Building CXX object src/model/CMakeFiles/microllm_model.dir/config.cpp.o
+[ 39%] Building CXX object src/model/CMakeFiles/microllm_model.dir/model.cpp.o
+[ 40%] Linking CXX static library ../../../lib/libgmock.a
+[ 40%] Built target gmock
+[ 41%] Building CXX object _deps/googletest-build/googlemock/CMakeFiles/gmock_main.dir/src/gmock_main.cc.o
+[ 42%] Linking CXX static library ../../../lib/libgmock_main.a
+[ 42%] Built target gmock_main
+[ 43%] Linking CXX static library libmicrollm_model.a
+[ 43%] Built target microllm_model
+[ 44%] Building CXX object src/training/CMakeFiles/microllm_training.dir/optimizer.cpp.o
+[ 45%] Building CXX object src/inference/CMakeFiles/microllm_inference.dir/generator.cpp.o
+[ 47%] Building CXX object src/inference/CMakeFiles/microllm_inference.dir/kv_cache.cpp.o
+[ 47%] Building CXX object src/training/CMakeFiles/microllm_training.dir/checkpoint.cpp.o
+[ 49%] Building CXX object apps/CMakeFiles/microllm_hf_inspect.dir/hf_inspect.cpp.o
+[ 49%] Building CXX object src/training/CMakeFiles/microllm_training.dir/trainer.cpp.o
+[ 50%] Building CXX object apps/CMakeFiles/microllm_alignment.dir/alignment.cpp.o
+[ 51%] Building CXX object src/inference/CMakeFiles/microllm_inference.dir/scheduler.cpp.o
+[ 52%] Building CXX object examples/CMakeFiles/microllm_model_info.dir/model_info.cpp.o
+[ 52%] Building CXX object examples/CMakeFiles/microllm_model_s_smoke.dir/model_s_smoke.cpp.o
+[ 53%] Building CXX object examples/CMakeFiles/microllm_model_s_hip_smoke.dir/model_s_hip_smoke.cpp.o
+[ 54%] Linking CXX executable microllm_model_info
+[ 54%] Built target microllm_model_info
+[ 54%] Linking CXX executable microllm_hf_inspect
+[ 54%] Built target microllm_hf_inspect
+[ 55%] Linking CXX executable microllm_model_s_smoke
+[ 56%] Linking CXX executable microllm_model_s_hip_smoke
+[ 56%] Built target microllm_model_s_smoke
+[ 56%] Built target microllm_model_s_hip_smoke
+[ 57%] Linking CXX static library libmicrollm_training.a
+[ 57%] Built target microllm_training
+[ 59%] Building CXX object apps/CMakeFiles/microllm_hf_train_step.dir/hf_train_step.cpp.o
+[ 59%] Building CXX object apps/CMakeFiles/microllm_train.dir/train.cpp.o
+[ 60%] Building CXX object examples/CMakeFiles/microllm_model_s_train_smoke.dir/model_s_train_smoke.cpp.o
+[ 61%] Building CXX object examples/CMakeFiles/microllm_tiny_hip_train.dir/tiny_hip_train.cpp.o
+[ 62%] Building CXX object examples/CMakeFiles/microllm_tiny_sft.dir/tiny_sft.cpp.o
+[ 63%] Building CXX object examples/CMakeFiles/microllm_model_m_hip_train_smoke.dir/model_m_hip_train_smoke.cpp.o
+[ 64%] Linking CXX executable microllm_alignment
+[ 64%] Built target microllm_alignment
+[ 65%] Linking CXX executable microllm_tiny_sft
+[ 66%] Linking CXX executable microllm_tiny_hip_train
+[ 67%] Linking CXX executable microllm_model_s_train_smoke
+[ 68%] Linking CXX executable microllm_model_m_hip_train_smoke
+[ 68%] Built target microllm_tiny_sft
+[ 68%] Built target microllm_tiny_hip_train
+[ 69%] Linking CXX executable microllm_train
+[ 69%] Built target microllm_model_s_train_smoke
+[ 69%] Built target microllm_model_m_hip_train_smoke
+[ 69%] Built target microllm_train
+[ 70%] Linking CXX executable microllm_hf_train_step
+[ 71%] Linking CXX static library libmicrollm_inference.a
+[ 71%] Built target microllm_inference
+[ 72%] Building CXX object apps/CMakeFiles/microllm_hf_infer.dir/hf_infer.cpp.o
+[ 74%] Building CXX object benchmarks/CMakeFiles/microllm_bench_scheduler.dir/end_to_end/benchmark_scheduler.cpp.o
+[ 74%] Building CXX object benchmarks/CMakeFiles/microllm_bench_model.dir/end_to_end/benchmark_model.cpp.o
+[ 75%] Building CXX object examples/CMakeFiles/microllm_tiny_overfit.dir/tiny_overfit.cpp.o
+[ 76%] Building CXX object tests/CMakeFiles/microllm_tests.dir/tests_main.cpp.o
+[ 77%] Building CXX object tests/CMakeFiles/microllm_tests.dir/core/device_test.cpp.o
+[ 78%] Building CXX object tests/CMakeFiles/microllm_tests.dir/core/storage_test.cpp.o
+[ 79%] Building CXX object tests/CMakeFiles/microllm_tests.dir/core/tensor_test.cpp.o
+[ 80%] Building CXX object tests/CMakeFiles/microllm_tests.dir/core/headers_compile_test.cpp.o
+[ 82%] Building CXX object tests/CMakeFiles/microllm_tests.dir/profiling/trace_test.cpp.o
+[ 82%] Building CXX object tests/CMakeFiles/microllm_tests.dir/runtime/runtime_test.cpp.o
+[ 83%] Building CXX object tests/CMakeFiles/microllm_tests.dir/ops/ops_test.cpp.o
+[ 84%] Building CXX object tests/CMakeFiles/microllm_tests.dir/ops/property_test.cpp.o
+[ 84%] Building CXX object tests/CMakeFiles/microllm_tests.dir/autograd/autograd_test.cpp.o
+[ 85%] Building CXX object tests/CMakeFiles/microllm_tests.dir/graph/graph_construction_test.cpp.o
+[ 86%] Building CXX object tests/CMakeFiles/microllm_tests.dir/graph/graph_gradient_alignment_test.cpp.o
+[ 87%] Building CXX object tests/CMakeFiles/microllm_tests.dir/training/optimizer_test.cpp.o
+[ 88%] Building CXX object tests/CMakeFiles/microllm_tests.dir/training/checkpoint_test.cpp.o
+[ 89%] Building CXX object tests/CMakeFiles/microllm_tests.dir/model/config_test.cpp.o
+[ 90%] Building CXX object tests/CMakeFiles/microllm_tests.dir/model/model_test.cpp.o
+[ 91%] Building CXX object tests/CMakeFiles/microllm_tests.dir/io/io_test.cpp.o
+[ 92%] Building CXX object tests/CMakeFiles/microllm_tests.dir/model/weights_test.cpp.o
+[ 93%] Building CXX object tests/CMakeFiles/microllm_tests.dir/io/safetensors_test.cpp.o
+[ 94%] Building CXX object tests/CMakeFiles/microllm_tests.dir/training/trainer_test.cpp.o
+[ 95%] Building CXX object tests/CMakeFiles/microllm_tests.dir/inference/generator_test.cpp.o
+[ 96%] Building CXX object tests/CMakeFiles/microllm_tests.dir/inference/shape_matrix_test.cpp.o
+[ 96%] Building CXX object tests/CMakeFiles/microllm_tests.dir/inference/scheduler_test.cpp.o
+[ 96%] Built target microllm_hf_train_step
+[ 97%] Linking CXX executable microllm_tiny_overfit
+[ 97%] Built target microllm_tiny_overfit
+[ 97%] Linking CXX executable microllm_bench_model
+[ 97%] Built target microllm_bench_model
+[ 98%] Linking CXX executable microllm_bench_scheduler
+[ 98%] Built target microllm_bench_scheduler
+[ 99%] Linking CXX executable microllm_hf_infer
+[ 99%] Built target microllm_hf_infer
+[100%] Linking CXX executable microllm_tests
+[100%] Built target microllm_tests
+Test project /home/devpod/github/microLLM-rocm/build/cpu-coverage
+        Start   1: HuggingFace.Qwen25Config
+  1/249 Test   #1: HuggingFace.Qwen25Config ........................................................................   Passed    0.00 sec
+        Start   2: HuggingFace.DeepSeekDistillQwenConfig
+  2/249 Test   #2: HuggingFace.DeepSeekDistillQwenConfig ...........................................................   Passed    0.00 sec
+        Start   3: TrainCLI.Save
+  3/249 Test   #3: TrainCLI.Save ...................................................................................   Passed    0.05 sec
+        Start   4: TrainCLI.Resume
+  4/249 Test   #4: TrainCLI.Resume .................................................................................   Passed    0.03 sec
+        Start   5: Examples.TensorPpm
+  5/249 Test   #5: Examples.TensorPpm ..............................................................................   Passed    0.00 sec
+        Start   6: Training.TinySftSmoke
+  6/249 Test   #6: Training.TinySftSmoke ...........................................................................   Passed    0.02 sec
+        Start   7: Training.TinyOverfitSmoke
+  7/249 Test   #7: Training.TinyOverfitSmoke .......................................................................   Passed    0.03 sec
+        Start   8: ModelS.ForwardSmoke
+  8/249 Test   #8: ModelS.ForwardSmoke .............................................................................   Passed    2.80 sec
+        Start   9: ModelS.TrainStepSmoke
+  9/249 Test   #9: ModelS.TrainStepSmoke ...........................................................................   Passed    8.04 sec
+        Start  10: Benchmark.AddSmoke
+ 10/249 Test  #10: Benchmark.AddSmoke ..............................................................................   Passed    0.00 sec
+        Start  11: Benchmark.ModelTrainSmoke
+ 11/249 Test  #11: Benchmark.ModelTrainSmoke .......................................................................   Passed    0.01 sec
+        Start  12: Benchmark.SchedulerReferenceSmoke
+ 12/249 Test  #12: Benchmark.SchedulerReferenceSmoke ...............................................................   Passed    0.20 sec
+        Start  13: Benchmark.SchedulerContinuousProfileSmoke
+ 13/249 Test  #13: Benchmark.SchedulerContinuousProfileSmoke .......................................................   Passed    0.06 sec
+        Start  14: Benchmark.JsonSchema
+ 14/249 Test  #14: Benchmark.JsonSchema ............................................................................   Passed    0.03 sec
+        Start  15: Benchmark.ModelMatrixSchema
+ 15/249 Test  #15: Benchmark.ModelMatrixSchema .....................................................................   Passed    0.06 sec
+        Start  16: Benchmark.HfModelMatrixUnavailableSchema
+ 16/249 Test  #16: Benchmark.HfModelMatrixUnavailableSchema ........................................................   Passed    0.03 sec
+        Start  17: Benchmark.HfBatchContract
+ 17/249 Test  #17: Benchmark.HfBatchContract .......................................................................   Passed    0.06 sec
+        Start  18: Benchmark.HfShapeMatrixContract
+ 18/249 Test  #18: Benchmark.HfShapeMatrixContract .................................................................   Passed    0.05 sec
+        Start  19: Benchmark.HfInferenceShapeMatrixContract
+ 19/249 Test  #19: Benchmark.HfInferenceShapeMatrixContract ........................................................   Passed    0.05 sec
+        Start  20: Benchmark.HfContinuousMatrixContract
+ 20/249 Test  #20: Benchmark.HfContinuousMatrixContract ............................................................   Passed    0.07 sec
+        Start  21: Benchmark.Mi300PrecisionRooflineContract
+ 21/249 Test  #21: Benchmark.Mi300PrecisionRooflineContract ........................................................   Passed    0.04 sec
+        Start  22: Benchmark.Mi300Int8ProbeContract
+ 22/249 Test  #22: Benchmark.Mi300Int8ProbeContract ................................................................   Passed    0.04 sec
+        Start  23: Benchmark.HfFp8MatrixContract
+ 23/249 Test  #23: Benchmark.HfFp8MatrixContract ...................................................................   Passed    0.04 sec
+        Start  24: Benchmark.HfFp8ScaleGridContract
+ 24/249 Test  #24: Benchmark.HfFp8ScaleGridContract ................................................................   Passed    0.05 sec
+        Start  25: Benchmark.HfActivationRangeContract
+ 25/249 Test  #25: Benchmark.HfActivationRangeContract .............................................................   Passed    0.05 sec
+        Start  26: Benchmark.HfActivationRowRangeContract
+ 26/249 Test  #26: Benchmark.HfActivationRowRangeContract ..........................................................   Passed    0.04 sec
+        Start  27: Benchmark.HfFp8LayerDriftContract
+ 27/249 Test  #27: Benchmark.HfFp8LayerDriftContract ...............................................................   Passed    0.05 sec
+        Start  28: Benchmark.HfFp8BlockDetailContract
+ 28/249 Test  #28: Benchmark.HfFp8BlockDetailContract ..............................................................   Passed    0.04 sec
+        Start  29: Benchmark.KvCachePrecisionContract
+ 29/249 Test  #29: Benchmark.KvCachePrecisionContract ..............................................................   Passed    0.07 sec
+        Start  30: Benchmark.KvCachePolicyComparisonContract
+ 30/249 Test  #30: Benchmark.KvCachePolicyComparisonContract .......................................................   Passed    0.05 sec
+        Start  31: Benchmark.FrameworkComparisonBuiltinsSchema
+ 31/249 Test  #31: Benchmark.FrameworkComparisonBuiltinsSchema .....................................................   Passed    0.03 sec
+        Start  32: Benchmark.FrameworkComparisonHfSchema
+ 32/249 Test  #32: Benchmark.FrameworkComparisonHfSchema ...........................................................   Passed    0.02 sec
+        Start  33: OptimizationLog.Validate
+ 33/249 Test  #33: OptimizationLog.Validate ........................................................................   Passed    0.27 sec
+        Start  34: BuildSmoke.VersionIsDefined
+ 34/249 Test  #34: BuildSmoke.VersionIsDefined .....................................................................   Passed    0.01 sec
+        Start  35: DeviceTest.DescribesCpuAndHipDevices
+ 35/249 Test  #35: DeviceTest.DescribesCpuAndHipDevices ............................................................   Passed    0.01 sec
+        Start  36: DeviceTest.RejectsNegativeIndex
+ 36/249 Test  #36: DeviceTest.RejectsNegativeIndex .................................................................   Passed    0.01 sec
+        Start  37: StorageTest.AllocatesCpuBytes
+ 37/249 Test  #37: StorageTest.AllocatesCpuBytes ...................................................................   Passed    0.01 sec
+        Start  38: StorageTest.CopySharesTheAllocationLifetime
+ 38/249 Test  #38: StorageTest.CopySharesTheAllocationLifetime .....................................................   Passed    0.01 sec
+        Start  39: StorageTest.ZeroByteStorageIsValidAndEmpty
+ 39/249 Test  #39: StorageTest.ZeroByteStorageIsValidAndEmpty ......................................................   Passed    0.01 sec
+        Start  40: StorageTest.HipAllocationIsExplicitlyUnavailableInN0
+ 40/249 Test  #40: StorageTest.HipAllocationIsExplicitlyUnavailableInN0 ............................................   Passed    0.01 sec
+        Start  41: ShapeTest.ComputesNumelAndContiguousStrides
+ 41/249 Test  #41: ShapeTest.ComputesNumelAndContiguousStrides .....................................................   Passed    0.01 sec
+        Start  42: TensorTest.ConstructsScalarAndZeroSizedTensor
+ 42/249 Test  #42: TensorTest.ConstructsScalarAndZeroSizedTensor ...................................................   Passed    0.01 sec
+        Start  43: TensorTest.TransposeIsAZeroCopyViewWithCorrectValues
+ 43/249 Test  #43: TensorTest.TransposeIsAZeroCopyViewWithCorrectValues ............................................   Passed    0.01 sec
+        Start  44: TensorTest.SliceSharesStorageAndHonorsStep
+ 44/249 Test  #44: TensorTest.SliceSharesStorageAndHonorsStep ......................................................   Passed    0.01 sec
+        Start  45: TensorTest.ContiguousCopiesANonContiguousView
+ 45/249 Test  #45: TensorTest.ContiguousCopiesANonContiguousView ...................................................   Passed    0.01 sec
+        Start  46: TensorTest.ReshapeSharesOnlyContiguousStorage
+ 46/249 Test  #46: TensorTest.ReshapeSharesOnlyContiguousStorage ...................................................   Passed    0.01 sec
+        Start  47: TensorTest.UnsqueezeAndSqueezePreserveValues
+ 47/249 Test  #47: TensorTest.UnsqueezeAndSqueezePreserveValues ....................................................   Passed    0.01 sec
+        Start  48: TensorTest.RejectsInvalidViewsAndSlices
+ 48/249 Test  #48: TensorTest.RejectsInvalidViewsAndSlices .........................................................   Passed    0.01 sec
+        Start  49: TensorTest.RandomContiguousShapesRoundTrip
+ 49/249 Test  #49: TensorTest.RandomContiguousShapesRoundTrip ......................................................   Passed    0.01 sec
+        Start  50: TensorDTypeTest.Float16AndBFloat16UseTwoByteStorageAndRoundTripValues
+ 50/249 Test  #50: TensorDTypeTest.Float16AndBFloat16UseTwoByteStorageAndRoundTripValues ...........................   Passed    0.01 sec
+        Start  51: TensorDTypeTest.CastIsExplicitAndPreservesShapeDeviceAndSpecialValues
+ 51/249 Test  #51: TensorDTypeTest.CastIsExplicitAndPreservesShapeDeviceAndSpecialValues ...........................   Passed    0.01 sec
+        Start  52: TensorDTypeTest.LowPrecisionViewsFillAndMaterializeLogicalOrder
+ 52/249 Test  #52: TensorDTypeTest.LowPrecisionViewsFillAndMaterializeLogicalOrder .................................   Passed    0.01 sec
+        Start  53: TensorDTypeTest.Mi300FnuzFloat8UsesOneByteAndExplicitCast
+ 53/249 Test  #53: TensorDTypeTest.Mi300FnuzFloat8UsesOneByteAndExplicitCast .......................................   Passed    0.01 sec
+        Start  54: PublicHeaders.CanBeIncludedTogether
+ 54/249 Test  #54: PublicHeaders.CanBeIncludedTogether .............................................................   Passed    0.01 sec
+        Start  55: RuntimeTest.CpuStreamAndEventHaveSynchronousSemantics
+ 55/249 Test  #55: RuntimeTest.CpuStreamAndEventHaveSynchronousSemantics ...........................................   Passed    0.01 sec
+        Start  56: RuntimeTest.CpuCopyRoundTripsBytes
+ 56/249 Test  #56: RuntimeTest.CpuCopyRoundTripsBytes ..............................................................   Passed    0.01 sec
+        Start  57: RuntimeTest.TracksCurrentPeakAndTotalEngineAllocations
+ 57/249 Test  #57: RuntimeTest.TracksCurrentPeakAndTotalEngineAllocations ..........................................   Passed    0.01 sec
+        Start  58: HipRuntimeTest.CpuBuildRejectsHipObjects
+ 58/249 Test  #58: HipRuntimeTest.CpuBuildRejectsHipObjects ........................................................   Passed    0.01 sec
+        Start  59: TraceSessionTest.RecordsTensorMetadataStatisticsAndTruncatedValues
+ 59/249 Test  #59: TraceSessionTest.RecordsTensorMetadataStatisticsAndTruncatedValues ..............................   Passed    0.01 sec
+        Start  60: TraceSessionTest.ScopedActivationRestoresPreviousSession
+ 60/249 Test  #60: TraceSessionTest.ScopedActivationRestoresPreviousSession ........................................   Passed    0.01 sec
+        Start  61: TraceSessionTest.TimerIsZeroOverheadWhenInactiveAndRecordsWhenActive
+ 61/249 Test  #61: TraceSessionTest.TimerIsZeroOverheadWhenInactiveAndRecordsWhenActive ............................   Passed    0.01 sec
+        Start  62: TraceSessionTest.WritesSchemaVersionedJsonLines
+ 62/249 Test  #62: TraceSessionTest.WritesSchemaVersionedJsonLines .................................................   Passed    0.01 sec
+        Start  63: TraceSessionTest.RejectsInvalidIdentityAndDuration
+ 63/249 Test  #63: TraceSessionTest.RejectsInvalidIdentityAndDuration ..............................................   Passed    0.01 sec
+        Start  64: TraceSessionTest.SerializesNonFiniteValuesAsExplicitJsonStrings
+ 64/249 Test  #64: TraceSessionTest.SerializesNonFiniteValuesAsExplicitJsonStrings .................................   Passed    0.01 sec
+        Start  65: TraceSessionTest.ValueFiltersKeepMetadataButCaptureOnlyMatchingNames
+ 65/249 Test  #65: TraceSessionTest.ValueFiltersKeepMetadataButCaptureOnlyMatchingNames ............................   Passed    0.01 sec
+        Start  66: CpuOpsTest.ElementwiseOpsMatchHandValues
+ 66/249 Test  #66: CpuOpsTest.ElementwiseOpsMatchHandValues ........................................................   Passed    0.01 sec
+        Start  67: CpuOpsTest.CastOutAndTransposePreserveCallerStorage
+ 67/249 Test  #67: CpuOpsTest.CastOutAndTransposePreserveCallerStorage .............................................   Passed    0.01 sec
+        Start  68: CpuOpsTest.BiasBroadcastAndReductionMatchHandValues
+ 68/249 Test  #68: CpuOpsTest.BiasBroadcastAndReductionMatchHandValues .............................................   Passed    0.01 sec
+        Start  69: CpuOpsTest.FusedSplitHalfRopeBiasMatchesComposedProjectionPath
+ 69/249 Test  #69: CpuOpsTest.FusedSplitHalfRopeBiasMatchesComposedProjectionPath ..................................   Passed    0.01 sec
+        Start  70: CpuOpsTest.FusedResidualRmsNormReturnsBothComposedOutputs
+ 70/249 Test  #70: CpuOpsTest.FusedResidualRmsNormReturnsBothComposedOutputs .......................................   Passed    0.01 sec
+        Start  71: CpuOpsTest.BatchedMatmulMatchesHandValues
+ 71/249 Test  #71: CpuOpsTest.BatchedMatmulMatchesHandValues .......................................................   Passed    0.01 sec
+        Start  72: CpuOpsTest.TransposeAwareBatchedReadableMatchesMaterializedReference
+ 72/249 Test  #72: CpuOpsTest.TransposeAwareBatchedReadableMatchesMaterializedReference ............................   Passed    0.01 sec
+        Start  73: CpuOpsTest.DeviceStyleCastAndMixedBf16MatmulMatchRoundedReference
+ 73/249 Test  #73: CpuOpsTest.DeviceStyleCastAndMixedBf16MatmulMatchRoundedReference ...............................   Passed    0.01 sec
+        Start  74: CpuOpsTest.Bf16FfnKeepsIntermediateActivationsLowPrecision
+ 74/249 Test  #74: CpuOpsTest.Bf16FfnKeepsIntermediateActivationsLowPrecision ......................................   Passed    0.01 sec
+        Start  75: CpuOpsTest.Bf16QkvProjectionCastsSharedInputOnceAndKeepsFp32Outputs
+ 75/249 Test  #75: CpuOpsTest.Bf16QkvProjectionCastsSharedInputOnceAndKeepsFp32Outputs .............................   Passed    0.01 sec
+        Start  76: CpuOpsTest.Bf16PlanCacheIsEmptyWithoutHipblaslt
+ 76/249 Test  #76: CpuOpsTest.Bf16PlanCacheIsEmptyWithoutHipblaslt .................................................   Passed    0.01 sec
+        Start  77: CpuOpsTest.CausalGqaAttentionMatchesComposedForwardAndBackward
+ 77/249 Test  #77: CpuOpsTest.CausalGqaAttentionMatchesComposedForwardAndBackward ..................................   Passed    0.01 sec
+        Start  78: CpuOpsTest.TransposeAwareMatmulCoversAllOperandLayoutsWithoutViews
+ 78/249 Test  #78: CpuOpsTest.TransposeAwareMatmulCoversAllOperandLayoutsWithoutViews ..............................   Passed    0.01 sec
+        Start  79: CpuOpsTest.CachedGqaAttentionStoresStablePrefixesAndRejectsBadContracts
+ 79/249 Test  #79: CpuOpsTest.CachedGqaAttentionStoresStablePrefixesAndRejectsBadContracts .........................   Passed    0.01 sec
+        Start  80: CpuOpsTest.BatchedCacheStoreAndGqaAttentionKeepRowsIndependent
+ 80/249 Test  #80: CpuOpsTest.BatchedCacheStoreAndGqaAttentionKeepRowsIndependent ..................................   Passed    0.01 sec
+        Start  81: CpuOpsTest.PositionedRopeStoreAndAttentionMatchRowReferences
+ 81/249 Test  #81: CpuOpsTest.PositionedRopeStoreAndAttentionMatchRowReferences ....................................   Passed    0.01 sec
+        Start  82: CpuOpsTest.Bf16CacheRoundsStorageAndKeepsFp32AttentionOutput
+ 82/249 Test  #82: CpuOpsTest.Bf16CacheRoundsStorageAndKeepsFp32AttentionOutput ....................................   Passed    0.01 sec
+        Start  83: CpuOpsTest.ArgmaxUsesSmallestTieIndexAndMarksNonFiniteInput
+ 83/249 Test  #83: CpuOpsTest.ArgmaxUsesSmallestTieIndexAndMarksNonFiniteInput .....................................   Passed    0.01 sec
+        Start  84: CpuOpsTest.ArgmaxLastDimReducesRowsWithTieAndNonFiniteContracts
+ 84/249 Test  #84: CpuOpsTest.ArgmaxLastDimReducesRowsWithTieAndNonFiniteContracts .................................   Passed    0.01 sec
+        Start  85: CpuOpsTest.ArgmaxOutWritesCallerOwnedHistoryViews
+ 85/249 Test  #85: CpuOpsTest.ArgmaxOutWritesCallerOwnedHistoryViews ...............................................   Passed    0.01 sec
+        Start  86: CpuOpsTest.EmbeddingGathersRowsAndRejectsBadIndex
+ 86/249 Test  #86: CpuOpsTest.EmbeddingGathersRowsAndRejectsBadIndex ...............................................   Passed    0.01 sec
+        Start  87: CpuOpsTest.SoftmaxIsStableAndRowsSumToOne
+ 87/249 Test  #87: CpuOpsTest.SoftmaxIsStableAndRowsSumToOne .......................................................   Passed    0.01 sec
+        Start  88: CpuOpsTest.RmsNormMatchesManualCalculation
+ 88/249 Test  #88: CpuOpsTest.RmsNormMatchesManualCalculation ......................................................   Passed    0.01 sec
+        Start  89: CpuOpsTest.SiluAndSwiGluMatchDefinitions
+ 89/249 Test  #89: CpuOpsTest.SiluAndSwiGluMatchDefinitions ........................................................   Passed    0.01 sec
+        Start  90: CpuOpsTest.RopeLeavesPositionZeroAndRotatesPositionOne
+ 90/249 Test  #90: CpuOpsTest.RopeLeavesPositionZeroAndRotatesPositionOne ..........................................   Passed    0.01 sec
+        Start  91: CpuOpsTest.SplitHalfRopeUsesQwenPairLayout
+ 91/249 Test  #91: CpuOpsTest.SplitHalfRopeUsesQwenPairLayout ......................................................   Passed    0.01 sec
+        Start  92: CpuOpsTest.CrossEntropyMatchesStableLogSoftmax
+ 92/249 Test  #92: CpuOpsTest.CrossEntropyMatchesStableLogSoftmax ..................................................   Passed    0.01 sec
+        Start  93: CpuOpsTest.CrossEntropyIgnoresMaskedRows
+ 93/249 Test  #93: CpuOpsTest.CrossEntropyIgnoresMaskedRows ........................................................   Passed    0.01 sec
+        Start  94: CpuOpsTest.ShapeErrorsAreVisible
+ 94/249 Test  #94: CpuOpsTest.ShapeErrorsAreVisible ................................................................   Passed    0.01 sec
+        Start  95: CpuLowPrecisionOpsTest.ForwardFamilyMatchesRoundedFloat32Reference
+ 95/249 Test  #95: CpuLowPrecisionOpsTest.ForwardFamilyMatchesRoundedFloat32Reference ..............................   Passed    0.01 sec
+        Start  96: CpuLowPrecisionOpsTest.MixedDtypesRequireAnExplicitCast
+ 96/249 Test  #96: CpuLowPrecisionOpsTest.MixedDtypesRequireAnExplicitCast .........................................   Passed    0.01 sec
+        Start  97: CpuFp8OpsTest.QuantizeDequantizeAndScaledMatmulMatchFloatReference
+ 97/249 Test  #97: CpuFp8OpsTest.QuantizeDequantizeAndScaledMatmulMatchFloatReference ..............................   Passed    0.01 sec
+        Start  98: CpuFp8OpsTest.DynamicTensorScaleUsesAmaxAndMinimumWithoutLosingHostOracle
+ 98/249 Test  #98: CpuFp8OpsTest.DynamicTensorScaleUsesAmaxAndMinimumWithoutLosingHostOracle .......................   Passed    0.01 sec
+        Start  99: CpuFp8OpsTest.DynamicRowScalesPreserveIndependentRanges
+ 99/249 Test  #99: CpuFp8OpsTest.DynamicRowScalesPreserveIndependentRanges .........................................   Passed    0.01 sec
+        Start 100: CpuFp8OpsTest.DynamicColumnScalesPreserveIndependentWeightRanges
+100/249 Test #100: CpuFp8OpsTest.DynamicColumnScalesPreserveIndependentWeightRanges ................................   Passed    0.01 sec
+        Start 101: CpuFp8OpsTest.MixedE5ActivationAndE4WeightMatchDequantizedReference
+101/249 Test #101: CpuFp8OpsTest.MixedE5ActivationAndE4WeightMatchDequantizedReference .............................   Passed    0.01 sec
+        Start 102: LowLevelOpsTest.OperatesOnCallerOwnedCpuBuffers
+102/249 Test #102: LowLevelOpsTest.OperatesOnCallerOwnedCpuBuffers .................................................   Passed    0.01 sec
+        Start 103: OperatorPropertyTest.ElementwiseOpsMatchScalarReferenceAcrossRanks
+103/249 Test #103: OperatorPropertyTest.ElementwiseOpsMatchScalarReferenceAcrossRanks ..............................   Passed    0.01 sec
+        Start 104: OperatorPropertyTest.MatmulMatchesIndependentLoopForEdgeAndBatchShapes
+104/249 Test #104: OperatorPropertyTest.MatmulMatchesIndependentLoopForEdgeAndBatchShapes ..........................   Passed    0.01 sec
+        Start 105: OperatorPropertyTest.NonlinearOpsSatisfyShapeAndNumericProperties
+105/249 Test #105: OperatorPropertyTest.NonlinearOpsSatisfyShapeAndNumericProperties ...............................   Passed    0.01 sec
+        Start 106: OperatorPropertyTest.IndexSequenceAndLossOpsCoverVariedShapes
+106/249 Test #106: OperatorPropertyTest.IndexSequenceAndLossOpsCoverVariedShapes ...................................   Passed    0.01 sec
+        Start 107: OperatorPropertyTest.RandomCompositeGradientsMatchFiniteDifference
+107/249 Test #107: OperatorPropertyTest.RandomCompositeGradientsMatchFiniteDifference ..............................   Passed    0.01 sec
+        Start 108: AutogradTest.AccumulatesGradientAcrossGraphBranches
+108/249 Test #108: AutogradTest.AccumulatesGradientAcrossGraphBranches .............................................   Passed    0.01 sec
+        Start 109: AutogradTest.AddBiasBackwardReducesEveryLeadingDimension
+109/249 Test #109: AutogradTest.AddBiasBackwardReducesEveryLeadingDimension ........................................   Passed    0.01 sec
+        Start 110: AutogradTest.MatmulBackwardMatchesHandValues
+110/249 Test #110: AutogradTest.MatmulBackwardMatchesHandValues ....................................................   Passed    0.01 sec
+        Start 111: AutogradTest.Fp8MatmulUsesQuantizedForwardAndFp32MasterGradients
+111/249 Test #111: AutogradTest.Fp8MatmulUsesQuantizedForwardAndFp32MasterGradients ................................   Passed    0.01 sec
+        Start 112: AutogradTest.MixedFp8FormatsUseE5ActivationE4WeightAndFp32Gradients
+112/249 Test #112: AutogradTest.MixedFp8FormatsUseE5ActivationE4WeightAndFp32Gradients .............................   Passed    0.01 sec
+        Start 113: AutogradTest.Bf16MatmulUsesRoundedForwardAndFp32MasterGradients
+113/249 Test #113: AutogradTest.Bf16MatmulUsesRoundedForwardAndFp32MasterGradients .................................   Passed    0.01 sec
+        Start 114: AutogradTest.FusedSplitHalfRopeBiasMatchesComposedForwardAndGradients
+114/249 Test #114: AutogradTest.FusedSplitHalfRopeBiasMatchesComposedForwardAndGradients ...........................   Passed    0.01 sec
+        Start 115: AutogradTest.FiniteDifferenceChecksMultiplyAndMean
+115/249 Test #115: AutogradTest.FiniteDifferenceChecksMultiplyAndMean ..............................................   Passed    0.01 sec
+        Start 116: AutogradTest.RejectsImplicitGradientForNonScalarAndBadSeed
+116/249 Test #116: AutogradTest.RejectsImplicitGradientForNonScalarAndBadSeed ......................................   Passed    0.01 sec
+        Start 117: AutogradTest.ZeroGradAndDetachAreExplicit
+117/249 Test #117: AutogradTest.ZeroGradAndDetachAreExplicit .......................................................   Passed    0.01 sec
+        Start 118: AutogradTest.RepeatedBackwardAccumulatesLeavesWithoutReusingIntermediateGradients
+118/249 Test #118: AutogradTest.RepeatedBackwardAccumulatesLeavesWithoutReusingIntermediateGradients ...............   Passed    0.01 sec
+        Start 119: AutogradTest.EmbeddingBackwardScattersAndAccumulatesRepeatedIndices
+119/249 Test #119: AutogradTest.EmbeddingBackwardScattersAndAccumulatesRepeatedIndices .............................   Passed    0.01 sec
+        Start 120: AutogradTest.CrossEntropyBackwardMatchesFiniteDifference
+120/249 Test #120: AutogradTest.CrossEntropyBackwardMatchesFiniteDifference ........................................   Passed    0.01 sec
+        Start 121: AutogradTest.IgnoredCrossEntropyRowsHaveZeroLogitGradient
+121/249 Test #121: AutogradTest.IgnoredCrossEntropyRowsHaveZeroLogitGradient .......................................   Passed    0.01 sec
+        Start 122: AutogradTest.RmsNormAndSwiGluBackwardsMatchFiniteDifference
+122/249 Test #122: AutogradTest.RmsNormAndSwiGluBackwardsMatchFiniteDifference .....................................   Passed    0.01 sec
+        Start 123: AutogradTest.SoftmaxRopeAndViewBackwardsPreserveShapes
+123/249 Test #123: AutogradTest.SoftmaxRopeAndViewBackwardsPreserveShapes ..........................................   Passed    0.01 sec
+        Start 124: AutogradTest.RopeBackwardMatchesFiniteDifference
+124/249 Test #124: AutogradTest.RopeBackwardMatchesFiniteDifference ................................................   Passed    0.01 sec
+        Start 125: AutogradTest.CausalSoftmaxMasksFutureAndBackpropagatesOnlyVisiblePositions
+125/249 Test #125: AutogradTest.CausalSoftmaxMasksFutureAndBackpropagatesOnlyVisiblePositions ......................   Passed    0.01 sec
+        Start 126: AutogradTest.CausalGqaAttentionMatchesComposedGraphAndLeafGradients
+126/249 Test #126: AutogradTest.CausalGqaAttentionMatchesComposedGraphAndLeafGradients .............................   Passed    0.02 sec
+        Start 127: AutogradTest.ContiguousPreservesLogicalGradientOrderAfterTranspose
+127/249 Test #127: AutogradTest.ContiguousPreservesLogicalGradientOrderAfterTranspose ..............................   Passed    0.01 sec
+        Start 128: AutogradTest.ReshapeBackwardMaterializesNonContiguousGradient
+128/249 Test #128: AutogradTest.ReshapeBackwardMaterializesNonContiguousGradient ...................................   Passed    0.01 sec
+        Start 129: AutogradTest.RepeatInterleaveExpandsHeadsAndReducesTheirGradients
+129/249 Test #129: AutogradTest.RepeatInterleaveExpandsHeadsAndReducesTheirGradients ...............................   Passed    0.01 sec
+        Start 130: GraphConstructionTest.RecordsParentsSharedEdgesAndTopologicalOrder
+130/249 Test #130: GraphConstructionTest.RecordsParentsSharedEdgesAndTopologicalOrder ..............................   Passed    0.01 sec
+        Start 131: GraphConstructionTest.DropsParentEdgesWhenNothingRequiresGradient
+131/249 Test #131: GraphConstructionTest.DropsParentEdgesWhenNothingRequiresGradient ...............................   Passed    0.01 sec
+        Start 132: GraphConstructionTest.EveryPublicGraphOperationHasAVisibleRootContract
+132/249 Test #132: GraphConstructionTest.EveryPublicGraphOperationHasAVisibleRootContract ..........................   Passed    0.01 sec
+        Start 133: GraphConstructionTest.UndefinedRootCannotBeInspected
+133/249 Test #133: GraphConstructionTest.UndefinedRootCannotBeInspected ............................................   Passed    0.01 sec
+        Start 134: GraphGradientAlignmentTest.CompositeForwardAndBothLeafGradientsMatchHandOracle
+134/249 Test #134: GraphGradientAlignmentTest.CompositeForwardAndBothLeafGradientsMatchHandOracle ..................   Passed    0.01 sec
+        Start 135: GraphGradientAlignmentTest.SharedLeafAccumulatesAndRepeatedBackwardIsStable
+135/249 Test #135: GraphGradientAlignmentTest.SharedLeafAccumulatesAndRepeatedBackwardIsStable .....................   Passed    0.01 sec
+        Start 136: GraphGradientAlignmentTest.ViewGraphRestoresLogicalGradientOrder
+136/249 Test #136: GraphGradientAlignmentTest.ViewGraphRestoresLogicalGradientOrder ................................   Passed    0.01 sec
+        Start 137: GraphGradientAlignmentTest.TiedHeadMatchesHandForwardAndBothGradientsWithoutTransposeNode
+137/249 Test #137: GraphGradientAlignmentTest.TiedHeadMatchesHandForwardAndBothGradientsWithoutTransposeNode .......   Passed    0.01 sec
+        Start 138: GraphGradientAlignmentTest.RejectsBadBackwardSeedShape
+138/249 Test #138: GraphGradientAlignmentTest.RejectsBadBackwardSeedShape ..........................................   Passed    0.01 sec
+        Start 139: SgdTest.ReducesAQuadraticLoss
+139/249 Test #139: SgdTest.ReducesAQuadraticLoss ...................................................................   Passed    0.01 sec
+        Start 140: AdamWTest.FirstStepMatchesBiasCorrectedHandCalculation
+140/249 Test #140: AdamWTest.FirstStepMatchesBiasCorrectedHandCalculation ..........................................   Passed    0.01 sec
+        Start 141: AdamWTest.RestoredStateProducesTheSameNextStep
+141/249 Test #141: AdamWTest.RestoredStateProducesTheSameNextStep ..................................................   Passed    0.01 sec
+        Start 142: AdamWTest.FusedBf16MirrorTracksUpdatedFp32Master
+142/249 Test #142: AdamWTest.FusedBf16MirrorTracksUpdatedFp32Master ................................................   Passed    0.01 sec
+        Start 143: AdamWTest.RestoredStateKeepsDerivedBf16MirrorFresh
+143/249 Test #143: AdamWTest.RestoredStateKeepsDerivedBf16MirrorFresh ..............................................   Passed    0.01 sec
+        Start 144: OptimizerTest.RejectsInvalidParametersAndState
+144/249 Test #144: OptimizerTest.RejectsInvalidParametersAndState ..................................................   Passed    0.01 sec
+        Start 145: CheckpointTest.SavesAndRestoresCompleteTrainingState
+145/249 Test #145: CheckpointTest.SavesAndRestoresCompleteTrainingState ............................................   Passed    0.01 sec
+        Start 146: CheckpointTest.RestoredRunMatchesUninterruptedSubsequentSteps
+146/249 Test #146: CheckpointTest.RestoredRunMatchesUninterruptedSubsequentSteps ...................................   Passed    0.01 sec
+        Start 147: CheckpointTest.RejectsCorruptionAndParameterContractMismatch
+147/249 Test #147: CheckpointTest.RejectsCorruptionAndParameterContractMismatch ....................................   Passed    0.01 sec
+        Start 148: ModelConfigTest.ModelSHasExecutableParameterBudget
+148/249 Test #148: ModelConfigTest.ModelSHasExecutableParameterBudget ..............................................   Passed    0.01 sec
+        Start 149: ModelConfigTest.ModelMTargetsTheSecondWeightTier
+149/249 Test #149: ModelConfigTest.ModelMTargetsTheSecondWeightTier ................................................   Passed    0.01 sec
+        Start 150: ModelConfigTest.GqaBudgetUsesReducedKeyValueProjection
+150/249 Test #150: ModelConfigTest.GqaBudgetUsesReducedKeyValueProjection ..........................................   Passed    0.01 sec
+        Start 151: ModelConfigTest.Bf16LinearPolicyIsVisibleInSummary
+151/249 Test #151: ModelConfigTest.Bf16LinearPolicyIsVisibleInSummary ..............................................   Passed    0.01 sec
+        Start 152: ModelConfigTest.Fp8TensorAmaxPolicyIsVisibleInSummary
+152/249 Test #152: ModelConfigTest.Fp8TensorAmaxPolicyIsVisibleInSummary ...........................................   Passed    0.01 sec
+        Start 153: ModelConfigTest.Fp8FfnOuterRowPolicyIsVisibleInSummary
+153/249 Test #153: ModelConfigTest.Fp8FfnOuterRowPolicyIsVisibleInSummary ..........................................   Passed    0.01 sec
+        Start 154: ModelConfigTest.Fp8DeviceWeightAmaxPolicyIsVisibleInSummary
+154/249 Test #154: ModelConfigTest.Fp8DeviceWeightAmaxPolicyIsVisibleInSummary .....................................   Passed    0.01 sec
+        Start 155: ModelConfigTest.Fp8OutputChannelWeightPolicyIsVisibleInSummary
+155/249 Test #155: ModelConfigTest.Fp8OutputChannelWeightPolicyIsVisibleInSummary ..................................   Passed    0.01 sec
+        Start 156: ModelConfigTest.Fp8DiagnosticModesAreExplicitAndRequireFp8Linear
+156/249 Test #156: ModelConfigTest.Fp8DiagnosticModesAreExplicitAndRequireFp8Linear ................................   Passed    0.01 sec
+        Start 157: ModelConfigTest.Fp8Fp32LayerOverridesAreStrictlyIncreasingAndInRange
+157/249 Test #157: ModelConfigTest.Fp8Fp32LayerOverridesAreStrictlyIncreasingAndInRange ............................   Passed    0.01 sec
+        Start 158: ModelConfigTest.RejectsInvalidHeadAndRopeConfigurations
+158/249 Test #158: ModelConfigTest.RejectsInvalidHeadAndRopeConfigurations .........................................   Passed    0.01 sec
+        Start 159: HuggingFaceConfigTest.ParsesPinnedQwen25AndMatchesCheckpointParameterCount
+159/249 Test #159: HuggingFaceConfigTest.ParsesPinnedQwen25AndMatchesCheckpointParameterCount ......................   Passed    0.01 sec
+        Start 160: HuggingFaceConfigTest.RejectsUnsupportedFamilyAndAttentionVariants
+160/249 Test #160: HuggingFaceConfigTest.RejectsUnsupportedFamilyAndAttentionVariants ..............................   Passed    0.01 sec
+        Start 161: HuggingFaceConfigTest.ParsesPinnedDeepSeekDistillQwenParameterContract
+161/249 Test #161: HuggingFaceConfigTest.ParsesPinnedDeepSeekDistillQwenParameterContract ..........................   Passed    0.01 sec
+        Start 162: TransformerModelTest.ConstructedParametersMatchConfigAndHaveUniqueNames
+162/249 Test #162: TransformerModelTest.ConstructedParametersMatchConfigAndHaveUniqueNames .........................   Passed    0.01 sec
+        Start 163: TransformerModelTest.AttentionBiasAddsNamedTrainableParameters
+163/249 Test #163: TransformerModelTest.AttentionBiasAddsNamedTrainableParameters ..................................   Passed    0.01 sec
+        Start 164: TransformerModelTest.ForwardAndBackwardCoverEveryParameter
+164/249 Test #164: TransformerModelTest.ForwardAndBackwardCoverEveryParameter ......................................   Passed    0.01 sec
+        Start 165: TransformerModelTest.GraphFreeInferenceMatchesAutogradForMhaAndGqa
+165/249 Test #165: TransformerModelTest.GraphFreeInferenceMatchesAutogradForMhaAndGqa ..............................   Passed    0.01 sec
+        Start 166: TransformerModelTest.TraceAllLayerDetailsExposesEveryLinearInputBoundary
+166/249 Test #166: TransformerModelTest.TraceAllLayerDetailsExposesEveryLinearInputBoundary ........................   Passed    0.01 sec
+        Start 167: TransformerModelTest.Bf16FfnPreparationIsSingleRepresentationAndInferenceOnly
+167/249 Test #167: TransformerModelTest.Bf16FfnPreparationIsSingleRepresentationAndInferenceOnly ...................   Passed    0.01 sec
+        Start 168: TransformerModelTest.Bf16AttentionPreparationConvertsOnlyProjectionWeights
+168/249 Test #168: TransformerModelTest.Bf16AttentionPreparationConvertsOnlyProjectionWeights ......................   Passed    0.01 sec
+        Start 169: TransformerModelTest.Fp8LinearPolicyRunsFullForwardLossAndBackward
+169/249 Test #169: TransformerModelTest.Fp8LinearPolicyRunsFullForwardLossAndBackward ..............................   Passed    0.02 sec
+        Start 170: TransformerModelTest.Fp8InferencePreparationCachesOneByteLinearWeights
+170/249 Test #170: TransformerModelTest.Fp8InferencePreparationCachesOneByteLinearWeights ..........................   Passed    0.02 sec
+        Start 171: TransformerModelTest.Fp8TensorAmaxPreparationReportsIndependentWeightScales
+171/249 Test #171: TransformerModelTest.Fp8TensorAmaxPreparationReportsIndependentWeightScales .....................   Passed    0.01 sec
+        Start 172: TransformerModelTest.Fp8OutputChannelPreparationRetainsEveryColumnScale
+172/249 Test #172: TransformerModelTest.Fp8OutputChannelPreparationRetainsEveryColumnScale .........................   Passed    0.02 sec
+        Start 173: TransformerModelTest.Fp8AttentionOutputScopeChangesOnlyOProjection
+173/249 Test #173: TransformerModelTest.Fp8AttentionOutputScopeChangesOnlyOProjection ..............................   Passed    0.02 sec
+        Start 174: TransformerModelTest.Fp8TensorAmaxPreparationRejectsNonfiniteWeightTransactionally
+174/249 Test #174: TransformerModelTest.Fp8TensorAmaxPreparationRejectsNonfiniteWeightTransactionally ..............   Passed    0.01 sec
+        Start 175: TransformerModelTest.Fp8DynamicActivationScaleNeedsNoPersistentScaleTensor
+175/249 Test #175: TransformerModelTest.Fp8DynamicActivationScaleNeedsNoPersistentScaleTensor ......................   Passed    0.02 sec
+        Start 176: TransformerModelTest.Fp8FfnOuterRowPreparesScalesOnlyForNonFfnLinears
+176/249 Test #176: TransformerModelTest.Fp8FfnOuterRowPreparesScalesOnlyForNonFfnLinears ...........................   Passed    0.02 sec
+        Start 177: TransformerModelTest.Fp8SelectedBlockRemainsFp32AcrossPreparation
+177/249 Test #177: TransformerModelTest.Fp8SelectedBlockRemainsFp32AcrossPreparation ...............................   Passed    0.02 sec
+        Start 178: TransformerModelTest.Fp8DiagnosticModesIsolateWeightAndActivationRounding
+178/249 Test #178: TransformerModelTest.Fp8DiagnosticModesIsolateWeightAndActivationRounding .......................   Passed    0.02 sec
+        Start 179: TransformerModelTest.Bf16LinearPolicyRunsFullForwardLossAndBackward
+179/249 Test #179: TransformerModelTest.Bf16LinearPolicyRunsFullForwardLossAndBackward .............................   Passed    0.01 sec
+        Start 180: TransformerModelTest.Bf16TrainingMirrorsCoverEveryLinearAndPreserveForward
+180/249 Test #180: TransformerModelTest.Bf16TrainingMirrorsCoverEveryLinearAndPreserveForward ......................   Passed    0.01 sec
+        Start 181: TransformerModelTest.CausalPrefixLogitsIgnoreFutureTokens
+181/249 Test #181: TransformerModelTest.CausalPrefixLogitsIgnoreFutureTokens .......................................   Passed    0.01 sec
+        Start 182: TransformerModelTest.RejectsBadTokenShapeAndLongSequence
+182/249 Test #182: TransformerModelTest.RejectsBadTokenShapeAndLongSequence ........................................   Passed    0.01 sec
+        Start 183: TransformerModelTest.CachedLogitsMatchFullPrefixForMhaAndGqa
+183/249 Test #183: TransformerModelTest.CachedLogitsMatchFullPrefixForMhaAndGqa ....................................   Passed    0.01 sec
+        Start 184: TransformerModelTest.BatchedPrefillAndDecodeMatchIndependentFullSequences
+184/249 Test #184: TransformerModelTest.BatchedPrefillAndDecodeMatchIndependentFullSequences .......................   Passed    0.01 sec
+        Start 185: TransformerModelTest.ClearCacheRowRemovesOldPrefixAndPreservesOtherRows
+185/249 Test #185: TransformerModelTest.ClearCacheRowRemovesOldPrefixAndPreservesOtherRows .........................   Passed    0.01 sec
+        Start 186: TransformerModelTest.DivergentCachedRowsMatchIndependentB1References
+186/249 Test #186: TransformerModelTest.DivergentCachedRowsMatchIndependentB1References ............................   Passed    0.01 sec
+        Start 187: TransformerModelTest.CachedRowsKeepUniformFastPathAndRejectMissingStorage
+187/249 Test #187: TransformerModelTest.CachedRowsKeepUniformFastPathAndRejectMissingStorage .......................   Passed    0.01 sec
+        Start 188: TransformerModelTest.RowPrefillReplacesOnlyAnEmptySharedCacheSlot
+188/249 Test #188: TransformerModelTest.RowPrefillReplacesOnlyAnEmptySharedCacheSlot ...............................   Passed    0.02 sec
+        Start 189: TransformerModelTest.BatchedRowPrefillMapsEqualPromptsIntoEmptySlots
+189/249 Test #189: TransformerModelTest.BatchedRowPrefillMapsEqualPromptsIntoEmptySlots ............................   Passed    0.01 sec
+        Start 190: TransformerModelTest.ActiveCachedRowsSkipInactiveStorageAndMatchB1
+190/249 Test #190: TransformerModelTest.ActiveCachedRowsSkipInactiveStorageAndMatchB1 ..............................   Passed    0.01 sec
+        Start 191: TransformerModelTest.Bf16KvCacheHalvesStorageAndTracksFp32Decode
+191/249 Test #191: TransformerModelTest.Bf16KvCacheHalvesStorageAndTracksFp32Decode ................................   Passed    0.01 sec
+        Start 192: TransformerModelTest.MixedLayerKvCacheUsesEachLayerPolicy
+192/249 Test #192: TransformerModelTest.MixedLayerKvCacheUsesEachLayerPolicy .......................................   Passed    0.01 sec
+        Start 193: KVCacheTest.PerRowPositionsRejectAmbiguousUniformReads
+193/249 Test #193: KVCacheTest.PerRowPositionsRejectAmbiguousUniformReads ..........................................   Passed    0.01 sec
+        Start 194: ModelWeightsTest.StateDictIsAnIndependentNamedSnapshot
+194/249 Test #194: ModelWeightsTest.StateDictIsAnIndependentNamedSnapshot ..........................................   Passed    0.01 sec
+        Start 195: ModelWeightsTest.StrictLoadIsAtomicAndNonStrictLoadReportsEveryProblem
+195/249 Test #195: ModelWeightsTest.StrictLoadIsAtomicAndNonStrictLoadReportsEveryProblem ..........................   Passed    0.01 sec
+        Start 196: ModelWeightsTest.StrictLoadClearsGradientsAndReproducesForward
+196/249 Test #196: ModelWeightsTest.StrictLoadClearsGradientsAndReproducesForward ..................................   Passed    0.01 sec
+        Start 197: ModelWeightsTest.PreparedBf16FfnExportsFp32SnapshotAndRejectsReload
+197/249 Test #197: ModelWeightsTest.PreparedBf16FfnExportsFp32SnapshotAndRejectsReload .............................   Passed    0.01 sec
+        Start 198: ModelWeightsTest.QwenStyleMappingTransposesLinearWeights
+198/249 Test #198: ModelWeightsTest.QwenStyleMappingTransposesLinearWeights ........................................   Passed    0.01 sec
+        Start 199: ModelWeightsTest.QwenStyleMappingIncludesAttentionBiasWhenConfigured
+199/249 Test #199: ModelWeightsTest.QwenStyleMappingIncludesAttentionBiasWhenConfigured ............................   Passed    0.01 sec
+        Start 200: ModelWeightsTest.LoadsSingleAndIndexedSafetensorsFiles
+200/249 Test #200: ModelWeightsTest.LoadsSingleAndIndexedSafetensorsFiles ..........................................   Passed    0.01 sec
+        Start 201: ModelWeightsTest.QwenMappingOmitsOutputHeadForTiedEmbeddings
+201/249 Test #201: ModelWeightsTest.QwenMappingOmitsOutputHeadForTiedEmbeddings ....................................   Passed    0.01 sec
+        Start 202: ModelWeightsTest.RejectsUnknownMappingTargetsAndNonFloatSources
+202/249 Test #202: ModelWeightsTest.RejectsUnknownMappingTargetsAndNonFloatSources .................................   Passed    0.01 sec
+        Start 203: ByteTokenizerTest.RoundTripsAllByteValues
+203/249 Test #203: ByteTokenizerTest.RoundTripsAllByteValues .......................................................   Passed    0.01 sec
+        Start 204: TokenDatasetTest.ProducesShiftedDeterministicBatches
+204/249 Test #204: TokenDatasetTest.ProducesShiftedDeterministicBatches ............................................   Passed    0.01 sec
+        Start 205: TokenDatasetTest.RestoredCursorProducesTheSameNextBatch
+205/249 Test #205: TokenDatasetTest.RestoredCursorProducesTheSameNextBatch .........................................   Passed    0.01 sec
+        Start 206: TokenDatasetTest.RejectsInsufficientDataAndBadCursor
+206/249 Test #206: TokenDatasetTest.RejectsInsufficientDataAndBadCursor ............................................   Passed    0.01 sec
+        Start 207: BpeTokenizerTest.LearnsFrequentPairsAndRoundTripsBytes
+207/249 Test #207: BpeTokenizerTest.LearnsFrequentPairsAndRoundTripsBytes ..........................................   Passed    0.01 sec
+        Start 208: BpeTokenizerTest.RejectsBadVocabularyAndSerializedMerge
+208/249 Test #208: BpeTokenizerTest.RejectsBadVocabularyAndSerializedMerge .........................................   Passed    0.01 sec
+        Start 209: HuggingFaceBpeTokenizerTest.LoadsByteUnicodeVocabularyAndRankedMerges
+209/249 Test #209: HuggingFaceBpeTokenizerTest.LoadsByteUnicodeVocabularyAndRankedMerges ...........................   Passed    0.01 sec
+        Start 210: ChatTemplateTest.RendersBasicQwenConversationAndRejectsToolRole
+210/249 Test #210: ChatTemplateTest.RendersBasicQwenConversationAndRejectsToolRole .................................   Passed    0.01 sec
+        Start 211: ChatTemplateTest.RendersDeepSeekDistillReasoningPrompt
+211/249 Test #211: ChatTemplateTest.RendersDeepSeekDistillReasoningPrompt ..........................................   Passed    0.01 sec
+        Start 212: SftBatchTest.MasksPromptTargetsAndKeepsResponseTargets
+212/249 Test #212: SftBatchTest.MasksPromptTargetsAndKeepsResponseTargets ..........................................   Passed    0.01 sec
+        Start 213: SafetensorsTest.RoundTripsFloat32Bfloat16AndFloat16
+213/249 Test #213: SafetensorsTest.RoundTripsFloat32Bfloat16AndFloat16 .............................................   Passed    0.01 sec
+        Start 214: SafetensorsTest.InspectAndVisitExposeOrderedBoundedRawPayloads
+214/249 Test #214: SafetensorsTest.InspectAndVisitExposeOrderedBoundedRawPayloads ..................................   Passed    0.01 sec
+        Start 215: SafetensorsTest.LoadsMultipleShardsAndIndexWeightMap
+215/249 Test #215: SafetensorsTest.LoadsMultipleShardsAndIndexWeightMap ............................................   Passed    0.01 sec
+        Start 216: SafetensorsTest.RejectsCorruptionUnsupportedDataAndDuplicateShards
+216/249 Test #216: SafetensorsTest.RejectsCorruptionUnsupportedDataAndDuplicateShards ..............................   Passed    0.01 sec
+        Start 217: SafetensorsTest.RejectsUnsafeOrMissingIndexEntries
+217/249 Test #217: SafetensorsTest.RejectsUnsafeOrMissingIndexEntries ..............................................   Passed    0.01 sec
+        Start 218: TrainerTest.MultipleStepsLowerLossWithFiniteMetrics
+218/249 Test #218: TrainerTest.MultipleStepsLowerLossWithFiniteMetrics .............................................   Passed    0.02 sec
+        Start 219: TrainerTest.Bf16LinearPolicyLowersLossWithFp32MasterAdamw
+219/249 Test #219: TrainerTest.Bf16LinearPolicyLowersLossWithFp32MasterAdamw .......................................   Passed    0.03 sec
+        Start 220: TrainerTest.RejectsMismatchedBatchShapes
+220/249 Test #220: TrainerTest.RejectsMismatchedBatchShapes ........................................................   Passed    0.01 sec
+        Start 221: SamplingTest.GreedyAndTopOneChooseMaximumLogit
+221/249 Test #221: SamplingTest.GreedyAndTopOneChooseMaximumLogit ..................................................   Passed    0.01 sec
+        Start 222: SamplingTest.FixedSeedMakesTopKSamplingDeterministic
+222/249 Test #222: SamplingTest.FixedSeedMakesTopKSamplingDeterministic ............................................   Passed    0.01 sec
+        Start 223: GeneratorTest.UsesCacheAndReturnsRequestedValidTokens
+223/249 Test #223: GeneratorTest.UsesCacheAndReturnsRequestedValidTokens ...........................................   Passed    0.01 sec
+        Start 224: GeneratorTest.RejectsInvalidSamplingAndContext
+224/249 Test #224: GeneratorTest.RejectsInvalidSamplingAndContext ..................................................   Passed    0.01 sec
+        Start 225: GeneratorTest.StaticBatchMatchesIndependentGreedyAndSampling
+225/249 Test #225: GeneratorTest.StaticBatchMatchesIndependentGreedyAndSampling ....................................   Passed    0.01 sec
+        Start 226: GeneratorTest.StaticBatchRejectsIncompatibleRequests
+226/249 Test #226: GeneratorTest.StaticBatchRejectsIncompatibleRequests ............................................   Passed    0.01 sec
+        Start 227: GeneratorTest.StopTokenEndsSingleRequestWithoutExtraDecode
+227/249 Test #227: GeneratorTest.StopTokenEndsSingleRequestWithoutExtraDecode ......................................   Passed    0.01 sec
+        Start 228: GeneratorTest.StaticBatchStopRowsMatchIndependentVariableLengths
+228/249 Test #228: GeneratorTest.StaticBatchStopRowsMatchIndependentVariableLengths ................................   Passed    0.04 sec
+        Start 229: InferenceShapeMatrixTest.BoundaryShortLongBatchAndCacheDtypesMatchB1
+229/249 Test #229: InferenceShapeMatrixTest.BoundaryShortLongBatchAndCacheDtypesMatchB1 ............................   Passed    2.11 sec
+        Start 230: ReferenceSchedulerTest.DelayedRequestsMatchIndependentGeneration
+230/249 Test #230: ReferenceSchedulerTest.DelayedRequestsMatchIndependentGeneration ................................   Passed    0.01 sec
+        Start 231: ReferenceSchedulerTest.ImmediateCompletionLimitsAndErrorsAreVisible
+231/249 Test #231: ReferenceSchedulerTest.ImmediateCompletionLimitsAndErrorsAreVisible .............................   Passed    0.01 sec
+        Start 232: ReferenceSchedulerTest.CancellationIsTerminalIdempotentAndReleasesCache
+232/249 Test #232: ReferenceSchedulerTest.CancellationIsTerminalIdempotentAndReleasesCache .........................   Passed    0.01 sec
+        Start 233: ReferenceSchedulerTest.StopTokenCompletesEarlyAndReleasesOnlyItsCache
+233/249 Test #233: ReferenceSchedulerTest.StopTokenCompletesEarlyAndReleasesOnlyItsCache ...........................   Passed    0.01 sec
+        Start 234: AdmissionBatchSchedulerTest.StableBucketsMatchIndependentGeneration
+234/249 Test #234: AdmissionBatchSchedulerTest.StableBucketsMatchIndependentGeneration .............................   Passed    0.02 sec
+        Start 235: AdmissionBatchSchedulerTest.ImmediateAndErrorRequestsAreExplicit
+235/249 Test #235: AdmissionBatchSchedulerTest.ImmediateAndErrorRequestsAreExplicit ................................   Passed    0.01 sec
+        Start 236: AdmissionBatchSchedulerTest.CancellationExcludesRowsFromAdmissionGroups
+236/249 Test #236: AdmissionBatchSchedulerTest.CancellationExcludesRowsFromAdmissionGroups .........................   Passed    0.01 sec
+        Start 237: AdmissionBatchSchedulerTest.StopCompletionReasonsMatchIndependentRows
+237/249 Test #237: AdmissionBatchSchedulerTest.StopCompletionReasonsMatchIndependentRows ...........................   Passed    0.01 sec
+        Start 238: ContinuousBatchSchedulerTest.RefillsFreedSlotAndMatchesIndependentRows
+238/249 Test #238: ContinuousBatchSchedulerTest.RefillsFreedSlotAndMatchesIndependentRows ..........................   Passed    0.02 sec
+        Start 239: ContinuousBatchSchedulerTest.DelayedSamplingMatchesIndependentRequests
+239/249 Test #239: ContinuousBatchSchedulerTest.DelayedSamplingMatchesIndependentRequests ..........................   Passed    0.01 sec
+        Start 240: ContinuousBatchSchedulerTest.StopCancelAndPolicyErrorsAreExplicit
+240/249 Test #240: ContinuousBatchSchedulerTest.StopCancelAndPolicyErrorsAreExplicit ...............................   Passed    0.01 sec
+        Start 241: LengthBucketedBatchSchedulerTest.RoutesToSmallestCacheAndMatchesIndependentRequests
+241/249 Test #241: LengthBucketedBatchSchedulerTest.RoutesToSmallestCacheAndMatchesIndependentRequests .............   Passed    0.01 sec
+        Start 242: LengthBucketedBatchSchedulerTest.KeepsSmallRequestsQueuedAndRejectsInvalidPolicies
+242/249 Test #242: LengthBucketedBatchSchedulerTest.KeepsSmallRequestsQueuedAndRejectsInvalidPolicies ..............   Passed    0.01 sec
+        Start 243: LengthBucketedBatchSchedulerTest.CompatibleOverflowBorrowsLargerCapacityWithoutMovingRequests
+243/249 Test #243: LengthBucketedBatchSchedulerTest.CompatibleOverflowBorrowsLargerCapacityWithoutMovingRequests ...   Passed    0.01 sec
+        Start 244: PackageConfig.InstalledConsumer
+244/249 Test #244: PackageConfig.InstalledConsumer .................................................................   Passed    0.76 sec
+        Start 245: HfCLI.BinaryContract
+245/249 Test #245: HfCLI.BinaryContract ............................................................................   Passed    0.04 sec
+        Start 246: Benchmark.HfFp8NativeRoundtripContract
+246/249 Test #246: Benchmark.HfFp8NativeRoundtripContract ..........................................................   Passed    0.04 sec
+        Start 247: Benchmark.HfFp8WeightAuditContract
+247/249 Test #247: Benchmark.HfFp8WeightAuditContract ..............................................................   Passed    0.04 sec
+        Start 248: Coverage.OperatorAndTestFiles
+248/249 Test #248: Coverage.OperatorAndTestFiles ...................................................................   Passed    1.48 sec
+        Start 249: Alignment.Tools
+249/249 Test #249: Alignment.Tools .................................................................................   Passed    0.04 sec
+
+100% tests passed, 0 tests failed out of 249
+
+Label Time Summary:
+alignment        =   0.04 sec*proc (1 test)
+batch            =   0.22 sec*proc (4 tests)
+benchmark        =   1.21 sec*proc (25 tests)
+binary           =   0.04 sec*proc (1 test)
+cli              =   0.04 sec*proc (1 test)
+comparison       =   0.05 sec*proc (2 tests)
+context          =   0.16 sec*proc (3 tests)
+coverage         =   1.48 sec*proc (1 test)
+cpu              =  19.36 sec*proc (249 tests)
+deepseek         =   0.00 sec*proc (1 test)
+documentation    =   0.27 sec*proc (1 test)
+example          =   0.00 sec*proc (1 test)
+fp8              =   0.36 sec*proc (8 tests)
+huggingface      =   0.64 sec*proc (15 tests)
+inference        =   0.76 sec*proc (12 tests)
+install          =   0.76 sec*proc (1 test)
+int8             =   0.04 sec*proc (1 test)
+integration      =   0.84 sec*proc (5 tests)
+kv-cache         =   0.23 sec*proc (4 tests)
+memory           =   0.08 sec*proc (2 tests)
+model            =  10.96 sec*proc (6 tests)
+optimization     =   0.27 sec*proc (1 test)
+package          =   0.76 sec*proc (1 test)
+precision        =   0.55 sec*proc (12 tests)
+profile          =   0.06 sec*proc (1 test)
+pytorch          =   0.05 sec*proc (2 tests)
+qwen             =   0.00 sec*proc (2 tests)
+roofline         =   0.08 sec*proc (2 tests)
+scheduler        =   0.33 sec*proc (3 tests)
+schema           =   3.03 sec*proc (27 tests)
+sft              =   0.02 sec*proc (1 test)
+slow             =  10.84 sec*proc (2 tests)
+smoke            =   0.07 sec*proc (5 tests)
+trace            =   0.18 sec*proc (4 tests)
+training         =   8.12 sec*proc (3 tests)
+unit             =   4.59 sec*proc (210 tests)
+
+Total Test time (real) =  19.41 sec
+(INFO) Reading coverage data...
+(INFO) Writing coverage report...
+lines: 82.7% (6582 out of 7957)
+functions: 90.6% (706 out of 779)
+branches: 63.7% (6347 out of 9961)
+coverage_output=build/cpu-coverage/report-repeat-1

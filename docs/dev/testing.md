@@ -14,12 +14,13 @@
 ## Current measured matrix
 
 ```text
-framework CPU                 157/157 pass
-CPU ASan/UBSan                155/155 pass
-MI300X/gfx942 HIP              58/58 pass
-PyTorch CPU oracle/alignment      3/3 pass
+framework CPU                 251/251 pass
+CPU ASan/UBSan                249/249 pass
+full CPU/HIP configuration    368/368 pass (2 conditional skips)
+MI300X/gfx942 HIP             113/113 pass
+PyTorch-enabled CPU           225/225 pass
 two-rank RCCL                  11/11 pass
-registered test files               34
+registered test files               54
 ```
 
 These counts describe the current commit. They do not imply every dtype, shape, GPU, or
@@ -54,10 +55,16 @@ python -m pip install gcovr
 ./scripts/run_coverage.sh /tmp/microllm-coverage
 ```
 
-It starts from a clean generated build, runs the same CPU test label, and emits
+It runs CMake clean and then explicitly removes stale runtime profile files from the
+fixed coverage build tree before rebuilding. This matters because CMake clean does not
+remove those files, and a changed binary would otherwise produce checksum-conflict
+warnings during test discovery. The script runs the CPU test label and emits
 `summary.json`, Cobertura XML, and a detailed HTML report. Only `src/` and `include/`
 are counted. Coverage is evidence for finding blind spots, not permission to replace
 numeric, shape, failure, HIP, or external-oracle tests.
+
+Three consecutive clean runs currently produce byte-identical summaries: 82.7% lines
+(6,582/7,957), 90.6% functions (706/779), and 63.7% branches (6,347/9,961).
 
 ## Adding a test
 

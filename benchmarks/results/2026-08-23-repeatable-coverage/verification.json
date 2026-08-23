@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "base_revision": "0c7f078",
+  "runs": 3,
+  "stale_profiles_removed_per_run": [59, 59, 59],
+  "tests_passed_per_run": [249, 249, 249],
+  "tests_failed_per_run": [0, 0, 0],
+  "profile_checksum_warning_count": [0, 0, 0],
+  "summaries_byte_identical": true,
+  "coverage": {
+    "lines": {"covered": 6582, "total": 7957, "percent": 82.7},
+    "functions": {"covered": 706, "total": 779, "percent": 90.6},
+    "branches": {"covered": 6347, "total": 9961, "percent": 63.7}
+  },
+  "scope": ["src", "include"]
+}
