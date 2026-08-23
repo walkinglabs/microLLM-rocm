@@ -504,6 +504,9 @@ the fixed 5% gate; replacing it with FP32 GEMM is rejected because both-roundtri
 [Experiment 143](docs/optimization-log/experiments/143-fp8-output-channel-policy.md) improves
 DeepSeek RMS but worsens Qwen and reduces both T512 throughputs by about 13%; the output-channel
 operator and opt-in policy stay available, but the cross-model default is rejected.
+[Experiment 144](docs/optimization-log/experiments/144-fp8-output-column-native-probe.md) proves
+that the installed runtime rejects weight-side outer-vector scaling; the portable probe caches this
+result and uses native scalar FP8 GEMM plus a device post-scale without software GEMM fallback.
 
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or

@@ -5846,6 +5846,64 @@ def validate_fp8_output_channel_policy(
         keep.get("precision_gate_pass_count", -1)
 
 
+def validate_fp8_output_column_native_probe(
+        errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "144-data"
+    verification = json.loads((data / "verification.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    execution = verification.get("execution", {})
+    raw_rows = sum(1 for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip())
+    preflight_rows = sum(1 for line in (data / "gpu2-preflight.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip())
+    if verification.get("all_checks_passed") is not True or \
+            execution.get("worker_rows") != 6 or \
+            execution.get("target_fp8_rows") != 2 or \
+            execution.get("exit_code") != 0 or execution.get("stderr_bytes") != 0 or \
+            raw_rows != 6 or preflight_rows != 3 or \
+            (data / "stderr.log").stat().st_size != 0:
+        errors.append("FP8 output-column native execution contract changed")
+    gtest = verification.get("gtest", {})
+    gtest_json = json.loads((data / "output-column-native-gtest.json").read_text(
+        encoding="utf-8"))
+    case = gtest_json["testsuites"][0]["testsuite"][0]
+    if gtest.get("tests") != 1 or gtest.get("failures") != 0 or \
+            gtest.get("output_column_native_status") != 0 or \
+            gtest.get("output_column_scale_calls") != 1 or \
+            case.get("output_column_native_status") != "0" or \
+            case.get("output_column_scale_calls") != "1":
+        errors.append("FP8 output-column native GTest evidence changed")
+    checks = {row["model"]: row for row in verification.get("fp8_checks", [])}
+    qwen = checks.get("qwen2.5-0.5b", {})
+    deep = checks.get("deepseek-r1-distill-qwen-1.5b", {})
+    if qwen.get("passed") is not True or qwen.get("fp8_linears_covered") != 168 or \
+            qwen.get("fp8_output_column_native_status") != 0 or \
+            qwen.get("fp8_output_column_scale_calls") != 336 or \
+            qwen.get("fp8_dynamic_column_calls") != 0 or \
+            deep.get("passed") is not True or deep.get("fp8_linears_covered") != 197 or \
+            deep.get("fp8_output_column_native_status") != 0 or \
+            deep.get("fp8_output_column_scale_calls") != 394 or \
+            deep.get("fp8_dynamic_column_calls") != 0 or \
+            any(row.get("logit_count") != 151936 or
+                row.get("fp8_software_fallback_calls") != 0
+                for row in checks.values()):
+        errors.append("FP8 output-column native model counters changed")
+    build = verification.get("build", {})
+    decision = gates.get("decision", {})
+    if build.get("base_steps_completed") != 50 or \
+            build.get("hip_tests_incremental_steps") != 12 or \
+            decision.get("native_output_column_vector_scale_supported_on_stack") is not False or \
+            decision.get("scalar_native_gemm_plus_device_post_scale_supported") is not True or \
+            decision.get("known_failed_submission_is_cached") is not True or \
+            decision.get("direct_library_scale_can_remove_post_launch") is not False or \
+            "[50/50]" not in (data / "fresh-build.log").read_text(encoding="utf-8") or \
+            "binary contract: pass" not in (data / "hf-cli-binary-contract.log").read_text(
+                encoding="utf-8"):
+        errors.append("FP8 output-column native capability gates changed")
+    return execution.get("worker_rows", 0), execution.get("target_fp8_rows", 0), \
+        gtest.get("output_column_native_status", -1)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -5967,7 +6025,8 @@ def validate_assets(errors: list[str]) -> None:
                  "fp8-selective-block-counterfactual.svg",
                  "fp8-error-source-isolation.svg",
                  "fp8-native-vs-roundtrip.svg",
-                 "fp8-output-channel-policy.svg"):
+                 "fp8-output-channel-policy.svg",
+                 "fp8-output-column-native-probe.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -6187,6 +6246,8 @@ def main() -> int:
         validate_fp8_native_roundtrip(errors)
     column_workers, column_fp8, column_passed = \
         validate_fp8_output_channel_policy(errors)
+    native_column_workers, native_column_fp8, native_column_status = \
+        validate_fp8_output_column_native_probe(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -6359,6 +6420,8 @@ def main() -> int:
           f"fp8_sources={source_workers}/{source_failures}/{source_logits} "
           f"native_roundtrip={native_workers}/{native_pairs}/{native_logits} "
           f"output_channel={column_workers}/{column_fp8}/{column_passed} "
+          f"column_native={native_column_workers}/{native_column_fp8}/"
+          f"{native_column_status} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

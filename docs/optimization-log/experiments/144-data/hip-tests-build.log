@@ -1,0 +1,12 @@
+[1/12] Building CXX object _deps/googletest-build/googletest/CMakeFiles/gtest_main.dir/src/gtest_main.cc.o
+[2/12] Building CXX object tests/CMakeFiles/microllm_hip_tests.dir/hardware/precision_capability_test.cpp.o
+[3/12] Building CXX object tests/CMakeFiles/microllm_hip_tests.dir/graph/hip_graph_alignment_test.cpp.o
+[4/12] Building CXX object tests/CMakeFiles/microllm_hip_tests.dir/profiling/hip_trace_test.cpp.o
+[5/12] Building CXX object tests/CMakeFiles/microllm_hip_tests.dir/runtime/runtime_test.cpp.o
+[6/12] Building CXX object tests/CMakeFiles/microllm_hip_tests.dir/io/hip_weights_test.cpp.o
+[7/12] Building CXX object tests/CMakeFiles/microllm_hip_tests.dir/inference/hip_shape_matrix_test.cpp.o
+[8/12] Building CXX object _deps/googletest-build/googletest/CMakeFiles/gtest.dir/src/gtest-all.cc.o
+[9/12] Linking CXX static library lib/libgtest.a
+[10/12] Linking CXX static library lib/libgtest_main.a
+[11/12] Building CXX object tests/CMakeFiles/microllm_hip_tests.dir/ops/hip_ops_test.cpp.o
+[12/12] Linking HIP executable tests/microllm_hip_tests

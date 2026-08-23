@@ -650,6 +650,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/142-data/](experiments/142-data/) | 12个worker、4组直接完整向量比较和fresh build |
 | [assets/fp8-output-channel-policy.svg](assets/fp8-output-channel-policy.svg) | Qwen/DeepSeek相反精度与共同T512速度回退 |
 | [experiments/143-data/](experiments/143-data/) | 36个worker、scale/显存/调用计数和keep门 |
+| [assets/fp8-output-column-native-probe.svg](assets/fp8-output-column-native-probe.svg) | outer-vector拒绝与scalar+post有效路径 |
+| [experiments/144-data/](experiments/144-data/) | fresh GTest JSON、6个模型worker和能力门 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

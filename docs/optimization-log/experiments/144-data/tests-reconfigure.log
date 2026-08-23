@@ -1,0 +1,17 @@
+-- HIP: Using hipcc from relative path: /opt/rocm/bin/hipcc
+-- HIP_PLATFORM using hip_HIPCONFIG_EXECUTABLE: amd
+-- Found Python3: /home/devpod/envinit/miniforge3/bin/python3.13 (found version "3.13.13") found components: Interpreter
+--
+-- microLLM-rocm 0.1.0
+--   HIP:          ON
+--   HIP arch:     gfx942
+--   hipBLASLt:    ON
+--   RCCL:         OFF
+--   Tests:        ON
+--   Examples:     OFF
+--   Sanitizers:   OFF
+--   Coverage:     OFF
+--
+-- Configuring done (2.1s)
+-- Generating done (0.0s)
+-- Build files have been written to: /tmp/microllm-exp144-build.zsx5cZ

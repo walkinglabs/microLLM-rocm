@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "status": "native_outer_column_rejected_device_post_scale_required",
+  "evidence": {
+    "fresh_base_build_steps": 50,
+    "hip_test_extension_steps": 12,
+    "gtest_passed": 1,
+    "formal_workers": 6,
+    "fp8_policy_workers": 2,
+    "complete_logits_per_fp8_worker": 151936,
+    "stderr_bytes": 0,
+    "output_column_native_status": 0
+  },
+  "decision": {
+    "header_declaration_proves_runtime_support": false,
+    "native_output_column_vector_scale_supported_on_stack": false,
+    "scalar_native_gemm_plus_device_post_scale_supported": true,
+    "known_failed_submission_is_cached": true,
+    "hot_path_column_requantization_occurs": false,
+    "direct_library_scale_can_remove_post_launch": false,
+    "targeted_scope_or_fusion_remains_open": true,
+    "single_process_tps_is_performance_evidence": false
+  }
+}

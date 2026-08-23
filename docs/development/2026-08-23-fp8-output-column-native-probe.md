@@ -16,3 +16,7 @@ header exposes the API but the installed runtime does not execute it for this FP
 The CLI and official runner carry the tri-state field. This closes the direct outer-vector speed
 idea on the measured stack; it does not delete the portable attempt because another architecture or
 library version may return status 1.
+
+Fresh Exp144 preserves the GTest JSON and then confirms the cached status in Qwen/DeepSeek T512:
+336 and 394 post calls equal every Linear across two forwards, with zero software fallback. See
+[Experiment 144](../optimization-log/experiments/144-fp8-output-column-native-probe.md).

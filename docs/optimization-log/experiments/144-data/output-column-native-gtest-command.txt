@@ -1,0 +1,1 @@
+HIP_VISIBLE_DEVICES=2 /tmp/microllm-exp144-build.zsx5cZ/tests/microllm_hip_tests --gtest_filter=HipFp8OpsTest.OutputColumnScaleUsesNativeGemmAndDevicePostScale --gtest_output=json:/tmp/microllm-exp144-build.zsx5cZ/output-column-native-gtest.json

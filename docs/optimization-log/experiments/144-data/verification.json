@@ -1,0 +1,117 @@
+{
+  "all_checks_passed": true,
+  "binary": "/tmp/microllm-exp144-build.zsx5cZ/apps/microllm_hf_infer",
+  "build": {
+    "base_build_log": "/tmp/microllm-exp144-build.zsx5cZ/build.log",
+    "base_configure_log": "/tmp/microllm-exp144-build.zsx5cZ/configure.log",
+    "base_steps_completed": 50,
+    "directory": "/tmp/microllm-exp144-build.zsx5cZ",
+    "hf_cli_binary_contract_exit_code": 0,
+    "hf_cli_binary_contract_log": "/tmp/microllm-exp144-build.zsx5cZ/hf-cli-binary-contract.log",
+    "hip_tests_build_log": "/tmp/microllm-exp144-build.zsx5cZ/hip-tests-build.log",
+    "hip_tests_incremental_steps": 12,
+    "tests_reconfigure_log": "/tmp/microllm-exp144-build.zsx5cZ/tests-reconfigure.log"
+  },
+  "capability_conclusion": "Installed hipBLASLt returned output_column_native_status=0, so native output-column vector scaling is rejected on this stack. The engine executes native FP8 GEMM and applies output-column correction with a device post-scale; no hot-path column requantization occurs.",
+  "execution": {
+    "directory": "/tmp/microllm-exp144-output-column-native-final",
+    "execution_status": "pass",
+    "exit_code": 0,
+    "stderr_bytes": 0,
+    "summary_status": "complete_with_recorded_accuracy_failures",
+    "target_fp8_rows": 2,
+    "worker_rows": 6
+  },
+  "experiment": "Exp144",
+  "fp8_checks": [
+    {
+      "context": 512,
+      "converted_tensors": 168,
+      "expected_output_column_scale_calls": 336,
+      "fp8_dynamic_column_calls": 0,
+      "fp8_dynamic_tensor_calls": 192,
+      "fp8_linears_covered": 168,
+      "fp8_native_shapes": 4,
+      "fp8_output_column_native_status": 0,
+      "fp8_output_column_scale_calls": 336,
+      "fp8_software_fallback_calls": 0,
+      "fp8_software_fallback_shapes": 0,
+      "logit_count": 151936,
+      "maximum_absolute_error": 1.643660545349121,
+      "model": "qwen2.5-0.5b",
+      "passed": true,
+      "precision_gate_passed": false,
+      "root_mean_square_error": 0.3737955339865957,
+      "status": "pass",
+      "top_token_equal": true
+    },
+    {
+      "context": 512,
+      "converted_tensors": 197,
+      "expected_output_column_scale_calls": 394,
+      "fp8_dynamic_column_calls": 0,
+      "fp8_dynamic_tensor_calls": 226,
+      "fp8_linears_covered": 197,
+      "fp8_native_shapes": 5,
+      "fp8_output_column_native_status": 0,
+      "fp8_output_column_scale_calls": 394,
+      "fp8_software_fallback_calls": 0,
+      "fp8_software_fallback_shapes": 0,
+      "logit_count": 151936,
+      "maximum_absolute_error": 0.9597628116607666,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "passed": true,
+      "precision_gate_passed": false,
+      "root_mean_square_error": 0.1657151456736398,
+      "status": "pass",
+      "top_token_equal": true
+    }
+  ],
+  "gpu_gate": {
+    "post_max_use": 3,
+    "post_max_vram": 2,
+    "pre_max_use": 1,
+    "pre_max_vram": 0
+  },
+  "gtest": {
+    "binary": "/tmp/microllm-exp144-build.zsx5cZ/tests/microllm_hip_tests",
+    "exit_code": 0,
+    "failures": 0,
+    "filter": "HipFp8OpsTest.OutputColumnScaleUsesNativeGemmAndDevicePostScale",
+    "json": "/tmp/microllm-exp144-build.zsx5cZ/output-column-native-gtest.json",
+    "output_column_native_status": 0,
+    "output_column_scale_calls": 1,
+    "result": "COMPLETED",
+    "status_contract_passed": true,
+    "stderr": "/tmp/microllm-exp144-build.zsx5cZ/output-column-native-gtest.stderr.log",
+    "stdout": "/tmp/microllm-exp144-build.zsx5cZ/output-column-native-gtest.stdout.log",
+    "tests": 1
+  },
+  "manifest": "/tmp/microllm-bf16-model-manifest.json",
+  "performance_boundary": "Single-process runs=1 evidence with warmup=1 is a capability/contract check only. TPS is recorded by the runner but must not support any performance conclusion.",
+  "preflight": [
+    {
+      "gpu_use_percent": 0,
+      "physical_gpu_index": 2,
+      "sample": 1,
+      "timestamp_utc": "2026-08-23T14:30:01.485875+00:00",
+      "vram_percent": 0
+    },
+    {
+      "gpu_use_percent": 0,
+      "physical_gpu_index": 2,
+      "sample": 2,
+      "timestamp_utc": "2026-08-23T14:30:11.603688+00:00",
+      "vram_percent": 0
+    },
+    {
+      "gpu_use_percent": 0,
+      "physical_gpu_index": 2,
+      "sample": 3,
+      "timestamp_utc": "2026-08-23T14:30:21.722355+00:00",
+      "vram_percent": 0
+    }
+  ],
+  "revision": "ece86586efb85905542671ec0c01bf01bff93cfd",
+  "schema_version": 1
+}

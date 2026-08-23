@@ -2506,3 +2506,14 @@ per-output-channel权重scale让DeepSeek T8/T512 RMS改善59.0%/33.5%，Qwen却�
 执行；不把Deep单模型比例改善写成完整FP8可用。
 
 ![Output-channel model policy](assets/fp8-output-channel-policy.svg)
+
+## 161. Experiment 144：API存在，不等于MI300运行时支持
+
+权重侧outer-vector真实提交返回status 0；128² probe仍通过，因为引擎缓存拒绝结果后执行原生
+scalar FP8 GEMM + device post-scale。Qwen/Deep T512分别精确记录336/394次post，等于全部Linear
+乘两次forward；hot column quantize和software GEMM fallback均为0。
+
+因此关闭“打开一个库属性就拿回13%”的解释。后续只研究减少per-column范围或融合post-scale，
+不再把头文件能力写成硬件实测。
+
+![Output-column native capability](assets/fp8-output-column-native-probe.svg)

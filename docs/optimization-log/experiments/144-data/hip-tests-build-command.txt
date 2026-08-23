@@ -1,0 +1,1 @@
+cmake --build /tmp/microllm-exp144-build.zsx5cZ --target microllm_hip_tests --parallel

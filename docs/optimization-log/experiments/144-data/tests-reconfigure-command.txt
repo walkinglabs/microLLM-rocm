@@ -1,0 +1,1 @@
+cmake -S /home/devpod/github/microLLM-rocm -B /tmp/microllm-exp144-build.zsx5cZ -DMICROLLM_BUILD_TESTS=ON
