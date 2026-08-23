@@ -204,6 +204,13 @@ Linears work naturally there. GQA repeats/reduces Q/K heads on dimension 1 and V
 on dimension 2. No component pretends the two layouts are identical; each public shape
 contract names the order.
 
+The three interleaved hipBLASLt calls expose an optional immutable plan cache. Its exact key
+is `{P×V|dP|dV, H, T, D, device}`. Cached objects contain only descriptions and matrix
+layouts; caller pointers, Stream, workspace and algorithms are still supplied per call.
+The cache is thread-local, observable and clearable. It is disabled by default because its
+operator speedup failed the official-model throughput gate. An available mechanism is not
+the same as an enabled optimization policy.
+
 ## Stable integration boundary
 
 The long-term integration seam is a C-compatible descriptor plus explicit stream

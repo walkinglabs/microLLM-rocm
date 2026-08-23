@@ -7146,8 +7146,8 @@ def validate_attention_interleaved_pv(
     tests = "\n".join((REPOSITORY / path).read_text(encoding="utf-8") for path in (
         "tests/ops/ops_test.cpp", "tests/ops/hip_ops_test.cpp",
         "python/tests/test_operator_parity.py"))
-    if "matrix_value.set_batch(batch_count, width)" not in source or \
-            "matrix_context.set_batch(batch_count, width)" not in source or \
+    if "matrix_right_.set_batch(batch_count, width)" not in source or \
+            "matrix_output_.set_batch" not in source or \
             "Attention layout complete-output gate failed" not in benchmark or \
             "AttentionProbabilityValueInterleavedLayoutMatchesCpuWithoutTransfers" not in tests or \
             "attention_probability_value_bthd" not in tests:
@@ -7230,6 +7230,56 @@ def validate_post_layout_training_profile(
         errors.append("post-layout load-only exclusion changed")
     return len(categories), float(gemm.get("kernel_share", 0)), \
         int(delta.get("total_kernel_ns_per_step", 0))
+
+
+def validate_attention_layout_plan_cache_discard(
+        errors: list[str]) -> tuple[int, int, int]:
+    data = REPOSITORY / "benchmarks/results/2026-08-23-attention-layout-plan-cache"
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    operator = json.loads((data / "operator-summary.json").read_text(
+        encoding="utf-8"))
+    operator_raw = [json.loads(line) for line in (data / "operator-raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    model = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    training = [json.loads(line) for line in (data / "training.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    route = [json.loads(line) for line in (data / "route-smoke/training.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    operator_rows = {row["name"]: row for row in operator.get("rows", [])}
+    comparisons = {row["model"]: row for row in model.get("comparisons", [])}
+    qwen = comparisons.get("qwen2.5-0.5b", {})
+    deep = comparisons.get("deepseek-r1-distill-qwen-1.5b", {})
+    cached_route = [row for row in route if row.get("attention_layout_plan_cache") is True]
+    if verification.get("status") != "pass" or operator.get("status") != "pass" or \
+            model.get("status") != "pass" or model.get("decision") != "reject plan cache" or \
+            verification.get("defaults") != {
+                "engine": False, "training_cli": False,
+                "operator_benchmark": False} or \
+            verification.get("regression", {}).get("full_cpu_hip") != "399/399" or \
+            verification.get("regression", {}).get("hip_label") != "127/127" or \
+            len(operator_raw) != 24 or len(operator_rows) != 4 or len(training) != 12 or \
+            len(cached_route) != 2 or \
+            operator_rows.get("qwen_t512", {}).get("wall_speedup", 0) < 1.01 or \
+            operator_rows.get("deepseek_t512", {}).get("wall_speedup", 0) < 1.01 or \
+            qwen.get("throughput_speedup", 2) >= 1.01 or \
+            deep.get("throughput_speedup", 2) >= 1.01 or \
+            any(row.get("maximum_absolute_error") != 0 or row.get("rms_error") != 0
+                for row in operator_raw) or \
+            sorted((row.get("attention_layout_plan_cache_entries"),
+                    row.get("attention_layout_plan_cache_misses"),
+                    row.get("attention_layout_plan_cache_hits"))
+                   for row in cached_route) != [(3, 3, 69), (3, 3, 81)]:
+        errors.append("Attention layout plan-cache discard evidence changed")
+    optimized = (REPOSITORY / "src/ops/optimized.cpp").read_text(encoding="utf-8")
+    cli = (REPOSITORY / "apps/hf_train_step.cpp").read_text(encoding="utf-8")
+    tests = (REPOSITORY / "tests/ops/hip_ops_test.cpp").read_text(encoding="utf-8")
+    if "attention_layout_cache_enabled = false" not in optimized or \
+            "bool attention_layout_plan_cache = false" not in cli or \
+            "ExactModesAndShapesHitWithoutChangingOutputs" not in tests or \
+            "AttentionLayoutPlanKey" not in optimized:
+        errors.append("Attention layout plan-cache default/source contract changed")
+    return len(operator_raw), len(training), len(route)
 
 
 def validate_links(errors: list[str]) -> int:
@@ -7375,7 +7425,8 @@ def validate_assets(errors: list[str]) -> None:
                  "attention-rope-layout-fusion.svg",
                  "attention-interleaved-pv.svg",
                  "attention-context-layout-fusion.svg",
-                 "post-layout-training-profile.svg"):
+                 "post-layout-training-profile.svg",
+                 "attention-layout-plan-cache-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -7641,6 +7692,8 @@ def main() -> int:
         validate_attention_context_layout_fusion(errors)
     post_layout_categories, post_layout_gemm, post_layout_total = \
         validate_post_layout_training_profile(errors)
+    plan_operator_rows, plan_model_rows, plan_route_rows = \
+        validate_attention_layout_plan_cache_discard(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -7852,6 +7905,8 @@ def main() -> int:
           f"{context_deep_copies} "
           f"post_layout={post_layout_categories}/{post_layout_gemm:.3f}/"
           f"{post_layout_total} "
+          f"attention_plan={plan_operator_rows}/{plan_model_rows}/"
+          f"{plan_route_rows} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

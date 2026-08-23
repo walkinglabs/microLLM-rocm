@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="920" viewBox="0 0 1800 920">
+  <rect width="1800" height="920" fill="#f8fafc"/>
+  <text x="900" y="52" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 166 · Attention Layout Plan Cache · Discard Default</text>
+  <text x="900" y="84" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle">Exact immutable layouts · operator win · official-model rebuttal · MI300X</text>
+
+  <rect x="55" y="125" width="770" height="650" rx="14" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="440" y="168" font-family="Inter,Arial,sans-serif" font-size="21" fill="#172033" text-anchor="middle" font-weight="700">Operator wall speedup</text>
+  <line x1="145" y1="650" x2="750" y2="650" stroke="#94a3b8" stroke-width="2"/>
+  <rect x="180" y="570" width="95" height="80" fill="#60a5fa"/><text x="228" y="555" font-family="Inter,Arial,sans-serif" font-size="16" fill="#1e40af" text-anchor="middle" font-weight="700">1.053×</text><text x="228" y="683" font-family="Inter,Arial,sans-serif" font-size="14" fill="#334155" text-anchor="middle">edge</text>
+  <rect x="325" y="370" width="95" height="280" fill="#3b82f6"/><text x="373" y="355" font-family="Inter,Arial,sans-serif" font-size="16" fill="#1e40af" text-anchor="middle" font-weight="700">1.185×</text><text x="373" y="683" font-family="Inter,Arial,sans-serif" font-size="14" fill="#334155" text-anchor="middle">T128</text>
+  <rect x="470" y="545" width="95" height="105" fill="#2f9b68"/><text x="518" y="530" font-family="Inter,Arial,sans-serif" font-size="16" fill="#166534" text-anchor="middle" font-weight="700">1.067×</text><text x="518" y="683" font-family="Inter,Arial,sans-serif" font-size="14" fill="#334155" text-anchor="middle">Qwen</text>
+  <rect x="615" y="542" width="95" height="108" fill="#16834a"/><text x="663" y="527" font-family="Inter,Arial,sans-serif" font-size="16" fill="#166534" text-anchor="middle" font-weight="700">1.069×</text><text x="663" y="683" font-family="Inter,Arial,sans-serif" font-size="14" fill="#334155" text-anchor="middle">DeepSeek</text>
+  <rect x="145" y="220" width="605" height="100" rx="10" fill="#ecfdf5" stroke="#86efac"/>
+  <text x="448" y="254" font-family="Inter,Arial,sans-serif" font-size="17" fill="#166534" text-anchor="middle" font-weight="700">Exact route contract</text>
+  <text x="448" y="288" font-family="monospace" font-size="16" fill="#334155" text-anchor="middle">cached: 1 miss + 23 hits · uncached: 0/0/0</text>
+  <text x="440" y="735" font-family="Inter,Arial,sans-serif" font-size="14" fill="#64748b" text-anchor="middle">all complete outputs bit-exact · timed payload transfers = 0</text>
+
+  <rect x="875" y="125" width="870" height="650" rx="14" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="1310" y="168" font-family="Inter,Arial,sans-serif" font-size="21" fill="#172033" text-anchor="middle" font-weight="700">Official T512 training gate</text>
+  <line x1="980" y1="590" x2="1640" y2="590" stroke="#2563eb" stroke-width="2" stroke-dasharray="8 6"/>
+  <text x="1650" y="595" font-family="Inter,Arial,sans-serif" font-size="14" fill="#2563eb">1.01 keep gate</text>
+  <rect x="1050" y="600" width="180" height="50" fill="#dc5a4a"/><text x="1140" y="632" font-family="Inter,Arial,sans-serif" font-size="20" fill="#ffffff" text-anchor="middle" font-weight="700">0.9902×</text><text x="1140" y="682" font-family="Inter,Arial,sans-serif" font-size="16" fill="#334155" text-anchor="middle">Qwen</text>
+  <rect x="1370" y="594" width="180" height="56" fill="#f59e0b"/><text x="1460" y="628" font-family="Inter,Arial,sans-serif" font-size="20" fill="#ffffff" text-anchor="middle" font-weight="700">1.0005×</text><text x="1460" y="682" font-family="Inter,Arial,sans-serif" font-size="16" fill="#334155" text-anchor="middle">DeepSeek</text>
+  <rect x="980" y="220" width="660" height="135" rx="10" fill="#fee2e2" stroke="#f87171"/>
+  <text x="1310" y="260" font-family="Inter,Arial,sans-serif" font-size="19" fill="#991b1b" text-anchor="middle" font-weight="700">Operator speed did not survive end to end</text>
+  <text x="1310" y="298" font-family="Inter,Arial,sans-serif" font-size="16" fill="#475569" text-anchor="middle">peak ratio 1.000 · allocations equal · parameter equal</text>
+  <text x="1310" y="329" font-family="Inter,Arial,sans-serif" font-size="14" fill="#64748b" text-anchor="middle">layout diagnostics remain zero on both policies</text>
+  <rect x="980" y="405" width="660" height="115" rx="10" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text x="1310" y="442" font-family="Inter,Arial,sans-serif" font-size="17" fill="#334155" text-anchor="middle" font-weight="700">Default stays OFF</text>
+  <text x="1310" y="478" font-family="Inter,Arial,sans-serif" font-size="15" fill="#475569" text-anchor="middle">retain explicit cache + stats only for diagnosis</text>
+  <text x="1310" y="505" font-family="Inter,Arial,sans-serif" font-size="14" fill="#64748b" text-anchor="middle">do not repeat descriptor caching as the next hypothesis</text>
+
+  <rect x="55" y="825" width="1690" height="66" rx="12" fill="#172033"/>
+  <text x="900" y="854" font-family="Inter,Arial,sans-serif" font-size="18" fill="#ffffff" text-anchor="middle" font-weight="700">Discard production default: complete-model evidence outranks an isolated operator win</text>
+  <text x="900" y="879" font-family="Inter,Arial,sans-serif" font-size="14" fill="#cbd5e1" text-anchor="middle">The explicit diagnostic mechanism remains; it is not presented as retained speed</text>
+</svg>

@@ -1,0 +1,107 @@
+{
+  "aggregation": "median of fresh processes with alternating policy order",
+  "comparisons": [
+    {
+      "allocation_calls_saved": 0.0,
+      "loss_relative_difference": 0.00015401836213536647,
+      "model": "qwen2.5-0.5b",
+      "observed_parameter_after_equal": true,
+      "peak_bytes_saved": 0.0,
+      "peak_ratio": 1.0,
+      "policies": {
+        "fused": {
+          "engine_allocation_calls": 3340.0,
+          "engine_peak_bytes": 11820754952.0,
+          "final_loss": 0.016904471,
+          "mean_optimizer_ms": 13.975299,
+          "mean_step_ms": 34.0652295,
+          "observed_parameter_after": 7.468718052,
+          "tokens_per_second": 15029.988275875
+        },
+        "materialized": {
+          "engine_allocation_calls": 3340.0,
+          "engine_peak_bytes": 11820754952.0,
+          "final_loss": 0.016907075,
+          "mean_optimizer_ms": 13.353927,
+          "mean_step_ms": 33.7302205,
+          "observed_parameter_after": 7.468718052,
+          "tokens_per_second": 15179.266319946
+        }
+      },
+      "strided_copy": {
+        "fused": {
+          "bytes": 0,
+          "calls": 0,
+          "elements": 0
+        },
+        "materialized": {
+          "bytes": 0,
+          "calls": 0,
+          "elements": 0
+        }
+      },
+      "throughput_speedup": 0.9901656614407744
+    },
+    {
+      "allocation_calls_saved": 0.0,
+      "loss_relative_difference": 0.0,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "observed_parameter_after_equal": true,
+      "peak_bytes_saved": 0.0,
+      "peak_ratio": 1.0,
+      "policies": {
+        "fused": {
+          "engine_allocation_calls": 3896.0,
+          "engine_peak_bytes": 37102645256.0,
+          "final_loss": 4.036802292,
+          "mean_optimizer_ms": 49.977588,
+          "mean_step_ms": 80.8736485,
+          "observed_parameter_after": 2.124970913,
+          "tokens_per_second": 6330.863136464
+        },
+        "materialized": {
+          "engine_allocation_calls": 3896.0,
+          "engine_peak_bytes": 37102645256.0,
+          "final_loss": 4.036802292,
+          "mean_optimizer_ms": 49.8679135,
+          "mean_step_ms": 80.9172515,
+          "observed_parameter_after": 2.124970913,
+          "tokens_per_second": 6327.451693042
+        }
+      },
+      "strided_copy": {
+        "fused": {
+          "bytes": 0,
+          "calls": 0,
+          "elements": 0
+        },
+        "materialized": {
+          "bytes": 0,
+          "calls": 0,
+          "elements": 0
+        }
+      },
+      "throughput_speedup": 1.0005391496588982
+    }
+  ],
+  "context": 512,
+  "decision": "reject plan cache",
+  "gate_results": {
+    "loss": true,
+    "parameter": true,
+    "strided_copy_unchanged_zero": true,
+    "throughput": false
+  },
+  "keep_gate": {
+    "loss_relative_difference_maximum": 0.005,
+    "observed_parameter_after_equal": true,
+    "throughput_ratio_minimum": 1.01
+  },
+  "policy": "plan",
+  "runs_per_model_policy": 3,
+  "schema_version": 1,
+  "status": "pass",
+  "steps": 2,
+  "track": "attention_layout_plan_cache",
+  "warmup": 1
+}

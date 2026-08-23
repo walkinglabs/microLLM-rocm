@@ -608,6 +608,17 @@ TEST(CpuOpsTest, AttentionProbabilityValueWritesInterleavedBthdLayout) {
                  std::invalid_argument);
 }
 
+TEST(CpuOpsTest, AttentionLayoutPlanCacheIsUnavailableWithoutHipblaslt) {
+    if (hipblaslt_available()) GTEST_SKIP() << "hipBLASLt build has the real cache";
+    clear_attention_layout_plan_cache();
+    enable_attention_layout_plan_cache(true);
+    EXPECT_FALSE(attention_layout_plan_cache_enabled());
+    const auto stats = attention_layout_plan_cache_stats();
+    EXPECT_EQ(stats.entries, 0U);
+    EXPECT_EQ(stats.hits, 0U);
+    EXPECT_EQ(stats.misses, 0U);
+}
+
 TEST(CpuOpsTest, AttentionBthdBackwardPrimitivesAndGqaMatchMaterializedReference) {
     const auto probabilities = Tensor::from_vector(
         {1, 0, 0, 0.25F, 0.75F, 0, 0.1F, 0.2F, 0.7F,

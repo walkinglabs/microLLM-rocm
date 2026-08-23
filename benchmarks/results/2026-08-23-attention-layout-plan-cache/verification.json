@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "experiment": "Exp166",
+  "decision": "reject production default; retain explicit diagnostic cache",
+  "operator": {
+    "fresh_process_rows": 24,
+    "shapes": 4,
+    "runs_per_shape_policy": 3,
+    "maximum_absolute_error": 0.0,
+    "rms_error": 0.0,
+    "timed_host_to_device_calls": 0,
+    "timed_device_to_host_calls": 0,
+    "qwen_t512_wall_speedup": 1.06671675,
+    "deepseek_t512_wall_speedup": 1.068922643,
+    "edge_wall_speedup": 1.053184487,
+    "cached_misses_per_process": 1,
+    "cached_hits_per_process": 23,
+    "uncached_entries_hits_misses": "0/0/0"
+  },
+  "model": {
+    "fresh_process_rows": 12,
+    "context": 512,
+    "runs_per_model_policy": 3,
+    "qwen_throughput_speedup": 0.990165661,
+    "deepseek_throughput_speedup": 1.00053915,
+    "throughput_keep_minimum": 1.01,
+    "qwen_loss_relative_difference": 0.000154018,
+    "deepseek_loss_relative_difference": 0.0,
+    "peak_ratio": 1.0,
+    "allocation_calls_equal": true,
+    "observed_parameter_after_equal": true,
+    "strided_copy_calls_both_policies": 0
+  },
+  "route": {
+    "qwen_cached": "3 entries / 3 misses / 69 hits",
+    "deepseek_cached": "3 entries / 3 misses / 81 hits",
+    "uncached": "0 entries / 0 misses / 0 hits",
+    "route_smoke_used_for_performance_decision": false
+  },
+  "regression": {
+    "cpu_debug": "268/268",
+    "asan_ubsan": "266/266",
+    "pytorch_enabled_cpu": "242/242",
+    "full_cpu_hip": "399/399",
+    "hip_label": "127/127",
+    "conditional_skips": 3,
+    "package_consumer": "pass",
+    "runner_contract_cases": "7/7",
+    "coverage_lines_percent": 81.3,
+    "coverage_functions_percent": 90.3,
+    "coverage_branches_percent": 62.0
+  },
+  "defaults": {
+    "engine": false,
+    "training_cli": false,
+    "operator_benchmark": false
+  }
+}

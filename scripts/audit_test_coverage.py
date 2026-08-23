@@ -27,6 +27,7 @@ declared_ops = public_names(
     ["TensorPair", "TensorTriple", "Tensor", "Bf16FfnDiagnostics",
      "Fp8DispatchStats", "Fp8DynamicQuantStats",
      "Bf16PlanCacheStats", "bool",
+     "AttentionLayoutPlanCacheStats",
      "MatmulImplementation", "AdamWTuningKey",
      "AdamWTuningCacheLoadReport", "AdamWImplementation",
      "std::size_t", "void"],

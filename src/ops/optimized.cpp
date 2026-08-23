@@ -983,6 +983,97 @@ Tensor hipblaslt_fp8_matmul(const ScaledTensor& left, const ScaledTensor& right,
     return output;
 }
 
+enum class AttentionLayoutMode { ProbabilityValue, ProbabilityGradient, ValueGradient };
+
+using AttentionLayoutPlanKey =
+    std::tuple<AttentionLayoutMode, std::int64_t, std::int64_t,
+               std::int64_t, int>;
+
+class AttentionLayoutPlan {
+public:
+    AttentionLayoutPlan(AttentionLayoutMode mode, std::int64_t heads,
+                        std::int64_t sequence, std::int64_t width)
+        : operation_(mode == AttentionLayoutMode::ProbabilityGradient,
+                     mode == AttentionLayoutMode::ValueGradient),
+          matrix_right_(HIP_R_32F, static_cast<std::uint64_t>(width),
+                        static_cast<std::uint64_t>(sequence), heads * width),
+          matrix_left_(
+              HIP_R_32F,
+              static_cast<std::uint64_t>(
+                  mode == AttentionLayoutMode::ProbabilityGradient
+                      ? width : sequence),
+              static_cast<std::uint64_t>(sequence),
+              mode == AttentionLayoutMode::ProbabilityGradient
+                  ? heads * width : sequence),
+          matrix_output_(
+              HIP_R_32F,
+              static_cast<std::uint64_t>(
+                  mode == AttentionLayoutMode::ProbabilityGradient
+                      ? sequence : width),
+              static_cast<std::uint64_t>(sequence),
+              mode == AttentionLayoutMode::ProbabilityGradient
+                  ? sequence : heads * width) {
+        const auto batch_count = static_cast<std::int32_t>(heads);
+        matrix_right_.set_batch(batch_count, width);
+        matrix_left_.set_batch(
+            batch_count,
+            mode == AttentionLayoutMode::ProbabilityGradient
+                ? width : sequence * sequence);
+        matrix_output_.set_batch(
+            batch_count,
+            mode == AttentionLayoutMode::ProbabilityGradient
+                ? sequence * sequence : width);
+    }
+
+    [[nodiscard]] hipblasLtMatmulDesc_t operation() const noexcept {
+        return operation_.get();
+    }
+    [[nodiscard]] hipblasLtMatrixLayout_t matrix_right() const noexcept {
+        return matrix_right_.get();
+    }
+    [[nodiscard]] hipblasLtMatrixLayout_t matrix_left() const noexcept {
+        return matrix_left_.get();
+    }
+    [[nodiscard]] hipblasLtMatrixLayout_t matrix_output() const noexcept {
+        return matrix_output_.get();
+    }
+
+private:
+    MatmulDescription operation_;
+    Layout matrix_right_;
+    Layout matrix_left_;
+    Layout matrix_output_;
+};
+
+thread_local bool attention_layout_cache_enabled = false;
+thread_local std::map<AttentionLayoutPlanKey,
+                      std::unique_ptr<AttentionLayoutPlan>> attention_layout_plans;
+thread_local std::size_t attention_layout_plan_hits = 0;
+thread_local std::size_t attention_layout_plan_misses = 0;
+
+Handle& attention_layout_handle() {
+    static thread_local Handle handle;
+    return handle;
+}
+
+AttentionLayoutPlan& attention_layout_plan(
+    AttentionLayoutMode mode, std::int64_t heads, std::int64_t sequence,
+    std::int64_t width, Device device) {
+    const AttentionLayoutPlanKey key{
+        mode, heads, sequence, width, device.index()};
+    const auto found = attention_layout_plans.find(key);
+    if (found != attention_layout_plans.end()) {
+        ++attention_layout_plan_hits;
+        return *found->second;
+    }
+    ++attention_layout_plan_misses;
+    auto plan = std::make_unique<AttentionLayoutPlan>(
+        mode, heads, sequence, width);
+    auto* result = plan.get();
+    attention_layout_plans.emplace(key, std::move(plan));
+    return *result;
+}
+
 Tensor hipblaslt_attention_probability_value_bthd(
     const Tensor& probabilities, const Tensor& value,
     const OpContext& context) {
@@ -995,19 +1086,17 @@ Tensor hipblaslt_attention_probability_value_bthd(
     }
     Tensor output({batches, sequence, heads, width}, DType::Float32,
                   probabilities.device());
-    static Handle handle;
-    MatmulDescription operation;
-    Layout matrix_value(HIP_R_32F, static_cast<std::uint64_t>(width),
-                        static_cast<std::uint64_t>(sequence), heads * width);
-    Layout matrix_probability(HIP_R_32F,
-                              static_cast<std::uint64_t>(sequence),
-                              static_cast<std::uint64_t>(sequence), sequence);
-    Layout matrix_context(HIP_R_32F, static_cast<std::uint64_t>(width),
-                          static_cast<std::uint64_t>(sequence), heads * width);
-    const auto batch_count = static_cast<std::int32_t>(heads);
-    matrix_value.set_batch(batch_count, width);
-    matrix_probability.set_batch(batch_count, sequence * sequence);
-    matrix_context.set_batch(batch_count, width);
+    std::unique_ptr<AttentionLayoutPlan> ephemeral;
+    AttentionLayoutPlan* plan = nullptr;
+    if (attention_layout_cache_enabled) {
+        plan = &attention_layout_plan(
+            AttentionLayoutMode::ProbabilityValue, heads, sequence, width,
+            probabilities.device());
+    } else {
+        ephemeral = std::make_unique<AttentionLayoutPlan>(
+            AttentionLayoutMode::ProbabilityValue, heads, sequence, width);
+        plan = ephemeral.get();
+    }
     const auto probability_batch_elements = heads * sequence * sequence;
     const auto value_batch_elements = sequence * heads * width;
     const auto* probability_data =
@@ -1019,12 +1108,14 @@ Tensor hipblaslt_attention_probability_value_bthd(
     for (std::int64_t batch = 0; batch < batches; ++batch) {
         check_status(
             hipblasLtMatmul(
-                handle.get(), operation.get(), &alpha,
-                value_data + batch * value_batch_elements, matrix_value.get(),
+                attention_layout_handle().get(), plan->operation(), &alpha,
+                value_data + batch * value_batch_elements, plan->matrix_right(),
                 probability_data + batch * probability_batch_elements,
-                matrix_probability.get(), &beta,
-                output_data + batch * value_batch_elements, matrix_context.get(),
-                output_data + batch * value_batch_elements, matrix_context.get(),
+                plan->matrix_left(), &beta,
+                output_data + batch * value_batch_elements,
+                plan->matrix_output(),
+                output_data + batch * value_batch_elements,
+                plan->matrix_output(),
                 nullptr, context.workspace, context.workspace_bytes,
                 reinterpret_cast<hipStream_t>(
                     context.native_stream(probabilities.device()))),
@@ -1042,19 +1133,17 @@ Tensor hipblaslt_attention_probability_gradient_bthd(
     const auto width = output_gradient.shape()[3];
     Tensor output({batches, heads, sequence, sequence}, DType::Float32,
                   output_gradient.device());
-    static Handle handle;
-    MatmulDescription operation(true, false);
-    Layout matrix_value(HIP_R_32F, static_cast<std::uint64_t>(width),
-                        static_cast<std::uint64_t>(sequence), heads * width);
-    Layout matrix_gradient(HIP_R_32F, static_cast<std::uint64_t>(width),
-                           static_cast<std::uint64_t>(sequence), heads * width);
-    Layout matrix_probability(HIP_R_32F,
-                              static_cast<std::uint64_t>(sequence),
-                              static_cast<std::uint64_t>(sequence), sequence);
-    const auto batch_count = static_cast<std::int32_t>(heads);
-    matrix_value.set_batch(batch_count, width);
-    matrix_gradient.set_batch(batch_count, width);
-    matrix_probability.set_batch(batch_count, sequence * sequence);
+    std::unique_ptr<AttentionLayoutPlan> ephemeral;
+    AttentionLayoutPlan* plan = nullptr;
+    if (attention_layout_cache_enabled) {
+        plan = &attention_layout_plan(
+            AttentionLayoutMode::ProbabilityGradient, heads, sequence, width,
+            output_gradient.device());
+    } else {
+        ephemeral = std::make_unique<AttentionLayoutPlan>(
+            AttentionLayoutMode::ProbabilityGradient, heads, sequence, width);
+        plan = ephemeral.get();
+    }
     const auto value_batch_elements = sequence * heads * width;
     const auto probability_batch_elements = heads * sequence * sequence;
     const auto* gradient_data =
@@ -1066,14 +1155,14 @@ Tensor hipblaslt_attention_probability_gradient_bthd(
     for (std::int64_t batch = 0; batch < batches; ++batch) {
         check_status(
             hipblasLtMatmul(
-                handle.get(), operation.get(), &alpha,
-                value_data + batch * value_batch_elements, matrix_value.get(),
+                attention_layout_handle().get(), plan->operation(), &alpha,
+                value_data + batch * value_batch_elements, plan->matrix_right(),
                 gradient_data + batch * value_batch_elements,
-                matrix_gradient.get(), &beta,
+                plan->matrix_left(), &beta,
                 output_data + batch * probability_batch_elements,
-                matrix_probability.get(),
+                plan->matrix_output(),
                 output_data + batch * probability_batch_elements,
-                matrix_probability.get(), nullptr, context.workspace,
+                plan->matrix_output(), nullptr, context.workspace,
                 context.workspace_bytes,
                 reinterpret_cast<hipStream_t>(
                     context.native_stream(output_gradient.device()))),
@@ -1091,19 +1180,17 @@ Tensor hipblaslt_attention_value_gradient_bthd(
     const auto width = output_gradient.shape()[3];
     Tensor output(output_gradient.shape(), DType::Float32,
                   output_gradient.device());
-    static Handle handle;
-    MatmulDescription operation(false, true);
-    Layout matrix_gradient(HIP_R_32F, static_cast<std::uint64_t>(width),
-                           static_cast<std::uint64_t>(sequence), heads * width);
-    Layout matrix_probability(HIP_R_32F,
-                              static_cast<std::uint64_t>(sequence),
-                              static_cast<std::uint64_t>(sequence), sequence);
-    Layout matrix_output(HIP_R_32F, static_cast<std::uint64_t>(width),
-                         static_cast<std::uint64_t>(sequence), heads * width);
-    const auto batch_count = static_cast<std::int32_t>(heads);
-    matrix_gradient.set_batch(batch_count, width);
-    matrix_probability.set_batch(batch_count, sequence * sequence);
-    matrix_output.set_batch(batch_count, width);
+    std::unique_ptr<AttentionLayoutPlan> ephemeral;
+    AttentionLayoutPlan* plan = nullptr;
+    if (attention_layout_cache_enabled) {
+        plan = &attention_layout_plan(
+            AttentionLayoutMode::ValueGradient, heads, sequence, width,
+            output_gradient.device());
+    } else {
+        ephemeral = std::make_unique<AttentionLayoutPlan>(
+            AttentionLayoutMode::ValueGradient, heads, sequence, width);
+        plan = ephemeral.get();
+    }
     const auto value_batch_elements = sequence * heads * width;
     const auto probability_batch_elements = heads * sequence * sequence;
     const auto* gradient_data =
@@ -1116,13 +1203,15 @@ Tensor hipblaslt_attention_value_gradient_bthd(
     for (std::int64_t batch = 0; batch < batches; ++batch) {
         check_status(
             hipblasLtMatmul(
-                handle.get(), operation.get(), &alpha,
+                attention_layout_handle().get(), plan->operation(), &alpha,
                 gradient_data + batch * value_batch_elements,
-                matrix_gradient.get(),
+                plan->matrix_right(),
                 probability_data + batch * probability_batch_elements,
-                matrix_probability.get(), &beta,
-                output_data + batch * value_batch_elements, matrix_output.get(),
-                output_data + batch * value_batch_elements, matrix_output.get(),
+                plan->matrix_left(), &beta,
+                output_data + batch * value_batch_elements,
+                plan->matrix_output(),
+                output_data + batch * value_batch_elements,
+                plan->matrix_output(),
                 nullptr, context.workspace, context.workspace_bytes,
                 reinterpret_cast<hipStream_t>(
                     context.native_stream(output_gradient.device()))),
@@ -1147,6 +1236,44 @@ void clear_bf16_plan_cache() noexcept {
     bf16_plans.clear();
     bf16_plan_hits = 0;
     bf16_plan_misses = 0;
+#endif
+}
+
+void enable_attention_layout_plan_cache(bool enabled) noexcept {
+#if MICROLLM_HAS_HIPBLASLT
+    attention_layout_cache_enabled = enabled;
+    if (!enabled) {
+        attention_layout_plans.clear();
+        attention_layout_plan_hits = 0;
+        attention_layout_plan_misses = 0;
+    }
+#else
+    (void)enabled;
+#endif
+}
+
+bool attention_layout_plan_cache_enabled() noexcept {
+#if MICROLLM_HAS_HIPBLASLT
+    return attention_layout_cache_enabled;
+#else
+    return false;
+#endif
+}
+
+AttentionLayoutPlanCacheStats attention_layout_plan_cache_stats() noexcept {
+#if MICROLLM_HAS_HIPBLASLT
+    return {attention_layout_plans.size(), attention_layout_plan_hits,
+            attention_layout_plan_misses};
+#else
+    return {};
+#endif
+}
+
+void clear_attention_layout_plan_cache() noexcept {
+#if MICROLLM_HAS_HIPBLASLT
+    attention_layout_plans.clear();
+    attention_layout_plan_hits = 0;
+    attention_layout_plan_misses = 0;
 #endif
 }
 

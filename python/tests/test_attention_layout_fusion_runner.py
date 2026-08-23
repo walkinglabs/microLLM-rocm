@@ -19,6 +19,12 @@ MATRIX_SPEC = importlib.util.spec_from_file_location(
 MATRIX = importlib.util.module_from_spec(MATRIX_SPEC)
 assert MATRIX_SPEC.loader is not None
 MATRIX_SPEC.loader.exec_module(MATRIX)
+PLAN_MATRIX_PATH = ROOT / "benchmarks/single_gpu/attention_plan_cache_matrix.py"
+PLAN_MATRIX_SPEC = importlib.util.spec_from_file_location(
+    "attention_plan_cache_matrix", PLAN_MATRIX_PATH)
+PLAN_MATRIX = importlib.util.module_from_spec(PLAN_MATRIX_SPEC)
+assert PLAN_MATRIX_SPEC.loader is not None
+PLAN_MATRIX_SPEC.loader.exec_module(PLAN_MATRIX)
 
 
 class AttentionLayoutFusionRunnerTest(unittest.TestCase):
@@ -72,6 +78,18 @@ class AttentionLayoutFusionRunnerTest(unittest.TestCase):
         self.assertEqual(materialized[context + 1], "false")
         self.assertEqual(fused[context + 1], "true")
 
+    def test_plan_policy_keeps_layouts_enabled_and_changes_only_cache(self):
+        self.args.policy = "plan"
+        uncached = RUNNER.command(self.args, self.model, False)
+        cached = RUNNER.command(self.args, self.model, True)
+        rope = uncached.index("--attention-rope-layout-fusion")
+        context = uncached.index("--attention-context-layout-fusion")
+        plan = uncached.index("--attention-layout-plan-cache")
+        self.assertEqual(uncached[rope + 1], "true")
+        self.assertEqual(uncached[context + 1], "true")
+        self.assertEqual(uncached[plan + 1], "false")
+        self.assertEqual(cached[plan + 1], "true")
+
     def test_operator_matrix_preserves_batch_head_sequence_width(self):
         shape = MATRIX.parse_shape("qwen:2:14:512:64")
         self.assertEqual(
@@ -89,6 +107,22 @@ class AttentionLayoutFusionRunnerTest(unittest.TestCase):
         self.assertEqual(command[command.index("--heads") + 1], "14")
         self.assertEqual(command[command.index("--sequence") + 1], "512")
         self.assertEqual(command[command.index("--width") + 1], "64")
+
+    def test_plan_matrix_changes_only_cache_on_interleaved_operator(self):
+        shape = MATRIX.parse_shape("qwen:1:14:512:64")
+        matrix_args = types.SimpleNamespace(
+            binary=pathlib.Path("/fixture/microllm_bench_attention_layout"),
+            warmup=3,
+            repetitions=20,
+        )
+        uncached = PLAN_MATRIX.command(matrix_args, shape, False)
+        cached = PLAN_MATRIX.command(matrix_args, shape, True)
+        implementation = uncached.index("--implementation")
+        plan = uncached.index("--plan-cache")
+        self.assertEqual(uncached[implementation + 1], "interleaved")
+        self.assertEqual(cached[implementation + 1], "interleaved")
+        self.assertEqual(uncached[plan + 1], "false")
+        self.assertEqual(cached[plan + 1], "true")
 
 
 if __name__ == "__main__":

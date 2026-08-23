@@ -1,0 +1,83 @@
+{
+  "aggregation": "median of fresh processes with alternating policy order",
+  "comparisons": [
+    {
+      "allocation_calls_saved": 0.0,
+      "loss_relative_difference": 0.0,
+      "model": "qwen2.5-0.5b",
+      "observed_parameter_after_equal": true,
+      "peak_bytes_saved": 0.0,
+      "peak_ratio": 1.0,
+      "policies": {
+        "fused": {
+          "engine_allocation_calls": 1670.0,
+          "engine_peak_bytes": 11820754952.0,
+          "final_loss": 0.099769548,
+          "mean_optimizer_ms": 5.047944,
+          "mean_step_ms": 6372.783563,
+          "observed_parameter_after": 7.468739033,
+          "tokens_per_second": 80.341658388
+        },
+        "materialized": {
+          "engine_allocation_calls": 1670.0,
+          "engine_peak_bytes": 11820754952.0,
+          "final_loss": 0.099769548,
+          "mean_optimizer_ms": 5.109217,
+          "mean_step_ms": 6521.255876,
+          "observed_parameter_after": 7.468739033,
+          "tokens_per_second": 78.512484364
+        }
+      },
+      "throughput_speedup": 1.0232978747114863
+    },
+    {
+      "allocation_calls_saved": 0.0,
+      "loss_relative_difference": 0.0,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "observed_parameter_after_equal": true,
+      "peak_bytes_saved": 0.0,
+      "peak_ratio": 1.0,
+      "policies": {
+        "fused": {
+          "engine_allocation_calls": 1948.0,
+          "engine_peak_bytes": 37102645256.0,
+          "final_loss": 5.660441399,
+          "mean_optimizer_ms": 29.797225,
+          "mean_step_ms": 6397.566912,
+          "observed_parameter_after": 2.124989748,
+          "tokens_per_second": 80.030425167
+        },
+        "materialized": {
+          "engine_allocation_calls": 1948.0,
+          "engine_peak_bytes": 37102645256.0,
+          "final_loss": 5.660441399,
+          "mean_optimizer_ms": 30.192094,
+          "mean_step_ms": 6527.778915,
+          "observed_parameter_after": 2.124989748,
+          "tokens_per_second": 78.434028889
+        }
+      },
+      "throughput_speedup": 1.0203533632099815
+    }
+  ],
+  "context": 512,
+  "decision": "incomplete evidence: diagnostics were not collected",
+  "gate_results": {
+    "loss": true,
+    "parameter": true,
+    "strided_copy_unchanged_zero": null,
+    "throughput": true
+  },
+  "keep_gate": {
+    "loss_relative_difference_maximum": 0.005,
+    "observed_parameter_after_equal": true,
+    "throughput_ratio_minimum": 1.01
+  },
+  "policy": "plan",
+  "runs_per_model_policy": 1,
+  "schema_version": 1,
+  "status": "pass",
+  "steps": 1,
+  "track": "attention_layout_plan_cache",
+  "warmup": 0
+}

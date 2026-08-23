@@ -1,0 +1,105 @@
+{
+  "gate_results": {
+    "official_t512_wall_speedup": true
+  },
+  "repetitions": 20,
+  "rows": [
+    {
+      "batch": 2,
+      "event_speedup": 1.0983745153380409,
+      "heads": 2,
+      "name": "edge",
+      "policies": {
+        "cached": {
+          "event_ms_p50": 0.029347001,
+          "event_ms_p95": 0.032434002,
+          "wall_ms_p50": 0.037981,
+          "wall_ms_p95": 0.041039
+        },
+        "uncached": {
+          "event_ms_p50": 0.032233998,
+          "event_ms_p95": 0.037044,
+          "wall_ms_p50": 0.040001,
+          "wall_ms_p95": 0.046191
+        }
+      },
+      "sequence": 3,
+      "wall_speedup": 1.0531844869803324,
+      "width": 2
+    },
+    {
+      "batch": 1,
+      "event_speedup": 1.1811486602503276,
+      "heads": 14,
+      "name": "medium",
+      "policies": {
+        "cached": {
+          "event_ms_p50": 0.022131,
+          "event_ms_p95": 0.032113001,
+          "wall_ms_p50": 0.029564,
+          "wall_ms_p95": 0.039991
+        },
+        "uncached": {
+          "event_ms_p50": 0.026140001,
+          "event_ms_p95": 0.046186,
+          "wall_ms_p50": 0.035031,
+          "wall_ms_p95": 0.054026
+        }
+      },
+      "sequence": 128,
+      "wall_speedup": 1.1849208496820458,
+      "width": 64
+    },
+    {
+      "batch": 1,
+      "event_speedup": 1.1526477777943114,
+      "heads": 14,
+      "name": "qwen_t512",
+      "policies": {
+        "cached": {
+          "event_ms_p50": 0.025738999,
+          "event_ms_p95": 0.033475999,
+          "wall_ms_p50": 0.034609,
+          "wall_ms_p95": 0.042041
+        },
+        "uncached": {
+          "event_ms_p50": 0.029668,
+          "event_ms_p95": 0.036362998,
+          "wall_ms_p50": 0.036918,
+          "wall_ms_p95": 0.044202
+        }
+      },
+      "sequence": 512,
+      "wall_speedup": 1.0667167499783292,
+      "width": 64
+    },
+    {
+      "batch": 1,
+      "event_speedup": 1.0738418644983223,
+      "heads": 12,
+      "name": "deepseek_t512",
+      "policies": {
+        "cached": {
+          "event_ms_p50": 0.157999992,
+          "event_ms_p95": 0.174639001,
+          "wall_ms_p50": 0.167289,
+          "wall_ms_p95": 0.184374
+        },
+        "uncached": {
+          "event_ms_p50": 0.169667006,
+          "event_ms_p95": 0.191836998,
+          "wall_ms_p50": 0.178819,
+          "wall_ms_p95": 0.211661
+        }
+      },
+      "sequence": 512,
+      "wall_speedup": 1.0689226428515923,
+      "width": 128
+    }
+  ],
+  "runs_per_shape_policy": 3,
+  "schema_version": 1,
+  "status": "pass",
+  "track": "attention_interleaved_plan_cache",
+  "warmup": 3
+}

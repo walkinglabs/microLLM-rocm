@@ -2764,3 +2764,18 @@ profile也没有反转：dispatch 7,192→6,907，总Kernel 111.73→110.67ms。
 “缓存exact immutable plan”假设，不够宣布收益。下一节点会用同revision两模型门反驳它。
 
 ![Post-layout training profile](assets/post-layout-training-profile.svg)
+
+## 183. Experiment 166：小测验快了，不等于整堂课提前下课
+
+cache按`{P×V/dP/dV,H,T,D,device}`保存不含指针的layout/description。单测精确看到3种mode先
+3 miss，再3 hit；换shape出现第4项；关闭时始终0/0/0。24个算子进程全量输出bit-exact，Qwen/
+Deep shape的wall分别快1.067×/1.069×。
+
+但整机三进程中位数是相反结论：Qwen 0.9902×、Deep 1.0005×，都不过1.01门；peak、allocation、
+参数guard不变。单步route smoke虽显示3 miss后Qwen69 hit、Deep81 hit，却含lazy setup且只有一个
+进程，不能推翻warmed正式矩阵。
+
+因此cache实现和统计API保留给诊断，engine/CLI默认改为false。我们记录“算子赢、模型没赢”，
+而不是用漂亮小测验覆盖最终考试。
+
+![Attention layout plan cache discarded](assets/attention-layout-plan-cache-discard.svg)

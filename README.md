@@ -91,6 +91,9 @@ needed to run a real training and generation loop:
   Value/context token-major through projection forward/backward, and removes the diagnosed
   strided-copy set entirely; same-binary T512 improves Qwen/DeepSeek by 1.0336×/1.0256×
   while saving another 100.4/205.5 MB peak;
+- exact interleaved Attention plan-cache statistics and explicit control are available for
+  diagnosis, but the default is off: operator wall time improves 1.067×/1.069× on official
+  shapes while full Qwen/DeepSeek training reaches only 0.990×/1.001× and fails the 1.01 gate;
 - a phase-independent exact-size HIP pool with immediate legacy-default-Stream reuse and strict
   permanent disablement for non-default Streams;
 - a cross-framework trace runner for operator/layer values and latency comparisons.

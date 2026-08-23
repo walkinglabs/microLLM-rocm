@@ -153,6 +153,11 @@ The remaining Value/context boundary uses
 `--attention-rope-layout-fusion true` in both processes when isolating it. The true route
 uses BTHD P×V/dP/dV layouts; false restores Value/context transpose nodes.
 
+`--attention-layout-plan-cache true/false` controls the exact immutable descriptor/layout
+cache. Its default is false after the Experiment 166 model rejection. The public
+`attention_layout_plan_cache_stats()` and `clear_attention_layout_plan_cache()` APIs expose
+entries/hits/misses without copying Tensor payloads.
+
 ### End-to-end benchmark
 
 ```bash

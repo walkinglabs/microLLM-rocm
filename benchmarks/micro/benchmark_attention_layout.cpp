@@ -21,6 +21,7 @@ struct Options {
     std::int64_t sequence = 512;
     std::int64_t width = 64;
     std::string implementation = "interleaved";
+    bool plan_cache = false;
     int warmup = 3;
     int repetitions = 20;
 };
@@ -32,6 +33,13 @@ std::int64_t integer(const char* value, const char* name) {
         throw std::invalid_argument(std::string("invalid ") + name);
     }
     return result;
+}
+
+bool boolean(const char* value, const char* name) {
+    const std::string_view text(value);
+    if (text == "true") return true;
+    if (text == "false") return false;
+    throw std::invalid_argument(std::string(name) + " must be true or false");
 }
 
 Options parse(int argc, char** argv) {
@@ -47,6 +55,8 @@ Options parse(int argc, char** argv) {
             result.width = integer(argv[index + 1], "width");
         } else if (name == "--implementation") {
             result.implementation = argv[index + 1];
+        } else if (name == "--plan-cache") {
+            result.plan_cache = boolean(argv[index + 1], "plan-cache");
         } else if (name == "--warmup") {
             result.warmup = static_cast<int>(integer(argv[index + 1], "warmup"));
         } else if (name == "--repetitions") {
@@ -114,6 +124,8 @@ int main(int argc, char** argv) {
                 static_cast<float>(static_cast<int>(index % 29) - 14) / 29.0F;
         }
         const auto device = microllm::Device::hip(0);
+        microllm::ops::enable_attention_layout_plan_cache(options.plan_cache);
+        microllm::ops::clear_attention_layout_plan_cache();
         const auto probabilities = microllm::Tensor::from_vector(
             probability_values,
             {options.batch, options.heads, options.sequence, options.sequence})
@@ -171,6 +183,8 @@ int main(int argc, char** argv) {
             throw std::runtime_error("Attention layout timing performed a payload transfer");
         }
         const auto info = microllm::runtime::device_info(device);
+        const auto plan_stats =
+            microllm::ops::attention_layout_plan_cache_stats();
         std::cout << std::setprecision(9)
                   << "{\"schema_version\":1,\"status\":\"pass\""
                   << ",\"op\":\"attention_probability_value_bthd\""
@@ -180,6 +194,7 @@ int main(int argc, char** argv) {
                   << ",\"sequence\":" << options.sequence
                   << ",\"width\":" << options.width
                   << ",\"implementation\":\"" << options.implementation << "\""
+                  << ",\"plan_cache\":" << (options.plan_cache ? "true" : "false")
                   << ",\"warmup\":" << options.warmup
                   << ",\"repetitions\":" << options.repetitions
                   << ",\"complete_output_elements\":" << actual.size()
@@ -192,6 +207,9 @@ int main(int argc, char** argv) {
                   << ",\"wall_ms_p95\":" << percentile(wall_times, 0.95)
                   << ",\"host_to_device_calls\":" << transfers.host_to_device_calls
                   << ",\"device_to_host_calls\":" << transfers.device_to_host_calls
+                  << ",\"plan_cache_entries\":" << plan_stats.entries
+                  << ",\"plan_cache_hits\":" << plan_stats.hits
+                  << ",\"plan_cache_misses\":" << plan_stats.misses
                   << "}\n";
         return 0;
     } catch (const std::exception& error) {

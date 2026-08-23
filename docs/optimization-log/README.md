@@ -694,6 +694,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/164-attention-context-layout-fusion.md](experiments/164-attention-context-layout-fusion.md) | output/dP/dV/QKV梯度、T512 A/B与profile |
 | [assets/post-layout-training-profile.svg](assets/post-layout-training-profile.svg) | 零copy后的Kernel重排与interleaved plan假设 |
 | [experiments/165-post-layout-training-profile.md](experiments/165-post-layout-training-profile.md) | 1步/3步相位差分、关闭路线与下一节点 |
+| [assets/attention-layout-plan-cache-discard.svg](assets/attention-layout-plan-cache-discard.svg) | 算子收益与整机拒绝的并列证据 |
+| [experiments/166-attention-layout-plan-cache-discard.md](experiments/166-attention-layout-plan-cache-discard.md) | exact cache路由、24算子进程与12模型进程 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

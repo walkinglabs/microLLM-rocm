@@ -47,6 +47,9 @@ int main() {
     microllm::autograd::enable_attention_rope_layout_fusion(true);
     microllm::autograd::enable_attention_context_layout_fusion(false);
     microllm::autograd::enable_attention_context_layout_fusion(true);
+    microllm::ops::clear_attention_layout_plan_cache();
+    const auto attention_plan_stats =
+        microllm::ops::attention_layout_plan_cache_stats();
     bool rejected_cpu_tuning = false;
     bool rejected_cpu_adamw_tuning = false;
     try {
@@ -77,6 +80,8 @@ int main() {
         layout_context.to_vector() != std::vector<float>({2.0F, 3.0F}) ||
         gqa_layout_context.to_vector() != std::vector<float>({2.0F, 3.0F}) ||
         !microllm::autograd::attention_context_layout_fusion_enabled() ||
+        attention_plan_stats.entries != 0 || attention_plan_stats.hits != 0 ||
+        attention_plan_stats.misses != 0 ||
         !microllm::autograd::attention_rope_layout_fusion_enabled() ||
         !rejected_cpu_tuning || !rejected_cpu_adamw_tuning) return 1;
     std::cout << "microLLM package consumer: pass\n";

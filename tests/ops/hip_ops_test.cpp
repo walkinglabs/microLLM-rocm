@@ -2180,6 +2180,64 @@ TEST(HipOpsTest, AttentionProbabilityValueInterleavedLayoutMatchesCpuWithoutTran
                 expected_value_gradient.to_vector(), 2.0e-5F);
 }
 
+TEST(HipAttentionLayoutPlanCacheTest, ExactModesAndShapesHitWithoutChangingOutputs) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    const auto probabilities = Tensor::from_vector(
+        {1, 0, 0, 1, 1, 0, 0, 1}, {1, 2, 2, 2}).to(gpu);
+    const auto value = Tensor::from_vector(
+        {1, 2, 10, 20, 3, 4, 30, 40}, {1, 2, 2, 2}).to(gpu);
+    const auto seed = Tensor::from_vector(
+        {1, -1, 2, -2, 3, -3, 4, -4}, {1, 2, 2, 2}).to(gpu);
+    clear_attention_layout_plan_cache();
+    enable_attention_layout_plan_cache(true);
+    const auto pv = attention_probability_value_bthd(probabilities, value);
+    const auto dp = attention_probability_gradient_bthd(seed, value);
+    const auto dv = attention_value_gradient_bthd(probabilities, seed);
+    auto stats = attention_layout_plan_cache_stats();
+    EXPECT_TRUE(attention_layout_plan_cache_enabled());
+    EXPECT_EQ(stats.entries, 3U);
+    EXPECT_EQ(stats.misses, 3U);
+    EXPECT_EQ(stats.hits, 0U);
+    expect_near(attention_probability_value_bthd(
+                    probabilities, value).to_vector(),
+                pv.to_vector(), 0.0F);
+    expect_near(attention_probability_gradient_bthd(
+                    seed, value).to_vector(),
+                dp.to_vector(), 0.0F);
+    expect_near(attention_value_gradient_bthd(
+                    probabilities, seed).to_vector(),
+                dv.to_vector(), 0.0F);
+    stats = attention_layout_plan_cache_stats();
+    EXPECT_EQ(stats.entries, 3U);
+    EXPECT_EQ(stats.misses, 3U);
+    EXPECT_EQ(stats.hits, 3U);
+    const auto other_probabilities = Tensor::from_vector(
+        {1, 1}, {1, 2, 1, 1}).to(gpu);
+    const auto other_value = Tensor::from_vector(
+        {1, 2, 3, 4}, {1, 1, 2, 2}).to(gpu);
+    (void)attention_probability_value_bthd(
+        other_probabilities, other_value);
+    stats = attention_layout_plan_cache_stats();
+    EXPECT_EQ(stats.entries, 4U);
+    EXPECT_EQ(stats.misses, 4U);
+    EXPECT_EQ(stats.hits, 3U);
+
+    enable_attention_layout_plan_cache(false);
+    EXPECT_FALSE(attention_layout_plan_cache_enabled());
+    const auto uncached_first = attention_probability_value_bthd(
+        probabilities, value);
+    const auto uncached_second = attention_probability_value_bthd(
+        probabilities, value);
+    stats = attention_layout_plan_cache_stats();
+    EXPECT_EQ(stats.entries, 0U);
+    EXPECT_EQ(stats.misses, 0U);
+    EXPECT_EQ(stats.hits, 0U);
+    expect_near(uncached_first.to_vector(), pv.to_vector(), 0.0F);
+    expect_near(uncached_second.to_vector(), pv.to_vector(), 0.0F);
+    enable_attention_layout_plan_cache(false);
+}
+
 TEST(HipOpsTest, LongCausalGqaBthdForwardBackwardMatchCpuWithoutTransfers) {
     require_gpu();
     constexpr std::int64_t batches = 1;

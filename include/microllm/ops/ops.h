@@ -72,6 +72,12 @@ struct Bf16PlanCacheStats {
     std::size_t misses = 0;
 };
 
+struct AttentionLayoutPlanCacheStats {
+    std::size_t entries = 0;
+    std::size_t hits = 0;
+    std::size_t misses = 0;
+};
+
 struct Fp8DispatchStats {
     std::size_t native_shapes = 0;
     std::size_t software_fallback_shapes = 0;
@@ -229,6 +235,11 @@ void save_adamw_tuning_cache(const std::filesystem::path& path);
 [[nodiscard]] int hipblaslt_version() noexcept;
 [[nodiscard]] Bf16PlanCacheStats bf16_plan_cache_stats() noexcept;
 void clear_bf16_plan_cache() noexcept;
+void enable_attention_layout_plan_cache(bool enabled) noexcept;
+[[nodiscard]] bool attention_layout_plan_cache_enabled() noexcept;
+[[nodiscard]] AttentionLayoutPlanCacheStats
+attention_layout_plan_cache_stats() noexcept;
+void clear_attention_layout_plan_cache() noexcept;
 void register_bf16_algorithm(std::int64_t rows, std::int64_t inner,
                              std::int64_t columns, DType output_dtype,
                              int solution_index);

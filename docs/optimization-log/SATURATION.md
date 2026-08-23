@@ -90,6 +90,12 @@ identified by Runtime diagnostics: Qwen/DeepSeek report zero strided-copy calls 
 Autograd materializations at T512. Further transpose work needs a newly observed layout;
 relabeling the now-zero Q/K/Value/context set is not a new optimization hypothesis.
 
+Experiment 166 closes immutable descriptor/layout caching as a production policy for the
+interleaved path. Exact operator wall medians improve, but Qwen/DeepSeek T512 model medians
+are 0.990×/1.001× against uncached and miss the declared 1.01 gate. The explicit default-off
+cache remains diagnostic infrastructure; enabling it by default or changing only the key is
+not a new experiment.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.
