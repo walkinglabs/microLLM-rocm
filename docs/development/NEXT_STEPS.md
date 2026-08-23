@@ -170,7 +170,9 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   derive that user-left row scales map to descriptor B after row-major transpose submission;
 - [x] implement/test `Scalar/OuterRow`, row quantize/dequantize and FP32-output GEMM;
   gfx942 returns status 3 for native outer-vector, so cache the capability and use device BF16 fallback;
-- [ ] connect OuterRow only to FFN activation inputs and measure precision/cost before any default claim;
+- [x] connect OuterRow only to FFN gate/up/down, with exact three-Linears-per-layer,
+  scale-byte, zero-payload-transfer and explicit fallback-counter gates;
+- [ ] measure official Qwen/DeepSeek FFN-only row-scale precision, throughput and fallback cost;
 - [ ] replace the one-block reduction only if the next accepted numerical policy reuses it;
 - [ ] replace global FP8 scales with weight per-tensor and activation per-row/token amax,
   starting from saturation/trace evidence rather than top-token search;

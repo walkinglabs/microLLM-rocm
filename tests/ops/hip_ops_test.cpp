@@ -516,6 +516,8 @@ TEST(HipFp8OpsTest, OuterRowScaleGemmMatchesIndependentRangeReference) {
     EXPECT_EQ(transfers.host_to_device_calls, 1U);  // fixed right scalar only
     EXPECT_EQ(transfers.device_to_host_calls, 0U);
     EXPECT_EQ(fp8_dispatch_stats().software_fallback_calls, 1U);
+    EXPECT_EQ(fp8_dispatch_stats().outer_row_fallback_calls, 1U);
+    EXPECT_EQ(fp8_dispatch_stats().outer_row_native_status, 0);
     const auto actual = output.to_vector();
     const auto expected = matmul(left_cpu, right_cpu).to_vector();
     float maximum = 0.0F;
@@ -598,6 +600,42 @@ TEST(HipFp8OpsTest, TensorAmaxPreparedWeightsScanOnceAndLeaveHotPathTransferFree
     EXPECT_EQ(hot_path_transfers.host_to_device_calls, 0U);
     EXPECT_EQ(hot_path_transfers.device_to_host_calls, 0U);
     EXPECT_EQ(after_tensor.to_vector(), before);
+}
+
+TEST(HipFp8OpsTest, FfnOuterRowRoutesOnlyThreeLinearsWithoutPayloadTransfers) {
+    require_gpu();
+    if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";
+    model::ModelConfig config{.vocabulary_size = 16,
+                              .dimension = 8,
+                              .layers = 1,
+                              .heads = 2,
+                              .kv_heads = 1,
+                              .ffn_dimension = 16,
+                              .max_sequence_length = 8,
+                              .rope_base = 10000.0F,
+                              .tie_embeddings = false,
+                              .linear_precision = model::LinearPrecision::Float8E4M3FNUZ,
+                              .fp8_activation_scale = 1.0e-4F,
+                              .fp8_weight_scale = 0.005F,
+                              .fp8_activation_scale_mode =
+                                  model::Fp8ActivationScaleMode::FfnOuterRow};
+    model::TransformerModel model(config, 229);
+    model.to(Device::hip(0));
+    const auto tokens = Tensor::from_int32_vector({1, 2, 3, 4}, {1, 4})
+                            .to(Device::hip(0));
+    const auto report = model.prepare_fp8_inference_weights();
+    EXPECT_EQ(report.scale_bytes_retained, 13U * sizeof(float));
+    clear_fp8_dispatch_registry();
+    runtime::reset_transfer_stats();
+    const auto output = model.forward_inference(tokens);
+    runtime::synchronize(Device::hip(0));
+    const auto transfers = runtime::transfer_stats();
+    const auto stats = fp8_dispatch_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    EXPECT_EQ(stats.outer_row_fallback_calls, 3U);
+    EXPECT_EQ(stats.outer_row_native_status, 0);
+    for (const auto value : output.to_vector()) EXPECT_TRUE(std::isfinite(value));
 }
 
 TEST(HipFp8OpsTest, DeepSeekLinearShapesAcceptFp32OutputOrBf16Fallback) {

@@ -301,5 +301,7 @@ the next gate. Records are append-only except for factual corrections.
   version-local native row-scale API and row-major/column-major descriptor mapping.
 - [2026-08-23-installable-cmake-package.md](2026-08-23-installable-cmake-package.md):
   relocatable package config and external CPU/HIP/RCCL consumer gates.
+- [2026-08-23-fp8-ffn-outer-row-policy.md](2026-08-23-fp8-ffn-outer-row-policy.md):
+  evidence-routed FFN-only model policy and explicit runtime fallback counters.
 - [2026-08-21-divergent-row-cache-reference.md](2026-08-21-divergent-row-cache-reference.md):
   unequal-position shared-Storage B1 oracle with CPU/HIP and reset-prefix gates.

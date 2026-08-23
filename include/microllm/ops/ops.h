@@ -21,6 +21,9 @@ struct Fp8DispatchStats {
     std::size_t native_shapes = 0;
     std::size_t software_fallback_shapes = 0;
     std::size_t software_fallback_calls = 0;
+    std::size_t outer_row_fallback_calls = 0;
+    // -1 unknown, 0 rejected by the installed runtime, 1 native execution observed.
+    int outer_row_native_status = -1;
 };
 
 struct TensorPair {

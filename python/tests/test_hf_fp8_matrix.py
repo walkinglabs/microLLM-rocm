@@ -68,6 +68,8 @@ class HfFp8MatrixTest(unittest.TestCase):
         self.assertIn("fixed global activation", tensor)
         dynamic = MATRIX.experiment_boundary("tensor-amax", "tensor-amax")
         self.assertIn("device per-input-Tensor activation amax", dynamic)
+        ffn = MATRIX.experiment_boundary("tensor-amax", "ffn-outer-row")
+        self.assertIn("FFN-only outer-row activation scales", ffn)
 
 
 if __name__ == "__main__":

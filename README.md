@@ -33,6 +33,8 @@ needed to run a real training and generation loop:
 - named model state and F32/BF16/F16 safetensors loading;
 - MI300X FNUZ FP8 quantize/dequantize, scaled hipBLASLt GEMM, FP32-master Transformer
   training policy, and KV-cache decode;
+- opt-in FP8 scalar, device Tensor-amax and FFN-only outer-row activation policies with
+  explicit native/fallback counters; none is a default precision claim;
 - single-representation BF16 FFN/Attention projection inference for pinned Qwen/DeepSeek,
   with shared QKV cast, exact-token, memory, throughput and PyTorch BF16 evidence;
 - C, Python ctypes, and optional PyTorch dispatcher adapters;
@@ -260,9 +262,9 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 336/336 | 234 CPU-labelled + 102 HIP-labelled gates; 2 intentional environment skips |
+| Full CPU/HIP configuration | 344/344 | 240 CPU-labelled + 104 HIP-labelled gates; 2 intentional environment skips |
 | ASan/UBSan CPU | 211/211 | host code, CLI, model/graph, benchmark and evidence schemas |
-| MI300X/gfx942 HIP | 102/102 | allocator/stream, graph, BF16/FP8, batched GEMM and model matrix |
+| MI300X/gfx942 HIP | 104/104 | allocator/stream, graph, BF16/FP8, batched GEMM and model matrix |
 | PyTorch-enabled CPU build | 196/196 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
 | Registered test files | 49 | machine-audited CTest registration |

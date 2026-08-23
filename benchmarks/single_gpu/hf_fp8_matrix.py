@@ -34,7 +34,8 @@ def options() -> argparse.Namespace:
     parser.add_argument("--fp8-weight-scale-mode", choices=("fixed", "tensor-amax"),
                         default="fixed")
     parser.add_argument("--fp8-activation-scale-mode",
-                        choices=("fixed", "tensor-amax"), default="fixed")
+                        choices=("fixed", "tensor-amax", "ffn-outer-row"),
+                        default="fixed")
     parser.add_argument("--physical-gpu-index", type=int)
     parser.add_argument("--max-idle-vram-percent", type=int, default=5)
     parser.add_argument("--max-idle-use-percent", type=int, default=10)
@@ -152,6 +153,8 @@ def experiment_boundary(weight_scale_mode: str,
     activation_boundary = (
         "device per-input-Tensor activation amax"
         if activation_scale_mode == "tensor-amax"
+        else "FFN-only outer-row activation scales"
+        if activation_scale_mode == "ffn-outer-row"
         else "fixed global activation scale")
     return (
         f"{weight_boundary}; {activation_boundary}; "
@@ -219,6 +222,10 @@ def main() -> int:
                             "fp8_software_fallback_shapes", 0),
                         "fp8_software_fallback_calls": output.get(
                             "fp8_software_fallback_calls", 0),
+                        "fp8_outer_row_fallback_calls": output.get(
+                            "fp8_outer_row_fallback_calls", 0),
+                        "fp8_outer_row_native_status": output.get(
+                            "fp8_outer_row_native_status", -1),
                         "fp8_activation_scale": args.fp8_activation_scale,
                         "fp8_weight_scale": args.fp8_weight_scale,
                         "fp8_weight_scale_mode": args.fp8_weight_scale_mode,
@@ -270,6 +277,10 @@ def main() -> int:
                         row["fp8_software_fallback_shapes"] for row in selected),
                     "fp8_software_fallback_calls_p50": statistics.median(
                         row["fp8_software_fallback_calls"] for row in selected),
+                    "fp8_outer_row_fallback_calls_p50": statistics.median(
+                        row["fp8_outer_row_fallback_calls"] for row in selected),
+                    "fp8_outer_row_native_statuses": sorted(set(
+                        row["fp8_outer_row_native_status"] for row in selected)),
                 })
     accuracy_failures = [row for row in aggregates
                          if row["policy"] != "fp32" and

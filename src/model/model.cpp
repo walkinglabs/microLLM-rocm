@@ -299,14 +299,19 @@ class Linear {
 public:
     Linear(std::int64_t input, std::int64_t output, std::mt19937_64& generator,
            const ModelConfig& config, ParameterInitialization initialization,
-           bool with_bias = false)
+           bool with_bias = false, bool ffn_linear = false)
         : weight_(parameter({input, output}, generator,
                             1.0F / std::sqrt(static_cast<float>(input)), initialization)),
           precision_(config.linear_precision),
           activation_scale_(config.fp8_activation_scale),
           weight_scale_(config.fp8_weight_scale),
           weight_scale_mode_(config.fp8_weight_scale_mode),
-          activation_scale_mode_(config.fp8_activation_scale_mode),
+          activation_scale_mode_(
+              config.fp8_activation_scale_mode ==
+                      Fp8ActivationScaleMode::FfnOuterRow
+                  ? ffn_linear ? Fp8ActivationScaleMode::FfnOuterRow
+                               : Fp8ActivationScaleMode::Fixed
+                  : config.fp8_activation_scale_mode),
           has_bias_(with_bias) {
         if (has_bias_) {
             bias_ = Value(Tensor({output}), true);
@@ -324,7 +329,7 @@ public:
         }
         if (precision_ == LinearPrecision::Float8E4M3FNUZ) {
             if (weight_scale_mode_ == Fp8WeightScaleMode::TensorAmax ||
-                activation_scale_mode_ == Fp8ActivationScaleMode::TensorAmax) {
+                activation_scale_mode_ != Fp8ActivationScaleMode::Fixed) {
                 throw std::logic_error(
                     "FP8 tensor-amax scale is inference-only");
             }
@@ -358,6 +363,10 @@ public:
             ops::ScaledTensor scaled_input;
             if (activation_scale_mode_ == Fp8ActivationScaleMode::TensorAmax) {
                 scaled_input = ops::quantize_fp8_dynamic(
+                    input, DType::Float8E4M3FNUZ, activation_scale_);
+            } else if (activation_scale_mode_ ==
+                       Fp8ActivationScaleMode::FfnOuterRow) {
+                scaled_input = ops::quantize_fp8_rows_dynamic(
                     input, DType::Float8E4M3FNUZ, activation_scale_);
             } else if (fp8_inference_activation_scale_.defined()) {
                 scaled_input = ops::quantize_fp8_with_scale(
@@ -413,7 +422,7 @@ public:
             weight_.data(), DType::Float8E4M3FNUZ, scale);
     }
     [[nodiscard]] Tensor prepare_fp8_activation_scale_candidate() const {
-        if (activation_scale_mode_ == Fp8ActivationScaleMode::TensorAmax) {
+        if (activation_scale_mode_ != Fp8ActivationScaleMode::Fixed) {
             return {};
         }
         auto result = Tensor::from_vector(
@@ -840,9 +849,12 @@ public:
     FeedForward(const ModelConfig& config, std::mt19937_64& generator,
                 ParameterInitialization initialization)
         : config_(config),
-          gate_(config.dimension, config.ffn_dimension, generator, config, initialization),
-          up_(config.dimension, config.ffn_dimension, generator, config, initialization),
-          down_(config.ffn_dimension, config.dimension, generator, config, initialization) {}
+          gate_(config.dimension, config.ffn_dimension, generator, config,
+                initialization, false, true),
+          up_(config.dimension, config.ffn_dimension, generator, config,
+              initialization, false, true),
+          down_(config.ffn_dimension, config.dimension, generator, config,
+                initialization, false, true) {}
 
     Value forward(const Value& input) {
         const auto batch = input.data().shape()[0];

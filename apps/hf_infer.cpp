@@ -291,9 +291,10 @@ Options options(int argc, char** argv) {
             "--fp8-weight-scale-mode must be fixed or tensor-amax");
     }
     if (result.fp8_activation_scale_mode != "fixed" &&
-        result.fp8_activation_scale_mode != "tensor-amax") {
+        result.fp8_activation_scale_mode != "tensor-amax" &&
+        result.fp8_activation_scale_mode != "ffn-outer-row") {
         throw std::invalid_argument(
-            "--fp8-activation-scale-mode must be fixed or tensor-amax");
+            "--fp8-activation-scale-mode must be fixed, tensor-amax, or ffn-outer-row");
     }
     const auto continuous_arguments = result.continuous_slots > 0 ||
                                       !result.continuous_prompt_lengths.empty() ||
@@ -363,6 +364,11 @@ Options options(int argc, char** argv) {
 }
 
 std::string fp8_compute_policy(const Options& command) {
+    if (command.fp8_activation_scale_mode == "ffn-outer-row") {
+        return command.fp8_weight_scale_mode == "tensor-amax"
+                   ? "fp8_e4m3_fnuz_tensor_amax_weight_ffn_outer_row"
+                   : "fp8_e4m3_fnuz_ffn_outer_row";
+    }
     if (command.fp8_activation_scale_mode == "tensor-amax" &&
         command.fp8_weight_scale_mode == "tensor-amax") {
         return "fp8_e4m3_fnuz_tensor_amax_weight_activation";
@@ -824,6 +830,8 @@ int main(int argc, char** argv) {
             external.model.fp8_activation_scale_mode =
                 command.fp8_activation_scale_mode == "tensor-amax"
                     ? microllm::model::Fp8ActivationScaleMode::TensorAmax
+                    : command.fp8_activation_scale_mode == "ffn-outer-row"
+                    ? microllm::model::Fp8ActivationScaleMode::FfnOuterRow
                     : microllm::model::Fp8ActivationScaleMode::Fixed;
         }
         const auto cache_dtype = command.kv_cache_dtype == "bf16"
@@ -1080,6 +1088,10 @@ int main(int argc, char** argv) {
                       << microllm::ops::fp8_dispatch_stats().software_fallback_shapes
                       << ",\"fp8_software_fallback_calls\":"
                       << microllm::ops::fp8_dispatch_stats().software_fallback_calls
+                      << ",\"fp8_outer_row_fallback_calls\":"
+                      << microllm::ops::fp8_dispatch_stats().outer_row_fallback_calls
+                      << ",\"fp8_outer_row_native_status\":"
+                      << microllm::ops::fp8_dispatch_stats().outer_row_native_status
                       << ",\"request_count\":" << prompts.size()
                       << ",\"continuous_slots\":" << command.continuous_slots
                       << ",\"bucketed_cache\":"
@@ -1511,6 +1523,10 @@ int main(int argc, char** argv) {
                   << microllm::ops::fp8_dispatch_stats().software_fallback_shapes
                   << ",\"fp8_software_fallback_calls\":"
                   << microllm::ops::fp8_dispatch_stats().software_fallback_calls
+                  << ",\"fp8_outer_row_fallback_calls\":"
+                  << microllm::ops::fp8_dispatch_stats().outer_row_fallback_calls
+                  << ",\"fp8_outer_row_native_status\":"
+                  << microllm::ops::fp8_dispatch_stats().outer_row_native_status
                   << ",\"fp8_activation_scale\":"
                   << command.fp8_activation_scale
                   << ",\"fp8_weight_scale\":"

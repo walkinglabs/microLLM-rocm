@@ -357,6 +357,21 @@ TEST(TransformerModelTest, Fp8DynamicActivationScaleNeedsNoPersistentScaleTensor
     EXPECT_THROW((void)model.forward(tokens), std::logic_error);
 }
 
+TEST(TransformerModelTest, Fp8FfnOuterRowPreparesScalesOnlyForNonFfnLinears) {
+    auto config = tiny_config();
+    config.linear_precision = LinearPrecision::Float8E4M3FNUZ;
+    config.fp8_activation_scale = 1.0e-4F;
+    config.fp8_activation_scale_mode = Fp8ActivationScaleMode::FfnOuterRow;
+    TransformerModel model(config, 41);
+    const auto tokens = Tensor::from_int32_vector({1, 2, 3, 4}, {1, 4});
+    const auto before = model.forward_inference(tokens).to_vector();
+    const auto report = model.prepare_fp8_inference_weights();
+    EXPECT_EQ(report.converted_tensors, 8U);
+    EXPECT_EQ(report.scale_bytes_retained, 13U * sizeof(float));
+    EXPECT_EQ(model.forward_inference(tokens).to_vector(), before);
+    EXPECT_THROW((void)model.forward(tokens), std::logic_error);
+}
+
 TEST(TransformerModelTest, Bf16LinearPolicyRunsFullForwardLossAndBackward) {
     auto config = tiny_config();
     config.linear_precision = LinearPrecision::BFloat16;

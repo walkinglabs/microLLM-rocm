@@ -98,7 +98,9 @@ std::string ModelConfig::summary() const {
                    ? "fixed" : "tensor_amax")
            << ",fp8_activation_scale_mode="
            << (fp8_activation_scale_mode == Fp8ActivationScaleMode::Fixed
-                   ? "fixed" : "tensor_amax")
+                   ? "fixed"
+                   : fp8_activation_scale_mode == Fp8ActivationScaleMode::TensorAmax
+                         ? "tensor_amax" : "ffn_outer_row")
            << ",rms_eps=" << rms_norm_epsilon
            << ",attention_bias=" << (attention_bias ? "true" : "false")
            << ",rope_layout=" << (rope_layout == RopeLayout::Interleaved ? "interleaved" : "split_half")

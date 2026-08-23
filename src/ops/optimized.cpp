@@ -35,6 +35,7 @@ thread_local std::map<MatmulShapeKey, bool> fp8_fp32_direct_registry;
 thread_local std::map<MatmulShapeKey, bool> fp8_native_matrix_registry;
 thread_local std::size_t fp8_software_fallback_calls = 0;
 thread_local std::optional<bool> fp8_outer_row_native;
+thread_local std::size_t fp8_outer_row_fallback_calls = 0;
 #endif
 }  // namespace
 
@@ -446,13 +447,19 @@ Tensor hipblaslt_fp8_matmul(const ScaledTensor& left, const ScaledTensor& right,
         return bf16_matmul_output(
             left_bf16, right_bf16, output_dtype, context);
     };
+    const auto outer_row_software_fallback = [&] {
+        ++fp8_outer_row_fallback_calls;
+        return bf16_software_fallback();
+    };
     if (left.scale_mode == Fp8ScaleMode::OuterRow &&
         fp8_outer_row_native.has_value() && !*fp8_outer_row_native) {
-        return bf16_software_fallback();
+        return outer_row_software_fallback();
     }
     const auto native = fp8_native_matrix_registry.find(shape);
     if (native != fp8_native_matrix_registry.end() && !native->second) {
-        return bf16_software_fallback();
+        return left.scale_mode == Fp8ScaleMode::OuterRow
+                   ? outer_row_software_fallback()
+                   : bf16_software_fallback();
     }
     if (output_dtype == DType::Float32) {
         const auto found = fp8_fp32_direct_registry.find(shape);
@@ -506,7 +513,7 @@ Tensor hipblaslt_fp8_matmul(const ScaledTensor& left, const ScaledTensor& right,
          status == HIPBLAS_STATUS_INTERNAL_ERROR ||
          status == HIPBLAS_STATUS_NOT_SUPPORTED)) {
         fp8_outer_row_native = false;
-        return bf16_software_fallback();
+        return outer_row_software_fallback();
     }
     if (output_dtype == DType::Float32 &&
         (status == HIPBLAS_STATUS_INTERNAL_ERROR ||
@@ -596,7 +603,10 @@ Fp8DispatchStats fp8_dispatch_stats() noexcept {
         (void)shape;
         supported ? ++native : ++fallback;
     }
-    return {native, fallback, fp8_software_fallback_calls};
+    return {native, fallback, fp8_software_fallback_calls,
+            fp8_outer_row_fallback_calls,
+            fp8_outer_row_native.has_value()
+                ? *fp8_outer_row_native ? 1 : 0 : -1};
 #else
     return {};
 #endif
@@ -608,6 +618,7 @@ void clear_fp8_dispatch_registry() noexcept {
     fp8_native_matrix_registry.clear();
     fp8_software_fallback_calls = 0;
     fp8_outer_row_native.reset();
+    fp8_outer_row_fallback_calls = 0;
 #endif
 }
 
