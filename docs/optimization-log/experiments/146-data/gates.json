@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "status": "reject_output_head_only_no_numerical_effect",
+  "evidence": {
+    "fresh_build_steps": 50,
+    "contracts_passed": 2,
+    "combined_workers": 72,
+    "combined_fp8_workers": 24,
+    "complete_logits_per_fp8_worker": 151936,
+    "precision_gates_passed": 0,
+    "precision_gates_total": 4,
+    "candidate_and_control_stderr_bytes": 0
+  },
+  "decision": {
+    "historical_host_tensor_baseline_is_valid_keep_evidence": false,
+    "same_revision_device_control_is_required": true,
+    "qwen_max_rms_exact_control": true,
+    "deepseek_max_rms_exact_control": true,
+    "deepseek_precision_improved": false,
+    "both_t512_degradation_within_five_percent": true,
+    "targeted_keep": false,
+    "complete_fp8_precision_available": false,
+    "top_token_is_sufficient_precision_evidence": false,
+    "remove_rejected_output_head_scope": true,
+    "attention_only_counterfactual_remains_open": true
+  }
+}

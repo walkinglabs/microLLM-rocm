@@ -1,0 +1,675 @@
+{
+  "all_execution_contract_checks_passed": true,
+  "binary": "/tmp/microllm-exp146-build.5xhhOH/apps/microllm_hf_infer",
+  "build": {
+    "build_log": "/tmp/microllm-exp146-build.5xhhOH/build.log",
+    "configure_log": "/tmp/microllm-exp146-build.5xhhOH/configure.log",
+    "directory": "/tmp/microllm-exp146-build.5xhhOH",
+    "hf_cli_binary_contract_exit_code": 0,
+    "hf_cli_binary_contract_log": "/tmp/microllm-exp146-build.5xhhOH/hf-cli-binary-contract.log",
+    "matrix_contract_exit_code": 0,
+    "matrix_contract_log": "/tmp/microllm-exp146-build.5xhhOH/hf-fp8-matrix-contract.log",
+    "steps_completed": 50
+  },
+  "complete_precision_gates": {
+    "all_pass": false,
+    "boundary": "Top-token equality does not replace complete Max/RMS precision gates.",
+    "pass_count": 0,
+    "top_token_equal_all": true,
+    "total": 4
+  },
+  "experiment": "Exp146",
+  "historical_context_not_keep_evidence": {
+    "boundary": "Exp129/Exp135 differ in implementation generation and/or host-vs-device Tensor-amax policy. Retained for background only; they do not determine keep.",
+    "comparisons": [
+      {
+        "baseline": {
+          "engine_peak_bytes_p50": 903896256,
+          "maximum_absolute_error": 0.9994700998067856,
+          "precision_gate_passed_all": false,
+          "prefill_tokens_per_second_p50": 1503.511356804,
+          "resident_weight_bytes": 902652064,
+          "root_mean_square_error": 0.19245532295273582,
+          "top_token_equal_all": true
+        },
+        "baseline_source": "/tmp/microllm-exp129-device-activation-amax-final/summary.json",
+        "context": 8,
+        "delta": {
+          "engine_peak_bytes": 41476,
+          "maximum_absolute_error": 0.21500225365161896,
+          "maximum_absolute_error_exactly_equal": false,
+          "maximum_absolute_error_improved": false,
+          "resident_weight_bytes": 0,
+          "root_mean_square_error": 0.08537585589488506,
+          "root_mean_square_error_exactly_equal": false,
+          "root_mean_square_error_improved": false,
+          "t512_tps_degradation_le_5_percent": false,
+          "tps_degradation_fraction": 0,
+          "tps_percent_change": 23.314310320151186,
+          "tps_ratio": 1.2331431032015119
+        },
+        "model": "qwen2.5-0.5b",
+        "output_head_only": {
+          "engine_peak_bytes_p50": 903937732,
+          "fp8_output_column_native_statuses": [
+            -1
+          ],
+          "fp8_output_column_scale_calls_p50": 0,
+          "fp8_scale_bytes_retained": 672,
+          "maximum_absolute_error": 1.2144723534584045,
+          "precision_gate_passed_all": false,
+          "prefill_tokens_per_second_p50": 1854.044660228,
+          "resident_weight_bytes": 902652064,
+          "root_mean_square_error": 0.2778311788476209,
+          "top_token_equal_all": true
+        },
+        "performance_attribution_comparable": false
+      },
+      {
+        "baseline": {
+          "engine_peak_bytes_p50": 946646692,
+          "maximum_absolute_error": 1.4751496315002441,
+          "precision_gate_passed_all": false,
+          "prefill_tokens_per_second_p50": 85193.327565405,
+          "resident_weight_bytes": 902652064,
+          "root_mean_square_error": 0.2925066092695958,
+          "top_token_equal_all": true
+        },
+        "baseline_source": "/tmp/microllm-exp135-shared-activation-final/summary.json",
+        "context": 512,
+        "delta": {
+          "engine_peak_bytes": 0,
+          "maximum_absolute_error": 0.35520076751708984,
+          "maximum_absolute_error_exactly_equal": false,
+          "maximum_absolute_error_improved": false,
+          "resident_weight_bytes": 0,
+          "root_mean_square_error": 0.050723454650617505,
+          "root_mean_square_error_exactly_equal": false,
+          "root_mean_square_error_improved": false,
+          "t512_tps_degradation_le_5_percent": true,
+          "tps_degradation_fraction": 0.0005405410799060872,
+          "tps_percent_change": -0.054054107990608724,
+          "tps_ratio": 0.9994594589200939
+        },
+        "model": "qwen2.5-0.5b",
+        "output_head_only": {
+          "engine_peak_bytes_p50": 946646692,
+          "fp8_output_column_native_statuses": [
+            -1
+          ],
+          "fp8_output_column_scale_calls_p50": 0,
+          "fp8_scale_bytes_retained": 672,
+          "maximum_absolute_error": 1.830350399017334,
+          "precision_gate_passed_all": false,
+          "prefill_tokens_per_second_p50": 85147.277072122,
+          "resident_weight_bytes": 902652064,
+          "root_mean_square_error": 0.3432300639202133,
+          "top_token_equal_all": true
+        },
+        "performance_attribution_comparable": true
+      },
+      {
+        "baseline": {
+          "engine_peak_bytes_p50": 2506598712,
+          "maximum_absolute_error": 1.243237018585205,
+          "precision_gate_passed_all": false,
+          "prefill_tokens_per_second_p50": 843.703415048,
+          "resident_weight_bytes": 2477644564,
+          "root_mean_square_error": 0.43789038513215195,
+          "top_token_equal_all": true
+        },
+        "baseline_source": "/tmp/microllm-exp129-device-activation-amax-final/summary.json",
+        "context": 8,
+        "delta": {
+          "engine_peak_bytes": 1181180,
+          "maximum_absolute_error": -0.3953108787536621,
+          "maximum_absolute_error_exactly_equal": false,
+          "maximum_absolute_error_improved": true,
+          "resident_weight_bytes": 607740,
+          "root_mean_square_error": -0.25029561188847205,
+          "root_mean_square_error_exactly_equal": false,
+          "root_mean_square_error_improved": true,
+          "t512_tps_degradation_le_5_percent": false,
+          "tps_degradation_fraction": 0,
+          "tps_percent_change": 52.82020169607187,
+          "tps_ratio": 1.5282020169607187
+        },
+        "model": "deepseek-r1-distill-qwen-1.5b",
+        "output_head_only": {
+          "engine_peak_bytes_p50": 2507779892,
+          "fp8_output_column_native_statuses": [
+            0
+          ],
+          "fp8_output_column_scale_calls_p50": 4,
+          "fp8_scale_bytes_retained": 608528,
+          "maximum_absolute_error": 0.847926139831543,
+          "precision_gate_passed_all": false,
+          "prefill_tokens_per_second_p50": 1289.349260593,
+          "resident_weight_bytes": 2478252304,
+          "root_mean_square_error": 0.1875947732436799,
+          "top_token_equal_all": true
+        },
+        "performance_attribution_comparable": false
+      },
+      {
+        "baseline": {
+          "engine_peak_bytes_p50": 2556766488,
+          "maximum_absolute_error": 1.2399201393127441,
+          "precision_gate_passed_all": false,
+          "prefill_tokens_per_second_p50": 50545.7476366,
+          "resident_weight_bytes": 2477644564,
+          "root_mean_square_error": 0.249140100254465,
+          "top_token_equal_all": true
+        },
+        "baseline_source": "/tmp/microllm-exp135-shared-activation-final/summary.json",
+        "context": 512,
+        "delta": {
+          "engine_peak_bytes": 607740,
+          "maximum_absolute_error": -0.14870166778564453,
+          "maximum_absolute_error_exactly_equal": false,
+          "maximum_absolute_error_improved": true,
+          "resident_weight_bytes": 607740,
+          "root_mean_square_error": -0.0578638603476907,
+          "root_mean_square_error_exactly_equal": false,
+          "root_mean_square_error_improved": true,
+          "t512_tps_degradation_le_5_percent": true,
+          "tps_degradation_fraction": 0.0007887926405727441,
+          "tps_percent_change": -0.07887926405727441,
+          "tps_ratio": 0.9992112073594273
+        },
+        "model": "deepseek-r1-distill-qwen-1.5b",
+        "output_head_only": {
+          "engine_peak_bytes_p50": 2557374228,
+          "fp8_output_column_native_statuses": [
+            0
+          ],
+          "fp8_output_column_scale_calls_p50": 4,
+          "fp8_scale_bytes_retained": 608528,
+          "maximum_absolute_error": 1.0912184715270996,
+          "precision_gate_passed_all": false,
+          "prefill_tokens_per_second_p50": 50505.877522852,
+          "resident_weight_bytes": 2478252304,
+          "root_mean_square_error": 0.1912762399067743,
+          "top_token_equal_all": true
+        },
+        "performance_attribution_comparable": true
+      }
+    ],
+    "table": "/tmp/microllm-exp146-output-head-only-final/historical-context.tsv"
+  },
+  "interpretation": "Same-binary pairing proves output-head-only is numerically inert for both Qwen and DeepSeek complete logits. Qwen exact-control condition passes, DeepSeek improvement condition fails because Max/RMS are exactly unchanged. Both T512 TPS gates pass. The targeted candidate is therefore rejected despite low performance overhead.",
+  "output_head_counter_checks": [
+    {
+      "context": 8,
+      "converted_tensors": 168,
+      "fp8_dynamic_column_calls": 0,
+      "fp8_dynamic_tensor_calls": 384,
+      "fp8_linears_covered": 168,
+      "fp8_native_shapes": 4,
+      "fp8_output_column_native_status": -1,
+      "fp8_output_column_scale_calls": 0,
+      "fp8_scale_bytes_retained": 672,
+      "fp8_software_fallback_calls": 0,
+      "fp8_software_fallback_shapes": 0,
+      "logit_count": 151936,
+      "model": "qwen2.5-0.5b",
+      "passed": true,
+      "precision_gate_passed": false,
+      "process_run": 1,
+      "top_token_equal": true
+    },
+    {
+      "context": 8,
+      "converted_tensors": 168,
+      "fp8_dynamic_column_calls": 0,
+      "fp8_dynamic_tensor_calls": 384,
+      "fp8_linears_covered": 168,
+      "fp8_native_shapes": 4,
+      "fp8_output_column_native_status": -1,
+      "fp8_output_column_scale_calls": 0,
+      "fp8_scale_bytes_retained": 672,
+      "fp8_software_fallback_calls": 0,
+      "fp8_software_fallback_shapes": 0,
+      "logit_count": 151936,
+      "model": "qwen2.5-0.5b",
+      "passed": true,
+      "precision_gate_passed": false,
+      "process_run": 2,
+      "top_token_equal": true
+    },
+    {
+      "context": 8,
+      "converted_tensors": 168,
+      "fp8_dynamic_column_calls": 0,
+      "fp8_dynamic_tensor_calls": 384,
+      "fp8_linears_covered": 168,
+      "fp8_native_shapes": 4,
+      "fp8_output_column_native_status": -1,
+      "fp8_output_column_scale_calls": 0,
+      "fp8_scale_bytes_retained": 672,
+      "fp8_software_fallback_calls": 0,
+      "fp8_software_fallback_shapes": 0,
+      "logit_count": 151936,
+      "model": "qwen2.5-0.5b",
+      "passed": true,
+      "precision_gate_passed": false,
+      "process_run": 3,
+      "top_token_equal": true
+    },
+    {
+      "context": 512,
+      "converted_tensors": 168,
+      "fp8_dynamic_column_calls": 0,
+      "fp8_dynamic_tensor_calls": 384,
+      "fp8_linears_covered": 168,
+      "fp8_native_shapes": 4,
+      "fp8_output_column_native_status": -1,
+      "fp8_output_column_scale_calls": 0,
+      "fp8_scale_bytes_retained": 672,
+      "fp8_software_fallback_calls": 0,
+      "fp8_software_fallback_shapes": 0,
+      "logit_count": 151936,
+      "model": "qwen2.5-0.5b",
+      "passed": true,
+      "precision_gate_passed": false,
+      "process_run": 1,
+      "top_token_equal": true
+    },
+    {
+      "context": 512,
+      "converted_tensors": 168,
+      "fp8_dynamic_column_calls": 0,
+      "fp8_dynamic_tensor_calls": 384,
+      "fp8_linears_covered": 168,
+      "fp8_native_shapes": 4,
+      "fp8_output_column_native_status": -1,
+      "fp8_output_column_scale_calls": 0,
+      "fp8_scale_bytes_retained": 672,
+      "fp8_software_fallback_calls": 0,
+      "fp8_software_fallback_shapes": 0,
+      "logit_count": 151936,
+      "model": "qwen2.5-0.5b",
+      "passed": true,
+      "precision_gate_passed": false,
+      "process_run": 2,
+      "top_token_equal": true
+    },
+    {
+      "context": 512,
+      "converted_tensors": 168,
+      "fp8_dynamic_column_calls": 0,
+      "fp8_dynamic_tensor_calls": 384,
+      "fp8_linears_covered": 168,
+      "fp8_native_shapes": 4,
+      "fp8_output_column_native_status": -1,
+      "fp8_output_column_scale_calls": 0,
+      "fp8_scale_bytes_retained": 672,
+      "fp8_software_fallback_calls": 0,
+      "fp8_software_fallback_shapes": 0,
+      "logit_count": 151936,
+      "model": "qwen2.5-0.5b",
+      "passed": true,
+      "precision_gate_passed": false,
+      "process_run": 3,
+      "top_token_equal": true
+    },
+    {
+      "context": 8,
+      "converted_tensors": 197,
+      "fp8_dynamic_column_calls": 0,
+      "fp8_dynamic_tensor_calls": 452,
+      "fp8_linears_covered": 197,
+      "fp8_native_shapes": 4,
+      "fp8_output_column_native_status": 0,
+      "fp8_output_column_scale_calls": 4,
+      "fp8_scale_bytes_retained": 608528,
+      "fp8_software_fallback_calls": 112,
+      "fp8_software_fallback_shapes": 1,
+      "logit_count": 151936,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "passed": true,
+      "precision_gate_passed": false,
+      "process_run": 1,
+      "top_token_equal": true
+    },
+    {
+      "context": 8,
+      "converted_tensors": 197,
+      "fp8_dynamic_column_calls": 0,
+      "fp8_dynamic_tensor_calls": 452,
+      "fp8_linears_covered": 197,
+      "fp8_native_shapes": 4,
+      "fp8_output_column_native_status": 0,
+      "fp8_output_column_scale_calls": 4,
+      "fp8_scale_bytes_retained": 608528,
+      "fp8_software_fallback_calls": 112,
+      "fp8_software_fallback_shapes": 1,
+      "logit_count": 151936,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "passed": true,
+      "precision_gate_passed": false,
+      "process_run": 2,
+      "top_token_equal": true
+    },
+    {
+      "context": 8,
+      "converted_tensors": 197,
+      "fp8_dynamic_column_calls": 0,
+      "fp8_dynamic_tensor_calls": 452,
+      "fp8_linears_covered": 197,
+      "fp8_native_shapes": 4,
+      "fp8_output_column_native_status": 0,
+      "fp8_output_column_scale_calls": 4,
+      "fp8_scale_bytes_retained": 608528,
+      "fp8_software_fallback_calls": 112,
+      "fp8_software_fallback_shapes": 1,
+      "logit_count": 151936,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "passed": true,
+      "precision_gate_passed": false,
+      "process_run": 3,
+      "top_token_equal": true
+    },
+    {
+      "context": 512,
+      "converted_tensors": 197,
+      "fp8_dynamic_column_calls": 0,
+      "fp8_dynamic_tensor_calls": 452,
+      "fp8_linears_covered": 197,
+      "fp8_native_shapes": 5,
+      "fp8_output_column_native_status": 0,
+      "fp8_output_column_scale_calls": 4,
+      "fp8_scale_bytes_retained": 608528,
+      "fp8_software_fallback_calls": 0,
+      "fp8_software_fallback_shapes": 0,
+      "logit_count": 151936,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "passed": true,
+      "precision_gate_passed": false,
+      "process_run": 1,
+      "top_token_equal": true
+    },
+    {
+      "context": 512,
+      "converted_tensors": 197,
+      "fp8_dynamic_column_calls": 0,
+      "fp8_dynamic_tensor_calls": 452,
+      "fp8_linears_covered": 197,
+      "fp8_native_shapes": 5,
+      "fp8_output_column_native_status": 0,
+      "fp8_output_column_scale_calls": 4,
+      "fp8_scale_bytes_retained": 608528,
+      "fp8_software_fallback_calls": 0,
+      "fp8_software_fallback_shapes": 0,
+      "logit_count": 151936,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "passed": true,
+      "precision_gate_passed": false,
+      "process_run": 2,
+      "top_token_equal": true
+    },
+    {
+      "context": 512,
+      "converted_tensors": 197,
+      "fp8_dynamic_column_calls": 0,
+      "fp8_dynamic_tensor_calls": 452,
+      "fp8_linears_covered": 197,
+      "fp8_native_shapes": 5,
+      "fp8_output_column_native_status": 0,
+      "fp8_output_column_scale_calls": 4,
+      "fp8_scale_bytes_retained": 608528,
+      "fp8_software_fallback_calls": 0,
+      "fp8_software_fallback_shapes": 0,
+      "logit_count": 151936,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "passed": true,
+      "precision_gate_passed": false,
+      "process_run": 3,
+      "top_token_equal": true
+    }
+  ],
+  "revision": "cdcb8e7b208aa7aebc7d5cb321f2076f09455df8",
+  "same_revision_comparisons": [
+    {
+      "context": 8,
+      "delta": {
+        "engine_peak_bytes": 0,
+        "maximum_absolute_error": 0.0,
+        "maximum_absolute_error_exactly_equal": true,
+        "maximum_absolute_error_improved": false,
+        "resident_weight_bytes": 0,
+        "root_mean_square_error": 0.0,
+        "root_mean_square_error_exactly_equal": true,
+        "root_mean_square_error_improved": false,
+        "scale_bytes_retained": 0,
+        "t512_tps_degradation_le_5_percent": false,
+        "tps_degradation_fraction": 0.04520516240202588,
+        "tps_percent_change": -4.520516240202587,
+        "tps_ratio": 0.9547948375979741
+      },
+      "device_tensor_control": {
+        "engine_peak_bytes_p50": 903937732,
+        "fp8_output_column_scale_calls_p50": 0,
+        "fp8_scale_bytes_retained": 672,
+        "maximum_absolute_error": 1.2144723534584045,
+        "precision_gate_passed_all": false,
+        "prefill_tokens_per_second_p50": 1941.825182981,
+        "resident_weight_bytes": 902652064,
+        "root_mean_square_error": 0.2778311788476209,
+        "top_token_equal_all": true
+      },
+      "model": "qwen2.5-0.5b",
+      "output_head_only": {
+        "engine_peak_bytes_p50": 903937732,
+        "fp8_output_column_scale_calls_p50": 0,
+        "fp8_scale_bytes_retained": 672,
+        "maximum_absolute_error": 1.2144723534584045,
+        "precision_gate_passed_all": false,
+        "prefill_tokens_per_second_p50": 1854.044660228,
+        "resident_weight_bytes": 902652064,
+        "root_mean_square_error": 0.2778311788476209,
+        "top_token_equal_all": true
+      },
+      "same_revision": "cdcb8e7b208aa7aebc7d5cb321f2076f09455df8"
+    },
+    {
+      "context": 512,
+      "delta": {
+        "engine_peak_bytes": 0,
+        "maximum_absolute_error": 0.0,
+        "maximum_absolute_error_exactly_equal": true,
+        "maximum_absolute_error_improved": false,
+        "resident_weight_bytes": 0,
+        "root_mean_square_error": 0.0,
+        "root_mean_square_error_exactly_equal": true,
+        "root_mean_square_error_improved": false,
+        "scale_bytes_retained": 0,
+        "t512_tps_degradation_le_5_percent": true,
+        "tps_degradation_fraction": 0.00845818459353831,
+        "tps_percent_change": -0.8458184593538309,
+        "tps_ratio": 0.9915418154064617
+      },
+      "device_tensor_control": {
+        "engine_peak_bytes_p50": 946646692,
+        "fp8_output_column_scale_calls_p50": 0,
+        "fp8_scale_bytes_retained": 672,
+        "maximum_absolute_error": 1.830350399017334,
+        "precision_gate_passed_all": false,
+        "prefill_tokens_per_second_p50": 85873.61193357,
+        "resident_weight_bytes": 902652064,
+        "root_mean_square_error": 0.3432300639202133,
+        "top_token_equal_all": true
+      },
+      "model": "qwen2.5-0.5b",
+      "output_head_only": {
+        "engine_peak_bytes_p50": 946646692,
+        "fp8_output_column_scale_calls_p50": 0,
+        "fp8_scale_bytes_retained": 672,
+        "maximum_absolute_error": 1.830350399017334,
+        "precision_gate_passed_all": false,
+        "prefill_tokens_per_second_p50": 85147.277072122,
+        "resident_weight_bytes": 902652064,
+        "root_mean_square_error": 0.3432300639202133,
+        "top_token_equal_all": true
+      },
+      "same_revision": "cdcb8e7b208aa7aebc7d5cb321f2076f09455df8"
+    },
+    {
+      "context": 8,
+      "delta": {
+        "engine_peak_bytes": 607740,
+        "maximum_absolute_error": 0.0,
+        "maximum_absolute_error_exactly_equal": true,
+        "maximum_absolute_error_improved": false,
+        "resident_weight_bytes": 607740,
+        "root_mean_square_error": 0.0,
+        "root_mean_square_error_exactly_equal": true,
+        "root_mean_square_error_improved": false,
+        "scale_bytes_retained": 607740,
+        "t512_tps_degradation_le_5_percent": false,
+        "tps_degradation_fraction": 0.0006480591718573958,
+        "tps_percent_change": -0.06480591718573958,
+        "tps_ratio": 0.9993519408281426
+      },
+      "device_tensor_control": {
+        "engine_peak_bytes_p50": 2507172152,
+        "fp8_output_column_scale_calls_p50": 0,
+        "fp8_scale_bytes_retained": 788,
+        "maximum_absolute_error": 0.847926139831543,
+        "precision_gate_passed_all": false,
+        "prefill_tokens_per_second_p50": 1290.18537706,
+        "resident_weight_bytes": 2477644564,
+        "root_mean_square_error": 0.1875947732436799,
+        "top_token_equal_all": true
+      },
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "output_head_only": {
+        "engine_peak_bytes_p50": 2507779892,
+        "fp8_output_column_scale_calls_p50": 4,
+        "fp8_scale_bytes_retained": 608528,
+        "maximum_absolute_error": 0.847926139831543,
+        "precision_gate_passed_all": false,
+        "prefill_tokens_per_second_p50": 1289.349260593,
+        "resident_weight_bytes": 2478252304,
+        "root_mean_square_error": 0.1875947732436799,
+        "top_token_equal_all": true
+      },
+      "same_revision": "cdcb8e7b208aa7aebc7d5cb321f2076f09455df8"
+    },
+    {
+      "context": 512,
+      "delta": {
+        "engine_peak_bytes": 607740,
+        "maximum_absolute_error": 0.0,
+        "maximum_absolute_error_exactly_equal": true,
+        "maximum_absolute_error_improved": false,
+        "resident_weight_bytes": 607740,
+        "root_mean_square_error": 0.0,
+        "root_mean_square_error_exactly_equal": true,
+        "root_mean_square_error_improved": false,
+        "scale_bytes_retained": 607740,
+        "t512_tps_degradation_le_5_percent": true,
+        "tps_degradation_fraction": 0.005200691483340014,
+        "tps_percent_change": -0.5200691483340014,
+        "tps_ratio": 0.99479930851666
+      },
+      "device_tensor_control": {
+        "engine_peak_bytes_p50": 2556766488,
+        "fp8_output_column_scale_calls_p50": 0,
+        "fp8_scale_bytes_retained": 788,
+        "maximum_absolute_error": 1.0912184715270996,
+        "precision_gate_passed_all": false,
+        "prefill_tokens_per_second_p50": 50769.91619361,
+        "resident_weight_bytes": 2477644564,
+        "root_mean_square_error": 0.1912762399067743,
+        "top_token_equal_all": true
+      },
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "output_head_only": {
+        "engine_peak_bytes_p50": 2557374228,
+        "fp8_output_column_scale_calls_p50": 4,
+        "fp8_scale_bytes_retained": 608528,
+        "maximum_absolute_error": 1.0912184715270996,
+        "precision_gate_passed_all": false,
+        "prefill_tokens_per_second_p50": 50505.877522852,
+        "resident_weight_bytes": 2478252304,
+        "root_mean_square_error": 0.1912762399067743,
+        "top_token_equal_all": true
+      },
+      "same_revision": "cdcb8e7b208aa7aebc7d5cb321f2076f09455df8"
+    }
+  ],
+  "schema_version": 1,
+  "suites": {
+    "combined_fp8_rows": 24,
+    "combined_worker_rows": 72,
+    "device_tensor_control": {
+      "directory": "/tmp/microllm-exp146-device-control-final",
+      "exit_code": 0,
+      "fp8_rows": 12,
+      "preflight": [
+        {
+          "gpu_use_percent": 0,
+          "physical_gpu_index": 2,
+          "sample": 1,
+          "timestamp_utc": "2026-08-23T14:57:12.784942+00:00",
+          "vram_percent": 0
+        },
+        {
+          "gpu_use_percent": 0,
+          "physical_gpu_index": 2,
+          "sample": 2,
+          "timestamp_utc": "2026-08-23T14:57:22.904456+00:00",
+          "vram_percent": 0
+        },
+        {
+          "gpu_use_percent": 0,
+          "physical_gpu_index": 2,
+          "sample": 3,
+          "timestamp_utc": "2026-08-23T14:57:33.018574+00:00",
+          "vram_percent": 0
+        }
+      ],
+      "stderr_bytes": 0,
+      "worker_rows": 36
+    },
+    "output_head_only": {
+      "directory": "/tmp/microllm-exp146-output-head-only-final",
+      "exit_code": 0,
+      "fp8_rows": 12,
+      "preflight": [
+        {
+          "gpu_use_percent": 0,
+          "physical_gpu_index": 2,
+          "sample": 1,
+          "timestamp_utc": "2026-08-23T14:51:43.097318+00:00",
+          "vram_percent": 0
+        },
+        {
+          "gpu_use_percent": 0,
+          "physical_gpu_index": 2,
+          "sample": 2,
+          "timestamp_utc": "2026-08-23T14:51:53.215179+00:00",
+          "vram_percent": 0
+        },
+        {
+          "gpu_use_percent": 0,
+          "physical_gpu_index": 2,
+          "sample": 3,
+          "timestamp_utc": "2026-08-23T14:52:03.335828+00:00",
+          "vram_percent": 0
+        }
+      ],
+      "stderr_bytes": 0,
+      "worker_rows": 36
+    }
+  },
+  "targeted_keep_gate": {
+    "both_t512_tps_degradation_le_5_percent": true,
+    "deepseek_max_rms_both_improve": false,
+    "deepseek_max_rms_exact_control": true,
+    "keep": false,
+    "qwen_max_rms_exact_control": true,
+    "rule": "Using same-revision paired aggregates: Qwen Max/RMS must be exactly equal; DeepSeek Max and RMS must both improve at T8/T512; both T512 TPS degradations must be <=5%. Complete precision gates remain separate."
+  }
+}

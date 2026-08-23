@@ -2528,3 +2528,13 @@ scalar FP8 GEMM + device post-scale。Qwen/Deep T512分别精确记录336/394次
 回到native完整logits。
 
 ![Weight reconstruction audit](assets/fp8-weight-reconstruction-audit.svg)
+
+## 163. Experiment 146：先拒绝错误基线，再发现收益为零
+
+最初Exp129/135看似支持Deep output head，但旧host Tensor-amax不能对比当前device Tensor路径。
+追加同binary完整control后，两模型T8/T512 Max/RMS全部精确不变。T512只慢0.85%/0.52%，
+Deep多607,740B和每forward一个post，但预设数值改善条件失败。
+
+targeted keep=false，完整门仍0/4。删除这个scope，保留“发现基线错误并改写结论”的全过程。
+
+![Output-head-only counterfactual](assets/fp8-output-head-only.svg)

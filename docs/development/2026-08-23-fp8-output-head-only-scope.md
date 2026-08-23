@@ -23,3 +23,8 @@ The HIP gate proves one device column vector, seven device scalar scales, no pre
 hot-path payload transfer and no repeated weight quantization. This predicts Qwen's tied model will
 remain on the scalar baseline while DeepSeek adds one post-scale per forward; official complete
 logits must prove the prediction.
+
+Exp146 added a same-revision device-Tensor control after rejecting an invalid historical host-Tensor
+comparison. Qwen and DeepSeek Max/RMS are exactly unchanged; T512 overhead stays below 1%, but the
+required DeepSeek improvement does not occur. The scope is rejected and scheduled for removal. See
+[Experiment 146](../optimization-log/experiments/146-fp8-output-head-only.md).

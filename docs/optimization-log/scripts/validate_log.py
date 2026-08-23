@@ -5963,6 +5963,79 @@ def validate_fp8_weight_reconstruction_audit(
         len(row.get("invalid_tensors", [])) for row in models.values())
 
 
+def validate_fp8_output_head_only(
+        errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "146-data"
+    verification = json.loads((data / "candidate" / "verification.json").read_text(
+        encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    suites = verification.get("suites", {})
+    for name in ("candidate", "control"):
+        raw_rows = sum(1 for line in (data / name / "raw.jsonl").read_text(
+            encoding="utf-8").splitlines() if line.strip())
+        preflight_rows = sum(1 for line in (data / name / "gpu2-preflight.jsonl").read_text(
+            encoding="utf-8").splitlines() if line.strip())
+        if raw_rows != 36 or preflight_rows != 3 or \
+                (data / name / "stderr.log").stat().st_size != 0 or \
+                (data / name / "exit-code.txt").read_text(
+                    encoding="utf-8").strip() != "0":
+            errors.append(f"FP8 output-head-only {name} execution changed")
+    if verification.get("all_execution_contract_checks_passed") is not True or \
+            suites.get("combined_worker_rows") != 72 or \
+            suites.get("combined_fp8_rows") != 24:
+        errors.append("FP8 output-head-only combined execution changed")
+    checks = verification.get("output_head_counter_checks", [])
+    if len(checks) != 12 or any(
+            row.get("passed") is not True or row.get("logit_count") != 151936 or
+            row.get("fp8_dynamic_column_calls") != 0 or
+            row.get("precision_gate_passed") is not False or
+            row.get("top_token_equal") is not True
+            for row in checks):
+        errors.append("FP8 output-head-only worker checks changed")
+    qwen = [row for row in checks if row["model"] == "qwen2.5-0.5b"]
+    deep = [row for row in checks
+            if row["model"] == "deepseek-r1-distill-qwen-1.5b"]
+    if not qwen or not deep or any(
+            row["fp8_scale_bytes_retained"] != 672 or
+            row["fp8_output_column_scale_calls"] != 0 or
+            row["fp8_output_column_native_status"] != -1
+            for row in qwen) or any(
+            row["fp8_scale_bytes_retained"] != 608528 or
+            row["fp8_output_column_scale_calls"] != 4 or
+            row["fp8_output_column_native_status"] != 0
+            for row in deep):
+        errors.append("FP8 output-head-only scope counters changed")
+    comparisons = verification.get("same_revision_comparisons", [])
+    if len(comparisons) != 4 or any(
+            row["delta"]["maximum_absolute_error"] != 0.0 or
+            row["delta"]["root_mean_square_error"] != 0.0 or
+            row["delta"]["maximum_absolute_error_exactly_equal"] is not True or
+            row["delta"]["root_mean_square_error_exactly_equal"] is not True
+            for row in comparisons):
+        errors.append("FP8 output-head-only numerical control changed")
+    t512 = [row for row in comparisons if row["context"] == 512]
+    if len(t512) != 2 or any(
+            row["delta"]["t512_tps_degradation_le_5_percent"] is not True or
+            not 0.99 < row["delta"]["tps_ratio"] < 1.0
+            for row in t512):
+        errors.append("FP8 output-head-only T512 performance gate changed")
+    keep = verification.get("targeted_keep_gate", {})
+    complete = verification.get("complete_precision_gates", {})
+    historical = verification.get("historical_context_not_keep_evidence", {})
+    decision = gates.get("decision", {})
+    if keep.get("keep") is not False or \
+            keep.get("deepseek_max_rms_both_improve") is not False or \
+            keep.get("both_t512_tps_degradation_le_5_percent") is not True or \
+            complete.get("pass_count") != 0 or \
+            "do not determine keep" not in historical.get("boundary", "") or \
+            decision.get("historical_host_tensor_baseline_is_valid_keep_evidence") is not False or \
+            decision.get("remove_rejected_output_head_scope") is not True or \
+            "[50/50]" not in (data / "fresh-build.log").read_text(encoding="utf-8"):
+        errors.append("FP8 output-head-only decision/build gates changed")
+    return suites.get("combined_worker_rows", 0), suites.get("combined_fp8_rows", 0), \
+        complete.get("pass_count", -1)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -6086,7 +6159,8 @@ def validate_assets(errors: list[str]) -> None:
                  "fp8-native-vs-roundtrip.svg",
                  "fp8-output-channel-policy.svg",
                  "fp8-output-column-native-probe.svg",
-                 "fp8-weight-reconstruction-audit.svg"):
+                 "fp8-weight-reconstruction-audit.svg",
+                 "fp8-output-head-only.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -6310,6 +6384,8 @@ def main() -> int:
         validate_fp8_output_column_native_probe(errors)
     weight_audit_tensors, weight_audit_groups, weight_audit_invalid = \
         validate_fp8_weight_reconstruction_audit(errors)
+    head_workers, head_fp8, head_precision = \
+        validate_fp8_output_head_only(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -6486,6 +6562,7 @@ def main() -> int:
           f"{native_column_status} "
           f"weight_audit={weight_audit_tensors}/{weight_audit_groups}/"
           f"{weight_audit_invalid} "
+          f"head_only={head_workers}/{head_fp8}/{head_precision} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

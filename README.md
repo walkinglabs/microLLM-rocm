@@ -514,6 +514,9 @@ result and uses native scalar FP8 GEMM plus a device post-scale without software
 [Experiment 145](docs/optimization-log/experiments/145-fp8-weight-reconstruction-audit.md) audits
 365 official Linear weights and finds less than 1.1% family-level reconstruction improvement; it
 selects a DeepSeek output-head-only counterfactual rather than claiming model accuracy.
+[Experiment 146](docs/optimization-log/experiments/146-fp8-output-head-only.md) adds a same-revision
+device-Tensor control and finds zero Max/RMS change with small overhead; the targeted scope is
+rejected, and the initially tempting host-Tensor historical comparison is explicitly invalidated.
 
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or
