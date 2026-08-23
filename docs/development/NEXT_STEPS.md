@@ -107,7 +107,8 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [ ] register multiple candidates for every hotspot, not only 2D matmul;
 - [ ] correctness gate before timing;
 - [ ] warm-up, repeated Event timing, median/percentiles, and end-to-end regression;
-- [ ] persistent tuning cache with version invalidation;
+- [x] persist exact matmul decisions with schema validation, atomic replacement,
+  transactional duplicate/corruption rejection and environment-version invalidation;
 - [x] schema-versioned `TraceSession`, scoped activation, and RAII `TraceTimer` C++ API;
 - [x] same-weight microLLM/PyTorch tiny-model forward, loss, every named gradient, and
   forward/backward timing runner;

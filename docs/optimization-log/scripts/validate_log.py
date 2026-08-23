@@ -6759,6 +6759,39 @@ def validate_matmul_exact_registry(errors: list[str]) -> tuple[int, int]:
     return len(fields), int(verification.get("status") == "pass")
 
 
+def validate_matmul_persistent_cache(errors: list[str]) -> tuple[int, int]:
+    data = REPOSITORY / "benchmarks/results/2026-08-23-matmul-persistent-cache"
+    verification = json.loads(
+        (data / "verification.json").read_text(encoding="utf-8"))
+    cpu_log = (data / "cpu-roundtrip.log").read_text(encoding="utf-8")
+    hip_log = (data / "hip-version-filter.log").read_text(encoding="utf-8")
+    implementation = (REPOSITORY / "src/ops/optimized.cpp").read_text(
+        encoding="utf-8")
+    tests = "\n".join((REPOSITORY / path).read_text(encoding="utf-8") for path in (
+        "tests/ops/ops_test.cpp", "tests/ops/hip_ops_test.cpp"))
+    contracts = (
+        "cpu_roundtrip", "deterministic_serialization", "atomic_replace",
+        "wrong_schema_transactional_rejection",
+        "malformed_scalar_transactional_rejection",
+        "duplicate_key_transactional_rejection",
+        "stale_architecture_filtered", "hip_current_environment_restored",
+        "hip_runtime_version_mismatch_filtered",
+    )
+    if verification.get("status") != "pass" or \
+            any(verification.get(name) is not True for name in contracts) or \
+            verification.get("full_cpu_hip_tests") != "372/372" or \
+            "[  PASSED  ] 1 test." not in cpu_log or \
+            "[  PASSED  ] 1 test." not in hip_log or \
+            "save_matmul_tuning_cache" not in implementation or \
+            "load_matmul_tuning_cache" not in implementation or \
+            "std::filesystem::rename(temporary, path" not in implementation or \
+            "matmul tuning cache contains a duplicate key" not in implementation or \
+            "MatmulTuningCacheRoundTripsAndRejectsStaleCorruptData" not in tests or \
+            "MatmulTuningCacheRestoresOnlyCurrentEnvironment" not in tests:
+        errors.append("persistent matmul tuning cache evidence/source changed")
+    return len(contracts), int(verification.get("status") == "pass")
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -7140,6 +7173,7 @@ def main() -> int:
     reduction_before, reduction_after, reduction_full = \
         validate_block_reduction_determinism(errors)
     registry_fields, registry_passed = validate_matmul_exact_registry(errors)
+    cache_contracts, cache_passed = validate_matmul_persistent_cache(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -7334,6 +7368,7 @@ def main() -> int:
           f"reduction_determinism={reduction_before}/{reduction_after}/"
           f"{reduction_full} "
           f"exact_registry={registry_fields}/{registry_passed} "
+          f"persistent_registry={cache_contracts}/{cache_passed} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

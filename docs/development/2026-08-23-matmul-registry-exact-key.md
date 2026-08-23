@@ -59,7 +59,8 @@ Tensor。清空后entry count必须回到0。
 
 - correctness-before-timing候选执行器；
 - Event热身、重复、中位数/P95；
-- 可持久化JSON cache及版本失效；
+- correctness-before-timing自动候选执行器（持久cache已在
+  [后续节点](2026-08-23-matmul-persistent-cache.md)完成）；
 - Attention/Softmax/RMSNorm等其他热点注册表；
 - 自动把模型训练/推理语义传进所有调用点。
 
@@ -72,9 +73,9 @@ Exact-key反例通过后，完整回归还抓到一个与registry无关的旧Att
 [Experiment 156](../optimization-log/experiments/156-block-reduction-determinism.md)。最终门为：
 
 ```text
-CPU Debug                 252/252
-ASan/UBSan                250/250
-PyTorch-enabled CPU       226/226
-完整CPU/HIP               370/370（2个条件跳过）
-HIP标签                   114/114
+CPU Debug                 253/253
+ASan/UBSan                251/251
+PyTorch-enabled CPU       227/227
+完整CPU/HIP               372/372（2个条件跳过）
+HIP标签                   115/115
 ```

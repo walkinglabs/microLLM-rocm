@@ -1,5 +1,9 @@
 #include <cmath>
+#include <filesystem>
+#include <fstream>
+#include <iterator>
 #include <limits>
+#include <sstream>
 #include <stdexcept>
 #include <tuple>
 #include <vector>
@@ -128,6 +132,97 @@ TEST(CpuOpsTest, MatmulTuningKeyCapturesLayoutModeWorkspaceAndEnvironment) {
     EXPECT_THROW((void)make_matmul_tuning_key(
                      left.transpose(0, 1), right, false, true, context),
                  std::invalid_argument);
+}
+
+TEST(CpuOpsTest, MatmulTuningCacheRoundTripsAndRejectsStaleCorruptData) {
+    const auto directory = std::filesystem::temp_directory_path();
+    const auto cache = directory / "microllm-matmul-tuning-cache-test.jsonl";
+    const auto second = directory / "microllm-matmul-tuning-cache-second.jsonl";
+    const auto corrupt = directory / "microllm-matmul-tuning-cache-corrupt.jsonl";
+    const auto duplicate = directory / "microllm-matmul-tuning-cache-duplicate.jsonl";
+    const Tensor left({2, 3});
+    const Tensor right({3, 4});
+    const auto key = make_matmul_tuning_key(left, right);
+    clear_matmul_implementation_registry();
+    register_matmul_implementation(key, MatmulImplementation::Readable);
+    save_matmul_tuning_cache(cache);
+    std::ifstream first_input(cache);
+    const std::string first_payload{
+        std::istreambuf_iterator<char>(first_input),
+        std::istreambuf_iterator<char>()};
+    EXPECT_NE(first_payload.find("\"schema_version\":1"), std::string::npos);
+    EXPECT_NE(first_payload.find("\"architecture\":\"host\""),
+              std::string::npos);
+
+    clear_matmul_implementation_registry();
+    const auto loaded = load_matmul_tuning_cache(cache, Device::cpu());
+    EXPECT_EQ(loaded.parsed_entries, 1U);
+    EXPECT_EQ(loaded.loaded_entries, 1U);
+    EXPECT_EQ(loaded.stale_entries, 0U);
+    EXPECT_EQ(matmul_registered_implementation_count(), 1U);
+    save_matmul_tuning_cache(second);
+    std::ifstream second_input(second);
+    const std::string second_payload{
+        std::istreambuf_iterator<char>(second_input),
+        std::istreambuf_iterator<char>()};
+    EXPECT_EQ(second_payload, first_payload);
+
+    {
+        std::ofstream output(corrupt);
+        output << "{\"schema_version\":2,\"kind\":"
+                  "\"microllm_matmul_tuning_cache\"}\n";
+    }
+    EXPECT_THROW((void)load_matmul_tuning_cache(corrupt, Device::cpu()),
+                 std::runtime_error);
+    EXPECT_EQ(matmul_registered_implementation_count(), 1U)
+        << "a corrupt file must not partially replace the live registry";
+    auto malformed_bool = first_payload;
+    const auto bool_position = malformed_bool.find("\"transpose_left\":false");
+    ASSERT_NE(bool_position, std::string::npos);
+    malformed_bool.replace(
+        bool_position, std::string("\"transpose_left\":false").size(),
+        "\"transpose_left\":falsejunk");
+    {
+        std::ofstream output(corrupt);
+        output << malformed_bool;
+    }
+    EXPECT_THROW((void)load_matmul_tuning_cache(corrupt, Device::cpu()),
+                 std::runtime_error);
+    EXPECT_EQ(matmul_registered_implementation_count(), 1U);
+
+    clear_matmul_implementation_registry();
+    auto stale_key = key;
+    stale_key.architecture = "stale-gfx";
+    register_matmul_implementation(stale_key, MatmulImplementation::Readable);
+    save_matmul_tuning_cache(cache);
+    std::ifstream stale_input(cache);
+    std::string header;
+    std::string entry;
+    ASSERT_TRUE(static_cast<bool>(std::getline(stale_input, header)));
+    ASSERT_TRUE(static_cast<bool>(std::getline(stale_input, entry)));
+    clear_matmul_implementation_registry();
+    const auto stale = load_matmul_tuning_cache(cache, Device::cpu());
+    EXPECT_EQ(stale.parsed_entries, 1U);
+    EXPECT_EQ(stale.loaded_entries, 0U);
+    EXPECT_EQ(stale.stale_entries, 1U);
+    EXPECT_EQ(matmul_registered_implementation_count(), 0U);
+
+    register_matmul_implementation(key, MatmulImplementation::Readable);
+    {
+        std::ofstream output(duplicate);
+        output << header << '\n' << entry << '\n' << entry << '\n';
+    }
+    EXPECT_THROW((void)load_matmul_tuning_cache(duplicate, Device::cpu()),
+                 std::runtime_error);
+    EXPECT_EQ(matmul_registered_implementation_count(), 1U)
+        << "duplicate rejection must be transactional";
+
+    clear_matmul_implementation_registry();
+    std::error_code ignored;
+    std::filesystem::remove(cache, ignored);
+    std::filesystem::remove(second, ignored);
+    std::filesystem::remove(corrupt, ignored);
+    std::filesystem::remove(duplicate, ignored);
 }
 
 TEST(CpuOpsTest, TransposeAwareBatchedReadableMatchesMaterializedReference) {

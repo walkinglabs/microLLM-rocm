@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "cpu_roundtrip": true,
+  "deterministic_serialization": true,
+  "atomic_replace": true,
+  "wrong_schema_transactional_rejection": true,
+  "malformed_scalar_transactional_rejection": true,
+  "duplicate_key_transactional_rejection": true,
+  "stale_architecture_filtered": true,
+  "hip_current_environment_restored": true,
+  "hip_runtime_version_mismatch_filtered": true,
+  "full_cpu_tests": "253/253",
+  "full_cpu_hip_tests": "372/372",
+  "asan_ubsan_tests": "251/251",
+  "pytorch_enabled_cpu_tests": "227/227"
+}

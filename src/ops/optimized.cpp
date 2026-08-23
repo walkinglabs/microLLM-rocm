@@ -1,13 +1,19 @@
 #include <microllm/ops/ops.h>
 
+#include <algorithm>
 #include <atomic>
+#include <charconv>
+#include <filesystem>
+#include <fstream>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <limits>
 #include <map>
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <set>
 #include <tuple>
 #include <vector>
 
@@ -48,6 +54,213 @@ TuningEnvironment tuning_environment(Device device) {
                           runtime::hip_runtime_version(),
                           runtime::hip_driver_version()});
     return inserted.first->second;
+}
+
+constexpr int kMatmulTuningCacheSchema = 1;
+
+void validate_matmul_tuning_key(const MatmulTuningKey& key) {
+    if (key.rows <= 0 || key.inner <= 0 || key.columns <= 0) {
+        throw std::invalid_argument("registered matmul dimensions must be positive");
+    }
+    if (!is_floating_point(key.dtype) || key.left_strides.size() != 2 ||
+        key.right_strides.size() != 2 ||
+        std::any_of(key.left_strides.begin(), key.left_strides.end(),
+                    [](std::int64_t value) { return value <= 0; }) ||
+        std::any_of(key.right_strides.begin(), key.right_strides.end(),
+                    [](std::int64_t value) { return value <= 0; }) ||
+        key.architecture.empty() || key.hip_runtime_version < 0 ||
+        key.hip_driver_version < 0 || key.hipblaslt_version < 0) {
+        throw std::invalid_argument("registered matmul tuning key is incomplete");
+    }
+}
+
+std::string json_string(std::string_view value) {
+    std::string output;
+    output.reserve(value.size() + 2);
+    output.push_back('"');
+    for (const auto character : value) {
+        if (character == '"' || character == '\\') output.push_back('\\');
+        output.push_back(character);
+    }
+    output.push_back('"');
+    return output;
+}
+
+std::size_t field_start(std::string_view line, std::string_view name) {
+    const auto needle = "\"" + std::string(name) + "\":";
+    auto position = line.find(needle);
+    if (position == std::string_view::npos) {
+        throw std::runtime_error("matmul tuning cache field is missing: " +
+                                 std::string(name));
+    }
+    position += needle.size();
+    while (position < line.size() && line[position] == ' ') ++position;
+    return position;
+}
+
+void require_value_delimiter(
+    std::string_view line, std::size_t position, std::string_view name) {
+    while (position < line.size() && line[position] == ' ') ++position;
+    if (position >= line.size() ||
+        (line[position] != ',' && line[position] != '}')) {
+        throw std::runtime_error("matmul tuning cache value delimiter is invalid: " +
+                                 std::string(name));
+    }
+}
+
+std::string string_field(std::string_view line, std::string_view name) {
+    auto position = field_start(line, name);
+    if (position >= line.size() || line[position] != '"') {
+        throw std::runtime_error("matmul tuning cache string is invalid: " +
+                                 std::string(name));
+    }
+    ++position;
+    std::string output;
+    while (position < line.size()) {
+        const auto character = line[position++];
+        if (character == '"') {
+            require_value_delimiter(line, position, name);
+            return output;
+        }
+        if (character == '\\') {
+            if (position >= line.size() ||
+                (line[position] != '\\' && line[position] != '"')) {
+                throw std::runtime_error("matmul tuning cache escape is invalid");
+            }
+            output.push_back(line[position++]);
+        } else {
+            output.push_back(character);
+        }
+    }
+    throw std::runtime_error("matmul tuning cache string is unterminated");
+}
+
+template <typename Integer>
+Integer integer_field(std::string_view line, std::string_view name) {
+    const auto position = field_start(line, name);
+    Integer value{};
+    const auto parsed = std::from_chars(
+        line.data() + position, line.data() + line.size(), value);
+    if (parsed.ec != std::errc{} || parsed.ptr == line.data() + position) {
+        throw std::runtime_error("matmul tuning cache integer is invalid: " +
+                                 std::string(name));
+    }
+    require_value_delimiter(
+        line, static_cast<std::size_t>(parsed.ptr - line.data()), name);
+    return value;
+}
+
+bool bool_field(std::string_view line, std::string_view name) {
+    const auto position = field_start(line, name);
+    const auto value = line.substr(position);
+    if (value.starts_with("true")) {
+        require_value_delimiter(line, position + 4, name);
+        return true;
+    }
+    if (value.starts_with("false")) {
+        require_value_delimiter(line, position + 5, name);
+        return false;
+    }
+    throw std::runtime_error("matmul tuning cache bool is invalid: " +
+                             std::string(name));
+}
+
+std::vector<std::int64_t> strides_field(
+    std::string_view line, std::string_view name) {
+    auto position = field_start(line, name);
+    if (position >= line.size() || line[position] != '[') {
+        throw std::runtime_error("matmul tuning cache strides are invalid");
+    }
+    ++position;
+    std::vector<std::int64_t> output;
+    while (position < line.size()) {
+        while (position < line.size() && line[position] == ' ') ++position;
+        if (position < line.size() && line[position] == ']') return output;
+        std::int64_t value = 0;
+        const auto parsed = std::from_chars(
+            line.data() + position, line.data() + line.size(), value);
+        if (parsed.ec != std::errc{} || parsed.ptr == line.data() + position) {
+            throw std::runtime_error("matmul tuning cache stride is invalid");
+        }
+        output.push_back(value);
+        position = static_cast<std::size_t>(parsed.ptr - line.data());
+        while (position < line.size() && line[position] == ' ') ++position;
+        if (position < line.size() && line[position] == ',') {
+            ++position;
+            continue;
+        }
+        if (position < line.size() && line[position] == ']') return output;
+        throw std::runtime_error("matmul tuning cache stride separator is invalid");
+    }
+    throw std::runtime_error("matmul tuning cache strides are unterminated");
+}
+
+DType dtype_from_name(const std::string& name) {
+    for (const auto dtype : {DType::Float32, DType::Float16, DType::BFloat16,
+                             DType::Float8E4M3FNUZ,
+                             DType::Float8E5M2FNUZ}) {
+        if (dtype_name(dtype) == name) return dtype;
+    }
+    throw std::runtime_error("matmul tuning cache dtype is unsupported: " + name);
+}
+
+OpMode mode_from_name(const std::string& name) {
+    if (name == "unspecified") return OpMode::Unspecified;
+    if (name == "inference") return OpMode::Inference;
+    if (name == "training") return OpMode::Training;
+    throw std::runtime_error("matmul tuning cache mode is unsupported: " + name);
+}
+
+const char* mode_name(OpMode mode) {
+    switch (mode) {
+        case OpMode::Unspecified: return "unspecified";
+        case OpMode::Inference: return "inference";
+        case OpMode::Training: return "training";
+    }
+    throw std::invalid_argument("unknown operator mode");
+}
+
+MatmulImplementation implementation_from_name(const std::string& name) {
+    if (name == "readable") return MatmulImplementation::Readable;
+    if (name == "hipblaslt") return MatmulImplementation::HipBLASLt;
+    throw std::runtime_error(
+        "matmul tuning cache implementation is unsupported: " + name);
+}
+
+const char* implementation_name(MatmulImplementation implementation) {
+    switch (implementation) {
+        case MatmulImplementation::Readable: return "readable";
+        case MatmulImplementation::HipBLASLt: return "hipblaslt";
+        case MatmulImplementation::Auto: break;
+    }
+    throw std::invalid_argument("automatic matmul choice cannot be serialized");
+}
+
+std::pair<MatmulTuningKey, MatmulImplementation> parse_cache_entry(
+    std::string_view line) {
+    if (integer_field<int>(line, "schema_version") !=
+            kMatmulTuningCacheSchema ||
+        string_field(line, "kind") != "entry") {
+        throw std::runtime_error("matmul tuning cache entry schema is invalid");
+    }
+    MatmulTuningKey key;
+    key.rows = integer_field<std::int64_t>(line, "rows");
+    key.inner = integer_field<std::int64_t>(line, "inner");
+    key.columns = integer_field<std::int64_t>(line, "columns");
+    key.dtype = dtype_from_name(string_field(line, "dtype"));
+    key.transpose_left = bool_field(line, "transpose_left");
+    key.transpose_right = bool_field(line, "transpose_right");
+    key.left_strides = strides_field(line, "left_strides");
+    key.right_strides = strides_field(line, "right_strides");
+    key.architecture = string_field(line, "architecture");
+    key.hip_runtime_version = integer_field<int>(line, "hip_runtime_version");
+    key.hip_driver_version = integer_field<int>(line, "hip_driver_version");
+    key.hipblaslt_version = integer_field<int>(line, "hipblaslt_version");
+    key.mode = mode_from_name(string_field(line, "mode"));
+    key.workspace_limit = integer_field<std::size_t>(line, "workspace_limit");
+    validate_matmul_tuning_key(key);
+    return {std::move(key), implementation_from_name(
+        string_field(line, "implementation"))};
 }
 #if MICROLLM_HAS_HIPBLASLT
 // A few gfx942 decode shapes cannot write BF16-input GEMM results directly to
@@ -153,15 +366,7 @@ MatmulImplementation choose_matmul_implementation(
 
 void register_matmul_implementation(const MatmulTuningKey& key,
                                     MatmulImplementation implementation) {
-    if (key.rows <= 0 || key.inner <= 0 || key.columns <= 0) {
-        throw std::invalid_argument("registered matmul dimensions must be positive");
-    }
-    if (!is_floating_point(key.dtype) || key.left_strides.size() != 2 ||
-        key.right_strides.size() != 2 || key.architecture.empty() ||
-        key.hip_runtime_version < 0 || key.hip_driver_version < 0 ||
-        key.hipblaslt_version < 0) {
-        throw std::invalid_argument("registered matmul tuning key is incomplete");
-    }
+    validate_matmul_tuning_key(key);
     if (implementation == MatmulImplementation::Auto) {
         throw std::invalid_argument("matmul registry choice must name a concrete implementation");
     }
@@ -182,6 +387,125 @@ void clear_matmul_implementation_registry() {
 
 std::size_t matmul_registered_implementation_count() noexcept {
     return registry_entries.load(std::memory_order_acquire);
+}
+
+void save_matmul_tuning_cache(const std::filesystem::path& path) {
+    if (path.empty() || !path.has_filename()) {
+        throw std::invalid_argument("matmul tuning cache path must name a file");
+    }
+    std::vector<std::pair<MatmulTuningKey, MatmulImplementation>> entries;
+    {
+        const std::lock_guard<std::mutex> lock(registry_mutex);
+        entries.assign(registry.begin(), registry.end());
+    }
+    auto temporary = path;
+    temporary += ".tmp";
+    try {
+        std::ofstream output(temporary, std::ios::trunc);
+        if (!output) {
+            throw std::runtime_error("cannot open temporary matmul tuning cache");
+        }
+        output << "{\"schema_version\":" << kMatmulTuningCacheSchema
+               << ",\"kind\":\"microllm_matmul_tuning_cache\"}\n";
+        for (const auto& [key, implementation] : entries) {
+            output << "{\"schema_version\":" << kMatmulTuningCacheSchema
+                   << ",\"kind\":\"entry\""
+                   << ",\"rows\":" << key.rows
+                   << ",\"inner\":" << key.inner
+                   << ",\"columns\":" << key.columns
+                   << ",\"dtype\":" << json_string(dtype_name(key.dtype))
+                   << ",\"transpose_left\":"
+                   << (key.transpose_left ? "true" : "false")
+                   << ",\"transpose_right\":"
+                   << (key.transpose_right ? "true" : "false")
+                   << ",\"left_strides\":[" << key.left_strides[0] << ','
+                   << key.left_strides[1] << ']'
+                   << ",\"right_strides\":[" << key.right_strides[0] << ','
+                   << key.right_strides[1] << ']'
+                   << ",\"architecture\":" << json_string(key.architecture)
+                   << ",\"hip_runtime_version\":" << key.hip_runtime_version
+                   << ",\"hip_driver_version\":" << key.hip_driver_version
+                   << ",\"hipblaslt_version\":" << key.hipblaslt_version
+                   << ",\"mode\":" << json_string(mode_name(key.mode))
+                   << ",\"workspace_limit\":" << key.workspace_limit
+                   << ",\"implementation\":"
+                   << json_string(implementation_name(implementation)) << "}\n";
+        }
+        output.flush();
+        if (!output) throw std::runtime_error("cannot write matmul tuning cache");
+        output.close();
+        std::error_code error;
+        std::filesystem::rename(temporary, path, error);
+        if (error) {
+            throw std::runtime_error(
+                "cannot atomically replace matmul tuning cache: " + error.message());
+        }
+    } catch (...) {
+        std::error_code ignored;
+        std::filesystem::remove(temporary, ignored);
+        throw;
+    }
+}
+
+MatmulTuningCacheLoadReport load_matmul_tuning_cache(
+    const std::filesystem::path& path, Device device, bool replace_existing) {
+    std::ifstream input(path);
+    if (!input) throw std::runtime_error("cannot open matmul tuning cache");
+    std::string line;
+    if (!std::getline(input, line) || line.size() > 65536 ||
+        integer_field<int>(line, "schema_version") !=
+            kMatmulTuningCacheSchema ||
+        string_field(line, "kind") != "microllm_matmul_tuning_cache") {
+        throw std::runtime_error("matmul tuning cache header is invalid");
+    }
+    std::vector<std::pair<MatmulTuningKey, MatmulImplementation>> accepted;
+    std::set<MatmulTuningKey> keys;
+    MatmulTuningCacheLoadReport report;
+    const auto environment = tuning_environment(device);
+    const auto expected_backend_version =
+        device.is_hip() ? hipblaslt_version() : 0;
+    while (std::getline(input, line)) {
+        if (line.empty()) continue;
+        if (line.size() > 65536 || report.parsed_entries >= 100000) {
+            throw std::runtime_error("matmul tuning cache exceeds safety limits");
+        }
+        auto entry = parse_cache_entry(line);
+        ++report.parsed_entries;
+        if (!keys.insert(entry.first).second) {
+            throw std::runtime_error("matmul tuning cache contains a duplicate key");
+        }
+        const auto& key = entry.first;
+        const auto current_environment =
+            key.architecture == environment.architecture &&
+            key.hip_runtime_version == environment.runtime_version &&
+            key.hip_driver_version == environment.driver_version &&
+            key.hipblaslt_version == expected_backend_version;
+        if (!current_environment) {
+            ++report.stale_entries;
+            continue;
+        }
+        if (entry.second == MatmulImplementation::HipBLASLt &&
+            !hipblaslt_available()) {
+            throw std::runtime_error(
+                "current cache entry requires unavailable hipBLASLt");
+        }
+        accepted.push_back(std::move(entry));
+    }
+    if (!input.eof()) throw std::runtime_error("cannot read matmul tuning cache");
+
+    {
+        const std::lock_guard<std::mutex> lock(registry_mutex);
+        auto updated = replace_existing
+                           ? std::map<MatmulTuningKey, MatmulImplementation>{}
+                           : registry;
+        for (auto& [key, implementation] : accepted) {
+            updated.insert_or_assign(std::move(key), implementation);
+        }
+        registry.swap(updated);
+        registry_entries.store(registry.size(), std::memory_order_release);
+        report.loaded_entries = accepted.size();
+    }
+    return report;
 }
 
 #if MICROLLM_HAS_HIPBLASLT

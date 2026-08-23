@@ -14,11 +14,11 @@
 ## Current measured matrix
 
 ```text
-framework CPU                 252/252 pass
-CPU ASan/UBSan                250/250 pass
-full CPU/HIP configuration    370/370 pass (2 conditional skips)
-MI300X/gfx942 HIP             114/114 pass
-PyTorch-enabled CPU           226/226 pass
+framework CPU                 253/253 pass
+CPU ASan/UBSan                251/251 pass
+full CPU/HIP configuration    372/372 pass (2 conditional skips)
+MI300X/gfx942 HIP             115/115 pass
+PyTorch-enabled CPU           227/227 pass
 two-rank RCCL                  11/11 pass
 registered test files               54
 ```
@@ -63,8 +63,8 @@ warnings during test discovery. The script runs the CPU test label and emits
 are counted. Coverage is evidence for finding blind spots, not permission to replace
 numeric, shape, failure, HIP, or external-oracle tests.
 
-The current source snapshot measures 82.6% lines (6,624/8,022), 90.3% functions
-(710/786), and 63.2% branches (6,389/10,108). The repeatability evidence for the
+The current source snapshot measures 82.7% lines (6,837/8,265), 90.7% functions
+(731/806), and 63.4% branches (6,647/10,476). The repeatability evidence for the
 coverage pipeline remains separately archived; source growth is expected to change totals.
 
 ## Adding a test

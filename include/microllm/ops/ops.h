@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <compare>
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -31,6 +32,12 @@ struct MatmulTuningKey {
     std::size_t workspace_limit = 0;
 
     auto operator<=>(const MatmulTuningKey&) const = default;
+};
+
+struct MatmulTuningCacheLoadReport {
+    std::size_t parsed_entries = 0;
+    std::size_t loaded_entries = 0;
+    std::size_t stale_entries = 0;
 };
 
 struct Bf16PlanCacheStats {
@@ -202,6 +209,10 @@ void register_matmul_implementation(const MatmulTuningKey& key,
                                     MatmulImplementation implementation);
 void clear_matmul_implementation_registry();
 [[nodiscard]] std::size_t matmul_registered_implementation_count() noexcept;
+void save_matmul_tuning_cache(const std::filesystem::path& path);
+[[nodiscard]] MatmulTuningCacheLoadReport load_matmul_tuning_cache(
+    const std::filesystem::path& path, Device device,
+    bool replace_existing = true);
 [[nodiscard]] Tensor matmul_with_implementation(
     const Tensor& left, const Tensor& right, MatmulImplementation implementation,
     const OpContext& context = {});

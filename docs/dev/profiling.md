@@ -73,7 +73,17 @@ The key includes dtype, transpose/layout/strides, GPU architecture, HIP runtime/
 hipBLASLt version, mode and workspace limit in addition to M/K/N. A choice measured for
 FP32 NN cannot leak into FP16, TT, training, another workspace budget or another software
 stack. Registration itself does not benchmark or prove correctness; the micro-benchmark
-and end-to-end regression remain required. The cache is process-local and not persistent yet.
+and end-to-end regression remain required. A validated registry can be persisted and restored:
+
+```cpp
+microllm::ops::save_matmul_tuning_cache("matmul-cache.jsonl");
+const auto report = microllm::ops::load_matmul_tuning_cache(
+    "matmul-cache.jsonl", microllm::Device::hip(0));
+```
+
+The schema-versioned JSONL loader is transactional. Architecture, HIP runtime/driver and
+hipBLASLt mismatches are reported as stale and never activated. Persistence does not turn
+registration into an autotuner; correctness-before-timing is still required.
 
 `microllm_bench_ops` 的 matmul 路径还接受 `--batch`，例如：
 

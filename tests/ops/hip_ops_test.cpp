@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cmath>
+#include <filesystem>
 #include <limits>
 #include <tuple>
 #include <utility>
@@ -2870,6 +2871,41 @@ TEST(HipOptimizedOpsTest, HipblasLtMatmulMatchesReadableReference) {
                   weight_gradient_left, weight_gradient_right, true, false),
               MatmulImplementation::Readable);
     clear_matmul_implementation_registry();
+}
+
+TEST(HipOptimizedOpsTest, MatmulTuningCacheRestoresOnlyCurrentEnvironment) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    const Tensor left({64, 64}, DType::Float32, gpu);
+    const Tensor right({64, 64}, DType::Float32, gpu);
+    const auto path = std::filesystem::temp_directory_path() /
+                      "microllm-matmul-tuning-cache-hip.jsonl";
+    auto key = make_matmul_tuning_key(left, right);
+    clear_matmul_implementation_registry();
+    register_matmul_implementation(key, MatmulImplementation::HipBLASLt);
+    save_matmul_tuning_cache(path);
+    clear_matmul_implementation_registry();
+    const auto loaded = load_matmul_tuning_cache(path, gpu);
+    EXPECT_EQ(loaded.parsed_entries, 1U);
+    EXPECT_EQ(loaded.loaded_entries, 1U);
+    EXPECT_EQ(loaded.stale_entries, 0U);
+    EXPECT_EQ(choose_matmul_implementation(left, right),
+              MatmulImplementation::HipBLASLt);
+
+    clear_matmul_implementation_registry();
+    ++key.hip_runtime_version;
+    register_matmul_implementation(key, MatmulImplementation::HipBLASLt);
+    save_matmul_tuning_cache(path);
+    clear_matmul_implementation_registry();
+    const auto stale = load_matmul_tuning_cache(path, gpu);
+    EXPECT_EQ(stale.parsed_entries, 1U);
+    EXPECT_EQ(stale.loaded_entries, 0U);
+    EXPECT_EQ(stale.stale_entries, 1U);
+    EXPECT_EQ(choose_matmul_implementation(left, right),
+              MatmulImplementation::Readable);
+    clear_matmul_implementation_registry();
+    std::error_code ignored;
+    std::filesystem::remove(path, ignored);
 }
 
 
