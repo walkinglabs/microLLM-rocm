@@ -61,7 +61,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | External TensorView ops | smoke-tested | caller-owned CPU/HIP buffers and Stream | Torch build validation |
 | In-process profiling | smoke-tested | TraceSession/TraceTimer, values/operator/layer passes, CPU/HIP tests | async Event completion/rocprof markers/Python decorator |
 | Cross-framework alignment | smoke-tested | CPU and MI300X both pass 58/58 forward/loss/all-parameter-gradient checkpoints, plus op/layer/backward timings | Qwen/DeepSeek runners/direct PyTorch ROCm |
-| Profiling/autotune | smoke-tested | rocprofv3, exact persistent matmul/AdamW registries, complete output/state before Event timing and continuous-only raw pftrace | automated model regression and official-model serving trace |
+| Profiling/autotune | smoke-tested | rocprofv3, exact persistent matmul/AdamW registries, complete output/state before Event timing, continuous-only raw pftrace and training phase-delta classification | exact training-GEMM solution enumeration and automated model regression |
 | Micro-benchmark harness | smoke-tested | CPU/HIP Event+wall JSONL and error gate | PyTorch operator timing/more shapes |
 | Engine allocation tracker | smoke-tested | CPU/HIP current/peak/total accounting | external allocator integration |
 | End-to-end benchmark | smoke-tested | matched Python/PyTorch ROCm official training plus phase-separated prefill and one-forward-per-token steady-decode JSONL | serving concurrency, board-level memory and llama.cpp |

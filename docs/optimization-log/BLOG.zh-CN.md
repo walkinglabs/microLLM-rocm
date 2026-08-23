@@ -2670,3 +2670,14 @@ Event和墙钟P50/P95。筛选不改调用者状态，也不改live registry；�
 仍相等。rocprofv3中216次Kernel从26.00→4.01 ms（6.49×），占比18.74%→3.44%。候选保留。
 
 ![Cooperative bias gradient](assets/cooperative-bias-gradient.svg)
+
+## 176. Experiment 159：整段录像里的热点，不一定属于训练
+
+普通profile混合权重加载、warm-up和measured step。bias优化后，cast-transpose看似排到前列，
+但用“load+3步减load+1步，再除2”按精确Kernel名做差后，它没有正调用增量：168次全属加载。
+
+训练每步可归因Kernel约35.50 ms，其中hipBLASLt GEMM 18.98 ms（53.47%）、AdamW 5.66 ms
+（15.95%）。AdamW现有路线已被Experiment157关闭；真正最大且开放的方向变成exact training
+GEMM solution-index枚举。下一节点不再优化假热点，也不重复已失败方案。
+
+![Post-bias training profile](assets/post-bias-training-profile.svg)

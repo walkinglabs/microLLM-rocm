@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="900" viewBox="0 0 1800 900">
+  <rect width="1800" height="900" fill="#f8fafc"/>
+  <text x="900" y="52" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 159 · Post-Bias Training Profile</text>
+  <text x="900" y="84" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle">Qwen T512 · (load + 3 steps - load - 1 step) / 2 · MI300X gfx942</text>
+
+  <rect x="90" y="145" width="1080" height="610" rx="12" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="630" y="185" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">Derived Kernel time per training step</text>
+
+  <text x="310" y="245" font-family="Inter,Arial,sans-serif" font-size="15" fill="#334155" text-anchor="end">hipBLASLt GEMM</text>
+  <rect x="335" y="220" width="720" height="34" rx="5" fill="#2563eb"/>
+  <text x="1068" y="243" font-family="Inter,Arial,sans-serif" font-size="14" fill="#1e40af" font-weight="700">18.98 ms · 53.47%</text>
+
+  <text x="310" y="305" font-family="Inter,Arial,sans-serif" font-size="15" fill="#334155" text-anchor="end">AdamW</text>
+  <rect x="335" y="280" width="215" height="34" rx="5" fill="#d69a2d"/>
+  <text x="563" y="303" font-family="Inter,Arial,sans-serif" font-size="14" fill="#9a6700" font-weight="700">5.66 ms · 15.95%</text>
+
+  <text x="310" y="365" font-family="Inter,Arial,sans-serif" font-size="15" fill="#334155" text-anchor="end">other kernels</text>
+  <rect x="335" y="340" width="118" height="34" rx="5" fill="#94a3b8"/>
+  <text x="466" y="363" font-family="Inter,Arial,sans-serif" font-size="14" fill="#475569" font-weight="700">3.11 ms · 8.76%</text>
+
+  <text x="310" y="425" font-family="Inter,Arial,sans-serif" font-size="15" fill="#334155" text-anchor="end">gradient / elementwise add</text>
+  <rect x="335" y="400" width="53" height="34" rx="5" fill="#64748b"/>
+  <text x="401" y="423" font-family="Inter,Arial,sans-serif" font-size="14" fill="#475569" font-weight="700">1.41 ms</text>
+
+  <text x="310" y="485" font-family="Inter,Arial,sans-serif" font-size="15" fill="#334155" text-anchor="end">cross entropy</text>
+  <rect x="335" y="460" width="50" height="34" rx="5" fill="#64748b"/>
+  <text x="398" y="483" font-family="Inter,Arial,sans-serif" font-size="14" fill="#475569" font-weight="700">1.32 ms</text>
+
+  <text x="310" y="545" font-family="Inter,Arial,sans-serif" font-size="15" fill="#334155" text-anchor="end">bias gradient</text>
+  <rect x="335" y="520" width="50" height="34" rx="5" fill="#2f9b68"/>
+  <text x="398" y="543" font-family="Inter,Arial,sans-serif" font-size="14" fill="#166534" font-weight="700">1.32 ms</text>
+
+  <text x="310" y="605" font-family="Inter,Arial,sans-serif" font-size="15" fill="#334155" text-anchor="end">strided materialization</text>
+  <rect x="335" y="580" width="49" height="34" rx="5" fill="#64748b"/>
+  <text x="397" y="603" font-family="Inter,Arial,sans-serif" font-size="14" fill="#475569" font-weight="700">1.29 ms</text>
+
+  <text x="310" y="665" font-family="Inter,Arial,sans-serif" font-size="15" fill="#334155" text-anchor="end">FP32 / BF16 cast</text>
+  <rect x="335" y="640" width="36" height="34" rx="5" fill="#64748b"/>
+  <text x="384" y="663" font-family="Inter,Arial,sans-serif" font-size="14" fill="#475569" font-weight="700">0.95 ms</text>
+
+  <rect x="1220" y="145" width="490" height="610" rx="12" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="1465" y="190" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">Selection logic</text>
+  <rect x="1260" y="230" width="410" height="100" rx="10" fill="#fee2e2" stroke="#fca5a5"/>
+  <text x="1465" y="262" font-family="Inter,Arial,sans-serif" font-size="16" fill="#991b1b" text-anchor="middle" font-weight="700">Reject the apparent cast-transpose hotspot</text>
+  <text x="1465" y="291" font-family="Inter,Arial,sans-serif" font-size="14" fill="#475569" text-anchor="middle">168 calls do not grow with training steps</text>
+  <text x="1465" y="314" font-family="Inter,Arial,sans-serif" font-size="14" fill="#475569" text-anchor="middle">checkpoint load only</text>
+
+  <rect x="1260" y="370" width="410" height="100" rx="10" fill="#fff7ed" stroke="#fdba74"/>
+  <text x="1465" y="402" font-family="Inter,Arial,sans-serif" font-size="16" fill="#9a3412" text-anchor="middle" font-weight="700">Do not reopen AdamW without a new design</text>
+  <text x="1465" y="431" font-family="Inter,Arial,sans-serif" font-size="14" fill="#475569" text-anchor="middle">Vectorized/chunked candidates failed model gates</text>
+  <text x="1465" y="454" font-family="Inter,Arial,sans-serif" font-size="14" fill="#475569" text-anchor="middle">Experiment 157 keeps Scalar Auto</text>
+
+  <rect x="1260" y="510" width="410" height="150" rx="10" fill="#eff6ff" stroke="#93c5fd"/>
+  <text x="1465" y="544" font-family="Inter,Arial,sans-serif" font-size="16" fill="#1e40af" text-anchor="middle" font-weight="700">Next open hypothesis</text>
+  <text x="1465" y="580" font-family="Inter,Arial,sans-serif" font-size="22" fill="#1e40af" text-anchor="middle" font-weight="700">exact training GEMM solutions</text>
+  <text x="1465" y="613" font-family="Inter,Arial,sans-serif" font-size="14" fill="#475569" text-anchor="middle">enumerate solution indices</text>
+  <text x="1465" y="638" font-family="Inter,Arial,sans-serif" font-size="14" fill="#475569" text-anchor="middle">complete output/gradient → Event → model gate</text>
+
+  <rect x="90" y="790" width="1620" height="64" rx="12" fill="#172033"/>
+  <text x="900" y="829" font-family="Inter,Arial,sans-serif" font-size="17" fill="#ffffff" text-anchor="middle" font-weight="700">The next optimization target is selected from training-only delta, not a mixed process profile</text>
+</svg>

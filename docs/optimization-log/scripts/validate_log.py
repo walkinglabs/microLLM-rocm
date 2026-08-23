@@ -6978,6 +6978,33 @@ def validate_cooperative_bias_gradient(
     return len(operator_raw), len(comparisons), float(profile_values.get("speedup", 0))
 
 
+def validate_post_bias_training_profile(
+        errors: list[str]) -> tuple[int, float]:
+    data = REPOSITORY / "benchmarks/results/2026-08-23-post-bias-training-profile"
+    verification = json.loads((data / "verification.json").read_text(encoding="utf-8"))
+    delta = json.loads((data / "profile-delta.json").read_text(encoding="utf-8"))
+    categories = {row["category"]: row for row in delta.get("categories", [])}
+    gemm = categories.get("hipBLASLt GEMM", {})
+    excluded = delta.get("excluded_nonpositive_delta_names", [])
+    if verification.get("status") != "pass" or delta.get("status") != "pass" or \
+            delta.get("derived_steps") != 2 or len(categories) != 10 or \
+            not math.isclose(delta.get("total_kernel_ns_per_step", 0), 35497419,
+                             rel_tol=0, abs_tol=1) or \
+            not math.isclose(gemm.get("kernel_share", 0), 0.534697818,
+                             rel_tol=0, abs_tol=1e-8) or \
+            not any("cast_transpose_2d" in name for name in excluded) or \
+            verification.get("next_open_hypothesis") != \
+                "enumerate and persist exact hipBLASLt solution indices for training GEMM shapes":
+        errors.append("post-bias training phase-delta evidence changed")
+    script = (REPOSITORY / "benchmarks/single_gpu/profile_step_delta.py").read_text(
+        encoding="utf-8")
+    if "many_step_count - 1" not in script or \
+            "duration_ns_per_step" not in script or \
+            "hipBLASLt GEMM" not in script:
+        errors.append("training phase-delta runner contract changed")
+    return len(categories), float(gemm.get("kernel_share", 0))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -7114,7 +7141,8 @@ def validate_assets(errors: list[str]) -> None:
                  "fp8-qwen-layer9-formal-discard.svg",
                  "block-reduction-determinism.svg",
                  "adamw-correctness-before-timing.svg",
-                 "cooperative-bias-gradient.svg"):
+                 "cooperative-bias-gradient.svg",
+                 "post-bias-training-profile.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -7368,6 +7396,8 @@ def main() -> int:
         validate_adamw_correctness_before_timing(errors)
     bias_rows, bias_models, bias_profile_speedup = \
         validate_cooperative_bias_gradient(errors)
+    phase_categories, phase_gemm_share = \
+        validate_post_bias_training_profile(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -7569,6 +7599,7 @@ def main() -> int:
           f"{adamw_kept_candidates} "
           f"bias_gradient={bias_rows}/{bias_models}/"
           f"{bias_profile_speedup:.2f} "
+          f"phase_delta={phase_categories}/{phase_gemm_share:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

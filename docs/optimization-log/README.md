@@ -680,6 +680,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/157-adamw-correctness-before-timing.md](experiments/157-adamw-correctness-before-timing.md) | exact key/cache、15进程MI300矩阵与端到端中性回归 |
 | [assets/cooperative-bias-gradient.svg](assets/cooperative-bias-gradient.svg) | 32-row边界、真实宽度算子加速与两模型整机收益 |
 | [experiments/158-cooperative-bias-gradient.md](experiments/158-cooperative-bias-gradient.md) | 78行完整输出、同revision A/B与rocprofv3归因 |
+| [assets/post-bias-training-profile.svg](assets/post-bias-training-profile.svg) | 每训练step分类、load-only反例与下一热点选择 |
+| [experiments/159-post-bias-training-profile.md](experiments/159-post-bias-training-profile.md) | 1步/3步相位差分与53.47% GEMM结论 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

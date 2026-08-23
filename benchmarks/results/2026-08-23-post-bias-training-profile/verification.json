@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "experiment": "Exp159",
+  "one_step_profile": 1,
+  "many_step_profile": 3,
+  "derived_steps": 2,
+  "total_kernel_ns_per_step": 35497419,
+  "categories": {
+    "hipblaslt_gemm_ns": 18980392.5,
+    "hipblaslt_gemm_share": 0.534697818,
+    "adamw_ns": 5660354.5,
+    "adamw_share": 0.159458199,
+    "gradient_add_ns": 1407210,
+    "gradient_add_share": 0.0396426,
+    "bias_gradient_ns": 1320136.5,
+    "bias_gradient_share": 0.037189648,
+    "strided_materialization_ns": 1290141.5,
+    "fp32_bf16_cast_ns": 948361.5
+  },
+  "load_only_counterexample": "BF16-to-FP32 cast-transpose has no positive per-step call delta",
+  "closed_route": "AdamW candidates fail the retained keep gate in Experiment 157",
+  "next_open_hypothesis": "enumerate and persist exact hipBLASLt solution indices for training GEMM shapes"
+}

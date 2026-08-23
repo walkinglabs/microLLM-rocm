@@ -70,6 +70,9 @@ needed to run a real training and generation loop:
 - 2D cooperative bias-gradient reduction preserving contiguous column reads; complete-output
   MI300 gates and same-revision T512 training improve Qwen/DeepSeek by 1.222×/1.111× with
   unchanged peak, while rows below the measured 32-row crossover keep Scalar;
+- phase-differential training profiling subtracts load+one-step from load+three-step traces;
+  it rejects load-only cast-transpose as a false training hotspot and attributes 53.47% of
+  current Qwen T512 Kernel time to exact-shape hipBLASLt GEMMs;
 - a phase-independent exact-size HIP pool with immediate legacy-default-Stream reuse and strict
   permanent disablement for non-default Streams;
 - a cross-framework trace runner for operator/layer values and latency comparisons.
