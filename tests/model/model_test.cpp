@@ -373,6 +373,29 @@ TEST(TransformerModelTest, Fp8FfnOuterRowPreparesScalesOnlyForNonFfnLinears) {
     EXPECT_THROW((void)model.forward(tokens), std::logic_error);
 }
 
+TEST(TransformerModelTest, Fp8SelectedBlockRemainsFp32AcrossPreparation) {
+    auto config = tiny_config();
+    config.layers = 2;
+    config.linear_precision = LinearPrecision::Float8E4M3FNUZ;
+    config.fp8_activation_scale_mode = Fp8ActivationScaleMode::TensorAmax;
+    config.fp8_fp32_layers = {1};
+    TransformerModel model(config, 43);
+    const auto tokens = Tensor::from_int32_vector({1, 2, 3, 4}, {1, 4});
+    const auto before = model.forward_inference(tokens).to_vector();
+    const auto report = model.prepare_fp8_inference_weights();
+    EXPECT_EQ(report.converted_tensors, 8U);  // block0 seven + output head one.
+    std::size_t selected_fp32 = 0;
+    for (const auto& [name, parameter] : model.named_parameters()) {
+        if (name.starts_with("blocks.1.") && name.ends_with(".weight") &&
+            name.find("norm") == std::string::npos) {
+            EXPECT_EQ(parameter->data().dtype(), DType::Float32) << name;
+            ++selected_fp32;
+        }
+    }
+    EXPECT_EQ(selected_fp32, 7U);
+    EXPECT_EQ(model.forward_inference(tokens).to_vector(), before);
+}
+
 TEST(TransformerModelTest, Bf16LinearPolicyRunsFullForwardLossAndBackward) {
     auto config = tiny_config();
     config.linear_precision = LinearPrecision::BFloat16;

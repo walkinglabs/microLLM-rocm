@@ -66,6 +66,7 @@ def command(args: argparse.Namespace, model: dict, policy: str,
         fp8_activation_minimum_scale=0.0001,
         fp8_weight_scale=weight_scale, fp8_weight_scale_mode="fixed",
         fp8_activation_scale_mode="fixed")
+    proxy.fp8_fp32_layers = ""
     return matrix.command(proxy, model, args.context, policy, logits_path)
 
 

@@ -55,6 +55,7 @@ struct Options {
     float fp8_weight_scale = 0.005F;
     std::string fp8_weight_scale_mode = "fixed";
     std::string fp8_activation_scale_mode = "fixed";
+    std::string fp8_fp32_layers;
     std::string workload = "both";
     std::int64_t batch = 1;
     bool use_cache = true;
@@ -142,6 +143,9 @@ Options options(int argc, char** argv) {
         }
         else if (name == "--fp8-activation-scale-mode") {
             result.fp8_activation_scale_mode = argv[index + 1];
+        }
+        else if (name == "--fp8-fp32-layers") {
+            result.fp8_fp32_layers = argv[index + 1];
         }
         else if (name == "--batch") result.batch = std::stoll(argv[index + 1]);
         else if (name == "--use-cache") {
@@ -302,6 +306,9 @@ Options options(int argc, char** argv) {
         result.fp8_activation_scale_mode != "ffn-outer-row") {
         throw std::invalid_argument(
             "--fp8-activation-scale-mode must be fixed, tensor-amax, or ffn-outer-row");
+    }
+    if (!result.fp8_fp32_layers.empty() && !result.fp8_linear) {
+        throw std::invalid_argument("--fp8-fp32-layers requires --fp8-linear true");
     }
     const auto continuous_arguments = result.continuous_slots > 0 ||
                                       !result.continuous_prompt_lengths.empty() ||
@@ -850,6 +857,11 @@ int main(int argc, char** argv) {
                     : command.fp8_activation_scale_mode == "ffn-outer-row"
                     ? microllm::model::Fp8ActivationScaleMode::FfnOuterRow
                     : microllm::model::Fp8ActivationScaleMode::Fixed;
+            for (const auto layer : nonnegative_values(
+                     command.fp8_fp32_layers,
+                     "--fp8-fp32-layers must be comma-separated nonnegative indices")) {
+                external.model.fp8_fp32_layers.push_back(layer);
+            }
         }
         const auto cache_dtype = command.kv_cache_dtype == "bf16"
                                      ? microllm::DType::BFloat16
@@ -1094,6 +1106,8 @@ int main(int argc, char** argv) {
                       << command.fp8_weight_scale_mode << "\""
                       << ",\"fp8_activation_scale_mode\":\""
                       << command.fp8_activation_scale_mode << "\""
+                      << ",\"fp8_fp32_layers\":\""
+                      << command.fp8_fp32_layers << "\""
                       << ",\"fp8_weight_scale_min\":"
                       << fp8_report.minimum_weight_scale
                       << ",\"fp8_weight_scale_max\":"
@@ -1579,6 +1593,8 @@ int main(int argc, char** argv) {
                   << command.fp8_weight_scale_mode << "\""
                   << ",\"fp8_activation_scale_mode\":\""
                   << command.fp8_activation_scale_mode << "\""
+                  << ",\"fp8_fp32_layers\":\""
+                  << command.fp8_fp32_layers << "\""
                   << ",\"fp8_weight_scale_min\":"
                   << fp8_report.minimum_weight_scale
                   << ",\"fp8_weight_scale_max\":"

@@ -38,6 +38,7 @@ def options() -> argparse.Namespace:
     parser.add_argument("--fp8-activation-scale-mode",
                         choices=("fixed", "tensor-amax", "ffn-outer-row"),
                         default="fixed")
+    parser.add_argument("--fp8-fp32-layers", default="")
     parser.add_argument("--physical-gpu-index", type=int)
     parser.add_argument("--max-idle-vram-percent", type=int, default=5)
     parser.add_argument("--max-idle-use-percent", type=int, default=10)
@@ -124,6 +125,8 @@ def command(args: argparse.Namespace, model: dict, context: int,
             "--fp8-weight-scale-mode", args.fp8_weight_scale_mode,
             "--fp8-activation-scale-mode", args.fp8_activation_scale_mode,
         ])
+        if args.fp8_fp32_layers:
+            result.extend(["--fp8-fp32-layers", args.fp8_fp32_layers])
     return result
 
 
@@ -249,6 +252,7 @@ def main() -> int:
                         "fp8_weight_scale": args.fp8_weight_scale,
                         "fp8_weight_scale_mode": args.fp8_weight_scale_mode,
                         "fp8_activation_scale_mode": args.fp8_activation_scale_mode,
+                        "fp8_fp32_layers": args.fp8_fp32_layers,
                         "fp8_weight_scale_min": output.get(
                             "fp8_weight_scale_min", 0.0),
                         "fp8_weight_scale_max": output.get(
@@ -329,6 +333,7 @@ def main() -> int:
         "fp8_weight_scale": args.fp8_weight_scale,
         "fp8_weight_scale_mode": args.fp8_weight_scale_mode,
         "fp8_activation_scale_mode": args.fp8_activation_scale_mode,
+        "fp8_fp32_layers": args.fp8_fp32_layers,
         "rows": rows, "aggregates": aggregates,
         "accuracy_failure_count": len(accuracy_failures),
         "accuracy_failures": accuracy_failures,

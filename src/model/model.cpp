@@ -425,6 +425,9 @@ public:
     Value& weight() noexcept { return weight_; }
     [[nodiscard]] const Tensor& weight_data() const noexcept { return weight_.data(); }
     [[nodiscard]] bool has_bias() const noexcept { return has_bias_; }
+    [[nodiscard]] bool is_fp8() const noexcept {
+        return precision_ == LinearPrecision::Float8E4M3FNUZ;
+    }
     Value& bias() noexcept { return bias_; }
     std::pair<Value*, Tensor*> prepare_bf16_training_mirror() {
         if (precision_ != LinearPrecision::BFloat16 ||
@@ -872,7 +875,7 @@ public:
     }
     void append_fp8_inference_linears(std::vector<Linear*>& linears) {
         for (auto* linear : {&query_, &key_, &value_, &output_}) {
-            linears.push_back(linear);
+            if (linear->is_fp8()) linears.push_back(linear);
         }
     }
     void move_fp8_inference_scales(Device device) {
@@ -986,7 +989,9 @@ public:
         }
     }
     void append_fp8_inference_linears(std::vector<Linear*>& linears) {
-        for (auto* linear : {&gate_, &up_, &down_}) linears.push_back(linear);
+        for (auto* linear : {&gate_, &up_, &down_}) {
+            if (linear->is_fp8()) linears.push_back(linear);
+        }
     }
     void move_fp8_inference_scales(Device device) {
         for (auto* linear : {&gate_, &up_, &down_}) {
@@ -1112,7 +1117,16 @@ struct TransformerModel::Impl {
         config.validate();
         blocks.reserve(static_cast<std::size_t>(config.layers));
         for (std::int64_t layer = 0; layer < config.layers; ++layer) {
-            blocks.push_back(std::make_unique<Block>(config, generator, initialization));
+            auto block_config = config;
+            if (std::binary_search(config.fp8_fp32_layers.begin(),
+                                   config.fp8_fp32_layers.end(), layer)) {
+                block_config.linear_precision = LinearPrecision::Float32;
+                block_config.fp8_weight_scale_mode = Fp8WeightScaleMode::Fixed;
+                block_config.fp8_activation_scale_mode =
+                    Fp8ActivationScaleMode::Fixed;
+            }
+            blocks.push_back(std::make_unique<Block>(
+                block_config, generator, initialization));
         }
         if (!config.tie_embeddings) {
             output_head = std::make_unique<Linear>(config.dimension, config.vocabulary_size,
@@ -1850,13 +1864,16 @@ Fp8WeightPreparationReport TransformerModel::prepare_fp8_inference_weights() {
         throw std::logic_error("FP8 inference preparation is invalid for model state");
     }
     std::vector<Linear*> linears;
-    const auto expected = impl_->blocks.size() * 7U +
-                          (impl_->output_head ? 1U : 0U);
+    const auto expected =
+        (impl_->blocks.size() - impl_->config.fp8_fp32_layers.size()) * 7U +
+        (impl_->output_head && impl_->output_head->is_fp8() ? 1U : 0U);
     linears.reserve(expected);
     for (auto& block : impl_->blocks) {
         block->append_fp8_inference_linears(linears);
     }
-    if (impl_->output_head) linears.push_back(impl_->output_head.get());
+    if (impl_->output_head && impl_->output_head->is_fp8()) {
+        linears.push_back(impl_->output_head.get());
+    }
     if (linears.size() != expected) {
         throw std::logic_error("FP8 inference Linear count changed");
     }

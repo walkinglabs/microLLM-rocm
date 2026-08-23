@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 namespace microllm::model {
 
@@ -27,6 +28,7 @@ struct ModelConfig {
     Fp8WeightScaleMode fp8_weight_scale_mode = Fp8WeightScaleMode::Fixed;
     Fp8ActivationScaleMode fp8_activation_scale_mode =
         Fp8ActivationScaleMode::Fixed;
+    std::vector<std::int64_t> fp8_fp32_layers = {};
     float rms_norm_epsilon = 1.0e-5F;
     bool attention_bias = false;
     RopeLayout rope_layout = RopeLayout::Interleaved;

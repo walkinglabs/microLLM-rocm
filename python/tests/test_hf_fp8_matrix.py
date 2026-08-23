@@ -32,7 +32,8 @@ class HfFp8MatrixTest(unittest.TestCase):
             "fp8_activation_scale": 0.025, "fp8_weight_scale": 0.005,
             "fp8_activation_minimum_scale": 0.0001,
             "fp8_weight_scale_mode": "fixed",
-            "fp8_activation_scale_mode": "fixed"})()
+            "fp8_activation_scale_mode": "fixed",
+            "fp8_fp32_layers": ""})()
         model = {"config": "config.json", "weights": "model.bin",
                  "inference": {"token_ids": [1, 2]}}
         command = MATRIX.command(args, model, 8, "fp8", Path("logits.bin"))
@@ -52,7 +53,8 @@ class HfFp8MatrixTest(unittest.TestCase):
             "fp8_activation_scale": 0.2, "fp8_weight_scale": 0.005,
             "fp8_activation_minimum_scale": 0.0001,
             "fp8_weight_scale_mode": "tensor-amax",
-            "fp8_activation_scale_mode": "tensor-amax"})()
+            "fp8_activation_scale_mode": "tensor-amax",
+            "fp8_fp32_layers": "21"})()
         model = {"config": "config.json", "weights": "model.bin",
                  "inference": {"token_ids": [1, 2]}}
         command = MATRIX.command(args, model, 8, "fp8", Path("logits.bin"))
@@ -60,6 +62,7 @@ class HfFp8MatrixTest(unittest.TestCase):
                          "tensor-amax")
         self.assertEqual(command[command.index("--fp8-activation-scale-mode") + 1],
                          "tensor-amax")
+        self.assertEqual(command[command.index("--fp8-fp32-layers") + 1], "21")
 
     def test_complete_logit_metrics_do_not_replace_preparation_evidence(self):
         comparison = MATRIX.compare_logits([1.0, 2.0], [1.0, 2.0])

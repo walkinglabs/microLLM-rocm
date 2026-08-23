@@ -18,6 +18,7 @@ def main() -> int:
         b"--fp8-activation-minimum-scale",
         b"fp8_device_weight_bytes_scanned",
         b"fp8_dynamic_tensor_calls",
+        b"--fp8-fp32-layers",
     )
     missing = [value.decode() for value in required if value not in payload]
     if missing:

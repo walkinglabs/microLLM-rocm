@@ -66,6 +66,18 @@ TEST(ModelConfigTest, Fp8DeviceWeightAmaxPolicyIsVisibleInSummary) {
               std::string::npos);
 }
 
+TEST(ModelConfigTest, Fp8Fp32LayerOverridesAreStrictlyIncreasingAndInRange) {
+    auto config = ModelConfig::model_s();
+    config.linear_precision = LinearPrecision::Float8E4M3FNUZ;
+    config.fp8_fp32_layers = {1, 4};
+    config.validate();
+    EXPECT_NE(config.summary().find("fp8_fp32_layers=1:4"), std::string::npos);
+    config.fp8_fp32_layers = {1, 1};
+    EXPECT_THROW(config.validate(), std::invalid_argument);
+    config.fp8_fp32_layers = {config.layers};
+    EXPECT_THROW(config.validate(), std::invalid_argument);
+}
+
 TEST(ModelConfigTest, RejectsInvalidHeadAndRopeConfigurations) {
     auto config = ModelConfig::model_s();
     config.dimension = 383;

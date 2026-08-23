@@ -43,6 +43,15 @@ void ModelConfig::validate() const {
          !std::isfinite(fp8_weight_scale) || fp8_weight_scale <= 0.0F)) {
         throw std::invalid_argument("FP8 Linear scales must be finite and positive");
     }
+    std::int64_t previous = -1;
+    for (const auto layer : fp8_fp32_layers) {
+        if (linear_precision != LinearPrecision::Float8E4M3FNUZ ||
+            layer < 0 || layer >= layers || layer <= previous) {
+            throw std::invalid_argument(
+                "FP8 FP32 layers must be strictly increasing and in range");
+        }
+        previous = layer;
+    }
 }
 
 std::int64_t ModelConfig::head_dimension() const {
@@ -106,6 +115,12 @@ std::string ModelConfig::summary() const {
                    : fp8_activation_scale_mode == Fp8ActivationScaleMode::TensorAmax
                          ? "tensor_amax" : "ffn_outer_row")
            << ",fp8_activation_minimum_scale=" << fp8_activation_minimum_scale
+           << ",fp8_fp32_layers=";
+    for (std::size_t index = 0; index < fp8_fp32_layers.size(); ++index) {
+        if (index != 0) output << ':';
+        output << fp8_fp32_layers[index];
+    }
+    output
            << ",rms_eps=" << rms_norm_epsilon
            << ",attention_bias=" << (attention_bias ? "true" : "false")
            << ",rope_layout=" << (rope_layout == RopeLayout::Interleaved ? "interleaved" : "split_half")

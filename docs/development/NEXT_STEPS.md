@@ -194,7 +194,8 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   but residual addition yields 21.21%/11.50%; gate/up are not the primary explosion;
 - [x] prove residual cancellation algebraically: Qwen factor17.02x, Deep4.45x,
   with exact block/error-vector reconstruction;
-- [ ] run selective FP32 critical-block counterfactual to test whether logits are repairable;
+- [x] implement validated `fp8_fp32_layers` mixed prepared models with zero payload transfer;
+- [ ] run Qwen21/Deep27 FP32-block counterfactual on complete logits and performance;
 - [ ] replace the one-block reduction only if the next accepted numerical policy reuses it;
 - [ ] replace global FP8 scales with weight per-tensor and activation per-row/token amax,
   starting from saturation/trace evidence rather than top-token search;
