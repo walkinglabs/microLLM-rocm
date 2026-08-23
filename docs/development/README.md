@@ -295,5 +295,7 @@ the next gate. Records are append-only except for factual corrections.
   all-layer Linear-input ranges, a rejected missing-boundary trace and the device-amax handoff.
 - [2026-08-23-fp8-device-activation-amax.md](2026-08-23-fp8-device-activation-amax.md):
   host-optional scaled Tensor contract, dynamic quantize/dequantize and zero-transfer model path.
+- [2026-08-23-fp8-activation-row-range.md](2026-08-23-fp8-activation-row-range.md):
+  filtered full-value diagnostics and evidence for FFN-only row-scale design.
 - [2026-08-21-divergent-row-cache-reference.md](2026-08-21-divergent-row-cache-reference.md):
   unequal-position shared-Storage B1 oracle with CPU/HIP and reset-prefix gates.

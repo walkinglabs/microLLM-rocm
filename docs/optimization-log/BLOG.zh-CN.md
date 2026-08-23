@@ -2380,3 +2380,12 @@ device Tensor amax让scale全程留在GPU，四个RMS相对weight-only再降63%�
 Tensor内部row/token范围，再决定粒度。
 
 ![FP8 device activation amax](assets/fp8-device-activation-amax.svg)
+
+## 147. Experiment 130：一两个异常token支配整块scale
+
+208个T8 Tensor的逐row amax显示，Qwen/Deep FFN median row spread约3.8–4.8×，极端activated
+达到1106×/2076×；Qwen FFN norm有41.1% rows只用tensor范围四分之一。Deep Attention则几乎
+均匀。证据支持FFN定向per-row，不支持所有Linear统一加开销。完整值trace约95MB不进Git历史，
+仓库保留全部逐row amax、复现命令和trace manifest。
+
+![FP8 activation row range](assets/fp8-activation-row-range.svg)

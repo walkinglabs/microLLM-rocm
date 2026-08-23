@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "status": "support_ffn_per_row_reject_universal_per_row",
+  "formal_trace": {"workers_passed": 2, "tensors": 208, "rows_per_tensor": 8},
+  "decision": {
+    "ffn_per_row_scale_supported_by_evidence": true,
+    "attention_per_row_scale_supported_by_evidence": false,
+    "universal_per_row_policy_accepted": false,
+    "trace_is_performance_evidence": false
+  }
+}

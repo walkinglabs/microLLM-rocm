@@ -163,7 +163,9 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   16 FFN inputs by as much as 64.2x while ordinary Attention inputs use little of the range;
 - [x] implement device-side per-Linear-input Tensor amax/scale with no payload H2D/D2H;
   official RMS improves 63%–81%, but 0/4 gates pass and single-block T512 loses 95% throughput;
-- [ ] measure within-Tensor row/token amax distributions before selecting finer scale granularity;
+- [x] measure 208 T8 Tensor row distributions: FFN median spread is 3.8–4.8x with
+  1106x/2076x outliers, while Deep Attention is nearly uniform;
+- [ ] define an FFN-only row-scale output-rescaling contract compatible with hipBLASLt;
 - [ ] replace the one-block reduction only if the next accepted numerical policy reuses it;
 - [ ] replace global FP8 scales with weight per-tensor and activation per-row/token amax,
   starting from saturation/trace evidence rather than top-token search;

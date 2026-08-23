@@ -1,0 +1,144 @@
+{
+  "aggregates": [
+    {
+      "boundary": "attention_norm",
+      "layers": 24,
+      "maximum_spread_layer": 6,
+      "model": "qwen2.5-0.5b",
+      "p50_to_tensor_amax_p50": 0.3670112243838556,
+      "quarter_range_rows": 18,
+      "row_spread_max": 6.34034638494011,
+      "row_spread_p50": 3.1104389792124776,
+      "total_rows": 192
+    },
+    {
+      "boundary": "attention.context",
+      "layers": 24,
+      "maximum_spread_layer": 16,
+      "model": "qwen2.5-0.5b",
+      "p50_to_tensor_amax_p50": 0.7944238621846204,
+      "quarter_range_rows": 4,
+      "row_spread_max": 20.427044698840884,
+      "row_spread_p50": 1.6024010523583012,
+      "total_rows": 192
+    },
+    {
+      "boundary": "ffn_norm",
+      "layers": 24,
+      "maximum_spread_layer": 3,
+      "model": "qwen2.5-0.5b",
+      "p50_to_tensor_amax_p50": 0.27186393445845586,
+      "quarter_range_rows": 79,
+      "row_spread_max": 61.7597051469234,
+      "row_spread_p50": 4.029844804833072,
+      "total_rows": 192
+    },
+    {
+      "boundary": "ffn.activated",
+      "layers": 24,
+      "maximum_spread_layer": 2,
+      "model": "qwen2.5-0.5b",
+      "p50_to_tensor_amax_p50": 0.6596408765075403,
+      "quarter_range_rows": 37,
+      "row_spread_max": 1105.6808944939683,
+      "row_spread_p50": 4.818205336184709,
+      "total_rows": 192
+    },
+    {
+      "boundary": "attention_norm",
+      "layers": 28,
+      "maximum_spread_layer": 16,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "p50_to_tensor_amax_p50": 0.7975627988680616,
+      "quarter_range_rows": 0,
+      "row_spread_max": 2.3867072997236423,
+      "row_spread_p50": 1.5623540578279624,
+      "total_rows": 224
+    },
+    {
+      "boundary": "attention.context",
+      "layers": 28,
+      "maximum_spread_layer": 19,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "p50_to_tensor_amax_p50": 0.930725501034809,
+      "quarter_range_rows": 0,
+      "row_spread_max": 1.890531080273926,
+      "row_spread_p50": 1.1344213591184413,
+      "total_rows": 224
+    },
+    {
+      "boundary": "ffn_norm",
+      "layers": 28,
+      "maximum_spread_layer": 26,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "p50_to_tensor_amax_p50": 0.36182658436641457,
+      "quarter_range_rows": 31,
+      "row_spread_max": 7.02674795457597,
+      "row_spread_p50": 3.8390105695464047,
+      "total_rows": 224
+    },
+    {
+      "boundary": "ffn.activated",
+      "layers": 28,
+      "maximum_spread_layer": 2,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "p50_to_tensor_amax_p50": 0.5500539141181136,
+      "quarter_range_rows": 43,
+      "row_spread_max": 2076.1516035491254,
+      "row_spread_p50": 3.9300014863425012,
+      "total_rows": 224
+    }
+  ],
+  "boundary": "FP32 T8 baseline; complete selected Tensor values; token-row amax diagnostic, not performance evidence",
+  "context": 8,
+  "models": [
+    "qwen2.5-0.5b",
+    "deepseek-r1-distill-qwen-1.5b"
+  ],
+  "rows": 208,
+  "schema_version": 1,
+  "status": "pass",
+  "track": "official_fp8_activation_row_range",
+  "workers": [
+    {
+      "context": 8,
+      "forward_ms": 3670.500549,
+      "model": "qwen2.5-0.5b",
+      "post_run_gpu_state": {
+        "gpu_use_percent": 2,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "pre_run_gpu_state": {
+        "gpu_use_percent": 0,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "schema_version": 1,
+      "selected_boundaries": 96,
+      "status": "pass",
+      "trace_records": 341,
+      "track": "official_fp8_activation_row_range_worker"
+    },
+    {
+      "context": 8,
+      "forward_ms": 1731.880384,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "post_run_gpu_state": {
+        "gpu_use_percent": 2,
+        "physical_gpu_index": 2,
+        "vram_percent": 2
+      },
+      "pre_run_gpu_state": {
+        "gpu_use_percent": 0,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "schema_version": 1,
+      "selected_boundaries": 112,
+      "status": "pass",
+      "trace_records": 397,
+      "track": "official_fp8_activation_row_range_worker"
+    }
+  ]
+}

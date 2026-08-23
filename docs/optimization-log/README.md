@@ -622,6 +622,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/128-data/](experiments/128-data/) | 208个正式activation边界、完整trace、pilot和一次合同失败 |
 | [assets/fp8-device-activation-amax.svg](assets/fp8-device-activation-amax.svg) | device动态scale的RMS改善与长context性能失败 |
 | [experiments/129-data/](experiments/129-data/) | 36条正式FP32/BF16/dynamic-FP8与3条pilot |
+| [assets/fp8-activation-row-range.svg](assets/fp8-activation-row-range.svg) | Attention/FFN内部token row范围差异 |
+| [experiments/130-data/](experiments/130-data/) | 208个Tensor的全部逐row amax与full-trace manifest |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

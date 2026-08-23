@@ -5179,6 +5179,65 @@ def validate_fp8_device_activation_amax(errors: list[str]) -> tuple[int, int, in
     return len(raw), len(fp8_rows), len(pilot)
 
 
+def validate_fp8_activation_row_range(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "130-data"
+    raw = [json.loads(line) for line in
+           (data / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    workers = [json.loads(line) for line in
+               (data / "workers.jsonl").read_text(encoding="utf-8").splitlines()]
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    manifest = json.loads((data / "trace-manifest.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    qwen = [row for row in raw if row.get("model") == "qwen2.5-0.5b"]
+    deep = [row for row in raw if row.get("model") ==
+            "deepseek-r1-distill-qwen-1.5b"]
+    if len(raw) != 208 or len(qwen) != 96 or len(deep) != 112 or any(
+            row.get("status") != "pass" or row.get("rows") != 8 or
+            len(row.get("row_amax", [])) != 8 or
+            row.get("row_amax_max") != row.get("tensor_amax")
+            for row in raw):
+        errors.append("FP8 activation row-range raw contract changed")
+    if len(workers) != 2 or any(
+            row.get("selected_boundaries") not in (96, 112) or
+            row.get("pre_run_gpu_state", {}).get("vram_percent") != 0 or
+            row.get("pre_run_gpu_state", {}).get("gpu_use_percent") != 0 or
+            row.get("post_run_gpu_state", {}).get("vram_percent", 99) > 2 or
+            row.get("post_run_gpu_state", {}).get("gpu_use_percent", 99) > 2
+            for row in workers):
+        errors.append("FP8 activation row-range worker evidence changed")
+    aggregates = summary.get("aggregates", [])
+    if summary.get("status") != "pass" or summary.get("rows") != 208 or \
+            len(aggregates) != 8 or \
+            "not performance evidence" not in summary.get("boundary", ""):
+        errors.append("FP8 activation row-range summary changed")
+    by_key = {(row["model"], row["boundary"]): row for row in aggregates}
+    qwen_norm = by_key["qwen2.5-0.5b", "ffn_norm"]
+    qwen_act = by_key["qwen2.5-0.5b", "ffn.activated"]
+    deep_act = by_key["deepseek-r1-distill-qwen-1.5b", "ffn.activated"]
+    deep_attention = by_key[
+        "deepseek-r1-distill-qwen-1.5b", "attention.context"]
+    if not 4.0 < qwen_norm.get("row_spread_p50", 0.0) < 4.1 or \
+            qwen_norm.get("quarter_range_rows") != 79 or \
+            not 1100.0 < qwen_act.get("row_spread_max", 0.0) < 1110.0 or \
+            not 2070.0 < deep_act.get("row_spread_max", 0.0) < 2080.0 or \
+            deep_attention.get("quarter_range_rows") != 0 or \
+            not 1.1 < deep_attention.get("row_spread_p50", 0.0) < 1.2:
+        errors.append("FP8 activation row-range skew evidence changed")
+    traces = manifest.get("traces", [])
+    if manifest.get("source_controlled") is not False or len(traces) != 2 or \
+            sum(row.get("records", 0) for row in traces) != 738 or \
+            sum(row.get("bytes", 0) for row in traces) != 94989569:
+        errors.append("FP8 activation row-range trace manifest changed")
+    if gates.get("status") != "support_ffn_per_row_reject_universal_per_row" or \
+            gates.get("decision", {}).get(
+                "ffn_per_row_scale_supported_by_evidence") is not True or \
+            gates.get("decision", {}).get(
+                "attention_per_row_scale_supported_by_evidence") is not False or \
+            gates.get("decision", {}).get("universal_per_row_policy_accepted") is not False:
+        errors.append("FP8 activation row-range gates changed")
+    return len(raw), qwen_norm.get("quarter_range_rows", 0), len(traces)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -5286,7 +5345,8 @@ def validate_assets(errors: list[str]) -> None:
                  "qwen-fp8-scale-closure.svg",
                  "fp8-tensor-amax-weight.svg",
                  "fp8-activation-range.svg",
-                 "fp8-device-activation-amax.svg"):
+                 "fp8-device-activation-amax.svg",
+                 "fp8-activation-row-range.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -5478,6 +5538,8 @@ def main() -> int:
         validate_fp8_activation_range(errors)
     device_amax_raw, device_amax_failures, device_amax_pilot = \
         validate_fp8_device_activation_amax(errors)
+    row_range_raw, row_range_quarter, row_range_traces = \
+        validate_fp8_activation_row_range(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -5632,6 +5694,7 @@ def main() -> int:
           f"{activation_range_rejected} "
           f"device_amax={device_amax_raw}/{device_amax_failures}/"
           f"{device_amax_pilot} "
+          f"row_range={row_range_raw}/{row_range_quarter}/{row_range_traces} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

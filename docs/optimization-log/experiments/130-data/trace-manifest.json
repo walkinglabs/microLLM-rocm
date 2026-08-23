@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "source_controlled": false,
+  "reason": "large reproducible diagnostic payload; row amax evidence is retained in raw.jsonl",
+  "traces": [
+    {"model": "qwen2.5-0.5b", "records": 341, "bytes": 30575391},
+    {"model": "deepseek-r1-distill-qwen-1.5b", "records": 397, "bytes": 64414178}
+  ]
+}

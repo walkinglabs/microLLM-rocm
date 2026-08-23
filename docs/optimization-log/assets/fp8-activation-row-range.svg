@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="580" viewBox="0 0 1040 580" role="img" aria-labelledby="title desc">
+  <title id="title">Activation token-row range skew</title><desc id="desc">FFN token rows show much larger within-tensor range skew than attention rows.</desc>
+  <rect width="1040" height="580" rx="18" fill="#0b1020"/>
+  <text x="52" y="52" fill="#f8fafc" font-size="28" font-family="sans-serif" font-weight="700">同一Tensor内：FFN少数token支配scale</text>
+  <text x="52" y="82" fill="#94a3b8" font-size="16" font-family="sans-serif">柱=P50 row spread；标签同时给出最大spread</text>
+  <line x1="70" y1="450" x2="970" y2="450" stroke="#334155"/>
+  <g><rect x="100" y="264" width="75" height="186" fill="#38bdf8"/><rect x="190" y="354" width="75" height="96" fill="#38bdf8"/><rect x="280" y="208" width="75" height="242" fill="#fb7185"/><rect x="370" y="161" width="75" height="289" fill="#fb7185"/><rect x="550" y="356" width="75" height="94" fill="#22c55e"/><rect x="640" y="382" width="75" height="68" fill="#22c55e"/><rect x="730" y="220" width="75" height="230" fill="#f97316"/><rect x="820" y="214" width="75" height="236" fill="#f97316"/></g>
+  <g fill="#f8fafc" font-size="13" font-family="sans-serif"><text x="92" y="252">Q norm 3.11 / 6.3×</text><text x="180" y="342">Q ctx 1.60 / 20×</text><text x="270" y="196">Q FFN norm 4.03 / 62×</text><text x="350" y="149">Q act 4.82 / 1106×</text><text x="535" y="344">D norm 1.56 / 2.4×</text><text x="630" y="370">D ctx 1.13 / 1.9×</text><text x="715" y="208">D FFN norm 3.84 / 7×</text><text x="802" y="202">D act 3.93 / 2076×</text></g>
+  <g fill="#cbd5e1" font-size="15" font-family="sans-serif"><text x="100" y="500">Qwen FFN norm：41.1% rows ≤ tensor范围1/4</text><text x="550" y="500">Deep Attention：0 rows ≤ 1/4</text><text x="180" y="545">证据支持FFN定向per-row，不支持给所有Attention增加同样开销</text></g>
+</svg>
