@@ -4,6 +4,8 @@ target_link_libraries(microllm_bench_ops PRIVATE microllm::ops microllm::runtime
 if(MICROLLM_HAS_HIP AND MICROLLM_HAS_HIPBLASLT)
     add_executable(microllm_bench_precision micro/benchmark_precision.cpp)
     target_link_libraries(microllm_bench_precision PRIVATE microllm::ops microllm::runtime)
+    add_executable(microllm_bench_int8 micro/benchmark_int8.cpp)
+    target_link_libraries(microllm_bench_int8 PRIVATE hip::host roc::hipblaslt)
     add_executable(microllm_bench_bf16_ffn micro/benchmark_bf16_ffn.cpp)
     target_link_libraries(microllm_bench_bf16_ffn PRIVATE
         microllm::ops microllm::runtime hip::host)
@@ -105,6 +107,11 @@ if(BUILD_TESTING)
                          ${PROJECT_SOURCE_DIR}/python/tests/test_mi300_precision_roofline.py)
         set_tests_properties(Benchmark.Mi300PrecisionRooflineContract PROPERTIES
                              LABELS "cpu;benchmark;precision;roofline;schema")
+        add_test(NAME Benchmark.Mi300Int8ProbeContract
+                 COMMAND ${Python3_EXECUTABLE}
+                         ${PROJECT_SOURCE_DIR}/python/tests/test_mi300_int8_probe.py)
+        set_tests_properties(Benchmark.Mi300Int8ProbeContract PROPERTIES
+                             LABELS "cpu;benchmark;precision;int8;roofline;schema")
         add_test(NAME Benchmark.KvCachePrecisionContract
                  COMMAND ${Python3_EXECUTABLE}
                          ${PROJECT_SOURCE_DIR}/python/tests/test_kv_cache_precision.py)
@@ -152,6 +159,10 @@ if(BUILD_TESTING)
                      COMMAND microllm_bench_precision --size 128 --warmup 1 --repetitions 2)
             set_tests_properties(Benchmark.HipPrecisionMatrix
                                  PROPERTIES LABELS "hip;benchmark;dtype;fp8;smoke")
+            add_test(NAME Benchmark.HipInt8Matrix
+                     COMMAND microllm_bench_int8 --size 128 --warmup 1 --repetitions 2)
+            set_tests_properties(Benchmark.HipInt8Matrix
+                                 PROPERTIES LABELS "hip;benchmark;dtype;int8;smoke")
             add_test(NAME Benchmark.HipBf16FfnIsland
                      COMMAND microllm_bench_bf16_ffn --path island --tokens 1
                              --hidden 128 --intermediate 256 --warmup 1 --repetitions 2)
