@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "status": "valid_coarse_grid_selects_fraction_one_refinement_required",
+  "evidence": {
+    "fresh_build_steps": 50,
+    "contracts_passed": 2,
+    "workers": 20,
+    "comparisons": 16,
+    "complete_logits_per_comparison": 151936,
+    "fraction_one_exp148_exact_cases": 4,
+    "precision_gates_passed": 0,
+    "weight_scale": 0.005
+  },
+  "decision": {
+    "coarse_selected_fraction": 1.0,
+    "fraction_075_or_lower_viable": false,
+    "fraction_05_and_025_preserve_all_top_tokens": false,
+    "tps_is_performance_evidence": false,
+    "exp149_or_150_rows_merged": false,
+    "fraction_095_09_085_refinement_required": true,
+    "model_clipping_default_changed": false
+  }
+}

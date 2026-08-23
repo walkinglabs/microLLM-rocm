@@ -1,0 +1,350 @@
+{
+  "all_checks_passed": true,
+  "all_fraction1_exact": true,
+  "build": {
+    "binary": "/tmp/microllm-exp151-build.gPmUvz/apps/microllm_hf_infer",
+    "build": "/tmp/microllm-exp151-build.gPmUvz/build.log",
+    "configure": "/tmp/microllm-exp151-build.gPmUvz/configure.log",
+    "directory": "/tmp/microllm-exp151-build.gPmUvz",
+    "hf_cli": "/tmp/microllm-exp151-build.gPmUvz/hf-cli-binary-contract.log",
+    "pilot_contract": "/tmp/microllm-exp151-build.gPmUvz/hf-fp8-fraction-pilot-contract.log",
+    "steps": 50
+  },
+  "comparison_checks": {
+    "all_logits151936": true,
+    "finite": true,
+    "gate_pass_count": 0,
+    "top_equal_count": 11
+  },
+  "decision": "disable_clipping",
+  "execution": {
+    "comparisons": 16,
+    "directory": "/tmp/microllm-exp151-fraction-pilot-final",
+    "exit": 0,
+    "stderr": 0,
+    "workers": 20
+  },
+  "experiment": "Exp151",
+  "fraction1_exp148_match": [
+    {
+      "context": 8,
+      "exp148_max": 1.2144723534584045,
+      "exp148_rms": 0.2778311788476209,
+      "fraction1_max": 1.2144723534584045,
+      "fraction1_rms": 0.2778311788476209,
+      "max_exact": true,
+      "model": "qwen2.5-0.5b",
+      "rms_exact": true
+    },
+    {
+      "context": 512,
+      "exp148_max": 1.830350399017334,
+      "exp148_rms": 0.3432300639202133,
+      "fraction1_max": 1.830350399017334,
+      "fraction1_rms": 0.3432300639202133,
+      "max_exact": true,
+      "model": "qwen2.5-0.5b",
+      "rms_exact": true
+    },
+    {
+      "context": 8,
+      "exp148_max": 0.7741536945104599,
+      "exp148_rms": 0.1730619472731373,
+      "fraction1_max": 0.7741536945104599,
+      "fraction1_rms": 0.1730619472731373,
+      "max_exact": true,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "rms_exact": true
+    },
+    {
+      "context": 512,
+      "exp148_max": 0.9137680530548096,
+      "exp148_rms": 0.16388398044059888,
+      "fraction1_max": 0.9137680530548096,
+      "fraction1_rms": 0.16388398044059888,
+      "max_exact": true,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "rms_exact": true
+    }
+  ],
+  "fraction_table": [
+    {
+      "cases": 4,
+      "fraction": 1.0,
+      "max_over_f1": 1.0,
+      "precision_gate_pass_count": 0,
+      "rms_over_f1": 1.0,
+      "strict_rms_improvement": false,
+      "top_token_equal_all": true,
+      "worst_normalized_max": 9.15175199508667,
+      "worst_normalized_rms": 6.864601278404266
+    },
+    {
+      "cases": 4,
+      "fraction": 0.75,
+      "max_over_f1": 5.7389180030965035,
+      "precision_gate_pass_count": 0,
+      "rms_over_f1": 6.54560089779585,
+      "strict_rms_improvement": false,
+      "top_token_equal_all": true,
+      "worst_normalized_max": 52.521154284477234,
+      "worst_normalized_rms": 44.93294029093351
+    },
+    {
+      "cases": 4,
+      "fraction": 0.5,
+      "max_over_f1": 8.388622003828035,
+      "precision_gate_pass_count": 0,
+      "rms_over_f1": 9.509079646900993,
+      "strict_rms_improvement": false,
+      "top_token_equal_all": false,
+      "worst_normalized_max": 76.77058815956116,
+      "worst_normalized_rms": 65.27604030056455
+    },
+    {
+      "cases": 4,
+      "fraction": 0.25,
+      "max_over_f1": 12.271535692244127,
+      "precision_gate_pass_count": 0,
+      "rms_over_f1": 12.179930004500035,
+      "strict_rms_improvement": false,
+      "top_token_equal_all": false,
+      "worst_normalized_max": 112.30605125427246,
+      "worst_normalized_rms": 83.61036307976542
+    }
+  ],
+  "isolation": "Exp149/150 rows and summaries were not read or merged. Only Exp148 retained aggregates were read for the mandatory fraction1 exact-match gate.",
+  "preflight": [
+    {
+      "gpu_use_percent": 0,
+      "physical_gpu_index": 2,
+      "sample": 1,
+      "timestamp_utc": "2026-08-23T16:27:35.912907+00:00",
+      "vram_percent": 0
+    },
+    {
+      "gpu_use_percent": 0,
+      "physical_gpu_index": 2,
+      "sample": 2,
+      "timestamp_utc": "2026-08-23T16:27:46.025912+00:00",
+      "vram_percent": 0
+    },
+    {
+      "gpu_use_percent": 0,
+      "physical_gpu_index": 2,
+      "sample": 3,
+      "timestamp_utc": "2026-08-23T16:27:56.144635+00:00",
+      "vram_percent": 0
+    }
+  ],
+  "revision": "5f6f977c1236162275a37ff4bcdbe006a09fa176",
+  "schema_version": 1,
+  "selection": {
+    "reason": "no clipped candidate strictly improves worst normalized RMS",
+    "selected_fraction": 1.0
+  },
+  "summary_weight_scale": 0.005,
+  "throughput_boundary": "throughput_is_performance_evidence=false; no TPS conclusion",
+  "worker_checks": [
+    {
+      "clipped": 0,
+      "context": 8,
+      "dynamic": 0,
+      "fraction": null,
+      "logits": 151936,
+      "model": "qwen2.5-0.5b",
+      "passed": true,
+      "post": 0
+    },
+    {
+      "clipped": 0,
+      "context": 8,
+      "dynamic": 96,
+      "fraction": 1.0,
+      "logits": 151936,
+      "model": "qwen2.5-0.5b",
+      "passed": true,
+      "post": 24
+    },
+    {
+      "clipped": 96,
+      "context": 8,
+      "dynamic": 96,
+      "fraction": 0.75,
+      "logits": 151936,
+      "model": "qwen2.5-0.5b",
+      "passed": true,
+      "post": 24
+    },
+    {
+      "clipped": 96,
+      "context": 8,
+      "dynamic": 96,
+      "fraction": 0.5,
+      "logits": 151936,
+      "model": "qwen2.5-0.5b",
+      "passed": true,
+      "post": 24
+    },
+    {
+      "clipped": 96,
+      "context": 8,
+      "dynamic": 96,
+      "fraction": 0.25,
+      "logits": 151936,
+      "model": "qwen2.5-0.5b",
+      "passed": true,
+      "post": 24
+    },
+    {
+      "clipped": 0,
+      "context": 512,
+      "dynamic": 0,
+      "fraction": null,
+      "logits": 151936,
+      "model": "qwen2.5-0.5b",
+      "passed": true,
+      "post": 0
+    },
+    {
+      "clipped": 0,
+      "context": 512,
+      "dynamic": 96,
+      "fraction": 1.0,
+      "logits": 151936,
+      "model": "qwen2.5-0.5b",
+      "passed": true,
+      "post": 24
+    },
+    {
+      "clipped": 96,
+      "context": 512,
+      "dynamic": 96,
+      "fraction": 0.75,
+      "logits": 151936,
+      "model": "qwen2.5-0.5b",
+      "passed": true,
+      "post": 24
+    },
+    {
+      "clipped": 96,
+      "context": 512,
+      "dynamic": 96,
+      "fraction": 0.5,
+      "logits": 151936,
+      "model": "qwen2.5-0.5b",
+      "passed": true,
+      "post": 24
+    },
+    {
+      "clipped": 96,
+      "context": 512,
+      "dynamic": 96,
+      "fraction": 0.25,
+      "logits": 151936,
+      "model": "qwen2.5-0.5b",
+      "passed": true,
+      "post": 24
+    },
+    {
+      "clipped": 0,
+      "context": 8,
+      "dynamic": 0,
+      "fraction": null,
+      "logits": 151936,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "passed": true,
+      "post": 0
+    },
+    {
+      "clipped": 0,
+      "context": 8,
+      "dynamic": 113,
+      "fraction": 1.0,
+      "logits": 151936,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "passed": true,
+      "post": 28
+    },
+    {
+      "clipped": 113,
+      "context": 8,
+      "dynamic": 113,
+      "fraction": 0.75,
+      "logits": 151936,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "passed": true,
+      "post": 28
+    },
+    {
+      "clipped": 113,
+      "context": 8,
+      "dynamic": 113,
+      "fraction": 0.5,
+      "logits": 151936,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "passed": true,
+      "post": 28
+    },
+    {
+      "clipped": 113,
+      "context": 8,
+      "dynamic": 113,
+      "fraction": 0.25,
+      "logits": 151936,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "passed": true,
+      "post": 28
+    },
+    {
+      "clipped": 0,
+      "context": 512,
+      "dynamic": 0,
+      "fraction": null,
+      "logits": 151936,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "passed": true,
+      "post": 0
+    },
+    {
+      "clipped": 0,
+      "context": 512,
+      "dynamic": 113,
+      "fraction": 1.0,
+      "logits": 151936,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "passed": true,
+      "post": 28
+    },
+    {
+      "clipped": 113,
+      "context": 512,
+      "dynamic": 113,
+      "fraction": 0.75,
+      "logits": 151936,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "passed": true,
+      "post": 28
+    },
+    {
+      "clipped": 113,
+      "context": 512,
+      "dynamic": 113,
+      "fraction": 0.5,
+      "logits": 151936,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "passed": true,
+      "post": 28
+    },
+    {
+      "clipped": 113,
+      "context": 512,
+      "dynamic": 113,
+      "fraction": 0.25,
+      "logits": 151936,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "passed": true,
+      "post": 28
+    }
+  ]
+}

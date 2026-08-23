@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="600" viewBox="0 0 1120 600" role="img" aria-labelledby="title desc">
+  <title id="title">Clipped activation coarse fraction grid</title>
+  <desc id="desc">Worst normalized RMS and maximum error grow sharply as the activation amax fraction decreases.</desc>
+  <rect width="1120" height="600" rx="20" fill="#0b1020"/>
+  <text x="56" y="58" fill="#f8fafc" font-size="29" font-family="sans-serif" font-weight="700">Activation clipping coarse grid：越裁越差</text>
+  <text x="56" y="91" fill="#94a3b8" font-size="16" font-family="sans-serif">相对fraction=1的worst case；蓝=RMS，橙=Max</text>
+  <line x1="100" y1="480" x2="1040" y2="480" stroke="#475569"/>
+  <polyline points="170,445 430,280 690,198 950,125" fill="none" stroke="#38bdf8" stroke-width="5"/>
+  <polyline points="170,445 430,303 690,229 950,122" fill="none" stroke="#f59e0b" stroke-width="5"/>
+  <g fill="#38bdf8"><circle cx="170" cy="445" r="9"/><circle cx="430" cy="280" r="9"/><circle cx="690" cy="198" r="9"/><circle cx="950" cy="125" r="9"/></g>
+  <g fill="#f59e0b"><circle cx="170" cy="445" r="6"/><circle cx="430" cy="303" r="6"/><circle cx="690" cy="229" r="6"/><circle cx="950" cy="122" r="6"/></g>
+  <g fill="#cbd5e1" font-size="16" font-family="sans-serif"><text x="145" y="520">1.0</text><text x="402" y="520">0.75</text><text x="668" y="520">0.5</text><text x="925" y="520">0.25</text></g>
+  <g fill="#f8fafc" font-size="14" font-family="sans-serif"><text x="130" y="425">1.0×</text><text x="390" y="260">RMS 6.55×</text><text x="650" y="178">9.51×</text><text x="905" y="105">12.18×</text></g>
+  <rect x="170" y="545" width="780" height="38" rx="10" fill="#111827" stroke="#334155"/><text x="230" y="570" fill="#fbbf24" font-size="16" font-family="sans-serif">关闭≤0.75；继续0.95/0.9/0.85精细网格</text>
+</svg>

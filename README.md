@@ -535,6 +535,9 @@ so zero fraction suites are accepted and the retry must start from scratch.
 [Experiment 150](docs/optimization-log/experiments/150-fp8-fraction-pilot-workload-invalid.md)
 invalidates a fully executed pilot whose weight minimum did not match the retained O-only policy;
 the runner now exposes and tests the 0.005 baseline before a fresh retry.
+[Experiment 151](docs/optimization-log/experiments/151-fp8-clipped-coarse-grid.md) validates the
+corrected baseline and rejects fractions at or below 0.75; a narrow 0.95/0.9/0.85 refinement remains
+before model clipping can be closed.
 
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or

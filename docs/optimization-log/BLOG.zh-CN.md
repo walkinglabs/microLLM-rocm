@@ -2577,3 +2577,12 @@ fraction=1四组Max/RMS全部不匹配，所以“1.0最好”的runner结论也
 修复为显式参数、默认0.005，并让合同直接检查命令。新实验必须全新重跑。
 
 ![Fraction pilot workload mismatch](assets/fp8-fraction-pilot-workload-invalid.svg)
+
+## 168. Experiment 151：fraction 0.75已让worst RMS恶化6.55倍
+
+修正weight minimum后，fraction1四case与Exp148逐值一致。0.75/0.5/0.25的worst RMS分别为
+control 6.55×/9.51×/12.18×；后两者还翻转top。计数证明所有dynamic activation确实被裁剪。
+
+关闭≤0.75，但不越过0.75–1.0空白；下一步只测0.95/0.9/0.85。
+
+![Clipped activation coarse grid](assets/fp8-clipped-coarse-grid.svg)
