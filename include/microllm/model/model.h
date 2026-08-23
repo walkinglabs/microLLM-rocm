@@ -56,6 +56,9 @@ struct Fp8WeightPreparationReport {
     std::uint64_t fp8_bytes_retained = 0;
     std::uint64_t scale_bytes_retained = 0;
     std::uint64_t weight_bytes_scanned = 0;
+    std::uint64_t device_weight_bytes_scanned = 0;
+    std::size_t device_amax_tensors = 0;
+    bool host_scale_summary_available = true;
     float minimum_weight_scale = 0.0F;
     float maximum_weight_scale = 0.0F;
 };

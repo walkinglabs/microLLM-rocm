@@ -303,5 +303,7 @@ the next gate. Records are append-only except for factual corrections.
   relocatable package config and external CPU/HIP/RCCL consumer gates.
 - [2026-08-23-fp8-ffn-outer-row-policy.md](2026-08-23-fp8-ffn-outer-row-policy.md):
   evidence-routed FFN-only model policy and explicit runtime fallback counters.
+- [2026-08-23-fp8-device-weight-amax.md](2026-08-23-fp8-device-weight-amax.md):
+  zero-D2H weight preparation contract and separated host/device scan evidence.
 - [2026-08-21-divergent-row-cache-reference.md](2026-08-21-divergent-row-cache-reference.md):
   unequal-position shared-Storage B1 oracle with CPU/HIP and reset-prefix gates.

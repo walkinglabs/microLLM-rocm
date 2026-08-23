@@ -329,7 +329,7 @@ public:
                        : autograd::bf16_matmul(input, weight_);
         }
         if (precision_ == LinearPrecision::Float8E4M3FNUZ) {
-            if (weight_scale_mode_ == Fp8WeightScaleMode::TensorAmax ||
+            if (weight_scale_mode_ != Fp8WeightScaleMode::Fixed ||
                 activation_scale_mode_ != Fp8ActivationScaleMode::Fixed) {
                 throw std::logic_error(
                     "FP8 tensor-amax scale is inference-only");
@@ -352,14 +352,20 @@ public:
         if (precision_ == LinearPrecision::Float8E4M3FNUZ) {
             ops::ScaledTensor scaled_weight;
             if (fp8_inference_scale_.defined()) {
-                scaled_weight = {weight_.data(), fp8_inference_scale_, weight_scale_};
+                scaled_weight = {weight_.data(), fp8_inference_scale_, weight_scale_,
+                                 fp8_inference_host_scale_available_};
             } else {
-                const auto lazy_weight_scale =
-                    weight_scale_mode_ == Fp8WeightScaleMode::TensorAmax
-                        ? tensor_amax_scale(weight_.data(), weight_scale_)
-                        : weight_scale_;
-                scaled_weight = ops::quantize_fp8(
-                    weight_.data(), DType::Float8E4M3FNUZ, lazy_weight_scale);
+                if (weight_scale_mode_ == Fp8WeightScaleMode::DeviceTensorAmax) {
+                    scaled_weight = ops::quantize_fp8_dynamic(
+                        weight_.data(), DType::Float8E4M3FNUZ, weight_scale_);
+                } else {
+                    const auto lazy_weight_scale =
+                        weight_scale_mode_ == Fp8WeightScaleMode::TensorAmax
+                            ? tensor_amax_scale(weight_.data(), weight_scale_)
+                            : weight_scale_;
+                    scaled_weight = ops::quantize_fp8(
+                        weight_.data(), DType::Float8E4M3FNUZ, lazy_weight_scale);
+                }
             }
             ops::ScaledTensor scaled_input;
             if (activation_scale_mode_ == Fp8ActivationScaleMode::TensorAmax) {
@@ -416,6 +422,10 @@ public:
             fp8_inference_scale_.defined()) {
             throw std::logic_error("Linear FP8 inference preparation is invalid");
         }
+        if (weight_scale_mode_ == Fp8WeightScaleMode::DeviceTensorAmax) {
+            return ops::quantize_fp8_dynamic(
+                weight_.data(), DType::Float8E4M3FNUZ, weight_scale_);
+        }
         const auto scale = weight_scale_mode_ == Fp8WeightScaleMode::TensorAmax
                                ? tensor_amax_scale(weight_.data(), weight_scale_)
                                : weight_scale_;
@@ -435,6 +445,7 @@ public:
     void commit_fp8_inference_candidate(
         ops::ScaledTensor candidate, Tensor activation_scale) {
         weight_scale_ = candidate.scale_value;
+        fp8_inference_host_scale_available_ = candidate.host_scale_available;
         fp8_inference_scale_ = std::move(candidate.scale);
         fp8_inference_activation_scale_ = std::move(activation_scale);
         weight_ = Value(std::move(candidate.values), false);
@@ -462,6 +473,7 @@ private:
     Value bias_;
     Tensor bf16_training_weight_;
     Tensor fp8_inference_scale_;
+    bool fp8_inference_host_scale_available_ = true;
     Tensor fp8_inference_activation_scale_;
 };
 
@@ -1818,13 +1830,20 @@ Fp8WeightPreparationReport TransformerModel::prepare_fp8_inference_weights() {
         candidates.push_back({
             linear->prepare_fp8_inference_candidate(),
             linear->prepare_fp8_activation_scale_candidate()});
-        const auto actual_scale = candidates.back().weight.scale_value;
-        report.minimum_weight_scale = report.converted_tensors == 0
-                                          ? actual_scale
-                                          : std::min(report.minimum_weight_scale,
-                                                     actual_scale);
-        report.maximum_weight_scale = std::max(
-            report.maximum_weight_scale, actual_scale);
+        const auto& prepared_weight = candidates.back().weight;
+        if (prepared_weight.host_scale_available) {
+            const auto actual_scale = prepared_weight.scale_value;
+            report.minimum_weight_scale = report.converted_tensors == 0
+                                              ? actual_scale
+                                              : std::min(report.minimum_weight_scale,
+                                                         actual_scale);
+            report.maximum_weight_scale = std::max(
+                report.maximum_weight_scale, actual_scale);
+        } else {
+            report.host_scale_summary_available = false;
+            ++report.device_amax_tensors;
+            report.device_weight_bytes_scanned += elements * sizeof(float);
+        }
         ++report.converted_tensors;
         report.fp32_bytes_released += elements * sizeof(float);
         report.fp8_bytes_retained += elements;
@@ -1837,6 +1856,10 @@ Fp8WeightPreparationReport TransformerModel::prepare_fp8_inference_weights() {
         }
     }
     runtime::synchronize(device());
+    if (!report.host_scale_summary_available) {
+        report.minimum_weight_scale = 0.0F;
+        report.maximum_weight_scale = 0.0F;
+    }
     for (std::size_t index = 0; index < linears.size(); ++index) {
         linears[index]->commit_fp8_inference_candidate(
             std::move(candidates[index].weight),

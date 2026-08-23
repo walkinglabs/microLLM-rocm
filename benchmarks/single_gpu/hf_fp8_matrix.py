@@ -32,7 +32,8 @@ def options() -> argparse.Namespace:
     parser.add_argument("--fp8-activation-scale", type=float, default=0.025)
     parser.add_argument("--fp8-activation-minimum-scale", type=float, default=0.0001)
     parser.add_argument("--fp8-weight-scale", type=float, default=0.005)
-    parser.add_argument("--fp8-weight-scale-mode", choices=("fixed", "tensor-amax"),
+    parser.add_argument("--fp8-weight-scale-mode",
+                        choices=("fixed", "tensor-amax", "device-tensor-amax"),
                         default="fixed")
     parser.add_argument("--fp8-activation-scale-mode",
                         choices=("fixed", "tensor-amax", "ffn-outer-row"),
@@ -154,7 +155,10 @@ def experiment_boundary(weight_scale_mode: str,
                         activation_scale_mode: str = "fixed") -> str:
     weight_boundary = (
         "per-Tensor weight amax with one-time host scan"
-        if weight_scale_mode == "tensor-amax" else "static global weight scale")
+        if weight_scale_mode == "tensor-amax"
+        else "device per-Tensor weight amax"
+        if weight_scale_mode == "device-tensor-amax"
+        else "static global weight scale")
     activation_boundary = (
         "device per-input-Tensor activation amax"
         if activation_scale_mode == "tensor-amax"
@@ -243,6 +247,12 @@ def main() -> int:
                             "fp8_weight_scale_max", 0.0),
                         "fp8_weight_bytes_scanned": output.get(
                             "fp8_weight_bytes_scanned", 0),
+                        "fp8_device_weight_bytes_scanned": output.get(
+                            "fp8_device_weight_bytes_scanned", 0),
+                        "fp8_device_amax_tensors": output.get(
+                            "fp8_device_amax_tensors", 0),
+                        "fp8_host_scale_summary_available": output.get(
+                            "fp8_host_scale_summary_available", True),
                         "logit_count": len(values),
                         **comparison,
                     }

@@ -292,9 +292,10 @@ Options options(int argc, char** argv) {
             "FP8 Linear requires positive finite scales and is exclusive with BF16 preparation");
     }
     if (result.fp8_weight_scale_mode != "fixed" &&
-        result.fp8_weight_scale_mode != "tensor-amax") {
+        result.fp8_weight_scale_mode != "tensor-amax" &&
+        result.fp8_weight_scale_mode != "device-tensor-amax") {
         throw std::invalid_argument(
-            "--fp8-weight-scale-mode must be fixed or tensor-amax");
+            "--fp8-weight-scale-mode must be fixed, tensor-amax, or device-tensor-amax");
     }
     if (result.fp8_activation_scale_mode != "fixed" &&
         result.fp8_activation_scale_mode != "tensor-amax" &&
@@ -370,10 +371,12 @@ Options options(int argc, char** argv) {
 }
 
 std::string fp8_compute_policy(const Options& command) {
+    const auto weight_name = command.fp8_weight_scale_mode == "device-tensor-amax"
+                                 ? "device_tensor_amax_weight"
+                                 : command.fp8_weight_scale_mode == "tensor-amax"
+                                       ? "tensor_amax_weight" : "fixed_weight";
     if (command.fp8_activation_scale_mode == "ffn-outer-row") {
-        return command.fp8_weight_scale_mode == "tensor-amax"
-                   ? "fp8_e4m3_fnuz_tensor_amax_weight_ffn_outer_row"
-                   : "fp8_e4m3_fnuz_ffn_outer_row";
+        return "fp8_e4m3_fnuz_" + weight_name + "_ffn_outer_row";
     }
     if (command.fp8_activation_scale_mode == "tensor-amax" &&
         command.fp8_weight_scale_mode == "tensor-amax") {
@@ -384,6 +387,9 @@ std::string fp8_compute_policy(const Options& command) {
     }
     if (command.fp8_weight_scale_mode == "tensor-amax") {
         return "fp8_e4m3_fnuz_tensor_amax_weight";
+    }
+    if (command.fp8_weight_scale_mode == "device-tensor-amax") {
+        return "fp8_e4m3_fnuz_device_tensor_amax_weight";
     }
     return "fp8_e4m3_fnuz_static_scale";
 }
@@ -834,6 +840,8 @@ int main(int argc, char** argv) {
             external.model.fp8_weight_scale_mode =
                 command.fp8_weight_scale_mode == "tensor-amax"
                     ? microllm::model::Fp8WeightScaleMode::TensorAmax
+                    : command.fp8_weight_scale_mode == "device-tensor-amax"
+                    ? microllm::model::Fp8WeightScaleMode::DeviceTensorAmax
                     : microllm::model::Fp8WeightScaleMode::Fixed;
             external.model.fp8_activation_scale_mode =
                 command.fp8_activation_scale_mode == "tensor-amax"
@@ -1090,6 +1098,12 @@ int main(int argc, char** argv) {
                       << fp8_report.maximum_weight_scale
                       << ",\"fp8_weight_bytes_scanned\":"
                       << fp8_report.weight_bytes_scanned
+                      << ",\"fp8_device_weight_bytes_scanned\":"
+                      << fp8_report.device_weight_bytes_scanned
+                      << ",\"fp8_device_amax_tensors\":"
+                      << fp8_report.device_amax_tensors
+                      << ",\"fp8_host_scale_summary_available\":"
+                      << (fp8_report.host_scale_summary_available ? "true" : "false")
                       << ",\"fp8_converted_tensors\":"
                       << fp8_report.converted_tensors
                       << ",\"fp8_native_shapes\":"
@@ -1553,6 +1567,12 @@ int main(int argc, char** argv) {
                   << fp8_report.maximum_weight_scale
                   << ",\"fp8_weight_bytes_scanned\":"
                   << fp8_report.weight_bytes_scanned
+                  << ",\"fp8_device_weight_bytes_scanned\":"
+                  << fp8_report.device_weight_bytes_scanned
+                  << ",\"fp8_device_amax_tensors\":"
+                  << fp8_report.device_amax_tensors
+                  << ",\"fp8_host_scale_summary_available\":"
+                  << (fp8_report.host_scale_summary_available ? "true" : "false")
                   << ",\"fp32_weight_bytes_released\":"
                   << bf16_report.fp32_bytes_released
                   + bf16_attention_report.fp32_bytes_released

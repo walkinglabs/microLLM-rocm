@@ -97,7 +97,9 @@ std::string ModelConfig::summary() const {
                          ? "bf16_fp32_master" : "fp8_e4m3_fnuz")
            << ",fp8_weight_scale_mode="
            << (fp8_weight_scale_mode == Fp8WeightScaleMode::Fixed
-                   ? "fixed" : "tensor_amax")
+                   ? "fixed"
+                   : fp8_weight_scale_mode == Fp8WeightScaleMode::TensorAmax
+                         ? "tensor_amax" : "device_tensor_amax")
            << ",fp8_activation_scale_mode="
            << (fp8_activation_scale_mode == Fp8ActivationScaleMode::Fixed
                    ? "fixed"

@@ -639,6 +639,48 @@ TEST(HipFp8OpsTest, FfnOuterRowRoutesOnlyThreeLinearsWithoutPayloadTransfers) {
     for (const auto value : output.to_vector()) EXPECT_TRUE(std::isfinite(value));
 }
 
+TEST(HipFp8OpsTest, DeviceWeightAmaxPreparationAvoidsWeightPayloadD2H) {
+    require_gpu();
+    if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";
+    model::ModelConfig config{.vocabulary_size = 16,
+                              .dimension = 8,
+                              .layers = 1,
+                              .heads = 2,
+                              .kv_heads = 1,
+                              .ffn_dimension = 16,
+                              .max_sequence_length = 8,
+                              .rope_base = 10000.0F,
+                              .tie_embeddings = false,
+                              .linear_precision = model::LinearPrecision::Float8E4M3FNUZ,
+                              .fp8_activation_scale = 0.2F,
+                              .fp8_weight_scale = 1.0e-4F,
+                              .fp8_weight_scale_mode =
+                                  model::Fp8WeightScaleMode::DeviceTensorAmax};
+    model::TransformerModel model(config, 233);
+    model.to(Device::hip(0));
+    const auto tokens = Tensor::from_int32_vector({1, 2, 3, 4}, {1, 4})
+                            .to(Device::hip(0));
+    const auto before = model.forward_inference(tokens).to_vector();
+    runtime::reset_transfer_stats();
+    const auto report = model.prepare_fp8_inference_weights();
+    runtime::synchronize(Device::hip(0));
+    const auto preparation_transfers = runtime::transfer_stats();
+    EXPECT_EQ(preparation_transfers.device_to_host_calls, 0U);
+    EXPECT_EQ(report.device_amax_tensors, 8U);
+    EXPECT_EQ(report.device_weight_bytes_scanned, report.fp32_bytes_released);
+    EXPECT_EQ(report.weight_bytes_scanned, 0U);
+    EXPECT_FALSE(report.host_scale_summary_available);
+    EXPECT_FLOAT_EQ(report.minimum_weight_scale, 0.0F);
+    EXPECT_FLOAT_EQ(report.maximum_weight_scale, 0.0F);
+    runtime::reset_transfer_stats();
+    const auto after = model.forward_inference(tokens);
+    runtime::synchronize(Device::hip(0));
+    const auto hot = runtime::transfer_stats();
+    EXPECT_EQ(hot.host_to_device_calls, 0U);
+    EXPECT_EQ(hot.device_to_host_calls, 0U);
+    EXPECT_EQ(after.to_vector(), before);
+}
+
 TEST(HipFp8OpsTest, DeepSeekLinearShapesAcceptFp32OutputOrBf16Fallback) {
     require_gpu();
     if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";

@@ -75,6 +75,8 @@ class HfFp8MatrixTest(unittest.TestCase):
         self.assertIn("device per-input-Tensor activation amax", dynamic)
         ffn = MATRIX.experiment_boundary("tensor-amax", "ffn-outer-row")
         self.assertIn("FFN-only outer-row activation scales", ffn)
+        device = MATRIX.experiment_boundary("device-tensor-amax", "fixed")
+        self.assertIn("device per-Tensor weight amax", device)
 
 
 if __name__ == "__main__":
