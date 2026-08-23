@@ -182,6 +182,15 @@ dependency invariants.
 
 ## Quick start
 
+The commands below always follow the same order:
+
+```text
+configure -> build -> test
+```
+
+`ctest` only runs binaries that already exist. It does not rebuild a library after source
+files change, so run the matching `cmake --build --preset ...` command before every test run.
+
 ### CPU
 
 Requirements: Linux, CMake 3.25+, a C++20 compiler, and Python 3.9+ for optional tests.
@@ -224,6 +233,30 @@ cmake --preset rccl-release
 cmake --build --preset rccl-release --parallel
 ctest --preset rccl-release
 ```
+
+### Use the installed CMake package
+
+microLLM can be consumed without copying this source tree into another project. First
+install one configured build:
+
+```bash
+cmake --install build/cpu-debug --prefix "$PWD/install/microllm"
+```
+
+Then the other project's `CMakeLists.txt` only needs an installed component and its
+namespaced target:
+
+```cmake
+find_package(microLLM 0.1 CONFIG REQUIRED COMPONENTS inference)
+target_link_libraries(my_app PRIVATE microLLM::inference)
+```
+
+Configure that project with
+`-DCMAKE_PREFIX_PATH=/absolute/path/to/install/microllm`. CMake then supplies the
+headers, static libraries, C++20 requirement, transitive microLLM libraries, and any
+HIP/hipBLASLt/RCCL dependencies recorded by the installed build. The complete external
+consumer example and component table are in
+[Install and use from another CMake project](#install-and-use-from-another-cmake-project).
 
 ### Install and use from another CMake project
 
