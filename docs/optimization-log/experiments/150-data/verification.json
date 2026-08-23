@@ -1,0 +1,136 @@
+{
+  "build": {
+    "binary": "/tmp/microllm-exp150-build.WQoqV3/apps/microllm_hf_infer",
+    "build": "/tmp/microllm-exp150-build.WQoqV3/build.log",
+    "configure": "/tmp/microllm-exp150-build.WQoqV3/configure.log",
+    "directory": "/tmp/microllm-exp150-build.WQoqV3",
+    "fraction_pilot_contract": "/tmp/microllm-exp150-build.WQoqV3/hf-fp8-fraction-pilot-contract.log",
+    "hf_cli_contract": "/tmp/microllm-exp150-build.WQoqV3/hf-cli-binary-contract.log",
+    "steps": 50
+  },
+  "clipped_policy_decision": "none-invalid-workload",
+  "comparison_checks": {
+    "all_151936": true,
+    "all_finite": true,
+    "precision_gate_pass_count": 0,
+    "top_equal_count": 14
+  },
+  "execution": {
+    "comparisons": 16,
+    "directory": "/tmp/microllm-exp150-fraction-pilot-final",
+    "exit": 0,
+    "stderr": 0,
+    "summary_status": "pass",
+    "workers": 20
+  },
+  "exp149_isolation": "No Exp149 binary, rows, summaries, or invalid artifacts were read or merged. Exp150 uses revision 4320940, fresh build WQoqV3, one-oracle runner, and a new output directory.",
+  "experiment": "Exp150",
+  "mismatch": {
+    "all_fraction1_metrics_match_exp148": false,
+    "fraction1_vs_exp148": [
+      {
+        "context": 8,
+        "exp148_retained_o_only": {
+          "maximum_absolute_error": 1.2144723534584045,
+          "root_mean_square_error": 0.2778311788476209
+        },
+        "exp148_retained_weight_scale": 0.005,
+        "exp150_fraction1": {
+          "maximum_absolute_error": 0.7933318018913269,
+          "root_mean_square_error": 0.1725512826985301
+        },
+        "exp150_fraction1_actual_weight_scale": 0.0001,
+        "max_exact": false,
+        "model": "qwen2.5-0.5b",
+        "rms_exact": false
+      },
+      {
+        "context": 512,
+        "exp148_retained_o_only": {
+          "maximum_absolute_error": 1.830350399017334,
+          "root_mean_square_error": 0.3432300639202133
+        },
+        "exp148_retained_weight_scale": 0.005,
+        "exp150_fraction1": {
+          "maximum_absolute_error": 1.9172868728637695,
+          "root_mean_square_error": 0.3756110151205255
+        },
+        "exp150_fraction1_actual_weight_scale": 0.0001,
+        "max_exact": false,
+        "model": "qwen2.5-0.5b",
+        "rms_exact": false
+      },
+      {
+        "context": 8,
+        "exp148_retained_o_only": {
+          "maximum_absolute_error": 0.7741536945104599,
+          "root_mean_square_error": 0.1730619472731373
+        },
+        "exp148_retained_weight_scale": 0.005,
+        "exp150_fraction1": {
+          "maximum_absolute_error": 1.1173779964447021,
+          "root_mean_square_error": 0.31368030086119386
+        },
+        "exp150_fraction1_actual_weight_scale": 0.0001,
+        "max_exact": false,
+        "model": "deepseek-r1-distill-qwen-1.5b",
+        "rms_exact": false
+      },
+      {
+        "context": 512,
+        "exp148_retained_o_only": {
+          "maximum_absolute_error": 0.9137680530548096,
+          "root_mean_square_error": 0.16388398044059888
+        },
+        "exp148_retained_weight_scale": 0.005,
+        "exp150_fraction1": {
+          "maximum_absolute_error": 1.2135610580444336,
+          "root_mean_square_error": 0.28570745209844517
+        },
+        "exp150_fraction1_actual_weight_scale": 0.0001,
+        "max_exact": false,
+        "model": "deepseek-r1-distill-qwen-1.5b",
+        "rms_exact": false
+      }
+    ],
+    "requested_retained_policy_weight_scale": 0.005,
+    "runner_hardcoded_weight_scale": 0.0001,
+    "source": "benchmarks/single_gpu/hf_fp8_fraction_pilot.py worker_command"
+  },
+  "preflight": [
+    {
+      "gpu_use_percent": 0,
+      "physical_gpu_index": 2,
+      "sample": 1,
+      "timestamp_utc": "2026-08-23T16:20:02.396226+00:00",
+      "vram_percent": 0
+    },
+    {
+      "gpu_use_percent": 0,
+      "physical_gpu_index": 2,
+      "sample": 2,
+      "timestamp_utc": "2026-08-23T16:20:12.515625+00:00",
+      "vram_percent": 0
+    },
+    {
+      "gpu_use_percent": 0,
+      "physical_gpu_index": 2,
+      "sample": 3,
+      "timestamp_utc": "2026-08-23T16:20:22.644137+00:00",
+      "vram_percent": 0
+    }
+  ],
+  "reason": "The fraction pilot changed both activation clipping and the retained O-projection weight scale baseline. Fraction=1 is therefore not the Exp148 retained policy, so normalized comparisons cannot select a production fraction.",
+  "rerun_requirement": "Use a corrected runner with fp8_weight_scale=0.005, a fresh experiment identifier/output directory, fresh GPU preflight, and never merge these Exp150 rows into the retry.",
+  "revision": "432094008a6c0e89c70f1713e53cf4d11e93adbd",
+  "runner_reported_selection_ignored": {
+    "reason": "no clipped candidate strictly improves worst normalized RMS",
+    "selected_fraction": 1.0
+  },
+  "schema_version": 1,
+  "status": "invalid_workload_mismatch",
+  "throughput_boundary": "Runner marks throughput_is_performance_evidence=false; no TPS conclusion is permitted.",
+  "valid_fraction_conclusion": false,
+  "valid_selection": null,
+  "worker_contract_checks_passed": true
+}

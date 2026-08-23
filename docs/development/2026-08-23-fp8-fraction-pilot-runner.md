@@ -30,3 +30,8 @@ python3 benchmarks/single_gpu/hf_fp8_fraction_pilot.py \
 
 The CPU contract tests fraction parsing, retained scope construction, fixed numerical workload and
 the no-improvement fallback to 1.0 without importing PyTorch.
+
+Exp150 exposed an initial hardcoded 0.0001 weight minimum, while the retained Exp148 policy uses
+0.005. The completed pilot was invalidated, the scale became an explicit/defaulted argument, and
+the contract now asserts 0.005. See
+[Experiment 150](../optimization-log/experiments/150-fp8-fraction-pilot-workload-invalid.md).

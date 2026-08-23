@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "status": "invalid_workload_mismatch_retry_with_pinned_weight_scale",
+  "evidence": {
+    "fresh_build_steps": 50,
+    "contracts_passed": 2,
+    "executed_workers": 20,
+    "executed_comparisons": 16,
+    "worker_contract_checks_passed": true,
+    "valid_fraction_conclusion": false,
+    "retained_weight_scale": 0.005,
+    "executed_weight_scale": 0.0001,
+    "fraction_one_matching_cases": 0,
+    "fraction_one_total_cases": 4
+  },
+  "decision": {
+    "runner_reported_selection_is_valid": false,
+    "numerical_fraction_selected": false,
+    "tps_conclusion_valid": false,
+    "exp150_rows_may_be_merged_into_retry": false,
+    "corrected_runner_must_pin_or_expose_weight_scale": true,
+    "retry_requires_new_experiment_and_preflight": true,
+    "exp149_data_was_merged": false
+  }
+}

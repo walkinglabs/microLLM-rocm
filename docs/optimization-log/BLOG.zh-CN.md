@@ -2567,3 +2567,13 @@ fraction=1预检3次均空闲，但运行中post gate检测22% use/9% VRAM并退
 不选fraction、不报TPS、不拼接retry。严格门正确阻止了一次假结论，GPU空闲后从1.0重跑。
 
 ![Invalid clipped pilot](assets/fp8-clipped-pilot-invalid.svg)
+
+## 167. Experiment 150：GPU干净、程序跑完，实验仍然无效
+
+新runner完成20 worker/16 comparison，但硬编码weight minimum0.0001；retained O-only使用0.005。
+fraction=1四组Max/RMS全部不匹配，所以“1.0最好”的runner结论也作废。执行合同有效，数值选择
+无效。
+
+修复为显式参数、默认0.005，并让合同直接检查命令。新实验必须全新重跑。
+
+![Fraction pilot workload mismatch](assets/fp8-fraction-pilot-workload-invalid.svg)

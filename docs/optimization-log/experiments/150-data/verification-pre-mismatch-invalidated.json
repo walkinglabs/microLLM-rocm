@@ -1,0 +1,327 @@
+{
+  "all_checks_passed": true,
+  "build": {
+    "binary": "/tmp/microllm-exp150-build.WQoqV3/apps/microllm_hf_infer",
+    "build": "/tmp/microllm-exp150-build.WQoqV3/build.log",
+    "configure": "/tmp/microllm-exp150-build.WQoqV3/configure.log",
+    "directory": "/tmp/microllm-exp150-build.WQoqV3",
+    "fraction_pilot_contract": "/tmp/microllm-exp150-build.WQoqV3/hf-fp8-fraction-pilot-contract.log",
+    "hf_cli_contract": "/tmp/microllm-exp150-build.WQoqV3/hf-cli-binary-contract.log",
+    "steps": 50
+  },
+  "clipped_policy_decision": "disable",
+  "comparison_checks": {
+    "all_151936": true,
+    "all_finite": true,
+    "precision_gate_pass_count": 0,
+    "top_equal_count": 14
+  },
+  "execution": {
+    "comparisons": 16,
+    "directory": "/tmp/microllm-exp150-fraction-pilot-final",
+    "exit": 0,
+    "stderr": 0,
+    "summary_status": "pass",
+    "workers": 20
+  },
+  "exp149_isolation": "No Exp149 binary, rows, summaries, or invalid artifacts were read or merged. Exp150 uses revision 4320940, fresh build WQoqV3, one-oracle runner, and a new output directory.",
+  "experiment": "Exp150",
+  "fraction_table": [
+    {
+      "cases": 4,
+      "fraction": 1.0,
+      "precision_gate_pass_count": 0,
+      "strictly_better_worst_rms_than_fraction1": false,
+      "top_token_equal_all": true,
+      "worst_max_over_fraction1": 1.0,
+      "worst_normalized_max": 9.586434364318848,
+      "worst_normalized_rms": 7.51222030241051,
+      "worst_rms_over_fraction1": 1.0
+    },
+    {
+      "cases": 4,
+      "fraction": 0.75,
+      "precision_gate_pass_count": 0,
+      "strictly_better_worst_rms_than_fraction1": false,
+      "top_token_equal_all": true,
+      "worst_max_over_fraction1": 6.203481633946323,
+      "worst_normalized_max": 59.46926951408386,
+      "worst_normalized_rms": 53.40813155144666,
+      "worst_rms_over_fraction1": 7.109500174576768
+    },
+    {
+      "cases": 4,
+      "fraction": 0.5,
+      "precision_gate_pass_count": 0,
+      "strictly_better_worst_rms_than_fraction1": false,
+      "top_token_equal_all": true,
+      "worst_max_over_fraction1": 8.464578314691302,
+      "worst_normalized_max": 81.1451244354248,
+      "worst_normalized_rms": 75.20640957124174,
+      "worst_rms_over_fraction1": 10.011209275519997
+    },
+    {
+      "cases": 4,
+      "fraction": 0.25,
+      "precision_gate_pass_count": 0,
+      "strictly_better_worst_rms_than_fraction1": false,
+      "top_token_equal_all": false,
+      "worst_max_over_fraction1": 11.897543599077009,
+      "worst_normalized_max": 114.05502080917358,
+      "worst_normalized_rms": 83.32102030550553,
+      "worst_rms_over_fraction1": 11.091397343441805
+    }
+  ],
+  "preflight": [
+    {
+      "gpu_use_percent": 0,
+      "physical_gpu_index": 2,
+      "sample": 1,
+      "timestamp_utc": "2026-08-23T16:20:02.396226+00:00",
+      "vram_percent": 0
+    },
+    {
+      "gpu_use_percent": 0,
+      "physical_gpu_index": 2,
+      "sample": 2,
+      "timestamp_utc": "2026-08-23T16:20:12.515625+00:00",
+      "vram_percent": 0
+    },
+    {
+      "gpu_use_percent": 0,
+      "physical_gpu_index": 2,
+      "sample": 3,
+      "timestamp_utc": "2026-08-23T16:20:22.644137+00:00",
+      "vram_percent": 0
+    }
+  ],
+  "revision": "432094008a6c0e89c70f1713e53cf4d11e93adbd",
+  "schema_version": 1,
+  "selection": {
+    "reason": "no clipped candidate strictly improves worst normalized RMS",
+    "selected_fraction": 1.0
+  },
+  "throughput_boundary": "Runner marks throughput_is_performance_evidence=false; no TPS conclusion is permitted.",
+  "worker_checks": [
+    {
+      "clipped": 0,
+      "context": 8,
+      "dynamic": 0,
+      "fraction": null,
+      "logit_count": 151936,
+      "model": "qwen2.5-0.5b",
+      "passed": true,
+      "policy": "fp32",
+      "post": 0
+    },
+    {
+      "clipped": 0,
+      "context": 8,
+      "dynamic": 96,
+      "fraction": 1.0,
+      "logit_count": 151936,
+      "model": "qwen2.5-0.5b",
+      "passed": true,
+      "policy": "fraction-1",
+      "post": 24
+    },
+    {
+      "clipped": 96,
+      "context": 8,
+      "dynamic": 96,
+      "fraction": 0.75,
+      "logit_count": 151936,
+      "model": "qwen2.5-0.5b",
+      "passed": true,
+      "policy": "fraction-0.75",
+      "post": 24
+    },
+    {
+      "clipped": 96,
+      "context": 8,
+      "dynamic": 96,
+      "fraction": 0.5,
+      "logit_count": 151936,
+      "model": "qwen2.5-0.5b",
+      "passed": true,
+      "policy": "fraction-0.5",
+      "post": 24
+    },
+    {
+      "clipped": 96,
+      "context": 8,
+      "dynamic": 96,
+      "fraction": 0.25,
+      "logit_count": 151936,
+      "model": "qwen2.5-0.5b",
+      "passed": true,
+      "policy": "fraction-0.25",
+      "post": 24
+    },
+    {
+      "clipped": 0,
+      "context": 512,
+      "dynamic": 0,
+      "fraction": null,
+      "logit_count": 151936,
+      "model": "qwen2.5-0.5b",
+      "passed": true,
+      "policy": "fp32",
+      "post": 0
+    },
+    {
+      "clipped": 0,
+      "context": 512,
+      "dynamic": 96,
+      "fraction": 1.0,
+      "logit_count": 151936,
+      "model": "qwen2.5-0.5b",
+      "passed": true,
+      "policy": "fraction-1",
+      "post": 24
+    },
+    {
+      "clipped": 96,
+      "context": 512,
+      "dynamic": 96,
+      "fraction": 0.75,
+      "logit_count": 151936,
+      "model": "qwen2.5-0.5b",
+      "passed": true,
+      "policy": "fraction-0.75",
+      "post": 24
+    },
+    {
+      "clipped": 96,
+      "context": 512,
+      "dynamic": 96,
+      "fraction": 0.5,
+      "logit_count": 151936,
+      "model": "qwen2.5-0.5b",
+      "passed": true,
+      "policy": "fraction-0.5",
+      "post": 24
+    },
+    {
+      "clipped": 96,
+      "context": 512,
+      "dynamic": 96,
+      "fraction": 0.25,
+      "logit_count": 151936,
+      "model": "qwen2.5-0.5b",
+      "passed": true,
+      "policy": "fraction-0.25",
+      "post": 24
+    },
+    {
+      "clipped": 0,
+      "context": 8,
+      "dynamic": 0,
+      "fraction": null,
+      "logit_count": 151936,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "passed": true,
+      "policy": "fp32",
+      "post": 0
+    },
+    {
+      "clipped": 0,
+      "context": 8,
+      "dynamic": 113,
+      "fraction": 1.0,
+      "logit_count": 151936,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "passed": true,
+      "policy": "fraction-1",
+      "post": 28
+    },
+    {
+      "clipped": 113,
+      "context": 8,
+      "dynamic": 113,
+      "fraction": 0.75,
+      "logit_count": 151936,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "passed": true,
+      "policy": "fraction-0.75",
+      "post": 28
+    },
+    {
+      "clipped": 113,
+      "context": 8,
+      "dynamic": 113,
+      "fraction": 0.5,
+      "logit_count": 151936,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "passed": true,
+      "policy": "fraction-0.5",
+      "post": 28
+    },
+    {
+      "clipped": 113,
+      "context": 8,
+      "dynamic": 113,
+      "fraction": 0.25,
+      "logit_count": 151936,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "passed": true,
+      "policy": "fraction-0.25",
+      "post": 28
+    },
+    {
+      "clipped": 0,
+      "context": 512,
+      "dynamic": 0,
+      "fraction": null,
+      "logit_count": 151936,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "passed": true,
+      "policy": "fp32",
+      "post": 0
+    },
+    {
+      "clipped": 0,
+      "context": 512,
+      "dynamic": 113,
+      "fraction": 1.0,
+      "logit_count": 151936,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "passed": true,
+      "policy": "fraction-1",
+      "post": 28
+    },
+    {
+      "clipped": 113,
+      "context": 512,
+      "dynamic": 113,
+      "fraction": 0.75,
+      "logit_count": 151936,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "passed": true,
+      "policy": "fraction-0.75",
+      "post": 28
+    },
+    {
+      "clipped": 113,
+      "context": 512,
+      "dynamic": 113,
+      "fraction": 0.5,
+      "logit_count": 151936,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "passed": true,
+      "policy": "fraction-0.5",
+      "post": 28
+    },
+    {
+      "clipped": 113,
+      "context": 512,
+      "dynamic": 113,
+      "fraction": 0.25,
+      "logit_count": 151936,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "passed": true,
+      "policy": "fraction-0.25",
+      "post": 28
+    }
+  ]
+}

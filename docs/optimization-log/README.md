@@ -662,6 +662,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/148-data/](experiments/148-data/) | O-only/control共72 worker和targeted keep证据 |
 | [assets/fp8-clipped-pilot-invalid.svg](assets/fp8-clipped-pilot-invalid.svg) | 外部GPU争用时间线和严格拒绝门 |
 | [experiments/149-data/](experiments/149-data/) | 0/4有效fraction、污染行排除和重试合同 |
+| [assets/fp8-fraction-pilot-workload-invalid.svg](assets/fp8-fraction-pilot-workload-invalid.svg) | retained/执行weight起点不一致 |
+| [experiments/150-data/](experiments/150-data/) | 20 worker执行合同与4/4 baseline mismatch |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

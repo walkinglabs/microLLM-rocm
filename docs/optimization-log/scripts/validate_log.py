@@ -6221,6 +6221,49 @@ def validate_fp8_clipped_pilot_invalid(
         verification.get("required_fraction_suites", -1), raw_rows
 
 
+def validate_fp8_fraction_workload_invalid(
+        errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "150-data"
+    verification = json.loads((data / "verification.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    execution = verification.get("execution", {})
+    raw_rows = sum(1 for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip())
+    preflight_rows = sum(1 for line in (data / "gpu2-preflight.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip())
+    if verification.get("status") != "invalid_workload_mismatch" or \
+            verification.get("valid_fraction_conclusion") is not False or \
+            verification.get("valid_selection") is not None or \
+            verification.get("worker_contract_checks_passed") is not True or \
+            execution.get("workers") != 20 or execution.get("comparisons") != 16 or \
+            execution.get("exit") != 0 or execution.get("stderr") != 0 or \
+            raw_rows != 36 or preflight_rows != 3 or \
+            (data / "stderr.log").stat().st_size != 0:
+        errors.append("FP8 fraction workload-invalid execution changed")
+    mismatch = verification.get("mismatch", {})
+    cases = mismatch.get("fraction1_vs_exp148", [])
+    if mismatch.get("runner_hardcoded_weight_scale") != 0.0001 or \
+            mismatch.get("requested_retained_policy_weight_scale") != 0.005 or \
+            mismatch.get("all_fraction1_metrics_match_exp148") is not False or \
+            len(cases) != 4 or any(
+                row.get("max_exact") is not False or row.get("rms_exact") is not False
+                for row in cases):
+        errors.append("FP8 fraction workload mismatch evidence changed")
+    decision = gates.get("decision", {})
+    if decision.get("runner_reported_selection_is_valid") is not False or \
+            decision.get("numerical_fraction_selected") is not False or \
+            decision.get("exp150_rows_may_be_merged_into_retry") is not False or \
+            decision.get("corrected_runner_must_pin_or_expose_weight_scale") is not True or \
+            decision.get("exp149_data_was_merged") is not False or \
+            "[50/50]" not in (data / "fresh-build.log").read_text(encoding="utf-8") or \
+            "binary contract: pass" not in (data / "hf-cli-binary-contract.log").read_text(
+                encoding="utf-8") or \
+            "OK" not in (data / "hf-fp8-fraction-pilot-contract.log").read_text(
+                encoding="utf-8"):
+        errors.append("FP8 fraction workload-invalid decision/build gates changed")
+    return execution.get("workers", 0), execution.get("comparisons", 0), len(cases)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -6348,7 +6391,8 @@ def validate_assets(errors: list[str]) -> None:
                  "fp8-output-head-only.svg",
                  "fp8-attention-only.svg",
                  "fp8-attention-output-only.svg",
-                 "fp8-clipped-pilot-invalid.svg"):
+                 "fp8-clipped-pilot-invalid.svg",
+                 "fp8-fraction-pilot-workload-invalid.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -6580,6 +6624,8 @@ def main() -> int:
         validate_fp8_attention_output_only(errors)
     clipped_valid, clipped_required, clipped_excluded = \
         validate_fp8_clipped_pilot_invalid(errors)
+    mismatch_workers, mismatch_comparisons, mismatch_cases = \
+        validate_fp8_fraction_workload_invalid(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -6762,6 +6808,8 @@ def main() -> int:
           f"attention_output={output_workers}/{output_fp8}/{output_precision} "
           f"clipped_invalid={clipped_valid}/{clipped_required}/"
           f"{clipped_excluded} "
+          f"fraction_mismatch={mismatch_workers}/{mismatch_comparisons}/"
+          f"{mismatch_cases} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

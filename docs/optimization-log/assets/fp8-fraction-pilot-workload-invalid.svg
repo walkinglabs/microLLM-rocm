@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="580" viewBox="0 0 1120 580" role="img" aria-labelledby="title desc">
+  <title id="title">Fraction pilot workload mismatch</title>
+  <desc id="desc">The pilot changed both activation fraction and weight minimum scale, invalidating comparison with the retained policy.</desc>
+  <rect width="1120" height="580" rx="20" fill="#0b1020"/>
+  <text x="56" y="58" fill="#f8fafc" font-size="29" font-family="sans-serif" font-weight="700">只想改activation，却偷偷换了weight起点</text>
+  <text x="56" y="91" fill="#94a3b8" font-size="16" font-family="sans-serif">执行成功不等于实验有效</text>
+  <rect x="90" y="160" width="390" height="155" rx="16" fill="#123127" stroke="#22c55e"/><text x="130" y="205" fill="#f8fafc" font-size="21" font-family="sans-serif" font-weight="700">Exp148 retained</text><text x="130" y="247" fill="#86efac" font-size="19" font-family="sans-serif">weight minimum = 0.005</text><text x="130" y="280" fill="#cbd5e1" font-size="16" font-family="sans-serif">O-only · activation fraction 1.0</text>
+  <rect x="640" y="160" width="390" height="155" rx="16" fill="#3f1722" stroke="#fb7185"/><text x="680" y="205" fill="#f8fafc" font-size="21" font-family="sans-serif" font-weight="700">Exp150 executed</text><text x="680" y="247" fill="#fda4af" font-size="19" font-family="sans-serif">weight minimum = 0.0001</text><text x="680" y="280" fill="#cbd5e1" font-size="16" font-family="sans-serif">同时搜索activation fraction</text>
+  <path d="M480 238 H640" stroke="#fbbf24" stroke-width="4" stroke-dasharray="10 8"/>
+  <text x="505" y="220" fill="#fbbf24" font-size="17" font-family="sans-serif">不能比较</text>
+  <rect x="140" y="390" width="840" height="100" rx="14" fill="#111827" stroke="#334155"/><text x="190" y="430" fill="#f8fafc" font-size="19" font-family="sans-serif">20 workers / 16 comparisons：执行合同有效</text><text x="190" y="466" fill="#fbbf24" font-size="18" font-family="sans-serif">fraction selection：无效 · 4/4 baseline不匹配</text>
+  <text x="330" y="545" fill="#94a3b8" font-size="16" font-family="sans-serif">修复：参数显式化 + 合同检查0.005 + 全新重跑</text>
+</svg>
