@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "status": "native_is_material_vector_perturbation_not_total_error_driver",
+  "evidence": {
+    "fresh_build_steps": 50,
+    "contracts_passed": 2,
+    "formal_workers": 12,
+    "direct_comparison_rows": 4,
+    "complete_logits_per_comparison": 151936,
+    "all_top_tokens_equal": true,
+    "all_precision_comparisons_failed": 12,
+    "stderr_bytes": 0,
+    "throughput_is_performance_evidence": false
+  },
+  "decision": {
+    "native_and_roundtrip_use_same_quantization_counts": true,
+    "native_gemm_is_major_additional_vector_perturbation": true,
+    "native_gemm_materially_increases_final_total_rms": false,
+    "both_roundtrip_passes_fp32_precision_gate": false,
+    "native_full_passes_fp32_precision_gate": false,
+    "replace_native_gemm_with_fp32_is_accepted_fix": false,
+    "finer_quantization_scale_remains_required": true,
+    "future_scale_policy_must_be_verified_on_native_full": true
+  }
+}

@@ -1,0 +1,578 @@
+{
+  "boundary": "identical device Tensor-amax weights and activations; full uses native FP8 GEMM; both-roundtrip dequantizes both operands and uses FP32 GEMM; complete logits only",
+  "comparison_rows": 4,
+  "comparisons": [
+    {
+      "comparisons": {
+        "both_roundtrip_vs_fp32": {
+          "maximum_absolute_error": 1.1541191935539246,
+          "precision_gate_passed": false,
+          "reference_top_token": 9707,
+          "root_mean_square_error": 0.2772834268209764,
+          "top_token": 9707,
+          "top_token_equal": true
+        },
+        "full_vs_both_roundtrip": {
+          "maximum_absolute_error": 0.7788907587528229,
+          "precision_gate_passed": false,
+          "reference_top_token": 9707,
+          "root_mean_square_error": 0.16128359131807316,
+          "top_token": 9707,
+          "top_token_equal": true
+        },
+        "full_vs_fp32": {
+          "maximum_absolute_error": 1.2144723534584045,
+          "precision_gate_passed": false,
+          "reference_top_token": 9707,
+          "root_mean_square_error": 0.2778311788476209,
+          "top_token": 9707,
+          "top_token_equal": true
+        }
+      },
+      "context": 8,
+      "logit_count": 151936,
+      "model": "qwen2.5-0.5b",
+      "process_run": 1,
+      "record_type": "fp8_native_roundtrip_comparison",
+      "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+      "same_dynamic_activation_count": true,
+      "same_weight_conversion_count": true,
+      "schema_version": 1,
+      "status": "pass",
+      "throughput_is_performance_evidence": false
+    },
+    {
+      "comparisons": {
+        "both_roundtrip_vs_fp32": {
+          "maximum_absolute_error": 2.120079517364502,
+          "precision_gate_passed": false,
+          "reference_top_token": 9707,
+          "root_mean_square_error": 0.4487760844931976,
+          "top_token": 9707,
+          "top_token_equal": true
+        },
+        "full_vs_both_roundtrip": {
+          "maximum_absolute_error": 1.2690210342407227,
+          "precision_gate_passed": false,
+          "reference_top_token": 9707,
+          "root_mean_square_error": 0.25896396754998086,
+          "top_token": 9707,
+          "top_token_equal": true
+        },
+        "full_vs_fp32": {
+          "maximum_absolute_error": 1.830350399017334,
+          "precision_gate_passed": false,
+          "reference_top_token": 9707,
+          "root_mean_square_error": 0.3432300639202133,
+          "top_token": 9707,
+          "top_token_equal": true
+        }
+      },
+      "context": 512,
+      "logit_count": 151936,
+      "model": "qwen2.5-0.5b",
+      "process_run": 1,
+      "record_type": "fp8_native_roundtrip_comparison",
+      "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+      "same_dynamic_activation_count": true,
+      "same_weight_conversion_count": true,
+      "schema_version": 1,
+      "status": "pass",
+      "throughput_is_performance_evidence": false
+    },
+    {
+      "comparisons": {
+        "both_roundtrip_vs_fp32": {
+          "maximum_absolute_error": 0.9970307350158691,
+          "precision_gate_passed": false,
+          "reference_top_token": 10,
+          "root_mean_square_error": 0.22555013689058176,
+          "top_token": 10,
+          "top_token_equal": true
+        },
+        "full_vs_both_roundtrip": {
+          "maximum_absolute_error": 0.7102172374725342,
+          "precision_gate_passed": false,
+          "reference_top_token": 10,
+          "root_mean_square_error": 0.14427816950655267,
+          "top_token": 10,
+          "top_token_equal": true
+        },
+        "full_vs_fp32": {
+          "maximum_absolute_error": 0.847926139831543,
+          "precision_gate_passed": false,
+          "reference_top_token": 10,
+          "root_mean_square_error": 0.1875947732436799,
+          "top_token": 10,
+          "top_token_equal": true
+        }
+      },
+      "context": 8,
+      "logit_count": 151936,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "process_run": 1,
+      "record_type": "fp8_native_roundtrip_comparison",
+      "revision": "ad9f0ae0864d7fbcd1cd905e3c6c5b069cc8b562",
+      "same_dynamic_activation_count": true,
+      "same_weight_conversion_count": true,
+      "schema_version": 1,
+      "status": "pass",
+      "throughput_is_performance_evidence": false
+    },
+    {
+      "comparisons": {
+        "both_roundtrip_vs_fp32": {
+          "maximum_absolute_error": 0.9610781669616699,
+          "precision_gate_passed": false,
+          "reference_top_token": 30,
+          "root_mean_square_error": 0.19172708974806962,
+          "top_token": 30,
+          "top_token_equal": true
+        },
+        "full_vs_both_roundtrip": {
+          "maximum_absolute_error": 0.5836043357849121,
+          "precision_gate_passed": false,
+          "reference_top_token": 30,
+          "root_mean_square_error": 0.10483581576087965,
+          "top_token": 30,
+          "top_token_equal": true
+        },
+        "full_vs_fp32": {
+          "maximum_absolute_error": 1.0912184715270996,
+          "precision_gate_passed": false,
+          "reference_top_token": 30,
+          "root_mean_square_error": 0.1912762399067743,
+          "top_token": 30,
+          "top_token_equal": true
+        }
+      },
+      "context": 512,
+      "logit_count": 151936,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "process_run": 1,
+      "record_type": "fp8_native_roundtrip_comparison",
+      "revision": "ad9f0ae0864d7fbcd1cd905e3c6c5b069cc8b562",
+      "same_dynamic_activation_count": true,
+      "same_weight_conversion_count": true,
+      "schema_version": 1,
+      "status": "pass",
+      "throughput_is_performance_evidence": false
+    }
+  ],
+  "contexts": [
+    8,
+    512
+  ],
+  "execution_status": "pass",
+  "models": [
+    "qwen2.5-0.5b",
+    "deepseek-r1-distill-qwen-1.5b"
+  ],
+  "native_roundtrip_failure_count": 4,
+  "runs": 1,
+  "schema_version": 1,
+  "status": "complete_with_recorded_native_roundtrip_differences",
+  "steps": 1,
+  "throughput_is_performance_evidence": false,
+  "track": "fp8_native_vs_both_roundtrip",
+  "warmup": 0,
+  "worker_rows": 12,
+  "workers": [
+    {
+      "compute_dtype": "float32",
+      "context": 8,
+      "fp8_converted_tensors": 0,
+      "fp8_dynamic_tensor_calls": 0,
+      "fp8_linears_covered": 0,
+      "fp8_native_shapes": 0,
+      "fp8_software_fallback_calls": 0,
+      "logit_count": 151936,
+      "model": "qwen2.5-0.5b",
+      "policy": "fp32",
+      "policy_order": [
+        "fp32",
+        "full",
+        "both-roundtrip"
+      ],
+      "post_run_gpu_state": {
+        "gpu_use_percent": 2,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "pre_run_gpu_state": {
+        "gpu_use_percent": 0,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "process_run": 1,
+      "record_type": "fp8_native_roundtrip_worker",
+      "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+      "schema_version": 1,
+      "status": "pass",
+      "throughput_is_performance_evidence": false
+    },
+    {
+      "compute_dtype": "fp8_e4m3_fnuz_linear_with_fp32_boundaries",
+      "context": 8,
+      "fp8_converted_tensors": 168,
+      "fp8_dynamic_tensor_calls": 96,
+      "fp8_linears_covered": 168,
+      "fp8_native_shapes": 4,
+      "fp8_software_fallback_calls": 0,
+      "logit_count": 151936,
+      "model": "qwen2.5-0.5b",
+      "policy": "full",
+      "policy_order": [
+        "fp32",
+        "full",
+        "both-roundtrip"
+      ],
+      "post_run_gpu_state": {
+        "gpu_use_percent": 3,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "pre_run_gpu_state": {
+        "gpu_use_percent": 1,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "process_run": 1,
+      "record_type": "fp8_native_roundtrip_worker",
+      "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+      "schema_version": 1,
+      "status": "pass",
+      "throughput_is_performance_evidence": false
+    },
+    {
+      "compute_dtype": "fp32_gemm_with_fp8_roundtrip_both_operands",
+      "context": 8,
+      "fp8_converted_tensors": 168,
+      "fp8_dynamic_tensor_calls": 96,
+      "fp8_linears_covered": 168,
+      "fp8_native_shapes": 0,
+      "fp8_software_fallback_calls": 0,
+      "logit_count": 151936,
+      "model": "qwen2.5-0.5b",
+      "policy": "both-roundtrip",
+      "policy_order": [
+        "fp32",
+        "full",
+        "both-roundtrip"
+      ],
+      "post_run_gpu_state": {
+        "gpu_use_percent": 2,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "pre_run_gpu_state": {
+        "gpu_use_percent": 1,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "process_run": 1,
+      "record_type": "fp8_native_roundtrip_worker",
+      "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+      "schema_version": 1,
+      "status": "pass",
+      "throughput_is_performance_evidence": false
+    },
+    {
+      "compute_dtype": "float32",
+      "context": 512,
+      "fp8_converted_tensors": 0,
+      "fp8_dynamic_tensor_calls": 0,
+      "fp8_linears_covered": 0,
+      "fp8_native_shapes": 0,
+      "fp8_software_fallback_calls": 0,
+      "logit_count": 151936,
+      "model": "qwen2.5-0.5b",
+      "policy": "fp32",
+      "policy_order": [
+        "fp32",
+        "full",
+        "both-roundtrip"
+      ],
+      "post_run_gpu_state": {
+        "gpu_use_percent": 3,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "pre_run_gpu_state": {
+        "gpu_use_percent": 0,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "process_run": 1,
+      "record_type": "fp8_native_roundtrip_worker",
+      "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+      "schema_version": 1,
+      "status": "pass",
+      "throughput_is_performance_evidence": false
+    },
+    {
+      "compute_dtype": "fp8_e4m3_fnuz_linear_with_fp32_boundaries",
+      "context": 512,
+      "fp8_converted_tensors": 168,
+      "fp8_dynamic_tensor_calls": 96,
+      "fp8_linears_covered": 168,
+      "fp8_native_shapes": 4,
+      "fp8_software_fallback_calls": 0,
+      "logit_count": 151936,
+      "model": "qwen2.5-0.5b",
+      "policy": "full",
+      "policy_order": [
+        "fp32",
+        "full",
+        "both-roundtrip"
+      ],
+      "post_run_gpu_state": {
+        "gpu_use_percent": 2,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "pre_run_gpu_state": {
+        "gpu_use_percent": 1,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "process_run": 1,
+      "record_type": "fp8_native_roundtrip_worker",
+      "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+      "schema_version": 1,
+      "status": "pass",
+      "throughput_is_performance_evidence": false
+    },
+    {
+      "compute_dtype": "fp32_gemm_with_fp8_roundtrip_both_operands",
+      "context": 512,
+      "fp8_converted_tensors": 168,
+      "fp8_dynamic_tensor_calls": 96,
+      "fp8_linears_covered": 168,
+      "fp8_native_shapes": 0,
+      "fp8_software_fallback_calls": 0,
+      "logit_count": 151936,
+      "model": "qwen2.5-0.5b",
+      "policy": "both-roundtrip",
+      "policy_order": [
+        "fp32",
+        "full",
+        "both-roundtrip"
+      ],
+      "post_run_gpu_state": {
+        "gpu_use_percent": 2,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "pre_run_gpu_state": {
+        "gpu_use_percent": 1,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "process_run": 1,
+      "record_type": "fp8_native_roundtrip_worker",
+      "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+      "schema_version": 1,
+      "status": "pass",
+      "throughput_is_performance_evidence": false
+    },
+    {
+      "compute_dtype": "float32",
+      "context": 8,
+      "fp8_converted_tensors": 0,
+      "fp8_dynamic_tensor_calls": 0,
+      "fp8_linears_covered": 0,
+      "fp8_native_shapes": 0,
+      "fp8_software_fallback_calls": 0,
+      "logit_count": 151936,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "policy": "fp32",
+      "policy_order": [
+        "fp32",
+        "full",
+        "both-roundtrip"
+      ],
+      "post_run_gpu_state": {
+        "gpu_use_percent": 3,
+        "physical_gpu_index": 2,
+        "vram_percent": 2
+      },
+      "pre_run_gpu_state": {
+        "gpu_use_percent": 0,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "process_run": 1,
+      "record_type": "fp8_native_roundtrip_worker",
+      "revision": "ad9f0ae0864d7fbcd1cd905e3c6c5b069cc8b562",
+      "schema_version": 1,
+      "status": "pass",
+      "throughput_is_performance_evidence": false
+    },
+    {
+      "compute_dtype": "fp8_e4m3_fnuz_linear_with_fp32_boundaries",
+      "context": 8,
+      "fp8_converted_tensors": 197,
+      "fp8_dynamic_tensor_calls": 113,
+      "fp8_linears_covered": 197,
+      "fp8_native_shapes": 4,
+      "fp8_software_fallback_calls": 28,
+      "logit_count": 151936,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "policy": "full",
+      "policy_order": [
+        "fp32",
+        "full",
+        "both-roundtrip"
+      ],
+      "post_run_gpu_state": {
+        "gpu_use_percent": 3,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "pre_run_gpu_state": {
+        "gpu_use_percent": 1,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "process_run": 1,
+      "record_type": "fp8_native_roundtrip_worker",
+      "revision": "ad9f0ae0864d7fbcd1cd905e3c6c5b069cc8b562",
+      "schema_version": 1,
+      "status": "pass",
+      "throughput_is_performance_evidence": false
+    },
+    {
+      "compute_dtype": "fp32_gemm_with_fp8_roundtrip_both_operands",
+      "context": 8,
+      "fp8_converted_tensors": 197,
+      "fp8_dynamic_tensor_calls": 113,
+      "fp8_linears_covered": 197,
+      "fp8_native_shapes": 0,
+      "fp8_software_fallback_calls": 0,
+      "logit_count": 151936,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "policy": "both-roundtrip",
+      "policy_order": [
+        "fp32",
+        "full",
+        "both-roundtrip"
+      ],
+      "post_run_gpu_state": {
+        "gpu_use_percent": 3,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "pre_run_gpu_state": {
+        "gpu_use_percent": 1,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "process_run": 1,
+      "record_type": "fp8_native_roundtrip_worker",
+      "revision": "ad9f0ae0864d7fbcd1cd905e3c6c5b069cc8b562",
+      "schema_version": 1,
+      "status": "pass",
+      "throughput_is_performance_evidence": false
+    },
+    {
+      "compute_dtype": "float32",
+      "context": 512,
+      "fp8_converted_tensors": 0,
+      "fp8_dynamic_tensor_calls": 0,
+      "fp8_linears_covered": 0,
+      "fp8_native_shapes": 0,
+      "fp8_software_fallback_calls": 0,
+      "logit_count": 151936,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "policy": "fp32",
+      "policy_order": [
+        "fp32",
+        "full",
+        "both-roundtrip"
+      ],
+      "post_run_gpu_state": {
+        "gpu_use_percent": 3,
+        "physical_gpu_index": 2,
+        "vram_percent": 2
+      },
+      "pre_run_gpu_state": {
+        "gpu_use_percent": 1,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "process_run": 1,
+      "record_type": "fp8_native_roundtrip_worker",
+      "revision": "ad9f0ae0864d7fbcd1cd905e3c6c5b069cc8b562",
+      "schema_version": 1,
+      "status": "pass",
+      "throughput_is_performance_evidence": false
+    },
+    {
+      "compute_dtype": "fp8_e4m3_fnuz_linear_with_fp32_boundaries",
+      "context": 512,
+      "fp8_converted_tensors": 197,
+      "fp8_dynamic_tensor_calls": 113,
+      "fp8_linears_covered": 197,
+      "fp8_native_shapes": 5,
+      "fp8_software_fallback_calls": 0,
+      "logit_count": 151936,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "policy": "full",
+      "policy_order": [
+        "fp32",
+        "full",
+        "both-roundtrip"
+      ],
+      "post_run_gpu_state": {
+        "gpu_use_percent": 3,
+        "physical_gpu_index": 2,
+        "vram_percent": 1
+      },
+      "pre_run_gpu_state": {
+        "gpu_use_percent": 1,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "process_run": 1,
+      "record_type": "fp8_native_roundtrip_worker",
+      "revision": "ad9f0ae0864d7fbcd1cd905e3c6c5b069cc8b562",
+      "schema_version": 1,
+      "status": "pass",
+      "throughput_is_performance_evidence": false
+    },
+    {
+      "compute_dtype": "fp32_gemm_with_fp8_roundtrip_both_operands",
+      "context": 512,
+      "fp8_converted_tensors": 197,
+      "fp8_dynamic_tensor_calls": 113,
+      "fp8_linears_covered": 197,
+      "fp8_native_shapes": 0,
+      "fp8_software_fallback_calls": 0,
+      "logit_count": 151936,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "policy": "both-roundtrip",
+      "policy_order": [
+        "fp32",
+        "full",
+        "both-roundtrip"
+      ],
+      "post_run_gpu_state": {
+        "gpu_use_percent": 3,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "pre_run_gpu_state": {
+        "gpu_use_percent": 1,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "process_run": 1,
+      "record_type": "fp8_native_roundtrip_worker",
+      "revision": "ad9f0ae0864d7fbcd1cd905e3c6c5b069cc8b562",
+      "schema_version": 1,
+      "status": "pass",
+      "throughput_is_performance_evidence": false
+    }
+  ]
+}

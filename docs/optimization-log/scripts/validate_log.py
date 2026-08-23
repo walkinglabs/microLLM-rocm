@@ -5708,6 +5708,72 @@ def validate_fp8_error_source_isolation(
     return sum(row["worker_rows"] for row in suites), 8, 151936
 
 
+def validate_fp8_native_roundtrip(
+        errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "142-data"
+    verification = json.loads((data / "verification.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    raw_rows = sum(1 for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip())
+    pair_rows = sum(1 for line in (data / "pairs.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip())
+    preflight_rows = sum(1 for line in (data / "gpu2-preflight.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip())
+    execution = verification.get("execution", {})
+    if verification.get("all_contract_checks_passed") is not True or \
+            execution.get("worker_rows") != 12 or \
+            execution.get("comparison_rows") != 4 or \
+            execution.get("exit_code") != 0 or execution.get("stderr_bytes") != 0 or \
+            raw_rows != 12 or pair_rows != 4 or preflight_rows != 3 or \
+            (data / "stderr.log").stat().st_size != 0:
+        errors.append("FP8 native-roundtrip execution contract changed")
+    workers = verification.get("worker_checks", [])
+    if len(workers) != 4 or any(
+            row.get("passed") is not True or row.get("same_converted") is not True or
+            row.get("same_dynamic") is not True or row.get("same_linears") is not True or
+            row.get("complete_logits") is not True or
+            row.get("both_roundtrip_zero_native_and_fallback") is not True
+            for row in workers):
+        errors.append("FP8 native-roundtrip worker counters changed")
+    pairs = {(row["model"], row["context"]): row
+             for row in verification.get("pair_checks", [])}
+    expected_keys = {
+        ("qwen2.5-0.5b", 8), ("qwen2.5-0.5b", 512),
+        ("deepseek-r1-distill-qwen-1.5b", 8),
+        ("deepseek-r1-distill-qwen-1.5b", 512)}
+    if set(pairs) != expected_keys or any(
+            row.get("passed") is not True or row.get("logit_count") != 151936 or
+            row.get("all_top_tokens_equal") is not True or
+            row.get("all_precision_gates_passed") is not False or
+            row.get("native_is_major_additional_vector_perturbation") is not True or
+            row.get("native_materially_increases_final_total_rms") is not False
+            for row in pairs.values()):
+        errors.append("FP8 native-roundtrip pair gates changed")
+    if pairs and (
+            not 0.57 < pairs[("qwen2.5-0.5b", 8)][
+                "direct_native_rms_over_full_total_rms"] < 0.59 or
+            not 0.75 < pairs[("qwen2.5-0.5b", 512)][
+                "direct_native_rms_over_full_total_rms"] < 0.76 or
+            not 0.76 < pairs[("deepseek-r1-distill-qwen-1.5b", 8)][
+                "direct_native_rms_over_full_total_rms"] < 0.78 or
+            not 0.54 < pairs[("deepseek-r1-distill-qwen-1.5b", 512)][
+                "direct_native_rms_over_full_total_rms"] < 0.56):
+        errors.append("FP8 native-roundtrip direct ratios changed")
+    decision = gates.get("decision", {})
+    build = (data / "fresh-build.log").read_text(encoding="utf-8")
+    cli_contract = (data / "hf-cli-binary-contract.log").read_text(encoding="utf-8")
+    runner_contract = (data / "benchmark-hf-fp8-native-roundtrip-contract.log").read_text(
+        encoding="utf-8")
+    if decision.get("native_gemm_is_major_additional_vector_perturbation") is not True or \
+            decision.get("native_gemm_materially_increases_final_total_rms") is not False or \
+            decision.get("replace_native_gemm_with_fp32_is_accepted_fix") is not False or \
+            decision.get("finer_quantization_scale_remains_required") is not True or \
+            "[50/50]" not in build or "binary contract: pass" not in cli_contract or \
+            "OK" not in runner_contract:
+        errors.append("FP8 native-roundtrip decision/build gates changed")
+    return execution.get("worker_rows", 0), execution.get("comparison_rows", 0), 151936
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -5827,7 +5893,8 @@ def validate_assets(errors: list[str]) -> None:
                  "fp8-block-detail.svg",
                  "fp8-residual-cancellation.svg",
                  "fp8-selective-block-counterfactual.svg",
-                 "fp8-error-source-isolation.svg"):
+                 "fp8-error-source-isolation.svg",
+                 "fp8-native-vs-roundtrip.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -6043,6 +6110,8 @@ def main() -> int:
         validate_fp8_selective_block_counterfactual(errors)
     source_workers, source_failures, source_logits = \
         validate_fp8_error_source_isolation(errors)
+    native_workers, native_pairs, native_logits = \
+        validate_fp8_native_roundtrip(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -6213,6 +6282,7 @@ def main() -> int:
           f"selective_fp32={selective_workers}/{selective_failures}/"
           f"{selective_models} "
           f"fp8_sources={source_workers}/{source_failures}/{source_logits} "
+          f"native_roundtrip={native_workers}/{native_pairs}/{native_logits} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

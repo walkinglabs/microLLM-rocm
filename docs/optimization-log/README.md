@@ -646,6 +646,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/140-data/](experiments/140-data/) | 36个正式worker、fresh build、完整logits与策略拒绝门 |
 | [assets/fp8-error-source-isolation.svg](assets/fp8-error-source-isolation.svg) | 权重/激活单侧舍入的完整logits RMS对比 |
 | [experiments/141-data/](experiments/141-data/) | 24个正式worker、两种诊断合同和误差归因 |
+| [assets/fp8-native-vs-roundtrip.svg](assets/fp8-native-vs-roundtrip.svg) | 原生GEMM直接扰动与最终总RMS的两条判定门 |
+| [experiments/142-data/](experiments/142-data/) | 12个worker、4组直接完整向量比较和fresh build |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

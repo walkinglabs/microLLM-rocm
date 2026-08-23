@@ -496,6 +496,9 @@ weight and activation rounding before another precision policy is proposed.
 [Experiment 141](docs/optimization-log/experiments/141-fp8-error-source-isolation.md) finds that
 Qwen is weight-error dominated while DeepSeek RMS is activation-error dominated; every isolated
 complete-logit gate still fails, so neither one-sided fix is accepted as a cross-model default.
+[Experiment 142](docs/optimization-log/experiments/142-fp8-native-vs-roundtrip.md) directly shows
+that native FP8 GEMM materially changes the logit vector but does not increase total FP32 RMS by
+the fixed 5% gate; replacing it with FP32 GEMM is rejected because both-roundtrip also fails.
 
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1160" height="670" viewBox="0 0 1160 670" role="img" aria-labelledby="title desc">
+  <title id="title">Native FP8 GEMM versus both-roundtrip FP32 GEMM</title>
+  <desc id="desc">Native GEMM creates a large direct vector difference but never increases total FP32 RMS by five percent.</desc>
+  <rect width="1160" height="670" rx="20" fill="#0b1020"/>
+  <text x="56" y="58" fill="#f8fafc" font-size="29" font-family="sans-serif" font-weight="700">原生FP8：向量方向改变很大，但没有让总RMS显著更坏</text>
+  <text x="56" y="91" fill="#94a3b8" font-size="16" font-family="sans-serif">上图=direct RMS占full总RMS；下图=full总RMS / both总RMS。虚线是判定门。</text>
+  <line x1="100" y1="300" x2="1070" y2="300" stroke="#475569"/><line x1="100" y1="205" x2="1070" y2="205" stroke="#fbbf24" stroke-dasharray="8 8"/>
+  <text x="22" y="210" fill="#fbbf24" font-size="14" font-family="sans-serif">50%</text>
+  <rect x="150" y="190" width="120" height="110" fill="#38bdf8"/><rect x="390" y="157" width="120" height="143" fill="#38bdf8"/><rect x="650" y="154" width="120" height="146" fill="#38bdf8"/><rect x="890" y="196" width="120" height="104" fill="#38bdf8"/>
+  <g fill="#f8fafc" font-size="15" font-family="sans-serif"><text x="172" y="180">58.05%</text><text x="412" y="147">75.45%</text><text x="672" y="144">76.91%</text><text x="912" y="186">54.81%</text></g>
+  <line x1="100" y1="570" x2="1070" y2="570" stroke="#475569"/><line x1="100" y1="402" x2="1070" y2="402" stroke="#fb7185" stroke-dasharray="8 8"/>
+  <text x="24" y="407" fill="#fb7185" font-size="14" font-family="sans-serif">1.05×</text>
+  <rect x="150" y="410" width="120" height="160" fill="#22c55e"/><rect x="390" y="448" width="120" height="122" fill="#22c55e"/><rect x="650" y="437" width="120" height="133" fill="#22c55e"/><rect x="890" y="410" width="120" height="160" fill="#22c55e"/>
+  <g fill="#f8fafc" font-size="15" font-family="sans-serif"><text x="178" y="398">1.002×</text><text x="418" y="436">0.765×</text><text x="678" y="425">0.832×</text><text x="918" y="398">0.998×</text></g>
+  <g fill="#cbd5e1" font-size="15" font-family="sans-serif"><text x="172" y="610">Q T8</text><text x="405" y="610">Q T512</text><text x="662" y="610">Deep T8</text><text x="900" y="610">Deep T512</text></g>
+  <text x="245" y="646" fill="#fbbf24" font-size="16" font-family="sans-serif">结论：原生GEMM是重大扰动，不是已证明的总误差主因；继续改scale</text>
+</svg>

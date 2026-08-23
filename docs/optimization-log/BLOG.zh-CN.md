@@ -2484,3 +2484,14 @@ gate/up并未爆炸。证据支持残差抵消放大解释，但缺block input�
 两边同时舍入但继续用FP32 GEMM，区分共同舍入传播与真实FP8 GEMM。
 
 ![FP8 error source isolation](assets/fp8-error-source-isolation.svg)
+
+## 159. Experiment 142：原生GEMM改变方向，却没有让总RMS更坏
+
+同一组量化值分别走原生FP8 GEMM和双侧还原后的FP32 GEMM。四组direct RMS达到full总RMS的
+54.8%–76.9%，全部完整向量门失败；原生数学显然不是小扰动。但full/both总RMS比只有
+0.765×–1.002×，没有一组超过预设1.05门，三个case的full反而更低。
+
+因此拒绝“换FP32 GEMM即可修精度”，both自己的四个FP32门也失败。继续优化scale，同时要求
+所有候选回到native full验证，不能把软件反事实当最终模型结果。
+
+![Native FP8 versus both roundtrip](assets/fp8-native-vs-roundtrip.svg)

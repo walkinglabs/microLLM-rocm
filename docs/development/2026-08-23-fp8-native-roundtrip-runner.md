@@ -13,3 +13,7 @@ Its `pairs.jsonl` stores `full_vs_fp32`, `both_roundtrip_vs_fp32`, and
 `full_vs_both_roundtrip` over every logit. It also proves that native and software paths used the
 same converted-weight and dynamic-activation counts. This is the authoritative Exp142 runner;
 separate RMS values are not accepted as a substitute for the direct vector comparison.
+
+Exp142 executed the runner over both official models and T8/T512. Direct native-vs-roundtrip RMS
+is 54.8%--76.9% of native total RMS, but native total RMS is never 5% worse than roundtrip total
+RMS. Native execution is a material directional perturbation, not a proven total-error driver.

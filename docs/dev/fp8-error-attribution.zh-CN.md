@@ -138,3 +138,8 @@ python3 benchmarks/single_gpu/hf_fp8_native_roundtrip.py \
 ```
 
 `pairs.jsonl`中的`full_vs_both_roundtrip`才是判断原生GEMM额外差异的直接证据。
+
+Exp142的四组direct RMS占full总RMS的54.8%–76.9%，说明原生路径会明显改变向量方向；但
+full相对both的总RMS比为0.765×–1.002×，没有达到“变坏5%”门。换成FP32 GEMM也不能通过
+精度门，所以后续继续改scale，并且每个候选都必须回到`full`验证。完整证据见
+[Experiment 142](../optimization-log/experiments/142-fp8-native-vs-roundtrip.md)。
