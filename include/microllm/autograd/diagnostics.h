@@ -41,5 +41,7 @@ void enable_tied_embedding_sparse_add(bool enabled) noexcept;
 // is enabled; disabling it restores the explicit transpose materializations.
 void enable_attention_rope_layout_fusion(bool enabled) noexcept;
 [[nodiscard]] bool attention_rope_layout_fusion_enabled() noexcept;
+void enable_attention_context_layout_fusion(bool enabled) noexcept;
+[[nodiscard]] bool attention_context_layout_fusion_enabled() noexcept;
 
 }  // namespace microllm::autograd

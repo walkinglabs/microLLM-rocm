@@ -363,6 +363,15 @@ void embedding_backward_add_(Tensor& weight_gradient, const Tensor& gradient,
 [[nodiscard]] Tensor attention_probability_value_bthd(
     const Tensor& probabilities, const Tensor& value,
     const OpContext& context = {});
+// Computes dP[B,H,T,T] from dO/V in interleaved [B,T,H,D] order.
+[[nodiscard]] Tensor attention_probability_gradient_bthd(
+    const Tensor& output_gradient, const Tensor& value,
+    const OpContext& context = {});
+// Computes dV[B,T,H,D] = transpose(P) @ dO without materializing either
+// interleaved head matrix.
+[[nodiscard]] Tensor attention_value_gradient_bthd(
+    const Tensor& probabilities, const Tensor& output_gradient,
+    const OpContext& context = {});
 // Full-sequence causal Attention without materializing repeated K/V heads or
 // the T×T score/probability tensors. Shapes are Q[B,H,T,D], K/V[B,KV,T,D].
 [[nodiscard]] Tensor causal_gqa_attention(const Tensor& query, const Tensor& key,
@@ -379,6 +388,22 @@ void embedding_backward_add_(Tensor& weight_gradient, const Tensor& gradient,
     const Tensor& output_gradient, std::int64_t repeats, float scale,
     const OpContext& context = {});
 [[nodiscard]] TensorTriple causal_gqa_attention_backward_saved(
+    const Tensor& query, const Tensor& key, const Tensor& value,
+    const Tensor& probabilities, const Tensor& output_gradient,
+    std::int64_t repeats, float scale, const OpContext& context = {});
+// Training layout variant: Q/K stay [B,H,T,D], while V and context use the
+// projection/output-linear order [B,T,KV-or-H,D].
+[[nodiscard]] Tensor causal_gqa_attention_bthd(
+    const Tensor& query, const Tensor& key, const Tensor& value,
+    std::int64_t repeats, float scale, const OpContext& context = {});
+[[nodiscard]] TensorPair causal_gqa_attention_bthd_saved(
+    const Tensor& query, const Tensor& key, const Tensor& value,
+    std::int64_t repeats, float scale, const OpContext& context = {});
+[[nodiscard]] TensorTriple causal_gqa_attention_bthd_backward(
+    const Tensor& query, const Tensor& key, const Tensor& value,
+    const Tensor& output_gradient, std::int64_t repeats, float scale,
+    const OpContext& context = {});
+[[nodiscard]] TensorTriple causal_gqa_attention_bthd_backward_saved(
     const Tensor& query, const Tensor& key, const Tensor& value,
     const Tensor& probabilities, const Tensor& output_gradient,
     std::int64_t repeats, float scale, const OpContext& context = {});

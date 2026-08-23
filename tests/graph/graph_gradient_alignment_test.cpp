@@ -103,6 +103,45 @@ TEST(GraphGradientAlignmentTest, BthdBiasRopeMatchesComposedGraphWithoutLayoutNo
     expect_near(fused_bias.grad(), reference_bias.grad().to_vector(), 3.0e-5F);
 }
 
+TEST(GraphGradientAlignmentTest, BthdCausalGqaMatchesComposedGraphAndAllGradients) {
+    const auto query_data = Tensor::from_vector(
+        {0.5F, -1, 1.5F, 0.25F, -0.5F, 1,
+         0.75F, -0.25F, 1, 0.5F, -1, 0.25F}, {1, 2, 3, 2});
+    const auto key_data = Tensor::from_vector(
+        {0.5F, 1, -0.5F, 0.25F, 1.5F, -1}, {1, 1, 3, 2});
+    const auto value_data = Tensor::from_vector(
+        {1, 2, 3, 4, 5, 6}, {1, 3, 1, 2});
+    const Value seed(Tensor::from_vector(
+        {1, -1, 0.5F, -0.5F, 2, -2,
+         1.5F, -1.5F, 3, -3, 2.5F, -2.5F}, {1, 3, 2, 2}));
+
+    Value fused_query(query_data, true);
+    Value fused_key(key_data, true);
+    Value fused_value(value_data, true);
+    const auto fused = causal_gqa_attention_bthd(
+        fused_query, fused_key, fused_value, 2, 0.5F);
+    const auto snapshot = inspect_graph(fused);
+    ASSERT_EQ(snapshot.nodes.size(), 4U);
+    for (const auto& node : snapshot.nodes) {
+        EXPECT_NE(node.operation, "transpose");
+        EXPECT_NE(node.operation, "contiguous");
+    }
+    sum(multiply(fused, seed)).backward();
+
+    Value reference_query(query_data, true);
+    Value reference_key(key_data, true);
+    Value reference_value(value_data, true);
+    const auto reference = contiguous(transpose(causal_gqa_attention(
+        reference_query, reference_key,
+        contiguous(transpose(reference_value, 1, 2)), 2, 0.5F), 1, 2));
+    sum(multiply(reference, seed)).backward();
+
+    expect_near(fused.data(), reference.data().to_vector(), 3.0e-5F);
+    expect_near(fused_query.grad(), reference_query.grad().to_vector(), 3.0e-5F);
+    expect_near(fused_key.grad(), reference_key.grad().to_vector(), 3.0e-5F);
+    expect_near(fused_value.grad(), reference_value.grad().to_vector(), 3.0e-5F);
+}
+
 TEST(GraphGradientAlignmentTest, RejectsBadBackwardSeedShape) {
     Value input(Tensor::from_vector({1, 2, 3}, {3}), true);
     const auto output = multiply(input, input);

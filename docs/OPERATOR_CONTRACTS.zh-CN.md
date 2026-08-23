@@ -36,6 +36,7 @@
 | `broadcast_scalar` | scalar + 目标 shape `S -> S` | `scalar.expand(S).clone()` | 精确 | source 不是单元素 |
 | `causal_softmax` | `[...,T,T] -> same` | 上三角 mask 后 softmax | `2e-6,2e-5` | rank<2、末两维不等、T=0 |
 | `attention_probability_value_bthd` | probability `[B,H,T,T]`、value `[B,T,H,D]`，输出 `[B,T,H,D]` | `(P @ V.transpose(1,2)).transpose(1,2)` | `3e-5,3e-5` | 非连续/非 FP32、B/H/T/device 不匹配 |
+| `causal_gqa_attention_bthd` | Q `[B,H,T,D]`、K `[B,KV,T,D]`、V `[B,T,KV,D]`，输出 `[B,T,H,D]` | causal GQA 后 `transpose(1,2)` | 前向 `3e-5`、整图 `2e-3` | 连续性、B/T/D/device、`H=KV*repeats` 或 scale 错 |
 | `repeat_interleave` | 维 d 从 D 变为 `D×repeats` | `torch.repeat_interleave` | 精确 | dim 越界、repeats<=0、溢出 |
 
 `matmul_with_implementation` 的 `Readable` 和 `HipBLASLt` 是同一数学契约的不同执行办法；二者必须通过同一个 oracle。选择器和注册表只决定实现，不能改变 shape 或数值含义。
@@ -57,6 +58,8 @@
 | `rope_split_half_bias_bthd_backward` | seed `[B,H,T,D] -> [B,T,H,D]` | 上述 PyTorch 图的 input gradient | `3e-5,3e-5` | 非连续/非 FP32、rank/偶数 D/offset/base 错 |
 | `cross_entropy_backward` | 与 logits 相同 | `F.cross_entropy(...).backward(seed)` | `3e-5,3e-5` | seed 非 scalar、target 契约错 |
 | `causal_softmax_backward` | 与 output 相同 | masked softmax `.backward(seed)` | `3e-5,3e-5` | output/seed shape 错、非方阵 |
+| `attention_probability_gradient_bthd` | dO/V `[B,T,H,D] -> [B,H,T,T]` | `dO.transpose(1,2) @ V.transpose(1,2).T` | `3e-5,3e-5` | shape/dtype/device/连续性错 |
+| `attention_value_gradient_bthd` | P `[B,H,T,T]`、dO `[B,T,H,D] -> [B,T,H,D]` | `(P.T @ dO.transpose(1,2)).transpose(1,2)` | `3e-5,3e-5` | B/H/T/dtype/device/连续性错 |
 | `repeat_interleave_backward` | 原 input shape | `repeat_interleave(...).backward(seed)` | `2e-5,2e-5` | gradient 与推导 shape 不同 |
 
 ## Autograd 图操作

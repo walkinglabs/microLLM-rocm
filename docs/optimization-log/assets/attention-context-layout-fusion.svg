@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="930" viewBox="0 0 1800 930">
+  <rect width="1800" height="930" fill="#f8fafc"/>
+  <text x="900" y="52" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 164 · Complete Attention Context Layout</text>
+  <text x="900" y="84" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle">Qwen / DeepSeek T512 · forward + backward · MI300X</text>
+
+  <rect x="55" y="125" width="620" height="650" rx="14" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="365" y="168" font-family="Inter,Arial,sans-serif" font-size="21" fill="#172033" text-anchor="middle" font-weight="700">One stable layout boundary</text>
+  <rect x="105" y="215" width="520" height="74" rx="10" fill="#dbeafe" stroke="#60a5fa"/>
+  <text x="365" y="246" font-family="Inter,Arial,sans-serif" font-size="15" fill="#1e40af" text-anchor="middle">Q/K after RoPE</text>
+  <text x="365" y="272" font-family="monospace" font-size="17" fill="#1e3a8a" text-anchor="middle">[B,H,T,D]</text>
+  <rect x="105" y="320" width="520" height="74" rx="10" fill="#dcfce7" stroke="#4ade80"/>
+  <text x="365" y="351" font-family="Inter,Arial,sans-serif" font-size="15" fill="#166534" text-anchor="middle">Value from projection</text>
+  <text x="365" y="377" font-family="monospace" font-size="17" fill="#166534" text-anchor="middle">[B,T,KV,D]</text>
+  <path d="M365 410 V455" stroke="#64748b" stroke-width="4" marker-end="url(#arrow164)"/>
+  <rect x="105" y="455" width="520" height="118" rx="10" fill="#eff6ff" stroke="#93c5fd"/>
+  <text x="365" y="490" font-family="Inter,Arial,sans-serif" font-size="17" fill="#1e40af" text-anchor="middle" font-weight="700">causal GQA</text>
+  <text x="365" y="524" font-family="monospace" font-size="15" fill="#334155" text-anchor="middle">P×V · dO×Vᵀ · Pᵀ×dO</text>
+  <text x="365" y="551" font-family="Inter,Arial,sans-serif" font-size="14" fill="#64748b" text-anchor="middle">interleaved head matrices, no packing copies</text>
+  <path d="M365 573 V618" stroke="#64748b" stroke-width="4" marker-end="url(#arrow164)"/>
+  <rect x="105" y="618" width="520" height="92" rx="10" fill="#dcfce7" stroke="#4ade80"/>
+  <text x="365" y="652" font-family="Inter,Arial,sans-serif" font-size="15" fill="#166534" text-anchor="middle">context to output projection</text>
+  <text x="365" y="683" font-family="monospace" font-size="18" fill="#166534" text-anchor="middle">[B,T,H,D] → [B*T,H*D]</text>
+
+  <rect x="715" y="125" width="1030" height="650" rx="14" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="1230" y="168" font-family="Inter,Arial,sans-serif" font-size="21" fill="#172033" text-anchor="middle" font-weight="700">Same-binary official gate</text>
+  <text x="790" y="230" font-family="Inter,Arial,sans-serif" font-size="16" fill="#334155">Qwen strided bytes</text>
+  <rect x="790" y="250" width="500" height="46" rx="6" fill="#dc5a4a"/>
+  <text x="1275" y="280" font-family="Inter,Arial,sans-serif" font-size="14" fill="#ffffff" text-anchor="end" font-weight="700">100.7 MB · 96 calls</text>
+  <rect x="790" y="310" width="8" height="46" rx="4" fill="#2f9b68"/>
+  <text x="815" y="340" font-family="Inter,Arial,sans-serif" font-size="14" fill="#166534" font-weight="700">0 B · 0 calls</text>
+  <text x="790" y="415" font-family="Inter,Arial,sans-serif" font-size="16" fill="#334155">DeepSeek strided bytes</text>
+  <rect x="790" y="435" width="500" height="46" rx="6" fill="#dc5a4a"/>
+  <text x="1275" y="465" font-family="Inter,Arial,sans-serif" font-size="14" fill="#ffffff" text-anchor="end" font-weight="700">205.5 MB · 112 calls</text>
+  <rect x="790" y="495" width="8" height="46" rx="4" fill="#2f9b68"/>
+  <text x="815" y="525" font-family="Inter,Arial,sans-serif" font-size="14" fill="#166534" font-weight="700">0 B · 0 calls</text>
+
+  <rect x="1340" y="220" width="340" height="135" rx="10" fill="#ecfdf5" stroke="#86efac"/>
+  <text x="1510" y="255" font-family="Inter,Arial,sans-serif" font-size="17" fill="#166534" text-anchor="middle" font-weight="700">Qwen</text>
+  <text x="1510" y="296" font-family="Inter,Arial,sans-serif" font-size="29" fill="#166534" text-anchor="middle" font-weight="700">1.0336×</text>
+  <text x="1510" y="328" font-family="Inter,Arial,sans-serif" font-size="14" fill="#475569" text-anchor="middle">peak -100.4 MB</text>
+  <rect x="1340" y="405" width="340" height="135" rx="10" fill="#ecfdf5" stroke="#86efac"/>
+  <text x="1510" y="440" font-family="Inter,Arial,sans-serif" font-size="17" fill="#166534" text-anchor="middle" font-weight="700">DeepSeek</text>
+  <text x="1510" y="481" font-family="Inter,Arial,sans-serif" font-size="29" fill="#166534" text-anchor="middle" font-weight="700">1.0256×</text>
+  <text x="1510" y="513" font-family="Inter,Arial,sans-serif" font-size="14" fill="#475569" text-anchor="middle">peak -205.5 MB</text>
+
+  <rect x="790" y="600" width="890" height="110" rx="10" fill="#eff6ff" stroke="#93c5fd"/>
+  <text x="1235" y="634" font-family="Inter,Arial,sans-serif" font-size="17" fill="#1e40af" text-anchor="middle" font-weight="700">Qwen rocprofv3 · three executed steps</text>
+  <text x="1235" y="670" font-family="Inter,Arial,sans-serif" font-size="16" fill="#334155" text-anchor="middle">dispatches 7,192→6,907 · strided copy 288→0</text>
+  <text x="1235" y="697" font-family="Inter,Arial,sans-serif" font-size="14" fill="#64748b" text-anchor="middle">all Kernel time 111.73→110.67 ms · fixed parameter guard equal</text>
+
+  <rect x="55" y="825" width="1690" height="66" rx="12" fill="#172033"/>
+  <text x="900" y="854" font-family="Inter,Arial,sans-serif" font-size="18" fill="#ffffff" text-anchor="middle" font-weight="700">Keep: the diagnosed Attention layout-copy set is now empty</text>
+  <text x="900" y="879" font-family="Inter,Arial,sans-serif" font-size="14" fill="#cbd5e1" text-anchor="middle">Independent output, probability, Q/K/V gradient, model loss and parameter gates all pass</text>
+  <defs><marker id="arrow164" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#64748b"/></marker></defs>
+</svg>

@@ -171,6 +171,7 @@ int main(int argc, char** argv) {
         bool bf16_weight_mirrors = true;
         bool tied_embedding_sparse_add = true;
         bool attention_rope_layout_fusion = true;
+        bool attention_context_layout_fusion = true;
         for (int index = 1; index < argc; index += 2) {
             if (index + 1 >= argc) throw std::invalid_argument("missing CLI value");
             const std::string name = argv[index];
@@ -208,6 +209,14 @@ int main(int argc, char** argv) {
                 }
                 attention_rope_layout_fusion = value == "true";
             }
+            else if (name == "--attention-context-layout-fusion") {
+                const std::string value = argv[index + 1];
+                if (value != "true" && value != "false") {
+                    throw std::invalid_argument(
+                        "--attention-context-layout-fusion must be true or false");
+                }
+                attention_context_layout_fusion = value == "true";
+            }
             else if (name == "--bf16-weight-mirrors") {
                 const std::string value = argv[index + 1];
                 if (value != "true" && value != "false") {
@@ -238,6 +247,8 @@ int main(int argc, char** argv) {
             tied_embedding_sparse_add);
         microllm::autograd::enable_attention_rope_layout_fusion(
             attention_rope_layout_fusion);
+        microllm::autograd::enable_attention_context_layout_fusion(
+            attention_context_layout_fusion);
         if (!bf16_algorithms.empty() &&
             (linear_precision != "bf16" || device_text != "hip")) {
             throw std::invalid_argument(
@@ -398,6 +409,8 @@ int main(int argc, char** argv) {
                   << (tied_embedding_sparse_add ? "true" : "false")
                   << ",\"attention_rope_layout_fusion\":"
                   << (attention_rope_layout_fusion ? "true" : "false")
+                  << ",\"attention_context_layout_fusion\":"
+                  << (attention_context_layout_fusion ? "true" : "false")
                   << ",\"measurement_profile\":\""
                   << (warmup > 0 || steps > 1 ? "comparison" : "smoke") << "\""
                   << ",\"loaded_tensors\":" << report.loaded.size()

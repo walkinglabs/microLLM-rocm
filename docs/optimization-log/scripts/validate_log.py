@@ -7156,6 +7156,55 @@ def validate_attention_interleaved_pv(
         float(deep.get("event_speedup", 0))
 
 
+def validate_attention_context_layout_fusion(
+        errors: list[str]) -> tuple[int, int, int]:
+    data = REPOSITORY / "benchmarks/results/2026-08-23-attention-context-layout-fusion"
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    training = [json.loads(line) for line in (data / "training.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = {row["model"]: row for row in summary.get("comparisons", [])}
+    qwen = comparisons.get("qwen2.5-0.5b", {})
+    deep = comparisons.get("deepseek-r1-distill-qwen-1.5b", {})
+    profile = json.loads((data / "profile-summary.json").read_text(
+        encoding="utf-8"))
+    if verification.get("status") != "pass" or summary.get("status") != "pass" or \
+            verification.get("regression", {}).get("full_cpu_hip") != "397/397" or \
+            verification.get("regression", {}).get("hip_label") != "126/126" or \
+            verification.get("regression", {}).get("pytorch_enabled_cpu") != "241/241" or \
+            len(training) != 12 or len(comparisons) != 2 or \
+            qwen.get("throughput_speedup", 0) < 0.98 or \
+            deep.get("throughput_speedup", 0) < 0.98 or \
+            qwen.get("strided_copy", {}).get("fused", {}).get("calls") != 0 or \
+            deep.get("strided_copy", {}).get("fused", {}).get("calls") != 0 or \
+            qwen.get("strided_copy", {}).get("fused", {}).get("bytes") != 0 or \
+            deep.get("strided_copy", {}).get("fused", {}).get("bytes") != 0 or \
+            qwen.get("loss_relative_difference", 1) > 0.005 or \
+            deep.get("loss_relative_difference", 1) > 0.005 or \
+            qwen.get("observed_parameter_after_equal") is not True or \
+            deep.get("observed_parameter_after_equal") is not True:
+        errors.append("complete Attention context layout model gate changed")
+    if profile.get("materialized", {}).get("strided_copy_calls") != 288 or \
+            profile.get("fused", {}).get("strided_copy_calls") != 0 or \
+            profile.get("fused", {}).get("kernel_dispatches", 10000) >= \
+            profile.get("materialized", {}).get("kernel_dispatches", 0):
+        errors.append("complete Attention context layout profile changed")
+    ops_source = (REPOSITORY / "src/ops/ops.cpp").read_text(encoding="utf-8")
+    model_source = (REPOSITORY / "src/model/model.cpp").read_text(encoding="utf-8")
+    tests = "\n".join((REPOSITORY / path).read_text(encoding="utf-8") for path in (
+        "tests/graph/graph_gradient_alignment_test.cpp",
+        "tests/ops/hip_ops_test.cpp", "python/tests/test_operator_parity.py"))
+    if "causal_gqa_attention_bthd_backward_saved" not in ops_source or \
+            "attention_context_layout_fusion_enabled" not in model_source or \
+            "BthdCausalGqaMatchesComposedGraphAndAllGradients" not in tests or \
+            "LongCausalGqaBthdForwardBackwardMatchCpuWithoutTransfers" not in tests or \
+            "graph_causal_gqa_bthd_value_grad" not in tests:
+        errors.append("complete Attention context layout source/test contract changed")
+    return len(training), int(qwen.get("strided_copy", {}).get("fused", {}).get("calls", -1)), \
+        int(deep.get("strided_copy", {}).get("fused", {}).get("calls", -1))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -7297,7 +7346,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-training-solution-discard.svg",
                  "tied-embedding-sparse-add.svg",
                  "attention-rope-layout-fusion.svg",
-                 "attention-interleaved-pv.svg"):
+                 "attention-interleaved-pv.svg",
+                 "attention-context-layout-fusion.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -7559,6 +7609,8 @@ def main() -> int:
         validate_tied_embedding_sparse_add(errors)
     interleaved_rows, interleaved_shapes, interleaved_qwen, interleaved_deep = \
         validate_attention_interleaved_pv(errors)
+    context_rows, context_qwen_copies, context_deep_copies = \
+        validate_attention_context_layout_fusion(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -7766,6 +7818,8 @@ def main() -> int:
           f"tied_sparse={tied_rows}/{tied_sparse_calls}/{tied_bytes_saved} "
           f"interleaved_pv={interleaved_rows}/{interleaved_shapes}/"
           f"{interleaved_qwen:.3f}/{interleaved_deep:.3f} "
+          f"context_layout={context_rows}/{context_qwen_copies}/"
+          f"{context_deep_copies} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

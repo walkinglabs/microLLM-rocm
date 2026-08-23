@@ -36,6 +36,7 @@ namespace {
 thread_local bool accumulation_diagnostics_enabled = false;
 thread_local bool tied_embedding_sparse_add = true;
 thread_local bool attention_rope_layout_fusion = true;
+thread_local bool attention_context_layout_fusion = true;
 thread_local std::map<std::pair<std::string, Shape>, GradientAccumulationRecord>
     accumulation_diagnostic_records;
 
@@ -176,6 +177,14 @@ void enable_attention_rope_layout_fusion(bool enabled) noexcept {
 
 bool attention_rope_layout_fusion_enabled() noexcept {
     return attention_rope_layout_fusion;
+}
+
+void enable_attention_context_layout_fusion(bool enabled) noexcept {
+    attention_context_layout_fusion = enabled;
+}
+
+bool attention_context_layout_fusion_enabled() noexcept {
+    return attention_context_layout_fusion;
 }
 
 Value::Value(Tensor data, bool requires_grad) : node_(std::make_shared<Node>()) {
@@ -744,6 +753,55 @@ Value causal_gqa_attention(const Value& query, const Value& key,
                                        saved_probabilities, prepared_gradient,
                                        repeats, scale)
                                  : ops::causal_gqa_attention_backward(
+                                       query_forward, key_forward, value_forward,
+                                       prepared_gradient, repeats, scale);
+            accumulate(query_node, std::move(gradients.first));
+            accumulate(key_node, std::move(gradients.second));
+            accumulate(value_node, std::move(gradients.third));
+        });
+}
+
+Value causal_gqa_attention_bthd(const Value& query, const Value& key,
+                                const Value& value, std::int64_t repeats,
+                                float scale) {
+    require_value(query, "query");
+    require_value(key, "key");
+    require_value(value, "value");
+    auto query_node = query.node_;
+    auto key_node = key.node_;
+    auto value_node = value.node_;
+    const auto query_forward = query.data().is_contiguous()
+                                   ? query.data() : query.data().contiguous();
+    const auto key_forward = key.data().is_contiguous()
+                                 ? key.data() : key.data().contiguous();
+    const auto value_forward = value.data().is_contiguous()
+                                   ? value.data() : value.data().contiguous();
+    Tensor saved_probabilities;
+    auto output = profiled_tensor(
+        "causal_gqa_attention_bthd", query.data().device(), [&] {
+            if (query_forward.device().is_hip() &&
+                query_forward.shape()[2] >= 256 && ops::hipblaslt_available()) {
+                auto result = ops::causal_gqa_attention_bthd_saved(
+                    query_forward, key_forward, value_forward, repeats, scale);
+                saved_probabilities = std::move(result.second);
+                return std::move(result.first);
+            }
+            return ops::causal_gqa_attention_bthd(
+                query_forward, key_forward, value_forward, repeats, scale);
+        });
+    return operation(
+        "causal_gqa_attention_bthd", std::move(output),
+        {query_node, key_node, value_node},
+        [query_node, key_node, value_node, query_forward, key_forward,
+         value_forward, saved_probabilities, repeats, scale](const Tensor& gradient) {
+            const auto prepared_gradient = gradient.is_contiguous()
+                                               ? gradient : gradient.contiguous();
+            auto gradients = saved_probabilities.defined()
+                                 ? ops::causal_gqa_attention_bthd_backward_saved(
+                                       query_forward, key_forward, value_forward,
+                                       saved_probabilities, prepared_gradient,
+                                       repeats, scale)
+                                 : ops::causal_gqa_attention_bthd_backward(
                                        query_forward, key_forward, value_forward,
                                        prepared_gradient, repeats, scale);
             accumulate(query_node, std::move(gradients.first));

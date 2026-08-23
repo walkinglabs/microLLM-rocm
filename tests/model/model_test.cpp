@@ -110,6 +110,48 @@ TEST(TransformerModelTest, SplitHalfAttentionLayoutFusionMatchesMaterializedGrap
     EXPECT_TRUE(autograd::attention_rope_layout_fusion_enabled());
 }
 
+TEST(TransformerModelTest, AttentionContextLayoutFusionMatchesMaterializedGraph) {
+    auto config = tiny_config();
+    config.attention_bias = true;
+    config.rope_layout = RopeLayout::SplitHalf;
+    const auto tokens = Tensor::from_int32_vector({1, 2, 3, 4}, {1, 4});
+    const auto targets = Tensor::from_int32_vector({2, 3, 4, 5}, {1, 4});
+
+    autograd::enable_attention_rope_layout_fusion(true);
+    autograd::enable_attention_context_layout_fusion(true);
+    TransformerModel fused_model(config, 23);
+    const auto fused_loss = fused_model.loss(tokens, targets);
+    const auto fused_graph = autograd::inspect_graph(fused_loss);
+    fused_loss.backward();
+
+    autograd::enable_attention_context_layout_fusion(false);
+    TransformerModel materialized_model(config, 23);
+    const auto materialized_loss = materialized_model.loss(tokens, targets);
+    const auto materialized_graph = autograd::inspect_graph(materialized_loss);
+    materialized_loss.backward();
+    autograd::enable_attention_context_layout_fusion(true);
+
+    EXPECT_LT(fused_graph.nodes.size(), materialized_graph.nodes.size());
+    EXPECT_EQ(std::count_if(
+                  fused_graph.nodes.begin(), fused_graph.nodes.end(),
+                  [](const auto& node) {
+                      return node.operation == "causal_gqa_attention_bthd";
+                  }),
+              1);
+    expect_near(fused_loss.data().to_vector(), materialized_loss.data().to_vector(),
+                3.0e-5F);
+    const auto fused_parameters = fused_model.named_parameters();
+    const auto materialized_parameters = materialized_model.named_parameters();
+    ASSERT_EQ(fused_parameters.size(), materialized_parameters.size());
+    for (std::size_t index = 0; index < fused_parameters.size(); ++index) {
+        EXPECT_EQ(fused_parameters[index].first, materialized_parameters[index].first);
+        expect_near(fused_parameters[index].second->grad().to_vector(),
+                    materialized_parameters[index].second->grad().to_vector(),
+                    3.0e-5F);
+    }
+    EXPECT_TRUE(autograd::attention_context_layout_fusion_enabled());
+}
+
 TEST(TransformerModelTest, ForwardAndBackwardCoverEveryParameter) {
     TransformerModel model(tiny_config(), 11);
     const auto tokens = Tensor::from_int32_vector({1, 2, 3, 4, 4, 3, 2, 1}, {2, 4});

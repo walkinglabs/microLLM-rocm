@@ -690,6 +690,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/162-attention-rope-layout-fusion.md](experiments/162-attention-rope-layout-fusion.md) | 前向/双梯度门、60% copy消除与保留结论 |
 | [assets/attention-interleaved-pv.svg](assets/attention-interleaved-pv.svg) | 交错head地址、五shape算子速度与边界反例 |
 | [experiments/163-attention-interleaved-pv.md](experiments/163-attention-interleaved-pv.md) | 30进程完整输出与hipBLASLt布局能力证据 |
+| [assets/attention-context-layout-fusion.svg](assets/attention-context-layout-fusion.svg) | BTHD前后向、零strided-copy与两模型整机门 |
+| [experiments/164-attention-context-layout-fusion.md](experiments/164-attention-context-layout-fusion.md) | output/dP/dV/QKV梯度、T512 A/B与profile |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

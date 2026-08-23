@@ -85,6 +85,11 @@ layouts and that the official T512 operator shapes benefit. It does not close th
 graph boundary: probability-gradient, value-gradient, GQA head reduction and full Autograd
 still need matching BTHD contracts before the model can remove those copies.
 
+Experiment 164 supplies those backward contracts and closes the four-layout Attention set
+identified by Runtime diagnostics: Qwen/DeepSeek report zero strided-copy calls and zero
+Autograd materializations at T512. Further transpose work needs a newly observed layout;
+relabeling the now-zero Q/K/Value/context set is not a new optimization hypothesis.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

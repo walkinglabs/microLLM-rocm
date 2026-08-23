@@ -87,6 +87,10 @@ needed to run a real training and generation loop:
   `[B,T,H,D]`, then writes context `[B,T,H,D]` directly; the complete-output MI300 matrix
   is bit-exact and improves Qwen/DeepSeek T512 operator Event time by 1.415×/2.200× versus
   two explicit layout materializations;
+- complete BTHD causal-GQA Autograd adds matching interleaved `dO×Vᵀ` and `Pᵀ×dO`, keeps
+  Value/context token-major through projection forward/backward, and removes the diagnosed
+  strided-copy set entirely; same-binary T512 improves Qwen/DeepSeek by 1.0336×/1.0256×
+  while saving another 100.4/205.5 MB peak;
 - a phase-independent exact-size HIP pool with immediate legacy-default-Stream reuse and strict
   permanent disablement for non-default Streams;
 - a cross-framework trace runner for operator/layer values and latency comparisons.

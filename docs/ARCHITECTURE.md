@@ -191,6 +191,19 @@ rows. `attention_probability_value_bthd(P[B,H,T,T], V[B,T,H,D])` therefore write
 because the jump from the last head of one batch to the first head of the next is not a
 constant `D` stride.
 
+Training uses the same description in both reverse products:
+
+```text
+dP [B,H,T,T] = dO[B,T,H,D] × transpose(V[B,T,H,D])
+dV [B,T,H,D] = transpose(P[B,H,T,T]) × dO[B,T,H,D]
+```
+
+The complete causal-GQA BTHD graph keeps Q/K in head-major order because QK/softmax work
+naturally there, while Value/context stay token-major because their neighboring projection
+Linears work naturally there. GQA repeats/reduces Q/K heads on dimension 1 and Value heads
+on dimension 2. No component pretends the two layouts are identical; each public shape
+contract names the order.
+
 ## Stable integration boundary
 
 The long-term integration seam is a C-compatible descriptor plus explicit stream

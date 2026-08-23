@@ -2737,3 +2737,18 @@ FP32 BTHD，复制会原样回来。真正的出口是让Attention的`概率×Va
 这个解释。原语保留，但在反向和整图接入前，不把它写成模型加速。
 
 ![Interleaved Attention P×V](assets/attention-interleaved-pv.svg)
+
+## 181. Experiment 164：前向不抄，反向也不能偷偷抄回来
+
+只有P×V直接写BTHD还不够。反向有两道题：`dP=dO×Vᵀ`和`dV=Pᵀ×dO`。它们也用同样的
+`H×D`行跨度和D head跨度；GQA的Value repeat/reduce则从head-major的dim1改到token-major的dim2。
+这样Value从投影出来到梯度回去、context从Attention出来到output Linear，始终不换表。
+
+CPU、PyTorch、HIP分别核对output、probability、dP以及Q/K/V所有梯度；T256 HIP还逐项对照saved
+forward/backward并确认零host payload。正式同二进制T512中，Qwen 1.0336×、DeepSeek 1.0256×，
+峰值再少100.4/205.5MB。diagnostics最重要的结果是两边都从剩余96/112次strided copy降到0。
+
+profile也没有反转：dispatch 7,192→6,907，总Kernel 111.73→110.67ms。至此Experiment161发现的
+四种Attention布局搬运全部关闭；不是“找不到”，而是计数和字节都精确为零。
+
+![Complete Attention context layout](assets/attention-context-layout-fusion.svg)

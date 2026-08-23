@@ -3156,6 +3156,149 @@ TensorTriple causal_gqa_attention_backward_saved(
 #endif
 }
 
+namespace {
+
+void validate_causal_gqa_bthd(const Tensor& query, const Tensor& key,
+                              const Tensor& value, std::int64_t repeats,
+                              float scale) {
+    require_float(query, "query");
+    require_float(key, "key");
+    require_float(value, "value");
+    require_same_device(query, key);
+    require_same_device(query, value);
+    if (query.ndim() != 4 || key.ndim() != 4 || value.ndim() != 4 ||
+        query.shape()[0] != key.shape()[0] ||
+        query.shape()[0] != value.shape()[0] ||
+        query.shape()[2] != key.shape()[2] ||
+        query.shape()[2] != value.shape()[1] ||
+        query.shape()[3] != key.shape()[3] ||
+        query.shape()[3] != value.shape()[3] ||
+        key.shape()[1] != value.shape()[2] ||
+        query.shape()[1] != key.shape()[1] * repeats || repeats <= 0 ||
+        query.shape()[2] <= 0 || query.shape()[3] <= 0 ||
+        !std::isfinite(scale) || !(scale > 0.0F) ||
+        !query.is_contiguous() || !key.is_contiguous() ||
+        !value.is_contiguous()) {
+        throw std::invalid_argument(
+            "causal GQA BTHD requires Q[B,H,T,D], K[B,KV,T,D], "
+            "V[B,T,KV,D] contiguous contracts");
+    }
+}
+
+}  // namespace
+
+TensorPair causal_gqa_attention_bthd_saved(
+    const Tensor& query, const Tensor& key, const Tensor& value,
+    std::int64_t repeats, float scale, const OpContext& context) {
+    validate_causal_gqa_bthd(query, key, value, repeats, scale);
+    const auto sequence = query.shape()[2];
+    const auto expanded_key = repeats == 1
+                                  ? key : repeat_interleave(key, 1, repeats, context);
+    const auto expanded_value = repeats == 1
+                                    ? value : repeat_interleave(value, 2, repeats, context);
+    if (query.device().is_hip() && sequence >= 256 && hipblaslt_available()) {
+        const auto scaled_query = ops::scale(query, scale, context);
+        auto probabilities = matmul_with_implementation(
+            scaled_query, expanded_key, MatmulImplementation::HipBLASLt,
+            false, true, context);
+#if MICROLLM_HAS_HIP
+        hip::launch_causal_softmax(
+            static_cast<const float*>(probabilities.data()),
+            static_cast<float*>(probabilities.data()),
+            probabilities.numel() / sequence, sequence,
+            context.native_stream(query.device()));
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+        auto output = attention_probability_value_bthd(
+            probabilities, expanded_value, context);
+        return {std::move(output), std::move(probabilities)};
+    }
+    const auto value_bhtd = value.transpose(1, 2).contiguous();
+    auto saved = causal_gqa_attention_saved(
+        query, key, value_bhtd, repeats, scale, context);
+    return {saved.first.transpose(1, 2).contiguous(),
+            std::move(saved.second)};
+}
+
+Tensor causal_gqa_attention_bthd(
+    const Tensor& query, const Tensor& key, const Tensor& value,
+    std::int64_t repeats, float scale, const OpContext& context) {
+    return causal_gqa_attention_bthd_saved(
+        query, key, value, repeats, scale, context).first;
+}
+
+TensorTriple causal_gqa_attention_bthd_backward_saved(
+    const Tensor& query, const Tensor& key, const Tensor& value,
+    const Tensor& probabilities, const Tensor& output_gradient,
+    std::int64_t repeats, float scale, const OpContext& context) {
+    validate_causal_gqa_bthd(query, key, value, repeats, scale);
+    require_float(probabilities, "probabilities");
+    require_float(output_gradient, "output_gradient");
+    require_same_device(query, probabilities);
+    require_same_device(query, output_gradient);
+    const auto batches = query.shape()[0];
+    const auto heads = query.shape()[1];
+    const auto sequence = query.shape()[2];
+    const auto width = query.shape()[3];
+    if (probabilities.shape() != Shape({batches, heads, sequence, sequence}) ||
+        output_gradient.shape() != Shape({batches, sequence, heads, width}) ||
+        !probabilities.is_contiguous() || !output_gradient.is_contiguous()) {
+        throw std::invalid_argument(
+            "saved causal GQA BTHD probabilities/output gradient shape is invalid");
+    }
+    if (!query.device().is_hip() || sequence < 256 || !hipblaslt_available()) {
+        const auto value_bhtd = value.transpose(1, 2).contiguous();
+        const auto output_gradient_bhtd =
+            output_gradient.transpose(1, 2).contiguous();
+        auto gradients = causal_gqa_attention_backward_saved(
+            query, key, value_bhtd, probabilities, output_gradient_bhtd,
+            repeats, scale, context);
+        gradients.third = gradients.third.transpose(1, 2).contiguous();
+        return gradients;
+    }
+    const auto expanded_key = repeats == 1
+                                  ? key : repeat_interleave(key, 1, repeats, context);
+    const auto expanded_value = repeats == 1
+                                    ? value : repeat_interleave(value, 2, repeats, context);
+    const auto probability_gradient = attention_probability_gradient_bthd(
+        output_gradient, expanded_value, context);
+    auto scaled_score_gradients = ops::scale(
+        causal_softmax_backward(probabilities, probability_gradient, context),
+        scale, context);
+    auto query_gradient = matmul_with_implementation(
+        scaled_score_gradients, expanded_key,
+        MatmulImplementation::HipBLASLt, context);
+    auto expanded_key_gradient = matmul_with_implementation(
+        scaled_score_gradients, query, MatmulImplementation::HipBLASLt,
+        true, false, context);
+    auto expanded_value_gradient = attention_value_gradient_bthd(
+        probabilities, output_gradient, context);
+    auto key_gradient = repeats == 1
+                            ? std::move(expanded_key_gradient)
+                            : repeat_interleave_backward(
+                                  expanded_key_gradient, key.shape(), 1,
+                                  repeats, context);
+    auto value_gradient = repeats == 1
+                              ? std::move(expanded_value_gradient)
+                              : repeat_interleave_backward(
+                                    expanded_value_gradient, value.shape(), 2,
+                                    repeats, context);
+    return {std::move(query_gradient), std::move(key_gradient),
+            std::move(value_gradient)};
+}
+
+TensorTriple causal_gqa_attention_bthd_backward(
+    const Tensor& query, const Tensor& key, const Tensor& value,
+    const Tensor& output_gradient, std::int64_t repeats, float scale,
+    const OpContext& context) {
+    auto saved = causal_gqa_attention_bthd_saved(
+        query, key, value, repeats, scale, context);
+    return causal_gqa_attention_bthd_backward_saved(
+        query, key, value, saved.second, output_gradient, repeats, scale,
+        context);
+}
+
 Tensor repeat_interleave(const Tensor& input, std::int64_t dim, std::int64_t repeats,
                          [[maybe_unused]] const OpContext& context) {
     require_float(input, "input");

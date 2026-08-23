@@ -148,6 +148,11 @@ The retained Q/K RoPE layout optimization has the matching same-binary control:
 `[B,T,H,D]` and writes RoPE output in `[B,H,T,D]`; `false` restores the explicit
 transpose materializations. Diagnostics and timing must still be separate processes.
 
+The remaining Value/context boundary uses
+`--attention-context-layout-fusion true/false`. Keep
+`--attention-rope-layout-fusion true` in both processes when isolating it. The true route
+uses BTHD P×V/dP/dV layouts; false restores Value/context transpose nodes.
+
 ### End-to-end benchmark
 
 ```bash

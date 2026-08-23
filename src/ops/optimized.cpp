@@ -1033,6 +1033,104 @@ Tensor hipblaslt_attention_probability_value_bthd(
     return output;
 }
 
+Tensor hipblaslt_attention_probability_gradient_bthd(
+    const Tensor& output_gradient, const Tensor& value,
+    const OpContext& context) {
+    const auto batches = output_gradient.shape()[0];
+    const auto sequence = output_gradient.shape()[1];
+    const auto heads = output_gradient.shape()[2];
+    const auto width = output_gradient.shape()[3];
+    Tensor output({batches, heads, sequence, sequence}, DType::Float32,
+                  output_gradient.device());
+    static Handle handle;
+    MatmulDescription operation(true, false);
+    Layout matrix_value(HIP_R_32F, static_cast<std::uint64_t>(width),
+                        static_cast<std::uint64_t>(sequence), heads * width);
+    Layout matrix_gradient(HIP_R_32F, static_cast<std::uint64_t>(width),
+                           static_cast<std::uint64_t>(sequence), heads * width);
+    Layout matrix_probability(HIP_R_32F,
+                              static_cast<std::uint64_t>(sequence),
+                              static_cast<std::uint64_t>(sequence), sequence);
+    const auto batch_count = static_cast<std::int32_t>(heads);
+    matrix_value.set_batch(batch_count, width);
+    matrix_gradient.set_batch(batch_count, width);
+    matrix_probability.set_batch(batch_count, sequence * sequence);
+    const auto value_batch_elements = sequence * heads * width;
+    const auto probability_batch_elements = heads * sequence * sequence;
+    const auto* gradient_data =
+        static_cast<const float*>(output_gradient.data());
+    const auto* value_data = static_cast<const float*>(value.data());
+    auto* output_data = static_cast<float*>(output.data());
+    const float alpha = 1.0F;
+    const float beta = 0.0F;
+    for (std::int64_t batch = 0; batch < batches; ++batch) {
+        check_status(
+            hipblasLtMatmul(
+                handle.get(), operation.get(), &alpha,
+                value_data + batch * value_batch_elements, matrix_value.get(),
+                gradient_data + batch * value_batch_elements,
+                matrix_gradient.get(), &beta,
+                output_data + batch * probability_batch_elements,
+                matrix_probability.get(),
+                output_data + batch * probability_batch_elements,
+                matrix_probability.get(), nullptr, context.workspace,
+                context.workspace_bytes,
+                reinterpret_cast<hipStream_t>(
+                    context.native_stream(output_gradient.device()))),
+            "hipblasLtMatmul(Attention BTHD dP)");
+    }
+    return output;
+}
+
+Tensor hipblaslt_attention_value_gradient_bthd(
+    const Tensor& probabilities, const Tensor& output_gradient,
+    const OpContext& context) {
+    const auto batches = output_gradient.shape()[0];
+    const auto sequence = output_gradient.shape()[1];
+    const auto heads = output_gradient.shape()[2];
+    const auto width = output_gradient.shape()[3];
+    Tensor output(output_gradient.shape(), DType::Float32,
+                  output_gradient.device());
+    static Handle handle;
+    MatmulDescription operation(false, true);
+    Layout matrix_gradient(HIP_R_32F, static_cast<std::uint64_t>(width),
+                           static_cast<std::uint64_t>(sequence), heads * width);
+    Layout matrix_probability(HIP_R_32F,
+                              static_cast<std::uint64_t>(sequence),
+                              static_cast<std::uint64_t>(sequence), sequence);
+    Layout matrix_output(HIP_R_32F, static_cast<std::uint64_t>(width),
+                         static_cast<std::uint64_t>(sequence), heads * width);
+    const auto batch_count = static_cast<std::int32_t>(heads);
+    matrix_gradient.set_batch(batch_count, width);
+    matrix_probability.set_batch(batch_count, sequence * sequence);
+    matrix_output.set_batch(batch_count, width);
+    const auto value_batch_elements = sequence * heads * width;
+    const auto probability_batch_elements = heads * sequence * sequence;
+    const auto* gradient_data =
+        static_cast<const float*>(output_gradient.data());
+    const auto* probability_data =
+        static_cast<const float*>(probabilities.data());
+    auto* output_data = static_cast<float*>(output.data());
+    const float alpha = 1.0F;
+    const float beta = 0.0F;
+    for (std::int64_t batch = 0; batch < batches; ++batch) {
+        check_status(
+            hipblasLtMatmul(
+                handle.get(), operation.get(), &alpha,
+                gradient_data + batch * value_batch_elements,
+                matrix_gradient.get(),
+                probability_data + batch * probability_batch_elements,
+                matrix_probability.get(), &beta,
+                output_data + batch * value_batch_elements, matrix_output.get(),
+                output_data + batch * value_batch_elements, matrix_output.get(),
+                nullptr, context.workspace, context.workspace_bytes,
+                reinterpret_cast<hipStream_t>(
+                    context.native_stream(output_gradient.device()))),
+            "hipblasLtMatmul(Attention BTHD dV)");
+    }
+    return output;
+}
+
 }  // namespace
 #endif
 
@@ -1246,6 +1344,70 @@ Tensor attention_probability_value_bthd(
     }
     const auto value_bhtd = value.transpose(1, 2).contiguous();
     return matmul(probabilities, value_bhtd, context)
+        .transpose(1, 2).contiguous();
+}
+
+Tensor attention_probability_gradient_bthd(
+    const Tensor& output_gradient, const Tensor& value,
+    const OpContext& context) {
+    if (output_gradient.dtype() != DType::Float32 ||
+        value.dtype() != DType::Float32 ||
+        output_gradient.device() != value.device() ||
+        output_gradient.ndim() != 4 || output_gradient.shape() != value.shape() ||
+        output_gradient.shape()[1] <= 0 || output_gradient.shape()[2] <= 0 ||
+        output_gradient.shape()[3] <= 0 || !output_gradient.is_contiguous() ||
+        !value.is_contiguous()) {
+        throw std::invalid_argument(
+            "Attention dP BTHD requires matching contiguous FP32 dO/value [B,T,H,D]");
+    }
+    if (output_gradient.shape()[2] > std::numeric_limits<std::int32_t>::max()) {
+        throw std::overflow_error("Attention head count exceeds hipBLASLt batch range");
+    }
+    if (output_gradient.device().is_hip()) {
+#if MICROLLM_HAS_HIPBLASLT
+        return hipblaslt_attention_probability_gradient_bthd(
+            output_gradient, value, context);
+#else
+        throw std::runtime_error("Attention dP BTHD on HIP requires hipBLASLt");
+#endif
+    }
+    const auto gradient_bhtd = output_gradient.transpose(1, 2).contiguous();
+    const auto value_bhtd = value.transpose(1, 2).contiguous();
+    return matmul_with_implementation(
+        gradient_bhtd, value_bhtd, MatmulImplementation::Readable,
+        false, true, context);
+}
+
+Tensor attention_value_gradient_bthd(
+    const Tensor& probabilities, const Tensor& output_gradient,
+    const OpContext& context) {
+    if (probabilities.dtype() != DType::Float32 ||
+        output_gradient.dtype() != DType::Float32 ||
+        probabilities.device() != output_gradient.device() ||
+        probabilities.ndim() != 4 || output_gradient.ndim() != 4 ||
+        probabilities.shape()[0] != output_gradient.shape()[0] ||
+        probabilities.shape()[1] != output_gradient.shape()[2] ||
+        probabilities.shape()[2] != probabilities.shape()[3] ||
+        probabilities.shape()[2] != output_gradient.shape()[1] ||
+        !probabilities.is_contiguous() || !output_gradient.is_contiguous()) {
+        throw std::invalid_argument(
+            "Attention dV BTHD requires contiguous FP32 P[B,H,T,T] and dO[B,T,H,D]");
+    }
+    if (output_gradient.shape()[2] > std::numeric_limits<std::int32_t>::max()) {
+        throw std::overflow_error("Attention head count exceeds hipBLASLt batch range");
+    }
+    if (probabilities.device().is_hip()) {
+#if MICROLLM_HAS_HIPBLASLT
+        return hipblaslt_attention_value_gradient_bthd(
+            probabilities, output_gradient, context);
+#else
+        throw std::runtime_error("Attention dV BTHD on HIP requires hipBLASLt");
+#endif
+    }
+    const auto gradient_bhtd = output_gradient.transpose(1, 2).contiguous();
+    return matmul_with_implementation(
+               probabilities, gradient_bhtd, MatmulImplementation::Readable,
+               true, false, context)
         .transpose(1, 2).contiguous();
 }
 

@@ -660,12 +660,19 @@ public:
             key = autograd::rope(autograd::transpose(key, 1, 2), 2, 0,
                                  config_.rope_base);
         }
-        value = autograd::transpose(value, 1, 2);
         const auto repeats = config_.heads / config_.kv_heads;
-        auto context = autograd::causal_gqa_attention(
-            query, key, value, repeats,
-            1.0F / std::sqrt(static_cast<float>(config_.head_dimension())));
-        context = autograd::contiguous(autograd::transpose(context, 1, 2));
+        const auto attention_scale =
+            1.0F / std::sqrt(static_cast<float>(config_.head_dimension()));
+        Value context;
+        if (autograd::attention_context_layout_fusion_enabled()) {
+            context = autograd::causal_gqa_attention_bthd(
+                query, key, value, repeats, attention_scale);
+        } else {
+            value = autograd::transpose(value, 1, 2);
+            context = autograd::causal_gqa_attention(
+                query, key, value, repeats, attention_scale);
+            context = autograd::contiguous(autograd::transpose(context, 1, 2));
+        }
         context = autograd::reshape(context, {batch * sequence, config_.dimension});
         return autograd::reshape(output_.forward(context),
                                  {batch, sequence, config_.dimension});

@@ -359,6 +359,36 @@ void emit_graph_gradient_cases() {
     emit("graph_causal_gqa_key_grad", attention_key.grad());
     emit("graph_causal_gqa_value_grad", attention_value.grad());
 
+    const auto bthd_probabilities = f32(
+        {1, 0, 0, 0.25F, 0.75F, 0, 0.1F, 0.2F, 0.7F,
+         1, 0, 0, 0.5F, 0.5F, 0, 0.2F, 0.3F, 0.5F}, {1, 2, 3, 3});
+    const auto bthd_expanded_value = f32(
+        {1, 2, 10, 20, 3, 4, 30, 40, 5, 6, 50, 60}, {1, 3, 2, 2});
+    const auto bthd_seed = f32(
+        {1, -1, 2, 1, 0.5F, 2, -0.5F, 0.25F,
+         -0.5F, 1.5F, 0.75F, -2}, {1, 3, 2, 2});
+    emit("graph_causal_gqa_bthd_probability_grad",
+         microllm::ops::attention_probability_gradient_bthd(
+             bthd_seed, bthd_expanded_value));
+    emit("graph_causal_gqa_bthd_expanded_value_grad",
+         microllm::ops::attention_value_gradient_bthd(
+             bthd_probabilities, bthd_seed));
+
+    Value bthd_query(f32(
+        {0.5F, -1, 1.5F, 0.25F, -0.5F, 1,
+         0.75F, -0.25F, 1, 0.5F, -1, 0.25F}, {1, 2, 3, 2}), true);
+    Value bthd_key(f32(
+        {0.5F, 1, -0.5F, 0.25F, 1.5F, -1}, {1, 1, 3, 2}), true);
+    Value bthd_value(f32({1, 2, 3, 4, 5, 6}, {1, 3, 1, 2}), true);
+    const Value bthd_graph_seed(bthd_seed);
+    const auto bthd_output = causal_gqa_attention_bthd(
+        bthd_query, bthd_key, bthd_value, 2, 0.5F);
+    emit("graph_causal_gqa_bthd_output", bthd_output.data());
+    sum(multiply(bthd_output, bthd_graph_seed)).backward();
+    emit("graph_causal_gqa_bthd_query_grad", bthd_query.grad());
+    emit("graph_causal_gqa_bthd_key_grad", bthd_key.grad());
+    emit("graph_causal_gqa_bthd_value_grad", bthd_value.grad());
+
     Value repeat_input(f32({1, 2, 3, 4}, {2, 2}), true);
     const Value repeat_seed(f32({1, 2, 3, 4, 5, 6, 7, 8}, {4, 2}));
     sum(multiply(repeat_interleave(repeat_input, 0, 2), repeat_seed)).backward();
@@ -445,6 +475,19 @@ void emit_invalid_shape_cases() {
     emit_bool("invalid_attention_probability_value_bthd_shape", rejected([&] {
                   (void)attention_probability_value_bthd(
                       Tensor({1, 2, 3, 3}), Tensor({1, 3, 1, 2}));
+              }));
+    emit_bool("invalid_attention_probability_gradient_bthd_shape", rejected([&] {
+                  (void)attention_probability_gradient_bthd(
+                      Tensor({1, 3, 2, 2}), Tensor({1, 3, 1, 2}));
+              }));
+    emit_bool("invalid_attention_value_gradient_bthd_shape", rejected([&] {
+                  (void)attention_value_gradient_bthd(
+                      Tensor({1, 2, 3, 3}), Tensor({1, 3, 1, 2}));
+              }));
+    emit_bool("invalid_causal_gqa_bthd_shape", rejected([&] {
+                  (void)causal_gqa_attention_bthd(
+                      Tensor({1, 2, 3, 2}), Tensor({1, 1, 3, 2}),
+                      Tensor({1, 3, 2, 2}), 2, 0.5F);
               }));
     emit_bool("invalid_repeat_count", rejected([&] { (void)repeat_interleave(matrix, 0, 0); }));
 

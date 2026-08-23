@@ -608,6 +608,72 @@ TEST(CpuOpsTest, AttentionProbabilityValueWritesInterleavedBthdLayout) {
                  std::invalid_argument);
 }
 
+TEST(CpuOpsTest, AttentionBthdBackwardPrimitivesAndGqaMatchMaterializedReference) {
+    const auto probabilities = Tensor::from_vector(
+        {1, 0, 0, 0.25F, 0.75F, 0, 0.1F, 0.2F, 0.7F,
+         1, 0, 0, 0.5F, 0.5F, 0, 0.2F, 0.3F, 0.5F},
+        {1, 2, 3, 3});
+    const auto value = Tensor::from_vector(
+        {1, 2, 10, 20, 3, 4, 30, 40, 5, 6, 50, 60},
+        {1, 3, 2, 2});
+    const auto output_gradient = Tensor::from_vector(
+        {1, -1, 0.5F, -0.5F, 2, -2, 1.5F, -1.5F, 3, -3, 2.5F, -2.5F},
+        {1, 3, 2, 2});
+    const auto gradient_bhtd = output_gradient.transpose(1, 2).contiguous();
+    const auto value_bhtd = value.transpose(1, 2).contiguous();
+    const auto expected_probability_gradient = matmul_with_implementation(
+        gradient_bhtd, value_bhtd, MatmulImplementation::Readable,
+        false, true);
+    const auto expected_value_gradient = matmul_with_implementation(
+        probabilities, gradient_bhtd, MatmulImplementation::Readable,
+        true, false).transpose(1, 2).contiguous();
+    expect_near(attention_probability_gradient_bthd(
+                    output_gradient, value).to_vector(),
+                expected_probability_gradient.to_vector());
+    expect_near(attention_value_gradient_bthd(
+                    probabilities, output_gradient).to_vector(),
+                expected_value_gradient.to_vector());
+
+    const auto query = Tensor::from_vector(
+        {0.5F, -1, 1.5F, 0.25F, -0.5F, 1,
+         0.75F, -0.25F, 1, 0.5F, -1, 0.25F}, {1, 2, 3, 2});
+    const auto key = Tensor::from_vector(
+        {0.5F, 1, -0.5F, 0.25F, 1.5F, -1}, {1, 1, 3, 2});
+    const auto gqa_value_bhtd = Tensor::from_vector(
+        {1, 2, 3, 4, 5, 6}, {1, 1, 3, 2});
+    const auto gqa_value = gqa_value_bhtd.transpose(1, 2).contiguous();
+    const auto seed = Tensor::from_vector(
+        {1, -1, 0.5F, -0.5F, 2, -2,
+         1.5F, -1.5F, 3, -3, 2.5F, -2.5F}, {1, 3, 2, 2});
+    const auto expected_output = causal_gqa_attention(
+        query, key, gqa_value_bhtd, 2, 0.5F).transpose(1, 2).contiguous();
+    const auto expected_gradients = causal_gqa_attention_backward(
+        query, key, gqa_value_bhtd, seed.transpose(1, 2).contiguous(),
+        2, 0.5F);
+    const auto actual_saved = causal_gqa_attention_bthd_saved(
+        query, key, gqa_value, 2, 0.5F);
+    const auto actual_gradients = causal_gqa_attention_bthd_backward_saved(
+        query, key, gqa_value, actual_saved.second, seed, 2, 0.5F);
+    expect_near(actual_saved.first.to_vector(), expected_output.to_vector());
+    expect_near(actual_gradients.first.to_vector(),
+                expected_gradients.first.to_vector());
+    expect_near(actual_gradients.second.to_vector(),
+                expected_gradients.second.to_vector());
+    expect_near(actual_gradients.third.to_vector(),
+                expected_gradients.third.transpose(1, 2).contiguous().to_vector());
+    const auto recomputed = causal_gqa_attention_bthd_backward(
+        query, key, gqa_value, seed, 2, 0.5F);
+    expect_near(recomputed.first.to_vector(), actual_gradients.first.to_vector());
+    expect_near(recomputed.second.to_vector(), actual_gradients.second.to_vector());
+    expect_near(recomputed.third.to_vector(), actual_gradients.third.to_vector());
+    EXPECT_THROW((void)attention_probability_gradient_bthd(
+                     output_gradient, Tensor({1, 3, 1, 2})),
+                 std::invalid_argument);
+    EXPECT_THROW((void)attention_value_gradient_bthd(
+                     probabilities, Tensor({1, 2, 3, 2})),
+                 std::invalid_argument);
+}
+
 TEST(CpuOpsTest, TransposeAwareMatmulCoversAllOperandLayoutsWithoutViews) {
     const auto logical_left = Tensor::from_vector({1, 2, 3, 4, 5, 6}, {2, 3});
     const auto logical_right = Tensor::from_vector(

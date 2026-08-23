@@ -38,7 +38,11 @@
     "causal_gqa_attention": {"torch": "causal_gqa_attention", "shape": "invalid_causal_gqa_shape"},
     "causal_softmax_backward": {"torch": "graph_causal_softmax_input_grad", "shape": "invalid_causal_backward_shape"},
     "attention_probability_value_bthd": {"torch": "attention_probability_value_bthd", "shape": "invalid_attention_probability_value_bthd_shape"},
+    "attention_probability_gradient_bthd": {"torch": "graph_causal_gqa_bthd_probability_grad", "shape": "invalid_attention_probability_gradient_bthd_shape"},
+    "attention_value_gradient_bthd": {"torch": "graph_causal_gqa_bthd_expanded_value_grad", "shape": "invalid_attention_value_gradient_bthd_shape"},
     "causal_gqa_attention_backward": {"torch": "graph_causal_gqa_key_grad", "shape": "invalid_causal_gqa_shape"},
+    "causal_gqa_attention_bthd": {"torch": "graph_causal_gqa_bthd_output", "shape": "invalid_causal_gqa_bthd_shape"},
+    "causal_gqa_attention_bthd_backward": {"torch": "graph_causal_gqa_bthd_value_grad", "shape": "invalid_causal_gqa_bthd_shape"},
     "repeat_interleave": {"torch": "repeat_interleave", "shape": "invalid_repeat_count"},
     "repeat_interleave_backward": {"torch": "graph_repeat_input_grad", "shape": "invalid_repeat_backward_shape"}
   },
@@ -51,6 +55,8 @@
     "bias_gradient_with_implementation": "tests/ops/hip_ops_test.cpp",
     "causal_gqa_attention_saved": "tests/ops/hip_ops_test.cpp",
     "causal_gqa_attention_backward_saved": "tests/ops/hip_ops_test.cpp",
+    "causal_gqa_attention_bthd_saved": "tests/ops/hip_ops_test.cpp",
+    "causal_gqa_attention_bthd_backward_saved": "tests/ops/hip_ops_test.cpp",
     "quantize_fp8": "tests/ops/ops_test.cpp",
     "quantize_fp8_with_scale": "tests/ops/ops_test.cpp",
     "quantize_fp8_dynamic": "tests/ops/ops_test.cpp",
@@ -124,6 +130,7 @@
     "contiguous": "graph_view_input_grad",
     "causal_softmax": "graph_causal_softmax_input_grad",
     "causal_gqa_attention": "graph_causal_gqa_query_grad",
+    "causal_gqa_attention_bthd": "graph_causal_gqa_bthd_query_grad",
     "repeat_interleave": "graph_repeat_input_grad"
   },
   "graph_infrastructure": {

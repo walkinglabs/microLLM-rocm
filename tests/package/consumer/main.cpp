@@ -36,10 +36,17 @@ int main() {
         microllm::ops::attention_probability_value_bthd(
             microllm::Tensor::from_vector({1.0F}, {1, 1, 1, 1}),
             microllm::Tensor::from_vector({2.0F, 3.0F}, {1, 1, 1, 2}));
+    const auto gqa_layout_context = microllm::ops::causal_gqa_attention_bthd(
+        microllm::Tensor::from_vector({1.0F, 0.0F}, {1, 1, 1, 2}),
+        microllm::Tensor::from_vector({1.0F, 0.0F}, {1, 1, 1, 2}),
+        microllm::Tensor::from_vector({2.0F, 3.0F}, {1, 1, 1, 2}),
+        1, 1.0F);
     microllm::autograd::enable_gradient_accumulation_diagnostics(false);
     microllm::runtime::enable_strided_copy_diagnostics(false);
     microllm::autograd::enable_attention_rope_layout_fusion(false);
     microllm::autograd::enable_attention_rope_layout_fusion(true);
+    microllm::autograd::enable_attention_context_layout_fusion(false);
+    microllm::autograd::enable_attention_context_layout_fusion(true);
     bool rejected_cpu_tuning = false;
     bool rejected_cpu_adamw_tuning = false;
     try {
@@ -68,6 +75,8 @@ int main() {
         layout_gradient.to_vector() !=
             std::vector<float>({1.0F, 1.0F, 1.0F, 1.0F}) ||
         layout_context.to_vector() != std::vector<float>({2.0F, 3.0F}) ||
+        gqa_layout_context.to_vector() != std::vector<float>({2.0F, 3.0F}) ||
+        !microllm::autograd::attention_context_layout_fusion_enabled() ||
         !microllm::autograd::attention_rope_layout_fusion_enabled() ||
         !rejected_cpu_tuning || !rejected_cpu_adamw_tuning) return 1;
     std::cout << "microLLM package consumer: pass\n";

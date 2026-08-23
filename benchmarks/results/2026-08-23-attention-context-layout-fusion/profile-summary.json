@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "model": "qwen2.5-0.5b",
+  "device": "AMD Instinct MI300X VF",
+  "architecture": "gfx942:sramecc+:xnack-",
+  "context": 512,
+  "warmup": 1,
+  "steps": 2,
+  "note": "Instrumented throughput is not used as the A/B performance result.",
+  "materialized": {
+    "kernel_dispatches": 7192,
+    "kernel_time_ns": 111726930,
+    "strided_copy_calls": 288,
+    "strided_copy_time_ns": 1603537
+  },
+  "fused": {
+    "kernel_dispatches": 6907,
+    "kernel_time_ns": 110668341,
+    "strided_copy_calls": 0,
+    "strided_copy_time_ns": 0
+  },
+  "ratios": {
+    "kernel_dispatches": 0.960373,
+    "kernel_time": 0.990525,
+    "strided_copy_calls": 0.0,
+    "strided_copy_time": 0.0
+  }
+}

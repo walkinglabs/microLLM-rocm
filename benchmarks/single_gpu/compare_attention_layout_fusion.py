@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run same-binary official-model A/B for Attention RoPE layout fusion."""
+"""Run same-binary official-model A/B for one Attention layout fusion."""
 
 from __future__ import annotations
 
@@ -22,6 +22,9 @@ def options() -> argparse.Namespace:
     parser.add_argument("--warmup", type=int, default=1)
     parser.add_argument("--steps", type=int, default=2)
     parser.add_argument("--collect-diagnostics", action="store_true")
+    parser.add_argument(
+        "--policy", choices=("rope", "context"), default="rope",
+        help="the one layout policy changed by the A/B")
     result = parser.parse_args()
     if result.runs <= 0 or result.context < 2 or result.warmup < 0 or result.steps <= 0:
         parser.error("runs/steps must be positive, context >= 2 and warmup nonnegative")
@@ -45,6 +48,8 @@ def expanded_tokens(model: dict, context: int) -> str:
 def command(args: argparse.Namespace, model: dict, enabled: bool,
             diagnostics: pathlib.Path | None = None) -> list[str]:
     training = model["training"]
+    rope_enabled = enabled if args.policy == "rope" else True
+    context_enabled = enabled if args.policy == "context" else True
     result = [
         str(args.binary),
         "--config", model["config"],
@@ -58,7 +63,8 @@ def command(args: argparse.Namespace, model: dict, enabled: bool,
         "--linear-precision", "bf16",
         "--bf16-weight-mirrors", "true",
         "--tied-embedding-sparse-add", "true",
-        "--attention-rope-layout-fusion", "true" if enabled else "false",
+        "--attention-rope-layout-fusion", "true" if rope_enabled else "false",
+        "--attention-context-layout-fusion", "true" if context_enabled else "false",
     ]
     if diagnostics:
         result.extend(("--diagnostics-output", str(diagnostics)))
@@ -75,7 +81,9 @@ def execute(args: argparse.Namespace, model: dict, enabled: bool,
         raise RuntimeError(f"{model['name']} did not complete a parameter update")
     if not math.isfinite(float(record["final_loss"])):
         raise RuntimeError(f"{model['name']} produced non-finite loss")
-    if record.get("attention_rope_layout_fusion") is not enabled:
+    field = ("attention_rope_layout_fusion" if args.policy == "rope" else
+             "attention_context_layout_fusion")
+    if record.get(field) is not enabled:
         raise RuntimeError(f"{model['name']} reported the wrong layout policy")
     return record
 
@@ -164,7 +172,8 @@ def main() -> int:
     summary = {
         "schema_version": 1,
         "status": "pass",
-        "track": "attention_rope_layout_fusion",
+        "track": f"attention_{args.policy}_layout_fusion",
+        "policy": args.policy,
         "context": args.context,
         "warmup": args.warmup,
         "steps": args.steps,

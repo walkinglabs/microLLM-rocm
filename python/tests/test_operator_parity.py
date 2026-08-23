@@ -386,6 +386,45 @@ def pytorch_references(actual):
     record(refs, "graph_causal_gqa_key_grad", attention_key.grad)
     record(refs, "graph_causal_gqa_value_grad", attention_value.grad)
 
+    bthd_probabilities = tensor(
+        [1, 0, 0, 0.25, 0.75, 0, 0.1, 0.2, 0.7,
+         1, 0, 0, 0.5, 0.5, 0, 0.2, 0.3, 0.5], (1, 2, 3, 3))
+    bthd_expanded_value = tensor(
+        [1, 2, 10, 20, 3, 4, 30, 40, 5, 6, 50, 60], (1, 3, 2, 2))
+    bthd_seed = tensor(
+        [1, -1, 2, 1, 0.5, 2, -0.5, 0.25,
+         -0.5, 1.5, 0.75, -2], (1, 3, 2, 2))
+    record(
+        refs,
+        "graph_causal_gqa_bthd_probability_grad",
+        bthd_seed.transpose(1, 2) @
+        bthd_expanded_value.transpose(1, 2).transpose(-2, -1),
+    )
+    record(
+        refs,
+        "graph_causal_gqa_bthd_expanded_value_grad",
+        (bthd_probabilities.transpose(-2, -1) @
+         bthd_seed.transpose(1, 2)).transpose(1, 2),
+    )
+
+    bthd_query = tensor(
+        [0.5, -1, 1.5, 0.25, -0.5, 1, 0.75, -0.25, 1, 0.5, -1, 0.25],
+        (1, 2, 3, 2), True)
+    bthd_key = tensor([0.5, 1, -0.5, 0.25, 1.5, -1], (1, 1, 3, 2), True)
+    bthd_value = tensor([1, 2, 3, 4, 5, 6], (1, 3, 1, 2), True)
+    bthd_expanded_key = torch.repeat_interleave(bthd_key, 2, dim=1)
+    bthd_expanded_graph_value = torch.repeat_interleave(bthd_value, 2, dim=2)
+    bthd_graph_probabilities = causal_softmax(
+        bthd_query @ bthd_expanded_key.transpose(-2, -1) * 0.5)
+    bthd_output = (
+        bthd_graph_probabilities @
+        bthd_expanded_graph_value.transpose(1, 2)).transpose(1, 2)
+    (bthd_output * bthd_seed).sum().backward()
+    record(refs, "graph_causal_gqa_bthd_output", bthd_output)
+    record(refs, "graph_causal_gqa_bthd_query_grad", bthd_query.grad)
+    record(refs, "graph_causal_gqa_bthd_key_grad", bthd_key.grad)
+    record(refs, "graph_causal_gqa_bthd_value_grad", bthd_value.grad)
+
     repeat_input = tensor([1, 2, 3, 4], (2, 2), True)
     repeat_seed = tensor([1, 2, 3, 4, 5, 6, 7, 8], (4, 2))
     (torch.repeat_interleave(repeat_input, 2, 0) * repeat_seed).sum().backward()
@@ -616,6 +655,9 @@ class OperatorParityTest(unittest.TestCase):
             "invalid_causal_shape",
             "invalid_causal_gqa_shape",
             "invalid_attention_probability_value_bthd_shape",
+            "invalid_attention_probability_gradient_bthd_shape",
+            "invalid_attention_value_gradient_bthd_shape",
+            "invalid_causal_gqa_bthd_shape",
             "invalid_repeat_count",
             "invalid_embedding_backward_shape",
             "invalid_softmax_backward_shape",

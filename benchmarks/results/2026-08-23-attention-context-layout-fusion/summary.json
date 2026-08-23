@@ -1,0 +1,107 @@
+{
+  "aggregation": "median of fresh processes with alternating policy order",
+  "comparisons": [
+    {
+      "allocation_calls_saved": 192.0,
+      "loss_relative_difference": 6.941912512289309e-05,
+      "model": "qwen2.5-0.5b",
+      "observed_parameter_after_equal": true,
+      "peak_bytes_saved": 100401152.0,
+      "peak_ratio": 0.9915779014112305,
+      "policies": {
+        "fused": {
+          "engine_allocation_calls": 3340.0,
+          "engine_peak_bytes": 11820754952.0,
+          "final_loss": 0.016910592,
+          "mean_optimizer_ms": 13.956566,
+          "mean_step_ms": 33.4388125,
+          "observed_parameter_after": 7.468718052,
+          "tokens_per_second": 15311.548518656
+        },
+        "materialized": {
+          "engine_allocation_calls": 3532.0,
+          "engine_peak_bytes": 11921156104.0,
+          "final_loss": 0.016911766,
+          "mean_optimizer_ms": 13.562115,
+          "mean_step_ms": 34.563075,
+          "observed_parameter_after": 7.468718052,
+          "tokens_per_second": 14813.496773652
+        }
+      },
+      "strided_copy": {
+        "fused": {
+          "bytes": 0,
+          "calls": 0,
+          "elements": 0
+        },
+        "materialized": {
+          "bytes": 100663296,
+          "calls": 96,
+          "elements": 25165824
+        }
+      },
+      "throughput_speedup": 1.0336214840165125
+    },
+    {
+      "allocation_calls_saved": 224.0,
+      "loss_relative_difference": 0.0,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "observed_parameter_after_equal": true,
+      "peak_bytes_saved": 205520896.0,
+      "peak_ratio": 0.994491262444724,
+      "policies": {
+        "fused": {
+          "engine_allocation_calls": 3896.0,
+          "engine_peak_bytes": 37102645256.0,
+          "final_loss": 4.036802292,
+          "mean_optimizer_ms": 49.6195105,
+          "mean_step_ms": 80.9100705,
+          "observed_parameter_after": 2.124970913,
+          "tokens_per_second": 6328.013272464
+        },
+        "materialized": {
+          "engine_allocation_calls": 4120.0,
+          "engine_peak_bytes": 37308166152.0,
+          "final_loss": 4.036802292,
+          "mean_optimizer_ms": 49.1391875,
+          "mean_step_ms": 82.978942,
+          "observed_parameter_after": 2.124970913,
+          "tokens_per_second": 6170.240155629
+        }
+      },
+      "strided_copy": {
+        "fused": {
+          "bytes": 0,
+          "calls": 0,
+          "elements": 0
+        },
+        "materialized": {
+          "bytes": 205520896,
+          "calls": 112,
+          "elements": 51380224
+        }
+      },
+      "throughput_speedup": 1.0255700123261924
+    }
+  ],
+  "context": 512,
+  "decision": "keep layout fusion",
+  "gate_results": {
+    "loss": true,
+    "parameter": true,
+    "strided_copy_reduced": true,
+    "throughput": true
+  },
+  "keep_gate": {
+    "loss_relative_difference_maximum": 0.005,
+    "observed_parameter_after_equal": true,
+    "throughput_ratio_minimum": 0.98
+  },
+  "policy": "context",
+  "runs_per_model_policy": 3,
+  "schema_version": 1,
+  "status": "pass",
+  "steps": 2,
+  "track": "attention_context_layout_fusion",
+  "warmup": 1
+}

@@ -34,6 +34,7 @@ class AttentionLayoutFusionRunnerTest(unittest.TestCase):
             context=4,
             warmup=1,
             steps=2,
+            policy="rope",
         )
 
     def test_training_context_supplies_one_extra_target_token(self):
@@ -59,6 +60,17 @@ class AttentionLayoutFusionRunnerTest(unittest.TestCase):
         self.assertEqual(command[command.index("--steps") + 1], "1")
         self.assertEqual(
             command[command.index("--diagnostics-output") + 1], str(destination))
+
+    def test_context_policy_keeps_rope_enabled_and_changes_only_context(self):
+        self.args.policy = "context"
+        materialized = RUNNER.command(self.args, self.model, False)
+        fused = RUNNER.command(self.args, self.model, True)
+        rope = materialized.index("--attention-rope-layout-fusion")
+        context = materialized.index("--attention-context-layout-fusion")
+        self.assertEqual(materialized[rope + 1], "true")
+        self.assertEqual(fused[rope + 1], "true")
+        self.assertEqual(materialized[context + 1], "false")
+        self.assertEqual(fused[context + 1], "true")
 
     def test_operator_matrix_preserves_batch_head_sequence_width(self):
         shape = MATRIX.parse_shape("qwen:2:14:512:64")
