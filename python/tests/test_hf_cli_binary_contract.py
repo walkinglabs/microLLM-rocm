@@ -29,11 +29,15 @@ def main() -> int:
         b"--fp8-weight-scale-scope",
         b"attention-output-only",
         b"fp8_dynamic_clipped_tensor_calls",
-        b"--fp8-activation-format",
     )
     missing = [value.decode() for value in required if value not in payload]
     if missing:
         raise RuntimeError(f"hf_infer binary has a stale CLI contract: {missing}")
+    removed = (b"--fp8-activation-format",)
+    retained = [value.decode() for value in removed if value in payload]
+    if retained:
+        raise RuntimeError(
+            f"hf_infer binary retains rejected CLI policies: {retained}")
     print("hf_infer binary contract: pass")
     return 0
 

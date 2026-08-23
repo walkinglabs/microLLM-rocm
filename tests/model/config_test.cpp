@@ -81,17 +81,6 @@ TEST(ModelConfigTest, Fp8OutputChannelWeightPolicyIsVisibleInSummary) {
     EXPECT_THROW(config.validate(), std::invalid_argument);
 }
 
-TEST(ModelConfigTest, Fp8E5ActivationFormatIsExplicitAndRequiresFp8) {
-    auto config = ModelConfig::model_s();
-    config.linear_precision = LinearPrecision::Float8E4M3FNUZ;
-    config.fp8_activation_format = Fp8ActivationFormat::E5M2FNUZ;
-    config.validate();
-    EXPECT_NE(config.summary().find("fp8_activation_format=e5m2_fnuz"),
-              std::string::npos);
-    config.linear_precision = LinearPrecision::Float32;
-    EXPECT_THROW(config.validate(), std::invalid_argument);
-}
-
 TEST(ModelConfigTest, Fp8DiagnosticModesAreExplicitAndRequireFp8Linear) {
     auto config = ModelConfig::model_s();
     config.linear_precision = LinearPrecision::Float8E4M3FNUZ;

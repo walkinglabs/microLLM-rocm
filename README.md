@@ -37,10 +37,10 @@ needed to run a real training and generation loop:
   explicit native/fallback counters; none is a default precision claim;
 - explicit clipped dynamic FP8 Tensor quantization with finite saturation, a compatibility-preserving
   fraction of 1.0, and separate clipped-call counters; model clipping is not enabled by default;
-- executed native MI300 evidence for mixed E5M2-FNUZ activations and E4M3-FNUZ weights; model use
-  remains opt-in until complete-logit evidence exists;
-- an opt-in E5M2 activation format shared by FP32-master training and graph-free inference while
-  weights remain E4M3; official-model comparison is still required;
+- executed native MI300 evidence for mixed E5M2-FNUZ activations and E4M3-FNUZ weights at the
+  operator layer;
+- same-revision official-model evidence rejects E5 activation because all eight complete-logit
+  Max/RMS metrics worsen by 1.51×–3.43×; the model/CLI policy was removed while the primitive remains;
 - host and device-only FP8 weight-amax preparation policies with separate scan/transfer
   evidence; device mode does not copy weight payloads to CPU;
 - opt-in device per-output-column FP8 weight preparation with native scalar GEMM plus an
@@ -317,14 +317,14 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 371/371 | 258 CPU-labelled + 114 HIP-labelled gates; the package gate belongs to both labels; 2 intentional environment skips |
-| ASan/UBSan CPU | 211/211 | host code, CLI, model/graph, benchmark and evidence schemas |
-| MI300X/gfx942 HIP preset | 114/114 | 113 allocator/stream, graph, BF16/FP8, batched GEMM and model gates + 1 installed-package gate |
-| PyTorch-enabled CPU build | 196/196 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
+| Full CPU/HIP configuration | 368/368 | 256 CPU-labelled + 113 HIP-labelled gates; the package gate belongs to both labels; 2 intentional environment skips |
+| ASan/UBSan CPU | 249/249 | host code, CLI, model/graph, benchmark and evidence schemas |
+| MI300X/gfx942 HIP preset | 113/113 | 112 allocator/stream, graph, BF16/FP8, batched GEMM and model gates + 1 installed-package gate |
+| PyTorch-enabled CPU build | 225/225 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
 | Registered test files | 54 | machine-audited CTest registration |
 | Installed CMake package | CPU + HIP + RCCL pass | relocated prefix, external `find_package`, components, compile, static link and run |
-| CPU source coverage | 83.9% lines / 66.6% branches | GCC 13.3 + gcovr 8.3; `src/` and `include/` |
+| CPU source coverage | 82.7% lines / 63.7% branches | 6,582/7,957 lines and 6,347/9,961 branches; GCC 13.3 + gcovr 8.3 |
 
 Latest PyTorch-reference maximum absolute differences:
 

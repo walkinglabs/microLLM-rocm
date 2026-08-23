@@ -6366,6 +6366,114 @@ def validate_fp8_clipped_fine_grid(
         verification.get("selection", {}).get("selected_fraction", -1.0)
 
 
+def validate_fp8_e5_activation_discard(
+        errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "153-data"
+    candidate = data / "candidate"
+    control = data / "control"
+    verification = json.loads(
+        (candidate / "verification.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    candidate_summary = json.loads(
+        (candidate / "summary.json").read_text(encoding="utf-8"))
+    control_summary = json.loads(
+        (control / "summary.json").read_text(encoding="utf-8"))
+    candidate_raw = sum(1 for line in (candidate / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip())
+    control_raw = sum(1 for line in (control / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip())
+    candidate_preflight = sum(1 for line in (
+        candidate / "gpu2-preflight.jsonl").read_text(
+            encoding="utf-8").splitlines() if line.strip())
+    control_preflight = sum(1 for line in (
+        control / "gpu2-preflight.jsonl").read_text(
+            encoding="utf-8").splitlines() if line.strip())
+    suites = verification.get("suites", {})
+    if verification.get("all_checks_passed") is not True or \
+            verification.get("revision") != \
+            "821e7b8ba9ef8b3d7396dbd74c72bc78b114ac49" or \
+            suites.get("combined_workers") != 72 or \
+            suites.get("combined_fp8") != 24 or \
+            candidate_raw != 36 or control_raw != 36 or \
+            candidate_preflight != 3 or control_preflight != 3 or \
+            (candidate / "stderr.log").stat().st_size != 0 or \
+            (control / "stderr.log").stat().st_size != 0 or \
+            (candidate / "exit-code.txt").read_text(encoding="utf-8").strip() != "0" or \
+            (control / "exit-code.txt").read_text(encoding="utf-8").strip() != "0":
+        errors.append("FP8 E5 activation execution contract changed")
+    if candidate_summary.get("fp8_activation_format") != "e5m2-fnuz" or \
+            control_summary.get("fp8_activation_format") != "e4m3-fnuz" or \
+            len(candidate_summary.get("rows", [])) != 36 or \
+            len(control_summary.get("rows", [])) != 36:
+        errors.append("FP8 E5/E4 format or row identity changed")
+    comparisons = verification.get("comparisons", [])
+    if len(comparisons) != 4 or any(
+            row.get("delta", {}).get("max_not_worse") is not False or
+            row.get("delta", {}).get("rms_not_worse") is not False or
+            row.get("candidate", {}).get("resident") !=
+            row.get("control", {}).get("resident") or
+            row.get("candidate", {}).get("peak") !=
+            row.get("control", {}).get("peak")
+            for row in comparisons):
+        errors.append("FP8 E5 complete-logit regression evidence changed")
+    ratios = [
+        (row["delta"]["max_ratio"], row["delta"]["rms_ratio"])
+        for row in comparisons
+    ]
+    if not ratios or min(value for pair in ratios for value in pair) < 1.5 or \
+            max(value for pair in ratios for value in pair) < 3.4 or \
+            verification.get("keep", {}).get("keep") is not False or \
+            verification.get("keep", {}).get("both_t512_pass") is not True or \
+            verification.get("complete_precision", {}).get("passes") != 0 or \
+            verification.get("complete_precision", {}).get("total") != 4:
+        errors.append("FP8 E5 rejection gate changed")
+    for format_name, expected_dynamic, expected_post in (
+            ("e4", {384, 452}, {96, 112}),
+            ("e5", {384, 452}, {96, 112})):
+        checks = suites.get(format_name, {}).get("checks", [])
+        if len(checks) != 12 or any(
+                row.get("passed") is not True or row.get("logits") != 151936
+                for row in checks) or \
+                {row.get("dynamic") for row in checks} != expected_dynamic or \
+                {row.get("post") for row in checks} != expected_post:
+            errors.append(f"FP8 {format_name} worker counters changed")
+    decision = gates.get("decision", {})
+    evidence = gates.get("evidence", {})
+    active_surfaces = "\n".join(
+        (REPOSITORY / name).read_text(encoding="utf-8")
+        for name in ("include/microllm/model/config.h", "src/model/config.cpp",
+                     "src/model/model.cpp", "apps/hf_infer.cpp",
+                     "benchmarks/single_gpu/hf_fp8_matrix.py"))
+    primitive_surfaces = "\n".join(
+        (REPOSITORY / name).read_text(encoding="utf-8")
+        for name in ("include/microllm/base/low_precision.h",
+                     "tests/autograd/autograd_test.cpp",
+                     "tests/ops/hip_ops_test.cpp"))
+    if decision.get("targeted_keep") is not False or \
+            decision.get("remove_model_e5_policy") is not True or \
+            decision.get("retain_low_level_e5_dtype_and_ops") is not True or \
+            decision.get("retain_mixed_operand_autograd_api") is not True or \
+            evidence.get("max_rms_metrics_worse") != 8 or \
+            evidence.get("complete_precision_gates_passed") != 0 or \
+            "[50/50]" not in (data / "fresh-build.log").read_text(
+                encoding="utf-8") or \
+            "contract: pass" not in (data / "hf-cli-binary-contract.log").read_text(
+                encoding="utf-8") or \
+            "OK" not in (data / "hf-fp8-matrix-contract.log").read_text(
+                encoding="utf-8"):
+        errors.append("FP8 E5 decision/build gates changed")
+    if "Fp8ActivationFormat" in active_surfaces or \
+            "--fp8-activation-format" in active_surfaces or \
+            "Float8E5M2FNUZ" not in primitive_surfaces or \
+            "MixedFp8FormatsUseE5ActivationE4WeightAndFp32Gradients" not in \
+            primitive_surfaces or \
+            "MixedE5ActivationAndE4WeightExecuteWithExplicitDispatch" not in \
+            primitive_surfaces:
+        errors.append("FP8 E5 model removal or primitive retention changed")
+    return suites.get("combined_workers", 0), suites.get("combined_fp8", 0), \
+        verification.get("complete_precision", {}).get("passes", -1)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -6496,7 +6604,8 @@ def validate_assets(errors: list[str]) -> None:
                  "fp8-clipped-pilot-invalid.svg",
                  "fp8-fraction-pilot-workload-invalid.svg",
                  "fp8-clipped-coarse-grid.svg",
-                 "fp8-clipped-fine-grid.svg"):
+                 "fp8-clipped-fine-grid.svg",
+                 "fp8-e5-activation-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -6734,6 +6843,8 @@ def main() -> int:
         validate_fp8_clipped_coarse_grid(errors)
     fine_workers, fine_comparisons, fine_selected = \
         validate_fp8_clipped_fine_grid(errors)
+    e5_workers, e5_fp8, e5_precision = \
+        validate_fp8_e5_activation_discard(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -6921,6 +7032,7 @@ def main() -> int:
           f"clipped_coarse={coarse_workers}/{coarse_comparisons}/"
           f"{coarse_selected} "
           f"clipped_fine={fine_workers}/{fine_comparisons}/{fine_selected} "
+          f"e5_activation={e5_workers}/{e5_fp8}/{e5_precision} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

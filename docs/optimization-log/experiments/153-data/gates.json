@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "status": "model_e5_activation_rejected",
+  "evidence": {
+    "fresh_build_steps": 50,
+    "contracts_passed": 2,
+    "combined_workers": 72,
+    "combined_fp8_workers": 24,
+    "complete_logits_per_fp8_worker": 151936,
+    "max_rms_metrics_worse": 8,
+    "max_rms_metrics_total": 8,
+    "t512_performance_gates_passed": 2,
+    "resident_memory_delta_bytes": 0,
+    "peak_memory_delta_bytes": 0,
+    "complete_precision_gates_passed": 0
+  },
+  "decision": {
+    "targeted_keep": false,
+    "e5_model_policy_viable": false,
+    "remove_model_e5_policy": true,
+    "remove_cli_e5_policy": true,
+    "remove_general_matrix_e5_policy": true,
+    "retain_low_level_e5_dtype_and_ops": true,
+    "retain_mixed_operand_autograd_api": true,
+    "complete_fp8_precision_available": false,
+    "top_token_is_sufficient_precision_evidence": false
+  }
+}

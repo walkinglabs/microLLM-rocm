@@ -56,7 +56,6 @@ struct Options {
     std::string fp8_weight_scale_mode = "fixed";
     std::string fp8_weight_scale_scope = "all-linear";
     std::string fp8_activation_scale_mode = "fixed";
-    std::string fp8_activation_format = "e4m3-fnuz";
     std::string fp8_diagnostic_mode = "full";
     std::string fp8_fp32_layers;
     std::string workload = "both";
@@ -149,9 +148,6 @@ Options options(int argc, char** argv) {
         }
         else if (name == "--fp8-activation-scale-mode") {
             result.fp8_activation_scale_mode = argv[index + 1];
-        }
-        else if (name == "--fp8-activation-format") {
-            result.fp8_activation_format = argv[index + 1];
         }
         else if (name == "--fp8-diagnostic-mode") {
             result.fp8_diagnostic_mode = argv[index + 1];
@@ -327,15 +323,6 @@ Options options(int argc, char** argv) {
         throw std::invalid_argument(
             "--fp8-diagnostic-mode must be full, weight-only, activation-only, or both-roundtrip");
     }
-    if (result.fp8_activation_format != "e4m3-fnuz" &&
-        result.fp8_activation_format != "e5m2-fnuz") {
-        throw std::invalid_argument(
-            "--fp8-activation-format must be e4m3-fnuz or e5m2-fnuz");
-    }
-    if (result.fp8_activation_format != "e4m3-fnuz" && !result.fp8_linear) {
-        throw std::invalid_argument(
-            "--fp8-activation-format requires --fp8-linear true");
-    }
     if (result.fp8_weight_scale_scope != "all-linear" &&
         result.fp8_weight_scale_scope != "attention-output-only") {
         throw std::invalid_argument(
@@ -420,7 +407,7 @@ Options options(int argc, char** argv) {
     return result;
 }
 
-std::string fp8_compute_policy_base(const Options& command) {
+std::string fp8_compute_policy(const Options& command) {
     const auto weight_name = command.fp8_weight_scale_mode == "device-tensor-amax"
                                  ? "device_tensor_amax_weight"
                                  : command.fp8_weight_scale_mode ==
@@ -472,14 +459,6 @@ std::string fp8_compute_policy_base(const Options& command) {
         return "fp8_e4m3_fnuz_device_tensor_amax_weight";
     }
     return "fp8_e4m3_fnuz_static_scale";
-}
-
-std::string fp8_compute_policy(const Options& command) {
-    auto result = fp8_compute_policy_base(command);
-    if (command.fp8_activation_format == "e5m2-fnuz") {
-        result += "_e5m2_fnuz_activation";
-    }
-    return result;
 }
 
 std::string fp8_storage_policy(const Options& command) {
@@ -959,10 +938,6 @@ int main(int argc, char** argv) {
                     : command.fp8_activation_scale_mode == "ffn-outer-row"
                     ? microllm::model::Fp8ActivationScaleMode::FfnOuterRow
                     : microllm::model::Fp8ActivationScaleMode::Fixed;
-            external.model.fp8_activation_format =
-                command.fp8_activation_format == "e5m2-fnuz"
-                    ? microllm::model::Fp8ActivationFormat::E5M2FNUZ
-                    : microllm::model::Fp8ActivationFormat::E4M3FNUZ;
             external.model.fp8_diagnostic_mode =
                 command.fp8_diagnostic_mode == "weight-only"
                     ? microllm::model::Fp8DiagnosticMode::WeightOnly
@@ -1222,8 +1197,6 @@ int main(int argc, char** argv) {
                       << command.fp8_weight_scale_scope << "\""
                       << ",\"fp8_activation_scale_mode\":\""
                       << command.fp8_activation_scale_mode << "\""
-                      << ",\"fp8_activation_format\":\""
-                      << command.fp8_activation_format << "\""
                       << ",\"fp8_diagnostic_mode\":\""
                       << command.fp8_diagnostic_mode << "\""
                       << ",\"fp8_fp32_layers\":\""
@@ -1739,8 +1712,6 @@ int main(int argc, char** argv) {
                   << command.fp8_weight_scale_scope << "\""
                   << ",\"fp8_activation_scale_mode\":\""
                   << command.fp8_activation_scale_mode << "\""
-                  << ",\"fp8_activation_format\":\""
-                  << command.fp8_activation_format << "\""
                   << ",\"fp8_diagnostic_mode\":\""
                   << command.fp8_diagnostic_mode << "\""
                   << ",\"fp8_fp32_layers\":\""

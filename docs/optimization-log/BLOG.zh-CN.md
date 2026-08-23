@@ -2595,3 +2595,16 @@ control 6.55×/9.51×/12.18×；后两者还翻转top。计数证明所有dynami
 删除模型/CLI clipping和专用pilot runner，保留底层C++算子；下一主线不再调全局amax fraction。
 
 ![Clipped activation fine grid](assets/fp8-clipped-fine-grid.svg)
+
+## 170. Experiment 153：指数范围更大，完整误差反而最多恶化3.43倍
+
+E5 candidate与E4 control使用同revision、同binary、同动态amax和O-only权重scope。两套72个
+worker全部成功，24个FP8行各比较151,936个logits。E5的八项Max/RMS无一改善：Qwen为
+1.51×–2.12×，DeepSeek为2.06×–3.43×。两项T512吞吐变化只有+0.06%/-0.30%，显存增量为零，
+但完整precision仍0/4。
+
+这否定“更大指数范围可能改善当前动态量化模型”的解释。动态amax已经适配范围，少一位尾数
+成为更直接的损失。模型、CLI和通用matrix的E5策略删除；Tensor dtype、量化/反量化、独立
+operand autograd与MI300原生E5×E4测试保留，清楚区分“硬件会算”和“模型可用”。
+
+![E5 activation format discard](assets/fp8-e5-activation-discard.svg)
