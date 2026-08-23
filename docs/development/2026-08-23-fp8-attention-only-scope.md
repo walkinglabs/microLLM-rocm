@@ -22,3 +22,7 @@ status-0 path still uses native scalar FP8 GEMM plus device post-scale.
 
 Official same-revision device-Tensor control at T8/T512 decides precision and performance. The
 candidate is not derived from the rejected output-head API and is not a default.
+
+Exp147 improves seven of eight Max/RMS metrics and keeps both T512 regressions below 5%, but Qwen
+T512 RMS worsens 8.91%. Cross-model keep therefore fails. The scope remains only as a base for an
+O-projection-only counterfactual. See [Experiment 147](../optimization-log/experiments/147-fp8-attention-only.md).

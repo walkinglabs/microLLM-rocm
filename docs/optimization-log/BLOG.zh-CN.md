@@ -2538,3 +2538,13 @@ Deep多607,740B和每forward一个post，但预设数值改善条件失败。
 targeted keep=false，完整门仍0/4。删除这个scope，保留“发现基线错误并改写结论”的全过程。
 
 ![Output-head-only counterfactual](assets/fp8-output-head-only.svg)
+
+## 164. Experiment 147：八项改善七项，唯一红条仍然否决keep
+
+Attention Q/K/V/O逐列scale后，Qwen T8与Deep两context全部Max/RMS改善；Qwen T512 Max也改善
+10.2%，但RMS恶化8.91%。两模型T512只慢4.26%/4.42%，都过门。预设规则不允许用7/8平均
+盖住一条长上下文回归，因此keep=false，完整门仍0/4。
+
+下一步只测O projection，隔离Q/K/V的长上下文非线性影响。
+
+![Attention-only FP8 weights](assets/fp8-attention-only.svg)

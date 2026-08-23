@@ -517,6 +517,9 @@ selects a DeepSeek output-head-only counterfactual rather than claiming model ac
 [Experiment 146](docs/optimization-log/experiments/146-fp8-output-head-only.md) adds a same-revision
 device-Tensor control and finds zero Max/RMS change with small overhead; the targeted scope is
 rejected, and the initially tempting host-Tensor historical comparison is explicitly invalidated.
+[Experiment 147](docs/optimization-log/experiments/147-fp8-attention-only.md) improves seven of
+eight Max/RMS metrics and passes both T512 speed gates, but Qwen T512 RMS regresses 8.91%; the scope
+remains experimental and is not a cross-model default.
 
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or

@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "status": "reject_cross_model_keep_one_qwen_long_rms_regression",
+  "evidence": {
+    "fresh_build_steps": 50,
+    "contracts_passed": 2,
+    "combined_workers": 72,
+    "combined_fp8_workers": 24,
+    "complete_logits_per_fp8_worker": 151936,
+    "max_rms_metrics_improved": 7,
+    "max_rms_metrics_total": 8,
+    "t512_performance_gates_passed": 2,
+    "t512_performance_gates_total": 2,
+    "complete_precision_gates_passed": 0
+  },
+  "decision": {
+    "all_max_rms_non_worse": false,
+    "at_least_one_metric_improved": true,
+    "both_t512_degradation_within_five_percent": true,
+    "cross_model_keep": false,
+    "qwen_t512_rms_regressed": true,
+    "deepseek_all_reported_metrics_improved": true,
+    "attention_scope_is_default": false,
+    "retain_scope_for_projection_counterfactual": true,
+    "attention_output_only_is_next_minimal_scope": true,
+    "complete_fp8_precision_available": false
+  }
+}
