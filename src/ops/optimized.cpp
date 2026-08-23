@@ -31,6 +31,9 @@ std::map<MatmulShapeKey, MatmulImplementation> registry;
 // capability per shape so repeated transformer layers do not retry a rejected
 // library path on every token.
 thread_local std::map<MatmulShapeKey, bool> bf16_fp32_direct_registry;
+thread_local std::map<MatmulShapeKey, bool> fp8_fp32_direct_registry;
+thread_local std::map<MatmulShapeKey, bool> fp8_native_matrix_registry;
+thread_local std::size_t fp8_software_fallback_calls = 0;
 #endif
 }  // namespace
 
@@ -418,6 +421,28 @@ Tensor hipblaslt_fp8_matmul(const ScaledTensor& left, const ScaledTensor& right,
     const auto inner = left.values.shape()[1];
     const auto columns = right.values.shape()[1];
     if (right.values.shape()[0] != inner) throw std::invalid_argument("FP8 matmul inner mismatch");
+    const MatmulShapeKey shape{rows, inner, columns};
+    const auto bf16_software_fallback = [&] {
+        ++fp8_software_fallback_calls;
+        const auto left_bf16 = dequantize_fp8(
+            left, DType::BFloat16, context);
+        const auto right_bf16 = dequantize_fp8(
+            right, DType::BFloat16, context);
+        return bf16_matmul_output(
+            left_bf16, right_bf16, output_dtype, context);
+    };
+    const auto native = fp8_native_matrix_registry.find(shape);
+    if (native != fp8_native_matrix_registry.end() && !native->second) {
+        return bf16_software_fallback();
+    }
+    if (output_dtype == DType::Float32) {
+        const auto found = fp8_fp32_direct_registry.find(shape);
+        if (found != fp8_fp32_direct_registry.end() && !found->second) {
+            return cast(hipblaslt_fp8_matmul(
+                            left, right, DType::BFloat16, context),
+                        DType::Float32, context);
+        }
+    }
     Tensor output({rows, columns}, output_dtype, left.values.device());
     static Handle handle;
     MatmulDescription operation;
@@ -437,13 +462,41 @@ Tensor hipblaslt_fp8_matmul(const ScaledTensor& left, const ScaledTensor& right,
                     static_cast<std::uint64_t>(rows), columns);
     const float alpha = 1.0F;
     const float beta = 0.0F;
-    check_status(hipblasLtMatmul(
-                     handle.get(), operation.get(), &alpha, right.values.data(), matrix_b.get(),
-                     left.values.data(), matrix_a.get(), &beta, output.data(), matrix_c.get(),
-                     output.data(), matrix_c.get(), nullptr, context.workspace,
-                     context.workspace_bytes,
-                     reinterpret_cast<hipStream_t>(context.native_stream(left.values.device()))),
-                 "hipblasLtMatmul(FP8)");
+    const auto status = hipblasLtMatmul(
+        handle.get(), operation.get(), &alpha, right.values.data(), matrix_b.get(),
+        left.values.data(), matrix_a.get(), &beta, output.data(), matrix_c.get(),
+        output.data(), matrix_c.get(), nullptr, context.workspace,
+        context.workspace_bytes,
+        reinterpret_cast<hipStream_t>(context.native_stream(left.values.device())));
+    if (status == HIPBLAS_STATUS_SUCCESS) {
+        fp8_native_matrix_registry[shape] = true;
+        if (output_dtype == DType::Float32) {
+            fp8_fp32_direct_registry[shape] = true;
+        }
+        return output;
+    }
+    if (output_dtype == DType::Float32 &&
+        (status == HIPBLAS_STATUS_INTERNAL_ERROR ||
+         status == HIPBLAS_STATUS_NOT_SUPPORTED)) {
+        fp8_fp32_direct_registry[shape] = false;
+        return cast(hipblaslt_fp8_matmul(
+                        left, right, DType::BFloat16, context),
+                    DType::Float32, context);
+    }
+    if (output_dtype == DType::BFloat16 &&
+        (status == HIPBLAS_STATUS_INTERNAL_ERROR ||
+         status == HIPBLAS_STATUS_NOT_SUPPORTED)) {
+        fp8_native_matrix_registry[shape] = false;
+        return bf16_software_fallback();
+    }
+    if (status != HIPBLAS_STATUS_SUCCESS) {
+        throw std::runtime_error(
+            "hipblasLtMatmul(FP8) failed for shape " +
+            std::to_string(rows) + "x" + std::to_string(inner) + "x" +
+            std::to_string(columns) + " output=" +
+            std::string(dtype_name(output_dtype)) +
+            " status=" + std::to_string(static_cast<int>(status)));
+    }
     return output;
 }
 
@@ -499,6 +552,28 @@ std::size_t bf16_registered_algorithm_count() noexcept {
     return bf16_algorithm_registry.size();
 #else
     return 0;
+#endif
+}
+
+Fp8DispatchStats fp8_dispatch_stats() noexcept {
+#if MICROLLM_HAS_HIPBLASLT
+    std::size_t native = 0;
+    std::size_t fallback = 0;
+    for (const auto& [shape, supported] : fp8_native_matrix_registry) {
+        (void)shape;
+        supported ? ++native : ++fallback;
+    }
+    return {native, fallback, fp8_software_fallback_calls};
+#else
+    return {};
+#endif
+}
+
+void clear_fp8_dispatch_registry() noexcept {
+#if MICROLLM_HAS_HIPBLASLT
+    fp8_fp32_direct_registry.clear();
+    fp8_native_matrix_registry.clear();
+    fp8_software_fallback_calls = 0;
 #endif
 }
 

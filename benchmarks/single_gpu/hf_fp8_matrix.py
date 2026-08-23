@@ -191,6 +191,11 @@ def main() -> int:
                         "converted_tensors": output.get(
                             "fp8_converted_tensors" if policy == "fp8"
                             else "bf16_ffn_converted_tensors", 0),
+                        "fp8_native_shapes": output.get("fp8_native_shapes", 0),
+                        "fp8_software_fallback_shapes": output.get(
+                            "fp8_software_fallback_shapes", 0),
+                        "fp8_software_fallback_calls": output.get(
+                            "fp8_software_fallback_calls", 0),
                         "fp8_activation_scale": args.fp8_activation_scale,
                         "fp8_weight_scale": args.fp8_weight_scale,
                         "logit_count": len(values),
@@ -226,6 +231,12 @@ def main() -> int:
                         row["top_token_equal"] for row in selected),
                     "precision_gate_passed_all": all(
                         row["precision_gate_passed"] for row in selected),
+                    "fp8_native_shapes_max": max(
+                        row["fp8_native_shapes"] for row in selected),
+                    "fp8_software_fallback_shapes_max": max(
+                        row["fp8_software_fallback_shapes"] for row in selected),
+                    "fp8_software_fallback_calls_p50": statistics.median(
+                        row["fp8_software_fallback_calls"] for row in selected),
                 })
     accuracy_failures = [row for row in aggregates
                          if row["policy"] != "fp32" and

@@ -25,6 +25,7 @@ errors = []
 declared_ops = public_names(
     "include/microllm/ops/ops.h",
     ["TensorPair", "TensorTriple", "Tensor", "Bf16FfnDiagnostics",
+     "Fp8DispatchStats",
      "Bf16PlanCacheStats", "bool",
      "MatmulImplementation", "std::size_t", "void"],
 )

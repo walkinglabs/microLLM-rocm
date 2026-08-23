@@ -496,6 +496,46 @@ TEST(HipFp8OpsTest, PreparedTransformerWeightsMatchLazyInferenceWithoutPayloadTr
     EXPECT_EQ(after_tensor.to_vector(), before);
 }
 
+TEST(HipFp8OpsTest, DeepSeekLinearShapesAcceptFp32OutputOrBf16Fallback) {
+    require_gpu();
+    if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";
+    const auto gpu = Device::hip(0);
+    const auto scale = 0.005F;
+    clear_fp8_dispatch_registry();
+    for (const auto& [inner, columns] : {
+             std::pair<std::int64_t, std::int64_t>{896, 896},
+             {896, 128}, {896, 4864}, {4864, 896},
+             {1536, 1536}, {1536, 256}, {1536, 8960}, {8960, 1536}}) {
+        SCOPED_TRACE("inner=" + std::to_string(inner) +
+                     " columns=" + std::to_string(columns));
+        std::vector<float> left_values(static_cast<std::size_t>(8 * inner));
+        std::vector<float> right_values(
+            static_cast<std::size_t>(inner * columns));
+        for (std::size_t index = 0; index < left_values.size(); ++index) {
+            left_values[index] = static_cast<float>(
+                static_cast<int>(index % 11) - 5) * 0.01F;
+        }
+        for (std::size_t index = 0; index < right_values.size(); ++index) {
+            right_values[index] = static_cast<float>(
+                static_cast<int>(index % 7) - 3) * 0.005F;
+        }
+        const auto left = Tensor::from_vector(
+                              left_values, {8, inner}).to(gpu);
+        const auto right = Tensor::from_vector(
+                               right_values, {inner, columns}).to(gpu);
+        const auto output = fp8_matmul(
+            quantize_fp8(left, DType::Float8E4M3FNUZ, 0.025F),
+            quantize_fp8(right, DType::Float8E4M3FNUZ, scale),
+            DType::Float32);
+        ASSERT_EQ(output.shape(), (Shape{8, columns}));
+        for (const auto value : output.to_vector()) EXPECT_TRUE(std::isfinite(value));
+    }
+    const auto stats = fp8_dispatch_stats();
+    EXPECT_GE(stats.native_shapes, 1U);
+    EXPECT_GE(stats.software_fallback_shapes, 1U);
+    EXPECT_GE(stats.software_fallback_calls, 1U);
+}
+
 TEST(HipBf16TrainingTest, TransformerPolicyKeepsFp32MastersAndGradients) {
     require_gpu();
     if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";

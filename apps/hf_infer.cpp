@@ -792,6 +792,7 @@ int main(int argc, char** argv) {
         }
         if (command.fp8_linear) {
             fp8_report = model.prepare_fp8_inference_weights();
+            microllm::ops::clear_fp8_dispatch_registry();
         }
         microllm::runtime::synchronize(device);
         const auto preparation_finish = std::chrono::steady_clock::now();
@@ -997,6 +998,12 @@ int main(int argc, char** argv) {
                       << command.fp8_weight_scale
                       << ",\"fp8_converted_tensors\":"
                       << fp8_report.converted_tensors
+                      << ",\"fp8_native_shapes\":"
+                      << microllm::ops::fp8_dispatch_stats().native_shapes
+                      << ",\"fp8_software_fallback_shapes\":"
+                      << microllm::ops::fp8_dispatch_stats().software_fallback_shapes
+                      << ",\"fp8_software_fallback_calls\":"
+                      << microllm::ops::fp8_dispatch_stats().software_fallback_calls
                       << ",\"request_count\":" << prompts.size()
                       << ",\"continuous_slots\":" << command.continuous_slots
                       << ",\"bucketed_cache\":"
@@ -1408,6 +1415,12 @@ int main(int argc, char** argv) {
                   << bf16_attention_report.converted_tensors
                   << ",\"fp8_converted_tensors\":"
                   << fp8_report.converted_tensors
+                  << ",\"fp8_native_shapes\":"
+                  << microllm::ops::fp8_dispatch_stats().native_shapes
+                  << ",\"fp8_software_fallback_shapes\":"
+                  << microllm::ops::fp8_dispatch_stats().software_fallback_shapes
+                  << ",\"fp8_software_fallback_calls\":"
+                  << microllm::ops::fp8_dispatch_stats().software_fallback_calls
                   << ",\"fp8_activation_scale\":"
                   << command.fp8_activation_scale
                   << ",\"fp8_weight_scale\":"

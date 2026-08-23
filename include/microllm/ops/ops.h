@@ -17,6 +17,12 @@ struct Bf16PlanCacheStats {
     std::size_t misses = 0;
 };
 
+struct Fp8DispatchStats {
+    std::size_t native_shapes = 0;
+    std::size_t software_fallback_shapes = 0;
+    std::size_t software_fallback_calls = 0;
+};
+
 struct TensorPair {
     Tensor first;
     Tensor second;
@@ -120,6 +126,8 @@ void register_bf16_algorithm(std::int64_t rows, std::int64_t inner,
                              int solution_index);
 void clear_bf16_algorithm_registry() noexcept;
 [[nodiscard]] std::size_t bf16_registered_algorithm_count() noexcept;
+[[nodiscard]] Fp8DispatchStats fp8_dispatch_stats() noexcept;
+void clear_fp8_dispatch_registry() noexcept;
 [[nodiscard]] MatmulImplementation choose_matmul_implementation(
     const Tensor& left, const Tensor& right);
 [[nodiscard]] MatmulImplementation choose_matmul_implementation(
