@@ -2320,3 +2320,12 @@ FP32的35%–46%，Deep T512比BF16快4.4%；但四个FP8 aggregate max/RMS均�
 top token翻转。保留基础设施，拒绝静态全局scale和默认FP8。
 
 ![Official FP8 static scale](assets/official-fp8-static-scale.svg)
+
+## 140. Experiment 123：32个scale全失败，边界却还没封死
+
+两个官方模型各用1个FP32完整logits参考筛16个预先固定的FP8 scale对。34/34进程执行成功，
+但32个候选0个通过精度门。Qwen最好RMS从2.96降到1.92，仍是门的38倍；DeepSeek最好保留
+top token的候选RMS为2.54。Qwen最优activation正好落在0.05上边界，所以只拒绝当前网格，
+下一节点扩展到0.1/0.2后才决定是否转向per-tensor amax。
+
+![FP8 global scale grid](assets/fp8-global-scale-grid.svg)

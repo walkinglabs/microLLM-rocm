@@ -608,6 +608,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/121-data/](experiments/121-data/) | 6条INT8 exact-sample与roofline证据 |
 | [assets/official-fp8-static-scale.svg](assets/official-fp8-static-scale.svg) | official FP8速度/内存与四个精度红门 |
 | [experiments/122-data/](experiments/122-data/) | 36条FP32/BF16/FP8和一次worker失败 |
+| [assets/fp8-global-scale-grid.svg](assets/fp8-global-scale-grid.svg) | 两个官方模型的全局scale网格最低RMS与精度门 |
+| [experiments/123-data/](experiments/123-data/) | 34条fresh-process reference/scale候选和0/32过门证据 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

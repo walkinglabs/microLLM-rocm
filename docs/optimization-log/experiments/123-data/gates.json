@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "status": "reject_current_global_scale_grid_expand_boundary",
+  "cpu_regression": {
+    "passed": 225,
+    "failed": 0,
+    "skipped": 2
+  },
+  "python_contract": {
+    "passed": 6,
+    "failed": 0
+  },
+  "official_scale_grid": {
+    "workers_passed": 34,
+    "workers_failed": 0,
+    "scale_pairs": 32,
+    "precision_gate_passed": 0,
+    "pre_vram_percent_max": 0,
+    "pre_use_percent_max": 1,
+    "post_vram_percent_max": 2,
+    "post_use_percent_max": 5
+  },
+  "decision": {
+    "current_grid_accepted": false,
+    "all_global_scales_refuted": false,
+    "qwen_best_on_activation_upper_boundary": true,
+    "expand_activation_boundary": true,
+    "default_fp8": false
+  }
+}
