@@ -166,6 +166,9 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] measure 208 T8 Tensor row distributions: FFN median spread is 3.8–4.8x with
   1106x/2076x outliers, while Deep Attention is nearly uniform;
 - [ ] define an FFN-only row-scale output-rescaling contract compatible with hipBLASLt;
+- [x] confirm the installed hipBLASLt exposes native FP32 outer-vector scale mode and
+  derive that user-left row scales map to descriptor B after row-major transpose submission;
+- [ ] implement/test `Scalar/OuterRow` ScaledTensor modes and explicit unsupported-shape fallback;
 - [ ] replace the one-block reduction only if the next accepted numerical policy reuses it;
 - [ ] replace global FP8 scales with weight per-tensor and activation per-row/token amax,
   starting from saturation/trace evidence rather than top-token search;
