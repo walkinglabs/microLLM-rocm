@@ -56,7 +56,9 @@ void launch_quantize_fp8(const void* input, DType input_dtype, void* output,
                          void* stream = nullptr);
 void launch_quantize_fp8_dynamic(const void* input, DType input_dtype,
                                  void* output, DType fp8_dtype,
-                                 float* scale, std::int64_t elements,
+                                 float* scale, float* partial_maxima,
+                                 std::int64_t partial_count,
+                                 std::int64_t elements,
                                  float minimum_scale,
                                  void* stream = nullptr);
 void launch_quantize_fp8_rows_dynamic(

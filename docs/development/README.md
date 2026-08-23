@@ -307,5 +307,7 @@ the next gate. Records are append-only except for factual corrections.
   zero-D2H weight preparation contract and separated host/device scan evidence.
 - [2026-08-23-hf-cli-binary-contract.md](2026-08-23-hf-cli-binary-contract.md):
   stale binary detection, fresh-build compile failure and repaired CLI evidence gate.
+- [2026-08-23-fp8-multiblock-amax.md](2026-08-23-fp8-multiblock-amax.md):
+  two-stage device reduction, late-partition maximum test and zero-transfer contract.
 - [2026-08-21-divergent-row-cache-reference.md](2026-08-21-divergent-row-cache-reference.md):
   unequal-position shared-Storage B1 oracle with CPU/HIP and reset-prefix gates.

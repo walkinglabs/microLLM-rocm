@@ -388,9 +388,14 @@ ScaledTensor quantize_fp8_dynamic(
     Tensor scale(Shape{}, DType::Float32, input.device());
     Tensor output(input.shape(), fp8_dtype, input.device());
 #if MICROLLM_HAS_HIP
+    const auto partial_count = std::min<std::int64_t>(
+        1024, std::max<std::int64_t>(1, (input.numel() + 255) / 256));
+    Tensor partial_maxima({partial_count}, DType::Float32, input.device());
     hip::launch_quantize_fp8_dynamic(
         input.data(), input.dtype(), output.data(), fp8_dtype,
-        static_cast<float*>(scale.data()), input.numel(), minimum_scale,
+        static_cast<float*>(scale.data()),
+        static_cast<float*>(partial_maxima.data()), partial_count,
+        input.numel(), minimum_scale,
         context.native_stream(input.device()));
     return {std::move(output), std::move(scale), minimum_scale, false};
 #else

@@ -484,6 +484,24 @@ TEST(HipFp8OpsTest, DynamicTensorScaleQuantizeAndDequantizeStayOnDevice) {
     expect_near(restored.to_vector(), cpu.to_vector(), 0.5F);
 }
 
+TEST(HipFp8OpsTest, MultiBlockDynamicScaleFindsMaximumInLastPartition) {
+    require_gpu();
+    constexpr std::int64_t elements = 262144;
+    std::vector<float> values(static_cast<std::size_t>(elements), 0.25F);
+    values.back() = -123.0F;
+    const auto input = Tensor::from_vector(values, {elements}).to(Device::hip(0));
+    runtime::reset_transfer_stats();
+    const auto dynamic = quantize_fp8_dynamic(
+        input, DType::Float8E4M3FNUZ, 1.0e-4F);
+    runtime::synchronize(Device::hip(0));
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    EXPECT_NEAR(dynamic.scale.to_vector()[0], 123.0F / 240.0F, 1.0e-6F);
+    const auto restored = dequantize_fp8(dynamic, DType::Float32).to_vector();
+    EXPECT_NEAR(restored.back(), -123.0F, 4.0F);
+}
+
 TEST(HipFp8OpsTest, OuterRowScaleGemmMatchesIndependentRangeReference) {
     require_gpu();
     if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";
