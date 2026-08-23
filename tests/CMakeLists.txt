@@ -78,6 +78,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.HfFp8WeightAuditContract PROPERTIES
         LABELS "cpu;benchmark;fp8;precision;schema")
     add_test(
+        NAME Benchmark.HfFp8FractionPilotContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_hf_fp8_fraction_pilot.py
+    )
+    set_tests_properties(Benchmark.HfFp8FractionPilotContract PROPERTIES
+        LABELS "cpu;benchmark;fp8;precision;schema")
+    add_test(
         NAME Coverage.OperatorAndTestFiles
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/audit_test_coverage.py
     )

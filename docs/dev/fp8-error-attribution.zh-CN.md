@@ -180,3 +180,17 @@ Exp147曾测试Q/K/V/O四个projection，但被Exp148的O-only严格支配，因
 
 `1.0`是原路径；小于1会把超出新范围的值有限饱和。具体fraction必须通过官方模型搜索，不能
 因为参数存在就设成默认。
+
+正式网格前使用数值pilot，避免每个fraction重复FP32/BF16参考：
+
+```bash
+python3 benchmarks/single_gpu/hf_fp8_fraction_pilot.py \
+  --manifest /path/model-manifest.json \
+  --binary build/apps/microllm_hf_infer \
+  --output-directory /tmp/fraction-pilot \
+  --models qwen2.5-0.5b,deepseek-r1-distill-qwen-1.5b \
+  --contexts 8,512 \
+  --fractions 1,0.75,0.5,0.25
+```
+
+pilot只按完整logits选择数值方向，不报告性能。

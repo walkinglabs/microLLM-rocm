@@ -337,5 +337,7 @@ the next gate. Records are append-only except for factual corrections.
   explicit amax fraction, finite saturation and E4M3/E5M2 format maxima.
 - [2026-08-23-fp8-clipped-activation-model.md](2026-08-23-fp8-clipped-activation-model.md):
   ModelConfig/CLI fraction, policy identity and CPU/HIP model counters.
+- [2026-08-23-fp8-fraction-pilot-runner.md](2026-08-23-fp8-fraction-pilot-runner.md):
+  single-oracle fraction pilot, strict selection rule and reduced contention window.
 - [2026-08-21-divergent-row-cache-reference.md](2026-08-21-divergent-row-cache-reference.md):
   unequal-position shared-Storage B1 oracle with CPU/HIP and reset-prefix gates.
