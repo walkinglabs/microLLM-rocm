@@ -73,6 +73,11 @@ class HfFp8MatrixTest(unittest.TestCase):
         self.assertTrue(comparison["precision_gate_passed"])
         self.assertNotIn("weight_preparation_ms", comparison)
 
+    def test_runner_source_keeps_weight_and_scale_residency_separate(self):
+        source = (ROOT / "benchmarks/single_gpu/hf_fp8_matrix.py").read_text()
+        self.assertIn('"fp8_weight_bytes_retained"', source)
+        self.assertIn('"fp8_scale_bytes_retained"', source)
+
     def test_boundary_names_the_actual_weight_scale_policy(self):
         self.assertIn("static global weight", MATRIX.experiment_boundary("fixed"))
         tensor = MATRIX.experiment_boundary("tensor-amax")

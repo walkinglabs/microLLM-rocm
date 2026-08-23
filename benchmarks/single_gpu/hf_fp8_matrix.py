@@ -234,6 +234,10 @@ def main() -> int:
                         "prefill_tokens_per_second": output[
                             "prefill_tokens_per_second"],
                         "resident_weight_bytes": output["resident_weight_bytes"],
+                        "fp8_weight_bytes_retained": output.get(
+                            "fp8_weight_bytes_retained", 0),
+                        "fp8_scale_bytes_retained": output.get(
+                            "fp8_scale_bytes_retained", 0),
                         "engine_peak_bytes": output["engine_peak_bytes"],
                         "weight_preparation_ms": output.get(
                             "weight_preparation_ms", 0.0),
@@ -308,6 +312,10 @@ def main() -> int:
                     "prefill_tokens_per_second_p50": statistics.median(
                         row["prefill_tokens_per_second"] for row in selected),
                     "resident_weight_bytes": selected[0]["resident_weight_bytes"],
+                    "fp8_weight_bytes_retained": selected[0][
+                        "fp8_weight_bytes_retained"],
+                    "fp8_scale_bytes_retained": selected[0][
+                        "fp8_scale_bytes_retained"],
                     "engine_peak_bytes_p50": statistics.median(
                         row["engine_peak_bytes"] for row in selected),
                     "weight_preparation_ms_p50": statistics.median(

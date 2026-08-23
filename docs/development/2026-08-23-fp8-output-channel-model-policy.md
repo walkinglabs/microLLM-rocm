@@ -19,3 +19,6 @@ column calls/elements and native post-scale calls.
 
 This is an experiment policy, not a new default. Official Qwen/DeepSeek complete-logit, memory and
 throughput gates decide whether it is kept, rejected, or narrowed to selected Linear families.
+
+The official matrix schema retains FP8 weight bytes and scale bytes as separate fields. This is
+required because a lower total can otherwise hide an unexpectedly large vector-scale allocation.
