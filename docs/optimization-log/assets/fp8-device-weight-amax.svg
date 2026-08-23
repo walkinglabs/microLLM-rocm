@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="570" viewBox="0 0 1040 570" role="img" aria-labelledby="title desc">
+  <title id="title">Device weight amax preparation speedup</title><desc id="desc">Device-only amax reduces official model FP8 preparation time while preserving hot throughput.</desc>
+  <rect width="1040" height="570" rx="18" fill="#0b1020"/><text x="52" y="52" fill="#f8fafc" font-size="28" font-family="sans-serif" font-weight="700">device weight amax：准备时间下降约83%</text>
+  <text x="52" y="82" fill="#94a3b8" font-size="16" font-family="sans-serif">蓝=host准备；绿=device准备（毫秒）</text>
+  <line x1="80" y1="450" x2="960" y2="450" stroke="#334155"/>
+  <g fill="#e2e8f0" font-family="sans-serif" font-size="17"><text x="150" y="140">Qwen</text><text x="650" y="140">DeepSeek</text></g>
+  <rect x="130" y="360" width="110" height="90" fill="#38bdf8"/><rect x="255" y="434" width="110" height="16" fill="#22c55e"/><rect x="625" y="165" width="110" height="285" fill="#38bdf8"/><rect x="750" y="401" width="110" height="49" fill="#22c55e"/>
+  <g fill="#f8fafc" font-family="sans-serif" font-size="14"><text x="130" y="350">host 2855ms</text><text x="255" y="424">device 501ms</text><text x="625" y="155">host 12283ms</text><text x="750" y="391">device 2114ms</text></g>
+  <g fill="#cbd5e1" font-family="sans-serif" font-size="15"><text x="130" y="500">Qwen 5.70× faster</text><text x="625" y="500">DeepSeek 5.81× faster</text><text x="180" y="545">TPS在host基线±2.3%；host payload D2H=0；完整FP8精度仍失败</text></g>
+</svg>

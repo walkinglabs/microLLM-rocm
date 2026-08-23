@@ -1,0 +1,3 @@
+source_revision=ea54c3d4691cbc89536f5be896943f6f22d390de+uncommitted-string-fix
+binary=/tmp/microllm-exp132-build-fixed.Rrvv9S/apps/microllm_hf_infer
+HIP_VISIBLE_DEVICES=2 /usr/local/bin/python3 benchmarks/single_gpu/hf_fp8_matrix.py --manifest /tmp/microllm-bf16-model-manifest.json --binary /tmp/microllm-exp132-build-fixed.Rrvv9S/apps/microllm_hf_infer --output-directory /tmp/microllm-exp132-device-weight-amax-final --contexts 8,512 --warmup 1 --steps 3 --runs 3 --fp8-activation-scale 0.2 --fp8-activation-minimum-scale 0.0001 --fp8-weight-scale 0.0001 --fp8-weight-scale-mode device-tensor-amax --fp8-activation-scale-mode fixed --physical-gpu-index 2 --max-idle-vram-percent 5 --max-idle-use-percent 10

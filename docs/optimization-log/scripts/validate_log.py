@@ -5285,6 +5285,65 @@ def validate_fp8_ffn_outer_row(errors: list[str]) -> tuple[int, int, int]:
     return len(raw), len(fp8), len(pilot)
 
 
+def validate_fp8_device_weight_amax(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "132-data"
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines()]
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    pilot = [json.loads(line) for line in (data / "pilot-raw.jsonl").read_text(
+        encoding="utf-8").splitlines()]
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    fresh_build = (data / "fresh-build.log").read_text(encoding="utf-8")
+    rejected_build = (data / "rejected-build.log").read_text(encoding="utf-8")
+    if len(raw) != 36 or any(row.get("status") != "pass" for row in raw) or any(
+            row.get("pre_run_gpu_state", {}).get("vram_percent") != 0 or
+            row.get("pre_run_gpu_state", {}).get("gpu_use_percent", 99) > 1 or
+            row.get("post_run_gpu_state", {}).get("vram_percent", 99) > 2 or
+            row.get("post_run_gpu_state", {}).get("gpu_use_percent", 99) > 4
+            for row in raw):
+        errors.append("device weight amax raw or idle evidence changed")
+    aggregates = summary.get("aggregates", [])
+    fp8 = [row for row in aggregates if row.get("policy") == "fp8"]
+    if summary.get("status") != "complete_with_recorded_accuracy_failures" or \
+            summary.get("fp8_weight_scale_mode") != "device-tensor-amax" or \
+            summary.get("accuracy_failure_count") != 4 or len(fp8) != 4 or any(
+                row.get("precision_gate_passed_all") is not False or
+                row.get("top_token_equal_all") is not True
+                for row in fp8):
+        errors.append("device weight amax aggregate contract changed")
+    by_key = {(row["model"], row["context"]): row for row in fp8}
+    expected = {
+        ("qwen2.5-0.5b", 8): (480, 520, 1900, 2100, 0.65, 0.68),
+        ("qwen2.5-0.5b", 512): (480, 520, 90000, 92000, 1.22, 1.24),
+        ("deepseek-r1-distill-qwen-1.5b", 8): (2050, 2180, 1320, 1410, 1.10, 1.12),
+        ("deepseek-r1-distill-qwen-1.5b", 512): (2050, 2180, 50500, 52500, 1.28, 1.30),
+    }
+    for key, (pl, ph, tl, th, rl, rh) in expected.items():
+        row = by_key[key]
+        if not pl < row.get("weight_preparation_ms_p50", 0) < ph or \
+                not tl < row.get("prefill_tokens_per_second_p50", 0) < th or \
+                not rl < row.get("root_mean_square_error_max", 0) < rh:
+            errors.append(f"device weight amax result changed for {key}")
+    fp8_raw = [row for row in raw if row.get("policy") == "fp8"]
+    qwen = next(row for row in fp8_raw if row["model"] == "qwen2.5-0.5b")
+    deep = next(row for row in fp8_raw if row["model"].startswith("deepseek"))
+    if qwen.get("fp8_device_amax_tensors") != 168 or \
+            qwen.get("fp8_device_weight_bytes_scanned") != 1431306240 or \
+            deep.get("fp8_device_amax_tensors") != 197 or \
+            deep.get("fp8_device_weight_bytes_scanned") != 6174277632 or any(
+                row.get("fp8_weight_bytes_scanned") != 0 or
+                row.get("fp8_host_scale_summary_available") is not False
+                for row in fp8_raw):
+        errors.append("device weight amax scan metadata changed")
+    if len(pilot) != 3 or "[34/34] Linking HIP executable" not in fresh_build or \
+            "invalid operands" not in rejected_build or \
+            gates.get("decision", {}).get("device_weight_amax_retained") is not True or \
+            gates.get("decision", {}).get("bit_equivalent_to_host_amax") is not False or \
+            gates.get("decision", {}).get("fp8_model_policy_accepted") is not False:
+        errors.append("device weight amax build/pilot/gates changed")
+    return len(raw), len(fp8), len(pilot)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -5394,7 +5453,8 @@ def validate_assets(errors: list[str]) -> None:
                  "fp8-activation-range.svg",
                  "fp8-device-activation-amax.svg",
                  "fp8-activation-row-range.svg",
-                 "fp8-ffn-outer-row.svg"):
+                 "fp8-ffn-outer-row.svg",
+                 "fp8-device-weight-amax.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -5590,6 +5650,8 @@ def main() -> int:
         validate_fp8_activation_row_range(errors)
     ffn_row_raw, ffn_row_failures, ffn_row_pilot = \
         validate_fp8_ffn_outer_row(errors)
+    device_weight_raw, device_weight_failures, device_weight_pilot = \
+        validate_fp8_device_weight_amax(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -5746,6 +5808,8 @@ def main() -> int:
           f"{device_amax_pilot} "
           f"row_range={row_range_raw}/{row_range_quarter}/{row_range_traces} "
           f"ffn_row={ffn_row_raw}/{ffn_row_failures}/{ffn_row_pilot} "
+          f"device_weight={device_weight_raw}/{device_weight_failures}/"
+          f"{device_weight_pilot} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

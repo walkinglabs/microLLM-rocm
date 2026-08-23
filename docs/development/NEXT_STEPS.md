@@ -175,7 +175,9 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] measure official FFN-only row scale: T512 recovers 14–16x versus full Tensor amax,
   but 0/4 precision gates pass and all 288/336 row calls are BF16 software fallback;
 - [x] add device-only weight Tensor amax with zero preparation D2H and explicit scan metadata;
-- [ ] compare host/device weight amax cold-start, logits and throughput on official models;
+- [x] compare official host/device weight amax: device cuts preparation 82%–83%, removes
+  host payload scans and keeps TPS within ±2.3%, but is not bit-exact and FP8 gates still fail;
+- [ ] replace single-block device weight amax with a measured multi-block reduction candidate;
 - [ ] replace the one-block reduction only if the next accepted numerical policy reuses it;
 - [ ] replace global FP8 scales with weight per-tensor and activation per-row/token amax,
   starting from saturation/trace evidence rather than top-token search;

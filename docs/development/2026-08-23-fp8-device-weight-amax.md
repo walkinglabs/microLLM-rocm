@@ -14,4 +14,6 @@
 HIP tiny模型证明准备阶段0 D2H、8/8权重device amax、扫描字节等于释放FP32字节；prepared热路径
 0 H2D/0 D2H，lazy/prepared输出一致。完整回归346/346通过，2个条件跳过；sanitizer定向门通过。
 
-当前amax仍是单block正确性Kernel，官方冷启动时间和完整logits尚未比较，不能提前声称更快。
+官方36/36矩阵显示Qwen/Deep准备时间下降约82%–83%，TPS在host-amax±2.3%，但logits不
+bit-exact且0/4精度门通过。保留device模式作为实验优选，详见
+[Experiment 132](../optimization-log/experiments/132-fp8-device-weight-amax.md)。

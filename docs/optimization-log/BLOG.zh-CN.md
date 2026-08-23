@@ -2397,3 +2397,11 @@ DeepSeek RMS继续下降，Qwen T512却退到0.396；四个精度门仍全失败
 每worker精确记录288/336次device BF16 fallback。保留路由与计数，拒绝默认模型策略。
 
 ![FFN outer row](assets/fp8-ffn-outer-row.svg)
+
+## 149. Experiment 132：冷启动快5.8倍，先修掉一个假绿CLI
+
+device weight amax让Qwen/Deep准备从约2.9/12.3秒降到0.50/2.11秒，host权重payload D2H归零，
+热TPS在host基线±2.3%。首次pilot先抓到stale binary，fresh build又暴露CLI编译错误；修复后
+binary contract转绿才正式跑36进程。logits不bit-exact、四个精度门仍失败，所以只保留准备优化。
+
+![Device weight amax](assets/fp8-device-weight-amax.svg)

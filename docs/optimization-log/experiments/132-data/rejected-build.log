@@ -1,0 +1,11 @@
+[1/3] Linking HIP static library src/inference/libmicrollm_inference.a
+[2/3] Building CXX object apps/CMakeFiles/microllm_hf_infer.dir/hf_infer.cpp.o
+FAILED: [code=1] apps/CMakeFiles/microllm_hf_infer.dir/hf_infer.cpp.o
+/usr/bin/c++ -DMICROLLM_HAS_HIP=1 -DMICROLLM_HAS_HIPBLASLT=1 -DMICROLLM_HAS_RCCL=0 -DMICROLLM_VERSION=\"0.1.0\" -I/home/devpod/github/microLLM-rocm/include -O3 -DNDEBUG -std=c++20 -fPIE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -MD -MT apps/CMakeFiles/microllm_hf_infer.dir/hf_infer.cpp.o -MF apps/CMakeFiles/microllm_hf_infer.dir/hf_infer.cpp.o.d -o apps/CMakeFiles/microllm_hf_infer.dir/hf_infer.cpp.o -c /home/devpod/github/microLLM-rocm/apps/hf_infer.cpp
+/home/devpod/github/microLLM-rocm/apps/hf_infer.cpp: In function ‘std::string {anonymous}::fp8_compute_policy(const Options&)’:
+/home/devpod/github/microLLM-rocm/apps/hf_infer.cpp:379:33: error: invalid operands of types ‘const char [15]’ and ‘const char* const’ to binary ‘operator+’
+  379 |         return "fp8_e4m3_fnuz_" + weight_name + "_ffn_outer_row";
+      |                ~~~~~~~~~~~~~~~~ ^ ~~~~~~~~~~~
+      |                |                  |
+      |                const char [15]    const char* const
+ninja: build stopped: subcommand failed.

@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "status": "keep_device_weight_amax_reject_fp8_model_precision",
+  "fresh_build": {"steps_passed": 34, "binary_contract": true},
+  "formal_matrix": {"workers_passed": 36, "fp8_precision_failures": 4},
+  "decision": {
+    "device_weight_amax_retained": true,
+    "host_weight_payload_d2h": false,
+    "bit_equivalent_to_host_amax": false,
+    "fp8_model_policy_accepted": false,
+    "default_fp8": false
+  }
+}
