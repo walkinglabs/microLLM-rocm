@@ -329,5 +329,7 @@ the next gate. Records are append-only except for factual corrections.
   external scalar/column weight-error audit and family aggregation contract.
 - [2026-08-23-fp8-output-head-only-scope.md](2026-08-23-fp8-output-head-only-scope.md):
   rejected tied/untied routing experiment and subsequent public-API removal.
+- [2026-08-23-fp8-attention-only-scope.md](2026-08-23-fp8-attention-only-scope.md):
+  fresh Q/K/V/O-only routing, strict CLI contract and device preparation gates.
 - [2026-08-21-divergent-row-cache-reference.md](2026-08-21-divergent-row-cache-reference.md):
   unequal-position shared-Storage B1 oracle with CPU/HIP and reset-prefix gates.

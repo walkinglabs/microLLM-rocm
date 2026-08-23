@@ -158,3 +158,12 @@ python3 benchmarks/single_gpu/hf_fp8_weight_audit.py \
 Exp146曾实现独立LM head最小范围，但同revision control证明Max/RMS完全不变，因此公共scope已
 删除。命令和失败证据仍保存在[Experiment 146](../optimization-log/experiments/146-fp8-output-head-only.md)，
 不能继续复制旧参数当作当前API。
+
+当前新的单变量范围是Attention四个projection：
+
+```bash
+--fp8-weight-scale-mode output-channel-amax \
+--fp8-weight-scale-scope attention-only
+```
+
+FFN和独立LM head仍使用device Tensor-amax。这个参数只表示候选范围，不表示正式精度已经通过。

@@ -97,6 +97,9 @@ class HfFp8MatrixTest(unittest.TestCase):
         both = MATRIX.experiment_boundary(
             "device-tensor-amax", "tensor-amax", "both-roundtrip")
         self.assertIn("diagnostic mode=both-roundtrip", both)
+        attention = MATRIX.experiment_boundary(
+            "output-channel-amax", "tensor-amax", "full", "attention-only")
+        self.assertIn("weight scale scope=attention-only", attention)
 
 
 if __name__ == "__main__":

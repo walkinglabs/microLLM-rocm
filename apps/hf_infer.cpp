@@ -54,6 +54,7 @@ struct Options {
     float fp8_activation_minimum_scale = 1.0e-4F;
     float fp8_weight_scale = 0.005F;
     std::string fp8_weight_scale_mode = "fixed";
+    std::string fp8_weight_scale_scope = "all-linear";
     std::string fp8_activation_scale_mode = "fixed";
     std::string fp8_diagnostic_mode = "full";
     std::string fp8_fp32_layers;
@@ -141,6 +142,9 @@ Options options(int argc, char** argv) {
         }
         else if (name == "--fp8-weight-scale-mode") {
             result.fp8_weight_scale_mode = argv[index + 1];
+        }
+        else if (name == "--fp8-weight-scale-scope") {
+            result.fp8_weight_scale_scope = argv[index + 1];
         }
         else if (name == "--fp8-activation-scale-mode") {
             result.fp8_activation_scale_mode = argv[index + 1];
@@ -319,6 +323,16 @@ Options options(int argc, char** argv) {
         throw std::invalid_argument(
             "--fp8-diagnostic-mode must be full, weight-only, activation-only, or both-roundtrip");
     }
+    if (result.fp8_weight_scale_scope != "all-linear" &&
+        result.fp8_weight_scale_scope != "attention-only") {
+        throw std::invalid_argument(
+            "--fp8-weight-scale-scope must be all-linear or attention-only");
+    }
+    if (result.fp8_weight_scale_scope != "all-linear" &&
+        result.fp8_weight_scale_mode != "output-channel-amax") {
+        throw std::invalid_argument(
+            "--fp8-weight-scale-scope requires output-channel-amax weights");
+    }
     if (result.fp8_diagnostic_mode != "full" && !result.fp8_linear) {
         throw std::invalid_argument(
             "--fp8-diagnostic-mode requires --fp8-linear true");
@@ -401,6 +415,11 @@ std::string fp8_compute_policy(const Options& command) {
                                        ? "output_channel_amax_weight"
                                  : command.fp8_weight_scale_mode == "tensor-amax"
                                        ? "tensor_amax_weight" : "fixed_weight";
+    const auto scoped_weight_name =
+        command.fp8_weight_scale_mode == "output-channel-amax" &&
+                command.fp8_weight_scale_scope == "attention-only"
+            ? "attention_only_output_channel_amax_weight"
+            : weight_name;
     const auto activation_name =
         command.fp8_activation_scale_mode == "ffn-outer-row"
             ? "ffn_outer_row_activation"
@@ -408,7 +427,7 @@ std::string fp8_compute_policy(const Options& command) {
                   ? "tensor_amax_activation" : "fixed_activation";
     if (command.fp8_diagnostic_mode == "weight-only") {
         return std::string("fp8_e4m3_fnuz_weight_only_diagnostic_") +
-               weight_name;
+               scoped_weight_name;
     }
     if (command.fp8_diagnostic_mode == "activation-only") {
         return std::string("fp8_e4m3_fnuz_activation_only_diagnostic_") +
@@ -416,10 +435,14 @@ std::string fp8_compute_policy(const Options& command) {
     }
     if (command.fp8_diagnostic_mode == "both-roundtrip") {
         return std::string("fp8_e4m3_fnuz_both_roundtrip_diagnostic_") +
-               weight_name + "_" + activation_name;
+               scoped_weight_name + "_" + activation_name;
+    }
+    if (command.fp8_weight_scale_mode == "output-channel-amax") {
+        return std::string("fp8_e4m3_fnuz_") + scoped_weight_name + "_" +
+               activation_name;
     }
     if (command.fp8_activation_scale_mode == "ffn-outer-row") {
-        return std::string("fp8_e4m3_fnuz_") + weight_name +
+        return std::string("fp8_e4m3_fnuz_") + scoped_weight_name +
                "_ffn_outer_row";
     }
     if (command.fp8_activation_scale_mode == "tensor-amax" &&
@@ -905,6 +928,10 @@ int main(int argc, char** argv) {
                     : command.fp8_weight_scale_mode == "output-channel-amax"
                     ? microllm::model::Fp8WeightScaleMode::OutputChannelAmax
                     : microllm::model::Fp8WeightScaleMode::Fixed;
+            external.model.fp8_weight_scale_scope =
+                command.fp8_weight_scale_scope == "attention-only"
+                    ? microllm::model::Fp8WeightScaleScope::AttentionOnly
+                    : microllm::model::Fp8WeightScaleScope::AllLinear;
             external.model.fp8_activation_scale_mode =
                 command.fp8_activation_scale_mode == "tensor-amax"
                     ? microllm::model::Fp8ActivationScaleMode::TensorAmax
@@ -1166,6 +1193,8 @@ int main(int argc, char** argv) {
                       << command.fp8_weight_scale
                       << ",\"fp8_weight_scale_mode\":\""
                       << command.fp8_weight_scale_mode << "\""
+                      << ",\"fp8_weight_scale_scope\":\""
+                      << command.fp8_weight_scale_scope << "\""
                       << ",\"fp8_activation_scale_mode\":\""
                       << command.fp8_activation_scale_mode << "\""
                       << ",\"fp8_diagnostic_mode\":\""
@@ -1675,6 +1704,8 @@ int main(int argc, char** argv) {
                   << command.fp8_weight_scale
                   << ",\"fp8_weight_scale_mode\":\""
                   << command.fp8_weight_scale_mode << "\""
+                  << ",\"fp8_weight_scale_scope\":\""
+                  << command.fp8_weight_scale_scope << "\""
                   << ",\"fp8_activation_scale_mode\":\""
                   << command.fp8_activation_scale_mode << "\""
                   << ",\"fp8_diagnostic_mode\":\""

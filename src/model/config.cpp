@@ -48,6 +48,12 @@ void ModelConfig::validate() const {
         throw std::invalid_argument(
             "FP8 diagnostic mode requires FP8 Linear precision");
     }
+    if (fp8_weight_scale_scope != Fp8WeightScaleScope::AllLinear &&
+        (linear_precision != LinearPrecision::Float8E4M3FNUZ ||
+         fp8_weight_scale_mode != Fp8WeightScaleMode::OutputChannelAmax)) {
+        throw std::invalid_argument(
+            "FP8 weight scale scope requires output-channel FP8 weights");
+    }
     std::int64_t previous = -1;
     for (const auto layer : fp8_fp32_layers) {
         if (linear_precision != LinearPrecision::Float8E4M3FNUZ ||
@@ -117,6 +123,9 @@ std::string ModelConfig::summary() const {
                          : fp8_weight_scale_mode ==
                                    Fp8WeightScaleMode::DeviceTensorAmax
                                ? "device_tensor_amax" : "output_channel_amax")
+           << ",fp8_weight_scale_scope="
+           << (fp8_weight_scale_scope == Fp8WeightScaleScope::AllLinear
+                   ? "all_linear" : "attention_only")
            << ",fp8_activation_scale_mode="
            << (fp8_activation_scale_mode == Fp8ActivationScaleMode::Fixed
                    ? "fixed"

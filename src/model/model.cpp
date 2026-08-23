@@ -299,14 +299,22 @@ class Linear {
 public:
     Linear(std::int64_t input, std::int64_t output, std::mt19937_64& generator,
            const ModelConfig& config, ParameterInitialization initialization,
-           bool with_bias = false, bool ffn_linear = false)
+           bool with_bias = false, bool ffn_linear = false,
+           bool attention_linear = false)
         : weight_(parameter({input, output}, generator,
                             1.0F / std::sqrt(static_cast<float>(input)), initialization)),
           precision_(config.linear_precision),
           activation_scale_(config.fp8_activation_scale),
           activation_minimum_scale_(config.fp8_activation_minimum_scale),
           weight_scale_(config.fp8_weight_scale),
-          weight_scale_mode_(config.fp8_weight_scale_mode),
+          weight_scale_mode_(
+              config.fp8_weight_scale_mode ==
+                          Fp8WeightScaleMode::OutputChannelAmax &&
+                      config.fp8_weight_scale_scope ==
+                          Fp8WeightScaleScope::AttentionOnly &&
+                      !attention_linear
+                  ? Fp8WeightScaleMode::DeviceTensorAmax
+                  : config.fp8_weight_scale_mode),
           diagnostic_mode_(config.fp8_diagnostic_mode),
           activation_scale_mode_(
               config.fp8_activation_scale_mode ==
@@ -592,12 +600,13 @@ public:
               ParameterInitialization initialization)
         : config_(config),
           query_(config.dimension, config.dimension, generator, config, initialization,
-                 config.attention_bias),
+                 config.attention_bias, false, true),
           key_(config.dimension, config.kv_dimension(), generator, config, initialization,
-               config.attention_bias),
+               config.attention_bias, false, true),
           value_(config.dimension, config.kv_dimension(), generator, config, initialization,
-                 config.attention_bias),
-          output_(config.dimension, config.dimension, generator, config, initialization) {}
+                 config.attention_bias, false, true),
+          output_(config.dimension, config.dimension, generator, config, initialization,
+                  false, false, true) {}
 
     Value forward(const Value& input) {
         if (input.data().ndim() != 3) throw std::invalid_argument("attention input must be BxTxD");
