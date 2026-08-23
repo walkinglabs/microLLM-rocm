@@ -22,3 +22,7 @@ Official fraction search is still required; no clipped value is a default or a p
 Exp151's valid coarse grid rejects 0.75/0.5/0.25: worst RMS is 6.55x--12.18x the 1.0 control.
 Fractions 0.95/0.9/0.85 remain an explicit refinement gap. See
 [Experiment 151](../optimization-log/experiments/151-fp8-clipped-coarse-grid.md).
+
+Exp152 closes that gap: 0.95/0.9/0.85 worsen worst RMS by 2.15x/4.98x/8.25x. The model/CLI policy
+and pilot runner are removed after archival; the low-level operator remains. See
+[Experiment 152](../optimization-log/experiments/152-fp8-clipped-fine-grid.md).

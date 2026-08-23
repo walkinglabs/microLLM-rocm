@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="600" viewBox="0 0 1120 600" role="img" aria-labelledby="title desc">
+  <title id="title">Clipped activation fine fraction grid</title>
+  <desc id="desc">Even a five percent amax clip more than doubles worst normalized RMS.</desc>
+  <rect width="1120" height="600" rx="20" fill="#0b1020"/>
+  <text x="56" y="58" fill="#f8fafc" font-size="29" font-family="sans-serif" font-weight="700">Activation fine grid：只裁5%也明显更差</text>
+  <text x="56" y="91" fill="#94a3b8" font-size="16" font-family="sans-serif">相对fraction=1的worst case；所有top稳定</text>
+  <line x1="100" y1="470" x2="1040" y2="470" stroke="#475569"/>
+  <polyline points="170,430 430,365 690,260 950,140" fill="none" stroke="#38bdf8" stroke-width="5"/>
+  <polyline points="170,430 430,405 690,340 950,265" fill="none" stroke="#f59e0b" stroke-width="5"/>
+  <g fill="#38bdf8"><circle cx="170" cy="430" r="9"/><circle cx="430" cy="365" r="9"/><circle cx="690" cy="260" r="9"/><circle cx="950" cy="140" r="9"/></g>
+  <g fill="#f59e0b"><circle cx="170" cy="430" r="6"/><circle cx="430" cy="405" r="6"/><circle cx="690" cy="340" r="6"/><circle cx="950" cy="265" r="6"/></g>
+  <g fill="#cbd5e1" font-size="16" font-family="sans-serif"><text x="148" y="510">1.0</text><text x="404" y="510">0.95</text><text x="668" y="510">0.90</text><text x="926" y="510">0.85</text></g>
+  <g fill="#f8fafc" font-size="14" font-family="sans-serif"><text x="137" y="410">1.0×</text><text x="390" y="345">RMS 2.15×</text><text x="650" y="240">4.98×</text><text x="910" y="120">8.25×</text></g>
+  <rect x="160" y="540" width="800" height="42" rx="10" fill="#111827" stroke="#334155"/><text x="245" y="567" fill="#fbbf24" font-size="17" font-family="sans-serif">0.25–0.95全部关闭 · 模型保留fraction=1</text>
+</svg>

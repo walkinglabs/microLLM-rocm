@@ -666,6 +666,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/150-data/](experiments/150-data/) | 20 worker执行合同与4/4 baseline mismatch |
 | [assets/fp8-clipped-coarse-grid.svg](assets/fp8-clipped-coarse-grid.svg) | fraction下降时worst RMS/Max急剧恶化 |
 | [experiments/151-data/](experiments/151-data/) | 有效20-worker coarse grid与精细网格交接 |
+| [assets/fp8-clipped-fine-grid.svg](assets/fp8-clipped-fine-grid.svg) | 0.95/0.9/0.85的worst RMS恶化曲线 |
+| [experiments/152-data/](experiments/152-data/) | 精细20-worker网格与模型clipping关闭门 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

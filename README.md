@@ -538,6 +538,9 @@ the runner now exposes and tests the 0.005 baseline before a fresh retry.
 [Experiment 151](docs/optimization-log/experiments/151-fp8-clipped-coarse-grid.md) validates the
 corrected baseline and rejects fractions at or below 0.75; a narrow 0.95/0.9/0.85 refinement remains
 before model clipping can be closed.
+[Experiment 152](docs/optimization-log/experiments/152-fp8-clipped-fine-grid.md) closes the remaining
+0.85–0.95 gap: even a 5% clip more than doubles worst RMS. Model/CLI clipping is removed while the
+explicit low-level operator remains available for research.
 
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or

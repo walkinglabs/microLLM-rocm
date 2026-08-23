@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "status": "fine_grid_closes_model_activation_clipping",
+  "evidence": {
+    "fresh_build_steps": 50,
+    "contracts_passed": 2,
+    "workers": 20,
+    "comparisons": 16,
+    "complete_logits_per_comparison": 151936,
+    "fraction_one_exp148_exact_cases": 4,
+    "top_token_stable_cases": 16,
+    "precision_gates_passed": 0,
+    "weight_scale": 0.005
+  },
+  "decision": {
+    "selected_fraction": 1.0,
+    "fraction_095_09_085_viable": false,
+    "fraction_025_through_095_closed": true,
+    "remove_model_clipping_policy": true,
+    "remove_fraction_pilot_runner_after_archival": true,
+    "retain_low_level_clipped_operator": true,
+    "tps_is_performance_evidence": false,
+    "complete_fp8_precision_available": false
+  }
+}

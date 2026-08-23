@@ -6319,6 +6319,53 @@ def validate_fp8_clipped_coarse_grid(
         verification.get("selection", {}).get("selected_fraction", -1.0)
 
 
+def validate_fp8_clipped_fine_grid(
+        errors: list[str]) -> tuple[int, int, float]:
+    data = ROOT / "experiments" / "152-data"
+    verification = json.loads((data / "verification.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    execution = verification.get("execution", {})
+    raw_rows = sum(1 for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip())
+    preflight_rows = sum(1 for line in (data / "gpu2-preflight.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip())
+    if verification.get("all_checks_passed") is not True or \
+            verification.get("all_fraction1_exact") is not True or \
+            execution.get("workers") != 20 or execution.get("comparisons") != 16 or \
+            execution.get("exit") != 0 or execution.get("stderr") != 0 or \
+            raw_rows != 36 or preflight_rows != 3 or \
+            verification.get("weight_scale") != 0.005 or \
+            verification.get("comparisons", {}).get("all_151936") is not True or \
+            verification.get("comparisons", {}).get("finite") is not True or \
+            (data / "stderr.log").stat().st_size != 0:
+        errors.append("FP8 clipped fine execution/baseline changed")
+    matches = verification.get("fraction1_exp148", [])
+    if len(matches) != 4 or any(
+            row.get("max_exact") is not True or row.get("rms_exact") is not True
+            for row in matches):
+        errors.append("FP8 clipped fine Exp148 match changed")
+    table = {row["fraction"]: row for row in verification.get("fraction_table", [])}
+    if set(table) != {1.0, 0.95, 0.9, 0.85} or \
+            not 2.1 < table[0.95]["rms_over_f1"] < 2.2 or \
+            not 4.9 < table[0.9]["rms_over_f1"] < 5.1 or \
+            not 8.2 < table[0.85]["rms_over_f1"] < 8.3 or \
+            any(row["top_token_equal_all"] is not True for row in table.values()) or \
+            verification.get("selection", {}).get("selected_fraction") != 1.0:
+        errors.append("FP8 clipped fine fraction results changed")
+    decision = gates.get("decision", {})
+    if decision.get("selected_fraction") != 1.0 or \
+            decision.get("fraction_025_through_095_closed") is not True or \
+            decision.get("remove_model_clipping_policy") is not True or \
+            decision.get("retain_low_level_clipped_operator") is not True or \
+            decision.get("complete_fp8_precision_available") is not False or \
+            "[50/50]" not in (data / "fresh-build.log").read_text(encoding="utf-8") or \
+            "OK" not in (data / "hf-fp8-fraction-pilot-contract.log").read_text(
+                encoding="utf-8"):
+        errors.append("FP8 clipped fine decision/build gates changed")
+    return execution.get("workers", 0), execution.get("comparisons", 0), \
+        verification.get("selection", {}).get("selected_fraction", -1.0)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -6448,7 +6495,8 @@ def validate_assets(errors: list[str]) -> None:
                  "fp8-attention-output-only.svg",
                  "fp8-clipped-pilot-invalid.svg",
                  "fp8-fraction-pilot-workload-invalid.svg",
-                 "fp8-clipped-coarse-grid.svg"):
+                 "fp8-clipped-coarse-grid.svg",
+                 "fp8-clipped-fine-grid.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -6684,6 +6732,8 @@ def main() -> int:
         validate_fp8_fraction_workload_invalid(errors)
     coarse_workers, coarse_comparisons, coarse_selected = \
         validate_fp8_clipped_coarse_grid(errors)
+    fine_workers, fine_comparisons, fine_selected = \
+        validate_fp8_clipped_fine_grid(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -6870,6 +6920,7 @@ def main() -> int:
           f"{mismatch_cases} "
           f"clipped_coarse={coarse_workers}/{coarse_comparisons}/"
           f"{coarse_selected} "
+          f"clipped_fine={fine_workers}/{fine_comparisons}/{fine_selected} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

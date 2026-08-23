@@ -2586,3 +2586,12 @@ control 6.55×/9.51×/12.18×；后两者还翻转top。计数证明所有dynami
 关闭≤0.75，但不越过0.75–1.0空白；下一步只测0.95/0.9/0.85。
 
 ![Clipped activation coarse grid](assets/fp8-clipped-coarse-grid.svg)
+
+## 169. Experiment 152：只裁5%，worst RMS也翻2.15倍
+
+0.95/0.9/0.85精细网格的worst RMS是fraction1的2.15×/4.98×/8.25×，所有top虽稳定，完整向量
+明显更差。结合coarse grid，0.25–0.95全部关闭。
+
+删除模型/CLI clipping和专用pilot runner，保留底层C++算子；下一主线不再调全局amax fraction。
+
+![Clipped activation fine grid](assets/fp8-clipped-fine-grid.svg)
