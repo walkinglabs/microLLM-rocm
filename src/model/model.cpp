@@ -958,6 +958,8 @@ public:
             auto* trace = profiling::TraceSession::current();
             if (trace != nullptr &&
                 trace->options().record_all_layer_details) {
+                trace_detail(trace_prefix, "gate", gate);
+                trace_detail(trace_prefix, "up", up);
                 trace_detail(trace_prefix, "activated", activated);
             }
             output = down_.forward_tensor(activated);
