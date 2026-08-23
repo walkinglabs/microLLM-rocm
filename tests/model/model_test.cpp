@@ -399,7 +399,12 @@ TEST(TransformerModelTest, Fp8SelectedBlockRemainsFp32AcrossPreparation) {
 TEST(TransformerModelTest, Fp8DiagnosticModesIsolateWeightAndActivationRounding) {
     const auto tokens = Tensor::from_int32_vector({1, 2, 3, 4}, {1, 4});
     for (const auto mode : {Fp8DiagnosticMode::WeightOnly,
-                            Fp8DiagnosticMode::ActivationOnly}) {
+                            Fp8DiagnosticMode::ActivationOnly,
+                            Fp8DiagnosticMode::BothRoundtrip}) {
+        const auto rounds_weight =
+            mode != Fp8DiagnosticMode::ActivationOnly;
+        const auto rounds_activation =
+            mode != Fp8DiagnosticMode::WeightOnly;
         auto config = tiny_config();
         config.linear_precision = LinearPrecision::Float8E4M3FNUZ;
         config.fp8_weight_scale = 1.0e-4F;
@@ -411,21 +416,20 @@ TEST(TransformerModelTest, Fp8DiagnosticModesIsolateWeightAndActivationRounding)
         const auto before = model.forward_inference(tokens).to_vector();
         const auto report = model.prepare_fp8_inference_weights();
         EXPECT_EQ(report.linears_covered, 8U);
-        EXPECT_EQ(report.converted_tensors,
-                  mode == Fp8DiagnosticMode::WeightOnly ? 8U : 0U);
+        EXPECT_EQ(report.converted_tensors, rounds_weight ? 8U : 0U);
         ops::clear_fp8_dynamic_quant_stats();
         const auto after = model.forward_inference(tokens).to_vector();
         EXPECT_EQ(after, before);
         EXPECT_EQ(ops::fp8_dynamic_quant_stats().tensor_calls,
-                  mode == Fp8DiagnosticMode::ActivationOnly ? 5U : 0U);
+                  rounds_activation ? 5U : 0U);
         std::size_t linear_weights = 0;
         for (const auto& [name, parameter] : model.named_parameters()) {
             if (name.ends_with(".weight") &&
                 name.find("norm") == std::string::npos &&
                 name != "token_embedding.weight") {
                 EXPECT_EQ(parameter->data().dtype(),
-                          mode == Fp8DiagnosticMode::WeightOnly
-                              ? DType::Float8E4M3FNUZ : DType::Float32)
+                          rounds_weight ? DType::Float8E4M3FNUZ
+                                        : DType::Float32)
                     << name;
                 ++linear_weights;
             }

@@ -18,6 +18,7 @@ microLLM提供三种明确模式：
 | `full` | FP8 | FP8 | 真实FP8 GEMM | 测最终FP8实现 |
 | `weight-only` | 保持FP32 | FP8往返 | FP32 GEMM | 只看权重舍入误差 |
 | `activation-only` | FP8往返 | 保持FP32 | FP32 GEMM | 只看激活舍入误差 |
+| `both-roundtrip` | FP8往返 | FP8往返 | FP32 GEMM | 区分舍入与原生GEMM |
 
 “FP8往返”表示先压成FP8，再还原成FP32。还原不能找回已经丢掉的信息，因此留下的差异就是
 这一侧的量化误差。后两种模式故意使用FP32 GEMM，它们是诊断工具，不是加速路径。
@@ -25,7 +26,8 @@ microLLM提供三种明确模式：
 ## 2. 为什么不能把两种诊断速度当成FP8速度
 
 `weight-only`每次Linear都要把已保存的FP8权重临时还原为FP32；`activation-only`也要把激活
-还原后再计算。这多做了Kernel和临时内存工作。它们回答“误差从哪里来”，不回答“FP8有多快”。
+还原后再计算；`both-roundtrip`两边都要还原。这多做了Kernel和临时内存工作。它们回答
+“误差从哪里来”，不回答“FP8有多快”。
 
 只有`full`会进入`ops::fp8_matmul`和hipBLASLt FP8路径。结果JSON中的以下字段能防止口径混淆：
 
@@ -79,7 +81,8 @@ build/apps/microllm_hf_infer \
   --new-tokens 0
 ```
 
-将最后一个值改成`weight-only`即可只测权重；改成`full`才是完整FP8计算。
+将最后一个值改成`weight-only`即可只测权重；改成`both-roundtrip`可让两边同时舍入但继续使用
+FP32 GEMM；改成`full`才是完整FP8计算。
 
 ## 5. 官方模型矩阵
 
@@ -117,6 +120,6 @@ FP32同引擎路径是本实验的直接差分参考；PyTorch仍用于支持域
 正式24个worker显示：Qwen的weight-only在T8/T512的Max和RMS都比activation-only大；DeepSeek
 则是activation-only的RMS更大，但T512最坏坐标由weight-only主导。八个诊断精度门都失败。
 
-所以不能写成“FP8只需要修一边”。下一项`both-roundtrip`会让两边同时经历FP8舍入、再用
-FP32 GEMM；它用于区分双侧舍入共同传播和真实FP8 GEMM本身。完整数据见
+所以不能写成“FP8只需要修一边”。`both-roundtrip`现已实现：两边同时经历FP8舍入、再用
+FP32 GEMM；它用于区分双侧舍入共同传播和真实FP8 GEMM本身。完整Exp141数据见
 [Experiment 141](../optimization-log/experiments/141-fp8-error-source-isolation.md)。

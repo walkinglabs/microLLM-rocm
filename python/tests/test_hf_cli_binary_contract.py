@@ -21,6 +21,7 @@ def main() -> int:
         b"--fp8-fp32-layers",
         b"--fp8-diagnostic-mode",
         b"fp8_linears_covered",
+        b"both-roundtrip",
     )
     missing = [value.decode() for value in required if value not in payload]
     if missing:

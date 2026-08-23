@@ -24,3 +24,7 @@ Exp141 then executed 24 official-model workers. Qwen weight-only dominates both 
 metrics at T8/T512. DeepSeek activation-only dominates RMS, while T512 max-abs is weight-dominated.
 All eight diagnostic precision gates fail. A combined-roundtrip FP32-GEMM mode is required before
 attributing the gap to operand rounding versus native FP8 GEMM behavior.
+
+That missing counterfactual is now implemented as `Fp8DiagnosticMode::BothRoundtrip`; its official
+model evidence is a separate experiment so this implementation result is not mistaken for a
+numerical conclusion.

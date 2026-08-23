@@ -39,8 +39,8 @@ needed to run a real training and generation loop:
   evidence; device mode does not copy weight payloads to CPU;
 - explicit per-block FP32 counterfactuals inside an FP8 model for precision attribution;
   selected blocks remain single-representation FP32 and are never silently quantized;
-- explicit FP8 weight-only and activation-only error-attribution modes; both use FP32 GEMM,
-  are inference-only diagnostics, and cannot be reported as FP8 speed paths;
+- explicit FP8 weight-only, activation-only and both-roundtrip error-attribution modes; all use
+  FP32 GEMM, are inference-only diagnostics, and cannot be reported as FP8 speed paths;
 - single-representation BF16 FFN/Attention projection inference for pinned Qwen/DeepSeek,
   with shared QKV cast, exact-token, memory, throughput and PyTorch BF16 evidence;
 - C, Python ctypes, and optional PyTorch dispatcher adapters;

@@ -39,7 +39,8 @@ def options() -> argparse.Namespace:
                         choices=("fixed", "tensor-amax", "ffn-outer-row"),
                         default="fixed")
     parser.add_argument("--fp8-diagnostic-mode",
-                        choices=("full", "weight-only", "activation-only"),
+                        choices=("full", "weight-only", "activation-only",
+                                 "both-roundtrip"),
                         default="full")
     parser.add_argument("--fp8-fp32-layers", default="")
     parser.add_argument("--physical-gpu-index", type=int)

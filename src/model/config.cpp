@@ -124,7 +124,9 @@ std::string ModelConfig::summary() const {
            << (fp8_diagnostic_mode == Fp8DiagnosticMode::Full
                    ? "full"
                    : fp8_diagnostic_mode == Fp8DiagnosticMode::WeightOnly
-                         ? "weight_only" : "activation_only")
+                         ? "weight_only"
+                         : fp8_diagnostic_mode == Fp8DiagnosticMode::ActivationOnly
+                               ? "activation_only" : "both_roundtrip")
            << ",fp8_fp32_layers=";
     for (std::size_t index = 0; index < fp8_fp32_layers.size(); ++index) {
         if (index != 0) output << ':';

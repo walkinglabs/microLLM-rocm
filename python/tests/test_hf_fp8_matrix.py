@@ -87,6 +87,9 @@ class HfFp8MatrixTest(unittest.TestCase):
         activation_only = MATRIX.experiment_boundary(
             "device-tensor-amax", "tensor-amax", "activation-only")
         self.assertIn("diagnostic mode=activation-only", activation_only)
+        both = MATRIX.experiment_boundary(
+            "device-tensor-amax", "tensor-amax", "both-roundtrip")
+        self.assertIn("diagnostic mode=both-roundtrip", both)
 
 
 if __name__ == "__main__":

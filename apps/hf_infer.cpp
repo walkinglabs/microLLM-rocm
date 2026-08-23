@@ -313,9 +313,10 @@ Options options(int argc, char** argv) {
     }
     if (result.fp8_diagnostic_mode != "full" &&
         result.fp8_diagnostic_mode != "weight-only" &&
-        result.fp8_diagnostic_mode != "activation-only") {
+        result.fp8_diagnostic_mode != "activation-only" &&
+        result.fp8_diagnostic_mode != "both-roundtrip") {
         throw std::invalid_argument(
-            "--fp8-diagnostic-mode must be full, weight-only, or activation-only");
+            "--fp8-diagnostic-mode must be full, weight-only, activation-only, or both-roundtrip");
     }
     if (result.fp8_diagnostic_mode != "full" && !result.fp8_linear) {
         throw std::invalid_argument(
@@ -396,18 +397,22 @@ std::string fp8_compute_policy(const Options& command) {
                                  ? "device_tensor_amax_weight"
                                  : command.fp8_weight_scale_mode == "tensor-amax"
                                        ? "tensor_amax_weight" : "fixed_weight";
+    const auto activation_name =
+        command.fp8_activation_scale_mode == "ffn-outer-row"
+            ? "ffn_outer_row_activation"
+            : command.fp8_activation_scale_mode == "tensor-amax"
+                  ? "tensor_amax_activation" : "fixed_activation";
     if (command.fp8_diagnostic_mode == "weight-only") {
         return std::string("fp8_e4m3_fnuz_weight_only_diagnostic_") +
                weight_name;
     }
     if (command.fp8_diagnostic_mode == "activation-only") {
-        const auto activation_name =
-            command.fp8_activation_scale_mode == "ffn-outer-row"
-                ? "ffn_outer_row_activation"
-                : command.fp8_activation_scale_mode == "tensor-amax"
-                      ? "tensor_amax_activation" : "fixed_activation";
         return std::string("fp8_e4m3_fnuz_activation_only_diagnostic_") +
                activation_name;
+    }
+    if (command.fp8_diagnostic_mode == "both-roundtrip") {
+        return std::string("fp8_e4m3_fnuz_both_roundtrip_diagnostic_") +
+               weight_name + "_" + activation_name;
     }
     if (command.fp8_activation_scale_mode == "ffn-outer-row") {
         return std::string("fp8_e4m3_fnuz_") + weight_name +
@@ -442,6 +447,9 @@ std::string fp8_compute_dtype(const Options& command) {
     }
     if (command.fp8_diagnostic_mode == "activation-only") {
         return "fp32_gemm_with_fp8_roundtrip_activation";
+    }
+    if (command.fp8_diagnostic_mode == "both-roundtrip") {
+        return "fp32_gemm_with_fp8_roundtrip_both_operands";
     }
     return "fp8_e4m3_fnuz_linear_with_fp32_boundaries";
 }
@@ -902,6 +910,8 @@ int main(int argc, char** argv) {
                     ? microllm::model::Fp8DiagnosticMode::WeightOnly
                     : command.fp8_diagnostic_mode == "activation-only"
                     ? microllm::model::Fp8DiagnosticMode::ActivationOnly
+                    : command.fp8_diagnostic_mode == "both-roundtrip"
+                    ? microllm::model::Fp8DiagnosticMode::BothRoundtrip
                     : microllm::model::Fp8DiagnosticMode::Full;
             for (const auto layer : nonnegative_values(
                      command.fp8_fp32_layers,

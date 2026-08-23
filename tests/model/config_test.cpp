@@ -76,6 +76,9 @@ TEST(ModelConfigTest, Fp8DiagnosticModesAreExplicitAndRequireFp8Linear) {
     config.fp8_diagnostic_mode = Fp8DiagnosticMode::ActivationOnly;
     EXPECT_NE(config.summary().find("fp8_diagnostic_mode=activation_only"),
               std::string::npos);
+    config.fp8_diagnostic_mode = Fp8DiagnosticMode::BothRoundtrip;
+    EXPECT_NE(config.summary().find("fp8_diagnostic_mode=both_roundtrip"),
+              std::string::npos);
     config.linear_precision = LinearPrecision::Float32;
     EXPECT_THROW(config.validate(), std::invalid_argument);
 }

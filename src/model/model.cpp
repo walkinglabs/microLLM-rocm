@@ -380,6 +380,12 @@ public:
                 ops::dequantize_fp8(scaled_input, DType::Float32),
                 weight_.data(), ops::MatmulImplementation::Auto);
         }
+        if (diagnostic_mode_ == Fp8DiagnosticMode::BothRoundtrip) {
+            return ops::matmul_with_implementation(
+                ops::dequantize_fp8(scaled_input, DType::Float32),
+                ops::dequantize_fp8(scaled_weight(), DType::Float32),
+                ops::MatmulImplementation::Auto);
+        }
         return ops::fp8_matmul(scaled_input, scaled_weight(), DType::Float32);
     }
     [[nodiscard]] ops::ScaledTensor scaled_weight() const {
