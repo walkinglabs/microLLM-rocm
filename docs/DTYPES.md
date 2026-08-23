@@ -39,7 +39,7 @@ MI300X 没有 CDNA4 的原生 MXFP4 Matrix Core。仓库可以保存 packed FP4 
 | view/contiguous/设备复制 | ✓ | ✓ | ✓ | 计划中 | 计划中 | 计划中 |
 | 基础逐元素/SiLU/SwiGLU/GEMM | ✓ | CPU/MI300X ✓ | CPU/MI300X ✓ | — | — | — |
 | hipBLASLt GEMM | FP32 ✓ | MI300X ✓ | MI300X ✓ | MI300X E4M3/E5M2 FNUZ ✓ | raw INT8×INT8→INT32 probe ✓；公共API未实现 | 软件解包后计算 |
-| Transformer Linear 训练/推理 | FP32 | 计划中 | 单份 FFN+Attention 推理 ✓；FP32-master Linear训练 ✓ | 单份Linear权重与official执行 ✓；静态scale精度失败，不是可用模型策略 | — | — |
+| Transformer Linear 训练/推理 | FP32 | 计划中 | 单份 FFN+Attention 推理 ✓；FP32-master Linear训练 ✓ | 单份Linear权重与per-Tensor weight amax ✓；official精度仍失败，不是可用模型策略 | — | — |
 
 表格中的“计划中”不是支持声明。只有对应测试和真机记录完成后才会改成 ✓。
 
@@ -66,6 +66,12 @@ shape五个CPU整数抽样点exact。它不改变上表中Tensor/Transformer INT
 aggregate全部超过`max≤0.2/RMS≤0.05`门，Qwen T512还改变top token。Deep T8包含1个不受
 native FP8支持的down shape和112次BF16软件回退。准确状态是“模型执行地基已建立，scale策略
 不可用”，详见[Experiment 122](optimization-log/experiments/122-official-fp8-static-scale.md)。
+
+固定4×4网格和连续三段边界实验共证明：不同模型需要冲突的activation scale，有限枚举不能成为
+跨模型策略。per-Tensor weight amax把四个官方RMS相对最初静态点降低39%–78%，但仍全部超过
+完整logits门；一次性准备约2.8秒/12.2秒。准确状态仍是opt-in研究路径，不是可用模型默认。
+详见[Experiment 123](optimization-log/experiments/123-fp8-global-scale-grid.md)至
+[Experiment 127](optimization-log/experiments/127-fp8-tensor-amax-weight.md)。
 
 ## 4. 类型提升规则
 

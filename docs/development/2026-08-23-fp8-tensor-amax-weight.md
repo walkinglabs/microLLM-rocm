@@ -45,4 +45,6 @@ lazy amax。修复后同一测试证明准备期发生一次性扫描，而热�
 - CPU：不同Tensor得到不同scale；
 - CPU：非有限权重事务式拒绝，模型仍保持FP32；
 - HIP：lazy与prepared输出一致；准备后热路径0 payload transfer；
-- official Qwen/DeepSeek完整logits：尚未运行，不能宣称模型精度改善。
+- official Qwen/DeepSeek完整logits：36/36执行，四个RMS相对最初静态点下降39%–78%，
+  但0/4通过；因此只保留opt-in基础设施，不接受当前模型策略。完整证据见
+  [Experiment 127](../optimization-log/experiments/127-fp8-tensor-amax-weight.md)。

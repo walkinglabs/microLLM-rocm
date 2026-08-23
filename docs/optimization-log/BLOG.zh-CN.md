@@ -2353,3 +2353,12 @@ Qwen 1.6/3.2的9个进程全部执行，8/8 top相同但0/8过门。最佳RMS继
 全局数字搜索，但不声称数学上推翻所有scale。下一节点让每个Linear weight按自己的amax选scale。
 
 ![Qwen FP8 scale closure](assets/qwen-fp8-scale-closure.svg)
+
+## 144. Experiment 127：每层权重自己的尺子，仍差activation
+
+`tensor-amax`让168/197个Linear各自使用weight scale，Qwen scale跨度近20倍。完整36进程
+让四个RMS相对最初静态点下降39%–78%，但仍是门的13–26倍。Qwen/Deep FP8准备分别扫描
+1.43/6.17GB并耗时约2.8/12.2秒；热路径没有重复D2H。保留opt-in基础设施，拒绝默认，下一步
+测activation层级范围。第一轮丢失准备计时的15条部分数据也被保留并拒绝。
+
+![FP8 tensor amax weight](assets/fp8-tensor-amax-weight.svg)

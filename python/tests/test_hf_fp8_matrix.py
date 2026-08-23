@@ -57,6 +57,12 @@ class HfFp8MatrixTest(unittest.TestCase):
         self.assertTrue(comparison["precision_gate_passed"])
         self.assertNotIn("weight_preparation_ms", comparison)
 
+    def test_boundary_names_the_actual_weight_scale_policy(self):
+        self.assertIn("static global weight", MATRIX.experiment_boundary("fixed"))
+        tensor = MATRIX.experiment_boundary("tensor-amax")
+        self.assertIn("per-Tensor weight amax", tensor)
+        self.assertIn("fixed global activation", tensor)
+
 
 if __name__ == "__main__":
     unittest.main()

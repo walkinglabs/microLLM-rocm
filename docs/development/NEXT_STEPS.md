@@ -155,8 +155,12 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   Qwen improves to 0.303 but remains six times over the gate at the upper boundary;
 - [x] run Qwen-only 1.6/3.2: 0/8 pass and best RMS 0.217 remains at the boundary;
   stop the cross-model global search without claiming a mathematical refutation;
-- [ ] implement explicit weight `tensor-amax` scale mode, report per-Linear scale range and
-  preparation cost, then rerun complete official logits with fixed activation scale;
+- [x] implement explicit weight `tensor-amax`, transactional nonfinite rejection, scale-range/
+  scan/timing reports and a zero-payload-transfer prepared HIP path;
+- [x] rerun 36-worker official T8/T512 matrix: RMS improves 39%–78% from the first
+  static point but all four gates still fail; Qwen/Deep preparation costs 2.8/12.2 seconds;
+- [ ] capture per-layer activation amax and saturation evidence before selecting a device-side
+  per-row/per-token scale contract;
 - [ ] replace global FP8 scales with weight per-tensor and activation per-row/token amax,
   starting from saturation/trace evidence rather than top-token search;
 - [ ] expert/tensor/data parallel weight placement and communication;

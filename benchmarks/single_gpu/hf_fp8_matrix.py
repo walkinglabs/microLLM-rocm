@@ -141,6 +141,16 @@ def compare_logits(actual: list[float], reference: list[float]) -> dict:
                                      actual_top == reference_top}
 
 
+def experiment_boundary(weight_scale_mode: str) -> str:
+    weight_boundary = (
+        "per-Tensor weight amax with one-time host scan"
+        if weight_scale_mode == "tensor-amax" else "static global weight scale")
+    return (
+        f"{weight_boundary}; fixed global activation scale; "
+        "single-representation Linear weights; FP32 Embedding/Norm/tied head; "
+        "FP32 logits are the internal oracle; no PyTorch FP8 reference")
+
+
 def main() -> int:
     args = options()
     models = load_models(args.manifest, args.models)
@@ -271,10 +281,7 @@ def main() -> int:
         "rows": rows, "aggregates": aggregates,
         "accuracy_failure_count": len(accuracy_failures),
         "accuracy_failures": accuracy_failures,
-        "boundary": (
-            "static global FP8 scales; single-representation Linear weights; "
-            "FP32 Embedding/Norm/tied head; FP32 logits are the internal oracle; "
-            "no PyTorch FP8 reference"),
+        "boundary": experiment_boundary(args.fp8_weight_scale_mode),
     }
     (args.output_directory / "summary.json").write_text(
         json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")

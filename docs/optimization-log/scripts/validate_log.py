@@ -4940,6 +4940,82 @@ def validate_qwen_fp8_scale_closure(errors: list[str]) -> tuple[int, int, int]:
         row.get("precision_gate_passed", False) for row in candidates)
 
 
+def validate_fp8_tensor_amax_weight(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "127-data"
+    raw = [json.loads(line) for line in
+           (data / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    rejected = [json.loads(line) for line in
+                (data / "rejected-raw.jsonl").read_text(
+                    encoding="utf-8").splitlines()]
+    pilot = [json.loads(line) for line in
+             (data / "pilot-raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    preflight = [json.loads(line) for line in
+                 (data / "gpu2-preflight.jsonl").read_text(
+                     encoding="utf-8").splitlines()]
+    if len(raw) != 36 or any(row.get("status") != "pass" for row in raw) or any(
+            row.get("pre_run_gpu_state", {}).get("vram_percent", 99) > 1 or
+            row.get("pre_run_gpu_state", {}).get("gpu_use_percent", 99) > 1 or
+            row.get("post_run_gpu_state", {}).get("vram_percent", 99) > 3 or
+            row.get("post_run_gpu_state", {}).get("gpu_use_percent", 99) > 5
+            for row in raw):
+        errors.append("FP8 tensor-amax raw or idle-gate evidence changed")
+    aggregates = summary.get("aggregates", [])
+    fp8_rows = [row for row in aggregates if row.get("policy") == "fp8"]
+    if summary.get("status") != "complete_with_recorded_accuracy_failures" or \
+            summary.get("fp8_weight_scale_mode") != "tensor-amax" or \
+            summary.get("accuracy_failure_count") != 4 or len(aggregates) != 12 or \
+            len(fp8_rows) != 4 or any(
+                row.get("precision_gate_passed_all") is not False or
+                row.get("top_token_equal_all") is not True or
+                row.get("weight_preparation_ms_p50", 0.0) < 2800.0
+                for row in fp8_rows) or \
+            "per-Tensor weight amax" not in summary.get("boundary", "") or \
+            "fixed global activation scale" not in summary.get("boundary", ""):
+        errors.append("FP8 tensor-amax aggregate or boundary evidence changed")
+    by_key = {(row["model"], row["context"]): row for row in fp8_rows}
+    qwen8 = by_key["qwen2.5-0.5b", 8]
+    qwen512 = by_key["qwen2.5-0.5b", 512]
+    deep8 = by_key["deepseek-r1-distill-qwen-1.5b", 8]
+    deep512 = by_key["deepseek-r1-distill-qwen-1.5b", 512]
+    if not 0.65 < qwen8["root_mean_square_error_max"] < 0.68 or \
+            not 1.28 < qwen512["root_mean_square_error_max"] < 1.31 or \
+            not 1.16 < deep8["root_mean_square_error_max"] < 1.19 or \
+            not 1.30 < deep512["root_mean_square_error_max"] < 1.32 or \
+            deep8.get("fp8_software_fallback_calls_p50") != 112 or \
+            deep512.get("fp8_software_fallback_calls_p50") != 0:
+        errors.append("FP8 tensor-amax precision or fallback evidence changed")
+    fp8_raw = [row for row in raw if row.get("policy") == "fp8"]
+    qwen_raw = next(row for row in fp8_raw if row["model"] == "qwen2.5-0.5b")
+    deep_raw = next(row for row in fp8_raw if row["model"].startswith("deepseek"))
+    if qwen_raw.get("fp8_weight_bytes_scanned") != 1431306240 or \
+            not 0.00034 < qwen_raw.get("fp8_weight_scale_min", 0.0) < 0.00036 or \
+            not 0.0069 < qwen_raw.get("fp8_weight_scale_max", 0.0) < 0.0070 or \
+            deep_raw.get("fp8_weight_bytes_scanned") != 6174277632 or \
+            not 0.00079 < deep_raw.get("fp8_weight_scale_min", 0.0) < 0.00081 or \
+            not 0.0075 < deep_raw.get("fp8_weight_scale_max", 0.0) < 0.0076:
+        errors.append("FP8 tensor-amax scale-range or scan evidence changed")
+    if len(rejected) != 15 or len(pilot) != 3 or len(preflight) != 3 or any(
+            row.get("card2", {}).get("GPU use (%)") != "0" or
+            row.get("card2", {}).get("GPU Memory Allocated (VRAM%)") != "0"
+            for row in preflight):
+        errors.append("FP8 tensor-amax rejected/pilot/preflight evidence changed")
+    if gates.get("status") != \
+            "keep_tensor_amax_infrastructure_reject_model_policy" or \
+            gates.get("full_release", {}).get("passed") != 331 or \
+            gates.get("decision", {}).get("tensor_amax_api_retained") is not True or \
+            gates.get("decision", {}).get("tensor_amax_model_policy_accepted") is not False or \
+            gates.get("decision", {}).get("activation_scale_requires_new_policy") is not True:
+        errors.append("FP8 tensor-amax gates changed")
+    model_source = (REPOSITORY / "src" / "model" / "model.cpp").read_text(
+        encoding="utf-8")
+    if "tensor_amax_scale" not in model_source or \
+            "FP8 tensor-amax weight preparation requires finite values" not in model_source:
+        errors.append("FP8 tensor-amax implementation boundary missing")
+    return len(raw), len(fp8_rows), len(rejected)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -5044,7 +5120,8 @@ def validate_assets(errors: list[str]) -> None:
                  "fp8-global-scale-grid.svg",
                  "fp8-scale-boundary.svg",
                  "fp8-scale-turn.svg",
-                 "qwen-fp8-scale-closure.svg"):
+                 "qwen-fp8-scale-closure.svg",
+                 "fp8-tensor-amax-weight.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -5230,6 +5307,8 @@ def main() -> int:
         validate_fp8_scale_turn(errors)
     fp8_closure_raw, fp8_closure_candidates, fp8_closure_passed = \
         validate_qwen_fp8_scale_closure(errors)
+    fp8_amax_raw, fp8_amax_failures, fp8_amax_rejected = \
+        validate_fp8_tensor_amax_weight(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -5379,6 +5458,7 @@ def main() -> int:
           f"fp8_turn={fp8_turn_raw}/{fp8_turn_candidates}/{fp8_turn_passed} "
           f"fp8_closure={fp8_closure_raw}/{fp8_closure_candidates}/"
           f"{fp8_closure_passed} "
+          f"fp8_amax={fp8_amax_raw}/{fp8_amax_failures}/{fp8_amax_rejected} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

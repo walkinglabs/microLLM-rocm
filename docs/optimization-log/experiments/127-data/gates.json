@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "status": "keep_tensor_amax_infrastructure_reject_model_policy",
+  "full_release": {
+    "passed": 331,
+    "failed": 0,
+    "skipped": 2,
+    "cpu_labelled": 230,
+    "hip_labelled": 101
+  },
+  "official_matrix": {
+    "workers_passed": 36,
+    "workers_failed": 0,
+    "aggregates": 12,
+    "fp8_precision_failures": 4
+  },
+  "rejected_timing_attempt": {
+    "accepted_rows": 15,
+    "summary_written": false,
+    "incorrect_zero_preparation_field": true
+  },
+  "decision": {
+    "tensor_amax_api_retained": true,
+    "transactional_nonfinite_gate_retained": true,
+    "prepared_hot_path_zero_payload_transfer": true,
+    "tensor_amax_model_policy_accepted": false,
+    "activation_scale_requires_new_policy": true,
+    "default_fp8": false
+  }
+}
