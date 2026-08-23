@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="920" viewBox="0 0 1800 920">
+  <rect width="1800" height="920" fill="#f8fafc"/>
+  <text x="900" y="52" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 170 · Selective GQA Value Broadcast · Discard</text>
+  <text x="900" y="84" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle">D≥128 forward P×V + backward dP · same-binary T512 · MI300X</text>
+
+  <rect x="55" y="125" width="780" height="650" rx="14" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="445" y="168" font-family="Inter,Arial,sans-serif" font-size="21" fill="#172033" text-anchor="middle" font-weight="700">Route was selective as designed</text>
+  <rect x="115" y="225" width="660" height="115" rx="10" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text x="445" y="262" font-family="Inter,Arial,sans-serif" font-size="18" fill="#334155" text-anchor="middle" font-weight="700">Qwen · D64</text>
+  <text x="445" y="302" font-family="Inter,Arial,sans-serif" font-size="29" fill="#334155" text-anchor="middle" font-weight="700">0.9948× · no routing</text>
+  <rect x="115" y="390" width="660" height="145" rx="10" fill="#fee2e2" stroke="#f87171"/>
+  <text x="445" y="430" font-family="Inter,Arial,sans-serif" font-size="18" fill="#991b1b" text-anchor="middle" font-weight="700">DeepSeek · D128</text>
+  <text x="445" y="477" font-family="Inter,Arial,sans-serif" font-size="31" fill="#991b1b" text-anchor="middle" font-weight="700">0.9972×</text>
+  <text x="445" y="512" font-family="Inter,Arial,sans-serif" font-size="14" fill="#475569" text-anchor="middle">-112 allocations · peak unchanged · under 1.01 gate</text>
+  <rect x="115" y="600" width="660" height="90" rx="10" fill="#ecfdf5" stroke="#86efac"/>
+  <text x="445" y="637" font-family="Inter,Arial,sans-serif" font-size="16" fill="#166534" text-anchor="middle" font-weight="700">All output/probability/QKV gradients pass</text>
+  <text x="445" y="669" font-family="Inter,Arial,sans-serif" font-size="14" fill="#475569" text-anchor="middle">parameter guard equal · loss differences &lt;0.022%</text>
+
+  <rect x="885" y="125" width="860" height="650" rx="14" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="1315" y="168" font-family="Inter,Arial,sans-serif" font-size="21" fill="#172033" text-anchor="middle" font-weight="700">DeepSeek profile explains the failure</text>
+  <text x="960" y="235" font-family="Inter,Arial,sans-serif" font-size="16" fill="#334155">Value repeat Kernels</text>
+  <rect x="960" y="255" width="600" height="48" rx="6" fill="#dc5a4a"/>
+  <text x="1545" y="286" font-family="Inter,Arial,sans-serif" font-size="14" fill="#ffffff" text-anchor="end" font-weight="700">336 calls</text>
+  <rect x="960" y="320" width="300" height="48" rx="6" fill="#2f9b68"/>
+  <text x="1275" y="351" font-family="Inter,Arial,sans-serif" font-size="14" fill="#166534" font-weight="700">168 calls</text>
+  <rect x="960" y="420" width="700" height="150" rx="10" fill="#fff7ed" stroke="#fdba74"/>
+  <text x="1310" y="458" font-family="Inter,Arial,sans-serif" font-size="17" fill="#9a3412" text-anchor="middle" font-weight="700">Removed copy calls were replaced</text>
+  <text x="1310" y="500" font-family="Inter,Arial,sans-serif" font-size="17" fill="#334155" text-anchor="middle">all dispatches 8,058 → 8,058</text>
+  <text x="1310" y="536" font-family="Inter,Arial,sans-serif" font-size="17" fill="#991b1b" text-anchor="middle">Kernel 261.73 → 263.48 ms</text>
+  <rect x="960" y="625" width="700" height="75" rx="10" fill="#eff6ff" stroke="#93c5fd"/>
+  <text x="1310" y="657" font-family="Inter,Arial,sans-serif" font-size="16" fill="#1e40af" text-anchor="middle" font-weight="700">P×V wins; dP + extra KV-group submits erase it</text>
+  <text x="1310" y="684" font-family="Inter,Arial,sans-serif" font-size="14" fill="#475569" text-anchor="middle">next and final variant: forward-only broadcast</text>
+
+  <rect x="55" y="825" width="1690" height="66" rx="12" fill="#172033"/>
+  <text x="900" y="854" font-family="Inter,Arial,sans-serif" font-size="18" fill="#ffffff" text-anchor="middle" font-weight="700">Default OFF: operator P×V gain does not imply matching dP gain</text>
+  <text x="900" y="879" font-family="Inter,Arial,sans-serif" font-size="14" fill="#cbd5e1" text-anchor="middle">Forward-only is the last distinct zero-stride hypothesis</text>
+</svg>

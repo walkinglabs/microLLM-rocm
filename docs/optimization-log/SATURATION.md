@@ -111,6 +111,10 @@ Experiment 169 reopens a narrower GQA space by eliminating expanded Value Storag
 zero batch stride. Universal routing is closed because Qwen and MHA regress; width-128
 DeepSeek P×V improves 1.60×. Only a width-selective full-backward experiment remains open.
 
+Experiment 170 rejects that complete P×V+dP route: DeepSeek allocation falls but extra
+KV-group dP GEMMs keep dispatch count flat and raise Kernel time. Only forward-only P×V
+remains distinct; it retains the old one-call dP backward.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

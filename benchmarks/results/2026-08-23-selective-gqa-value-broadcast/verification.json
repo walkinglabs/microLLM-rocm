@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "experiment": "Exp170",
+  "decision": "reject complete forward+dP route; keep explicit primitives",
+  "correctness": {
+    "cpu_dp_vs_repeated": "pass",
+    "pytorch_dp_vs_repeated": "pass",
+    "hip_batch2_pv_dp_zero_transfer": "pass",
+    "hip_t256_d128_saved_output_probability_qkv_gradients": "pass",
+    "qwen_d64_not_routed": true,
+    "installed_package_symbols": "pass"
+  },
+  "training": {
+    "fresh_process_rows": 12,
+    "context": 512,
+    "qwen_throughput_speedup": 0.994754447,
+    "qwen_allocation_calls_saved": 0,
+    "qwen_peak_ratio": 1.0,
+    "deepseek_throughput_speedup": 0.997169709,
+    "deepseek_allocation_calls_saved": 112,
+    "deepseek_peak_ratio": 1.0,
+    "throughput_keep_minimum": 1.01,
+    "loss_relative_difference_maximum": 0.000218621,
+    "observed_parameter_after_equal": true
+  },
+  "profile": {
+    "model": "deepseek-r1-distill-qwen-1.5b",
+    "baseline_repeat_forward_calls": 336,
+    "broadcast_repeat_forward_calls": 168,
+    "repeat_backward_calls_both": 168,
+    "kernel_dispatches_both": 8058,
+    "kernel_time_ns": "261729896->263477279",
+    "instrumented_throughput_used_for_decision": false
+  },
+  "regression": {
+    "cpu_debug": "271/271",
+    "asan_ubsan": "269/269",
+    "pytorch_enabled_cpu": "245/245",
+    "full_cpu_hip": "406/406",
+    "hip_label": "131/131",
+    "conditional_skips": 3,
+    "package_consumer": "pass",
+    "runner_contract_cases": "11/11",
+    "coverage_lines_percent": 81.0,
+    "coverage_functions_percent": 90.5,
+    "coverage_branches_percent": 61.7
+  },
+  "defaults": {
+    "engine": false,
+    "training_cli": false
+  },
+  "next_hypothesis": "width>=128 forward-only P×V broadcast with expanded dP backward"
+}

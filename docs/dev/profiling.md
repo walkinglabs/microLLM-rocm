@@ -166,6 +166,9 @@ explicit Attention routing should be used only for numerical/performance rebutta
 experiment. It defaults false after Experiment 168. Both explicit operators stay available
 for shape and Kernel diagnosis.
 
+`--attention-gqa-value-broadcast true/false` controls the width-selective P×V+dP route.
+It defaults false after Experiment 170. The operator APIs remain usable independently.
+
 ### End-to-end benchmark
 
 ```bash

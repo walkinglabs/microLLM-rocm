@@ -244,6 +244,8 @@ void enable_attention_gemm_scale_fusion(bool enabled) noexcept;
 [[nodiscard]] bool attention_gemm_scale_fusion_enabled() noexcept;
 void enable_attention_paired_gqa_repeat(bool enabled) noexcept;
 [[nodiscard]] bool attention_paired_gqa_repeat_enabled() noexcept;
+void enable_attention_gqa_value_broadcast(bool enabled) noexcept;
+[[nodiscard]] bool attention_gqa_value_broadcast_enabled() noexcept;
 void register_bf16_algorithm(std::int64_t rows, std::int64_t inner,
                              std::int64_t columns, DType output_dtype,
                              int solution_index);
@@ -393,6 +395,10 @@ void embedding_backward_add_(Tensor& weight_gradient, const Tensor& gradient,
 [[nodiscard]] Tensor attention_probability_gradient_bthd(
     const Tensor& output_gradient, const Tensor& value,
     const OpContext& context = {});
+// GQA dP variant using zero batch stride for V[B,T,KV,D].
+[[nodiscard]] Tensor attention_probability_gradient_gqa_bthd(
+    const Tensor& output_gradient, const Tensor& value,
+    std::int64_t repeats, const OpContext& context = {});
 // Computes dV[B,T,H,D] = transpose(P) @ dO without materializing either
 // interleaved head matrix.
 [[nodiscard]] Tensor attention_value_gradient_bthd(

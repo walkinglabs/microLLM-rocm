@@ -62,6 +62,7 @@
 | `cross_entropy_backward` | 与 logits 相同 | `F.cross_entropy(...).backward(seed)` | `3e-5,3e-5` | seed 非 scalar、target 契约错 |
 | `causal_softmax_backward` | 与 output 相同 | masked softmax `.backward(seed)` | `3e-5,3e-5` | output/seed shape 错、非方阵 |
 | `attention_probability_gradient_bthd` | dO/V `[B,T,H,D] -> [B,H,T,T]` | `dO.transpose(1,2) @ V.transpose(1,2).T` | `3e-5,3e-5` | shape/dtype/device/连续性错 |
+| `attention_probability_gradient_gqa_bthd` | dO `[B,T,H,D]`、V `[B,T,KV,D]`、`H=KV×R` → dP | repeat V 后用上项 | `3e-5,3e-5` | B/H/KV/T/D/device/连续性或 R 错 |
 | `attention_value_gradient_bthd` | P `[B,H,T,T]`、dO `[B,T,H,D] -> [B,T,H,D]` | `(P.T @ dO.transpose(1,2)).transpose(1,2)` | `3e-5,3e-5` | B/H/T/dtype/device/连续性错 |
 | `repeat_interleave_backward` | 原 input shape | `repeat_interleave(...).backward(seed)` | `2e-5,2e-5` | gradient 与推导 shape 不同 |
 | `repeat_gqa_kv_bthd_backward` | dK `[B,H,T,D]`、dV `[B,T,H,D]` → 两个 KV 布局 | 分组 reshape 后沿 repeat 维求和 | 精确 | B/H/T/D/device/连续性或整除错 |

@@ -642,9 +642,25 @@ TEST(CpuOpsTest, AttentionProbabilityValueGqaBroadcastMatchesRepeatedReference) 
         probabilities, value, 2);
     EXPECT_EQ(actual.shape(), (Shape{1, 2, 4, 2}));
     expect_near(actual.to_vector(), expected.to_vector());
+    const auto output_gradient = Tensor::from_vector(
+        {1, -1, 2, -2, 3, -3, 4, -4,
+         5, -5, 6, -6, 7, -7, 8, -8}, {1, 2, 4, 2});
+    const auto expected_gradient = attention_probability_gradient_bthd(
+        output_gradient, repeat_interleave(value, 2, 2));
+    const auto actual_gradient = attention_probability_gradient_gqa_bthd(
+        output_gradient, value, 2);
+    expect_near(actual_gradient.to_vector(), expected_gradient.to_vector());
     EXPECT_THROW((void)attention_probability_value_gqa_bthd(
                      probabilities, Tensor({1, 2, 1, 2}), 2),
                  std::invalid_argument);
+    EXPECT_THROW((void)attention_probability_gradient_gqa_bthd(
+                     output_gradient, Tensor({1, 2, 1, 2}), 2),
+                 std::invalid_argument);
+    enable_attention_gqa_value_broadcast(false);
+    EXPECT_FALSE(attention_gqa_value_broadcast_enabled());
+    enable_attention_gqa_value_broadcast(true);
+    EXPECT_TRUE(attention_gqa_value_broadcast_enabled());
+    enable_attention_gqa_value_broadcast(false);
 }
 
 TEST(CpuOpsTest, AttentionLayoutPlanCacheIsUnavailableWithoutHipblaslt) {

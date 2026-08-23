@@ -103,6 +103,9 @@ needed to run a real training and generation loop:
 - zero-batch-stride GQA P×V can broadcast V[B,T,KV,D] without an expanded Tensor; complete
   MI300 outputs pass, but the operator is shape-selective (Qwen T512 0.937×, DeepSeek T512
   1.603×), so it remains an explicit primitive pending a width-128 full-backward gate;
+- the width-128 full P×V+dP route remains default-off: it removes 112 DeepSeek allocations
+  but reaches only 0.997× end to end because removed Value-repeat launches are replaced by
+  extra KV-group GEMMs; forward-only broadcast remains the final scoped variant;
 - a phase-independent exact-size HIP pool with immediate legacy-default-Stream reuse and strict
   permanent disablement for non-default Streams;
 - a cross-framework trace runner for operator/layer values and latency comparisons.

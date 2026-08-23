@@ -20,6 +20,7 @@ namespace {
 thread_local Fp8DynamicQuantStats dynamic_quant_stats;
 thread_local bool attention_gemm_scale_fusion = false;
 thread_local bool attention_paired_gqa_repeat = false;
+thread_local bool attention_gqa_value_broadcast = false;
 
 float fp8_finite_maximum(DType dtype) {
     if (dtype == DType::Float8E4M3FNUZ) return 240.0F;
@@ -565,6 +566,14 @@ void enable_attention_paired_gqa_repeat(bool enabled) noexcept {
 
 bool attention_paired_gqa_repeat_enabled() noexcept {
     return attention_paired_gqa_repeat;
+}
+
+void enable_attention_gqa_value_broadcast(bool enabled) noexcept {
+    attention_gqa_value_broadcast = enabled;
+}
+
+bool attention_gqa_value_broadcast_enabled() noexcept {
+    return attention_gqa_value_broadcast;
 }
 
 Tensor dequantize_fp8(const ScaledTensor& input, DType output_dtype,
@@ -3210,20 +3219,24 @@ TensorPair causal_gqa_attention_bthd_saved(
     std::int64_t repeats, float scale, const OpContext& context) {
     validate_causal_gqa_bthd(query, key, value, repeats, scale);
     const auto sequence = query.shape()[2];
-    Tensor expanded_key;
-    Tensor expanded_value;
-    if (repeats == 1) {
-        expanded_key = key;
-        expanded_value = value;
-    } else if (attention_paired_gqa_repeat) {
-        auto expanded = repeat_gqa_kv_bthd(key, value, repeats, context);
-        expanded_key = std::move(expanded.first);
-        expanded_value = std::move(expanded.second);
-    } else {
-        expanded_key = repeat_interleave(key, 1, repeats, context);
-        expanded_value = repeat_interleave(value, 2, repeats, context);
-    }
     if (query.device().is_hip() && sequence >= 256 && hipblaslt_available()) {
+        const auto use_value_broadcast = attention_gqa_value_broadcast &&
+                                         repeats > 1 && query.shape()[3] >= 128;
+        Tensor expanded_key;
+        Tensor expanded_value;
+        if (repeats == 1) {
+            expanded_key = key;
+            expanded_value = value;
+        } else if (attention_paired_gqa_repeat && !use_value_broadcast) {
+            auto expanded = repeat_gqa_kv_bthd(key, value, repeats, context);
+            expanded_key = std::move(expanded.first);
+            expanded_value = std::move(expanded.second);
+        } else {
+            expanded_key = repeat_interleave(key, 1, repeats, context);
+            if (!use_value_broadcast) {
+                expanded_value = repeat_interleave(value, 2, repeats, context);
+            }
+        }
         auto probabilities = attention_gemm_scale_fusion
                                  ? matmul_scaled_with_implementation(
                                        query, expanded_key, scale,
@@ -3243,8 +3256,11 @@ TensorPair causal_gqa_attention_bthd_saved(
 #else
         throw std::runtime_error("microLLM was built without HIP operator support");
 #endif
-        auto output = attention_probability_value_bthd(
-            probabilities, expanded_value, context);
+        auto output = use_value_broadcast
+                          ? attention_probability_value_gqa_bthd(
+                                probabilities, value, repeats, context)
+                          : attention_probability_value_bthd(
+                                probabilities, expanded_value, context);
         return {std::move(output), std::move(probabilities)};
     }
     const auto value_bhtd = value.transpose(1, 2).contiguous();
@@ -3290,21 +3306,28 @@ TensorTriple causal_gqa_attention_bthd_backward_saved(
         gradients.third = gradients.third.transpose(1, 2).contiguous();
         return gradients;
     }
+    const auto use_value_broadcast = attention_gqa_value_broadcast &&
+                                     repeats > 1 && width >= 128;
     Tensor expanded_key;
     Tensor expanded_value;
     if (repeats == 1) {
         expanded_key = key;
         expanded_value = value;
-    } else if (attention_paired_gqa_repeat) {
+    } else if (attention_paired_gqa_repeat && !use_value_broadcast) {
         auto expanded = repeat_gqa_kv_bthd(key, value, repeats, context);
         expanded_key = std::move(expanded.first);
         expanded_value = std::move(expanded.second);
     } else {
         expanded_key = repeat_interleave(key, 1, repeats, context);
-        expanded_value = repeat_interleave(value, 2, repeats, context);
+        if (!use_value_broadcast) {
+            expanded_value = repeat_interleave(value, 2, repeats, context);
+        }
     }
-    const auto probability_gradient = attention_probability_gradient_bthd(
-        output_gradient, expanded_value, context);
+    const auto probability_gradient = use_value_broadcast
+        ? attention_probability_gradient_gqa_bthd(
+              output_gradient, value, repeats, context)
+        : attention_probability_gradient_bthd(
+              output_gradient, expanded_value, context);
     auto score_gradients = causal_softmax_backward(
         probabilities, probability_gradient, context);
     Tensor query_gradient;

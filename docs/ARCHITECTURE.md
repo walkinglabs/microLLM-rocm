@@ -229,6 +229,11 @@ batched GEMM per `(outer batch, KV head)`. This is intentionally not a default: 
 submissions lose on width-64 Qwen and MHA, while width-128 DeepSeek wins strongly. A later
 graph policy must include matching backward layouts and an explicit width gate.
 
+The matching zero-stride dP primitive is available, but the combined width-128 P×V+dP
+policy is disabled after end-to-end rejection. It removes Value expansion in both phases yet
+replaces each removed copy with another KV-group GEMM. Keeping the primitives separate lets
+the final forward-only policy reuse proven P×V while backward stays on one H-batched GEMM.
+
 ## Stable integration boundary
 
 The long-term integration seam is a C-compatible descriptor plus explicit stream

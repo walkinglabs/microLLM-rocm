@@ -119,6 +119,17 @@ class AttentionLayoutFusionRunnerTest(unittest.TestCase):
         self.assertEqual(separate[pair + 1], "false")
         self.assertEqual(paired[pair + 1], "true")
 
+    def test_broadcast_policy_changes_only_selective_value_route(self):
+        self.args.policy = "broadcast"
+        repeated = RUNNER.command(self.args, self.model, False)
+        broadcast = RUNNER.command(self.args, self.model, True)
+        pair = repeated.index("--attention-paired-gqa-repeat")
+        value = repeated.index("--attention-gqa-value-broadcast")
+        self.assertEqual(repeated[pair + 1], "false")
+        self.assertEqual(broadcast[pair + 1], "false")
+        self.assertEqual(repeated[value + 1], "false")
+        self.assertEqual(broadcast[value + 1], "true")
+
     def test_operator_matrix_preserves_batch_head_sequence_width(self):
         shape = MATRIX.parse_shape("qwen:2:14:512:64")
         self.assertEqual(

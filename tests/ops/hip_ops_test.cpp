@@ -2195,16 +2195,30 @@ TEST(HipOpsTest, GqaProbabilityValueZeroStrideBroadcastMatchesCpuForBatchTwo) {
         {2, 2, 2, 2});
     const auto expected = attention_probability_value_gqa_bthd(
         probabilities, value, 2);
+    std::vector<float> gradient_values(2 * 2 * 4 * 2);
+    for (std::size_t index = 0; index < gradient_values.size(); ++index) {
+        gradient_values[index] =
+            static_cast<float>(static_cast<int>(index % 17) - 8) / 19.0F;
+    }
+    const auto output_gradient = Tensor::from_vector(
+        gradient_values, {2, 2, 4, 2});
+    const auto expected_gradient = attention_probability_gradient_gqa_bthd(
+        output_gradient, value, 2);
     const auto device_probabilities = probabilities.to(gpu);
     const auto device_value = value.to(gpu);
+    const auto device_gradient = output_gradient.to(gpu);
     runtime::reset_transfer_stats();
     const auto actual = attention_probability_value_gqa_bthd(
         device_probabilities, device_value, 2);
+    const auto actual_gradient = attention_probability_gradient_gqa_bthd(
+        device_gradient, device_value, 2);
     runtime::synchronize(gpu);
     const auto transfers = runtime::transfer_stats();
     EXPECT_EQ(transfers.host_to_device_calls, 0U);
     EXPECT_EQ(transfers.device_to_host_calls, 0U);
     expect_near(actual.to_vector(), expected.to_vector(), 2.0e-5F);
+    expect_near(actual_gradient.to_vector(),
+                expected_gradient.to_vector(), 2.0e-5F);
 }
 
 TEST(HipAttentionLayoutPlanCacheTest, ExactModesAndShapesHitWithoutChangingOutputs) {
@@ -2372,6 +2386,67 @@ TEST(HipOpsTest, LongCausalGqaBthdForwardBackwardMatchCpuWithoutTransfers) {
                 expected_gradients.second.to_vector(), 3.0e-3F);
     expect_near(actual_gradients.third.to_vector(),
                 expected_gradients.third.to_vector(), 3.0e-3F);
+}
+
+TEST(HipOpsTest, WideGqaValueBroadcastFullSavedPathMatchesExpandedControl) {
+    require_gpu();
+    constexpr std::int64_t sequence = 256;
+    constexpr std::int64_t heads = 2;
+    constexpr std::int64_t kv_heads = 1;
+    constexpr std::int64_t width = 128;
+    std::vector<float> query_values(
+        static_cast<std::size_t>(heads * sequence * width));
+    std::vector<float> key_values(
+        static_cast<std::size_t>(kv_heads * sequence * width));
+    std::vector<float> value_values(key_values.size());
+    std::vector<float> seed_values(query_values.size());
+    for (std::size_t index = 0; index < query_values.size(); ++index) {
+        query_values[index] =
+            static_cast<float>(static_cast<int>(index % 29) - 14) / 31.0F;
+        seed_values[index] =
+            static_cast<float>(static_cast<int>(index % 19) - 9) / 23.0F;
+    }
+    for (std::size_t index = 0; index < key_values.size(); ++index) {
+        key_values[index] =
+            static_cast<float>(static_cast<int>(index % 23) - 11) / 37.0F;
+        value_values[index] =
+            static_cast<float>(static_cast<int>(index % 17) - 8) / 19.0F;
+    }
+    const auto gpu = Device::hip(0);
+    const auto query = Tensor::from_vector(
+        query_values, {1, heads, sequence, width}).to(gpu);
+    const auto key = Tensor::from_vector(
+        key_values, {1, kv_heads, sequence, width}).to(gpu);
+    const auto value = Tensor::from_vector(
+        value_values, {1, sequence, kv_heads, width}).to(gpu);
+    const auto seed = Tensor::from_vector(
+        seed_values, {1, sequence, heads, width}).to(gpu);
+    enable_attention_gqa_value_broadcast(false);
+    const auto control = causal_gqa_attention_bthd_saved(
+        query, key, value, 2, 1.0F / std::sqrt(static_cast<float>(width)));
+    const auto control_gradients = causal_gqa_attention_bthd_backward_saved(
+        query, key, value, control.second, seed, 2,
+        1.0F / std::sqrt(static_cast<float>(width)));
+    enable_attention_gqa_value_broadcast(true);
+    runtime::reset_transfer_stats();
+    const auto candidate = causal_gqa_attention_bthd_saved(
+        query, key, value, 2, 1.0F / std::sqrt(static_cast<float>(width)));
+    const auto candidate_gradients = causal_gqa_attention_bthd_backward_saved(
+        query, key, value, candidate.second, seed, 2,
+        1.0F / std::sqrt(static_cast<float>(width)));
+    runtime::synchronize(gpu);
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    expect_near(candidate.first.to_vector(), control.first.to_vector(), 3.0e-3F);
+    expect_near(candidate.second.to_vector(), control.second.to_vector(), 3.0e-3F);
+    expect_near(candidate_gradients.first.to_vector(),
+                control_gradients.first.to_vector(), 3.0e-3F);
+    expect_near(candidate_gradients.second.to_vector(),
+                control_gradients.second.to_vector(), 3.0e-3F);
+    expect_near(candidate_gradients.third.to_vector(),
+                control_gradients.third.to_vector(), 3.0e-3F);
+    enable_attention_gqa_value_broadcast(false);
 }
 
 TEST(HipOpsTest, MaskedCrossEntropyMatchesCpuReference) {

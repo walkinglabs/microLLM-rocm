@@ -2822,3 +2822,17 @@ profile看起来成功：repeat family 432→216 calls、2.105→1.330ms，总Ke
 这不是按模型名字硬编码，而是由head width这个执行shape决定。
 
 ![GQA zero-stride Value broadcast](assets/gqa-zero-stride-value-broadcast.svg)
+
+## 187. Experiment 170：前向快，不代表它的反向同样快
+
+我们只让D≥128走零stride P×V和dP，Qwen D64保持旧路。T256完整output、probability、Q/K/V
+梯度通过；Deep每个正式进程少112次allocation。
+
+但Qwen只是0.9948×噪声，Deep也只有0.9972×。Deep profile解释了为什么：Value repeat
+336→168，可每个dP/P×V从一个H-batch GEMM拆成两个KV-group GEMM，总dispatch仍是8058，Kernel
+反而261.73→263.48ms。
+
+因此完整广播默认false。最后只剩forward-only：P×V用已证明1.60×的广播，dP继续expanded后一次
+H-batch GEMM。如果它仍不过整机门，zero-stride路线就完整关闭。
+
+![Selective GQA Value broadcast discarded](assets/selective-gqa-value-broadcast-discard.svg)

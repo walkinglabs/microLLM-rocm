@@ -7408,6 +7408,51 @@ def validate_gqa_zero_stride_value_broadcast(
     return len(raw), len(rows), float(deep.get("wall_speedup", 0))
 
 
+def validate_selective_gqa_value_broadcast_discard(
+        errors: list[str]) -> tuple[int, int, int]:
+    data = REPOSITORY / "benchmarks/results/2026-08-23-selective-gqa-value-broadcast"
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    training = [json.loads(line) for line in (data / "training.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = {row["model"]: row for row in summary.get("comparisons", [])}
+    qwen = comparisons.get("qwen2.5-0.5b", {})
+    deep = comparisons.get("deepseek-r1-distill-qwen-1.5b", {})
+    profile = json.loads((data / "profile-summary.json").read_text(
+        encoding="utf-8"))
+    if verification.get("status") != "pass" or summary.get("status") != "pass" or \
+            summary.get("decision") != "reject GQA Value broadcast" or \
+            verification.get("defaults") != {"engine": False, "training_cli": False} or \
+            verification.get("regression", {}).get("full_cpu_hip") != "406/406" or \
+            verification.get("regression", {}).get("hip_label") != "131/131" or \
+            len(training) != 12 or len(comparisons) != 2 or \
+            qwen.get("allocation_calls_saved") != 0 or \
+            deep.get("allocation_calls_saved") != 112 or \
+            qwen.get("throughput_speedup", 2) >= 1.01 or \
+            deep.get("throughput_speedup", 2) >= 1.01 or \
+            profile.get("baseline", {}).get("repeat_forward_calls") != 336 or \
+            profile.get("broadcast", {}).get("repeat_forward_calls") != 168 or \
+            profile.get("baseline", {}).get("kernel_dispatches") != \
+            profile.get("broadcast", {}).get("kernel_dispatches") or \
+            profile.get("broadcast", {}).get("kernel_time_ns", 0) <= \
+            profile.get("baseline", {}).get("kernel_time_ns", 1):
+        errors.append("selective GQA Value broadcast rejection evidence changed")
+    source = (REPOSITORY / "src/ops/ops.cpp").read_text(encoding="utf-8")
+    cli = (REPOSITORY / "apps/hf_train_step.cpp").read_text(encoding="utf-8")
+    tests = "\n".join((REPOSITORY / path).read_text(encoding="utf-8") for path in (
+        "tests/ops/ops_test.cpp", "tests/ops/hip_ops_test.cpp",
+        "python/tests/test_operator_parity.py"))
+    if "attention_gqa_value_broadcast = false" not in source or \
+            "bool attention_gqa_value_broadcast = false" not in cli or \
+            "query.shape()[3] >= 128" not in source or \
+            "WideGqaValueBroadcastFullSavedPathMatchesExpandedControl" not in tests or \
+            "attention_probability_gradient_gqa_bthd" not in tests:
+        errors.append("selective GQA Value broadcast default/source contract changed")
+    return len(training), int(qwen.get("allocation_calls_saved", -1)), \
+        int(deep.get("allocation_calls_saved", -1))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -7555,7 +7600,8 @@ def validate_assets(errors: list[str]) -> None:
                  "attention-layout-plan-cache-discard.svg",
                  "attention-gemm-scale-fusion-discard.svg",
                  "paired-gqa-repeat-discard.svg",
-                 "gqa-zero-stride-value-broadcast.svg"):
+                 "gqa-zero-stride-value-broadcast.svg",
+                 "selective-gqa-value-broadcast-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -7829,6 +7875,8 @@ def main() -> int:
         validate_paired_gqa_repeat_discard(errors)
     broadcast_rows, broadcast_shapes, broadcast_deep = \
         validate_gqa_zero_stride_value_broadcast(errors)
+    selective_rows, selective_qwen_allocations, selective_deep_allocations = \
+        validate_selective_gqa_value_broadcast_discard(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -8048,6 +8096,8 @@ def main() -> int:
           f"{paired_fused_calls} "
           f"gqa_broadcast={broadcast_rows}/{broadcast_shapes}/"
           f"{broadcast_deep:.3f} "
+          f"selective_broadcast={selective_rows}/{selective_qwen_allocations}/"
+          f"{selective_deep_allocations} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

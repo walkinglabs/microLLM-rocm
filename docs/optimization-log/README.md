@@ -702,6 +702,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/168-paired-gqa-repeat-discard.md](experiments/168-paired-gqa-repeat-discard.md) | 成对前后向、12模型进程与完整profile |
 | [assets/gqa-zero-stride-value-broadcast.svg](assets/gqa-zero-stride-value-broadcast.svg) | Qwen/DeepSeek相反的零stride P×V结果 |
 | [experiments/169-gqa-zero-stride-value-broadcast.md](experiments/169-gqa-zero-stride-value-broadcast.md) | 30算子进程、MHA反例与width-selective下一门 |
+| [assets/selective-gqa-value-broadcast-discard.svg](assets/selective-gqa-value-broadcast-discard.svg) | width选择、Deep整机拒绝与profile抵消 |
+| [experiments/170-selective-gqa-value-broadcast-discard.md](experiments/170-selective-gqa-value-broadcast-discard.md) | dP/QKV梯度、12模型进程与Deep profile |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 
