@@ -1,0 +1,107 @@
+{
+  "aggregates": [
+    {
+      "column_max_abs": 0.04218757152557373,
+      "column_over_scalar_relative_l2": 0.9959690724439996,
+      "column_relative_l2": 0.026386243231140825,
+      "column_rms": 0.0010149990502169672,
+      "elements": 1543569408,
+      "group": "all_linear",
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "scalar_max_abs": 0.04218757152557373,
+      "scalar_relative_l2": 0.026493034734895792,
+      "scalar_rms": 0.0010191069966924476,
+      "tensors": 197
+    },
+    {
+      "column_max_abs": 0.04218757152557373,
+      "column_over_scalar_relative_l2": 0.9947405858125642,
+      "column_relative_l2": 0.026351452561237304,
+      "column_rms": 0.0012337388087924944,
+      "elements": 154140672,
+      "group": "attention",
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "scalar_max_abs": 0.04218757152557373,
+      "scalar_relative_l2": 0.026490778537714782,
+      "scalar_rms": 0.0012402618596130787,
+      "tensors": 112
+    },
+    {
+      "column_max_abs": 0.04140627384185791,
+      "column_over_scalar_relative_l2": 0.9968508927838018,
+      "column_relative_l2": 0.026413258542130683,
+      "column_rms": 0.00102636960237058,
+      "elements": 1156055040,
+      "group": "ffn",
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "scalar_max_abs": 0.04140627384185791,
+      "scalar_relative_l2": 0.02649669948969913,
+      "scalar_rms": 0.0010296119608263021,
+      "tensors": 84
+    },
+    {
+      "column_max_abs": 0.009179696440696716,
+      "column_over_scalar_relative_l2": 0.9903288654234201,
+      "column_relative_l2": 0.026208977361929217,
+      "column_rms": 0.0007683452748079253,
+      "elements": 233373696,
+      "group": "output_head",
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "scalar_max_abs": 0.010937482118606567,
+      "scalar_relative_l2": 0.026464923195713815,
+      "scalar_rms": 0.0007758486111372865,
+      "tensors": 1
+    },
+    {
+      "column_max_abs": 0.041666626930236816,
+      "column_over_scalar_relative_l2": 0.9927615940465673,
+      "column_relative_l2": 0.026298907164336048,
+      "column_rms": 0.0005355972661086953,
+      "elements": 357826560,
+      "group": "all_linear",
+      "model": "qwen2.5-0.5b",
+      "scalar_max_abs": 0.04218757152557373,
+      "scalar_relative_l2": 0.02649065729581643,
+      "scalar_rms": 0.0005395024035182128,
+      "tensors": 168
+    },
+    {
+      "column_max_abs": 0.041666626930236816,
+      "column_over_scalar_relative_l2": 0.9895493512432598,
+      "column_relative_l2": 0.026194996528487214,
+      "column_rms": 0.0006084015818855716,
+      "elements": 44040192,
+      "group": "attention",
+      "model": "qwen2.5-0.5b",
+      "scalar_max_abs": 0.04218757152557373,
+      "scalar_relative_l2": 0.02647164236485637,
+      "scalar_rms": 0.0006148269220945696,
+      "tensors": 96
+    },
+    {
+      "column_max_abs": 0.025390595197677612,
+      "column_over_scalar_relative_l2": 0.9933715624319865,
+      "column_relative_l2": 0.026318663940399774,
+      "column_rms": 0.0005245711392288413,
+      "elements": 313786368,
+      "group": "ffn",
+      "model": "qwen2.5-0.5b",
+      "scalar_max_abs": 0.025390595197677612,
+      "scalar_relative_l2": 0.02649427961876223,
+      "scalar_rms": 0.000528071427718928,
+      "tensors": 72
+    }
+  ],
+  "boundary": "External PyTorch ROCm reconstruction diagnostic only; it selects a model scope but does not replace microLLM native full-logit evidence",
+  "format": "torch.float8_e4m3fnuz",
+  "minimum_scale": 0.0001,
+  "models": [
+    "qwen2.5-0.5b",
+    "deepseek-r1-distill-qwen-1.5b"
+  ],
+  "schema_version": 1,
+  "status": "pass",
+  "tensor_rows": 365,
+  "track": "external_fp8_weight_reconstruction_audit",
+  "weight_layout": "HF [output,input]; output-channel rows correspond to microLLM transposed [input,output] columns"
+}

@@ -2517,3 +2517,14 @@ scalar FP8 GEMM + device post-scale。Qwen/Deep T512分别精确记录336/394次
 不再把头文件能力写成硬件实测。
 
 ![Output-column native capability](assets/fp8-output-column-native-probe.svg)
+
+## 162. Experiment 145：权重改善不到1%，模型误差却能变化59%
+
+365个官方Linear的外部PyTorch ROCm重建显示，per-column相对scalar只改善Qwen 0.72%、Deep
+0.40%；最佳分组是Q Attention 1.05%和Deep output head 0.97%。这远小于Exp143模型级
++28%到-59%的变化，直接证明传播和抵消不能从权重SSE预测。
+
+下一最小实验只改Deep独立LM head；Qwen tied head应保持baseline。外部审计只选范围，最终仍
+回到native完整logits。
+
+![Weight reconstruction audit](assets/fp8-weight-reconstruction-audit.svg)

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1160" height="620" viewBox="0 0 1160 620" role="img" aria-labelledby="title desc">
+  <title id="title">FP8 weight reconstruction by Linear family</title>
+  <desc id="desc">Output-channel reconstruction improves relative L2 by less than about one percent across Qwen and DeepSeek weight families.</desc>
+  <rect width="1160" height="620" rx="20" fill="#0b1020"/>
+  <text x="56" y="58" fill="#f8fafc" font-size="29" font-family="sans-serif" font-weight="700">逐列scale对权重重建的改善其实不到1.1%</text>
+  <text x="56" y="91" fill="#94a3b8" font-size="16" font-family="sans-serif">纵轴=column/scalar relative-L2；越低越好，1.0表示没有改善</text>
+  <line x1="90" y1="210" x2="1080" y2="210" stroke="#fb7185" stroke-dasharray="8 8"/><text x="25" y="215" fill="#fb7185" font-size="14" font-family="sans-serif">1.000</text>
+  <rect x="120" y="210" width="110" height="84" fill="#38bdf8"/><rect x="270" y="210" width="110" height="53" fill="#38bdf8"/><rect x="420" y="210" width="110" height="40" fill="#38bdf8"/>
+  <rect x="620" y="210" width="110" height="42" fill="#22c55e"/><rect x="770" y="210" width="110" height="25" fill="#22c55e"/><rect x="920" y="210" width="110" height="77" fill="#22c55e"/>
+  <g fill="#f8fafc" font-size="14" font-family="sans-serif"><text x="132" y="316">Q Attn .98955</text><text x="283" y="285">Q FFN .99337</text><text x="422" y="272">Q all .99276</text><text x="625" y="274">D Attn .99474</text><text x="775" y="257">D FFN .99685</text><text x="917" y="309">D head .99033</text></g>
+  <rect x="105" y="390" width="950" height="145" rx="14" fill="#111827" stroke="#334155"/><text x="140" y="430" fill="#f8fafc" font-size="20" font-family="sans-serif" font-weight="700">不能从权重误差直接推模型结果</text><text x="140" y="466" fill="#cbd5e1" font-size="17" font-family="sans-serif">权重：Qwen仅改善0.72%，Deep仅0.40%</text><text x="575" y="466" fill="#cbd5e1" font-size="17" font-family="sans-serif">模型：Qwen RMS恶化28%，Deep改善33%–59%</text><text x="140" y="505" fill="#fbbf24" font-size="16" font-family="sans-serif">下一最小实验：Deep output-head-only；Qwen应保持baseline</text>
+  <text x="410" y="585" fill="#94a3b8" font-size="15" font-family="sans-serif">外部PyTorch ROCm诊断 · 不替代microLLM完整logits</text>
+</svg>

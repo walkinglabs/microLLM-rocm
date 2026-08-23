@@ -28,3 +28,7 @@ python3 benchmarks/single_gpu/hf_fp8_weight_audit.py \
 
 The CPU contract tests family classification and aggregate math without importing PyTorch, so the
 ordinary repository test suite does not gain a mandatory framework dependency.
+
+Exp145 audited 365 official weights. Aggregated column/scalar relative-L2 ratios are 0.99276 for
+Qwen and 0.99597 for DeepSeek; the best groups are Qwen Attention (0.98955) and DeepSeek output head
+(0.99033). The next minimal native-model counterfactual is output-head-only, not global FFN.

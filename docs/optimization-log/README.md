@@ -652,6 +652,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/143-data/](experiments/143-data/) | 36个worker、scale/显存/调用计数和keep门 |
 | [assets/fp8-output-column-native-probe.svg](assets/fp8-output-column-native-probe.svg) | outer-vector拒绝与scalar+post有效路径 |
 | [experiments/144-data/](experiments/144-data/) | fresh GTest JSON、6个模型worker和能力门 |
+| [assets/fp8-weight-reconstruction-audit.svg](assets/fp8-weight-reconstruction-audit.svg) | Attention/FFN/head权重重建与模型放大反例 |
+| [experiments/145-data/](experiments/145-data/) | 365个真实Linear、分组SSE和外部诊断边界 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "status": "external_scope_evidence_output_head_first",
+  "evidence": {
+    "contract_passed": true,
+    "tensor_rows": 365,
+    "qwen_tensors": 168,
+    "deepseek_tensors": 197,
+    "invalid_tensors": 0,
+    "stderr_bytes": 0,
+    "gpu_preflight_samples": 3
+  },
+  "decision": {
+    "external_audit_proves_microllm_model_precision": false,
+    "all_column_weight_reconstruction_materially_improves": false,
+    "qwen_attention_is_best_non_head_group": true,
+    "deepseek_output_head_is_best_group": true,
+    "global_ffn_scope_is_priority": false,
+    "output_head_only_is_next_minimal_counterfactual": true,
+    "native_complete_logits_required_next": true
+  }
+}

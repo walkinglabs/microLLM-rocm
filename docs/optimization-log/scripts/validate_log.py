@@ -5904,6 +5904,65 @@ def validate_fp8_output_column_native_probe(
         gtest.get("output_column_native_status", -1)
 
 
+def validate_fp8_weight_reconstruction_audit(
+        errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "145-data"
+    verification = json.loads((data / "verification.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    execution = verification.get("execution", {})
+    raw_rows = sum(1 for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip())
+    preflight_rows = sum(1 for line in (data / "gpu2-preflight.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip())
+    if verification.get("all_checks_passed") is not True or \
+            execution.get("tensor_rows") != 365 or execution.get("exit_code") != 0 or \
+            execution.get("stderr_bytes") != 0 or raw_rows != 365 or \
+            preflight_rows != 3 or (data / "stderr.log").stat().st_size != 0 or \
+            (data / "benchmark-hf-fp8-weight-audit-contract-exit-code.txt").read_text(
+                encoding="utf-8").strip() != "0" or \
+            "OK" not in (data / "benchmark-hf-fp8-weight-audit-contract.stderr.log").read_text(
+                encoding="utf-8"):
+        errors.append("FP8 weight audit execution/contract changed")
+    models = {row["model"]: row for row in verification.get("model_checks", [])}
+    qwen = models.get("qwen2.5-0.5b", {})
+    deep = models.get("deepseek-r1-distill-qwen-1.5b", {})
+    if qwen.get("actual_counts") != {
+            "all": 168, "attention": 96, "ffn": 72, "output_head": 0} or \
+            deep.get("actual_counts") != {
+                "all": 197, "attention": 112, "ffn": 84, "output_head": 1} or \
+            qwen.get("all_tensor_contracts_passed") is not True or \
+            deep.get("all_tensor_contracts_passed") is not True:
+        errors.append("FP8 weight audit model counts changed")
+    groups = {(row["model"], row["group"]): row["reconstruction"]
+              for row in verification.get("group_summaries", [])}
+    q_all = groups.get(("qwen2.5-0.5b", "all_linear"), {})
+    q_attention = groups.get(("qwen2.5-0.5b", "attention"), {})
+    d_all = groups.get(("deepseek-r1-distill-qwen-1.5b", "all_linear"), {})
+    d_head = groups.get(("deepseek-r1-distill-qwen-1.5b", "output_head"), {})
+    if not 0.992 < q_all.get("column_over_scalar_relative_l2", 0) < 0.994 or \
+            not 0.989 < q_attention.get("column_over_scalar_relative_l2", 0) < 0.991 or \
+            not 0.995 < d_all.get("column_over_scalar_relative_l2", 0) < 0.997 or \
+            not 0.989 < d_head.get("column_over_scalar_relative_l2", 0) < 0.992:
+        errors.append("FP8 weight audit aggregate ratios changed")
+    extremes = {row["model"]: row for row in verification.get("tensor_extremes", [])}
+    if extremes.get("qwen2.5-0.5b", {}).get(
+            "largest_relative_l2_improvement", {}).get("name") != \
+            "model.layers.9.self_attn.k_proj.weight" or \
+            extremes.get("deepseek-r1-distill-qwen-1.5b", {}).get(
+                "smallest_relative_l2_improvement_or_largest_regression", {}).get("name") != \
+            "model.layers.3.mlp.down_proj.weight":
+        errors.append("FP8 weight audit tensor extremes changed")
+    decision = gates.get("decision", {})
+    if decision.get("external_audit_proves_microllm_model_precision") is not False or \
+            decision.get("deepseek_output_head_is_best_group") is not True or \
+            decision.get("global_ffn_scope_is_priority") is not False or \
+            decision.get("output_head_only_is_next_minimal_counterfactual") is not True or \
+            "External PyTorch ROCm" not in verification.get("boundary", ""):
+        errors.append("FP8 weight audit scope/boundary gates changed")
+    return execution.get("tensor_rows", 0), len(groups), sum(
+        len(row.get("invalid_tensors", [])) for row in models.values())
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -6026,7 +6085,8 @@ def validate_assets(errors: list[str]) -> None:
                  "fp8-error-source-isolation.svg",
                  "fp8-native-vs-roundtrip.svg",
                  "fp8-output-channel-policy.svg",
-                 "fp8-output-column-native-probe.svg"):
+                 "fp8-output-column-native-probe.svg",
+                 "fp8-weight-reconstruction-audit.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -6248,6 +6308,8 @@ def main() -> int:
         validate_fp8_output_channel_policy(errors)
     native_column_workers, native_column_fp8, native_column_status = \
         validate_fp8_output_column_native_probe(errors)
+    weight_audit_tensors, weight_audit_groups, weight_audit_invalid = \
+        validate_fp8_weight_reconstruction_audit(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -6422,6 +6484,8 @@ def main() -> int:
           f"output_channel={column_workers}/{column_fp8}/{column_passed} "
           f"column_native={native_column_workers}/{native_column_fp8}/"
           f"{native_column_status} "
+          f"weight_audit={weight_audit_tensors}/{weight_audit_groups}/"
+          f"{weight_audit_invalid} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

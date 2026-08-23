@@ -1,0 +1,534 @@
+{
+  "all_checks_passed": true,
+  "boundary": "External PyTorch ROCm reconstruction diagnostic only; it selects a model scope but does not replace microLLM native full-logit evidence",
+  "contract": {
+    "exit_code": 0,
+    "stderr": "/tmp/microllm-exp145-weight-audit-final/benchmark-hf-fp8-weight-audit-contract.stderr.log",
+    "stdout": "/tmp/microllm-exp145-weight-audit-final/benchmark-hf-fp8-weight-audit-contract.stdout.log"
+  },
+  "execution": {
+    "directory": "/tmp/microllm-exp145-weight-audit-final",
+    "exit_code": 0,
+    "stderr_bytes": 0,
+    "summary_status": "pass",
+    "tensor_rows": 365
+  },
+  "experiment": "Exp145",
+  "group_summaries": [
+    {
+      "column_scale_max_distribution": {
+        "max": 0.00755208358168602,
+        "min": 0.0007975260959938169,
+        "p50": 0.0025716146919876337,
+        "p95": 0.004928385838866233
+      },
+      "column_scale_max_over_median_distribution": {
+        "max": 9.098039259685088,
+        "min": 1.4203821998459056,
+        "p50": 4.01606447113992,
+        "p95": 7.147150925607523
+      },
+      "column_scale_median_distribution": {
+        "max": 0.0013590495800599456,
+        "min": 0.0004191080806776881,
+        "p50": 0.0006266276468522847,
+        "p95": 0.0009903972269967194
+      },
+      "elements": 1543569408,
+      "group": "all_linear",
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "per_tensor_column_over_scalar_relative_l2_distribution": {
+        "max": 1.0012591456395332,
+        "min": 0.9849960156011316,
+        "p50": 0.9955791924177971,
+        "p95": 0.9996595550382881
+      },
+      "reconstruction": {
+        "column_max_abs": 0.04218757152557373,
+        "column_over_scalar_relative_l2": 0.9959690724439996,
+        "column_relative_l2": 0.026386243231140825,
+        "column_rms": 0.0010149990502169672,
+        "elements": 1543569408,
+        "group": "all_linear",
+        "model": "deepseek-r1-distill-qwen-1.5b",
+        "scalar_max_abs": 0.04218757152557373,
+        "scalar_relative_l2": 0.026493034734895792,
+        "scalar_rms": 0.0010191069966924476,
+        "tensors": 197
+      },
+      "scalar_scale_distribution": {
+        "max": 0.00755208358168602,
+        "min": 0.0007975260959938169,
+        "p50": 0.0025716146919876337,
+        "p95": 0.004928385838866233
+      },
+      "tensor_count": 197,
+      "tensors_equal": 0,
+      "tensors_improved": 189,
+      "tensors_worse": 8
+    },
+    {
+      "column_scale_max_distribution": {
+        "max": 0.00755208358168602,
+        "min": 0.0007975260959938169,
+        "p50": 0.0017822266672737896,
+        "p95": 0.005130208563059566
+      },
+      "column_scale_max_over_median_distribution": {
+        "max": 9.098039259685088,
+        "min": 1.4203821998459056,
+        "p50": 2.8468576782847297,
+        "p95": 5.7558120341525845
+      },
+      "column_scale_median_distribution": {
+        "max": 0.0013590495800599456,
+        "min": 0.0004191080806776881,
+        "p50": 0.0006490071828011423,
+        "p95": 0.0010504150530323384
+      },
+      "elements": 154140672,
+      "group": "attention",
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "per_tensor_column_over_scalar_relative_l2_distribution": {
+        "max": 1.0003247476849946,
+        "min": 0.9849960156011316,
+        "p50": 0.9946530832076887,
+        "p95": 0.9982423131330266
+      },
+      "reconstruction": {
+        "column_max_abs": 0.04218757152557373,
+        "column_over_scalar_relative_l2": 0.9947405858125642,
+        "column_relative_l2": 0.026351452561237304,
+        "column_rms": 0.0012337388087924944,
+        "elements": 154140672,
+        "group": "attention",
+        "model": "deepseek-r1-distill-qwen-1.5b",
+        "scalar_max_abs": 0.04218757152557373,
+        "scalar_relative_l2": 0.026490778537714782,
+        "scalar_rms": 0.0012402618596130787,
+        "tensors": 112
+      },
+      "scalar_scale_distribution": {
+        "max": 0.00755208358168602,
+        "min": 0.0007975260959938169,
+        "p50": 0.0017822266672737896,
+        "p95": 0.005130208563059566
+      },
+      "tensor_count": 112,
+      "tensors_equal": 0,
+      "tensors_improved": 111,
+      "tensors_worse": 1
+    },
+    {
+      "column_scale_max_distribution": {
+        "max": 0.0052734375931322575,
+        "min": 0.0019042969215661287,
+        "p50": 0.003149414318613708,
+        "p95": 0.00487304728012532
+      },
+      "column_scale_max_over_median_distribution": {
+        "max": 7.5882348857536845,
+        "min": 3.1272725948617595,
+        "p50": 5.139480709212806,
+        "p95": 7.304282184544398
+      },
+      "column_scale_median_distribution": {
+        "max": 0.000728352926671505,
+        "min": 0.0005167643539607525,
+        "p50": 0.0006103516207076609,
+        "p95": 0.0007161458488553762
+      },
+      "elements": 1156055040,
+      "group": "ffn",
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "per_tensor_column_over_scalar_relative_l2_distribution": {
+        "max": 1.0012591456395332,
+        "min": 0.9906330859514395,
+        "p50": 0.9967229194905196,
+        "p95": 1.0002842027602044
+      },
+      "reconstruction": {
+        "column_max_abs": 0.04140627384185791,
+        "column_over_scalar_relative_l2": 0.9968508927838018,
+        "column_relative_l2": 0.026413258542130683,
+        "column_rms": 0.00102636960237058,
+        "elements": 1156055040,
+        "group": "ffn",
+        "model": "deepseek-r1-distill-qwen-1.5b",
+        "scalar_max_abs": 0.04140627384185791,
+        "scalar_relative_l2": 0.02649669948969913,
+        "scalar_rms": 0.0010296119608263021,
+        "tensors": 84
+      },
+      "scalar_scale_distribution": {
+        "max": 0.0052734375931322575,
+        "min": 0.0019042969215661287,
+        "p50": 0.003149414318613708,
+        "p95": 0.00487304728012532
+      },
+      "tensor_count": 84,
+      "tensors_equal": 0,
+      "tensors_improved": 77,
+      "tensors_worse": 7
+    },
+    {
+      "column_scale_max_distribution": {
+        "max": 0.0013671875931322575,
+        "min": 0.0013671875931322575,
+        "p50": 0.0013671875931322575,
+        "p95": 0.0013671875931322575
+      },
+      "column_scale_max_over_median_distribution": {
+        "max": 2.1132076150711487,
+        "min": 2.1132076150711487,
+        "p50": 2.1132076150711487,
+        "p95": 2.1132076150711487
+      },
+      "column_scale_median_distribution": {
+        "max": 0.0006469726795330644,
+        "min": 0.0006469726795330644,
+        "p50": 0.0006469726795330644,
+        "p95": 0.0006469726795330644
+      },
+      "elements": 233373696,
+      "group": "output_head",
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "per_tensor_column_over_scalar_relative_l2_distribution": {
+        "max": 0.9903288654234201,
+        "min": 0.9903288654234201,
+        "p50": 0.9903288654234201,
+        "p95": 0.9903288654234201
+      },
+      "reconstruction": {
+        "column_max_abs": 0.009179696440696716,
+        "column_over_scalar_relative_l2": 0.9903288654234201,
+        "column_relative_l2": 0.026208977361929217,
+        "column_rms": 0.0007683452748079253,
+        "elements": 233373696,
+        "group": "output_head",
+        "model": "deepseek-r1-distill-qwen-1.5b",
+        "scalar_max_abs": 0.010937482118606567,
+        "scalar_relative_l2": 0.026464923195713815,
+        "scalar_rms": 0.0007758486111372865,
+        "tensors": 1
+      },
+      "scalar_scale_distribution": {
+        "max": 0.0013671875931322575,
+        "min": 0.0013671875931322575,
+        "p50": 0.0013671875931322575,
+        "p95": 0.0013671875931322575
+      },
+      "tensor_count": 1,
+      "tensors_equal": 0,
+      "tensors_improved": 1,
+      "tensors_worse": 0
+    },
+    {
+      "column_scale_max_distribution": {
+        "max": 0.00693359412252903,
+        "min": 0.00034993491135537624,
+        "p50": 0.001403808651957661,
+        "p95": 0.0028287762892432525
+      },
+      "column_scale_max_over_median_distribution": {
+        "max": 18.322580784094068,
+        "min": 1.3263158465356364,
+        "p50": 4.301060989223792,
+        "p95": 9.779310561707874
+      },
+      "column_scale_median_distribution": {
+        "max": 0.0008300781482830644,
+        "min": 0.00018717448983807117,
+        "p50": 0.00031941733323037624,
+        "p95": 0.0005065918085165322
+      },
+      "elements": 357826560,
+      "group": "all_linear",
+      "model": "qwen2.5-0.5b",
+      "per_tensor_column_over_scalar_relative_l2_distribution": {
+        "max": 1.0006048703430053,
+        "min": 0.976227405511187,
+        "p50": 0.9914602458992541,
+        "p95": 0.998211685210505
+      },
+      "reconstruction": {
+        "column_max_abs": 0.041666626930236816,
+        "column_over_scalar_relative_l2": 0.9927615940465673,
+        "column_relative_l2": 0.026298907164336048,
+        "column_rms": 0.0005355972661086953,
+        "elements": 357826560,
+        "group": "all_linear",
+        "model": "qwen2.5-0.5b",
+        "scalar_max_abs": 0.04218757152557373,
+        "scalar_relative_l2": 0.02649065729581643,
+        "scalar_rms": 0.0005395024035182128,
+        "tensors": 168
+      },
+      "scalar_scale_distribution": {
+        "max": 0.00693359412252903,
+        "min": 0.00034993491135537624,
+        "p50": 0.001403808651957661,
+        "p95": 0.0028287762892432525
+      },
+      "tensor_count": 168,
+      "tensors_equal": 0,
+      "tensors_improved": 166,
+      "tensors_worse": 2
+    },
+    {
+      "column_scale_max_distribution": {
+        "max": 0.00693359412252903,
+        "min": 0.00034993491135537624,
+        "p50": 0.0010213216301053762,
+        "p95": 0.002376302203629166
+      },
+      "column_scale_max_over_median_distribution": {
+        "max": 18.322580784094068,
+        "min": 1.3263158465356364,
+        "p50": 2.8922115572633063,
+        "p95": 7.207432844351943
+      },
+      "column_scale_median_distribution": {
+        "max": 0.0008300781482830644,
+        "min": 0.00018717448983807117,
+        "p50": 0.00033467613684479147,
+        "p95": 0.0006235758919501677
+      },
+      "elements": 44040192,
+      "group": "attention",
+      "model": "qwen2.5-0.5b",
+      "per_tensor_column_over_scalar_relative_l2_distribution": {
+        "max": 1.0000918745840977,
+        "min": 0.976227405511187,
+        "p50": 0.989506509555346,
+        "p95": 0.996920590249096
+      },
+      "reconstruction": {
+        "column_max_abs": 0.041666626930236816,
+        "column_over_scalar_relative_l2": 0.9895493512432598,
+        "column_relative_l2": 0.026194996528487214,
+        "column_rms": 0.0006084015818855716,
+        "elements": 44040192,
+        "group": "attention",
+        "model": "qwen2.5-0.5b",
+        "scalar_max_abs": 0.04218757152557373,
+        "scalar_relative_l2": 0.02647164236485637,
+        "scalar_rms": 0.0006148269220945696,
+        "tensors": 96
+      },
+      "scalar_scale_distribution": {
+        "max": 0.00693359412252903,
+        "min": 0.00034993491135537624,
+        "p50": 0.0010213216301053762,
+        "p95": 0.002376302203629166
+      },
+      "tensor_count": 96,
+      "tensors_equal": 0,
+      "tensors_improved": 95,
+      "tensors_worse": 1
+    },
+    {
+      "column_scale_max_distribution": {
+        "max": 0.003352864645421505,
+        "min": 0.0009765625,
+        "p50": 0.0018554688431322575,
+        "p95": 0.003021647385321558
+      },
+      "column_scale_max_over_median_distribution": {
+        "max": 13.027668127220757,
+        "min": 3.4285711950185505,
+        "p50": 5.550937522885789,
+        "p95": 10.364835937873515
+      },
+      "column_scale_median_distribution": {
+        "max": 0.00040283205453306437,
+        "min": 0.0002532959042582661,
+        "p50": 0.0003092448168899864,
+        "p95": 0.0003820800920948386
+      },
+      "elements": 313786368,
+      "group": "ffn",
+      "model": "qwen2.5-0.5b",
+      "per_tensor_column_over_scalar_relative_l2_distribution": {
+        "max": 1.0006048703430053,
+        "min": 0.9843431861130647,
+        "p50": 0.9929230377801417,
+        "p95": 0.9986204505393961
+      },
+      "reconstruction": {
+        "column_max_abs": 0.025390595197677612,
+        "column_over_scalar_relative_l2": 0.9933715624319865,
+        "column_relative_l2": 0.026318663940399774,
+        "column_rms": 0.0005245711392288413,
+        "elements": 313786368,
+        "group": "ffn",
+        "model": "qwen2.5-0.5b",
+        "scalar_max_abs": 0.025390595197677612,
+        "scalar_relative_l2": 0.02649427961876223,
+        "scalar_rms": 0.000528071427718928,
+        "tensors": 72
+      },
+      "scalar_scale_distribution": {
+        "max": 0.003352864645421505,
+        "min": 0.0009765625,
+        "p50": 0.0018554688431322575,
+        "p95": 0.003021647385321558
+      },
+      "tensor_count": 72,
+      "tensors_equal": 0,
+      "tensors_improved": 71,
+      "tensors_worse": 1
+    }
+  ],
+  "manifest": "/tmp/microllm-bf16-model-manifest.json",
+  "model_checks": [
+    {
+      "actual_counts": {
+        "all": 168,
+        "attention": 96,
+        "ffn": 72,
+        "output_head": 0
+      },
+      "all_tensor_contracts_passed": true,
+      "expected_counts": {
+        "all": 168,
+        "attention": 96,
+        "ffn": 72,
+        "output_head": 0
+      },
+      "invalid_tensors": [],
+      "model": "qwen2.5-0.5b"
+    },
+    {
+      "actual_counts": {
+        "all": 197,
+        "attention": 112,
+        "ffn": 84,
+        "output_head": 1
+      },
+      "all_tensor_contracts_passed": true,
+      "expected_counts": {
+        "all": 197,
+        "attention": 112,
+        "ffn": 84,
+        "output_head": 1
+      },
+      "invalid_tensors": [],
+      "model": "deepseek-r1-distill-qwen-1.5b"
+    }
+  ],
+  "preflight": [
+    {
+      "gpu_use_percent": 0,
+      "physical_gpu_index": 2,
+      "sample": 1,
+      "timestamp_utc": "2026-08-23T14:39:39.566962+00:00",
+      "vram_percent": 0
+    },
+    {
+      "gpu_use_percent": 0,
+      "physical_gpu_index": 2,
+      "sample": 2,
+      "timestamp_utc": "2026-08-23T14:39:49.696426+00:00",
+      "vram_percent": 0
+    },
+    {
+      "gpu_use_percent": 0,
+      "physical_gpu_index": 2,
+      "sample": 3,
+      "timestamp_utc": "2026-08-23T14:39:59.811026+00:00",
+      "vram_percent": 0
+    }
+  ],
+  "revision": "69334ea78b281d881e2b6e076f6626f22d3bdc5b",
+  "schema_version": 1,
+  "scope_recommendation": {
+    "deepseek-r1-distill-qwen-1.5b": "Audit output-head and attention separately before another global policy. Output-head has the best aggregate reconstruction ratio, attention is next, and FFN gains are smallest.",
+    "next_native_evidence": "Any narrowed policy must return to microLLM native complete-logit gates for Qwen and DeepSeek at T8/T512. This external PyTorch ROCm reconstruction audit cannot establish model accuracy or performance.",
+    "qwen2.5-0.5b": "If another native experiment is justified, start with attention projections rather than all Linear weights: aggregate attention ratio improves more than FFN, while the overall gain remains under 1%."
+  },
+  "tensor_extremes": [
+    {
+      "largest_relative_l2_improvement": {
+        "column_max_abs": 0.0072265565395355225,
+        "column_over_scalar_relative_l2": 0.976227405511187,
+        "column_relative_l2": 0.026016947892168418,
+        "column_scale_max": 0.0010904947994276881,
+        "column_scale_max_over_median": 2.9289615863136174,
+        "column_scale_median": 0.00037231447640806437,
+        "column_scale_min": 0.0001464843808207661,
+        "elements": 114688,
+        "group": "attention",
+        "name": "model.layers.9.self_attn.k_proj.weight",
+        "scalar_max_abs": 0.008593752980232239,
+        "scalar_relative_l2": 0.026650499407507442,
+        "scalar_scale": 0.0010904947994276881,
+        "shape": [
+          128,
+          896
+        ]
+      },
+      "model": "qwen2.5-0.5b",
+      "smallest_relative_l2_improvement_or_largest_regression": {
+        "column_max_abs": 0.012369781732559204,
+        "column_over_scalar_relative_l2": 1.0006048703430053,
+        "column_relative_l2": 0.026460635955717765,
+        "column_scale_max": 0.001888020895421505,
+        "column_scale_max_over_median": 5.4588234026951845,
+        "column_scale_median": 0.0003458659048192203,
+        "column_scale_min": 0.0001912434963742271,
+        "elements": 4358144,
+        "group": "ffn",
+        "name": "model.layers.18.mlp.down_proj.weight",
+        "scalar_max_abs": 0.012369781732559204,
+        "scalar_relative_l2": 0.026444640377022266,
+        "scalar_scale": 0.001888020895421505,
+        "shape": [
+          896,
+          4864
+        ]
+      }
+    },
+    {
+      "largest_relative_l2_improvement": {
+        "column_max_abs": 0.016015619039535522,
+        "column_over_scalar_relative_l2": 0.9849960156011316,
+        "column_relative_l2": 0.026058111600021958,
+        "column_scale_max": 0.0020263672340661287,
+        "column_scale_max_over_median": 1.627450896061101,
+        "column_scale_median": 0.0012451172806322575,
+        "column_scale_min": 0.0006306966533884406,
+        "elements": 393216,
+        "group": "attention",
+        "name": "model.layers.25.self_attn.v_proj.weight",
+        "scalar_max_abs": 0.01601564884185791,
+        "scalar_relative_l2": 0.02645504264717152,
+        "scalar_scale": 0.0020263672340661287,
+        "shape": [
+          256,
+          1536
+        ]
+      },
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "smallest_relative_l2_improvement_or_largest_regression": {
+        "column_max_abs": 0.022265642881393433,
+        "column_over_scalar_relative_l2": 1.0012591456395332,
+        "column_relative_l2": 0.026478729336406208,
+        "column_scale_max": 0.0028808594215661287,
+        "column_scale_max_over_median": 4.509553993878504,
+        "column_scale_median": 0.0006388346664607525,
+        "column_scale_min": 0.0005086263408884406,
+        "elements": 13762560,
+        "group": "ffn",
+        "name": "model.layers.3.mlp.down_proj.weight",
+        "scalar_max_abs": 0.022265642881393433,
+        "scalar_relative_l2": 0.02644543068767025,
+        "scalar_scale": 0.0028808594215661287,
+        "shape": [
+          1536,
+          8960
+        ]
+      }
+    }
+  ]
+}
