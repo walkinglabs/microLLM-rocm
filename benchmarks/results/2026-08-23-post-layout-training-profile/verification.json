@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "experiment": "Exp165",
+  "derived_steps": 2,
+  "categories": 9,
+  "total_kernel_ns_per_step": 33349282,
+  "gemm_kernel_share": 0.565474993,
+  "gemm_duration_ns_per_step": 18858185,
+  "adamw_kernel_share": 0.167619156,
+  "strided_materialization_category_present": false,
+  "load_only_cast_transpose_excluded": true,
+  "closed_routes": {
+    "adamw_implementation": "Exp157 retained Scalar after complete-state screening",
+    "standard_bf16_gemm_solutions": "Exp160 rejected all model policies"
+  },
+  "next_open_hypothesis": {
+    "name": "cache immutable interleaved Attention hipBLASLt plans",
+    "qwen_interleaved_calls_per_step": 72,
+    "deepseek_interleaved_calls_per_step": 84,
+    "layouts_created_per_call": 3,
+    "descriptions_created_per_call": 1,
+    "qwen_estimated_wall_minus_event_ms_per_step": 0.6732,
+    "deepseek_estimated_wall_minus_event_ms_per_step": 0.7375,
+    "evidence_kind": "operator wall minus Event extrapolation; requires model rebuttal"
+  }
+}

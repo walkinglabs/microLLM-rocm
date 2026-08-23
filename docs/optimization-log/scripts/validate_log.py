@@ -7205,6 +7205,33 @@ def validate_attention_context_layout_fusion(
         int(deep.get("strided_copy", {}).get("fused", {}).get("calls", -1))
 
 
+def validate_post_layout_training_profile(
+        errors: list[str]) -> tuple[int, float, int]:
+    data = REPOSITORY / "benchmarks/results/2026-08-23-post-layout-training-profile"
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    delta = json.loads((data / "profile-delta.json").read_text(encoding="utf-8"))
+    categories = delta.get("categories", [])
+    by_name = {row["category"]: row for row in categories}
+    gemm = by_name.get("hipBLASLt GEMM", {})
+    next_hypothesis = verification.get("next_open_hypothesis", {})
+    if verification.get("status") != "pass" or delta.get("status") != "pass" or \
+            delta.get("derived_steps") != 2 or len(categories) != 9 or \
+            delta.get("total_kernel_ns_per_step") != 33349282.0 or \
+            not math.isclose(gemm.get("kernel_share", 0), 0.565474993,
+                             rel_tol=0, abs_tol=1e-9) or \
+            "strided materialization" in by_name or \
+            next_hypothesis.get("qwen_interleaved_calls_per_step") != 72 or \
+            next_hypothesis.get("deepseek_interleaved_calls_per_step") != 84 or \
+            next_hypothesis.get("layouts_created_per_call") != 3:
+        errors.append("post-layout training phase profile changed")
+    excluded = delta.get("excluded_nonpositive_delta_names", [])
+    if not any("cast_transpose_2d" in name for name in excluded):
+        errors.append("post-layout load-only exclusion changed")
+    return len(categories), float(gemm.get("kernel_share", 0)), \
+        int(delta.get("total_kernel_ns_per_step", 0))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -7347,7 +7374,8 @@ def validate_assets(errors: list[str]) -> None:
                  "tied-embedding-sparse-add.svg",
                  "attention-rope-layout-fusion.svg",
                  "attention-interleaved-pv.svg",
-                 "attention-context-layout-fusion.svg"):
+                 "attention-context-layout-fusion.svg",
+                 "post-layout-training-profile.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -7611,6 +7639,8 @@ def main() -> int:
         validate_attention_interleaved_pv(errors)
     context_rows, context_qwen_copies, context_deep_copies = \
         validate_attention_context_layout_fusion(errors)
+    post_layout_categories, post_layout_gemm, post_layout_total = \
+        validate_post_layout_training_profile(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -7820,6 +7850,8 @@ def main() -> int:
           f"{interleaved_qwen:.3f}/{interleaved_deep:.3f} "
           f"context_layout={context_rows}/{context_qwen_copies}/"
           f"{context_deep_copies} "
+          f"post_layout={post_layout_categories}/{post_layout_gemm:.3f}/"
+          f"{post_layout_total} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

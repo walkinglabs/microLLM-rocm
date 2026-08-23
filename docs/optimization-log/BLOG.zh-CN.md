@@ -2752,3 +2752,15 @@ profile也没有反转：dispatch 7,192→6,907，总Kernel 111.73→110.67ms。
 四种Attention布局搬运全部关闭；不是“找不到”，而是计数和字节都精确为零。
 
 ![Complete Attention context layout](assets/attention-context-layout-fusion.svg)
+
+## 182. Experiment 165：旧热点归零后，要重新拍一遍录像
+
+把旧profile继续当地图会追着已经不存在的transpose跑。当前版本重新做`(load+3步-load+1步)/2`：
+每步Kernel 33.35ms，GEMM 56.55%、AdamW 16.76%，strided copy不再出现。GEMM solution和AdamW
+实现已有完整拒绝实验，不能因为柱子最大就重复抽奖。
+
+新边界在host：每层P×V、dP、dV都新建3个matrix layout和1个description，Qwen/Deep每步72/84
+次。算子wall减Event约9微秒/次，外推约0.67/0.74ms/步。这个数字混有通用host开销，只够提出
+“缓存exact immutable plan”假设，不够宣布收益。下一节点会用同revision两模型门反驳它。
+
+![Post-layout training profile](assets/post-layout-training-profile.svg)
