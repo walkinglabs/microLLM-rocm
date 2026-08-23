@@ -112,6 +112,11 @@ if(BUILD_TESTING)
                          ${PROJECT_SOURCE_DIR}/python/tests/test_mi300_int8_probe.py)
         set_tests_properties(Benchmark.Mi300Int8ProbeContract PROPERTIES
                              LABELS "cpu;benchmark;precision;int8;roofline;schema")
+        add_test(NAME Benchmark.HfFp8MatrixContract
+                 COMMAND ${Python3_EXECUTABLE}
+                         ${PROJECT_SOURCE_DIR}/python/tests/test_hf_fp8_matrix.py)
+        set_tests_properties(Benchmark.HfFp8MatrixContract PROPERTIES
+                             LABELS "cpu;benchmark;huggingface;inference;precision;fp8;schema")
         add_test(NAME Benchmark.KvCachePrecisionContract
                  COMMAND ${Python3_EXECUTABLE}
                          ${PROJECT_SOURCE_DIR}/python/tests/test_kv_cache_precision.py)
