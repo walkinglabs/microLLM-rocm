@@ -18,6 +18,7 @@
 |---|---|---|---|---|
 | `fill_` | 任意 Tensor，shape 不变 | `torch.full` | 精确 | 非 FP32 |
 | `add` | `S,S -> S` | `torch.add` | 默认 | shape/device 不同、HIP 非连续 |
+| `add_bias` | input `[...,D]`、bias `[D]`，输出不变 | `input+bias` | 默认 | rank/shape/device 错 |
 | `multiply` | `S,S -> S` | `torch.mul` | 默认 | shape/device 不同、HIP 非连续 |
 | `scale` | `S,scalar -> S` | `x*scalar` | 默认 | 非 FP32、HIP 非连续 |
 | `matmul` | `[...,M,K] × [...,K,N] -> [...,M,N]`，batch 维完全相同 | `torch.matmul` | `2e-4,2e-4` | rank<2、rank/batch/inner 不同 |
@@ -44,6 +45,7 @@
 | microLLM backward | 返回 shape | PyTorch reference | FP32 阈值 | 必测非法输入 |
 |---|---|---|---|---|
 | `embedding_backward` | `[V,D]` | `F.embedding(...).backward(seed)` | `2e-5,2e-5` | gradient/index 数量错、V<=0、dtype/device 错 |
+| `bias_gradient` | `[...,D] -> [D]`，前面各维求和 | `(input+bias).backward(seed)` | Max `3e-5`、RMS `1e-5` | scalar、非 FP32、HIP 非连续 |
 | `softmax_backward` | 与 output 相同 | `softmax(...).backward(seed)` | `2e-5,2e-5` | output/seed shape/device 不同 |
 | `rms_norm_backward` | input grad `[...,D]`，weight grad `[D]` | `F.rms_norm(...).backward(seed)` | `3e-4,3e-4` | input/weight/seed 契约错 |
 | `silu_backward` | 与 input 相同 | `F.silu(...).backward(seed)` | `2e-5,2e-5` | shape/device 不同 |

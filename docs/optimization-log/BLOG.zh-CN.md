@@ -2656,3 +2656,17 @@ Event和墙钟P50/P95。筛选不改调用者状态，也不改live registry；�
 但Auto继续Scalar，不把微基准噪声写成全局优化。
 
 ![AdamW correctness before timing](assets/adamw-correctness-before-timing.svg)
+
+## 175. Experiment 158：横着连续读，竖着八个人一起加
+
+最新训练热点bias gradient让一个线程串行扫描全部rows。直接“一列一个block”会让wave按大步长
+读内存，所以新Kernel用32个连续column×8个row lane：横向仍合并访存，纵向并行归约。
+
+13 shape×2实现×3进程共78行全部过完整输出门。16 rows只有1.005×，32 rows在不同width已达
+1.106×–1.135×，因此Auto阈值定为32。T512真实width加速3.21×–3.27×，1024×256为4.22×。
+
+同revision Scalar/Cooperative各三进程：Qwen 11,688→14,283 tok/s（1.222×），DeepSeek
+5,525→6,141（1.111×），peak不变。求和顺序改变，worst final-loss相对差0.442%，固定参数guard
+仍相等。rocprofv3中216次Kernel从26.00→4.01 ms（6.49×），占比18.74%→3.44%。候选保留。
+
+![Cooperative bias gradient](assets/cooperative-bias-gradient.svg)

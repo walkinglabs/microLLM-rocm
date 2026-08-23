@@ -149,6 +149,31 @@ __global__ void bias_gradient_kernel(const float* gradient, float* output,
     output[column] = total;
 }
 
+__global__ void bias_gradient_cooperative_kernel(
+    const float* gradient, float* output,
+    std::int64_t rows, std::int64_t width) {
+    constexpr int kColumns = 32;
+    constexpr int kRowLanes = 8;
+    __shared__ float partial[kRowLanes][kColumns + 1];
+    const auto column = static_cast<std::int64_t>(blockIdx.x) * kColumns +
+                        static_cast<std::int64_t>(threadIdx.x);
+    float total = 0.0F;
+    if (column < width) {
+        for (std::int64_t row = threadIdx.y; row < rows; row += kRowLanes) {
+            total += gradient[row * width + column];
+        }
+    }
+    partial[threadIdx.y][threadIdx.x] = total;
+    __syncthreads();
+    if (threadIdx.y == 0 && column < width) {
+        float combined = 0.0F;
+        for (int lane = 0; lane < kRowLanes; ++lane) {
+            combined += partial[lane][threadIdx.x];
+        }
+        output[column] = combined;
+    }
+}
+
 __global__ void multiply_kernel(const float* left, const float* right, float* output,
                                 std::int64_t elements) {
     const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
@@ -2033,6 +2058,19 @@ void launch_bias_gradient(const float* gradient, float* output,
     hipLaunchKernelGGL(bias_gradient_kernel, dim3(grid_size(width)), dim3(kBlockSize), 0,
                        as_stream(stream), gradient, output, rows, width);
     check_launch("bias_gradient_kernel");
+}
+
+void launch_bias_gradient_cooperative(const float* gradient, float* output,
+                                      std::int64_t rows, std::int64_t width,
+                                      void* stream) {
+    if (width == 0) return;
+    constexpr unsigned int columns = 32;
+    constexpr unsigned int row_lanes = 8;
+    const auto blocks = static_cast<unsigned int>((width + columns - 1) / columns);
+    hipLaunchKernelGGL(bias_gradient_cooperative_kernel, dim3(blocks),
+                       dim3(columns, row_lanes), 0, as_stream(stream),
+                       gradient, output, rows, width);
+    check_launch("bias_gradient_cooperative_kernel");
 }
 
 void launch_multiply(const float* left, const float* right, float* output,

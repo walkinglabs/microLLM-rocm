@@ -108,6 +108,42 @@ TEST(HipOpsTest, BiasForwardAndGradientStayOnDevice) {
     expect_near(reduced.to_vector(), bias_gradient(input_cpu).to_vector());
 }
 
+TEST(HipOpsTest, CooperativeBiasGradientCoversThresholdTailsAndModelWidths) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    for (const auto& [rows, width] : {
+             std::pair<std::int64_t, std::int64_t>{1, 16},
+             {3, 128}, {31, 127}, {32, 127}, {255, 127}, {256, 128},
+             {511, 896}, {512, 1536}, {1024, 256}}) {
+        std::vector<float> values(static_cast<std::size_t>(rows * width));
+        for (std::size_t index = 0; index < values.size(); ++index) {
+            values[index] =
+                static_cast<float>(static_cast<int>(index % 29) - 14) / 31.0F;
+        }
+        const auto cpu = Tensor::from_vector(values, {rows, width});
+        const auto expected = bias_gradient(cpu).to_vector();
+        const auto input = cpu.to(gpu);
+        runtime::reset_transfer_stats();
+        const auto scalar = bias_gradient_with_implementation(
+            input, BiasGradientImplementation::ScalarColumns);
+        const auto cooperative = bias_gradient_with_implementation(
+            input, BiasGradientImplementation::CooperativeRows);
+        const auto automatic = bias_gradient(input);
+        runtime::synchronize(gpu);
+        const auto transfers = runtime::transfer_stats();
+        EXPECT_EQ(transfers.host_to_device_calls, 0U);
+        EXPECT_EQ(transfers.device_to_host_calls, 0U);
+        expect_near(scalar.to_vector(), expected, 2.0e-5F);
+        expect_near(cooperative.to_vector(), expected, 3.0e-5F);
+        expect_near(automatic.to_vector(), expected, 3.0e-5F);
+        if (rows < 32) {
+            EXPECT_EQ(automatic.to_vector(), scalar.to_vector());
+        } else {
+            EXPECT_EQ(automatic.to_vector(), cooperative.to_vector());
+        }
+    }
+}
+
 TEST(HipLowPrecisionOpsTest, NativeBasicKernelsMatchCpuAndAvoidHostTransfers) {
     require_gpu();
     const auto gpu = Device::hip(0);

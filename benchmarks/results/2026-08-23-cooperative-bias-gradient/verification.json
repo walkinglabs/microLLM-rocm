@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "experiment": "Exp158",
+  "operator": {
+    "fresh_process_rows": 78,
+    "shape_cases": 13,
+    "complete_output_cases_passed": 13,
+    "rows_16_speedup": 1.005234242,
+    "rows_32_minimum_speedup": 1.106164393,
+    "rows_512_width_128_speedup": 3.259825852,
+    "rows_512_width_256_speedup": 3.213778783,
+    "rows_512_width_896_speedup": 3.230794184,
+    "rows_512_width_1536_speedup": 3.273536107,
+    "rows_1024_width_256_speedup": 4.223679334,
+    "maximum_absolute_error": 8.58306885e-06,
+    "maximum_rms_error": 3.94810579e-06
+  },
+  "training": {
+    "runs_per_model_policy": 3,
+    "qwen_speedup": 1.22196874,
+    "deepseek_speedup": 1.111384533,
+    "qwen_optimizer_speedup": 1.566780113,
+    "deepseek_optimizer_speedup": 1.209666014,
+    "peak_ratio_qwen": 1.0,
+    "peak_ratio_deepseek": 1.0,
+    "maximum_final_loss_relative_difference": 0.004421154,
+    "observed_parameter_after_equal": true
+  },
+  "profile": {
+    "calls_before": 216,
+    "calls_after": 216,
+    "bias_gradient_ns_before": 26001257,
+    "bias_gradient_ns_after": 4008350,
+    "kernel_speedup": 6.486773111,
+    "kernel_share_percent_before": 18.74,
+    "kernel_share_percent_after": 3.44
+  },
+  "regression": {
+    "cpu": "255/255",
+    "asan_ubsan": "253/253",
+    "pytorch_enabled_cpu": "229/229",
+    "full_cpu_hip": "380/380",
+    "hip_label": "121/121",
+    "conditional_skips": 2,
+    "package_consumer": "pass",
+    "coverage_lines_percent": 80.0,
+    "coverage_branches_percent": 61.3
+  },
+  "decision": "keep cooperative rows for bias gradients with rows at least 32"
+}

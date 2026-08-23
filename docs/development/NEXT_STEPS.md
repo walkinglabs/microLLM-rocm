@@ -110,6 +110,8 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] gate every matmul candidate with complete finite Max/RMS before timing;
 - [x] gate AdamW candidates over complete parameter, first/second moment and BF16 mirror
   state before Event/wall timing; reject unaligned Vectorized input with zero timing;
+- [x] replace serial-row bias gradients with a 32-column/8-row-lane cooperative Kernel,
+  keeping Scalar below the measured 32-row crossover and passing two official training gates;
 - [x] warm up and repeat HIP Event/wall timing with P50/P95 for passing candidates;
 - [ ] automate the model end-to-end regression before accepting a recommendation;
 - [x] persist exact matmul decisions with schema validation, atomic replacement,

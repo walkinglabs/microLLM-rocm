@@ -4,8 +4,8 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| CPU configuration | smoke-tested | full CPU/HIP gate 378/378 with 260 CPU and 119 HIP labels; ASan/UBSan 253/253 | broader compiler/OS CI matrix |
-| CPU code coverage | smoke-tested | 80.0% lines, 89.5% functions, 61.3% branches over `src/` + `include/`; new HIP tuner paths remain visible as CPU gaps | split CPU/HIP reports and add justified thresholds |
+| CPU configuration | smoke-tested | full CPU/HIP gate 380/380 with 260 CPU and 121 HIP labels; ASan/UBSan 253/253 | broader compiler/OS CI matrix |
+| CPU code coverage | smoke-tested | 80.0% lines, 89.5% functions, 61.3% branches over `src/` + `include/`; HIP-only tuner/Kernel paths remain visible as CPU gaps | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, native cast, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
 | Tensor metadata/views | smoke-tested | hand values, randomized shapes, bounds | more dtypes |
@@ -24,6 +24,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Operator context | smoke-tested | explicit Stream ordering and mismatch tests | low-level C descriptor |
 | CPU Transformer Autograd | smoke-tested | dedicated graph construction tests, finite differences, PyTorch full-graph gradients | more dtypes |
 | HIP Autograd | smoke-tested | CPU/HIP full Transformer gradient comparison; zero host transfers during graph execution | optimized reductions/more dtypes |
+| HIP bias gradient | smoke-tested | 78 complete-output process rows; T512 operator 3.21×–3.27× and Qwen/DeepSeek training 1.222×/1.111× at unchanged peak | low-precision gradients and broader GPUs |
 | SGD/AdamW | smoke-tested | PyTorch parity, zero-transfer HIP update, exact persistent Scalar/Vectorized registry and 15-process complete-state-before-timing matrix | mixed precision/scaler and a candidate clearing the 1.05 model gate |
 | Checkpoint | smoke-tested | atomic complete-state load, corruption, 3-step resume | mixed precision |
 | Model-S/Model-M config | smoke-tested | executable exact parameter/byte tests | model layers/training |

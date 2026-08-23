@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="900" viewBox="0 0 1800 900">
+  <rect width="1800" height="900" fill="#f8fafc"/>
+  <text x="900" y="52" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 158 · Cooperative Bias Gradient</text>
+  <text x="900" y="84" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle">MI300X gfx942 · 32 contiguous columns × 8 row lanes · complete-output gate before timing</text>
+
+  <rect x="70" y="145" width="1030" height="560" rx="12" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="585" y="128" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">Cooperative / Scalar speedup</text>
+  <line x1="125" y1="640" x2="1055" y2="640" stroke="#e2e8f0"/>
+  <line x1="125" y1="540" x2="1055" y2="540" stroke="#2563eb" stroke-width="2"/>
+  <line x1="125" y1="440" x2="1055" y2="440" stroke="#e2e8f0"/>
+  <line x1="125" y1="340" x2="1055" y2="340" stroke="#e2e8f0"/>
+  <line x1="125" y1="240" x2="1055" y2="240" stroke="#e2e8f0"/>
+  <text x="113" y="645" font-family="Inter,Arial,sans-serif" font-size="13" fill="#64748b" text-anchor="end">0×</text>
+  <text x="113" y="545" font-family="Inter,Arial,sans-serif" font-size="13" fill="#2563eb" text-anchor="end">1×</text>
+  <text x="113" y="445" font-family="Inter,Arial,sans-serif" font-size="13" fill="#64748b" text-anchor="end">2×</text>
+  <text x="113" y="345" font-family="Inter,Arial,sans-serif" font-size="13" fill="#64748b" text-anchor="end">3×</text>
+  <text x="113" y="245" font-family="Inter,Arial,sans-serif" font-size="13" fill="#64748b" text-anchor="end">4×</text>
+
+  <rect x="155" y="530" width="105" height="110" rx="5" fill="#2f9b68"/>
+  <text x="207" y="514" font-family="Inter,Arial,sans-serif" font-size="15" fill="#166534" text-anchor="middle" font-weight="700">1.106×</text>
+  <text x="207" y="674" font-family="Inter,Arial,sans-serif" font-size="13" fill="#334155" text-anchor="middle">R32 W128</text>
+
+  <rect x="305" y="314" width="105" height="326" rx="5" fill="#2f9b68"/>
+  <text x="357" y="298" font-family="Inter,Arial,sans-serif" font-size="15" fill="#166534" text-anchor="middle" font-weight="700">3.260×</text>
+  <text x="357" y="674" font-family="Inter,Arial,sans-serif" font-size="13" fill="#334155" text-anchor="middle">R512 W128</text>
+
+  <rect x="455" y="319" width="105" height="321" rx="5" fill="#2f9b68"/>
+  <text x="507" y="303" font-family="Inter,Arial,sans-serif" font-size="15" fill="#166534" text-anchor="middle" font-weight="700">3.214×</text>
+  <text x="507" y="674" font-family="Inter,Arial,sans-serif" font-size="13" fill="#334155" text-anchor="middle">R512 W256</text>
+
+  <rect x="605" y="317" width="105" height="323" rx="5" fill="#2f9b68"/>
+  <text x="657" y="301" font-family="Inter,Arial,sans-serif" font-size="15" fill="#166534" text-anchor="middle" font-weight="700">3.231×</text>
+  <text x="657" y="674" font-family="Inter,Arial,sans-serif" font-size="13" fill="#334155" text-anchor="middle">R512 W896</text>
+
+  <rect x="755" y="313" width="105" height="327" rx="5" fill="#2f9b68"/>
+  <text x="807" y="297" font-family="Inter,Arial,sans-serif" font-size="15" fill="#166534" text-anchor="middle" font-weight="700">3.274×</text>
+  <text x="807" y="674" font-family="Inter,Arial,sans-serif" font-size="13" fill="#334155" text-anchor="middle">R512 W1536</text>
+
+  <rect x="905" y="218" width="105" height="422" rx="5" fill="#2563eb"/>
+  <text x="957" y="202" font-family="Inter,Arial,sans-serif" font-size="15" fill="#1e40af" text-anchor="middle" font-weight="700">4.224×</text>
+  <text x="957" y="674" font-family="Inter,Arial,sans-serif" font-size="13" fill="#334155" text-anchor="middle">R1024 W256</text>
+
+  <rect x="1150" y="145" width="580" height="560" rx="12" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="1440" y="188" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">Same-revision training gate</text>
+  <rect x="1200" y="225" width="220" height="132" rx="10" fill="#eff6ff" stroke="#93c5fd"/>
+  <text x="1310" y="258" font-family="Inter,Arial,sans-serif" font-size="17" fill="#1e40af" text-anchor="middle" font-weight="700">Qwen 0.5B</text>
+  <text x="1310" y="300" font-family="Inter,Arial,sans-serif" font-size="28" fill="#166534" text-anchor="middle" font-weight="700">1.222×</text>
+  <text x="1310" y="330" font-family="Inter,Arial,sans-serif" font-size="13" fill="#475569" text-anchor="middle">11,688 → 14,283 tok/s</text>
+  <rect x="1460" y="225" width="220" height="132" rx="10" fill="#eff6ff" stroke="#93c5fd"/>
+  <text x="1570" y="258" font-family="Inter,Arial,sans-serif" font-size="17" fill="#1e40af" text-anchor="middle" font-weight="700">DeepSeek 1.5B</text>
+  <text x="1570" y="300" font-family="Inter,Arial,sans-serif" font-size="28" fill="#166534" text-anchor="middle" font-weight="700">1.111×</text>
+  <text x="1570" y="330" font-family="Inter,Arial,sans-serif" font-size="13" fill="#475569" text-anchor="middle">5,525 → 6,141 tok/s</text>
+
+  <rect x="1200" y="400" width="480" height="112" rx="10" fill="#ecfdf5" stroke="#86efac"/>
+  <text x="1440" y="433" font-family="Inter,Arial,sans-serif" font-size="17" fill="#166534" text-anchor="middle" font-weight="700">rocprofv3 · Qwen T512</text>
+  <text x="1440" y="468" font-family="Inter,Arial,sans-serif" font-size="23" fill="#166534" text-anchor="middle" font-weight="700">26.00 ms → 4.01 ms · 6.49×</text>
+  <text x="1440" y="495" font-family="Inter,Arial,sans-serif" font-size="13" fill="#475569" text-anchor="middle">216 calls preserved · Kernel share 18.74% → 3.44%</text>
+
+  <rect x="1200" y="550" width="480" height="105" rx="10" fill="#fff7ed" stroke="#fdba74"/>
+  <text x="1440" y="582" font-family="Inter,Arial,sans-serif" font-size="16" fill="#9a3412" text-anchor="middle" font-weight="700">Numerical boundary</text>
+  <text x="1440" y="610" font-family="Inter,Arial,sans-serif" font-size="14" fill="#475569" text-anchor="middle">complete output Max ≤ 8.59e-6 · RMS ≤ 3.95e-6</text>
+  <text x="1440" y="635" font-family="Inter,Arial,sans-serif" font-size="14" fill="#475569" text-anchor="middle">final-loss relative difference ≤ 0.443% · peak unchanged</text>
+
+  <rect x="70" y="755" width="1660" height="88" rx="12" fill="#172033"/>
+  <text x="900" y="791" font-family="Inter,Arial,sans-serif" font-size="18" fill="#ffffff" text-anchor="middle" font-weight="700">Keep rows ≥ 32 · preserve Scalar below the measured crossover</text>
+  <text x="900" y="821" font-family="Inter,Arial,sans-serif" font-size="15" fill="#cbd5e1" text-anchor="middle">Coalesced column reads are preserved while eight row lanes remove the serial reduction bottleneck</text>
+</svg>

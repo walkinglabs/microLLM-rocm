@@ -1,5 +1,6 @@
 #include <iostream>
 #include <stdexcept>
+#include <vector>
 
 #include <microllm/base/device.h>
 #include <microllm/model/config.h>
@@ -8,6 +9,10 @@
 int main() {
     const auto device = microllm::Device::cpu();
     const auto config = microllm::model::ModelConfig::model_s();
+    const auto bias_input = microllm::Tensor::from_vector(
+        {1.0F, 2.0F, 3.0F, 4.0F}, {2, 2});
+    const auto bias_result = microllm::ops::bias_gradient_with_implementation(
+        bias_input, microllm::ops::BiasGradientImplementation::ScalarColumns);
     bool rejected_cpu_tuning = false;
     bool rejected_cpu_adamw_tuning = false;
     try {
@@ -28,6 +33,7 @@ int main() {
         rejected_cpu_adamw_tuning = true;
     }
     if (!device.is_cpu() || config.parameter_count() == 0 ||
+        bias_result.to_vector() != std::vector<float>({4.0F, 6.0F}) ||
         !rejected_cpu_tuning || !rejected_cpu_adamw_tuning) return 1;
     std::cout << "microLLM package consumer: pass\n";
     return 0;

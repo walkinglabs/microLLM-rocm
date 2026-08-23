@@ -43,6 +43,18 @@ Run the five-case fresh-process matrix with
 `benchmarks/single_gpu/adamw_autotune_matrix.py`. Screening never changes `Auto`;
 `--accept true --cache-output /path/cache.jsonl` is an explicit post-regression action.
 
+Bias-gradient implementations have a complete-output micro benchmark:
+
+```bash
+./build/hip-release/benchmarks/microllm_bench_bias_gradient \
+  --rows 512 --width 896 --implementation cooperative \
+  --warmup 3 --repetitions 20
+```
+
+`benchmarks/single_gpu/bias_gradient_matrix.py` runs Scalar and cooperative paths in fresh
+processes over the 16/32-row boundary and Qwen/DeepSeek widths. Auto keeps Scalar below
+32 rows and selects the cooperative 2D reduction at or above the measured crossover.
+
 `microllm_bench_model` measures train or cache-backed generation throughput. Its
 `tokens_per_second` excludes construction and warm-up; `tokens_per_second_with_setup`
 includes construction, device transfer, optimizer allocation, and warm-up. Both are

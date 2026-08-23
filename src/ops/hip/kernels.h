@@ -27,6 +27,9 @@ void launch_add_bias(const float* input, const float* bias, float* output,
                      std::int64_t elements, std::int64_t width, void* stream = nullptr);
 void launch_bias_gradient(const float* gradient, float* output,
                           std::int64_t rows, std::int64_t width, void* stream = nullptr);
+void launch_bias_gradient_cooperative(const float* gradient, float* output,
+                                      std::int64_t rows, std::int64_t width,
+                                      void* stream = nullptr);
 void launch_multiply(const float* left, const float* right, float* output,
                      std::int64_t elements, void* stream = nullptr);
 void launch_scale(const float* input, float* output, std::int64_t elements, float factor,

@@ -2,6 +2,9 @@ add_executable(microllm_bench_ops micro/benchmark_ops.cpp)
 target_link_libraries(microllm_bench_ops PRIVATE microllm::ops microllm::runtime)
 
 if(MICROLLM_HAS_HIP)
+    add_executable(microllm_bench_bias_gradient micro/benchmark_bias_gradient.cpp)
+    target_link_libraries(microllm_bench_bias_gradient PRIVATE
+        microllm::ops microllm::runtime hip::host)
     add_executable(microllm_bench_adamw micro/benchmark_adamw.cpp)
     target_link_libraries(microllm_bench_adamw PRIVATE
         microllm::ops microllm::runtime hip::host)
@@ -204,6 +207,11 @@ if(BUILD_TESTING)
                          --mode training --accept false)
         set_tests_properties(Benchmark.HipAdamWAutotune PROPERTIES
                              LABELS "hip;benchmark;optimizer;autotune;correctness;smoke")
+        add_test(NAME Benchmark.HipBiasGradientCooperative
+                 COMMAND microllm_bench_bias_gradient --rows 256 --width 127
+                         --implementation cooperative --warmup 1 --repetitions 3)
+        set_tests_properties(Benchmark.HipBiasGradientCooperative PROPERTIES
+                             LABELS "hip;benchmark;backward;bias;correctness;smoke")
         if(MICROLLM_HAS_HIPBLASLT)
             add_test(NAME Benchmark.HipPrecisionMatrix
                      COMMAND microllm_bench_precision --size 128 --warmup 1 --repetitions 2)

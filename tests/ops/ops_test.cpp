@@ -58,6 +58,12 @@ TEST(CpuOpsTest, BiasBroadcastAndReductionMatchHandValues) {
     const auto bias = Tensor::from_vector({0.5F, -1.0F, 2.0F}, {3});
     expect_near(add_bias(input, bias).to_vector(), {1.5F, 1.0F, 5.0F, 4.5F, 4.0F, 8.0F});
     expect_near(bias_gradient(input).to_vector(), {5, 7, 9});
+    expect_near(bias_gradient_with_implementation(
+                    input, BiasGradientImplementation::ScalarColumns).to_vector(),
+                {5, 7, 9});
+    EXPECT_THROW((void)bias_gradient_with_implementation(
+                     input, BiasGradientImplementation::CooperativeRows),
+                 std::invalid_argument);
 }
 
 TEST(CpuOpsTest, FusedSplitHalfRopeBiasMatchesComposedProjectionPath) {

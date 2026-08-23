@@ -16,8 +16,8 @@
 ```text
 framework CPU                 255/255 pass
 CPU ASan/UBSan                253/253 pass
-full CPU/HIP configuration    378/378 pass (2 conditional skips)
-MI300X/gfx942 HIP             119/119 pass
+full CPU/HIP configuration    380/380 pass (2 conditional skips)
+MI300X/gfx942 HIP             121/121 pass
 PyTorch-enabled CPU           229/229 pass
 two-rank RCCL                  11/11 pass
 registered test files               54
@@ -63,8 +63,8 @@ warnings during test discovery. The script runs the CPU test label and emits
 are counted. Coverage is evidence for finding blind spots, not permission to replace
 numeric, shape, failure, HIP, or external-oracle tests.
 
-The current source snapshot measures 80.0% lines (7,126/8,903), 89.5% functions
-(761/850), and 61.3% branches (6,987/11,399). The AdamW tuner adds HIP-only screening
+The current source snapshot measures 80.0% lines (7,130/8,907), 89.5% functions
+(762/851), and 61.3% branches (6,990/11,402). The AdamW tuner and cooperative reduction add HIP-only screening
 and timing paths that ordinary CPU coverage cannot execute; those paths have dedicated
 MI300 conformance tests and raw process evidence. The repeatability evidence for the
 coverage pipeline remains separately archived; source growth is expected to change totals.

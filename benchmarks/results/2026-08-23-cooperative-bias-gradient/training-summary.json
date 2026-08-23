@@ -1,0 +1,70 @@
+{
+  "baseline_policy": "scalar_columns",
+  "candidate_policy": "cooperative_rows_32",
+  "comparisons": [
+    {
+      "baseline": {
+        "engine_peak_bytes": 37410926600.0,
+        "final_loss": 4.036462307,
+        "first_loss": 5.180211067,
+        "mean_optimizer_ms": 58.4002915,
+        "mean_step_ms": 92.667024,
+        "observed_parameter_after": 2.124970913,
+        "observed_parameter_before": 2.124989748,
+        "tokens_per_second": 5525.158550468
+      },
+      "candidate": {
+        "engine_peak_bytes": 37410926600.0,
+        "final_loss": 4.036802292,
+        "first_loss": 5.180200577,
+        "mean_optimizer_ms": 48.2780295,
+        "mean_step_ms": 83.3798035,
+        "observed_parameter_after": 2.124970913,
+        "observed_parameter_before": 2.124989748,
+        "tokens_per_second": 6140.575757054
+      },
+      "final_loss_absolute_difference": 0.0003399850000000981,
+      "final_loss_relative_difference": 8.422845901731794e-05,
+      "first_loss_absolute_difference": 1.0490000000196176e-05,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "observed_parameter_after_equal": true,
+      "optimizer_speedup": 1.2096660138127633,
+      "peak_ratio": 1.0,
+      "throughput_speedup": 1.1113845333060846
+    },
+    {
+      "baseline": {
+        "engine_peak_bytes": 13025380360.0,
+        "final_loss": 0.016840626,
+        "first_loss": 0.04931654,
+        "mean_optimizer_ms": 21.3328495,
+        "mean_step_ms": 43.804313,
+        "observed_parameter_after": 7.468718052,
+        "observed_parameter_before": 7.468739033,
+        "tokens_per_second": 11688.346761653
+      },
+      "candidate": {
+        "engine_peak_bytes": 13025380360.0,
+        "final_loss": 0.016915081,
+        "first_loss": 0.049337476,
+        "mean_optimizer_ms": 13.6157265,
+        "mean_step_ms": 35.847327,
+        "observed_parameter_after": 7.468718052,
+        "observed_parameter_before": 7.468739033,
+        "tokens_per_second": 14282.794362882
+      },
+      "final_loss_absolute_difference": 7.445499999999758e-05,
+      "final_loss_relative_difference": 0.0044211539404768905,
+      "first_loss_absolute_difference": 2.0935999999999177e-05,
+      "model": "qwen2.5-0.5b",
+      "observed_parameter_after_equal": true,
+      "optimizer_speedup": 1.5667801126880743,
+      "peak_ratio": 1.0,
+      "throughput_speedup": 1.221968739817066
+    }
+  ],
+  "runs_per_model_policy": 3,
+  "schema_version": 1,
+  "status": "pass",
+  "track": "cooperative_bias_gradient_training"
+}

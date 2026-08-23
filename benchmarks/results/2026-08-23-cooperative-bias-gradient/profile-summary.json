@@ -1,0 +1,21 @@
+{
+  "profile": {
+    "baseline": {
+      "average_ns": 120376.189815,
+      "calls": 216,
+      "kernel_name": "microllm::ops::hip::(anonymous namespace)::bias_gradient_kernel(float const*, float*, long, long)",
+      "kernel_percent": 18.74,
+      "total_duration_ns": 26001257
+    },
+    "candidate": {
+      "average_ns": 18557.175926,
+      "calls": 216,
+      "kernel_name": "microllm::ops::hip::(anonymous namespace)::bias_gradient_cooperative_kernel(float const*, float*, long, long)",
+      "kernel_percent": 3.44,
+      "total_duration_ns": 4008350
+    },
+    "speedup": 6.486773111130515
+  },
+  "schema_version": 1,
+  "status": "pass"
+}

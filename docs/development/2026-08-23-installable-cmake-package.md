@@ -64,8 +64,8 @@ target_link_libraries(app PRIVATE microLLM::inference)
 
 最新一次复核使用CMake 3.31.10和GCC/G++ 13.3.0，从空的`build-package-fresh`开始配置，
 确认新加入的公开`tuning.h`、`tuning.cpp`与`adamw_tuning.cpp`也随`microLLM::ops`正确编译、
-安装和静态链接。外部consumer会实际调用CPU上的matmul/AdamW tuner拒绝路径，避免只有头文件
-安装成功、静态库却漏掉实现符号。
+安装和静态链接。外部consumer会实际调用CPU上的matmul/AdamW tuner拒绝路径与显式
+bias-gradient实现，避免只有头文件安装成功、静态库却漏掉实现符号。
 在旧build目录直接运行`ctest`曾出现缺少新符号的失败；先执行`cmake --build`后消失。
 这不是Config漏依赖，而是`ctest`只运行已有产物、不会重新编译。根README已明确写出
 `configure -> build -> test`顺序，避免把陈旧二进制误报为package故障。

@@ -704,7 +704,14 @@ Tensor add_bias(const Tensor& input, const Tensor& bias,
 }
 
 Tensor bias_gradient(const Tensor& gradient,
-                     [[maybe_unused]] const OpContext& context) {
+                     const OpContext& context) {
+    return bias_gradient_with_implementation(
+        gradient, BiasGradientImplementation::Auto, context);
+}
+
+Tensor bias_gradient_with_implementation(
+    const Tensor& gradient, BiasGradientImplementation implementation,
+    [[maybe_unused]] const OpContext& context) {
     require_float(gradient, "gradient");
     if (gradient.ndim() == 0) throw std::invalid_argument("bias gradient requires rank one or greater");
     const auto width = gradient.shape().back();
@@ -713,13 +720,29 @@ Tensor bias_gradient(const Tensor& gradient,
         require_contiguous(gradient, "gradient");
         Tensor output({width}, DType::Float32, gradient.device());
 #if MICROLLM_HAS_HIP
-        hip::launch_bias_gradient(static_cast<const float*>(gradient.data()),
-                                  static_cast<float*>(output.data()), rows, width,
-                                  context.native_stream(gradient.device()));
+        const auto selected = implementation == BiasGradientImplementation::Auto
+                                  ? (rows >= 32
+                                         ? BiasGradientImplementation::CooperativeRows
+                                         : BiasGradientImplementation::ScalarColumns)
+                                  : implementation;
+        if (selected == BiasGradientImplementation::CooperativeRows) {
+            hip::launch_bias_gradient_cooperative(
+                static_cast<const float*>(gradient.data()),
+                static_cast<float*>(output.data()), rows, width,
+                context.native_stream(gradient.device()));
+        } else {
+            hip::launch_bias_gradient(static_cast<const float*>(gradient.data()),
+                                      static_cast<float*>(output.data()), rows, width,
+                                      context.native_stream(gradient.device()));
+        }
         return output;
 #else
         throw std::runtime_error("microLLM was built without HIP operator support");
 #endif
+    }
+    if (implementation == BiasGradientImplementation::CooperativeRows) {
+        throw std::invalid_argument(
+            "cooperative bias gradient requires a HIP tensor");
     }
     const auto values = gradient.to_vector();
     std::vector<float> output(static_cast<std::size_t>(width), 0.0F);

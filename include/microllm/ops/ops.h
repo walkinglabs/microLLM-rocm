@@ -14,6 +14,7 @@ namespace microllm::ops {
 
 enum class MatmulImplementation { Auto, Readable, HipBLASLt };
 enum class AdamWImplementation { Auto, Scalar, Vectorized };
+enum class BiasGradientImplementation { Auto, ScalarColumns, CooperativeRows };
 
 struct MatmulTuningKey {
     std::int64_t rows = 0;
@@ -216,6 +217,9 @@ void save_adamw_tuning_cache(const std::filesystem::path& path);
                               const OpContext& context = {});
 [[nodiscard]] Tensor bias_gradient(const Tensor& gradient,
                                    const OpContext& context = {});
+[[nodiscard]] Tensor bias_gradient_with_implementation(
+    const Tensor& gradient, BiasGradientImplementation implementation,
+    const OpContext& context = {});
 [[nodiscard]] Tensor multiply(const Tensor& left, const Tensor& right,
                               const OpContext& context = {});
 [[nodiscard]] Tensor scale(const Tensor& input, float factor, const OpContext& context = {});

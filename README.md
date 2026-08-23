@@ -67,6 +67,9 @@ needed to run a real training and generation loop:
   HIP Event and wall P50/P95; screening never registers a winner without explicit acceptance;
 - deterministic block reductions with a post-read barrier; the fix turns repeated fused Attention
   from 20/20 differing outputs to bit-exact while keeping measured T128/B8 training neutral;
+- 2D cooperative bias-gradient reduction preserving contiguous column reads; complete-output
+  MI300 gates and same-revision T512 training improve Qwen/DeepSeek by 1.222×/1.111× with
+  unchanged peak, while rows below the measured 32-row crossover keep Scalar;
 - a phase-independent exact-size HIP pool with immediate legacy-default-Stream reuse and strict
   permanent disablement for non-default Streams;
 - a cross-framework trace runner for operator/layer values and latency comparisons.
@@ -360,14 +363,14 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 378/378 | 260 CPU-labelled + 119 HIP-labelled gates; the package gate belongs to both labels; 2 intentional environment skips |
+| Full CPU/HIP configuration | 380/380 | 260 CPU-labelled + 121 HIP-labelled gates; the package gate belongs to both labels; 2 intentional environment skips |
 | ASan/UBSan CPU | 253/253 | host code, CLI, model/graph, benchmark and evidence schemas |
 | MI300X/gfx942 HIP preset | 117/117 | 116 allocator/stream, graph, autotune, BF16/FP8 and model gates + 1 installed-package gate |
 | PyTorch-enabled CPU build | 229/229 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
 | Registered test files | 54 | machine-audited CTest registration |
 | Installed CMake package | CPU + HIP + RCCL pass | relocated prefix, external `find_package`, components, compile, static link and run |
-| CPU source coverage | 80.0% lines / 61.3% branches | 7,126/8,903 lines and 6,987/11,399 branches; GCC 13.3 + gcovr 8.3 |
+| CPU source coverage | 80.0% lines / 61.3% branches | 7,130/8,907 lines and 6,990/11,402 branches; GCC 13.3 + gcovr 8.3 |
 
 Latest PyTorch-reference maximum absolute differences:
 

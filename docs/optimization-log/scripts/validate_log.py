@@ -6927,6 +6927,57 @@ def validate_adamw_correctness_before_timing(
         sum(row.get("vectorized_speedup", 0) >= 1.05 for row in aligned)
 
 
+def validate_cooperative_bias_gradient(
+        errors: list[str]) -> tuple[int, int, float]:
+    data = REPOSITORY / "benchmarks/results/2026-08-23-cooperative-bias-gradient"
+    verification = json.loads((data / "verification.json").read_text(encoding="utf-8"))
+    operator = json.loads((data / "operator-summary.json").read_text(encoding="utf-8"))
+    operator_raw = [json.loads(line) for line in (data / "operator-raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    training = json.loads((data / "training-summary.json").read_text(encoding="utf-8"))
+    baseline = [json.loads(line) for line in (data / "baseline.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    candidate = [json.loads(line) for line in (data / "candidate.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    profile = json.loads((data / "profile-summary.json").read_text(encoding="utf-8"))
+    summaries = operator.get("summaries", [])
+    row16 = [row for row in summaries if row.get("rows") == 16]
+    row32 = [row for row in summaries if row.get("rows") == 32]
+    comparisons = training.get("comparisons", [])
+    if verification.get("status") != "pass" or len(operator_raw) != 78 or \
+            verification.get("regression", {}).get("full_cpu_hip") != "380/380" or \
+            verification.get("regression", {}).get("hip_label") != "121/121" or \
+            operator.get("raw_rows") != 78 or len(summaries) != 13 or \
+            len(row16) != 1 or not row16[0].get("cooperative_speedup", 0) < 1.05 or \
+            len(row32) != 4 or \
+            any(row.get("cooperative_speedup", 0) < 1.05 for row in row32) or \
+            any(row.get("maximum_absolute_error", 1) > 3e-5 or
+                row.get("rms_error", 1) > 1e-5 for row in summaries):
+        errors.append("cooperative bias-gradient operator evidence changed")
+    if len(baseline) != 6 or len(candidate) != 6 or len(comparisons) != 2 or \
+            any(row.get("throughput_speedup", 0) < 1.05 or
+                row.get("peak_ratio") != 1.0 or
+                row.get("final_loss_relative_difference", 1) > 0.005 or
+                row.get("observed_parameter_after_equal") is not True
+                for row in comparisons):
+        errors.append("cooperative bias-gradient training gate changed")
+    profile_values = profile.get("profile", {})
+    if profile.get("status") != "pass" or \
+            profile_values.get("baseline", {}).get("calls") != 216 or \
+            profile_values.get("candidate", {}).get("calls") != 216 or \
+            not profile_values.get("speedup", 0) > 6.0:
+        errors.append("cooperative bias-gradient profile evidence changed")
+    kernel = (REPOSITORY / "src/ops/hip/basic_kernels.hip").read_text(encoding="utf-8")
+    dispatch = (REPOSITORY / "src/ops/ops.cpp").read_text(encoding="utf-8")
+    tests = (REPOSITORY / "tests/ops/hip_ops_test.cpp").read_text(encoding="utf-8")
+    if "bias_gradient_cooperative_kernel" not in kernel or \
+            "dim3(columns, row_lanes)" not in kernel or \
+            "rows >= 32" not in dispatch or \
+            "CooperativeBiasGradientCoversThresholdTailsAndModelWidths" not in tests:
+        errors.append("cooperative bias-gradient source/test contract changed")
+    return len(operator_raw), len(comparisons), float(profile_values.get("speedup", 0))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -7062,7 +7113,8 @@ def validate_assets(errors: list[str]) -> None:
                  "fp8-layer-leave-one-out.svg",
                  "fp8-qwen-layer9-formal-discard.svg",
                  "block-reduction-determinism.svg",
-                 "adamw-correctness-before-timing.svg"):
+                 "adamw-correctness-before-timing.svg",
+                 "cooperative-bias-gradient.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -7314,6 +7366,8 @@ def main() -> int:
         validate_matmul_correctness_before_timing(errors)
     adamw_rows, adamw_state_cases, adamw_kept_candidates = \
         validate_adamw_correctness_before_timing(errors)
+    bias_rows, bias_models, bias_profile_speedup = \
+        validate_cooperative_bias_gradient(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -7513,6 +7567,8 @@ def main() -> int:
           f"{tune_cache_entries} "
           f"adamw_autotune={adamw_rows}/{adamw_state_cases}/"
           f"{adamw_kept_candidates} "
+          f"bias_gradient={bias_rows}/{bias_models}/"
+          f"{bias_profile_speedup:.2f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")
