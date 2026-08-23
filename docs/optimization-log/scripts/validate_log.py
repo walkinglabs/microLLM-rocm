@@ -5557,6 +5557,34 @@ def validate_fp8_block_detail(errors: list[str]) -> tuple[int, int, int]:
     return 32, 21, 27
 
 
+def validate_fp8_residual_cancellation(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "139-data"
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    if summary.get("all_complete_values_verified") is not True or \
+            summary.get("cancellation_proven_for_all_selected_blocks") is not True or \
+            len(summary.get("rows", [])) != 2:
+        errors.append("residual cancellation summary contract changed")
+    rows = {row["model"]: row for row in summary["rows"]}
+    qwen = rows["qwen2.5-0.5b"]
+    deep = rows["deepseek-r1-distill-qwen-1.5b"]
+    if not 17.0 < qwen["fp32_reference"]["residual_plus_ffn_norm_over_sum"] < 17.1 or \
+            not -1.0 < qwen["fp32_reference"]["cosine_residual_ffn"] < -0.99 or \
+            qwen["relative_l2_decomposition"]["factor_product_minus_observed_ratio"] != 0.0 or \
+            not 4.4 < deep["fp32_reference"]["residual_plus_ffn_norm_over_sum"] < 4.5 or \
+            not -0.91 < deep["fp32_reference"]["cosine_residual_ffn"] < -0.89 or \
+            deep["reconstruction"]["fp32_block_eq_f32_residual_plus_ffn_max_abs_error"] != 0.0 or \
+            deep["reconstruction"]["fp8_block_eq_f32_residual_plus_ffn_max_abs_error"] != 0.0:
+        errors.append("residual cancellation algebra changed")
+    if gates.get("decision", {}).get("residual_cancellation_proven") is not True or \
+            gates.get("decision", {}).get(
+                "fp32_block_counterfactual_needed_to_prove_cancellation") is not False or \
+            gates.get("decision", {}).get(
+                "mixed_precision_counterfactual_needed_for_causal_fix") is not True:
+        errors.append("residual cancellation gates changed")
+    return 2, 21, 27
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -5673,7 +5701,8 @@ def validate_assets(errors: list[str]) -> None:
                  "fp8-shared-activation-quantization.svg",
                  "fp8-shared-activation-profile.svg",
                  "fp8-layer-drift.svg",
-                 "fp8-block-detail.svg"):
+                 "fp8-block-detail.svg",
+                 "fp8-residual-cancellation.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -5883,6 +5912,8 @@ def main() -> int:
         validate_fp8_layer_drift(errors)
     block_detail_stages, block_detail_qwen, block_detail_deep = \
         validate_fp8_block_detail(errors)
+    cancellation_rows, cancellation_qwen, cancellation_deep = \
+        validate_fp8_residual_cancellation(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -6049,6 +6080,7 @@ def main() -> int:
           f"{shared_profile_deep} "
           f"layer_drift={layer_drift_stages}/{layer_drift_qwen}/{layer_drift_deep} "
           f"block_detail={block_detail_stages}/{block_detail_qwen}/{block_detail_deep} "
+          f"cancellation={cancellation_rows}/{cancellation_qwen}/{cancellation_deep} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

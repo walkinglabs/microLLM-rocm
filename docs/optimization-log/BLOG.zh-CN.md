@@ -2453,3 +2453,11 @@ gate/up并未爆炸。证据支持残差抵消放大解释，但缺block input�
 关键block FP32、上游仍FP8的反事实。
 
 ![FP8 block detail](assets/fp8-block-detail.svg)
+
+## 156. Experiment 139：Qwen残差抵消达到17倍
+
+完整值代数证明Q21 residual/FFN cosine=-0.9935，cancellation factor17.02×；relative误差放大
+12.17×中，分母收缩贡献8.38×。Deep27 factor4.45×。block和误差向量均精确重构。抵消存在已
+证明；下一mixed FP32 block只回答“能否修复”，不再用于证明几何现象。
+
+![Residual cancellation](assets/fp8-residual-cancellation.svg)

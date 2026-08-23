@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "status": "residual_cancellation_proven_counterfactual_still_needed_for_causality",
+  "decision": {
+    "residual_cancellation_proven": true,
+    "block_sum_exact": true,
+    "error_sum_reconstructed": true,
+    "fp32_block_counterfactual_needed_to_prove_cancellation": false,
+    "mixed_precision_counterfactual_needed_for_causal_fix": true
+  }
+}
