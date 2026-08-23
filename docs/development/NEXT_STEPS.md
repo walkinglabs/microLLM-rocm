@@ -190,7 +190,9 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   forward time drops 20.5%/17.1%, while GEMM/other calls stay unchanged;
 - [x] capture complete FP32/FP8 block outputs: Qwen jumps at block21, Deep hidden
   error grows at block27 and logits amplify it further;
-- [ ] trace Qwen block21 and Deep block27 internal stages to isolate the first large drift;
+- [x] trace Qwen21/Deep27 details: FFN output is only 1.74%/3.24% relative error,
+  but residual addition yields 21.21%/11.50%; gate/up are not the primary explosion;
+- [ ] add explicit block input trace and selective FP32 critical-block counterfactual;
 - [ ] replace the one-block reduction only if the next accepted numerical policy reuses it;
 - [ ] replace global FP8 scales with weight per-tensor and activation per-row/token amax,
   starting from saturation/trace evidence rather than top-token search;

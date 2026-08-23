@@ -1,0 +1,707 @@
+{
+  "all_models_have_expected_16_stages": true,
+  "all_selected_values_complete_no_truncation": true,
+  "binary": "/tmp/microllm-exp138-build.MdDkhI/apps/microllm_hf_infer",
+  "boundary": "complete selected block values; non-selected trace records are metadata/statistics only by trace-value-filter design; synchronous diagnostic, not performance evidence",
+  "context": 8,
+  "experiment": "Exp138",
+  "manifest": "/tmp/microllm-bf16-model-manifest.json",
+  "models": [
+    {
+      "delta_convention": "first selected stage uses previous relative-L2 0.0; later stages use the immediately preceding selected stage",
+      "first_large_jump": {
+        "delta_relative_l2": 0.08898209561241155,
+        "name": "inference.blocks.21.attention_norm",
+        "previous_relative_l2": 0.0,
+        "previous_stage": "block_input_baseline",
+        "relative_l2": 0.08898209561241155
+      },
+      "first_nonzero_stage": {
+        "elements": 7168,
+        "exact": false,
+        "max_abs": 1.729841709136963,
+        "max_abs_index": 4818,
+        "mean_abs": 0.07461181073765236,
+        "name": "inference.blocks.21.attention_norm",
+        "relative_l2": 0.08898209561241155,
+        "rms_abs": 0.1404615480003311,
+        "shape": [
+          1,
+          8,
+          896
+        ]
+      },
+      "full_selected_value_integrity": true,
+      "gate_stage": {
+        "elements": 38912,
+        "exact": false,
+        "max_abs": 1.15362548828125,
+        "max_abs_index": 567,
+        "mean_abs": 0.0652035472010177,
+        "name": "inference.blocks.21.ffn.gate",
+        "relative_l2": 0.04569266489336925,
+        "rms_abs": 0.08543502693317714,
+        "shape": [
+          8,
+          4864
+        ]
+      },
+      "large_jump_threshold": 0.05,
+      "largest_positive_delta": {
+        "delta_relative_l2": 0.19467366334924036,
+        "name": "inference.blocks.21",
+        "previous_relative_l2": 0.017426289583540134,
+        "previous_stage": "inference.blocks.21.ffn.output",
+        "relative_l2": 0.2120999529327805
+      },
+      "layer": 21,
+      "maximum_relative_l2_stage": {
+        "elements": 7168,
+        "exact": false,
+        "max_abs": 40.6190185546875,
+        "max_abs_index": 62,
+        "mean_abs": 0.12089334602969107,
+        "name": "inference.blocks.21",
+        "relative_l2": 0.2120999529327805,
+        "rms_abs": 0.5070824107271323,
+        "shape": [
+          1,
+          8,
+          896
+        ]
+      },
+      "model": "qwen2.5-0.5b",
+      "per_stage": [
+        {
+          "delta_relative_l2": 0.08898209561241155,
+          "elements": 7168,
+          "exact": false,
+          "max_abs": 1.729841709136963,
+          "name": "inference.blocks.21.attention_norm",
+          "relative_l2": 0.08898209561241155,
+          "rms_abs": 0.1404615480003311,
+          "shape": [
+            1,
+            8,
+            896
+          ],
+          "stage_index": 0
+        },
+        {
+          "delta_relative_l2": -0.04273471427673864,
+          "elements": 7168,
+          "exact": false,
+          "max_abs": 0.5305061340332031,
+          "name": "inference.blocks.21.attention.q_projection",
+          "relative_l2": 0.04624738133567291,
+          "rms_abs": 0.0898169667033223,
+          "shape": [
+            8,
+            896
+          ],
+          "stage_index": 1
+        },
+        {
+          "delta_relative_l2": 0.017234135748052645,
+          "elements": 1024,
+          "exact": false,
+          "max_abs": 0.5031940937042236,
+          "name": "inference.blocks.21.attention.k_projection",
+          "relative_l2": 0.06348151708372556,
+          "rms_abs": 0.10284481009266419,
+          "shape": [
+            8,
+            128
+          ],
+          "stage_index": 2
+        },
+        {
+          "delta_relative_l2": 0.05522107534912882,
+          "elements": 1024,
+          "exact": false,
+          "max_abs": 0.6760134696960449,
+          "name": "inference.blocks.21.attention.v_projection",
+          "relative_l2": 0.11870259243285437,
+          "rms_abs": 0.17322264629130296,
+          "shape": [
+            8,
+            128
+          ],
+          "stage_index": 3
+        },
+        {
+          "delta_relative_l2": -0.07245521021621384,
+          "elements": 7168,
+          "exact": false,
+          "max_abs": 0.5305736064910889,
+          "name": "inference.blocks.21.attention.q_rope",
+          "relative_l2": 0.04624738221664052,
+          "rms_abs": 0.08981696843723783,
+          "shape": [
+            1,
+            14,
+            8,
+            64
+          ],
+          "stage_index": 4
+        },
+        {
+          "delta_relative_l2": 0.017234134099408403,
+          "elements": 1024,
+          "exact": false,
+          "max_abs": 0.5031917095184326,
+          "name": "inference.blocks.21.attention.k_rope",
+          "relative_l2": 0.06348151631604892,
+          "rms_abs": 0.1028448092176897,
+          "shape": [
+            1,
+            2,
+            8,
+            64
+          ],
+          "stage_index": 5
+        },
+        {
+          "delta_relative_l2": 0.05522107611680545,
+          "elements": 1024,
+          "exact": false,
+          "max_abs": 0.6760134696960449,
+          "name": "inference.blocks.21.attention.value",
+          "relative_l2": 0.11870259243285437,
+          "rms_abs": 0.17322264629130296,
+          "shape": [
+            1,
+            2,
+            8,
+            64
+          ],
+          "stage_index": 6
+        },
+        {
+          "delta_relative_l2": -0.02408251959344443,
+          "elements": 7168,
+          "exact": false,
+          "max_abs": 0.6461242437362671,
+          "name": "inference.blocks.21.attention.context",
+          "relative_l2": 0.09462007283940994,
+          "rms_abs": 0.08102337675227854,
+          "shape": [
+            8,
+            896
+          ],
+          "stage_index": 7
+        },
+        {
+          "delta_relative_l2": 0.016997840978605933,
+          "elements": 7168,
+          "exact": false,
+          "max_abs": 0.892033576965332,
+          "name": "inference.blocks.21.attention.output",
+          "relative_l2": 0.11161791381801588,
+          "rms_abs": 0.04741241860014685,
+          "shape": [
+            1,
+            8,
+            896
+          ],
+          "stage_index": 8
+        },
+        {
+          "delta_relative_l2": -0.10219718673368035,
+          "elements": 7168,
+          "exact": false,
+          "max_abs": 12.238525390625,
+          "name": "inference.blocks.21.attention_residual",
+          "relative_l2": 0.009420727084335523,
+          "rms_abs": 0.194580601702977,
+          "shape": [
+            1,
+            8,
+            896
+          ],
+          "stage_index": 9
+        },
+        {
+          "delta_relative_l2": 0.026040946111835404,
+          "elements": 7168,
+          "exact": false,
+          "max_abs": 0.939483642578125,
+          "name": "inference.blocks.21.ffn_norm",
+          "relative_l2": 0.035461673196170926,
+          "rms_abs": 0.11595917630568146,
+          "shape": [
+            1,
+            8,
+            896
+          ],
+          "stage_index": 10
+        },
+        {
+          "delta_relative_l2": 0.010230991697198322,
+          "elements": 38912,
+          "exact": false,
+          "max_abs": 1.15362548828125,
+          "name": "inference.blocks.21.ffn.gate",
+          "relative_l2": 0.04569266489336925,
+          "rms_abs": 0.08543502693317714,
+          "shape": [
+            8,
+            4864
+          ],
+          "stage_index": 11
+        },
+        {
+          "delta_relative_l2": 0.023603916594513566,
+          "elements": 38912,
+          "exact": false,
+          "max_abs": 1.5076179504394531,
+          "name": "inference.blocks.21.ffn.up",
+          "relative_l2": 0.06929658148788281,
+          "rms_abs": 0.07548718169402095,
+          "shape": [
+            8,
+            4864
+          ],
+          "stage_index": 12
+        },
+        {
+          "delta_relative_l2": -0.05637112119238799,
+          "elements": 38912,
+          "exact": false,
+          "max_abs": 20.6583251953125,
+          "name": "inference.blocks.21.ffn.activated",
+          "relative_l2": 0.012925460295494826,
+          "rms_abs": 0.1217708472470214,
+          "shape": [
+            8,
+            4864
+          ],
+          "stage_index": 13
+        },
+        {
+          "delta_relative_l2": 0.004500829288045308,
+          "elements": 7168,
+          "exact": false,
+          "max_abs": 28.3804931640625,
+          "name": "inference.blocks.21.ffn.output",
+          "relative_l2": 0.017426289583540134,
+          "rms_abs": 0.34931460751657784,
+          "shape": [
+            1,
+            8,
+            896
+          ],
+          "stage_index": 14
+        },
+        {
+          "delta_relative_l2": 0.19467366334924036,
+          "elements": 7168,
+          "exact": false,
+          "max_abs": 40.6190185546875,
+          "name": "inference.blocks.21",
+          "relative_l2": 0.2120999529327805,
+          "rms_abs": 0.5070824107271323,
+          "shape": [
+            1,
+            8,
+            896
+          ],
+          "stage_index": 15
+        }
+      ],
+      "stage_count": 16,
+      "trace_integrity": [
+        {
+          "gate_present": true,
+          "invalid_selected_records": [],
+          "path": "/tmp/microllm-exp138-block-detail-final/qwen2.5-0.5b-fp32-block21.jsonl",
+          "policy": "fp32",
+          "selected_actual_values": 185344,
+          "selected_expected_values": 185344,
+          "selected_full_values_complete": true,
+          "selected_stage_count": 16,
+          "selected_truncated_count": 0,
+          "trace_record_count": 389,
+          "up_present": true
+        },
+        {
+          "gate_present": true,
+          "invalid_selected_records": [],
+          "path": "/tmp/microllm-exp138-block-detail-final/qwen2.5-0.5b-fp8-block21.jsonl",
+          "policy": "fp8",
+          "selected_actual_values": 185344,
+          "selected_expected_values": 185344,
+          "selected_full_values_complete": true,
+          "selected_stage_count": 16,
+          "selected_truncated_count": 0,
+          "trace_record_count": 389,
+          "up_present": true
+        }
+      ],
+      "up_stage": {
+        "elements": 38912,
+        "exact": false,
+        "max_abs": 1.5076179504394531,
+        "max_abs_index": 506,
+        "mean_abs": 0.05755630672629401,
+        "name": "inference.blocks.21.ffn.up",
+        "relative_l2": 0.06929658148788281,
+        "rms_abs": 0.07548718169402095,
+        "shape": [
+          8,
+          4864
+        ]
+      }
+    },
+    {
+      "delta_convention": "first selected stage uses previous relative-L2 0.0; later stages use the immediately preceding selected stage",
+      "first_large_jump": {
+        "delta_relative_l2": 0.052176579964442506,
+        "name": "inference.blocks.27.attention_norm",
+        "previous_relative_l2": 0.0,
+        "previous_stage": "block_input_baseline",
+        "relative_l2": 0.052176579964442506
+      },
+      "first_nonzero_stage": {
+        "elements": 12288,
+        "exact": false,
+        "max_abs": 0.36299848556518555,
+        "max_abs_index": 7301,
+        "mean_abs": 0.0200852696859617,
+        "name": "inference.blocks.27.attention_norm",
+        "relative_l2": 0.052176579964442506,
+        "rms_abs": 0.03781017834249998,
+        "shape": [
+          1,
+          8,
+          1536
+        ]
+      },
+      "full_selected_value_integrity": true,
+      "gate_stage": {
+        "elements": 71680,
+        "exact": false,
+        "max_abs": 1.4685821533203125,
+        "max_abs_index": 17552,
+        "mean_abs": 0.08880208489784036,
+        "name": "inference.blocks.27.ffn.gate",
+        "relative_l2": 0.04309613064173077,
+        "rms_abs": 0.11631615480210739,
+        "shape": [
+          8,
+          8960
+        ]
+      },
+      "large_jump_threshold": 0.05,
+      "largest_positive_delta": {
+        "delta_relative_l2": 0.08263411872728463,
+        "name": "inference.blocks.27",
+        "previous_relative_l2": 0.03236170473897672,
+        "previous_stage": "inference.blocks.27.ffn.output",
+        "relative_l2": 0.11499582346626135
+      },
+      "layer": 27,
+      "maximum_relative_l2_stage": {
+        "elements": 12288,
+        "exact": false,
+        "max_abs": 195.063232421875,
+        "max_abs_index": 2145,
+        "mean_abs": 1.0177654900799098,
+        "name": "inference.blocks.27",
+        "relative_l2": 0.11499582346626135,
+        "rms_abs": 3.239694453048495,
+        "shape": [
+          1,
+          8,
+          1536
+        ]
+      },
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "per_stage": [
+        {
+          "delta_relative_l2": 0.052176579964442506,
+          "elements": 12288,
+          "exact": false,
+          "max_abs": 0.36299848556518555,
+          "name": "inference.blocks.27.attention_norm",
+          "relative_l2": 0.052176579964442506,
+          "rms_abs": 0.03781017834249998,
+          "shape": [
+            1,
+            8,
+            1536
+          ],
+          "stage_index": 0
+        },
+        {
+          "delta_relative_l2": -0.009067637483690223,
+          "elements": 12288,
+          "exact": false,
+          "max_abs": 0.2796206474304199,
+          "name": "inference.blocks.27.attention.q_projection",
+          "relative_l2": 0.04310894248075228,
+          "rms_abs": 0.04779204657386573,
+          "shape": [
+            8,
+            1536
+          ],
+          "stage_index": 1
+        },
+        {
+          "delta_relative_l2": 0.006371533186369835,
+          "elements": 2048,
+          "exact": false,
+          "max_abs": 0.34415364265441895,
+          "name": "inference.blocks.27.attention.k_projection",
+          "relative_l2": 0.04948047566712212,
+          "rms_abs": 0.05228929396416904,
+          "shape": [
+            8,
+            256
+          ],
+          "stage_index": 2
+        },
+        {
+          "delta_relative_l2": 0.02995147300450278,
+          "elements": 2048,
+          "exact": false,
+          "max_abs": 0.6792925596237183,
+          "name": "inference.blocks.27.attention.v_projection",
+          "relative_l2": 0.0794319486716249,
+          "rms_abs": 0.1405444989357658,
+          "shape": [
+            8,
+            256
+          ],
+          "stage_index": 3
+        },
+        {
+          "delta_relative_l2": -0.036323006048288226,
+          "elements": 12288,
+          "exact": false,
+          "max_abs": 0.2794649600982666,
+          "name": "inference.blocks.27.attention.q_rope",
+          "relative_l2": 0.04310894262333667,
+          "rms_abs": 0.04779204667762269,
+          "shape": [
+            1,
+            12,
+            8,
+            128
+          ],
+          "stage_index": 4
+        },
+        {
+          "delta_relative_l2": 0.006371533799572546,
+          "elements": 2048,
+          "exact": false,
+          "max_abs": 0.3441643714904785,
+          "name": "inference.blocks.27.attention.k_rope",
+          "relative_l2": 0.04948047642290922,
+          "rms_abs": 0.0522892948235855,
+          "shape": [
+            1,
+            2,
+            8,
+            128
+          ],
+          "stage_index": 5
+        },
+        {
+          "delta_relative_l2": 0.02995147224871568,
+          "elements": 2048,
+          "exact": false,
+          "max_abs": 0.6792925596237183,
+          "name": "inference.blocks.27.attention.value",
+          "relative_l2": 0.0794319486716249,
+          "rms_abs": 0.1405444989357658,
+          "shape": [
+            1,
+            2,
+            8,
+            128
+          ],
+          "stage_index": 6
+        },
+        {
+          "delta_relative_l2": -0.013149258403997721,
+          "elements": 12288,
+          "exact": false,
+          "max_abs": 0.4093077778816223,
+          "name": "inference.blocks.27.attention.context",
+          "relative_l2": 0.06628269026762718,
+          "rms_abs": 0.059100098174956255,
+          "shape": [
+            8,
+            1536
+          ],
+          "stage_index": 7
+        },
+        {
+          "delta_relative_l2": 0.019537690999485158,
+          "elements": 12288,
+          "exact": false,
+          "max_abs": 10.414036750793457,
+          "name": "inference.blocks.27.attention.output",
+          "relative_l2": 0.08582038126711233,
+          "rms_abs": 0.23099271242588476,
+          "shape": [
+            1,
+            8,
+            1536
+          ],
+          "stage_index": 8
+        },
+        {
+          "delta_relative_l2": -0.04702147952010485,
+          "elements": 12288,
+          "exact": false,
+          "max_abs": 169.120361328125,
+          "name": "inference.blocks.27.attention_residual",
+          "relative_l2": 0.03879890174700748,
+          "rms_abs": 2.351681117039136,
+          "shape": [
+            1,
+            8,
+            1536
+          ],
+          "stage_index": 9
+        },
+        {
+          "delta_relative_l2": 0.007467621329641162,
+          "elements": 12288,
+          "exact": false,
+          "max_abs": 1.1991772651672363,
+          "name": "inference.blocks.27.ffn_norm",
+          "relative_l2": 0.04626652307664864,
+          "rms_abs": 0.05586022175137159,
+          "shape": [
+            1,
+            8,
+            1536
+          ],
+          "stage_index": 10
+        },
+        {
+          "delta_relative_l2": -0.0031703924349178736,
+          "elements": 71680,
+          "exact": false,
+          "max_abs": 1.4685821533203125,
+          "name": "inference.blocks.27.ffn.gate",
+          "relative_l2": 0.04309613064173077,
+          "rms_abs": 0.11631615480210739,
+          "shape": [
+            8,
+            8960
+          ],
+          "stage_index": 11
+        },
+        {
+          "delta_relative_l2": -0.00424925033309248,
+          "elements": 71680,
+          "exact": false,
+          "max_abs": 2.7152481079101562,
+          "name": "inference.blocks.27.ffn.up",
+          "relative_l2": 0.03884688030863829,
+          "rms_abs": 0.10959159831962859,
+          "shape": [
+            8,
+            8960
+          ],
+          "stage_index": 12
+        },
+        {
+          "delta_relative_l2": 0.0044546186555589826,
+          "elements": 71680,
+          "exact": false,
+          "max_abs": 11.222892761230469,
+          "name": "inference.blocks.27.ffn.activated",
+          "relative_l2": 0.04330149896419727,
+          "rms_abs": 0.2762968782584425,
+          "shape": [
+            8,
+            8960
+          ],
+          "stage_index": 13
+        },
+        {
+          "delta_relative_l2": -0.010939794225220553,
+          "elements": 12288,
+          "exact": false,
+          "max_abs": 94.244873046875,
+          "name": "inference.blocks.27.ffn.output",
+          "relative_l2": 0.03236170473897672,
+          "rms_abs": 2.0946047825041956,
+          "shape": [
+            1,
+            8,
+            1536
+          ],
+          "stage_index": 14
+        },
+        {
+          "delta_relative_l2": 0.08263411872728463,
+          "elements": 12288,
+          "exact": false,
+          "max_abs": 195.063232421875,
+          "name": "inference.blocks.27",
+          "relative_l2": 0.11499582346626135,
+          "rms_abs": 3.239694453048495,
+          "shape": [
+            1,
+            8,
+            1536
+          ],
+          "stage_index": 15
+        }
+      ],
+      "stage_count": 16,
+      "trace_integrity": [
+        {
+          "gate_present": true,
+          "invalid_selected_records": [],
+          "path": "/tmp/microllm-exp138-block-detail-final/deepseek-r1-distill-qwen-1.5b-fp32-block27.jsonl",
+          "policy": "fp32",
+          "selected_actual_values": 333824,
+          "selected_expected_values": 333824,
+          "selected_full_values_complete": true,
+          "selected_stage_count": 16,
+          "selected_truncated_count": 0,
+          "trace_record_count": 453,
+          "up_present": true
+        },
+        {
+          "gate_present": true,
+          "invalid_selected_records": [],
+          "path": "/tmp/microllm-exp138-block-detail-final/deepseek-r1-distill-qwen-1.5b-fp8-block27.jsonl",
+          "policy": "fp8",
+          "selected_actual_values": 333824,
+          "selected_expected_values": 333824,
+          "selected_full_values_complete": true,
+          "selected_stage_count": 16,
+          "selected_truncated_count": 0,
+          "trace_record_count": 453,
+          "up_present": true
+        }
+      ],
+      "up_stage": {
+        "elements": 71680,
+        "exact": false,
+        "max_abs": 2.7152481079101562,
+        "max_abs_index": 9867,
+        "mean_abs": 0.07851548986785599,
+        "name": "inference.blocks.27.ffn.up",
+        "relative_l2": 0.03884688030863829,
+        "rms_abs": 0.10959159831962859,
+        "shape": [
+          8,
+          8960
+        ]
+      }
+    }
+  ],
+  "physical_gpu_index": 2,
+  "revision": "2d917eb21641342c04b566cf4531b4ead96e7f3e",
+  "schema_version": 1,
+  "status": "pass"
+}

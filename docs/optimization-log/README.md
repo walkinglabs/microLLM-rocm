@@ -638,6 +638,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/136-data/](experiments/136-data/) | 两模型复测parsed profile与stats |
 | [assets/fp8-layer-drift.svg](assets/fp8-layer-drift.svg) | Qwen21/Deep27误差定位 |
 | [experiments/137-data/](experiments/137-data/) | 56阶段完整差异、完整性审计与trace manifest |
+| [assets/fp8-block-detail.svg](assets/fp8-block-detail.svg) | Q21/Deep27内部误差与残差相加跳变 |
+| [experiments/138-data/](experiments/138-data/) | 32个内部阶段、fresh build与trace manifest |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="570" viewBox="0 0 1040 570" role="img" aria-labelledby="title desc">
+  <title id="title">FP8 critical block detail</title><desc id="desc">Relative error is modest at FFN output and jumps after residual addition.</desc>
+  <rect width="1040" height="570" rx="18" fill="#0b1020"/><text x="52" y="52" fill="#f8fafc" font-size="28" font-family="sans-serif" font-weight="700">关键block：误差在残差相加后放大</text>
+  <text x="52" y="82" fill="#94a3b8" font-size="16" font-family="sans-serif">relative-L2：FFN output → block output</text>
+  <line x1="80" y1="450" x2="960" y2="450" stroke="#334155"/>
+  <rect x="160" y="425" width="130" height="25" fill="#38bdf8"/><rect x="305" y="155" width="130" height="295" fill="#fb7185"/><rect x="620" y="405" width="130" height="45" fill="#38bdf8"/><rect x="765" y="290" width="130" height="160" fill="#fb7185"/>
+  <g fill="#f8fafc" font-family="sans-serif" font-size="15"><text x="160" y="415">Q FFN 1.74%</text><text x="305" y="145">Q block 21.21%</text><text x="620" y="395">D FFN 3.24%</text><text x="765" y="280">D block 11.50%</text></g>
+  <g fill="#cbd5e1" font-family="sans-serif" font-size="15"><text x="145" y="500">Q jump +19.47pp</text><text x="625" y="500">Deep +8.26pp</text><text x="180" y="545">支持residual cancellation解释；仍需input与FP32-block反事实</text></g>
+</svg>

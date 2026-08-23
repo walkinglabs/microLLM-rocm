@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "status": "residual_cancellation_hypothesis_requires_input_counterfactual",
+  "fresh_build": {"steps_passed": 50},
+  "workers_passed": 4,
+  "decision": {
+    "gate_up_primary_explosion": false,
+    "residual_cancellation_supported": true,
+    "residual_cancellation_proven": false,
+    "block_input_trace_required": true,
+    "selective_fp32_block_counterfactual_required": true
+  }
+}

@@ -5518,6 +5518,45 @@ def validate_fp8_layer_drift(errors: list[str]) -> tuple[int, int, int]:
     return 56, 21, 27
 
 
+def validate_fp8_block_detail(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "138-data"
+    analysis = json.loads((data / "analysis.json").read_text(encoding="utf-8"))
+    manifest = json.loads((data / "trace-manifest.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    build = (data / "fresh-build.log").read_text(encoding="utf-8")
+    if analysis.get("all_models_have_expected_16_stages") is not True or \
+            analysis.get("all_selected_values_complete_no_truncation") is not True:
+        errors.append("FP8 block detail completeness changed")
+    models = {row["model"]: row for row in analysis["models"]}
+    qwen = models["qwen2.5-0.5b"]
+    deep = models["deepseek-r1-distill-qwen-1.5b"]
+    if qwen["layer"] != 21 or qwen["stage_count"] != 16 or \
+            qwen["largest_positive_delta"]["previous_stage"] != \
+            "inference.blocks.21.ffn.output" or \
+            not 0.19 < qwen["largest_positive_delta"]["delta_relative_l2"] < 0.20 or \
+            deep["layer"] != 27 or deep["stage_count"] != 16 or \
+            deep["largest_positive_delta"]["previous_stage"] != \
+            "inference.blocks.27.ffn.output" or \
+            not 0.08 < deep["largest_positive_delta"]["delta_relative_l2"] < 0.09:
+        errors.append("FP8 block detail residual boundary changed")
+    if not 0.04 < qwen["gate_stage"]["relative_l2"] < 0.05 or \
+            not 0.06 < qwen["up_stage"]["relative_l2"] < 0.07 or \
+            not 0.04 < deep["gate_stage"]["relative_l2"] < 0.05 or \
+            not 0.03 < deep["up_stage"]["relative_l2"] < 0.04:
+        errors.append("FP8 block detail gate/up evidence changed")
+    traces = manifest.get("traces", [])
+    if len(traces) != 4 or sum(row["selected"] for row in traces) != 64 or \
+            sum(row["values"] for row in traces) != 1038336 or \
+            sum(row["truncated"] for row in traces) != 0 or \
+            "[50/50] Linking HIP executable" not in build:
+        errors.append("FP8 block detail trace/build manifest changed")
+    if gates.get("decision", {}).get("gate_up_primary_explosion") is not False or \
+            gates.get("decision", {}).get("residual_cancellation_supported") is not True or \
+            gates.get("decision", {}).get("residual_cancellation_proven") is not False:
+        errors.append("FP8 block detail gates changed")
+    return 32, 21, 27
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -5633,7 +5672,8 @@ def validate_assets(errors: list[str]) -> None:
                  "fp8-dynamic-activation-profile.svg",
                  "fp8-shared-activation-quantization.svg",
                  "fp8-shared-activation-profile.svg",
-                 "fp8-layer-drift.svg"):
+                 "fp8-layer-drift.svg",
+                 "fp8-block-detail.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -5841,6 +5881,8 @@ def main() -> int:
         validate_fp8_shared_profile(errors)
     layer_drift_stages, layer_drift_qwen, layer_drift_deep = \
         validate_fp8_layer_drift(errors)
+    block_detail_stages, block_detail_qwen, block_detail_deep = \
+        validate_fp8_block_detail(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -6006,6 +6048,7 @@ def main() -> int:
           f"shared_profile={shared_profile_calls}/{shared_profile_qwen}/"
           f"{shared_profile_deep} "
           f"layer_drift={layer_drift_stages}/{layer_drift_qwen}/{layer_drift_deep} "
+          f"block_detail={block_detail_stages}/{block_detail_qwen}/{block_detail_deep} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

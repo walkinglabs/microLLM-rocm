@@ -2445,3 +2445,11 @@ block26/27升到3.9%/11.5%，最终词表投影放大到24.1%。4份trace零截�
 Qwen21和Deep27内部子阶段，避免全层盲查。
 
 ![FP8 layer drift](assets/fp8-layer-drift.svg)
+
+## 155. Experiment 138：FFN只有2%误差，相加后变成21%
+
+Q21/Deep27内部完整值显示FFN output rel-L2仅1.74%/3.24%，block output却跳到21.21%/11.50%；
+gate/up并未爆炸。证据支持残差抵消放大解释，但缺block input，尚未证明。下一步记录input并做
+关键block FP32、上游仍FP8的反事实。
+
+![FP8 block detail](assets/fp8-block-detail.svg)
