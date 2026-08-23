@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "status": "reject_default_keep_operator_and_targeted_followup",
+  "evidence": {
+    "fresh_build_steps": 50,
+    "contracts_passed": 2,
+    "formal_workers": 36,
+    "fp8_policy_workers": 12,
+    "complete_logits_per_fp8_worker": 151936,
+    "precision_gates_passed": 0,
+    "precision_gates_total": 4,
+    "t512_performance_gates_passed": 0,
+    "t512_performance_gates_total": 2,
+    "stderr_bytes": 0
+  },
+  "decision": {
+    "accept_as_cross_model_default": false,
+    "retain_output_column_operator": true,
+    "retain_opt_in_model_policy": true,
+    "qwen_precision_improved": false,
+    "deepseek_precision_improved": true,
+    "deepseek_precision_gate_passed": false,
+    "t512_degradation_within_five_percent": false,
+    "top_token_is_sufficient_precision_evidence": false,
+    "probe_native_weight_outer_vector_next": true,
+    "targeted_deepseek_scope_remains_open": true
+  }
+}

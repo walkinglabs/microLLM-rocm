@@ -2495,3 +2495,14 @@ gate/up并未爆炸。证据支持残差抵消放大解释，但缺block input�
 所有候选回到native full验证，不能把软件反事实当最终模型结果。
 
 ![Native FP8 versus both roundtrip](assets/fp8-native-vs-roundtrip.svg)
+
+## 160. Experiment 143：DeepSeek RMS降59%，Qwen反而升29%
+
+per-output-channel权重scale让DeepSeek T8/T512 RMS改善59.0%/33.5%，Qwen却恶化28.8%/27.8%；
+四个完整精度门仍全红。每个native Linear新增一次post-scale，Qwen/Deep T512吞吐下降
+13.09%/12.86%，也都越过5%拒绝门。scale只多约1.2/3.2 MB，launch才是主要结构代价。
+
+拒绝跨模型默认，保留算子和opt-in策略。下一步探测权重侧outer-vector能否由当前MI300库原生
+执行；不把Deep单模型比例改善写成完整FP8可用。
+
+![Output-channel model policy](assets/fp8-output-channel-policy.svg)

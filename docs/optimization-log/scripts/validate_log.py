@@ -5774,6 +5774,78 @@ def validate_fp8_native_roundtrip(
     return execution.get("worker_rows", 0), execution.get("comparison_rows", 0), 151936
 
 
+def validate_fp8_output_channel_policy(
+        errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "143-data"
+    verification = json.loads((data / "verification.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    execution = verification.get("execution", {})
+    raw_rows = sum(1 for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip())
+    preflight_rows = sum(1 for line in (data / "gpu2-preflight.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip())
+    if verification.get("all_execution_contract_checks_passed") is not True or \
+            execution.get("worker_rows") != 36 or \
+            execution.get("target_fp8_rows") != 12 or \
+            execution.get("exit_code") != 0 or execution.get("stderr_bytes") != 0 or \
+            raw_rows != 36 or preflight_rows != 3 or \
+            (data / "stderr.log").stat().st_size != 0:
+        errors.append("FP8 output-channel execution contract changed")
+    checks = verification.get("counter_checks", [])
+    if len(checks) != 12 or any(
+            row.get("passed") is not True or row.get("logit_count") != 151936 or
+            row.get("top_token_equal") is not True or
+            row.get("fp8_dynamic_column_calls") != 0 or
+            row.get("precision_gate_passed") is not False
+            for row in checks):
+        errors.append("FP8 output-channel worker checks changed")
+    qwen = [row for row in checks if row["model"] == "qwen2.5-0.5b"]
+    deep = [row for row in checks
+            if row["model"] == "deepseek-r1-distill-qwen-1.5b"]
+    if not qwen or not deep or any(
+            row["fp8_linears_covered"] != 168 or
+            row["converted_tensors"] != 168 or
+            row["fp8_scale_bytes_retained"] != 1216512 or
+            row["fp8_dynamic_tensor_calls_per_forward"] != 96.0
+            for row in qwen) or any(
+            row["fp8_linears_covered"] != 197 or
+            row["converted_tensors"] != 197 or
+            row["fp8_scale_bytes_retained"] != 3188224 or
+            row["fp8_dynamic_tensor_calls_per_forward"] != 113.0
+            for row in deep):
+        errors.append("FP8 output-channel scale/count contract changed")
+    comparisons = {(row["model"], row["context"]): row
+                   for row in verification.get("comparisons", [])}
+    q8 = comparisons.get(("qwen2.5-0.5b", 8), {})
+    q512 = comparisons.get(("qwen2.5-0.5b", 512), {})
+    d8 = comparisons.get(("deepseek-r1-distill-qwen-1.5b", 8), {})
+    d512 = comparisons.get(("deepseek-r1-distill-qwen-1.5b", 512), {})
+    if not 1.28 < q8.get("delta", {}).get("root_mean_square_error_ratio", 0) < 1.30 or \
+            not 1.27 < q512.get("delta", {}).get("root_mean_square_error_ratio", 0) < 1.29 or \
+            not 0.40 < d8.get("delta", {}).get("root_mean_square_error_ratio", 0) < 0.42 or \
+            not 0.66 < d512.get("delta", {}).get("root_mean_square_error_ratio", 0) < 0.67 or \
+            not 0.86 < q512.get("delta", {}).get("tps_ratio", 0) < 0.88 or \
+            not 0.86 < d512.get("delta", {}).get("tps_ratio", 0) < 0.88:
+        errors.append("FP8 output-channel precision/performance evidence changed")
+    keep = verification.get("keep_gate", {})
+    decision = gates.get("decision", {})
+    build = (data / "fresh-build.log").read_text(encoding="utf-8")
+    cli_contract = (data / "hf-cli-binary-contract.log").read_text(encoding="utf-8")
+    matrix_contract = (data / "benchmark-hf-fp8-matrix-contract.log").read_text(
+        encoding="utf-8")
+    if keep.get("keep") is not False or keep.get("precision_gate_pass_count") != 0 or \
+            keep.get("t512_tps_gate_pass_count") != 0 or \
+            decision.get("accept_as_cross_model_default") is not False or \
+            decision.get("retain_output_column_operator") is not True or \
+            decision.get("qwen_precision_improved") is not False or \
+            decision.get("deepseek_precision_improved") is not True or \
+            "[50/50]" not in build or "binary contract: pass" not in cli_contract or \
+            "OK" not in matrix_contract:
+        errors.append("FP8 output-channel keep/build gates changed")
+    return execution.get("worker_rows", 0), execution.get("target_fp8_rows", 0), \
+        keep.get("precision_gate_pass_count", -1)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -5894,7 +5966,8 @@ def validate_assets(errors: list[str]) -> None:
                  "fp8-residual-cancellation.svg",
                  "fp8-selective-block-counterfactual.svg",
                  "fp8-error-source-isolation.svg",
-                 "fp8-native-vs-roundtrip.svg"):
+                 "fp8-native-vs-roundtrip.svg",
+                 "fp8-output-channel-policy.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -6112,6 +6185,8 @@ def main() -> int:
         validate_fp8_error_source_isolation(errors)
     native_workers, native_pairs, native_logits = \
         validate_fp8_native_roundtrip(errors)
+    column_workers, column_fp8, column_passed = \
+        validate_fp8_output_channel_policy(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -6283,6 +6358,7 @@ def main() -> int:
           f"{selective_models} "
           f"fp8_sources={source_workers}/{source_failures}/{source_logits} "
           f"native_roundtrip={native_workers}/{native_pairs}/{native_logits} "
+          f"output_channel={column_workers}/{column_fp8}/{column_passed} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

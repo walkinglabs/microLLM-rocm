@@ -22,3 +22,7 @@ throughput gates decide whether it is kept, rejected, or narrowed to selected Li
 
 The official matrix schema retains FP8 weight bytes and scale bytes as separate fields. This is
 required because a lower total can otherwise hide an unexpectedly large vector-scale allocation.
+
+Exp143 rejects the cross-model default: Qwen RMS worsens 28% while DeepSeek improves 33%--59%, all
+four precision gates still fail, and T512 throughput drops about 13% for both models. The operator
+and opt-in policy remain available for a native outer-vector probe and targeted DeepSeek follow-up.
