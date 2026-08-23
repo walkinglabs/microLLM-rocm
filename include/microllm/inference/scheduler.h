@@ -237,6 +237,10 @@ struct LengthBucketedBatchConfig {
     DType kv_cache_dtype = DType::Float32;
     std::vector<DType> kv_cache_layer_dtypes;
     bool batch_equal_length_prefill = true;
+    // If the smallest compatible bucket already has max_slots submitted or
+    // active requests, allow a request to use the first larger compatible
+    // bucket with immediate capacity. Requests never move after submission.
+    bool overflow_to_larger_bucket = false;
 };
 
 struct LengthBucketedBatchMetrics {
@@ -249,14 +253,15 @@ struct LengthBucketedBatchMetrics {
     std::size_t allocated_cache_bytes = 0;
     std::size_t active_cache_bytes = 0;
     std::size_t peak_active_cache_bytes = 0;
+    std::int64_t overflow_routed_requests = 0;
     std::vector<ContinuousBatchMetrics> buckets;
 };
 
 // Continuous serving with several fixed-capacity KV-cache pools. Model weights
 // are shared because every inner scheduler references the same model; only KV
-// storage is separated. There is intentionally no work stealing in the first
-// version: a short request waits for its smallest compatible pool even if a
-// larger pool is idle. This keeps the memory policy deterministic and testable.
+// storage is separated. The default keeps every request in its smallest
+// compatible pool. An opt-in admission policy may overflow a request into an
+// idle larger pool; it never moves an already submitted request.
 class LengthBucketedBatchScheduler {
 public:
     explicit LengthBucketedBatchScheduler(
@@ -281,6 +286,7 @@ public:
     [[nodiscard]] std::size_t active_request_count() const noexcept;
     [[nodiscard]] std::size_t pending_request_count() const noexcept;
     [[nodiscard]] RequestSnapshot request(RequestId id) const;
+    [[nodiscard]] std::size_t request_bucket(RequestId id) const;
     [[nodiscard]] std::vector<RequestSnapshot> requests() const;
     [[nodiscard]] LengthBucketedBatchMetrics metrics() const;
 

@@ -72,7 +72,9 @@ latency. Negative values mean the lifecycle event has not occurred. Official rep
 request arrays and derive P50/P95 with linear interpolation.
 `LengthBucketedBatchScheduler` composes multiple fixed-capacity continuous schedulers. Every child
 references the same `TransformerModel` but owns a separate KV cache. The smallest compatible bucket
-is deterministic; the first version intentionally has no cross-bucket batching or slot stealing.
+is deterministic by default. An opt-in admission rule may place a request in the first larger
+compatible bucket with immediate capacity; it never migrates submitted requests or places a long
+request into an undersized bucket.
 Official continuous workloads may delay individual submissions by a logical arrival step. Request
 wall latency starts at actual submission; the logical clock is a state-machine axis, not a fixed-QPS
 wall-time load generator.

@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| CPU configuration | smoke-tested | Release full gate 318/318 with 221 CPU and 97 HIP labels; ASan/UBSan 214/214 | broader compiler/OS CI matrix |
+| CPU configuration | smoke-tested | last Release full gate 318/318; current compatible-overflow change passes ASan/UBSan 215/215 and targeted Release gates | rerun full mixed gate; broader compiler/OS CI matrix |
 | CPU code coverage | smoke-tested | 83.9% lines, 90.9% functions, 66.6% branches over `src/` + `include/` | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, native cast, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |

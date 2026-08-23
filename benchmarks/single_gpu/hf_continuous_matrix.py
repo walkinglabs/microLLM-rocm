@@ -152,6 +152,29 @@ SUITES = {
     },
 }
 
+# Reuse the exact Experiment 116 traffic axes. The new suite adds one policy
+# dimension without copying or silently changing prompts, arrivals, or focus rows.
+SUITES["traffic-overflow"] = {}
+for _case_name, _case in SUITES["traffic-skew"].items():
+    if _case["policy"] == "uniform":
+        SUITES["traffic-overflow"][_case_name] = dict(_case)
+        continue
+    _fixed_name = _case_name.replace("_bucket2", "_fixed")
+    SUITES["traffic-overflow"][_fixed_name] = {
+        **_case, "policy": "fixed", "overflow": False,
+    }
+    _overflow_name = _case_name.replace("_bucket2", "_overflow")
+    _overflow_case = {**_case, "policy": "overflow", "overflow": True}
+    if _case["group"] == "short_heavy":
+        _overflow_case["expected_routes"] = [0, 0, 0, 0, 1, 1, 1, 1]
+        _overflow_case["expected_overflow"] = 2
+    else:
+        _overflow_case["expected_routes"] = (
+            [0, 0, 1, 1, 1, 1, 1, 1] if _case["group"] == "long_heavy"
+            else [0, 0, 0, 0, 1, 1, 1, 1])
+        _overflow_case["expected_overflow"] = 0
+    SUITES["traffic-overflow"][_overflow_name] = _overflow_case
+
 
 def options() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
@@ -291,6 +314,8 @@ def command(binary: Path, model: dict, case: dict,
             "--continuous-arrival-steps",
             ",".join(map(str, case["arrivals"])),
         ])
+    if case.get("overflow"):
+        result.extend(["--continuous-bucket-overflow", "true"])
     return result
 
 
@@ -311,6 +336,8 @@ def validate(record: dict, model: dict, case_name: str, case: dict,
         "deterministic_across_steps": True,
         "bucketed_cache": bool(case.get("buckets")),
         "arrival_steps": case.get("arrivals", [0] * len(case["prompts"])),
+        "continuous_bucket_overflow": bool(case.get("overflow")),
+        "overflow_routed_requests": int(case.get("expected_overflow", 0)),
     }
     if any(record.get(key) != value for key, value in required.items()):
         raise RuntimeError(f"{model['name']} {case_name} changed its serving contract")
@@ -332,6 +359,7 @@ def validate(record: dict, model: dict, case_name: str, case: dict,
             expected_routes.append(next(
                 index for index, bucket in enumerate(expected_buckets)
                 if required_tokens <= int(bucket["max_sequence_length"])))
+    expected_routes = case.get("expected_routes", expected_routes)
     if record.get("continuous_cache_buckets") != expected_buckets or \
             record.get("request_bucket_indices") != expected_routes:
         raise RuntimeError(f"{model['name']} {case_name} has invalid bucket routing")
@@ -375,6 +403,26 @@ def token_difference(reference: list[list[int]], actual: list[list[int]]) -> dic
         "differing_request_count": len(differing_requests),
         "differing_requests": differing_requests,
         "first_difference": first,
+    }
+
+
+def focused_policy_summary(selected: list[dict], aggregate: dict,
+                           focus: list[int]) -> dict:
+    return {
+        "raw": selected,
+        "aggregate": aggregate,
+        "focus_ttft_p50_ms": statistics.median(
+            percentile([row["request_ttft_ms"][index] for index in focus], 0.50)
+            for row in selected),
+        "focus_ttft_p95_ms": statistics.median(
+            percentile([row["request_ttft_ms"][index] for index in focus], 0.95)
+            for row in selected),
+        "focus_completion_p50_ms": statistics.median(
+            percentile([row["request_completion_ms"][index]
+                        for index in focus], 0.50) for row in selected),
+        "focus_completion_p95_ms": statistics.median(
+            percentile([row["request_completion_ms"][index]
+                        for index in focus], 0.95) for row in selected),
     }
 
 
@@ -607,26 +655,8 @@ def main() -> int:
                                      if row.get("model") == model["name"] and
                                      row.get("case") == case_name)
                     focus = case["focus_indices"]
-                    by_policy[case["policy"]] = {
-                        "raw": selected,
-                        "aggregate": aggregate,
-                        "focus_ttft_p50_ms": statistics.median(
-                            percentile([row["request_ttft_ms"][index]
-                                        for index in focus], 0.50)
-                            for row in selected),
-                        "focus_ttft_p95_ms": statistics.median(
-                            percentile([row["request_ttft_ms"][index]
-                                        for index in focus], 0.95)
-                            for row in selected),
-                        "focus_completion_p50_ms": statistics.median(
-                            percentile([row["request_completion_ms"][index]
-                                        for index in focus], 0.50)
-                            for row in selected),
-                        "focus_completion_p95_ms": statistics.median(
-                            percentile([row["request_completion_ms"][index]
-                                        for index in focus], 0.95)
-                            for row in selected),
-                    }
+                    by_policy[case["policy"]] = focused_policy_summary(
+                        selected, aggregate, focus)
                 uniform = by_policy["uniform"]
                 bucketed = by_policy["bucketed"]
                 difference = token_difference(
@@ -665,6 +695,79 @@ def main() -> int:
                     "bucketed_focus_completion_p95_ms":
                         bucketed["focus_completion_p95_ms"],
                 })
+    overflow_comparisons = []
+    if args.suite == "traffic-overflow":
+        for model in models:
+            for group in ("short_heavy", "long_heavy", "delayed"):
+                cases = [(name, case) for name, case in SUITES[args.suite].items()
+                         if case["group"] == group]
+                by_policy = {}
+                for case_name, case in cases:
+                    selected = [row for row in rows
+                                if row.get("model") == model["name"] and
+                                row.get("case") == case_name and
+                                row.get("status") == "pass"]
+                    aggregate = next(row for row in aggregates
+                                     if row.get("model") == model["name"] and
+                                     row.get("case") == case_name)
+                    by_policy[case["policy"]] = focused_policy_summary(
+                        selected, aggregate, case["focus_indices"])
+                uniform = by_policy["uniform"]
+                fixed = by_policy["fixed"]
+                overflow = by_policy["overflow"]
+                fixed_difference = token_difference(
+                    fixed["raw"][0]["generated_tokens"],
+                    overflow["raw"][0]["generated_tokens"])
+                uniform_difference = token_difference(
+                    uniform["raw"][0]["generated_tokens"],
+                    overflow["raw"][0]["generated_tokens"])
+                overflow_comparisons.append({
+                    "model": model["name"],
+                    "group": group,
+                    "focus_indices": next(case["focus_indices"]
+                                          for _, case in cases),
+                    "token_difference_vs_fixed": fixed_difference,
+                    "token_difference_vs_uniform": uniform_difference,
+                    "overflow_routes": overflow["raw"][0][
+                        "request_bucket_indices"],
+                    "overflow_routed_requests": overflow["raw"][0][
+                        "overflow_routed_requests"],
+                    "overflow_over_fixed_tps": (
+                        overflow["aggregate"]["tokens_per_second_p50"] /
+                        fixed["aggregate"]["tokens_per_second_p50"]),
+                    "overflow_over_fixed_focus_ttft_p50": (
+                        overflow["focus_ttft_p50_ms"] /
+                        fixed["focus_ttft_p50_ms"]),
+                    "overflow_over_fixed_focus_ttft_p95": (
+                        overflow["focus_ttft_p95_ms"] /
+                        fixed["focus_ttft_p95_ms"]),
+                    "overflow_over_fixed_focus_completion_p50": (
+                        overflow["focus_completion_p50_ms"] /
+                        fixed["focus_completion_p50_ms"]),
+                    "overflow_over_fixed_focus_completion_p95": (
+                        overflow["focus_completion_p95_ms"] /
+                        fixed["focus_completion_p95_ms"]),
+                    "overflow_over_uniform_tps": (
+                        overflow["aggregate"]["tokens_per_second_p50"] /
+                        uniform["aggregate"]["tokens_per_second_p50"]),
+                    "overflow_over_uniform_focus_ttft_p95": (
+                        overflow["focus_ttft_p95_ms"] /
+                        uniform["focus_ttft_p95_ms"]),
+                    "overflow_over_uniform_focus_completion_p95": (
+                        overflow["focus_completion_p95_ms"] /
+                        uniform["focus_completion_p95_ms"]),
+                    "fixed_focus_ttft_p95_ms": fixed["focus_ttft_p95_ms"],
+                    "overflow_focus_ttft_p95_ms": overflow[
+                        "focus_ttft_p95_ms"],
+                    "uniform_focus_ttft_p95_ms": uniform[
+                        "focus_ttft_p95_ms"],
+                    "fixed_focus_completion_p95_ms": fixed[
+                        "focus_completion_p95_ms"],
+                    "overflow_focus_completion_p95_ms": overflow[
+                        "focus_completion_p95_ms"],
+                    "uniform_focus_completion_p95_ms": uniform[
+                        "focus_completion_p95_ms"],
+                })
     execution_status = "pass" if all(row["status"] == "pass" for row in rows) \
         else "complete_with_recorded_limits"
     accuracy_failures = (
@@ -676,7 +779,11 @@ def main() -> int:
             for row in bucket_sweeps)) or (
         args.suite == "traffic-skew" and any(
             row["token_difference"]["exact"] is not True
-            for row in traffic_comparisons))
+            for row in traffic_comparisons)) or (
+        args.suite == "traffic-overflow" and any(
+            row["token_difference_vs_fixed"]["exact"] is not True or
+            row["token_difference_vs_uniform"]["exact"] is not True
+            for row in overflow_comparisons))
     summary = {
         "schema_version": 1,
         "track": "official_continuous_serving_matrix",
@@ -695,6 +802,7 @@ def main() -> int:
         "bucket_comparisons": bucket_comparisons,
         "bucket_sweeps": bucket_sweeps,
         "traffic_comparisons": traffic_comparisons,
+        "overflow_comparisons": overflow_comparisons,
         "pytorch_boundary": "not measured; no variable-position PyTorch serving oracle",
     }
     (args.output_directory / "summary.json").write_text(

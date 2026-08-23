@@ -67,6 +67,7 @@ struct Options {
     std::string continuous_arrival_steps;
     bool continuous_prefill_batch = true;
     bool continuous_diagnostics = false;
+    bool continuous_bucket_overflow = false;
     std::filesystem::path trace_output;
     std::int64_t trace_max_elements = 4096;
     int bf16_algorithm_index = -1;
@@ -165,6 +166,14 @@ Options options(int argc, char** argv) {
             }
             result.continuous_prefill_batch = value == "true";
         }
+        else if (name == "--continuous-bucket-overflow") {
+            const std::string value = argv[index + 1];
+            if (value != "true" && value != "false") {
+                throw std::invalid_argument(
+                    "--continuous-bucket-overflow must be true or false");
+            }
+            result.continuous_bucket_overflow = value == "true";
+        }
         else if (name == "--trace-output") {
             result.trace_output = argv[index + 1];
         }
@@ -251,6 +260,11 @@ Options options(int argc, char** argv) {
         (result.workload != "continuous" || result.continuous_diagnostics)) {
         throw std::invalid_argument(
             "--continuous-cache-buckets requires continuous workload without diagnostics");
+    }
+    if (result.continuous_bucket_overflow &&
+        result.continuous_cache_buckets.empty()) {
+        throw std::invalid_argument(
+            "--continuous-bucket-overflow requires cache buckets");
     }
     if (!result.continuous_prompt_offsets.empty() &&
         result.workload != "continuous") {
@@ -565,6 +579,7 @@ struct ContinuousOfficialRun {
     bool bucketed_cache = false;
     std::vector<microllm::inference::LengthBucketConfig> cache_buckets;
     std::vector<std::size_t> request_bucket_indices;
+    std::int64_t overflow_routed_requests = 0;
 };
 
 double percentile(std::vector<double> values, double quantile) {
@@ -586,7 +601,8 @@ ContinuousOfficialRun run_continuous_official(
     const std::vector<std::int32_t>& arrival_steps,
     std::int64_t slots, const std::vector<microllm::DType>& cache_dtypes,
     bool batch_equal_length_prefill, bool capture_diagnostics,
-    const std::vector<microllm::inference::LengthBucketConfig>& buckets) {
+    const std::vector<microllm::inference::LengthBucketConfig>& buckets,
+    bool overflow_to_larger_bucket) {
     if (prompts.size() != new_token_lengths.size() ||
         prompts.size() != arrival_steps.size()) {
         throw std::invalid_argument(
@@ -639,6 +655,7 @@ ContinuousOfficialRun run_continuous_official(
             result.request_completion_ms.push_back(
                 snapshot.completion_latency_ms);
         }
+        return ids;
     };
     if (buckets.empty()) {
         microllm::inference::ContinuousBatchScheduler scheduler(
@@ -648,7 +665,7 @@ ContinuousOfficialRun run_continuous_official(
                     .kv_cache_layer_dtypes = cache_dtypes,
                     .batch_equal_length_prefill = batch_equal_length_prefill,
                     .capture_selection_diagnostics = capture_diagnostics});
-        execute(scheduler);
+        (void)execute(scheduler);
         result.metrics = scheduler.metrics();
         result.diagnostics = scheduler.selection_diagnostics();
     } else {
@@ -656,8 +673,9 @@ ContinuousOfficialRun run_continuous_official(
             model, {.buckets = buckets,
                     .kv_cache_dtype = cache_dtypes.front(),
                     .kv_cache_layer_dtypes = cache_dtypes,
-                    .batch_equal_length_prefill = batch_equal_length_prefill});
-        execute(scheduler);
+                    .batch_equal_length_prefill = batch_equal_length_prefill,
+                    .overflow_to_larger_bucket = overflow_to_larger_bucket});
+        const auto ids = execute(scheduler);
         const auto bucketed = scheduler.metrics();
         result.bucketed_cache = true;
         result.cache_buckets = buckets;
@@ -670,6 +688,7 @@ ContinuousOfficialRun run_continuous_official(
         result.metrics.active_cache_bytes = bucketed.active_cache_bytes;
         result.metrics.peak_active_cache_bytes =
             bucketed.peak_active_cache_bytes;
+        result.overflow_routed_requests = bucketed.overflow_routed_requests;
         for (const auto& child : bucketed.buckets) {
             result.metrics.submitted_requests += child.submitted_requests;
             result.metrics.completed_requests += child.completed_requests;
@@ -697,17 +716,10 @@ ContinuousOfficialRun run_continuous_official(
                 child.inactive_rows_skipped;
             result.metrics.selection_calls += child.selection_calls;
         }
-        result.request_bucket_indices.reserve(prompts.size());
-        for (std::size_t index = 0; index < prompts.size(); ++index) {
-            const auto required = static_cast<std::int64_t>(prompts[index].size()) +
-                                  new_token_lengths[index];
-            const auto found = std::find_if(
-                buckets.begin(), buckets.end(),
-                [required](const auto& bucket) {
-                    return required <= bucket.max_sequence_length;
-                });
+        result.request_bucket_indices.reserve(ids.size());
+        for (const auto id : ids) {
             result.request_bucket_indices.push_back(
-                static_cast<std::size_t>(std::distance(buckets.begin(), found)));
+                scheduler.request_bucket(id));
         }
     }
     return result;
@@ -865,7 +877,8 @@ int main(int argc, char** argv) {
                     model, prompts, new_token_lengths, arrival_steps,
                     command.continuous_slots, cache_dtypes,
                     command.continuous_prefill_batch, false,
-                    continuous_buckets);
+                    continuous_buckets,
+                    command.continuous_bucket_overflow);
             }
             microllm::runtime::synchronize(device);
             const auto warmup_finish = std::chrono::steady_clock::now();
@@ -883,7 +896,8 @@ int main(int argc, char** argv) {
                     model, prompts, new_token_lengths, arrival_steps,
                     command.continuous_slots, cache_dtypes,
                     command.continuous_prefill_batch,
-                    command.continuous_diagnostics, continuous_buckets);
+                    command.continuous_diagnostics, continuous_buckets,
+                    command.continuous_bucket_overflow);
                 microllm::runtime::synchronize(device);
                 const auto finish = std::chrono::steady_clock::now();
                 measured_ms += std::chrono::duration<double, std::milli>(
@@ -937,6 +951,10 @@ int main(int argc, char** argv) {
                       << ",\"continuous_slots\":" << command.continuous_slots
                       << ",\"bucketed_cache\":"
                       << (last.bucketed_cache ? "true" : "false")
+                      << ",\"continuous_bucket_overflow\":"
+                      << (command.continuous_bucket_overflow ? "true" : "false")
+                      << ",\"overflow_routed_requests\":"
+                      << last.overflow_routed_requests
                       << ",\"continuous_prefill_batch\":"
                       << (command.continuous_prefill_batch ? "true" : "false")
                       << ",\"continuous_diagnostics\":"

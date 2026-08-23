@@ -1118,6 +1118,7 @@ struct LengthBucketedBatchScheduler::Impl {
     std::int64_t occupied_slot_steps = 0;
     std::int64_t peak_occupied_slots = 0;
     std::size_t peak_active_cache_bytes = 0;
+    std::int64_t overflow_routed_requests = 0;
 
     std::size_t find_index(RequestId id) const {
         const auto found = std::find_if(
@@ -1136,7 +1137,7 @@ struct LengthBucketedBatchScheduler::Impl {
         return requests[find_index(id)];
     }
 
-    std::size_t bucket_for(std::int64_t required_capacity) const {
+    std::size_t smallest_bucket_for(std::int64_t required_capacity) const {
         const auto found = std::find_if(
             config.buckets.begin(), config.buckets.end(),
             [required_capacity](const LengthBucketConfig& bucket) {
@@ -1148,6 +1149,19 @@ struct LengthBucketedBatchScheduler::Impl {
         }
         return static_cast<std::size_t>(
             std::distance(config.buckets.begin(), found));
+    }
+
+    std::size_t bucket_for(std::int64_t required_capacity) const {
+        const auto smallest = smallest_bucket_for(required_capacity);
+        if (!config.overflow_to_larger_bucket) return smallest;
+        for (std::size_t index = smallest; index < schedulers.size(); ++index) {
+            const auto load = schedulers[index].active_request_count() +
+                              schedulers[index].pending_request_count();
+            if (load < static_cast<std::size_t>(config.buckets[index].max_slots)) {
+                return index;
+            }
+        }
+        return smallest;
     }
 
     void observe_terminal_requests() {
@@ -1168,6 +1182,7 @@ struct LengthBucketedBatchScheduler::Impl {
         result.occupied_slot_steps = occupied_slot_steps;
         result.peak_occupied_slots = peak_occupied_slots;
         result.peak_active_cache_bytes = peak_active_cache_bytes;
+        result.overflow_routed_requests = overflow_routed_requests;
         result.buckets.reserve(schedulers.size());
         for (const auto& scheduler : schedulers) {
             const auto current = scheduler.metrics();
@@ -1201,6 +1216,7 @@ RequestId LengthBucketedBatchScheduler::submit(
     const auto required_capacity =
         static_cast<std::int64_t>(prompt.size()) + config.max_new_tokens;
     const auto bucket = impl_->bucket_for(required_capacity);
+    const auto smallest = impl_->smallest_bucket_for(required_capacity);
     const auto local_id =
         impl_->schedulers[bucket].submit(std::move(prompt), std::move(config));
     const auto id = impl_->next_id++;
@@ -1212,6 +1228,7 @@ RequestId LengthBucketedBatchScheduler::submit(
                                .completion_step = is_terminal(local.state)
                                                       ? impl_->scheduler_steps
                                                       : -1});
+    if (bucket != smallest) ++impl_->overflow_routed_requests;
     return id;
 }
 
@@ -1295,6 +1312,10 @@ RequestSnapshot LengthBucketedBatchScheduler::request(RequestId id) const {
     result.arrival_step = routed.arrival_step;
     result.completion_step = routed.completion_step;
     return result;
+}
+
+std::size_t LengthBucketedBatchScheduler::request_bucket(RequestId id) const {
+    return impl_->find(id).bucket;
 }
 
 std::vector<RequestSnapshot> LengthBucketedBatchScheduler::requests() const {

@@ -164,6 +164,26 @@ class HfContinuousMatrixTest(unittest.TestCase):
         self.assertEqual(cases["short_heavy_bucket2"]["focus_indices"],
                          [0, 1, 2, 3, 4, 5])
 
+    def test_traffic_overflow_changes_only_policy_and_expected_routes(self):
+        cases = MATRIX.SUITES["traffic-overflow"]
+        for group in ("short_heavy", "long_heavy", "delayed"):
+            selected = [case for case in cases.values()
+                        if case["group"] == group]
+            self.assertEqual({case["policy"] for case in selected},
+                             {"uniform", "fixed", "overflow"})
+            self.assertEqual(len({tuple(case["prompts"])
+                                  for case in selected}), 1)
+            self.assertEqual(len({tuple(case["outputs"])
+                                  for case in selected}), 1)
+        overflow = cases["short_heavy_overflow"]
+        self.assertEqual(overflow["expected_routes"],
+                         [0, 0, 0, 0, 1, 1, 1, 1])
+        self.assertEqual(overflow["expected_overflow"], 2)
+        command = MATRIX.command(Path("micro"), self.model(), overflow, 1, 3)
+        self.assertEqual(
+            command[command.index("--continuous-bucket-overflow") + 1],
+            "true")
+
     def test_token_difference_keeps_accuracy_failure_as_data(self):
         exact = MATRIX.token_difference([[1, 2], [3]], [[1, 2], [3]])
         self.assertTrue(exact["exact"])
@@ -194,6 +214,8 @@ class HfContinuousMatrixTest(unittest.TestCase):
             "continuous_cache_buckets": [],
             "request_bucket_indices": [],
             "arrival_steps": [0, 0],
+            "continuous_bucket_overflow": False,
+            "overflow_routed_requests": 0,
             "allocated_cache_bytes": expected_cache,
             "peak_active_cache_bytes": expected_cache // 2,
             "kv_cache_byte_utilization": 0.5,

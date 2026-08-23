@@ -662,4 +662,53 @@ TEST(LengthBucketedBatchSchedulerTest,
                  std::invalid_argument);
 }
 
+TEST(LengthBucketedBatchSchedulerTest,
+     CompatibleOverflowBorrowsLargerCapacityWithoutMovingRequests) {
+    const auto config = scheduler_config();
+    model::TransformerModel scheduled_model(config, 179);
+    LengthBucketedBatchScheduler scheduler(
+        scheduled_model,
+        {.buckets = {{.max_sequence_length = 4, .max_slots = 1},
+                     {.max_sequence_length = 16, .max_slots = 2}},
+         .kv_cache_dtype = DType::Float32,
+         .kv_cache_layer_dtypes = {},
+         .batch_equal_length_prefill = true,
+         .overflow_to_larger_bucket = true});
+    const GenerationConfig short_generation{
+        .max_new_tokens = 2, .temperature = 0.0F, .top_k = 1,
+        .seed = 7, .kv_cache_dtype = DType::Float32,
+        .kv_cache_layer_dtypes = {}, .stop_tokens = {}};
+    const GenerationConfig long_generation{
+        .max_new_tokens = 4, .temperature = 0.0F, .top_k = 1,
+        .seed = 11, .kv_cache_dtype = DType::Float32,
+        .kv_cache_layer_dtypes = {}, .stop_tokens = {}};
+    const auto short_home = scheduler.submit({1, 2}, short_generation);
+    const auto short_overflow = scheduler.submit({3, 4}, short_generation);
+    const auto long_home = scheduler.submit(
+        {5, 6, 7, 8, 9, 10, 11, 12}, long_generation);
+    const auto queued_short = scheduler.submit({13, 14}, short_generation);
+    EXPECT_EQ(scheduler.request_bucket(short_home), 0U);
+    EXPECT_EQ(scheduler.request_bucket(short_overflow), 1U);
+    EXPECT_EQ(scheduler.request_bucket(long_home), 1U);
+    EXPECT_EQ(scheduler.request_bucket(queued_short), 0U);
+    EXPECT_EQ(scheduler.metrics().overflow_routed_requests, 1);
+    scheduler.run_until_idle();
+    for (const auto& [id, prompt, generation] : {
+             std::tuple{short_home, std::vector<std::int32_t>{1, 2},
+                        short_generation},
+             std::tuple{short_overflow, std::vector<std::int32_t>{3, 4},
+                        short_generation},
+             std::tuple{long_home,
+                        std::vector<std::int32_t>{5, 6, 7, 8, 9, 10, 11, 12},
+                        long_generation},
+             std::tuple{queued_short, std::vector<std::int32_t>{13, 14},
+                        short_generation}}) {
+        model::TransformerModel independent(config, 179);
+        EXPECT_EQ(scheduler.request(id).generated,
+                  suffix(generate(independent, prompt, generation),
+                         prompt.size()));
+    }
+    EXPECT_THROW((void)scheduler.request_bucket(999), std::out_of_range);
+}
+
 }  // namespace microllm::inference
