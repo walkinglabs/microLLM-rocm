@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "status": "deepseek_turn_found_qwen_boundary_open",
+  "official_boundary_grid": {
+    "workers_passed": 18,
+    "workers_failed": 0,
+    "scale_pairs": 16,
+    "precision_gate_passed": 0
+  },
+  "decision": {
+    "deepseek_top_equal_turn_found": true,
+    "qwen_turn_found": false,
+    "qwen_best_on_activation_upper_boundary": true,
+    "continue_qwen_only_once": true,
+    "default_fp8": false
+  }
+}

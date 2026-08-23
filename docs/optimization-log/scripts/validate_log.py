@@ -4832,6 +4832,68 @@ def validate_fp8_scale_boundary(errors: list[str]) -> tuple[int, int, int]:
         row.get("precision_gate_passed", False) for row in candidates)
 
 
+def validate_fp8_scale_turn(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "125-data"
+    raw = [json.loads(line) for line in
+           (data / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    preflight = [json.loads(line) for line in
+                 (data / "gpu2-preflight.jsonl").read_text(
+                     encoding="utf-8").splitlines()]
+    candidates = [row for row in raw if row.get("policy") == "fp8"]
+    if len(raw) != 18 or len(candidates) != 16 or \
+            any(row.get("status") != "pass" for row in raw) or any(
+                row.get("pre_run_gpu_state", {}).get("vram_percent") != 0 or
+                row.get("pre_run_gpu_state", {}).get("gpu_use_percent", 99) > 1 or
+                row.get("post_run_gpu_state", {}).get("vram_percent", 99) > 2 or
+                row.get("post_run_gpu_state", {}).get("gpu_use_percent", 99) > 4
+                for row in raw):
+        errors.append("FP8 scale turn raw or idle-gate evidence changed")
+    if summary.get("status") != "complete_no_passing_scale" or \
+            summary.get("candidate_count") != 16 or \
+            summary.get("precision_gate_pass_count") != 0 or \
+            summary.get("activation_scales") != [0.4, 0.8]:
+        errors.append("FP8 scale turn summary contract changed")
+    by_model = summary.get("by_model", {})
+    qwen = by_model.get("qwen2.5-0.5b", {})
+    deep = by_model.get("deepseek-r1-distill-qwen-1.5b", {})
+    qwen_best = qwen.get("best_candidate", {})
+    deep_best = deep.get("best_candidate", {})
+    if qwen.get("top_token_equal_count") != 8 or \
+            qwen_best.get("fp8_activation_scale") != 0.8 or \
+            qwen_best.get("fp8_weight_scale") != 0.005 or \
+            not 0.30 < qwen_best.get("root_mean_square_error", 0.0) < 0.31 or \
+            deep.get("top_token_equal_count") != 5 or \
+            deep_best.get("fp8_activation_scale") != 0.4 or \
+            deep_best.get("fp8_weight_scale") != 0.00125 or \
+            not 1.22 < deep_best.get("root_mean_square_error", 0.0) < 1.25 or \
+            deep_best.get("fp8_software_fallback_calls") != 112:
+        errors.append("FP8 scale turn best-candidate evidence changed")
+    deep_low_rms_wrong_top = [row for row in candidates
+                              if row.get("model") ==
+                              "deepseek-r1-distill-qwen-1.5b" and
+                              row.get("fp8_activation_scale") == 0.8 and
+                              row.get("fp8_weight_scale") == 0.01]
+    if len(deep_low_rms_wrong_top) != 1 or \
+            deep_low_rms_wrong_top[0].get("top_token_equal") is not False or \
+            not 0.62 < deep_low_rms_wrong_top[0].get(
+                "root_mean_square_error", 0.0) < 0.64:
+        errors.append("FP8 scale turn top-token counterexample changed")
+    if len(preflight) != 3 or any(
+            row.get("card2", {}).get("GPU use (%)") != "0" or
+            row.get("card2", {}).get("GPU Memory Allocated (VRAM%)") != "0"
+            for row in preflight):
+        errors.append("FP8 scale turn preflight changed")
+    if gates.get("status") != "deepseek_turn_found_qwen_boundary_open" or \
+            gates.get("decision", {}).get("deepseek_top_equal_turn_found") is not True or \
+            gates.get("decision", {}).get("qwen_turn_found") is not False or \
+            gates.get("decision", {}).get("continue_qwen_only_once") is not True:
+        errors.append("FP8 scale turn gates changed")
+    return len(raw), len(candidates), sum(
+        row.get("precision_gate_passed", False) for row in candidates)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -4934,7 +4996,8 @@ def validate_assets(errors: list[str]) -> None:
                  "mi300-int8-probe.svg",
                  "official-fp8-static-scale.svg",
                  "fp8-global-scale-grid.svg",
-                 "fp8-scale-boundary.svg"):
+                 "fp8-scale-boundary.svg",
+                 "fp8-scale-turn.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -5116,6 +5179,8 @@ def main() -> int:
         validate_fp8_global_scale_grid(errors)
     fp8_boundary_raw, fp8_boundary_candidates, fp8_boundary_passed = \
         validate_fp8_scale_boundary(errors)
+    fp8_turn_raw, fp8_turn_candidates, fp8_turn_passed = \
+        validate_fp8_scale_turn(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -5262,6 +5327,7 @@ def main() -> int:
           f"fp8_grid={fp8_grid_raw}/{fp8_grid_candidates}/{fp8_grid_passed} "
           f"fp8_boundary={fp8_boundary_raw}/{fp8_boundary_candidates}/"
           f"{fp8_boundary_passed} "
+          f"fp8_turn={fp8_turn_raw}/{fp8_turn_candidates}/{fp8_turn_passed} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

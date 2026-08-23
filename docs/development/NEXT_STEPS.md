@@ -151,7 +151,9 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   workers execute, but 0/32 scale pairs pass and Qwen's best activation sits at the upper boundary;
 - [x] expand only the activation-scale boundary to 0.1/0.2: both model errors improve,
   0/16 pass, and both best candidates land at the new upper boundary;
-- [ ] test activation scale 0.4/0.8 to find the turn before closing the global-scale direction;
+- [x] test activation scale 0.4/0.8: DeepSeek's top-equal RMS turns upward, while
+  Qwen improves to 0.303 but remains six times over the gate at the upper boundary;
+- [ ] run one Qwen-only 1.6/3.2 boundary closure, then stop global-scale search;
 - [ ] replace global FP8 scales with weight per-tensor and activation per-row/token amax,
   starting from saturation/trace evidence rather than top-token search;
 - [ ] expert/tensor/data parallel weight placement and communication;

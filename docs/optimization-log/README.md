@@ -612,6 +612,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/123-data/](experiments/123-data/) | 34条fresh-process reference/scale候选和0/32过门证据 |
 | [assets/fp8-scale-boundary.svg](assets/fp8-scale-boundary.svg) | activation上边界扩展后的官方模型RMS曲线 |
 | [experiments/124-data/](experiments/124-data/) | 18条0.1/0.2边界扩展和0/16过门证据 |
+| [assets/fp8-scale-turn.svg](assets/fp8-scale-turn.svg) | Qwen/DeepSeek全局scale误差曲线的分叉 |
+| [experiments/125-data/](experiments/125-data/) | 18条0.4/0.8边界扩展和top-token反例 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

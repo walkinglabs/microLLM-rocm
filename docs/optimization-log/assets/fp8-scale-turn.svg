@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="570" viewBox="0 0 1040 570" role="img" aria-labelledby="title desc">
+  <title id="title">FP8 activation scale error turn</title><desc id="desc">DeepSeek top-equal RMS turns upward while Qwen continues downward at activation scale 0.8.</desc>
+  <rect width="1040" height="570" rx="18" fill="#0b1020"/>
+  <text x="52" y="52" fill="#f8fafc" font-size="28" font-family="sans-serif" font-weight="700">FP8 scale：DeepSeek 已转弯，Qwen 仍在边界</text>
+  <text x="52" y="82" fill="#94a3b8" font-size="16" font-family="sans-serif">完整logits门优先；DeepSeek 0.8的低RMS因top翻转而被拒绝</text>
+  <g stroke="#334155"><line x1="100" y1="450" x2="940" y2="450"/><line x1="100" y1="340" x2="940" y2="340"/><line x1="100" y1="230" x2="940" y2="230"/><line x1="100" y1="120" x2="940" y2="120"/></g>
+  <g fill="#94a3b8" font-size="14" font-family="sans-serif"><text x="58" y="455">0</text><text x="50" y="345">1.0</text><text x="50" y="235">2.0</text><text x="50" y="125">3.0</text><text x="135" y="490">0.1</text><text x="350" y="490">0.2</text><text x="570" y="490">0.4</text><text x="790" y="490">0.8</text></g>
+  <line x1="100" y1="444.5" x2="940" y2="444.5" stroke="#fbbf24" stroke-width="3" stroke-dasharray="10 8"/>
+  <polyline points="160,316 380,376 600,398 820,417" fill="none" stroke="#38bdf8" stroke-width="5"/>
+  <polyline points="160,191 380,321 600,314 820,246" fill="none" stroke="#fb7185" stroke-width="5"/>
+  <g fill="#38bdf8"><circle cx="160" cy="316" r="7"/><circle cx="380" cy="376" r="7"/><circle cx="600" cy="398" r="7"/><circle cx="820" cy="417" r="7"/></g>
+  <g fill="#fb7185"><circle cx="160" cy="191" r="7"/><circle cx="380" cy="321" r="7"/><circle cx="600" cy="314" r="7"/><circle cx="820" cy="246" r="7"/></g>
+  <g fill="#e2e8f0" font-size="14" font-family="sans-serif"><text x="136" y="306">1.22</text><text x="356" y="366">0.669</text><text x="576" y="388">0.472</text><text x="796" y="407">0.303</text><text x="136" y="213">2.35</text><text x="356" y="343">1.17</text><text x="576" y="336">1.24</text><text x="796" y="268">1.84</text></g>
+  <g font-family="sans-serif" font-size="16"><rect x="285" y="530" width="16" height="16" fill="#38bdf8"/><text x="311" y="544" fill="#cbd5e1">Qwen top-equal best</text><rect x="555" y="530" width="16" height="16" fill="#fb7185"/><text x="581" y="544" fill="#cbd5e1">DeepSeek top-equal best</text></g>
+</svg>

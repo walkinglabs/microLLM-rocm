@@ -2337,3 +2337,11 @@ top token的候选RMS为2.54。Qwen最优activation正好落在0.05上边界，�
 最佳点又都在0.2上边界，因此下一节点继续0.4/0.8，找到转折后才停止全局scale搜索。
 
 ![FP8 scale boundary](assets/fp8-scale-boundary.svg)
+
+## 142. Experiment 125：DeepSeek转弯，Qwen继续下降
+
+activation 0.4/0.8的18个进程全部执行、0/16过门。DeepSeek保留top token的最佳RMS从1.170
+回升到1.235，误差谷底已经越过；它在0.8的更低RMS会翻转top token，因此被门拒绝。Qwen继续
+降到0.303但仍是门的6倍且位于边界。停止DeepSeek搜索，Qwen只再扩一次1.6/3.2。
+
+![FP8 scale turn](assets/fp8-scale-turn.svg)
