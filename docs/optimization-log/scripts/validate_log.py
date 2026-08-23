@@ -5238,6 +5238,53 @@ def validate_fp8_activation_row_range(errors: list[str]) -> tuple[int, int, int]
     return len(raw), qwen_norm.get("quarter_range_rows", 0), len(traces)
 
 
+def validate_fp8_ffn_outer_row(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "131-data"
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines()]
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    pilot = [json.loads(line) for line in (data / "pilot-raw.jsonl").read_text(
+        encoding="utf-8").splitlines()]
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    if len(raw) != 36 or any(row.get("status") != "pass" for row in raw) or any(
+            row.get("pre_run_gpu_state", {}).get("vram_percent", 99) > 1 or
+            row.get("pre_run_gpu_state", {}).get("gpu_use_percent", 99) > 1 or
+            row.get("post_run_gpu_state", {}).get("vram_percent", 99) > 2 or
+            row.get("post_run_gpu_state", {}).get("gpu_use_percent", 99) > 4
+            for row in raw):
+        errors.append("FFN outer-row raw or idle-gate evidence changed")
+    aggregates = summary.get("aggregates", [])
+    fp8 = [row for row in aggregates if row.get("policy") == "fp8"]
+    if summary.get("status") != "complete_with_recorded_accuracy_failures" or \
+            summary.get("accuracy_failure_count") != 4 or len(fp8) != 4 or \
+            summary.get("fp8_activation_scale_mode") != "ffn-outer-row" or \
+            summary.get("fp8_activation_scale") != 0.2 or \
+            summary.get("fp8_activation_minimum_scale") != 0.0001 or any(
+                row.get("precision_gate_passed_all") is not False or
+                row.get("top_token_equal_all") is not True or
+                row.get("fp8_outer_row_native_statuses") != [0]
+                for row in fp8):
+        errors.append("FFN outer-row aggregate contract changed")
+    by_key = {(row["model"], row["context"]): row for row in fp8}
+    expected = {
+        ("qwen2.5-0.5b", 8): (0.18, 0.20, 1600, 1700, 288),
+        ("qwen2.5-0.5b", 512): (0.39, 0.41, 68000, 69500, 288),
+        ("deepseek-r1-distill-qwen-1.5b", 8): (0.21, 0.23, 940, 1000, 336),
+        ("deepseek-r1-distill-qwen-1.5b", 512): (0.23, 0.24, 35000, 35800, 336),
+    }
+    for key, (rl, rh, tl, th, calls) in expected.items():
+        row = by_key[key]
+        if not rl < row.get("root_mean_square_error_max", 0) < rh or \
+                not tl < row.get("prefill_tokens_per_second_p50", 0) < th or \
+                row.get("fp8_outer_row_fallback_calls_p50") != calls:
+            errors.append(f"FFN outer-row result changed for {key}")
+    if len(pilot) != 3 or gates.get("full_release", {}).get("passed") != 344 or \
+            gates.get("decision", {}).get("ffn_only_routing_retained") is not True or \
+            gates.get("decision", {}).get("fp8_model_policy_accepted") is not False:
+        errors.append("FFN outer-row pilot/gates changed")
+    return len(raw), len(fp8), len(pilot)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -5346,7 +5393,8 @@ def validate_assets(errors: list[str]) -> None:
                  "fp8-tensor-amax-weight.svg",
                  "fp8-activation-range.svg",
                  "fp8-device-activation-amax.svg",
-                 "fp8-activation-row-range.svg"):
+                 "fp8-activation-row-range.svg",
+                 "fp8-ffn-outer-row.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -5540,6 +5588,8 @@ def main() -> int:
         validate_fp8_device_activation_amax(errors)
     row_range_raw, row_range_quarter, row_range_traces = \
         validate_fp8_activation_row_range(errors)
+    ffn_row_raw, ffn_row_failures, ffn_row_pilot = \
+        validate_fp8_ffn_outer_row(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -5695,6 +5745,7 @@ def main() -> int:
           f"device_amax={device_amax_raw}/{device_amax_failures}/"
           f"{device_amax_pilot} "
           f"row_range={row_range_raw}/{row_range_quarter}/{row_range_traces} "
+          f"ffn_row={ffn_row_raw}/{ffn_row_failures}/{ffn_row_pilot} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

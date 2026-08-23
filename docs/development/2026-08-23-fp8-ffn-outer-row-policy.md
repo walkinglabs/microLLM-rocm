@@ -19,4 +19,6 @@ HIP一层门证明：
 - 输出全部有限。
 
 完整Release/MI300回归344/344通过，2个条件跳过；sanitizer定向5/5。当前仅为opt-in候选，
-官方Qwen/DeepSeek完整logits、吞吐和fallback次数尚未测量，因此不是默认模型策略。
+官方36/36执行：T512相对全Tensor动态恢复14–16倍，但0/4精度门通过，且所有288/336次
+outer-row调用均为软件fallback。因此保留opt-in路由，不接受默认；详见
+[Experiment 131](../optimization-log/experiments/131-fp8-ffn-outer-row.md)。

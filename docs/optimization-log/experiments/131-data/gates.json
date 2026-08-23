@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "status": "keep_ffn_row_policy_reject_default_and_runtime_fallback",
+  "full_release": {"passed": 344, "failed": 0, "skipped": 2},
+  "sanitizer_targeted": {"passed": 5, "failed": 0},
+  "official_matrix": {"workers_passed": 36, "fp8_precision_failures": 4},
+  "decision": {
+    "ffn_only_routing_retained": true,
+    "outer_row_software_fallback_accepted_as_default": false,
+    "fp8_model_policy_accepted": false,
+    "default_fp8": false
+  }
+}

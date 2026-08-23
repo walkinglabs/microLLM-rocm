@@ -172,7 +172,8 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   gfx942 returns status 3 for native outer-vector, so cache the capability and use device BF16 fallback;
 - [x] connect OuterRow only to FFN gate/up/down, with exact three-Linears-per-layer,
   scale-byte, zero-payload-transfer and explicit fallback-counter gates;
-- [ ] measure official Qwen/DeepSeek FFN-only row-scale precision, throughput and fallback cost;
+- [x] measure official FFN-only row scale: T512 recovers 14–16x versus full Tensor amax,
+  but 0/4 precision gates pass and all 288/336 row calls are BF16 software fallback;
 - [ ] replace the one-block reduction only if the next accepted numerical policy reuses it;
 - [ ] replace global FP8 scales with weight per-tensor and activation per-row/token amax,
   starting from saturation/trace evidence rather than top-token search;

@@ -624,6 +624,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/129-data/](experiments/129-data/) | 36条正式FP32/BF16/dynamic-FP8与3条pilot |
 | [assets/fp8-activation-row-range.svg](assets/fp8-activation-row-range.svg) | Attention/FFN内部token row范围差异 |
 | [experiments/130-data/](experiments/130-data/) | 208个Tensor的全部逐row amax与full-trace manifest |
+| [assets/fp8-ffn-outer-row.svg](assets/fp8-ffn-outer-row.svg) | FFN row策略的速度恢复、精度红门与fallback次数 |
+| [experiments/131-data/](experiments/131-data/) | 36条正式矩阵与3条pilot |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

@@ -2389,3 +2389,11 @@ Tensor内部row/token范围，再决定粒度。
 仓库保留全部逐row amax、复现命令和trace manifest。
 
 ![FP8 activation row range](assets/fp8-activation-row-range.svg)
+
+## 148. Experiment 131：T512恢复十六倍，四个门仍红
+
+FFN-only OuterRow把Qwen/Deep T512相对全Tensor动态提升14.1×/16.2×，达到BF16的约0.71–0.75×。
+DeepSeek RMS继续下降，Qwen T512却退到0.396；四个精度门仍全失败。gfx942 native status为0，
+每worker精确记录288/336次device BF16 fallback。保留路由与计数，拒绝默认模型策略。
+
+![FFN outer row](assets/fp8-ffn-outer-row.svg)

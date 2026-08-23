@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="570" viewBox="0 0 1040 570" role="img" aria-labelledby="title desc">
+  <title id="title">FFN outer-row FP8 speed recovery and accuracy</title><desc id="desc">FFN-only row scaling recovers long-context throughput but does not pass precision.</desc>
+  <rect width="1040" height="570" rx="18" fill="#0b1020"/><text x="52" y="52" fill="#f8fafc" font-size="28" font-family="sans-serif" font-weight="700">FFN-only row scale：速度恢复，精度仍红</text>
+  <text x="52" y="82" fill="#94a3b8" font-size="16" font-family="sans-serif">蓝=相对Exp129速度；红=RMS/0.05门（高度封顶）</text>
+  <g fill="#e2e8f0" font-size="17" font-family="sans-serif"><text x="100" y="140">Q T8</text><text x="330" y="140">Q T512</text><text x="560" y="140">D T8</text><text x="790" y="140">D T512</text></g>
+  <line x1="70" y1="450" x2="970" y2="450" stroke="#334155"/>
+  <g><rect x="105" y="417" width="70" height="33" fill="#38bdf8"/><rect x="180" y="167" width="70" height="283" fill="#fb7185"/><rect x="335" y="167" width="70" height="283" fill="#38bdf8"/><rect x="410" y="150" width="70" height="300" fill="#fb7185"/><rect x="565" y="415" width="70" height="35" fill="#38bdf8"/><rect x="640" y="150" width="70" height="300" fill="#fb7185"/><rect x="795" y="150" width="70" height="300" fill="#38bdf8"/><rect x="870" y="150" width="70" height="300" fill="#fb7185"/></g>
+  <g fill="#f8fafc" font-size="14" font-family="sans-serif"><text x="100" y="408">1.10×</text><text x="178" y="158">3.78×门</text><text x="330" y="158">14.1×</text><text x="404" y="140">7.92×门</text><text x="560" y="406">1.16×</text><text x="634" y="140">4.34×门</text><text x="790" y="140">16.2×</text><text x="864" y="140">4.71×门</text></g>
+  <g fill="#cbd5e1" font-size="15" font-family="sans-serif"><text x="120" y="500">Qwen 288 fallback/worker</text><text x="570" y="500">DeepSeek 336 fallback/worker</text><text x="155" y="545">native status=0；保留路由，不接受软件fallback或模型精度为默认</text></g>
+</svg>
