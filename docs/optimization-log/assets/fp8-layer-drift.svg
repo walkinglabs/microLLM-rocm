@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="580" viewBox="0 0 1040 580" role="img" aria-labelledby="title desc">
+  <title id="title">FP8 relative L2 drift across transformer blocks</title><desc id="desc">Qwen error jumps at block 21 while DeepSeek grows at blocks 26 and 27 before logits amplification.</desc>
+  <rect width="1040" height="580" rx="18" fill="#0b1020"/><text x="52" y="52" fill="#f8fafc" font-size="28" font-family="sans-serif" font-weight="700">FP8逐层误差：Q21与Deep27是定位点</text>
+  <text x="52" y="82" fill="#94a3b8" font-size="16" font-family="sans-serif">relative-L2示意；完整56阶段数值在TSV/JSON</text>
+  <line x1="80" y1="450" x2="960" y2="450" stroke="#334155"/>
+  <polyline points="100,397 130,400 160,440 190,438 220,436 250,433 280,432 310,431 340,430 370,428 400,426 430,424 460,422 490,420 520,418 550,415 580,412 610,409 640,405 670,400 700,390 730,195 760,260 790,210" fill="none" stroke="#38bdf8" stroke-width="5"/>
+  <polyline points="100,380 130,420 160,418 190,417 220,418 250,418 280,419 310,420 340,421 370,422 400,422 430,423 460,423 490,423 520,423 550,423 580,423 610,423 640,423 670,422 700,420 730,417 760,413 790,405 820,390 850,360 880,285" fill="none" stroke="#fb7185" stroke-width="5"/>
+  <g fill="#f8fafc" font-family="sans-serif" font-size="14"><text x="705" y="180">Q block21 21.2%</text><text x="820" y="345">D block26 3.9%</text><text x="850" y="270">D block27 11.5%</text></g>
+  <g fill="#cbd5e1" font-family="sans-serif" font-size="15"><text x="110" y="510">Qwen：block20→21是最大正跳</text><text x="550" y="510">Deep：block27最大隐藏误差，logits再放大</text><text x="235" y="550">下一步只展开两个关键block内部，不全模型盲目trace</text></g>
+</svg>

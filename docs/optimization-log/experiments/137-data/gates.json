@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "status": "localize_qwen21_deep27_for_block_detail",
+  "workers_passed": 4,
+  "decision": {
+    "qwen_detail_layer": 21,
+    "deepseek_detail_layer": 27,
+    "complete_values_verified": true,
+    "trace_is_performance_evidence": false
+  }
+}

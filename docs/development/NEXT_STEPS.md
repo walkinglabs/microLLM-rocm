@@ -188,7 +188,9 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   improves 12.81%/12.39%, with Deep FP8 reaching 1.028x BF16 but failing precision;
 - [x] re-profile shared T512: dynamic time drops 45.6%/43.6% and attributable
   forward time drops 20.5%/17.1%, while GEMM/other calls stay unchanged;
-- [ ] prioritize per-layer FP8 precision attribution/calibration before more GEMM complexity;
+- [x] capture complete FP32/FP8 block outputs: Qwen jumps at block21, Deep hidden
+  error grows at block27 and logits amplify it further;
+- [ ] trace Qwen block21 and Deep block27 internal stages to isolate the first large drift;
 - [ ] replace the one-block reduction only if the next accepted numerical policy reuses it;
 - [ ] replace global FP8 scales with weight per-tensor and activation per-row/token amax,
   starting from saturation/trace evidence rather than top-token search;

@@ -5486,6 +5486,38 @@ def validate_fp8_shared_profile(errors: list[str]) -> tuple[int, int, int]:
     return qwen["kernel_total"]["calls"] + deep["kernel_total"]["calls"], 96, 113
 
 
+def validate_fp8_layer_drift(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "137-data"
+    analysis = json.loads((data / "analysis.json").read_text(encoding="utf-8"))
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    manifest = json.loads((data / "trace-manifest.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    if analysis.get("all_stage_counts_match") is not True or \
+            analysis.get("all_values_complete_no_truncation") is not True or \
+            len(summary.get("summaries", [])) != 2:
+        errors.append("FP8 layer drift completeness changed")
+    models = {row["model"]: row for row in analysis["models"]}
+    qwen = models["qwen2.5-0.5b"]
+    deep = models["deepseek-r1-distill-qwen-1.5b"]
+    if qwen["expected_stage_count"] != 26 or \
+            qwen["largest_relative_l2_jump"]["to"] != "inference.blocks.21" or \
+            not 0.20 < qwen["largest_relative_l2_jump"]["delta_relative_l2"] < 0.21 or \
+            deep["expected_stage_count"] != 30 or \
+            deep["maximum_max_abs_stage"]["name"] != "inference.blocks.27" or \
+            not 0.24 < deep["final_logits"]["relative_l2"] < 0.25:
+        errors.append("FP8 layer drift localization changed")
+    traces = manifest.get("traces", [])
+    if len(traces) != 4 or sum(row["selected_stages"] for row in traces) != 112 or \
+            sum(row["truncated"] for row in traces) != 0 or \
+            sum(row["selected_values"] for row in traces) != 1678848:
+        errors.append("FP8 layer drift trace manifest changed")
+    if gates.get("decision", {}).get("qwen_detail_layer") != 21 or \
+            gates.get("decision", {}).get("deepseek_detail_layer") != 27 or \
+            gates.get("decision", {}).get("complete_values_verified") is not True:
+        errors.append("FP8 layer drift gates changed")
+    return 56, 21, 27
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -5600,7 +5632,8 @@ def validate_assets(errors: list[str]) -> None:
                  "fp8-multiblock-amax.svg",
                  "fp8-dynamic-activation-profile.svg",
                  "fp8-shared-activation-quantization.svg",
-                 "fp8-shared-activation-profile.svg"):
+                 "fp8-shared-activation-profile.svg",
+                 "fp8-layer-drift.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -5806,6 +5839,8 @@ def main() -> int:
         validate_fp8_shared_activation(errors)
     shared_profile_calls, shared_profile_qwen, shared_profile_deep = \
         validate_fp8_shared_profile(errors)
+    layer_drift_stages, layer_drift_qwen, layer_drift_deep = \
+        validate_fp8_layer_drift(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -5970,6 +6005,7 @@ def main() -> int:
           f"shared_activation={shared_raw}/{shared_qwen_calls}/{shared_deep_calls} "
           f"shared_profile={shared_profile_calls}/{shared_profile_qwen}/"
           f"{shared_profile_deep} "
+          f"layer_drift={layer_drift_stages}/{layer_drift_qwen}/{layer_drift_deep} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

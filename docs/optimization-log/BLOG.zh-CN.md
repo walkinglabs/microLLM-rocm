@@ -2437,3 +2437,11 @@ GEMM与other calls不变，隔离归因成立。GEMM现占可归因时间约72%/
 而FP8精度仍差约5倍门槛。暂停增加性能复杂度，转向逐层精度证据。
 
 ![Shared activation profile](assets/fp8-shared-activation-profile.svg)
+
+## 154. Experiment 137：Qwen21层突变，Deep27层放大
+
+FP32/FP8完整block快照显示Qwen block2–20相对误差长期低于1%，block21突然到21.2%；Deep在
+block26/27升到3.9%/11.5%，最终词表投影放大到24.1%。4份trace零截断。下一节点只展开
+Qwen21和Deep27内部子阶段，避免全层盲查。
+
+![FP8 layer drift](assets/fp8-layer-drift.svg)

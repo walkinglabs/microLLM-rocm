@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "source_controlled": false,
+  "traces": [
+    {"model":"qwen2.5-0.5b","policy":"fp32","bytes":11104342,"records":41,"selected_stages":26,"selected_values":331136,"truncated":0},
+    {"model":"qwen2.5-0.5b","policy":"fp8","bytes":11100851,"records":41,"selected_stages":26,"selected_values":331136,"truncated":0},
+    {"model":"deepseek-r1-distill-qwen-1.5b","policy":"fp32","bytes":15519175,"records":45,"selected_stages":30,"selected_values":508288,"truncated":0},
+    {"model":"deepseek-r1-distill-qwen-1.5b","policy":"fp8","bytes":15405906,"records":45,"selected_stages":30,"selected_values":508288,"truncated":0}
+  ]
+}
