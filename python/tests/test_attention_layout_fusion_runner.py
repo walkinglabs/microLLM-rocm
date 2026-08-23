@@ -90,6 +90,17 @@ class AttentionLayoutFusionRunnerTest(unittest.TestCase):
         self.assertEqual(uncached[plan + 1], "false")
         self.assertEqual(cached[plan + 1], "true")
 
+    def test_scale_policy_changes_only_gemm_alpha_route(self):
+        self.args.policy = "scale"
+        explicit = RUNNER.command(self.args, self.model, False)
+        fused = RUNNER.command(self.args, self.model, True)
+        plan = explicit.index("--attention-layout-plan-cache")
+        scale = explicit.index("--attention-gemm-scale-fusion")
+        self.assertEqual(explicit[plan + 1], "false")
+        self.assertEqual(fused[plan + 1], "false")
+        self.assertEqual(explicit[scale + 1], "false")
+        self.assertEqual(fused[scale + 1], "true")
+
     def test_operator_matrix_preserves_batch_head_sequence_width(self):
         shape = MATRIX.parse_shape("qwen:2:14:512:64")
         self.assertEqual(

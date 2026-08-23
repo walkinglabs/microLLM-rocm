@@ -147,6 +147,7 @@ def pytorch_references(actual):
     record(refs, "bf16_qkv_value",
            qkv_input @ tensor([-0.5, 1.25, 0.75], (3, 1)).to(torch.bfloat16).float())
     record(refs, "matmul_readable", matrix_left @ matrix_right)
+    record(refs, "matmul_scaled", (matrix_left @ matrix_right) * -0.25)
     wide_right = tensor([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], (3, 4))
     transposed_left = matrix_left.transpose(0, 1).contiguous()
     transposed_right = wide_right.transpose(0, 1).contiguous()
@@ -636,6 +637,7 @@ class OperatorParityTest(unittest.TestCase):
             "invalid_scale_dtype",
             "invalid_cast_dtype",
             "invalid_matmul_inner",
+            "invalid_matmul_scaled_factor",
             "invalid_bf16_matmul_dtype",
             "invalid_bf16_ffn_shape",
             "invalid_bf16_qkv_shape",

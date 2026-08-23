@@ -2779,3 +2779,18 @@ Deep shape的wall分别快1.067×/1.069×。
 而不是用漂亮小测验覆盖最终考试。
 
 ![Attention layout plan cache discarded](assets/attention-layout-plan-cache-discard.svg)
+
+## 184. Experiment 167：少两个Kernel，也可能把乘法顺序改坏
+
+旧图先算`Q×scale`再GEMM，反向先算`dScore×scale`。hipBLASLt alpha可以直接算
+`scale×(A@B)`，每层少两个Tensor。CPU/PyTorch/HIP都对齐在容差内，profile也证明144次scale
+Kernel归零、dispatch少146次。
+
+但浮点乘法顺序变了，不是bitwise同一件事。正式T512里Qwen只有0.9869×；Deep虽1.0107×，固定
+参数从2.124970913变成2.124971151。loss仍在0.5%门内，却不能无视参数guard。候选少Qwen 96、
+Deep112次allocation，Qwen peak少12.3MB，仍不足以合入默认。
+
+scaled matmul作为通用、可测试原语保留，Attention alpha开关默认false。这一失败说明“Kernel数更少”
+必须同时过速度和数值路径门。
+
+![Attention GEMM scale fusion discarded](assets/attention-gemm-scale-fusion-discard.svg)

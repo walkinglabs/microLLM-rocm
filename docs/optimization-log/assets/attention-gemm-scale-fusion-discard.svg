@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="920" viewBox="0 0 1800 920">
+  <rect width="1800" height="920" fill="#f8fafc"/>
+  <text x="900" y="52" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 167 · GEMM-alpha Attention Scale · Discard Default</text>
+  <text x="900" y="84" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle">Two explicit scale Tensors removed per layer · mixed official-model result · MI300X</text>
+
+  <rect x="55" y="125" width="690" height="650" rx="14" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="400" y="168" font-family="Inter,Arial,sans-serif" font-size="21" fill="#172033" text-anchor="middle" font-weight="700">Mechanism succeeded</text>
+  <rect x="115" y="220" width="570" height="92" rx="10" fill="#fee2e2" stroke="#f87171"/>
+  <text x="400" y="254" font-family="Inter,Arial,sans-serif" font-size="16" fill="#991b1b" text-anchor="middle">old: scale Tensor → GEMM</text>
+  <text x="400" y="286" font-family="monospace" font-size="16" fill="#991b1b" text-anchor="middle">Q*scale · dScore*scale</text>
+  <path d="M400 312 V365" stroke="#64748b" stroke-width="4" marker-end="url(#arrow167)"/>
+  <rect x="115" y="365" width="570" height="92" rx="10" fill="#dcfce7" stroke="#4ade80"/>
+  <text x="400" y="401" font-family="Inter,Arial,sans-serif" font-size="16" fill="#166534" text-anchor="middle">new: hipBLASLt alpha</text>
+  <text x="400" y="433" font-family="monospace" font-size="16" fill="#166534" text-anchor="middle">alpha × (A @ B)</text>
+  <rect x="115" y="515" width="570" height="165" rx="10" fill="#eff6ff" stroke="#93c5fd"/>
+  <text x="400" y="552" font-family="Inter,Arial,sans-serif" font-size="17" fill="#1e40af" text-anchor="middle" font-weight="700">Qwen profile · 3 steps</text>
+  <text x="400" y="592" font-family="Inter,Arial,sans-serif" font-size="18" fill="#334155" text-anchor="middle">scale calls 144 → 0</text>
+  <text x="400" y="626" font-family="Inter,Arial,sans-serif" font-size="16" fill="#334155" text-anchor="middle">dispatches 6,907 → 6,761</text>
+  <text x="400" y="658" font-family="Inter,Arial,sans-serif" font-size="15" fill="#64748b" text-anchor="middle">Kernel 110.67 → 110.04 ms</text>
+
+  <rect x="790" y="125" width="955" height="650" rx="14" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="1268" y="168" font-family="Inter,Arial,sans-serif" font-size="21" fill="#172033" text-anchor="middle" font-weight="700">Official T512 gate failed</text>
+  <rect x="865" y="225" width="370" height="150" rx="10" fill="#fee2e2" stroke="#f87171"/>
+  <text x="1050" y="262" font-family="Inter,Arial,sans-serif" font-size="18" fill="#991b1b" text-anchor="middle" font-weight="700">Qwen</text>
+  <text x="1050" y="310" font-family="Inter,Arial,sans-serif" font-size="31" fill="#991b1b" text-anchor="middle" font-weight="700">0.9869×</text>
+  <text x="1050" y="346" font-family="Inter,Arial,sans-serif" font-size="14" fill="#475569" text-anchor="middle">-96 allocations · peak -12.3 MB</text>
+  <rect x="1300" y="225" width="370" height="150" rx="10" fill="#fff7ed" stroke="#fdba74"/>
+  <text x="1485" y="262" font-family="Inter,Arial,sans-serif" font-size="18" fill="#9a3412" text-anchor="middle" font-weight="700">DeepSeek</text>
+  <text x="1485" y="310" font-family="Inter,Arial,sans-serif" font-size="31" fill="#9a3412" text-anchor="middle" font-weight="700">1.0107×</text>
+  <text x="1485" y="346" font-family="Inter,Arial,sans-serif" font-size="14" fill="#475569" text-anchor="middle">speed passes · parameter equality fails</text>
+  <rect x="865" y="430" width="805" height="130" rx="10" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text x="1268" y="468" font-family="Inter,Arial,sans-serif" font-size="18" fill="#334155" text-anchor="middle" font-weight="700">Rounding order changed</text>
+  <text x="1268" y="507" font-family="monospace" font-size="15" fill="#475569" text-anchor="middle">(Q × scale) @ Kᵀ  ≠ bitwise  scale × (Q @ Kᵀ)</text>
+  <text x="1268" y="537" font-family="Inter,Arial,sans-serif" font-size="14" fill="#64748b" text-anchor="middle">loss stays within tolerance; fixed DeepSeek parameter changes</text>
+  <rect x="865" y="610" width="805" height="90" rx="10" fill="#fee2e2" stroke="#f87171"/>
+  <text x="1268" y="648" font-family="Inter,Arial,sans-serif" font-size="18" fill="#991b1b" text-anchor="middle" font-weight="700">Joint gate: reject</text>
+  <text x="1268" y="678" font-family="Inter,Arial,sans-serif" font-size="14" fill="#475569" text-anchor="middle">Qwen speed fails · DeepSeek parameter guard fails</text>
+
+  <rect x="55" y="825" width="1690" height="66" rx="12" fill="#172033"/>
+  <text x="900" y="854" font-family="Inter,Arial,sans-serif" font-size="18" fill="#ffffff" text-anchor="middle" font-weight="700">Default stays OFF: fewer kernels is evidence about mechanism, not enough evidence for policy</text>
+  <text x="900" y="879" font-family="Inter,Arial,sans-serif" font-size="14" fill="#cbd5e1" text-anchor="middle">Generic scaled matmul remains tested and explicit; Attention routing remains rebuttable</text>
+  <defs><marker id="arrow167" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#64748b"/></marker></defs>
+</svg>

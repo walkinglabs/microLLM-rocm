@@ -41,6 +41,10 @@ int main() {
         microllm::Tensor::from_vector({1.0F, 0.0F}, {1, 1, 1, 2}),
         microllm::Tensor::from_vector({2.0F, 3.0F}, {1, 1, 1, 2}),
         1, 1.0F);
+    const auto scaled_product = microllm::ops::matmul_scaled_with_implementation(
+        microllm::Tensor::from_vector({1.0F, 2.0F}, {1, 2}),
+        microllm::Tensor::from_vector({3.0F, 4.0F}, {2, 1}),
+        0.5F, microllm::ops::MatmulImplementation::Readable);
     microllm::autograd::enable_gradient_accumulation_diagnostics(false);
     microllm::runtime::enable_strided_copy_diagnostics(false);
     microllm::autograd::enable_attention_rope_layout_fusion(false);
@@ -79,6 +83,7 @@ int main() {
             std::vector<float>({1.0F, 1.0F, 1.0F, 1.0F}) ||
         layout_context.to_vector() != std::vector<float>({2.0F, 3.0F}) ||
         gqa_layout_context.to_vector() != std::vector<float>({2.0F, 3.0F}) ||
+        scaled_product.to_vector() != std::vector<float>({5.5F}) ||
         !microllm::autograd::attention_context_layout_fusion_enabled() ||
         attention_plan_stats.entries != 0 || attention_plan_stats.hits != 0 ||
         attention_plan_stats.misses != 0 ||

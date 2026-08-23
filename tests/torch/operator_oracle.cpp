@@ -1,5 +1,6 @@
 #include <iomanip>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -99,6 +100,9 @@ void emit_forward_cases() {
     emit("matmul_readable",
          matmul_with_implementation(matrix_left, matrix_right,
                                     MatmulImplementation::Readable));
+    emit("matmul_scaled", matmul_scaled_with_implementation(
+        matrix_left, matrix_right, -0.25F,
+        MatmulImplementation::Readable));
     const auto wide_right = f32(
         {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}, {3, 4});
     const auto transposed_left = f32({1, 4, 2, 5, 3, 6}, {3, 2});
@@ -423,6 +427,12 @@ void emit_invalid_shape_cases() {
                   (void)cast(Tensor::from_int32_vector({1, 2}, {2}), DType::BFloat16);
               }));
     emit_bool("invalid_matmul_inner", rejected([&] { (void)matmul(matrix, f32({1, 2}, {2, 1, 1})); }));
+    emit_bool("invalid_matmul_scaled_factor", rejected([&] {
+                  (void)matmul_scaled_with_implementation(
+                      matrix, matrix,
+                      std::numeric_limits<float>::infinity(),
+                      MatmulImplementation::Readable);
+              }));
     emit_bool("invalid_bf16_matmul_dtype", rejected([&] {
                   (void)bf16_matmul(matrix, matrix);
               }));

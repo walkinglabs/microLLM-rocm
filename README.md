@@ -94,6 +94,9 @@ needed to run a real training and generation loop:
 - exact interleaved Attention plan-cache statistics and explicit control are available for
   diagnosis, but the default is off: operator wall time improves 1.067×/1.069× on official
   shapes while full Qwen/DeepSeek training reaches only 0.990×/1.001× and fails the 1.01 gate;
+- scaled hipBLASLt matmul exposes finite alpha with CPU/PyTorch/HIP parity, while Attention
+  alpha fusion remains default-off: it deletes every target scale Kernel but yields mixed
+  Qwen/DeepSeek `0.987×/1.011×` throughput and changes the DeepSeek parameter guard;
 - a phase-independent exact-size HIP pool with immediate legacy-default-Stream reuse and strict
   permanent disablement for non-default Streams;
 - a cross-framework trace runner for operator/layer values and latency comparisons.

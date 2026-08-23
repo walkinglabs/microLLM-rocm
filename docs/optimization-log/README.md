@@ -696,6 +696,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/165-post-layout-training-profile.md](experiments/165-post-layout-training-profile.md) | 1步/3步相位差分、关闭路线与下一节点 |
 | [assets/attention-layout-plan-cache-discard.svg](assets/attention-layout-plan-cache-discard.svg) | 算子收益与整机拒绝的并列证据 |
 | [experiments/166-attention-layout-plan-cache-discard.md](experiments/166-attention-layout-plan-cache-discard.md) | exact cache路由、24算子进程与12模型进程 |
+| [assets/attention-gemm-scale-fusion-discard.svg](assets/attention-gemm-scale-fusion-discard.svg) | scale Kernel归零与两模型混合拒绝门 |
+| [experiments/167-attention-gemm-scale-fusion-discard.md](experiments/167-attention-gemm-scale-fusion-discard.md) | alpha算子、12模型进程、rounding与profile |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

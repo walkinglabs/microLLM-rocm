@@ -7282,6 +7282,51 @@ def validate_attention_layout_plan_cache_discard(
     return len(operator_raw), len(training), len(route)
 
 
+def validate_attention_gemm_scale_fusion_discard(
+        errors: list[str]) -> tuple[int, int, int]:
+    data = REPOSITORY / "benchmarks/results/2026-08-23-attention-gemm-scale-fusion"
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    training = [json.loads(line) for line in (data / "training.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = {row["model"]: row for row in summary.get("comparisons", [])}
+    qwen = comparisons.get("qwen2.5-0.5b", {})
+    deep = comparisons.get("deepseek-r1-distill-qwen-1.5b", {})
+    profile = json.loads((data / "profile-summary.json").read_text(
+        encoding="utf-8"))
+    if verification.get("status") != "pass" or summary.get("status") != "pass" or \
+            summary.get("decision") != "reject GEMM scale fusion" or \
+            verification.get("defaults") != {
+                "engine_attention_policy": False, "training_cli": False} or \
+            verification.get("regression", {}).get("full_cpu_hip") != "401/401" or \
+            verification.get("regression", {}).get("hip_label") != "128/128" or \
+            len(training) != 12 or len(comparisons) != 2 or \
+            qwen.get("throughput_speedup", 2) >= 1.01 or \
+            deep.get("throughput_speedup", 0) < 1.01 or \
+            qwen.get("observed_parameter_after_equal") is not True or \
+            deep.get("observed_parameter_after_equal") is not False or \
+            qwen.get("allocation_calls_saved") != 96 or \
+            deep.get("allocation_calls_saved") != 112 or \
+            profile.get("explicit", {}).get("scale_calls") != 144 or \
+            profile.get("fused", {}).get("scale_calls") != 0:
+        errors.append("Attention GEMM scale-fusion rejection evidence changed")
+    ops_source = (REPOSITORY / "src/ops/ops.cpp").read_text(encoding="utf-8")
+    optimized = (REPOSITORY / "src/ops/optimized.cpp").read_text(encoding="utf-8")
+    cli = (REPOSITORY / "apps/hf_train_step.cpp").read_text(encoding="utf-8")
+    tests = "\n".join((REPOSITORY / path).read_text(encoding="utf-8") for path in (
+        "tests/ops/ops_test.cpp", "tests/ops/hip_ops_test.cpp",
+        "python/tests/test_operator_parity.py"))
+    if "attention_gemm_scale_fusion = false" not in ops_source or \
+            "bool attention_gemm_scale_fusion = false" not in cli or \
+            "matmul_scaled_with_implementation" not in optimized or \
+            "ScaledHipblasLtMatmulUsesAlphaWithoutPayloadTransfers" not in tests or \
+            "invalid_matmul_scaled_factor" not in tests:
+        errors.append("Attention GEMM scale-fusion default/source contract changed")
+    return len(training), int(qwen.get("allocation_calls_saved", 0)), \
+        int(deep.get("allocation_calls_saved", 0))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -7426,7 +7471,8 @@ def validate_assets(errors: list[str]) -> None:
                  "attention-interleaved-pv.svg",
                  "attention-context-layout-fusion.svg",
                  "post-layout-training-profile.svg",
-                 "attention-layout-plan-cache-discard.svg"):
+                 "attention-layout-plan-cache-discard.svg",
+                 "attention-gemm-scale-fusion-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -7694,6 +7740,8 @@ def main() -> int:
         validate_post_layout_training_profile(errors)
     plan_operator_rows, plan_model_rows, plan_route_rows = \
         validate_attention_layout_plan_cache_discard(errors)
+    scale_model_rows, scale_qwen_allocations, scale_deep_allocations = \
+        validate_attention_gemm_scale_fusion_discard(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -7907,6 +7955,8 @@ def main() -> int:
           f"{post_layout_total} "
           f"attention_plan={plan_operator_rows}/{plan_model_rows}/"
           f"{plan_route_rows} "
+          f"attention_scale={scale_model_rows}/{scale_qwen_allocations}/"
+          f"{scale_deep_allocations} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

@@ -211,6 +211,12 @@ The cache is thread-local, observable and clearable. It is disabled by default b
 operator speedup failed the official-model throughput gate. An available mechanism is not
 the same as an enabled optimization policy.
 
+hipBLASLt alpha is also exposed through `matmul_scaled_with_implementation`. The readable
+contract is `scale(matmul(...), factor)` and rejects nonfinite factors. Attention may use
+the primitive experimentally to fuse `1/sqrt(D)` into QK/dQ/dK, but that policy is disabled
+by default: moving scale from each operand to the post-accumulation alpha changes FP32
+rounding order and failed the joint official-model gate.
+
 ## Stable integration boundary
 
 The long-term integration seam is a C-compatible descriptor plus explicit stream

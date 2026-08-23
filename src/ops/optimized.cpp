@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <atomic>
 #include <charconv>
+#include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <stdexcept>
@@ -710,7 +711,7 @@ Bf16Plan& bf16_plan(Handle& handle, std::int64_t rows, std::int64_t inner,
 
 Tensor hipblaslt_matmul(const Tensor& left, const Tensor& right,
                         bool transpose_left, bool transpose_right,
-                        const OpContext& context) {
+                        const OpContext& context, float alpha = 1.0F) {
     if (!left.device().is_hip() || right.device() != left.device() ||
         !is_floating_point(left.dtype()) || right.dtype() != left.dtype() ||
         left.ndim() < 2 || right.ndim() != left.ndim() || !left.is_contiguous() ||
@@ -760,7 +761,6 @@ Tensor hipblaslt_matmul(const Tensor& left, const Tensor& right,
         matrix_a.set_batch(batch_count, left_rows * left_columns);
         matrix_c.set_batch(batch_count, rows * columns);
     }
-    const float alpha = 1.0F;
     const float beta = 0.0F;
     check_status(hipblasLtMatmul(
                      handle.get(), operation.get(), &alpha, right.data(), matrix_b.get(),
@@ -1442,6 +1442,32 @@ Tensor matmul_with_implementation(const Tensor& left, const Tensor& right,
         }
     }
     return Tensor::from_vector(values, {rows, columns}, left.dtype());
+}
+
+Tensor matmul_scaled_with_implementation(
+    const Tensor& left, const Tensor& right, float factor,
+    MatmulImplementation implementation, bool transpose_left,
+    bool transpose_right, const OpContext& context) {
+    if (!std::isfinite(factor)) {
+        throw std::invalid_argument("scaled matmul factor must be finite");
+    }
+    if (implementation == MatmulImplementation::Auto) {
+        implementation = choose_matmul_implementation(
+            left, right, transpose_left, transpose_right, context);
+    }
+    if (implementation == MatmulImplementation::HipBLASLt) {
+#if MICROLLM_HAS_HIPBLASLT
+        return hipblaslt_matmul(
+            left, right, transpose_left, transpose_right, context, factor);
+#else
+        throw std::runtime_error("microLLM was built without hipBLASLt");
+#endif
+    }
+    return scale(
+        matmul_with_implementation(
+            left, right, MatmulImplementation::Readable,
+            transpose_left, transpose_right, context),
+        factor, context);
 }
 
 Tensor attention_probability_value_bthd(

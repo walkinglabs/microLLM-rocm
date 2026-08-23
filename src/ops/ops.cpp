@@ -18,6 +18,7 @@ namespace microllm::ops {
 namespace {
 
 thread_local Fp8DynamicQuantStats dynamic_quant_stats;
+thread_local bool attention_gemm_scale_fusion = false;
 
 float fp8_finite_maximum(DType dtype) {
     if (dtype == DType::Float8E4M3FNUZ) return 240.0F;
@@ -547,6 +548,14 @@ Fp8DynamicQuantStats fp8_dynamic_quant_stats() noexcept {
 
 void clear_fp8_dynamic_quant_stats() noexcept {
     dynamic_quant_stats = {};
+}
+
+void enable_attention_gemm_scale_fusion(bool enabled) noexcept {
+    attention_gemm_scale_fusion = enabled;
+}
+
+bool attention_gemm_scale_fusion_enabled() noexcept {
+    return attention_gemm_scale_fusion;
 }
 
 Tensor dequantize_fp8(const ScaledTensor& input, DType output_dtype,
@@ -3197,10 +3206,16 @@ TensorPair causal_gqa_attention_bthd_saved(
     const auto expanded_value = repeats == 1
                                     ? value : repeat_interleave(value, 2, repeats, context);
     if (query.device().is_hip() && sequence >= 256 && hipblaslt_available()) {
-        const auto scaled_query = ops::scale(query, scale, context);
-        auto probabilities = matmul_with_implementation(
-            scaled_query, expanded_key, MatmulImplementation::HipBLASLt,
-            false, true, context);
+        auto probabilities = attention_gemm_scale_fusion
+                                 ? matmul_scaled_with_implementation(
+                                       query, expanded_key, scale,
+                                       MatmulImplementation::HipBLASLt,
+                                       false, true, context)
+                                 : matmul_with_implementation(
+                                       ops::scale(query, scale, context),
+                                       expanded_key,
+                                       MatmulImplementation::HipBLASLt,
+                                       false, true, context);
 #if MICROLLM_HAS_HIP
         hip::launch_causal_softmax(
             static_cast<const float*>(probabilities.data()),
@@ -3263,15 +3278,27 @@ TensorTriple causal_gqa_attention_bthd_backward_saved(
                                     ? value : repeat_interleave(value, 2, repeats, context);
     const auto probability_gradient = attention_probability_gradient_bthd(
         output_gradient, expanded_value, context);
-    auto scaled_score_gradients = ops::scale(
-        causal_softmax_backward(probabilities, probability_gradient, context),
-        scale, context);
-    auto query_gradient = matmul_with_implementation(
-        scaled_score_gradients, expanded_key,
-        MatmulImplementation::HipBLASLt, context);
-    auto expanded_key_gradient = matmul_with_implementation(
-        scaled_score_gradients, query, MatmulImplementation::HipBLASLt,
-        true, false, context);
+    auto score_gradients = causal_softmax_backward(
+        probabilities, probability_gradient, context);
+    Tensor query_gradient;
+    Tensor expanded_key_gradient;
+    if (attention_gemm_scale_fusion) {
+        query_gradient = matmul_scaled_with_implementation(
+            score_gradients, expanded_key, scale,
+            MatmulImplementation::HipBLASLt, false, false, context);
+        expanded_key_gradient = matmul_scaled_with_implementation(
+            score_gradients, query, scale,
+            MatmulImplementation::HipBLASLt, true, false, context);
+    } else {
+        auto scaled_score_gradients = ops::scale(
+            score_gradients, scale, context);
+        query_gradient = matmul_with_implementation(
+            scaled_score_gradients, expanded_key,
+            MatmulImplementation::HipBLASLt, context);
+        expanded_key_gradient = matmul_with_implementation(
+            scaled_score_gradients, query,
+            MatmulImplementation::HipBLASLt, true, false, context);
+    }
     auto expanded_value_gradient = attention_value_gradient_bthd(
         probabilities, output_gradient, context);
     auto key_gradient = repeats == 1

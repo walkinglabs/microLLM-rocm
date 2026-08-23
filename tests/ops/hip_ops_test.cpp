@@ -3246,6 +3246,41 @@ TEST(HipOptimizedOpsTest, HipblasLtMatmulMatchesReadableReference) {
     clear_matmul_implementation_registry();
 }
 
+TEST(HipOptimizedOpsTest, ScaledHipblasLtMatmulUsesAlphaWithoutPayloadTransfers) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    std::vector<float> left_values(64 * 32);
+    std::vector<float> right_values(64 * 48);
+    for (std::size_t index = 0; index < left_values.size(); ++index) {
+        left_values[index] =
+            static_cast<float>(static_cast<int>(index % 17) - 8) / 19.0F;
+    }
+    for (std::size_t index = 0; index < right_values.size(); ++index) {
+        right_values[index] =
+            static_cast<float>(static_cast<int>(index % 23) - 11) / 29.0F;
+    }
+    const auto left = Tensor::from_vector(left_values, {64, 32});
+    const auto right = Tensor::from_vector(right_values, {64, 48});
+    const auto expected = scale(matmul(
+        left.transpose(0, 1).contiguous(), right), 0.125F);
+    const auto device_left = left.to(gpu);
+    const auto device_right = right.to(gpu);
+    runtime::reset_transfer_stats();
+    const auto actual = matmul_scaled_with_implementation(
+        device_left, device_right, 0.125F,
+        MatmulImplementation::HipBLASLt, true, false);
+    runtime::synchronize(gpu);
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    expect_near(actual.to_vector(), expected.to_vector(), 2.0e-4F);
+    enable_attention_gemm_scale_fusion(false);
+    EXPECT_FALSE(attention_gemm_scale_fusion_enabled());
+    enable_attention_gemm_scale_fusion(true);
+    EXPECT_TRUE(attention_gemm_scale_fusion_enabled());
+    enable_attention_gemm_scale_fusion(false);
+}
+
 TEST(HipOptimizedOpsTest, MatmulTuningCacheRestoresOnlyCurrentEnvironment) {
     require_gpu();
     const auto gpu = Device::hip(0);

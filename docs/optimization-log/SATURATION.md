@@ -96,6 +96,12 @@ are 0.990×/1.001× against uncached and miss the declared 1.01 gate. The explic
 cache remains diagnostic infrastructure; enabling it by default or changing only the key is
 not a new experiment.
 
+Experiment 167 closes moving Attention scale into hipBLASLt alpha as a default policy.
+Scale launches disappear and allocations fall, but Qwen throughput regresses and DeepSeek's
+fixed parameter changes under the altered FP32 rounding order. Reapplying alpha to Q, scores
+or one gradient at a time needs a new numerical hypothesis; merely deleting the same scale
+Kernel is not enough.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

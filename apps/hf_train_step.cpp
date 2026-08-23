@@ -173,6 +173,7 @@ int main(int argc, char** argv) {
         bool attention_rope_layout_fusion = true;
         bool attention_context_layout_fusion = true;
         bool attention_layout_plan_cache = false;
+        bool attention_gemm_scale_fusion = false;
         for (int index = 1; index < argc; index += 2) {
             if (index + 1 >= argc) throw std::invalid_argument("missing CLI value");
             const std::string name = argv[index];
@@ -226,6 +227,14 @@ int main(int argc, char** argv) {
                 }
                 attention_layout_plan_cache = value == "true";
             }
+            else if (name == "--attention-gemm-scale-fusion") {
+                const std::string value = argv[index + 1];
+                if (value != "true" && value != "false") {
+                    throw std::invalid_argument(
+                        "--attention-gemm-scale-fusion must be true or false");
+                }
+                attention_gemm_scale_fusion = value == "true";
+            }
             else if (name == "--bf16-weight-mirrors") {
                 const std::string value = argv[index + 1];
                 if (value != "true" && value != "false") {
@@ -260,6 +269,8 @@ int main(int argc, char** argv) {
             attention_context_layout_fusion);
         microllm::ops::enable_attention_layout_plan_cache(
             attention_layout_plan_cache);
+        microllm::ops::enable_attention_gemm_scale_fusion(
+            attention_gemm_scale_fusion);
         if (!bf16_algorithms.empty() &&
             (linear_precision != "bf16" || device_text != "hip")) {
             throw std::invalid_argument(
@@ -432,6 +443,8 @@ int main(int argc, char** argv) {
                   << attention_plan_stats.hits
                   << ",\"attention_layout_plan_cache_misses\":"
                   << attention_plan_stats.misses
+                  << ",\"attention_gemm_scale_fusion\":"
+                  << (attention_gemm_scale_fusion ? "true" : "false")
                   << ",\"measurement_profile\":\""
                   << (warmup > 0 || steps > 1 ? "comparison" : "smoke") << "\""
                   << ",\"loaded_tensors\":" << report.loaded.size()

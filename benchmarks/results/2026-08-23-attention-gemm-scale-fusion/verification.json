@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "experiment": "Exp167",
+  "decision": "reject Attention default; retain explicit scaled-matmul primitive",
+  "correctness": {
+    "cpu_composed_scaled_matmul": "pass",
+    "pytorch_scaled_matmul": "pass",
+    "hip_alpha_no_payload_transfer": "pass",
+    "nonfinite_factor_rejected": "pass",
+    "hip_t256_attention_all_gradients": "pass",
+    "full_transformer_cpu_hip": "pass",
+    "installed_package_symbol": "pass"
+  },
+  "training": {
+    "fresh_process_rows": 12,
+    "context": 512,
+    "runs_per_model_policy": 3,
+    "qwen_throughput_speedup": 0.986913381,
+    "qwen_allocation_calls_saved": 96,
+    "qwen_peak_bytes_saved": 12320768,
+    "qwen_loss_relative_difference": 0.001068146,
+    "qwen_parameter_equal": true,
+    "deepseek_throughput_speedup": 1.010652042,
+    "deepseek_allocation_calls_saved": 112,
+    "deepseek_peak_bytes_saved": 0,
+    "deepseek_loss_relative_difference": 0.00010064,
+    "deepseek_parameter_equal": false,
+    "throughput_keep_minimum": 1.01
+  },
+  "profile": {
+    "explicit_scale_calls": 144,
+    "fused_scale_calls": 0,
+    "kernel_dispatches": "6907->6761",
+    "kernel_time_ns": "110668341->110038721",
+    "instrumented_throughput_used_for_decision": false
+  },
+  "regression": {
+    "cpu_debug": "269/269",
+    "asan_ubsan": "267/267",
+    "pytorch_enabled_cpu": "243/243",
+    "full_cpu_hip": "401/401",
+    "hip_label": "128/128",
+    "conditional_skips": 3,
+    "package_consumer": "pass",
+    "runner_contract_cases": "8/8",
+    "coverage_lines_percent": 81.2,
+    "coverage_functions_percent": 90.4,
+    "coverage_branches_percent": 61.9
+  },
+  "defaults": {
+    "engine_attention_policy": false,
+    "training_cli": false
+  }
+}

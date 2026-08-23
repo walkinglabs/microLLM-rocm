@@ -158,6 +158,10 @@ cache. Its default is false after the Experiment 166 model rejection. The public
 `attention_layout_plan_cache_stats()` and `clear_attention_layout_plan_cache()` APIs expose
 entries/hits/misses without copying Tensor payloads.
 
+`--attention-gemm-scale-fusion true/false` controls the QK/dQ/dK alpha experiment. Its
+default is false after Experiment 167. The generic scaled-matmul operator remains available;
+explicit Attention routing should be used only for numerical/performance rebuttals.
+
 ### End-to-end benchmark
 
 ```bash

@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "model": "qwen2.5-0.5b",
+  "context": 512,
+  "executed_steps": 3,
+  "explicit": {
+    "kernel_dispatches": 6907,
+    "kernel_time_ns": 110668341,
+    "scale_calls": 144,
+    "scale_time_ns": 1087792
+  },
+  "fused": {
+    "kernel_dispatches": 6761,
+    "kernel_time_ns": 110038721,
+    "scale_calls": 0,
+    "scale_time_ns": 0
+  },
+  "ratios": {
+    "kernel_dispatches": 0.978862,
+    "kernel_time": 0.994311,
+    "scale_calls": 0.0
+  },
+  "instrumented_throughput_used_for_decision": false
+}

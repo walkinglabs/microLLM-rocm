@@ -1,0 +1,107 @@
+{
+  "aggregation": "median of fresh processes with alternating policy order",
+  "comparisons": [
+    {
+      "allocation_calls_saved": 96.0,
+      "loss_relative_difference": 0.0010681463675431863,
+      "model": "qwen2.5-0.5b",
+      "observed_parameter_after_equal": true,
+      "peak_bytes_saved": 12320768.0,
+      "peak_ratio": 0.998958023918005,
+      "policies": {
+        "fused": {
+          "engine_allocation_calls": 3244.0,
+          "engine_peak_bytes": 11812104200.0,
+          "final_loss": 0.016907504,
+          "mean_optimizer_ms": 13.127711,
+          "mean_step_ms": 33.9870055,
+          "observed_parameter_after": 7.468718052,
+          "tokens_per_second": 15064.581079378
+        },
+        "materialized": {
+          "engine_allocation_calls": 3340.0,
+          "engine_peak_bytes": 11824424968.0,
+          "final_loss": 0.016925583,
+          "mean_optimizer_ms": 13.956795,
+          "mean_step_ms": 33.5422305,
+          "observed_parameter_after": 7.468718052,
+          "tokens_per_second": 15264.33968069
+        }
+      },
+      "strided_copy": {
+        "fused": {
+          "bytes": 0,
+          "calls": 0,
+          "elements": 0
+        },
+        "materialized": {
+          "bytes": 0,
+          "calls": 0,
+          "elements": 0
+        }
+      },
+      "throughput_speedup": 0.986913380762569
+    },
+    {
+      "allocation_calls_saved": 112.0,
+      "loss_relative_difference": 0.00010064030155867445,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "observed_parameter_after_equal": false,
+      "peak_bytes_saved": 0.0,
+      "peak_ratio": 1.0,
+      "policies": {
+        "fused": {
+          "engine_allocation_calls": 3784.0,
+          "engine_peak_bytes": 37102645256.0,
+          "final_loss": 4.036396027,
+          "mean_optimizer_ms": 49.07493,
+          "mean_step_ms": 79.9337365,
+          "observed_parameter_after": 2.124971151,
+          "tokens_per_second": 6405.305474491
+        },
+        "materialized": {
+          "engine_allocation_calls": 3896.0,
+          "engine_peak_bytes": 37102645256.0,
+          "final_loss": 4.036802292,
+          "mean_optimizer_ms": 49.6878,
+          "mean_step_ms": 80.785194,
+          "observed_parameter_after": 2.124970913,
+          "tokens_per_second": 6337.79501724
+        }
+      },
+      "strided_copy": {
+        "fused": {
+          "bytes": 0,
+          "calls": 0,
+          "elements": 0
+        },
+        "materialized": {
+          "bytes": 0,
+          "calls": 0,
+          "elements": 0
+        }
+      },
+      "throughput_speedup": 1.010652041769631
+    }
+  ],
+  "context": 512,
+  "decision": "reject GEMM scale fusion",
+  "gate_results": {
+    "loss": true,
+    "parameter": false,
+    "strided_copy_unchanged_zero": true,
+    "throughput": false
+  },
+  "keep_gate": {
+    "loss_relative_difference_maximum": 0.005,
+    "observed_parameter_after_equal": true,
+    "throughput_ratio_minimum": 1.01
+  },
+  "policy": "scale",
+  "runs_per_model_policy": 3,
+  "schema_version": 1,
+  "status": "pass",
+  "steps": 2,
+  "track": "attention_gemm_scale_fusion",
+  "warmup": 1
+}

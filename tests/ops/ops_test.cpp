@@ -149,6 +149,27 @@ TEST(CpuOpsTest, BatchedMatmulMatchesHandValues) {
               (std::vector<float>{22, 28, 49, 64, 1, 2, 9, 12}));
 }
 
+TEST(CpuOpsTest, ScaledMatmulMatchesComposedReferenceWithTranspose) {
+    const auto left = Tensor::from_vector({1, 4, 2, 5, 3, 6}, {3, 2});
+    const auto right = Tensor::from_vector({1, 2, 3, 4, 5, 6}, {3, 2});
+    const auto expected = scale(
+        matmul_with_implementation(
+            left, right, MatmulImplementation::Readable, true, false),
+        -0.25F);
+    const auto actual = matmul_scaled_with_implementation(
+        left, right, -0.25F, MatmulImplementation::Readable, true, false);
+    expect_near(actual.to_vector(), expected.to_vector());
+    EXPECT_THROW((void)matmul_scaled_with_implementation(
+                     left, right, std::numeric_limits<float>::infinity(),
+                     MatmulImplementation::Readable, true, false),
+                 std::invalid_argument);
+    enable_attention_gemm_scale_fusion(false);
+    EXPECT_FALSE(attention_gemm_scale_fusion_enabled());
+    enable_attention_gemm_scale_fusion(true);
+    EXPECT_TRUE(attention_gemm_scale_fusion_enabled());
+    enable_attention_gemm_scale_fusion(false);
+}
+
 TEST(CpuOpsTest, MatmulTuningKeyCapturesLayoutModeWorkspaceAndEnvironment) {
     const Tensor left({3, 2});
     const Tensor right({4, 3});

@@ -240,6 +240,8 @@ void enable_attention_layout_plan_cache(bool enabled) noexcept;
 [[nodiscard]] AttentionLayoutPlanCacheStats
 attention_layout_plan_cache_stats() noexcept;
 void clear_attention_layout_plan_cache() noexcept;
+void enable_attention_gemm_scale_fusion(bool enabled) noexcept;
+[[nodiscard]] bool attention_gemm_scale_fusion_enabled() noexcept;
 void register_bf16_algorithm(std::int64_t rows, std::int64_t inner,
                              std::int64_t columns, DType output_dtype,
                              int solution_index);
@@ -277,6 +279,12 @@ void save_matmul_tuning_cache(const std::filesystem::path& path);
 [[nodiscard]] Tensor matmul_with_implementation(
     const Tensor& left, const Tensor& right, MatmulImplementation implementation,
     bool transpose_left, bool transpose_right, const OpContext& context = {});
+// Computes factor * (op(left) @ op(right)). hipBLASLt applies factor through
+// the GEMM alpha parameter; readable/CPU keeps an explicit composed reference.
+[[nodiscard]] Tensor matmul_scaled_with_implementation(
+    const Tensor& left, const Tensor& right, float factor,
+    MatmulImplementation implementation, bool transpose_left = false,
+    bool transpose_right = false, const OpContext& context = {});
 [[nodiscard]] Tensor embedding(const Tensor& weight, const Tensor& indices,
                                const OpContext& context = {});
 [[nodiscard]] Tensor softmax(const Tensor& input, std::int64_t dim = -1,
