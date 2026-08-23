@@ -1,7 +1,7 @@
 # FP8 clipped activation model policy
 
-`ModelConfig::fp8_activation_amax_fraction` connects the clipped dynamic operator to Tensor-amax
-activations. The default is 1.0; valid experimental values are in `(0,1]`.
+The experiment added `ModelConfig::fp8_activation_amax_fraction` to connect clipped dynamic
+quantization to Tensor-amax activations. The default was 1.0; experimental values were in `(0,1]`.
 
 ```text
 --fp8-activation-scale-mode tensor-amax
@@ -26,3 +26,6 @@ Fractions 0.95/0.9/0.85 remain an explicit refinement gap. See
 Exp152 closes that gap: 0.95/0.9/0.85 worsen worst RMS by 2.15x/4.98x/8.25x. The model/CLI policy
 and pilot runner are removed after archival; the low-level operator remains. See
 [Experiment 152](../optimization-log/experiments/152-fp8-clipped-fine-grid.md).
+
+The removal is now complete. This file describes historical behavior; current `main` intentionally
+has no model field or CLI fraction.

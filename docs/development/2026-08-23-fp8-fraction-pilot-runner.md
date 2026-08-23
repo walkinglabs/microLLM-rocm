@@ -3,7 +3,7 @@
 The first Exp149 attempt used the general FP32/BF16/FP8 matrix once per fraction. That repeats
 references and extends the time window in which an external GPU task can contaminate the pilot.
 
-`hf_fp8_fraction_pilot.py` runs one FP32 oracle for each model/context and four FP8 fractions by
+The archived `hf_fp8_fraction_pilot.py` ran one FP32 oracle for each model/context and four FP8 fractions by
 default. For Qwen/DeepSeek at T8/T512 this is 20 workers instead of 48. It always uses the retained
 Attention O-projection weight scope and warm-up/steps `0/1`; throughput is explicitly non-evidence.
 The retained weight minimum is an explicit runner argument and defaults to 0.005, matching Exp148;
@@ -35,3 +35,6 @@ Exp150 exposed an initial hardcoded 0.0001 weight minimum, while the retained Ex
 0.005. The completed pilot was invalidated, the scale became an explicit/defaulted argument, and
 the contract now asserts 0.005. See
 [Experiment 150](../optimization-log/experiments/150-fp8-fraction-pilot-workload-invalid.md).
+
+After Exp151/152 closed every tested fraction below 1, the specialized runner and its registered test
+were removed. The experiment copies remain reproducible from their archived revision and commands.

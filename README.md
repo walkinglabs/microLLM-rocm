@@ -37,10 +37,6 @@ needed to run a real training and generation loop:
   explicit native/fallback counters; none is a default precision claim;
 - explicit clipped dynamic FP8 Tensor quantization with finite saturation, a compatibility-preserving
   fraction of 1.0, and separate clipped-call counters; model clipping is not enabled by default;
-- an opt-in Transformer activation-amax fraction carried through ModelConfig, CLI, policy identity,
-  and benchmark schemas; no clipped fraction is selected as a default without official evidence;
-- a single-oracle clipped-fraction pilot that reduces a two-model/four-case search from 48 to 20
-  workers while retaining complete-logit and strict GPU-idle gates;
 - host and device-only FP8 weight-amax preparation policies with separate scan/transfer
   evidence; device mode does not copy weight payloads to CPU;
 - opt-in device per-output-column FP8 weight preparation with native scalar GEMM plus an
@@ -281,12 +277,12 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 368/368 | 256 CPU-labelled + 112 HIP-labelled gates; 2 intentional environment skips |
+| Full CPU/HIP configuration | 365/365 | 254 CPU-labelled + 111 HIP-labelled gates; 2 intentional environment skips |
 | ASan/UBSan CPU | 211/211 | host code, CLI, model/graph, benchmark and evidence schemas |
-| MI300X/gfx942 HIP | 112/112 | allocator/stream, graph, BF16/FP8, batched GEMM and model matrix |
+| MI300X/gfx942 HIP | 111/111 | allocator/stream, graph, BF16/FP8, batched GEMM and model matrix |
 | PyTorch-enabled CPU build | 196/196 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
-| Registered test files | 55 | machine-audited CTest registration |
+| Registered test files | 54 | machine-audited CTest registration |
 | Installed CMake package | CPU + HIP pass | external `find_package`, compile, static link and run |
 | CPU source coverage | 83.9% lines / 66.6% branches | GCC 13.3 + gcovr 8.3; `src/` and `include/` |
 

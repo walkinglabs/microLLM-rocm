@@ -32,7 +32,6 @@ struct ModelConfig {
     LinearPrecision linear_precision = LinearPrecision::Float32;
     float fp8_activation_scale = 0.025F;
     float fp8_activation_minimum_scale = 1.0e-4F;
-    float fp8_activation_amax_fraction = 1.0F;
     float fp8_weight_scale = 0.005F;
     Fp8WeightScaleMode fp8_weight_scale_mode = Fp8WeightScaleMode::Fixed;
     Fp8WeightScaleScope fp8_weight_scale_scope = Fp8WeightScaleScope::AllLinear;

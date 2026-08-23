@@ -52,7 +52,6 @@ struct Options {
     bool fp8_linear = false;
     float fp8_activation_scale = 0.025F;
     float fp8_activation_minimum_scale = 1.0e-4F;
-    float fp8_activation_amax_fraction = 1.0F;
     float fp8_weight_scale = 0.005F;
     std::string fp8_weight_scale_mode = "fixed";
     std::string fp8_weight_scale_scope = "all-linear";
@@ -137,9 +136,6 @@ Options options(int argc, char** argv) {
         }
         else if (name == "--fp8-activation-minimum-scale") {
             result.fp8_activation_minimum_scale = std::stof(argv[index + 1]);
-        }
-        else if (name == "--fp8-activation-amax-fraction") {
-            result.fp8_activation_amax_fraction = std::stof(argv[index + 1]);
         }
         else if (name == "--fp8-weight-scale") {
             result.fp8_weight_scale = std::stof(argv[index + 1]);
@@ -302,9 +298,6 @@ Options options(int argc, char** argv) {
         result.fp8_activation_scale <= 0.0F ||
         !std::isfinite(result.fp8_activation_minimum_scale) ||
         result.fp8_activation_minimum_scale <= 0.0F ||
-        !std::isfinite(result.fp8_activation_amax_fraction) ||
-        result.fp8_activation_amax_fraction <= 0.0F ||
-        result.fp8_activation_amax_fraction > 1.0F ||
         !std::isfinite(result.fp8_weight_scale) ||
         result.fp8_weight_scale <= 0.0F) {
         throw std::invalid_argument(
@@ -414,7 +407,7 @@ Options options(int argc, char** argv) {
     return result;
 }
 
-std::string fp8_compute_policy_unclipped(const Options& command) {
+std::string fp8_compute_policy(const Options& command) {
     const auto weight_name = command.fp8_weight_scale_mode == "device-tensor-amax"
                                  ? "device_tensor_amax_weight"
                                  : command.fp8_weight_scale_mode ==
@@ -466,14 +459,6 @@ std::string fp8_compute_policy_unclipped(const Options& command) {
         return "fp8_e4m3_fnuz_device_tensor_amax_weight";
     }
     return "fp8_e4m3_fnuz_static_scale";
-}
-
-std::string fp8_compute_policy(const Options& command) {
-    auto result = fp8_compute_policy_unclipped(command);
-    if (command.fp8_activation_amax_fraction < 1.0F) {
-        result += "_clipped_activation_amax";
-    }
-    return result;
 }
 
 std::string fp8_storage_policy(const Options& command) {
@@ -934,8 +919,6 @@ int main(int argc, char** argv) {
             external.model.fp8_activation_scale = command.fp8_activation_scale;
             external.model.fp8_activation_minimum_scale =
                 command.fp8_activation_minimum_scale;
-            external.model.fp8_activation_amax_fraction =
-                command.fp8_activation_amax_fraction;
             external.model.fp8_weight_scale = command.fp8_weight_scale;
             external.model.fp8_weight_scale_mode =
                 command.fp8_weight_scale_mode == "tensor-amax"
@@ -1206,8 +1189,6 @@ int main(int argc, char** argv) {
                       << command.fp8_activation_scale
                       << ",\"fp8_activation_minimum_scale\":"
                       << command.fp8_activation_minimum_scale
-                      << ",\"fp8_activation_amax_fraction\":"
-                      << command.fp8_activation_amax_fraction
                       << ",\"fp8_weight_scale\":"
                       << command.fp8_weight_scale
                       << ",\"fp8_weight_scale_mode\":\""
@@ -1723,8 +1704,6 @@ int main(int argc, char** argv) {
                   << command.fp8_activation_scale
                   << ",\"fp8_activation_minimum_scale\":"
                   << command.fp8_activation_minimum_scale
-                  << ",\"fp8_activation_amax_fraction\":"
-                  << command.fp8_activation_amax_fraction
                   << ",\"fp8_weight_scale\":"
                   << command.fp8_weight_scale
                   << ",\"fp8_weight_scale_mode\":\""

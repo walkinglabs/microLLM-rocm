@@ -212,7 +212,6 @@
     "python/tests/test_hf_fp8_matrix.py",
     "python/tests/test_hf_fp8_native_roundtrip.py",
     "python/tests/test_hf_fp8_weight_audit.py",
-    "python/tests/test_hf_fp8_fraction_pilot.py",
     "python/tests/test_hf_fp8_scale_grid.py",
     "python/tests/test_hf_activation_range.py",
     "python/tests/test_hf_activation_row_range.py",
