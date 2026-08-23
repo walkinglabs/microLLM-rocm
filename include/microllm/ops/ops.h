@@ -292,6 +292,14 @@ void save_matmul_tuning_cache(const std::filesystem::path& path);
                                           std::int64_t position_offset = 0,
                                           float base = 10000.0F,
                                           const OpContext& context = {});
+// Reads a contiguous projection in [B,T,H,D] order, adds [H*D] bias and writes
+// the rotated result directly in the [B,H,T,D] order consumed by Attention.
+// The layout conversion is part of the operator: no transpose materialization is
+// required before the call.
+[[nodiscard]] Tensor rope_split_half_bias_bthd(
+    const Tensor& input, const Tensor& bias,
+    std::int64_t position_offset = 0, float base = 10000.0F,
+    const OpContext& context = {});
 // Decode-only RoPE for [A,H,1,D]. positions[A] supplies one absolute
 // position per active request row.
 [[nodiscard]] Tensor rope_positions(const Tensor& input, const Tensor& positions,
@@ -336,6 +344,12 @@ void embedding_backward_add_(Tensor& weight_gradient, const Tensor& gradient,
     const Tensor& gradient, std::int64_t sequence_dim = 1,
     std::int64_t position_offset = 0, float base = 10000.0F,
     const OpContext& context = {});
+// Inverse of rope_split_half_bias_bthd's layout and rotation. The incoming
+// gradient is [B,H,T,D]; the returned projection/bias-input gradient is the
+// contiguous [B,T,H,D] tensor expected by the preceding reshape.
+[[nodiscard]] Tensor rope_split_half_bias_bthd_backward(
+    const Tensor& gradient, std::int64_t position_offset = 0,
+    float base = 10000.0F, const OpContext& context = {});
 [[nodiscard]] Tensor cross_entropy_backward(const Tensor& logits, const Tensor& targets,
                                             const Tensor& loss_gradient,
                                             const OpContext& context = {});

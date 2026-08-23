@@ -35,6 +35,7 @@ namespace {
 
 thread_local bool accumulation_diagnostics_enabled = false;
 thread_local bool tied_embedding_sparse_add = true;
+thread_local bool attention_rope_layout_fusion = true;
 thread_local std::map<std::pair<std::string, Shape>, GradientAccumulationRecord>
     accumulation_diagnostic_records;
 
@@ -167,6 +168,14 @@ void enable_tied_embedding_sparse_add(bool enabled) noexcept {
 
 bool tied_embedding_sparse_add_enabled() noexcept {
     return tied_embedding_sparse_add;
+}
+
+void enable_attention_rope_layout_fusion(bool enabled) noexcept {
+    attention_rope_layout_fusion = enabled;
+}
+
+bool attention_rope_layout_fusion_enabled() noexcept {
+    return attention_rope_layout_fusion;
 }
 
 Value::Value(Tensor data, bool requires_grad) : node_(std::make_shared<Node>()) {
@@ -632,6 +641,30 @@ Value rope_split_half_bias(const Value& input, const Value& bias,
                              {shape[0] * shape[2], shape[1] * shape[3]});
                          accumulate(bias_node, ops::bias_gradient(flat));
                      });
+}
+
+Value rope_split_half_bias_bthd(const Value& input, const Value& bias,
+                                std::int64_t position_offset, float base) {
+    require_value(input, "input");
+    require_value(bias, "bias");
+    auto input_node = input.node_;
+    auto bias_node = bias.node_;
+    auto output = profiled_tensor(
+        "rope_split_half_bias_bthd", input.data().device(), [&] {
+            return ops::rope_split_half_bias_bthd(
+                input.data(), bias.data(), position_offset, base);
+        });
+    return operation(
+        "rope_split_half_bias_bthd", std::move(output), {input_node, bias_node},
+        [input_node, bias_node, position_offset, base](const Tensor& gradient) {
+            auto pre_rope = ops::rope_split_half_bias_bthd_backward(
+                gradient, position_offset, base);
+            accumulate(input_node, pre_rope);
+            const auto& shape = pre_rope.shape();
+            auto flat = pre_rope.reshape(
+                {shape[0] * shape[1], shape[2] * shape[3]});
+            accumulate(bias_node, ops::bias_gradient(flat));
+        });
 }
 
 Value cross_entropy(const Value& logits, const Tensor& targets) {

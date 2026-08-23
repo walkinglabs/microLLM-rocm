@@ -22,8 +22,20 @@ int main() {
     const auto token_index = microllm::Tensor::from_int32_vector({1}, {1});
     microllm::ops::embedding_backward_add_(
         embedding_gradient, token_gradient, token_index);
+    const auto layout_input = microllm::Tensor::from_vector(
+        {1.0F, 2.0F, 3.0F, 4.0F}, {1, 1, 1, 4});
+    const auto layout_bias = microllm::Tensor::from_vector(
+        {0.5F, 0.5F, 0.5F, 0.5F}, {4});
+    const auto layout_output = microllm::ops::rope_split_half_bias_bthd(
+        layout_input, layout_bias);
+    const auto layout_gradient =
+        microllm::ops::rope_split_half_bias_bthd_backward(
+            microllm::Tensor::from_vector(
+                {1.0F, 1.0F, 1.0F, 1.0F}, {1, 1, 1, 4}));
     microllm::autograd::enable_gradient_accumulation_diagnostics(false);
     microllm::runtime::enable_strided_copy_diagnostics(false);
+    microllm::autograd::enable_attention_rope_layout_fusion(false);
+    microllm::autograd::enable_attention_rope_layout_fusion(true);
     bool rejected_cpu_tuning = false;
     bool rejected_cpu_adamw_tuning = false;
     try {
@@ -47,6 +59,11 @@ int main() {
         bias_result.to_vector() != std::vector<float>({4.0F, 6.0F}) ||
         embedding_gradient.to_vector() !=
             std::vector<float>({1.0F, 2.0F, 3.5F, 3.5F}) ||
+        layout_output.to_vector() !=
+            std::vector<float>({1.5F, 2.5F, 3.5F, 4.5F}) ||
+        layout_gradient.to_vector() !=
+            std::vector<float>({1.0F, 1.0F, 1.0F, 1.0F}) ||
+        !microllm::autograd::attention_rope_layout_fusion_enabled() ||
         !rejected_cpu_tuning || !rejected_cpu_adamw_tuning) return 1;
     std::cout << "microLLM package consumer: pass\n";
     return 0;

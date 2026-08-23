@@ -37,5 +37,9 @@ void reset_gradient_accumulation_diagnostics() noexcept;
 // Research control for same-revision A/B. Production default is enabled.
 void enable_tied_embedding_sparse_add(bool enabled) noexcept;
 [[nodiscard]] bool tied_embedding_sparse_add_enabled() noexcept;
+// Research control for same-revision Attention layout A/B. Production default
+// is enabled; disabling it restores the explicit transpose materializations.
+void enable_attention_rope_layout_fusion(bool enabled) noexcept;
+[[nodiscard]] bool attention_rope_layout_fusion_enabled() noexcept;
 
 }  // namespace microllm::autograd

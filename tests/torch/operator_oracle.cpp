@@ -264,6 +264,21 @@ void emit_graph_gradient_cases() {
     emit("graph_rope_split_half_bias_input_grad", fused_rope_input.grad());
     emit("graph_rope_split_half_bias_bias_grad", fused_rope_bias.grad());
 
+    Value layout_rope_input(f32(
+        {1, 2, 3, 4, 5, 6, 7, 8,
+         -1, -2, -3, -4, -5, -6, -7, -8}, {1, 2, 2, 4}), true);
+    Value layout_rope_bias(f32(
+        {0.1F, 0.2F, 0.3F, 0.4F, -0.1F, -0.2F, -0.3F, -0.4F}, {8}), true);
+    const Value layout_rope_seed(f32(
+        {1, -1, 2, -2, 3, -3, 4, -4,
+         -1, 1, -2, 2, -3, 3, -4, 4}, {1, 2, 2, 4}));
+    const auto layout_rope_output =
+        rope_split_half_bias_bthd(layout_rope_input, layout_rope_bias);
+    emit("graph_rope_split_half_bias_bthd_output", layout_rope_output.data());
+    sum(multiply(layout_rope_output, layout_rope_seed)).backward();
+    emit("graph_rope_split_half_bias_bthd_input_grad", layout_rope_input.grad());
+    emit("graph_rope_split_half_bias_bthd_bias_grad", layout_rope_bias.grad());
+
     Value embed_weight(f32({0, 1, 2, 3, 4, 5, 6, 7}, {4, 2}), true);
     const auto index = Tensor::from_int32_vector({2, 0, 2}, {3});
     const Value embed_seed(f32({1, 2, 3, 4, 5, 6}, {3, 2}));
@@ -405,6 +420,10 @@ void emit_invalid_shape_cases() {
     emit_bool("invalid_rope_split_half_bias_shape", rejected([&] {
                   (void)rope_split_half_bias(f32({1, 2, 3, 4}, {1, 1, 1, 4}), vector);
               }));
+    emit_bool("invalid_rope_split_half_bias_bthd_shape", rejected([&] {
+                  (void)rope_split_half_bias_bthd(
+                      f32({1, 2, 3, 4}, {1, 1, 1, 4}), vector);
+              }));
     emit_bool("invalid_cross_entropy_shape", rejected([&] {
                   (void)cross_entropy(matrix, Tensor::from_int32_vector({0}, {1}));
               }));
@@ -438,6 +457,10 @@ void emit_invalid_shape_cases() {
               }));
     emit_bool("invalid_rope_split_half_backward_width", rejected([&] {
                   (void)rope_split_half_backward(f32({1, 2, 3}, {1, 1, 3}));
+              }));
+    emit_bool("invalid_rope_split_half_bias_bthd_backward_width", rejected([&] {
+                  (void)rope_split_half_bias_bthd_backward(
+                      f32({1, 1, 1, 3}, {1, 1, 1, 3}));
               }));
     emit_bool("invalid_cross_entropy_backward_seed", rejected([&] {
                   (void)cross_entropy_backward(matrix, Tensor::from_int32_vector({0, 1}, {2}),

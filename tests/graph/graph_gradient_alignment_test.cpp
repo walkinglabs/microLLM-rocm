@@ -66,6 +66,43 @@ TEST(GraphGradientAlignmentTest, TiedHeadMatchesHandForwardAndBothGradientsWitho
                                 12.5F, 16, 19.5F, 0, 1.5F, 3});
 }
 
+TEST(GraphGradientAlignmentTest, BthdBiasRopeMatchesComposedGraphWithoutLayoutNodes) {
+    const auto input_data = Tensor::from_vector(
+        {1, 2, 3, 4, 5, 6, 7, 8,
+         -1, -2, -3, -4, -5, -6, -7, -8}, {1, 2, 2, 4});
+    const auto bias_data = Tensor::from_vector(
+        {0.1F, 0.2F, 0.3F, 0.4F, -0.1F, -0.2F, -0.3F, -0.4F}, {8});
+    const Value seed(Tensor::from_vector(
+        {1, -1, 2, -2, 3, -3, 4, -4,
+         -1, 1, -2, 2, -3, 3, -4, 4}, {1, 2, 2, 4}));
+
+    Value fused_input(input_data, true);
+    Value fused_bias(bias_data, true);
+    const auto fused = rope_split_half_bias_bthd(fused_input, fused_bias);
+    const auto snapshot = inspect_graph(fused);
+    ASSERT_EQ(snapshot.nodes.size(), 3U);
+    EXPECT_EQ(snapshot.nodes[snapshot.root_id].operation,
+              "rope_split_half_bias_bthd");
+    for (const auto& node : snapshot.nodes) {
+        EXPECT_NE(node.operation, "transpose");
+        EXPECT_NE(node.operation, "contiguous");
+    }
+    sum(multiply(fused, seed)).backward();
+
+    Value reference_input(input_data, true);
+    Value reference_bias(bias_data, true);
+    const auto arranged = transpose(
+        reshape(add_bias(reshape(reference_input, {2, 8}), reference_bias),
+                {1, 2, 2, 4}),
+        1, 2);
+    const auto reference = rope_split_half(arranged, 2);
+    sum(multiply(reference, seed)).backward();
+
+    expect_near(fused.data(), reference.data().to_vector(), 3.0e-5F);
+    expect_near(fused_input.grad(), reference_input.grad().to_vector(), 3.0e-5F);
+    expect_near(fused_bias.grad(), reference_bias.grad().to_vector(), 3.0e-5F);
+}
+
 TEST(GraphGradientAlignmentTest, RejectsBadBackwardSeedShape) {
     Value input(Tensor::from_vector({1, 2, 3}, {3}), true);
     const auto output = multiply(input, input);

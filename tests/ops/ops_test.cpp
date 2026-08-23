@@ -95,6 +95,40 @@ TEST(CpuOpsTest, FusedSplitHalfRopeBiasMatchesComposedProjectionPath) {
     EXPECT_THROW((void)rope_split_half_bias(input, Tensor({4})), std::invalid_argument);
 }
 
+TEST(CpuOpsTest, BthdFusedSplitHalfRopeBiasMatchesLayoutMaterialization) {
+    const auto input = Tensor::from_vector(
+        {1, 2, 3, 4, 5, 6, 7, 8,
+         -1, -2, -3, -4, -5, -6, -7, -8,
+         0.5F, 1.5F, 2.5F, 3.5F, 4.5F, 5.5F, 6.5F, 7.5F,
+         -0.5F, -1.5F, -2.5F, -3.5F, -4.5F, -5.5F, -6.5F, -7.5F},
+        {1, 4, 2, 4});
+    const auto bias = Tensor::from_vector(
+        {0.1F, 0.2F, 0.3F, 0.4F, -0.1F, -0.2F, -0.3F, -0.4F}, {8});
+    const auto expected = rope_split_half_bias(
+        input.transpose(1, 2).contiguous(), bias, 3, 5000.0F);
+    const auto actual = rope_split_half_bias_bthd(input, bias, 3, 5000.0F);
+    EXPECT_EQ(actual.shape(), (Shape{1, 2, 4, 4}));
+    expect_near(actual.to_vector(), expected.to_vector());
+
+    const auto gradient = Tensor::from_vector(
+        {1, -1, 2, -2, 3, -3, 4, -4,
+         -1, 1, -2, 2, -3, 3, -4, 4,
+         0.25F, 0.5F, 0.75F, 1, -0.25F, -0.5F, -0.75F, -1,
+         2, 1, 0, -1, -2, -1, 0, 1},
+        {1, 2, 4, 4});
+    const auto expected_backward = rope_split_half_backward(
+        gradient, 2, 3, 5000.0F).transpose(1, 2).contiguous();
+    const auto actual_backward =
+        rope_split_half_bias_bthd_backward(gradient, 3, 5000.0F);
+    EXPECT_EQ(actual_backward.shape(), input.shape());
+    expect_near(actual_backward.to_vector(), expected_backward.to_vector());
+
+    EXPECT_THROW((void)rope_split_half_bias_bthd(input, Tensor({4})),
+                 std::invalid_argument);
+    EXPECT_THROW((void)rope_split_half_bias_bthd_backward(Tensor({1, 2, 3, 3})),
+                 std::invalid_argument);
+}
+
 TEST(CpuOpsTest, FusedResidualRmsNormReturnsBothComposedOutputs) {
     const auto left = Tensor::from_vector({1, 2, 3, -1, -2, -3}, {2, 3});
     const auto right = Tensor::from_vector({0.5F, -0.5F, 1, 2, 1, 0}, {2, 3});

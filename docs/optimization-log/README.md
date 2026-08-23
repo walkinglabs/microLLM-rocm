@@ -686,6 +686,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/160-bf16-training-solution-discard.md](experiments/160-bf16-training-solution-discard.md) | 1536候选、24进程和同revision整机反驳 |
 | [assets/tied-embedding-sparse-add.svg](assets/tied-embedding-sparse-add.svg) | gradient来源、Qwen峰值与稀疏累加路径 |
 | [experiments/161-tied-embedding-sparse-add.md](experiments/161-tied-embedding-sparse-add.md) | 71.2%元素归因、两模型A/B和profile归因 |
+| [assets/attention-rope-layout-fusion.svg](assets/attention-rope-layout-fusion.svg) | Q/K布局复制、两模型T512与rocprofv3归因 |
+| [experiments/162-attention-rope-layout-fusion.md](experiments/162-attention-rope-layout-fusion.md) | 前向/双梯度门、60% copy消除与保留结论 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

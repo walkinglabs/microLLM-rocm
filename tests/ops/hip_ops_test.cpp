@@ -2105,6 +2105,30 @@ TEST(HipOpsTest, RopeAndCrossEntropyMatchCpuReference) {
                                      fused_bias.to(Device::hip())).to_vector(),
                 rope_split_half_bias(fused_input, fused_bias).to_vector());
 
+    const auto bthd_input = fused_input.transpose(1, 2).contiguous();
+    const auto bthd_gradient = Tensor::from_vector(
+        {1, -1, 2, -2, 3, -3, 4, -4,
+         -1, 1, -2, 2, -3, 3, -4, 4}, {1, 2, 2, 4});
+    const auto expected_bthd = rope_split_half_bias_bthd(
+        bthd_input, fused_bias, 7, 5000.0F);
+    const auto expected_bthd_backward = rope_split_half_bias_bthd_backward(
+        bthd_gradient, 7, 5000.0F);
+    const auto device_bthd = bthd_input.to(Device::hip());
+    const auto device_bias = fused_bias.to(Device::hip());
+    const auto device_gradient = bthd_gradient.to(Device::hip());
+    runtime::reset_transfer_stats();
+    const auto actual_bthd = rope_split_half_bias_bthd(
+        device_bthd, device_bias, 7, 5000.0F);
+    const auto actual_bthd_backward = rope_split_half_bias_bthd_backward(
+        device_gradient, 7, 5000.0F);
+    runtime::synchronize(Device::hip());
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    expect_near(actual_bthd.to_vector(), expected_bthd.to_vector(), 2.0e-5F);
+    expect_near(actual_bthd_backward.to_vector(),
+                expected_bthd_backward.to_vector(), 2.0e-5F);
+
     const auto logits_cpu = Tensor::from_vector({2, 1, 0, 0, 1, 2}, {2, 3});
     const auto targets_cpu = Tensor::from_int32_vector({0, 2}, {2});
     expect_near(cross_entropy(logits_cpu.to(Device::hip()), targets_cpu.to(Device::hip())).to_vector(),

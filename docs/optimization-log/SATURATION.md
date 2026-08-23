@@ -74,6 +74,12 @@ Experiment 045 proves the retained training path on DeepSeek 1.5B for T=3/32/128
 load behavior. Remaining load work is file decode/streaming/mapping; remaining training
 work is the retained optimizer/reduction profile and longer-context matrix.
 
+Experiment 162 closes the Q/K split-half RoPE materialization boundary for attention-bias
+models at T512. A layout-aware forward/backward removes 60% of diagnosed strided-copy bytes,
+reduces both official-model peaks, and passes throughput non-regression. The remaining 40%
+belongs to Value input and context-output layout changes; repeating the Q/K transpose fusion
+with different indexing is not a new search space.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

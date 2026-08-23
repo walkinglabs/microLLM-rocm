@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "experiment": "Exp162",
+  "decision": "keep Attention Q/K RoPE layout fusion",
+  "correctness": {
+    "cpu_composed_forward_backward": "pass",
+    "graph_forward_input_bias_gradients": "pass",
+    "pytorch_independent_forward_backward": "pass",
+    "hip_operator_no_payload_transfer": "pass",
+    "cpu_hip_full_transformer_all_parameter_gradients": "pass",
+    "invalid_shape_dtype_contracts": "pass"
+  },
+  "training": {
+    "context": 512,
+    "runs_per_model_policy": 3,
+    "qwen_throughput_speedup": 0.999567208,
+    "qwen_peak_bytes_saved": 48234496,
+    "qwen_loss_relative_difference": 0.002350699,
+    "deepseek_throughput_speedup": 1.010396023,
+    "deepseek_peak_bytes_saved": 102760448,
+    "deepseek_loss_relative_difference": 0.0,
+    "observed_parameter_after_equal": true
+  },
+  "diagnostics": {
+    "qwen_strided_copy_calls": "240->96",
+    "qwen_strided_copy_bytes": "251658240->100663296",
+    "deepseek_strided_copy_calls": "280->112",
+    "deepseek_strided_copy_bytes": "513802240->205520896",
+    "copy_byte_reduction_fraction": 0.6
+  },
+  "profile": {
+    "qwen_kernel_dispatches": "7624->7192",
+    "qwen_strided_copy_time_ns": "3656034->1471279",
+    "qwen_total_kernel_time_ns": "112217886->110511178",
+    "instrumented_throughput_used_for_decision": false
+  },
+  "regression": {
+    "cpu_debug": "263/263",
+    "asan_ubsan": "261/261",
+    "pytorch_enabled_cpu": "237/237",
+    "full_cpu_hip": "391/391",
+    "hip_label": "124/124",
+    "conditional_skips": 2,
+    "package_consumer": "pass",
+    "runner_contract_cases": "3/3",
+    "coverage_lines_percent": 80.9,
+    "coverage_functions_percent": 89.8,
+    "coverage_branches_percent": 61.9
+  }
+}

@@ -11,3 +11,7 @@ share the same mistake.
 The suite covers every public math operator, legal output shapes, invalid shape/dtype
 contracts, view gradients, SGD, two AdamW steps and moment state, and a complete tiny
 Transformer graph.
+
+Layout-changing fusions are reconstructed from ordinary PyTorch operations. For example,
+the BTHD bias+RoPE case uses bias broadcast, `transpose(1, 2)` and split-half rotation in
+Python, then compares the fused C++ output, input gradient and bias gradient independently.

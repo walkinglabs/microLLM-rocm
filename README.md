@@ -79,6 +79,10 @@ needed to run a real training and generation loop:
 - source-aware Autograd and strided-layout diagnostics identify one Qwen tied embedding/head
   accumulation as 71.2% of added gradient elements; sparse token-row accumulation removes a
   mostly-zero 544 MB Tensor, cuts Qwen peak 8.11%, and keeps throughput neutral-positive;
+- layout-aware Q/K bias + split-half RoPE reads projection `[B,T,H,D]` and writes Attention
+  `[B,H,T,D]` directly in forward and reverses the mapping in backward; independent PyTorch
+  gradients pass, diagnosed strided-copy bytes fall 60%, and official T512 peaks fall on both
+  Qwen and DeepSeek without a throughput regression;
 - a phase-independent exact-size HIP pool with immediate legacy-default-Stream reuse and strict
   permanent disablement for non-default Streams;
 - a cross-framework trace runner for operator/layer values and latency comparisons.

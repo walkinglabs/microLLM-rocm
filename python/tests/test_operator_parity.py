@@ -291,6 +291,22 @@ def pytorch_references(actual):
     record(refs, "graph_rope_split_half_bias_input_grad", fused_rope_input.grad)
     record(refs, "graph_rope_split_half_bias_bias_grad", fused_rope_bias.grad)
 
+    layout_rope_input = tensor(
+        [1, 2, 3, 4, 5, 6, 7, 8,
+         -1, -2, -3, -4, -5, -6, -7, -8], (1, 2, 2, 4), True)
+    layout_rope_bias = tensor(
+        [0.1, 0.2, 0.3, 0.4, -0.1, -0.2, -0.3, -0.4], (8,), True)
+    layout_rope_seed = tensor(
+        [1, -1, 2, -2, 3, -3, 4, -4,
+         -1, 1, -2, 2, -3, 3, -4, 4], (1, 2, 2, 4))
+    layout_rope_output = rope_split_half(
+        (layout_rope_input + layout_rope_bias.reshape(1, 1, 2, 4)).transpose(1, 2),
+        sequence_dim=2)
+    (layout_rope_output * layout_rope_seed).sum().backward()
+    record(refs, "graph_rope_split_half_bias_bthd_output", layout_rope_output)
+    record(refs, "graph_rope_split_half_bias_bthd_input_grad", layout_rope_input.grad)
+    record(refs, "graph_rope_split_half_bias_bthd_bias_grad", layout_rope_bias.grad)
+
     embed_weight = tensor([0, 1, 2, 3, 4, 5, 6, 7], (4, 2), True)
     embed_seed = tensor([1, 2, 3, 4, 5, 6], (3, 2))
     (F.embedding(indices, embed_weight) * embed_seed).sum().backward()
@@ -585,6 +601,7 @@ class OperatorParityTest(unittest.TestCase):
             "invalid_rope_width",
             "invalid_rope_split_half_width",
             "invalid_rope_split_half_bias_shape",
+            "invalid_rope_split_half_bias_bthd_shape",
             "invalid_cross_entropy_shape",
             "invalid_reduce_dtype",
             "invalid_broadcast_source",
@@ -598,6 +615,7 @@ class OperatorParityTest(unittest.TestCase):
             "invalid_swiglu_backward_shape",
             "invalid_rope_backward_width",
             "invalid_rope_split_half_backward_width",
+            "invalid_rope_split_half_bias_bthd_backward_width",
             "invalid_cross_entropy_backward_seed",
             "invalid_causal_backward_shape",
             "invalid_repeat_backward_shape",

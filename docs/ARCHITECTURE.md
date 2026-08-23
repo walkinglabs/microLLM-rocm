@@ -131,6 +131,51 @@ hipBLASLt GEMM also supports contiguous strided batches: leading Tensor dimensio
 the batch count and last-two dimensions remain the matrix contract. Explicit batched
 selection is tested independently; Auto is not changed by operator-only timing.
 
+## Attention layout boundary, explained simply
+
+Q/K projection produces a contiguous four-dimensional table in this order:
+
+```text
+[batch, token, head, value-inside-one-head]     = BTHD
+```
+
+Attention wants to visit every head before visiting its tokens:
+
+```text
+[batch, head, token, value-inside-one-head]     = BHTD
+```
+
+A `transpose` view only changes the address formula. It is like saying “read the same
+spreadsheet by columns”; it does not move numbers. A Kernel that accepts only contiguous
+rows forces `contiguous()` to copy the whole spreadsheet into the new order.
+
+For attention-bias models with split-half RoPE, the graph uses one layout-aware boundary:
+
+```text
+projection BTHD
+    │  read old B,T,H,D address
+    ▼
+bias + split-half RoPE Kernel
+    │  write new B,H,T,D address
+    ▼
+Attention BHTD
+```
+
+Backward performs the inverse rotation and inverse address mapping in one Kernel. Its BTHD
+output is already contiguous for the projection gradient. The same Tensor can be reshaped
+to `[B*T,H*D]` for bias reduction without copying. This is a layout optimization, not a new
+RoPE formula.
+
+The public contracts are:
+
+- `rope_split_half_bias_bthd([B,T,H,D], [H*D]) -> [B,H,T,D]`;
+- `rope_split_half_bias_bthd_backward([B,H,T,D]) -> [B,T,H,D]`.
+
+Both require FP32, contiguous tensors, an even `D`, matching devices, nonnegative position
+offset and positive base. CPU reference, HIP, the eager graph and independent PyTorch
+autograd all test the same boundary. `--attention-rope-layout-fusion false` keeps the older
+materialized graph available for same-binary diagnosis.
+
 ## Stable integration boundary
 
 The long-term integration seam is a C-compatible descriptor plus explicit stream

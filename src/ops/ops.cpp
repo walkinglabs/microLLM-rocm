@@ -1224,6 +1224,79 @@ Tensor rope_split_half_bias(const Tensor& input, const Tensor& bias,
     return from_values(std::move(output), input.shape());
 }
 
+Tensor rope_split_half_bias_bthd(const Tensor& input, const Tensor& bias,
+                                 std::int64_t position_offset, float base,
+                                 [[maybe_unused]] const OpContext& context) {
+    require_forward_float(input, "input");
+    require_float(bias, "bias");
+    require_same_device(input, bias);
+    if (input.dtype() != DType::Float32 || bias.dtype() != DType::Float32 ||
+        input.ndim() != 4 || bias.ndim() != 1 || input.shape()[3] % 2 != 0 ||
+        bias.shape()[0] != input.shape()[2] * input.shape()[3] ||
+        position_offset < 0 || base <= 0.0F) {
+        throw std::invalid_argument(
+            "BTHD split-half rope+bias requires FP32 [B,T,H,even-D] and bias [H*D]");
+    }
+    require_contiguous(input, "input");
+    require_contiguous(bias, "bias");
+    const auto batches = input.shape()[0];
+    const auto sequence = input.shape()[1];
+    const auto heads = input.shape()[2];
+    const auto head_width = input.shape()[3];
+    const Shape output_shape{batches, heads, sequence, head_width};
+    if (input.device().is_hip()) {
+        Tensor output(output_shape, DType::Float32, input.device());
+#if MICROLLM_HAS_HIP
+        hip::launch_rope_split_half_bias_bthd(
+            static_cast<const float*>(input.data()),
+            static_cast<const float*>(bias.data()),
+            static_cast<float*>(output.data()), batches, sequence, heads,
+            head_width, position_offset, base,
+            context.native_stream(input.device()));
+        return output;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    const auto values = input.to_vector();
+    const auto bias_values = bias.to_vector();
+    std::vector<float> output(static_cast<std::size_t>(input.numel()));
+    const auto half = head_width / 2;
+    for (std::int64_t batch = 0; batch < batches; ++batch) {
+        for (std::int64_t head = 0; head < heads; ++head) {
+            for (std::int64_t position = 0; position < sequence; ++position) {
+                const auto input_row =
+                    ((batch * sequence + position) * heads + head) * head_width;
+                const auto output_row =
+                    ((batch * heads + head) * sequence + position) * head_width;
+                const auto bias_row = head * head_width;
+                for (std::int64_t pair = 0; pair < half; ++pair) {
+                    const auto angle = static_cast<float>(position + position_offset) *
+                                       std::pow(base, -2.0F * static_cast<float>(pair) /
+                                                          static_cast<float>(head_width));
+                    const auto cosine = std::cos(angle);
+                    const auto sine = std::sin(angle);
+                    const auto input_first =
+                        static_cast<std::size_t>(input_row + pair);
+                    const auto input_second =
+                        static_cast<std::size_t>(input_row + pair + half);
+                    const auto output_first =
+                        static_cast<std::size_t>(output_row + pair);
+                    const auto output_second =
+                        static_cast<std::size_t>(output_row + pair + half);
+                    const auto first_value = values[input_first] +
+                        bias_values[static_cast<std::size_t>(bias_row + pair)];
+                    const auto second_value = values[input_second] +
+                        bias_values[static_cast<std::size_t>(bias_row + pair + half)];
+                    output[output_first] = first_value * cosine - second_value * sine;
+                    output[output_second] = first_value * sine + second_value * cosine;
+                }
+            }
+        }
+    }
+    return from_values(std::move(output), output_shape);
+}
+
 Tensor rope_positions(const Tensor& input, const Tensor& positions, float base,
                       [[maybe_unused]] const OpContext& context) {
     require_float(input, "input");
@@ -2415,6 +2488,69 @@ Tensor rope_split_half_backward(const Tensor& gradient,
         }
     }
     return from_values(std::move(output), gradient.shape());
+}
+
+Tensor rope_split_half_bias_bthd_backward(
+    const Tensor& gradient, std::int64_t position_offset, float base,
+    [[maybe_unused]] const OpContext& context) {
+    require_float(gradient, "gradient");
+    if (gradient.dtype() != DType::Float32 || gradient.ndim() != 4 ||
+        gradient.shape()[3] % 2 != 0 || position_offset < 0 || base <= 0.0F) {
+        throw std::invalid_argument(
+            "BTHD split-half rope backward requires FP32 [B,H,T,even-D]");
+    }
+    require_contiguous(gradient, "gradient");
+    const auto batches = gradient.shape()[0];
+    const auto heads = gradient.shape()[1];
+    const auto sequence = gradient.shape()[2];
+    const auto head_width = gradient.shape()[3];
+    const Shape output_shape{batches, sequence, heads, head_width};
+    if (gradient.device().is_hip()) {
+        Tensor output(output_shape, DType::Float32, gradient.device());
+#if MICROLLM_HAS_HIP
+        hip::launch_rope_split_half_bias_bthd_backward(
+            static_cast<const float*>(gradient.data()),
+            static_cast<float*>(output.data()), batches, sequence, heads,
+            head_width, position_offset, base,
+            context.native_stream(gradient.device()));
+        return output;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    const auto values = gradient.to_vector();
+    std::vector<float> output(static_cast<std::size_t>(gradient.numel()));
+    const auto half = head_width / 2;
+    for (std::int64_t batch = 0; batch < batches; ++batch) {
+        for (std::int64_t head = 0; head < heads; ++head) {
+            for (std::int64_t position = 0; position < sequence; ++position) {
+                const auto gradient_row =
+                    ((batch * heads + head) * sequence + position) * head_width;
+                const auto output_row =
+                    ((batch * sequence + position) * heads + head) * head_width;
+                for (std::int64_t pair = 0; pair < half; ++pair) {
+                    const auto angle = static_cast<float>(position + position_offset) *
+                                       std::pow(base, -2.0F * static_cast<float>(pair) /
+                                                          static_cast<float>(head_width));
+                    const auto cosine = std::cos(angle);
+                    const auto sine = std::sin(angle);
+                    const auto gradient_first =
+                        static_cast<std::size_t>(gradient_row + pair);
+                    const auto gradient_second =
+                        static_cast<std::size_t>(gradient_row + pair + half);
+                    const auto output_first =
+                        static_cast<std::size_t>(output_row + pair);
+                    const auto output_second =
+                        static_cast<std::size_t>(output_row + pair + half);
+                    output[output_first] = values[gradient_first] * cosine +
+                                           values[gradient_second] * sine;
+                    output[output_second] = -values[gradient_first] * sine +
+                                            values[gradient_second] * cosine;
+                }
+            }
+        }
+    }
+    return from_values(std::move(output), output_shape);
 }
 
 Tensor cross_entropy_backward(const Tensor& logits, const Tensor& targets,

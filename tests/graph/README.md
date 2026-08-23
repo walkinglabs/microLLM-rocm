@@ -6,7 +6,7 @@ kernels.
 | File | Question answered |
 |---|---|
 | `graph_construction_test.cpp` | Were operation names, parent edges, shared nodes, root shapes, and topological order recorded correctly? |
-| `graph_gradient_alignment_test.cpp` | Do branches accumulate, repeated backward stay stable, views restore logical order, and bad seeds fail? |
+| `graph_gradient_alignment_test.cpp` | Do branches accumulate, repeated backward stay stable, views restore logical order, layout-fused RoPE match its composed graph, and bad seeds fail? |
 | `hip_graph_alignment_test.cpp` | Does the same Transformer graph produce aligned CPU/HIP loss and every-parameter gradient without hidden host transfers? |
 
 PyTorch graph alignment lives in `python/tests/test_operator_parity.py`, with

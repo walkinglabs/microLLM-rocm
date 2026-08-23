@@ -2705,3 +2705,20 @@ added elements（71.2%）：先到的是dense `matmul_right`，后到的是只�
 参数guard相等。profile少3次add和3次fill，总Kernel 116.41→113.20ms。按内存门保留。
 
 ![Tied embedding sparse add](assets/tied-embedding-sparse-add.svg)
+
+## 179. Experiment 162：同一张表换个读法，不应该先完整抄一遍
+
+Attention里的Q/K投影原本是一张`[批次, token, 头, 每头宽度]`的四维表，后面的计算喜欢
+`[批次, 头, token, 每头宽度]`。旧图先做transpose view，再把整张表按新顺序复制；反向还要
+复制回来。就像老师只想按“班级”而不是按“座位号”读成绩，旧程序却先抄了一本新花名册。
+
+新Kernel在读取时直接计算旧位置，在写出时直接计算新位置，同时完成bias和RoPE。反向做相反
+映射，得到的`[B,T,H,D]`又能直接reshape给bias gradient，不再抄中间表。独立PyTorch图检查了
+前向、输入梯度和bias梯度；HIP检查还证明热路径没有偷跑host。
+
+正式T512必须传513个原始token，因为最后一个会被shift成target。纠正这个口径后，三进程中位数
+显示Qwen吞吐0.9996×、DeepSeek 1.0104×；峰值各少48.2/102.8MB。两模型strided-copy字节都少
+60%。profile里copy时间3.656→1.471ms，虽然新RoPE Kernel自己的索引多花约1–2%，总Kernel仍
+112.22→110.51ms。按布局/内存门保留，不把Qwen的中性结果写成速度胜利。
+
+![Attention RoPE layout fusion](assets/attention-rope-layout-fusion.svg)

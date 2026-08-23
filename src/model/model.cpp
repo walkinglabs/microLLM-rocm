@@ -14,6 +14,7 @@
 #include <string>
 #include <utility>
 
+#include <microllm/autograd/diagnostics.h>
 #include <microllm/ops/ops.h>
 #include <microllm/profiling/trace.h>
 #include <microllm/runtime/memory.h>
@@ -628,22 +629,36 @@ public:
                                      {batch, sequence, config_.kv_heads, config_.head_dimension()});
         auto value = autograd::reshape(value_.forward(flat),
                                        {batch, sequence, config_.kv_heads, config_.head_dimension()});
-        const auto transposed_query = autograd::transpose(query, 1, 2);
-        const auto transposed_key = autograd::transpose(key, 1, 2);
+        const auto layout_fusion =
+            autograd::attention_rope_layout_fusion_enabled();
         if (config_.rope_layout == RopeLayout::SplitHalf) {
-            query = fuse_query_bias
-                        ? autograd::rope_split_half_bias(
-                              transposed_query, query_.bias(), 0, config_.rope_base)
-                        : autograd::rope_split_half(
-                              transposed_query, 2, 0, config_.rope_base);
-            key = fuse_key_bias
-                      ? autograd::rope_split_half_bias(
-                            transposed_key, key_.bias(), 0, config_.rope_base)
-                      : autograd::rope_split_half(
-                            transposed_key, 2, 0, config_.rope_base);
+            if (fuse_query_bias) {
+                query = layout_fusion
+                            ? autograd::rope_split_half_bias_bthd(
+                                  query, query_.bias(), 0, config_.rope_base)
+                            : autograd::rope_split_half_bias(
+                                  autograd::transpose(query, 1, 2),
+                                  query_.bias(), 0, config_.rope_base);
+            } else {
+                query = autograd::rope_split_half(
+                    autograd::transpose(query, 1, 2), 2, 0, config_.rope_base);
+            }
+            if (fuse_key_bias) {
+                key = layout_fusion
+                          ? autograd::rope_split_half_bias_bthd(
+                                key, key_.bias(), 0, config_.rope_base)
+                          : autograd::rope_split_half_bias(
+                                autograd::transpose(key, 1, 2), key_.bias(),
+                                0, config_.rope_base);
+            } else {
+                key = autograd::rope_split_half(
+                    autograd::transpose(key, 1, 2), 2, 0, config_.rope_base);
+            }
         } else {
-            query = autograd::rope(transposed_query, 2, 0, config_.rope_base);
-            key = autograd::rope(transposed_key, 2, 0, config_.rope_base);
+            query = autograd::rope(autograd::transpose(query, 1, 2), 2, 0,
+                                   config_.rope_base);
+            key = autograd::rope(autograd::transpose(key, 1, 2), 2, 0,
+                                 config_.rope_base);
         }
         value = autograd::transpose(value, 1, 2);
         const auto repeats = config_.heads / config_.kv_heads;

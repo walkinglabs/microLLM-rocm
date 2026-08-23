@@ -85,6 +85,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.HfFp8WeightAuditContract PROPERTIES
         LABELS "cpu;benchmark;fp8;precision;schema")
     add_test(
+        NAME Benchmark.AttentionLayoutFusionRunnerContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_attention_layout_fusion_runner.py
+    )
+    set_tests_properties(Benchmark.AttentionLayoutFusionRunnerContract PROPERTIES
+        LABELS "cpu;benchmark;training;attention;schema")
+    add_test(
         NAME Coverage.OperatorAndTestFiles
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/audit_test_coverage.py
     )

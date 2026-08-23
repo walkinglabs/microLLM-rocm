@@ -143,6 +143,11 @@ measurements and is disabled by default.
 The retained tied-weight optimization can be rebutted with the same binary using
 `--tied-embedding-sparse-add true/false`.
 
+The retained Q/K RoPE layout optimization has the matching same-binary control:
+`--attention-rope-layout-fusion true/false`. `true` reads projection output in
+`[B,T,H,D]` and writes RoPE output in `[B,H,T,D]`; `false` restores the explicit
+transpose materializations. Diagnostics and timing must still be separate processes.
+
 ### End-to-end benchmark
 
 ```bash

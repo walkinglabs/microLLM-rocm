@@ -527,6 +527,42 @@ __global__ void rope_split_half_bias_kernel(
     output[second] = first_value * sine + second_value * cosine;
 }
 
+__global__ void rope_split_half_bias_bthd_kernel(
+    const float* input, const float* bias, float* output, std::int64_t pairs,
+    std::int64_t sequence_size, std::int64_t heads, std::int64_t head_width,
+    std::int64_t position_offset, float base) {
+    const auto pair_index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x +
+                            threadIdx.x;
+    if (pair_index >= pairs) return;
+    const auto half = head_width / 2;
+    const auto instance = pair_index / half;
+    const auto pair = pair_index % half;
+    const auto heads_per_batch = heads * sequence_size;
+    const auto batch = instance / heads_per_batch;
+    const auto within_batch = instance % heads_per_batch;
+    const auto head = within_batch / sequence_size;
+    const auto position = within_batch % sequence_size;
+    const auto input_row = ((batch * sequence_size + position) * heads + head) *
+                           head_width;
+    const auto output_row = instance * head_width;
+    const auto input_first = input_row + pair;
+    const auto input_second = input_first + half;
+    const auto output_first = output_row + pair;
+    const auto output_second = output_first + half;
+    const auto bias_first = head * head_width + pair;
+    const auto bias_second = bias_first + half;
+    const auto angle = static_cast<float>(position + position_offset) *
+                       powf(base, -2.0F * static_cast<float>(pair) /
+                                      static_cast<float>(head_width));
+    float sine = 0.0F;
+    float cosine = 0.0F;
+    sincosf(angle, &sine, &cosine);
+    const auto first_value = input[input_first] + bias[bias_first];
+    const auto second_value = input[input_second] + bias[bias_second];
+    output[output_first] = first_value * cosine - second_value * sine;
+    output[output_second] = first_value * sine + second_value * cosine;
+}
+
 __global__ void rope_positions_kernel(
     const float* input, const std::int32_t* positions, float* output,
     std::int64_t pairs, std::int64_t heads, std::int64_t head_width,
@@ -1740,6 +1776,40 @@ __global__ void rope_split_half_backward_kernel(
     input_gradient[second] = -gradient[first] * sine + gradient[second] * cosine;
 }
 
+__global__ void rope_split_half_bias_bthd_backward_kernel(
+    const float* gradient, float* input_gradient, std::int64_t pairs,
+    std::int64_t sequence_size, std::int64_t heads, std::int64_t head_width,
+    std::int64_t position_offset, float base) {
+    const auto pair_index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x +
+                            threadIdx.x;
+    if (pair_index >= pairs) return;
+    const auto half = head_width / 2;
+    const auto instance = pair_index / half;
+    const auto pair = pair_index % half;
+    const auto heads_per_batch = heads * sequence_size;
+    const auto batch = instance / heads_per_batch;
+    const auto within_batch = instance % heads_per_batch;
+    const auto head = within_batch / sequence_size;
+    const auto position = within_batch % sequence_size;
+    const auto gradient_row = instance * head_width;
+    const auto input_row = ((batch * sequence_size + position) * heads + head) *
+                           head_width;
+    const auto gradient_first = gradient_row + pair;
+    const auto gradient_second = gradient_first + half;
+    const auto input_first = input_row + pair;
+    const auto input_second = input_first + half;
+    const auto angle = static_cast<float>(position + position_offset) *
+                       powf(base, -2.0F * static_cast<float>(pair) /
+                                      static_cast<float>(head_width));
+    float sine = 0.0F;
+    float cosine = 0.0F;
+    sincosf(angle, &sine, &cosine);
+    input_gradient[input_first] =
+        gradient[gradient_first] * cosine + gradient[gradient_second] * sine;
+    input_gradient[input_second] =
+        -gradient[gradient_first] * sine + gradient[gradient_second] * cosine;
+}
+
 __global__ void cross_entropy_backward_stats_kernel(
     const float* logits, const std::int32_t* targets, float* row_stats,
     std::int64_t rows, std::int64_t classes) {
@@ -2882,6 +2952,20 @@ void launch_rope_split_half_bias(const float* input, const float* bias, float* o
     check_launch("rope_split_half_bias_kernel");
 }
 
+void launch_rope_split_half_bias_bthd(
+    const float* input, const float* bias, float* output,
+    std::int64_t batches, std::int64_t sequence_size, std::int64_t heads,
+    std::int64_t head_width, std::int64_t position_offset, float base,
+    void* stream) {
+    const auto pairs = batches * sequence_size * heads * head_width / 2;
+    if (pairs == 0) return;
+    hipLaunchKernelGGL(rope_split_half_bias_bthd_kernel,
+                       dim3(grid_size(pairs)), dim3(kBlockSize), 0,
+                       as_stream(stream), input, bias, output, pairs,
+                       sequence_size, heads, head_width, position_offset, base);
+    check_launch("rope_split_half_bias_bthd_kernel");
+}
+
 void launch_rope_positions(const float* input, const std::int32_t* positions,
                            float* output, std::int64_t batches,
                            std::int64_t heads, std::int64_t head_width,
@@ -3320,6 +3404,20 @@ void launch_rope_split_half_backward(
                        input_gradient, pairs, head_width, sequence_size,
                        sequence_stride, position_offset, base);
     check_launch("rope_split_half_backward_kernel");
+}
+
+void launch_rope_split_half_bias_bthd_backward(
+    const float* gradient, float* input_gradient,
+    std::int64_t batches, std::int64_t sequence_size, std::int64_t heads,
+    std::int64_t head_width, std::int64_t position_offset, float base,
+    void* stream) {
+    const auto pairs = batches * sequence_size * heads * head_width / 2;
+    if (pairs == 0) return;
+    hipLaunchKernelGGL(rope_split_half_bias_bthd_backward_kernel,
+                       dim3(grid_size(pairs)), dim3(kBlockSize), 0,
+                       as_stream(stream), gradient, input_gradient, pairs,
+                       sequence_size, heads, head_width, position_offset, base);
+    check_launch("rope_split_half_bias_bthd_backward_kernel");
 }
 
 void launch_cross_entropy_backward(const float* logits, const std::int32_t* targets,
