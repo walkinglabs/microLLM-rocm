@@ -2345,3 +2345,11 @@ activation 0.4/0.8的18个进程全部执行、0/16过门。DeepSeek保留top to
 降到0.303但仍是门的6倍且位于边界。停止DeepSeek搜索，Qwen只再扩一次1.6/3.2。
 
 ![FP8 scale turn](assets/fp8-scale-turn.svg)
+
+## 143. Experiment 126：没有假装转弯，也停止盲搜
+
+Qwen 1.6/3.2的9个进程全部执行，8/8 top相同但0/8过门。最佳RMS继续降到0.217，仍为门的
+4.33倍，没有字面转弯。结合DeepSeek的谷底在0.2附近和weight最佳值漂移，本项目停止跨模型
+全局数字搜索，但不声称数学上推翻所有scale。下一节点让每个Linear weight按自己的amax选scale。
+
+![Qwen FP8 scale closure](assets/qwen-fp8-scale-closure.svg)

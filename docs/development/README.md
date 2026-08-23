@@ -287,5 +287,7 @@ the next gate. Records are append-only except for factual corrections.
   one-dimensional boundary expansion that improves RMS without passing the model gate.
 - [2026-08-23-fp8-scale-turn.md](2026-08-23-fp8-scale-turn.md):
   DeepSeek error turn, Qwen open boundary and a top-token rejection counterexample.
+- [2026-08-23-qwen-fp8-scale-closure.md](2026-08-23-qwen-fp8-scale-closure.md):
+  finite-search boundary, diminishing returns and the handoff to per-Tensor weight scales.
 - [2026-08-21-divergent-row-cache-reference.md](2026-08-21-divergent-row-cache-reference.md):
   unequal-position shared-Storage B1 oracle with CPU/HIP and reset-prefix gates.

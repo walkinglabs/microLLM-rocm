@@ -4894,6 +4894,52 @@ def validate_fp8_scale_turn(errors: list[str]) -> tuple[int, int, int]:
         row.get("precision_gate_passed", False) for row in candidates)
 
 
+def validate_qwen_fp8_scale_closure(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "126-data"
+    raw = [json.loads(line) for line in
+           (data / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    preflight = [json.loads(line) for line in
+                 (data / "gpu2-preflight.jsonl").read_text(
+                     encoding="utf-8").splitlines()]
+    candidates = [row for row in raw if row.get("policy") == "fp8"]
+    if len(raw) != 9 or len(candidates) != 8 or \
+            any(row.get("status") != "pass" for row in raw) or any(
+                row.get("pre_run_gpu_state", {}).get("vram_percent") != 0 or
+                row.get("pre_run_gpu_state", {}).get("gpu_use_percent", 99) > 1 or
+                row.get("post_run_gpu_state", {}).get("vram_percent", 99) > 0 or
+                row.get("post_run_gpu_state", {}).get("gpu_use_percent", 99) > 3
+                for row in raw):
+        errors.append("Qwen FP8 closure raw or idle-gate evidence changed")
+    qwen = summary.get("by_model", {}).get("qwen2.5-0.5b", {})
+    best = qwen.get("best_candidate", {})
+    if summary.get("status") != "complete_no_passing_scale" or \
+            summary.get("candidate_count") != 8 or \
+            summary.get("precision_gate_pass_count") != 0 or \
+            summary.get("activation_scales") != [1.6, 3.2] or \
+            qwen.get("top_token_equal_count") != 8 or \
+            best.get("fp8_activation_scale") != 3.2 or \
+            best.get("fp8_weight_scale") != 0.0025 or \
+            not 0.21 < best.get("root_mean_square_error", 0.0) < 0.22 or \
+            not 1.0 < best.get("maximum_absolute_error", 0.0) < 1.01:
+        errors.append("Qwen FP8 closure summary evidence changed")
+    if len(preflight) != 3 or any(
+            row.get("card2", {}).get("GPU use (%)") != "0" or
+            row.get("card2", {}).get("GPU Memory Allocated (VRAM%)") != "0"
+            for row in preflight):
+        errors.append("Qwen FP8 closure preflight changed")
+    if gates.get("status") != "stop_cross_model_global_search_start_tensor_amax" or \
+            gates.get("decision", {}).get("qwen_literal_turn_found") is not False or \
+            gates.get("decision", {}).get(
+                "all_global_scales_mathematically_refuted") is not False or \
+            gates.get("decision", {}).get("cross_model_global_search_stopped") is not True or \
+            gates.get("decision", {}).get("implement_weight_tensor_amax") is not True:
+        errors.append("Qwen FP8 closure decision boundary changed")
+    return len(raw), len(candidates), sum(
+        row.get("precision_gate_passed", False) for row in candidates)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -4997,7 +5043,8 @@ def validate_assets(errors: list[str]) -> None:
                  "official-fp8-static-scale.svg",
                  "fp8-global-scale-grid.svg",
                  "fp8-scale-boundary.svg",
-                 "fp8-scale-turn.svg"):
+                 "fp8-scale-turn.svg",
+                 "qwen-fp8-scale-closure.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -5181,6 +5228,8 @@ def main() -> int:
         validate_fp8_scale_boundary(errors)
     fp8_turn_raw, fp8_turn_candidates, fp8_turn_passed = \
         validate_fp8_scale_turn(errors)
+    fp8_closure_raw, fp8_closure_candidates, fp8_closure_passed = \
+        validate_qwen_fp8_scale_closure(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -5328,6 +5377,8 @@ def main() -> int:
           f"fp8_boundary={fp8_boundary_raw}/{fp8_boundary_candidates}/"
           f"{fp8_boundary_passed} "
           f"fp8_turn={fp8_turn_raw}/{fp8_turn_candidates}/{fp8_turn_passed} "
+          f"fp8_closure={fp8_closure_raw}/{fp8_closure_candidates}/"
+          f"{fp8_closure_passed} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

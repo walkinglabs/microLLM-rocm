@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="570" viewBox="0 0 1040 570" role="img" aria-labelledby="title desc">
+  <title id="title">Qwen FP8 global scale closure</title><desc id="desc">Qwen RMS continues down with larger activation scale but remains more than four times over the gate.</desc>
+  <rect width="1040" height="570" rx="18" fill="#0b1020"/>
+  <text x="52" y="52" fill="#f8fafc" font-size="28" font-family="sans-serif" font-weight="700">Qwen FP8：继续下降，仍是精度门 4.33 倍</text>
+  <text x="52" y="82" fill="#94a3b8" font-size="16" font-family="sans-serif">完整151936维logits RMS；全局scale搜索在工程上收尾</text>
+  <g stroke="#334155"><line x1="100" y1="450" x2="940" y2="450"/><line x1="100" y1="340" x2="940" y2="340"/><line x1="100" y1="230" x2="940" y2="230"/><line x1="100" y1="120" x2="940" y2="120"/></g>
+  <g fill="#94a3b8" font-size="14" font-family="sans-serif"><text x="60" y="455">0</text><text x="52" y="345">0.5</text><text x="52" y="235">1.0</text><text x="52" y="125">1.5</text><text x="140" y="490">0.1</text><text x="275" y="490">0.2</text><text x="410" y="490">0.4</text><text x="545" y="490">0.8</text><text x="680" y="490">1.6</text><text x="815" y="490">3.2</text></g>
+  <line x1="100" y1="439" x2="940" y2="439" stroke="#fbbf24" stroke-width="3" stroke-dasharray="10 8"/><text x="780" y="431" fill="#fbbf24" font-size="14" font-family="sans-serif">RMS gate 0.05</text>
+  <polyline points="160,182 295,303 430,346 565,383 700,398 835,402" fill="none" stroke="#38bdf8" stroke-width="5"/>
+  <g fill="#38bdf8"><circle cx="160" cy="182" r="7"/><circle cx="295" cy="303" r="7"/><circle cx="430" cy="346" r="7"/><circle cx="565" cy="383" r="7"/><circle cx="700" cy="398" r="7"/><circle cx="835" cy="402" r="7"/></g>
+  <g fill="#e2e8f0" font-size="14" font-family="sans-serif"><text x="138" y="172">1.22</text><text x="273" y="293">0.669</text><text x="408" y="336">0.472</text><text x="543" y="373">0.303</text><text x="678" y="388">0.234</text><text x="813" y="392">0.217</text></g>
+  <text x="245" y="540" fill="#cbd5e1" font-size="16" font-family="sans-serif">更大数字仍有边际改善，但不能解决跨模型、跨Tensor范围冲突</text>
+</svg>

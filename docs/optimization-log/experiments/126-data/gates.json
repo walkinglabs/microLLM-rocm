@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "status": "stop_cross_model_global_search_start_tensor_amax",
+  "official_qwen_grid": {
+    "workers_passed": 9,
+    "workers_failed": 0,
+    "scale_pairs": 8,
+    "precision_gate_passed": 0,
+    "top_token_equal": 8
+  },
+  "decision": {
+    "qwen_literal_turn_found": false,
+    "all_global_scales_mathematically_refuted": false,
+    "cross_model_global_search_stopped": true,
+    "implement_weight_tensor_amax": true,
+    "default_fp8": false
+  }
+}

@@ -153,7 +153,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   0/16 pass, and both best candidates land at the new upper boundary;
 - [x] test activation scale 0.4/0.8: DeepSeek's top-equal RMS turns upward, while
   Qwen improves to 0.303 but remains six times over the gate at the upper boundary;
-- [ ] run one Qwen-only 1.6/3.2 boundary closure, then stop global-scale search;
+- [x] run Qwen-only 1.6/3.2: 0/8 pass and best RMS 0.217 remains at the boundary;
+  stop the cross-model global search without claiming a mathematical refutation;
+- [ ] implement explicit weight `tensor-amax` scale mode, report per-Linear scale range and
+  preparation cost, then rerun complete official logits with fixed activation scale;
 - [ ] replace global FP8 scales with weight per-tensor and activation per-row/token amax,
   starting from saturation/trace evidence rather than top-token search;
 - [ ] expert/tensor/data parallel weight placement and communication;
