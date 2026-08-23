@@ -2558,3 +2558,12 @@ T512只慢3.74%/1.50%，八项无回归、至少一项改善、两速度门全�
 完整precision仍0/4，下一步转向activation。
 
 ![Attention output-only FP8 weights](assets/fp8-attention-output-only.svg)
+
+## 166. Experiment 149：没有答案，因为GPU被外部任务占用
+
+fraction=1预检3次均空闲，但运行中post gate检测22% use/9% VRAM并退出；下一fraction首次预检
+已17%/10%，后续长期72%–100% use、57% VRAM。已写3行全部排除，有效suite=0/4。
+
+不选fraction、不报TPS、不拼接retry。严格门正确阻止了一次假结论，GPU空闲后从1.0重跑。
+
+![Invalid clipped pilot](assets/fp8-clipped-pilot-invalid.svg)

@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "/home/devpod/github/microLLM-rocm/benchmarks/single_gpu/hf_fp8_matrix.py", line 412, in <module>
+    raise SystemExit(main())
+                     ~~~~^^
+  File "/home/devpod/github/microLLM-rocm/benchmarks/single_gpu/hf_fp8_matrix.py", line 225, in main
+    post = require_idle(
+        args.physical_gpu_index, args.max_idle_vram_percent,
+        args.max_idle_use_percent,
+        f"{model['name']} T{context} run{process_run} {policy} post")
+  File "/home/devpod/github/microLLM-rocm/benchmarks/single_gpu/hf_fp8_matrix.py", line 107, in require_idle
+    raise RuntimeError(f"GPU occupied at {boundary}: {state}")
+RuntimeError: GPU occupied at qwen2.5-0.5b T512 run1 fp8 post: {'physical_gpu_index': 2, 'gpu_use_percent': 22, 'vram_percent': 9}

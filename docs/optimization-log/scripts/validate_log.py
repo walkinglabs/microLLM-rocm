@@ -6172,6 +6172,55 @@ def validate_fp8_attention_output_only(
         complete.get("pass_count", -1)
 
 
+def validate_fp8_clipped_pilot_invalid(
+        errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "149-data"
+    verification = json.loads((data / "verification.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    build = verification.get("build", {})
+    invalid = verification.get("invalid_artifacts", [])
+    if verification.get("status") != "invalid_due_to_external_gpu_contention" or \
+            verification.get("valid_fraction_suites") != 0 or \
+            verification.get("required_fraction_suites") != 4 or \
+            verification.get("valid_fp8_rows") != 0 or \
+            verification.get("throughput_is_performance_evidence") is not False or \
+            build.get("valid") is not True or build.get("steps_completed") != 50 or \
+            len(invalid) != 2:
+        errors.append("FP8 clipped invalid verification changed")
+    by_fraction = {row["fraction"]: row for row in invalid}
+    one = by_fraction.get(1.0, {})
+    point75 = by_fraction.get(0.75, {})
+    raw_rows = sum(1 for line in (data / "fraction-1-invalid" / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip())
+    if one.get("runner_exit_code") != 1 or one.get("recorded_raw_rows") != 3 or \
+            one.get("post_gate_state") != {"gpu_use_percent": 22, "vram_percent": 9} or \
+            raw_rows != 3 or \
+            (data / "fraction-1-invalid" / "exit-code.txt").read_text(
+                encoding="utf-8").strip() != "1" or \
+            (data / "fraction-1-invalid" / "stderr.log").stat().st_size == 0 or \
+            point75.get("runner_launched") is not False or \
+            len(point75.get("preflight", [])) != 1:
+        errors.append("FP8 clipped invalid artifact evidence changed")
+    sequences = verification.get("gpu_occupation_sequences", [])
+    samples = [sample for row in sequences for sample in row.get("samples", [])]
+    if len(sequences) != 3 or len(samples) != 18 or \
+            max(sample["use"] for sample in samples) != 100 or \
+            {sample["vram"] for sample in samples} != {57}:
+        errors.append("FP8 clipped contention monitoring changed")
+    decision = gates.get("decision", {})
+    if decision.get("numerical_fraction_selected") is not False or \
+            decision.get("contaminated_rows_may_be_merged_into_retry") is not False or \
+            decision.get("retry_must_start_from_fraction_one") is not True or \
+            decision.get("gpu_idle_gate_should_be_relaxed") is not False or \
+            "[50/50]" not in (data / "fresh-build.log").read_text(encoding="utf-8") or \
+            "binary contract: pass" not in (data / "hf-cli-binary-contract.log").read_text(
+                encoding="utf-8") or \
+            "OK" not in (data / "hf-fp8-matrix-contract.log").read_text(encoding="utf-8"):
+        errors.append("FP8 clipped invalid decision/build gates changed")
+    return verification.get("valid_fraction_suites", -1), \
+        verification.get("required_fraction_suites", -1), raw_rows
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -6298,7 +6347,8 @@ def validate_assets(errors: list[str]) -> None:
                  "fp8-weight-reconstruction-audit.svg",
                  "fp8-output-head-only.svg",
                  "fp8-attention-only.svg",
-                 "fp8-attention-output-only.svg"):
+                 "fp8-attention-output-only.svg",
+                 "fp8-clipped-pilot-invalid.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -6528,6 +6578,8 @@ def main() -> int:
         validate_fp8_attention_only(errors)
     output_workers, output_fp8, output_precision = \
         validate_fp8_attention_output_only(errors)
+    clipped_valid, clipped_required, clipped_excluded = \
+        validate_fp8_clipped_pilot_invalid(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -6708,6 +6760,8 @@ def main() -> int:
           f"attention_only={attention_workers}/{attention_fp8}/"
           f"{attention_precision} "
           f"attention_output={output_workers}/{output_fp8}/{output_precision} "
+          f"clipped_invalid={clipped_valid}/{clipped_required}/"
+          f"{clipped_excluded} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "status": "invalid_external_gpu_contention_retry_required",
+  "evidence": {
+    "fresh_build_steps": 50,
+    "contracts_passed": 2,
+    "required_fraction_suites": 4,
+    "valid_fraction_suites": 0,
+    "valid_fp8_rows": 0,
+    "excluded_raw_rows": 3,
+    "invalid_artifact_sets": 2
+  },
+  "decision": {
+    "numerical_fraction_selected": false,
+    "top_token_conclusion_valid": false,
+    "tps_conclusion_valid": false,
+    "contaminated_rows_may_be_merged_into_retry": false,
+    "retry_must_start_from_fraction_one": true,
+    "gpu_idle_gate_should_be_relaxed": false,
+    "fresh_build_may_be_reused_only_if_binary_unchanged": true
+  }
+}

@@ -527,6 +527,9 @@ remains experimental and is not a cross-model default.
 [Experiment 148](docs/optimization-log/experiments/148-fp8-attention-output-only.md) narrows the
 scope to O projections: Qwen is unchanged, DeepSeek improves, and both T512 speed gates pass. The
 scope is retained as opt-in evidence, while complete FP8 precision remains 0/4.
+[Experiment 149](docs/optimization-log/experiments/149-fp8-clipped-pilot-invalid.md) records an
+invalid clipped-activation pilot: external GPU contention triggered the strict post/preflight gates,
+so zero fraction suites are accepted and the retry must start from scratch.
 
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="600" viewBox="0 0 1120 600" role="img" aria-labelledby="title desc">
+  <title id="title">Clipped activation pilot invalidated by external GPU contention</title>
+  <desc id="desc">Preflight was idle, the post gate detected contention, and subsequent samples showed sustained high GPU use.</desc>
+  <rect width="1120" height="600" rx="20" fill="#0b1020"/>
+  <text x="56" y="58" fill="#f8fafc" font-size="29" font-family="sans-serif" font-weight="700">严格GPU门拒绝了一次受污染的fraction实验</text>
+  <text x="56" y="91" fill="#94a3b8" font-size="16" font-family="sans-serif">绿=预检空闲；红=外部任务出现；所有已写行排除</text>
+  <line x1="90" y1="430" x2="1050" y2="430" stroke="#475569"/>
+  <g fill="#22c55e"><circle cx="140" cy="430" r="13"/><circle cx="210" cy="430" r="13"/><circle cx="280" cy="430" r="13"/></g>
+  <text x="115" y="470" fill="#86efac" font-size="15" font-family="sans-serif">3× 0% / 0%</text>
+  <path d="M320 430 H390" stroke="#94a3b8" stroke-width="3"/>
+  <circle cx="430" cy="385" r="17" fill="#fb7185"/><text x="392" y="350" fill="#fda4af" font-size="16" font-family="sans-serif">post: 22% / 9%</text>
+  <g fill="#ef4444"><rect x="520" y="160" width="28" height="270"/><rect x="565" y="160" width="28" height="270"/><rect x="610" y="160" width="28" height="270"/><rect x="655" y="160" width="28" height="270"/><rect x="700" y="160" width="28" height="270"/><rect x="745" y="235" width="28" height="195"/><rect x="790" y="165" width="28" height="265"/><rect x="835" y="162" width="28" height="268"/><rect x="880" y="160" width="28" height="270"/><rect x="925" y="160" width="28" height="270"/></g>
+  <text x="585" y="135" fill="#fca5a5" font-size="17" font-family="sans-serif">后续72%–100% use · 57% VRAM</text>
+  <rect x="110" y="505" width="900" height="60" rx="12" fill="#111827" stroke="#334155"/><text x="170" y="542" fill="#fbbf24" font-size="18" font-family="sans-serif">有效fraction 0/4 · 有效FP8 rows 0 · 必须从1.0重跑</text>
+</svg>

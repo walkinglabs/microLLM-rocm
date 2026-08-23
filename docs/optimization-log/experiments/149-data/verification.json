@@ -1,0 +1,165 @@
+{
+  "build": {
+    "binary": "/tmp/microllm-exp149-build.qbPVHz/apps/microllm_hf_infer",
+    "build_exit_code": 0,
+    "build_log": "/tmp/microllm-exp149-build.qbPVHz/build.log",
+    "configure_exit_code": 0,
+    "configure_log": "/tmp/microllm-exp149-build.qbPVHz/configure.log",
+    "directory": "/tmp/microllm-exp149-build.qbPVHz",
+    "hf_cli_contract_exit_code": 0,
+    "hf_cli_contract_log": "/tmp/microllm-exp149-build.qbPVHz/hf-cli-binary-contract.log",
+    "matrix_contract_exit_code": 0,
+    "matrix_contract_log": "/tmp/microllm-exp149-build.qbPVHz/hf-fp8-matrix-contract.log",
+    "steps_completed": 50,
+    "valid": true
+  },
+  "conclusion": "No numerical fraction comparison, selection, top-token conclusion, or TPS statement is valid. The experiment must be rerun from fraction=1 after GPU2 is independently idle; contaminated rows must never be merged with the retry.",
+  "experiment": "Exp149",
+  "gpu_occupation_sequences": [
+    {
+      "label": "monitor_1",
+      "samples": [
+        {
+          "use": 100,
+          "vram": 57
+        },
+        {
+          "use": 100,
+          "vram": 57
+        },
+        {
+          "use": 100,
+          "vram": 57
+        },
+        {
+          "use": 100,
+          "vram": 57
+        },
+        {
+          "use": 100,
+          "vram": 57
+        },
+        {
+          "use": 100,
+          "vram": 57
+        }
+      ]
+    },
+    {
+      "label": "monitor_2",
+      "samples": [
+        {
+          "use": 100,
+          "vram": 57
+        },
+        {
+          "use": 100,
+          "vram": 57
+        },
+        {
+          "use": 100,
+          "vram": 57
+        },
+        {
+          "use": 100,
+          "vram": 57
+        },
+        {
+          "use": 100,
+          "vram": 57
+        },
+        {
+          "use": 72,
+          "vram": 57
+        }
+      ]
+    },
+    {
+      "label": "monitor_3",
+      "samples": [
+        {
+          "use": 98,
+          "vram": 57
+        },
+        {
+          "use": 99,
+          "vram": 57
+        },
+        {
+          "use": 100,
+          "vram": 57
+        },
+        {
+          "use": 100,
+          "vram": 57
+        },
+        {
+          "use": 100,
+          "vram": 57
+        },
+        {
+          "use": 98,
+          "vram": 57
+        }
+      ]
+    }
+  ],
+  "invalid_artifacts": [
+    {
+      "directory": "/tmp/microllm-exp149-fraction-1-invalid-contended",
+      "fraction": 1.0,
+      "post_gate_state": {
+        "gpu_use_percent": 22,
+        "vram_percent": 9
+      },
+      "preflight": [
+        {
+          "gpu_use_percent": 0,
+          "physical_gpu_index": 2,
+          "sample": 1,
+          "timestamp_utc": "2026-08-23T16:05:57.808293+00:00",
+          "vram_percent": 0
+        },
+        {
+          "gpu_use_percent": 0,
+          "physical_gpu_index": 2,
+          "sample": 2,
+          "timestamp_utc": "2026-08-23T16:06:07.923494+00:00",
+          "vram_percent": 0
+        },
+        {
+          "gpu_use_percent": 0,
+          "physical_gpu_index": 2,
+          "sample": 3,
+          "timestamp_utc": "2026-08-23T16:06:18.041868+00:00",
+          "vram_percent": 0
+        }
+      ],
+      "reason": "External GPU2 occupation appeared after Qwen T512 FP8 worker; strict post gate observed use=22%, VRAM=9% and runner exited 1. Three earlier rows plus the unaccepted worker output are contaminated/incomplete and excluded.",
+      "recorded_raw_rows": 3,
+      "runner_exit_code": 1
+    },
+    {
+      "directory": "/tmp/microllm-exp149-fraction-075-invalid-preflight",
+      "fraction": 0.75,
+      "preflight": [
+        {
+          "gpu_use_percent": 17,
+          "physical_gpu_index": 2,
+          "sample": 1,
+          "timestamp_utc": "2026-08-23T16:07:14.553292+00:00",
+          "vram_percent": 10
+        }
+      ],
+      "reason": "External GPU2 occupation was already present at first preflight sample; no runner launched.",
+      "runner_launched": false
+    }
+  ],
+  "required_fraction_suites": 4,
+  "revision": "235fd836f41ed2a3d049640ff74e27bb9eb7d12c",
+  "schema_version": 1,
+  "status": "invalid_due_to_external_gpu_contention",
+  "throughput_is_performance_evidence": false,
+  "valid_fp8_rows": 0,
+  "valid_fraction_suites": 0
+}
