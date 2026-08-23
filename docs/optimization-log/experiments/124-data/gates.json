@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "status": "reject_second_boundary_keep_expanding",
+  "official_boundary_grid": {
+    "workers_passed": 18,
+    "workers_failed": 0,
+    "scale_pairs": 16,
+    "precision_gate_passed": 0,
+    "pre_vram_percent_max": 0,
+    "pre_use_percent_max": 1,
+    "post_vram_percent_max": 2,
+    "post_use_percent_max": 4
+  },
+  "decision": {
+    "current_boundary_accepted": false,
+    "all_global_scales_refuted": false,
+    "both_models_best_on_activation_upper_boundary": true,
+    "expand_activation_boundary": true,
+    "default_fp8": false
+  }
+}

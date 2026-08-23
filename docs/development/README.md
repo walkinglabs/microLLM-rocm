@@ -283,5 +283,7 @@ the next gate. Records are append-only except for factual corrections.
   single-representation official weights, unsupported-shape fallback and four precision failures.
 - [2026-08-23-fp8-global-scale-grid.md](2026-08-23-fp8-global-scale-grid.md):
   fixed-before-run official scale grid, complete-logit selection and an explicit upper-boundary gap.
+- [2026-08-23-fp8-scale-boundary.md](2026-08-23-fp8-scale-boundary.md):
+  one-dimensional boundary expansion that improves RMS without passing the model gate.
 - [2026-08-21-divergent-row-cache-reference.md](2026-08-21-divergent-row-cache-reference.md):
   unequal-position shared-Storage B1 oracle with CPU/HIP and reset-prefix gates.

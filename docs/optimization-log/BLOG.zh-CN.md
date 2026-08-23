@@ -2329,3 +2329,11 @@ top token的候选RMS为2.54。Qwen最优activation正好落在0.05上边界，�
 下一节点扩展到0.1/0.2后才决定是否转向per-tensor amax。
 
 ![FP8 global scale grid](assets/fp8-global-scale-grid.svg)
+
+## 141. Experiment 124：边界放大四倍，RMS再降一半
+
+只把activation scale扩到0.1/0.2，两个模型18/18进程执行成功、0/16候选过门。Qwen最佳RMS
+从1.921降到0.669，DeepSeek从2.542降到1.170；原“0.05已接近谷底”的解释被推翻。但两个
+最佳点又都在0.2上边界，因此下一节点继续0.4/0.8，找到转折后才停止全局scale搜索。
+
+![FP8 scale boundary](assets/fp8-scale-boundary.svg)

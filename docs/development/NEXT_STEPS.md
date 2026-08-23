@@ -149,7 +149,9 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   all four static-global-scale precision gates fail despite 35%–46% FP32 residency;
 - [x] screen a fixed 4x4 global FP8 scale grid on official T8 complete logits: 34/34
   workers execute, but 0/32 scale pairs pass and Qwen's best activation sits at the upper boundary;
-- [ ] expand only the activation-scale boundary to 0.1/0.2 before closing the global-scale direction;
+- [x] expand only the activation-scale boundary to 0.1/0.2: both model errors improve,
+  0/16 pass, and both best candidates land at the new upper boundary;
+- [ ] test activation scale 0.4/0.8 to find the turn before closing the global-scale direction;
 - [ ] replace global FP8 scales with weight per-tensor and activation per-row/token amax,
   starting from saturation/trace evidence rather than top-token search;
 - [ ] expert/tensor/data parallel weight placement and communication;
