@@ -1,0 +1,176 @@
+Running main() from /home/devpod/github/microLLM-rocm/build/hip-release/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = HipFullAttentionTest.LongBatchFusedForwardIsDeterministic
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from HipFullAttentionTest
+[ RUN      ] HipFullAttentionTest.LongBatchFusedForwardIsDeterministic
+/home/devpod/github/microLLM-rocm/tests/ops/hip_ops_test.cpp:1438: Failure
+Expected equality of these values:
+  maximum
+    Which is: 0.00486866105
+  0.0F
+    Which is: 0
+repetition=0
+
+/home/devpod/github/microLLM-rocm/tests/ops/hip_ops_test.cpp:1438: Failure
+Expected equality of these values:
+  maximum
+    Which is: 0.0153476167
+  0.0F
+    Which is: 0
+repetition=1
+
+/home/devpod/github/microLLM-rocm/tests/ops/hip_ops_test.cpp:1438: Failure
+Expected equality of these values:
+  maximum
+    Which is: 0.0205898825
+  0.0F
+    Which is: 0
+repetition=2
+
+/home/devpod/github/microLLM-rocm/tests/ops/hip_ops_test.cpp:1438: Failure
+Expected equality of these values:
+  maximum
+    Which is: 0.00400466193
+  0.0F
+    Which is: 0
+repetition=3
+
+/home/devpod/github/microLLM-rocm/tests/ops/hip_ops_test.cpp:1438: Failure
+Expected equality of these values:
+  maximum
+    Which is: 0.0101662716
+  0.0F
+    Which is: 0
+repetition=4
+
+/home/devpod/github/microLLM-rocm/tests/ops/hip_ops_test.cpp:1438: Failure
+Expected equality of these values:
+  maximum
+    Which is: 0.0294689555
+  0.0F
+    Which is: 0
+repetition=5
+
+/home/devpod/github/microLLM-rocm/tests/ops/hip_ops_test.cpp:1438: Failure
+Expected equality of these values:
+  maximum
+    Which is: 0.0676687881
+  0.0F
+    Which is: 0
+repetition=6
+
+/home/devpod/github/microLLM-rocm/tests/ops/hip_ops_test.cpp:1438: Failure
+Expected equality of these values:
+  maximum
+    Which is: 0.0113038151
+  0.0F
+    Which is: 0
+repetition=7
+
+/home/devpod/github/microLLM-rocm/tests/ops/hip_ops_test.cpp:1438: Failure
+Expected equality of these values:
+  maximum
+    Which is: 0.0147645148
+  0.0F
+    Which is: 0
+repetition=8
+
+/home/devpod/github/microLLM-rocm/tests/ops/hip_ops_test.cpp:1438: Failure
+Expected equality of these values:
+  maximum
+    Which is: 0.0113322176
+  0.0F
+    Which is: 0
+repetition=9
+
+/home/devpod/github/microLLM-rocm/tests/ops/hip_ops_test.cpp:1438: Failure
+Expected equality of these values:
+  maximum
+    Which is: 0.00230308576
+  0.0F
+    Which is: 0
+repetition=10
+
+/home/devpod/github/microLLM-rocm/tests/ops/hip_ops_test.cpp:1438: Failure
+Expected equality of these values:
+  maximum
+    Which is: 0.0311180539
+  0.0F
+    Which is: 0
+repetition=11
+
+/home/devpod/github/microLLM-rocm/tests/ops/hip_ops_test.cpp:1438: Failure
+Expected equality of these values:
+  maximum
+    Which is: 0.0280969441
+  0.0F
+    Which is: 0
+repetition=12
+
+/home/devpod/github/microLLM-rocm/tests/ops/hip_ops_test.cpp:1438: Failure
+Expected equality of these values:
+  maximum
+    Which is: 0.00633217394
+  0.0F
+    Which is: 0
+repetition=13
+
+/home/devpod/github/microLLM-rocm/tests/ops/hip_ops_test.cpp:1438: Failure
+Expected equality of these values:
+  maximum
+    Which is: 0.025528511
+  0.0F
+    Which is: 0
+repetition=14
+
+/home/devpod/github/microLLM-rocm/tests/ops/hip_ops_test.cpp:1438: Failure
+Expected equality of these values:
+  maximum
+    Which is: 0.00486866105
+  0.0F
+    Which is: 0
+repetition=15
+
+/home/devpod/github/microLLM-rocm/tests/ops/hip_ops_test.cpp:1438: Failure
+Expected equality of these values:
+  maximum
+    Which is: 0.00783367
+  0.0F
+    Which is: 0
+repetition=16
+
+/home/devpod/github/microLLM-rocm/tests/ops/hip_ops_test.cpp:1438: Failure
+Expected equality of these values:
+  maximum
+    Which is: 0.0263042301
+  0.0F
+    Which is: 0
+repetition=17
+
+/home/devpod/github/microLLM-rocm/tests/ops/hip_ops_test.cpp:1438: Failure
+Expected equality of these values:
+  maximum
+    Which is: 0.00230308576
+  0.0F
+    Which is: 0
+repetition=18
+
+/home/devpod/github/microLLM-rocm/tests/ops/hip_ops_test.cpp:1438: Failure
+Expected equality of these values:
+  maximum
+    Which is: 0.00230308576
+  0.0F
+    Which is: 0
+repetition=19
+
+[  FAILED  ] HipFullAttentionTest.LongBatchFusedForwardIsDeterministic (268 ms)
+[----------] 1 test from HipFullAttentionTest (268 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (268 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] HipFullAttentionTest.LongBatchFusedForwardIsDeterministic
+
+ 1 FAILED TEST

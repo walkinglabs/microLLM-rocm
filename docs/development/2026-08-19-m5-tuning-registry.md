@@ -9,17 +9,20 @@ invalid dimensions, and unavailable implementations.
 ## Selection order
 
 1. validate HIP device, dtype, contiguity, rank, and inner dimensions;
-2. use an exact registered concrete implementation when present;
+2. build the exact dtype/layout/device/version/mode/workspace key and use a registered
+   concrete implementation only when every field matches;
 3. otherwise use the measured K/N-width heuristic;
 4. fall back to readable for unsupported shapes/builds.
 
-The registry is process-local and mutex-protected. A conformance test overrides the
-normally-readable 64 cube with hipBLASLt, observes the registered choice, clears the
-registry, and observes readable selection again.
+The registry is process-local and mutex-protected. The original shape-only key was later
+replaced by `MatmulTuningKey`; see the
+[exact-key follow-up](2026-08-23-matmul-registry-exact-key.md). A conformance test overrides
+only FP32 NN 64 cube with hipBLASLt and proves FP16, TT, training-mode and different-workspace
+lookups do not inherit it. Clearing restores readable selection.
 
 ## Boundary
 
 This is the safe runtime registry seam, not yet a persistent autotuner. A future
-offline tool can consume JSONL, run correctness gates, and register or serialize
-choices keyed additionally by gfx architecture, dtype, and ROCm version. It must not
-select a candidate that failed the CPU reference tolerance.
+offline tool can consume JSONL, run correctness gates, and register choices. Persistent
+serialization and autotuning are still separate work. It must not select a candidate that
+failed the CPU reference tolerance.

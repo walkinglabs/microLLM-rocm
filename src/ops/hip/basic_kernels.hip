@@ -599,7 +599,12 @@ __device__ float block_reduce_max(float value, float* scratch) {
         if (lane < stride) scratch[lane] = fmaxf(scratch[lane], scratch[lane + stride]);
         __syncthreads();
     }
-    return scratch[0];
+    const auto result = scratch[0];
+    // Every lane must read the result before a following reduction reuses the
+    // same scratch buffer. Without this barrier, fast lanes can overwrite
+    // scratch[0] while slower lanes are still loading the previous result.
+    __syncthreads();
+    return result;
 }
 
 template <typename Input>
@@ -767,7 +772,9 @@ __device__ float block_reduce_sum(float value, float* scratch) {
         if (lane < stride) scratch[lane] += scratch[lane + stride];
         __syncthreads();
     }
-    return scratch[0];
+    const auto result = scratch[0];
+    __syncthreads();
+    return result;
 }
 
 __device__ int block_reduce_sum_int(int value, int* scratch) {
@@ -778,7 +785,9 @@ __device__ int block_reduce_sum_int(int value, int* scratch) {
         if (lane < stride) scratch[lane] += scratch[lane + stride];
         __syncthreads();
     }
-    return scratch[0];
+    const auto result = scratch[0];
+    __syncthreads();
+    return result;
 }
 
 __device__ void block_reduce_argmax(float& best_value, std::int64_t& best_index,
@@ -1385,8 +1394,9 @@ __global__ void causal_gqa_attention_kernel(
     const auto query_base = ((batch * heads + head) * sequence + query_position) * width;
     const auto kv_base = (batch * kv_heads + kv_head) * sequence * width;
     const auto visible = query_position + 1;
-    extern __shared__ float attention_probabilities[];
-    __shared__ float reduction[kBlockSize];
+    extern __shared__ float shared[];
+    auto* attention_probabilities = shared;
+    auto* reduction = shared + sequence;
 
     float local_maximum = -INFINITY;
     for (std::int64_t position = threadIdx.x; position < visible;
@@ -3339,7 +3349,8 @@ void launch_causal_gqa_attention(
     std::int64_t sequence, std::int64_t width, std::int64_t repeats,
     float scale, void* stream) {
     const auto rows = batches * heads * sequence;
-    const auto shared_bytes = static_cast<std::size_t>(sequence) * sizeof(float);
+    const auto shared_bytes = static_cast<std::size_t>(
+        sequence + kBlockSize) * sizeof(float);
     hipLaunchKernelGGL(causal_gqa_attention_kernel,
                        dim3(static_cast<unsigned>(rows)), dim3(kBlockSize), shared_bytes,
                        as_stream(stream), query, key, value, output,

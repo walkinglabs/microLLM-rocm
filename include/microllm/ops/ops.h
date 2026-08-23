@@ -2,6 +2,9 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <compare>
+#include <string>
+#include <vector>
 
 #include <microllm/core/tensor.h>
 #include <microllm/ops/context.h>
@@ -10,6 +13,25 @@ namespace microllm::ops {
 
 enum class MatmulImplementation { Auto, Readable, HipBLASLt };
 enum class AdamWImplementation { Auto, Scalar, Vectorized };
+
+struct MatmulTuningKey {
+    std::int64_t rows = 0;
+    std::int64_t inner = 0;
+    std::int64_t columns = 0;
+    DType dtype = DType::Float32;
+    bool transpose_left = false;
+    bool transpose_right = false;
+    std::vector<std::int64_t> left_strides;
+    std::vector<std::int64_t> right_strides;
+    std::string architecture;
+    int hip_runtime_version = 0;
+    int hip_driver_version = 0;
+    int hipblaslt_version = 0;
+    OpMode mode = OpMode::Unspecified;
+    std::size_t workspace_limit = 0;
+
+    auto operator<=>(const MatmulTuningKey&) const = default;
+};
 
 struct Bf16PlanCacheStats {
     std::size_t entries = 0;
@@ -152,6 +174,7 @@ void adamw_update_bf16_mirror_(Tensor& parameter, const Tensor& gradient,
 [[nodiscard]] Tensor matmul(const Tensor& left, const Tensor& right,
                             const OpContext& context = {});
 [[nodiscard]] bool hipblaslt_available() noexcept;
+[[nodiscard]] int hipblaslt_version() noexcept;
 [[nodiscard]] Bf16PlanCacheStats bf16_plan_cache_stats() noexcept;
 void clear_bf16_plan_cache() noexcept;
 void register_bf16_algorithm(std::int64_t rows, std::int64_t inner,
@@ -168,10 +191,17 @@ void clear_fp8_dynamic_quant_stats() noexcept;
 [[nodiscard]] MatmulImplementation choose_matmul_implementation(
     const Tensor& left, const Tensor& right,
     bool transpose_left, bool transpose_right);
-void register_matmul_implementation(std::int64_t rows, std::int64_t inner,
-                                    std::int64_t columns,
+[[nodiscard]] MatmulImplementation choose_matmul_implementation(
+    const Tensor& left, const Tensor& right,
+    bool transpose_left, bool transpose_right, const OpContext& context);
+[[nodiscard]] MatmulTuningKey make_matmul_tuning_key(
+    const Tensor& left, const Tensor& right,
+    bool transpose_left = false, bool transpose_right = false,
+    const OpContext& context = {});
+void register_matmul_implementation(const MatmulTuningKey& key,
                                     MatmulImplementation implementation);
 void clear_matmul_implementation_registry();
+[[nodiscard]] std::size_t matmul_registered_implementation_count() noexcept;
 [[nodiscard]] Tensor matmul_with_implementation(
     const Tensor& left, const Tensor& right, MatmulImplementation implementation,
     const OpContext& context = {});

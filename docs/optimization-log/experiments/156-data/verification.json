@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "experiment": "Exp156",
+  "before": {
+    "baseline_revision_token_processes": 20,
+    "baseline_revision_token_failures": 1,
+    "numeric_shape_processes": 20,
+    "numeric_shape_passes": 2,
+    "numeric_shape_failures": 18,
+    "direct_attention_repetitions": 20,
+    "direct_attention_nonzero_differences": 20,
+    "direct_attention_maximum_difference_min": 0.00230308576,
+    "direct_attention_maximum_difference_max": 0.0676687881
+  },
+  "after": {
+    "direct_attention_repetitions": 20,
+    "direct_attention_bit_exact": 20,
+    "numeric_shape_processes": 20,
+    "numeric_shape_passes": 20,
+    "numeric_shape_failures": 0,
+    "full_cpu_hip_tests_passed": 370,
+    "full_cpu_hip_tests_total": 370,
+    "conditional_skips": 2
+  },
+  "performance": {
+    "workload": "tiny FP32 training T128 B8 warmup2 steps20",
+    "before_processes": 3,
+    "after_processes": 3,
+    "before_tokens_per_second_p50": 231622.777,
+    "after_tokens_per_second_p50": 231939.503,
+    "change_percent": 0.136742165
+  },
+  "root_cause": "reduction scratch was reused before every lane loaded the prior result"
+}

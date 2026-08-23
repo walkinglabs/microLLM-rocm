@@ -88,6 +88,48 @@ TEST(CpuOpsTest, BatchedMatmulMatchesHandValues) {
               (std::vector<float>{22, 28, 49, 64, 1, 2, 9, 12}));
 }
 
+TEST(CpuOpsTest, MatmulTuningKeyCapturesLayoutModeWorkspaceAndEnvironment) {
+    const Tensor left({3, 2});
+    const Tensor right({4, 3});
+    OpContext context;
+    context.mode = OpMode::Inference;
+    context.workspace_bytes = 8192;
+    const auto key = make_matmul_tuning_key(
+        left, right, true, true, context);
+    EXPECT_EQ(key.rows, 2);
+    EXPECT_EQ(key.inner, 3);
+    EXPECT_EQ(key.columns, 4);
+    EXPECT_EQ(key.dtype, DType::Float32);
+    EXPECT_TRUE(key.transpose_left);
+    EXPECT_TRUE(key.transpose_right);
+    EXPECT_EQ(key.left_strides, (Strides{2, 1}));
+    EXPECT_EQ(key.right_strides, (Strides{3, 1}));
+    EXPECT_EQ(key.architecture, "host");
+    EXPECT_EQ(key.hip_runtime_version, 0);
+    EXPECT_EQ(key.hip_driver_version, 0);
+    EXPECT_EQ(key.hipblaslt_version, 0);
+    EXPECT_EQ(key.mode, OpMode::Inference);
+    EXPECT_EQ(key.workspace_limit, 8192U);
+
+    clear_matmul_implementation_registry();
+    register_matmul_implementation(key, MatmulImplementation::Readable);
+    EXPECT_EQ(matmul_registered_implementation_count(), 1U);
+    EXPECT_THROW(register_matmul_implementation(
+                     key, MatmulImplementation::Auto),
+                 std::invalid_argument);
+    auto incomplete = key;
+    incomplete.architecture.clear();
+    EXPECT_THROW(register_matmul_implementation(
+                     incomplete, MatmulImplementation::Readable),
+                 std::invalid_argument);
+    clear_matmul_implementation_registry();
+    EXPECT_EQ(matmul_registered_implementation_count(), 0U);
+
+    EXPECT_THROW((void)make_matmul_tuning_key(
+                     left.transpose(0, 1), right, false, true, context),
+                 std::invalid_argument);
+}
+
 TEST(CpuOpsTest, TransposeAwareBatchedReadableMatchesMaterializedReference) {
     const auto left = Tensor::from_vector(
         {1, 2, 3, 4, 5, 6, 6, 5, 4, 3, 2, 1}, {2, 2, 3});

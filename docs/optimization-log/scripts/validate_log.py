@@ -8,6 +8,7 @@ import html
 import json
 import math
 import re
+import statistics
 import subprocess
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -6663,6 +6664,101 @@ def validate_fp8_qwen_layer9_formal(
         precision.get("passes", -1)
 
 
+def validate_block_reduction_determinism(
+        errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "156-data"
+    verification = json.loads(
+        (data / "verification.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    before_direct = (data / "before-direct-determinism.log").read_text(
+        encoding="utf-8")
+    direct_differences = [float(value) for value in re.findall(
+        r"Which is: ([0-9.eE+-]+)\n  0\.0F", before_direct)]
+    fixed_logs = sorted((data / "fixed-shape-runs").glob("*.log"))
+    if verification.get("status") != "pass" or \
+            verification.get("experiment") != "Exp156" or \
+            verification.get("before", {}).get("baseline_revision_token_failures") != 1 or \
+            verification.get("before", {}).get("numeric_shape_failures") != 18 or \
+            verification.get("after", {}).get("numeric_shape_passes") != 20 or \
+            verification.get("after", {}).get("direct_attention_bit_exact") != 20 or \
+            verification.get("after", {}).get("full_cpu_hip_tests_passed") != 370 or \
+            len(direct_differences) != 20 or \
+            not 0.067 < max(direct_differences) < 0.068 or \
+            "context=128 batch=8 dtype=float32" not in (
+                data / "baseline-token-failure.log").read_text(encoding="utf-8") or \
+            "context=127 batch=8 dtype=float32" not in (
+                data / "before-numeric-failure.log").read_text(encoding="utf-8"):
+        errors.append("block reduction pre-fix evidence changed")
+    if len(fixed_logs) != 20 or any(
+            "[  PASSED  ] 1 test." not in path.read_text(encoding="utf-8") or
+            "[  FAILED  ]" in path.read_text(encoding="utf-8")
+            for path in fixed_logs):
+        errors.append("block reduction 20-process fixed shape gate changed")
+    after_log = (data / "after-direct-and-shape.log").read_text(encoding="utf-8")
+    if "Running 2 tests from 2 test suites" not in after_log or \
+            "[  PASSED  ] 2 tests." not in after_log or \
+            "LongBatchFusedForwardIsDeterministic" not in after_log or \
+            "CpuLogitsMatchAcrossBoundaryContextBatchAndCacheDtype" not in after_log:
+        errors.append("block reduction final direct/shape gate changed")
+    before_performance = [json.loads(line) for line in (
+        data / "before-performance.jsonl").read_text(encoding="utf-8").splitlines()
+                          if line.strip()]
+    after_performance = [json.loads(line) for line in (
+        data / "after-performance.jsonl").read_text(encoding="utf-8").splitlines()
+                         if line.strip()]
+    before_median = statistics.median(
+        row["tokens_per_second"] for row in before_performance)
+    after_median = statistics.median(
+        row["tokens_per_second"] for row in after_performance)
+    if len(before_performance) != 3 or len(after_performance) != 3 or \
+            not 231600 < before_median < 231700 or \
+            not 231900 < after_median < 232000 or \
+            after_median < before_median * 0.95:
+        errors.append("block reduction performance gate changed")
+    decision = gates.get("decision", {})
+    kernel = (REPOSITORY / "src/ops/hip/basic_kernels.hip").read_text(
+        encoding="utf-8")
+    tests = (REPOSITORY / "tests/ops/hip_ops_test.cpp").read_text(
+        encoding="utf-8")
+    if decision.get("retain_post_read_barrier") is not True or \
+            decision.get("retain_parallel_causal_gqa") is not True or \
+            decision.get("performance_regression") is not False or \
+            "Every lane must read the result" not in kernel or \
+            kernel.count("const auto result = scratch[0]") < 3 or \
+            "LongBatchFusedForwardIsDeterministic" not in tests:
+        errors.append("block reduction source/decision gate changed")
+    return verification.get("before", {}).get("numeric_shape_failures", -1), \
+        verification.get("after", {}).get("numeric_shape_passes", -1), \
+        verification.get("after", {}).get("full_cpu_hip_tests_passed", -1)
+
+
+def validate_matmul_exact_registry(errors: list[str]) -> tuple[int, int]:
+    data = REPOSITORY / "benchmarks/results/2026-08-23-matmul-exact-key"
+    verification = json.loads(
+        (data / "verification.json").read_text(encoding="utf-8"))
+    cpu_log = (data / "cpu-key.log").read_text(encoding="utf-8")
+    hip_log = (data / "hip-isolation.log").read_text(encoding="utf-8")
+    header = (REPOSITORY / "include/microllm/ops/ops.h").read_text(
+        encoding="utf-8")
+    implementation = (REPOSITORY / "src/ops/optimized.cpp").read_text(
+        encoding="utf-8")
+    fields = verification.get("isolated_fields", [])
+    required_fields = {
+        "dtype", "transpose_layout", "strides", "architecture",
+        "hip_runtime_version", "hip_driver_version", "hipblaslt_version",
+        "mode", "workspace_limit",
+    }
+    if verification.get("status") != "pass" or set(fields) != required_fields or \
+            verification.get("full_cpu_hip_tests") != "370/370" or \
+            "[  PASSED  ] 1 test." not in cpu_log or \
+            "[  PASSED  ] 1 test." not in hip_log or \
+            "MatmulTuningKey" not in header or \
+            "std::atomic<std::size_t> registry_entries" not in implementation or \
+            "registry_entries.load(std::memory_order_acquire) != 0" not in implementation:
+        errors.append("exact matmul registry evidence/source changed")
+    return len(fields), int(verification.get("status") == "pass")
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -6796,7 +6892,8 @@ def validate_assets(errors: list[str]) -> None:
                  "fp8-clipped-fine-grid.svg",
                  "fp8-e5-activation-discard.svg",
                  "fp8-layer-leave-one-out.svg",
-                 "fp8-qwen-layer9-formal-discard.svg"):
+                 "fp8-qwen-layer9-formal-discard.svg",
+                 "block-reduction-determinism.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -7040,6 +7137,9 @@ def main() -> int:
         validate_fp8_layer_leave_one_out(errors)
     qwen9_workers, qwen9_fp8, qwen9_precision = \
         validate_fp8_qwen_layer9_formal(errors)
+    reduction_before, reduction_after, reduction_full = \
+        validate_block_reduction_determinism(errors)
+    registry_fields, registry_passed = validate_matmul_exact_registry(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -7231,6 +7331,9 @@ def main() -> int:
           f"layer_leave_one_out={layer_rows}/{layer_candidates}/"
           f"{layer_deep_nonworse} "
           f"qwen_layer9={qwen9_workers}/{qwen9_fp8}/{qwen9_precision} "
+          f"reduction_determinism={reduction_before}/{reduction_after}/"
+          f"{reduction_full} "
+          f"exact_registry={registry_fields}/{registry_passed} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

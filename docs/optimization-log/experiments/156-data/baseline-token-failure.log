@@ -1,0 +1,24 @@
+Running main() from /tmp/microllm-registry-baseline-59ffa5f/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = HipInferenceShapeMatrixTest.CpuTokensMatchAcrossBoundaryContextBatchAndCacheDtype
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from HipInferenceShapeMatrixTest
+[ RUN      ] HipInferenceShapeMatrixTest.CpuTokensMatchAcrossBoundaryContextBatchAndCacheDtype
+/tmp/microllm-registry-baseline-59ffa5f/tests/inference/hip_shape_matrix_test.cpp:60: Failure
+Expected equality of these values:
+  actual
+    Which is: { { 3, 8, 13, 18, 23, 28, 1, 6, 11, 16, 21, 26, 31, 4, 9, 14, 19, 24, 29, 2, 7, 12, 17, 22, 27, 0, 5, 10, 15, 20, 25, 30, ... }, { 16, 21, 26, 31, 4, 9, 14, 19, 24, 29, 2, 7, 12, 17, 22, 27, 0, 5, 10, 15, 20, 25, 30, 3, 8, 13, 18, 23, 28, 1, 6, 11, ... }, { 29, 2, 7, 12, 17, 22, 27, 0, 5, 10, 15, 20, 25, 30, 3, 8, 13, 18, 23, 28, 1, 6, 11, 16, 21, 26, 31, 4, 9, 14, 19, 24, ... }, { 10, 15, 20, 25, 30, 3, 8, 13, 18, 23, 28, 1, 6, 11, 16, 21, 26, 31, 4, 9, 14, 19, 24, 29, 2, 7, 12, 17, 22, 27, 0, 5, ... }, { 23, 28, 1, 6, 11, 16, 21, 26, 31, 4, 9, 14, 19, 24, 29, 2, 7, 12, 17, 22, 27, 0, 5, 10, 15, 20, 25, 30, 3, 8, 13, 18, ... }, { 4, 9, 14, 19, 24, 29, 2, 7, 12, 17, 22, 27, 0, 5, 10, 15, 20, 25, 30, 3, 8, 13, 18, 23, 28, 1, 6, 11, 16, 21, 26, 31, ... }, { 17, 22, 27, 0, 5, 10, 15, 20, 25, 30, 3, 8, 13, 18, 23, 28, 1, 6, 11, 16, 21, 26, 31, 4, 9, 14, 19, 24, 29, 2, 7, 12, ... }, { 30, 3, 8, 13, 18, 23, 28, 1, 6, 11, 16, 21, 26, 31, 4, 9, 14, 19, 24, 29, 2, 7, 12, 17, 22, 27, 0, 5, 10, 15, 20, 25, ... } }
+  expected
+    Which is: { { 3, 8, 13, 18, 23, 28, 1, 6, 11, 16, 21, 26, 31, 4, 9, 14, 19, 24, 29, 2, 7, 12, 17, 22, 27, 0, 5, 10, 15, 20, 25, 30, ... }, { 16, 21, 26, 31, 4, 9, 14, 19, 24, 29, 2, 7, 12, 17, 22, 27, 0, 5, 10, 15, 20, 25, 30, 3, 8, 13, 18, 23, 28, 1, 6, 11, ... }, { 29, 2, 7, 12, 17, 22, 27, 0, 5, 10, 15, 20, 25, 30, 3, 8, 13, 18, 23, 28, 1, 6, 11, 16, 21, 26, 31, 4, 9, 14, 19, 24, ... }, { 10, 15, 20, 25, 30, 3, 8, 13, 18, 23, 28, 1, 6, 11, 16, 21, 26, 31, 4, 9, 14, 19, 24, 29, 2, 7, 12, 17, 22, 27, 0, 5, ... }, { 23, 28, 1, 6, 11, 16, 21, 26, 31, 4, 9, 14, 19, 24, 29, 2, 7, 12, 17, 22, 27, 0, 5, 10, 15, 20, 25, 30, 3, 8, 13, 18, ... }, { 4, 9, 14, 19, 24, 29, 2, 7, 12, 17, 22, 27, 0, 5, 10, 15, 20, 25, 30, 3, 8, 13, 18, 23, 28, 1, 6, 11, 16, 21, 26, 31, ... }, { 17, 22, 27, 0, 5, 10, 15, 20, 25, 30, 3, 8, 13, 18, 23, 28, 1, 6, 11, 16, 21, 26, 31, 4, 9, 14, 19, 24, 29, 2, 7, 12, ... }, { 30, 3, 8, 13, 18, 23, 28, 1, 6, 11, 16, 21, 26, 31, 4, 9, 14, 19, 24, 29, 2, 7, 12, 17, 22, 27, 0, 5, 10, 15, 20, 25, ... } }
+context=128 batch=8 dtype=float32
+
+[  FAILED  ] HipInferenceShapeMatrixTest.CpuTokensMatchAcrossBoundaryContextBatchAndCacheDtype (536 ms)
+[----------] 1 test from HipInferenceShapeMatrixTest (536 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (536 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] HipInferenceShapeMatrixTest.CpuTokensMatchAcrossBoundaryContextBatchAndCacheDtype
+
+ 1 FAILED TEST

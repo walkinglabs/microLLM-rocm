@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1160" height="670" viewBox="0 0 1160 670" role="img" aria-labelledby="title desc">
+  <title id="title">Block reduction determinism fix</title>
+  <desc id="desc">A post-read barrier changes repeated attention from twenty differing results to twenty exact results without throughput regression.</desc>
+  <rect width="1160" height="670" rx="20" fill="#0b1020"/>
+  <text x="56" y="58" fill="#f8fafc" font-size="29" font-family="sans-serif" font-weight="700">Reduction结果读完前被覆盖：偶发token其实是数据竞争</text>
+  <text x="56" y="91" fill="#94a3b8" font-size="16" font-family="sans-serif">固定Q/K/V连续20次；完整shape矩阵用20个fresh process</text>
+  <text x="95" y="155" fill="#f8fafc" font-size="21" font-family="sans-serif" font-weight="700">修复前</text>
+  <rect x="95" y="190" width="455" height="62" rx="10" fill="#7f1d1d"/>
+  <text x="125" y="228" fill="#fecaca" font-size="18" font-family="sans-serif">Attention 20/20不同 · worst 0.0677</text>
+  <rect x="95" y="285" width="455" height="62" rx="10" fill="#7f1d1d"/>
+  <text x="125" y="323" fill="#fecaca" font-size="18" font-family="sans-serif">完整logits 2/20通过</text>
+  <text x="650" y="155" fill="#f8fafc" font-size="21" font-family="sans-serif" font-weight="700">增加post-read barrier</text>
+  <rect x="650" y="190" width="415" height="62" rx="10" fill="#14532d"/>
+  <text x="680" y="228" fill="#bbf7d0" font-size="18" font-family="sans-serif">Attention 20/20 bit-exact</text>
+  <rect x="650" y="285" width="415" height="62" rx="10" fill="#14532d"/>
+  <text x="680" y="323" fill="#bbf7d0" font-size="18" font-family="sans-serif">完整logits 20/20通过</text>
+  <path d="M560 220 L635 220" stroke="#38bdf8" stroke-width="5"/>
+  <path d="M620 207 L638 220 L620 233" fill="none" stroke="#38bdf8" stroke-width="5"/>
+  <rect x="150" y="430" width="860" height="130" rx="16" fill="#111827" stroke="#334155"/>
+  <text x="205" y="470" fill="#cbd5e1" font-size="18" font-family="sans-serif">Tiny T128/B8 train TPS：231,623 → 231,940（+0.14%）</text>
+  <text x="205" y="505" fill="#cbd5e1" font-size="18" font-family="sans-serif">完整CPU/HIP：370/370 · 2个条件跳过</text>
+  <text x="205" y="540" fill="#fbbf24" font-size="17" font-family="sans-serif">correctness keep · 不计入吞吐running-best</text>
+  <text x="350" y="625" fill="#94a3b8" font-size="16" font-family="sans-serif">先读scratch[0] → 全block barrier → 才能开始下一次reduction</text>
+</svg>

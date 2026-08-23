@@ -8,12 +8,15 @@
 
 namespace microllm::ops {
 
+enum class OpMode { Unspecified, Inference, Training };
+
 struct OpContext {
     runtime::Stream* stream = nullptr;
     void* workspace = nullptr;
     std::size_t workspace_bytes = 0;
     void* external_stream = nullptr;
     Device external_stream_device = Device::cpu();
+    OpMode mode = OpMode::Unspecified;
 
     [[nodiscard]] static OpContext from_external_stream(Device device, void* native_stream) {
         OpContext context;

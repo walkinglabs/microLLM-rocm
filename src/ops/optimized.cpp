@@ -1,5 +1,6 @@
 #include <microllm/ops/ops.h>
 
+#include <atomic>
 #include <stdexcept>
 #include <string>
 #include <limits>
@@ -17,6 +18,7 @@
 #if MICROLLM_HAS_HIPBLASLT
 #include <hipblaslt/hipblaslt-ext.hpp>
 #include <hipblaslt/hipblaslt.h>
+#include <hipblaslt/hipblaslt-version.h>
 #endif
 
 namespace microllm::ops {
@@ -24,7 +26,29 @@ namespace microllm::ops {
 namespace {
 using MatmulShapeKey = std::tuple<std::int64_t, std::int64_t, std::int64_t>;
 std::mutex registry_mutex;
-std::map<MatmulShapeKey, MatmulImplementation> registry;
+std::map<MatmulTuningKey, MatmulImplementation> registry;
+std::atomic<std::size_t> registry_entries{0};
+
+struct TuningEnvironment {
+    std::string architecture;
+    int runtime_version = 0;
+    int driver_version = 0;
+};
+
+TuningEnvironment tuning_environment(Device device) {
+    if (device.is_cpu()) return {"host", 0, 0};
+    static std::mutex mutex;
+    static std::map<int, TuningEnvironment> environments;
+    const std::lock_guard<std::mutex> lock(mutex);
+    const auto found = environments.find(device.index());
+    if (found != environments.end()) return found->second;
+    const auto inserted = environments.emplace(
+        device.index(),
+        TuningEnvironment{runtime::device_info(device).architecture,
+                          runtime::hip_runtime_version(),
+                          runtime::hip_driver_version()});
+    return inserted.first->second;
+}
 #if MICROLLM_HAS_HIPBLASLT
 // A few gfx942 decode shapes cannot write BF16-input GEMM results directly to
 // FP32 even though the same problem can write BF16. Remember the observed
@@ -43,6 +67,49 @@ thread_local std::optional<bool> fp8_output_column_native;
 
 bool hipblaslt_available() noexcept { return MICROLLM_HAS_HIPBLASLT != 0; }
 
+int hipblaslt_version() noexcept {
+#if MICROLLM_HAS_HIPBLASLT
+    return HIPBLASLT_VERSION_MAJOR * 10000 + HIPBLASLT_VERSION_MINOR * 100 +
+           HIPBLASLT_VERSION_PATCH;
+#else
+    return 0;
+#endif
+}
+
+MatmulTuningKey make_matmul_tuning_key(
+    const Tensor& left, const Tensor& right,
+    bool transpose_left, bool transpose_right, const OpContext& context) {
+    if (left.ndim() != 2 || right.ndim() != 2 ||
+        !is_floating_point(left.dtype()) || right.dtype() != left.dtype() ||
+        left.device() != right.device() || !left.is_contiguous() ||
+        !right.is_contiguous()) {
+        throw std::invalid_argument(
+            "matmul tuning key requires matching contiguous rank-2 floating tensors");
+    }
+    const auto rows = transpose_left ? left.shape()[1] : left.shape()[0];
+    const auto inner = transpose_left ? left.shape()[0] : left.shape()[1];
+    const auto right_inner = transpose_right ? right.shape()[1] : right.shape()[0];
+    const auto columns = transpose_right ? right.shape()[0] : right.shape()[1];
+    if (inner != right_inner) {
+        throw std::invalid_argument("matmul tuning key inner dimensions mismatch");
+    }
+    const auto environment = tuning_environment(left.device());
+    return {.rows = rows,
+            .inner = inner,
+            .columns = columns,
+            .dtype = left.dtype(),
+            .transpose_left = transpose_left,
+            .transpose_right = transpose_right,
+            .left_strides = left.strides(),
+            .right_strides = right.strides(),
+            .architecture = environment.architecture,
+            .hip_runtime_version = environment.runtime_version,
+            .hip_driver_version = environment.driver_version,
+            .hipblaslt_version = left.device().is_hip() ? hipblaslt_version() : 0,
+            .mode = context.mode,
+            .workspace_limit = context.workspace_bytes};
+}
+
 MatmulImplementation choose_matmul_implementation(const Tensor& left,
                                                   const Tensor& right) {
     return choose_matmul_implementation(left, right, false, false);
@@ -52,6 +119,13 @@ MatmulImplementation choose_matmul_implementation(const Tensor& left,
                                                   const Tensor& right,
                                                   bool transpose_left,
                                                   bool transpose_right) {
+    return choose_matmul_implementation(
+        left, right, transpose_left, transpose_right, {});
+}
+
+MatmulImplementation choose_matmul_implementation(
+    const Tensor& left, const Tensor& right,
+    bool transpose_left, bool transpose_right, const OpContext& context) {
     if (!hipblaslt_available() || !left.device().is_hip() || right.device() != left.device() ||
         left.ndim() != 2 || right.ndim() != 2 || !is_floating_point(left.dtype()) ||
         right.dtype() != left.dtype() || !left.is_contiguous() || !right.is_contiguous()) {
@@ -62,8 +136,9 @@ MatmulImplementation choose_matmul_implementation(const Tensor& left,
     const auto right_inner = transpose_right ? right.shape()[1] : right.shape()[0];
     const auto columns = transpose_right ? right.shape()[0] : right.shape()[1];
     if (inner != right_inner) return MatmulImplementation::Readable;
-    const MatmulShapeKey key{rows, inner, columns};
-    {
+    if (registry_entries.load(std::memory_order_acquire) != 0) {
+        const auto key = make_matmul_tuning_key(
+            left, right, transpose_left, transpose_right, context);
         const std::lock_guard<std::mutex> lock(registry_mutex);
         const auto found = registry.find(key);
         if (found != registry.end()) return found->second;
@@ -76,11 +151,16 @@ MatmulImplementation choose_matmul_implementation(const Tensor& left,
                : MatmulImplementation::Readable;
 }
 
-void register_matmul_implementation(std::int64_t rows, std::int64_t inner,
-                                    std::int64_t columns,
+void register_matmul_implementation(const MatmulTuningKey& key,
                                     MatmulImplementation implementation) {
-    if (rows <= 0 || inner <= 0 || columns <= 0) {
+    if (key.rows <= 0 || key.inner <= 0 || key.columns <= 0) {
         throw std::invalid_argument("registered matmul dimensions must be positive");
+    }
+    if (!is_floating_point(key.dtype) || key.left_strides.size() != 2 ||
+        key.right_strides.size() != 2 || key.architecture.empty() ||
+        key.hip_runtime_version < 0 || key.hip_driver_version < 0 ||
+        key.hipblaslt_version < 0) {
+        throw std::invalid_argument("registered matmul tuning key is incomplete");
     }
     if (implementation == MatmulImplementation::Auto) {
         throw std::invalid_argument("matmul registry choice must name a concrete implementation");
@@ -89,12 +169,19 @@ void register_matmul_implementation(std::int64_t rows, std::int64_t inner,
         throw std::invalid_argument("cannot register unavailable hipBLASLt implementation");
     }
     const std::lock_guard<std::mutex> lock(registry_mutex);
-    registry[{rows, inner, columns}] = implementation;
+    const auto [unused, inserted] = registry.insert_or_assign(key, implementation);
+    (void)unused;
+    if (inserted) registry_entries.fetch_add(1, std::memory_order_release);
 }
 
 void clear_matmul_implementation_registry() {
     const std::lock_guard<std::mutex> lock(registry_mutex);
     registry.clear();
+    registry_entries.store(0, std::memory_order_release);
+}
+
+std::size_t matmul_registered_implementation_count() noexcept {
+    return registry_entries.load(std::memory_order_acquire);
 }
 
 #if MICROLLM_HAS_HIPBLASLT
@@ -663,7 +750,8 @@ Tensor matmul_with_implementation(const Tensor& left, const Tensor& right,
                                   MatmulImplementation implementation,
                                   const OpContext& context) {
     if (implementation == MatmulImplementation::Auto) {
-        implementation = choose_matmul_implementation(left, right);
+        implementation = choose_matmul_implementation(
+            left, right, false, false, context);
     }
     if (implementation == MatmulImplementation::Readable) return matmul(left, right, context);
 #if MICROLLM_HAS_HIPBLASLT
@@ -704,7 +792,7 @@ Tensor matmul_with_implementation(const Tensor& left, const Tensor& right,
 
     if (implementation == MatmulImplementation::Auto) {
         implementation = choose_matmul_implementation(
-            left, right, transpose_left, transpose_right);
+            left, right, transpose_left, transpose_right, context);
     }
     if (implementation == MatmulImplementation::HipBLASLt) {
 #if MICROLLM_HAS_HIPBLASLT

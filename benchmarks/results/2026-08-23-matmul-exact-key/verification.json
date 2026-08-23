@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "cpu_key_test": "pass",
+  "hip_cross_key_isolation_test": "pass",
+  "isolated_fields": [
+    "dtype",
+    "transpose_layout",
+    "strides",
+    "architecture",
+    "hip_runtime_version",
+    "hip_driver_version",
+    "hipblaslt_version",
+    "mode",
+    "workspace_limit"
+  ],
+  "empty_registry_hot_path": "atomic count check only",
+  "full_cpu_tests": "252/252",
+  "full_cpu_hip_tests": "370/370",
+  "asan_ubsan_tests": "250/250",
+  "pytorch_enabled_cpu_tests": "226/226"
+}

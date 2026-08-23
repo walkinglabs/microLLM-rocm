@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "status": "correctness_keep",
+  "decision": {
+    "retain_post_read_barrier": true,
+    "retain_parallel_causal_gqa": true,
+    "replace_shape_token_gate_with_complete_logits": true,
+    "performance_regression": false,
+    "add_to_throughput_running_best": false
+  }
+}

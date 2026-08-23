@@ -1,4 +1,7 @@
+#include <algorithm>
+#include <cmath>
 #include <cstdint>
+#include <string>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -35,9 +38,28 @@ std::vector<std::vector<std::int32_t>> hip_prompts(std::int64_t context,
     return result;
 }
 
+void expect_finite_close(const std::vector<float>& actual,
+                         const std::vector<float>& expected,
+                         float maximum_tolerance, float rms_tolerance,
+                         const std::string& boundary) {
+    ASSERT_EQ(actual.size(), expected.size()) << boundary;
+    float maximum = 0.0F;
+    double squared = 0.0;
+    for (std::size_t index = 0; index < actual.size(); ++index) {
+        ASSERT_TRUE(std::isfinite(actual[index])) << boundary << " index=" << index;
+        ASSERT_TRUE(std::isfinite(expected[index])) << boundary << " index=" << index;
+        const auto difference = std::abs(actual[index] - expected[index]);
+        maximum = std::max(maximum, difference);
+        squared += static_cast<double>(difference) * difference;
+    }
+    const auto rms = std::sqrt(squared / static_cast<double>(actual.size()));
+    EXPECT_LE(maximum, maximum_tolerance) << boundary << " rms=" << rms;
+    EXPECT_LE(rms, rms_tolerance) << boundary << " maximum=" << maximum;
+}
+
 }  // namespace
 
-TEST(HipInferenceShapeMatrixTest, CpuTokensMatchAcrossBoundaryContextBatchAndCacheDtype) {
+TEST(HipInferenceShapeMatrixTest, CpuLogitsMatchAcrossBoundaryContextBatchAndCacheDtype) {
     if (runtime::hip_device_count() == 0) GTEST_SKIP() << "No visible HIP device";
     const auto config = hip_shape_matrix_config();
     for (const auto dtype : {DType::Float32, DType::BFloat16}) {
@@ -47,19 +69,58 @@ TEST(HipInferenceShapeMatrixTest, CpuTokensMatchAcrossBoundaryContextBatchAndCac
         for (const auto context : {1, 7, 16, 31, 32, 33, 63, 64, 65, 127, 128}) {
             for (const auto batch : {1, 2, 4, 8}) {
                 const auto input = hip_prompts(context, batch);
-                const GenerationConfig generation{
-                    .max_new_tokens = 3,
-                    .temperature = 0.0F,
-                    .top_k = 1,
-                    .seed = 31,
-                    .kv_cache_dtype = dtype,
-                    .kv_cache_layer_dtypes = {},
-                    .stop_tokens = {}};
-                const auto expected = generate_batch(cpu, input, generation);
-                const auto actual = generate_batch(hip, input, generation);
-                EXPECT_EQ(actual, expected)
-                    << "context=" << context << " batch=" << batch
-                    << " dtype=" << dtype_name(dtype);
+                std::vector<std::int32_t> flat;
+                for (const auto& row : input) {
+                    flat.insert(flat.end(), row.begin(), row.end());
+                }
+                const auto tokens = Tensor::from_int32_vector(
+                    flat, {batch, context});
+                KVCache cpu_cache(
+                    config.layers, config.max_sequence_length, batch, dtype);
+                KVCache hip_cache(
+                    config.layers, config.max_sequence_length, batch, dtype);
+                const auto maximum_tolerance =
+                    dtype == DType::Float32 ? 2.0e-3F : 1.0e-1F;
+                const auto rms_tolerance =
+                    dtype == DType::Float32 ? 2.0e-4F : 2.0e-2F;
+                const auto boundary =
+                    "context=" + std::to_string(context) +
+                    " batch=" + std::to_string(batch) +
+                    " dtype=" + std::string(dtype_name(dtype));
+                const auto expected_uncached =
+                    cpu.forward_inference_last_logits(tokens).to_vector();
+                const auto actual_uncached = hip.forward_inference_last_logits(
+                    tokens.to(Device::hip(0))).to_vector();
+                expect_finite_close(
+                    actual_uncached, expected_uncached,
+                    maximum_tolerance, rms_tolerance, boundary + " uncached");
+                const auto expected_prefill =
+                    cpu.forward_prefill_cached(tokens, cpu_cache).to_vector();
+                const auto actual_prefill = hip.forward_prefill_cached(
+                    tokens.to(Device::hip(0)), hip_cache).to_vector();
+                expect_finite_close(
+                    actual_prefill, expected_prefill,
+                    maximum_tolerance, rms_tolerance, boundary + " prefill");
+
+                for (std::int64_t step = 0; step < 2; ++step) {
+                    std::vector<std::int32_t> next(
+                        static_cast<std::size_t>(batch));
+                    for (std::int64_t row = 0; row < batch; ++row) {
+                        next[static_cast<std::size_t>(row)] =
+                            static_cast<std::int32_t>(
+                                (row * 7 + context + step * 11) %
+                                config.vocabulary_size);
+                    }
+                    const auto next_tokens = Tensor::from_int32_vector(
+                        next, {batch, 1});
+                    const auto expected =
+                        cpu.forward_cached(next_tokens, cpu_cache).to_vector();
+                    const auto actual = hip.forward_cached(
+                        next_tokens.to(Device::hip(0)), hip_cache).to_vector();
+                    expect_finite_close(
+                        actual, expected, maximum_tolerance, rms_tolerance,
+                        boundary + " decode_step=" + std::to_string(step));
+                }
             }
         }
     }

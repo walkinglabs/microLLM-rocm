@@ -2631,3 +2631,15 @@ precision仍0/2。
 关闭，诊断API保留但不设模型默认。
 
 ![Qwen layer9 formal discard](assets/fp8-qwen-layer9-formal-discard.svg)
+
+## 173. Experiment 156：偶发token不是噪声，而是少了一个barrier
+
+Registry完整回归中的token偶发失败在旧revision也能1/20复现。换成完整logits后修复前只有2/20
+通过；固定Q/K/V直接跑fused causal GQA，20次全部不同，worst Max差0.0677。trace把首个分叉
+定位到block0 Attention context。
+
+block reduction最后一次同步发生在读取`scratch[0]`之前，快lane会开始下一次reduction并覆盖
+结果。改成“读入寄存器→全block barrier→再复用”后，直接Attention 20/20 bit-exact，完整shape
+20/20进程通过。T128/B8 tiny train中位数231,623→231,940 tok/s，无性能回退。
+
+![Block reduction determinism](assets/block-reduction-determinism.svg)

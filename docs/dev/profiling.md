@@ -54,6 +54,27 @@ AdamW has its own implementation-selectable benchmark:
 It reports HIP Event time, effective bytes/s and a sampled numerical guard. `Auto` remains
 the validated scalar policy; an explicit candidate result is not a default dispatch claim.
 
+### Exact matmul implementation registry
+
+After a candidate passes the numerical and repeated-timing gates, register it with a key
+made from the real operands and execution context:
+
+```cpp
+microllm::ops::OpContext context;
+context.mode = microllm::ops::OpMode::Inference;
+context.workspace_bytes = 4 * 1024 * 1024;
+const auto key = microllm::ops::make_matmul_tuning_key(
+    left, right, false, false, context);
+microllm::ops::register_matmul_implementation(
+    key, microllm::ops::MatmulImplementation::HipBLASLt);
+```
+
+The key includes dtype, transpose/layout/strides, GPU architecture, HIP runtime/driver,
+hipBLASLt version, mode and workspace limit in addition to M/K/N. A choice measured for
+FP32 NN cannot leak into FP16, TT, training, another workspace budget or another software
+stack. Registration itself does not benchmark or prove correctness; the micro-benchmark
+and end-to-end regression remain required. The cache is process-local and not persistent yet.
+
 `microllm_bench_ops` 的 matmul 路径还接受 `--batch`，例如：
 
 ```bash

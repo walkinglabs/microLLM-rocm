@@ -102,8 +102,8 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 
 ## P2 — operator registry and profiler API
 
-- [ ] registry key includes op, GPU architecture, dtype, shape, strides/layout, mode,
-  workspace limit, and library/runtime version;
+- [x] make the matmul registry key exact over its implicit op identity, GPU architecture,
+  dtype, shape, strides/layout, mode, workspace limit, and library/runtime versions;
 - [ ] register multiple candidates for every hotspot, not only 2D matmul;
 - [ ] correctness gate before timing;
 - [ ] warm-up, repeated Event timing, median/percentiles, and end-to-end regression;

@@ -1400,6 +1400,51 @@ TEST(HipFullAttentionTest, CausalMhaGqaForwardBackwardMatchCpuWithoutTransfers) 
     }
 }
 
+TEST(HipFullAttentionTest, LongBatchFusedForwardIsDeterministic) {
+    require_gpu();
+    constexpr std::int64_t batches = 8;
+    constexpr std::int64_t heads = 4;
+    constexpr std::int64_t kv_heads = 2;
+    constexpr std::int64_t sequence = 128;
+    constexpr std::int64_t width = 4;
+    std::vector<float> query_values(
+        static_cast<std::size_t>(batches * heads * sequence * width));
+    std::vector<float> key_values(
+        static_cast<std::size_t>(batches * kv_heads * sequence * width));
+    std::vector<float> value_values(key_values.size());
+    for (std::size_t index = 0; index < query_values.size(); ++index) {
+        query_values[index] = static_cast<float>(static_cast<int>(index % 29) - 14) / 17.0F;
+    }
+    for (std::size_t index = 0; index < key_values.size(); ++index) {
+        key_values[index] = static_cast<float>(static_cast<int>(index % 23) - 11) / 13.0F;
+        value_values[index] = static_cast<float>(static_cast<int>(index % 19) - 9) / 11.0F;
+    }
+    const auto gpu = Device::hip(0);
+    const auto query_cpu = Tensor::from_vector(
+        query_values, {batches, heads, sequence, width});
+    const auto key_cpu = Tensor::from_vector(
+        key_values, {batches, kv_heads, sequence, width});
+    const auto value_cpu = Tensor::from_vector(
+        value_values, {batches, kv_heads, sequence, width});
+    const auto cpu_reference = causal_gqa_attention(
+        query_cpu, key_cpu, value_cpu, heads / kv_heads, 0.5F).to_vector();
+    const auto query = query_cpu.to(gpu);
+    const auto key = key_cpu.to(gpu);
+    const auto value = value_cpu.to(gpu);
+    const auto expected = causal_gqa_attention(
+        query, key, value, heads / kv_heads, 0.5F).to_vector();
+    expect_near(expected, cpu_reference, 3.0e-4F);
+    for (int repetition = 0; repetition < 20; ++repetition) {
+        const auto actual = causal_gqa_attention(
+            query, key, value, heads / kv_heads, 0.5F).to_vector();
+        float maximum = 0.0F;
+        for (std::size_t index = 0; index < actual.size(); ++index) {
+            maximum = std::max(maximum, std::abs(actual[index] - expected[index]));
+        }
+        EXPECT_EQ(maximum, 0.0F) << "repetition=" << repetition;
+    }
+}
+
 TEST(HipArgmaxTest, CoversLargeVocabulariesTiesAndScalarTransferContract) {
     require_gpu();
     const auto gpu = Device::hip(0);
@@ -2762,20 +2807,54 @@ TEST(HipOptimizedOpsTest, HipblasLtMatmulMatchesReadableReference) {
         expect_near(low_actual_tensor.to_vector(), low_expected, tolerance);
         EXPECT_EQ(low_actual_tensor.dtype(), dtype);
     }
-    EXPECT_EQ(choose_matmul_implementation(left_cpu.to(Device::hip()),
-                                           right_cpu.to(Device::hip())),
+    const auto registered_left = left_cpu.to(Device::hip());
+    const auto registered_right = right_cpu.to(Device::hip());
+    EXPECT_EQ(choose_matmul_implementation(registered_left, registered_right),
               MatmulImplementation::Readable);
     const Tensor large_left({128, 128}, DType::Float32, Device::hip());
     const Tensor large_right({128, 128}, DType::Float32, Device::hip());
     EXPECT_EQ(choose_matmul_implementation(large_left, large_right),
               MatmulImplementation::HipBLASLt);
-    register_matmul_implementation(64, 64, 64, MatmulImplementation::HipBLASLt);
-    EXPECT_EQ(choose_matmul_implementation(left_cpu.to(Device::hip()),
-                                           right_cpu.to(Device::hip())),
+    const auto fp32_key = make_matmul_tuning_key(
+        registered_left, registered_right);
+    EXPECT_EQ(fp32_key.dtype, DType::Float32);
+    EXPECT_FALSE(fp32_key.architecture.empty());
+    EXPECT_GT(fp32_key.hip_runtime_version, 0);
+    EXPECT_GT(fp32_key.hip_driver_version, 0);
+    EXPECT_GT(fp32_key.hipblaslt_version, 0);
+    EXPECT_EQ(fp32_key.left_strides, (Strides{64, 1}));
+    register_matmul_implementation(fp32_key, MatmulImplementation::HipBLASLt);
+    EXPECT_EQ(matmul_registered_implementation_count(), 1U);
+    EXPECT_EQ(choose_matmul_implementation(registered_left, registered_right),
               MatmulImplementation::HipBLASLt);
+
+    const auto fp16_left = registered_left.cast(DType::Float16);
+    const auto fp16_right = registered_right.cast(DType::Float16);
+    EXPECT_EQ(choose_matmul_implementation(fp16_left, fp16_right),
+              MatmulImplementation::Readable)
+        << "an FP32 tuning choice must not leak into FP16";
+    EXPECT_EQ(choose_matmul_implementation(
+                  registered_left, registered_right, true, true),
+              MatmulImplementation::Readable)
+        << "an NN tuning choice must not leak into TT";
+
+    OpContext training_context;
+    training_context.mode = OpMode::Training;
+    EXPECT_EQ(choose_matmul_implementation(
+                  registered_left, registered_right, false, false,
+                  training_context),
+              MatmulImplementation::Readable)
+        << "an unspecified-mode choice must not leak into training";
+    OpContext workspace_context;
+    workspace_context.workspace_bytes = 4096;
+    EXPECT_EQ(choose_matmul_implementation(
+                  registered_left, registered_right, false, false,
+                  workspace_context),
+              MatmulImplementation::Readable)
+        << "a zero-workspace choice must not leak into another budget";
     clear_matmul_implementation_registry();
-    EXPECT_EQ(choose_matmul_implementation(left_cpu.to(Device::hip()),
-                                           right_cpu.to(Device::hip())),
+    EXPECT_EQ(matmul_registered_implementation_count(), 0U);
+    EXPECT_EQ(choose_matmul_implementation(registered_left, registered_right),
               MatmulImplementation::Readable);
 
     const Tensor weight_gradient_left({32, 128}, DType::Float32, Device::hip());
@@ -2783,8 +2862,10 @@ TEST(HipOptimizedOpsTest, HipblasLtMatmulMatchesReadableReference) {
     EXPECT_EQ(choose_matmul_implementation(
                   weight_gradient_left, weight_gradient_right, true, false),
               MatmulImplementation::HipBLASLt);
-    register_matmul_implementation(128, 32, 256,
-                                   MatmulImplementation::Readable);
+    register_matmul_implementation(
+        make_matmul_tuning_key(
+            weight_gradient_left, weight_gradient_right, true, false),
+        MatmulImplementation::Readable);
     EXPECT_EQ(choose_matmul_implementation(
                   weight_gradient_left, weight_gradient_right, true, false),
               MatmulImplementation::Readable);

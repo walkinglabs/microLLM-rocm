@@ -1,0 +1,40 @@
+Running main() from /home/devpod/github/microLLM-rocm/build/hip-release/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = HipInferenceShapeMatrixTest.CpuLogitsMatchAcrossBoundaryContextBatchAndCacheDtype
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from HipInferenceShapeMatrixTest
+[ RUN      ] HipInferenceShapeMatrixTest.CpuLogitsMatchAcrossBoundaryContextBatchAndCacheDtype
+/home/devpod/github/microLLM-rocm/tests/inference/hip_shape_matrix_test.cpp:56: Failure
+Expected: (maximum) <= (maximum_tolerance), actual: 0.0321930051 vs 0.01
+context=127 batch=8 dtype=float32 prefill rms=0.0045201030650195125
+
+/home/devpod/github/microLLM-rocm/tests/inference/hip_shape_matrix_test.cpp:57: Failure
+Expected: (rms) <= (rms_tolerance), actual: 0.0045201030650195125 vs 0.002
+context=127 batch=8 dtype=float32 prefill maximum=0.032193005084991455
+
+/home/devpod/github/microLLM-rocm/tests/inference/hip_shape_matrix_test.cpp:56: Failure
+Expected: (maximum) <= (maximum_tolerance), actual: 0.0139687955 vs 0.01
+context=127 batch=8 dtype=float32 decode_step=0 rms=0.0018448968750753067
+
+/home/devpod/github/microLLM-rocm/tests/inference/hip_shape_matrix_test.cpp:56: Failure
+Expected: (maximum) <= (maximum_tolerance), actual: 0.0129607916 vs 0.01
+context=127 batch=8 dtype=float32 decode_step=1 rms=0.0017651454897968017
+
+/home/devpod/github/microLLM-rocm/tests/inference/hip_shape_matrix_test.cpp:56: Failure
+Expected: (maximum) <= (maximum_tolerance), actual: 0.25315 vs 0.15
+context=127 batch=8 dtype=bfloat16 prefill rms=0.038112334031300717
+
+/home/devpod/github/microLLM-rocm/tests/inference/hip_shape_matrix_test.cpp:57: Failure
+Expected: (rms) <= (rms_tolerance), actual: 0.038112334031300717 vs 0.025
+context=127 batch=8 dtype=bfloat16 prefill maximum=0.25314998626708984
+
+[  FAILED  ] HipInferenceShapeMatrixTest.CpuLogitsMatchAcrossBoundaryContextBatchAndCacheDtype (539 ms)
+[----------] 1 test from HipInferenceShapeMatrixTest (539 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (539 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] HipInferenceShapeMatrixTest.CpuLogitsMatchAcrossBoundaryContextBatchAndCacheDtype
+
+ 1 FAILED TEST
