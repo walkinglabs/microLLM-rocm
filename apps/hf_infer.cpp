@@ -1192,6 +1192,8 @@ int main(int argc, char** argv) {
                       << microllm::ops::fp8_dispatch_stats().outer_row_fallback_calls
                       << ",\"fp8_outer_row_native_status\":"
                       << microllm::ops::fp8_dispatch_stats().outer_row_native_status
+                      << ",\"fp8_output_column_scale_calls\":"
+                      << microllm::ops::fp8_dispatch_stats().output_column_scale_calls
                       << ",\"fp8_dynamic_tensor_calls\":"
                       << microllm::ops::fp8_dynamic_quant_stats().tensor_calls
                       << ",\"fp8_dynamic_row_calls\":"
@@ -1200,6 +1202,10 @@ int main(int argc, char** argv) {
                       << microllm::ops::fp8_dynamic_quant_stats().tensor_elements
                       << ",\"fp8_dynamic_row_elements\":"
                       << microllm::ops::fp8_dynamic_quant_stats().row_elements
+                      << ",\"fp8_dynamic_column_calls\":"
+                      << microllm::ops::fp8_dynamic_quant_stats().column_calls
+                      << ",\"fp8_dynamic_column_elements\":"
+                      << microllm::ops::fp8_dynamic_quant_stats().column_elements
                       << ",\"request_count\":" << prompts.size()
                       << ",\"continuous_slots\":" << command.continuous_slots
                       << ",\"bucketed_cache\":"
@@ -1637,6 +1643,8 @@ int main(int argc, char** argv) {
                   << microllm::ops::fp8_dispatch_stats().outer_row_fallback_calls
                   << ",\"fp8_outer_row_native_status\":"
                   << microllm::ops::fp8_dispatch_stats().outer_row_native_status
+                  << ",\"fp8_output_column_scale_calls\":"
+                  << microllm::ops::fp8_dispatch_stats().output_column_scale_calls
                   << ",\"fp8_dynamic_tensor_calls\":"
                   << microllm::ops::fp8_dynamic_quant_stats().tensor_calls
                   << ",\"fp8_dynamic_row_calls\":"
@@ -1645,6 +1653,10 @@ int main(int argc, char** argv) {
                   << microllm::ops::fp8_dynamic_quant_stats().tensor_elements
                   << ",\"fp8_dynamic_row_elements\":"
                   << microllm::ops::fp8_dynamic_quant_stats().row_elements
+                  << ",\"fp8_dynamic_column_calls\":"
+                  << microllm::ops::fp8_dynamic_quant_stats().column_calls
+                  << ",\"fp8_dynamic_column_elements\":"
+                  << microllm::ops::fp8_dynamic_quant_stats().column_elements
                   << ",\"fp8_activation_scale\":"
                   << command.fp8_activation_scale
                   << ",\"fp8_activation_minimum_scale\":"

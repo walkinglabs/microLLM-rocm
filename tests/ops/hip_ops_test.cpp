@@ -548,6 +548,59 @@ TEST(HipFp8OpsTest, OuterRowScaleGemmMatchesIndependentRangeReference) {
     EXPECT_LT(maximum, 8.0F);
 }
 
+TEST(HipFp8OpsTest, OutputColumnScaleUsesNativeGemmAndDevicePostScale) {
+    require_gpu();
+    if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";
+    constexpr std::int64_t size = 128;
+    std::vector<float> left_values(static_cast<std::size_t>(size * size));
+    std::vector<float> weight_values(left_values.size());
+    for (std::int64_t row = 0; row < size; ++row) {
+        for (std::int64_t column = 0; column < size; ++column) {
+            const auto index = static_cast<std::size_t>(row * size + column);
+            left_values[index] =
+                static_cast<float>((row + column) % 17 - 8) / 17.0F;
+            const auto amplitude = column == 0
+                                       ? 0.01F
+                                       : static_cast<float>(column % 7 + 1) / 7.0F;
+            weight_values[index] =
+                static_cast<float>((row * 3 + column) % 19 - 9) /
+                19.0F * amplitude;
+        }
+    }
+    const auto left_cpu = Tensor::from_vector(left_values, {size, size});
+    const auto weight_cpu = Tensor::from_vector(weight_values, {size, size});
+    const auto gpu = Device::hip(0);
+    const auto left = quantize_fp8_dynamic(
+        left_cpu.to(gpu), DType::Float8E4M3FNUZ, 1.0e-4F);
+    clear_fp8_dynamic_quant_stats();
+    const auto weight = quantize_fp8_columns_dynamic(
+        weight_cpu.to(gpu), DType::Float8E4M3FNUZ, 1.0e-4F);
+    EXPECT_EQ(fp8_dynamic_quant_stats().column_calls, 1U);
+    EXPECT_EQ(fp8_dynamic_quant_stats().column_elements,
+              static_cast<std::uint64_t>(size * size));
+    EXPECT_EQ(weight.scale_mode, Fp8ScaleMode::OuterColumn);
+
+    clear_fp8_dispatch_registry();
+    runtime::reset_transfer_stats();
+    const auto output = fp8_matmul(left, weight, DType::Float32);
+    runtime::synchronize(gpu);
+    const auto transfers = runtime::transfer_stats();
+    const auto dispatch = fp8_dispatch_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    EXPECT_EQ(dispatch.native_shapes, 1U);
+    EXPECT_EQ(dispatch.software_fallback_calls, 0U);
+    EXPECT_EQ(dispatch.output_column_scale_calls, 1U);
+
+    const auto actual = output.to_vector();
+    const auto expected = matmul(left_cpu, weight_cpu).to_vector();
+    float maximum = 0.0F;
+    for (std::size_t index = 0; index < actual.size(); ++index) {
+        maximum = std::max(maximum, std::abs(actual[index] - expected[index]));
+    }
+    EXPECT_LT(maximum, 1.0F);
+}
+
 TEST(HipFp8OpsTest, PreparedTransformerWeightsMatchLazyInferenceWithoutPayloadTransfers) {
     require_gpu();
     if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";

@@ -657,7 +657,6 @@ __global__ void dequantize_fp8_device_scale_kernel(
 
 template <typename Input>
 __global__ void fp8_row_scale_kernel(const Input* input, float* scales,
-                                     std::int64_t rows,
                                      std::int64_t columns,
                                      float minimum_scale) {
     __shared__ float scratch[kBlockSize];
@@ -696,6 +695,61 @@ __global__ void dequantize_fp8_row_scale_kernel(
     if (index < elements) {
         output[index] = static_cast<Output>(
             static_cast<float>(input[index]) * scales[index / columns]);
+    }
+}
+
+template <typename Input>
+__global__ void fp8_column_scale_kernel(const Input* input, float* scales,
+                                        std::int64_t rows,
+                                        std::int64_t columns,
+                                        float minimum_scale) {
+    __shared__ float scratch[kBlockSize];
+    const auto column = static_cast<std::int64_t>(blockIdx.x);
+    float local_maximum = 0.0F;
+    for (std::int64_t row = threadIdx.x; row < rows; row += blockDim.x) {
+        local_maximum = fmaxf(
+            local_maximum,
+            fabsf(static_cast<float>(input[row * columns + column])));
+    }
+    const auto maximum = block_reduce_max(local_maximum, scratch);
+    if (threadIdx.x == 0) {
+        scales[column] = fmaxf(maximum / 240.0F, minimum_scale);
+    }
+}
+
+template <typename Input, typename Output>
+__global__ void quantize_fp8_column_scale_kernel(
+    const Input* input, Output* output, std::int64_t elements,
+    std::int64_t columns, const float* scales) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x +
+                       threadIdx.x;
+    if (index < elements) {
+        output[index] = static_cast<Output>(
+            static_cast<float>(input[index]) / scales[index % columns]);
+    }
+}
+
+template <typename Input, typename Output>
+__global__ void dequantize_fp8_column_scale_kernel(
+    const Input* input, Output* output, std::int64_t elements,
+    std::int64_t columns, const float* scales) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x +
+                       threadIdx.x;
+    if (index < elements) {
+        output[index] = store_from_float<Output>(
+            static_cast<float>(input[index]) * scales[index % columns]);
+    }
+}
+
+template <typename T>
+__global__ void scale_columns_by_first_kernel(
+    T* values, std::int64_t elements, std::int64_t columns,
+    const float* scales) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x +
+                       threadIdx.x;
+    if (index < elements) {
+        const auto ratio = scales[index % columns] / scales[0];
+        values[index] = store_from_float<T>(load_as_float(values[index]) * ratio);
     }
 }
 
@@ -2280,8 +2334,9 @@ void launch_row_quantize_for_input(
     const Input* input, void* output, DType fp8_dtype, float* scales,
     std::int64_t rows, std::int64_t columns, float minimum_scale,
     hipStream_t stream) {
-    hipLaunchKernelGGL(fp8_row_scale_kernel<Input>, dim3(rows),
-                       dim3(kBlockSize), 0, stream, input, scales, rows,
+    hipLaunchKernelGGL(fp8_row_scale_kernel<Input>,
+                       dim3(static_cast<unsigned>(rows)),
+                       dim3(kBlockSize), 0, stream, input, scales,
                        columns, minimum_scale);
     check_launch("fp8_row_scale_kernel");
     const auto elements = rows * columns;
@@ -2322,6 +2377,58 @@ void launch_quantize_fp8_rows_dynamic(
                 output, fp8_dtype, scales, rows, columns, minimum_scale,
                 as_stream(stream)); break;
         default: throw std::invalid_argument("row quantize input dtype is invalid");
+    }
+}
+
+template <typename Input>
+void launch_column_quantize_for_input(
+    const Input* input, void* output, DType fp8_dtype, float* scales,
+    std::int64_t rows, std::int64_t columns, float minimum_scale,
+    hipStream_t stream) {
+    hipLaunchKernelGGL(fp8_column_scale_kernel<Input>,
+                       dim3(static_cast<unsigned>(columns)),
+                       dim3(kBlockSize), 0, stream, input, scales, rows,
+                       columns, minimum_scale);
+    check_launch("fp8_column_scale_kernel");
+    const auto elements = rows * columns;
+    const auto grid = dim3(grid_size(elements));
+    if (fp8_dtype == DType::Float8E4M3FNUZ) {
+        hipLaunchKernelGGL(
+            (quantize_fp8_column_scale_kernel<Input, __hip_fp8_e4m3_fnuz>),
+            grid, dim3(kBlockSize), 0, stream, input,
+            static_cast<__hip_fp8_e4m3_fnuz*>(output), elements, columns,
+            scales);
+    } else if (fp8_dtype == DType::Float8E5M2FNUZ) {
+        hipLaunchKernelGGL(
+            (quantize_fp8_column_scale_kernel<Input, __hip_fp8_e5m2_fnuz>),
+            grid, dim3(kBlockSize), 0, stream, input,
+            static_cast<__hip_fp8_e5m2_fnuz*>(output), elements, columns,
+            scales);
+    } else {
+        throw std::invalid_argument("column quantize requires FNUZ FP8 output");
+    }
+    check_launch("quantize_fp8_column_scale_kernel");
+}
+
+void launch_quantize_fp8_columns_dynamic(
+    const void* input, DType input_dtype, void* output, DType fp8_dtype,
+    float* scales, std::int64_t rows, std::int64_t columns,
+    float minimum_scale, void* stream) {
+    switch (input_dtype) {
+        case DType::Float32:
+            launch_column_quantize_for_input(static_cast<const float*>(input),
+                output, fp8_dtype, scales, rows, columns, minimum_scale,
+                as_stream(stream)); break;
+        case DType::Float16:
+            launch_column_quantize_for_input(static_cast<const __half*>(input),
+                output, fp8_dtype, scales, rows, columns, minimum_scale,
+                as_stream(stream)); break;
+        case DType::BFloat16:
+            launch_column_quantize_for_input(
+                static_cast<const hip_bfloat16*>(input), output, fp8_dtype,
+                scales, rows, columns, minimum_scale, as_stream(stream)); break;
+        default:
+            throw std::invalid_argument("column quantize input dtype is invalid");
     }
 }
 
@@ -2488,6 +2595,78 @@ void launch_dequantize_fp8_row_scales(
             output_dtype, rows, columns, scales, as_stream(stream));
     } else {
         throw std::invalid_argument("row dequantize input dtype is invalid");
+    }
+}
+
+template <typename Input, typename Output>
+void launch_column_dequantize_typed(
+    const Input* input, Output* output, std::int64_t rows,
+    std::int64_t columns, const float* scales, hipStream_t stream) {
+    const auto elements = rows * columns;
+    hipLaunchKernelGGL((dequantize_fp8_column_scale_kernel<Input, Output>),
+                       dim3(grid_size(elements)), dim3(kBlockSize), 0, stream,
+                       input, output, elements, columns, scales);
+    check_launch("dequantize_fp8_column_scale_kernel");
+}
+
+template <typename Input>
+void launch_column_dequantize_for_input(
+    const Input* input, void* output, DType output_dtype,
+    std::int64_t rows, std::int64_t columns, const float* scales,
+    hipStream_t stream) {
+    switch (output_dtype) {
+        case DType::Float32: launch_column_dequantize_typed(
+            input, static_cast<float*>(output), rows, columns, scales, stream); break;
+        case DType::Float16: launch_column_dequantize_typed(
+            input, static_cast<__half*>(output), rows, columns, scales, stream); break;
+        case DType::BFloat16: launch_column_dequantize_typed(
+            input, static_cast<hip_bfloat16*>(output), rows, columns, scales, stream); break;
+        default: throw std::invalid_argument("column dequantize output dtype is invalid");
+    }
+}
+
+void launch_dequantize_fp8_column_scales(
+    const void* input, DType fp8_dtype, void* output, DType output_dtype,
+    std::int64_t rows, std::int64_t columns, const float* scales,
+    void* stream) {
+    if (fp8_dtype == DType::Float8E4M3FNUZ) {
+        launch_column_dequantize_for_input(
+            static_cast<const __hip_fp8_e4m3_fnuz*>(input), output,
+            output_dtype, rows, columns, scales, as_stream(stream));
+    } else if (fp8_dtype == DType::Float8E5M2FNUZ) {
+        launch_column_dequantize_for_input(
+            static_cast<const __hip_fp8_e5m2_fnuz*>(input), output,
+            output_dtype, rows, columns, scales, as_stream(stream));
+    } else {
+        throw std::invalid_argument("column dequantize input dtype is invalid");
+    }
+}
+
+template <typename T>
+void launch_scale_columns_typed(T* values, std::int64_t rows,
+                                std::int64_t columns, const float* scales,
+                                hipStream_t stream) {
+    const auto elements = rows * columns;
+    hipLaunchKernelGGL(scale_columns_by_first_kernel<T>,
+                       dim3(grid_size(elements)), dim3(kBlockSize), 0, stream,
+                       values, elements, columns, scales);
+    check_launch("scale_columns_by_first_kernel");
+}
+
+void launch_scale_columns_by_first(
+    void* values, DType dtype, std::int64_t rows, std::int64_t columns,
+    const float* scales, void* stream) {
+    switch (dtype) {
+        case DType::Float32: launch_scale_columns_typed(
+            static_cast<float*>(values), rows, columns, scales,
+            as_stream(stream)); break;
+        case DType::Float16: launch_scale_columns_typed(
+            static_cast<__half*>(values), rows, columns, scales,
+            as_stream(stream)); break;
+        case DType::BFloat16: launch_scale_columns_typed(
+            static_cast<hip_bfloat16*>(values), rows, columns, scales,
+            as_stream(stream)); break;
+        default: throw std::invalid_argument("column output scale dtype is invalid");
     }
 }
 

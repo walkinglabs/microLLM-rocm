@@ -36,6 +36,7 @@ thread_local std::map<MatmulShapeKey, bool> fp8_native_matrix_registry;
 thread_local std::size_t fp8_software_fallback_calls = 0;
 thread_local std::optional<bool> fp8_outer_row_native;
 thread_local std::size_t fp8_outer_row_fallback_calls = 0;
+thread_local std::size_t fp8_output_column_scale_calls = 0;
 #endif
 }  // namespace
 
@@ -431,11 +432,17 @@ Tensor hipblaslt_fp8_matmul(const ScaledTensor& left, const ScaledTensor& right,
     const auto inner = left.values.shape()[1];
     const auto columns = right.values.shape()[1];
     if (right.values.shape()[0] != inner) throw std::invalid_argument("FP8 matmul inner mismatch");
-    if (right.scale_mode != Fp8ScaleMode::Scalar || right.scale.numel() != 1 ||
-        (left.scale_mode == Fp8ScaleMode::Scalar && left.scale.numel() != 1) ||
-        (left.scale_mode == Fp8ScaleMode::OuterRow && left.scale.numel() != rows)) {
+    const auto valid_left_scale =
+        (left.scale_mode == Fp8ScaleMode::Scalar && left.scale.numel() == 1) ||
+        (left.scale_mode == Fp8ScaleMode::OuterRow &&
+         left.scale.numel() == rows);
+    const auto valid_right_scale =
+        (right.scale_mode == Fp8ScaleMode::Scalar && right.scale.numel() == 1) ||
+        (right.scale_mode == Fp8ScaleMode::OuterColumn &&
+         right.scale.numel() == columns);
+    if (!valid_left_scale || !valid_right_scale) {
         throw std::invalid_argument(
-            "FP8 matmul supports scalar right scale and scalar or outer-row left scale");
+            "FP8 matmul supports scalar/outer-row left and scalar/outer-column right scales");
     }
     const MatmulShapeKey shape{rows, inner, columns};
     const auto bf16_software_fallback = [&] {
@@ -505,6 +512,13 @@ Tensor hipblaslt_fp8_matmul(const ScaledTensor& left, const ScaledTensor& right,
         fp8_native_matrix_registry[shape] = true;
         if (output_dtype == DType::Float32) {
             fp8_fp32_direct_registry[shape] = true;
+        }
+        if (right.scale_mode == Fp8ScaleMode::OuterColumn) {
+            hip::launch_scale_columns_by_first(
+                output.data(), output.dtype(), rows, columns,
+                static_cast<const float*>(right.scale.data()),
+                context.native_stream(output.device()));
+            ++fp8_output_column_scale_calls;
         }
         return output;
     }
@@ -606,7 +620,8 @@ Fp8DispatchStats fp8_dispatch_stats() noexcept {
     return {native, fallback, fp8_software_fallback_calls,
             fp8_outer_row_fallback_calls,
             fp8_outer_row_native.has_value()
-                ? *fp8_outer_row_native ? 1 : 0 : -1};
+                ? *fp8_outer_row_native ? 1 : 0 : -1,
+            fp8_output_column_scale_calls};
 #else
     return {};
 #endif
@@ -619,6 +634,7 @@ void clear_fp8_dispatch_registry() noexcept {
     fp8_software_fallback_calls = 0;
     fp8_outer_row_native.reset();
     fp8_outer_row_fallback_calls = 0;
+    fp8_output_column_scale_calls = 0;
 #endif
 }
 

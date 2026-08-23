@@ -37,3 +37,8 @@ An optimized candidate is accepted only if it:
 - does not regress the target end-to-end workload beyond the documented budget;
 - falls back safely outside its domain;
 - leaves the readable implementation available for diagnosis.
+
+For FP8 Linear weights with different output-channel ranges, see the
+[output-column scale operator record](../development/2026-08-23-fp8-output-column-scale-operator.md).
+It explains why the MI300 path uses native scalar-scale GEMM followed by a device column scale,
+instead of silently falling back when outer-vector scale is unavailable.

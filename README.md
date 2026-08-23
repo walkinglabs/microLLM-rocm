@@ -37,6 +37,8 @@ needed to run a real training and generation loop:
   explicit native/fallback counters; none is a default precision claim;
 - host and device-only FP8 weight-amax preparation policies with separate scan/transfer
   evidence; device mode does not copy weight payloads to CPU;
+- device per-output-column FP8 weight quantization with native scalar GEMM plus an algebraically
+  equivalent device post-scale; the operator is proven, while model policy remains experimental;
 - explicit per-block FP32 counterfactuals inside an FP8 model for precision attribution;
   selected blocks remain single-representation FP32 and are never silently quantized;
 - explicit FP8 weight-only, activation-only and both-roundtrip error-attribution modes; all use
@@ -269,9 +271,9 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 357/357 | 249 CPU-labelled + 108 HIP-labelled gates; 2 intentional environment skips |
+| Full CPU/HIP configuration | 359/359 | 250 CPU-labelled + 109 HIP-labelled gates; 2 intentional environment skips |
 | ASan/UBSan CPU | 211/211 | host code, CLI, model/graph, benchmark and evidence schemas |
-| MI300X/gfx942 HIP | 108/108 | allocator/stream, graph, BF16/FP8, batched GEMM and model matrix |
+| MI300X/gfx942 HIP | 109/109 | allocator/stream, graph, BF16/FP8, batched GEMM and model matrix |
 | PyTorch-enabled CPU build | 196/196 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
 | Registered test files | 53 | machine-audited CTest registration |

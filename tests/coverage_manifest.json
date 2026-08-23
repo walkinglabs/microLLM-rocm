@@ -50,6 +50,7 @@
     "quantize_fp8_with_scale": "tests/ops/ops_test.cpp",
     "quantize_fp8_dynamic": "tests/ops/ops_test.cpp",
     "quantize_fp8_rows_dynamic": "tests/ops/ops_test.cpp",
+    "quantize_fp8_columns_dynamic": "tests/ops/ops_test.cpp",
     "dequantize_fp8": "tests/ops/ops_test.cpp",
     "fp8_matmul": "tests/ops/hip_ops_test.cpp",
     "fp8_dispatch_stats": "tests/ops/hip_ops_test.cpp",

@@ -667,6 +667,34 @@ TEST(CpuFp8OpsTest, DynamicRowScalesPreserveIndependentRanges) {
                 input.to_vector(), 5.0F);
 }
 
+TEST(CpuFp8OpsTest, DynamicColumnScalesPreserveIndependentWeightRanges) {
+    clear_fp8_dynamic_quant_stats();
+    const auto weight = Tensor::from_vector(
+        {1.0F, 100.0F, 2.0F, 200.0F, 3.0F, 300.0F}, {3, 2});
+    const auto columns = quantize_fp8_columns_dynamic(
+        weight, DType::Float8E4M3FNUZ, 1.0e-4F);
+    EXPECT_EQ(columns.scale_mode, Fp8ScaleMode::OuterColumn);
+    EXPECT_FALSE(columns.host_scale_available);
+    const auto scales = columns.scale.to_vector();
+    ASSERT_EQ(scales.size(), 2U);
+    EXPECT_FLOAT_EQ(scales[0], 3.0F / 240.0F);
+    EXPECT_FLOAT_EQ(scales[1], 300.0F / 240.0F);
+    EXPECT_EQ(fp8_dynamic_quant_stats().column_calls, 1U);
+    EXPECT_EQ(fp8_dynamic_quant_stats().column_elements, 6U);
+    expect_near(dequantize_fp8(columns, DType::Float32).to_vector(),
+                weight.to_vector(), 8.0F);
+
+    const auto left = Tensor::from_vector({1.0F, -2.0F, 0.5F}, {1, 3});
+    const auto output = fp8_matmul(
+        quantize_fp8_dynamic(left, DType::Float8E4M3FNUZ, 1.0e-4F),
+        columns, DType::Float32);
+    expect_near(output.to_vector(), matmul(left, weight).to_vector(), 10.0F);
+    EXPECT_THROW((void)quantize_fp8_columns_dynamic(
+                     Tensor::from_vector({1.0F, 2.0F}, {2}),
+                     DType::Float8E4M3FNUZ, 1.0e-4F),
+                 std::invalid_argument);
+}
+
 TEST(LowLevelOpsTest, OperatesOnCallerOwnedCpuBuffers) {
     const Shape shape{2, 2};
     const Strides strides{2, 1};

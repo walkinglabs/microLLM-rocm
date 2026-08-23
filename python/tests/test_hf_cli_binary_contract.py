@@ -22,6 +22,8 @@ def main() -> int:
         b"--fp8-diagnostic-mode",
         b"fp8_linears_covered",
         b"both-roundtrip",
+        b"fp8_output_column_scale_calls",
+        b"fp8_dynamic_column_calls",
     )
     missing = [value.decode() for value in required if value not in payload]
     if missing:

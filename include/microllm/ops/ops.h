@@ -24,6 +24,7 @@ struct Fp8DispatchStats {
     std::size_t outer_row_fallback_calls = 0;
     // -1 unknown, 0 rejected by the installed runtime, 1 native execution observed.
     int outer_row_native_status = -1;
+    std::size_t output_column_scale_calls = 0;
 };
 
 struct Fp8DynamicQuantStats {
@@ -31,6 +32,8 @@ struct Fp8DynamicQuantStats {
     std::size_t row_calls = 0;
     std::uint64_t tensor_elements = 0;
     std::uint64_t row_elements = 0;
+    std::size_t column_calls = 0;
+    std::uint64_t column_elements = 0;
 };
 
 struct TensorPair {
@@ -44,7 +47,7 @@ struct TensorTriple {
     Tensor third;
 };
 
-enum class Fp8ScaleMode { Scalar, OuterRow };
+enum class Fp8ScaleMode { Scalar, OuterRow, OuterColumn };
 
 struct ScaledTensor {
     Tensor values;
@@ -73,6 +76,11 @@ struct Bf16FfnDiagnostics {
     const Tensor& input, DType fp8_dtype, float minimum_scale,
     const OpContext& context = {});
 [[nodiscard]] ScaledTensor quantize_fp8_rows_dynamic(
+    const Tensor& input, DType fp8_dtype, float minimum_scale,
+    const OpContext& context = {});
+// Computes one device-resident scale per column of a contiguous rank-two Tensor.
+// This is intended for [input, output] Linear weights.
+[[nodiscard]] ScaledTensor quantize_fp8_columns_dynamic(
     const Tensor& input, DType fp8_dtype, float minimum_scale,
     const OpContext& context = {});
 [[nodiscard]] Tensor dequantize_fp8(const ScaledTensor& input, DType output_dtype,
