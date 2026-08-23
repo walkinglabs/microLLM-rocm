@@ -100,6 +100,11 @@ if(BUILD_TESTING)
                          ${PROJECT_SOURCE_DIR}/python/tests/test_hf_continuous_matrix.py)
         set_tests_properties(Benchmark.HfContinuousMatrixContract PROPERTIES
                              LABELS "cpu;benchmark;huggingface;inference;scheduler;batch;context;kv-cache;schema")
+        add_test(NAME Benchmark.Mi300PrecisionRooflineContract
+                 COMMAND ${Python3_EXECUTABLE}
+                         ${PROJECT_SOURCE_DIR}/python/tests/test_mi300_precision_roofline.py)
+        set_tests_properties(Benchmark.Mi300PrecisionRooflineContract PROPERTIES
+                             LABELS "cpu;benchmark;precision;roofline;schema")
         add_test(NAME Benchmark.KvCachePrecisionContract
                  COMMAND ${Python3_EXECUTABLE}
                          ${PROJECT_SOURCE_DIR}/python/tests/test_kv_cache_precision.py)

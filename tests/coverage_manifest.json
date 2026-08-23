@@ -199,6 +199,7 @@
     "python/tests/test_hf_shape_matrix.py",
     "python/tests/test_hf_inference_shape_matrix.py",
     "python/tests/test_hf_continuous_matrix.py",
+    "python/tests/test_mi300_precision_roofline.py",
     "python/tests/test_kv_cache_precision.py",
     "python/tests/test_kv_cache_policy_comparison.py",
     "python/tests/test_operator_parity.py",
