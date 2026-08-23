@@ -114,6 +114,39 @@ ctest --preset rccl-release
 RCCL tests require at least two visible GPUs. Four-rank execution is not currently a
 release claim because the recorded container exposes only 64 MB of shared memory.
 
+## Installable CMake package
+
+Install the complete build into one prefix:
+
+```bash
+cmake --install build/cpu-debug --prefix "$PWD/install/microllm"
+```
+
+The prefix contains headers, static libraries and:
+
+```text
+lib/cmake/microLLM/microLLMConfig.cmake
+lib/cmake/microLLM/microLLMConfigVersion.cmake
+lib/cmake/microLLM/microLLMTargets.cmake
+```
+
+Consumers use `find_package(microLLM CONFIG REQUIRED)` and link namespaced targets such
+as `microLLM::core`, `microLLM::model` or `microLLM::inference`. Linking a higher-level
+target propagates its public microLLM dependencies. A package produced by a HIP build
+also resolves HIP and hipBLASLt; an RCCL build additionally resolves RCCL.
+
+To use a nonstandard package directory inside the prefix:
+
+```bash
+cmake -S . -B build/install \
+  -DMICROLLM_INSTALL_CMAKEDIR=share/microLLM/cmake
+```
+
+`PackageConfig.InstalledConsumer` is not a source-tree link test. It installs into a
+fresh temporary prefix, configures a separate CMake project, checks every expected
+target, builds it and runs the executable. The recorded CPU-only and HIP configurations
+both pass this gate.
+
 ## Build options
 
 | CMake option | Default | Purpose |
@@ -131,6 +164,7 @@ release claim because the recorded container exposes only 64 MB of shared memory
 | `MICROLLM_ENABLE_SANITIZERS` | `OFF` | host ASan and UBSan |
 | `MICROLLM_ENABLE_COVERAGE` | `OFF` | GCC/Clang line and branch instrumentation |
 | `MICROLLM_SAFETENSORS_PYTHON` | empty | interpreter with torch/safetensors used by the optional official interop CTest |
+| `MICROLLM_INSTALL_CMAKEDIR` | `lib/cmake/microLLM` | package-config destination relative to the install prefix |
 
 ## Common failures
 

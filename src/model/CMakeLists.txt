@@ -4,6 +4,7 @@ add_library(microllm_model STATIC
     model.cpp
 )
 add_library(microllm::model ALIAS microllm_model)
+set_target_properties(microllm_model PROPERTIES EXPORT_NAME model)
 
 target_include_directories(microllm_model
     PUBLIC
@@ -14,4 +15,5 @@ target_link_libraries(microllm_model
     PUBLIC microllm::autograd microllm::io microllm_project_options microllm_build_config
 )
 
-install(TARGETS microllm_model ARCHIVE DESTINATION lib)
+install(TARGETS microllm_model EXPORT microLLMTargets
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})

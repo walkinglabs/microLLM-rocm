@@ -4,6 +4,7 @@ add_library(microllm_training STATIC
     trainer.cpp
 )
 add_library(microllm::training ALIAS microllm_training)
+set_target_properties(microllm_training PROPERTIES EXPORT_NAME training)
 
 target_include_directories(microllm_training
     PUBLIC
@@ -15,4 +16,5 @@ target_link_libraries(microllm_training
            microllm_project_options microllm_build_config
 )
 
-install(TARGETS microllm_training ARCHIVE DESTINATION lib)
+install(TARGETS microllm_training EXPORT microLLMTargets
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})

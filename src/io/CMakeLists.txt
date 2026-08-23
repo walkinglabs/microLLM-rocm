@@ -8,6 +8,7 @@ add_library(microllm_io STATIC
     safetensors.cpp
 )
 add_library(microllm::io ALIAS microllm_io)
+set_target_properties(microllm_io PROPERTIES EXPORT_NAME io)
 
 target_include_directories(microllm_io
     PUBLIC
@@ -18,4 +19,5 @@ target_link_libraries(microllm_io
     PUBLIC microllm::core microllm_project_options microllm_build_config
 )
 
-install(TARGETS microllm_io ARCHIVE DESTINATION lib)
+install(TARGETS microllm_io EXPORT microLLMTargets
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})

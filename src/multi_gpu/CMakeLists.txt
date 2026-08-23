@@ -4,6 +4,7 @@ add_library(microllm_multi_gpu STATIC
     data_parallel.cpp
 )
 add_library(microllm::multi_gpu ALIAS microllm_multi_gpu)
+set_target_properties(microllm_multi_gpu PROPERTIES EXPORT_NAME multi_gpu)
 
 target_include_directories(microllm_multi_gpu
     PUBLIC
@@ -16,4 +17,5 @@ target_link_libraries(microllm_multi_gpu
     PRIVATE hip::host roc::rccl
 )
 
-install(TARGETS microllm_multi_gpu ARCHIVE DESTINATION lib)
+install(TARGETS microllm_multi_gpu EXPORT microLLMTargets
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})

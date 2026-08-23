@@ -4,6 +4,7 @@ add_library(microllm_core STATIC
     tensor.cpp
 )
 add_library(microllm::core ALIAS microllm_core)
+set_target_properties(microllm_core PROPERTIES EXPORT_NAME core)
 
 target_include_directories(microllm_core
     PUBLIC
@@ -14,4 +15,5 @@ target_link_libraries(microllm_core
     PUBLIC microllm_project_options microllm_build_config microllm::runtime
 )
 
-install(TARGETS microllm_core ARCHIVE DESTINATION lib)
+install(TARGETS microllm_core EXPORT microLLMTargets
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})

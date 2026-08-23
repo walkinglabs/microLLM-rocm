@@ -1,0 +1,28 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+if(@MICROLLM_HAS_HIP@)
+    find_dependency(HIP CONFIG)
+endif()
+if(@MICROLLM_HAS_HIPBLASLT@)
+    find_dependency(hipblaslt CONFIG)
+endif()
+if(@MICROLLM_HAS_RCCL@)
+    find_dependency(rccl CONFIG)
+endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/microLLMTargets.cmake")
+
+set(microLLM_WITH_HIP @MICROLLM_HAS_HIP@)
+set(microLLM_WITH_HIPBLASLT @MICROLLM_HAS_HIPBLASLT@)
+set(microLLM_WITH_RCCL @MICROLLM_HAS_RCCL@)
+set(microLLM_AVAILABLE_COMPONENTS "@MICROLLM_PACKAGE_COMPONENTS@")
+foreach(_microLLM_component IN LISTS microLLM_FIND_COMPONENTS)
+    if(_microLLM_component IN_LIST microLLM_AVAILABLE_COMPONENTS)
+        set(microLLM_${_microLLM_component}_FOUND TRUE)
+    else()
+        set(microLLM_${_microLLM_component}_FOUND FALSE)
+    endif()
+endforeach()
+check_required_components(microLLM)

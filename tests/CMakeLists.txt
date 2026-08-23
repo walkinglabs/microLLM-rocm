@@ -39,6 +39,21 @@ add_executable(microllm_safetensors_interop
 target_link_libraries(microllm_safetensors_interop PRIVATE microllm::io)
 
 find_package(Python3 COMPONENTS Interpreter QUIET)
+
+add_test(
+    NAME PackageConfig.InstalledConsumer
+    COMMAND ${CMAKE_COMMAND}
+        -DMICROLLM_BINARY_DIR=${PROJECT_BINARY_DIR}
+        -DMICROLLM_CONSUMER_SOURCE_DIR=${PROJECT_SOURCE_DIR}/tests/package/consumer
+        -DMICROLLM_CONSUMER_BINARY_DIR=${PROJECT_BINARY_DIR}/package-consumer-build
+        -DMICROLLM_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/package-consumer-prefix
+        -P ${PROJECT_SOURCE_DIR}/cmake/RunInstalledConsumer.cmake
+)
+set_tests_properties(PackageConfig.InstalledConsumer PROPERTIES
+    LABELS "cpu;package;install;integration"
+    RUN_SERIAL TRUE
+)
+
 if(Python3_Interpreter_FOUND)
     add_test(
         NAME Coverage.OperatorAndTestFiles

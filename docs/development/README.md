@@ -299,5 +299,7 @@ the next gate. Records are append-only except for factual corrections.
   filtered full-value diagnostics and evidence for FFN-only row-scale design.
 - [2026-08-23-hipblaslt-outer-vector-scale.md](2026-08-23-hipblaslt-outer-vector-scale.md):
   version-local native row-scale API and row-major/column-major descriptor mapping.
+- [2026-08-23-installable-cmake-package.md](2026-08-23-installable-cmake-package.md):
+  relocatable package config and external CPU/HIP/RCCL consumer gates.
 - [2026-08-21-divergent-row-cache-reference.md](2026-08-21-divergent-row-cache-reference.md):
   unequal-position shared-Storage B1 oracle with CPU/HIP and reset-prefix gates.

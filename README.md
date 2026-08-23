@@ -195,6 +195,62 @@ cmake --build --preset rccl-release --parallel
 ctest --preset rccl-release
 ```
 
+### Install and use from another CMake project
+
+Install a CPU build into an explicit prefix:
+
+```bash
+cmake -S . -B build/install-cpu \
+  -DMICROLLM_ENABLE_HIP=OFF \
+  -DMICROLLM_BUILD_TESTS=OFF \
+  -DMICROLLM_BUILD_EXAMPLES=OFF \
+  -DMICROLLM_BUILD_BENCHMARKS=OFF
+cmake --build build/install-cpu --parallel
+cmake --install build/install-cpu --prefix "$PWD/install/microllm"
+```
+
+An external project can then consume the installed package without copying source files:
+
+```cmake
+cmake_minimum_required(VERSION 3.25)
+project(my_microLLM_app LANGUAGES CXX)
+
+find_package(microLLM 0.1 CONFIG REQUIRED)
+add_executable(my_app main.cpp)
+target_link_libraries(my_app PRIVATE microLLM::inference)
+```
+
+Configure that project with:
+
+```bash
+cmake -S . -B build -DCMAKE_PREFIX_PATH=/absolute/path/to/install/microllm
+cmake --build build
+```
+
+Installed targets are:
+
+| Target | Purpose |
+|---|---|
+| `microLLM::runtime` | Device, Stream, Event and memory runtime |
+| `microLLM::core` | Storage, Tensor, dtype and view primitives |
+| `microLLM::profiling` | In-process trace API |
+| `microLLM::ops` | CPU/HIP operators and optimized dispatch |
+| `microLLM::autograd` | Eager reverse-mode graph |
+| `microLLM::io` | Tokenizers, datasets and safetensors |
+| `microLLM::model` | Decoder-only Transformer |
+| `microLLM::training` | Optimizers, checkpoints and Trainer |
+| `microLLM::inference` | Generation, KV cache and schedulers |
+| `microLLM::multi_gpu` | RCCL data-parallel components when built with RCCL |
+
+`microLLMConfig.cmake` records whether the installed build used HIP, hipBLASLt or
+RCCL and resolves those dependencies when the package is loaded. A CPU installation
+does not require ROCm. Mixing libraries from one build with a config file from another
+is unsupported; install the complete prefix atomically.
+
+CTest includes `PackageConfig.InstalledConsumer`, which installs into a temporary
+prefix and configures, builds, links and runs a repository-external consumer. Both
+CPU-only and HIP/hipBLASLt configurations are exercised.
+
 The complete compiler, CMake, ROCm, library, Python, and troubleshooting matrix is in
 [Build from source](docs/dev/build.md).
 
@@ -204,12 +260,13 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 314/314 | 218 CPU-labelled + 96 HIP-labelled gates; 2 intentional environment skips |
+| Full CPU/HIP configuration | 336/336 | 234 CPU-labelled + 102 HIP-labelled gates; 2 intentional environment skips |
 | ASan/UBSan CPU | 211/211 | host code, CLI, model/graph, benchmark and evidence schemas |
-| MI300X/gfx942 HIP | 96/96 | allocator/stream, graph, BF16/FP8, batched GEMM and model matrix |
+| MI300X/gfx942 HIP | 102/102 | allocator/stream, graph, BF16/FP8, batched GEMM and model matrix |
 | PyTorch-enabled CPU build | 196/196 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
-| Registered test files | 37 | machine-audited CTest registration |
+| Registered test files | 49 | machine-audited CTest registration |
+| Installed CMake package | CPU + HIP pass | external `find_package`, compile, static link and run |
 | CPU source coverage | 83.9% lines / 66.6% branches | GCC 13.3 + gcovr 8.3; `src/` and `include/` |
 
 Latest PyTorch-reference maximum absolute differences:

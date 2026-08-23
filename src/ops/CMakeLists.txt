@@ -4,6 +4,7 @@ add_library(microllm_ops STATIC
     optimized.cpp
 )
 add_library(microllm::ops ALIAS microllm_ops)
+set_target_properties(microllm_ops PROPERTIES EXPORT_NAME ops)
 
 target_include_directories(microllm_ops
     PUBLIC
@@ -20,4 +21,5 @@ if(MICROLLM_HAS_HIPBLASLT)
     target_link_libraries(microllm_ops PRIVATE hip::host roc::hipblaslt)
 endif()
 
-install(TARGETS microllm_ops ARCHIVE DESTINATION lib)
+install(TARGETS microllm_ops EXPORT microLLMTargets
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})

@@ -4,6 +4,7 @@ add_library(microllm_inference STATIC
     scheduler.cpp
 )
 add_library(microllm::inference ALIAS microllm_inference)
+set_target_properties(microllm_inference PROPERTIES EXPORT_NAME inference)
 
 target_include_directories(microllm_inference
     PUBLIC
@@ -14,4 +15,5 @@ target_link_libraries(microllm_inference
     PUBLIC microllm::model microllm_project_options microllm_build_config
 )
 
-install(TARGETS microllm_inference ARCHIVE DESTINATION lib)
+install(TARGETS microllm_inference EXPORT microLLMTargets
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})

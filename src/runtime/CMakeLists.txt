@@ -2,6 +2,7 @@ add_library(microllm_runtime STATIC
     runtime.cpp
 )
 add_library(microllm::runtime ALIAS microllm_runtime)
+set_target_properties(microllm_runtime PROPERTIES EXPORT_NAME runtime)
 
 target_include_directories(microllm_runtime
     PUBLIC
@@ -16,4 +17,5 @@ if(MICROLLM_HAS_HIP)
     target_link_libraries(microllm_runtime PRIVATE hip::host)
 endif()
 
-install(TARGETS microllm_runtime ARCHIVE DESTINATION lib)
+install(TARGETS microllm_runtime EXPORT microLLMTargets
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})

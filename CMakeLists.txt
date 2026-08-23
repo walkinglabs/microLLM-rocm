@@ -6,6 +6,9 @@ project(microLLM
     LANGUAGES C CXX
 )
 
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
@@ -102,6 +105,8 @@ target_compile_definitions(microllm_build_config INTERFACE
     MICROLLM_HAS_HIPBLASLT=$<BOOL:${MICROLLM_HAS_HIPBLASLT}>
     MICROLLM_HAS_RCCL=$<BOOL:${MICROLLM_HAS_RCCL}>
 )
+set_target_properties(microllm_project_options PROPERTIES EXPORT_NAME project_options)
+set_target_properties(microllm_build_config PROPERTIES EXPORT_NAME build_config)
 
 add_subdirectory(src/runtime)
 add_subdirectory(src/core)
@@ -161,7 +166,38 @@ if(MICROLLM_BUILD_TESTS)
     add_subdirectory(tests)
 endif()
 
-install(DIRECTORY include/microllm DESTINATION include)
+install(DIRECTORY include/microllm DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(TARGETS microllm_project_options microllm_build_config
+        EXPORT microLLMTargets)
+
+set(MICROLLM_INSTALL_CMAKEDIR
+    "${CMAKE_INSTALL_LIBDIR}/cmake/microLLM"
+    CACHE STRING "Install path for the microLLM CMake package")
+set(MICROLLM_PACKAGE_COMPONENTS
+    "runtime;core;profiling;ops;autograd;io;model;training;inference")
+if(MICROLLM_HAS_RCCL)
+    list(APPEND MICROLLM_PACKAGE_COMPONENTS multi_gpu)
+endif()
+configure_package_config_file(
+    cmake/microLLMConfig.cmake.in
+    "${CMAKE_CURRENT_BINARY_DIR}/microLLMConfig.cmake"
+    INSTALL_DESTINATION "${MICROLLM_INSTALL_CMAKEDIR}"
+)
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/microLLMConfigVersion.cmake"
+    VERSION "${PROJECT_VERSION}"
+    COMPATIBILITY SameMajorVersion
+)
+install(EXPORT microLLMTargets
+        FILE microLLMTargets.cmake
+        NAMESPACE microLLM::
+        DESTINATION "${MICROLLM_INSTALL_CMAKEDIR}")
+install(FILES
+        "${CMAKE_CURRENT_BINARY_DIR}/microLLMConfig.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/microLLMConfigVersion.cmake"
+        DESTINATION "${MICROLLM_INSTALL_CMAKEDIR}")
+install(FILES LICENSE README.md
+        DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/doc/microLLM")
 
 message(STATUS "")
 message(STATUS "microLLM-rocm ${PROJECT_VERSION}")
