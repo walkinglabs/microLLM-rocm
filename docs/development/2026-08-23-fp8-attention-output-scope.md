@@ -20,3 +20,7 @@ preparation D2H, no hot-path weight quantization and zero payload transfer.
 The hypothesis is causal: if Q/K/V cause the long-context RMS regression, O-only should remove that
 red bar while reducing post launches from four to one per layer. Same-revision device-Tensor control
 must decide; this scope is not a default.
+
+Exp148 meets the targeted keep rule: Qwen Max/RMS are unchanged, DeepSeek improves 7.75%--16.26%,
+and both T512 regressions remain below 5%. Complete precision still fails 0/4, so the scope stays
+opt-in. See [Experiment 148](../optimization-log/experiments/148-fp8-attention-output-only.md).

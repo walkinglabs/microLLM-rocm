@@ -2548,3 +2548,13 @@ Attention Q/K/V/O逐列scale后，Qwen T8与Deep两context全部Max/RMS改善；
 下一步只测O projection，隔离Q/K/V的长上下文非线性影响。
 
 ![Attention-only FP8 weights](assets/fp8-attention-only.svg)
+
+## 165. Experiment 148：只改O projection，定向keep通过
+
+O-only让Qwen两context Max/RMS完全不变；Deep T8改善8.70%/7.75%，T512改善16.26%/14.32%。
+T512只慢3.74%/1.50%，八项无回归、至少一项改善、两速度门全部成立，targeted keep=true。
+
+它以更少post保留Exp147全部Deep收益并消除Qwen红条，因此保留O-only、删除更宽Attention-only。
+完整precision仍0/4，下一步转向activation。
+
+![Attention output-only FP8 weights](assets/fp8-attention-output-only.svg)

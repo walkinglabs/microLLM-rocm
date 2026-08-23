@@ -658,6 +658,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/146-data/](experiments/146-data/) | 候选/control共72 worker与错误基线审计 |
 | [assets/fp8-attention-only.svg](assets/fp8-attention-only.svg) | 7/8误差改善、Qwen长RMS反例和T512速度门 |
 | [experiments/147-data/](experiments/147-data/) | 同revision候选/control、72 worker和scope计数 |
+| [assets/fp8-attention-output-only.svg](assets/fp8-attention-output-only.svg) | Qwen零回归、Deep改善与T512 keep门 |
+| [experiments/148-data/](experiments/148-data/) | O-only/control共72 worker和targeted keep证据 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

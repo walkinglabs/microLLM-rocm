@@ -522,6 +522,9 @@ rejected, and the initially tempting host-Tensor historical comparison is explic
 [Experiment 147](docs/optimization-log/experiments/147-fp8-attention-only.md) improves seven of
 eight Max/RMS metrics and passes both T512 speed gates, but Qwen T512 RMS regresses 8.91%; the scope
 remains experimental and is not a cross-model default.
+[Experiment 148](docs/optimization-log/experiments/148-fp8-attention-output-only.md) narrows the
+scope to O projections: Qwen is unchanged, DeepSeek improves, and both T512 speed gates pass. The
+scope is retained as opt-in evidence, while complete FP8 precision remains 0/4.
 
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or

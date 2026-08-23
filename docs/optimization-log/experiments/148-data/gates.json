@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "status": "targeted_keep_attention_output_only",
+  "evidence": {
+    "fresh_build_steps": 50,
+    "contracts_passed": 2,
+    "combined_workers": 72,
+    "combined_fp8_workers": 24,
+    "complete_logits_per_fp8_worker": 151936,
+    "max_rms_metrics_non_worse": 8,
+    "max_rms_metrics_total": 8,
+    "t512_performance_gates_passed": 2,
+    "complete_precision_gates_passed": 0
+  },
+  "decision": {
+    "targeted_keep": true,
+    "qwen_numerically_unchanged": true,
+    "deepseek_all_reported_metrics_improved": true,
+    "both_t512_degradation_within_five_percent": true,
+    "attention_output_scope_is_global_default": false,
+    "complete_fp8_precision_available": false,
+    "retain_attention_output_scope": true,
+    "remove_broader_attention_scope": true,
+    "activation_quantization_is_next_precision_boundary": true,
+    "top_token_is_sufficient_precision_evidence": false
+  }
+}

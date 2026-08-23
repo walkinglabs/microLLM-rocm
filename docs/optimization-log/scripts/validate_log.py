@@ -6105,6 +6105,73 @@ def validate_fp8_attention_only(
         complete.get("pass_count", -1)
 
 
+def validate_fp8_attention_output_only(
+        errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "148-data"
+    verification = json.loads((data / "candidate" / "verification.json").read_text(
+        encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    for name in ("candidate", "control"):
+        raw_rows = sum(1 for line in (data / name / "raw.jsonl").read_text(
+            encoding="utf-8").splitlines() if line.strip())
+        preflight_rows = sum(1 for line in (data / name / "gpu2-preflight.jsonl").read_text(
+            encoding="utf-8").splitlines() if line.strip())
+        if raw_rows != 36 or preflight_rows != 3 or \
+                (data / name / "stderr.log").stat().st_size != 0 or \
+                (data / name / "exit-code.txt").read_text(
+                    encoding="utf-8").strip() != "0":
+            errors.append(f"FP8 attention-output {name} execution changed")
+    suites = verification.get("suites", {})
+    if verification.get("all_checks_passed") is not True or \
+            suites.get("combined_workers") != 72 or suites.get("combined_fp8") != 24:
+        errors.append("FP8 attention-output combined execution changed")
+    checks = suites.get("candidate", {}).get("checks", [])
+    if len(checks) != 12 or any(
+            row.get("passed") is not True or row.get("logit_count") != 151936 or
+            row.get("hot_column") != 0 or row.get("status") != 0
+            for row in checks):
+        errors.append("FP8 attention-output worker checks changed")
+    qwen = [row for row in checks if row["model"] == "qwen2.5-0.5b"]
+    deep = [row for row in checks
+            if row["model"] == "deepseek-r1-distill-qwen-1.5b"]
+    if not qwen or not deep or any(
+            row["scale"] != 86592 or row["post"] != 96
+            for row in qwen) or any(
+            row["scale"] != 172708 or row["post"] != 112
+            for row in deep):
+        errors.append("FP8 attention-output scope counters changed")
+    comparisons = {(row["model"], row["context"]): row
+                   for row in verification.get("comparisons", [])}
+    q8 = comparisons.get(("qwen2.5-0.5b", 8), {})
+    q512 = comparisons.get(("qwen2.5-0.5b", 512), {})
+    d8 = comparisons.get(("deepseek-r1-distill-qwen-1.5b", 8), {})
+    d512 = comparisons.get(("deepseek-r1-distill-qwen-1.5b", 512), {})
+    if q8.get("delta", {}).get("max") != 0.0 or \
+            q8.get("delta", {}).get("rms") != 0.0 or \
+            q512.get("delta", {}).get("max") != 0.0 or \
+            q512.get("delta", {}).get("rms") != 0.0 or \
+            not -0.08 < d8.get("delta", {}).get("max", 0) < -0.07 or \
+            not -0.02 < d8.get("delta", {}).get("rms", 0) < -0.01 or \
+            not -0.18 < d512.get("delta", {}).get("max", 0) < -0.17 or \
+            not -0.03 < d512.get("delta", {}).get("rms", 0) < -0.02 or \
+            not -5.0 < q512.get("delta", {}).get("tps_percent", -100) < 0.0 or \
+            not -5.0 < d512.get("delta", {}).get("tps_percent", -100) < 0.0:
+        errors.append("FP8 attention-output precision/performance evidence changed")
+    keep = verification.get("keep_gate", {})
+    complete = verification.get("complete_precision", {})
+    decision = gates.get("decision", {})
+    if keep.get("keep") is not True or keep.get("eight_metrics_not_worse") is not True or \
+            keep.get("at_least_one_improved") is not True or \
+            keep.get("both_t512_pass") is not True or complete.get("pass_count") != 0 or \
+            decision.get("targeted_keep") is not True or \
+            decision.get("remove_broader_attention_scope") is not True or \
+            decision.get("complete_fp8_precision_available") is not False or \
+            "[50/50]" not in (data / "fresh-build.log").read_text(encoding="utf-8"):
+        errors.append("FP8 attention-output keep/build gates changed")
+    return suites.get("combined_workers", 0), suites.get("combined_fp8", 0), \
+        complete.get("pass_count", -1)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -6230,7 +6297,8 @@ def validate_assets(errors: list[str]) -> None:
                  "fp8-output-column-native-probe.svg",
                  "fp8-weight-reconstruction-audit.svg",
                  "fp8-output-head-only.svg",
-                 "fp8-attention-only.svg"):
+                 "fp8-attention-only.svg",
+                 "fp8-attention-output-only.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -6458,6 +6526,8 @@ def main() -> int:
         validate_fp8_output_head_only(errors)
     attention_workers, attention_fp8, attention_precision = \
         validate_fp8_attention_only(errors)
+    output_workers, output_fp8, output_precision = \
+        validate_fp8_attention_output_only(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -6637,6 +6707,7 @@ def main() -> int:
           f"head_only={head_workers}/{head_fp8}/{head_precision} "
           f"attention_only={attention_workers}/{attention_fp8}/"
           f"{attention_precision} "
+          f"attention_output={output_workers}/{output_fp8}/{output_precision} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")
