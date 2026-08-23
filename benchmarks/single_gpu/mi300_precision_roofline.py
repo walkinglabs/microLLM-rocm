@@ -39,6 +39,7 @@ def options() -> argparse.Namespace:
     parser.add_argument("--sizes", default="128,256,512,1024")
     parser.add_argument("--warmup", type=int, default=5)
     parser.add_argument("--repetitions", type=int, default=20)
+    parser.add_argument("--reference", choices=("cpu", "fp32"), default="cpu")
     parser.add_argument("--physical-gpu-index", type=int)
     parser.add_argument("--max-idle-vram-percent", type=int, default=5)
     parser.add_argument("--max-idle-use-percent", type=int, default=10)
@@ -127,7 +128,8 @@ def main() -> int:
         completed = subprocess.run(
             [str(args.binary), "--size", str(size),
              "--warmup", str(args.warmup),
-             "--repetitions", str(args.repetitions)],
+             "--repetitions", str(args.repetitions),
+             "--reference", args.reference],
             capture_output=True, text=True)
         post = require_idle_gpu(
             args.physical_gpu_index, args.max_idle_vram_percent,
@@ -170,10 +172,12 @@ def main() -> int:
         "sizes": args.sizes,
         "warmup": args.warmup,
         "repetitions": args.repetitions,
+        "reference": args.reference,
         "rows": rows,
         "by_dtype": by_dtype,
         "boundary": (
-            "dense square GEMM; no structured sparsity; Event kernel time; "
+            f"dense square GEMM; reference={args.reference}; "
+            "no structured sparsity; Event kernel time; "
             "FP8 output is BF16; INT8/INT4 are not executed by this runner"),
     }
     (args.output_directory / "summary.json").write_text(

@@ -48,6 +48,11 @@ class Mi300PrecisionRooflineTest(unittest.TestCase):
                 "shape": [2, 2, 2], "dtype": "bf16", "median_ms": 1,
                 "accuracy_passed": False}, 2)
 
+    def test_runner_exposes_cpu_and_fp32_reference_modes(self):
+        source = (ROOT / "benchmarks/single_gpu/mi300_precision_roofline.py").read_text()
+        self.assertIn('choices=("cpu", "fp32")', source)
+        self.assertIn('"--reference", args.reference', source)
+
 
 if __name__ == "__main__":
     unittest.main()

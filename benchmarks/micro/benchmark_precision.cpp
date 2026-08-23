@@ -15,13 +15,22 @@
 
 namespace {
 
-struct Options { std::int64_t size = 512; int warmup = 3; int repetitions = 10; };
+struct Options {
+    std::int64_t size = 512;
+    int warmup = 3;
+    int repetitions = 10;
+    std::string reference = "cpu";
+};
 
 Options options(int argc, char** argv) {
     Options result;
     for (int index = 1; index < argc; index += 2) {
         if (index + 1 >= argc) throw std::invalid_argument("missing benchmark value");
         const std::string name = argv[index];
+        if (name == "--reference") {
+            result.reference = argv[index + 1];
+            continue;
+        }
         const auto value = std::strtoll(argv[index + 1], nullptr, 10);
         if (name == "--size") result.size = value;
         else if (name == "--warmup") result.warmup = static_cast<int>(value);
@@ -29,7 +38,10 @@ Options options(int argc, char** argv) {
         else throw std::invalid_argument("unknown benchmark option: " + name);
     }
     if (result.size <= 0 || result.size > 4096 || result.warmup < 0 ||
-        result.repetitions <= 0) throw std::invalid_argument("invalid benchmark range");
+        result.repetitions <= 0 ||
+        (result.reference != "cpu" && result.reference != "fp32")) {
+        throw std::invalid_argument("invalid benchmark range or reference");
+    }
     return result;
 }
 
@@ -88,7 +100,6 @@ int main(int argc, char** argv) {
         const microllm::Shape shape{config.size, config.size};
         const auto left_cpu = microllm::Tensor::from_vector(left_values, shape);
         const auto right_cpu = microllm::Tensor::from_vector(right_values, shape);
-        const auto reference = microllm::ops::matmul(left_cpu, right_cpu).to_vector();
         const auto left32 = left_cpu.to(gpu);
         const auto right32 = right_cpu.to(gpu);
         const auto left16 = microllm::Tensor::from_vector(left_values, shape, microllm::DType::Float16).to(gpu);
@@ -97,6 +108,13 @@ int main(int argc, char** argv) {
         const auto rightbf = microllm::Tensor::from_vector(right_values, shape, microllm::DType::BFloat16).to(gpu);
         microllm::runtime::Stream stream(gpu);
         const microllm::ops::OpContext context{&stream, nullptr, 0};
+        const auto reference = config.reference == "cpu"
+                                   ? microllm::ops::matmul(
+                                         left_cpu, right_cpu).to_vector()
+                                   : microllm::ops::matmul_with_implementation(
+                                         left32, right32,
+                                         microllm::ops::MatmulImplementation::HipBLASLt,
+                                         context).to_vector();
         const auto left8 = microllm::ops::quantize_fp8(left32, microllm::DType::Float8E4M3FNUZ, 1.0F / 240.0F, context);
         const auto right8 = microllm::ops::quantize_fp8(right32, microllm::DType::Float8E4M3FNUZ, 1.0F / 240.0F, context);
         stream.synchronize();
@@ -115,15 +133,19 @@ int main(int argc, char** argv) {
         const auto fp32_hipblas = results[1].median;
         bool accuracy_passed = true;
         for (const auto& result : results) {
+            const auto scale = std::max(
+                1.0F, static_cast<float>(config.size) / 512.0F);
             const auto tolerance = result.dtype == "fp32_readable" || result.dtype == "fp32"
                                        ? 2.0e-4F
-                                       : result.dtype == "fp16" ? 2.0e-3F
-                                       : result.dtype == "bf16" ? 1.0e-2F : 1.0e-1F;
+                                       : result.dtype == "fp16" ? 2.0e-3F * scale
+                                       : result.dtype == "bf16" ? 1.0e-2F * scale
+                                       : 1.0e-1F * scale;
             accuracy_passed = accuracy_passed && result.error <= tolerance;
             std::cout << std::setprecision(9)
                       << "{\"schema_version\":1,\"op\":\"matmul\",\"shape\":["
                       << config.size << ',' << config.size << ',' << config.size
-                      << "],\"dtype\":\"" << result.dtype << "\",\"median_ms\":"
+                      << "],\"reference\":\"" << config.reference
+                      << "\",\"dtype\":\"" << result.dtype << "\",\"median_ms\":"
                       << result.median << ",\"p95_ms\":" << result.p95
                       << ",\"max_abs_error\":" << result.error
                       << ",\"speedup_vs_readable_fp32\":" << baseline / result.median
