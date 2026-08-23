@@ -122,6 +122,11 @@ if(BUILD_TESTING)
                          ${PROJECT_SOURCE_DIR}/python/tests/test_hf_fp8_scale_grid.py)
         set_tests_properties(Benchmark.HfFp8ScaleGridContract PROPERTIES
                              LABELS "cpu;benchmark;huggingface;inference;precision;fp8;schema")
+        add_test(NAME Benchmark.HfActivationRangeContract
+                 COMMAND ${Python3_EXECUTABLE}
+                         ${PROJECT_SOURCE_DIR}/python/tests/test_hf_activation_range.py)
+        set_tests_properties(Benchmark.HfActivationRangeContract PROPERTIES
+                             LABELS "cpu;benchmark;huggingface;inference;precision;fp8;trace;schema")
         add_test(NAME Benchmark.KvCachePrecisionContract
                  COMMAND ${Python3_EXECUTABLE}
                          ${PROJECT_SOURCE_DIR}/python/tests/test_kv_cache_precision.py)
