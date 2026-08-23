@@ -2287,3 +2287,11 @@ long-heavy吞吐只剩57%，P95约3×。delayed流量没有收益，吞吐与延
 不是继续搜索第四个静态数字。
 
 ![Slot ratio sweep](assets/slot-ratio-sweep.svg)
+
+## 136. Experiment 119：FP8只在1024³快10.7%
+
+20条executed precision记录全部过精度门。FP8在128–512比FP32慢3%–8%，1024³才快10.7%；
+该点13.62TFLOPS只占官方FP8峰值0.52%。1024³实际最快是FP16 18.63TFLOPS。当前shape远未
+饱和MI300X，不能用2.6PFLOPS直接推导模型tokens/s，也不能说低精度天然更快。
+
+![MI300 precision roofline](assets/mi300-precision-roofline.svg)

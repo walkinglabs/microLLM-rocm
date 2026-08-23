@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="580" viewBox="0 0 1000 580" role="img" aria-labelledby="title desc">
+  <title id="title">MI300X executed precision GEMM TFLOPS by size</title>
+  <desc id="desc">FP32 FP16 BF16 and FP8 achieved TFLOPS from size 128 through 1024.</desc>
+  <rect width="1000" height="580" rx="18" fill="#0b1020"/>
+  <text x="52" y="52" fill="#f8fafc" font-size="28" font-family="sans-serif" font-weight="700">MI300X executed GEMM：离峰值还有多远</text>
+  <text x="52" y="82" fill="#94a3b8" font-size="16" font-family="sans-serif">dense square GEMM · HIP Event median · 无结构化稀疏</text>
+  <g stroke="#334155" stroke-width="1"><line x1="100" y1="465" x2="940" y2="465"/><line x1="100" y1="365" x2="940" y2="365"/><line x1="100" y1="265" x2="940" y2="265"/><line x1="100" y1="165" x2="940" y2="165"/></g>
+  <g fill="#cbd5e1" font-family="sans-serif" font-size="14"><text x="62" y="470">0 TF</text><text x="52" y="370">5 TF</text><text x="45" y="270">10 TF</text><text x="45" y="170">15 TF</text><text x="45" y="110">20 TF</text></g>
+  <g fill="#cbd5e1" font-family="sans-serif" font-size="15"><text x="170" y="500">128</text><text x="370" y="500">256</text><text x="570" y="500">512</text><text x="765" y="500">1024</text></g>
+  <polyline points="180,461 380,438 580,271 780,219" fill="none" stroke="#38bdf8" stroke-width="5"/>
+  <polyline points="180,461 380,437 580,282 780,92" fill="none" stroke="#22c55e" stroke-width="5"/>
+  <polyline points="180,462 380,437 580,282 780,209" fill="none" stroke="#f59e0b" stroke-width="5"/>
+  <polyline points="180,461 380,440 580,277 780,193" fill="none" stroke="#fb7185" stroke-width="5"/>
+  <g fill="#f8fafc"><circle cx="780" cy="219" r="6"/><circle cx="780" cy="92" r="6"/><circle cx="780" cy="209" r="6"/><circle cx="780" cy="193" r="6"/></g>
+  <g font-family="sans-serif" font-size="15" fill="#cbd5e1">
+    <rect x="110" y="535" width="16" height="16" rx="3" fill="#38bdf8"/><text x="136" y="549">FP32</text>
+    <rect x="250" y="535" width="16" height="16" rx="3" fill="#22c55e"/><text x="276" y="549">FP16</text>
+    <rect x="390" y="535" width="16" height="16" rx="3" fill="#f59e0b"/><text x="416" y="549">BF16</text>
+    <rect x="530" y="535" width="16" height="16" rx="3" fill="#fb7185"/><text x="556" y="549">FP8 E4M3-FNUZ</text>
+    <text x="760" y="549" fill="#94a3b8">峰值利用率≤7.53%</text>
+  </g>
+</svg>

@@ -4474,6 +4474,68 @@ def validate_slot_ratio_sweep(errors: list[str]) -> tuple[int, int, int]:
     return len(raw), len(sweeps), len(preflight)
 
 
+def validate_mi300_precision_roofline(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "119-data"
+    raw = [json.loads(line) for line in
+           (data / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    preflight = [json.loads(line) for line in
+                 (data / "gpu2-preflight.jsonl").read_text(
+                     encoding="utf-8").splitlines()]
+    sizes = {row.get("size") for row in raw}
+    dtypes = {row.get("dtype") for row in raw}
+    expected_dtypes = {"fp32_readable", "fp32", "fp16", "bf16",
+                       "fp8_e4m3_fnuz"}
+    if len(raw) != 20 or sizes != {128, 256, 512, 1024} or \
+            dtypes != expected_dtypes or any(
+                row.get("accuracy_passed") is not True or
+                row.get("achieved_tflops", 0.0) <= 0.0 or
+                not 0.0 < row.get("official_peak_utilization", 0.0) < 0.1 or
+                not 0.0 < row.get("roofline_utilization", 0.0) < 0.1 or
+                row.get("pre_run_gpu_state", {}).get("vram_percent") != 0 or
+                row.get("pre_run_gpu_state", {}).get("gpu_use_percent", 99) > 1 or
+                row.get("post_run_gpu_state", {}).get("vram_percent") != 0 or
+                row.get("post_run_gpu_state", {}).get("gpu_use_percent", 99) > 4
+                for row in raw):
+        errors.append("MI300 precision roofline raw evidence changed")
+    by_size_dtype = {(row["size"], row["dtype"]): row for row in raw}
+    fp8_ratios = {
+        size: by_size_dtype[size, "fp32"]["median_ms"] /
+              by_size_dtype[size, "fp8_e4m3_fnuz"]["median_ms"]
+        for size in sizes
+    }
+    if any(fp8_ratios[size] >= 1.0 for size in (128, 256, 512)) or \
+            not 1.05 < fp8_ratios[1024] < 1.15:
+        errors.append("FP8 non-universal speedup evidence changed")
+    best = summary.get("by_dtype", {})
+    if summary.get("status") != "pass" or set(best) != expected_dtypes or \
+            best.get("fp16", {}).get("best_size") != 1024 or \
+            not 18.0 < best.get("fp16", {}).get(
+                "best_achieved_tflops", 0.0) < 19.5 or \
+            not 13.0 < best.get("fp8_e4m3_fnuz", {}).get(
+                "best_achieved_tflops", 0.0) < 14.5 or \
+            best.get("fp8_e4m3_fnuz", {}).get(
+                "best_official_peak_utilization", 1.0) >= 0.006:
+        errors.append("MI300 precision roofline summary changed")
+    if len(preflight) != 3 or any(
+            row.get("card2", {}).get("GPU use (%)") != "0" or
+            row.get("card2", {}).get("GPU Memory Allocated (VRAM%)") != "0"
+            for row in preflight):
+        errors.append("MI300 precision roofline preflight changed")
+    if gates.get("status") != "keep_executed_precision_roofline" or \
+            gates.get("formal_matrix", {}).get("passed") != 20 or \
+            gates.get("decision", {}).get("fp8_universal_speedup") is not False or \
+            gates.get("decision", {}).get("int8_executed") is not False:
+        errors.append("MI300 precision roofline gates changed")
+    runner = (REPOSITORY / "benchmarks" / "single_gpu" /
+              "mi300_precision_roofline.py").read_text(encoding="utf-8")
+    if '"fp8_e4m3_fnuz": 2614.9' not in runner or \
+            "INT8/INT4 are not executed" not in runner:
+        errors.append("MI300 roofline peak or execution boundary is missing")
+    return len(raw), len(sizes), len(dtypes)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -4570,7 +4632,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bucket-pareto-sweep.svg",
                  "traffic-skew-tail.svg",
                  "compatible-overflow.svg",
-                 "slot-ratio-sweep.svg"):
+                 "slot-ratio-sweep.svg",
+                 "mi300-precision-roofline.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -4741,6 +4804,8 @@ def main() -> int:
     overflow_raw, overflow_comparisons, overflow_rejected = \
         validate_compatible_overflow(errors)
     ratio_raw, ratio_sweeps, ratio_preflight = validate_slot_ratio_sweep(errors)
+    roofline_raw, roofline_sizes, roofline_dtypes = \
+        validate_mi300_precision_roofline(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -4877,6 +4942,8 @@ def main() -> int:
           f"compatible_overflow={overflow_raw}/{overflow_comparisons}/"
           f"{overflow_rejected} "
           f"slot_ratios={ratio_raw}/{ratio_sweeps}/{ratio_preflight} "
+          f"precision_roofline={roofline_raw}/{roofline_sizes}/"
+          f"{roofline_dtypes} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

@@ -138,7 +138,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [ ] MLA projections, compressed KV cache, decoupled RoPE, and reference tests;
 - [ ] top-k expert router, shared/routed experts, grouped routing, and deterministic
   dispatch/combine;
-- [ ] FP8 weight/activation scales and accumulation policy;
+- [x] execute FP32/FP16/BF16/FP8 E4M3-FNUZ across 128–1024 square GEMMs with
+  accuracy, Event P95, achieved TFLOPS and MI300 peak/bandwidth roofline;
+- [ ] add large-shape 2048/4096 GPU-reference roofline and a separate executed INT8 probe;
+- [ ] FP8 weight/activation scales and accumulation policy for official-model end-to-end runs;
 - [ ] expert/tensor/data parallel weight placement and communication;
 - [ ] multi-node fault handling and profiler timeline;
 - [ ] DeepSeek-V3/R1 checkpoint conversion and official-logit comparison.

@@ -600,6 +600,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/117-data/](experiments/117-data/) | 54条三策略矩阵和一次路由合同失败 |
 | [assets/slot-ratio-sweep.svg](assets/slot-ratio-sweep.svg) | short/long-heavy下静态slot最优比例翻转 |
 | [experiments/118-data/](experiments/118-data/) | 48条2:6/4:4/6:2正式矩阵 |
+| [assets/mi300-precision-roofline.svg](assets/mi300-precision-roofline.svg) | 128–1024的FP32/16/BF16/FP8 achieved TFLOPS |
+| [experiments/119-data/](experiments/119-data/) | 20条executed precision与roofline证据 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

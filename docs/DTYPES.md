@@ -47,6 +47,12 @@ MI300X 的固定 `512³` 实测中，hipBLASLt 相对可读 Kernel 的平均 Eve
 FP32 4.47x、FP16 3.83x、BF16 5.60x。原始记录和边界说明见
 `docs/development/2026-08-19-mi300x-precision-capabilities.md`。
 
+后续 128/256/512/1024 square GEMM roofline 表明，FP8 并非自动最快：128–512 相对
+hipBLASLt FP32 为 `0.919×–0.966×`，1024³ 才达到 `1.107×`；该点 FP8 为13.62 TFLOPS，
+只占 MI300X 2614.9 TFLOPS 官方峰值的0.52%。当前矩阵最快是FP16的18.63 TFLOPS。
+这证明部分模型decode超过PyTorch来自更短的软件路径，不是GEMM已经吃满硬件。详见
+[Experiment 119](optimization-log/experiments/119-mi300-precision-roofline.md)。
+
 ## 4. 类型提升规则
 
 第一版不做隐式混合，避免程序悄悄改变精度：
