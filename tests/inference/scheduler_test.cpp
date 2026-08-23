@@ -709,6 +709,29 @@ TEST(LengthBucketedBatchSchedulerTest,
                          prompt.size()));
     }
     EXPECT_THROW((void)scheduler.request_bucket(999), std::out_of_range);
+
+    model::TransformerModel threshold_model(config, 181);
+    LengthBucketedBatchScheduler threshold(
+        threshold_model,
+        {.buckets = {{.max_sequence_length = 4, .max_slots = 4},
+                     {.max_sequence_length = 16, .max_slots = 4}},
+         .kv_cache_dtype = DType::Float32,
+         .kv_cache_layer_dtypes = {},
+         .batch_equal_length_prefill = true,
+         .overflow_to_larger_bucket = true});
+    std::vector<RequestId> threshold_ids;
+    for (std::int32_t token = 1; token <= 5; ++token) {
+        threshold_ids.push_back(threshold.submit(
+            {token}, {.max_new_tokens = 2, .temperature = 0.0F,
+                      .top_k = 1, .seed = static_cast<std::uint64_t>(token),
+                      .kv_cache_dtype = DType::Float32,
+                      .kv_cache_layer_dtypes = {}, .stop_tokens = {}}));
+    }
+    for (std::size_t index = 0; index < 4; ++index) {
+        EXPECT_EQ(threshold.request_bucket(threshold_ids[index]), 0U);
+    }
+    EXPECT_EQ(threshold.request_bucket(threshold_ids[4]), 1U);
+    EXPECT_EQ(threshold.metrics().overflow_routed_requests, 1);
 }
 
 }  // namespace microllm::inference

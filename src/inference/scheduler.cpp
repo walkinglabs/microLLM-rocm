@@ -1155,8 +1155,10 @@ struct LengthBucketedBatchScheduler::Impl {
         const auto smallest = smallest_bucket_for(required_capacity);
         if (!config.overflow_to_larger_bucket) return smallest;
         for (std::size_t index = smallest; index < schedulers.size(); ++index) {
-            const auto load = schedulers[index].active_request_count() +
-                              schedulers[index].pending_request_count();
+            // active_request_count already includes pending requests. Adding
+            // pending_request_count again would make a four-slot pool appear
+            // full after only two submissions.
+            const auto load = schedulers[index].active_request_count();
             if (load < static_cast<std::size_t>(config.buckets[index].max_slots)) {
                 return index;
             }
