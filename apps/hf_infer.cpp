@@ -54,7 +54,6 @@ struct Options {
     float fp8_activation_minimum_scale = 1.0e-4F;
     float fp8_weight_scale = 0.005F;
     std::string fp8_weight_scale_mode = "fixed";
-    std::string fp8_output_channel_scope = "all";
     std::string fp8_activation_scale_mode = "fixed";
     std::string fp8_diagnostic_mode = "full";
     std::string fp8_fp32_layers;
@@ -142,9 +141,6 @@ Options options(int argc, char** argv) {
         }
         else if (name == "--fp8-weight-scale-mode") {
             result.fp8_weight_scale_mode = argv[index + 1];
-        }
-        else if (name == "--fp8-output-channel-scope") {
-            result.fp8_output_channel_scope = argv[index + 1];
         }
         else if (name == "--fp8-activation-scale-mode") {
             result.fp8_activation_scale_mode = argv[index + 1];
@@ -323,16 +319,6 @@ Options options(int argc, char** argv) {
         throw std::invalid_argument(
             "--fp8-diagnostic-mode must be full, weight-only, activation-only, or both-roundtrip");
     }
-    if (result.fp8_output_channel_scope != "all" &&
-        result.fp8_output_channel_scope != "output-head-only") {
-        throw std::invalid_argument(
-            "--fp8-output-channel-scope must be all or output-head-only");
-    }
-    if (result.fp8_output_channel_scope != "all" &&
-        result.fp8_weight_scale_mode != "output-channel-amax") {
-        throw std::invalid_argument(
-            "--fp8-output-channel-scope requires output-channel-amax weights");
-    }
     if (result.fp8_diagnostic_mode != "full" && !result.fp8_linear) {
         throw std::invalid_argument(
             "--fp8-diagnostic-mode requires --fp8-linear true");
@@ -412,10 +398,7 @@ std::string fp8_compute_policy(const Options& command) {
                                  ? "device_tensor_amax_weight"
                                  : command.fp8_weight_scale_mode ==
                                            "output-channel-amax"
-                                       ? command.fp8_output_channel_scope ==
-                                                 "output-head-only"
-                                             ? "output_head_only_output_channel_amax_weight"
-                                             : "output_channel_amax_weight"
+                                       ? "output_channel_amax_weight"
                                  : command.fp8_weight_scale_mode == "tensor-amax"
                                        ? "tensor_amax_weight" : "fixed_weight";
     const auto activation_name =
@@ -922,10 +905,6 @@ int main(int argc, char** argv) {
                     : command.fp8_weight_scale_mode == "output-channel-amax"
                     ? microllm::model::Fp8WeightScaleMode::OutputChannelAmax
                     : microllm::model::Fp8WeightScaleMode::Fixed;
-            external.model.fp8_output_channel_scope =
-                command.fp8_output_channel_scope == "output-head-only"
-                    ? microllm::model::Fp8OutputChannelScope::OutputHeadOnly
-                    : microllm::model::Fp8OutputChannelScope::All;
             external.model.fp8_activation_scale_mode =
                 command.fp8_activation_scale_mode == "tensor-amax"
                     ? microllm::model::Fp8ActivationScaleMode::TensorAmax
@@ -1187,8 +1166,6 @@ int main(int argc, char** argv) {
                       << command.fp8_weight_scale
                       << ",\"fp8_weight_scale_mode\":\""
                       << command.fp8_weight_scale_mode << "\""
-                      << ",\"fp8_output_channel_scope\":\""
-                      << command.fp8_output_channel_scope << "\""
                       << ",\"fp8_activation_scale_mode\":\""
                       << command.fp8_activation_scale_mode << "\""
                       << ",\"fp8_diagnostic_mode\":\""
@@ -1698,8 +1675,6 @@ int main(int argc, char** argv) {
                   << command.fp8_weight_scale
                   << ",\"fp8_weight_scale_mode\":\""
                   << command.fp8_weight_scale_mode << "\""
-                  << ",\"fp8_output_channel_scope\":\""
-                  << command.fp8_output_channel_scope << "\""
                   << ",\"fp8_activation_scale_mode\":\""
                   << command.fp8_activation_scale_mode << "\""
                   << ",\"fp8_diagnostic_mode\":\""

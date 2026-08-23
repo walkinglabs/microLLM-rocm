@@ -340,34 +340,6 @@ TEST(TransformerModelTest, Fp8OutputChannelPreparationRetainsEveryColumnScale) {
     EXPECT_EQ(ops::fp8_dynamic_quant_stats().tensor_calls, 5U);
 }
 
-TEST(TransformerModelTest, Fp8OutputHeadOnlyScopeChangesOnlyUntiedHead) {
-    const auto tokens = Tensor::from_int32_vector({1, 2, 3, 4}, {1, 4});
-    for (const auto tied : {false, true}) {
-        auto config = tiny_config();
-        config.tie_embeddings = tied;
-        config.linear_precision = LinearPrecision::Float8E4M3FNUZ;
-        config.fp8_weight_scale = 1.0e-4F;
-        config.fp8_weight_scale_mode = Fp8WeightScaleMode::OutputChannelAmax;
-        config.fp8_output_channel_scope = Fp8OutputChannelScope::OutputHeadOnly;
-        config.fp8_activation_scale_mode = Fp8ActivationScaleMode::TensorAmax;
-        TransformerModel model(config, 31);
-        const auto before = model.forward_inference(tokens).to_vector();
-        ops::clear_fp8_dynamic_quant_stats();
-        const auto report = model.prepare_fp8_inference_weights();
-        EXPECT_EQ(report.converted_tensors, tied ? 7U : 8U);
-        EXPECT_EQ(report.scale_bytes_retained,
-                  (tied ? 7U : 7U + 16U) * sizeof(float));
-        EXPECT_EQ(ops::fp8_dynamic_quant_stats().column_calls,
-                  tied ? 0U : 1U);
-        EXPECT_EQ(ops::fp8_dynamic_quant_stats().tensor_calls, 7U);
-        ops::clear_fp8_dynamic_quant_stats();
-        EXPECT_EQ(model.forward_inference(tokens).to_vector(), before);
-        EXPECT_EQ(ops::fp8_dynamic_quant_stats().column_calls, 0U);
-        EXPECT_EQ(ops::fp8_dynamic_quant_stats().tensor_calls,
-                  tied ? 4U : 5U);
-    }
-}
-
 TEST(TransformerModelTest, Fp8TensorAmaxPreparationRejectsNonfiniteWeightTransactionally) {
     auto config = tiny_config();
     config.linear_precision = LinearPrecision::Float8E4M3FNUZ;

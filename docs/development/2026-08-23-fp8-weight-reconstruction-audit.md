@@ -31,4 +31,5 @@ ordinary repository test suite does not gain a mandatory framework dependency.
 
 Exp145 audited 365 official weights. Aggregated column/scalar relative-L2 ratios are 0.99276 for
 Qwen and 0.99597 for DeepSeek; the best groups are Qwen Attention (0.98955) and DeepSeek output head
-(0.99033). The next minimal native-model counterfactual is output-head-only, not global FFN.
+(0.99033). Exp146 tested the minimal output-head-only counterfactual and rejected it after a
+same-revision control showed zero Max/RMS change. Attention remains the next untested family.

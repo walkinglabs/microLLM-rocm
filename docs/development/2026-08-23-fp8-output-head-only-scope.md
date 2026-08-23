@@ -1,10 +1,10 @@
 # FP8 output-head-only column scale scope
 
 Exp145 selects the untied output head as DeepSeek's best and cheapest output-channel group. The new
-`Fp8OutputChannelScope::OutputHeadOnly` keeps every block Linear on device Tensor-amax and applies
-output-channel scaling only to an independent LM head.
+The experiment implemented `Fp8OutputChannelScope::OutputHeadOnly` to keep every block Linear on
+device Tensor-amax and apply output-channel scaling only to an independent LM head.
 
-The CLI contract is:
+The experimental CLI contract was:
 
 ```text
 --fp8-weight-scale-mode output-channel-amax
@@ -28,3 +28,7 @@ Exp146 added a same-revision device-Tensor control after rejecting an invalid hi
 comparison. Qwen and DeepSeek Max/RMS are exactly unchanged; T512 overhead stays below 1%, but the
 required DeepSeek improvement does not occur. The scope is rejected and scheduled for removal. See
 [Experiment 146](../optimization-log/experiments/146-fp8-output-head-only.md).
+
+The public enum, config field, CLI argument, runner field and focused implementation tests were then
+removed. This document and Exp146 remain as historical evidence; the command above is intentionally
+not part of current `main`.

@@ -155,11 +155,6 @@ python3 benchmarks/single_gpu/hf_fp8_weight_audit.py \
   --device cuda:0
 ```
 
-如果审计选择独立LM head，可以用最小范围而不是全模型每列scale：
-
-```bash
---fp8-weight-scale-mode output-channel-amax \
---fp8-output-channel-scope output-head-only
-```
-
-对于tied embedding模型，这个范围没有独立head，因此所有block权重自动保持device Tensor-amax。
+Exp146曾实现独立LM head最小范围，但同revision control证明Max/RMS完全不变，因此公共scope已
+删除。命令和失败证据仍保存在[Experiment 146](../optimization-log/experiments/146-fp8-output-head-only.md)，
+不能继续复制旧参数当作当前API。

@@ -299,22 +299,14 @@ class Linear {
 public:
     Linear(std::int64_t input, std::int64_t output, std::mt19937_64& generator,
            const ModelConfig& config, ParameterInitialization initialization,
-           bool with_bias = false, bool ffn_linear = false,
-           bool output_head = false)
+           bool with_bias = false, bool ffn_linear = false)
         : weight_(parameter({input, output}, generator,
                             1.0F / std::sqrt(static_cast<float>(input)), initialization)),
           precision_(config.linear_precision),
           activation_scale_(config.fp8_activation_scale),
           activation_minimum_scale_(config.fp8_activation_minimum_scale),
           weight_scale_(config.fp8_weight_scale),
-          weight_scale_mode_(
-              config.fp8_weight_scale_mode ==
-                          Fp8WeightScaleMode::OutputChannelAmax &&
-                      config.fp8_output_channel_scope ==
-                          Fp8OutputChannelScope::OutputHeadOnly &&
-                      !output_head
-                  ? Fp8WeightScaleMode::DeviceTensorAmax
-                  : config.fp8_weight_scale_mode),
+          weight_scale_mode_(config.fp8_weight_scale_mode),
           diagnostic_mode_(config.fp8_diagnostic_mode),
           activation_scale_mode_(
               config.fp8_activation_scale_mode ==
@@ -1196,8 +1188,7 @@ struct TransformerModel::Impl {
         }
         if (!config.tie_embeddings) {
             output_head = std::make_unique<Linear>(config.dimension, config.vocabulary_size,
-                                                   generator, config, initialization,
-                                                   false, false, true);
+                                                   generator, config, initialization);
         }
     }
 
