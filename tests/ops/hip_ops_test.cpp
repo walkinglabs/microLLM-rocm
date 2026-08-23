@@ -698,6 +698,44 @@ TEST(HipFp8OpsTest, TensorAmaxPreparedWeightsScanOnceAndLeaveHotPathTransferFree
     EXPECT_EQ(after_tensor.to_vector(), before);
 }
 
+TEST(HipFp8OpsTest, ClippedDynamicActivationModelStaysDeviceNative) {
+    require_gpu();
+    model::ModelConfig config{.vocabulary_size = 16,
+                              .dimension = 8,
+                              .layers = 1,
+                              .heads = 2,
+                              .kv_heads = 1,
+                              .ffn_dimension = 16,
+                              .max_sequence_length = 8,
+                              .rope_base = 10000.0F,
+                              .tie_embeddings = false,
+                              .linear_precision =
+                                  model::LinearPrecision::Float8E4M3FNUZ,
+                              .fp8_activation_scale = 0.2F,
+                              .fp8_activation_minimum_scale = 1.0e-4F,
+                              .fp8_activation_amax_fraction = 0.5F,
+                              .fp8_weight_scale = 1.0e-4F,
+                              .fp8_weight_scale_mode =
+                                  model::Fp8WeightScaleMode::DeviceTensorAmax,
+                              .fp8_activation_scale_mode =
+                                  model::Fp8ActivationScaleMode::TensorAmax};
+    model::TransformerModel transformer(config, 251);
+    const auto gpu = Device::hip(0);
+    transformer.to(gpu);
+    (void)transformer.prepare_fp8_inference_weights();
+    const auto tokens = Tensor::from_int32_vector({1, 2, 3, 4}, {1, 4}).to(gpu);
+    clear_fp8_dynamic_quant_stats();
+    runtime::reset_transfer_stats();
+    const auto output = transformer.forward_inference(tokens);
+    runtime::synchronize(gpu);
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    EXPECT_EQ(fp8_dynamic_quant_stats().tensor_calls, 5U);
+    EXPECT_EQ(fp8_dynamic_quant_stats().clipped_tensor_calls, 5U);
+    for (const auto value : output.to_vector()) EXPECT_TRUE(std::isfinite(value));
+}
+
 TEST(HipFp8OpsTest, FfnOuterRowRoutesOnlyThreeLinearsWithoutPayloadTransfers) {
     require_gpu();
     if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";

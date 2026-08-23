@@ -40,6 +40,9 @@ void ModelConfig::validate() const {
         (!std::isfinite(fp8_activation_scale) || fp8_activation_scale <= 0.0F ||
          !std::isfinite(fp8_activation_minimum_scale) ||
          fp8_activation_minimum_scale <= 0.0F ||
+         !std::isfinite(fp8_activation_amax_fraction) ||
+         fp8_activation_amax_fraction <= 0.0F ||
+         fp8_activation_amax_fraction > 1.0F ||
          !std::isfinite(fp8_weight_scale) || fp8_weight_scale <= 0.0F)) {
         throw std::invalid_argument("FP8 Linear scales must be finite and positive");
     }
@@ -132,6 +135,8 @@ std::string ModelConfig::summary() const {
                    : fp8_activation_scale_mode == Fp8ActivationScaleMode::TensorAmax
                          ? "tensor_amax" : "ffn_outer_row")
            << ",fp8_activation_minimum_scale=" << fp8_activation_minimum_scale
+           << ",fp8_activation_amax_fraction="
+           << fp8_activation_amax_fraction
            << ",fp8_diagnostic_mode="
            << (fp8_diagnostic_mode == Fp8DiagnosticMode::Full
                    ? "full"

@@ -31,6 +31,7 @@ def options() -> argparse.Namespace:
     parser.add_argument("--runs", type=int, default=3)
     parser.add_argument("--fp8-activation-scale", type=float, default=0.025)
     parser.add_argument("--fp8-activation-minimum-scale", type=float, default=0.0001)
+    parser.add_argument("--fp8-activation-amax-fraction", type=float, default=1.0)
     parser.add_argument("--fp8-weight-scale", type=float, default=0.005)
     parser.add_argument("--fp8-weight-scale-mode",
                         choices=("fixed", "tensor-amax", "device-tensor-amax",
@@ -62,6 +63,8 @@ def options() -> argparse.Namespace:
             result.fp8_activation_scale <= 0 or \
             not math.isfinite(result.fp8_activation_minimum_scale) or \
             result.fp8_activation_minimum_scale <= 0 or \
+            not math.isfinite(result.fp8_activation_amax_fraction) or \
+            not 0 < result.fp8_activation_amax_fraction <= 1 or \
             not math.isfinite(result.fp8_weight_scale) or \
             result.fp8_weight_scale <= 0:
         parser.error("manifest, binary, contexts, runs or scales are invalid")
@@ -126,11 +129,14 @@ def command(args: argparse.Namespace, model: dict, context: int,
     elif policy == "fp8":
         diagnostic_mode = getattr(args, "fp8_diagnostic_mode", "full")
         weight_scale_scope = getattr(args, "fp8_weight_scale_scope", "all-linear")
+        activation_amax_fraction = getattr(
+            args, "fp8_activation_amax_fraction", 1.0)
         result.extend([
             "--fp8-linear", "true",
             "--fp8-activation-scale", str(args.fp8_activation_scale),
             "--fp8-activation-minimum-scale",
             str(args.fp8_activation_minimum_scale),
+            "--fp8-activation-amax-fraction", str(activation_amax_fraction),
             "--fp8-weight-scale", str(args.fp8_weight_scale),
             "--fp8-weight-scale-mode", args.fp8_weight_scale_mode,
             "--fp8-weight-scale-scope", weight_scale_scope,
@@ -169,7 +175,8 @@ def compare_logits(actual: list[float], reference: list[float]) -> dict:
 def experiment_boundary(weight_scale_mode: str,
                         activation_scale_mode: str = "fixed",
                         diagnostic_mode: str = "full",
-                        weight_scale_scope: str = "all-linear") -> str:
+                        weight_scale_scope: str = "all-linear",
+                        activation_amax_fraction: float = 1.0) -> str:
     weight_boundary = (
         "per-Tensor weight amax with one-time host scan"
         if weight_scale_mode == "tensor-amax"
@@ -188,6 +195,7 @@ def experiment_boundary(weight_scale_mode: str,
         f"{weight_boundary}; {activation_boundary}; "
         f"diagnostic mode={diagnostic_mode}; "
         f"weight scale scope={weight_scale_scope}; "
+        f"activation amax fraction={activation_amax_fraction}; "
         "single-representation Linear weights; FP32 Embedding/Norm/tied head; "
         "FP32 logits are the internal oracle; no PyTorch FP8 reference")
 
@@ -278,9 +286,13 @@ def main() -> int:
                             "fp8_dynamic_column_calls", 0),
                         "fp8_dynamic_column_elements": output.get(
                             "fp8_dynamic_column_elements", 0),
+                        "fp8_dynamic_clipped_tensor_calls": output.get(
+                            "fp8_dynamic_clipped_tensor_calls", 0),
                         "fp8_activation_scale": args.fp8_activation_scale,
                         "fp8_activation_minimum_scale":
                             args.fp8_activation_minimum_scale,
+                        "fp8_activation_amax_fraction":
+                            args.fp8_activation_amax_fraction,
                         "fp8_weight_scale": args.fp8_weight_scale,
                         "fp8_weight_scale_mode": args.fp8_weight_scale_mode,
                         "fp8_weight_scale_scope": args.fp8_weight_scale_scope,
@@ -358,6 +370,8 @@ def main() -> int:
                         row["fp8_dynamic_row_calls"] for row in selected),
                     "fp8_dynamic_column_calls_p50": statistics.median(
                         row["fp8_dynamic_column_calls"] for row in selected),
+                    "fp8_dynamic_clipped_tensor_calls_p50": statistics.median(
+                        row["fp8_dynamic_clipped_tensor_calls"] for row in selected),
                 })
     accuracy_failures = [row for row in aggregates
                          if row["policy"] != "fp32" and
@@ -374,6 +388,7 @@ def main() -> int:
         "runs": args.runs, "warmup": args.warmup, "steps": args.steps,
         "fp8_activation_scale": args.fp8_activation_scale,
         "fp8_activation_minimum_scale": args.fp8_activation_minimum_scale,
+        "fp8_activation_amax_fraction": args.fp8_activation_amax_fraction,
         "fp8_weight_scale": args.fp8_weight_scale,
         "fp8_weight_scale_mode": args.fp8_weight_scale_mode,
         "fp8_weight_scale_scope": args.fp8_weight_scale_scope,
@@ -385,7 +400,8 @@ def main() -> int:
         "accuracy_failures": accuracy_failures,
         "boundary": experiment_boundary(
             args.fp8_weight_scale_mode, args.fp8_activation_scale_mode,
-            args.fp8_diagnostic_mode, args.fp8_weight_scale_scope),
+            args.fp8_diagnostic_mode, args.fp8_weight_scale_scope,
+            args.fp8_activation_amax_fraction),
     }
     (args.output_directory / "summary.json").write_text(
         json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")

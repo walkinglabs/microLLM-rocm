@@ -409,6 +409,27 @@ TEST(TransformerModelTest, Fp8DynamicActivationScaleNeedsNoPersistentScaleTensor
     EXPECT_THROW((void)model.forward(tokens), std::logic_error);
 }
 
+TEST(TransformerModelTest, Fp8ClippedDynamicActivationIsPreparedAndCounted) {
+    auto config = tiny_config();
+    config.linear_precision = LinearPrecision::Float8E4M3FNUZ;
+    config.fp8_weight_scale_mode = Fp8WeightScaleMode::DeviceTensorAmax;
+    config.fp8_activation_scale_mode = Fp8ActivationScaleMode::TensorAmax;
+    config.fp8_activation_amax_fraction = 0.5F;
+    config.validate();
+    EXPECT_NE(config.summary().find("fp8_activation_amax_fraction=0.5"),
+              std::string::npos);
+    TransformerModel model(config, 39);
+    const auto tokens = Tensor::from_int32_vector({1, 2, 3, 4}, {1, 4});
+    const auto before = model.forward_inference(tokens).to_vector();
+    (void)model.prepare_fp8_inference_weights();
+    ops::clear_fp8_dynamic_quant_stats();
+    const auto after = model.forward_inference(tokens).to_vector();
+    EXPECT_EQ(after, before);
+    EXPECT_EQ(ops::fp8_dynamic_quant_stats().tensor_calls, 5U);
+    EXPECT_EQ(ops::fp8_dynamic_quant_stats().clipped_tensor_calls, 5U);
+    for (const auto value : after) EXPECT_TRUE(std::isfinite(value));
+}
+
 TEST(TransformerModelTest, Fp8FfnOuterRowPreparesScalesOnlyForNonFfnLinears) {
     auto config = tiny_config();
     config.linear_precision = LinearPrecision::Float8E4M3FNUZ;

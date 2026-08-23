@@ -306,6 +306,7 @@ public:
           precision_(config.linear_precision),
           activation_scale_(config.fp8_activation_scale),
           activation_minimum_scale_(config.fp8_activation_minimum_scale),
+          activation_amax_fraction_(config.fp8_activation_amax_fraction),
           weight_scale_(config.fp8_weight_scale),
           weight_scale_mode_(
               config.fp8_weight_scale_mode ==
@@ -371,7 +372,8 @@ public:
                          activation_minimum_scale_)
                    : ops::quantize_fp8_dynamic(
                          input, DType::Float8E4M3FNUZ,
-                         activation_minimum_scale_);
+                         activation_minimum_scale_, {},
+                         activation_amax_fraction_);
     }
     Tensor forward_scaled_input_without_bias(
         const ops::ScaledTensor& scaled_input) {
@@ -440,7 +442,8 @@ public:
             ops::ScaledTensor scaled_input;
             if (activation_scale_mode_ == Fp8ActivationScaleMode::TensorAmax) {
                 scaled_input = ops::quantize_fp8_dynamic(
-                    input, DType::Float8E4M3FNUZ, activation_minimum_scale_);
+                    input, DType::Float8E4M3FNUZ, activation_minimum_scale_,
+                    {}, activation_amax_fraction_);
             } else if (activation_scale_mode_ ==
                        Fp8ActivationScaleMode::FfnOuterRow) {
                 scaled_input = ops::quantize_fp8_rows_dynamic(
@@ -556,6 +559,7 @@ private:
     LinearPrecision precision_ = LinearPrecision::Float32;
     float activation_scale_ = 1.0F;
     float activation_minimum_scale_ = 1.0e-4F;
+    float activation_amax_fraction_ = 1.0F;
     float weight_scale_ = 1.0F;
     Fp8WeightScaleMode weight_scale_mode_ = Fp8WeightScaleMode::Fixed;
     Fp8DiagnosticMode diagnostic_mode_ = Fp8DiagnosticMode::Full;

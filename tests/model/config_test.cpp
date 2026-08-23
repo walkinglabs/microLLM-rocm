@@ -124,6 +124,9 @@ TEST(ModelConfigTest, RejectsInvalidHeadAndRopeConfigurations) {
     config.fp8_activation_scale = 0.025F;
     config.fp8_activation_minimum_scale = 0.0F;
     EXPECT_THROW(config.validate(), std::invalid_argument);
+    config.fp8_activation_minimum_scale = 1.0e-4F;
+    config.fp8_activation_amax_fraction = 0.0F;
+    EXPECT_THROW(config.validate(), std::invalid_argument);
 }
 
 TEST(HuggingFaceConfigTest, ParsesPinnedQwen25AndMatchesCheckpointParameterCount) {

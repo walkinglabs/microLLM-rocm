@@ -170,3 +170,13 @@ Exp147曾测试Q/K/V/O四个projection，但被Exp148的O-only严格支配，因
 ```
 
 此时Q/K/V也保持device Tensor-amax，用来隔离长上下文Attention内部影响。
+
+动态activation可以显式裁掉amax的一部分：
+
+```bash
+--fp8-activation-scale-mode tensor-amax \
+--fp8-activation-amax-fraction 0.5
+```
+
+`1.0`是原路径；小于1会把超出新范围的值有限饱和。具体fraction必须通过官方模型搜索，不能
+因为参数存在就设成默认。
