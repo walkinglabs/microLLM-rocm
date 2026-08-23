@@ -44,6 +44,8 @@ needed to run a real training and generation loop:
 - explicit FP8 weight-only, activation-only and both-roundtrip error-attribution modes; all use
   FP32 GEMM, are inference-only diagnostics, and cannot be reported as FP8 speed paths;
 - a direct native-FP8/both-roundtrip/FP32 complete-logit runner with rotated process order;
+- an external per-weight scalar/output-channel reconstruction audit grouped by Attention, FFN,
+  and output head; it selects experiments but never replaces native complete-logit gates;
 - single-representation BF16 FFN/Attention projection inference for pinned Qwen/DeepSeek,
   with shared QKV cast, exact-token, memory, throughput and PyTorch BF16 evidence;
 - C, Python ctypes, and optional PyTorch dispatcher adapters;
@@ -271,12 +273,12 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 362/362 | 252 CPU-labelled + 110 HIP-labelled gates; 2 intentional environment skips |
+| Full CPU/HIP configuration | 363/363 | 253 CPU-labelled + 110 HIP-labelled gates; 2 intentional environment skips |
 | ASan/UBSan CPU | 211/211 | host code, CLI, model/graph, benchmark and evidence schemas |
 | MI300X/gfx942 HIP | 110/110 | allocator/stream, graph, BF16/FP8, batched GEMM and model matrix |
 | PyTorch-enabled CPU build | 196/196 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
-| Registered test files | 53 | machine-audited CTest registration |
+| Registered test files | 54 | machine-audited CTest registration |
 | Installed CMake package | CPU + HIP pass | external `find_package`, compile, static link and run |
 | CPU source coverage | 83.9% lines / 66.6% branches | GCC 13.3 + gcovr 8.3; `src/` and `include/` |
 

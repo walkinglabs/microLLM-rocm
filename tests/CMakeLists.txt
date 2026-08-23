@@ -71,6 +71,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.HfFp8NativeRoundtripContract PROPERTIES
         LABELS "cpu;benchmark;fp8;precision;schema")
     add_test(
+        NAME Benchmark.HfFp8WeightAuditContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_hf_fp8_weight_audit.py
+    )
+    set_tests_properties(Benchmark.HfFp8WeightAuditContract PROPERTIES
+        LABELS "cpu;benchmark;fp8;precision;schema")
+    add_test(
         NAME Coverage.OperatorAndTestFiles
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/audit_test_coverage.py
     )

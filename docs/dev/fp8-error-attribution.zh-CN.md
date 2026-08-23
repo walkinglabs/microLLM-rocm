@@ -143,3 +143,14 @@ Exp142的四组direct RMS占full总RMS的54.8%–76.9%，说明原生路径会�
 full相对both的总RMS比为0.765×–1.002×，没有达到“变坏5%”门。换成FP32 GEMM也不能通过
 精度门，所以后续继续改scale，并且每个候选都必须回到`full`验证。完整证据见
 [Experiment 142](../optimization-log/experiments/142-fp8-native-vs-roundtrip.md)。
+
+当全模型策略在不同模型上方向相反时，可以先运行逐权重审计。它按Attention、FFN和output head
+汇总scalar/per-column重建误差，但只负责选择下一次实验范围，不能替代microLLM完整logits：
+
+```bash
+python3 benchmarks/single_gpu/hf_fp8_weight_audit.py \
+  --manifest /path/model-manifest.json \
+  --output-directory /tmp/fp8-weight-audit \
+  --models qwen2.5-0.5b,deepseek-r1-distill-qwen-1.5b \
+  --device cuda:0
+```
