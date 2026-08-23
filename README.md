@@ -408,6 +408,9 @@ fixed buckets can improve median TTFT while making queued-request P95 roughly th
 [Experiment 117](docs/optimization-log/experiments/117-compatible-overflow.md) adds an opt-in
 compatible overflow rule. It recovers about 13% throughput and 61%–62% TTFT P95 versus fixed
 buckets under short-heavy traffic, without claiming uniform-pool parity.
+[Experiment 118](docs/optimization-log/experiments/118-slot-ratio-sweep.md) shows that a known
+short-heavy workload prefers 6:2 slots while long-heavy prefers 2:6; static auto-selection by
+model name is therefore rejected.
 
 BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed 2-warm-up,
 5-step matrix it reaches 138.66 token/s (Qwen) and 74.06 token/s (DeepSeek), or

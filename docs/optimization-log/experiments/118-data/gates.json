@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "status": "keep_explicit_workload_matched_slot_ratios",
+  "full_release": {
+    "passed": 319,
+    "failed": 0,
+    "skipped": 2
+  },
+  "sanitizer": {
+    "passed": 215,
+    "failed": 0
+  },
+  "python_contract": {
+    "passed": 16,
+    "failed": 0
+  },
+  "official_matrix": {
+    "passed": 48,
+    "failed": 0,
+    "sweeps": 4,
+    "token_exact_sweeps": 4,
+    "pre_vram_percent_max": 1,
+    "pre_use_percent_max": 2,
+    "post_vram_percent_max": 3,
+    "post_use_percent_max": 6
+  },
+  "decision": {
+    "short_heavy_ratio": "6:2",
+    "long_heavy_ratio": "2:6",
+    "automatic_ratio_selection": false,
+    "uniform_default": true,
+    "next_system_question": "adaptive capacity or paged cache under changing traffic"
+  }
+}

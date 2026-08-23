@@ -82,8 +82,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   worsening focus P95 about 3x and cutting long-heavy throughput about 43%;
 - [x] let short requests overflow into an idle compatible larger bucket: short-heavy throughput
   +13%, TTFT P95 -61% to -62%, completion P95 about -40%, token exact and neutral when unused;
-- [ ] compare 2:6/4:4/6:2 slot ratios for long-heavy before choosing adaptive slots, paged Cache
-  or cross-bucket decode; keep uniform as the default and overflow opt-in;
+- [x] compare 2:6/4:4/6:2: short-heavy prefers 6:2 with 56% less KV and 85% throughput;
+  long-heavy prefers 2:6 with 19% less KV and 87% throughput; all token-exact;
+- [ ] prototype a safe dynamic ratio transition only when affected buckets are idle; measure
+  reallocation/reserved-memory cost before deciding whether paged Cache is required;
 - [x] locate the first DeepSeek token/logit divergence and record source, real batch, top-2 and margin;
 - [x] refute decode batching by serializing only prefill while preserving B4/B8 positions-aware decode;
 - [x] swap/duplicate B2 prefill local rows and refute row, order, stride and KV-copy defects;

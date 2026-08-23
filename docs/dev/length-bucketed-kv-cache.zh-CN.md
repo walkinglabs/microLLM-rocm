@@ -178,3 +178,8 @@ MI300X P95 数据通过前不会自动启用。
 P95 下降约 40%；不发生溢出的 long/delayed 与固定路径基本一致。但候选仍未追平 uniform，
 因此默认继续关闭。详见
 [Experiment 117](../optimization-log/experiments/117-compatible-overflow.md)。
+
+静态 slot 比例也可以显式匹配已知流量：short-heavy 用 6:2 时 KV 少约 56%、吞吐保留
+84%–85%；long-heavy 用 2:6 时 KV 少约 19%、吞吐保留约 87%。两者反过来都会产生严重尾延迟，
+所以不能按模型名自动选择。详见
+[Experiment 118](../optimization-log/experiments/118-slot-ratio-sweep.md)。

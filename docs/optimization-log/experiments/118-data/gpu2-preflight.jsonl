@@ -1,0 +1,3 @@
+{"timestamp":"2026-08-23T07:50:43Z","sample":1,"card2":{"GPU use (%)":"0","GFX Activity":"3130650678","GPU Memory Allocated (VRAM%)":"0","GPU Memory Read/Write Activity (%)":"0","Memory Activity":"1605818259","Avg. Memory Bandwidth":"0"}}
+{"timestamp":"2026-08-23T07:50:53Z","sample":2,"card2":{"GPU use (%)":"0","GFX Activity":"3130650960","GPU Memory Allocated (VRAM%)":"0","GPU Memory Read/Write Activity (%)":"0","Memory Activity":"1605818259","Avg. Memory Bandwidth":"0"}}
+{"timestamp":"2026-08-23T07:51:03Z","sample":3,"card2":{"GPU use (%)":"0","GFX Activity":"3130651338","GPU Memory Allocated (VRAM%)":"0","GPU Memory Read/Write Activity (%)":"0","Memory Activity":"1605818259","Avg. Memory Bandwidth":"0"}}

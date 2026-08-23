@@ -4412,6 +4412,68 @@ def validate_compatible_overflow(errors: list[str]) -> tuple[int, int, int]:
     return len(raw), len(comparisons), len(rejected)
 
 
+def validate_slot_ratio_sweep(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "118-data"
+    raw = [json.loads(line) for line in
+           (data / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    preflight = [json.loads(line) for line in
+                 (data / "gpu2-preflight.jsonl").read_text(
+                     encoding="utf-8").splitlines()]
+    if len(raw) != 48 or any(row.get("status") != "pass" for row in raw) or \
+            any(not 0 <= row.get("pre_run_gpu_state", {}).get(
+                    "vram_percent", 99) <= 1 or
+                not 0 <= row.get("pre_run_gpu_state", {}).get(
+                    "gpu_use_percent", 99) <= 2 or
+                not 0 <= row.get("post_run_gpu_state", {}).get(
+                    "vram_percent", 99) <= 3 or
+                not 0 <= row.get("post_run_gpu_state", {}).get(
+                    "gpu_use_percent", 99) <= 6 for row in raw):
+        errors.append("slot-ratio raw or idle-gate evidence changed")
+    sweeps = summary.get("slot_ratio_sweeps", [])
+    by_group = {}
+    for row in sweeps:
+        by_group.setdefault(row.get("group"), []).append(row)
+    if summary.get("status") != "pass" or len(sweeps) != 4 or \
+            any(row.get("generated_tokens_equal_across_ratios") is not True or
+                [(point.get("small_slots"), point.get("large_slots"))
+                 for point in row.get("rows", [])] != [(2, 6), (4, 4), (6, 2)]
+                for row in sweeps) or \
+            set(by_group) != {"short_heavy", "long_heavy"} or \
+            any(len(rows) != 2 for rows in by_group.values()):
+        errors.append("slot-ratio sweep contracts changed")
+    if any(not 0.83 < row["rows"][2].get(
+                "throughput_ratio_vs_uniform", 0.0) < 0.87 or
+           not 0.39 < row["rows"][2].get(
+                "focus_ttft_p95_ratio_vs_uniform", 9.0) < 0.42 or
+           not 1.27 < row["rows"][2].get(
+                "focus_completion_p95_ratio_vs_uniform", 0.0) < 1.32 or
+           row["rows"][0].get("focus_ttft_p95_ratio_vs_uniform", 0.0) < 4.9
+           for row in by_group.get("short_heavy", [])):
+        errors.append("short-heavy 6:2 optimum changed")
+    if any(not 0.86 < row["rows"][0].get(
+                "throughput_ratio_vs_uniform", 0.0) < 0.89 or
+           not 1.05 < row["rows"][0].get(
+                "focus_ttft_p95_ratio_vs_uniform", 0.0) < 1.08 or
+           not 1.14 < row["rows"][0].get(
+                "focus_completion_p95_ratio_vs_uniform", 0.0) < 1.17 or
+           row["rows"][2].get("focus_ttft_p95_ratio_vs_uniform", 0.0) < 4.0
+           for row in by_group.get("long_heavy", [])):
+        errors.append("long-heavy 2:6 optimum changed")
+    if len(preflight) != 3 or any(
+            row.get("card2", {}).get("GPU use (%)") != "0" or
+            row.get("card2", {}).get("GPU Memory Allocated (VRAM%)") != "0"
+            for row in preflight):
+        errors.append("slot-ratio preflight changed")
+    if gates.get("status") != "keep_explicit_workload_matched_slot_ratios" or \
+            gates.get("official_matrix", {}).get("passed") != 48 or \
+            gates.get("official_matrix", {}).get("token_exact_sweeps") != 4 or \
+            gates.get("python_contract", {}).get("passed") != 16:
+        errors.append("slot-ratio final gates changed")
+    return len(raw), len(sweeps), len(preflight)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -4507,7 +4569,8 @@ def validate_assets(errors: list[str]) -> None:
                  "length-bucket-tradeoff.svg",
                  "bucket-pareto-sweep.svg",
                  "traffic-skew-tail.svg",
-                 "compatible-overflow.svg"):
+                 "compatible-overflow.svg",
+                 "slot-ratio-sweep.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -4677,6 +4740,7 @@ def main() -> int:
         validate_traffic_skew(errors)
     overflow_raw, overflow_comparisons, overflow_rejected = \
         validate_compatible_overflow(errors)
+    ratio_raw, ratio_sweeps, ratio_preflight = validate_slot_ratio_sweep(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -4812,6 +4876,7 @@ def main() -> int:
           f"{traffic_skew_rejected} "
           f"compatible_overflow={overflow_raw}/{overflow_comparisons}/"
           f"{overflow_rejected} "
+          f"slot_ratios={ratio_raw}/{ratio_sweeps}/{ratio_preflight} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

@@ -2276,3 +2276,14 @@ long-heavy吞吐只剩57%，P95约3×。delayed流量没有收益，吞吐与延
 借小桶，下一节点比较slot比例或paged Cache，而不是继续叠加错误的“万能”规则。
 
 ![Compatible overflow](assets/compatible-overflow.svg)
+
+## 135. Experiment 118：短流量6:2，长流量2:6
+
+48进程证明静态最优随长度分布翻转。short-heavy的6:2保留84%–85%吞吐、KV少56%，TTFT P95
+反而低约59%；long-heavy的2:6保留约87%吞吐、KV少19%，TTFT P95只高6%–7%。反向配方会
+把P95放大3×–5×。
+
+因此不按模型名硬编码ratio。已知稳定流量可显式配置；流量会变时，下一问题是动态capacity，
+不是继续搜索第四个静态数字。
+
+![Slot ratio sweep](assets/slot-ratio-sweep.svg)

@@ -271,5 +271,7 @@ the next gate. Records are append-only except for factual corrections.
   skew matrix, median/tail split and the bounded compatible-overflow follow-up contract.
 - [2026-08-23-compatible-overflow.md](2026-08-23-compatible-overflow.md): route-contract
   failure, pending double-count fix and the formal short-heavy P95 recovery.
+- [2026-08-23-slot-ratio-sweep.md](2026-08-23-slot-ratio-sweep.md): 2:6/4:4/6:2
+  matrix, workload-matched static optima and the dynamic-capacity handoff.
 - [2026-08-21-divergent-row-cache-reference.md](2026-08-21-divergent-row-cache-reference.md):
   unequal-position shared-Storage B1 oracle with CPU/HIP and reset-prefix gates.
