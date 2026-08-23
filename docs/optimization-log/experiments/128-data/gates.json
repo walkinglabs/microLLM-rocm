@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "status": "activation_global_scale_refuted_design_device_tensor_scale",
+  "formal_trace": {
+    "workers_passed": 2,
+    "workers_failed": 0,
+    "rows": 208,
+    "qwen_rows": 96,
+    "deepseek_rows": 112,
+    "potential_saturation_rows": 16
+  },
+  "rejected_trace_attempt": {
+    "qwen_trace_records": 317,
+    "expected_rows": 96,
+    "matched_rows": 72,
+    "missing_fp32_ffn_activated": 24,
+    "summary_written": false
+  },
+  "decision": {
+    "fixed_global_activation_scale_accepted": false,
+    "per_linear_input_tensor_scale_supported_by_evidence": true,
+    "per_row_token_scale_required_yet": false,
+    "trace_is_performance_evidence": false,
+    "default_fp8": false
+  }
+}

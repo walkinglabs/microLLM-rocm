@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "/home/devpod/github/microLLM-rocm/benchmarks/single_gpu/hf_activation_range.py", line 181, in <module>
+    raise SystemExit(main())
+                     ~~~~^^
+  File "/home/devpod/github/microLLM-rocm/benchmarks/single_gpu/hf_activation_range.py", line 126, in main
+    selected = select_ranges(records, model, args.activation_scale)
+  File "/home/devpod/github/microLLM-rocm/benchmarks/single_gpu/hf_activation_range.py", line 92, in select_ranges
+    raise RuntimeError("all-layer trace is missing a Linear input boundary")
+RuntimeError: all-layer trace is missing a Linear input boundary

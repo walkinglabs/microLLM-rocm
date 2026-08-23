@@ -2362,3 +2362,12 @@ Qwen 1.6/3.2的9个进程全部执行，8/8 top相同但0/8过门。最佳RMS继
 测activation层级范围。第一轮丢失准备计时的15条部分数据也被保留并拒绝。
 
 ![FP8 tensor amax weight](assets/fp8-tensor-amax-weight.svg)
+
+## 145. Experiment 128：同一把activation尺子既太短又太粗
+
+全层FP32 trace得到Qwen96、DeepSeek112个Linear输入范围。固定0.2对应±48，16个潜在饱和点
+全部在FFN；最大activated超过范围35.9×/64.2×。但Attention context的P50 amax仅2.59/2.97，
+放大全局scale会让普通层量化更粗。第一次Qwen因缺24个FP32 activated观测点按72/96停止并
+保留。下一节点先做device per-input-Tensor amax，不越级声称必须per-token。
+
+![FP8 activation range](assets/fp8-activation-range.svg)

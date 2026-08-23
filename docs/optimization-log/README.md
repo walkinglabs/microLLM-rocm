@@ -618,6 +618,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/126-data/](experiments/126-data/) | 9条Qwen-only边界收尾和诚实结论门 |
 | [assets/fp8-tensor-amax-weight.svg](assets/fp8-tensor-amax-weight.svg) | per-Tensor weight scale的误差改善、剩余门差距和准备成本 |
 | [experiments/127-data/](experiments/127-data/) | 36条正式矩阵、3条pilot和15条被拒绝的计时缺失数据 |
+| [assets/fp8-activation-range.svg](assets/fp8-activation-range.svg) | 全层Linear输入相对固定FP8范围的冲突 |
+| [experiments/128-data/](experiments/128-data/) | 208个正式activation边界、完整trace、pilot和一次合同失败 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

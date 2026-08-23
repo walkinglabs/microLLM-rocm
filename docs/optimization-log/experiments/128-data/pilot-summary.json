@@ -1,0 +1,89 @@
+{
+  "activation_scale": 0.2,
+  "aggregates": [
+    {
+      "absolute_maximum_max": 46.586177825927734,
+      "absolute_maximum_min": 0.736026406288147,
+      "absolute_maximum_p50": 31.50196361541748,
+      "boundary": "attention_norm",
+      "layers": 24,
+      "maximum_layer": 6,
+      "model": "qwen2.5-0.5b",
+      "potential_saturation_layers": 0,
+      "range_ratio_max": 0.9705453713734945
+    },
+    {
+      "absolute_maximum_max": 8.588050842285156,
+      "absolute_maximum_min": 0.12657341361045837,
+      "absolute_maximum_p50": 2.586308479309082,
+      "boundary": "attention.context",
+      "layers": 24,
+      "maximum_layer": 21,
+      "model": "qwen2.5-0.5b",
+      "potential_saturation_layers": 0,
+      "range_ratio_max": 0.17891772588094076
+    },
+    {
+      "absolute_maximum_max": 336.2611083984375,
+      "absolute_maximum_min": 6.593255519866943,
+      "absolute_maximum_p50": 33.92314338684082,
+      "boundary": "ffn_norm",
+      "layers": 24,
+      "maximum_layer": 3,
+      "model": "qwen2.5-0.5b",
+      "potential_saturation_layers": 4,
+      "range_ratio_max": 7.005439758300781
+    },
+    {
+      "absolute_maximum_max": 1723.7740478515625,
+      "absolute_maximum_min": 2.5026252269744873,
+      "absolute_maximum_p50": 5.561571836471558,
+      "boundary": "ffn.activated",
+      "layers": 24,
+      "maximum_layer": 21,
+      "model": "qwen2.5-0.5b",
+      "potential_saturation_layers": 4,
+      "range_ratio_max": 35.91195933024088
+    }
+  ],
+  "boundaries": [
+    "attention_norm",
+    "attention.context",
+    "ffn_norm",
+    "ffn.activated"
+  ],
+  "boundary": "FP32 baseline activations; complete-Tensor statistics with one sample value serialized; synchronous diagnostic trace, not performance evidence",
+  "context": 8,
+  "models": [
+    "qwen2.5-0.5b"
+  ],
+  "potential_saturation_rows": 8,
+  "representable_magnitude": 48.0,
+  "rows": 96,
+  "schema_version": 1,
+  "status": "pass",
+  "track": "official_fp8_activation_range",
+  "workers": [
+    {
+      "context": 8,
+      "forward_ms": 3597.695221,
+      "model": "qwen2.5-0.5b",
+      "post_run_gpu_state": {
+        "gpu_use_percent": 2,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "pre_run_gpu_state": {
+        "gpu_use_percent": 0,
+        "physical_gpu_index": 2,
+        "vram_percent": 0
+      },
+      "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+      "schema_version": 1,
+      "selected_boundaries": 96,
+      "status": "pass",
+      "trace_records": 341,
+      "track": "official_fp8_activation_range_worker"
+    }
+  ]
+}

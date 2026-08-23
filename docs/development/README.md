@@ -291,5 +291,7 @@ the next gate. Records are append-only except for factual corrections.
   finite-search boundary, diminishing returns and the handoff to per-Tensor weight scales.
 - [2026-08-23-fp8-tensor-amax-weight.md](2026-08-23-fp8-tensor-amax-weight.md):
   explicit API, transactional preparation, one-time scan and zero-transfer prepared hot path.
+- [2026-08-23-fp8-activation-range.md](2026-08-23-fp8-activation-range.md):
+  all-layer Linear-input ranges, a rejected missing-boundary trace and the device-amax handoff.
 - [2026-08-21-divergent-row-cache-reference.md](2026-08-21-divergent-row-cache-reference.md):
   unequal-position shared-Storage B1 oracle with CPU/HIP and reset-prefix gates.

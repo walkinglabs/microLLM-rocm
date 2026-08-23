@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="600" viewBox="0 0 1040 600" role="img" aria-labelledby="title desc">
+  <title id="title">Official FP8 activation range ratios</title><desc id="desc">Maximum activation range relative to fixed scale representable magnitude for four Linear input boundaries in Qwen and DeepSeek.</desc>
+  <rect width="1040" height="600" rx="18" fill="#0b1020"/>
+  <text x="52" y="52" fill="#f8fafc" font-size="28" font-family="sans-serif" font-weight="700">activation scale 0.2：Attention 太粗，FFN 又会溢出</text>
+  <text x="52" y="82" fill="#94a3b8" font-size="16" font-family="sans-serif">柱高=max amax / 48，虚线1×代表固定FP8范围边界（对数视觉刻度）</text>
+  <line x1="80" y1="450" x2="970" y2="450" stroke="#334155"/><line x1="80" y1="350" x2="970" y2="350" stroke="#fbbf24" stroke-width="3" stroke-dasharray="10 8"/>
+  <text x="82" y="342" fill="#fbbf24" font-size="14" font-family="sans-serif">1× range</text>
+  <g font-family="sans-serif" font-size="14" fill="#e2e8f0">
+    <rect x="120" y="353" width="65" height="97" fill="#38bdf8"/><text x="122" y="345">Q attn norm .97×</text>
+    <rect x="210" y="405" width="65" height="45" fill="#38bdf8"/><text x="205" y="397">Q context .18×</text>
+    <rect x="300" y="265" width="65" height="185" fill="#fb7185"/><text x="300" y="257">Q FFN norm 7.0×</text>
+    <rect x="390" y="180" width="65" height="270" fill="#fb7185"/><text x="382" y="172">Q activated 35.9×</text>
+    <rect x="545" y="395" width="65" height="55" fill="#22c55e"/><text x="533" y="387">D attn norm .24×</text>
+    <rect x="635" y="402" width="65" height="48" fill="#22c55e"/><text x="632" y="394">D context .20×</text>
+    <rect x="725" y="330" width="65" height="120" fill="#f97316"/><text x="720" y="322">D FFN norm 1.56×</text>
+    <rect x="815" y="145" width="65" height="305" fill="#f97316"/><text x="800" y="137">D activated 64.2×</text>
+  </g>
+  <g fill="#cbd5e1" font-size="15" font-family="sans-serif"><text x="120" y="500">Qwen：8 / 96 潜在饱和</text><text x="545" y="500">DeepSeek：8 / 112 潜在饱和</text><text x="170" y="550">全局scale无法同时服务普通Attention输入与少数极端FFN输入 → 先做device per-Tensor amax</text><text x="270" y="578">同步诊断trace不是性能证据；每条统计扫描完整Tensor，仅保存1个样例值</text></g>
+</svg>

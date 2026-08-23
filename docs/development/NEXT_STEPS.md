@@ -159,8 +159,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   scan/timing reports and a zero-payload-transfer prepared HIP path;
 - [x] rerun 36-worker official T8/T512 matrix: RMS improves 39%–78% from the first
   static point but all four gates still fail; Qwen/Deep preparation costs 2.8/12.2 seconds;
-- [ ] capture per-layer activation amax and saturation evidence before selecting a device-side
-  per-row/per-token scale contract;
+- [x] capture 208 all-layer activation boundaries: fixed scale 0.2 potentially saturates
+  16 FFN inputs by as much as 64.2x while ordinary Attention inputs use little of the range;
+- [ ] implement device-side per-Linear-input Tensor amax/scale without D2H or per-layer host
+  synchronization; only move to per-row/per-token if within-Tensor evidence requires it;
 - [ ] replace global FP8 scales with weight per-tensor and activation per-row/token amax,
   starting from saturation/trace evidence rather than top-token search;
 - [ ] expert/tensor/data parallel weight placement and communication;

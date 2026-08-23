@@ -5016,6 +5016,86 @@ def validate_fp8_tensor_amax_weight(errors: list[str]) -> tuple[int, int, int]:
     return len(raw), len(fp8_rows), len(rejected)
 
 
+def validate_fp8_activation_range(errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "128-data"
+    raw = [json.loads(line) for line in
+           (data / "raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    workers = [json.loads(line) for line in
+               (data / "workers.jsonl").read_text(encoding="utf-8").splitlines()]
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    pilot = [json.loads(line) for line in
+             (data / "pilot-raw.jsonl").read_text(encoding="utf-8").splitlines()]
+    rejected_trace = [json.loads(line) for line in
+                      (data / "rejected-qwen-trace.jsonl").read_text(
+                          encoding="utf-8").splitlines()]
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    preflight = [json.loads(line) for line in
+                 (data / "gpu2-preflight.jsonl").read_text(
+                     encoding="utf-8").splitlines()]
+    qwen = [row for row in raw if row.get("model") == "qwen2.5-0.5b"]
+    deep = [row for row in raw if row.get("model") ==
+            "deepseek-r1-distill-qwen-1.5b"]
+    if len(raw) != 208 or len(qwen) != 96 or len(deep) != 112 or any(
+            row.get("status") != "pass" or row.get("dtype") != "float32" or
+            row.get("representable_magnitude") != 48.0
+            for row in raw):
+        errors.append("FP8 activation-range raw contract changed")
+    if len(workers) != 2 or any(
+            row.get("status") != "pass" or
+            row.get("selected_boundaries") not in (96, 112) or
+            row.get("pre_run_gpu_state", {}).get("vram_percent") != 0 or
+            row.get("pre_run_gpu_state", {}).get("gpu_use_percent", 99) > 1 or
+            row.get("post_run_gpu_state", {}).get("vram_percent", 99) > 2 or
+            row.get("post_run_gpu_state", {}).get("gpu_use_percent", 99) > 3
+            for row in workers):
+        errors.append("FP8 activation-range worker or idle-gate evidence changed")
+    aggregates = summary.get("aggregates", [])
+    if summary.get("status") != "pass" or summary.get("rows") != 208 or \
+            summary.get("potential_saturation_rows") != 16 or \
+            summary.get("representable_magnitude") != 48.0 or \
+            len(aggregates) != 8 or \
+            "not performance evidence" not in summary.get("boundary", ""):
+        errors.append("FP8 activation-range summary changed")
+    by_key = {(row["model"], row["boundary"]): row for row in aggregates}
+    qwen_activated = by_key["qwen2.5-0.5b", "ffn.activated"]
+    deep_activated = by_key[
+        "deepseek-r1-distill-qwen-1.5b", "ffn.activated"]
+    if qwen_activated.get("potential_saturation_layers") != 4 or \
+            qwen_activated.get("maximum_layer") != 21 or \
+            not 35.0 < qwen_activated.get("range_ratio_max", 0.0) < 37.0 or \
+            deep_activated.get("potential_saturation_layers") != 5 or \
+            deep_activated.get("maximum_layer") != 2 or \
+            not 63.0 < deep_activated.get("range_ratio_max", 0.0) < 65.0:
+        errors.append("FP8 activation-range FFN outlier evidence changed")
+    if any(by_key[model, boundary].get("potential_saturation_layers") != 0
+           for model in ("qwen2.5-0.5b",
+                         "deepseek-r1-distill-qwen-1.5b")
+           for boundary in ("attention_norm", "attention.context")):
+        errors.append("FP8 activation-range Attention boundary changed")
+    if len(pilot) != 96 or len(rejected_trace) != 317 or len(preflight) != 3 or any(
+            row.get("card2", {}).get("GPU use (%)") != "0" or
+            row.get("card2", {}).get("GPU Memory Allocated (VRAM%)") != "0"
+            for row in preflight):
+        errors.append("FP8 activation-range pilot/rejected/preflight evidence changed")
+    if gates.get("status") != \
+            "activation_global_scale_refuted_design_device_tensor_scale" or \
+            gates.get("rejected_trace_attempt", {}).get(
+                "missing_fp32_ffn_activated") != 24 or \
+            gates.get("decision", {}).get(
+                "fixed_global_activation_scale_accepted") is not False or \
+            gates.get("decision", {}).get(
+                "per_linear_input_tensor_scale_supported_by_evidence") is not True or \
+            gates.get("decision", {}).get(
+                "per_row_token_scale_required_yet") is not False:
+        errors.append("FP8 activation-range gates changed")
+    runner = (REPOSITORY / "benchmarks" / "single_gpu" /
+              "hf_activation_range.py").read_text(encoding="utf-8")
+    if "all-layer trace is missing a Linear input boundary" not in runner or \
+            "synchronous diagnostic trace, not performance evidence" not in runner:
+        errors.append("FP8 activation-range runner boundary missing")
+    return len(raw), summary.get("potential_saturation_rows", 0), len(rejected_trace)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -5121,7 +5201,8 @@ def validate_assets(errors: list[str]) -> None:
                  "fp8-scale-boundary.svg",
                  "fp8-scale-turn.svg",
                  "qwen-fp8-scale-closure.svg",
-                 "fp8-tensor-amax-weight.svg"):
+                 "fp8-tensor-amax-weight.svg",
+                 "fp8-activation-range.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -5309,6 +5390,8 @@ def main() -> int:
         validate_qwen_fp8_scale_closure(errors)
     fp8_amax_raw, fp8_amax_failures, fp8_amax_rejected = \
         validate_fp8_tensor_amax_weight(errors)
+    activation_range_raw, activation_range_saturation, activation_range_rejected = \
+        validate_fp8_activation_range(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -5459,6 +5542,8 @@ def main() -> int:
           f"fp8_closure={fp8_closure_raw}/{fp8_closure_candidates}/"
           f"{fp8_closure_passed} "
           f"fp8_amax={fp8_amax_raw}/{fp8_amax_failures}/{fp8_amax_rejected} "
+          f"activation_range={activation_range_raw}/{activation_range_saturation}/"
+          f"{activation_range_rejected} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")
