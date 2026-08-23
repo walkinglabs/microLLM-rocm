@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <random>
 #include <set>
 #include <sstream>
@@ -318,9 +319,28 @@ public:
                            : ops::cast(weight_.data(), DType::BFloat16));
         }
         if (precision_ == LinearPrecision::Float8E4M3FNUZ) {
+            const auto scaled_weight = fp8_inference_scale_.defined()
+                                           ? ops::ScaledTensor{
+                                                 weight_.data(),
+                                                 fp8_inference_scale_,
+                                                 weight_scale_}
+                                           : ops::quantize_fp8(
+                                                 weight_.data(),
+                                                 DType::Float8E4M3FNUZ,
+                                                 weight_scale_);
+            const auto scaled_input = fp8_inference_activation_scale_.defined()
+                                          ? ops::quantize_fp8_with_scale(
+                                                input,
+                                                DType::Float8E4M3FNUZ,
+                                                activation_scale_,
+                                                fp8_inference_activation_scale_)
+                                          : ops::quantize_fp8(
+                                                input,
+                                                DType::Float8E4M3FNUZ,
+                                                activation_scale_);
             return ops::fp8_matmul(
-                ops::quantize_fp8(input, DType::Float8E4M3FNUZ, activation_scale_),
-                ops::quantize_fp8(weight_.data(), DType::Float8E4M3FNUZ, weight_scale_),
+                scaled_input,
+                scaled_weight,
                 DType::Float32);
         }
         if (weight_.data().dtype() == DType::BFloat16) {
@@ -351,6 +371,37 @@ public:
             bf16_training_weight_ = bf16_training_weight_.to(device);
         }
     }
+    [[nodiscard]] ops::ScaledTensor prepare_fp8_inference_candidate() const {
+        if (precision_ != LinearPrecision::Float8E4M3FNUZ ||
+            weight_.data().dtype() != DType::Float32 ||
+            fp8_inference_scale_.defined()) {
+            throw std::logic_error("Linear FP8 inference preparation is invalid");
+        }
+        return ops::quantize_fp8(
+            weight_.data(), DType::Float8E4M3FNUZ, weight_scale_);
+    }
+    [[nodiscard]] Tensor prepare_fp8_activation_scale_candidate() const {
+        auto result = Tensor::from_vector(
+            {activation_scale_}, {}, DType::Float32);
+        return weight_.data().device().is_hip()
+                   ? result.to(weight_.data().device())
+                   : result;
+    }
+    void commit_fp8_inference_candidate(
+        ops::ScaledTensor candidate, Tensor activation_scale) {
+        fp8_inference_scale_ = std::move(candidate.scale);
+        fp8_inference_activation_scale_ = std::move(activation_scale);
+        weight_ = Value(std::move(candidate.values), false);
+    }
+    void move_fp8_inference_scale(Device device) {
+        if (fp8_inference_scale_.defined()) {
+            fp8_inference_scale_ = fp8_inference_scale_.to(device);
+        }
+        if (fp8_inference_activation_scale_.defined()) {
+            fp8_inference_activation_scale_ =
+                fp8_inference_activation_scale_.to(device);
+        }
+    }
 
 private:
     Value weight_;
@@ -360,6 +411,8 @@ private:
     bool has_bias_ = false;
     Value bias_;
     Tensor bf16_training_weight_;
+    Tensor fp8_inference_scale_;
+    Tensor fp8_inference_activation_scale_;
 };
 
 class Norm {
@@ -724,6 +777,16 @@ public:
             linear->move_bf16_training_mirror(device);
         }
     }
+    void append_fp8_inference_linears(std::vector<Linear*>& linears) {
+        for (auto* linear : {&query_, &key_, &value_, &output_}) {
+            linears.push_back(linear);
+        }
+    }
+    void move_fp8_inference_scales(Device device) {
+        for (auto* linear : {&query_, &key_, &value_, &output_}) {
+            linear->move_fp8_inference_scale(device);
+        }
+    }
 
 private:
     ModelConfig config_;
@@ -807,6 +870,14 @@ public:
     void move_bf16_training_mirrors(Device device) {
         for (auto* linear : {&gate_, &up_, &down_}) {
             linear->move_bf16_training_mirror(device);
+        }
+    }
+    void append_fp8_inference_linears(std::vector<Linear*>& linears) {
+        for (auto* linear : {&gate_, &up_, &down_}) linears.push_back(linear);
+    }
+    void move_fp8_inference_scales(Device device) {
+        for (auto* linear : {&gate_, &up_, &down_}) {
+            linear->move_fp8_inference_scale(device);
         }
     }
 
@@ -898,6 +969,14 @@ public:
         attention_.move_bf16_training_mirrors(device);
         feed_forward_.move_bf16_training_mirrors(device);
     }
+    void append_fp8_inference_linears(std::vector<Linear*>& linears) {
+        attention_.append_fp8_inference_linears(linears);
+        feed_forward_.append_fp8_inference_linears(linears);
+    }
+    void move_fp8_inference_scales(Device device) {
+        attention_.move_fp8_inference_scales(device);
+        feed_forward_.move_fp8_inference_scales(device);
+    }
 
 
 private:
@@ -937,6 +1016,7 @@ struct TransformerModel::Impl {
     bool bf16_ffn_prepared = false;
     bool bf16_attention_prepared = false;
     bool bf16_training_mirrors_prepared = false;
+    bool fp8_inference_prepared = false;
     bool parameters_initialized = true;
 };
 
@@ -968,15 +1048,20 @@ void TransformerModel::to(Device target) {
         for (auto& block : impl_->blocks) block->move_bf16_training_mirrors(target);
         if (impl_->output_head) impl_->output_head->move_bf16_training_mirror(target);
     }
+    if (impl_->fp8_inference_prepared) {
+        for (auto& block : impl_->blocks) block->move_fp8_inference_scales(target);
+        if (impl_->output_head) impl_->output_head->move_fp8_inference_scale(target);
+    }
 }
 
 Value TransformerModel::forward(const Tensor& token_ids) {
     if (!impl_->parameters_initialized) {
         throw std::logic_error("model parameters must be loaded before forward");
     }
-    if (impl_->bf16_ffn_prepared || impl_->bf16_attention_prepared) {
+    if (impl_->bf16_ffn_prepared || impl_->bf16_attention_prepared ||
+        impl_->fp8_inference_prepared) {
         throw std::logic_error(
-            "autograd forward is unavailable after BF16 FFN inference preparation; "
+            "autograd forward is unavailable after one-way inference preparation; "
             "use forward_inference or forward_cached");
     }
     if (token_ids.dtype() != DType::Int32 || token_ids.ndim() != 2) {
@@ -1642,6 +1727,56 @@ bool TransformerModel::bf16_attention_inference_prepared() const noexcept {
     return impl_->bf16_attention_prepared;
 }
 
+Fp8WeightPreparationReport TransformerModel::prepare_fp8_inference_weights() {
+    if (!impl_->parameters_initialized ||
+        impl_->config.linear_precision != LinearPrecision::Float8E4M3FNUZ ||
+        impl_->fp8_inference_prepared || impl_->bf16_ffn_prepared ||
+        impl_->bf16_attention_prepared || impl_->bf16_training_mirrors_prepared) {
+        throw std::logic_error("FP8 inference preparation is invalid for model state");
+    }
+    std::vector<Linear*> linears;
+    const auto expected = impl_->blocks.size() * 7U +
+                          (impl_->output_head ? 1U : 0U);
+    linears.reserve(expected);
+    for (auto& block : impl_->blocks) {
+        block->append_fp8_inference_linears(linears);
+    }
+    if (impl_->output_head) linears.push_back(impl_->output_head.get());
+    if (linears.size() != expected) {
+        throw std::logic_error("FP8 inference Linear count changed");
+    }
+    struct Candidate {
+        ops::ScaledTensor weight;
+        Tensor activation_scale;
+    };
+    std::vector<Candidate> candidates;
+    candidates.reserve(linears.size());
+    Fp8WeightPreparationReport report;
+    for (const auto* linear : linears) {
+        const auto elements = static_cast<std::uint64_t>(
+            linear->weight_data().numel());
+        candidates.push_back({
+            linear->prepare_fp8_inference_candidate(),
+            linear->prepare_fp8_activation_scale_candidate()});
+        ++report.converted_tensors;
+        report.fp32_bytes_released += elements * sizeof(float);
+        report.fp8_bytes_retained += elements;
+        report.scale_bytes_retained += 2U * sizeof(float);
+    }
+    runtime::synchronize(device());
+    for (std::size_t index = 0; index < linears.size(); ++index) {
+        linears[index]->commit_fp8_inference_candidate(
+            std::move(candidates[index].weight),
+            std::move(candidates[index].activation_scale));
+    }
+    impl_->fp8_inference_prepared = true;
+    return report;
+}
+
+bool TransformerModel::fp8_inference_weights_prepared() const noexcept {
+    return impl_->fp8_inference_prepared;
+}
+
 Bf16TrainingMirrors TransformerModel::prepare_bf16_training_mirrors() {
     if (impl_->config.linear_precision != LinearPrecision::BFloat16 ||
         impl_->bf16_training_mirrors_prepared || impl_->bf16_ffn_prepared ||
@@ -1679,9 +1814,9 @@ io::StateDict TransformerModel::state_dict(Device target) {
 LoadWeightsReport TransformerModel::load_state_dict(const io::StateDict& state,
                                                      const LoadWeightsOptions& options) {
     if (impl_->bf16_ffn_prepared || impl_->bf16_attention_prepared ||
-        impl_->bf16_training_mirrors_prepared) {
+        impl_->bf16_training_mirrors_prepared || impl_->fp8_inference_prepared) {
         throw std::logic_error(
-            "load weights before preparing derived BF16 weights");
+            "load weights before preparing derived inference or training weights");
     }
     LoadWeightsReport report;
     const auto named = named_parameters();

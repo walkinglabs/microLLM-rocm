@@ -602,7 +602,11 @@ TEST(CpuFp8OpsTest, QuantizeDequantizeAndScaledMatmulMatchFloatReference) {
         {-2.0F, -1.0F, -0.25F, 0.0F, 0.25F, 1.0F, 2.0F, 3.0F}, {2, 4});
     for (const auto format : {DType::Float8E4M3FNUZ, DType::Float8E5M2FNUZ}) {
         const auto quantized = quantize_fp8(input, format, 0.025F);
+        const auto reused = quantize_fp8_with_scale(
+            input, format, 0.025F, quantized.scale);
         EXPECT_EQ(quantized.values.dtype(), format);
+        EXPECT_EQ(reused.values.to_vector(), quantized.values.to_vector());
+        EXPECT_EQ(reused.scale.storage().data(), quantized.scale.storage().data());
         EXPECT_EQ(quantized.values.storage().num_bytes(), 8U);
         EXPECT_EQ(quantized.scale.dtype(), DType::Float32);
         const auto restored = dequantize_fp8(quantized, DType::Float32);
@@ -621,6 +625,10 @@ TEST(CpuFp8OpsTest, QuantizeDequantizeAndScaledMatmulMatchFloatReference) {
     EXPECT_THROW((void)quantize_fp8(input, DType::Float16, 1.0F),
                  std::invalid_argument);
     EXPECT_THROW((void)quantize_fp8(input, DType::Float8E4M3FNUZ, 0.0F),
+                 std::invalid_argument);
+    EXPECT_THROW((void)quantize_fp8_with_scale(
+                     input, DType::Float8E4M3FNUZ, 0.025F,
+                     Tensor::from_vector({0.025F, 0.025F}, {2})),
                  std::invalid_argument);
 }
 

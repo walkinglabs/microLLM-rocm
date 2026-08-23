@@ -309,8 +309,10 @@ void adamw_update_bf16_mirror_(Tensor& parameter, const Tensor& gradient,
 #endif
 }
 
-ScaledTensor quantize_fp8(const Tensor& input, DType fp8_dtype, float scale,
-                          [[maybe_unused]] const OpContext& context) {
+ScaledTensor quantize_fp8_with_scale(
+    const Tensor& input, DType fp8_dtype, float scale,
+    const Tensor& scale_tensor,
+    [[maybe_unused]] const OpContext& context) {
     if (!input.defined() || (input.dtype() != DType::Float32 &&
                              input.dtype() != DType::Float16 &&
                              input.dtype() != DType::BFloat16)) {
@@ -323,6 +325,12 @@ ScaledTensor quantize_fp8(const Tensor& input, DType fp8_dtype, float scale,
         throw std::invalid_argument("FP8 quantize scale must be finite and positive");
     }
     if (!input.is_contiguous()) throw std::invalid_argument("FP8 quantize requires contiguous input");
+    if (!scale_tensor.defined() || scale_tensor.dtype() != DType::Float32 ||
+        scale_tensor.numel() != 1 || scale_tensor.device() != input.device() ||
+        !scale_tensor.is_contiguous()) {
+        throw std::invalid_argument(
+            "FP8 quantize scale Tensor must be one contiguous FP32 value on the input device");
+    }
     Tensor output(input.shape(), fp8_dtype, input.device());
     if (input.device().is_cpu()) {
         auto values = input.to_vector();
@@ -337,9 +345,15 @@ ScaledTensor quantize_fp8(const Tensor& input, DType fp8_dtype, float scale,
         throw std::runtime_error("microLLM was built without HIP operator support");
 #endif
     }
+    return {std::move(output), scale_tensor, scale};
+}
+
+ScaledTensor quantize_fp8(const Tensor& input, DType fp8_dtype, float scale,
+                          const OpContext& context) {
     auto scale_tensor = Tensor::from_vector({scale}, {}, DType::Float32);
     if (input.device().is_hip()) scale_tensor = scale_tensor.to(input.device());
-    return {std::move(output), std::move(scale_tensor), scale};
+    return quantize_fp8_with_scale(
+        input, fp8_dtype, scale, scale_tensor, context);
 }
 
 Tensor dequantize_fp8(const ScaledTensor& input, DType output_dtype,

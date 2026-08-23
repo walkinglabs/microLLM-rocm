@@ -47,6 +47,7 @@
     "causal_gqa_attention_saved": "tests/ops/hip_ops_test.cpp",
     "causal_gqa_attention_backward_saved": "tests/ops/hip_ops_test.cpp",
     "quantize_fp8": "tests/ops/ops_test.cpp",
+    "quantize_fp8_with_scale": "tests/ops/ops_test.cpp",
     "dequantize_fp8": "tests/ops/ops_test.cpp",
     "fp8_matmul": "tests/ops/hip_ops_test.cpp",
     "bf16_matmul_output": "tests/ops/hip_ops_test.cpp",

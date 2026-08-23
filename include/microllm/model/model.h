@@ -50,6 +50,13 @@ struct Bf16WeightPreparationReport {
     std::uint64_t bf16_bytes_retained = 0;
 };
 
+struct Fp8WeightPreparationReport {
+    std::size_t converted_tensors = 0;
+    std::uint64_t fp32_bytes_released = 0;
+    std::uint64_t fp8_bytes_retained = 0;
+    std::uint64_t scale_bytes_retained = 0;
+};
+
 using Bf16FfnPreparationReport = Bf16WeightPreparationReport;
 
 enum class ParameterInitialization { Random, Uninitialized };
@@ -114,6 +121,10 @@ public:
     [[nodiscard]] bool bf16_ffn_inference_prepared() const noexcept;
     [[nodiscard]] Bf16WeightPreparationReport prepare_bf16_attention_inference();
     [[nodiscard]] bool bf16_attention_inference_prepared() const noexcept;
+    // One-way inference preparation for every Linear. FP32 Embedding/Norm and
+    // a tied output head remain unchanged. Static scales come from ModelConfig.
+    [[nodiscard]] Fp8WeightPreparationReport prepare_fp8_inference_weights();
+    [[nodiscard]] bool fp8_inference_weights_prepared() const noexcept;
     // Creates persistent BF16 forward mirrors for every Linear FP32 master.
     // Mirrors are derived runtime state and must be prepared after loading/restoring.
     [[nodiscard]] Bf16TrainingMirrors prepare_bf16_training_mirrors();

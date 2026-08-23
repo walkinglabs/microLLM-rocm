@@ -44,6 +44,9 @@ struct Bf16FfnDiagnostics {
 
 [[nodiscard]] ScaledTensor quantize_fp8(const Tensor& input, DType fp8_dtype,
                                         float scale, const OpContext& context = {});
+[[nodiscard]] ScaledTensor quantize_fp8_with_scale(
+    const Tensor& input, DType fp8_dtype, float scale_value,
+    const Tensor& scale_tensor, const OpContext& context = {});
 [[nodiscard]] Tensor dequantize_fp8(const ScaledTensor& input, DType output_dtype,
                                     const OpContext& context = {});
 [[nodiscard]] Tensor fp8_matmul(const ScaledTensor& left, const ScaledTensor& right,

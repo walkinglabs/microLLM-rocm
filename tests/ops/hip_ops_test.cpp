@@ -464,6 +464,38 @@ TEST(HipFp8TrainingTest, TransformerLinearPolicyRunsEndToEndOnMi300) {
     for (const auto value : decode_logits.to_vector()) EXPECT_TRUE(std::isfinite(value));
 }
 
+TEST(HipFp8OpsTest, PreparedTransformerWeightsMatchLazyInferenceWithoutPayloadTransfers) {
+    require_gpu();
+    if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";
+    model::ModelConfig config{.vocabulary_size = 16,
+                              .dimension = 8,
+                              .layers = 1,
+                              .heads = 2,
+                              .kv_heads = 1,
+                              .ffn_dimension = 16,
+                              .max_sequence_length = 8,
+                              .rope_base = 10000.0F,
+                              .tie_embeddings = false,
+                              .linear_precision = model::LinearPrecision::Float8E4M3FNUZ,
+                              .fp8_activation_scale = 0.025F,
+                              .fp8_weight_scale = 0.005F};
+    model::TransformerModel model(config, 223);
+    model.to(Device::hip(0));
+    const auto tokens = Tensor::from_int32_vector({1, 2, 3, 4}, {1, 4})
+                            .to(Device::hip(0));
+    const auto before = model.forward_inference(tokens).to_vector();
+    const auto report = model.prepare_fp8_inference_weights();
+    runtime::reset_transfer_stats();
+    const auto after_tensor = model.forward_inference(tokens);
+    runtime::synchronize(Device::hip(0));
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(report.converted_tensors, 8U);
+    EXPECT_EQ(report.fp32_bytes_released, report.fp8_bytes_retained * 4U);
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    EXPECT_EQ(after_tensor.to_vector(), before);
+}
+
 TEST(HipBf16TrainingTest, TransformerPolicyKeepsFp32MastersAndGradients) {
     require_gpu();
     if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";
