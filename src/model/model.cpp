@@ -311,12 +311,9 @@ public:
           weight_scale_mode_(
               config.fp8_weight_scale_mode ==
                           Fp8WeightScaleMode::OutputChannelAmax &&
-                      ((config.fp8_weight_scale_scope ==
-                            Fp8WeightScaleScope::AttentionOnly &&
-                        !attention_linear) ||
-                       (config.fp8_weight_scale_scope ==
-                            Fp8WeightScaleScope::AttentionOutputOnly &&
-                        !attention_output_linear))
+                      config.fp8_weight_scale_scope ==
+                          Fp8WeightScaleScope::AttentionOutputOnly &&
+                      !attention_output_linear
                   ? Fp8WeightScaleMode::DeviceTensorAmax
                   : config.fp8_weight_scale_mode),
           diagnostic_mode_(config.fp8_diagnostic_mode),

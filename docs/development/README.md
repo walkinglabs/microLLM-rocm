@@ -330,7 +330,7 @@ the next gate. Records are append-only except for factual corrections.
 - [2026-08-23-fp8-output-head-only-scope.md](2026-08-23-fp8-output-head-only-scope.md):
   rejected tied/untied routing experiment and subsequent public-API removal.
 - [2026-08-23-fp8-attention-only-scope.md](2026-08-23-fp8-attention-only-scope.md):
-  fresh Q/K/V/O-only routing, strict CLI contract and device preparation gates.
+  rejected Q/K/V/O routing experiment and removal after O-only dominance.
 - [2026-08-23-fp8-attention-output-scope.md](2026-08-23-fp8-attention-output-scope.md):
   O-projection-only routing and long-context counterfactual contract.
 - [2026-08-21-divergent-row-cache-reference.md](2026-08-21-divergent-row-cache-reference.md):

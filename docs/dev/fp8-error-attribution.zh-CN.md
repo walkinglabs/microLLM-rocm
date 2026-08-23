@@ -159,14 +159,8 @@ Exp146曾实现独立LM head最小范围，但同revision control证明Max/RMS�
 删除。命令和失败证据仍保存在[Experiment 146](../optimization-log/experiments/146-fp8-output-head-only.md)，
 不能继续复制旧参数当作当前API。
 
-当前新的单变量范围是Attention四个projection：
-
-```bash
---fp8-weight-scale-mode output-channel-amax \
---fp8-weight-scale-scope attention-only
-```
-
-FFN和独立LM head仍使用device Tensor-amax。这个参数只表示候选范围，不表示正式精度已经通过。
+Exp147曾测试Q/K/V/O四个projection，但被Exp148的O-only严格支配，因此较宽的
+`attention-only`参数已从当前API删除。失败证据仍保留在Experiment 147。
 
 如果只检查Attention结果之后的O projection：
 

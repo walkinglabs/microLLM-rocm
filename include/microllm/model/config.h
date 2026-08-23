@@ -11,7 +11,7 @@ enum class Fp8WeightScaleMode {
     Fixed, TensorAmax, DeviceTensorAmax, OutputChannelAmax
 };
 enum class Fp8WeightScaleScope {
-    AllLinear, AttentionOnly, AttentionOutputOnly
+    AllLinear, AttentionOutputOnly
 };
 enum class Fp8ActivationScaleMode { Fixed, TensorAmax, FfnOuterRow };
 // Full uses native FP8 GEMM. The other modes are deliberately slow,

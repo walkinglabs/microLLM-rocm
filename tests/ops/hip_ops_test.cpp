@@ -820,57 +820,6 @@ TEST(HipFp8OpsTest, OutputChannelWeightPreparationIsDeviceOnlyAndReusable) {
     for (const auto value : output.to_vector()) EXPECT_TRUE(std::isfinite(value));
 }
 
-TEST(HipFp8OpsTest, AttentionOnlyScopePreparesFourColumnVectorsOnDevice) {
-    require_gpu();
-    model::ModelConfig config{.vocabulary_size = 16,
-                              .dimension = 8,
-                              .layers = 1,
-                              .heads = 2,
-                              .kv_heads = 1,
-                              .ffn_dimension = 16,
-                              .max_sequence_length = 8,
-                              .rope_base = 10000.0F,
-                              .tie_embeddings = false,
-                              .linear_precision =
-                                  model::LinearPrecision::Float8E4M3FNUZ,
-                              .fp8_activation_scale = 0.2F,
-                              .fp8_activation_minimum_scale = 1.0e-4F,
-                              .fp8_weight_scale = 1.0e-4F,
-                              .fp8_weight_scale_mode =
-                                  model::Fp8WeightScaleMode::OutputChannelAmax,
-                              .fp8_weight_scale_scope =
-                                  model::Fp8WeightScaleScope::AttentionOnly,
-                              .fp8_activation_scale_mode =
-                                  model::Fp8ActivationScaleMode::TensorAmax};
-    model::TransformerModel transformer(config, 247);
-    const auto gpu = Device::hip(0);
-    transformer.to(gpu);
-    clear_fp8_dynamic_quant_stats();
-    runtime::reset_transfer_stats();
-    const auto report = transformer.prepare_fp8_inference_weights();
-    runtime::synchronize(gpu);
-    const auto preparation = runtime::transfer_stats();
-    EXPECT_EQ(report.converted_tensors, 8U);
-    EXPECT_EQ(report.scale_bytes_retained, 28U * sizeof(float));
-    EXPECT_EQ(report.device_amax_tensors, 8U);
-    EXPECT_EQ(fp8_dynamic_quant_stats().column_calls, 4U);
-    EXPECT_EQ(fp8_dynamic_quant_stats().tensor_calls, 4U);
-    EXPECT_EQ(preparation.device_to_host_calls, 0U);
-
-    const auto tokens = Tensor::from_int32_vector({1, 2, 3, 4}, {1, 4})
-                            .to(gpu);
-    clear_fp8_dynamic_quant_stats();
-    runtime::reset_transfer_stats();
-    const auto output = transformer.forward_inference(tokens);
-    runtime::synchronize(gpu);
-    const auto hot = runtime::transfer_stats();
-    EXPECT_EQ(hot.host_to_device_calls, 0U);
-    EXPECT_EQ(hot.device_to_host_calls, 0U);
-    EXPECT_EQ(fp8_dynamic_quant_stats().column_calls, 0U);
-    EXPECT_EQ(fp8_dynamic_quant_stats().tensor_calls, 5U);
-    for (const auto value : output.to_vector()) EXPECT_TRUE(std::isfinite(value));
-}
-
 TEST(HipFp8OpsTest, AttentionOutputScopePreparesOneColumnVectorOnDevice) {
     require_gpu();
     model::ModelConfig config{.vocabulary_size = 16,

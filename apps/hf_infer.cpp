@@ -324,10 +324,9 @@ Options options(int argc, char** argv) {
             "--fp8-diagnostic-mode must be full, weight-only, activation-only, or both-roundtrip");
     }
     if (result.fp8_weight_scale_scope != "all-linear" &&
-        result.fp8_weight_scale_scope != "attention-only" &&
         result.fp8_weight_scale_scope != "attention-output-only") {
         throw std::invalid_argument(
-            "--fp8-weight-scale-scope must be all-linear, attention-only, or attention-output-only");
+            "--fp8-weight-scale-scope must be all-linear or attention-output-only");
     }
     if (result.fp8_weight_scale_scope != "all-linear" &&
         result.fp8_weight_scale_mode != "output-channel-amax") {
@@ -418,11 +417,8 @@ std::string fp8_compute_policy(const Options& command) {
                                        ? "tensor_amax_weight" : "fixed_weight";
     const auto scoped_weight_name =
         command.fp8_weight_scale_mode == "output-channel-amax" &&
-                command.fp8_weight_scale_scope == "attention-only"
-            ? "attention_only_output_channel_amax_weight"
-            : command.fp8_weight_scale_mode == "output-channel-amax" &&
                       command.fp8_weight_scale_scope == "attention-output-only"
-                  ? "attention_output_only_output_channel_amax_weight"
+            ? "attention_output_only_output_channel_amax_weight"
             : weight_name;
     const auto activation_name =
         command.fp8_activation_scale_mode == "ffn-outer-row"
@@ -933,9 +929,7 @@ int main(int argc, char** argv) {
                     ? microllm::model::Fp8WeightScaleMode::OutputChannelAmax
                     : microllm::model::Fp8WeightScaleMode::Fixed;
             external.model.fp8_weight_scale_scope =
-                command.fp8_weight_scale_scope == "attention-only"
-                    ? microllm::model::Fp8WeightScaleScope::AttentionOnly
-                    : command.fp8_weight_scale_scope == "attention-output-only"
+                command.fp8_weight_scale_scope == "attention-output-only"
                     ? microllm::model::Fp8WeightScaleScope::AttentionOutputOnly
                     : microllm::model::Fp8WeightScaleScope::AllLinear;
             external.model.fp8_activation_scale_mode =

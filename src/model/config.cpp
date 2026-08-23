@@ -125,9 +125,7 @@ std::string ModelConfig::summary() const {
                                ? "device_tensor_amax" : "output_channel_amax")
            << ",fp8_weight_scale_scope="
            << (fp8_weight_scale_scope == Fp8WeightScaleScope::AllLinear
-                   ? "all_linear"
-                   : fp8_weight_scale_scope == Fp8WeightScaleScope::AttentionOnly
-                         ? "attention_only" : "attention_output_only")
+                   ? "all_linear" : "attention_output_only")
            << ",fp8_activation_scale_mode="
            << (fp8_activation_scale_mode == Fp8ActivationScaleMode::Fixed
                    ? "fixed"

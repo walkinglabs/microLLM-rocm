@@ -73,10 +73,6 @@ TEST(ModelConfigTest, Fp8OutputChannelWeightPolicyIsVisibleInSummary) {
     config.validate();
     EXPECT_NE(config.summary().find("fp8_weight_scale_mode=output_channel_amax"),
               std::string::npos);
-    config.fp8_weight_scale_scope = Fp8WeightScaleScope::AttentionOnly;
-    config.validate();
-    EXPECT_NE(config.summary().find("fp8_weight_scale_scope=attention_only"),
-              std::string::npos);
     config.fp8_weight_scale_scope = Fp8WeightScaleScope::AttentionOutputOnly;
     config.validate();
     EXPECT_NE(config.summary().find("fp8_weight_scale_scope=attention_output_only"),

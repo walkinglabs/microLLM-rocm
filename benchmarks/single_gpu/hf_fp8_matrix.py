@@ -37,8 +37,7 @@ def options() -> argparse.Namespace:
                                  "output-channel-amax"),
                         default="fixed")
     parser.add_argument("--fp8-weight-scale-scope",
-                        choices=("all-linear", "attention-only",
-                                 "attention-output-only"),
+                        choices=("all-linear", "attention-output-only"),
                         default="all-linear")
     parser.add_argument("--fp8-activation-scale-mode",
                         choices=("fixed", "tensor-amax", "ffn-outer-row"),
