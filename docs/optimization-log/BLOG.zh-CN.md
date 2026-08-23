@@ -2608,3 +2608,14 @@ worker全部成功，24个FP8行各比较151,936个logits。E5的八项Max/RMS�
 operand autograd与MI300原生E5×E4测试保留，清楚区分“硬件会算”和“模型可用”。
 
 ![E5 activation format discard](assets/fp8-e5-activation-discard.svg)
+
+## 171. Experiment 154：Qwen layer 9改善三成，Deep却没有一个安全单层
+
+不再根据drift图猜层，而是穷举Qwen 24层和DeepSeek 28层。56个fresh worker全部成功，每行
+比较151,936个logits。Qwen layer9把Max/RMS降到baseline的0.713×/0.666×，20/24层两项都不
+退化；Deep的RMS最佳也是layer9的0.994×，但Max变成1.022×，28层没有一个同时守住两项。
+
+这否定跨模型共享单层策略，也再次说明误差传播高度依赖模型。Deep单层方向关闭；Qwen layer9
+只进入T8/T512三进程正式反驳。搜索轮吞吐未轮换、未重复，明确不参与选择。
+
+![FP8 layer leave-one-out](assets/fp8-layer-leave-one-out.svg)

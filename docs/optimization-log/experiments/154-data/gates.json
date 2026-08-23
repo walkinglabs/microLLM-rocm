@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "status": "qwen_candidate_deep_single_layer_closed",
+  "evidence": {
+    "fresh_build_steps": 50,
+    "contracts_passed": 2,
+    "rows": 56,
+    "candidates": 52,
+    "complete_logits_per_row": 151936,
+    "qwen_layers_once": 24,
+    "deepseek_layers_once": 28,
+    "qwen_both_metrics_non_worse": 20,
+    "deepseek_both_metrics_non_worse": 0,
+    "complete_precision_gates_passed": 0
+  },
+  "decision": {
+    "screening_keep": false,
+    "shared_single_fp32_layer_viable": false,
+    "deepseek_single_fp32_layer_closed": true,
+    "qwen_layer9_requires_formal_short_long_matrix": true,
+    "throughput_used_for_selection": false,
+    "complete_fp8_precision_available": false,
+    "retain_fp32_layer_diagnostic_api": true
+  }
+}

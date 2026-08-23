@@ -1,0 +1,334 @@
+{
+  "all_checks_passed": true,
+  "build": {
+    "binary": "/tmp/microllm-exp154-build.blZShW/apps/microllm_hf_infer",
+    "build": "/tmp/microllm-exp154-build.blZShW/build.log",
+    "configure": "/tmp/microllm-exp154-build.blZShW/configure.log",
+    "directory": "/tmp/microllm-exp154-build.blZShW",
+    "hf_cli": "/tmp/microllm-exp154-build.blZShW/hf-cli-binary-contract.log",
+    "matrix_contract": "/tmp/microllm-exp154-build.blZShW/hf-fp8-matrix-contract.log",
+    "steps": 50
+  },
+  "execution": {
+    "all_finite": true,
+    "all_logits151936": true,
+    "candidates": 52,
+    "directory": "/tmp/microllm-exp154-layer-loo-final",
+    "exit": 0,
+    "rows": 56,
+    "stderr": 0
+  },
+  "experiment": "Exp154",
+  "models": {
+    "deepseek-r1-distill-qwen-1.5b": {
+      "baseline": {
+        "context": 8,
+        "engine_peak_bytes": 2506785480,
+        "fp32_layer": null,
+        "fp8_dynamic_tensor_calls": 113,
+        "fp8_linears_covered": 197,
+        "fp8_native_shapes": 4,
+        "fp8_output_column_scale_calls": 28,
+        "fp8_software_fallback_calls": 28,
+        "fp8_software_fallback_shapes": 1,
+        "logit_count": 151936,
+        "maximum_absolute_error": 0.7741536945104599,
+        "model": "deepseek-r1-distill-qwen-1.5b",
+        "post_run_gpu_state": {
+          "gpu_use_percent": 3,
+          "physical_gpu_index": 2,
+          "vram_percent": 0
+        },
+        "pre_run_gpu_state": {
+          "gpu_use_percent": 1,
+          "physical_gpu_index": 2,
+          "vram_percent": 0
+        },
+        "precision_gate_passed": false,
+        "prefill_tokens_per_second": 3.802523395,
+        "reference_top_token": 10,
+        "resident_weight_bytes": 2477816484,
+        "revision": "ad9f0ae0864d7fbcd1cd905e3c6c5b069cc8b562",
+        "root_mean_square_error": 0.1730619472731373,
+        "schema_version": 1,
+        "status": "pass",
+        "top_token": 10,
+        "top_token_equal": true,
+        "track": "official_fp8_layer_leave_one_out",
+        "variant": "baseline"
+      },
+      "best_candidate": {
+        "context": 8,
+        "engine_peak_bytes": 2647157424,
+        "fp32_layer": 9,
+        "fp8_dynamic_tensor_calls": 109,
+        "fp8_linears_covered": 190,
+        "fp8_native_shapes": 4,
+        "fp8_output_column_scale_calls": 27,
+        "fp8_software_fallback_calls": 27,
+        "fp8_software_fallback_shapes": 1,
+        "logit_count": 151936,
+        "maximum_absolute_error": 0.7913603782653809,
+        "maximum_not_worse": false,
+        "maximum_over_baseline": 1.022226444021302,
+        "model": "deepseek-r1-distill-qwen-1.5b",
+        "post_run_gpu_state": {
+          "gpu_use_percent": 3,
+          "physical_gpu_index": 2,
+          "vram_percent": 0
+        },
+        "pre_run_gpu_state": {
+          "gpu_use_percent": 1,
+          "physical_gpu_index": 2,
+          "vram_percent": 0
+        },
+        "precision_gate_passed": false,
+        "prefill_tokens_per_second": 2.134139043,
+        "reference_top_token": 10,
+        "resident_weight_bytes": 2618188428,
+        "revision": "ad9f0ae0864d7fbcd1cd905e3c6c5b069cc8b562",
+        "rms_not_worse": true,
+        "rms_over_baseline": 0.9937959373288626,
+        "root_mean_square_error": 0.1719882601062657,
+        "schema_version": 1,
+        "status": "pass",
+        "top_token": 10,
+        "top_token_equal": true,
+        "track": "official_fp8_layer_leave_one_out",
+        "variant": "leave_one_out"
+      },
+      "best_delta": {
+        "max": 0.01720668375492096,
+        "max_percent": 2.2226444021302028,
+        "rms": -0.0010736871668716175,
+        "rms_percent": -0.6204062671137378
+      },
+      "both_non_worse_count": 0,
+      "candidate_rows": 28,
+      "each_layer_once": true,
+      "expected_layers": 28,
+      "layer_values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27
+      ],
+      "precision_gate_pass_count": 0,
+      "routing_contract": {
+        "dynamic_values": [
+          109
+        ],
+        "expected_dynamic": 109,
+        "expected_linears": 190,
+        "expected_post": 27,
+        "fallback_calls_values": [
+          27
+        ],
+        "fallback_shapes_values": [
+          1
+        ],
+        "linears_values": [
+          190
+        ],
+        "native_shapes_values": [
+          4
+        ],
+        "passed": true,
+        "post_values": [
+          27
+        ]
+      },
+      "top_equal_count": 28
+    },
+    "qwen2.5-0.5b": {
+      "baseline": {
+        "context": 8,
+        "engine_peak_bytes": 903415908,
+        "fp32_layer": null,
+        "fp8_dynamic_tensor_calls": 96,
+        "fp8_linears_covered": 168,
+        "fp8_native_shapes": 4,
+        "fp8_output_column_scale_calls": 24,
+        "fp8_software_fallback_calls": 0,
+        "fp8_software_fallback_shapes": 0,
+        "logit_count": 151936,
+        "maximum_absolute_error": 1.2144723534584045,
+        "model": "qwen2.5-0.5b",
+        "post_run_gpu_state": {
+          "gpu_use_percent": 3,
+          "physical_gpu_index": 2,
+          "vram_percent": 0
+        },
+        "pre_run_gpu_state": {
+          "gpu_use_percent": 1,
+          "physical_gpu_index": 2,
+          "vram_percent": 0
+        },
+        "precision_gate_passed": false,
+        "prefill_tokens_per_second": 3.042694108,
+        "reference_top_token": 9707,
+        "resident_weight_bytes": 902737984,
+        "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+        "root_mean_square_error": 0.2778311788476209,
+        "schema_version": 1,
+        "status": "pass",
+        "top_token": 9707,
+        "top_token_equal": true,
+        "track": "official_fp8_layer_leave_one_out",
+        "variant": "baseline"
+      },
+      "best_candidate": {
+        "context": 8,
+        "engine_peak_bytes": 948140620,
+        "fp32_layer": 9,
+        "fp8_dynamic_tensor_calls": 92,
+        "fp8_linears_covered": 161,
+        "fp8_native_shapes": 4,
+        "fp8_output_column_scale_calls": 23,
+        "fp8_software_fallback_calls": 0,
+        "fp8_software_fallback_shapes": 0,
+        "logit_count": 151936,
+        "maximum_absolute_error": 0.8654556274414062,
+        "maximum_not_worse": true,
+        "maximum_over_baseline": 0.7126186322618895,
+        "model": "qwen2.5-0.5b",
+        "post_run_gpu_state": {
+          "gpu_use_percent": 2,
+          "physical_gpu_index": 2,
+          "vram_percent": 0
+        },
+        "pre_run_gpu_state": {
+          "gpu_use_percent": 1,
+          "physical_gpu_index": 2,
+          "vram_percent": 0
+        },
+        "precision_gate_passed": false,
+        "prefill_tokens_per_second": 1.828054726,
+        "reference_top_token": 9707,
+        "resident_weight_bytes": 947462696,
+        "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+        "rms_not_worse": true,
+        "rms_over_baseline": 0.6657641343587154,
+        "root_mean_square_error": 0.18497003428334774,
+        "schema_version": 1,
+        "status": "pass",
+        "top_token": 9707,
+        "top_token_equal": true,
+        "track": "official_fp8_layer_leave_one_out",
+        "variant": "leave_one_out"
+      },
+      "best_delta": {
+        "max": -0.3490167260169983,
+        "max_percent": -28.73813677381105,
+        "rms": -0.09286114456427313,
+        "rms_percent": -33.42358656412846
+      },
+      "both_non_worse_count": 20,
+      "candidate_rows": 24,
+      "each_layer_once": true,
+      "expected_layers": 24,
+      "layer_values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23
+      ],
+      "precision_gate_pass_count": 0,
+      "routing_contract": {
+        "dynamic_values": [
+          92
+        ],
+        "expected_dynamic": 92,
+        "expected_linears": 161,
+        "expected_post": 23,
+        "fallback_calls_values": [
+          0
+        ],
+        "fallback_shapes_values": [
+          0
+        ],
+        "linears_values": [
+          161
+        ],
+        "native_shapes_values": [
+          4
+        ],
+        "passed": true,
+        "post_values": [
+          23
+        ]
+      },
+      "top_equal_count": 24
+    }
+  },
+  "preflight": [
+    {
+      "gpu_use_percent": 0,
+      "physical_gpu_index": 2,
+      "sample": 1,
+      "timestamp_utc": "2026-08-23T17:32:23.430957+00:00",
+      "vram_percent": 0
+    },
+    {
+      "gpu_use_percent": 0,
+      "physical_gpu_index": 2,
+      "sample": 2,
+      "timestamp_utc": "2026-08-23T17:32:33.548818+00:00",
+      "vram_percent": 0
+    },
+    {
+      "gpu_use_percent": 0,
+      "physical_gpu_index": 2,
+      "sample": 3,
+      "timestamp_utc": "2026-08-23T17:32:43.668620+00:00",
+      "vram_percent": 0
+    }
+  ],
+  "revision": "147864a0374fc51e27bfe4df5001652ec7e9c16d",
+  "schema_version": 1,
+  "selection_boundary": "Leave-one-out screening only. Best candidate is ranked by complete precision gate, top equality, RMS, Max, layer. Throughput is diagnostic and never selects a layer."
+}

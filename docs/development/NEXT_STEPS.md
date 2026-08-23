@@ -195,7 +195,12 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] prove residual cancellation algebraically: Qwen factor17.02x, Deep4.45x,
   with exact block/error-vector reconstruction;
 - [x] implement validated `fp8_fp32_layers` mixed prepared models with zero payload transfer;
-- [ ] run Qwen21/Deep27 FP32-block counterfactual on complete logits and performance;
+- [x] run Qwen21/Deep27 FP32-block counterfactual on complete logits and performance;
+- [x] exhaustively screen every single FP32 block at T8: Qwen layer 9 improves both
+  metrics, while no DeepSeek layer keeps both Max/RMS non-worse;
+- [ ] run the selected Qwen layer 9 candidate through repeated T8/T512 gates;
+- [x] test and reject model-level E5 activations: all eight Max/RMS metrics worsen
+  1.51x–3.43x while the mixed-format operator primitive remains supported;
 - [ ] replace the one-block reduction only if the next accepted numerical policy reuses it;
 - [ ] replace global FP8 scales with weight per-tensor and activation per-row/token amax,
   starting from saturation/trace evidence rather than top-token search;

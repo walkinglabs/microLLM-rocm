@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="690" viewBox="0 0 1180 690" role="img" aria-labelledby="title desc">
+  <title id="title">FP8 single-layer leave-one-out sensitivity</title>
+  <desc id="desc">Qwen layer nine improves both complete-logit errors, while no DeepSeek layer improves both.</desc>
+  <rect width="1180" height="690" rx="20" fill="#0b1020"/>
+  <text x="56" y="58" fill="#f8fafc" font-size="29" font-family="sans-serif" font-weight="700">逐层FP32反事实：同一个layer 9，两模型结论相反</text>
+  <text x="56" y="91" fill="#94a3b8" font-size="16" font-family="sans-serif">相对完整FP8 baseline；1.0虚线是不退化边界</text>
+  <line x1="500" y1="125" x2="500" y2="520" stroke="#94a3b8" stroke-width="2" stroke-dasharray="8 7"/>
+  <text x="478" y="548" fill="#cbd5e1" font-size="14" font-family="sans-serif">1.0×</text>
+  <line x1="1060" y1="125" x2="1060" y2="520" stroke="#94a3b8" stroke-width="2" stroke-dasharray="8 7"/>
+  <text x="1038" y="548" fill="#cbd5e1" font-size="14" font-family="sans-serif">1.0×</text>
+  <text x="70" y="165" fill="#f8fafc" font-size="22" font-family="sans-serif" font-weight="700">Qwen layer 9</text>
+  <text x="70" y="200" fill="#94a3b8" font-size="15" font-family="sans-serif">20/24层 Max与RMS同时不差</text>
+  <rect x="180" y="240" width="228" height="46" rx="7" fill="#22c55e"/>
+  <rect x="180" y="310" width="213" height="46" rx="7" fill="#38bdf8"/>
+  <text x="70" y="270" fill="#cbd5e1" font-size="16" font-family="sans-serif">Max</text>
+  <text x="70" y="340" fill="#cbd5e1" font-size="16" font-family="sans-serif">RMS</text>
+  <text x="420" y="270" fill="#86efac" font-size="17" font-family="sans-serif" font-weight="700">0.713×</text>
+  <text x="405" y="340" fill="#7dd3fc" font-size="17" font-family="sans-serif" font-weight="700">0.666×</text>
+  <text x="650" y="165" fill="#f8fafc" font-size="22" font-family="sans-serif" font-weight="700">DeepSeek layer 9</text>
+  <text x="650" y="200" fill="#94a3b8" font-size="15" font-family="sans-serif">0/28层 Max与RMS同时不差</text>
+  <rect x="740" y="240" width="327" height="46" rx="7" fill="#ef4444"/>
+  <rect x="740" y="310" width="318" height="46" rx="7" fill="#38bdf8"/>
+  <text x="650" y="270" fill="#cbd5e1" font-size="16" font-family="sans-serif">Max</text>
+  <text x="650" y="340" fill="#cbd5e1" font-size="16" font-family="sans-serif">RMS</text>
+  <text x="1077" y="270" fill="#fca5a5" font-size="17" font-family="sans-serif" font-weight="700">1.022×</text>
+  <text x="1068" y="340" fill="#7dd3fc" font-size="17" font-family="sans-serif" font-weight="700">0.994×</text>
+  <rect x="115" y="585" width="950" height="66" rx="14" fill="#111827" stroke="#334155"/>
+  <text x="175" y="612" fill="#cbd5e1" font-size="17" font-family="sans-serif">56 rows · 52 layers · 每行151,936 logits · top全部一致</text>
+  <text x="175" y="638" fill="#fbbf24" font-size="16" font-family="sans-serif">Deep单层关闭；Qwen layer9进入T8/T512正式反驳，不在搜索轮keep</text>
+</svg>

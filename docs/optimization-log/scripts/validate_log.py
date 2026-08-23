@@ -6474,6 +6474,96 @@ def validate_fp8_e5_activation_discard(
         verification.get("complete_precision", {}).get("passes", -1)
 
 
+def validate_fp8_layer_leave_one_out(
+        errors: list[str]) -> tuple[int, int, int]:
+    data = ROOT / "experiments" / "154-data"
+    verification = json.loads(
+        (data / "verification.json").read_text(encoding="utf-8"))
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    gates = json.loads((data / "gates.json").read_text(encoding="utf-8"))
+    raw_rows = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    stdout_rows = sum(1 for line in (data / "stdout.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip())
+    preflight_rows = sum(1 for line in (data / "gpu2-preflight.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip())
+    execution = verification.get("execution", {})
+    if verification.get("all_checks_passed") is not True or \
+            verification.get("revision") != \
+            "147864a0374fc51e27bfe4df5001652ec7e9c16d" or \
+            execution.get("rows") != 56 or execution.get("candidates") != 52 or \
+            execution.get("all_logits151936") is not True or \
+            execution.get("all_finite") is not True or \
+            execution.get("exit") != 0 or execution.get("stderr") != 0 or \
+            len(raw_rows) != 56 or stdout_rows != 56 or preflight_rows != 3 or \
+            (data / "stderr.log").stat().st_size != 0 or \
+            (data / "exit-code.txt").read_text(encoding="utf-8").strip() != "0":
+        errors.append("FP8 layer leave-one-out execution contract changed")
+    models = verification.get("models", {})
+    expected = {
+        "qwen2.5-0.5b": {
+            "layers": 24, "linears": 161, "dynamic": 92, "post": 23,
+            "both": 20, "max_low": 0.71, "max_high": 0.72,
+            "rms_low": 0.66, "rms_high": 0.67,
+        },
+        "deepseek-r1-distill-qwen-1.5b": {
+            "layers": 28, "linears": 190, "dynamic": 109, "post": 27,
+            "both": 0, "max_low": 1.02, "max_high": 1.03,
+            "rms_low": 0.99, "rms_high": 1.0,
+        },
+    }
+    if set(models) != set(expected):
+        errors.append("FP8 layer leave-one-out model set changed")
+    for name, contract in expected.items():
+        model = models.get(name, {})
+        best = model.get("best_candidate", {})
+        routing = model.get("routing_contract", {})
+        if model.get("candidate_rows") != contract["layers"] or \
+                model.get("layer_values") != list(range(contract["layers"])) or \
+                model.get("each_layer_once") is not True or \
+                model.get("both_non_worse_count") != contract["both"] or \
+                model.get("precision_gate_pass_count") != 0 or \
+                model.get("top_equal_count") != contract["layers"] or \
+                best.get("fp32_layer") != 9 or \
+                not contract["max_low"] < best.get("maximum_over_baseline", 0) < \
+                    contract["max_high"] or \
+                not contract["rms_low"] < best.get("rms_over_baseline", 0) < \
+                    contract["rms_high"] or \
+                routing.get("passed") is not True or \
+                routing.get("linears_values") != [contract["linears"]] or \
+                routing.get("dynamic_values") != [contract["dynamic"]] or \
+                routing.get("post_values") != [contract["post"]]:
+            errors.append(f"FP8 layer leave-one-out {name} result changed")
+    if summary.get("candidate_count") != 52 or len(summary.get("rows", [])) != 56 or \
+            any(row.get("logit_count") != 151936 or
+                row.get("top_token_equal") is not True for row in raw_rows):
+        errors.append("FP8 layer leave-one-out summary/logit contract changed")
+    decision = gates.get("decision", {})
+    evidence = gates.get("evidence", {})
+    if decision.get("screening_keep") is not False or \
+            decision.get("shared_single_fp32_layer_viable") is not False or \
+            decision.get("deepseek_single_fp32_layer_closed") is not True or \
+            decision.get("qwen_layer9_requires_formal_short_long_matrix") is not True or \
+            decision.get("throughput_used_for_selection") is not False or \
+            evidence.get("rows") != 56 or evidence.get("candidates") != 52 or \
+            "[50/50]" not in (data / "fresh-build.log").read_text(
+                encoding="utf-8") or \
+            "contract: pass" not in (data / "hf-cli-binary-contract.log").read_text(
+                encoding="utf-8") or \
+            "OK" not in (data / "hf-fp8-matrix-contract.log").read_text(
+                encoding="utf-8"):
+        errors.append("FP8 layer leave-one-out decision/build gates changed")
+    runner = (REPOSITORY / "benchmarks/single_gpu/"
+              "hf_fp8_layer_leave_one_out.py").read_text(encoding="utf-8")
+    for token in ("attention-output-only", "tensor-amax", "rank_candidates",
+                  "throughput is diagnostic only"):
+        if token not in runner:
+            errors.append(f"FP8 layer leave-one-out runner lost contract: {token}")
+    return execution.get("rows", 0), execution.get("candidates", 0), \
+        models.get("deepseek-r1-distill-qwen-1.5b", {}).get(
+            "both_non_worse_count", -1)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -6605,7 +6695,8 @@ def validate_assets(errors: list[str]) -> None:
                  "fp8-fraction-pilot-workload-invalid.svg",
                  "fp8-clipped-coarse-grid.svg",
                  "fp8-clipped-fine-grid.svg",
-                 "fp8-e5-activation-discard.svg"):
+                 "fp8-e5-activation-discard.svg",
+                 "fp8-layer-leave-one-out.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -6845,6 +6936,8 @@ def main() -> int:
         validate_fp8_clipped_fine_grid(errors)
     e5_workers, e5_fp8, e5_precision = \
         validate_fp8_e5_activation_discard(errors)
+    layer_rows, layer_candidates, layer_deep_nonworse = \
+        validate_fp8_layer_leave_one_out(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -7033,6 +7126,8 @@ def main() -> int:
           f"{coarse_selected} "
           f"clipped_fine={fine_workers}/{fine_comparisons}/{fine_selected} "
           f"e5_activation={e5_workers}/{e5_fp8}/{e5_precision} "
+          f"layer_leave_one_out={layer_rows}/{layer_candidates}/"
+          f"{layer_deep_nonworse} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

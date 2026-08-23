@@ -1,0 +1,3 @@
+{"gpu_use_percent": 0, "physical_gpu_index": 2, "sample": 1, "timestamp_utc": "2026-08-23T17:32:23.430957+00:00", "vram_percent": 0}
+{"gpu_use_percent": 0, "physical_gpu_index": 2, "sample": 2, "timestamp_utc": "2026-08-23T17:32:33.548818+00:00", "vram_percent": 0}
+{"gpu_use_percent": 0, "physical_gpu_index": 2, "sample": 3, "timestamp_utc": "2026-08-23T17:32:43.668620+00:00", "vram_percent": 0}

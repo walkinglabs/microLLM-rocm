@@ -670,6 +670,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/152-data/](experiments/152-data/) | 精细20-worker网格与模型clipping关闭门 |
 | [assets/fp8-e5-activation-discard.svg](assets/fp8-e5-activation-discard.svg) | E5相对E4的八项完整logits误差回归 |
 | [experiments/153-data/](experiments/153-data/) | E5/control共72 worker、格式与调度计数及拒绝门 |
+| [assets/fp8-layer-leave-one-out.svg](assets/fp8-layer-leave-one-out.svg) | Qwen/DeepSeek全部单层FP32敏感度与反例 |
+| [experiments/154-data/](experiments/154-data/) | 56行完整logits、52层排名与routing合同 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 
