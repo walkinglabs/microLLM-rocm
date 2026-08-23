@@ -109,6 +109,19 @@ zero timing fields. Passing candidates receive default-Stream HIP Event and sync
 wall P50/P95. The command only screens by default; `--accept true --cache-output ...` is
 explicit and still requires a separate model end-to-end regression.
 
+BF16 Linear training can also screen version-local hipBLASLt solution indices:
+
+```bash
+./build/hip-release/benchmarks/microllm_tune_bf16_algorithms \
+  --rows 512 --inner 896 --columns 896 --output-dtype fp32 \
+  --maximum-algorithms 64 --workspace-bytes 33554432 \
+  --warmup 2 --repetitions 5
+```
+
+It clears its process-local registry after screening and never writes a default. The
+explicit `hf_train_step --bf16-algorithms M:K:N:index,...` seam exists for model rebuttal
+experiments; solution indices are backend-version local and are not a persistent policy.
+
 `microllm_bench_ops` 的 matmul 路径还接受 `--batch`，例如：
 
 ```bash

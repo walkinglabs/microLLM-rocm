@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "experiment": "Exp160",
+  "operator": {
+    "shapes": 8,
+    "fresh_processes": 24,
+    "candidates_per_process": 64,
+    "candidate_evaluations": 1536,
+    "common_passing_candidates_per_shape": 64,
+    "minimum_speedup": 1.031359827,
+    "maximum_speedup": 1.189180121,
+    "maximum_absolute_error": 2.801e-06,
+    "maximum_rms_error": 7.44e-07,
+    "stable_same_index_shapes": 1
+  },
+  "training": {
+    "runs_per_model_policy": 3,
+    "all_shapes_qwen_speedup": 0.995382983,
+    "all_shapes_deepseek_speedup": 1.005207474,
+    "selective_qwen_speedup": 1.020010221,
+    "selective_deepseek_speedup": 1.007262740,
+    "policies_passing_both_models": 0,
+    "maximum_peak_ratio": 1.000281759,
+    "maximum_loss_relative_difference": 0.003271967,
+    "observed_parameter_after_equal": true
+  },
+  "safety": {
+    "screening_registry_entries_after": 0,
+    "default_solution_registrations": 0,
+    "persistent_solution_cache_written": false
+  },
+  "regression": {
+    "cpu": "255/255",
+    "asan_ubsan": "253/253",
+    "pytorch_enabled_cpu": "229/229",
+    "full_cpu_hip": "381/381",
+    "hip_label": "122/122",
+    "conditional_skips": 2,
+    "package_consumer": "pass",
+    "coverage_lines_percent": 80.0,
+    "coverage_branches_percent": 61.3
+  },
+  "decision": "discard model solution policy; retain explicit diagnostics"
+}

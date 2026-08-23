@@ -16,8 +16,8 @@
 ```text
 framework CPU                 255/255 pass
 CPU ASan/UBSan                253/253 pass
-full CPU/HIP configuration    380/380 pass (2 conditional skips)
-MI300X/gfx942 HIP             121/121 pass
+full CPU/HIP configuration    381/381 pass (2 conditional skips)
+MI300X/gfx942 HIP             122/122 pass
 PyTorch-enabled CPU           229/229 pass
 two-rank RCCL                  11/11 pass
 registered test files               54

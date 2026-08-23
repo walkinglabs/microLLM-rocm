@@ -5,6 +5,8 @@
 #include <filesystem>
 #include <iomanip>
 #include <iostream>
+#include <limits>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -23,6 +25,47 @@ struct StepResult {
     double optimizer_ms = 0.0;
     microllm::runtime::TransferStats transfers;
 };
+
+struct Bf16AlgorithmRegistration {
+    std::int64_t rows = 0;
+    std::int64_t inner = 0;
+    std::int64_t columns = 0;
+    int index = -1;
+};
+
+std::vector<Bf16AlgorithmRegistration> parse_bf16_algorithms(
+    const std::string& text) {
+    if (text.empty()) return {};
+    std::vector<Bf16AlgorithmRegistration> result;
+    std::stringstream records(text);
+    std::string record;
+    while (std::getline(records, record, ',')) {
+        std::stringstream fields(record);
+        std::string field;
+        std::vector<std::int64_t> values;
+        while (std::getline(fields, field, ':')) {
+            if (field.empty()) throw std::invalid_argument("empty BF16 algorithm field");
+            std::int64_t value = 0;
+            const auto parsed = std::from_chars(
+                field.data(), field.data() + field.size(), value);
+            if (parsed.ec != std::errc{} ||
+                parsed.ptr != field.data() + field.size()) {
+                throw std::invalid_argument(
+                    "BF16 algorithms must be rows:inner:columns:index records");
+            }
+            values.push_back(value);
+        }
+        if (values.size() != 4 || values[0] <= 0 || values[1] <= 0 ||
+            values[2] <= 0 || values[3] < 0 ||
+            values[3] > std::numeric_limits<int>::max()) {
+            throw std::invalid_argument(
+                "BF16 algorithms must be rows:inner:columns:index records");
+        }
+        result.push_back({values[0], values[1], values[2],
+                          static_cast<int>(values[3])});
+    }
+    return result;
+}
 
 std::vector<std::int32_t> parse_tokens(std::string_view text) {
     std::vector<std::int32_t> output;
@@ -57,6 +100,7 @@ int main(int argc, char** argv) {
         int batch_size = 1;
         std::string linear_precision = "fp32";
         std::string adamw_implementation = "auto";
+        std::string bf16_algorithm_text;
         bool bf16_weight_mirrors = true;
         for (int index = 1; index < argc; index += 2) {
             if (index + 1 >= argc) throw std::invalid_argument("missing CLI value");
@@ -72,6 +116,9 @@ int main(int argc, char** argv) {
             else if (name == "--linear-precision") linear_precision = argv[index + 1];
             else if (name == "--adamw-implementation") {
                 adamw_implementation = argv[index + 1];
+            }
+            else if (name == "--bf16-algorithms") {
+                bf16_algorithm_text = argv[index + 1];
             }
             else if (name == "--bf16-weight-mirrors") {
                 const std::string value = argv[index + 1];
@@ -98,6 +145,12 @@ int main(int argc, char** argv) {
             throw std::invalid_argument(
                 "--adamw-implementation must be auto, scalar, or vectorized");
         }
+        const auto bf16_algorithms = parse_bf16_algorithms(bf16_algorithm_text);
+        if (!bf16_algorithms.empty() &&
+            (linear_precision != "bf16" || device_text != "hip")) {
+            throw std::invalid_argument(
+                "--bf16-algorithms requires BF16 training on HIP");
+        }
         const auto device = device_text == "hip" ? microllm::Device::hip(0)
                                                    : microllm::Device::cpu();
         if (device_text != "cpu" && device_text != "hip") {
@@ -106,6 +159,12 @@ int main(int argc, char** argv) {
         auto external = microllm::model::load_huggingface_config(config_path);
         if (linear_precision == "bf16") {
             external.model.linear_precision = microllm::model::LinearPrecision::BFloat16;
+        }
+        microllm::ops::clear_bf16_algorithm_registry();
+        for (const auto& algorithm : bf16_algorithms) {
+            microllm::ops::register_bf16_algorithm(
+                algorithm.rows, algorithm.inner, algorithm.columns,
+                microllm::DType::Float32, algorithm.index);
         }
         microllm::runtime::reset_allocation_peak(device);
         microllm::model::TransformerModel model(
@@ -224,6 +283,9 @@ int main(int argc, char** argv) {
                   << ",\"bf16_weight_mirrors_enabled\":"
                   << (!bf16_mirrors.empty() ? "true" : "false")
                   << ",\"adamw_implementation\":\"" << adamw_implementation << "\""
+                  << ",\"bf16_algorithm_registrations\":"
+                  << bf16_algorithms.size()
+                  << ",\"bf16_algorithm_spec\":\"" << bf16_algorithm_text << "\""
                   << ",\"measurement_profile\":\""
                   << (warmup > 0 || steps > 1 ? "comparison" : "smoke") << "\""
                   << ",\"loaded_tensors\":" << report.loaded.size()

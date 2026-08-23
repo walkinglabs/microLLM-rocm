@@ -73,6 +73,9 @@ needed to run a real training and generation loop:
 - phase-differential training profiling subtracts load+one-step from load+three-step traces;
   it rejects load-only cast-transpose as a false training hotspot and attributes 53.47% of
   current Qwen T512 Kernel time to exact-shape hipBLASLt GEMMs;
+- BF16 training solution-index screening over eight exact shapes and 1,536 complete-output
+  candidates; isolated medians improve up to 1.189×, but all-shape/selective model policies
+  reach only 0.995×–1.020× on Qwen and 1.005×–1.007× on DeepSeek, so no default is retained;
 - a phase-independent exact-size HIP pool with immediate legacy-default-Stream reuse and strict
   permanent disablement for non-default Streams;
 - a cross-framework trace runner for operator/layer values and latency comparisons.
@@ -366,7 +369,7 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 380/380 | 260 CPU-labelled + 121 HIP-labelled gates; the package gate belongs to both labels; 2 intentional environment skips |
+| Full CPU/HIP configuration | 381/381 | 260 CPU-labelled + 122 HIP-labelled gates; the package gate belongs to both labels; 2 intentional environment skips |
 | ASan/UBSan CPU | 253/253 | host code, CLI, model/graph, benchmark and evidence schemas |
 | MI300X/gfx942 HIP preset | 117/117 | 116 allocator/stream, graph, autotune, BF16/FP8 and model gates + 1 installed-package gate |
 | PyTorch-enabled CPU build | 229/229 | dispatcher parity, full graph/model oracle and ordinary CPU suite |

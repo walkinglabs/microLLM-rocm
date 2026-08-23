@@ -7005,6 +7005,55 @@ def validate_post_bias_training_profile(
     return len(categories), float(gemm.get("kernel_share", 0))
 
 
+def validate_bf16_training_solution_discard(
+        errors: list[str]) -> tuple[int, int, int]:
+    data = REPOSITORY / "benchmarks/results/2026-08-23-bf16-training-solutions"
+    verification = json.loads((data / "verification.json").read_text(encoding="utf-8"))
+    matrix = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    training = json.loads((data / "training-comparison.json").read_text(
+        encoding="utf-8"))
+    summaries = matrix.get("summaries", [])
+    candidate_evaluations = sum(len(row.get("candidates", [])) for row in raw)
+    if verification.get("status") != "pass" or matrix.get("status") != "pass" or \
+            verification.get("regression", {}).get("full_cpu_hip") != "381/381" or \
+            verification.get("regression", {}).get("hip_label") != "122/122" or \
+            len(raw) != 24 or len(summaries) != 8 or candidate_evaluations != 1536 or \
+            any(row.get("registry_entries_after_screening") != 0 or
+                row.get("passing_candidates") != 64 or
+                any(candidate.get("correctness_passed") is not True or
+                    candidate.get("event_ms_p50", 0) <= 0 or
+                    candidate.get("wall_ms_p50", 0) <= 0
+                    for candidate in row.get("candidates", []))
+                for row in raw) or \
+            any(row.get("common_passing_candidates") != 64 or
+                row.get("maximum_absolute_error", 1) > 1e-4 or
+                row.get("maximum_rms_error", 1) > 1e-5
+                for row in summaries):
+        errors.append("BF16 training solution operator evidence changed")
+    comparisons = training.get("comparisons", [])
+    if training.get("status") != "pass" or len(comparisons) != 2 or \
+            training.get("policies_passing_both_models") != [] or \
+            any(row.get("all_shapes_speedup", 2) >= 1.05 or
+                row.get("selective_speedup", 2) >= 1.05 or
+                row.get("all_shapes_parameter_equal") is not True or
+                row.get("selective_parameter_equal") is not True
+                for row in comparisons):
+        errors.append("BF16 training solution model rejection changed")
+    tuner = (REPOSITORY / "benchmarks/micro/tune_bf16_algorithms.cpp").read_text(
+        encoding="utf-8")
+    cli = (REPOSITORY / "apps/hf_train_step.cpp").read_text(encoding="utf-8")
+    compare_position = tuner.find("const auto actual = checked.to_vector")
+    timing_position = tuner.find("start.record_default_stream", compare_position)
+    if compare_position < 0 or timing_position < 0 or compare_position > timing_position or \
+            "clear_bf16_algorithm_registry" not in tuner or \
+            "--bf16-algorithms" not in cli or \
+            "rows:inner:columns:index" not in cli:
+        errors.append("BF16 training solution tuner/CLI contract changed")
+    return len(raw), candidate_evaluations, len(comparisons)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -7142,7 +7191,8 @@ def validate_assets(errors: list[str]) -> None:
                  "block-reduction-determinism.svg",
                  "adamw-correctness-before-timing.svg",
                  "cooperative-bias-gradient.svg",
-                 "post-bias-training-profile.svg"):
+                 "post-bias-training-profile.svg",
+                 "bf16-training-solution-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -7398,6 +7448,8 @@ def main() -> int:
         validate_cooperative_bias_gradient(errors)
     phase_categories, phase_gemm_share = \
         validate_post_bias_training_profile(errors)
+    solution_rows, solution_candidates, solution_models = \
+        validate_bf16_training_solution_discard(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -7600,6 +7652,8 @@ def main() -> int:
           f"bias_gradient={bias_rows}/{bias_models}/"
           f"{bias_profile_speedup:.2f} "
           f"phase_delta={phase_categories}/{phase_gemm_share:.3f} "
+          f"bf16_solutions={solution_rows}/{solution_candidates}/"
+          f"{solution_models} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

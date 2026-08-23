@@ -25,6 +25,10 @@ if(MICROLLM_HAS_HIP AND MICROLLM_HAS_HIPBLASLT)
                    micro/benchmark_bf16_algorithms.cpp)
     target_link_libraries(microllm_bench_bf16_algorithms PRIVATE
         microllm::ops microllm::runtime hip::host roc::hipblaslt)
+    add_executable(microllm_tune_bf16_algorithms
+                   micro/tune_bf16_algorithms.cpp)
+    target_link_libraries(microllm_tune_bf16_algorithms PRIVATE
+        microllm::ops microllm::runtime hip::host roc::hipblaslt)
     add_executable(microllm_tune_matmul micro/tune_matmul.cpp)
     target_link_libraries(microllm_tune_matmul PRIVATE
         microllm::ops microllm::runtime hip::host roc::hipblaslt)
@@ -254,6 +258,13 @@ if(BUILD_TESTING)
                              --mode inference --accept false)
             set_tests_properties(Benchmark.HipMatmulAutotune PROPERTIES
                                  LABELS "hip;benchmark;matmul;autotune;correctness;smoke")
+            add_test(NAME Benchmark.HipBf16SolutionTune
+                     COMMAND microllm_tune_bf16_algorithms
+                             --rows 64 --inner 128 --columns 128
+                             --output-dtype fp32 --maximum-algorithms 4
+                             --workspace-bytes 33554432 --warmup 1 --repetitions 2)
+            set_tests_properties(Benchmark.HipBf16SolutionTune PROPERTIES
+                                 LABELS "hip;benchmark;matmul;bf16;solution;correctness;smoke")
         endif()
         add_test(NAME Benchmark.HipGenerateSmoke
                  COMMAND microllm_bench_model --mode generate --model tiny --device hip

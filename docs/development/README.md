@@ -90,6 +90,8 @@ the next gate. Records are append-only except for factual corrections.
   contiguous-column 2D reduction, 32-row crossover and same-revision official training win.
 - [2026-08-23-post-bias-training-profile.md](2026-08-23-post-bias-training-profile.md):
   phase subtraction removes load-only false hotspots and selects exact training GEMM solutions.
+- [2026-08-23-bf16-training-solutions.md](2026-08-23-bf16-training-solutions.md):
+  1,536 complete-output solution screens and rejected all/selective model policies.
 - [2026-08-19-m6-rccl-equivalence.md](2026-08-19-m6-rccl-equivalence.md): real two-GPU
   all-reduce and single/global-batch training-step equivalence.
 - [2026-08-19-m6-buckets-and-four-rank-failure.md](2026-08-19-m6-buckets-and-four-rank-failure.md):

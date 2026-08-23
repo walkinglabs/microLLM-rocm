@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| CPU configuration | smoke-tested | full CPU/HIP gate 380/380 with 260 CPU and 121 HIP labels; ASan/UBSan 253/253 | broader compiler/OS CI matrix |
+| CPU configuration | smoke-tested | full CPU/HIP gate 381/381 with 260 CPU and 122 HIP labels; ASan/UBSan 253/253 | broader compiler/OS CI matrix |
 | CPU code coverage | smoke-tested | 80.0% lines, 89.5% functions, 61.3% branches over `src/` + `include/`; HIP-only tuner/Kernel paths remain visible as CPU gaps | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, native cast, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
@@ -70,6 +70,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Optimization experiment journal | implemented | experiments through 156; raw evidence, rejection gates and generated SVGs validated in CTest | HIP Graph, Radeon and production data-parallel tracks |
 | rocprofv3 workflow | smoke-tested | kernel/HIP API/memory/full trace generated | release artifact retention |
 | hipBLASLt matmul | smoke-tested | FP32/BF16, rank-N strided batches, four transpose contracts, Model-S and T≥256 Attention forward/backward | workspace-aware candidate enumeration/timing |
+| BF16 solution tuning | smoke-tested | eight T512 shapes, 24 processes, 1,536 complete-output candidates and two rejected model policies | stable cross-process winner plus both-model 1.05 gate before persistence |
 | Matmul tuning registry | smoke-tested | exact persistent key plus complete-output gate, Event/wall P50/P95 and explicit acceptance | solution-index enumeration and automatic model regression |
 | RCCL two-GPU baseline | smoke-tested | XGMI average and global-batch parameter equivalence | buckets/4 GPU/failure timing |
 | DataParallelTrainer | smoke-tested | 3-step two-rank/global-batch equivalence, rank diff 0, stage trace | one-process-per-GPU/gradient-ready overlap |

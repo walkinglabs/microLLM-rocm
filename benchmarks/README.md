@@ -55,6 +55,19 @@ Bias-gradient implementations have a complete-output micro benchmark:
 processes over the 16/32-row boundary and Qwen/DeepSeek widths. Auto keeps Scalar below
 32 rows and selects the cooperative 2D reduction at or above the measured crossover.
 
+Screen version-local hipBLASLt BF16 solution indices without installing a default:
+
+```bash
+./build/hip-release/benchmarks/microllm_tune_bf16_algorithms \
+  --rows 512 --inner 896 --columns 896 --output-dtype fp32 \
+  --maximum-algorithms 64 --workspace-bytes 33554432 \
+  --warmup 2 --repetitions 5
+```
+
+`bf16_training_solution_matrix.py` repeats all eight Qwen/DeepSeek T512 forward shapes.
+`hf_train_step --bf16-algorithms M:K:N:index,...` is an explicit process-local research
+seam. It is not an environment-safe default or persistent cache.
+
 `microllm_bench_model` measures train or cache-backed generation throughput. Its
 `tokens_per_second` excludes construction and warm-up; `tokens_per_second_with_setup`
 includes construction, device transfer, optimizer allocation, and warm-up. Both are

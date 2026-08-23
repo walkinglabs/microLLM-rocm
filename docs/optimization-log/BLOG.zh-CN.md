@@ -2681,3 +2681,15 @@ Event和墙钟P50/P95。筛选不改调用者状态，也不改live registry；�
 GEMM solution-index枚举。下一节点不再优化假热点，也不重复已失败方案。
 
 ![Post-bias training profile](assets/post-bias-training-profile.svg)
+
+## 177. Experiment 160：单题快19%，整机仍然不过门
+
+新tuner对8个BF16训练shape各跑3个fresh process，每进程筛64个solution；1536次候选全部先过
+完整输出，再记录Event/墙钟。算子中位改善1.031×–1.189×，但只有Qwen down在三进程里选中
+同一个单次冠军，其他shape的最快index会漂移。
+
+显式接入全部四shape后，Qwen/Deep为0.995×/1.005×；删除低收益gate/up也只有
+1.020×/1.007×。peak最多增0.028%，loss差小于0.328%，参数guard相同——这是纯性能拒绝。
+保留诊断tuner、matrix和process-local CLI，不设默认、不持久化版本相关index。
+
+![BF16 training solution discard](assets/bf16-training-solution-discard.svg)

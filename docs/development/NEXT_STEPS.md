@@ -114,8 +114,9 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   keeping Scalar below the measured 32-row crossover and passing two official training gates;
 - [x] warm up and repeat HIP Event/wall timing with P50/P95 for passing candidates;
 - [ ] automate the model end-to-end regression before accepting a recommendation;
-- [ ] enumerate hipBLASLt solution indices for exact training GEMM keys, then persist only
-  winners that pass complete output/gradient and both official model gates;
+- [x] enumerate 64 hipBLASLt solution indices over eight exact BF16 training shapes with
+  complete output before timing; reject all/selective model policies below the 1.05 gate;
+- [ ] persist solution indices only after a future policy passes both official models;
 - [x] persist exact matmul decisions with schema validation, atomic replacement,
   transactional duplicate/corruption rejection and environment-version invalidation;
 - [x] schema-versioned `TraceSession`, scoped activation, and RAII `TraceTimer` C++ API;

@@ -1,0 +1,178 @@
+{
+  "raw_rows": 24,
+  "runs_per_shape": 3,
+  "schema_version": 1,
+  "status": "pass",
+  "summaries": [
+    {
+      "columns": 896,
+      "common_passing_candidates": 64,
+      "default_event_ms_p50_median": 0.028224001,
+      "inner": 896,
+      "maximum_absolute_error": 4.17e-07,
+      "maximum_rms_error": 7.4e-08,
+      "operator_speedup": 1.1891801213449058,
+      "per_run_recommendations": [
+        98683,
+        98676,
+        98695
+      ],
+      "recommended_event_ms_p50_median": 0.023734,
+      "recommended_index": 98676,
+      "rows": 512,
+      "runs": 3,
+      "schema_version": 1,
+      "shape_name": "qwen_qo",
+      "status": "pass"
+    },
+    {
+      "columns": 128,
+      "common_passing_candidates": 64,
+      "default_event_ms_p50_median": 0.0263,
+      "inner": 896,
+      "maximum_absolute_error": 3.58e-07,
+      "maximum_rms_error": 9.9e-08,
+      "operator_speedup": 1.1862342699923323,
+      "per_run_recommendations": [
+        98587,
+        98590,
+        98591
+      ],
+      "recommended_event_ms_p50_median": 0.022171,
+      "recommended_index": 98590,
+      "rows": 512,
+      "runs": 3,
+      "schema_version": 1,
+      "shape_name": "qwen_kv",
+      "status": "pass"
+    },
+    {
+      "columns": 4864,
+      "common_passing_candidates": 64,
+      "default_event_ms_p50_median": 0.162169993,
+      "inner": 896,
+      "maximum_absolute_error": 1.19e-07,
+      "maximum_rms_error": 2.2e-08,
+      "operator_speedup": 1.031359827035283,
+      "per_run_recommendations": [
+        98864,
+        98876,
+        98887
+      ],
+      "recommended_event_ms_p50_median": 0.157239005,
+      "recommended_index": 98864,
+      "rows": 512,
+      "runs": 3,
+      "schema_version": 1,
+      "shape_name": "qwen_gate_up",
+      "status": "pass"
+    },
+    {
+      "columns": 896,
+      "common_passing_candidates": 64,
+      "default_event_ms_p50_median": 0.042537,
+      "inner": 4864,
+      "maximum_absolute_error": 1.252e-06,
+      "maximum_rms_error": 3.53e-07,
+      "operator_speedup": 1.0994882133995036,
+      "per_run_recommendations": [
+        98724,
+        98724,
+        98724
+      ],
+      "recommended_event_ms_p50_median": 0.038688,
+      "recommended_index": 98724,
+      "rows": 512,
+      "runs": 3,
+      "schema_version": 1,
+      "shape_name": "qwen_down",
+      "status": "pass"
+    },
+    {
+      "columns": 1536,
+      "common_passing_candidates": 64,
+      "default_event_ms_p50_median": 0.166859999,
+      "inner": 1536,
+      "maximum_absolute_error": 8.34e-07,
+      "maximum_rms_error": 2.82e-07,
+      "operator_speedup": 1.0832884646579637,
+      "per_run_recommendations": [
+        98721,
+        98710,
+        98707
+      ],
+      "recommended_event_ms_p50_median": 0.154030994,
+      "recommended_index": 98710,
+      "rows": 512,
+      "runs": 3,
+      "schema_version": 1,
+      "shape_name": "deep_qo",
+      "status": "pass"
+    },
+    {
+      "columns": 256,
+      "common_passing_candidates": 64,
+      "default_event_ms_p50_median": 0.025859,
+      "inner": 1536,
+      "maximum_absolute_error": 8.34e-07,
+      "maximum_rms_error": 2.55e-07,
+      "operator_speedup": 1.1559161414331054,
+      "per_run_recommendations": [
+        98606,
+        98607,
+        98607
+      ],
+      "recommended_event_ms_p50_median": 0.022371,
+      "recommended_index": 98607,
+      "rows": 512,
+      "runs": 3,
+      "schema_version": 1,
+      "shape_name": "deep_kv",
+      "status": "pass"
+    },
+    {
+      "columns": 8960,
+      "common_passing_candidates": 64,
+      "default_event_ms_p50_median": 0.185303003,
+      "inner": 1536,
+      "maximum_absolute_error": 2.38e-07,
+      "maximum_rms_error": 4.4e-08,
+      "operator_speedup": 1.04429006997791,
+      "per_run_recommendations": [
+        98919,
+        98919,
+        98932
+      ],
+      "recommended_event_ms_p50_median": 0.177443996,
+      "recommended_index": 98919,
+      "rows": 512,
+      "runs": 3,
+      "schema_version": 1,
+      "shape_name": "deep_gate_up",
+      "status": "pass"
+    },
+    {
+      "columns": 1536,
+      "common_passing_candidates": 64,
+      "default_event_ms_p50_median": 0.205828995,
+      "inner": 8960,
+      "maximum_absolute_error": 2.801e-06,
+      "maximum_rms_error": 7.44e-07,
+      "operator_speedup": 1.1117358538146038,
+      "per_run_recommendations": [
+        98732,
+        98769,
+        98860
+      ],
+      "recommended_event_ms_p50_median": 0.185141996,
+      "recommended_index": 98769,
+      "rows": 512,
+      "runs": 3,
+      "schema_version": 1,
+      "shape_name": "deep_down",
+      "status": "pass"
+    }
+  ],
+  "track": "bf16_training_solution_matrix",
+  "workspace_limit_bytes": 33554432
+}

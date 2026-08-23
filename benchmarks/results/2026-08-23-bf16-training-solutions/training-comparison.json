@@ -1,0 +1,73 @@
+{
+  "comparisons": [
+    {
+      "all_shapes_loss_relative_difference": 6.48493488320924e-05,
+      "all_shapes_parameter_equal": true,
+      "all_shapes_peak_ratio": 1.0002522574247066,
+      "all_shapes_speedup": 1.0052074737136059,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "policies": {
+        "all_shapes": {
+          "engine_peak_bytes": 37420363784,
+          "final_loss": 4.036540508,
+          "observed_parameter_after": 2.124970913,
+          "tokens_per_second": 6073.747945795
+        },
+        "baseline": {
+          "engine_peak_bytes": 37410926600,
+          "final_loss": 4.036802292,
+          "observed_parameter_after": 2.124970913,
+          "tokens_per_second": 6042.282916338
+        },
+        "selective": {
+          "engine_peak_bytes": 37420363784,
+          "final_loss": 4.036540508,
+          "observed_parameter_after": 2.124970913,
+          "tokens_per_second": 6086.166446786
+        }
+      },
+      "selective_loss_relative_difference": 6.48493488320924e-05,
+      "selective_parameter_equal": true,
+      "selective_peak_ratio": 1.0002522574247066,
+      "selective_speedup": 1.0072627401026426
+    },
+    {
+      "all_shapes_loss_relative_difference": 0.0032719664885901764,
+      "all_shapes_parameter_equal": true,
+      "all_shapes_peak_ratio": 1.0002817588353328,
+      "all_shapes_speedup": 0.9953829831590238,
+      "model": "qwen2.5-0.5b",
+      "policies": {
+        "all_shapes": {
+          "engine_peak_bytes": 13029050376,
+          "final_loss": 0.016962277,
+          "observed_parameter_after": 7.468718052,
+          "tokens_per_second": 14157.199972399
+        },
+        "baseline": {
+          "engine_peak_bytes": 13025380360,
+          "final_loss": 0.016906958,
+          "observed_parameter_after": 7.468718052,
+          "tokens_per_second": 14222.867189741
+        },
+        "selective": {
+          "engine_peak_bytes": 13029050376,
+          "final_loss": 0.016956182,
+          "observed_parameter_after": 7.468718052,
+          "tokens_per_second": 14507.469909007
+        }
+      },
+      "selective_loss_relative_difference": 0.0029114640256396505,
+      "selective_parameter_equal": true,
+      "selective_peak_ratio": 1.0002817588353328,
+      "selective_speedup": 1.0200102212492912
+    }
+  ],
+  "decision": "discard model solution policy; retain explicit diagnostic tooling",
+  "keep_gate": 1.05,
+  "policies_passing_both_models": [],
+  "runs_per_model_policy": 3,
+  "schema_version": 1,
+  "status": "pass",
+  "track": "bf16_solution_training_comparison"
+}
