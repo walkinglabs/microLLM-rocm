@@ -191,7 +191,8 @@ def main() -> int:
                             "prefill_tokens_per_second"],
                         "resident_weight_bytes": output["resident_weight_bytes"],
                         "engine_peak_bytes": output["engine_peak_bytes"],
-                        "preparation_seconds": output.get("preparation_seconds", 0.0),
+                        "weight_preparation_ms": output.get(
+                            "weight_preparation_ms", 0.0),
                         "converted_tensors": output.get(
                             "fp8_converted_tensors" if policy == "fp8"
                             else "bf16_ffn_converted_tensors", 0),
@@ -234,8 +235,8 @@ def main() -> int:
                     "resident_weight_bytes": selected[0]["resident_weight_bytes"],
                     "engine_peak_bytes_p50": statistics.median(
                         row["engine_peak_bytes"] for row in selected),
-                    "preparation_seconds_p50": statistics.median(
-                        row["preparation_seconds"] for row in selected),
+                    "weight_preparation_ms_p50": statistics.median(
+                        row["weight_preparation_ms"] for row in selected),
                     "maximum_absolute_error_max": max(
                         row["maximum_absolute_error"] for row in selected),
                     "root_mean_square_error_max": max(

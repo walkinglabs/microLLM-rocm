@@ -55,7 +55,7 @@ class HfFp8MatrixTest(unittest.TestCase):
     def test_complete_logit_metrics_do_not_replace_preparation_evidence(self):
         comparison = MATRIX.compare_logits([1.0, 2.0], [1.0, 2.0])
         self.assertTrue(comparison["precision_gate_passed"])
-        self.assertNotIn("preparation_seconds", comparison)
+        self.assertNotIn("weight_preparation_ms", comparison)
 
 
 if __name__ == "__main__":

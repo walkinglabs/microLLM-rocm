@@ -1515,6 +1515,9 @@ int main(int argc, char** argv) {
                   << ",\"bf16_prepare_ms\":"
                   << std::chrono::duration<double, std::milli>(
                          preparation_finish - preparation_start).count()
+                  << ",\"weight_preparation_ms\":"
+                  << std::chrono::duration<double, std::milli>(
+                         preparation_finish - preparation_start).count()
                   << ",\"preparation_current_bytes\":"
                   << preparation_allocation.current_bytes
                   << ",\"preparation_peak_bytes\":"
