@@ -1,0 +1,4 @@
+"Name","Calls","TotalDurationNs","AverageNs","Percentage","MinNs","MaxNs","StdDev"
+"microllm::ops::hip::(anonymous namespace)::add_kernel(float const*, float const*, float*, long)",2560,4933650,1927.207031,99.00,682,9461,491.211592
+"void microllm::ops::hip::(anonymous namespace)::fill_typed_kernel<float>(float*, long, float)",20,31672,1583.600000,0.6356,681,4490,1091.647591
+"__amd_rocclr_copyBuffer",3,17922,5974.000000,0.3596,3769,7578,1974.340649

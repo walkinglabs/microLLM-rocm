@@ -369,3 +369,5 @@ the next gate. Records are append-only except for factual corrections.
   unequal-position shared-Storage B1 oracle with CPU/HIP and reset-prefix gates.
 - [2026-08-24-unique-gradient-inplace-add.md](2026-08-24-unique-gradient-inplace-add.md):
   exclusive-owner accumulation, real allocation savings and a default-off model rebuttal.
+- [2026-08-24-hip-graph-runtime.md](2026-08-24-hip-graph-runtime.md):
+  explicit-Stream capture/replay, submission crossover and honest model-readiness blockers.

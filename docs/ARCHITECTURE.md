@@ -149,6 +149,37 @@ The AdamW operator is a concrete example: `Scalar` and `Vectorized` are selectab
 `Auto` stays on Scalar because exact-shape float4 wins did not survive the official-model
 gate. Selection policy is evidence, not an alias for the newest Kernel.
 
+## HIP Graph ownership boundary
+
+`runtime::HipGraphExecutable` captures work submitted to one explicit HIP `Stream`,
+instantiates it once and replays it on a Stream from the same device. It is move-only because
+one executable owns one backend graph handle.
+
+Graph capture stores raw device addresses inside its nodes. Therefore every Tensor referenced by
+the callback must be caller-owned and remain alive until the final replay has completed. The
+runtime does not retain arbitrary callback locals and does not turn a temporary Tensor into safe
+Storage by accident.
+
+```text
+caller allocates stable input/output Storage
+        ↓
+capture explicit-Stream operators
+        ↓
+instantiate and destroy template graph
+        ↓
+replay while every address is still alive
+```
+
+Synchronous allocation inside capture is an expected error on the tested HIP runtime. The
+exception path ends abandoned capture state and clears the sticky backend error so an eager
+fallback or later valid capture can use the same Stream. CPU capture, empty callbacks/graphs,
+undefined launch and cross-device replay fail explicitly.
+
+This is not yet a model execution mode. Eager model/autograd APIs create temporary Tensor Storage
+and do not propagate one `OpContext::stream` through the whole graph. Until a liveness planner or
+caller-owned activation region makes those addresses stable, wrapping `model.loss()` in capture
+would violate this ownership contract.
+
 hipBLASLt GEMM also supports contiguous strided batches: leading Tensor dimensions become
 the batch count and last-two dimensions remain the matrix contract. Explicit batched
 selection is tested independently; Auto is not changed by operator-only timing.

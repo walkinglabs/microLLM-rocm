@@ -2872,3 +2872,27 @@ profile给出因果解释。Qwen三步少216次engine allocation和216次cache r
 失败；必须让add Kernel本身消失，或由整张计算图统一规划梯度寿命。
 
 ![Unique-gradient in-place accumulation discarded](assets/unique-gradient-inplace-add-discard.svg)
+
+## 190. Experiment 173：把几百张工单装进一个文件袋
+
+上一步少了allocation账本，却没有少发Kernel。HIP Graph换了更大的边界：第一次把一串GPU工作
+录下来，以后CPU只提交一次“重放整串工作”。但它也有硬条件——录下来的每个地址必须一直有效，
+capture期间不能偷偷做同步malloc/copy/free。
+
+我们先实现最小而真实的runtime原语，不直接包装Transformer。调用者先拥有input/output Storage，
+再用一条显式Stream capture、instantiate、replay。一次故意在capture里创建Tensor的测试发现：
+分配虽然正确失败，HIP还留下sticky error，下一次合法Kernel也会被“previous error”连坐。修复后的
+异常路径会结束废弃capture、清掉sticky error、保留原异常，然后同一Stream可以继续合法capture。
+
+MI300X上做了60个fresh进程。1/8个add节点时Graph只有0.59×/0.83–0.89×，因为文件袋本身也要
+成本；32个节点开始超过1，128个达到1.50–1.57×，512个达到1.73–1.91×。两种元素规模全部精确、
+零payload传输，node count也恰好是N次add加1次fill。
+
+profiler进一步说明它优化了什么：128节点×20次时，执行Kernel同为2583次；eager在host发2580次
+Kernel launch，Graph只在capture时发129次，再做20次graph launch。总HIP API从12990降到802。
+
+所以runtime原语keep，但不能写“Qwen已经Graph加速”。当前model/autograd没有把同一Stream传到底，
+中间Tensor又会动态申请和释放。下一步必须先做caller-owned的真实vendor GEMM区域，再解决Stream和
+liveness；直接在`model.loss()`外套begin/end capture已经被证据否定。
+
+![HIP Graph submission crossover](assets/hip-graph-submission-crossover.svg)

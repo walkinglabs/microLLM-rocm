@@ -4,6 +4,7 @@
 
 #include <cstring>
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <limits>
 #include <map>
@@ -562,6 +563,133 @@ void Stream::synchronize() const {
     check_hip(hipStreamSynchronize(as_stream(impl_->handle)), "hipStreamSynchronize");
 #else
     throw std::runtime_error("microLLM was built without HIP support");
+#endif
+}
+
+struct HipGraphExecutable::Impl {
+    Device device = Device::cpu();
+    void* executable = nullptr;
+    std::size_t nodes = 0;
+};
+
+HipGraphExecutable::HipGraphExecutable() = default;
+
+HipGraphExecutable::HipGraphExecutable(std::unique_ptr<Impl> impl)
+    : impl_(std::move(impl)) {}
+
+HipGraphExecutable::~HipGraphExecutable() {
+#if MICROLLM_HAS_HIP
+    if (impl_ && impl_->executable != nullptr) {
+        (void)hipSetDevice(impl_->device.index());
+        (void)hipGraphExecDestroy(
+            reinterpret_cast<hipGraphExec_t>(impl_->executable));
+    }
+#endif
+}
+
+HipGraphExecutable::HipGraphExecutable(HipGraphExecutable&&) noexcept = default;
+HipGraphExecutable& HipGraphExecutable::operator=(HipGraphExecutable&&) noexcept = default;
+
+HipGraphExecutable HipGraphExecutable::capture(
+    const Stream& stream, const std::function<void()>& capture_work) {
+    if (!capture_work) throw std::invalid_argument("HIP graph capture work is empty");
+    if (stream.device().is_cpu()) {
+        throw std::runtime_error("HIP graph capture requires a HIP Stream");
+    }
+#if MICROLLM_HAS_HIP
+    set_device(stream.device());
+    const auto native_stream = as_stream(stream.native_handle());
+    check_hip(hipStreamBeginCapture(native_stream, hipStreamCaptureModeThreadLocal),
+              "hipStreamBeginCapture");
+    try {
+        capture_work();
+    } catch (...) {
+        hipGraph_t abandoned = nullptr;
+        if (hipStreamEndCapture(native_stream, &abandoned) == hipSuccess &&
+            abandoned != nullptr) {
+            (void)hipGraphDestroy(abandoned);
+        }
+        // Capture-unsafe calls such as synchronous hipMalloc can leave a
+        // sticky launch error even after EndCapture resets the Stream state.
+        // Preserve the original C++ exception while making the Stream usable
+        // by an eager fallback or a later valid capture.
+        (void)hipGetLastError();
+        throw;
+    }
+
+    hipGraph_t graph = nullptr;
+    const auto end_status = hipStreamEndCapture(native_stream, &graph);
+    if (end_status != hipSuccess) {
+        if (graph != nullptr) (void)hipGraphDestroy(graph);
+        (void)hipGetLastError();
+        check_hip(end_status, "hipStreamEndCapture");
+    }
+
+    std::size_t nodes = 0;
+    const auto nodes_status = hipGraphGetNodes(graph, nullptr, &nodes);
+    if (nodes_status != hipSuccess) {
+        (void)hipGraphDestroy(graph);
+        check_hip(nodes_status, "hipGraphGetNodes");
+    }
+    if (nodes == 0) {
+        (void)hipGraphDestroy(graph);
+        throw std::invalid_argument("HIP graph capture produced no device nodes");
+    }
+
+    hipGraphExec_t executable = nullptr;
+    hipGraphNode_t error_node = nullptr;
+    std::array<char, 2048> log{};
+    const auto instantiate_status = hipGraphInstantiate(
+        &executable, graph, &error_node, log.data(), log.size());
+    (void)error_node;
+    (void)hipGraphDestroy(graph);
+    if (instantiate_status != hipSuccess) {
+        if (executable != nullptr) (void)hipGraphExecDestroy(executable);
+        std::string message = "hipGraphInstantiate: ";
+        message += hipGetErrorString(instantiate_status);
+        if (log.front() != '\0') message += std::string("; ") + log.data();
+        throw std::runtime_error(message);
+    }
+
+    auto impl = std::make_unique<Impl>();
+    impl->device = stream.device();
+    impl->executable = reinterpret_cast<void*>(executable);
+    impl->nodes = nodes;
+    return HipGraphExecutable(std::move(impl));
+#else
+    (void)stream;
+    throw std::runtime_error("microLLM was built without HIP graph support");
+#endif
+}
+
+bool HipGraphExecutable::defined() const noexcept {
+    return impl_ && impl_->executable != nullptr;
+}
+
+Device HipGraphExecutable::device() const {
+    if (!defined()) throw std::logic_error("undefined HIP graph has no device");
+    return impl_->device;
+}
+
+std::size_t HipGraphExecutable::node_count() const {
+    if (!defined()) throw std::logic_error("undefined HIP graph has no nodes");
+    return impl_->nodes;
+}
+
+void HipGraphExecutable::launch(const Stream& stream) const {
+    if (!defined()) throw std::logic_error("cannot launch an undefined HIP graph");
+    if (stream.device() != impl_->device) {
+        throw std::invalid_argument("HIP graph launch Stream uses a different device");
+    }
+#if MICROLLM_HAS_HIP
+    set_device(impl_->device);
+    check_hip(hipGraphLaunch(
+                  reinterpret_cast<hipGraphExec_t>(impl_->executable),
+                  as_stream(stream.native_handle())),
+              "hipGraphLaunch");
+#else
+    (void)stream;
+    throw std::runtime_error("microLLM was built without HIP graph support");
 #endif
 }
 

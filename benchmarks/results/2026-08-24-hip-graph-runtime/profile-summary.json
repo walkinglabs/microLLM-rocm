@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "workload": "128 add nodes plus one fill, one element, zero warm-up, 20 repetitions",
+  "policies": {
+    "eager": {
+      "kernel_calls": 2583,
+      "kernel_duration_ns": 4983244,
+      "total_hip_api_calls": 12990,
+      "hip_launch_kernel_calls": 2580,
+      "hip_graph_launch_calls": 0
+    },
+    "graph": {
+      "kernel_calls": 2583,
+      "kernel_duration_ns": 11750096,
+      "total_hip_api_calls": 802,
+      "hip_launch_kernel_calls": 129,
+      "hip_graph_launch_calls": 20,
+      "capture_calls": 1,
+      "instantiate_calls": 1
+    }
+  },
+  "delta": {
+    "kernel_calls": 0,
+    "hip_api_calls_saved": 12188,
+    "host_kernel_launch_calls_saved": 2451
+  },
+  "interpretation": "Graph replay keeps the same device Kernel work but replaces per-repetition host Kernel submissions with one graph launch. Profiled absolute durations include tracer overhead and are not the performance gate."
+}

@@ -197,6 +197,21 @@ It also defaults false after Experiment 171; the zero-stride model-routing famil
 This produces HIP API/kernel/allocation traces, statistics, JSON, CSV, and Perfetto
 output when supported by the installed rocprofv3.
 
+For HIP Graph submission crossover measurements:
+
+```bash
+./build/hip-release/benchmarks/microllm_bench_hip_graph \
+  --mode graph --nodes 128 --elements 4096 --warmup 5 --repetitions 20
+
+python3 benchmarks/single_gpu/hip_graph_matrix.py \
+  --binary build/hip-release/benchmarks/microllm_bench_hip_graph \
+  --output-directory /tmp/microllm-hip-graph
+```
+
+The benchmark owns every captured input/output allocation and reports setup separately from
+replay. It is a runtime launch-overhead measurement, not evidence that the eager Transformer can
+already be captured. See Experiment 173 for the allocation/Stream blockers.
+
 ## What remains
 
 There is no Python `@profile` decorator yet. The current stable entry points are the

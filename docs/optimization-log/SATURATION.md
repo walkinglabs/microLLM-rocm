@@ -126,6 +126,12 @@ HIP allocation/free, add Kernel count and peak are unchanged. Throughput reaches
 1.0042×/0.9952× and misses the declared two-model 1.01 gate. Another `use_count` predicate is
 not a new hypothesis; future work must remove add computation or plan lifetimes graph-wide.
 
+Experiment 173 confirms that the architectural submission track is materially different from
+the saturated local edits. Caller-owned HIP Graph replay improves every 32–512-node row by
+1.207×–1.909× while preserving device Kernel count; one/eight-node counterexamples prevent a
+universal policy. The runtime primitive is retained, but this does not reopen local M=1 decode:
+model integration now requires explicit Stream propagation and stable graph-wide Storage.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

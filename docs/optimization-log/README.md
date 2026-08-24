@@ -708,6 +708,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/171-forward-only-gqa-value-broadcast-discard.md](experiments/171-forward-only-gqa-value-broadcast-discard.md) | zero-stride模型路线关闭证据 |
 | [assets/unique-gradient-inplace-add-discard.svg](assets/unique-gradient-inplace-add-discard.svg) | 真正少allocation但不减少device工作的反例 |
 | [experiments/172-unique-gradient-inplace-add-discard.md](experiments/172-unique-gradient-inplace-add-discard.md) | 独占owner合同、两模型A/B与rocprofv3拒绝门 |
+| [assets/hip-graph-submission-crossover.svg](assets/hip-graph-submission-crossover.svg) | 1/8节点反例与32–512节点Graph收益拐点 |
+| [experiments/173-hip-graph-runtime.md](experiments/173-hip-graph-runtime.md) | caller-owned capture、sticky-error恢复与模型阻塞边界 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

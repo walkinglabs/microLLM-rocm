@@ -1,0 +1,250 @@
+{
+  "aggregation": "median of fresh processes with alternating mode order",
+  "comparisons": [
+    {
+      "captured_node_count_correct": true,
+      "elements": 1,
+      "event_speedup": 0.4359575798798468,
+      "nodes": 1,
+      "policies": {
+        "eager": {
+          "captured_nodes": 0.0,
+          "event_median_ms": 0.00743700005,
+          "setup_ms": 0.0,
+          "wall_median_ms": 0.015363,
+          "wall_p95_ms": 0.02098495
+        },
+        "graph": {
+          "captured_nodes": 2.0,
+          "event_median_ms": 0.0170589993,
+          "setup_ms": 12.550436,
+          "wall_median_ms": 0.02582,
+          "wall_p95_ms": 0.03121875
+        }
+      },
+      "wall_speedup": 0.5950038729666925
+    },
+    {
+      "captured_node_count_correct": true,
+      "elements": 1,
+      "event_speedup": 0.8842633113137949,
+      "nodes": 8,
+      "policies": {
+        "eager": {
+          "captured_nodes": 0.0,
+          "event_median_ms": 0.0251174998,
+          "setup_ms": 0.0,
+          "wall_median_ms": 0.032976,
+          "wall_p95_ms": 0.04814975
+        },
+        "graph": {
+          "captured_nodes": 9.0,
+          "event_median_ms": 0.0284050005,
+          "setup_ms": 12.396475,
+          "wall_median_ms": 0.037062,
+          "wall_p95_ms": 0.03829625
+        }
+      },
+      "wall_speedup": 0.889752306945119
+    },
+    {
+      "captured_node_count_correct": true,
+      "elements": 1,
+      "event_speedup": 1.3498983343768147,
+      "nodes": 32,
+      "policies": {
+        "eager": {
+          "captured_nodes": 0.0,
+          "event_median_ms": 0.0882415026,
+          "setup_ms": 0.0,
+          "wall_median_ms": 0.098596,
+          "wall_p95_ms": 0.12371385
+        },
+        "graph": {
+          "captured_nodes": 33.0,
+          "event_median_ms": 0.0653689988,
+          "setup_ms": 13.621897,
+          "wall_median_ms": 0.074228,
+          "wall_p95_ms": 0.075646
+        }
+      },
+      "wall_speedup": 1.3282858220617557
+    },
+    {
+      "captured_node_count_correct": true,
+      "elements": 1,
+      "event_speedup": 1.5887279747244463,
+      "nodes": 128,
+      "policies": {
+        "eager": {
+          "captured_nodes": 0.0,
+          "event_median_ms": 0.338532507,
+          "setup_ms": 0.0,
+          "wall_median_ms": 0.3478325,
+          "wall_p95_ms": 0.4909444
+        },
+        "graph": {
+          "captured_nodes": 129.0,
+          "event_median_ms": 0.213083997,
+          "setup_ms": 12.681641,
+          "wall_median_ms": 0.221928,
+          "wall_p95_ms": 0.22597745
+        }
+      },
+      "wall_speedup": 1.5673213835117696
+    },
+    {
+      "captured_node_count_correct": true,
+      "elements": 1,
+      "event_speedup": 1.9280792010086145,
+      "nodes": 512,
+      "policies": {
+        "eager": {
+          "captured_nodes": 0.0,
+          "event_median_ms": 1.55008602,
+          "setup_ms": 0.0,
+          "wall_median_ms": 1.558238,
+          "wall_p95_ms": 1.63835505
+        },
+        "graph": {
+          "captured_nodes": 513.0,
+          "event_median_ms": 0.803953499,
+          "setup_ms": 13.988557,
+          "wall_median_ms": 0.8163755,
+          "wall_p95_ms": 0.94730655
+        }
+      },
+      "wall_speedup": 1.9087270502360738
+    },
+    {
+      "captured_node_count_correct": true,
+      "elements": 4096,
+      "event_speedup": 0.44394979456420414,
+      "nodes": 1,
+      "policies": {
+        "eager": {
+          "captured_nodes": 0.0,
+          "event_median_ms": 0.00777800009,
+          "setup_ms": 0.0,
+          "wall_median_ms": 0.015894,
+          "wall_p95_ms": 0.01872455
+        },
+        "graph": {
+          "captured_nodes": 2.0,
+          "event_median_ms": 0.0175199993,
+          "setup_ms": 12.09593,
+          "wall_median_ms": 0.0269305,
+          "wall_p95_ms": 0.02841235
+        }
+      },
+      "wall_speedup": 0.5901858487588422
+    },
+    {
+      "captured_node_count_correct": true,
+      "elements": 4096,
+      "event_speedup": 0.8088267154860025,
+      "nodes": 8,
+      "policies": {
+        "eager": {
+          "captured_nodes": 0.0,
+          "event_median_ms": 0.0242555002,
+          "setup_ms": 0.0,
+          "wall_median_ms": 0.0319815,
+          "wall_p95_ms": 0.04519945
+        },
+        "graph": {
+          "captured_nodes": 9.0,
+          "event_median_ms": 0.0299885003,
+          "setup_ms": 12.675665,
+          "wall_median_ms": 0.0386555,
+          "wall_p95_ms": 0.0419613
+        }
+      },
+      "wall_speedup": 0.827346690639107
+    },
+    {
+      "captured_node_count_correct": true,
+      "elements": 4096,
+      "event_speedup": 1.245944179141293,
+      "nodes": 32,
+      "policies": {
+        "eager": {
+          "captured_nodes": 0.0,
+          "event_median_ms": 0.0891635008,
+          "setup_ms": 0.0,
+          "wall_median_ms": 0.0972155,
+          "wall_p95_ms": 0.118385
+        },
+        "graph": {
+          "captured_nodes": 33.0,
+          "event_median_ms": 0.071562998,
+          "setup_ms": 12.373304,
+          "wall_median_ms": 0.0805115,
+          "wall_p95_ms": 0.08835225
+        }
+      },
+      "wall_speedup": 1.207473466523416
+    },
+    {
+      "captured_node_count_correct": true,
+      "elements": 4096,
+      "event_speedup": 1.5307322549159954,
+      "nodes": 128,
+      "policies": {
+        "eager": {
+          "captured_nodes": 0.0,
+          "event_median_ms": 0.3638895,
+          "setup_ms": 0.0,
+          "wall_median_ms": 0.3730305,
+          "wall_p95_ms": 0.53739605
+        },
+        "graph": {
+          "captured_nodes": 129.0,
+          "event_median_ms": 0.237722501,
+          "setup_ms": 13.579486,
+          "wall_median_ms": 0.2482295,
+          "wall_p95_ms": 0.2507367
+        }
+      },
+      "wall_speedup": 1.5027645787466841
+    },
+    {
+      "captured_node_count_correct": true,
+      "elements": 4096,
+      "event_speedup": 1.737017736242234,
+      "nodes": 512,
+      "policies": {
+        "eager": {
+          "captured_nodes": 0.0,
+          "event_median_ms": 1.56031001,
+          "setup_ms": 0.0,
+          "wall_median_ms": 1.56984,
+          "wall_p95_ms": 1.6800513
+        },
+        "graph": {
+          "captured_nodes": 513.0,
+          "event_median_ms": 0.898269475,
+          "setup_ms": 13.439534,
+          "wall_median_ms": 0.9086895,
+          "wall_p95_ms": 0.91078145
+        }
+      },
+      "wall_speedup": 1.7275868159585863
+    }
+  ],
+  "decision": "keep caller-owned HIP Graph runtime primitive",
+  "gate_results": {
+    "captured_node_count": true,
+    "exact_and_transfer_free": true,
+    "wall_speedup_nodes_ge_32": true
+  },
+  "keep_gate": {
+    "captured_nodes": "requested add nodes plus one fill node",
+    "maximum_absolute_error": 0.0,
+    "timed_payload_transfers": 0,
+    "wall_speedup_minimum_for_nodes_ge_32": 1.05
+  },
+  "runs_per_case_mode": 3,
+  "schema_version": 1,
+  "status": "pass"
+}

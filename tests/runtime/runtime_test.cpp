@@ -1,9 +1,12 @@
 #include <array>
 #include <stdexcept>
+#include <utility>
 #include <vector>
 
 #include <gtest/gtest.h>
 #include <microllm/core/tensor.h>
+#include <microllm/ops/low_level.h>
+#include <microllm/ops/ops.h>
 #include <microllm/runtime/memory.h>
 #include <microllm/runtime/runtime.h>
 #include <microllm/runtime/diagnostics.h>
@@ -71,7 +74,79 @@ TEST(RuntimeTest, StridedCopyDiagnosticsAggregateExactLayoutOnlyWhenEnabled) {
     reset_strided_copy_diagnostics();
 }
 
+TEST(HipGraphTest, CpuAndUndefinedContractsAreExplicit) {
+    HipGraphExecutable graph;
+    EXPECT_FALSE(graph.defined());
+    EXPECT_THROW((void)graph.device(), std::logic_error);
+    EXPECT_THROW((void)graph.node_count(), std::logic_error);
+    const Stream cpu_stream(Device::cpu());
+    EXPECT_THROW(graph.launch(cpu_stream), std::logic_error);
+    EXPECT_THROW(
+        (void)HipGraphExecutable::capture(cpu_stream, [] {}),
+        std::runtime_error);
+    EXPECT_THROW(
+        (void)HipGraphExecutable::capture(cpu_stream, {}),
+        std::invalid_argument);
+}
+
 #if MICROLLM_HAS_HIP
+TEST(HipGraphTest, CapturesReplaysAndMovesCallerOwnedOperatorChain) {
+    if (hip_device_count() == 0) GTEST_SKIP() << "No visible HIP device";
+    const auto gpu = Device::hip(0);
+    auto left = Tensor::from_vector({1, 2, 3, 4}, {2, 2}).to(gpu);
+    const auto right = Tensor::from_vector({5, 6, 7, 8}, {2, 2}).to(gpu);
+    Tensor sum({2, 2}, DType::Float32, gpu);
+    Tensor product({2, 2}, DType::Float32, gpu);
+    Stream stream(gpu);
+    ops::OpContext context;
+    context.stream = &stream;
+
+    EXPECT_THROW((void)HipGraphExecutable::capture(stream, [] {}),
+                 std::invalid_argument);
+    EXPECT_THROW(
+        (void)HipGraphExecutable::capture(
+            stream, [] { throw std::runtime_error("intentional capture failure"); }),
+        std::runtime_error);
+    EXPECT_THROW(
+        (void)HipGraphExecutable::capture(stream, [&] {
+            Tensor forbidden_allocation({4}, DType::Float32, gpu);
+            (void)forbidden_allocation;
+        }),
+        std::runtime_error);
+
+    const auto capture_work = [&] {
+        ops::add_out(sum.view(), std::as_const(left).view(), right.view(), context);
+        ops::multiply_out(product.view(), std::as_const(sum).view(),
+                          right.view(), context);
+    };
+    auto graph = HipGraphExecutable::capture(stream, capture_work);
+    ASSERT_TRUE(graph.defined());
+    EXPECT_EQ(graph.device(), gpu);
+    EXPECT_EQ(graph.node_count(), 2U);
+
+    reset_transfer_stats();
+    graph.launch(stream);
+    stream.synchronize();
+    auto transfers = transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    EXPECT_EQ(transfers.device_to_device_calls, 0U);
+    EXPECT_EQ(product.to_vector(), (std::vector<float>{30, 48, 70, 96}));
+
+    ops::fill_(left, 2.0F, context);
+    stream.synchronize();
+    auto moved = std::move(graph);
+    EXPECT_FALSE(graph.defined());
+    EXPECT_TRUE(moved.defined());
+    if (hip_device_count() > 1) {
+        Stream other_device_stream(Device::hip(1));
+        EXPECT_THROW(moved.launch(other_device_stream), std::invalid_argument);
+    }
+    moved.launch(stream);
+    stream.synchronize();
+    EXPECT_EQ(product.to_vector(), (std::vector<float>{35, 48, 63, 80}));
+}
+
 TEST(HipRuntimeTest, ReportsDeviceAndTransfersTensor) {
     if (hip_device_count() == 0) GTEST_SKIP() << "No visible HIP device";
     const auto gpu = Device::hip(0);

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstddef>
+#include <functional>
 #include <memory>
 #include <string>
 
@@ -79,6 +81,32 @@ public:
 
 private:
     struct Impl;
+    std::unique_ptr<Impl> impl_;
+};
+
+// A captured HIP execution graph. Every pointer referenced by capture_work must
+// remain valid until the last launch completes. Capture and replay use an
+// explicit Stream; CPU and legacy-default-Stream capture are intentionally out
+// of this contract.
+class HipGraphExecutable {
+public:
+    HipGraphExecutable();
+    ~HipGraphExecutable();
+    HipGraphExecutable(HipGraphExecutable&&) noexcept;
+    HipGraphExecutable& operator=(HipGraphExecutable&&) noexcept;
+    HipGraphExecutable(const HipGraphExecutable&) = delete;
+    HipGraphExecutable& operator=(const HipGraphExecutable&) = delete;
+
+    [[nodiscard]] static HipGraphExecutable capture(
+        const Stream& stream, const std::function<void()>& capture_work);
+    [[nodiscard]] bool defined() const noexcept;
+    [[nodiscard]] Device device() const;
+    [[nodiscard]] std::size_t node_count() const;
+    void launch(const Stream& stream) const;
+
+private:
+    struct Impl;
+    explicit HipGraphExecutable(std::unique_ptr<Impl> impl);
     std::unique_ptr<Impl> impl_;
 };
 

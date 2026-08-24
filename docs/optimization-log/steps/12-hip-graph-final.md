@@ -1,6 +1,6 @@
 # Step 12 — HIP Graph, final matrix and publication
 
-Status: `planned`
+Status: `in progress` — caller-owned runtime primitive retained in Experiment 173
 
 Experiment 021 showed that removing 30k repeated `hipSetDevice` calls can improve the
 instrumented timeline while regressing every uninstrumented workload. Future scheduling
@@ -23,6 +23,22 @@ Do not begin until:
 - update allowed inputs without rebuilding graph;
 - compare launch/API timeline before/after;
 - preserve an eager fallback.
+
+## Experiment 173 prerequisite result
+
+The first prerequisite is now executable rather than aspirational. A move-only runtime wrapper
+captures explicit-Stream work over caller-owned addresses, restores the Stream after a
+capture-unsafe synchronous allocation, and exposes exact node count.
+
+The 1/8/32/128/512-node × 1/4096-element MI300X matrix proves a real crossover: Graph loses below
+32 nodes and improves all 32+ rows by 1.207×–1.909×. rocprofv3 leaves Kernel work unchanged while
+compressing 2,580 eager launch calls into 129 capture calls plus 20 graph replays for the
+128-node control.
+
+Model capture remains unfinished for two measured reasons: model/autograd does not propagate one
+explicit Stream, and temporary Tensor allocation is prohibited/unsafe during capture. The next
+step is a real vendor-GEMM caller-owned region, followed by execution-context propagation and
+stable activation lifetime. This step is not complete until a fixed model step passes.
 
 ## Final matrix
 

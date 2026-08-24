@@ -2,6 +2,9 @@ add_executable(microllm_bench_ops micro/benchmark_ops.cpp)
 target_link_libraries(microllm_bench_ops PRIVATE microllm::ops microllm::runtime)
 
 if(MICROLLM_HAS_HIP)
+    add_executable(microllm_bench_hip_graph micro/benchmark_hip_graph.cpp)
+    target_link_libraries(microllm_bench_hip_graph PRIVATE
+        microllm::ops microllm::runtime hip::host)
     add_executable(microllm_bench_bias_gradient micro/benchmark_bias_gradient.cpp)
     target_link_libraries(microllm_bench_bias_gradient PRIVATE
         microllm::ops microllm::runtime hip::host)
@@ -205,6 +208,11 @@ if(BUILD_TESTING)
                              LABELS "cpu;documentation;optimization;schema")
     endif()
     if(MICROLLM_HAS_HIP)
+        add_test(NAME Benchmark.HipGraphSmoke
+                 COMMAND microllm_bench_hip_graph --mode graph --nodes 8
+                         --elements 64 --warmup 1 --repetitions 2)
+        set_tests_properties(Benchmark.HipGraphSmoke PROPERTIES
+                             LABELS "hip;benchmark;graph;smoke")
         add_test(NAME Benchmark.HipAddSmoke
                  COMMAND microllm_bench_ops --op add --size 1024 --warmup 1 --repetitions 2 --device hip)
         set_tests_properties(Benchmark.HipAddSmoke PROPERTIES LABELS "hip;benchmark;smoke")

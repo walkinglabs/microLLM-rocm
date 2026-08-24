@@ -114,6 +114,10 @@ needed to run a real training and generation loop:
 - forward-only width-128 broadcast is also default-off (`1.001×` DeepSeek, changed parameter
   guard); universal, full selective and forward-only zero-stride model routes are now closed,
   while their independently tested backend primitives remain available;
+- a move-only caller-owned HIP Graph runtime captures, instantiates and replays explicit-Stream
+  work with sticky-error recovery; MI300X crosses from slower at 1/8 nodes to
+  `1.21×–1.91×` at 32–512 nodes, while dynamic model Storage and implicit Streams explicitly
+  block any current Qwen/DeepSeek Graph speed claim;
 - a phase-independent exact-size HIP pool with immediate legacy-default-Stream reuse and strict
   permanent disablement for non-default Streams;
 - a cross-framework trace runner for operator/layer values and latency comparisons.
@@ -429,15 +433,15 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 409/409 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
-| CPU Debug | 273/273 | host code, CLI, model/graph, benchmark, package and evidence schemas |
-| ASan/UBSan CPU | 271/271 | host lifetime, undefined-behavior and ordinary CPU gates |
-| MI300X/gfx942 HIP label | 132/132 | allocator/stream, graph, autotune, BF16/FP8, model and installed-package gates |
-| PyTorch-enabled CPU build | 247/247 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
+| Full CPU/HIP configuration | 415/415 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
+| CPU Debug | 275/275 | host code, CLI, model/graph, benchmark, package and evidence schemas |
+| ASan/UBSan CPU | 273/273 | host lifetime, undefined-behavior and ordinary CPU gates |
+| MI300X/gfx942 HIP label | 135/135 | allocator/Stream/Graph, graph, autotune, BF16/FP8, model and package gates |
+| PyTorch-enabled CPU build | 249/249 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
-| Registered test files | 55 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| Registered test files | 56 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | Installed CMake package | CPU + HIP + RCCL pass | relocated prefix, external `find_package`, components, compile, static link and run |
-| CPU source coverage | 80.7% lines / 90.5% functions / 61.6% branches | 7,723/9,567 lines; GCC 13.3 + gcovr 8.3 |
+| CPU source coverage | 80.7% lines / 90.3% functions / 61.6% branches | 7,738/9,592 lines; GCC 13.3 + gcovr 8.3 |
 
 Latest PyTorch-reference maximum absolute differences:
 

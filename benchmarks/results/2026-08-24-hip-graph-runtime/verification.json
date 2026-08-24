@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "decision": "keep caller-owned runtime primitive; model integration remains unclaimed",
+  "tests": {
+    "cpu_debug": {"passed": 275, "total": 275},
+    "cpu_asan_ubsan": {"passed": 273, "total": 273},
+    "pytorch_enabled_cpu": {"passed": 249, "total": 249},
+    "hip_full_configuration": {
+      "passed": 415,
+      "total": 415,
+      "expected_environment_skips": 3
+    },
+    "hip_label": {"passed": 135, "total": 135},
+    "installed_package_consumer": "pass",
+    "coverage_manifest": "pass",
+    "optimization_log_validator": "pass",
+    "svg_xml": "pass"
+  },
+  "coverage": {
+    "lines_percent": 80.7,
+    "functions_percent": 90.3,
+    "branches_percent": 61.6
+  },
+  "matrix": {
+    "fresh_processes": 60,
+    "exact_rows": 60,
+    "transfer_free_rows": 60,
+    "node_count_rows": 60,
+    "minimum_wall_speedup_nodes_ge_32": 1.207473466523416,
+    "maximum_wall_speedup": 1.9087270502360738,
+    "one_and_eight_node_counterexamples_present": true
+  },
+  "profile": {
+    "eager_kernel_calls": 2583,
+    "graph_kernel_calls": 2583,
+    "eager_hip_api_calls": 12990,
+    "graph_hip_api_calls": 802,
+    "eager_host_kernel_launch_calls": 2580,
+    "graph_capture_kernel_launch_calls": 129,
+    "graph_replay_calls": 20
+  }
+}

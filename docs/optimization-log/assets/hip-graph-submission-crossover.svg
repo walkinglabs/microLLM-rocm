@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="920" viewBox="0 0 1800 920">
+  <rect width="1800" height="920" fill="#f8fafc"/>
+  <text x="900" y="52" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 173 · HIP Graph Submission Crossover</text>
+  <text x="900" y="84" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle">MI300X · caller-owned Storage · three fresh processes · wall median eager / graph</text>
+
+  <rect x="55" y="125" width="1050" height="650" rx="14" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="580" y="168" font-family="Inter,Arial,sans-serif" font-size="21" fill="#172033" text-anchor="middle" font-weight="700">More submissions create the payoff</text>
+  <line x1="145" y1="690" x2="1030" y2="690" stroke="#64748b" stroke-width="2"/>
+  <line x1="145" y1="220" x2="145" y2="690" stroke="#64748b" stroke-width="2"/>
+  <line x1="145" y1="530" x2="1030" y2="530" stroke="#dc2626" stroke-width="3" stroke-dasharray="10 8"/>
+  <text x="1025" y="518" font-family="Inter,Arial,sans-serif" font-size="14" fill="#991b1b" text-anchor="end">1.00× break-even</text>
+
+  <polyline points="180,635 370,565 560,445 750,345 970,235" fill="none" stroke="#2563eb" stroke-width="7"/>
+  <polyline points="180,638 370,580 560,480 750,365 970,275" fill="none" stroke="#10b981" stroke-width="7"/>
+  <g fill="#2563eb">
+    <circle cx="180" cy="635" r="9"/><circle cx="370" cy="565" r="9"/><circle cx="560" cy="445" r="9"/><circle cx="750" cy="345" r="9"/><circle cx="970" cy="235" r="9"/>
+  </g>
+  <g fill="#10b981">
+    <circle cx="180" cy="638" r="9"/><circle cx="370" cy="580" r="9"/><circle cx="560" cy="480" r="9"/><circle cx="750" cy="365" r="9"/><circle cx="970" cy="275" r="9"/>
+  </g>
+  <g font-family="Inter,Arial,sans-serif" font-size="15" fill="#334155" text-anchor="middle">
+    <text x="180" y="720">1</text><text x="370" y="720">8</text><text x="560" y="720">32</text><text x="750" y="720">128</text><text x="970" y="720">512</text>
+  </g>
+  <text x="580" y="755" font-family="Inter,Arial,sans-serif" font-size="15" fill="#64748b" text-anchor="middle">captured add nodes (+ one fill)</text>
+  <g font-family="Inter,Arial,sans-serif" font-size="14" fill="#334155">
+    <rect x="210" y="195" width="22" height="6" fill="#2563eb"/><text x="242" y="204">1 element: 0.595 → 1.909×</text>
+    <rect x="515" y="195" width="22" height="6" fill="#10b981"/><text x="547" y="204">4,096 elements: 0.590 → 1.728×</text>
+  </g>
+
+  <rect x="1155" y="125" width="590" height="650" rx="14" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="1450" y="168" font-family="Inter,Arial,sans-serif" font-size="21" fill="#172033" text-anchor="middle" font-weight="700">128-node profiler</text>
+  <rect x="1215" y="225" width="470" height="105" rx="10" fill="#fee2e2" stroke="#f87171"/>
+  <text x="1450" y="263" font-family="Inter,Arial,sans-serif" font-size="17" fill="#991b1b" text-anchor="middle" font-weight="700">Eager host submissions</text>
+  <text x="1450" y="303" font-family="Inter,Arial,sans-serif" font-size="31" fill="#991b1b" text-anchor="middle" font-weight="700">2,580 Kernel launches</text>
+  <rect x="1215" y="375" width="470" height="130" rx="10" fill="#ecfdf5" stroke="#34d399"/>
+  <text x="1450" y="413" font-family="Inter,Arial,sans-serif" font-size="17" fill="#065f46" text-anchor="middle" font-weight="700">Graph host submissions</text>
+  <text x="1450" y="452" font-family="Inter,Arial,sans-serif" font-size="27" fill="#047857" text-anchor="middle" font-weight="700">129 capture + 20 replay</text>
+  <text x="1450" y="482" font-family="Inter,Arial,sans-serif" font-size="14" fill="#334155" text-anchor="middle">executed Kernels remain 2,583</text>
+  <rect x="1215" y="550" width="470" height="125" rx="10" fill="#fff7ed" stroke="#fdba74"/>
+  <text x="1450" y="588" font-family="Inter,Arial,sans-serif" font-size="17" fill="#9a3412" text-anchor="middle" font-weight="700">Model boundary is not ready</text>
+  <text x="1450" y="622" font-family="Inter,Arial,sans-serif" font-size="14" fill="#334155" text-anchor="middle">temporary allocations are capture-unsafe</text>
+  <text x="1450" y="650" font-family="Inter,Arial,sans-serif" font-size="14" fill="#334155" text-anchor="middle">implicit Stream + lifetime planning remain</text>
+
+  <rect x="55" y="825" width="1690" height="66" rx="12" fill="#172033"/>
+  <text x="900" y="854" font-family="Inter,Arial,sans-serif" font-size="18" fill="#ffffff" text-anchor="middle" font-weight="700">Keep the explicit caller-owned runtime primitive; do not claim model acceleration yet</text>
+  <text x="900" y="879" font-family="Inter,Arial,sans-serif" font-size="14" fill="#cbd5e1" text-anchor="middle">Stable failure: Graph loses below the 32-node crossover</text>
+</svg>

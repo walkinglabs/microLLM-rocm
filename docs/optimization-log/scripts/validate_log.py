@@ -7495,6 +7495,99 @@ def validate_forward_only_gqa_value_broadcast_discard(
         int(deep.get("allocation_calls_saved", -1))
 
 
+def validate_unique_gradient_inplace_add_discard(
+        errors: list[str]) -> tuple[int, int, int]:
+    data = REPOSITORY / "benchmarks/results/2026-08-24-unique-gradient-inplace-add"
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    training = [json.loads(line) for line in (data / "training.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = {row["model"]: row for row in summary.get("comparisons", [])}
+    qwen = comparisons.get("qwen2.5-0.5b", {})
+    deep = comparisons.get("deepseek-r1-distill-qwen-1.5b", {})
+    profile = json.loads((data / "profile-summary.json").read_text(
+        encoding="utf-8"))
+    allocating = profile.get("policies", {}).get("allocating", {})
+    inplace = profile.get("policies", {}).get("inplace", {})
+    if verification.get("status") != "pass" or summary.get("status") != "pass" or \
+            summary.get("decision") != "reject unique-gradient in-place accumulation" or \
+            len(training) != 12 or len(comparisons) != 2 or \
+            qwen.get("allocation_calls_saved") != 144 or \
+            deep.get("allocation_calls_saved") != 168 or \
+            qwen.get("throughput_speedup", 2) >= 1.01 or \
+            deep.get("throughput_speedup", 2) >= 1.01 or \
+            allocating.get("kernel_calls") != inplace.get("kernel_calls") or \
+            allocating.get("add_kernel_calls") != inplace.get("add_kernel_calls") or \
+            allocating.get("engine_backend_allocation_calls") != \
+            inplace.get("engine_backend_allocation_calls"):
+        errors.append("unique-gradient in-place rejection evidence changed")
+    source = (REPOSITORY / "src/autograd/autograd.cpp").read_text(encoding="utf-8")
+    cli = (REPOSITORY / "apps/hf_train_step.cpp").read_text(encoding="utf-8")
+    tests = "\n".join((REPOSITORY / path).read_text(encoding="utf-8") for path in (
+        "tests/autograd/autograd_test.cpp", "tests/ops/ops_test.cpp",
+        "tests/ops/hip_ops_test.cpp"))
+    if "thread_local bool unique_gradient_inplace_add = false" not in source or \
+            "bool unique_gradient_inplace_add = false" not in cli or \
+            "DenseAddEligibilityRequiresUniqueDestinationStorage" not in tests or \
+            "InPlaceAddPreservesStorageWithoutPayloadTransfers" not in tests:
+        errors.append("unique-gradient in-place source/test contract changed")
+    return len(training), int(qwen.get("allocation_calls_saved", -1)), \
+        int(deep.get("allocation_calls_saved", -1))
+
+
+def validate_hip_graph_runtime(
+        errors: list[str]) -> tuple[int, int, float, float, int]:
+    data = REPOSITORY / "benchmarks/results/2026-08-24-hip-graph-runtime"
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    matrix = [json.loads(line) for line in (data / "matrix.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = summary.get("comparisons", [])
+    profile = json.loads((data / "profile-summary.json").read_text(
+        encoding="utf-8"))
+    accepted = [row for row in comparisons if row.get("nodes", 0) >= 32]
+    rejected = [row for row in comparisons if row.get("nodes") in (1, 8)]
+    minimum = min((float(row.get("wall_speedup", 0)) for row in accepted),
+                  default=0.0)
+    maximum = max((float(row.get("wall_speedup", 0)) for row in accepted),
+                  default=0.0)
+    eager = profile.get("policies", {}).get("eager", {})
+    graph = profile.get("policies", {}).get("graph", {})
+    api_saved = int(profile.get("delta", {}).get("hip_api_calls_saved", -1))
+    if verification.get("status") != "pass" or summary.get("status") != "pass" or \
+            summary.get("decision") != "keep caller-owned HIP Graph runtime primitive" or \
+            len(matrix) != 60 or len(comparisons) != 10 or len(accepted) != 6 or \
+            len(rejected) != 4 or minimum < 1.05 or \
+            any(float(row.get("wall_speedup", 2)) >= 1.0 for row in rejected) or \
+            any(row.get("maximum_absolute_error") != 0 or
+                row.get("host_to_device_calls") != 0 or
+                row.get("device_to_host_calls") != 0 or
+                row.get("device_to_device_calls") != 0 for row in matrix) or \
+            eager.get("kernel_calls") != graph.get("kernel_calls") or \
+            eager.get("hip_launch_kernel_calls") != 2580 or \
+            graph.get("hip_launch_kernel_calls") != 129 or \
+            graph.get("hip_graph_launch_calls") != 20 or api_saved != 12188:
+        errors.append("HIP Graph runtime evidence changed")
+    runtime_header = (REPOSITORY / "include/microllm/runtime/runtime.h").read_text(
+        encoding="utf-8")
+    runtime_source = (REPOSITORY / "src/runtime/runtime.cpp").read_text(
+        encoding="utf-8")
+    tests = (REPOSITORY / "tests/runtime/runtime_test.cpp").read_text(
+        encoding="utf-8")
+    benchmark = (REPOSITORY / "benchmarks/micro/benchmark_hip_graph.cpp").read_text(
+        encoding="utf-8")
+    if "class HipGraphExecutable" not in runtime_header or \
+            "hipStreamBeginCapture" not in runtime_source or \
+            "hipGraphInstantiate" not in runtime_source or \
+            "hipGetLastError" not in runtime_source or \
+            "CapturesReplaysAndMovesCallerOwnedOperatorChain" not in tests or \
+            "captured_nodes" not in benchmark:
+        errors.append("HIP Graph runtime source/test contract changed")
+    return len(matrix), len(comparisons), minimum, maximum, api_saved
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -7644,7 +7737,9 @@ def validate_assets(errors: list[str]) -> None:
                  "paired-gqa-repeat-discard.svg",
                  "gqa-zero-stride-value-broadcast.svg",
                  "selective-gqa-value-broadcast-discard.svg",
-                 "forward-only-gqa-value-broadcast-discard.svg"):
+                 "forward-only-gqa-value-broadcast-discard.svg",
+                 "unique-gradient-inplace-add-discard.svg",
+                 "hip-graph-submission-crossover.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -7922,6 +8017,10 @@ def main() -> int:
         validate_selective_gqa_value_broadcast_discard(errors)
     forward_rows, forward_qwen_allocations, forward_deep_allocations = \
         validate_forward_only_gqa_value_broadcast_discard(errors)
+    inplace_rows, inplace_qwen_allocations, inplace_deep_allocations = \
+        validate_unique_gradient_inplace_add_discard(errors)
+    graph_rows, graph_cases, graph_minimum, graph_maximum, graph_api_saved = \
+        validate_hip_graph_runtime(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -8145,6 +8244,10 @@ def main() -> int:
           f"{selective_deep_allocations} "
           f"forward_broadcast={forward_rows}/{forward_qwen_allocations}/"
           f"{forward_deep_allocations} "
+          f"gradient_inplace={inplace_rows}/{inplace_qwen_allocations}/"
+          f"{inplace_deep_allocations} "
+          f"hip_graph={graph_rows}/{graph_cases}/{graph_minimum:.3f}/"
+          f"{graph_maximum:.3f}/{graph_api_saved} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")
