@@ -1,0 +1,168 @@
+{
+  "attribution_gate": true,
+  "comparisons": [
+    {
+      "bytes": 100663296,
+      "calls": 96,
+      "model": "qwen2.5-0.5b",
+      "record_count": 3,
+      "records": [
+        {
+          "bytes": 44040192,
+          "calls": 24,
+          "device": "hip:0",
+          "element_bytes": 4,
+          "elements": 11010048,
+          "shape": [
+            1,
+            14,
+            512,
+            64
+          ],
+          "source": "attention.layout",
+          "strides": [
+            458752,
+            64,
+            896,
+            1
+          ]
+        },
+        {
+          "bytes": 12582912,
+          "calls": 48,
+          "device": "hip:0",
+          "element_bytes": 4,
+          "elements": 3145728,
+          "shape": [
+            1,
+            2,
+            512,
+            64
+          ],
+          "source": "attention.layout",
+          "strides": [
+            65536,
+            64,
+            128,
+            1
+          ]
+        },
+        {
+          "bytes": 44040192,
+          "calls": 24,
+          "device": "hip:0",
+          "element_bytes": 4,
+          "elements": 11010048,
+          "shape": [
+            1,
+            512,
+            14,
+            64
+          ],
+          "source": "attention.core",
+          "strides": [
+            458752,
+            64,
+            32768,
+            1
+          ]
+        }
+      ],
+      "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+      "source_totals": {
+        "attention.core": {
+          "bytes": 44040192,
+          "calls": 24
+        },
+        "attention.layout": {
+          "bytes": 56623104,
+          "calls": 72
+        }
+      }
+    },
+    {
+      "bytes": 205520896,
+      "calls": 112,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "record_count": 3,
+      "records": [
+        {
+          "bytes": 88080384,
+          "calls": 28,
+          "device": "hip:0",
+          "element_bytes": 4,
+          "elements": 22020096,
+          "shape": [
+            1,
+            12,
+            512,
+            128
+          ],
+          "source": "attention.layout",
+          "strides": [
+            786432,
+            128,
+            1536,
+            1
+          ]
+        },
+        {
+          "bytes": 29360128,
+          "calls": 56,
+          "device": "hip:0",
+          "element_bytes": 4,
+          "elements": 7340032,
+          "shape": [
+            1,
+            2,
+            512,
+            128
+          ],
+          "source": "attention.layout",
+          "strides": [
+            131072,
+            128,
+            256,
+            1
+          ]
+        },
+        {
+          "bytes": 88080384,
+          "calls": 28,
+          "device": "hip:0",
+          "element_bytes": 4,
+          "elements": 22020096,
+          "shape": [
+            1,
+            512,
+            12,
+            128
+          ],
+          "source": "attention.core",
+          "strides": [
+            786432,
+            128,
+            65536,
+            1
+          ]
+        }
+      ],
+      "revision": "ad9f0ae0864d7fbcd1cd905e3c6c5b069cc8b562",
+      "source_totals": {
+        "attention.core": {
+          "bytes": 88080384,
+          "calls": 28
+        },
+        "attention.layout": {
+          "bytes": 117440512,
+          "calls": 84
+        }
+      }
+    }
+  ],
+  "decision": "next candidate is an inference BTHD Attention island",
+  "raw_processes": 6,
+  "record_type": "hf_strided_copy_source_summary",
+  "schema_version": 1,
+  "status": "pass"
+}

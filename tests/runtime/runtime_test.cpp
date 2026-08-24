@@ -61,19 +61,30 @@ TEST(RuntimeTest, StridedCopyDiagnosticsAggregateExactLayoutOnlyWhenEnabled) {
     enable_strided_copy_diagnostics(true);
     const auto input = Tensor::from_vector({1, 2, 3, 4, 5, 6}, {2, 3});
     const auto view = input.transpose(0, 1);
-    (void)view.contiguous();
-    (void)view.contiguous();
+    {
+        ScopedAllocationSource attention(AllocationSource::AttentionLayout);
+        (void)view.contiguous();
+        (void)view.contiguous();
+    }
+    {
+        ScopedAllocationSource ffn(AllocationSource::Ffn);
+        (void)view.contiguous();
+    }
     enable_strided_copy_diagnostics(false);
     const auto snapshot = strided_copy_diagnostics();
-    ASSERT_EQ(snapshot.records.size(), 1U);
-    EXPECT_EQ(snapshot.calls, 2U);
-    EXPECT_EQ(snapshot.elements, 12U);
-    EXPECT_EQ(snapshot.bytes, 48U);
+    ASSERT_EQ(snapshot.records.size(), 2U);
+    EXPECT_EQ(snapshot.calls, 3U);
+    EXPECT_EQ(snapshot.elements, 18U);
+    EXPECT_EQ(snapshot.bytes, 72U);
+    EXPECT_EQ(snapshot.records[0].source, AllocationSource::AttentionLayout);
+    EXPECT_EQ(snapshot.records[1].source, AllocationSource::Ffn);
+    EXPECT_EQ(snapshot.records[0].calls, 2U);
+    EXPECT_EQ(snapshot.records[1].calls, 1U);
     EXPECT_EQ(snapshot.records[0].shape, (std::vector<std::int64_t>{3, 2}));
     EXPECT_EQ(snapshot.records[0].strides, (std::vector<std::int64_t>{1, 3}));
     EXPECT_EQ(snapshot.records[0].device, Device::cpu());
     (void)view.contiguous();
-    EXPECT_EQ(strided_copy_diagnostics().calls, 2U)
+    EXPECT_EQ(strided_copy_diagnostics().calls, 3U)
         << "disabled diagnostics must have no hot-path side effects";
     reset_strided_copy_diagnostics();
 }

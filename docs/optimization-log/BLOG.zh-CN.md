@@ -3384,3 +3384,16 @@ cast和strided copy又占18.9%/14.8%。这说明独立projection分组已经做�
 下一候选必须改变更大的Attention、cast或layout边界，并继续过完整模型门。
 
 ![Post-composition profile](assets/bf16-grouped-composed-profile.svg)
+
+## 218. Experiment 201：96/112次copy全部来自Attention
+
+过去strided诊断只有shape/stride，不能区分模型区域。现在复用AllocationSource作为聚合键。
+三个进程每模型得到完全相同的三条记录：
+
+Qwen 96次、100.7MB，DeepSeek 112次、205.5MB。每层都是Q/K/V三次BTHD→BHTD，再把context
+做一次BHTD→BTHD。FFN、embedding、output和unspecified全部为0。
+
+因此下一步明确为推理BTHD Attention island。把通用copy Kernel写快只会继续搬同样字节，
+不满足最小解释。
+
+![Strided-copy source attribution](assets/hf-strided-copy-sources.svg)

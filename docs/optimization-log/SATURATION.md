@@ -298,6 +298,11 @@ exactly 72/84 saved submissions; GEMM time improves 1.182×/1.099× and total Ke
 18.9%/14.8%. Independent-projection grouping is locally saturated. The next candidate must cross
 a larger Attention or cast/layout boundary, not add another stateless grouped or exact-index edit.
 
+Experiment 201 attributes every remaining strided copy. Qwen/DeepSeek have 96/112 calls and
+100.7/205.5 MB: three BTHD→BHTD Q/K/V copies plus one BHTD→BTHD context copy per block.
+No bytes belong to embedding, FFN, output or unspecified scopes. Generic copy optimization is
+closed; only an inference BTHD Attention island that removes these four boundaries is justified.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

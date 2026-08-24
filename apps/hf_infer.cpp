@@ -95,6 +95,7 @@ struct Options {
     int fp32_attention_qk_solution_index = -1;
     int fp32_attention_pv_solution_index = -1;
     bool allocation_source_diagnostics = false;
+    bool strided_copy_diagnostics = false;
 };
 
 Options options(int argc, char** argv) {
@@ -310,6 +311,14 @@ Options options(int argc, char** argv) {
                     "--allocation-source-diagnostics must be true or false");
             }
             result.allocation_source_diagnostics = value == "true";
+        }
+        else if (name == "--strided-copy-diagnostics") {
+            const std::string value = argv[index + 1];
+            if (value != "true" && value != "false") {
+                throw std::invalid_argument(
+                    "--strided-copy-diagnostics must be true or false");
+            }
+            result.strided_copy_diagnostics = value == "true";
         }
         else throw std::invalid_argument("unknown CLI option: " + name);
     }
@@ -547,6 +556,12 @@ Options options(int argc, char** argv) {
          result.prefill_steps != 1)) {
         throw std::invalid_argument(
             "--allocation-source-diagnostics requires one prefill with zero warmup");
+    }
+    if (result.strided_copy_diagnostics &&
+        (result.workload != "prefill" || result.prefill_warmup != 0 ||
+         result.prefill_steps != 1)) {
+        throw std::invalid_argument(
+            "--strided-copy-diagnostics requires one prefill with zero warmup");
     }
     return result;
 }
@@ -1637,6 +1652,7 @@ int main(int argc, char** argv) {
         double forward_ms = 0.0;
         std::size_t trace_record_count = 0;
         microllm::runtime::AllocationSourceDiagnostics allocation_sources;
+        microllm::runtime::StridedCopyDiagnostics strided_copies;
         const auto run_prefill = command.workload != "decode";
         const auto run_decode = command.workload != "prefill";
         if (run_prefill) {
@@ -1655,6 +1671,10 @@ int main(int argc, char** argv) {
             if (command.allocation_source_diagnostics) {
                 microllm::runtime::reset_allocation_source_diagnostics();
                 microllm::runtime::enable_allocation_source_diagnostics(true);
+            }
+            if (command.strided_copy_diagnostics) {
+                microllm::runtime::reset_strided_copy_diagnostics();
+                microllm::runtime::enable_strided_copy_diagnostics(true);
             }
             std::unique_ptr<microllm::profiling::TraceSession> trace_session;
             std::unique_ptr<microllm::profiling::ScopedTraceSession> trace_scope;
@@ -1697,6 +1717,11 @@ int main(int argc, char** argv) {
                 microllm::runtime::enable_allocation_source_diagnostics(false);
                 allocation_sources =
                     microllm::runtime::allocation_source_diagnostics();
+            }
+            if (command.strided_copy_diagnostics) {
+                microllm::runtime::enable_strided_copy_diagnostics(false);
+                strided_copies =
+                    microllm::runtime::strided_copy_diagnostics();
             }
             const auto forward_finish = std::chrono::steady_clock::now();
             trace_scope.reset();
@@ -2223,6 +2248,40 @@ int main(int argc, char** argv) {
                       << record.allocation_bytes
                       << ",\"calls\":" << record.calls
                       << ",\"total_bytes\":" << record.total_bytes << '}';
+        }
+        std::cout << ']';
+        std::cout << ",\"strided_copy_diagnostics\":"
+                  << (command.strided_copy_diagnostics ? "true" : "false")
+                  << ",\"strided_copy_calls\":" << strided_copies.calls
+                  << ",\"strided_copy_elements\":"
+                  << strided_copies.elements
+                  << ",\"strided_copy_bytes\":" << strided_copies.bytes
+                  << ",\"strided_copy_records\":[";
+        for (std::size_t index = 0;
+             index < strided_copies.records.size(); ++index) {
+            if (index != 0) std::cout << ',';
+            const auto& record = strided_copies.records[index];
+            std::cout << "{\"source\":\""
+                      << microllm::runtime::allocation_source_name(
+                             record.source)
+                      << "\",\"device\":\"" << record.device.str()
+                      << "\",\"element_bytes\":" << record.element_bytes
+                      << ",\"calls\":" << record.calls
+                      << ",\"elements\":" << record.elements
+                      << ",\"bytes\":" << record.bytes
+                      << ",\"shape\":[";
+            for (std::size_t dimension = 0;
+                 dimension < record.shape.size(); ++dimension) {
+                if (dimension != 0) std::cout << ',';
+                std::cout << record.shape[dimension];
+            }
+            std::cout << "],\"strides\":[";
+            for (std::size_t dimension = 0;
+                 dimension < record.strides.size(); ++dimension) {
+                if (dimension != 0) std::cout << ',';
+                std::cout << record.strides[dimension];
+            }
+            std::cout << "]}";
         }
         std::cout << ']';
         if (run_prefill) {

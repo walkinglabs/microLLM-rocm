@@ -44,6 +44,8 @@ def main() -> int:
         b"--bf16-grouped-gate-up-algorithm-index",
         b"bf16_grouped_gate_up_dispatches",
         b"prefill logits shape does not match batch export contract",
+        b"--strided-copy-diagnostics",
+        b"strided_copy_records",
     )
     missing = [value.decode() for value in required if value not in payload]
     if missing:

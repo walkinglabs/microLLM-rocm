@@ -71,7 +71,8 @@ void record_strided_copy(std::size_t element_bytes, Device device,
     const auto found = std::find_if(
         strided_copy_diagnostic_records.begin(),
         strided_copy_diagnostic_records.end(), [&](const auto& record) {
-            return record.element_bytes == element_bytes && record.device == device &&
+            return record.source == active_allocation_source &&
+                   record.element_bytes == element_bytes && record.device == device &&
                    std::equal(record.shape.begin(), record.shape.end(),
                               shape.begin(), shape.end()) &&
                    std::equal(record.strides.begin(), record.strides.end(),
@@ -81,6 +82,7 @@ void record_strided_copy(std::size_t element_bytes, Device device,
     auto* record = new_record ? &strided_copy_diagnostic_records.emplace_back()
                               : &*found;
     if (new_record) {
+        record->source = active_allocation_source;
         record->shape.assign(shape.begin(), shape.end());
         record->strides.assign(strides.begin(), strides.end());
         record->element_bytes = element_bytes;
@@ -611,7 +613,10 @@ const char* allocation_source_name(AllocationSource source) noexcept {
 
 ScopedAllocationSource::ScopedAllocationSource(
     AllocationSource source) noexcept {
-    if (!allocation_source_diagnostics_enabled) return;
+    if (!allocation_source_diagnostics_enabled &&
+        !strided_copy_diagnostics_enabled) {
+        return;
+    }
     previous_ = active_allocation_source;
     active_ = true;
     active_allocation_source = source;

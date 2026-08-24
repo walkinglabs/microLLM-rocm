@@ -295,6 +295,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.Bf16GroupedShapeModelsContract PROPERTIES
         LABELS "cpu;benchmark;model;inference;attention;ffn;bf16;matmul;grouped;shape;batch;memory;schema")
     add_test(
+        NAME Benchmark.HfStridedCopySourcesContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_hf_strided_copy_sources.py
+    )
+    set_tests_properties(Benchmark.HfStridedCopySourcesContract PROPERTIES
+        LABELS "cpu;benchmark;model;inference;attention;memory;profile;schema")
+    add_test(
         NAME Coverage.OperatorAndTestFiles
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/audit_test_coverage.py
     )

@@ -37,6 +37,9 @@ the public contract rejects all writable aliases.
 When proposing another persistent workspace, first add a fixed `AllocationSource` scope and inspect
 exact sizes. Dynamic diagnostic strings are forbidden because the profiler would allocate while
 trying to measure allocation. Disabled scopes must remain one-branch no-ops.
+Strided-copy diagnostics reuse the same source scope. The scope stays active when either allocation
+or strided diagnostics is enabled, and inactive when both are off. Aggregation includes source so
+identical layouts from different regions remain distinguishable.
 For long causal GQA, expanded K and expanded V may share Storage only because QK is submitted before
 the V repeat on the same Stream. Different Streams or reordering invalidate that liveness proof.
 For vendor solution indices, retain the full descriptor key and backend version. Never paste an

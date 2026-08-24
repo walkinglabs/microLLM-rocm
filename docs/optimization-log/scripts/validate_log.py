@@ -9922,6 +9922,86 @@ def validate_bf16_grouped_composed_profile(
         min(totals, default=0.0), max(totals, default=0.0)
 
 
+def validate_hf_strided_copy_sources(
+        errors: list[str]) -> tuple[int, int, int, int]:
+    data = REPOSITORY / (
+        "benchmarks/results/2026-08-24-hf-strided-copy-sources")
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = {row.get("model"): row
+                   for row in summary.get("comparisons", [])}
+    expected = {
+        "qwen2.5-0.5b": (
+            96, 100663296,
+            {"attention.core": {"bytes": 44040192, "calls": 24},
+             "attention.layout": {"bytes": 56623104, "calls": 72}}),
+        "deepseek-r1-distill-qwen-1.5b": (
+            112, 205520896,
+            {"attention.core": {"bytes": 88080384, "calls": 28},
+             "attention.layout": {"bytes": 117440512, "calls": 84}}),
+    }
+    counts = {name: 0 for name in expected}
+    for row in raw:
+        name = row.get("model")
+        if name in counts:
+            counts[name] += 1
+    if summary.get("status") != "pass" or len(raw) != 6 or \
+            summary.get("raw_processes") != 6 or \
+            summary.get("attribution_gate") is not True or \
+            set(comparisons) != set(expected) or \
+            any(row.get("calls") != expected[name][0] or
+                row.get("bytes") != expected[name][1] or
+                row.get("record_count") != 3 or
+                row.get("source_totals") != expected[name][2]
+                for name, row in comparisons.items()) or \
+            any(count != 3 for count in counts.values()) or \
+            verification.get("status") != "pass" or \
+            verification.get("registered_test_files") != 80 or \
+            verification.get("formal_processes") != 6 or \
+            verification.get("formal_comparisons") != 2 or \
+            verification.get("attribution_gate") is not True:
+        errors.append("HF strided-copy source evidence changed")
+    expected_tests = {
+        "cpu_debug": {"passed": 308, "total": 308},
+        "asan_ubsan": {"passed": 306, "total": 306},
+        "pytorch_enabled_cpu": {"passed": 282, "total": 282},
+        "hip_full_configuration": {
+            "passed": 479, "total": 479, "conditional_skips": 3},
+        "hip_label": {"passed": 161, "total": 161},
+        "rccl_multi_gpu": {"passed": 12, "total": 12},
+        "rccl_full_label": {"passed": 14, "total": 14},
+    }
+    if verification.get("tests") != expected_tests:
+        errors.append("HF strided-copy verification counts changed")
+    header = (REPOSITORY / "include/microllm/runtime/"
+              "diagnostics.h").read_text(encoding="utf-8")
+    runtime = (REPOSITORY / "src/runtime/runtime.cpp").read_text(
+        encoding="utf-8")
+    cli = (REPOSITORY / "apps/hf_infer.cpp").read_text(encoding="utf-8")
+    runner = (REPOSITORY / "benchmarks/single_gpu/"
+              "hf_strided_copy_sources.py").read_text(encoding="utf-8")
+    tests = (REPOSITORY / "tests/runtime/runtime_test.cpp").read_text(
+        encoding="utf-8")
+    for token, document in (
+            ("AllocationSource source", header),
+            ("record.source == active_allocation_source", runtime),
+            ("--strided-copy-diagnostics", cli),
+            ("strided_copy_records", cli),
+            ("source_totals", runner),
+            ("AllocationSource::AttentionLayout", tests)):
+        if token not in document:
+            errors.append("HF strided-copy source/test contract changed")
+            break
+    total_calls = sum(row["calls"] for row in comparisons.values())
+    total_bytes = sum(row["bytes"] for row in comparisons.values())
+    return len(raw), total_calls, total_bytes, \
+        sum(row["source_totals"]["attention.layout"]["bytes"]
+            for row in comparisons.values())
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -10100,7 +10180,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-grouped-composition.svg",
                  "bf16-grouped-shape-matrix.svg",
                  "bf16-grouped-shape-models.svg",
-                 "bf16-grouped-composed-profile.svg"):
+                 "bf16-grouped-composed-profile.svg",
+                 "hf-strided-copy-sources.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -10454,6 +10535,8 @@ def main() -> int:
     composed_profile_processes, composed_profile_calls_saved, \
         composed_profile_minimum, composed_profile_maximum = \
         validate_bf16_grouped_composed_profile(errors)
+    strided_source_rows, strided_source_calls, strided_source_bytes, \
+        strided_layout_bytes = validate_hf_strided_copy_sources(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -10757,6 +10840,8 @@ def main() -> int:
           f"{composed_profile_calls_saved}/"
           f"{composed_profile_minimum:.3f}/"
           f"{composed_profile_maximum:.3f} "
+          f"strided_sources={strided_source_rows}/{strided_source_calls}/"
+          f"{strided_source_bytes}/{strided_layout_bytes} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

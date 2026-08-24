@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="560" viewBox="0 0 1000 560" role="img" aria-labelledby="title desc">
+  <title id="title">T512 strided-copy bytes by model source</title>
+  <desc id="desc">All remaining strided-copy traffic is attributed to Attention layout input or Attention core context output.</desc>
+  <rect width="1000" height="560" fill="#0b1020"/>
+  <text x="55" y="48" fill="#f8fafc" font-family="sans-serif" font-size="28" font-weight="700">Experiment 201 · every copy is Attention</text>
+  <text x="55" y="78" fill="#94a3b8" font-family="sans-serif" font-size="15">T512 composed policy · deterministic across 3 fresh processes per model</text>
+
+  <text x="55" y="140" fill="#e2e8f0" font-family="sans-serif" font-size="20" font-weight="700">Qwen · 100.7 MB · 96 calls</text>
+  <rect x="55" y="165" width="890" height="48" rx="7" fill="#334155"/>
+  <rect x="55" y="165" width="501" height="48" rx="7" fill="#22d3ee"/>
+  <rect x="556" y="165" width="389" height="48" rx="7" fill="#a78bfa"/>
+  <text x="75" y="195" fill="#ecfeff" font-family="sans-serif" font-size="14">layout Q/K/V · 56.6 MB · 72</text>
+  <text x="580" y="195" fill="#f5f3ff" font-family="sans-serif" font-size="14">core context · 44.0 MB · 24</text>
+
+  <text x="55" y="285" fill="#e2e8f0" font-family="sans-serif" font-size="20" font-weight="700">DeepSeek · 205.5 MB · 112 calls</text>
+  <rect x="55" y="310" width="890" height="48" rx="7" fill="#334155"/>
+  <rect x="55" y="310" width="508" height="48" rx="7" fill="#34d399"/>
+  <rect x="563" y="310" width="382" height="48" rx="7" fill="#a78bfa"/>
+  <text x="75" y="340" fill="#ecfdf5" font-family="sans-serif" font-size="14">layout Q/K/V · 117.4 MB · 84</text>
+  <text x="587" y="340" fill="#f5f3ff" font-family="sans-serif" font-size="14">core context · 88.1 MB · 28</text>
+
+  <rect x="55" y="425" width="890" height="70" rx="10" fill="#172033" stroke="#334155"/>
+  <text x="75" y="454" fill="#f8fafc" font-family="sans-serif" font-size="15">Per block: Q + K + V BTHD→BHTD, then context BHTD→BTHD</text>
+  <text x="75" y="480" fill="#fbbf24" font-family="sans-serif" font-size="15">Next: remove 4 copies with one inference BTHD Attention island</text>
+  <text x="55" y="535" fill="#94a3b8" font-family="sans-serif" font-size="13">embedding / FFN / output / unspecified = 0 bytes</text>
+</svg>

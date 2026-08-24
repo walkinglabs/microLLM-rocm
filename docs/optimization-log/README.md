@@ -764,6 +764,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/199-bf16-grouped-shape-models.md](experiments/199-bf16-grouped-shape-models.md) | 36进程、batch-row top-1与CLI导出修复 |
 | [assets/bf16-grouped-composed-profile.svg](assets/bf16-grouped-composed-profile.svg) | 组合后GEMM calls与剩余时间占比 |
 | [experiments/200-bf16-grouped-composed-profile.md](experiments/200-bf16-grouped-composed-profile.md) | 四trace、phase delta与下一热点选择 |
+| [assets/hf-strided-copy-sources.svg](assets/hf-strided-copy-sources.svg) | Attention layout/core剩余copy字节 |
+| [experiments/201-hf-strided-copy-sources.md](experiments/201-hf-strided-copy-sources.md) | source-aware diagnostics、6进程与BTHD选择 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

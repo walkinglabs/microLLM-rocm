@@ -60,6 +60,7 @@ void reset_allocation_source_diagnostics() noexcept;
 [[nodiscard]] AllocationSourceDiagnostics allocation_source_diagnostics();
 
 struct StridedCopyRecord {
+    AllocationSource source = AllocationSource::Unspecified;
     std::vector<std::int64_t> shape;
     std::vector<std::int64_t> strides;
     std::size_t element_bytes = 0;

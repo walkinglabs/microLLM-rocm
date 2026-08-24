@@ -426,6 +426,11 @@ Its load+one/load+six subtraction shows 145/169 GEMM calls after both grouped fa
 as the new profile baseline; comparing a future candidate to the older 217/253-call graph would
 double-count already retained work.
 
+Use --strided-copy-diagnostics true only with one prefill and zero warm-up. Records include
+AllocationSource, exact shape/strides, calls, elements and bytes. Source participates in the
+aggregation key; equal layouts in different model regions do not merge. Experiment 201 is the
+reference attribution for the next BTHD island.
+
 ## What remains
 
 There is no Python `@profile` decorator yet. The current stable entry points are the

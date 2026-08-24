@@ -197,6 +197,9 @@ needed to run a real training and generation loop:
 - post-composition rocprof phase delta confirms GEMM submissions fall 217→145 and
   253→169, GEMM time improves 1.182×/1.099× and total Kernel improves
   1.009×/1.034×; the next candidate must cross a larger Attention/cast/layout boundary;
+- source-aware strided diagnostics attribute all remaining 96/112 T512 copies and
+  100.7/205.5 MB to Attention: Q/K/V BTHD→BHTD plus context BHTD→BTHD once per
+  block, selecting an inference BTHD Attention island instead of a faster copy Kernel;
 - a phase-independent exact-size HIP pool with immediate legacy-default-Stream reuse and strict
   permanent disablement for non-default Streams;
 - a cross-framework trace runner for operator/layer values and latency comparisons.
@@ -546,13 +549,13 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 478/478 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
-| CPU Debug | 307/307 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
-| ASan/UBSan CPU | 305/305 | host lifetime, external Storage and instrumented-package linking |
+| Full CPU/HIP configuration | 479/479 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
+| CPU Debug | 308/308 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
+| ASan/UBSan CPU | 306/306 | host lifetime, external Storage and instrumented-package linking |
 | MI300X/gfx942 HIP label | 161/161 | allocator/arena/Stream/Graph, grouped/exact vendor solutions, BF16/FP8 and model paths |
-| PyTorch-enabled CPU build | 281/281 | dispatcher parity, full graph/model oracle and all package paths |
+| PyTorch-enabled CPU build | 282/282 | dispatcher parity, full graph/model oracle and all package paths |
 | Multi-GPU/RCCL | 12/12 | collectives, global-batch equivalence, gradient buckets, DDP trainer/CLI and per-device hipBLASLt ownership |
-| Registered test files | 79 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| Registered test files | 80 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
 | CPU source coverage | 80.4% lines / 89.3% functions / 61.4% branches | 7,782/9,678 lines; GCC 13.3 + gcovr 8.3 |
 

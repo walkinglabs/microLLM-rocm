@@ -461,6 +461,10 @@ three-submission-per-block reduction is present, yet GEMM remains the largest ca
 cast/layout traffic remains material. Further fusion must own a larger Attention or precision
 boundary and cannot be expressed as another sibling projection plan.
 
+Experiment 201 makes that boundary exact. Strided records carry AllocationSource and prove all
+remaining copies are the three Attention inputs plus context output. The next architecture change
+is an inference-only BTHD island; generic Tensor contiguous behavior remains the readable fallback.
+
 ## Stable integration boundary
 
 The long-term integration seam is a C-compatible descriptor plus explicit stream
