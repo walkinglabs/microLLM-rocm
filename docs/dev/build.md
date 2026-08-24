@@ -169,11 +169,13 @@ flags. An instrumented static build carries only the runtime link option require
 its object files; ordinary builds do not. Public requirements such as C++20 and backend
 dependencies are propagated normally.
 
-The Config file also exposes `microLLM_AVAILABLE_COMPONENTS` and the boolean feature
+The Config file also exposes `microLLM_VERSION`, `microLLM_CXX_STANDARD`,
+`microLLM_HIP_ARCHITECTURES`, `microLLM_AVAILABLE_COMPONENTS`, and the boolean feature
 metadata `microLLM_WITH_HIP`, `microLLM_WITH_HIPBLASLT`, `microLLM_WITH_RCCL`, and
 `microLLM_WITH_CAPI`, plus `microLLM_WITH_SANITIZERS` and
 `microLLM_WITH_COVERAGE`. Prefer testing targets or requested components for linking;
-these variables are intended for diagnostics and optional application features.
+these variables are intended for diagnostics and optional application features. A CPU
+package reports an empty `microLLM_HIP_ARCHITECTURES` value.
 
 Point `CMAKE_PREFIX_PATH` at the installation root. As a narrower alternative, set
 `microLLM_DIR` to either the installed Config directory or a configured microLLM build

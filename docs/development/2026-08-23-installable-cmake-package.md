@@ -114,3 +114,8 @@ bias-gradient实现，避免只有头文件安装成功、静态库却漏掉实�
 链接共享库并实际完成Tensor加法；关闭`MICROLLM_BUILD_CAPI`的fresh build则不会错误暴露
 `capi`组件或target。CPU Debug完整回归通过；本次Config改动新增的是同一个
 `PackageConfig.InstalledConsumer`内部的纯C编译、链接与运行门。
+
+2026-08-24最后补上诊断metadata：外部项目可以读取`microLLM_VERSION`、
+`microLLM_CXX_STANDARD`和`microLLM_HIP_ARCHITECTURES`，快速确认CMake实际找到的是哪一套
+CPU/Radeon/Instinct SDK。独立consumer会检查三个字段存在且自洽；重新配置、编译后，
+安装树与build tree两条外部消费路径均通过，共2/2。

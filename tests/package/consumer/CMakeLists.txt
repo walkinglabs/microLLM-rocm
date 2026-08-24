@@ -5,6 +5,16 @@ find_package(microLLM 0.1 CONFIG REQUIRED
     COMPONENTS inference model
     OPTIONAL_COMPONENTS capi multi_gpu)
 
+if(NOT DEFINED microLLM_VERSION OR microLLM_VERSION VERSION_LESS 0.1)
+    message(FATAL_ERROR "package Config is missing valid version metadata")
+endif()
+if(NOT microLLM_CXX_STANDARD EQUAL 20)
+    message(FATAL_ERROR "package Config reports the wrong C++ language standard")
+endif()
+if(NOT DEFINED microLLM_HIP_ARCHITECTURES)
+    message(FATAL_ERROR "package Config is missing HIP architecture metadata")
+endif()
+
 if(NOT "inference" IN_LIST microLLM_AVAILABLE_COMPONENTS OR
    NOT microLLM_inference_FOUND OR NOT microLLM_model_FOUND)
     message(FATAL_ERROR "installed package component metadata is inconsistent")

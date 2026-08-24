@@ -317,6 +317,18 @@ find_package(microLLM 0.1 CONFIG REQUIRED COMPONENTS inference)
 target_link_libraries(my_app PRIVATE microLLM::inference)
 ```
 
+After `find_package`, a project can also print exactly which SDK it found:
+
+```cmake
+message(STATUS "microLLM ${microLLM_VERSION}")
+message(STATUS "C++ standard: ${microLLM_CXX_STANDARD}")
+message(STATUS "HIP enabled: ${microLLM_WITH_HIP}")
+message(STATUS "HIP architectures: ${microLLM_HIP_ARCHITECTURES}")
+```
+
+This is useful when several CPU, Radeon, or Instinct builds are installed on the same
+machine. An empty architecture value is expected for a CPU-only package.
+
 There are two supported ways to tell CMake where that package is:
 
 | Situation | Configure the other project with | Meaning |
