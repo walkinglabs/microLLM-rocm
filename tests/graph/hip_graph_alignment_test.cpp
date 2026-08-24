@@ -233,6 +233,27 @@ TEST(HipGraphAlignmentTest, Bf16LinearInferenceMatchesCpuAndStaysDeviceNative) {
     EXPECT_EQ(arena_stats.misses, 1U);
     EXPECT_EQ(arena_stats.hits, 1U);
     EXPECT_GT(arena_stats.capacity_bytes, 0U);
+    hip.set_bf16_qkv_arena_enabled(true, 5);
+    const auto qkv_bypassed = hip.forward_inference(device_tokens);
+    runtime::synchronize(Device::hip(0));
+    EXPECT_EQ(qkv_bypassed.to_vector(), actual.to_vector());
+    EXPECT_EQ(hip.bf16_qkv_arena_stats().entries, 0U);
+    EXPECT_EQ(hip.bf16_qkv_arena_stats().bypassed_calls, 1U);
+    hip.set_bf16_qkv_arena_enabled(true, 1);
+    runtime::reset_transfer_stats();
+    const auto qkv_first = hip.forward_inference(device_tokens);
+    const auto qkv_second = hip.forward_inference(device_tokens);
+    runtime::synchronize(Device::hip(0));
+    const auto qkv_transfers = runtime::transfer_stats();
+    EXPECT_EQ(qkv_transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(qkv_transfers.device_to_host_calls, 0U);
+    EXPECT_EQ(qkv_first.to_vector(), actual.to_vector());
+    EXPECT_EQ(qkv_second.to_vector(), actual.to_vector());
+    const auto qkv_stats = hip.bf16_qkv_arena_stats();
+    EXPECT_EQ(qkv_stats.entries, 1U);
+    EXPECT_EQ(qkv_stats.misses, 1U);
+    EXPECT_EQ(qkv_stats.hits, 1U);
+    EXPECT_GT(qkv_stats.capacity_bytes, 0U);
 }
 
 }  // namespace microllm::autograd

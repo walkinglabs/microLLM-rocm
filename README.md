@@ -151,6 +151,9 @@ needed to run a real training and generation loop:
 - the model-independent `minimum_rows=512` policy passes that follow-up: Qwen/DeepSeek T512 improve
   `1.019×/1.022×`, while eight short cases create no Arena, retain exact baseline allocation/peak
   counters and remain `0.999×–1.005×`; the policy stays explicit pending broader hardware evidence;
+- caller-owned shared-cast BF16 Q/K/V is exact and removes another 480/560 measured allocations,
+  but complete Qwen/DeepSeek T512 improves only `1.004×/1.005×` while retaining 4.46/7.86 MB;
+  model routing is rejected and default-off, and future liveness work requires size/source attribution;
 - a phase-independent exact-size HIP pool with immediate legacy-default-Stream reuse and strict
   permanent disablement for non-default Streams;
 - a cross-framework trace runner for operator/layer values and latency comparisons.

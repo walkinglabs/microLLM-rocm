@@ -575,6 +575,163 @@ private:
     Tensor fp8_inference_activation_scale_;
 };
 
+class Bf16QkvArenaCache {
+public:
+    struct Entry {
+        Entry(std::int64_t rows, std::int64_t hidden,
+              std::int64_t query_columns, std::int64_t key_columns,
+              std::int64_t value_columns, Device device) {
+            const Shape input_shape{rows, hidden};
+            const Shape query_shape{rows, query_columns};
+            const Shape key_shape{rows, key_columns};
+            const Shape value_shape{rows, value_columns};
+            const auto input_bytes = tensor_bytes(
+                input_shape, DType::BFloat16);
+            const auto query_fallback_bytes = tensor_bytes(
+                query_shape, DType::BFloat16);
+            const auto key_fallback_bytes = tensor_bytes(
+                key_shape, DType::BFloat16);
+            const auto value_fallback_bytes = tensor_bytes(
+                value_shape, DType::BFloat16);
+            const auto query_output_bytes = tensor_bytes(
+                query_shape, DType::Float32);
+            const auto key_output_bytes = tensor_bytes(
+                key_shape, DType::Float32);
+            const auto value_output_bytes = tensor_bytes(
+                value_shape, DType::Float32);
+            capacity = 0;
+            for (const auto bytes : {
+                     input_bytes, query_fallback_bytes, key_fallback_bytes,
+                     value_fallback_bytes, query_output_bytes,
+                     key_output_bytes, value_output_bytes}) {
+                capacity = checked_add(capacity, aligned(bytes));
+            }
+            backing = Storage(capacity, device);
+            std::size_t offset = 0;
+            const auto slice = [&](const Shape& shape, DType dtype) {
+                const auto bytes = tensor_bytes(shape, dtype);
+                offset = aligned(offset);
+                auto* pointer = static_cast<std::byte*>(backing.data()) + offset;
+                offset = checked_add(offset, bytes);
+                auto storage = Storage::from_external(pointer, bytes, device);
+                return Tensor::from_storage(
+                    std::move(storage), shape, contiguous_strides(shape), 0,
+                    dtype);
+            };
+            workspace.input_bf16 = slice(input_shape, DType::BFloat16);
+            workspace.query_fallback_bf16 =
+                slice(query_shape, DType::BFloat16);
+            workspace.key_fallback_bf16 =
+                slice(key_shape, DType::BFloat16);
+            workspace.value_fallback_bf16 =
+                slice(value_shape, DType::BFloat16);
+            query_output = slice(query_shape, DType::Float32);
+            key_output = slice(key_shape, DType::Float32);
+            value_output = slice(value_shape, DType::Float32);
+            if (offset > capacity) {
+                throw std::logic_error("BF16 QKV Arena plan exceeded capacity");
+            }
+        }
+
+        Storage backing;
+        ops::Bf16QkvWorkspace workspace;
+        Tensor query_output;
+        Tensor key_output;
+        Tensor value_output;
+        std::size_t capacity = 0;
+
+    private:
+        static std::size_t aligned(std::size_t bytes) {
+            if (bytes > std::numeric_limits<std::size_t>::max() - 255U) {
+                throw std::overflow_error("BF16 QKV Arena alignment overflows");
+            }
+            return (bytes + 255U) & ~std::size_t{255U};
+        }
+        static std::size_t checked_add(std::size_t left,
+                                       std::size_t right) {
+            if (right > std::numeric_limits<std::size_t>::max() - left) {
+                throw std::overflow_error("BF16 QKV Arena capacity overflows");
+            }
+            return left + right;
+        }
+        static std::size_t tensor_bytes(const Shape& shape, DType dtype) {
+            const auto elements = checked_numel(shape);
+            const auto bytes = dtype_size(dtype);
+            if (static_cast<std::uint64_t>(elements) >
+                std::numeric_limits<std::size_t>::max() / bytes) {
+                throw std::overflow_error("BF16 QKV Arena Tensor bytes overflow");
+            }
+            return static_cast<std::size_t>(elements) * bytes;
+        }
+    };
+
+    Entry* acquire(std::int64_t rows, std::int64_t hidden,
+                   std::int64_t query_columns, std::int64_t key_columns,
+                   std::int64_t value_columns, Device device) {
+        if (rows < minimum_rows_) {
+            ++bypassed_calls_;
+            return nullptr;
+        }
+        ++eligible_calls_;
+        const auto key = std::tuple{
+            static_cast<int>(device.type()), device.index(), rows, hidden,
+            query_columns, key_columns, value_columns};
+        const auto found = entries_.find(key);
+        if (found != entries_.end()) {
+            ++hits_;
+            return found->second.get();
+        }
+        ++misses_;
+        auto entry = std::make_unique<Entry>(
+            rows, hidden, query_columns, key_columns, value_columns, device);
+        if (entry->capacity >
+            std::numeric_limits<std::uint64_t>::max() - capacity_bytes_) {
+            throw std::overflow_error("BF16 QKV Arena aggregate capacity overflows");
+        }
+        capacity_bytes_ += entry->capacity;
+        auto* result = entry.get();
+        entries_.emplace(key, std::move(entry));
+        return result;
+    }
+
+    void clear() noexcept {
+        entries_.clear();
+        hits_ = 0;
+        misses_ = 0;
+        eligible_calls_ = 0;
+        bypassed_calls_ = 0;
+        capacity_bytes_ = 0;
+    }
+
+    void configure(std::int64_t minimum_rows) {
+        if (minimum_rows <= 0) {
+            throw std::invalid_argument(
+                "BF16 QKV Arena minimum rows must be positive");
+        }
+        clear();
+        minimum_rows_ = minimum_rows;
+    }
+
+    [[nodiscard]] Bf16QkvArenaStats stats() const noexcept {
+        return {.entries = entries_.size(), .hits = hits_,
+                .misses = misses_, .eligible_calls = eligible_calls_,
+                .bypassed_calls = bypassed_calls_,
+                .minimum_rows = minimum_rows_,
+                .capacity_bytes = capacity_bytes_};
+    }
+
+private:
+    using Key = std::tuple<int, int, std::int64_t, std::int64_t,
+                           std::int64_t, std::int64_t, std::int64_t>;
+    std::map<Key, std::unique_ptr<Entry>> entries_;
+    std::size_t hits_ = 0;
+    std::size_t misses_ = 0;
+    std::size_t eligible_calls_ = 0;
+    std::size_t bypassed_calls_ = 0;
+    std::int64_t minimum_rows_ = 512;
+    std::uint64_t capacity_bytes_ = 0;
+};
+
 class Norm {
 public:
     explicit Norm(std::int64_t dimension, float epsilon,
@@ -693,7 +850,7 @@ public:
         Tensor key_projection;
         Tensor value_projection;
         if (query_.weight_data().dtype() == DType::BFloat16) {
-            const auto projections = ops::bf16_qkv_projection(
+            const auto projections = bf16_projection(
                 flat, query_.weight_data(), key_.weight_data(), value_.weight_data());
             query_projection = query_.has_bias()
                                    ? ops::add_bias(projections.first, query_.bias().data())
@@ -781,7 +938,7 @@ public:
         Tensor key_projection;
         Tensor value_projection;
         if (query_.weight_data().dtype() == DType::BFloat16) {
-            const auto projections = ops::bf16_qkv_projection(
+            const auto projections = bf16_projection(
                 flat, query_.weight_data(), key_.weight_data(), value_.weight_data());
             query_projection = fuse_query_bias
                                    ? projections.first
@@ -867,7 +1024,7 @@ public:
         Tensor key_projection;
         Tensor value_projection;
         if (query_.weight_data().dtype() == DType::BFloat16) {
-            const auto projections = ops::bf16_qkv_projection(
+            const auto projections = bf16_projection(
                 flat, query_.weight_data(), key_.weight_data(),
                 value_.weight_data());
             query_projection = fuse_query_bias
@@ -976,13 +1133,38 @@ public:
             linear->move_fp8_inference_scale(device);
         }
     }
+    void set_bf16_qkv_arena_cache(Bf16QkvArenaCache* cache) noexcept {
+        qkv_arena_cache_ = cache;
+    }
 
 private:
+    ops::TensorTriple bf16_projection(
+        const Tensor& input, const Tensor& query_weight,
+        const Tensor& key_weight, const Tensor& value_weight) {
+        if (qkv_arena_cache_ != nullptr) {
+            auto* entry = qkv_arena_cache_->acquire(
+                input.shape()[0], input.shape()[1], query_weight.shape()[1],
+                key_weight.shape()[1], value_weight.shape()[1],
+                input.device());
+            if (entry != nullptr) {
+                ops::bf16_qkv_projection_out_(
+                    entry->query_output, entry->key_output,
+                    entry->value_output, entry->workspace, input,
+                    query_weight, key_weight, value_weight);
+                return {entry->query_output, entry->key_output,
+                        entry->value_output};
+            }
+        }
+        return ops::bf16_qkv_projection(
+            input, query_weight, key_weight, value_weight);
+    }
+
     ModelConfig config_;
     Linear query_;
     Linear key_;
     Linear value_;
     Linear output_;
+    Bf16QkvArenaCache* qkv_arena_cache_ = nullptr;
 };
 
 class Bf16FfnArenaCache {
@@ -1340,6 +1522,9 @@ public:
     void set_bf16_ffn_arena_cache(Bf16FfnArenaCache* cache) noexcept {
         feed_forward_.set_bf16_ffn_arena_cache(cache);
     }
+    void set_bf16_qkv_arena_cache(Bf16QkvArenaCache* cache) noexcept {
+        attention_.set_bf16_qkv_arena_cache(cache);
+    }
 
     void append_bf16_training_mirrors(Bf16TrainingMirrors& mirrors) {
         attention_.append_bf16_training_mirrors(mirrors);
@@ -1403,8 +1588,10 @@ struct TransformerModel::Impl {
     Norm final_norm;
     std::unique_ptr<Linear> output_head;
     Bf16FfnArenaCache bf16_ffn_arena;
+    Bf16QkvArenaCache bf16_qkv_arena;
     bool bf16_ffn_prepared = false;
     bool bf16_ffn_arena_enabled = false;
+    bool bf16_qkv_arena_enabled = false;
     bool bf16_attention_prepared = false;
     bool bf16_training_mirrors_prepared = false;
     bool fp8_inference_prepared = false;
@@ -1430,6 +1617,7 @@ Device TransformerModel::device() {
 
 void TransformerModel::to(Device target) {
     impl_->bf16_ffn_arena.clear();
+    impl_->bf16_qkv_arena.clear();
     for (auto* value : parameters()) {
         value->mutable_data() = impl_->parameters_initialized
                                     ? value->data().to(target)
@@ -2141,6 +2329,28 @@ Bf16WeightPreparationReport TransformerModel::prepare_bf16_attention_inference()
 
 bool TransformerModel::bf16_attention_inference_prepared() const noexcept {
     return impl_->bf16_attention_prepared;
+}
+
+void TransformerModel::set_bf16_qkv_arena_enabled(
+    bool enabled, std::int64_t minimum_rows) {
+    if (enabled && !impl_->bf16_attention_prepared) {
+        throw std::logic_error(
+            "BF16 QKV Arena requires prepared BF16 Attention weights");
+    }
+    impl_->bf16_qkv_arena.configure(enabled ? minimum_rows : 512);
+    for (auto& block : impl_->blocks) {
+        block->set_bf16_qkv_arena_cache(
+            enabled ? &impl_->bf16_qkv_arena : nullptr);
+    }
+    impl_->bf16_qkv_arena_enabled = enabled;
+}
+
+bool TransformerModel::bf16_qkv_arena_enabled() const noexcept {
+    return impl_->bf16_qkv_arena_enabled;
+}
+
+Bf16QkvArenaStats TransformerModel::bf16_qkv_arena_stats() const noexcept {
+    return impl_->bf16_qkv_arena.stats();
 }
 
 Fp8WeightPreparationReport TransformerModel::prepare_fp8_inference_weights() {

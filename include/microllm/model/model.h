@@ -77,6 +77,8 @@ struct Bf16FfnArenaStats {
     std::uint64_t capacity_bytes = 0;
 };
 
+using Bf16QkvArenaStats = Bf16FfnArenaStats;
+
 enum class ParameterInitialization { Random, Uninitialized };
 
 [[nodiscard]] WeightMapping qwen_style_weight_mapping(const ModelConfig& config);
@@ -146,6 +148,10 @@ public:
     [[nodiscard]] Bf16FfnArenaStats bf16_ffn_arena_stats() const noexcept;
     [[nodiscard]] Bf16WeightPreparationReport prepare_bf16_attention_inference();
     [[nodiscard]] bool bf16_attention_inference_prepared() const noexcept;
+    void set_bf16_qkv_arena_enabled(bool enabled,
+                                    std::int64_t minimum_rows = 512);
+    [[nodiscard]] bool bf16_qkv_arena_enabled() const noexcept;
+    [[nodiscard]] Bf16QkvArenaStats bf16_qkv_arena_stats() const noexcept;
     // One-way inference preparation for every Linear. FP32 Embedding/Norm and
     // a tied output head remain unchanged. Weight scale is either fixed or
     // computed independently from each Linear Tensor; activation scale remains fixed.

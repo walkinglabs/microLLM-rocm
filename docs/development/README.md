@@ -394,3 +394,5 @@ the next gate. Records are append-only except for factual corrections.
   one workspace shared across blocks and the complete-model universal-policy rejection.
 - [2026-08-24-bf16-ffn-arena-selective.md](2026-08-24-bf16-ffn-arena-selective.md):
   rows≥512 selection, exact short-path bypass and two-model long-prefill keep.
+- [2026-08-24-bf16-qkv-arena-discard.md](2026-08-24-bf16-qkv-arena-discard.md):
+  caller-owned QKV, allocation reduction and complete-model performance rejection.

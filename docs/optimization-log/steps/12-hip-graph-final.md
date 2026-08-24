@@ -127,6 +127,13 @@ the other eight cases allocate no Arena, retain exactly the baseline allocation/
 stay 0.999×–1.005×. All 60 complete logits and decode tokens pass. The FFN threshold is retained;
 the next distinct stable-storage region is long-prefill shared-cast BF16 Q/K/V.
 
+## Experiment 185 QKV result
+
+Caller-owned Q/K/V removes another 480/560 measured engine allocations and remains complete-logit
+exact, but Qwen/DeepSeek T512 improves only 1.004×/1.005×. Profiler Kernel and launch counts are
+unchanged. Model routing is rejected and default-off; the out primitive remains. Another guessed
+Tensor family is not justified—the next step must attribute remaining allocation sizes first.
+
 ## Final matrix
 
 - FP32 fixed matrix and running-best curve;

@@ -31,6 +31,8 @@ def options() -> argparse.Namespace:
     parser.add_argument("--warmup", type=int, default=2)
     parser.add_argument("--steps", type=int, default=5)
     parser.add_argument("--arena-minimum-rows", type=int, default=1)
+    parser.add_argument("--comparison-mode", choices=("ffn", "qkv"),
+                        default="ffn")
     result = parser.parse_args()
     if (result.runs <= 0 or result.warmup < 0 or result.steps <= 0 or
             result.arena_minimum_rows <= 0):
@@ -90,20 +92,30 @@ def command_for(args: argparse.Namespace, model: dict, case: tuple,
     inference = model["inference"]
     tokens = (repeated_tokens(inference["token_ids"], context)
               if workload == "prefill" else inference["token_ids"])
+    use_ffn_arena = policy == "arena" or args.comparison_mode == "qkv"
     command = [
         str(args.binary), "--config", model["config"],
         "--weights", model["weights"],
         "--tokens", ",".join(str(token) for token in tokens),
         "--device", "hip", "--top-k", "10", "--batch", str(batch),
         "--bf16-ffn", "true", "--bf16-attention", "true",
-        "--bf16-ffn-arena", "true" if policy == "arena" else "false",
+        "--bf16-ffn-arena", "true" if use_ffn_arena else "false",
         "--logits-output", str(logits_path),
     ]
-    if policy == "arena":
+    if use_ffn_arena:
         command.extend([
             "--bf16-ffn-arena-minimum-rows",
             str(args.arena_minimum_rows),
         ])
+    if args.comparison_mode == "qkv":
+        command.extend([
+            "--bf16-qkv-arena", "true" if policy == "arena" else "false",
+        ])
+        if policy == "arena":
+            command.extend([
+                "--bf16-qkv-arena-minimum-rows",
+                str(args.arena_minimum_rows),
+            ])
     if workload == "prefill":
         command.extend([
             "--workload", "prefill", "--new-tokens", "0",
@@ -161,15 +173,21 @@ def main() -> int:
                         record = last_json(completed.stdout)
                         if record.get("status") != "pass":
                             raise RuntimeError(f"invalid result for {stem}")
-                        if policy == "arena" and not record.get("bf16_ffn_arena_enabled"):
+                        arena_field = ("bf16_ffn_arena_enabled"
+                                       if args.comparison_mode == "ffn"
+                                       else "bf16_qkv_arena_enabled")
+                        if policy == "arena" and not record.get(arena_field):
                             raise RuntimeError(f"Arena did not activate for {stem}")
-                        if policy == "baseline" and record.get("bf16_ffn_arena_enabled"):
+                        if policy == "baseline" and record.get(arena_field):
                             raise RuntimeError(f"baseline activated Arena for {stem}")
                         if case[1] == "decode" and record.get("generated_tokens") != \
                                 model["inference"]["expected_generated_tokens"]:
                             raise RuntimeError(f"generated token mismatch for {stem}")
                         record.update({
-                            "record_type": "bf16_ffn_arena_model_measurement",
+                            "record_type": (
+                                "bf16_ffn_arena_model_measurement"
+                                if args.comparison_mode == "ffn" else
+                                "bf16_qkv_arena_model_measurement"),
                             "model": model["name"],
                             "revision": model["revision"],
                             "case": case_name,
@@ -189,6 +207,8 @@ def main() -> int:
                             read_floats(logits_path)
 
     comparisons: list[dict] = []
+    arena_prefix = ("bf16_ffn_arena" if args.comparison_mode == "ffn"
+                    else "bf16_qkv_arena")
     for model in models:
         for case in CASES:
             case_name, kind, _, batch = case
@@ -223,17 +243,17 @@ def main() -> int:
                 "arena_engine_peak_bytes": int(median(
                     grouped["arena"], "engine_peak_bytes")),
                 "arena_capacity_bytes": int(median(
-                    grouped["arena"], "bf16_ffn_arena_capacity_bytes")),
+                    grouped["arena"], f"{arena_prefix}_capacity_bytes")),
                 "arena_entries": int(median(
-                    grouped["arena"], "bf16_ffn_arena_entries")),
+                    grouped["arena"], f"{arena_prefix}_entries")),
                 "arena_hits": int(median(
-                    grouped["arena"], "bf16_ffn_arena_hits")),
+                    grouped["arena"], f"{arena_prefix}_hits")),
                 "arena_misses": int(median(
-                    grouped["arena"], "bf16_ffn_arena_misses")),
+                    grouped["arena"], f"{arena_prefix}_misses")),
                 "arena_eligible_calls": int(median(
-                    grouped["arena"], "bf16_ffn_arena_eligible_calls")),
+                    grouped["arena"], f"{arena_prefix}_eligible_calls")),
                 "arena_bypassed_calls": int(median(
-                    grouped["arena"], "bf16_ffn_arena_bypassed_calls")),
+                    grouped["arena"], f"{arena_prefix}_bypassed_calls")),
                 "maximum_absolute_logit_difference": max(differences),
                 "exact_expected_tokens": all(
                     row["exact_expected_tokens"] for row in grouped["arena"]),
@@ -247,21 +267,29 @@ def main() -> int:
                 if row["flattened_rows"] >= args.arena_minimum_rows]
     bypassed = [row for row in comparisons
                 if row["flattened_rows"] < args.arena_minimum_rows]
+    arena_name = "model Arena" if args.comparison_mode == "ffn" else "QKV Arena"
     if args.arena_minimum_rows == 1:
         decision = ("keep universal model Arena" if regressions == 0 and
                     keep_rows == len(comparisons) else
                     "reject universal model Arena; inspect shape selection")
+        if args.comparison_mode == "qkv":
+            decision = ("keep universal QKV Arena" if regressions == 0 and
+                        keep_rows == len(comparisons) else
+                        "reject universal QKV Arena; inspect shape selection")
     else:
         decision = (
-            f"keep rows>={args.arena_minimum_rows} selective model Arena"
+            f"keep rows>={args.arena_minimum_rows} selective {arena_name}"
             if eligible and
             all(row["arena_speedup"] >= 1.01 for row in eligible) and
             all(0.98 <= row["arena_speedup"] <= 1.02 for row in bypassed)
-            else f"reject rows>={args.arena_minimum_rows} selective model Arena")
+            else f"reject rows>={args.arena_minimum_rows} selective {arena_name}")
     summary = {
         "schema_version": 1,
         "status": "pass" if correctness else "fail",
-        "record_type": "bf16_ffn_arena_model_summary",
+        "record_type": ("bf16_ffn_arena_model_summary"
+                        if args.comparison_mode == "ffn" else
+                        "bf16_qkv_arena_model_summary"),
+        "comparison_mode": args.comparison_mode,
         "raw_processes": len(records),
         "correctness_gate": correctness,
         "keep_rows": keep_rows,

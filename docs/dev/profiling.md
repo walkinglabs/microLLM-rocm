@@ -315,6 +315,9 @@ use the diagnostic allocation-returning route rather than the timed workspace pa
 Add `--arena-minimum-rows 512` to the runner, and
 `--bf16-ffn-arena-minimum-rows 512` to the binary, to reproduce the selective gate. A bypass is
 valid only when JSON reports zero entries/capacity/eligible calls and positive bypassed calls.
+Use `--comparison-mode qkv` with the same runner to compare incremental QKV Arena on top of the
+retained FFN threshold. Binary flags are `--bf16-qkv-arena` and
+`--bf16-qkv-arena-minimum-rows`; Experiment 185 records why the model policy is rejected.
 
 ## What remains
 

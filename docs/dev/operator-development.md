@@ -31,6 +31,9 @@ row count and shares it across sequential blocks. Returned workspace views must 
 model forward, and concurrent calls require external synchronization.
 Selection must use shape/runtime facts rather than model names. When `minimum_rows` bypasses a
 call, no backing Storage may be created and allocation/peak counters must match the old path.
+`Bf16QkvWorkspace` follows the same rule but has three independent fallback/output widths. Never
+reuse one fallback for K and V merely because one model happens to give them equal dimensions;
+the public contract rejects all writable aliases.
 - readable HIP launch declarations: `src/ops/hip/kernels.h`;
 - optimized matmul policy: `src/ops/optimized.cpp`;
 - correctness-first matmul/AdamW tuners: `src/ops/tuning.cpp` and

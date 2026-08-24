@@ -732,6 +732,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/183-bf16-ffn-arena-model.md](experiments/183-bf16-ffn-arena-model.md) | 60进程完整logits、分配profile与全局策略拒绝 |
 | [assets/bf16-ffn-arena-selective.svg](assets/bf16-ffn-arena-selective.svg) | rows≥512 eligible与八个精确bypass case |
 | [experiments/184-bf16-ffn-arena-selective.md](experiments/184-bf16-ffn-arena-selective.md) | 两模型长prefill keep、60进程与profile |
+| [assets/bf16-qkv-arena-discard.svg](assets/bf16-qkv-arena-discard.svg) | QKV eligible/bypass完整模型失败图 |
+| [experiments/185-bf16-qkv-arena-discard.md](experiments/185-bf16-qkv-arena-discard.md) | 分配下降但T512仅1.004×/1.005× |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

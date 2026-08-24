@@ -636,6 +636,26 @@ TEST(CpuOpsTest, Bf16QkvProjectionCastsSharedInputOnceAndKeepsFp32Outputs) {
     expect_near(output.second.to_vector(), bf16_matmul(input, key).to_vector(), 0.0F);
     expect_near(output.third.to_vector(), bf16_matmul(input, value).to_vector(), 0.0F);
     EXPECT_EQ(output.first.dtype(), DType::Float32);
+    Bf16QkvWorkspace workspace{
+        .input_bf16 = Tensor({2, 3}, DType::BFloat16),
+        .query_fallback_bf16 = Tensor({2, 2}, DType::BFloat16),
+        .key_fallback_bf16 = Tensor({2, 1}, DType::BFloat16),
+        .value_fallback_bf16 = Tensor({2, 1}, DType::BFloat16)};
+    Tensor query_output({2, 2});
+    Tensor key_output({2, 1});
+    Tensor value_output({2, 1});
+    bf16_qkv_projection_out_(
+        query_output, key_output, value_output, workspace,
+        input, query, key, value);
+    EXPECT_EQ(query_output.to_vector(), output.first.to_vector());
+    EXPECT_EQ(key_output.to_vector(), output.second.to_vector());
+    EXPECT_EQ(value_output.to_vector(), output.third.to_vector());
+    workspace.value_fallback_bf16 = workspace.key_fallback_bf16;
+    EXPECT_THROW(
+        bf16_qkv_projection_out_(
+            query_output, key_output, value_output, workspace,
+            input, query, key, value),
+        std::invalid_argument);
     EXPECT_THROW((void)bf16_qkv_projection(input, query, key,
                                             Tensor({4, 1}, DType::BFloat16)),
                  std::invalid_argument);

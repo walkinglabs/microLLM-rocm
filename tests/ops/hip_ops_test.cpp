@@ -452,6 +452,25 @@ TEST(HipBf16ProjectionTest, SharedQkvCastMatchesThreeCpuMixedGemms) {
     expect_near(actual.first.to_vector(), expected.first.to_vector(), 3.0e-2F);
     expect_near(actual.second.to_vector(), expected.second.to_vector(), 3.0e-2F);
     expect_near(actual.third.to_vector(), expected.third.to_vector(), 3.0e-2F);
+    Bf16QkvWorkspace workspace{
+        .input_bf16 = Tensor({1, hidden}, DType::BFloat16, gpu),
+        .query_fallback_bf16 = Tensor({1, hidden}, DType::BFloat16, gpu),
+        .key_fallback_bf16 = Tensor({1, kv}, DType::BFloat16, gpu),
+        .value_fallback_bf16 = Tensor({1, kv}, DType::BFloat16, gpu)};
+    Tensor query_output({1, hidden}, DType::Float32, gpu);
+    Tensor key_output({1, kv}, DType::Float32, gpu);
+    Tensor value_output({1, kv}, DType::Float32, gpu);
+    runtime::reset_transfer_stats();
+    bf16_qkv_projection_out_(
+        query_output, key_output, value_output, workspace,
+        input, query, key, value);
+    runtime::synchronize(gpu);
+    const auto caller_transfers = runtime::transfer_stats();
+    EXPECT_EQ(caller_transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(caller_transfers.device_to_host_calls, 0U);
+    expect_near(query_output.to_vector(), actual.first.to_vector(), 0.0F);
+    expect_near(key_output.to_vector(), actual.second.to_vector(), 0.0F);
+    expect_near(value_output.to_vector(), actual.third.to_vector(), 0.0F);
 }
 
 TEST(HipBf16PlanCacheTest, ExactShapeMissesOnceThenReusesImmutableDescriptors) {

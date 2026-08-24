@@ -33,6 +33,9 @@ def main() -> int:
         b"bf16_ffn_arena_capacity_bytes",
         b"--bf16-ffn-arena-minimum-rows",
         b"bf16_ffn_arena_bypassed_calls",
+        b"--bf16-qkv-arena",
+        b"--bf16-qkv-arena-minimum-rows",
+        b"bf16_qkv_arena_capacity_bytes",
     )
     missing = [value.decode() for value in required if value not in payload]
     if missing:

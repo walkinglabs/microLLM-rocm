@@ -3127,3 +3127,20 @@ Qwen T512 profiler仍是5,642个Kernel，launch数不变；malloc/free从1879/15
 而不是在128和512之间挑一个没有实测意义的数字。
 
 ![Selective BF16 FFN Arena](assets/bf16-ffn-arena-selective.svg)
+
+## 202. Experiment 185：分配次数继续下降，速度已经不再跟着走
+
+这次baseline已经包含保留的FFN rows≥512，candidate只增加QKV：一次caller-owned BF16 input cast、
+三个FP32 output和三个shape-specific fallback。model仍只按rows≥512启用，短case明确bypass。
+
+60个fresh进程的完整logits和decode token全部一致。Qwen T512 allocation 2895→2415，DeepSeek
+3375→2815；但吞吐只到1.004×/1.005×，都过不了1.01。QKV backing还增加4.46/7.86MB常驻。
+
+Profiler给出更直接的反驳：Qwen两边都是5,642个Kernel，launch为4000+1519；malloc/free从
+1637/1327降到1446/1135，Kernel时间49.63/49.27ms。分配删除是真的，可整机已经由Attention/GEMM
+设备计算主导，这一组host开销只值0.4%左右。
+
+所以model QKV策略discard、默认关闭；caller-owned算子和显式诊断接口保留。下一步不能继续猜“再把
+某个Tensor放进Arena”，必须先记录剩余allocation size/source分布，再提出可反驳的新liveness计划。
+
+![BF16 QKV Arena discard](assets/bf16-qkv-arena-discard.svg)

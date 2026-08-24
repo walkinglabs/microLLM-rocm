@@ -2166,6 +2166,91 @@ TensorTriple bf16_qkv_projection(const Tensor& input_fp32,
             bf16_matmul_output(input_bf16, value_weight_bf16, DType::Float32, context)};
 }
 
+void bf16_qkv_projection_out_(
+    Tensor& query_output_fp32, Tensor& key_output_fp32,
+    Tensor& value_output_fp32, Bf16QkvWorkspace& workspace,
+    const Tensor& input_fp32, const Tensor& query_weight_bf16,
+    const Tensor& key_weight_bf16, const Tensor& value_weight_bf16,
+    const OpContext& context) {
+    if (input_fp32.dtype() != DType::Float32 || input_fp32.ndim() != 2 ||
+        !input_fp32.is_contiguous()) {
+        throw std::invalid_argument(
+            "bf16_qkv_projection_out requires contiguous 2D FP32 input");
+    }
+    const auto rows = input_fp32.shape()[0];
+    const auto hidden = input_fp32.shape()[1];
+    const auto device = input_fp32.device();
+    const auto valid_weight = [&](const Tensor& weight) {
+        return weight.dtype() == DType::BFloat16 && weight.ndim() == 2 &&
+               weight.is_contiguous() && weight.device() == device &&
+               weight.shape()[0] == hidden;
+    };
+    if (!valid_weight(query_weight_bf16) ||
+        !valid_weight(key_weight_bf16) ||
+        !valid_weight(value_weight_bf16)) {
+        throw std::invalid_argument(
+            "bf16_qkv_projection_out weights must be compatible BF16 matrices");
+    }
+    const auto valid_output = [&](const Tensor& output,
+                                  std::int64_t columns) {
+        return output.dtype() == DType::Float32 &&
+               output.device() == device &&
+               output.shape() == Shape({rows, columns}) &&
+               output.is_contiguous();
+    };
+    const auto valid_fallback = [&](const Tensor& fallback,
+                                    const Tensor& output) {
+        return fallback.dtype() == DType::BFloat16 &&
+               fallback.device() == device &&
+               fallback.shape() == output.shape() &&
+               fallback.is_contiguous();
+    };
+    if (!valid_output(query_output_fp32, query_weight_bf16.shape()[1]) ||
+        !valid_output(key_output_fp32, key_weight_bf16.shape()[1]) ||
+        !valid_output(value_output_fp32, value_weight_bf16.shape()[1]) ||
+        workspace.input_bf16.dtype() != DType::BFloat16 ||
+        workspace.input_bf16.device() != device ||
+        workspace.input_bf16.shape() != input_fp32.shape() ||
+        !workspace.input_bf16.is_contiguous() ||
+        !valid_fallback(workspace.query_fallback_bf16,
+                        query_output_fp32) ||
+        !valid_fallback(workspace.key_fallback_bf16, key_output_fp32) ||
+        !valid_fallback(workspace.value_fallback_bf16,
+                        value_output_fp32)) {
+        throw std::invalid_argument(
+            "bf16_qkv_projection_out workspace/output mismatch");
+    }
+    const std::vector<const void*> writable{
+        query_output_fp32.data(), key_output_fp32.data(),
+        value_output_fp32.data(), workspace.input_bf16.data(),
+        workspace.query_fallback_bf16.data(),
+        workspace.key_fallback_bf16.data(),
+        workspace.value_fallback_bf16.data()};
+    const std::set<const void*> writable_set(writable.begin(), writable.end());
+    if (writable_set.size() != writable.size()) {
+        throw std::invalid_argument(
+            "bf16_qkv_projection_out writable tensors must not alias");
+    }
+    for (const auto* readable : {input_fp32.data(), query_weight_bf16.data(),
+                                 key_weight_bf16.data(),
+                                 value_weight_bf16.data()}) {
+        if (writable_set.contains(readable)) {
+            throw std::invalid_argument(
+                "bf16_qkv_projection_out workspace/output must not alias input");
+        }
+    }
+    cast_out_(input_fp32, workspace.input_bf16, context);
+    bf16_matmul_output_out_(
+        query_output_fp32, workspace.input_bf16, query_weight_bf16,
+        workspace.query_fallback_bf16, context);
+    bf16_matmul_output_out_(
+        key_output_fp32, workspace.input_bf16, key_weight_bf16,
+        workspace.key_fallback_bf16, context);
+    bf16_matmul_output_out_(
+        value_output_fp32, workspace.input_bf16, value_weight_bf16,
+        workspace.value_fallback_bf16, context);
+}
+
 Tensor fp8_matmul(const ScaledTensor& left, const ScaledTensor& right,
                   DType output_dtype, const OpContext& context) {
     if (left.values.device() != right.values.device()) {

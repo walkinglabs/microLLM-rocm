@@ -196,6 +196,11 @@ exact baseline allocation/peak counters. The threshold is retained and further F
 search between unmeasured points is closed. The next liveness work must target another region,
 such as shared-cast BF16 Q/K/V, with the same full-model gate.
 
+Experiment 185 applies that gate to shared-cast Q/K/V on top of the retained FFN policy. Allocation
+falls again, yet eligible T512 ratios are only 1.004×/1.005× and model routing is rejected. QKV
+persistent-storage optimization is locally saturated. A new liveness candidate now requires
+allocation-size/source attribution; moving another manually guessed Tensor family is closed.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

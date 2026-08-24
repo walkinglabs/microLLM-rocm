@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "workload": "Qwen T512 B1 with retained FFN rows>=512 baseline and incremental QKV Arena",
+  "modes": {
+    "baseline": {
+      "kernel_calls": 5642,
+      "kernel_duration_ns": 49625576,
+      "hip_malloc_calls": 1637,
+      "hip_free_calls": 1327,
+      "hip_launch_kernel_calls": 4000,
+      "hip_ext_launch_calls": 1519
+    },
+    "qkv": {
+      "kernel_calls": 5642,
+      "kernel_duration_ns": 49270018,
+      "hip_malloc_calls": 1446,
+      "hip_free_calls": 1135,
+      "hip_launch_kernel_calls": 4000,
+      "hip_ext_launch_calls": 1519
+    }
+  },
+  "inference": "QKV Arena removes allocation APIs but leaves Kernel and launch counts unchanged; end-to-end gain misses the keep gate"
+}

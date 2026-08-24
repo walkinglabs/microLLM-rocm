@@ -246,6 +246,10 @@ The same cache accepts a positive `minimum_rows`. Calls below it increment a byp
 execute the original allocation-returning FFN without creating an entry. Experiment 184 retains
 512 as an explicit two-model long-prefill policy; it is not an unconditional hardware default.
 
+Shared-cast BF16 Q/K/V has the same optional cache shape: one input, three fallbacks and three FP32
+outputs in one backing allocation, shared across blocks and selected by rows. Experiment 185 keeps
+the caller-owned operator seam but rejects model routing at 1.004×/1.005×; it remains default-off.
+
 hipBLASLt GEMM also supports contiguous strided batches: leading Tensor dimensions become
 the batch count and last-two dimensions remain the matrix contract. Explicit batched
 selection is tested independently; Auto is not changed by operator-only timing.

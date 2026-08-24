@@ -140,6 +140,13 @@ struct Bf16FfnWorkspace {
     Tensor output_fallback_bf16;
 };
 
+struct Bf16QkvWorkspace {
+    Tensor input_bf16;
+    Tensor query_fallback_bf16;
+    Tensor key_fallback_bf16;
+    Tensor value_fallback_bf16;
+};
+
 [[nodiscard]] ScaledTensor quantize_fp8(const Tensor& input, DType fp8_dtype,
                                         float scale, const OpContext& context = {});
 [[nodiscard]] ScaledTensor quantize_fp8_with_scale(
@@ -203,6 +210,12 @@ void bf16_ffn_out_(Tensor& output_fp32, Bf16FfnWorkspace& workspace,
 // Casts the shared FP32 activation once, then submits three BF16-weight
 // projections with FP32 outputs. Intended for Q/K/V inference projections.
 [[nodiscard]] TensorTriple bf16_qkv_projection(
+    const Tensor& input_fp32, const Tensor& query_weight_bf16,
+    const Tensor& key_weight_bf16, const Tensor& value_weight_bf16,
+    const OpContext& context = {});
+void bf16_qkv_projection_out_(
+    Tensor& query_output_fp32, Tensor& key_output_fp32,
+    Tensor& value_output_fp32, Bf16QkvWorkspace& workspace,
     const Tensor& input_fp32, const Tensor& query_weight_bf16,
     const Tensor& key_weight_bf16, const Tensor& value_weight_bf16,
     const OpContext& context = {});
