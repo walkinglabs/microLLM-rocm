@@ -252,6 +252,14 @@ slows 3.140×/2.938× without changing engine peak. A future startup candidate m
 used kernels or change process/lifecycle ownership; broad preload and another wrapper around full
 forward warm-up are closed.
 
+Experiment 194 tests that exact-selection exception and closes the one-shape solution shortcut.
+Three tuner processes per model select common-passing BF16-output gate/up indices with
+1.059×/1.032× operator Event gains. In 24 fresh model processes, cold ratios are
+0.990×/0.996×, process-wall ratios are 0.978×/0.981× and steady ratios are 0.973×/1.007×.
+Logits are bit-exact and peak is unchanged, so this is a clean performance rejection. Further
+startup work needs library/module lifecycle control or process persistence, not another first-GEMM
+solution index.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

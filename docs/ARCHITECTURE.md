@@ -422,6 +422,11 @@ hipBLASLt to preload every kernel slows official first forward by about 3.4× an
 about 3.0× with unchanged engine peak. Architecture therefore keeps preload ownership at the
 model/shape boundary; the runtime never changes the process-wide preload environment implicitly.
 
+Experiment 194 then tests one exact shape at that boundary. Version-local BF16 gate/up solutions
+improve isolated Event time but fail both cold and two-model steady gates with bit-exact logits.
+The exact registry remains a research mechanism, not a startup subsystem. A future startup layer
+must own module loading or a persistent worker lifecycle explicitly.
+
 ## Stable integration boundary
 
 The long-term integration seam is a C-compatible descriptor plus explicit stream

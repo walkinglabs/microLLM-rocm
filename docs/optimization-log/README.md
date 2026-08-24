@@ -750,6 +750,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/192-bf16-grouped-qkv-prewarm.md](experiments/192-bf16-grouped-qkv-prewarm.md) | 18进程、prewarm API与admission边界 |
 | [assets/hipblaslt-preload.svg](assets/hipblaslt-preload.svg) | 全kernel预载的两模型冷启动反例 |
 | [experiments/193-hipblaslt-preload.md](experiments/193-hipblaslt-preload.md) | 18进程、wall/forward/显存与策略拒绝 |
+| [assets/bf16-exact-startup.svg](assets/bf16-exact-startup.svg) | exact gate/up算子、cold和steady三层对照 |
+| [experiments/194-bf16-exact-startup.md](experiments/194-bf16-exact-startup.md) | 6 tuner + 24模型进程与bit-exact拒绝 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

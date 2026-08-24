@@ -3282,3 +3282,19 @@ Qwen BF16从5030ms变成17190ms，DeepSeek从4968ms变成17123ms，分别慢3.41
 第一次请求。
 
 ![hipBLASLt preload failure](assets/hipblaslt-preload.svg)
+
+## 211. Experiment 194：只挑一个快零件，仍不能缩短开机
+
+全kernel预载太宽，所以这次只挑FFN gate/up真正使用的BF16-output GEMM。每个模型启动三个
+tuner进程，64个候选必须三次共同通过完整输出，再按Event中位数选择。Qwen编号76074快
+1.059×，DeepSeek编号76091快1.032×；局部收益是真实的。
+
+可是24个模型进程给出第三次相同教训。Qwen/DeepSeek cold只有0.990×/0.996×，连完整进程wall
+也只有0.978×/0.981×。steady时Qwen退到0.973×，DeepSeek的1.007×又没有跨过1.01共同门。
+全部logits bit-exact，peak完全相同，所以不能把拒绝归咎于精度或显存。
+
+这轮关闭两个误区：换第一个GEMM编号不会让vendor库更快完成首次模块加载；单算子Event提升
+也不能直接外推到完整模型。下一轮若继续碰启动，必须拿到真正的module lifecycle控制，或由
+常驻进程摊销一次初始化。
+
+![Exact BF16 startup gate](assets/bf16-exact-startup.svg)

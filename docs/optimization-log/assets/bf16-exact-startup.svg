@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="570" viewBox="0 0 1000 570" role="img" aria-labelledby="title desc">
+  <title id="title">Exact BF16 gate/up operator and model ratios</title>
+  <desc id="desc">Exact solutions improve isolated operator Event time but fail cold-start and two-model steady gates.</desc>
+  <rect width="1000" height="570" fill="#0b1020"/>
+  <text x="55" y="48" fill="#f8fafc" font-family="sans-serif" font-size="28" font-weight="700">Experiment 194 · local GEMM win, model rejection</text>
+  <text x="55" y="78" fill="#94a3b8" font-family="sans-serif" font-size="15">T512 · 6 tuner + 24 model processes · ratio above 1 is better</text>
+
+  <line x1="500" y1="125" x2="500" y2="440" stroke="#64748b" stroke-width="2"/>
+  <text x="475" y="112" fill="#cbd5e1" font-family="monospace" font-size="14">1.00</text>
+
+  <text x="55" y="158" fill="#e2e8f0" font-family="sans-serif" font-size="17" font-weight="700">Qwen</text>
+  <text x="125" y="198" fill="#cbd5e1" font-family="sans-serif" font-size="15">operator</text>
+  <rect x="500" y="178" width="118" height="27" rx="5" fill="#34d399"/>
+  <text x="630" y="198" fill="#a7f3d0" font-family="monospace" font-size="14">1.059×</text>
+  <text x="125" y="238" fill="#cbd5e1" font-family="sans-serif" font-size="15">cold</text>
+  <rect x="481" y="218" width="19" height="27" rx="5" fill="#fb7185"/>
+  <text x="420" y="238" fill="#fecdd3" font-family="monospace" font-size="14">0.990×</text>
+  <text x="125" y="278" fill="#cbd5e1" font-family="sans-serif" font-size="15">steady</text>
+  <rect x="446" y="258" width="54" height="27" rx="5" fill="#fb7185"/>
+  <text x="385" y="278" fill="#fecdd3" font-family="monospace" font-size="14">0.973×</text>
+
+  <text x="55" y="338" fill="#e2e8f0" font-family="sans-serif" font-size="17" font-weight="700">DeepSeek</text>
+  <text x="125" y="378" fill="#cbd5e1" font-family="sans-serif" font-size="15">operator</text>
+  <rect x="500" y="358" width="64" height="27" rx="5" fill="#34d399"/>
+  <text x="576" y="378" fill="#a7f3d0" font-family="monospace" font-size="14">1.032×</text>
+  <text x="125" y="418" fill="#cbd5e1" font-family="sans-serif" font-size="15">cold</text>
+  <rect x="493" y="398" width="7" height="27" rx="3" fill="#fb7185"/>
+  <text x="432" y="418" fill="#fecdd3" font-family="monospace" font-size="14">0.996×</text>
+  <text x="125" y="458" fill="#cbd5e1" font-family="sans-serif" font-size="15">steady</text>
+  <rect x="500" y="438" width="14" height="27" rx="5" fill="#fbbf24"/>
+  <text x="526" y="458" fill="#fde68a" font-family="monospace" font-size="14">1.007×</text>
+
+  <rect x="55" y="495" width="890" height="48" rx="10" fill="#172033" stroke="#334155"/>
+  <text x="75" y="525" fill="#fda4af" font-family="sans-serif" font-size="15">Decision: discard · exact operator gain does not pass cold 1.02× and steady 1.01× gates</text>
+</svg>

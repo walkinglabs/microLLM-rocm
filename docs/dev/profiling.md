@@ -389,6 +389,12 @@ HIPBLASLT_PRELOAD_KERNELS=1 on the measured MI300X environment made first forwar
 3.4× slower, even though a later request would be warm. The repository therefore tests lazy
 versus preload in separate processes and does not use a warmed request to claim faster startup.
 
+Use compare_bf16_exact_startup.py when testing a narrower exact-solution claim. It runs three
+correctness-before-timing tuner processes per shape, selects only from their common passing set,
+then measures cold and steady complete models in separate processes. Experiment 194 shows why all
+three layers matter: 1.059×/1.032× operator gains become 0.990×/0.996× cold ratios and
+0.973×/1.007× steady ratios.
+
 ## What remains
 
 There is no Python `@profile` decorator yet. The current stable entry points are the

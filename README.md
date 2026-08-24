@@ -176,6 +176,9 @@ needed to run a real training and generation loop:
 - a fresh-process cold-start gate rejects hipBLASLt all-kernel preload: Qwen/DeepSeek BF16
   first forward slows 3.417×/3.447× and process wall slows 3.140×/2.938× with unchanged
   engine peak, so only measured exact-shape prewarm remains supported;
+- selecting only the exact BF16 gate/up solution improves isolated Event time
+  1.059×/1.032×, but cold ratios are 0.990×/0.996× and steady official-model ratios are
+  0.973×/1.007×; bit-exact outputs and unchanged peak make this a performance rejection;
 - a phase-independent exact-size HIP pool with immediate legacy-default-Stream reuse and strict
   permanent disablement for non-default Streams;
 - a cross-framework trace runner for operator/layer values and latency comparisons.
@@ -525,13 +528,13 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 468/468 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
-| CPU Debug | 299/299 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
-| ASan/UBSan CPU | 297/297 | host lifetime, external Storage and instrumented-package linking |
+| Full CPU/HIP configuration | 469/469 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
+| CPU Debug | 300/300 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
+| ASan/UBSan CPU | 298/298 | host lifetime, external Storage and instrumented-package linking |
 | MI300X/gfx942 HIP label | 159/159 | allocator/arena/Stream/Graph, grouped/exact vendor solutions, BF16/FP8 and model paths |
-| PyTorch-enabled CPU build | 273/273 | dispatcher parity, full graph/model oracle and all package paths |
+| PyTorch-enabled CPU build | 274/274 | dispatcher parity, full graph/model oracle and all package paths |
 | Multi-GPU/RCCL | 12/12 | collectives, global-batch equivalence, gradient buckets, DDP trainer/CLI and per-device hipBLASLt ownership |
-| Registered test files | 72 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| Registered test files | 73 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
 | CPU source coverage | 80.4% lines / 89.3% functions / 61.4% branches | 7,782/9,678 lines; GCC 13.3 + gcovr 8.3 |
 

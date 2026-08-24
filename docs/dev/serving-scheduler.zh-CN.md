@@ -194,6 +194,10 @@ grouped kernel初始化和每block device arguments准备分开。相同rows重�
 forward放慢约3.42–3.45倍，整个进程也慢约2.94–3.14倍。服务只能预热已经知道会使用的
 rows、shape和plan；“全部加载以后总会用到”不是可接受的假设。
 
+只注册第一个FFN精确solution也不够。Exp194的单算子快1.059×/1.032×，但cold与进程wall
+全部更慢，steady也没有同时过线。服务启动合同因此只接受完整模型fresh-process证据，
+不接受“第一个算子已经换成更快编号”作为ready证明。
+
 ## 9. 测试位置
 
 ```text

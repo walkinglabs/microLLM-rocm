@@ -9114,6 +9114,125 @@ def validate_hipblaslt_preload(
     return len(raw), min(slowdowns, default=0.0), max(slowdowns, default=0.0)
 
 
+def validate_bf16_exact_startup(
+        errors: list[str]) -> tuple[int, int, float, float]:
+    data = REPOSITORY / "benchmarks/results/2026-08-24-bf16-exact-startup"
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    tuning = [json.loads(line) for line in (data / "tuning-raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    model_raw = [json.loads(line) for line in (data / "model-raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = {row.get("model"): row
+                   for row in summary.get("comparisons", [])}
+    expected = {
+        "qwen2.5-0.5b": {
+            "selected_index": 76074,
+            "operator_speedup": 1.059120268816216,
+            "default_cold_forward_ms": 4888.837971,
+            "exact_cold_forward_ms": 4935.873106,
+            "cold_forward_speedup": 0.990470756846884,
+            "default_cold_process_wall_ms": 5966.294773854315,
+            "exact_cold_process_wall_ms": 6099.905170034617,
+            "cold_process_speedup": 0.9780963158514899,
+            "default_steady_tokens_per_second": 93617.447659253,
+            "exact_steady_tokens_per_second": 91088.405033133,
+            "steady_speedup": 0.972985349533079,
+        },
+        "deepseek-r1-distill-qwen-1.5b": {
+            "selected_index": 76091,
+            "operator_speedup": 1.0322355943946127,
+            "default_cold_forward_ms": 4907.306589,
+            "exact_cold_forward_ms": 4924.916162,
+            "cold_forward_speedup": 0.996424391315354,
+            "default_cold_process_wall_ms": 6535.664352122694,
+            "exact_cold_process_wall_ms": 6660.592336207628,
+            "cold_process_speedup": 0.9812437126040858,
+            "default_steady_tokens_per_second": 49954.926411417,
+            "exact_steady_tokens_per_second": 50315.568039669,
+            "steady_speedup": 1.007219340596798,
+        },
+    }
+    expected_tests = {
+        "cpu_debug": {"passed": 300, "total": 300},
+        "asan_ubsan": {"passed": 298, "total": 298},
+        "pytorch_enabled_cpu": {"passed": 274, "total": 274},
+        "hip_full_configuration": {
+            "passed": 469, "total": 469, "conditional_skips": 3},
+        "hip_label": {"passed": 159, "total": 159},
+        "rccl_multi_gpu": {"passed": 12, "total": 12},
+        "rccl_full_label": {"passed": 14, "total": 14},
+    }
+    tuning_counts = {name: 0 for name in expected}
+    model_counts = {(name, phase, policy): 0 for name in expected
+                    for phase in ("cold", "steady")
+                    for policy in ("default", "exact")}
+    for row in tuning:
+        name = row.get("model")
+        if name in tuning_counts:
+            tuning_counts[name] += 1
+    for row in model_raw:
+        key = (row.get("model"), row.get("phase"), row.get("policy"))
+        if key in model_counts:
+            model_counts[key] += 1
+    evidence_changed = False
+    for name, values in expected.items():
+        row = comparisons.get(name, {})
+        if row.get("selected_index") != values["selected_index"] or \
+                row.get("common_passing_candidates") != 64 or \
+                row.get("finite_complete_logits") is not True or \
+                float(row.get("maximum_absolute_logit_difference", 1.0)) != 0 or \
+                float(row.get("maximum_rms_logit_difference", 1.0)) != 0 or \
+                float(row.get("peak_ratio", 0.0)) != 1.0:
+            evidence_changed = True
+            break
+        for field, value in values.items():
+            if field == "selected_index":
+                continue
+            if abs(float(row.get(field, 0.0)) - value) > 1.0e-6:
+                evidence_changed = True
+                break
+    if summary.get("status") != "pass" or len(tuning) != 6 or \
+            len(model_raw) != 24 or summary.get("tuner_processes") != 6 or \
+            summary.get("model_processes") != 24 or \
+            summary.get("correctness_gate") is not True or \
+            summary.get("memory_gate") is not True or \
+            summary.get("cold_performance_gate") is not False or \
+            summary.get("steady_performance_gate") is not False or \
+            summary.get("performance_gate") is not False or \
+            set(comparisons) != set(expected) or evidence_changed or \
+            any(count != 3 for count in tuning_counts.values()) or \
+            any(count != 3 for count in model_counts.values()) or \
+            verification.get("status") != "pass" or \
+            verification.get("tests") != expected_tests or \
+            verification.get("registered_test_files") != 73 or \
+            verification.get("tuner_processes") != 6 or \
+            verification.get("model_processes") != 24 or \
+            verification.get("formal_comparisons") != 2 or \
+            verification.get("performance_gate") is not False:
+        errors.append("exact BF16 startup evidence changed")
+    runner = (REPOSITORY / "benchmarks/single_gpu/"
+              "compare_bf16_exact_startup.py").read_text(encoding="utf-8")
+    contract = (REPOSITORY / "python/tests/"
+                "test_bf16_exact_startup.py").read_text(encoding="utf-8")
+    for token, document in (
+            ("common_passing_candidates", runner),
+            ("cold_forward_speedup", runner),
+            ("steady_speedup", runner),
+            ("HIPBLASLT_PRELOAD_KERNELS", runner),
+            ("performance_gate", contract)):
+        if token not in document:
+            errors.append("exact BF16 startup runner/test contract changed")
+            break
+    cold_ratios = [float(row["cold_forward_speedup"])
+                   for row in comparisons.values()]
+    operator_ratios = [float(row["operator_speedup"])
+                       for row in comparisons.values()]
+    return len(tuning), len(model_raw), min(cold_ratios, default=0.0), \
+        max(operator_ratios, default=0.0)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -9285,7 +9404,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-grouped-qkv.svg",
                  "bf16-grouped-qkv-expanded.svg",
                  "bf16-grouped-qkv-prewarm.svg",
-                 "hipblaslt-preload.svg"):
+                 "hipblaslt-preload.svg",
+                 "bf16-exact-startup.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -9621,6 +9741,8 @@ def main() -> int:
         validate_bf16_grouped_qkv_prewarm(errors)
     hipblaslt_preload_rows, hipblaslt_preload_minimum, \
         hipblaslt_preload_maximum = validate_hipblaslt_preload(errors)
+    bf16_exact_tuning, bf16_exact_models, bf16_exact_cold, \
+        bf16_exact_operator = validate_bf16_exact_startup(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -9901,6 +10023,8 @@ def main() -> int:
           f"{grouped_prewarm_minimum:.1f}/{grouped_prewarm_maximum:.1f} "
           f"hipblaslt_preload={hipblaslt_preload_rows}/"
           f"{hipblaslt_preload_minimum:.3f}/{hipblaslt_preload_maximum:.3f} "
+          f"bf16_exact_startup={bf16_exact_tuning}/{bf16_exact_models}/"
+          f"{bf16_exact_cold:.3f}/{bf16_exact_operator:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")
