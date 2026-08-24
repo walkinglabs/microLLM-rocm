@@ -13,10 +13,23 @@ namespace {
 
 constexpr unsigned kBlockSize = 256;
 
+struct AdamWDescriptorStaging {
+    void* pointer = nullptr;
+    hipEvent_t ready = nullptr;
+    bool recorded = false;
+};
+
 void check_launch(const char* operation) {
     const auto status = hipGetLastError();
     if (status != hipSuccess) {
         throw std::runtime_error(std::string(operation) + ": " + hipGetErrorString(status));
+    }
+}
+
+void check_hip_status(hipError_t status, const char* operation) {
+    if (status != hipSuccess) {
+        throw std::runtime_error(
+            std::string(operation) + ": " + hipGetErrorString(status));
     }
 }
 
@@ -125,6 +138,34 @@ __global__ void adamw_update_vectorized_kernel(
         first_moment[index] = first;
         second_moment[index] = second;
         if (bf16_mirror != nullptr) bf16_mirror[index] = hip_bfloat16(value);
+    }
+}
+
+__global__ void adamw_update_multi_kernel(
+    const AdamWMultiTensorDescriptor* descriptors,
+    const std::int32_t* block_to_tensor, float learning_rate,
+    float beta1, float beta2, float epsilon, float weight_decay,
+    float first_correction, float second_correction) {
+    const auto tensor_index = block_to_tensor[blockIdx.x];
+    const auto descriptor = descriptors[tensor_index];
+    if (descriptor.gradient == nullptr) return;
+    const auto index =
+        (static_cast<std::int64_t>(blockIdx.x) - descriptor.first_block) *
+            static_cast<std::int64_t>(blockDim.x) +
+        static_cast<std::int64_t>(threadIdx.x);
+    if (index >= descriptor.elements) return;
+    auto first = descriptor.first_moment[index];
+    auto second = descriptor.second_moment[index];
+    const auto value = adamw_update_value(
+        descriptor.parameter[index], descriptor.gradient[index], first, second,
+        learning_rate, beta1, beta2, epsilon, weight_decay,
+        first_correction, second_correction);
+    descriptor.parameter[index] = value;
+    descriptor.first_moment[index] = first;
+    descriptor.second_moment[index] = second;
+    if (descriptor.bf16_mirror != nullptr) {
+        static_cast<hip_bfloat16*>(descriptor.bf16_mirror)[index] =
+            hip_bfloat16(value);
     }
 }
 
@@ -2119,6 +2160,60 @@ __global__ void repeat_gqa_kv_bthd_backward_kernel(
 
 }  // namespace
 
+void* create_adamw_descriptor_staging(std::size_t bytes) {
+    if (bytes == 0) {
+        throw std::invalid_argument("AdamW descriptor staging cannot be empty");
+    }
+    auto* staging = new AdamWDescriptorStaging();
+    try {
+        check_hip_status(
+            hipHostMalloc(&staging->pointer, bytes, hipHostMallocDefault),
+            "hipHostMalloc(AdamW descriptors)");
+        check_hip_status(
+            hipEventCreateWithFlags(&staging->ready, hipEventDisableTiming),
+            "hipEventCreate(AdamW descriptors)");
+    } catch (...) {
+        if (staging->pointer != nullptr) (void)hipHostFree(staging->pointer);
+        delete staging;
+        throw;
+    }
+    return staging;
+}
+
+void destroy_adamw_descriptor_staging(void* handle) noexcept {
+    auto* staging = static_cast<AdamWDescriptorStaging*>(handle);
+    if (staging == nullptr) return;
+    if (staging->recorded && staging->ready != nullptr) {
+        (void)hipEventSynchronize(staging->ready);
+    }
+    if (staging->ready != nullptr) (void)hipEventDestroy(staging->ready);
+    if (staging->pointer != nullptr) (void)hipHostFree(staging->pointer);
+    delete staging;
+}
+
+void* acquire_adamw_descriptor_staging(void* handle) {
+    auto* staging = static_cast<AdamWDescriptorStaging*>(handle);
+    if (staging == nullptr) {
+        throw std::invalid_argument("AdamW descriptor staging is undefined");
+    }
+    if (staging->recorded) {
+        check_hip_status(hipEventSynchronize(staging->ready),
+                         "hipEventSynchronize(AdamW descriptors)");
+        staging->recorded = false;
+    }
+    return staging->pointer;
+}
+
+void mark_adamw_descriptor_staging_in_use(void* handle, void* stream) {
+    auto* staging = static_cast<AdamWDescriptorStaging*>(handle);
+    if (staging == nullptr) {
+        throw std::invalid_argument("AdamW descriptor staging is undefined");
+    }
+    check_hip_status(hipEventRecord(staging->ready, as_stream(stream)),
+                     "hipEventRecord(AdamW descriptors)");
+    staging->recorded = true;
+}
+
 void launch_fill(float* output, std::int64_t elements, float value, void* stream) {
     if (elements == 0) return;
     hipLaunchKernelGGL(fill_kernel, dim3(grid_size(elements)), dim3(kBlockSize), 0,
@@ -2160,6 +2255,21 @@ void launch_adamw_update_vectorized(float* parameter, const float* gradient,
                        learning_rate, beta1, beta2, epsilon, weight_decay,
                        first_correction, second_correction);
     check_launch("adamw_update_vectorized_kernel");
+}
+
+void launch_adamw_update_multi(
+    const AdamWMultiTensorDescriptor* descriptors,
+    const std::int32_t* block_to_tensor, std::int64_t blocks,
+    float learning_rate, float beta1, float beta2, float epsilon,
+    float weight_decay, float first_correction, float second_correction,
+    void* stream) {
+    if (blocks == 0) return;
+    hipLaunchKernelGGL(
+        adamw_update_multi_kernel, dim3(static_cast<unsigned>(blocks)),
+        dim3(kBlockSize), 0, as_stream(stream), descriptors, block_to_tensor,
+        learning_rate, beta1, beta2, epsilon, weight_decay,
+        first_correction, second_correction);
+    check_launch("adamw_update_multi_kernel");
 }
 
 void launch_add(const float* left, const float* right, float* output,

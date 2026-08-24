@@ -33,6 +33,7 @@ declared_ops = public_names(
      "Bf16GroupedGateUpKey", "Bf16GroupedGateUpStats",
      "MatmulImplementation", "AdamWTuningKey",
      "AdamWTuningCacheLoadReport", "AdamWImplementation",
+     "AdamWMultiTensorStats",
      "std::size_t", "void"],
 )
 declared_ops |= public_names(

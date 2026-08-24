@@ -10794,6 +10794,124 @@ def validate_training_add_rms_norm_discard(
         materialized.get("kernel_dispatches", 0) - fused.get("kernel_dispatches", 0)
 
 
+def validate_multi_tensor_adamw_discard(
+        errors: list[str]) -> tuple[int, float, float, int, int]:
+    data = REPOSITORY / "benchmarks/results/2026-08-24-multi-tensor-adamw"
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    profile = json.loads((data / "profile-summary.json").read_text(
+        encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "training.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    sync_raw = [json.loads(line) for line in (data / "sync-training.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    async_raw = [json.loads(line) for line in (
+        data / "async-pilot-training.jsonl").read_text(
+            encoding="utf-8").splitlines() if line.strip()]
+    rows = {row.get("model"): row
+            for row in summary.get("comparisons", [])}
+    expected = {
+        "qwen2.5-0.5b":
+            (1.0573064459326578, 1.00065421735272, 7735744.0, 0.0),
+        "deepseek-r1-distill-qwen-1.5b":
+            (1.0094076207091134, 1.0007488949590597, 27785984.0, 0.0),
+    }
+    fields = ("throughput_speedup", "peak_ratio", "peak_bytes_added",
+              "observed_parameter_absolute_difference")
+    counts = {(model, policy): 0 for model in expected
+              for policy in ("per_tensor", "multi_tensor")}
+    for row in raw:
+        key = (row.get("model"), row.get("policy"))
+        if key in counts:
+            counts[key] += 1
+    profile_rows = {row.get("model"): row
+                    for row in profile.get("models", [])}
+    profile_expected = {
+        "qwen2.5-0.5b": (6903, 6039, 870, 3, 16666830, 11338744,
+                         1.4699008990766527),
+        "deepseek-r1-distill-qwen-1.5b":
+            (8056, 7042, 1017, 3, 48449556, 44743270,
+             1.0828344910865924),
+    }
+    expected_tests = {
+        "cpu_debug": {"passed": 317, "total": 317},
+        "asan_ubsan": {"passed": 315, "total": 315},
+        "pytorch_enabled_cpu": {"passed": 291, "total": 291},
+        "hip_full_configuration": {
+            "passed": 496, "total": 496, "conditional_skips": 3},
+        "hip_label": {"passed": 168, "total": 168},
+        "rccl_multi_gpu": {"passed": 12, "total": 12},
+        "rccl_full_label": {"passed": 14, "total": 14},
+    }
+    profile_changed = set(profile_rows) != set(profile_expected)
+    if not profile_changed:
+        for model, values in profile_expected.items():
+            row = profile_rows[model]
+            actual = (
+                row["per_tensor"]["all_kernel_calls"],
+                row["multi_tensor"]["all_kernel_calls"],
+                row["per_tensor"]["adamw_calls"],
+                row["multi_tensor"]["adamw_calls"],
+                row["per_tensor"]["adamw_time_ns"],
+                row["multi_tensor"]["adamw_time_ns"],
+                row["adamw_kernel_speedup"],
+            )
+            if any(abs(float(left) - float(right)) > 1.0e-9
+                   for left, right in zip(actual, values, strict=True)):
+                profile_changed = True
+                break
+    if summary.get("status") != "pass" or len(raw) != 20 or \
+            len(sync_raw) != 12 or len(async_raw) != 12 or \
+            summary.get("decision") != "reject multi-tensor route" or \
+            summary.get("gate_results", {}).get("throughput") is not False or \
+            summary.get("gate_results", {}).get("loss") is not True or \
+            summary.get("gate_results", {}).get("parameter") is not True or \
+            summary.get("gate_results", {}).get("metadata") is not True or \
+            set(rows) != set(expected) or \
+            any(any(abs(float(rows[name].get(field, 0.0)) - value) > 1.0e-12
+                    for field, value in zip(fields, values, strict=True))
+                for name, values in expected.items()) or \
+            any(count != 5 for count in counts.values()) or profile_changed or \
+            verification.get("status") != "pass" or \
+            verification.get("model_route_retained") is not False or \
+            verification.get("registered_test_files") != 86 or \
+            verification.get("sync_pilot_processes") != 12 or \
+            verification.get("async_pilot_processes") != 12 or \
+            verification.get("formal_processes") != 20 or \
+            verification.get("coverage") != {
+                "lines_percent": 79.8,
+                "functions_percent": 87.7,
+                "branches_percent": 60.5} or \
+            verification.get("tests") != expected_tests:
+        errors.append("multi-tensor AdamW rejection evidence changed")
+    ops_header = (REPOSITORY / "include/microllm/ops/ops.h").read_text(
+        encoding="utf-8")
+    runtime_header = (REPOSITORY / "include/microllm/runtime/memory.h").read_text(
+        encoding="utf-8")
+    hip_source = (REPOSITORY / "src/ops/hip/basic_kernels.hip").read_text(
+        encoding="utf-8")
+    hip_test = (REPOSITORY / "tests/ops/hip_ops_test.cpp").read_text(
+        encoding="utf-8")
+    route_sources = (REPOSITORY / "src/training/optimizer.cpp").read_text(
+        encoding="utf-8") + (REPOSITORY / "apps/hf_train_step.cpp").read_text(
+            encoding="utf-8")
+    for token, document in (
+            ("AdamWMultiTensorWorkspace", ops_header),
+            ("adamw_update_multi_", ops_header),
+            ("copy_bytes_async_native", runtime_header),
+            ("create_adamw_descriptor_staging", hip_source),
+            ("MultiTensorAdamWMatchesScalarCompleteStateAndTransfersOnlyMetadata",
+             hip_test)):
+        if token not in document:
+            errors.append("multi-tensor AdamW source/test contract changed")
+            break
+    if "multi_tensor" in route_sources or "MultiTensor" in route_sources:
+        errors.append("rejected multi-tensor AdamW model route returned")
+    ratios = [values[0] for values in expected.values()]
+    return len(raw), min(ratios), max(ratios), 864, 1014
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -10982,7 +11100,8 @@ def validate_assets(errors: list[str]) -> None:
                  "causal-softmax-128-discard.svg",
                  "bf16-repeat-fusion-discard.svg",
                  "post-bf16-qk-saturation.svg",
-                 "training-add-rms-norm-discard.svg"):
+                 "training-add-rms-norm-discard.svg",
+                 "multi-tensor-adamw-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -11362,6 +11481,9 @@ def main() -> int:
         validate_post_bf16_qk_saturation(errors)
     training_norm_rows, training_norm_minimum, training_norm_maximum, \
         training_norm_dispatches = validate_training_add_rms_norm_discard(errors)
+    multi_adamw_rows, multi_adamw_minimum, multi_adamw_maximum, \
+        multi_adamw_qwen_calls, multi_adamw_deep_calls = \
+        validate_multi_tensor_adamw_discard(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -11692,6 +11814,9 @@ def main() -> int:
           f"training_add_rms_norm={training_norm_rows}/"
           f"{training_norm_minimum:.3f}/{training_norm_maximum:.3f}/"
           f"{training_norm_dispatches} "
+          f"multi_tensor_adamw={multi_adamw_rows}/"
+          f"{multi_adamw_minimum:.3f}/{multi_adamw_maximum:.3f}/"
+          f"{multi_adamw_qwen_calls}/{multi_adamw_deep_calls} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

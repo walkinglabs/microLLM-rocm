@@ -63,6 +63,8 @@
     "matmul_out_": "tests/ops/hip_ops_test.cpp",
     "adamw_update_": "tests/training/optimizer_test.cpp",
     "adamw_update_bf16_mirror_": "tests/training/optimizer_test.cpp",
+    "adamw_update_multi_": "tests/ops/hip_ops_test.cpp",
+    "adamw_multi_tensor_workspace_stats": "tests/ops/hip_ops_test.cpp",
     "embedding_backward_add_": "tests/ops/hip_ops_test.cpp",
     "bias_gradient_with_implementation": "tests/ops/hip_ops_test.cpp",
     "causal_gqa_attention_saved": "tests/ops/hip_ops_test.cpp",

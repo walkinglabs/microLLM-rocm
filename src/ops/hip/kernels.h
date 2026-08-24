@@ -1,10 +1,27 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 
 #include <microllm/base/dtype.h>
 
 namespace microllm::ops::hip {
+
+struct AdamWMultiTensorDescriptor {
+    float* parameter = nullptr;
+    const float* gradient = nullptr;
+    float* first_moment = nullptr;
+    float* second_moment = nullptr;
+    void* bf16_mirror = nullptr;
+    std::int64_t elements = 0;
+    std::int64_t first_block = 0;
+};
+
+void* create_adamw_descriptor_staging(std::size_t bytes);
+void destroy_adamw_descriptor_staging(void* staging) noexcept;
+void* acquire_adamw_descriptor_staging(void* staging);
+void mark_adamw_descriptor_staging_in_use(
+    void* staging, void* stream = nullptr);
 
 void launch_fill(float* output, std::int64_t elements, float value, void* stream = nullptr);
 void launch_adamw_update(float* parameter, const float* gradient,
@@ -21,6 +38,12 @@ void launch_adamw_update_vectorized(float* parameter, const float* gradient,
                                     float epsilon, float weight_decay,
                                     float first_correction, float second_correction,
                                     void* stream = nullptr);
+void launch_adamw_update_multi(
+    const AdamWMultiTensorDescriptor* descriptors,
+    const std::int32_t* block_to_tensor, std::int64_t blocks,
+    float learning_rate, float beta1, float beta2, float epsilon,
+    float weight_decay, float first_correction, float second_correction,
+    void* stream = nullptr);
 void launch_add(const float* left, const float* right, float* output,
                 std::int64_t elements, void* stream = nullptr);
 void launch_add_bias(const float* input, const float* bias, float* output,

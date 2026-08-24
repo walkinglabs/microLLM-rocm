@@ -1,3 +1,5 @@
+#include <array>
+#include <cstdint>
 #include <iostream>
 #include <stdexcept>
 #include <vector>
@@ -8,9 +10,15 @@
 #include <microllm/ops/tuning.h>
 #include <microllm/autograd/diagnostics.h>
 #include <microllm/runtime/diagnostics.h>
+#include <microllm/runtime/memory.h>
 
 int main() {
     const auto device = microllm::Device::cpu();
+    const std::array<std::uint32_t, 2> native_copy_source{13, 17};
+    std::array<std::uint32_t, 2> native_copy_destination{};
+    microllm::runtime::copy_bytes_async_native(
+        native_copy_destination.data(), device, native_copy_source.data(),
+        device, sizeof(native_copy_source));
     microllm::runtime::HipGraphExecutable empty_graph;
     bool rejected_cpu_deferred_release = false;
     bool rejected_cpu_scoped_stream = false;
@@ -177,6 +185,10 @@ int main() {
     microllm::ops::clear_bf16_grouped_gate_up_registry();
     const auto grouped_gate_up_stats =
         microllm::ops::bf16_grouped_gate_up_stats();
+    const microllm::ops::AdamWMultiTensorWorkspace empty_adamw_workspace;
+    const auto multi_adamw_stats =
+        microllm::ops::adamw_multi_tensor_workspace_stats(
+            empty_adamw_workspace);
     bool rejected_cpu_tuning = false;
     bool rejected_cpu_adamw_tuning = false;
     bool rejected_cpu_softmax_candidate = false;
@@ -245,6 +257,8 @@ int main() {
         microllm::ops::inference_bthd_bf16_qk_enabled() ||
         !microllm::autograd::attention_rope_layout_fusion_enabled() ||
         microllm::autograd::unique_gradient_inplace_add_enabled() ||
+        native_copy_destination != native_copy_source ||
+        multi_adamw_stats.tensors != 0 ||
         !rejected_cpu_tuning || !rejected_cpu_adamw_tuning ||
         !rejected_cpu_softmax_candidate ||
         !rejected_cpu_grouped_prewarm) return 1;

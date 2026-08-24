@@ -118,6 +118,9 @@
 - AdamW：至少比较前两步参数、一阶动量、二阶动量和恢复后的下一步。
 - AdamW 优化实现：Scalar/Vectorized 必须对齐参数、两组 moment、BF16 mirror 和非 4
   倍数尾部；显式 Vectorized 的算子收益不能改变 `Auto`，除非官方模型矩阵也通过。
+- multi-tensor AdamW：workspace固定Tensor元素数和HIP设备；每步地址可以变化；缺失gradient
+  必须保持该Tensor的parameter、两组moment和mirror全部不变。完整状态容差`2e-6`，metadata
+  copy必须与更新Kernel在同一Stream，不能把失败的模型路由伪装成默认优化。
 - batched GEMM：两个输入 rank、所有 batch 维、dtype、device 必须相同；transpose 只作用
   于最后两维。hipBLASLt 必须与 materialized CPU reference 对齐，并单独记录 Stream 依赖。
 - Transformer：相同权重、token、mask、RoPE 和 epsilon 下比较 logits、loss 和全部参数梯度。

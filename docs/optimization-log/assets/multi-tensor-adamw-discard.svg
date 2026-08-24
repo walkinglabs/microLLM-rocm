@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="650" viewBox="0 0 1200 650">
+  <rect width="1200" height="650" fill="#0f172a"/>
+  <text x="55" y="50" fill="#f8fafc" font-family="sans-serif" font-size="28" font-weight="700">Experiment 211 · multi-tensor AdamW</text>
+  <text x="55" y="82" fill="#94a3b8" font-family="sans-serif" font-size="16">Launch reduction is real; the larger model remains bandwidth-bound.</text>
+  <line x1="100" y1="520" x2="1130" y2="520" stroke="#475569" stroke-width="2"/>
+  <line x1="100" y1="155" x2="100" y2="520" stroke="#475569" stroke-width="2"/>
+  <line x1="100" y1="337" x2="1130" y2="337" stroke="#64748b" stroke-width="2" stroke-dasharray="8 8"/>
+  <text x="78" y="342" fill="#cbd5e1" font-family="sans-serif" font-size="14" text-anchor="end">1.00×</text>
+  <rect x="180" y="274" width="135" height="246" rx="8" fill="#38bdf8"/>
+  <rect x="355" y="326" width="135" height="194" rx="8" fill="#fb7185"/>
+  <rect x="640" y="190" width="135" height="330" rx="8" fill="#22c55e"/>
+  <rect x="815" y="307" width="135" height="213" rx="8" fill="#f59e0b"/>
+  <text x="247" y="263" fill="#f8fafc" font-family="sans-serif" font-size="19" font-weight="700" text-anchor="middle">1.0573×</text>
+  <text x="422" y="315" fill="#f8fafc" font-family="sans-serif" font-size="19" font-weight="700" text-anchor="middle">1.0094×</text>
+  <text x="707" y="179" fill="#f8fafc" font-family="sans-serif" font-size="19" font-weight="700" text-anchor="middle">1.4699×</text>
+  <text x="882" y="296" fill="#f8fafc" font-family="sans-serif" font-size="19" font-weight="700" text-anchor="middle">1.0828×</text>
+  <text x="247" y="555" fill="#cbd5e1" font-family="sans-serif" font-size="15" text-anchor="middle">Qwen end-to-end</text>
+  <text x="422" y="555" fill="#cbd5e1" font-family="sans-serif" font-size="15" text-anchor="middle">DeepSeek end-to-end</text>
+  <text x="707" y="555" fill="#cbd5e1" font-family="sans-serif" font-size="15" text-anchor="middle">Qwen AdamW Kernel</text>
+  <text x="882" y="555" fill="#cbd5e1" font-family="sans-serif" font-size="15" text-anchor="middle">DeepSeek AdamW Kernel</text>
+  <rect x="985" y="185" width="170" height="125" rx="10" fill="#1e293b" stroke="#334155"/>
+  <text x="1070" y="220" fill="#86efac" font-family="sans-serif" font-size="16" font-weight="700" text-anchor="middle">Launches</text>
+  <text x="1070" y="253" fill="#f8fafc" font-family="sans-serif" font-size="17" text-anchor="middle">870 / 1017</text>
+  <text x="1070" y="280" fill="#f8fafc" font-family="sans-serif" font-size="17" text-anchor="middle">→ 3 / 3</text>
+  <text x="600" y="615" fill="#fca5a5" font-family="sans-serif" font-size="16" font-weight="700" text-anchor="middle">Decision: model route rejected; tested primitive retained</text>
+</svg>

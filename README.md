@@ -243,6 +243,9 @@ the chronological details are in the [optimization log](docs/optimization-log/RE
 - correctness-before-timing AdamW tuning with exact element/mirror/alignment/environment keys,
   transactional cache and complete parameter/moment/mirror gates; 15 fresh MI300 processes find
   no aligned case above the 1.05 keep gate, so Auto remains on the model-validated Scalar policy;
+- a tested descriptor-driven multi-tensor AdamW research primitive reduces Qwen/DeepSeek AdamW
+  launches from 870/1,017 to 3 in a three-step profile; Qwen reaches 1.0573× but DeepSeek only
+  1.0094× end-to-end, so the ordinary optimizer and CLI do not route through it;
 - rank-N strided-batched hipBLASLt with last-two-dimension transpose contracts for Attention.
 - T≥256 causal GQA backward using batched GEMM for K/V gradients, with short-sequence fallback.
 - optional autograd probability saving for T≥256, reported as a long-sequence speed/memory trade-off.
@@ -548,15 +551,15 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 491/491 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
-| CPU Debug | 316/316 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
-| ASan/UBSan CPU | 314/314 | host lifetime, external Storage and instrumented-package linking |
-| MI300X/gfx942 HIP label | 165/165 | allocator/arena/Stream/Graph, grouped/exact vendor solutions, BF16/FP8 and model paths |
-| PyTorch-enabled CPU build | 290/290 | dispatcher parity, full graph/model oracle and all package paths |
+| Full CPU/HIP configuration | 496/496 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
+| CPU Debug | 317/317 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
+| ASan/UBSan CPU | 315/315 | host lifetime, external Storage and instrumented-package linking |
+| MI300X/gfx942 HIP label | 168/168 | allocator/arena/Stream/Graph, grouped/exact vendor solutions, BF16/FP8 and model paths |
+| PyTorch-enabled CPU build | 291/291 | dispatcher parity, full graph/model oracle and all package paths |
 | Multi-GPU/RCCL | 12/12 | collectives, global-batch equivalence, gradient buckets, DDP trainer/CLI and per-device hipBLASLt ownership |
 | Registered test files | 86 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
-| CPU source coverage | 80.4% lines / 89.3% functions / 61.4% branches | 7,782/9,678 lines; GCC 13.3 + gcovr 8.3 |
+| CPU source coverage | 79.8% lines / 87.7% functions / 60.5% branches | 8,685/10,879 lines; GCC 13.3 + gcovr 8.3 |
 
 Latest PyTorch-reference maximum absolute differences:
 

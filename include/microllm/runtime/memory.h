@@ -29,6 +29,11 @@ void reset_allocation_peak(Device device) noexcept;
 
 void copy_bytes(void* destination, Device destination_device, const void* source,
                 Device source_device, std::size_t num_bytes);
+// Enqueues a copy on a caller-owned native HIP stream. A null stream selects
+// the legacy default stream. Host memory must remain valid until the copy ends.
+void copy_bytes_async_native(
+    void* destination, Device destination_device, const void* source,
+    Device source_device, std::size_t num_bytes, void* native_stream = nullptr);
 
 void copy_strided(void* contiguous_destination, const void* strided_source,
                   std::size_t element_bytes, Device device,

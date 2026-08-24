@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "device": "AMD Instinct MI300X VF",
+  "architecture": "gfx942:sramecc+:xnack-",
+  "context": 512,
+  "warmup": 1,
+  "steps": 2,
+  "note": "Profiles include load, one warm-up and two measured steps; Kernel time is structural evidence, not the end-to-end result.",
+  "models": [
+    {
+      "model": "qwen2.5-0.5b",
+      "per_tensor": {
+        "all_kernel_calls": 6903,
+        "all_kernel_time_ns": 111210775,
+        "adamw_calls": 870,
+        "adamw_time_ns": 16666830
+      },
+      "multi_tensor": {
+        "all_kernel_calls": 6039,
+        "all_kernel_time_ns": 105808250,
+        "adamw_calls": 3,
+        "adamw_time_ns": 11338744
+      },
+      "adamw_kernel_speedup": 1.4699008990766527
+    },
+    {
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "per_tensor": {
+        "all_kernel_calls": 8056,
+        "all_kernel_time_ns": 262455632,
+        "adamw_calls": 1017,
+        "adamw_time_ns": 48449556
+      },
+      "multi_tensor": {
+        "all_kernel_calls": 7042,
+        "all_kernel_time_ns": 259126386,
+        "adamw_calls": 3,
+        "adamw_time_ns": 44743270
+      },
+      "adamw_kernel_speedup": 1.0828344910865924
+    }
+  ]
+}

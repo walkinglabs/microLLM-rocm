@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <compare>
 #include <filesystem>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -16,6 +17,38 @@ enum class MatmulImplementation { Auto, Readable, HipBLASLt };
 enum class AdamWImplementation { Auto, Scalar, Vectorized };
 enum class BiasGradientImplementation { Auto, ScalarColumns, CooperativeRows };
 enum class CausalSoftmaxImplementation { Auto, Rows128 };
+
+struct AdamWMultiTensorEntry {
+    Tensor* parameter = nullptr;
+    const Tensor* gradient = nullptr;
+    Tensor* first_moment = nullptr;
+    Tensor* second_moment = nullptr;
+    Tensor* bf16_mirror = nullptr;
+};
+
+struct AdamWMultiTensorStats {
+    std::size_t tensors = 0;
+    std::size_t blocks = 0;
+    std::size_t descriptor_bytes = 0;
+    std::size_t block_map_bytes = 0;
+};
+
+class AdamWMultiTensorWorkspace {
+public:
+    AdamWMultiTensorWorkspace() = default;
+    AdamWMultiTensorWorkspace(std::vector<std::int64_t> element_counts,
+                              Device device);
+
+private:
+    struct Impl;
+    std::shared_ptr<Impl> impl_;
+
+    friend void adamw_update_multi_(
+        AdamWMultiTensorWorkspace&, const std::vector<AdamWMultiTensorEntry>&,
+        float, float, float, float, float, float, float, const OpContext&);
+    friend AdamWMultiTensorStats adamw_multi_tensor_workspace_stats(
+        const AdamWMultiTensorWorkspace&) noexcept;
+};
 
 struct MatmulTuningKey {
     std::int64_t rows = 0;
@@ -328,6 +361,17 @@ void adamw_update_bf16_mirror_(Tensor& parameter, const Tensor& gradient,
                                const OpContext& context = {},
                                AdamWImplementation implementation =
                                    AdamWImplementation::Auto);
+// Experimental primitive: complete-state and device tests pass, but the
+// official DeepSeek model route missed its performance gate. Callers opt in
+// explicitly; training::AdamW does not dispatch here.
+void adamw_update_multi_(
+    AdamWMultiTensorWorkspace& workspace,
+    const std::vector<AdamWMultiTensorEntry>& entries,
+    float learning_rate, float beta1, float beta2, float epsilon,
+    float weight_decay, float first_correction, float second_correction,
+    const OpContext& context = {});
+[[nodiscard]] AdamWMultiTensorStats adamw_multi_tensor_workspace_stats(
+    const AdamWMultiTensorWorkspace& workspace) noexcept;
 [[nodiscard]] AdamWTuningKey make_adamw_tuning_key(
     const Tensor& parameter, const Tensor& gradient,
     const Tensor& first_moment, const Tensor& second_moment,

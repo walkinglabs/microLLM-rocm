@@ -35,6 +35,19 @@ TEST(RuntimeTest, CpuCopyRoundTripsBytes) {
     EXPECT_EQ(output, input);
 }
 
+TEST(RuntimeTest, NativeAsyncCpuCopyRequiresNullHipStream) {
+    std::array<std::uint32_t, 2> source{7, 11};
+    std::array<std::uint32_t, 2> destination{};
+    copy_bytes_async_native(destination.data(), Device::cpu(), source.data(),
+                            Device::cpu(), sizeof(source));
+    EXPECT_EQ(destination, source);
+    EXPECT_THROW(
+        copy_bytes_async_native(destination.data(), Device::cpu(), source.data(),
+                                Device::cpu(), sizeof(source),
+                                reinterpret_cast<void*>(1)),
+        std::invalid_argument);
+}
+
 TEST(RuntimeTest, TracksCurrentPeakAndTotalEngineAllocations) {
     const auto before = allocation_stats(Device::cpu()).current_bytes;
     reset_allocation_peak(Device::cpu());
@@ -599,6 +612,24 @@ TEST(HipRuntimeTest, AsyncCopyAndEventsRespectDependencies) {
     EXPECT_EQ(output, input);
     EXPECT_TRUE(finish.ready());
     EXPECT_GE(finish.elapsed_ms_since(start), 0.0F);
+}
+
+TEST(HipRuntimeTest, NativeDefaultStreamAsyncCopyTracksAndCompletes) {
+    if (hip_device_count() == 0) GTEST_SKIP() << "No visible HIP device";
+    const auto gpu = Device::hip(0);
+    const std::array<std::uint32_t, 4> input{3, 5, 7, 11};
+    std::array<std::uint32_t, 4> output{};
+    Storage storage(sizeof(input), gpu);
+    reset_transfer_stats();
+    copy_bytes_async_native(storage.data(), gpu, input.data(), Device::cpu(),
+                            sizeof(input));
+    copy_bytes_async_native(output.data(), Device::cpu(), storage.data(), gpu,
+                            sizeof(output));
+    synchronize(gpu);
+    EXPECT_EQ(output, input);
+    const auto transfers = transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 1U);
+    EXPECT_EQ(transfers.device_to_host_calls, 1U);
 }
 #else
 TEST(HipRuntimeTest, CpuBuildRejectsHipObjects) {

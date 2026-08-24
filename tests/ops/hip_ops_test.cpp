@@ -3672,6 +3672,132 @@ TEST(HipTrainingTest, VectorizedAdamWMatchesScalarAcrossTailAndMirror) {
                  std::invalid_argument);
 }
 
+TEST(HipTrainingTest,
+     MultiTensorAdamWMatchesScalarCompleteStateAndTransfersOnlyMetadata) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    const std::vector<std::int64_t> sizes{17, 513, 3};
+    std::vector<Tensor> scalar_parameters;
+    std::vector<Tensor> scalar_gradients;
+    std::vector<Tensor> scalar_first;
+    std::vector<Tensor> scalar_second;
+    std::vector<Tensor> multi_parameters;
+    std::vector<Tensor> multi_gradients;
+    std::vector<Tensor> multi_first;
+    std::vector<Tensor> multi_second;
+    for (const auto size : sizes) {
+        std::vector<float> values(static_cast<std::size_t>(size));
+        std::vector<float> gradients(static_cast<std::size_t>(size));
+        for (std::size_t index = 0; index < values.size(); ++index) {
+            values[index] = static_cast<float>(static_cast<int>(index % 23) - 11) /
+                            13.0F;
+            gradients[index] =
+                static_cast<float>(static_cast<int>(index % 17) - 8) / 19.0F;
+        }
+        scalar_parameters.push_back(
+            Tensor::from_vector(values, {size}).to(gpu));
+        scalar_gradients.push_back(
+            Tensor::from_vector(gradients, {size}).to(gpu));
+        scalar_first.emplace_back(Shape{size}, DType::Float32, gpu);
+        scalar_second.emplace_back(Shape{size}, DType::Float32, gpu);
+        fill_(scalar_first.back(), 0.125F);
+        fill_(scalar_second.back(), 0.25F);
+        multi_parameters.push_back(
+            Tensor::from_vector(values, {size}).to(gpu));
+        multi_gradients.push_back(
+            Tensor::from_vector(gradients, {size}).to(gpu));
+        multi_first.emplace_back(Shape{size}, DType::Float32, gpu);
+        multi_second.emplace_back(Shape{size}, DType::Float32, gpu);
+        fill_(multi_first.back(), 0.125F);
+        fill_(multi_second.back(), 0.25F);
+    }
+    auto scalar_mirror = scalar_parameters[0].cast(DType::BFloat16);
+    auto multi_mirror = multi_parameters[0].cast(DType::BFloat16);
+    constexpr float learning_rate = 0.01F;
+    constexpr float beta1 = 0.9F;
+    constexpr float beta2 = 0.99F;
+    constexpr float epsilon = 1.0e-8F;
+    constexpr float weight_decay = 0.1F;
+    constexpr float first_correction = 0.1F;
+    constexpr float second_correction = 0.01F;
+    for (std::size_t index = 0; index < sizes.size() - 1; ++index) {
+        if (index == 0) {
+            adamw_update_bf16_mirror_(
+                scalar_parameters[index], scalar_gradients[index],
+                scalar_first[index], scalar_second[index], scalar_mirror,
+                learning_rate, beta1, beta2, epsilon, weight_decay,
+                first_correction, second_correction, {},
+                AdamWImplementation::Scalar);
+        } else {
+            adamw_update_(
+                scalar_parameters[index], scalar_gradients[index],
+                scalar_first[index], scalar_second[index], learning_rate,
+                beta1, beta2, epsilon, weight_decay, first_correction,
+                second_correction, {}, AdamWImplementation::Scalar);
+        }
+    }
+    runtime::synchronize(gpu);
+
+    AdamWMultiTensorWorkspace workspace(sizes, gpu);
+    const auto stats = adamw_multi_tensor_workspace_stats(workspace);
+    EXPECT_EQ(stats.tensors, 3U);
+    EXPECT_EQ(stats.blocks, 5U);
+    EXPECT_EQ(stats.block_map_bytes, 5U * sizeof(std::int32_t));
+    const std::vector<AdamWMultiTensorEntry> entries{
+        {&multi_parameters[0], &multi_gradients[0], &multi_first[0],
+         &multi_second[0], &multi_mirror},
+        {&multi_parameters[1], &multi_gradients[1], &multi_first[1],
+         &multi_second[1], nullptr},
+        {&multi_parameters[2], nullptr, &multi_first[2], &multi_second[2],
+         nullptr},
+    };
+    runtime::reset_transfer_stats();
+    adamw_update_multi_(workspace, entries, learning_rate, beta1, beta2,
+                        epsilon, weight_decay, first_correction,
+                        second_correction);
+    runtime::synchronize(gpu);
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 1U);
+    EXPECT_EQ(transfers.host_to_device_bytes, stats.descriptor_bytes);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    EXPECT_EQ(transfers.device_to_device_calls, 0U);
+
+    for (std::size_t index = 0; index < sizes.size(); ++index) {
+        expect_near(multi_parameters[index].to_vector(),
+                    scalar_parameters[index].to_vector(), 2.0e-6F);
+        expect_near(multi_first[index].to_vector(),
+                    scalar_first[index].to_vector(), 2.0e-6F);
+        expect_near(multi_second[index].to_vector(),
+                    scalar_second[index].to_vector(), 2.0e-6F);
+    }
+    EXPECT_EQ(multi_mirror.to_vector(), scalar_mirror.to_vector());
+    auto bad_entries = entries;
+    bad_entries.pop_back();
+    EXPECT_THROW(
+        adamw_update_multi_(workspace, bad_entries, learning_rate, beta1,
+                            beta2, epsilon, weight_decay, first_correction,
+                            second_correction),
+        std::invalid_argument);
+    EXPECT_THROW((void)AdamWMultiTensorWorkspace({17, 0, 3}, gpu),
+                 std::invalid_argument);
+    Tensor bad_gradient({18}, DType::Float32, gpu);
+    bad_entries = entries;
+    bad_entries[0].gradient = &bad_gradient;
+    EXPECT_THROW(
+        adamw_update_multi_(workspace, bad_entries, learning_rate, beta1,
+                            beta2, epsilon, weight_decay, first_correction,
+                            second_correction),
+        std::invalid_argument);
+    Tensor bad_mirror({17}, DType::Float32, gpu);
+    bad_entries = entries;
+    bad_entries[0].bf16_mirror = &bad_mirror;
+    EXPECT_THROW(
+        adamw_update_multi_(workspace, bad_entries, learning_rate, beta1,
+                            beta2, epsilon, weight_decay, first_correction,
+                            second_correction),
+        std::invalid_argument);
+}
+
 TEST(HipTrainingTest, AdamWAutotuneChecksEveryStateBeforeTimingAndRegistration) {
     require_gpu();
     const auto gpu = Device::hip(0);

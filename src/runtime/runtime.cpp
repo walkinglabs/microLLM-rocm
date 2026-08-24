@@ -681,6 +681,42 @@ void copy_bytes(void* destination, Device destination_device, const void* source
 #endif
 }
 
+void copy_bytes_async_native(
+    void* destination, Device destination_device, const void* source,
+    Device source_device, std::size_t num_bytes, void* native_stream) {
+    if (num_bytes == 0) return;
+    if (destination == nullptr || source == nullptr) {
+        throw std::invalid_argument(
+            "copy pointers must be non-null for a non-empty copy");
+    }
+    require_same_hip_device(destination_device, source_device);
+    record_transfer(destination_device, source_device, num_bytes);
+    if (destination_device.is_cpu() && source_device.is_cpu()) {
+        if (native_stream != nullptr) {
+            throw std::invalid_argument(
+                "CPU copy cannot use a native HIP stream");
+        }
+        std::memcpy(destination, source, num_bytes);
+        return;
+    }
+#if MICROLLM_HAS_HIP
+    select_copy_device(destination_device, source_device);
+    const auto copy_device = destination_device.is_hip()
+                                 ? destination_device
+                                 : source_device;
+    const auto resolved_stream = resolve_deferred_hip_stream(
+        copy_device, native_stream);
+    check_hip(hipMemcpyAsync(
+                  destination, source, num_bytes,
+                  copy_kind(destination_device, source_device),
+                  as_stream(resolved_stream)),
+              "hipMemcpyAsync(native stream)");
+#else
+    (void)native_stream;
+    throw std::runtime_error("HIP copy requested from a CPU-only build");
+#endif
+}
+
 void copy_strided(void* contiguous_destination, const void* strided_source,
                   std::size_t element_bytes, Device device,
                   std::span<const std::int64_t> shape,

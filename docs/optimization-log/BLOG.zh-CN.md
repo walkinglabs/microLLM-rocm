@@ -3514,3 +3514,18 @@ DeepSeek分别只有0.9785×和0.9980×，显存不变，DeepSeek的固定参数
 再做训练融合，目标必须覆盖更大的残差分支或来自新的profile热点。
 
 ![Training add plus RMSNorm discard](assets/training-add-rms-norm-discard.svg)
+
+## 228. Experiment 211：把339次启动合成一次，为什么还不够
+
+旧AdamW每个参数Tensor启动一个Kernel。multi-tensor版本用稳定block map和每步地址卡，让
+Qwen/DeepSeek的870/1,017次启动变成3次。第一版同步上传地址卡会等待backward，DeepSeek直接
+回退；第二版用pinned staging和同Stream异步copy，才让队列重新连续。
+
+五进程中Qwen达到1.0573×，DeepSeek只有1.0094×，刚好没过预先写下的1.01门。Profile进一步
+解释：Qwen AdamW快1.4699×，DeepSeek只有1.0828×。大Tensor已经主要受四组FP32读写带宽限制，
+减少launch改变不了必须搬运的数据。
+
+因此训练器和CLI接入删除；multi-tensor原语、异步metadata生命周期、完整状态测试和profile
+保留。下一版要改block/descriptor读取，而不是再包装一次相同Kernel。
+
+![Multi-tensor AdamW discard](assets/multi-tensor-adamw-discard.svg)

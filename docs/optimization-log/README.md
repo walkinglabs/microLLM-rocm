@@ -784,6 +784,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/209-post-bf16-qk-saturation.md](experiments/209-post-bf16-qk-saturation.md) | 推理微融合局部饱和；online Attention合同 |
 | [assets/training-add-rms-norm-discard.svg](assets/training-add-rms-norm-discard.svg) | 训练融合少72次launch但端到端回退 |
 | [experiments/210-training-add-rms-norm-fusion-discard.md](experiments/210-training-add-rms-norm-fusion-discard.md) | 分支梯度完整对齐与两模型拒绝门 |
+| [assets/multi-tensor-adamw-discard.svg](assets/multi-tensor-adamw-discard.svg) | 290/339次AdamW启动合一与DeepSeek带宽反例 |
+| [experiments/211-multi-tensor-adamw-discard.md](experiments/211-multi-tensor-adamw-discard.md) | pinned异步metadata、五进程模型门与隔离profile |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

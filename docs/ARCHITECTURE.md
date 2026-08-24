@@ -128,6 +128,14 @@ launch count and graph dependency count are different measurements; removing one
 reported as removing the other. Experiment 210 rejects the model route on throughput and
 last-bit parameter gates while retaining this independently tested multi-output primitive.
 
+Multi-tensor AdamW uses the same separation between stable and per-step state. A workspace owns
+a device block map derived only from Tensor element counts. Each call supplies current data
+pointers because Autograd gradient allocations may move. The pointer descriptors live in pinned
+host staging, copy asynchronously on the same resolved HIP Stream, and are protected from early
+CPU reuse by a completion Event. This turns many parameter launches into one without pretending
+that addresses are stable. Experiment 211 retains the primitive but rejects the training/CLI
+route because DeepSeek reaches only 1.0094× against a 1.01× gate.
+
 ## Tensor N0 invariants
 
 - scalar shape `{}` contains one element;

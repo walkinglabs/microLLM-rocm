@@ -1,0 +1,88 @@
+{
+  "aggregation": "median of fresh processes with alternating policy order",
+  "comparisons": [
+    {
+      "loss_relative_difference": 0.0013294885939175818,
+      "model": "qwen2.5-0.5b",
+      "observed_parameter_absolute_difference": 0.0,
+      "optimizer_tail_wall_speedup": 1.078543144627496,
+      "peak_bytes_added": 7735744.0,
+      "peak_ratio": 1.00065421735272,
+      "policies": {
+        "multi_tensor": {
+          "engine_peak_bytes": 11832160712.0,
+          "final_loss": 0.016889282,
+          "mean_optimizer_ms": 12.4168125,
+          "mean_step_ms": 32.847256,
+          "observed_parameter_after": 7.468718052,
+          "optimizer_host_to_device_calls": 2.0,
+          "tokens_per_second": 15587.298981687
+        },
+        "per_tensor": {
+          "engine_peak_bytes": 11824424968.0,
+          "final_loss": 0.016911766,
+          "mean_optimizer_ms": 13.392068,
+          "mean_step_ms": 34.7296155,
+          "observed_parameter_after": 7.468718052,
+          "optimizer_host_to_device_calls": 0.0,
+          "tokens_per_second": 14742.460940865
+        }
+      },
+      "throughput_speedup": 1.0573064459326578
+    },
+    {
+      "loss_relative_difference": 4.28784932922891e-05,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "observed_parameter_absolute_difference": 0.0,
+      "optimizer_tail_wall_speedup": 1.0193238054951221,
+      "peak_bytes_added": 27785984.0,
+      "peak_ratio": 1.0007488949590597,
+      "policies": {
+        "multi_tensor": {
+          "engine_peak_bytes": 37130431240.0,
+          "final_loss": 4.0366292,
+          "mean_optimizer_ms": 48.5624325,
+          "mean_step_ms": 81.460714,
+          "observed_parameter_after": 2.124970913,
+          "optimizer_host_to_device_calls": 2.0,
+          "tokens_per_second": 6285.238305179
+        },
+        "per_tensor": {
+          "engine_peak_bytes": 37102645256.0,
+          "final_loss": 4.036802292,
+          "mean_optimizer_ms": 49.5008435,
+          "mean_step_ms": 82.2270655,
+          "observed_parameter_after": 2.124970913,
+          "optimizer_host_to_device_calls": 0.0,
+          "tokens_per_second": 6226.660247288
+        }
+      },
+      "throughput_speedup": 1.0094076207091134
+    }
+  ],
+  "context": 512,
+  "decision": "reject multi-tensor route",
+  "gate_results": {
+    "loss": true,
+    "metadata": true,
+    "parameter": true,
+    "peak": true,
+    "throughput": false
+  },
+  "keep_gate": {
+    "isolated_optimizer_gate_source": "separate kernel profile",
+    "isolated_optimizer_kernel_speedup_minimum": 1.1,
+    "loss_relative_difference_maximum": 0.005,
+    "observed_parameter_absolute_difference_maximum": 2e-06,
+    "one_metadata_h2d_per_step": true,
+    "optimizer_payload_d2h": 0,
+    "peak_ratio_maximum": 1.01,
+    "throughput_ratio_minimum": 1.01
+  },
+  "runs_per_model_policy": 5,
+  "schema_version": 1,
+  "status": "pass",
+  "steps": 2,
+  "track": "multi_tensor_adamw",
+  "warmup": 1
+}

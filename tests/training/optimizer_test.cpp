@@ -104,6 +104,10 @@ TEST(OptimizerTest, RejectsInvalidParametersAndState) {
     Value parameter(Tensor::from_vector({1}, {1}), true);
     AdamW optimizer({&parameter});
     EXPECT_THROW(optimizer.load_state({}), std::invalid_argument);
+    EXPECT_THROW((void)ops::AdamWMultiTensorWorkspace({1}, Device::cpu()),
+                 std::invalid_argument);
+    const ops::AdamWMultiTensorWorkspace undefined;
+    EXPECT_EQ(ops::adamw_multi_tensor_workspace_stats(undefined).tensors, 0U);
 }
 
 }  // namespace microllm::training

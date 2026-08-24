@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "decision": "discard model and CLI route; retain tested primitive",
+  "registered_test_files": 86,
+  "sync_pilot_processes": 12,
+  "async_pilot_processes": 12,
+  "formal_processes": 20,
+  "formal_comparisons": 2,
+  "model_route_retained": false,
+  "coverage": {
+    "lines_percent": 79.8,
+    "functions_percent": 87.7,
+    "branches_percent": 60.5
+  },
+  "tests": {
+    "cpu_debug": {"passed": 317, "total": 317},
+    "asan_ubsan": {"passed": 315, "total": 315},
+    "pytorch_enabled_cpu": {"passed": 291, "total": 291},
+    "hip_full_configuration": {
+      "passed": 496,
+      "total": 496,
+      "conditional_skips": 3
+    },
+    "hip_label": {"passed": 168, "total": 168},
+    "rccl_multi_gpu": {"passed": 12, "total": 12},
+    "rccl_full_label": {"passed": 14, "total": 14}
+  }
+}
