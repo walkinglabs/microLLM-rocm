@@ -17,6 +17,16 @@ hipBLASLt或RCCL依赖。
 - CPU包不查找ROCm；HIP包传播HIP/hipBLASLt；多卡包传播RCCL；
 - 安装LICENSE与README。
 
+2026-08-24补齐开发态Config：配置完成后，build目录本身也包含
+`microLLMConfig.cmake`、版本文件和`microLLMTargets.cmake`。另一个工程可通过
+`-DmicroLLM_DIR=<build目录>`直接使用已经编译的库，不必先安装。这个路径只用于共同开发；
+需要搬迁或发布时仍使用安装prefix。
+
+同时修复一个包边界问题：仓库内部的`-Wall`、Sanitizer和coverage编译参数不再作为公开
+target属性传播。外部工程只接收C++20、头文件、库依赖和实际启用的后端定义。若消费的本来
+就是插桩静态库，Config只传播该对象文件完成最终链接所必需的一个runtime链接参数，并用
+`microLLM_WITH_SANITIZERS`或`microLLM_WITH_COVERAGE`明确标记。
+
 ## 不是源码树内的假测试
 
 `PackageConfig.InstalledConsumer`执行：
@@ -37,6 +47,33 @@ target可配置/链接，不把它写成双卡运行证据；双卡数值门仍�
 测试标签会按实际构建增加`hip`或`rccl`，所以`ctest --preset hip-release`与
 `ctest --preset rccl-release`不会再漏掉安装包测试。安装target使用GNUInstallDirs中的
 头文件目录，不把`include`写死。
+
+新增的`PackageConfig.BuildTreeConsumer`执行：
+
+```text
+已配置并编译的microLLM build目录
+→ 独立consumer使用microLLM_DIR查找Config
+→ 检查组件、target和功能metadata
+→ 确认仓库内部编译参数和多余链接参数没有泄漏
+→ 编译、链接并运行C++ consumer
+→ 若C ABI启用，再编译、链接并运行纯C consumer
+→ 拒绝不存在的组件和不兼容版本
+```
+
+2026-08-24同一源码实测结果：
+
+| 配置 | 结果 |
+|---|---:|
+| CPU Debug完整回归 | 280/280 |
+| ASan/UBSan完整回归 | 278/278 |
+| PyTorch-enabled CPU完整回归 | 254/254 |
+| CPU+HIP完整配置 | 429/429，3项按环境契约跳过 |
+| gfx942 HIP标签 | 143/143 |
+| RCCL Config consumer | 安装树与build tree均通过 |
+
+Sanitizer第一次复测准确暴露了一个链接问题：静态库已插桩，但consumer没有runtime链接参数。
+最终方案没有恢复全部编译参数传播，只导出必要的最终链接选项；随后两类consumer与278项完整
+Sanitizer回归全部通过。
 
 ## 外部用法
 

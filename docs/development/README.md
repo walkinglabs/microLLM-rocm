@@ -322,7 +322,8 @@ the next gate. Records are append-only except for factual corrections.
 - [2026-08-23-hipblaslt-outer-vector-scale.md](2026-08-23-hipblaslt-outer-vector-scale.md):
   version-local native row-scale API and row-major/column-major descriptor mapping.
 - [2026-08-23-installable-cmake-package.md](2026-08-23-installable-cmake-package.md):
-  relocatable package config and external CPU/HIP/RCCL consumer gates.
+  relocatable and build-tree package configs, external CPU/HIP/RCCL consumer gates,
+  and isolation from repository-only compiler flags.
 - [2026-08-23-fp8-ffn-outer-row-policy.md](2026-08-23-fp8-ffn-outer-row-policy.md):
   evidence-routed FFN-only model policy and explicit runtime fallback counters.
 - [2026-08-23-fp8-device-weight-amax.md](2026-08-23-fp8-device-weight-amax.md):

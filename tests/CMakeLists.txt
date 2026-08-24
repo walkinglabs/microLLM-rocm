@@ -61,6 +61,19 @@ set_tests_properties(PackageConfig.InstalledConsumer PROPERTIES
     RUN_SERIAL TRUE
 )
 
+add_test(
+    NAME PackageConfig.BuildTreeConsumer
+    COMMAND ${CMAKE_COMMAND}
+        -DMICROLLM_BINARY_DIR=${PROJECT_BINARY_DIR}
+        -DMICROLLM_CONSUMER_SOURCE_DIR=${PROJECT_SOURCE_DIR}/tests/package/consumer
+        -DMICROLLM_CONSUMER_BINARY_DIR=${PROJECT_BINARY_DIR}/package-build-tree-consumer
+        -P ${PROJECT_SOURCE_DIR}/cmake/RunBuildTreeConsumer.cmake
+)
+set_tests_properties(PackageConfig.BuildTreeConsumer PROPERTIES
+    LABELS "${microllm_package_test_labels}"
+    RUN_SERIAL TRUE
+)
+
 if(Python3_Interpreter_FOUND)
     add_test(
         NAME HfCLI.BinaryContract

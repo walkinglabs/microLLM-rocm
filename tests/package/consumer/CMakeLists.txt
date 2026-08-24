@@ -19,6 +19,29 @@ foreach(component runtime core profiling ops autograd io model training inferenc
         message(FATAL_ERROR "installed package is missing microLLM::${component}")
     endif()
 endforeach()
+
+# Repository-only warning and instrumentation compile flags must not leak through an
+# installed or build-tree SDK. Instrumented static builds do carry their one required
+# final-link runtime option.
+get_target_property(microllm_consumer_compile_options
+    microLLM::project_options INTERFACE_COMPILE_OPTIONS)
+get_target_property(microllm_consumer_link_options
+    microLLM::project_options INTERFACE_LINK_OPTIONS)
+if(microllm_consumer_compile_options)
+    message(FATAL_ERROR
+        "microLLM package leaked repository-only compile options")
+endif()
+if(microLLM_WITH_SANITIZERS)
+    if(NOT microllm_consumer_link_options STREQUAL "-fsanitize=address,undefined")
+        message(FATAL_ERROR "sanitized package lost or widened its link requirement")
+    endif()
+elseif(microLLM_WITH_COVERAGE)
+    if(NOT microllm_consumer_link_options STREQUAL "--coverage")
+        message(FATAL_ERROR "coverage package lost or widened its link requirement")
+    endif()
+elseif(microllm_consumer_link_options)
+    message(FATAL_ERROR "ordinary microLLM package leaked repository-only link options")
+endif()
 foreach(optional_component capi multi_gpu)
     if("${optional_component}" IN_LIST microLLM_AVAILABLE_COMPONENTS)
         if(NOT microLLM_${optional_component}_FOUND OR

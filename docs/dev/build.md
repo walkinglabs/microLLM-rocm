@@ -153,15 +153,32 @@ find_package(microLLM 0.1 CONFIG REQUIRED COMPONENTS capi)
 target_link_libraries(c_app PRIVATE microLLM::capi)
 ```
 
+During local development, installation is optional. After configuring and building
+microLLM, point the consumer directly at that configured build tree:
+
+```bash
+cmake -S /path/to/consumer -B /path/to/consumer/build \
+  -DmicroLLM_DIR=/absolute/path/to/microLLM-rocm/build/cpu-debug
+cmake --build /path/to/consumer/build
+```
+
+This mode references artifacts inside that checkout and is not a deployable SDK. Use
+`cmake --install` and `CMAKE_PREFIX_PATH` when the result must be movable or shared.
+Neither package mode propagates the repository's warning or instrumentation compile
+flags. An instrumented static build carries only the runtime link option required by
+its object files; ordinary builds do not. Public requirements such as C++20 and backend
+dependencies are propagated normally.
+
 The Config file also exposes `microLLM_AVAILABLE_COMPONENTS` and the boolean feature
 metadata `microLLM_WITH_HIP`, `microLLM_WITH_HIPBLASLT`, `microLLM_WITH_RCCL`, and
-`microLLM_WITH_CAPI`. Prefer testing targets or requested components for linking;
+`microLLM_WITH_CAPI`, plus `microLLM_WITH_SANITIZERS` and
+`microLLM_WITH_COVERAGE`. Prefer testing targets or requested components for linking;
 these variables are intended for diagnostics and optional application features.
 
 Point `CMAKE_PREFIX_PATH` at the installation root. As a narrower alternative, set
-`microLLM_DIR` to the directory containing `microLLMConfig.cmake`. Neither variable
-should point at the microLLM source tree. Pre-1.0 compatibility is limited to the
-installed `0.1.x` line.
+`microLLM_DIR` to either the installed Config directory or a configured microLLM build
+directory. Neither variable should point at the unbuilt source tree. Pre-1.0
+compatibility is limited to the installed `0.1.x` line.
 
 To use a nonstandard package directory inside the prefix:
 
@@ -170,12 +187,14 @@ cmake -S . -B build/install \
   -DMICROLLM_INSTALL_CMAKEDIR=share/microLLM/cmake
 ```
 
-`PackageConfig.InstalledConsumer` is not a source-tree link test. It installs into a
-fresh temporary prefix, moves the prefix to prove relocatability, configures a separate
-CMake project, checks every expected target, and runs installed-package C++ and C
-consumers. A second configure intentionally asks for a nonexistent required component
-and must fail. A third configure requests an incompatible pre-1.0 minor version and
-must also fail. CPU, HIP, and RCCL presets label and execute the same contract.
+`PackageConfig.BuildTreeConsumer` configures, compiles, links, and runs an independent
+C/C++ project against the generated build-tree Config. `PackageConfig.InstalledConsumer`
+installs into a fresh temporary prefix, moves the prefix to prove relocatability, then
+does the same against the installed SDK. Both check every expected target, reject
+repository-only compile options, and require ordinary builds to add no link options.
+An instrumented build may carry exactly its required runtime link option. Both gates
+also ask for a nonexistent component and an incompatible pre-1.0 minor version; both
+requests must fail. CPU, HIP, and RCCL presets label and execute the same contracts.
 
 ## Build options
 

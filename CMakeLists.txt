@@ -79,19 +79,21 @@ if(MICROLLM_ENABLE_SANITIZERS AND MICROLLM_ENABLE_COVERAGE)
     message(FATAL_ERROR "sanitizers and coverage must use separate builds")
 endif()
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
-    target_compile_options(microllm_project_options INTERFACE
-        -Wall -Wextra -Wpedantic -Wconversion -Wshadow
-    )
+    # These are repository build policies, not SDK usage requirements. Directory
+    # options compile every target in this checkout without leaking into either the
+    # build-tree or installed CMake package.
+    add_compile_options(-Wall -Wextra -Wpedantic -Wconversion -Wshadow)
     if(MICROLLM_ENABLE_SANITIZERS)
-        target_compile_options(microllm_project_options INTERFACE
-            -fsanitize=address,undefined -fno-omit-frame-pointer
-        )
+        add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer)
+        add_link_options(-fsanitize=address,undefined)
+        # Instrumented static objects require the runtime at the final consumer link.
+        # Propagate only that link requirement, never the repository compile flags.
         target_link_options(microllm_project_options INTERFACE
-            -fsanitize=address,undefined
-        )
+            -fsanitize=address,undefined)
     endif()
     if(MICROLLM_ENABLE_COVERAGE)
-        target_compile_options(microllm_project_options INTERFACE --coverage -O0 -g)
+        add_compile_options(--coverage -O0 -g)
+        add_link_options(--coverage)
         target_link_options(microllm_project_options INTERFACE --coverage)
     endif()
 elseif(MICROLLM_ENABLE_COVERAGE)
@@ -195,6 +197,12 @@ install(EXPORT microLLMTargets
         FILE microLLMTargets.cmake
         NAMESPACE microLLM::
         DESTINATION "${MICROLLM_INSTALL_CMAKEDIR}")
+# Keep a developer-facing Config package beside the configured build. This lets a
+# separate project consume an already-built checkout without copying sources or
+# installing it first. The installed package below remains the deployment path.
+export(EXPORT microLLMTargets
+       FILE "${CMAKE_CURRENT_BINARY_DIR}/microLLMTargets.cmake"
+       NAMESPACE microLLM::)
 install(FILES
         "${CMAKE_CURRENT_BINARY_DIR}/microLLMConfig.cmake"
         "${CMAKE_CURRENT_BINARY_DIR}/microLLMConfigVersion.cmake"

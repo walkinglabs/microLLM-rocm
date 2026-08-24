@@ -10,7 +10,7 @@ An independently usable C++20/HIP runtime for studying, training, profiling, and
 extending small decoder-only language models on AMD GPUs.
 
 [Documentation](docs/index.md) · [Build](docs/dev/build.md) ·
-[CMake package](#install-and-use-from-another-cmake-project) ·
+[CMake package](#use-microllm-from-another-cmake-project) ·
 [Architecture](docs/ARCHITECTURE.md) · [Tests](docs/dev/testing.md) ·
 [Benchmarks](benchmarks/README.md) · [Roadmap](docs/development/NEXT_STEPS.md) ·
 [Optimization log](docs/optimization-log/README.md) ·
@@ -295,39 +295,45 @@ cmake --build --preset rccl-release --parallel
 ctest --preset rccl-release
 ```
 
-### Use the installed CMake package
+### Use microLLM from another CMake project
 
-microLLM installs a real CMake Config package. A downstream project can therefore use
-`find_package` and a namespaced target instead of copying source files or manually
-writing include directories, library paths, and backend libraries.
-
-First install one configured build:
-
-```bash
-cmake --install build/cpu-debug --prefix "$PWD/install/microllm"
-```
-
-Then the other project's `CMakeLists.txt` only needs an installed component and its
-namespaced target:
+microLLM generates a real CMake Config package. The short version is: request one
+component, then link one target. CMake carries its headers and lower-level libraries.
 
 ```cmake
 find_package(microLLM 0.1 CONFIG REQUIRED COMPONENTS inference)
 target_link_libraries(my_app PRIVATE microLLM::inference)
 ```
 
-Configure that project with
-`-DCMAKE_PREFIX_PATH=/absolute/path/to/install/microllm`. CMake then supplies the
-headers, static libraries, C++20 requirement, transitive microLLM libraries, and any
-HIP/hipBLASLt/RCCL dependencies recorded by the installed build. The complete external
-consumer examples, including the plain-C API, and component table are in
+There are two supported ways to tell CMake where that package is:
+
+| Situation | Configure the other project with | Meaning |
+|---|---|---|
+| Developing both projects locally | `-DmicroLLM_DIR=/absolute/path/to/microLLM-rocm/build/cpu-debug` | use the already-built checkout; no install step |
+| Installing or packaging an application | `-DCMAKE_PREFIX_PATH=/absolute/path/to/install/microllm` | use a relocatable installed SDK |
+
+The first path is convenient while editing microLLM. The second path is the correct
+one for deployment, CI artifacts, and sharing a built SDK.
+
+To create the installed SDK:
+
+```bash
+cmake --install build/cpu-debug --prefix "$PWD/install/microllm"
+```
+
+Both paths supply the headers, static libraries, C++20 requirement, transitive
+microLLM libraries, and any HIP/hipBLASLt/RCCL dependencies recorded by the selected
+build. They do not copy microLLM's warning or instrumentation compile flags into the
+other project. A deliberately instrumented static build carries only the runtime link
+option its object files require. Complete external consumer examples, including the plain-C API, are in
 [Install and use from another CMake project](#install-and-use-from-another-cmake-project).
 
 ### Install and use from another CMake project
 
-The Config package is the installed build's "instruction card". It tells another
-CMake project where the headers and libraries are, which libraries depend on each
-other, and whether this build needs HIP, hipBLASLt, or RCCL. Consumers should not need
-to copy source files or write library paths by hand.
+The Config package is a small "instruction card" for CMake. It tells another project
+where the headers and libraries are, which libraries depend on each other, and whether
+this build needs HIP, hipBLASLt, or RCCL. A consumer should not copy source files or
+write `-I`, `-L`, and `-l` flags by hand.
 
 #### 1. Install microLLM
 
@@ -399,8 +405,10 @@ the C ABI is installed as a versioned shared library. CMake supplies its include
 and runtime link information through the imported target.
 
 `CMAKE_PREFIX_PATH` points at the installation root. If a larger environment contains
-many packages, `-DmicroLLM_DIR=/prefix/lib/cmake/microLLM` can point directly at this
-package. Do not point either variable at the source tree.
+many packages, `-DmicroLLM_DIR=/prefix/lib/cmake/microLLM` can point directly at the
+installed Config directory. For local development, `microLLM_DIR` may instead point at
+the configured microLLM build directory. Do not point either variable at the unbuilt
+source directory.
 
 Installed targets are:
 
@@ -419,19 +427,21 @@ Installed targets are:
 | `microLLM::multi_gpu` | RCCL data-parallel components when built with RCCL |
 
 `microLLMConfig.cmake` exposes `microLLM_WITH_HIP`,
-`microLLM_WITH_HIPBLASLT`, `microLLM_WITH_RCCL`, `microLLM_WITH_CAPI`, and
+`microLLM_WITH_HIPBLASLT`, `microLLM_WITH_RCCL`, `microLLM_WITH_CAPI`,
+`microLLM_WITH_SANITIZERS`, `microLLM_WITH_COVERAGE`, and
 `microLLM_AVAILABLE_COMPONENTS`. It resolves the backend dependencies recorded by the
 installed build; a CPU installation does not require ROCm. Mixing libraries from one
 build with a config file from another is unsupported, so install the complete prefix
 atomically. Before the project reaches 1.0, version compatibility is limited to the
 installed `0.1.x` minor line.
 
-CTest includes `PackageConfig.InstalledConsumer`, which installs into a temporary
-prefix, moves that prefix, and then configures, builds, links and runs
-repository-external C++ and, when enabled, C consumers. It also proves that a missing
-required component is rejected during configuration and that an incompatible pre-1.0
-minor version is not accepted. CPU, HIP/hipBLASLt, and RCCL presets all select this
-gate.
+CTest has two repository-external consumer gates. `PackageConfig.BuildTreeConsumer`
+uses `microLLM_DIR` directly, while `PackageConfig.InstalledConsumer` installs into a
+temporary prefix, moves that prefix, and consumes the moved SDK. Both configure,
+compile, link, and run C++ and, when enabled, C programs. They check that internal
+compile flags do not leak and that ordinary builds add no link flags; an instrumented
+build may carry only its required runtime link option. Both gates also prove that a
+missing component and an incompatible pre-1.0 minor version are rejected.
 
 The complete compiler, CMake, ROCm, library, Python, and troubleshooting matrix is in
 [Build from source](docs/dev/build.md).
@@ -442,14 +452,14 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 428/428 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
-| CPU Debug | 279/279 | host code, CLI, model/graph, benchmark, package and evidence schemas |
-| ASan/UBSan CPU | 277/277 | host lifetime, undefined-behavior and ordinary CPU gates |
-| MI300X/gfx942 HIP label | 142/142 | allocator/lifetime/Stream/Graph, matmul, BF16/FP8, model and package gates |
-| PyTorch-enabled CPU build | 253/253 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
+| Full CPU/HIP configuration | 429/429 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
+| CPU Debug | 280/280 | host code, CLI, model/graph, benchmark, both package paths and evidence schemas |
+| ASan/UBSan CPU | 278/278 | host lifetime, undefined-behavior and instrumented-package linking |
+| MI300X/gfx942 HIP label | 143/143 | allocator/lifetime/Stream/Graph, matmul, BF16/FP8, model and both package paths |
+| PyTorch-enabled CPU build | 254/254 | dispatcher parity, full graph/model oracle and both package paths |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
 | Registered test files | 58 | machine-audited native/Python test sources; package consumers run inside the integration gate |
-| Installed CMake package | CPU + HIP + RCCL pass | relocated prefix, external `find_package`, components, compile, static link and run |
+| CMake Config package | CPU + HIP + RCCL pass | build tree and relocated install tree, external `find_package`, components, compile, link and run |
 | CPU source coverage | 80.4% lines / 89.3% functions / 61.4% branches | 7,782/9,678 lines; GCC 13.3 + gcovr 8.3 |
 
 Latest PyTorch-reference maximum absolute differences:
