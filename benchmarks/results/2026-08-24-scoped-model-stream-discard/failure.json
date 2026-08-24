@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "status": "stable_failure",
+  "workload": "one-layer FP32 Transformer, vocabulary 16, width 16, B1 T4 on gfx942",
+  "candidate": "thread-local nested ScopedOpStream used by otherwise-default OpContext",
+  "repetitions": [
+    {"run": 1, "maximum_absolute_logit_difference": 1.41198, "rms_logit_difference": 0.474854},
+    {"run": 2, "maximum_absolute_logit_difference": 3.84635, "rms_logit_difference": 0.931005},
+    {"run": 3, "maximum_absolute_logit_difference": 1.41198, "rms_logit_difference": 0.474854}
+  ],
+  "all_64_logits_within_1e_5": false,
+  "capture_failure_recovery": {
+    "status": "fail",
+    "next_error": "embedding_kernel: operation failed due to a previous error during capture"
+  },
+  "inference": "temporary Tensor Storage is destroyed while non-default-Stream consumers are still asynchronous",
+  "decision": "remove scoped override; require lifetime-aware deferred release before model Stream propagation"
+}

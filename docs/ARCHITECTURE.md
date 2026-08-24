@@ -186,6 +186,12 @@ captured on the explicit Stream. Experiment 174 proves capture compatibility and
 but rejects repeated-GEMM Graph routing as a speed policy. A useful model region must combine
 small Kernels and GEMMs under one lifetime plan; repeating an independent GEMM is not that region.
 
+Experiment 175 proves that Stream propagation cannot precede lifetime propagation. A lexical,
+thread-local Stream override correctly routed caller-owned operators but corrupted a tiny model's
+complete logits because temporary Tensor owners disappeared while non-default-Stream consumers
+were still queued. The ambient API was removed. Synchronizing every destructor is not an accepted
+fix; future model execution must defer releases or allocate intermediates from a planned arena.
+
 hipBLASLt GEMM also supports contiguous strided batches: leading Tensor dimensions become
 the batch count and last-two dimensions remain the matrix contract. Explicit batched
 selection is tested independently; Auto is not changed by operator-only timing.

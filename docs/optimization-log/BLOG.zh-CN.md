@@ -2915,3 +2915,22 @@ Qwen重复1/8/32次分别0.906×、0.995×、1.022×；Deep是0.902×、0.989×�
 下一步只能捕获混合区域：GEMM前后的cast、activation、norm、reduction一起进入，并且地址寿命可计划。
 
 ![HIP Graph GEMM counterexample](assets/hip-graph-gemm-discard.svg)
+
+## 192. Experiment 175：车换了路线，货却提前被仓库收走
+
+要让现有model进入显式Stream，最省改动的想法是一个线程局部scope：scope里面所有默认
+`OpContext{}`自动用同一Stream，显式context仍优先。嵌套、子线程隔离、caller-owned Graph都通过。
+
+但第一次tiny Transformer完整logits就把它否掉了。三次Max/RMS分别是1.412/0.475、
+3.846/0.931、1.412/0.475，远远不是浮点舍入。故意触发capture allocation失败后，下一次embedding
+还报previous capture error。
+
+原因是执行路线和货物寿命必须一起改。默认Stream下原来的临时Tensor析构时机勉强符合旧假设；
+换成异步非默认Stream后，C++临时对象已经释放Storage，排队的下游Kernel还要读它。就像卡车改走慢车道，
+仓库却仍按旧到达时间把货架拆了。
+
+给每次析构加同步当然可能“修好”，代价是把模型彻底串行化，所以直接拒绝。Scoped API、ambient状态、
+package暴露和正向测试全部移除，只保留失败证据。下一步必须先有deferred release或activation arena，
+让Storage活到Stream真正用完，再谈model-wide Stream/Graph。
+
+![Scoped model Stream discarded](assets/scoped-model-stream-discard.svg)

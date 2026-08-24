@@ -137,6 +137,11 @@ bit-exact, yet Qwen improves only at 32 repeats and DeepSeek remains below 1.0 e
 submission falls while 322 profiled Kernels remain 322. Repeating a vendor GEMM is closed; only a
 heterogeneous captured region with planned addresses remains a distinct model hypothesis.
 
+Experiment 175 rejects Stream routing without lifetime routing. A scoped override passes local
+caller-owned tests but changes complete tiny-model logits by Max 1.412–3.846 and leaves the next
+embedding launch with a prior-capture error. The API is removed. The Graph track is blocked on a
+new ownership mechanism—deferred release or an activation arena—not another context wrapper.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

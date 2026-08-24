@@ -51,6 +51,17 @@ Performance is still rejected. Qwen at 1/8/32 repeated T512 GEMMs reaches
 calls while leaving all GEMM Kernels intact. The next region must be heterogeneous—small Kernels
 around real GEMMs—not another repetition-count sweep of one vendor operation.
 
+## Experiment 175 Stream-propagation failure
+
+A nested thread-local Stream scope routed the existing default-`OpContext` model call tree and
+passed caller-owned tests. The tiny Transformer immediately failed all 64 logits in three runs:
+Max/RMS was 1.412/0.475, 3.846/0.931 and 1.412/0.475.
+
+The failure locates the next prerequisite. Temporary Storage ownership ends before queued
+non-default-Stream consumers complete. The scoped API is removed; synchronizing every destructor
+is rejected. Deferred release or a planned activation arena must precede any model-wide Stream
+or Graph retry.
+
 ## Final matrix
 
 - FP32 fixed matrix and running-best curve;

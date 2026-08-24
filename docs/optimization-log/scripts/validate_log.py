@@ -7634,6 +7634,35 @@ def validate_hip_graph_gemm_discard(
     return len(matrix), len(comparisons), qwen32, deep32
 
 
+def validate_scoped_model_stream_discard(
+        errors: list[str]) -> tuple[int, float, float]:
+    data = REPOSITORY / "benchmarks/results/2026-08-24-scoped-model-stream-discard"
+    failure = json.loads((data / "failure.json").read_text(encoding="utf-8"))
+    repetitions = failure.get("repetitions", [])
+    maxima = [float(row.get("maximum_absolute_logit_difference", 0))
+              for row in repetitions]
+    rms = [float(row.get("rms_logit_difference", 0)) for row in repetitions]
+    if failure.get("status") != "stable_failure" or len(repetitions) != 3 or \
+            min(maxima, default=0) < 1.4 or max(maxima, default=0) < 3.8 or \
+            min(rms, default=0) < 0.47 or \
+            failure.get("all_64_logits_within_1e_5") is not False or \
+            failure.get("capture_failure_recovery", {}).get("status") != "fail" or \
+            "previous error during capture" not in \
+            failure.get("capture_failure_recovery", {}).get("next_error", ""):
+        errors.append("scoped model Stream failure evidence changed")
+    context = (REPOSITORY / "include/microllm/ops/context.h").read_text(
+        encoding="utf-8")
+    tests = "\n".join((REPOSITORY / path).read_text(encoding="utf-8") for path in (
+        "tests/ops/ops_test.cpp", "tests/ops/hip_ops_test.cpp",
+        "tests/graph/hip_graph_alignment_test.cpp"))
+    package = (REPOSITORY / "tests/package/consumer/main.cpp").read_text(
+        encoding="utf-8")
+    if "ScopedOpStream" in context or "current_op_stream" in context or \
+            "ScopedStreamRoutes" in tests or "ScopedOpStream" in package:
+        errors.append("unsafe scoped model Stream candidate returned")
+    return len(repetitions), max(maxima, default=0), max(rms, default=0)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -7786,7 +7815,8 @@ def validate_assets(errors: list[str]) -> None:
                  "forward-only-gqa-value-broadcast-discard.svg",
                  "unique-gradient-inplace-add-discard.svg",
                  "hip-graph-submission-crossover.svg",
-                 "hip-graph-gemm-discard.svg"):
+                 "hip-graph-gemm-discard.svg",
+                 "scoped-model-stream-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -8070,6 +8100,8 @@ def main() -> int:
         validate_hip_graph_runtime(errors)
     graph_gemm_rows, graph_gemm_cases, graph_gemm_qwen, graph_gemm_deep = \
         validate_hip_graph_gemm_discard(errors)
+    scoped_stream_runs, scoped_stream_max, scoped_stream_rms = \
+        validate_scoped_model_stream_discard(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -8299,6 +8331,8 @@ def main() -> int:
           f"{graph_maximum:.3f}/{graph_api_saved} "
           f"hip_graph_gemm={graph_gemm_rows}/{graph_gemm_cases}/"
           f"{graph_gemm_qwen:.3f}/{graph_gemm_deep:.3f} "
+          f"scoped_stream={scoped_stream_runs}/{scoped_stream_max:.3f}/"
+          f"{scoped_stream_rms:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

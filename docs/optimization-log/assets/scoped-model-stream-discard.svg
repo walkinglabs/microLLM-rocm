@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="920" viewBox="0 0 1800 920">
+  <rect width="1800" height="920" fill="#f8fafc"/>
+  <text x="900" y="52" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 175 · Scoped Model Stream · Correctness Failure</text>
+  <text x="900" y="84" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle">gfx942 · tiny FP32 Transformer · B1 T4 · complete 64-logit comparison</text>
+
+  <rect x="55" y="125" width="790" height="650" rx="14" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="450" y="168" font-family="Inter,Arial,sans-serif" font-size="21" fill="#172033" text-anchor="middle" font-weight="700">Three repeated failures</text>
+  <g font-family="Inter,Arial,sans-serif">
+    <rect x="120" y="230" width="660" height="105" rx="10" fill="#fee2e2" stroke="#f87171"/>
+    <text x="160" y="270" font-size="17" fill="#991b1b" font-weight="700">Run 1</text>
+    <text x="735" y="295" font-size="29" fill="#991b1b" text-anchor="end" font-weight="700">Max 1.412 · RMS 0.475</text>
+    <rect x="120" y="380" width="660" height="105" rx="10" fill="#fee2e2" stroke="#f87171"/>
+    <text x="160" y="420" font-size="17" fill="#991b1b" font-weight="700">Run 2</text>
+    <text x="735" y="445" font-size="29" fill="#991b1b" text-anchor="end" font-weight="700">Max 3.846 · RMS 0.931</text>
+    <rect x="120" y="530" width="660" height="105" rx="10" fill="#fee2e2" stroke="#f87171"/>
+    <text x="160" y="570" font-size="17" fill="#991b1b" font-weight="700">Run 3</text>
+    <text x="735" y="595" font-size="29" fill="#991b1b" text-anchor="end" font-weight="700">Max 1.412 · RMS 0.475</text>
+  </g>
+  <rect x="120" y="670" width="660" height="65" rx="10" fill="#991b1b"/>
+  <text x="450" y="711" font-family="Inter,Arial,sans-serif" font-size="20" fill="#ffffff" text-anchor="middle" font-weight="700">64-logit 1e-5 gate fails · candidate removed</text>
+
+  <rect x="895" y="125" width="850" height="650" rx="14" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="1320" y="168" font-family="Inter,Arial,sans-serif" font-size="21" fill="#172033" text-anchor="middle" font-weight="700">What the local tests missed</text>
+  <rect x="965" y="225" width="710" height="105" rx="10" fill="#ecfdf5" stroke="#34d399"/>
+  <text x="1320" y="267" font-family="Inter,Arial,sans-serif" font-size="17" fill="#065f46" text-anchor="middle" font-weight="700">Kernel routing worked</text>
+  <text x="1320" y="299" font-family="Inter,Arial,sans-serif" font-size="15" fill="#334155" text-anchor="middle">nested/thread-local · explicit priority · caller-owned Graph</text>
+  <path d="M1320 345 L1320 410" stroke="#64748b" stroke-width="5" marker-end="url(#arrow)"/>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#64748b"/></marker></defs>
+  <rect x="965" y="420" width="710" height="130" rx="10" fill="#fee2e2" stroke="#f87171"/>
+  <text x="1320" y="462" font-family="Inter,Arial,sans-serif" font-size="17" fill="#991b1b" text-anchor="middle" font-weight="700">Storage lifetime did not follow the Stream</text>
+  <text x="1320" y="500" font-family="Inter,Arial,sans-serif" font-size="15" fill="#334155" text-anchor="middle">temporary owner dies while queued consumers are asynchronous</text>
+  <rect x="965" y="600" width="710" height="105" rx="10" fill="#fff7ed" stroke="#fdba74"/>
+  <text x="1320" y="640" font-family="Inter,Arial,sans-serif" font-size="17" fill="#9a3412" text-anchor="middle" font-weight="700">Next prerequisite</text>
+  <text x="1320" y="675" font-family="Inter,Arial,sans-serif" font-size="15" fill="#334155" text-anchor="middle">deferred release or planned activation arena · no destructor sync</text>
+
+  <rect x="55" y="825" width="1690" height="66" rx="12" fill="#172033"/>
+  <text x="900" y="854" font-family="Inter,Arial,sans-serif" font-size="18" fill="#ffffff" text-anchor="middle" font-weight="700">Routing execution without routing lifetime is unsafe</text>
+  <text x="900" y="879" font-family="Inter,Arial,sans-serif" font-size="14" fill="#cbd5e1" text-anchor="middle">Do not repair asynchronous ownership with a global or per-destructor synchronization</text>
+</svg>

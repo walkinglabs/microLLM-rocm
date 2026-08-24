@@ -373,3 +373,5 @@ the next gate. Records are append-only except for factual corrections.
   explicit-Stream capture/replay, submission crossover and honest model-readiness blockers.
 - [2026-08-24-hip-graph-gemm.md](2026-08-24-hip-graph-gemm.md):
   caller-owned hipBLASLt output, capture conformance and repeated-GEMM rejection.
+- [2026-08-24-scoped-model-stream-discard.md](2026-08-24-scoped-model-stream-discard.md):
+  complete-logit corruption from routing model Kernels without temporary Storage lifetime.

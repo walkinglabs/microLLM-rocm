@@ -121,6 +121,9 @@ needed to run a real training and generation loop:
 - caller-owned `matmul_out_` proves current hipBLASLt GEMMs can be captured bit-exact with stable
   addresses, but repeated vendor-only replay is rejected: Qwen reaches at most `1.022×` and
   DeepSeek remains `0.990×` at 32 calls, so model Graph work must capture heterogeneous regions;
+- a scoped model-Stream prototype is fully removed after three complete-logit failures
+  (worst Max/RMS `3.846/0.931`): routing asynchronous Kernels without extending temporary
+  Storage lifetime is unsafe, so deferred release or an activation arena is now prerequisite;
 - a phase-independent exact-size HIP pool with immediate legacy-default-Stream reuse and strict
   permanent disablement for non-default Streams;
 - a cross-framework trace runner for operator/layer values and latency comparisons.

@@ -712,6 +712,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/173-hip-graph-runtime.md](experiments/173-hip-graph-runtime.md) | caller-owned capture、sticky-error恢复与模型阻塞边界 |
 | [assets/hip-graph-gemm-discard.svg](assets/hip-graph-gemm-discard.svg) | Qwen边缘收益与DeepSeek vendor-GEMM反例 |
 | [experiments/174-hip-graph-gemm-discard.md](experiments/174-hip-graph-gemm-discard.md) | stable matmul输出、36进程矩阵与profile拒绝门 |
+| [assets/scoped-model-stream-discard.svg](assets/scoped-model-stream-discard.svg) | Stream路由成功但Storage lifetime导致完整logits错误 |
+| [experiments/175-scoped-model-stream-discard.md](experiments/175-scoped-model-stream-discard.md) | 三次稳定失败、候选移除与deferred-release前置条件 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 
