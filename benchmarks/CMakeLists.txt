@@ -84,6 +84,10 @@ if(MICROLLM_HAS_HIP AND MICROLLM_HAS_HIPBLASLT)
                    micro/benchmark_packed_weight_gradient.cpp)
     target_link_libraries(microllm_bench_packed_weight_gradient PRIVATE
         microllm::ops microllm::runtime hip::host roc::hipblaslt)
+    add_executable(microllm_tune_fp32_weight_gradient_algorithms
+                   micro/tune_fp32_weight_gradient_algorithms.cpp)
+    target_link_libraries(microllm_tune_fp32_weight_gradient_algorithms PRIVATE
+        microllm::core microllm::runtime hip::host roc::hipblaslt)
     add_executable(microllm_bench_attention_layout
                    micro/benchmark_attention_layout.cpp)
     target_link_libraries(microllm_bench_attention_layout PRIVATE

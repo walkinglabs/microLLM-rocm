@@ -1,0 +1,43 @@
+{
+  "comparisons": [
+    {
+      "baseline_tokens_per_second_median": 15493.546234429,
+      "candidate_tokens_per_second_median": 15377.814352147,
+      "final_loss_relative_difference": 0.00025197631432000053,
+      "first_loss_relative_difference": 8.369930170183634e-05,
+      "gates": {
+        "final_loss_difference_at_most_0_01": true,
+        "first_loss_difference_at_most_0_01": true,
+        "peak_at_most_1_01": true,
+        "throughput_at_least_1_01": false
+      },
+      "model": "qwen2.5-0.5b",
+      "peak_ratio": 1.0,
+      "runs_per_policy": 3,
+      "solution_index": 289155,
+      "throughput_speedup": 0.9925303167828146
+    },
+    {
+      "baseline_tokens_per_second_median": 6488.552191607,
+      "candidate_tokens_per_second_median": 6461.880543165,
+      "final_loss_relative_difference": 0.0,
+      "first_loss_relative_difference": 0.0,
+      "gates": {
+        "final_loss_difference_at_most_0_01": true,
+        "first_loss_difference_at_most_0_01": true,
+        "peak_at_most_1_01": true,
+        "throughput_at_least_1_01": false
+      },
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "peak_ratio": 1.0,
+      "runs_per_policy": 3,
+      "solution_index": 284846,
+      "throughput_speedup": 0.995889429929145
+    }
+  ],
+  "decision": "reject exact solution model route",
+  "experiment": "fp32_weight_gradient_solution_model_gate",
+  "processes": 12,
+  "schema_version": 1,
+  "status": "fail"
+}

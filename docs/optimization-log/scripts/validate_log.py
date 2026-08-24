@@ -11668,6 +11668,124 @@ def validate_packed_weight_gradient_discard(
         min(ratios), largest
 
 
+def validate_fp32_weight_gradient_solutions(
+        errors: list[str]) -> tuple[int, int, float, float]:
+    data = REPOSITORY / (
+        "benchmarks/results/2026-08-24-fp32-weight-gradient-solutions")
+    operator = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    operator_raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    model = json.loads((data / "model-pilot" / "summary.json").read_text(
+        encoding="utf-8"))
+    model_raw = [json.loads(line) for line in (
+        data / "model-pilot" / "training.jsonl").read_text(
+            encoding="utf-8").splitlines() if line.strip()]
+    operator_rows = {row["model"]: row for row in operator.get("summaries", [])}
+    operator_expected = {
+        "qwen": (289155, 1.077193003643, 1.069886430705),
+        "deepseek": (284846, 1.132745773785, 1.114177311803),
+    }
+    model_rows = {row["model"]: row for row in model.get("comparisons", [])}
+    model_expected = {
+        "qwen2.5-0.5b": (0.9925303167828146, 1.0, 289155),
+        "deepseek-r1-distill-qwen-1.5b": (
+            0.995889429929145, 1.0, 284846),
+    }
+    if operator.get("status") != "pass" or \
+            operator.get("processes") != 6 or \
+            operator.get("candidate_evaluations") != 384 or \
+            operator.get("model_gate_ready") is not True or \
+            operator.get("decision") != "continue exact-solution model gate" or \
+            len(operator_raw) != 6 or set(operator_rows) != set(operator_expected) or \
+            any(row.get("candidate_count") != 64 or
+                row.get("passing_candidates") != 64
+                for row in operator_raw) or \
+            any(operator_rows[name].get("selected_index") != values[0] or
+                abs(float(operator_rows[name].get("selected_median_speedup", 0)) -
+                    values[1]) > 1.0e-12 or
+                abs(float(operator_rows[name].get("selected_minimum_speedup", 0)) -
+                    values[2]) > 1.0e-12
+                for name, values in operator_expected.items()):
+        errors.append("FP32 weight-gradient operator solution evidence changed")
+    counts = {(name, policy): 0 for name in model_expected
+              for policy in ("baseline", "candidate")}
+    for row in model_raw:
+        key = (row.get("model"), row.get("policy"))
+        if key in counts:
+            counts[key] += 1
+    if model.get("status") != "fail" or model.get("processes") != 12 or \
+            model.get("decision") != "reject exact solution model route" or \
+            len(model_raw) != 12 or any(count != 3 for count in counts.values()) or \
+            set(model_rows) != set(model_expected) or \
+            any(abs(float(model_rows[name].get("throughput_speedup", 0)) -
+                    values[0]) > 1.0e-12 or
+                abs(float(model_rows[name].get("peak_ratio", 0)) - values[1]) >
+                    1.0e-12 or
+                model_rows[name].get("solution_index") != values[2] or
+                model_rows[name].get("gates", {}).get(
+                    "throughput_at_least_1_01") is not False
+                for name, values in model_expected.items()):
+        errors.append("FP32 weight-gradient model rejection evidence changed")
+    candidate_rows = [row for row in model_raw if row.get("policy") == "candidate"]
+    if any(row.get("fp32_solution_registered_entries") != 1 or
+           row.get("fp32_solution_registry_hits") !=
+               (144 if row.get("model", "").startswith("qwen") else 168) or
+           row.get("fp32_solution_dispatches") !=
+               (144 if row.get("model", "").startswith("qwen") else 168)
+           for row in candidate_rows):
+        errors.append("FP32 weight-gradient exact dispatch counts changed")
+    tuner = (REPOSITORY / (
+        "benchmarks/micro/tune_fp32_weight_gradient_algorithms.cpp")).read_text(
+            encoding="utf-8")
+    backend = (REPOSITORY / "src/ops/optimized.cpp").read_text(encoding="utf-8")
+    hip_test = (REPOSITORY / "tests/ops/hip_ops_test.cpp").read_text(
+        encoding="utf-8")
+    cli = (REPOSITORY / "apps/hf_train_step.cpp").read_text(encoding="utf-8")
+    for token, document in (
+            ("complete-output gate failed", tuner),
+            ("left.dtype() == DType::Float32", backend),
+            ("RankTwoFp32SolutionDispatchesForWeightGradient", hip_test),
+            ("--fp32-gate-up-weight-gradient-solution-index", cli)):
+        if token not in document:
+            errors.append("FP32 weight-gradient solution source/test contract changed")
+            break
+    if "fp32_gate_up_weight_gradient_solution_index = -1" not in cli:
+        errors.append("FP32 weight-gradient solution became a default")
+    expected_tests = {
+        "cpu_debug": {"passed": 329, "total": 329},
+        "asan_ubsan": {"passed": 327, "total": 327},
+        "pytorch_enabled_cpu": {"passed": 303, "total": 303},
+        "hip_full_configuration": {
+            "passed": 514, "total": 514, "conditional_skips": 3},
+        "hip_label": {"passed": 174, "total": 174},
+        "rccl_multi_gpu": {"passed": 11, "total": 11},
+        "rccl_full_label": {"passed": 14, "total": 14},
+    }
+    if verification.get("status") != "pass" or \
+            verification.get("operator_processes") != 6 or \
+            verification.get("candidate_evaluations") != 384 or \
+            verification.get("model_processes") != 12 or \
+            verification.get("exact_dispatches_qwen") != 144 or \
+            verification.get("exact_dispatches_deepseek") != 168 or \
+            verification.get("default_solution_installed") is not False or \
+            verification.get("registered_test_files") != 92 or \
+            verification.get("tests") != expected_tests or \
+            verification.get("coverage") != {
+                "lines_percent": 79.8,
+                "functions_percent": 87.7,
+                "branches_percent": 60.4,
+                "lines_covered": 8861,
+                "lines_total": 11100}:
+        errors.append("FP32 weight-gradient solution verification changed")
+    ratios = [float(row["throughput_speedup"]) for row in model_rows.values()]
+    operator_ratios = [float(row["selected_median_speedup"])
+                       for row in operator_rows.values()]
+    return len(operator_raw) + len(model_raw), len(candidate_rows), \
+        min(ratios), max(operator_ratios)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -11864,7 +11982,8 @@ def validate_assets(errors: list[str]) -> None:
                  "hybrid-bf16-adamw.svg",
                  "post-hybrid-training-profile.svg",
                  "grouped-weight-gradient-discard.svg",
-                 "packed-weight-gradient-discard.svg"):
+                 "packed-weight-gradient-discard.svg",
+                 "fp32-weight-gradient-solutions-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -12266,6 +12385,8 @@ def main() -> int:
         validate_grouped_weight_gradient_discard(errors)
     packed_wgrad_rows, packed_wgrad_passed, packed_wgrad_minimum, \
         packed_wgrad_largest = validate_packed_weight_gradient_discard(errors)
+    fp32_wgrad_rows, fp32_wgrad_candidates, fp32_wgrad_model_minimum, \
+        fp32_wgrad_operator_maximum = validate_fp32_weight_gradient_solutions(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -12620,6 +12741,9 @@ def main() -> int:
           f"{grouped_wgrad_baseline_maximum:.3f} "
           f"packed_wgrad={packed_wgrad_rows}/{packed_wgrad_passed}/"
           f"{packed_wgrad_minimum:.3f}/{int(packed_wgrad_largest)} "
+          f"fp32_wgrad_solution={fp32_wgrad_rows}/{fp32_wgrad_candidates}/"
+          f"{fp32_wgrad_model_minimum:.3f}/"
+          f"{fp32_wgrad_operator_maximum:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

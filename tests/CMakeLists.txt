@@ -162,6 +162,20 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.PackedWeightGradientMatrixContract PROPERTIES
         LABELS "cpu;benchmark;training;matmul;memory;schema")
     add_test(
+        NAME Benchmark.Fp32WeightGradientSolutionMatrixContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_fp32_weight_gradient_solution_matrix.py
+    )
+    set_tests_properties(Benchmark.Fp32WeightGradientSolutionMatrixContract PROPERTIES
+        LABELS "cpu;benchmark;training;matmul;solution;schema")
+    add_test(
+        NAME Benchmark.Fp32WeightGradientSolutionModelsContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_fp32_weight_gradient_solution_models.py
+    )
+    set_tests_properties(Benchmark.Fp32WeightGradientSolutionModelsContract PROPERTIES
+        LABELS "cpu;benchmark;training;matmul;solution;model;schema")
+    add_test(
         NAME Benchmark.HipGraphMatrixContract
         COMMAND ${Python3_EXECUTABLE}
                 ${PROJECT_SOURCE_DIR}/python/tests/test_hip_graph_matrix.py

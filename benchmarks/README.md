@@ -215,6 +215,17 @@ python3 benchmarks/single_gpu/packed_weight_gradient_matrix.py \
   --output-directory /tmp/microllm-packed-weight-gradient
 ```
 
+Screen exact rank-2 gate/up weight-gradient solution indices before a model gate:
+
+```bash
+python3 benchmarks/single_gpu/fp32_weight_gradient_solution_matrix.py \
+  --binary build/hip-release/benchmarks/microllm_tune_fp32_weight_gradient_algorithms \
+  --output-directory /tmp/microllm-fp32-wgrad-solutions
+```
+
+The training CLI flag `--fp32-gate-up-weight-gradient-solution-index` is diagnostic-only and
+reports exact registry hits/dispatches. Published evidence rejects both current model indices.
+
 After the grouped and BTHD policies pass independently, gate direct BF16 Q/K consumption
 through the fused bias+RoPE boundary with fresh-process medians:
 

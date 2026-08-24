@@ -185,6 +185,7 @@ int main(int argc, char** argv) {
         std::string adamw_moment_precision = "fp32";
         std::int64_t adamw_bf16_multi_tensor_threshold = -1;
         std::string bf16_algorithm_text;
+        int fp32_gate_up_weight_gradient_solution_index = -1;
         std::filesystem::path diagnostics_output;
         bool bf16_weight_mirrors = true;
         bool tied_embedding_sparse_add = true;
@@ -221,6 +222,11 @@ int main(int argc, char** argv) {
             }
             else if (name == "--bf16-algorithms") {
                 bf16_algorithm_text = argv[index + 1];
+            }
+            else if (name ==
+                     "--fp32-gate-up-weight-gradient-solution-index") {
+                fp32_gate_up_weight_gradient_solution_index =
+                    std::stoi(argv[index + 1]);
             }
             else if (name == "--diagnostics-output") {
                 diagnostics_output = argv[index + 1];
@@ -363,6 +369,13 @@ int main(int argc, char** argv) {
             throw std::invalid_argument(
                 "--bf16-algorithms requires BF16 training on HIP");
         }
+        if (fp32_gate_up_weight_gradient_solution_index < -1 ||
+            (fp32_gate_up_weight_gradient_solution_index >= 0 &&
+             (linear_precision != "bf16" || device_text != "hip"))) {
+            throw std::invalid_argument(
+                "--fp32-gate-up-weight-gradient-solution-index requires "
+                "BF16 training on HIP and a non-negative index");
+        }
         const auto device = device_text == "hip" ? microllm::Device::hip(0)
                                                    : microllm::Device::cpu();
         if (device_text != "cpu" && device_text != "hip") {
@@ -420,6 +433,17 @@ int main(int argc, char** argv) {
         const auto all_tokens = parse_tokens(token_text);
         const std::vector<std::int32_t> input_ids(all_tokens.begin(), all_tokens.end() - 1);
         const std::vector<std::int32_t> target_ids(all_tokens.begin() + 1, all_tokens.end());
+        microllm::ops::clear_fp32_matmul_solution_registry();
+        if (fp32_gate_up_weight_gradient_solution_index >= 0) {
+            const auto rows = static_cast<std::int64_t>(input_ids.size()) *
+                              batch_size;
+            const auto key = microllm::ops::make_fp32_matmul_solution_key(
+                {rows, external.model.dimension},
+                {rows, external.model.ffn_dimension}, device,
+                true, false);
+            microllm::ops::register_fp32_matmul_solution(
+                key, fp32_gate_up_weight_gradient_solution_index);
+        }
         std::vector<std::int32_t> batched_inputs;
         std::vector<std::int32_t> batched_targets;
         batched_inputs.reserve(input_ids.size() * static_cast<std::size_t>(batch_size));
@@ -507,6 +531,8 @@ int main(int argc, char** argv) {
                               : microllm::runtime::device_info(device);
         const auto attention_plan_stats =
             microllm::ops::attention_layout_plan_cache_stats();
+        const auto fp32_solution_stats =
+            microllm::ops::fp32_matmul_solution_stats();
         const auto measured_ms =
             std::chrono::duration<double, std::milli>(finish - start).count();
         const auto warmup_ms =
@@ -542,6 +568,16 @@ int main(int argc, char** argv) {
                   << ",\"bf16_algorithm_registrations\":"
                   << bf16_algorithms.size()
                   << ",\"bf16_algorithm_spec\":\"" << bf16_algorithm_text << "\""
+                  << ",\"fp32_gate_up_weight_gradient_solution_index\":"
+                  << fp32_gate_up_weight_gradient_solution_index
+                  << ",\"fp32_solution_registered_entries\":"
+                  << fp32_solution_stats.registered_entries
+                  << ",\"fp32_solution_registry_hits\":"
+                  << fp32_solution_stats.registry_hits
+                  << ",\"fp32_solution_registry_misses\":"
+                  << fp32_solution_stats.registry_misses
+                  << ",\"fp32_solution_dispatches\":"
+                  << fp32_solution_stats.dispatches
                   << ",\"diagnostics_enabled\":"
                   << (!diagnostics_output.empty() ? "true" : "false")
                   << ",\"tied_embedding_sparse_add\":"

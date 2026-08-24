@@ -4421,6 +4421,39 @@ TEST(HipOptimizedOpsTest, ExactFp32AttentionSolutionDispatchesAndCaches) {
     EXPECT_EQ(fp32_matmul_solution_stats().registered_entries, 0U);
 }
 
+TEST(HipOptimizedOpsTest,
+     RankTwoFp32SolutionDispatchesForWeightGradient) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    const auto info = runtime::device_info(gpu);
+    if (!info.architecture.starts_with("gfx942") ||
+        hipblaslt_version() != 10300) {
+        GTEST_SKIP() << "recorded solution index is local to gfx942 hipBLASLt 1.3.0";
+    }
+    Tensor input({512, 896}, DType::Float32, gpu);
+    Tensor gradient({512, 4864}, DType::Float32, gpu);
+    fill_(input, 0.015625F);
+    fill_(gradient, -0.0078125F);
+    clear_fp32_matmul_solution_registry();
+    const auto reference = matmul_with_implementation(
+        input, gradient, MatmulImplementation::HipBLASLt, true, false)
+                               .to_vector();
+    const auto key = make_fp32_matmul_solution_key(
+        input.shape(), gradient.shape(), gpu, true, false);
+    register_fp32_matmul_solution(key, 289155);
+    const auto actual = matmul_with_implementation(
+        input, gradient, MatmulImplementation::HipBLASLt, true, false)
+                            .to_vector();
+    expect_near(actual, reference, 1.0e-4F);
+    auto stats = fp32_matmul_solution_stats();
+    EXPECT_EQ(stats.registered_entries, 1U);
+    EXPECT_EQ(stats.registry_hits, 1U);
+    EXPECT_EQ(stats.registry_misses, 0U);
+    EXPECT_EQ(stats.cache_misses, 1U);
+    EXPECT_EQ(stats.dispatches, 1U);
+    clear_fp32_matmul_solution_registry();
+}
+
 TEST(HipOptimizedOpsTest, PerDeviceHandlesSurviveAlternatingGpuMatmuls) {
     if (runtime::hip_device_count() < 2) {
         GTEST_SKIP() << "two visible HIP devices required";

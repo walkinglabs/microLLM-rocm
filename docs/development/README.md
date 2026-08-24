@@ -456,3 +456,5 @@ the next gate. Records are append-only except for factual corrections.
   eight-case FP32 GroupedGemm capability failure before any Autograd route.
 - [2026-08-24-packed-weight-gradient-discard.md](2026-08-24-packed-weight-gradient-discard.md):
   complete-output proof that D2D pack plus one large GEMM is slower in all four cases.
+- [2026-08-24-fp32-weight-gradient-solutions.md](2026-08-24-fp32-weight-gradient-solutions.md):
+  rank-2 exact registry, stable operator winners and end-to-end rejection.

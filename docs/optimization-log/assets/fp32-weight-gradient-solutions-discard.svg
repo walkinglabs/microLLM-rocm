@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="720" viewBox="0 0 1600 720">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="800.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 219 · FP32 Weight-Gradient Solutions</text>
+<text x="800.0" y="80.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">stable common operator index · exact registry hits · 3-process model gate</text>
+<rect x="160" y="150" width="1280" height="410" fill="#ffffff" stroke="#cbd3df" rx="10"/>
+<line x1="160" y1="560.0" x2="1440" y2="560.0" stroke="#e5e9f0"/>
+<text x="148.0" y="565.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">0.94×</text>
+<line x1="160" y1="485.5" x2="1440" y2="485.5" stroke="#e5e9f0"/>
+<text x="148.0" y="490.5" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">0.98×</text>
+<line x1="160" y1="448.2" x2="1440" y2="448.2" stroke="#2563eb"/>
+<text x="148.0" y="453.2" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">1.00×</text>
+<line x1="160" y1="355.0" x2="1440" y2="355.0" stroke="#d97706"/>
+<text x="148.0" y="360.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">1.05×</text>
+<line x1="160" y1="261.8" x2="1440" y2="261.8" stroke="#e5e9f0"/>
+<text x="148.0" y="266.8" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">1.10×</text>
+<line x1="160" y1="168.6" x2="1440" y2="168.6" stroke="#e5e9f0"/>
+<text x="148.0" y="173.6" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">1.15×</text>
+<rect x="365.0" y="304.3" width="100" height="255.7" fill="#18a558" rx="6"/>
+<text x="415.0" y="294.3" font-family="Inter,Arial,sans-serif" font-size="16" fill="#18a558" text-anchor="middle" font-weight="700">1.077×</text>
+<text x="415.0" y="585.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">operator</text>
+<rect x="490.0" y="462.1" width="100" height="97.9" fill="#d04a3a" rx="6"/>
+<text x="540.0" y="452.1" font-family="Inter,Arial,sans-serif" font-size="16" fill="#d04a3a" text-anchor="middle" font-weight="700">0.993×</text>
+<text x="540.0" y="585.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">end-to-end</text>
+<text x="480.0" y="618.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" text-anchor="middle" font-weight="700">Qwen 0.5B</text>
+<text x="480.0" y="195.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="600">index 289155 · 144 exact hits</text>
+<rect x="1005.0" y="200.8" width="100" height="359.2" fill="#18a558" rx="6"/>
+<text x="1055.0" y="190.8" font-family="Inter,Arial,sans-serif" font-size="16" fill="#18a558" text-anchor="middle" font-weight="700">1.133×</text>
+<text x="1055.0" y="585.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">operator</text>
+<rect x="1130.0" y="455.8" width="100" height="104.2" fill="#d04a3a" rx="6"/>
+<text x="1180.0" y="445.8" font-family="Inter,Arial,sans-serif" font-size="16" fill="#d04a3a" text-anchor="middle" font-weight="700">0.996×</text>
+<text x="1180.0" y="585.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">end-to-end</text>
+<text x="1120.0" y="618.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" text-anchor="middle" font-weight="700">DeepSeek 1.5B</text>
+<text x="1120.0" y="195.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="600">index 284846 · 168 exact hits</text>
+<text x="800.0" y="650.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#9a4f00" text-anchor="middle" font-weight="700">Operator wins 1.077× / 1.133×, but model throughput is 0.993× / 0.996× · no default</text>
+</svg>

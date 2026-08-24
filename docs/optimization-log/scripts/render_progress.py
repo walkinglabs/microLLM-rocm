@@ -86,6 +86,10 @@ GROUPED_WGRAD_CHART = ROOT / "assets" / "grouped-weight-gradient-discard.svg"
 PACKED_WGRAD_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
                      "2026-08-24-packed-weight-gradient-discard")
 PACKED_WGRAD_CHART = ROOT / "assets" / "packed-weight-gradient-discard.svg"
+FP32_WGRAD_SOLUTION_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
+                            "2026-08-24-fp32-weight-gradient-solutions")
+FP32_WGRAD_SOLUTION_CHART = (
+    ROOT / "assets" / "fp32-weight-gradient-solutions-discard.svg")
 
 
 def rows() -> list[dict]:
@@ -2226,6 +2230,69 @@ def packed_weight_gradient_discard_svg() -> str:
     return "\n".join(parts)
 
 
+def fp32_weight_gradient_solutions_svg() -> str:
+    operator = json.loads((FP32_WGRAD_SOLUTION_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    model = json.loads((FP32_WGRAD_SOLUTION_ROOT / "model-pilot" /
+                        "summary.json").read_text(encoding="utf-8"))
+    operator_rows = {row["model"]: row for row in operator["summaries"]}
+    model_rows = {row["model"]: row for row in model["comparisons"]}
+    width, height = 1600, 720
+    chart_x, chart_y, chart_w, chart_h = 160, 150, 1280, 410
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 219 · FP32 Weight-Gradient Solutions", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 80,
+             "stable common operator index · exact registry hits · 3-process model gate",
+             16, "#5b6474", anchor="middle"),
+        f'<rect x="{chart_x}" y="{chart_y}" width="{chart_w}" height="{chart_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+    ]
+
+    def y(value: float) -> float:
+        return chart_y + chart_h * (1.16 - value) / 0.22
+
+    for tick in (0.94, 0.98, 1.0, 1.05, 1.10, 1.15):
+        position = y(tick)
+        color = "#2563eb" if tick == 1.0 else "#d97706" if tick == 1.05 else "#e5e9f0"
+        parts.append(f'<line x1="{chart_x}" y1="{position:.1f}" '
+                     f'x2="{chart_x+chart_w}" y2="{position:.1f}" stroke="{color}"/>')
+        parts.append(text(chart_x - 12, position + 5, f"{tick:.2f}×", 13,
+                          "#5b6474", anchor="end"))
+    models = (("qwen", "qwen2.5-0.5b", "Qwen 0.5B", 144),
+              ("deepseek", "deepseek-r1-distill-qwen-1.5b", "DeepSeek 1.5B", 168))
+    group_w = chart_w / len(models)
+    for index, (short, full, label, hits) in enumerate(models):
+        center = chart_x + group_w * (index + 0.5)
+        values = ((operator_rows[short]["selected_median_speedup"],
+                   "#18a558", "operator"),
+                  (model_rows[full]["throughput_speedup"],
+                   "#d04a3a", "end-to-end"))
+        for offset, (value, color, name) in enumerate(values):
+            x = center - 115 + offset * 125
+            top = y(value)
+            base = y(0.94)
+            parts.append(f'<rect x="{x:.1f}" y="{top:.1f}" width="100" '
+                         f'height="{base-top:.1f}" fill="{color}" rx="6"/>')
+            parts.append(text(x + 50, top - 10, f"{value:.3f}×", 16,
+                              color, anchor="middle", weight=700))
+            parts.append(text(x + 50, chart_y + chart_h + 25, name, 13,
+                              "#5b6474", anchor="middle"))
+        parts.append(text(center, chart_y + chart_h + 58, label, 16,
+                          anchor="middle", weight=700))
+        parts.append(text(center, chart_y + 45,
+                          f'index {operator_rows[short]["selected_index"]} · {hits} exact hits',
+                          13, "#5b6474", anchor="middle", weight=600))
+    parts.append(text(width / 2, 650,
+                      "Operator wins 1.077× / 1.133×, but model throughput is 0.993× / 0.996× · no default",
+                      17, "#9a4f00", anchor="middle", weight=700))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -2259,7 +2326,8 @@ def main() -> int:
                 HYBRID_ADAMW_CHART: hybrid_bf16_adamw_svg(),
                 POST_HYBRID_PROFILE_CHART: post_hybrid_training_profile_svg(),
                 GROUPED_WGRAD_CHART: grouped_weight_gradient_discard_svg(),
-                PACKED_WGRAD_CHART: packed_weight_gradient_discard_svg()}
+                PACKED_WGRAD_CHART: packed_weight_gradient_discard_svg(),
+                FP32_WGRAD_SOLUTION_CHART: fp32_weight_gradient_solutions_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

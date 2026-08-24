@@ -1563,7 +1563,7 @@ void hipblaslt_matmul_out(Tensor& output, const Tensor& left,
     }
     const float beta = 0.0F;
     const hipblasLtMatmulAlgo_t* algorithm = nullptr;
-    if (left.dtype() == DType::Float32 && batches > 1 &&
+    if (left.dtype() == DType::Float32 &&
         !fp32_solution_registry.empty()) {
         const auto key = make_fp32_matmul_solution_key(
             left.shape(), right.shape(), left.device(), transpose_left,

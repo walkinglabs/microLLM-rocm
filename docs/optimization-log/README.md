@@ -436,6 +436,12 @@ Experiment 218再测试显式pack + 一个普通大GEMM。计时包含每步2/3�
 
 ![Packed weight-gradient discarded](assets/packed-weight-gradient-discard.svg)
 
+Experiment 219扩展显式FP32 solution registry到rank-2。三进程共同index让Qwen/DeepSeek
+gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型却为
+`0.993×/0.996×`。index只保留为diagnostic seam，不设默认。
+
+![FP32 weight-gradient solutions discarded](assets/fp32-weight-gradient-solutions-discard.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -831,6 +837,8 @@ Experiment 218再测试显式pack + 一个普通大GEMM。计时包含每步2/3�
 | [experiments/217-grouped-weight-gradient-discard.md](experiments/217-grouped-weight-gradient-discard.md) | FP32 GroupedGemm能力门与路由拒绝 |
 | [assets/packed-weight-gradient-discard.svg](assets/packed-weight-gradient-discard.svg) | 四项pack+大GEMM速度与显存代价 |
 | [experiments/218-packed-weight-gradient-discard.md](experiments/218-packed-weight-gradient-discard.md) | 12进程完整输出反例与组合搜索关闭 |
+| [assets/fp32-weight-gradient-solutions-discard.svg](assets/fp32-weight-gradient-solutions-discard.svg) | operator winner、exact hits与模型反例 |
+| [experiments/219-fp32-weight-gradient-solutions-discard.md](experiments/219-fp32-weight-gradient-solutions-discard.md) | rank-2 registry和solution默认拒绝 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 
