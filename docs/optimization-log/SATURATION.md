@@ -156,6 +156,12 @@ identical while allocation/free duration rises sharply because non-default Strea
 legacy-default-Stream-only exact-size pool. Lexical routing and larger deferred tables are now
 closed; only a same-Stream ordered allocator or planned activation arena is a distinct retry.
 
+Experiment 178 closes a separate multi-GPU ownership defect discovered by the expanded gate.
+Static hipBLASLt handles cannot cross device indices. Per-device handles restore the existing
+RCCL set from 6/11 to 11/11, while four Qwen/DeepSeek T512 single-GPU ratios remain
+0.998×–1.023×. Reintroducing one process-wide handle or fixing the symptom with global
+synchronization is closed; future multi-GPU work may assume vendor handles are rank-device local.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

@@ -380,3 +380,5 @@ the next gate. Records are append-only except for factual corrections.
   explicit lifetime queue, overflow safety, synchronization reduction and pending-byte cost.
 - [2026-08-24-scoped-deferred-model-stream.md](2026-08-24-scoped-deferred-model-stream.md):
   bit-exact model-wide Stream/lifetime routing, official matrix rejection and allocator handoff.
+- [2026-08-24-per-device-hipblaslt-handles.md](2026-08-24-per-device-hipblaslt-handles.md):
+  restores rank-local vendor handle ownership and all two-rank model correctness gates.

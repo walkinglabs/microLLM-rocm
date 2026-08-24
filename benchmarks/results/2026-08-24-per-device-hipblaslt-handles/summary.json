@@ -1,0 +1,52 @@
+{
+  "comparisons": [
+    {
+      "baseline_tokens_per_second": 87415.38570545027,
+      "context": 512,
+      "current_tokens_per_second": 89411.01194405385,
+      "mode": "inference",
+      "model": "qwen2.5-0.5b",
+      "model_key": "qwen",
+      "output_contract_exact": true,
+      "throughput_ratio": 1.0228292333494693
+    },
+    {
+      "baseline_tokens_per_second": 15337.774108228637,
+      "context": 512,
+      "current_tokens_per_second": 15330.559041111857,
+      "mode": "training",
+      "model": "qwen2.5-0.5b",
+      "model_key": "qwen",
+      "output_contract_exact": true,
+      "throughput_ratio": 0.999529588383173
+    },
+    {
+      "baseline_tokens_per_second": 48800.88272409196,
+      "context": 512,
+      "current_tokens_per_second": 48699.25896277997,
+      "mode": "inference",
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "model_key": "deepseek",
+      "output_contract_exact": true,
+      "throughput_ratio": 0.99791758354277
+    },
+    {
+      "baseline_tokens_per_second": 6252.525395923311,
+      "context": 512,
+      "current_tokens_per_second": 6259.14440980012,
+      "mode": "training",
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "model_key": "deepseek",
+      "output_contract_exact": true,
+      "throughput_ratio": 1.0010586144729816
+    }
+  ],
+  "correctness_gate": true,
+  "decision": "keep per-device handles",
+  "minimum_throughput_ratio": 0.99791758354277,
+  "performance_gate": true,
+  "raw_processes": 12,
+  "record_type": "per_device_hipblaslt_handle_regression",
+  "schema_version": 1,
+  "status": "pass"
+}

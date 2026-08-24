@@ -2979,3 +2979,25 @@ malloc/free从1,180/867次变成2,559/2,557次，二者API总时间约39.6ms变�
 让旧地址能在不等待整个region的情况下安全回收。
 
 ![Scoped deferred model Stream result](assets/scoped-deferred-model-stream.svg)
+
+## 195. Experiment 178：两间机房不能共用一把只认门牌的钥匙
+
+完整回归把一个旧问题翻了出来：RCCL的all-reduce都通过，但只要同一进程先跑GPU0模型、再跑GPU1，
+hipBLASLt就报`invalid device ordinal`。在修改前提交`adcd642`上做全新detached build，错误完全相同，
+说明它不是上一实验引入的。
+
+原因是handle所有权。普通GEMM、BF16/FP8和Attention曾各自保存静态handle；第一次在GPU0创建，
+第二次切到GPU1仍拿同一个。就像钥匙内部记住了第一间机房的门牌，搬到隔壁当然打不开。
+
+新实现先选择device，再从线程局部的`device index → handle`表取对应对象。已有BF16/Attention plan
+key本来就含device，现在也拿同设备handle构造。一个不依赖RCCL的小测试按0→1→0→1交替执行
+FP32/BF16 GEMM，输出全部精确，plan统计为两次miss、两个entry、随后两次hit。
+
+结果是多卡测试6/11→11/11，CLI和两个package consumer也通过。为了防止“修多卡、拖慢单卡”，
+又用上一提交raw做边界：Qwen/DeepSeek T512 inference/training的12个新进程分别为
+1.023×、1.000×、0.998×、1.001×，输出摘要、loss和参数更新完全一致。
+
+所以按device持有handle保留。它解决的是vendor资源所有权，不等于通信计算重叠、跨节点或生产
+one-process-per-GPU已经完成。
+
+![Per-device hipBLASLt handle result](assets/per-device-hipblaslt-handles.svg)

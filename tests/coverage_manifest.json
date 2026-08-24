@@ -250,6 +250,7 @@
     "python/tests/test_alignment_tools.py",
     "python/tests/test_deferred_deallocation_matrix.py",
     "python/tests/test_scoped_deferred_model_matrix.py",
+    "python/tests/test_per_device_handle_regression.py",
     "python/tests/test_attention_layout_fusion_runner.py",
     "python/tests/test_hf_benchmark_contract.py",
     "python/tests/test_hf_shape_matrix.py",

@@ -7785,6 +7785,43 @@ def validate_scoped_deferred_model_stream(
         max(ratios, default=0.0), maximum_bytes
 
 
+def validate_per_device_hipblaslt_handles(
+        errors: list[str]) -> tuple[int, float, float]:
+    data = REPOSITORY / "benchmarks/results/2026-08-24-per-device-hipblaslt-handles"
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = summary.get("comparisons", [])
+    ratios = [float(row.get("throughput_ratio", 0.0)) for row in comparisons]
+    if summary.get("status") != "pass" or len(raw) != 12 or \
+            summary.get("raw_processes") != 12 or len(comparisons) != 4 or \
+            summary.get("correctness_gate") is not True or \
+            summary.get("performance_gate") is not True or \
+            summary.get("decision") != "keep per-device handles" or \
+            not (0.997 <= min(ratios, default=0.0) <= 0.999) or \
+            not (1.022 <= max(ratios, default=0.0) <= 1.024) or \
+            any(row.get("output_contract_exact") is not True
+                for row in comparisons) or \
+            verification.get("status") != "pass" or \
+            verification.get("tests", {}).get("rccl_multi_gpu") != \
+                    {"passed": 11, "total": 11} or \
+            verification.get("tests", {}).get("hip_full_configuration") != \
+                    {"passed": 436, "total": 436, "conditional_skips": 3}:
+        errors.append("per-device hipBLASLt handle evidence changed")
+    source = (REPOSITORY / "src/ops/optimized.cpp").read_text(encoding="utf-8")
+    tests = (REPOSITORY / "tests/ops/hip_ops_test.cpp").read_text(encoding="utf-8")
+    runner = (REPOSITORY / "benchmarks/single_gpu/"
+              "per_device_handle_regression.py").read_text(encoding="utf-8")
+    if "Handle& handle_for_device(Device device)" not in source or \
+            "static Handle handle" in source or \
+            "PerDeviceHandlesSurviveAlternatingGpuMatmuls" not in tests or \
+            "minimum_throughput_ratio" not in runner:
+        errors.append("per-device hipBLASLt handle source/test contract changed")
+    return len(raw), min(ratios, default=0.0), max(ratios, default=0.0)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -7940,7 +7977,8 @@ def validate_assets(errors: list[str]) -> None:
                  "hip-graph-gemm-discard.svg",
                  "scoped-model-stream-discard.svg",
                  "deferred-hip-deallocation.svg",
-                 "scoped-deferred-model-stream.svg"):
+                 "scoped-deferred-model-stream.svg",
+                 "per-device-hipblaslt-handles.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -8231,6 +8269,8 @@ def main() -> int:
     scoped_deferred_rows, scoped_deferred_pairs, scoped_deferred_minimum, \
         scoped_deferred_maximum, scoped_deferred_bytes = \
         validate_scoped_deferred_model_stream(errors)
+    device_handle_rows, device_handle_minimum, device_handle_maximum = \
+        validate_per_device_hipblaslt_handles(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -8468,6 +8508,8 @@ def main() -> int:
           f"scoped_deferred={scoped_deferred_rows}/{scoped_deferred_pairs}/"
           f"{scoped_deferred_minimum:.3f}/{scoped_deferred_maximum:.3f}/"
           f"{scoped_deferred_bytes} "
+          f"device_handles={device_handle_rows}/{device_handle_minimum:.3f}/"
+          f"{device_handle_maximum:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

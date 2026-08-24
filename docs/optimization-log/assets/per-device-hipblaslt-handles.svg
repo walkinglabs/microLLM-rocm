@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="560" viewBox="0 0 960 560" role="img" aria-labelledby="title desc">
+  <title id="title">Per-device hipBLASLt handles restore multi-GPU correctness</title>
+  <desc id="desc">The left panel shows RCCL tests improving from six to eleven passes. The right panel shows four single-GPU throughput ratios near one.</desc>
+  <rect width="960" height="560" fill="#0b1020"/>
+  <text x="48" y="48" fill="#f8fafc" font-family="sans-serif" font-size="25" font-weight="700">One vendor handle per GPU</text>
+  <text x="48" y="76" fill="#94a3b8" font-family="sans-serif" font-size="14">MI300X · rank-local device ownership · 12-process single-GPU guard</text>
+  <rect x="48" y="105" width="390" height="360" rx="10" fill="#111827" stroke="#334155"/>
+  <text x="72" y="140" fill="#e2e8f0" font-family="sans-serif" font-size="18" font-weight="700">RCCL model/collective tests</text>
+  <line x1="105" y1="400" x2="385" y2="400" stroke="#475569"/>
+  <rect x="125" y="245" width="90" height="155" rx="6" fill="#ef4444"/>
+  <text x="170" y="232" text-anchor="middle" fill="#fca5a5" font-family="sans-serif" font-size="20" font-weight="700">6 / 11</text>
+  <text x="170" y="430" text-anchor="middle" fill="#cbd5e1" font-family="sans-serif" font-size="14">shared handle</text>
+  <rect x="270" y="117" width="90" height="283" rx="6" fill="#22c55e"/>
+  <text x="315" y="104" text-anchor="middle" fill="#86efac" font-family="sans-serif" font-size="20" font-weight="700">11 / 11</text>
+  <text x="315" y="430" text-anchor="middle" fill="#cbd5e1" font-family="sans-serif" font-size="14">per-device</text>
+  <rect x="470" y="105" width="442" height="360" rx="10" fill="#111827" stroke="#334155"/>
+  <text x="494" y="140" fill="#e2e8f0" font-family="sans-serif" font-size="18" font-weight="700">Single-GPU throughput ratio</text>
+  <line x1="540" y1="400" x2="870" y2="400" stroke="#475569"/>
+  <line x1="540" y1="205" x2="870" y2="205" stroke="#22c55e" stroke-dasharray="6 6"/>
+  <line x1="540" y1="215" x2="870" y2="215" stroke="#f59e0b" stroke-dasharray="4 5"/>
+  <text x="876" y="209" fill="#86efac" font-family="sans-serif" font-size="12">1.00×</text>
+  <text x="876" y="229" fill="#fcd34d" font-family="sans-serif" font-size="12">0.95× gate</text>
+  <g font-family="sans-serif" font-size="13" text-anchor="middle">
+    <rect x="555" y="196" width="56" height="204" rx="5" fill="#38bdf8"/><text x="583" y="185" fill="#7dd3fc">1.023×</text><text x="583" y="430" fill="#cbd5e1">Q infer</text>
+    <rect x="635" y="205" width="56" height="195" rx="5" fill="#38bdf8"/><text x="663" y="194" fill="#7dd3fc">1.000×</text><text x="663" y="430" fill="#cbd5e1">Q train</text>
+    <rect x="715" y="205" width="56" height="195" rx="5" fill="#2dd4bf"/><text x="743" y="194" fill="#5eead4">0.998×</text><text x="743" y="430" fill="#cbd5e1">D infer</text>
+    <rect x="795" y="205" width="56" height="195" rx="5" fill="#2dd4bf"/><text x="823" y="194" fill="#5eead4">1.001×</text><text x="823" y="430" fill="#cbd5e1">D train</text>
+  </g>
+  <rect x="48" y="490" width="864" height="44" rx="8" fill="#052e2b" stroke="#0f766e"/>
+  <text x="480" y="518" text-anchor="middle" fill="#99f6e4" font-family="sans-serif" font-size="15" font-weight="700">GPU0 → GPU1 → GPU0 → GPU1 · FP32/BF16 exact · two device plan entries</text>
+</svg>

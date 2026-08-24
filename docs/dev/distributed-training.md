@@ -6,6 +6,11 @@ The current `DataParallelTrainer` is a correctness-first, single-process control
 multiple AMD GPUs. It creates one model and AdamW instance per device, shards the input
 batch across ranks, averages gradients with RCCL, and applies identical optimizer steps.
 
+Vendor-library state is rank-local too. hipBLASLt handles are stored per host thread and device
+index; alternating GPU 0/1 GEMMs have a dedicated FP32/BF16 test. Reusing one process-wide handle
+across ranks previously produced an invalid-device launch even though RCCL collectives themselves
+were correct.
+
 ```text
 rank-local input
 → rank-local forward/loss/backward

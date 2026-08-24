@@ -562,6 +562,17 @@ private:
     hipblasLtHandle_t value_ = nullptr;
 };
 
+Handle& handle_for_device(Device device) {
+    if (!device.is_hip()) {
+        throw std::invalid_argument("hipBLASLt handle requires a HIP device");
+    }
+    runtime::set_device(device);
+    static thread_local std::map<int, std::unique_ptr<Handle>> handles;
+    auto& handle = handles[device.index()];
+    if (!handle) handle = std::make_unique<Handle>();
+    return *handle;
+}
+
 class Layout {
 public:
     Layout(hipDataType dtype, std::uint64_t rows, std::uint64_t columns,
@@ -774,7 +785,7 @@ void hipblaslt_matmul_out(Tensor& output, const Tensor& left,
     const auto right_columns = right.shape()[rank - 1];
     const auto rows = transpose_left ? left_columns : left_rows;
     const auto columns = transpose_right ? right_rows : right_columns;
-    static Handle handle;
+    auto& handle = handle_for_device(left.device());
     // The row-major expression is submitted as C^T=op(right)^T*op(left)^T.
     // Physical row-major memory is a column-major view of its transpose, so
     // the user's transpose flags map directly to hipBLASLt A(right) and B(left).
@@ -837,7 +848,7 @@ Tensor hipblaslt_bf16_matmul(const Tensor& left, const Tensor& right,
         }
     }
     Tensor output({rows, columns}, output_dtype, left.device());
-    static Handle handle;
+    auto& handle = handle_for_device(left.device());
     auto& plan = bf16_plan(handle, rows, inner, columns, output_dtype,
                            left.device());
     const float alpha = 1.0F;
@@ -929,7 +940,7 @@ Tensor hipblaslt_fp8_matmul(const ScaledTensor& left, const ScaledTensor& right,
         }
     }
     Tensor output({rows, columns}, output_dtype, left.values.device());
-    static Handle handle;
+    auto& handle = handle_for_device(left.values.device());
     MatmulDescription operation;
     // Row-major C=A*B is submitted as column-major C^T=B^T*A^T, so scale A belongs
     // to the user-visible right operand and scale B to the left operand.
@@ -1091,9 +1102,8 @@ thread_local std::map<AttentionLayoutPlanKey,
 thread_local std::size_t attention_layout_plan_hits = 0;
 thread_local std::size_t attention_layout_plan_misses = 0;
 
-Handle& attention_layout_handle() {
-    static thread_local Handle handle;
-    return handle;
+Handle& attention_layout_handle(Device device) {
+    return handle_for_device(device);
 }
 
 AttentionLayoutPlan& attention_layout_plan(
@@ -1148,7 +1158,8 @@ Tensor hipblaslt_attention_probability_value_bthd(
     for (std::int64_t batch = 0; batch < batches; ++batch) {
         check_status(
             hipblasLtMatmul(
-                attention_layout_handle().get(), plan->operation(), &alpha,
+                attention_layout_handle(probabilities.device()).get(),
+                plan->operation(), &alpha,
                 value_data + batch * value_batch_elements, plan->matrix_right(),
                 probability_data + batch * probability_batch_elements,
                 plan->matrix_left(), &beta,
@@ -1201,7 +1212,8 @@ Tensor hipblaslt_attention_probability_value_gqa_bthd(
             const auto head = kv_head * repeats;
             check_status(
                 hipblasLtMatmul(
-                    attention_layout_handle().get(), operation.get(), &alpha,
+                    attention_layout_handle(probabilities.device()).get(),
+                    operation.get(), &alpha,
                     value_data + batch * value_batch_elements + kv_head * width,
                     matrix_value.get(),
                     probability_data + batch * probability_batch_elements +
@@ -1251,7 +1263,8 @@ Tensor hipblaslt_attention_probability_gradient_bthd(
     for (std::int64_t batch = 0; batch < batches; ++batch) {
         check_status(
             hipblasLtMatmul(
-                attention_layout_handle().get(), plan->operation(), &alpha,
+                attention_layout_handle(output_gradient.device()).get(),
+                plan->operation(), &alpha,
                 value_data + batch * value_batch_elements, plan->matrix_right(),
                 gradient_data + batch * value_batch_elements,
                 plan->matrix_left(), &beta,
@@ -1304,7 +1317,8 @@ Tensor hipblaslt_attention_probability_gradient_gqa_bthd(
             const auto head = kv_head * repeats;
             check_status(
                 hipblasLtMatmul(
-                    attention_layout_handle().get(), operation.get(), &alpha,
+                    attention_layout_handle(output_gradient.device()).get(),
+                    operation.get(), &alpha,
                     value_data + batch * value_batch_elements + kv_head * width,
                     matrix_value.get(),
                     gradient_data + batch * gradient_batch_elements + head * width,
@@ -1356,7 +1370,8 @@ Tensor hipblaslt_attention_value_gradient_bthd(
     for (std::int64_t batch = 0; batch < batches; ++batch) {
         check_status(
             hipblasLtMatmul(
-                attention_layout_handle().get(), plan->operation(), &alpha,
+                attention_layout_handle(probabilities.device()).get(),
+                plan->operation(), &alpha,
                 gradient_data + batch * value_batch_elements,
                 plan->matrix_right(),
                 probability_data + batch * probability_batch_elements,

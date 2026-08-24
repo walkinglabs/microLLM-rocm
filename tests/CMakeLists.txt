@@ -133,6 +133,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.ScopedDeferredModelMatrixContract PROPERTIES
         LABELS "cpu;benchmark;lifetime;model;schema")
     add_test(
+        NAME Benchmark.PerDeviceHandleRegressionContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_per_device_handle_regression.py
+    )
+    set_tests_properties(Benchmark.PerDeviceHandleRegressionContract PROPERTIES
+        LABELS "cpu;benchmark;multi_gpu;matmul;schema")
+    add_test(
         NAME Coverage.OperatorAndTestFiles
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/audit_test_coverage.py
     )

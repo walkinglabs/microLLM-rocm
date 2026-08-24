@@ -145,6 +145,11 @@ vendor         ROCm library implementation such as hipBLASLt
 Dispatch may select among validated implementations. It may never bypass the
 correctness gate merely because a candidate benchmarks faster.
 
+hipBLASLt handles are thread-local and keyed by HIP device index. A handle created while GPU 0
+is current is never reused for GPU 1. BF16 and Attention plan caches already include the device in
+their keys and now receive the matching handle. This ownership rule is required by the in-process
+two-rank reference; algorithms and public Tensor contracts remain unchanged.
+
 The AdamW operator is a concrete example: `Scalar` and `Vectorized` are selectable, but
 `Auto` stays on Scalar because exact-shape float4 wins did not survive the official-model
 gate. Selection policy is evidence, not an alias for the newest Kernel.

@@ -718,6 +718,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/176-deferred-hip-deallocation.md](experiments/176-deferred-hip-deallocation.md) | explicit lifetime合同、36进程矩阵与overflow测试 |
 | [assets/scoped-deferred-model-stream.svg](assets/scoped-deferred-model-stream.svg) | 8个官方workload速度比与14.5GiB代价 |
 | [experiments/177-scoped-deferred-model-stream.md](experiments/177-scoped-deferred-model-stream.md) | bit-exact模型Stream、48进程矩阵与allocator归因 |
+| [assets/per-device-hipblaslt-handles.svg](assets/per-device-hipblaslt-handles.svg) | RCCL 6/11→11/11与四项单卡非回归 |
+| [experiments/178-per-device-hipblaslt-handles.md](experiments/178-per-device-hipblaslt-handles.md) | handle设备所有权、交替GPU测试与12进程矩阵 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

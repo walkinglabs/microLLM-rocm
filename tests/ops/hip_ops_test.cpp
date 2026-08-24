@@ -3486,6 +3486,39 @@ TEST(HipOptimizedOpsTest, HipblasLtMatmulMatchesReadableReference) {
     clear_matmul_implementation_registry();
 }
 
+TEST(HipOptimizedOpsTest, PerDeviceHandlesSurviveAlternatingGpuMatmuls) {
+    if (runtime::hip_device_count() < 2) {
+        GTEST_SKIP() << "two visible HIP devices required";
+    }
+    constexpr std::int64_t width = 16;
+    std::vector<float> values(static_cast<std::size_t>(width * width), 1.0F);
+    const auto fp32_left = Tensor::from_vector(values, {width, width});
+    const auto fp32_right = Tensor::from_vector(values, {width, width});
+    const auto bf16_left = Tensor::from_vector(
+        values, {width, width}, DType::BFloat16);
+    const auto bf16_right = Tensor::from_vector(
+        values, {width, width}, DType::BFloat16);
+    const std::vector<float> expected(
+        static_cast<std::size_t>(width * width), static_cast<float>(width));
+    clear_bf16_plan_cache();
+    for (const auto index : {0, 1, 0, 1}) {
+        const auto device = Device::hip(index);
+        const auto fp32_output = matmul_with_implementation(
+            fp32_left.to(device), fp32_right.to(device),
+            MatmulImplementation::HipBLASLt);
+        const auto bf16_output = bf16_matmul_output(
+            bf16_left.to(device), bf16_right.to(device), DType::Float32);
+        runtime::synchronize(device);
+        expect_near(fp32_output.to_vector(), expected, 1.0e-5F);
+        expect_near(bf16_output.to_vector(), expected, 1.0e-5F);
+    }
+    const auto stats = bf16_plan_cache_stats();
+    EXPECT_EQ(stats.entries, 2U);
+    EXPECT_EQ(stats.misses, 2U);
+    EXPECT_EQ(stats.hits, 2U);
+    clear_bf16_plan_cache();
+}
+
 TEST(HipOptimizedOpsTest, ScaledHipblasLtMatmulUsesAlphaWithoutPayloadTransfers) {
     require_gpu();
     const auto gpu = Device::hip(0);
