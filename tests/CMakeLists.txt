@@ -330,6 +330,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.CausalSoftmaxThreadsContract PROPERTIES
         LABELS "cpu;benchmark;model;inference;attention;softmax;memory;shape;schema")
     add_test(
+        NAME Benchmark.Bf16RepeatContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_bf16_repeat.py
+    )
+    set_tests_properties(Benchmark.Bf16RepeatContract PROPERTIES
+        LABELS "cpu;benchmark;inference;attention;bf16;memory;shape;batch;schema")
+    add_test(
         NAME Benchmark.InferenceBthdShapeModelsContract
         COMMAND ${Python3_EXECUTABLE}
                 ${PROJECT_SOURCE_DIR}/python/tests/test_inference_bthd_shape_models.py

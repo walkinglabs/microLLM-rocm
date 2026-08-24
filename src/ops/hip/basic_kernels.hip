@@ -2026,11 +2026,11 @@ __global__ void causal_softmax_backward_rows_kernel(
     }
 }
 
-__global__ void repeat_interleave_kernel(const float* input, float* output,
-                                         std::int64_t output_elements,
-                                         std::int64_t repeated_width,
-                                         std::int64_t inner,
-                                         std::int64_t repeats) {
+template <typename Input>
+__global__ void repeat_interleave_typed_kernel(
+    const Input* input, float* output, std::int64_t output_elements,
+    std::int64_t repeated_width, std::int64_t inner,
+    std::int64_t repeats) {
     const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
     if (index >= output_elements) return;
     const auto inner_index = index % inner;
@@ -2039,7 +2039,7 @@ __global__ void repeat_interleave_kernel(const float* input, float* output,
     const auto input_width = repeated_width / repeats;
     const auto input_index = outer * input_width * inner +
                              (repeated_coordinate / repeats) * inner + inner_index;
-    output[index] = input[input_index];
+    output[index] = load_as_float(input[input_index]);
 }
 
 __global__ void repeat_interleave_backward_kernel(const float* gradient,
@@ -3622,10 +3622,24 @@ void launch_repeat_interleave(const float* input, float* output,
                               std::int64_t output_elements, std::int64_t repeated_width,
                               std::int64_t inner, std::int64_t repeats, void* stream) {
     if (output_elements == 0) return;
-    hipLaunchKernelGGL(repeat_interleave_kernel, dim3(grid_size(output_elements)),
-                       dim3(kBlockSize), 0, as_stream(stream), input, output,
-                       output_elements, repeated_width, inner, repeats);
+    hipLaunchKernelGGL((repeat_interleave_typed_kernel<float>),
+                       dim3(grid_size(output_elements)), dim3(kBlockSize), 0,
+                       as_stream(stream), input, output, output_elements,
+                       repeated_width, inner, repeats);
     check_launch("repeat_interleave_kernel");
+}
+
+void launch_repeat_interleave_bf16_to_float(
+    const void* input, float* output, std::int64_t output_elements,
+    std::int64_t repeated_width, std::int64_t inner,
+    std::int64_t repeats, void* stream) {
+    if (output_elements == 0) return;
+    hipLaunchKernelGGL((repeat_interleave_typed_kernel<hip_bfloat16>),
+                       dim3(grid_size(output_elements)), dim3(kBlockSize), 0,
+                       as_stream(stream),
+                       static_cast<const hip_bfloat16*>(input), output,
+                       output_elements, repeated_width, inner, repeats);
+    check_launch("repeat_interleave_bf16_to_float_kernel");
 }
 
 void launch_repeat_interleave_backward(const float* gradient, float* input_gradient,

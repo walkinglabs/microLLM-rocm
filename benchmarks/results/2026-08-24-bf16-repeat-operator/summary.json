@@ -1,0 +1,107 @@
+{
+  "comparisons": [
+    {
+      "batch": 1,
+      "case": "b1t256",
+      "composed_event_ms": 0.0200459994,
+      "event_speedup": 1.2531099206101144,
+      "family": "qwen",
+      "fused_event_ms": 0.015997,
+      "kv_heads": 2,
+      "repeats": 7,
+      "sequence": 256,
+      "width": 64
+    },
+    {
+      "batch": 1,
+      "case": "b1t512",
+      "composed_event_ms": 0.0209679995,
+      "event_speedup": 1.291371527991624,
+      "family": "qwen",
+      "fused_event_ms": 0.016237,
+      "kv_heads": 2,
+      "repeats": 7,
+      "sequence": 512,
+      "width": 64
+    },
+    {
+      "batch": 1,
+      "case": "b1t1024",
+      "composed_event_ms": 0.146414995,
+      "event_speedup": 0.9961762926812381,
+      "family": "qwen",
+      "fused_event_ms": 0.146976992,
+      "kv_heads": 2,
+      "repeats": 7,
+      "sequence": 1024,
+      "width": 64
+    },
+    {
+      "batch": 2,
+      "case": "b2t512",
+      "composed_event_ms": 0.147457004,
+      "event_speedup": 1.0040925057230385,
+      "family": "qwen",
+      "fused_event_ms": 0.146855995,
+      "kv_heads": 2,
+      "repeats": 7,
+      "sequence": 512,
+      "width": 64
+    },
+    {
+      "batch": 1,
+      "case": "b1t256",
+      "composed_event_ms": 0.0212479997,
+      "event_speedup": 1.345150643548046,
+      "family": "deepseek",
+      "fused_event_ms": 0.0157960001,
+      "kv_heads": 2,
+      "repeats": 6,
+      "sequence": 256,
+      "width": 128
+    },
+    {
+      "batch": 1,
+      "case": "b1t512",
+      "composed_event_ms": 0.148177996,
+      "event_speedup": 1.0269528096119205,
+      "family": "deepseek",
+      "fused_event_ms": 0.144289002,
+      "kv_heads": 2,
+      "repeats": 6,
+      "sequence": 512,
+      "width": 128
+    },
+    {
+      "batch": 1,
+      "case": "b1t1024",
+      "composed_event_ms": 0.147256002,
+      "event_speedup": 1.0110125919592616,
+      "family": "deepseek",
+      "fused_event_ms": 0.145651996,
+      "kv_heads": 2,
+      "repeats": 6,
+      "sequence": 1024,
+      "width": 128
+    },
+    {
+      "batch": 2,
+      "case": "b2t512",
+      "composed_event_ms": 0.146975994,
+      "event_speedup": 0.9948489408841099,
+      "family": "deepseek",
+      "fused_event_ms": 0.147736996,
+      "kv_heads": 2,
+      "repeats": 6,
+      "sequence": 512,
+      "width": 128
+    }
+  ],
+  "correctness_gate": true,
+  "decision": "reject fused BF16 V repeat",
+  "performance_gate": false,
+  "processes": 48,
+  "record_type": "bf16_repeat_summary",
+  "schema_version": 1,
+  "status": "pass"
+}

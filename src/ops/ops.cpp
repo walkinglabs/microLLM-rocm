@@ -3640,6 +3640,61 @@ Tensor repeat_interleave(const Tensor& input, std::int64_t dim, std::int64_t rep
     return from_values(std::move(result), std::move(output_shape));
 }
 
+Tensor repeat_interleave_bf16_to_float(
+    const Tensor& input, std::int64_t dim, std::int64_t repeats,
+    [[maybe_unused]] const OpContext& context) {
+    if (!input.defined() || input.dtype() != DType::BFloat16) {
+        throw std::invalid_argument(
+            "repeat_interleave_bf16_to_float requires BF16 input");
+    }
+    dim = positive_dim(input, dim);
+    if (repeats <= 0) {
+        throw std::invalid_argument(
+            "repeat_interleave_bf16_to_float repeats must be positive");
+    }
+    auto output_shape = input.shape();
+    if (output_shape[static_cast<std::size_t>(dim)] >
+        std::numeric_limits<std::int64_t>::max() / repeats) {
+        throw std::overflow_error(
+            "repeat_interleave_bf16_to_float shape overflows int64");
+    }
+    const auto input_width = output_shape[static_cast<std::size_t>(dim)];
+    output_shape[static_cast<std::size_t>(dim)] *= repeats;
+    std::int64_t inner = 1;
+    for (std::size_t axis = static_cast<std::size_t>(dim) + 1;
+         axis < output_shape.size(); ++axis) {
+        inner *= output_shape[axis];
+    }
+    Tensor output(output_shape, DType::Float32, input.device());
+    if (input.device().is_hip()) {
+        require_contiguous(input, "input");
+#if MICROLLM_HAS_HIP
+        hip::launch_repeat_interleave_bf16_to_float(
+            input.data(), static_cast<float*>(output.data()), output.numel(),
+            input_width * repeats, inner, repeats,
+            context.native_stream(input.device()));
+        return output;
+#else
+        throw std::runtime_error(
+            "microLLM was built without HIP operator support");
+#endif
+    }
+    const auto values = input.to_vector();
+    std::vector<float> result(static_cast<std::size_t>(output.numel()));
+    const auto repeated_width = input_width * repeats;
+    for (std::int64_t index = 0; index < output.numel(); ++index) {
+        const auto inner_index = index % inner;
+        const auto repeated_coordinate = (index / inner) % repeated_width;
+        const auto outer = index / (inner * repeated_width);
+        const auto input_index = outer * input_width * inner +
+                                 (repeated_coordinate / repeats) * inner +
+                                 inner_index;
+        result[static_cast<std::size_t>(index)] =
+            values[static_cast<std::size_t>(input_index)];
+    }
+    return from_values(std::move(result), std::move(output_shape));
+}
+
 Tensor repeat_interleave_backward(const Tensor& gradient, const Shape& input_shape,
                                   std::int64_t dim, std::int64_t repeats,
                                   [[maybe_unused]] const OpContext& context) {

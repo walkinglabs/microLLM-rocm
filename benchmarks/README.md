@@ -220,6 +220,10 @@ Use `compare_causal_softmax_threads.py` with
 implementations. The runner gates complete output before Event timing and reports
 universal and T512 performance separately; it does not route models automatically.
 
+Use `compare_bf16_repeat.py` with `microllm_bench_bf16_repeat` to compare
+device-native BF16 cast-plus-repeat against the fused typed primitive on official
+V shapes. The timed region rejects any H2D/D2H payload transfer.
+
 Capture HIP API, kernel, memory, and RCCL-ready runtime traces with the locally
 installed rocprofv3 interface:
 

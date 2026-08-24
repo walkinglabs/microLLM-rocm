@@ -229,6 +229,10 @@ void launch_repeat_interleave(const float* input, float* output,
                               std::int64_t output_elements, std::int64_t repeated_width,
                               std::int64_t inner, std::int64_t repeats,
                               void* stream = nullptr);
+void launch_repeat_interleave_bf16_to_float(
+    const void* input, float* output, std::int64_t output_elements,
+    std::int64_t repeated_width, std::int64_t inner,
+    std::int64_t repeats, void* stream = nullptr);
 void launch_repeat_interleave_backward(const float* gradient, float* input_gradient,
                                        std::int64_t input_elements,
                                        std::int64_t input_width, std::int64_t inner,

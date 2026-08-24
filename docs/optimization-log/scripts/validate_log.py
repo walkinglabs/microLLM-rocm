@@ -10591,6 +10591,78 @@ def validate_causal_softmax_128_discard(
     return len(raw), sum(value >= 1.01 for value in ratios), min(ratios), max(ratios)
 
 
+def validate_bf16_repeat_fusion_discard(
+        errors: list[str]) -> tuple[int, int, float, float]:
+    data = REPOSITORY / (
+        "benchmarks/results/2026-08-24-bf16-repeat-operator")
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    rows = {(row.get("family"), row.get("case")): row
+            for row in summary.get("comparisons", [])}
+    expected = {
+        ("qwen", "b1t256"): 1.2531099206101144,
+        ("qwen", "b1t512"): 1.291371527991624,
+        ("qwen", "b1t1024"): 0.9961762926812381,
+        ("qwen", "b2t512"): 1.0040925057230385,
+        ("deepseek", "b1t256"): 1.345150643548046,
+        ("deepseek", "b1t512"): 1.0269528096119205,
+        ("deepseek", "b1t1024"): 1.0110125919592616,
+        ("deepseek", "b2t512"): 0.9948489408841099,
+    }
+    tests = {
+        "cpu_debug": {"passed": 315, "total": 315},
+        "asan_ubsan": {"passed": 313, "total": 313},
+        "pytorch_enabled_cpu": {"passed": 289, "total": 289},
+        "hip_full_configuration": {
+            "passed": 489, "total": 489, "conditional_skips": 3},
+        "hip_label": {"passed": 164, "total": 164},
+        "rccl_multi_gpu": {"passed": 12, "total": 12},
+        "rccl_full_label": {"passed": 14, "total": 14},
+    }
+    counts = {(family, case, policy): 0 for family, case in expected
+              for policy in ("composed", "fused")}
+    for row in raw:
+        key = (row.get("family"), row.get("case"), row.get("policy"))
+        if key in counts:
+            counts[key] += 1
+        if int(row.get("host_to_device_calls", -1)) != 0 or \
+                int(row.get("device_to_host_calls", -1)) != 0:
+            errors.append("BF16 repeat formal timing transferred payloads")
+            break
+    if summary.get("status") != "pass" or len(raw) != 48 or \
+            summary.get("processes") != 48 or \
+            summary.get("correctness_gate") is not True or \
+            summary.get("performance_gate") is not False or \
+            set(rows) != set(expected) or \
+            any(abs(float(rows[key].get("event_speedup", 0.0)) - value) > 1.0e-9
+                for key, value in expected.items()) or \
+            any(count != 3 for count in counts.values()) or \
+            verification.get("status") != "pass" or \
+            verification.get("registered_test_files") != 86 or \
+            verification.get("tests") != tests or \
+            verification.get("model_gate_executed") is not False or \
+            verification.get("invalid_host_cast_pilot_rejected") is not True:
+        errors.append("BF16 repeat fusion rejection evidence changed")
+    sources = (
+        ("repeat_interleave_bf16_to_float",
+         REPOSITORY / "include/microllm/ops/ops.h"),
+        ("repeat_interleave_typed_kernel<hip_bfloat16>",
+         REPOSITORY / "src/ops/hip/basic_kernels.hip"),
+        ("BF16 repeat complete-output gate failed",
+         REPOSITORY / "benchmarks/micro/benchmark_bf16_repeat.cpp"),
+        ("performance_gate",
+         REPOSITORY / "benchmarks/single_gpu/compare_bf16_repeat.py"),
+    )
+    if any(token not in path.read_text(encoding="utf-8")
+           for token, path in sources):
+        errors.append("BF16 repeat fusion source/test contract changed")
+    ratios = list(expected.values())
+    return len(raw), sum(value >= 1.05 for value in ratios), min(ratios), max(ratios)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -10776,7 +10848,8 @@ def validate_assets(errors: list[str]) -> None:
                  "inference-bthd-profile.svg",
                  "inference-bthd-bf16-qk.svg",
                  "inference-bthd-bf16-qk-shapes.svg",
-                 "causal-softmax-128-discard.svg"):
+                 "causal-softmax-128-discard.svg",
+                 "bf16-repeat-fusion-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -11150,6 +11223,8 @@ def main() -> int:
         validate_inference_bthd_bf16_qk_shapes(errors)
     softmax_thread_rows, softmax_thread_passed, softmax_thread_minimum, \
         softmax_thread_maximum = validate_causal_softmax_128_discard(errors)
+    bf16_repeat_rows, bf16_repeat_passed, bf16_repeat_minimum, \
+        bf16_repeat_maximum = validate_bf16_repeat_fusion_discard(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -11473,6 +11548,8 @@ def main() -> int:
           f"causal_softmax_threads={softmax_thread_rows}/"
           f"{softmax_thread_passed}/{softmax_thread_minimum:.3f}/"
           f"{softmax_thread_maximum:.3f} "
+          f"bf16_repeat_fusion={bf16_repeat_rows}/{bf16_repeat_passed}/"
+          f"{bf16_repeat_minimum:.3f}/{bf16_repeat_maximum:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

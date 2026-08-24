@@ -34,6 +34,7 @@
 | `rope_split_half_bias` | input `[B,H,T,D]`、bias `[H*D]`，D 偶数 | `rope_split_half(x+bias.view(1,H,1,D))` | `3e-5,3e-5` | 非 FP32、rank/shape/device 错、offset/base 错 |
 | `rope_split_half_bias_bthd` | FP32/BF16 input `[B,T,H,D]`、FP32 bias `[H*D]`，输出FP32 `[B,H,T,D]` | `rope_split_half((x.float()+bias.view(1,1,H,D)).transpose(1,2))` | FP32 `3e-5,3e-5`；BF16按输入舍入后同值 | 非连续、F16/FP8、rank/shape/device 错、offset/base 错 |
 | `causal_softmax_with_implementation` | `Rows128`只接受HIP FP32方阵且T=256..1024；Auto保持原路由 | 与`causal_softmax`逐项比较，mask严格为0、可见行和为1 | `2e-6,1e-7` | CPU、T&lt;256、T&gt;1024、非方阵/非连续拒绝 |
+| `repeat_interleave_bf16_to_float` | BF16输入，任意rank/dim，FP32输出 | `repeat_interleave(ops::cast(x, FP32), dim, repeats)` | 逐项完全相等 | 非BF16、坏dim、repeats≤0、overflow拒绝 |
 | `cross_entropy` | logits `S+[C]`，targets `S`，输出 scalar | `F.cross_entropy(ignore_index=-100)` | `2e-5,2e-5` | target shape/dtype/device 错、无有效 target |
 | `reduce_sum` | `S -> scalar` | `torch.sum` | `2e-5,2e-5` | 非 FP32、HIP 非连续 |
 | `broadcast_scalar` | scalar + 目标 shape `S -> S` | `scalar.expand(S).clone()` | 精确 | source 不是单元素 |

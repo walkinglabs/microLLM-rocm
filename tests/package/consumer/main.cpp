@@ -132,6 +132,12 @@ int main() {
     const auto paired_repeat = microllm::ops::repeat_gqa_kv_bthd(
         microllm::Tensor::from_vector({1.0F, 2.0F}, {1, 1, 1, 2}),
         microllm::Tensor::from_vector({3.0F, 4.0F}, {1, 1, 1, 2}), 1);
+    const auto fused_bf16_repeat =
+        microllm::ops::repeat_interleave_bf16_to_float(
+            microllm::Tensor::from_vector(
+                {1.0F, 2.0F}, {1, 1, 1, 2},
+                microllm::DType::BFloat16),
+            2, 2);
     const auto broadcast_context =
         microllm::ops::attention_probability_value_gqa_bthd(
             microllm::Tensor::from_vector({1.0F}, {1, 1, 1, 1}),
@@ -220,6 +226,8 @@ int main() {
         caller_matmul.to_vector() != std::vector<float>({11.0F}) ||
         paired_repeat.first.to_vector() != std::vector<float>({1.0F, 2.0F}) ||
         paired_repeat.second.to_vector() != std::vector<float>({3.0F, 4.0F}) ||
+        fused_bf16_repeat.to_vector() !=
+            std::vector<float>({1.0F, 2.0F, 1.0F, 2.0F}) ||
         broadcast_context.to_vector() != std::vector<float>({2.0F, 3.0F}) ||
         broadcast_probability_gradient.to_vector() != std::vector<float>({5.0F}) ||
         !microllm::autograd::attention_context_layout_fusion_enabled() ||

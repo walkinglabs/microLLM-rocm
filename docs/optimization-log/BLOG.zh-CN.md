@@ -3474,3 +3474,16 @@ wave。为了支持它，reduction stride改读`blockDim.x`；默认256线程的
 是256线程。这个反例关闭“只调block size”方向；再做64/128/256扫描没有足够解释力。
 
 ![128-thread causal softmax discard](assets/causal-softmax-128-discard.svg)
+
+## 225. Experiment 208：少一次Kernel，小B1快，B2不动
+
+候选把grouped V的BF16→FP32 cast与GQA repeat合成一次typed Kernel。第一次benchmark误用
+`Tensor::cast`，20轮各产生H2D/D2H，被transfer门拒绝；改成设备`ops::cast`后正式重跑。
+
+48进程完整输出逐项一致。Qwen/DeepSeek B1/T256达到1.253×/1.345×，但B2/T512只有
+1.004×/0.995×；八项仅三项过1.05。大输出时写expanded V才是主成本，删除小cast不够。
+
+因此不接模型、不加CLI，显式primitive保留。下一步若处理V，必须避免expanded Tensor本身，
+而不是继续融合它前面的微小准备工作。
+
+![BF16 repeat fusion discard](assets/bf16-repeat-fusion-discard.svg)

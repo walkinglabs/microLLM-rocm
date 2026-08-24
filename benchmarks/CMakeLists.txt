@@ -31,6 +31,10 @@ if(MICROLLM_HAS_HIP)
                    micro/benchmark_causal_softmax.cpp)
     target_link_libraries(microllm_bench_causal_softmax PRIVATE
         microllm::ops microllm::runtime hip::host)
+    add_executable(microllm_bench_bf16_repeat
+                   micro/benchmark_bf16_repeat.cpp)
+    target_link_libraries(microllm_bench_bf16_repeat PRIVATE
+        microllm::ops microllm::runtime hip::host)
 endif()
 
 if(MICROLLM_HAS_HIP AND MICROLLM_HAS_HIPBLASLT)

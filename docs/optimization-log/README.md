@@ -778,6 +778,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/206-inference-bthd-bf16-qk-shapes.md](experiments/206-inference-bthd-bf16-qk-shapes.md) | B1/T256、B1/T1024、B2/T512完整矩阵 |
 | [assets/causal-softmax-128-discard.svg](assets/causal-softmax-128-discard.svg) | 128线程六shape算子矩阵与拒绝门 |
 | [experiments/207-causal-softmax-128-discard.md](experiments/207-causal-softmax-128-discard.md) | DeepSeek T512反例；模型/CLI策略未进入 |
+| [assets/bf16-repeat-fusion-discard.svg](assets/bf16-repeat-fusion-discard.svg) | BF16 V cast+repeat八shape矩阵 |
+| [experiments/208-bf16-repeat-fusion-discard.md](experiments/208-bf16-repeat-fusion-discard.md) | 小B1加速与B2反例；模型接入取消 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

@@ -1005,6 +1005,24 @@ TEST(CpuOpsTest, PairedGqaRepeatMatchesSeparateKeyValuePaths) {
     enable_attention_paired_gqa_repeat(false);
 }
 
+TEST(CpuOpsTest, Bf16RepeatInterleaveFusesCastWithoutChangingValues) {
+    const auto input = Tensor::from_vector(
+        {1.003F, -2.011F, 3.019F, 4.027F, -5.035F, 6.043F,
+         7.051F, -8.059F},
+        {1, 2, 2, 2}, DType::BFloat16);
+    const auto expected = repeat_interleave(
+        input.cast(DType::Float32), 2, 3);
+    const auto actual = repeat_interleave_bf16_to_float(input, 2, 3);
+    EXPECT_EQ(actual.dtype(), DType::Float32);
+    EXPECT_EQ(actual.shape(), (Shape{1, 2, 6, 2}));
+    EXPECT_EQ(actual.to_vector(), expected.to_vector());
+    EXPECT_THROW((void)repeat_interleave_bf16_to_float(
+                     input.cast(DType::Float32), 2, 3),
+                 std::invalid_argument);
+    EXPECT_THROW((void)repeat_interleave_bf16_to_float(input, 2, 0),
+                 std::invalid_argument);
+}
+
 TEST(CpuOpsTest, TransposeAwareMatmulCoversAllOperandLayoutsWithoutViews) {
     const auto logical_left = Tensor::from_vector({1, 2, 3, 4, 5, 6}, {2, 3});
     const auto logical_right = Tensor::from_vector(

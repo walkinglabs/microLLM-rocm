@@ -621,6 +621,11 @@ void causal_gqa_attention_out_(
 [[nodiscard]] Tensor repeat_interleave(const Tensor& input, std::int64_t dim,
                                        std::int64_t repeats,
                                        const OpContext& context = {});
+// Fuses the exact BF16->FP32 conversion with repeat_interleave. The result is
+// numerically identical to repeat_interleave(input.cast(FP32), dim, repeats).
+[[nodiscard]] Tensor repeat_interleave_bf16_to_float(
+    const Tensor& input, std::int64_t dim, std::int64_t repeats,
+    const OpContext& context = {});
 [[nodiscard]] Tensor repeat_interleave_backward(const Tensor& gradient,
                                                 const Shape& input_shape,
                                                 std::int64_t dim, std::int64_t repeats,

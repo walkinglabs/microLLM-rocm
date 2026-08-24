@@ -36,6 +36,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   rows pass 1.01x and DeepSeek T512 is 1.0071x, so model routing is rejected;
 - [ ] revisit softmax only as part of an online/fused Attention design that avoids
   materializing the probability tensor;
+- [x] fuse BF16 V conversion with GQA repeat; small B1 improves strongly, but
+  only 3/8 operator cases pass 1.05 and both B2/T512 cases fail;
+- [ ] remove expanded V only through a broadcast/tiled consumer that passes the
+  already-recorded width-128 end-to-end counterexamples;
 - [x] populate B1 KV cache from one full-sequence prefill instead of token replay;
 - [x] support batched cached decode with batch-aware KV Storage;
 - [x] add opt-in BF16 KV Storage with FP32 accumulation, complete-logit gates and a retained

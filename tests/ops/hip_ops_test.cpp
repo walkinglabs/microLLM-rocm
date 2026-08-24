@@ -3094,6 +3094,18 @@ TEST(HipBackwardOpsTest, DeviceNativePrimitivesMatchCpuReference) {
     const auto repeat_gradient = Tensor::from_vector({1, 2, 3, 4, 5, 6, 7, 8}, {4, 2});
     expect_near(repeat_interleave(repeat_input.to(gpu), 0, 2).to_vector(),
                 repeat_interleave(repeat_input, 0, 2).to_vector());
+    const auto repeat_bf16 = repeat_input.cast(DType::BFloat16);
+    const auto device_repeat_bf16 = repeat_bf16.to(gpu);
+    runtime::reset_transfer_stats();
+    const auto fused_repeat = repeat_interleave_bf16_to_float(
+        device_repeat_bf16, 0, 2);
+    runtime::synchronize(gpu);
+    const auto repeat_transfers = runtime::transfer_stats();
+    EXPECT_EQ(repeat_transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(repeat_transfers.device_to_host_calls, 0U);
+    EXPECT_EQ(fused_repeat.to_vector(),
+              repeat_interleave(
+                  repeat_bf16.cast(DType::Float32), 0, 2).to_vector());
     expect_near(repeat_interleave_backward(repeat_gradient.to(gpu), {2, 2}, 0, 2).to_vector(),
                 repeat_interleave_backward(repeat_gradient, {2, 2}, 0, 2).to_vector());
 }
