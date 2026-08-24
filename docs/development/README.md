@@ -460,3 +460,5 @@ the next gate. Records are append-only except for factual corrections.
   rank-2 exact registry, stable operator winners and end-to-end rejection.
 - [2026-08-24-training-graph-capture-boundary.md](2026-08-24-training-graph-capture-boundary.md):
   beginner-friendly staged capture, allocation-safe recovery and optimizer host-state boundary.
+- [2026-08-24-adamw-device-step-graph.md](2026-08-24-adamw-device-step-graph.md):
+  beginner-friendly device step ownership, checkpoint synchronization and measured Graph boundary.

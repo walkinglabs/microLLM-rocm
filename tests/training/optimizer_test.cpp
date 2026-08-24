@@ -269,6 +269,14 @@ TEST(OptimizerTest, RejectsInvalidParametersAndState) {
                  std::invalid_argument);
     const ops::AdamWMultiTensorWorkspace undefined;
     EXPECT_EQ(ops::adamw_multi_tensor_workspace_stats(undefined).tensors, 0U);
+    const ops::AdamWGraphStepState undefined_graph_state;
+    EXPECT_FALSE(undefined_graph_state.defined());
+    EXPECT_THROW((void)undefined_graph_state.synchronized_step(),
+                 std::logic_error);
+    EXPECT_THROW((void)optimizer.make_graph_step_state(),
+                 std::invalid_argument);
+    EXPECT_THROW(optimizer.synchronize_graph_step(undefined_graph_state),
+                 std::logic_error);
 }
 
 }  // namespace microllm::training

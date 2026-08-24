@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="760" viewBox="0 0 1600 760">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="800.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 221 · Device-Owned AdamW Graph Step</text>
+<text x="800.0" y="82.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">60 fresh processes · 53 replayed steps · complete state samples aligned</text>
+<rect x="150" y="145" width="1300" height="430" fill="#ffffff" stroke="#cbd3df" rx="10"/>
+<line x1="150" y1="533.4" x2="1450" y2="533.4" stroke="#e5e9f0"/>
+<text x="138.0" y="538.4" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">0.25×</text>
+<line x1="150" y1="464.0" x2="1450" y2="464.0" stroke="#e5e9f0"/>
+<text x="138.0" y="469.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">0.50×</text>
+<line x1="150" y1="394.7" x2="1450" y2="394.7" stroke="#e5e9f0"/>
+<text x="138.0" y="399.7" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">0.75×</text>
+<line x1="150" y1="325.3" x2="1450" y2="325.3" stroke="#2563eb"/>
+<text x="138.0" y="330.3" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">1.00×</text>
+<line x1="150" y1="256.0" x2="1450" y2="256.0" stroke="#e5e9f0"/>
+<text x="138.0" y="261.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">1.25×</text>
+<line x1="150" y1="186.6" x2="1450" y2="186.6" stroke="#e5e9f0"/>
+<text x="138.0" y="191.6" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">1.50×</text>
+<rect x="200.0" y="539.0" width="68" height="36.0" fill="#16a34a" rx="5"/>
+<text x="234.0" y="530.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#16a34a" text-anchor="middle" font-weight="700">0.230×</text>
+<rect x="285.0" y="549.2" width="68" height="25.8" fill="#f97316" rx="5"/>
+<text x="319.0" y="540.2" font-family="Inter,Arial,sans-serif" font-size="13" fill="#f97316" text-anchor="middle" font-weight="700">0.193×</text>
+<text x="280.0" y="603.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="middle" font-weight="700">1×1K</text>
+<rect x="460.0" y="327.8" width="68" height="247.2" fill="#16a34a" rx="5"/>
+<text x="494.0" y="318.8" font-family="Inter,Arial,sans-serif" font-size="13" fill="#16a34a" text-anchor="middle" font-weight="700">0.991×</text>
+<rect x="545.0" y="414.9" width="68" height="160.1" fill="#f97316" rx="5"/>
+<text x="579.0" y="405.9" font-family="Inter,Arial,sans-serif" font-size="13" fill="#f97316" text-anchor="middle" font-weight="700">0.677×</text>
+<text x="540.0" y="603.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="middle" font-weight="700">16×1K</text>
+<rect x="720.0" y="206.8" width="68" height="368.2" fill="#16a34a" rx="5"/>
+<text x="754.0" y="197.8" font-family="Inter,Arial,sans-serif" font-size="13" fill="#16a34a" text-anchor="middle" font-weight="700">1.427×</text>
+<rect x="805.0" y="388.6" width="68" height="186.4" fill="#f97316" rx="5"/>
+<text x="839.0" y="379.6" font-family="Inter,Arial,sans-serif" font-size="13" fill="#f97316" text-anchor="middle" font-weight="700">0.772×</text>
+<text x="800.0" y="603.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="middle" font-weight="700">64×1K</text>
+<rect x="980.0" y="204.4" width="68" height="370.6" fill="#16a34a" rx="5"/>
+<text x="1014.0" y="195.4" font-family="Inter,Arial,sans-serif" font-size="13" fill="#16a34a" text-anchor="middle" font-weight="700">1.436×</text>
+<rect x="1065.0" y="379.5" width="68" height="195.5" fill="#f97316" rx="5"/>
+<text x="1099.0" y="370.5" font-family="Inter,Arial,sans-serif" font-size="13" fill="#f97316" text-anchor="middle" font-weight="700">0.805×</text>
+<text x="1060.0" y="603.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="middle" font-weight="700">256×1K</text>
+<rect x="1240.0" y="361.6" width="68" height="213.4" fill="#16a34a" rx="5"/>
+<text x="1274.0" y="352.6" font-family="Inter,Arial,sans-serif" font-size="13" fill="#16a34a" text-anchor="middle" font-weight="700">0.869×</text>
+<rect x="1325.0" y="376.2" width="68" height="198.8" fill="#f97316" rx="5"/>
+<text x="1359.0" y="367.2" font-family="Inter,Arial,sans-serif" font-size="13" fill="#f97316" text-anchor="middle" font-weight="700">0.817×</text>
+<text x="1320.0" y="603.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="middle" font-weight="700">16×256K</text>
+<text x="570.0" y="635.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#16a34a" text-anchor="start" font-weight="700">FP32</text>
+<text x="650.0" y="635.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#f97316" text-anchor="start" font-weight="700">BF16 moment</text>
+<text x="800.0" y="686.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#9a4f00" text-anchor="middle" font-weight="700">FP32 64/256 small tensors: 1.427×/1.436× · BF16 and large tensors regress · explicit only</text>
+<text x="800.0" y="720.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="middle" font-weight="400">maximum state error 7.45e-8 · no timed payload transfer · no universal route</text>
+</svg>

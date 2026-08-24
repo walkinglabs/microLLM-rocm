@@ -167,6 +167,10 @@ AdamW::AdamW(Parameters parameters, AdamWConfig config,
 }
 
 void AdamW::step() {
+    if (graph_step_pending_) {
+        throw std::logic_error(
+            "synchronize the AdamW Graph step before ordinary step()");
+    }
     ++state_.step;
     const auto first_correction = 1.0F - std::pow(config_.beta1, static_cast<float>(state_.step));
     const auto second_correction = 1.0F - std::pow(config_.beta2, static_cast<float>(state_.step));
@@ -238,6 +242,93 @@ void AdamW::step() {
     }
 }
 
+ops::AdamWGraphStepState AdamW::make_graph_step_state() const {
+    if (graph_step_pending_) {
+        throw std::logic_error(
+            "cannot replace an unsynchronized AdamW Graph step state");
+    }
+    if (parameters_.empty() || !parameters_.front()->data().device().is_hip()) {
+        throw std::invalid_argument(
+            "AdamW Graph replay requires HIP parameters");
+    }
+    const auto device = parameters_.front()->data().device();
+    for (const auto* parameter : parameters_) {
+        if (parameter->data().device() != device) {
+            throw std::invalid_argument(
+                "AdamW Graph replay parameters must share one device");
+        }
+    }
+    return ops::AdamWGraphStepState(device, state_.step);
+}
+
+void AdamW::step_graph_replayable(ops::AdamWGraphStepState& graph_state,
+                                  ops::OpContext context) {
+    if (graph_step_pending_) {
+        throw std::logic_error(
+            "synchronize the existing AdamW Graph step before recapture");
+    }
+    if (parameters_.empty() || !parameters_.front()->data().device().is_hip() ||
+        !graph_state.defined() ||
+        graph_state.device() != parameters_.front()->data().device()) {
+        throw std::invalid_argument(
+            "AdamW Graph replay state must match HIP parameters");
+    }
+    for (std::size_t index = 0; index < parameters_.size(); ++index) {
+        const auto* parameter = parameters_[index];
+        if (parameter->data().device() != graph_state.device()) {
+            throw std::invalid_argument(
+                "AdamW Graph replay parameters must share one device");
+        }
+        if (parameter->has_grad() &&
+            parameter->grad().shape() != parameter->data().shape()) {
+            throw std::invalid_argument("AdamW gradient shape mismatch");
+        }
+    }
+    context.mode = ops::OpMode::Training;
+    // Mark host state stale before the first enqueue. If a later capture or
+    // launch validation fails, callers must still synchronize/inspect the
+    // device step before returning to checkpoint or ordinary step semantics.
+    graph_step_pending_ = true;
+    pending_graph_step_state_ = &graph_state;
+    ops::adamw_graph_advance_(graph_state, config_.beta1, config_.beta2,
+                              context);
+    for (std::size_t index = 0; index < parameters_.size(); ++index) {
+        auto* parameter = parameters_[index];
+        if (!parameter->has_grad()) continue;
+        if (config_.moment_precision ==
+            AdamWConfig::MomentPrecision::BFloat16) {
+            ops::adamw_update_bf16_moments_graph_(
+                parameter->mutable_data(), parameter->grad(),
+                state_.first_moments[index], state_.second_moments[index],
+                bf16_mirrors_[index], graph_state, config_.learning_rate,
+                config_.beta1, config_.beta2, config_.epsilon,
+                config_.weight_decay, context);
+        } else {
+            ops::adamw_update_graph_(
+                parameter->mutable_data(), parameter->grad(),
+                state_.first_moments[index], state_.second_moments[index],
+                bf16_mirrors_[index], graph_state, config_.learning_rate,
+                config_.beta1, config_.beta2, config_.epsilon,
+                config_.weight_decay, context, implementation_);
+        }
+    }
+}
+
+void AdamW::synchronize_graph_step(
+    const ops::AdamWGraphStepState& graph_state) {
+    if (!graph_step_pending_) {
+        throw std::logic_error("AdamW has no pending Graph step to synchronize");
+    }
+    if (!graph_state.defined() || parameters_.empty() ||
+        graph_state.device() != parameters_.front()->data().device() ||
+        pending_graph_step_state_ != &graph_state) {
+        throw std::invalid_argument("AdamW Graph step state does not match optimizer");
+    }
+    state_.step = graph_state.synchronized_step();
+    graph_step_pending_ = false;
+    pending_graph_step_state_ = nullptr;
+}
+
 void AdamW::zero_grad() { training::zero_grad(parameters_); }
 
 std::uint64_t AdamW::moment_state_bytes() const {
@@ -252,6 +343,10 @@ std::uint64_t AdamW::moment_state_bytes() const {
 }
 
 AdamWState AdamW::state() const {
+    if (graph_step_pending_) {
+        throw std::logic_error(
+            "synchronize the AdamW Graph step before reading state");
+    }
     AdamWState snapshot;
     snapshot.step = state_.step;
     snapshot.first_moments.reserve(state_.first_moments.size());
@@ -266,6 +361,10 @@ AdamWState AdamW::state() const {
 }
 
 void AdamW::load_state(AdamWState state) {
+    if (graph_step_pending_) {
+        throw std::logic_error(
+            "synchronize the AdamW Graph step before loading state");
+    }
     if (state.first_moments.size() != parameters_.size() ||
         state.second_moments.size() != parameters_.size()) {
         throw std::invalid_argument("AdamW state parameter count mismatch");

@@ -1,0 +1,228 @@
+{
+  "comparisons": [
+    {
+      "elements": 1024,
+      "event_speedup": 0.2251636689404589,
+      "maximum_state_error": 7.450600000846741e-08,
+      "policies": {
+        "eager": {
+          "event_ms_per_step": 0.0030549800396,
+          "setup_ms": 0.0,
+          "wall_ms_per_step": 0.00315272
+        },
+        "graph": {
+          "event_ms_per_step": 0.0135678195953,
+          "setup_ms": 0.148519,
+          "wall_ms_per_step": 0.0137238
+        }
+      },
+      "precision": "fp32",
+      "runs": 3,
+      "tensors": 1,
+      "wall_speedup": 0.22972646060129118
+    },
+    {
+      "elements": 1024,
+      "event_speedup": 0.9904449695633386,
+      "maximum_state_error": 7.450600000846741e-08,
+      "policies": {
+        "eager": {
+          "event_ms_per_step": 0.0402581787109,
+          "setup_ms": 0.0,
+          "wall_ms_per_step": 0.04041094
+        },
+        "graph": {
+          "event_ms_per_step": 0.0406465578079,
+          "setup_ms": 0.195022,
+          "wall_ms_per_step": 0.04078066
+        }
+      },
+      "precision": "fp32",
+      "runs": 3,
+      "tensors": 16,
+      "wall_speedup": 0.9909339378028702
+    },
+    {
+      "elements": 1024,
+      "event_speedup": 1.4280959310780177,
+      "maximum_state_error": 7.450600000846741e-08,
+      "policies": {
+        "eager": {
+          "event_ms_per_step": 0.181952819824,
+          "setup_ms": 0.0,
+          "wall_ms_per_step": 0.1820729
+        },
+        "graph": {
+          "event_ms_per_step": 0.127409381866,
+          "setup_ms": 0.345819,
+          "wall_ms_per_step": 0.12756052
+        }
+      },
+      "precision": "fp32",
+      "runs": 3,
+      "tensors": 64,
+      "wall_speedup": 1.4273452318946331
+    },
+    {
+      "elements": 1024,
+      "event_speedup": 1.4362421248388402,
+      "maximum_state_error": 7.450600000846741e-08,
+      "policies": {
+        "eager": {
+          "event_ms_per_step": 0.680908966064,
+          "setup_ms": 0.0,
+          "wall_ms_per_step": 0.6810303
+        },
+        "graph": {
+          "event_ms_per_step": 0.474090652466,
+          "setup_ms": 0.991735,
+          "wall_ms_per_step": 0.47427396
+        }
+      },
+      "precision": "fp32",
+      "runs": 3,
+      "tensors": 256,
+      "wall_speedup": 1.4359428461980075
+    },
+    {
+      "elements": 262144,
+      "event_speedup": 0.8695346421220042,
+      "maximum_state_error": 7.450600000846741e-08,
+      "policies": {
+        "eager": {
+          "event_ms_per_step": 0.0726861190796,
+          "setup_ms": 0.0,
+          "wall_ms_per_step": 0.07284088
+        },
+        "graph": {
+          "event_ms_per_step": 0.0835919761658,
+          "setup_ms": 0.218802,
+          "wall_ms_per_step": 0.08380938
+        }
+      },
+      "precision": "fp32",
+      "runs": 3,
+      "tensors": 16,
+      "wall_speedup": 0.869125627704202
+    },
+    {
+      "elements": 1024,
+      "event_speedup": 0.18519823314729209,
+      "maximum_state_error": 1.8626500003851576e-09,
+      "policies": {
+        "eager": {
+          "event_ms_per_step": 0.00297637999058,
+          "setup_ms": 0.0,
+          "wall_ms_per_step": 0.00312466
+        },
+        "graph": {
+          "event_ms_per_step": 0.0160713195801,
+          "setup_ms": 0.161042,
+          "wall_ms_per_step": 0.01620458
+        }
+      },
+      "precision": "bf16",
+      "runs": 3,
+      "tensors": 1,
+      "wall_speedup": 0.1928257319844143
+    },
+    {
+      "elements": 1024,
+      "event_speedup": 0.6762647491093592,
+      "maximum_state_error": 1.8626500003851576e-09,
+      "policies": {
+        "eager": {
+          "event_ms_per_step": 0.0451061820984,
+          "setup_ms": 0.0,
+          "wall_ms_per_step": 0.04525182
+        },
+        "graph": {
+          "event_ms_per_step": 0.0666989994049,
+          "setup_ms": 0.20358,
+          "wall_ms_per_step": 0.0668397
+        }
+      },
+      "precision": "bf16",
+      "runs": 3,
+      "tensors": 16,
+      "wall_speedup": 0.6770200943451272
+    },
+    {
+      "elements": 1024,
+      "event_speedup": 0.7718981934503935,
+      "maximum_state_error": 1.8626500003851576e-09,
+      "policies": {
+        "eager": {
+          "event_ms_per_step": 0.178276596069,
+          "setup_ms": 0.0,
+          "wall_ms_per_step": 0.17839636
+        },
+        "graph": {
+          "event_ms_per_step": 0.230958690643,
+          "setup_ms": 0.327301,
+          "wall_ms_per_step": 0.23110572
+        }
+      },
+      "precision": "bf16",
+      "runs": 3,
+      "tensors": 64,
+      "wall_speedup": 0.7719253335659542
+    },
+    {
+      "elements": 1024,
+      "event_speedup": 0.8046293500695377,
+      "maximum_state_error": 1.8626500003851576e-09,
+      "policies": {
+        "eager": {
+          "event_ms_per_step": 0.713663482666,
+          "setup_ms": 0.0,
+          "wall_ms_per_step": 0.71380276
+        },
+        "graph": {
+          "event_ms_per_step": 0.886946868896,
+          "setup_ms": 0.97316,
+          "wall_ms_per_step": 0.88714648
+        }
+      },
+      "precision": "bf16",
+      "runs": 3,
+      "tensors": 256,
+      "wall_speedup": 0.8046053003558105
+    },
+    {
+      "elements": 262144,
+      "event_speedup": 0.8164266716194051,
+      "maximum_state_error": 1.8626500003851576e-09,
+      "policies": {
+        "eager": {
+          "event_ms_per_step": 0.0934010219574,
+          "setup_ms": 0.0,
+          "wall_ms_per_step": 0.09354246
+        },
+        "graph": {
+          "event_ms_per_step": 0.114402217865,
+          "setup_ms": 0.203985,
+          "wall_ms_per_step": 0.11454776
+        }
+      },
+      "precision": "bf16",
+      "runs": 3,
+      "tensors": 16,
+      "wall_speedup": 0.8166240876294744
+    }
+  ],
+  "decision": "keep explicit device-step Graph primitive and FP32 many-small candidate; reject universal and BF16 routing",
+  "experiment": "device_owned_adamw_graph_replay",
+  "gates": {
+    "bf16_many_small_tensors_wall_speedup_at_least_1_05": false,
+    "complete_state_samples_align": true,
+    "fp32_many_small_tensors_wall_speedup_at_least_1_05": true,
+    "graph_nodes_and_device_step_are_exact": true,
+    "large_tensor_universal_policy": false,
+    "timed_region_has_no_payload_transfers": true
+  },
+  "processes": 60,
+  "runs_per_mode_case": 3,
+  "schema_version": 1,
+  "status": "pass"
+}

@@ -660,6 +660,11 @@ def pytorch_references(actual):
     record(refs, "optimizer_adamw_parameter_step2", adam_parameter)
     record(refs, "optimizer_adamw_first_moment_step2", adam.state[adam_parameter]["exp_avg"])
     record(refs, "optimizer_adamw_second_moment_step2", adam.state[adam_parameter]["exp_avg_sq"])
+    adam_parameter.grad = tensor([0.25, -0.5], (2,))
+    adam.step()
+    record(refs, "optimizer_adamw_parameter_step3", adam_parameter)
+    record(refs, "optimizer_adamw_first_moment_step3", adam.state[adam_parameter]["exp_avg"])
+    record(refs, "optimizer_adamw_second_moment_step3", adam.state[adam_parameter]["exp_avg_sq"])
 
     bf16_moment_parameter = tensor([1.0, -2.0], (2,))
     bf16_first = torch.zeros(2, dtype=torch.bfloat16)

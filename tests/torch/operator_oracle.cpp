@@ -725,6 +725,13 @@ void emit_optimizer_cases() {
     emit("optimizer_adamw_first_moment_step2", state.first_moments[0]);
     emit("optimizer_adamw_second_moment_step2", state.second_moments[0]);
 
+    adam_parameter.set_grad(f32({0.25F, -0.5F}, {2}));
+    adam.step();
+    emit("optimizer_adamw_parameter_step3", adam_parameter.data());
+    state = adam.state();
+    emit("optimizer_adamw_first_moment_step3", state.first_moments[0]);
+    emit("optimizer_adamw_second_moment_step3", state.second_moments[0]);
+
     Tensor bf16_moment_parameter = f32({1.0F, -2.0F}, {2});
     Tensor bf16_first({2}, DType::BFloat16);
     Tensor bf16_second({2}, DType::BFloat16);

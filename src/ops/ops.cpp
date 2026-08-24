@@ -186,6 +186,41 @@ AdamWMultiTensorStats adamw_multi_tensor_workspace_stats(
             .block_map_bytes = workspace.impl_->block_map_bytes};
 }
 
+AdamWGraphStepState::AdamWGraphStepState(
+    Device device, std::uint64_t initial_step) {
+    if (!device.is_hip()) {
+        throw std::invalid_argument(
+            "AdamW Graph step state requires a HIP device");
+    }
+    if (initial_step >
+        static_cast<std::uint64_t>(std::numeric_limits<std::int32_t>::max())) {
+        throw std::overflow_error("AdamW Graph step exceeds int32 capacity");
+    }
+    step_ = Tensor::from_int32_vector(
+                {static_cast<std::int32_t>(initial_step)}, {1})
+                .to(device);
+    corrections_ = Tensor::from_vector({0.0F, 0.0F}, {2}).to(device);
+}
+
+bool AdamWGraphStepState::defined() const noexcept {
+    return step_.defined() && corrections_.defined();
+}
+
+Device AdamWGraphStepState::device() const noexcept {
+    return defined() ? step_.device() : Device::cpu();
+}
+
+std::uint64_t AdamWGraphStepState::synchronized_step() const {
+    if (!defined()) {
+        throw std::logic_error("AdamW Graph step state is undefined");
+    }
+    const auto values = step_.to_int32_vector();
+    if (values.size() != 1 || values.front() < 0) {
+        throw std::runtime_error("AdamW Graph step state is invalid");
+    }
+    return static_cast<std::uint64_t>(values.front());
+}
+
 Tensor cast(const Tensor& input, DType output_dtype,
             [[maybe_unused]] const OpContext& context) {
     require_forward_float(input, "input");
@@ -614,6 +649,153 @@ void adamw_update_multi_(
         workspace.impl_->descriptor_staging.get(), native_stream);
 #else
     (void)entries;
+    throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+}
+
+void adamw_graph_advance_(AdamWGraphStepState& state, float beta1,
+                          float beta2,
+                          [[maybe_unused]] const OpContext& context) {
+    if (!state.defined() || !state.device().is_hip()) {
+        throw std::invalid_argument(
+            "AdamW Graph advance requires defined HIP state");
+    }
+    if (beta1 < 0.0F || beta1 >= 1.0F || beta2 < 0.0F || beta2 >= 1.0F) {
+        throw std::invalid_argument("AdamW Graph betas are invalid");
+    }
+#if MICROLLM_HAS_HIP
+    hip::launch_adamw_graph_advance(
+        static_cast<std::int32_t*>(state.step_.data()),
+        static_cast<float*>(state.corrections_.data()), beta1, beta2,
+        context.native_stream(state.device()));
+#else
+    throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+}
+
+void adamw_update_graph_(
+    Tensor& parameter, const Tensor& gradient, Tensor& first_moment,
+    Tensor& second_moment, Tensor* bf16_mirror,
+    const AdamWGraphStepState& graph_state, float learning_rate,
+    float beta1, float beta2, float epsilon, float weight_decay,
+    [[maybe_unused]] const OpContext& context,
+    AdamWImplementation implementation) {
+    require_float(parameter, "parameter");
+    require_float(gradient, "gradient");
+    require_float(first_moment, "first_moment");
+    require_float(second_moment, "second_moment");
+    require_same_shape(parameter, gradient);
+    require_same_shape(parameter, first_moment);
+    require_same_shape(parameter, second_moment);
+    require_same_device(parameter, gradient);
+    require_same_device(parameter, first_moment);
+    require_same_device(parameter, second_moment);
+    if (!graph_state.defined() || graph_state.device() != parameter.device() ||
+        !parameter.device().is_hip()) {
+        throw std::invalid_argument(
+            "Graph AdamW state and tensors must share one HIP device");
+    }
+    if (!parameter.is_contiguous() || !gradient.is_contiguous() ||
+        !first_moment.is_contiguous() || !second_moment.is_contiguous()) {
+        throw std::invalid_argument("Graph AdamW requires contiguous tensors");
+    }
+    if (bf16_mirror != nullptr &&
+        (bf16_mirror->dtype() != DType::BFloat16 ||
+         bf16_mirror->shape() != parameter.shape() ||
+         bf16_mirror->device() != parameter.device() ||
+         !bf16_mirror->is_contiguous())) {
+        throw std::invalid_argument("Graph AdamW BF16 mirror is invalid");
+    }
+    if (!(learning_rate > 0.0F) || beta1 < 0.0F || beta1 >= 1.0F ||
+        beta2 < 0.0F || beta2 >= 1.0F || !(epsilon > 0.0F) ||
+        weight_decay < 0.0F) {
+        throw std::invalid_argument("Graph AdamW hyperparameters are invalid");
+    }
+#if MICROLLM_HAS_HIP
+    const auto selected = implementation == AdamWImplementation::Auto
+                              ? choose_adamw_implementation(
+                                    parameter, gradient, first_moment,
+                                    second_moment, bf16_mirror, context)
+                              : implementation;
+    const auto aligned = is_aligned(parameter.data(), 16) &&
+                         is_aligned(gradient.data(), 16) &&
+                         is_aligned(first_moment.data(), 16) &&
+                         is_aligned(second_moment.data(), 16);
+    if (selected == AdamWImplementation::Vectorized && !aligned) {
+        throw std::invalid_argument(
+            "vectorized Graph AdamW requires 16-byte aligned tensors");
+    }
+    hip::launch_adamw_update_graph(
+        static_cast<float*>(parameter.data()),
+        static_cast<const float*>(gradient.data()),
+        static_cast<float*>(first_moment.data()),
+        static_cast<float*>(second_moment.data()),
+        bf16_mirror == nullptr ? nullptr : bf16_mirror->data(),
+        parameter.numel(), learning_rate, beta1, beta2, epsilon,
+        weight_decay,
+        static_cast<const float*>(graph_state.corrections_.data()),
+        selected == AdamWImplementation::Vectorized,
+        context.native_stream(parameter.device()));
+#else
+    (void)implementation;
+    throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+}
+
+void adamw_update_bf16_moments_graph_(
+    Tensor& parameter, const Tensor& gradient, Tensor& first_moment_bf16,
+    Tensor& second_moment_bf16, Tensor* parameter_bf16_mirror,
+    const AdamWGraphStepState& graph_state, float learning_rate,
+    float beta1, float beta2, float epsilon, float weight_decay,
+    [[maybe_unused]] const OpContext& context) {
+    require_float(parameter, "parameter");
+    require_float(gradient, "gradient");
+    if (first_moment_bf16.dtype() != DType::BFloat16 ||
+        second_moment_bf16.dtype() != DType::BFloat16) {
+        throw std::invalid_argument(
+            "Graph AdamW BF16 moments require BF16 state tensors");
+    }
+    require_same_shape(parameter, gradient);
+    require_same_shape(parameter, first_moment_bf16);
+    require_same_shape(parameter, second_moment_bf16);
+    require_same_device(parameter, gradient);
+    require_same_device(parameter, first_moment_bf16);
+    require_same_device(parameter, second_moment_bf16);
+    if (!graph_state.defined() || graph_state.device() != parameter.device() ||
+        !parameter.device().is_hip()) {
+        throw std::invalid_argument(
+            "Graph AdamW state and tensors must share one HIP device");
+    }
+    if (!parameter.is_contiguous() || !gradient.is_contiguous() ||
+        !first_moment_bf16.is_contiguous() ||
+        !second_moment_bf16.is_contiguous()) {
+        throw std::invalid_argument(
+            "Graph AdamW BF16 moments require contiguous tensors");
+    }
+    if (parameter_bf16_mirror != nullptr &&
+        (parameter_bf16_mirror->dtype() != DType::BFloat16 ||
+         parameter_bf16_mirror->shape() != parameter.shape() ||
+         parameter_bf16_mirror->device() != parameter.device() ||
+         !parameter_bf16_mirror->is_contiguous())) {
+        throw std::invalid_argument("Graph AdamW BF16 mirror is invalid");
+    }
+    if (!(learning_rate > 0.0F) || beta1 < 0.0F || beta1 >= 1.0F ||
+        beta2 < 0.0F || beta2 >= 1.0F || !(epsilon > 0.0F) ||
+        weight_decay < 0.0F) {
+        throw std::invalid_argument("Graph AdamW hyperparameters are invalid");
+    }
+#if MICROLLM_HAS_HIP
+    hip::launch_adamw_update_bf16_moments_graph(
+        static_cast<float*>(parameter.data()),
+        static_cast<const float*>(gradient.data()),
+        first_moment_bf16.data(), second_moment_bf16.data(),
+        parameter_bf16_mirror == nullptr ? nullptr
+                                         : parameter_bf16_mirror->data(),
+        parameter.numel(), learning_rate, beta1, beta2, epsilon,
+        weight_decay,
+        static_cast<const float*>(graph_state.corrections_.data()),
+        context.native_stream(parameter.device()));
+#else
     throw std::runtime_error("microLLM was built without HIP operator support");
 #endif
 }

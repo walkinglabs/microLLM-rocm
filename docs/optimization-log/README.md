@@ -841,6 +841,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [experiments/219-fp32-weight-gradient-solutions-discard.md](experiments/219-fp32-weight-gradient-solutions-discard.md) | rank-2 registry和solution默认拒绝 |
 | [assets/training-graph-capture-boundary.svg](assets/training-graph-capture-boundary.svg) | FP32/BF16四阶段capture与两类阻塞条件 |
 | [experiments/220-training-graph-capture-boundary.md](experiments/220-training-graph-capture-boundary.md) | 24进程、失败恢复与完整训练Graph拒绝 |
+| [assets/adamw-graph-replay.svg](assets/adamw-graph-replay.svg) | device step下FP32/BF16大小/Tensor数性能边界 |
+| [experiments/221-adamw-device-step-graph.md](experiments/221-adamw-device-step-graph.md) | 60进程、53步状态对齐与显式partial keep |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

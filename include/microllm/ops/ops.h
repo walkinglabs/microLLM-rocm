@@ -50,6 +50,40 @@ private:
         const AdamWMultiTensorWorkspace&) noexcept;
 };
 
+// Stable device-owned step and bias-correction scalars for explicit HIP Graph
+// replay. The caller must keep this object alive until every captured launch
+// completes and synchronize its step back before checkpointing or returning
+// to the ordinary host-stepped optimizer path.
+class AdamWGraphStepState {
+public:
+    AdamWGraphStepState() = default;
+    explicit AdamWGraphStepState(Device device,
+                                 std::uint64_t initial_step = 0);
+    AdamWGraphStepState(const AdamWGraphStepState&) = delete;
+    AdamWGraphStepState& operator=(const AdamWGraphStepState&) = delete;
+    AdamWGraphStepState(AdamWGraphStepState&&) noexcept = default;
+    AdamWGraphStepState& operator=(AdamWGraphStepState&&) noexcept = default;
+
+    [[nodiscard]] bool defined() const noexcept;
+    [[nodiscard]] Device device() const noexcept;
+    [[nodiscard]] std::uint64_t synchronized_step() const;
+
+private:
+    Tensor step_;
+    Tensor corrections_;
+
+    friend void adamw_graph_advance_(AdamWGraphStepState&, float, float,
+                                     const OpContext&);
+    friend void adamw_update_graph_(
+        Tensor&, const Tensor&, Tensor&, Tensor&, Tensor*,
+        const AdamWGraphStepState&, float, float, float, float, float,
+        const OpContext&, AdamWImplementation);
+    friend void adamw_update_bf16_moments_graph_(
+        Tensor&, const Tensor&, Tensor&, Tensor&, Tensor*,
+        const AdamWGraphStepState&, float, float, float, float, float,
+        const OpContext&);
+};
+
 struct MatmulTuningKey {
     std::int64_t rows = 0;
     std::int64_t inner = 0;
@@ -381,6 +415,23 @@ void adamw_update_multi_(
     const std::vector<AdamWMultiTensorEntry>& entries,
     float learning_rate, float beta1, float beta2, float epsilon,
     float weight_decay, float first_correction, float second_correction,
+    const OpContext& context = {});
+// Graph-replayable AdamW primitives. advance must be enqueued exactly once
+// before all updates in the captured optimizer region.
+void adamw_graph_advance_(AdamWGraphStepState& state, float beta1,
+                          float beta2, const OpContext& context = {});
+void adamw_update_graph_(
+    Tensor& parameter, const Tensor& gradient, Tensor& first_moment,
+    Tensor& second_moment, Tensor* bf16_mirror,
+    const AdamWGraphStepState& graph_state, float learning_rate,
+    float beta1, float beta2, float epsilon, float weight_decay,
+    const OpContext& context = {},
+    AdamWImplementation implementation = AdamWImplementation::Auto);
+void adamw_update_bf16_moments_graph_(
+    Tensor& parameter, const Tensor& gradient, Tensor& first_moment_bf16,
+    Tensor& second_moment_bf16, Tensor* parameter_bf16_mirror,
+    const AdamWGraphStepState& graph_state, float learning_rate,
+    float beta1, float beta2, float epsilon, float weight_decay,
     const OpContext& context = {});
 [[nodiscard]] AdamWMultiTensorStats adamw_multi_tensor_workspace_stats(
     const AdamWMultiTensorWorkspace& workspace) noexcept;

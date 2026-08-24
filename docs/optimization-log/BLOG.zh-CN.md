@@ -3625,3 +3625,18 @@ FP32/BF16的forward、backward、full-step都因动态Storage安全拒绝；Adam
 optimizer状态。24/24新进程恢复干净，所以保留保护与探针，但拒绝完整训练Graph声明。
 
 ![Training HIP Graph boundary](assets/training-graph-capture-boundary.svg)
+
+## 238. Experiment 221：把计分牌放进录像，step才能跟着重放
+
+`AdamWGraphStepState`把step和两个bias correction放到稳定GPU Tensor。Graph第一个节点做
+`step++`，后续更新读同一地址；checkpoint前显式同步一个Int32。未同步时普通step、state和
+load都会拒绝，避免保存旧步数。
+
+FP32/BF16 moment连续三次重放、再回到普通step 4，参数、两个moment和mirror全部对齐；PyTorch
+标准AdamW oracle也扩到第三步。60进程却显示性能强烈依赖shape：FP32 64/256个1K Tensor快
+1.427×/1.436×，BF16所有case和16×256K全部更慢。
+
+因此语义原语与FP32窄候选保留，默认关闭。下一实验只尝试稳定descriptor的两节点multi-tensor
+Graph；如果它仍救不了大Tensor/BF16，就关闭optimizer-only Graph方向。
+
+![Device-owned AdamW Graph step](assets/adamw-graph-replay.svg)

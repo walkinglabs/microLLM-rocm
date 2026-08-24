@@ -11872,6 +11872,123 @@ def validate_training_graph_capture(
         int(row["deferred_bytes"]) for row in raw)
 
 
+def validate_adamw_graph_replay(
+        errors: list[str]) -> tuple[int, int, int, float, float]:
+    data = REPOSITORY / "benchmarks/results/2026-08-24-adamw-graph-replay"
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = {
+        (row["precision"], row["tensors"], row["elements"]): row
+        for row in summary.get("comparisons", [])
+    }
+    expected = {
+        ("fp32", 1, 1024): 0.22972646060129118,
+        ("fp32", 16, 1024): 0.9909339378028702,
+        ("fp32", 64, 1024): 1.4273452318946331,
+        ("fp32", 256, 1024): 1.4359428461980075,
+        ("fp32", 16, 262144): 0.869125627704202,
+        ("bf16", 1, 1024): 0.1928257319844143,
+        ("bf16", 16, 1024): 0.6770200943451272,
+        ("bf16", 64, 1024): 0.7719253335659542,
+        ("bf16", 256, 1024): 0.8046053003558105,
+        ("bf16", 16, 262144): 0.8166240876294744,
+    }
+    counts = {(precision, tensors, elements, mode): 0
+              for precision, tensors, elements in expected
+              for mode in ("eager", "graph")}
+    for row in raw:
+        key = (row.get("precision"), row.get("tensors"),
+               row.get("elements"), row.get("mode"))
+        if key in counts:
+            counts[key] += 1
+    expected_gates = {
+        "complete_state_samples_align": True,
+        "graph_nodes_and_device_step_are_exact": True,
+        "timed_region_has_no_payload_transfers": True,
+        "fp32_many_small_tensors_wall_speedup_at_least_1_05": True,
+        "bf16_many_small_tensors_wall_speedup_at_least_1_05": False,
+        "large_tensor_universal_policy": False,
+    }
+    if summary.get("schema_version") != 1 or summary.get("status") != "pass" or \
+            summary.get("experiment") != "device_owned_adamw_graph_replay" or \
+            summary.get("processes") != 60 or \
+            summary.get("runs_per_mode_case") != 3 or \
+            summary.get("gates") != expected_gates or \
+            summary.get("decision") != (
+                "keep explicit device-step Graph primitive and FP32 many-small "
+                "candidate; reject universal and BF16 routing") or \
+            len(raw) != 60 or set(comparisons) != set(expected) or \
+            any(count != 3 for count in counts.values()) or \
+            any(abs(float(comparisons[key].get("wall_speedup", 0.0)) - value) >
+                    1.0e-12 or
+                float(comparisons[key].get("maximum_state_error", math.inf)) >
+                    1.0e-6
+                for key, value in expected.items()) or \
+            any(row.get("schema_version") != 1 or row.get("status") != "pass" or
+                row.get("record_type") != "adamw_graph_replay_measurement" or
+                row.get("architecture", "").split(":", 1)[0] != "gfx942" or
+                row.get("final_step") != 53 or
+                row.get("captured_nodes") !=
+                    (row.get("tensors", 0) + 1
+                     if row.get("mode") == "graph" else 0) or
+                row.get("timed_host_to_device_calls") != 0 or
+                row.get("timed_device_to_host_calls") != 0 or
+                row.get("timed_device_to_device_calls") != 0
+                for row in raw):
+        errors.append("device-owned AdamW Graph evidence changed")
+    sources = (
+        ("class AdamWGraphStepState", REPOSITORY /
+         "include/microllm/ops/ops.h"),
+        ("step_graph_replayable", REPOSITORY /
+         "src/training/optimizer.cpp"),
+        ("adamw_graph_advance_kernel", REPOSITORY /
+         "src/ops/hip/basic_kernels.hip"),
+        ("AdamWGraphReplayAdvancesDeviceStep", REPOSITORY /
+         "tests/ops/hip_ops_test.cpp"),
+        ("optimizer_adamw_parameter_step3", REPOSITORY /
+         "python/tests/test_operator_parity.py"),
+        ("reject universal and BF16 routing", REPOSITORY /
+         "benchmarks/single_gpu/adamw_graph_replay_matrix.py"),
+    )
+    if any(token not in path.read_text(encoding="utf-8")
+           for token, path in sources):
+        errors.append("device-owned AdamW Graph source/test contract changed")
+    expected_tests = {
+        "cpu_debug": {"passed": 331, "total": 331},
+        "asan_ubsan": {"passed": 329, "total": 329},
+        "pytorch_enabled_cpu": {"passed": 305, "total": 305},
+        "hip_full_configuration": {
+            "passed": 521, "total": 521, "conditional_skips": 3},
+        "hip_label": {"passed": 178, "total": 178},
+        "rccl_multi_gpu": {"passed": 12, "total": 12},
+        "rccl_full_label": {"passed": 14, "total": 14},
+    }
+    if verification.get("status") != "pass" or \
+            verification.get("processes") != 60 or \
+            verification.get("final_step") != 53 or \
+            verification.get("maximum_state_error") != 7.450600000846741e-08 or \
+            verification.get("fp32_many_small_candidates") != 2 or \
+            verification.get("bf16_candidates") != 0 or \
+            verification.get("universal_route_retained") is not False or \
+            verification.get("registered_test_files") != 94 or \
+            verification.get("tests") != expected_tests or \
+            verification.get("coverage") != {
+                "lines_percent": 79.0,
+                "functions_percent": 87.3,
+                "branches_percent": 59.6,
+                "lines_covered": 8877,
+                "lines_total": 11237}:
+        errors.append("device-owned AdamW Graph verification changed")
+    speedups = [float(row["wall_speedup"]) for row in comparisons.values()]
+    return len(raw), sum(key[0] == "fp32" and value >= 1.05
+                         for key, value in expected.items()), \
+        sum(key[0] == "bf16" and value >= 1.05
+            for key, value in expected.items()), min(speedups), max(speedups)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -12070,7 +12187,8 @@ def validate_assets(errors: list[str]) -> None:
                  "grouped-weight-gradient-discard.svg",
                  "packed-weight-gradient-discard.svg",
                  "fp32-weight-gradient-solutions-discard.svg",
-                 "training-graph-capture-boundary.svg"):
+                 "training-graph-capture-boundary.svg",
+                 "adamw-graph-replay.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -12476,6 +12594,9 @@ def main() -> int:
         fp32_wgrad_operator_maximum = validate_fp32_weight_gradient_solutions(errors)
     training_graph_rows, training_graph_optimizer, training_graph_dynamic, \
         training_graph_deferred = validate_training_graph_capture(errors)
+    adamw_graph_rows, adamw_graph_fp32, adamw_graph_bf16, \
+        adamw_graph_minimum, adamw_graph_maximum = \
+        validate_adamw_graph_replay(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -12835,6 +12956,9 @@ def main() -> int:
           f"{fp32_wgrad_operator_maximum:.3f} "
           f"training_graph={training_graph_rows}/{training_graph_optimizer}/"
           f"{training_graph_dynamic}/{training_graph_deferred} "
+          f"adamw_graph={adamw_graph_rows}/{adamw_graph_fp32}/"
+          f"{adamw_graph_bf16}/{adamw_graph_minimum:.3f}/"
+          f"{adamw_graph_maximum:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

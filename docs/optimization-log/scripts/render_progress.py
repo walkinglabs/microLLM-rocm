@@ -93,6 +93,9 @@ FP32_WGRAD_SOLUTION_CHART = (
 TRAINING_GRAPH_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
                        "2026-08-24-training-graph-capture")
 TRAINING_GRAPH_CHART = ROOT / "assets" / "training-graph-capture-boundary.svg"
+ADAMW_GRAPH_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
+                    "2026-08-24-adamw-graph-replay")
+ADAMW_GRAPH_CHART = ROOT / "assets" / "adamw-graph-replay.svg"
 
 
 def rows() -> list[dict]:
@@ -2357,6 +2360,67 @@ def training_graph_capture_svg() -> str:
     return "\n".join(parts)
 
 
+def adamw_graph_replay_svg() -> str:
+    summary = json.loads((ADAMW_GRAPH_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    rows = summary["comparisons"]
+    width, height = 1600, 760
+    chart_x, chart_y, chart_w, chart_h = 150, 145, 1300, 430
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 221 · Device-Owned AdamW Graph Step", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "60 fresh processes · 53 replayed steps · complete state samples aligned",
+             16, "#5b6474", anchor="middle"),
+        f'<rect x="{chart_x}" y="{chart_y}" width="{chart_w}" height="{chart_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+    ]
+
+    def y(value: float) -> float:
+        return chart_y + chart_h * (1.65 - value) / 1.55
+
+    for tick in (0.25, 0.5, 0.75, 1.0, 1.25, 1.5):
+        position = y(tick)
+        color = "#2563eb" if tick == 1.0 else "#e5e9f0"
+        parts.append(f'<line x1="{chart_x}" y1="{position:.1f}" '
+                     f'x2="{chart_x+chart_w}" y2="{position:.1f}" stroke="{color}"/>')
+        parts.append(text(chart_x - 12, position + 5, f"{tick:.2f}×", 13,
+                          "#5b6474", anchor="end"))
+    group_w = chart_w / 5
+    case_order = ((1, 1024, "1×1K"), (16, 1024, "16×1K"),
+                  (64, 1024, "64×1K"), (256, 1024, "256×1K"),
+                  (16, 262144, "16×256K"))
+    by_key = {(row["precision"], row["tensors"], row["elements"]): row
+              for row in rows}
+    for index, (tensors, elements, label) in enumerate(case_order):
+        center = chart_x + group_w * (index + 0.5)
+        for offset, (precision, color) in enumerate(
+                (("fp32", "#16a34a"), ("bf16", "#f97316"))):
+            value = by_key[(precision, tensors, elements)]["wall_speedup"]
+            x = center - 80 + offset * 85
+            top = y(value)
+            base = y(0.1)
+            parts.append(f'<rect x="{x:.1f}" y="{top:.1f}" width="68" '
+                         f'height="{base-top:.1f}" fill="{color}" rx="5"/>')
+            parts.append(text(x + 34, top - 9, f"{value:.3f}×", 13,
+                              color, anchor="middle", weight=700))
+        parts.append(text(center, chart_y + chart_h + 28, label, 15,
+                          anchor="middle", weight=700))
+    parts.append(text(570, 635, "FP32", 15, "#16a34a", weight=700))
+    parts.append(text(650, 635, "BF16 moment", 15, "#f97316", weight=700))
+    parts.append(text(width / 2, 686,
+                      "FP32 64/256 small tensors: 1.427×/1.436× · BF16 and large tensors regress · explicit only",
+                      17, "#9a4f00", anchor="middle", weight=700))
+    parts.append(text(width / 2, 720,
+                      "maximum state error 7.45e-8 · no timed payload transfer · no universal route",
+                      15, "#5b6474", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -2392,7 +2456,8 @@ def main() -> int:
                 GROUPED_WGRAD_CHART: grouped_weight_gradient_discard_svg(),
                 PACKED_WGRAD_CHART: packed_weight_gradient_discard_svg(),
                 FP32_WGRAD_SOLUTION_CHART: fp32_weight_gradient_solutions_svg(),
-                TRAINING_GRAPH_CHART: training_graph_capture_svg()}
+                TRAINING_GRAPH_CHART: training_graph_capture_svg(),
+                ADAMW_GRAPH_CHART: adamw_graph_replay_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

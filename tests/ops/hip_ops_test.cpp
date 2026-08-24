@@ -3612,6 +3612,106 @@ TEST(HipTrainingTest, AdamWStepIsDeviceNativeAndMatchesCpu) {
 }
 
 TEST(HipTrainingTest,
+     AdamWGraphReplayAdvancesDeviceStepAndMatchesThreeEagerSteps) {
+    require_gpu();
+    const auto device = Device::hip(0);
+    constexpr std::int64_t elements = 1025;
+    std::vector<float> values(static_cast<std::size_t>(elements));
+    std::vector<float> gradients(static_cast<std::size_t>(elements));
+    for (std::size_t index = 0; index < values.size(); ++index) {
+        values[index] =
+            static_cast<float>(static_cast<int>(index % 31) - 15) / 17.0F;
+        gradients[index] =
+            static_cast<float>(static_cast<int>(index % 13) - 6) / 19.0F;
+    }
+    for (const auto precision : {
+             training::AdamWConfig::MomentPrecision::Float32,
+             training::AdamWConfig::MomentPrecision::BFloat16}) {
+        autograd::Value eager(
+            Tensor::from_vector(values, {elements}), true);
+        autograd::Value replay(
+            Tensor::from_vector(values, {elements}).to(device), true);
+        const auto cpu_gradient =
+            Tensor::from_vector(gradients, {elements});
+        eager.set_grad(cpu_gradient);
+        replay.set_grad(cpu_gradient.to(device));
+        auto eager_mirror = eager.data().cast(DType::BFloat16);
+        auto replay_mirror = replay.data().cast(DType::BFloat16);
+        const training::AdamWConfig config{
+            .learning_rate = 0.01F,
+            .beta1 = 0.9F,
+            .beta2 = 0.99F,
+            .epsilon = 1.0e-8F,
+            .weight_decay = 0.1F,
+            .moment_precision = precision};
+        training::AdamW eager_optimizer(
+            {&eager}, config, {{&eager, &eager_mirror}},
+            AdamWImplementation::Auto, 0);
+        training::AdamW replay_optimizer(
+            {&replay}, config, {{&replay, &replay_mirror}},
+            AdamWImplementation::Auto, 0);
+        for (int step = 0; step < 3; ++step) eager_optimizer.step();
+
+        auto graph_state = replay_optimizer.make_graph_step_state();
+        runtime::Stream stream(device);
+        runtime::ScopedDeferredHipStream lifetime(stream, 64);
+        OpContext context;
+        context.stream = &stream;
+        auto graph = runtime::HipGraphExecutable::capture(stream, [&] {
+            replay_optimizer.step_graph_replayable(graph_state, context);
+        });
+        EXPECT_EQ(graph.node_count(), 2U);
+        EXPECT_THROW((void)replay_optimizer.state(), std::logic_error);
+        runtime::reset_transfer_stats();
+        for (int step = 0; step < 3; ++step) graph.launch(stream);
+        stream.synchronize();
+        const auto replay_transfers = runtime::transfer_stats();
+        EXPECT_EQ(replay_transfers.host_to_device_calls, 0U);
+        EXPECT_EQ(replay_transfers.device_to_host_calls, 0U);
+        EXPECT_EQ(replay_transfers.device_to_device_calls, 0U);
+        replay_optimizer.synchronize_graph_step(graph_state);
+        EXPECT_EQ(replay_optimizer.step_count(), 3U);
+        const auto eager_state = eager_optimizer.state();
+        const auto replay_state = replay_optimizer.state();
+        expect_near(replay.data().to_vector(), eager.data().to_vector(),
+                    3.0e-6F);
+        expect_near(replay_state.first_moments[0].to_vector(),
+                    eager_state.first_moments[0].to_vector(), 2.0e-6F);
+        expect_near(replay_state.second_moments[0].to_vector(),
+                    eager_state.second_moments[0].to_vector(), 2.0e-6F);
+        EXPECT_EQ(replay_mirror.to_vector(), eager_mirror.to_vector());
+        eager_optimizer.step();
+        replay_optimizer.step();
+        stream.synchronize();
+        EXPECT_EQ(replay_optimizer.step_count(), 4U);
+        expect_near(replay.data().to_vector(), eager.data().to_vector(),
+                    3.0e-6F);
+        const auto eager_step4 = eager_optimizer.state();
+        const auto replay_step4 = replay_optimizer.state();
+        expect_near(replay_step4.first_moments[0].to_vector(),
+                    eager_step4.first_moments[0].to_vector(), 2.0e-6F);
+        expect_near(replay_step4.second_moments[0].to_vector(),
+                    eager_step4.second_moments[0].to_vector(), 2.0e-6F);
+        EXPECT_EQ(replay_mirror.to_vector(), eager_mirror.to_vector());
+        graph = runtime::HipGraphExecutable();
+        auto resumed_graph_state = replay_optimizer.make_graph_step_state();
+        graph = runtime::HipGraphExecutable::capture(stream, [&] {
+            replay_optimizer.step_graph_replayable(resumed_graph_state,
+                                                    context);
+        });
+        graph.launch(stream);
+        stream.synchronize();
+        replay_optimizer.synchronize_graph_step(resumed_graph_state);
+        eager_optimizer.step();
+        EXPECT_EQ(replay_optimizer.step_count(), 5U);
+        expect_near(replay.data().to_vector(), eager.data().to_vector(),
+                    3.0e-6F);
+        graph = runtime::HipGraphExecutable();
+        lifetime.finish();
+    }
+}
+
+TEST(HipTrainingTest,
      Bf16MomentOptimizerMatchesCpuStateWithoutPayloadTransfers) {
     require_gpu();
     const auto device = Device::hip(0);

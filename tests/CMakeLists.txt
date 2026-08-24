@@ -183,6 +183,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.TrainingGraphCaptureMatrixContract PROPERTIES
         LABELS "cpu;benchmark;training;graph;lifetime;schema")
     add_test(
+        NAME Benchmark.AdamWGraphReplayMatrixContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_adamw_graph_replay_matrix.py
+    )
+    set_tests_properties(Benchmark.AdamWGraphReplayMatrixContract PROPERTIES
+        LABELS "cpu;benchmark;training;graph;optimizer;schema")
+    add_test(
         NAME Benchmark.HipGraphMatrixContract
         COMMAND ${Python3_EXECUTABLE}
                 ${PROJECT_SOURCE_DIR}/python/tests/test_hip_graph_matrix.py

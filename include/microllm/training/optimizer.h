@@ -58,6 +58,10 @@ public:
     AdamW(AdamW&&) noexcept = default;
     AdamW& operator=(AdamW&&) noexcept = default;
     void step();
+    [[nodiscard]] ops::AdamWGraphStepState make_graph_step_state() const;
+    void step_graph_replayable(ops::AdamWGraphStepState& graph_state,
+                               ops::OpContext context = {});
+    void synchronize_graph_step(const ops::AdamWGraphStepState& graph_state);
     void zero_grad();
 
     [[nodiscard]] const AdamWConfig& config() const noexcept { return config_; }
@@ -85,6 +89,8 @@ private:
     std::unique_ptr<ops::AdamWMultiTensorWorkspace> bf16_multi_tensor_workspace_;
     std::vector<std::size_t> bf16_multi_tensor_indices_;
     std::uint64_t bf16_multi_tensor_elements_ = 0;
+    bool graph_step_pending_ = false;
+    const ops::AdamWGraphStepState* pending_graph_step_state_ = nullptr;
 };
 
 }  // namespace microllm::training

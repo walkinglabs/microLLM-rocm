@@ -4,8 +4,8 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| CPU configuration | smoke-tested | CPU 330/330; full CPU/HIP 518/518 with 3 conditional skips; HIP label 176/176; ASan/UBSan 328/328 | broader compiler/OS CI matrix |
-| CPU code coverage | smoke-tested | 79.8% lines, 87.7% functions, 60.4% branches over `src/` + `include/`; HIP-only workspace/Kernel paths remain visible as CPU gaps | split CPU/HIP reports and add justified thresholds |
+| CPU configuration | smoke-tested | CPU 331/331; full CPU/HIP 521/521 with 3 conditional skips; HIP label 178/178; ASan/UBSan 329/329 | broader compiler/OS CI matrix |
+| CPU code coverage | smoke-tested | 79.0% lines, 87.3% functions, 59.6% branches over `src/` + `include/`; device-step Graph and other HIP-only paths remain visible as CPU gaps | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, native cast, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
 | Tensor metadata/views | smoke-tested | hand values, randomized shapes, bounds | more dtypes |
@@ -26,7 +26,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | HIP Autograd | smoke-tested | CPU/HIP full Transformer gradient comparison; zero host transfers during graph execution | optimized reductions/more dtypes |
 | Tied embedding accumulation | smoke-tested | source order, CPU/HIP duplicate-row gates, Qwen peak -8.11%, throughput 1.018× and untied DeepSeek zero routing | more tied model families and longer training trajectory |
 | HIP bias gradient | smoke-tested | 78 complete-output process rows; T512 operator 3.21×–3.27× and Qwen/DeepSeek training 1.222×/1.111× at unchanged peak | low-precision gradients and broader GPUs |
-| SGD/AdamW | smoke-tested | PyTorch parity through BF16-moment step 32, 100-step rounded CPU reference, thresholded HIP full-state test, six-threshold search and official 1M Hybrid Auto matrix | loss scaling, other-GPU threshold tuning and reference-length BF16-moment training |
+| SGD/AdamW | smoke-tested | PyTorch parity through standard step 3 and BF16-moment step 32; 100-step rounded CPU reference; device-owned Graph step aligns FP32/BF16 complete state and explicit step-4 eager transition; official 1M Hybrid Auto matrix | loss scaling, stable-descriptor multi-tensor Graph, other-GPU threshold tuning and reference-length BF16-moment training |
 | Checkpoint | smoke-tested | atomic complete-state load, corruption, 3-step resume, v2 moment policy and tested v1 compatibility | long-run cross-version fixture corpus |
 | Model-S/Model-M config | smoke-tested | executable exact parameter/byte tests | model layers/training |
 | Model-S CPU forward | smoke-tested | 15,586,176 parameters and 8192 finite logits | training/HIP |
@@ -60,7 +60,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Serving scheduler | smoke-tested | slot-ratio matrix 48/48 token-exact; matched 6:2 short and 2:6 long retain 85%–87% throughput while reducing KV 56%/19% | safe dynamic ratio transition and allocator cost; uniform remains default, overflow opt-in |
 | Stable model failure | smoke-tested | low-loss cycle breaks beyond training context | rebuttal experiments |
 | PyTorch Custom Ops | smoke-tested on CPU | Torch 2.13 add/multiply via dispatcher | build/run with PyTorch ROCm |
-| PyTorch correctness oracle | smoke-tested | PyTorch-enabled build 304/304; Tensor/graph/model/optimizer parity plus package and schema gates | broader direct PyTorch ROCm operator matrix |
+| PyTorch correctness oracle | smoke-tested | PyTorch-enabled build 305/305; Tensor/graph/model/optimizer parity plus package and schema gates | broader direct PyTorch ROCm operator matrix |
 | PyTorch ROCm environment | smoke-tested | Torch 2.10.0+rocm7.13 and Transformers 5.8.1 run official Qwen/DeepSeek BF16 training on MI300X with native device discovery | additional Torch/ROCm versions and Radeon |
 | C ABI v1 | smoke-tested | pure C CPU/HIP create/copy/ops/error client | zero-copy external views |
 | Python ctypes API | smoke-tested | CPU/HIP Tensor/ops/error unittest | packaging/broader ops |
@@ -73,7 +73,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | End-to-end benchmark | smoke-tested | matched Python/PyTorch ROCm official training plus phase-separated prefill and one-forward-per-token steady-decode JSONL | serving concurrency, board-level memory and llama.cpp |
 | Single-GPU model matrix | smoke-tested | MI300X tiny/Model-S/Model-M plus official Qwen0.5B/DeepSeek-Distill1.5B train+generate, parameters, time, tokens/s and engine peak bytes | repeated contexts/dtypes and external board-level memory sampling |
 | Python/PyTorch ROCm performance matrix | smoke-tested | official Qwen/DeepSeek train plus inference context 1–2048, batch 1–8, output 1–64, KV allocated/active/waste, continuous slot metrics and token gates | DeepSeek continuous 3-case mismatch, identical residency policy, version matrix and llama.cpp |
-| Optimization experiment journal | implemented | experiments through 220; raw evidence, rejection gates and generated SVGs validated in CTest | Radeon and production data-parallel tracks |
+| Optimization experiment journal | implemented | experiments through 221; raw evidence, rejection gates and generated SVGs validated in CTest | Radeon and production data-parallel tracks |
 | Complete-training HIP Graph | smoke-tested | 24-process FP32/BF16 staged audit; dynamic Storage is rejected before driver invalidation and same-Stream recovery passes; AdamW captures 21 nodes but replay does not advance host step | graph-wide liveness/workspace plan and device-owned optimizer step before any full-step performance claim |
 | rocprofv3 workflow | smoke-tested | kernel/HIP API/memory/full trace generated | release artifact retention |
 | hipBLASLt matmul | smoke-tested | FP32/BF16, rank-N strided batches, four transpose contracts, Model-S and T≥256 Attention forward/backward | workspace-aware candidate enumeration/timing |
