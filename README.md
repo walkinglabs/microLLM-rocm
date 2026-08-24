@@ -206,6 +206,9 @@ needed to run a real training and generation loop:
 - BTHD then passes B1/T256, B1/T1024 and B2/T512 on both models with bit-exact
   per-row outputs, zero Attention copies, 2–14 MiB lower peak and speedups spanning
   1.0852×–1.1421×; B2 last-row residual copies are reported separately;
+- post-BTHD phase profiling confirms strided time is zero and total Kernel improves
+  1.169×/1.118×; cast is now 0.519/0.757 ms and selects a BF16-input fused Q/K
+  bias+RoPE candidate while V stays unchanged;
 - a phase-independent exact-size HIP pool with immediate legacy-default-Stream reuse and strict
   permanent disablement for non-default Streams;
 - a cross-framework trace runner for operator/layer values and latency comparisons.

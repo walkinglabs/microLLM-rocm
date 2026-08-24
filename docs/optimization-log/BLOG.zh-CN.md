@@ -3421,3 +3421,13 @@ Qwen 7168B、DeepSeek 12288B，位于Attention island之外。正式门改成Att
 source单独报告。
 
 ![BTHD sequence and batch](assets/inference-bthd-shape-models.svg)
+
+## 221. Experiment 204：strided已经是0，下一步看cast
+
+BTHD后的phase trace里，strided category彻底消失。总Kernel相对组合baseline快1.169×/1.118×。
+现在GEMM占55.6%/65.2%，cast为0.519/0.757ms，softmax约0.483/0.519ms。
+
+Q/K grouped输出BF16后立刻转FP32，再进入bias+RoPE融合。下一最小候选让融合直接读BF16，
+每层少两次cast；V暂时不改，避免一次改变两种精度边界。
+
+![Post-BTHD profile](assets/inference-bthd-profile.svg)

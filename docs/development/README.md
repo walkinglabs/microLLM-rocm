@@ -434,3 +434,5 @@ the next gate. Records are append-only except for factual corrections.
   beginner-friendly copy-free inference Attention island and fallback domain.
 - [2026-08-24-inference-bthd-shape-models.md](2026-08-24-inference-bthd-shape-models.md):
   beginner-friendly sequence/batch extension and source-aware residual copy boundary.
+- [2026-08-24-inference-bthd-profile.md](2026-08-24-inference-bthd-profile.md):
+  beginner-friendly post-BTHD trace and next cast-boundary selection.

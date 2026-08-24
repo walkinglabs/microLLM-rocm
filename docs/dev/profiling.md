@@ -439,6 +439,10 @@ For batch matrices, require zero attention.layout/core records rather than zero 
 Experiment 203 retains one small unspecified B2 last-row selection copy. Source ownership, not a
 global counter, determines whether the BTHD island regressed.
 
+The post-BTHD trace in benchmarks/results/2026-08-24-inference-bthd-profile is the next baseline.
+Its strided category is absent. A future cast candidate must show exactly two fewer Q/K output casts
+per block and must not claim already-retained layout savings.
+
 ## What remains
 
 There is no Python `@profile` decorator yet. The current stable entry points are the

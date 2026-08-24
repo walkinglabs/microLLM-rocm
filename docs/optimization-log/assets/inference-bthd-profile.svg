@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="560" viewBox="0 0 1000 560" role="img" aria-labelledby="title desc">
+  <title id="title">Post-BTHD Kernel time and remaining categories</title>
+  <desc id="desc">Strided materialization disappears and total Kernel time improves, leaving GEMM, cast and softmax.</desc>
+  <rect width="1000" height="560" fill="#0b1020"/>
+  <text x="55" y="48" fill="#f8fafc" font-family="sans-serif" font-size="28" font-weight="700">Experiment 204 · after BTHD copy elimination</text>
+  <text x="55" y="78" fill="#94a3b8" font-family="sans-serif" font-size="15">five derived T512 forwards · Kernel time · lower is better</text>
+  <text x="55" y="140" fill="#e2e8f0" font-family="sans-serif" font-size="20" font-weight="700">Total Kernel time</text>
+  <text x="55" y="185" fill="#cbd5e1" font-family="sans-serif" font-size="15">Qwen pre-BTHD</text>
+  <rect x="250" y="162" width="426" height="31" rx="6" fill="#fb7185"/>
+  <text x="690" y="184" fill="#fecdd3" font-family="monospace" font-size="14">5.680 ms</text>
+  <text x="55" y="230" fill="#cbd5e1" font-family="sans-serif" font-size="15">Qwen BTHD</text>
+  <rect x="250" y="207" width="364" height="31" rx="6" fill="#34d399"/>
+  <text x="628" y="229" fill="#a7f3d0" font-family="monospace" font-size="14">4.858 ms</text>
+  <text x="55" y="285" fill="#cbd5e1" font-family="sans-serif" font-size="15">DeepSeek pre-BTHD</text>
+  <rect x="250" y="262" width="762" height="31" rx="6" fill="#fb7185"/>
+  <text x="888" y="284" fill="#fecdd3" font-family="monospace" font-size="14">10.160 ms</text>
+  <text x="55" y="330" fill="#cbd5e1" font-family="sans-serif" font-size="15">DeepSeek BTHD</text>
+  <rect x="250" y="307" width="681" height="31" rx="6" fill="#22d3ee"/>
+  <text x="814" y="329" fill="#a5f3fc" font-family="monospace" font-size="14">9.085 ms</text>
+  <text x="55" y="400" fill="#e2e8f0" font-family="sans-serif" font-size="20" font-weight="700">Next non-GEMM boundaries</text>
+  <rect x="55" y="425" width="430" height="34" rx="6" fill="#a78bfa"/>
+  <text x="70" y="447" fill="#f5f3ff" font-family="sans-serif" font-size="14">cast · 0.519 / 0.757 ms</text>
+  <rect x="55" y="475" width="315" height="34" rx="6" fill="#fbbf24"/>
+  <text x="70" y="497" fill="#fffbeb" font-family="sans-serif" font-size="14">causal softmax · 0.483 / 0.519 ms</text>
+  <text x="55" y="545" fill="#94a3b8" font-family="sans-serif" font-size="13">Next: fused Q/K bias+RoPE reads BF16 directly · V remains unchanged</text>
+</svg>

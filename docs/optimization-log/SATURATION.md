@@ -315,6 +315,11 @@ savings. B2 retains one small unspecified last-row selection copy outside Attent
 gate now separates source ownership from total count. Cached-prefill and value-trace remain
 fallback-only.
 
+Experiment 204 profiles the post-BTHD graph. Strided calls/time are zero and total Kernel improves
+1.169×/1.118× versus the composed baseline. GEMM remains 55.6%/65.2%; cast is
+0.519/0.757 ms and causal softmax 0.483/0.519 ms. Measured layout work is closed. The next
+distinct candidate is BF16-input fused Q/K bias+RoPE, leaving V precision unchanged.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

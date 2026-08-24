@@ -473,6 +473,10 @@ Experiment 203 validates batch and sequence variants independently. Diagnostic a
 source-aware: Attention layout/core must be zero, while B2 last-row selection outside Attention is
 reported rather than misclassified as an island regression.
 
+Experiment 204 freezes the post-BTHD profile baseline. The measured layout category is now closed;
+the next precision boundary may change only Q/K fused bias+RoPE input from FP32 to BF16. V and
+context stay on the retained contract so numerical attribution remains possible.
+
 ## Stable integration boundary
 
 The long-term integration seam is a C-compatible descriptor plus explicit stream

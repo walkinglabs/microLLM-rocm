@@ -10210,6 +10210,70 @@ def validate_inference_bthd_shape_models(
         min(ratios, default=0.0), max(ratios, default=0.0), residual_bytes
 
 
+def validate_inference_bthd_profile(
+        errors: list[str]) -> tuple[int, float, float, int]:
+    data = REPOSITORY / (
+        "benchmarks/results/2026-08-24-inference-bthd-profile")
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    comparisons = {row.get("model"): row
+                   for row in summary.get("comparisons", [])}
+    expected = {
+        "qwen2.5-0.5b":
+            (5680368.2, 4858257.2, 1.169219324164229,
+             96.0, 0.0, 486340.6, 0.0),
+        "deepseek-r1-distill-qwen-1.5b":
+            (10160056.200000001, 9085212.2, 1.1183069780142287,
+             112.0, 0.0, 754890.6, 0.0),
+    }
+    fields = (
+        "baseline_total_kernel_ns", "bthd_total_kernel_ns",
+        "total_kernel_speedup", "baseline_strided_calls",
+        "bthd_strided_calls", "baseline_strided_ns", "bthd_strided_ns")
+    for model in expected:
+        directory = data / model
+        for filename in (
+                "one-step-kernel-stats.csv",
+                "three-step-kernel-stats.csv"):
+            if not (directory / filename).is_file():
+                errors.append(f"BTHD profile file missing: {model}/{filename}")
+        delta = json.loads((directory / "profile-delta.json").read_text(
+            encoding="utf-8"))
+        if delta.get("track") != "inference_prefill_kernel_phase_delta":
+            errors.append("BTHD profile track changed")
+    expected_tests = {
+        "cpu_debug": {"passed": 310, "total": 310},
+        "asan_ubsan": {"passed": 308, "total": 308},
+        "pytorch_enabled_cpu": {"passed": 284, "total": 284},
+        "hip_full_configuration": {
+            "passed": 482, "total": 482, "conditional_skips": 3},
+        "hip_label": {"passed": 162, "total": 162},
+        "rccl_multi_gpu": {"passed": 12, "total": 12},
+        "rccl_full_label": {"passed": 14, "total": 14},
+    }
+    if summary.get("status") != "pass" or \
+            summary.get("profile_processes") != 4 or \
+            summary.get("derived_forwards") != 10 or \
+            set(comparisons) != set(expected) or \
+            any(any(abs(float(row.get(field, 0.0)) - value) > 1.0e-6
+                    for field, value in zip(fields, expected[model], strict=True))
+                for model, row in comparisons.items()) or \
+            verification.get("status") != "pass" or \
+            verification.get("tests") != expected_tests or \
+            verification.get("registered_test_files") != 82 or \
+            verification.get("profile_processes") != 4 or \
+            verification.get("derived_forwards") != 10 or \
+            verification.get("strided_calls") != 0:
+        errors.append("inference BTHD profile evidence changed")
+    ratios = [float(row["total_kernel_speedup"])
+              for row in comparisons.values()]
+    return int(summary.get("profile_processes", 0)), \
+        min(ratios, default=0.0), max(ratios, default=0.0), \
+        int(sum(row["baseline_strided_calls"]
+                for row in comparisons.values()))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -10391,7 +10455,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-grouped-composed-profile.svg",
                  "hf-strided-copy-sources.svg",
                  "inference-bthd-attention.svg",
-                 "inference-bthd-shape-models.svg"):
+                 "inference-bthd-shape-models.svg",
+                 "inference-bthd-profile.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -10753,6 +10818,9 @@ def main() -> int:
     bthd_shape_performance, bthd_shape_diagnostics, \
         bthd_shape_minimum, bthd_shape_maximum, bthd_shape_residual = \
         validate_inference_bthd_shape_models(errors)
+    bthd_profile_processes, bthd_profile_minimum, \
+        bthd_profile_maximum, bthd_profile_strided_removed = \
+        validate_inference_bthd_profile(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -11064,6 +11132,9 @@ def main() -> int:
           f"inference_bthd_shapes={bthd_shape_performance}/"
           f"{bthd_shape_diagnostics}/{bthd_shape_minimum:.3f}/"
           f"{bthd_shape_maximum:.3f}/{bthd_shape_residual} "
+          f"inference_bthd_profile={bthd_profile_processes}/"
+          f"{bthd_profile_minimum:.3f}/{bthd_profile_maximum:.3f}/"
+          f"{bthd_profile_strided_removed} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

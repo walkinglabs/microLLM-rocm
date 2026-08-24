@@ -770,6 +770,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/202-inference-bthd-attention.md](experiments/202-inference-bthd-attention.md) | 24进程、bit-exact、peak与显式fallback |
 | [assets/inference-bthd-shape-models.svg](assets/inference-bthd-shape-models.svg) | BTHD长短序列与batch速度 |
 | [experiments/203-inference-bthd-shape-models.md](experiments/203-inference-bthd-shape-models.md) | 42进程、Attention copy 0与B2 residual |
+| [assets/inference-bthd-profile.svg](assets/inference-bthd-profile.svg) | BTHD前后Kernel时间与新热点 |
+| [experiments/204-inference-bthd-profile.md](experiments/204-inference-bthd-profile.md) | 四trace、strided归零与cast候选 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 
