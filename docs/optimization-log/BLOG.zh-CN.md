@@ -3344,3 +3344,16 @@ Qwen both/base为1.0655×，DeepSeek为1.0474×；相对QKV-only还能增加1.01
 让combined setup达到214.5/205.6ms。所以组合keep为显式warmed策略，不会偷换one-shot默认。
 
 ![Grouped policy composition](assets/bf16-grouped-composition.svg)
+
+## 215. Experiment 198：rows换成256和1024，先别急着推广
+
+我们为Qwen/DeepSeek的QKV和gate/up各加rows256/1024，共8个case、24进程。每次重新筛64个
+candidate，不拿T512编号硬套。所有case通过，device arguments Event为1.124×–1.695×。
+
+最重要的不是“又快了”，而是pilot纠错。一次DeepSeek rows256 QKV曾显示每次reinitialize也有
+1.051×；三进程中位数变成0.964×。稳定地址仍是正式设计，单进程没有权力改合同。
+
+rows1024可能来自B1/T1024，也可能来自B2/T512。GEMM shape一样，Attention和batch却不同。
+所以下一节点必须拆开两种完整模型，不把operator shape等价写成workload等价。
+
+![Grouped shape capability](assets/bf16-grouped-shape-matrix.svg)

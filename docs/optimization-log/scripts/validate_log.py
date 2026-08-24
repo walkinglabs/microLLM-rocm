@@ -9629,6 +9629,113 @@ def validate_bf16_grouped_composition(
         max(both_ratios, default=0.0), min(incremental, default=0.0)
 
 
+def validate_bf16_grouped_shape_matrix(
+        errors: list[str]) -> tuple[int, float, float, int]:
+    data = REPOSITORY / (
+        "benchmarks/results/2026-08-24-bf16-grouped-shape-matrix")
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = {
+        (int(row.get("rows", 0)), row.get("model"), row.get("projection")): row
+        for row in summary.get("comparisons", [])}
+    expected = {
+        (256, "qwen", "qkv"):
+            ([64713, 64752], 1.694743346128, 0.929548571318,
+             0.000224091113, 6.2246841e-05),
+        (256, "qwen", "gate-up"):
+            ([65197], 1.338726334483, 0.834679252714, 0.0, 0.0),
+        (256, "deepseek", "qkv"):
+            ([64699, 64713], 1.604234893472, 0.964444863125,
+             0.000243678689, 0.000108414782),
+        (256, "deepseek", "gate-up"):
+            ([65168], 1.236322275422, 0.924286296054,
+             7.629395e-06, 4.15344e-07),
+        (1024, "qwen", "qkv"):
+            ([64713, 64754, 64755], 1.389292250439, 0.782835086489,
+             0.000224091113, 6.234508e-05),
+        (1024, "qwen", "gate-up"):
+            ([65168, 65200], 1.123997295942, 0.846666662161,
+             0.0, 0.0),
+        (1024, "deepseek", "qkv"):
+            ([64754, 64755], 1.397329254401, 0.921041695594,
+             0.00024368614, 0.000108335437),
+        (1024, "deepseek", "gate-up"):
+            ([65183, 65212], 1.224940982167, 0.916102543712,
+             7.629395e-06, 2.58169e-07),
+    }
+    expected_tests = {
+        "cpu_debug": {"passed": 305, "total": 305},
+        "asan_ubsan": {"passed": 303, "total": 303},
+        "pytorch_enabled_cpu": {"passed": 279, "total": 279},
+        "hip_full_configuration": {
+            "passed": 476, "total": 476, "conditional_skips": 3},
+        "hip_label": {"passed": 161, "total": 161},
+        "rccl_multi_gpu": {"passed": 12, "total": 12},
+        "rccl_full_label": {"passed": 14, "total": 14},
+    }
+    counts = {key: 0 for key in expected}
+    for row in raw:
+        key = (int(row.get("rows", 0)),
+               row.get("model"), row.get("projection"))
+        if key in counts:
+            counts[key] += 1
+    evidence_changed = False
+    for key, values in expected.items():
+        row = comparisons.get(key, {})
+        if row.get("solution_indices") != values[0] or \
+                row.get("algorithm_count") != 10227 or \
+                row.get("passing_candidates") != 64 or \
+                abs(float(row.get(
+                    "user_arguments_event_speedup_median", 0.0)) -
+                    values[1]) > 1.0e-6 or \
+                abs(float(row.get(
+                    "reinitialized_event_speedup_median", 0.0)) -
+                    values[2]) > 1.0e-6 or \
+                abs(float(row.get("maximum_absolute_error", 0.0)) -
+                    values[3]) > 1.0e-9 or \
+                abs(float(row.get("maximum_rms_error", 0.0)) -
+                    values[4]) > 1.0e-9:
+            evidence_changed = True
+            break
+    if summary.get("status") != "pass" or len(raw) != 24 or \
+            summary.get("raw_processes") != 24 or \
+            summary.get("capability_gate") is not True or \
+            summary.get("reinitialization_faster_cases") != 0 or \
+            set(comparisons) != set(expected) or evidence_changed or \
+            any(count != 3 for count in counts.values()) or \
+            verification.get("status") != "pass" or \
+            verification.get("tests") != expected_tests or \
+            verification.get("registered_test_files") != 77 or \
+            verification.get("formal_processes") != 24 or \
+            verification.get("formal_comparisons") != 8 or \
+            verification.get("capability_gate") is not True or \
+            verification.get("reinitialization_faster_cases") != 0:
+        errors.append("BF16 grouped shape matrix evidence changed")
+    runner = (REPOSITORY / "benchmarks/single_gpu/"
+              "bf16_grouped_shape_matrix.py").read_text(encoding="utf-8")
+    contract = (REPOSITORY / "python/tests/"
+                "test_bf16_grouped_shape_matrix.py").read_text(
+                    encoding="utf-8")
+    for token, document in (
+            ("ROWS = (256, 1024)", runner),
+            ("PROJECTIONS = ((\"qkv\", \"model\"), (\"gate-up\", \"bf16\"))",
+             runner),
+            ("solution_indices", runner),
+            ("reinitialization_faster_cases", contract)):
+        if token not in document:
+            errors.append("BF16 grouped shape matrix runner/test contract changed")
+            break
+    ratios = [
+        float(row["user_arguments_event_speedup_median"])
+        for row in comparisons.values()]
+    return len(raw), min(ratios, default=0.0), \
+        max(ratios, default=0.0), \
+        int(summary.get("reinitialization_faster_cases", -1))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -9804,7 +9911,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-exact-startup.svg",
                  "bf16-grouped-gate-up.svg",
                  "bf16-grouped-gate-up-model.svg",
-                 "bf16-grouped-composition.svg"):
+                 "bf16-grouped-composition.svg",
+                 "bf16-grouped-shape-matrix.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -10150,6 +10258,8 @@ def main() -> int:
     grouped_composition_rows, grouped_composition_minimum, \
         grouped_composition_maximum, grouped_composition_incremental = \
         validate_bf16_grouped_composition(errors)
+    grouped_shape_rows, grouped_shape_minimum, grouped_shape_maximum, \
+        grouped_shape_reinit = validate_bf16_grouped_shape_matrix(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -10442,6 +10552,9 @@ def main() -> int:
           f"{grouped_composition_minimum:.3f}/"
           f"{grouped_composition_maximum:.3f}/"
           f"{grouped_composition_incremental:.3f} "
+          f"bf16_grouped_shapes={grouped_shape_rows}/"
+          f"{grouped_shape_minimum:.3f}/{grouped_shape_maximum:.3f}/"
+          f"{grouped_shape_reinit} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

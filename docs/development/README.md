@@ -422,3 +422,5 @@ the next gate. Records are append-only except for factual corrections.
   beginner-friendly shared-kernel/per-block-plan integration and official model result.
 - [2026-08-24-bf16-grouped-composition.md](2026-08-24-bf16-grouped-composition.md):
   beginner-friendly four-policy proof that the two grouped registries compose safely.
+- [2026-08-24-bf16-grouped-shape-matrix.md](2026-08-24-bf16-grouped-shape-matrix.md):
+  beginner-friendly rows256/1024 capability and single-process counterexample correction.

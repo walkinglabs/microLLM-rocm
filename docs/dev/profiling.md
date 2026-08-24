@@ -411,6 +411,11 @@ gate/up and both, requires both dispatch counters in combined processes, and rep
 both/QKV incremental speedup. A combination is not accepted merely because its absolute throughput
 is highest; it must add measured value over the stronger individual policy.
 
+Use bf16_grouped_shape_matrix.py before registering another flattened row count. It repeats both
+projection families and both official dimensions in three processes, keeping winner sets rather
+than one lucky index. A flattened-row operator result does not replace separate sequence/batch
+model cases.
+
 ## What remains
 
 There is no Python `@profile` decorator yet. The current stable entry points are the

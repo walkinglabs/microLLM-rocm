@@ -446,6 +446,11 @@ The registries and plan caches do not clear or shadow each other; both report ex
 dispatch counts. QKV initialization also primes the grouped library path, reducing subsequent
 gate/up kernel setup below 0.25 ms. Combined setup is still reported as one serving lifecycle cost.
 
+Experiment 198 expands only the exact operator domain to rows 256/1024. The key already supports
+these rows without API changes, and every measured QKV/gate-up case passes. Model policy remains
+separate because flattened rows do not identify batch versus sequence: B1/T1024 and B2/T512 share
+a GEMM key but have different Attention and memory behavior.
+
 ## Stable integration boundary
 
 The long-term integration seam is a C-compatible descriptor plus explicit stream

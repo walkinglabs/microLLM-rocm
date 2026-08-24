@@ -758,6 +758,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/196-bf16-grouped-gate-up-model.md](experiments/196-bf16-grouped-gate-up-model.md) | exact registry、12进程、setup/peak/profile gate |
 | [assets/bf16-grouped-composition.svg](assets/bf16-grouped-composition.svg) | baseline、QKV、gate/up、both四策略吞吐 |
 | [experiments/197-bf16-grouped-composition.md](experiments/197-bf16-grouped-composition.md) | 24进程、双registry dispatch与组合setup |
+| [assets/bf16-grouped-shape-matrix.svg](assets/bf16-grouped-shape-matrix.svg) | rows256/1024两模型两projection user-args收益 |
+| [experiments/198-bf16-grouped-shape-matrix.md](experiments/198-bf16-grouped-shape-matrix.md) | 24进程、winner集合与重初始化反驳 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

@@ -266,6 +266,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.Bf16GroupedCompositionContract PROPERTIES
         LABELS "cpu;benchmark;model;inference;attention;ffn;bf16;matmul;grouped;memory;schema")
     add_test(
+        NAME Benchmark.Bf16GroupedShapeMatrixContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_bf16_grouped_shape_matrix.py
+    )
+    set_tests_properties(Benchmark.Bf16GroupedShapeMatrixContract PROPERTIES
+        LABELS "cpu;benchmark;model;inference;attention;ffn;bf16;matmul;grouped;shape;schema")
+    add_test(
         NAME Coverage.OperatorAndTestFiles
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/audit_test_coverage.py
     )

@@ -280,6 +280,12 @@ are 1.00342×/1.00173× and complete BF16/top-1 gates pass. QKV initialization a
 kernel setup to below 0.25 ms, but combined setup remains 214.5/205.6 ms. Explicit T512
 composition is retained; broader shape policy and one-shot defaults remain open/disabled.
 
+Experiment 198 supplies operator evidence for flattened rows 256/1024. All eight model/rows/
+projection cases have 10,227 algorithms, 64/64 passing candidates and device-arguments Event
+ratios from 1.124× to 1.695×. A one-process rows256 reinitialization apparent win becomes 0.964×
+after three processes, preserving the stable-address design. Operator capability is kept; only
+B1/T256, B1/T1024 and B2/T512 complete-model routing is open.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

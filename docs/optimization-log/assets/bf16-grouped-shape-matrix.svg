@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="600" viewBox="0 0 1000 600" role="img" aria-labelledby="title desc">
+  <title id="title">BF16 grouped rows 256 and 1024 capability</title>
+  <desc id="desc">Device user arguments improve all eight QKV and gate-up cases across two models and two flattened row counts.</desc>
+  <rect width="1000" height="600" fill="#0b1020"/>
+  <text x="55" y="48" fill="#f8fafc" font-family="sans-serif" font-size="28" font-weight="700">Experiment 198 · grouped shape capability</text>
+  <text x="55" y="78" fill="#94a3b8" font-family="sans-serif" font-size="15">device-user-arguments Event ratio · median of 3 fresh processes · above 1 is better</text>
+
+  <line x1="330" y1="115" x2="330" y2="540" stroke="#64748b" stroke-width="2"/>
+  <text x="308" y="105" fill="#cbd5e1" font-family="monospace" font-size="13">1.0</text>
+
+  <text x="55" y="145" fill="#e2e8f0" font-family="sans-serif" font-size="18" font-weight="700">rows 256</text>
+  <text x="75" y="185" fill="#cbd5e1" font-family="sans-serif" font-size="14">Qwen QKV</text>
+  <rect x="330" y="165" width="347" height="27" rx="5" fill="#a78bfa"/>
+  <text x="690" y="185" fill="#ddd6fe" font-family="monospace" font-size="14">1.695×</text>
+  <text x="75" y="225" fill="#cbd5e1" font-family="sans-serif" font-size="14">Qwen gate/up</text>
+  <rect x="330" y="205" width="170" height="27" rx="5" fill="#22d3ee"/>
+  <text x="513" y="225" fill="#a5f3fc" font-family="monospace" font-size="14">1.339×</text>
+  <text x="75" y="265" fill="#cbd5e1" font-family="sans-serif" font-size="14">DeepSeek QKV</text>
+  <rect x="330" y="245" width="302" height="27" rx="5" fill="#a78bfa"/>
+  <text x="645" y="265" fill="#ddd6fe" font-family="monospace" font-size="14">1.604×</text>
+  <text x="75" y="305" fill="#cbd5e1" font-family="sans-serif" font-size="14">DeepSeek gate/up</text>
+  <rect x="330" y="285" width="118" height="27" rx="5" fill="#22d3ee"/>
+  <text x="461" y="305" fill="#a5f3fc" font-family="monospace" font-size="14">1.236×</text>
+
+  <text x="55" y="365" fill="#e2e8f0" font-family="sans-serif" font-size="18" font-weight="700">rows 1024</text>
+  <text x="75" y="405" fill="#cbd5e1" font-family="sans-serif" font-size="14">Qwen QKV</text>
+  <rect x="330" y="385" width="195" height="27" rx="5" fill="#34d399"/>
+  <text x="538" y="405" fill="#a7f3d0" font-family="monospace" font-size="14">1.389×</text>
+  <text x="75" y="445" fill="#cbd5e1" font-family="sans-serif" font-size="14">Qwen gate/up</text>
+  <rect x="330" y="425" width="62" height="27" rx="5" fill="#22d3ee"/>
+  <text x="405" y="445" fill="#a5f3fc" font-family="monospace" font-size="14">1.124×</text>
+  <text x="75" y="485" fill="#cbd5e1" font-family="sans-serif" font-size="14">DeepSeek QKV</text>
+  <rect x="330" y="465" width="199" height="27" rx="5" fill="#34d399"/>
+  <text x="542" y="485" fill="#a7f3d0" font-family="monospace" font-size="14">1.397×</text>
+  <text x="75" y="525" fill="#cbd5e1" font-family="sans-serif" font-size="14">DeepSeek gate/up</text>
+  <rect x="330" y="505" width="112" height="27" rx="5" fill="#22d3ee"/>
+  <text x="455" y="525" fill="#a5f3fc" font-family="monospace" font-size="14">1.225×</text>
+
+  <text x="55" y="575" fill="#94a3b8" font-family="sans-serif" font-size="13">All 24 processes pass · complete-model length/batch matrix is the next gate</text>
+</svg>
