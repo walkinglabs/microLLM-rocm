@@ -304,6 +304,27 @@ TEST(CpuOpsTest, Fp32SolutionKeyFlattensExactBatchedDescriptorWithoutAllocation)
                  std::invalid_argument);
 }
 
+TEST(CpuOpsTest, Bf16GroupedQkvKeyIsShapeAndEnvironmentExact) {
+    const auto key = make_bf16_grouped_qkv_key(
+        512, 896, 896, 128, 128, Device::cpu());
+    EXPECT_EQ(key.rows, 512);
+    EXPECT_EQ(key.inner, 896);
+    EXPECT_EQ(key.query_columns, 896);
+    EXPECT_EQ(key.key_columns, 128);
+    EXPECT_EQ(key.value_columns, 128);
+    EXPECT_EQ(key.architecture, "host");
+    EXPECT_EQ(key.hip_runtime_version, 0);
+    EXPECT_EQ(key.hip_driver_version, 0);
+    EXPECT_EQ(key.hipblaslt_version, 0);
+    clear_bf16_grouped_qkv_registry();
+    EXPECT_EQ(bf16_grouped_qkv_stats().registered_entries, 0U);
+    EXPECT_THROW(register_bf16_grouped_qkv_algorithm(key, 64699),
+                 std::exception);
+    EXPECT_THROW((void)make_bf16_grouped_qkv_key(
+                     0, 896, 896, 128, 128, Device::hip()),
+                 std::exception);
+}
+
 TEST(CpuOpsTest, MatmulTuningCacheRoundTripsAndRejectsStaleCorruptData) {
     const auto directory = std::filesystem::temp_directory_path();
     const auto cache = directory / "microllm-matmul-tuning-cache-test.jsonl";

@@ -184,6 +184,18 @@ MHA/GQA, SwiGLU, AdamW, and a real K/V cache. Each row runs in a fresh Python pr
 See [PyTorch performance comparison](../docs/dev/pytorch-benchmark.md) for fairness,
 memory-counter, warm-up, and AMDSMI fallback rules.
 
+Probe BF16 GroupedGemm with the exact Qwen/DeepSeek T512 Q/K/V widths, including direct-FP32
+capability rejection, BF16-output casts, pointer-stable timing and per-call reinitialization:
+
+```bash
+python3 benchmarks/single_gpu/bf16_grouped_qkv_matrix.py \
+  --binary build/hip-release/benchmarks/microllm_bench_bf16_grouped_qkv \
+  --output-directory /tmp/microllm-bf16-grouped-qkv
+```
+
+Use `compare_bf16_grouped_qkv_models.py` for the complete-logit, throughput and peak-memory
+gate. Grouped plan indices are exact-environment experiments and are never selected by default.
+
 Capture HIP API, kernel, memory, and RCCL-ready runtime traces with the locally
 installed rocprofv3 interface:
 

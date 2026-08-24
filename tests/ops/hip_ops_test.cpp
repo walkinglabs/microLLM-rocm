@@ -473,6 +473,76 @@ TEST(HipBf16ProjectionTest, SharedQkvCastMatchesThreeCpuMixedGemms) {
     expect_near(value_output.to_vector(), actual.third.to_vector(), 0.0F);
 }
 
+TEST(HipBf16ProjectionTest, GroupedQkvCachesExactPointerStablePlan) {
+    require_gpu();
+    if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";
+    const auto gpu = Device::hip(0);
+    if (!runtime::device_info(gpu).architecture.starts_with("gfx942") ||
+        hipblaslt_version() != 10300) {
+        GTEST_SKIP() << "recorded grouped solution is local to gfx942 hipBLASLt 1.3.0";
+    }
+    constexpr std::int64_t rows = 512;
+    constexpr std::int64_t hidden = 896;
+    constexpr std::int64_t kv = 128;
+    Tensor input({rows, hidden}, DType::Float32, gpu);
+    Tensor query_weight({hidden, hidden}, DType::BFloat16, gpu);
+    Tensor key_weight({hidden, kv}, DType::BFloat16, gpu);
+    Tensor value_weight({hidden, kv}, DType::BFloat16, gpu);
+    fill_(input, 0.01F);
+    fill_(query_weight, 0.01F);
+    fill_(key_weight, 0.02F);
+    fill_(value_weight, -0.01F);
+    const auto workspace = [&] {
+        return Bf16QkvWorkspace{
+            .input_bf16 = Tensor({rows, hidden}, DType::BFloat16, gpu),
+            .query_fallback_bf16 = Tensor({rows, hidden}, DType::BFloat16, gpu),
+            .key_fallback_bf16 = Tensor({rows, kv}, DType::BFloat16, gpu),
+            .value_fallback_bf16 = Tensor({rows, kv}, DType::BFloat16, gpu)};
+    };
+    auto baseline_workspace = workspace();
+    Tensor baseline_query({rows, hidden}, DType::Float32, gpu);
+    Tensor baseline_key({rows, kv}, DType::Float32, gpu);
+    Tensor baseline_value({rows, kv}, DType::Float32, gpu);
+    clear_bf16_grouped_qkv_registry();
+    bf16_qkv_projection_out_(
+        baseline_query, baseline_key, baseline_value, baseline_workspace,
+        input, query_weight, key_weight, value_weight);
+
+    auto key = make_bf16_grouped_qkv_key(
+        rows, hidden, hidden, kv, kv, gpu);
+    auto stale = key;
+    ++stale.hip_driver_version;
+    EXPECT_THROW(register_bf16_grouped_qkv_algorithm(stale, 64699),
+                 std::invalid_argument);
+    register_bf16_grouped_qkv_algorithm(key, 64699);
+    auto candidate_workspace = workspace();
+    Tensor candidate_query({rows, hidden}, DType::Float32, gpu);
+    Tensor candidate_key({rows, kv}, DType::Float32, gpu);
+    Tensor candidate_value({rows, kv}, DType::Float32, gpu);
+    runtime::reset_transfer_stats();
+    for (int iteration = 0; iteration < 2; ++iteration) {
+        bf16_qkv_projection_out_(
+            candidate_query, candidate_key, candidate_value,
+            candidate_workspace, input, query_weight, key_weight,
+            value_weight);
+    }
+    runtime::synchronize(gpu);
+    const auto stats = bf16_grouped_qkv_stats();
+    EXPECT_EQ(stats.registered_entries, 1U);
+    EXPECT_EQ(stats.plan_entries, 1U);
+    EXPECT_EQ(stats.plan_misses, 1U);
+    EXPECT_EQ(stats.plan_hits, 1U);
+    EXPECT_EQ(stats.dispatches, 2U);
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    expect_near(candidate_query.to_vector(), baseline_query.to_vector(), 1.0e-2F);
+    expect_near(candidate_key.to_vector(), baseline_key.to_vector(), 1.0e-2F);
+    expect_near(candidate_value.to_vector(), baseline_value.to_vector(), 1.0e-2F);
+    clear_bf16_grouped_qkv_registry();
+    EXPECT_EQ(bf16_grouped_qkv_stats().registered_entries, 0U);
+}
+
 TEST(HipBf16PlanCacheTest, ExactShapeMissesOnceThenReusesImmutableDescriptors) {
     require_gpu();
     if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";

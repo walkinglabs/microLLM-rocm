@@ -89,6 +89,7 @@ struct Options {
     bool trace_all_layer_details = false;
     std::string trace_value_filter;
     int bf16_algorithm_index = -1;
+    int bf16_grouped_qkv_algorithm_index = -1;
     int fp32_attention_qk_solution_index = -1;
     int fp32_attention_pv_solution_index = -1;
     bool allocation_source_diagnostics = false;
@@ -275,6 +276,10 @@ Options options(int argc, char** argv) {
         }
         else if (name == "--bf16-algorithm-index") {
             result.bf16_algorithm_index = std::stoi(argv[index + 1]);
+        }
+        else if (name == "--bf16-grouped-qkv-algorithm-index") {
+            result.bf16_grouped_qkv_algorithm_index =
+                std::stoi(argv[index + 1]);
         }
         else if (name == "--fp32-attention-qk-solution-index") {
             result.fp32_attention_qk_solution_index =
@@ -488,6 +493,13 @@ Options options(int argc, char** argv) {
          (result.workload != "prefill" || !result.bf16_ffn))) {
         throw std::invalid_argument(
             "--bf16-algorithm-index requires BF16 FFN prefill workload");
+    }
+    if (result.bf16_grouped_qkv_algorithm_index < -1 ||
+        (result.bf16_grouped_qkv_algorithm_index >= 0 &&
+         (result.device != "hip" || result.workload != "prefill" ||
+          !result.bf16_qkv_arena))) {
+        throw std::invalid_argument(
+            "--bf16-grouped-qkv-algorithm-index requires HIP prefill and QKV Arena");
     }
     const auto fp32_attention_solution_requested =
         result.fp32_attention_qk_solution_index >= 0 ||
@@ -1149,6 +1161,16 @@ int main(int argc, char** argv) {
                 microllm::DType::BFloat16,
                 command.bf16_algorithm_index);
         }
+        if (command.bf16_grouped_qkv_algorithm_index >= 0) {
+            microllm::ops::clear_bf16_grouped_qkv_registry();
+            const auto key = microllm::ops::make_bf16_grouped_qkv_key(
+                command.batch * static_cast<std::int64_t>(ids.size()),
+                external.model.dimension, external.model.dimension,
+                external.model.kv_dimension(), external.model.kv_dimension(),
+                device);
+            microllm::ops::register_bf16_grouped_qkv_algorithm(
+                key, command.bf16_grouped_qkv_algorithm_index);
+        }
         if (command.fp32_attention_qk_solution_index >= 0 ||
             command.fp32_attention_pv_solution_index >= 0) {
             microllm::ops::clear_fp32_matmul_solution_registry();
@@ -1781,6 +1803,8 @@ int main(int argc, char** argv) {
         const auto measured_transfers = microllm::runtime::transfer_stats();
         const auto fp32_solution_stats =
             microllm::ops::fp32_matmul_solution_stats();
+        const auto grouped_qkv_stats =
+            microllm::ops::bf16_grouped_qkv_stats();
         if (!command.cache_logits_output.empty()) {
             const auto cache_logits = cache_logits_evidence.to_vector();
             std::ofstream output(command.cache_logits_output,
@@ -1802,6 +1826,18 @@ int main(int argc, char** argv) {
                   << trace_record_count
                   << ",\"bf16_algorithm_index\":"
                   << command.bf16_algorithm_index
+                  << ",\"bf16_grouped_qkv_algorithm_index\":"
+                  << command.bf16_grouped_qkv_algorithm_index
+                  << ",\"bf16_grouped_qkv_registered_entries\":"
+                  << grouped_qkv_stats.registered_entries
+                  << ",\"bf16_grouped_qkv_plan_entries\":"
+                  << grouped_qkv_stats.plan_entries
+                  << ",\"bf16_grouped_qkv_plan_hits\":"
+                  << grouped_qkv_stats.plan_hits
+                  << ",\"bf16_grouped_qkv_plan_misses\":"
+                  << grouped_qkv_stats.plan_misses
+                  << ",\"bf16_grouped_qkv_dispatches\":"
+                  << grouped_qkv_stats.dispatches
                   << ",\"fp32_attention_qk_solution_index\":"
                   << command.fp32_attention_qk_solution_index
                   << ",\"fp32_attention_pv_solution_index\":"

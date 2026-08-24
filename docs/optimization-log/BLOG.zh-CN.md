@@ -3213,3 +3213,23 @@ Qwen的QK/PV/both只有1.009×/1.004×/1.008×，DeepSeek为0.999×/1.003×/1.00
 枚举编号，而要用profile选择更大的融合区域，把scale、softmax或layout的一部分也从提交路径中拿掉。
 
 ![FP32 Attention complete-model gate](assets/fp32-attention-model-gate.svg)
+
+## 207. Experiment 190：GroupedGemm 快不快，取决于指针会不会动
+
+整进程trace一开始说BF16 weight cast占36%/59%，但那是只做一次的准备。我们改成
+`load+6 prefill - load+1 prefill`，再除以5。真正每次forward里，GEMM占Qwen 53.6%、
+DeepSeek 61.9%；DeepSeek单是84次Q/K/V投影就用掉2.661ms。
+
+Experiment 13在M=1 FP32没有GroupedGemm heuristic，但它明确留下“BF16、大M再试”。T512时，
+直接grouped FP32输出仍然0支持；grouped BF16输出有10,227个候选。筛前16个以后，稳定指针的
+Qwen/DeepSeek Event达到1.881×/1.225×，输出误差只有2.44e-4以内。
+
+反例同样重要：每次重新`setProblem+initialize`只有0.908×/0.815×。所以我们没有写一个普通函数
+假装少两次launch就会快，而是把shape、环境、device、Stream和全部指针放进plan key。QKV Arena
+稳定输入/输出地址，每个block因权重地址不同建立一份plan。
+
+完整12进程结果再次分叉。Qwen为1.0317×，DeepSeek只有1.0015×；logits Max/RMS分别
+0.09360/0.01978和0.06300/0.02044，top token一致，peak增加0.34%/0.17%。于是primitive keep，
+默认策略discard。现在不能写`if (model == qwen)`；需要更多checkpoint证明hidden或宽度规则。
+
+![BF16 grouped QKV](assets/bf16-grouped-qkv.svg)

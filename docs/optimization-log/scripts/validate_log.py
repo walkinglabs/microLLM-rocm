@@ -8692,6 +8692,137 @@ def validate_fp32_attention_model_gate(
         min(speedups, default=0.0), max(speedups, default=0.0)
 
 
+def validate_bf16_grouped_qkv(
+        errors: list[str]) -> tuple[int, int, float, float]:
+    data = REPOSITORY / "benchmarks/results/2026-08-24-bf16-grouped-qkv"
+    operator = json.loads((data / "operator-summary.json").read_text(
+        encoding="utf-8"))
+    model = json.loads((data / "model-summary.json").read_text(
+        encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    operator_raw = [json.loads(line) for line in
+                    (data / "operator-raw.jsonl").read_text(
+                        encoding="utf-8").splitlines() if line.strip()]
+    model_raw = [json.loads(line) for line in
+                 (data / "model-raw.jsonl").read_text(
+                     encoding="utf-8").splitlines() if line.strip()]
+    qwen_profile = json.loads((data / "qwen-profile-delta.json").read_text(
+        encoding="utf-8"))
+    deep_profile = json.loads((data / "deepseek-profile-delta.json").read_text(
+        encoding="utf-8"))
+    operator_rows = {row.get("model"): row
+                     for row in operator.get("comparisons", [])}
+    model_rows = {row.get("model"): row
+                  for row in model.get("comparisons", [])}
+    expected_operator = {
+        "qwen": (1.880722645889, 0.908366288583, {64699, 64700}),
+        "deepseek": (1.224754597791, 0.814856662631, {64701}),
+    }
+    expected_model = {
+        "qwen2.5-0.5b": (1.0316563751060652, 24, 144, 24, 168),
+        "deepseek-r1-distill-qwen-1.5b":
+            (1.0014549014359095, 28, 168, 28, 196),
+    }
+    expected_tests = {
+        "cpu_debug": {"passed": 297, "total": 297},
+        "asan_ubsan": {"passed": 295, "total": 295},
+        "pytorch_enabled_cpu": {"passed": 271, "total": 271},
+        "hip_full_configuration": {
+            "passed": 465, "total": 465, "conditional_skips": 3},
+        "hip_label": {"passed": 158, "total": 158},
+        "rccl_multi_gpu": {"passed": 12, "total": 12},
+        "rccl_full_label": {"passed": 14, "total": 14},
+    }
+    operator_counts = {(model_name, mode): 0 for model_name in ("qwen", "deepseek")
+                       for mode in ("model", "fp32")}
+    for row in operator_raw:
+        key = (row.get("model"), row.get("output_dtype"))
+        if key in operator_counts:
+            operator_counts[key] += 1
+    model_counts = {(model_name, policy): 0 for model_name in expected_model
+                    for policy in ("baseline", "grouped")}
+    for row in model_raw:
+        key = (row.get("model"), row.get("policy"))
+        if key in model_counts:
+            model_counts[key] += 1
+    profile_ok = all(
+        profile.get("status") == "pass" and
+        profile.get("track") == "inference_prefill_kernel_phase_delta" and
+        profile.get("derived_steps") == 5 and
+        profile.get("categories", [{}])[0].get("category") ==
+            "hipBLASLt GEMM" and
+        0.53 <= float(profile.get("categories", [{}])[0].get(
+            "kernel_share", 0.0)) <= 0.63
+        for profile in (qwen_profile, deep_profile))
+    if operator.get("status") != "pass" or len(operator_raw) != 12 or \
+            operator.get("raw_processes") != 12 or \
+            operator.get("direct_fp32_unsupported_rows") != 6 or \
+            operator.get("operator_keep") is not True or \
+            set(operator_rows) != set(expected_operator) or \
+            any(abs(float(row.get("event_speedup_median", 0.0)) -
+                    expected_operator[name][0]) > 1.0e-9 or
+                abs(float(row.get("reinitialized_event_speedup_median", 0.0)) -
+                    expected_operator[name][1]) > 1.0e-9 or
+                set(row.get("solution_indices", [])) !=
+                    expected_operator[name][2] or
+                row.get("passing_candidates") != 16 or
+                float(row.get("maximum_absolute_error", 1.0)) > 2.5e-4 or
+                row.get("workspace_bytes") != 720
+                for name, row in operator_rows.items()) or \
+            any(count != 3 for count in operator_counts.values()) or \
+            model.get("status") != "pass" or len(model_raw) != 12 or \
+            model.get("raw_processes") != 12 or \
+            model.get("correctness_gate") is not True or \
+            model.get("performance_gate") is not False or \
+            model.get("memory_gate") is not True or \
+            model.get("keep_default") is not False or \
+            set(model_rows) != set(expected_model) or \
+            any(abs(float(row.get("grouped_speedup", 0.0)) -
+                    expected_model[name][0]) > 1.0e-9 or
+                row.get("grouped_plan_entries") != expected_model[name][1] or
+                row.get("grouped_plan_hits") != expected_model[name][2] or
+                row.get("grouped_plan_misses") != expected_model[name][3] or
+                row.get("grouped_dispatches") != expected_model[name][4] or
+                row.get("finite_complete_logits") is not True or
+                row.get("top_tokens_equal") is not True or
+                float(row.get("maximum_absolute_logit_difference", 1.0)) > 0.1 or
+                float(row.get("maximum_rms_logit_difference", 1.0)) > 0.021 or
+                float(row.get("peak_ratio", 2.0)) > 1.005 or
+                row.get("grouped_engine_allocation_calls", 0) >=
+                    row.get("baseline_engine_allocation_calls", 0)
+                for name, row in model_rows.items()) or \
+            any(count != 3 for count in model_counts.values()) or \
+            not profile_ok or verification.get("status") != "pass" or \
+            verification.get("tests") != expected_tests or \
+            verification.get("registered_test_files") != 70 or \
+            verification.get("operator_processes") != 12 or \
+            verification.get("model_processes") != 12:
+        errors.append("BF16 grouped QKV evidence changed")
+    header = (REPOSITORY / "include/microllm/ops/ops.h").read_text(
+        encoding="utf-8")
+    source = (REPOSITORY / "src/ops/optimized.cpp").read_text(encoding="utf-8")
+    cli = (REPOSITORY / "apps/hf_infer.cpp").read_text(encoding="utf-8")
+    benchmark = (REPOSITORY / "benchmarks/micro/"
+                 "benchmark_bf16_grouped_qkv.cpp").read_text(encoding="utf-8")
+    tests = (REPOSITORY / "tests/ops/hip_ops_test.cpp").read_text(
+        encoding="utf-8")
+    for token, document in (
+            ("struct Bf16GroupedQkvKey", header),
+            ("class Bf16GroupedQkvPlan", source),
+            ("try_bf16_grouped_qkv", source),
+            ("--bf16-grouped-qkv-algorithm-index", cli),
+            ("reinitialized_event_speedup", benchmark),
+            ("GroupedQkvCachesExactPointerStablePlan", tests)):
+        if token not in document:
+            errors.append("BF16 grouped QKV source/test contract changed")
+            break
+    model_speedups = [float(row.get("grouped_speedup", 0.0))
+                      for row in model_rows.values()]
+    return len(operator_raw), len(model_raw), \
+        min(model_speedups, default=0.0), max(model_speedups, default=0.0)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -9185,6 +9316,8 @@ def main() -> int:
         fp32_attention_maximum = validate_fp32_attention_solutions(errors)
     fp32_model_rows, fp32_model_exact, fp32_model_minimum, \
         fp32_model_maximum = validate_fp32_attention_model_gate(errors)
+    grouped_qkv_operator, grouped_qkv_model, grouped_qkv_minimum, \
+        grouped_qkv_maximum = validate_bf16_grouped_qkv(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -9456,6 +9589,8 @@ def main() -> int:
           f"{fp32_attention_minimum:.3f}/{fp32_attention_maximum:.3f} "
           f"fp32_attention_model={fp32_model_rows}/{fp32_model_exact}/"
           f"{fp32_model_minimum:.3f}/{fp32_model_maximum:.3f} "
+          f"bf16_grouped_qkv={grouped_qkv_operator}/{grouped_qkv_model}/"
+          f"{grouped_qkv_minimum:.3f}/{grouped_qkv_maximum:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

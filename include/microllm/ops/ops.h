@@ -72,6 +72,28 @@ struct Bf16PlanCacheStats {
     std::size_t misses = 0;
 };
 
+struct Bf16GroupedQkvKey {
+    std::int64_t rows = 0;
+    std::int64_t inner = 0;
+    std::int64_t query_columns = 0;
+    std::int64_t key_columns = 0;
+    std::int64_t value_columns = 0;
+    std::string architecture;
+    int hip_runtime_version = 0;
+    int hip_driver_version = 0;
+    int hipblaslt_version = 0;
+
+    auto operator<=>(const Bf16GroupedQkvKey&) const = default;
+};
+
+struct Bf16GroupedQkvStats {
+    std::size_t registered_entries = 0;
+    std::size_t plan_entries = 0;
+    std::size_t plan_hits = 0;
+    std::size_t plan_misses = 0;
+    std::size_t dispatches = 0;
+};
+
 // Exact hipBLASLt descriptor/environment identity for an explicitly accepted
 // FP32 solution index. Leading batch dimensions are flattened exactly as the
 // backend sees them; only contiguous operands are supported by this registry.
@@ -316,6 +338,14 @@ void add_in_place_(Tensor& destination, const Tensor& source,
 [[nodiscard]] int hipblaslt_version() noexcept;
 [[nodiscard]] Bf16PlanCacheStats bf16_plan_cache_stats() noexcept;
 void clear_bf16_plan_cache() noexcept;
+[[nodiscard]] Bf16GroupedQkvKey make_bf16_grouped_qkv_key(
+    std::int64_t rows, std::int64_t inner,
+    std::int64_t query_columns, std::int64_t key_columns,
+    std::int64_t value_columns, Device device);
+void register_bf16_grouped_qkv_algorithm(
+    const Bf16GroupedQkvKey& key, int solution_index);
+void clear_bf16_grouped_qkv_registry() noexcept;
+[[nodiscard]] Bf16GroupedQkvStats bf16_grouped_qkv_stats() noexcept;
 void enable_attention_layout_plan_cache(bool enabled) noexcept;
 [[nodiscard]] bool attention_layout_plan_cache_enabled() noexcept;
 [[nodiscard]] AttentionLayoutPlanCacheStats

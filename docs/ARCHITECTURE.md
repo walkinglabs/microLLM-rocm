@@ -391,6 +391,20 @@ the fastest approximate QK candidates accumulated visible complete-model error, 
 bit-exact candidates preserved every logit but failed the joint 1.01 end-to-end threshold. The CLI
 therefore exposes explicit QK/PV indices for controlled experiments and installs none by default.
 
+### Pointer-stable BF16 grouped QKV
+
+The BF16 QKV Arena exposes one shared input cast buffer, three BF16 fallback buffers and three
+FP32 outputs with stable addresses. An optional GroupedGemm plan binds those buffers plus one
+block's three persistent weight pointers. Its cache key includes exact dimensions, backend
+environment, device, Stream and every bound pointer; different Transformer blocks deliberately
+own different plans even though they share Arena output addresses.
+
+The backend does not support direct grouped FP32 output for the official shapes. The grouped plan
+writes BF16 and then runs three explicit casts into the existing FP32 boundary. Descriptor setup is
+more expensive than three ordinary submissions, so a plan may be used only after its pointer set is
+stable. Experiment 190 retains this as an explicit exact-shape capability but rejects the default
+because only Qwen, not DeepSeek, clears the end-to-end 1.01 gate.
+
 ## Stable integration boundary
 
 The long-term integration seam is a C-compatible descriptor plus explicit stream

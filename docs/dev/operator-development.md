@@ -48,6 +48,12 @@ environment identity. `register_fp32_matmul_solution` is thread-local and explic
 `fp32_matmul_solution_stats()` to prove a candidate actually dispatched; zero hits are not a
 performance result. Even a bit-exact operator candidate still needs complete-model throughput and
 peak-memory gates before any default can change.
+BF16 GroupedQKV has an even stricter lifetime rule: `GroupedGemm::initialize` binds every pointer.
+Use it only through `bf16_qkv_projection_out_` with caller-owned stable buffers. The exact cache key
+must include all three weights, BF16 intermediates, FP32 outputs, device and Stream. Timing only
+`run()` is valid for a cache hit; a separate reinitialized measurement must prove why cacheability
+is required. Direct grouped FP32-output rejection must remain visible rather than silently changing
+the precision boundary.
 - readable HIP launch declarations: `src/ops/hip/kernels.h`;
 - optimized matmul policy: `src/ops/optimized.cpp`;
 - correctness-first matmul/AdamW tuners: `src/ops/tuning.cpp` and

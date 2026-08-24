@@ -224,6 +224,14 @@ the two-model 1.01 gate. Exact registry infrastructure remains, all defaults rem
 another index sweep is closed. A future Attention compute retry must fuse a larger surrounding
 region or present a new profile-selected mechanism.
 
+Experiment 190 uses a new phase-delta trace rather than the misleading whole-process profile.
+Incremental GEMMs are 53.6%/61.9% of Qwen/DeepSeek T512 Kernel time. BF16 grouped QKV is available
+only with BF16 outputs; pointer-stable cached plans improve operator Event 1.881×/1.225×, while
+per-call initialization is 0.908×/0.815×. Complete models stay within the declared BF16 envelope,
+but Qwen/DeepSeek reach 1.032×/1.001× and peak rises 0.34%/0.17%. The explicit primitive remains;
+the two-model default and any model-name dispatch are closed. A shape policy needs additional
+checkpoints before it becomes a distinct hypothesis.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

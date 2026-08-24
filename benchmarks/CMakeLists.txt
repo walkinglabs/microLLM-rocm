@@ -34,6 +34,10 @@ if(MICROLLM_HAS_HIP AND MICROLLM_HAS_HIPBLASLT)
                    micro/tune_fp32_attention_algorithms.cpp)
     target_link_libraries(microllm_tune_fp32_attention_algorithms PRIVATE
         microllm::core microllm::runtime hip::host roc::hipblaslt)
+    add_executable(microllm_bench_bf16_grouped_qkv
+                   micro/benchmark_bf16_grouped_qkv.cpp)
+    target_link_libraries(microllm_bench_bf16_grouped_qkv PRIVATE
+        microllm::ops microllm::runtime hip::host roc::hipblaslt)
     add_executable(microllm_bench_bf16_arena_ffn
                    single_gpu/benchmark_bf16_arena_ffn.cpp)
     target_link_libraries(microllm_bench_bf16_arena_ffn PRIVATE
@@ -333,6 +337,14 @@ if(BUILD_TESTING)
                              --warmup 0 --repetitions 1)
             set_tests_properties(Benchmark.HipFp32AttentionSolutionTune PROPERTIES
                                  LABELS "hip;benchmark;attention;matmul;solution;correctness;smoke")
+            add_test(NAME Benchmark.HipBf16GroupedQkvProbe
+                     COMMAND microllm_bench_bf16_grouped_qkv
+                             --model qwen --rows 32 --workspace-bytes 33554432
+                             --output-dtype model --equal-width false
+                             --maximum-algorithms 4
+                             --warmup 0 --repetitions 1)
+            set_tests_properties(Benchmark.HipBf16GroupedQkvProbe PROPERTIES
+                                 LABELS "hip;benchmark;matmul;bf16;grouped;correctness;smoke")
         endif()
         add_test(NAME Benchmark.HipGenerateSmoke
                  COMMAND microllm_bench_model --mode generate --model tiny --device hip

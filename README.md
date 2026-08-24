@@ -167,6 +167,9 @@ needed to run a real training and generation loop:
   architecture and backend versions, then verifies support on first dispatch; 24-process official
   T512 gating is bit-exact with unchanged peak, but QK/PV/both reach at most `1.009×` Qwen and
   `1.004×` DeepSeek, so every solution policy remains explicit and default-off;
+- pointer-stable BF16 GroupedGemm submits Q/K/V together through exact per-block cached plans;
+  operator Event improves `1.881×/1.225×`, but official T512 reaches `1.032×` Qwen and only
+  `1.001×` DeepSeek with 0.34%/0.17% peak cost, so the explicit primitive stays default-off;
 - a phase-independent exact-size HIP pool with immediate legacy-default-Stream reuse and strict
   permanent disablement for non-default Streams;
 - a cross-framework trace runner for operator/layer values and latency comparisons.
@@ -516,13 +519,13 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 460/460 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
-| CPU Debug | 294/294 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
-| ASan/UBSan CPU | 292/292 | host lifetime, external Storage and instrumented-package linking |
-| MI300X/gfx942 HIP label | 156/156 | allocator/arena/Stream/Graph, exact vendor solutions, BF16/FP8 and model paths |
-| PyTorch-enabled CPU build | 268/268 | dispatcher parity, full graph/model oracle and all package paths |
+| Full CPU/HIP configuration | 465/465 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
+| CPU Debug | 297/297 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
+| ASan/UBSan CPU | 295/295 | host lifetime, external Storage and instrumented-package linking |
+| MI300X/gfx942 HIP label | 158/158 | allocator/arena/Stream/Graph, grouped/exact vendor solutions, BF16/FP8 and model paths |
+| PyTorch-enabled CPU build | 271/271 | dispatcher parity, full graph/model oracle and all package paths |
 | Multi-GPU/RCCL | 12/12 | collectives, global-batch equivalence, gradient buckets, DDP trainer/CLI and per-device hipBLASLt ownership |
-| Registered test files | 68 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| Registered test files | 70 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
 | CPU source coverage | 80.4% lines / 89.3% functions / 61.4% branches | 7,782/9,678 lines; GCC 13.3 + gcovr 8.3 |
 

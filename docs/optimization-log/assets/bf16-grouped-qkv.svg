@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="560" viewBox="0 0 1000 560" role="img" aria-labelledby="title desc">
+  <title id="title">BF16 grouped QKV operator and complete-model speedups</title>
+  <desc id="desc">Pointer-stable grouped QKV is fast as an operator; Qwen passes the model gate while DeepSeek remains nearly neutral.</desc>
+  <rect width="1000" height="560" fill="#0b1020"/>
+  <text x="55" y="48" fill="#f8fafc" font-family="sans-serif" font-size="28" font-weight="700">Experiment 190 · BF16 grouped QKV</text>
+  <text x="55" y="78" fill="#94a3b8" font-family="sans-serif" font-size="15">T512 B1 · median of 3 fresh processes · complete-model BF16 precision gate</text>
+
+  <text x="55" y="128" fill="#e2e8f0" font-family="sans-serif" font-size="19" font-weight="700">Pointer-stable operator Event speedup</text>
+  <rect x="220" y="152" width="611" height="28" rx="6" fill="#38bdf8"/>
+  <text x="55" y="173" fill="#cbd5e1" font-family="sans-serif" font-size="16">Qwen</text>
+  <text x="845" y="173" fill="#e0f2fe" font-family="monospace" font-size="16">1.881×</text>
+  <rect x="220" y="196" width="398" height="28" rx="6" fill="#38bdf8"/>
+  <text x="55" y="217" fill="#cbd5e1" font-family="sans-serif" font-size="16">DeepSeek</text>
+  <text x="632" y="217" fill="#e0f2fe" font-family="monospace" font-size="16">1.225×</text>
+  <text x="220" y="247" fill="#fda4af" font-family="sans-serif" font-size="14">Reinitialize every call: 0.908× / 0.815× — stable pointers are required</text>
+
+  <text x="55" y="302" fill="#e2e8f0" font-family="sans-serif" font-size="19" font-weight="700">Complete-model prefill speedup</text>
+  <line x1="220" y1="325" x2="220" y2="450" stroke="#e2e8f0" stroke-width="2"/>
+  <line x1="420" y1="325" x2="420" y2="450" stroke="#f59e0b" stroke-width="2" stroke-dasharray="8 7"/>
+  <text x="195" y="318" fill="#cbd5e1" font-family="sans-serif" font-size="13">1.00×</text>
+  <text x="390" y="318" fill="#fbbf24" font-family="sans-serif" font-size="13">1.01× gate</text>
+  <line x1="220" y1="355" x2="854" y2="355" stroke="#34d399" stroke-width="28" stroke-linecap="round"/>
+  <text x="55" y="362" fill="#cbd5e1" font-family="sans-serif" font-size="16">Qwen</text>
+  <text x="870" y="362" fill="#a7f3d0" font-family="monospace" font-size="16">1.0317×</text>
+  <line x1="220" y1="410" x2="250" y2="410" stroke="#38bdf8" stroke-width="28" stroke-linecap="round"/>
+  <text x="55" y="417" fill="#cbd5e1" font-family="sans-serif" font-size="16">DeepSeek</text>
+  <text x="268" y="417" fill="#e0f2fe" font-family="monospace" font-size="16">1.0015×</text>
+
+  <rect x="55" y="475" width="890" height="56" rx="10" fill="#172033" stroke="#334155"/>
+  <text x="75" y="499" fill="#a7f3d0" font-family="sans-serif" font-size="14">Correctness: finite, top tokens equal, Max/RMS inside BF16 envelope</text>
+  <text x="75" y="520" fill="#fda4af" font-family="sans-serif" font-size="14">Decision: explicit primitive keep · two-model default discard</text>
+</svg>

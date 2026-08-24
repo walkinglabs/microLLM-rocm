@@ -141,6 +141,10 @@ int main() {
     microllm::ops::clear_fp32_matmul_solution_registry();
     const auto fp32_solution_stats =
         microllm::ops::fp32_matmul_solution_stats();
+    const auto grouped_qkv_key = microllm::ops::make_bf16_grouped_qkv_key(
+        512, 896, 896, 128, 128, device);
+    microllm::ops::clear_bf16_grouped_qkv_registry();
+    const auto grouped_qkv_stats = microllm::ops::bf16_grouped_qkv_stats();
     bool rejected_cpu_tuning = false;
     bool rejected_cpu_adamw_tuning = false;
     try {
@@ -190,6 +194,8 @@ int main() {
         fp32_solution_key.batches != 2 ||
         fp32_solution_key.output_columns != 4 ||
         fp32_solution_stats.registered_entries != 0 ||
+        grouped_qkv_key.rows != 512 || grouped_qkv_key.key_columns != 128 ||
+        grouped_qkv_stats.registered_entries != 0 ||
         !microllm::autograd::attention_rope_layout_fusion_enabled() ||
         microllm::autograd::unique_gradient_inplace_add_enabled() ||
         !rejected_cpu_tuning || !rejected_cpu_adamw_tuning) return 1;

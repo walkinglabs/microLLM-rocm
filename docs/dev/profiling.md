@@ -360,6 +360,24 @@ and reports `fp32_solution_*` registry/cache/dispatch counters. The binary accep
 `--fp32-attention-qk-solution-index` and `--fp32-attention-pv-solution-index` only for explicit HIP
 prefill experiments. No index is selected by default.
 
+BF16 grouped QKV operator and model gates:
+
+```bash
+python3 benchmarks/single_gpu/bf16_grouped_qkv_matrix.py \
+  --binary build/hip-release/benchmarks/microllm_bench_bf16_grouped_qkv \
+  --output-directory /tmp/microllm-bf16-grouped-qkv
+
+python3 benchmarks/single_gpu/compare_bf16_grouped_qkv_models.py \
+  --manifest /absolute/path/to/hf-models.json \
+  --binary build/hip-release/apps/microllm_hf_infer \
+  --output-directory /tmp/microllm-bf16-grouped-qkv-models
+```
+
+The first reports pointer-stable and per-call-reinitialized timing separately. The second requires
+QKV Arena, checks complete logits/top tokens, plan hit/miss/dispatch counters, throughput and peak.
+`--bf16-grouped-qkv-algorithm-index` is an explicit experiment flag; default inference registers
+no grouped plan.
+
 ## What remains
 
 There is no Python `@profile` decorator yet. The current stable entry points are the

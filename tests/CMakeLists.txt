@@ -210,6 +210,20 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.Fp32AttentionSolutionModelsContract PROPERTIES
         LABELS "cpu;benchmark;model;inference;attention;matmul;solution;schema")
     add_test(
+        NAME Benchmark.Bf16GroupedQkvMatrixContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_bf16_grouped_qkv_matrix.py
+    )
+    set_tests_properties(Benchmark.Bf16GroupedQkvMatrixContract PROPERTIES
+        LABELS "cpu;benchmark;model;inference;bf16;matmul;grouped;schema")
+    add_test(
+        NAME Benchmark.Bf16GroupedQkvModelsContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_bf16_grouped_qkv_models.py
+    )
+    set_tests_properties(Benchmark.Bf16GroupedQkvModelsContract PROPERTIES
+        LABELS "cpu;benchmark;model;inference;bf16;matmul;grouped;memory;schema")
+    add_test(
         NAME Coverage.OperatorAndTestFiles
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/audit_test_coverage.py
     )

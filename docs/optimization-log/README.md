@@ -742,6 +742,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/188-fp32-attention-solutions.md](experiments/188-fp32-attention-solutions.md) | 12进程、64共同候选与完整输出门 |
 | [assets/fp32-attention-model-gate.svg](assets/fp32-attention-model-gate.svg) | QK/PV/both整模速度与bit-exact门 |
 | [experiments/189-fp32-attention-model-gate.md](experiments/189-fp32-attention-model-gate.md) | 精确注册、24进程与默认策略拒绝 |
+| [assets/bf16-grouped-qkv.svg](assets/bf16-grouped-qkv.svg) | pointer-stable算子收益与两模型整模分叉 |
+| [experiments/190-bf16-grouped-qkv.md](experiments/190-bf16-grouped-qkv.md) | phase delta、24进程、plan cache与默认拒绝 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

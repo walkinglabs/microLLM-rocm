@@ -43,6 +43,10 @@ thread_local std::size_t fp32_solution_registry_misses = 0;
 thread_local std::size_t fp32_solution_cache_hits = 0;
 thread_local std::size_t fp32_solution_cache_misses = 0;
 thread_local std::size_t fp32_solution_dispatches = 0;
+thread_local std::map<Bf16GroupedQkvKey, int> bf16_grouped_qkv_registry;
+thread_local std::size_t bf16_grouped_qkv_plan_hits = 0;
+thread_local std::size_t bf16_grouped_qkv_plan_misses = 0;
+thread_local std::size_t bf16_grouped_qkv_dispatches = 0;
 
 struct TuningEnvironment {
     std::string architecture;
@@ -154,6 +158,15 @@ void validate_fp32_solution_key(const Fp32MatmulSolutionKey& key) {
                                        "FP32 output batch stride")) {
         throw std::invalid_argument(
             "FP32 solution key does not describe one exact contiguous GEMM");
+    }
+}
+
+void validate_bf16_grouped_qkv_key(const Bf16GroupedQkvKey& key) {
+    if (key.rows <= 0 || key.inner <= 0 || key.query_columns <= 0 ||
+        key.key_columns <= 0 || key.value_columns <= 0 ||
+        key.architecture.empty() || key.hip_runtime_version < 0 ||
+        key.hip_driver_version < 0 || key.hipblaslt_version <= 0) {
+        throw std::invalid_argument("BF16 grouped QKV key is incomplete");
     }
 }
 
@@ -370,6 +383,26 @@ int hipblaslt_version() noexcept {
 #else
     return 0;
 #endif
+}
+
+Bf16GroupedQkvKey make_bf16_grouped_qkv_key(
+    std::int64_t rows, std::int64_t inner,
+    std::int64_t query_columns, std::int64_t key_columns,
+    std::int64_t value_columns, Device device) {
+    const auto environment = tuning_environment(device);
+    Bf16GroupedQkvKey key{
+        .rows = rows,
+        .inner = inner,
+        .query_columns = query_columns,
+        .key_columns = key_columns,
+        .value_columns = value_columns,
+        .architecture = environment.architecture,
+        .hip_runtime_version = environment.runtime_version,
+        .hip_driver_version = environment.driver_version,
+        .hipblaslt_version = device.is_hip() ? hipblaslt_version() : 0,
+    };
+    if (device.is_hip()) validate_bf16_grouped_qkv_key(key);
+    return key;
 }
 
 Fp32MatmulSolutionKey make_fp32_matmul_solution_key(
@@ -908,6 +941,155 @@ const hipblasLtMatmulAlgo_t* registered_fp32_solution(
     }
     throw std::invalid_argument(
         "registered FP32 solution does not support the exact descriptor");
+}
+
+using Bf16GroupedQkvPlanKey = std::tuple<
+    Bf16GroupedQkvKey, int, std::uintptr_t, std::uintptr_t, std::uintptr_t,
+    std::uintptr_t, std::uintptr_t, std::uintptr_t, std::uintptr_t,
+    std::uintptr_t, std::uintptr_t, std::uintptr_t, std::uintptr_t>;
+
+class Bf16GroupedQkvPlan {
+public:
+    Bf16GroupedQkvPlan(
+        Handle& handle, const Bf16GroupedQkvKey& key, int solution_index,
+        const Tensor& input_bf16, const Tensor& query_weight_bf16,
+        const Tensor& key_weight_bf16, const Tensor& value_weight_bf16,
+        Tensor& query_bf16, Tensor& key_bf16, Tensor& value_bf16,
+        Device device, void* stream)
+        : grouped_(handle.get(), HIPBLAS_OP_N, HIPBLAS_OP_N,
+                   HIP_R_16BF, HIP_R_16BF, HIP_R_16BF, HIP_R_16BF,
+                   HIPBLAS_COMPUTE_32F) {
+        constexpr std::size_t workspace_limit = 32U * 1024U * 1024U;
+        grouped_.setMaxWorkspaceBytes(workspace_limit);
+        std::vector<std::int64_t> m{
+            key.query_columns, key.key_columns, key.value_columns};
+        std::vector<std::int64_t> n(3, key.rows);
+        std::vector<std::int64_t> k(3, key.inner);
+        std::vector<std::int64_t> batch(3, 1);
+        std::vector<hipblaslt_ext::GemmEpilogue> epilogues(3);
+        std::vector<hipblaslt_ext::GemmInputs> inputs(3);
+        const std::vector<const Tensor*> weights{
+            &query_weight_bf16, &key_weight_bf16, &value_weight_bf16};
+        const std::vector<Tensor*> outputs{&query_bf16, &key_bf16, &value_bf16};
+        for (std::size_t group = 0; group < 3; ++group) {
+            inputs[group].setA(weights[group]->data());
+            inputs[group].setB(input_bf16.data());
+            inputs[group].setC(outputs[group]->data());
+            inputs[group].setD(outputs[group]->data());
+            inputs[group].setAlpha(&alpha_);
+            inputs[group].setBeta(&beta_);
+        }
+        check_status(grouped_.setProblem(m, n, k, batch, epilogues, inputs),
+                     "GroupedGemm::setProblem(BF16 QKV)");
+        std::vector<int> indices{solution_index};
+        std::vector<hipblasLtMatmulHeuristicResult_t> algorithms;
+        check_status(hipblaslt_ext::getAlgosFromIndex(
+                         handle.get(), indices, algorithms),
+                     "getAlgosFromIndex(BF16 grouped QKV)");
+        for (auto& result : algorithms) {
+            hipblaslt_ext::GemmTuning tuning;
+            std::size_t workspace_bytes = 0;
+            auto candidate = result.algo;
+            if (grouped_.isAlgoSupported(
+                    candidate, tuning, workspace_bytes) !=
+                    HIPBLAS_STATUS_SUCCESS ||
+                workspace_bytes > workspace_limit) {
+                continue;
+            }
+            workspace_ = Storage(workspace_bytes, device);
+            check_status(grouped_.initialize(
+                             candidate, workspace_.data(), false,
+                             reinterpret_cast<hipStream_t>(stream)),
+                         "GroupedGemm::initialize(BF16 QKV)");
+            initialized_ = true;
+            return;
+        }
+        throw std::invalid_argument(
+            "registered BF16 grouped QKV solution is unsupported");
+    }
+
+    void run(void* stream) {
+        if (!initialized_) {
+            throw std::logic_error("BF16 grouped QKV plan is uninitialized");
+        }
+        check_status(grouped_.run(reinterpret_cast<hipStream_t>(stream)),
+                     "GroupedGemm::run(BF16 QKV)");
+    }
+
+private:
+    float alpha_ = 1.0F;
+    float beta_ = 0.0F;
+    hipblaslt_ext::GroupedGemm grouped_;
+    Storage workspace_;
+    bool initialized_ = false;
+};
+
+thread_local std::map<Bf16GroupedQkvPlanKey,
+                      std::unique_ptr<Bf16GroupedQkvPlan>>
+    bf16_grouped_qkv_plans;
+
+Bf16GroupedQkvPlanKey grouped_qkv_plan_key(
+    const Bf16GroupedQkvKey& key, Device device,
+    const Tensor& input_bf16, const Tensor& query_weight_bf16,
+    const Tensor& key_weight_bf16, const Tensor& value_weight_bf16,
+    const Tensor& query_output_fp32, const Tensor& key_output_fp32,
+    const Tensor& value_output_fp32, const Bf16QkvWorkspace& workspace,
+    void* stream) {
+    const auto address = [](const void* pointer) {
+        return reinterpret_cast<std::uintptr_t>(pointer);
+    };
+    return {
+        key, device.index(), address(input_bf16.data()),
+        address(query_weight_bf16.data()), address(key_weight_bf16.data()),
+        address(value_weight_bf16.data()), address(query_output_fp32.data()),
+        address(key_output_fp32.data()), address(value_output_fp32.data()),
+        address(workspace.query_fallback_bf16.data()),
+        address(workspace.key_fallback_bf16.data()),
+        address(workspace.value_fallback_bf16.data()), address(stream)};
+}
+
+bool try_bf16_grouped_qkv(
+    Tensor& query_output_fp32, Tensor& key_output_fp32,
+    Tensor& value_output_fp32, Bf16QkvWorkspace& workspace,
+    const Tensor& query_weight_bf16, const Tensor& key_weight_bf16,
+    const Tensor& value_weight_bf16, const OpContext& context) {
+    if (bf16_grouped_qkv_registry.empty() ||
+        !workspace.input_bf16.device().is_hip()) {
+        return false;
+    }
+    const auto key = make_bf16_grouped_qkv_key(
+        workspace.input_bf16.shape()[0], workspace.input_bf16.shape()[1],
+        query_weight_bf16.shape()[1], key_weight_bf16.shape()[1],
+        value_weight_bf16.shape()[1], workspace.input_bf16.device());
+    const auto registered = bf16_grouped_qkv_registry.find(key);
+    if (registered == bf16_grouped_qkv_registry.end()) return false;
+    auto* stream = context.native_stream(workspace.input_bf16.device());
+    const auto plan_key = grouped_qkv_plan_key(
+        key, workspace.input_bf16.device(), workspace.input_bf16,
+        query_weight_bf16, key_weight_bf16, value_weight_bf16,
+        query_output_fp32, key_output_fp32, value_output_fp32, workspace,
+        stream);
+    auto found = bf16_grouped_qkv_plans.find(plan_key);
+    if (found == bf16_grouped_qkv_plans.end()) {
+        ++bf16_grouped_qkv_plan_misses;
+        auto& handle = handle_for_device(workspace.input_bf16.device());
+        auto plan = std::make_unique<Bf16GroupedQkvPlan>(
+            handle, key, registered->second, workspace.input_bf16,
+            query_weight_bf16, key_weight_bf16, value_weight_bf16,
+            workspace.query_fallback_bf16, workspace.key_fallback_bf16,
+            workspace.value_fallback_bf16, workspace.input_bf16.device(),
+            stream);
+        found = bf16_grouped_qkv_plans.emplace(
+            plan_key, std::move(plan)).first;
+    } else {
+        ++bf16_grouped_qkv_plan_hits;
+    }
+    found->second->run(stream);
+    cast_out_(workspace.query_fallback_bf16, query_output_fp32, context);
+    cast_out_(workspace.key_fallback_bf16, key_output_fp32, context);
+    cast_out_(workspace.value_fallback_bf16, value_output_fp32, context);
+    ++bf16_grouped_qkv_dispatches;
+    return true;
 }
 
 Bf16Plan& bf16_plan(Handle& handle, std::int64_t rows, std::int64_t inner,
@@ -1721,6 +1903,62 @@ std::size_t bf16_registered_algorithm_count() noexcept {
 #endif
 }
 
+void register_bf16_grouped_qkv_algorithm(
+    const Bf16GroupedQkvKey& key, int solution_index) {
+#if MICROLLM_HAS_HIPBLASLT
+    validate_bf16_grouped_qkv_key(key);
+    if (solution_index < 0) {
+        throw std::invalid_argument(
+            "BF16 grouped QKV solution index must be nonnegative");
+    }
+    bool current_environment = false;
+    for (int index = 0; index < runtime::hip_device_count(); ++index) {
+        const auto environment = tuning_environment(Device::hip(index));
+        if (key.architecture == environment.architecture &&
+            key.hip_runtime_version == environment.runtime_version &&
+            key.hip_driver_version == environment.driver_version &&
+            key.hipblaslt_version == hipblaslt_version()) {
+            current_environment = true;
+            break;
+        }
+    }
+    if (!current_environment) {
+        throw std::invalid_argument(
+            "BF16 grouped QKV key does not match a visible environment");
+    }
+    bf16_grouped_qkv_registry.insert_or_assign(key, solution_index);
+    bf16_grouped_qkv_plans.clear();
+#else
+    (void)key;
+    (void)solution_index;
+    throw std::runtime_error("BF16 grouped QKV requires hipBLASLt");
+#endif
+}
+
+void clear_bf16_grouped_qkv_registry() noexcept {
+    bf16_grouped_qkv_registry.clear();
+    bf16_grouped_qkv_plan_hits = 0;
+    bf16_grouped_qkv_plan_misses = 0;
+    bf16_grouped_qkv_dispatches = 0;
+#if MICROLLM_HAS_HIPBLASLT
+    bf16_grouped_qkv_plans.clear();
+#endif
+}
+
+Bf16GroupedQkvStats bf16_grouped_qkv_stats() noexcept {
+    return {
+        .registered_entries = bf16_grouped_qkv_registry.size(),
+#if MICROLLM_HAS_HIPBLASLT
+        .plan_entries = bf16_grouped_qkv_plans.size(),
+#else
+        .plan_entries = 0,
+#endif
+        .plan_hits = bf16_grouped_qkv_plan_hits,
+        .plan_misses = bf16_grouped_qkv_plan_misses,
+        .dispatches = bf16_grouped_qkv_dispatches,
+    };
+}
+
 void register_fp32_matmul_solution(
     const Fp32MatmulSolutionKey& key, int solution_index) {
 #if MICROLLM_HAS_HIPBLASLT
@@ -2493,6 +2731,14 @@ void bf16_qkv_projection_out_(
         }
     }
     cast_out_(input_fp32, workspace.input_bf16, context);
+#if MICROLLM_HAS_HIPBLASLT
+    if (try_bf16_grouped_qkv(
+            query_output_fp32, key_output_fp32, value_output_fp32,
+            workspace, query_weight_bf16, key_weight_bf16,
+            value_weight_bf16, context)) {
+        return;
+    }
+#endif
     bf16_matmul_output_out_(
         query_output_fp32, workspace.input_bf16, query_weight_bf16,
         workspace.query_fallback_bf16, context);
