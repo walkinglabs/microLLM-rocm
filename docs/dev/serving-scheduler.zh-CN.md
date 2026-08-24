@@ -206,6 +206,9 @@ Grouped gate/up是steady策略，不是启动策略。只有BF16 FFN Arena已开
 0.25ms以内；第一个完整dummy forward再建立gate/up的每block arguments。ready状态必须检查
 两个registry和两个plan集合，不能只看其中一个已经warm。
 
+批量prefill保存logits时，last模式会写B行，full模式会为每行选自己的最后token后写B行。
+文件元素数必须是B×vocab。服务评测不能只检查B0，否则不同请求行的错误会被静默丢掉。
+
 ## 9. 测试位置
 
 ```text

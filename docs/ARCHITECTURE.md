@@ -451,6 +451,11 @@ these rows without API changes, and every measured QKV/gate-up case passes. Mode
 separate because flattened rows do not identify batch versus sequence: B1/T1024 and B2/T512 share
 a GEMM key but have different Attention and memory behavior.
 
+Experiment 199 passes both workloads independently. It also fixes the CLI evidence boundary:
+last-logit export writes every batch row, while full-logit export gathers each row's own final
+token. The grouped registry may use flattened rows; reports and acceptance matrices must retain
+batch and sequence separately.
+
 ## Stable integration boundary
 
 The long-term integration seam is a C-compatible descriptor plus explicit stream

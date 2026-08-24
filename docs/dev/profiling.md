@@ -416,6 +416,11 @@ projection families and both official dimensions in three processes, keeping win
 than one lucky index. A flattened-row operator result does not replace separate sequence/batch
 model cases.
 
+compare_bf16_grouped_shape_models.py is the complete B1/T256, B1/T1024 and B2/T512 gate. Its
+logit oracle splits the exported file into batch rows before checking top-1. The CLI export itself
+is covered by HfCLI.BatchLogitsExport using a generated real checkpoint; file size is part of the
+correctness contract, not a schema detail.
+
 ## What remains
 
 There is no Python `@profile` decorator yet. The current stable entry points are the

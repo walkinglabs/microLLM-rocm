@@ -50,6 +50,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [19](steps/19-bf16-grouped-gate-up-model.md) | complete | FFN Arena稳定plan接入 | 整模1.0176×/1.0117×；少24/28提交 |
 | [20](steps/20-bf16-grouped-composition.md) | complete | QKV + gate/up组合 | both/base 1.0655×/1.0474× |
 | [21](steps/21-bf16-grouped-shape-matrix.md) | complete | rows256/1024能力矩阵 | 8 case user args 1.124×–1.695× |
+| [22](steps/22-bf16-grouped-shape-models.md) | complete | sequence/batch完整模型 | 六case 1.0212×–1.1075× + CLI batch修复 |
 
 ## 为什么按这个顺序
 

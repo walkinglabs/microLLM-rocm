@@ -9736,6 +9736,116 @@ def validate_bf16_grouped_shape_matrix(
         int(summary.get("reinitialization_faster_cases", -1))
 
 
+def validate_bf16_grouped_shape_models(
+        errors: list[str]) -> tuple[int, float, float, float]:
+    data = REPOSITORY / (
+        "benchmarks/results/2026-08-24-bf16-grouped-shape-models")
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = {
+        (row.get("model"), row.get("case")): row
+        for row in summary.get("comparisons", [])}
+    expected = {
+        ("qwen2.5-0.5b", "b1t256"):
+            (60913.764526327, 67459.263827594, 1.1074551762178155,
+             1.0017574664585, 212.039605,
+             0.10462665557861328, 0.021174594473784277),
+        ("qwen2.5-0.5b", "b1t1024"):
+            (111465.849726487, 114589.355615711, 1.0280220883516198,
+             1.0064369239735418, 208.825208,
+             0.15857377648353577, 0.03289814430513995),
+        ("qwen2.5-0.5b", "b2t512"):
+            (135291.347935973, 139498.928024302, 1.031100141675876,
+             1.006573036018949, 208.117006,
+             0.12460708618164062, 0.024704278749459706),
+        ("deepseek-r1-distill-qwen-1.5b", "b1t256"):
+            (34201.605209589, 36785.508670732, 1.0755491868088858,
+             1.0008758462610199, 209.429043,
+             0.050108909606933594, 0.008701945071299688),
+        ("deepseek-r1-distill-qwen-1.5b", "b1t1024"):
+            (61699.696490516, 63006.41637901, 1.0211787085321378,
+             1.0033806192776318, 208.564852,
+             0.03344884514808655, 0.007308861071778848),
+        ("deepseek-r1-distill-qwen-1.5b", "b2t512"):
+            (66321.754681918, 67803.745184891, 1.022345465829134,
+             1.0033985253333988, 212.173384,
+             0.06598424911499023, 0.009590439001201432),
+    }
+    expected_tests = {
+        "cpu_debug": {"passed": 307, "total": 307},
+        "asan_ubsan": {"passed": 305, "total": 305},
+        "pytorch_enabled_cpu": {"passed": 281, "total": 281},
+        "hip_full_configuration": {
+            "passed": 478, "total": 478, "conditional_skips": 3},
+        "hip_label": {"passed": 161, "total": 161},
+        "rccl_multi_gpu": {"passed": 12, "total": 12},
+        "rccl_full_label": {"passed": 14, "total": 14},
+    }
+    counts = {(model, case, policy): 0
+              for model, case in expected
+              for policy in ("baseline", "both")}
+    for row in raw:
+        key = (row.get("model"), row.get("case"), row.get("policy"))
+        if key in counts:
+            counts[key] += 1
+    fields = (
+        "baseline_tokens_per_second", "both_tokens_per_second",
+        "speedup", "peak_ratio", "combined_kernel_setup_ms",
+        "maximum_absolute_logit_difference",
+        "maximum_rms_logit_difference")
+    evidence_changed = False
+    for key, values in expected.items():
+        row = comparisons.get(key, {})
+        if row.get("finite_complete_logits") is not True or \
+                row.get("top_rows_equal") is not True or \
+                any(abs(float(row.get(field, 0.0)) - value) > 1.0e-6
+                    for field, value in zip(fields, values, strict=True)):
+            evidence_changed = True
+            break
+    if summary.get("status") != "pass" or len(raw) != 36 or \
+            summary.get("raw_processes") != 36 or \
+            summary.get("correctness_gate") is not True or \
+            summary.get("performance_gate") is not True or \
+            summary.get("memory_gate") is not True or \
+            summary.get("setup_gate") is not True or \
+            set(comparisons) != set(expected) or evidence_changed or \
+            any(count != 3 for count in counts.values()) or \
+            verification.get("status") != "pass" or \
+            verification.get("tests") != expected_tests or \
+            verification.get("registered_test_files") != 79 or \
+            verification.get("formal_processes") != 36 or \
+            verification.get("formal_comparisons") != 6 or \
+            verification.get("batch_cli_regression") is not True or \
+            any(verification.get(gate) is not True for gate in (
+                "correctness_gate", "performance_gate",
+                "memory_gate", "setup_gate")):
+        errors.append("BF16 grouped shape model evidence changed")
+    runner = (REPOSITORY / "benchmarks/single_gpu/"
+              "compare_bf16_grouped_shape_models.py").read_text(
+                  encoding="utf-8")
+    cli = (REPOSITORY / "apps/hf_infer.cpp").read_text(encoding="utf-8")
+    cli_test = (REPOSITORY / "python/tests/"
+                "test_hf_cli_batch_logits.py").read_text(encoding="utf-8")
+    fixture = (REPOSITORY / "tests/io/hf_cli_fixture.cpp").read_text(
+        encoding="utf-8")
+    for token, document in (
+            ("CASES = (", runner),
+            ("row_top_indices", runner),
+            ("prefill logits shape does not match batch export contract", cli),
+            ("batch_last[8:] == batch_one", cli_test),
+            ("qwen_style_weight_mapping", fixture)):
+        if token not in document:
+            errors.append("BF16 grouped shape model/CLI contract changed")
+            break
+    ratios = [float(row["speedup"]) for row in comparisons.values()]
+    peaks = [float(row["peak_ratio"]) for row in comparisons.values()]
+    return len(raw), min(ratios, default=0.0), \
+        max(ratios, default=0.0), max(peaks, default=0.0)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -9912,7 +10022,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-grouped-gate-up.svg",
                  "bf16-grouped-gate-up-model.svg",
                  "bf16-grouped-composition.svg",
-                 "bf16-grouped-shape-matrix.svg"):
+                 "bf16-grouped-shape-matrix.svg",
+                 "bf16-grouped-shape-models.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -10260,6 +10371,9 @@ def main() -> int:
         validate_bf16_grouped_composition(errors)
     grouped_shape_rows, grouped_shape_minimum, grouped_shape_maximum, \
         grouped_shape_reinit = validate_bf16_grouped_shape_matrix(errors)
+    grouped_shape_model_rows, grouped_shape_model_minimum, \
+        grouped_shape_model_maximum, grouped_shape_model_peak = \
+        validate_bf16_grouped_shape_models(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -10555,6 +10669,10 @@ def main() -> int:
           f"bf16_grouped_shapes={grouped_shape_rows}/"
           f"{grouped_shape_minimum:.3f}/{grouped_shape_maximum:.3f}/"
           f"{grouped_shape_reinit} "
+          f"bf16_grouped_shape_models={grouped_shape_model_rows}/"
+          f"{grouped_shape_model_minimum:.3f}/"
+          f"{grouped_shape_model_maximum:.3f}/"
+          f"{grouped_shape_model_peak:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

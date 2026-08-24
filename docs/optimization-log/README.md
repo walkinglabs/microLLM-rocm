@@ -760,6 +760,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/197-bf16-grouped-composition.md](experiments/197-bf16-grouped-composition.md) | 24进程、双registry dispatch与组合setup |
 | [assets/bf16-grouped-shape-matrix.svg](assets/bf16-grouped-shape-matrix.svg) | rows256/1024两模型两projection user-args收益 |
 | [experiments/198-bf16-grouped-shape-matrix.md](experiments/198-bf16-grouped-shape-matrix.md) | 24进程、winner集合与重初始化反驳 |
+| [assets/bf16-grouped-shape-models.svg](assets/bf16-grouped-shape-models.svg) | B1/T256、B1/T1024、B2/T512完整模型 |
+| [experiments/199-bf16-grouped-shape-models.md](experiments/199-bf16-grouped-shape-models.md) | 36进程、batch-row top-1与CLI导出修复 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

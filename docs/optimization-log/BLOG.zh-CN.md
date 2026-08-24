@@ -3357,3 +3357,17 @@ rows1024可能来自B1/T1024，也可能来自B2/T512。GEMM shape一样，Atten
 所以下一节点必须拆开两种完整模型，不把operator shape等价写成workload等价。
 
 ![Grouped shape capability](assets/bf16-grouped-shape-matrix.svg)
+
+## 216. Experiment 199：B2文件少一行，性能矩阵先停下来
+
+完整矩阵第一次没有产出summary。模型内部B2 logits是两行，但CLI的logits-output只写B0。我们先
+修边界：last写全部batch，full为每个batch各取自己的最后token。真实tiny Qwen fixture现在强制
+B2 last/full都有2×vocab，并与两个B1行一致。
+
+修完后重跑36进程。Qwen三个case为1.1075×/1.0280×/1.0311×，DeepSeek为
+1.0755×/1.0212×/1.0223×。每个batch行top-1、BF16误差、peak和setup都通过。
+
+B1/T1024和B2/T512都映射rows1024，却得到不同收益。这个结果把“projection key”和“workload key”
+明确分开：前者负责安全dispatch，后者负责性能结论。
+
+![Grouped sequence/batch model matrix](assets/bf16-grouped-shape-models.svg)

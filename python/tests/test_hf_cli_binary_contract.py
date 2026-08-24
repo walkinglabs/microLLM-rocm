@@ -41,6 +41,9 @@ def main() -> int:
         b"--attention-core-arena",
         b"--attention-core-arena-minimum-sequence",
         b"attention_core_arena_capacity_bytes",
+        b"--bf16-grouped-gate-up-algorithm-index",
+        b"bf16_grouped_gate_up_dispatches",
+        b"prefill logits shape does not match batch export contract",
     )
     missing = [value.decode() for value in required if value not in payload]
     if missing:

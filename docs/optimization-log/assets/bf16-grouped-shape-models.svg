@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="600" viewBox="0 0 1000 600" role="img" aria-labelledby="title desc">
+  <title id="title">Grouped sequence and batch complete-model speedups</title>
+  <desc id="desc">Six Qwen and DeepSeek cases pass, while B1 T1024 and B2 T512 show different end-to-end gains despite equal flattened rows.</desc>
+  <rect width="1000" height="600" fill="#0b1020"/>
+  <text x="55" y="48" fill="#f8fafc" font-family="sans-serif" font-size="28" font-weight="700">Experiment 199 · sequence and batch both matter</text>
+  <text x="55" y="78" fill="#94a3b8" font-family="sans-serif" font-size="15">complete-model both/baseline throughput · median of 3 fresh processes</text>
+  <line x1="350" y1="115" x2="350" y2="530" stroke="#64748b" stroke-width="2"/>
+  <text x="328" y="105" fill="#cbd5e1" font-family="monospace" font-size="13">1.0</text>
+
+  <text x="55" y="145" fill="#e2e8f0" font-family="sans-serif" font-size="19" font-weight="700">Qwen</text>
+  <text x="80" y="190" fill="#cbd5e1" font-family="sans-serif" font-size="15">B1/T256</text>
+  <rect x="350" y="169" width="322" height="29" rx="5" fill="#34d399"/>
+  <text x="685" y="190" fill="#a7f3d0" font-family="monospace" font-size="14">1.1075×</text>
+  <text x="80" y="235" fill="#cbd5e1" font-family="sans-serif" font-size="15">B1/T1024</text>
+  <rect x="350" y="214" width="84" height="29" rx="5" fill="#22d3ee"/>
+  <text x="447" y="235" fill="#a5f3fc" font-family="monospace" font-size="14">1.0280×</text>
+  <text x="80" y="280" fill="#cbd5e1" font-family="sans-serif" font-size="15">B2/T512</text>
+  <rect x="350" y="259" width="93" height="29" rx="5" fill="#a78bfa"/>
+  <text x="456" y="280" fill="#ddd6fe" font-family="monospace" font-size="14">1.0311×</text>
+
+  <text x="55" y="350" fill="#e2e8f0" font-family="sans-serif" font-size="19" font-weight="700">DeepSeek</text>
+  <text x="80" y="395" fill="#cbd5e1" font-family="sans-serif" font-size="15">B1/T256</text>
+  <rect x="350" y="374" width="227" height="29" rx="5" fill="#34d399"/>
+  <text x="590" y="395" fill="#a7f3d0" font-family="monospace" font-size="14">1.0755×</text>
+  <text x="80" y="440" fill="#cbd5e1" font-family="sans-serif" font-size="15">B1/T1024</text>
+  <rect x="350" y="419" width="64" height="29" rx="5" fill="#22d3ee"/>
+  <text x="427" y="440" fill="#a5f3fc" font-family="monospace" font-size="14">1.0212×</text>
+  <text x="80" y="485" fill="#cbd5e1" font-family="sans-serif" font-size="15">B2/T512</text>
+  <rect x="350" y="464" width="67" height="29" rx="5" fill="#a78bfa"/>
+  <text x="430" y="485" fill="#ddd6fe" font-family="monospace" font-size="14">1.0223×</text>
+
+  <rect x="55" y="530" width="890" height="42" rx="9" fill="#172033" stroke="#334155"/>
+  <text x="75" y="557" fill="#fbbf24" font-family="sans-serif" font-size="14">Equal rows1024 projection keys do not erase B1/T1024 versus B2/T512 workload identity</text>
+</svg>

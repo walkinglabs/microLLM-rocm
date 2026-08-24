@@ -286,6 +286,12 @@ ratios from 1.124× to 1.695×. A one-process rows256 reinitialization apparent 
 after three processes, preserving the stable-address design. Operator capability is kept; only
 B1/T256, B1/T1024 and B2/T512 complete-model routing is open.
 
+Experiment 199 closes that complete-model gate. All six model/workload cases pass at
+1.0212×–1.1075× with per-batch top-1, BF16, setup and peak gates. B1/T1024 and B2/T512 share
+rows1024 keys but show different ratios, confirming workload identity cannot collapse to flattened
+rows. The first run exposed and stopped on a CLI B2 export bug; last/full modes now write every
+batch row and a real tiny-HF binary fixture guards it. Explicit rows256/1024 policies are retained.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

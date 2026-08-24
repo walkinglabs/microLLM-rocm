@@ -38,6 +38,12 @@ add_executable(microllm_safetensors_interop
 )
 target_link_libraries(microllm_safetensors_interop PRIVATE microllm::io)
 
+add_executable(microllm_hf_cli_fixture
+    io/hf_cli_fixture.cpp
+)
+target_link_libraries(microllm_hf_cli_fixture PRIVATE
+    microllm::model microllm::io)
+
 find_package(Python3 COMPONENTS Interpreter QUIET)
 
 add_test(
@@ -97,6 +103,15 @@ if(Python3_Interpreter_FOUND)
     )
     set_tests_properties(HfCLI.BinaryContract PROPERTIES
         LABELS "cpu;cli;binary;schema")
+    add_test(
+        NAME HfCLI.BatchLogitsExport
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_hf_cli_batch_logits.py
+                --binary $<TARGET_FILE:microllm_hf_infer>
+                --fixture-helper $<TARGET_FILE:microllm_hf_cli_fixture>
+    )
+    set_tests_properties(HfCLI.BatchLogitsExport PROPERTIES
+        LABELS "cpu;cli;binary;batch;inference;integration")
     add_test(
         NAME Benchmark.HfFp8NativeRoundtripContract
         COMMAND ${Python3_EXECUTABLE}
@@ -272,6 +287,13 @@ if(Python3_Interpreter_FOUND)
     )
     set_tests_properties(Benchmark.Bf16GroupedShapeMatrixContract PROPERTIES
         LABELS "cpu;benchmark;model;inference;attention;ffn;bf16;matmul;grouped;shape;schema")
+    add_test(
+        NAME Benchmark.Bf16GroupedShapeModelsContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_bf16_grouped_shape_models.py
+    )
+    set_tests_properties(Benchmark.Bf16GroupedShapeModelsContract PROPERTIES
+        LABELS "cpu;benchmark;model;inference;attention;ffn;bf16;matmul;grouped;shape;batch;memory;schema")
     add_test(
         NAME Coverage.OperatorAndTestFiles
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/audit_test_coverage.py

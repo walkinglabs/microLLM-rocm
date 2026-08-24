@@ -1721,8 +1721,30 @@ int main(int argc, char** argv) {
         if (!command.logits_output.empty()) {
             std::ofstream output(command.logits_output, std::ios::binary | std::ios::trunc);
             if (!output) throw std::runtime_error("cannot open logits output");
-            output.write(reinterpret_cast<const char*>(logits.data() + offset),
-                         static_cast<std::streamsize>(vocabulary * sizeof(float)));
+            const auto batch_rows = static_cast<std::size_t>(command.batch);
+            const auto expected = command.prefill_logits_mode == "last"
+                                      ? batch_rows * vocabulary
+                                      : batch_rows * ids.size() * vocabulary;
+            if (logits.size() != expected) {
+                throw std::runtime_error(
+                    "prefill logits shape does not match batch export contract");
+            }
+            if (command.prefill_logits_mode == "last") {
+                output.write(
+                    reinterpret_cast<const char*>(logits.data()),
+                    static_cast<std::streamsize>(
+                        logits.size() * sizeof(float)));
+            } else {
+                for (std::size_t row = 0; row < batch_rows; ++row) {
+                    const auto row_offset =
+                        (row * ids.size() + ids.size() - 1U) * vocabulary;
+                    output.write(
+                        reinterpret_cast<const char*>(
+                            logits.data() + row_offset),
+                        static_cast<std::streamsize>(
+                            vocabulary * sizeof(float)));
+                }
+            }
             if (!output) throw std::runtime_error("failed writing logits output");
         }
         if (run_prefill) {
