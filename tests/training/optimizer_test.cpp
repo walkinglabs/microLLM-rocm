@@ -36,6 +36,7 @@ TEST(AdamWTest, FirstStepMatchesBiasCorrectedHandCalculation) {
     EXPECT_NEAR(values[0], 2.0F * 0.99F - 0.1F, 1.0e-5F);
     EXPECT_NEAR(values[1], -3.0F * 0.99F - 0.1F, 1.0e-5F);
     EXPECT_EQ(optimizer.state().step, 1U);
+    EXPECT_EQ(optimizer.step_count(), 1U);
 }
 
 TEST(AdamWTest, RestoredStateProducesTheSameNextStep) {

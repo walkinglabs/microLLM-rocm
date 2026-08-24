@@ -245,6 +245,43 @@ TEST(HipGraphTest, CapturesReplaysAndMovesCallerOwnedOperatorChain) {
     EXPECT_EQ(product.to_vector(), (std::vector<float>{35, 48, 63, 80}));
 }
 
+TEST(HipGraphTest, DynamicTensorRejectionLeavesScopedStreamReusable) {
+    if (hip_device_count() == 0) GTEST_SKIP() << "No visible HIP device";
+    const auto gpu = Device::hip(0);
+    auto left = Tensor::from_vector({1, 2, 3, 4}, {2, 2}).to(gpu);
+    const auto right = Tensor::from_vector({5, 6, 7, 8}, {2, 2}).to(gpu);
+    Tensor output({2, 2}, DType::Float32, gpu);
+    Stream stream(gpu);
+    ScopedDeferredHipStream scope(stream, 64);
+    ops::OpContext context;
+    context.stream = &stream;
+
+    try {
+        (void)HipGraphExecutable::capture(stream, [&] {
+            Tensor forbidden_allocation({4}, DType::Float32, gpu);
+            (void)forbidden_allocation;
+        });
+        FAIL() << "dynamic Tensor allocation was accepted during capture";
+    } catch (const std::runtime_error& error) {
+        EXPECT_NE(std::string(error.what()).find(
+                      "forbids dynamic Tensor allocation"),
+                  std::string::npos);
+    }
+
+    auto graph = HipGraphExecutable::capture(stream, [&] {
+        ops::add_out(output.view(), std::as_const(left).view(), right.view(),
+                     context);
+    });
+    ASSERT_TRUE(graph.defined());
+    EXPECT_EQ(graph.node_count(), 1U);
+    graph.launch(stream);
+    stream.synchronize();
+    EXPECT_EQ(output.to_vector(), (std::vector<float>{6, 8, 10, 12}));
+
+    graph = HipGraphExecutable();
+    scope.finish();
+}
+
 TEST(DeferredHipDeallocationTest, KeepsTemporaryChainAliveUntilOneStreamSync) {
     if (hip_device_count() == 0) GTEST_SKIP() << "No visible HIP device";
     const auto gpu = Device::hip(0);

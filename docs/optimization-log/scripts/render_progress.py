@@ -90,6 +90,9 @@ FP32_WGRAD_SOLUTION_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
                             "2026-08-24-fp32-weight-gradient-solutions")
 FP32_WGRAD_SOLUTION_CHART = (
     ROOT / "assets" / "fp32-weight-gradient-solutions-discard.svg")
+TRAINING_GRAPH_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
+                       "2026-08-24-training-graph-capture")
+TRAINING_GRAPH_CHART = ROOT / "assets" / "training-graph-capture-boundary.svg"
 
 
 def rows() -> list[dict]:
@@ -2293,6 +2296,67 @@ def fp32_weight_gradient_solutions_svg() -> str:
     return "\n".join(parts)
 
 
+def training_graph_capture_svg() -> str:
+    summary = json.loads((TRAINING_GRAPH_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    rows = {(row["precision"], row["stage"]): row
+            for row in summary["cases"]}
+    width, height = 1600, 760
+    stages = (("forward", "Forward"), ("backward", "Backward"),
+              ("optimizer", "AdamW"), ("full-step", "Full step"))
+    precisions = (("fp32", "FP32"), ("bf16", "BF16"))
+    chart_x, chart_y, cell_w, cell_h = 300, 155, 260, 155
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 220 · Training HIP Graph Boundary", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "24 fresh processes · allocation-safe recovery · device nodes are not full training state",
+             16, "#5b6474", anchor="middle"),
+    ]
+    for column, (_, label) in enumerate(stages):
+        parts.append(text(chart_x + column * cell_w + cell_w / 2, 130,
+                          label, 17, anchor="middle", weight=700))
+    for row_index, (precision, label) in enumerate(precisions):
+        y = chart_y + row_index * cell_h
+        parts.append(text(chart_x - 28, y + 82, label, 18,
+                          anchor="end", weight=700))
+        for column, (stage, _) in enumerate(stages):
+            record = rows[(precision, stage)]
+            x = chart_x + column * cell_w
+            supported = record["capture_supported"]
+            fill = "#ecfdf3" if supported else "#fff1f2"
+            stroke = "#16a34a" if supported else "#e11d48"
+            headline = (f'{record["captured_nodes"]} nodes'
+                        if supported else "blocked safely")
+            detail = ("host step unchanged"
+                      if stage == "optimizer" else "dynamic Storage")
+            parts.append(f'<rect x="{x+8}" y="{y+8}" width="{cell_w-16}" '
+                         f'height="{cell_h-16}" fill="{fill}" stroke="{stroke}" rx="10"/>')
+            parts.append(text(x + cell_w / 2, y + 68, headline, 21, stroke,
+                              anchor="middle", weight=700))
+            parts.append(text(x + cell_w / 2, y + 101, detail, 14,
+                              "#5b6474", anchor="middle"))
+    panel_y = 505
+    parts.append(f'<rect x="170" y="{panel_y}" width="1260" height="145" '
+                 'fill="#fff7ed" stroke="#f59e0b" rx="12"/>')
+    parts.append(text(210, panel_y + 40, "Two independent blockers", 18,
+                      "#9a4f00", weight=700))
+    parts.append(text(210, panel_y + 78,
+                      "1. Forward/backward rebuild dynamic Tensor Storage; replay needs a graph-wide liveness plan and stable workspaces.",
+                      15, "#5b6474"))
+    parts.append(text(210, panel_y + 110,
+                      "2. AdamW captures 21 device nodes, but replay cannot advance its CPU-owned step/bias-correction state.",
+                      15, "#5b6474"))
+    parts.append(text(width / 2, 705,
+                      "Decision: keep the safety guard and probe; reject a complete-training Graph claim",
+                      18, "#9a4f00", anchor="middle", weight=700))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -2327,7 +2391,8 @@ def main() -> int:
                 POST_HYBRID_PROFILE_CHART: post_hybrid_training_profile_svg(),
                 GROUPED_WGRAD_CHART: grouped_weight_gradient_discard_svg(),
                 PACKED_WGRAD_CHART: packed_weight_gradient_discard_svg(),
-                FP32_WGRAD_SOLUTION_CHART: fp32_weight_gradient_solutions_svg()}
+                FP32_WGRAD_SOLUTION_CHART: fp32_weight_gradient_solutions_svg(),
+                TRAINING_GRAPH_CHART: training_graph_capture_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

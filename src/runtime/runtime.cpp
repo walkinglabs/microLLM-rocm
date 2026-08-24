@@ -62,6 +62,9 @@ thread_local std::vector<AllocationSourceRecord>
     allocation_source_diagnostic_records;
 thread_local DeferredHipDeallocationScope* active_deferred_scope = nullptr;
 thread_local ScopedDeferredHipStream* active_scoped_deferred_stream = nullptr;
+#if MICROLLM_HAS_HIP
+thread_local bool active_hip_graph_capture = false;
+#endif
 
 void record_strided_copy(std::size_t element_bytes, Device device,
                          std::span<const std::int64_t> shape,
@@ -490,6 +493,17 @@ void* allocate(std::size_t num_bytes, Device device) {
         return pointer;
     }
 #if MICROLLM_HAS_HIP
+    // Ordinary Tensor Storage uses synchronous hipMalloc. Letting that call
+    // reach the driver during capture invalidates the capture and, on some
+    // ROCm releases, leaves the Stream unusable even after EndCapture. More
+    // importantly, a replayable graph needs caller-owned stable addresses.
+    // Reject the dynamic allocation before touching HIP so capture can unwind
+    // cleanly and the same Stream can run an eager fallback.
+    if (active_hip_graph_capture) {
+        throw std::runtime_error(
+            "HIP graph capture forbids dynamic Tensor allocation; allocate "
+            "stable outputs and workspaces before capture");
+    }
     set_device(device);
     {
         auto& pool = hip_pool();
@@ -1003,13 +1017,18 @@ HipGraphExecutable HipGraphExecutable::capture(
         throw std::runtime_error("HIP graph capture requires a HIP Stream");
     }
 #if MICROLLM_HAS_HIP
+    if (active_hip_graph_capture) {
+        throw std::logic_error("nested HIP graph capture is unsupported");
+    }
     set_device(stream.device());
     const auto native_stream = as_stream(stream.native_handle());
     check_hip(hipStreamBeginCapture(native_stream, hipStreamCaptureModeThreadLocal),
               "hipStreamBeginCapture");
+    active_hip_graph_capture = true;
     try {
         capture_work();
     } catch (...) {
+        active_hip_graph_capture = false;
         hipGraph_t abandoned = nullptr;
         if (hipStreamEndCapture(native_stream, &abandoned) == hipSuccess &&
             abandoned != nullptr) {
@@ -1022,6 +1041,7 @@ HipGraphExecutable HipGraphExecutable::capture(
         (void)hipGetLastError();
         throw;
     }
+    active_hip_graph_capture = false;
 
     hipGraph_t graph = nullptr;
     const auto end_status = hipStreamEndCapture(native_stream, &graph);

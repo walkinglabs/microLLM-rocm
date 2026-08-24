@@ -61,6 +61,7 @@ public:
     void zero_grad();
 
     [[nodiscard]] const AdamWConfig& config() const noexcept { return config_; }
+    [[nodiscard]] std::uint64_t step_count() const noexcept { return state_.step; }
     [[nodiscard]] std::uint64_t moment_state_bytes() const;
     [[nodiscard]] std::int64_t bf16_multi_tensor_threshold() const noexcept {
         return bf16_multi_tensor_threshold_;

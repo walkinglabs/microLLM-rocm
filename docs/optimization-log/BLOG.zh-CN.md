@@ -3557,3 +3557,71 @@ AdamW和shared BF16 cast又连续未过两模型门。因此训练微融合track
 继续删除一个cast、add或Norm launch不再构成新假设。
 
 ![Post training micro saturation](assets/post-training-micro-saturation.svg)
+
+## 231. Experiment 214：把AdamW状态减半，先别急着全部改成BF16
+
+AdamW每个参数保存一阶和二阶moment，两份FP32状态形成大块读写。显式BF16 moment把Qwen/
+DeepSeek峰值降到0.833×/0.808×，optimizer快1.069×/1.196×，端到端只有1.023×/1.036×。
+
+32步PyTorch对齐和100步CPU rounded reference通过，但Qwen optimizer没有过1.10门。因此这不是
+“所有Tensor都换BF16”的结论，而是进入按Tensor大小分层的下一实验。
+
+![BF16 AdamW moments](assets/bf16-adamw-moments.svg)
+
+## 232. Experiment 215：小Tensor留FP32，1M阈值比“越大越好”更可靠
+
+六个阈值的新进程矩阵显示，HIP Auto在1,048,576元素以上使用BF16 moment，以下保留FP32。
+Qwen/DeepSeek optimizer达到1.240×/1.263×，整步达到1.049×/1.053×。阈值拉到16M时，
+DeepSeek optimizer反而只有0.896×，端到端0.980×。
+
+这说明低精度状态的收益来自大连续流量；小Tensor更容易被转换、分派和舍入成本吃掉。
+
+![Hybrid BF16 AdamW](assets/hybrid-bf16-adamw.svg)
+
+## 233. Experiment 216：optimizer优化后，GEMM成为真正主边界
+
+重新做load-subtracted profile后，Qwen/DeepSeek每步为32.12/72.91ms。GEMM占59.33%/63.81%，
+AdamW降到12.82%/17.61%。相对旧profile，AdamW时间快1.372×/1.293×。
+
+因此下一轮不再继续包AdamW启动，而是检查能否把多个weight-gradient GEMM组成更大的设备工作。
+
+![Post-hybrid training profile](assets/post-hybrid-training-profile.svg)
+
+## 234. Experiment 217：GroupedGemm先过能力门，再谈接Autograd
+
+QKV和gate/up的weight gradient共享输入，看起来像天然的GroupedGemm。我们测试direct NT与
+materialized shared-transpose NN，两模型共八个格子。当前hipBLASLt FP32 GroupedGemm返回的
+supported candidate全部为0。
+
+能力都不存在时，接入模型只会增加复杂fallback。因此没有建立Autograd路由。
+
+![Grouped weight-gradient discard](assets/grouped-weight-gradient-discard.svg)
+
+## 235. Experiment 218：打包后一个大GEMM，仍然要为打包付钱
+
+下一反驳把多个gradient和输出打包，再执行一个大GEMM。完整输出误差通过，但把D2D pack计入
+后，Qwen QKV/gate-up只有0.979×/0.835×，DeepSeek只有0.897×/0.931×；还增加大块临时显存。
+
+“少调用几次GEMM”不是免费操作。只要输入本来不连续，打包流量可能比提交成本更贵。
+
+![Packed weight-gradient discard](assets/packed-weight-gradient-discard.svg)
+
+## 236. Experiment 219：局部GEMM快13%，整步仍然可能慢
+
+rank-2 exact solution筛出Qwen/DeepSeek稳定index，算子中位数快1.077×/1.133×。模型也精确命中
+144/168次，但端到端只有0.993×/0.996×。这排除了“registry没走到”的解释。
+
+默认和持久化index都不保留；局部winner只能作为诊断，不是训练优化结论。
+
+![FP32 weight-gradient solutions](assets/fp32-weight-gradient-solutions-discard.svg)
+
+## 237. Experiment 220：录下21个Kernel，为什么还不是一次训练
+
+完整训练Graph探针第一次在`hipMalloc`处使Stream进入Invalidated。runtime现在在碰驱动前拒绝
+capture中的动态Tensor Storage，并用同一Stream随后成功捕获`add_out`证明恢复真实有效。
+
+FP32/BF16的forward、backward、full-step都因动态Storage安全拒绝；AdamW能捕获21个设备节点，
+但重放后主机step仍从1停在1。前者需要图级liveness和稳定workspace，后者需要device-owned
+optimizer状态。24/24新进程恢复干净，所以保留保护与探针，但拒绝完整训练Graph声明。
+
+![Training HIP Graph boundary](assets/training-graph-capture-boundary.svg)

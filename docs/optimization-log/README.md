@@ -839,6 +839,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [experiments/218-packed-weight-gradient-discard.md](experiments/218-packed-weight-gradient-discard.md) | 12进程完整输出反例与组合搜索关闭 |
 | [assets/fp32-weight-gradient-solutions-discard.svg](assets/fp32-weight-gradient-solutions-discard.svg) | operator winner、exact hits与模型反例 |
 | [experiments/219-fp32-weight-gradient-solutions-discard.md](experiments/219-fp32-weight-gradient-solutions-discard.md) | rank-2 registry和solution默认拒绝 |
+| [assets/training-graph-capture-boundary.svg](assets/training-graph-capture-boundary.svg) | FP32/BF16四阶段capture与两类阻塞条件 |
+| [experiments/220-training-graph-capture-boundary.md](experiments/220-training-graph-capture-boundary.md) | 24进程、失败恢复与完整训练Graph拒绝 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

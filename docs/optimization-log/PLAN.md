@@ -71,6 +71,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [40](steps/40-grouped-weight-gradient-discard.md) | complete | FP32 grouped weight gradient | 8/8 case无supported candidate，路由未建 |
 | [41](steps/41-packed-weight-gradient-discard.md) | complete | packed weight gradient | 0/4过1.05，组合搜索关闭 |
 | [42](steps/42-fp32-weight-gradient-solutions-discard.md) | complete | rank-2 exact solution | 算子过门、模型0.993×/0.996×，默认拒绝 |
+| [43](steps/43-training-graph-capture-boundary.md) | complete | 完整训练HIP Graph边界 | 24进程；动态Storage安全拒绝，AdamW主机step不可重放 |
 
 ## 为什么按这个顺序
 

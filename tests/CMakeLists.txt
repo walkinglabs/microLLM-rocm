@@ -176,6 +176,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.Fp32WeightGradientSolutionModelsContract PROPERTIES
         LABELS "cpu;benchmark;training;matmul;solution;model;schema")
     add_test(
+        NAME Benchmark.TrainingGraphCaptureMatrixContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_training_graph_capture_matrix.py
+    )
+    set_tests_properties(Benchmark.TrainingGraphCaptureMatrixContract PROPERTIES
+        LABELS "cpu;benchmark;training;graph;lifetime;schema")
+    add_test(
         NAME Benchmark.HipGraphMatrixContract
         COMMAND ${Python3_EXECUTABLE}
                 ${PROJECT_SOURCE_DIR}/python/tests/test_hip_graph_matrix.py

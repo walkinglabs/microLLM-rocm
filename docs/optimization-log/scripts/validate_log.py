@@ -11786,6 +11786,92 @@ def validate_fp32_weight_gradient_solutions(
         min(ratios), max(operator_ratios)
 
 
+def validate_training_graph_capture(
+        errors: list[str]) -> tuple[int, int, int, int]:
+    data = REPOSITORY / "benchmarks/results/2026-08-24-training-graph-capture"
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    keys = {(row.get("precision"), row.get("stage"), row.get("process_run"))
+            for row in raw}
+    expected_keys = {
+        (precision, stage, process_run)
+        for precision in ("fp32", "bf16")
+        for stage in ("forward", "backward", "optimizer", "full-step")
+        for process_run in range(1, 4)
+    }
+    optimizer = [row for row in raw if row.get("stage") == "optimizer"]
+    dynamic = [row for row in raw if row.get("stage") != "optimizer"]
+    if summary.get("schema_version") != 1 or summary.get("status") != "pass" or \
+            summary.get("experiment") != "staged_training_hip_graph_capture" or \
+            summary.get("processes") != 24 or \
+            summary.get("runs_per_case") != 3 or \
+            len(summary.get("cases", [])) != 8 or \
+            not all(summary.get("gates", {}).values()) or \
+            "graph-wide stable workspaces" not in summary.get("decision", "") or \
+            len(raw) != 24 or keys != expected_keys or \
+            any(row.get("schema_version") != 1 or row.get("status") != "pass" or
+                row.get("architecture", "").split(":", 1)[0] != "gfx942" or
+                row.get("capture_recovery_failed") is not False or
+                row.get("capture_status_after_recovery") != 0
+                for row in raw) or \
+            any(row.get("capture_supported") is not True or
+                row.get("captured_nodes") != 21 or
+                row.get("optimizer_step_after_capture") != 1 or
+                row.get("optimizer_step_after_replay") != 1 or
+                row.get("optimizer_replay_advances_host_step") is not False
+                for row in optimizer) or \
+            any(row.get("capture_supported") is not False or
+                row.get("captured_nodes") != 0 or
+                "forbids dynamic Tensor allocation" not in
+                    row.get("capture_error", "")
+                for row in dynamic):
+        errors.append("staged training HIP Graph evidence changed")
+    sources = (
+        ("active_hip_graph_capture", REPOSITORY / "src/runtime/runtime.cpp"),
+        ("optimizer_step_after_replay", REPOSITORY /
+         "benchmarks/single_gpu/benchmark_training_graph_capture.cpp"),
+        ("dynamic_graph_stages_rejected", REPOSITORY /
+         "benchmarks/single_gpu/training_graph_capture_matrix.py"),
+        ("training graph capture matrix contract: pass", REPOSITORY /
+         "python/tests/test_training_graph_capture_matrix.py"),
+        ("DynamicTensorRejectionLeavesScopedStreamReusable", REPOSITORY /
+         "tests/runtime/runtime_test.cpp"),
+    )
+    if any(token not in path.read_text(encoding="utf-8")
+           for token, path in sources):
+        errors.append("training HIP Graph source/test contract changed")
+    expected_tests = {
+        "cpu_debug": {"passed": 330, "total": 330},
+        "asan_ubsan": {"passed": 328, "total": 328},
+        "pytorch_enabled_cpu": {"passed": 304, "total": 304},
+        "hip_full_configuration": {
+            "passed": 518, "total": 518, "conditional_skips": 3},
+        "hip_label": {"passed": 176, "total": 176},
+        "rccl_multi_gpu": {"passed": 12, "total": 12},
+        "rccl_full_label": {"passed": 14, "total": 14},
+    }
+    if verification.get("status") != "pass" or \
+            verification.get("processes") != 24 or \
+            verification.get("optimizer_capture_processes") != 6 or \
+            verification.get("dynamic_rejection_processes") != 18 or \
+            verification.get("capture_recovery_failures") != 0 or \
+            verification.get("complete_training_graph_retained") is not False or \
+            verification.get("registered_test_files") != 93 or \
+            verification.get("tests") != expected_tests or \
+            verification.get("coverage") != {
+                "lines_percent": 79.8,
+                "functions_percent": 87.7,
+                "branches_percent": 60.4,
+                "lines_covered": 8862,
+                "lines_total": 11101}:
+        errors.append("training HIP Graph verification changed")
+    return len(raw), len(optimizer), len(dynamic), max(
+        int(row["deferred_bytes"]) for row in raw)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -11983,7 +12069,8 @@ def validate_assets(errors: list[str]) -> None:
                  "post-hybrid-training-profile.svg",
                  "grouped-weight-gradient-discard.svg",
                  "packed-weight-gradient-discard.svg",
-                 "fp32-weight-gradient-solutions-discard.svg"):
+                 "fp32-weight-gradient-solutions-discard.svg",
+                 "training-graph-capture-boundary.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -12387,6 +12474,8 @@ def main() -> int:
         packed_wgrad_largest = validate_packed_weight_gradient_discard(errors)
     fp32_wgrad_rows, fp32_wgrad_candidates, fp32_wgrad_model_minimum, \
         fp32_wgrad_operator_maximum = validate_fp32_weight_gradient_solutions(errors)
+    training_graph_rows, training_graph_optimizer, training_graph_dynamic, \
+        training_graph_deferred = validate_training_graph_capture(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -12744,6 +12833,8 @@ def main() -> int:
           f"fp32_wgrad_solution={fp32_wgrad_rows}/{fp32_wgrad_candidates}/"
           f"{fp32_wgrad_model_minimum:.3f}/"
           f"{fp32_wgrad_operator_maximum:.3f} "
+          f"training_graph={training_graph_rows}/{training_graph_optimizer}/"
+          f"{training_graph_dynamic}/{training_graph_deferred} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

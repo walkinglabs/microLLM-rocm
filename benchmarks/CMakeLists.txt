@@ -11,6 +11,11 @@ if(MICROLLM_HAS_HIP)
     target_link_libraries(microllm_bench_scoped_deferred_model PRIVATE
         microllm::model microllm::training microllm::ops microllm::runtime
         hip::host)
+    add_executable(microllm_bench_training_graph_capture
+                   single_gpu/benchmark_training_graph_capture.cpp)
+    target_link_libraries(microllm_bench_training_graph_capture PRIVATE
+        microllm::model microllm::training microllm::ops microllm::runtime
+        hip::host)
     add_executable(microllm_bench_stream_ordered_allocator
                    micro/benchmark_stream_ordered_allocator.cpp)
     target_link_libraries(microllm_bench_stream_ordered_allocator PRIVATE
@@ -276,6 +281,12 @@ if(BUILD_TESTING)
                          --elements 64 --warmup 1 --repetitions 2)
         set_tests_properties(Benchmark.HipGraphSmoke PROPERTIES
                              LABELS "hip;benchmark;graph;smoke")
+        add_test(NAME Benchmark.HipTrainingGraphOptimizerStageSmoke
+                 COMMAND microllm_bench_training_graph_capture
+                         --stage optimizer --precision fp32
+                         --maximum-blocks 1024)
+        set_tests_properties(Benchmark.HipTrainingGraphOptimizerStageSmoke PROPERTIES
+                             LABELS "hip;benchmark;training;graph;optimizer;smoke")
         add_test(NAME Benchmark.HipAddSmoke
                  COMMAND microllm_bench_ops --op add --size 1024 --warmup 1 --repetitions 2 --device hip)
         set_tests_properties(Benchmark.HipAddSmoke PROPERTIES LABELS "hip;benchmark;smoke")

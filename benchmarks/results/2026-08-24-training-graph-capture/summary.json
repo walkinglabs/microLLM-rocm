@@ -1,0 +1,104 @@
+{
+  "cases": [
+    {
+      "capture_error": "HIP graph capture forbids dynamic Tensor allocation; allocate stable outputs and workspaces before capture",
+      "capture_supported": false,
+      "captured_nodes": 0,
+      "maximum_deferred_blocks": 0,
+      "maximum_deferred_bytes": 0,
+      "optimizer_replay_advances_host_step": false,
+      "precision": "fp32",
+      "runs": 3,
+      "stage": "forward"
+    },
+    {
+      "capture_error": "HIP graph capture forbids dynamic Tensor allocation; allocate stable outputs and workspaces before capture",
+      "capture_supported": false,
+      "captured_nodes": 0,
+      "maximum_deferred_blocks": 45,
+      "maximum_deferred_bytes": 46148,
+      "optimizer_replay_advances_host_step": false,
+      "precision": "fp32",
+      "runs": 3,
+      "stage": "backward"
+    },
+    {
+      "capture_error": "",
+      "capture_supported": true,
+      "captured_nodes": 21,
+      "maximum_deferred_blocks": 122,
+      "maximum_deferred_bytes": 117036,
+      "optimizer_replay_advances_host_step": false,
+      "precision": "fp32",
+      "runs": 3,
+      "stage": "optimizer"
+    },
+    {
+      "capture_error": "HIP graph capture forbids dynamic Tensor allocation; allocate stable outputs and workspaces before capture",
+      "capture_supported": false,
+      "captured_nodes": 0,
+      "maximum_deferred_blocks": 0,
+      "maximum_deferred_bytes": 0,
+      "optimizer_replay_advances_host_step": false,
+      "precision": "fp32",
+      "runs": 3,
+      "stage": "full-step"
+    },
+    {
+      "capture_error": "HIP graph capture forbids dynamic Tensor allocation; allocate stable outputs and workspaces before capture",
+      "capture_supported": false,
+      "captured_nodes": 0,
+      "maximum_deferred_blocks": 0,
+      "maximum_deferred_bytes": 0,
+      "optimizer_replay_advances_host_step": false,
+      "precision": "bf16",
+      "runs": 3,
+      "stage": "forward"
+    },
+    {
+      "capture_error": "HIP graph capture forbids dynamic Tensor allocation; allocate stable outputs and workspaces before capture",
+      "capture_supported": false,
+      "captured_nodes": 0,
+      "maximum_deferred_blocks": 60,
+      "maximum_deferred_bytes": 54852,
+      "optimizer_replay_advances_host_step": false,
+      "precision": "bf16",
+      "runs": 3,
+      "stage": "backward"
+    },
+    {
+      "capture_error": "",
+      "capture_supported": true,
+      "captured_nodes": 21,
+      "maximum_deferred_blocks": 137,
+      "maximum_deferred_bytes": 125740,
+      "optimizer_replay_advances_host_step": false,
+      "precision": "bf16",
+      "runs": 3,
+      "stage": "optimizer"
+    },
+    {
+      "capture_error": "HIP graph capture forbids dynamic Tensor allocation; allocate stable outputs and workspaces before capture",
+      "capture_supported": false,
+      "captured_nodes": 0,
+      "maximum_deferred_blocks": 0,
+      "maximum_deferred_bytes": 0,
+      "optimizer_replay_advances_host_step": false,
+      "precision": "bf16",
+      "runs": 3,
+      "stage": "full-step"
+    }
+  ],
+  "decision": "reject complete training graph; require graph-wide stable workspaces and device-owned optimizer step",
+  "experiment": "staged_training_hip_graph_capture",
+  "gates": {
+    "capture_failure_recovery_clean": true,
+    "dynamic_graph_stages_rejected": true,
+    "optimizer_device_nodes_captured": true,
+    "optimizer_host_step_not_replayed": true
+  },
+  "processes": 24,
+  "runs_per_case": 3,
+  "schema_version": 1,
+  "status": "pass"
+}

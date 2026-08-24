@@ -150,6 +150,9 @@ the chronological details are in the [optimization log](docs/optimization-log/RE
 - a caller-owned HIP activation arena allocates stable backing outside replay and follows a
   two-slot liveness plan; eager chains improve `1.071×–1.768×`, allocation-free Graph replay
   `1.314×–3.066×`, with explicit 9–1,280 replay setup break-even;
+- staged full-training capture now rejects dynamic Tensor Storage before it can invalidate the
+  HIP Stream; 24/24 FP32/BF16 processes recover cleanly, while captured AdamW replay exposes an
+  unchanged host step, so no complete-training Graph performance claim is made;
 - the first arena-backed heterogeneous FFN region uses official Qwen/DeepSeek FP32 shapes and
   four stable GEMM/SwiGLU nodes; three of four Graph rows improve `1.202×–2.970×`, while
   DeepSeek R32 at `1.005×` keeps routing shape-selective and outside the BF16 model default;
@@ -579,15 +582,15 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 514/514 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
-| CPU Debug | 329/329 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
-| ASan/UBSan CPU | 327/327 | host lifetime, external Storage and instrumented-package linking |
-| MI300X/gfx942 HIP label | 174/174 | allocator/arena/Stream/Graph, grouped/exact vendor solutions, BF16/FP8 and model paths |
-| PyTorch-enabled CPU build | 303/303 | dispatcher parity, 32-step BF16 optimizer state, full graph/model oracle and all package paths |
-| Multi-GPU/RCCL | 11/11 | collectives, global-batch equivalence, gradient buckets, DDP trainer/CLI and per-device hipBLASLt ownership; RCCL label 14/14 with package gates |
-| Registered test files | 92 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| Full CPU/HIP configuration | 518/518 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
+| CPU Debug | 330/330 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
+| ASan/UBSan CPU | 328/328 | host lifetime, external Storage and instrumented-package linking |
+| MI300X/gfx942 HIP label | 176/176 | allocator/arena/Stream/Graph, grouped/exact vendor solutions, BF16/FP8 and model paths |
+| PyTorch-enabled CPU build | 304/304 | dispatcher parity, 32-step BF16 optimizer state, full graph/model oracle and all package paths |
+| Multi-GPU/RCCL | 12/12 | collectives, global-batch equivalence, gradient buckets, DDP trainer/CLI and per-device hipBLASLt ownership; RCCL label 14/14 with package gates |
+| Registered test files | 93 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
-| CPU source coverage | 79.8% lines / 87.7% functions / 60.4% branches | 8,861/11,100 lines; HIP-only hybrid workspace branches remain visible; GCC 13.3 + gcovr 8.3 |
+| CPU source coverage | 79.8% lines / 87.7% functions / 60.4% branches | 8,862/11,101 lines; HIP-only hybrid workspace branches remain visible; GCC 13.3 + gcovr 8.3 |
 
 Latest PyTorch-reference maximum absolute differences:
 
