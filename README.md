@@ -336,6 +336,11 @@ ctest --preset rccl-release
 microLLM generates a real CMake Config package. The short version is: request one
 component, then link one target. CMake carries its headers and lower-level libraries.
 
+In plain language, the Config file is the SDK's address card. It means users do not
+copy microLLM sources into their project and do not hand-write compiler `-I`, `-L`, or
+`-l` flags. They install microLLM once, tell CMake where that installation lives, and
+link a named target:
+
 ```cmake
 find_package(microLLM 0.1 CONFIG REQUIRED COMPONENTS inference)
 target_link_libraries(my_app PRIVATE microLLM::inference)
@@ -368,6 +373,11 @@ To create the installed SDK:
 ```bash
 cmake --install build/cpu-debug --prefix "$PWD/install/microllm"
 ```
+
+The copy-paste-ready independent project in
+[`examples/package-consumer`](examples/package-consumer) proves this exact workflow.
+It is also executed by the `PackageConfig.PublicExample` CTest gate, so the README path
+cannot silently become an uncompiled snippet.
 
 Both paths supply the headers, static libraries, C++20 requirement, transitive
 microLLM libraries, and any HIP/hipBLASLt/RCCL dependencies recorded by the selected
@@ -483,13 +493,15 @@ build with a config file from another is unsupported, so install the complete pr
 atomically. Before the project reaches 1.0, version compatibility is limited to the
 installed `0.1.x` minor line.
 
-CTest has two repository-external consumer gates. `PackageConfig.BuildTreeConsumer`
+CTest has three repository-external consumer gates. `PackageConfig.BuildTreeConsumer`
 uses `microLLM_DIR` directly, while `PackageConfig.InstalledConsumer` installs into a
 temporary prefix, moves that prefix, and consumes the moved SDK. Both configure,
 compile, link, and run C++ and, when enabled, C programs. They check that internal
 compile flags do not leak and that ordinary builds add no link flags; an instrumented
 build may carry only its required runtime link option. Both gates also prove that a
 missing component and an incompatible pre-1.0 minor version are rejected.
+`PackageConfig.PublicExample` separately installs the SDK and builds the short public
+example shown above, keeping the beginner path under continuous test.
 
 The complete compiler, CMake, ROCm, library, Python, and troubleshooting matrix is in
 [Build from source](docs/dev/build.md).
@@ -500,14 +512,14 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 456/456 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
-| CPU Debug | 291/291 | host code, CLI, model/graph, benchmark, both package paths and evidence schemas |
-| ASan/UBSan CPU | 289/289 | host lifetime, external Storage and instrumented-package linking |
-| MI300X/gfx942 HIP label | 154/154 | allocator/arena/Stream/Graph, per-device matmul, BF16/FP8, model and package paths |
-| PyTorch-enabled CPU build | 265/265 | dispatcher parity, full graph/model oracle and both package paths |
+| Full CPU/HIP configuration | 457/457 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
+| CPU Debug | 292/292 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
+| ASan/UBSan CPU | 290/290 | host lifetime, external Storage and instrumented-package linking |
+| MI300X/gfx942 HIP label | 155/155 | allocator/arena/Stream/Graph, per-device matmul, BF16/FP8, model and all package paths |
+| PyTorch-enabled CPU build | 266/266 | dispatcher parity, full graph/model oracle and all package paths |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, gradient buckets, DDP trainer/CLI and per-device hipBLASLt ownership |
 | Registered test files | 67 | machine-audited native/Python test sources; package consumers run inside the integration gate |
-| CMake Config package | CPU + HIP + RCCL pass | build tree and relocated install tree, external `find_package`, components, compile, link and run |
+| CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
 | CPU source coverage | 80.4% lines / 89.3% functions / 61.4% branches | 7,782/9,678 lines; GCC 13.3 + gcovr 8.3 |
 
 Latest PyTorch-reference maximum absolute differences:

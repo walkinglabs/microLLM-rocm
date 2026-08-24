@@ -1,5 +1,7 @@
 # Development records
 
+- [2026-08-24: Public CMake package consumer](2026-08-24-public-cmake-consumer.md)
+
 This directory is the chronological record requested for the main repository.
 Each milestone records scope, decisions, commands, evidence, known failures, and
 the next gate. Records are append-only except for factual corrections.

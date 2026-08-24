@@ -74,6 +74,20 @@ set_tests_properties(PackageConfig.BuildTreeConsumer PROPERTIES
     RUN_SERIAL TRUE
 )
 
+add_test(
+    NAME PackageConfig.PublicExample
+    COMMAND ${CMAKE_COMMAND}
+        -DMICROLLM_BINARY_DIR=${PROJECT_BINARY_DIR}
+        -DMICROLLM_EXAMPLE_SOURCE_DIR=${PROJECT_SOURCE_DIR}/examples/package-consumer
+        -DMICROLLM_EXAMPLE_BINARY_DIR=${PROJECT_BINARY_DIR}/package-public-example-build
+        -DMICROLLM_EXAMPLE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/package-public-example-prefix
+        -P ${PROJECT_SOURCE_DIR}/cmake/RunPackageExample.cmake
+)
+set_tests_properties(PackageConfig.PublicExample PROPERTIES
+    LABELS "${microllm_package_test_labels};example"
+    RUN_SERIAL TRUE
+)
+
 if(Python3_Interpreter_FOUND)
     add_test(
         NAME HfCLI.BinaryContract

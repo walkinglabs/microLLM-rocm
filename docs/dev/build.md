@@ -137,6 +137,12 @@ target propagates its public microLLM dependencies. When the C API is built, pla
 consumers request the `capi` component and link `microLLM::capi`. A package produced by
 a HIP build also resolves HIP and hipBLASLt; an RCCL build additionally resolves RCCL.
 
+A copy-paste-ready standalone consumer lives in
+[`examples/package-consumer`](../../examples/package-consumer). The
+`PackageConfig.PublicExample` test installs the current SDK, configures that independent
+project through `CMAKE_PREFIX_PATH`, compiles it, and runs it. This keeps the public
+instructions executable instead of treating them as documentation-only text.
+
 Think of the Config package as an installed instruction card: the consumer names the
 capability it needs, while CMake reads the card and supplies include directories,
 libraries, compile requirements, and backend dependencies. A minimal consumer uses:
@@ -197,6 +203,8 @@ repository-only compile options, and require ordinary builds to add no link opti
 An instrumented build may carry exactly its required runtime link option. Both gates
 also ask for a nonexistent component and an incompatible pre-1.0 minor version; both
 requests must fail. CPU, HIP, and RCCL presets label and execute the same contracts.
+`PackageConfig.PublicExample` independently compiles and runs the short example linked
+above against a fresh installation.
 
 ## Build options
 
