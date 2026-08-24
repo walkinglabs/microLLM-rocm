@@ -724,6 +724,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/179-stream-ordered-allocator.md](experiments/179-stream-ordered-allocator.md) | 72进程矩阵、pool high-water和profile关闭门 |
 | [assets/activation-arena.svg](assets/activation-arena.svg) | stable two-slot eager/Graph速度与setup回本次数 |
 | [experiments/180-activation-arena.md](experiments/180-activation-arena.md) | 72进程矩阵、compute-only Graph和liveness合同 |
+| [assets/arena-ffn.svg](assets/arena-ffn.svg) | Qwen/DeepSeek四算子FFN速度与短行反例 |
+| [experiments/181-arena-ffn.md](experiments/181-arena-ffn.md) | official shape、36进程、四节点Graph与profile |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

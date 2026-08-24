@@ -1,8 +1,10 @@
+#include <array>
 #include <cstddef>
 #include <cstdint>
 
 #include <gtest/gtest.h>
 #include <microllm/core/storage.h>
+#include <microllm/core/tensor.h>
 
 namespace microllm {
 
@@ -29,6 +31,25 @@ TEST(StorageTest, ZeroByteStorageIsValidAndEmpty) {
     Storage storage(0);
     EXPECT_TRUE(storage.empty());
     EXPECT_EQ(storage.num_bytes(), 0U);
+}
+
+TEST(StorageTest, ExternalStorageIsNonOwningAndSharesCallerBytes) {
+    std::array<float, 4> values{1, 2, 3, 4};
+    {
+        auto external = Storage::from_external(
+            values.data(), sizeof(values), Device::cpu());
+        EXPECT_EQ(external.data(), values.data());
+        EXPECT_EQ(external.num_bytes(), sizeof(values));
+        auto tensor = Tensor::from_storage(
+            external, {2, 2}, {2, 1}, 0, DType::Float32);
+        tensor.fill(7.0F);
+        EXPECT_EQ(values, (std::array<float, 4>{7, 7, 7, 7}));
+    }
+    values[0] = 9.0F;
+    EXPECT_EQ(values[0], 9.0F);
+    EXPECT_THROW(
+        (void)Storage::from_external(nullptr, 4, Device::cpu()),
+        std::invalid_argument);
 }
 
 TEST(StorageTest, HipAllocationIsExplicitlyUnavailableInN0) {

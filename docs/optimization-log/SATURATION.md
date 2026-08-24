@@ -173,6 +173,11 @@ eager chains 1.071×–1.768× and compute-only Graph replay 1.314×–3.066× w
 Graph setup is 14–16 ms, so break-even spans 9–1,280 replays. Allocator selection is now closed;
 only mapping a real heterogeneous model region into stable arena offsets remains open.
 
+Experiment 181 maps the official dense FFN dimensions into that arena. Qwen R32/R512 and
+DeepSeek R512 Graph rows improve 1.202×/2.970×/1.679×; DeepSeek R32 reaches only 1.005× and closes
+universal routing. The FP32 region is retained. Remaining work is narrower: caller-owned BF16
+output contracts and a complete model-logit gate, not another FP32 arena shape sweep.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

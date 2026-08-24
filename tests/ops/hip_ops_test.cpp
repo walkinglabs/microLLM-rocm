@@ -246,6 +246,8 @@ TEST(HipLowPrecisionOpsTest, NativeBasicKernelsMatchCpuAndAvoidHostTransfers) {
         const auto matrix = matmul(left, mat_right);
         const auto activated = silu(left);
         const auto gated = swiglu(left, right);
+        Tensor caller_gated(left.shape(), dtype, gpu);
+        swiglu_out_(caller_gated, left, right);
         runtime::synchronize(gpu);
         const auto transfers = runtime::transfer_stats();
         EXPECT_EQ(transfers.host_to_device_calls, 0U);
@@ -258,6 +260,7 @@ TEST(HipLowPrecisionOpsTest, NativeBasicKernelsMatchCpuAndAvoidHostTransfers) {
         expect_near(matrix.to_vector(), matmul(left_cpu, mat_right_cpu).to_vector(), tolerance);
         expect_near(activated.to_vector(), silu(left_cpu).to_vector(), tolerance);
         expect_near(gated.to_vector(), swiglu(left_cpu, right_cpu).to_vector(), tolerance);
+        expect_near(caller_gated.to_vector(), gated.to_vector(), tolerance);
     }
 }
 

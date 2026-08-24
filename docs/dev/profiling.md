@@ -277,6 +277,17 @@ This control allocates two aligned slots outside timing/capture. Arena Graph row
 `N+1` compute Kernels and report setup plus calculated replay break-even. Replay wins are not
 reported without the setup amortization count.
 
+Official-shape FFN region:
+
+```bash
+python3 benchmarks/single_gpu/arena_ffn_matrix.py \
+  --binary build/hip-release/benchmarks/microllm_bench_arena_ffn \
+  --output-directory /tmp/microllm-arena-ffn
+```
+
+This uses Qwen/DeepSeek hidden/intermediate dimensions, captures three hipBLASLt GEMMs plus
+SwiGLU, compares every output element and reports shape-selective setup break-even.
+
 ## What remains
 
 There is no Python `@profile` decorator yet. The current stable entry points are the

@@ -1084,6 +1084,12 @@ TEST(CpuOpsTest, SiluAndSwiGluMatchDefinitions) {
     EXPECT_NEAR(silu_values[2], 1.0F / (1.0F + std::exp(-1.0F)), 1.0e-6F);
     expect_near(swiglu(input, Tensor::from_vector({2, 2, 2}, {3})).to_vector(),
                 {2 * silu_values[0], 0, 2 * silu_values[2]});
+    const auto up = Tensor::from_vector({2, 2, 2}, {3});
+    Tensor caller_output({3});
+    swiglu_out_(caller_output, input, up);
+    expect_near(caller_output.to_vector(), swiglu(input, up).to_vector());
+    Tensor wrong({2});
+    EXPECT_THROW(swiglu_out_(wrong, input, up), std::invalid_argument);
 }
 
 TEST(CpuOpsTest, RopeLeavesPositionZeroAndRotatesPositionOne) {

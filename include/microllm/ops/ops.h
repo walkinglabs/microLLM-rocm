@@ -312,6 +312,8 @@ void matmul_out_(Tensor& output, const Tensor& left, const Tensor& right,
 [[nodiscard]] Tensor silu(const Tensor& input, const OpContext& context = {});
 [[nodiscard]] Tensor swiglu(const Tensor& gate, const Tensor& up,
                             const OpContext& context = {});
+void swiglu_out_(Tensor& output, const Tensor& gate, const Tensor& up,
+                 const OpContext& context = {});
 [[nodiscard]] Tensor rope(const Tensor& input, std::int64_t sequence_dim = 1,
                           std::int64_t position_offset = 0, float base = 10000.0F,
                           const OpContext& context = {});

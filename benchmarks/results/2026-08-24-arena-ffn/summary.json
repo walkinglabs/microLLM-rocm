@@ -1,0 +1,73 @@
+{
+  "arena_graph_keep_rows": 3,
+  "arena_keep_rows": 3,
+  "comparisons": [
+    {
+      "arena_capacity_bytes": 1867776,
+      "arena_graph_speedup": 1.2019778800355212,
+      "arena_graph_wall_p50_ms": 0.061935,
+      "arena_speedup": 1.1480464804262505,
+      "arena_wall_p50_ms": 0.0648445,
+      "deferred_wall_p50_ms": 0.0744445,
+      "graph_break_even_replays": 23,
+      "graph_node_count": 4,
+      "graph_setup_ms": 0.286334,
+      "hidden": 896,
+      "intermediate": 4864,
+      "model": "qwen",
+      "rows": 32
+    },
+    {
+      "arena_capacity_bytes": 29884416,
+      "arena_graph_speedup": 2.9701619288000485,
+      "arena_graph_wall_p50_ms": 0.147781,
+      "arena_speedup": 3.0334245571842238,
+      "arena_wall_p50_ms": 0.144699,
+      "deferred_wall_p50_ms": 0.4389335,
+      "graph_break_even_replays": 1,
+      "graph_node_count": 4,
+      "graph_setup_ms": 0.266314,
+      "hidden": 896,
+      "intermediate": 4864,
+      "model": "qwen",
+      "rows": 512
+    },
+    {
+      "arena_capacity_bytes": 3440640,
+      "arena_graph_speedup": 1.0049186366492602,
+      "arena_graph_wall_p50_ms": 0.092302,
+      "arena_speedup": 1.042114428559391,
+      "arena_wall_p50_ms": 0.0890075,
+      "deferred_wall_p50_ms": 0.092756,
+      "graph_break_even_replays": 568,
+      "graph_node_count": 4,
+      "graph_setup_ms": 0.257483,
+      "hidden": 1536,
+      "intermediate": 8960,
+      "model": "deepseek",
+      "rows": 32
+    },
+    {
+      "arena_capacity_bytes": 55050240,
+      "arena_graph_speedup": 1.6792335458106136,
+      "arena_graph_wall_p50_ms": 0.39063,
+      "arena_speedup": 1.667490295667559,
+      "arena_wall_p50_ms": 0.393381,
+      "deferred_wall_p50_ms": 0.655959,
+      "graph_break_even_replays": 2,
+      "graph_node_count": 4,
+      "graph_setup_ms": 0.278269,
+      "hidden": 1536,
+      "intermediate": 8960,
+      "model": "deepseek",
+      "rows": 512
+    }
+  ],
+  "correctness_gate": true,
+  "decision": "keep shape-selective FFN arena and Graph candidate",
+  "layout_contract": true,
+  "raw_processes": 36,
+  "record_type": "arena_ffn_matrix_summary",
+  "schema_version": 1,
+  "status": "pass"
+}

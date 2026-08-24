@@ -386,3 +386,5 @@ the next gate. Records are append-only except for factual corrections.
   explicit HIP async allocation/Graph conformance and measured policy rejection.
 - [2026-08-24-activation-arena.md](2026-08-24-activation-arena.md):
   stable backing, aligned two-slot liveness and allocation-free Graph replay.
+- [2026-08-24-arena-ffn.md](2026-08-24-arena-ffn.md):
+  external Storage and the first official-shape heterogeneous FFN Graph region.

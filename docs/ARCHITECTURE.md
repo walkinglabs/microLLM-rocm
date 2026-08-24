@@ -226,6 +226,12 @@ runtime validates alignment/capacity; it does not infer Tensor lifetimes. Experi
 two-slot plan can capture `N+1` compute-only nodes and replay faster, while leaving real model
 shape/liveness planning as the next boundary.
 
+Arena slices can enter existing Tensor-shaped operator contracts through
+`Storage::from_external`. That Storage is explicitly non-owning: its caller must keep the pointer
+and queued work alive. `matmul_out_` plus `swiglu_out_` form the first real four-node FFN region.
+Experiment 181 proves official FP32 shapes and stable replay, but a DeepSeek short-row counterexample
+and the production BF16 path prevent a global model switch.
+
 hipBLASLt GEMM also supports contiguous strided batches: leading Tensor dimensions become
 the batch count and last-two dimensions remain the matrix contract. Explicit batched
 selection is tested independently; Auto is not changed by operator-only timing.

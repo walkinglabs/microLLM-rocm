@@ -154,6 +154,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.ActivationArenaMatrixContract PROPERTIES
         LABELS "cpu;benchmark;lifetime;memory;graph;schema")
     add_test(
+        NAME Benchmark.ArenaFfnMatrixContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_arena_ffn_matrix.py
+    )
+    set_tests_properties(Benchmark.ArenaFfnMatrixContract PROPERTIES
+        LABELS "cpu;benchmark;model;ffn;memory;graph;schema")
+    add_test(
         NAME Coverage.OperatorAndTestFiles
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/audit_test_coverage.py
     )

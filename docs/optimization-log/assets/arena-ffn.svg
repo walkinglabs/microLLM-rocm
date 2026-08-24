@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="560" viewBox="0 0 960 560" role="img" aria-labelledby="title desc">
+  <title id="title">Arena FFN speedups on official Qwen and DeepSeek shapes</title>
+  <desc id="desc">Qwen and long DeepSeek rows improve, while DeepSeek row 32 remains a counterexample.</desc>
+  <rect width="960" height="560" fill="#0b1020"/>
+  <text x="48" y="48" fill="#f8fafc" font-family="sans-serif" font-size="25" font-weight="700">A real four-op FFN region enters the arena</text>
+  <text x="48" y="76" fill="#94a3b8" font-family="sans-serif" font-size="14">FP32 official shapes · complete output exact · candidate / deferred</text>
+  <line x1="90" y1="430" x2="900" y2="430" stroke="#475569"/>
+  <line x1="90" y1="325" x2="900" y2="325" stroke="#f59e0b" stroke-dasharray="5 5"/>
+  <text x="904" y="330" fill="#fcd34d" font-family="sans-serif" font-size="12">1.05× keep</text>
+  <g font-family="sans-serif" font-size="13" text-anchor="middle">
+    <rect x="130" y="315" width="52" height="115" rx="5" fill="#38bdf8"/><text x="156" y="303" fill="#7dd3fc">1.148×</text>
+    <rect x="188" y="310" width="52" height="120" rx="5" fill="#22c55e"/><text x="214" y="298" fill="#86efac">1.202×</text><text x="185" y="460" fill="#cbd5e1">Q R32</text>
+    <rect x="330" y="127" width="52" height="303" rx="5" fill="#38bdf8"/><text x="356" y="115" fill="#7dd3fc">3.033×</text>
+    <rect x="388" y="133" width="52" height="297" rx="5" fill="#22c55e"/><text x="414" y="121" fill="#86efac">2.970×</text><text x="385" y="460" fill="#cbd5e1">Q R512</text>
+    <rect x="530" y="326" width="52" height="104" rx="5" fill="#64748b"/><text x="556" y="314" fill="#cbd5e1">1.042×</text>
+    <rect x="588" y="330" width="52" height="100" rx="5" fill="#fb7185"/><text x="614" y="318" fill="#fda4af">1.005×</text><text x="585" y="460" fill="#cbd5e1">D R32</text>
+    <rect x="730" y="263" width="52" height="167" rx="5" fill="#38bdf8"/><text x="756" y="251" fill="#7dd3fc">1.667×</text>
+    <rect x="788" y="262" width="52" height="168" rx="5" fill="#22c55e"/><text x="814" y="250" fill="#86efac">1.679×</text><text x="785" y="460" fill="#cbd5e1">D R512</text>
+  </g>
+  <rect x="90" y="492" width="810" height="42" rx="7" fill="#111827" stroke="#334155"/>
+  <text x="495" y="518" text-anchor="middle" fill="#e2e8f0" font-family="sans-serif" font-size="14">blue: eager arena · green/red: arena Graph · DeepSeek R32 closes universal policy</text>
+</svg>

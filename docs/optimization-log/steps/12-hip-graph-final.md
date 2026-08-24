@@ -100,6 +100,12 @@ Eager arena improves 1.071×–1.768×; arena Graph replay improves 1.314×–3.
 `N+1` compute nodes. Setup costs 14–16 ms, so short/long break-even is 1,280/9 replays. The next
 and only remaining prerequisite is a real model-region shape/liveness map with complete logits.
 
+## Experiment 181 official-shape FFN region
+
+Three hipBLASLt GEMMs plus SwiGLU now write into stable external/Arena Storage and capture as four
+nodes. Qwen R32/R512 and DeepSeek R512 pass the 1.05 speed gate; DeepSeek R32 is 1.005×. The next
+step is BF16 caller-owned output and complete model logits. Repeating FP32 shapes is closed.
+
 ## Final matrix
 
 - FP32 fixed matrix and running-best curve;

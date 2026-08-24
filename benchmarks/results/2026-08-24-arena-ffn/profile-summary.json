@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "workload": "Qwen FP32 FFN rows512, three warm-ups and twenty measured regions",
+  "modes": {
+    "deferred": {"kernel_calls": 101, "kernel_duration_ns": 3227037, "hip_malloc_calls": 80, "hip_free_calls": 79, "host_kernel_launch_calls": 100, "graph_launch_calls": 0, "stream_synchronize_calls": 24},
+    "arena": {"kernel_calls": 101, "kernel_duration_ns": 3099302, "hip_malloc_calls": 11, "hip_free_calls": 10, "host_kernel_launch_calls": 100, "graph_launch_calls": 0, "stream_synchronize_calls": 24},
+    "arena_graph": {"kernel_calls": 101, "kernel_duration_ns": 3124162, "hip_malloc_calls": 11, "hip_free_calls": 10, "host_kernel_launch_calls": 12, "graph_launch_calls": 23, "stream_synchronize_calls": 24}
+  },
+  "inference": "arena removes repeated FFN temporaries; Graph compresses four-op host submission while preserving computation"
+}

@@ -3044,3 +3044,24 @@ Graph再把host Kernel launch从2,967降到129。
 固定shape、完整logits、真实异构区域和setup摊销门。
 
 ![Activation arena result](assets/activation-arena.svg)
+
+## 198. Experiment 181：从加法练习走进真正的FFN
+
+Arena micro通过后，下一步不再堆add，而是用官方Qwen/DeepSeek的hidden和intermediate尺寸执行真实
+四算子区域：gate GEMM、up GEMM、SwiGLU、down GEMM。三个GEMM走hipBLASLt，中间值放进Arena，
+最终输出由调用者长期持有。
+
+为此补了两个所有权边界：`Storage::from_external`只解释调用者内存、绝不释放；`swiglu_out_`把结果写入
+指定Storage。生命周期没有“自动变安全”，Arena和Stream仍必须活到工作完成。
+
+36个fresh进程全部完整输出bit-exact，Graph恰好四个节点。Qwen R32/R512是1.202×/2.970×，
+DeepSeek R512是1.679×；DeepSeek R32只有1.005×，因此全局策略被反例关闭。setup回本分别是
+23、1、568、2次replay。
+
+Qwen R512 profile里三条路径都101个Kernel，Arena把malloc/free从80/79降到11/10，Graph把直接
+host Kernel launch从100降到12，再加23次Graph launch。数学没改，收益来自所有权和提交边界。
+
+这仍不是模型默认：当前生产推理FFN使用BF16权重，而这一步是FP32 official shape。下一节点必须补
+caller-owned BF16 output，并用完整模型logits决定是否接入。
+
+![Arena FFN result](assets/arena-ffn.svg)

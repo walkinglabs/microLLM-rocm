@@ -7949,6 +7949,86 @@ def validate_activation_arena(
         min(breaks, default=0), max(breaks, default=0)
 
 
+def validate_arena_ffn(
+        errors: list[str]) -> tuple[int, float, float, float, float, int, int]:
+    data = REPOSITORY / "benchmarks/results/2026-08-24-arena-ffn"
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    profile = json.loads((data / "profile-summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = summary.get("comparisons", [])
+    eager = [float(row.get("arena_speedup", 0.0)) for row in comparisons]
+    graph = [float(row.get("arena_graph_speedup", 0.0)) for row in comparisons]
+    breaks = [int(row.get("graph_break_even_replays", 0))
+              for row in comparisons]
+    modes = profile.get("modes", {})
+    deferred_profile = modes.get("deferred", {})
+    arena_profile = modes.get("arena", {})
+    graph_profile = modes.get("arena_graph", {})
+    expected_tests = {
+        "cpu_debug": {"passed": 286, "total": 286},
+        "asan_ubsan": {"passed": 284, "total": 284},
+        "pytorch_enabled_cpu": {"passed": 260, "total": 260},
+        "hip_full_configuration": {
+            "passed": 449, "total": 449, "conditional_skips": 3},
+        "hip_label": {"passed": 152, "total": 152},
+        "rccl_multi_gpu": {"passed": 11, "total": 11},
+        "rccl_full_label": {"passed": 13, "total": 13},
+    }
+    profile_files = (
+        "deferred-hip-api-stats.csv", "deferred-kernel-stats.csv",
+        "arena-hip-api-stats.csv", "arena-kernel-stats.csv",
+        "graph-hip-api-stats.csv", "graph-kernel-stats.csv")
+    if summary.get("status") != "pass" or len(raw) != 36 or \
+            summary.get("raw_processes") != 36 or len(comparisons) != 4 or \
+            summary.get("correctness_gate") is not True or \
+            summary.get("layout_contract") is not True or \
+            summary.get("arena_keep_rows") != 3 or \
+            summary.get("arena_graph_keep_rows") != 3 or \
+            summary.get("decision") != \
+                    "keep shape-selective FFN arena and Graph candidate" or \
+            not (1.04 <= min(eager, default=0.0) <= 1.05) or \
+            not (3.03 <= max(eager, default=0.0) <= 3.04) or \
+            not (1.00 <= min(graph, default=0.0) <= 1.01) or \
+            not (2.96 <= max(graph, default=0.0) <= 2.98) or \
+            min(breaks, default=0) != 1 or max(breaks, default=0) != 568 or \
+            any(row.get("graph_node_count") != 4 for row in comparisons) or \
+            profile.get("status") != "pass" or \
+            deferred_profile.get("kernel_calls") != arena_profile.get("kernel_calls") or \
+            deferred_profile.get("kernel_calls") != graph_profile.get("kernel_calls") or \
+            arena_profile.get("hip_malloc_calls", 0) >= \
+                    deferred_profile.get("hip_malloc_calls", 0) or \
+            graph_profile.get("host_kernel_launch_calls", 0) >= \
+                    arena_profile.get("host_kernel_launch_calls", 0) or \
+            verification.get("status") != "pass" or \
+            verification.get("tests") != expected_tests or \
+            verification.get("registered_test_files") != 63 or \
+            verification.get("formal_processes") != 36 or \
+            any(row.get("record_type") != "arena_ffn_measurement" or
+                row.get("status") != "pass" or
+                row.get("maximum_absolute_error") != 0 or
+                row.get("rms_error") != 0 for row in raw) or \
+            any(not (data / name).is_file() for name in profile_files):
+        errors.append("arena FFN evidence changed")
+    storage = (REPOSITORY / "include/microllm/core/storage.h").read_text(
+        encoding="utf-8")
+    ops = (REPOSITORY / "include/microllm/ops/ops.h").read_text(encoding="utf-8")
+    benchmark = (REPOSITORY / "benchmarks/single_gpu/"
+                 "benchmark_arena_ffn.cpp").read_text(encoding="utf-8")
+    runner = (REPOSITORY / "benchmarks/single_gpu/arena_ffn_matrix.py").read_text(
+        encoding="utf-8")
+    if "static Storage from_external" not in storage or \
+            "void swiglu_out_" not in ops or \
+            "MatmulImplementation::HipBLASLt" not in benchmark or \
+            "graph_break_even_replays" not in runner:
+        errors.append("arena FFN source/test contract changed")
+    return len(raw), min(eager, default=0.0), max(eager, default=0.0), \
+        min(graph, default=0.0), max(graph, default=0.0), \
+        min(breaks, default=0), max(breaks, default=0)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -8107,7 +8187,8 @@ def validate_assets(errors: list[str]) -> None:
                  "scoped-deferred-model-stream.svg",
                  "per-device-hipblaslt-handles.svg",
                  "stream-ordered-allocator.svg",
-                 "activation-arena.svg"):
+                 "activation-arena.svg",
+                 "arena-ffn.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -8407,6 +8488,10 @@ def main() -> int:
     arena_rows, arena_eager_minimum, arena_eager_maximum, \
         arena_graph_minimum, arena_graph_maximum, arena_break_minimum, \
         arena_break_maximum = validate_activation_arena(errors)
+    arena_ffn_rows, arena_ffn_eager_minimum, arena_ffn_eager_maximum, \
+        arena_ffn_graph_minimum, arena_ffn_graph_maximum, \
+        arena_ffn_break_minimum, arena_ffn_break_maximum = \
+        validate_arena_ffn(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -8653,6 +8738,10 @@ def main() -> int:
           f"activation_arena={arena_rows}/{arena_eager_minimum:.3f}/"
           f"{arena_eager_maximum:.3f}/{arena_graph_minimum:.3f}/"
           f"{arena_graph_maximum:.3f}/{arena_break_minimum}/{arena_break_maximum} "
+          f"arena_ffn={arena_ffn_rows}/{arena_ffn_eager_minimum:.3f}/"
+          f"{arena_ffn_eager_maximum:.3f}/{arena_ffn_graph_minimum:.3f}/"
+          f"{arena_ffn_graph_maximum:.3f}/{arena_ffn_break_minimum}/"
+          f"{arena_ffn_break_maximum} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

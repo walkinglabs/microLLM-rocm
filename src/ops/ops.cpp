@@ -1137,6 +1137,37 @@ Tensor swiglu(const Tensor& gate, const Tensor& up,
     return from_values(std::move(gate_values), gate.shape(), gate.dtype());
 }
 
+void swiglu_out_(Tensor& output, const Tensor& gate, const Tensor& up,
+                 [[maybe_unused]] const OpContext& context) {
+    require_forward_float(gate, "gate");
+    require_forward_float(up, "up");
+    require_forward_float(output, "output");
+    require_same_dtype(gate, up);
+    require_same_dtype(gate, output);
+    require_same_shape(gate, up);
+    require_same_shape(gate, output);
+    require_same_device(gate, up);
+    require_same_device(gate, output);
+    if (!gate.is_contiguous() || !up.is_contiguous() ||
+        !output.is_contiguous()) {
+        throw std::invalid_argument("swiglu_out requires contiguous tensors");
+    }
+    if (gate.device().is_cpu()) {
+        const auto reference = swiglu(gate, up);
+        runtime::copy_bytes(
+            output.data(), output.device(), reference.data(), reference.device(),
+            static_cast<std::size_t>(output.numel()) * dtype_size(output.dtype()));
+        return;
+    }
+#if MICROLLM_HAS_HIP
+    hip::launch_swiglu_typed(
+        gate.data(), up.data(), output.data(), gate.dtype(), gate.numel(),
+        context.native_stream(gate.device()));
+#else
+    throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+}
+
 Tensor rope(const Tensor& input, std::int64_t sequence_dim, std::int64_t position_offset,
             float base, [[maybe_unused]] const OpContext& context) {
     require_forward_float(input, "input");

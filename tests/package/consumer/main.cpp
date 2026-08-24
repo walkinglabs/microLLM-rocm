@@ -42,6 +42,14 @@ int main() {
     const auto config = microllm::model::ModelConfig::model_s();
     const auto bias_input = microllm::Tensor::from_vector(
         {1.0F, 2.0F, 3.0F, 4.0F}, {2, 2});
+    std::vector<float> external_values{0.0F, 0.0F};
+    const auto external_storage = microllm::Storage::from_external(
+        external_values.data(), external_values.size() * sizeof(float), device);
+    const auto external_gate = microllm::Tensor::from_storage(
+        external_storage, {2}, {1}, 0, microllm::DType::Float32);
+    const auto external_up = microllm::Tensor::from_vector({2.0F, 2.0F}, {2});
+    microllm::Tensor external_swiglu({2});
+    microllm::ops::swiglu_out_(external_swiglu, external_gate, external_up);
     const auto bias_result = microllm::ops::bias_gradient_with_implementation(
         bias_input, microllm::ops::BiasGradientImplementation::ScalarColumns);
     auto embedding_gradient = microllm::Tensor::from_vector(
@@ -130,6 +138,7 @@ int main() {
         !rejected_cpu_activation_arena ||
         microllm::runtime::stream_ordered_allocator_supported(device) ||
         config.parameter_count() == 0 ||
+        external_swiglu.to_vector() != std::vector<float>({0.0F, 0.0F}) ||
         bias_result.to_vector() != std::vector<float>({4.0F, 6.0F}) ||
         embedding_gradient.to_vector() !=
             std::vector<float>({1.0F, 2.0F, 3.5F, 3.5F}) ||

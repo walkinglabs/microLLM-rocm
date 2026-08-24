@@ -18,6 +18,11 @@
 - owning convenience operations: `include/microllm/ops/ops.h`;
 - non-owning output/view boundary: `include/microllm/ops/low_level.h`;
 - Stream/workspace selection: `include/microllm/ops/context.h`;
+
+Arena-backed owning-style operators may also wrap caller memory with
+`Storage::from_external`, then construct a Tensor using `Tensor::from_storage`. The wrapper does
+not extend lifetime or free the pointer. Prefer `_out_` operators such as `matmul_out_` and
+`swiglu_out_`; never return an arena-backed Tensor beyond its arena/Stream lifetime.
 - readable HIP launch declarations: `src/ops/hip/kernels.h`;
 - optimized matmul policy: `src/ops/optimized.cpp`;
 - correctness-first matmul/AdamW tuners: `src/ops/tuning.cpp` and
