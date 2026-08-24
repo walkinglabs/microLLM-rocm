@@ -148,6 +148,14 @@ fall 320→10 with unchanged work. It retains up to 2.08 MB in the measured matr
 must pass both correctness and pending-memory gates. The primitive reopens one model-Stream retry,
 not arbitrary Graph capture.
 
+Experiment 177 completes that one permitted model-Stream retry. Binding otherwise-default
+operators, runtime strided copies and deferred release restores bit-exact Qwen/DeepSeek inference,
+loss and parameter updates in 48/48 processes. Performance fails every row: inference is
+0.125×–0.862× and training 0.235×–0.575×, with up to 15.6 GB deferred. Profiler Kernel count is
+identical while allocation/free duration rises sharply because non-default Streams disable the
+legacy-default-Stream-only exact-size pool. Lexical routing and larger deferred tables are now
+closed; only a same-Stream ordered allocator or planned activation arena is a distinct retry.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

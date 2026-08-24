@@ -716,6 +716,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/175-scoped-model-stream-discard.md](experiments/175-scoped-model-stream-discard.md) | 三次稳定失败、候选移除与deferred-release前置条件 |
 | [assets/deferred-hip-deallocation.svg](assets/deferred-hip-deallocation.svg) | 310次同步消除、速度与pending-memory代价 |
 | [experiments/176-deferred-hip-deallocation.md](experiments/176-deferred-hip-deallocation.md) | explicit lifetime合同、36进程矩阵与overflow测试 |
+| [assets/scoped-deferred-model-stream.svg](assets/scoped-deferred-model-stream.svg) | 8个官方workload速度比与14.5GiB代价 |
+| [experiments/177-scoped-deferred-model-stream.md](experiments/177-scoped-deferred-model-stream.md) | bit-exact模型Stream、48进程矩阵与allocator归因 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

@@ -1,5 +1,8 @@
 #include <array>
+#include <atomic>
 #include <stdexcept>
+#include <thread>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -93,6 +96,11 @@ TEST(DeferredHipDeallocationTest, CpuStreamAndZeroCapacityAreRejected) {
     const Stream cpu_stream(Device::cpu());
     EXPECT_THROW((void)DeferredHipDeallocationScope(cpu_stream),
                  std::invalid_argument);
+    EXPECT_THROW((void)ScopedDeferredHipStream(cpu_stream),
+                 std::invalid_argument);
+    EXPECT_EQ(resolve_deferred_hip_stream(Device::cpu()), nullptr);
+    static_assert(!std::is_copy_constructible_v<ScopedDeferredHipStream>);
+    static_assert(!std::is_move_constructible_v<ScopedDeferredHipStream>);
 }
 
 #if MICROLLM_HAS_HIP
@@ -206,6 +214,56 @@ TEST(DeferredHipDeallocationTest, CapacityOverflowFlushesSafelyAndContinues) {
     EXPECT_EQ(scope.overflow_flushes(), 2U);
     scope.finish();
     EXPECT_EQ(result.to_vector(), (std::vector<float>{7, 7}));
+}
+
+TEST(ScopedDeferredHipStreamTest, RoutesDefaultOpsLayoutCopiesAndLifetimeTogether) {
+    if (hip_device_count() == 0) GTEST_SKIP() << "No visible HIP device";
+    const auto gpu = Device::hip(0);
+    const auto input = Tensor::from_vector({0, 0, 0, 0}, {2, 2}).to(gpu);
+    const auto source = Tensor::from_vector({1, 1, 1, 1}, {2, 2}).to(gpu);
+    Stream stream(gpu);
+    Stream conflicting(gpu);
+    Tensor result;
+    std::atomic<bool> child_saw_no_scope{false};
+    ScopedDeferredHipStream scope(stream, 64);
+    EXPECT_EQ(ops::OpContext{}.native_stream(gpu), stream.native_handle());
+    ops::OpContext same_context;
+    same_context.stream = &stream;
+    EXPECT_EQ(same_context.native_stream(gpu), stream.native_handle());
+    ops::OpContext conflicting_context;
+    conflicting_context.stream = &conflicting;
+    EXPECT_THROW((void)conflicting_context.native_stream(gpu), std::logic_error);
+    const auto same_external = ops::OpContext::from_external_stream(
+        gpu, stream.native_handle());
+    EXPECT_EQ(same_external.native_stream(gpu), stream.native_handle());
+    const auto conflicting_external = ops::OpContext::from_external_stream(
+        gpu, conflicting.native_handle());
+    EXPECT_THROW((void)conflicting_external.native_stream(gpu), std::logic_error);
+    if (hip_device_count() > 1) {
+        EXPECT_THROW((void)ops::OpContext{}.native_stream(Device::hip(1)),
+                     std::invalid_argument);
+    }
+    EXPECT_THROW((void)ScopedDeferredHipStream(stream, 64), std::logic_error);
+    std::thread child([&] {
+        child_saw_no_scope.store(
+            ops::OpContext{}.native_stream(gpu) == nullptr,
+            std::memory_order_relaxed);
+    });
+    child.join();
+    EXPECT_TRUE(child_saw_no_scope.load(std::memory_order_relaxed));
+
+    auto current = input;
+    for (int iteration = 0; iteration < 8; ++iteration) {
+        current = ops::add(current, source);
+    }
+    result = current.transpose(0, 1).contiguous();
+    EXPECT_GT(scope.pending_blocks(), 0U);
+    EXPECT_GT(scope.pending_bytes(), 0U);
+    EXPECT_EQ(scope.overflow_flushes(), 0U);
+    scope.finish();
+    EXPECT_TRUE(scope.finished());
+    EXPECT_EQ(ops::OpContext{}.native_stream(gpu), nullptr);
+    EXPECT_EQ(result.to_vector(), (std::vector<float>{8, 8, 8, 8}));
 }
 
 TEST(HipRuntimeTest, ReportsDeviceAndTransfersTensor) {

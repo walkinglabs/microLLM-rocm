@@ -42,7 +42,7 @@ __global__ void strided_copy_kernel(std::byte* destination, const std::byte* sou
 void launch_strided_copy(void* destination, const void* source,
                          std::size_t element_bytes, std::int64_t elements,
                          std::int64_t rank, const std::int64_t* shape,
-                         const std::int64_t* strides) {
+                         const std::int64_t* strides, void* stream) {
     if (rank < 0 || rank > kMaximumRank) {
         throw std::invalid_argument("HIP strided copy supports ranks up to eight");
     }
@@ -55,7 +55,8 @@ void launch_strided_copy(void* destination, const void* source,
     }
     const auto block_size = static_cast<std::int64_t>(kBlockSize);
     const auto blocks = static_cast<unsigned>((elements + block_size - 1) / block_size);
-    hipLaunchKernelGGL(strided_copy_kernel, dim3(blocks), dim3(kBlockSize), 0, nullptr,
+    hipLaunchKernelGGL(strided_copy_kernel, dim3(blocks), dim3(kBlockSize), 0,
+                       reinterpret_cast<hipStream_t>(stream),
                        static_cast<std::byte*>(destination),
                        static_cast<const std::byte*>(source), element_bytes, elements, layout);
     const auto status = hipGetLastError();

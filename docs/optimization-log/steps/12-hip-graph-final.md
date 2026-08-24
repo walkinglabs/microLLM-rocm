@@ -73,6 +73,18 @@ The cost is explicit: the largest row retains 127 blocks / 2,080,768 bytes. This
 not route model operators. Experiment 175 may only be retried by combining the two contracts and
 reporting complete logits, time and pending bytes.
 
+## Experiment 177 safe model retry
+
+`ScopedDeferredHipStream` now binds default `OpContext`, runtime strided-copy and temporary raw
+lifetime to one Stream. The original three-run tiny failure becomes exact; complete forward/
+backward gradients and 24 official model pairs also pass exactly.
+
+The execution policy is rejected. Across Qwen/DeepSeek, inference/training and T32/T512, candidate
+throughput is 0.125×–0.862× of legacy and deferred physical memory reaches 15.6 GB. Qwen T512
+profiler work is unchanged at 2,751 Kernels, but whole-process malloc/free calls rise from
+1,180/867 to 2,559/2,557. Model capture is now blocked on ordered allocation or an activation
+arena, not on Stream correctness.
+
 ## Final matrix
 
 - FP32 fixed matrix and running-best curve;

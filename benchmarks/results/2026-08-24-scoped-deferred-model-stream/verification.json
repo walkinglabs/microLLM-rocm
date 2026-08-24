@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "status": "pass_with_preexisting_rccl_failure",
+  "tests": {
+    "cpu_debug": {"passed": 281, "total": 281},
+    "asan_ubsan": {"passed": 279, "total": 279},
+    "pytorch_enabled_cpu": {"passed": 255, "total": 255},
+    "hip_full_configuration": {"passed": 434, "total": 434, "conditional_skips": 3},
+    "hip_label": {"passed": 146, "total": 146},
+    "rccl_multi_gpu": {"passed": 6, "total": 11}
+  },
+  "rccl_baseline_check": {
+    "revision": "adcd642",
+    "fresh_detached_build": true,
+    "same_failure": "hipBLASLt invalid device ordinal while switching rank-local model devices",
+    "inference": "the RCCL model failure predates Experiment 177 and is the next dedicated node"
+  },
+  "registered_test_files": 59,
+  "formal_model_processes": 48,
+  "formal_model_pairs": 24,
+  "correctness_gate": "pass",
+  "performance_gate": "fail"
+}

@@ -2955,3 +2955,27 @@ Stream synchronize从320降到10。
 Experiment 175的完整logits；即便正确，也必须同时报告速度与pending memory。
 
 ![Deferred HIP deallocation](assets/deferred-hip-deallocation.svg)
+
+## 194. Experiment 177：货和车终于同路，但沿途不能复用货架
+
+这次把前两步真正接起来：scope里所有默认`OpContext`和底层strided-copy都走同一条HIP Stream，
+临时Tensor析构时只结束逻辑所有权，raw allocation等车道完成后再统一释放。显式传入另一条Stream、
+另一张卡、嵌套scope都会报错；子线程看不到父线程状态。
+
+正确性问题完全解决。Experiment 175三次失败的64个tiny logits现在全部通过`1e-5`门；完整
+forward/backward的每个参数梯度也一致。正式48进程里，Qwen和DeepSeek、T32/T512、inference和
+training的完整logits、loss、参数更新全部bit-exact。
+
+但它不是速度优化。Qwen inference T32/T512只有0.800×/0.125×，training是0.562×/0.235×；
+DeepSeek分别是0.862×/0.147×和0.575×/0.406×。最坏的DeepSeek T512训练单步暂留
+15,591,456,776字节。
+
+profiler解释了反差。Qwen T512两边都是2,751个Kernel，Kernel总时间甚至略降；可非默认Stream
+按当前安全合同永久关闭只适用于legacy default Stream的exact-size pool。整个profile的
+malloc/free从1,180/867次变成2,559/2,557次，二者API总时间约39.6ms变成183.0ms。
+
+因此scope作为正确性基础设施保留，但模型默认路径不启用。继续扩大deferred表不会让地址复用，
+重复写另一个ambient wrapper也不是新实验。下一步必须是同Stream有序allocator或activation arena，
+让旧地址能在不等待整个region的情况下安全回收。
+
+![Scoped deferred model Stream result](assets/scoped-deferred-model-stream.svg)

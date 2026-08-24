@@ -198,6 +198,15 @@ one bound Stream at `finish()`, then frees every raw block. It does not choose a
 Scopes cannot nest; fixed-capacity overflow synchronizes and flushes safely. Pending raw bytes are
 reported separately because logical Tensor peak no longer describes physical residency.
 
+`runtime::ScopedDeferredHipStream` binds that lifetime primitive to otherwise-default operator
+and runtime layout-copy routing. An explicit different Stream/device, nesting and CPU construction
+fail; the state is thread-local. This is the first model-wide non-default-Stream path that passes
+complete inference logits and every training gradient. It remains opt-in infrastructure, not a
+model policy: Experiment 177 shows that non-default Stream use disables the current default-
+Stream-only exact-size pool, replacing tens of cache misses with thousands of synchronous backend
+allocations and retaining up to 15.6 GB of raw temporaries. Graph capture still needs stable,
+planned addresses or a same-Stream ordered allocator.
+
 hipBLASLt GEMM also supports contiguous strided batches: leading Tensor dimensions become
 the batch count and last-two dimensions remain the matrix contract. Explicit batched
 selection is tested independently; Auto is not changed by operator-only timing.

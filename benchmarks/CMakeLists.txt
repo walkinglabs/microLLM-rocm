@@ -6,6 +6,11 @@ if(MICROLLM_HAS_HIP)
                    micro/benchmark_deferred_deallocation.cpp)
     target_link_libraries(microllm_bench_deferred_deallocation PRIVATE
         microllm::ops microllm::runtime hip::host)
+    add_executable(microllm_bench_scoped_deferred_model
+                   single_gpu/benchmark_scoped_deferred_model.cpp)
+    target_link_libraries(microllm_bench_scoped_deferred_model PRIVATE
+        microllm::model microllm::training microllm::ops microllm::runtime
+        hip::host)
     add_executable(microllm_bench_hip_graph micro/benchmark_hip_graph.cpp)
     target_link_libraries(microllm_bench_hip_graph PRIVATE
         microllm::ops microllm::runtime hip::host)

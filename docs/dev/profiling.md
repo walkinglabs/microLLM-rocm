@@ -236,6 +236,23 @@ The safe control synchronizes before each temporary can be freed. The candidate 
 per explicit lifetime region and reports pending physical bytes. This is not comparable to an
 unsafe no-sync chain.
 
+Model-wide safe Stream matrix:
+
+```bash
+python3 benchmarks/single_gpu/scoped_deferred_model_matrix.py \
+  --benchmark build/hip-release/benchmarks/microllm_bench_scoped_deferred_model \
+  --output-directory /tmp/microllm-scoped-stream \
+  --qwen-config /path/to/qwen/config.json \
+  --qwen-weights /path/to/qwen/model.safetensors \
+  --deepseek-config /path/to/deepseek/config.json \
+  --deepseek-weights /path/to/deepseek/model.safetensors
+```
+
+The runner alternates fresh process order, compares every inference logit and the training loss/
+updated parameter, and reports deferred physical bytes separately from logical engine peak.
+Experiment 177 keeps the API for correctness but rejects default enablement because allocator
+calls and retained bytes dominate every official row.
+
 ## What remains
 
 There is no Python `@profile` decorator yet. The current stable entry points are the

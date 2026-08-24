@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="560" viewBox="0 0 960 560" role="img" aria-labelledby="title desc">
+  <title id="title">Scoped deferred model Stream performance ratios</title>
+  <desc id="desc">Eight horizontal bars show candidate throughput divided by legacy throughput. Every bar is below one despite exact correctness.</desc>
+  <rect width="960" height="560" fill="#0b1020"/>
+  <text x="48" y="48" fill="#f8fafc" font-family="sans-serif" font-size="25" font-weight="700">Correct Stream lifetime, wrong allocator boundary</text>
+  <text x="48" y="76" fill="#94a3b8" font-family="sans-serif" font-size="14">MI300X · BF16 Linear · B1 · median of 3 fresh processes · candidate / legacy</text>
+  <line x1="260" y1="100" x2="260" y2="460" stroke="#334155"/>
+  <line x1="860" y1="100" x2="860" y2="460" stroke="#22c55e" stroke-width="2" stroke-dasharray="6 6"/>
+  <text x="844" y="94" fill="#86efac" font-family="sans-serif" font-size="13">1.0× keep line</text>
+  <g font-family="sans-serif" font-size="14" fill="#e2e8f0">
+    <text x="48" y="132">Qwen infer T32</text><rect x="260" y="114" width="480" height="22" rx="4" fill="#fb7185"/><text x="750" y="131">0.800×</text>
+    <text x="48" y="176">Qwen infer T512</text><rect x="260" y="158" width="75" height="22" rx="4" fill="#ef4444"/><text x="345" y="175">0.125×</text>
+    <text x="48" y="220">Qwen train T32</text><rect x="260" y="202" width="337" height="22" rx="4" fill="#fb7185"/><text x="607" y="219">0.562×</text>
+    <text x="48" y="264">Qwen train T512</text><rect x="260" y="246" width="141" height="22" rx="4" fill="#ef4444"/><text x="411" y="263">0.235×</text>
+    <text x="48" y="308">DeepSeek infer T32</text><rect x="260" y="290" width="517" height="22" rx="4" fill="#fb7185"/><text x="787" y="307">0.862×</text>
+    <text x="48" y="352">DeepSeek infer T512</text><rect x="260" y="334" width="88" height="22" rx="4" fill="#ef4444"/><text x="358" y="351">0.147×</text>
+    <text x="48" y="396">DeepSeek train T32</text><rect x="260" y="378" width="345" height="22" rx="4" fill="#fb7185"/><text x="615" y="395">0.575×</text>
+    <text x="48" y="440">DeepSeek train T512</text><rect x="260" y="422" width="244" height="22" rx="4" fill="#ef4444"/><text x="514" y="439">0.406×</text>
+  </g>
+  <rect x="48" y="482" width="864" height="52" rx="8" fill="#111827" stroke="#334155"/>
+  <text x="68" y="505" fill="#f8fafc" font-family="sans-serif" font-size="14" font-weight="700">Correctness: all complete logits, losses and parameter updates exact</text>
+  <text x="68" y="525" fill="#fca5a5" font-family="sans-serif" font-size="13">Cost: 1.4k–4.0k backend allocations / 2 measured calls; up to 14.5 GiB deferred</text>
+</svg>

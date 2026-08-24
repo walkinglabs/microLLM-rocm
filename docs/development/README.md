@@ -378,3 +378,5 @@ the next gate. Records are append-only except for factual corrections.
   complete-logit corruption from routing model Kernels without temporary Storage lifetime.
 - [2026-08-24-deferred-hip-deallocation.md](2026-08-24-deferred-hip-deallocation.md):
   explicit lifetime queue, overflow safety, synchronization reduction and pending-byte cost.
+- [2026-08-24-scoped-deferred-model-stream.md](2026-08-24-scoped-deferred-model-stream.md):
+  bit-exact model-wide Stream/lifetime routing, official matrix rejection and allocator handoff.

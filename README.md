@@ -127,6 +127,9 @@ needed to run a real training and generation loop:
 - an explicit fixed-capacity deferred HIP release scope retains destroyed temporary allocations
   until one Stream completion; exact chains improve `2.28×–2.74×` versus per-temporary safe
   synchronization while separately reporting up to 127 blocks / 2,080,768 pending bytes;
+- lifetime-safe model Stream routing restores bit-exact Qwen/DeepSeek inference and training,
+  but stays explicit and default-off: the 48-process T32/T512 matrix reaches only
+  `0.125×–0.862×` inference and `0.235×–0.575×` training while retaining up to 14.5 GiB;
 - a phase-independent exact-size HIP pool with immediate legacy-default-Stream reuse and strict
   permanent disablement for non-default Streams;
 - a cross-framework trace runner for operator/layer values and latency comparisons.
@@ -452,13 +455,13 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 429/429 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
-| CPU Debug | 280/280 | host code, CLI, model/graph, benchmark, both package paths and evidence schemas |
-| ASan/UBSan CPU | 278/278 | host lifetime, undefined-behavior and instrumented-package linking |
-| MI300X/gfx942 HIP label | 143/143 | allocator/lifetime/Stream/Graph, matmul, BF16/FP8, model and both package paths |
-| PyTorch-enabled CPU build | 254/254 | dispatcher parity, full graph/model oracle and both package paths |
-| Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
-| Registered test files | 58 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| Full CPU/HIP configuration | 434/434 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
+| CPU Debug | 281/281 | host code, CLI, model/graph, benchmark, both package paths and evidence schemas |
+| ASan/UBSan CPU | 279/279 | host lifetime, undefined-behavior and instrumented-package linking |
+| MI300X/gfx942 HIP label | 146/146 | allocator/lifetime/Stream/Graph, matmul, BF16/FP8, model and both package paths |
+| PyTorch-enabled CPU build | 255/255 | dispatcher parity, full graph/model oracle and both package paths |
+| Two-rank RCCL | 6/11 current | pure collectives pass; five rank-local hipBLASLt model tests reproduce on pre-node `adcd642` and remain the next correctness task |
+| Registered test files | 59 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree and relocated install tree, external `find_package`, components, compile, link and run |
 | CPU source coverage | 80.4% lines / 89.3% functions / 61.4% branches | 7,782/9,678 lines; GCC 13.3 + gcovr 8.3 |
 

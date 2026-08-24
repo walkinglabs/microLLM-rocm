@@ -56,6 +56,7 @@ TransferCounters transfer_counters;
 thread_local bool strided_copy_diagnostics_enabled = false;
 thread_local std::vector<StridedCopyRecord> strided_copy_diagnostic_records;
 thread_local DeferredHipDeallocationScope* active_deferred_scope = nullptr;
+thread_local ScopedDeferredHipStream* active_scoped_deferred_stream = nullptr;
 
 void record_strided_copy(std::size_t element_bytes, Device device,
                          std::span<const std::int64_t> shape,
@@ -334,6 +335,25 @@ bool hip_caching_allocator_enabled(Device device) noexcept {
 #endif
 }
 
+void* resolve_deferred_hip_stream(
+    Device device, void* explicitly_requested_stream) {
+    if (device.is_cpu() || active_scoped_deferred_stream == nullptr) {
+        return explicitly_requested_stream;
+    }
+    if (active_scoped_deferred_stream->device() != device) {
+        throw std::invalid_argument(
+            "active deferred HIP Stream uses a different tensor device");
+    }
+    const auto active_handle =
+        active_scoped_deferred_stream->stream().native_handle();
+    if (explicitly_requested_stream != nullptr &&
+        explicitly_requested_stream != active_handle) {
+        throw std::logic_error(
+            "operator Stream conflicts with active deferred HIP Stream");
+    }
+    return active_handle;
+}
+
 void* allocate(std::size_t num_bytes, Device device) {
     if (num_bytes == 0) return nullptr;
     if (device.is_cpu()) {
@@ -526,7 +546,8 @@ void copy_strided(void* contiguous_destination, const void* strided_source,
     set_device(device);
     detail::launch_strided_copy(contiguous_destination, strided_source, element_bytes,
                                 elements, static_cast<std::int64_t>(shape.size()),
-                                shape.data(), strides.data());
+                                shape.data(), strides.data(),
+                                resolve_deferred_hip_stream(device));
 #else
     throw std::runtime_error("HIP strided copy requested from a CPU-only build");
 #endif
@@ -847,6 +868,92 @@ void DeferredHipDeallocationScope::finish() {
 #endif
 }
 
+struct ScopedDeferredHipStream::Impl {
+    const Stream* stream = nullptr;
+    std::unique_ptr<DeferredHipDeallocationScope> lifetime;
+    bool is_finished = false;
+};
+
+ScopedDeferredHipStream::ScopedDeferredHipStream(
+    const Stream& stream, std::size_t maximum_blocks)
+    : impl_(std::make_unique<Impl>()) {
+    if (stream.device().is_cpu()) {
+        throw std::invalid_argument("scoped deferred Stream requires a HIP Stream");
+    }
+    if (active_scoped_deferred_stream != nullptr) {
+        throw std::logic_error("scoped deferred HIP Streams cannot be nested");
+    }
+    impl_->stream = &stream;
+    impl_->lifetime = std::make_unique<DeferredHipDeallocationScope>(
+        stream, maximum_blocks);
+    active_scoped_deferred_stream = this;
+}
+
+ScopedDeferredHipStream::~ScopedDeferredHipStream() {
+    try {
+        finish();
+    } catch (...) {
+        if (active_scoped_deferred_stream == this) {
+            active_scoped_deferred_stream = nullptr;
+        }
+    }
+}
+
+Device ScopedDeferredHipStream::device() const noexcept {
+    return impl_ && impl_->stream != nullptr ? impl_->stream->device()
+                                             : Device::cpu();
+}
+
+const Stream& ScopedDeferredHipStream::stream() const {
+    if (!impl_ || impl_->stream == nullptr) {
+        throw std::logic_error("scoped deferred HIP Stream is undefined");
+    }
+    return *impl_->stream;
+}
+
+bool ScopedDeferredHipStream::finished() const noexcept {
+    return !impl_ || impl_->is_finished;
+}
+
+std::size_t ScopedDeferredHipStream::pending_blocks() const noexcept {
+    return impl_ && impl_->lifetime ? impl_->lifetime->pending_blocks() : 0;
+}
+
+std::size_t ScopedDeferredHipStream::pending_bytes() const noexcept {
+    return impl_ && impl_->lifetime ? impl_->lifetime->pending_bytes() : 0;
+}
+
+std::size_t ScopedDeferredHipStream::total_deferred_blocks() const noexcept {
+    return impl_ && impl_->lifetime
+               ? impl_->lifetime->total_deferred_blocks()
+               : 0;
+}
+
+std::size_t ScopedDeferredHipStream::total_deferred_bytes() const noexcept {
+    return impl_ && impl_->lifetime
+               ? impl_->lifetime->total_deferred_bytes()
+               : 0;
+}
+
+std::size_t ScopedDeferredHipStream::overflow_flushes() const noexcept {
+    return impl_ && impl_->lifetime ? impl_->lifetime->overflow_flushes() : 0;
+}
+
+void ScopedDeferredHipStream::finish() {
+    if (!impl_ || impl_->is_finished) return;
+    if (active_scoped_deferred_stream != this) {
+        throw std::logic_error("scoped deferred HIP Stream is not active");
+    }
+    active_scoped_deferred_stream = nullptr;
+    try {
+        impl_->lifetime->finish();
+        impl_->is_finished = true;
+    } catch (...) {
+        impl_->is_finished = impl_->lifetime->finished();
+        throw;
+    }
+}
+
 struct Event::Impl {
     Device device = Device::cpu();
     void* handle = nullptr;
@@ -972,9 +1079,11 @@ void copy_bytes_async(void* destination, Device destination_device, const void* 
     if (stream.device() != copy_device) throw std::invalid_argument("copy/stream device mismatch");
 #if MICROLLM_HAS_HIP
     select_copy_device(destination_device, source_device);
+    const auto resolved_stream = resolve_deferred_hip_stream(
+        stream.device(), stream.native_handle());
     check_hip(hipMemcpyAsync(destination, source, num_bytes,
                              copy_kind(destination_device, source_device),
-                             as_stream(stream.native_handle())),
+                             as_stream(resolved_stream)),
               "hipMemcpyAsync");
 #else
     throw std::runtime_error("HIP copy requested from a CPU-only build");

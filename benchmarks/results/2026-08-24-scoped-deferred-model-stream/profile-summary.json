@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "workload": "Qwen2.5-0.5B BF16 inference B1 T512, one warm-up and two measured forwards",
+  "policies": {
+    "legacy": {
+      "kernel_calls": 2751,
+      "kernel_duration_ns": 25635929,
+      "hip_launch_kernel_calls": 1976,
+      "hip_ext_launch_kernel_calls": 651,
+      "hip_malloc_calls": 1180,
+      "hip_malloc_duration_ns": 11247238,
+      "hip_free_calls": 867,
+      "hip_free_duration_ns": 28401601,
+      "device_synchronize_calls": 8,
+      "stream_synchronize_calls": 0,
+      "stream_create_calls": 0
+    },
+    "deferred": {
+      "kernel_calls": 2751,
+      "kernel_duration_ns": 25474693,
+      "hip_launch_kernel_calls": 1976,
+      "hip_ext_launch_kernel_calls": 651,
+      "hip_malloc_calls": 2559,
+      "hip_malloc_duration_ns": 42916338,
+      "hip_free_calls": 2557,
+      "hip_free_duration_ns": 140113152,
+      "device_synchronize_calls": 5,
+      "stream_synchronize_calls": 3,
+      "stream_create_calls": 1
+    }
+  },
+  "inference": "kernel work and launch count are unchanged; loss comes from replacing exact-size cache reuse with synchronous backend allocation/free"
+}

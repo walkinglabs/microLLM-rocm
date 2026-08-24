@@ -140,6 +140,39 @@ private:
     std::unique_ptr<Impl> impl_;
 };
 
+// Routes otherwise-default HIP operator/runtime work to one Stream and keeps
+// destroyed temporary allocations alive until that same Stream completes.
+// Routing work without routing lifetime is unsafe for eager Tensor temporaries.
+class ScopedDeferredHipStream {
+public:
+    explicit ScopedDeferredHipStream(
+        const Stream& stream, std::size_t maximum_blocks = 8192);
+    ~ScopedDeferredHipStream();
+    ScopedDeferredHipStream(const ScopedDeferredHipStream&) = delete;
+    ScopedDeferredHipStream& operator=(const ScopedDeferredHipStream&) = delete;
+    ScopedDeferredHipStream(ScopedDeferredHipStream&&) = delete;
+    ScopedDeferredHipStream& operator=(ScopedDeferredHipStream&&) = delete;
+
+    [[nodiscard]] Device device() const noexcept;
+    [[nodiscard]] const Stream& stream() const;
+    [[nodiscard]] bool finished() const noexcept;
+    [[nodiscard]] std::size_t pending_blocks() const noexcept;
+    [[nodiscard]] std::size_t pending_bytes() const noexcept;
+    [[nodiscard]] std::size_t total_deferred_blocks() const noexcept;
+    [[nodiscard]] std::size_t total_deferred_bytes() const noexcept;
+    [[nodiscard]] std::size_t overflow_flushes() const noexcept;
+    void finish();
+
+private:
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
+};
+
+// Internal routing seam shared by OpContext and runtime layout copies. When a
+// safe scope is active, an explicit different Stream is rejected.
+[[nodiscard]] void* resolve_deferred_hip_stream(
+    Device device, void* explicitly_requested_stream = nullptr);
+
 class Event {
 public:
     explicit Event(Device device = Device::cpu(), bool enable_timing = true);

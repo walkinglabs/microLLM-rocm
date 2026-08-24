@@ -30,21 +30,21 @@ struct OpContext {
         if (stream != nullptr && external_stream != nullptr) {
             throw std::invalid_argument("operator context cannot contain two streams");
         }
+        void* requested = nullptr;
         if (stream != nullptr) {
             if (stream->device() != device) {
                 throw std::invalid_argument("operator stream does not match tensor device");
             }
             runtime::notify_non_default_stream(device);
-            return stream->native_handle();
-        }
-        if (external_stream != nullptr) {
+            requested = stream->native_handle();
+        } else if (external_stream != nullptr) {
             if (external_stream_device != device) {
                 throw std::invalid_argument("external stream does not match tensor device");
             }
             runtime::notify_non_default_stream(device);
-            return external_stream;
+            requested = external_stream;
         }
-        return nullptr;
+        return runtime::resolve_deferred_hip_stream(device, requested);
     }
 };
 

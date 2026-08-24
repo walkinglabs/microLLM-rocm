@@ -12,11 +12,18 @@ int main() {
     const auto device = microllm::Device::cpu();
     microllm::runtime::HipGraphExecutable empty_graph;
     bool rejected_cpu_deferred_release = false;
+    bool rejected_cpu_scoped_stream = false;
     try {
         const microllm::runtime::Stream cpu_stream(device);
         microllm::runtime::DeferredHipDeallocationScope scope(cpu_stream);
     } catch (const std::invalid_argument&) {
         rejected_cpu_deferred_release = true;
+    }
+    try {
+        const microllm::runtime::Stream cpu_stream(device);
+        microllm::runtime::ScopedDeferredHipStream scope(cpu_stream);
+    } catch (const std::invalid_argument&) {
+        rejected_cpu_scoped_stream = true;
     }
     const auto config = microllm::model::ModelConfig::model_s();
     const auto bias_input = microllm::Tensor::from_vector(
@@ -104,6 +111,7 @@ int main() {
         rejected_cpu_adamw_tuning = true;
     }
     if (!device.is_cpu() || empty_graph.defined() || !rejected_cpu_deferred_release ||
+        !rejected_cpu_scoped_stream ||
         config.parameter_count() == 0 ||
         bias_result.to_vector() != std::vector<float>({4.0F, 6.0F}) ||
         embedding_gradient.to_vector() !=

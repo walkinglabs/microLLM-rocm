@@ -40,7 +40,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [09](steps/09-fusion-autotune.md) | complete | plan/alpha/repeat/zero-stride families measured | local Attention search saturated |
 | [10](steps/10-bf16.md) | in progress | DeepSeek first-four robust-strict；Qwen long-constant要求全FP32 fallback | broader checkpoints and prompt families |
 | [11](steps/11-fp8.md) | planned | cached FP8 weight/dynamic scale | FP8 track |
-| [12](steps/12-hip-graph-final.md) | in progress | deferred release 2.28×–2.74×通过；待重试model Stream | 完整logits + pending bytes |
+| [12](steps/12-hip-graph-final.md) | in progress | safe model Stream正确但仅0.125×–0.862×；转向ordered allocator/arena | 稳定地址 + 完整logits + physical bytes |
 
 ## 为什么按这个顺序
 

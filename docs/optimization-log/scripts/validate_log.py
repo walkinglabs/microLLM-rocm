@@ -7710,6 +7710,81 @@ def validate_deferred_hip_deallocation(
         max(speedups, default=0.0), max(deferred_bytes, default=0)
 
 
+def validate_scoped_deferred_model_stream(
+        errors: list[str]) -> tuple[int, int, float, float, int]:
+    data = REPOSITORY / "benchmarks/results/2026-08-24-scoped-deferred-model-stream"
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    profile = json.loads((data / "profile-summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    pairs = [json.loads(line) for line in (data / "pairs.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = summary.get("comparisons", [])
+    ratios = [float(row.get("deferred_speedup", 0.0)) for row in comparisons]
+    maximum_bytes = max((int(row.get("maximum_deferred_bytes", 0))
+                         for row in comparisons), default=0)
+    legacy = profile.get("policies", {}).get("legacy", {})
+    deferred = profile.get("policies", {}).get("deferred", {})
+    if verification.get("status") != "pass_with_preexisting_rccl_failure" or \
+            verification.get("tests", {}).get("cpu_debug") != \
+                    {"passed": 281, "total": 281} or \
+            verification.get("tests", {}).get("asan_ubsan") != \
+                    {"passed": 279, "total": 279} or \
+            verification.get("tests", {}).get("pytorch_enabled_cpu") != \
+                    {"passed": 255, "total": 255} or \
+            verification.get("tests", {}).get("hip_label") != \
+                    {"passed": 146, "total": 146} or \
+            verification.get("tests", {}).get("rccl_multi_gpu") != \
+                    {"passed": 6, "total": 11} or \
+            verification.get("rccl_baseline_check", {}).get("revision") != "adcd642" or \
+            summary.get("status") != "pass" or \
+            summary.get("raw_processes") != 48 or len(raw) != 48 or \
+            len(pairs) != 24 or len(comparisons) != 8 or \
+            summary.get("correctness_gate") is not True or \
+            summary.get("performance_gate") is not False or \
+            summary.get("decision") != "keep safe infrastructure; default off" or \
+            not (0.12 <= min(ratios, default=0.0) <= 0.13) or \
+            not (0.86 <= max(ratios, default=0.0) <= 0.87) or \
+            any(ratio >= 1.0 for ratio in ratios) or \
+            maximum_bytes != 15591456776 or \
+            any(row.get("maximum_absolute_error", 0.0) != 0.0 or
+                row.get("rms_error", 0.0) != 0.0 or
+                row.get("loss_absolute_difference", 0.0) != 0.0 or
+                row.get("parameter_absolute_difference", 0.0) != 0.0
+                for row in pairs) or \
+            any(row.get("deferred_overflow_flushes", -1) != 0
+                for row in raw if row.get("policy") == "deferred") or \
+            profile.get("status") != "pass" or \
+            legacy.get("kernel_calls") != deferred.get("kernel_calls") or \
+            legacy.get("hip_launch_kernel_calls") != \
+                    deferred.get("hip_launch_kernel_calls") or \
+            legacy.get("hip_ext_launch_kernel_calls") != \
+                    deferred.get("hip_ext_launch_kernel_calls") or \
+            deferred.get("hip_malloc_calls", 0) <= legacy.get("hip_malloc_calls", 0) or \
+            deferred.get("hip_free_calls", 0) <= legacy.get("hip_free_calls", 0):
+        errors.append("scoped deferred model Stream evidence changed")
+    header = (REPOSITORY / "include/microllm/runtime/runtime.h").read_text(
+        encoding="utf-8")
+    runtime = (REPOSITORY / "src/runtime/runtime.cpp").read_text(encoding="utf-8")
+    context = (REPOSITORY / "include/microllm/ops/context.h").read_text(
+        encoding="utf-8")
+    tests = (REPOSITORY / "tests/graph/hip_graph_alignment_test.cpp").read_text(
+        encoding="utf-8")
+    runner = (REPOSITORY / "benchmarks/single_gpu/"
+              "scoped_deferred_model_matrix.py").read_text(encoding="utf-8")
+    if "class ScopedDeferredHipStream" not in header or \
+            "active_scoped_deferred_stream" not in runtime or \
+            "resolve_deferred_hip_stream" not in context or \
+            "DeferredScopedStreamRestoresCompleteInferenceLogits" not in tests or \
+            "DeferredScopedStreamMatchesForwardBackwardGradients" not in tests or \
+            "inference_error" not in runner:
+        errors.append("scoped deferred model Stream source/test contract changed")
+    return len(raw), len(pairs), min(ratios, default=0.0), \
+        max(ratios, default=0.0), maximum_bytes
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -7864,7 +7939,8 @@ def validate_assets(errors: list[str]) -> None:
                  "hip-graph-submission-crossover.svg",
                  "hip-graph-gemm-discard.svg",
                  "scoped-model-stream-discard.svg",
-                 "deferred-hip-deallocation.svg"):
+                 "deferred-hip-deallocation.svg",
+                 "scoped-deferred-model-stream.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -8152,6 +8228,9 @@ def main() -> int:
         validate_scoped_model_stream_discard(errors)
     deferred_rows, deferred_cases, deferred_minimum, deferred_maximum, \
         deferred_max_bytes = validate_deferred_hip_deallocation(errors)
+    scoped_deferred_rows, scoped_deferred_pairs, scoped_deferred_minimum, \
+        scoped_deferred_maximum, scoped_deferred_bytes = \
+        validate_scoped_deferred_model_stream(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -8386,6 +8465,9 @@ def main() -> int:
           f"deferred_release={deferred_rows}/{deferred_cases}/"
           f"{deferred_minimum:.3f}/{deferred_maximum:.3f}/"
           f"{deferred_max_bytes} "
+          f"scoped_deferred={scoped_deferred_rows}/{scoped_deferred_pairs}/"
+          f"{scoped_deferred_minimum:.3f}/{scoped_deferred_maximum:.3f}/"
+          f"{scoped_deferred_bytes} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")
