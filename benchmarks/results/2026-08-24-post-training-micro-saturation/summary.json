@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "track": "post_training_micro_saturation",
+  "method": "three-step profile minus one-step profile; delta represents two complete training steps",
+  "comparisons": [
+    {
+      "model": "qwen2.5-0.5b",
+      "two_step_kernel_ns": 67086697,
+      "two_step_kernel_calls": 3826,
+      "gemm_share": 0.558660680964329,
+      "adamw_share": 0.16845143170879768,
+      "gemm_plus_adamw_share": 0.7271121126731267,
+      "bias_gradient_share": 0.04371948752284027,
+      "cross_entropy_share": 0.04127327083737604,
+      "cast_share": 0.02995032726468844,
+      "softmax_share": 0.027143837649616115,
+      "add_share": 0.025712714704956404,
+      "repeat_share": 0.020256079657333023,
+      "bias_gradient_perfect_upper_bound": 1.045718412104551,
+      "cast_perfect_upper_bound": 1.0308748964549104,
+      "add_perfect_upper_bound": 1.0263927691074442
+    },
+    {
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "two_step_kernel_ns": 154251419,
+      "two_step_kernel_calls": 4464,
+      "gemm_share": 0.6225162704683109,
+      "adamw_share": 0.21517920411498873,
+      "gemm_plus_adamw_share": 0.8376954745832997,
+      "bias_gradient_share": 0.02185479526631491,
+      "cross_entropy_share": 0.016485698388583813,
+      "cast_share": 0.02330534146247255,
+      "softmax_share": 0.012576826724857296,
+      "add_share": 0.014405283395822716,
+      "repeat_share": 0.013328668374648954,
+      "bias_gradient_perfect_upper_bound": 1.0223430554480897,
+      "cast_perfect_upper_bound": 1.0238614915685524,
+      "add_perfect_upper_bound": 1.0146158237236522
+    }
+  ],
+  "recent_gates": {
+    "training_add_rms_norm": "reject_model_route",
+    "multi_tensor_adamw": "reject_model_route",
+    "shared_bf16_activation": "reject_all_model_routes"
+  },
+  "decision": "close local training launch and cast fusion track"
+}

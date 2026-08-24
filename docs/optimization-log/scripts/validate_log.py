@@ -11027,6 +11027,77 @@ def validate_training_bf16_shared_activation_discard(
     return 56, min(ratios), max(ratios), 216, 252
 
 
+def validate_post_training_micro_saturation(
+        errors: list[str]) -> tuple[int, float, float, int]:
+    data = REPOSITORY / (
+        "benchmarks/results/2026-08-24-post-training-micro-saturation")
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    rows = {row.get("model"): row
+            for row in summary.get("comparisons", [])}
+    expected = {
+        "qwen2.5-0.5b":
+            (67086697, 3826, 0.558660680964329,
+             0.16845143170879768, 0.7271121126731267,
+             1.045718412104551, 1.0308748964549104,
+             1.0263927691074442),
+        "deepseek-r1-distill-qwen-1.5b":
+            (154251419, 4464, 0.6225162704683109,
+             0.21517920411498873, 0.8376954745832997,
+             1.0223430554480897, 1.0238614915685524,
+             1.0146158237236522),
+    }
+    fields = (
+        "two_step_kernel_ns", "two_step_kernel_calls", "gemm_share",
+        "adamw_share", "gemm_plus_adamw_share",
+        "bias_gradient_perfect_upper_bound", "cast_perfect_upper_bound",
+        "add_perfect_upper_bound")
+    csv_pairs = {
+        "qwen2.5-0.5b": (
+            data / "qwen-one-step-kernel-stats.csv",
+            data / "qwen-three-step-kernel-stats.csv"),
+        "deepseek-r1-distill-qwen-1.5b": (
+            data / "deepseek-one-step-kernel-stats.csv",
+            data / "deepseek-three-step-kernel-stats.csv"),
+    }
+    csv_changed = False
+    for model, (one_path, three_path) in csv_pairs.items():
+        one = {row["Name"]: (int(row["Calls"]), int(row["TotalDurationNs"]))
+               for row in csv.DictReader(one_path.open(encoding="utf-8"))}
+        three = {row["Name"]: (int(row["Calls"]), int(row["TotalDurationNs"]))
+                 for row in csv.DictReader(three_path.open(encoding="utf-8"))}
+        names = set(one) | set(three)
+        call_delta = sum(three.get(name, (0, 0))[0] -
+                         one.get(name, (0, 0))[0] for name in names)
+        time_delta = sum(three.get(name, (0, 0))[1] -
+                         one.get(name, (0, 0))[1] for name in names)
+        if any(three.get(name, (0, 0))[0] < one.get(name, (0, 0))[0]
+               for name in names) or \
+                (time_delta, call_delta) != expected[model][:2]:
+            csv_changed = True
+    if summary.get("status") != "pass" or \
+            summary.get("decision") != \
+                "close local training launch and cast fusion track" or \
+            set(rows) != set(expected) or \
+            any(any(abs(float(rows[name].get(field, 0.0)) - value) > 1.0e-12
+                    for field, value in zip(fields, values, strict=True))
+                for name, values in expected.items()) or csv_changed or \
+            summary.get("recent_gates") != {
+                "training_add_rms_norm": "reject_model_route",
+                "multi_tensor_adamw": "reject_model_route",
+                "shared_bf16_activation": "reject_all_model_routes"} or \
+            verification.get("status") != "pass" or \
+            verification.get("profile_models") != 2 or \
+            verification.get("profile_files") != 4 or \
+            verification.get("negative_delta_call_groups") != 0 or \
+            verification.get("recent_model_processes") != 88 or \
+            verification.get("next_major_tracks") != 3:
+        errors.append("post-training-micro saturation evidence changed")
+    shares = [float(row["gemm_plus_adamw_share"]) for row in rows.values()]
+    return len(rows), min(shares), max(shares), 4
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -11217,7 +11288,8 @@ def validate_assets(errors: list[str]) -> None:
                  "post-bf16-qk-saturation.svg",
                  "training-add-rms-norm-discard.svg",
                  "multi-tensor-adamw-discard.svg",
-                 "training-bf16-shared-activation-discard.svg"):
+                 "training-bf16-shared-activation-discard.svg",
+                 "post-training-micro-saturation.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -11603,6 +11675,9 @@ def main() -> int:
     shared_bf16_rows, shared_bf16_minimum, shared_bf16_maximum, \
         shared_bf16_qwen_casts, shared_bf16_deep_casts = \
         validate_training_bf16_shared_activation_discard(errors)
+    training_saturation_rows, training_saturation_minimum, \
+        training_saturation_maximum, training_saturation_profiles = \
+        validate_post_training_micro_saturation(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -11939,6 +12014,10 @@ def main() -> int:
           f"training_bf16_shared={shared_bf16_rows}/"
           f"{shared_bf16_minimum:.3f}/{shared_bf16_maximum:.3f}/"
           f"{shared_bf16_qwen_casts}/{shared_bf16_deep_casts} "
+          f"training_saturation={training_saturation_rows}/"
+          f"{training_saturation_minimum:.3f}/"
+          f"{training_saturation_maximum:.3f}/"
+          f"{training_saturation_profiles} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

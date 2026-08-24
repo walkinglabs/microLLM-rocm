@@ -788,6 +788,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/211-multi-tensor-adamw-discard.md](experiments/211-multi-tensor-adamw-discard.md) | pinned异步metadata、五进程模型门与隔离profile |
 | [assets/training-bf16-shared-activation-discard.svg](assets/training-bf16-shared-activation-discard.svg) | 共享cast的三策略模型反例与结构命中 |
 | [experiments/212-training-bf16-shared-activation-discard.md](experiments/212-training-bf16-shared-activation-discard.md) | 56进程、双模型profile与多输出梯度门 |
+| [assets/post-training-micro-saturation.svg](assets/post-training-micro-saturation.svg) | 去除加载后的训练Kernel占比与完美消除上限 |
+| [experiments/213-post-training-micro-saturation.md](experiments/213-post-training-micro-saturation.md) | GEMM+AdamW占72.71%/83.77%的收口证据 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

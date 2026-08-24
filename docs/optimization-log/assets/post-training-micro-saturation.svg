@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="680" viewBox="0 0 1200 680">
+  <rect width="1200" height="680" fill="#0f172a"/>
+  <text x="55" y="50" fill="#f8fafc" font-family="sans-serif" font-size="28" font-weight="700">Experiment 213 · training micro-optimization saturation</text>
+  <text x="55" y="82" fill="#94a3b8" font-family="sans-serif" font-size="16">Load/setup removed by three-step minus one-step profiling.</text>
+  <g font-family="sans-serif">
+    <text x="95" y="142" fill="#f8fafc" font-size="19" font-weight="700">Qwen · 67.087 ms / two steps</text>
+    <rect x="95" y="165" width="560" height="58" rx="8" fill="#1e293b"/>
+    <rect x="95" y="165" width="313" height="58" rx="8" fill="#38bdf8"/>
+    <rect x="408" y="165" width="94" height="58" fill="#f59e0b"/>
+    <text x="250" y="201" fill="#0f172a" font-size="16" font-weight="700" text-anchor="middle">GEMM 55.87%</text>
+    <text x="455" y="201" fill="#0f172a" font-size="14" font-weight="700" text-anchor="middle">AdamW 16.85%</text>
+    <text x="575" y="201" fill="#cbd5e1" font-size="14" text-anchor="middle">other 27.29%</text>
+    <text x="95" y="292" fill="#f8fafc" font-size="19" font-weight="700">DeepSeek · 154.251 ms / two steps</text>
+    <rect x="95" y="315" width="560" height="58" rx="8" fill="#1e293b"/>
+    <rect x="95" y="315" width="349" height="58" rx="8" fill="#38bdf8"/>
+    <rect x="444" y="315" width="120" height="58" fill="#f59e0b"/>
+    <text x="270" y="351" fill="#0f172a" font-size="16" font-weight="700" text-anchor="middle">GEMM 62.25%</text>
+    <text x="504" y="351" fill="#0f172a" font-size="14" font-weight="700" text-anchor="middle">AdamW 21.52%</text>
+    <text x="610" y="351" fill="#cbd5e1" font-size="14" text-anchor="middle">other 16.23%</text>
+  </g>
+  <rect x="725" y="140" width="405" height="290" rx="12" fill="#1e293b" stroke="#334155"/>
+  <text x="927" y="180" fill="#f8fafc" font-family="sans-serif" font-size="19" font-weight="700" text-anchor="middle">Perfect-removal upper bounds</text>
+  <g font-family="sans-serif" font-size="16">
+    <text x="760" y="230" fill="#cbd5e1">bias gradient</text><text x="1035" y="230" fill="#86efac">1.0457× / 1.0223×</text>
+    <text x="760" y="278" fill="#cbd5e1">FP32→BF16 cast</text><text x="1035" y="278" fill="#86efac">1.0309× / 1.0239×</text>
+    <text x="760" y="326" fill="#cbd5e1">add</text><text x="1035" y="326" fill="#86efac">1.0264× / 1.0146×</text>
+    <text x="760" y="382" fill="#94a3b8">Qwen / DeepSeek</text>
+  </g>
+  <text x="600" y="505" fill="#fca5a5" font-family="sans-serif" font-size="18" font-weight="700" text-anchor="middle">Local launch/cast fusion track closed</text>
+  <text x="600" y="548" fill="#cbd5e1" font-family="sans-serif" font-size="16" text-anchor="middle">Next: grouped/algorithmic GEMM · optimizer traffic · graph-wide liveness/capture</text>
+  <text x="600" y="610" fill="#64748b" font-family="sans-serif" font-size="14" text-anchor="middle">This is a measured stopping rule, not a claim that training cannot become faster.</text>
+</svg>

@@ -249,6 +249,9 @@ the chronological details are in the [optimization log](docs/optimization-log/RE
 - BF16 QKV and gate/up multi-output Autograd primitives share one activation cast while preserving
   independent FP32-master gradients; three official model policies fail at least one `1.01×` gate,
   so the primitives remain available without changing Transformer or CLI routing;
+- a load-subtracted training saturation audit shows GEMM plus AdamW now account for
+  72.71%/83.77% of Qwen/DeepSeek Kernel time; local launch/cast fusion is closed and the next
+  training milestone must change GEMM, optimizer traffic, or graph-wide lifetime;
 - rank-N strided-batched hipBLASLt with last-two-dimension transpose contracts for Attention.
 - T≥256 causal GQA backward using batched GEMM for K/V gradients, with short-sequence fallback.
 - optional autograd probability saving for T≥256, reported as a long-sequence speed/memory trade-off.

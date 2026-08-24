@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "profile_models": 2,
+  "profile_files": 4,
+  "negative_delta_call_groups": 0,
+  "recent_model_processes": 88,
+  "next_major_tracks": 3
+}

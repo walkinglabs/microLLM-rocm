@@ -320,6 +320,13 @@ Experiment 204 profiles the post-BTHD graph. Strided calls/time are zero and tot
 0.519/0.757 ms and causal softmax 0.483/0.519 ms. Measured layout work is closed. The next
 distinct candidate is BF16-input fused Q/K bias+RoPE, leaving V precision unchanged.
 
+Experiment 213 closes the current training micro-launch/cast track with load-subtracted
+one-step/three-step profiles. GEMM plus AdamW own 72.71%/83.77% of Qwen/DeepSeek two-step Kernel
+time. Bias-gradient, cast and add each have perfect-removal bounds no larger than 1.0457×/1.0239×,
+while Experiments 210–212 already show that real local candidates miss their cross-model gates.
+The remaining distinct training tracks are grouped/algorithmic GEMM, reduced optimizer memory
+traffic, and graph-wide liveness/capture; another isolated elementwise launch is closed.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

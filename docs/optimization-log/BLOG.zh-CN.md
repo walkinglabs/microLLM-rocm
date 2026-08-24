@@ -3543,3 +3543,17 @@ QKV-only后是0.9804×/1.0039×，gate/up-only是0.9911×/1.0012×。
 不能把“少一次cast”直接当成端到端优化。
 
 ![Training BF16 shared activation discard](assets/training-bf16-shared-activation-discard.svg)
+
+## 230. Experiment 213：先减掉加载，再决定训练还能优化什么
+
+整程序profile会把权重转置和mirror准备混进训练。我们用“load+3步”减去“load+1步”，得到
+两个纯训练step。Qwen/DeepSeek的GEMM占55.87%/62.25%，AdamW占16.85%/21.52%，合计
+72.71%/83.77%。
+
+其余单类别即使完美消失，DeepSeek最高上限也只有约1.024×。现实中residual-Norm、multi-tensor
+AdamW和shared BF16 cast又连续未过两模型门。因此训练微融合track关闭。
+
+下一阶段必须改变GEMM分组/算法、AdamW实际内存流量，或进入图级liveness与异构HIP Graph；
+继续删除一个cast、add或Norm launch不再构成新假设。
+
+![Post training micro saturation](assets/post-training-micro-saturation.svg)
