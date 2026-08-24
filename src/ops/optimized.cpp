@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <bit>
 #include <charconv>
 #include <cmath>
 #include <filesystem>
@@ -36,6 +37,12 @@ using MatmulShapeKey = std::tuple<std::int64_t, std::int64_t, std::int64_t>;
 std::mutex registry_mutex;
 std::map<MatmulTuningKey, MatmulImplementation> registry;
 std::atomic<std::size_t> registry_entries{0};
+thread_local std::map<Fp32MatmulSolutionKey, int> fp32_solution_registry;
+thread_local std::size_t fp32_solution_registry_hits = 0;
+thread_local std::size_t fp32_solution_registry_misses = 0;
+thread_local std::size_t fp32_solution_cache_hits = 0;
+thread_local std::size_t fp32_solution_cache_misses = 0;
+thread_local std::size_t fp32_solution_dispatches = 0;
 
 struct TuningEnvironment {
     std::string architecture;
@@ -90,6 +97,16 @@ TuningEnvironment tuning_environment(Device device) {
 
 constexpr int kMatmulTuningCacheSchema = 1;
 
+std::int64_t checked_positive_product(
+    std::int64_t left, std::int64_t right, const char* name) {
+    if (left <= 0 || right <= 0 ||
+        left > std::numeric_limits<std::int64_t>::max() / right) {
+        throw std::invalid_argument(std::string(name) +
+                                    " must be a positive int64 product");
+    }
+    return left * right;
+}
+
 void validate_matmul_tuning_key(const MatmulTuningKey& key) {
     if (key.rows <= 0 || key.inner <= 0 || key.columns <= 0) {
         throw std::invalid_argument("registered matmul dimensions must be positive");
@@ -103,6 +120,40 @@ void validate_matmul_tuning_key(const MatmulTuningKey& key) {
         key.architecture.empty() || key.hip_runtime_version < 0 ||
         key.hip_driver_version < 0 || key.hipblaslt_version < 0) {
         throw std::invalid_argument("registered matmul tuning key is incomplete");
+    }
+}
+
+void validate_fp32_solution_key(const Fp32MatmulSolutionKey& key) {
+    const auto alpha = std::bit_cast<float>(key.alpha_bits);
+    if (key.batches <= 0 ||
+        key.batches > std::numeric_limits<std::int32_t>::max() ||
+        key.left_rows <= 0 || key.left_columns <= 0 ||
+        key.right_rows <= 0 || key.right_columns <= 0 ||
+        key.output_rows <= 0 || key.output_columns <= 0 ||
+        !std::isfinite(alpha) || key.architecture.empty() ||
+        key.hip_runtime_version < 0 || key.hip_driver_version < 0 ||
+        key.hipblaslt_version <= 0) {
+        throw std::invalid_argument("FP32 solution key is incomplete");
+    }
+    const auto rows = key.transpose_left ? key.left_columns : key.left_rows;
+    const auto inner = key.transpose_left ? key.left_rows : key.left_columns;
+    const auto right_inner =
+        key.transpose_right ? key.right_columns : key.right_rows;
+    const auto columns =
+        key.transpose_right ? key.right_rows : key.right_columns;
+    if (inner != right_inner || key.output_rows != rows ||
+        key.output_columns != columns ||
+        key.left_batch_stride != checked_positive_product(
+                                     key.left_rows, key.left_columns,
+                                     "FP32 left batch stride") ||
+        key.right_batch_stride != checked_positive_product(
+                                      key.right_rows, key.right_columns,
+                                      "FP32 right batch stride") ||
+        key.output_batch_stride != checked_positive_product(
+                                       key.output_rows, key.output_columns,
+                                       "FP32 output batch stride")) {
+        throw std::invalid_argument(
+            "FP32 solution key does not describe one exact contiguous GEMM");
     }
 }
 
@@ -319,6 +370,69 @@ int hipblaslt_version() noexcept {
 #else
     return 0;
 #endif
+}
+
+Fp32MatmulSolutionKey make_fp32_matmul_solution_key(
+    const Shape& left_shape, const Shape& right_shape, Device device,
+    bool transpose_left, bool transpose_right,
+    const OpContext& context, float alpha) {
+    if (left_shape.size() < 2 || right_shape.size() != left_shape.size() ||
+        !std::isfinite(alpha)) {
+        throw std::invalid_argument(
+            "FP32 solution key requires equal-rank contiguous shapes and finite alpha");
+    }
+    std::int64_t batches = 1;
+    for (std::size_t dimension = 0; dimension + 2 < left_shape.size();
+         ++dimension) {
+        if (left_shape[dimension] != right_shape[dimension] ||
+            left_shape[dimension] <= 0) {
+            throw std::invalid_argument(
+                "FP32 solution key batch dimensions must match and be positive");
+        }
+        batches = checked_positive_product(
+            batches, left_shape[dimension], "FP32 batch count");
+    }
+    const auto rank = left_shape.size();
+    const auto left_rows = left_shape[rank - 2];
+    const auto left_columns = left_shape[rank - 1];
+    const auto right_rows = right_shape[rank - 2];
+    const auto right_columns = right_shape[rank - 1];
+    const auto rows = transpose_left ? left_columns : left_rows;
+    const auto inner = transpose_left ? left_rows : left_columns;
+    const auto right_inner = transpose_right ? right_columns : right_rows;
+    const auto columns = transpose_right ? right_rows : right_columns;
+    if (left_rows <= 0 || left_columns <= 0 || right_rows <= 0 ||
+        right_columns <= 0 || inner != right_inner ||
+        batches > std::numeric_limits<std::int32_t>::max()) {
+        throw std::invalid_argument("FP32 solution key GEMM dimensions are invalid");
+    }
+    const auto environment = tuning_environment(device);
+    Fp32MatmulSolutionKey key{
+        .batches = batches,
+        .left_rows = left_rows,
+        .left_columns = left_columns,
+        .right_rows = right_rows,
+        .right_columns = right_columns,
+        .output_rows = rows,
+        .output_columns = columns,
+        .left_batch_stride = checked_positive_product(
+            left_rows, left_columns, "FP32 left batch stride"),
+        .right_batch_stride = checked_positive_product(
+            right_rows, right_columns, "FP32 right batch stride"),
+        .output_batch_stride = checked_positive_product(
+            rows, columns, "FP32 output batch stride"),
+        .transpose_left = transpose_left,
+        .transpose_right = transpose_right,
+        .alpha_bits = std::bit_cast<std::uint32_t>(alpha),
+        .architecture = environment.architecture,
+        .hip_runtime_version = environment.runtime_version,
+        .hip_driver_version = environment.driver_version,
+        .hipblaslt_version = device.is_hip() ? hipblaslt_version() : 0,
+        .mode = context.mode,
+        .workspace_limit = context.workspace_bytes,
+    };
+    if (device.is_hip()) validate_fp32_solution_key(key);
+    return key;
 }
 
 MatmulTuningKey make_matmul_tuning_key(
@@ -729,6 +843,73 @@ thread_local std::map<Bf16PlanKey, int> bf16_algorithm_registry;
 thread_local std::size_t bf16_plan_hits = 0;
 thread_local std::size_t bf16_plan_misses = 0;
 
+struct Fp32SolutionAlgorithm {
+    int solution_index = -1;
+    hipblasLtMatmulAlgo_t algorithm{};
+    std::size_t workspace_bytes = 0;
+};
+
+using Fp32SolutionCacheKey = std::pair<Fp32MatmulSolutionKey, int>;
+thread_local std::map<Fp32SolutionCacheKey, Fp32SolutionAlgorithm>
+    fp32_solution_algorithms;
+
+const hipblasLtMatmulAlgo_t* registered_fp32_solution(
+    Handle& handle, const Fp32MatmulSolutionKey& key,
+    int device_index,
+    hipblasLtMatmulDesc_t operation, hipblasLtMatrixLayout_t matrix_b,
+    hipblasLtMatrixLayout_t matrix_a, hipblasLtMatrixLayout_t matrix_c,
+    const float* alpha, const float* beta, const OpContext& context) {
+    if (fp32_solution_registry.empty()) return nullptr;
+    const auto registered = fp32_solution_registry.find(key);
+    if (registered == fp32_solution_registry.end()) {
+        ++fp32_solution_registry_misses;
+        return nullptr;
+    }
+    ++fp32_solution_registry_hits;
+    const Fp32SolutionCacheKey cache_key{key, device_index};
+    const auto cached = fp32_solution_algorithms.find(cache_key);
+    if (cached != fp32_solution_algorithms.end()) {
+        if (cached->second.workspace_bytes != 0 &&
+            context.workspace == nullptr) {
+            throw std::invalid_argument(
+                "cached FP32 solution requires caller-owned workspace");
+        }
+        ++fp32_solution_cache_hits;
+        ++fp32_solution_dispatches;
+        return &cached->second.algorithm;
+    }
+
+    ++fp32_solution_cache_misses;
+    std::vector<int> indices{registered->second};
+    std::vector<hipblasLtMatmulHeuristicResult_t> results;
+    check_status(hipblaslt_ext::getAlgosFromIndex(
+                     handle.get(), indices, results),
+                 "getAlgosFromIndex(FP32)");
+    for (auto& result : results) {
+        auto candidate = result.algo;
+        std::size_t workspace_bytes = 0;
+        if (hipblaslt_ext::matmulIsAlgoSupported(
+                handle.get(), operation, alpha, matrix_b, matrix_a, beta,
+                matrix_c, matrix_c, candidate,
+                workspace_bytes) != HIPBLAS_STATUS_SUCCESS) {
+            continue;
+        }
+        if (workspace_bytes > context.workspace_bytes ||
+            (workspace_bytes != 0 && context.workspace == nullptr)) {
+            throw std::invalid_argument(
+                "registered FP32 solution exceeds the exact workspace contract");
+        }
+        const auto [inserted, unused] = fp32_solution_algorithms.emplace(
+            cache_key, Fp32SolutionAlgorithm{registered->second, candidate,
+                                             workspace_bytes});
+        (void)unused;
+        ++fp32_solution_dispatches;
+        return &inserted->second.algorithm;
+    }
+    throw std::invalid_argument(
+        "registered FP32 solution does not support the exact descriptor");
+}
+
 Bf16Plan& bf16_plan(Handle& handle, std::int64_t rows, std::int64_t inner,
                     std::int64_t columns, DType output_dtype, Device device) {
     const Bf16PlanKey registry_key{rows, inner, columns, output_dtype};
@@ -804,10 +985,21 @@ void hipblaslt_matmul_out(Tensor& output, const Tensor& left,
         matrix_c.set_batch(batch_count, rows * columns);
     }
     const float beta = 0.0F;
+    const hipblasLtMatmulAlgo_t* algorithm = nullptr;
+    if (left.dtype() == DType::Float32 && batches > 1 &&
+        !fp32_solution_registry.empty()) {
+        const auto key = make_fp32_matmul_solution_key(
+            left.shape(), right.shape(), left.device(), transpose_left,
+            transpose_right, context, alpha);
+        algorithm = registered_fp32_solution(
+            handle, key, left.device().index(), operation.get(),
+            matrix_b.get(), matrix_a.get(), matrix_c.get(), &alpha, &beta,
+            context);
+    }
     check_status(hipblasLtMatmul(
                      handle.get(), operation.get(), &alpha, right.data(), matrix_b.get(),
                      left.data(), matrix_a.get(), &beta, output.data(), matrix_c.get(),
-                     output.data(), matrix_c.get(), nullptr, context.workspace,
+                     output.data(), matrix_c.get(), algorithm, context.workspace,
                      context.workspace_bytes,
                      reinterpret_cast<hipStream_t>(context.native_stream(left.device()))),
                  "hipblasLtMatmul");
@@ -1527,6 +1719,67 @@ std::size_t bf16_registered_algorithm_count() noexcept {
 #else
     return 0;
 #endif
+}
+
+void register_fp32_matmul_solution(
+    const Fp32MatmulSolutionKey& key, int solution_index) {
+#if MICROLLM_HAS_HIPBLASLT
+    validate_fp32_solution_key(key);
+    if (solution_index < 0) {
+        throw std::invalid_argument(
+            "FP32 solution index must be nonnegative");
+    }
+    bool current_environment = false;
+    const auto devices = runtime::hip_device_count();
+    for (int index = 0; index < devices; ++index) {
+        const auto environment = tuning_environment(Device::hip(index));
+        if (key.architecture == environment.architecture &&
+            key.hip_runtime_version == environment.runtime_version &&
+            key.hip_driver_version == environment.driver_version &&
+            key.hipblaslt_version == hipblaslt_version()) {
+            current_environment = true;
+            break;
+        }
+    }
+    if (!current_environment) {
+        throw std::invalid_argument(
+            "FP32 solution key does not match a visible current environment");
+    }
+    fp32_solution_registry.insert_or_assign(key, solution_index);
+    fp32_solution_algorithms.clear();
+#else
+    (void)key;
+    (void)solution_index;
+    throw std::runtime_error("FP32 solution registry requires hipBLASLt");
+#endif
+}
+
+void clear_fp32_matmul_solution_registry() noexcept {
+    fp32_solution_registry.clear();
+    fp32_solution_registry_hits = 0;
+    fp32_solution_registry_misses = 0;
+    fp32_solution_cache_hits = 0;
+    fp32_solution_cache_misses = 0;
+    fp32_solution_dispatches = 0;
+#if MICROLLM_HAS_HIPBLASLT
+    fp32_solution_algorithms.clear();
+#endif
+}
+
+Fp32MatmulSolutionStats fp32_matmul_solution_stats() noexcept {
+    return {
+        .registered_entries = fp32_solution_registry.size(),
+#if MICROLLM_HAS_HIPBLASLT
+        .cached_algorithms = fp32_solution_algorithms.size(),
+#else
+        .cached_algorithms = 0,
+#endif
+        .registry_hits = fp32_solution_registry_hits,
+        .registry_misses = fp32_solution_registry_misses,
+        .cache_hits = fp32_solution_cache_hits,
+        .cache_misses = fp32_solution_cache_misses,
+        .dispatches = fp32_solution_dispatches,
+    };
 }
 
 Fp8DispatchStats fp8_dispatch_stats() noexcept {

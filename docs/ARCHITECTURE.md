@@ -376,6 +376,21 @@ That forward-only policy is also disabled after the final model/profile gate. Ze
 P×V and dP remain public capability primitives, not dispatch defaults. This distinction
 prevents an isolated shape win from silently changing the Transformer graph.
 
+### Exact FP32 vendor-solution boundary
+
+hipBLASLt solution indices are not portable algorithm names. `Fp32MatmulSolutionKey` records the
+flattened batch descriptor, all physical input/output dimensions and batch strides, transpose
+flags, exact alpha bits, mode, workspace budget, architecture, HIP runtime/driver and hipBLASLt
+version. Registration is explicit and thread-local. On the first exact match the engine asks the
+installed library to resolve the index and validate descriptor/workspace support; subsequent calls
+reuse only that validated algorithm object from a cache additionally separated by device index.
+A miss keeps the ordinary default solution.
+
+The registry is infrastructure, not a dispatch policy. Experiment 189 showed both required gates:
+the fastest approximate QK candidates accumulated visible complete-model error, while replacement
+bit-exact candidates preserved every logit but failed the joint 1.01 end-to-end threshold. The CLI
+therefore exposes explicit QK/PV indices for controlled experiments and installs none by default.
+
 ## Stable integration boundary
 
 The long-term integration seam is a C-compatible descriptor plus explicit stream

@@ -1,3 +1,4 @@
+#include <bit>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
@@ -263,6 +264,43 @@ TEST(CpuOpsTest, MatmulTuningKeyCapturesLayoutModeWorkspaceAndEnvironment) {
 
     EXPECT_THROW((void)make_matmul_tuning_key(
                      left.transpose(0, 1), right, false, true, context),
+                 std::invalid_argument);
+}
+
+TEST(CpuOpsTest, Fp32SolutionKeyFlattensExactBatchedDescriptorWithoutAllocation) {
+    OpContext context;
+    context.mode = OpMode::Inference;
+    const auto key = make_fp32_matmul_solution_key(
+        {2, 14, 512, 64}, {2, 14, 512, 64}, Device::cpu(),
+        false, true, context, 0.125F);
+    EXPECT_EQ(key.batches, 28);
+    EXPECT_EQ(key.left_rows, 512);
+    EXPECT_EQ(key.left_columns, 64);
+    EXPECT_EQ(key.right_rows, 512);
+    EXPECT_EQ(key.right_columns, 64);
+    EXPECT_EQ(key.output_rows, 512);
+    EXPECT_EQ(key.output_columns, 512);
+    EXPECT_EQ(key.left_batch_stride, 32768);
+    EXPECT_EQ(key.right_batch_stride, 32768);
+    EXPECT_EQ(key.output_batch_stride, 262144);
+    EXPECT_FALSE(key.transpose_left);
+    EXPECT_TRUE(key.transpose_right);
+    EXPECT_EQ(key.alpha_bits, std::bit_cast<std::uint32_t>(0.125F));
+    EXPECT_EQ(key.architecture, "host");
+    EXPECT_EQ(key.hipblaslt_version, 0);
+    EXPECT_EQ(key.mode, OpMode::Inference);
+    EXPECT_EQ(key.workspace_limit, 0U);
+
+    clear_fp32_matmul_solution_registry();
+    EXPECT_EQ(fp32_matmul_solution_stats().registered_entries, 0U);
+    EXPECT_THROW(register_fp32_matmul_solution(key, 1), std::exception);
+    EXPECT_EQ(fp32_matmul_solution_stats().registered_entries, 0U);
+    EXPECT_THROW((void)make_fp32_matmul_solution_key(
+                     {1, 4, 8, 16}, {2, 4, 8, 16}, Device::cpu()),
+                 std::invalid_argument);
+    EXPECT_THROW((void)make_fp32_matmul_solution_key(
+                     {1, 4, 8, 16}, {1, 4, 7, 15}, Device::cpu(),
+                     false, true),
                  std::invalid_argument);
 }
 

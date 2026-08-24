@@ -135,6 +135,12 @@ int main() {
     microllm::ops::clear_attention_layout_plan_cache();
     const auto attention_plan_stats =
         microllm::ops::attention_layout_plan_cache_stats();
+    const auto fp32_solution_key =
+        microllm::ops::make_fp32_matmul_solution_key(
+            {1, 2, 4, 8}, {1, 2, 4, 8}, device, false, true);
+    microllm::ops::clear_fp32_matmul_solution_registry();
+    const auto fp32_solution_stats =
+        microllm::ops::fp32_matmul_solution_stats();
     bool rejected_cpu_tuning = false;
     bool rejected_cpu_adamw_tuning = false;
     try {
@@ -181,6 +187,9 @@ int main() {
         !microllm::autograd::attention_context_layout_fusion_enabled() ||
         attention_plan_stats.entries != 0 || attention_plan_stats.hits != 0 ||
         attention_plan_stats.misses != 0 ||
+        fp32_solution_key.batches != 2 ||
+        fp32_solution_key.output_columns != 4 ||
+        fp32_solution_stats.registered_entries != 0 ||
         !microllm::autograd::attention_rope_layout_fusion_enabled() ||
         microllm::autograd::unique_gradient_inplace_add_enabled() ||
         !rejected_cpu_tuning || !rejected_cpu_adamw_tuning) return 1;

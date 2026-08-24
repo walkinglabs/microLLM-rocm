@@ -155,6 +155,15 @@ QK/PV shape. Recommended Event speedups are 1.324×/1.198× for Qwen and 1.253×
 DeepSeek, with Max/RMS at most 4.47e-7/6.64e-8 and zero workspace. The next node may register only
 these exact version-local shapes and must pass complete logits/model performance.
 
+## Experiment 189 complete-model result
+
+The exact registry covers batch descriptor dimensions/strides, transposes, alpha, mode, workspace,
+architecture and all backend versions. First dispatch validates support and later calls reuse the
+algorithm. The first approximate QK recommendations expose accumulated model error; bit-exact
+replacement indices restore Max/RMS 0. Across 24 final processes, QK/PV/both reaches at most
+1.009× Qwen and 1.004× DeepSeek with unchanged peak. Infrastructure is retained, no solution is
+registered by default, and this exact-index track is complete.
+
 ## Final matrix
 
 - FP32 fixed matrix and running-best curve;

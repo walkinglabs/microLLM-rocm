@@ -28,6 +28,7 @@ declared_ops = public_names(
      "Fp8DispatchStats", "Fp8DynamicQuantStats",
      "Bf16PlanCacheStats", "bool",
      "AttentionLayoutPlanCacheStats",
+     "Fp32MatmulSolutionKey", "Fp32MatmulSolutionStats",
      "MatmulImplementation", "AdamWTuningKey",
      "AdamWTuningCacheLoadReport", "AdamWImplementation",
      "std::size_t", "void"],

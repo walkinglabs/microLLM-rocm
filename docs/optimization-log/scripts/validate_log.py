@@ -8596,6 +8596,102 @@ def validate_fp32_attention_solutions(
         min(speedups, default=0.0), max(speedups, default=0.0)
 
 
+def validate_fp32_attention_model_gate(
+        errors: list[str]) -> tuple[int, int, float, float]:
+    data = REPOSITORY / "benchmarks/results/2026-08-24-fp32-attention-model-gate"
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = summary.get("comparisons", [])
+    speedups = [float(row.get("candidate_speedup", 0.0))
+                for row in comparisons]
+    by_case = {(row.get("model"), row.get("policy")): row
+               for row in comparisons}
+    expected_speedups = {
+        ("qwen2.5-0.5b", "qk"): 1.0092907663474806,
+        ("qwen2.5-0.5b", "pv"): 1.0037318746976513,
+        ("qwen2.5-0.5b", "both"): 1.008228237745222,
+        ("deepseek-r1-distill-qwen-1.5b", "qk"): 0.9991234974552436,
+        ("deepseek-r1-distill-qwen-1.5b", "pv"): 1.0028952717701445,
+        ("deepseek-r1-distill-qwen-1.5b", "both"): 1.0042520321010382,
+    }
+    expected_tests = {
+        "cpu_debug": {"passed": 294, "total": 294},
+        "asan_ubsan": {"passed": 292, "total": 292},
+        "pytorch_enabled_cpu": {"passed": 268, "total": 268},
+        "hip_full_configuration": {
+            "passed": 460, "total": 460, "conditional_skips": 3},
+        "hip_label": {"passed": 156, "total": 156},
+        "rccl_multi_gpu": {"passed": 12, "total": 12},
+        "rccl_full_label": {"passed": 14, "total": 14},
+    }
+    counts = {(model, policy): 0 for model, policy in expected_speedups}
+    for row in raw:
+        key = (row.get("model"), row.get("policy"))
+        if key in counts:
+            counts[key] += 1
+    if summary.get("status") != "pass" or len(raw) != 24 or \
+            summary.get("raw_processes") != 24 or len(comparisons) != 6 or \
+            summary.get("correctness_gate") is not True or \
+            summary.get("performance_gate") is not False or \
+            summary.get("memory_gate") is not True or \
+            summary.get("keep_default") is not False or \
+            summary.get("keep_policies") != [] or \
+            summary.get("policy_keep") != {"both": False, "pv": False,
+                                            "qk": False} or \
+            set(by_case) != set(expected_speedups) or \
+            any(abs(float(row.get("candidate_speedup", 0.0)) -
+                    expected_speedups[key]) > 1.0e-9 or
+                row.get("correctness_passed") is not True or
+                row.get("performance_passed") is not False or
+                row.get("memory_passed") is not True or
+                row.get("finite_complete_logits") is not True or
+                row.get("maximum_absolute_logit_difference") != 0 or
+                row.get("maximum_rms_logit_difference") != 0 or
+                row.get("candidate_engine_peak_bytes") !=
+                    row.get("baseline_engine_peak_bytes") or
+                row.get("candidate_engine_allocation_calls") !=
+                    row.get("baseline_engine_allocation_calls") or
+                int(row.get("candidate_registered_entries", 0)) !=
+                    (2 if key[1] == "both" else 1) or
+                int(row.get("candidate_cached_algorithms", 0)) !=
+                    (2 if key[1] == "both" else 1) or
+                int(row.get("candidate_dispatches", 0)) <= 0
+                for key, row in by_case.items()) or \
+            any(count != 3 for count in counts.values()) or \
+            verification.get("status") != "pass" or \
+            verification.get("tests") != expected_tests or \
+            verification.get("registered_test_files") != 68 or \
+            verification.get("formal_processes") != 24 or \
+            any(row.get("record_type") !=
+                    "fp32_attention_solution_model_measurement" or
+                row.get("status") != "pass" for row in raw):
+        errors.append("FP32 Attention complete-model gate evidence changed")
+    header = (REPOSITORY / "include/microllm/ops/ops.h").read_text(
+        encoding="utf-8")
+    source = (REPOSITORY / "src/ops/optimized.cpp").read_text(encoding="utf-8")
+    cli = (REPOSITORY / "apps/hf_infer.cpp").read_text(encoding="utf-8")
+    runner = (REPOSITORY / "benchmarks/single_gpu/"
+              "compare_fp32_attention_solutions.py").read_text(encoding="utf-8")
+    tests = (REPOSITORY / "tests/ops/hip_ops_test.cpp").read_text(
+        encoding="utf-8")
+    for token, document in (
+            ("struct Fp32MatmulSolutionKey", header),
+            ("register_fp32_matmul_solution", source),
+            ("registered_fp32_solution", source),
+            ("--fp32-attention-qk-solution-index", cli),
+            ("POLICIES = (\"baseline\", \"qk\", \"pv\", \"both\")", runner),
+            ("ExactFp32AttentionSolutionDispatchesAndCaches", tests)):
+        if token not in document:
+            errors.append("FP32 Attention exact registry source/test contract changed")
+            break
+    return len(raw), sum(row.get("correctness_passed") is True
+                         for row in comparisons), \
+        min(speedups, default=0.0), max(speedups, default=0.0)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -9087,6 +9183,8 @@ def main() -> int:
         validate_attention_core_arena_discard(errors)
     fp32_attention_rows, fp32_attention_keep, fp32_attention_minimum, \
         fp32_attention_maximum = validate_fp32_attention_solutions(errors)
+    fp32_model_rows, fp32_model_exact, fp32_model_minimum, \
+        fp32_model_maximum = validate_fp32_attention_model_gate(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -9356,6 +9454,8 @@ def main() -> int:
           f"{attention_core_eligible}/{attention_core_bypassed} "
           f"fp32_attention_solutions={fp32_attention_rows}/{fp32_attention_keep}/"
           f"{fp32_attention_minimum:.3f}/{fp32_attention_maximum:.3f} "
+          f"fp32_attention_model={fp32_model_rows}/{fp32_model_exact}/"
+          f"{fp32_model_minimum:.3f}/{fp32_model_maximum:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

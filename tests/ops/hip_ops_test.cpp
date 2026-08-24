@@ -3555,6 +3555,69 @@ TEST(HipOptimizedOpsTest, HipblasLtMatmulMatchesReadableReference) {
     clear_matmul_implementation_registry();
 }
 
+TEST(HipOptimizedOpsTest, ExactFp32AttentionSolutionDispatchesAndCaches) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    const auto info = runtime::device_info(gpu);
+    if (!info.architecture.starts_with("gfx942") ||
+        hipblaslt_version() != 10300) {
+        GTEST_SKIP() << "recorded solution index is local to gfx942 hipBLASLt 1.3.0";
+    }
+    constexpr std::int64_t heads = 14;
+    constexpr std::int64_t sequence = 512;
+    constexpr std::int64_t width = 64;
+    std::vector<float> left_values(
+        static_cast<std::size_t>(heads * sequence * width));
+    std::vector<float> right_values(left_values.size());
+    for (std::size_t index = 0; index < left_values.size(); ++index) {
+        left_values[index] =
+            static_cast<float>(static_cast<int>(index % 29) - 14) / 127.0F;
+        right_values[index] =
+            static_cast<float>(static_cast<int>(index % 31) - 15) / 131.0F;
+    }
+    const auto left = Tensor::from_vector(
+        left_values, {1, heads, sequence, width}).to(gpu);
+    const auto right = Tensor::from_vector(
+        right_values, {1, heads, sequence, width}).to(gpu);
+
+    clear_fp32_matmul_solution_registry();
+    const auto reference = matmul_with_implementation(
+        left, right, MatmulImplementation::HipBLASLt, false, true).to_vector();
+    const auto key = make_fp32_matmul_solution_key(
+        left.shape(), right.shape(), gpu, false, true);
+    EXPECT_THROW(register_fp32_matmul_solution(key, -1), std::invalid_argument);
+    auto stale = key;
+    ++stale.hip_runtime_version;
+    EXPECT_THROW(register_fp32_matmul_solution(stale, 311017),
+                 std::invalid_argument);
+
+    register_fp32_matmul_solution(key, 311017);
+    auto stats = fp32_matmul_solution_stats();
+    EXPECT_EQ(stats.registered_entries, 1U);
+    EXPECT_EQ(stats.cached_algorithms, 0U);
+    const auto first = matmul_with_implementation(
+        left, right, MatmulImplementation::HipBLASLt, false, true).to_vector();
+    expect_near(first, reference, 1.0e-5F);
+    stats = fp32_matmul_solution_stats();
+    EXPECT_EQ(stats.registry_hits, 1U);
+    EXPECT_EQ(stats.registry_misses, 0U);
+    EXPECT_EQ(stats.cache_hits, 0U);
+    EXPECT_EQ(stats.cache_misses, 1U);
+    EXPECT_EQ(stats.cached_algorithms, 1U);
+    EXPECT_EQ(stats.dispatches, 1U);
+
+    const auto second = matmul_with_implementation(
+        left, right, MatmulImplementation::HipBLASLt, false, true).to_vector();
+    expect_near(second, reference, 1.0e-5F);
+    stats = fp32_matmul_solution_stats();
+    EXPECT_EQ(stats.registry_hits, 2U);
+    EXPECT_EQ(stats.cache_hits, 1U);
+    EXPECT_EQ(stats.cache_misses, 1U);
+    EXPECT_EQ(stats.dispatches, 2U);
+    clear_fp32_matmul_solution_registry();
+    EXPECT_EQ(fp32_matmul_solution_stats().registered_entries, 0U);
+}
+
 TEST(HipOptimizedOpsTest, PerDeviceHandlesSurviveAlternatingGpuMatmuls) {
     if (runtime::hip_device_count() < 2) {
         GTEST_SKIP() << "two visible HIP devices required";

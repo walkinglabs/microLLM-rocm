@@ -72,6 +72,43 @@ struct Bf16PlanCacheStats {
     std::size_t misses = 0;
 };
 
+// Exact hipBLASLt descriptor/environment identity for an explicitly accepted
+// FP32 solution index. Leading batch dimensions are flattened exactly as the
+// backend sees them; only contiguous operands are supported by this registry.
+struct Fp32MatmulSolutionKey {
+    std::int64_t batches = 0;
+    std::int64_t left_rows = 0;
+    std::int64_t left_columns = 0;
+    std::int64_t right_rows = 0;
+    std::int64_t right_columns = 0;
+    std::int64_t output_rows = 0;
+    std::int64_t output_columns = 0;
+    std::int64_t left_batch_stride = 0;
+    std::int64_t right_batch_stride = 0;
+    std::int64_t output_batch_stride = 0;
+    bool transpose_left = false;
+    bool transpose_right = false;
+    std::uint32_t alpha_bits = 0;
+    std::string architecture;
+    int hip_runtime_version = 0;
+    int hip_driver_version = 0;
+    int hipblaslt_version = 0;
+    OpMode mode = OpMode::Unspecified;
+    std::size_t workspace_limit = 0;
+
+    auto operator<=>(const Fp32MatmulSolutionKey&) const = default;
+};
+
+struct Fp32MatmulSolutionStats {
+    std::size_t registered_entries = 0;
+    std::size_t cached_algorithms = 0;
+    std::size_t registry_hits = 0;
+    std::size_t registry_misses = 0;
+    std::size_t cache_hits = 0;
+    std::size_t cache_misses = 0;
+    std::size_t dispatches = 0;
+};
+
 struct AttentionLayoutPlanCacheStats {
     std::size_t entries = 0;
     std::size_t hits = 0;
@@ -297,6 +334,18 @@ void register_bf16_algorithm(std::int64_t rows, std::int64_t inner,
                              int solution_index);
 void clear_bf16_algorithm_registry() noexcept;
 [[nodiscard]] std::size_t bf16_registered_algorithm_count() noexcept;
+[[nodiscard]] Fp32MatmulSolutionKey make_fp32_matmul_solution_key(
+    const Shape& left_shape, const Shape& right_shape, Device device,
+    bool transpose_left = false, bool transpose_right = false,
+    const OpContext& context = {}, float alpha = 1.0F);
+// Registration is deliberately explicit and thread-local. A solution index is
+// never promoted by an operator benchmark alone; callers must first pass their
+// complete-model correctness and performance gate on the exact environment.
+void register_fp32_matmul_solution(
+    const Fp32MatmulSolutionKey& key, int solution_index);
+void clear_fp32_matmul_solution_registry() noexcept;
+[[nodiscard]] Fp32MatmulSolutionStats
+fp32_matmul_solution_stats() noexcept;
 [[nodiscard]] Fp8DispatchStats fp8_dispatch_stats() noexcept;
 void clear_fp8_dispatch_registry() noexcept;
 [[nodiscard]] Fp8DynamicQuantStats fp8_dynamic_quant_stats() noexcept;

@@ -42,6 +42,12 @@ the V repeat on the same Stream. Different Streams or reordering invalidate that
 For vendor solution indices, retain the full descriptor key and backend version. Never paste an
 index from a different ROCm build or register a candidate that was timed before complete-output
 finite/Max/RMS checks.
+For FP32 batched GEMM, use `make_fp32_matmul_solution_key` instead of constructing a partial key.
+The key flattens leading batch dimensions exactly as hipBLASLt does and includes alpha/workspace/
+environment identity. `register_fp32_matmul_solution` is thread-local and explicit. Inspect
+`fp32_matmul_solution_stats()` to prove a candidate actually dispatched; zero hits are not a
+performance result. Even a bit-exact operator candidate still needs complete-model throughput and
+peak-memory gates before any default can change.
 - readable HIP launch declarations: `src/ops/hip/kernels.h`;
 - optimized matmul policy: `src/ops/optimized.cpp`;
 - correctness-first matmul/AdamW tuners: `src/ops/tuning.cpp` and
@@ -49,7 +55,8 @@ finite/Max/RMS checks.
 
 ## Candidate selection today
 
-The current registries cover exact 2D matmul problems and flat AdamW state updates.
+The current registries cover exact 2D implementation choices, exact batched FP32 hipBLASLt
+solution indices and flat AdamW state updates.
 Matmul isolates dtype, layout/strides, mode, workspace and backend versions; AdamW isolates
 element count, mirror presence, every state pointer's alignment, mode and HIP environment.
 Both have transactional persistent caches and reject stale environments. Their tuners

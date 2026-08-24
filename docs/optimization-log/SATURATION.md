@@ -216,6 +216,14 @@ improve all four official T512 operator shapes by 1.114×–1.324× after comple
 Inventory is complete; only exact registry plus model gating remains open. Generic algorithm
 hard-coding or extrapolation to other versions/shapes is closed.
 
+Experiment 189 closes that exact-solution track. The fastest approximate QK indices pass isolated
+checks but accumulate complete-logit Max 0.07290/0.04437, so the formal gate switches to the
+fastest bit-exact alternatives. All 24 final processes are bit-exact and peak/allocation neutral.
+QK/PV/both reaches 1.009/1.004/1.008 on Qwen and 0.999/1.003/1.004 on DeepSeek; no policy passes
+the two-model 1.01 gate. Exact registry infrastructure remains, all defaults remain unchanged, and
+another index sweep is closed. A future Attention compute retry must fuse a larger surrounding
+region or present a new profile-selected mechanism.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

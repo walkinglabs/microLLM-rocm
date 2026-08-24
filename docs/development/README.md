@@ -404,3 +404,5 @@ the next gate. Records are append-only except for factual corrections.
   exact core liveness, caller-owned Attention and model-level rejection.
 - [2026-08-24-fp32-attention-solutions.md](2026-08-24-fp32-attention-solutions.md):
   four exact QK/PV inventories with complete-output-before-timing selection.
+- [2026-08-24-fp32-attention-model-gate.md](2026-08-24-fp32-attention-model-gate.md):
+  exact versioned registry, accumulated-error counterexample and 24-process default rejection.

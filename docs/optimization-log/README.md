@@ -740,6 +740,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/187-attention-core-arena-discard.md](experiments/187-attention-core-arena-discard.md) | 600/700分配下降但仅1.004×/1.002× |
 | [assets/fp32-attention-solutions.svg](assets/fp32-attention-solutions.svg) | 四个FP32 QK/PV exact solution加速 |
 | [experiments/188-fp32-attention-solutions.md](experiments/188-fp32-attention-solutions.md) | 12进程、64共同候选与完整输出门 |
+| [assets/fp32-attention-model-gate.svg](assets/fp32-attention-model-gate.svg) | QK/PV/both整模速度与bit-exact门 |
+| [experiments/189-fp32-attention-model-gate.md](experiments/189-fp32-attention-model-gate.md) | 精确注册、24进程与默认策略拒绝 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

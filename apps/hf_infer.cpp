@@ -89,6 +89,8 @@ struct Options {
     bool trace_all_layer_details = false;
     std::string trace_value_filter;
     int bf16_algorithm_index = -1;
+    int fp32_attention_qk_solution_index = -1;
+    int fp32_attention_pv_solution_index = -1;
     bool allocation_source_diagnostics = false;
 };
 
@@ -273,6 +275,14 @@ Options options(int argc, char** argv) {
         }
         else if (name == "--bf16-algorithm-index") {
             result.bf16_algorithm_index = std::stoi(argv[index + 1]);
+        }
+        else if (name == "--fp32-attention-qk-solution-index") {
+            result.fp32_attention_qk_solution_index =
+                std::stoi(argv[index + 1]);
+        }
+        else if (name == "--fp32-attention-pv-solution-index") {
+            result.fp32_attention_pv_solution_index =
+                std::stoi(argv[index + 1]);
         }
         else if (name == "--allocation-source-diagnostics") {
             const std::string value = argv[index + 1];
@@ -478,6 +488,16 @@ Options options(int argc, char** argv) {
          (result.workload != "prefill" || !result.bf16_ffn))) {
         throw std::invalid_argument(
             "--bf16-algorithm-index requires BF16 FFN prefill workload");
+    }
+    const auto fp32_attention_solution_requested =
+        result.fp32_attention_qk_solution_index >= 0 ||
+        result.fp32_attention_pv_solution_index >= 0;
+    if (result.fp32_attention_qk_solution_index < -1 ||
+        result.fp32_attention_pv_solution_index < -1 ||
+        (fp32_attention_solution_requested &&
+         (result.device != "hip" || result.workload != "prefill"))) {
+        throw std::invalid_argument(
+            "FP32 Attention solution indices require HIP prefill workload");
     }
     if (!result.cache_logits_output.empty() &&
         (!result.use_cache || result.workload == "prefill" || result.new_tokens < 2)) {
@@ -1129,6 +1149,29 @@ int main(int argc, char** argv) {
                 microllm::DType::BFloat16,
                 command.bf16_algorithm_index);
         }
+        if (command.fp32_attention_qk_solution_index >= 0 ||
+            command.fp32_attention_pv_solution_index >= 0) {
+            microllm::ops::clear_fp32_matmul_solution_registry();
+            const auto sequence = static_cast<std::int64_t>(ids.size());
+            const auto heads = external.model.heads;
+            const auto width = external.model.head_dimension();
+            const microllm::Shape qkv_shape{
+                command.batch, heads, sequence, width};
+            if (command.fp32_attention_qk_solution_index >= 0) {
+                const auto key = microllm::ops::make_fp32_matmul_solution_key(
+                    qkv_shape, qkv_shape, device, false, true);
+                microllm::ops::register_fp32_matmul_solution(
+                    key, command.fp32_attention_qk_solution_index);
+            }
+            if (command.fp32_attention_pv_solution_index >= 0) {
+                const microllm::Shape probability_shape{
+                    command.batch, heads, sequence, sequence};
+                const auto key = microllm::ops::make_fp32_matmul_solution_key(
+                    probability_shape, qkv_shape, device, false, false);
+                microllm::ops::register_fp32_matmul_solution(
+                    key, command.fp32_attention_pv_solution_index);
+            }
+        }
         if (command.workload == "continuous") {
             const auto prompt_lengths = positive_lengths(
                 command.continuous_prompt_lengths,
@@ -1736,6 +1779,8 @@ int main(int argc, char** argv) {
         const auto attention_core_arena_stats =
             model.attention_core_arena_stats();
         const auto measured_transfers = microllm::runtime::transfer_stats();
+        const auto fp32_solution_stats =
+            microllm::ops::fp32_matmul_solution_stats();
         if (!command.cache_logits_output.empty()) {
             const auto cache_logits = cache_logits_evidence.to_vector();
             std::ofstream output(command.cache_logits_output,
@@ -1757,6 +1802,24 @@ int main(int argc, char** argv) {
                   << trace_record_count
                   << ",\"bf16_algorithm_index\":"
                   << command.bf16_algorithm_index
+                  << ",\"fp32_attention_qk_solution_index\":"
+                  << command.fp32_attention_qk_solution_index
+                  << ",\"fp32_attention_pv_solution_index\":"
+                  << command.fp32_attention_pv_solution_index
+                  << ",\"fp32_solution_registered_entries\":"
+                  << fp32_solution_stats.registered_entries
+                  << ",\"fp32_solution_cached_algorithms\":"
+                  << fp32_solution_stats.cached_algorithms
+                  << ",\"fp32_solution_registry_hits\":"
+                  << fp32_solution_stats.registry_hits
+                  << ",\"fp32_solution_registry_misses\":"
+                  << fp32_solution_stats.registry_misses
+                  << ",\"fp32_solution_cache_hits\":"
+                  << fp32_solution_stats.cache_hits
+                  << ",\"fp32_solution_cache_misses\":"
+                  << fp32_solution_stats.cache_misses
+                  << ",\"fp32_solution_dispatches\":"
+                  << fp32_solution_stats.dispatches
                   << ",\"device_total_bytes\":" << info.total_memory
                   << ",\"hip_runtime_version\":"
                   << microllm::runtime::hip_runtime_version()

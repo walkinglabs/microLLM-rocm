@@ -3194,3 +3194,22 @@ Qwen QK/PV是1.324×/1.198×，DeepSeek是1.253×/1.114×；最大Max/RMS只有
 inventory和推荐，不直接改默认。下一节点必须做exact key registry，再用完整logits和整模吞吐决定。
 
 ![FP32 Attention solutions](assets/fp32-attention-solutions.svg)
+
+## 206. Experiment 189：算子只差一点点，经过很多层也可能变成大误差
+
+我们先把算法编号关进一个精确key：batch、实际行列、stride、transpose、alpha、workspace、GPU、HIP、
+driver和hipBLASLt版本少一个都不匹配。第一次命中还要让当前库验证descriptor，之后才缓存。
+CLI只接受显式QK/PV编号，默认路径完全不注册。
+
+第一轮整模pilot立刻推翻了“算子误差小就安全”。最快QK在单算子只有约1e-7误差，但24/28层以后，
+Qwen/DeepSeek完整logits Max变成0.07290/0.04437。PV仍bit-exact。我们没有把容差放宽，而是回到
+64个候选，换成输出bit-exact且仍较快的QK `311017/305423`。
+
+正式24进程中，六个模型×策略组合全部bit-exact，显存和allocation不变。可速度也给出第二个反例：
+Qwen的QK/PV/both只有1.009×/1.004×/1.008×，DeepSeek为0.999×/1.003×/1.004×。没有一条共同跨过
+1.01，因此默认策略全部拒绝，精确registry和诊断保留。
+
+这个节点把两类错误分开了：近似QK是数值不合格；bit-exact QK/PV是端到端收益不够。下一次不能再
+枚举编号，而要用profile选择更大的融合区域，把scale、softmax或layout的一部分也从提交路径中拿掉。
+
+![FP32 Attention complete-model gate](assets/fp32-attention-model-gate.svg)

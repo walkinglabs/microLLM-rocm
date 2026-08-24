@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="540" viewBox="0 0 1000 540" role="img" aria-labelledby="title desc">
+  <title id="title">FP32 Attention exact solution complete-model speedup</title>
+  <desc id="desc">Qwen improves less than one percent and DeepSeek is neutral to slower; all six policies are bit exact but miss the 1.01 keep gate.</desc>
+  <rect width="1000" height="540" fill="#0b1020"/>
+  <text x="60" y="52" fill="#f8fafc" font-family="sans-serif" font-size="28" font-weight="700">Experiment 189 · exact solutions, complete models</text>
+  <text x="60" y="82" fill="#94a3b8" font-family="sans-serif" font-size="15">T512 B1 · BF16 Attention/FFN weights · complete logits bit-exact · median of 3 processes</text>
+
+  <line x1="464" y1="120" x2="464" y2="455" stroke="#e2e8f0" stroke-width="2"/>
+  <line x1="827" y1="120" x2="827" y2="455" stroke="#f59e0b" stroke-width="2" stroke-dasharray="8 7"/>
+  <text x="438" y="108" fill="#cbd5e1" font-family="sans-serif" font-size="13">1.00×</text>
+  <text x="800" y="108" fill="#fbbf24" font-family="sans-serif" font-size="13">keep 1.01×</text>
+
+  <text x="60" y="160" fill="#f8fafc" font-family="sans-serif" font-size="20" font-weight="700">Qwen2.5-0.5B</text>
+  <text x="60" y="206" fill="#cbd5e1" font-family="sans-serif" font-size="15">QK</text>
+  <line x1="464" y1="201" x2="802" y2="201" stroke="#38bdf8" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="802" cy="201" r="8" fill="#7dd3fc"/>
+  <text x="819" y="207" fill="#e0f2fe" font-family="monospace" font-size="15">1.0093×</text>
+  <text x="60" y="251" fill="#cbd5e1" font-family="sans-serif" font-size="15">PV</text>
+  <line x1="464" y1="246" x2="600" y2="246" stroke="#38bdf8" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="600" cy="246" r="8" fill="#7dd3fc"/>
+  <text x="617" y="252" fill="#e0f2fe" font-family="monospace" font-size="15">1.0037×</text>
+  <text x="60" y="296" fill="#cbd5e1" font-family="sans-serif" font-size="15">Both</text>
+  <line x1="464" y1="291" x2="763" y2="291" stroke="#38bdf8" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="763" cy="291" r="8" fill="#7dd3fc"/>
+  <text x="780" y="297" fill="#e0f2fe" font-family="monospace" font-size="15">1.0082×</text>
+
+  <text x="60" y="352" fill="#f8fafc" font-family="sans-serif" font-size="20" font-weight="700">DeepSeek-R1-Distill-Qwen-1.5B</text>
+  <text x="60" y="398" fill="#cbd5e1" font-family="sans-serif" font-size="15">QK</text>
+  <line x1="432" y1="393" x2="464" y2="393" stroke="#fb7185" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="432" cy="393" r="8" fill="#fda4af"/>
+  <text x="313" y="399" fill="#ffe4e6" font-family="monospace" font-size="15">0.9991×</text>
+  <text x="60" y="443" fill="#cbd5e1" font-family="sans-serif" font-size="15">PV</text>
+  <line x1="464" y1="438" x2="570" y2="438" stroke="#38bdf8" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="570" cy="438" r="8" fill="#7dd3fc"/>
+  <text x="587" y="444" fill="#e0f2fe" font-family="monospace" font-size="15">1.0029×</text>
+  <text x="60" y="483" fill="#cbd5e1" font-family="sans-serif" font-size="15">Both</text>
+  <line x1="464" y1="478" x2="619" y2="478" stroke="#38bdf8" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="619" cy="478" r="8" fill="#7dd3fc"/>
+  <text x="636" y="484" fill="#e0f2fe" font-family="monospace" font-size="15">1.0043×</text>
+
+  <rect x="690" y="450" width="250" height="58" rx="10" fill="#172033" stroke="#334155"/>
+  <text x="710" y="475" fill="#a7f3d0" font-family="sans-serif" font-size="14">Correctness: 24/24 bit-exact</text>
+  <text x="710" y="497" fill="#fda4af" font-family="sans-serif" font-size="14">Decision: registry keep · default discard</text>
+</svg>

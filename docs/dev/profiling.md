@@ -346,6 +346,20 @@ python3 benchmarks/single_gpu/fp32_attention_solution_matrix.py \
 The tuner performs full-output correctness before Event/wall timing. Recommended indices are
 version- and exact-layout-local; operator speedups are not model claims.
 
+Complete-model FP32 solution gate:
+
+```bash
+python3 benchmarks/single_gpu/compare_fp32_attention_solutions.py \
+  --manifest /absolute/path/to/hf-models.json \
+  --binary build/hip-release/apps/microllm_hf_infer \
+  --output-directory /tmp/microllm-fp32-attention-model
+```
+
+The runner separates QK-only, PV-only and both, rotates process order, compares complete logits,
+and reports `fp32_solution_*` registry/cache/dispatch counters. The binary accepts
+`--fp32-attention-qk-solution-index` and `--fp32-attention-pv-solution-index` only for explicit HIP
+prefill experiments. No index is selected by default.
+
 ## What remains
 
 There is no Python `@profile` decorator yet. The current stable entry points are the
