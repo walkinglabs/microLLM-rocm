@@ -162,6 +162,7 @@
     "embedding": "graph_embedding_weight_grad",
     "softmax": "graph_softmax_input_grad",
     "rms_norm": "graph_rms_input_grad",
+    "add_rms_norm": "graph_add_rms_norm_left_grad",
     "silu": "graph_silu_input_grad",
     "swiglu": "graph_swiglu_gate_grad",
     "rope": "graph_rope_input_grad",

@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "decision": "discard model and CLI route; retain tested Autograd primitive",
+  "registered_test_files": 86,
+  "performance_processes": 12,
+  "diagnostic_processes": 4,
+  "formal_comparisons": 2,
+  "model_route_retained": false,
+  "coverage": {
+    "lines_percent": 80.0,
+    "functions_percent": 87.9,
+    "branches_percent": 60.7
+  },
+  "tests": {
+    "cpu_debug": {"passed": 316, "total": 316},
+    "asan_ubsan": {"passed": 314, "total": 314},
+    "pytorch_enabled_cpu": {"passed": 290, "total": 290},
+    "hip_full_configuration": {
+      "passed": 491,
+      "total": 491,
+      "conditional_skips": 3
+    },
+    "hip_label": {"passed": 165, "total": 165},
+    "rccl_multi_gpu": {"passed": 12, "total": 12},
+    "rccl_full_label": {"passed": 14, "total": 14}
+  }
+}

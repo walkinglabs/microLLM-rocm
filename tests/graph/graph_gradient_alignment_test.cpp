@@ -38,6 +38,48 @@ TEST(GraphGradientAlignmentTest, SharedLeafAccumulatesAndRepeatedBackwardIsStabl
     expect_near(input.grad(), {6, 10, 14});
 }
 
+TEST(GraphGradientAlignmentTest,
+     AddRmsNormMatchesComposedForwardAndAllBranchedGradients) {
+    const auto left_data = Tensor::from_vector(
+        {1, 2, 3, -1, -2, -3}, {2, 3});
+    const auto right_data = Tensor::from_vector(
+        {0.5F, -0.5F, 1, 2, 1, 0}, {2, 3});
+    const auto weight_data = Tensor::from_vector({1, 0.5F, 2}, {3});
+    const Value sum_seed(Tensor::from_vector(
+        {1, -1, 2, -2, 3, -3}, {2, 3}));
+    const Value norm_seed(Tensor::from_vector(
+        {0.5F, 2, -1, 1.5F, -0.5F, 3}, {2, 3}));
+
+    Value fused_left(left_data, true);
+    Value fused_right(right_data, true);
+    Value fused_weight(weight_data, true);
+    const auto fused = add_rms_norm(
+        fused_left, fused_right, fused_weight);
+    const auto fused_loss = add(
+        sum(multiply(fused.first, sum_seed)),
+        sum(multiply(fused.second, norm_seed)));
+    fused_loss.backward();
+
+    Value reference_left(left_data, true);
+    Value reference_right(right_data, true);
+    Value reference_weight(weight_data, true);
+    const auto reference_sum = add(reference_left, reference_right);
+    const auto reference_norm = rms_norm(
+        reference_sum, reference_weight);
+    const auto reference_loss = add(
+        sum(multiply(reference_sum, sum_seed)),
+        sum(multiply(reference_norm, norm_seed)));
+    reference_loss.backward();
+
+    expect_near(fused.first.data(), reference_sum.data().to_vector());
+    expect_near(fused.second.data(), reference_norm.data().to_vector());
+    expect_near(fused_left.grad(), reference_left.grad().to_vector());
+    expect_near(fused_right.grad(), reference_right.grad().to_vector());
+    expect_near(fused_weight.grad(), reference_weight.grad().to_vector());
+    const auto graph = inspect_graph(fused.second);
+    EXPECT_EQ(graph.nodes[graph.root_id].operation, "add_rms_norm");
+}
+
 TEST(GraphGradientAlignmentTest, ViewGraphRestoresLogicalGradientOrder) {
     Value input(Tensor::from_vector({0, 1, 2, 3, 4, 5}, {2, 3}), true);
     const auto view = transpose(input, 0, 1);

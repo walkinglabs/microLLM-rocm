@@ -87,6 +87,7 @@
 | `embedding` | `S -> S+[D]` | 重复 index 必须 scatter-add |
 | `softmax` | shape 不变 | 使用保存的前向 output |
 | `rms_norm` | shape 不变 | input 与 weight 都有梯度 |
+| `add_rms_norm` | left/right 同 shape，返回 sum 与 normalized 两个结果 | sum 节点先合并残差支路和归一化支路梯度，再把同一总梯度送给 left/right；weight 单独累加 |
 | `silu` | shape 不变 | 极大正负输入仍有限 |
 | `swiglu` | shape 不变 | gate/up 两条父边都有梯度 |
 | `rope` | shape 不变 | 旋转矩阵的转置作用于 seed |

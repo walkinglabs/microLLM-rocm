@@ -602,6 +602,40 @@ Value rms_norm(const Value& input, const Value& weight, float epsilon) {
                      });
 }
 
+std::pair<Value, Value> add_rms_norm(
+    const Value& left, const Value& right, const Value& weight,
+    float epsilon) {
+    require_value(left, "left");
+    require_value(right, "right");
+    require_value(weight, "weight");
+    auto left_node = left.node_;
+    auto right_node = right.node_;
+    auto weight_node = weight.node_;
+    profiling::TraceTimer timer(
+        profiling::TraceKind::Operator, "add_rms_norm", left.data().device());
+    auto outputs = ops::add_rms_norm(
+        left.data(), right.data(), weight.data(), epsilon);
+    timer.finish(outputs.second);
+    auto sum_value = operation(
+        "add_rms_norm_sum", std::move(outputs.first),
+        {left_node, right_node},
+        [left_node, right_node](const Tensor& gradient) {
+            accumulate(left_node, gradient);
+            accumulate(right_node, gradient);
+        });
+    auto sum_node = sum_value.node_;
+    auto normalized = operation(
+        "add_rms_norm", std::move(outputs.second),
+        {sum_node, weight_node},
+        [sum_node, weight_node, epsilon](const Tensor& gradient) {
+            auto gradients = ops::rms_norm_backward(
+                sum_node->data, weight_node->data, gradient, epsilon);
+            accumulate(sum_node, gradients.first);
+            accumulate(weight_node, gradients.second);
+        });
+    return {std::move(sum_value), std::move(normalized)};
+}
+
 Value silu(const Value& input) {
     require_value(input, "input");
     auto input_node = input.node_;

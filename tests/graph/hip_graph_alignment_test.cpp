@@ -72,6 +72,59 @@ TEST(HipGraphAlignmentTest, FullTransformerForwardAndBackwardMatchCpuWithoutHost
     }
 }
 
+TEST(HipGraphAlignmentTest,
+     AddRmsNormMatchesBranchedHipGraphAndStaysDeviceNative) {
+    require_graph_gpu();
+    const auto gpu = Device::hip(0);
+    const auto left_data = Tensor::from_vector(
+        {1, 2, 3, -1, -2, -3}, {2, 3}).to(gpu);
+    const auto right_data = Tensor::from_vector(
+        {0.5F, -0.5F, 1, 2, 1, 0}, {2, 3}).to(gpu);
+    const auto weight_data = Tensor::from_vector({1, 0.5F, 2}, {3}).to(gpu);
+    const Value sum_seed(Tensor::from_vector(
+        {1, -1, 2, -2, 3, -3}, {2, 3}).to(gpu));
+    const Value norm_seed(Tensor::from_vector(
+        {0.5F, 2, -1, 1.5F, -0.5F, 3}, {2, 3}).to(gpu));
+
+    Value baseline_left(left_data, true);
+    Value baseline_right(right_data, true);
+    Value baseline_weight(weight_data, true);
+    const auto baseline_sum = add(baseline_left, baseline_right);
+    const auto baseline_normalized = rms_norm(baseline_sum, baseline_weight);
+    const auto baseline_loss = add(
+        sum(multiply(baseline_sum, sum_seed)),
+        sum(multiply(baseline_normalized, norm_seed)));
+    baseline_loss.backward();
+    runtime::synchronize(gpu);
+    const auto expected_sum = baseline_sum.data().to_vector();
+    const auto expected_normalized = baseline_normalized.data().to_vector();
+    const auto expected_loss = baseline_loss.data().to_vector();
+    const auto expected_left_gradient = baseline_left.grad().to_vector();
+    const auto expected_right_gradient = baseline_right.grad().to_vector();
+    const auto expected_weight_gradient = baseline_weight.grad().to_vector();
+
+    Value fused_left(left_data, true);
+    Value fused_right(right_data, true);
+    Value fused_weight(weight_data, true);
+    runtime::reset_transfer_stats();
+    const auto fused = add_rms_norm(fused_left, fused_right, fused_weight);
+    const auto fused_loss = add(
+        sum(multiply(fused.first, sum_seed)),
+        sum(multiply(fused.second, norm_seed)));
+    fused_loss.backward();
+    runtime::synchronize(gpu);
+    const auto transfers = runtime::transfer_stats();
+
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    expect_graph_near(fused_loss.data().to_vector(), expected_loss, 3.0e-5F);
+    expect_graph_near(fused.first.data().to_vector(), expected_sum, 3.0e-5F);
+    expect_graph_near(fused.second.data().to_vector(), expected_normalized, 3.0e-5F);
+    expect_graph_near(fused_left.grad().to_vector(), expected_left_gradient, 3.0e-5F);
+    expect_graph_near(fused_right.grad().to_vector(), expected_right_gradient, 3.0e-5F);
+    expect_graph_near(fused_weight.grad().to_vector(), expected_weight_gradient, 3.0e-5F);
+}
+
 TEST(HipGraphAlignmentTest, DeferredScopedStreamRestoresCompleteInferenceLogits) {
     require_graph_gpu();
     const model::ModelConfig config{.vocabulary_size = 16,

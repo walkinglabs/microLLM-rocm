@@ -782,6 +782,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/208-bf16-repeat-fusion-discard.md](experiments/208-bf16-repeat-fusion-discard.md) | 小B1加速与B2反例；模型接入取消 |
 | [assets/post-bf16-qk-saturation.svg](assets/post-bf16-qk-saturation.svg) | 当前Kernel占比、理论上限与反驳链 |
 | [experiments/209-post-bf16-qk-saturation.md](experiments/209-post-bf16-qk-saturation.md) | 推理微融合局部饱和；online Attention合同 |
+| [assets/training-add-rms-norm-discard.svg](assets/training-add-rms-norm-discard.svg) | 训练融合少72次launch但端到端回退 |
+| [experiments/210-training-add-rms-norm-fusion-discard.md](experiments/210-training-add-rms-norm-fusion-discard.md) | 分支梯度完整对齐与两模型拒绝门 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

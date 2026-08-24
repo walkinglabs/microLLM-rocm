@@ -120,6 +120,14 @@ does not remove add Kernel or backend-allocation work after the exact-size cache
 default is therefore false. This seam is evidence infrastructure for a future graph-wide
 liveness planner, not permission to mutate an arbitrary Tensor.
 
+A fused operator may still need more than one graph node. `autograd::add_rms_norm` is the
+smallest example: one device launch returns the residual sum and the normalized value, but the
+sum remains a visible Autograd node. The direct residual path and the normalization backward
+path therefore accumulate at that node before the total is passed to both add parents. Device
+launch count and graph dependency count are different measurements; removing one must never be
+reported as removing the other. Experiment 210 rejects the model route on throughput and
+last-bit parameter gates while retaining this independently tested multi-output primitive.
+
 ## Tensor N0 invariants
 
 - scalar shape `{}` contains one element;

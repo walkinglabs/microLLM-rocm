@@ -79,6 +79,9 @@ TEST(GraphConstructionTest, EveryPublicGraphOperationHasAVisibleRootContract) {
 
     const Value norm_weight(Tensor::from_vector({1, 2}, {2}), true);
     expect_root(rms_norm(vector, norm_weight), "rms_norm", 2, {2, 2});
+    const auto fused_norm = add_rms_norm(vector, other, norm_weight);
+    expect_root(fused_norm.first, "add_rms_norm_sum", 2, {2, 2});
+    expect_root(fused_norm.second, "add_rms_norm", 2, {2, 2});
     expect_root(swiglu(vector, other), "swiglu", 2, {2, 2});
 
     const Value rope_input(

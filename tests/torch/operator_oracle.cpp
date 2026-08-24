@@ -328,6 +328,23 @@ void emit_graph_gradient_cases() {
     emit("graph_rms_input_grad", norm_input.grad());
     emit("graph_rms_weight_grad", norm_weight.grad());
 
+    Value fused_norm_left(f32({1, 2, 3, -1, -2, -3}, {2, 3}), true);
+    Value fused_norm_right(f32({0.5F, -0.5F, 1, 2, 1, 0}, {2, 3}), true);
+    Value fused_norm_weight(f32({1, 0.5F, 2}, {3}), true);
+    const Value fused_norm_sum_seed(f32(
+        {1, -1, 2, -2, 3, -3}, {2, 3}));
+    const Value fused_norm_seed(f32(
+        {0.5F, 2, -1, 1.5F, -0.5F, 3}, {2, 3}));
+    const auto fused_norm = add_rms_norm(
+        fused_norm_left, fused_norm_right, fused_norm_weight);
+    emit("graph_add_rms_norm_sum", fused_norm.first.data());
+    emit("graph_add_rms_norm_normalized", fused_norm.second.data());
+    add(sum(multiply(fused_norm.first, fused_norm_sum_seed)),
+        sum(multiply(fused_norm.second, fused_norm_seed))).backward();
+    emit("graph_add_rms_norm_left_grad", fused_norm_left.grad());
+    emit("graph_add_rms_norm_right_grad", fused_norm_right.grad());
+    emit("graph_add_rms_norm_weight_grad", fused_norm_weight.grad());
+
     Value silu_input(f32({-2, -1, 0, 1, 2, 3}, {2, 3}), true);
     const Value activation_seed(f32({1, 2, 3, -1, -2, -3}, {2, 3}));
     sum(multiply(silu(silu_input), activation_seed)).backward();

@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "model": "qwen2.5-0.5b",
+  "device": "AMD Instinct MI300X VF",
+  "architecture": "gfx942:sramecc+:xnack-",
+  "context": 512,
+  "warmup": 1,
+  "steps": 2,
+  "note": "Instrumented timing is structural evidence, not the throughput result.",
+  "materialized": {
+    "kernel_dispatches": 6903,
+    "kernel_time_ns": 109741184,
+    "fp32_add_calls": 504,
+    "fp32_add_time_ns": 2444006,
+    "rms_norm_forward_calls": 147,
+    "rms_norm_forward_time_ns": 963192,
+    "add_rms_norm_calls": 0,
+    "add_rms_norm_time_ns": 0
+  },
+  "fused": {
+    "kernel_dispatches": 6831,
+    "kernel_time_ns": 109691949,
+    "fp32_add_calls": 432,
+    "fp32_add_time_ns": 2064723,
+    "rms_norm_forward_calls": 75,
+    "rms_norm_forward_time_ns": 576036,
+    "add_rms_norm_calls": 72,
+    "add_rms_norm_time_ns": 587779
+  },
+  "delta": {
+    "kernel_dispatches": -72,
+    "kernel_time_ns": -49235,
+    "fp32_add_calls": -72,
+    "rms_norm_forward_calls": -72,
+    "add_rms_norm_calls": 72
+  }
+}

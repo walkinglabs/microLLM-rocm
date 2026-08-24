@@ -368,6 +368,21 @@ def pytorch_references(actual):
     record(refs, "graph_rms_input_grad", norm_input.grad)
     record(refs, "graph_rms_weight_grad", norm_weight.grad)
 
+    fused_left = tensor([1, 2, 3, -1, -2, -3], (2, 3), True)
+    fused_right = tensor([0.5, -0.5, 1, 2, 1, 0], (2, 3), True)
+    fused_weight = tensor([1, 0.5, 2], (3,), True)
+    fused_sum_seed = tensor([1, -1, 2, -2, 3, -3], (2, 3))
+    fused_norm_seed = tensor([0.5, 2, -1, 1.5, -0.5, 3], (2, 3))
+    fused_sum = fused_left + fused_right
+    fused_normalized = F.rms_norm(fused_sum, (3,), fused_weight, 1.0e-5)
+    record(refs, "graph_add_rms_norm_sum", fused_sum)
+    record(refs, "graph_add_rms_norm_normalized", fused_normalized)
+    ((fused_sum * fused_sum_seed).sum() +
+     (fused_normalized * fused_norm_seed).sum()).backward()
+    record(refs, "graph_add_rms_norm_left_grad", fused_left.grad)
+    record(refs, "graph_add_rms_norm_right_grad", fused_right.grad)
+    record(refs, "graph_add_rms_norm_weight_grad", fused_weight.grad)
+
     silu_input = tensor([-2, -1, 0, 1, 2, 3], (2, 3), True)
     activation_seed = tensor([1, 2, 3, -1, -2, -3], (2, 3))
     (F.silu(silu_input) * activation_seed).sum().backward()

@@ -3499,3 +3499,18 @@ wave。为了支持它，reduction stride改读`blockDim.x`；默认256线程的
 下一次Attention工作必须是独立online/tiled设计，或者等待其他子系统改变后重新profile。
 
 ![Post BF16 Q/K saturation](assets/post-bf16-qk-saturation.svg)
+
+## 227. Experiment 210：少72次启动，为什么训练反而没快
+
+训练里的残差加法后面紧跟RMSNorm，看起来很适合复用已有融合Kernel。但训练图不能把残差和
+藏起来：它同时流向残差支路和归一化支路。我们用两个Autograd节点保留这个分叉，并分别对齐
+两个前向结果和left/right/weight梯度。
+
+HIP profile证明候选不是“开关没生效”：Qwen两步少72个add、少72个独立RMSNorm，多72个
+融合Kernel，总launch从6,903降到6,831。可总Kernel时间只少0.045%。正式三进程中，Qwen和
+DeepSeek分别只有0.9785×和0.9980×，显存不变，DeepSeek的固定参数还有末位差异。
+
+所以模型和CLI路由删除，只保留已经由CPU、HIP、PyTorch三层证明的Autograd原语。以后如果
+再做训练融合，目标必须覆盖更大的残差分支或来自新的profile热点。
+
+![Training add plus RMSNorm discard](assets/training-add-rms-norm-discard.svg)

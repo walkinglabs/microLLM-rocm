@@ -10705,6 +10705,95 @@ def validate_post_bf16_qk_saturation(
     return len(rows), min(ratios), max(ratios)
 
 
+def validate_training_add_rms_norm_discard(
+        errors: list[str]) -> tuple[int, float, float, int]:
+    data = REPOSITORY / (
+        "benchmarks/results/2026-08-24-training-add-rms-norm-fusion")
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    profile = json.loads((data / "profile-summary.json").read_text(
+        encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "training.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    rows = {row.get("model"): row
+            for row in summary.get("comparisons", [])}
+    expected = {
+        "qwen2.5-0.5b": (0.9784857620624696, True),
+        "deepseek-r1-distill-qwen-1.5b": (0.9979677958172398, False),
+    }
+    counts = {(model, policy): 0 for model in expected
+              for policy in ("materialized", "fused")}
+    for row in raw:
+        key = (row.get("model"), row.get("policy"))
+        if key in counts:
+            counts[key] += 1
+    expected_tests = {
+        "cpu_debug": {"passed": 316, "total": 316},
+        "asan_ubsan": {"passed": 314, "total": 314},
+        "pytorch_enabled_cpu": {"passed": 290, "total": 290},
+        "hip_full_configuration": {
+            "passed": 491, "total": 491, "conditional_skips": 3},
+        "hip_label": {"passed": 165, "total": 165},
+        "rccl_multi_gpu": {"passed": 12, "total": 12},
+        "rccl_full_label": {"passed": 14, "total": 14},
+    }
+    materialized = profile.get("materialized", {})
+    fused = profile.get("fused", {})
+    if summary.get("status") != "pass" or len(raw) != 12 or \
+            summary.get("decision") != "reject layout fusion" or \
+            summary.get("gate_results", {}).get("throughput") is not False or \
+            summary.get("gate_results", {}).get("parameter") is not False or \
+            set(rows) != set(expected) or \
+            any(abs(float(rows[name].get("throughput_speedup", 0.0)) - values[0]) >
+                1.0e-12 or
+                rows[name].get("observed_parameter_after_equal") is not values[1]
+                for name, values in expected.items()) or \
+            any(count != 3 for count in counts.values()) or \
+            materialized.get("kernel_dispatches") != 6903 or \
+            fused.get("kernel_dispatches") != 6831 or \
+            materialized.get("fp32_add_calls") != 504 or \
+            fused.get("fp32_add_calls") != 432 or \
+            materialized.get("rms_norm_forward_calls") != 147 or \
+            fused.get("rms_norm_forward_calls") != 75 or \
+            fused.get("add_rms_norm_calls") != 72 or \
+            verification.get("status") != "pass" or \
+            verification.get("model_route_retained") is not False or \
+            verification.get("registered_test_files") != 86 or \
+            verification.get("performance_processes") != 12 or \
+            verification.get("diagnostic_processes") != 4 or \
+            verification.get("coverage") != {
+                "lines_percent": 80.0,
+                "functions_percent": 87.9,
+                "branches_percent": 60.7} or \
+            verification.get("tests") != expected_tests:
+        errors.append("training add plus RMSNorm rejection evidence changed")
+    autograd_header = (REPOSITORY / "include/microllm/autograd/autograd.h").read_text(
+        encoding="utf-8")
+    autograd_source = (REPOSITORY / "src/autograd/autograd.cpp").read_text(
+        encoding="utf-8")
+    graph_test = (REPOSITORY / "tests/graph/graph_gradient_alignment_test.cpp").read_text(
+        encoding="utf-8")
+    hip_test = (REPOSITORY / "tests/graph/hip_graph_alignment_test.cpp").read_text(
+        encoding="utf-8")
+    model_and_cli = (REPOSITORY / "src/model/model.cpp").read_text(
+        encoding="utf-8") + (REPOSITORY / "apps/hf_train_step.cpp").read_text(
+            encoding="utf-8")
+    for token, document in (
+            ("std::pair<Value, Value> add_rms_norm", autograd_header),
+            ("add_rms_norm_sum", autograd_source),
+            ("AddRmsNormMatchesComposedForwardAndAllBranchedGradients", graph_test),
+            ("AddRmsNormMatchesBranchedHipGraphAndStaysDeviceNative", hip_test)):
+        if token not in document:
+            errors.append("training add plus RMSNorm source/test contract changed")
+            break
+    if "training_add_rms_norm_fusion" in model_and_cli:
+        errors.append("rejected training add plus RMSNorm model route returned")
+    ratios = [values[0] for values in expected.values()]
+    return len(raw), min(ratios), max(ratios), \
+        materialized.get("kernel_dispatches", 0) - fused.get("kernel_dispatches", 0)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -10892,7 +10981,8 @@ def validate_assets(errors: list[str]) -> None:
                  "inference-bthd-bf16-qk-shapes.svg",
                  "causal-softmax-128-discard.svg",
                  "bf16-repeat-fusion-discard.svg",
-                 "post-bf16-qk-saturation.svg"):
+                 "post-bf16-qk-saturation.svg",
+                 "training-add-rms-norm-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -11270,6 +11360,8 @@ def main() -> int:
         bf16_repeat_maximum = validate_bf16_repeat_fusion_discard(errors)
     saturation_rows, saturation_minimum, saturation_maximum = \
         validate_post_bf16_qk_saturation(errors)
+    training_norm_rows, training_norm_minimum, training_norm_maximum, \
+        training_norm_dispatches = validate_training_add_rms_norm_discard(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -11597,6 +11689,9 @@ def main() -> int:
           f"{bf16_repeat_minimum:.3f}/{bf16_repeat_maximum:.3f} "
           f"inference_saturation={saturation_rows}/"
           f"{saturation_minimum:.3f}/{saturation_maximum:.3f} "
+          f"training_add_rms_norm={training_norm_rows}/"
+          f"{training_norm_minimum:.3f}/{training_norm_maximum:.3f}/"
+          f"{training_norm_dispatches} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

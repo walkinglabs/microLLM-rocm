@@ -48,7 +48,8 @@ if declared_ops != covered_ops:
 
 declared_graph = public_names(
     "include/microllm/autograd/autograd.h",
-    ["Value", "GraphSnapshot", "bool", "void", "const\\s+Tensor&", "Tensor&"],
+    ["Value", "std::pair<Value,\\s*Value>", "GraphSnapshot", "bool", "void",
+     "const\\s+Tensor&", "Tensor&"],
 )
 covered_graph = set(MANIFEST["graph_ops"]) | set(MANIFEST["graph_infrastructure"])
 if declared_graph != covered_graph:

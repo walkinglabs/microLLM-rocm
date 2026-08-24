@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <microllm/core/tensor.h>
@@ -66,6 +67,8 @@ private:
     friend Value embedding(const Value&, const Tensor&);
     friend Value softmax(const Value&, std::int64_t);
     friend Value rms_norm(const Value&, const Value&, float);
+    friend std::pair<Value, Value> add_rms_norm(
+        const Value&, const Value&, const Value&, float);
     friend Value silu(const Value&);
     friend Value swiglu(const Value&, const Value&);
     friend Value rope(const Value&, std::int64_t, std::int64_t, float);
@@ -111,6 +114,9 @@ private:
 [[nodiscard]] Value softmax(const Value& input, std::int64_t dim = -1);
 [[nodiscard]] Value rms_norm(const Value& input, const Value& weight,
                              float epsilon = 1.0e-5F);
+[[nodiscard]] std::pair<Value, Value> add_rms_norm(
+    const Value& left, const Value& right, const Value& weight,
+    float epsilon = 1.0e-5F);
 [[nodiscard]] Value silu(const Value& input);
 [[nodiscard]] Value swiglu(const Value& gate, const Value& up);
 [[nodiscard]] Value rope(const Value& input, std::int64_t sequence_dim = 1,

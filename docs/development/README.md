@@ -2,6 +2,7 @@
 
 - [2026-08-24: Public CMake package consumer](2026-08-24-public-cmake-consumer.md)
 - [2026-08-24: CMake SDK and README cleanup](2026-08-24-cmake-sdk-readme.md)
+- [2026-08-24: Training add plus RMSNorm Autograd](2026-08-24-training-add-rms-norm-autograd.md)
 - [2026-08-24: Direct BF16 Q/K into BTHD Attention](2026-08-24-inference-bthd-bf16-qk.md)
 - [2026-08-24: Direct BF16 Q/K shape expansion](2026-08-24-inference-bthd-bf16-qk-shapes.md)
 - [2026-08-24: 128-thread causal-softmax counterexample](2026-08-24-causal-softmax-128-discard.md)
