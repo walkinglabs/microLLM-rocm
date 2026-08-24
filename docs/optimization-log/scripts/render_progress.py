@@ -74,6 +74,9 @@ BF16_ADAMW_SUMMARY = (ROOT.parents[1] / "benchmarks" / "results" /
                       "2026-08-24-bf16-adamw-moments" / "formal" /
                       "summary.json")
 BF16_ADAMW_CHART = ROOT / "assets" / "bf16-adamw-moments.svg"
+HYBRID_ADAMW_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
+                     "2026-08-24-hybrid-bf16-adamw")
+HYBRID_ADAMW_CHART = ROOT / "assets" / "hybrid-bf16-adamw.svg"
 
 
 def rows() -> list[dict]:
@@ -1894,6 +1897,109 @@ def bf16_adamw_moments_svg() -> str:
     return "\n".join(parts)
 
 
+def hybrid_bf16_adamw_svg() -> str:
+    thresholds = (4096, 65536, 262144, 1048576, 4194304, 16777216)
+    rows = []
+    for threshold in thresholds:
+        summary = json.loads((HYBRID_ADAMW_ROOT /
+                              f"threshold-{threshold}" / "summary.json").read_text(
+                                  encoding="utf-8"))
+        models = {row["model"]: row for row in summary["models"]}
+        qwen = models["qwen2.5-0.5b"]
+        deep = models["deepseek-r1-distill-qwen-1.5b"]
+        rows.append({
+            "threshold": threshold,
+            "qwen_optimizer": qwen["optimizer_speedup"],
+            "deep_optimizer": deep["optimizer_speedup"],
+            "e2e_geomean": math.sqrt(
+                qwen["throughput_speedup"] * deep["throughput_speedup"]),
+        })
+    formal = json.loads((HYBRID_ADAMW_ROOT / "formal-threshold-1048576" /
+                         "summary.json").read_text(encoding="utf-8"))
+    formal_rows = formal["models"]
+    width, height = 1750, 760
+    chart_x, chart_y, chart_w, chart_h = 105, 145, 1010, 455
+    panel_x, panel_y, panel_w, panel_h = 1215, 145, 440, 455
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 215 · Hybrid BF16 AdamW", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 80,
+             "six thresholds · B1/T512 · 3-process sweep + 5-process formal gate",
+             16, "#5b6474", anchor="middle"),
+        f'<rect x="{chart_x}" y="{chart_y}" width="{chart_w}" height="{chart_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+        f'<rect x="{panel_x}" y="{panel_y}" width="{panel_w}" height="{panel_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+        text(chart_x + chart_w / 2, 125, "Threshold sweep", 20,
+             anchor="middle", weight=700),
+        text(panel_x + panel_w / 2, 125, "1M formal ratios", 20,
+             anchor="middle", weight=700),
+    ]
+
+    def ratio_y(value: float) -> float:
+        return chart_y + chart_h * (1.30 - value) / 0.45
+
+    for tick in (0.85, 0.95, 1.0, 1.10, 1.20, 1.30):
+        y = ratio_y(tick)
+        color = "#2563eb" if tick == 1.0 else "#d97706" if tick == 1.10 else "#e5e9f0"
+        parts.append(f'<line x1="{chart_x}" y1="{y:.1f}" '
+                     f'x2="{chart_x+chart_w}" y2="{y:.1f}" stroke="{color}"/>')
+        parts.append(text(chart_x - 12, y + 5, f"{tick:.2f}×", 13,
+                          "#5b6474", anchor="end"))
+    labels = ("4K", "64K", "256K", "1M", "4M", "16M")
+    series = (
+        ("qwen_optimizer", "#7c3aed", "Qwen optimizer"),
+        ("deep_optimizer", "#d97706", "DeepSeek optimizer"),
+        ("e2e_geomean", "#18a558", "E2E geometric mean"),
+    )
+    points: dict[str, list[tuple[float, float]]] = {key: [] for key, _, _ in series}
+    for index, row in enumerate(rows):
+        x = chart_x + chart_w * (index + 0.5) / len(rows)
+        parts.append(text(x, chart_y + chart_h + 30, labels[index], 14,
+                          "#5b6474", anchor="middle", weight=600))
+        for key, _, _ in series:
+            points[key].append((x, ratio_y(row[key])))
+    for key, color, label in series:
+        path = " ".join(("M" if index == 0 else "L") +
+                        f" {x:.1f} {y:.1f}"
+                        for index, (x, y) in enumerate(points[key]))
+        parts.append(f'<path d="{path}" fill="none" stroke="{color}" stroke-width="4"/>')
+        for index, (x, y) in enumerate(points[key]):
+            marker = "#18a558" if index == 3 else "#dc2626" if index == 5 else color
+            parts.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="7" '
+                         f'fill="{marker}" stroke="#ffffff" stroke-width="2"/>')
+        legend_x = chart_x + 30 + list(s[0] for s in series).index(key) * 300
+        parts.append(f'<line x1="{legend_x}" y1="{chart_y+28}" '
+                     f'x2="{legend_x+34}" y2="{chart_y+28}" stroke="{color}" stroke-width="4"/>')
+        parts.append(text(legend_x + 44, chart_y + 33, label, 13,
+                          "#5b6474", weight=600))
+    for index, row in enumerate(formal_rows):
+        model = "Qwen" if row["model"].startswith("qwen") else "DeepSeek"
+        y = panel_y + 80 + index * 180
+        parts.append(text(panel_x + 25, y - 28, model, 16, weight=700))
+        for offset, (field, color, label) in enumerate((
+                ("throughput_speedup", "#18a558", "end-to-end"),
+                ("optimizer_speedup", "#7c3aed", "optimizer"))):
+            value = row[field]
+            bar_y = y + offset * 53
+            bar_w = 310 * (value - 0.9) / 0.4
+            parts.append(f'<rect x="{panel_x+25}" y="{bar_y}" width="310" height="30" '
+                         'fill="#eef1f5" rx="4"/>')
+            parts.append(f'<rect x="{panel_x+25}" y="{bar_y}" width="{bar_w:.1f}" '
+                         f'height="30" fill="{color}" rx="4"/>')
+            parts.append(text(panel_x + 350, bar_y + 21,
+                              f"{label} {value:.3f}×", 13, color,
+                              anchor="end", weight=700))
+    parts.append(text(width / 2, 700,
+                      "Keep 1M · 16M selects 1.31B DeepSeek elements and falls to 0.896× optimizer / 0.980× E2E",
+                      17, "#9a4f00", anchor="middle", weight=700))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -1923,7 +2029,8 @@ def main() -> int:
                 BATCHED_GEMM_CHART: strided_batched_hipblaslt_svg(),
                 BATCHED_BACKWARD_CHART: batched_attention_backward_svg(),
                 SAVED_ATTENTION_CHART: saved_attention_probabilities_svg(),
-                BF16_ADAMW_CHART: bf16_adamw_moments_svg()}
+                BF16_ADAMW_CHART: bf16_adamw_moments_svg(),
+                HYBRID_ADAMW_CHART: hybrid_bf16_adamw_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

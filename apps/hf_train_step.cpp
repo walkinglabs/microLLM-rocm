@@ -183,6 +183,7 @@ int main(int argc, char** argv) {
         std::string linear_precision = "fp32";
         std::string adamw_implementation = "auto";
         std::string adamw_moment_precision = "fp32";
+        std::int64_t adamw_bf16_multi_tensor_threshold = -1;
         std::string bf16_algorithm_text;
         std::filesystem::path diagnostics_output;
         bool bf16_weight_mirrors = true;
@@ -212,6 +213,11 @@ int main(int argc, char** argv) {
             }
             else if (name == "--adamw-moment-precision") {
                 adamw_moment_precision = argv[index + 1];
+            }
+            else if (name == "--adamw-bf16-multi-tensor-threshold") {
+                const std::string value = argv[index + 1];
+                adamw_bf16_multi_tensor_threshold =
+                    value == "auto" ? -1 : std::stoll(value);
             }
             else if (name == "--bf16-algorithms") {
                 bf16_algorithm_text = argv[index + 1];
@@ -326,6 +332,13 @@ int main(int argc, char** argv) {
             throw std::invalid_argument(
                 "BF16 AdamW moments cannot use the FP32 vectorized selector");
         }
+        if (adamw_bf16_multi_tensor_threshold < -1 ||
+            (adamw_bf16_multi_tensor_threshold > 0 &&
+             (adamw_moment_precision != "bf16" || device_text != "hip"))) {
+            throw std::invalid_argument(
+                "--adamw-bf16-multi-tensor-threshold must be auto or non-negative "
+                "and requires BF16 moments on HIP");
+        }
         const auto bf16_algorithms = parse_bf16_algorithms(bf16_algorithm_text);
         microllm::autograd::enable_tied_embedding_sparse_add(
             tied_embedding_sparse_add);
@@ -402,7 +415,8 @@ int main(int argc, char** argv) {
                 ? microllm::ops::AdamWImplementation::Scalar
                 : adamw_implementation == "vectorized"
                       ? microllm::ops::AdamWImplementation::Vectorized
-                      : microllm::ops::AdamWImplementation::Auto);
+                      : microllm::ops::AdamWImplementation::Auto,
+            adamw_bf16_multi_tensor_threshold);
         const auto all_tokens = parse_tokens(token_text);
         const std::vector<std::int32_t> input_ids(all_tokens.begin(), all_tokens.end() - 1);
         const std::vector<std::int32_t> target_ids(all_tokens.begin() + 1, all_tokens.end());
@@ -518,7 +532,13 @@ int main(int argc, char** argv) {
                   << ",\"adamw_moment_state_bytes\":"
                   << optimizer.moment_state_bytes()
                   << ",\"adamw_multi_tensor_update\":"
-                  << "false"
+                  << (optimizer.bf16_multi_tensor_count() > 0 ? "true" : "false")
+                  << ",\"adamw_bf16_multi_tensor_threshold\":"
+                  << optimizer.bf16_multi_tensor_threshold()
+                  << ",\"adamw_bf16_multi_tensor_tensors\":"
+                  << optimizer.bf16_multi_tensor_count()
+                  << ",\"adamw_bf16_multi_tensor_elements\":"
+                  << optimizer.bf16_multi_tensor_elements()
                   << ",\"bf16_algorithm_registrations\":"
                   << bf16_algorithms.size()
                   << ",\"bf16_algorithm_spec\":\"" << bf16_algorithm_text << "\""

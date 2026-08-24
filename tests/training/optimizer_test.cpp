@@ -176,6 +176,14 @@ TEST(AdamWTest, Bf16MomentStateIsCompactCanonicalAndExactlyRestorable) {
         (void)AdamW({&fp32_parameter}, bf16_config, {},
                     ops::AdamWImplementation::Vectorized),
         std::invalid_argument);
+    EXPECT_THROW(
+        (void)AdamW({&fp32_parameter}, bf16_config, {},
+                    ops::AdamWImplementation::Auto, -2),
+        std::invalid_argument);
+    EXPECT_THROW(
+        (void)AdamW({&fp32_parameter}, fp32_config, {},
+                    ops::AdamWImplementation::Auto, 16),
+        std::invalid_argument);
 }
 
 TEST(AdamWTest, Bf16MomentOptimizerMatchesRoundedReferenceForOneHundredSteps) {

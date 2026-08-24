@@ -31,11 +31,14 @@ def options() -> argparse.Namespace:
     parser.add_argument("--steps", type=int, default=2)
     parser.add_argument("--batch", type=int, default=1)
     parser.add_argument("--context", type=int, default=512)
+    parser.add_argument("--bf16-multi-tensor-threshold", type=int, default=0)
     result = parser.parse_args()
     if result.runs < 3 or result.warmup < 0 or result.steps <= 0:
         parser.error("runs must be at least 3; warmup nonnegative; steps positive")
     if result.batch <= 0 or result.context <= 0:
         parser.error("batch and context must be positive")
+    if result.bf16_multi_tensor_threshold < 0:
+        parser.error("BF16 multi-tensor threshold must be non-negative")
     for path in (result.binary, result.qwen_config, result.qwen_weights,
                  result.deepseek_config, result.deepseek_weights):
         if not path.is_file():
@@ -64,7 +67,7 @@ def model_paths(args: argparse.Namespace, model: str) -> tuple[Path, Path]:
 def command(args: argparse.Namespace, model: str, policy: str) -> list[str]:
     config, weights = model_paths(args, model)
     tokens = ",".join(str(index) for index in range(1, args.context + 2))
-    return [
+    result = [
         str(args.binary),
         "--config", str(config),
         "--weights", str(weights),
@@ -79,6 +82,10 @@ def command(args: argparse.Namespace, model: str, policy: str) -> list[str]:
         "--adamw-implementation", "auto",
         "--adamw-moment-precision", policy,
     ]
+    if policy == "bf16":
+        result.extend(("--adamw-bf16-multi-tensor-threshold",
+                       str(args.bf16_multi_tensor_threshold)))
+    return result
 
 
 def validate_record(record: dict, model: str, parameters: int,
@@ -95,10 +102,25 @@ def validate_record(record: dict, model: str, parameters: int,
     if record.get("optimizer_device_to_host_calls") != 0 or \
        record.get("optimizer_device_to_host_bytes") != 0:
         raise RuntimeError(f"{model}/{policy} copied optimizer state to the host")
-    if record.get("adamw_multi_tensor_update") is not False or \
-       record.get("optimizer_host_to_device_calls") != 0 or \
-       record.get("optimizer_host_to_device_bytes") != 0:
-        raise RuntimeError(f"{model}/{policy} unexpectedly copied optimizer payloads")
+    expected_threshold = (args.bf16_multi_tensor_threshold
+                          if policy == "bf16" else 0)
+    if record.get("adamw_bf16_multi_tensor_threshold") != expected_threshold:
+        raise RuntimeError(f"{model}/{policy} reported the wrong threshold")
+    if expected_threshold == 0:
+        if record.get("adamw_multi_tensor_update") is not False or \
+           record.get("optimizer_host_to_device_calls") != 0 or \
+           record.get("optimizer_host_to_device_bytes") != 0:
+            raise RuntimeError(
+                f"{model}/{policy} unexpectedly copied optimizer payloads")
+    else:
+        if record.get("adamw_multi_tensor_update") is not True or \
+           int(record.get("adamw_bf16_multi_tensor_tensors", 0)) <= 0 or \
+           int(record.get("adamw_bf16_multi_tensor_elements", 0)) <= 0 or \
+           record.get("optimizer_host_to_device_calls") != args.steps:
+            raise RuntimeError(f"{model}/{policy} did not use hybrid dispatch")
+        metadata_bytes = int(record.get("optimizer_host_to_device_bytes", 0))
+        if metadata_bytes <= 0 or metadata_bytes >= parameters:
+            raise RuntimeError(f"{model}/{policy} metadata copy is not bounded")
     if record.get("warmup") != args.warmup or record.get("steps") != args.steps:
         raise RuntimeError(f"{model}/{policy} measurement counts changed")
     if record.get("batch") != args.batch or record.get("context") != args.context:
@@ -194,6 +216,8 @@ def summarize(records: list[dict], runs: int) -> dict:
         "required_gates_passed": required_passed,
         "optimizer_stretch_gates_passed": stretch_passed,
         "runs_per_policy": runs,
+        "bf16_multi_tensor_threshold": int(
+            records[0].get("matrix_bf16_multi_tensor_threshold", 0)),
         "models": models,
     }
 
@@ -214,6 +238,8 @@ def main() -> int:
                     "model": model,
                     "policy": policy,
                     "process_run": process_run,
+                    "matrix_bf16_multi_tensor_threshold":
+                        args.bf16_multi_tensor_threshold,
                 })
                 records.append(record)
                 print(json.dumps(record, sort_keys=True), flush=True)

@@ -72,9 +72,11 @@ void SGD::zero_grad() { training::zero_grad(parameters_); }
 
 AdamW::AdamW(Parameters parameters, AdamWConfig config,
              Bf16ParameterMirrors bf16_mirrors,
-             ops::AdamWImplementation implementation)
+             ops::AdamWImplementation implementation,
+             std::int64_t bf16_multi_tensor_threshold)
     : parameters_(std::move(parameters)), config_(config),
-      bf16_mirrors_(parameters_.size(), nullptr), implementation_(implementation) {
+      bf16_mirrors_(parameters_.size(), nullptr), implementation_(implementation),
+      bf16_multi_tensor_threshold_(bf16_multi_tensor_threshold) {
     validate_parameters(parameters_);
     if (!(config_.learning_rate > 0.0F)) {
         throw std::invalid_argument("AdamW learning rate must be positive");
@@ -89,6 +91,23 @@ AdamW::AdamW(Parameters parameters, AdamWConfig config,
         implementation_ == ops::AdamWImplementation::Vectorized) {
         throw std::invalid_argument(
             "BF16 AdamW moments do not support the FP32 vectorized implementation selector");
+    }
+    if (bf16_multi_tensor_threshold_ < -1) {
+        throw std::invalid_argument(
+            "BF16 AdamW multi-tensor threshold must be auto (-1) or non-negative");
+    }
+    if (bf16_multi_tensor_threshold_ == -1) {
+        bf16_multi_tensor_threshold_ =
+            config_.moment_precision == AdamWConfig::MomentPrecision::BFloat16 &&
+                    !parameters_.empty() &&
+                    parameters_.front()->data().device().is_hip()
+                ? 1 << 20
+                : 0;
+    }
+    if (bf16_multi_tensor_threshold_ > 0 &&
+        config_.moment_precision != AdamWConfig::MomentPrecision::BFloat16) {
+        throw std::invalid_argument(
+            "AdamW multi-tensor threshold requires BF16 moments");
     }
     const auto moment_dtype =
         config_.moment_precision == AdamWConfig::MomentPrecision::BFloat16
@@ -119,6 +138,32 @@ AdamW::AdamW(Parameters parameters, AdamWConfig config,
         }
         bf16_mirrors_[found->second] = mirror;
     }
+    if (bf16_multi_tensor_threshold_ > 0) {
+        if (parameters_.empty() || !parameters_.front()->data().device().is_hip()) {
+            throw std::invalid_argument(
+                "BF16 AdamW multi-tensor threshold requires HIP parameters");
+        }
+        const auto device = parameters_.front()->data().device();
+        std::vector<std::int64_t> element_counts;
+        for (std::size_t index = 0; index < parameters_.size(); ++index) {
+            const auto& data = parameters_[index]->data();
+            if (data.device() != device) {
+                throw std::invalid_argument(
+                    "BF16 AdamW multi-tensor parameters must share one device");
+            }
+            if (data.numel() <= bf16_multi_tensor_threshold_) {
+                bf16_multi_tensor_indices_.push_back(index);
+                element_counts.push_back(data.numel());
+                bf16_multi_tensor_elements_ +=
+                    static_cast<std::uint64_t>(data.numel());
+            }
+        }
+        if (!element_counts.empty()) {
+            bf16_multi_tensor_workspace_ =
+                std::make_unique<ops::AdamWMultiTensorWorkspace>(
+                    std::move(element_counts), device);
+        }
+    }
 }
 
 void AdamW::step() {
@@ -128,6 +173,10 @@ void AdamW::step() {
     const ops::OpContext training_context{.mode = ops::OpMode::Training};
     for (std::size_t parameter_index = 0; parameter_index < parameters_.size(); ++parameter_index) {
         auto* parameter = parameters_[parameter_index];
+        if (bf16_multi_tensor_workspace_ != nullptr &&
+            parameter->data().numel() <= bf16_multi_tensor_threshold_) {
+            continue;
+        }
         if (!parameter->has_grad()) continue;
         if (parameter->grad().shape() != parameter->data().shape()) {
             throw std::invalid_argument("AdamW gradient shape mismatch");
@@ -158,6 +207,33 @@ void AdamW::step() {
                                config_.learning_rate, config_.beta1, config_.beta2,
                                config_.epsilon, config_.weight_decay, first_correction,
                                second_correction, training_context, implementation_);
+        }
+    }
+    if (bf16_multi_tensor_workspace_ != nullptr) {
+        std::vector<ops::AdamWMultiTensorEntry> entries;
+        entries.reserve(bf16_multi_tensor_indices_.size());
+        bool any_gradient = false;
+        for (const auto parameter_index : bf16_multi_tensor_indices_) {
+            auto* parameter = parameters_[parameter_index];
+            if (parameter->has_grad() &&
+                parameter->grad().shape() != parameter->data().shape()) {
+                throw std::invalid_argument("AdamW gradient shape mismatch");
+            }
+            any_gradient = any_gradient || parameter->has_grad();
+            entries.push_back({
+                .parameter = &parameter->mutable_data(),
+                .gradient = parameter->has_grad() ? &parameter->grad() : nullptr,
+                .first_moment = &state_.first_moments[parameter_index],
+                .second_moment = &state_.second_moments[parameter_index],
+                .bf16_mirror = bf16_mirrors_[parameter_index],
+            });
+        }
+        if (any_gradient) {
+            ops::adamw_update_multi_(
+                *bf16_multi_tensor_workspace_, entries,
+                config_.learning_rate, config_.beta1, config_.beta2,
+                config_.epsilon, config_.weight_decay, first_correction,
+                second_correction, training_context);
         }
     }
 }

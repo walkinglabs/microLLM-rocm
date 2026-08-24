@@ -24,6 +24,7 @@ def main() -> int:
 import json, sys
 args = dict(zip(sys.argv[1::2], sys.argv[2::2]))
 policy = args['--adamw-moment-precision']
+threshold = int(args.get('--adamw-bf16-multi-tensor-threshold', '0'))
 deep = 'deepseek' in args['--config']
 parameters = 1777088000 if deep else 494032768
 record = {
@@ -32,7 +33,10 @@ record = {
   'adamw_moment_state_bytes': parameters * (4 if policy == 'bf16' else 8),
   'optimizer_host_to_device_calls': 0, 'optimizer_device_to_host_calls': 0,
   'optimizer_host_to_device_bytes': 0, 'optimizer_device_to_host_bytes': 0,
-  'adamw_multi_tensor_update': False,
+  'adamw_multi_tensor_update': threshold > 0,
+  'adamw_bf16_multi_tensor_threshold': threshold,
+  'adamw_bf16_multi_tensor_tensors': 10 if threshold > 0 else 0,
+  'adamw_bf16_multi_tensor_elements': 1024 if threshold > 0 else 0,
   'warmup': int(args['--warmup']), 'steps': int(args['--steps']),
   'batch': int(args['--batch']),
   'context': len(args['--tokens'].split(',')) - 1,
@@ -41,6 +45,9 @@ record = {
   'engine_peak_bytes': parameters * (18 if policy == 'bf16' else 22),
   'first_loss': 2.0, 'final_loss': 1.0, 'parameter_changed': True,
 }
+if threshold > 0:
+  record['optimizer_host_to_device_calls'] = int(args['--steps'])
+  record['optimizer_host_to_device_bytes'] = int(args['--steps']) * 1024
 print(json.dumps(record))
 """,
             encoding="utf-8")

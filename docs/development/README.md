@@ -448,3 +448,5 @@ the next gate. Records are append-only except for factual corrections.
   beginner-friendly post-BTHD trace and next cast-boundary selection.
 - [2026-08-24-bf16-adamw-moments.md](2026-08-24-bf16-adamw-moments.md): opt-in
   BF16 AdamW state, checkpoint v2 compatibility, corrected timing and official-model evidence.
+- [2026-08-24-hybrid-bf16-adamw.md](2026-08-24-hybrid-bf16-adamw.md): thresholded
+  small-Tensor merge, 16M counterexample and retained 1M Auto policy.

@@ -109,6 +109,11 @@ comparison; do not compare its corrected optimizer time with older rows that inc
 asynchronous backward tail. The numerical/checkpoint contract is explained in
 [BF16 AdamW moments](bf16-adamw-moments.zh-CN.md).
 
+When BF16 moments are enabled on HIP, `--adamw-bf16-multi-tensor-threshold auto` resolves to the
+retained 1,048,576-element hybrid boundary. `0` is the per-tensor control. A positive number must
+be reported as part of the workload because the 16M counterexample slows DeepSeek. The matrix
+runner accepts the corresponding `--bf16-multi-tensor-threshold` argument.
+
 The first curated official-weight result is under
 `benchmarks/results/2026-08-20-mi300x-single-gpu-hf-matrix/`.
 

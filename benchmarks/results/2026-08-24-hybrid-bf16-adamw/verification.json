@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "decision": "keep 1048576-element hybrid Auto for HIP BF16 moments",
+  "thresholds_tested": 6,
+  "pilot_processes": 72,
+  "formal_processes": 20,
+  "selected_threshold": 1048576,
+  "rejected_threshold": 16777216,
+  "registered_test_files": 87,
+  "tests": {
+    "cpu_debug": {"passed": 324, "total": 324},
+    "asan_ubsan": {"passed": 322, "total": 322},
+    "pytorch_enabled_cpu": {"passed": 298, "total": 298},
+    "hip_full_configuration": {
+      "passed": 508,
+      "total": 508,
+      "conditional_skips": 3
+    },
+    "hip_label": {"passed": 173, "total": 173},
+    "rccl_multi_gpu": {"passed": 11, "total": 11},
+    "rccl_full_label": {"passed": 14, "total": 14}
+  },
+  "coverage": {
+    "lines_percent": 79.8,
+    "functions_percent": 87.7,
+    "branches_percent": 60.4,
+    "lines_covered": 8861,
+    "lines_total": 11100
+  }
+}

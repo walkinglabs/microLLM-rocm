@@ -256,6 +256,10 @@ the chronological details are in the [optimization log](docs/optimization-log/RE
   master weights and gradients; five-process Qwen/DeepSeek T512 training improves
   `1.0226×/1.0356×` and peak memory falls to `0.8329×/0.8084×`; Qwen optimizer reaches only
   `1.0687×`, so this is a documented partial keep and FP32 remains the default;
+- a hybrid BF16 AdamW dispatcher merges only tensors up to 1,048,576 elements and leaves larger
+  matrices on the independent vector path; five-process Qwen/DeepSeek optimizer reaches
+  `1.2404×/1.2631×` and end-to-end training reaches `1.0490×/1.0528×`; a 16M threshold makes
+  DeepSeek slower, so the selected boundary is explicit and MI300X-specific;
 - rank-N strided-batched hipBLASLt with last-two-dimension transpose contracts for Attention.
 - T≥256 causal GQA backward using batched GEMM for K/V gradients, with short-sequence fallback.
 - optional autograd probability saving for T≥256, reported as a long-sequence speed/memory trade-off.
@@ -561,15 +565,15 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 505/505 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
+| Full CPU/HIP configuration | 508/508 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
 | CPU Debug | 324/324 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
 | ASan/UBSan CPU | 322/322 | host lifetime, external Storage and instrumented-package linking |
-| MI300X/gfx942 HIP label | 172/172 | allocator/arena/Stream/Graph, grouped/exact vendor solutions, BF16/FP8 and model paths |
+| MI300X/gfx942 HIP label | 173/173 | allocator/arena/Stream/Graph, grouped/exact vendor solutions, BF16/FP8 and model paths |
 | PyTorch-enabled CPU build | 298/298 | dispatcher parity, 32-step BF16 optimizer state, full graph/model oracle and all package paths |
 | Multi-GPU/RCCL | 11/11 | collectives, global-batch equivalence, gradient buckets, DDP trainer/CLI and per-device hipBLASLt ownership; RCCL label 14/14 with package gates |
 | Registered test files | 87 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
-| CPU source coverage | 80.1% lines / 87.9% functions / 60.6% branches | 8,846/11,041 lines; GCC 13.3 + gcovr 8.3 |
+| CPU source coverage | 79.8% lines / 87.7% functions / 60.4% branches | 8,861/11,100 lines; HIP-only hybrid workspace branches remain visible; GCC 13.3 + gcovr 8.3 |
 
 Latest PyTorch-reference maximum absolute differences:
 
@@ -835,6 +839,11 @@ policy in checkpoint v2, and loads v1 checkpoints as FP32. It is opt-in because 
 `1.10×` optimizer stretch target even though both official models pass the end-to-end, memory and
 loss gates. See the [beginner design guide](docs/dev/bf16-adamw-moments.zh-CN.md) and
 [Experiment 214](docs/optimization-log/experiments/214-bf16-adamw-moments-partial.md).
+On HIP, that explicit BF16 policy now uses a measured hybrid Auto dispatcher: tensors up to one
+Mi elements share a submission and larger tensors retain the vectorized bandwidth path. Use
+`--adamw-bf16-multi-tensor-threshold 0` for the per-tensor counterfactual or a positive value for a
+labeled experiment. The retained five-process result and the rejected 16M boundary are in
+[Experiment 215](docs/optimization-log/experiments/215-hybrid-bf16-adamw.md).
 
 ## External weights
 

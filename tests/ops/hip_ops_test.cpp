@@ -3639,7 +3639,8 @@ TEST(HipTrainingTest,
         .moment_precision =
             training::AdamWConfig::MomentPrecision::BFloat16};
     training::AdamW cpu_optimizer({&cpu_first, &cpu_second}, config);
-    training::AdamW hip_optimizer({&hip_first, &hip_second}, config);
+    training::AdamW hip_optimizer(
+        {&hip_first, &hip_second}, config, {}, AdamWImplementation::Auto, 0);
     cpu_optimizer.step();
     runtime::reset_transfer_stats();
     hip_optimizer.step();
@@ -3663,6 +3664,89 @@ TEST(HipTrainingTest,
               cpu_state.second_moments[0].to_vector());
     EXPECT_EQ(hip_state.second_moments[1].to_vector(),
               cpu_state.second_moments[1].to_vector());
+}
+
+TEST(HipTrainingTest,
+     HybridBf16MomentOptimizerMergesOnlySmallTensorsAndMatchesCpu) {
+    require_gpu();
+    const auto device = Device::hip(0);
+    constexpr std::int64_t small_elements = 17;
+    constexpr std::int64_t large_elements = 1025;
+    std::vector<float> small_values(static_cast<std::size_t>(small_elements));
+    std::vector<float> large_values(static_cast<std::size_t>(large_elements));
+    std::vector<float> small_gradients(static_cast<std::size_t>(small_elements));
+    std::vector<float> large_gradients(static_cast<std::size_t>(large_elements));
+    for (std::size_t index = 0; index < small_values.size(); ++index) {
+        small_values[index] = static_cast<float>(index) / 19.0F;
+        small_gradients[index] =
+            static_cast<float>(static_cast<int>(index % 7) - 3) / 11.0F;
+    }
+    for (std::size_t index = 0; index < large_values.size(); ++index) {
+        large_values[index] =
+            static_cast<float>(static_cast<int>(index % 23) - 11) / 17.0F;
+        large_gradients[index] =
+            static_cast<float>(static_cast<int>(index % 13) - 6) / 19.0F;
+    }
+    autograd::Value cpu_small(
+        Tensor::from_vector(small_values, {small_elements}), true);
+    autograd::Value cpu_large(
+        Tensor::from_vector(large_values, {large_elements}), true);
+    autograd::Value hip_small(cpu_small.data().to(device), true);
+    autograd::Value hip_large(cpu_large.data().to(device), true);
+    cpu_small.set_grad(Tensor::from_vector(small_gradients, {small_elements}));
+    cpu_large.set_grad(Tensor::from_vector(large_gradients, {large_elements}));
+    hip_small.set_grad(cpu_small.grad().to(device));
+    hip_large.set_grad(cpu_large.grad().to(device));
+    const training::AdamWConfig config{
+        .learning_rate = 0.01F,
+        .beta1 = 0.9F,
+        .beta2 = 0.99F,
+        .epsilon = 1.0e-8F,
+        .weight_decay = 0.1F,
+        .moment_precision =
+            training::AdamWConfig::MomentPrecision::BFloat16};
+    training::AdamW cpu_optimizer({&cpu_small, &cpu_large}, config);
+    training::AdamW hip_optimizer(
+        {&hip_small, &hip_large}, config, {}, AdamWImplementation::Auto,
+        small_elements);
+    EXPECT_EQ(hip_optimizer.bf16_multi_tensor_threshold(), small_elements);
+    EXPECT_EQ(hip_optimizer.bf16_multi_tensor_count(), 1U);
+    EXPECT_EQ(hip_optimizer.bf16_multi_tensor_elements(),
+              static_cast<std::uint64_t>(small_elements));
+    cpu_optimizer.step();
+    runtime::reset_transfer_stats();
+    hip_optimizer.step();
+    runtime::synchronize(device);
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 1U);
+    EXPECT_GT(transfers.host_to_device_bytes, 0U);
+    EXPECT_LT(transfers.host_to_device_bytes,
+              static_cast<std::size_t>(small_elements * sizeof(float)));
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    EXPECT_EQ(transfers.device_to_device_calls, 0U);
+    expect_near(hip_small.data().to_vector(), cpu_small.data().to_vector(),
+                2.0e-6F);
+    expect_near(hip_large.data().to_vector(), cpu_large.data().to_vector(),
+                2.0e-6F);
+    const auto cpu_state = cpu_optimizer.state();
+    const auto hip_state = hip_optimizer.state();
+    EXPECT_EQ(hip_state.first_moments[0].to_vector(),
+              cpu_state.first_moments[0].to_vector());
+    EXPECT_EQ(hip_state.first_moments[1].to_vector(),
+              cpu_state.first_moments[1].to_vector());
+    EXPECT_EQ(hip_state.second_moments[0].to_vector(),
+              cpu_state.second_moments[0].to_vector());
+    EXPECT_EQ(hip_state.second_moments[1].to_vector(),
+              cpu_state.second_moments[1].to_vector());
+    autograd::Value auto_small(
+        Tensor::from_vector(small_values, {small_elements}).to(device), true);
+    autograd::Value auto_large(
+        Tensor::from_vector(large_values, {large_elements}).to(device), true);
+    training::AdamW auto_optimizer({&auto_small, &auto_large}, config);
+    EXPECT_EQ(auto_optimizer.bf16_multi_tensor_threshold(), 1 << 20);
+    EXPECT_EQ(auto_optimizer.bf16_multi_tensor_count(), 2U);
+    EXPECT_EQ(auto_optimizer.bf16_multi_tensor_elements(),
+              static_cast<std::uint64_t>(small_elements + large_elements));
 }
 
 TEST(HipTrainingTest, VectorizedAdamWMatchesScalarAcrossTailAndMirror) {

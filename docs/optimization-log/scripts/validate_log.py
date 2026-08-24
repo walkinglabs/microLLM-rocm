@@ -10903,9 +10903,10 @@ def validate_multi_tensor_adamw_discard(
         if token not in document:
             errors.append("multi-tensor AdamW source/test contract changed")
             break
-    if "adamw_update_multi_(" in route_sources or \
-            "AdamWMultiTensorWorkspace" in route_sources:
-        errors.append("rejected multi-tensor AdamW model route returned")
+    if ("adamw_update_multi_(" in route_sources or
+        "AdamWMultiTensorWorkspace" in route_sources) and \
+            "bf16_multi_tensor_threshold_" not in route_sources:
+        errors.append("unconditional rejected multi-tensor AdamW route returned")
     ratios = [values[0] for values in expected.values()]
     return len(raw), min(ratios), max(ratios), 864, 1014
 
@@ -11227,14 +11228,154 @@ def validate_bf16_adamw_moments(
         if token not in document:
             errors.append("BF16 AdamW moment source/test contract changed")
             break
-    if "adamw_update_multi_(" in optimizer_source or \
-            "AdamWMultiTensorWorkspace" in optimizer_source:
-        errors.append("rejected BF16 multi-tensor optimizer route returned")
+    if ("adamw_update_multi_(" in optimizer_source or
+        "AdamWMultiTensorWorkspace" in optimizer_source) and \
+            "data.numel() <= bf16_multi_tensor_threshold_" not in optimizer_source:
+        errors.append("unbounded rejected BF16 multi-tensor route returned")
     ratios = [float(row["throughput_speedup"]) for row in rows.values()]
     optimizer_ratios = [float(row["optimizer_speedup"]) for row in rows.values()]
     return len(raw), min(ratios), max(optimizer_ratios), \
         sum(1 for row in rows.values()
             if row.get("optimizer_stretch_gate_passed") is True)
+
+
+def validate_hybrid_bf16_adamw(
+        errors: list[str]) -> tuple[int, float, float, float]:
+    data = REPOSITORY / (
+        "benchmarks/results/2026-08-24-hybrid-bf16-adamw")
+    thresholds = (4096, 65536, 262144, 1048576, 4194304, 16777216)
+    expected = {
+        4096: ((1.033411561330054, 1.155250862010422),
+               (1.0312998935177837, 1.2390720466721936)),
+        65536: ((1.0416257593301599, 1.1506415538538972),
+                (1.0392607900555169, 1.242543959306313)),
+        262144: ((1.042687151629053, 1.1879991368766685),
+                 (1.0347756802127326, 1.2258297378000702)),
+        1048576: ((1.0620180348020098, 1.23508122025875),
+                  (1.055337107011974, 1.2679863488933671)),
+        4194304: ((1.0692325800118019, 1.2215771846353436),
+                  (1.0357851217034015, 1.1935363168164044)),
+        16777216: ((1.0333906109096211, 1.0628331773510202),
+                   (0.9800212009116253, 0.8956100516056399)),
+    }
+    model_order = ("qwen2.5-0.5b",
+                   "deepseek-r1-distill-qwen-1.5b")
+    pilot_rows = 0
+    changed = False
+    selected_counts: dict[int, tuple[tuple[int, int], tuple[int, int]]] = {}
+    for threshold in thresholds:
+        directory = data / f"threshold-{threshold}"
+        summary = json.loads((directory / "summary.json").read_text(
+            encoding="utf-8"))
+        raw = [json.loads(line) for line in (
+            directory / "training.jsonl").read_text(
+                encoding="utf-8").splitlines() if line.strip()]
+        pilot_rows += len(raw)
+        rows = {row["model"]: row for row in summary.get("models", [])}
+        if len(raw) != 12 or set(rows) != set(model_order) or \
+                summary.get("bf16_multi_tensor_threshold") != threshold or \
+                summary.get("status") != (
+                    "fail" if threshold == 16777216 else "pass"):
+            changed = True
+            continue
+        for index, model in enumerate(model_order):
+            actual = (rows[model].get("throughput_speedup"),
+                      rows[model].get("optimizer_speedup"))
+            if any(abs(float(left) - float(right)) > 1.0e-12
+                   for left, right in zip(actual, expected[threshold][index],
+                                          strict=True)):
+                changed = True
+        selected_counts[threshold] = tuple(
+            (int(next(row["adamw_bf16_multi_tensor_tensors"] for row in raw
+                      if row["model"] == model and row["policy"] == "bf16")),
+             int(next(row["adamw_bf16_multi_tensor_elements"] for row in raw
+                      if row["model"] == model and row["policy"] == "bf16")))
+            for model in model_order)  # type: ignore[assignment]
+    expected_counts = {
+        4096: ((121, 71552), (141, 144896)),
+        65536: ((121, 71552), (141, 144896)),
+        262144: ((169, 5576576), (141, 144896)),
+        1048576: ((217, 44111744), (197, 22164992)),
+        4194304: ((217, 44111744), (253, 154285568)),
+        16777216: ((289, 357898112), (337, 1310340608)),
+    }
+    formal = json.loads((data / "formal-threshold-1048576" /
+                         "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    formal_raw = [json.loads(line) for line in (
+        data / "formal-threshold-1048576" / "training.jsonl").read_text(
+            encoding="utf-8").splitlines() if line.strip()]
+    formal_rows = {row["model"]: row for row in formal.get("models", [])}
+    formal_expected = {
+        "qwen2.5-0.5b": (1.0489614127099878, 1.2403589158458965,
+                         0.8328929589939954),
+        "deepseek-r1-distill-qwen-1.5b": (
+            1.0528179144540293, 1.2631414621929355,
+            0.808416558362493),
+    }
+    if pilot_rows != 72 or selected_counts != expected_counts or changed or \
+            formal.get("status") != "pass" or \
+            formal.get("bf16_multi_tensor_threshold") != 1048576 or \
+            len(formal_raw) != 20 or set(formal_rows) != set(formal_expected) or \
+            any(any(abs(float(formal_rows[model].get(field, 0.0)) - value) >
+                        1.0e-12
+                    for field, value in zip(
+                        ("throughput_speedup", "optimizer_speedup", "peak_ratio"),
+                        values, strict=True))
+                for model, values in formal_expected.items()):
+        errors.append("hybrid BF16 AdamW threshold evidence changed")
+    expected_tests = {
+        "cpu_debug": {"passed": 324, "total": 324},
+        "asan_ubsan": {"passed": 322, "total": 322},
+        "pytorch_enabled_cpu": {"passed": 298, "total": 298},
+        "hip_full_configuration": {
+            "passed": 508, "total": 508, "conditional_skips": 3},
+        "hip_label": {"passed": 173, "total": 173},
+        "rccl_multi_gpu": {"passed": 11, "total": 11},
+        "rccl_full_label": {"passed": 14, "total": 14},
+    }
+    if verification.get("status") != "pass" or \
+            verification.get("decision") != \
+                "keep 1048576-element hybrid Auto for HIP BF16 moments" or \
+            verification.get("thresholds_tested") != 6 or \
+            verification.get("pilot_processes") != 72 or \
+            verification.get("formal_processes") != 20 or \
+            verification.get("selected_threshold") != 1048576 or \
+            verification.get("rejected_threshold") != 16777216 or \
+            verification.get("registered_test_files") != 87 or \
+            verification.get("tests") != expected_tests or \
+            verification.get("coverage") != {
+                "lines_percent": 79.8,
+                "functions_percent": 87.7,
+                "branches_percent": 60.4,
+                "lines_covered": 8861,
+                "lines_total": 11100}:
+        errors.append("hybrid BF16 AdamW verification evidence changed")
+    optimizer_header = (REPOSITORY / "include/microllm/training/optimizer.h").read_text(
+        encoding="utf-8")
+    optimizer_source = (REPOSITORY / "src/training/optimizer.cpp").read_text(
+        encoding="utf-8")
+    app_source = (REPOSITORY / "apps/hf_train_step.cpp").read_text(
+        encoding="utf-8")
+    hip_test = (REPOSITORY / "tests/ops/hip_ops_test.cpp").read_text(
+        encoding="utf-8")
+    for token, document in (
+            ("bf16_multi_tensor_threshold = -1", optimizer_header),
+            ("? 1 << 20", optimizer_source),
+            ("data.numel() <= bf16_multi_tensor_threshold_", optimizer_source),
+            ("--adamw-bf16-multi-tensor-threshold", app_source),
+            ("HybridBf16MomentOptimizerMergesOnlySmallTensorsAndMatchesCpu",
+             hip_test)):
+        if token not in document:
+            errors.append("hybrid BF16 AdamW source/test contract changed")
+            break
+    formal_ratios = [float(row["throughput_speedup"])
+                     for row in formal_rows.values()]
+    return pilot_rows + len(formal_raw), min(formal_ratios), \
+        max(float(row["optimizer_speedup"]) for row in formal_rows.values()), \
+        float(formal_rows["deepseek-r1-distill-qwen-1.5b"]
+              ["throughput_speedup"])
 
 
 def validate_links(errors: list[str]) -> int:
@@ -11429,7 +11570,8 @@ def validate_assets(errors: list[str]) -> None:
                  "multi-tensor-adamw-discard.svg",
                  "training-bf16-shared-activation-discard.svg",
                  "post-training-micro-saturation.svg",
-                 "bf16-adamw-moments.svg"):
+                 "bf16-adamw-moments.svg",
+                 "hybrid-bf16-adamw.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -11820,6 +11962,9 @@ def main() -> int:
         validate_post_training_micro_saturation(errors)
     bf16_adamw_rows, bf16_adamw_minimum, bf16_adamw_optimizer_maximum, \
         bf16_adamw_stretch_models = validate_bf16_adamw_moments(errors)
+    hybrid_adamw_rows, hybrid_adamw_minimum, \
+        hybrid_adamw_optimizer_maximum, hybrid_adamw_deep = \
+        validate_hybrid_bf16_adamw(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -12163,6 +12308,8 @@ def main() -> int:
           f"bf16_adamw={bf16_adamw_rows}/{bf16_adamw_minimum:.3f}/"
           f"{bf16_adamw_optimizer_maximum:.3f}/"
           f"{bf16_adamw_stretch_models} "
+          f"hybrid_adamw={hybrid_adamw_rows}/{hybrid_adamw_minimum:.3f}/"
+          f"{hybrid_adamw_optimizer_maximum:.3f}/{hybrid_adamw_deep:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

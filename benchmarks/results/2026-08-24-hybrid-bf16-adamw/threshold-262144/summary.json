@@ -1,0 +1,61 @@
+{
+  "bf16_multi_tensor_threshold": 262144,
+  "experiment": "bf16_adamw_moments",
+  "models": [
+    {
+      "bf16_optimizer_ms_median": 4.3493205,
+      "bf16_peak_bytes_median": 9848326700.0,
+      "bf16_tokens_per_second_median": 15430.870206294,
+      "final_loss_relative_difference": 1.2908542777273433e-05,
+      "first_loss_relative_difference": 0.0001944566156902629,
+      "fp32_optimizer_ms_median": 5.166989,
+      "fp32_peak_bytes_median": 11824424968.0,
+      "fp32_tokens_per_second_median": 14799.137192959,
+      "gates": {
+        "final_loss_relative_difference_at_most_0_01": true,
+        "first_loss_relative_difference_at_most_0_01": true,
+        "moment_bytes_exactly_half": true,
+        "optimizer_speedup_at_least_1_10": true,
+        "peak_ratio_at_most_0_90": true,
+        "throughput_speedup_at_least_1_01": true
+      },
+      "model": "qwen2.5-0.5b",
+      "optimizer_speedup": 1.1879991368766685,
+      "optimizer_stretch_gate_passed": true,
+      "parameter_count": 494032768,
+      "peak_ratio": 0.8328799689331328,
+      "required_gates_passed": true,
+      "throughput_speedup": 1.042687151629053
+    },
+    {
+      "bf16_optimizer_ms_median": 13.4109685,
+      "bf16_peak_bytes_median": 29994303184.0,
+      "bf16_tokens_per_second_median": 6425.862127141,
+      "final_loss_relative_difference": 3.258128580030609e-05,
+      "first_loss_relative_difference": 0.00034869884936059264,
+      "fp32_optimizer_ms_median": 16.439564,
+      "fp32_peak_bytes_median": 37102645256.0,
+      "fp32_tokens_per_second_median": 6209.90834054,
+      "gates": {
+        "final_loss_relative_difference_at_most_0_01": true,
+        "first_loss_relative_difference_at_most_0_01": true,
+        "moment_bytes_exactly_half": true,
+        "optimizer_speedup_at_least_1_10": true,
+        "peak_ratio_at_most_0_90": true,
+        "throughput_speedup_at_least_1_01": true
+      },
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "optimizer_speedup": 1.2258297378000702,
+      "optimizer_stretch_gate_passed": true,
+      "parameter_count": 1777088000,
+      "peak_ratio": 0.808414143440339,
+      "required_gates_passed": true,
+      "throughput_speedup": 1.0347756802127326
+    }
+  ],
+  "optimizer_stretch_gates_passed": true,
+  "required_gates_passed": true,
+  "runs_per_policy": 3,
+  "schema_version": 1,
+  "status": "pass"
+}

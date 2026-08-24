@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -50,12 +51,26 @@ class AdamW {
 public:
     AdamW(Parameters parameters, AdamWConfig config = {},
           Bf16ParameterMirrors bf16_mirrors = {},
-          ops::AdamWImplementation implementation = ops::AdamWImplementation::Auto);
+          ops::AdamWImplementation implementation = ops::AdamWImplementation::Auto,
+          std::int64_t bf16_multi_tensor_threshold = -1);
+    AdamW(const AdamW&) = delete;
+    AdamW& operator=(const AdamW&) = delete;
+    AdamW(AdamW&&) noexcept = default;
+    AdamW& operator=(AdamW&&) noexcept = default;
     void step();
     void zero_grad();
 
     [[nodiscard]] const AdamWConfig& config() const noexcept { return config_; }
     [[nodiscard]] std::uint64_t moment_state_bytes() const;
+    [[nodiscard]] std::int64_t bf16_multi_tensor_threshold() const noexcept {
+        return bf16_multi_tensor_threshold_;
+    }
+    [[nodiscard]] std::size_t bf16_multi_tensor_count() const noexcept {
+        return bf16_multi_tensor_indices_.size();
+    }
+    [[nodiscard]] std::uint64_t bf16_multi_tensor_elements() const noexcept {
+        return bf16_multi_tensor_elements_;
+    }
     [[nodiscard]] AdamWState state() const;
     void load_state(AdamWState state);
 
@@ -65,6 +80,10 @@ private:
     AdamWState state_;
     std::vector<Tensor*> bf16_mirrors_;
     ops::AdamWImplementation implementation_;
+    std::int64_t bf16_multi_tensor_threshold_ = 0;
+    std::unique_ptr<ops::AdamWMultiTensorWorkspace> bf16_multi_tensor_workspace_;
+    std::vector<std::size_t> bf16_multi_tensor_indices_;
+    std::uint64_t bf16_multi_tensor_elements_ = 0;
 };
 
 }  // namespace microllm::training

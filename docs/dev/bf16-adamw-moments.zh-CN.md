@@ -74,6 +74,17 @@ build/hip-release/apps/microllm_hf_train_step \
   --warmup 1 --steps 2 --batch 1
 ```
 
+在 HIP 上，BF16 moment 默认使用 `auto`：把不超过 1,048,576 个元素的 Tensor 合成一次
+提交，大 Tensor 仍单独运行。研究时可以覆盖：
+
+```bash
+--adamw-bf16-multi-tensor-threshold auto     # 默认，当前解析为 1048576
+--adamw-bf16-multi-tensor-threshold 0        # 关闭合并，逐 Tensor 对照
+--adamw-bf16-multi-tensor-threshold 4194304  # 显式反事实实验
+```
+
+阈值不是 checkpoint 状态，因为它只改变独立参数的提交方式，不改变任何保存值。
+
 输出中的关键字段是：
 
 | 字段 | 含义 |
@@ -106,11 +117,14 @@ Qwen2.5-0.5B 与 DeepSeek Distill 1.5B 都使用 batch 1、context 512、一次�
 | Qwen2.5-0.5B | 1.0226× | 1.0687× | 0.8329× | 3,952,262,144→1,976,131,072 B |
 | DeepSeek Distill 1.5B | 1.0356× | 1.1964× | 0.8084× | 14,216,704,000→7,108,352,000 B |
 
-Qwen 没有达到预先设置的 `1.10×` optimizer 进阶目标，所以结论是
-`partial_keep`，不是“两个模型的 optimizer 都快 10% 以上”。
+逐 Tensor版本中，Qwen 没有达到 `1.10×` optimizer 进阶目标。Experiment 215 加入
+小 Tensor 分层合并后，五进程 Qwen/DeepSeek optimizer 达到 `1.2404×/1.2631×`，
+端到端达到 `1.0490×/1.0528×`。16M 阈值会让 DeepSeek 回退，因此 1M 只是当前
+MI300X 两模型的实测 Auto，不是普遍常数。
 
 完整过程、失败的 multi-tensor 尝试和原始数据见
 [Experiment 214](../optimization-log/experiments/214-bf16-adamw-moments-partial.md)。
+分层选择见 [Experiment 215](../optimization-log/experiments/215-hybrid-bf16-adamw.md)。
 
 ## 7. 测试从哪里抓错
 

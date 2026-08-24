@@ -412,6 +412,12 @@ Qwen/DeepSeek端到端提高`1.0226×/1.0356×`，峰值降到`0.8329×/0.8084×
 
 ![BF16 AdamW moments](assets/bf16-adamw-moments.svg)
 
+Experiment 215只合并小Tensor并扫描6个阈值。1M五进程正式门让Qwen/DeepSeek optimizer达到
+`1.240×/1.263×`、端到端达到`1.049×/1.053×`；16M把DeepSeek降到
+`0.896×/0.980×`。这条反例确定了“合并不是越多越好”，1M作为HIP BF16 moment Auto保留。
+
+![Hybrid BF16 AdamW](assets/hybrid-bf16-adamw.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -799,6 +805,8 @@ Qwen/DeepSeek端到端提高`1.0226×/1.0356×`，峰值降到`0.8329×/0.8084×
 | [experiments/213-post-training-micro-saturation.md](experiments/213-post-training-micro-saturation.md) | GEMM+AdamW占72.71%/83.77%的收口证据 |
 | [assets/bf16-adamw-moments.svg](assets/bf16-adamw-moments.svg) | 两模型吞吐、optimizer与峰值显存对照 |
 | [experiments/214-bf16-adamw-moments-partial.md](experiments/214-bf16-adamw-moments-partial.md) | BF16 moment、计时修复、multi-tensor反例与partial keep |
+| [assets/hybrid-bf16-adamw.svg](assets/hybrid-bf16-adamw.svg) | 六阈值搜索、1M正式门和16M反例 |
+| [experiments/215-hybrid-bf16-adamw.md](experiments/215-hybrid-bf16-adamw.md) | 小Tensor分层合并与HIP Auto边界 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

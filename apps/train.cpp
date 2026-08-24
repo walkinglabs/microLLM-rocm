@@ -29,6 +29,7 @@ struct Options {
     std::int64_t context = 16;
     float learning_rate = 1.0e-3F;
     std::string adamw_moment_precision = "fp32";
+    std::int64_t adamw_bf16_multi_tensor_threshold = -1;
 };
 
 std::int64_t integer(const char* value, const char* name) {
@@ -61,6 +62,14 @@ Options parse(int argc, char** argv) {
         else if (name == "--context") options.context = integer(argv[index + 1], "context");
         else if (name == "--learning-rate") options.learning_rate = floating(argv[index + 1], "learning-rate");
         else if (name == "--adamw-moment-precision") options.adamw_moment_precision = argv[index + 1];
+        else if (name == "--adamw-bf16-multi-tensor-threshold") {
+            const std::string_view value(argv[index + 1]);
+            options.adamw_bf16_multi_tensor_threshold =
+                value == "auto"
+                    ? -1
+                    : integer(argv[index + 1],
+                              "adamw-bf16-multi-tensor-threshold");
+        }
         else throw std::invalid_argument("unknown option: " + std::string(name));
     }
     if (options.data.empty()) throw std::invalid_argument("--data is required");
@@ -74,6 +83,14 @@ Options parse(int argc, char** argv) {
         options.adamw_moment_precision != "bf16") {
         throw std::invalid_argument(
             "--adamw-moment-precision must be fp32 or bf16");
+    }
+    if (options.adamw_bf16_multi_tensor_threshold < -1 ||
+        (options.adamw_bf16_multi_tensor_threshold > 0 &&
+         (options.adamw_moment_precision != "bf16" ||
+          options.device != "hip"))) {
+        throw std::invalid_argument(
+            "--adamw-bf16-multi-tensor-threshold must be auto or non-negative "
+            "and requires BF16 moments on HIP");
     }
     if (options.steps == 0 || options.batch <= 0 || options.context <= 0 ||
         !(options.learning_rate > 0.0F)) {
@@ -131,7 +148,10 @@ int main(int argc, char** argv) {
                 options.adamw_moment_precision == "bf16"
                     ? microllm::training::AdamWConfig::MomentPrecision::BFloat16
                     : microllm::training::AdamWConfig::MomentPrecision::Float32};
-        microllm::training::AdamW optimizer(model.parameters(), optimizer_config);
+        microllm::training::AdamW optimizer(
+            model.parameters(), optimizer_config, {},
+            microllm::ops::AdamWImplementation::Auto,
+            options.adamw_bf16_multi_tensor_threshold);
         microllm::training::ExperimentState experiment{
             .global_step = 0,
             .data_cursor = 0,
