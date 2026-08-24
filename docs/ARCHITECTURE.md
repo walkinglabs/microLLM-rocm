@@ -192,6 +192,12 @@ complete logits because temporary Tensor owners disappeared while non-default-St
 were still queued. The ambient API was removed. Synchronizing every destructor is not an accepted
 fix; future model execution must defer releases or allocate intermediates from a planned arena.
 
+`runtime::DeferredHipDeallocationScope` is the first explicit lifetime primitive. It intercepts
+same-thread, same-device deallocation records without allocating on the destructor path, waits for
+one bound Stream at `finish()`, then frees every raw block. It does not choose an operator Stream.
+Scopes cannot nest; fixed-capacity overflow synchronizes and flushes safely. Pending raw bytes are
+reported separately because logical Tensor peak no longer describes physical residency.
+
 hipBLASLt GEMM also supports contiguous strided batches: leading Tensor dimensions become
 the batch count and last-two dimensions remain the matrix contract. Explicit batched
 selection is tested independently; Auto is not changed by operator-only timing.

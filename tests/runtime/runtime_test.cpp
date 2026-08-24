@@ -89,6 +89,12 @@ TEST(HipGraphTest, CpuAndUndefinedContractsAreExplicit) {
         std::invalid_argument);
 }
 
+TEST(DeferredHipDeallocationTest, CpuStreamAndZeroCapacityAreRejected) {
+    const Stream cpu_stream(Device::cpu());
+    EXPECT_THROW((void)DeferredHipDeallocationScope(cpu_stream),
+                 std::invalid_argument);
+}
+
 #if MICROLLM_HAS_HIP
 TEST(HipGraphTest, CapturesReplaysAndMovesCallerOwnedOperatorChain) {
     if (hip_device_count() == 0) GTEST_SKIP() << "No visible HIP device";
@@ -145,6 +151,61 @@ TEST(HipGraphTest, CapturesReplaysAndMovesCallerOwnedOperatorChain) {
     moved.launch(stream);
     stream.synchronize();
     EXPECT_EQ(product.to_vector(), (std::vector<float>{35, 48, 63, 80}));
+}
+
+TEST(DeferredHipDeallocationTest, KeepsTemporaryChainAliveUntilOneStreamSync) {
+    if (hip_device_count() == 0) GTEST_SKIP() << "No visible HIP device";
+    const auto gpu = Device::hip(0);
+    const auto input = Tensor::from_vector({0, 0, 0, 0}, {4}).to(gpu);
+    const auto source = Tensor::from_vector({1, 1, 1, 1}, {4}).to(gpu);
+    Stream stream(gpu);
+    ops::OpContext context;
+    context.stream = &stream;
+    Tensor result;
+    reset_transfer_stats();
+    EXPECT_THROW((void)DeferredHipDeallocationScope(stream, 0),
+                 std::invalid_argument);
+    DeferredHipDeallocationScope scope(stream, 16);
+    EXPECT_THROW((void)DeferredHipDeallocationScope(stream, 16),
+                 std::logic_error);
+    auto current = input;
+    for (int iteration = 0; iteration < 8; ++iteration) {
+        current = ops::add(current, source, context);
+    }
+    result = std::move(current);
+    EXPECT_EQ(scope.pending_blocks(), 7U);
+    EXPECT_EQ(scope.pending_bytes(), 7U * 4U * sizeof(float));
+    EXPECT_EQ(scope.total_deferred_blocks(), 7U);
+    EXPECT_EQ(scope.overflow_flushes(), 0U);
+    scope.finish();
+    EXPECT_TRUE(scope.finished());
+    EXPECT_EQ(scope.pending_blocks(), 0U);
+    const auto transfers = transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    EXPECT_EQ(transfers.device_to_device_calls, 0U);
+    EXPECT_EQ(result.to_vector(), (std::vector<float>{8, 8, 8, 8}));
+}
+
+TEST(DeferredHipDeallocationTest, CapacityOverflowFlushesSafelyAndContinues) {
+    if (hip_device_count() == 0) GTEST_SKIP() << "No visible HIP device";
+    const auto gpu = Device::hip(0);
+    const auto input = Tensor::from_vector({0, 0}, {2}).to(gpu);
+    const auto source = Tensor::from_vector({1, 1}, {2}).to(gpu);
+    Stream stream(gpu);
+    ops::OpContext context;
+    context.stream = &stream;
+    Tensor result;
+    DeferredHipDeallocationScope scope(stream, 2);
+    auto current = input;
+    for (int iteration = 0; iteration < 7; ++iteration) {
+        current = ops::add(current, source, context);
+    }
+    result = std::move(current);
+    EXPECT_EQ(scope.total_deferred_blocks(), 6U);
+    EXPECT_EQ(scope.overflow_flushes(), 2U);
+    scope.finish();
+    EXPECT_EQ(result.to_vector(), (std::vector<float>{7, 7}));
 }
 
 TEST(HipRuntimeTest, ReportsDeviceAndTransfersTensor) {

@@ -55,6 +55,7 @@ TransferCounters transfer_counters;
 
 thread_local bool strided_copy_diagnostics_enabled = false;
 thread_local std::vector<StridedCopyRecord> strided_copy_diagnostic_records;
+thread_local DeferredHipDeallocationScope* active_deferred_scope = nullptr;
 
 void record_strided_copy(std::size_t element_bytes, Device device,
                          std::span<const std::int64_t> shape,
@@ -381,6 +382,13 @@ void deallocate(void* pointer, Device device, std::size_t num_bytes) noexcept {
         return;
     }
 #if MICROLLM_HAS_HIP
+    if (active_deferred_scope != nullptr &&
+        active_deferred_scope->device() == device) {
+        active_deferred_scope->defer(pointer, num_bytes);
+        counters(device).current.fetch_sub(num_bytes);
+        counters(device).deallocation_calls.fetch_add(1);
+        return;
+    }
     if (hipSetDevice(device.index()) != hipSuccess) return;
     bool cached = false;
     {
@@ -690,6 +698,152 @@ void HipGraphExecutable::launch(const Stream& stream) const {
 #else
     (void)stream;
     throw std::runtime_error("microLLM was built without HIP graph support");
+#endif
+}
+
+struct DeferredHipDeallocationScope::Impl {
+    struct Record {
+        void* pointer = nullptr;
+        std::size_t bytes = 0;
+    };
+    const Stream* stream = nullptr;
+    Device device = Device::cpu();
+    std::unique_ptr<Record[]> records;
+    std::size_t capacity = 0;
+    std::size_t pending = 0;
+    std::size_t pending_bytes = 0;
+    std::size_t total_blocks = 0;
+    std::size_t total_bytes = 0;
+    std::size_t overflow_count = 0;
+    bool is_finished = false;
+    int failure = 0;
+};
+
+DeferredHipDeallocationScope::DeferredHipDeallocationScope(
+    const Stream& stream, std::size_t maximum_blocks)
+    : impl_(std::make_unique<Impl>()) {
+    if (stream.device().is_cpu()) {
+        throw std::invalid_argument("deferred HIP deallocation requires a HIP Stream");
+    }
+    if (maximum_blocks == 0) {
+        throw std::invalid_argument("deferred HIP deallocation capacity must be positive");
+    }
+    if (active_deferred_scope != nullptr) {
+        throw std::logic_error("deferred HIP deallocation scopes cannot be nested");
+    }
+#if MICROLLM_HAS_HIP
+    impl_->stream = &stream;
+    impl_->device = stream.device();
+    impl_->capacity = maximum_blocks;
+    impl_->records = std::make_unique<Impl::Record[]>(maximum_blocks);
+    active_deferred_scope = this;
+#else
+    (void)stream;
+    (void)maximum_blocks;
+    throw std::runtime_error("microLLM was built without deferred HIP deallocation");
+#endif
+}
+
+DeferredHipDeallocationScope::~DeferredHipDeallocationScope() {
+    try {
+        finish();
+    } catch (...) {
+        if (active_deferred_scope == this) active_deferred_scope = nullptr;
+    }
+}
+
+Device DeferredHipDeallocationScope::device() const noexcept {
+    return impl_ ? impl_->device : Device::cpu();
+}
+
+bool DeferredHipDeallocationScope::finished() const noexcept {
+    return !impl_ || impl_->is_finished;
+}
+
+std::size_t DeferredHipDeallocationScope::pending_blocks() const noexcept {
+    return impl_ ? impl_->pending : 0;
+}
+
+std::size_t DeferredHipDeallocationScope::pending_bytes() const noexcept {
+    return impl_ ? impl_->pending_bytes : 0;
+}
+
+std::size_t DeferredHipDeallocationScope::total_deferred_blocks() const noexcept {
+    return impl_ ? impl_->total_blocks : 0;
+}
+
+std::size_t DeferredHipDeallocationScope::total_deferred_bytes() const noexcept {
+    return impl_ ? impl_->total_bytes : 0;
+}
+
+std::size_t DeferredHipDeallocationScope::overflow_flushes() const noexcept {
+    return impl_ ? impl_->overflow_count : 0;
+}
+
+void DeferredHipDeallocationScope::defer(
+    void* pointer, std::size_t num_bytes) noexcept {
+#if MICROLLM_HAS_HIP
+    if (!impl_ || impl_->is_finished || pointer == nullptr) return;
+    if (impl_->pending == impl_->capacity) {
+        const auto synchronize_status = hipStreamSynchronize(
+            as_stream(impl_->stream->native_handle()));
+        if (synchronize_status != hipSuccess) {
+            impl_->failure = static_cast<int>(synchronize_status);
+            return;
+        }
+        for (std::size_t index = 0; index < impl_->pending; ++index) {
+            const auto& record = impl_->records[index];
+            const auto free_status = hipFree(record.pointer);
+            if (free_status != hipSuccess) {
+                impl_->failure = static_cast<int>(free_status);
+                continue;
+            }
+            counters(impl_->device).backend_deallocation_calls.fetch_add(1);
+            counters(impl_->device).reserved_bytes.fetch_sub(record.bytes);
+        }
+        impl_->pending = 0;
+        impl_->pending_bytes = 0;
+        ++impl_->overflow_count;
+    }
+    impl_->records[impl_->pending++] = {pointer, num_bytes};
+    impl_->pending_bytes += num_bytes;
+    ++impl_->total_blocks;
+    impl_->total_bytes += num_bytes;
+#else
+    (void)pointer;
+    (void)num_bytes;
+#endif
+}
+
+void DeferredHipDeallocationScope::finish() {
+    if (!impl_ || impl_->is_finished) return;
+    if (active_deferred_scope != nullptr && active_deferred_scope != this) {
+        throw std::logic_error("another deferred HIP deallocation scope is active");
+    }
+    if (active_deferred_scope == this) active_deferred_scope = nullptr;
+#if MICROLLM_HAS_HIP
+    impl_->stream->synchronize();
+    set_device(impl_->device);
+    for (std::size_t index = 0; index < impl_->pending; ++index) {
+        auto& record = impl_->records[index];
+        const auto status = hipFree(record.pointer);
+        if (status != hipSuccess) {
+            if (impl_->failure == 0) impl_->failure = static_cast<int>(status);
+            continue;
+        }
+        counters(impl_->device).backend_deallocation_calls.fetch_add(1);
+        counters(impl_->device).reserved_bytes.fetch_sub(record.bytes);
+        record.pointer = nullptr;
+    }
+    impl_->pending = 0;
+    impl_->pending_bytes = 0;
+    impl_->is_finished = true;
+    if (impl_->failure != 0) {
+        check_hip(static_cast<hipError_t>(impl_->failure),
+                  "deferred HIP deallocation release");
+    }
+#else
+    throw std::runtime_error("microLLM was built without deferred HIP deallocation");
 #endif
 }
 

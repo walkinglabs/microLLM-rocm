@@ -224,6 +224,18 @@ This runner covers the Qwen/DeepSeek T512 projection shapes and keeps output add
 Experiment 174 retains the conformance/API but rejects repeated vendor-only Graph replay as an
 end-to-end optimization.
 
+Deferred-lifetime crossover:
+
+```bash
+python3 benchmarks/single_gpu/deferred_deallocation_matrix.py \
+  --binary build/hip-release/benchmarks/microllm_bench_deferred_deallocation \
+  --output-directory /tmp/microllm-deferred-release
+```
+
+The safe control synchronizes before each temporary can be freed. The candidate synchronizes once
+per explicit lifetime region and reports pending physical bytes. This is not comparable to an
+unsafe no-sync chain.
+
 ## What remains
 
 There is no Python `@profile` decorator yet. The current stable entry points are the

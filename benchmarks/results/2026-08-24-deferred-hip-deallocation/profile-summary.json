@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "workload": "32 add nodes, 4096 elements, zero warm-up, 10 repetitions",
+  "policies": {
+    "immediate_sync": {
+      "kernel_calls": 323,
+      "kernel_duration_ns": 702846,
+      "total_hip_api_calls": 2901,
+      "stream_synchronize_calls": 320,
+      "stream_synchronize_duration_ns": 3259877,
+      "hip_malloc_calls": 322,
+      "hip_free_calls": 322,
+      "kernel_launch_calls": 320
+    },
+    "deferred": {
+      "kernel_calls": 323,
+      "kernel_duration_ns": 832749,
+      "total_hip_api_calls": 2291,
+      "stream_synchronize_calls": 10,
+      "stream_synchronize_duration_ns": 131140,
+      "hip_malloc_calls": 322,
+      "hip_free_calls": 322,
+      "kernel_launch_calls": 320
+    }
+  },
+  "delta": {
+    "kernel_calls": 0,
+    "stream_synchronize_calls_saved": 310,
+    "stream_synchronize_duration_ns_saved": 3128737,
+    "hip_api_calls_saved": 610,
+    "hip_malloc_calls_saved": 0,
+    "hip_free_calls_saved": 0
+  },
+  "interpretation": "Deferred release preserves the same allocations, frees and Kernel work. It replaces one safety synchronization per temporary with one synchronization per chain."
+}

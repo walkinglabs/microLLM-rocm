@@ -7663,6 +7663,53 @@ def validate_scoped_model_stream_discard(
     return len(repetitions), max(maxima, default=0), max(rms, default=0)
 
 
+def validate_deferred_hip_deallocation(
+        errors: list[str]) -> tuple[int, int, float, float, int]:
+    data = REPOSITORY / "benchmarks/results/2026-08-24-deferred-hip-deallocation"
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    matrix = [json.loads(line) for line in (data / "matrix.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = summary.get("comparisons", [])
+    profile = json.loads((data / "profile-summary.json").read_text(
+        encoding="utf-8"))
+    speedups = [float(row.get("wall_speedup", 0)) for row in comparisons]
+    deferred_bytes = [
+        int(row.get("policies", {}).get("deferred", {}).get("deferred_bytes", -1))
+        for row in comparisons]
+    immediate = profile.get("policies", {}).get("immediate_sync", {})
+    deferred = profile.get("policies", {}).get("deferred", {})
+    if verification.get("status") != "pass" or \
+            verification.get("tests", {}).get("hip_full_configuration", {}).get("total") != 428 or \
+            summary.get("status") != "pass" or \
+            summary.get("decision") != "keep explicit deferred HIP deallocation scope" or \
+            len(matrix) != 36 or len(comparisons) != 6 or \
+            min(speedups, default=0) < 2.28 or max(speedups, default=0) < 2.73 or \
+            max(deferred_bytes, default=0) != 2080768 or \
+            any(row.get("maximum_absolute_error") != 0 or
+                row.get("host_to_device_calls") != 0 or
+                row.get("device_to_host_calls") != 0 or
+                row.get("device_to_device_calls") != 0 for row in matrix) or \
+            immediate.get("kernel_calls") != deferred.get("kernel_calls") or \
+            immediate.get("stream_synchronize_calls") != 320 or \
+            deferred.get("stream_synchronize_calls") != 10 or \
+            immediate.get("hip_malloc_calls") != deferred.get("hip_malloc_calls") or \
+            immediate.get("hip_free_calls") != deferred.get("hip_free_calls"):
+        errors.append("deferred HIP deallocation evidence changed")
+    header = (REPOSITORY / "include/microllm/runtime/runtime.h").read_text(
+        encoding="utf-8")
+    source = (REPOSITORY / "src/runtime/runtime.cpp").read_text(encoding="utf-8")
+    tests = (REPOSITORY / "tests/runtime/runtime_test.cpp").read_text(encoding="utf-8")
+    if "class DeferredHipDeallocationScope" not in header or \
+            "active_deferred_scope" not in source or \
+            "KeepsTemporaryChainAliveUntilOneStreamSync" not in tests or \
+            "CapacityOverflowFlushesSafelyAndContinues" not in tests:
+        errors.append("deferred HIP deallocation source/test contract changed")
+    return len(matrix), len(comparisons), min(speedups, default=0.0), \
+        max(speedups, default=0.0), max(deferred_bytes, default=0)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -7816,7 +7863,8 @@ def validate_assets(errors: list[str]) -> None:
                  "unique-gradient-inplace-add-discard.svg",
                  "hip-graph-submission-crossover.svg",
                  "hip-graph-gemm-discard.svg",
-                 "scoped-model-stream-discard.svg"):
+                 "scoped-model-stream-discard.svg",
+                 "deferred-hip-deallocation.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -8102,6 +8150,8 @@ def main() -> int:
         validate_hip_graph_gemm_discard(errors)
     scoped_stream_runs, scoped_stream_max, scoped_stream_rms = \
         validate_scoped_model_stream_discard(errors)
+    deferred_rows, deferred_cases, deferred_minimum, deferred_maximum, \
+        deferred_max_bytes = validate_deferred_hip_deallocation(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -8333,6 +8383,9 @@ def main() -> int:
           f"{graph_gemm_qwen:.3f}/{graph_gemm_deep:.3f} "
           f"scoped_stream={scoped_stream_runs}/{scoped_stream_max:.3f}/"
           f"{scoped_stream_rms:.3f} "
+          f"deferred_release={deferred_rows}/{deferred_cases}/"
+          f"{deferred_minimum:.3f}/{deferred_maximum:.3f}/"
+          f"{deferred_max_bytes} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

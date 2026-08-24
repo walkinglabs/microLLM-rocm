@@ -106,6 +106,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.HipGraphGemmMatrixContract PROPERTIES
         LABELS "cpu;benchmark;graph;matmul;schema")
     add_test(
+        NAME Benchmark.DeferredDeallocationMatrixContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_deferred_deallocation_matrix.py
+    )
+    set_tests_properties(Benchmark.DeferredDeallocationMatrixContract PROPERTIES
+        LABELS "cpu;benchmark;lifetime;memory;schema")
+    add_test(
         NAME Coverage.OperatorAndTestFiles
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/audit_test_coverage.py
     )

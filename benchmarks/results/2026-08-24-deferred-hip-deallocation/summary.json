@@ -1,0 +1,152 @@
+{
+  "aggregation": "median of fresh processes with alternating mode order",
+  "comparisons": [
+    {
+      "deferred_contract_exact": true,
+      "elements": 1,
+      "nodes": 8,
+      "policies": {
+        "deferred": {
+          "deferred_blocks": 7.0,
+          "deferred_bytes": 28.0,
+          "overflow_flushes": 0.0,
+          "wall_median_ms": 0.045962,
+          "wall_p95_ms": 0.06674145
+        },
+        "immediate_sync": {
+          "deferred_blocks": 0.0,
+          "deferred_bytes": 0.0,
+          "overflow_flushes": 0.0,
+          "wall_median_ms": 0.1049415,
+          "wall_p95_ms": 0.1131402
+        }
+      },
+      "wall_speedup": 2.2832230973412817
+    },
+    {
+      "deferred_contract_exact": true,
+      "elements": 1,
+      "nodes": 32,
+      "policies": {
+        "deferred": {
+          "deferred_blocks": 31.0,
+          "deferred_bytes": 124.0,
+          "overflow_flushes": 0.0,
+          "wall_median_ms": 0.16173,
+          "wall_p95_ms": 0.180601
+        },
+        "immediate_sync": {
+          "deferred_blocks": 0.0,
+          "deferred_bytes": 0.0,
+          "overflow_flushes": 0.0,
+          "wall_median_ms": 0.435401,
+          "wall_p95_ms": 0.45121685
+        }
+      },
+      "wall_speedup": 2.692147406170778
+    },
+    {
+      "deferred_contract_exact": true,
+      "elements": 1,
+      "nodes": 128,
+      "policies": {
+        "deferred": {
+          "deferred_blocks": 127.0,
+          "deferred_bytes": 508.0,
+          "overflow_flushes": 0.0,
+          "wall_median_ms": 0.6912265,
+          "wall_p95_ms": 0.73768395
+        },
+        "immediate_sync": {
+          "deferred_blocks": 0.0,
+          "deferred_bytes": 0.0,
+          "overflow_flushes": 0.0,
+          "wall_median_ms": 1.680367,
+          "wall_p95_ms": 1.70201495
+        }
+      },
+      "wall_speedup": 2.4309933140584166
+    },
+    {
+      "deferred_contract_exact": true,
+      "elements": 4096,
+      "nodes": 8,
+      "policies": {
+        "deferred": {
+          "deferred_blocks": 7.0,
+          "deferred_bytes": 114688.0,
+          "overflow_flushes": 0.0,
+          "wall_median_ms": 0.045469,
+          "wall_p95_ms": 0.05075
+        },
+        "immediate_sync": {
+          "deferred_blocks": 0.0,
+          "deferred_bytes": 0.0,
+          "overflow_flushes": 0.0,
+          "wall_median_ms": 0.1060315,
+          "wall_p95_ms": 0.11106215
+        }
+      },
+      "wall_speedup": 2.3319514394422574
+    },
+    {
+      "deferred_contract_exact": true,
+      "elements": 4096,
+      "nodes": 32,
+      "policies": {
+        "deferred": {
+          "deferred_blocks": 31.0,
+          "deferred_bytes": 507904.0,
+          "overflow_flushes": 0.0,
+          "wall_median_ms": 0.1618245,
+          "wall_p95_ms": 0.1742257
+        },
+        "immediate_sync": {
+          "deferred_blocks": 0.0,
+          "deferred_bytes": 0.0,
+          "overflow_flushes": 0.0,
+          "wall_median_ms": 0.4311605,
+          "wall_p95_ms": 0.4371237
+        }
+      },
+      "wall_speedup": 2.6643709697851685
+    },
+    {
+      "deferred_contract_exact": true,
+      "elements": 4096,
+      "nodes": 128,
+      "policies": {
+        "deferred": {
+          "deferred_blocks": 127.0,
+          "deferred_bytes": 2080768.0,
+          "overflow_flushes": 0.0,
+          "wall_median_ms": 0.633238,
+          "wall_p95_ms": 0.67184545
+        },
+        "immediate_sync": {
+          "deferred_blocks": 0.0,
+          "deferred_bytes": 0.0,
+          "overflow_flushes": 0.0,
+          "wall_median_ms": 1.7345715,
+          "wall_p95_ms": 1.7640029
+        }
+      },
+      "wall_speedup": 2.7392094283665855
+    }
+  ],
+  "decision": "keep explicit deferred HIP deallocation scope",
+  "gate_results": {
+    "deferred_count_and_bytes": true,
+    "exact_and_transfer_free": true,
+    "wall_speedup": true
+  },
+  "keep_gate": {
+    "deferred_blocks_and_bytes": "exact temporary chain lifetime",
+    "maximum_absolute_error": 0.0,
+    "timed_payload_transfers": 0,
+    "wall_speedup_minimum": 1.2
+  },
+  "runs_per_case_mode": 3,
+  "schema_version": 1,
+  "status": "pass"
+}

@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "decision": "keep explicit deferred HIP deallocation scope",
+  "tests": {
+    "cpu_debug": {"passed": 279, "total": 279},
+    "cpu_asan_ubsan": {"passed": 277, "total": 277},
+    "pytorch_enabled_cpu": {"passed": 253, "total": 253},
+    "hip_full_configuration": {
+      "passed": 428,
+      "total": 428,
+      "expected_environment_skips": 3
+    },
+    "hip_label": {"passed": 142, "total": 142},
+    "installed_package_consumer": "pass",
+    "coverage_manifest": "pass",
+    "optimization_log_validator": "pass",
+    "svg_xml": "pass"
+  },
+  "coverage": {
+    "lines_percent": 80.4,
+    "functions_percent": 89.3,
+    "branches_percent": 61.4
+  },
+  "matrix": {
+    "fresh_processes": 36,
+    "exact_transfer_free_processes": 36,
+    "minimum_wall_speedup": 2.2832230973412817,
+    "maximum_wall_speedup": 2.7392094283665855,
+    "maximum_deferred_blocks": 127,
+    "maximum_deferred_bytes": 2080768
+  },
+  "profile": {
+    "immediate_sync_calls": 320,
+    "deferred_sync_calls": 10,
+    "immediate_kernel_calls": 323,
+    "deferred_kernel_calls": 323,
+    "immediate_malloc_free_calls": "322/322",
+    "deferred_malloc_free_calls": "322/322"
+  }
+}

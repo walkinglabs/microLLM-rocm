@@ -62,6 +62,17 @@ non-default-Stream consumers complete. The scoped API is removed; synchronizing 
 is rejected. Deferred release or a planned activation arena must precede any model-wide Stream
 or Graph retry.
 
+## Experiment 176 lifetime primitive
+
+A fixed-capacity, non-nestable deferred-release scope now queues destroyed raw HIP allocations
+until one explicit Stream synchronization. The 8/32/128-node × 1/4096-element matrix is exact and
+improves every safe-control row by 2.28×–2.74×. Profiler reduces synchronization 320→10 while
+leaving allocations, frees and Kernels unchanged.
+
+The cost is explicit: the largest row retains 127 blocks / 2,080,768 bytes. This primitive does
+not route model operators. Experiment 175 may only be retried by combining the two contracts and
+reporting complete logits, time and pending bytes.
+
 ## Final matrix
 
 - FP32 fixed matrix and running-best curve;

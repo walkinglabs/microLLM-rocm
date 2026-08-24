@@ -124,6 +124,9 @@ needed to run a real training and generation loop:
 - a scoped model-Stream prototype is fully removed after three complete-logit failures
   (worst Max/RMS `3.846/0.931`): routing asynchronous Kernels without extending temporary
   Storage lifetime is unsafe, so deferred release or an activation arena is now prerequisite;
+- an explicit fixed-capacity deferred HIP release scope retains destroyed temporary allocations
+  until one Stream completion; exact chains improve `2.28×–2.74×` versus per-temporary safe
+  synchronization while separately reporting up to 127 blocks / 2,080,768 pending bytes;
 - a phase-independent exact-size HIP pool with immediate legacy-default-Stream reuse and strict
   permanent disablement for non-default Streams;
 - a cross-framework trace runner for operator/layer values and latency comparisons.
@@ -439,15 +442,15 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 420/420 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
-| CPU Debug | 277/277 | host code, CLI, model/graph, benchmark, package and evidence schemas |
-| ASan/UBSan CPU | 275/275 | host lifetime, undefined-behavior and ordinary CPU gates |
-| MI300X/gfx942 HIP label | 138/138 | allocator/Stream/Graph, matmul, autotune, BF16/FP8, model and package gates |
-| PyTorch-enabled CPU build | 251/251 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
+| Full CPU/HIP configuration | 428/428 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
+| CPU Debug | 279/279 | host code, CLI, model/graph, benchmark, package and evidence schemas |
+| ASan/UBSan CPU | 277/277 | host lifetime, undefined-behavior and ordinary CPU gates |
+| MI300X/gfx942 HIP label | 142/142 | allocator/lifetime/Stream/Graph, matmul, BF16/FP8, model and package gates |
+| PyTorch-enabled CPU build | 253/253 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
-| Registered test files | 57 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| Registered test files | 58 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | Installed CMake package | CPU + HIP + RCCL pass | relocated prefix, external `find_package`, components, compile, static link and run |
-| CPU source coverage | 80.7% lines / 90.3% functions / 61.6% branches | 7,776/9,639 lines; GCC 13.3 + gcovr 8.3 |
+| CPU source coverage | 80.4% lines / 89.3% functions / 61.4% branches | 7,782/9,678 lines; GCC 13.3 + gcovr 8.3 |
 
 Latest PyTorch-reference maximum absolute differences:
 

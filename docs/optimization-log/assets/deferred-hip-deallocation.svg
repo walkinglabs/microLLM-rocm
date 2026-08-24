@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="920" viewBox="0 0 1800 920">
+  <rect width="1800" height="920" fill="#f8fafc"/>
+  <text x="900" y="52" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 176 · Deferred HIP Deallocation · Lifetime First</text>
+  <text x="900" y="84" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle">MI300X · explicit non-default Stream · exact temporary-chain ownership</text>
+
+  <rect x="55" y="125" width="910" height="650" rx="14" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="510" y="168" font-family="Inter,Arial,sans-serif" font-size="21" fill="#172033" text-anchor="middle" font-weight="700">One sync per chain beats one sync per temporary</text>
+  <g font-family="Inter,Arial,sans-serif">
+    <text x="140" y="245" font-size="17" fill="#334155" font-weight="700">8 nodes</text>
+    <rect x="270" y="218" width="228" height="40" rx="6" fill="#2563eb"/><text x="510" y="245" font-size="16" fill="#1e3a8a" font-weight="700">2.28× / 2.33×</text>
+    <text x="140" y="350" font-size="17" fill="#334155" font-weight="700">32 nodes</text>
+    <rect x="270" y="323" width="269" height="40" rx="6" fill="#2563eb"/><text x="551" y="350" font-size="16" fill="#1e3a8a" font-weight="700">2.69× / 2.66×</text>
+    <text x="140" y="455" font-size="17" fill="#334155" font-weight="700">128 nodes</text>
+    <rect x="270" y="428" width="274" height="40" rx="6" fill="#2563eb"/><text x="556" y="455" font-size="16" fill="#1e3a8a" font-weight="700">2.43× / 2.74×</text>
+    <text x="510" y="515" font-size="14" fill="#64748b" text-anchor="middle">labels: 1 element / 4,096 elements · wall median speedup</text>
+  </g>
+  <rect x="120" y="570" width="780" height="135" rx="10" fill="#fff7ed" stroke="#fdba74"/>
+  <text x="510" y="610" font-family="Inter,Arial,sans-serif" font-size="18" fill="#9a3412" text-anchor="middle" font-weight="700">Memory is delayed, not deleted</text>
+  <text x="510" y="650" font-family="Inter,Arial,sans-serif" font-size="25" fill="#9a3412" text-anchor="middle" font-weight="700">largest row: 127 blocks · 2,080,768 bytes</text>
+  <text x="510" y="683" font-family="Inter,Arial,sans-serif" font-size="14" fill="#334155" text-anchor="middle">pending bytes reported separately from logical engine peak</text>
+
+  <rect x="1015" y="125" width="730" height="650" rx="14" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="1380" y="168" font-family="Inter,Arial,sans-serif" font-size="21" fill="#172033" text-anchor="middle" font-weight="700">32×4096 profiler attribution</text>
+  <rect x="1085" y="225" width="590" height="105" rx="10" fill="#fee2e2" stroke="#f87171"/>
+  <text x="1380" y="265" font-family="Inter,Arial,sans-serif" font-size="17" fill="#991b1b" text-anchor="middle" font-weight="700">Immediate safe release</text>
+  <text x="1380" y="302" font-family="Inter,Arial,sans-serif" font-size="29" fill="#991b1b" text-anchor="middle" font-weight="700">320 Stream synchronizations</text>
+  <rect x="1085" y="380" width="590" height="105" rx="10" fill="#ecfdf5" stroke="#34d399"/>
+  <text x="1380" y="420" font-family="Inter,Arial,sans-serif" font-size="17" fill="#065f46" text-anchor="middle" font-weight="700">Deferred region release</text>
+  <text x="1380" y="457" font-family="Inter,Arial,sans-serif" font-size="29" fill="#047857" text-anchor="middle" font-weight="700">10 Stream synchronizations</text>
+  <rect x="1085" y="540" width="590" height="140" rx="10" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text x="1380" y="580" font-family="Inter,Arial,sans-serif" font-size="17" fill="#334155" text-anchor="middle" font-weight="700">Work is unchanged</text>
+  <text x="1380" y="620" font-family="Inter,Arial,sans-serif" font-size="16" fill="#334155" text-anchor="middle">323 Kernels · 322 malloc · 322 free</text>
+  <text x="1380" y="653" font-family="Inter,Arial,sans-serif" font-size="14" fill="#64748b" text-anchor="middle">lifetime scope removes synchronization, not computation</text>
+
+  <rect x="55" y="825" width="1690" height="66" rx="12" fill="#172033"/>
+  <text x="900" y="854" font-family="Inter,Arial,sans-serif" font-size="18" fill="#ffffff" text-anchor="middle" font-weight="700">Keep explicit deferred release; model Stream correctness is the next gate</text>
+  <text x="900" y="879" font-family="Inter,Arial,sans-serif" font-size="14" fill="#cbd5e1" text-anchor="middle">No global allocator mode · no hidden pending-memory claim · no Graph claim yet</text>
+</svg>

@@ -142,6 +142,12 @@ caller-owned tests but changes complete tiny-model logits by Max 1.412–3.846 a
 embedding launch with a prior-capture error. The API is removed. The Graph track is blocked on a
 new ownership mechanism—deferred release or an activation arena—not another context wrapper.
 
+Experiment 176 supplies that ownership mechanism at the explicit-Stream level. Exact temporary
+chains improve 2.28×–2.74× versus synchronizing before every safe free; Stream synchronizations
+fall 320→10 with unchanged work. It retains up to 2.08 MB in the measured matrix, so model reuse
+must pass both correctness and pending-memory gates. The primitive reopens one model-Stream retry,
+not arbitrary Graph capture.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

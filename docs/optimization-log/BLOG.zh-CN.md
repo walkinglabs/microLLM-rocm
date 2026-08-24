@@ -2934,3 +2934,24 @@ package暴露和正向测试全部移除，只保留失败证据。下一步必�
 让Storage活到Stream真正用完，再谈model-wide Stream/Graph。
 
 ![Scoped model Stream discarded](assets/scoped-model-stream-discard.svg)
+
+## 193. Experiment 176：货架先不拆，等整条车道跑完
+
+上一步说明临时Storage死得太早。最粗暴的正确办法是每产生一个新Tensor就同步一次，确认旧Tensor
+没人再读才释放；正确，但32个节点就同步32次。
+
+新scope只管lifetime，不偷偷改Stream。调用者仍显式传`OpContext.stream`；同一线程、同一设备上
+被析构的raw allocation进入固定容量表，region结束只同步一次，再统一free。析构路径不动态申请内存，
+scope不能嵌套；容量用完会安全同步、flush后继续。
+
+36个MI300X进程全部精确、零payload传输。8/32/128节点在1元素下是2.28×/2.69×/2.43×，
+4096元素下是2.33×/2.66×/2.74×。profile中32×10的Kernel仍323、malloc/free仍322/322，
+Stream synchronize从320降到10。
+
+它不是免费午餐：128×4096会暂留127块、2,080,768字节。逻辑Tensor已经析构，所以旧
+`engine_peak_bytes`看不到这些物理驻留；我们单独报告pending bytes，不能藏起来。
+
+原语keep，但还不是model或Graph优化。下一步才允许把它和显式model Stream路由放在一起，复测
+Experiment 175的完整logits；即便正确，也必须同时报告速度与pending memory。
+
+![Deferred HIP deallocation](assets/deferred-hip-deallocation.svg)

@@ -110,6 +110,36 @@ private:
     std::unique_ptr<Impl> impl_;
 };
 
+// Defers HIP frees produced by the current thread until one explicit Stream
+// has completed. This extends raw allocation lifetime; it does not route
+// operator work to the Stream and it is intentionally non-nestable.
+class DeferredHipDeallocationScope {
+public:
+    explicit DeferredHipDeallocationScope(
+        const Stream& stream, std::size_t maximum_blocks = 8192);
+    ~DeferredHipDeallocationScope();
+    DeferredHipDeallocationScope(const DeferredHipDeallocationScope&) = delete;
+    DeferredHipDeallocationScope& operator=(const DeferredHipDeallocationScope&) = delete;
+    DeferredHipDeallocationScope(DeferredHipDeallocationScope&&) = delete;
+    DeferredHipDeallocationScope& operator=(DeferredHipDeallocationScope&&) = delete;
+
+    [[nodiscard]] Device device() const noexcept;
+    [[nodiscard]] bool finished() const noexcept;
+    [[nodiscard]] std::size_t pending_blocks() const noexcept;
+    [[nodiscard]] std::size_t pending_bytes() const noexcept;
+    [[nodiscard]] std::size_t total_deferred_blocks() const noexcept;
+    [[nodiscard]] std::size_t total_deferred_bytes() const noexcept;
+    [[nodiscard]] std::size_t overflow_flushes() const noexcept;
+    void finish();
+
+private:
+    friend void deallocate(void* pointer, Device device,
+                           std::size_t num_bytes) noexcept;
+    void defer(void* pointer, std::size_t num_bytes) noexcept;
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
+};
+
 class Event {
 public:
     explicit Event(Device device = Device::cpu(), bool enable_timing = true);
