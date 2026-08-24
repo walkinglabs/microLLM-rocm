@@ -34,7 +34,7 @@ def main() -> int:
         fake.write_text(
             """#!/usr/bin/env python3
 import array,json,pathlib,sys
-a=dict(zip(sys.argv[1::2],sys.argv[2::2]));arena=a['--bf16-ffn-arena']=='true';qkv=a.get('--bf16-qkv-arena','false')=='true';batch=int(a['--batch']);tokens=len(a['--tokens'].split(','));rows=tokens*batch if a['--workload']=='prefill' else batch;minimum=int(a.get('--bf16-ffn-arena-minimum-rows','1'));qkv_minimum=int(a.get('--bf16-qkv-arena-minimum-rows','512'));eligible=arena and rows>=minimum;qkv_eligible=qkv and rows>=qkv_minimum;selected=qkv_eligible if '--bf16-qkv-arena' in a else eligible
+a=dict(zip(sys.argv[1::2],sys.argv[2::2]));arena=a['--bf16-ffn-arena']=='true';qkv=a.get('--bf16-qkv-arena','false')=='true';core=a.get('--attention-core-arena','false')=='true';batch=int(a['--batch']);tokens=len(a['--tokens'].split(','));rows=tokens*batch if a['--workload']=='prefill' else batch;minimum=int(a.get('--bf16-ffn-arena-minimum-rows','1'));qkv_minimum=int(a.get('--bf16-qkv-arena-minimum-rows','512'));core_minimum=int(a.get('--attention-core-arena-minimum-sequence','512'));eligible=arena and rows>=minimum;qkv_eligible=qkv and rows>=qkv_minimum;core_eligible=core and a['--workload']=='prefill' and tokens>=core_minimum;selected=core_eligible if '--attention-core-arena' in a else (qkv_eligible if '--bf16-qkv-arena' in a else eligible)
 pathlib.Path(a['--logits-output']).write_bytes(array.array('f',[1.0,2.0]).tobytes())
 print(json.dumps({'status':'pass','bf16_ffn_arena_enabled':arena,
 'generated_tokens':[3,4] if int(a['--new-tokens']) else [],
@@ -48,7 +48,11 @@ print(json.dumps({'status':'pass','bf16_ffn_arena_enabled':arena,
 'bf16_qkv_arena_enabled':qkv,'bf16_qkv_arena_capacity_bytes':256 if qkv_eligible else 0,
 'bf16_qkv_arena_entries':1 if qkv_eligible else 0,'bf16_qkv_arena_hits':9 if qkv_eligible else 0,
 'bf16_qkv_arena_misses':1 if qkv_eligible else 0,'bf16_qkv_arena_eligible_calls':10 if qkv_eligible else 0,
-'bf16_qkv_arena_bypassed_calls':0 if qkv_eligible else (10 if qkv else 0)}))
+'bf16_qkv_arena_bypassed_calls':0 if qkv_eligible else (10 if qkv else 0),
+'attention_core_arena_enabled':core,'attention_core_arena_capacity_bytes':256 if core_eligible else 0,
+'attention_core_arena_entries':1 if core_eligible else 0,'attention_core_arena_hits':9 if core_eligible else 0,
+'attention_core_arena_misses':1 if core_eligible else 0,'attention_core_arena_eligible_calls':10 if core_eligible else 0,
+'attention_core_arena_bypassed_calls':0 if core_eligible else (10 if core and a['--workload']=='prefill' else 0)}))
 """, encoding="utf-8")
         os.chmod(fake, 0o755)
         output = root / "output"
@@ -99,6 +103,24 @@ print(json.dumps({'status':'pass','bf16_ffn_arena_enabled':arena,
         assert qkv_summary["keep_rows"] == 2
         assert qkv_summary["decision"] == \
             "keep rows>=512 selective QKV Arena"
+        core_output = root / "core"
+        completed = subprocess.run([
+            sys.executable, str(RUNNER), "--manifest", str(manifest),
+            "--binary", str(fake), "--output-directory", str(core_output),
+            "--runs", "1", "--warmup", "0", "--steps", "1",
+            "--arena-minimum-rows", "512", "--comparison-mode", "core"],
+            text=True, capture_output=True, check=False)
+        if completed.returncode != 0:
+            raise AssertionError(completed.stdout + completed.stderr)
+        core_summary = json.loads(
+            (core_output / "summary.json").read_text(encoding="utf-8"))
+        assert core_summary["record_type"] == \
+            "attention_core_arena_model_summary"
+        assert core_summary["eligible_rows"] == 2
+        assert core_summary["bypassed_rows"] == 8
+        assert core_summary["keep_rows"] == 2
+        assert core_summary["decision"] == \
+            "keep rows>=512 selective Attention core Arena"
     print("BF16 FFN Arena model runner contract: pass")
     return 0
 

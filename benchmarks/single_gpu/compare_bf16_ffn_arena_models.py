@@ -31,7 +31,7 @@ def options() -> argparse.Namespace:
     parser.add_argument("--warmup", type=int, default=2)
     parser.add_argument("--steps", type=int, default=5)
     parser.add_argument("--arena-minimum-rows", type=int, default=1)
-    parser.add_argument("--comparison-mode", choices=("ffn", "qkv"),
+    parser.add_argument("--comparison-mode", choices=("ffn", "qkv", "core"),
                         default="ffn")
     result = parser.parse_args()
     if (result.runs <= 0 or result.warmup < 0 or result.steps <= 0 or
@@ -92,7 +92,7 @@ def command_for(args: argparse.Namespace, model: dict, case: tuple,
     inference = model["inference"]
     tokens = (repeated_tokens(inference["token_ids"], context)
               if workload == "prefill" else inference["token_ids"])
-    use_ffn_arena = policy == "arena" or args.comparison_mode == "qkv"
+    use_ffn_arena = policy == "arena" or args.comparison_mode in ("qkv", "core")
     command = [
         str(args.binary), "--config", model["config"],
         "--weights", model["weights"],
@@ -114,6 +114,16 @@ def command_for(args: argparse.Namespace, model: dict, case: tuple,
         if policy == "arena":
             command.extend([
                 "--bf16-qkv-arena-minimum-rows",
+                str(args.arena_minimum_rows),
+            ])
+    if args.comparison_mode == "core":
+        command.extend([
+            "--attention-core-arena",
+            "true" if policy == "arena" else "false",
+        ])
+        if policy == "arena":
+            command.extend([
+                "--attention-core-arena-minimum-sequence",
                 str(args.arena_minimum_rows),
             ])
     if workload == "prefill":
@@ -173,9 +183,11 @@ def main() -> int:
                         record = last_json(completed.stdout)
                         if record.get("status") != "pass":
                             raise RuntimeError(f"invalid result for {stem}")
-                        arena_field = ("bf16_ffn_arena_enabled"
-                                       if args.comparison_mode == "ffn"
-                                       else "bf16_qkv_arena_enabled")
+                        arena_field = {
+                            "ffn": "bf16_ffn_arena_enabled",
+                            "qkv": "bf16_qkv_arena_enabled",
+                            "core": "attention_core_arena_enabled",
+                        }[args.comparison_mode]
                         if policy == "arena" and not record.get(arena_field):
                             raise RuntimeError(f"Arena did not activate for {stem}")
                         if policy == "baseline" and record.get(arena_field):
@@ -187,7 +199,9 @@ def main() -> int:
                             "record_type": (
                                 "bf16_ffn_arena_model_measurement"
                                 if args.comparison_mode == "ffn" else
-                                "bf16_qkv_arena_model_measurement"),
+                                "bf16_qkv_arena_model_measurement"
+                                if args.comparison_mode == "qkv" else
+                                "attention_core_arena_model_measurement"),
                             "model": model["name"],
                             "revision": model["revision"],
                             "case": case_name,
@@ -207,8 +221,11 @@ def main() -> int:
                             read_floats(logits_path)
 
     comparisons: list[dict] = []
-    arena_prefix = ("bf16_ffn_arena" if args.comparison_mode == "ffn"
-                    else "bf16_qkv_arena")
+    arena_prefix = {
+        "ffn": "bf16_ffn_arena",
+        "qkv": "bf16_qkv_arena",
+        "core": "attention_core_arena",
+    }[args.comparison_mode]
     for model in models:
         for case in CASES:
             case_name, kind, _, batch = case
@@ -267,7 +284,10 @@ def main() -> int:
                 if row["flattened_rows"] >= args.arena_minimum_rows]
     bypassed = [row for row in comparisons
                 if row["flattened_rows"] < args.arena_minimum_rows]
-    arena_name = "model Arena" if args.comparison_mode == "ffn" else "QKV Arena"
+    arena_name = {
+        "ffn": "model Arena", "qkv": "QKV Arena",
+        "core": "Attention core Arena",
+    }[args.comparison_mode]
     if args.arena_minimum_rows == 1:
         decision = ("keep universal model Arena" if regressions == 0 and
                     keep_rows == len(comparisons) else
@@ -276,6 +296,11 @@ def main() -> int:
             decision = ("keep universal QKV Arena" if regressions == 0 and
                         keep_rows == len(comparisons) else
                         "reject universal QKV Arena; inspect shape selection")
+        elif args.comparison_mode == "core":
+            decision = (
+                "keep universal Attention core Arena"
+                if regressions == 0 and keep_rows == len(comparisons)
+                else "reject universal Attention core Arena; inspect shape selection")
     else:
         decision = (
             f"keep rows>={args.arena_minimum_rows} selective {arena_name}"
@@ -288,7 +313,9 @@ def main() -> int:
         "status": "pass" if correctness else "fail",
         "record_type": ("bf16_ffn_arena_model_summary"
                         if args.comparison_mode == "ffn" else
-                        "bf16_qkv_arena_model_summary"),
+                        "bf16_qkv_arena_model_summary"
+                        if args.comparison_mode == "qkv" else
+                        "attention_core_arena_model_summary"),
         "comparison_mode": args.comparison_mode,
         "raw_processes": len(records),
         "correctness_gate": correctness,

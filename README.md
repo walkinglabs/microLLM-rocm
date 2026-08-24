@@ -157,6 +157,9 @@ needed to run a real training and generation loop:
 - opt-in allocation source×exact-size diagnostics provide that attribution with disabled-path no-op
   tags; three fresh processes per model identify `attention.core` as 572.5/792.7 MB and
   53.0%/43.6% of Qwen/DeepSeek T512 logical allocation bytes;
+- exact Attention core liveness then removes 600/700 model allocations with caller-owned scaled Q,
+  reused K/V, probabilities and output, but T512 reaches only `1.004×/1.002×` and peak rises;
+  model routing is rejected and the persistent-Storage track is closed in favor of device math;
 - a phase-independent exact-size HIP pool with immediate legacy-default-Stream reuse and strict
   permanent disablement for non-default Streams;
 - a cross-framework trace runner for operator/layer values and latency comparisons.

@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "workload": "Qwen T512 B1 retained FFN-selective baseline versus Attention core Arena",
+  "modes": {
+    "baseline": {
+      "kernel_calls": 5642,
+      "kernel_duration_ns": 47669958,
+      "hip_malloc_calls": 1637,
+      "hip_free_calls": 1327,
+      "hip_launch_kernel_calls": 4000,
+      "hip_ext_launch_calls": 1519
+    },
+    "core": {
+      "kernel_calls": 5642,
+      "kernel_duration_ns": 46782784,
+      "hip_malloc_calls": 1395,
+      "hip_free_calls": 1087,
+      "hip_launch_kernel_calls": 4000,
+      "hip_ext_launch_calls": 1519
+    }
+  },
+  "inference": "score/probability and hidden buffers become stable, but unchanged device work leaves end-to-end throughput below the keep gate"
+}

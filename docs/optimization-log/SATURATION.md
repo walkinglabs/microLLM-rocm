@@ -206,6 +206,11 @@ Experiment 186 supplies that attribution. Qwen/DeepSeek T512 independently selec
 diagnostic distribution is identical across three processes per model. Allocation-source search is
 closed; only exact Attention core liveness/out work is justified next.
 
+Experiment 187 performs that exact liveness work. The largest source drops by 600/700 model
+allocation calls, yet T512 improves only 1.004×/1.002× and retained backing raises peak. Attention
+core Arena joins QKV as a rejected model policy. The persistent-Storage/liveness track is saturated;
+future Attention work must improve device computation or algorithms.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

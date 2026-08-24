@@ -398,3 +398,5 @@ the next gate. Records are append-only except for factual corrections.
   caller-owned QKV, allocation reduction and complete-model performance rejection.
 - [2026-08-24-allocation-source-attribution.md](2026-08-24-allocation-source-attribution.md):
   thread-local source×size diagnostics and deterministic T512 target selection.
+- [2026-08-24-attention-core-arena-discard.md](2026-08-24-attention-core-arena-discard.md):
+  exact core liveness, caller-owned Attention and model-level rejection.

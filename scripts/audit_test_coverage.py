@@ -86,6 +86,7 @@ expected_weight_model = {
     "qwen_style_weight_mapping",
     "set_bf16_ffn_arena_enabled",
     "set_bf16_qkv_arena_enabled",
+    "set_attention_core_arena_enabled",
 }
 if declared_weight_model != expected_weight_model:
     errors.append(

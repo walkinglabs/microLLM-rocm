@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstddef>
 #include <limits>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -2883,9 +2884,9 @@ Tensor causal_gqa_attention(const Tensor& query, const Tensor& key,
     validate_causal_gqa(query, key, value, repeats, scale);
     const auto batches = query.shape()[0];
     const auto heads = query.shape()[1];
-    const auto kv_heads = key.shape()[1];
+    [[maybe_unused]] const auto kv_heads = key.shape()[1];
     const auto sequence = query.shape()[2];
-    const auto width = query.shape()[3];
+    [[maybe_unused]] const auto width = query.shape()[3];
     if (query.device().is_hip()) {
         if (sequence > 4096 || width > 256) {
             return causal_gqa_attention_composed(
@@ -2951,6 +2952,111 @@ Tensor causal_gqa_attention(const Tensor& query, const Tensor& key,
         }
     }
     return from_values(std::move(output), query.shape());
+}
+
+void causal_gqa_attention_out_(
+    Tensor& output, CausalGqaAttentionWorkspace& workspace,
+    const Tensor& query, const Tensor& key, const Tensor& value,
+    std::int64_t repeats, float scale, const OpContext& context) {
+    validate_causal_gqa(query, key, value, repeats, scale);
+    const auto batches = query.shape()[0];
+    const auto heads = query.shape()[1];
+    [[maybe_unused]] const auto kv_heads = key.shape()[1];
+    const auto sequence = query.shape()[2];
+    [[maybe_unused]] const auto width = query.shape()[3];
+    const Shape probabilities_shape{batches, heads, sequence, sequence};
+    const auto valid = [&](const Tensor& tensor, const Shape& shape) {
+        return tensor.dtype() == DType::Float32 &&
+               tensor.device() == query.device() && tensor.shape() == shape &&
+               tensor.is_contiguous();
+    };
+    if (!valid(output, query.shape()) ||
+        !valid(workspace.scaled_query, query.shape()) ||
+        !valid(workspace.expanded_kv, query.shape()) ||
+        !valid(workspace.probabilities, probabilities_shape)) {
+        throw std::invalid_argument(
+            "causal_gqa_attention_out workspace/output mismatch");
+    }
+    const std::vector<const void*> writable{
+        output.data(), workspace.scaled_query.data(),
+        workspace.expanded_kv.data(), workspace.probabilities.data()};
+    const std::set<const void*> writable_set(writable.begin(), writable.end());
+    if (writable_set.size() != writable.size()) {
+        throw std::invalid_argument(
+            "causal_gqa_attention_out writable tensors must not alias");
+    }
+    for (const auto* readable : {query.data(), key.data(), value.data()}) {
+        if (writable_set.contains(readable)) {
+            throw std::invalid_argument(
+                "causal_gqa_attention_out workspace/output must not alias input");
+        }
+    }
+    if (query.device().is_cpu()) {
+        const auto reference = causal_gqa_attention(
+            query, key, value, repeats, scale, context);
+        runtime::copy_bytes(
+            output.data(), output.device(), reference.data(),
+            reference.device(),
+            static_cast<std::size_t>(output.numel()) * sizeof(float));
+        return;
+    }
+#if MICROLLM_HAS_HIP
+    if (sequence >= 256 && sequence <= 4096 && width <= 256 &&
+        hipblaslt_available()) {
+        hip::launch_scale_typed(
+            query.data(), workspace.scaled_query.data(), DType::Float32,
+            query.numel(), scale, context.native_stream(query.device()));
+        const Tensor* expanded_key = &key;
+        if (repeats != 1) {
+            hip::launch_repeat_interleave(
+                static_cast<const float*>(key.data()),
+                static_cast<float*>(workspace.expanded_kv.data()),
+                workspace.expanded_kv.numel(), kv_heads * repeats,
+                sequence * width, repeats,
+                context.native_stream(query.device()));
+            expanded_key = &workspace.expanded_kv;
+        }
+        matmul_out_(
+            workspace.probabilities, workspace.scaled_query, *expanded_key,
+            MatmulImplementation::HipBLASLt, false, true, context);
+        hip::launch_causal_softmax(
+            static_cast<const float*>(workspace.probabilities.data()),
+            static_cast<float*>(workspace.probabilities.data()),
+            workspace.probabilities.numel() / sequence, sequence,
+            context.native_stream(query.device()));
+        const Tensor* expanded_value = &value;
+        if (repeats != 1) {
+            // QK has already consumed expanded K on this Stream, so the same
+            // exact-shape slot can now hold expanded V for P×V.
+            hip::launch_repeat_interleave(
+                static_cast<const float*>(value.data()),
+                static_cast<float*>(workspace.expanded_kv.data()),
+                workspace.expanded_kv.numel(), kv_heads * repeats,
+                sequence * width, repeats,
+                context.native_stream(query.device()));
+            expanded_value = &workspace.expanded_kv;
+        }
+        matmul_out_(
+            output, workspace.probabilities, *expanded_value,
+            MatmulImplementation::HipBLASLt, false, false, context);
+        return;
+    }
+    if (sequence <= 4096 && width <= 256) {
+        hip::launch_causal_gqa_attention(
+            static_cast<const float*>(query.data()),
+            static_cast<const float*>(key.data()),
+            static_cast<const float*>(value.data()),
+            static_cast<float*>(output.data()), nullptr, batches, heads,
+            kv_heads, sequence, width, repeats, scale,
+            context.native_stream(query.device()));
+        return;
+    }
+#endif
+    const auto reference = causal_gqa_attention(
+        query, key, value, repeats, scale, context);
+    runtime::copy_bytes(
+        output.data(), output.device(), reference.data(), reference.device(),
+        static_cast<std::size_t>(output.numel()) * sizeof(float));
 }
 
 TensorPair causal_gqa_attention_saved(

@@ -733,6 +733,141 @@ private:
     std::uint64_t capacity_bytes_ = 0;
 };
 
+class AttentionCoreArenaCache {
+public:
+    struct Entry {
+        Entry(std::int64_t batches, std::int64_t heads,
+              std::int64_t sequence, std::int64_t width, Device device) {
+            const Shape hidden_shape{batches, heads, sequence, width};
+            const Shape probability_shape{batches, heads, sequence, sequence};
+            const auto hidden_bytes = tensor_bytes(hidden_shape);
+            const auto probability_bytes = tensor_bytes(probability_shape);
+            capacity = checked_add(
+                checked_add(aligned(hidden_bytes), aligned(hidden_bytes)),
+                checked_add(aligned(hidden_bytes),
+                            aligned(probability_bytes)));
+            backing = Storage(capacity, device);
+            std::size_t offset = 0;
+            const auto slice = [&](const Shape& shape) {
+                const auto bytes = tensor_bytes(shape);
+                offset = aligned(offset);
+                auto* pointer = static_cast<std::byte*>(backing.data()) + offset;
+                offset = checked_add(offset, bytes);
+                auto storage = Storage::from_external(pointer, bytes, device);
+                return Tensor::from_storage(
+                    std::move(storage), shape, contiguous_strides(shape), 0,
+                    DType::Float32);
+            };
+            workspace.scaled_query = slice(hidden_shape);
+            workspace.expanded_kv = slice(hidden_shape);
+            workspace.probabilities = slice(probability_shape);
+            output = slice(hidden_shape);
+            if (offset > capacity) {
+                throw std::logic_error(
+                    "Attention core Arena plan exceeded capacity");
+            }
+        }
+
+        Storage backing;
+        ops::CausalGqaAttentionWorkspace workspace;
+        Tensor output;
+        std::size_t capacity = 0;
+
+    private:
+        static std::size_t aligned(std::size_t bytes) {
+            if (bytes > std::numeric_limits<std::size_t>::max() - 255U) {
+                throw std::overflow_error(
+                    "Attention core Arena alignment overflows");
+            }
+            return (bytes + 255U) & ~std::size_t{255U};
+        }
+        static std::size_t checked_add(std::size_t left,
+                                       std::size_t right) {
+            if (right > std::numeric_limits<std::size_t>::max() - left) {
+                throw std::overflow_error(
+                    "Attention core Arena capacity overflows");
+            }
+            return left + right;
+        }
+        static std::size_t tensor_bytes(const Shape& shape) {
+            const auto elements = checked_numel(shape);
+            if (static_cast<std::uint64_t>(elements) >
+                std::numeric_limits<std::size_t>::max() / sizeof(float)) {
+                throw std::overflow_error(
+                    "Attention core Arena Tensor bytes overflow");
+            }
+            return static_cast<std::size_t>(elements) * sizeof(float);
+        }
+    };
+
+    Entry* acquire(std::int64_t batches, std::int64_t heads,
+                   std::int64_t kv_heads, std::int64_t sequence,
+                   std::int64_t width, Device device) {
+        if (sequence < minimum_sequence_) {
+            ++bypassed_calls_;
+            return nullptr;
+        }
+        ++eligible_calls_;
+        const auto key = std::tuple{
+            static_cast<int>(device.type()), device.index(), batches, heads,
+            kv_heads, sequence, width};
+        const auto found = entries_.find(key);
+        if (found != entries_.end()) {
+            ++hits_;
+            return found->second.get();
+        }
+        ++misses_;
+        auto entry = std::make_unique<Entry>(
+            batches, heads, sequence, width, device);
+        if (entry->capacity >
+            std::numeric_limits<std::uint64_t>::max() - capacity_bytes_) {
+            throw std::overflow_error(
+                "Attention core Arena aggregate capacity overflows");
+        }
+        capacity_bytes_ += entry->capacity;
+        auto* result = entry.get();
+        entries_.emplace(key, std::move(entry));
+        return result;
+    }
+
+    void clear() noexcept {
+        entries_.clear();
+        hits_ = 0;
+        misses_ = 0;
+        eligible_calls_ = 0;
+        bypassed_calls_ = 0;
+        capacity_bytes_ = 0;
+    }
+
+    void configure(std::int64_t minimum_sequence) {
+        if (minimum_sequence <= 0) {
+            throw std::invalid_argument(
+                "Attention core Arena minimum sequence must be positive");
+        }
+        clear();
+        minimum_sequence_ = minimum_sequence;
+    }
+
+    [[nodiscard]] AttentionCoreArenaStats stats() const noexcept {
+        return {.entries = entries_.size(), .hits = hits_,
+                .misses = misses_, .eligible_calls = eligible_calls_,
+                .bypassed_calls = bypassed_calls_,
+                .minimum_sequence = minimum_sequence_,
+                .capacity_bytes = capacity_bytes_};
+    }
+
+private:
+    using Key = std::tuple<int, int, std::int64_t, std::int64_t,
+                           std::int64_t, std::int64_t, std::int64_t>;
+    std::map<Key, std::unique_ptr<Entry>> entries_;
+    std::size_t hits_ = 0;
+    std::size_t misses_ = 0;
+    std::size_t eligible_calls_ = 0;
+    std::size_t bypassed_calls_ = 0;
+    std::int64_t minimum_sequence_ = 512;
+    std::uint64_t capacity_bytes_ = 0;
+};
+
 class Norm {
 public:
     explicit Norm(std::int64_t dimension, float epsilon,
@@ -932,7 +1067,7 @@ public:
         {
             runtime::ScopedAllocationSource allocation_source(
                 runtime::AllocationSource::AttentionCore);
-            context = ops::causal_gqa_attention(
+            context = causal_attention(
                           query, key, value, repeats,
                           1.0F / std::sqrt(static_cast<float>(
                                      config_.head_dimension())))
@@ -1167,6 +1302,10 @@ public:
     void set_bf16_qkv_arena_cache(Bf16QkvArenaCache* cache) noexcept {
         qkv_arena_cache_ = cache;
     }
+    void set_attention_core_arena_cache(
+        AttentionCoreArenaCache* cache) noexcept {
+        attention_core_arena_cache_ = cache;
+    }
 
 private:
     ops::TensorTriple bf16_projection(
@@ -1190,12 +1329,31 @@ private:
             input, query_weight, key_weight, value_weight);
     }
 
+    Tensor causal_attention(
+        const Tensor& query, const Tensor& key, const Tensor& value,
+        std::int64_t repeats, float scale) {
+        if (attention_core_arena_cache_ != nullptr) {
+            auto* entry = attention_core_arena_cache_->acquire(
+                query.shape()[0], query.shape()[1], key.shape()[1],
+                query.shape()[2], query.shape()[3], query.device());
+            if (entry != nullptr) {
+                ops::causal_gqa_attention_out_(
+                    entry->output, entry->workspace, query, key, value,
+                    repeats, scale);
+                return entry->output;
+            }
+        }
+        return ops::causal_gqa_attention(
+            query, key, value, repeats, scale);
+    }
+
     ModelConfig config_;
     Linear query_;
     Linear key_;
     Linear value_;
     Linear output_;
     Bf16QkvArenaCache* qkv_arena_cache_ = nullptr;
+    AttentionCoreArenaCache* attention_core_arena_cache_ = nullptr;
 };
 
 class Bf16FfnArenaCache {
@@ -1578,6 +1736,10 @@ public:
     void set_bf16_qkv_arena_cache(Bf16QkvArenaCache* cache) noexcept {
         attention_.set_bf16_qkv_arena_cache(cache);
     }
+    void set_attention_core_arena_cache(
+        AttentionCoreArenaCache* cache) noexcept {
+        attention_.set_attention_core_arena_cache(cache);
+    }
 
     void append_bf16_training_mirrors(Bf16TrainingMirrors& mirrors) {
         attention_.append_bf16_training_mirrors(mirrors);
@@ -1642,9 +1804,11 @@ struct TransformerModel::Impl {
     std::unique_ptr<Linear> output_head;
     Bf16FfnArenaCache bf16_ffn_arena;
     Bf16QkvArenaCache bf16_qkv_arena;
+    AttentionCoreArenaCache attention_core_arena;
     bool bf16_ffn_prepared = false;
     bool bf16_ffn_arena_enabled = false;
     bool bf16_qkv_arena_enabled = false;
+    bool attention_core_arena_enabled = false;
     bool bf16_attention_prepared = false;
     bool bf16_training_mirrors_prepared = false;
     bool fp8_inference_prepared = false;
@@ -1671,6 +1835,7 @@ Device TransformerModel::device() {
 void TransformerModel::to(Device target) {
     impl_->bf16_ffn_arena.clear();
     impl_->bf16_qkv_arena.clear();
+    impl_->attention_core_arena.clear();
     for (auto* value : parameters()) {
         value->mutable_data() = impl_->parameters_initialized
                                     ? value->data().to(target)
@@ -2415,6 +2580,25 @@ bool TransformerModel::bf16_qkv_arena_enabled() const noexcept {
 
 Bf16QkvArenaStats TransformerModel::bf16_qkv_arena_stats() const noexcept {
     return impl_->bf16_qkv_arena.stats();
+}
+
+void TransformerModel::set_attention_core_arena_enabled(
+    bool enabled, std::int64_t minimum_sequence) {
+    impl_->attention_core_arena.configure(
+        enabled ? minimum_sequence : 512);
+    for (auto& block : impl_->blocks) {
+        block->set_attention_core_arena_cache(
+            enabled ? &impl_->attention_core_arena : nullptr);
+    }
+    impl_->attention_core_arena_enabled = enabled;
+}
+
+bool TransformerModel::attention_core_arena_enabled() const noexcept {
+    return impl_->attention_core_arena_enabled;
+}
+
+AttentionCoreArenaStats TransformerModel::attention_core_arena_stats() const noexcept {
+    return impl_->attention_core_arena.stats();
 }
 
 Fp8WeightPreparationReport TransformerModel::prepare_fp8_inference_weights() {

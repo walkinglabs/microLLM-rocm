@@ -8437,6 +8437,99 @@ def validate_allocation_source_attribution(
         int(deep.get("allocation_calls", 0)), int(deep_top.get("total_bytes", 0))
 
 
+def validate_attention_core_arena_discard(
+        errors: list[str]) -> tuple[int, float, float, int, int]:
+    data = REPOSITORY / "benchmarks/results/2026-08-24-attention-core-arena-discard"
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    profile = json.loads((data / "profile-summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = summary.get("comparisons", [])
+    speedups = [float(row.get("arena_speedup", 0.0)) for row in comparisons]
+    eligible = [row for row in comparisons
+                if int(row.get("flattened_rows", 0)) >= 512]
+    bypassed = [row for row in comparisons
+                if int(row.get("flattened_rows", 0)) < 512]
+    modes = profile.get("modes", {})
+    baseline_profile = modes.get("baseline", {})
+    core_profile = modes.get("core", {})
+    expected_tests = {
+        "cpu_debug": {"passed": 290, "total": 290},
+        "asan_ubsan": {"passed": 288, "total": 288},
+        "pytorch_enabled_cpu": {"passed": 264, "total": 264},
+        "hip_full_configuration": {
+            "passed": 454, "total": 454, "conditional_skips": 3},
+        "hip_label": {"passed": 153, "total": 153},
+        "rccl_multi_gpu": {"passed": 11, "total": 11},
+        "rccl_full_label": {"passed": 13, "total": 13},
+    }
+    profile_files = (
+        "baseline-hip-api-stats.csv", "baseline-kernel-stats.csv",
+        "core-hip-api-stats.csv", "core-kernel-stats.csv")
+    if summary.get("status") != "pass" or len(raw) != 60 or \
+            summary.get("raw_processes") != 60 or len(comparisons) != 10 or \
+            summary.get("record_type") != "attention_core_arena_model_summary" or \
+            summary.get("comparison_mode") != "core" or \
+            summary.get("correctness_gate") is not True or \
+            summary.get("arena_minimum_rows") != 512 or \
+            summary.get("eligible_rows") != 2 or \
+            summary.get("bypassed_rows") != 8 or \
+            summary.get("keep_rows") != 0 or \
+            summary.get("regression_rows") != 0 or \
+            summary.get("decision") != \
+                    "reject rows>=512 selective Attention core Arena" or \
+            not (0.99 <= min(speedups, default=0.0) <= 1.00) or \
+            not (1.00 <= max(speedups, default=0.0) <= 1.01) or \
+            any(float(row.get("arena_speedup", 0.0)) >= 1.01 or
+                int(row.get("arena_entries", 0)) != 1 or
+                int(row.get("arena_eligible_calls", 0)) <= 0 or
+                int(row.get("arena_engine_allocation_calls", 0)) >=
+                    int(row.get("baseline_engine_allocation_calls", 0)) or
+                int(row.get("arena_engine_peak_bytes", 0)) <=
+                    int(row.get("baseline_engine_peak_bytes", 0))
+                for row in eligible) or \
+            any(int(row.get("arena_entries", -1)) != 0 or
+                int(row.get("arena_capacity_bytes", -1)) != 0 or
+                int(row.get("arena_eligible_calls", -1)) != 0 or
+                int(row.get("arena_bypassed_calls", 0)) <= 0 or
+                int(row.get("arena_engine_allocation_calls", -1)) !=
+                    int(row.get("baseline_engine_allocation_calls", 0)) or
+                int(row.get("arena_engine_peak_bytes", -1)) !=
+                    int(row.get("baseline_engine_peak_bytes", 0))
+                for row in bypassed) or \
+            any(row.get("maximum_absolute_logit_difference") != 0 or
+                row.get("exact_expected_tokens") is not True
+                for row in comparisons) or \
+            profile.get("status") != "pass" or \
+            baseline_profile.get("kernel_calls") != core_profile.get("kernel_calls") or \
+            core_profile.get("hip_malloc_calls", 0) >= \
+                    baseline_profile.get("hip_malloc_calls", 0) or \
+            verification.get("status") != "pass" or \
+            verification.get("tests") != expected_tests or \
+            verification.get("registered_test_files") != 66 or \
+            verification.get("formal_processes") != 60 or \
+            any(row.get("record_type") !=
+                    "attention_core_arena_model_measurement" or
+                row.get("status") != "pass" for row in raw) or \
+            any(not (data / name).is_file() for name in profile_files):
+        errors.append("Attention core Arena discard evidence changed")
+    ops = (REPOSITORY / "include/microllm/ops/ops.h").read_text(encoding="utf-8")
+    model = (REPOSITORY / "include/microllm/model/model.h").read_text(
+        encoding="utf-8")
+    source = (REPOSITORY / "src/model/model.cpp").read_text(encoding="utf-8")
+    cli = (REPOSITORY / "apps/hf_infer.cpp").read_text(encoding="utf-8")
+    if "struct CausalGqaAttentionWorkspace" not in ops or \
+            "causal_gqa_attention_out_" not in ops or \
+            "set_attention_core_arena_enabled" not in model or \
+            "class AttentionCoreArenaCache" not in source or \
+            "--attention-core-arena" not in cli:
+        errors.append("Attention core Arena source/test contract changed")
+    return len(raw), min(speedups, default=0.0), max(speedups, default=0.0), \
+        len(eligible), len(bypassed)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -8601,7 +8694,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-ffn-arena-model.svg",
                  "bf16-ffn-arena-selective.svg",
                  "bf16-qkv-arena-discard.svg",
-                 "allocation-source-attribution.svg"):
+                 "allocation-source-attribution.svg",
+                 "attention-core-arena-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -8921,6 +9015,9 @@ def main() -> int:
     allocation_source_rows, allocation_qwen_calls, allocation_qwen_core, \
         allocation_deep_calls, allocation_deep_core = \
         validate_allocation_source_attribution(errors)
+    attention_core_rows, attention_core_minimum, attention_core_maximum, \
+        attention_core_eligible, attention_core_bypassed = \
+        validate_attention_core_arena_discard(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -9185,6 +9282,9 @@ def main() -> int:
           f"{bf16_qkv_maximum:.3f}/{bf16_qkv_eligible}/{bf16_qkv_bypassed} "
           f"allocation_sources={allocation_source_rows}/{allocation_qwen_calls}/"
           f"{allocation_qwen_core}/{allocation_deep_calls}/{allocation_deep_core} "
+          f"attention_core_arena={attention_core_rows}/"
+          f"{attention_core_minimum:.3f}/{attention_core_maximum:.3f}/"
+          f"{attention_core_eligible}/{attention_core_bypassed} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

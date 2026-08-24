@@ -695,6 +695,21 @@ TEST(CpuOpsTest, CausalGqaAttentionMatchesComposedForwardAndBackward) {
     const auto expected = matmul(probabilities, expanded_value);
     expect_near(causal_gqa_attention(query, key, value, repeats, scale_factor).to_vector(),
                 expected.to_vector(), 1.0e-6F);
+    CausalGqaAttentionWorkspace workspace{
+        .scaled_query = Tensor(query.shape()),
+        .expanded_kv = Tensor(query.shape()),
+        .probabilities = Tensor({1, 4, 3, 3})};
+    Tensor caller_output(query.shape());
+    causal_gqa_attention_out_(
+        caller_output, workspace, query, key, value, repeats,
+        scale_factor);
+    expect_near(caller_output.to_vector(), expected.to_vector(), 1.0e-6F);
+    workspace.expanded_kv = workspace.scaled_query;
+    EXPECT_THROW(
+        causal_gqa_attention_out_(
+            caller_output, workspace, query, key, value, repeats,
+            scale_factor),
+        std::invalid_argument);
 
     const auto probability_gradient = matmul(
         gradient, expanded_value.transpose(-2, -1).contiguous());

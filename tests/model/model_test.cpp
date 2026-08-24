@@ -379,6 +379,26 @@ TEST(TransformerModelTest, Bf16AttentionPreparationConvertsOnlyProjectionWeights
     model.set_bf16_qkv_arena_enabled(false);
     EXPECT_FALSE(model.bf16_qkv_arena_enabled());
     EXPECT_EQ(model.bf16_qkv_arena_stats().entries, 0U);
+    EXPECT_THROW(model.set_attention_core_arena_enabled(true, 0),
+                 std::invalid_argument);
+    model.set_attention_core_arena_enabled(true, 5);
+    EXPECT_EQ(model.forward_inference(input).to_vector(), prepared);
+    auto core_stats = model.attention_core_arena_stats();
+    EXPECT_EQ(core_stats.entries, 0U);
+    EXPECT_EQ(core_stats.bypassed_calls,
+              static_cast<std::size_t>(model.config().layers));
+    EXPECT_EQ(core_stats.minimum_sequence, 5);
+    model.set_attention_core_arena_enabled(true, 1);
+    EXPECT_EQ(model.forward_inference(input).to_vector(), prepared);
+    EXPECT_EQ(model.forward_inference(input).to_vector(), prepared);
+    core_stats = model.attention_core_arena_stats();
+    EXPECT_EQ(core_stats.entries, 1U);
+    EXPECT_EQ(core_stats.misses, 1U);
+    EXPECT_EQ(core_stats.hits,
+              static_cast<std::size_t>(model.config().layers * 2 - 1));
+    EXPECT_GT(core_stats.capacity_bytes, 0U);
+    model.set_attention_core_arena_enabled(false);
+    EXPECT_FALSE(model.attention_core_arena_enabled());
     EXPECT_THROW((void)model.forward(input), std::logic_error);
     EXPECT_THROW((void)model.prepare_bf16_attention_inference(), std::logic_error);
 }

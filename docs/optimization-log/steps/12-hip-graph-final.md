@@ -141,6 +141,13 @@ Opt-in source×exact-size diagnostics are deterministic across three processes p
 logical allocation bytes. The next liveness node is now constrained to the exact Attention core
 score/probability and hidden-width families; projection/FFN guesses are closed.
 
+## Experiment 187 Attention core result
+
+Exact liveness reuses expanded K storage for V and makes scores/probabilities/output caller-owned.
+Allocation calls fall by 600/700 at T512, but Qwen/DeepSeek reaches only 1.004×/1.002× and peak
+increases 2.75/4.72 MB. Model routing is rejected. Persistent-Storage optimization is saturated;
+the next candidate must change Attention device math, not another allocation family.
+
 ## Final matrix
 
 - FP32 fixed matrix and running-best curve;

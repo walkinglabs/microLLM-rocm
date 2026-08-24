@@ -331,6 +331,9 @@ python3 benchmarks/single_gpu/hf_allocation_sources.py \
 The binary flag `--allocation-source-diagnostics true` requires one prefill and zero warm-up.
 Records are logical engine requests, including allocator-cache reuse. Compare them with rocprofv3
 malloc/free before drawing a backend-allocation conclusion.
+Experiment 187 converts the selected source into `causal_gqa_attention_out_` and an opt-in
+`--attention-core-arena` model path. Its failure is important: source bytes and removed logical
+calls do not prove end-to-end speed once device Attention math dominates.
 
 ## What remains
 

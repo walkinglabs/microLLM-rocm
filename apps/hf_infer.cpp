@@ -53,6 +53,8 @@ struct Options {
     std::int64_t bf16_ffn_arena_minimum_rows = 1;
     bool bf16_qkv_arena = false;
     std::int64_t bf16_qkv_arena_minimum_rows = 512;
+    bool attention_core_arena = false;
+    std::int64_t attention_core_arena_minimum_sequence = 512;
     bool bf16_attention = false;
     bool fp8_linear = false;
     float fp8_activation_scale = 0.025F;
@@ -142,6 +144,16 @@ Options options(int argc, char** argv) {
             result.bf16_qkv_arena = value == "true";
         } else if (name == "--bf16-qkv-arena-minimum-rows") {
             result.bf16_qkv_arena_minimum_rows =
+                std::stoll(argv[index + 1]);
+        } else if (name == "--attention-core-arena") {
+            const std::string value = argv[index + 1];
+            if (value != "true" && value != "false") {
+                throw std::invalid_argument(
+                    "--attention-core-arena must be true or false");
+            }
+            result.attention_core_arena = value == "true";
+        } else if (name == "--attention-core-arena-minimum-sequence") {
+            result.attention_core_arena_minimum_sequence =
                 std::stoll(argv[index + 1]);
         } else if (name == "--bf16-attention") {
             const std::string value = argv[index + 1];
@@ -346,6 +358,12 @@ Options options(int argc, char** argv) {
          result.bf16_qkv_arena_minimum_rows != 512)) {
         throw std::invalid_argument(
             "--bf16-qkv-arena-minimum-rows must be positive and requires QKV Arena");
+    }
+    if (result.attention_core_arena_minimum_sequence <= 0 ||
+        (!result.attention_core_arena &&
+         result.attention_core_arena_minimum_sequence != 512)) {
+        throw std::invalid_argument(
+            "--attention-core-arena-minimum-sequence must be positive and requires core Arena");
     }
     if (result.bf16_ffn_arena && !result.trace_output.empty()) {
         throw std::invalid_argument(
@@ -1057,6 +1075,10 @@ int main(int argc, char** argv) {
             model.set_bf16_qkv_arena_enabled(
                 true, command.bf16_qkv_arena_minimum_rows);
         }
+        if (command.attention_core_arena) {
+            model.set_attention_core_arena_enabled(
+                true, command.attention_core_arena_minimum_sequence);
+        }
         if (command.fp8_linear) {
             fp8_report = model.prepare_fp8_inference_weights();
             microllm::ops::clear_fp8_dispatch_registry();
@@ -1711,6 +1733,8 @@ int main(int argc, char** argv) {
         const auto allocation = microllm::runtime::allocation_stats(device);
         const auto bf16_arena_stats = model.bf16_ffn_arena_stats();
         const auto bf16_qkv_arena_stats = model.bf16_qkv_arena_stats();
+        const auto attention_core_arena_stats =
+            model.attention_core_arena_stats();
         const auto measured_transfers = microllm::runtime::transfer_stats();
         if (!command.cache_logits_output.empty()) {
             const auto cache_logits = cache_logits_evidence.to_vector();
@@ -1786,6 +1810,22 @@ int main(int argc, char** argv) {
                   << bf16_qkv_arena_stats.minimum_rows
                   << ",\"bf16_qkv_arena_capacity_bytes\":"
                   << bf16_qkv_arena_stats.capacity_bytes
+                  << ",\"attention_core_arena_enabled\":"
+                  << (model.attention_core_arena_enabled() ? "true" : "false")
+                  << ",\"attention_core_arena_entries\":"
+                  << attention_core_arena_stats.entries
+                  << ",\"attention_core_arena_hits\":"
+                  << attention_core_arena_stats.hits
+                  << ",\"attention_core_arena_misses\":"
+                  << attention_core_arena_stats.misses
+                  << ",\"attention_core_arena_eligible_calls\":"
+                  << attention_core_arena_stats.eligible_calls
+                  << ",\"attention_core_arena_bypassed_calls\":"
+                  << attention_core_arena_stats.bypassed_calls
+                  << ",\"attention_core_arena_minimum_sequence\":"
+                  << attention_core_arena_stats.minimum_sequence
+                  << ",\"attention_core_arena_capacity_bytes\":"
+                  << attention_core_arena_stats.capacity_bytes
                   << ",\"bf16_attention_converted_tensors\":"
                   << bf16_attention_report.converted_tensors
                   << ",\"fp8_converted_tensors\":"

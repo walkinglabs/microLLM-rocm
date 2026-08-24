@@ -1560,6 +1560,28 @@ TEST(HipFullAttentionTest, CausalMhaGqaForwardBackwardMatchCpuWithoutTransfers) 
                         expected_backward.second.to_vector(), 2.0e-3F);
             expect_near(actual_backward.third.to_vector(),
                         expected_backward.third.to_vector(), 2.0e-3F);
+            if (sequence == 1 || sequence == 256) {
+                CausalGqaAttentionWorkspace workspace{
+                    .scaled_query = Tensor(
+                        device_query.shape(), DType::Float32, gpu),
+                    .expanded_kv = Tensor(
+                        device_query.shape(), DType::Float32, gpu),
+                    .probabilities = Tensor(
+                        {1, heads, sequence, sequence},
+                        DType::Float32, gpu)};
+                Tensor caller_output(
+                    device_query.shape(), DType::Float32, gpu);
+                runtime::reset_transfer_stats();
+                causal_gqa_attention_out_(
+                    caller_output, workspace, device_query, device_key,
+                    device_value, repeats, 0.25F);
+                runtime::synchronize(gpu);
+                const auto caller_transfers = runtime::transfer_stats();
+                EXPECT_EQ(caller_transfers.host_to_device_calls, 0U);
+                EXPECT_EQ(caller_transfers.device_to_host_calls, 0U);
+                expect_near(caller_output.to_vector(),
+                            expected.to_vector(), 8.0e-4F);
+            }
         }
     }
 }

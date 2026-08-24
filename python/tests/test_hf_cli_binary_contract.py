@@ -38,6 +38,9 @@ def main() -> int:
         b"bf16_qkv_arena_capacity_bytes",
         b"--allocation-source-diagnostics",
         b"allocation_source_records",
+        b"--attention-core-arena",
+        b"--attention-core-arena-minimum-sequence",
+        b"attention_core_arena_capacity_bytes",
     )
     missing = [value.decode() for value in required if value not in payload]
     if missing:

@@ -255,6 +255,11 @@ allocation, nested RAII scopes restore the previous tag, and disabled scopes are
 thread-local branch. Records aggregate logical requests by source/device/exact bytes; they are not
 backend allocator traces. Experiment 186 selects Attention core as the next liveness boundary.
 
+`CausalGqaAttentionWorkspace` makes scaled Q, probabilities and output caller-owned and reuses one
+expanded K/V slot after the QK submission. A model cache can share that exact backing across blocks
+for selected sequence lengths. Experiment 187 rejects model routing despite exact results and fewer
+allocations; the primitive remains, while persistent-Storage optimization is considered saturated.
+
 hipBLASLt GEMM also supports contiguous strided batches: leading Tensor dimensions become
 the batch count and last-two dimensions remain the matrix contract. Explicit batched
 selection is tested independently; Auto is not changed by operator-only timing.

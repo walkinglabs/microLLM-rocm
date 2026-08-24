@@ -37,6 +37,8 @@ the public contract rejects all writable aliases.
 When proposing another persistent workspace, first add a fixed `AllocationSource` scope and inspect
 exact sizes. Dynamic diagnostic strings are forbidden because the profiler would allocate while
 trying to measure allocation. Disabled scopes must remain one-branch no-ops.
+For long causal GQA, expanded K and expanded V may share Storage only because QK is submitted before
+the V repeat on the same Stream. Different Streams or reordering invalidate that liveness proof.
 - readable HIP launch declarations: `src/ops/hip/kernels.h`;
 - optimized matmul policy: `src/ops/optimized.cpp`;
 - correctness-first matmul/AdamW tuners: `src/ops/tuning.cpp` and

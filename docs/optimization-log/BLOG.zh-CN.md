@@ -3162,3 +3162,20 @@ CLI只允许zero-warmup、single-prefill，避免把load和warmup混进来。Qwe
 下一节点现在有唯一依据：Attention core exact liveness；projection、FFN和随便挑Tensor的路线关闭。
 
 ![Allocation source attribution](assets/allocation-source-attribution.svg)
+
+## 204. Experiment 187：最大分配来源也删了，速度还是不动
+
+根据上一轮数据，我们为Attention core画出exact liveness：scaled Q和expanded K同时用于QK；QK提交后，
+expanded K的槽可以改放expanded V；probabilities原位softmax并活到PV；output独立。一个跨block backing
+因此只需`probability + 3×hidden`，替代每层`probability + 5×hidden`逻辑分配。
+
+CPU、T1 fused HIP、T256 hipBLASLt、MHA/GQA、别名和零transfer全部通过。正式60进程logits和token也
+完全一致。Qwen分配2895→2295，DeepSeek 3375→2675。
+
+但吞吐只有1.004×/1.002×，都没过1.01；backing还让peak增加2.75/4.72MB。Profiler中两边都是
+5,642个Kernel和4000+1519次launch，malloc/free 1637/1327→1395/1087，Kernel时间47.67/46.78ms。
+
+结论很硬：连实测最大allocation source都不能推动整机，persistent Storage路线饱和。model策略discard，
+out原语保留。下一步必须动Attention设备数学，例如exact FP32 QK/PV algorithm，而不是再申请一块Arena。
+
+![Attention core Arena discard](assets/attention-core-arena-discard.svg)

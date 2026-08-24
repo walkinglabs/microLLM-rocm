@@ -58,6 +58,7 @@
     "bf16_matmul_output_out_": "tests/ops/hip_ops_test.cpp",
     "bf16_ffn_out_": "tests/ops/hip_ops_test.cpp",
     "bf16_qkv_projection_out_": "tests/ops/hip_ops_test.cpp",
+    "causal_gqa_attention_out_": "tests/ops/hip_ops_test.cpp",
     "add_in_place_": "tests/ops/hip_ops_test.cpp",
     "matmul_out_": "tests/ops/hip_ops_test.cpp",
     "adamw_update_": "tests/training/optimizer_test.cpp",
@@ -203,6 +204,9 @@
     "set_bf16_qkv_arena_enabled": "tests/model/model_test.cpp",
     "bf16_qkv_arena_enabled": "tests/model/model_test.cpp",
     "bf16_qkv_arena_stats": "tests/model/model_test.cpp",
+    "set_attention_core_arena_enabled": "tests/model/model_test.cpp",
+    "attention_core_arena_enabled": "tests/model/model_test.cpp",
+    "attention_core_arena_stats": "tests/model/model_test.cpp",
     "prepare_bf16_training_mirrors": "tests/model/model_test.cpp",
     "bf16_training_mirrors_prepared": "tests/model/model_test.cpp"
   },
