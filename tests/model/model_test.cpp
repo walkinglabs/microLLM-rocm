@@ -336,6 +336,7 @@ TEST(TransformerModelTest, Bf16AttentionPreparationConvertsOnlyProjectionWeights
     TransformerModel model(config, 18);
     const auto input = Tensor::from_int32_vector({1, 2, 3, 4}, {1, 4});
     EXPECT_THROW(model.set_bf16_qkv_arena_enabled(true), std::logic_error);
+    EXPECT_THROW((void)model.prewarm_bf16_grouped_qkv(4), std::logic_error);
     const auto before = model.forward_inference(input).to_vector();
     (void)model.prepare_bf16_ffn_inference();
     const auto report = model.prepare_bf16_attention_inference();
@@ -359,6 +360,7 @@ TEST(TransformerModelTest, Bf16AttentionPreparationConvertsOnlyProjectionWeights
     const auto prepared = model.forward_inference(input).to_vector();
     expect_near(prepared, before, 5.0e-2F);
     model.set_bf16_qkv_arena_enabled(true, 5);
+    EXPECT_THROW((void)model.prewarm_bf16_grouped_qkv(4), std::logic_error);
     EXPECT_EQ(model.forward_inference(input).to_vector(), prepared);
     auto arena_stats = model.bf16_qkv_arena_stats();
     EXPECT_EQ(arena_stats.entries, 0U);

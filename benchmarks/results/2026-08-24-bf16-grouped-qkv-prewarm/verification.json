@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "tests": {
+    "cpu_debug": {"passed": 298, "total": 298},
+    "asan_ubsan": {"passed": 296, "total": 296},
+    "pytorch_enabled_cpu": {"passed": 272, "total": 272},
+    "hip_full_configuration": {
+      "passed": 467,
+      "total": 467,
+      "conditional_skips": 3
+    },
+    "hip_label": {"passed": 159, "total": 159},
+    "rccl_multi_gpu": {"passed": 12, "total": 12},
+    "rccl_full_label": {"passed": 14, "total": 14}
+  },
+  "registered_test_files": 71,
+  "formal_processes": 18,
+  "formal_comparisons": 2,
+  "setup_moved_before_request": true
+}

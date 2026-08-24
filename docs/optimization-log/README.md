@@ -746,6 +746,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/190-bf16-grouped-qkv.md](experiments/190-bf16-grouped-qkv.md) | phase delta、24进程、plan cache与默认拒绝 |
 | [assets/bf16-grouped-qkv-expanded.svg](assets/bf16-grouped-qkv-expanded.svg) | 64候选、两模型steady keep与setup gate |
 | [experiments/191-bf16-grouped-qkv-expanded.md](experiments/191-bf16-grouped-qkv-expanded.md) | user arguments、24进程与显式预热策略 |
+| [assets/bf16-grouped-qkv-prewarm.svg](assets/bf16-grouped-qkv-prewarm.svg) | lazy与prewarm首请求时间线 |
+| [experiments/192-bf16-grouped-qkv-prewarm.md](experiments/192-bf16-grouped-qkv-prewarm.md) | 18进程、prewarm API与admission边界 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

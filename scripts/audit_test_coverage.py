@@ -75,7 +75,8 @@ if declared_weight_io != expected_weight_io:
     )
 declared_weight_model = public_names(
     "include/microllm/model/model.h",
-    ["io::StateDict", "LoadWeightsReport", "WeightMapping", "void"],
+    ["io::StateDict", "LoadWeightsReport", "WeightMapping",
+     "Bf16GroupedQkvPrewarmReport", "void"],
 )
 declared_weight_model.discard("to")
 expected_weight_model = {
@@ -89,6 +90,7 @@ expected_weight_model = {
     "set_bf16_ffn_arena_enabled",
     "set_bf16_qkv_arena_enabled",
     "set_attention_core_arena_enabled",
+    "prewarm_bf16_grouped_qkv",
 }
 if declared_weight_model != expected_weight_model:
     errors.append(

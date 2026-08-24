@@ -239,6 +239,12 @@ phase delta confirms 48/56 fewer GEMM calls and total Kernel gains of 1.019×/1.
 kernel setup is 207.9/203.7 ms, above the 100 ms default gate. The warmed serving policy is kept;
 one-shot default is closed until scheduler-level pre-admission warmup is measured.
 
+Experiment 192 supplies the pre-admission lifecycle without changing the default. Zero-warmup
+fresh processes show ordinary BF16 first forward already costs about five seconds. Lazy grouped
+first request is 5744/5741 ms; explicit prewarm costs 915/886 ms and the admitted request becomes
+4852/4795 ms. Combined cost stays near lazy total. Prewarm API is retained and repeated rows are
+no-ops. Startup optimization remains open; moving setup is not removal.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

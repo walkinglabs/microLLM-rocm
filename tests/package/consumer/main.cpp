@@ -4,6 +4,7 @@
 
 #include <microllm/base/device.h>
 #include <microllm/model/config.h>
+#include <microllm/model/model.h>
 #include <microllm/ops/tuning.h>
 #include <microllm/autograd/diagnostics.h>
 #include <microllm/runtime/diagnostics.h>
@@ -40,6 +41,21 @@ int main() {
         rejected_cpu_activation_arena = true;
     }
     const auto config = microllm::model::ModelConfig::model_s();
+    auto prewarm_config = config;
+    prewarm_config.vocabulary_size = 8;
+    prewarm_config.dimension = 8;
+    prewarm_config.layers = 1;
+    prewarm_config.heads = 2;
+    prewarm_config.kv_heads = 1;
+    prewarm_config.ffn_dimension = 16;
+    prewarm_config.max_sequence_length = 8;
+    microllm::model::TransformerModel prewarm_model(prewarm_config, 1);
+    bool rejected_cpu_grouped_prewarm = false;
+    try {
+        (void)prewarm_model.prewarm_bf16_grouped_qkv(1);
+    } catch (const std::logic_error&) {
+        rejected_cpu_grouped_prewarm = true;
+    }
     const auto bias_input = microllm::Tensor::from_vector(
         {1.0F, 2.0F, 3.0F, 4.0F}, {2, 2});
     std::vector<float> external_values{0.0F, 0.0F};
@@ -198,7 +214,8 @@ int main() {
         grouped_qkv_stats.registered_entries != 0 ||
         !microllm::autograd::attention_rope_layout_fusion_enabled() ||
         microllm::autograd::unique_gradient_inplace_add_enabled() ||
-        !rejected_cpu_tuning || !rejected_cpu_adamw_tuning) return 1;
+        !rejected_cpu_tuning || !rejected_cpu_adamw_tuning ||
+        !rejected_cpu_grouped_prewarm) return 1;
     std::cout << "microLLM package consumer: pass\n";
     return 0;
 }

@@ -3250,3 +3250,18 @@ device user arguments后，每个block只准备小参数，总共不到0.7ms。�
 在接收请求前显式prewarm，再测真实TTFT，不能继续增加warm-up假装首次请求不存在。
 
 ![Expanded BF16 grouped QKV](assets/bf16-grouped-qkv-expanded.svg)
+
+## 209. Experiment 192：预热不是消除工作，而是决定谁来等
+
+零warm-up测试先纠正一个直觉：普通BF16模型第一次T512 forward本来就约5秒，因为许多vendor
+plan和GPU代码首次使用才准备。lazy grouped把首请求推到5744/5741ms。
+
+新`prewarm_bf16_grouped_qkv(512)`在admission前用dummy activation建立同一套Arena和pointer plans。
+Qwen/DeepSeek预热915/886ms，之后首个真实请求4852/4795ms，比lazy grouped少等892/947ms。
+但prewarm+request仍为5767/5681ms，与lazy总成本接近：我们移动了等待者，没有删除计算。
+
+报告还拆出shared grouped kernel初始化208/201ms和全部device arguments准备0.64/1.15ms。
+相同rows重复预热直接返回already-warm；移动设备或重设Arena会失效。API keep，默认不调用；只有
+明确拥有“准备完成后再接客”生命周期的serving scheduler才适合使用。
+
+![Grouped QKV prewarm](assets/bf16-grouped-qkv-prewarm.svg)

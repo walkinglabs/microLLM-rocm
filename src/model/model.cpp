@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <cmath>
 #include <cstddef>
 #include <memory>
@@ -1306,6 +1307,15 @@ public:
         AttentionCoreArenaCache* cache) noexcept {
         attention_core_arena_cache_ = cache;
     }
+    void prewarm_bf16_grouped_qkv(const Tensor& input) {
+        if (qkv_arena_cache_ == nullptr) {
+            throw std::logic_error(
+                "BF16 grouped QKV prewarm requires QKV Arena");
+        }
+        (void)bf16_projection(
+            input, query_.weight_data(), key_.weight_data(),
+            value_.weight_data());
+    }
 
 private:
     ops::TensorTriple bf16_projection(
@@ -1740,6 +1750,9 @@ public:
         AttentionCoreArenaCache* cache) noexcept {
         attention_.set_attention_core_arena_cache(cache);
     }
+    void prewarm_bf16_grouped_qkv(const Tensor& input) {
+        attention_.prewarm_bf16_grouped_qkv(input);
+    }
 
     void append_bf16_training_mirrors(Bf16TrainingMirrors& mirrors) {
         attention_.append_bf16_training_mirrors(mirrors);
@@ -1805,6 +1818,7 @@ struct TransformerModel::Impl {
     Bf16FfnArenaCache bf16_ffn_arena;
     Bf16QkvArenaCache bf16_qkv_arena;
     AttentionCoreArenaCache attention_core_arena;
+    std::set<std::int64_t> bf16_grouped_qkv_prewarmed_rows;
     bool bf16_ffn_prepared = false;
     bool bf16_ffn_arena_enabled = false;
     bool bf16_qkv_arena_enabled = false;
@@ -1836,6 +1850,7 @@ void TransformerModel::to(Device target) {
     impl_->bf16_ffn_arena.clear();
     impl_->bf16_qkv_arena.clear();
     impl_->attention_core_arena.clear();
+    impl_->bf16_grouped_qkv_prewarmed_rows.clear();
     for (auto* value : parameters()) {
         value->mutable_data() = impl_->parameters_initialized
                                     ? value->data().to(target)
@@ -2567,6 +2582,7 @@ void TransformerModel::set_bf16_qkv_arena_enabled(
             "BF16 QKV Arena requires prepared BF16 Attention weights");
     }
     impl_->bf16_qkv_arena.configure(enabled ? minimum_rows : 512);
+    impl_->bf16_grouped_qkv_prewarmed_rows.clear();
     for (auto& block : impl_->blocks) {
         block->set_bf16_qkv_arena_cache(
             enabled ? &impl_->bf16_qkv_arena : nullptr);
@@ -2580,6 +2596,53 @@ bool TransformerModel::bf16_qkv_arena_enabled() const noexcept {
 
 Bf16QkvArenaStats TransformerModel::bf16_qkv_arena_stats() const noexcept {
     return impl_->bf16_qkv_arena.stats();
+}
+
+Bf16GroupedQkvPrewarmReport
+TransformerModel::prewarm_bf16_grouped_qkv(std::int64_t rows) {
+    if (rows <= 0) {
+        throw std::invalid_argument("BF16 grouped QKV prewarm rows must be positive");
+    }
+    if (!device().is_hip() || !impl_->bf16_attention_prepared ||
+        !impl_->bf16_qkv_arena_enabled) {
+        throw std::logic_error(
+            "BF16 grouped QKV prewarm requires HIP, prepared weights, and QKV Arena");
+    }
+    if (ops::bf16_grouped_qkv_stats().registered_entries == 0) {
+        throw std::logic_error(
+            "BF16 grouped QKV prewarm requires an exact registered algorithm");
+    }
+    Bf16GroupedQkvPrewarmReport report{
+        .rows = rows,
+        .blocks = impl_->blocks.size(),
+    };
+    if (impl_->bf16_grouped_qkv_prewarmed_rows.contains(rows)) {
+        report.already_warm = true;
+        return report;
+    }
+    const auto before = ops::bf16_grouped_qkv_stats();
+    const auto start = std::chrono::steady_clock::now();
+    Tensor input({rows, impl_->config.dimension}, DType::Float32, device());
+    ops::fill_(input, 0.0F);
+    for (auto& block : impl_->blocks) {
+        block->prewarm_bf16_grouped_qkv(input);
+    }
+    runtime::synchronize(device());
+    const auto finish = std::chrono::steady_clock::now();
+    const auto after = ops::bf16_grouped_qkv_stats();
+    if (after.dispatches - before.dispatches != impl_->blocks.size() ||
+        after.plan_entries < impl_->blocks.size()) {
+        throw std::runtime_error(
+            "BF16 grouped QKV prewarm did not create every block plan");
+    }
+    impl_->bf16_grouped_qkv_prewarmed_rows.insert(rows);
+    report.total_ms = std::chrono::duration<double, std::milli>(
+        finish - start).count();
+    report.kernel_setup_ms =
+        after.kernel_setup_ms - before.kernel_setup_ms;
+    report.argument_setup_ms =
+        after.argument_setup_ms - before.argument_setup_ms;
+    return report;
 }
 
 void TransformerModel::set_attention_core_arena_enabled(

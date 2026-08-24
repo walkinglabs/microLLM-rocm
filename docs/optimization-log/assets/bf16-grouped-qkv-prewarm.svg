@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="540" viewBox="0 0 1000 540" role="img" aria-labelledby="title desc">
+  <title id="title">BF16 grouped QKV prewarm first-request timeline</title>
+  <desc id="desc">Explicit prewarm moves grouped setup before admission and shortens the first admitted request without reducing total startup work.</desc>
+  <rect width="1000" height="540" fill="#0b1020"/>
+  <text x="55" y="48" fill="#f8fafc" font-family="sans-serif" font-size="28" font-weight="700">Experiment 192 · prewarm before admission</text>
+  <text x="55" y="78" fill="#94a3b8" font-family="sans-serif" font-size="15">T512 · zero warm-up · median of 3 fresh processes</text>
+
+  <text x="55" y="135" fill="#e2e8f0" font-family="sans-serif" font-size="19" font-weight="700">Qwen first-use timeline</text>
+  <rect x="220" y="155" width="660" height="30" rx="6" fill="#fb7185"/>
+  <text x="55" y="177" fill="#cbd5e1" font-family="sans-serif" font-size="15">Lazy request</text>
+  <text x="892" y="177" fill="#ffe4e6" font-family="monospace" font-size="15">5744 ms</text>
+  <rect x="220" y="205" width="105" height="30" rx="6" fill="#f59e0b"/>
+  <rect x="325" y="205" width="557" height="30" rx="6" fill="#34d399"/>
+  <text x="55" y="227" fill="#cbd5e1" font-family="sans-serif" font-size="15">Prewarm + request</text>
+  <text x="232" y="227" fill="#fef3c7" font-family="monospace" font-size="13">915</text>
+  <text x="894" y="227" fill="#a7f3d0" font-family="monospace" font-size="15">4852 ms</text>
+
+  <text x="55" y="300" fill="#e2e8f0" font-family="sans-serif" font-size="19" font-weight="700">DeepSeek first-use timeline</text>
+  <rect x="220" y="320" width="660" height="30" rx="6" fill="#fb7185"/>
+  <text x="55" y="342" fill="#cbd5e1" font-family="sans-serif" font-size="15">Lazy request</text>
+  <text x="892" y="342" fill="#ffe4e6" font-family="monospace" font-size="15">5741 ms</text>
+  <rect x="220" y="370" width="102" height="30" rx="6" fill="#f59e0b"/>
+  <rect x="322" y="370" width="551" height="30" rx="6" fill="#34d399"/>
+  <text x="55" y="392" fill="#cbd5e1" font-family="sans-serif" font-size="15">Prewarm + request</text>
+  <text x="232" y="392" fill="#fef3c7" font-family="monospace" font-size="13">886</text>
+  <text x="885" y="392" fill="#a7f3d0" font-family="monospace" font-size="15">4795 ms</text>
+
+  <rect x="55" y="455" width="890" height="56" rx="10" fill="#172033" stroke="#334155"/>
+  <text x="75" y="480" fill="#a7f3d0" font-family="sans-serif" font-size="14">Admission latency improves 892 / 947 ms</text>
+  <text x="75" y="501" fill="#fbbf24" font-family="sans-serif" font-size="14">Total startup remains about 5.7 s · work moved, not removed</text>
+</svg>

@@ -411,6 +411,12 @@ weight pointers. Both models then pass steady throughput, but first kernel initi
 about 204–208 ms. The explicit warmed policy is retained, while one-shot/default inference remains
 off until serving can prewarm before request admission.
 
+`TransformerModel::prewarm_bf16_grouped_qkv(rows)` is that explicit lifecycle seam. It uses a
+dummy activation to build the same Arena/pointer plans as a real request, reports total/kernel/
+argument setup, and remembers completed row counts. Repeating the same row is a no-op; moving the
+model or reconfiguring QKV Arena invalidates the model-side prewarm state. This moves work before
+admission but does not claim to remove startup work.
+
 ## Stable integration boundary
 
 The long-term integration seam is a C-compatible descriptor plus explicit stream

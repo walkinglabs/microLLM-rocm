@@ -380,6 +380,9 @@ no grouped plan.
 The expanded runner defaults to 64 candidates and final exact indices. JSON separates steady
 throughput from `bf16_grouped_qkv_kernel_setup_ms` and argument setup. A warmed speedup is not a
 TTFT claim when the first kernel setup exceeds the declared admission budget.
+Use `--bf16-grouped-qkv-prewarm true` to move that setup before the measured request. Compare
+`bf16_grouped_qkv_prewarm_ms` with `forward_ms`; their sum is the startup cost and must not be
+reported as a request-only speedup.
 
 ## What remains
 

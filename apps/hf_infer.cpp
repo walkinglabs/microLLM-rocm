@@ -90,6 +90,7 @@ struct Options {
     std::string trace_value_filter;
     int bf16_algorithm_index = -1;
     int bf16_grouped_qkv_algorithm_index = -1;
+    bool bf16_grouped_qkv_prewarm = false;
     int fp32_attention_qk_solution_index = -1;
     int fp32_attention_pv_solution_index = -1;
     bool allocation_source_diagnostics = false;
@@ -280,6 +281,14 @@ Options options(int argc, char** argv) {
         else if (name == "--bf16-grouped-qkv-algorithm-index") {
             result.bf16_grouped_qkv_algorithm_index =
                 std::stoi(argv[index + 1]);
+        }
+        else if (name == "--bf16-grouped-qkv-prewarm") {
+            const std::string value = argv[index + 1];
+            if (value != "true" && value != "false") {
+                throw std::invalid_argument(
+                    "--bf16-grouped-qkv-prewarm must be true or false");
+            }
+            result.bf16_grouped_qkv_prewarm = value == "true";
         }
         else if (name == "--fp32-attention-qk-solution-index") {
             result.fp32_attention_qk_solution_index =
@@ -500,6 +509,11 @@ Options options(int argc, char** argv) {
           !result.bf16_qkv_arena))) {
         throw std::invalid_argument(
             "--bf16-grouped-qkv-algorithm-index requires HIP prefill and QKV Arena");
+    }
+    if (result.bf16_grouped_qkv_prewarm &&
+        result.bf16_grouped_qkv_algorithm_index < 0) {
+        throw std::invalid_argument(
+            "--bf16-grouped-qkv-prewarm requires an exact grouped algorithm");
     }
     const auto fp32_attention_solution_requested =
         result.fp32_attention_qk_solution_index >= 0 ||
@@ -1093,6 +1107,7 @@ int main(int argc, char** argv) {
         microllm::model::Bf16FfnPreparationReport bf16_report;
         microllm::model::Bf16WeightPreparationReport bf16_attention_report;
         microllm::model::Fp8WeightPreparationReport fp8_report;
+        microllm::model::Bf16GroupedQkvPrewarmReport grouped_qkv_prewarm_report;
         microllm::runtime::reset_allocation_peak(device);
         const auto preparation_start = std::chrono::steady_clock::now();
         if (command.bf16_ffn) bf16_report = model.prepare_bf16_ffn_inference();
@@ -1170,6 +1185,11 @@ int main(int argc, char** argv) {
                 device);
             microllm::ops::register_bf16_grouped_qkv_algorithm(
                 key, command.bf16_grouped_qkv_algorithm_index);
+            if (command.bf16_grouped_qkv_prewarm) {
+                grouped_qkv_prewarm_report =
+                    model.prewarm_bf16_grouped_qkv(
+                        command.batch * static_cast<std::int64_t>(ids.size()));
+            }
         }
         if (command.fp32_attention_qk_solution_index >= 0 ||
             command.fp32_attention_pv_solution_index >= 0) {
@@ -1828,6 +1848,20 @@ int main(int argc, char** argv) {
                   << command.bf16_algorithm_index
                   << ",\"bf16_grouped_qkv_algorithm_index\":"
                   << command.bf16_grouped_qkv_algorithm_index
+                  << ",\"bf16_grouped_qkv_prewarm\":"
+                  << (command.bf16_grouped_qkv_prewarm ? "true" : "false")
+                  << ",\"bf16_grouped_qkv_prewarm_rows\":"
+                  << grouped_qkv_prewarm_report.rows
+                  << ",\"bf16_grouped_qkv_prewarm_blocks\":"
+                  << grouped_qkv_prewarm_report.blocks
+                  << ",\"bf16_grouped_qkv_prewarm_ms\":"
+                  << grouped_qkv_prewarm_report.total_ms
+                  << ",\"bf16_grouped_qkv_prewarm_kernel_ms\":"
+                  << grouped_qkv_prewarm_report.kernel_setup_ms
+                  << ",\"bf16_grouped_qkv_prewarm_arguments_ms\":"
+                  << grouped_qkv_prewarm_report.argument_setup_ms
+                  << ",\"bf16_grouped_qkv_already_warm\":"
+                  << (grouped_qkv_prewarm_report.already_warm ? "true" : "false")
                   << ",\"bf16_grouped_qkv_registered_entries\":"
                   << grouped_qkv_stats.registered_entries
                   << ",\"bf16_grouped_qkv_algorithm_entries\":"

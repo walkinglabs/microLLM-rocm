@@ -552,6 +552,56 @@ TEST(HipBf16ProjectionTest, GroupedQkvCachesExactPointerStablePlan) {
     EXPECT_EQ(bf16_grouped_qkv_stats().registered_entries, 0U);
 }
 
+TEST(HipBf16ProjectionTest, ModelPrewarmBuildsPlansBeforeFirstRequest) {
+    require_gpu();
+    if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";
+    const auto gpu = Device::hip(0);
+    if (!runtime::device_info(gpu).architecture.starts_with("gfx942") ||
+        hipblaslt_version() != 10300) {
+        GTEST_SKIP() << "recorded grouped solution is local to gfx942 hipBLASLt 1.3.0";
+    }
+    model::ModelConfig config;
+    config.vocabulary_size = 32;
+    config.dimension = 896;
+    config.layers = 2;
+    config.heads = 14;
+    config.kv_heads = 2;
+    config.ffn_dimension = 1024;
+    config.max_sequence_length = 512;
+    config.tie_embeddings = true;
+    model::TransformerModel transformer(config, 1);
+    transformer.to(gpu);
+    (void)transformer.prepare_bf16_attention_inference();
+    transformer.set_bf16_qkv_arena_enabled(true, 512);
+    clear_bf16_grouped_qkv_registry();
+    register_bf16_grouped_qkv_algorithm(
+        make_bf16_grouped_qkv_key(512, 896, 896, 128, 128, gpu),
+        64713);
+    const auto first = transformer.prewarm_bf16_grouped_qkv(512);
+    EXPECT_EQ(first.rows, 512);
+    EXPECT_EQ(first.blocks, 2U);
+    EXPECT_FALSE(first.already_warm);
+    EXPECT_GT(first.total_ms, 0.0);
+    EXPECT_GT(first.kernel_setup_ms, 0.0);
+    EXPECT_GT(first.argument_setup_ms, 0.0);
+    auto stats = bf16_grouped_qkv_stats();
+    EXPECT_EQ(stats.kernel_entries, 1U);
+    EXPECT_EQ(stats.plan_entries, 2U);
+    EXPECT_EQ(stats.dispatches, 2U);
+    const auto second = transformer.prewarm_bf16_grouped_qkv(512);
+    EXPECT_TRUE(second.already_warm);
+    EXPECT_EQ(second.total_ms, 0.0);
+    EXPECT_EQ(bf16_grouped_qkv_stats().dispatches, 2U);
+    const std::vector<std::int32_t> ids(512, 1);
+    (void)transformer.forward_inference_last_logits(
+        Tensor::from_int32_vector(ids, {1, 512}).to(gpu));
+    runtime::synchronize(gpu);
+    stats = bf16_grouped_qkv_stats();
+    EXPECT_EQ(stats.plan_hits, 2U);
+    EXPECT_EQ(stats.dispatches, 4U);
+    clear_bf16_grouped_qkv_registry();
+}
+
 TEST(HipBf16PlanCacheTest, ExactShapeMissesOnceThenReusesImmutableDescriptors) {
     require_gpu();
     if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";

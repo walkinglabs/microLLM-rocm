@@ -224,6 +224,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.Bf16GroupedQkvModelsContract PROPERTIES
         LABELS "cpu;benchmark;model;inference;bf16;matmul;grouped;memory;schema")
     add_test(
+        NAME Benchmark.Bf16GroupedQkvPrewarmContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_bf16_grouped_qkv_prewarm.py
+    )
+    set_tests_properties(Benchmark.Bf16GroupedQkvPrewarmContract PROPERTIES
+        LABELS "cpu;benchmark;model;inference;bf16;grouped;latency;schema")
+    add_test(
         NAME Coverage.OperatorAndTestFiles
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/audit_test_coverage.py
     )

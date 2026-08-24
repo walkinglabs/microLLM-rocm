@@ -1,0 +1,39 @@
+{
+  "comparisons": [
+    {
+      "argument_setup_ms": 0.638167,
+      "baseline_first_ms": 4972.722535,
+      "finite_complete_logits": true,
+      "kernel_setup_ms": 208.224463,
+      "lazy_first_ms": 5744.076396,
+      "maximum_absolute_logit_difference": 0.1088097095489502,
+      "maximum_rms_logit_difference": 0.023596026489833576,
+      "model": "qwen2.5-0.5b",
+      "prewarm_ms": 915.347308,
+      "prewarm_plus_first_ms": 5767.292547,
+      "prewarmed_first_ms": 4851.945239,
+      "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987"
+    },
+    {
+      "argument_setup_ms": 1.151982,
+      "baseline_first_ms": 4992.869244,
+      "finite_complete_logits": true,
+      "kernel_setup_ms": 201.361002,
+      "lazy_first_ms": 5741.351027,
+      "maximum_absolute_logit_difference": 0.07199788093566895,
+      "maximum_rms_logit_difference": 0.012551317609247993,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "prewarm_ms": 886.464203,
+      "prewarm_plus_first_ms": 5681.141276,
+      "prewarmed_first_ms": 4794.677073,
+      "revision": "ad9f0ae0864d7fbcd1cd905e3c6c5b069cc8b562"
+    }
+  ],
+  "correctness_gate": true,
+  "decision": "keep explicit prewarm API; default remains off",
+  "raw_processes": 18,
+  "record_type": "bf16_grouped_qkv_prewarm_summary",
+  "schema_version": 1,
+  "setup_moved_before_request": true,
+  "status": "pass"
+}

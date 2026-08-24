@@ -174,7 +174,23 @@ S1，证明prefill shape是因果变量；默认B2仍因更接近PyTorch而保�
 signature和完整输出逐值一致，排除了local row/stride/KV copy错误。见
 [B2 prefill row审计](prefill-row-audit.zh-CN.md)。
 
-## 8. 测试位置
+## 8. 请求进入前的显式预热
+
+使用exact BF16 GroupedQKV时，服务可以在开放admission前调用：
+
+```cpp
+auto report = model.prewarm_bf16_grouped_qkv(512);
+```
+
+调用前必须准备BF16 Attention权重、启用QKV Arena并注册当前环境的精确算法。报告把总时间、
+grouped kernel初始化和每block device arguments准备分开。相同rows重复调用是no-op；移动模型或
+重设Arena后需要重新预热。
+
+这不是启动加速。Qwen/DeepSeek把约915/886ms移到admission前，首个已接纳请求比lazy grouped
+快892/947ms，但两段相加仍约5.7秒。scheduler只有在明确管理“准备完成→开始接客”状态时才能
+使用，普通默认路径不自动预热。
+
+## 9. 测试位置
 
 ```text
 tests/inference/scheduler_test.cpp

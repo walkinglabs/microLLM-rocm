@@ -8948,6 +8948,87 @@ def validate_bf16_grouped_qkv_expanded(
         min(speedups, default=0.0), max(speedups, default=0.0)
 
 
+def validate_bf16_grouped_qkv_prewarm(
+        errors: list[str]) -> tuple[int, float, float]:
+    data = REPOSITORY / "benchmarks/results/2026-08-24-bf16-grouped-qkv-prewarm"
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = {row.get("model"): row
+                   for row in summary.get("comparisons", [])}
+    expected = {
+        "qwen2.5-0.5b":
+            (4972.722535, 5744.076396, 915.347308, 4851.945239,
+             208.224463, 0.638167),
+        "deepseek-r1-distill-qwen-1.5b":
+            (4992.869244, 5741.351027, 886.464203, 4794.677073,
+             201.361002, 1.151982),
+    }
+    expected_tests = {
+        "cpu_debug": {"passed": 298, "total": 298},
+        "asan_ubsan": {"passed": 296, "total": 296},
+        "pytorch_enabled_cpu": {"passed": 272, "total": 272},
+        "hip_full_configuration": {
+            "passed": 467, "total": 467, "conditional_skips": 3},
+        "hip_label": {"passed": 159, "total": 159},
+        "rccl_multi_gpu": {"passed": 12, "total": 12},
+        "rccl_full_label": {"passed": 14, "total": 14},
+    }
+    counts = {(model, policy): 0 for model in expected
+              for policy in ("baseline", "lazy", "prewarm")}
+    for row in raw:
+        key = (row.get("model"), row.get("policy"))
+        if key in counts:
+            counts[key] += 1
+    if summary.get("status") != "pass" or len(raw) != 18 or \
+            summary.get("raw_processes") != 18 or \
+            summary.get("correctness_gate") is not True or \
+            summary.get("setup_moved_before_request") is not True or \
+            set(comparisons) != set(expected) or \
+            any(any(abs(float(row.get(field, 0.0)) - value) > 1.0e-6
+                    for field, value in zip(
+                        ("baseline_first_ms", "lazy_first_ms", "prewarm_ms",
+                         "prewarmed_first_ms", "kernel_setup_ms",
+                         "argument_setup_ms"), expected[name], strict=True)) or
+                row.get("finite_complete_logits") is not True or
+                row.get("prewarmed_first_ms", math.inf) >=
+                    row.get("lazy_first_ms", 0.0) or
+                abs(float(row.get("prewarm_plus_first_ms", 0.0)) -
+                    (float(row.get("prewarm_ms", 0.0)) +
+                     float(row.get("prewarmed_first_ms", 0.0)))) > 1.0e-6
+                for name, row in comparisons.items()) or \
+            any(count != 3 for count in counts.values()) or \
+            verification.get("status") != "pass" or \
+            verification.get("tests") != expected_tests or \
+            verification.get("registered_test_files") != 71 or \
+            verification.get("formal_processes") != 18 or \
+            verification.get("setup_moved_before_request") is not True:
+        errors.append("BF16 grouped QKV prewarm evidence changed")
+    header = (REPOSITORY / "include/microllm/model/model.h").read_text(
+        encoding="utf-8")
+    source = (REPOSITORY / "src/model/model.cpp").read_text(encoding="utf-8")
+    cli = (REPOSITORY / "apps/hf_infer.cpp").read_text(encoding="utf-8")
+    runner = (REPOSITORY / "benchmarks/single_gpu/"
+              "compare_bf16_grouped_qkv_prewarm.py").read_text(encoding="utf-8")
+    tests = (REPOSITORY / "tests/ops/hip_ops_test.cpp").read_text(
+        encoding="utf-8")
+    for token, document in (
+            ("Bf16GroupedQkvPrewarmReport", header),
+            ("prewarm_bf16_grouped_qkv", source),
+            ("--bf16-grouped-qkv-prewarm", cli),
+            ("prewarm_plus_first_ms", runner),
+            ("ModelPrewarmBuildsPlansBeforeFirstRequest", tests)):
+        if token not in document:
+            errors.append("BF16 grouped QKV prewarm source/test contract changed")
+            break
+    savings = [float(row["lazy_first_ms"]) -
+               float(row["prewarmed_first_ms"])
+               for row in comparisons.values()]
+    return len(raw), min(savings, default=0.0), max(savings, default=0.0)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -9446,6 +9527,8 @@ def main() -> int:
     grouped_expanded_operator, grouped_expanded_model, \
         grouped_expanded_minimum, grouped_expanded_maximum = \
         validate_bf16_grouped_qkv_expanded(errors)
+    grouped_prewarm_rows, grouped_prewarm_minimum, grouped_prewarm_maximum = \
+        validate_bf16_grouped_qkv_prewarm(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -9722,6 +9805,8 @@ def main() -> int:
           f"bf16_grouped_expanded={grouped_expanded_operator}/"
           f"{grouped_expanded_model}/{grouped_expanded_minimum:.3f}/"
           f"{grouped_expanded_maximum:.3f} "
+          f"bf16_grouped_prewarm={grouped_prewarm_rows}/"
+          f"{grouped_prewarm_minimum:.1f}/{grouped_prewarm_maximum:.1f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")
