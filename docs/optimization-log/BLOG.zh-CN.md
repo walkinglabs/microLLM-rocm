@@ -3447,3 +3447,17 @@ DeepSeek 168→112，正好每层两次；总Kernel分别快1.0787×/1.0600×。
 显式/default-off；在sequence/batch和其他GPU扩展前，不改默认。
 
 ![BTHD BF16 Q/K](assets/inference-bthd-bf16-qk.svg)
+
+## 223. Experiment 206：rows相同，不代表B1/T1024等于B2/T512
+
+我们把直接BF16 Q/K扩到B1/T256、B1/T1024、B2/T512。后两者的GEMM rows都是1024，
+但Attention shape和batch导出不同，所以必须分开测。
+
+三进程pilot有五项通过，Qwen B2/T512只有1.0091×。固定门没有降；扩大到五进程后，六项为
+1.0128×–1.0244×。60个正式进程全部logits bit-exact，B2两行top-1相同，peak不变，
+retained dispatch逐项等于block数乘7次forward。
+
+这关闭了当前cast边界的shape扩展。策略继续显式/default-off；下一步回到profile里尚未处理的
+causal softmax，而不是把一个gfx942结果自动推广到所有AMD GPU。
+
+![BTHD BF16 Q/K shape matrix](assets/inference-bthd-bf16-qk-shapes.svg)

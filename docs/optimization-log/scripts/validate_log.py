@@ -10414,6 +10414,113 @@ def validate_inference_bthd_bf16_qk(
     return len(initial_raw), len(formal_raw), min(ratios), max(ratios), casts
 
 
+def validate_inference_bthd_bf16_qk_shapes(
+        errors: list[str]) -> tuple[int, int, float, float, int]:
+    pilot_dir = REPOSITORY / (
+        "benchmarks/results/2026-08-24-inference-bthd-bf16-qk-shapes-pilot3")
+    formal_dir = REPOSITORY / (
+        "benchmarks/results/2026-08-24-inference-bthd-bf16-qk-shapes-formal5")
+    pilot = json.loads((pilot_dir / "summary.json").read_text(encoding="utf-8"))
+    formal = json.loads((formal_dir / "summary.json").read_text(encoding="utf-8"))
+    pilot_raw = [json.loads(line) for line in (pilot_dir / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    formal_raw = [json.loads(line) for line in (formal_dir / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    pilot_verification = json.loads((pilot_dir / "verification.json").read_text(
+        encoding="utf-8"))
+    formal_verification = json.loads((formal_dir / "verification.json").read_text(
+        encoding="utf-8"))
+    rows = {(row.get("model"), row.get("case")): row
+            for row in formal.get("comparisons", [])}
+    expected = {
+        ("qwen2.5-0.5b", "b1t256"):
+            (76738.935759259, 78609.853524049, 1.02438029334495),
+        ("qwen2.5-0.5b", "b1t1024"):
+            (125896.16492496, 127632.634986718, 1.0137928749679788),
+        ("qwen2.5-0.5b", "b2t512"):
+            (152932.15902543, 154883.210496629, 1.0127576271964784),
+        ("deepseek-r1-distill-qwen-1.5b", "b1t256"):
+            (40106.206247419, 40861.120012238, 1.0188228664701384),
+        ("deepseek-r1-distill-qwen-1.5b", "b1t1024"):
+            (68935.173322616, 69983.221659293, 1.0152033901731434),
+        ("deepseek-r1-distill-qwen-1.5b", "b2t512"):
+            (74101.328182365, 75542.246152786, 1.019445238105245),
+    }
+    fields = ("fp32_boundary_tokens_per_second",
+              "bf16_qk_tokens_per_second", "speedup")
+    values_ok = set(rows) == set(expected) and all(
+        all(abs(float(rows[key].get(field, 0.0)) - value) <= 1.0e-6
+            for field, value in zip(fields, expected[key], strict=True)) and
+        rows[key].get("finite_complete_logits") is True and
+        rows[key].get("top_rows_equal") is True and
+        float(rows[key].get("maximum_absolute_logit_difference", 1.0)) == 0 and
+        float(rows[key].get("maximum_rms_logit_difference", 1.0)) == 0 and
+        float(rows[key].get("peak_ratio", 0.0)) == 1.0
+        for key in expected)
+    tests = {
+        "cpu_debug": {"passed": 312, "total": 312},
+        "asan_ubsan": {"passed": 310, "total": 310},
+        "pytorch_enabled_cpu": {"passed": 286, "total": 286},
+        "hip_full_configuration": {
+            "passed": 485, "total": 485, "conditional_skips": 3},
+        "hip_label": {"passed": 163, "total": 163},
+        "rccl_multi_gpu": {"passed": 12, "total": 12},
+        "rccl_full_label": {"passed": 14, "total": 14},
+    }
+    if pilot.get("status") != "pass" or len(pilot_raw) != 36 or \
+            pilot.get("processes") != 36 or \
+            pilot.get("correctness_gate") is not True or \
+            pilot.get("routing_gate") is not True or \
+            pilot.get("performance_gate") is not False or \
+            pilot.get("memory_gate") is not True or \
+            formal.get("status") != "pass" or len(formal_raw) != 60 or \
+            formal.get("processes") != 60 or \
+            any(formal.get(gate) is not True for gate in (
+                "correctness_gate", "routing_gate", "performance_gate",
+                "memory_gate")) or not values_ok or \
+            pilot_verification.get("status") != "pass" or \
+            pilot_verification.get("registered_test_files") != 84 or \
+            formal_verification.get("status") != "pass" or \
+            formal_verification.get("registered_test_files") != 84 or \
+            formal_verification.get("tests") != tests:
+        errors.append("inference BTHD BF16 Q/K shape evidence changed")
+    cases = ("b1t256", "b1t1024", "b2t512")
+    models = ("qwen2.5-0.5b", "deepseek-r1-distill-qwen-1.5b")
+    for raw, runs in ((pilot_raw, 3), (formal_raw, 5)):
+        counts = {(model, case, policy): 0 for model in models for case in cases
+                  for policy in ("fp32-boundary", "bf16-qk")}
+        for row in raw:
+            key = (row.get("model"), row.get("case"), row.get("policy"))
+            if key in counts:
+                counts[key] += 1
+            blocks = 24 if row.get("model") == "qwen2.5-0.5b" else 28
+            expected_dispatches = blocks * 7
+            expected_retained = (expected_dispatches
+                                 if row.get("policy") == "bf16-qk" else 0)
+            if int(row.get("bf16_grouped_qkv_dispatches", -1)) != \
+                    expected_dispatches or int(row.get(
+                        "bf16_grouped_qkv_retained_query_key_dispatches", -1)) != \
+                    expected_retained:
+                errors.append("BTHD BF16 Q/K shape dispatch changed")
+                break
+        if any(count != runs for count in counts.values()):
+            errors.append("BTHD BF16 Q/K shape process matrix changed")
+    runner = (REPOSITORY / "benchmarks/single_gpu/"
+              "compare_inference_bthd_bf16_qk_shapes.py").read_text(
+                  encoding="utf-8")
+    contract = (REPOSITORY / "python/tests/"
+                "test_inference_bthd_bf16_qk_shapes.py").read_text(
+                    encoding="utf-8")
+    for token, document in (("b2t512", runner), ("row_top", runner),
+                            ("retained_query_key_dispatches", runner),
+                            ("processes", contract)):
+        if token not in document:
+            errors.append("BTHD BF16 Q/K shape runner/test contract changed")
+            break
+    ratios = [float(row["speedup"]) for row in rows.values()]
+    return len(pilot_raw), len(formal_raw), min(ratios), max(ratios), len(rows)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -10597,7 +10704,8 @@ def validate_assets(errors: list[str]) -> None:
                  "inference-bthd-attention.svg",
                  "inference-bthd-shape-models.svg",
                  "inference-bthd-profile.svg",
-                 "inference-bthd-bf16-qk.svg"):
+                 "inference-bthd-bf16-qk.svg",
+                 "inference-bthd-bf16-qk-shapes.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -10965,6 +11073,10 @@ def main() -> int:
     bthd_bf16_initial, bthd_bf16_formal, bthd_bf16_minimum, \
         bthd_bf16_maximum, bthd_bf16_casts = \
         validate_inference_bthd_bf16_qk(errors)
+    bthd_bf16_shape_pilot, bthd_bf16_shape_formal, \
+        bthd_bf16_shape_minimum, bthd_bf16_shape_maximum, \
+        bthd_bf16_shape_cases = \
+        validate_inference_bthd_bf16_qk_shapes(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -11282,6 +11394,9 @@ def main() -> int:
           f"inference_bthd_bf16_qk={bthd_bf16_initial}/"
           f"{bthd_bf16_formal}/{bthd_bf16_minimum:.3f}/"
           f"{bthd_bf16_maximum:.3f}/{bthd_bf16_casts} "
+          f"inference_bthd_bf16_qk_shapes={bthd_bf16_shape_pilot}/"
+          f"{bthd_bf16_shape_formal}/{bthd_bf16_shape_minimum:.3f}/"
+          f"{bthd_bf16_shape_maximum:.3f}/{bthd_bf16_shape_cases} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

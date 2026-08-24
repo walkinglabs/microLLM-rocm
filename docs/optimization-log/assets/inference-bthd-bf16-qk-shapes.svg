@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="620" viewBox="0 0 1120 620" role="img" aria-labelledby="title desc">
+  <title id="title">BTHD direct BF16 Q/K sequence and batch matrix</title>
+  <desc id="desc">Five-process throughput speedups for Qwen and DeepSeek across B1 T256, B1 T1024 and B2 T512.</desc>
+  <rect width="1120" height="620" fill="#0b1020"/>
+  <text x="55" y="48" fill="#f8fafc" font-family="sans-serif" font-size="28" font-weight="700">Experiment 206 · direct BF16 Q/K shape matrix</text>
+  <text x="55" y="78" fill="#94a3b8" font-family="sans-serif" font-size="15">five fresh processes per policy · complete logits bit-exact · peak unchanged</text>
+  <line x1="110" y1="500" x2="1060" y2="500" stroke="#64748b" stroke-width="2"/>
+  <line x1="110" y1="420" x2="1060" y2="420" stroke="#334155" stroke-dasharray="6 6"/>
+  <text x="60" y="425" fill="#94a3b8" font-family="monospace" font-size="13">1.01×</text>
+  <text x="165" y="545" fill="#cbd5e1" font-family="sans-serif" font-size="14" text-anchor="middle">Q B1/T256</text>
+  <rect x="120" y="305" width="90" height="195" rx="7" fill="#34d399"/>
+  <text x="165" y="290" fill="#a7f3d0" font-family="monospace" font-size="14" text-anchor="middle">1.0244×</text>
+  <text x="325" y="545" fill="#cbd5e1" font-family="sans-serif" font-size="14" text-anchor="middle">Q B1/T1024</text>
+  <rect x="280" y="390" width="90" height="110" rx="7" fill="#34d399"/>
+  <text x="325" y="375" fill="#a7f3d0" font-family="monospace" font-size="14" text-anchor="middle">1.0138×</text>
+  <text x="485" y="545" fill="#cbd5e1" font-family="sans-serif" font-size="14" text-anchor="middle">Q B2/T512</text>
+  <rect x="440" y="398" width="90" height="102" rx="7" fill="#34d399"/>
+  <text x="485" y="383" fill="#a7f3d0" font-family="monospace" font-size="14" text-anchor="middle">1.0128×</text>
+  <text x="645" y="545" fill="#cbd5e1" font-family="sans-serif" font-size="14" text-anchor="middle">D B1/T256</text>
+  <rect x="600" y="349" width="90" height="151" rx="7" fill="#22d3ee"/>
+  <text x="645" y="334" fill="#a5f3fc" font-family="monospace" font-size="14" text-anchor="middle">1.0188×</text>
+  <text x="805" y="545" fill="#cbd5e1" font-family="sans-serif" font-size="14" text-anchor="middle">D B1/T1024</text>
+  <rect x="760" y="378" width="90" height="122" rx="7" fill="#22d3ee"/>
+  <text x="805" y="363" fill="#a5f3fc" font-family="monospace" font-size="14" text-anchor="middle">1.0152×</text>
+  <text x="965" y="545" fill="#cbd5e1" font-family="sans-serif" font-size="14" text-anchor="middle">D B2/T512</text>
+  <rect x="920" y="344" width="90" height="156" rx="7" fill="#22d3ee"/>
+  <text x="965" y="329" fill="#a5f3fc" font-family="monospace" font-size="14" text-anchor="middle">1.0194×</text>
+  <text x="55" y="590" fill="#94a3b8" font-family="sans-serif" font-size="13">Pilot Qwen B2/T512 1.0091× failed the gate; five-process rerun passed without changing the threshold.</text>
+</svg>

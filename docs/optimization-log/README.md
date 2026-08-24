@@ -774,6 +774,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/204-inference-bthd-profile.md](experiments/204-inference-bthd-profile.md) | 四trace、strided归零与cast候选 |
 | [assets/inference-bthd-bf16-qk.svg](assets/inference-bthd-bf16-qk.svg) | 五进程整模收益与cast删除证据 |
 | [experiments/205-inference-bthd-bf16-qk.md](experiments/205-inference-bthd-bf16-qk.md) | BF16 Q/K直入融合RoPE；三进程反例与五进程正式门 |
+| [assets/inference-bthd-bf16-qk-shapes.svg](assets/inference-bthd-bf16-qk-shapes.svg) | 两模型三case五进程收益与1.01门 |
+| [experiments/206-inference-bthd-bf16-qk-shapes.md](experiments/206-inference-bthd-bf16-qk-shapes.md) | B1/T256、B1/T1024、B2/T512完整矩阵 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

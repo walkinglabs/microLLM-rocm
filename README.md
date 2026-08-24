@@ -224,6 +224,10 @@ the chronological details are in the [optimization log](docs/optimization-log/RE
   T512 forward; five-process Qwen/DeepSeek medians improve 1.0224×/1.0238× with
   bit-exact complete logits and unchanged peak, while an earlier three-process DeepSeek
   window at 1.0068× is retained as the reason the policy stays explicit/default-off;
+- the direct BF16 Q/K path also passes B1/T256, B1/T1024 and B2/T512 for both
+  official models: five-process speedups span 1.0128×–1.0244× with bit-exact
+  per-row logits and unchanged peak; a three-process Qwen B2 result at 1.0091×
+  remains the published small-signal counterexample;
 - a phase-independent exact-size HIP pool with immediate legacy-default-Stream reuse and strict
   permanent disablement for non-default Streams;
 - a cross-framework trace runner for operator/layer values and latency comparisons.
@@ -535,13 +539,13 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 484/484 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
-| CPU Debug | 311/311 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
-| ASan/UBSan CPU | 309/309 | host lifetime, external Storage and instrumented-package linking |
+| Full CPU/HIP configuration | 485/485 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
+| CPU Debug | 312/312 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
+| ASan/UBSan CPU | 310/310 | host lifetime, external Storage and instrumented-package linking |
 | MI300X/gfx942 HIP label | 163/163 | allocator/arena/Stream/Graph, grouped/exact vendor solutions, BF16/FP8 and model paths |
-| PyTorch-enabled CPU build | 285/285 | dispatcher parity, full graph/model oracle and all package paths |
+| PyTorch-enabled CPU build | 286/286 | dispatcher parity, full graph/model oracle and all package paths |
 | Multi-GPU/RCCL | 12/12 | collectives, global-batch equivalence, gradient buckets, DDP trainer/CLI and per-device hipBLASLt ownership |
-| Registered test files | 83 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| Registered test files | 84 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
 | CPU source coverage | 80.4% lines / 89.3% functions / 61.4% branches | 7,782/9,678 lines; GCC 13.3 + gcovr 8.3 |
 

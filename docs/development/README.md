@@ -3,6 +3,7 @@
 - [2026-08-24: Public CMake package consumer](2026-08-24-public-cmake-consumer.md)
 - [2026-08-24: CMake SDK and README cleanup](2026-08-24-cmake-sdk-readme.md)
 - [2026-08-24: Direct BF16 Q/K into BTHD Attention](2026-08-24-inference-bthd-bf16-qk.md)
+- [2026-08-24: Direct BF16 Q/K shape expansion](2026-08-24-inference-bthd-bf16-qk-shapes.md)
 
 This directory is the chronological record requested for the main repository.
 Each milestone records scope, decisions, commands, evidence, known failures, and

@@ -316,6 +316,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.InferenceBthdBf16QkContract PROPERTIES
         LABELS "cpu;benchmark;model;inference;attention;bf16;matmul;grouped;memory;layout;schema")
     add_test(
+        NAME Benchmark.InferenceBthdBf16QkShapesContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_inference_bthd_bf16_qk_shapes.py
+    )
+    set_tests_properties(Benchmark.InferenceBthdBf16QkShapesContract PROPERTIES
+        LABELS "cpu;benchmark;model;inference;attention;bf16;matmul;grouped;memory;layout;shape;batch;schema")
+    add_test(
         NAME Benchmark.InferenceBthdShapeModelsContract
         COMMAND ${Python3_EXECUTABLE}
                 ${PROJECT_SOURCE_DIR}/python/tests/test_inference_bthd_shape_models.py

@@ -30,8 +30,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] let the fused BTHD bias+RoPE Kernel consume exact grouped BF16 Q/K directly,
   deleting 48/56 T512 casts with bit-exact official logits and 1.0224x/1.0238x
   five-process model speedups;
-- [ ] expand direct BF16 Q/K to the already-supported B1/T256, B1/T1024 and B2/T512
-  matrix before changing its explicit/default-off status;
+- [x] expand direct BF16 Q/K to B1/T256, B1/T1024 and B2/T512: six
+  five-process cases pass at 1.0128x–1.0244x with bit-exact per-row logits;
+- [ ] re-profile and optimize the causal-softmax T512 row Kernel now that layout and
+  Q/K cast boundaries are closed;
 - [x] populate B1 KV cache from one full-sequence prefill instead of token replay;
 - [x] support batched cached decode with batch-aware KV Storage;
 - [x] add opt-in BF16 KV Storage with FP32 accumulation, complete-logit gates and a retained

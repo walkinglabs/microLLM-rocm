@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "registered_test_files": 84,
+  "processes": 36,
+  "comparisons": 6,
+  "correctness_gate": true,
+  "routing_gate": true,
+  "performance_gate": false,
+  "memory_gate": true
+}

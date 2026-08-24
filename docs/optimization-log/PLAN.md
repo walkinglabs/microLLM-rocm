@@ -57,6 +57,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [26](steps/26-inference-bthd-shape-models.md) | complete | BTHD sequence/batch矩阵 | 六case 1.0852×–1.1421× |
 | [27](steps/27-inference-bthd-profile.md) | complete | BTHD后phase profile | strided=0；下一步BF16 Q/K RoPE |
 | [28](steps/28-inference-bthd-bf16-qk.md) | complete | grouped BF16 Q/K直入融合RoPE | 少48/56次cast；T512 1.0224×/1.0238× |
+| [29](steps/29-inference-bthd-bf16-qk-shapes.md) | complete | BF16 Q/K sequence/batch矩阵 | 六case 1.0128×–1.0244×；pilot反例保留 |
 
 ## 为什么按这个顺序
 

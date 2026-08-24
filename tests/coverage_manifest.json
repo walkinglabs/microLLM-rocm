@@ -322,6 +322,7 @@
     "python/tests/test_hf_strided_copy_sources.py",
     "python/tests/test_inference_bthd_attention.py",
     "python/tests/test_inference_bthd_bf16_qk.py",
+    "python/tests/test_inference_bthd_bf16_qk_shapes.py",
     "python/tests/test_inference_bthd_shape_models.py",
     "python/tests/test_hf_fp8_layer_drift.py",
     "python/tests/test_hf_fp8_block_detail.py",
