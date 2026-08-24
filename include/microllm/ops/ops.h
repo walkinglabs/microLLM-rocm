@@ -98,6 +98,7 @@ struct Bf16GroupedQkvStats {
     std::size_t plan_hits = 0;
     std::size_t plan_misses = 0;
     std::size_t dispatches = 0;
+    std::size_t retained_query_key_dispatches = 0;
     double kernel_setup_ms = 0.0;
     double argument_setup_ms = 0.0;
 };
@@ -300,12 +301,14 @@ void bf16_ffn_out_(Tensor& output_fp32, Bf16FfnWorkspace& workspace,
     const Tensor& input_fp32, const Tensor& query_weight_bf16,
     const Tensor& key_weight_bf16, const Tensor& value_weight_bf16,
     const OpContext& context = {});
-void bf16_qkv_projection_out_(
+// Returns true only when query/key remain in the caller's BF16 fallback tensors.
+// Value and all non-grouped fallbacks are always materialized in the FP32 outputs.
+bool bf16_qkv_projection_out_(
     Tensor& query_output_fp32, Tensor& key_output_fp32,
     Tensor& value_output_fp32, Bf16QkvWorkspace& workspace,
     const Tensor& input_fp32, const Tensor& query_weight_bf16,
     const Tensor& key_weight_bf16, const Tensor& value_weight_bf16,
-    const OpContext& context = {});
+    const OpContext& context = {}, bool retain_query_key_bf16 = false);
 
 void fill_(Tensor& tensor, float value, const OpContext& context = {});
 void adamw_update_(Tensor& parameter, const Tensor& gradient,
@@ -391,6 +394,8 @@ void enable_attention_gqa_forward_value_broadcast(bool enabled) noexcept;
 [[nodiscard]] bool attention_gqa_forward_value_broadcast_enabled() noexcept;
 void enable_inference_bthd_attention(bool enabled) noexcept;
 [[nodiscard]] bool inference_bthd_attention_enabled() noexcept;
+void enable_inference_bthd_bf16_qk(bool enabled) noexcept;
+[[nodiscard]] bool inference_bthd_bf16_qk_enabled() noexcept;
 void register_bf16_algorithm(std::int64_t rows, std::int64_t inner,
                              std::int64_t columns, DType output_dtype,
                              int solution_index);
@@ -480,7 +485,8 @@ void swiglu_out_(Tensor& output, const Tensor& gate, const Tensor& up,
                                           std::int64_t position_offset = 0,
                                           float base = 10000.0F,
                                           const OpContext& context = {});
-// Reads a contiguous projection in [B,T,H,D] order, adds [H*D] bias and writes
+// Reads a contiguous FP32 or BF16 projection in [B,T,H,D] order, adds
+// [H*D] bias and writes
 // the rotated result directly in the [B,H,T,D] order consumed by Attention.
 // The layout conversion is part of the operator: no transpose materialization is
 // required before the call.

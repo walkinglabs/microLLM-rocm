@@ -527,8 +527,9 @@ __global__ void rope_split_half_bias_kernel(
     output[second] = first_value * sine + second_value * cosine;
 }
 
+template <typename Input>
 __global__ void rope_split_half_bias_bthd_kernel(
-    const float* input, const float* bias, float* output, std::int64_t pairs,
+    const Input* input, const float* bias, float* output, std::int64_t pairs,
     std::int64_t sequence_size, std::int64_t heads, std::int64_t head_width,
     std::int64_t position_offset, float base) {
     const auto pair_index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x +
@@ -557,8 +558,10 @@ __global__ void rope_split_half_bias_bthd_kernel(
     float sine = 0.0F;
     float cosine = 0.0F;
     sincosf(angle, &sine, &cosine);
-    const auto first_value = input[input_first] + bias[bias_first];
-    const auto second_value = input[input_second] + bias[bias_second];
+    const auto first_value =
+        load_as_float(input[input_first]) + bias[bias_first];
+    const auto second_value =
+        load_as_float(input[input_second]) + bias[bias_second];
     output[output_first] = first_value * cosine - second_value * sine;
     output[output_second] = first_value * sine + second_value * cosine;
 }
@@ -3006,16 +3009,29 @@ void launch_rope_split_half_bias(const float* input, const float* bias, float* o
 }
 
 void launch_rope_split_half_bias_bthd(
-    const float* input, const float* bias, float* output,
+    const void* input, DType input_dtype, const float* bias, float* output,
     std::int64_t batches, std::int64_t sequence_size, std::int64_t heads,
     std::int64_t head_width, std::int64_t position_offset, float base,
     void* stream) {
     const auto pairs = batches * sequence_size * heads * head_width / 2;
     if (pairs == 0) return;
-    hipLaunchKernelGGL(rope_split_half_bias_bthd_kernel,
-                       dim3(grid_size(pairs)), dim3(kBlockSize), 0,
-                       as_stream(stream), input, bias, output, pairs,
-                       sequence_size, heads, head_width, position_offset, base);
+    if (input_dtype == DType::Float32) {
+        hipLaunchKernelGGL((rope_split_half_bias_bthd_kernel<float>),
+                           dim3(grid_size(pairs)), dim3(kBlockSize), 0,
+                           as_stream(stream), static_cast<const float*>(input),
+                           bias, output, pairs, sequence_size, heads,
+                           head_width, position_offset, base);
+    } else if (input_dtype == DType::BFloat16) {
+        hipLaunchKernelGGL((rope_split_half_bias_bthd_kernel<hip_bfloat16>),
+                           dim3(grid_size(pairs)), dim3(kBlockSize), 0,
+                           as_stream(stream),
+                           static_cast<const hip_bfloat16*>(input),
+                           bias, output, pairs, sequence_size, heads,
+                           head_width, position_offset, base);
+    } else {
+        throw std::invalid_argument(
+            "rope_split_half_bias_bthd input must be FP32 or BF16");
+    }
     check_launch("rope_split_half_bias_bthd_kernel");
 }
 

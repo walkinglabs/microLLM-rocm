@@ -3431,3 +3431,19 @@ Q/K grouped输出BF16后立刻转FP32，再进入bias+RoPE融合。下一最小�
 每层少两次cast；V暂时不改，避免一次改变两种精度边界。
 
 ![Post-BTHD profile](assets/inference-bthd-profile.svg)
+
+## 222. Experiment 205：删掉目标cast以后，三进程仍可能给错结论
+
+GroupedGemm已经把Q/K写成BF16，但旧路径先转FP32，融合bias+RoPE再读回来。新路径只在精确
+grouped计划命中时把Q/K fallback直接交给融合Kernel；V、Attention输出、cache和训练都不改。
+任何miss都会返回原FP32边界，不让性能策略变成隐式精度策略。
+
+算子、两层整模和官方完整logits都位级一致。第一次三进程中，Qwen快1.0227×，DeepSeek只有
+1.0068×，所以按1.01门应当拒绝。Phase trace却显示目标工作确实消失：Qwen cast 144→96，
+DeepSeek 168→112，正好每层两次；总Kernel分别快1.0787×/1.0600×。
+
+因为收益只有约2%，我们没有用profile替代端到端门，而是把独立进程扩大到五个。新中位数为
+1.0224×/1.0238×，两模型通过，peak不变。三进程失败仍作为噪声反例保留。策略因此keep为
+显式/default-off；在sequence/batch和其他GPU扩展前，不改默认。
+
+![BTHD BF16 Q/K](assets/inference-bthd-bf16-qk.svg)

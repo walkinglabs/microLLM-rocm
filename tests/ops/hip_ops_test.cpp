@@ -531,7 +531,13 @@ TEST(HipBf16ProjectionTest, GroupedQkvCachesExactPointerStablePlan) {
         candidate_workspace, input, query_weight, key_weight,
         value_weight);
     runtime::synchronize(gpu);
+    const auto retained_query_key = bf16_qkv_projection_out_(
+        candidate_query, candidate_key, candidate_value,
+        candidate_workspace, input, query_weight, key_weight,
+        value_weight, {}, true);
+    runtime::synchronize(gpu);
     const auto stats = bf16_grouped_qkv_stats();
+    EXPECT_TRUE(retained_query_key);
     EXPECT_EQ(stats.registered_entries, 1U);
     EXPECT_EQ(stats.algorithm_entries, 1U);
     EXPECT_EQ(stats.algorithm_misses, 1U);
@@ -541,14 +547,19 @@ TEST(HipBf16ProjectionTest, GroupedQkvCachesExactPointerStablePlan) {
     EXPECT_EQ(stats.kernel_hits, 0U);
     EXPECT_EQ(stats.plan_entries, 1U);
     EXPECT_EQ(stats.plan_misses, 1U);
-    EXPECT_EQ(stats.plan_hits, 1U);
-    EXPECT_EQ(stats.dispatches, 2U);
+    EXPECT_EQ(stats.plan_hits, 2U);
+    EXPECT_EQ(stats.dispatches, 3U);
+    EXPECT_EQ(stats.retained_query_key_dispatches, 1U);
     const auto transfers = runtime::transfer_stats();
     EXPECT_EQ(transfers.host_to_device_calls, 0U);
     EXPECT_EQ(transfers.device_to_host_calls, 0U);
     expect_near(candidate_query.to_vector(), baseline_query.to_vector(), 1.0e-2F);
     expect_near(candidate_key.to_vector(), baseline_key.to_vector(), 1.0e-2F);
     expect_near(candidate_value.to_vector(), baseline_value.to_vector(), 1.0e-2F);
+    expect_near(candidate_workspace.query_fallback_bf16.to_vector(),
+                candidate_query.to_vector(), 0.0F);
+    expect_near(candidate_workspace.key_fallback_bf16.to_vector(),
+                candidate_key.to_vector(), 0.0F);
     clear_bf16_grouped_qkv_registry();
     EXPECT_EQ(bf16_grouped_qkv_stats().registered_entries, 0U);
 }
@@ -689,6 +700,56 @@ TEST(HipInferenceBthdAttentionTest,
     runtime::enable_strided_copy_diagnostics(false);
     runtime::reset_strided_copy_diagnostics();
     enable_inference_bthd_attention(false);
+}
+
+TEST(HipInferenceBthdAttentionTest,
+     RetainsGroupedQueryKeyInBf16AndMatchesFp32Boundary) {
+    require_gpu();
+    if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";
+    const auto gpu = Device::hip(0);
+    if (!runtime::device_info(gpu).architecture.starts_with("gfx942") ||
+        hipblaslt_version() != 10300) {
+        GTEST_SKIP() << "recorded grouped solution is local to gfx942 hipBLASLt 1.3.0";
+    }
+    model::ModelConfig config;
+    config.vocabulary_size = 16;
+    config.dimension = 896;
+    config.layers = 2;
+    config.heads = 14;
+    config.kv_heads = 2;
+    config.ffn_dimension = 256;
+    config.max_sequence_length = 512;
+    config.tie_embeddings = true;
+    config.attention_bias = true;
+    config.rope_layout = model::RopeLayout::SplitHalf;
+    model::TransformerModel transformer(config, 191);
+    transformer.to(gpu);
+    (void)transformer.prepare_bf16_attention_inference();
+    transformer.set_bf16_qkv_arena_enabled(true, 512);
+    clear_bf16_grouped_qkv_registry();
+    const auto grouped_key = make_bf16_grouped_qkv_key(
+        512, 896, 896, 128, 128, gpu);
+    register_bf16_grouped_qkv_algorithm(grouped_key, 64699);
+    const auto input = Tensor::from_int32_vector(
+        std::vector<std::int32_t>(512, 1), {1, 512}).to(gpu);
+
+    enable_inference_bthd_attention(true);
+    enable_inference_bthd_bf16_qk(false);
+    const auto baseline = transformer.forward_inference_last_logits(input);
+    runtime::synchronize(gpu);
+    EXPECT_EQ(bf16_grouped_qkv_stats().retained_query_key_dispatches, 0U);
+
+    enable_inference_bthd_bf16_qk(true);
+    const auto candidate = transformer.forward_inference_last_logits(input);
+    runtime::synchronize(gpu);
+    const auto stats = bf16_grouped_qkv_stats();
+    EXPECT_EQ(stats.dispatches, 4U);
+    EXPECT_EQ(stats.retained_query_key_dispatches, 2U);
+    expect_near(candidate.to_vector(), baseline.to_vector(), 0.0F);
+
+    enable_inference_bthd_bf16_qk(false);
+    enable_inference_bthd_attention(false);
+    clear_bf16_grouped_qkv_registry();
 }
 
 TEST(HipBf16ProjectionTest, ModelPrewarmBuildsPlansBeforeFirstRequest) {
@@ -2529,12 +2590,18 @@ TEST(HipOpsTest, RopeAndCrossEntropyMatchCpuReference) {
         bthd_input, fused_bias, 7, 5000.0F);
     const auto expected_bthd_backward = rope_split_half_bias_bthd_backward(
         bthd_gradient, 7, 5000.0F);
+    const auto expected_bthd_bf16 = rope_split_half_bias_bthd(
+        bthd_input.cast(DType::BFloat16), fused_bias, 7, 5000.0F);
     const auto device_bthd = bthd_input.to(Device::hip());
+    const auto device_bthd_bf16 =
+        bthd_input.cast(DType::BFloat16).to(Device::hip());
     const auto device_bias = fused_bias.to(Device::hip());
     const auto device_gradient = bthd_gradient.to(Device::hip());
     runtime::reset_transfer_stats();
     const auto actual_bthd = rope_split_half_bias_bthd(
         device_bthd, device_bias, 7, 5000.0F);
+    const auto actual_bthd_bf16 = rope_split_half_bias_bthd(
+        device_bthd_bf16, device_bias, 7, 5000.0F);
     const auto actual_bthd_backward = rope_split_half_bias_bthd_backward(
         device_gradient, 7, 5000.0F);
     runtime::synchronize(Device::hip());
@@ -2542,6 +2609,8 @@ TEST(HipOpsTest, RopeAndCrossEntropyMatchCpuReference) {
     EXPECT_EQ(transfers.host_to_device_calls, 0U);
     EXPECT_EQ(transfers.device_to_host_calls, 0U);
     expect_near(actual_bthd.to_vector(), expected_bthd.to_vector(), 2.0e-5F);
+    expect_near(actual_bthd_bf16.to_vector(),
+                expected_bthd_bf16.to_vector(), 2.0e-5F);
     expect_near(actual_bthd_backward.to_vector(),
                 expected_bthd_backward.to_vector(), 2.0e-5F);
 

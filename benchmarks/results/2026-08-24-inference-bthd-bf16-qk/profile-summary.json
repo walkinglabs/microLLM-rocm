@@ -1,0 +1,43 @@
+{
+  "cast_elimination_gate": true,
+  "comparisons": [
+    {
+      "baseline_cast_calls": 144.0,
+      "baseline_cast_ns": 639242.0,
+      "baseline_rope_ns": 215538.4,
+      "baseline_total_kernel_ns": 5128389.0,
+      "bf16_qk_cast_calls": 96.0,
+      "bf16_qk_cast_ns": 334101.0,
+      "bf16_qk_rope_ns": 183698.8,
+      "bf16_qk_total_kernel_ns": 4754117.4,
+      "cast_calls_removed": 48.0,
+      "cast_ns_saved": 305141.0,
+      "expected_cast_calls_removed": 48,
+      "model": "qwen2.5-0.5b",
+      "total_kernel_speedup": 1.0787257798892387
+    },
+    {
+      "baseline_cast_calls": 168.0,
+      "baseline_cast_ns": 926838.0,
+      "baseline_rope_ns": 323426.8,
+      "baseline_total_kernel_ns": 9463387.6,
+      "bf16_qk_cast_calls": 112.0,
+      "bf16_qk_cast_ns": 513776.4,
+      "bf16_qk_rope_ns": 317043.4,
+      "bf16_qk_total_kernel_ns": 8927681.0,
+      "cast_calls_removed": 56.0,
+      "cast_ns_saved": 413061.6,
+      "expected_cast_calls_removed": 56,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "total_kernel_speedup": 1.0600051233909455
+    }
+  ],
+  "decision": "keep explicit BTHD BF16 Q/K policy",
+  "derived_forwards": 20,
+  "formal_performance_gate": true,
+  "kernel_performance_gate": true,
+  "profile_processes": 8,
+  "record_type": "inference_bthd_bf16_qk_profile_summary",
+  "schema_version": 1,
+  "status": "pass"
+}

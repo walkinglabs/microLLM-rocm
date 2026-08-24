@@ -893,6 +893,10 @@ private:
     float epsilon_ = 1.0e-5F;
 };
 
+struct Bf16ProjectionResult {
+    ops::TensorTriple values;
+};
+
 class Attention {
 public:
     Attention(const ModelConfig& config, std::mt19937_64& generator,
@@ -998,28 +1002,31 @@ public:
             runtime::ScopedAllocationSource allocation_source(
                 runtime::AllocationSource::AttentionProjection);
             if (query_.weight_data().dtype() == DType::BFloat16) {
+                const auto retain_bf16_qk =
+                    bthd_attention &&
+                    ops::inference_bthd_bf16_qk_enabled();
                 const auto projections = bf16_projection(
                     flat, query_.weight_data(), key_.weight_data(),
-                    value_.weight_data());
+                    value_.weight_data(), retain_bf16_qk);
                 query_projection = bthd_attention
-                                       ? projections.first
+                                       ? projections.values.first
                                        : query_.has_bias()
                                        ? ops::add_bias(
-                                             projections.first,
+                                             projections.values.first,
                                              query_.bias().data())
-                                       : projections.first;
+                                       : projections.values.first;
                 key_projection = bthd_attention
-                                     ? projections.second
+                                     ? projections.values.second
                                      : key_.has_bias()
                                      ? ops::add_bias(
-                                           projections.second,
+                                           projections.values.second,
                                            key_.bias().data())
-                                     : projections.second;
+                                     : projections.values.second;
                 value_projection = value_.has_bias()
                                        ? ops::add_bias(
-                                             projections.third,
+                                             projections.values.third,
                                              value_.bias().data())
-                                       : projections.third;
+                                       : projections.values.third;
             } else if (query_.shares_dynamic_activation() &&
                        key_.shares_dynamic_activation() &&
                        value_.shares_dynamic_activation()) {
@@ -1142,20 +1149,27 @@ public:
         Tensor value_projection;
         if (query_.weight_data().dtype() == DType::BFloat16) {
             const auto projections = bf16_projection(
-                flat, query_.weight_data(), key_.weight_data(), value_.weight_data());
+                flat, query_.weight_data(), key_.weight_data(),
+                value_.weight_data());
             query_projection = fuse_query_bias
-                                   ? projections.first
+                                   ? projections.values.first
                                    : query_.has_bias()
-                                         ? ops::add_bias(projections.first, query_.bias().data())
-                                         : projections.first;
+                                         ? ops::add_bias(
+                                               projections.values.first,
+                                               query_.bias().data())
+                                         : projections.values.first;
             key_projection = fuse_key_bias
-                                 ? projections.second
+                                 ? projections.values.second
                                  : key_.has_bias()
-                                       ? ops::add_bias(projections.second, key_.bias().data())
-                                       : projections.second;
+                                       ? ops::add_bias(
+                                             projections.values.second,
+                                             key_.bias().data())
+                                       : projections.values.second;
             value_projection = value_.has_bias()
-                                   ? ops::add_bias(projections.third, value_.bias().data())
-                                   : projections.third;
+                                   ? ops::add_bias(
+                                         projections.values.third,
+                                         value_.bias().data())
+                                   : projections.values.third;
         } else {
             query_projection = fuse_query_bias ? query_.forward_tensor_without_bias(flat)
                                                 : query_.forward_tensor(flat);
@@ -1231,21 +1245,21 @@ public:
                 flat, query_.weight_data(), key_.weight_data(),
                 value_.weight_data());
             query_projection = fuse_query_bias
-                                   ? projections.first
+                                   ? projections.values.first
                                    : query_.has_bias()
-                                         ? ops::add_bias(projections.first,
+                                         ? ops::add_bias(projections.values.first,
                                                          query_.bias().data())
-                                         : projections.first;
+                                         : projections.values.first;
             key_projection = fuse_key_bias
-                                 ? projections.second
+                                 ? projections.values.second
                                  : key_.has_bias()
-                                       ? ops::add_bias(projections.second,
+                                       ? ops::add_bias(projections.values.second,
                                                        key_.bias().data())
-                                       : projections.second;
+                                       : projections.values.second;
             value_projection = value_.has_bias()
-                                   ? ops::add_bias(projections.third,
+                                   ? ops::add_bias(projections.values.third,
                                                    value_.bias().data())
-                                   : projections.third;
+                                   : projections.values.third;
         } else {
             query_projection = fuse_query_bias
                                    ? query_.forward_tensor_without_bias(flat)
@@ -1354,25 +1368,32 @@ public:
     }
 
 private:
-    ops::TensorTriple bf16_projection(
+    Bf16ProjectionResult bf16_projection(
         const Tensor& input, const Tensor& query_weight,
-        const Tensor& key_weight, const Tensor& value_weight) {
+        const Tensor& key_weight, const Tensor& value_weight,
+        bool retain_query_key_bf16 = false) {
         if (qkv_arena_cache_ != nullptr) {
             auto* entry = qkv_arena_cache_->acquire(
                 input.shape()[0], input.shape()[1], query_weight.shape()[1],
                 key_weight.shape()[1], value_weight.shape()[1],
                 input.device());
             if (entry != nullptr) {
-                ops::bf16_qkv_projection_out_(
+                const auto retained = ops::bf16_qkv_projection_out_(
                     entry->query_output, entry->key_output,
                     entry->value_output, entry->workspace, input,
-                    query_weight, key_weight, value_weight);
-                return {entry->query_output, entry->key_output,
-                        entry->value_output};
+                    query_weight, key_weight, value_weight, {},
+                    retain_query_key_bf16);
+                if (retained) {
+                    return {{entry->workspace.query_fallback_bf16,
+                             entry->workspace.key_fallback_bf16,
+                             entry->value_output}};
+                }
+                return {{entry->query_output, entry->key_output,
+                         entry->value_output}};
             }
         }
-        return ops::bf16_qkv_projection(
-            input, query_weight, key_weight, value_weight);
+        return {ops::bf16_qkv_projection(
+                    input, query_weight, key_weight, value_weight)};
     }
 
     Tensor causal_attention(

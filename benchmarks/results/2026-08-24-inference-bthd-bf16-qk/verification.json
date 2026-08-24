@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "registered_test_files": 83,
+  "initial_processes": 12,
+  "initial_performance_gate": false,
+  "profile_processes": 8,
+  "derived_profile_forwards": 20,
+  "cast_elimination_gate": true,
+  "kernel_performance_gate": true,
+  "tests": {
+    "cpu_debug": {"passed": 311, "total": 311},
+    "asan_ubsan": {"passed": 309, "total": 309},
+    "pytorch_enabled_cpu": {"passed": 285, "total": 285},
+    "hip_full_configuration": {"passed": 484, "total": 484, "conditional_skips": 3},
+    "hip_label": {"passed": 163, "total": 163},
+    "rccl_multi_gpu": {"passed": 12, "total": 12},
+    "rccl_full_label": {"passed": 14, "total": 14}
+  },
+  "failed_invocation": {
+    "command_scope": "RCCL label with four concurrent test processes",
+    "passed": 8,
+    "total": 14,
+    "cause": "independent tests each requested all visible GPUs concurrently",
+    "resolution": "rerun the unchanged RCCL label serially"
+  }
+}

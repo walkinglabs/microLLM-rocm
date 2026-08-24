@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="590" viewBox="0 0 1000 590" role="img" aria-labelledby="title desc">
+  <title id="title">Direct BF16 query and key consumption in BTHD Attention</title>
+  <desc id="desc">Five-process model speedups and phase-differential cast reduction for Qwen and DeepSeek on MI300X.</desc>
+  <rect width="1000" height="590" fill="#0b1020"/>
+  <text x="55" y="48" fill="#f8fafc" font-family="sans-serif" font-size="28" font-weight="700">Experiment 205 · grouped BF16 Q/K → fused RoPE</text>
+  <text x="55" y="78" fill="#94a3b8" font-family="sans-serif" font-size="15">T512 · five fresh-process pairs · complete logits bit-exact</text>
+  <text x="55" y="130" fill="#e2e8f0" font-family="sans-serif" font-size="20" font-weight="700">End-to-end prefill throughput ratio</text>
+  <line x1="270" y1="155" x2="270" y2="275" stroke="#64748b" stroke-width="2"/>
+  <text x="55" y="190" fill="#cbd5e1" font-family="sans-serif" font-size="16">Qwen2.5-0.5B</text>
+  <rect x="270" y="168" width="447" height="30" rx="6" fill="#34d399"/>
+  <text x="735" y="189" fill="#a7f3d0" font-family="monospace" font-size="15">1.0224×</text>
+  <text x="55" y="245" fill="#cbd5e1" font-family="sans-serif" font-size="16">DeepSeek 1.5B</text>
+  <rect x="270" y="223" width="475" height="30" rx="6" fill="#22d3ee"/>
+  <text x="763" y="244" fill="#a5f3fc" font-family="monospace" font-size="15">1.0238×</text>
+  <text x="55" y="325" fill="#e2e8f0" font-family="sans-serif" font-size="20" font-weight="700">Phase-differential Kernel evidence</text>
+  <text x="55" y="370" fill="#cbd5e1" font-family="sans-serif" font-size="15">Qwen cast calls</text>
+  <rect x="270" y="348" width="432" height="28" rx="5" fill="#fb7185"/>
+  <rect x="270" y="382" width="288" height="28" rx="5" fill="#34d399"/>
+  <text x="720" y="369" fill="#fecdd3" font-family="monospace" font-size="14">144 · 0.639 ms</text>
+  <text x="576" y="403" fill="#a7f3d0" font-family="monospace" font-size="14">96 · 0.334 ms</text>
+  <text x="55" y="455" fill="#cbd5e1" font-family="sans-serif" font-size="15">DeepSeek cast calls</text>
+  <rect x="270" y="433" width="504" height="28" rx="5" fill="#fb7185"/>
+  <rect x="270" y="467" width="336" height="28" rx="5" fill="#22d3ee"/>
+  <text x="792" y="454" fill="#fecdd3" font-family="monospace" font-size="14">168 · 0.927 ms</text>
+  <text x="624" y="488" fill="#a5f3fc" font-family="monospace" font-size="14">112 · 0.514 ms</text>
+  <text x="55" y="535" fill="#f8fafc" font-family="sans-serif" font-size="16" font-weight="700">Removed exactly 2 casts/block: 48 Qwen, 56 DeepSeek</text>
+  <text x="55" y="565" fill="#94a3b8" font-family="sans-serif" font-size="13">Kernel time: 1.0787× / 1.0600× · peak unchanged · explicit/default-off pending broader GPUs</text>
+</svg>

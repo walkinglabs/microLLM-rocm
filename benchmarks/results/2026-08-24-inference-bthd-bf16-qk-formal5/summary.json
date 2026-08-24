@@ -1,0 +1,41 @@
+{
+  "comparisons": [
+    {
+      "bf16_qk_peak_bytes": 1310395536,
+      "bf16_qk_tokens_per_second": 113440.757890613,
+      "finite_complete_logits": true,
+      "fp32_boundary_peak_bytes": 1310395536,
+      "fp32_boundary_tokens_per_second": 110960.70253035,
+      "maximum_absolute_logit_difference": 0.0,
+      "maximum_rms_logit_difference": 0.0,
+      "model": "qwen2.5-0.5b",
+      "peak_bytes_saved": 0,
+      "peak_ratio": 1.0,
+      "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+      "speedup": 1.0223507539489907
+    },
+    {
+      "bf16_qk_peak_bytes": 4562785760,
+      "bf16_qk_tokens_per_second": 58333.105089869,
+      "finite_complete_logits": true,
+      "fp32_boundary_peak_bytes": 4562785760,
+      "fp32_boundary_tokens_per_second": 56979.167948791,
+      "maximum_absolute_logit_difference": 0.0,
+      "maximum_rms_logit_difference": 0.0,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "peak_bytes_saved": 0,
+      "peak_ratio": 1.0,
+      "revision": "ad9f0ae0864d7fbcd1cd905e3c6c5b069cc8b562",
+      "speedup": 1.0237619675719876
+    }
+  ],
+  "correctness_gate": true,
+  "decision": "keep explicit BTHD BF16 Q/K policy",
+  "memory_gate": true,
+  "performance_gate": true,
+  "processes": 20,
+  "record_type": "inference_bthd_bf16_qk_summary",
+  "routing_gate": true,
+  "schema_version": 1,
+  "status": "pass"
+}

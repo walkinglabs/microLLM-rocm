@@ -14,13 +14,14 @@
 ## Current measured matrix
 
 ```text
-framework CPU                 259/259 pass
-CPU ASan/UBSan                257/257 pass
-full CPU/HIP configuration    387/387 pass (2 conditional skips)
-MI300X/gfx942 HIP             124/124 pass
-PyTorch-enabled CPU           233/233 pass
-two-rank RCCL                  11/11 pass
-registered test files               54
+framework CPU                 311/311 pass
+CPU ASan/UBSan                309/309 pass
+full CPU/HIP configuration    484/484 pass (3 conditional skips)
+MI300X/gfx942 HIP             163/163 pass
+PyTorch-enabled CPU           285/285 pass
+two-rank RCCL                  12/12 pass
+RCCL full label                14/14 pass
+registered test files               83
 ```
 
 These counts describe the current commit. They do not imply every dtype, shape, GPU, or
@@ -42,8 +43,9 @@ SGD/AdamW                     3.72529030e-08
 
 The detailed per-operator tolerances and shape contracts are in
 `docs/OPERATOR_CONTRACTS.zh-CN.md`. BF16/F16 safetensors conversion, native basic
-kernels and BF16 mixed GEMM are tested. Whole-model BF16 is not yet a correctness or
-performance claim; the first shape-selected policy was measured and rejected.
+kernels and BF16 mixed GEMM are tested. Whole-model BF16 remains an explicit,
+shape-gated inference/training research track: each retained policy has complete-logit
+and end-to-end evidence, and none is a universal hardware claim.
 
 ## Line and branch coverage
 
@@ -63,8 +65,8 @@ warnings during test discovery. The script runs the CPU test label and emits
 are counted. Coverage is evidence for finding blind spots, not permission to replace
 numeric, shape, failure, HIP, or external-oracle tests.
 
-The current source snapshot measures 80.3% lines (7,254/9,036), 89.7% functions
-(775/864), and 61.4% branches (7,076/11,517). The AdamW tuner and cooperative reduction add HIP-only screening
+The latest recorded source snapshot measures 80.4% lines (7,782/9,678), 89.3%
+functions, and 61.4% branches. The AdamW tuner and cooperative reduction add HIP-only screening
 and timing paths that ordinary CPU coverage cannot execute; those paths have dedicated
 MI300 conformance tests and raw process evidence. The repeatability evidence for the
 coverage pipeline remains separately archived; source growth is expected to change totals.

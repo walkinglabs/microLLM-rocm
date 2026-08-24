@@ -48,6 +48,7 @@ thread_local std::map<Bf16GroupedQkvKey, int> bf16_grouped_qkv_registry;
 thread_local std::size_t bf16_grouped_qkv_plan_hits = 0;
 thread_local std::size_t bf16_grouped_qkv_plan_misses = 0;
 thread_local std::size_t bf16_grouped_qkv_dispatches = 0;
+thread_local std::size_t bf16_grouped_qkv_retained_query_key_dispatches = 0;
 thread_local std::size_t bf16_grouped_qkv_algorithm_hits = 0;
 thread_local std::size_t bf16_grouped_qkv_algorithm_misses = 0;
 thread_local std::size_t bf16_grouped_qkv_kernel_hits = 0;
@@ -991,7 +992,7 @@ const hipblasLtMatmulAlgo_t* registered_fp32_solution(
 using Bf16GroupedQkvPlanKey = std::tuple<
     Bf16GroupedQkvKey, int, std::uintptr_t, std::uintptr_t, std::uintptr_t,
     std::uintptr_t, std::uintptr_t, std::uintptr_t, std::uintptr_t,
-    std::uintptr_t, std::uintptr_t, std::uintptr_t, std::uintptr_t>;
+    std::uintptr_t>;
 
 using Bf16GroupedQkvAlgorithmKey =
     std::tuple<Bf16GroupedQkvKey, int, int>;
@@ -1151,8 +1152,7 @@ Bf16GroupedQkvPlanKey grouped_qkv_plan_key(
     const Bf16GroupedQkvKey& key, Device device,
     const Tensor& input_bf16, const Tensor& query_weight_bf16,
     const Tensor& key_weight_bf16, const Tensor& value_weight_bf16,
-    const Tensor& query_output_fp32, const Tensor& key_output_fp32,
-    const Tensor& value_output_fp32, const Bf16QkvWorkspace& workspace,
+    const Bf16QkvWorkspace& workspace,
     void* stream) {
     const auto address = [](const void* pointer) {
         return reinterpret_cast<std::uintptr_t>(pointer);
@@ -1160,16 +1160,14 @@ Bf16GroupedQkvPlanKey grouped_qkv_plan_key(
     return {
         key, device.index(), address(input_bf16.data()),
         address(query_weight_bf16.data()), address(key_weight_bf16.data()),
-        address(value_weight_bf16.data()), address(query_output_fp32.data()),
-        address(key_output_fp32.data()), address(value_output_fp32.data()),
+        address(value_weight_bf16.data()),
         address(workspace.query_fallback_bf16.data()),
         address(workspace.key_fallback_bf16.data()),
         address(workspace.value_fallback_bf16.data()), address(stream)};
 }
 
 bool try_bf16_grouped_qkv(
-    Tensor& query_output_fp32, Tensor& key_output_fp32,
-    Tensor& value_output_fp32, Bf16QkvWorkspace& workspace,
+    Bf16QkvWorkspace& workspace,
     const Tensor& query_weight_bf16, const Tensor& key_weight_bf16,
     const Tensor& value_weight_bf16, const OpContext& context) {
     if (bf16_grouped_qkv_registry.empty() ||
@@ -1186,8 +1184,7 @@ bool try_bf16_grouped_qkv(
     const auto plan_key = grouped_qkv_plan_key(
         key, workspace.input_bf16.device(), workspace.input_bf16,
         query_weight_bf16, key_weight_bf16, value_weight_bf16,
-        query_output_fp32, key_output_fp32, value_output_fp32, workspace,
-        stream);
+        workspace, stream);
     auto found = bf16_grouped_qkv_plans.find(plan_key);
     if (found == bf16_grouped_qkv_plans.end()) {
         ++bf16_grouped_qkv_plan_misses;
@@ -1231,9 +1228,6 @@ bool try_bf16_grouped_qkv(
         ++bf16_grouped_qkv_plan_hits;
     }
     found->second->run(stream);
-    cast_out_(workspace.query_fallback_bf16, query_output_fp32, context);
-    cast_out_(workspace.key_fallback_bf16, key_output_fp32, context);
-    cast_out_(workspace.value_fallback_bf16, value_output_fp32, context);
     ++bf16_grouped_qkv_dispatches;
     return true;
 }
@@ -2343,6 +2337,7 @@ void clear_bf16_grouped_qkv_registry() noexcept {
     bf16_grouped_qkv_plan_hits = 0;
     bf16_grouped_qkv_plan_misses = 0;
     bf16_grouped_qkv_dispatches = 0;
+    bf16_grouped_qkv_retained_query_key_dispatches = 0;
     bf16_grouped_qkv_algorithm_hits = 0;
     bf16_grouped_qkv_algorithm_misses = 0;
     bf16_grouped_qkv_kernel_hits = 0;
@@ -2381,6 +2376,8 @@ Bf16GroupedQkvStats bf16_grouped_qkv_stats() noexcept {
         .plan_hits = bf16_grouped_qkv_plan_hits,
         .plan_misses = bf16_grouped_qkv_plan_misses,
         .dispatches = bf16_grouped_qkv_dispatches,
+        .retained_query_key_dispatches =
+            bf16_grouped_qkv_retained_query_key_dispatches,
         .kernel_setup_ms = bf16_grouped_qkv_kernel_setup_ms,
         .argument_setup_ms = bf16_grouped_qkv_argument_setup_ms,
     };
@@ -3178,12 +3175,12 @@ TensorTriple bf16_qkv_projection(const Tensor& input_fp32,
             bf16_matmul_output(input_bf16, value_weight_bf16, DType::Float32, context)};
 }
 
-void bf16_qkv_projection_out_(
+bool bf16_qkv_projection_out_(
     Tensor& query_output_fp32, Tensor& key_output_fp32,
     Tensor& value_output_fp32, Bf16QkvWorkspace& workspace,
     const Tensor& input_fp32, const Tensor& query_weight_bf16,
     const Tensor& key_weight_bf16, const Tensor& value_weight_bf16,
-    const OpContext& context) {
+    const OpContext& context, [[maybe_unused]] bool retain_query_key_bf16) {
     if (input_fp32.dtype() != DType::Float32 || input_fp32.ndim() != 2 ||
         !input_fp32.is_contiguous()) {
         throw std::invalid_argument(
@@ -3254,10 +3251,20 @@ void bf16_qkv_projection_out_(
     cast_out_(input_fp32, workspace.input_bf16, context);
 #if MICROLLM_HAS_HIPBLASLT
     if (try_bf16_grouped_qkv(
-            query_output_fp32, key_output_fp32, value_output_fp32,
             workspace, query_weight_bf16, key_weight_bf16,
             value_weight_bf16, context)) {
-        return;
+        if (!retain_query_key_bf16) {
+            cast_out_(workspace.query_fallback_bf16,
+                      query_output_fp32, context);
+            cast_out_(workspace.key_fallback_bf16,
+                      key_output_fp32, context);
+        }
+        cast_out_(workspace.value_fallback_bf16,
+                  value_output_fp32, context);
+        if (retain_query_key_bf16) {
+            ++bf16_grouped_qkv_retained_query_key_dispatches;
+        }
+        return retain_query_key_bf16;
     }
 #endif
     bf16_matmul_output_out_(
@@ -3269,6 +3276,7 @@ void bf16_qkv_projection_out_(
     bf16_matmul_output_out_(
         value_output_fp32, workspace.input_bf16, value_weight_bf16,
         workspace.value_fallback_bf16, context);
+    return false;
 }
 
 Tensor fp8_matmul(const ScaledTensor& left, const ScaledTensor& right,

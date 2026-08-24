@@ -97,6 +97,7 @@ struct Options {
     bool allocation_source_diagnostics = false;
     bool strided_copy_diagnostics = false;
     bool inference_bthd_attention = false;
+    bool inference_bthd_bf16_qk = false;
 };
 
 Options options(int argc, char** argv) {
@@ -328,6 +329,14 @@ Options options(int argc, char** argv) {
                     "--inference-bthd-attention must be true or false");
             }
             result.inference_bthd_attention = value == "true";
+        }
+        else if (name == "--inference-bthd-bf16-qk") {
+            const std::string value = argv[index + 1];
+            if (value != "true" && value != "false") {
+                throw std::invalid_argument(
+                    "--inference-bthd-bf16-qk must be true or false");
+            }
+            result.inference_bthd_bf16_qk = value == "true";
         }
         else throw std::invalid_argument("unknown CLI option: " + name);
     }
@@ -577,6 +586,12 @@ Options options(int argc, char** argv) {
          !result.bf16_attention)) {
         throw std::invalid_argument(
             "--inference-bthd-attention requires HIP BF16 Attention prefill");
+    }
+    if (result.inference_bthd_bf16_qk &&
+        (!result.inference_bthd_attention || !result.bf16_qkv_arena ||
+         result.bf16_grouped_qkv_algorithm_index < 0)) {
+        throw std::invalid_argument(
+            "--inference-bthd-bf16-qk requires BTHD Attention, QKV Arena, and an exact grouped QKV algorithm");
     }
     return result;
 }
@@ -1162,6 +1177,8 @@ int main(int argc, char** argv) {
         }
         microllm::ops::enable_inference_bthd_attention(
             command.inference_bthd_attention);
+        microllm::ops::enable_inference_bthd_bf16_qk(
+            command.inference_bthd_bf16_qk);
         if (command.bf16_qkv_arena) {
             model.set_bf16_qkv_arena_enabled(
                 true, command.bf16_qkv_arena_minimum_rows);
@@ -1935,6 +1952,8 @@ int main(int argc, char** argv) {
                   << trace_record_count
                   << ",\"inference_bthd_attention\":"
                   << (command.inference_bthd_attention ? "true" : "false")
+                  << ",\"inference_bthd_bf16_qk\":"
+                  << (command.inference_bthd_bf16_qk ? "true" : "false")
                   << ",\"bf16_algorithm_index\":"
                   << command.bf16_algorithm_index
                   << ",\"bf16_grouped_qkv_algorithm_index\":"
@@ -1977,6 +1996,8 @@ int main(int argc, char** argv) {
                   << grouped_qkv_stats.plan_misses
                   << ",\"bf16_grouped_qkv_dispatches\":"
                   << grouped_qkv_stats.dispatches
+                  << ",\"bf16_grouped_qkv_retained_query_key_dispatches\":"
+                  << grouped_qkv_stats.retained_query_key_dispatches
                   << ",\"bf16_grouped_qkv_kernel_setup_ms\":"
                   << grouped_qkv_stats.kernel_setup_ms
                   << ",\"bf16_grouped_qkv_argument_setup_ms\":"

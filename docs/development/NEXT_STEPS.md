@@ -26,6 +26,12 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [ ] add explicit attention head dimension and QK-Norm where required;
 - [x] preallocate request-bounded device-native KV cache with stable Storage evidence;
 - [x] route graph-free T>=256 prefill Attention through strided-batched hipBLASLt;
+- [x] keep inference Attention in BTHD layout and remove all four per-block layout copies;
+- [x] let the fused BTHD bias+RoPE Kernel consume exact grouped BF16 Q/K directly,
+  deleting 48/56 T512 casts with bit-exact official logits and 1.0224x/1.0238x
+  five-process model speedups;
+- [ ] expand direct BF16 Q/K to the already-supported B1/T256, B1/T1024 and B2/T512
+  matrix before changing its explicit/default-off status;
 - [x] populate B1 KV cache from one full-sequence prefill instead of token replay;
 - [x] support batched cached decode with batch-aware KV Storage;
 - [x] add opt-in BF16 KV Storage with FP32 accumulation, complete-logit gates and a retained

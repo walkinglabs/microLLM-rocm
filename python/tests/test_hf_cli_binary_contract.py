@@ -2,6 +2,8 @@
 """Reject a stale hf_infer binary whose embedded CLI contract lags the source."""
 
 import argparse
+import subprocess
+import tempfile
 from pathlib import Path
 
 
@@ -48,6 +50,9 @@ def main() -> int:
         b"strided_copy_records",
         b"--inference-bthd-attention",
         b"inference_bthd_attention",
+        b"--inference-bthd-bf16-qk",
+        b"inference_bthd_bf16_qk",
+        b"bf16_grouped_qkv_retained_query_key_dispatches",
     )
     missing = [value.decode() for value in required if value not in payload]
     if missing:
@@ -57,6 +62,17 @@ def main() -> int:
     if retained:
         raise RuntimeError(
             f"hf_infer binary retains rejected CLI policies: {retained}")
+    with tempfile.TemporaryDirectory() as temporary:
+        missing = Path(temporary) / "missing"
+        rejected = subprocess.run([
+            str(args.binary), "--config", str(missing),
+            "--weights", str(missing), "--tokens", "1",
+            "--device", "cpu", "--inference-bthd-bf16-qk", "true",
+        ], text=True, capture_output=True, check=False)
+        if rejected.returncode == 0 or \
+                "requires BTHD Attention, QKV Arena" not in rejected.stderr:
+            raise RuntimeError(
+                "hf_infer accepted BF16 Q/K without its required exact route")
     print("hf_infer binary contract: pass")
     return 0
 

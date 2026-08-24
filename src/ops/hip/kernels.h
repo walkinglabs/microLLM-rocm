@@ -131,7 +131,7 @@ void launch_rope_split_half_bias(const float* input, const float* bias, float* o
                                  std::int64_t position_offset, float base,
                                  void* stream = nullptr);
 void launch_rope_split_half_bias_bthd(
-    const float* input, const float* bias, float* output,
+    const void* input, DType input_dtype, const float* bias, float* output,
     std::int64_t batches, std::int64_t sequence_size, std::int64_t heads,
     std::int64_t head_width, std::int64_t position_offset, float base,
     void* stream = nullptr);

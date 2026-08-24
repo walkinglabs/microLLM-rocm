@@ -10274,6 +10274,146 @@ def validate_inference_bthd_profile(
                 for row in comparisons.values()))
 
 
+def validate_inference_bthd_bf16_qk(
+        errors: list[str]) -> tuple[int, int, float, float, int]:
+    initial_dir = REPOSITORY / (
+        "benchmarks/results/2026-08-24-inference-bthd-bf16-qk")
+    formal_dir = REPOSITORY / (
+        "benchmarks/results/2026-08-24-inference-bthd-bf16-qk-formal5")
+    initial = json.loads((initial_dir / "summary.json").read_text(
+        encoding="utf-8"))
+    formal = json.loads((formal_dir / "summary.json").read_text(
+        encoding="utf-8"))
+    profile = json.loads((initial_dir / "profile-summary.json").read_text(
+        encoding="utf-8"))
+    initial_verification = json.loads((initial_dir / "verification.json").read_text(
+        encoding="utf-8"))
+    formal_verification = json.loads((formal_dir / "verification.json").read_text(
+        encoding="utf-8"))
+    initial_raw = [json.loads(line) for line in (initial_dir / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    formal_raw = [json.loads(line) for line in (formal_dir / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    initial_rows = {row.get("model"): row
+                    for row in initial.get("comparisons", [])}
+    formal_rows = {row.get("model"): row
+                   for row in formal.get("comparisons", [])}
+    profile_rows = {row.get("model"): row
+                    for row in profile.get("comparisons", [])}
+    expected_initial = {
+        "qwen2.5-0.5b": (111056.002461973, 113579.568810252,
+                          1.0227233674212532),
+        "deepseek-r1-distill-qwen-1.5b":
+            (57495.162601822, 57886.64758774, 1.0068090073703975),
+    }
+    expected_formal = {
+        "qwen2.5-0.5b": (110960.70253035, 113440.757890613,
+                          1.0223507539489907),
+        "deepseek-r1-distill-qwen-1.5b":
+            (56979.167948791, 58333.105089869, 1.0237619675719876),
+    }
+    expected_profile = {
+        "qwen2.5-0.5b":
+            (5128389.0, 4754117.4, 1.0787257798892387,
+             144.0, 96.0, 48.0, 639242.0, 334101.0),
+        "deepseek-r1-distill-qwen-1.5b":
+            (9463387.6, 8927681.0, 1.0600051233909455,
+             168.0, 112.0, 56.0, 926838.0, 513776.4),
+    }
+    tests = {
+        "cpu_debug": {"passed": 311, "total": 311},
+        "asan_ubsan": {"passed": 309, "total": 309},
+        "pytorch_enabled_cpu": {"passed": 285, "total": 285},
+        "hip_full_configuration": {
+            "passed": 484, "total": 484, "conditional_skips": 3},
+        "hip_label": {"passed": 163, "total": 163},
+        "rccl_multi_gpu": {"passed": 12, "total": 12},
+        "rccl_full_label": {"passed": 14, "total": 14},
+    }
+    def values_match(rows: dict, expected: dict, fields: tuple[str, ...]) -> bool:
+        return set(rows) == set(expected) and all(
+            all(abs(float(rows[name].get(field, 0.0)) - value) <= 1.0e-6
+                for field, value in zip(fields, expected[name], strict=True))
+            for name in expected)
+    initial_ok = values_match(
+        initial_rows, expected_initial,
+        ("fp32_boundary_tokens_per_second", "bf16_qk_tokens_per_second",
+         "speedup"))
+    formal_ok = values_match(
+        formal_rows, expected_formal,
+        ("fp32_boundary_tokens_per_second", "bf16_qk_tokens_per_second",
+         "speedup"))
+    profile_ok = values_match(
+        profile_rows, expected_profile,
+        ("baseline_total_kernel_ns", "bf16_qk_total_kernel_ns",
+         "total_kernel_speedup", "baseline_cast_calls",
+         "bf16_qk_cast_calls", "cast_calls_removed",
+         "baseline_cast_ns", "bf16_qk_cast_ns"))
+    for model in expected_profile:
+        for policy in ("fp32-boundary", "bf16-qk"):
+            directory = initial_dir / "profile" / model / policy
+            for filename in ("one-step-kernel-stats.csv",
+                             "three-step-kernel-stats.csv",
+                             "profile-delta.json"):
+                if not (directory / filename).is_file():
+                    errors.append(
+                        f"BTHD BF16 Q/K profile file missing: {model}/{policy}/{filename}")
+    if initial.get("status") != "pass" or len(initial_raw) != 12 or \
+            initial.get("processes") != 12 or \
+            initial.get("correctness_gate") is not True or \
+            initial.get("routing_gate") is not True or \
+            initial.get("performance_gate") is not False or \
+            initial.get("memory_gate") is not True or not initial_ok or \
+            formal.get("status") != "pass" or len(formal_raw) != 20 or \
+            formal.get("processes") != 20 or \
+            any(formal.get(gate) is not True for gate in (
+                "correctness_gate", "routing_gate", "performance_gate",
+                "memory_gate")) or not formal_ok or \
+            profile.get("status") != "pass" or \
+            profile.get("profile_processes") != 8 or \
+            profile.get("derived_forwards") != 20 or \
+            profile.get("cast_elimination_gate") is not True or \
+            profile.get("kernel_performance_gate") is not True or \
+            not profile_ok or \
+            initial_verification.get("status") != "pass" or \
+            formal_verification.get("status") != "pass" or \
+            initial_verification.get("tests") != tests or \
+            formal_verification.get("tests") != tests or \
+            initial_verification.get("registered_test_files") != 83 or \
+            formal_verification.get("registered_test_files") != 83:
+        errors.append("inference BTHD BF16 Q/K evidence changed")
+    for raw, runs in ((initial_raw, 3), (formal_raw, 5)):
+        counts = {(model, policy): 0 for model in expected_formal
+                  for policy in ("fp32-boundary", "bf16-qk")}
+        for row in raw:
+            key = (row.get("model"), row.get("policy"))
+            if key in counts:
+                counts[key] += 1
+            blocks = 24 if row.get("model") == "qwen2.5-0.5b" else 28
+            expected_retained = blocks * 7 if row.get("policy") == "bf16-qk" else 0
+            if int(row.get(
+                    "bf16_grouped_qkv_retained_query_key_dispatches", -1)) != \
+                    expected_retained:
+                errors.append("BTHD BF16 Q/K retained dispatch count changed")
+                break
+        if any(count != runs for count in counts.values()):
+            errors.append("BTHD BF16 Q/K process matrix changed")
+    sources = (
+        ("--inference-bthd-bf16-qk", REPOSITORY / "apps/hf_infer.cpp"),
+        ("retain_query_key_bf16", REPOSITORY / "src/ops/optimized.cpp"),
+        ("hip_bfloat16", REPOSITORY / "src/ops/hip/basic_kernels.hip"),
+        ("RetainsGroupedQueryKeyInBf16", REPOSITORY / "tests/ops/hip_ops_test.cpp"),
+        ("cast_elimination_gate", REPOSITORY / "benchmarks/single_gpu/"
+         "summarize_inference_bthd_bf16_qk_profile.py"),
+    )
+    if any(token not in path.read_text(encoding="utf-8")
+           for token, path in sources):
+        errors.append("inference BTHD BF16 Q/K source/test contract changed")
+    ratios = [float(row["speedup"]) for row in formal_rows.values()]
+    casts = int(sum(row["cast_calls_removed"] for row in profile_rows.values()))
+    return len(initial_raw), len(formal_raw), min(ratios), max(ratios), casts
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -10456,7 +10596,8 @@ def validate_assets(errors: list[str]) -> None:
                  "hf-strided-copy-sources.svg",
                  "inference-bthd-attention.svg",
                  "inference-bthd-shape-models.svg",
-                 "inference-bthd-profile.svg"):
+                 "inference-bthd-profile.svg",
+                 "inference-bthd-bf16-qk.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -10821,6 +10962,9 @@ def main() -> int:
     bthd_profile_processes, bthd_profile_minimum, \
         bthd_profile_maximum, bthd_profile_strided_removed = \
         validate_inference_bthd_profile(errors)
+    bthd_bf16_initial, bthd_bf16_formal, bthd_bf16_minimum, \
+        bthd_bf16_maximum, bthd_bf16_casts = \
+        validate_inference_bthd_bf16_qk(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -11135,6 +11279,9 @@ def main() -> int:
           f"inference_bthd_profile={bthd_profile_processes}/"
           f"{bthd_profile_minimum:.3f}/{bthd_profile_maximum:.3f}/"
           f"{bthd_profile_strided_removed} "
+          f"inference_bthd_bf16_qk={bthd_bf16_initial}/"
+          f"{bthd_bf16_formal}/{bthd_bf16_minimum:.3f}/"
+          f"{bthd_bf16_maximum:.3f}/{bthd_bf16_casts} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

@@ -164,6 +164,14 @@ TEST(CpuOpsTest, BthdFusedSplitHalfRopeBiasMatchesLayoutMaterialization) {
     const auto actual = rope_split_half_bias_bthd(input, bias, 3, 5000.0F);
     EXPECT_EQ(actual.shape(), (Shape{1, 2, 4, 4}));
     expect_near(actual.to_vector(), expected.to_vector());
+    const auto rounded_input = input.cast(DType::BFloat16);
+    const auto rounded_expected = rope_split_half_bias(
+        rounded_input.cast(DType::Float32).transpose(1, 2).contiguous(),
+        bias, 3, 5000.0F);
+    const auto rounded_actual = rope_split_half_bias_bthd(
+        rounded_input, bias, 3, 5000.0F);
+    EXPECT_EQ(rounded_actual.dtype(), DType::Float32);
+    expect_near(rounded_actual.to_vector(), rounded_expected.to_vector());
 
     const auto gradient = Tensor::from_vector(
         {1, -1, 2, -2, 3, -3, 4, -4,
@@ -179,6 +187,9 @@ TEST(CpuOpsTest, BthdFusedSplitHalfRopeBiasMatchesLayoutMaterialization) {
     expect_near(actual_backward.to_vector(), expected_backward.to_vector());
 
     EXPECT_THROW((void)rope_split_half_bias_bthd(input, Tensor({4})),
+                 std::invalid_argument);
+    EXPECT_THROW((void)rope_split_half_bias_bthd(
+                     input.cast(DType::Float16), bias),
                  std::invalid_argument);
     EXPECT_THROW((void)rope_split_half_bias_bthd_backward(Tensor({1, 2, 3, 3})),
                  std::invalid_argument);
@@ -722,9 +733,10 @@ TEST(CpuOpsTest, Bf16QkvProjectionCastsSharedInputOnceAndKeepsFp32Outputs) {
     Tensor query_output({2, 2});
     Tensor key_output({2, 1});
     Tensor value_output({2, 1});
-    bf16_qkv_projection_out_(
+    const auto retained_query_key = bf16_qkv_projection_out_(
         query_output, key_output, value_output, workspace,
-        input, query, key, value);
+        input, query, key, value, {}, true);
+    EXPECT_FALSE(retained_query_key);
     EXPECT_EQ(query_output.to_vector(), output.first.to_vector());
     EXPECT_EQ(key_output.to_vector(), output.second.to_vector());
     EXPECT_EQ(value_output.to_vector(), output.third.to_vector());
@@ -873,6 +885,11 @@ TEST(CpuOpsTest, AttentionProbabilityValueGqaBroadcastMatchesRepeatedReference) 
     enable_inference_bthd_attention(true);
     EXPECT_TRUE(inference_bthd_attention_enabled());
     enable_inference_bthd_attention(false);
+    enable_inference_bthd_bf16_qk(false);
+    EXPECT_FALSE(inference_bthd_bf16_qk_enabled());
+    enable_inference_bthd_bf16_qk(true);
+    EXPECT_TRUE(inference_bthd_bf16_qk_enabled());
+    enable_inference_bthd_bf16_qk(false);
 }
 
 TEST(CpuOpsTest, AttentionLayoutPlanCacheIsUnavailableWithoutHipblaslt) {

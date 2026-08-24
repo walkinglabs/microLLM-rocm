@@ -196,6 +196,21 @@ python3 benchmarks/single_gpu/bf16_grouped_qkv_matrix.py \
 Use `compare_bf16_grouped_qkv_models.py` for the complete-logit, throughput and peak-memory
 gate. Grouped plan indices are exact-environment experiments and are never selected by default.
 
+After the grouped and BTHD policies pass independently, gate direct BF16 Q/K consumption
+through the fused bias+RoPE boundary with fresh-process medians:
+
+```bash
+python3 benchmarks/single_gpu/compare_inference_bthd_bf16_qk.py \
+  --manifest /path/to/hf-models.local.json \
+  --binary build/hip-release/apps/microllm_hf_infer \
+  --output-directory /tmp/microllm-bthd-bf16-qk
+```
+
+The default is five processes per policy/model because the measured gain is about 2%.
+The runner requires complete-logit equality, exact retained-dispatch counts, unchanged
+peak, and a 1.01x per-model speed gate. This is an explicit exact-environment experiment,
+not a portable default.
+
 Capture HIP API, kernel, memory, and RCCL-ready runtime traces with the locally
 installed rocprofv3 interface:
 

@@ -24,6 +24,7 @@ thread_local bool attention_paired_gqa_repeat = false;
 thread_local bool attention_gqa_value_broadcast = false;
 thread_local bool attention_gqa_forward_value_broadcast = false;
 thread_local bool inference_bthd_attention = false;
+thread_local bool inference_bthd_bf16_qk = false;
 
 float fp8_finite_maximum(DType dtype) {
     if (dtype == DType::Float8E4M3FNUZ) return 240.0F;
@@ -593,6 +594,14 @@ void enable_inference_bthd_attention(bool enabled) noexcept {
 
 bool inference_bthd_attention_enabled() noexcept {
     return inference_bthd_attention;
+}
+
+void enable_inference_bthd_bf16_qk(bool enabled) noexcept {
+    inference_bthd_bf16_qk = enabled;
+}
+
+bool inference_bthd_bf16_qk_enabled() noexcept {
+    return inference_bthd_bf16_qk;
 }
 
 Tensor dequantize_fp8(const ScaledTensor& input, DType output_dtype,
@@ -1340,12 +1349,14 @@ Tensor rope_split_half_bias_bthd(const Tensor& input, const Tensor& bias,
     require_forward_float(input, "input");
     require_float(bias, "bias");
     require_same_device(input, bias);
-    if (input.dtype() != DType::Float32 || bias.dtype() != DType::Float32 ||
+    if ((input.dtype() != DType::Float32 &&
+         input.dtype() != DType::BFloat16) ||
+        bias.dtype() != DType::Float32 ||
         input.ndim() != 4 || bias.ndim() != 1 || input.shape()[3] % 2 != 0 ||
         bias.shape()[0] != input.shape()[2] * input.shape()[3] ||
         position_offset < 0 || base <= 0.0F) {
         throw std::invalid_argument(
-            "BTHD split-half rope+bias requires FP32 [B,T,H,even-D] and bias [H*D]");
+            "BTHD split-half rope+bias requires FP32/BF16 [B,T,H,even-D] and FP32 bias [H*D]");
     }
     require_contiguous(input, "input");
     require_contiguous(bias, "bias");
@@ -1358,7 +1369,7 @@ Tensor rope_split_half_bias_bthd(const Tensor& input, const Tensor& bias,
         Tensor output(output_shape, DType::Float32, input.device());
 #if MICROLLM_HAS_HIP
         hip::launch_rope_split_half_bias_bthd(
-            static_cast<const float*>(input.data()),
+            input.data(), input.dtype(),
             static_cast<const float*>(bias.data()),
             static_cast<float*>(output.data()), batches, sequence, heads,
             head_width, position_offset, base,
