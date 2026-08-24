@@ -1,0 +1,43 @@
+{
+  "comparisons": [
+    {
+      "event_speedup_median": 0.978773386957,
+      "maximum_absolute_error": 1.15484e-07,
+      "model": "qwen",
+      "performance_gate": false,
+      "projection": "qkv",
+      "runs": 3
+    },
+    {
+      "event_speedup_median": 0.835423771414,
+      "maximum_absolute_error": 0.0,
+      "model": "qwen",
+      "performance_gate": false,
+      "projection": "gate-up",
+      "runs": 3
+    },
+    {
+      "event_speedup_median": 0.896928605908,
+      "maximum_absolute_error": 9.6858e-08,
+      "model": "deepseek",
+      "performance_gate": false,
+      "projection": "qkv",
+      "runs": 3
+    },
+    {
+      "event_speedup_median": 0.931143267891,
+      "maximum_absolute_error": 4.191e-08,
+      "model": "deepseek",
+      "performance_gate": false,
+      "projection": "gate-up",
+      "runs": 3
+    }
+  ],
+  "decision": "discard packed weight-gradient route",
+  "experiment": "packed_weight_gradient",
+  "performance_cases_passed": 0,
+  "performance_cases_total": 4,
+  "processes": 12,
+  "schema_version": 1,
+  "status": "pass"
+}

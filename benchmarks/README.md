@@ -207,6 +207,14 @@ python3 benchmarks/single_gpu/grouped_weight_gradient_matrix.py \
 It covers direct `N,T` and one-shared-transpose `N,N` layouts. A zero-supported row is a valid
 capability result, not a fallback performance measurement.
 
+If grouped FP32 capability is absent, the packed counterfactual includes every D2D pack operation:
+
+```bash
+python3 benchmarks/single_gpu/packed_weight_gradient_matrix.py \
+  --binary build/hip-release/benchmarks/microllm_bench_packed_weight_gradient \
+  --output-directory /tmp/microllm-packed-weight-gradient
+```
+
 After the grouped and BTHD policies pass independently, gate direct BF16 Q/K consumption
 through the fused bias+RoPE boundary with fresh-process medians:
 

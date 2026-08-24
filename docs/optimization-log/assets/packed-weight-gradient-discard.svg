@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1660" height="720" viewBox="0 0 1660 720">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="830.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 218 · Packed Weight-Gradient Discard</text>
+<text x="830.0" y="80.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">pack D2D + one ordinary GEMM · median of 3 fresh processes</text>
+<rect x="130" y="145" width="980" height="410" fill="#ffffff" stroke="#cbd3df" rx="10"/>
+<rect x="1200" y="145" width="340" height="410" fill="#ffffff" stroke="#cbd3df" rx="10"/>
+<text x="620.0" y="125.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">Event speedup</text>
+<text x="1370.0" y="125.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">Largest packed output</text>
+<line x1="130" y1="555.0" x2="1110" y2="555.0" stroke="#e5e9f0"/>
+<text x="118.0" y="560.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">0.75×</text>
+<line x1="130" y1="437.9" x2="1110" y2="437.9" stroke="#e5e9f0"/>
+<text x="118.0" y="442.9" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">0.85×</text>
+<line x1="130" y1="320.7" x2="1110" y2="320.7" stroke="#e5e9f0"/>
+<text x="118.0" y="325.7" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">0.95×</text>
+<line x1="130" y1="262.1" x2="1110" y2="262.1" stroke="#2563eb"/>
+<text x="118.0" y="267.1" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">1.00×</text>
+<line x1="130" y1="203.6" x2="1110" y2="203.6" stroke="#d97706"/>
+<text x="118.0" y="208.6" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">1.05×</text>
+<line x1="130" y1="145.0" x2="1110" y2="145.0" stroke="#e5e9f0"/>
+<text x="118.0" y="150.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">1.10×</text>
+<rect x="197.5" y="287.0" width="110" height="268.0" fill="#d04a3a" rx="6"/>
+<text x="252.5" y="275.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#b42335" text-anchor="middle" font-weight="700">0.979×</text>
+<text x="252.5" y="585.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#172033" text-anchor="middle" font-weight="700">Qwen QKV</text>
+<rect x="442.5" y="454.9" width="110" height="100.1" fill="#d04a3a" rx="6"/>
+<text x="497.5" y="442.9" font-family="Inter,Arial,sans-serif" font-size="16" fill="#b42335" text-anchor="middle" font-weight="700">0.835×</text>
+<text x="497.5" y="585.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#172033" text-anchor="middle" font-weight="700">Qwen gate/up</text>
+<rect x="687.5" y="382.9" width="110" height="172.1" fill="#d04a3a" rx="6"/>
+<text x="742.5" y="370.9" font-family="Inter,Arial,sans-serif" font-size="16" fill="#b42335" text-anchor="middle" font-weight="700">0.897×</text>
+<text x="742.5" y="585.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#172033" text-anchor="middle" font-weight="700">DeepSeek QKV</text>
+<rect x="932.5" y="342.8" width="110" height="212.2" fill="#d04a3a" rx="6"/>
+<text x="987.5" y="330.8" font-family="Inter,Arial,sans-serif" font-size="16" fill="#b42335" text-anchor="middle" font-weight="700">0.931×</text>
+<text x="987.5" y="585.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#172033" text-anchor="middle" font-weight="700">DeepSeek gate/up</text>
+<rect x="1270" y="225" width="200" height="250" fill="#fff1f2" stroke="#e11d48" rx="10"/>
+<text x="1370.0" y="290.0" font-family="Inter,Arial,sans-serif" font-size="34" fill="#be123c" text-anchor="middle" font-weight="700">105 MiB</text>
+<text x="1370.0" y="325.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="middle" font-weight="400">packed output</text>
+<text x="1370.0" y="380.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#9a4f00" text-anchor="middle" font-weight="700">+ 35 MiB gradient pack</text>
+<text x="1370.0" y="425.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="middle" font-weight="400">DeepSeek gate/up</text>
+<text x="830.0" y="650.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#b42335" text-anchor="middle" font-weight="700">0 / 4 pass 1.05× · complete-output max error 1.15e-7 · no Autograd route</text>
+</svg>

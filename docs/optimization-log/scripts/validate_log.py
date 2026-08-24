@@ -11576,6 +11576,98 @@ def validate_grouped_weight_gradient_discard(
         sum(row["input_layout"] == "materialized" for row in raw), max(baselines)
 
 
+def validate_packed_weight_gradient_discard(
+        errors: list[str]) -> tuple[int, int, float, float]:
+    data = REPOSITORY / (
+        "benchmarks/results/2026-08-24-packed-weight-gradient-discard")
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    rows = {(row["model"], row["projection"]): row
+            for row in summary.get("comparisons", [])}
+    expected = {
+        ("qwen", "qkv"): (0.978773386957, 1.15484e-07),
+        ("qwen", "gate-up"): (0.835423771414, 0.0),
+        ("deepseek", "qkv"): (0.896928605908, 9.6858e-08),
+        ("deepseek", "gate-up"): (0.931143267891, 4.191e-08),
+    }
+    counts = {(model, projection): 0 for model, projection in expected}
+    for row in raw:
+        key = (row.get("model"), row.get("projection"))
+        if key in counts:
+            counts[key] += 1
+    if summary.get("schema_version") != 1 or summary.get("status") != "pass" or \
+            summary.get("experiment") != "packed_weight_gradient" or \
+            summary.get("processes") != 12 or \
+            summary.get("performance_cases_passed") != 0 or \
+            summary.get("performance_cases_total") != 4 or \
+            summary.get("decision") != "discard packed weight-gradient route" or \
+            len(raw) != 12 or set(rows) != set(expected) or \
+            any(count != 3 for count in counts.values()) or \
+            any(abs(float(rows[key].get("event_speedup_median", 0.0)) -
+                    values[0]) > 1.0e-12 or
+                abs(float(rows[key].get("maximum_absolute_error", 0.0)) -
+                    values[1]) > 1.0e-15 or
+                rows[key].get("performance_gate") is not False
+                for key, values in expected.items()) or \
+            any(row.get("pack_copies_per_step") != row.get("groups") or
+                int(row.get("packed_gradient_bytes", 0)) <= 0 or
+                int(row.get("packed_output_bytes", 0)) <= 0
+                for row in raw):
+        errors.append("packed weight-gradient rejection evidence changed")
+    benchmark = (REPOSITORY / (
+        "benchmarks/micro/benchmark_packed_weight_gradient.cpp")).read_text(
+            encoding="utf-8")
+    runner = (REPOSITORY / (
+        "benchmarks/single_gpu/packed_weight_gradient_matrix.py")).read_text(
+            encoding="utf-8")
+    test = (REPOSITORY / (
+        "python/tests/test_packed_weight_gradient_matrix.py")).read_text(
+            encoding="utf-8")
+    route = (REPOSITORY / "src/autograd/autograd.cpp").read_text(
+        encoding="utf-8") + (REPOSITORY / "src/model/model.cpp").read_text(
+            encoding="utf-8")
+    for token, document in (
+            ("hipMemcpy2DAsync", benchmark),
+            ("packed weight-gradient complete-output gate failed", benchmark),
+            ("performance_cases_passed", runner),
+            ("packed weight-gradient matrix contract: pass", test)):
+        if token not in document:
+            errors.append("packed weight-gradient source/runner contract changed")
+            break
+    if "packed_weight_gradient" in route or "packed weight gradient" in route:
+        errors.append("rejected packed weight-gradient model route returned")
+    expected_tests = {
+        "cpu_debug": {"passed": 327, "total": 327},
+        "asan_ubsan": {"passed": 325, "total": 325},
+        "pytorch_enabled_cpu": {"passed": 301, "total": 301},
+        "hip_full_configuration": {
+            "passed": 511, "total": 511, "conditional_skips": 3},
+        "hip_label": {"passed": 173, "total": 173},
+        "rccl_multi_gpu": {"passed": 11, "total": 11},
+        "rccl_full_label": {"passed": 14, "total": 14},
+    }
+    if verification.get("status") != "pass" or \
+            verification.get("performance_processes") != 12 or \
+            verification.get("performance_cases_passed") != 0 or \
+            verification.get("model_route_retained") is not False or \
+            verification.get("registered_test_files") != 90 or \
+            verification.get("tests") != expected_tests or \
+            verification.get("coverage") != {
+                "lines_percent": 79.8,
+                "functions_percent": 87.7,
+                "branches_percent": 60.4,
+                "lines_covered": 8861,
+                "lines_total": 11100}:
+        errors.append("packed weight-gradient verification changed")
+    ratios = [float(row["event_speedup_median"]) for row in rows.values()]
+    largest = max(float(row["packed_output_bytes"]) for row in raw)
+    return len(raw), sum(row["performance_gate"] for row in rows.values()), \
+        min(ratios), largest
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -11771,7 +11863,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-adamw-moments.svg",
                  "hybrid-bf16-adamw.svg",
                  "post-hybrid-training-profile.svg",
-                 "grouped-weight-gradient-discard.svg"):
+                 "grouped-weight-gradient-discard.svg",
+                 "packed-weight-gradient-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -12171,6 +12264,8 @@ def main() -> int:
     grouped_wgrad_rows, grouped_wgrad_direct, grouped_wgrad_materialized, \
         grouped_wgrad_baseline_maximum = \
         validate_grouped_weight_gradient_discard(errors)
+    packed_wgrad_rows, packed_wgrad_passed, packed_wgrad_minimum, \
+        packed_wgrad_largest = validate_packed_weight_gradient_discard(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -12523,6 +12618,8 @@ def main() -> int:
           f"grouped_wgrad={grouped_wgrad_rows}/{grouped_wgrad_direct}/"
           f"{grouped_wgrad_materialized}/"
           f"{grouped_wgrad_baseline_maximum:.3f} "
+          f"packed_wgrad={packed_wgrad_rows}/{packed_wgrad_passed}/"
+          f"{packed_wgrad_minimum:.3f}/{int(packed_wgrad_largest)} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

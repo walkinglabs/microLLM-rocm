@@ -83,6 +83,9 @@ POST_HYBRID_PROFILE_CHART = ROOT / "assets" / "post-hybrid-training-profile.svg"
 GROUPED_WGRAD_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
                       "2026-08-24-grouped-weight-gradient-discard")
 GROUPED_WGRAD_CHART = ROOT / "assets" / "grouped-weight-gradient-discard.svg"
+PACKED_WGRAD_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
+                     "2026-08-24-packed-weight-gradient-discard")
+PACKED_WGRAD_CHART = ROOT / "assets" / "packed-weight-gradient-discard.svg"
 
 
 def rows() -> list[dict]:
@@ -2146,6 +2149,83 @@ def grouped_weight_gradient_discard_svg() -> str:
     return "\n".join(parts)
 
 
+def packed_weight_gradient_discard_svg() -> str:
+    summary = json.loads((PACKED_WGRAD_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (PACKED_WGRAD_ROOT / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = summary["comparisons"]
+    width, height = 1660, 720
+    chart_x, chart_y, chart_w, chart_h = 130, 145, 980, 410
+    panel_x, panel_y, panel_w, panel_h = 1200, 145, 340, 410
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 218 · Packed Weight-Gradient Discard", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 80,
+             "pack D2D + one ordinary GEMM · median of 3 fresh processes",
+             16, "#5b6474", anchor="middle"),
+        f'<rect x="{chart_x}" y="{chart_y}" width="{chart_w}" height="{chart_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+        f'<rect x="{panel_x}" y="{panel_y}" width="{panel_w}" height="{panel_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+        text(chart_x + chart_w / 2, 125, "Event speedup", 20,
+             anchor="middle", weight=700),
+        text(panel_x + panel_w / 2, 125, "Largest packed output", 20,
+             anchor="middle", weight=700),
+    ]
+
+    def y(value: float) -> float:
+        return chart_y + chart_h * (1.10 - value) / 0.35
+
+    for tick in (0.75, 0.85, 0.95, 1.0, 1.05, 1.10):
+        position = y(tick)
+        color = "#2563eb" if tick == 1.0 else "#d97706" if tick == 1.05 else "#e5e9f0"
+        parts.append(f'<line x1="{chart_x}" y1="{position:.1f}" '
+                     f'x2="{chart_x+chart_w}" y2="{position:.1f}" stroke="{color}"/>')
+        parts.append(text(chart_x - 12, position + 5, f"{tick:.2f}×", 13,
+                          "#5b6474", anchor="end"))
+    group_w = chart_w / len(comparisons)
+    labels = []
+    for index, row in enumerate(comparisons):
+        center = chart_x + group_w * (index + 0.5)
+        speedup = row["event_speedup_median"]
+        top = y(speedup)
+        base = y(0.75)
+        parts.append(f'<rect x="{center-55:.1f}" y="{top:.1f}" width="110" '
+                     f'height="{base-top:.1f}" fill="#d04a3a" rx="6"/>')
+        parts.append(text(center, top - 12, f"{speedup:.3f}×", 16,
+                          "#b42335", anchor="middle", weight=700))
+        model = "Qwen" if row["model"] == "qwen" else "DeepSeek"
+        projection = "QKV" if row["projection"] == "qkv" else "gate/up"
+        label = f"{model} {projection}"
+        labels.append(label)
+        parts.append(text(center, chart_y + chart_h + 30, label, 14,
+                          "#172033", anchor="middle", weight=700))
+    largest = max(raw, key=lambda row: row["packed_output_bytes"])
+    output_mib = largest["packed_output_bytes"] / (1024 ** 2)
+    gradient_mib = largest["packed_gradient_bytes"] / (1024 ** 2)
+    parts.append(f'<rect x="{panel_x+70}" y="{panel_y+80}" width="200" '
+                 'height="250" fill="#fff1f2" stroke="#e11d48" rx="10"/>')
+    parts.append(text(panel_x + panel_w / 2, panel_y + 145,
+                      f"{output_mib:.0f} MiB", 34, "#be123c",
+                      anchor="middle", weight=700))
+    parts.append(text(panel_x + panel_w / 2, panel_y + 180,
+                      "packed output", 15, "#5b6474", anchor="middle"))
+    parts.append(text(panel_x + panel_w / 2, panel_y + 235,
+                      f"+ {gradient_mib:.0f} MiB gradient pack", 15,
+                      "#9a4f00", anchor="middle", weight=700))
+    parts.append(text(panel_x + panel_w / 2, panel_y + 280,
+                      "DeepSeek gate/up", 15, "#5b6474", anchor="middle"))
+    parts.append(text(width / 2, 650,
+                      "0 / 4 pass 1.05× · complete-output max error 1.15e-7 · no Autograd route",
+                      17, "#b42335", anchor="middle", weight=700))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -2178,7 +2258,8 @@ def main() -> int:
                 BF16_ADAMW_CHART: bf16_adamw_moments_svg(),
                 HYBRID_ADAMW_CHART: hybrid_bf16_adamw_svg(),
                 POST_HYBRID_PROFILE_CHART: post_hybrid_training_profile_svg(),
-                GROUPED_WGRAD_CHART: grouped_weight_gradient_discard_svg()}
+                GROUPED_WGRAD_CHART: grouped_weight_gradient_discard_svg(),
+                PACKED_WGRAD_CHART: packed_weight_gradient_discard_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

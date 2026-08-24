@@ -454,3 +454,5 @@ the next gate. Records are append-only except for factual corrections.
   load-subtracted proof that GEMM is the next training architecture boundary.
 - [2026-08-24-grouped-weight-gradient-discard.md](2026-08-24-grouped-weight-gradient-discard.md):
   eight-case FP32 GroupedGemm capability failure before any Autograd route.
+- [2026-08-24-packed-weight-gradient-discard.md](2026-08-24-packed-weight-gradient-discard.md):
+  complete-output proof that D2D pack plus one large GEMM is slower in all four cases.

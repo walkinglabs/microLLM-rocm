@@ -430,6 +430,12 @@ Experiment 217测试共享input的QKV/gate-up weight gradient。direct `N,T`列�
 
 ![Grouped weight-gradient discarded](assets/grouped-weight-gradient-discard.svg)
 
+Experiment 218再测试显式pack + 一个普通大GEMM。计时包含每步2/3次D2D pack，packed output可
+直接作为参数gradient view，不隐藏split成本。四项数值误差≤1.15e-7，但速度只有
+`0.835×–0.979×`，weight-gradient组合搜索关闭。
+
+![Packed weight-gradient discarded](assets/packed-weight-gradient-discard.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -823,6 +829,8 @@ Experiment 217测试共享input的QKV/gate-up weight gradient。direct `N,T`列�
 | [experiments/216-post-hybrid-training-profile.md](experiments/216-post-hybrid-training-profile.md) | 差分profile与训练GEMM下一合同 |
 | [assets/grouped-weight-gradient-discard.svg](assets/grouped-weight-gradient-discard.svg) | direct/materialized八格能力失败 |
 | [experiments/217-grouped-weight-gradient-discard.md](experiments/217-grouped-weight-gradient-discard.md) | FP32 GroupedGemm能力门与路由拒绝 |
+| [assets/packed-weight-gradient-discard.svg](assets/packed-weight-gradient-discard.svg) | 四项pack+大GEMM速度与显存代价 |
+| [experiments/218-packed-weight-gradient-discard.md](experiments/218-packed-weight-gradient-discard.md) | 12进程完整输出反例与组合搜索关闭 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

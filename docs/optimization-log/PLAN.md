@@ -69,6 +69,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [38](steps/38-hybrid-bf16-adamw.md) | complete | BF16小Tensor分层合并 | 1M双模型全过；16M DeepSeek反例 |
 | [39](steps/39-post-hybrid-training-profile.md) | complete | Hybrid后训练profile | GEMM占59.33%/63.81%，转入GEMM架构 |
 | [40](steps/40-grouped-weight-gradient-discard.md) | complete | FP32 grouped weight gradient | 8/8 case无supported candidate，路由未建 |
+| [41](steps/41-packed-weight-gradient-discard.md) | complete | packed weight gradient | 0/4过1.05，组合搜索关闭 |
 
 ## 为什么按这个顺序
 
