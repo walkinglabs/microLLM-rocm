@@ -823,8 +823,8 @@ Tensor hipblaslt_matmul(const Tensor& left, const Tensor& right,
     return output;
 }
 
-Tensor hipblaslt_bf16_matmul(const Tensor& left, const Tensor& right,
-                             DType output_dtype, const OpContext& context) {
+void validate_bf16_matmul_output(
+    const Tensor& output, const Tensor& left, const Tensor& right) {
     if (!left.device().is_hip() || right.device() != left.device() ||
         left.dtype() != DType::BFloat16 || right.dtype() != DType::BFloat16 ||
         left.ndim() != 2 || right.ndim() != 2 || !left.is_contiguous() ||
@@ -833,49 +833,97 @@ Tensor hipblaslt_bf16_matmul(const Tensor& left, const Tensor& right,
             "BF16 mixed matmul requires matching contiguous 2D HIP tensors");
     }
     const auto rows = left.shape()[0];
-    const auto inner = left.shape()[1];
     const auto columns = right.shape()[1];
-    if (output_dtype != DType::Float32 && output_dtype != DType::BFloat16) {
+    if (output.device() != left.device() ||
+        (output.dtype() != DType::Float32 &&
+         output.dtype() != DType::BFloat16) ||
+        output.shape() != Shape({rows, columns}) || !output.is_contiguous()) {
         throw std::invalid_argument("BF16 matmul output must be FP32 or BF16");
     }
+    const auto output_storage = output.storage();
+    if (output_storage.data() == left.storage().data() ||
+        output_storage.data() == right.storage().data()) {
+        throw std::invalid_argument("BF16 matmul output must not alias an input Storage");
+    }
+}
+
+void hipblaslt_bf16_matmul_out(
+    Tensor& output, const Tensor& left, const Tensor& right,
+    Tensor* output_fallback_bf16, const OpContext& context) {
+    validate_bf16_matmul_output(output, left, right);
+    const auto rows = left.shape()[0];
+    const auto inner = left.shape()[1];
+    const auto columns = right.shape()[1];
+    const auto output_dtype = output.dtype();
     const MatmulShapeKey shape{rows, inner, columns};
+    const auto run = [&](Tensor& destination) {
+        auto& handle = handle_for_device(left.device());
+        auto& plan = bf16_plan(handle, rows, inner, columns,
+                               destination.dtype(), left.device());
+        const float alpha = 1.0F;
+        const float beta = 0.0F;
+        return hipblasLtMatmul(
+            handle.get(), plan.operation(), &alpha,
+            right.data(), plan.matrix_b(), left.data(), plan.matrix_a(),
+            &beta, destination.data(), plan.matrix_c(), destination.data(),
+            plan.matrix_c(), plan.algorithm(),
+            plan.algorithm() == nullptr ? context.workspace : plan.workspace(),
+            plan.algorithm() == nullptr ? context.workspace_bytes
+                                        : plan.workspace_bytes(),
+            reinterpret_cast<hipStream_t>(
+                context.native_stream(left.device())));
+    };
+    Tensor local_fallback;
+    const auto run_fallback = [&] {
+        auto* fallback = output_fallback_bf16;
+        if (fallback == nullptr) {
+            local_fallback = Tensor(
+                {rows, columns}, DType::BFloat16, left.device());
+            fallback = &local_fallback;
+        }
+        validate_bf16_matmul_output(*fallback, left, right);
+        if (fallback->dtype() != DType::BFloat16 ||
+            fallback->storage().data() == output.storage().data()) {
+            throw std::invalid_argument(
+                "BF16 matmul fallback must be distinct caller-owned BF16 Storage");
+        }
+        check_status(run(*fallback),
+                     "hipblasLtMatmul(BF16 fallback)");
+        cast_out_(*fallback, output, context);
+    };
     if (output_dtype == DType::Float32) {
         const auto found = bf16_fp32_direct_registry.find(shape);
         if (found != bf16_fp32_direct_registry.end() && !found->second) {
-            return cast(hipblaslt_bf16_matmul(
-                            left, right, DType::BFloat16, context),
-                        DType::Float32, context);
+            run_fallback();
+            return;
         }
     }
-    Tensor output({rows, columns}, output_dtype, left.device());
-    auto& handle = handle_for_device(left.device());
-    auto& plan = bf16_plan(handle, rows, inner, columns, output_dtype,
-                           left.device());
-    const float alpha = 1.0F;
-    const float beta = 0.0F;
-    const auto status = hipblasLtMatmul(
-        handle.get(), plan.operation(), &alpha,
-        right.data(), plan.matrix_b(), left.data(), plan.matrix_a(),
-        &beta, output.data(), plan.matrix_c(), output.data(), plan.matrix_c(),
-        plan.algorithm(), plan.algorithm() == nullptr ? context.workspace
-                                                      : plan.workspace(),
-        plan.algorithm() == nullptr ? context.workspace_bytes
-                                    : plan.workspace_bytes(),
-        reinterpret_cast<hipStream_t>(context.native_stream(left.device())));
+    const auto status = run(output);
     if (status == HIPBLAS_STATUS_SUCCESS) {
         if (output_dtype == DType::Float32) {
             bf16_fp32_direct_registry[shape] = true;
         }
-        return output;
+        return;
     }
     if (output_dtype == DType::Float32 &&
         (status == HIPBLAS_STATUS_INTERNAL_ERROR ||
          status == HIPBLAS_STATUS_NOT_SUPPORTED)) {
         bf16_fp32_direct_registry[shape] = false;
-        return cast(hipblaslt_bf16_matmul(left, right, DType::BFloat16, context),
-                    DType::Float32, context);
+        run_fallback();
+        return;
     }
     check_status(status, "hipblasLtMatmul(BF16)");
+}
+
+Tensor hipblaslt_bf16_matmul(const Tensor& left, const Tensor& right,
+                             DType output_dtype, const OpContext& context) {
+    if (left.ndim() != 2 || right.ndim() != 2) {
+        throw std::invalid_argument(
+            "BF16 mixed matmul requires matching contiguous 2D HIP tensors");
+    }
+    Tensor output({left.shape()[0], right.shape()[1]}, output_dtype,
+                  left.device());
+    hipblaslt_bf16_matmul_out(output, left, right, nullptr, context);
     return output;
 }
 
@@ -1881,6 +1929,148 @@ Tensor bf16_matmul_output(const Tensor& left_bf16, const Tensor& right_bf16,
 #else
     throw std::runtime_error("BF16 output matmul requires hipBLASLt");
 #endif
+}
+
+void bf16_matmul_output_out_(
+    Tensor& output, const Tensor& left_bf16, const Tensor& right_bf16,
+    Tensor& output_fallback_bf16, const OpContext& context) {
+    if (left_bf16.dtype() != DType::BFloat16 ||
+        right_bf16.dtype() != DType::BFloat16 ||
+        left_bf16.device() != right_bf16.device() ||
+        output.device() != left_bf16.device() ||
+        (output.dtype() != DType::Float32 &&
+         output.dtype() != DType::BFloat16)) {
+        throw std::invalid_argument(
+            "bf16_matmul_output_out requires BF16 inputs and FP32/BF16 output");
+    }
+    if (left_bf16.ndim() != 2 || right_bf16.ndim() != 2 ||
+        !left_bf16.is_contiguous() || !right_bf16.is_contiguous() ||
+        left_bf16.shape()[1] != right_bf16.shape()[0] ||
+        output.shape() != Shape({left_bf16.shape()[0],
+                                 right_bf16.shape()[1]}) ||
+        !output.is_contiguous()) {
+        throw std::invalid_argument(
+            "bf16_matmul_output_out shape/layout mismatch");
+    }
+    if (output.dtype() == DType::Float32 &&
+        (output_fallback_bf16.dtype() != DType::BFloat16 ||
+         output_fallback_bf16.device() != output.device() ||
+         output_fallback_bf16.shape() != output.shape() ||
+         !output_fallback_bf16.is_contiguous() ||
+         output_fallback_bf16.storage().data() == output.storage().data())) {
+        throw std::invalid_argument(
+            "FP32 BF16 matmul out requires distinct shape-compatible BF16 fallback");
+    }
+    if (output.storage().data() == left_bf16.storage().data() ||
+        output.storage().data() == right_bf16.storage().data() ||
+        (output.dtype() == DType::Float32 &&
+         (output_fallback_bf16.storage().data() ==
+              left_bf16.storage().data() ||
+          output_fallback_bf16.storage().data() ==
+              right_bf16.storage().data()))) {
+        throw std::invalid_argument(
+            "BF16 matmul output/fallback must not alias input Storage");
+    }
+    if (left_bf16.device().is_cpu()) {
+        const auto reference = bf16_matmul_output(
+            left_bf16, right_bf16, output.dtype(), context);
+        if (reference.shape() != output.shape() || !output.is_contiguous()) {
+            throw std::invalid_argument(
+                "bf16_matmul_output_out output shape/layout mismatch");
+        }
+        runtime::copy_bytes(
+            output.data(), output.device(), reference.data(), reference.device(),
+            static_cast<std::size_t>(output.numel()) * dtype_size(output.dtype()));
+        return;
+    }
+#if MICROLLM_HAS_HIPBLASLT
+    hipblaslt_bf16_matmul_out(
+        output, left_bf16, right_bf16,
+        output.dtype() == DType::Float32 ? &output_fallback_bf16 : nullptr,
+        context);
+#else
+    throw std::runtime_error("BF16 output matmul requires hipBLASLt");
+#endif
+}
+
+void bf16_ffn_out_(Tensor& output_fp32, Bf16FfnWorkspace& workspace,
+                   const Tensor& input_fp32,
+                   const Tensor& gate_weight_bf16,
+                   const Tensor& up_weight_bf16,
+                   const Tensor& down_weight_bf16,
+                   const OpContext& context) {
+    if (input_fp32.dtype() != DType::Float32 || input_fp32.ndim() != 2 ||
+        !input_fp32.is_contiguous() || output_fp32.dtype() != DType::Float32 ||
+        !output_fp32.is_contiguous()) {
+        throw std::invalid_argument(
+            "bf16_ffn_out requires contiguous 2D FP32 input/output");
+    }
+    const auto rows = input_fp32.shape()[0];
+    const auto hidden = input_fp32.shape()[1];
+    if (gate_weight_bf16.dtype() != DType::BFloat16 ||
+        up_weight_bf16.dtype() != DType::BFloat16 ||
+        down_weight_bf16.dtype() != DType::BFloat16 ||
+        gate_weight_bf16.ndim() != 2 || up_weight_bf16.ndim() != 2 ||
+        down_weight_bf16.ndim() != 2 ||
+        !gate_weight_bf16.is_contiguous() ||
+        !up_weight_bf16.is_contiguous() ||
+        !down_weight_bf16.is_contiguous() ||
+        gate_weight_bf16.shape()[0] != hidden ||
+        up_weight_bf16.shape() != gate_weight_bf16.shape() ||
+        down_weight_bf16.shape()[0] != gate_weight_bf16.shape()[1] ||
+        output_fp32.shape() != Shape({rows, down_weight_bf16.shape()[1]})) {
+        throw std::invalid_argument("bf16_ffn_out weight/output shapes are incompatible");
+    }
+    const auto intermediate = gate_weight_bf16.shape()[1];
+    const auto device = input_fp32.device();
+    const Shape input_shape{rows, hidden};
+    const Shape intermediate_shape{rows, intermediate};
+    const Shape output_shape{rows, down_weight_bf16.shape()[1]};
+    const auto valid_workspace = [&](const Tensor& tensor,
+                                     const Shape& shape) {
+        return tensor.dtype() == DType::BFloat16 &&
+               tensor.device() == device && tensor.shape() == shape &&
+               tensor.is_contiguous();
+    };
+    if (gate_weight_bf16.device() != device ||
+        up_weight_bf16.device() != device ||
+        down_weight_bf16.device() != device || output_fp32.device() != device ||
+        !valid_workspace(workspace.input_bf16, input_shape) ||
+        !valid_workspace(workspace.gate, intermediate_shape) ||
+        !valid_workspace(workspace.up, intermediate_shape) ||
+        !valid_workspace(workspace.activated, intermediate_shape) ||
+        !valid_workspace(workspace.output_fallback_bf16, output_shape)) {
+        throw std::invalid_argument(
+            "bf16_ffn_out workspace must contain matching contiguous BF16 tensors");
+    }
+    const std::vector<const void*> writable{
+        output_fp32.data(), workspace.input_bf16.data(), workspace.gate.data(),
+        workspace.up.data(), workspace.activated.data(),
+        workspace.output_fallback_bf16.data()};
+    if (std::set<const void*>(writable.begin(), writable.end()).size() !=
+        writable.size()) {
+        throw std::invalid_argument("bf16_ffn_out workspace tensors must not alias");
+    }
+    const std::set<const void*> writable_set(writable.begin(), writable.end());
+    for (const auto* readable : {input_fp32.data(), gate_weight_bf16.data(),
+                                 up_weight_bf16.data(),
+                                 down_weight_bf16.data()}) {
+        if (writable_set.contains(readable)) {
+            throw std::invalid_argument(
+                "bf16_ffn_out workspace/output must not alias an input");
+        }
+    }
+    cast_out_(input_fp32, workspace.input_bf16, context);
+    bf16_matmul_output_out_(workspace.gate, workspace.input_bf16,
+                            gate_weight_bf16,
+                            workspace.output_fallback_bf16, context);
+    bf16_matmul_output_out_(workspace.up, workspace.input_bf16,
+                            up_weight_bf16,
+                            workspace.output_fallback_bf16, context);
+    swiglu_out_(workspace.activated, workspace.gate, workspace.up, context);
+    bf16_matmul_output_out_(output_fp32, workspace.activated,
+                            down_weight_bf16,
+                            workspace.output_fallback_bf16, context);
 }
 
 static Tensor bf16_ffn_impl(const Tensor& input_fp32,

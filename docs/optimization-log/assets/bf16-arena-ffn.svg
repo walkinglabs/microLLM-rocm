@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="620" viewBox="0 0 1200 620" role="img" aria-labelledby="title desc">
+  <title id="title">Caller-owned BF16 FFN speedups on Qwen and DeepSeek shapes</title>
+  <desc id="desc">Five of six eager and Graph rows pass, while DeepSeek row 32 Graph is slower.</desc>
+  <rect width="1200" height="620" fill="#0b1020"/>
+  <text x="48" y="48" fill="#f8fafc" font-family="sans-serif" font-size="25" font-weight="700">BF16 FFN: stable storage removes allocation from the hot region</text>
+  <text x="48" y="76" fill="#94a3b8" font-family="sans-serif" font-size="14">54 fresh processes · complete output exact · candidate / allocation-returning baseline</text>
+  <line x1="70" y1="480" x2="1135" y2="480" stroke="#475569"/>
+  <line x1="70" y1="417" x2="1135" y2="417" stroke="#f59e0b" stroke-dasharray="5 5"/>
+  <text x="1140" y="422" fill="#fcd34d" font-family="sans-serif" font-size="12">1.05× keep</text>
+  <g font-family="sans-serif" font-size="12" text-anchor="middle">
+    <rect x="95" y="416" width="38" height="64" rx="4" fill="#38bdf8"/><text x="114" y="405" fill="#7dd3fc">1.063×</text>
+    <rect x="138" y="409" width="38" height="71" rx="4" fill="#22c55e"/><text x="157" y="398" fill="#86efac">1.182×</text><text x="136" y="510" fill="#cbd5e1">Q R1</text>
+    <rect x="275" y="416" width="38" height="64" rx="4" fill="#38bdf8"/><text x="294" y="405" fill="#7dd3fc">1.065×</text>
+    <rect x="318" y="415" width="38" height="65" rx="4" fill="#22c55e"/><text x="337" y="404" fill="#86efac">1.083×</text><text x="316" y="510" fill="#cbd5e1">Q R32</text>
+    <rect x="455" y="147" width="38" height="333" rx="4" fill="#38bdf8"/><text x="474" y="136" fill="#7dd3fc">5.548×</text>
+    <rect x="498" y="177" width="38" height="303" rx="4" fill="#22c55e"/><text x="517" y="166" fill="#86efac">5.049×</text><text x="496" y="510" fill="#cbd5e1">Q R512</text>
+    <rect x="635" y="418" width="38" height="62" rx="4" fill="#64748b"/><text x="654" y="407" fill="#cbd5e1">1.038×</text>
+    <rect x="678" y="416" width="38" height="64" rx="4" fill="#22c55e"/><text x="697" y="405" fill="#86efac">1.068×</text><text x="676" y="510" fill="#cbd5e1">D R1</text>
+    <rect x="815" y="416" width="38" height="64" rx="4" fill="#38bdf8"/><text x="834" y="405" fill="#7dd3fc">1.064×</text>
+    <rect x="858" y="422" width="38" height="58" rx="4" fill="#fb7185"/><text x="877" y="411" fill="#fda4af">0.970×</text><text x="856" y="510" fill="#cbd5e1">D R32</text>
+    <rect x="995" y="237" width="38" height="243" rx="4" fill="#38bdf8"/><text x="1014" y="226" fill="#7dd3fc">4.057×</text>
+    <rect x="1038" y="250" width="38" height="230" rx="4" fill="#22c55e"/><text x="1057" y="239" fill="#86efac">3.837×</text><text x="1036" y="510" fill="#cbd5e1">D R512</text>
+  </g>
+  <rect x="70" y="548" width="1065" height="42" rx="7" fill="#111827" stroke="#334155"/>
+  <text x="602" y="574" text-anchor="middle" fill="#e2e8f0" font-family="sans-serif" font-size="14">blue: eager Arena · green/red: Arena Graph · DeepSeek R32 rejects a universal Graph policy</text>
+</svg>

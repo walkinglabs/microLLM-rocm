@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "workload": "Qwen BF16 FFN rows512, three warm-ups and twenty measured regions",
+  "modes": {
+    "baseline": {
+      "kernel_calls": 130,
+      "kernel_duration_ns": 1791127,
+      "hip_malloc_calls": 127,
+      "hip_free_calls": 126,
+      "hip_launch_kernel_calls": 54,
+      "hip_ext_launch_calls": 75,
+      "graph_launch_calls": 0,
+      "stream_synchronize_calls": 25
+    },
+    "arena": {
+      "kernel_calls": 130,
+      "kernel_duration_ns": 1593550,
+      "hip_malloc_calls": 12,
+      "hip_free_calls": 11,
+      "hip_launch_kernel_calls": 54,
+      "hip_ext_launch_calls": 75,
+      "graph_launch_calls": 0,
+      "stream_synchronize_calls": 25
+    },
+    "arena_graph": {
+      "kernel_calls": 130,
+      "kernel_duration_ns": 1539190,
+      "hip_malloc_calls": 12,
+      "hip_free_calls": 11,
+      "hip_launch_kernel_calls": 10,
+      "hip_ext_launch_calls": 9,
+      "graph_launch_calls": 23,
+      "stream_synchronize_calls": 25
+    }
+  },
+  "inference": "arena removes measured FFN Tensor allocations; Graph compresses five BF16 operations without removing computation"
+}

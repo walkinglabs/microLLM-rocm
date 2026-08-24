@@ -359,6 +359,22 @@ TEST(HipBf16FfnTest, ContinuousIslandMatchesCpuAndAvoidsHostTransfers) {
     EXPECT_EQ(diagnostics.activated.dtype(), DType::BFloat16);
     EXPECT_EQ(actual.shape(), (Shape{tokens, hidden}));
     expect_near(actual.to_vector(), expected.to_vector(), 7.5e-2F);
+
+    Bf16FfnWorkspace workspace{
+        .input_bf16 = Tensor({tokens, hidden}, DType::BFloat16, gpu),
+        .gate = Tensor({tokens, intermediate}, DType::BFloat16, gpu),
+        .up = Tensor({tokens, intermediate}, DType::BFloat16, gpu),
+        .activated = Tensor({tokens, intermediate}, DType::BFloat16, gpu),
+        .output_fallback_bf16 =
+            Tensor({tokens, hidden}, DType::BFloat16, gpu)};
+    Tensor caller_output({tokens, hidden}, DType::Float32, gpu);
+    runtime::reset_transfer_stats();
+    bf16_ffn_out_(caller_output, workspace, input, gate, up, down);
+    runtime::synchronize(gpu);
+    const auto caller_transfers = runtime::transfer_stats();
+    EXPECT_EQ(caller_transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(caller_transfers.device_to_host_calls, 0U);
+    expect_near(caller_output.to_vector(), actual.to_vector(), 0.0F);
 }
 
 TEST(HipBf16FfnTest, QwenDecodeShapeFallsBackToDeviceCastAndRemainsReusable) {
@@ -378,6 +394,14 @@ TEST(HipBf16FfnTest, QwenDecodeShapeFallsBackToDeviceCastAndRemainsReusable) {
     runtime::reset_transfer_stats();
     const auto first = bf16_ffn(input, gate, up, down);
     const auto second = bf16_ffn(input, gate, up, down);
+    Bf16FfnWorkspace workspace{
+        .input_bf16 = Tensor({1, hidden}, DType::BFloat16, gpu),
+        .gate = Tensor({1, intermediate}, DType::BFloat16, gpu),
+        .up = Tensor({1, intermediate}, DType::BFloat16, gpu),
+        .activated = Tensor({1, intermediate}, DType::BFloat16, gpu),
+        .output_fallback_bf16 = Tensor({1, hidden}, DType::BFloat16, gpu)};
+    Tensor caller_output({1, hidden}, DType::Float32, gpu);
+    bf16_ffn_out_(caller_output, workspace, input, gate, up, down);
     runtime::synchronize(gpu);
     const auto transfers = runtime::transfer_stats();
     EXPECT_EQ(transfers.host_to_device_calls, 0U);
@@ -386,6 +410,7 @@ TEST(HipBf16FfnTest, QwenDecodeShapeFallsBackToDeviceCastAndRemainsReusable) {
     EXPECT_EQ(second.dtype(), DType::Float32);
     expect_near(first.to_vector(), std::vector<float>(hidden, 0.0F), 0.0F);
     expect_near(second.to_vector(), first.to_vector(), 0.0F);
+    expect_near(caller_output.to_vector(), first.to_vector(), 0.0F);
 }
 
 TEST(HipBf16ProjectionTest, SharedQkvCastMatchesThreeCpuMixedGemms) {

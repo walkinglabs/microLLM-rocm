@@ -8029,6 +8029,93 @@ def validate_arena_ffn(
         min(breaks, default=0), max(breaks, default=0)
 
 
+def validate_bf16_arena_ffn(
+        errors: list[str]) -> tuple[int, float, float, float, float, int, int]:
+    data = REPOSITORY / "benchmarks/results/2026-08-24-bf16-arena-ffn"
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    profile = json.loads((data / "profile-summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = summary.get("comparisons", [])
+    eager = [float(row.get("arena_speedup", 0.0)) for row in comparisons]
+    graph = [float(row.get("arena_graph_speedup", 0.0)) for row in comparisons]
+    nodes = {int(row.get("graph_node_count", 0)) for row in comparisons}
+    modes = profile.get("modes", {})
+    baseline_profile = modes.get("baseline", {})
+    arena_profile = modes.get("arena", {})
+    graph_profile = modes.get("arena_graph", {})
+    expected_tests = {
+        "cpu_debug": {"passed": 287, "total": 287},
+        "asan_ubsan": {"passed": 285, "total": 285},
+        "pytorch_enabled_cpu": {"passed": 261, "total": 261},
+        "hip_full_configuration": {
+            "passed": 450, "total": 450, "conditional_skips": 3},
+        "hip_label": {"passed": 152, "total": 152},
+        "rccl_multi_gpu": {"passed": 11, "total": 11},
+        "rccl_full_label": {"passed": 13, "total": 13},
+    }
+    profile_files = (
+        "baseline-hip-api-stats.csv", "baseline-kernel-stats.csv",
+        "arena-hip-api-stats.csv", "arena-kernel-stats.csv",
+        "arena_graph-hip-api-stats.csv", "arena_graph-kernel-stats.csv")
+    deep_r32 = next((row for row in comparisons
+                     if row.get("model") == "deepseek" and
+                     row.get("rows") == 32), {})
+    if summary.get("status") != "pass" or len(raw) != 54 or \
+            summary.get("raw_processes") != 54 or len(comparisons) != 6 or \
+            summary.get("correctness_gate") is not True or \
+            summary.get("graph_layout_contract") is not True or \
+            summary.get("arena_keep_rows") != 5 or \
+            summary.get("arena_graph_keep_rows") != 5 or \
+            summary.get("decision") != \
+                    "measure complete-model BF16 FFN arena" or \
+            not (1.03 <= min(eager, default=0.0) <= 1.04) or \
+            not (5.54 <= max(eager, default=0.0) <= 5.56) or \
+            not (0.96 <= min(graph, default=0.0) <= 0.98) or \
+            not (5.04 <= max(graph, default=0.0) <= 5.06) or \
+            nodes != {5, 6} or \
+            not (0.96 <= float(deep_r32.get("arena_graph_speedup", 0.0)) <= 0.98) or \
+            any(int(row.get("baseline_allocation_calls", 0)) < 100 or
+                int(row.get("arena_allocation_calls", -1)) != 0 or
+                int(row.get("graph_allocation_calls", -1)) != 0
+                for row in comparisons) or \
+            profile.get("status") != "pass" or \
+            baseline_profile.get("kernel_calls") != arena_profile.get("kernel_calls") or \
+            baseline_profile.get("kernel_calls") != graph_profile.get("kernel_calls") or \
+            arena_profile.get("hip_malloc_calls", 0) >= \
+                    baseline_profile.get("hip_malloc_calls", 0) or \
+            graph_profile.get("hip_launch_kernel_calls", 0) + \
+                    graph_profile.get("hip_ext_launch_calls", 0) >= \
+                    arena_profile.get("hip_launch_kernel_calls", 0) + \
+                    arena_profile.get("hip_ext_launch_calls", 0) or \
+            verification.get("status") != "pass" or \
+            verification.get("tests") != expected_tests or \
+            verification.get("registered_test_files") != 64 or \
+            verification.get("formal_processes") != 54 or \
+            any(row.get("record_type") != "bf16_arena_ffn_measurement" or
+                row.get("status") != "pass" or
+                row.get("maximum_absolute_error") != 0 or
+                row.get("rms_error") != 0 for row in raw) or \
+            any(not (data / name).is_file() for name in profile_files):
+        errors.append("BF16 arena FFN evidence changed")
+    ops = (REPOSITORY / "include/microllm/ops/ops.h").read_text(encoding="utf-8")
+    source = (REPOSITORY / "src/ops/optimized.cpp").read_text(encoding="utf-8")
+    tests = (REPOSITORY / "tests/ops/hip_ops_test.cpp").read_text(encoding="utf-8")
+    runner = (REPOSITORY / "benchmarks/single_gpu/"
+              "bf16_arena_ffn_matrix.py").read_text(encoding="utf-8")
+    if "struct Bf16FfnWorkspace" not in ops or \
+            "void bf16_ffn_out_" not in ops or \
+            "hipblaslt_bf16_matmul_out" not in source or \
+            "QwenDecodeShapeFallsBackToDeviceCastAndRemainsReusable" not in tests or \
+            "measured_allocation_calls" not in runner:
+        errors.append("BF16 arena FFN source/test contract changed")
+    return len(raw), min(eager, default=0.0), max(eager, default=0.0), \
+        min(graph, default=0.0), max(graph, default=0.0), \
+        min(nodes, default=0), max(nodes, default=0)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -8188,7 +8275,8 @@ def validate_assets(errors: list[str]) -> None:
                  "per-device-hipblaslt-handles.svg",
                  "stream-ordered-allocator.svg",
                  "activation-arena.svg",
-                 "arena-ffn.svg"):
+                 "arena-ffn.svg",
+                 "bf16-arena-ffn.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -8492,6 +8580,10 @@ def main() -> int:
         arena_ffn_graph_minimum, arena_ffn_graph_maximum, \
         arena_ffn_break_minimum, arena_ffn_break_maximum = \
         validate_arena_ffn(errors)
+    bf16_arena_rows, bf16_arena_eager_minimum, bf16_arena_eager_maximum, \
+        bf16_arena_graph_minimum, bf16_arena_graph_maximum, \
+        bf16_arena_node_minimum, bf16_arena_node_maximum = \
+        validate_bf16_arena_ffn(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -8742,6 +8834,10 @@ def main() -> int:
           f"{arena_ffn_eager_maximum:.3f}/{arena_ffn_graph_minimum:.3f}/"
           f"{arena_ffn_graph_maximum:.3f}/{arena_ffn_break_minimum}/"
           f"{arena_ffn_break_maximum} "
+          f"bf16_arena_ffn={bf16_arena_rows}/"
+          f"{bf16_arena_eager_minimum:.3f}/{bf16_arena_eager_maximum:.3f}/"
+          f"{bf16_arena_graph_minimum:.3f}/{bf16_arena_graph_maximum:.3f}/"
+          f"{bf16_arena_node_minimum}/{bf16_arena_node_maximum} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

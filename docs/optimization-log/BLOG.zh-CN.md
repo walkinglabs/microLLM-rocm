@@ -3065,3 +3065,26 @@ host Kernel launch从100降到12，再加23次Graph launch。数学没改，收�
 caller-owned BF16 output，并用完整模型logits决定是否接入。
 
 ![Arena FFN result](assets/arena-ffn.svg)
+
+## 199. Experiment 182：低精度不能靠删掉“不听话”的shape
+
+FP32 Arena通过后，真正的生产路径还差一层：BF16输入和权重的GEMM不保证每个shape都能直接写
+FP32。Qwen decode的R1就是已知反例。如果为了Graph只保留支持direct输出的shape，测试会很好看，
+框架却不能生成下一个token。
+
+新`Bf16FfnWorkspace`因此有五块调用者内存：input cast、gate、up、activated和down fallback。
+hipBLASLt能直接写FP32时，整个区域是5节点；拒绝时先写调用者BF16 fallback、再cast到调用者FP32
+output，成为6节点。两条路都不允许隐藏分配，dtype、shape、device、连续性和别名全部检查。
+
+54个fresh进程覆盖Qwen/DeepSeek的R1/R32/R512。所有完整输出bit-exact。Arena eager与Graph各有
+5/6行超过1.05：Qwen R512是5.548×/5.049×，DeepSeek R512是4.057×/3.837×。反例也保留：
+DeepSeek R32 eager 1.064×，Graph反而只有0.970×。
+
+Qwen R512 profile三条路径都执行130个Kernel。Arena把whole-process malloc/free从127/126降到
+12/11；Graph把两类direct launch API合计129次降到19次，再用23次Graph launch提交。数学没有少，
+只是地址和提交不再反复建立。
+
+所以保留caller-owned API与Arena，不把Graph塞进模型。下一节点只允许做完整Qwen/DeepSeek eager
+Arena：必须对齐全部logits并测端到端；再跑一轮operator shape不是新解释。
+
+![BF16 Arena FFN result](assets/bf16-arena-ffn.svg)

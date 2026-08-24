@@ -50,6 +50,28 @@ int main() {
     const auto external_up = microllm::Tensor::from_vector({2.0F, 2.0F}, {2});
     microllm::Tensor external_swiglu({2});
     microllm::ops::swiglu_out_(external_swiglu, external_gate, external_up);
+    const auto bf16_input = microllm::Tensor::from_vector(
+        {0.0F, 0.0F}, {1, 2});
+    const auto bf16_gate_weight = microllm::Tensor::from_vector(
+        {0.0F, 0.0F, 0.0F, 0.0F}, {2, 2},
+        microllm::DType::BFloat16);
+    const auto bf16_up_weight = microllm::Tensor::from_vector(
+        {0.0F, 0.0F, 0.0F, 0.0F}, {2, 2},
+        microllm::DType::BFloat16);
+    const auto bf16_down_weight = microllm::Tensor::from_vector(
+        {0.0F, 0.0F, 0.0F, 0.0F}, {2, 2},
+        microllm::DType::BFloat16);
+    microllm::ops::Bf16FfnWorkspace bf16_workspace{
+        .input_bf16 = microllm::Tensor({1, 2}, microllm::DType::BFloat16),
+        .gate = microllm::Tensor({1, 2}, microllm::DType::BFloat16),
+        .up = microllm::Tensor({1, 2}, microllm::DType::BFloat16),
+        .activated = microllm::Tensor({1, 2}, microllm::DType::BFloat16),
+        .output_fallback_bf16 =
+            microllm::Tensor({1, 2}, microllm::DType::BFloat16)};
+    microllm::Tensor bf16_output({1, 2});
+    microllm::ops::bf16_ffn_out_(
+        bf16_output, bf16_workspace, bf16_input, bf16_gate_weight,
+        bf16_up_weight, bf16_down_weight);
     const auto bias_result = microllm::ops::bias_gradient_with_implementation(
         bias_input, microllm::ops::BiasGradientImplementation::ScalarColumns);
     auto embedding_gradient = microllm::Tensor::from_vector(
@@ -139,6 +161,7 @@ int main() {
         microllm::runtime::stream_ordered_allocator_supported(device) ||
         config.parameter_count() == 0 ||
         external_swiglu.to_vector() != std::vector<float>({0.0F, 0.0F}) ||
+        bf16_output.to_vector() != std::vector<float>({0.0F, 0.0F}) ||
         bias_result.to_vector() != std::vector<float>({4.0F, 6.0F}) ||
         embedding_gradient.to_vector() !=
             std::vector<float>({1.0F, 2.0F, 3.5F, 3.5F}) ||

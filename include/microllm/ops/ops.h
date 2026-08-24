@@ -129,6 +129,17 @@ struct Bf16FfnDiagnostics {
     Tensor output;
 };
 
+// Caller-owned storage for one BF16 FFN invocation. The fallback Tensor keeps
+// FP32-output shapes unsupported by the installed hipBLASLt usable without a
+// hidden allocation. Every Tensor is validated by bf16_ffn_out_.
+struct Bf16FfnWorkspace {
+    Tensor input_bf16;
+    Tensor gate;
+    Tensor up;
+    Tensor activated;
+    Tensor output_fallback_bf16;
+};
+
 [[nodiscard]] ScaledTensor quantize_fp8(const Tensor& input, DType fp8_dtype,
                                         float scale, const OpContext& context = {});
 [[nodiscard]] ScaledTensor quantize_fp8_with_scale(
@@ -163,6 +174,12 @@ void cast_transpose_2d_out_(const Tensor& input, Tensor& output,
                                         const Tensor& right_bf16,
                                         DType output_dtype,
                                         const OpContext& context = {});
+// Writes into caller Storage. A shape-compatible BF16 fallback is required for
+// FP32 output so runtime-specific direct-output rejection remains allocation-free.
+void bf16_matmul_output_out_(Tensor& output, const Tensor& left_bf16,
+                             const Tensor& right_bf16,
+                             Tensor& output_fallback_bf16,
+                             const OpContext& context = {});
 // Runs gate/up -> SwiGLU -> down as one continuous BF16 activation island.
 // Input and output stay FP32 at the residual boundary; all three weights must
 // already be BF16 so the hot path never creates a hidden persistent copy.
@@ -171,6 +188,12 @@ void cast_transpose_2d_out_(const Tensor& input, Tensor& output,
                               const Tensor& up_weight_bf16,
                               const Tensor& down_weight_bf16,
                               const OpContext& context = {});
+void bf16_ffn_out_(Tensor& output_fp32, Bf16FfnWorkspace& workspace,
+                   const Tensor& input_fp32,
+                   const Tensor& gate_weight_bf16,
+                   const Tensor& up_weight_bf16,
+                   const Tensor& down_weight_bf16,
+                   const OpContext& context = {});
 // Diagnostic-only variant exposing the existing activation island boundaries.
 // It executes the same kernels as bf16_ffn and does not copy values to the host.
 [[nodiscard]] Bf16FfnDiagnostics bf16_ffn_diagnostics(

@@ -30,6 +30,10 @@ if(MICROLLM_HAS_HIP)
 endif()
 
 if(MICROLLM_HAS_HIP AND MICROLLM_HAS_HIPBLASLT)
+    add_executable(microllm_bench_bf16_arena_ffn
+                   single_gpu/benchmark_bf16_arena_ffn.cpp)
+    target_link_libraries(microllm_bench_bf16_arena_ffn PRIVATE
+        microllm::ops microllm::runtime hip::host roc::hipblaslt)
     add_executable(microllm_bench_arena_ffn
                    single_gpu/benchmark_arena_ffn.cpp)
     target_link_libraries(microllm_bench_arena_ffn PRIVATE

@@ -232,6 +232,11 @@ and queued work alive. `matmul_out_` plus `swiglu_out_` form the first real four
 Experiment 181 proves official FP32 shapes and stable replay, but a DeepSeek short-row counterexample
 and the production BF16 path prevent a global model switch.
 
+The BF16 region uses `Bf16FfnWorkspace`: input cast, gate, up, activated and output fallback are
+all caller-owned. Exact shapes that support BF16×BF16→FP32 capture five nodes. Runtime-rejected
+direct-output shapes capture a sixth BF16→FP32 cast without allocating. Experiment 182 keeps this
+contract but rejects universal Graph routing; complete-model eager Arena evidence is still required.
+
 hipBLASLt GEMM also supports contiguous strided batches: leading Tensor dimensions become
 the batch count and last-two dimensions remain the matrix contract. Explicit batched
 selection is tested independently; Auto is not changed by operator-only timing.

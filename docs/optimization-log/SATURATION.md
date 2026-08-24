@@ -178,6 +178,12 @@ DeepSeek R512 Graph rows improve 1.202×/2.970×/1.679×; DeepSeek R32 reaches o
 universal routing. The FP32 region is retained. Remaining work is narrower: caller-owned BF16
 output contracts and a complete model-logit gate, not another FP32 arena shape sweep.
 
+Experiment 182 closes that BF16 primitive gap without deleting unsupported shapes. A caller-owned
+fallback makes Qwen R1/R32 and DeepSeek R1 six-node Graphs; direct-output rows remain five nodes.
+All 54 outputs are exact, eager Arena passes five rows, and Graph passes five rows. DeepSeek R32
+Graph is 0.970×, so universal Graph routing is closed. Only eager Arena complete-model routing is
+open; another operator-only BF16 shape sweep is not a distinct hypothesis.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

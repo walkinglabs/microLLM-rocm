@@ -288,6 +288,18 @@ python3 benchmarks/single_gpu/arena_ffn_matrix.py \
 This uses Qwen/DeepSeek hidden/intermediate dimensions, captures three hipBLASLt GEMMs plus
 SwiGLU, compares every output element and reports shape-selective setup break-even.
 
+Production BF16 FFN region:
+
+```bash
+python3 benchmarks/single_gpu/bf16_arena_ffn_matrix.py \
+  --binary build/hip-release/benchmarks/microllm_bench_bf16_arena_ffn \
+  --output-directory /tmp/microllm-bf16-arena-ffn
+```
+
+This adds R1 decode shapes and distinguishes five-node direct FP32 output from six-node
+caller-owned BF16 fallback. The runner reports measured engine allocation calls and retains
+DeepSeek R32 Graph as a performance counterexample.
+
 ## What remains
 
 There is no Python `@profile` decorator yet. The current stable entry points are the

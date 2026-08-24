@@ -40,7 +40,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [09](steps/09-fusion-autotune.md) | complete | plan/alpha/repeat/zero-stride families measured | local Attention search saturated |
 | [10](steps/10-bf16.md) | in progress | DeepSeek first-four robust-strict；Qwen long-constant要求全FP32 fallback | broader checkpoints and prompt families |
 | [11](steps/11-fp8.md) | planned | cached FP8 weight/dynamic scale | FP8 track |
-| [12](steps/12-hip-graph-final.md) | in progress | FP32 official-shape FFN 3/4 Graph通过；待BF16+完整model logits | BF16 out + full model routing + setup amortization |
+| [12](steps/12-hip-graph-final.md) | in progress | BF16 FFN Arena/Graph各5/6 shape通过；待完整model logits | eager model Arena + logits + end-to-end gate |
 
 ## 为什么按这个顺序
 

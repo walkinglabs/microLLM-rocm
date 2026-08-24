@@ -106,6 +106,13 @@ Three hipBLASLt GEMMs plus SwiGLU now write into stable external/Arena Storage a
 nodes. Qwen R32/R512 and DeepSeek R512 pass the 1.05 speed gate; DeepSeek R32 is 1.005×. The next
 step is BF16 caller-owned output and complete model logits. Repeating FP32 shapes is closed.
 
+## Experiment 182 BF16 workspace result
+
+Caller-owned BF16 input/gate/up/activated/fallback plus FP32 output now cover both direct-output
+and runtime-rejected fallback shapes. All 54 official-shape processes are exact. Eager Arena and
+Graph each pass five of six rows; DeepSeek R32 Graph is 0.970×. The next allowed experiment is an
+eager Arena complete-model gate. Graph model routing still lacks stable whole-model addresses.
+
 ## Final matrix
 
 - FP32 fixed matrix and running-best curve;

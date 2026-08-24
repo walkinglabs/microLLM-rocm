@@ -546,6 +546,23 @@ TEST(CpuOpsTest, DeviceStyleCastAndMixedBf16MatmulMatchRoundedReference) {
     expect_near(bf16_output.cast(DType::Float32).to_vector(),
                 matmul(rounded_input, rounded_weight).cast(DType::BFloat16)
                     .cast(DType::Float32).to_vector());
+    auto input_bf16 = input.cast(DType::BFloat16);
+    const auto weight_bf16 = weight.cast(DType::BFloat16);
+    Tensor caller_output({2, 2});
+    Tensor caller_fallback({2, 2}, DType::BFloat16);
+    bf16_matmul_output_out_(caller_output, input_bf16, weight_bf16,
+                            caller_fallback);
+    expect_near(caller_output.to_vector(),
+                bf16_matmul_output(input_bf16, weight_bf16,
+                                   DType::Float32).to_vector(), 0.0F);
+    EXPECT_THROW(
+        bf16_matmul_output_out_(caller_output, input_bf16, weight_bf16,
+                                caller_output),
+        std::invalid_argument);
+    EXPECT_THROW(
+        bf16_matmul_output_out_(caller_output, input_bf16, weight_bf16,
+                                input_bf16),
+        std::invalid_argument);
 }
 
 TEST(CpuOpsTest, Bf16FfnKeepsIntermediateActivationsLowPrecision) {
@@ -580,6 +597,24 @@ TEST(CpuOpsTest, Bf16FfnKeepsIntermediateActivationsLowPrecision) {
     expect_near(actual.to_vector(), expected.to_vector(), 0.0F);
     expect_near(bf16_ffn(input, gate, up, down).to_vector(),
                 actual.to_vector(), 0.0F);
+
+    Bf16FfnWorkspace workspace{
+        .input_bf16 = Tensor({2, 3}, DType::BFloat16),
+        .gate = Tensor({2, 4}, DType::BFloat16),
+        .up = Tensor({2, 4}, DType::BFloat16),
+        .activated = Tensor({2, 4}, DType::BFloat16),
+        .output_fallback_bf16 = Tensor({2, 2}, DType::BFloat16)};
+    Tensor caller_output({2, 2});
+    bf16_ffn_out_(caller_output, workspace, input, gate, up, down);
+    expect_near(caller_output.to_vector(), actual.to_vector(), 0.0F);
+    EXPECT_THROW(
+        bf16_ffn_out_(caller_output, workspace, input, gate, up,
+                      Tensor({8}, DType::BFloat16)),
+        std::invalid_argument);
+    workspace.activated = workspace.gate;
+    EXPECT_THROW(
+        bf16_ffn_out_(caller_output, workspace, input, gate, up, down),
+        std::invalid_argument);
 
     EXPECT_THROW((void)bf16_ffn(input.cast(DType::BFloat16), gate, up, down),
                  std::invalid_argument);

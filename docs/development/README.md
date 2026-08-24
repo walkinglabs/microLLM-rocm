@@ -388,3 +388,5 @@ the next gate. Records are append-only except for factual corrections.
   stable backing, aligned two-slot liveness and allocation-free Graph replay.
 - [2026-08-24-arena-ffn.md](2026-08-24-arena-ffn.md):
   external Storage and the first official-shape heterogeneous FFN Graph region.
+- [2026-08-24-bf16-arena-ffn.md](2026-08-24-bf16-arena-ffn.md):
+  caller-owned BF16 workspace, explicit fallback and official shape matrix.
