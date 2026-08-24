@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "record_type": "post_bf16_qk_saturation_summary",
+  "comparisons": [
+    {
+      "model": "qwen2.5-0.5b",
+      "total_kernel_ns": 4754117.4,
+      "gemm_share": 0.5741639447103262,
+      "softmax_share": 0.10011141079519828,
+      "cast_share": 0.07027613579757201,
+      "repeat_share": 0.043982885235438224,
+      "softmax_perfect_upper_bound": 1.1112486723313861,
+      "cast_perfect_upper_bound": 1.0755881810755272,
+      "repeat_perfect_upper_bound": 1.0460063785011524,
+      "three_category_perfect_upper_bound": 1.2728645159410965
+    },
+    {
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "total_kernel_ns": 8927681.0,
+      "gemm_share": 0.6682172895738546,
+      "softmax_share": 0.058127480137339135,
+      "cast_share": 0.05754869601635632,
+      "repeat_share": 0.03346376287414391,
+      "softmax_perfect_upper_bound": 1.0617148063156308,
+      "cast_perfect_upper_bound": 1.061062779342661,
+      "repeat_perfect_upper_bound": 1.034622357226516,
+      "three_category_perfect_upper_bound": 1.1752813956944197
+    }
+  ],
+  "recent_gates": {
+    "direct_bf16_qk": "keep",
+    "causal_softmax_128": "reject_model_policy",
+    "bf16_v_cast_repeat": "reject_model_policy",
+    "readable_fused_attention_ratio": 0.36
+  },
+  "decision": "close inference micro-fusion track; require tiled online Attention or a new profile"
+}

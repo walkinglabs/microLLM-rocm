@@ -10663,6 +10663,48 @@ def validate_bf16_repeat_fusion_discard(
     return len(raw), sum(value >= 1.05 for value in ratios), min(ratios), max(ratios)
 
 
+def validate_post_bf16_qk_saturation(
+        errors: list[str]) -> tuple[int, float, float]:
+    data = REPOSITORY / (
+        "benchmarks/results/2026-08-24-post-bf16-qk-saturation")
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    rows = {row.get("model"): row
+            for row in summary.get("comparisons", [])}
+    expected = {
+        "qwen2.5-0.5b":
+            (4754117.4, 0.5741639447103262, 0.10011141079519828,
+             1.1112486723313861, 1.0755881810755272,
+             1.0460063785011524, 1.2728645159410965),
+        "deepseek-r1-distill-qwen-1.5b":
+            (8927681.0, 0.6682172895738546, 0.058127480137339135,
+             1.0617148063156308, 1.061062779342661,
+             1.034622357226516, 1.1752813956944197),
+    }
+    fields = (
+        "total_kernel_ns", "gemm_share", "softmax_share",
+        "softmax_perfect_upper_bound", "cast_perfect_upper_bound",
+        "repeat_perfect_upper_bound", "three_category_perfect_upper_bound")
+    if summary.get("status") != "pass" or set(rows) != set(expected) or \
+            any(any(abs(float(rows[name].get(field, 0.0)) - value) > 1.0e-9
+                    for field, value in zip(fields, expected[name], strict=True))
+                for name in expected) or \
+            summary.get("recent_gates", {}).get("direct_bf16_qk") != "keep" or \
+            summary.get("recent_gates", {}).get("causal_softmax_128") != \
+                "reject_model_policy" or \
+            summary.get("recent_gates", {}).get("bf16_v_cast_repeat") != \
+                "reject_model_policy" or \
+            verification.get("status") != "pass" or \
+            verification.get("softmax_processes") != 36 or \
+            verification.get("bf16_repeat_processes") != 48 or \
+            verification.get("readable_fused_attention_pairs") != 2:
+        errors.append("post-BF16-Q/K saturation evidence changed")
+    ratios = [float(row["three_category_perfect_upper_bound"])
+              for row in rows.values()]
+    return len(rows), min(ratios), max(ratios)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -10849,7 +10891,8 @@ def validate_assets(errors: list[str]) -> None:
                  "inference-bthd-bf16-qk.svg",
                  "inference-bthd-bf16-qk-shapes.svg",
                  "causal-softmax-128-discard.svg",
-                 "bf16-repeat-fusion-discard.svg"):
+                 "bf16-repeat-fusion-discard.svg",
+                 "post-bf16-qk-saturation.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -11225,6 +11268,8 @@ def main() -> int:
         softmax_thread_maximum = validate_causal_softmax_128_discard(errors)
     bf16_repeat_rows, bf16_repeat_passed, bf16_repeat_minimum, \
         bf16_repeat_maximum = validate_bf16_repeat_fusion_discard(errors)
+    saturation_rows, saturation_minimum, saturation_maximum = \
+        validate_post_bf16_qk_saturation(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -11550,6 +11595,8 @@ def main() -> int:
           f"{softmax_thread_maximum:.3f} "
           f"bf16_repeat_fusion={bf16_repeat_rows}/{bf16_repeat_passed}/"
           f"{bf16_repeat_minimum:.3f}/{bf16_repeat_maximum:.3f} "
+          f"inference_saturation={saturation_rows}/"
+          f"{saturation_minimum:.3f}/{saturation_maximum:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

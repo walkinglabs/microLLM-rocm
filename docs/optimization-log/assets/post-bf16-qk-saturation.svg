@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1060" height="570" viewBox="0 0 1060 570" role="img" aria-labelledby="title desc">
+  <title id="title">Post BF16 Q/K inference saturation audit</title>
+  <desc id="desc">Remaining Kernel shares and recent keep/reject decisions show why micro-fusion work is closed.</desc>
+  <rect width="1060" height="570" fill="#0b1020"/>
+  <text x="55" y="48" fill="#f8fafc" font-family="sans-serif" font-size="28" font-weight="700">Experiment 209 · inference micro-fusion saturation</text>
+  <text x="55" y="78" fill="#94a3b8" font-family="sans-serif" font-size="15">current accepted T512 path · Kernel share</text>
+  <text x="55" y="135" fill="#e2e8f0" font-family="sans-serif" font-size="18" font-weight="700">Qwen</text>
+  <rect x="170" y="112" width="459" height="32" fill="#60a5fa"/><rect x="629" y="112" width="80" height="32" fill="#fbbf24"/><rect x="709" y="112" width="56" height="32" fill="#a78bfa"/><rect x="765" y="112" width="35" height="32" fill="#34d399"/><rect x="800" y="112" width="170" height="32" fill="#64748b"/>
+  <text x="55" y="195" fill="#e2e8f0" font-family="sans-serif" font-size="18" font-weight="700">DeepSeek</text>
+  <rect x="170" y="172" width="534" height="32" fill="#60a5fa"/><rect x="704" y="172" width="47" height="32" fill="#fbbf24"/><rect x="751" y="172" width="46" height="32" fill="#a78bfa"/><rect x="797" y="172" width="27" height="32" fill="#34d399"/><rect x="824" y="172" width="146" height="32" fill="#64748b"/>
+  <text x="170" y="240" fill="#60a5fa" font-family="sans-serif" font-size="13">GEMM 57–67%</text><text x="335" y="240" fill="#fbbf24" font-family="sans-serif" font-size="13">softmax</text><text x="440" y="240" fill="#a78bfa" font-family="sans-serif" font-size="13">cast</text><text x="520" y="240" fill="#34d399" font-family="sans-serif" font-size="13">repeat</text>
+  <text x="55" y="315" fill="#e2e8f0" font-family="sans-serif" font-size="20" font-weight="700">Recent falsification chain</text>
+  <rect x="55" y="345" width="280" height="70" rx="9" fill="#14532d"/><text x="195" y="376" fill="#bbf7d0" font-family="sans-serif" font-size="15" font-weight="700" text-anchor="middle">BF16 Q/K direct</text><text x="195" y="399" fill="#86efac" font-family="sans-serif" font-size="13" text-anchor="middle">KEEP · 1.022× / 1.024×</text>
+  <rect x="390" y="345" width="280" height="70" rx="9" fill="#7f1d1d"/><text x="530" y="376" fill="#fecaca" font-family="sans-serif" font-size="15" font-weight="700" text-anchor="middle">softmax 128 threads</text><text x="530" y="399" fill="#fca5a5" font-family="sans-serif" font-size="13" text-anchor="middle">REJECT · 4/6 pass</text>
+  <rect x="725" y="345" width="280" height="70" rx="9" fill="#7f1d1d"/><text x="865" y="376" fill="#fecaca" font-family="sans-serif" font-size="15" font-weight="700" text-anchor="middle">BF16 V cast+repeat</text><text x="865" y="399" fill="#fca5a5" font-family="sans-serif" font-size="13" text-anchor="middle">REJECT · 3/8 pass</text>
+  <text x="55" y="485" fill="#f8fafc" font-family="sans-serif" font-size="18" font-weight="700">Next scale change: MFMA-tiled online Attention</text>
+  <text x="55" y="520" fill="#94a3b8" font-family="sans-serif" font-size="14">Readable non-tiled fused control = 0.36× · another one-launch tweak is not justified</text>
+</svg>

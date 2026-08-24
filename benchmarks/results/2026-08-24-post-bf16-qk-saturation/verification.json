@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "source_profile": "2026-08-24-inference-bthd-bf16-qk/profile-summary.json",
+  "softmax_processes": 36,
+  "bf16_repeat_processes": 48,
+  "readable_fused_attention_pairs": 2,
+  "accepted_recent_policies": 1,
+  "rejected_recent_policies": 2
+}

@@ -40,6 +40,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   only 3/8 operator cases pass 1.05 and both B2/T512 cases fail;
 - [ ] remove expanded V only through a broadcast/tiled consumer that passes the
   already-recorded width-128 end-to-end counterexamples;
+- [x] close the current inference micro-fusion track after two consecutive
+  cross-model/shape rejections and publish perfect-elimination upper bounds;
+- [ ] treat MFMA/rocWMMA online Attention as a separate design milestone with
+  tiled QK/PV, online max/sum, causal masking, GQA sharing and full-logit gates;
 - [x] populate B1 KV cache from one full-sequence prefill instead of token replay;
 - [x] support batched cached decode with batch-aware KV Storage;
 - [x] add opt-in BF16 KV Storage with FP32 accumulation, complete-logit gates and a retained

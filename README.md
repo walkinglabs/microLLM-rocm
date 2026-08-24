@@ -234,6 +234,9 @@ the chronological details are in the [optimization log](docs/optimization-log/RE
 - a fused BF16-to-FP32 GQA repeat primitive is exact and speeds small B1 operator
   shapes up to 1.345×, but B2/T512 reaches only 1.004×/0.995× for Qwen/DeepSeek;
   the model route is rejected while the explicit research primitive remains;
+- the post-BF16-Q/K saturation audit closes blind inference micro-fusion scans:
+  GEMM is 57%/67% of current T512 Kernel time, two consecutive scoped candidates
+  fail cross-model/shape gates, and the next Attention step must be MFMA-tiled online math;
 - a phase-independent exact-size HIP pool with immediate legacy-default-Stream reuse and strict
   permanent disablement for non-default Streams;
 - a cross-framework trace runner for operator/layer values and latency comparisons.

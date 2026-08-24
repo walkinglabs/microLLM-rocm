@@ -3487,3 +3487,15 @@ wave。为了支持它，reduction stride改读`blockDim.x`；默认256线程的
 而不是继续融合它前面的微小准备工作。
 
 ![BF16 repeat fusion discard](assets/bf16-repeat-fusion-discard.svg)
+
+## 226. Experiment 209：该停止微融合，换问题尺度了
+
+当前T512 Kernel里GEMM已占57%/67%。softmax、cast、repeat即使各自完美消失，DeepSeek理论上
+也只有1.062×、1.061×、1.035×。现实里后两次候选又分别只有4/6和3/8算子case过门。
+
+已有可读fused Attention不物化T²，却只有library路径0.36×；缺少MFMA tile和online数据复用，
+省内存不会自动变快。因此当前微融合track关闭，不再盲扫线程数和单launch。
+
+下一次Attention工作必须是独立online/tiled设计，或者等待其他子系统改变后重新profile。
+
+![Post BF16 Q/K saturation](assets/post-bf16-qk-saturation.svg)

@@ -60,6 +60,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [29](steps/29-inference-bthd-bf16-qk-shapes.md) | complete | BF16 Q/K sequence/batch矩阵 | 六case 1.0128×–1.0244×；pilot反例保留 |
 | [30](steps/30-causal-softmax-128-discard.md) | complete | causal softmax 128线程反例 | 4/6过门；Deep T512 1.0071×，模型策略停止 |
 | [31](steps/31-bf16-repeat-fusion-discard.md) | complete | BF16 V cast+repeat融合 | 3/8过1.05；B2 1.004×/0.995×，不接模型 |
+| [32](steps/32-post-bf16-qk-saturation.md) | complete | 推理微融合饱和审计 | 两次连续反例；下一步必须online/tiled Attention |
 
 ## 为什么按这个顺序
 
