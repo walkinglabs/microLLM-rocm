@@ -148,6 +148,13 @@ Allocation calls fall by 600/700 at T512, but Qwen/DeepSeek reaches only 1.004×
 increases 2.75/4.72 MB. Model routing is rejected. Persistent-Storage optimization is saturated;
 the next candidate must change Attention device math, not another allocation family.
 
+## Experiment 188 FP32 solution result
+
+Three-process correctness-before-timing finds 64 common passing indices for each official T512
+QK/PV shape. Recommended Event speedups are 1.324×/1.198× for Qwen and 1.253×/1.114× for
+DeepSeek, with Max/RMS at most 4.47e-7/6.64e-8 and zero workspace. The next node may register only
+these exact version-local shapes and must pass complete logits/model performance.
+
 ## Final matrix
 
 - FP32 fixed matrix and running-best curve;

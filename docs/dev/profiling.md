@@ -335,6 +335,17 @@ Experiment 187 converts the selected source into `causal_gqa_attention_out_` and
 `--attention-core-arena` model path. Its failure is important: source bytes and removed logical
 calls do not prove end-to-end speed once device Attention math dominates.
 
+FP32 Attention solution screening:
+
+```bash
+python3 benchmarks/single_gpu/fp32_attention_solution_matrix.py \
+  --binary build/hip-release/benchmarks/microllm_tune_fp32_attention_algorithms \
+  --output-directory /tmp/microllm-fp32-attention-solutions
+```
+
+The tuner performs full-output correctness before Event/wall timing. Recommended indices are
+version- and exact-layout-local; operator speedups are not model claims.
+
 ## What remains
 
 There is no Python `@profile` decorator yet. The current stable entry points are the

@@ -40,7 +40,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [09](steps/09-fusion-autotune.md) | complete | plan/alpha/repeat/zero-stride families measured | local Attention search saturated |
 | [10](steps/10-bf16.md) | in progress | DeepSeek first-four robust-strict；Qwen long-constant要求全FP32 fallback | broader checkpoints and prompt families |
 | [11](steps/11-fp8.md) | planned | cached FP8 weight/dynamic scale | FP8 track |
-| [12](steps/12-hip-graph-final.md) | in progress | largest core Arena仅1.004×/1.002×拒绝 | Attention FP32 QK/PV device-math selection |
+| [12](steps/12-hip-graph-final.md) | in progress | FP32 QK/PV四shape solution 1.114×–1.324× | exact registry + full model gate |
 
 ## 为什么按这个顺序
 

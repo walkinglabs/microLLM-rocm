@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="570" viewBox="0 0 1000 570" role="img" aria-labelledby="title desc">
+  <title id="title">FP32 Attention solution speedups</title>
+  <desc id="desc">All four exact QK and PV cases exceed the 1.05 operator keep threshold.</desc>
+  <rect width="1000" height="570" fill="#0b1020"/>
+  <text x="48" y="48" fill="#f8fafc" font-family="sans-serif" font-size="25" font-weight="700">Device math finally has a four-shape candidate</text>
+  <text x="48" y="76" fill="#94a3b8" font-family="sans-serif" font-size="14">FP32 T512 · complete output gate · recommended Event median / default</text>
+  <line x1="90" y1="440" x2="920" y2="440" stroke="#475569"/>
+  <line x1="90" y1="388" x2="920" y2="388" stroke="#f59e0b" stroke-dasharray="5 5"/>
+  <text x="925" y="393" fill="#fcd34d" font-family="sans-serif" font-size="12">1.05× keep</text>
+  <g font-family="sans-serif" text-anchor="middle">
+    <rect x="135" y="175" width="130" height="265" rx="7" fill="#38bdf8"/>
+    <text x="200" y="160" fill="#7dd3fc" font-size="18">1.324×</text><text x="200" y="475" fill="#cbd5e1" font-size="15">Qwen QK</text>
+    <rect x="335" y="200" width="130" height="240" rx="7" fill="#0ea5e9"/>
+    <text x="400" y="185" fill="#7dd3fc" font-size="18">1.198×</text><text x="400" y="475" fill="#cbd5e1" font-size="15">Qwen PV</text>
+    <rect x="535" y="189" width="130" height="251" rx="7" fill="#22c55e"/>
+    <text x="600" y="174" fill="#86efac" font-size="18">1.253×</text><text x="600" y="475" fill="#cbd5e1" font-size="15">DeepSeek QK</text>
+    <rect x="735" y="217" width="130" height="223" rx="7" fill="#16a34a"/>
+    <text x="800" y="202" fill="#86efac" font-size="18">1.114×</text><text x="800" y="475" fill="#cbd5e1" font-size="15">DeepSeek PV</text>
+  </g>
+  <rect x="90" y="510" width="830" height="38" rx="7" fill="#111827" stroke="#334155"/>
+  <text x="505" y="535" text-anchor="middle" fill="#e2e8f0" font-family="sans-serif" font-size="14">64 common passing indices per shape · Max≤4.47e-7 · RMS≤6.64e-8 · workspace 0</text>
+</svg>

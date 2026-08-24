@@ -260,6 +260,11 @@ expanded K/V slot after the QK submission. A model cache can share that exact ba
 for selected sequence lengths. Experiment 187 rejects model routing despite exact results and fewer
 allocations; the primitive remains, while persistent-Storage optimization is considered saturated.
 
+FP32 Attention solution screening is deliberately outside default dispatch. It recreates exact
+row-major batched QK/PV descriptors, intersects passing solution indices across fresh processes and
+times only complete-output-correct candidates. Version-local indices require an exact registry and
+full-model gate before use.
+
 hipBLASLt GEMM also supports contiguous strided batches: leading Tensor dimensions become
 the batch count and last-two dimensions remain the matrix contract. Explicit batched
 selection is tested independently; Auto is not changed by operator-only timing.

@@ -160,6 +160,9 @@ needed to run a real training and generation loop:
 - exact Attention core liveness then removes 600/700 model allocations with caller-owned scaled Q,
   reused K/V, probabilities and output, but T512 reaches only `1.004×/1.002×` and peak rises;
   model routing is rejected and the persistent-Storage track is closed in favor of device math;
+- exact FP32 Attention solution screening finds 64 common passing indices per QK/PV shape;
+  recommended Qwen/DeepSeek T512 operator Event speedups are `1.324×/1.198×` and
+  `1.253×/1.114×`, with complete-output Max/RMS ≤`4.47e-7/6.64e-8` before model registration;
 - a phase-independent exact-size HIP pool with immediate legacy-default-Stream reuse and strict
   permanent disablement for non-default Streams;
 - a cross-framework trace runner for operator/layer values and latency comparisons.
@@ -497,13 +500,13 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 454/454 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
-| CPU Debug | 290/290 | host code, CLI, model/graph, benchmark, both package paths and evidence schemas |
-| ASan/UBSan CPU | 288/288 | host lifetime, external Storage and instrumented-package linking |
-| MI300X/gfx942 HIP label | 153/153 | allocator/arena/Stream/Graph, per-device matmul, BF16/FP8, model and package paths |
-| PyTorch-enabled CPU build | 264/264 | dispatcher parity, full graph/model oracle and both package paths |
+| Full CPU/HIP configuration | 456/456 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
+| CPU Debug | 291/291 | host code, CLI, model/graph, benchmark, both package paths and evidence schemas |
+| ASan/UBSan CPU | 289/289 | host lifetime, external Storage and instrumented-package linking |
+| MI300X/gfx942 HIP label | 154/154 | allocator/arena/Stream/Graph, per-device matmul, BF16/FP8, model and package paths |
+| PyTorch-enabled CPU build | 265/265 | dispatcher parity, full graph/model oracle and both package paths |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, gradient buckets, DDP trainer/CLI and per-device hipBLASLt ownership |
-| Registered test files | 66 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| Registered test files | 67 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree and relocated install tree, external `find_package`, components, compile, link and run |
 | CPU source coverage | 80.4% lines / 89.3% functions / 61.4% branches | 7,782/9,678 lines; GCC 13.3 + gcovr 8.3 |
 

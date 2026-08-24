@@ -400,3 +400,5 @@ the next gate. Records are append-only except for factual corrections.
   thread-local source×size diagnostics and deterministic T512 target selection.
 - [2026-08-24-attention-core-arena-discard.md](2026-08-24-attention-core-arena-discard.md):
   exact core liveness, caller-owned Attention and model-level rejection.
+- [2026-08-24-fp32-attention-solutions.md](2026-08-24-fp32-attention-solutions.md):
+  four exact QK/PV inventories with complete-output-before-timing selection.

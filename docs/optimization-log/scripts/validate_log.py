@@ -8530,6 +8530,72 @@ def validate_attention_core_arena_discard(
         len(eligible), len(bypassed)
 
 
+def validate_fp32_attention_solutions(
+        errors: list[str]) -> tuple[int, int, float, float]:
+    data = REPOSITORY / "benchmarks/results/2026-08-24-fp32-attention-solutions"
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = summary.get("comparisons", [])
+    by_case = {(row.get("model"), row.get("operation")): row
+               for row in comparisons}
+    expected = {
+        ("qwen", "qk"): (305434, 1.324141474179969),
+        ("qwen", "pv"): (294519, 1.197782905917267),
+        ("deepseek", "qk"): (305460, 1.2527205636829792),
+        ("deepseek", "pv"): (292941, 1.1144110840295476),
+    }
+    speedups = [float(row.get("recommended_event_speedup", 0.0))
+                for row in comparisons]
+    expected_tests = {
+        "cpu_debug": {"passed": 291, "total": 291},
+        "asan_ubsan": {"passed": 289, "total": 289},
+        "pytorch_enabled_cpu": {"passed": 265, "total": 265},
+        "hip_full_configuration": {
+            "passed": 456, "total": 456, "conditional_skips": 3},
+        "hip_label": {"passed": 154, "total": 154},
+        "rccl_multi_gpu": {"passed": 11, "total": 11},
+        "rccl_full_label": {"passed": 13, "total": 13},
+    }
+    if summary.get("status") != "pass" or len(raw) != 12 or \
+            summary.get("raw_processes") != 12 or len(comparisons) != 4 or \
+            summary.get("keep_rows") != 4 or \
+            summary.get("decision") != \
+                    "register exact FP32 Attention candidates" or \
+            set(by_case) != set(expected) or \
+            any(row.get("common_passing_candidates") != 64 or
+                row.get("recommended_index") != expected[case][0] or
+                abs(float(row.get("recommended_event_speedup", 0.0)) -
+                    expected[case][1]) > 1.0e-9 or
+                float(row.get("recommended_maximum_absolute_error", 1.0)) >
+                    4.5e-7 or
+                float(row.get("recommended_maximum_rms_error", 1.0)) >
+                    6.7e-8 or
+                row.get("recommended_workspace_bytes") != 0
+                for case, row in by_case.items()) or \
+            verification.get("status") != "pass" or \
+            verification.get("tests") != expected_tests or \
+            verification.get("registered_test_files") != 67 or \
+            verification.get("formal_processes") != 12 or \
+            any(row.get("record_type") != "fp32_attention_algorithm_tune" or
+                row.get("status") != "pass" or
+                int(row.get("passing_candidates", 0)) < 64
+                for row in raw):
+        errors.append("FP32 Attention solution evidence changed")
+    benchmark = (REPOSITORY / "benchmarks/micro/"
+                 "tune_fp32_attention_algorithms.cpp").read_text(encoding="utf-8")
+    runner = (REPOSITORY / "benchmarks/single_gpu/"
+              "fp32_attention_solution_matrix.py").read_text(encoding="utf-8")
+    if "hipblasLtMatmulAlgoGetHeuristic" not in benchmark or \
+            "complete_output_elements" not in benchmark or \
+            "common_passing_candidates" not in runner:
+        errors.append("FP32 Attention solution source/test contract changed")
+    return len(raw), int(summary.get("keep_rows", 0)), \
+        min(speedups, default=0.0), max(speedups, default=0.0)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -8695,7 +8761,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-ffn-arena-selective.svg",
                  "bf16-qkv-arena-discard.svg",
                  "allocation-source-attribution.svg",
-                 "attention-core-arena-discard.svg"):
+                 "attention-core-arena-discard.svg",
+                 "fp32-attention-solutions.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -9018,6 +9085,8 @@ def main() -> int:
     attention_core_rows, attention_core_minimum, attention_core_maximum, \
         attention_core_eligible, attention_core_bypassed = \
         validate_attention_core_arena_discard(errors)
+    fp32_attention_rows, fp32_attention_keep, fp32_attention_minimum, \
+        fp32_attention_maximum = validate_fp32_attention_solutions(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -9285,6 +9354,8 @@ def main() -> int:
           f"attention_core_arena={attention_core_rows}/"
           f"{attention_core_minimum:.3f}/{attention_core_maximum:.3f}/"
           f"{attention_core_eligible}/{attention_core_bypassed} "
+          f"fp32_attention_solutions={fp32_attention_rows}/{fp32_attention_keep}/"
+          f"{fp32_attention_minimum:.3f}/{fp32_attention_maximum:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

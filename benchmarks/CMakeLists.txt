@@ -30,6 +30,10 @@ if(MICROLLM_HAS_HIP)
 endif()
 
 if(MICROLLM_HAS_HIP AND MICROLLM_HAS_HIPBLASLT)
+    add_executable(microllm_tune_fp32_attention_algorithms
+                   micro/tune_fp32_attention_algorithms.cpp)
+    target_link_libraries(microllm_tune_fp32_attention_algorithms PRIVATE
+        microllm::core microllm::runtime hip::host roc::hipblaslt)
     add_executable(microllm_bench_bf16_arena_ffn
                    single_gpu/benchmark_bf16_arena_ffn.cpp)
     target_link_libraries(microllm_bench_bf16_arena_ffn PRIVATE
@@ -322,6 +326,13 @@ if(BUILD_TESTING)
                              --workspace-bytes 33554432 --warmup 1 --repetitions 2)
             set_tests_properties(Benchmark.HipBf16SolutionTune PROPERTIES
                                  LABELS "hip;benchmark;matmul;bf16;solution;correctness;smoke")
+            add_test(NAME Benchmark.HipFp32AttentionSolutionTune
+                     COMMAND microllm_tune_fp32_attention_algorithms
+                             --model qwen --operation qk --sequence 512
+                             --maximum-algorithms 4 --workspace-bytes 33554432
+                             --warmup 0 --repetitions 1)
+            set_tests_properties(Benchmark.HipFp32AttentionSolutionTune PROPERTIES
+                                 LABELS "hip;benchmark;attention;matmul;solution;correctness;smoke")
         endif()
         add_test(NAME Benchmark.HipGenerateSmoke
                  COMMAND microllm_bench_model --mode generate --model tiny --device hip

@@ -39,6 +39,9 @@ exact sizes. Dynamic diagnostic strings are forbidden because the profiler would
 trying to measure allocation. Disabled scopes must remain one-branch no-ops.
 For long causal GQA, expanded K and expanded V may share Storage only because QK is submitted before
 the V repeat on the same Stream. Different Streams or reordering invalidate that liveness proof.
+For vendor solution indices, retain the full descriptor key and backend version. Never paste an
+index from a different ROCm build or register a candidate that was timed before complete-output
+finite/Max/RMS checks.
 - readable HIP launch declarations: `src/ops/hip/kernels.h`;
 - optimized matmul policy: `src/ops/optimized.cpp`;
 - correctness-first matmul/AdamW tuners: `src/ops/tuning.cpp` and

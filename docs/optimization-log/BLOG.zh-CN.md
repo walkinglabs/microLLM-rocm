@@ -3179,3 +3179,18 @@ CPU、T1 fused HIP、T256 hipBLASLt、MHA/GQA、别名和零transfer全部通过
 out原语保留。下一步必须动Attention设备数学，例如exact FP32 QK/PV algorithm，而不是再申请一块Arena。
 
 ![Attention core Arena discard](assets/attention-core-arena-discard.svg)
+
+## 205. Experiment 188：不再搬内存以后，终于轮到真正的设备数学
+
+新的tuner复刻框架row-major、transpose和strided-batch descriptor，直接枚举当前hipBLASLt heuristic。
+QK是`[H,T,D]×[H,T,D]ᵀ`，PV是`[H,T,T]×[H,T,D]`。candidate先把完整输出拷回检查finite、Max、RMS，
+通过后才做2次warmup和5次Event/wall。
+
+四个shape各跑三进程，按共同index的median选推荐。每个shape都有64个共同passing solution。
+Qwen QK/PV是1.324×/1.198×，DeepSeek是1.253×/1.114×；最大Max/RMS只有
+4.47e-7/6.64e-8，workspace全为0。
+
+这一次四行都过1.05，说明device math方向成立。但index是当前版本局部事实，所以本节点只keep
+inventory和推荐，不直接改默认。下一节点必须做exact key registry，再用完整logits和整模吞吐决定。
+
+![FP32 Attention solutions](assets/fp32-attention-solutions.svg)

@@ -182,6 +182,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.HfAllocationSourcesContract PROPERTIES
         LABELS "cpu;benchmark;model;inference;memory;profile;schema")
     add_test(
+        NAME Benchmark.Fp32AttentionSolutionMatrixContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_fp32_attention_solution_matrix.py
+    )
+    set_tests_properties(Benchmark.Fp32AttentionSolutionMatrixContract PROPERTIES
+        LABELS "cpu;benchmark;attention;matmul;solution;schema")
+    add_test(
         NAME Coverage.OperatorAndTestFiles
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/audit_test_coverage.py
     )

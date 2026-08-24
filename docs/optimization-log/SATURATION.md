@@ -211,6 +211,11 @@ allocation calls, yet T512 improves only 1.004×/1.002× and retained backing ra
 core Arena joins QKV as a rejected model policy. The persistent-Storage/liveness track is saturated;
 future Attention work must improve device computation or algorithms.
 
+Experiment 188 opens that device-math track with evidence: exact FP32 QK/PV hipBLASLt solutions
+improve all four official T512 operator shapes by 1.114×–1.324× after complete-output checks.
+Inventory is complete; only exact registry plus model gating remains open. Generic algorithm
+hard-coding or extrapolation to other versions/shapes is closed.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.
