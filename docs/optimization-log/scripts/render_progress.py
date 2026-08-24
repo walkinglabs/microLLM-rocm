@@ -80,6 +80,9 @@ HYBRID_ADAMW_CHART = ROOT / "assets" / "hybrid-bf16-adamw.svg"
 POST_HYBRID_PROFILE_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
                             "2026-08-24-post-hybrid-training-profile")
 POST_HYBRID_PROFILE_CHART = ROOT / "assets" / "post-hybrid-training-profile.svg"
+GROUPED_WGRAD_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
+                      "2026-08-24-grouped-weight-gradient-discard")
+GROUPED_WGRAD_CHART = ROOT / "assets" / "grouped-weight-gradient-discard.svg"
 
 
 def rows() -> list[dict]:
@@ -2087,6 +2090,62 @@ def post_hybrid_training_profile_svg() -> str:
     return "\n".join(parts)
 
 
+def grouped_weight_gradient_discard_svg() -> str:
+    records = [json.loads(line) for line in (GROUPED_WGRAD_ROOT / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    by_key = {(row["input_layout"], row["model"], row["projection"]): row
+              for row in records}
+    width, height = 1640, 700
+    chart_x, chart_y, chart_w, chart_h = 140, 155, 1360, 350
+    columns = (("qwen", "qkv", "Qwen QKV"),
+               ("qwen", "gate-up", "Qwen gate/up"),
+               ("deepseek", "qkv", "DeepSeek QKV"),
+               ("deepseek", "gate-up", "DeepSeek gate/up"))
+    rows = (("direct", "direct N,T · 8,153 inventory"),
+            ("materialized", "shared transpose + N,N · 9,172 inventory"))
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 217 · Grouped Weight-Gradient Capability", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 80,
+             "FP32 · rows 512 · every inventory candidate screened by isAlgoSupported",
+             16, "#5b6474", anchor="middle"),
+        f'<rect x="{chart_x}" y="{chart_y}" width="{chart_w}" height="{chart_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+    ]
+    cell_w = chart_w / len(columns)
+    cell_h = chart_h / len(rows)
+    for column, (_, _, label) in enumerate(columns):
+        x = chart_x + cell_w * (column + 0.5)
+        parts.append(text(x, chart_y - 18, label, 15, anchor="middle", weight=700))
+    for row_index, (layout, label) in enumerate(rows):
+        y = chart_y + cell_h * (row_index + 0.5)
+        parts.append(text(chart_x - 18, y - 7, label, 14, "#5b6474",
+                          anchor="end", weight=600))
+        for column, (model, projection, _) in enumerate(columns):
+            record = by_key[(layout, model, projection)]
+            x = chart_x + cell_w * column + 20
+            box_y = chart_y + cell_h * row_index + 20
+            parts.append(f'<rect x="{x:.1f}" y="{box_y:.1f}" '
+                         f'width="{cell_w-40:.1f}" height="{cell_h-40:.1f}" '
+                         'fill="#fff1f2" stroke="#e11d48" stroke-width="2" rx="8"/>')
+            parts.append(text(x + (cell_w - 40) / 2, box_y + 48,
+                              "0 supported", 20, "#be123c", anchor="middle", weight=700))
+            parts.append(text(x + (cell_w - 40) / 2, box_y + 78,
+                              f'{record["algorithm_count"]:,} inventoried', 13,
+                              "#64748b", anchor="middle"))
+            parts.append(text(x + (cell_w - 40) / 2, box_y + 105,
+                              f'baseline {record["baseline_event_ms_p50"]:.3f} ms', 12,
+                              "#64748b", anchor="middle"))
+    parts.append(text(width / 2, 595,
+                      "8 / 8 capability failures · no Autograd route · ordinary GEMM fallback is not grouped support",
+                      17, "#b42335", anchor="middle", weight=700))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -2118,7 +2177,8 @@ def main() -> int:
                 SAVED_ATTENTION_CHART: saved_attention_probabilities_svg(),
                 BF16_ADAMW_CHART: bf16_adamw_moments_svg(),
                 HYBRID_ADAMW_CHART: hybrid_bf16_adamw_svg(),
-                POST_HYBRID_PROFILE_CHART: post_hybrid_training_profile_svg()}
+                POST_HYBRID_PROFILE_CHART: post_hybrid_training_profile_svg(),
+                GROUPED_WGRAD_CHART: grouped_weight_gradient_discard_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

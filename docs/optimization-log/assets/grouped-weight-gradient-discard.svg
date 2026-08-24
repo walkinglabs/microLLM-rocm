@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1640" height="700" viewBox="0 0 1640 700">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="820.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 217 · Grouped Weight-Gradient Capability</text>
+<text x="820.0" y="80.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">FP32 · rows 512 · every inventory candidate screened by isAlgoSupported</text>
+<rect x="140" y="155" width="1360" height="350" fill="#ffffff" stroke="#cbd3df" rx="10"/>
+<text x="310.0" y="137.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="middle" font-weight="700">Qwen QKV</text>
+<text x="650.0" y="137.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="middle" font-weight="700">Qwen gate/up</text>
+<text x="990.0" y="137.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="middle" font-weight="700">DeepSeek QKV</text>
+<text x="1330.0" y="137.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="middle" font-weight="700">DeepSeek gate/up</text>
+<text x="122.0" y="235.5" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="end" font-weight="600">direct N,T · 8,153 inventory</text>
+<rect x="160.0" y="175.0" width="300.0" height="135.0" fill="#fff1f2" stroke="#e11d48" stroke-width="2" rx="8"/>
+<text x="310.0" y="223.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#be123c" text-anchor="middle" font-weight="700">0 supported</text>
+<text x="310.0" y="253.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#64748b" text-anchor="middle" font-weight="400">8,153 inventoried</text>
+<text x="310.0" y="280.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#64748b" text-anchor="middle" font-weight="400">baseline 0.039 ms</text>
+<rect x="500.0" y="175.0" width="300.0" height="135.0" fill="#fff1f2" stroke="#e11d48" stroke-width="2" rx="8"/>
+<text x="650.0" y="223.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#be123c" text-anchor="middle" font-weight="700">0 supported</text>
+<text x="650.0" y="253.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#64748b" text-anchor="middle" font-weight="400">8,153 inventoried</text>
+<text x="650.0" y="280.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#64748b" text-anchor="middle" font-weight="400">baseline 0.106 ms</text>
+<rect x="840.0" y="175.0" width="300.0" height="135.0" fill="#fff1f2" stroke="#e11d48" stroke-width="2" rx="8"/>
+<text x="990.0" y="223.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#be123c" text-anchor="middle" font-weight="700">0 supported</text>
+<text x="990.0" y="253.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#64748b" text-anchor="middle" font-weight="400">8,153 inventoried</text>
+<text x="990.0" y="280.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#64748b" text-anchor="middle" font-weight="400">baseline 0.055 ms</text>
+<rect x="1180.0" y="175.0" width="300.0" height="135.0" fill="#fff1f2" stroke="#e11d48" stroke-width="2" rx="8"/>
+<text x="1330.0" y="223.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#be123c" text-anchor="middle" font-weight="700">0 supported</text>
+<text x="1330.0" y="253.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#64748b" text-anchor="middle" font-weight="400">8,153 inventoried</text>
+<text x="1330.0" y="280.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#64748b" text-anchor="middle" font-weight="400">baseline 0.283 ms</text>
+<text x="122.0" y="410.5" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="end" font-weight="600">shared transpose + N,N · 9,172 inventory</text>
+<rect x="160.0" y="350.0" width="300.0" height="135.0" fill="#fff1f2" stroke="#e11d48" stroke-width="2" rx="8"/>
+<text x="310.0" y="398.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#be123c" text-anchor="middle" font-weight="700">0 supported</text>
+<text x="310.0" y="428.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#64748b" text-anchor="middle" font-weight="400">9,172 inventoried</text>
+<text x="310.0" y="455.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#64748b" text-anchor="middle" font-weight="400">baseline 0.037 ms</text>
+<rect x="500.0" y="350.0" width="300.0" height="135.0" fill="#fff1f2" stroke="#e11d48" stroke-width="2" rx="8"/>
+<text x="650.0" y="398.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#be123c" text-anchor="middle" font-weight="700">0 supported</text>
+<text x="650.0" y="428.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#64748b" text-anchor="middle" font-weight="400">9,172 inventoried</text>
+<text x="650.0" y="455.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#64748b" text-anchor="middle" font-weight="400">baseline 0.107 ms</text>
+<rect x="840.0" y="350.0" width="300.0" height="135.0" fill="#fff1f2" stroke="#e11d48" stroke-width="2" rx="8"/>
+<text x="990.0" y="398.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#be123c" text-anchor="middle" font-weight="700">0 supported</text>
+<text x="990.0" y="428.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#64748b" text-anchor="middle" font-weight="400">9,172 inventoried</text>
+<text x="990.0" y="455.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#64748b" text-anchor="middle" font-weight="400">baseline 0.056 ms</text>
+<rect x="1180.0" y="350.0" width="300.0" height="135.0" fill="#fff1f2" stroke="#e11d48" stroke-width="2" rx="8"/>
+<text x="1330.0" y="398.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#be123c" text-anchor="middle" font-weight="700">0 supported</text>
+<text x="1330.0" y="428.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#64748b" text-anchor="middle" font-weight="400">9,172 inventoried</text>
+<text x="1330.0" y="455.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#64748b" text-anchor="middle" font-weight="400">baseline 0.285 ms</text>
+<text x="820.0" y="595.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#b42335" text-anchor="middle" font-weight="700">8 / 8 capability failures · no Autograd route · ordinary GEMM fallback is not grouped support</text>
+</svg>

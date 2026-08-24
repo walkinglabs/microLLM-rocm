@@ -424,6 +424,12 @@ AdamW阈值track关闭，下一训练节点必须改变GEMM结构。
 
 ![Post-hybrid training profile](assets/post-hybrid-training-profile.svg)
 
+Experiment 217测试共享input的QKV/gate-up weight gradient。direct `N,T`列出8,153个算法，
+共享转置后的`N,N`列出9,172个，但8个官方case全部0 supported。模型路由未创建，下一反驳
+边界改为显式packed大GEMM。
+
+![Grouped weight-gradient discarded](assets/grouped-weight-gradient-discard.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -815,6 +821,8 @@ AdamW阈值track关闭，下一训练节点必须改变GEMM结构。
 | [experiments/215-hybrid-bf16-adamw.md](experiments/215-hybrid-bf16-adamw.md) | 小Tensor分层合并与HIP Auto边界 |
 | [assets/post-hybrid-training-profile.svg](assets/post-hybrid-training-profile.svg) | Hybrid前后总Kernel/AdamW与新类别占比 |
 | [experiments/216-post-hybrid-training-profile.md](experiments/216-post-hybrid-training-profile.md) | 差分profile与训练GEMM下一合同 |
+| [assets/grouped-weight-gradient-discard.svg](assets/grouped-weight-gradient-discard.svg) | direct/materialized八格能力失败 |
+| [experiments/217-grouped-weight-gradient-discard.md](experiments/217-grouped-weight-gradient-discard.md) | FP32 GroupedGemm能力门与路由拒绝 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

@@ -1,0 +1,9 @@
+{
+  "cases": 8,
+  "decision": "discard grouped weight-gradient route",
+  "experiment": "grouped_weight_gradient_capability",
+  "schema_version": 1,
+  "status": "pass",
+  "supported_cases": 0,
+  "unsupported_cases": 8
+}

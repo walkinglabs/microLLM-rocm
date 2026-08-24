@@ -196,6 +196,17 @@ python3 benchmarks/single_gpu/bf16_grouped_qkv_matrix.py \
 Use `compare_bf16_grouped_qkv_models.py` for the complete-logit, throughput and peak-memory
 gate. Grouped plan indices are exact-environment experiments and are never selected by default.
 
+Probe FP32 QKV/gate-up weight gradients before changing Autograd:
+
+```bash
+python3 benchmarks/single_gpu/grouped_weight_gradient_matrix.py \
+  --binary build/hip-release/benchmarks/microllm_bench_grouped_weight_gradient \
+  --output-directory /tmp/microllm-grouped-weight-gradient
+```
+
+It covers direct `N,T` and one-shared-transpose `N,N` layouts. A zero-supported row is a valid
+capability result, not a fallback performance measurement.
+
 After the grouped and BTHD policies pass independently, gate direct BF16 Q/K consumption
 through the fused bias+RoPE boundary with fresh-process medians:
 

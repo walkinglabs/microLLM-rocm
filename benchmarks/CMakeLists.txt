@@ -76,6 +76,10 @@ if(MICROLLM_HAS_HIP AND MICROLLM_HAS_HIPBLASLT)
     add_executable(microllm_tune_matmul micro/tune_matmul.cpp)
     target_link_libraries(microllm_tune_matmul PRIVATE
         microllm::ops microllm::runtime hip::host roc::hipblaslt)
+    add_executable(microllm_bench_grouped_weight_gradient
+                   micro/benchmark_grouped_weight_gradient.cpp)
+    target_link_libraries(microllm_bench_grouped_weight_gradient PRIVATE
+        microllm::ops microllm::runtime hip::host roc::hipblaslt)
     add_executable(microllm_bench_attention_layout
                    micro/benchmark_attention_layout.cpp)
     target_link_libraries(microllm_bench_attention_layout PRIVATE

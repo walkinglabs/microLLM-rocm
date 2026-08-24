@@ -11487,6 +11487,95 @@ def validate_post_hybrid_training_profile(
     return len(rows), min(shares), max(shares), int(round(min(speedups) * 1000))
 
 
+def validate_grouped_weight_gradient_discard(
+        errors: list[str]) -> tuple[int, int, int, float]:
+    data = REPOSITORY / (
+        "benchmarks/results/2026-08-24-grouped-weight-gradient-discard")
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    keys = {(row.get("input_layout"), row.get("model"),
+             row.get("projection")) for row in raw}
+    expected_keys = {
+        (layout, model, projection)
+        for layout in ("direct", "materialized")
+        for model in ("qwen", "deepseek")
+        for projection in ("qkv", "gate-up")
+    }
+    if summary != {
+            "schema_version": 1,
+            "status": "pass",
+            "experiment": "grouped_weight_gradient_capability",
+            "cases": 8,
+            "supported_cases": 0,
+            "unsupported_cases": 8,
+            "decision": "discard grouped weight-gradient route"} or \
+            len(raw) != 8 or keys != expected_keys or \
+            any(row.get("schema_version") != 1 or
+                row.get("status") != "pass" or
+                row.get("record_type") != "grouped_weight_gradient_probe" or
+                row.get("rows") != 512 or
+                row.get("grouped_supported") is not False or
+                row.get("supported_candidates") != 0 or
+                row.get("passing_candidates") != 0 or
+                row.get("selected_solution_index") != -1 or
+                int(row.get("algorithm_count", 0)) !=
+                    (8153 if row.get("input_layout") == "direct" else 9172) or
+                float(row.get("baseline_event_ms_p50", 0.0)) <= 0.0
+                for row in raw):
+        errors.append("grouped weight-gradient capability evidence changed")
+    benchmark = (REPOSITORY / (
+        "benchmarks/micro/benchmark_grouped_weight_gradient.cpp")).read_text(
+            encoding="utf-8")
+    runner = (REPOSITORY / (
+        "benchmarks/single_gpu/grouped_weight_gradient_matrix.py")).read_text(
+            encoding="utf-8")
+    test = (REPOSITORY / (
+        "python/tests/test_grouped_weight_gradient_matrix.py")).read_text(
+            encoding="utf-8")
+    route = (REPOSITORY / "src/autograd/autograd.cpp").read_text(
+        encoding="utf-8") + (REPOSITORY / "src/model/model.cpp").read_text(
+            encoding="utf-8")
+    for token, document in (
+            ("HIPBLAS_OP_N, grouped_transpose_b", benchmark),
+            ("cast_transpose_2d_out_", benchmark),
+            ("supported_cases", runner),
+            ("grouped weight-gradient matrix contract: pass", test)):
+        if token not in document:
+            errors.append("grouped weight-gradient source/runner contract changed")
+            break
+    if "grouped_weight_gradient" in route or "grouped weight gradient" in route:
+        errors.append("rejected grouped weight-gradient model route returned")
+    expected_tests = {
+        "cpu_debug": {"passed": 326, "total": 326},
+        "asan_ubsan": {"passed": 324, "total": 324},
+        "pytorch_enabled_cpu": {"passed": 300, "total": 300},
+        "hip_full_configuration": {
+            "passed": 510, "total": 510, "conditional_skips": 3},
+        "hip_label": {"passed": 173, "total": 173},
+        "rccl_multi_gpu": {"passed": 11, "total": 11},
+        "rccl_full_label": {"passed": 14, "total": 14},
+    }
+    if verification.get("status") != "pass" or \
+            verification.get("capability_cases") != 8 or \
+            verification.get("supported_cases") != 0 or \
+            verification.get("model_route_retained") is not False or \
+            verification.get("registered_test_files") != 89 or \
+            verification.get("tests") != expected_tests or \
+            verification.get("coverage") != {
+                "lines_percent": 79.8,
+                "functions_percent": 87.7,
+                "branches_percent": 60.4,
+                "lines_covered": 8861,
+                "lines_total": 11100}:
+        errors.append("grouped weight-gradient verification changed")
+    baselines = [float(row["baseline_event_ms_p50"]) for row in raw]
+    return len(raw), sum(row["input_layout"] == "direct" for row in raw), \
+        sum(row["input_layout"] == "materialized" for row in raw), max(baselines)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -11681,7 +11770,8 @@ def validate_assets(errors: list[str]) -> None:
                  "post-training-micro-saturation.svg",
                  "bf16-adamw-moments.svg",
                  "hybrid-bf16-adamw.svg",
-                 "post-hybrid-training-profile.svg"):
+                 "post-hybrid-training-profile.svg",
+                 "grouped-weight-gradient-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -12078,6 +12168,9 @@ def main() -> int:
     post_hybrid_rows, post_hybrid_gemm_minimum, \
         post_hybrid_gemm_maximum, post_hybrid_adamw_milli = \
         validate_post_hybrid_training_profile(errors)
+    grouped_wgrad_rows, grouped_wgrad_direct, grouped_wgrad_materialized, \
+        grouped_wgrad_baseline_maximum = \
+        validate_grouped_weight_gradient_discard(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -12427,6 +12520,9 @@ def main() -> int:
           f"{post_hybrid_gemm_minimum:.3f}/"
           f"{post_hybrid_gemm_maximum:.3f}/"
           f"{post_hybrid_adamw_milli} "
+          f"grouped_wgrad={grouped_wgrad_rows}/{grouped_wgrad_direct}/"
+          f"{grouped_wgrad_materialized}/"
+          f"{grouped_wgrad_baseline_maximum:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

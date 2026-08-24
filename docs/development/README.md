@@ -452,3 +452,5 @@ the next gate. Records are append-only except for factual corrections.
   small-Tensor merge, 16M counterexample and retained 1M Auto policy.
 - [2026-08-24-post-hybrid-training-profile.md](2026-08-24-post-hybrid-training-profile.md):
   load-subtracted proof that GEMM is the next training architecture boundary.
+- [2026-08-24-grouped-weight-gradient-discard.md](2026-08-24-grouped-weight-gradient-discard.md):
+  eight-case FP32 GroupedGemm capability failure before any Autograd route.

@@ -148,6 +148,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.TrainingProfileDeltaContract PROPERTIES
         LABELS "cpu;benchmark;training;profile;schema")
     add_test(
+        NAME Benchmark.GroupedWeightGradientMatrixContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_grouped_weight_gradient_matrix.py
+    )
+    set_tests_properties(Benchmark.GroupedWeightGradientMatrixContract PROPERTIES
+        LABELS "cpu;benchmark;training;matmul;grouped;schema")
+    add_test(
         NAME Benchmark.HipGraphMatrixContract
         COMMAND ${Python3_EXECUTABLE}
                 ${PROJECT_SOURCE_DIR}/python/tests/test_hip_graph_matrix.py
