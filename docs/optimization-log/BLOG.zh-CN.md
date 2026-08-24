@@ -3144,3 +3144,21 @@ Profiler给出更直接的反驳：Qwen两边都是5,642个Kernel，launch为400
 某个Tensor放进Arena”，必须先记录剩余allocation size/source分布，再提出可反驳的新liveness计划。
 
 ![BF16 QKV Arena discard](assets/bf16-qkv-arena-discard.svg)
+
+## 203. Experiment 186：别再看代码猜，直接问每一块内存从哪里来
+
+新的diagnostic不存动态字符串，而是用固定`AllocationSource`枚举。RAII tag支持嵌套恢复和thread-local；
+关闭时一次分支后no-op。开启时按source、device、exact bytes聚合逻辑allocation，cache reuse也算请求，
+但不会冒充backend malloc。
+
+CLI只允许zero-warmup、single-prefill，避免把load和warmup混进来。Qwen/DeepSeek T512各跑三进程，
+每一条source×size记录完全一致。
+
+答案非常明确：Qwen总580次/1.080GB，`attention.core`是144次/572.5MB，占53.0%；DeepSeek总
+676次/1.817GB，core是168次/792.7MB，占43.6%。最大shape分别是14,680,064×24和
+12,582,912×28，正是causal score/probability规模；另一族是hidden-width Tensor，每层5次。
+
+第一次编译因`model.cpp`漏include diagnostics头直接失败，补头后门通过。这也说明编译门不是仪式。
+下一节点现在有唯一依据：Attention core exact liveness；projection、FFN和随便挑Tensor的路线关闭。
+
+![Allocation source attribution](assets/allocation-source-attribution.svg)

@@ -211,6 +211,8 @@
     "ScopedTraceSession": "tests/profiling/trace_test.cpp",
     "TraceTimer": "tests/profiling/trace_test.cpp",
     "TraceRecord": "tests/profiling/trace_test.cpp",
+    "ScopedAllocationSource": "tests/runtime/runtime_test.cpp",
+    "allocation_source_diagnostics": "tests/runtime/runtime_test.cpp",
     "compare_values": "python/tests/test_alignment_tools.py",
     "compare_timings": "python/tests/test_alignment_tools.py",
     "alignment_orchestrator": "bindings/torch/CMakeLists.txt"
@@ -266,6 +268,7 @@
     "python/tests/test_arena_ffn_matrix.py",
     "python/tests/test_bf16_arena_ffn_matrix.py",
     "python/tests/test_bf16_ffn_arena_models.py",
+    "python/tests/test_hf_allocation_sources.py",
     "python/tests/test_attention_layout_fusion_runner.py",
     "python/tests/test_hf_benchmark_contract.py",
     "python/tests/test_hf_shape_matrix.py",

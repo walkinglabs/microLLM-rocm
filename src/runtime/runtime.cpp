@@ -55,6 +55,11 @@ TransferCounters transfer_counters;
 
 thread_local bool strided_copy_diagnostics_enabled = false;
 thread_local std::vector<StridedCopyRecord> strided_copy_diagnostic_records;
+thread_local bool allocation_source_diagnostics_enabled = false;
+thread_local AllocationSource active_allocation_source =
+    AllocationSource::Unspecified;
+thread_local std::vector<AllocationSourceRecord>
+    allocation_source_diagnostic_records;
 thread_local DeferredHipDeallocationScope* active_deferred_scope = nullptr;
 thread_local ScopedDeferredHipStream* active_scoped_deferred_stream = nullptr;
 
@@ -84,6 +89,29 @@ void record_strided_copy(std::size_t element_bytes, Device device,
     ++record->calls;
     record->elements += static_cast<std::uint64_t>(elements);
     record->bytes += static_cast<std::uint64_t>(elements) * element_bytes;
+}
+
+void record_allocation_source(Device device, std::size_t bytes) {
+    if (!allocation_source_diagnostics_enabled) return;
+    const auto found = std::find_if(
+        allocation_source_diagnostic_records.begin(),
+        allocation_source_diagnostic_records.end(),
+        [&](const auto& record) {
+            return record.source == active_allocation_source &&
+                   record.device == device &&
+                   record.allocation_bytes == bytes;
+        });
+    const auto is_new = found == allocation_source_diagnostic_records.end();
+    auto* record = is_new
+                       ? &allocation_source_diagnostic_records.emplace_back()
+                       : &*found;
+    if (is_new) {
+        record->source = active_allocation_source;
+        record->device = device;
+        record->allocation_bytes = bytes;
+    }
+    ++record->calls;
+    record->total_bytes += static_cast<std::uint64_t>(bytes);
 }
 
 void record_transfer(Device destination, Device source, std::size_t bytes) {
@@ -451,6 +479,7 @@ void* resolve_deferred_hip_stream(
 
 void* allocate(std::size_t num_bytes, Device device) {
     if (num_bytes == 0) return nullptr;
+    record_allocation_source(device, num_bytes);
     if (device.is_cpu()) {
         auto* pointer = ::operator new(num_bytes);
         counters(device).backend_allocation_calls.fetch_add(1);
@@ -559,6 +588,55 @@ void reset_allocation_peak(Device device) noexcept {
 
 void enable_strided_copy_diagnostics(bool enabled) noexcept {
     strided_copy_diagnostics_enabled = enabled;
+}
+
+const char* allocation_source_name(AllocationSource source) noexcept {
+    switch (source) {
+        case AllocationSource::Unspecified: return "unspecified";
+        case AllocationSource::ModelEmbedding: return "model.embedding";
+        case AllocationSource::AttentionNorm: return "attention.norm";
+        case AllocationSource::AttentionProjection: return "attention.projection";
+        case AllocationSource::AttentionLayout: return "attention.layout";
+        case AllocationSource::AttentionCore: return "attention.core";
+        case AllocationSource::AttentionOutput: return "attention.output";
+        case AllocationSource::AttentionResidual: return "attention.residual";
+        case AllocationSource::FfnNorm: return "ffn.norm";
+        case AllocationSource::Ffn: return "ffn";
+        case AllocationSource::FfnResidual: return "ffn.residual";
+        case AllocationSource::ModelFinalNorm: return "model.final_norm";
+        case AllocationSource::ModelOutput: return "model.output";
+    }
+    return "unknown";
+}
+
+ScopedAllocationSource::ScopedAllocationSource(
+    AllocationSource source) noexcept {
+    if (!allocation_source_diagnostics_enabled) return;
+    previous_ = active_allocation_source;
+    active_ = true;
+    active_allocation_source = source;
+}
+
+ScopedAllocationSource::~ScopedAllocationSource() {
+    if (active_) active_allocation_source = previous_;
+}
+
+void enable_allocation_source_diagnostics(bool enabled) noexcept {
+    allocation_source_diagnostics_enabled = enabled;
+}
+
+void reset_allocation_source_diagnostics() noexcept {
+    allocation_source_diagnostic_records.clear();
+}
+
+AllocationSourceDiagnostics allocation_source_diagnostics() {
+    AllocationSourceDiagnostics result;
+    result.records = allocation_source_diagnostic_records;
+    for (const auto& record : result.records) {
+        result.calls += record.calls;
+        result.bytes += record.total_bytes;
+    }
+    return result;
 }
 
 void reset_strided_copy_diagnostics() noexcept {

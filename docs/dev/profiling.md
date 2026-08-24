@@ -319,6 +319,19 @@ Use `--comparison-mode qkv` with the same runner to compare incremental QKV Aren
 retained FFN threshold. Binary flags are `--bf16-qkv-arena` and
 `--bf16-qkv-arena-minimum-rows`; Experiment 185 records why the model policy is rejected.
 
+Allocation source×size attribution:
+
+```bash
+python3 benchmarks/single_gpu/hf_allocation_sources.py \
+  --manifest /absolute/path/to/hf-models.json \
+  --binary build/hip-release/apps/microllm_hf_infer \
+  --output-directory /tmp/microllm-allocation-sources
+```
+
+The binary flag `--allocation-source-diagnostics true` requires one prefill and zero warm-up.
+Records are logical engine requests, including allocator-cache reuse. Compare them with rocprofv3
+malloc/free before drawing a backend-allocation conclusion.
+
 ## What remains
 
 There is no Python `@profile` decorator yet. The current stable entry points are the

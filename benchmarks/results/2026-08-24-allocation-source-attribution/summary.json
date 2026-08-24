@@ -1,0 +1,394 @@
+{
+  "common_top_source": "attention.core",
+  "context": 512,
+  "decision": "profile and optimize attention.core",
+  "deterministic_distributions": true,
+  "models": [
+    {
+      "allocation_bytes": 1079854592,
+      "allocation_calls": 580,
+      "context": 512,
+      "model": "qwen2.5-0.5b",
+      "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+      "sources": [
+        {
+          "calls": 144,
+          "device": "hip:0",
+          "sizes": [
+            {
+              "allocation_bytes": 14680064,
+              "calls": 24,
+              "total_bytes": 352321536
+            },
+            {
+              "allocation_bytes": 1835008,
+              "calls": 120,
+              "total_bytes": 220200960
+            }
+          ],
+          "source": "attention.core",
+          "total_bytes": 572522496
+        },
+        {
+          "calls": 168,
+          "device": "hip:0",
+          "sizes": [
+            {
+              "allocation_bytes": 1835008,
+              "calls": 48,
+              "total_bytes": 88080384
+            },
+            {
+              "allocation_bytes": 262144,
+              "calls": 96,
+              "total_bytes": 25165824
+            },
+            {
+              "allocation_bytes": 917504,
+              "calls": 24,
+              "total_bytes": 22020096
+            }
+          ],
+          "source": "attention.projection",
+          "total_bytes": 135266304
+        },
+        {
+          "calls": 120,
+          "device": "hip:0",
+          "sizes": [
+            {
+              "allocation_bytes": 1835008,
+              "calls": 48,
+              "total_bytes": 88080384
+            },
+            {
+              "allocation_bytes": 262144,
+              "calls": 72,
+              "total_bytes": 18874368
+            }
+          ],
+          "source": "attention.layout",
+          "total_bytes": 106954752
+        },
+        {
+          "calls": 48,
+          "device": "hip:0",
+          "sizes": [
+            {
+              "allocation_bytes": 1835008,
+              "calls": 24,
+              "total_bytes": 44040192
+            },
+            {
+              "allocation_bytes": 917504,
+              "calls": 24,
+              "total_bytes": 22020096
+            }
+          ],
+          "source": "attention.output",
+          "total_bytes": 66060288
+        },
+        {
+          "calls": 24,
+          "device": "hip:0",
+          "sizes": [
+            {
+              "allocation_bytes": 1835008,
+              "calls": 24,
+              "total_bytes": 44040192
+            }
+          ],
+          "source": "attention.norm",
+          "total_bytes": 44040192
+        },
+        {
+          "calls": 24,
+          "device": "hip:0",
+          "sizes": [
+            {
+              "allocation_bytes": 1835008,
+              "calls": 24,
+              "total_bytes": 44040192
+            }
+          ],
+          "source": "attention.residual",
+          "total_bytes": 44040192
+        },
+        {
+          "calls": 24,
+          "device": "hip:0",
+          "sizes": [
+            {
+              "allocation_bytes": 1835008,
+              "calls": 24,
+              "total_bytes": 44040192
+            }
+          ],
+          "source": "ffn.norm",
+          "total_bytes": 44040192
+        },
+        {
+          "calls": 24,
+          "device": "hip:0",
+          "sizes": [
+            {
+              "allocation_bytes": 1835008,
+              "calls": 24,
+              "total_bytes": 44040192
+            }
+          ],
+          "source": "ffn.residual",
+          "total_bytes": 44040192
+        },
+        {
+          "calls": 1,
+          "device": "hip:0",
+          "sizes": [
+            {
+              "allocation_bytes": 18612224,
+              "calls": 1,
+              "total_bytes": 18612224
+            }
+          ],
+          "source": "ffn",
+          "total_bytes": 18612224
+        },
+        {
+          "calls": 1,
+          "device": "hip:0",
+          "sizes": [
+            {
+              "allocation_bytes": 1835008,
+              "calls": 1,
+              "total_bytes": 1835008
+            }
+          ],
+          "source": "model.embedding",
+          "total_bytes": 1835008
+        },
+        {
+          "calls": 1,
+          "device": "hip:0",
+          "sizes": [
+            {
+              "allocation_bytes": 1835008,
+              "calls": 1,
+              "total_bytes": 1835008
+            }
+          ],
+          "source": "model.final_norm",
+          "total_bytes": 1835008
+        },
+        {
+          "calls": 1,
+          "device": "hip:0",
+          "sizes": [
+            {
+              "allocation_bytes": 607744,
+              "calls": 1,
+              "total_bytes": 607744
+            }
+          ],
+          "source": "model.output",
+          "total_bytes": 607744
+        }
+      ],
+      "top_source": "attention.core"
+    },
+    {
+      "allocation_bytes": 1817003520,
+      "allocation_calls": 676,
+      "context": 512,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "revision": "ad9f0ae0864d7fbcd1cd905e3c6c5b069cc8b562",
+      "sources": [
+        {
+          "calls": 168,
+          "device": "hip:0",
+          "sizes": [
+            {
+              "allocation_bytes": 3145728,
+              "calls": 140,
+              "total_bytes": 440401920
+            },
+            {
+              "allocation_bytes": 12582912,
+              "calls": 28,
+              "total_bytes": 352321536
+            }
+          ],
+          "source": "attention.core",
+          "total_bytes": 792723456
+        },
+        {
+          "calls": 196,
+          "device": "hip:0",
+          "sizes": [
+            {
+              "allocation_bytes": 3145728,
+              "calls": 56,
+              "total_bytes": 176160768
+            },
+            {
+              "allocation_bytes": 524288,
+              "calls": 112,
+              "total_bytes": 58720256
+            },
+            {
+              "allocation_bytes": 1572864,
+              "calls": 28,
+              "total_bytes": 44040192
+            }
+          ],
+          "source": "attention.projection",
+          "total_bytes": 278921216
+        },
+        {
+          "calls": 140,
+          "device": "hip:0",
+          "sizes": [
+            {
+              "allocation_bytes": 3145728,
+              "calls": 56,
+              "total_bytes": 176160768
+            },
+            {
+              "allocation_bytes": 524288,
+              "calls": 84,
+              "total_bytes": 44040192
+            }
+          ],
+          "source": "attention.layout",
+          "total_bytes": 220200960
+        },
+        {
+          "calls": 56,
+          "device": "hip:0",
+          "sizes": [
+            {
+              "allocation_bytes": 3145728,
+              "calls": 28,
+              "total_bytes": 88080384
+            },
+            {
+              "allocation_bytes": 1572864,
+              "calls": 28,
+              "total_bytes": 44040192
+            }
+          ],
+          "source": "attention.output",
+          "total_bytes": 132120576
+        },
+        {
+          "calls": 28,
+          "device": "hip:0",
+          "sizes": [
+            {
+              "allocation_bytes": 3145728,
+              "calls": 28,
+              "total_bytes": 88080384
+            }
+          ],
+          "source": "attention.norm",
+          "total_bytes": 88080384
+        },
+        {
+          "calls": 28,
+          "device": "hip:0",
+          "sizes": [
+            {
+              "allocation_bytes": 3145728,
+              "calls": 28,
+              "total_bytes": 88080384
+            }
+          ],
+          "source": "attention.residual",
+          "total_bytes": 88080384
+        },
+        {
+          "calls": 28,
+          "device": "hip:0",
+          "sizes": [
+            {
+              "allocation_bytes": 3145728,
+              "calls": 28,
+              "total_bytes": 88080384
+            }
+          ],
+          "source": "ffn.norm",
+          "total_bytes": 88080384
+        },
+        {
+          "calls": 28,
+          "device": "hip:0",
+          "sizes": [
+            {
+              "allocation_bytes": 3145728,
+              "calls": 28,
+              "total_bytes": 88080384
+            }
+          ],
+          "source": "ffn.residual",
+          "total_bytes": 88080384
+        },
+        {
+          "calls": 1,
+          "device": "hip:0",
+          "sizes": [
+            {
+              "allocation_bytes": 33816576,
+              "calls": 1,
+              "total_bytes": 33816576
+            }
+          ],
+          "source": "ffn",
+          "total_bytes": 33816576
+        },
+        {
+          "calls": 1,
+          "device": "hip:0",
+          "sizes": [
+            {
+              "allocation_bytes": 3145728,
+              "calls": 1,
+              "total_bytes": 3145728
+            }
+          ],
+          "source": "model.embedding",
+          "total_bytes": 3145728
+        },
+        {
+          "calls": 1,
+          "device": "hip:0",
+          "sizes": [
+            {
+              "allocation_bytes": 3145728,
+              "calls": 1,
+              "total_bytes": 3145728
+            }
+          ],
+          "source": "model.final_norm",
+          "total_bytes": 3145728
+        },
+        {
+          "calls": 1,
+          "device": "hip:0",
+          "sizes": [
+            {
+              "allocation_bytes": 607744,
+              "calls": 1,
+              "total_bytes": 607744
+            }
+          ],
+          "source": "model.output",
+          "total_bytes": 607744
+        }
+      ],
+      "top_source": "attention.core"
+    }
+  ],
+  "raw_processes": 6,
+  "record_type": "hf_allocation_source_summary",
+  "schema_version": 1,
+  "status": "pass"
+}

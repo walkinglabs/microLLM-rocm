@@ -34,6 +34,9 @@ call, no backing Storage may be created and allocation/peak counters must match 
 `Bf16QkvWorkspace` follows the same rule but has three independent fallback/output widths. Never
 reuse one fallback for K and V merely because one model happens to give them equal dimensions;
 the public contract rejects all writable aliases.
+When proposing another persistent workspace, first add a fixed `AllocationSource` scope and inspect
+exact sizes. Dynamic diagnostic strings are forbidden because the profiler would allocate while
+trying to measure allocation. Disabled scopes must remain one-branch no-ops.
 - readable HIP launch declarations: `src/ops/hip/kernels.h`;
 - optimized matmul policy: `src/ops/optimized.cpp`;
 - correctness-first matmul/AdamW tuners: `src/ops/tuning.cpp` and

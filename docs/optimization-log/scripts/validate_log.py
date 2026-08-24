@@ -8370,6 +8370,73 @@ def validate_bf16_qkv_arena_discard(
         len(eligible), len(bypassed)
 
 
+def validate_allocation_source_attribution(
+        errors: list[str]) -> tuple[int, int, int, int, int]:
+    data = REPOSITORY / "benchmarks/results/2026-08-24-allocation-source-attribution"
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    models = {row.get("model"): row for row in summary.get("models", [])}
+    qwen = models.get("qwen2.5-0.5b", {})
+    deep = models.get("deepseek-r1-distill-qwen-1.5b", {})
+    qwen_top = qwen.get("sources", [{}])[0] if qwen.get("sources") else {}
+    deep_top = deep.get("sources", [{}])[0] if deep.get("sources") else {}
+    expected_tests = {
+        "cpu_debug": {"passed": 290, "total": 290},
+        "asan_ubsan": {"passed": 288, "total": 288},
+        "pytorch_enabled_cpu": {"passed": 264, "total": 264},
+        "hip_full_configuration": {
+            "passed": 454, "total": 454, "conditional_skips": 3},
+        "hip_label": {"passed": 153, "total": 153},
+        "rccl_multi_gpu": {"passed": 11, "total": 11},
+        "rccl_full_label": {"passed": 13, "total": 13},
+    }
+    if summary.get("status") != "pass" or len(raw) != 6 or \
+            summary.get("raw_processes") != 6 or summary.get("context") != 512 or \
+            summary.get("deterministic_distributions") is not True or \
+            summary.get("common_top_source") != "attention.core" or \
+            summary.get("decision") != "profile and optimize attention.core" or \
+            len(models) != 2 or \
+            qwen.get("allocation_calls") != 580 or \
+            qwen.get("allocation_bytes") != 1079854592 or \
+            qwen_top.get("source") != "attention.core" or \
+            qwen_top.get("calls") != 144 or \
+            qwen_top.get("total_bytes") != 572522496 or \
+            deep.get("allocation_calls") != 676 or \
+            deep.get("allocation_bytes") != 1817003520 or \
+            deep_top.get("source") != "attention.core" or \
+            deep_top.get("calls") != 168 or \
+            deep_top.get("total_bytes") != 792723456 or \
+            verification.get("status") != "pass" or \
+            verification.get("tests") != expected_tests or \
+            verification.get("registered_test_files") != 66 or \
+            verification.get("formal_processes") != 6 or \
+            any(row.get("record_type") != "hf_allocation_source_measurement" or
+                row.get("status") != "pass" or
+                row.get("allocation_source_diagnostics") is not True
+                for row in raw):
+        errors.append("allocation source attribution evidence changed")
+    header = (REPOSITORY / "include/microllm/runtime/diagnostics.h").read_text(
+        encoding="utf-8")
+    runtime = (REPOSITORY / "src/runtime/runtime.cpp").read_text(encoding="utf-8")
+    model = (REPOSITORY / "src/model/model.cpp").read_text(encoding="utf-8")
+    cli = (REPOSITORY / "apps/hf_infer.cpp").read_text(encoding="utf-8")
+    runner = (REPOSITORY / "benchmarks/single_gpu/"
+              "hf_allocation_sources.py").read_text(encoding="utf-8")
+    if "enum class AllocationSource" not in header or \
+            "class ScopedAllocationSource" not in header or \
+            "if (!allocation_source_diagnostics_enabled) return" not in runtime or \
+            "AllocationSource::AttentionCore" not in model or \
+            "--allocation-source-diagnostics" not in cli or \
+            "deterministic_distributions" not in runner:
+        errors.append("allocation source attribution source/test contract changed")
+    return len(raw), int(qwen.get("allocation_calls", 0)), \
+        int(qwen_top.get("total_bytes", 0)), \
+        int(deep.get("allocation_calls", 0)), int(deep_top.get("total_bytes", 0))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -8533,7 +8600,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-arena-ffn.svg",
                  "bf16-ffn-arena-model.svg",
                  "bf16-ffn-arena-selective.svg",
-                 "bf16-qkv-arena-discard.svg"):
+                 "bf16-qkv-arena-discard.svg",
+                 "allocation-source-attribution.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -8850,6 +8918,9 @@ def main() -> int:
     bf16_qkv_rows, bf16_qkv_minimum, bf16_qkv_maximum, \
         bf16_qkv_eligible, bf16_qkv_bypassed = \
         validate_bf16_qkv_arena_discard(errors)
+    allocation_source_rows, allocation_qwen_calls, allocation_qwen_core, \
+        allocation_deep_calls, allocation_deep_core = \
+        validate_allocation_source_attribution(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -9112,6 +9183,8 @@ def main() -> int:
           f"{bf16_selective_eligible}/{bf16_selective_bypassed} "
           f"bf16_qkv_arena={bf16_qkv_rows}/{bf16_qkv_minimum:.3f}/"
           f"{bf16_qkv_maximum:.3f}/{bf16_qkv_eligible}/{bf16_qkv_bypassed} "
+          f"allocation_sources={allocation_source_rows}/{allocation_qwen_calls}/"
+          f"{allocation_qwen_core}/{allocation_deep_calls}/{allocation_deep_core} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

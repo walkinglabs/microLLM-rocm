@@ -134,6 +134,13 @@ exact, but Qwen/DeepSeek T512 improves only 1.004×/1.005×. Profiler Kernel and
 unchanged. Model routing is rejected and default-off; the out primitive remains. Another guessed
 Tensor family is not justified—the next step must attribute remaining allocation sizes first.
 
+## Experiment 186 allocation attribution
+
+Opt-in source×exact-size diagnostics are deterministic across three processes per model. At T512,
+`attention.core` is the common top source: 144/168 calls and 572.5/792.7 MB, or 53.0%/43.6% of
+logical allocation bytes. The next liveness node is now constrained to the exact Attention core
+score/probability and hidden-width families; projection/FFN guesses are closed.
+
 ## Final matrix
 
 - FP32 fixed matrix and running-best curve;

@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <array>
 #include <atomic>
 #include <stdexcept>
@@ -75,6 +76,51 @@ TEST(RuntimeTest, StridedCopyDiagnosticsAggregateExactLayoutOnlyWhenEnabled) {
     EXPECT_EQ(strided_copy_diagnostics().calls, 2U)
         << "disabled diagnostics must have no hot-path side effects";
     reset_strided_copy_diagnostics();
+}
+
+TEST(RuntimeTest, AllocationSourceDiagnosticsAggregateSizeAndRestoreNestedTags) {
+    reset_allocation_source_diagnostics();
+    enable_allocation_source_diagnostics(true);
+    {
+        ScopedAllocationSource ffn(AllocationSource::Ffn);
+        Storage first(32);
+        {
+            ScopedAllocationSource attention(
+                AllocationSource::AttentionProjection);
+            Storage projected(16);
+        }
+        Storage second(32);
+    }
+    Storage untagged(8);
+    enable_allocation_source_diagnostics(false);
+    Storage disabled(64);
+    (void)disabled;
+    const auto snapshot = allocation_source_diagnostics();
+    EXPECT_EQ(snapshot.calls, 4U);
+    EXPECT_EQ(snapshot.bytes, 88U);
+    ASSERT_EQ(snapshot.records.size(), 3U);
+    const auto find = [&](AllocationSource source, std::size_t bytes) {
+        return std::find_if(
+            snapshot.records.begin(), snapshot.records.end(),
+            [&](const auto& record) {
+                return record.source == source &&
+                       record.allocation_bytes == bytes;
+            });
+    };
+    const auto ffn = find(AllocationSource::Ffn, 32);
+    ASSERT_NE(ffn, snapshot.records.end());
+    EXPECT_EQ(ffn->calls, 2U);
+    EXPECT_EQ(ffn->total_bytes, 64U);
+    const auto projection = find(
+        AllocationSource::AttentionProjection, 16);
+    ASSERT_NE(projection, snapshot.records.end());
+    EXPECT_EQ(projection->calls, 1U);
+    const auto unspecified = find(AllocationSource::Unspecified, 8);
+    ASSERT_NE(unspecified, snapshot.records.end());
+    EXPECT_STREQ(allocation_source_name(projection->source),
+                 "attention.projection");
+    static_assert(!std::is_move_constructible_v<ScopedAllocationSource>);
+    reset_allocation_source_diagnostics();
 }
 
 TEST(HipGraphTest, CpuAndUndefinedContractsAreExplicit) {

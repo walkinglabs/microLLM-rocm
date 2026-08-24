@@ -201,6 +201,11 @@ falls again, yet eligible T512 ratios are only 1.004×/1.005× and model routing
 persistent-storage optimization is locally saturated. A new liveness candidate now requires
 allocation-size/source attribution; moving another manually guessed Tensor family is closed.
 
+Experiment 186 supplies that attribution. Qwen/DeepSeek T512 independently select
+`attention.core` as the largest source at 572.5/792.7 MB and 53.0%/43.6% of logical bytes. The
+diagnostic distribution is identical across three processes per model. Allocation-source search is
+closed; only exact Attention core liveness/out work is justified next.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

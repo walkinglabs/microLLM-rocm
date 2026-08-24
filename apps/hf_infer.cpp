@@ -21,6 +21,7 @@
 #include <microllm/io/chat_template.h>
 #include <microllm/runtime/runtime.h>
 #include <microllm/runtime/memory.h>
+#include <microllm/runtime/diagnostics.h>
 #include <microllm/inference/generator.h>
 #include <microllm/inference/kv_cache.h>
 #include <microllm/inference/scheduler.h>
@@ -86,6 +87,7 @@ struct Options {
     bool trace_all_layer_details = false;
     std::string trace_value_filter;
     int bf16_algorithm_index = -1;
+    bool allocation_source_diagnostics = false;
 };
 
 Options options(int argc, char** argv) {
@@ -259,6 +261,14 @@ Options options(int argc, char** argv) {
         }
         else if (name == "--bf16-algorithm-index") {
             result.bf16_algorithm_index = std::stoi(argv[index + 1]);
+        }
+        else if (name == "--allocation-source-diagnostics") {
+            const std::string value = argv[index + 1];
+            if (value != "true" && value != "false") {
+                throw std::invalid_argument(
+                    "--allocation-source-diagnostics must be true or false");
+            }
+            result.allocation_source_diagnostics = value == "true";
         }
         else throw std::invalid_argument("unknown CLI option: " + name);
     }
@@ -455,6 +465,12 @@ Options options(int argc, char** argv) {
         (!result.use_cache || result.workload == "prefill" || result.new_tokens < 2)) {
         throw std::invalid_argument(
             "--cache-logits-output requires cached decode with at least two new tokens");
+    }
+    if (result.allocation_source_diagnostics &&
+        (result.workload != "prefill" || result.prefill_warmup != 0 ||
+         result.prefill_steps != 1)) {
+        throw std::invalid_argument(
+            "--allocation-source-diagnostics requires one prefill with zero warmup");
     }
     return result;
 }
@@ -1490,6 +1506,7 @@ int main(int argc, char** argv) {
         microllm::Tensor logits_tensor;
         double forward_ms = 0.0;
         std::size_t trace_record_count = 0;
+        microllm::runtime::AllocationSourceDiagnostics allocation_sources;
         const auto run_prefill = command.workload != "decode";
         const auto run_decode = command.workload != "prefill";
         if (run_prefill) {
@@ -1505,6 +1522,10 @@ int main(int argc, char** argv) {
             if (device.is_hip()) microllm::runtime::enable_hip_caching_allocator(device);
             microllm::runtime::reset_allocation_peak(device);
             microllm::runtime::reset_transfer_stats();
+            if (command.allocation_source_diagnostics) {
+                microllm::runtime::reset_allocation_source_diagnostics();
+                microllm::runtime::enable_allocation_source_diagnostics(true);
+            }
             std::unique_ptr<microllm::profiling::TraceSession> trace_session;
             std::unique_ptr<microllm::profiling::ScopedTraceSession> trace_scope;
             if (!command.trace_output.empty()) {
@@ -1542,6 +1563,11 @@ int main(int argc, char** argv) {
                 logits_tensor = prefill();
             }
             microllm::runtime::synchronize(device);
+            if (command.allocation_source_diagnostics) {
+                microllm::runtime::enable_allocation_source_diagnostics(false);
+                allocation_sources =
+                    microllm::runtime::allocation_source_diagnostics();
+            }
             const auto forward_finish = std::chrono::steady_clock::now();
             trace_scope.reset();
             if (trace_session != nullptr) {
@@ -1915,6 +1941,26 @@ int main(int argc, char** argv) {
                   << measured_transfers.device_to_device_calls
                   << ",\"measured_d2d_bytes\":"
                   << measured_transfers.device_to_device_bytes;
+        std::cout << ",\"allocation_source_diagnostics\":"
+                  << (command.allocation_source_diagnostics ? "true" : "false")
+                  << ",\"allocation_source_calls\":"
+                  << allocation_sources.calls
+                  << ",\"allocation_source_bytes\":"
+                  << allocation_sources.bytes
+                  << ",\"allocation_source_records\":[";
+        for (std::size_t index = 0;
+             index < allocation_sources.records.size(); ++index) {
+            if (index != 0) std::cout << ',';
+            const auto& record = allocation_sources.records[index];
+            std::cout << "{\"source\":\""
+                      << microllm::runtime::allocation_source_name(record.source)
+                      << "\",\"device\":\"" << record.device.str()
+                      << "\",\"allocation_bytes\":"
+                      << record.allocation_bytes
+                      << ",\"calls\":" << record.calls
+                      << ",\"total_bytes\":" << record.total_bytes << '}';
+        }
+        std::cout << ']';
         if (run_prefill) {
             std::cout << ",\"prefill_warmup\":" << command.prefill_warmup
                       << ",\"prefill_steps\":" << command.prefill_steps

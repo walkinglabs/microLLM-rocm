@@ -250,6 +250,11 @@ Shared-cast BF16 Q/K/V has the same optional cache shape: one input, three fallb
 outputs in one backing allocation, shared across blocks and selected by rows. Experiment 185 keeps
 the caller-owned operator seam but rejects model routing at 1.004×/1.005×; it remains default-off.
 
+Allocation attribution is a separate opt-in runtime layer. Fixed enum tags avoid diagnostic string
+allocation, nested RAII scopes restore the previous tag, and disabled scopes are no-ops after one
+thread-local branch. Records aggregate logical requests by source/device/exact bytes; they are not
+backend allocator traces. Experiment 186 selects Attention core as the next liveness boundary.
+
 hipBLASLt GEMM also supports contiguous strided batches: leading Tensor dimensions become
 the batch count and last-two dimensions remain the matrix contract. Explicit batched
 selection is tested independently; Auto is not changed by operator-only timing.

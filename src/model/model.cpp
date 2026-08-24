@@ -19,6 +19,7 @@
 #include <microllm/ops/ops.h>
 #include <microllm/profiling/trace.h>
 #include <microllm/runtime/memory.h>
+#include <microllm/runtime/diagnostics.h>
 #include <microllm/runtime/runtime.h>
 
 namespace microllm::model {
@@ -849,74 +850,104 @@ public:
         Tensor query_projection;
         Tensor key_projection;
         Tensor value_projection;
-        if (query_.weight_data().dtype() == DType::BFloat16) {
-            const auto projections = bf16_projection(
-                flat, query_.weight_data(), key_.weight_data(), value_.weight_data());
-            query_projection = query_.has_bias()
-                                   ? ops::add_bias(projections.first, query_.bias().data())
-                                   : projections.first;
-            key_projection = key_.has_bias()
-                                 ? ops::add_bias(projections.second, key_.bias().data())
-                                 : projections.second;
-            value_projection = value_.has_bias()
-                                   ? ops::add_bias(projections.third, value_.bias().data())
-                                   : projections.third;
-        } else if (query_.shares_dynamic_activation() &&
-                   key_.shares_dynamic_activation() &&
-                   value_.shares_dynamic_activation()) {
-            const auto scaled = query_.quantize_activation(flat);
-            query_projection = query_.forward_scaled_input(scaled);
-            key_projection = key_.forward_scaled_input(scaled);
-            value_projection = value_.forward_scaled_input(scaled);
-        } else {
-            query_projection = query_.forward_tensor(flat);
-            key_projection = key_.forward_tensor(flat);
-            value_projection = value_.forward_tensor(flat);
+        {
+            runtime::ScopedAllocationSource allocation_source(
+                runtime::AllocationSource::AttentionProjection);
+            if (query_.weight_data().dtype() == DType::BFloat16) {
+                const auto projections = bf16_projection(
+                    flat, query_.weight_data(), key_.weight_data(),
+                    value_.weight_data());
+                query_projection = query_.has_bias()
+                                       ? ops::add_bias(
+                                             projections.first,
+                                             query_.bias().data())
+                                       : projections.first;
+                key_projection = key_.has_bias()
+                                     ? ops::add_bias(
+                                           projections.second,
+                                           key_.bias().data())
+                                     : projections.second;
+                value_projection = value_.has_bias()
+                                       ? ops::add_bias(
+                                             projections.third,
+                                             value_.bias().data())
+                                       : projections.third;
+            } else if (query_.shares_dynamic_activation() &&
+                       key_.shares_dynamic_activation() &&
+                       value_.shares_dynamic_activation()) {
+                const auto scaled = query_.quantize_activation(flat);
+                query_projection = query_.forward_scaled_input(scaled);
+                key_projection = key_.forward_scaled_input(scaled);
+                value_projection = value_.forward_scaled_input(scaled);
+            } else {
+                query_projection = query_.forward_tensor(flat);
+                key_projection = key_.forward_tensor(flat);
+                value_projection = value_.forward_tensor(flat);
+            }
         }
         trace_detail(trace_prefix, "q_projection", query_projection);
         trace_detail(trace_prefix, "k_projection", key_projection);
         trace_detail(trace_prefix, "v_projection", value_projection);
-        auto query = query_projection
-                         .reshape({batch, sequence, config_.heads, config_.head_dimension()})
-                         .transpose(1, 2)
-                         .contiguous();
-        auto key = key_projection
-                       .reshape({batch, sequence, config_.kv_heads,
-                                 config_.head_dimension()})
-                       .transpose(1, 2)
-                       .contiguous();
-        auto value = value_projection
-                         .reshape({batch, sequence, config_.kv_heads,
-                                   config_.head_dimension()})
-                         .transpose(1, 2)
-                         .contiguous();
-        if (config_.rope_layout == RopeLayout::SplitHalf) {
-            query = ops::rope_split_half(query, 2, 0, config_.rope_base);
-            key = ops::rope_split_half(key, 2, 0, config_.rope_base);
-        } else {
-            query = ops::rope(query, 2, 0, config_.rope_base);
-            key = ops::rope(key, 2, 0, config_.rope_base);
-        }
-        trace_detail(trace_prefix, "q_rope", query);
-        trace_detail(trace_prefix, "k_rope", key);
-        trace_detail(trace_prefix, "value", value);
-        if (prefill_cache != nullptr) {
-            prepare_cached_prefix(prefill_cache->key, key, cache_capacity,
-                                  cache_dtype);
-            prepare_cached_prefix(prefill_cache->value, value, cache_capacity,
-                                  cache_dtype);
+        Tensor query;
+        Tensor key;
+        Tensor value;
+        {
+            runtime::ScopedAllocationSource allocation_source(
+                runtime::AllocationSource::AttentionLayout);
+            query = query_projection
+                        .reshape({batch, sequence, config_.heads,
+                                  config_.head_dimension()})
+                        .transpose(1, 2)
+                        .contiguous();
+            key = key_projection
+                      .reshape({batch, sequence, config_.kv_heads,
+                                config_.head_dimension()})
+                      .transpose(1, 2)
+                      .contiguous();
+            value = value_projection
+                        .reshape({batch, sequence, config_.kv_heads,
+                                  config_.head_dimension()})
+                        .transpose(1, 2)
+                        .contiguous();
+            if (config_.rope_layout == RopeLayout::SplitHalf) {
+                query = ops::rope_split_half(
+                    query, 2, 0, config_.rope_base);
+                key = ops::rope_split_half(key, 2, 0, config_.rope_base);
+            } else {
+                query = ops::rope(query, 2, 0, config_.rope_base);
+                key = ops::rope(key, 2, 0, config_.rope_base);
+            }
+            trace_detail(trace_prefix, "q_rope", query);
+            trace_detail(trace_prefix, "k_rope", key);
+            trace_detail(trace_prefix, "value", value);
+            if (prefill_cache != nullptr) {
+                prepare_cached_prefix(
+                    prefill_cache->key, key, cache_capacity, cache_dtype);
+                prepare_cached_prefix(
+                    prefill_cache->value, value, cache_capacity, cache_dtype);
+            }
         }
         const auto repeats = config_.heads / config_.kv_heads;
-        auto context = ops::causal_gqa_attention(
-                           query, key, value, repeats,
-                           1.0F / std::sqrt(
-                                      static_cast<float>(config_.head_dimension())))
-                           .transpose(1, 2)
-                           .contiguous()
-                           .reshape({batch * sequence, config_.dimension});
+        Tensor context;
+        {
+            runtime::ScopedAllocationSource allocation_source(
+                runtime::AllocationSource::AttentionCore);
+            context = ops::causal_gqa_attention(
+                          query, key, value, repeats,
+                          1.0F / std::sqrt(static_cast<float>(
+                                     config_.head_dimension())))
+                          .transpose(1, 2)
+                          .contiguous()
+                          .reshape({batch * sequence, config_.dimension});
+        }
         trace_detail(trace_prefix, "context", context);
-        auto output = output_.forward_tensor(context).reshape(
-            {batch, sequence, config_.dimension});
+        Tensor output;
+        {
+            runtime::ScopedAllocationSource allocation_source(
+                runtime::AllocationSource::AttentionOutput);
+            output = output_.forward_tensor(context).reshape(
+                {batch, sequence, config_.dimension});
+        }
         trace_detail(trace_prefix, "output", output);
         return output;
     }
@@ -1463,18 +1494,40 @@ public:
 
     Tensor forward_tensor(const Tensor& input,
                           const std::string& trace_prefix = {}) {
-        auto attention_input = attention_norm_.forward_tensor(input);
+        Tensor attention_input;
+        {
+            runtime::ScopedAllocationSource allocation_source(
+                runtime::AllocationSource::AttentionNorm);
+            attention_input = attention_norm_.forward_tensor(input);
+        }
         trace_detail(trace_prefix, "attention_norm", attention_input);
         auto attention = attention_.forward_tensor(
             attention_input, nullptr, 0, DType::Float32,
             trace_prefix.empty() ? std::string{} : trace_prefix + ".attention");
-        auto hidden = ops::add(input, attention);
+        Tensor hidden;
+        {
+            runtime::ScopedAllocationSource allocation_source(
+                runtime::AllocationSource::AttentionResidual);
+            hidden = ops::add(input, attention);
+        }
         trace_detail(trace_prefix, "attention_residual", hidden);
-        auto ffn_input = ffn_norm_.forward_tensor(hidden);
+        Tensor ffn_input;
+        {
+            runtime::ScopedAllocationSource allocation_source(
+                runtime::AllocationSource::FfnNorm);
+            ffn_input = ffn_norm_.forward_tensor(hidden);
+        }
         trace_detail(trace_prefix, "ffn_norm", ffn_input);
-        auto ffn = feed_forward_.forward_tensor(
-            ffn_input,
-            trace_prefix.empty() ? std::string{} : trace_prefix + ".ffn");
+        Tensor ffn;
+        {
+            runtime::ScopedAllocationSource allocation_source(
+                runtime::AllocationSource::Ffn);
+            ffn = feed_forward_.forward_tensor(
+                ffn_input,
+                trace_prefix.empty() ? std::string{} : trace_prefix + ".ffn");
+        }
+        runtime::ScopedAllocationSource allocation_source(
+            runtime::AllocationSource::FfnResidual);
         return ops::add(hidden, ffn);
     }
 
@@ -1713,7 +1766,12 @@ Tensor TransformerModel::forward_inference_impl(const Tensor& token_ids,
         profiling::TraceKind::Model, "inference.forward", device());
     profiling::TraceTimer embedding_timer(
         profiling::TraceKind::Layer, "inference.embedding", device());
-    auto hidden = ops::embedding(impl_->token_embedding.data(), model_tokens);
+    Tensor hidden;
+    {
+        runtime::ScopedAllocationSource allocation_source(
+            runtime::AllocationSource::ModelEmbedding);
+        hidden = ops::embedding(impl_->token_embedding.data(), model_tokens);
+    }
     embedding_timer.finish(hidden);
     for (std::size_t layer = 0; layer < impl_->blocks.size(); ++layer) {
         profiling::TraceTimer block_timer(
@@ -1729,7 +1787,11 @@ Tensor TransformerModel::forward_inference_impl(const Tensor& token_ids,
     }
     profiling::TraceTimer norm_timer(
         profiling::TraceKind::Layer, "inference.final_norm", device());
-    hidden = impl_->final_norm.forward_tensor(hidden);
+    {
+        runtime::ScopedAllocationSource allocation_source(
+            runtime::AllocationSource::ModelFinalNorm);
+        hidden = impl_->final_norm.forward_tensor(hidden);
+    }
     norm_timer.finish(hidden);
     const auto batch = token_ids.shape()[0];
     const auto sequence = token_ids.shape()[1];
@@ -1739,6 +1801,8 @@ Tensor TransformerModel::forward_inference_impl(const Tensor& token_ids,
     const auto positions = last_logits_only ? 1 : sequence;
     const auto flat = selected.reshape({batch * positions, impl_->config.dimension});
     Tensor logits;
+    runtime::ScopedAllocationSource allocation_source(
+        runtime::AllocationSource::ModelOutput);
     if (impl_->config.tie_embeddings) {
         logits = ops::matmul_with_implementation(
             flat, impl_->token_embedding.data(), ops::MatmulImplementation::Auto,

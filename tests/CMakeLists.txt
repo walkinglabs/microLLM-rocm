@@ -175,6 +175,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.Bf16FfnArenaModelsContract PROPERTIES
         LABELS "cpu;benchmark;model;inference;ffn;bf16;memory;schema")
     add_test(
+        NAME Benchmark.HfAllocationSourcesContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_hf_allocation_sources.py
+    )
+    set_tests_properties(Benchmark.HfAllocationSourcesContract PROPERTIES
+        LABELS "cpu;benchmark;model;inference;memory;profile;schema")
+    add_test(
         NAME Coverage.OperatorAndTestFiles
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/audit_test_coverage.py
     )
