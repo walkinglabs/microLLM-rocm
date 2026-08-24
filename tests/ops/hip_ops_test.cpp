@@ -2422,11 +2422,19 @@ TEST(HipOpsTest, WideGqaValueBroadcastFullSavedPathMatchesExpandedControl) {
     const auto seed = Tensor::from_vector(
         seed_values, {1, sequence, heads, width}).to(gpu);
     enable_attention_gqa_value_broadcast(false);
+    enable_attention_gqa_forward_value_broadcast(false);
     const auto control = causal_gqa_attention_bthd_saved(
         query, key, value, 2, 1.0F / std::sqrt(static_cast<float>(width)));
     const auto control_gradients = causal_gqa_attention_bthd_backward_saved(
         query, key, value, control.second, seed, 2,
         1.0F / std::sqrt(static_cast<float>(width)));
+    enable_attention_gqa_forward_value_broadcast(true);
+    const auto forward_only = causal_gqa_attention_bthd_saved(
+        query, key, value, 2, 1.0F / std::sqrt(static_cast<float>(width)));
+    const auto forward_only_gradients = causal_gqa_attention_bthd_backward_saved(
+        query, key, value, forward_only.second, seed, 2,
+        1.0F / std::sqrt(static_cast<float>(width)));
+    enable_attention_gqa_forward_value_broadcast(false);
     enable_attention_gqa_value_broadcast(true);
     runtime::reset_transfer_stats();
     const auto candidate = causal_gqa_attention_bthd_saved(
@@ -2446,7 +2454,16 @@ TEST(HipOpsTest, WideGqaValueBroadcastFullSavedPathMatchesExpandedControl) {
                 control_gradients.second.to_vector(), 3.0e-3F);
     expect_near(candidate_gradients.third.to_vector(),
                 control_gradients.third.to_vector(), 3.0e-3F);
+    expect_near(forward_only.first.to_vector(), control.first.to_vector(), 3.0e-3F);
+    expect_near(forward_only.second.to_vector(), control.second.to_vector(), 3.0e-3F);
+    expect_near(forward_only_gradients.first.to_vector(),
+                control_gradients.first.to_vector(), 3.0e-3F);
+    expect_near(forward_only_gradients.second.to_vector(),
+                control_gradients.second.to_vector(), 3.0e-3F);
+    expect_near(forward_only_gradients.third.to_vector(),
+                control_gradients.third.to_vector(), 3.0e-3F);
     enable_attention_gqa_value_broadcast(false);
+    enable_attention_gqa_forward_value_broadcast(false);
 }
 
 TEST(HipOpsTest, MaskedCrossEntropyMatchesCpuReference) {

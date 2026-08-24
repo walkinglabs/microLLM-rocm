@@ -2836,3 +2836,17 @@ profile看起来成功：repeat family 432→216 calls、2.105→1.330ms，总Ke
 H-batch GEMM。如果它仍不过整机门，zero-stride路线就完整关闭。
 
 ![Selective GQA Value broadcast discarded](assets/selective-gqa-value-broadcast-discard.svg)
+
+## 188. Experiment 171：只改前向，仍然付了额外GEMM账单
+
+最后一次只让D≥128前向P×V广播，backward恢复旧dP。完整T256梯度通过，Deep每进程少56次
+allocation；Qwen仍不路由。
+
+结果Deep只有1.0009×、peak不变，且参数guard改变；Qwen同路径的0.9822×是进程漂移。profile中
+repeat forward 336→252，可总dispatch仍8058，因为少84次copy恰好多84次KV-group GEMM；Kernel
+261.73→264.04ms。
+
+至此universal、完整selective、forward-only三种zero-stride模型策略都有反例，搜索空间关闭。原语
+保留用于backend能力和未来完全不同的grouped-GEMM设计，不能再被当作当前默认优化。
+
+![Forward-only GQA Value broadcast discarded](assets/forward-only-gqa-value-broadcast-discard.svg)

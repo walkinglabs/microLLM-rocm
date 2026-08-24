@@ -87,6 +87,8 @@
     "attention_paired_gqa_repeat_enabled": "tests/ops/hip_ops_test.cpp",
     "enable_attention_gqa_value_broadcast": "tests/ops/hip_ops_test.cpp",
     "attention_gqa_value_broadcast_enabled": "tests/ops/hip_ops_test.cpp",
+    "enable_attention_gqa_forward_value_broadcast": "tests/ops/hip_ops_test.cpp",
+    "attention_gqa_forward_value_broadcast_enabled": "tests/ops/hip_ops_test.cpp",
     "register_bf16_algorithm": "tests/ops/hip_ops_test.cpp",
     "clear_bf16_algorithm_registry": "tests/ops/hip_ops_test.cpp",
     "bf16_registered_algorithm_count": "tests/ops/hip_ops_test.cpp",

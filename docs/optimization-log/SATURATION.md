@@ -115,6 +115,10 @@ Experiment 170 rejects that complete P×V+dP route: DeepSeek allocation falls bu
 KV-group dP GEMMs keep dispatch count flat and raise Kernel time. Only forward-only P×V
 remains distinct; it retains the old one-call dP backward.
 
+Experiment 171 rejects that final forward-only route as well. DeepSeek remains flat,
+parameter equality changes, and profile dispatches stay constant because each removed copy
+becomes an extra GEMM. The current zero-stride model-routing family is fully closed.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

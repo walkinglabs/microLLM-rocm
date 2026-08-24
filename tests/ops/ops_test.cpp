@@ -657,10 +657,15 @@ TEST(CpuOpsTest, AttentionProbabilityValueGqaBroadcastMatchesRepeatedReference) 
                      output_gradient, Tensor({1, 2, 1, 2}), 2),
                  std::invalid_argument);
     enable_attention_gqa_value_broadcast(false);
+    enable_attention_gqa_forward_value_broadcast(false);
     EXPECT_FALSE(attention_gqa_value_broadcast_enabled());
+    EXPECT_FALSE(attention_gqa_forward_value_broadcast_enabled());
     enable_attention_gqa_value_broadcast(true);
     EXPECT_TRUE(attention_gqa_value_broadcast_enabled());
     enable_attention_gqa_value_broadcast(false);
+    enable_attention_gqa_forward_value_broadcast(true);
+    EXPECT_TRUE(attention_gqa_forward_value_broadcast_enabled());
+    enable_attention_gqa_forward_value_broadcast(false);
 }
 
 TEST(CpuOpsTest, AttentionLayoutPlanCacheIsUnavailableWithoutHipblaslt) {

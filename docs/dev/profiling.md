@@ -169,6 +169,9 @@ for shape and Kernel diagnosis.
 `--attention-gqa-value-broadcast true/false` controls the width-selective P×V+dP route.
 It defaults false after Experiment 170. The operator APIs remain usable independently.
 
+`--attention-gqa-forward-value-broadcast true/false` is the final forward-only variant.
+It also defaults false after Experiment 171; the zero-stride model-routing family is closed.
+
 ### End-to-end benchmark
 
 ```bash

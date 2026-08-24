@@ -1,0 +1,107 @@
+{
+  "aggregation": "median of fresh processes with alternating policy order",
+  "comparisons": [
+    {
+      "allocation_calls_saved": 0.0,
+      "loss_relative_difference": 0.0024592238807384405,
+      "model": "qwen2.5-0.5b",
+      "observed_parameter_after_equal": true,
+      "peak_bytes_saved": 0.0,
+      "peak_ratio": 1.0,
+      "policies": {
+        "fused": {
+          "engine_allocation_calls": 3340.0,
+          "engine_peak_bytes": 11824424968.0,
+          "final_loss": 0.016929787,
+          "mean_optimizer_ms": 13.540921,
+          "mean_step_ms": 34.2435795,
+          "observed_parameter_after": 7.468718052,
+          "tokens_per_second": 14951.707954479
+        },
+        "materialized": {
+          "engine_allocation_calls": 3340.0,
+          "engine_peak_bytes": 11824424968.0,
+          "final_loss": 0.016888255,
+          "mean_optimizer_ms": 14.3351855,
+          "mean_step_ms": 33.6326565,
+          "observed_parameter_after": 7.468718052,
+          "tokens_per_second": 15223.299414365
+        }
+      },
+      "strided_copy": {
+        "fused": {
+          "bytes": 0,
+          "calls": 0,
+          "elements": 0
+        },
+        "materialized": {
+          "bytes": 0,
+          "calls": 0,
+          "elements": 0
+        }
+      },
+      "throughput_speedup": 0.9821594877369539
+    },
+    {
+      "allocation_calls_saved": 56.0,
+      "loss_relative_difference": 0.00021947173428727145,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "observed_parameter_after_equal": false,
+      "peak_bytes_saved": 0.0,
+      "peak_ratio": 1.0,
+      "policies": {
+        "fused": {
+          "engine_allocation_calls": 3840.0,
+          "engine_peak_bytes": 37102645256.0,
+          "final_loss": 4.035916328,
+          "mean_optimizer_ms": 50.2934675,
+          "mean_step_ms": 80.7589375,
+          "observed_parameter_after": 2.124971151,
+          "tokens_per_second": 6339.855573261
+        },
+        "materialized": {
+          "engine_allocation_calls": 3896.0,
+          "engine_peak_bytes": 37102645256.0,
+          "final_loss": 4.036802292,
+          "mean_optimizer_ms": 49.592127,
+          "mean_step_ms": 80.8280385,
+          "observed_parameter_after": 2.124970913,
+          "tokens_per_second": 6334.435543676
+        }
+      },
+      "strided_copy": {
+        "fused": {
+          "bytes": 0,
+          "calls": 0,
+          "elements": 0
+        },
+        "materialized": {
+          "bytes": 0,
+          "calls": 0,
+          "elements": 0
+        }
+      },
+      "throughput_speedup": 1.0008556452343116
+    }
+  ],
+  "context": 512,
+  "decision": "reject forward-only GQA Value broadcast",
+  "gate_results": {
+    "loss": true,
+    "parameter": false,
+    "strided_copy_unchanged_zero": true,
+    "throughput": false
+  },
+  "keep_gate": {
+    "loss_relative_difference_maximum": 0.005,
+    "observed_parameter_after_equal": true,
+    "throughput_ratio_minimum": 1.01
+  },
+  "policy": "forward_broadcast",
+  "runs_per_model_policy": 3,
+  "schema_version": 1,
+  "status": "pass",
+  "steps": 2,
+  "track": "attention_gqa_forward_value_broadcast",
+  "warmup": 1
+}

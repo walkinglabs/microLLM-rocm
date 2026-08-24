@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "model": "deepseek-r1-distill-qwen-1.5b",
+  "context": 512,
+  "executed_steps": 3,
+  "baseline": {
+    "kernel_dispatches": 8058,
+    "kernel_time_ns": 261729896,
+    "repeat_forward_calls": 336,
+    "repeat_forward_time_ns": 1908309,
+    "repeat_backward_calls": 168,
+    "repeat_backward_time_ns": 930803
+  },
+  "forward_only": {
+    "kernel_dispatches": 8058,
+    "kernel_time_ns": 264039043,
+    "repeat_forward_calls": 252,
+    "repeat_forward_time_ns": 1508961,
+    "repeat_backward_calls": 168,
+    "repeat_backward_time_ns": 899932
+  },
+  "ratios": {
+    "kernel_dispatches": 1.0,
+    "kernel_time": 1.008823,
+    "repeat_forward_calls": 0.75
+  },
+  "inference": "84 removed repeat calls are replaced by 84 extra forward KV-group GEMM dispatches",
+  "instrumented_throughput_used_for_decision": false
+}

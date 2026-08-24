@@ -21,6 +21,7 @@ thread_local Fp8DynamicQuantStats dynamic_quant_stats;
 thread_local bool attention_gemm_scale_fusion = false;
 thread_local bool attention_paired_gqa_repeat = false;
 thread_local bool attention_gqa_value_broadcast = false;
+thread_local bool attention_gqa_forward_value_broadcast = false;
 
 float fp8_finite_maximum(DType dtype) {
     if (dtype == DType::Float8E4M3FNUZ) return 240.0F;
@@ -574,6 +575,14 @@ void enable_attention_gqa_value_broadcast(bool enabled) noexcept {
 
 bool attention_gqa_value_broadcast_enabled() noexcept {
     return attention_gqa_value_broadcast;
+}
+
+void enable_attention_gqa_forward_value_broadcast(bool enabled) noexcept {
+    attention_gqa_forward_value_broadcast = enabled;
+}
+
+bool attention_gqa_forward_value_broadcast_enabled() noexcept {
+    return attention_gqa_forward_value_broadcast;
 }
 
 Tensor dequantize_fp8(const ScaledTensor& input, DType output_dtype,
@@ -3220,7 +3229,9 @@ TensorPair causal_gqa_attention_bthd_saved(
     validate_causal_gqa_bthd(query, key, value, repeats, scale);
     const auto sequence = query.shape()[2];
     if (query.device().is_hip() && sequence >= 256 && hipblaslt_available()) {
-        const auto use_value_broadcast = attention_gqa_value_broadcast &&
+        const auto use_value_broadcast =
+            (attention_gqa_value_broadcast ||
+             attention_gqa_forward_value_broadcast) &&
                                          repeats > 1 && query.shape()[3] >= 128;
         Tensor expanded_key;
         Tensor expanded_value;

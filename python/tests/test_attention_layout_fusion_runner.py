@@ -130,6 +130,17 @@ class AttentionLayoutFusionRunnerTest(unittest.TestCase):
         self.assertEqual(repeated[value + 1], "false")
         self.assertEqual(broadcast[value + 1], "true")
 
+    def test_forward_broadcast_keeps_full_backward_policy_off(self):
+        self.args.policy = "forward_broadcast"
+        repeated = RUNNER.command(self.args, self.model, False)
+        forward = RUNNER.command(self.args, self.model, True)
+        full = repeated.index("--attention-gqa-value-broadcast")
+        selected = repeated.index("--attention-gqa-forward-value-broadcast")
+        self.assertEqual(repeated[full + 1], "false")
+        self.assertEqual(forward[full + 1], "false")
+        self.assertEqual(repeated[selected + 1], "false")
+        self.assertEqual(forward[selected + 1], "true")
+
     def test_operator_matrix_preserves_batch_head_sequence_width(self):
         shape = MATRIX.parse_shape("qwen:2:14:512:64")
         self.assertEqual(

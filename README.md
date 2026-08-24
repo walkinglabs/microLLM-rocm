@@ -106,6 +106,9 @@ needed to run a real training and generation loop:
 - the width-128 full P×V+dP route remains default-off: it removes 112 DeepSeek allocations
   but reaches only 0.997× end to end because removed Value-repeat launches are replaced by
   extra KV-group GEMMs; forward-only broadcast remains the final scoped variant;
+- forward-only width-128 broadcast is also default-off (`1.001×` DeepSeek, changed parameter
+  guard); universal, full selective and forward-only zero-stride model routes are now closed,
+  while their independently tested backend primitives remain available;
 - a phase-independent exact-size HIP pool with immediate legacy-default-Stream reuse and strict
   permanent disablement for non-default Streams;
 - a cross-framework trace runner for operator/layer values and latency comparisons.

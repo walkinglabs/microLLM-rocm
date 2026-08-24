@@ -234,6 +234,10 @@ policy is disabled after end-to-end rejection. It removes Value expansion in bot
 replaces each removed copy with another KV-group GEMM. Keeping the primitives separate lets
 the final forward-only policy reuse proven P×V while backward stays on one H-batched GEMM.
 
+That forward-only policy is also disabled after the final model/profile gate. Zero-stride
+P×V and dP remain public capability primitives, not dispatch defaults. This distinction
+prevents an isolated shape win from silently changing the Transformer graph.
+
 ## Stable integration boundary
 
 The long-term integration seam is a C-compatible descriptor plus explicit stream

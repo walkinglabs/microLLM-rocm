@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "experiment": "Exp171",
+  "decision": "reject forward-only policy and close zero-stride model routing",
+  "correctness": {
+    "hip_t256_forward_only_output_probability_qkv_gradients": "pass",
+    "backward_uses_expanded_control": true,
+    "qwen_d64_not_routed": true,
+    "strided_copy_calls_both": 0
+  },
+  "training": {
+    "fresh_process_rows": 12,
+    "context": 512,
+    "qwen_throughput_speedup": 0.982159488,
+    "qwen_allocation_calls_saved": 0,
+    "deepseek_throughput_speedup": 1.000855645,
+    "deepseek_allocation_calls_saved": 56,
+    "deepseek_peak_ratio": 1.0,
+    "deepseek_parameter_equal": false,
+    "loss_relative_difference_maximum": 0.002459224,
+    "throughput_keep_minimum": 1.01
+  },
+  "profile": {
+    "baseline_repeat_forward_calls": 336,
+    "forward_only_repeat_forward_calls": 252,
+    "repeat_backward_calls_both": 168,
+    "kernel_dispatches_both": 8058,
+    "kernel_time_ns": "261729896->264039043",
+    "instrumented_throughput_used_for_decision": false
+  },
+  "regression": {
+    "cpu_debug": "271/271",
+    "asan_ubsan": "269/269",
+    "pytorch_enabled_cpu": "245/245",
+    "full_cpu_hip": "406/406",
+    "hip_label": "131/131",
+    "conditional_skips": 3,
+    "package_consumer": "pass",
+    "runner_contract_cases": "12/12",
+    "coverage_lines_percent": 81.0,
+    "coverage_functions_percent": 90.5,
+    "coverage_branches_percent": 61.7
+  },
+  "defaults": {
+    "complete_broadcast": false,
+    "forward_only_broadcast": false,
+    "training_cli_complete": false,
+    "training_cli_forward_only": false
+  },
+  "zero_stride_model_search_closed": true
+}

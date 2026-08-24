@@ -176,6 +176,7 @@ int main(int argc, char** argv) {
         bool attention_gemm_scale_fusion = false;
         bool attention_paired_gqa_repeat = false;
         bool attention_gqa_value_broadcast = false;
+        bool attention_gqa_forward_value_broadcast = false;
         for (int index = 1; index < argc; index += 2) {
             if (index + 1 >= argc) throw std::invalid_argument("missing CLI value");
             const std::string name = argv[index];
@@ -253,6 +254,14 @@ int main(int argc, char** argv) {
                 }
                 attention_gqa_value_broadcast = value == "true";
             }
+            else if (name == "--attention-gqa-forward-value-broadcast") {
+                const std::string value = argv[index + 1];
+                if (value != "true" && value != "false") {
+                    throw std::invalid_argument(
+                        "--attention-gqa-forward-value-broadcast must be true or false");
+                }
+                attention_gqa_forward_value_broadcast = value == "true";
+            }
             else if (name == "--bf16-weight-mirrors") {
                 const std::string value = argv[index + 1];
                 if (value != "true" && value != "false") {
@@ -293,6 +302,8 @@ int main(int argc, char** argv) {
             attention_paired_gqa_repeat);
         microllm::ops::enable_attention_gqa_value_broadcast(
             attention_gqa_value_broadcast);
+        microllm::ops::enable_attention_gqa_forward_value_broadcast(
+            attention_gqa_forward_value_broadcast);
         if (!bf16_algorithms.empty() &&
             (linear_precision != "bf16" || device_text != "hip")) {
             throw std::invalid_argument(
@@ -471,6 +482,8 @@ int main(int argc, char** argv) {
                   << (attention_paired_gqa_repeat ? "true" : "false")
                   << ",\"attention_gqa_value_broadcast\":"
                   << (attention_gqa_value_broadcast ? "true" : "false")
+                  << ",\"attention_gqa_forward_value_broadcast\":"
+                  << (attention_gqa_forward_value_broadcast ? "true" : "false")
                   << ",\"measurement_profile\":\""
                   << (warmup > 0 || steps > 1 ? "comparison" : "smoke") << "\""
                   << ",\"loaded_tensors\":" << report.loaded.size()
