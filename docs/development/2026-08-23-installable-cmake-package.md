@@ -11,8 +11,9 @@ hipBLASLt或RCCL依赖。
 - `microLLMConfig.cmake`与版本文件；在1.0之前只兼容同一minor版本；
 - 可迁移的`microLLMTargets.cmake`；
 - `microLLM::runtime/core/profiling/ops/autograd/io/model/training/inference`；
+- C ABI启用时导出版本化共享库和`microLLM::capi`，可由纯C项目消费；
 - RCCL构建额外导出`microLLM::multi_gpu`；
-- `microLLM_WITH_HIP/HIPBLASLT/RCCL`和可用组件metadata；
+- `microLLM_WITH_HIP/HIPBLASLT/RCCL/CAPI`和可用组件metadata；
 - CPU包不查找ROCm；HIP包传播HIP/hipBLASLt；多卡包传播RCCL；
 - 安装LICENSE与README。
 
@@ -24,7 +25,8 @@ hipBLASLt或RCCL依赖。
 cmake --install → 新prefix → 移动整个prefix
 → 独立consumer find_package(COMPONENTS inference model)
 → 检查全部targets/metadata
-→ 编译 → 静态链接 → 运行
+→ 编译 → 静态链接 → 运行C++ consumer
+→ 若C ABI启用，编译、动态链接并运行纯C consumer
 → 再请求一个不存在的必需component，确认配置失败
 → 请求不兼容的0.2版本，确认0.1包拒绝
 ```
@@ -69,3 +71,9 @@ bias-gradient实现，避免只有头文件安装成功、静态库却漏掉实�
 在旧build目录直接运行`ctest`曾出现缺少新符号的失败；先执行`cmake --build`后消失。
 这不是Config漏依赖，而是`ctest`只运行已有产物、不会重新编译。根README已明确写出
 `configure -> build -> test`顺序，避免把陈旧二进制误报为package故障。
+
+后续补齐了此前遗漏的C ABI消费面：`libmicrollm`现在具有`0.1.0`文件版本与major SONAME，
+并作为`microLLM::capi`进入同一导出集合。搬迁prefix后，独立纯C项目通过该target找到头文件、
+链接共享库并实际完成Tensor加法；关闭`MICROLLM_BUILD_CAPI`的fresh build则不会错误暴露
+`capi`组件或target。CPU Debug完整回归通过；本次Config改动新增的是同一个
+`PackageConfig.InstalledConsumer`内部的纯C编译、链接与运行门。

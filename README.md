@@ -10,6 +10,7 @@ An independently usable C++20/HIP runtime for studying, training, profiling, and
 extending small decoder-only language models on AMD GPUs.
 
 [Documentation](docs/index.md) · [Build](docs/dev/build.md) ·
+[CMake package](#install-and-use-from-another-cmake-project) ·
 [Architecture](docs/ARCHITECTURE.md) · [Tests](docs/dev/testing.md) ·
 [Benchmarks](benchmarks/README.md) · [Roadmap](docs/development/NEXT_STEPS.md) ·
 [Optimization log](docs/optimization-log/README.md) ·
@@ -279,8 +280,11 @@ ctest --preset rccl-release
 
 ### Use the installed CMake package
 
-microLLM can be consumed without copying this source tree into another project. First
-install one configured build:
+microLLM installs a real CMake Config package. A downstream project can therefore use
+`find_package` and a namespaced target instead of copying source files or manually
+writing include directories, library paths, and backend libraries.
+
+First install one configured build:
 
 ```bash
 cmake --install build/cpu-debug --prefix "$PWD/install/microllm"
@@ -298,7 +302,7 @@ Configure that project with
 `-DCMAKE_PREFIX_PATH=/absolute/path/to/install/microllm`. CMake then supplies the
 headers, static libraries, C++20 requirement, transitive microLLM libraries, and any
 HIP/hipBLASLt/RCCL dependencies recorded by the installed build. The complete external
-consumer example and component table are in
+consumer examples, including the plain-C API, and component table are in
 [Install and use from another CMake project](#install-and-use-from-another-cmake-project).
 
 ### Install and use from another CMake project
@@ -325,7 +329,7 @@ cmake --install build/install-cpu --prefix "$PWD/install/microllm"
 The same command installs a HIP or RCCL build when the selected build directory was
 configured with those backends.
 
-#### 2. Create a separate consumer
+#### 2. Create a separate C++ consumer
 
 Put these two files in a new directory. `CMakeLists.txt` requests the inference
 component and links one public target; its lower-level dependencies are carried
@@ -362,6 +366,21 @@ cmake --build build
 ./build/my_app
 ```
 
+For the stable plain-C ABI, request `capi` and link the shared-library target:
+
+```cmake
+cmake_minimum_required(VERSION 3.25)
+project(my_microLLM_c_app LANGUAGES C)
+
+find_package(microLLM 0.1 CONFIG REQUIRED COMPONENTS capi)
+add_executable(my_c_app main.c)
+target_link_libraries(my_c_app PRIVATE microLLM::capi)
+```
+
+The C header is `<microllm/capi/microllm.h>`. The C++ component libraries are static;
+the C ABI is installed as a versioned shared library. CMake supplies its include path
+and runtime link information through the imported target.
+
 `CMAKE_PREFIX_PATH` points at the installation root. If a larger environment contains
 many packages, `-DmicroLLM_DIR=/prefix/lib/cmake/microLLM` can point directly at this
 package. Do not point either variable at the source tree.
@@ -379,19 +398,23 @@ Installed targets are:
 | `microLLM::model` | Decoder-only Transformer |
 | `microLLM::training` | Optimizers, checkpoints and Trainer |
 | `microLLM::inference` | Generation, KV cache and schedulers |
+| `microLLM::capi` | Stable plain-C ABI when built with `MICROLLM_BUILD_CAPI=ON` |
 | `microLLM::multi_gpu` | RCCL data-parallel components when built with RCCL |
 
-`microLLMConfig.cmake` records whether the installed build used HIP, hipBLASLt or
-RCCL and resolves those dependencies when the package is loaded. A CPU installation
-does not require ROCm. Mixing libraries from one build with a config file from another
-is unsupported; install the complete prefix atomically. Before the project reaches
-1.0, version compatibility is limited to the installed `0.1.x` minor line.
+`microLLMConfig.cmake` exposes `microLLM_WITH_HIP`,
+`microLLM_WITH_HIPBLASLT`, `microLLM_WITH_RCCL`, `microLLM_WITH_CAPI`, and
+`microLLM_AVAILABLE_COMPONENTS`. It resolves the backend dependencies recorded by the
+installed build; a CPU installation does not require ROCm. Mixing libraries from one
+build with a config file from another is unsupported, so install the complete prefix
+atomically. Before the project reaches 1.0, version compatibility is limited to the
+installed `0.1.x` minor line.
 
 CTest includes `PackageConfig.InstalledConsumer`, which installs into a temporary
-prefix, moves that prefix, and then configures, builds, links and runs a
-repository-external consumer. It also proves that a missing required component is
-rejected during configuration and that an incompatible pre-1.0 minor version is not
-accepted. CPU, HIP/hipBLASLt, and RCCL presets all select this gate.
+prefix, moves that prefix, and then configures, builds, links and runs
+repository-external C++ and, when enabled, C consumers. It also proves that a missing
+required component is rejected during configuration and that an incompatible pre-1.0
+minor version is not accepted. CPU, HIP/hipBLASLt, and RCCL presets all select this
+gate.
 
 The complete compiler, CMake, ROCm, library, Python, and troubleshooting matrix is in
 [Build from source](docs/dev/build.md).
@@ -402,14 +425,15 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 387/387 | 264 CPU-labelled + 124 HIP-labelled gates; the package gate belongs to both labels; 2 intentional environment skips |
-| ASan/UBSan CPU | 257/257 | host code, CLI, model/graph, benchmark and evidence schemas |
-| MI300X/gfx942 HIP preset | 117/117 | 116 allocator/stream, graph, autotune, BF16/FP8 and model gates + 1 installed-package gate |
-| PyTorch-enabled CPU build | 233/233 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
+| Full CPU/HIP configuration | 406/406 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
+| CPU Debug | 271/271 | host code, CLI, model/graph, benchmark, package and evidence schemas |
+| ASan/UBSan CPU | 269/269 | host lifetime, undefined-behavior and ordinary CPU gates |
+| MI300X/gfx942 HIP label | 131/131 | allocator/stream, graph, autotune, BF16/FP8, model and installed-package gates |
+| PyTorch-enabled CPU build | 245/245 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
-| Registered test files | 54 | machine-audited CTest registration |
+| Registered test files | 55 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | Installed CMake package | CPU + HIP + RCCL pass | relocated prefix, external `find_package`, components, compile, static link and run |
-| CPU source coverage | 80.3% lines / 61.4% branches | 7,254/9,036 lines and 7,076/11,517 branches; GCC 13.3 + gcovr 8.3 |
+| CPU source coverage | 81.0% lines / 90.5% functions / 61.7% branches | GCC 13.3 + gcovr 8.3 |
 
 Latest PyTorch-reference maximum absolute differences:
 

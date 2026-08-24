@@ -54,6 +54,20 @@ if(NOT run_status EQUAL 0 OR NOT run_output MATCHES "microLLM package consumer: 
     message(FATAL_ERROR "consumer run failed:\n${run_output}\n${run_error}")
 endif()
 
+set(c_consumer "${MICROLLM_CONSUMER_BINARY_DIR}/microllm_c_package_consumer")
+if(EXISTS "${c_consumer}")
+    execute_process(
+        COMMAND "${c_consumer}"
+        RESULT_VARIABLE c_run_status
+        OUTPUT_VARIABLE c_run_output
+        ERROR_VARIABLE c_run_error)
+    if(NOT c_run_status EQUAL 0 OR
+       NOT c_run_output MATCHES "microLLM C package consumer: pass")
+        message(FATAL_ERROR
+            "C consumer run failed:\n${c_run_output}\n${c_run_error}")
+    endif()
+endif()
+
 # Required components are an API contract. A typo or an unavailable optional backend
 # must fail at configure time rather than become a link error later.
 set(missing_component_build "${MICROLLM_CONSUMER_BINARY_DIR}-missing-component")

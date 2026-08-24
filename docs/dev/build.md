@@ -122,7 +122,8 @@ Install the complete build into one prefix:
 cmake --install build/cpu-debug --prefix "$PWD/install/microllm"
 ```
 
-The prefix contains headers, static libraries and:
+The prefix contains headers, static C++ libraries, the optional versioned C ABI shared
+library, command-line programs and:
 
 ```text
 lib/cmake/microLLM/microLLMConfig.cmake
@@ -132,8 +133,9 @@ lib/cmake/microLLM/microLLMTargets.cmake
 
 Consumers use `find_package(microLLM CONFIG REQUIRED)` and link namespaced targets such
 as `microLLM::core`, `microLLM::model` or `microLLM::inference`. Linking a higher-level
-target propagates its public microLLM dependencies. A package produced by a HIP build
-also resolves HIP and hipBLASLt; an RCCL build additionally resolves RCCL.
+target propagates its public microLLM dependencies. When the C API is built, plain-C
+consumers request the `capi` component and link `microLLM::capi`. A package produced by
+a HIP build also resolves HIP and hipBLASLt; an RCCL build additionally resolves RCCL.
 
 Think of the Config package as an installed instruction card: the consumer names the
 capability it needs, while CMake reads the card and supplies include directories,
@@ -143,6 +145,18 @@ libraries, compile requirements, and backend dependencies. A minimal consumer us
 find_package(microLLM 0.1 CONFIG REQUIRED COMPONENTS inference)
 target_link_libraries(app PRIVATE microLLM::inference)
 ```
+
+A minimal C consumer uses:
+
+```cmake
+find_package(microLLM 0.1 CONFIG REQUIRED COMPONENTS capi)
+target_link_libraries(c_app PRIVATE microLLM::capi)
+```
+
+The Config file also exposes `microLLM_AVAILABLE_COMPONENTS` and the boolean feature
+metadata `microLLM_WITH_HIP`, `microLLM_WITH_HIPBLASLT`, `microLLM_WITH_RCCL`, and
+`microLLM_WITH_CAPI`. Prefer testing targets or requested components for linking;
+these variables are intended for diagnostics and optional application features.
 
 Point `CMAKE_PREFIX_PATH` at the installation root. As a narrower alternative, set
 `microLLM_DIR` to the directory containing `microLLMConfig.cmake`. Neither variable
@@ -158,10 +172,10 @@ cmake -S . -B build/install \
 
 `PackageConfig.InstalledConsumer` is not a source-tree link test. It installs into a
 fresh temporary prefix, moves the prefix to prove relocatability, configures a separate
-CMake project, checks every expected target, builds it and runs the executable. A
-second configure intentionally asks for a nonexistent required component and must
-fail. A third configure requests an incompatible pre-1.0 minor version and must also
-fail. CPU, HIP, and RCCL presets label and execute the same contract.
+CMake project, checks every expected target, and runs installed-package C++ and C
+consumers. A second configure intentionally asks for a nonexistent required component
+and must fail. A third configure requests an incompatible pre-1.0 minor version and
+must also fail. CPU, HIP, and RCCL presets label and execute the same contract.
 
 ## Build options
 
