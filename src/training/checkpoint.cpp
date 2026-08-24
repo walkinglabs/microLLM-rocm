@@ -134,14 +134,27 @@ void write_config(Writer& writer, const AdamWConfig& config) {
     writer.floating(config.beta2);
     writer.floating(config.epsilon);
     writer.floating(config.weight_decay);
+    writer.integer<std::uint32_t>(
+        static_cast<std::uint32_t>(config.moment_precision));
 }
 
-AdamWConfig read_config(Reader& reader) {
-    return {.learning_rate = reader.floating(),
-            .beta1 = reader.floating(),
-            .beta2 = reader.floating(),
-            .epsilon = reader.floating(),
-            .weight_decay = reader.floating()};
+AdamWConfig read_config(Reader& reader, std::uint32_t version) {
+    AdamWConfig config{.learning_rate = reader.floating(),
+                       .beta1 = reader.floating(),
+                       .beta2 = reader.floating(),
+                       .epsilon = reader.floating(),
+                       .weight_decay = reader.floating()};
+    if (version >= 2) {
+        const auto precision = reader.integer<std::uint32_t>();
+        if (precision > static_cast<std::uint32_t>(
+                            AdamWConfig::MomentPrecision::BFloat16)) {
+            throw std::runtime_error(
+                "checkpoint AdamW moment precision is invalid");
+        }
+        config.moment_precision =
+            static_cast<AdamWConfig::MomentPrecision>(precision);
+    }
+    return config;
 }
 
 void write_state(Writer& writer, const AdamWState& state) {
@@ -185,7 +198,8 @@ void validate_named_parameters(const NamedParameters& parameters) {
 bool same_config(const AdamWConfig& left, const AdamWConfig& right) {
     return left.learning_rate == right.learning_rate && left.beta1 == right.beta1 &&
            left.beta2 == right.beta2 && left.epsilon == right.epsilon &&
-           left.weight_decay == right.weight_decay;
+           left.weight_decay == right.weight_decay &&
+           left.moment_precision == right.moment_precision;
 }
 
 }  // namespace
@@ -253,7 +267,9 @@ LoadedCheckpoint load_checkpoint(const std::filesystem::path& path) {
                                         file.begin() + static_cast<std::ptrdiff_t>(kMagic.size() + 24));
     Reader header(header_bytes);
     const auto version = header.integer<std::uint32_t>();
-    if (version != kCheckpointFormatVersion) throw std::runtime_error("unsupported checkpoint version");
+    if (version == 0 || version > kCheckpointFormatVersion) {
+        throw std::runtime_error("unsupported checkpoint version");
+    }
     if (header.integer<std::uint32_t>() != kEndianMarker) {
         throw std::runtime_error("checkpoint endian marker mismatch");
     }
@@ -282,7 +298,7 @@ LoadedCheckpoint load_checkpoint(const std::filesystem::path& path) {
     for (std::uint64_t index = 0; index < parameter_count; ++index) {
         result.parameters.push_back({reader.string(), reader.tensor()});
     }
-    result.optimizer_config = read_config(reader);
+    result.optimizer_config = read_config(reader, version);
     result.optimizer_state = read_state(reader);
     if (!reader.finished()) throw std::runtime_error("checkpoint has trailing payload data");
     return result;
@@ -291,7 +307,8 @@ LoadedCheckpoint load_checkpoint(const std::filesystem::path& path) {
 void restore_checkpoint(const LoadedCheckpoint& checkpoint, const NamedParameters& parameters,
                         AdamW& optimizer, ExperimentState& experiment) {
     validate_named_parameters(parameters);
-    if (checkpoint.format_version != kCheckpointFormatVersion) {
+    if (checkpoint.format_version == 0 ||
+        checkpoint.format_version > kCheckpointFormatVersion) {
         throw std::invalid_argument("checkpoint version cannot be restored");
     }
     if (checkpoint.parameters.size() != parameters.size()) {

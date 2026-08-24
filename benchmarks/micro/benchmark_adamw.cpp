@@ -21,6 +21,7 @@ struct Options {
     std::int64_t elements = 1 << 20;
     bool mirror = true;
     std::string implementation = "auto";
+    std::string moment_precision = "fp32";
     int warmup = 5;
     int repetitions = 20;
 };
@@ -45,6 +46,7 @@ Options options(int argc, char** argv) {
             }
             result.mirror = value == "true";
         } else if (name == "--implementation") result.implementation = argv[index + 1];
+        else if (name == "--moment-precision") result.moment_precision = argv[index + 1];
         else if (name == "--warmup") result.warmup = static_cast<int>(integer(argv[index + 1], "warmup"));
         else if (name == "--repetitions") {
             result.repetitions = static_cast<int>(integer(argv[index + 1], "repetitions"));
@@ -57,6 +59,15 @@ Options options(int argc, char** argv) {
     if (result.implementation != "auto" && result.implementation != "scalar" &&
         result.implementation != "vectorized") {
         throw std::invalid_argument("implementation must be auto, scalar, or vectorized");
+    }
+    if (result.moment_precision != "fp32" &&
+        result.moment_precision != "bf16") {
+        throw std::invalid_argument("moment precision must be fp32 or bf16");
+    }
+    if (result.moment_precision == "bf16" &&
+        result.implementation == "vectorized") {
+        throw std::invalid_argument(
+            "BF16 moment benchmark has one explicit scalar implementation");
     }
     return result;
 }
@@ -91,8 +102,11 @@ int main(int argc, char** argv) {
         const auto device = microllm::Device::hip(0);
         microllm::Tensor parameter({settings.elements}, microllm::DType::Float32, device);
         microllm::Tensor gradient({settings.elements}, microllm::DType::Float32, device);
-        microllm::Tensor first({settings.elements}, microllm::DType::Float32, device);
-        microllm::Tensor second({settings.elements}, microllm::DType::Float32, device);
+        const auto moment_dtype = settings.moment_precision == "bf16"
+                                      ? microllm::DType::BFloat16
+                                      : microllm::DType::Float32;
+        microllm::Tensor first({settings.elements}, moment_dtype, device);
+        microllm::Tensor second({settings.elements}, moment_dtype, device);
         microllm::Tensor mirror;
         microllm::ops::fill_(parameter, 1.25F);
         microllm::ops::fill_(gradient, 0.5F);
@@ -116,6 +130,14 @@ int main(int argc, char** argv) {
         constexpr float second_correction = 0.01F;
         const auto selected = implementation(settings.implementation);
         const auto update = [&]() {
+            if (settings.moment_precision == "bf16") {
+                microllm::ops::adamw_update_bf16_moments_(
+                    parameter, gradient, first, second,
+                    settings.mirror ? &mirror : nullptr, learning_rate, beta1,
+                    beta2, epsilon, weight_decay, first_correction,
+                    second_correction, context);
+                return;
+            }
             if (settings.mirror) {
                 microllm::ops::adamw_update_bf16_mirror_(
                     parameter, gradient, first, second, mirror,
@@ -148,6 +170,10 @@ int main(int argc, char** argv) {
         for (int index = 0; index < updates; ++index) {
             expected_first = beta1 * expected_first + (1.0F - beta1) * 0.5F;
             expected_second = beta2 * expected_second + (1.0F - beta2) * 0.25F;
+            if (settings.moment_precision == "bf16") {
+                expected_first = static_cast<float>(microllm::BFloat16(expected_first));
+                expected_second = static_cast<float>(microllm::BFloat16(expected_second));
+            }
             expected_parameter *= 1.0F - learning_rate * weight_decay;
             expected_parameter -= learning_rate * (expected_first / first_correction) /
                                   (std::sqrt(expected_second / second_correction) + epsilon);
@@ -167,7 +193,9 @@ int main(int argc, char** argv) {
             const auto rounded = static_cast<float>(microllm::BFloat16(expected_parameter));
             maximum_error = std::max(maximum_error, std::abs(mirror_value - rounded));
         }
-        const auto bytes_per_element = settings.mirror ? 30.0 : 28.0;
+        const auto bytes_per_element =
+            (settings.moment_precision == "bf16" ? 20.0 : 28.0) +
+            (settings.mirror ? 2.0 : 0.0);
         const auto bandwidth_gb_s = static_cast<double>(settings.elements) *
                                     bytes_per_element / (timing.mean * 1.0e6);
         const auto info = microllm::runtime::device_info(device);
@@ -176,6 +204,7 @@ int main(int argc, char** argv) {
                   << ",\"device\":\"hip\",\"device_name\":\"" << info.name << "\""
                   << ",\"architecture\":\"" << info.architecture << "\""
                   << ",\"implementation\":\"" << settings.implementation << "\""
+                  << ",\"moment_precision\":\"" << settings.moment_precision << "\""
                   << ",\"elements\":" << settings.elements
                   << ",\"bf16_mirror\":" << (settings.mirror ? "true" : "false")
                   << ",\"warmup\":" << settings.warmup

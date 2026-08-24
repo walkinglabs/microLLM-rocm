@@ -446,3 +446,5 @@ the next gate. Records are append-only except for factual corrections.
   beginner-friendly sequence/batch extension and source-aware residual copy boundary.
 - [2026-08-24-inference-bthd-profile.md](2026-08-24-inference-bthd-profile.md):
   beginner-friendly post-BTHD trace and next cast-boundary selection.
+- [2026-08-24-bf16-adamw-moments.md](2026-08-24-bf16-adamw-moments.md): opt-in
+  BF16 AdamW state, checkpoint v2 compatibility, corrected timing and official-model evidence.

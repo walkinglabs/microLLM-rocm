@@ -252,6 +252,10 @@ the chronological details are in the [optimization log](docs/optimization-log/RE
 - a load-subtracted training saturation audit shows GEMM plus AdamW now account for
   72.71%/83.77% of Qwen/DeepSeek Kernel time; local launch/cast fusion is closed and the next
   training milestone must change GEMM, optimizer traffic, or graph-wide lifetime;
+- an explicit BF16 AdamW-moment policy halves both optimizer state tensors while keeping FP32
+  master weights and gradients; five-process Qwen/DeepSeek T512 training improves
+  `1.0226×/1.0356×` and peak memory falls to `0.8329×/0.8084×`; Qwen optimizer reaches only
+  `1.0687×`, so this is a documented partial keep and FP32 remains the default;
 - rank-N strided-batched hipBLASLt with last-two-dimension transpose contracts for Attention.
 - T≥256 causal GQA backward using batched GEMM for K/V gradients, with short-sequence fallback.
 - optional autograd probability saving for T≥256, reported as a long-sequence speed/memory trade-off.
@@ -557,15 +561,15 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 498/498 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
-| CPU Debug | 318/318 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
-| ASan/UBSan CPU | 316/316 | host lifetime, external Storage and instrumented-package linking |
-| MI300X/gfx942 HIP label | 169/169 | allocator/arena/Stream/Graph, grouped/exact vendor solutions, BF16/FP8 and model paths |
-| PyTorch-enabled CPU build | 292/292 | dispatcher parity, full graph/model oracle and all package paths |
-| Multi-GPU/RCCL | 12/12 | collectives, global-batch equivalence, gradient buckets, DDP trainer/CLI and per-device hipBLASLt ownership |
-| Registered test files | 86 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| Full CPU/HIP configuration | 505/505 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
+| CPU Debug | 324/324 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
+| ASan/UBSan CPU | 322/322 | host lifetime, external Storage and instrumented-package linking |
+| MI300X/gfx942 HIP label | 172/172 | allocator/arena/Stream/Graph, grouped/exact vendor solutions, BF16/FP8 and model paths |
+| PyTorch-enabled CPU build | 298/298 | dispatcher parity, 32-step BF16 optimizer state, full graph/model oracle and all package paths |
+| Multi-GPU/RCCL | 11/11 | collectives, global-batch equivalence, gradient buckets, DDP trainer/CLI and per-device hipBLASLt ownership; RCCL label 14/14 with package gates |
+| Registered test files | 87 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
-| CPU source coverage | 80.0% lines / 87.8% functions / 60.5% branches | 8,761/10,957 lines; GCC 13.3 + gcovr 8.3 |
+| CPU source coverage | 80.1% lines / 87.9% functions / 60.6% branches | 8,846/11,041 lines; GCC 13.3 + gcovr 8.3 |
 
 Latest PyTorch-reference maximum absolute differences:
 
@@ -824,6 +828,13 @@ BF16 Linear training keeps FP32 parameters/gradients/AdamW masters. In the fixed
 3.122×/2.583× the matched PyTorch BF16-autocast reference. It is still 8%–9% slower than
 microLLM FP32 and has identical peak engine memory, so it is a correctness foundation,
 not a completed internal optimization. See [Experiment 037](docs/optimization-log/experiments/037-bf16-fp32-master-training.md).
+
+AdamW can separately store its first and second moments as BF16 with
+`--adamw-moment-precision bf16`. This leaves FP32 parameters and gradients unchanged, records the
+policy in checkpoint v2, and loads v1 checkpoints as FP32. It is opt-in because Qwen misses the
+`1.10×` optimizer stretch target even though both official models pass the end-to-end, memory and
+loss gates. See the [beginner design guide](docs/dev/bf16-adamw-moments.zh-CN.md) and
+[Experiment 214](docs/optimization-log/experiments/214-bf16-adamw-moments-partial.md).
 
 ## External weights
 

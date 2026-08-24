@@ -405,6 +405,13 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 
 ![Admission batch scheduler](assets/admission-batch-scheduler.svg)
 
+Experiment 214沿Experiment 213的带宽合同把两个AdamW moment改成BF16。五进程正式门中，
+Qwen/DeepSeek端到端提高`1.0226×/1.0356×`，峰值降到`0.8329×/0.8084×`，状态字节精确
+减半。Qwen optimizer只有`1.0687×`，未过`1.10×` stretch gate，所以显式策略partial keep，
+默认仍为FP32；全量multi-tensor反例也完整保留。
+
+![BF16 AdamW moments](assets/bf16-adamw-moments.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -790,6 +797,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/212-training-bf16-shared-activation-discard.md](experiments/212-training-bf16-shared-activation-discard.md) | 56进程、双模型profile与多输出梯度门 |
 | [assets/post-training-micro-saturation.svg](assets/post-training-micro-saturation.svg) | 去除加载后的训练Kernel占比与完美消除上限 |
 | [experiments/213-post-training-micro-saturation.md](experiments/213-post-training-micro-saturation.md) | GEMM+AdamW占72.71%/83.77%的收口证据 |
+| [assets/bf16-adamw-moments.svg](assets/bf16-adamw-moments.svg) | 两模型吞吐、optimizer与峰值显存对照 |
+| [experiments/214-bf16-adamw-moments-partial.md](experiments/214-bf16-adamw-moments-partial.md) | BF16 moment、计时修复、multi-tensor反例与partial keep |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

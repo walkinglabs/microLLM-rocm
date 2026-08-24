@@ -10,11 +10,12 @@ namespace microllm::ops::hip {
 struct AdamWMultiTensorDescriptor {
     float* parameter = nullptr;
     const float* gradient = nullptr;
-    float* first_moment = nullptr;
-    float* second_moment = nullptr;
+    void* first_moment = nullptr;
+    void* second_moment = nullptr;
     void* bf16_mirror = nullptr;
     std::int64_t elements = 0;
     std::int64_t first_block = 0;
+    std::uint32_t bf16_moments = 0;
 };
 
 void* create_adamw_descriptor_staging(std::size_t bytes);
@@ -44,6 +45,12 @@ void launch_adamw_update_multi(
     float learning_rate, float beta1, float beta2, float epsilon,
     float weight_decay, float first_correction, float second_correction,
     void* stream = nullptr);
+void launch_adamw_update_bf16_moments(
+    float* parameter, const float* gradient, void* first_moment_bf16,
+    void* second_moment_bf16, void* parameter_bf16_mirror,
+    std::int64_t elements, float learning_rate, float beta1, float beta2,
+    float epsilon, float weight_decay, float first_correction,
+    float second_correction, void* stream = nullptr);
 void launch_add(const float* left, const float* right, float* output,
                 std::int64_t elements, void* stream = nullptr);
 void launch_add_bias(const float* input, const float* bias, float* output,

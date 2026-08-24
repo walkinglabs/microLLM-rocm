@@ -134,6 +134,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.AttentionLayoutFusionRunnerContract PROPERTIES
         LABELS "cpu;benchmark;training;attention;schema")
     add_test(
+        NAME Benchmark.AdamWMomentMatrixContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_adamw_moment_matrix.py
+    )
+    set_tests_properties(Benchmark.AdamWMomentMatrixContract PROPERTIES
+        LABELS "cpu;benchmark;training;optimizer;precision;memory;schema")
+    add_test(
         NAME Benchmark.HipGraphMatrixContract
         COMMAND ${Python3_EXECUTABLE}
                 ${PROJECT_SOURCE_DIR}/python/tests/test_hip_graph_matrix.py

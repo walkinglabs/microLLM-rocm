@@ -10,7 +10,7 @@
 
 namespace microllm::training {
 
-inline constexpr std::uint32_t kCheckpointFormatVersion = 1;
+inline constexpr std::uint32_t kCheckpointFormatVersion = 2;
 
 using NamedParameters = std::vector<std::pair<std::string, autograd::Value*>>;
 

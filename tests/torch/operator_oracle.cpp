@@ -724,6 +724,43 @@ void emit_optimizer_cases() {
     state = adam.state();
     emit("optimizer_adamw_first_moment_step2", state.first_moments[0]);
     emit("optimizer_adamw_second_moment_step2", state.second_moments[0]);
+
+    Tensor bf16_moment_parameter = f32({1.0F, -2.0F}, {2});
+    Tensor bf16_first({2}, DType::BFloat16);
+    Tensor bf16_second({2}, DType::BFloat16);
+    Tensor bf16_mirror({2}, DType::BFloat16);
+    microllm::ops::fill_(bf16_first, 0.0F);
+    microllm::ops::fill_(bf16_second, 0.0F);
+    for (const auto& [step, gradient] :
+         std::vector<std::pair<int, Tensor>>{
+             {1, f32({0.5F, -0.25F}, {2})},
+             {2, f32({-1.0F, 2.0F}, {2})}}) {
+        microllm::ops::adamw_update_bf16_moments_(
+            bf16_moment_parameter, gradient, bf16_first, bf16_second,
+            &bf16_mirror, 0.01F, 0.9F, 0.99F, 1.0e-8F, 0.1F,
+            1.0F - std::pow(0.9F, static_cast<float>(step)),
+            1.0F - std::pow(0.99F, static_cast<float>(step)));
+    }
+    emit("optimizer_bf16_moment_parameter_step2", bf16_moment_parameter);
+    emit("optimizer_bf16_moment_first_step2", bf16_first);
+    emit("optimizer_bf16_moment_second_step2", bf16_second);
+    emit("optimizer_bf16_moment_mirror_step2", bf16_mirror);
+    for (int step = 3; step <= 32; ++step) {
+        const auto first_gradient =
+            static_cast<float>(step % 7 - 3) * 0.125F;
+        const auto second_gradient =
+            static_cast<float>(step % 5 - 2) * -0.25F;
+        const auto gradient = f32({first_gradient, second_gradient}, {2});
+        microllm::ops::adamw_update_bf16_moments_(
+            bf16_moment_parameter, gradient, bf16_first, bf16_second,
+            &bf16_mirror, 0.01F, 0.9F, 0.99F, 1.0e-8F, 0.1F,
+            1.0F - std::pow(0.9F, static_cast<float>(step)),
+            1.0F - std::pow(0.99F, static_cast<float>(step)));
+    }
+    emit("optimizer_bf16_moment_parameter_step32", bf16_moment_parameter);
+    emit("optimizer_bf16_moment_first_step32", bf16_first);
+    emit("optimizer_bf16_moment_second_step32", bf16_second);
+    emit("optimizer_bf16_moment_mirror_step32", bf16_mirror);
 }
 
 }  // namespace

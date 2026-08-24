@@ -28,6 +28,7 @@ struct Options {
     std::int64_t batch = 1;
     std::int64_t context = 16;
     float learning_rate = 1.0e-3F;
+    std::string adamw_moment_precision = "fp32";
 };
 
 std::int64_t integer(const char* value, const char* name) {
@@ -59,6 +60,7 @@ Options parse(int argc, char** argv) {
         else if (name == "--batch") options.batch = integer(argv[index + 1], "batch");
         else if (name == "--context") options.context = integer(argv[index + 1], "context");
         else if (name == "--learning-rate") options.learning_rate = floating(argv[index + 1], "learning-rate");
+        else if (name == "--adamw-moment-precision") options.adamw_moment_precision = argv[index + 1];
         else throw std::invalid_argument("unknown option: " + std::string(name));
     }
     if (options.data.empty()) throw std::invalid_argument("--data is required");
@@ -67,6 +69,11 @@ Options parse(int argc, char** argv) {
     }
     if (options.device != "cpu" && options.device != "hip") {
         throw std::invalid_argument("--device must be cpu or hip");
+    }
+    if (options.adamw_moment_precision != "fp32" &&
+        options.adamw_moment_precision != "bf16") {
+        throw std::invalid_argument(
+            "--adamw-moment-precision must be fp32 or bf16");
     }
     if (options.steps == 0 || options.batch <= 0 || options.context <= 0 ||
         !(options.learning_rate > 0.0F)) {
@@ -119,7 +126,11 @@ int main(int argc, char** argv) {
             .beta1 = 0.9F,
             .beta2 = 0.999F,
             .epsilon = 1.0e-8F,
-            .weight_decay = 0.01F};
+            .weight_decay = 0.01F,
+            .moment_precision =
+                options.adamw_moment_precision == "bf16"
+                    ? microllm::training::AdamWConfig::MomentPrecision::BFloat16
+                    : microllm::training::AdamWConfig::MomentPrecision::Float32};
         microllm::training::AdamW optimizer(model.parameters(), optimizer_config);
         microllm::training::ExperimentState experiment{
             .global_step = 0,
@@ -136,6 +147,8 @@ int main(int argc, char** argv) {
         std::cout << "model=" << model_config.summary() << '\n';
         std::cout << "data=" << dataset.summary() << '\n';
         std::cout << "device=" << model.device().str() << '\n';
+        std::cout << "adamw_moment_precision="
+                  << options.adamw_moment_precision << '\n';
         for (std::uint64_t iteration = 0; iteration < options.steps; ++iteration) {
             ++experiment.global_step;
             const auto metrics = microllm::training::train_step(

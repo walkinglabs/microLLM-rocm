@@ -70,6 +70,10 @@ BATCHED_BACKWARD_CHART = ROOT / "assets" / "batched-attention-backward.svg"
 SAVED_ATTENTION_COMPARISON = ROOT / "experiments" / "055-data" / "comparison.json"
 SAVED_ATTENTION_PROFILE = ROOT / "experiments" / "055-data" / "profile-summary.json"
 SAVED_ATTENTION_CHART = ROOT / "assets" / "saved-attention-probabilities.svg"
+BF16_ADAMW_SUMMARY = (ROOT.parents[1] / "benchmarks" / "results" /
+                      "2026-08-24-bf16-adamw-moments" / "formal" /
+                      "summary.json")
+BF16_ADAMW_CHART = ROOT / "assets" / "bf16-adamw-moments.svg"
 
 
 def rows() -> list[dict]:
@@ -1808,6 +1812,88 @@ def saved_attention_probabilities_svg() -> str:
     return "\n".join(parts)
 
 
+def bf16_adamw_moments_svg() -> str:
+    data = json.loads(BF16_ADAMW_SUMMARY.read_text(encoding="utf-8"))
+    rows = data["models"]
+    width, height = 1700, 760
+    left_x, right_x, top, panel_h = 95, 965, 145, 470
+    left_w, right_w = 760, 640
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 214 · BF16 AdamW Moments", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 80,
+             "B1/T512 · 1 warm-up + 2 measured · median of 5 fresh processes",
+             16, "#5b6474", anchor="middle"),
+        f'<rect x="{left_x}" y="{top}" width="{left_w}" height="{panel_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+        f'<rect x="{right_x}" y="{top}" width="{right_w}" height="{panel_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+        text(left_x + left_w / 2, 125, "Speed ratios · BF16 / FP32 moments", 20,
+             anchor="middle", weight=700),
+        text(right_x + right_w / 2, 125, "Measured engine peak memory", 20,
+             anchor="middle", weight=700),
+    ]
+
+    def speed_y(value: float) -> float:
+        return top + panel_h * (1.25 - value) / 0.30
+
+    for tick in (0.95, 1.0, 1.05, 1.10, 1.15, 1.20, 1.25):
+        y = speed_y(tick)
+        color = "#2563eb" if tick == 1.0 else "#d97706" if tick == 1.10 else "#e5e9f0"
+        dash = ' stroke-dasharray="8 6"' if tick in (1.0, 1.10) else ""
+        parts.append(f'<line x1="{left_x}" y1="{y:.1f}" '
+                     f'x2="{left_x+left_w}" y2="{y:.1f}" stroke="{color}"{dash}/>')
+        parts.append(text(left_x - 12, y + 5, f"{tick:.2f}×", 13,
+                          "#5b6474", anchor="end"))
+    group = left_w / len(rows)
+    for index, row in enumerate(rows):
+        center = left_x + group * (index + 0.5)
+        for offset, (value, color, label) in enumerate((
+                (row["throughput_speedup"], "#18a558", "end-to-end"),
+                (row["optimizer_speedup"], "#7c3aed", "optimizer"))):
+            x = center - 92 + offset * 104
+            base = speed_y(0.95)
+            y = speed_y(value)
+            parts.append(f'<rect x="{x:.1f}" y="{y:.1f}" width="84" '
+                         f'height="{base-y:.1f}" fill="{color}" rx="5"/>')
+            parts.append(text(x + 42, y - 10, f"{value:.3f}×", 14,
+                              color, anchor="middle", weight=700))
+            parts.append(text(x + 42, top + panel_h + 24, label, 12,
+                              "#5b6474", anchor="middle"))
+        model_label = "Qwen 0.5B" if row["model"].startswith("qwen") else "DeepSeek 1.5B"
+        parts.append(text(center, top + panel_h + 55, model_label, 16,
+                          anchor="middle", weight=700))
+
+    maximum_gib = max(row["fp32_peak_bytes_median"] for row in rows) / (1024 ** 3)
+    for index, row in enumerate(rows):
+        y = top + 85 + index * 175
+        model_label = "Qwen 0.5B" if row["model"].startswith("qwen") else "DeepSeek 1.5B"
+        parts.append(text(right_x + 30, y - 28, model_label, 16, weight=700))
+        for offset, (field, color, label) in enumerate((
+                ("fp32_peak_bytes_median", "#9aa3b2", "FP32 moments"),
+                ("bf16_peak_bytes_median", "#18a558", "BF16 moments"))):
+            value = row[field] / (1024 ** 3)
+            bar_y = y + offset * 52
+            bar_w = 405 * value / maximum_gib
+            parts.append(f'<rect x="{right_x+30}" y="{bar_y}" width="405" height="30" '
+                         'fill="#eef1f5" rx="4"/>')
+            parts.append(f'<rect x="{right_x+30}" y="{bar_y}" width="{bar_w:.1f}" '
+                         f'height="30" fill="{color}" rx="4"/>')
+            parts.append(text(right_x + 455, bar_y + 21,
+                              f"{label} {value:.2f} GiB", 13, color, weight=700))
+        parts.append(text(right_x + 455, y + 127,
+                          f'moment bytes 2× smaller · peak {row["peak_ratio"]:.3f}×',
+                          13, "#166534", weight=700))
+    parts.append(text(width / 2, 710,
+                      "Required gates pass · Qwen optimizer 1.069× misses the 1.10× stretch gate",
+                      17, "#9a4f00", anchor="middle", weight=700))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -1836,7 +1922,8 @@ def main() -> int:
                 SPLIT_KV_CHART: split_kv_backward_discard_svg(),
                 BATCHED_GEMM_CHART: strided_batched_hipblaslt_svg(),
                 BATCHED_BACKWARD_CHART: batched_attention_backward_svg(),
-                SAVED_ATTENTION_CHART: saved_attention_probabilities_svg()}
+                SAVED_ATTENTION_CHART: saved_attention_probabilities_svg(),
+                BF16_ADAMW_CHART: bf16_adamw_moments_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

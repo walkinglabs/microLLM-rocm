@@ -64,6 +64,7 @@
     "matmul_out_": "tests/ops/hip_ops_test.cpp",
     "adamw_update_": "tests/training/optimizer_test.cpp",
     "adamw_update_bf16_mirror_": "tests/training/optimizer_test.cpp",
+    "adamw_update_bf16_moments_": "tests/training/optimizer_test.cpp",
     "adamw_update_multi_": "tests/ops/hip_ops_test.cpp",
     "adamw_multi_tensor_workspace_stats": "tests/ops/hip_ops_test.cpp",
     "embedding_backward_add_": "tests/ops/hip_ops_test.cpp",
@@ -197,6 +198,7 @@
   "integration_oracles": {
     "sgd": ["optimizer_sgd_parameter_step1"],
     "adamw": ["optimizer_adamw_parameter_step1", "optimizer_adamw_parameter_step2", "optimizer_adamw_first_moment_step2", "optimizer_adamw_second_moment_step2"],
+    "adamw_bf16_moments": ["optimizer_bf16_moment_parameter_step2", "optimizer_bf16_moment_first_step2", "optimizer_bf16_moment_second_step2", "optimizer_bf16_moment_mirror_step2", "optimizer_bf16_moment_parameter_step32", "optimizer_bf16_moment_first_step32", "optimizer_bf16_moment_second_step32", "optimizer_bf16_moment_mirror_step32"],
     "transformer_graph": ["model_logits", "model_loss", "model_grad:", "model_graph_has_topology"],
     "bf16_ffn_model_inference": ["model_bf16_ffn_logits"],
     "bf16_attention_model_inference": ["model_bf16_attention_ffn_logits"],
@@ -311,6 +313,7 @@
     "python/tests/test_bf16_grouped_shape_matrix.py",
     "python/tests/test_bf16_grouped_shape_models.py",
     "python/tests/test_attention_layout_fusion_runner.py",
+    "python/tests/test_adamw_moment_matrix.py",
     "python/tests/test_hf_benchmark_contract.py",
     "python/tests/test_hf_shape_matrix.py",
     "python/tests/test_hf_inference_shape_matrix.py",

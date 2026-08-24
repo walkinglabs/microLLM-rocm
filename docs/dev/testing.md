@@ -14,14 +14,14 @@
 ## Current measured matrix
 
 ```text
-framework CPU                 315/315 pass
-CPU ASan/UBSan                313/313 pass
-full CPU/HIP configuration    489/489 pass (3 conditional skips)
-MI300X/gfx942 HIP             164/164 pass
-PyTorch-enabled CPU           289/289 pass
-two-rank RCCL                  12/12 pass
+framework CPU                 324/324 pass
+CPU ASan/UBSan                322/322 pass
+full CPU/HIP configuration    505/505 pass (3 conditional skips)
+MI300X/gfx942 HIP             172/172 pass
+PyTorch-enabled CPU           298/298 pass
+two-rank/multi-GPU RCCL        11/11 pass
 RCCL full label                14/14 pass
-registered test files               86
+registered test files               87
 ```
 
 These counts describe the current commit. They do not imply every dtype, shape, GPU, or
@@ -65,8 +65,8 @@ warnings during test discovery. The script runs the CPU test label and emits
 are counted. Coverage is evidence for finding blind spots, not permission to replace
 numeric, shape, failure, HIP, or external-oracle tests.
 
-The latest recorded source snapshot measures 80.4% lines (7,782/9,678), 89.3%
-functions, and 61.4% branches. The AdamW tuner and cooperative reduction add HIP-only screening
+The latest recorded source snapshot measures 80.1% lines (8,846/11,041), 87.9%
+functions, and 60.6% branches. The AdamW tuner and cooperative reduction add HIP-only screening
 and timing paths that ordinary CPU coverage cannot execute; those paths have dedicated
 MI300 conformance tests and raw process evidence. The repeatability evidence for the
 coverage pipeline remains separately archived; source growth is expected to change totals.

@@ -11,6 +11,7 @@
 #include <microllm/autograd/diagnostics.h>
 #include <microllm/runtime/diagnostics.h>
 #include <microllm/runtime/memory.h>
+#include <microllm/training/optimizer.h>
 
 int main() {
     const auto device = microllm::Device::cpu();
@@ -49,6 +50,9 @@ int main() {
         rejected_cpu_activation_arena = true;
     }
     const auto config = microllm::model::ModelConfig::model_s();
+    const microllm::training::AdamWConfig compact_optimizer{
+        .moment_precision =
+            microllm::training::AdamWConfig::MomentPrecision::BFloat16};
     auto prewarm_config = config;
     prewarm_config.vocabulary_size = 8;
     prewarm_config.dimension = 8;
@@ -236,6 +240,8 @@ int main() {
         !rejected_cpu_activation_arena ||
         microllm::runtime::stream_ordered_allocator_supported(device) ||
         config.parameter_count() == 0 ||
+        compact_optimizer.moment_precision !=
+            microllm::training::AdamWConfig::MomentPrecision::BFloat16 ||
         external_swiglu.to_vector() != std::vector<float>({0.0F, 0.0F}) ||
         bf16_output.to_vector() != std::vector<float>({0.0F, 0.0F}) ||
         bias_result.to_vector() != std::vector<float>({4.0F, 6.0F}) ||

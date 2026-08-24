@@ -182,6 +182,7 @@ int main(int argc, char** argv) {
         int batch_size = 1;
         std::string linear_precision = "fp32";
         std::string adamw_implementation = "auto";
+        std::string adamw_moment_precision = "fp32";
         std::string bf16_algorithm_text;
         std::filesystem::path diagnostics_output;
         bool bf16_weight_mirrors = true;
@@ -208,6 +209,9 @@ int main(int argc, char** argv) {
             else if (name == "--linear-precision") linear_precision = argv[index + 1];
             else if (name == "--adamw-implementation") {
                 adamw_implementation = argv[index + 1];
+            }
+            else if (name == "--adamw-moment-precision") {
+                adamw_moment_precision = argv[index + 1];
             }
             else if (name == "--bf16-algorithms") {
                 bf16_algorithm_text = argv[index + 1];
@@ -312,6 +316,16 @@ int main(int argc, char** argv) {
             throw std::invalid_argument(
                 "--adamw-implementation must be auto, scalar, or vectorized");
         }
+        if (adamw_moment_precision != "fp32" &&
+            adamw_moment_precision != "bf16") {
+            throw std::invalid_argument(
+                "--adamw-moment-precision must be fp32 or bf16");
+        }
+        if (adamw_moment_precision == "bf16" &&
+            adamw_implementation == "vectorized") {
+            throw std::invalid_argument(
+                "BF16 AdamW moments cannot use the FP32 vectorized selector");
+        }
         const auto bf16_algorithms = parse_bf16_algorithms(bf16_algorithm_text);
         microllm::autograd::enable_tied_embedding_sparse_add(
             tied_embedding_sparse_add);
@@ -376,7 +390,13 @@ int main(int argc, char** argv) {
                                  .beta1 = 0.9F,
                                  .beta2 = 0.999F,
                                  .epsilon = 1.0e-8F,
-                                 .weight_decay = 0.01F},
+                                 .weight_decay = 0.01F,
+                                 .moment_precision =
+                                     adamw_moment_precision == "bf16"
+                                         ? microllm::training::AdamWConfig::
+                                               MomentPrecision::BFloat16
+                                         : microllm::training::AdamWConfig::
+                                               MomentPrecision::Float32},
             bf16_mirrors,
             adamw_implementation == "scalar"
                 ? microllm::ops::AdamWImplementation::Scalar
@@ -410,6 +430,11 @@ int main(int argc, char** argv) {
             const auto loss = model.loss(inputs, targets);
             const auto loss_value = loss.data().to_vector()[0];
             loss.backward();
+            // backward is asynchronous on HIP. Complete it before the host
+            // timer starts so optimizer_ms measures optimizer work rather
+            // than an arbitrary backward tail. End-to-end measured_ms still
+            // spans both phases and therefore keeps the real step cost.
+            microllm::runtime::synchronize(device);
             microllm::runtime::reset_transfer_stats();
             const auto optimizer_start = std::chrono::steady_clock::now();
             optimizer.step();
@@ -439,6 +464,8 @@ int main(int argc, char** argv) {
         double optimizer_ms = 0.0;
         std::uint64_t optimizer_h2d = 0;
         std::uint64_t optimizer_d2h = 0;
+        std::uint64_t optimizer_h2d_bytes = 0;
+        std::uint64_t optimizer_d2h_bytes = 0;
         const auto start = std::chrono::steady_clock::now();
         for (int iteration = 0; iteration < steps; ++iteration) {
             const auto result = run_step();
@@ -447,6 +474,8 @@ int main(int argc, char** argv) {
             optimizer_ms += result.optimizer_ms;
             optimizer_h2d += result.transfers.host_to_device_calls;
             optimizer_d2h += result.transfers.device_to_host_calls;
+            optimizer_h2d_bytes += result.transfers.host_to_device_bytes;
+            optimizer_d2h_bytes += result.transfers.device_to_host_bytes;
         }
         const auto finish = std::chrono::steady_clock::now();
         microllm::autograd::enable_gradient_accumulation_diagnostics(false);
@@ -484,6 +513,12 @@ int main(int argc, char** argv) {
                   << ",\"bf16_weight_mirrors_enabled\":"
                   << (!bf16_mirrors.empty() ? "true" : "false")
                   << ",\"adamw_implementation\":\"" << adamw_implementation << "\""
+                  << ",\"adamw_moment_precision\":\""
+                  << adamw_moment_precision << "\""
+                  << ",\"adamw_moment_state_bytes\":"
+                  << optimizer.moment_state_bytes()
+                  << ",\"adamw_multi_tensor_update\":"
+                  << "false"
                   << ",\"bf16_algorithm_registrations\":"
                   << bf16_algorithms.size()
                   << ",\"bf16_algorithm_spec\":\"" << bf16_algorithm_text << "\""
@@ -561,8 +596,13 @@ int main(int argc, char** argv) {
                   << measured_ms / static_cast<double>(trained_tokens)
                   << ",\"optimizer_ms\":" << optimizer_ms
                   << ",\"mean_optimizer_ms\":" << optimizer_ms / static_cast<double>(steps)
+                  << ",\"optimizer_timing_boundary\":\"post_backward_sync\""
                   << ",\"optimizer_host_to_device_calls\":" << optimizer_h2d
                   << ",\"optimizer_device_to_host_calls\":" << optimizer_d2h
+                  << ",\"optimizer_host_to_device_bytes\":"
+                  << optimizer_h2d_bytes
+                  << ",\"optimizer_device_to_host_bytes\":"
+                  << optimizer_d2h_bytes
                   << ",\"engine_current_bytes\":" << allocation.current_bytes
                   << ",\"engine_peak_bytes\":" << allocation.peak_bytes
                   << ",\"engine_total_allocated_bytes\":"

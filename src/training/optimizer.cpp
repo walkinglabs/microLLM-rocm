@@ -85,11 +85,20 @@ AdamW::AdamW(Parameters parameters, AdamWConfig config,
     if (config_.weight_decay < 0.0F) {
         throw std::invalid_argument("AdamW weight decay must be non-negative");
     }
+    if (config_.moment_precision == AdamWConfig::MomentPrecision::BFloat16 &&
+        implementation_ == ops::AdamWImplementation::Vectorized) {
+        throw std::invalid_argument(
+            "BF16 AdamW moments do not support the FP32 vectorized implementation selector");
+    }
+    const auto moment_dtype =
+        config_.moment_precision == AdamWConfig::MomentPrecision::BFloat16
+            ? DType::BFloat16
+            : DType::Float32;
     state_.first_moments.reserve(parameters_.size());
     state_.second_moments.reserve(parameters_.size());
     for (const auto* parameter : parameters_) {
-        Tensor first(parameter->data().shape(), DType::Float32, parameter->data().device());
-        Tensor second(parameter->data().shape(), DType::Float32, parameter->data().device());
+        Tensor first(parameter->data().shape(), moment_dtype, parameter->data().device());
+        Tensor second(parameter->data().shape(), moment_dtype, parameter->data().device());
         ops::fill_(first, 0.0F);
         ops::fill_(second, 0.0F);
         state_.first_moments.push_back(std::move(first));
@@ -123,7 +132,17 @@ void AdamW::step() {
         if (parameter->grad().shape() != parameter->data().shape()) {
             throw std::invalid_argument("AdamW gradient shape mismatch");
         }
-        if (bf16_mirrors_[parameter_index] != nullptr) {
+        if (config_.moment_precision ==
+            AdamWConfig::MomentPrecision::BFloat16) {
+            ops::adamw_update_bf16_moments_(
+                parameter->mutable_data(), parameter->grad(),
+                state_.first_moments[parameter_index],
+                state_.second_moments[parameter_index],
+                bf16_mirrors_[parameter_index], config_.learning_rate,
+                config_.beta1, config_.beta2, config_.epsilon,
+                config_.weight_decay, first_correction, second_correction,
+                training_context);
+        } else if (bf16_mirrors_[parameter_index] != nullptr) {
             ops::adamw_update_bf16_mirror_(
                 parameter->mutable_data(), parameter->grad(),
                 state_.first_moments[parameter_index],
@@ -144,6 +163,18 @@ void AdamW::step() {
 }
 
 void AdamW::zero_grad() { training::zero_grad(parameters_); }
+
+std::uint64_t AdamW::moment_state_bytes() const {
+    std::uint64_t bytes = 0;
+    for (const auto& moment : state_.first_moments) {
+        bytes += static_cast<std::uint64_t>(moment.storage().num_bytes());
+    }
+    for (const auto& moment : state_.second_moments) {
+        bytes += static_cast<std::uint64_t>(moment.storage().num_bytes());
+    }
+    return bytes;
+}
+
 AdamWState AdamW::state() const {
     AdamWState snapshot;
     snapshot.step = state_.step;
@@ -173,8 +204,12 @@ void AdamW::load_state(AdamWState state) {
             throw std::invalid_argument("AdamW state must be float32");
         }
         const auto device = parameters_[index]->data().device();
-        state.first_moments[index] = state.first_moments[index].to(device);
-        state.second_moments[index] = state.second_moments[index].to(device);
+        const auto dtype =
+            config_.moment_precision == AdamWConfig::MomentPrecision::BFloat16
+                ? DType::BFloat16
+                : DType::Float32;
+        state.first_moments[index] = state.first_moments[index].to(device).cast(dtype);
+        state.second_moments[index] = state.second_moments[index].to(device).cast(dtype);
     }
     state_ = std::move(state);
     // BF16 forward copies are derived state: checkpoints keep the FP32 master

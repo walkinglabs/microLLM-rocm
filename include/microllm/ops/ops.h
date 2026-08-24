@@ -365,9 +365,17 @@ void adamw_update_bf16_mirror_(Tensor& parameter, const Tensor& gradient,
                                const OpContext& context = {},
                                AdamWImplementation implementation =
                                    AdamWImplementation::Auto);
-// Experimental primitive: complete-state and device tests pass, but the
-// official DeepSeek model route missed its performance gate. Callers opt in
-// explicitly; training::AdamW does not dispatch here.
+// Experimental reduced-state primitive. Moments are rounded to BF16 before
+// they are used for the parameter update, matching the persisted state.
+void adamw_update_bf16_moments_(
+    Tensor& parameter, const Tensor& gradient, Tensor& first_moment_bf16,
+    Tensor& second_moment_bf16, Tensor* parameter_bf16_mirror,
+    float learning_rate, float beta1, float beta2, float epsilon,
+    float weight_decay, float first_correction, float second_correction,
+    const OpContext& context = {});
+// Experimental primitive. Entries may use matching FP32 or BF16 moments;
+// BF16 recurrence is rounded before the parameter update, as in the
+// single-tensor reduced-state primitive.
 void adamw_update_multi_(
     AdamWMultiTensorWorkspace& workspace,
     const std::vector<AdamWMultiTensorEntry>& entries,

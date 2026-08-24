@@ -1,0 +1,54 @@
+{
+  "experiment": "bf16_adamw_moments",
+  "models": [
+    {
+      "bf16_optimizer_ms_median": 14.466325,
+      "bf16_peak_bytes_median": 9848293896.0,
+      "bf16_tokens_per_second_median": 15447.87321858,
+      "final_loss_relative_difference": 1.2908542777273433e-05,
+      "first_loss_relative_difference": 0.0001944566156902629,
+      "fp32_optimizer_ms_median": 13.753658,
+      "fp32_peak_bytes_median": 11824424968.0,
+      "fp32_tokens_per_second_median": 14754.24152385,
+      "gates": {
+        "final_loss_relative_difference_at_most_0_01": true,
+        "first_loss_relative_difference_at_most_0_01": true,
+        "moment_bytes_exactly_half": true,
+        "optimizer_speedup_at_least_1_10": false,
+        "peak_ratio_at_most_0_90": true,
+        "throughput_speedup_at_least_1_01": true
+      },
+      "model": "qwen2.5-0.5b",
+      "optimizer_speedup": 0.9507361406576998,
+      "parameter_count": 494032768,
+      "peak_ratio": 0.8328771946756033,
+      "throughput_speedup": 1.0470123586908047
+    },
+    {
+      "bf16_optimizer_ms_median": 46.519038,
+      "bf16_peak_bytes_median": 29994293256.0,
+      "bf16_tokens_per_second_median": 6443.886167291,
+      "final_loss_relative_difference": 3.258128580030609e-05,
+      "first_loss_relative_difference": 0.00034869884936059264,
+      "fp32_optimizer_ms_median": 50.0327765,
+      "fp32_peak_bytes_median": 37102645256.0,
+      "fp32_tokens_per_second_median": 6173.249634598,
+      "gates": {
+        "final_loss_relative_difference_at_most_0_01": true,
+        "first_loss_relative_difference_at_most_0_01": true,
+        "moment_bytes_exactly_half": true,
+        "optimizer_speedup_at_least_1_10": false,
+        "peak_ratio_at_most_0_90": true,
+        "throughput_speedup_at_least_1_01": true
+      },
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "optimizer_speedup": 1.0755333440042332,
+      "parameter_count": 1777088000,
+      "peak_ratio": 0.8084138758583397,
+      "throughput_speedup": 1.0438402055177254
+    }
+  ],
+  "runs_per_policy": 5,
+  "schema_version": 1,
+  "status": "fail"
+}

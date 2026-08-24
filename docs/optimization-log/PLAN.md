@@ -61,6 +61,11 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [30](steps/30-causal-softmax-128-discard.md) | complete | causal softmax 128线程反例 | 4/6过门；Deep T512 1.0071×，模型策略停止 |
 | [31](steps/31-bf16-repeat-fusion-discard.md) | complete | BF16 V cast+repeat融合 | 3/8过1.05；B2 1.004×/0.995×，不接模型 |
 | [32](steps/32-post-bf16-qk-saturation.md) | complete | 推理微融合饱和审计 | 两次连续反例；下一步必须online/tiled Attention |
+| [33](steps/33-training-add-rms-norm-fusion.md) | complete | residual add + RMSNorm训练融合 | 两模型模型门失败，保留Autograd原语 |
+| [34](steps/34-multi-tensor-adamw.md) | complete | descriptor驱动AdamW研究原语 | Qwen有效、DeepSeek未过门，模型路由删除 |
+| [35](steps/35-training-bf16-shared-activation.md) | complete | QKV/gate-up共享BF16 cast | 三种模型策略均被反例拒绝 |
+| [36](steps/36-post-training-micro-saturation.md) | complete | 训练微融合饱和审计 | GEMM+AdamW占72.71%/83.77% |
+| [37](steps/37-bf16-adamw-moments.md) | complete | BF16 optimizer状态带宽/显存 | 端到端与显存过门；Qwen optimizer stretch未过 |
 
 ## 为什么按这个顺序
 

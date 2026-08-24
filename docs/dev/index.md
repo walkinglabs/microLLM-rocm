@@ -69,6 +69,8 @@ component has a public interface under `include/microllm`, an implementation und
     [0→1 optimization log](../optimization-log/README.md).
 35. For separating FP8 weight and activation error, read the
     [FP8 error-attribution guide](fp8-error-attribution.zh-CN.md).
+36. For halving AdamW moment state without changing FP32 master weights, read the
+    [BF16 AdamW moment guide](bf16-adamw-moments.zh-CN.md).
 
 ## Engineering rules
 

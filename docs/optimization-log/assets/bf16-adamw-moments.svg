@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1700" height="760" viewBox="0 0 1700 760">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="850.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 214 · BF16 AdamW Moments</text>
+<text x="850.0" y="80.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">B1/T512 · 1 warm-up + 2 measured · median of 5 fresh processes</text>
+<rect x="95" y="145" width="760" height="470" fill="#ffffff" stroke="#cbd3df" rx="10"/>
+<rect x="965" y="145" width="640" height="470" fill="#ffffff" stroke="#cbd3df" rx="10"/>
+<text x="475.0" y="125.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">Speed ratios · BF16 / FP32 moments</text>
+<text x="1285.0" y="125.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">Measured engine peak memory</text>
+<line x1="95" y1="615.0" x2="855" y2="615.0" stroke="#e5e9f0"/>
+<text x="83.0" y="620.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">0.95×</text>
+<line x1="95" y1="536.7" x2="855" y2="536.7" stroke="#2563eb" stroke-dasharray="8 6"/>
+<text x="83.0" y="541.7" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">1.00×</text>
+<line x1="95" y1="458.3" x2="855" y2="458.3" stroke="#e5e9f0"/>
+<text x="83.0" y="463.3" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">1.05×</text>
+<line x1="95" y1="380.0" x2="855" y2="380.0" stroke="#d97706" stroke-dasharray="8 6"/>
+<text x="83.0" y="385.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">1.10×</text>
+<line x1="95" y1="301.7" x2="855" y2="301.7" stroke="#e5e9f0"/>
+<text x="83.0" y="306.7" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">1.15×</text>
+<line x1="95" y1="223.3" x2="855" y2="223.3" stroke="#e5e9f0"/>
+<text x="83.0" y="228.3" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">1.20×</text>
+<line x1="95" y1="145.0" x2="855" y2="145.0" stroke="#e5e9f0"/>
+<text x="83.0" y="150.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">1.25×</text>
+<rect x="193.0" y="501.2" width="84" height="113.8" fill="#18a558" rx="5"/>
+<text x="235.0" y="491.2" font-family="Inter,Arial,sans-serif" font-size="14" fill="#18a558" text-anchor="middle" font-weight="700">1.023×</text>
+<text x="235.0" y="639.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#5b6474" text-anchor="middle" font-weight="400">end-to-end</text>
+<rect x="297.0" y="429.1" width="84" height="185.9" fill="#7c3aed" rx="5"/>
+<text x="339.0" y="419.1" font-family="Inter,Arial,sans-serif" font-size="14" fill="#7c3aed" text-anchor="middle" font-weight="700">1.069×</text>
+<text x="339.0" y="639.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#5b6474" text-anchor="middle" font-weight="400">optimizer</text>
+<text x="285.0" y="670.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" text-anchor="middle" font-weight="700">Qwen 0.5B</text>
+<rect x="573.0" y="480.9" width="84" height="134.1" fill="#18a558" rx="5"/>
+<text x="615.0" y="470.9" font-family="Inter,Arial,sans-serif" font-size="14" fill="#18a558" text-anchor="middle" font-weight="700">1.036×</text>
+<text x="615.0" y="639.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#5b6474" text-anchor="middle" font-weight="400">end-to-end</text>
+<rect x="677.0" y="228.9" width="84" height="386.1" fill="#7c3aed" rx="5"/>
+<text x="719.0" y="218.9" font-family="Inter,Arial,sans-serif" font-size="14" fill="#7c3aed" text-anchor="middle" font-weight="700">1.196×</text>
+<text x="719.0" y="639.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#5b6474" text-anchor="middle" font-weight="400">optimizer</text>
+<text x="665.0" y="670.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" text-anchor="middle" font-weight="700">DeepSeek 1.5B</text>
+<text x="995.0" y="202.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" text-anchor="start" font-weight="700">Qwen 0.5B</text>
+<rect x="995" y="230" width="405" height="30" fill="#eef1f5" rx="4"/>
+<rect x="995" y="230" width="129.1" height="30" fill="#9aa3b2" rx="4"/>
+<text x="1420.0" y="251.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#9aa3b2" text-anchor="start" font-weight="700">FP32 moments 11.01 GiB</text>
+<rect x="995" y="282" width="405" height="30" fill="#eef1f5" rx="4"/>
+<rect x="995" y="282" width="107.5" height="30" fill="#18a558" rx="4"/>
+<text x="1420.0" y="303.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#18a558" text-anchor="start" font-weight="700">BF16 moments 9.17 GiB</text>
+<text x="1420.0" y="357.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#166534" text-anchor="start" font-weight="700">moment bytes 2× smaller · peak 0.833×</text>
+<text x="995.0" y="377.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" text-anchor="start" font-weight="700">DeepSeek 1.5B</text>
+<rect x="995" y="405" width="405" height="30" fill="#eef1f5" rx="4"/>
+<rect x="995" y="405" width="405.0" height="30" fill="#9aa3b2" rx="4"/>
+<text x="1420.0" y="426.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#9aa3b2" text-anchor="start" font-weight="700">FP32 moments 34.55 GiB</text>
+<rect x="995" y="457" width="405" height="30" fill="#eef1f5" rx="4"/>
+<rect x="995" y="457" width="327.4" height="30" fill="#18a558" rx="4"/>
+<text x="1420.0" y="478.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#18a558" text-anchor="start" font-weight="700">BF16 moments 27.93 GiB</text>
+<text x="1420.0" y="532.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#166534" text-anchor="start" font-weight="700">moment bytes 2× smaller · peak 0.808×</text>
+<text x="850.0" y="710.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#9a4f00" text-anchor="middle" font-weight="700">Required gates pass · Qwen optimizer 1.069× misses the 1.10× stretch gate</text>
+</svg>

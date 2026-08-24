@@ -10903,7 +10903,8 @@ def validate_multi_tensor_adamw_discard(
         if token not in document:
             errors.append("multi-tensor AdamW source/test contract changed")
             break
-    if "multi_tensor" in route_sources or "MultiTensor" in route_sources:
+    if "adamw_update_multi_(" in route_sources or \
+            "AdamWMultiTensorWorkspace" in route_sources:
         errors.append("rejected multi-tensor AdamW model route returned")
     ratios = [values[0] for values in expected.values()]
     return len(raw), min(ratios), max(ratios), 864, 1014
@@ -11098,6 +11099,144 @@ def validate_post_training_micro_saturation(
     return len(rows), min(shares), max(shares), 4
 
 
+def validate_bf16_adamw_moments(
+        errors: list[str]) -> tuple[int, float, float, int]:
+    data = REPOSITORY / (
+        "benchmarks/results/2026-08-24-bf16-adamw-moments")
+    formal = json.loads((data / "formal" / "summary.json").read_text(
+        encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (
+        data / "formal" / "training.jsonl").read_text(
+            encoding="utf-8").splitlines() if line.strip()]
+    stage_expectations = {
+        "root": (data / "training.jsonl", 20),
+        "pilot_multi": (data / "pilot-multi" / "training.jsonl", 12),
+        "pilot_vector_multi": (
+            data / "pilot-vector-multi" / "training.jsonl", 12),
+        "pilot_per_tensor_timed": (
+            data / "pilot-per-tensor-timed" / "training.jsonl", 12),
+    }
+    stage_counts = {
+        name: len([line for line in path.read_text(
+            encoding="utf-8").splitlines() if line.strip()])
+        for name, (path, _) in stage_expectations.items()
+    }
+    expected = {
+        "qwen2.5-0.5b": (
+            1.0226484428609515, 1.0686521132057973,
+            0.8328771946756033, 1.2908542777273433e-05,
+            3952262144, 1976131072, False),
+        "deepseek-r1-distill-qwen-1.5b": (
+            1.0355722697906447, 1.1964309955657884,
+            0.8084138758583397, 3.258128580030609e-05,
+            14216704000, 7108352000, True),
+    }
+    rows = {row.get("model"): row for row in formal.get("models", [])}
+    counts = {(model, policy): 0 for model in expected
+              for policy in ("fp32", "bf16")}
+    for row in raw:
+        key = (row.get("model"), row.get("policy"))
+        if key in counts:
+            counts[key] += 1
+    changed = set(rows) != set(expected)
+    if not changed:
+        for model, values in expected.items():
+            row = rows[model]
+            actual = (
+                row.get("throughput_speedup"), row.get("optimizer_speedup"),
+                row.get("peak_ratio"),
+                row.get("final_loss_relative_difference"),
+                int(next(item["adamw_moment_state_bytes"] for item in raw
+                         if item["model"] == model and item["policy"] == "fp32")),
+                int(next(item["adamw_moment_state_bytes"] for item in raw
+                         if item["model"] == model and item["policy"] == "bf16")),
+                row.get("optimizer_stretch_gate_passed"),
+            )
+            if any(abs(float(left) - float(right)) > 1.0e-12
+                   for left, right in zip(actual[:6], values[:6], strict=True)) or \
+                    actual[6] is not values[6]:
+                changed = True
+                break
+    if formal.get("status") != "partial_keep" or \
+            formal.get("required_gates_passed") is not True or \
+            formal.get("optimizer_stretch_gates_passed") is not False or \
+            len(raw) != 20 or any(count != 5 for count in counts.values()) or \
+            any(stage_counts[name] != expected_count
+                for name, (_, expected_count) in stage_expectations.items()) or changed:
+        errors.append("BF16 AdamW moment performance evidence changed")
+    expected_tests = {
+        "cpu_debug": {"passed": 324, "total": 324},
+        "asan_ubsan": {"passed": 322, "total": 322},
+        "pytorch_enabled_cpu": {"passed": 298, "total": 298},
+        "hip_full_configuration": {
+            "passed": 505, "total": 505, "conditional_skips": 3},
+        "hip_label": {"passed": 172, "total": 172},
+        "rccl_multi_gpu": {"passed": 11, "total": 11},
+        "rccl_full_label": {"passed": 14, "total": 14},
+    }
+    if verification.get("status") != "pass" or \
+            verification.get("decision") != \
+                "partial keep explicit BF16 moment policy" or \
+            verification.get("registered_test_files") != 87 or \
+            verification.get("formal_processes") != 20 or \
+            verification.get("pilot_processes") != 36 or \
+            verification.get("historical_boundary_processes") != 20 or \
+            verification.get("required_model_gates_passed") != 2 or \
+            verification.get("optimizer_stretch_models_passed") != 1 or \
+            verification.get("model_route_default_changed") is not False or \
+            verification.get("rejected_multi_tensor_route_retained") is not False or \
+            verification.get("tests") != expected_tests or \
+            verification.get("coverage") != {
+                "lines_percent": 80.1,
+                "functions_percent": 87.9,
+                "branches_percent": 60.6,
+                "lines_covered": 8846,
+                "lines_total": 11041}:
+        errors.append("BF16 AdamW moment verification evidence changed")
+    optimizer_header = (REPOSITORY / "include/microllm/training/optimizer.h").read_text(
+        encoding="utf-8")
+    optimizer_source = (REPOSITORY / "src/training/optimizer.cpp").read_text(
+        encoding="utf-8")
+    checkpoint_header = (REPOSITORY / "include/microllm/training/checkpoint.h").read_text(
+        encoding="utf-8")
+    checkpoint_source = (REPOSITORY / "src/training/checkpoint.cpp").read_text(
+        encoding="utf-8")
+    app_source = (REPOSITORY / "apps/hf_train_step.cpp").read_text(
+        encoding="utf-8")
+    cpu_test = (REPOSITORY / "tests/training/optimizer_test.cpp").read_text(
+        encoding="utf-8")
+    hip_test = (REPOSITORY / "tests/ops/hip_ops_test.cpp").read_text(
+        encoding="utf-8")
+    torch_test = (REPOSITORY / "tests/torch/operator_oracle.cpp").read_text(
+        encoding="utf-8")
+    checkpoint_test = (REPOSITORY / "tests/training/checkpoint_test.cpp").read_text(
+        encoding="utf-8")
+    for token, document in (
+            ("MomentPrecision::BFloat16", optimizer_source),
+            ("moment_state_bytes", optimizer_header),
+            ("kCheckpointFormatVersion = 2", checkpoint_header),
+            ("version > kCheckpointFormatVersion", checkpoint_source),
+            ("--adamw-moment-precision", app_source),
+            ("post_backward_sync", app_source),
+            ("OneHundredSteps", cpu_test),
+            ("MultiTensorBf16MomentAdamW", hip_test),
+            ("optimizer_bf16_moment_parameter_step32", torch_test),
+            ("LoadsVersionOneAsFp32MomentPolicy", checkpoint_test)):
+        if token not in document:
+            errors.append("BF16 AdamW moment source/test contract changed")
+            break
+    if "adamw_update_multi_(" in optimizer_source or \
+            "AdamWMultiTensorWorkspace" in optimizer_source:
+        errors.append("rejected BF16 multi-tensor optimizer route returned")
+    ratios = [float(row["throughput_speedup"]) for row in rows.values()]
+    optimizer_ratios = [float(row["optimizer_speedup"]) for row in rows.values()]
+    return len(raw), min(ratios), max(optimizer_ratios), \
+        sum(1 for row in rows.values()
+            if row.get("optimizer_stretch_gate_passed") is True)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -11289,7 +11428,8 @@ def validate_assets(errors: list[str]) -> None:
                  "training-add-rms-norm-discard.svg",
                  "multi-tensor-adamw-discard.svg",
                  "training-bf16-shared-activation-discard.svg",
-                 "post-training-micro-saturation.svg"):
+                 "post-training-micro-saturation.svg",
+                 "bf16-adamw-moments.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -11678,6 +11818,8 @@ def main() -> int:
     training_saturation_rows, training_saturation_minimum, \
         training_saturation_maximum, training_saturation_profiles = \
         validate_post_training_micro_saturation(errors)
+    bf16_adamw_rows, bf16_adamw_minimum, bf16_adamw_optimizer_maximum, \
+        bf16_adamw_stretch_models = validate_bf16_adamw_moments(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -12018,6 +12160,9 @@ def main() -> int:
           f"{training_saturation_minimum:.3f}/"
           f"{training_saturation_maximum:.3f}/"
           f"{training_saturation_profiles} "
+          f"bf16_adamw={bf16_adamw_rows}/{bf16_adamw_minimum:.3f}/"
+          f"{bf16_adamw_optimizer_maximum:.3f}/"
+          f"{bf16_adamw_stretch_models} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

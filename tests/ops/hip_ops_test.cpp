@@ -3611,6 +3611,60 @@ TEST(HipTrainingTest, AdamWStepIsDeviceNativeAndMatchesCpu) {
     expect_near(gpu.data().to_vector(), cpu.data().to_vector(), 1.0e-6F);
 }
 
+TEST(HipTrainingTest,
+     Bf16MomentOptimizerMatchesCpuStateWithoutPayloadTransfers) {
+    require_gpu();
+    const auto device = Device::hip(0);
+    const std::vector<float> first_values{1.0F, -2.0F, 0.5F};
+    const std::vector<float> second_values{0.25F, -0.75F};
+    autograd::Value cpu_first(
+        Tensor::from_vector(first_values, {3}), true);
+    autograd::Value cpu_second(
+        Tensor::from_vector(second_values, {2}), true);
+    autograd::Value hip_first(cpu_first.data().to(device), true);
+    autograd::Value hip_second(cpu_second.data().to(device), true);
+    const auto first_gradient =
+        Tensor::from_vector({0.5F, -0.25F, 0.125F}, {3});
+    const auto second_gradient = Tensor::from_vector({-0.5F, 0.75F}, {2});
+    cpu_first.set_grad(first_gradient);
+    cpu_second.set_grad(second_gradient);
+    hip_first.set_grad(first_gradient.to(device));
+    hip_second.set_grad(second_gradient.to(device));
+    const training::AdamWConfig config{
+        .learning_rate = 0.01F,
+        .beta1 = 0.9F,
+        .beta2 = 0.99F,
+        .epsilon = 1.0e-8F,
+        .weight_decay = 0.1F,
+        .moment_precision =
+            training::AdamWConfig::MomentPrecision::BFloat16};
+    training::AdamW cpu_optimizer({&cpu_first, &cpu_second}, config);
+    training::AdamW hip_optimizer({&hip_first, &hip_second}, config);
+    cpu_optimizer.step();
+    runtime::reset_transfer_stats();
+    hip_optimizer.step();
+    runtime::synchronize(device);
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.host_to_device_bytes, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    EXPECT_EQ(transfers.device_to_device_calls, 0U);
+    expect_near(hip_first.data().to_vector(), cpu_first.data().to_vector(),
+                2.0e-6F);
+    expect_near(hip_second.data().to_vector(), cpu_second.data().to_vector(),
+                2.0e-6F);
+    const auto cpu_state = cpu_optimizer.state();
+    const auto hip_state = hip_optimizer.state();
+    EXPECT_EQ(hip_state.first_moments[0].to_vector(),
+              cpu_state.first_moments[0].to_vector());
+    EXPECT_EQ(hip_state.first_moments[1].to_vector(),
+              cpu_state.first_moments[1].to_vector());
+    EXPECT_EQ(hip_state.second_moments[0].to_vector(),
+              cpu_state.second_moments[0].to_vector());
+    EXPECT_EQ(hip_state.second_moments[1].to_vector(),
+              cpu_state.second_moments[1].to_vector());
+}
+
 TEST(HipTrainingTest, VectorizedAdamWMatchesScalarAcrossTailAndMirror) {
     require_gpu();
     const auto gpu = Device::hip(0);
@@ -3670,6 +3724,59 @@ TEST(HipTrainingTest, VectorizedAdamWMatchesScalarAcrossTailAndMirror) {
                      1.0e-8F, 0.1F, 0.1F, 0.01F, {},
                      AdamWImplementation::Vectorized),
                  std::invalid_argument);
+}
+
+TEST(HipTrainingTest,
+     Bf16MomentAdamWMatchesCpuCompleteStateWithoutPayloadTransfers) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    constexpr std::int64_t elements = 4099;
+    std::vector<float> parameter_values(static_cast<std::size_t>(elements));
+    std::vector<float> gradient_values(static_cast<std::size_t>(elements));
+    for (std::size_t index = 0; index < parameter_values.size(); ++index) {
+        parameter_values[index] =
+            static_cast<float>(static_cast<int>(index % 31) - 15) / 17.0F;
+        gradient_values[index] =
+            static_cast<float>(static_cast<int>(index % 13) - 6) / 19.0F;
+    }
+    auto cpu_parameter = Tensor::from_vector(parameter_values, {elements});
+    auto cpu_gradient = Tensor::from_vector(gradient_values, {elements});
+    Tensor cpu_first({elements}, DType::BFloat16);
+    Tensor cpu_second({elements}, DType::BFloat16);
+    auto cpu_mirror = cpu_parameter.cast(DType::BFloat16);
+    auto hip_parameter = cpu_parameter.to(gpu);
+    auto hip_gradient = cpu_gradient.to(gpu);
+    Tensor hip_first({elements}, DType::BFloat16, gpu);
+    Tensor hip_second({elements}, DType::BFloat16, gpu);
+    auto hip_mirror = hip_parameter.cast(DType::BFloat16);
+    fill_(cpu_first, 0.0F);
+    fill_(cpu_second, 0.0F);
+    fill_(hip_first, 0.0F);
+    fill_(hip_second, 0.0F);
+    runtime::reset_transfer_stats();
+    for (int step = 1; step <= 2; ++step) {
+        const auto first_correction =
+            1.0F - std::pow(0.9F, static_cast<float>(step));
+        const auto second_correction =
+            1.0F - std::pow(0.99F, static_cast<float>(step));
+        adamw_update_bf16_moments_(
+            cpu_parameter, cpu_gradient, cpu_first, cpu_second, &cpu_mirror,
+            0.01F, 0.9F, 0.99F, 1.0e-8F, 0.1F, first_correction,
+            second_correction);
+        adamw_update_bf16_moments_(
+            hip_parameter, hip_gradient, hip_first, hip_second, &hip_mirror,
+            0.01F, 0.9F, 0.99F, 1.0e-8F, 0.1F, first_correction,
+            second_correction);
+    }
+    runtime::synchronize(gpu);
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    EXPECT_EQ(transfers.device_to_device_calls, 0U);
+    expect_near(hip_parameter.to_vector(), cpu_parameter.to_vector(), 2.0e-6F);
+    EXPECT_EQ(hip_first.to_vector(), cpu_first.to_vector());
+    EXPECT_EQ(hip_second.to_vector(), cpu_second.to_vector());
+    EXPECT_EQ(hip_mirror.to_vector(), cpu_mirror.to_vector());
 }
 
 TEST(HipTrainingTest,
@@ -3741,8 +3848,8 @@ TEST(HipTrainingTest,
     AdamWMultiTensorWorkspace workspace(sizes, gpu);
     const auto stats = adamw_multi_tensor_workspace_stats(workspace);
     EXPECT_EQ(stats.tensors, 3U);
-    EXPECT_EQ(stats.blocks, 5U);
-    EXPECT_EQ(stats.block_map_bytes, 5U * sizeof(std::int32_t));
+    EXPECT_EQ(stats.blocks, 3U);
+    EXPECT_EQ(stats.block_map_bytes, 3U * sizeof(std::int32_t));
     const std::vector<AdamWMultiTensorEntry> entries{
         {&multi_parameters[0], &multi_gradients[0], &multi_first[0],
          &multi_second[0], &multi_mirror},
@@ -3791,6 +3898,105 @@ TEST(HipTrainingTest,
     Tensor bad_mirror({17}, DType::Float32, gpu);
     bad_entries = entries;
     bad_entries[0].bf16_mirror = &bad_mirror;
+    EXPECT_THROW(
+        adamw_update_multi_(workspace, bad_entries, learning_rate, beta1,
+                            beta2, epsilon, weight_decay, first_correction,
+                            second_correction),
+        std::invalid_argument);
+}
+
+TEST(HipTrainingTest,
+     MultiTensorBf16MomentAdamWMatchesPerTensorCompleteState) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    const std::vector<std::int64_t> sizes{17, 513, 3};
+    std::vector<Tensor> scalar_parameters;
+    std::vector<Tensor> scalar_gradients;
+    std::vector<Tensor> scalar_first;
+    std::vector<Tensor> scalar_second;
+    std::vector<Tensor> scalar_mirrors;
+    std::vector<Tensor> multi_parameters;
+    std::vector<Tensor> multi_gradients;
+    std::vector<Tensor> multi_first;
+    std::vector<Tensor> multi_second;
+    std::vector<Tensor> multi_mirrors;
+    for (const auto size : sizes) {
+        std::vector<float> values(static_cast<std::size_t>(size));
+        std::vector<float> gradients(static_cast<std::size_t>(size));
+        for (std::size_t index = 0; index < values.size(); ++index) {
+            values[index] =
+                static_cast<float>(static_cast<int>(index % 23) - 11) / 13.0F;
+            gradients[index] =
+                static_cast<float>(static_cast<int>(index % 17) - 8) / 19.0F;
+        }
+        scalar_parameters.push_back(Tensor::from_vector(values, {size}).to(gpu));
+        scalar_gradients.push_back(
+            Tensor::from_vector(gradients, {size}).to(gpu));
+        scalar_first.emplace_back(Shape{size}, DType::BFloat16, gpu);
+        scalar_second.emplace_back(Shape{size}, DType::BFloat16, gpu);
+        fill_(scalar_first.back(), 0.125F);
+        fill_(scalar_second.back(), 0.25F);
+        scalar_mirrors.push_back(
+            scalar_parameters.back().cast(DType::BFloat16));
+        multi_parameters.push_back(Tensor::from_vector(values, {size}).to(gpu));
+        multi_gradients.push_back(
+            Tensor::from_vector(gradients, {size}).to(gpu));
+        multi_first.emplace_back(Shape{size}, DType::BFloat16, gpu);
+        multi_second.emplace_back(Shape{size}, DType::BFloat16, gpu);
+        fill_(multi_first.back(), 0.125F);
+        fill_(multi_second.back(), 0.25F);
+        multi_mirrors.push_back(
+            multi_parameters.back().cast(DType::BFloat16));
+    }
+    constexpr float learning_rate = 0.01F;
+    constexpr float beta1 = 0.9F;
+    constexpr float beta2 = 0.99F;
+    constexpr float epsilon = 1.0e-8F;
+    constexpr float weight_decay = 0.1F;
+    constexpr float first_correction = 0.1F;
+    constexpr float second_correction = 0.01F;
+    for (std::size_t index = 0; index < sizes.size() - 1; ++index) {
+        adamw_update_bf16_moments_(
+            scalar_parameters[index], scalar_gradients[index],
+            scalar_first[index], scalar_second[index], &scalar_mirrors[index],
+            learning_rate, beta1, beta2, epsilon, weight_decay,
+            first_correction, second_correction);
+    }
+    runtime::synchronize(gpu);
+
+    AdamWMultiTensorWorkspace workspace(sizes, gpu);
+    const std::vector<AdamWMultiTensorEntry> entries{
+        {&multi_parameters[0], &multi_gradients[0], &multi_first[0],
+         &multi_second[0], &multi_mirrors[0]},
+        {&multi_parameters[1], &multi_gradients[1], &multi_first[1],
+         &multi_second[1], &multi_mirrors[1]},
+        {&multi_parameters[2], nullptr, &multi_first[2], &multi_second[2],
+         &multi_mirrors[2]},
+    };
+    runtime::reset_transfer_stats();
+    adamw_update_multi_(workspace, entries, learning_rate, beta1, beta2,
+                        epsilon, weight_decay, first_correction,
+                        second_correction);
+    runtime::synchronize(gpu);
+    const auto transfers = runtime::transfer_stats();
+    const auto stats = adamw_multi_tensor_workspace_stats(workspace);
+    EXPECT_EQ(transfers.host_to_device_calls, 1U);
+    EXPECT_EQ(transfers.host_to_device_bytes, stats.descriptor_bytes);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    EXPECT_EQ(transfers.device_to_device_calls, 0U);
+    for (std::size_t index = 0; index < sizes.size(); ++index) {
+        expect_near(multi_parameters[index].to_vector(),
+                    scalar_parameters[index].to_vector(), 2.0e-6F);
+        EXPECT_EQ(multi_first[index].to_vector(),
+                  scalar_first[index].to_vector());
+        EXPECT_EQ(multi_second[index].to_vector(),
+                  scalar_second[index].to_vector());
+        EXPECT_EQ(multi_mirrors[index].to_vector(),
+                  scalar_mirrors[index].to_vector());
+    }
+    auto bad_entries = entries;
+    Tensor fp32_second({17}, DType::Float32, gpu);
+    bad_entries[0].second_moment = &fp32_second;
     EXPECT_THROW(
         adamw_update_multi_(workspace, bad_entries, learning_rate, beta1,
                             beta2, epsilon, weight_decay, first_correction,

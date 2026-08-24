@@ -141,6 +141,12 @@ __global__ void adamw_update_vectorized_kernel(
     }
 }
 
+__device__ float adamw_update_bf16_moment_value(
+    float parameter, float gradient, hip_bfloat16& first_moment,
+    hip_bfloat16& second_moment, float learning_rate, float beta1,
+    float beta2, float epsilon, float weight_decay, float first_correction,
+    float second_correction);
+
 __global__ void adamw_update_multi_kernel(
     const AdamWMultiTensorDescriptor* descriptors,
     const std::int32_t* block_to_tensor, float learning_rate,
@@ -149,23 +155,163 @@ __global__ void adamw_update_multi_kernel(
     const auto tensor_index = block_to_tensor[blockIdx.x];
     const auto descriptor = descriptors[tensor_index];
     if (descriptor.gradient == nullptr) return;
-    const auto index =
+    constexpr std::int64_t width = 4;
+    const auto base =
         (static_cast<std::int64_t>(blockIdx.x) - descriptor.first_block) *
-            static_cast<std::int64_t>(blockDim.x) +
-        static_cast<std::int64_t>(threadIdx.x);
-    if (index >= descriptor.elements) return;
-    auto first = descriptor.first_moment[index];
-    auto second = descriptor.second_moment[index];
-    const auto value = adamw_update_value(
-        descriptor.parameter[index], descriptor.gradient[index], first, second,
-        learning_rate, beta1, beta2, epsilon, weight_decay,
-        first_correction, second_correction);
-    descriptor.parameter[index] = value;
-    descriptor.first_moment[index] = first;
-    descriptor.second_moment[index] = second;
-    if (descriptor.bf16_mirror != nullptr) {
-        static_cast<hip_bfloat16*>(descriptor.bf16_mirror)[index] =
-            hip_bfloat16(value);
+            static_cast<std::int64_t>(blockDim.x) * width +
+        static_cast<std::int64_t>(threadIdx.x) * width;
+    if (base >= descriptor.elements) return;
+    if (descriptor.bf16_moments != 0U) {
+        auto* first_moments =
+            static_cast<hip_bfloat16*>(descriptor.first_moment);
+        auto* second_moments =
+            static_cast<hip_bfloat16*>(descriptor.second_moment);
+        for (auto index = base;
+             index < descriptor.elements && index < base + width; ++index) {
+            auto first = first_moments[index];
+            auto second = second_moments[index];
+            const auto value = adamw_update_bf16_moment_value(
+                descriptor.parameter[index], descriptor.gradient[index],
+                first, second, learning_rate, beta1, beta2, epsilon,
+                weight_decay, first_correction, second_correction);
+            descriptor.parameter[index] = value;
+            first_moments[index] = first;
+            second_moments[index] = second;
+            if (descriptor.bf16_mirror != nullptr) {
+                static_cast<hip_bfloat16*>(descriptor.bf16_mirror)[index] =
+                    hip_bfloat16(value);
+            }
+        }
+        return;
+    }
+    auto* first_moments = static_cast<float*>(descriptor.first_moment);
+    auto* second_moments = static_cast<float*>(descriptor.second_moment);
+    for (auto index = base;
+         index < descriptor.elements && index < base + width; ++index) {
+        auto first = first_moments[index];
+        auto second = second_moments[index];
+        const auto value = adamw_update_value(
+            descriptor.parameter[index], descriptor.gradient[index], first,
+            second, learning_rate, beta1, beta2, epsilon, weight_decay,
+            first_correction, second_correction);
+        descriptor.parameter[index] = value;
+        first_moments[index] = first;
+        second_moments[index] = second;
+        if (descriptor.bf16_mirror != nullptr) {
+            static_cast<hip_bfloat16*>(descriptor.bf16_mirror)[index] =
+                hip_bfloat16(value);
+        }
+    }
+}
+
+__global__ void adamw_update_bf16_moments_kernel(
+    float* parameter, const float* gradient, hip_bfloat16* first_moment,
+    hip_bfloat16* second_moment, hip_bfloat16* parameter_mirror,
+    std::int64_t elements, float learning_rate, float beta1, float beta2,
+    float epsilon, float weight_decay, float first_correction,
+    float second_correction) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x +
+                       static_cast<std::int64_t>(threadIdx.x);
+    if (index >= elements) return;
+    const auto grad = gradient[index];
+    const auto first = hip_bfloat16(
+        beta1 * static_cast<float>(first_moment[index]) +
+        (1.0F - beta1) * grad);
+    const auto second = hip_bfloat16(
+        beta2 * static_cast<float>(second_moment[index]) +
+        (1.0F - beta2) * grad * grad);
+    first_moment[index] = first;
+    second_moment[index] = second;
+    auto value = parameter[index] * (1.0F - learning_rate * weight_decay);
+    value -= learning_rate * (static_cast<float>(first) / first_correction) /
+             (sqrtf(static_cast<float>(second) / second_correction) + epsilon);
+    parameter[index] = value;
+    if (parameter_mirror != nullptr) parameter_mirror[index] = hip_bfloat16(value);
+}
+
+__device__ float adamw_update_bf16_moment_value(
+    float parameter, float gradient, hip_bfloat16& first_moment,
+    hip_bfloat16& second_moment, float learning_rate, float beta1,
+    float beta2, float epsilon, float weight_decay, float first_correction,
+    float second_correction) {
+    first_moment = hip_bfloat16(
+        beta1 * static_cast<float>(first_moment) +
+        (1.0F - beta1) * gradient);
+    second_moment = hip_bfloat16(
+        beta2 * static_cast<float>(second_moment) +
+        (1.0F - beta2) * gradient * gradient);
+    parameter *= 1.0F - learning_rate * weight_decay;
+    parameter -=
+        learning_rate * (static_cast<float>(first_moment) / first_correction) /
+        (sqrtf(static_cast<float>(second_moment) / second_correction) + epsilon);
+    return parameter;
+}
+
+__global__ void adamw_update_bf16_moments_vectorized_kernel(
+    float* parameter, const float* gradient, hip_bfloat16* first_moment,
+    hip_bfloat16* second_moment, hip_bfloat16* parameter_mirror,
+    std::int64_t elements, float learning_rate, float beta1, float beta2,
+    float epsilon, float weight_decay, float first_correction,
+    float second_correction) {
+    constexpr std::int64_t width = 4;
+    const auto base =
+        (static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x) *
+        width;
+    if (base >= elements) return;
+    if (base + width <= elements) {
+        auto values = *reinterpret_cast<float4*>(parameter + base);
+        const auto gradients =
+            *reinterpret_cast<const float4*>(gradient + base);
+        hip_bfloat16 first0 = first_moment[base];
+        hip_bfloat16 first1 = first_moment[base + 1];
+        hip_bfloat16 first2 = first_moment[base + 2];
+        hip_bfloat16 first3 = first_moment[base + 3];
+        hip_bfloat16 second0 = second_moment[base];
+        hip_bfloat16 second1 = second_moment[base + 1];
+        hip_bfloat16 second2 = second_moment[base + 2];
+        hip_bfloat16 second3 = second_moment[base + 3];
+        values.x = adamw_update_bf16_moment_value(
+            values.x, gradients.x, first0, second0, learning_rate, beta1,
+            beta2, epsilon, weight_decay, first_correction, second_correction);
+        values.y = adamw_update_bf16_moment_value(
+            values.y, gradients.y, first1, second1, learning_rate, beta1,
+            beta2, epsilon, weight_decay, first_correction, second_correction);
+        values.z = adamw_update_bf16_moment_value(
+            values.z, gradients.z, first2, second2, learning_rate, beta1,
+            beta2, epsilon, weight_decay, first_correction, second_correction);
+        values.w = adamw_update_bf16_moment_value(
+            values.w, gradients.w, first3, second3, learning_rate, beta1,
+            beta2, epsilon, weight_decay, first_correction, second_correction);
+        *reinterpret_cast<float4*>(parameter + base) = values;
+        first_moment[base] = first0;
+        first_moment[base + 1] = first1;
+        first_moment[base + 2] = first2;
+        first_moment[base + 3] = first3;
+        second_moment[base] = second0;
+        second_moment[base + 1] = second1;
+        second_moment[base + 2] = second2;
+        second_moment[base + 3] = second3;
+        if (parameter_mirror != nullptr) {
+            parameter_mirror[base] = hip_bfloat16(values.x);
+            parameter_mirror[base + 1] = hip_bfloat16(values.y);
+            parameter_mirror[base + 2] = hip_bfloat16(values.z);
+            parameter_mirror[base + 3] = hip_bfloat16(values.w);
+        }
+        return;
+    }
+    for (auto index = base; index < elements; ++index) {
+        auto first = first_moment[index];
+        auto second = second_moment[index];
+        const auto value = adamw_update_bf16_moment_value(
+            parameter[index], gradient[index], first, second, learning_rate,
+            beta1, beta2, epsilon, weight_decay, first_correction,
+            second_correction);
+        parameter[index] = value;
+        first_moment[index] = first;
+        second_moment[index] = second;
+        if (parameter_mirror != nullptr) {
+            parameter_mirror[index] = hip_bfloat16(value);
+        }
     }
 }
 
@@ -2270,6 +2416,41 @@ void launch_adamw_update_multi(
         learning_rate, beta1, beta2, epsilon, weight_decay,
         first_correction, second_correction);
     check_launch("adamw_update_multi_kernel");
+}
+
+void launch_adamw_update_bf16_moments(
+    float* parameter, const float* gradient, void* first_moment_bf16,
+    void* second_moment_bf16, void* parameter_bf16_mirror,
+    std::int64_t elements, float learning_rate, float beta1, float beta2,
+    float epsilon, float weight_decay, float first_correction,
+    float second_correction, void* stream) {
+    if (elements == 0) return;
+    const auto vector_aligned =
+        (reinterpret_cast<std::uintptr_t>(parameter) & 15U) == 0U &&
+        (reinterpret_cast<std::uintptr_t>(gradient) & 15U) == 0U;
+    if (vector_aligned) {
+        const auto vectors = (elements + 3) / 4;
+        hipLaunchKernelGGL(
+            adamw_update_bf16_moments_vectorized_kernel,
+            dim3(grid_size(vectors)), dim3(kBlockSize), 0, as_stream(stream),
+            parameter, gradient,
+            static_cast<hip_bfloat16*>(first_moment_bf16),
+            static_cast<hip_bfloat16*>(second_moment_bf16),
+            static_cast<hip_bfloat16*>(parameter_bf16_mirror), elements,
+            learning_rate, beta1, beta2, epsilon, weight_decay,
+            first_correction, second_correction);
+        check_launch("adamw_update_bf16_moments_vectorized_kernel");
+        return;
+    }
+    hipLaunchKernelGGL(
+        adamw_update_bf16_moments_kernel, dim3(grid_size(elements)),
+        dim3(kBlockSize), 0, as_stream(stream), parameter, gradient,
+        static_cast<hip_bfloat16*>(first_moment_bf16),
+        static_cast<hip_bfloat16*>(second_moment_bf16),
+        static_cast<hip_bfloat16*>(parameter_bf16_mirror), elements,
+        learning_rate, beta1, beta2, epsilon, weight_decay,
+        first_correction, second_correction);
+    check_launch("adamw_update_bf16_moments_kernel");
 }
 
 void launch_add(const float* left, const float* right, float* output,

@@ -660,6 +660,50 @@ def pytorch_references(actual):
     record(refs, "optimizer_adamw_parameter_step2", adam_parameter)
     record(refs, "optimizer_adamw_first_moment_step2", adam.state[adam_parameter]["exp_avg"])
     record(refs, "optimizer_adamw_second_moment_step2", adam.state[adam_parameter]["exp_avg_sq"])
+
+    bf16_moment_parameter = tensor([1.0, -2.0], (2,))
+    bf16_first = torch.zeros(2, dtype=torch.bfloat16)
+    bf16_second = torch.zeros(2, dtype=torch.bfloat16)
+    for step, gradient in (
+            (1, tensor([0.5, -0.25], (2,))),
+            (2, tensor([-1.0, 2.0], (2,)))):
+        bf16_first = (
+            0.9 * bf16_first.float() + 0.1 * gradient).to(torch.bfloat16)
+        bf16_second = (
+            0.99 * bf16_second.float() + 0.01 * gradient * gradient
+        ).to(torch.bfloat16)
+        first_correction = 1.0 - 0.9 ** step
+        second_correction = 1.0 - 0.99 ** step
+        bf16_moment_parameter = bf16_moment_parameter * 0.999
+        bf16_moment_parameter = bf16_moment_parameter - (
+            0.01 * (bf16_first.float() / first_correction) /
+            (torch.sqrt(bf16_second.float() / second_correction) + 1.0e-8))
+    record(refs, "optimizer_bf16_moment_parameter_step2", bf16_moment_parameter)
+    record(refs, "optimizer_bf16_moment_first_step2", bf16_first)
+    record(refs, "optimizer_bf16_moment_second_step2", bf16_second)
+    record(refs, "optimizer_bf16_moment_mirror_step2",
+           bf16_moment_parameter.to(torch.bfloat16))
+    for step in range(3, 33):
+        gradient = tensor([
+            float(step % 7 - 3) * 0.125,
+            float(step % 5 - 2) * -0.25,
+        ], (2,))
+        bf16_first = (
+            0.9 * bf16_first.float() + 0.1 * gradient).to(torch.bfloat16)
+        bf16_second = (
+            0.99 * bf16_second.float() + 0.01 * gradient * gradient
+        ).to(torch.bfloat16)
+        first_correction = 1.0 - 0.9 ** step
+        second_correction = 1.0 - 0.99 ** step
+        bf16_moment_parameter = bf16_moment_parameter * 0.999
+        bf16_moment_parameter = bf16_moment_parameter - (
+            0.01 * (bf16_first.float() / first_correction) /
+            (torch.sqrt(bf16_second.float() / second_correction) + 1.0e-8))
+    record(refs, "optimizer_bf16_moment_parameter_step32", bf16_moment_parameter)
+    record(refs, "optimizer_bf16_moment_first_step32", bf16_first)
+    record(refs, "optimizer_bf16_moment_second_step32", bf16_second)
+    record(refs, "optimizer_bf16_moment_mirror_step32",
+           bf16_moment_parameter.to(torch.bfloat16))
     return refs
 
 

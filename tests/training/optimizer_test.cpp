@@ -1,7 +1,9 @@
+#include <cmath>
 #include <vector>
 
 #include <gtest/gtest.h>
 #include <microllm/autograd/autograd.h>
+#include <microllm/base/low_precision.h>
 #include <microllm/ops/ops.h>
 #include <microllm/training/optimizer.h>
 
@@ -70,6 +72,156 @@ TEST(AdamWTest, FusedBf16MirrorTracksUpdatedFp32Master) {
     Tensor bad({2}, DType::BFloat16);
     EXPECT_THROW((void)AdamW({&parameter}, {}, {{&parameter, &bad}}),
                  std::invalid_argument);
+}
+
+TEST(AdamWTest, Bf16MomentPrimitiveMatchesRoundedStateReference) {
+    Tensor parameter = Tensor::from_vector({1.0F, -2.0F, 0.5F}, {3});
+    const auto gradient = Tensor::from_vector({0.5F, -0.25F, 0.125F}, {3});
+    Tensor first({3}, DType::BFloat16);
+    Tensor second({3}, DType::BFloat16);
+    Tensor mirror({3}, DType::BFloat16);
+    ops::fill_(first, 0.0F);
+    ops::fill_(second, 0.0F);
+    std::vector<float> expected_parameter{1.0F, -2.0F, 0.5F};
+    std::vector<float> expected_first(3, 0.0F);
+    std::vector<float> expected_second(3, 0.0F);
+    const auto gradient_values = gradient.to_vector();
+    for (int step = 1; step <= 2; ++step) {
+        const auto first_correction =
+            1.0F - std::pow(0.9F, static_cast<float>(step));
+        const auto second_correction =
+            1.0F - std::pow(0.99F, static_cast<float>(step));
+        ops::adamw_update_bf16_moments_(
+            parameter, gradient, first, second, &mirror, 0.01F, 0.9F,
+            0.99F, 1.0e-8F, 0.1F, first_correction, second_correction);
+        for (std::size_t index = 0; index < expected_parameter.size(); ++index) {
+            expected_first[index] = static_cast<float>(BFloat16(
+                0.9F * expected_first[index] +
+                0.1F * gradient_values[index]));
+            expected_second[index] = static_cast<float>(BFloat16(
+                0.99F * expected_second[index] +
+                0.01F * gradient_values[index] * gradient_values[index]));
+            expected_parameter[index] *= 0.999F;
+            expected_parameter[index] -=
+                0.01F * (expected_first[index] / first_correction) /
+                (std::sqrt(expected_second[index] / second_correction) +
+                 1.0e-8F);
+        }
+    }
+    EXPECT_EQ(parameter.to_vector(), expected_parameter);
+    EXPECT_EQ(first.to_vector(), expected_first);
+    EXPECT_EQ(second.to_vector(), expected_second);
+    EXPECT_EQ(mirror.to_vector(),
+              parameter.cast(DType::BFloat16).to_vector());
+    Tensor bad_first({3}, DType::Float32);
+    EXPECT_THROW(
+        ops::adamw_update_bf16_moments_(
+            parameter, gradient, bad_first, second, nullptr, 0.01F, 0.9F,
+            0.99F, 1.0e-8F, 0.1F, 0.1F, 0.01F),
+        std::invalid_argument);
+}
+
+TEST(AdamWTest, Bf16MomentStateIsCompactCanonicalAndExactlyRestorable) {
+    const AdamWConfig bf16_config{
+        .learning_rate = 0.01F,
+        .beta1 = 0.9F,
+        .beta2 = 0.99F,
+        .epsilon = 1.0e-8F,
+        .weight_decay = 0.0F,
+        .moment_precision = AdamWConfig::MomentPrecision::BFloat16};
+    Value uninterrupted(Tensor::from_vector({1.0F, -2.0F, 0.5F}, {3}), true);
+    auto uninterrupted_mirror = uninterrupted.data().cast(DType::BFloat16);
+    AdamW optimizer({&uninterrupted}, bf16_config,
+                    {{&uninterrupted, &uninterrupted_mirror}});
+    EXPECT_EQ(optimizer.moment_state_bytes(), 12U);
+    sum(scale(uninterrupted, 0.5F)).backward();
+    optimizer.step();
+    optimizer.zero_grad();
+
+    const auto canonical = optimizer.state();
+    ASSERT_EQ(canonical.first_moments.size(), 1U);
+    ASSERT_EQ(canonical.second_moments.size(), 1U);
+    EXPECT_EQ(canonical.first_moments[0].dtype(), DType::Float32);
+    EXPECT_EQ(canonical.second_moments[0].dtype(), DType::Float32);
+    EXPECT_TRUE(canonical.first_moments[0].device().is_cpu());
+    EXPECT_TRUE(canonical.second_moments[0].device().is_cpu());
+
+    Value resumed(
+        Tensor::from_vector(uninterrupted.data().to_vector(), {3}), true);
+    auto resumed_mirror = resumed.data().cast(DType::BFloat16);
+    AdamW resumed_optimizer({&resumed}, bf16_config,
+                            {{&resumed, &resumed_mirror}});
+    ops::fill_(resumed_mirror, 99.0F);
+    resumed_optimizer.load_state(canonical);
+    EXPECT_EQ(resumed_optimizer.moment_state_bytes(), 12U);
+    EXPECT_EQ(resumed_mirror.to_vector(), uninterrupted_mirror.to_vector());
+
+    sum(scale(uninterrupted, -0.25F)).backward();
+    sum(scale(resumed, -0.25F)).backward();
+    optimizer.step();
+    resumed_optimizer.step();
+    EXPECT_EQ(resumed.data().to_vector(), uninterrupted.data().to_vector());
+    EXPECT_EQ(resumed_optimizer.state().first_moments[0].to_vector(),
+              optimizer.state().first_moments[0].to_vector());
+    EXPECT_EQ(resumed_optimizer.state().second_moments[0].to_vector(),
+              optimizer.state().second_moments[0].to_vector());
+    EXPECT_EQ(resumed_mirror.to_vector(), uninterrupted_mirror.to_vector());
+
+    const AdamWConfig fp32_config{.moment_precision =
+                                      AdamWConfig::MomentPrecision::Float32};
+    Value fp32_parameter(Tensor::from_vector({1.0F, 2.0F, 3.0F}, {3}), true);
+    AdamW fp32_optimizer({&fp32_parameter}, fp32_config);
+    EXPECT_EQ(fp32_optimizer.moment_state_bytes(), 24U);
+    EXPECT_THROW(
+        (void)AdamW({&fp32_parameter}, bf16_config, {},
+                    ops::AdamWImplementation::Vectorized),
+        std::invalid_argument);
+}
+
+TEST(AdamWTest, Bf16MomentOptimizerMatchesRoundedReferenceForOneHundredSteps) {
+    const AdamWConfig config{
+        .learning_rate = 0.003F,
+        .beta1 = 0.9F,
+        .beta2 = 0.99F,
+        .epsilon = 1.0e-8F,
+        .weight_decay = 0.01F,
+        .moment_precision = AdamWConfig::MomentPrecision::BFloat16};
+    Value parameter(Tensor::from_vector({1.0F, -2.0F}, {2}), true);
+    AdamW optimizer({&parameter}, config);
+    std::vector<float> expected_parameter{1.0F, -2.0F};
+    std::vector<float> expected_first(2, 0.0F);
+    std::vector<float> expected_second(2, 0.0F);
+    for (int step = 1; step <= 100; ++step) {
+        const std::vector<float> gradients{
+            static_cast<float>(step % 7 - 3) * 0.125F,
+            static_cast<float>(step % 5 - 2) * -0.25F};
+        parameter.set_grad(Tensor::from_vector(gradients, {2}));
+        optimizer.step();
+        const auto first_correction =
+            1.0F - std::pow(0.9F, static_cast<float>(step));
+        const auto second_correction =
+            1.0F - std::pow(0.99F, static_cast<float>(step));
+        for (std::size_t index = 0; index < gradients.size(); ++index) {
+            expected_first[index] = static_cast<float>(BFloat16(
+                config.beta1 * expected_first[index] +
+                (1.0F - config.beta1) * gradients[index]));
+            expected_second[index] = static_cast<float>(BFloat16(
+                config.beta2 * expected_second[index] +
+                (1.0F - config.beta2) * gradients[index] * gradients[index]));
+            expected_parameter[index] *=
+                1.0F - config.learning_rate * config.weight_decay;
+            expected_parameter[index] -=
+                config.learning_rate *
+                (expected_first[index] / first_correction) /
+                (std::sqrt(expected_second[index] / second_correction) +
+                 1.0e-8F);
+        }
+    }
+    EXPECT_EQ(parameter.data().to_vector(), expected_parameter);
+    const auto state = optimizer.state();
+    EXPECT_EQ(state.step, 100U);
+    EXPECT_EQ(state.first_moments[0].to_vector(), expected_first);
+    EXPECT_EQ(state.second_moments[0].to_vector(), expected_second);
 }
 
 TEST(AdamWTest, RestoredStateKeepsDerivedBf16MirrorFresh) {

@@ -33,6 +33,11 @@ struct AdamWConfig {
     float beta2 = 0.999F;
     float epsilon = 1.0e-8F;
     float weight_decay = 0.01F;
+    enum class MomentPrecision : std::uint8_t {
+        Float32 = 0,
+        BFloat16 = 1,
+    };
+    MomentPrecision moment_precision = MomentPrecision::Float32;
 };
 
 struct AdamWState {
@@ -50,6 +55,7 @@ public:
     void zero_grad();
 
     [[nodiscard]] const AdamWConfig& config() const noexcept { return config_; }
+    [[nodiscard]] std::uint64_t moment_state_bytes() const;
     [[nodiscard]] AdamWState state() const;
     void load_state(AdamWState state);
 

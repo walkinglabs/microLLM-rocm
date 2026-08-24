@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 
+#include <microllm/base/low_precision.h>
 #include <microllm/runtime/memory.h>
 
 #if MICROLLM_HAS_HIP
@@ -125,7 +126,8 @@ AdamWMultiTensorWorkspace::AdamWMultiTensorWorkspace(
         throw std::overflow_error("multi-tensor AdamW tensor count overflow");
     }
 #if MICROLLM_HAS_HIP
-    constexpr std::int64_t block_size = 256;
+    constexpr std::int64_t elements_per_thread = 4;
+    constexpr std::int64_t block_size = 256 * elements_per_thread;
     auto impl = std::make_shared<Impl>();
     impl->element_counts = std::move(element_counts);
     impl->device = device;
@@ -422,6 +424,90 @@ void adamw_update_bf16_mirror_(Tensor& parameter, const Tensor& gradient,
 #endif
 }
 
+void adamw_update_bf16_moments_(
+    Tensor& parameter, const Tensor& gradient, Tensor& first_moment_bf16,
+    Tensor& second_moment_bf16, Tensor* parameter_bf16_mirror,
+    float learning_rate, float beta1, float beta2, float epsilon,
+    float weight_decay, float first_correction, float second_correction,
+    [[maybe_unused]] const OpContext& context) {
+    require_float(parameter, "parameter");
+    require_float(gradient, "gradient");
+    if (first_moment_bf16.dtype() != DType::BFloat16 ||
+        second_moment_bf16.dtype() != DType::BFloat16) {
+        throw std::invalid_argument(
+            "BF16-moment AdamW requires BF16 moment tensors");
+    }
+    require_same_shape(parameter, gradient);
+    require_same_shape(parameter, first_moment_bf16);
+    require_same_shape(parameter, second_moment_bf16);
+    require_same_device(parameter, gradient);
+    require_same_device(parameter, first_moment_bf16);
+    require_same_device(parameter, second_moment_bf16);
+    if (!parameter.is_contiguous() || !gradient.is_contiguous() ||
+        !first_moment_bf16.is_contiguous() ||
+        !second_moment_bf16.is_contiguous()) {
+        throw std::invalid_argument(
+            "BF16-moment AdamW requires contiguous tensors");
+    }
+    if (parameter_bf16_mirror != nullptr &&
+        (parameter_bf16_mirror->dtype() != DType::BFloat16 ||
+         parameter_bf16_mirror->shape() != parameter.shape() ||
+         parameter_bf16_mirror->device() != parameter.device() ||
+         !parameter_bf16_mirror->is_contiguous())) {
+        throw std::invalid_argument(
+            "BF16-moment AdamW mirror must match the parameter");
+    }
+    if (!(learning_rate > 0.0F) || beta1 < 0.0F || beta1 >= 1.0F ||
+        beta2 < 0.0F || beta2 >= 1.0F || !(epsilon > 0.0F) ||
+        weight_decay < 0.0F || !(first_correction > 0.0F) ||
+        !(second_correction > 0.0F)) {
+        throw std::invalid_argument(
+            "BF16-moment AdamW hyperparameters are invalid");
+    }
+    if (parameter.device().is_hip()) {
+#if MICROLLM_HAS_HIP
+        hip::launch_adamw_update_bf16_moments(
+            static_cast<float*>(parameter.data()),
+            static_cast<const float*>(gradient.data()),
+            first_moment_bf16.data(), second_moment_bf16.data(),
+            parameter_bf16_mirror == nullptr
+                ? nullptr
+                : parameter_bf16_mirror->data(),
+            parameter.numel(), learning_rate, beta1, beta2, epsilon,
+            weight_decay, first_correction, second_correction,
+            context.native_stream(parameter.device()));
+        return;
+#else
+        throw std::runtime_error(
+            "microLLM was built without HIP operator support");
+#endif
+    }
+    auto* values = parameter.data_float();
+    const auto* gradients = gradient.data_float();
+    auto* first = static_cast<BFloat16*>(first_moment_bf16.data());
+    auto* second = static_cast<BFloat16*>(second_moment_bf16.data());
+    auto* mirror = parameter_bf16_mirror == nullptr
+                       ? nullptr
+                       : static_cast<BFloat16*>(parameter_bf16_mirror->data());
+    for (std::int64_t index = 0; index < parameter.numel(); ++index) {
+        const auto offset = static_cast<std::size_t>(index);
+        first[offset] = BFloat16(
+            beta1 * static_cast<float>(first[offset]) +
+            (1.0F - beta1) * gradients[offset]);
+        second[offset] = BFloat16(
+            beta2 * static_cast<float>(second[offset]) +
+            (1.0F - beta2) * gradients[offset] * gradients[offset]);
+        values[offset] *= 1.0F - learning_rate * weight_decay;
+        values[offset] -=
+            learning_rate * (static_cast<float>(first[offset]) /
+                             first_correction) /
+            (std::sqrt(static_cast<float>(second[offset]) /
+                       second_correction) +
+             epsilon);
+        if (mirror != nullptr) mirror[offset] = BFloat16(values[offset]);
+    }
+}
+
 void adamw_update_multi_(
     AdamWMultiTensorWorkspace& workspace,
     const std::vector<AdamWMultiTensorEntry>& entries,
@@ -454,8 +540,12 @@ void adamw_update_multi_(
                 "multi-tensor AdamW entries require parameter and moments");
         }
         require_float(*entry.parameter, "parameter");
-        require_float(*entry.first_moment, "first_moment");
-        require_float(*entry.second_moment, "second_moment");
+        if ((entry.first_moment->dtype() != DType::Float32 &&
+             entry.first_moment->dtype() != DType::BFloat16) ||
+            entry.second_moment->dtype() != entry.first_moment->dtype()) {
+            throw std::invalid_argument(
+                "multi-tensor AdamW moments must use matching FP32 or BF16 dtype");
+        }
         if (entry.parameter->numel() != workspace.impl_->element_counts[index]) {
             throw std::invalid_argument(
                 "multi-tensor AdamW entry shape changed after planning");
@@ -493,13 +583,16 @@ void adamw_update_multi_(
             .gradient = entry.gradient == nullptr
                             ? nullptr
                             : static_cast<const float*>(entry.gradient->data()),
-            .first_moment = static_cast<float*>(entry.first_moment->data()),
-            .second_moment = static_cast<float*>(entry.second_moment->data()),
+            .first_moment = entry.first_moment->data(),
+            .second_moment = entry.second_moment->data(),
             .bf16_mirror = entry.bf16_mirror == nullptr
                                ? nullptr
                                : entry.bf16_mirror->data(),
             .elements = entry.parameter->numel(),
             .first_block = workspace.impl_->first_blocks[index],
+            .bf16_moments = entry.first_moment->dtype() == DType::BFloat16
+                                ? 1U
+                                : 0U,
         };
     }
     const auto native_stream = context.native_stream(workspace.impl_->device);

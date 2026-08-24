@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "decision": "partial keep explicit BF16 moment policy",
+  "registered_test_files": 87,
+  "formal_processes": 20,
+  "pilot_processes": 36,
+  "historical_boundary_processes": 20,
+  "required_model_gates_passed": 2,
+  "optimizer_stretch_models_passed": 1,
+  "model_route_default_changed": false,
+  "rejected_multi_tensor_route_retained": false,
+  "tests": {
+    "cpu_debug": {"passed": 324, "total": 324},
+    "asan_ubsan": {"passed": 322, "total": 322},
+    "pytorch_enabled_cpu": {"passed": 298, "total": 298},
+    "hip_full_configuration": {
+      "passed": 505,
+      "total": 505,
+      "conditional_skips": 3
+    },
+    "hip_label": {"passed": 172, "total": 172},
+    "rccl_multi_gpu": {"passed": 11, "total": 11},
+    "rccl_full_label": {"passed": 14, "total": 14}
+  },
+  "coverage": {
+    "lines_percent": 80.1,
+    "functions_percent": 87.9,
+    "branches_percent": 60.6,
+    "lines_covered": 8846,
+    "lines_total": 11041
+  }
+}

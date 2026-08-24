@@ -95,6 +95,20 @@ For an optimizer implementation experiment, `microllm_hf_train_step` also accept
 `--adamw-implementation auto|scalar|vectorized`. Published model results use `auto`;
 explicit modes are counterfactual candidates and must be labeled as such.
 
+Optimizer-state precision is a separate axis:
+
+```bash
+--adamw-moment-precision fp32   # default, two 4-byte states per parameter
+--adamw-moment-precision bf16   # explicit, two 2-byte states per parameter
+```
+
+The JSON reports `adamw_moment_state_bytes`, the post-backward optimizer timing boundary and
+optimizer transfer bytes. Use
+`benchmarks/single_gpu/adamw_moment_matrix.py` for alternating-order, fresh-process Qwen/DeepSeek
+comparison; do not compare its corrected optimizer time with older rows that included an
+asynchronous backward tail. The numerical/checkpoint contract is explained in
+[BF16 AdamW moments](bf16-adamw-moments.zh-CN.md).
+
 The first curated official-weight result is under
 `benchmarks/results/2026-08-20-mi300x-single-gpu-hf-matrix/`.
 
