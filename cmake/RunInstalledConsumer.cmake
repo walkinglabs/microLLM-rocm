@@ -89,6 +89,12 @@ if(NOT missing_component_output MATCHES "microLLM_FOUND.*FALSE" AND
         "missing-component failure did not come from package component validation:\n"
         "${missing_component_output}\n${missing_component_error}")
 endif()
+if(NOT missing_component_output MATCHES "Available components:" AND
+   NOT missing_component_error MATCHES "Available components:")
+    message(FATAL_ERROR
+        "missing-component failure omitted available components:\n"
+        "${missing_component_output}\n${missing_component_error}")
+endif()
 
 # A pre-1.0 package only promises compatibility inside its current minor line.
 set(version_mismatch_build "${MICROLLM_CONSUMER_BINARY_DIR}-version-mismatch")

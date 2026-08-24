@@ -119,3 +119,9 @@ bias-gradient实现，避免只有头文件安装成功、静态库却漏掉实�
 `microLLM_CXX_STANDARD`和`microLLM_HIP_ARCHITECTURES`，快速确认CMake实际找到的是哪一套
 CPU/Radeon/Instinct SDK。独立consumer会检查三个字段存在且自洽；重新配置、编译后，
 安装树与build tree两条外部消费路径均通过，共2/2。
+
+2026-08-24再次收口外部发布路径：Config新增`VERSION_MAJOR/MINOR/PATCH`，组件不仅检查
+声明清单，也检查对应导出target确实存在；缺失必需组件会列出当前包的可用组件。新增
+`sdk-cpu` preset与`MICROLLM_BUILD_APPS`开关，使发布SDK时不必顺带编译命令行程序、测试和
+benchmark。根README合并重复的Config说明，并将长实验流水默认折叠，首页先展示构建、
+安装和外部消费主路径。

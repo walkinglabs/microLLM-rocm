@@ -6,13 +6,9 @@ smallest supported way for another C++ project to consume an installed microLLM 
 From the repository root, first build and install a CPU SDK:
 
 ```bash
-cmake -S . -B build/sdk \
-  -DMICROLLM_ENABLE_HIP=OFF \
-  -DMICROLLM_BUILD_TESTS=OFF \
-  -DMICROLLM_BUILD_EXAMPLES=OFF \
-  -DMICROLLM_BUILD_BENCHMARKS=OFF
-cmake --build build/sdk --parallel
-cmake --install build/sdk --prefix "$PWD/install/microllm"
+cmake --preset sdk-cpu
+cmake --build --preset sdk-cpu --parallel
+cmake --install build/sdk-cpu --prefix "$PWD/install/microllm"
 ```
 
 Then configure this directory as a separate project:
@@ -26,4 +22,4 @@ cmake --build build/package-example
 
 Expected output starts with `microLLM package example:`. For a local build-tree
 dependency, replace `CMAKE_PREFIX_PATH` with
-`-DmicroLLM_DIR="$PWD/build/sdk"`. Do not point `microLLM_DIR` at the source tree.
+`-DmicroLLM_DIR="$PWD/build/sdk-cpu"`. Do not point `microLLM_DIR` at the source tree.

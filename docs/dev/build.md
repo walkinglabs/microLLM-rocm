@@ -116,14 +116,22 @@ release claim because the recorded container exposes only 64 MB of shared memory
 
 ## Installable CMake package
 
-Install the complete build into one prefix:
+For a small CPU SDK build, use the package-focused preset and install it into one
+explicit prefix:
 
 ```bash
-cmake --install build/cpu-debug --prefix "$PWD/install/microllm"
+cmake --preset sdk-cpu
+cmake --build --preset sdk-cpu --parallel
+cmake --install build/sdk-cpu --prefix "$PWD/install/microllm"
 ```
 
+The preset disables repository tests, applications, examples, benchmarks, Python tests,
+and PyTorch adapters. It retains all C++ component libraries and the versioned C ABI.
+Install `build/hip-release` or `build/rccl-release` instead when that already-tested
+backend build is the SDK being published.
+
 The prefix contains headers, static C++ libraries, the optional versioned C ABI shared
-library, command-line programs and:
+library, command-line programs when `MICROLLM_BUILD_APPS=ON`, and:
 
 ```text
 lib/cmake/microLLM/microLLMConfig.cmake
@@ -215,6 +223,7 @@ above against a fresh installation.
 | `MICROLLM_ENABLE_HIPBLASLT` | `ON` | optional optimized 2D FP32 matmul |
 | `MICROLLM_ENABLE_RCCL` | `OFF` | single-node multi-GPU collectives |
 | `MICROLLM_BUILD_TESTS` | `ON` | unit/conformance/integration tests |
+| `MICROLLM_BUILD_APPS` | `ON` | training, inspection, inference and profiling command-line applications |
 | `MICROLLM_BUILD_EXAMPLES` | `ON` | runnable examples |
 | `MICROLLM_BUILD_BENCHMARKS` | `ON` | micro and end-to-end benchmarks |
 | `MICROLLM_BUILD_CAPI` | `ON` | versioned C shared library |

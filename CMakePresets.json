@@ -51,6 +51,22 @@
       }
     },
     {
+      "name": "sdk-cpu",
+      "displayName": "CPU SDK",
+      "description": "Small release build intended for installation and find_package consumers",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "MICROLLM_ENABLE_HIP": "OFF",
+        "MICROLLM_BUILD_TESTS": "OFF",
+        "MICROLLM_BUILD_APPS": "OFF",
+        "MICROLLM_BUILD_EXAMPLES": "OFF",
+        "MICROLLM_BUILD_BENCHMARKS": "OFF",
+        "MICROLLM_BUILD_PYTHON": "OFF",
+        "MICROLLM_BUILD_TORCH_OPS": "OFF"
+      }
+    },
+    {
       "name": "hip-release",
       "displayName": "HIP Release",
       "description": "Release build with required HIP and optional hipBLASLt",
@@ -76,6 +92,7 @@
     {"name": "cpu-debug", "configurePreset": "cpu-debug"},
     {"name": "cpu-sanitize", "configurePreset": "cpu-sanitize"},
     {"name": "cpu-coverage", "configurePreset": "cpu-coverage"},
+    {"name": "sdk-cpu", "configurePreset": "sdk-cpu"},
     {"name": "hip-release", "configurePreset": "hip-release"},
     {"name": "rccl-release", "configurePreset": "rccl-release"}
   ],

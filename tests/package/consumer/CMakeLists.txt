@@ -8,6 +8,11 @@ find_package(microLLM 0.1 CONFIG REQUIRED
 if(NOT DEFINED microLLM_VERSION OR microLLM_VERSION VERSION_LESS 0.1)
     message(FATAL_ERROR "package Config is missing valid version metadata")
 endif()
+if(NOT microLLM_VERSION_MAJOR EQUAL 0 OR
+   NOT microLLM_VERSION_MINOR EQUAL 1 OR
+   NOT microLLM_VERSION_PATCH EQUAL 0)
+    message(FATAL_ERROR "package Config has inconsistent semantic-version fields")
+endif()
 if(NOT microLLM_CXX_STANDARD EQUAL 20)
     message(FATAL_ERROR "package Config reports the wrong C++ language standard")
 endif()

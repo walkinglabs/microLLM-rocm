@@ -32,6 +32,17 @@ needed to run a real training and generation loop:
 - an eager reverse-mode graph engine with device-native Transformer backward;
 - Decoder-only MHA/GQA, RoPE, RMSNorm, SwiGLU, causal attention, loss, and optimizers;
 - named model state and F32/BF16/F16 safetensors loading;
+- C, Python ctypes, and optional PyTorch dispatcher adapters;
+- installable CMake targets for independent C and C++ applications;
+- reproducible CPU, PyTorch, MI300X, profiling, and RCCL evidence.
+
+The framework keeps readable reference code, measured optimized paths, and rejected
+experiments separate. The concise status is in [Current status](docs/development/STATUS.md);
+the chronological details are in the [optimization log](docs/optimization-log/README.md).
+
+<details>
+<summary>Detailed implementation and experiment ledger</summary>
+
 - MI300X FNUZ FP8 quantize/dequantize, scaled hipBLASLt GEMM, FP32-master Transformer
   training policy, and KV-cache decode;
 - opt-in FP8 scalar, device Tensor-amax and FFN-only outer-row activation policies with
@@ -293,6 +304,8 @@ needed to run a real training and generation loop:
 - explicit length buckets share one model while splitting KV capacity; the first policy keeps total
   slots fixed and exposes routing/memory/latency evidence without claiming unmeasured speedup.
 
+</details>
+
 The design keeps three implementations where they provide engineering value:
 
 ```text
@@ -379,82 +392,24 @@ ctest --preset rccl-release
 
 ### Use microLLM from another CMake project
 
-microLLM generates a real CMake Config package. The short version is: request one
-component, then link one target. CMake carries its headers and lower-level libraries.
-
-In plain language, the Config file is the SDK's address card. It means users do not
-copy microLLM sources into their project and do not hand-write compiler `-I`, `-L`, or
-`-l` flags. They install microLLM once, tell CMake where that installation lives, and
-link a named target:
-
-```cmake
-find_package(microLLM 0.1 CONFIG REQUIRED COMPONENTS inference)
-target_link_libraries(my_app PRIVATE microLLM::inference)
-```
-
-After `find_package`, a project can also print exactly which SDK it found:
-
-```cmake
-message(STATUS "microLLM ${microLLM_VERSION}")
-message(STATUS "C++ standard: ${microLLM_CXX_STANDARD}")
-message(STATUS "HIP enabled: ${microLLM_WITH_HIP}")
-message(STATUS "HIP architectures: ${microLLM_HIP_ARCHITECTURES}")
-```
-
-This is useful when several CPU, Radeon, or Instinct builds are installed on the same
-machine. An empty architecture value is expected for a CPU-only package.
-
-There are two supported ways to tell CMake where that package is:
-
-| Situation | Configure the other project with | Meaning |
-|---|---|---|
-| Developing both projects locally | `-DmicroLLM_DIR=/absolute/path/to/microLLM-rocm/build/cpu-debug` | use the already-built checkout; no install step |
-| Installing or packaging an application | `-DCMAKE_PREFIX_PATH=/absolute/path/to/install/microllm` | use a relocatable installed SDK |
-
-The first path is convenient while editing microLLM. The second path is the correct
-one for deployment, CI artifacts, and sharing a built SDK.
-
-To create the installed SDK:
-
-```bash
-cmake --install build/cpu-debug --prefix "$PWD/install/microllm"
-```
-
-The copy-paste-ready independent project in
-[`examples/package-consumer`](examples/package-consumer) proves this exact workflow.
-It is also executed by the `PackageConfig.PublicExample` CTest gate, so the README path
-cannot silently become an uncompiled snippet.
-
-Both paths supply the headers, static libraries, C++20 requirement, transitive
-microLLM libraries, and any HIP/hipBLASLt/RCCL dependencies recorded by the selected
-build. They do not copy microLLM's warning or instrumentation compile flags into the
-other project. A deliberately instrumented static build carries only the runtime link
-option its object files require. Complete external consumer examples, including the plain-C API, are in
-[Install and use from another CMake project](#install-and-use-from-another-cmake-project).
-
-### Install and use from another CMake project
-
-The Config package is a small "instruction card" for CMake. It tells another project
-where the headers and libraries are, which libraries depend on each other, and whether
-this build needs HIP, hipBLASLt, or RCCL. A consumer should not copy source files or
-write `-I`, `-L`, and `-l` flags by hand.
+microLLM installs a relocatable CMake Config package. In plain language, the Config file
+is the SDK's address card: another project names the capability it needs, and CMake
+supplies the headers, libraries, C++20 requirement, and enabled backend dependencies.
+Do not copy source files or hand-write `-I`, `-L`, and `-l` flags.
 
 #### 1. Install microLLM
 
-Install a CPU build into an explicit prefix:
+The small SDK preset omits tests, command-line applications, examples, benchmarks,
+Python tests, and PyTorch adapters while retaining the C++ libraries and stable C ABI:
 
 ```bash
-cmake -S . -B build/install-cpu \
-  -DMICROLLM_ENABLE_HIP=OFF \
-  -DMICROLLM_BUILD_TESTS=OFF \
-  -DMICROLLM_BUILD_EXAMPLES=OFF \
-  -DMICROLLM_BUILD_BENCHMARKS=OFF
-cmake --build build/install-cpu --parallel
-cmake --install build/install-cpu --prefix "$PWD/install/microllm"
+cmake --preset sdk-cpu
+cmake --build --preset sdk-cpu --parallel
+cmake --install build/sdk-cpu --prefix "$PWD/install/microllm"
 ```
 
-The same command installs a HIP or RCCL build when the selected build directory was
-configured with those backends.
+For HIP or RCCL, install the already verified `hip-release` or `rccl-release` build
+directory instead. Installation never changes which backends were compiled into it.
 
 #### 2. Create a separate C++ consumer
 
@@ -514,6 +469,17 @@ installed Config directory. For local development, `microLLM_DIR` may instead po
 the configured microLLM build directory. Do not point either variable at the unbuilt
 source directory.
 
+For active development, installation is optional. Point `microLLM_DIR` at an already
+configured and built microLLM directory:
+
+```bash
+cmake -S . -B build \
+  -DmicroLLM_DIR=/absolute/path/to/microLLM-rocm/build/cpu-debug
+```
+
+Use the build-tree form only while developing both projects together. Use the installed
+prefix for deployment, CI artifacts, and sharing an SDK.
+
 Installed targets are:
 
 | Target | Purpose |
@@ -530,7 +496,9 @@ Installed targets are:
 | `microLLM::capi` | Stable plain-C ABI when built with `MICROLLM_BUILD_CAPI=ON` |
 | `microLLM::multi_gpu` | RCCL data-parallel components when built with RCCL |
 
-`microLLMConfig.cmake` exposes `microLLM_WITH_HIP`,
+`microLLMConfig.cmake` exposes `microLLM_VERSION` and its `MAJOR`, `MINOR`, and
+`PATCH` fields, plus `microLLM_CXX_STANDARD`, `microLLM_HIP_ARCHITECTURES`,
+`microLLM_WITH_HIP`,
 `microLLM_WITH_HIPBLASLT`, `microLLM_WITH_RCCL`, `microLLM_WITH_CAPI`,
 `microLLM_WITH_SANITIZERS`, `microLLM_WITH_COVERAGE`, and
 `microLLM_AVAILABLE_COMPONENTS`. It resolves the backend dependencies recorded by the
@@ -548,6 +516,11 @@ build may carry only its required runtime link option. Both gates also prove tha
 missing component and an incompatible pre-1.0 minor version are rejected.
 `PackageConfig.PublicExample` separately installs the SDK and builds the short public
 example shown above, keeping the beginner path under continuous test.
+
+The copy-paste-ready independent project in
+[`examples/package-consumer`](examples/package-consumer) is the smallest supported
+consumer. The three package tests execute that public path rather than merely checking
+that Config files were copied.
 
 The complete compiler, CMake, ROCm, library, Python, and troubleshooting matrix is in
 [Build from source](docs/dev/build.md).
