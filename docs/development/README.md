@@ -408,3 +408,5 @@ the next gate. Records are append-only except for factual corrections.
   exact versioned registry, accumulated-error counterexample and 24-process default rejection.
 - [2026-08-24-bf16-grouped-qkv.md](2026-08-24-bf16-grouped-qkv.md):
   phase-delta target selection, pointer-stable grouped plans and two-model rejection.
+- [2026-08-24-bf16-grouped-qkv-expanded.md](2026-08-24-bf16-grouped-qkv-expanded.md):
+  64-candidate recovery, device user arguments, steady keep and setup-gate rejection.

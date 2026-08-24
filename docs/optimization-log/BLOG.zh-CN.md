@@ -3233,3 +3233,20 @@ Qwen/DeepSeek Event达到1.881×/1.225×，输出误差只有2.44e-4以内。
 默认策略discard。现在不能写`if (model == qwen)`；需要更多checkpoint证明hidden或宽度规则。
 
 ![BF16 grouped QKV](assets/bf16-grouped-qkv.svg)
+
+## 208. Experiment 191：多找48个候选，DeepSeek终于过线，但首次成本不能藏
+
+上一轮“DeepSeek不适合GroupedQKV”的解释并不成立，真正缺的是搜索覆盖。64候选在三个独立
+进程中稳定选出Qwen `64713`、DeepSeek `64755`，算子Event到2.010×/1.692×。最终完整模型
+中位数为1.0458×/1.0295×，两者都过1.01；logits、top token和peak门继续通过。
+
+我们也犯了一次测量错误：一开始把operator runner和model runner同时放到GPU0。发现后立即中止，
+并串行独占重跑，污染数据没有提交。之后phase delta显示Qwen/DeepSeek每步GEMM调用
+217→169、253→197，总Kernel时间改善1.019×/1.021×；新增三次输出cast吃掉了一部分收益。
+
+还有一个更隐蔽的问题。每个block独立initialize会让首次forward约5.7秒。改用一个共享kernel和
+device user arguments后，每个block只准备小参数，总共不到0.7ms。但hipBLASLt第一次kernel初始化
+仍要约204–208ms，超过100ms门。因此steady policy keep，默认/一次性CLI仍off。未来scheduler可以
+在接收请求前显式prewarm，再测真实TTFT，不能继续增加warm-up假装首次请求不存在。
+
+![Expanded BF16 grouped QKV](assets/bf16-grouped-qkv-expanded.svg)

@@ -1,0 +1,41 @@
+{
+  "comparisons": [
+    {
+      "event_speedup_median": 2.010077007329,
+      "maximum_absolute_error": 0.000224091113,
+      "maximum_rms_error": 6.2327648e-05,
+      "model": "qwen",
+      "passing_candidates": 64,
+      "reinitialized_event_speedup_median": 0.954473419582,
+      "reinitialized_wall_speedup_median": 0.971178127935,
+      "rows": 512,
+      "solution_indices": [
+        64713
+      ],
+      "wall_speedup_median": 1.569251806994,
+      "workspace_bytes": 720
+    },
+    {
+      "event_speedup_median": 1.692402362234,
+      "maximum_absolute_error": 0.000243678689,
+      "maximum_rms_error": 0.00010838168,
+      "model": "deepseek",
+      "passing_candidates": 64,
+      "reinitialized_event_speedup_median": 0.958102986479,
+      "reinitialized_wall_speedup_median": 0.996408424587,
+      "rows": 512,
+      "solution_indices": [
+        64755
+      ],
+      "wall_speedup_median": 1.492864245189,
+      "workspace_bytes": 720
+    }
+  ],
+  "decision": "keep pointer-stable grouped-QKV primitive",
+  "direct_fp32_unsupported_rows": 6,
+  "operator_keep": true,
+  "raw_processes": 12,
+  "record_type": "bf16_grouped_qkv_matrix_summary",
+  "schema_version": 1,
+  "status": "pass"
+}

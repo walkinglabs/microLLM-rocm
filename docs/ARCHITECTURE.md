@@ -405,6 +405,12 @@ more expensive than three ordinary submissions, so a plan may be used only after
 stable. Experiment 190 retains this as an explicit exact-shape capability but rejects the default
 because only Qwen, not DeepSeek, clears the end-to-end 1.01 gate.
 
+Experiment 191 expands the exact search and changes the implementation boundary. One initialized
+GroupedGemm kernel is shared across blocks; small device user-argument records carry each block's
+weight pointers. Both models then pass steady throughput, but first kernel initialization remains
+about 204–208 ms. The explicit warmed policy is retained, while one-shot/default inference remains
+off until serving can prewarm before request admission.
+
 ## Stable integration boundary
 
 The long-term integration seam is a C-compatible descriptor plus explicit stream

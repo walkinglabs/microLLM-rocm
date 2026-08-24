@@ -14,6 +14,7 @@
 #include <microllm/core/storage.h>
 #include <microllm/core/tensor.h>
 #include <microllm/ops/ops.h>
+#include <microllm/runtime/memory.h>
 #include <microllm/runtime/runtime.h>
 
 namespace {
@@ -374,6 +375,36 @@ int main(int argc, char** argv) {
                 }
             }
         });
+        const auto user_arguments_setup_start = std::chrono::steady_clock::now();
+        check(grouped.setProblem(m, n, k, batch, epilogues, inputs),
+              "GroupedGemm::setProblem(user arguments)");
+        check(grouped.initialize(
+                  best_algorithm, workspace.data(), true, nullptr),
+              "GroupedGemm::initialize(user arguments)");
+        std::vector<hipblaslt_ext::UserArguments> host_arguments(widths.size());
+        check(grouped.getDefaultValueForDeviceUserArguments(
+                  host_arguments.data()),
+              "GroupedGemm::getDefaultValueForDeviceUserArguments");
+        microllm::Storage device_arguments(
+            host_arguments.size() * sizeof(hipblaslt_ext::UserArguments), device);
+        microllm::runtime::copy_bytes(
+            device_arguments.data(), device, host_arguments.data(),
+            microllm::Device::cpu(), device_arguments.num_bytes());
+        microllm::runtime::synchronize(device);
+        const auto user_arguments_setup_finish = std::chrono::steady_clock::now();
+        const auto user_arguments_time = time([&] {
+            check(grouped.run(device_arguments.data(), nullptr),
+                  "GroupedGemm::run(user arguments)");
+            if (model_comparison) {
+                for (std::size_t group = 0; group < widths.size(); ++group) {
+                    microllm::ops::cast_out_(
+                        grouped_outputs[group], candidate_outputs[group]);
+                }
+            }
+        });
+        const auto user_arguments_setup_ms =
+            std::chrono::duration<double, std::milli>(
+                user_arguments_setup_finish - user_arguments_setup_start).count();
         std::cout << std::setprecision(12)
                   << "{\"schema_version\":1,\"status\":\"pass\""
                   << ",\"record_type\":\"bf16_grouped_qkv_probe\""
@@ -414,7 +445,17 @@ int main(int argc, char** argv) {
                   << ",\"reinitialized_event_speedup\":"
                   << baseline_time[0] / reinitialized_time[0]
                   << ",\"reinitialized_wall_speedup\":"
-                  << baseline_time[2] / reinitialized_time[2] << "}\n";
+                  << baseline_time[2] / reinitialized_time[2]
+                  << ",\"user_arguments_setup_ms\":"
+                  << user_arguments_setup_ms
+                  << ",\"user_arguments_event_ms_p50\":"
+                  << user_arguments_time[0]
+                  << ",\"user_arguments_wall_ms_p50\":"
+                  << user_arguments_time[2]
+                  << ",\"user_arguments_event_speedup\":"
+                  << baseline_time[0] / user_arguments_time[0]
+                  << ",\"user_arguments_wall_speedup\":"
+                  << baseline_time[2] / user_arguments_time[2] << "}\n";
         return errors.finite && errors.maximum <= maximum_tolerance ? 0 : 2;
     } catch (const std::exception& error) {
         std::cerr << "grouped QKV probe failed: " << error.what() << '\n';

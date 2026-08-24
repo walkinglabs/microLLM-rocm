@@ -5,6 +5,7 @@
 #include <atomic>
 #include <bit>
 #include <charconv>
+#include <chrono>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
@@ -47,6 +48,12 @@ thread_local std::map<Bf16GroupedQkvKey, int> bf16_grouped_qkv_registry;
 thread_local std::size_t bf16_grouped_qkv_plan_hits = 0;
 thread_local std::size_t bf16_grouped_qkv_plan_misses = 0;
 thread_local std::size_t bf16_grouped_qkv_dispatches = 0;
+thread_local std::size_t bf16_grouped_qkv_algorithm_hits = 0;
+thread_local std::size_t bf16_grouped_qkv_algorithm_misses = 0;
+thread_local std::size_t bf16_grouped_qkv_kernel_hits = 0;
+thread_local std::size_t bf16_grouped_qkv_kernel_misses = 0;
+thread_local double bf16_grouped_qkv_kernel_setup_ms = 0.0;
+thread_local double bf16_grouped_qkv_argument_setup_ms = 0.0;
 
 struct TuningEnvironment {
     std::string architecture;
@@ -948,9 +955,42 @@ using Bf16GroupedQkvPlanKey = std::tuple<
     std::uintptr_t, std::uintptr_t, std::uintptr_t, std::uintptr_t,
     std::uintptr_t, std::uintptr_t, std::uintptr_t, std::uintptr_t>;
 
-class Bf16GroupedQkvPlan {
+using Bf16GroupedQkvAlgorithmKey =
+    std::tuple<Bf16GroupedQkvKey, int, int>;
+thread_local std::map<Bf16GroupedQkvAlgorithmKey, hipblasLtMatmulAlgo_t>
+    bf16_grouped_qkv_algorithms;
+
+hipblasLtMatmulAlgo_t grouped_qkv_algorithm(
+    Handle& handle, const Bf16GroupedQkvKey& key,
+    int solution_index, Device device) {
+    const Bf16GroupedQkvAlgorithmKey algorithm_key{
+        key, solution_index, device.index()};
+    const auto found = bf16_grouped_qkv_algorithms.find(algorithm_key);
+    if (found != bf16_grouped_qkv_algorithms.end()) {
+        ++bf16_grouped_qkv_algorithm_hits;
+        return found->second;
+    }
+    ++bf16_grouped_qkv_algorithm_misses;
+    std::vector<int> indices{solution_index};
+    std::vector<hipblasLtMatmulHeuristicResult_t> algorithms;
+    check_status(hipblaslt_ext::getAlgosFromIndex(
+                     handle.get(), indices, algorithms),
+                 "getAlgosFromIndex(BF16 grouped QKV)");
+    if (algorithms.empty()) {
+        throw std::invalid_argument(
+            "registered BF16 grouped QKV solution index is unavailable");
+    }
+    const auto algorithm = algorithms.front().algo;
+    bf16_grouped_qkv_algorithms.emplace(algorithm_key, algorithm);
+    return algorithm;
+}
+
+using Bf16GroupedQkvKernelKey =
+    std::tuple<Bf16GroupedQkvKey, int, int, std::uintptr_t>;
+
+class Bf16GroupedQkvKernel {
 public:
-    Bf16GroupedQkvPlan(
+    Bf16GroupedQkvKernel(
         Handle& handle, const Bf16GroupedQkvKey& key, int solution_index,
         const Tensor& input_bf16, const Tensor& query_weight_bf16,
         const Tensor& key_weight_bf16, const Tensor& value_weight_bf16,
@@ -981,38 +1021,54 @@ public:
         }
         check_status(grouped_.setProblem(m, n, k, batch, epilogues, inputs),
                      "GroupedGemm::setProblem(BF16 QKV)");
-        std::vector<int> indices{solution_index};
-        std::vector<hipblasLtMatmulHeuristicResult_t> algorithms;
-        check_status(hipblaslt_ext::getAlgosFromIndex(
-                         handle.get(), indices, algorithms),
-                     "getAlgosFromIndex(BF16 grouped QKV)");
-        for (auto& result : algorithms) {
-            hipblaslt_ext::GemmTuning tuning;
-            std::size_t workspace_bytes = 0;
-            auto candidate = result.algo;
-            if (grouped_.isAlgoSupported(
-                    candidate, tuning, workspace_bytes) !=
-                    HIPBLAS_STATUS_SUCCESS ||
-                workspace_bytes > workspace_limit) {
-                continue;
-            }
-            workspace_ = Storage(workspace_bytes, device);
-            check_status(grouped_.initialize(
-                             candidate, workspace_.data(), false,
-                             reinterpret_cast<hipStream_t>(stream)),
-                         "GroupedGemm::initialize(BF16 QKV)");
-            initialized_ = true;
-            return;
+        auto candidate = grouped_qkv_algorithm(
+            handle, key, solution_index, device);
+        hipblaslt_ext::GemmTuning tuning;
+        std::size_t workspace_bytes = 0;
+        if (grouped_.isAlgoSupported(
+                candidate, tuning, workspace_bytes) !=
+                HIPBLAS_STATUS_SUCCESS ||
+            workspace_bytes > workspace_limit) {
+            throw std::invalid_argument(
+                "registered BF16 grouped QKV solution is unsupported");
         }
-        throw std::invalid_argument(
-            "registered BF16 grouped QKV solution is unsupported");
+        workspace_ = Storage(workspace_bytes, device);
+        check_status(grouped_.initialize(
+                         candidate, workspace_.data(), true,
+                         reinterpret_cast<hipStream_t>(stream)),
+                     "GroupedGemm::initialize(BF16 QKV)");
+        host_arguments_.resize(3);
+        check_status(grouped_.getDefaultValueForDeviceUserArguments(
+                         host_arguments_.data()),
+                     "GroupedGemm::getDefaultValueForDeviceUserArguments(BF16 QKV)");
     }
 
-    void run(void* stream) {
-        if (!initialized_) {
-            throw std::logic_error("BF16 grouped QKV plan is uninitialized");
+    Storage make_arguments(
+        const Tensor& input_bf16, const Tensor& query_weight_bf16,
+        const Tensor& key_weight_bf16, const Tensor& value_weight_bf16,
+        Tensor& query_bf16, Tensor& key_bf16, Tensor& value_bf16,
+        Device device) const {
+        auto arguments = host_arguments_;
+        const std::vector<const Tensor*> weights{
+            &query_weight_bf16, &key_weight_bf16, &value_weight_bf16};
+        const std::vector<Tensor*> outputs{&query_bf16, &key_bf16, &value_bf16};
+        for (std::size_t group = 0; group < arguments.size(); ++group) {
+            arguments[group].a = const_cast<void*>(weights[group]->data());
+            arguments[group].b = const_cast<void*>(input_bf16.data());
+            arguments[group].c = outputs[group]->data();
+            arguments[group].d = outputs[group]->data();
         }
-        check_status(grouped_.run(reinterpret_cast<hipStream_t>(stream)),
+        Storage device_arguments(
+            arguments.size() * sizeof(hipblaslt_ext::UserArguments), device);
+        runtime::copy_bytes(
+            device_arguments.data(), device, arguments.data(), Device::cpu(),
+            device_arguments.num_bytes());
+        return device_arguments;
+    }
+
+    void run(Storage& arguments, void* stream) {
+        check_status(grouped_.run(
+                         arguments.data(), reinterpret_cast<hipStream_t>(stream)),
                      "GroupedGemm::run(BF16 QKV)");
     }
 
@@ -1021,7 +1077,32 @@ private:
     float beta_ = 0.0F;
     hipblaslt_ext::GroupedGemm grouped_;
     Storage workspace_;
-    bool initialized_ = false;
+    std::vector<hipblaslt_ext::UserArguments> host_arguments_;
+};
+
+thread_local std::map<Bf16GroupedQkvKernelKey,
+                      std::shared_ptr<Bf16GroupedQkvKernel>>
+    bf16_grouped_qkv_kernels;
+
+class Bf16GroupedQkvPlan {
+public:
+    Bf16GroupedQkvPlan(
+        std::shared_ptr<Bf16GroupedQkvKernel> kernel,
+        const Tensor& input_bf16, const Tensor& query_weight_bf16,
+        const Tensor& key_weight_bf16, const Tensor& value_weight_bf16,
+        Tensor& query_bf16, Tensor& key_bf16, Tensor& value_bf16,
+        Device device)
+        : kernel_(std::move(kernel)),
+          arguments_(kernel_->make_arguments(
+              input_bf16, query_weight_bf16, key_weight_bf16,
+              value_weight_bf16, query_bf16, key_bf16, value_bf16,
+              device)) {}
+
+    void run(void* stream) { kernel_->run(arguments_, stream); }
+
+private:
+    std::shared_ptr<Bf16GroupedQkvKernel> kernel_;
+    Storage arguments_;
 };
 
 thread_local std::map<Bf16GroupedQkvPlanKey,
@@ -1073,12 +1154,39 @@ bool try_bf16_grouped_qkv(
     if (found == bf16_grouped_qkv_plans.end()) {
         ++bf16_grouped_qkv_plan_misses;
         auto& handle = handle_for_device(workspace.input_bf16.device());
+        const Bf16GroupedQkvKernelKey kernel_key{
+            key, registered->second, workspace.input_bf16.device().index(),
+            reinterpret_cast<std::uintptr_t>(stream)};
+        auto kernel = bf16_grouped_qkv_kernels.find(kernel_key);
+        if (kernel == bf16_grouped_qkv_kernels.end()) {
+            ++bf16_grouped_qkv_kernel_misses;
+            const auto setup_start = std::chrono::steady_clock::now();
+            auto grouped_kernel = std::make_shared<Bf16GroupedQkvKernel>(
+                handle, key, registered->second, workspace.input_bf16,
+                query_weight_bf16, key_weight_bf16, value_weight_bf16,
+                workspace.query_fallback_bf16,
+                workspace.key_fallback_bf16,
+                workspace.value_fallback_bf16,
+                workspace.input_bf16.device(), stream);
+            const auto setup_finish = std::chrono::steady_clock::now();
+            bf16_grouped_qkv_kernel_setup_ms +=
+                std::chrono::duration<double, std::milli>(
+                    setup_finish - setup_start).count();
+            kernel = bf16_grouped_qkv_kernels.emplace(
+                kernel_key, std::move(grouped_kernel)).first;
+        } else {
+            ++bf16_grouped_qkv_kernel_hits;
+        }
+        const auto argument_start = std::chrono::steady_clock::now();
         auto plan = std::make_unique<Bf16GroupedQkvPlan>(
-            handle, key, registered->second, workspace.input_bf16,
+            kernel->second, workspace.input_bf16,
             query_weight_bf16, key_weight_bf16, value_weight_bf16,
             workspace.query_fallback_bf16, workspace.key_fallback_bf16,
-            workspace.value_fallback_bf16, workspace.input_bf16.device(),
-            stream);
+            workspace.value_fallback_bf16, workspace.input_bf16.device());
+        const auto argument_finish = std::chrono::steady_clock::now();
+        bf16_grouped_qkv_argument_setup_ms +=
+            std::chrono::duration<double, std::milli>(
+                argument_finish - argument_start).count();
         found = bf16_grouped_qkv_plans.emplace(
             plan_key, std::move(plan)).first;
     } else {
@@ -1927,6 +2035,8 @@ void register_bf16_grouped_qkv_algorithm(
             "BF16 grouped QKV key does not match a visible environment");
     }
     bf16_grouped_qkv_registry.insert_or_assign(key, solution_index);
+    bf16_grouped_qkv_algorithms.clear();
+    bf16_grouped_qkv_kernels.clear();
     bf16_grouped_qkv_plans.clear();
 #else
     (void)key;
@@ -1940,7 +2050,15 @@ void clear_bf16_grouped_qkv_registry() noexcept {
     bf16_grouped_qkv_plan_hits = 0;
     bf16_grouped_qkv_plan_misses = 0;
     bf16_grouped_qkv_dispatches = 0;
+    bf16_grouped_qkv_algorithm_hits = 0;
+    bf16_grouped_qkv_algorithm_misses = 0;
+    bf16_grouped_qkv_kernel_hits = 0;
+    bf16_grouped_qkv_kernel_misses = 0;
+    bf16_grouped_qkv_kernel_setup_ms = 0.0;
+    bf16_grouped_qkv_argument_setup_ms = 0.0;
 #if MICROLLM_HAS_HIPBLASLT
+    bf16_grouped_qkv_algorithms.clear();
+    bf16_grouped_qkv_kernels.clear();
     bf16_grouped_qkv_plans.clear();
 #endif
 }
@@ -1949,6 +2067,20 @@ Bf16GroupedQkvStats bf16_grouped_qkv_stats() noexcept {
     return {
         .registered_entries = bf16_grouped_qkv_registry.size(),
 #if MICROLLM_HAS_HIPBLASLT
+        .algorithm_entries = bf16_grouped_qkv_algorithms.size(),
+#else
+        .algorithm_entries = 0,
+#endif
+        .algorithm_hits = bf16_grouped_qkv_algorithm_hits,
+        .algorithm_misses = bf16_grouped_qkv_algorithm_misses,
+#if MICROLLM_HAS_HIPBLASLT
+        .kernel_entries = bf16_grouped_qkv_kernels.size(),
+#else
+        .kernel_entries = 0,
+#endif
+        .kernel_hits = bf16_grouped_qkv_kernel_hits,
+        .kernel_misses = bf16_grouped_qkv_kernel_misses,
+#if MICROLLM_HAS_HIPBLASLT
         .plan_entries = bf16_grouped_qkv_plans.size(),
 #else
         .plan_entries = 0,
@@ -1956,6 +2088,8 @@ Bf16GroupedQkvStats bf16_grouped_qkv_stats() noexcept {
         .plan_hits = bf16_grouped_qkv_plan_hits,
         .plan_misses = bf16_grouped_qkv_plan_misses,
         .dispatches = bf16_grouped_qkv_dispatches,
+        .kernel_setup_ms = bf16_grouped_qkv_kernel_setup_ms,
+        .argument_setup_ms = bf16_grouped_qkv_argument_setup_ms,
     };
 }
 

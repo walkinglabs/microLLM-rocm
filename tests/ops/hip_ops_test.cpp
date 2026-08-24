@@ -519,16 +519,25 @@ TEST(HipBf16ProjectionTest, GroupedQkvCachesExactPointerStablePlan) {
     Tensor candidate_query({rows, hidden}, DType::Float32, gpu);
     Tensor candidate_key({rows, kv}, DType::Float32, gpu);
     Tensor candidate_value({rows, kv}, DType::Float32, gpu);
+    bf16_qkv_projection_out_(
+        candidate_query, candidate_key, candidate_value,
+        candidate_workspace, input, query_weight, key_weight,
+        value_weight);
+    runtime::synchronize(gpu);
     runtime::reset_transfer_stats();
-    for (int iteration = 0; iteration < 2; ++iteration) {
-        bf16_qkv_projection_out_(
-            candidate_query, candidate_key, candidate_value,
-            candidate_workspace, input, query_weight, key_weight,
-            value_weight);
-    }
+    bf16_qkv_projection_out_(
+        candidate_query, candidate_key, candidate_value,
+        candidate_workspace, input, query_weight, key_weight,
+        value_weight);
     runtime::synchronize(gpu);
     const auto stats = bf16_grouped_qkv_stats();
     EXPECT_EQ(stats.registered_entries, 1U);
+    EXPECT_EQ(stats.algorithm_entries, 1U);
+    EXPECT_EQ(stats.algorithm_misses, 1U);
+    EXPECT_EQ(stats.algorithm_hits, 0U);
+    EXPECT_EQ(stats.kernel_entries, 1U);
+    EXPECT_EQ(stats.kernel_misses, 1U);
+    EXPECT_EQ(stats.kernel_hits, 0U);
     EXPECT_EQ(stats.plan_entries, 1U);
     EXPECT_EQ(stats.plan_misses, 1U);
     EXPECT_EQ(stats.plan_hits, 1U);

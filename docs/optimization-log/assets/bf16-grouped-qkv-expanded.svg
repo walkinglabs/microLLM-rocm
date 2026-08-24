@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="560" viewBox="0 0 1000 560" role="img" aria-labelledby="title desc">
+  <title id="title">Expanded grouped QKV search and setup gate</title>
+  <desc id="desc">Both models pass steady throughput after 64-candidate search, while first kernel setup exceeds the default gate.</desc>
+  <rect width="1000" height="560" fill="#0b1020"/>
+  <text x="55" y="48" fill="#f8fafc" font-family="sans-serif" font-size="28" font-weight="700">Experiment 191 · expanded grouped QKV</text>
+  <text x="55" y="78" fill="#94a3b8" font-family="sans-serif" font-size="15">64 candidates · final indices 64713 / 64755 · complete T512 model gate</text>
+
+  <text x="55" y="130" fill="#e2e8f0" font-family="sans-serif" font-size="19" font-weight="700">Operator Event speedup</text>
+  <rect x="220" y="153" width="650" height="28" rx="6" fill="#38bdf8"/>
+  <text x="55" y="174" fill="#cbd5e1" font-family="sans-serif" font-size="16">Qwen</text>
+  <text x="885" y="174" fill="#e0f2fe" font-family="monospace" font-size="16">2.010×</text>
+  <rect x="220" y="197" width="548" height="28" rx="6" fill="#38bdf8"/>
+  <text x="55" y="218" fill="#cbd5e1" font-family="sans-serif" font-size="16">DeepSeek</text>
+  <text x="783" y="218" fill="#e0f2fe" font-family="monospace" font-size="16">1.692×</text>
+
+  <text x="55" y="285" fill="#e2e8f0" font-family="sans-serif" font-size="19" font-weight="700">Steady complete-model speedup</text>
+  <line x1="220" y1="310" x2="220" y2="425" stroke="#e2e8f0" stroke-width="2"/>
+  <line x1="360" y1="310" x2="360" y2="425" stroke="#f59e0b" stroke-width="2" stroke-dasharray="8 7"/>
+  <text x="330" y="302" fill="#fbbf24" font-family="sans-serif" font-size="13">1.01× gate</text>
+  <line x1="220" y1="343" x2="861" y2="343" stroke="#34d399" stroke-width="28" stroke-linecap="round"/>
+  <text x="55" y="350" fill="#cbd5e1" font-family="sans-serif" font-size="16">Qwen</text>
+  <text x="876" y="350" fill="#a7f3d0" font-family="monospace" font-size="16">1.0458×</text>
+  <line x1="220" y1="397" x2="633" y2="397" stroke="#34d399" stroke-width="28" stroke-linecap="round"/>
+  <text x="55" y="404" fill="#cbd5e1" font-family="sans-serif" font-size="16">DeepSeek</text>
+  <text x="648" y="404" fill="#a7f3d0" font-family="monospace" font-size="16">1.0295×</text>
+
+  <rect x="55" y="462" width="890" height="65" rx="10" fill="#172033" stroke="#334155"/>
+  <text x="75" y="486" fill="#a7f3d0" font-family="sans-serif" font-size="14">Steady gate: both models pass · Kernel time improves 1.019× / 1.021×</text>
+  <text x="75" y="510" fill="#fda4af" font-family="sans-serif" font-size="14">Setup gate: 207.9 / 203.7 ms &gt; 100 ms · explicit warmed policy only</text>
+</svg>

@@ -88,10 +88,18 @@ struct Bf16GroupedQkvKey {
 
 struct Bf16GroupedQkvStats {
     std::size_t registered_entries = 0;
+    std::size_t algorithm_entries = 0;
+    std::size_t algorithm_hits = 0;
+    std::size_t algorithm_misses = 0;
+    std::size_t kernel_entries = 0;
+    std::size_t kernel_hits = 0;
+    std::size_t kernel_misses = 0;
     std::size_t plan_entries = 0;
     std::size_t plan_hits = 0;
     std::size_t plan_misses = 0;
     std::size_t dispatches = 0;
+    double kernel_setup_ms = 0.0;
+    double argument_setup_ms = 0.0;
 };
 
 // Exact hipBLASLt descriptor/environment identity for an explicitly accepted

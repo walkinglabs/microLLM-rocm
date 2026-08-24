@@ -42,6 +42,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [11](steps/11-fp8.md) | planned | cached FP8 weight/dynamic scale | FP8 track |
 | [12](steps/12-hip-graph-final.md) | complete | exact FP32 QK/PV registry与整模反驳 | 24进程bit-exact；最高1.009×，默认关闭 |
 | [13](steps/13-bf16-grouped-qkv.md) | complete | pointer-stable BF16 GroupedGemm QKV | operator 1.881×/1.225×；model 1.032×/1.001× |
+| [14](steps/14-bf16-grouped-qkv-expanded.md) | complete | 64候选 + device user arguments | steady 1.046×/1.030×；setup约204ms |
 
 ## 为什么按这个顺序
 

@@ -377,6 +377,9 @@ The first reports pointer-stable and per-call-reinitialized timing separately. T
 QKV Arena, checks complete logits/top tokens, plan hit/miss/dispatch counters, throughput and peak.
 `--bf16-grouped-qkv-algorithm-index` is an explicit experiment flag; default inference registers
 no grouped plan.
+The expanded runner defaults to 64 candidates and final exact indices. JSON separates steady
+throughput from `bf16_grouped_qkv_kernel_setup_ms` and argument setup. A warmed speedup is not a
+TTFT claim when the first kernel setup exceeds the declared admission budget.
 
 ## What remains
 

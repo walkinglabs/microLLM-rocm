@@ -232,6 +232,13 @@ but Qwen/DeepSeek reach 1.032×/1.001× and peak rises 0.34%/0.17%. The explicit
 the two-model default and any model-name dispatch are closed. A shape policy needs additional
 checkpoints before it becomes a distinct hypothesis.
 
+Experiment 191 reopens only the candidate-count assumption and finds stable exact indices
+64713/64755. Operator Event becomes 2.010×/1.692× and steady complete-model throughput becomes
+1.046×/1.030×. Device user arguments reduce 24/28 grouped initializations to one shared kernel;
+phase delta confirms 48/56 fewer GEMM calls and total Kernel gains of 1.019×/1.021×. The remaining
+kernel setup is 207.9/203.7 ms, above the 100 ms default gate. The warmed serving policy is kept;
+one-shot default is closed until scheduler-level pre-admission warmup is measured.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

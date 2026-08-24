@@ -1830,6 +1830,18 @@ int main(int argc, char** argv) {
                   << command.bf16_grouped_qkv_algorithm_index
                   << ",\"bf16_grouped_qkv_registered_entries\":"
                   << grouped_qkv_stats.registered_entries
+                  << ",\"bf16_grouped_qkv_algorithm_entries\":"
+                  << grouped_qkv_stats.algorithm_entries
+                  << ",\"bf16_grouped_qkv_algorithm_hits\":"
+                  << grouped_qkv_stats.algorithm_hits
+                  << ",\"bf16_grouped_qkv_algorithm_misses\":"
+                  << grouped_qkv_stats.algorithm_misses
+                  << ",\"bf16_grouped_qkv_kernel_entries\":"
+                  << grouped_qkv_stats.kernel_entries
+                  << ",\"bf16_grouped_qkv_kernel_hits\":"
+                  << grouped_qkv_stats.kernel_hits
+                  << ",\"bf16_grouped_qkv_kernel_misses\":"
+                  << grouped_qkv_stats.kernel_misses
                   << ",\"bf16_grouped_qkv_plan_entries\":"
                   << grouped_qkv_stats.plan_entries
                   << ",\"bf16_grouped_qkv_plan_hits\":"
@@ -1838,6 +1850,10 @@ int main(int argc, char** argv) {
                   << grouped_qkv_stats.plan_misses
                   << ",\"bf16_grouped_qkv_dispatches\":"
                   << grouped_qkv_stats.dispatches
+                  << ",\"bf16_grouped_qkv_kernel_setup_ms\":"
+                  << grouped_qkv_stats.kernel_setup_ms
+                  << ",\"bf16_grouped_qkv_argument_setup_ms\":"
+                  << grouped_qkv_stats.argument_setup_ms
                   << ",\"fp32_attention_qk_solution_index\":"
                   << command.fp32_attention_qk_solution_index
                   << ",\"fp32_attention_pv_solution_index\":"

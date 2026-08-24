@@ -167,9 +167,9 @@ needed to run a real training and generation loop:
   architecture and backend versions, then verifies support on first dispatch; 24-process official
   T512 gating is bit-exact with unchanged peak, but QK/PV/both reach at most `1.009×` Qwen and
   `1.004×` DeepSeek, so every solution policy remains explicit and default-off;
-- pointer-stable BF16 GroupedGemm submits Q/K/V together through exact per-block cached plans;
-  operator Event improves `1.881×/1.225×`, but official T512 reaches `1.032×` Qwen and only
-  `1.001×` DeepSeek with 0.34%/0.17% peak cost, so the explicit primitive stays default-off;
+- pointer-stable BF16 GroupedGemm submits Q/K/V together through one initialized kernel plus
+  per-block device arguments; a 64-candidate search reaches `2.010×/1.692×` operator Event and
+  `1.046×/1.030×` steady official T512, but 204–208 ms first setup keeps it explicit/default-off;
 - a phase-independent exact-size HIP pool with immediate legacy-default-Stream reuse and strict
   permanent disablement for non-default Streams;
 - a cross-framework trace runner for operator/layer values and latency comparisons.

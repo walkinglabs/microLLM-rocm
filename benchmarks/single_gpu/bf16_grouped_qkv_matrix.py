@@ -21,7 +21,7 @@ def options() -> argparse.Namespace:
     parser.add_argument("--runs", type=int, default=3)
     parser.add_argument("--warmup", type=int, default=2)
     parser.add_argument("--repetitions", type=int, default=5)
-    parser.add_argument("--maximum-algorithms", type=int, default=16)
+    parser.add_argument("--maximum-algorithms", type=int, default=64)
     result = parser.parse_args()
     if (result.runs <= 0 or result.warmup < 0 or result.repetitions <= 0 or
             result.maximum_algorithms <= 0 or not result.binary.is_file()):

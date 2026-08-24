@@ -8823,6 +8823,131 @@ def validate_bf16_grouped_qkv(
         min(model_speedups, default=0.0), max(model_speedups, default=0.0)
 
 
+def validate_bf16_grouped_qkv_expanded(
+        errors: list[str]) -> tuple[int, int, float, float]:
+    data = REPOSITORY / "benchmarks/results/2026-08-24-bf16-grouped-qkv-expanded"
+    baseline = REPOSITORY / "benchmarks/results/2026-08-24-bf16-grouped-qkv"
+    operator = json.loads((data / "operator-summary.json").read_text(
+        encoding="utf-8"))
+    model = json.loads((data / "model-summary.json").read_text(
+        encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    operator_raw = [json.loads(line) for line in
+                    (data / "operator-raw.jsonl").read_text(
+                        encoding="utf-8").splitlines() if line.strip()]
+    model_raw = [json.loads(line) for line in
+                 (data / "model-raw.jsonl").read_text(
+                     encoding="utf-8").splitlines() if line.strip()]
+    qwen_candidate = json.loads((data / "qwen-candidate-profile-delta.json").read_text(
+        encoding="utf-8"))
+    deep_candidate = json.loads((data / "deepseek-candidate-profile-delta.json").read_text(
+        encoding="utf-8"))
+    qwen_baseline = json.loads((baseline / "qwen-profile-delta.json").read_text(
+        encoding="utf-8"))
+    deep_baseline = json.loads((baseline / "deepseek-profile-delta.json").read_text(
+        encoding="utf-8"))
+    operator_rows = {row.get("model"): row
+                     for row in operator.get("comparisons", [])}
+    model_rows = {row.get("model"): row
+                  for row in model.get("comparisons", [])}
+    expected_operator = {
+        "qwen": (2.010077007329, 0.954473419582, {64713}),
+        "deepseek": (1.692402362234, 0.958102986479, {64755}),
+    }
+    expected_model = {
+        "qwen2.5-0.5b": (1.0458010919547664, 64713, 207.91916),
+        "deepseek-r1-distill-qwen-1.5b":
+            (1.0295074344653419, 64755, 203.684388),
+    }
+    expected_tests = {
+        "cpu_debug": {"passed": 297, "total": 297},
+        "asan_ubsan": {"passed": 295, "total": 295},
+        "pytorch_enabled_cpu": {"passed": 271, "total": 271},
+        "hip_full_configuration": {
+            "passed": 465, "total": 465, "conditional_skips": 3},
+        "hip_label": {"passed": 158, "total": 158},
+        "rccl_multi_gpu": {"passed": 12, "total": 12},
+        "rccl_full_label": {"passed": 14, "total": 14},
+    }
+    profile_pairs = (
+        (qwen_baseline, qwen_candidate, 217, 169, 1.018),
+        (deep_baseline, deep_candidate, 253, 197, 1.020),
+    )
+    profile_ok = True
+    for before, after, before_calls, after_calls, minimum_speedup in profile_pairs:
+        profile_speedup = (
+            float(before.get("total_kernel_ns_per_step", 0.0)) /
+            float(after.get("total_kernel_ns_per_step", math.inf)))
+        if before.get("status") != "pass" or after.get("status") != "pass" or \
+                after.get("track") != "inference_prefill_kernel_phase_delta" or \
+                profile_speedup < minimum_speedup or \
+                int(before.get("categories", [{}])[0].get("calls_per_step", -1)) != \
+                    before_calls or \
+                int(after.get("categories", [{}])[0].get("calls_per_step", -1)) != \
+                    after_calls:
+            profile_ok = False
+    if operator.get("status") != "pass" or len(operator_raw) != 12 or \
+            operator.get("raw_processes") != 12 or \
+            operator.get("operator_keep") is not True or \
+            operator.get("direct_fp32_unsupported_rows") != 6 or \
+            set(operator_rows) != set(expected_operator) or \
+            any(abs(float(row.get("event_speedup_median", 0.0)) -
+                    expected_operator[name][0]) > 1.0e-9 or
+                abs(float(row.get("reinitialized_event_speedup_median", 0.0)) -
+                    expected_operator[name][1]) > 1.0e-9 or
+                set(row.get("solution_indices", [])) !=
+                    expected_operator[name][2] or
+                row.get("passing_candidates") != 64
+                for name, row in operator_rows.items()) or \
+            model.get("status") != "pass" or len(model_raw) != 12 or \
+            model.get("raw_processes") != 12 or \
+            model.get("correctness_gate") is not True or \
+            model.get("performance_gate") is not True or \
+            model.get("memory_gate") is not True or \
+            model.get("setup_gate") is not False or \
+            model.get("keep_steady_policy") is not True or \
+            model.get("keep_default") is not False or \
+            set(model_rows) != set(expected_model) or \
+            any(abs(float(row.get("grouped_speedup", 0.0)) -
+                    expected_model[name][0]) > 1.0e-9 or
+                row.get("solution_index") != expected_model[name][1] or
+                abs(float(row.get("grouped_kernel_setup_ms", 0.0)) -
+                    expected_model[name][2]) > 1.0e-6 or
+                row.get("grouped_algorithm_entries") != 1 or
+                row.get("grouped_kernel_entries") != 1 or
+                float(row.get("grouped_argument_setup_ms", math.inf)) > 1.0 or
+                row.get("finite_complete_logits") is not True or
+                row.get("top_tokens_equal") is not True or
+                float(row.get("peak_ratio", 2.0)) > 1.005
+                for name, row in model_rows.items()) or \
+            not profile_ok or verification.get("status") != "pass" or \
+            verification.get("tests") != expected_tests or \
+            verification.get("registered_test_files") != 70 or \
+            verification.get("steady_policy_kept") is not True or \
+            verification.get("default_policy_kept") is not False:
+        errors.append("expanded BF16 grouped QKV evidence changed")
+    source = (REPOSITORY / "src/ops/optimized.cpp").read_text(encoding="utf-8")
+    header = (REPOSITORY / "include/microllm/ops/ops.h").read_text(
+        encoding="utf-8")
+    runner = (REPOSITORY / "benchmarks/single_gpu/"
+              "compare_bf16_grouped_qkv_models.py").read_text(encoding="utf-8")
+    for token, document in (
+            ("hipblaslt_ext::UserArguments", source),
+            ("class Bf16GroupedQkvKernel", source),
+            ("kernel_setup_ms", header),
+            ("maximum-kernel-setup-ms", runner),
+            ("default=64713", runner),
+            ("default=64755", runner)):
+        if token not in document:
+            errors.append("expanded BF16 grouped QKV source contract changed")
+            break
+    speedups = [float(row.get("grouped_speedup", 0.0))
+                for row in model_rows.values()]
+    return len(operator_raw), len(model_raw), \
+        min(speedups, default=0.0), max(speedups, default=0.0)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -9318,6 +9443,9 @@ def main() -> int:
         fp32_model_maximum = validate_fp32_attention_model_gate(errors)
     grouped_qkv_operator, grouped_qkv_model, grouped_qkv_minimum, \
         grouped_qkv_maximum = validate_bf16_grouped_qkv(errors)
+    grouped_expanded_operator, grouped_expanded_model, \
+        grouped_expanded_minimum, grouped_expanded_maximum = \
+        validate_bf16_grouped_qkv_expanded(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -9591,6 +9719,9 @@ def main() -> int:
           f"{fp32_model_minimum:.3f}/{fp32_model_maximum:.3f} "
           f"bf16_grouped_qkv={grouped_qkv_operator}/{grouped_qkv_model}/"
           f"{grouped_qkv_minimum:.3f}/{grouped_qkv_maximum:.3f} "
+          f"bf16_grouped_expanded={grouped_expanded_operator}/"
+          f"{grouped_expanded_model}/{grouped_expanded_minimum:.3f}/"
+          f"{grouped_expanded_maximum:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

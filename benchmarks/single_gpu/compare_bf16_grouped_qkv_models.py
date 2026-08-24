@@ -25,17 +25,18 @@ def options() -> argparse.Namespace:
     parser.add_argument("--warmup", type=int, default=2)
     parser.add_argument("--steps", type=int, default=5)
     parser.add_argument("--sequence", type=int, default=512)
-    parser.add_argument("--qwen-index", type=int, default=64699)
-    parser.add_argument("--deepseek-index", type=int, default=64701)
+    parser.add_argument("--qwen-index", type=int, default=64713)
+    parser.add_argument("--deepseek-index", type=int, default=64755)
     parser.add_argument("--maximum-absolute-tolerance", type=float, default=0.25)
     parser.add_argument("--rms-tolerance", type=float, default=0.05)
     parser.add_argument("--maximum-peak-ratio", type=float, default=1.005)
+    parser.add_argument("--maximum-kernel-setup-ms", type=float, default=100.0)
     result = parser.parse_args()
     if (result.runs <= 0 or result.warmup < 0 or result.steps <= 0 or
             result.sequence <= 0 or result.sequence > 4096 or
             result.qwen_index < 0 or result.deepseek_index < 0 or
             result.maximum_absolute_tolerance < 0 or result.rms_tolerance < 0 or
-            result.maximum_peak_ratio < 1.0):
+            result.maximum_peak_ratio < 1.0 or result.maximum_kernel_setup_ms < 0):
         parser.error("grouped-QKV model options are invalid")
     if not result.manifest.is_file() or not result.binary.is_file():
         parser.error("manifest and binary must exist")
@@ -221,6 +222,14 @@ def main() -> int:
                 grouped_rows["grouped"], "bf16_grouped_qkv_plan_misses")),
             "grouped_dispatches": int(median(
                 grouped_rows["grouped"], "bf16_grouped_qkv_dispatches")),
+            "grouped_algorithm_entries": int(median(
+                grouped_rows["grouped"], "bf16_grouped_qkv_algorithm_entries")),
+            "grouped_kernel_entries": int(median(
+                grouped_rows["grouped"], "bf16_grouped_qkv_kernel_entries")),
+            "grouped_kernel_setup_ms": median(
+                grouped_rows["grouped"], "bf16_grouped_qkv_kernel_setup_ms"),
+            "grouped_argument_setup_ms": median(
+                grouped_rows["grouped"], "bf16_grouped_qkv_argument_setup_ms"),
             "maximum_absolute_logit_difference": maximum,
             "maximum_rms_logit_difference": rms,
             "finite_complete_logits": finite,
@@ -236,7 +245,10 @@ def main() -> int:
     performance = all(row["grouped_speedup"] >= 1.01 for row in comparisons)
     memory = all(row["peak_ratio"] <= args.maximum_peak_ratio
                  for row in comparisons)
-    keep = correctness and performance and memory
+    setup = all(row["grouped_kernel_setup_ms"] <=
+                args.maximum_kernel_setup_ms for row in comparisons)
+    steady_keep = correctness and performance and memory
+    keep = steady_keep and setup
     summary = {
         "schema_version": 1, "status": "pass" if correctness else "fail",
         "record_type": "bf16_grouped_qkv_model_summary",
@@ -244,11 +256,16 @@ def main() -> int:
         "maximum_absolute_tolerance": args.maximum_absolute_tolerance,
         "rms_tolerance": args.rms_tolerance,
         "maximum_peak_ratio": args.maximum_peak_ratio,
+        "maximum_kernel_setup_ms": args.maximum_kernel_setup_ms,
         "correctness_gate": correctness, "performance_gate": performance,
-        "memory_gate": memory, "keep_default": keep,
+        "memory_gate": memory, "setup_gate": setup,
+        "keep_steady_policy": steady_keep, "keep_default": keep,
         "comparisons": comparisons,
-        "decision": ("keep selective BF16 grouped QKV plans" if keep else
-                     "retain grouped-QKV probe; reject model policy"),
+        "decision": (
+            "keep BF16 grouped QKV default" if keep else
+            "keep explicit warmed BF16 grouped QKV policy; default off"
+            if steady_keep else
+            "retain grouped-QKV probe; reject model policy"),
     }
     with (args.output_directory / "raw.jsonl").open("w", encoding="utf-8") as output:
         for record in records:

@@ -27,8 +27,12 @@ with open(a['--logits-output'],'wb') as f:f.write(struct.pack('4f',*values))
 print(json.dumps({'status':'pass','prefill_tokens_per_second':102.0 if grouped else 100.0,
 'engine_peak_bytes':1003 if grouped else 1000,'engine_allocation_calls':8 if grouped else 10,
 'bf16_grouped_qkv_registered_entries':1 if grouped else 0,
+'bf16_grouped_qkv_algorithm_entries':1 if grouped else 0,
+'bf16_grouped_qkv_kernel_entries':1 if grouped else 0,
 'bf16_grouped_qkv_plan_entries':2 if grouped else 0,'bf16_grouped_qkv_plan_hits':4 if grouped else 0,
 'bf16_grouped_qkv_plan_misses':2 if grouped else 0,'bf16_grouped_qkv_dispatches':6 if grouped else 0,
+'bf16_grouped_qkv_kernel_setup_ms':0.5 if grouped else 0,
+'bf16_grouped_qkv_argument_setup_ms':0.1 if grouped else 0,
 'top_logits':[{'token':7,'logit':4.0}]}))
 """, encoding="utf-8")
         os.chmod(fake, 0o755)
@@ -63,6 +67,8 @@ print(json.dumps({'status':'pass','prefill_tokens_per_second':102.0 if grouped e
         assert summary["correctness_gate"] is True
         assert summary["performance_gate"] is True
         assert summary["memory_gate"] is True
+        assert summary["setup_gate"] is True
+        assert summary["keep_steady_policy"] is True
         assert summary["keep_default"] is True
         assert len(summary["comparisons"]) == 2
         assert all(row["grouped_speedup"] == 1.02

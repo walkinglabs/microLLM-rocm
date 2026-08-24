@@ -54,6 +54,10 @@ must include all three weights, BF16 intermediates, FP32 outputs, device and Str
 `run()` is valid for a cache hit; a separate reinitialized measurement must prove why cacheability
 is required. Direct grouped FP32-output rejection must remain visible rather than silently changing
 the precision boundary.
+When many pointer sets share one grouped shape, do not initialize one GroupedGemm per pointer set.
+Initialize one kernel with device user arguments, cache the algorithm/kernel by exact environment,
+and store only a device argument record per pointer plan. Report kernel setup and argument setup
+separately; warm steady-state timing cannot justify hiding first-use latency.
 - readable HIP launch declarations: `src/ops/hip/kernels.h`;
 - optimized matmul policy: `src/ops/optimized.cpp`;
 - correctness-first matmul/AdamW tuners: `src/ops/tuning.cpp` and
