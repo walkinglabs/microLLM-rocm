@@ -85,6 +85,68 @@ TEST(HipOpsTest, InPlaceAddPreservesStorageWithoutPayloadTransfers) {
     EXPECT_EQ(destination.to_vector(), (std::vector<float>{5, 3, -3, 6}));
 }
 
+TEST(HipOpsTest, MatmulOutUsesCallerStorageWithoutPayloadTransfers) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    const auto left_cpu = Tensor::from_vector({1, 2, 3, 4, 5, 6}, {2, 3});
+    const auto right_cpu = Tensor::from_vector({7, 8, 9, 10, 11, 12}, {3, 2});
+    const auto left = left_cpu.to(gpu);
+    const auto right = right_cpu.to(gpu);
+    Tensor output({2, 2}, DType::Float32, gpu);
+    const auto* address = output.storage().data();
+    runtime::reset_transfer_stats();
+    matmul_out_(output, left, right, MatmulImplementation::HipBLASLt);
+    runtime::synchronize(gpu);
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(output.storage().data(), address);
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    EXPECT_EQ(transfers.device_to_device_calls, 0U);
+    expect_near(output.to_vector(), matmul(left_cpu, right_cpu).to_vector());
+}
+
+TEST(HipGraphMatmulTest, CallerOwnedHipblasLtOutputCapturesAndReplays) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    constexpr std::int64_t kSize = 32;
+    std::vector<float> left_values(static_cast<std::size_t>(kSize * kSize));
+    std::vector<float> right_values(static_cast<std::size_t>(kSize * kSize));
+    for (std::size_t index = 0; index < left_values.size(); ++index) {
+        left_values[index] = static_cast<float>(static_cast<int>(index % 17) - 8) / 17.0F;
+        right_values[index] = static_cast<float>(static_cast<int>(index % 13) - 6) / 13.0F;
+    }
+    const auto expected = matmul(
+        Tensor::from_vector(left_values, {kSize, kSize}),
+        Tensor::from_vector(right_values, {kSize, kSize})).to_vector();
+    const auto left = Tensor::from_vector(left_values, {kSize, kSize}).to(gpu);
+    const auto right = Tensor::from_vector(right_values, {kSize, kSize}).to(gpu);
+    Tensor output({kSize, kSize}, DType::Float32, gpu);
+    const auto* address = output.storage().data();
+    runtime::Stream stream(gpu);
+    OpContext context;
+    context.stream = &stream;
+    matmul_out_(output, left, right, MatmulImplementation::HipBLASLt,
+                false, false, context);
+    stream.synchronize();
+
+    const auto work = [&] {
+        matmul_out_(output, left, right, MatmulImplementation::HipBLASLt,
+                    false, false, context);
+    };
+    auto graph = runtime::HipGraphExecutable::capture(stream, work);
+    EXPECT_GT(graph.node_count(), 0U);
+    runtime::reset_transfer_stats();
+    graph.launch(stream);
+    graph.launch(stream);
+    stream.synchronize();
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(output.storage().data(), address);
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    EXPECT_EQ(transfers.device_to_device_calls, 0U);
+    expect_near(output.to_vector(), expected, 2.0e-4F);
+}
+
 TEST(HipOpsTest, CastOutAndTransposeWriteCallerStorageWithoutPayloadTransfers) {
     require_gpu();
     const auto gpu = Device::hip(0);

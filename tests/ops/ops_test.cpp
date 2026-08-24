@@ -57,6 +57,37 @@ TEST(CpuOpsTest, InPlaceAddPreservesStorageAndRejectsUnsafeContracts) {
     EXPECT_THROW(add_in_place_(first, overlapping), std::invalid_argument);
 }
 
+TEST(CpuOpsTest, MatmulOutPreservesCallerStorageAndChecksAliases) {
+    const auto left = Tensor::from_vector({1, 2, 3, 4, 5, 6}, {2, 3});
+    const auto right = Tensor::from_vector({7, 8, 9, 10, 11, 12}, {3, 2});
+    Tensor output({2, 2});
+    const auto* address = output.storage().data();
+    matmul_out_(output, left, right, MatmulImplementation::Readable);
+    EXPECT_EQ(output.storage().data(), address);
+    EXPECT_EQ(output.to_vector(), (std::vector<float>{58, 64, 139, 154}));
+
+    Tensor transposed_output({3, 3});
+    matmul_out_(transposed_output, left, left,
+                MatmulImplementation::Readable, true, false);
+    EXPECT_EQ(transposed_output.to_vector(),
+              matmul_with_implementation(
+                  left, left, MatmulImplementation::Readable,
+                  true, false).to_vector());
+    Tensor wrong_shape({4});
+    EXPECT_THROW(matmul_out_(wrong_shape, left, right,
+                             MatmulImplementation::Readable),
+                 std::invalid_argument);
+    Tensor wrong_dtype({2, 2}, DType::BFloat16);
+    EXPECT_THROW(matmul_out_(wrong_dtype, left, right,
+                             MatmulImplementation::Readable),
+                 std::invalid_argument);
+    auto alias = Tensor::from_vector({1, 2, 3, 4}, {2, 2});
+    const auto identity = Tensor::from_vector({1, 0, 0, 1}, {2, 2});
+    EXPECT_THROW(matmul_out_(alias, alias, identity,
+                             MatmulImplementation::Readable),
+                 std::invalid_argument);
+}
+
 TEST(CpuOpsTest, EmbeddingBackwardAddAccumulatesDuplicateRowsInCallerStorage) {
     auto weight_gradient = Tensor::from_vector(
         {10, 20, 30, 40, 50, 60, 70, 80}, {4, 2});

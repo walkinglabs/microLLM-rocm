@@ -99,6 +99,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.HipGraphMatrixContract PROPERTIES
         LABELS "cpu;benchmark;graph;schema")
     add_test(
+        NAME Benchmark.HipGraphGemmMatrixContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_hip_graph_gemm_matrix.py
+    )
+    set_tests_properties(Benchmark.HipGraphGemmMatrixContract PROPERTIES
+        LABELS "cpu;benchmark;graph;matmul;schema")
+    add_test(
         NAME Coverage.OperatorAndTestFiles
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/audit_test_coverage.py
     )

@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="920" viewBox="0 0 1800 920">
+  <rect width="1800" height="920" fill="#f8fafc"/>
+  <text x="900" y="52" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 174 · hipBLASLt Graph · Capture Works, Speed Policy Fails</text>
+  <text x="900" y="84" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle">MI300X T512 shapes · stable caller-owned output · three-process medians</text>
+
+  <rect x="55" y="125" width="900" height="650" rx="14" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="505" y="168" font-family="Inter,Arial,sans-serif" font-size="21" fill="#172033" text-anchor="middle" font-weight="700">Wall speedup by repeated GEMM calls</text>
+  <line x1="150" y1="690" x2="885" y2="690" stroke="#64748b" stroke-width="2"/>
+  <line x1="150" y1="220" x2="150" y2="690" stroke="#64748b" stroke-width="2"/>
+  <line x1="150" y1="475" x2="885" y2="475" stroke="#dc2626" stroke-width="3" stroke-dasharray="10 8"/>
+  <text x="875" y="462" font-family="Inter,Arial,sans-serif" font-size="14" fill="#991b1b" text-anchor="end">1.00× break-even</text>
+  <line x1="150" y1="405" x2="885" y2="405" stroke="#f59e0b" stroke-width="2" stroke-dasharray="7 7"/>
+  <text x="875" y="393" font-family="Inter,Arial,sans-serif" font-size="13" fill="#92400e" text-anchor="end">1.02 keep line</text>
+
+  <polyline points="240,585 505,493 790,398" fill="none" stroke="#2563eb" stroke-width="7"/>
+  <polyline points="240,595 505,515 790,513" fill="none" stroke="#ef4444" stroke-width="7"/>
+  <g fill="#2563eb"><circle cx="240" cy="585" r="9"/><circle cx="505" cy="493" r="9"/><circle cx="790" cy="398" r="9"/></g>
+  <g fill="#ef4444"><circle cx="240" cy="595" r="9"/><circle cx="505" cy="515" r="9"/><circle cx="790" cy="513" r="9"/></g>
+  <g font-family="Inter,Arial,sans-serif" font-size="15" fill="#334155" text-anchor="middle">
+    <text x="240" y="720">1 call</text><text x="505" y="720">8 calls</text><text x="790" y="720">32 calls</text>
+  </g>
+  <g font-family="Inter,Arial,sans-serif" font-size="14" fill="#334155">
+    <rect x="245" y="195" width="22" height="6" fill="#2563eb"/><text x="278" y="204">Qwen: 0.906 → 1.022×</text>
+    <rect x="545" y="195" width="22" height="6" fill="#ef4444"/><text x="578" y="204">DeepSeek: 0.902 → 0.990×</text>
+  </g>
+
+  <rect x="1005" y="125" width="740" height="650" rx="14" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="1375" y="168" font-family="Inter,Arial,sans-serif" font-size="21" fill="#172033" text-anchor="middle" font-weight="700">DeepSeek 32-call profile</text>
+  <rect x="1070" y="225" width="610" height="100" rx="10" fill="#ecfdf5" stroke="#34d399"/>
+  <text x="1375" y="263" font-family="Inter,Arial,sans-serif" font-size="17" fill="#065f46" text-anchor="middle" font-weight="700">Host submissions really shrink</text>
+  <text x="1375" y="300" font-family="Inter,Arial,sans-serif" font-size="25" fill="#047857" text-anchor="middle" font-weight="700">321 module launches → 33 + 10 graph</text>
+  <rect x="1070" y="370" width="610" height="105" rx="10" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text x="1375" y="408" font-family="Inter,Arial,sans-serif" font-size="17" fill="#334155" text-anchor="middle" font-weight="700">Device work does not shrink</text>
+  <text x="1375" y="447" font-family="Inter,Arial,sans-serif" font-size="27" fill="#334155" text-anchor="middle" font-weight="700">322 Kernels → 322 Kernels</text>
+  <rect x="1070" y="520" width="610" height="155" rx="10" fill="#fee2e2" stroke="#f87171"/>
+  <text x="1375" y="560" font-family="Inter,Arial,sans-serif" font-size="18" fill="#991b1b" text-anchor="middle" font-weight="700">Cross-shape performance gate fails</text>
+  <text x="1375" y="600" font-family="Inter,Arial,sans-serif" font-size="15" fill="#334155" text-anchor="middle">wide GEMM is compute-dominated</text>
+  <text x="1375" y="630" font-family="Inter,Arial,sans-serif" font-size="15" fill="#334155" text-anchor="middle">keep stable-output API · reject repeated-GEMM Graph policy</text>
+
+  <rect x="55" y="825" width="1690" height="66" rx="12" fill="#172033"/>
+  <text x="900" y="854" font-family="Inter,Arial,sans-serif" font-size="18" fill="#ffffff" text-anchor="middle" font-weight="700">Tiny-Kernel Graph crossover does not automatically transfer to vendor GEMM</text>
+  <text x="900" y="879" font-family="Inter,Arial,sans-serif" font-size="14" fill="#cbd5e1" text-anchor="middle">Next region must be heterogeneous: small Kernels + GEMMs + planned lifetimes</text>
+</svg>

@@ -180,6 +180,12 @@ and do not propagate one `OpContext::stream` through the whole graph. Until a li
 caller-owned activation region makes those addresses stable, wrapping `model.loss()` in capture
 would violate this ownership contract.
 
+`matmul_out_` is the first vendor-library boundary under this rule. It writes a validated
+beta-zero matmul into caller Storage, rejects input aliases, and lets a warmed hipBLASLt call be
+captured on the explicit Stream. Experiment 174 proves capture compatibility and exact replay,
+but rejects repeated-GEMM Graph routing as a speed policy. A useful model region must combine
+small Kernels and GEMMs under one lifetime plan; repeating an independent GEMM is not that region.
+
 hipBLASLt GEMM also supports contiguous strided batches: leading Tensor dimensions become
 the batch count and last-two dimensions remain the matrix contract. Explicit batched
 selection is tested independently; Auto is not changed by operator-only timing.

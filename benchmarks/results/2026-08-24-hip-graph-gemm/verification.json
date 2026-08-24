@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "decision": "keep caller-owned matmul output; reject repeated vendor-GEMM Graph routing",
+  "tests": {
+    "cpu_debug": {"passed": 277, "total": 277},
+    "cpu_asan_ubsan": {"passed": 275, "total": 275},
+    "pytorch_enabled_cpu": {"passed": 251, "total": 251},
+    "hip_full_configuration": {
+      "passed": 420,
+      "total": 420,
+      "expected_environment_skips": 3
+    },
+    "hip_label": {"passed": 138, "total": 138},
+    "installed_package_consumer": "pass",
+    "coverage_manifest": "pass",
+    "optimization_log_validator": "pass",
+    "svg_xml": "pass"
+  },
+  "coverage": {
+    "lines_percent": 80.7,
+    "functions_percent": 90.3,
+    "branches_percent": 61.6
+  },
+  "matrix": {
+    "fresh_processes": 36,
+    "exact_stable_transfer_free_processes": 36,
+    "captured_node_count_processes": 36,
+    "qwen_32_call_wall_speedup": 1.0221409778931903,
+    "deepseek_32_call_wall_speedup": 0.9895200860220996,
+    "all_repeated_shapes_clear_1_02": false
+  },
+  "profile": {
+    "eager_kernel_calls": 322,
+    "graph_kernel_calls": 322,
+    "eager_hip_api_calls": 48217,
+    "graph_hip_api_calls": 45077,
+    "eager_module_launch_calls": 321,
+    "graph_capture_module_launch_calls": 33,
+    "graph_replay_calls": 10
+  }
+}

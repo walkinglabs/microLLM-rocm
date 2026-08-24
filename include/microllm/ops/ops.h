@@ -287,6 +287,12 @@ void save_matmul_tuning_cache(const std::filesystem::path& path);
 [[nodiscard]] Tensor matmul_with_implementation(
     const Tensor& left, const Tensor& right, MatmulImplementation implementation,
     bool transpose_left, bool transpose_right, const OpContext& context = {});
+// Writes op(left) @ op(right) into caller-owned Storage. The HIPBLASLt path is
+// capture-safe when inputs/output/workspace outlive the captured graph.
+void matmul_out_(Tensor& output, const Tensor& left, const Tensor& right,
+                 MatmulImplementation implementation,
+                 bool transpose_left = false, bool transpose_right = false,
+                 const OpContext& context = {});
 // Computes factor * (op(left) @ op(right)). hipBLASLt applies factor through
 // the GEMM alpha parameter; readable/CPU keeps an explicit composed reference.
 [[nodiscard]] Tensor matmul_scaled_with_implementation(

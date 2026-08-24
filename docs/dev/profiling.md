@@ -212,6 +212,18 @@ The benchmark owns every captured input/output allocation and reports setup sepa
 replay. It is a runtime launch-overhead measurement, not evidence that the eager Transformer can
 already be captured. See Experiment 173 for the allocation/Stream blockers.
 
+To probe real caller-owned hipBLASLt shapes:
+
+```bash
+python3 benchmarks/single_gpu/hip_graph_gemm_matrix.py \
+  --binary build/hip-release/benchmarks/microllm_bench_hip_graph_gemm \
+  --output-directory /tmp/microllm-hip-graph-gemm
+```
+
+This runner covers the Qwen/DeepSeek T512 projection shapes and keeps output addresses stable.
+Experiment 174 retains the conformance/API but rejects repeated vendor-only Graph replay as an
+end-to-end optimization.
+
 ## What remains
 
 There is no Python `@profile` decorator yet. The current stable entry points are the

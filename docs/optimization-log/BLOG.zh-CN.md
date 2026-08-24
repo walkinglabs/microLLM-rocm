@@ -2896,3 +2896,22 @@ Kernel launch，Graph只在capture时发129次，再做20次graph launch。总HI
 liveness；直接在`model.loss()`外套begin/end capture已经被证据否定。
 
 ![HIP Graph submission crossover](assets/hip-graph-submission-crossover.svg)
+
+## 191. Experiment 174：小包裹省跑腿，大机器却主要在干活
+
+Graph已经证明能压缩很多小Kernel提交，下一问是hipBLASLt。我们给matmul补了caller-owned output：
+输出形状、dtype、device、连续性都先检查，和输入共享Storage就拒绝。这样capture录下的是长期有效地址，
+而不是函数结束就消失的临时Tensor。
+
+当前MI300X确实支持：真实Qwen/Deep T512 GEMM都能capture，每次GEMM正好一个node，36个正式进程
+全部bit-exact、地址不变、零payload传输。兼容性问题解决了，性能结论却是否定的。
+
+Qwen重复1/8/32次分别0.906×、0.995×、1.022×；Deep是0.902×、0.989×、0.990×。只有Qwen32次
+勉强过1.02，不能覆盖Deep反例。profile里Deep 32×10执行Kernel仍322次；host module launch从
+321降到33，再加10次graph launch，可Kernel总时间8.40→8.60ms。
+
+原因很直白：小Kernel主要付“递交工单”的成本，宽GEMM主要在GPU里真正算数。文件袋减少跑腿，
+不会让机器里的乘法变少。所以`matmul_out_`作为稳定地址基础设施保留，vendor-only Graph策略拒绝。
+下一步只能捕获混合区域：GEMM前后的cast、activation、norm、reduction一起进入，并且地址寿命可计划。
+
+![HIP Graph GEMM counterexample](assets/hip-graph-gemm-discard.svg)

@@ -22,6 +22,7 @@
 | `multiply` | `S,S -> S` | `torch.mul` | 默认 | shape/device 不同、HIP 非连续 |
 | `scale` | `S,scalar -> S` | `x*scalar` | 默认 | 非 FP32、HIP 非连续 |
 | `matmul` | `[...,M,K] × [...,K,N] -> [...,M,N]`，batch 维完全相同 | `torch.matmul` | `2e-4,2e-4` | rank<2、rank/batch/inner 不同 |
+| `matmul_out_` | 数学shape同`matmul`；output预先分配、连续、同dtype/device且不与输入共享Storage | `torch.matmul` + caller地址检查 | `2e-4,2e-4` | output shape/dtype/device/stride错误或alias |
 | `matmul_scaled_with_implementation` | 与 matmul/transpose 合同相同，输出再乘有限 factor | `(op(A)@op(B))*factor` | `2e-4,2e-4` | matmul 合同错、factor 为 Inf/NaN |
 | `embedding` | weight `[V,D]`，index `S`，输出 `S+[D]` | `F.embedding` | 默认 | weight 非二维、index 非 Int32/越界、设备不同 |
 | `softmax` | `[...,D] -> [...,D]`，仅最后一维 | `torch.softmax(x,-1)` | `2e-6,2e-5` | 空最后维、非最后维 |
@@ -43,6 +44,8 @@
 | `repeat_gqa_kv_bthd` | K `[B,KV,T,D]`、V `[B,T,KV,D]` → H=KV×R 两个布局 | 分别在 dim1/dim2 `repeat_interleave` | 精确 | B/KV/T/D/device/连续性或 R 错 |
 
 `matmul_with_implementation` 的 `Readable` 和 `HipBLASLt` 是同一数学契约的不同执行办法；二者必须通过同一个 oracle。选择器和注册表只决定实现，不能改变 shape 或数值含义。
+`matmul_out_`也不增加新公式：PyTorch门仍是同一`torch.matmul`。它新增的是状态合同，因此CPU/HIP
+还必须检查调用前后output Storage地址不变、timed payload transfer为零，并拒绝任何输入alias。
 
 ## 反向原语
 

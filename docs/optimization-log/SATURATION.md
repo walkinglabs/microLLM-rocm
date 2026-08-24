@@ -132,6 +132,11 @@ the saturated local edits. Caller-owned HIP Graph replay improves every 32–512
 universal policy. The runtime primitive is retained, but this does not reopen local M=1 decode:
 model integration now requires explicit Stream propagation and stable graph-wide Storage.
 
+Experiment 174 narrows that open Graph track. A caller-owned hipBLASLt output is capture-safe and
+bit-exact, yet Qwen improves only at 32 repeats and DeepSeek remains below 1.0 even there. Host
+submission falls while 322 profiled Kernels remain 322. Repeating a vendor GEMM is closed; only a
+heterogeneous captured region with planned addresses remains a distinct model hypothesis.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

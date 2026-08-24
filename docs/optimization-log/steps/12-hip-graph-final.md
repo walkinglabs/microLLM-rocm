@@ -40,6 +40,17 @@ explicit Stream, and temporary Tensor allocation is prohibited/unsafe during cap
 step is a real vendor-GEMM caller-owned region, followed by execution-context propagation and
 stable activation lifetime. This step is not complete until a fixed model step passes.
 
+## Experiment 174 vendor-GEMM result
+
+`matmul_out_` now gives hipBLASLt a stable caller-owned output, and the current MI300X runtime
+captures each warmed GEMM as exactly one node with bit-exact replay. Compatibility is no longer a
+guess.
+
+Performance is still rejected. Qwen at 1/8/32 repeated T512 GEMMs reaches
+0.906×/0.995×/1.022×; DeepSeek reaches 0.902×/0.989×/0.990×. Profiler reduces host module-launch
+calls while leaving all GEMM Kernels intact. The next region must be heterogeneous—small Kernels
+around real GEMMs—not another repetition-count sweep of one vendor operation.
+
 ## Final matrix
 
 - FP32 fixed matrix and running-best curve;

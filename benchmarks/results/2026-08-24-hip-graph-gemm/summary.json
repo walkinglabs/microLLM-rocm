@@ -1,0 +1,177 @@
+{
+  "aggregation": "median of fresh processes with alternating mode order",
+  "comparisons": [
+    {
+      "calls": 1,
+      "captured_node_count_correct": true,
+      "columns": 896,
+      "event_speedup": 0.936626224056168,
+      "inner": 896,
+      "policies": {
+        "eager": {
+          "captured_nodes": 0.0,
+          "event_median_ms": 0.022812,
+          "setup_ms": 0.0,
+          "wall_median_ms": 0.0314645,
+          "wall_p95_ms": 0.03729305
+        },
+        "graph": {
+          "captured_nodes": 1.0,
+          "event_median_ms": 0.0243555,
+          "setup_ms": 0.269367,
+          "wall_median_ms": 0.034714,
+          "wall_p95_ms": 0.03718485
+        }
+      },
+      "rows": 512,
+      "shape_name": "qwen",
+      "wall_speedup": 0.9063922336809356
+    },
+    {
+      "calls": 8,
+      "captured_node_count_correct": true,
+      "columns": 896,
+      "event_speedup": 0.9939551619076605,
+      "inner": 896,
+      "policies": {
+        "eager": {
+          "captured_nodes": 0.0,
+          "event_median_ms": 0.102193002,
+          "setup_ms": 0.0,
+          "wall_median_ms": 0.111391,
+          "wall_p95_ms": 0.12947795
+        },
+        "graph": {
+          "captured_nodes": 8.0,
+          "event_median_ms": 0.102814499,
+          "setup_ms": 0.356681,
+          "wall_median_ms": 0.1119595,
+          "wall_p95_ms": 0.11634075
+        }
+      },
+      "rows": 512,
+      "shape_name": "qwen",
+      "wall_speedup": 0.9949222709997811
+    },
+    {
+      "calls": 32,
+      "captured_node_count_correct": true,
+      "columns": 896,
+      "event_speedup": 1.0293423813546143,
+      "inner": 896,
+      "policies": {
+        "eager": {
+          "captured_nodes": 0.0,
+          "event_median_ms": 0.394478992,
+          "setup_ms": 0.0,
+          "wall_median_ms": 0.4038525,
+          "wall_p95_ms": 0.51312255
+        },
+        "graph": {
+          "captured_nodes": 32.0,
+          "event_median_ms": 0.383233994,
+          "setup_ms": 0.568497,
+          "wall_median_ms": 0.3951045,
+          "wall_p95_ms": 0.46957825
+        }
+      },
+      "rows": 512,
+      "shape_name": "qwen",
+      "wall_speedup": 1.0221409778931903
+    },
+    {
+      "calls": 1,
+      "captured_node_count_correct": true,
+      "columns": 1536,
+      "event_speedup": 0.9734192020355134,
+      "inner": 1536,
+      "policies": {
+        "eager": {
+          "captured_nodes": 0.0,
+          "event_median_ms": 0.035961999,
+          "setup_ms": 0.0,
+          "wall_median_ms": 0.0443415,
+          "wall_p95_ms": 0.048808
+        },
+        "graph": {
+          "captured_nodes": 1.0,
+          "event_median_ms": 0.036944,
+          "setup_ms": 0.282824,
+          "wall_median_ms": 0.0491615,
+          "wall_p95_ms": 0.0520139
+        }
+      },
+      "rows": 512,
+      "shape_name": "deepseek",
+      "wall_speedup": 0.9019557987449529
+    },
+    {
+      "calls": 8,
+      "captured_node_count_correct": true,
+      "columns": 1536,
+      "event_speedup": 0.9856583436213743,
+      "inner": 1536,
+      "policies": {
+        "eager": {
+          "captured_nodes": 0.0,
+          "event_median_ms": 0.210819997,
+          "setup_ms": 0.0,
+          "wall_median_ms": 0.221068,
+          "wall_p95_ms": 0.230459
+        },
+        "graph": {
+          "captured_nodes": 8.0,
+          "event_median_ms": 0.213887498,
+          "setup_ms": 0.384345,
+          "wall_median_ms": 0.223526,
+          "wall_p95_ms": 0.2402322
+        }
+      },
+      "rows": 512,
+      "shape_name": "deepseek",
+      "wall_speedup": 0.9890035163694603
+    },
+    {
+      "calls": 32,
+      "captured_node_count_correct": true,
+      "columns": 1536,
+      "event_speedup": 0.9907495047397444,
+      "inner": 1536,
+      "policies": {
+        "eager": {
+          "captured_nodes": 0.0,
+          "event_median_ms": 0.850178003,
+          "setup_ms": 0.0,
+          "wall_median_ms": 0.859511,
+          "wall_p95_ms": 0.9696424
+        },
+        "graph": {
+          "captured_nodes": 32.0,
+          "event_median_ms": 0.858116001,
+          "setup_ms": 0.629143,
+          "wall_median_ms": 0.868614,
+          "wall_p95_ms": 0.9719857
+        }
+      },
+      "rows": 512,
+      "shape_name": "deepseek",
+      "wall_speedup": 0.9895200860220996
+    }
+  ],
+  "decision": "reject caller-owned hipBLASLt Graph boundary",
+  "gate_results": {
+    "captured_node_count": true,
+    "exact_stable_transfer_free": true,
+    "wall_speedup_calls_ge_8": false
+  },
+  "keep_gate": {
+    "captured_nodes": "one node per hipBLASLt call",
+    "maximum_absolute_and_rms_error": 0.0,
+    "stable_output_address": true,
+    "timed_payload_transfers": 0,
+    "wall_speedup_minimum_for_calls_ge_8": 1.02
+  },
+  "runs_per_case_mode": 3,
+  "schema_version": 1,
+  "status": "pass"
+}

@@ -371,3 +371,5 @@ the next gate. Records are append-only except for factual corrections.
   exclusive-owner accumulation, real allocation savings and a default-off model rebuttal.
 - [2026-08-24-hip-graph-runtime.md](2026-08-24-hip-graph-runtime.md):
   explicit-Stream capture/replay, submission crossover and honest model-readiness blockers.
+- [2026-08-24-hip-graph-gemm.md](2026-08-24-hip-graph-gemm.md):
+  caller-owned hipBLASLt output, capture conformance and repeated-GEMM rejection.

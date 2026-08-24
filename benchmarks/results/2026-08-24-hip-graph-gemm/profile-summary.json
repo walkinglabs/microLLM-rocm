@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "workload": "DeepSeek T512 512x1536 @ 1536x1536, 32 calls, zero warm-up, 10 repetitions",
+  "policies": {
+    "eager": {
+      "kernel_calls": 322,
+      "kernel_duration_ns": 8400743,
+      "total_hip_api_calls": 48217,
+      "hip_ext_module_launch_calls": 321,
+      "hip_set_device_calls": 661,
+      "hip_graph_launch_calls": 0
+    },
+    "graph": {
+      "kernel_calls": 322,
+      "kernel_duration_ns": 8601407,
+      "total_hip_api_calls": 45077,
+      "hip_ext_module_launch_calls": 33,
+      "hip_set_device_calls": 97,
+      "hip_graph_launch_calls": 10
+    }
+  },
+  "delta": {
+    "kernel_calls": 0,
+    "kernel_duration_ns": 200664,
+    "hip_api_calls_saved": 3140,
+    "hip_ext_module_launch_calls_saved": 288,
+    "hip_set_device_calls_saved": 564
+  },
+  "interpretation": "Graph compresses vendor-kernel host submissions but does not reduce GEMM device work. The wider DeepSeek GEMM is compute-dominated and Graph replay overhead does not survive the uninstrumented wall gate."
+}

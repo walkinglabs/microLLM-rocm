@@ -1,4 +1,5 @@
 #include <microllm/ops/ops.h>
+#include <microllm/runtime/memory.h>
 
 #include <algorithm>
 #include <atomic>
@@ -41,6 +42,36 @@ struct TuningEnvironment {
     int runtime_version = 0;
     int driver_version = 0;
 };
+
+Shape matmul_output_shape(const Tensor& left, const Tensor& right,
+                          bool transpose_left, bool transpose_right) {
+    if (left.ndim() < 2 || right.ndim() != left.ndim() ||
+        !is_floating_point(left.dtype()) || right.dtype() != left.dtype() ||
+        left.device() != right.device() || !left.is_contiguous() ||
+        !right.is_contiguous()) {
+        throw std::invalid_argument(
+            "matmul output requires matching-rank contiguous floating tensors");
+    }
+    const auto rank = static_cast<std::size_t>(left.ndim());
+    Shape output_shape(left.shape().begin(), left.shape().end() - 2);
+    for (std::size_t dimension = 0; dimension + 2 < rank; ++dimension) {
+        if (left.shape()[dimension] != right.shape()[dimension]) {
+            throw std::invalid_argument("matmul batch dimensions must match");
+        }
+    }
+    const auto left_rows = left.shape()[rank - 2];
+    const auto left_columns = left.shape()[rank - 1];
+    const auto right_rows = right.shape()[rank - 2];
+    const auto right_columns = right.shape()[rank - 1];
+    const auto rows = transpose_left ? left_columns : left_rows;
+    const auto inner = transpose_left ? left_rows : left_columns;
+    const auto right_inner = transpose_right ? right_columns : right_rows;
+    const auto columns = transpose_right ? right_rows : right_columns;
+    if (right_inner != inner) throw std::invalid_argument("matmul inner dimensions mismatch");
+    output_shape.push_back(rows);
+    output_shape.push_back(columns);
+    return output_shape;
+}
 
 TuningEnvironment tuning_environment(Device device) {
     if (device.is_cpu()) return {"host", 0, 0};
@@ -709,23 +740,29 @@ Bf16Plan& bf16_plan(Handle& handle, std::int64_t rows, std::int64_t inner,
     return *result;
 }
 
-Tensor hipblaslt_matmul(const Tensor& left, const Tensor& right,
-                        bool transpose_left, bool transpose_right,
-                        const OpContext& context, float alpha = 1.0F) {
-    if (!left.device().is_hip() || right.device() != left.device() ||
-        !is_floating_point(left.dtype()) || right.dtype() != left.dtype() ||
-        left.ndim() < 2 || right.ndim() != left.ndim() || !left.is_contiguous() ||
-        !right.is_contiguous()) {
+void hipblaslt_matmul_out(Tensor& output, const Tensor& left,
+                          const Tensor& right, bool transpose_left,
+                          bool transpose_right, const OpContext& context,
+                          float alpha = 1.0F) {
+    const auto output_shape = matmul_output_shape(
+        left, right, transpose_left, transpose_right);
+    if (!left.device().is_hip() || output.device() != left.device() ||
+        output.dtype() != left.dtype() || output.shape() != output_shape ||
+        !output.is_contiguous()) {
         throw std::invalid_argument(
-            "hipBLASLt matmul requires matching contiguous floating tensors on one HIP device");
+            "hipBLASLt output must be a matching contiguous Tensor on the input HIP device");
+    }
+    const auto output_storage = output.storage();
+    const auto left_storage = left.storage();
+    const auto right_storage = right.storage();
+    if (output_storage.data() != nullptr &&
+        (output_storage.data() == left_storage.data() ||
+         output_storage.data() == right_storage.data())) {
+        throw std::invalid_argument("hipBLASLt output must not alias an input Storage");
     }
     const auto rank = static_cast<std::size_t>(left.ndim());
     std::int64_t batches = 1;
-    Shape output_shape(left.shape().begin(), left.shape().end() - 2);
     for (std::size_t dimension = 0; dimension + 2 < rank; ++dimension) {
-        if (left.shape()[dimension] != right.shape()[dimension]) {
-            throw std::invalid_argument("hipBLASLt matmul batch dimensions must match");
-        }
         batches *= left.shape()[dimension];
     }
     if (batches > std::numeric_limits<std::int32_t>::max()) {
@@ -736,13 +773,7 @@ Tensor hipblaslt_matmul(const Tensor& left, const Tensor& right,
     const auto right_rows = right.shape()[rank - 2];
     const auto right_columns = right.shape()[rank - 1];
     const auto rows = transpose_left ? left_columns : left_rows;
-    const auto inner = transpose_left ? left_rows : left_columns;
-    const auto right_inner = transpose_right ? right_columns : right_rows;
     const auto columns = transpose_right ? right_rows : right_columns;
-    if (right_inner != inner) throw std::invalid_argument("matmul inner dimensions mismatch");
-    output_shape.push_back(rows);
-    output_shape.push_back(columns);
-    Tensor output(output_shape, left.dtype(), left.device());
     static Handle handle;
     // The row-major expression is submitted as C^T=op(right)^T*op(left)^T.
     // Physical row-major memory is a column-major view of its transpose, so
@@ -769,6 +800,15 @@ Tensor hipblaslt_matmul(const Tensor& left, const Tensor& right,
                      context.workspace_bytes,
                      reinterpret_cast<hipStream_t>(context.native_stream(left.device()))),
                  "hipblasLtMatmul");
+}
+
+Tensor hipblaslt_matmul(const Tensor& left, const Tensor& right,
+                        bool transpose_left, bool transpose_right,
+                        const OpContext& context, float alpha = 1.0F) {
+    Tensor output(matmul_output_shape(left, right, transpose_left, transpose_right),
+                  left.dtype(), left.device());
+    hipblaslt_matmul_out(output, left, right, transpose_left, transpose_right,
+                         context, alpha);
     return output;
 }
 
@@ -1555,6 +1595,60 @@ Tensor matmul_with_implementation(const Tensor& left, const Tensor& right,
         }
     }
     return Tensor::from_vector(values, {rows, columns}, left.dtype());
+}
+
+void matmul_out_(Tensor& output, const Tensor& left, const Tensor& right,
+                 MatmulImplementation implementation, bool transpose_left,
+                 bool transpose_right, const OpContext& context) {
+    const auto expected_shape = matmul_output_shape(
+        left, right, transpose_left, transpose_right);
+    if (!output.defined() || output.shape() != expected_shape ||
+        output.dtype() != left.dtype() || output.device() != left.device() ||
+        !output.is_contiguous()) {
+        throw std::invalid_argument(
+            "matmul output must match result shape, dtype, device, and contiguity");
+    }
+    const auto output_storage = output.storage();
+    if (output_storage.data() != nullptr &&
+        (output_storage.data() == left.storage().data() ||
+         output_storage.data() == right.storage().data())) {
+        throw std::invalid_argument("matmul output must not alias an input Storage");
+    }
+    if (implementation == MatmulImplementation::Auto) {
+        implementation = choose_matmul_implementation(
+            left, right, transpose_left, transpose_right, context);
+    }
+    if (implementation == MatmulImplementation::HipBLASLt) {
+#if MICROLLM_HAS_HIPBLASLT
+        hipblaslt_matmul_out(output, left, right, transpose_left,
+                             transpose_right, context);
+        return;
+#else
+        throw std::runtime_error("microLLM was built without hipBLASLt");
+#endif
+    }
+    if (left.device().is_hip()) {
+        if (left.ndim() != 2) {
+            throw std::invalid_argument(
+                "readable caller-owned HIP matmul currently requires rank two");
+        }
+#if MICROLLM_HAS_HIP
+        hip::launch_matmul_transposed_typed(
+            left.data(), right.data(), output.data(), left.dtype(),
+            left.shape()[0], left.shape()[1], right.shape()[0], right.shape()[1],
+            transpose_left, transpose_right,
+            context.native_stream(left.device()));
+        return;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    const auto reference = matmul_with_implementation(
+        left, right, MatmulImplementation::Readable,
+        transpose_left, transpose_right, context);
+    runtime::copy_bytes(
+        output.data(), output.device(), reference.data(), reference.device(),
+        static_cast<std::size_t>(output.numel()) * dtype_size(output.dtype()));
 }
 
 Tensor matmul_scaled_with_implementation(

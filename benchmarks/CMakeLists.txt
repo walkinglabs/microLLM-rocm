@@ -17,6 +17,10 @@ if(MICROLLM_HAS_HIP)
 endif()
 
 if(MICROLLM_HAS_HIP AND MICROLLM_HAS_HIPBLASLT)
+    add_executable(microllm_bench_hip_graph_gemm
+                   micro/benchmark_hip_graph_gemm.cpp)
+    target_link_libraries(microllm_bench_hip_graph_gemm PRIVATE
+        microllm::ops microllm::runtime hip::host roc::hipblaslt)
     add_executable(microllm_bench_precision micro/benchmark_precision.cpp)
     target_link_libraries(microllm_bench_precision PRIVATE microllm::ops microllm::runtime)
     add_executable(microllm_bench_int8 micro/benchmark_int8.cpp)
@@ -233,6 +237,12 @@ if(BUILD_TESTING)
         set_tests_properties(Benchmark.HipBiasGradientCooperative PROPERTIES
                              LABELS "hip;benchmark;backward;bias;correctness;smoke")
         if(MICROLLM_HAS_HIPBLASLT)
+            add_test(NAME Benchmark.HipGraphGemmSmoke
+                     COMMAND microllm_bench_hip_graph_gemm --mode graph
+                             --calls 2 --rows 32 --inner 32 --columns 32
+                             --warmup 1 --repetitions 2)
+            set_tests_properties(Benchmark.HipGraphGemmSmoke PROPERTIES
+                                 LABELS "hip;benchmark;graph;matmul;smoke")
             add_test(NAME Benchmark.HipPrecisionMatrix
                      COMMAND microllm_bench_precision --size 128 --warmup 1 --repetitions 2)
             set_tests_properties(Benchmark.HipPrecisionMatrix

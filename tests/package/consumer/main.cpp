@@ -49,6 +49,12 @@ int main() {
     auto inplace_sum = microllm::Tensor::from_vector({1.0F, 2.0F}, {2});
     microllm::ops::add_in_place_(
         inplace_sum, microllm::Tensor::from_vector({3.0F, 4.0F}, {2}));
+    microllm::Tensor caller_matmul({1, 1});
+    microllm::ops::matmul_out_(
+        caller_matmul,
+        microllm::Tensor::from_vector({1.0F, 2.0F}, {1, 2}),
+        microllm::Tensor::from_vector({3.0F, 4.0F}, {2, 1}),
+        microllm::ops::MatmulImplementation::Readable);
     const auto paired_repeat = microllm::ops::repeat_gqa_kv_bthd(
         microllm::Tensor::from_vector({1.0F, 2.0F}, {1, 1, 1, 2}),
         microllm::Tensor::from_vector({3.0F, 4.0F}, {1, 1, 1, 2}), 1);
@@ -102,6 +108,7 @@ int main() {
         gqa_layout_context.to_vector() != std::vector<float>({2.0F, 3.0F}) ||
         scaled_product.to_vector() != std::vector<float>({5.5F}) ||
         inplace_sum.to_vector() != std::vector<float>({4.0F, 6.0F}) ||
+        caller_matmul.to_vector() != std::vector<float>({11.0F}) ||
         paired_repeat.first.to_vector() != std::vector<float>({1.0F, 2.0F}) ||
         paired_repeat.second.to_vector() != std::vector<float>({3.0F, 4.0F}) ||
         broadcast_context.to_vector() != std::vector<float>({2.0F, 3.0F}) ||

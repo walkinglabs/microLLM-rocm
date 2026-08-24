@@ -7588,6 +7588,52 @@ def validate_hip_graph_runtime(
     return len(matrix), len(comparisons), minimum, maximum, api_saved
 
 
+def validate_hip_graph_gemm_discard(
+        errors: list[str]) -> tuple[int, int, float, float]:
+    data = REPOSITORY / "benchmarks/results/2026-08-24-hip-graph-gemm"
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    matrix = [json.loads(line) for line in (data / "matrix.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = summary.get("comparisons", [])
+    profile = json.loads((data / "profile-summary.json").read_text(
+        encoding="utf-8"))
+    indexed = {(row.get("shape_name"), row.get("calls")): row
+               for row in comparisons}
+    qwen32 = float(indexed.get(("qwen", 32), {}).get("wall_speedup", 0))
+    deep32 = float(indexed.get(("deepseek", 32), {}).get("wall_speedup", 2))
+    eager = profile.get("policies", {}).get("eager", {})
+    graph = profile.get("policies", {}).get("graph", {})
+    if verification.get("status") != "pass" or \
+            verification.get("tests", {}).get("hip_full_configuration", {}).get("total") != 420 or \
+            summary.get("status") != "pass" or \
+            summary.get("decision") != "reject caller-owned hipBLASLt Graph boundary" or \
+            len(matrix) != 36 or len(comparisons) != 6 or \
+            qwen32 < 1.02 or deep32 >= 1.0 or \
+            any(row.get("maximum_absolute_error") != 0 or
+                row.get("rms_error") != 0 or
+                row.get("output_address_stable") is not True or
+                row.get("host_to_device_calls") != 0 or
+                row.get("device_to_host_calls") != 0 or
+                row.get("device_to_device_calls") != 0 for row in matrix) or \
+            eager.get("kernel_calls") != graph.get("kernel_calls") or \
+            eager.get("hip_ext_module_launch_calls") != 321 or \
+            graph.get("hip_ext_module_launch_calls") != 33 or \
+            graph.get("hip_graph_launch_calls") != 10:
+        errors.append("HIP Graph GEMM rejection evidence changed")
+    header = (REPOSITORY / "include/microllm/ops/ops.h").read_text(encoding="utf-8")
+    source = (REPOSITORY / "src/ops/optimized.cpp").read_text(encoding="utf-8")
+    tests = "\n".join((REPOSITORY / path).read_text(encoding="utf-8") for path in (
+        "tests/ops/ops_test.cpp", "tests/ops/hip_ops_test.cpp"))
+    if "void matmul_out_" not in header or \
+            "void hipblaslt_matmul_out" not in source or \
+            "MatmulOutPreservesCallerStorageAndChecksAliases" not in tests or \
+            "CallerOwnedHipblasLtOutputCapturesAndReplays" not in tests:
+        errors.append("HIP Graph GEMM source/test contract changed")
+    return len(matrix), len(comparisons), qwen32, deep32
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -7739,7 +7785,8 @@ def validate_assets(errors: list[str]) -> None:
                  "selective-gqa-value-broadcast-discard.svg",
                  "forward-only-gqa-value-broadcast-discard.svg",
                  "unique-gradient-inplace-add-discard.svg",
-                 "hip-graph-submission-crossover.svg"):
+                 "hip-graph-submission-crossover.svg",
+                 "hip-graph-gemm-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -8021,6 +8068,8 @@ def main() -> int:
         validate_unique_gradient_inplace_add_discard(errors)
     graph_rows, graph_cases, graph_minimum, graph_maximum, graph_api_saved = \
         validate_hip_graph_runtime(errors)
+    graph_gemm_rows, graph_gemm_cases, graph_gemm_qwen, graph_gemm_deep = \
+        validate_hip_graph_gemm_discard(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -8248,6 +8297,8 @@ def main() -> int:
           f"{inplace_deep_allocations} "
           f"hip_graph={graph_rows}/{graph_cases}/{graph_minimum:.3f}/"
           f"{graph_maximum:.3f}/{graph_api_saved} "
+          f"hip_graph_gemm={graph_gemm_rows}/{graph_gemm_cases}/"
+          f"{graph_gemm_qwen:.3f}/{graph_gemm_deep:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")
