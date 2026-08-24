@@ -1,0 +1,44 @@
+{
+  "comparisons": [
+    {
+      "bf16_lazy_first_forward_ms": 5029.966559,
+      "bf16_lazy_peak_bytes": 1309500928,
+      "bf16_lazy_process_wall_ms": 6175.936616957188,
+      "bf16_preload_first_forward_ms": 17189.739954,
+      "bf16_preload_peak_bytes": 1309500928,
+      "bf16_preload_process_wall_ms": 19394.636845216155,
+      "finite_complete_logits": true,
+      "fp32_first_forward_ms": 3582.284506,
+      "maximum_absolute_logit_difference": 0.10526800155639648,
+      "maximum_rms_logit_difference": 0.01596291886159742,
+      "model": "qwen2.5-0.5b",
+      "preload_forward_slowdown": 3.4174660511893076,
+      "preload_process_slowdown": 3.1403555522193276,
+      "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987"
+    },
+    {
+      "bf16_lazy_first_forward_ms": 4967.874941,
+      "bf16_lazy_peak_bytes": 4561625088,
+      "bf16_lazy_process_wall_ms": 6694.004409946501,
+      "bf16_preload_first_forward_ms": 17123.138375,
+      "bf16_preload_peak_bytes": 4561625088,
+      "bf16_preload_process_wall_ms": 19668.497520964593,
+      "finite_complete_logits": true,
+      "fp32_first_forward_ms": 3563.8234,
+      "maximum_absolute_logit_difference": 0.04504561424255371,
+      "maximum_rms_logit_difference": 0.008749104007888512,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "preload_forward_slowdown": 3.4467732336984365,
+      "preload_process_slowdown": 2.9382259581035717,
+      "revision": "ad9f0ae0864d7fbcd1cd905e3c6c5b069cc8b562"
+    }
+  ],
+  "correctness_gate": true,
+  "decision": "reject all-kernel preload; retain targeted explicit prewarm",
+  "minimum_preload_slowdown": 1.25,
+  "preload_counterexample_gate": true,
+  "raw_processes": 18,
+  "record_type": "hipblaslt_preload_summary",
+  "schema_version": 1,
+  "status": "pass"
+}

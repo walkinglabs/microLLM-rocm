@@ -748,6 +748,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/191-bf16-grouped-qkv-expanded.md](experiments/191-bf16-grouped-qkv-expanded.md) | user arguments、24进程与显式预热策略 |
 | [assets/bf16-grouped-qkv-prewarm.svg](assets/bf16-grouped-qkv-prewarm.svg) | lazy与prewarm首请求时间线 |
 | [experiments/192-bf16-grouped-qkv-prewarm.md](experiments/192-bf16-grouped-qkv-prewarm.md) | 18进程、prewarm API与admission边界 |
+| [assets/hipblaslt-preload.svg](assets/hipblaslt-preload.svg) | 全kernel预载的两模型冷启动反例 |
+| [experiments/193-hipblaslt-preload.md](experiments/193-hipblaslt-preload.md) | 18进程、wall/forward/显存与策略拒绝 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

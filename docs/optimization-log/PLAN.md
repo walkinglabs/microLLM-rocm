@@ -44,6 +44,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [13](steps/13-bf16-grouped-qkv.md) | complete | pointer-stable BF16 GroupedGemm QKV | operator 1.881×/1.225×；model 1.032×/1.001× |
 | [14](steps/14-bf16-grouped-qkv-expanded.md) | complete | 64候选 + device user arguments | steady 1.046×/1.030×；setup约204ms |
 | [15](steps/15-bf16-grouped-qkv-prewarm.md) | complete | serving前显式prewarm | 首请求比lazy快892/947ms；总启动不变 |
+| [16](steps/16-hipblaslt-preload.md) | complete | 全kernel预载反例 | 首forward变慢3.417×/3.447×，策略拒绝 |
 
 ## 为什么按这个顺序
 

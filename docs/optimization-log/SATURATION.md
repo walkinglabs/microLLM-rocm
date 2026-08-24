@@ -245,6 +245,13 @@ first request is 5744/5741 ms; explicit prewarm costs 915/886 ms and the admitte
 4852/4795 ms. Combined cost stays near lazy total. Prewarm API is retained and repeated rows are
 no-ops. Startup optimization remains open; moving setup is not removal.
 
+Experiment 193 closes broad hipBLASLt all-kernel preload as that startup optimization. FP32 first
+use already costs about 3.6 seconds, while BF16 lazy costs about 5.0 seconds. Preload-all raises
+Qwen/DeepSeek first forward to about 17.2 seconds, a 3.417×/3.447× slowdown, and process wall
+slows 3.140×/2.938× without changing engine peak. A future startup candidate must select exact
+used kernels or change process/lifecycle ownership; broad preload and another wrapper around full
+forward warm-up are closed.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

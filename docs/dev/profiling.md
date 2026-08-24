@@ -384,6 +384,11 @@ Use `--bf16-grouped-qkv-prewarm true` to move that setup before the measured req
 `bf16_grouped_qkv_prewarm_ms` with `forward_ms`; their sum is the startup cost and must not be
 reported as a request-only speedup.
 
+Cold-start experiments must also report fresh-process wall time. Setting
+HIPBLASLT_PRELOAD_KERNELS=1 on the measured MI300X environment made first forward roughly
+3.4× slower, even though a later request would be warm. The repository therefore tests lazy
+versus preload in separate processes and does not use a warmed request to claim faster startup.
+
 ## What remains
 
 There is no Python `@profile` decorator yet. The current stable entry points are the

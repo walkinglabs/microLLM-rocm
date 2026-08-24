@@ -231,6 +231,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.Bf16GroupedQkvPrewarmContract PROPERTIES
         LABELS "cpu;benchmark;model;inference;bf16;grouped;latency;schema")
     add_test(
+        NAME Benchmark.HipblasltPreloadContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_hipblaslt_preload.py
+    )
+    set_tests_properties(Benchmark.HipblasltPreloadContract PROPERTIES
+        LABELS "cpu;benchmark;model;inference;bf16;matmul;latency;schema")
+    add_test(
         NAME Coverage.OperatorAndTestFiles
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/audit_test_coverage.py
     )

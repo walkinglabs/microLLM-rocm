@@ -3265,3 +3265,20 @@ Qwen/DeepSeek预热915/886ms，之后首个真实请求4852/4795ms，比lazy gro
 明确拥有“准备完成后再接客”生命周期的serving scheduler才适合使用。
 
 ![Grouped QKV prewarm](assets/bf16-grouped-qkv-prewarm.svg)
+
+## 210. Experiment 193：把仓库全搬出来，不等于更快找到一个零件
+
+Experiment 192留下约5秒普通首forward。我们先用FP32做反驳：Qwen/DeepSeek即使不用BF16，
+第一次T512仍要3582/3564ms。说明一大块成本属于进程第一次使用ROCm和vendor库，不是某个
+BF16 Tensor或模型图写错。
+
+hipBLASLt提供全kernel预载开关。它听起来像能消除lazy加载，但正式18进程结果完全相反：
+Qwen BF16从5030ms变成17190ms，DeepSeek从4968ms变成17123ms，分别慢3.417×/3.447×。
+包含加载和退出的进程wall也慢3.140×/2.938×，显存峰值一字节都没有下降。
+
+完整logits仍通过Max/RMS门，所以失败原因不是数值。全预载只是把远多于当前模型需要的库存
+都准备了一遍。这个策略discard，默认不变，也不再增加一个包装完整forward warm-up的API。
+下一条启动优化必须只选择真实会用的kernel，或者让常驻服务进程摊销一次初始化；不能只隐藏
+第一次请求。
+
+![hipBLASLt preload failure](assets/hipblaslt-preload.svg)

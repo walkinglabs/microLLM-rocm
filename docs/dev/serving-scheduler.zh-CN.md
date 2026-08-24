@@ -190,6 +190,10 @@ grouped kernel初始化和每block device arguments准备分开。相同rows重�
 快892/947ms，但两段相加仍约5.7秒。scheduler只有在明确管理“准备完成→开始接客”状态时才能
 使用，普通默认路径不自动预热。
 
+不要用HIPBLASLT_PRELOAD_KERNELS=1代替精确prewarm。Exp193在两个官方模型上把第一次
+forward放慢约3.42–3.45倍，整个进程也慢约2.94–3.14倍。服务只能预热已经知道会使用的
+rows、shape和plan；“全部加载以后总会用到”不是可接受的假设。
+
 ## 9. 测试位置
 
 ```text

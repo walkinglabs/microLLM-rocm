@@ -9029,6 +9029,91 @@ def validate_bf16_grouped_qkv_prewarm(
     return len(raw), min(savings, default=0.0), max(savings, default=0.0)
 
 
+def validate_hipblaslt_preload(
+        errors: list[str]) -> tuple[int, float, float]:
+    data = REPOSITORY / "benchmarks/results/2026-08-24-hipblaslt-preload"
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = {row.get("model"): row
+                   for row in summary.get("comparisons", [])}
+    expected = {
+        "qwen2.5-0.5b":
+            (3582.284506, 5029.966559, 17189.739954,
+             6175.936616957188, 19394.636845216155,
+             1309500928, 1309500928, 0.10526800155639648,
+             0.01596291886159742),
+        "deepseek-r1-distill-qwen-1.5b":
+            (3563.8234, 4967.874941, 17123.138375,
+             6694.004409946501, 19668.497520964593,
+             4561625088, 4561625088, 0.04504561424255371,
+             0.008749104007888512),
+    }
+    expected_tests = {
+        "cpu_debug": {"passed": 299, "total": 299},
+        "asan_ubsan": {"passed": 297, "total": 297},
+        "pytorch_enabled_cpu": {"passed": 273, "total": 273},
+        "hip_full_configuration": {
+            "passed": 468, "total": 468, "conditional_skips": 3},
+        "hip_label": {"passed": 159, "total": 159},
+        "rccl_multi_gpu": {"passed": 12, "total": 12},
+        "rccl_full_label": {"passed": 14, "total": 14},
+    }
+    policies = ("fp32", "bf16_lazy", "bf16_preload_all")
+    counts = {(model, policy): 0 for model in expected for policy in policies}
+    for row in raw:
+        key = (row.get("model"), row.get("policy"))
+        if key in counts:
+            counts[key] += 1
+        if row.get("hipblaslt_preload_kernels") != (
+                1 if row.get("policy") == "bf16_preload_all" else 0):
+            errors.append("hipBLASLt preload environment label changed")
+            break
+    fields = (
+        "fp32_first_forward_ms", "bf16_lazy_first_forward_ms",
+        "bf16_preload_first_forward_ms", "bf16_lazy_process_wall_ms",
+        "bf16_preload_process_wall_ms", "bf16_lazy_peak_bytes",
+        "bf16_preload_peak_bytes", "maximum_absolute_logit_difference",
+        "maximum_rms_logit_difference")
+    if summary.get("status") != "pass" or len(raw) != 18 or \
+            summary.get("raw_processes") != 18 or \
+            summary.get("correctness_gate") is not True or \
+            summary.get("preload_counterexample_gate") is not True or \
+            set(comparisons) != set(expected) or \
+            any(any(abs(float(row.get(field, 0.0)) - value) > 1.0e-6
+                    for field, value in zip(
+                        fields, expected[name], strict=True)) or
+                row.get("finite_complete_logits") is not True or
+                float(row.get("preload_forward_slowdown", 0.0)) < 1.25 or
+                float(row.get("preload_process_slowdown", 0.0)) < 1.25
+                for name, row in comparisons.items()) or \
+            any(count != 3 for count in counts.values()) or \
+            verification.get("status") != "pass" or \
+            verification.get("tests") != expected_tests or \
+            verification.get("registered_test_files") != 72 or \
+            verification.get("formal_processes") != 18 or \
+            verification.get("formal_comparisons") != 2 or \
+            verification.get("preload_counterexample_gate") is not True:
+        errors.append("hipBLASLt preload evidence changed")
+    runner = (REPOSITORY / "benchmarks/single_gpu/"
+              "compare_hipblaslt_preload.py").read_text(encoding="utf-8")
+    contract = (REPOSITORY / "python/tests/"
+                "test_hipblaslt_preload.py").read_text(encoding="utf-8")
+    for token, document in (
+            ("HIPBLASLT_PRELOAD_KERNELS", runner),
+            ("process_wall_ms", runner),
+            ("preload_counterexample_gate", runner),
+            ("HIPBLASLT_PRELOAD_KERNELS", contract)):
+        if token not in document:
+            errors.append("hipBLASLt preload runner/test contract changed")
+            break
+    slowdowns = [float(row["preload_forward_slowdown"])
+                 for row in comparisons.values()]
+    return len(raw), min(slowdowns, default=0.0), max(slowdowns, default=0.0)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -9195,7 +9280,12 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-qkv-arena-discard.svg",
                  "allocation-source-attribution.svg",
                  "attention-core-arena-discard.svg",
-                 "fp32-attention-solutions.svg"):
+                 "fp32-attention-solutions.svg",
+                 "fp32-attention-model-gate.svg",
+                 "bf16-grouped-qkv.svg",
+                 "bf16-grouped-qkv-expanded.svg",
+                 "bf16-grouped-qkv-prewarm.svg",
+                 "hipblaslt-preload.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -9529,6 +9619,8 @@ def main() -> int:
         validate_bf16_grouped_qkv_expanded(errors)
     grouped_prewarm_rows, grouped_prewarm_minimum, grouped_prewarm_maximum = \
         validate_bf16_grouped_qkv_prewarm(errors)
+    hipblaslt_preload_rows, hipblaslt_preload_minimum, \
+        hipblaslt_preload_maximum = validate_hipblaslt_preload(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -9807,6 +9899,8 @@ def main() -> int:
           f"{grouped_expanded_maximum:.3f} "
           f"bf16_grouped_prewarm={grouped_prewarm_rows}/"
           f"{grouped_prewarm_minimum:.1f}/{grouped_prewarm_maximum:.1f} "
+          f"hipblaslt_preload={hipblaslt_preload_rows}/"
+          f"{hipblaslt_preload_minimum:.3f}/{hipblaslt_preload_maximum:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

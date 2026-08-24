@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="560" viewBox="0 0 1000 560" role="img" aria-labelledby="title desc">
+  <title id="title">hipBLASLt all-kernel preload cold-start counterexample</title>
+  <desc id="desc">All-kernel preload makes first-forward and process wall time roughly three times slower on both official models.</desc>
+  <rect width="1000" height="560" fill="#0b1020"/>
+  <text x="55" y="48" fill="#f8fafc" font-family="sans-serif" font-size="28" font-weight="700">Experiment 193 · preload-all is slower</text>
+  <text x="55" y="78" fill="#94a3b8" font-family="sans-serif" font-size="15">T512 · zero warm-up · median of 3 fresh processes · lower is better</text>
+
+  <text x="55" y="132" fill="#e2e8f0" font-family="sans-serif" font-size="19" font-weight="700">First forward</text>
+  <text x="55" y="177" fill="#cbd5e1" font-family="sans-serif" font-size="15">Qwen lazy</text>
+  <rect x="220" y="155" width="205" height="30" rx="6" fill="#34d399"/>
+  <text x="438" y="177" fill="#a7f3d0" font-family="monospace" font-size="15">5030 ms</text>
+  <text x="55" y="222" fill="#cbd5e1" font-family="sans-serif" font-size="15">Qwen preload all</text>
+  <rect x="220" y="200" width="700" height="30" rx="6" fill="#fb7185"/>
+  <text x="821" y="222" fill="#ffe4e6" font-family="monospace" font-size="15">17190 ms</text>
+  <text x="55" y="267" fill="#cbd5e1" font-family="sans-serif" font-size="15">DeepSeek lazy</text>
+  <rect x="220" y="245" width="202" height="30" rx="6" fill="#34d399"/>
+  <text x="435" y="267" fill="#a7f3d0" font-family="monospace" font-size="15">4968 ms</text>
+  <text x="55" y="312" fill="#cbd5e1" font-family="sans-serif" font-size="15">DeepSeek preload all</text>
+  <rect x="220" y="290" width="697" height="30" rx="6" fill="#fb7185"/>
+  <text x="818" y="312" fill="#ffe4e6" font-family="monospace" font-size="15">17123 ms</text>
+
+  <text x="55" y="378" fill="#e2e8f0" font-family="sans-serif" font-size="19" font-weight="700">What the counterexample says</text>
+  <rect x="55" y="400" width="890" height="104" rx="10" fill="#172033" stroke="#334155"/>
+  <circle cx="84" cy="429" r="7" fill="#fbbf24"/>
+  <text x="105" y="435" fill="#fde68a" font-family="sans-serif" font-size="15">FP32 first use is already about 3.6 s: startup is not only a BF16 graph issue.</text>
+  <circle cx="84" cy="464" r="7" fill="#fb7185"/>
+  <text x="105" y="470" fill="#fecdd3" font-family="sans-serif" font-size="15">Preload-all slows first forward 3.42× / 3.45× and does not lower engine peak.</text>
+  <text x="55" y="535" fill="#94a3b8" font-family="sans-serif" font-size="14">Decision: discard broad preload · retain measured targeted prewarm only</text>
+</svg>

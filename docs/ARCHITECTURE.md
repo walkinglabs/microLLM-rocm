@@ -417,6 +417,11 @@ argument setup, and remembers completed row counts. Repeating the same row is a 
 model or reconfiguring QKV Arena invalidates the model-side prewarm state. This moves work before
 admission but does not claim to remove startup work.
 
+Experiment 193 rejects broad library preload as a substitute for this exact lifecycle. Asking
+hipBLASLt to preload every kernel slows official first forward by about 3.4× and process wall by
+about 3.0× with unchanged engine peak. Architecture therefore keeps preload ownership at the
+model/shape boundary; the runtime never changes the process-wide preload environment implicitly.
+
 ## Stable integration boundary
 
 The long-term integration seam is a C-compatible descriptor plus explicit stream
