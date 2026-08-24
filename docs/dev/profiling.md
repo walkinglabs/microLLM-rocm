@@ -400,6 +400,12 @@ device user arguments and per-call reinitialization for the two official T512 sh
 candidate is valid only if it uses the existing FFN Arena addresses and separately reports shared
 kernel setup, per-block argument setup, dispatches and complete-model throughput.
 
+The model gate is compare_bf16_grouped_gate_up_models.py. JSON fields prefixed with
+bf16_grouped_gate_up expose registry, algorithm, kernel, plan, dispatch and setup counters. The
+phase profile uses profile_step_delta.py with inference_prefill_kernel_phase_delta and proves one
+GEMM submission disappears per Transformer block. Use uninstrumented repeated processes for the
+throughput decision; retain any opposite profiler total as a counterexample.
+
 ## What remains
 
 There is no Python `@profile` decorator yet. The current stable entry points are the

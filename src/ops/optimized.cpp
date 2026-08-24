@@ -54,6 +54,17 @@ thread_local std::size_t bf16_grouped_qkv_kernel_hits = 0;
 thread_local std::size_t bf16_grouped_qkv_kernel_misses = 0;
 thread_local double bf16_grouped_qkv_kernel_setup_ms = 0.0;
 thread_local double bf16_grouped_qkv_argument_setup_ms = 0.0;
+thread_local std::map<Bf16GroupedGateUpKey, int>
+    bf16_grouped_gate_up_registry;
+thread_local std::size_t bf16_grouped_gate_up_plan_hits = 0;
+thread_local std::size_t bf16_grouped_gate_up_plan_misses = 0;
+thread_local std::size_t bf16_grouped_gate_up_dispatches = 0;
+thread_local std::size_t bf16_grouped_gate_up_algorithm_hits = 0;
+thread_local std::size_t bf16_grouped_gate_up_algorithm_misses = 0;
+thread_local std::size_t bf16_grouped_gate_up_kernel_hits = 0;
+thread_local std::size_t bf16_grouped_gate_up_kernel_misses = 0;
+thread_local double bf16_grouped_gate_up_kernel_setup_ms = 0.0;
+thread_local double bf16_grouped_gate_up_argument_setup_ms = 0.0;
 
 struct TuningEnvironment {
     std::string architecture;
@@ -174,6 +185,16 @@ void validate_bf16_grouped_qkv_key(const Bf16GroupedQkvKey& key) {
         key.architecture.empty() || key.hip_runtime_version < 0 ||
         key.hip_driver_version < 0 || key.hipblaslt_version <= 0) {
         throw std::invalid_argument("BF16 grouped QKV key is incomplete");
+    }
+}
+
+void validate_bf16_grouped_gate_up_key(
+    const Bf16GroupedGateUpKey& key) {
+    if (key.rows <= 0 || key.inner <= 0 || key.columns <= 0 ||
+        key.architecture.empty() || key.hip_runtime_version < 0 ||
+        key.hip_driver_version < 0 || key.hipblaslt_version <= 0) {
+        throw std::invalid_argument(
+            "BF16 grouped gate/up key is incomplete");
     }
 }
 
@@ -409,6 +430,23 @@ Bf16GroupedQkvKey make_bf16_grouped_qkv_key(
         .hipblaslt_version = device.is_hip() ? hipblaslt_version() : 0,
     };
     if (device.is_hip()) validate_bf16_grouped_qkv_key(key);
+    return key;
+}
+
+Bf16GroupedGateUpKey make_bf16_grouped_gate_up_key(
+    std::int64_t rows, std::int64_t inner,
+    std::int64_t columns, Device device) {
+    const auto environment = tuning_environment(device);
+    Bf16GroupedGateUpKey key{
+        .rows = rows,
+        .inner = inner,
+        .columns = columns,
+        .architecture = environment.architecture,
+        .hip_runtime_version = environment.runtime_version,
+        .hip_driver_version = environment.driver_version,
+        .hipblaslt_version = device.is_hip() ? hipblaslt_version() : 0,
+    };
+    if (device.is_hip()) validate_bf16_grouped_gate_up_key(key);
     return key;
 }
 
@@ -1197,6 +1235,261 @@ bool try_bf16_grouped_qkv(
     cast_out_(workspace.key_fallback_bf16, key_output_fp32, context);
     cast_out_(workspace.value_fallback_bf16, value_output_fp32, context);
     ++bf16_grouped_qkv_dispatches;
+    return true;
+}
+
+using Bf16GroupedGateUpAlgorithmKey =
+    std::tuple<Bf16GroupedGateUpKey, int, int>;
+thread_local std::map<Bf16GroupedGateUpAlgorithmKey, hipblasLtMatmulAlgo_t>
+    bf16_grouped_gate_up_algorithms;
+
+hipblasLtMatmulAlgo_t grouped_gate_up_algorithm(
+    Handle& handle, const Bf16GroupedGateUpKey& key,
+    int solution_index, Device device) {
+    const Bf16GroupedGateUpAlgorithmKey algorithm_key{
+        key, solution_index, device.index()};
+    const auto found = bf16_grouped_gate_up_algorithms.find(algorithm_key);
+    if (found != bf16_grouped_gate_up_algorithms.end()) {
+        ++bf16_grouped_gate_up_algorithm_hits;
+        return found->second;
+    }
+    ++bf16_grouped_gate_up_algorithm_misses;
+    std::vector<int> indices{solution_index};
+    std::vector<hipblasLtMatmulHeuristicResult_t> algorithms;
+    check_status(hipblaslt_ext::getAlgosFromIndex(
+                     handle.get(), indices, algorithms),
+                 "getAlgosFromIndex(BF16 grouped gate/up)");
+    if (algorithms.empty()) {
+        throw std::invalid_argument(
+            "registered BF16 grouped gate/up solution index is unavailable");
+    }
+    const auto algorithm = algorithms.front().algo;
+    bf16_grouped_gate_up_algorithms.emplace(algorithm_key, algorithm);
+    return algorithm;
+}
+
+using Bf16GroupedGateUpKernelKey =
+    std::tuple<Bf16GroupedGateUpKey, int, int, std::uintptr_t>;
+
+class Bf16GroupedGateUpKernel {
+public:
+    Bf16GroupedGateUpKernel(
+        Handle& handle, const Bf16GroupedGateUpKey& key,
+        int solution_index, const Tensor& input_bf16,
+        const Tensor& gate_weight_bf16,
+        const Tensor& up_weight_bf16, Tensor& gate_bf16,
+        Tensor& up_bf16, Device device, void* stream)
+        : grouped_(handle.get(), HIPBLAS_OP_N, HIPBLAS_OP_N,
+                   HIP_R_16BF, HIP_R_16BF, HIP_R_16BF, HIP_R_16BF,
+                   HIPBLAS_COMPUTE_32F) {
+        constexpr std::size_t workspace_limit = 32U * 1024U * 1024U;
+        grouped_.setMaxWorkspaceBytes(workspace_limit);
+        std::vector<std::int64_t> m(2, key.columns);
+        std::vector<std::int64_t> n(2, key.rows);
+        std::vector<std::int64_t> k(2, key.inner);
+        std::vector<std::int64_t> batch(2, 1);
+        std::vector<hipblaslt_ext::GemmEpilogue> epilogues(2);
+        std::vector<hipblaslt_ext::GemmInputs> inputs(2);
+        const std::vector<const Tensor*> weights{
+            &gate_weight_bf16, &up_weight_bf16};
+        const std::vector<Tensor*> outputs{&gate_bf16, &up_bf16};
+        for (std::size_t group = 0; group < 2; ++group) {
+            inputs[group].setA(weights[group]->data());
+            inputs[group].setB(input_bf16.data());
+            inputs[group].setC(outputs[group]->data());
+            inputs[group].setD(outputs[group]->data());
+            inputs[group].setAlpha(&alpha_);
+            inputs[group].setBeta(&beta_);
+        }
+        check_status(grouped_.setProblem(
+                         m, n, k, batch, epilogues, inputs),
+                     "GroupedGemm::setProblem(BF16 gate/up)");
+        auto candidate = grouped_gate_up_algorithm(
+            handle, key, solution_index, device);
+        hipblaslt_ext::GemmTuning tuning;
+        std::size_t workspace_bytes = 0;
+        if (grouped_.isAlgoSupported(
+                candidate, tuning, workspace_bytes) !=
+                HIPBLAS_STATUS_SUCCESS ||
+            workspace_bytes > workspace_limit) {
+            throw std::invalid_argument(
+                "registered BF16 grouped gate/up solution is unsupported");
+        }
+        workspace_ = Storage(workspace_bytes, device);
+        check_status(grouped_.initialize(
+                         candidate, workspace_.data(), true,
+                         reinterpret_cast<hipStream_t>(stream)),
+                     "GroupedGemm::initialize(BF16 gate/up)");
+        host_arguments_.resize(2);
+        check_status(grouped_.getDefaultValueForDeviceUserArguments(
+                         host_arguments_.data()),
+                     "GroupedGemm::getDefaultValueForDeviceUserArguments(BF16 gate/up)");
+    }
+
+    Storage make_arguments(
+        const Tensor& input_bf16,
+        const Tensor& gate_weight_bf16,
+        const Tensor& up_weight_bf16,
+        Tensor& gate_bf16, Tensor& up_bf16,
+        Device device) const {
+        auto arguments = host_arguments_;
+        const std::vector<const Tensor*> weights{
+            &gate_weight_bf16, &up_weight_bf16};
+        const std::vector<Tensor*> outputs{&gate_bf16, &up_bf16};
+        for (std::size_t group = 0; group < arguments.size(); ++group) {
+            arguments[group].a =
+                const_cast<void*>(weights[group]->data());
+            arguments[group].b =
+                const_cast<void*>(input_bf16.data());
+            arguments[group].c = outputs[group]->data();
+            arguments[group].d = outputs[group]->data();
+        }
+        Storage device_arguments(
+            arguments.size() * sizeof(hipblaslt_ext::UserArguments),
+            device);
+        runtime::copy_bytes(
+            device_arguments.data(), device, arguments.data(),
+            Device::cpu(), device_arguments.num_bytes());
+        return device_arguments;
+    }
+
+    void run(Storage& arguments, void* stream) {
+        check_status(grouped_.run(
+                         arguments.data(),
+                         reinterpret_cast<hipStream_t>(stream)),
+                     "GroupedGemm::run(BF16 gate/up)");
+    }
+
+private:
+    float alpha_ = 1.0F;
+    float beta_ = 0.0F;
+    hipblaslt_ext::GroupedGemm grouped_;
+    Storage workspace_;
+    std::vector<hipblaslt_ext::UserArguments> host_arguments_;
+};
+
+thread_local std::map<Bf16GroupedGateUpKernelKey,
+                      std::shared_ptr<Bf16GroupedGateUpKernel>>
+    bf16_grouped_gate_up_kernels;
+
+class Bf16GroupedGateUpPlan {
+public:
+    Bf16GroupedGateUpPlan(
+        std::shared_ptr<Bf16GroupedGateUpKernel> kernel,
+        const Tensor& input_bf16,
+        const Tensor& gate_weight_bf16,
+        const Tensor& up_weight_bf16,
+        Tensor& gate_bf16, Tensor& up_bf16,
+        Device device)
+        : kernel_(std::move(kernel)),
+          arguments_(kernel_->make_arguments(
+              input_bf16, gate_weight_bf16, up_weight_bf16,
+              gate_bf16, up_bf16, device)) {}
+
+    void run(void* stream) { kernel_->run(arguments_, stream); }
+
+private:
+    std::shared_ptr<Bf16GroupedGateUpKernel> kernel_;
+    Storage arguments_;
+};
+
+using Bf16GroupedGateUpPlanKey = std::tuple<
+    Bf16GroupedGateUpKey, int, std::uintptr_t, std::uintptr_t,
+    std::uintptr_t, std::uintptr_t, std::uintptr_t, std::uintptr_t>;
+thread_local std::map<Bf16GroupedGateUpPlanKey,
+                      std::unique_ptr<Bf16GroupedGateUpPlan>>
+    bf16_grouped_gate_up_plans;
+
+Bf16GroupedGateUpPlanKey grouped_gate_up_plan_key(
+    const Bf16GroupedGateUpKey& key, Device device,
+    const Tensor& input_bf16,
+    const Tensor& gate_weight_bf16,
+    const Tensor& up_weight_bf16,
+    const Tensor& gate_bf16, const Tensor& up_bf16,
+    void* stream) {
+    const auto address = [](const void* pointer) {
+        return reinterpret_cast<std::uintptr_t>(pointer);
+    };
+    return {
+        key, device.index(), address(input_bf16.data()),
+        address(gate_weight_bf16.data()),
+        address(up_weight_bf16.data()), address(gate_bf16.data()),
+        address(up_bf16.data()), address(stream)};
+}
+
+bool try_bf16_grouped_gate_up(
+    Bf16FfnWorkspace& workspace,
+    const Tensor& gate_weight_bf16,
+    const Tensor& up_weight_bf16,
+    const OpContext& context) {
+    if (bf16_grouped_gate_up_registry.empty() ||
+        !workspace.input_bf16.device().is_hip()) {
+        return false;
+    }
+    const auto key = make_bf16_grouped_gate_up_key(
+        workspace.input_bf16.shape()[0],
+        workspace.input_bf16.shape()[1],
+        gate_weight_bf16.shape()[1],
+        workspace.input_bf16.device());
+    const auto registered =
+        bf16_grouped_gate_up_registry.find(key);
+    if (registered == bf16_grouped_gate_up_registry.end()) return false;
+    auto* stream =
+        context.native_stream(workspace.input_bf16.device());
+    const auto plan_key = grouped_gate_up_plan_key(
+        key, workspace.input_bf16.device(), workspace.input_bf16,
+        gate_weight_bf16, up_weight_bf16,
+        workspace.gate, workspace.up, stream);
+    auto found = bf16_grouped_gate_up_plans.find(plan_key);
+    if (found == bf16_grouped_gate_up_plans.end()) {
+        ++bf16_grouped_gate_up_plan_misses;
+        auto& handle =
+            handle_for_device(workspace.input_bf16.device());
+        const Bf16GroupedGateUpKernelKey kernel_key{
+            key, registered->second,
+            workspace.input_bf16.device().index(),
+            reinterpret_cast<std::uintptr_t>(stream)};
+        auto kernel = bf16_grouped_gate_up_kernels.find(kernel_key);
+        if (kernel == bf16_grouped_gate_up_kernels.end()) {
+            ++bf16_grouped_gate_up_kernel_misses;
+            const auto setup_start =
+                std::chrono::steady_clock::now();
+            auto grouped_kernel =
+                std::make_shared<Bf16GroupedGateUpKernel>(
+                    handle, key, registered->second,
+                    workspace.input_bf16,
+                    gate_weight_bf16, up_weight_bf16,
+                    workspace.gate, workspace.up,
+                    workspace.input_bf16.device(), stream);
+            const auto setup_finish =
+                std::chrono::steady_clock::now();
+            bf16_grouped_gate_up_kernel_setup_ms +=
+                std::chrono::duration<double, std::milli>(
+                    setup_finish - setup_start).count();
+            kernel = bf16_grouped_gate_up_kernels.emplace(
+                kernel_key, std::move(grouped_kernel)).first;
+        } else {
+            ++bf16_grouped_gate_up_kernel_hits;
+        }
+        const auto argument_start =
+            std::chrono::steady_clock::now();
+        auto plan = std::make_unique<Bf16GroupedGateUpPlan>(
+            kernel->second, workspace.input_bf16,
+            gate_weight_bf16, up_weight_bf16,
+            workspace.gate, workspace.up,
+            workspace.input_bf16.device());
+        const auto argument_finish =
+            std::chrono::steady_clock::now();
+        bf16_grouped_gate_up_argument_setup_ms +=
+            std::chrono::duration<double, std::milli>(
+                argument_finish - argument_start).count();
+        found = bf16_grouped_gate_up_plans.emplace(
+            plan_key, std::move(plan)).first;
+    } else {
+        ++bf16_grouped_gate_up_plan_hits;
+    }
+    found->second->run(stream);
+    ++bf16_grouped_gate_up_dispatches;
     return true;
 }
 
@@ -2093,6 +2386,91 @@ Bf16GroupedQkvStats bf16_grouped_qkv_stats() noexcept {
     };
 }
 
+void register_bf16_grouped_gate_up_algorithm(
+    const Bf16GroupedGateUpKey& key, int solution_index) {
+#if MICROLLM_HAS_HIPBLASLT
+    validate_bf16_grouped_gate_up_key(key);
+    if (solution_index < 0) {
+        throw std::invalid_argument(
+            "BF16 grouped gate/up solution index must be nonnegative");
+    }
+    bool current_environment = false;
+    for (int index = 0; index < runtime::hip_device_count(); ++index) {
+        const auto environment = tuning_environment(Device::hip(index));
+        if (key.architecture == environment.architecture &&
+            key.hip_runtime_version == environment.runtime_version &&
+            key.hip_driver_version == environment.driver_version &&
+            key.hipblaslt_version == hipblaslt_version()) {
+            current_environment = true;
+            break;
+        }
+    }
+    if (!current_environment) {
+        throw std::invalid_argument(
+            "BF16 grouped gate/up key does not match a visible environment");
+    }
+    bf16_grouped_gate_up_registry.insert_or_assign(
+        key, solution_index);
+    bf16_grouped_gate_up_algorithms.clear();
+    bf16_grouped_gate_up_kernels.clear();
+    bf16_grouped_gate_up_plans.clear();
+#else
+    (void)key;
+    (void)solution_index;
+    throw std::runtime_error(
+        "BF16 grouped gate/up requires hipBLASLt");
+#endif
+}
+
+void clear_bf16_grouped_gate_up_registry() noexcept {
+    bf16_grouped_gate_up_registry.clear();
+    bf16_grouped_gate_up_plan_hits = 0;
+    bf16_grouped_gate_up_plan_misses = 0;
+    bf16_grouped_gate_up_dispatches = 0;
+    bf16_grouped_gate_up_algorithm_hits = 0;
+    bf16_grouped_gate_up_algorithm_misses = 0;
+    bf16_grouped_gate_up_kernel_hits = 0;
+    bf16_grouped_gate_up_kernel_misses = 0;
+    bf16_grouped_gate_up_kernel_setup_ms = 0.0;
+    bf16_grouped_gate_up_argument_setup_ms = 0.0;
+#if MICROLLM_HAS_HIPBLASLT
+    bf16_grouped_gate_up_algorithms.clear();
+    bf16_grouped_gate_up_kernels.clear();
+    bf16_grouped_gate_up_plans.clear();
+#endif
+}
+
+Bf16GroupedGateUpStats bf16_grouped_gate_up_stats() noexcept {
+    return {
+        .registered_entries = bf16_grouped_gate_up_registry.size(),
+#if MICROLLM_HAS_HIPBLASLT
+        .algorithm_entries = bf16_grouped_gate_up_algorithms.size(),
+#else
+        .algorithm_entries = 0,
+#endif
+        .algorithm_hits = bf16_grouped_gate_up_algorithm_hits,
+        .algorithm_misses = bf16_grouped_gate_up_algorithm_misses,
+#if MICROLLM_HAS_HIPBLASLT
+        .kernel_entries = bf16_grouped_gate_up_kernels.size(),
+#else
+        .kernel_entries = 0,
+#endif
+        .kernel_hits = bf16_grouped_gate_up_kernel_hits,
+        .kernel_misses = bf16_grouped_gate_up_kernel_misses,
+#if MICROLLM_HAS_HIPBLASLT
+        .plan_entries = bf16_grouped_gate_up_plans.size(),
+#else
+        .plan_entries = 0,
+#endif
+        .plan_hits = bf16_grouped_gate_up_plan_hits,
+        .plan_misses = bf16_grouped_gate_up_plan_misses,
+        .dispatches = bf16_grouped_gate_up_dispatches,
+        .kernel_setup_ms = bf16_grouped_gate_up_kernel_setup_ms,
+        .argument_setup_ms =
+            bf16_grouped_gate_up_argument_setup_ms,
+    };
+}
+
 void register_fp32_matmul_solution(
     const Fp32MatmulSolutionKey& key, int solution_index) {
 #if MICROLLM_HAS_HIPBLASLT
@@ -2686,12 +3064,21 @@ void bf16_ffn_out_(Tensor& output_fp32, Bf16FfnWorkspace& workspace,
         }
     }
     cast_out_(input_fp32, workspace.input_bf16, context);
-    bf16_matmul_output_out_(workspace.gate, workspace.input_bf16,
-                            gate_weight_bf16,
-                            workspace.output_fallback_bf16, context);
-    bf16_matmul_output_out_(workspace.up, workspace.input_bf16,
-                            up_weight_bf16,
-                            workspace.output_fallback_bf16, context);
+    bool grouped_gate_up = false;
+#if MICROLLM_HAS_HIPBLASLT
+    grouped_gate_up = try_bf16_grouped_gate_up(
+        workspace, gate_weight_bf16, up_weight_bf16, context);
+#endif
+    if (!grouped_gate_up) {
+        bf16_matmul_output_out_(
+            workspace.gate, workspace.input_bf16,
+            gate_weight_bf16,
+            workspace.output_fallback_bf16, context);
+        bf16_matmul_output_out_(
+            workspace.up, workspace.input_bf16,
+            up_weight_bf16,
+            workspace.output_fallback_bf16, context);
+    }
     swiglu_out_(workspace.activated, workspace.gate, workspace.up, context);
     bf16_matmul_output_out_(output_fp32, workspace.activated,
                             down_weight_bf16,

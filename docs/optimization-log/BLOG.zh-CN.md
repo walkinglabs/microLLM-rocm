@@ -3312,3 +3312,21 @@ Event为1.203×/1.139×；真正适合多block的device user arguments仍有1.18
 up和每层权重地址，再做完整Qwen/DeepSeek gate。这个节点只keep benchmark能力，生产默认没变。
 
 ![Grouped gate/up capability](assets/bf16-grouped-gate-up.svg)
+
+## 213. Experiment 196：一个共享Kernel，24或28份小参数
+
+生产接入只发生在FFN Arena路径。exact key记录shape、架构和三种backend版本；共享kernel按
+shape、编号、device、Stream缓存。Qwen的24层和DeepSeek的28层只各自保存一份device arguments，
+把自己的gate/up权重地址绑定到同一Arena input/output。
+
+12个正式进程中，Qwen从93471到95118 tok/s，DeepSeek从50157到50746 tok/s，分别1.0176×/
+1.0117×。Max/RMS为0.07028/0.01538和0.06139/0.01029，top-1不变，peak只多约10KB。
+kernel setup约57ms，所有block参数总准备不到0.7ms。
+
+phase delta也准确少24/28次GEMM提交，GEMM时间改善1.035×/1.020×。但插桩DeepSeek总Kernel
+是0.998×，所以我们同时保存这个反例，最终keep依据仍是未插桩三进程中位数。
+
+显式策略keep，默认仍off。没有注册精确环境和shape时，代码逐字走旧两GEMM路径；非Arena和
+短shape也不会偷偷建立无法复用的plan。
+
+![Grouped gate/up model gate](assets/bf16-grouped-gate-up-model.svg)

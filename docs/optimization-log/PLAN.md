@@ -47,6 +47,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [16](steps/16-hipblaslt-preload.md) | complete | 全kernel预载反例 | 首forward变慢3.417×/3.447×，策略拒绝 |
 | [17](steps/17-bf16-exact-startup.md) | complete | 精确gate/up冷启动门 | 算子快但cold 0.990×/0.996×，策略拒绝 |
 | [18](steps/18-bf16-grouped-gate-up.md) | complete | 双gate/up GroupedGemm能力 | device arguments 1.188×/1.155× |
+| [19](steps/19-bf16-grouped-gate-up-model.md) | complete | FFN Arena稳定plan接入 | 整模1.0176×/1.0117×；少24/28提交 |
 
 ## 为什么按这个顺序
 

@@ -325,6 +325,25 @@ TEST(CpuOpsTest, Bf16GroupedQkvKeyIsShapeAndEnvironmentExact) {
                  std::exception);
 }
 
+TEST(CpuOpsTest, Bf16GroupedGateUpKeyIsShapeAndEnvironmentExact) {
+    const auto key = make_bf16_grouped_gate_up_key(
+        512, 896, 4864, Device::cpu());
+    EXPECT_EQ(key.rows, 512);
+    EXPECT_EQ(key.inner, 896);
+    EXPECT_EQ(key.columns, 4864);
+    EXPECT_EQ(key.architecture, "host");
+    EXPECT_EQ(key.hip_runtime_version, 0);
+    EXPECT_EQ(key.hip_driver_version, 0);
+    EXPECT_EQ(key.hipblaslt_version, 0);
+    clear_bf16_grouped_gate_up_registry();
+    EXPECT_EQ(bf16_grouped_gate_up_stats().registered_entries, 0U);
+    EXPECT_THROW(register_bf16_grouped_gate_up_algorithm(key, 65168),
+                 std::exception);
+    EXPECT_THROW((void)make_bf16_grouped_gate_up_key(
+                     0, 896, 4864, Device::hip()),
+                 std::exception);
+}
+
 TEST(CpuOpsTest, MatmulTuningCacheRoundTripsAndRejectsStaleCorruptData) {
     const auto directory = std::filesystem::temp_directory_path();
     const auto cache = directory / "microllm-matmul-tuning-cache-test.jsonl";

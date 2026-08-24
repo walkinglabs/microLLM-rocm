@@ -552,6 +552,95 @@ TEST(HipBf16ProjectionTest, GroupedQkvCachesExactPointerStablePlan) {
     EXPECT_EQ(bf16_grouped_qkv_stats().registered_entries, 0U);
 }
 
+TEST(HipBf16FfnTest, GroupedGateUpCachesExactPointerStablePlan) {
+    require_gpu();
+    if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";
+    const auto gpu = Device::hip(0);
+    if (!runtime::device_info(gpu).architecture.starts_with("gfx942") ||
+        hipblaslt_version() != 10300) {
+        GTEST_SKIP()
+            << "recorded grouped solution is local to gfx942 hipBLASLt 1.3.0";
+    }
+    constexpr std::int64_t rows = 512;
+    constexpr std::int64_t hidden = 896;
+    constexpr std::int64_t intermediate = 4864;
+    Tensor input({rows, hidden}, DType::Float32, gpu);
+    Tensor gate_weight(
+        {hidden, intermediate}, DType::BFloat16, gpu);
+    Tensor up_weight(
+        {hidden, intermediate}, DType::BFloat16, gpu);
+    Tensor down_weight(
+        {intermediate, hidden}, DType::BFloat16, gpu);
+    fill_(input, 0.01F);
+    fill_(gate_weight, 0.01F);
+    fill_(up_weight, -0.02F);
+    fill_(down_weight, 0.005F);
+    const auto workspace = [&] {
+        return Bf16FfnWorkspace{
+            .input_bf16 =
+                Tensor({rows, hidden}, DType::BFloat16, gpu),
+            .gate =
+                Tensor({rows, intermediate}, DType::BFloat16, gpu),
+            .up =
+                Tensor({rows, intermediate}, DType::BFloat16, gpu),
+            .activated =
+                Tensor({rows, intermediate}, DType::BFloat16, gpu),
+            .output_fallback_bf16 =
+                Tensor({rows, hidden}, DType::BFloat16, gpu)};
+    };
+    auto baseline_workspace = workspace();
+    Tensor baseline({rows, hidden}, DType::Float32, gpu);
+    clear_bf16_grouped_gate_up_registry();
+    bf16_ffn_out_(
+        baseline, baseline_workspace, input,
+        gate_weight, up_weight, down_weight);
+
+    auto key = make_bf16_grouped_gate_up_key(
+        rows, hidden, intermediate, gpu);
+    auto stale = key;
+    ++stale.hip_driver_version;
+    EXPECT_THROW(
+        register_bf16_grouped_gate_up_algorithm(stale, 65168),
+        std::invalid_argument);
+    EXPECT_THROW(
+        register_bf16_grouped_gate_up_algorithm(key, -1),
+        std::invalid_argument);
+    register_bf16_grouped_gate_up_algorithm(key, 65168);
+    auto candidate_workspace = workspace();
+    Tensor candidate({rows, hidden}, DType::Float32, gpu);
+    bf16_ffn_out_(
+        candidate, candidate_workspace, input,
+        gate_weight, up_weight, down_weight);
+    runtime::synchronize(gpu);
+    runtime::reset_transfer_stats();
+    bf16_ffn_out_(
+        candidate, candidate_workspace, input,
+        gate_weight, up_weight, down_weight);
+    runtime::synchronize(gpu);
+    const auto stats = bf16_grouped_gate_up_stats();
+    EXPECT_EQ(stats.registered_entries, 1U);
+    EXPECT_EQ(stats.algorithm_entries, 1U);
+    EXPECT_EQ(stats.algorithm_misses, 1U);
+    EXPECT_EQ(stats.algorithm_hits, 0U);
+    EXPECT_EQ(stats.kernel_entries, 1U);
+    EXPECT_EQ(stats.kernel_misses, 1U);
+    EXPECT_EQ(stats.kernel_hits, 0U);
+    EXPECT_EQ(stats.plan_entries, 1U);
+    EXPECT_EQ(stats.plan_misses, 1U);
+    EXPECT_EQ(stats.plan_hits, 1U);
+    EXPECT_EQ(stats.dispatches, 2U);
+    EXPECT_GT(stats.kernel_setup_ms, 0.0);
+    EXPECT_GT(stats.argument_setup_ms, 0.0);
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    expect_near(
+        candidate.to_vector(), baseline.to_vector(), 1.0e-2F);
+    clear_bf16_grouped_gate_up_registry();
+    EXPECT_EQ(
+        bf16_grouped_gate_up_stats().registered_entries, 0U);
+}
+
 TEST(HipBf16ProjectionTest, ModelPrewarmBuildsPlansBeforeFirstRequest) {
     require_gpu();
     if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";

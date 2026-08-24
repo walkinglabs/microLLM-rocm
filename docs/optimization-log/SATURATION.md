@@ -266,6 +266,13 @@ bit-exact. Device-user-arguments Event ratios are 1.188×/1.155×, while per-cal
 is only 0.823×/0.940×. The capability benchmark is retained. Only pointer-stable FFN Arena
 integration is open; a stateless grouped function or model-name dispatch is not supported.
 
+Experiment 196 completes that integration. One initialized kernel plus 24/28 device-argument plans
+improves uninstrumented T512 throughput 1.0176×/1.0117× with top-1 preserved, BF16 Max/RMS inside
+0.25/0.05 and peak ratios 1.000008×/1.000003×. Phase delta removes exactly one GEMM submission
+per block and improves GEMM time 1.035×/1.020×; instrumented DeepSeek total Kernel remains a
+0.998× counterexample. The explicit exact policy is retained. Version-local defaults, non-Arena
+routing and unmeasured short/batch shapes remain closed.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

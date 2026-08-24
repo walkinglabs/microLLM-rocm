@@ -41,6 +41,10 @@ def options() -> argparse.Namespace:
     parser.add_argument("--many-step", type=pathlib.Path, required=True)
     parser.add_argument("--many-step-count", type=int, required=True)
     parser.add_argument("--output-directory", type=pathlib.Path, required=True)
+    parser.add_argument(
+        "--track", default="training_kernel_phase_delta",
+        choices=("training_kernel_phase_delta",
+                 "inference_prefill_kernel_phase_delta"))
     result = parser.parse_args()
     if result.many_step_count <= 1:
         parser.error("many-step-count must exceed one")
@@ -85,7 +89,7 @@ def main() -> int:
     result = {
         "schema_version": 1,
         "status": "pass",
-        "track": "training_kernel_phase_delta",
+        "track": args.track,
         "one_step_count": 1,
         "many_step_count": args.many_step_count,
         "derived_steps": divisor,

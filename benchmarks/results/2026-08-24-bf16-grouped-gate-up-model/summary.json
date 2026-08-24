@@ -1,0 +1,53 @@
+{
+  "comparisons": [
+    {
+      "argument_setup_ms": 0.575717,
+      "baseline_peak_bytes": 1310108672,
+      "baseline_tokens_per_second": 93470.65145685,
+      "dispatches": 168,
+      "finite_complete_logits": true,
+      "grouped_peak_bytes": 1310118560,
+      "grouped_speedup": 1.0176214530929033,
+      "grouped_tokens_per_second": 95117.74015706,
+      "kernel_setup_ms": 56.9619,
+      "maximum_absolute_logit_difference": 0.07027947902679443,
+      "maximum_rms_logit_difference": 0.01537959767072217,
+      "model": "qwen2.5-0.5b",
+      "peak_ratio": 1.0000075474654975,
+      "plan_entries": 24,
+      "plan_hits": 144,
+      "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+      "solution_index": 65168,
+      "top_tokens_equal": true
+    },
+    {
+      "argument_setup_ms": 0.698019,
+      "baseline_peak_bytes": 4562232832,
+      "baseline_tokens_per_second": 50156.977625168,
+      "dispatches": 196,
+      "finite_complete_logits": true,
+      "grouped_peak_bytes": 4562244288,
+      "grouped_speedup": 1.011734811710099,
+      "grouped_tokens_per_second": 50745.560313547,
+      "kernel_setup_ms": 56.827738,
+      "maximum_absolute_logit_difference": 0.06139183044433594,
+      "maximum_rms_logit_difference": 0.010285622249765376,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "peak_ratio": 1.0000025110511501,
+      "plan_entries": 28,
+      "plan_hits": 168,
+      "revision": "ad9f0ae0864d7fbcd1cd905e3c6c5b069cc8b562",
+      "solution_index": 65200,
+      "top_tokens_equal": true
+    }
+  ],
+  "correctness_gate": true,
+  "decision": "keep explicit pointer-stable grouped gate/up policy",
+  "memory_gate": true,
+  "performance_gate": true,
+  "raw_processes": 12,
+  "record_type": "bf16_grouped_gate_up_model_summary",
+  "schema_version": 1,
+  "setup_gate": true,
+  "status": "pass"
+}

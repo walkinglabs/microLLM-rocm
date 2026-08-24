@@ -433,7 +433,13 @@ The FFN Arena already gives gate/up one shared BF16 input and stable BF16 output
 Experiment 195 proves that a two-operation GroupedGemm supports both official T512 shapes and that
 device user arguments preserve an operator gain. Reinitializing on every call is slower, so the
 only allowed production design binds a shared initialized kernel plus one argument record per
-block's persistent gate/up weight pointers. This capability is not model routing yet.
+block's persistent gate/up weight pointers.
+
+Experiment 196 implements that design only inside bf16_ffn_out_. The public exact key includes
+shape and backend environment; the shared kernel cache adds index/device/Stream, and each plan key
+adds every bound pointer. Registered T512 shapes pass both official models, while absent registry,
+non-Arena FFN and other shapes preserve the previous path exactly. No solution index is compiled
+into the default.
 
 ## Stable integration boundary
 

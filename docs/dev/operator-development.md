@@ -62,6 +62,9 @@ Grouped gate/up follows the same rule. Experiment 195 shows the stable two-opera
 while per-call initialization is slower on both official shapes. A production implementation must
 bind the existing FFN Arena input/gate/up addresses and each block's persistent weights; temporary
 outputs or a stateless convenience wrapper do not satisfy the evidence contract.
+The retained implementation dispatches only from bf16_ffn_out_ after exact registration. Tests
+must prove one kernel entry, one plan miss per block, later plan hits, zero hot-path host transfer,
+and the old zero-dispatch behavior when no registration exists.
 - readable HIP launch declarations: `src/ops/hip/kernels.h`;
 - optimized matmul policy: `src/ops/optimized.cpp`;
 - correctness-first matmul/AdamW tuners: `src/ops/tuning.cpp` and

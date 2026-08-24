@@ -418,3 +418,5 @@ the next gate. Records are append-only except for factual corrections.
   beginner-friendly explanation of why a faster local GEMM does not make startup or the model fast.
 - [2026-08-24-bf16-grouped-gate-up.md](2026-08-24-bf16-grouped-gate-up.md):
   beginner-friendly grouped gate/up capability and stable-address requirement.
+- [2026-08-24-bf16-grouped-gate-up-model.md](2026-08-24-bf16-grouped-gate-up-model.md):
+  beginner-friendly shared-kernel/per-block-plan integration and official model result.

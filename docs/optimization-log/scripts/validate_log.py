@@ -9338,6 +9338,162 @@ def validate_bf16_grouped_gate_up(
         max(user_ratios, default=0.0)
 
 
+def validate_bf16_grouped_gate_up_model(
+        errors: list[str]) -> tuple[int, float, float, int]:
+    data = REPOSITORY / (
+        "benchmarks/results/2026-08-24-bf16-grouped-gate-up-model")
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = {row.get("model"): row
+                   for row in summary.get("comparisons", [])}
+    expected = {
+        "qwen2.5-0.5b": {
+            "solution_index": 65168,
+            "baseline_tokens_per_second": 93470.65145685,
+            "grouped_tokens_per_second": 95117.74015706,
+            "grouped_speedup": 1.0176214530929033,
+            "baseline_peak_bytes": 1310108672,
+            "grouped_peak_bytes": 1310118560,
+            "peak_ratio": 1.0000075474654975,
+            "kernel_setup_ms": 56.9619,
+            "argument_setup_ms": 0.575717,
+            "plan_entries": 24,
+            "plan_hits": 144,
+            "dispatches": 168,
+            "maximum_absolute_logit_difference": 0.07027947902679443,
+            "maximum_rms_logit_difference": 0.01537959767072217,
+        },
+        "deepseek-r1-distill-qwen-1.5b": {
+            "solution_index": 65200,
+            "baseline_tokens_per_second": 50156.977625168,
+            "grouped_tokens_per_second": 50745.560313547,
+            "grouped_speedup": 1.011734811710099,
+            "baseline_peak_bytes": 4562232832,
+            "grouped_peak_bytes": 4562244288,
+            "peak_ratio": 1.0000025110511501,
+            "kernel_setup_ms": 56.827738,
+            "argument_setup_ms": 0.698019,
+            "plan_entries": 28,
+            "plan_hits": 168,
+            "dispatches": 196,
+            "maximum_absolute_logit_difference": 0.06139183044433594,
+            "maximum_rms_logit_difference": 0.010285622249765376,
+        },
+    }
+    expected_profiles = {
+        ("qwen2.5-0.5b", "baseline"):
+            (5733181.6, 217.0, 3139070.2),
+        ("qwen2.5-0.5b", "grouped"):
+            (5629606.4, 193.0, 3033743.4),
+        ("deepseek-r1-distill-qwen-1.5b", "baseline"):
+            (10504172.2, 253.0, 6602615.3999999985),
+        ("deepseek-r1-distill-qwen-1.5b", "grouped"):
+            (10525514.4, 225.0, 6474042.000000001),
+    }
+    expected_tests = {
+        "cpu_debug": {"passed": 303, "total": 303},
+        "asan_ubsan": {"passed": 301, "total": 301},
+        "pytorch_enabled_cpu": {"passed": 277, "total": 277},
+        "hip_full_configuration": {
+            "passed": 474, "total": 474, "conditional_skips": 3},
+        "hip_label": {"passed": 161, "total": 161},
+        "rccl_multi_gpu": {"passed": 12, "total": 12},
+        "rccl_full_label": {"passed": 14, "total": 14},
+    }
+    counts = {(name, policy): 0 for name in expected
+              for policy in ("baseline", "grouped")}
+    for row in raw:
+        key = (row.get("model"), row.get("policy"))
+        if key in counts:
+            counts[key] += 1
+    evidence_changed = False
+    for name, values in expected.items():
+        row = comparisons.get(name, {})
+        if row.get("finite_complete_logits") is not True or \
+                row.get("top_tokens_equal") is not True:
+            evidence_changed = True
+            break
+        for field, value in values.items():
+            if abs(float(row.get(field, 0.0)) - value) > 1.0e-6:
+                evidence_changed = True
+                break
+    profile_calls = {}
+    for (model, policy), expected_profile in expected_profiles.items():
+        directory = data / f"profile-{model}-{policy}"
+        for filename in (
+                "one-step-kernel-stats.csv",
+                "three-step-kernel-stats.csv"):
+            if not (directory / filename).is_file():
+                errors.append(
+                    f"grouped gate/up profile file missing: {directory}/{filename}")
+        profile = json.loads((directory / "profile-delta.json").read_text(
+            encoding="utf-8"))
+        categories = {row.get("category"): row
+                      for row in profile.get("categories", [])}
+        gemm = categories.get("hipBLASLt GEMM", {})
+        actual = (
+            float(profile.get("total_kernel_ns_per_step", 0.0)),
+            float(gemm.get("calls_per_step", 0.0)),
+            float(gemm.get("duration_ns_per_step", 0.0)))
+        if profile.get("status") != "pass" or \
+                profile.get("track") != \
+                    "inference_prefill_kernel_phase_delta" or \
+                any(abs(value - expected_value) > 1.0e-6
+                    for value, expected_value in zip(
+                        actual, expected_profile, strict=True)):
+            errors.append("grouped gate/up profile evidence changed")
+        profile_calls[(model, policy)] = actual[1]
+    if summary.get("status") != "pass" or len(raw) != 12 or \
+            summary.get("raw_processes") != 12 or \
+            summary.get("correctness_gate") is not True or \
+            summary.get("performance_gate") is not True or \
+            summary.get("memory_gate") is not True or \
+            summary.get("setup_gate") is not True or \
+            set(comparisons) != set(expected) or evidence_changed or \
+            any(count != 3 for count in counts.values()) or \
+            verification.get("status") != "pass" or \
+            verification.get("tests") != expected_tests or \
+            verification.get("registered_test_files") != 75 or \
+            verification.get("formal_processes") != 12 or \
+            verification.get("formal_comparisons") != 2 or \
+            verification.get("profile_deltas") != 4 or \
+            any(verification.get(gate) is not True for gate in (
+                "correctness_gate", "performance_gate",
+                "memory_gate", "setup_gate")):
+        errors.append("BF16 grouped gate/up model evidence changed")
+    header = (REPOSITORY / "include/microllm/ops/ops.h").read_text(
+        encoding="utf-8")
+    source = (REPOSITORY / "src/ops/optimized.cpp").read_text(
+        encoding="utf-8")
+    cli = (REPOSITORY / "apps/hf_infer.cpp").read_text(encoding="utf-8")
+    tests = (REPOSITORY / "tests/ops/hip_ops_test.cpp").read_text(
+        encoding="utf-8")
+    runner = (REPOSITORY / "benchmarks/single_gpu/"
+              "compare_bf16_grouped_gate_up_models.py").read_text(
+                  encoding="utf-8")
+    for token, document in (
+            ("Bf16GroupedGateUpKey", header),
+            ("Bf16GroupedGateUpKernel", source),
+            ("try_bf16_grouped_gate_up", source),
+            ("--bf16-grouped-gate-up-algorithm-index", cli),
+            ("GroupedGateUpCachesExactPointerStablePlan", tests),
+            ("top_tokens_equal", runner)):
+        if token not in document:
+            errors.append("BF16 grouped gate/up model source/test contract changed")
+            break
+    speedups = [float(row["grouped_speedup"])
+                for row in comparisons.values()]
+    calls_saved = sum(
+        int(profile_calls[(model, "baseline")] -
+            profile_calls[(model, "grouped")])
+        for model in expected)
+    return len(raw), min(speedups, default=0.0), \
+        max(speedups, default=0.0), calls_saved
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -9511,7 +9667,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-grouped-qkv-prewarm.svg",
                  "hipblaslt-preload.svg",
                  "bf16-exact-startup.svg",
-                 "bf16-grouped-gate-up.svg"):
+                 "bf16-grouped-gate-up.svg",
+                 "bf16-grouped-gate-up-model.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -9851,6 +10008,9 @@ def main() -> int:
         bf16_exact_operator = validate_bf16_exact_startup(errors)
     grouped_gate_up_rows, grouped_gate_up_minimum, \
         grouped_gate_up_maximum = validate_bf16_grouped_gate_up(errors)
+    grouped_gate_up_model_rows, grouped_gate_up_model_minimum, \
+        grouped_gate_up_model_maximum, grouped_gate_up_calls_saved = \
+        validate_bf16_grouped_gate_up_model(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -10135,6 +10295,10 @@ def main() -> int:
           f"{bf16_exact_cold:.3f}/{bf16_exact_operator:.3f} "
           f"bf16_grouped_gate_up={grouped_gate_up_rows}/"
           f"{grouped_gate_up_minimum:.3f}/{grouped_gate_up_maximum:.3f} "
+          f"bf16_grouped_gate_up_model={grouped_gate_up_model_rows}/"
+          f"{grouped_gate_up_model_minimum:.3f}/"
+          f"{grouped_gate_up_model_maximum:.3f}/"
+          f"{grouped_gate_up_calls_saved} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

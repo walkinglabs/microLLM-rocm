@@ -90,6 +90,7 @@ struct Options {
     std::string trace_value_filter;
     int bf16_algorithm_index = -1;
     int bf16_grouped_qkv_algorithm_index = -1;
+    int bf16_grouped_gate_up_algorithm_index = -1;
     bool bf16_grouped_qkv_prewarm = false;
     int fp32_attention_qk_solution_index = -1;
     int fp32_attention_pv_solution_index = -1;
@@ -280,6 +281,10 @@ Options options(int argc, char** argv) {
         }
         else if (name == "--bf16-grouped-qkv-algorithm-index") {
             result.bf16_grouped_qkv_algorithm_index =
+                std::stoi(argv[index + 1]);
+        }
+        else if (name == "--bf16-grouped-gate-up-algorithm-index") {
+            result.bf16_grouped_gate_up_algorithm_index =
                 std::stoi(argv[index + 1]);
         }
         else if (name == "--bf16-grouped-qkv-prewarm") {
@@ -514,6 +519,13 @@ Options options(int argc, char** argv) {
         result.bf16_grouped_qkv_algorithm_index < 0) {
         throw std::invalid_argument(
             "--bf16-grouped-qkv-prewarm requires an exact grouped algorithm");
+    }
+    if (result.bf16_grouped_gate_up_algorithm_index < -1 ||
+        (result.bf16_grouped_gate_up_algorithm_index >= 0 &&
+         (result.device != "hip" || result.workload != "prefill" ||
+          !result.bf16_ffn || !result.bf16_ffn_arena))) {
+        throw std::invalid_argument(
+            "--bf16-grouped-gate-up-algorithm-index requires HIP BF16 FFN Arena prefill");
     }
     const auto fp32_attention_solution_requested =
         result.fp32_attention_qk_solution_index >= 0 ||
@@ -1176,6 +1188,17 @@ int main(int argc, char** argv) {
                 microllm::DType::BFloat16,
                 command.bf16_algorithm_index);
         }
+        if (command.bf16_grouped_gate_up_algorithm_index >= 0) {
+            microllm::ops::clear_bf16_grouped_gate_up_registry();
+            const auto key =
+                microllm::ops::make_bf16_grouped_gate_up_key(
+                    command.batch *
+                        static_cast<std::int64_t>(ids.size()),
+                    external.model.dimension,
+                    external.model.ffn_dimension, device);
+            microllm::ops::register_bf16_grouped_gate_up_algorithm(
+                key, command.bf16_grouped_gate_up_algorithm_index);
+        }
         if (command.bf16_grouped_qkv_algorithm_index >= 0) {
             microllm::ops::clear_bf16_grouped_qkv_registry();
             const auto key = microllm::ops::make_bf16_grouped_qkv_key(
@@ -1825,6 +1848,8 @@ int main(int argc, char** argv) {
             microllm::ops::fp32_matmul_solution_stats();
         const auto grouped_qkv_stats =
             microllm::ops::bf16_grouped_qkv_stats();
+        const auto grouped_gate_up_stats =
+            microllm::ops::bf16_grouped_gate_up_stats();
         if (!command.cache_logits_output.empty()) {
             const auto cache_logits = cache_logits_evidence.to_vector();
             std::ofstream output(command.cache_logits_output,
@@ -1848,6 +1873,8 @@ int main(int argc, char** argv) {
                   << command.bf16_algorithm_index
                   << ",\"bf16_grouped_qkv_algorithm_index\":"
                   << command.bf16_grouped_qkv_algorithm_index
+                  << ",\"bf16_grouped_gate_up_algorithm_index\":"
+                  << command.bf16_grouped_gate_up_algorithm_index
                   << ",\"bf16_grouped_qkv_prewarm\":"
                   << (command.bf16_grouped_qkv_prewarm ? "true" : "false")
                   << ",\"bf16_grouped_qkv_prewarm_rows\":"
@@ -1888,6 +1915,32 @@ int main(int argc, char** argv) {
                   << grouped_qkv_stats.kernel_setup_ms
                   << ",\"bf16_grouped_qkv_argument_setup_ms\":"
                   << grouped_qkv_stats.argument_setup_ms
+                  << ",\"bf16_grouped_gate_up_registered_entries\":"
+                  << grouped_gate_up_stats.registered_entries
+                  << ",\"bf16_grouped_gate_up_algorithm_entries\":"
+                  << grouped_gate_up_stats.algorithm_entries
+                  << ",\"bf16_grouped_gate_up_algorithm_hits\":"
+                  << grouped_gate_up_stats.algorithm_hits
+                  << ",\"bf16_grouped_gate_up_algorithm_misses\":"
+                  << grouped_gate_up_stats.algorithm_misses
+                  << ",\"bf16_grouped_gate_up_kernel_entries\":"
+                  << grouped_gate_up_stats.kernel_entries
+                  << ",\"bf16_grouped_gate_up_kernel_hits\":"
+                  << grouped_gate_up_stats.kernel_hits
+                  << ",\"bf16_grouped_gate_up_kernel_misses\":"
+                  << grouped_gate_up_stats.kernel_misses
+                  << ",\"bf16_grouped_gate_up_plan_entries\":"
+                  << grouped_gate_up_stats.plan_entries
+                  << ",\"bf16_grouped_gate_up_plan_hits\":"
+                  << grouped_gate_up_stats.plan_hits
+                  << ",\"bf16_grouped_gate_up_plan_misses\":"
+                  << grouped_gate_up_stats.plan_misses
+                  << ",\"bf16_grouped_gate_up_dispatches\":"
+                  << grouped_gate_up_stats.dispatches
+                  << ",\"bf16_grouped_gate_up_kernel_setup_ms\":"
+                  << grouped_gate_up_stats.kernel_setup_ms
+                  << ",\"bf16_grouped_gate_up_argument_setup_ms\":"
+                  << grouped_gate_up_stats.argument_setup_ms
                   << ",\"fp32_attention_qk_solution_index\":"
                   << command.fp32_attention_qk_solution_index
                   << ",\"fp32_attention_pv_solution_index\":"

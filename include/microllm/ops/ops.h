@@ -102,6 +102,20 @@ struct Bf16GroupedQkvStats {
     double argument_setup_ms = 0.0;
 };
 
+struct Bf16GroupedGateUpKey {
+    std::int64_t rows = 0;
+    std::int64_t inner = 0;
+    std::int64_t columns = 0;
+    std::string architecture;
+    int hip_runtime_version = 0;
+    int hip_driver_version = 0;
+    int hipblaslt_version = 0;
+
+    auto operator<=>(const Bf16GroupedGateUpKey&) const = default;
+};
+
+using Bf16GroupedGateUpStats = Bf16GroupedQkvStats;
+
 // Exact hipBLASLt descriptor/environment identity for an explicitly accepted
 // FP32 solution index. Leading batch dimensions are flattened exactly as the
 // backend sees them; only contiguous operands are supported by this registry.
@@ -354,6 +368,14 @@ void register_bf16_grouped_qkv_algorithm(
     const Bf16GroupedQkvKey& key, int solution_index);
 void clear_bf16_grouped_qkv_registry() noexcept;
 [[nodiscard]] Bf16GroupedQkvStats bf16_grouped_qkv_stats() noexcept;
+[[nodiscard]] Bf16GroupedGateUpKey make_bf16_grouped_gate_up_key(
+    std::int64_t rows, std::int64_t inner,
+    std::int64_t columns, Device device);
+void register_bf16_grouped_gate_up_algorithm(
+    const Bf16GroupedGateUpKey& key, int solution_index);
+void clear_bf16_grouped_gate_up_registry() noexcept;
+[[nodiscard]] Bf16GroupedGateUpStats
+bf16_grouped_gate_up_stats() noexcept;
 void enable_attention_layout_plan_cache(bool enabled) noexcept;
 [[nodiscard]] bool attention_layout_plan_cache_enabled() noexcept;
 [[nodiscard]] AttentionLayoutPlanCacheStats

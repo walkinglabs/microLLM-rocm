@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="560" viewBox="0 0 1000 560" role="img" aria-labelledby="title desc">
+  <title id="title">Pointer-stable grouped gate/up complete-model result</title>
+  <desc id="desc">Both official models pass steady throughput, BF16 correctness, setup and memory gates while one GEMM submission per block disappears.</desc>
+  <rect width="1000" height="560" fill="#0b1020"/>
+  <text x="55" y="48" fill="#f8fafc" font-family="sans-serif" font-size="28" font-weight="700">Experiment 196 · grouped gate/up in the FFN Arena</text>
+  <text x="55" y="78" fill="#94a3b8" font-family="sans-serif" font-size="15">T512 · 3 baseline + 3 grouped processes per model · lower submissions, higher throughput</text>
+
+  <text x="55" y="137" fill="#e2e8f0" font-family="sans-serif" font-size="20" font-weight="700">Complete-model throughput</text>
+  <rect x="270" y="158" width="610" height="34" rx="7" fill="#334155"/>
+  <rect x="270" y="158" width="621" height="34" rx="7" fill="#34d399"/>
+  <text x="55" y="181" fill="#cbd5e1" font-family="sans-serif" font-size="16">Qwen</text>
+  <text x="900" y="181" fill="#a7f3d0" font-family="monospace" font-size="15">1.0176×</text>
+  <rect x="270" y="213" width="610" height="34" rx="7" fill="#334155"/>
+  <rect x="270" y="213" width="617" height="34" rx="7" fill="#22d3ee"/>
+  <text x="55" y="236" fill="#cbd5e1" font-family="sans-serif" font-size="16">DeepSeek</text>
+  <text x="900" y="236" fill="#a5f3fc" font-family="monospace" font-size="15">1.0117×</text>
+
+  <text x="55" y="307" fill="#e2e8f0" font-family="sans-serif" font-size="20" font-weight="700">GEMM submissions per steady forward</text>
+  <text x="55" y="355" fill="#cbd5e1" font-family="sans-serif" font-size="16">Qwen</text>
+  <rect x="270" y="332" width="540" height="30" rx="6" fill="#fb7185"/>
+  <rect x="270" y="372" width="480" height="30" rx="6" fill="#34d399"/>
+  <text x="825" y="354" fill="#fecdd3" font-family="monospace" font-size="15">217</text>
+  <text x="765" y="394" fill="#a7f3d0" font-family="monospace" font-size="15">193</text>
+  <text x="55" y="443" fill="#cbd5e1" font-family="sans-serif" font-size="16">DeepSeek</text>
+  <rect x="270" y="420" width="630" height="30" rx="6" fill="#fb7185"/>
+  <rect x="270" y="460" width="560" height="30" rx="6" fill="#22d3ee"/>
+  <text x="915" y="442" fill="#fecdd3" font-family="monospace" font-size="15">253</text>
+  <text x="845" y="482" fill="#a5f3fc" font-family="monospace" font-size="15">225</text>
+
+  <text x="55" y="535" fill="#94a3b8" font-family="sans-serif" font-size="14">Keep explicit exact policy · default remains unchanged across versions and unmeasured shapes</text>
+</svg>

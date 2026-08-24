@@ -198,6 +198,10 @@ rows、shape和plan；“全部加载以后总会用到”不是可接受的假�
 全部更慢，steady也没有同时过线。服务启动合同因此只接受完整模型fresh-process证据，
 不接受“第一个算子已经换成更快编号”作为ready证明。
 
+Grouped gate/up是steady策略，不是启动策略。只有BF16 FFN Arena已开启、rows和backend环境
+精确匹配且显式注册solution时才运行。服务可以在开放admission前用一次真实shape warm-up建立
+每block plan；必须单独报告约57ms shared kernel setup，不能把它藏进TTFT口径。
+
 ## 9. 测试位置
 
 ```text
