@@ -15,6 +15,7 @@ namespace microllm::ops {
 enum class MatmulImplementation { Auto, Readable, HipBLASLt };
 enum class AdamWImplementation { Auto, Scalar, Vectorized };
 enum class BiasGradientImplementation { Auto, ScalarColumns, CooperativeRows };
+enum class CausalSoftmaxImplementation { Auto, Rows128 };
 
 struct MatmulTuningKey {
     std::int64_t rows = 0;
@@ -548,6 +549,9 @@ void embedding_backward_add_(Tensor& weight_gradient, const Tensor& gradient,
                                             const Tensor& loss_gradient,
                                             const OpContext& context = {});
 [[nodiscard]] Tensor causal_softmax(const Tensor& scores, const OpContext& context = {});
+[[nodiscard]] Tensor causal_softmax_with_implementation(
+    const Tensor& scores, CausalSoftmaxImplementation implementation,
+    const OpContext& context = {});
 [[nodiscard]] Tensor causal_softmax_backward(const Tensor& output, const Tensor& gradient,
                                              const OpContext& context = {});
 // Multiplies causal probabilities [B,H,T,T] by values already stored in

@@ -10521,6 +10521,76 @@ def validate_inference_bthd_bf16_qk_shapes(
     return len(pilot_raw), len(formal_raw), min(ratios), max(ratios), len(rows)
 
 
+def validate_causal_softmax_128_discard(
+        errors: list[str]) -> tuple[int, int, float, float]:
+    data = REPOSITORY / (
+        "benchmarks/results/2026-08-24-causal-softmax-128-operator")
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    rows = {(row.get("family"), int(row.get("sequence", 0))): row
+            for row in summary.get("comparisons", [])}
+    expected = {
+        ("qwen", 256): 1.0168225833456122,
+        ("qwen", 512): 1.025461463341972,
+        ("qwen", 1024): 1.012717855463594,
+        ("deepseek", 256): 1.0062595234885816,
+        ("deepseek", 512): 1.0070511094441879,
+        ("deepseek", 1024): 1.0214072958092015,
+    }
+    tests = {
+        "cpu_debug": {"passed": 313, "total": 313},
+        "asan_ubsan": {"passed": 311, "total": 311},
+        "pytorch_enabled_cpu": {"passed": 287, "total": 287},
+        "hip_full_configuration": {
+            "passed": 487, "total": 487, "conditional_skips": 3},
+        "hip_label": {"passed": 164, "total": 164},
+        "rccl_multi_gpu": {"passed": 12, "total": 12},
+        "rccl_full_label": {"passed": 14, "total": 14},
+    }
+    counts = {(family, sequence, policy): 0
+              for family, sequence in expected
+              for policy in ("threads256", "threads128")}
+    for row in raw:
+        key = (row.get("family"), int(row.get("sequence", 0)),
+               row.get("policy"))
+        if key in counts:
+            counts[key] += 1
+    if summary.get("status") != "pass" or len(raw) != 36 or \
+            summary.get("processes") != 36 or \
+            summary.get("correctness_gate") is not True or \
+            summary.get("universal_performance_gate") is not False or \
+            summary.get("t512_performance_gate") is not False or \
+            set(rows) != set(expected) or \
+            any(abs(float(rows[key].get("event_speedup", 0.0)) - value) > 1.0e-9
+                for key, value in expected.items()) or \
+            any(float(row.get("maximum_absolute_error", 1.0)) > 2.0e-6 or
+                float(row.get("maximum_rms_error", 1.0)) > 1.0e-7
+                for row in rows.values()) or \
+            any(count != 3 for count in counts.values()) or \
+            verification.get("status") != "pass" or \
+            verification.get("registered_test_files") != 85 or \
+            verification.get("tests") != tests or \
+            verification.get("model_gate_executed") is not False:
+        errors.append("causal-softmax 128-thread rejection evidence changed")
+    sources = (
+        ("CausalSoftmaxImplementation::Rows128",
+         REPOSITORY / "benchmarks/micro/benchmark_causal_softmax.cpp"),
+        ("blockDim.x / 2", REPOSITORY / "src/ops/hip/basic_kernels.hip"),
+        ("Optional128ThreadRowsMatchCpu",
+         REPOSITORY / "tests/ops/hip_ops_test.cpp"),
+        ("universal_performance_gate",
+         REPOSITORY / "benchmarks/single_gpu/compare_causal_softmax_threads.py"),
+    )
+    if any(token not in path.read_text(encoding="utf-8")
+           for token, path in sources):
+        errors.append("causal-softmax thread source/test contract changed")
+    ratios = list(expected.values())
+    return len(raw), sum(value >= 1.01 for value in ratios), min(ratios), max(ratios)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -10705,7 +10775,8 @@ def validate_assets(errors: list[str]) -> None:
                  "inference-bthd-shape-models.svg",
                  "inference-bthd-profile.svg",
                  "inference-bthd-bf16-qk.svg",
-                 "inference-bthd-bf16-qk-shapes.svg"):
+                 "inference-bthd-bf16-qk-shapes.svg",
+                 "causal-softmax-128-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -11077,6 +11148,8 @@ def main() -> int:
         bthd_bf16_shape_minimum, bthd_bf16_shape_maximum, \
         bthd_bf16_shape_cases = \
         validate_inference_bthd_bf16_qk_shapes(errors)
+    softmax_thread_rows, softmax_thread_passed, softmax_thread_minimum, \
+        softmax_thread_maximum = validate_causal_softmax_128_discard(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -11397,6 +11470,9 @@ def main() -> int:
           f"inference_bthd_bf16_qk_shapes={bthd_bf16_shape_pilot}/"
           f"{bthd_bf16_shape_formal}/{bthd_bf16_shape_minimum:.3f}/"
           f"{bthd_bf16_shape_maximum:.3f}/{bthd_bf16_shape_cases} "
+          f"causal_softmax_threads={softmax_thread_rows}/"
+          f"{softmax_thread_passed}/{softmax_thread_minimum:.3f}/"
+          f"{softmax_thread_maximum:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

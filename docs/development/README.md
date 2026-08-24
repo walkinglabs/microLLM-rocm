@@ -4,6 +4,7 @@
 - [2026-08-24: CMake SDK and README cleanup](2026-08-24-cmake-sdk-readme.md)
 - [2026-08-24: Direct BF16 Q/K into BTHD Attention](2026-08-24-inference-bthd-bf16-qk.md)
 - [2026-08-24: Direct BF16 Q/K shape expansion](2026-08-24-inference-bthd-bf16-qk-shapes.md)
+- [2026-08-24: 128-thread causal-softmax counterexample](2026-08-24-causal-softmax-128-discard.md)
 
 This directory is the chronological record requested for the main repository.
 Each milestone records scope, decisions, commands, evidence, known failures, and

@@ -1,0 +1,72 @@
+{
+  "comparisons": [
+    {
+      "event_speedup": 1.0168225833456122,
+      "family": "qwen",
+      "heads": 14,
+      "maximum_absolute_error": 0.0,
+      "maximum_rms_error": 0.0,
+      "sequence": 256,
+      "threads128_event_ms": 0.147777006,
+      "threads256_event_ms": 0.150262997
+    },
+    {
+      "event_speedup": 1.025461463341972,
+      "family": "qwen",
+      "heads": 14,
+      "maximum_absolute_error": 1.86264515e-09,
+      "maximum_rms_error": 6.64563306e-11,
+      "sequence": 512,
+      "threads128_event_ms": 0.154272005,
+      "threads256_event_ms": 0.158199996
+    },
+    {
+      "event_speedup": 1.012717855463594,
+      "family": "qwen",
+      "heads": 14,
+      "maximum_absolute_error": 1.86264515e-09,
+      "maximum_rms_error": 5.3265872e-11,
+      "sequence": 1024,
+      "threads128_event_ms": 0.176523,
+      "threads256_event_ms": 0.178767994
+    },
+    {
+      "event_speedup": 1.0062595234885816,
+      "family": "deepseek",
+      "heads": 12,
+      "maximum_absolute_error": 0.0,
+      "maximum_rms_error": 0.0,
+      "sequence": 256,
+      "threads128_event_ms": 0.147296995,
+      "threads256_event_ms": 0.148219004
+    },
+    {
+      "event_speedup": 1.0070511094441879,
+      "family": "deepseek",
+      "heads": 12,
+      "maximum_absolute_error": 1.86264515e-09,
+      "maximum_rms_error": 6.54068998e-11,
+      "sequence": 512,
+      "threads128_event_ms": 0.153591007,
+      "threads256_event_ms": 0.154673994
+    },
+    {
+      "event_speedup": 1.0214072958092015,
+      "family": "deepseek",
+      "heads": 12,
+      "maximum_absolute_error": 1.86264515e-09,
+      "maximum_rms_error": 5.30394345e-11,
+      "sequence": 1024,
+      "threads128_event_ms": 0.170549005,
+      "threads256_event_ms": 0.174199998
+    }
+  ],
+  "correctness_gate": true,
+  "decision": "reject 128-thread causal softmax",
+  "processes": 36,
+  "record_type": "causal_softmax_thread_summary",
+  "schema_version": 1,
+  "status": "pass",
+  "t512_performance_gate": false,
+  "universal_performance_gate": false
+}

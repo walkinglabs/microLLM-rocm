@@ -32,8 +32,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   five-process model speedups;
 - [x] expand direct BF16 Q/K to B1/T256, B1/T1024 and B2/T512: six
   five-process cases pass at 1.0128x–1.0244x with bit-exact per-row logits;
-- [ ] re-profile and optimize the causal-softmax T512 row Kernel now that layout and
-  Q/K cast boundaries are closed;
+- [x] test 128-thread causal softmax across T256/512/1024; only 4/6 operator
+  rows pass 1.01x and DeepSeek T512 is 1.0071x, so model routing is rejected;
+- [ ] revisit softmax only as part of an online/fused Attention design that avoids
+  materializing the probability tensor;
 - [x] populate B1 KV cache from one full-sequence prefill instead of token replay;
 - [x] support batched cached decode with batch-aware KV Storage;
 - [x] add opt-in BF16 KV Storage with FP32 accumulation, complete-logit gates and a retained

@@ -2732,7 +2732,9 @@ Tensor cross_entropy_backward(const Tensor& logits, const Tensor& targets,
     return from_values(std::move(result), logits.shape());
 }
 
-Tensor causal_softmax(const Tensor& scores, [[maybe_unused]] const OpContext& context) {
+Tensor causal_softmax_with_implementation(
+    const Tensor& scores, CausalSoftmaxImplementation implementation,
+    [[maybe_unused]] const OpContext& context) {
     require_float(scores, "scores");
     if (scores.ndim() < 2 || scores.shape()[scores.shape().size() - 2] != scores.shape().back() ||
         scores.shape().back() == 0) {
@@ -2740,13 +2742,20 @@ Tensor causal_softmax(const Tensor& scores, [[maybe_unused]] const OpContext& co
     }
     const auto sequence = scores.shape().back();
     const auto rows = scores.numel() / sequence;
+    if (implementation == CausalSoftmaxImplementation::Rows128 &&
+        (!scores.device().is_hip() || sequence < 256 || sequence > 1024)) {
+        throw std::invalid_argument(
+            "128-thread causal softmax requires HIP sequence 256..1024");
+    }
     if (scores.device().is_hip()) {
         require_contiguous(scores, "scores");
         Tensor output(scores.shape(), DType::Float32, scores.device());
 #if MICROLLM_HAS_HIP
         hip::launch_causal_softmax(static_cast<const float*>(scores.data()),
                                    static_cast<float*>(output.data()), rows, sequence,
-                                   context.native_stream(scores.device()));
+                                   context.native_stream(scores.device()),
+                                   implementation ==
+                                       CausalSoftmaxImplementation::Rows128);
         return output;
 #else
         throw std::runtime_error("microLLM was built without HIP operator support");
@@ -2775,6 +2784,11 @@ Tensor causal_softmax(const Tensor& scores, [[maybe_unused]] const OpContext& co
         }
     }
     return from_values(std::move(result), scores.shape());
+}
+
+Tensor causal_softmax(const Tensor& scores, const OpContext& context) {
+    return causal_softmax_with_implementation(
+        scores, CausalSoftmaxImplementation::Auto, context);
 }
 
 Tensor causal_softmax_backward(const Tensor& output, const Tensor& gradient,

@@ -27,6 +27,10 @@ if(MICROLLM_HAS_HIP)
     add_executable(microllm_tune_adamw micro/tune_adamw.cpp)
     target_link_libraries(microllm_tune_adamw PRIVATE
         microllm::ops microllm::runtime hip::host)
+    add_executable(microllm_bench_causal_softmax
+                   micro/benchmark_causal_softmax.cpp)
+    target_link_libraries(microllm_bench_causal_softmax PRIVATE
+        microllm::ops microllm::runtime hip::host)
 endif()
 
 if(MICROLLM_HAS_HIP AND MICROLLM_HAS_HIPBLASLT)

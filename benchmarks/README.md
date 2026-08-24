@@ -215,6 +215,11 @@ Use `compare_inference_bthd_bf16_qk_shapes.py` for the B1/T256,
 B1/T1024 and B2/T512 expansion. Its default five-process matrix also checks
 every batch row's complete logits and top token.
 
+Use `compare_causal_softmax_threads.py` with
+`microllm_bench_causal_softmax` to compare explicit 256/128-thread row
+implementations. The runner gates complete output before Event timing and reports
+universal and T512 performance separately; it does not route models automatically.
+
 Capture HIP API, kernel, memory, and RCCL-ready runtime traces with the locally
 installed rocprofv3 interface:
 

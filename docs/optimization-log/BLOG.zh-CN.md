@@ -3461,3 +3461,16 @@ retained dispatch逐项等于block数乘7次forward。
 causal softmax，而不是把一个gfx942结果自动推广到所有AMD GPU。
 
 ![BTHD BF16 Q/K shape matrix](assets/inference-bthd-bf16-qk-shapes.svg)
+
+## 224. Experiment 207：一次快2%，三进程只剩0.7%
+
+T512 register softmax的256线程跨4个wave规约。128线程候选让每线程多保留几个exp，但少两个
+wave。为了支持它，reduction stride改读`blockDim.x`；默认256线程的树不变。
+
+单次pilot里Qwen/DeepSeek T512都约快2%。三进程算子矩阵却只有Qwen保持1.0255×，DeepSeek
+降到1.0071×。六个T256/512/1024 case只有4/6过1.01门，最大数值误差仍仅1.86e-9。
+
+因此整模门没有运行，模型/CLI开关也被删除。显式Rows128 primitive和benchmark保留，Auto仍
+是256线程。这个反例关闭“只调block size”方向；再做64/128/256扫描没有足够解释力。
+
+![128-thread causal softmax discard](assets/causal-softmax-128-discard.svg)

@@ -173,6 +173,7 @@ int main() {
         microllm::ops::bf16_grouped_gate_up_stats();
     bool rejected_cpu_tuning = false;
     bool rejected_cpu_adamw_tuning = false;
+    bool rejected_cpu_softmax_candidate = false;
     try {
         const microllm::Tensor left({2, 2});
         const microllm::Tensor right({2, 2});
@@ -189,6 +190,13 @@ int main() {
             parameter, gradient, first, second);
     } catch (const std::invalid_argument&) {
         rejected_cpu_adamw_tuning = true;
+    }
+    try {
+        (void)microllm::ops::causal_softmax_with_implementation(
+            microllm::Tensor({1, 256, 256}),
+            microllm::ops::CausalSoftmaxImplementation::Rows128);
+    } catch (const std::invalid_argument&) {
+        rejected_cpu_softmax_candidate = true;
     }
     if (!device.is_cpu() || empty_graph.defined() || !rejected_cpu_deferred_release ||
         !rejected_cpu_scoped_stream ||
@@ -230,6 +238,7 @@ int main() {
         !microllm::autograd::attention_rope_layout_fusion_enabled() ||
         microllm::autograd::unique_gradient_inplace_add_enabled() ||
         !rejected_cpu_tuning || !rejected_cpu_adamw_tuning ||
+        !rejected_cpu_softmax_candidate ||
         !rejected_cpu_grouped_prewarm) return 1;
     std::cout << "microLLM package consumer: pass\n";
     return 0;

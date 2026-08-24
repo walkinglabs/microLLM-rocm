@@ -228,6 +228,9 @@ the chronological details are in the [optimization log](docs/optimization-log/RE
   official models: five-process speedups span 1.0128×–1.0244× with bit-exact
   per-row logits and unchanged peak; a three-process Qwen B2 result at 1.0091×
   remains the published small-signal counterexample;
+- an explicit 128-thread causal-softmax primitive passes complete T256/512/1024
+  outputs, but only four of six three-process operator rows clear 1.01×; DeepSeek
+  T512 reaches 1.0071×, so no model/CLI policy is retained and Auto stays at 256 threads;
 - a phase-independent exact-size HIP pool with immediate legacy-default-Stream reuse and strict
   permanent disablement for non-default Streams;
 - a cross-framework trace runner for operator/layer values and latency comparisons.
@@ -539,13 +542,13 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 485/485 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
-| CPU Debug | 312/312 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
-| ASan/UBSan CPU | 310/310 | host lifetime, external Storage and instrumented-package linking |
-| MI300X/gfx942 HIP label | 163/163 | allocator/arena/Stream/Graph, grouped/exact vendor solutions, BF16/FP8 and model paths |
-| PyTorch-enabled CPU build | 286/286 | dispatcher parity, full graph/model oracle and all package paths |
+| Full CPU/HIP configuration | 487/487 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
+| CPU Debug | 313/313 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
+| ASan/UBSan CPU | 311/311 | host lifetime, external Storage and instrumented-package linking |
+| MI300X/gfx942 HIP label | 164/164 | allocator/arena/Stream/Graph, grouped/exact vendor solutions, BF16/FP8 and model paths |
+| PyTorch-enabled CPU build | 287/287 | dispatcher parity, full graph/model oracle and all package paths |
 | Multi-GPU/RCCL | 12/12 | collectives, global-batch equivalence, gradient buckets, DDP trainer/CLI and per-device hipBLASLt ownership |
-| Registered test files | 84 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| Registered test files | 85 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
 | CPU source coverage | 80.4% lines / 89.3% functions / 61.4% branches | 7,782/9,678 lines; GCC 13.3 + gcovr 8.3 |
 

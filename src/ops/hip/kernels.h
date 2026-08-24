@@ -193,7 +193,8 @@ void launch_cross_entropy_backward(const float* logits, const std::int32_t* targ
                                    std::int64_t rows, std::int64_t classes,
                                    void* stream = nullptr);
 void launch_causal_softmax(const float* scores, float* output, std::int64_t rows,
-                           std::int64_t sequence, void* stream = nullptr);
+                           std::int64_t sequence, void* stream = nullptr,
+                           bool use_128_threads = false);
 void launch_causal_softmax_backward(const float* output, const float* gradient,
                                     float* input_gradient, std::int64_t rows,
                                     std::int64_t sequence, void* stream = nullptr);

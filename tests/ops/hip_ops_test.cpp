@@ -1669,6 +1669,44 @@ TEST(HipCausalSoftmaxTest, RegisterBoundaryT2048MatchesCpuAndZerosMask) {
     }
 }
 
+TEST(HipCausalSoftmaxTest,
+     Optional128ThreadRowsMatchCpuAcrossInferenceSequences) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    for (const auto sequence : {256LL, 512LL, 1024LL}) {
+        const auto rows = 2LL * sequence;
+        std::vector<float> values(
+            static_cast<std::size_t>(rows * sequence));
+        for (std::size_t index = 0; index < values.size(); ++index) {
+            values[index] =
+                static_cast<float>(static_cast<int>(index % 113U) - 56) /
+                32.0F;
+        }
+        const auto scores = Tensor::from_vector(
+            values, {1, 2, sequence, sequence});
+        const auto expected = causal_softmax(scores).to_vector();
+        const auto device_scores = scores.to(gpu);
+        const auto baseline = causal_softmax(device_scores).to_vector();
+        const auto candidate = causal_softmax_with_implementation(
+            device_scores, CausalSoftmaxImplementation::Rows128).to_vector();
+        ASSERT_EQ(candidate.size(), expected.size());
+        float maximum_error = 0.0F;
+        double squared_error = 0.0;
+        for (std::size_t index = 0; index < candidate.size(); ++index) {
+            const auto difference = std::abs(candidate[index] - expected[index]);
+            maximum_error = std::max(maximum_error, difference);
+            squared_error += static_cast<double>(difference) * difference;
+        }
+        EXPECT_LT(maximum_error, 2.0e-6F) << "sequence=" << sequence;
+        EXPECT_LT(std::sqrt(
+                      squared_error /
+                      static_cast<double>(candidate.size())),
+                  1.0e-7)
+            << "sequence=" << sequence;
+        expect_near(candidate, baseline, 2.0e-6F);
+    }
+}
+
 TEST(HipRmsNormTest, BlockParallelForwardBackwardCoverModelWidthsWithoutHostTransfers) {
     require_gpu();
     const auto gpu = Device::hip(0);

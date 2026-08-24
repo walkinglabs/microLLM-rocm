@@ -659,7 +659,7 @@ __device__ float block_reduce_max(float value, float* scratch) {
     const auto lane = static_cast<unsigned>(threadIdx.x);
     scratch[lane] = value;
     __syncthreads();
-    for (unsigned stride = kBlockSize / 2; stride > 0; stride >>= 1) {
+    for (unsigned stride = blockDim.x / 2; stride > 0; stride >>= 1) {
         if (lane < stride) scratch[lane] = fmaxf(scratch[lane], scratch[lane + stride]);
         __syncthreads();
     }
@@ -832,7 +832,7 @@ __device__ float block_reduce_sum(float value, float* scratch) {
     const auto lane = static_cast<unsigned>(threadIdx.x);
     scratch[lane] = value;
     __syncthreads();
-    for (unsigned stride = kBlockSize / 2; stride > 0; stride >>= 1) {
+    for (unsigned stride = blockDim.x / 2; stride > 0; stride >>= 1) {
         if (lane < stride) scratch[lane] += scratch[lane + stride];
         __syncthreads();
     }
@@ -3508,12 +3508,15 @@ void launch_cross_entropy_backward(const float* logits, const std::int32_t* targ
 }
 
 void launch_causal_softmax(const float* scores, float* output, std::int64_t rows,
-                           std::int64_t sequence, void* stream) {
+                           std::int64_t sequence, void* stream,
+                           bool use_128_threads) {
     if (rows == 0) return;
     if (sequence >= 256) {
         if (sequence <= static_cast<std::int64_t>(kBlockSize) * 8) {
+            const auto threads = use_128_threads && sequence <= 1024
+                                     ? 128U : kBlockSize;
             hipLaunchKernelGGL(causal_softmax_rows_register_kernel,
-                               dim3(static_cast<unsigned>(rows)), dim3(kBlockSize), 0,
+                               dim3(static_cast<unsigned>(rows)), dim3(threads), 0,
                                as_stream(stream), scores, output, rows, sequence);
             check_launch("causal_softmax_rows_register_kernel");
             return;
