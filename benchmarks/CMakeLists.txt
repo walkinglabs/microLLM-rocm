@@ -20,6 +20,11 @@ if(MICROLLM_HAS_HIP)
                    micro/benchmark_adamw_graph_replay.cpp)
     target_link_libraries(microllm_bench_adamw_graph_replay PRIVATE
         microllm::training microllm::ops microllm::runtime hip::host)
+    add_executable(microllm_bench_gradient_address_stability
+                   single_gpu/benchmark_gradient_address_stability.cpp)
+    target_link_libraries(microllm_bench_gradient_address_stability PRIVATE
+        microllm::model microllm::training microllm::ops microllm::runtime
+        hip::host)
     add_executable(microllm_bench_stream_ordered_allocator
                    micro/benchmark_stream_ordered_allocator.cpp)
     target_link_libraries(microllm_bench_stream_ordered_allocator PRIVATE
@@ -303,6 +308,12 @@ if(BUILD_TESTING)
                          --elements 1024 --warmup 1 --repetitions 3)
         set_tests_properties(Benchmark.HipAdamWGraphMultiSmoke PROPERTIES
                              LABELS "hip;benchmark;training;graph;optimizer;memory;smoke")
+        add_test(NAME Benchmark.HipGradientAddressSmoke
+                 COMMAND microllm_bench_gradient_address_stability
+                         --model tiny --precision fp32 --warmup 1
+                         --steps 2 --context 8)
+        set_tests_properties(Benchmark.HipGradientAddressSmoke PROPERTIES
+                             LABELS "hip;benchmark;training;graph;autograd;memory;smoke")
         add_test(NAME Benchmark.HipAddSmoke
                  COMMAND microllm_bench_ops --op add --size 1024 --warmup 1 --repetitions 2 --device hip)
         set_tests_properties(Benchmark.HipAddSmoke PROPERTIES LABELS "hip;benchmark;smoke")

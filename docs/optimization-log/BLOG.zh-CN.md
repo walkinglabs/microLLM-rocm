@@ -3655,3 +3655,17 @@ BF16 64/256个1K Tensor从per-Tensor Graph的0.767×/0.806×变为10.813×/36.92
 gradient Storage地址；先测地址，再决定stable buffer还是optimizer-phase model gate。
 
 ![Stable-descriptor AdamW multi Graph](assets/adamw-graph-multi.svg)
+
+## 240. Experiment 223：箱子尺寸相同，不代表回到同一格货架
+
+Graph descriptor保存gradient真实地址；`zero_grad`后下一次backward只保证shape相同。新benchmark
+先warmup并打开exact-size pool，再比较两次steady backward，输出是否相同但不泄露指针值。
+
+18进程里Qwen BF16 T8/T512都是290/290稳定，DeepSeek T8是339/339稳定；DeepSeek T512却有
+198项换地址，覆盖112个Attention、84个FFN和embedding/head，共7,107,772,416字节。Tiny两种
+精度也固定有四个K/V gradient变化。
+
+因此eligibility必须绑定实际snapshot与context。下一步只测Qwen T512、DeepSeek T8的optimizer
+Graph；DeepSeek T512直接fallback，不用未定义地址去“试速度”。
+
+![Gradient Storage address stability](assets/gradient-address-stability.svg)

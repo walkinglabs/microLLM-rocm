@@ -12113,6 +12113,107 @@ def validate_adamw_graph_multi(
             for key, value in expected.items()), min(multi), max(multi), preparation
 
 
+def validate_gradient_address_stability(
+        errors: list[str]) -> tuple[int, int, int, int, int]:
+    data = REPOSITORY / (
+        "benchmarks/results/2026-08-24-gradient-address-stability")
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = {
+        (row["model"], row["precision"], row["context"]): row
+        for row in summary.get("comparisons", [])
+    }
+    expected = {
+        ("tiny", "fp32", 8): (17, 4, 82560, 8192),
+        ("tiny", "bf16", 8): (17, 4, 82560, 8192),
+        ("qwen", "bf16", 8): (290, 0, 1976131072, 0),
+        ("qwen", "bf16", 512): (290, 0, 1976131072, 0),
+        ("deepseek", "bf16", 8): (339, 0, 7108352000, 0),
+        ("deepseek", "bf16", 512): (141, 198, 579584, 7107772416),
+    }
+    counts = {key: 0 for key in expected}
+    for row in raw:
+        key = (row.get("model"), row.get("precision"), row.get("context"))
+        if key in counts: counts[key] += 1
+    expected_gates = {
+        "qwen_t8_t512_all_addresses_stable": True,
+        "deepseek_t8_addresses_stable": True,
+        "deepseek_t512_counterexample_present": True,
+        "tiny_gqa_counterexample_present": True,
+        "raw_addresses_not_exported": True,
+    }
+    deep_long = comparisons.get(("deepseek", "bf16", 512), {})
+    if summary.get("schema_version") != 1 or summary.get("status") != "pass" or \
+            summary.get("experiment") != "gradient_storage_address_stability" or \
+            summary.get("processes") != 18 or \
+            summary.get("runs_per_case") != 3 or \
+            summary.get("gates") != expected_gates or \
+            summary.get("decision") != (
+                "allow only snapshot-proven optimizer Graph workspaces; "
+                "DeepSeek T512 requires stable gradients or recapture") or \
+            len(raw) != 18 or set(comparisons) != set(expected) or \
+            any(count != 3 for count in counts.values()) or \
+            any((comparisons[key].get("stable_gradient_tensors"),
+                 comparisons[key].get("changed_gradient_tensors"),
+                 comparisons[key].get("stable_gradient_bytes"),
+                 comparisons[key].get("changed_gradient_bytes")) != values
+                for key, values in expected.items()) or \
+            deep_long.get("changed_categories") != {
+                "attention": 112, "embedding_head": 2, "ffn": 84} or \
+            any(row.get("schema_version") != 1 or row.get("status") != "pass" or
+                row.get("record_type") != "gradient_address_stability" or
+                row.get("architecture", "").split(":", 1)[0] != "gfx942" or
+                row.get("warmup") != 1 or row.get("steps") != 2 or
+                any("address" in record for record in row.get("records", []))
+                for row in raw):
+        errors.append("gradient Storage address stability evidence changed")
+    sources = (
+        ("all_gradient_addresses_stable", REPOSITORY /
+         "benchmarks/single_gpu/benchmark_gradient_address_stability.cpp"),
+        ("changed_gradient_bytes", REPOSITORY /
+         "benchmarks/single_gpu/gradient_address_matrix.py"),
+        ("deepseek_t512_counterexample_present", REPOSITORY /
+         "python/tests/test_gradient_address_matrix.py"),
+    )
+    if any(token not in path.read_text(encoding="utf-8")
+           for token, path in sources):
+        errors.append("gradient address source/test contract changed")
+    expected_tests = {
+        "cpu_debug": {"passed": 333, "total": 333},
+        "asan_ubsan": {"passed": 331, "total": 331},
+        "pytorch_enabled_cpu": {"passed": 307, "total": 307},
+        "hip_full_configuration": {
+            "passed": 526, "total": 526, "conditional_skips": 3},
+        "hip_label": {"passed": 181, "total": 181},
+        "rccl_multi_gpu": {"passed": 12, "total": 12},
+        "rccl_full_label": {"passed": 14, "total": 14},
+    }
+    if verification.get("status") != "pass" or \
+            verification.get("processes") != 18 or \
+            verification.get("qwen_stable_cases") != 2 or \
+            verification.get("deepseek_stable_cases") != 1 or \
+            verification.get("deepseek_t512_changed_tensors") != 198 or \
+            verification.get("deepseek_t512_changed_bytes") != 7107772416 or \
+            verification.get("raw_addresses_exported") is not False or \
+            verification.get("registered_test_files") != 96 or \
+            verification.get("tests") != expected_tests or \
+            verification.get("coverage") != {
+                "lines_percent": 78.5,
+                "functions_percent": 86.8,
+                "branches_percent": 59.2,
+                "lines_covered": 8877,
+                "lines_total": 11305}:
+        errors.append("gradient address stability verification changed")
+    stable_cases = sum(row[1] == 0 for row in expected.values())
+    return len(raw), stable_cases, deep_long.get("changed_gradient_tensors", 0), \
+        deep_long.get("changed_gradient_bytes", 0), \
+        max(int(row["engine_peak_bytes_maximum"])
+            for row in comparisons.values())
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -12313,7 +12414,8 @@ def validate_assets(errors: list[str]) -> None:
                  "fp32-weight-gradient-solutions-discard.svg",
                  "training-graph-capture-boundary.svg",
                  "adamw-graph-replay.svg",
-                 "adamw-graph-multi.svg"):
+                 "adamw-graph-multi.svg",
+                 "gradient-address-stability.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -12725,6 +12827,9 @@ def main() -> int:
     adamw_multi_rows, adamw_multi_fp32, adamw_multi_bf16, \
         adamw_multi_minimum, adamw_multi_maximum, adamw_multi_preparation = \
         validate_adamw_graph_multi(errors)
+    gradient_address_rows, gradient_address_stable, gradient_address_changed, \
+        gradient_address_bytes, gradient_address_peak = \
+        validate_gradient_address_stability(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -13090,6 +13195,9 @@ def main() -> int:
           f"adamw_multi_graph={adamw_multi_rows}/{adamw_multi_fp32}/"
           f"{adamw_multi_bf16}/{adamw_multi_minimum:.3f}/"
           f"{adamw_multi_maximum:.3f}/{adamw_multi_preparation:.3f} "
+          f"gradient_address={gradient_address_rows}/"
+          f"{gradient_address_stable}/{gradient_address_changed}/"
+          f"{gradient_address_bytes}/{gradient_address_peak} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

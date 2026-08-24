@@ -1,0 +1,115 @@
+{
+  "comparisons": [
+    {
+      "all_gradient_addresses_stable": false,
+      "changed_categories": {
+        "attention": 4
+      },
+      "changed_gradient_bytes": 8192,
+      "changed_gradient_tensors": 4,
+      "context": 8,
+      "elapsed_ms_median": 2159.211941,
+      "engine_peak_bytes_maximum": 347080,
+      "model": "tiny",
+      "parameter_tensors": 21,
+      "precision": "fp32",
+      "runs": 3,
+      "stable_gradient_bytes": 82560,
+      "stable_gradient_tensors": 17
+    },
+    {
+      "all_gradient_addresses_stable": false,
+      "changed_categories": {
+        "attention": 4
+      },
+      "changed_gradient_bytes": 8192,
+      "changed_gradient_tensors": 4,
+      "context": 8,
+      "elapsed_ms_median": 2862.432817,
+      "engine_peak_bytes_maximum": 388040,
+      "model": "tiny",
+      "parameter_tensors": 21,
+      "precision": "bf16",
+      "runs": 3,
+      "stable_gradient_bytes": 82560,
+      "stable_gradient_tensors": 17
+    },
+    {
+      "all_gradient_addresses_stable": true,
+      "changed_categories": {},
+      "changed_gradient_bytes": 0,
+      "changed_gradient_tensors": 0,
+      "context": 8,
+      "elapsed_ms_median": 7206.62734,
+      "engine_peak_bytes_maximum": 6688025160,
+      "model": "qwen",
+      "parameter_tensors": 290,
+      "precision": "bf16",
+      "runs": 3,
+      "stable_gradient_bytes": 1976131072,
+      "stable_gradient_tensors": 290
+    },
+    {
+      "all_gradient_addresses_stable": true,
+      "changed_categories": {},
+      "changed_gradient_bytes": 0,
+      "changed_gradient_tensors": 0,
+      "context": 512,
+      "elapsed_ms_median": 6524.592182,
+      "engine_peak_bytes_maximum": 9848293896,
+      "model": "qwen",
+      "parameter_tensors": 290,
+      "precision": "bf16",
+      "runs": 3,
+      "stable_gradient_bytes": 1976131072,
+      "stable_gradient_tensors": 290
+    },
+    {
+      "all_gradient_addresses_stable": true,
+      "changed_categories": {},
+      "changed_gradient_bytes": 0,
+      "changed_gradient_tensors": 0,
+      "context": 8,
+      "elapsed_ms_median": 5558.022545,
+      "engine_peak_bytes_maximum": 24493910088,
+      "model": "deepseek",
+      "parameter_tensors": 339,
+      "precision": "bf16",
+      "runs": 3,
+      "stable_gradient_bytes": 7108352000,
+      "stable_gradient_tensors": 339
+    },
+    {
+      "all_gradient_addresses_stable": false,
+      "changed_categories": {
+        "attention": 112,
+        "embedding_head": 2,
+        "ffn": 84
+      },
+      "changed_gradient_bytes": 7107772416,
+      "changed_gradient_tensors": 198,
+      "context": 512,
+      "elapsed_ms_median": 6705.962508,
+      "engine_peak_bytes_maximum": 29994293256,
+      "model": "deepseek",
+      "parameter_tensors": 339,
+      "precision": "bf16",
+      "runs": 3,
+      "stable_gradient_bytes": 579584,
+      "stable_gradient_tensors": 141
+    }
+  ],
+  "decision": "allow only snapshot-proven optimizer Graph workspaces; DeepSeek T512 requires stable gradients or recapture",
+  "experiment": "gradient_storage_address_stability",
+  "gates": {
+    "deepseek_t512_counterexample_present": true,
+    "deepseek_t8_addresses_stable": true,
+    "qwen_t8_t512_all_addresses_stable": true,
+    "raw_addresses_not_exported": true,
+    "tiny_gqa_counterexample_present": true
+  },
+  "processes": 18,
+  "runs_per_case": 3,
+  "schema_version": 1,
+  "status": "pass"
+}

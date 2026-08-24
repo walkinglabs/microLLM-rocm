@@ -464,3 +464,5 @@ the next gate. Records are append-only except for factual corrections.
   beginner-friendly device step ownership, checkpoint synchronization and measured Graph boundary.
 - [2026-08-24-adamw-stable-descriptor-multi-graph.md](2026-08-24-adamw-stable-descriptor-multi-graph.md):
   beginner-friendly immutable pointer table, two-node replay and real-gradient address blocker.
+- [2026-08-24-gradient-address-stability.md](2026-08-24-gradient-address-stability.md):
+  beginner-friendly shape-versus-address explanation and model/context-specific evidence.

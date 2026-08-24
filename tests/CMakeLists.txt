@@ -197,6 +197,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.AdamWGraphMultiMatrixContract PROPERTIES
         LABELS "cpu;benchmark;training;graph;optimizer;memory;schema")
     add_test(
+        NAME Benchmark.GradientAddressMatrixContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_gradient_address_matrix.py
+    )
+    set_tests_properties(Benchmark.GradientAddressMatrixContract PROPERTIES
+        LABELS "cpu;benchmark;training;graph;autograd;memory;schema")
+    add_test(
         NAME Benchmark.HipGraphMatrixContract
         COMMAND ${Python3_EXECUTABLE}
                 ${PROJECT_SOURCE_DIR}/python/tests/test_hip_graph_matrix.py

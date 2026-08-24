@@ -99,6 +99,9 @@ ADAMW_GRAPH_CHART = ROOT / "assets" / "adamw-graph-replay.svg"
 ADAMW_GRAPH_MULTI_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
                           "2026-08-24-adamw-graph-multi")
 ADAMW_GRAPH_MULTI_CHART = ROOT / "assets" / "adamw-graph-multi.svg"
+GRADIENT_ADDRESS_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
+                         "2026-08-24-gradient-address-stability")
+GRADIENT_ADDRESS_CHART = ROOT / "assets" / "gradient-address-stability.svg"
 
 
 def rows() -> list[dict]:
@@ -2494,6 +2497,67 @@ def adamw_graph_multi_svg() -> str:
     return "\n".join(parts)
 
 
+def gradient_address_stability_svg() -> str:
+    summary = json.loads((GRADIENT_ADDRESS_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    rows = summary["comparisons"]
+    width, height = 1600, 760
+    chart_x, chart_y, chart_w, chart_h = 160, 155, 1280, 390
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 223 · Gradient Storage Address Stability", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "18 fresh processes · one allocator warmup · two measured backward passes",
+             16, "#5b6474", anchor="middle"),
+        f'<rect x="{chart_x}" y="{chart_y}" width="{chart_w}" height="{chart_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+    ]
+    labels = []
+    for row in rows:
+        label = ("Tiny " + row["precision"].upper()
+                 if row["model"] == "tiny" else
+                 ("Qwen" if row["model"] == "qwen" else "DeepSeek") +
+                 f' T{row["context"]}')
+        labels.append(label)
+    group_w = chart_w / len(rows)
+    for index, row in enumerate(rows):
+        total = row["stable_gradient_bytes"] + row["changed_gradient_bytes"]
+        stable = row["stable_gradient_bytes"] / total if total else 0.0
+        center = chart_x + group_w * (index + 0.5)
+        bar_x, bar_y, bar_w, bar_h = center - 55, chart_y + 35, 110, 285
+        changed_height = bar_h * (1.0 - stable)
+        stable_height = bar_h - changed_height
+        parts.append(f'<rect x="{bar_x:.1f}" y="{bar_y:.1f}" width="{bar_w}" '
+                     f'height="{stable_height:.1f}" fill="#16a34a" rx="5"/>')
+        if changed_height > 0:
+            parts.append(f'<rect x="{bar_x:.1f}" y="{bar_y+stable_height:.1f}" '
+                         f'width="{bar_w}" height="{changed_height:.1f}" '
+                         'fill="#e11d48" rx="5"/>')
+        parts.append(text(center, bar_y - 10,
+                          f'{row["stable_gradient_tensors"]}/{row["parameter_tensors"]}',
+                          15, "#172033", anchor="middle", weight=700))
+        parts.append(text(center, chart_y + chart_h - 28, labels[index], 14,
+                          anchor="middle", weight=700))
+        changed_gib = row["changed_gradient_bytes"] / (1024 ** 3)
+        parts.append(text(center, chart_y + chart_h - 6,
+                          f'{changed_gib:.3f} GiB changed', 12,
+                          "#b42335" if changed_gib else "#5b6474",
+                          anchor="middle"))
+    parts.append(text(580, 610, "green = stable bytes", 15, "#16a34a", weight=700))
+    parts.append(text(800, 610, "red = changed bytes", 15, "#e11d48", weight=700))
+    parts.append(text(width / 2, 665,
+                      "Qwen T8/T512 and DeepSeek T8 stable · DeepSeek T512 changes 198 tensors / 7.108 GB",
+                      18, "#9a4f00", anchor="middle", weight=700))
+    parts.append(text(width / 2, 707,
+                      "eligibility must be snapshot + context specific; no raw pointer values are exported",
+                      15, "#5b6474", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -2531,7 +2595,8 @@ def main() -> int:
                 FP32_WGRAD_SOLUTION_CHART: fp32_weight_gradient_solutions_svg(),
                 TRAINING_GRAPH_CHART: training_graph_capture_svg(),
                 ADAMW_GRAPH_CHART: adamw_graph_replay_svg(),
-                ADAMW_GRAPH_MULTI_CHART: adamw_graph_multi_svg()}
+                ADAMW_GRAPH_MULTI_CHART: adamw_graph_multi_svg(),
+                GRADIENT_ADDRESS_CHART: gradient_address_stability_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]
