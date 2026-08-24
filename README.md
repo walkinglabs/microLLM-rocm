@@ -194,6 +194,9 @@ needed to run a real training and generation loop:
 - six complete sequence/batch cases then pass: Qwen B1/T256, B1/T1024 and B2/T512 gain
   1.1075×/1.0280×/1.0311× and DeepSeek gains 1.0755×/1.0212×/1.0223×;
   the same node fixes and tests CLI export of every batch logit row;
+- post-composition rocprof phase delta confirms GEMM submissions fall 217→145 and
+  253→169, GEMM time improves 1.182×/1.099× and total Kernel improves
+  1.009×/1.034×; the next candidate must cross a larger Attention/cast/layout boundary;
 - a phase-independent exact-size HIP pool with immediate legacy-default-Stream reuse and strict
   permanent disablement for non-default Streams;
 - a cross-framework trace runner for operator/layer values and latency comparisons.

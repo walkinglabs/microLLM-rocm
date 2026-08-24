@@ -9846,6 +9846,82 @@ def validate_bf16_grouped_shape_models(
         max(ratios, default=0.0), max(peaks, default=0.0)
 
 
+def validate_bf16_grouped_composed_profile(
+        errors: list[str]) -> tuple[int, int, float, float]:
+    data = REPOSITORY / (
+        "benchmarks/results/2026-08-24-bf16-grouped-composed-profile")
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    comparisons = {row.get("model"): row
+                   for row in summary.get("comparisons", [])}
+    expected = {
+        "qwen2.5-0.5b":
+            (5733181.6, 5680368.2, 1.0092975311001846,
+             217.0, 145.0, 72.0, 3139070.2, 2656657.6,
+             1.1815862909845816),
+        "deepseek-r1-distill-qwen-1.5b":
+            (10504172.2, 10160056.200000001, 1.0338694976903768,
+             253.0, 169.0, 84.0, 6602615.3999999985, 6007167.0,
+             1.0991229975793912),
+    }
+    fields = (
+        "baseline_total_kernel_ns", "composed_total_kernel_ns",
+        "total_kernel_speedup", "baseline_gemm_calls",
+        "composed_gemm_calls", "gemm_calls_saved",
+        "baseline_gemm_ns", "composed_gemm_ns", "gemm_time_speedup")
+    evidence_changed = False
+    for model, values in expected.items():
+        row = comparisons.get(model, {})
+        if any(abs(float(row.get(field, 0.0)) - value) > 1.0e-6
+               for field, value in zip(fields, values, strict=True)):
+            evidence_changed = True
+            break
+        directory = data / model
+        for filename in (
+                "one-step-kernel-stats.csv",
+                "three-step-kernel-stats.csv"):
+            if not (directory / filename).is_file():
+                errors.append(
+                    f"composed profile file missing: {model}/{filename}")
+        delta = json.loads((directory / "profile-delta.json").read_text(
+            encoding="utf-8"))
+        if delta.get("track") != "inference_prefill_kernel_phase_delta" or \
+                delta.get("many_step_count") != 6 or \
+                delta.get("derived_steps") != 5:
+            errors.append("composed phase-delta contract changed")
+    expected_tests = {
+        "cpu_debug": {"passed": 307, "total": 307},
+        "asan_ubsan": {"passed": 305, "total": 305},
+        "pytorch_enabled_cpu": {"passed": 281, "total": 281},
+        "hip_full_configuration": {
+            "passed": 478, "total": 478, "conditional_skips": 3},
+        "hip_label": {"passed": 161, "total": 161},
+        "rccl_multi_gpu": {"passed": 12, "total": 12},
+        "rccl_full_label": {"passed": 14, "total": 14},
+    }
+    if summary.get("status") != "pass" or \
+            summary.get("profile_processes") != 4 or \
+            summary.get("derived_forwards") != 10 or \
+            set(comparisons) != set(expected) or evidence_changed or \
+            verification.get("status") != "pass" or \
+            verification.get("tests") != expected_tests or \
+            verification.get("registered_test_files") != 79 or \
+            verification.get("profile_processes") != 4 or \
+            verification.get("derived_forwards") != 10 or \
+            verification.get("gemm_calls_saved") != 156:
+        errors.append("BF16 grouped composed profile evidence changed")
+    profiler = (REPOSITORY / "benchmarks/single_gpu/"
+                "profile_step_delta.py").read_text(encoding="utf-8")
+    if "inference_prefill_kernel_phase_delta" not in profiler:
+        errors.append("inference phase-delta source contract changed")
+    totals = [float(row["total_kernel_speedup"])
+              for row in comparisons.values()]
+    return int(summary.get("profile_processes", 0)), \
+        int(sum(row["gemm_calls_saved"] for row in comparisons.values())), \
+        min(totals, default=0.0), max(totals, default=0.0)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -10023,7 +10099,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-grouped-gate-up-model.svg",
                  "bf16-grouped-composition.svg",
                  "bf16-grouped-shape-matrix.svg",
-                 "bf16-grouped-shape-models.svg"):
+                 "bf16-grouped-shape-models.svg",
+                 "bf16-grouped-composed-profile.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -10374,6 +10451,9 @@ def main() -> int:
     grouped_shape_model_rows, grouped_shape_model_minimum, \
         grouped_shape_model_maximum, grouped_shape_model_peak = \
         validate_bf16_grouped_shape_models(errors)
+    composed_profile_processes, composed_profile_calls_saved, \
+        composed_profile_minimum, composed_profile_maximum = \
+        validate_bf16_grouped_composed_profile(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -10673,6 +10753,10 @@ def main() -> int:
           f"{grouped_shape_model_minimum:.3f}/"
           f"{grouped_shape_model_maximum:.3f}/"
           f"{grouped_shape_model_peak:.3f} "
+          f"bf16_grouped_composed_profile={composed_profile_processes}/"
+          f"{composed_profile_calls_saved}/"
+          f"{composed_profile_minimum:.3f}/"
+          f"{composed_profile_maximum:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

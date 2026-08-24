@@ -3371,3 +3371,16 @@ B1/T1024和B2/T512都映射rows1024，却得到不同收益。这个结果把“
 明确分开：前者负责安全dispatch，后者负责性能结论。
 
 ![Grouped sequence/batch model matrix](assets/bf16-grouped-shape-models.svg)
+
+## 217. Experiment 200：每层少三次提交以后，GEMM仍是最大块
+
+最终组合的phase delta不再是QKV-only的169/197次，而是145/169次。QKV每层省2次，
+gate/up每层省1次，所以Qwen正好省72，DeepSeek省84。
+
+GEMM时间改善1.182×/1.099×，总Kernel改善1.009×/1.034×。但GEMM仍占46.8%/59.1%，
+cast和strided copy又占18.9%/14.8%。这说明独立projection分组已经做完，剩余不是再找
+一对相同输入就能解决。
+
+下一候选必须改变更大的Attention、cast或layout边界，并继续过完整模型门。
+
+![Post-composition profile](assets/bf16-grouped-composed-profile.svg)

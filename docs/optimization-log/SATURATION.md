@@ -292,6 +292,12 @@ rows1024 keys but show different ratios, confirming workload identity cannot col
 rows. The first run exposed and stopped on a CLI B2 export bug; last/full modes now write every
 batch row and a real tiny-HF binary fixture guards it. Explicit rows256/1024 policies are retained.
 
+Experiment 200 profiles the final composition. Qwen/DeepSeek GEMM calls fall 217→145 and 253→169,
+exactly 72/84 saved submissions; GEMM time improves 1.182×/1.099× and total Kernel
+1.009×/1.034×. GEMM remains 46.8%/59.1%, with cast plus strided materialization another
+18.9%/14.8%. Independent-projection grouping is locally saturated. The next candidate must cross
+a larger Attention or cast/layout boundary, not add another stateless grouped or exact-index edit.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

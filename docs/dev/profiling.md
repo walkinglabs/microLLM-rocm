@@ -421,6 +421,11 @@ logit oracle splits the exported file into batch rows before checking top-1. The
 is covered by HfCLI.BatchLogitsExport using a generated real checkpoint; file size is part of the
 correctness contract, not a schema detail.
 
+The post-composition reference is benchmarks/results/2026-08-24-bf16-grouped-composed-profile.
+Its load+one/load+six subtraction shows 145/169 GEMM calls after both grouped families. Treat this
+as the new profile baseline; comparing a future candidate to the older 217/253-call graph would
+double-count already retained work.
+
 ## What remains
 
 There is no Python `@profile` decorator yet. The current stable entry points are the

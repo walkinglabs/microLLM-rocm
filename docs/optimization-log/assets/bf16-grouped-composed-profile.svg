@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="560" viewBox="0 0 1000 560" role="img" aria-labelledby="title desc">
+  <title id="title">Post-composition GEMM calls and time</title>
+  <desc id="desc">Grouped QKV and gate-up remove 72 and 84 GEMM submissions while GEMM remains the largest Kernel category.</desc>
+  <rect width="1000" height="560" fill="#0b1020"/>
+  <text x="55" y="48" fill="#f8fafc" font-family="sans-serif" font-size="28" font-weight="700">Experiment 200 · after both grouped policies</text>
+  <text x="55" y="78" fill="#94a3b8" font-family="sans-serif" font-size="15">load+six minus load+one · five derived T512 forwards</text>
+
+  <text x="55" y="137" fill="#e2e8f0" font-family="sans-serif" font-size="20" font-weight="700">GEMM submissions per forward</text>
+  <text x="55" y="185" fill="#cbd5e1" font-family="sans-serif" font-size="15">Qwen baseline</text>
+  <rect x="240" y="162" width="515" height="30" rx="6" fill="#fb7185"/>
+  <text x="770" y="184" fill="#fecdd3" font-family="monospace" font-size="14">217</text>
+  <text x="55" y="225" fill="#cbd5e1" font-family="sans-serif" font-size="15">Qwen composed</text>
+  <rect x="240" y="202" width="344" height="30" rx="6" fill="#34d399"/>
+  <text x="599" y="224" fill="#a7f3d0" font-family="monospace" font-size="14">145</text>
+  <text x="55" y="280" fill="#cbd5e1" font-family="sans-serif" font-size="15">DeepSeek baseline</text>
+  <rect x="240" y="257" width="600" height="30" rx="6" fill="#fb7185"/>
+  <text x="855" y="279" fill="#fecdd3" font-family="monospace" font-size="14">253</text>
+  <text x="55" y="320" fill="#cbd5e1" font-family="sans-serif" font-size="15">DeepSeek composed</text>
+  <rect x="240" y="297" width="401" height="30" rx="6" fill="#22d3ee"/>
+  <text x="656" y="319" fill="#a5f3fc" font-family="monospace" font-size="14">169</text>
+
+  <text x="55" y="390" fill="#e2e8f0" font-family="sans-serif" font-size="20" font-weight="700">Composed Kernel-time share</text>
+  <rect x="55" y="415" width="890" height="38" rx="6" fill="#334155"/>
+  <rect x="55" y="415" width="416" height="38" rx="6" fill="#a78bfa"/>
+  <text x="70" y="440" fill="#f5f3ff" font-family="sans-serif" font-size="14">Qwen GEMM 46.8%</text>
+  <rect x="55" y="470" width="890" height="38" rx="6" fill="#334155"/>
+  <rect x="55" y="470" width="526" height="38" rx="6" fill="#34d399"/>
+  <text x="70" y="495" fill="#ecfdf5" font-family="sans-serif" font-size="14">DeepSeek GEMM 59.1%</text>
+
+  <text x="55" y="545" fill="#94a3b8" font-family="sans-serif" font-size="13">Next hypothesis must cross a larger Attention or cast/layout boundary</text>
+</svg>

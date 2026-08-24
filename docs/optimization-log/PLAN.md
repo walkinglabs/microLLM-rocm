@@ -51,6 +51,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [20](steps/20-bf16-grouped-composition.md) | complete | QKV + gate/up组合 | both/base 1.0655×/1.0474× |
 | [21](steps/21-bf16-grouped-shape-matrix.md) | complete | rows256/1024能力矩阵 | 8 case user args 1.124×–1.695× |
 | [22](steps/22-bf16-grouped-shape-models.md) | complete | sequence/batch完整模型 | 六case 1.0212×–1.1075× + CLI batch修复 |
+| [23](steps/23-bf16-grouped-composed-profile.md) | complete | 组合后phase profile | GEMM calls 217→145、253→169 |
 
 ## 为什么按这个顺序
 

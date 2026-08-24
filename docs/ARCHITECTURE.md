@@ -456,6 +456,11 @@ last-logit export writes every batch row, while full-logit export gathers each r
 token. The grouped registry may use flattened rows; reports and acceptance matrices must retain
 batch and sequence separately.
 
+Experiment 200 closes independent-projection grouping as a local architecture track. The exact
+three-submission-per-block reduction is present, yet GEMM remains the largest category and
+cast/layout traffic remains material. Further fusion must own a larger Attention or precision
+boundary and cannot be expressed as another sibling projection plan.
+
 ## Stable integration boundary
 
 The long-term integration seam is a C-compatible descriptor plus explicit stream

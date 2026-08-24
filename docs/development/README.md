@@ -426,3 +426,5 @@ the next gate. Records are append-only except for factual corrections.
   beginner-friendly rows256/1024 capability and single-process counterexample correction.
 - [2026-08-24-bf16-grouped-shape-models.md](2026-08-24-bf16-grouped-shape-models.md):
   beginner-friendly sequence/batch model gate and real CLI batch-logit fix.
+- [2026-08-24-bf16-grouped-composed-profile.md](2026-08-24-bf16-grouped-composed-profile.md):
+  beginner-friendly post-composition hotspot and exact submission accounting.
