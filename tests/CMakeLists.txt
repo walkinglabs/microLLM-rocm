@@ -147,6 +147,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.StreamOrderedAllocatorMatrixContract PROPERTIES
         LABELS "cpu;benchmark;lifetime;memory;graph;schema")
     add_test(
+        NAME Benchmark.ActivationArenaMatrixContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_activation_arena_matrix.py
+    )
+    set_tests_properties(Benchmark.ActivationArenaMatrixContract PROPERTIES
+        LABELS "cpu;benchmark;lifetime;memory;graph;schema")
+    add_test(
         NAME Coverage.OperatorAndTestFiles
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/audit_test_coverage.py
     )

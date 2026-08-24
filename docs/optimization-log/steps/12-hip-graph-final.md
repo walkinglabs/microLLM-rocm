@@ -93,6 +93,13 @@ Graph allocation nodes are 0.036×–0.048×, retain N distinct addresses and cr
 The remaining model-Graph prerequisite is now specifically an outside-replay activation arena and
 liveness plan, not another allocator API or larger deferred table.
 
+## Experiment 180 activation arena result
+
+One stable backing allocation and a two-slot liveness plan remove allocation nodes entirely.
+Eager arena improves 1.071×–1.768×; arena Graph replay improves 1.314×–3.066× and contains exactly
+`N+1` compute nodes. Setup costs 14–16 ms, so short/long break-even is 1,280/9 replays. The next
+and only remaining prerequisite is a real model-region shape/liveness map with complete logits.
+
 ## Final matrix
 
 - FP32 fixed matrix and running-best curve;

@@ -219,6 +219,13 @@ Graph nodes, but Experiment 179 rejects both eager model-style use and allocatio
 Same-Stream eager chains reuse two addresses yet are slower; captured chains own one address per
 allocation node. A future activation arena must allocate stable backing Storage outside replay.
 
+`runtime::HipActivationArena` is that outside-replay backing primitive. It owns one fixed HIP
+allocation, returns aligned non-owning slices from a caller-designed liveness plan, and keeps the
+base address fixed by forbidding move/copy. The bound Stream completes before destruction. The
+runtime validates alignment/capacity; it does not infer Tensor lifetimes. Experiment 180 proves a
+two-slot plan can capture `N+1` compute-only nodes and replay faster, while leaving real model
+shape/liveness planning as the next boundary.
+
 hipBLASLt GEMM also supports contiguous strided batches: leading Tensor dimensions become
 the batch count and last-two dimensions remain the matrix contract. Explicit batched
 selection is tested independently; Auto is not changed by operator-only timing.

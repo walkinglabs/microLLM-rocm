@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="560" viewBox="0 0 960 560" role="img" aria-labelledby="title desc">
+  <title id="title">Stable activation arena eager and Graph speedups</title>
+  <desc id="desc">Arena eager improves from 1.07 to 1.77 while arena Graph improves from 1.31 to 3.07 as node count rises.</desc>
+  <rect width="960" height="560" fill="#0b1020"/>
+  <text x="48" y="48" fill="#f8fafc" font-family="sans-serif" font-size="25" font-weight="700">Stable addresses reopen the Graph track</text>
+  <text x="48" y="76" fill="#94a3b8" font-family="sans-serif" font-size="14">MI300X · 4096 elements · candidate / deferred · median of 3 fresh processes</text>
+  <line x1="90" y1="430" x2="900" y2="430" stroke="#475569"/>
+  <line x1="90" y1="330" x2="900" y2="330" stroke="#f59e0b" stroke-dasharray="5 5"/>
+  <text x="905" y="334" fill="#fcd34d" font-family="sans-serif" font-size="12">1.0×</text>
+  <g font-family="sans-serif" font-size="13" text-anchor="middle">
+    <rect x="135" y="323" width="54" height="107" rx="5" fill="#38bdf8"/><text x="162" y="311" fill="#7dd3fc">1.07×</text>
+    <rect x="195" y="299" width="54" height="131" rx="5" fill="#22c55e"/><text x="222" y="287" fill="#86efac">1.31×</text><text x="192" y="460" fill="#cbd5e1">N8</text>
+    <rect x="325" y="294" width="54" height="136" rx="5" fill="#38bdf8"/><text x="352" y="282" fill="#7dd3fc">1.36×</text>
+    <rect x="385" y="225" width="54" height="205" rx="5" fill="#22c55e"/><text x="412" y="213" fill="#86efac">2.05×</text><text x="382" y="460" fill="#cbd5e1">N32</text>
+    <rect x="515" y="285" width="54" height="145" rx="5" fill="#38bdf8"/><text x="542" y="273" fill="#7dd3fc">1.45×</text>
+    <rect x="575" y="174" width="54" height="256" rx="5" fill="#22c55e"/><text x="602" y="162" fill="#86efac">2.56×</text><text x="572" y="460" fill="#cbd5e1">N128</text>
+    <rect x="705" y="253" width="54" height="177" rx="5" fill="#38bdf8"/><text x="732" y="241" fill="#7dd3fc">1.77×</text>
+    <rect x="765" y="123" width="54" height="307" rx="5" fill="#22c55e"/><text x="792" y="111" fill="#86efac">3.07×</text><text x="762" y="460" fill="#cbd5e1">N512</text>
+  </g>
+  <rect x="90" y="492" width="810" height="42" rx="7" fill="#052e2b" stroke="#0f766e"/>
+  <text x="495" y="518" text-anchor="middle" fill="#99f6e4" font-family="sans-serif" font-size="14">2 stable addresses · N+1 Kernel nodes · setup break-even 1,174 → 9 replays</text>
+</svg>

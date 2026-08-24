@@ -122,6 +122,32 @@ private:
     std::unique_ptr<Impl> impl_;
 };
 
+// One stable backing allocation split by a caller-provided liveness plan.
+// Allocation happens outside capture/replay; slices never own or free memory.
+// The bound Stream is synchronized before the arena backing is destroyed.
+class HipActivationArena {
+public:
+    HipActivationArena(const Stream& stream, std::size_t capacity_bytes);
+    ~HipActivationArena();
+    HipActivationArena(const HipActivationArena&) = delete;
+    HipActivationArena& operator=(const HipActivationArena&) = delete;
+    HipActivationArena(HipActivationArena&&) = delete;
+    HipActivationArena& operator=(HipActivationArena&&) = delete;
+
+    [[nodiscard]] void* allocate_slice(
+        std::size_t bytes, std::size_t alignment = 256);
+    void reset_plan() noexcept;
+    [[nodiscard]] void* data() noexcept;
+    [[nodiscard]] const void* data() const noexcept;
+    [[nodiscard]] Device device() const noexcept;
+    [[nodiscard]] std::size_t capacity_bytes() const noexcept;
+    [[nodiscard]] std::size_t planned_bytes() const noexcept;
+
+private:
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
+};
+
 // A captured HIP execution graph. Every pointer referenced by capture_work must
 // remain valid until the last launch completes. Capture and replay use an
 // explicit Stream; CPU and legacy-default-Stream capture are intentionally out

@@ -265,6 +265,18 @@ The matrix distinguishes deferred lifetime, eager async pool calls, and captured
 nodes. It reports address count, `3N+1` Graph-node structure and default-pool high/current bytes.
 On the tested runtime, address reuse is real but neither async policy passes the speed gate.
 
+Stable activation arena matrix:
+
+```bash
+python3 benchmarks/single_gpu/activation_arena_matrix.py \
+  --binary build/hip-release/benchmarks/microllm_bench_stream_ordered_allocator \
+  --output-directory /tmp/microllm-activation-arena
+```
+
+This control allocates two aligned slots outside timing/capture. Arena Graph rows contain only
+`N+1` compute Kernels and report setup plus calculated replay break-even. Replay wins are not
+reported without the setup amortization count.
+
 ## What remains
 
 There is no Python `@profile` decorator yet. The current stable entry points are the

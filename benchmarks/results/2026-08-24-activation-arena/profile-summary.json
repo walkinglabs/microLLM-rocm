@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "workload": "128 nodes x 4096 elements, three warm-ups and twenty measured chains",
+  "modes": {
+    "deferred": {"kernel_calls": 2971, "kernel_duration_ns": 5603271, "hip_malloc_calls": 2948, "hip_free_calls": 2948, "host_kernel_launch_calls": 2967, "graph_launch_calls": 0, "stream_synchronize_calls": 23},
+    "arena": {"kernel_calls": 2971, "kernel_duration_ns": 5805887, "hip_malloc_calls": 5, "hip_free_calls": 5, "host_kernel_launch_calls": 2967, "graph_launch_calls": 0, "stream_synchronize_calls": 24},
+    "arena_graph": {"kernel_calls": 2971, "kernel_duration_ns": 12037458, "hip_malloc_calls": 5, "hip_free_calls": 5, "host_kernel_launch_calls": 129, "graph_launch_calls": 23, "stream_synchronize_calls": 24}
+  },
+  "inference": "arena removes per-node allocation; Graph additionally compresses host launches while replay keeps only Kernel nodes"
+}

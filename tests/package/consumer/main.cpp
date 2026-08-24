@@ -14,6 +14,7 @@ int main() {
     bool rejected_cpu_deferred_release = false;
     bool rejected_cpu_scoped_stream = false;
     bool rejected_cpu_stream_ordered = false;
+    bool rejected_cpu_activation_arena = false;
     try {
         const microllm::runtime::Stream cpu_stream(device);
         microllm::runtime::DeferredHipDeallocationScope scope(cpu_stream);
@@ -31,6 +32,12 @@ int main() {
         microllm::runtime::StreamOrderedHipBuffer buffer(cpu_stream, 16);
     } catch (const std::invalid_argument&) {
         rejected_cpu_stream_ordered = true;
+    }
+    try {
+        const microllm::runtime::Stream cpu_stream(device);
+        microllm::runtime::HipActivationArena arena(cpu_stream, 1024);
+    } catch (const std::invalid_argument&) {
+        rejected_cpu_activation_arena = true;
     }
     const auto config = microllm::model::ModelConfig::model_s();
     const auto bias_input = microllm::Tensor::from_vector(
@@ -120,6 +127,7 @@ int main() {
     if (!device.is_cpu() || empty_graph.defined() || !rejected_cpu_deferred_release ||
         !rejected_cpu_scoped_stream ||
         !rejected_cpu_stream_ordered ||
+        !rejected_cpu_activation_arena ||
         microllm::runtime::stream_ordered_allocator_supported(device) ||
         config.parameter_count() == 0 ||
         bias_result.to_vector() != std::vector<float>({4.0F, 6.0F}) ||

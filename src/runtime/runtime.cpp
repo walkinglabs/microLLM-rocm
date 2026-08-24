@@ -777,6 +777,82 @@ void StreamOrderedHipBuffer::release() {
 #endif
 }
 
+struct HipActivationArena::Impl {
+    const Stream* stream = nullptr;
+    Device device = Device::cpu();
+    void* pointer = nullptr;
+    std::size_t capacity = 0;
+    std::size_t cursor = 0;
+};
+
+HipActivationArena::HipActivationArena(
+    const Stream& stream, std::size_t capacity_bytes)
+    : impl_(std::make_unique<Impl>()) {
+    if (stream.device().is_cpu()) {
+        throw std::invalid_argument("activation arena requires a HIP Stream");
+    }
+    if (capacity_bytes == 0) {
+        throw std::invalid_argument("activation arena capacity must be positive");
+    }
+    impl_->stream = &stream;
+    impl_->device = stream.device();
+    impl_->pointer = runtime::allocate(capacity_bytes, stream.device());
+    impl_->capacity = capacity_bytes;
+}
+
+HipActivationArena::~HipActivationArena() {
+    if (!impl_ || impl_->pointer == nullptr) return;
+    try {
+        impl_->stream->synchronize();
+    } catch (...) {
+    }
+    runtime::deallocate(impl_->pointer, impl_->device, impl_->capacity);
+}
+
+void* HipActivationArena::allocate_slice(
+    std::size_t bytes, std::size_t alignment) {
+    if (bytes == 0) {
+        throw std::invalid_argument("activation arena slice must be non-empty");
+    }
+    if (alignment == 0 || (alignment & (alignment - 1)) != 0) {
+        throw std::invalid_argument("activation arena alignment must be a power of two");
+    }
+    const auto padding = (alignment - (impl_->cursor & (alignment - 1))) &
+                         (alignment - 1);
+    const auto remaining = impl_->capacity - impl_->cursor;
+    if (padding > remaining || bytes > remaining - padding) {
+        throw std::overflow_error("activation arena capacity exceeded");
+    }
+    impl_->cursor += padding;
+    auto* result = static_cast<std::byte*>(impl_->pointer) + impl_->cursor;
+    impl_->cursor += bytes;
+    return result;
+}
+
+void HipActivationArena::reset_plan() noexcept {
+    if (impl_) impl_->cursor = 0;
+}
+
+void* HipActivationArena::data() noexcept {
+    return impl_ ? impl_->pointer : nullptr;
+}
+
+const void* HipActivationArena::data() const noexcept {
+    return impl_ ? impl_->pointer : nullptr;
+}
+
+Device HipActivationArena::device() const noexcept {
+    return impl_ ? impl_->device : Device::cpu();
+}
+
+std::size_t HipActivationArena::capacity_bytes() const noexcept {
+    return impl_ ? impl_->capacity : 0;
+}
+
+std::size_t HipActivationArena::planned_bytes() const noexcept {
+    return impl_ ? impl_->cursor : 0;
+}
+
 struct HipGraphExecutable::Impl {
     Device device = Device::cpu();
     void* executable = nullptr;

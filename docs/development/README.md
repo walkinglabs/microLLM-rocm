@@ -384,3 +384,5 @@ the next gate. Records are append-only except for factual corrections.
   restores rank-local vendor handle ownership and all two-rank model correctness gates.
 - [2026-08-24-stream-ordered-allocator.md](2026-08-24-stream-ordered-allocator.md):
   explicit HIP async allocation/Graph conformance and measured policy rejection.
+- [2026-08-24-activation-arena.md](2026-08-24-activation-arena.md):
+  stable backing, aligned two-slot liveness and allocation-free Graph replay.

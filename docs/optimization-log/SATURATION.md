@@ -168,6 +168,11 @@ Captured allocation/free nodes reach only 0.036×–0.048×, own N addresses and
 Both policies are closed; the explicit Beta primitive remains for conformance. Only a stable
 caller-owned activation arena plus graph-wide liveness is still distinct on this track.
 
+Experiment 180 validates that final micro-level distinction. A two-slot stable arena improves
+eager chains 1.071×–1.768× and compute-only Graph replay 1.314×–3.066× with exact outputs.
+Graph setup is 14–16 ms, so break-even spans 9–1,280 replays. Allocator selection is now closed;
+only mapping a real heterogeneous model region into stable arena offsets remains open.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

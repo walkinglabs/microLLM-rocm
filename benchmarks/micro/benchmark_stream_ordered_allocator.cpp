@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <iomanip>
 #include <iostream>
+#include <memory>
 #include <set>
 #include <stdexcept>
 #include <string>
@@ -40,8 +41,10 @@ Options parse_options(int argc, char** argv) {
         else throw std::invalid_argument("unknown option: " + name);
     }
     if (result.mode != "deferred" && result.mode != "async" &&
-        result.mode != "graph") {
-        throw std::invalid_argument("--mode must be deferred, async, or graph");
+        result.mode != "graph" && result.mode != "arena" &&
+        result.mode != "arena_graph") {
+        throw std::invalid_argument(
+            "--mode must be deferred, async, graph, arena, or arena_graph");
     }
     if (result.nodes <= 0 || result.elements <= 0 || result.warmup < 0 ||
         result.repetitions <= 0) {
@@ -130,14 +133,42 @@ int main(int argc, char** argv) {
             current.release();
             return addresses.size();
         };
+        const auto aligned_bytes = (bytes + 255U) & ~std::size_t{255U};
+        std::unique_ptr<microllm::runtime::HipActivationArena> arena;
+        void* arena_first = nullptr;
+        void* arena_second = nullptr;
+        if (command.mode == "arena" || command.mode == "arena_graph") {
+            arena = std::make_unique<microllm::runtime::HipActivationArena>(
+                stream, aligned_bytes * 2);
+            arena_first = arena->allocate_slice(bytes, 256);
+            arena_second = arena->allocate_slice(bytes, 256);
+        }
+        const auto submit_arena_chain = [&] {
+            void* destination = arena_first;
+            const void* current = input.data();
+            for (std::int64_t node = 0; node < command.nodes; ++node) {
+                microllm::ops::add_out(
+                    mutable_view(destination), const_view(current),
+                    source.view(), context);
+                current = destination;
+                destination = destination == arena_first ? arena_second : arena_first;
+            }
+            microllm::ops::add_out(
+                output.view(), const_view(current), zero.view(), context);
+        };
         microllm::runtime::HipGraphExecutable graph;
         std::size_t graph_nodes = 0;
         std::size_t graph_unique_addresses = 0;
         double graph_setup_ms = 0.0;
-        if (command.mode == "graph") {
+        if (command.mode == "graph" || command.mode == "arena_graph") {
             const auto setup_start = std::chrono::steady_clock::now();
             graph = microllm::runtime::HipGraphExecutable::capture(stream, [&] {
-                graph_unique_addresses = submit_async_chain();
+                if (command.mode == "graph") {
+                    graph_unique_addresses = submit_async_chain();
+                } else {
+                    submit_arena_chain();
+                    graph_unique_addresses = 2;
+                }
             });
             const auto setup_finish = std::chrono::steady_clock::now();
             graph_nodes = graph.node_count();
@@ -155,6 +186,16 @@ int main(int argc, char** argv) {
                 finish.record(stream);
                 stream.synchronize();
             } else if (command.mode == "graph") {
+                graph.launch(stream);
+                stats.unique_addresses = graph_unique_addresses;
+                finish.record(stream);
+                stream.synchronize();
+            } else if (command.mode == "arena") {
+                submit_arena_chain();
+                stats.unique_addresses = 2;
+                finish.record(stream);
+                stream.synchronize();
+            } else if (command.mode == "arena_graph") {
                 graph.launch(stream);
                 stats.unique_addresses = graph_unique_addresses;
                 finish.record(stream);
@@ -246,6 +287,10 @@ int main(int argc, char** argv) {
                   << pool.release_threshold_bytes
                   << ",\"graph_setup_ms\":" << graph_setup_ms
                   << ",\"graph_node_count\":" << graph_nodes
+                  << ",\"arena_capacity_bytes\":"
+                  << (arena ? arena->capacity_bytes() : 0)
+                  << ",\"arena_planned_bytes\":"
+                  << (arena ? arena->planned_bytes() : 0)
                   << "}\n";
         return maximum_error == 0.0 ? 0 : 2;
     } catch (const std::exception& error) {

@@ -110,8 +110,11 @@ TEST(DeferredHipDeallocationTest, CpuStreamAndZeroCapacityAreRejected) {
                  std::invalid_argument);
     EXPECT_THROW((void)StreamOrderedHipBuffer(cpu_stream, 16),
                  std::invalid_argument);
+    EXPECT_THROW((void)HipActivationArena(cpu_stream, 1024),
+                 std::invalid_argument);
     static_assert(!std::is_copy_constructible_v<StreamOrderedHipBuffer>);
     static_assert(std::is_move_constructible_v<StreamOrderedHipBuffer>);
+    static_assert(!std::is_move_constructible_v<HipActivationArena>);
 }
 
 #if MICROLLM_HAS_HIP
@@ -346,6 +349,74 @@ TEST(StreamOrderedHipBufferTest, CaptureCreatesSafeAllocationAndFreeNodes) {
     graph.launch(stream);
     stream.synchronize();
     EXPECT_EQ(output.to_vector(), (std::vector<float>{2, 2, 2, 2}));
+}
+
+TEST(HipActivationArenaTest, PlansAlignedStableSlicesAndRejectsOverflow) {
+    if (hip_device_count() == 0) GTEST_SKIP() << "No visible HIP device";
+    const auto gpu = Device::hip(0);
+    Stream stream(gpu);
+    EXPECT_THROW((void)HipActivationArena(stream, 0), std::invalid_argument);
+    HipActivationArena arena(stream, 1024);
+    EXPECT_EQ(arena.device(), gpu);
+    EXPECT_EQ(arena.capacity_bytes(), 1024U);
+    auto* first = arena.allocate_slice(100, 256);
+    auto* second = arena.allocate_slice(100, 256);
+    EXPECT_EQ(first, arena.data());
+    EXPECT_EQ(static_cast<std::byte*>(second) -
+                  static_cast<std::byte*>(arena.data()),
+              256);
+    EXPECT_EQ(arena.planned_bytes(), 356U);
+    EXPECT_THROW((void)arena.allocate_slice(1, 3), std::invalid_argument);
+    EXPECT_THROW((void)arena.allocate_slice(1024, 256), std::overflow_error);
+    arena.reset_plan();
+    EXPECT_EQ(arena.planned_bytes(), 0U);
+    EXPECT_EQ(arena.allocate_slice(100, 256), first);
+}
+
+TEST(HipActivationArenaTest, GraphReplaysStableTwoSlotLivenessPlan) {
+    if (hip_device_count() == 0) GTEST_SKIP() << "No visible HIP device";
+    const auto gpu = Device::hip(0);
+    constexpr std::int64_t elements = 64;
+    constexpr std::int64_t nodes = 8;
+    constexpr std::size_t bytes =
+        static_cast<std::size_t>(elements) * sizeof(float);
+    const std::array<std::int64_t, 1> shape{elements};
+    const std::array<std::int64_t, 1> strides{1};
+    const auto input = Tensor::from_vector(
+        std::vector<float>(elements, 0.0F), {elements}).to(gpu);
+    const auto source = Tensor::from_vector(
+        std::vector<float>(elements, 1.0F), {elements}).to(gpu);
+    const auto zero = Tensor::from_vector(
+        std::vector<float>(elements, 0.0F), {elements}).to(gpu);
+    Tensor output({elements}, DType::Float32, gpu);
+    Stream stream(gpu);
+    HipActivationArena arena(stream, bytes * 2);
+    auto* first = arena.allocate_slice(bytes, alignof(float));
+    auto* second = arena.allocate_slice(bytes, alignof(float));
+    ops::OpContext context;
+    context.stream = &stream;
+    const auto mutable_view = [&](void* pointer) {
+        return TensorView{pointer, DType::Float32, gpu, shape, strides};
+    };
+    const auto const_view = [&](const void* pointer) {
+        return ConstTensorView{pointer, DType::Float32, gpu, shape, strides};
+    };
+    auto graph = HipGraphExecutable::capture(stream, [&] {
+        void* destination = first;
+        const void* current = input.data();
+        for (std::int64_t node = 0; node < nodes; ++node) {
+            ops::add_out(mutable_view(destination), const_view(current),
+                         source.view(), context);
+            current = destination;
+            destination = destination == first ? second : first;
+        }
+        ops::add_out(output.view(), const_view(current), zero.view(), context);
+    });
+    EXPECT_EQ(graph.node_count(), static_cast<std::size_t>(nodes + 1));
+    graph.launch(stream);
+    graph.launch(stream);
+    stream.synchronize();
+    EXPECT_EQ(output.to_vector(), std::vector<float>(elements, 8.0F));
 }
 
 TEST(HipRuntimeTest, ReportsDeviceAndTransfersTensor) {

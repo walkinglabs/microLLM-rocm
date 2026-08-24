@@ -3024,3 +3024,23 @@ profile中128×4096三条路径都执行2,971个Kernel。Kernel总时间却从de
 稳定activation arena，在replay外完成大分配，再用liveness规划内部偏移。
 
 ![Stream ordered allocator result](assets/stream-ordered-allocator.svg)
+
+## 197. Experiment 180：先画好两个固定货位，Graph终于只录计算
+
+上一轮最后只剩一个不同方向：不要在replay里分配，先申请一整块稳定backing，再根据liveness把互不
+重叠的临时值放回相同offset。第一版arena故意简单，只做对齐、越界、稳定地址和plan reset，不假装
+能自动推导整张Transformer图。
+
+两slot链足以验证因果。Arena在capture外只malloc一次，两个地址交替承接N个中间结果。捕获后的
+Graph恰好`N+1`个add/copy Kernel，没有allocation/free节点。CPU拒绝、alignment、overflow、reset、
+析构前Stream完成和双次replay都有测试。
+
+最终72进程里，eager arena八项全部提高1.071×–1.768×；arena Graph提高1.314×–3.066×。
+N128×4096 profile三条路径仍各执行2,971个Kernel，arena把malloc/free从2,948/2,948降到5/5，
+Graph再把host Kernel launch从2,967降到129。
+
+但setup不能藏。capture+instantiate固定约14–16ms，N8要1,174–1,280次replay才回本，N512只需
+9–10次。于是结论不是“所有Graph都快”，而是stable arena解决了地址和allocator问题，真实模型还要
+固定shape、完整logits、真实异构区域和setup摊销门。
+
+![Activation arena result](assets/activation-arena.svg)

@@ -7885,6 +7885,70 @@ def validate_stream_ordered_allocator(
         max(graph_ratios, default=0.0), maximum_pool
 
 
+def validate_activation_arena(
+        errors: list[str]) -> tuple[int, float, float, float, float, int, int]:
+    data = REPOSITORY / "benchmarks/results/2026-08-24-activation-arena"
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    profile = json.loads((data / "profile-summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = summary.get("comparisons", [])
+    eager = [float(row.get("arena_speedup", 0.0)) for row in comparisons]
+    graph = [float(row.get("arena_graph_speedup", 0.0)) for row in comparisons]
+    breaks = [int(row.get("arena_graph_break_even_replays", 0))
+              for row in comparisons]
+    modes = profile.get("modes", {})
+    deferred_profile = modes.get("deferred", {})
+    arena_profile = modes.get("arena", {})
+    graph_profile = modes.get("arena_graph", {})
+    if summary.get("status") != "pass" or len(raw) != 72 or \
+            summary.get("raw_processes") != 72 or len(comparisons) != 8 or \
+            summary.get("correctness_gate") is not True or \
+            summary.get("layout_contract") is not True or \
+            summary.get("arena_performance_gate") is not True or \
+            summary.get("arena_graph_performance_gate") is not True or \
+            summary.get("decision") != "keep arena and arena Graph candidate" or \
+            not (1.07 <= min(eager, default=0.0) <= 1.08) or \
+            not (1.76 <= max(eager, default=0.0) <= 1.78) or \
+            not (1.31 <= min(graph, default=0.0) <= 1.32) or \
+            not (3.06 <= max(graph, default=0.0) <= 3.07) or \
+            min(breaks, default=0) != 9 or max(breaks, default=0) != 1280 or \
+            any(row.get("arena_unique_addresses") != 2 or
+                row.get("arena_graph_unique_addresses") != 2 or
+                row.get("arena_graph_node_count") != row.get("nodes") + 1 or
+                row.get("arena_capacity_bytes") !=
+                    row.get("expected_arena_capacity_bytes")
+                for row in comparisons) or \
+            profile.get("status") != "pass" or \
+            deferred_profile.get("kernel_calls") != arena_profile.get("kernel_calls") or \
+            deferred_profile.get("kernel_calls") != graph_profile.get("kernel_calls") or \
+            arena_profile.get("hip_malloc_calls", 0) >= \
+                    deferred_profile.get("hip_malloc_calls", 0) or \
+            graph_profile.get("host_kernel_launch_calls", 0) >= \
+                    arena_profile.get("host_kernel_launch_calls", 0) or \
+            verification.get("status") != "pass" or \
+            verification.get("tests", {}).get("hip_full_configuration") != \
+                    {"passed": 447, "total": 447, "conditional_skips": 3}:
+        errors.append("activation arena evidence changed")
+    header = (REPOSITORY / "include/microllm/runtime/runtime.h").read_text(
+        encoding="utf-8")
+    source = (REPOSITORY / "src/runtime/runtime.cpp").read_text(encoding="utf-8")
+    tests = (REPOSITORY / "tests/runtime/runtime_test.cpp").read_text(
+        encoding="utf-8")
+    runner = (REPOSITORY / "benchmarks/single_gpu/"
+              "activation_arena_matrix.py").read_text(encoding="utf-8")
+    if "class HipActivationArena" not in header or \
+            "HipActivationArena::allocate_slice" not in source or \
+            "GraphReplaysStableTwoSlotLivenessPlan" not in tests or \
+            "arena_graph_break_even_replays" not in runner:
+        errors.append("activation arena source/test contract changed")
+    return len(raw), min(eager, default=0.0), max(eager, default=0.0), \
+        min(graph, default=0.0), max(graph, default=0.0), \
+        min(breaks, default=0), max(breaks, default=0)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -8042,7 +8106,8 @@ def validate_assets(errors: list[str]) -> None:
                  "deferred-hip-deallocation.svg",
                  "scoped-deferred-model-stream.svg",
                  "per-device-hipblaslt-handles.svg",
-                 "stream-ordered-allocator.svg"):
+                 "stream-ordered-allocator.svg",
+                 "activation-arena.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -8339,6 +8404,9 @@ def main() -> int:
         stream_ordered_async_maximum, stream_ordered_graph_minimum, \
         stream_ordered_graph_maximum, stream_ordered_pool = \
         validate_stream_ordered_allocator(errors)
+    arena_rows, arena_eager_minimum, arena_eager_maximum, \
+        arena_graph_minimum, arena_graph_maximum, arena_break_minimum, \
+        arena_break_maximum = validate_activation_arena(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -8582,6 +8650,9 @@ def main() -> int:
           f"{stream_ordered_async_minimum:.3f}/{stream_ordered_async_maximum:.3f}/"
           f"{stream_ordered_graph_minimum:.3f}/{stream_ordered_graph_maximum:.3f}/"
           f"{stream_ordered_pool} "
+          f"activation_arena={arena_rows}/{arena_eager_minimum:.3f}/"
+          f"{arena_eager_maximum:.3f}/{arena_graph_minimum:.3f}/"
+          f"{arena_graph_maximum:.3f}/{arena_break_minimum}/{arena_break_maximum} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")
