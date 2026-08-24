@@ -469,6 +469,10 @@ Experiment 202 wires existing bias+RoPE layout fusion to the existing BTHD causa
 context never leave projection/output-linear order. Eligibility is explicit and narrow; cached
 prefill and trace-value schemas continue through the old BHTD path.
 
+Experiment 203 validates batch and sequence variants independently. Diagnostic acceptance is
+source-aware: Attention layout/core must be zero, while B2 last-row selection outside Attention is
+reported rather than misclassified as an island regression.
+
 ## Stable integration boundary
 
 The long-term integration seam is a C-compatible descriptor plus explicit stream

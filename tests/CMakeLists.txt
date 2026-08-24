@@ -309,6 +309,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.InferenceBthdAttentionContract PROPERTIES
         LABELS "cpu;benchmark;model;inference;attention;bf16;memory;layout;schema")
     add_test(
+        NAME Benchmark.InferenceBthdShapeModelsContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_inference_bthd_shape_models.py
+    )
+    set_tests_properties(Benchmark.InferenceBthdShapeModelsContract PROPERTIES
+        LABELS "cpu;benchmark;model;inference;attention;bf16;memory;layout;shape;batch;schema")
+    add_test(
         NAME Coverage.OperatorAndTestFiles
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/audit_test_coverage.py
     )

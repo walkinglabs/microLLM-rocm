@@ -3410,3 +3410,14 @@ BTHD V并写BTHD context。推理policy把它们接起来，没有新增数学Ke
 其他路径不猜测，继续走旧fallback。
 
 ![Inference BTHD Attention](assets/inference-bthd-attention.svg)
+
+## 220. Experiment 203：B2还有一次copy，但它不属于Attention
+
+六个sequence/batch case的BTHD速度为1.0852×–1.1421×，logits bit-exact，peak下降2–14MiB。
+所有Attention source copy都是0。
+
+第一次诊断门要求“总copy=0”，因此B2停止。归因后发现剩下的是一次unspecified last-row选择，
+Qwen 7168B、DeepSeek 12288B，位于Attention island之外。正式门改成Attention严格为0，其他
+source单独报告。
+
+![BTHD sequence and batch](assets/inference-bthd-shape-models.svg)

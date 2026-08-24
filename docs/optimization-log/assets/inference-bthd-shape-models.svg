@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="600" viewBox="0 0 1000 600" role="img" aria-labelledby="title desc">
+  <title id="title">Inference BTHD speedups across sequence and batch</title>
+  <desc id="desc">All six Qwen and DeepSeek cases improve while Attention copies remain zero.</desc>
+  <rect width="1000" height="600" fill="#0b1020"/>
+  <text x="55" y="48" fill="#f8fafc" font-family="sans-serif" font-size="28" font-weight="700">Experiment 203 · BTHD across sequence and batch</text>
+  <text x="55" y="78" fill="#94a3b8" font-family="sans-serif" font-size="15">complete-model BTHD/composed-baseline throughput · Attention copies = 0</text>
+  <line x1="350" y1="115" x2="350" y2="530" stroke="#64748b" stroke-width="2"/>
+  <text x="55" y="145" fill="#e2e8f0" font-family="sans-serif" font-size="19" font-weight="700">Qwen</text>
+  <text x="80" y="190" fill="#cbd5e1" font-family="sans-serif" font-size="15">B1/T256</text>
+  <rect x="350" y="169" width="355" height="29" rx="5" fill="#34d399"/>
+  <text x="718" y="190" fill="#a7f3d0" font-family="monospace" font-size="14">1.1421×</text>
+  <text x="80" y="235" fill="#cbd5e1" font-family="sans-serif" font-size="15">B1/T1024</text>
+  <rect x="350" y="214" width="247" height="29" rx="5" fill="#22d3ee"/>
+  <text x="610" y="235" fill="#a5f3fc" font-family="monospace" font-size="14">1.0989×</text>
+  <text x="80" y="280" fill="#cbd5e1" font-family="sans-serif" font-size="15">B2/T512</text>
+  <rect x="350" y="259" width="213" height="29" rx="5" fill="#a78bfa"/>
+  <text x="576" y="280" fill="#ddd6fe" font-family="monospace" font-size="14">1.0852×</text>
+  <text x="55" y="350" fill="#e2e8f0" font-family="sans-serif" font-size="19" font-weight="700">DeepSeek</text>
+  <text x="80" y="395" fill="#cbd5e1" font-family="sans-serif" font-size="15">B1/T256</text>
+  <rect x="350" y="374" width="237" height="29" rx="5" fill="#34d399"/>
+  <text x="600" y="395" fill="#a7f3d0" font-family="monospace" font-size="14">1.0947×</text>
+  <text x="80" y="440" fill="#cbd5e1" font-family="sans-serif" font-size="15">B1/T1024</text>
+  <rect x="350" y="419" width="229" height="29" rx="5" fill="#22d3ee"/>
+  <text x="592" y="440" fill="#a5f3fc" font-family="monospace" font-size="14">1.0914×</text>
+  <text x="80" y="485" fill="#cbd5e1" font-family="sans-serif" font-size="15">B2/T512</text>
+  <rect x="350" y="464" width="231" height="29" rx="5" fill="#a78bfa"/>
+  <text x="594" y="485" fill="#ddd6fe" font-family="monospace" font-size="14">1.0923×</text>
+  <rect x="55" y="530" width="890" height="42" rx="9" fill="#172033" stroke="#334155"/>
+  <text x="75" y="557" fill="#fbbf24" font-family="sans-serif" font-size="14">B2 residual last-row copy is outside Attention and reported separately</text>
+</svg>

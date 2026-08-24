@@ -10110,6 +10110,106 @@ def validate_inference_bthd_attention(
         min(ratios, default=0.0), max(ratios, default=0.0), bytes_removed
 
 
+def validate_inference_bthd_shape_models(
+        errors: list[str]) -> tuple[int, int, float, float, int]:
+    data = REPOSITORY / (
+        "benchmarks/results/2026-08-24-inference-bthd-shape-models")
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    performance = [json.loads(line) for line in (
+        data / "performance-raw.jsonl").read_text(
+            encoding="utf-8").splitlines() if line.strip()]
+    diagnostics = [json.loads(line) for line in (
+        data / "diagnostic-raw.jsonl").read_text(
+            encoding="utf-8").splitlines() if line.strip()]
+    comparisons = {(row.get("model"), row.get("case")): row
+                   for row in summary.get("comparisons", [])}
+    expected = {
+        ("qwen2.5-0.5b", "b1t256"):
+            (67211.591647153, 76761.126630252, 1.1420816670022051,
+             0.9983669331269008, 2097152, 0, 0, 0),
+        ("qwen2.5-0.5b", "b1t1024"):
+            (114527.582223422, 125848.852971277, 1.0988519143429512,
+             0.9939971149540556, 8388608, 0, 0, 0),
+        ("qwen2.5-0.5b", "b2t512"):
+            (139500.349527389, 151381.881522449, 1.0851720589612375,
+             0.9938710097773484, 8388608, 0, 1, 7168),
+        ("deepseek-r1-distill-qwen-1.5b", "b1t256"):
+            (36834.067045887, 40321.673712354, 1.0946842677492612,
+             0.9991891645724786, 3670016, 0, 0, 0),
+        ("deepseek-r1-distill-qwen-1.5b", "b1t1024"):
+            (63042.060135723, 68804.868438977, 1.0914121190019375,
+             0.9968611016473216, 14680064, 0, 0, 0),
+        ("deepseek-r1-distill-qwen-1.5b", "b2t512"):
+            (67916.421680063, 74186.205579307, 1.0923161695529156,
+             0.9968445322213607, 14680064, 0, 1, 12288),
+    }
+    fields = (
+        "baseline_tokens_per_second", "bthd_tokens_per_second",
+        "speedup", "peak_ratio", "peak_bytes_saved",
+        "bthd_attention_strided_calls",
+        "bthd_residual_strided_calls", "bthd_residual_strided_bytes")
+    if summary.get("status") != "pass" or len(performance) != 36 or \
+            len(diagnostics) != 6 or \
+            summary.get("performance_processes") != 36 or \
+            summary.get("diagnostic_processes") != 6 or \
+            summary.get("correctness_gate") is not True or \
+            summary.get("performance_gate") is not True or \
+            summary.get("memory_gate") is not True or \
+            summary.get("copy_elimination_gate") is not True or \
+            set(comparisons) != set(expected) or \
+            any(row.get("finite_complete_logits") is not True or
+                row.get("top_rows_equal") is not True or
+                float(row.get("maximum_absolute_logit_difference", 1.0)) != 0 or
+                float(row.get("maximum_rms_logit_difference", 1.0)) != 0 or
+                any(abs(float(row.get(field, 0.0)) - value) > 1.0e-6
+                    for field, value in zip(
+                        fields, expected[key], strict=True))
+                for key, row in comparisons.items()) or \
+            verification.get("status") != "pass" or \
+            verification.get("registered_test_files") != 82 or \
+            verification.get("performance_processes") != 36 or \
+            verification.get("diagnostic_processes") != 6 or \
+            verification.get("formal_comparisons") != 6 or \
+            any(verification.get(gate) is not True for gate in (
+                "correctness_gate", "performance_gate",
+                "memory_gate", "copy_elimination_gate")):
+        errors.append("inference BTHD shape-model evidence changed")
+    expected_tests = {
+        "cpu_debug": {"passed": 310, "total": 310},
+        "asan_ubsan": {"passed": 308, "total": 308},
+        "pytorch_enabled_cpu": {"passed": 284, "total": 284},
+        "hip_full_configuration": {
+            "passed": 482, "total": 482, "conditional_skips": 3},
+        "hip_label": {"passed": 162, "total": 162},
+        "rccl_multi_gpu": {"passed": 12, "total": 12},
+        "rccl_full_label": {"passed": 14, "total": 14},
+    }
+    if verification.get("tests") != expected_tests:
+        errors.append("inference BTHD shape verification counts changed")
+    runner = (REPOSITORY / "benchmarks/single_gpu/"
+              "compare_inference_bthd_shape_models.py").read_text(
+                  encoding="utf-8")
+    contract = (REPOSITORY / "python/tests/"
+                "test_inference_bthd_shape_models.py").read_text(
+                    encoding="utf-8")
+    for token, document in (
+            ("attention_strided_calls", runner),
+            ("residual_strided_calls", runner),
+            ("row_top", runner),
+            ("diagnostic_processes", contract)):
+        if token not in document:
+            errors.append("inference BTHD shape runner/test contract changed")
+            break
+    ratios = [float(row["speedup"]) for row in comparisons.values()]
+    residual_bytes = sum(
+        int(row["bthd_residual_strided_bytes"])
+        for row in comparisons.values())
+    return len(performance), len(diagnostics), \
+        min(ratios, default=0.0), max(ratios, default=0.0), residual_bytes
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -10290,7 +10390,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-grouped-shape-models.svg",
                  "bf16-grouped-composed-profile.svg",
                  "hf-strided-copy-sources.svg",
-                 "inference-bthd-attention.svg"):
+                 "inference-bthd-attention.svg",
+                 "inference-bthd-shape-models.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -10649,6 +10750,9 @@ def main() -> int:
     bthd_performance_rows, bthd_diagnostic_rows, bthd_minimum, \
         bthd_maximum, bthd_bytes_removed = \
         validate_inference_bthd_attention(errors)
+    bthd_shape_performance, bthd_shape_diagnostics, \
+        bthd_shape_minimum, bthd_shape_maximum, bthd_shape_residual = \
+        validate_inference_bthd_shape_models(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -10957,6 +11061,9 @@ def main() -> int:
           f"inference_bthd={bthd_performance_rows}/"
           f"{bthd_diagnostic_rows}/{bthd_minimum:.3f}/"
           f"{bthd_maximum:.3f}/{bthd_bytes_removed} "
+          f"inference_bthd_shapes={bthd_shape_performance}/"
+          f"{bthd_shape_diagnostics}/{bthd_shape_minimum:.3f}/"
+          f"{bthd_shape_maximum:.3f}/{bthd_shape_residual} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

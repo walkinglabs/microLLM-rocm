@@ -212,6 +212,9 @@ Grouped gate/up是steady策略，不是启动策略。只有BF16 FFN Arena已开
 inference BTHD policy当前不用于写KV cache的prefill，也不用于value trace。scheduler若需要
 cache admission，继续走旧路径；不能因为无cache的T512更快就删除fallback。
 
+B2无cache prefill已经通过，但最后hidden row选择会产生一次小copy。监控时应要求Attention
+source为0，并把last-row copy归到输出整理；不要用总copy非零关闭BTHD。
+
 ## 9. 测试位置
 
 ```text

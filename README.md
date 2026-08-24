@@ -203,6 +203,9 @@ needed to run a real training and generation loop:
 - the explicit inference BTHD island reuses existing layout-aware RoPE/GQA primitives,
   eliminates those copies completely, remains bit-exact, saves 4/7 MiB peak and improves
   composed Qwen/DeepSeek T512 throughput 1.1146×/1.0936×;
+- BTHD then passes B1/T256, B1/T1024 and B2/T512 on both models with bit-exact
+  per-row outputs, zero Attention copies, 2–14 MiB lower peak and speedups spanning
+  1.0852×–1.1421×; B2 last-row residual copies are reported separately;
 - a phase-independent exact-size HIP pool with immediate legacy-default-Stream reuse and strict
   permanent disablement for non-default Streams;
 - a cross-framework trace runner for operator/layer values and latency comparisons.
@@ -552,13 +555,13 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 481/481 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
-| CPU Debug | 309/309 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
-| ASan/UBSan CPU | 307/307 | host lifetime, external Storage and instrumented-package linking |
+| Full CPU/HIP configuration | 482/482 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
+| CPU Debug | 310/310 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
+| ASan/UBSan CPU | 308/308 | host lifetime, external Storage and instrumented-package linking |
 | MI300X/gfx942 HIP label | 162/162 | allocator/arena/Stream/Graph, grouped/exact vendor solutions, BF16/FP8 and model paths |
-| PyTorch-enabled CPU build | 283/283 | dispatcher parity, full graph/model oracle and all package paths |
+| PyTorch-enabled CPU build | 284/284 | dispatcher parity, full graph/model oracle and all package paths |
 | Multi-GPU/RCCL | 12/12 | collectives, global-batch equivalence, gradient buckets, DDP trainer/CLI and per-device hipBLASLt ownership |
-| Registered test files | 81 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| Registered test files | 82 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
 | CPU source coverage | 80.4% lines / 89.3% functions / 61.4% branches | 7,782/9,678 lines; GCC 13.3 + gcovr 8.3 |
 

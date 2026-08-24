@@ -309,6 +309,12 @@ fall to zero, complete logits are bit-exact, peak falls 4/7 MiB and composed T51
 split-half+bias, no prefill-cache write and no value trace. Broader RoPE/cache domains remain
 fallback-only until separately gated.
 
+Experiment 203 broadens measured sequence/batch cases. Six complete-model speedups span
+1.0852×–1.1421× with bit-exact per-row logits, zero Attention source copies and 2–14 MiB peak
+savings. B2 retains one small unspecified last-row selection copy outside Attention; the diagnostic
+gate now separates source ownership from total count. Cached-prefill and value-trace remain
+fallback-only.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

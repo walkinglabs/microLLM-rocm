@@ -319,6 +319,7 @@
     "python/tests/test_hf_cli_batch_logits.py",
     "python/tests/test_hf_strided_copy_sources.py",
     "python/tests/test_inference_bthd_attention.py",
+    "python/tests/test_inference_bthd_shape_models.py",
     "python/tests/test_hf_fp8_layer_drift.py",
     "python/tests/test_hf_fp8_block_detail.py",
     "python/tests/test_kv_cache_precision.py",

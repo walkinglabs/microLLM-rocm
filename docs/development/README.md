@@ -432,3 +432,5 @@ the next gate. Records are append-only except for factual corrections.
   beginner-friendly exact source attribution for every remaining layout copy.
 - [2026-08-24-inference-bthd-attention.md](2026-08-24-inference-bthd-attention.md):
   beginner-friendly copy-free inference Attention island and fallback domain.
+- [2026-08-24-inference-bthd-shape-models.md](2026-08-24-inference-bthd-shape-models.md):
+  beginner-friendly sequence/batch extension and source-aware residual copy boundary.

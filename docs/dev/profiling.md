@@ -435,6 +435,10 @@ Use --inference-bthd-attention true only with the documented supported domain. P
 diagnostics must run in separate processes. Experiment 202 requires zero strided calls in the
 diagnostic run and uses uninstrumented medians for throughput.
 
+For batch matrices, require zero attention.layout/core records rather than zero total copies.
+Experiment 203 retains one small unspecified B2 last-row selection copy. Source ownership, not a
+global counter, determines whether the BTHD island regressed.
+
 ## What remains
 
 There is no Python `@profile` decorator yet. The current stable entry points are the
