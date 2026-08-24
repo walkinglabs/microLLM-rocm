@@ -162,6 +162,12 @@ RCCL set from 6/11 to 11/11, while four Qwen/DeepSeek T512 single-GPU ratios rem
 0.998×–1.023×. Reintroducing one process-wide handle or fixing the symptom with global
 synchronization is closed; future multi-GPU work may assume vendor handles are rank-device local.
 
+Experiment 179 tests the ordered-allocation handoff from Experiment 177. Eager async allocation
+reuses exactly two addresses but reaches only 0.619×–0.709× and reserves 128 MiB high-water.
+Captured allocation/free nodes reach only 0.036×–0.048×, own N addresses and create `3N+1` nodes.
+Both policies are closed; the explicit Beta primitive remains for conformance. Only a stable
+caller-owned activation arena plus graph-wide liveness is still distinct on this track.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

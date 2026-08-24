@@ -7822,6 +7822,69 @@ def validate_per_device_hipblaslt_handles(
     return len(raw), min(ratios, default=0.0), max(ratios, default=0.0)
 
 
+def validate_stream_ordered_allocator(
+        errors: list[str]) -> tuple[int, float, float, float, float, int]:
+    data = REPOSITORY / "benchmarks/results/2026-08-24-stream-ordered-allocator"
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    profile = json.loads((data / "profile-summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = summary.get("comparisons", [])
+    async_ratios = [float(row.get("async_speedup_vs_deferred", 0.0))
+                    for row in comparisons]
+    graph_ratios = [float(row.get("graph_speedup_vs_deferred", 0.0))
+                    for row in comparisons]
+    maximum_pool = max((int(row.get("async_pool_reserved_high_bytes", 0))
+                        for row in comparisons), default=0)
+    modes = profile.get("modes", {})
+    deferred = modes.get("deferred", {})
+    async_mode = modes.get("async", {})
+    graph = modes.get("graph", {})
+    if summary.get("status") != "pass" or len(raw) != 72 or \
+            summary.get("raw_processes") != 72 or len(comparisons) != 8 or \
+            summary.get("correctness_gate") is not True or \
+            summary.get("address_contract") is not True or \
+            summary.get("async_performance_gate") is not False or \
+            summary.get("graph_performance_gate") is not False or \
+            summary.get("decision") != \
+                    "keep explicit primitive; reject eager and graph policies" or \
+            not (0.61 <= min(async_ratios, default=0.0) <= 0.63) or \
+            not (0.70 <= max(async_ratios, default=0.0) <= 0.72) or \
+            not (0.03 <= min(graph_ratios, default=0.0) <= 0.04) or \
+            not (0.04 <= max(graph_ratios, default=0.0) <= 0.05) or \
+            maximum_pool != 134217728 or \
+            any(row.get("async_unique_addresses") != 2 or
+                row.get("graph_unique_addresses") != row.get("nodes") or
+                row.get("graph_node_count") != row.get("nodes") * 3 + 1
+                for row in comparisons) or \
+            profile.get("status") != "pass" or \
+            deferred.get("kernel_calls") != async_mode.get("kernel_calls") or \
+            deferred.get("kernel_calls") != graph.get("kernel_calls") or \
+            graph.get("host_kernel_launch_calls", 0) >= \
+                    deferred.get("host_kernel_launch_calls", 0) or \
+            verification.get("status") != "pass" or \
+            verification.get("tests", {}).get("hip_full_configuration") != \
+                    {"passed": 442, "total": 442, "conditional_skips": 3}:
+        errors.append("Stream ordered allocator evidence changed")
+    header = (REPOSITORY / "include/microllm/runtime/runtime.h").read_text(
+        encoding="utf-8")
+    source = (REPOSITORY / "src/runtime/runtime.cpp").read_text(encoding="utf-8")
+    tests = (REPOSITORY / "tests/runtime/runtime_test.cpp").read_text(
+        encoding="utf-8")
+    runner = (REPOSITORY / "benchmarks/single_gpu/"
+              "stream_ordered_allocator_matrix.py").read_text(encoding="utf-8")
+    if "class StreamOrderedHipBuffer" not in header or \
+            "hipMallocAsync" not in source or "hipFreeAsync" not in source or \
+            "CaptureCreatesSafeAllocationAndFreeNodes" not in tests or \
+            "graph_node_count" not in runner:
+        errors.append("Stream ordered allocator source/test contract changed")
+    return len(raw), min(async_ratios, default=0.0), \
+        max(async_ratios, default=0.0), min(graph_ratios, default=0.0), \
+        max(graph_ratios, default=0.0), maximum_pool
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -7978,7 +8041,8 @@ def validate_assets(errors: list[str]) -> None:
                  "scoped-model-stream-discard.svg",
                  "deferred-hip-deallocation.svg",
                  "scoped-deferred-model-stream.svg",
-                 "per-device-hipblaslt-handles.svg"):
+                 "per-device-hipblaslt-handles.svg",
+                 "stream-ordered-allocator.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -8271,6 +8335,10 @@ def main() -> int:
         validate_scoped_deferred_model_stream(errors)
     device_handle_rows, device_handle_minimum, device_handle_maximum = \
         validate_per_device_hipblaslt_handles(errors)
+    stream_ordered_rows, stream_ordered_async_minimum, \
+        stream_ordered_async_maximum, stream_ordered_graph_minimum, \
+        stream_ordered_graph_maximum, stream_ordered_pool = \
+        validate_stream_ordered_allocator(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -8510,6 +8578,10 @@ def main() -> int:
           f"{scoped_deferred_bytes} "
           f"device_handles={device_handle_rows}/{device_handle_minimum:.3f}/"
           f"{device_handle_maximum:.3f} "
+          f"stream_ordered={stream_ordered_rows}/"
+          f"{stream_ordered_async_minimum:.3f}/{stream_ordered_async_maximum:.3f}/"
+          f"{stream_ordered_graph_minimum:.3f}/{stream_ordered_graph_maximum:.3f}/"
+          f"{stream_ordered_pool} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

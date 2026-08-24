@@ -382,3 +382,5 @@ the next gate. Records are append-only except for factual corrections.
   bit-exact model-wide Stream/lifetime routing, official matrix rejection and allocator handoff.
 - [2026-08-24-per-device-hipblaslt-handles.md](2026-08-24-per-device-hipblaslt-handles.md):
   restores rank-local vendor handle ownership and all two-rank model correctness gates.
+- [2026-08-24-stream-ordered-allocator.md](2026-08-24-stream-ordered-allocator.md):
+  explicit HIP async allocation/Graph conformance and measured policy rejection.

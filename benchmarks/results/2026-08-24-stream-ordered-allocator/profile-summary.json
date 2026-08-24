@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "workload": "128 nodes x 4096 elements, three warm-ups and twenty measured chains",
+  "modes": {
+    "deferred": {
+      "kernel_calls": 2971,
+      "kernel_duration_ns": 5603271,
+      "hip_malloc_calls": 2948,
+      "hip_free_calls": 2948,
+      "hip_malloc_async_calls": 0,
+      "hip_free_async_calls": 0,
+      "stream_synchronize_calls": 23,
+      "graph_launch_calls": 0,
+      "host_kernel_launch_calls": 2967
+    },
+    "async": {
+      "kernel_calls": 2971,
+      "kernel_duration_ns": 7888251,
+      "hip_malloc_calls": 4,
+      "hip_free_calls": 4,
+      "hip_malloc_async_calls": 2944,
+      "hip_free_async_calls": 2944,
+      "stream_synchronize_calls": 23,
+      "graph_launch_calls": 0,
+      "host_kernel_launch_calls": 2967
+    },
+    "graph": {
+      "kernel_calls": 2971,
+      "kernel_duration_ns": 10955456,
+      "hip_malloc_calls": 4,
+      "hip_free_calls": 4,
+      "hip_malloc_async_calls": 128,
+      "hip_free_async_calls": 128,
+      "stream_synchronize_calls": 23,
+      "graph_launch_calls": 23,
+      "host_kernel_launch_calls": 129
+    }
+  },
+  "inference": "allocation APIs change, but executed add Kernel count does not; async dependencies and graph allocation nodes increase device time"
+}

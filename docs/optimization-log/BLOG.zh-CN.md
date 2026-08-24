@@ -3001,3 +3001,26 @@ FP32/BF16 GEMM，输出全部精确，plan统计为两次miss、两个entry、�
 one-process-per-GPU已经完成。
 
 ![Per-device hipBLASLt handle result](assets/per-device-hipblaslt-handles.svg)
+
+## 196. Experiment 179：只用两个货架，却多了一套昂贵调度
+
+Experiment 177慢在非默认Stream不能使用旧cache，于是自然想到HIP的Stream Ordered Memory
+Allocator。官方合同允许`hipMallocAsync`/`hipFreeAsync`按同一Stream顺序复用，还能在capture时生成
+allocation/free节点。
+
+我们先做显式buffer，不碰普通Storage。能力查询、pool的used/reserved current/high、threshold、trim、
+move/release和Graph节点都有测试。当前MI300X/ROCm 7.13支持这些API；小测试还发现，即使threshold设成
+8MiB，同步后reserved current仍可回到0，所以不能凭配置声称跨同步保留。
+
+72个正式进程给出更反直觉的结果。eager async在8/32/128/512节点里始终只用两个地址，却只有
+deferred的0.619×–0.709×，pool high固定128MiB。把它capture也没有变成两个地址：每个allocation
+node拥有独立地址，N个临时就有N个地址，完整Graph恰好`3N+1`节点，速度只剩0.036×–0.048×。
+
+profile中128×4096三条路径都执行2,971个Kernel。Kernel总时间却从deferred 5.60ms变为async
+7.89ms、Graph 10.96ms。Graph确实把host Kernel launch从2,967压到129，再加23次Graph launch，
+但device上的allocation依赖已经压过提交收益。
+
+因此显式Beta原语保留，Tensor/model策略全部拒绝。下一步不再换allocator名字，而是预先申请一块
+稳定activation arena，在replay外完成大分配，再用liveness规划内部偏移。
+
+![Stream ordered allocator result](assets/stream-ordered-allocator.svg)

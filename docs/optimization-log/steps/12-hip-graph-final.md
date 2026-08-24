@@ -85,6 +85,14 @@ profiler work is unchanged at 2,751 Kernels, but whole-process malloc/free calls
 1,180/867 to 2,559/2,557. Model capture is now blocked on ordered allocation or an activation
 arena, not on Stream correctness.
 
+## Experiment 179 ordered allocator result
+
+HIP async allocate/free works, reports pool state, reuses two same-Stream addresses and can be
+captured. Neither execution policy survives measurement. Eager async is 0.619×–0.709× of deferred;
+Graph allocation nodes are 0.036×–0.048×, retain N distinct addresses and create `3N+1` nodes.
+The remaining model-Graph prerequisite is now specifically an outside-replay activation arena and
+liveness plan, not another allocator API or larger deferred table.
+
 ## Final matrix
 
 - FP32 fixed matrix and running-best curve;

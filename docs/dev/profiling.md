@@ -253,6 +253,18 @@ updated parameter, and reports deferred physical bytes separately from logical e
 Experiment 177 keeps the API for correctness but rejects default enablement because allocator
 calls and retained bytes dominate every official row.
 
+Stream-ordered allocator policy matrix:
+
+```bash
+python3 benchmarks/single_gpu/stream_ordered_allocator_matrix.py \
+  --binary build/hip-release/benchmarks/microllm_bench_stream_ordered_allocator \
+  --output-directory /tmp/microllm-stream-ordered
+```
+
+The matrix distinguishes deferred lifetime, eager async pool calls, and captured Graph allocation
+nodes. It reports address count, `3N+1` Graph-node structure and default-pool high/current bytes.
+On the tested runtime, address reuse is real but neither async policy passes the speed gate.
+
 ## What remains
 
 There is no Python `@profile` decorator yet. The current stable entry points are the

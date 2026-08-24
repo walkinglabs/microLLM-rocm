@@ -212,6 +212,13 @@ Stream-only exact-size pool, replacing tens of cache misses with thousands of sy
 allocations and retaining up to 15.6 GB of raw temporaries. Graph capture still needs stable,
 planned addresses or a same-Stream ordered allocator.
 
+`runtime::StreamOrderedHipBuffer` exposes HIP's Linux Beta Stream Ordered Memory Allocator without
+changing `Storage`. Allocation and release are submitted to one explicit Stream; capability and
+default-pool used/reserved current/high values are queryable. Allocation/free can be captured as
+Graph nodes, but Experiment 179 rejects both eager model-style use and allocation-node replay.
+Same-Stream eager chains reuse two addresses yet are slower; captured chains own one address per
+allocation node. A future activation arena must allocate stable backing Storage outside replay.
+
 hipBLASLt GEMM also supports contiguous strided batches: leading Tensor dimensions become
 the batch count and last-two dimensions remain the matrix contract. Explicit batched
 selection is tested independently; Auto is not changed by operator-only timing.

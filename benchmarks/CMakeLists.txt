@@ -11,6 +11,10 @@ if(MICROLLM_HAS_HIP)
     target_link_libraries(microllm_bench_scoped_deferred_model PRIVATE
         microllm::model microllm::training microllm::ops microllm::runtime
         hip::host)
+    add_executable(microllm_bench_stream_ordered_allocator
+                   micro/benchmark_stream_ordered_allocator.cpp)
+    target_link_libraries(microllm_bench_stream_ordered_allocator PRIVATE
+        microllm::ops microllm::runtime hip::host)
     add_executable(microllm_bench_hip_graph micro/benchmark_hip_graph.cpp)
     target_link_libraries(microllm_bench_hip_graph PRIVATE
         microllm::ops microllm::runtime hip::host)
@@ -226,6 +230,11 @@ if(BUILD_TESTING)
                          --nodes 8 --elements 64 --warmup 1 --repetitions 2)
         set_tests_properties(Benchmark.HipDeferredDeallocationSmoke PROPERTIES
                              LABELS "hip;benchmark;lifetime;memory;smoke")
+        add_test(NAME Benchmark.HipStreamOrderedAllocatorSmoke
+                 COMMAND microllm_bench_stream_ordered_allocator --mode async
+                         --nodes 8 --elements 64 --warmup 1 --repetitions 2)
+        set_tests_properties(Benchmark.HipStreamOrderedAllocatorSmoke PROPERTIES
+                             LABELS "hip;benchmark;lifetime;memory;graph;smoke")
         add_test(NAME Benchmark.HipGraphSmoke
                  COMMAND microllm_bench_hip_graph --mode graph --nodes 8
                          --elements 64 --warmup 1 --repetitions 2)

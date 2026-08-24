@@ -23,6 +23,15 @@ struct MemoryInfo {
     std::size_t total_bytes = 0;
 };
 
+struct HipMemoryPoolStats {
+    bool supported = false;
+    std::size_t reserved_current_bytes = 0;
+    std::size_t reserved_high_bytes = 0;
+    std::size_t used_current_bytes = 0;
+    std::size_t used_high_bytes = 0;
+    std::uint64_t release_threshold_bytes = 0;
+};
+
 struct TransferStats {
     std::size_t host_to_device_calls = 0;
     std::size_t device_to_host_calls = 0;
@@ -54,6 +63,11 @@ struct PrecisionCapabilities {
 [[nodiscard]] DeviceInfo device_info(Device device);
 [[nodiscard]] PrecisionCapabilities precision_capabilities(Device device);
 [[nodiscard]] MemoryInfo memory_info(Device device);
+[[nodiscard]] bool stream_ordered_allocator_supported(Device device);
+[[nodiscard]] HipMemoryPoolStats default_hip_memory_pool_stats(Device device);
+void set_default_hip_memory_pool_release_threshold(
+    Device device, std::uint64_t bytes);
+void trim_default_hip_memory_pool(Device device, std::size_t minimum_bytes_to_hold = 0);
 [[nodiscard]] int hip_runtime_version();
 [[nodiscard]] int hip_driver_version();
 void set_device(Device device);
@@ -78,6 +92,30 @@ public:
     [[nodiscard]] Device device() const noexcept;
     [[nodiscard]] void* native_handle() const noexcept;
     void synchronize() const;
+
+private:
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
+};
+
+// A raw allocation whose creation and release are ordered on one explicit HIP
+// Stream. The Stream must outlive this object. This beta HIP mechanism is
+// opt-in and does not change ordinary Storage allocation.
+class StreamOrderedHipBuffer {
+public:
+    StreamOrderedHipBuffer(const Stream& stream, std::size_t bytes);
+    ~StreamOrderedHipBuffer();
+    StreamOrderedHipBuffer(StreamOrderedHipBuffer&&) noexcept;
+    StreamOrderedHipBuffer& operator=(StreamOrderedHipBuffer&&) noexcept;
+    StreamOrderedHipBuffer(const StreamOrderedHipBuffer&) = delete;
+    StreamOrderedHipBuffer& operator=(const StreamOrderedHipBuffer&) = delete;
+
+    [[nodiscard]] bool defined() const noexcept;
+    [[nodiscard]] void* data() noexcept;
+    [[nodiscard]] const void* data() const noexcept;
+    [[nodiscard]] std::size_t bytes() const noexcept;
+    [[nodiscard]] Device device() const noexcept;
+    void release();
 
 private:
     struct Impl;

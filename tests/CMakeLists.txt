@@ -140,6 +140,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.PerDeviceHandleRegressionContract PROPERTIES
         LABELS "cpu;benchmark;multi_gpu;matmul;schema")
     add_test(
+        NAME Benchmark.StreamOrderedAllocatorMatrixContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_stream_ordered_allocator_matrix.py
+    )
+    set_tests_properties(Benchmark.StreamOrderedAllocatorMatrixContract PROPERTIES
+        LABELS "cpu;benchmark;lifetime;memory;graph;schema")
+    add_test(
         NAME Coverage.OperatorAndTestFiles
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/audit_test_coverage.py
     )

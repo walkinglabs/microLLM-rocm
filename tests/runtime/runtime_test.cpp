@@ -101,6 +101,17 @@ TEST(DeferredHipDeallocationTest, CpuStreamAndZeroCapacityAreRejected) {
     EXPECT_EQ(resolve_deferred_hip_stream(Device::cpu()), nullptr);
     static_assert(!std::is_copy_constructible_v<ScopedDeferredHipStream>);
     static_assert(!std::is_move_constructible_v<ScopedDeferredHipStream>);
+    EXPECT_FALSE(stream_ordered_allocator_supported(Device::cpu()));
+    EXPECT_FALSE(default_hip_memory_pool_stats(Device::cpu()).supported);
+    EXPECT_THROW(set_default_hip_memory_pool_release_threshold(
+                     Device::cpu(), 1024),
+                 std::invalid_argument);
+    EXPECT_THROW(trim_default_hip_memory_pool(Device::cpu()),
+                 std::invalid_argument);
+    EXPECT_THROW((void)StreamOrderedHipBuffer(cpu_stream, 16),
+                 std::invalid_argument);
+    static_assert(!std::is_copy_constructible_v<StreamOrderedHipBuffer>);
+    static_assert(std::is_move_constructible_v<StreamOrderedHipBuffer>);
 }
 
 #if MICROLLM_HAS_HIP
@@ -264,6 +275,77 @@ TEST(ScopedDeferredHipStreamTest, RoutesDefaultOpsLayoutCopiesAndLifetimeTogethe
     EXPECT_TRUE(scope.finished());
     EXPECT_EQ(ops::OpContext{}.native_stream(gpu), nullptr);
     EXPECT_EQ(result.to_vector(), (std::vector<float>{8, 8, 8, 8}));
+}
+
+TEST(StreamOrderedHipBufferTest, AllocatesReleasesAndReportsDefaultPool) {
+    if (hip_device_count() == 0) GTEST_SKIP() << "No visible HIP device";
+    const auto gpu = Device::hip(0);
+    if (!stream_ordered_allocator_supported(gpu)) {
+        GTEST_SKIP() << "HIP Stream ordered allocator is unsupported";
+    }
+    Stream stream(gpu);
+    EXPECT_THROW((void)StreamOrderedHipBuffer(stream, 0),
+                 std::invalid_argument);
+    const auto original = default_hip_memory_pool_stats(gpu);
+    set_default_hip_memory_pool_release_threshold(gpu, 8U * 1024U * 1024U);
+    StreamOrderedHipBuffer buffer(stream, 4096);
+    EXPECT_TRUE(buffer.defined());
+    EXPECT_NE(buffer.data(), nullptr);
+    EXPECT_EQ(buffer.bytes(), 4096U);
+    EXPECT_EQ(buffer.device(), gpu);
+    auto moved = std::move(buffer);
+    EXPECT_FALSE(buffer.defined());
+    EXPECT_TRUE(moved.defined());
+    moved.release();
+    EXPECT_FALSE(moved.defined());
+    stream.synchronize();
+    const auto after = default_hip_memory_pool_stats(gpu);
+    EXPECT_TRUE(after.supported);
+    EXPECT_EQ(after.used_current_bytes, 0U);
+    EXPECT_GE(after.used_high_bytes, 4096U);
+    EXPECT_GE(after.reserved_high_bytes, 4096U);
+    EXPECT_EQ(after.release_threshold_bytes, 8U * 1024U * 1024U);
+    trim_default_hip_memory_pool(gpu, 0);
+    set_default_hip_memory_pool_release_threshold(
+        gpu, original.release_threshold_bytes);
+}
+
+TEST(StreamOrderedHipBufferTest, CaptureCreatesSafeAllocationAndFreeNodes) {
+    if (hip_device_count() == 0) GTEST_SKIP() << "No visible HIP device";
+    const auto gpu = Device::hip(0);
+    if (!stream_ordered_allocator_supported(gpu)) {
+        GTEST_SKIP() << "HIP Stream ordered allocator is unsupported";
+    }
+    const std::array<std::int64_t, 1> shape{4};
+    const std::array<std::int64_t, 1> strides{1};
+    const auto input = Tensor::from_vector({0, 0, 0, 0}, {4}).to(gpu);
+    const auto source = Tensor::from_vector({1, 1, 1, 1}, {4}).to(gpu);
+    const auto zero = Tensor::from_vector({0, 0, 0, 0}, {4}).to(gpu);
+    Tensor output({4}, DType::Float32, gpu);
+    Stream stream(gpu);
+    ops::OpContext context;
+    context.stream = &stream;
+    const auto mutable_view = [&](void* pointer) {
+        return TensorView{pointer, DType::Float32, gpu, shape, strides};
+    };
+    const auto const_view = [&](const void* pointer) {
+        return ConstTensorView{pointer, DType::Float32, gpu, shape, strides};
+    };
+    auto graph = HipGraphExecutable::capture(stream, [&] {
+        StreamOrderedHipBuffer first(stream, 4 * sizeof(float));
+        ops::add_out(mutable_view(first.data()), input.view(), source.view(), context);
+        StreamOrderedHipBuffer second(stream, 4 * sizeof(float));
+        ops::add_out(mutable_view(second.data()), const_view(first.data()),
+                     source.view(), context);
+        first.release();
+        ops::add_out(output.view(), const_view(second.data()), zero.view(), context);
+        second.release();
+    });
+    EXPECT_GE(graph.node_count(), 7U);
+    graph.launch(stream);
+    graph.launch(stream);
+    stream.synchronize();
+    EXPECT_EQ(output.to_vector(), (std::vector<float>{2, 2, 2, 2}));
 }
 
 TEST(HipRuntimeTest, ReportsDeviceAndTransfersTensor) {

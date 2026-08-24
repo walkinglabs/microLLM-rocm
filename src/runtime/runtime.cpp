@@ -236,6 +236,101 @@ MemoryInfo memory_info(Device device) {
 #endif
 }
 
+bool stream_ordered_allocator_supported(Device device) {
+    if (device.is_cpu()) return false;
+#if MICROLLM_HAS_HIP
+    int supported = 0;
+    check_hip(hipDeviceGetAttribute(
+                  &supported, hipDeviceAttributeMemoryPoolsSupported,
+                  device.index()),
+              "hipDeviceGetAttribute(memory pools)");
+    return supported != 0;
+#else
+    (void)device;
+    return false;
+#endif
+}
+
+HipMemoryPoolStats default_hip_memory_pool_stats(Device device) {
+    if (device.is_cpu()) return {};
+#if MICROLLM_HAS_HIP
+    HipMemoryPoolStats result;
+    result.supported = stream_ordered_allocator_supported(device);
+    if (!result.supported) return result;
+    set_device(device);
+    hipMemPool_t pool = nullptr;
+    check_hip(hipDeviceGetDefaultMemPool(&pool, device.index()),
+              "hipDeviceGetDefaultMemPool");
+    check_hip(hipMemPoolGetAttribute(
+                  pool, hipMemPoolAttrReservedMemCurrent,
+                  &result.reserved_current_bytes),
+              "hipMemPoolGetAttribute(reserved current)");
+    check_hip(hipMemPoolGetAttribute(
+                  pool, hipMemPoolAttrReservedMemHigh,
+                  &result.reserved_high_bytes),
+              "hipMemPoolGetAttribute(reserved high)");
+    check_hip(hipMemPoolGetAttribute(
+                  pool, hipMemPoolAttrUsedMemCurrent,
+                  &result.used_current_bytes),
+              "hipMemPoolGetAttribute(used current)");
+    check_hip(hipMemPoolGetAttribute(
+                  pool, hipMemPoolAttrUsedMemHigh,
+                  &result.used_high_bytes),
+              "hipMemPoolGetAttribute(used high)");
+    check_hip(hipMemPoolGetAttribute(
+                  pool, hipMemPoolAttrReleaseThreshold,
+                  &result.release_threshold_bytes),
+              "hipMemPoolGetAttribute(release threshold)");
+    return result;
+#else
+    (void)device;
+    throw std::runtime_error("HIP memory pool queried from a CPU-only build");
+#endif
+}
+
+void set_default_hip_memory_pool_release_threshold(
+    Device device, std::uint64_t bytes) {
+    if (device.is_cpu()) {
+        throw std::invalid_argument("HIP memory pool requires a HIP device");
+    }
+#if MICROLLM_HAS_HIP
+    if (!stream_ordered_allocator_supported(device)) {
+        throw std::runtime_error("HIP Stream ordered allocator is unsupported");
+    }
+    set_device(device);
+    hipMemPool_t pool = nullptr;
+    check_hip(hipDeviceGetDefaultMemPool(&pool, device.index()),
+              "hipDeviceGetDefaultMemPool");
+    check_hip(hipMemPoolSetAttribute(
+                  pool, hipMemPoolAttrReleaseThreshold, &bytes),
+              "hipMemPoolSetAttribute(release threshold)");
+#else
+    (void)bytes;
+    throw std::runtime_error("HIP memory pool configured from a CPU-only build");
+#endif
+}
+
+void trim_default_hip_memory_pool(Device device,
+                                  std::size_t minimum_bytes_to_hold) {
+    if (device.is_cpu()) {
+        throw std::invalid_argument("HIP memory pool requires a HIP device");
+    }
+#if MICROLLM_HAS_HIP
+    if (!stream_ordered_allocator_supported(device)) {
+        throw std::runtime_error("HIP Stream ordered allocator is unsupported");
+    }
+    set_device(device);
+    hipMemPool_t pool = nullptr;
+    check_hip(hipDeviceGetDefaultMemPool(&pool, device.index()),
+              "hipDeviceGetDefaultMemPool");
+    check_hip(hipMemPoolTrimTo(pool, minimum_bytes_to_hold),
+              "hipMemPoolTrimTo");
+#else
+    (void)minimum_bytes_to_hold;
+    throw std::runtime_error("HIP memory pool trimmed from a CPU-only build");
+#endif
+}
+
 int hip_runtime_version() {
 #if MICROLLM_HAS_HIP
     int version = 0;
@@ -592,6 +687,93 @@ void Stream::synchronize() const {
     check_hip(hipStreamSynchronize(as_stream(impl_->handle)), "hipStreamSynchronize");
 #else
     throw std::runtime_error("microLLM was built without HIP support");
+#endif
+}
+
+struct StreamOrderedHipBuffer::Impl {
+    const Stream* stream = nullptr;
+    Device device = Device::cpu();
+    void* pointer = nullptr;
+    std::size_t num_bytes = 0;
+};
+
+StreamOrderedHipBuffer::StreamOrderedHipBuffer(
+    const Stream& stream, std::size_t bytes)
+    : impl_(std::make_unique<Impl>()) {
+    if (stream.device().is_cpu()) {
+        throw std::invalid_argument("Stream ordered allocation requires a HIP Stream");
+    }
+    if (bytes == 0) {
+        throw std::invalid_argument("Stream ordered allocation size must be positive");
+    }
+#if MICROLLM_HAS_HIP
+    set_device(stream.device());
+    void* pointer = nullptr;
+    check_hip(hipMallocAsync(&pointer, bytes, as_stream(stream.native_handle())),
+              "hipMallocAsync");
+    impl_->stream = &stream;
+    impl_->device = stream.device();
+    impl_->pointer = pointer;
+    impl_->num_bytes = bytes;
+#else
+    (void)stream;
+    (void)bytes;
+    throw std::runtime_error("Stream ordered allocation requires HIP support");
+#endif
+}
+
+StreamOrderedHipBuffer::~StreamOrderedHipBuffer() {
+    try {
+        release();
+    } catch (...) {
+    }
+}
+
+StreamOrderedHipBuffer::StreamOrderedHipBuffer(
+    StreamOrderedHipBuffer&&) noexcept = default;
+
+StreamOrderedHipBuffer& StreamOrderedHipBuffer::operator=(
+    StreamOrderedHipBuffer&& other) noexcept {
+    if (this == &other) return *this;
+    try {
+        release();
+    } catch (...) {
+    }
+    impl_ = std::move(other.impl_);
+    return *this;
+}
+
+bool StreamOrderedHipBuffer::defined() const noexcept {
+    return impl_ && impl_->pointer != nullptr;
+}
+
+void* StreamOrderedHipBuffer::data() noexcept {
+    return impl_ ? impl_->pointer : nullptr;
+}
+
+const void* StreamOrderedHipBuffer::data() const noexcept {
+    return impl_ ? impl_->pointer : nullptr;
+}
+
+std::size_t StreamOrderedHipBuffer::bytes() const noexcept {
+    return impl_ ? impl_->num_bytes : 0;
+}
+
+Device StreamOrderedHipBuffer::device() const noexcept {
+    return impl_ ? impl_->device : Device::cpu();
+}
+
+void StreamOrderedHipBuffer::release() {
+    if (!defined()) return;
+#if MICROLLM_HAS_HIP
+    set_device(impl_->device);
+    check_hip(hipFreeAsync(
+                  impl_->pointer, as_stream(impl_->stream->native_handle())),
+              "hipFreeAsync");
+    impl_->pointer = nullptr;
+    impl_->num_bytes = 0;
+#else
+    throw std::runtime_error("Stream ordered release requires HIP support");
 #endif
 }
 
