@@ -868,6 +868,11 @@ TEST(CpuOpsTest, AttentionProbabilityValueGqaBroadcastMatchesRepeatedReference) 
     enable_attention_gqa_forward_value_broadcast(true);
     EXPECT_TRUE(attention_gqa_forward_value_broadcast_enabled());
     enable_attention_gqa_forward_value_broadcast(false);
+    enable_inference_bthd_attention(false);
+    EXPECT_FALSE(inference_bthd_attention_enabled());
+    enable_inference_bthd_attention(true);
+    EXPECT_TRUE(inference_bthd_attention_enabled());
+    enable_inference_bthd_attention(false);
 }
 
 TEST(CpuOpsTest, AttentionLayoutPlanCacheIsUnavailableWithoutHipblaslt) {

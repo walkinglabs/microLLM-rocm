@@ -389,6 +389,8 @@ void enable_attention_gqa_value_broadcast(bool enabled) noexcept;
 [[nodiscard]] bool attention_gqa_value_broadcast_enabled() noexcept;
 void enable_attention_gqa_forward_value_broadcast(bool enabled) noexcept;
 [[nodiscard]] bool attention_gqa_forward_value_broadcast_enabled() noexcept;
+void enable_inference_bthd_attention(bool enabled) noexcept;
+[[nodiscard]] bool inference_bthd_attention_enabled() noexcept;
 void register_bf16_algorithm(std::int64_t rows, std::int64_t inner,
                              std::int64_t columns, DType output_dtype,
                              int solution_index);

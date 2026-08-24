@@ -465,6 +465,10 @@ Experiment 201 makes that boundary exact. Strided records carry AllocationSource
 remaining copies are the three Attention inputs plus context output. The next architecture change
 is an inference-only BTHD island; generic Tensor contiguous behavior remains the readable fallback.
 
+Experiment 202 wires existing bias+RoPE layout fusion to the existing BTHD causal GQA path. V and
+context never leave projection/output-linear order. Eligibility is explicit and narrow; cached
+prefill and trace-value schemas continue through the old BHTD path.
+
 ## Stable integration boundary
 
 The long-term integration seam is a C-compatible descriptor plus explicit stream

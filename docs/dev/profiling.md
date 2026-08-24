@@ -431,6 +431,10 @@ AllocationSource, exact shape/strides, calls, elements and bytes. Source partici
 aggregation key; equal layouts in different model regions do not merge. Experiment 201 is the
 reference attribution for the next BTHD island.
 
+Use --inference-bthd-attention true only with the documented supported domain. Performance and
+diagnostics must run in separate processes. Experiment 202 requires zero strided calls in the
+diagnostic run and uses uninstrumented medians for throughput.
+
 ## What remains
 
 There is no Python `@profile` decorator yet. The current stable entry points are the

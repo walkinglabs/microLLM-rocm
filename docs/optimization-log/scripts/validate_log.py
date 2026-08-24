@@ -10002,6 +10002,114 @@ def validate_hf_strided_copy_sources(
             for row in comparisons.values())
 
 
+def validate_inference_bthd_attention(
+        errors: list[str]) -> tuple[int, int, float, float, int]:
+    data = REPOSITORY / (
+        "benchmarks/results/2026-08-24-inference-bthd-attention")
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    performance = [json.loads(line) for line in (
+        data / "performance-raw.jsonl").read_text(
+            encoding="utf-8").splitlines() if line.strip()]
+    diagnostics = [json.loads(line) for line in (
+        data / "diagnostic-raw.jsonl").read_text(
+            encoding="utf-8").splitlines() if line.strip()]
+    comparisons = {row.get("model"): row
+                   for row in summary.get("comparisons", [])}
+    expected = {
+        "qwen2.5-0.5b":
+            (99791.089692582, 111226.387800099, 1.1145923763609031,
+             1314589840, 1310395536, 0.9968094200393334,
+             4194304, 96, 0, 100663296, 0, 0.0, 0.0),
+        "deepseek-r1-distill-qwen-1.5b":
+            (52593.248805984, 57513.450452735, 1.0935519626274006,
+             4570125792, 4562785760, 0.9983939102917366,
+             7340032, 112, 0, 205520896, 0, 0.0, 0.0),
+    }
+    fields = (
+        "baseline_tokens_per_second", "bthd_tokens_per_second",
+        "speedup", "baseline_peak_bytes", "bthd_peak_bytes",
+        "peak_ratio", "peak_bytes_saved", "baseline_strided_calls",
+        "bthd_strided_calls", "baseline_strided_bytes",
+        "bthd_strided_bytes", "maximum_absolute_logit_difference",
+        "maximum_rms_logit_difference")
+    counts = {(name, policy): 0 for name in expected
+              for policy in ("baseline", "bthd")}
+    for row in performance:
+        key = (row.get("model"), row.get("policy"))
+        if key in counts:
+            counts[key] += 1
+    diagnostic_counts = counts.copy()
+    for key in diagnostic_counts:
+        diagnostic_counts[key] = 0
+    for row in diagnostics:
+        key = (row.get("model"), row.get("policy"))
+        if key in diagnostic_counts:
+            diagnostic_counts[key] += 1
+    if summary.get("status") != "pass" or len(performance) != 12 or \
+            len(diagnostics) != 12 or \
+            summary.get("performance_processes") != 12 or \
+            summary.get("diagnostic_processes") != 12 or \
+            summary.get("correctness_gate") is not True or \
+            summary.get("copy_elimination_gate") is not True or \
+            summary.get("performance_gate") is not True or \
+            summary.get("memory_gate") is not True or \
+            set(comparisons) != set(expected) or \
+            any(any(abs(float(row.get(field, 0.0)) - value) > 1.0e-6
+                    for field, value in zip(
+                        fields, expected[name], strict=True))
+                for name, row in comparisons.items()) or \
+            any(count != 3 for count in counts.values()) or \
+            any(count != 3 for count in diagnostic_counts.values()) or \
+            verification.get("status") != "pass" or \
+            verification.get("registered_test_files") != 81 or \
+            verification.get("performance_processes") != 12 or \
+            verification.get("diagnostic_processes") != 12 or \
+            verification.get("formal_comparisons") != 2 or \
+            any(verification.get(gate) is not True for gate in (
+                "correctness_gate", "copy_elimination_gate",
+                "performance_gate", "memory_gate")):
+        errors.append("inference BTHD Attention evidence changed")
+    expected_tests = {
+        "cpu_debug": {"passed": 309, "total": 309},
+        "asan_ubsan": {"passed": 307, "total": 307},
+        "pytorch_enabled_cpu": {"passed": 283, "total": 283},
+        "hip_full_configuration": {
+            "passed": 481, "total": 481, "conditional_skips": 3},
+        "hip_label": {"passed": 162, "total": 162},
+        "rccl_multi_gpu": {"passed": 12, "total": 12},
+        "rccl_full_label": {"passed": 14, "total": 14},
+    }
+    if verification.get("tests") != expected_tests:
+        errors.append("inference BTHD verification counts changed")
+    model_source = (REPOSITORY / "src/model/model.cpp").read_text(
+        encoding="utf-8")
+    ops_header = (REPOSITORY / "include/microllm/ops/ops.h").read_text(
+        encoding="utf-8")
+    cli = (REPOSITORY / "apps/hf_infer.cpp").read_text(encoding="utf-8")
+    hip_tests = (REPOSITORY / "tests/ops/hip_ops_test.cpp").read_text(
+        encoding="utf-8")
+    runner = (REPOSITORY / "benchmarks/single_gpu/"
+              "compare_inference_bthd_attention.py").read_text(
+                  encoding="utf-8")
+    for token, document in (
+            ("inference_bthd_attention_enabled", ops_header),
+            ("rope_split_half_bias_bthd", model_source),
+            ("causal_gqa_attention_bthd", model_source),
+            ("--inference-bthd-attention", cli),
+            ("RemovesFourLayoutCopiesPerBlockAndMatchesFallback", hip_tests),
+            ("copy_elimination_gate", runner)):
+        if token not in document:
+            errors.append("inference BTHD source/test contract changed")
+            break
+    ratios = [float(row["speedup"]) for row in comparisons.values()]
+    bytes_removed = sum(
+        int(row["baseline_strided_bytes"]) for row in comparisons.values())
+    return len(performance), len(diagnostics), \
+        min(ratios, default=0.0), max(ratios, default=0.0), bytes_removed
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -10181,7 +10289,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-grouped-shape-matrix.svg",
                  "bf16-grouped-shape-models.svg",
                  "bf16-grouped-composed-profile.svg",
-                 "hf-strided-copy-sources.svg"):
+                 "hf-strided-copy-sources.svg",
+                 "inference-bthd-attention.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -10537,6 +10646,9 @@ def main() -> int:
         validate_bf16_grouped_composed_profile(errors)
     strided_source_rows, strided_source_calls, strided_source_bytes, \
         strided_layout_bytes = validate_hf_strided_copy_sources(errors)
+    bthd_performance_rows, bthd_diagnostic_rows, bthd_minimum, \
+        bthd_maximum, bthd_bytes_removed = \
+        validate_inference_bthd_attention(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -10842,6 +10954,9 @@ def main() -> int:
           f"{composed_profile_maximum:.3f} "
           f"strided_sources={strided_source_rows}/{strided_source_calls}/"
           f"{strided_source_bytes}/{strided_layout_bytes} "
+          f"inference_bthd={bthd_performance_rows}/"
+          f"{bthd_diagnostic_rows}/{bthd_minimum:.3f}/"
+          f"{bthd_maximum:.3f}/{bthd_bytes_removed} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

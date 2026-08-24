@@ -209,6 +209,9 @@ Grouped gate/up是steady策略，不是启动策略。只有BF16 FFN Arena已开
 批量prefill保存logits时，last模式会写B行，full模式会为每行选自己的最后token后写B行。
 文件元素数必须是B×vocab。服务评测不能只检查B0，否则不同请求行的错误会被静默丢掉。
 
+inference BTHD policy当前不用于写KV cache的prefill，也不用于value trace。scheduler若需要
+cache admission，继续走旧路径；不能因为无cache的T512更快就删除fallback。
+
 ## 9. 测试位置
 
 ```text

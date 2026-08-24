@@ -430,3 +430,5 @@ the next gate. Records are append-only except for factual corrections.
   beginner-friendly post-composition hotspot and exact submission accounting.
 - [2026-08-24-hf-strided-copy-sources.md](2026-08-24-hf-strided-copy-sources.md):
   beginner-friendly exact source attribution for every remaining layout copy.
+- [2026-08-24-inference-bthd-attention.md](2026-08-24-inference-bthd-attention.md):
+  beginner-friendly copy-free inference Attention island and fallback domain.

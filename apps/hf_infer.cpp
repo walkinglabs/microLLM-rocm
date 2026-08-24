@@ -96,6 +96,7 @@ struct Options {
     int fp32_attention_pv_solution_index = -1;
     bool allocation_source_diagnostics = false;
     bool strided_copy_diagnostics = false;
+    bool inference_bthd_attention = false;
 };
 
 Options options(int argc, char** argv) {
@@ -319,6 +320,14 @@ Options options(int argc, char** argv) {
                     "--strided-copy-diagnostics must be true or false");
             }
             result.strided_copy_diagnostics = value == "true";
+        }
+        else if (name == "--inference-bthd-attention") {
+            const std::string value = argv[index + 1];
+            if (value != "true" && value != "false") {
+                throw std::invalid_argument(
+                    "--inference-bthd-attention must be true or false");
+            }
+            result.inference_bthd_attention = value == "true";
         }
         else throw std::invalid_argument("unknown CLI option: " + name);
     }
@@ -562,6 +571,12 @@ Options options(int argc, char** argv) {
          result.prefill_steps != 1)) {
         throw std::invalid_argument(
             "--strided-copy-diagnostics requires one prefill with zero warmup");
+    }
+    if (result.inference_bthd_attention &&
+        (result.device != "hip" || result.workload != "prefill" ||
+         !result.bf16_attention)) {
+        throw std::invalid_argument(
+            "--inference-bthd-attention requires HIP BF16 Attention prefill");
     }
     return result;
 }
@@ -1145,6 +1160,8 @@ int main(int argc, char** argv) {
         if (command.bf16_attention) {
             bf16_attention_report = model.prepare_bf16_attention_inference();
         }
+        microllm::ops::enable_inference_bthd_attention(
+            command.inference_bthd_attention);
         if (command.bf16_qkv_arena) {
             model.set_bf16_qkv_arena_enabled(
                 true, command.bf16_qkv_arena_minimum_rows);
@@ -1916,6 +1933,8 @@ int main(int argc, char** argv) {
                   << ",\"architecture\":\"" << info.architecture << "\""
                   << ",\"trace_record_count\":"
                   << trace_record_count
+                  << ",\"inference_bthd_attention\":"
+                  << (command.inference_bthd_attention ? "true" : "false")
                   << ",\"bf16_algorithm_index\":"
                   << command.bf16_algorithm_index
                   << ",\"bf16_grouped_qkv_algorithm_index\":"

@@ -303,6 +303,12 @@ Experiment 201 attributes every remaining strided copy. Qwen/DeepSeek have 96/11
 No bytes belong to embedding, FFN, output or unspecified scopes. Generic copy optimization is
 closed; only an inference BTHD Attention island that removes these four boundaries is justified.
 
+Experiment 202 implements that island from existing primitives. All copies and attributed bytes
+fall to zero, complete logits are bit-exact, peak falls 4/7 MiB and composed T512 improves
+1.1146×/1.0936×. The explicit supported domain is HIP, T≥256, BF16 Attention,
+split-half+bias, no prefill-cache write and no value trace. Broader RoPE/cache domains remain
+fallback-only until separately gated.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

@@ -46,6 +46,8 @@ def main() -> int:
         b"prefill logits shape does not match batch export contract",
         b"--strided-copy-diagnostics",
         b"strided_copy_records",
+        b"--inference-bthd-attention",
+        b"inference_bthd_attention",
     )
     missing = [value.decode() for value in required if value not in payload]
     if missing:

@@ -983,6 +983,14 @@ public:
         const auto batch = input.shape()[0];
         const auto sequence = input.shape()[1];
         const auto flat = input.reshape({batch * sequence, config_.dimension});
+        const auto bthd_attention =
+            ops::inference_bthd_attention_enabled() &&
+            input.device().is_hip() && ops::hipblaslt_available() &&
+            sequence >= 256 && prefill_cache == nullptr &&
+            trace_prefix.empty() &&
+            config_.rope_layout == RopeLayout::SplitHalf &&
+            query_.has_bias() && key_.has_bias() &&
+            query_.weight_data().dtype() == DType::BFloat16;
         Tensor query_projection;
         Tensor key_projection;
         Tensor value_projection;
@@ -993,12 +1001,16 @@ public:
                 const auto projections = bf16_projection(
                     flat, query_.weight_data(), key_.weight_data(),
                     value_.weight_data());
-                query_projection = query_.has_bias()
+                query_projection = bthd_attention
+                                       ? projections.first
+                                       : query_.has_bias()
                                        ? ops::add_bias(
                                              projections.first,
                                              query_.bias().data())
                                        : projections.first;
-                key_projection = key_.has_bias()
+                key_projection = bthd_attention
+                                     ? projections.second
+                                     : key_.has_bias()
                                      ? ops::add_bias(
                                            projections.second,
                                            key_.bias().data())
@@ -1030,28 +1042,45 @@ public:
         {
             runtime::ScopedAllocationSource allocation_source(
                 runtime::AllocationSource::AttentionLayout);
-            query = query_projection
-                        .reshape({batch, sequence, config_.heads,
-                                  config_.head_dimension()})
-                        .transpose(1, 2)
-                        .contiguous();
-            key = key_projection
-                      .reshape({batch, sequence, config_.kv_heads,
-                                config_.head_dimension()})
-                      .transpose(1, 2)
-                      .contiguous();
-            value = value_projection
-                        .reshape({batch, sequence, config_.kv_heads,
-                                  config_.head_dimension()})
-                        .transpose(1, 2)
-                        .contiguous();
-            if (config_.rope_layout == RopeLayout::SplitHalf) {
-                query = ops::rope_split_half(
-                    query, 2, 0, config_.rope_base);
-                key = ops::rope_split_half(key, 2, 0, config_.rope_base);
+            if (bthd_attention) {
+                query = ops::rope_split_half_bias_bthd(
+                    query_projection.reshape(
+                        {batch, sequence, config_.heads,
+                         config_.head_dimension()}),
+                    query_.bias().data(), 0, config_.rope_base);
+                key = ops::rope_split_half_bias_bthd(
+                    key_projection.reshape(
+                        {batch, sequence, config_.kv_heads,
+                         config_.head_dimension()}),
+                    key_.bias().data(), 0, config_.rope_base);
+                value = value_projection.reshape(
+                    {batch, sequence, config_.kv_heads,
+                     config_.head_dimension()});
             } else {
-                query = ops::rope(query, 2, 0, config_.rope_base);
-                key = ops::rope(key, 2, 0, config_.rope_base);
+                query = query_projection
+                            .reshape({batch, sequence, config_.heads,
+                                      config_.head_dimension()})
+                            .transpose(1, 2)
+                            .contiguous();
+                key = key_projection
+                          .reshape({batch, sequence, config_.kv_heads,
+                                    config_.head_dimension()})
+                          .transpose(1, 2)
+                          .contiguous();
+                value = value_projection
+                            .reshape({batch, sequence, config_.kv_heads,
+                                      config_.head_dimension()})
+                            .transpose(1, 2)
+                            .contiguous();
+                if (config_.rope_layout == RopeLayout::SplitHalf) {
+                    query = ops::rope_split_half(
+                        query, 2, 0, config_.rope_base);
+                    key = ops::rope_split_half(
+                        key, 2, 0, config_.rope_base);
+                } else {
+                    query = ops::rope(query, 2, 0, config_.rope_base);
+                    key = ops::rope(key, 2, 0, config_.rope_base);
+                }
             }
             trace_detail(trace_prefix, "q_rope", query);
             trace_detail(trace_prefix, "k_rope", key);
@@ -1068,13 +1097,20 @@ public:
         {
             runtime::ScopedAllocationSource allocation_source(
                 runtime::AllocationSource::AttentionCore);
-            context = causal_attention(
-                          query, key, value, repeats,
-                          1.0F / std::sqrt(static_cast<float>(
-                                     config_.head_dimension())))
-                          .transpose(1, 2)
-                          .contiguous()
-                          .reshape({batch * sequence, config_.dimension});
+            const auto scale =
+                1.0F / std::sqrt(static_cast<float>(
+                           config_.head_dimension()));
+            context = bthd_attention
+                          ? ops::causal_gqa_attention_bthd(
+                                query, key, value, repeats, scale)
+                                .reshape(
+                                    {batch * sequence, config_.dimension})
+                          : causal_attention(
+                                query, key, value, repeats, scale)
+                                .transpose(1, 2)
+                                .contiguous()
+                                .reshape(
+                                    {batch * sequence, config_.dimension});
         }
         trace_detail(trace_prefix, "context", context);
         Tensor output;

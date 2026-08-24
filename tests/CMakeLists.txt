@@ -302,6 +302,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.HfStridedCopySourcesContract PROPERTIES
         LABELS "cpu;benchmark;model;inference;attention;memory;profile;schema")
     add_test(
+        NAME Benchmark.InferenceBthdAttentionContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_inference_bthd_attention.py
+    )
+    set_tests_properties(Benchmark.InferenceBthdAttentionContract PROPERTIES
+        LABELS "cpu;benchmark;model;inference;attention;bf16;memory;layout;schema")
+    add_test(
         NAME Coverage.OperatorAndTestFiles
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/audit_test_coverage.py
     )

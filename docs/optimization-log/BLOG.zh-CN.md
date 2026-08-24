@@ -3397,3 +3397,16 @@ Qwen 96次、100.7MB，DeepSeek 112次、205.5MB。每层都是Q/K/V三次BTHD�
 不满足最小解释。
 
 ![Strided-copy source attribution](assets/hf-strided-copy-sources.svg)
+
+## 219. Experiment 202：不写新Kernel，也能删掉四次copy
+
+训练路径已有两个primitive：一个把Q/K的bias、split-half RoPE和布局转换一起做；另一个直接读
+BTHD V并写BTHD context。推理policy把它们接起来，没有新增数学Kernel。
+
+12个未插桩进程显示Qwen/DeepSeek快1.1146×/1.0936×；另外12个诊断进程证明96/112次copy
+严格变0，100.7/205.5MB全部消失。logits bit-exact，peak下降4/7MiB。
+
+支持域仍很窄：HIP、T≥256、BF16、split-half+bias、无prefill-cache写入、无value trace。
+其他路径不猜测，继续走旧fallback。
+
+![Inference BTHD Attention](assets/inference-bthd-attention.svg)

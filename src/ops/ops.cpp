@@ -23,6 +23,7 @@ thread_local bool attention_gemm_scale_fusion = false;
 thread_local bool attention_paired_gqa_repeat = false;
 thread_local bool attention_gqa_value_broadcast = false;
 thread_local bool attention_gqa_forward_value_broadcast = false;
+thread_local bool inference_bthd_attention = false;
 
 float fp8_finite_maximum(DType dtype) {
     if (dtype == DType::Float8E4M3FNUZ) return 240.0F;
@@ -584,6 +585,14 @@ void enable_attention_gqa_forward_value_broadcast(bool enabled) noexcept {
 
 bool attention_gqa_forward_value_broadcast_enabled() noexcept {
     return attention_gqa_forward_value_broadcast;
+}
+
+void enable_inference_bthd_attention(bool enabled) noexcept {
+    inference_bthd_attention = enabled;
+}
+
+bool inference_bthd_attention_enabled() noexcept {
+    return inference_bthd_attention;
 }
 
 Tensor dequantize_fp8(const ScaledTensor& input, DType output_dtype,

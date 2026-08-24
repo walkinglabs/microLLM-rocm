@@ -12,6 +12,7 @@
 #include <microllm/ops/tuning.h>
 #include <microllm/runtime/runtime.h>
 #include <microllm/runtime/memory.h>
+#include <microllm/runtime/diagnostics.h>
 #include <microllm/inference/generator.h>
 #include <microllm/inference/scheduler.h>
 #include <microllm/model/model.h>
@@ -639,6 +640,55 @@ TEST(HipBf16FfnTest, GroupedGateUpCachesExactPointerStablePlan) {
     clear_bf16_grouped_gate_up_registry();
     EXPECT_EQ(
         bf16_grouped_gate_up_stats().registered_entries, 0U);
+}
+
+TEST(HipInferenceBthdAttentionTest,
+     RemovesFourLayoutCopiesPerBlockAndMatchesFallback) {
+    require_gpu();
+    if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";
+    const auto gpu = Device::hip(0);
+    model::ModelConfig config;
+    config.vocabulary_size = 16;
+    config.dimension = 128;
+    config.layers = 2;
+    config.heads = 4;
+    config.kv_heads = 2;
+    config.ffn_dimension = 256;
+    config.max_sequence_length = 256;
+    config.tie_embeddings = true;
+    config.attention_bias = true;
+    config.rope_layout = model::RopeLayout::SplitHalf;
+    model::TransformerModel transformer(config, 181);
+    transformer.to(gpu);
+    (void)transformer.prepare_bf16_attention_inference();
+    const std::vector<std::int32_t> ids(256, 1);
+    const auto input =
+        Tensor::from_int32_vector(ids, {1, 256}).to(gpu);
+
+    enable_inference_bthd_attention(false);
+    runtime::reset_strided_copy_diagnostics();
+    runtime::enable_strided_copy_diagnostics(true);
+    const auto baseline =
+        transformer.forward_inference_last_logits(input);
+    runtime::synchronize(gpu);
+    const auto baseline_copies =
+        runtime::strided_copy_diagnostics();
+    EXPECT_EQ(baseline_copies.calls, 8U);
+
+    enable_inference_bthd_attention(true);
+    runtime::reset_strided_copy_diagnostics();
+    const auto candidate =
+        transformer.forward_inference_last_logits(input);
+    runtime::synchronize(gpu);
+    const auto candidate_copies =
+        runtime::strided_copy_diagnostics();
+    EXPECT_EQ(candidate_copies.calls, 0U);
+    EXPECT_EQ(candidate_copies.bytes, 0U);
+    expect_near(
+        candidate.to_vector(), baseline.to_vector(), 1.0e-4F);
+    runtime::enable_strided_copy_diagnostics(false);
+    runtime::reset_strided_copy_diagnostics();
+    enable_inference_bthd_attention(false);
 }
 
 TEST(HipBf16ProjectionTest, ModelPrewarmBuildsPlansBeforeFirstRequest) {

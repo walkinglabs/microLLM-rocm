@@ -53,6 +53,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [22](steps/22-bf16-grouped-shape-models.md) | complete | sequence/batch完整模型 | 六case 1.0212×–1.1075× + CLI batch修复 |
 | [23](steps/23-bf16-grouped-composed-profile.md) | complete | 组合后phase profile | GEMM calls 217→145、253→169 |
 | [24](steps/24-hf-strided-copy-sources.md) | complete | copy source归因 | 100% Attention；100.7/205.5MB |
+| [25](steps/25-inference-bthd-attention.md) | complete | 推理BTHD island | copy归零；整模1.1146×/1.0936× |
 
 ## 为什么按这个顺序
 

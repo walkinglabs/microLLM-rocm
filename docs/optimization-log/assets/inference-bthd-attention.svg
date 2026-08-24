@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="560" viewBox="0 0 1000 560" role="img" aria-labelledby="title desc">
+  <title id="title">Inference BTHD Attention copy elimination and speedup</title>
+  <desc id="desc">The BTHD island removes every T512 Attention layout copy and improves both official models.</desc>
+  <rect width="1000" height="560" fill="#0b1020"/>
+  <text x="55" y="48" fill="#f8fafc" font-family="sans-serif" font-size="28" font-weight="700">Experiment 202 · inference BTHD Attention island</text>
+  <text x="55" y="78" fill="#94a3b8" font-family="sans-serif" font-size="15">composed grouped baseline · separate performance and diagnostics processes</text>
+
+  <text x="55" y="140" fill="#e2e8f0" font-family="sans-serif" font-size="20" font-weight="700">Strided-copy calls</text>
+  <rect x="240" y="160" width="576" height="32" rx="6" fill="#fb7185"/>
+  <text x="55" y="183" fill="#cbd5e1" font-family="sans-serif" font-size="15">Qwen baseline</text>
+  <text x="830" y="183" fill="#fecdd3" font-family="monospace" font-size="14">96</text>
+  <rect x="240" y="205" width="3" height="32" rx="2" fill="#34d399"/>
+  <text x="55" y="228" fill="#cbd5e1" font-family="sans-serif" font-size="15">Qwen BTHD</text>
+  <text x="258" y="228" fill="#a7f3d0" font-family="monospace" font-size="14">0</text>
+  <rect x="240" y="250" width="672" height="32" rx="6" fill="#fb7185"/>
+  <text x="55" y="273" fill="#cbd5e1" font-family="sans-serif" font-size="15">DeepSeek baseline</text>
+  <text x="926" y="273" fill="#fecdd3" font-family="monospace" font-size="14">112</text>
+  <rect x="240" y="295" width="3" height="32" rx="2" fill="#22d3ee"/>
+  <text x="55" y="318" fill="#cbd5e1" font-family="sans-serif" font-size="15">DeepSeek BTHD</text>
+  <text x="258" y="318" fill="#a5f3fc" font-family="monospace" font-size="14">0</text>
+
+  <text x="55" y="390" fill="#e2e8f0" font-family="sans-serif" font-size="20" font-weight="700">Complete-model throughput</text>
+  <rect x="240" y="410" width="669" height="34" rx="6" fill="#34d399"/>
+  <text x="55" y="433" fill="#cbd5e1" font-family="sans-serif" font-size="15">Qwen</text>
+  <text x="922" y="433" fill="#a7f3d0" font-family="monospace" font-size="14">1.1146×</text>
+  <rect x="240" y="460" width="656" height="34" rx="6" fill="#22d3ee"/>
+  <text x="55" y="483" fill="#cbd5e1" font-family="sans-serif" font-size="15">DeepSeek</text>
+  <text x="909" y="483" fill="#a5f3fc" font-family="monospace" font-size="14">1.0936×</text>
+
+  <text x="55" y="535" fill="#94a3b8" font-family="sans-serif" font-size="13">Bit-exact logits · peak -4/-7 MiB · explicit supported-domain policy</text>
+</svg>

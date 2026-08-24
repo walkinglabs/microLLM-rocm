@@ -149,6 +149,8 @@ int main() {
     microllm::autograd::enable_attention_context_layout_fusion(false);
     microllm::autograd::enable_attention_context_layout_fusion(true);
     microllm::ops::clear_attention_layout_plan_cache();
+    microllm::ops::enable_inference_bthd_attention(true);
+    microllm::ops::enable_inference_bthd_attention(false);
     const auto attention_plan_stats =
         microllm::ops::attention_layout_plan_cache_stats();
     const auto fp32_solution_key =
@@ -221,6 +223,7 @@ int main() {
         grouped_gate_up_key.rows != 512 ||
         grouped_gate_up_key.columns != 4864 ||
         grouped_gate_up_stats.registered_entries != 0 ||
+        microllm::ops::inference_bthd_attention_enabled() ||
         !microllm::autograd::attention_rope_layout_fusion_enabled() ||
         microllm::autograd::unique_gradient_inplace_add_enabled() ||
         !rejected_cpu_tuning || !rejected_cpu_adamw_tuning ||
