@@ -297,6 +297,12 @@ if(BUILD_TESTING)
                          --elements 1024 --warmup 1 --repetitions 3)
         set_tests_properties(Benchmark.HipAdamWGraphReplaySmoke PROPERTIES
                              LABELS "hip;benchmark;training;graph;optimizer;smoke")
+        add_test(NAME Benchmark.HipAdamWGraphMultiSmoke
+                 COMMAND microllm_bench_adamw_graph_replay
+                         --mode graph-multi --precision bf16 --tensors 64
+                         --elements 1024 --warmup 1 --repetitions 3)
+        set_tests_properties(Benchmark.HipAdamWGraphMultiSmoke PROPERTIES
+                             LABELS "hip;benchmark;training;graph;optimizer;memory;smoke")
         add_test(NAME Benchmark.HipAddSmoke
                  COMMAND microllm_bench_ops --op add --size 1024 --warmup 1 --repetitions 2 --device hip)
         set_tests_properties(Benchmark.HipAddSmoke PROPERTIES LABELS "hip;benchmark;smoke")

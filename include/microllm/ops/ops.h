@@ -31,7 +31,10 @@ struct AdamWMultiTensorStats {
     std::size_t blocks = 0;
     std::size_t descriptor_bytes = 0;
     std::size_t block_map_bytes = 0;
+    bool graph_descriptors_prepared = false;
 };
+
+class AdamWGraphStepState;
 
 class AdamWMultiTensorWorkspace {
 public:
@@ -46,6 +49,12 @@ private:
     friend void adamw_update_multi_(
         AdamWMultiTensorWorkspace&, const std::vector<AdamWMultiTensorEntry>&,
         float, float, float, float, float, float, float, const OpContext&);
+    friend void adamw_prepare_multi_graph_(
+        AdamWMultiTensorWorkspace&, const std::vector<AdamWMultiTensorEntry>&,
+        const OpContext&);
+    friend void adamw_update_multi_graph_(
+        AdamWMultiTensorWorkspace&, const AdamWGraphStepState&, float, float,
+        float, float, float, const OpContext&);
     friend AdamWMultiTensorStats adamw_multi_tensor_workspace_stats(
         const AdamWMultiTensorWorkspace&) noexcept;
 };
@@ -82,6 +91,9 @@ private:
         Tensor&, const Tensor&, Tensor&, Tensor&, Tensor*,
         const AdamWGraphStepState&, float, float, float, float, float,
         const OpContext&);
+    friend void adamw_update_multi_graph_(
+        AdamWMultiTensorWorkspace&, const AdamWGraphStepState&, float, float,
+        float, float, float, const OpContext&);
 };
 
 struct MatmulTuningKey {
@@ -415,6 +427,17 @@ void adamw_update_multi_(
     const std::vector<AdamWMultiTensorEntry>& entries,
     float learning_rate, float beta1, float beta2, float epsilon,
     float weight_decay, float first_correction, float second_correction,
+    const OpContext& context = {});
+// Uploads pointer descriptors once outside capture and synchronizes setup.
+// Every referenced Tensor Storage must remain stable through the last replay.
+void adamw_prepare_multi_graph_(
+    AdamWMultiTensorWorkspace& workspace,
+    const std::vector<AdamWMultiTensorEntry>& entries,
+    const OpContext& context = {});
+void adamw_update_multi_graph_(
+    AdamWMultiTensorWorkspace& workspace,
+    const AdamWGraphStepState& graph_state, float learning_rate,
+    float beta1, float beta2, float epsilon, float weight_decay,
     const OpContext& context = {});
 // Graph-replayable AdamW primitives. advance must be enqueued exactly once
 // before all updates in the captured optimizer region.

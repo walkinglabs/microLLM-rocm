@@ -73,6 +73,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [42](steps/42-fp32-weight-gradient-solutions-discard.md) | complete | rank-2 exact solution | 算子过门、模型0.993×/0.996×，默认拒绝 |
 | [43](steps/43-training-graph-capture-boundary.md) | complete | 完整训练HIP Graph边界 | 24进程；动态Storage安全拒绝，AdamW主机step不可重放 |
 | [44](steps/44-adamw-device-step-graph.md) | complete | device-owned AdamW step | FP32 many-small 1.427×/1.436×；BF16和大Tensor拒绝 |
+| [45](steps/45-adamw-stable-descriptor-multi-graph.md) | complete | immutable descriptor + 两节点multi Graph | BF16 small 10.813×/36.929×；FP32 large 0.908×反例 |
 
 ## 为什么按这个顺序
 

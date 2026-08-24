@@ -190,6 +190,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.AdamWGraphReplayMatrixContract PROPERTIES
         LABELS "cpu;benchmark;training;graph;optimizer;schema")
     add_test(
+        NAME Benchmark.AdamWGraphMultiMatrixContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_adamw_graph_multi_matrix.py
+    )
+    set_tests_properties(Benchmark.AdamWGraphMultiMatrixContract PROPERTIES
+        LABELS "cpu;benchmark;training;graph;optimizer;memory;schema")
+    add_test(
         NAME Benchmark.HipGraphMatrixContract
         COMMAND ${Python3_EXECUTABLE}
                 ${PROJECT_SOURCE_DIR}/python/tests/test_hip_graph_matrix.py

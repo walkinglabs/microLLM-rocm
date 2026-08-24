@@ -45,6 +45,12 @@ void launch_adamw_update_multi(
     float learning_rate, float beta1, float beta2, float epsilon,
     float weight_decay, float first_correction, float second_correction,
     void* stream = nullptr);
+void launch_adamw_update_multi_graph(
+    const AdamWMultiTensorDescriptor* descriptors,
+    const std::int32_t* block_to_tensor, std::int64_t blocks,
+    float learning_rate, float beta1, float beta2, float epsilon,
+    float weight_decay, const float* corrections,
+    void* stream = nullptr);
 void launch_adamw_update_bf16_moments(
     float* parameter, const float* gradient, void* first_moment_bf16,
     void* second_moment_bf16, void* parameter_bf16_mirror,

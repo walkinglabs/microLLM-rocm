@@ -3709,6 +3709,134 @@ TEST(HipTrainingTest,
         graph = runtime::HipGraphExecutable();
         lifetime.finish();
     }
+    auto parameter = Tensor::from_vector({1, 2, 3, 4}, {4}).to(device);
+    const auto gradient =
+        Tensor::from_vector({0.5F, -0.5F, 0.25F, -0.25F}, {4}).to(device);
+    Tensor first({4}, DType::Float32, device);
+    Tensor second({4}, DType::Float32, device);
+    fill_(first, 0.0F);
+    fill_(second, 0.0F);
+    AdamWMultiTensorWorkspace immutable({4}, device);
+    const std::vector<AdamWMultiTensorEntry> entries{{
+        .parameter = &parameter,
+        .gradient = &gradient,
+        .first_moment = &first,
+        .second_moment = &second,
+        .bf16_mirror = nullptr,
+    }};
+    EXPECT_FALSE(adamw_multi_tensor_workspace_stats(immutable)
+                     .graph_descriptors_prepared);
+    adamw_prepare_multi_graph_(immutable, entries);
+    EXPECT_TRUE(adamw_multi_tensor_workspace_stats(immutable)
+                    .graph_descriptors_prepared);
+    EXPECT_THROW(adamw_prepare_multi_graph_(immutable, entries),
+                 std::logic_error);
+    EXPECT_THROW(adamw_update_multi_(
+                     immutable, entries, 0.01F, 0.9F, 0.99F, 1.0e-8F,
+                     0.0F, 0.1F, 0.01F),
+                 std::logic_error);
+}
+
+TEST(HipTrainingTest,
+     AdamWMultiTensorGraphUsesTwoNodesAndMatchesCompleteEagerState) {
+    require_gpu();
+    const auto device = Device::hip(0);
+    const std::vector<std::int64_t> sizes{17, 1025};
+    for (const auto precision : {
+             training::AdamWConfig::MomentPrecision::Float32,
+             training::AdamWConfig::MomentPrecision::BFloat16}) {
+        std::vector<autograd::Value> eager;
+        std::vector<autograd::Value> replay;
+        std::vector<Tensor> eager_mirrors;
+        std::vector<Tensor> replay_mirrors;
+        eager.reserve(sizes.size());
+        replay.reserve(sizes.size());
+        eager_mirrors.reserve(sizes.size());
+        replay_mirrors.reserve(sizes.size());
+        for (const auto size : sizes) {
+            std::vector<float> values(static_cast<std::size_t>(size));
+            std::vector<float> gradients(static_cast<std::size_t>(size));
+            for (std::size_t index = 0; index < values.size(); ++index) {
+                values[index] =
+                    static_cast<float>(static_cast<int>(index % 31) - 15) /
+                    17.0F;
+                gradients[index] =
+                    static_cast<float>(static_cast<int>(index % 13) - 6) /
+                    19.0F;
+            }
+            eager.emplace_back(Tensor::from_vector(values, {size}), true);
+            replay.emplace_back(
+                Tensor::from_vector(values, {size}).to(device), true);
+            eager.back().set_grad(Tensor::from_vector(gradients, {size}));
+            replay.back().set_grad(eager.back().grad().to(device));
+            eager_mirrors.push_back(
+                eager.back().data().cast(DType::BFloat16));
+            replay_mirrors.push_back(
+                replay.back().data().cast(DType::BFloat16));
+        }
+        training::Parameters eager_parameters;
+        training::Parameters replay_parameters;
+        training::Bf16ParameterMirrors eager_map;
+        training::Bf16ParameterMirrors replay_map;
+        for (std::size_t index = 0; index < sizes.size(); ++index) {
+            eager_parameters.push_back(&eager[index]);
+            replay_parameters.push_back(&replay[index]);
+            eager_map.emplace_back(&eager[index], &eager_mirrors[index]);
+            replay_map.emplace_back(&replay[index], &replay_mirrors[index]);
+        }
+        const training::AdamWConfig config{
+            .learning_rate = 0.01F,
+            .beta1 = 0.9F,
+            .beta2 = 0.99F,
+            .epsilon = 1.0e-8F,
+            .weight_decay = 0.1F,
+            .moment_precision = precision};
+        training::AdamW eager_optimizer(
+            eager_parameters, config, eager_map, AdamWImplementation::Auto, 0);
+        training::AdamW replay_optimizer(
+            replay_parameters, config, replay_map, AdamWImplementation::Auto,
+            0);
+        for (int step = 0; step < 3; ++step) eager_optimizer.step();
+        auto workspace = replay_optimizer.make_graph_workspace();
+        runtime::Stream stream(device);
+        runtime::ScopedDeferredHipStream lifetime(stream, 64);
+        OpContext context;
+        context.stream = &stream;
+        training::AdamW wrong_owner(
+            replay_parameters, config, replay_map, AdamWImplementation::Auto,
+            0);
+        EXPECT_THROW(wrong_owner.step_graph_replayable(workspace, context),
+                     std::invalid_argument);
+        auto graph = runtime::HipGraphExecutable::capture(stream, [&] {
+            replay_optimizer.step_graph_replayable(workspace, context);
+        });
+        EXPECT_EQ(graph.node_count(), 2U);
+        runtime::reset_transfer_stats();
+        for (int step = 0; step < 3; ++step) graph.launch(stream);
+        stream.synchronize();
+        const auto transfers = runtime::transfer_stats();
+        EXPECT_EQ(transfers.host_to_device_calls, 0U);
+        EXPECT_EQ(transfers.device_to_host_calls, 0U);
+        EXPECT_EQ(transfers.device_to_device_calls, 0U);
+        replay_optimizer.synchronize_graph_step(workspace);
+        const auto eager_state = eager_optimizer.state();
+        const auto replay_state = replay_optimizer.state();
+        EXPECT_EQ(replay_optimizer.step_count(), 3U);
+        for (std::size_t index = 0; index < sizes.size(); ++index) {
+            expect_near(replay[index].data().to_vector(),
+                        eager[index].data().to_vector(), 3.0e-6F);
+            expect_near(replay_state.first_moments[index].to_vector(),
+                        eager_state.first_moments[index].to_vector(),
+                        2.0e-6F);
+            expect_near(replay_state.second_moments[index].to_vector(),
+                        eager_state.second_moments[index].to_vector(),
+                        2.0e-6F);
+            EXPECT_EQ(replay_mirrors[index].to_vector(),
+                      eager_mirrors[index].to_vector());
+        }
+        graph = runtime::HipGraphExecutable();
+        lifetime.finish();
+    }
 }
 
 TEST(HipTrainingTest,

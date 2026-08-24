@@ -42,7 +42,8 @@ Options options(int argc, char** argv) {
             throw std::invalid_argument("unknown option: " + std::string(name));
         }
     }
-    if ((result.mode != "eager" && result.mode != "graph") ||
+    if ((result.mode != "eager" && result.mode != "graph" &&
+         result.mode != "graph-multi") ||
         (result.precision != "fp32" && result.precision != "bf16") ||
         result.tensors <= 0 || result.elements <= 0 || result.warmup < 0 ||
         result.repetitions <= 0) {
@@ -123,26 +124,39 @@ int main(int argc, char** argv) {
             parameters, config, mirror_map,
             microllm::ops::AdamWImplementation::Auto, 0);
         std::optional<microllm::ops::AdamWGraphStepState> graph_state;
+        std::optional<microllm::training::AdamWGraphWorkspace> graph_workspace;
+        double preparation_ms = 0.0;
+        const auto preparation_started = std::chrono::steady_clock::now();
         if (command.mode == "graph") {
             graph_state.emplace(optimizer.make_graph_step_state());
+        } else if (command.mode == "graph-multi") {
+            graph_workspace.emplace(optimizer.make_graph_workspace());
         }
+        preparation_ms = std::chrono::duration<double, std::milli>(
+                             std::chrono::steady_clock::now() -
+                             preparation_started)
+                             .count();
         microllm::runtime::Stream stream(device);
         microllm::runtime::ScopedDeferredHipStream lifetime(stream, 1024);
         microllm::ops::OpContext context;
         context.stream = &stream;
         microllm::runtime::HipGraphExecutable graph;
         double setup_ms = 0.0;
-        if (command.mode == "graph") {
+        if (command.mode != "eager") {
             const auto started = std::chrono::steady_clock::now();
             graph = microllm::runtime::HipGraphExecutable::capture(stream, [&] {
-                optimizer.step_graph_replayable(*graph_state, context);
+                if (command.mode == "graph") {
+                    optimizer.step_graph_replayable(*graph_state, context);
+                } else {
+                    optimizer.step_graph_replayable(*graph_workspace, context);
+                }
             });
             setup_ms = std::chrono::duration<double, std::milli>(
                            std::chrono::steady_clock::now() - started)
                            .count();
         }
         const auto run_step = [&] {
-            if (command.mode == "graph") graph.launch(stream);
+            if (command.mode != "eager") graph.launch(stream);
             else optimizer.step();
         };
         for (int index = 0; index < command.warmup; ++index) run_step();
@@ -162,6 +176,8 @@ int main(int argc, char** argv) {
         const auto transfers = microllm::runtime::transfer_stats();
         if (command.mode == "graph") {
             optimizer.synchronize_graph_step(*graph_state);
+        } else if (command.mode == "graph-multi") {
+            optimizer.synchronize_graph_step(*graph_workspace);
         }
         const auto state = optimizer.state();
         const auto parameter_sample = prefix(values.front().data().to_vector());
@@ -181,6 +197,7 @@ int main(int argc, char** argv) {
                   << ",\"final_step\":" << optimizer.step_count()
                   << ",\"captured_nodes\":"
                   << (graph.defined() ? graph.node_count() : 0U)
+                  << ",\"preparation_ms\":" << preparation_ms
                   << ",\"setup_ms\":" << setup_ms
                   << ",\"event_ms_per_step\":"
                   << event_ms / static_cast<double>(command.repetitions)

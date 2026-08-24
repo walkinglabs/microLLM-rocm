@@ -107,6 +107,7 @@ struct AdamWMultiTensorWorkspace::Impl {
     std::shared_ptr<void> descriptor_staging;
     std::size_t descriptor_bytes = 0;
     std::size_t block_map_bytes = 0;
+    bool graph_descriptors_prepared = false;
 };
 
 AdamWMultiTensorWorkspace::AdamWMultiTensorWorkspace(
@@ -183,7 +184,9 @@ AdamWMultiTensorStats adamw_multi_tensor_workspace_stats(
             .blocks = static_cast<std::size_t>(
                 workspace.impl_->block_to_tensor.numel()),
             .descriptor_bytes = workspace.impl_->descriptor_bytes,
-            .block_map_bytes = workspace.impl_->block_map_bytes};
+            .block_map_bytes = workspace.impl_->block_map_bytes,
+            .graph_descriptors_prepared =
+                workspace.impl_->graph_descriptors_prepared};
 }
 
 AdamWGraphStepState::AdamWGraphStepState(
@@ -220,6 +223,89 @@ std::uint64_t AdamWGraphStepState::synchronized_step() const {
     }
     return static_cast<std::uint64_t>(values.front());
 }
+
+#if MICROLLM_HAS_HIP
+static void upload_adamw_multi_descriptors(
+    const std::vector<std::int64_t>& element_counts,
+    const std::vector<std::int64_t>& first_blocks, Device device,
+    Tensor& descriptor_tensor, void* descriptor_staging,
+    std::size_t descriptor_bytes,
+    const std::vector<AdamWMultiTensorEntry>& entries,
+    void* native_stream) {
+    if (entries.size() != element_counts.size()) {
+        throw std::invalid_argument(
+            "multi-tensor AdamW entry count does not match workspace");
+    }
+    auto* descriptors = static_cast<hip::AdamWMultiTensorDescriptor*>(
+        hip::acquire_adamw_descriptor_staging(descriptor_staging));
+    for (std::size_t index = 0; index < entries.size(); ++index) {
+        const auto& entry = entries[index];
+        if (entry.parameter == nullptr || entry.first_moment == nullptr ||
+            entry.second_moment == nullptr) {
+            throw std::invalid_argument(
+                "multi-tensor AdamW entries require parameter and moments");
+        }
+        require_float(*entry.parameter, "parameter");
+        if ((entry.first_moment->dtype() != DType::Float32 &&
+             entry.first_moment->dtype() != DType::BFloat16) ||
+            entry.second_moment->dtype() != entry.first_moment->dtype()) {
+            throw std::invalid_argument(
+                "multi-tensor AdamW moments must use matching FP32 or BF16 dtype");
+        }
+        if (entry.parameter->numel() != element_counts[index]) {
+            throw std::invalid_argument(
+                "multi-tensor AdamW entry shape changed after planning");
+        }
+        require_same_shape(*entry.parameter, *entry.first_moment);
+        require_same_shape(*entry.parameter, *entry.second_moment);
+        require_same_device(*entry.parameter, *entry.first_moment);
+        require_same_device(*entry.parameter, *entry.second_moment);
+        if (entry.parameter->device() != device ||
+            !entry.parameter->is_contiguous() ||
+            !entry.first_moment->is_contiguous() ||
+            !entry.second_moment->is_contiguous()) {
+            throw std::invalid_argument(
+                "multi-tensor AdamW entries must be contiguous on the planned device");
+        }
+        if (entry.gradient != nullptr) {
+            require_float(*entry.gradient, "gradient");
+            require_same_shape(*entry.parameter, *entry.gradient);
+            require_same_device(*entry.parameter, *entry.gradient);
+            if (!entry.gradient->is_contiguous()) {
+                throw std::invalid_argument(
+                    "multi-tensor AdamW gradients must be contiguous");
+            }
+        }
+        if (entry.bf16_mirror != nullptr &&
+            (entry.bf16_mirror->dtype() != DType::BFloat16 ||
+             entry.bf16_mirror->shape() != entry.parameter->shape() ||
+             entry.bf16_mirror->device() != entry.parameter->device() ||
+             !entry.bf16_mirror->is_contiguous())) {
+            throw std::invalid_argument(
+                "multi-tensor AdamW BF16 mirror must match its parameter");
+        }
+        descriptors[index] = {
+            .parameter = static_cast<float*>(entry.parameter->data()),
+            .gradient = entry.gradient == nullptr
+                            ? nullptr
+                            : static_cast<const float*>(entry.gradient->data()),
+            .first_moment = entry.first_moment->data(),
+            .second_moment = entry.second_moment->data(),
+            .bf16_mirror = entry.bf16_mirror == nullptr
+                               ? nullptr
+                               : entry.bf16_mirror->data(),
+            .elements = entry.parameter->numel(),
+            .first_block = first_blocks[index],
+            .bf16_moments = entry.first_moment->dtype() == DType::BFloat16
+                                ? 1U
+                                : 0U,
+        };
+    }
+    runtime::copy_bytes_async_native(
+        descriptor_tensor.data(), device, descriptors, Device::cpu(),
+        descriptor_bytes, native_stream);
+}
+#endif
 
 Tensor cast(const Tensor& input, DType output_dtype,
             [[maybe_unused]] const OpContext& context) {
@@ -552,6 +638,10 @@ void adamw_update_multi_(
     if (!workspace.impl_) {
         throw std::invalid_argument("multi-tensor AdamW workspace is undefined");
     }
+    if (workspace.impl_->graph_descriptors_prepared) {
+        throw std::logic_error(
+            "Graph-prepared AdamW descriptors are immutable");
+    }
     if (entries.size() != workspace.impl_->element_counts.size()) {
         throw std::invalid_argument(
             "multi-tensor AdamW entry count does not match workspace");
@@ -564,77 +654,12 @@ void adamw_update_multi_(
             "multi-tensor AdamW hyperparameters are invalid");
     }
 #if MICROLLM_HAS_HIP
-    auto* descriptors = static_cast<hip::AdamWMultiTensorDescriptor*>(
-        hip::acquire_adamw_descriptor_staging(
-            workspace.impl_->descriptor_staging.get()));
-    for (std::size_t index = 0; index < entries.size(); ++index) {
-        const auto& entry = entries[index];
-        if (entry.parameter == nullptr || entry.first_moment == nullptr ||
-            entry.second_moment == nullptr) {
-            throw std::invalid_argument(
-                "multi-tensor AdamW entries require parameter and moments");
-        }
-        require_float(*entry.parameter, "parameter");
-        if ((entry.first_moment->dtype() != DType::Float32 &&
-             entry.first_moment->dtype() != DType::BFloat16) ||
-            entry.second_moment->dtype() != entry.first_moment->dtype()) {
-            throw std::invalid_argument(
-                "multi-tensor AdamW moments must use matching FP32 or BF16 dtype");
-        }
-        if (entry.parameter->numel() != workspace.impl_->element_counts[index]) {
-            throw std::invalid_argument(
-                "multi-tensor AdamW entry shape changed after planning");
-        }
-        require_same_shape(*entry.parameter, *entry.first_moment);
-        require_same_shape(*entry.parameter, *entry.second_moment);
-        require_same_device(*entry.parameter, *entry.first_moment);
-        require_same_device(*entry.parameter, *entry.second_moment);
-        if (entry.parameter->device() != workspace.impl_->device ||
-            !entry.parameter->is_contiguous() ||
-            !entry.first_moment->is_contiguous() ||
-            !entry.second_moment->is_contiguous()) {
-            throw std::invalid_argument(
-                "multi-tensor AdamW entries must be contiguous on the planned device");
-        }
-        if (entry.gradient != nullptr) {
-            require_float(*entry.gradient, "gradient");
-            require_same_shape(*entry.parameter, *entry.gradient);
-            require_same_device(*entry.parameter, *entry.gradient);
-            if (!entry.gradient->is_contiguous()) {
-                throw std::invalid_argument(
-                    "multi-tensor AdamW gradients must be contiguous");
-            }
-        }
-        if (entry.bf16_mirror != nullptr &&
-            (entry.bf16_mirror->dtype() != DType::BFloat16 ||
-             entry.bf16_mirror->shape() != entry.parameter->shape() ||
-             entry.bf16_mirror->device() != entry.parameter->device() ||
-             !entry.bf16_mirror->is_contiguous())) {
-            throw std::invalid_argument(
-                "multi-tensor AdamW BF16 mirror must match its parameter");
-        }
-        descriptors[index] = {
-            .parameter = static_cast<float*>(entry.parameter->data()),
-            .gradient = entry.gradient == nullptr
-                            ? nullptr
-                            : static_cast<const float*>(entry.gradient->data()),
-            .first_moment = entry.first_moment->data(),
-            .second_moment = entry.second_moment->data(),
-            .bf16_mirror = entry.bf16_mirror == nullptr
-                               ? nullptr
-                               : entry.bf16_mirror->data(),
-            .elements = entry.parameter->numel(),
-            .first_block = workspace.impl_->first_blocks[index],
-            .bf16_moments = entry.first_moment->dtype() == DType::BFloat16
-                                ? 1U
-                                : 0U,
-        };
-    }
     const auto native_stream = context.native_stream(workspace.impl_->device);
-    runtime::copy_bytes_async_native(
-        workspace.impl_->descriptors.data(), workspace.impl_->device,
-        descriptors, Device::cpu(), workspace.impl_->descriptor_bytes,
-        native_stream);
+    upload_adamw_multi_descriptors(
+        workspace.impl_->element_counts, workspace.impl_->first_blocks,
+        workspace.impl_->device, workspace.impl_->descriptors,
+        workspace.impl_->descriptor_staging.get(),
+        workspace.impl_->descriptor_bytes, entries, native_stream);
     hip::launch_adamw_update_multi(
         static_cast<const hip::AdamWMultiTensorDescriptor*>(
             workspace.impl_->descriptors.data()),
@@ -643,12 +668,77 @@ void adamw_update_multi_(
         workspace.impl_->block_to_tensor.numel(), learning_rate, beta1, beta2,
         epsilon, weight_decay, first_correction, second_correction,
         native_stream);
-    // The same device descriptor buffer may be reused from another Stream on
-    // the next call. Protect both the pinned host table and device reads.
+    // Protect both the pinned host table and device descriptor reads until
+    // the whole update, not only the descriptor copy, has completed.
     hip::mark_adamw_descriptor_staging_in_use(
         workspace.impl_->descriptor_staging.get(), native_stream);
 #else
     (void)entries;
+    throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+}
+
+void adamw_prepare_multi_graph_(
+    AdamWMultiTensorWorkspace& workspace,
+    const std::vector<AdamWMultiTensorEntry>& entries,
+    [[maybe_unused]] const OpContext& context) {
+    if (!workspace.impl_) {
+        throw std::invalid_argument("multi-tensor AdamW workspace is undefined");
+    }
+    if (workspace.impl_->graph_descriptors_prepared) {
+        throw std::logic_error(
+            "multi-tensor AdamW Graph descriptors cannot be prepared twice");
+    }
+#if MICROLLM_HAS_HIP
+    const auto native_stream = context.native_stream(workspace.impl_->device);
+    upload_adamw_multi_descriptors(
+        workspace.impl_->element_counts, workspace.impl_->first_blocks,
+        workspace.impl_->device, workspace.impl_->descriptors,
+        workspace.impl_->descriptor_staging.get(),
+        workspace.impl_->descriptor_bytes, entries, native_stream);
+    hip::mark_adamw_descriptor_staging_in_use(
+        workspace.impl_->descriptor_staging.get(), native_stream);
+    // Preparation is explicitly outside the measured/captured region. Make
+    // descriptor visibility independent of which Stream is captured later.
+    runtime::synchronize(workspace.impl_->device);
+    workspace.impl_->graph_descriptors_prepared = true;
+#else
+    (void)entries;
+    throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+}
+
+void adamw_update_multi_graph_(
+    AdamWMultiTensorWorkspace& workspace,
+    const AdamWGraphStepState& graph_state, float learning_rate,
+    float beta1, float beta2, float epsilon, float weight_decay,
+    [[maybe_unused]] const OpContext& context) {
+    if (!workspace.impl_ || !workspace.impl_->graph_descriptors_prepared) {
+        throw std::invalid_argument(
+            "multi-tensor Graph AdamW descriptors are not prepared");
+    }
+    if (!graph_state.defined() ||
+        graph_state.device() != workspace.impl_->device) {
+        throw std::invalid_argument(
+            "multi-tensor Graph AdamW step state uses another device");
+    }
+    if (!(learning_rate > 0.0F) || beta1 < 0.0F || beta1 >= 1.0F ||
+        beta2 < 0.0F || beta2 >= 1.0F || !(epsilon > 0.0F) ||
+        weight_decay < 0.0F) {
+        throw std::invalid_argument(
+            "multi-tensor Graph AdamW hyperparameters are invalid");
+    }
+#if MICROLLM_HAS_HIP
+    hip::launch_adamw_update_multi_graph(
+        static_cast<const hip::AdamWMultiTensorDescriptor*>(
+            workspace.impl_->descriptors.data()),
+        static_cast<const std::int32_t*>(
+            workspace.impl_->block_to_tensor.data()),
+        workspace.impl_->block_to_tensor.numel(), learning_rate, beta1, beta2,
+        epsilon, weight_decay,
+        static_cast<const float*>(graph_state.corrections_.data()),
+        context.native_stream(workspace.impl_->device));
+#else
     throw std::runtime_error("microLLM was built without HIP operator support");
 #endif
 }

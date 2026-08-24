@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="780" viewBox="0 0 1600 780">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="800.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 222 · Two-Node AdamW Multi-Tensor Graph</text>
+<text x="800.0" y="82.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">90 fresh processes · immutable descriptors prepared once · logarithmic speedup axis</text>
+<rect x="150" y="145" width="1300" height="450" fill="#ffffff" stroke="#cbd3df" rx="10"/>
+<line x1="150" y1="595.0" x2="1450" y2="595.0" stroke="#e5e9f0"/>
+<text x="138.0" y="600.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">0.125×</text>
+<line x1="150" y1="545.0" x2="1450" y2="545.0" stroke="#e5e9f0"/>
+<text x="138.0" y="550.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">0.25×</text>
+<line x1="150" y1="495.0" x2="1450" y2="495.0" stroke="#e5e9f0"/>
+<text x="138.0" y="500.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">0.5×</text>
+<line x1="150" y1="445.0" x2="1450" y2="445.0" stroke="#2563eb"/>
+<text x="138.0" y="450.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">1×</text>
+<line x1="150" y1="395.0" x2="1450" y2="395.0" stroke="#e5e9f0"/>
+<text x="138.0" y="400.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">2×</text>
+<line x1="150" y1="345.0" x2="1450" y2="345.0" stroke="#e5e9f0"/>
+<text x="138.0" y="350.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">4×</text>
+<line x1="150" y1="295.0" x2="1450" y2="295.0" stroke="#e5e9f0"/>
+<text x="138.0" y="300.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">8×</text>
+<line x1="150" y1="245.0" x2="1450" y2="245.0" stroke="#e5e9f0"/>
+<text x="138.0" y="250.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">16×</text>
+<line x1="150" y1="195.0" x2="1450" y2="195.0" stroke="#e5e9f0"/>
+<text x="138.0" y="200.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">32×</text>
+<line x1="150" y1="145.0" x2="1450" y2="145.0" stroke="#e5e9f0"/>
+<text x="138.0" y="150.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">64×</text>
+<rect x="200.0" y="568.3" width="68" height="26.7" fill="#16a34a" rx="5"/>
+<text x="234.0" y="560.3" font-family="Inter,Arial,sans-serif" font-size="13" fill="#16a34a" text-anchor="middle" font-weight="700">0.18×</text>
+<circle cx="234.0" cy="557.4" r="5" fill="#172033"/>
+<rect x="285.0" y="562.3" width="68" height="32.7" fill="#f97316" rx="5"/>
+<text x="319.0" y="554.3" font-family="Inter,Arial,sans-serif" font-size="13" fill="#f97316" text-anchor="middle" font-weight="700">0.20×</text>
+<circle cx="319.0" cy="564.1" r="5" fill="#172033"/>
+<text x="280.0" y="623.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="middle" font-weight="700">1×1K</text>
+<rect x="460.0" y="377.6" width="68" height="217.4" fill="#16a34a" rx="5"/>
+<text x="494.0" y="369.6" font-family="Inter,Arial,sans-serif" font-size="13" fill="#16a34a" text-anchor="middle" font-weight="700">2.55×</text>
+<circle cx="494.0" cy="444.1" r="5" fill="#172033"/>
+<rect x="545.0" y="371.9" width="68" height="223.1" fill="#f97316" rx="5"/>
+<text x="579.0" y="363.9" font-family="Inter,Arial,sans-serif" font-size="13" fill="#f97316" text-anchor="middle" font-weight="700">2.76×</text>
+<circle cx="579.0" cy="473.5" r="5" fill="#172033"/>
+<text x="540.0" y="623.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="middle" font-weight="700">16×1K</text>
+<rect x="720.0" y="272.3" width="68" height="322.7" fill="#16a34a" rx="5"/>
+<text x="754.0" y="264.3" font-family="Inter,Arial,sans-serif" font-size="13" fill="#16a34a" text-anchor="middle" font-weight="700">10.95×</text>
+<circle cx="754.0" cy="418.5" r="5" fill="#172033"/>
+<rect x="805.0" y="273.3" width="68" height="321.7" fill="#f97316" rx="5"/>
+<text x="839.0" y="265.3" font-family="Inter,Arial,sans-serif" font-size="13" fill="#f97316" text-anchor="middle" font-weight="700">10.81×</text>
+<circle cx="839.0" cy="464.2" r="5" fill="#172033"/>
+<text x="800.0" y="623.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="middle" font-weight="700">64×1K</text>
+<rect x="980.0" y="186.2" width="68" height="408.8" fill="#16a34a" rx="5"/>
+<text x="1014.0" y="178.2" font-family="Inter,Arial,sans-serif" font-size="13" fill="#16a34a" text-anchor="middle" font-weight="700">36.16×</text>
+<circle cx="1014.0" cy="416.4" r="5" fill="#172033"/>
+<rect x="1065.0" y="184.7" width="68" height="410.3" fill="#f97316" rx="5"/>
+<text x="1099.0" y="176.7" font-family="Inter,Arial,sans-serif" font-size="13" fill="#f97316" text-anchor="middle" font-weight="700">36.93×</text>
+<circle cx="1099.0" cy="460.6" r="5" fill="#172033"/>
+<text x="1060.0" y="623.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="middle" font-weight="700">256×1K</text>
+<rect x="1240.0" y="452.0" width="68" height="143.0" fill="#16a34a" rx="5"/>
+<text x="1274.0" y="444.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#16a34a" text-anchor="middle" font-weight="700">0.91×</text>
+<circle cx="1274.0" cy="455.0" r="5" fill="#172033"/>
+<rect x="1325.0" y="409.7" width="68" height="185.3" fill="#f97316" rx="5"/>
+<text x="1359.0" y="401.7" font-family="Inter,Arial,sans-serif" font-size="13" fill="#f97316" text-anchor="middle" font-weight="700">1.63×</text>
+<circle cx="1359.0" cy="459.4" r="5" fill="#172033"/>
+<text x="1320.0" y="623.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="middle" font-weight="700">16×256K</text>
+<text x="500.0" y="655.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="start" font-weight="700">bars = two-node multi Graph</text>
+<text x="760.0" y="655.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#172033" text-anchor="start" font-weight="700">black dot = per-tensor Graph</text>
+<text x="800.0" y="704.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#16a34a" text-anchor="middle" font-weight="700">BF16 64/256×1K rescued to 10.81×/36.93× · BF16 large 1.63×</text>
+<text x="800.0" y="738.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#9a4f00" text-anchor="middle" font-weight="700">FP32 16×256K remains 0.908× · single Tensor remains slower · explicit candidate only</text>
+</svg>

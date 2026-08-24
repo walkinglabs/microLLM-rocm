@@ -212,7 +212,12 @@ __global__ void adamw_update_multi_kernel(
     const AdamWMultiTensorDescriptor* descriptors,
     const std::int32_t* block_to_tensor, float learning_rate,
     float beta1, float beta2, float epsilon, float weight_decay,
-    float first_correction, float second_correction) {
+    float first_correction, float second_correction,
+    const float* device_corrections) {
+    if (device_corrections != nullptr) {
+        first_correction = device_corrections[0];
+        second_correction = device_corrections[1];
+    }
     const auto tensor_index = block_to_tensor[blockIdx.x];
     const auto descriptor = descriptors[tensor_index];
     if (descriptor.gradient == nullptr) return;
@@ -2525,8 +2530,22 @@ void launch_adamw_update_multi(
         adamw_update_multi_kernel, dim3(static_cast<unsigned>(blocks)),
         dim3(kBlockSize), 0, as_stream(stream), descriptors, block_to_tensor,
         learning_rate, beta1, beta2, epsilon, weight_decay,
-        first_correction, second_correction);
+        first_correction, second_correction, nullptr);
     check_launch("adamw_update_multi_kernel");
+}
+
+void launch_adamw_update_multi_graph(
+    const AdamWMultiTensorDescriptor* descriptors,
+    const std::int32_t* block_to_tensor, std::int64_t blocks,
+    float learning_rate, float beta1, float beta2, float epsilon,
+    float weight_decay, const float* corrections, void* stream) {
+    if (blocks == 0) return;
+    hipLaunchKernelGGL(
+        adamw_update_multi_kernel, dim3(static_cast<unsigned>(blocks)),
+        dim3(kBlockSize), 0, as_stream(stream), descriptors, block_to_tensor,
+        learning_rate, beta1, beta2, epsilon, weight_decay, 0.0F, 0.0F,
+        corrections);
+    check_launch("adamw_update_multi_graph_kernel");
 }
 
 void launch_adamw_update_bf16_moments(

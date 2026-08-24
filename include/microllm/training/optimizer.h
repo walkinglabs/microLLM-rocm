@@ -10,6 +10,8 @@
 
 namespace microllm::training {
 
+class AdamW;
+
 using Parameters = std::vector<autograd::Value*>;
 using Bf16ParameterMirrors =
     std::vector<std::pair<autograd::Value*, Tensor*>>;
@@ -47,6 +49,21 @@ struct AdamWState {
     std::vector<Tensor> second_moments;
 };
 
+class AdamWGraphWorkspace {
+public:
+    AdamWGraphWorkspace() = default;
+    AdamWGraphWorkspace(const AdamWGraphWorkspace&) = delete;
+    AdamWGraphWorkspace& operator=(const AdamWGraphWorkspace&) = delete;
+    AdamWGraphWorkspace(AdamWGraphWorkspace&&) noexcept = default;
+    AdamWGraphWorkspace& operator=(AdamWGraphWorkspace&&) noexcept = default;
+
+private:
+    ops::AdamWGraphStepState step_state_;
+    ops::AdamWMultiTensorWorkspace multi_tensor_;
+    const AdamW* owner_ = nullptr;
+    friend class AdamW;
+};
+
 class AdamW {
 public:
     AdamW(Parameters parameters, AdamWConfig config = {},
@@ -59,9 +76,13 @@ public:
     AdamW& operator=(AdamW&&) noexcept = default;
     void step();
     [[nodiscard]] ops::AdamWGraphStepState make_graph_step_state() const;
+    [[nodiscard]] AdamWGraphWorkspace make_graph_workspace();
     void step_graph_replayable(ops::AdamWGraphStepState& graph_state,
                                ops::OpContext context = {});
+    void step_graph_replayable(AdamWGraphWorkspace& workspace,
+                               ops::OpContext context = {});
     void synchronize_graph_step(const ops::AdamWGraphStepState& graph_state);
+    void synchronize_graph_step(const AdamWGraphWorkspace& workspace);
     void zero_grad();
 
     [[nodiscard]] const AdamWConfig& config() const noexcept { return config_; }

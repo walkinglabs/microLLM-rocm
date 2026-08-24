@@ -1,0 +1,328 @@
+{
+  "comparisons": [
+    {
+      "elements": 1024,
+      "multi_maximum_state_error": 7.450600000846741e-08,
+      "multi_vs_per_tensor": 0.8589412964861288,
+      "multi_wall_speedup": 0.1808947377565533,
+      "per_tensor_maximum_state_error": 7.450600000846741e-08,
+      "per_tensor_wall_speedup": 0.2106019800149108,
+      "policies": {
+        "eager": {
+          "event_ms_per_step": 0.00276549994946,
+          "preparation_ms": 0.000225,
+          "setup_ms": 0.0,
+          "wall_ms_per_step": 0.00291522
+        },
+        "graph": {
+          "event_ms_per_step": 0.0137017202377,
+          "preparation_ms": 0.038619,
+          "setup_ms": 0.169812,
+          "wall_ms_per_step": 0.01384232
+        },
+        "graph-multi": {
+          "event_ms_per_step": 0.0159508597851,
+          "preparation_ms": 0.189252,
+          "setup_ms": 0.131918,
+          "wall_ms_per_step": 0.01611556
+        }
+      },
+      "precision": "fp32",
+      "runs": 3,
+      "tensors": 1
+    },
+    {
+      "elements": 1024,
+      "multi_maximum_state_error": 7.450600000846741e-08,
+      "multi_vs_per_tensor": 2.513976662491453,
+      "multi_wall_speedup": 2.5467832099522596,
+      "per_tensor_maximum_state_error": 7.450600000846741e-08,
+      "per_tensor_wall_speedup": 1.013049662691894,
+      "policies": {
+        "eager": {
+          "event_ms_per_step": 0.0410214614868,
+          "preparation_ms": 0.000212,
+          "setup_ms": 0.0,
+          "wall_ms_per_step": 0.04119376
+        },
+        "graph": {
+          "event_ms_per_step": 0.0405144405365,
+          "preparation_ms": 0.035308,
+          "setup_ms": 0.192531,
+          "wall_ms_per_step": 0.04066312
+        },
+        "graph-multi": {
+          "event_ms_per_step": 0.0160302400589,
+          "preparation_ms": 0.187652,
+          "setup_ms": 0.162672,
+          "wall_ms_per_step": 0.01617482
+        }
+      },
+      "precision": "fp32",
+      "runs": 3,
+      "tensors": 16
+    },
+    {
+      "elements": 1024,
+      "multi_maximum_state_error": 7.450600000846741e-08,
+      "multi_vs_per_tensor": 7.588186836699761,
+      "multi_wall_speedup": 10.95221741983339,
+      "per_tensor_maximum_state_error": 7.450600000846741e-08,
+      "per_tensor_wall_speedup": 1.4433246908027777,
+      "policies": {
+        "eager": {
+          "event_ms_per_step": 0.184137077332,
+          "preparation_ms": 0.000178,
+          "setup_ms": 0.0,
+          "wall_ms_per_step": 0.18427062
+        },
+        "graph": {
+          "event_ms_per_step": 0.127520999908,
+          "preparation_ms": 0.03554,
+          "setup_ms": 0.347753,
+          "wall_ms_per_step": 0.12767094
+        },
+        "graph-multi": {
+          "event_ms_per_step": 0.0166837394238,
+          "preparation_ms": 0.205155,
+          "setup_ms": 0.151492,
+          "wall_ms_per_step": 0.01682496
+        }
+      },
+      "precision": "fp32",
+      "runs": 3,
+      "tensors": 64
+    },
+    {
+      "elements": 1024,
+      "multi_maximum_state_error": 7.450600000846741e-08,
+      "multi_vs_per_tensor": 24.337961233873596,
+      "multi_wall_speedup": 36.162122619815605,
+      "per_tensor_maximum_state_error": 7.450600000846741e-08,
+      "per_tensor_wall_speedup": 1.4858320412428436,
+      "policies": {
+        "eager": {
+          "event_ms_per_step": 0.702812042236,
+          "preparation_ms": 0.00022,
+          "setup_ms": 0.0,
+          "wall_ms_per_step": 0.70294176
+        },
+        "graph": {
+          "event_ms_per_step": 0.47291759491,
+          "preparation_ms": 0.035083,
+          "setup_ms": 1.055248,
+          "wall_ms_per_step": 0.47309638
+        },
+        "graph-multi": {
+          "event_ms_per_step": 0.0192935597897,
+          "preparation_ms": 0.206526,
+          "setup_ms": 0.154884,
+          "wall_ms_per_step": 0.01943862
+        }
+      },
+      "precision": "fp32",
+      "runs": 3,
+      "tensors": 256
+    },
+    {
+      "elements": 262144,
+      "multi_maximum_state_error": 7.450600000846741e-08,
+      "multi_vs_per_tensor": 1.043545718598041,
+      "multi_wall_speedup": 0.9079360212656812,
+      "per_tensor_maximum_state_error": 7.450600000846741e-08,
+      "per_tensor_wall_speedup": 0.8700491076571657,
+      "policies": {
+        "eager": {
+          "event_ms_per_step": 0.0733899402618,
+          "preparation_ms": 0.000232,
+          "setup_ms": 0.0,
+          "wall_ms_per_step": 0.07355818
+        },
+        "graph": {
+          "event_ms_per_step": 0.0843935966492,
+          "preparation_ms": 0.033991,
+          "setup_ms": 0.210241,
+          "wall_ms_per_step": 0.08454486
+        },
+        "graph-multi": {
+          "event_ms_per_step": 0.0808651351929,
+          "preparation_ms": 0.186361,
+          "setup_ms": 0.149911,
+          "wall_ms_per_step": 0.08101692
+        }
+      },
+      "precision": "fp32",
+      "runs": 3,
+      "tensors": 16
+    },
+    {
+      "elements": 1024,
+      "multi_maximum_state_error": 1.8626500003851576e-09,
+      "multi_vs_per_tensor": 1.0253503835300168,
+      "multi_wall_speedup": 0.19678637508527375,
+      "per_tensor_maximum_state_error": 1.8626500003851576e-09,
+      "per_tensor_wall_speedup": 0.19192110155339195,
+      "policies": {
+        "eager": {
+          "event_ms_per_step": 0.00302210003138,
+          "preparation_ms": 0.000203,
+          "setup_ms": 0.0,
+          "wall_ms_per_step": 0.00316732
+        },
+        "graph": {
+          "event_ms_per_step": 0.0163486003876,
+          "preparation_ms": 0.038047,
+          "setup_ms": 0.157741,
+          "wall_ms_per_step": 0.01650324
+        },
+        "graph-multi": {
+          "event_ms_per_step": 0.0159553396702,
+          "preparation_ms": 0.184579,
+          "setup_ms": 0.132993,
+          "wall_ms_per_step": 0.01609522
+        }
+      },
+      "precision": "bf16",
+      "runs": 3,
+      "tensors": 1
+    },
+    {
+      "elements": 1024,
+      "multi_maximum_state_error": 1.8626500003851576e-09,
+      "multi_vs_per_tensor": 4.0915188596588115,
+      "multi_wall_speedup": 2.756533818292483,
+      "per_tensor_maximum_state_error": 1.8626500003851576e-09,
+      "per_tensor_wall_speedup": 0.6737189569064698,
+      "policies": {
+        "eager": {
+          "event_ms_per_step": 0.0447822999954,
+          "preparation_ms": 0.000196,
+          "setup_ms": 0.0,
+          "wall_ms_per_step": 0.04492676
+        },
+        "graph": {
+          "event_ms_per_step": 0.0665409612656,
+          "preparation_ms": 0.035522,
+          "setup_ms": 0.181874,
+          "wall_ms_per_step": 0.06668472
+        },
+        "graph-multi": {
+          "event_ms_per_step": 0.0161569595337,
+          "preparation_ms": 0.171764,
+          "setup_ms": 0.131253,
+          "wall_ms_per_step": 0.01629828
+        }
+      },
+      "precision": "bf16",
+      "runs": 3,
+      "tensors": 16
+    },
+    {
+      "elements": 1024,
+      "multi_maximum_state_error": 1.8626500003851576e-09,
+      "multi_vs_per_tensor": 14.101824216304275,
+      "multi_wall_speedup": 10.813125117774712,
+      "per_tensor_maximum_state_error": 1.8626500003851576e-09,
+      "per_tensor_wall_speedup": 0.7667891013187338,
+      "policies": {
+        "eager": {
+          "event_ms_per_step": 0.17771276474,
+          "preparation_ms": 0.000219,
+          "setup_ms": 0.0,
+          "wall_ms_per_step": 0.17788564
+        },
+        "graph": {
+          "event_ms_per_step": 0.231828517914,
+          "preparation_ms": 0.03474,
+          "setup_ms": 0.341718,
+          "wall_ms_per_step": 0.2319877
+        },
+        "graph-multi": {
+          "event_ms_per_step": 0.0163076400757,
+          "preparation_ms": 0.200098,
+          "setup_ms": 0.155154,
+          "wall_ms_per_step": 0.0164509
+        }
+      },
+      "precision": "bf16",
+      "runs": 3,
+      "tensors": 64
+    },
+    {
+      "elements": 1024,
+      "multi_maximum_state_error": 1.8626500003851576e-09,
+      "multi_vs_per_tensor": 45.841253867007026,
+      "multi_wall_speedup": 36.92942938439214,
+      "per_tensor_maximum_state_error": 1.8626500003851576e-09,
+      "per_tensor_wall_speedup": 0.805593788763511,
+      "policies": {
+        "eager": {
+          "event_ms_per_step": 0.713928985596,
+          "preparation_ms": 0.00023,
+          "setup_ms": 0.0,
+          "wall_ms_per_step": 0.71409182
+        },
+        "graph": {
+          "event_ms_per_step": 0.886237564087,
+          "preparation_ms": 0.036322,
+          "setup_ms": 1.251706,
+          "wall_ms_per_step": 0.88641674
+        },
+        "graph-multi": {
+          "event_ms_per_step": 0.0191992604733,
+          "preparation_ms": 0.201667,
+          "setup_ms": 0.143215,
+          "wall_ms_per_step": 0.01933666
+        }
+      },
+      "precision": "bf16",
+      "runs": 3,
+      "tensors": 256
+    },
+    {
+      "elements": 262144,
+      "multi_maximum_state_error": 1.8626500003851576e-09,
+      "multi_vs_per_tensor": 1.9893683463596437,
+      "multi_wall_speedup": 1.6301881588402234,
+      "per_tensor_maximum_state_error": 1.8626500003851576e-09,
+      "per_tensor_wall_speedup": 0.8194501344224733,
+      "policies": {
+        "eager": {
+          "event_ms_per_step": 0.0941810798645,
+          "preparation_ms": 0.000252,
+          "setup_ms": 0.0,
+          "wall_ms_per_step": 0.09433074
+        },
+        "graph": {
+          "event_ms_per_step": 0.114962978363,
+          "preparation_ms": 0.033356,
+          "setup_ms": 0.218904,
+          "wall_ms_per_step": 0.11511468
+        },
+        "graph-multi": {
+          "event_ms_per_step": 0.0576452589035,
+          "preparation_ms": 0.178237,
+          "setup_ms": 0.149782,
+          "wall_ms_per_step": 0.05786494
+        }
+      },
+      "precision": "bf16",
+      "runs": 3,
+      "tensors": 16
+    }
+  ],
+  "decision": "keep explicit two-node multi-tensor Graph candidate",
+  "experiment": "stable_descriptor_adamw_multi_graph",
+  "gates": {
+    "bf16_many_small_rescued": true,
+    "both_graph_paths_align_complete_state_samples": true,
+    "large_tensor_rescued": false,
+    "multi_beats_per_tensor_every_case": false,
+    "multi_graph_has_exactly_two_nodes": true,
+    "timed_region_has_no_descriptor_or_payload_transfer": true
+  },
+  "processes": 90,
+  "runs_per_mode_case": 3,
+  "schema_version": 1,
+  "status": "pass"
+}

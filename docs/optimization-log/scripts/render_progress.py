@@ -96,6 +96,9 @@ TRAINING_GRAPH_CHART = ROOT / "assets" / "training-graph-capture-boundary.svg"
 ADAMW_GRAPH_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
                     "2026-08-24-adamw-graph-replay")
 ADAMW_GRAPH_CHART = ROOT / "assets" / "adamw-graph-replay.svg"
+ADAMW_GRAPH_MULTI_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
+                          "2026-08-24-adamw-graph-multi")
+ADAMW_GRAPH_MULTI_CHART = ROOT / "assets" / "adamw-graph-multi.svg"
 
 
 def rows() -> list[dict]:
@@ -2421,6 +2424,76 @@ def adamw_graph_replay_svg() -> str:
     return "\n".join(parts)
 
 
+def adamw_graph_multi_svg() -> str:
+    summary = json.loads((ADAMW_GRAPH_MULTI_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    rows = summary["comparisons"]
+    width, height = 1600, 780
+    chart_x, chart_y, chart_w, chart_h = 150, 145, 1300, 450
+    minimum, maximum = 0.125, 64.0
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 222 · Two-Node AdamW Multi-Tensor Graph", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "90 fresh processes · immutable descriptors prepared once · logarithmic speedup axis",
+             16, "#5b6474", anchor="middle"),
+        f'<rect x="{chart_x}" y="{chart_y}" width="{chart_w}" height="{chart_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+    ]
+
+    def y(value: float) -> float:
+        return chart_y + chart_h * (
+            math.log2(maximum) - math.log2(value)) / (
+                math.log2(maximum) - math.log2(minimum))
+
+    for tick in (0.125, 0.25, 0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0):
+        position = y(tick)
+        color = "#2563eb" if tick == 1.0 else "#e5e9f0"
+        parts.append(f'<line x1="{chart_x}" y1="{position:.1f}" '
+                     f'x2="{chart_x+chart_w}" y2="{position:.1f}" stroke="{color}"/>')
+        parts.append(text(chart_x - 12, position + 5, f"{tick:g}×", 13,
+                          "#5b6474", anchor="end"))
+    case_order = ((1, 1024, "1×1K"), (16, 1024, "16×1K"),
+                  (64, 1024, "64×1K"), (256, 1024, "256×1K"),
+                  (16, 262144, "16×256K"))
+    by_key = {(row["precision"], row["tensors"], row["elements"]): row
+              for row in rows}
+    group_w = chart_w / len(case_order)
+    for index, (tensors, elements, label) in enumerate(case_order):
+        center = chart_x + group_w * (index + 0.5)
+        for offset, (precision, color) in enumerate(
+                (("fp32", "#16a34a"), ("bf16", "#f97316"))):
+            record = by_key[(precision, tensors, elements)]
+            value = record["multi_wall_speedup"]
+            x = center - 80 + offset * 85
+            top = y(value)
+            base = y(minimum)
+            parts.append(f'<rect x="{x:.1f}" y="{top:.1f}" width="68" '
+                         f'height="{base-top:.1f}" fill="{color}" rx="5"/>')
+            parts.append(text(x + 34, top - 8, f"{value:.2f}×", 13,
+                              color, anchor="middle", weight=700))
+            point = y(record["per_tensor_wall_speedup"])
+            parts.append(f'<circle cx="{x+34:.1f}" cy="{point:.1f}" r="5" '
+                         'fill="#172033"/>')
+        parts.append(text(center, chart_y + chart_h + 28, label, 15,
+                          anchor="middle", weight=700))
+    parts.append(text(500, 655, "bars = two-node multi Graph", 14,
+                      "#5b6474", weight=700))
+    parts.append(text(760, 655, "black dot = per-tensor Graph", 14,
+                      "#172033", weight=700))
+    parts.append(text(width / 2, 704,
+                      "BF16 64/256×1K rescued to 10.81×/36.93× · BF16 large 1.63×",
+                      18, "#16a34a", anchor="middle", weight=700))
+    parts.append(text(width / 2, 738,
+                      "FP32 16×256K remains 0.908× · single Tensor remains slower · explicit candidate only",
+                      16, "#9a4f00", anchor="middle", weight=700))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -2457,7 +2530,8 @@ def main() -> int:
                 PACKED_WGRAD_CHART: packed_weight_gradient_discard_svg(),
                 FP32_WGRAD_SOLUTION_CHART: fp32_weight_gradient_solutions_svg(),
                 TRAINING_GRAPH_CHART: training_graph_capture_svg(),
-                ADAMW_GRAPH_CHART: adamw_graph_replay_svg()}
+                ADAMW_GRAPH_CHART: adamw_graph_replay_svg(),
+                ADAMW_GRAPH_MULTI_CHART: adamw_graph_multi_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

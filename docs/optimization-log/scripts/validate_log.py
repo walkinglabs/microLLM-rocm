@@ -11989,6 +11989,130 @@ def validate_adamw_graph_replay(
             for key, value in expected.items()), min(speedups), max(speedups)
 
 
+def validate_adamw_graph_multi(
+        errors: list[str]) -> tuple[int, int, int, float, float, float]:
+    data = REPOSITORY / "benchmarks/results/2026-08-24-adamw-graph-multi"
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = {
+        (row["precision"], row["tensors"], row["elements"]): row
+        for row in summary.get("comparisons", [])
+    }
+    expected = {
+        ("fp32", 1, 1024): (0.2106019800149108, 0.1808947377565533),
+        ("fp32", 16, 1024): (1.013049662691894, 2.5467832099522596),
+        ("fp32", 64, 1024): (1.4433246908027777, 10.95221741983339),
+        ("fp32", 256, 1024): (1.4858320412428436, 36.162122619815605),
+        ("fp32", 16, 262144): (0.8700491076571657, 0.9079360212656812),
+        ("bf16", 1, 1024): (0.19192110155339195, 0.19678637508527375),
+        ("bf16", 16, 1024): (0.6737189569064698, 2.756533818292483),
+        ("bf16", 64, 1024): (0.7667891013187338, 10.813125117774712),
+        ("bf16", 256, 1024): (0.805593788763511, 36.92942938439214),
+        ("bf16", 16, 262144): (0.8194501344224733, 1.6301881588402234),
+    }
+    counts = {(precision, tensors, elements, mode): 0
+              for precision, tensors, elements in expected
+              for mode in ("eager", "graph", "graph-multi")}
+    for row in raw:
+        key = (row.get("precision"), row.get("tensors"),
+               row.get("elements"), row.get("mode"))
+        if key in counts:
+            counts[key] += 1
+    expected_gates = {
+        "both_graph_paths_align_complete_state_samples": True,
+        "multi_graph_has_exactly_two_nodes": True,
+        "timed_region_has_no_descriptor_or_payload_transfer": True,
+        "bf16_many_small_rescued": True,
+        "large_tensor_rescued": False,
+        "multi_beats_per_tensor_every_case": False,
+    }
+    if summary.get("schema_version") != 1 or summary.get("status") != "pass" or \
+            summary.get("experiment") != "stable_descriptor_adamw_multi_graph" or \
+            summary.get("processes") != 90 or \
+            summary.get("runs_per_mode_case") != 3 or \
+            summary.get("gates") != expected_gates or \
+            summary.get("decision") != \
+                "keep explicit two-node multi-tensor Graph candidate" or \
+            len(raw) != 90 or set(comparisons) != set(expected) or \
+            any(count != 3 for count in counts.values()) or \
+            any(abs(float(comparisons[key].get(
+                        "per_tensor_wall_speedup", 0.0)) - values[0]) >
+                    1.0e-12 or
+                abs(float(comparisons[key].get("multi_wall_speedup", 0.0)) -
+                    values[1]) > 1.0e-12 or
+                float(comparisons[key].get(
+                    "multi_maximum_state_error", math.inf)) > 1.0e-6
+                for key, values in expected.items()) or \
+            any(row.get("schema_version") != 1 or row.get("status") != "pass" or
+                row.get("record_type") != "adamw_graph_replay_measurement" or
+                row.get("architecture", "").split(":", 1)[0] != "gfx942" or
+                row.get("final_step") != 53 or
+                row.get("captured_nodes") !=
+                    (0 if row.get("mode") == "eager" else
+                     2 if row.get("mode") == "graph-multi" else
+                     row.get("tensors", 0) + 1) or
+                row.get("timed_host_to_device_calls") != 0 or
+                row.get("timed_device_to_host_calls") != 0 or
+                row.get("timed_device_to_device_calls") != 0
+                for row in raw):
+        errors.append("stable-descriptor AdamW multi Graph evidence changed")
+    sources = (
+        ("graph_descriptors_prepared", REPOSITORY /
+         "include/microllm/ops/ops.h"),
+        ("adamw_update_multi_graph_kernel", REPOSITORY /
+         "src/ops/hip/basic_kernels.hip"),
+        ("make_graph_workspace", REPOSITORY /
+         "src/training/optimizer.cpp"),
+        ("AdamWMultiTensorGraphUsesTwoNodes", REPOSITORY /
+         "tests/ops/hip_ops_test.cpp"),
+        ("timed_region_has_no_descriptor_or_payload_transfer", REPOSITORY /
+         "benchmarks/single_gpu/adamw_graph_multi_matrix.py"),
+        ("large_tensor_rescued", REPOSITORY /
+         "python/tests/test_adamw_graph_multi_matrix.py"),
+    )
+    if any(token not in path.read_text(encoding="utf-8")
+           for token, path in sources):
+        errors.append("stable-descriptor AdamW multi Graph source/test changed")
+    expected_tests = {
+        "cpu_debug": {"passed": 332, "total": 332},
+        "asan_ubsan": {"passed": 330, "total": 330},
+        "pytorch_enabled_cpu": {"passed": 306, "total": 306},
+        "hip_full_configuration": {
+            "passed": 524, "total": 524, "conditional_skips": 3},
+        "hip_label": {"passed": 180, "total": 180},
+        "rccl_multi_gpu": {"passed": 12, "total": 12},
+        "rccl_full_label": {"passed": 14, "total": 14},
+    }
+    if verification.get("status") != "pass" or \
+            verification.get("processes") != 90 or \
+            verification.get("final_step") != 53 or \
+            verification.get("captured_nodes") != 2 or \
+            verification.get("maximum_state_error") != 7.450600000846741e-08 or \
+            verification.get("bf16_rescued_cases") != 4 or \
+            verification.get("fp32_rescued_cases") != 3 or \
+            verification.get("model_route_retained") is not False or \
+            verification.get("registered_test_files") != 95 or \
+            verification.get("tests") != expected_tests or \
+            verification.get("coverage") != {
+                "lines_percent": 78.5,
+                "functions_percent": 86.8,
+                "branches_percent": 59.2,
+                "lines_covered": 8877,
+                "lines_total": 11305}:
+        errors.append("stable-descriptor AdamW multi Graph verification changed")
+    multi = [float(row["multi_wall_speedup"])
+             for row in comparisons.values()]
+    preparation = max(float(row["policies"]["graph-multi"]["preparation_ms"])
+                      for row in comparisons.values())
+    return len(raw), sum(key[0] == "fp32" and value[1] >= 1.05
+                         for key, value in expected.items()), \
+        sum(key[0] == "bf16" and value[1] >= 1.05
+            for key, value in expected.items()), min(multi), max(multi), preparation
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -12188,7 +12312,8 @@ def validate_assets(errors: list[str]) -> None:
                  "packed-weight-gradient-discard.svg",
                  "fp32-weight-gradient-solutions-discard.svg",
                  "training-graph-capture-boundary.svg",
-                 "adamw-graph-replay.svg"):
+                 "adamw-graph-replay.svg",
+                 "adamw-graph-multi.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -12597,6 +12722,9 @@ def main() -> int:
     adamw_graph_rows, adamw_graph_fp32, adamw_graph_bf16, \
         adamw_graph_minimum, adamw_graph_maximum = \
         validate_adamw_graph_replay(errors)
+    adamw_multi_rows, adamw_multi_fp32, adamw_multi_bf16, \
+        adamw_multi_minimum, adamw_multi_maximum, adamw_multi_preparation = \
+        validate_adamw_graph_multi(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -12959,6 +13087,9 @@ def main() -> int:
           f"adamw_graph={adamw_graph_rows}/{adamw_graph_fp32}/"
           f"{adamw_graph_bf16}/{adamw_graph_minimum:.3f}/"
           f"{adamw_graph_maximum:.3f} "
+          f"adamw_multi_graph={adamw_multi_rows}/{adamw_multi_fp32}/"
+          f"{adamw_multi_bf16}/{adamw_multi_minimum:.3f}/"
+          f"{adamw_multi_maximum:.3f}/{adamw_multi_preparation:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

@@ -261,6 +261,33 @@ ops::AdamWGraphStepState AdamW::make_graph_step_state() const {
     return ops::AdamWGraphStepState(device, state_.step);
 }
 
+AdamWGraphWorkspace AdamW::make_graph_workspace() {
+    AdamWGraphWorkspace result;
+    result.owner_ = this;
+    result.step_state_ = make_graph_step_state();
+    std::vector<std::int64_t> element_counts;
+    element_counts.reserve(parameters_.size());
+    for (const auto* parameter : parameters_) {
+        element_counts.push_back(parameter->data().numel());
+    }
+    result.multi_tensor_ = ops::AdamWMultiTensorWorkspace(
+        std::move(element_counts), result.step_state_.device());
+    std::vector<ops::AdamWMultiTensorEntry> entries;
+    entries.reserve(parameters_.size());
+    for (std::size_t index = 0; index < parameters_.size(); ++index) {
+        auto* parameter = parameters_[index];
+        entries.push_back({
+            .parameter = &parameter->mutable_data(),
+            .gradient = parameter->has_grad() ? &parameter->grad() : nullptr,
+            .first_moment = &state_.first_moments[index],
+            .second_moment = &state_.second_moments[index],
+            .bf16_mirror = bf16_mirrors_[index],
+        });
+    }
+    ops::adamw_prepare_multi_graph_(result.multi_tensor_, entries);
+    return result;
+}
+
 void AdamW::step_graph_replayable(ops::AdamWGraphStepState& graph_state,
                                   ops::OpContext context) {
     if (graph_step_pending_) {
@@ -314,6 +341,33 @@ void AdamW::step_graph_replayable(ops::AdamWGraphStepState& graph_state,
     }
 }
 
+void AdamW::step_graph_replayable(AdamWGraphWorkspace& workspace,
+                                  ops::OpContext context) {
+    if (graph_step_pending_) {
+        throw std::logic_error(
+            "synchronize the existing AdamW Graph step before recapture");
+    }
+    const auto stats =
+        ops::adamw_multi_tensor_workspace_stats(workspace.multi_tensor_);
+    if (!workspace.step_state_.defined() ||
+        workspace.owner_ != this ||
+        stats.tensors != parameters_.size() ||
+        !stats.graph_descriptors_prepared || parameters_.empty() ||
+        workspace.step_state_.device() != parameters_.front()->data().device()) {
+        throw std::invalid_argument(
+            "AdamW multi-tensor Graph workspace does not match optimizer");
+    }
+    context.mode = ops::OpMode::Training;
+    graph_step_pending_ = true;
+    pending_graph_step_state_ = &workspace.step_state_;
+    ops::adamw_graph_advance_(workspace.step_state_, config_.beta1,
+                              config_.beta2, context);
+    ops::adamw_update_multi_graph_(
+        workspace.multi_tensor_, workspace.step_state_, config_.learning_rate,
+        config_.beta1, config_.beta2, config_.epsilon,
+        config_.weight_decay, context);
+}
+
 void AdamW::synchronize_graph_step(
     const ops::AdamWGraphStepState& graph_state) {
     if (!graph_step_pending_) {
@@ -327,6 +381,11 @@ void AdamW::synchronize_graph_step(
     state_.step = graph_state.synchronized_step();
     graph_step_pending_ = false;
     pending_graph_step_state_ = nullptr;
+}
+
+void AdamW::synchronize_graph_step(
+    const AdamWGraphWorkspace& workspace) {
+    synchronize_graph_step(workspace.step_state_);
 }
 
 void AdamW::zero_grad() { training::zero_grad(parameters_); }

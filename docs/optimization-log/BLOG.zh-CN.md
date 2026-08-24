@@ -3640,3 +3640,18 @@ FP32/BF16 moment连续三次重放、再回到普通step 4，参数、两个mome
 Graph；如果它仍救不了大Tensor/BF16，就关闭optimizer-only Graph方向。
 
 ![Device-owned AdamW Graph step](assets/adamw-graph-replay.svg)
+
+## 239. Experiment 222：点名册只传一次，256个更新变成一个grid
+
+新workspace在capture前验证并上传parameter/gradient/moment/mirror地址，此后descriptor不可修改。
+Graph永远只有step/correction和multi update两个节点。90进程、53步完整状态继续对齐，timed
+region没有descriptor或payload copy。
+
+BF16 64/256个1K Tensor从per-Tensor Graph的0.767×/0.806×变为10.813×/36.929×，BF16
+16×256K也到1.630×；FP32小Tensor同样最高36.162×。但FP32 16×256K仍只有0.908×，单Tensor
+也更慢，说明带宽与固定成本边界仍在。
+
+候选显式保留，不接模型。真正阻塞现在不是Kernel或descriptor，而是下一次backward会不会替换
+gradient Storage地址；先测地址，再决定stable buffer还是optimizer-phase model gate。
+
+![Stable-descriptor AdamW multi Graph](assets/adamw-graph-multi.svg)
