@@ -242,6 +242,9 @@ gets one owned backing Storage containing every non-owning workspace slice and F
 Stream order preserves liveness between the residual consumer and the next block overwrite. The
 cache is default-off, cleared on device moves, and externally synchronized for concurrent calls.
 Experiment 183 rejects universal routing; the statistics/API remain the gate for shape selection.
+The same cache accepts a positive `minimum_rows`. Calls below it increment a bypass counter and
+execute the original allocation-returning FFN without creating an entry. Experiment 184 retains
+512 as an explicit two-model long-prefill policy; it is not an unconditional hardware default.
 
 hipBLASLt GEMM also supports contiguous strided batches: leading Tensor dimensions become
 the batch count and last-two dimensions remain the matrix contract. Explicit batched

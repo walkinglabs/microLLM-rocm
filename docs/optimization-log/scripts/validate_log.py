@@ -8190,6 +8190,95 @@ def validate_bf16_ffn_arena_model(
         int(summary.get("keep_rows", 0)), int(summary.get("regression_rows", 0))
 
 
+def validate_bf16_ffn_arena_selective(
+        errors: list[str]) -> tuple[int, float, float, int, int]:
+    data = REPOSITORY / "benchmarks/results/2026-08-24-bf16-ffn-arena-selective"
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    profile = json.loads((data / "profile-summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = summary.get("comparisons", [])
+    speedups = [float(row.get("arena_speedup", 0.0)) for row in comparisons]
+    eligible = [row for row in comparisons
+                if int(row.get("flattened_rows", 0)) >= 512]
+    bypassed = [row for row in comparisons
+                if int(row.get("flattened_rows", 0)) < 512]
+    modes = profile.get("modes", {})
+    baseline_profile = modes.get("baseline", {})
+    selective_profile = modes.get("selective", {})
+    expected_tests = {
+        "cpu_debug": {"passed": 288, "total": 288},
+        "asan_ubsan": {"passed": 286, "total": 286},
+        "pytorch_enabled_cpu": {"passed": 262, "total": 262},
+        "hip_full_configuration": {
+            "passed": 451, "total": 451, "conditional_skips": 3},
+        "hip_label": {"passed": 152, "total": 152},
+        "rccl_multi_gpu": {"passed": 11, "total": 11},
+        "rccl_full_label": {"passed": 13, "total": 13},
+    }
+    profile_files = (
+        "baseline-hip-api-stats.csv", "baseline-kernel-stats.csv",
+        "selective-hip-api-stats.csv", "selective-kernel-stats.csv")
+    if summary.get("status") != "pass" or len(raw) != 60 or \
+            summary.get("raw_processes") != 60 or len(comparisons) != 10 or \
+            summary.get("correctness_gate") is not True or \
+            summary.get("arena_minimum_rows") != 512 or \
+            summary.get("eligible_rows") != 2 or \
+            summary.get("bypassed_rows") != 8 or \
+            summary.get("keep_rows") != 2 or \
+            summary.get("regression_rows") != 0 or \
+            summary.get("decision") != \
+                    "keep rows>=512 selective model Arena" or \
+            not (0.99 <= min(speedups, default=0.0) <= 1.00) or \
+            not (1.02 <= max(speedups, default=0.0) <= 1.03) or \
+            any(float(row.get("arena_speedup", 0.0)) < 1.01 or
+                int(row.get("arena_entries", 0)) != 1 or
+                int(row.get("arena_eligible_calls", 0)) <= 0 or
+                int(row.get("arena_bypassed_calls", -1)) != 0 or
+                int(row.get("arena_engine_allocation_calls", 0)) >=
+                    int(row.get("baseline_engine_allocation_calls", 0))
+                for row in eligible) or \
+            any(int(row.get("arena_entries", -1)) != 0 or
+                int(row.get("arena_capacity_bytes", -1)) != 0 or
+                int(row.get("arena_eligible_calls", -1)) != 0 or
+                int(row.get("arena_bypassed_calls", 0)) <= 0 or
+                int(row.get("arena_engine_allocation_calls", -1)) !=
+                    int(row.get("baseline_engine_allocation_calls", 0)) or
+                int(row.get("arena_engine_peak_bytes", -1)) !=
+                    int(row.get("baseline_engine_peak_bytes", 0))
+                for row in bypassed) or \
+            any(row.get("maximum_absolute_logit_difference") != 0 or
+                row.get("exact_expected_tokens") is not True
+                for row in comparisons) or \
+            profile.get("status") != "pass" or \
+            baseline_profile.get("kernel_calls") != \
+                    selective_profile.get("kernel_calls") or \
+            selective_profile.get("hip_malloc_calls", 0) >= \
+                    baseline_profile.get("hip_malloc_calls", 0) or \
+            verification.get("status") != "pass" or \
+            verification.get("tests") != expected_tests or \
+            verification.get("registered_test_files") != 65 or \
+            verification.get("formal_processes") != 60 or \
+            any(row.get("status") != "pass" for row in raw) or \
+            any(not (data / name).is_file() for name in profile_files):
+        errors.append("selective BF16 FFN Arena evidence changed")
+    header = (REPOSITORY / "include/microllm/model/model.h").read_text(
+        encoding="utf-8")
+    source = (REPOSITORY / "src/model/model.cpp").read_text(encoding="utf-8")
+    cli = (REPOSITORY / "apps/hf_infer.cpp").read_text(encoding="utf-8")
+    runner = (REPOSITORY / "benchmarks/single_gpu/"
+              "compare_bf16_ffn_arena_models.py").read_text(encoding="utf-8")
+    if "minimum_rows = 1" not in header or \
+            "bypassed_calls_" not in source or \
+            "--bf16-ffn-arena-minimum-rows" not in cli or \
+            "--arena-minimum-rows" not in runner:
+        errors.append("selective BF16 FFN Arena source/test contract changed")
+    return len(raw), min(speedups, default=0.0), max(speedups, default=0.0), \
+        len(eligible), len(bypassed)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -8351,7 +8440,8 @@ def validate_assets(errors: list[str]) -> None:
                  "activation-arena.svg",
                  "arena-ffn.svg",
                  "bf16-arena-ffn.svg",
-                 "bf16-ffn-arena-model.svg"):
+                 "bf16-ffn-arena-model.svg",
+                 "bf16-ffn-arena-selective.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -8662,6 +8752,9 @@ def main() -> int:
     bf16_arena_model_rows, bf16_arena_model_minimum, \
         bf16_arena_model_maximum, bf16_arena_model_keep, \
         bf16_arena_model_regressions = validate_bf16_ffn_arena_model(errors)
+    bf16_selective_rows, bf16_selective_minimum, bf16_selective_maximum, \
+        bf16_selective_eligible, bf16_selective_bypassed = \
+        validate_bf16_ffn_arena_selective(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -8919,6 +9012,9 @@ def main() -> int:
           f"bf16_arena_model={bf16_arena_model_rows}/"
           f"{bf16_arena_model_minimum:.3f}/{bf16_arena_model_maximum:.3f}/"
           f"{bf16_arena_model_keep}/{bf16_arena_model_regressions} "
+          f"bf16_arena_selective={bf16_selective_rows}/"
+          f"{bf16_selective_minimum:.3f}/{bf16_selective_maximum:.3f}/"
+          f"{bf16_selective_eligible}/{bf16_selective_bypassed} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

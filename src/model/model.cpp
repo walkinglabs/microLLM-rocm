@@ -1062,15 +1062,20 @@ public:
         }
     };
 
-    Entry& acquire(std::int64_t rows, std::int64_t hidden,
+    Entry* acquire(std::int64_t rows, std::int64_t hidden,
                    std::int64_t intermediate, Device device) {
+        if (rows < minimum_rows_) {
+            ++bypassed_calls_;
+            return nullptr;
+        }
+        ++eligible_calls_;
         const auto key = std::tuple{
             static_cast<int>(device.type()), device.index(), rows, hidden,
             intermediate};
         const auto found = entries_.find(key);
         if (found != entries_.end()) {
             ++hits_;
-            return *found->second;
+            return found->second.get();
         }
         ++misses_;
         auto entry = std::make_unique<Entry>(
@@ -1083,20 +1088,34 @@ public:
         capacity_bytes_ += entry->capacity;
         auto* result = entry.get();
         entries_.emplace(key, std::move(entry));
-        return *result;
+        return result;
     }
 
     void clear() noexcept {
         entries_.clear();
         hits_ = 0;
         misses_ = 0;
+        eligible_calls_ = 0;
+        bypassed_calls_ = 0;
         capacity_bytes_ = 0;
+    }
+
+    void configure(std::int64_t minimum_rows) {
+        if (minimum_rows <= 0) {
+            throw std::invalid_argument(
+                "BF16 FFN Arena minimum rows must be positive");
+        }
+        clear();
+        minimum_rows_ = minimum_rows;
     }
 
     [[nodiscard]] Bf16FfnArenaStats stats() const noexcept {
         return {.entries = entries_.size(),
                 .hits = hits_,
                 .misses = misses_,
+                .eligible_calls = eligible_calls_,
+                .bypassed_calls = bypassed_calls_,
+                .minimum_rows = minimum_rows_,
                 .capacity_bytes = capacity_bytes_};
     }
 
@@ -1105,6 +1124,9 @@ private:
     std::map<Key, std::unique_ptr<Entry>> entries_;
     std::size_t hits_ = 0;
     std::size_t misses_ = 0;
+    std::size_t eligible_calls_ = 0;
+    std::size_t bypassed_calls_ = 0;
+    std::int64_t minimum_rows_ = 1;
     std::uint64_t capacity_bytes_ = 0;
 };
 
@@ -1146,14 +1168,20 @@ public:
             }
             if (trace_prefix.empty()) {
                 if (arena_cache_ != nullptr) {
-                    auto& entry = arena_cache_->acquire(
+                    auto* entry = arena_cache_->acquire(
                         batch * sequence, config_.dimension,
                         config_.ffn_dimension, input.device());
-                    ops::bf16_ffn_out_(
-                        entry.output, entry.workspace, flat,
-                        gate_.weight_data(), up_.weight_data(),
-                        down_.weight_data());
-                    output = entry.output;
+                    if (entry != nullptr) {
+                        ops::bf16_ffn_out_(
+                            entry->output, entry->workspace, flat,
+                            gate_.weight_data(), up_.weight_data(),
+                            down_.weight_data());
+                        output = entry->output;
+                    } else {
+                        output = ops::bf16_ffn(
+                            flat, gate_.weight_data(), up_.weight_data(),
+                            down_.weight_data());
+                    }
                 } else {
                     output = ops::bf16_ffn(
                         flat, gate_.weight_data(), up_.weight_data(),
@@ -2071,12 +2099,13 @@ bool TransformerModel::bf16_ffn_inference_prepared() const noexcept {
     return impl_->bf16_ffn_prepared;
 }
 
-void TransformerModel::set_bf16_ffn_arena_enabled(bool enabled) {
+void TransformerModel::set_bf16_ffn_arena_enabled(
+    bool enabled, std::int64_t minimum_rows) {
     if (enabled && !impl_->bf16_ffn_prepared) {
         throw std::logic_error(
             "BF16 FFN Arena requires prepared BF16 inference weights");
     }
-    impl_->bf16_ffn_arena.clear();
+    impl_->bf16_ffn_arena.configure(enabled ? minimum_rows : 1);
     for (auto& block : impl_->blocks) {
         block->set_bf16_ffn_arena_cache(
             enabled ? &impl_->bf16_ffn_arena : nullptr);

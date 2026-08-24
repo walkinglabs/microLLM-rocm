@@ -120,6 +120,13 @@ processes are complete-logit exact and allocation calls fall substantially, but 
 throughput rows exceed 1.01. Universal routing is rejected. Qwen/DeepSeek T512 both improve, so
 `rows>=512` is the only remaining eager model-Arena hypothesis; model Graph remains out of scope.
 
+## Experiment 184 selective model result
+
+`minimum_rows=512` routes only the two long-prefill rows. Qwen/DeepSeek improve 1.019×/1.022×;
+the other eight cases allocate no Arena, retain exactly the baseline allocation/peak counters and
+stay 0.999×–1.005×. All 60 complete logits and decode tokens pass. The FFN threshold is retained;
+the next distinct stable-storage region is long-prefill shared-cast BF16 Q/K/V.
+
 ## Final matrix
 
 - FP32 fixed matrix and running-best curve;

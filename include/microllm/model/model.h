@@ -71,6 +71,9 @@ struct Bf16FfnArenaStats {
     std::size_t entries = 0;
     std::size_t hits = 0;
     std::size_t misses = 0;
+    std::size_t eligible_calls = 0;
+    std::size_t bypassed_calls = 0;
+    std::int64_t minimum_rows = 1;
     std::uint64_t capacity_bytes = 0;
 };
 
@@ -137,7 +140,8 @@ public:
     // Opt-in graph-free inference workspace. One stable backing allocation is
     // cached per (device, flattened row count) and reused across all blocks.
     // A model instance requires external synchronization while this is enabled.
-    void set_bf16_ffn_arena_enabled(bool enabled);
+    void set_bf16_ffn_arena_enabled(bool enabled,
+                                    std::int64_t minimum_rows = 1);
     [[nodiscard]] bool bf16_ffn_arena_enabled() const noexcept;
     [[nodiscard]] Bf16FfnArenaStats bf16_ffn_arena_stats() const noexcept;
     [[nodiscard]] Bf16WeightPreparationReport prepare_bf16_attention_inference();

@@ -34,16 +34,17 @@ def main() -> int:
         fake.write_text(
             """#!/usr/bin/env python3
 import array,json,pathlib,sys
-a=dict(zip(sys.argv[1::2],sys.argv[2::2]));arena=a['--bf16-ffn-arena']=='true';batch=int(a['--batch'])
+a=dict(zip(sys.argv[1::2],sys.argv[2::2]));arena=a['--bf16-ffn-arena']=='true';batch=int(a['--batch']);tokens=len(a['--tokens'].split(','));rows=tokens*batch if a['--workload']=='prefill' else batch;minimum=int(a.get('--bf16-ffn-arena-minimum-rows','1'));eligible=arena and rows>=minimum
 pathlib.Path(a['--logits-output']).write_bytes(array.array('f',[1.0,2.0]).tobytes())
 print(json.dumps({'status':'pass','bf16_ffn_arena_enabled':arena,
 'generated_tokens':[3,4] if int(a['--new-tokens']) else [],
-'prefill_tokens_per_second':110.0 if arena else 100.0,
-'decode_tokens_per_second':110.0 if arena else 100.0,
-'engine_allocation_calls':80 if arena else 100,'engine_peak_bytes':1000,
-'bf16_ffn_arena_capacity_bytes':256 if arena else 0,
-'bf16_ffn_arena_entries':1 if arena else 0,'bf16_ffn_arena_hits':9 if arena else 0,
-'bf16_ffn_arena_misses':1 if arena else 0}))
+'prefill_tokens_per_second':110.0 if eligible else 100.0,
+'decode_tokens_per_second':110.0 if eligible else 100.0,
+'engine_allocation_calls':80 if eligible else 100,'engine_peak_bytes':1000,
+'bf16_ffn_arena_capacity_bytes':256 if eligible else 0,
+'bf16_ffn_arena_entries':1 if eligible else 0,'bf16_ffn_arena_hits':9 if eligible else 0,
+'bf16_ffn_arena_misses':1 if eligible else 0,'bf16_ffn_arena_eligible_calls':10 if eligible else 0,
+'bf16_ffn_arena_bypassed_calls':0 if eligible else (10 if arena else 0)}))
 """, encoding="utf-8")
         os.chmod(fake, 0o755)
         output = root / "output"
@@ -61,6 +62,22 @@ print(json.dumps({'status':'pass','bf16_ffn_arena_enabled':arena,
         assert summary["keep_rows"] == 10
         assert summary["regression_rows"] == 0
         assert summary["decision"] == "keep universal model Arena"
+        selective = root / "selective"
+        completed = subprocess.run([
+            sys.executable, str(RUNNER), "--manifest", str(manifest),
+            "--binary", str(fake), "--output-directory", str(selective),
+            "--runs", "1", "--warmup", "0", "--steps", "1",
+            "--arena-minimum-rows", "512"],
+            text=True, capture_output=True, check=False)
+        if completed.returncode != 0:
+            raise AssertionError(completed.stdout + completed.stderr)
+        selective_summary = json.loads(
+            (selective / "summary.json").read_text(encoding="utf-8"))
+        assert selective_summary["eligible_rows"] == 2
+        assert selective_summary["bypassed_rows"] == 8
+        assert selective_summary["keep_rows"] == 2
+        assert selective_summary["decision"] == \
+            "keep rows>=512 selective model Arena"
     print("BF16 FFN Arena model runner contract: pass")
     return 0
 

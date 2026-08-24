@@ -312,6 +312,9 @@ python3 benchmarks/single_gpu/compare_bf16_ffn_arena_models.py \
 The CLI flag is `--bf16-ffn-arena true` and requires `--bf16-ffn true`. JSON reports
 entry/hit/miss/capacity. Value tracing deliberately rejects the flag because traced layer details
 use the diagnostic allocation-returning route rather than the timed workspace path.
+Add `--arena-minimum-rows 512` to the runner, and
+`--bf16-ffn-arena-minimum-rows 512` to the binary, to reproduce the selective gate. A bypass is
+valid only when JSON reports zero entries/capacity/eligible calls and positive bypassed calls.
 
 ## What remains
 

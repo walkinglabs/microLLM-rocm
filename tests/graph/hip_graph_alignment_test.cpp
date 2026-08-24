@@ -212,6 +212,12 @@ TEST(HipGraphAlignmentTest, Bf16LinearInferenceMatchesCpuAndStaysDeviceNative) {
     EXPECT_EQ(transfers.device_to_host_calls, 0U);
     EXPECT_EQ(actual.device(), Device::hip(0));
     expect_graph_near(actual.to_vector(), expected, 5.0e-2F);
+    hip.set_bf16_ffn_arena_enabled(true, 5);
+    const auto bypassed = hip.forward_inference(device_tokens);
+    runtime::synchronize(Device::hip(0));
+    EXPECT_EQ(bypassed.to_vector(), actual.to_vector());
+    EXPECT_EQ(hip.bf16_ffn_arena_stats().entries, 0U);
+    EXPECT_EQ(hip.bf16_ffn_arena_stats().bypassed_calls, 1U);
     hip.set_bf16_ffn_arena_enabled(true);
     runtime::reset_transfer_stats();
     const auto arena_first = hip.forward_inference(device_tokens);

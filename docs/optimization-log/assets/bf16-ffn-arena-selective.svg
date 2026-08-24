@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="600" viewBox="0 0 1100 600" role="img" aria-labelledby="title desc">
+  <title id="title">Rows 512 selective BF16 FFN Arena model ratios</title>
+  <desc id="desc">Only two long-prefill points use Arena and both pass the keep line.</desc>
+  <rect width="1100" height="600" fill="#0b1020"/>
+  <text x="48" y="48" fill="#f8fafc" font-family="sans-serif" font-size="25" font-weight="700">One threshold keeps both long-prefill wins</text>
+  <text x="48" y="76" fill="#94a3b8" font-family="sans-serif" font-size="14">minimum rows 512 · 60 fresh processes · complete logits exact</text>
+  <line x1="90" y1="368" x2="1030" y2="368" stroke="#64748b" stroke-dasharray="3 4"/>
+  <text x="1035" y="373" fill="#cbd5e1" font-family="sans-serif" font-size="12">1.00×</text>
+  <line x1="90" y1="285" x2="1030" y2="285" stroke="#f59e0b" stroke-dasharray="5 5"/>
+  <text x="1035" y="290" fill="#fcd34d" font-family="sans-serif" font-size="12">1.01× keep</text>
+  <polyline points="150,361 340,213 530,345 720,330 910,362" fill="none" stroke="#38bdf8" stroke-width="4"/>
+  <polyline points="150,375 340,182 530,357 720,342 910,379" fill="none" stroke="#22c55e" stroke-width="4"/>
+  <g fill="#0b1020" stroke="#94a3b8" stroke-width="3">
+    <circle cx="150" cy="361" r="7"/><circle cx="530" cy="345" r="7"/><circle cx="720" cy="330" r="7"/><circle cx="910" cy="362" r="7"/>
+    <circle cx="150" cy="375" r="7"/><circle cx="530" cy="357" r="7"/><circle cx="720" cy="342" r="7"/><circle cx="910" cy="379" r="7"/>
+  </g>
+  <circle cx="340" cy="213" r="9" fill="#38bdf8"/><circle cx="340" cy="182" r="9" fill="#22c55e"/>
+  <g fill="#cbd5e1" font-family="sans-serif" font-size="13" text-anchor="middle">
+    <text x="150" y="500">T32 B1</text><text x="340" y="500">T512 B1</text><text x="530" y="500">T32 B4</text><text x="720" y="500">decode B1</text><text x="910" y="500">decode B4</text>
+  </g>
+  <rect x="90" y="530" width="940" height="42" rx="7" fill="#111827" stroke="#334155"/>
+  <text x="550" y="556" text-anchor="middle" fill="#e2e8f0" font-family="sans-serif" font-size="14">filled: eligible Arena · outlined: exact baseline bypass · Qwen blue · DeepSeek green</text>
+</svg>

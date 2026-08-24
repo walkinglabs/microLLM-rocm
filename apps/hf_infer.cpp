@@ -49,6 +49,7 @@ struct Options {
     std::string chat_user;
     bool bf16_ffn = false;
     bool bf16_ffn_arena = false;
+    std::int64_t bf16_ffn_arena_minimum_rows = 1;
     bool bf16_attention = false;
     bool fp8_linear = false;
     float fp8_activation_scale = 0.025F;
@@ -125,6 +126,9 @@ Options options(int argc, char** argv) {
                     "--bf16-ffn-arena must be true or false");
             }
             result.bf16_ffn_arena = value == "true";
+        } else if (name == "--bf16-ffn-arena-minimum-rows") {
+            result.bf16_ffn_arena_minimum_rows =
+                std::stoll(argv[index + 1]);
         } else if (name == "--bf16-attention") {
             const std::string value = argv[index + 1];
             if (value != "true" && value != "false") {
@@ -304,6 +308,12 @@ Options options(int argc, char** argv) {
     if (result.bf16_ffn_arena && !result.bf16_ffn) {
         throw std::invalid_argument(
             "--bf16-ffn-arena requires --bf16-ffn true");
+    }
+    if (result.bf16_ffn_arena_minimum_rows <= 0 ||
+        (!result.bf16_ffn_arena &&
+         result.bf16_ffn_arena_minimum_rows != 1)) {
+        throw std::invalid_argument(
+            "--bf16-ffn-arena-minimum-rows must be positive and requires Arena");
     }
     if (result.bf16_ffn_arena && !result.trace_output.empty()) {
         throw std::invalid_argument(
@@ -995,7 +1005,8 @@ int main(int argc, char** argv) {
         const auto preparation_start = std::chrono::steady_clock::now();
         if (command.bf16_ffn) bf16_report = model.prepare_bf16_ffn_inference();
         if (command.bf16_ffn_arena) {
-            model.set_bf16_ffn_arena_enabled(true);
+            model.set_bf16_ffn_arena_enabled(
+                true, command.bf16_ffn_arena_minimum_rows);
         }
         if (command.bf16_attention) {
             bf16_attention_report = model.prepare_bf16_attention_inference();
@@ -1694,6 +1705,12 @@ int main(int argc, char** argv) {
                   << bf16_arena_stats.hits
                   << ",\"bf16_ffn_arena_misses\":"
                   << bf16_arena_stats.misses
+                  << ",\"bf16_ffn_arena_eligible_calls\":"
+                  << bf16_arena_stats.eligible_calls
+                  << ",\"bf16_ffn_arena_bypassed_calls\":"
+                  << bf16_arena_stats.bypassed_calls
+                  << ",\"bf16_ffn_arena_minimum_rows\":"
+                  << bf16_arena_stats.minimum_rows
                   << ",\"bf16_ffn_arena_capacity_bytes\":"
                   << bf16_arena_stats.capacity_bytes
                   << ",\"bf16_attention_converted_tensors\":"

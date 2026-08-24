@@ -30,8 +30,10 @@ def options() -> argparse.Namespace:
     parser.add_argument("--runs", type=int, default=3)
     parser.add_argument("--warmup", type=int, default=2)
     parser.add_argument("--steps", type=int, default=5)
+    parser.add_argument("--arena-minimum-rows", type=int, default=1)
     result = parser.parse_args()
-    if result.runs <= 0 or result.warmup < 0 or result.steps <= 0:
+    if (result.runs <= 0 or result.warmup < 0 or result.steps <= 0 or
+            result.arena_minimum_rows <= 0):
         parser.error("runs/steps must be positive and warmup nonnegative")
     if not result.manifest.is_file() or not result.binary.is_file():
         parser.error("manifest and binary must exist")
@@ -97,6 +99,11 @@ def command_for(args: argparse.Namespace, model: dict, case: tuple,
         "--bf16-ffn-arena", "true" if policy == "arena" else "false",
         "--logits-output", str(logits_path),
     ]
+    if policy == "arena":
+        command.extend([
+            "--bf16-ffn-arena-minimum-rows",
+            str(args.arena_minimum_rows),
+        ])
     if workload == "prefill":
         command.extend([
             "--workload", "prefill", "--new-tokens", "0",
@@ -169,6 +176,9 @@ def main() -> int:
                             "case_kind": case[1],
                             "context": case[2] if case[1] == "prefill"
                                        else len(model["inference"]["token_ids"]),
+                            "flattened_rows": (case[2] * case[3]
+                                               if case[1] == "prefill"
+                                               else case[3]),
                             "policy": policy,
                             "process_run": process_run,
                             "process_order": order,
@@ -200,6 +210,7 @@ def main() -> int:
                 "model": model["name"], "revision": model["revision"],
                 "case": case_name, "case_kind": kind,
                 "context": grouped["arena"][0]["context"], "batch": batch,
+                "flattened_rows": grouped["arena"][0]["flattened_rows"],
                 "baseline_tokens_per_second": baseline_speed,
                 "arena_tokens_per_second": arena_speed,
                 "arena_speedup": arena_speed / baseline_speed,
@@ -219,6 +230,10 @@ def main() -> int:
                     grouped["arena"], "bf16_ffn_arena_hits")),
                 "arena_misses": int(median(
                     grouped["arena"], "bf16_ffn_arena_misses")),
+                "arena_eligible_calls": int(median(
+                    grouped["arena"], "bf16_ffn_arena_eligible_calls")),
+                "arena_bypassed_calls": int(median(
+                    grouped["arena"], "bf16_ffn_arena_bypassed_calls")),
                 "maximum_absolute_logit_difference": max(differences),
                 "exact_expected_tokens": all(
                     row["exact_expected_tokens"] for row in grouped["arena"]),
@@ -228,6 +243,21 @@ def main() -> int:
         row["exact_expected_tokens"] for row in comparisons)
     keep_rows = sum(row["arena_speedup"] >= 1.01 for row in comparisons)
     regressions = sum(row["arena_speedup"] < 0.98 for row in comparisons)
+    eligible = [row for row in comparisons
+                if row["flattened_rows"] >= args.arena_minimum_rows]
+    bypassed = [row for row in comparisons
+                if row["flattened_rows"] < args.arena_minimum_rows]
+    if args.arena_minimum_rows == 1:
+        decision = ("keep universal model Arena" if regressions == 0 and
+                    keep_rows == len(comparisons) else
+                    "reject universal model Arena; inspect shape selection")
+    else:
+        decision = (
+            f"keep rows>={args.arena_minimum_rows} selective model Arena"
+            if eligible and
+            all(row["arena_speedup"] >= 1.01 for row in eligible) and
+            all(0.98 <= row["arena_speedup"] <= 1.02 for row in bypassed)
+            else f"reject rows>={args.arena_minimum_rows} selective model Arena")
     summary = {
         "schema_version": 1,
         "status": "pass" if correctness else "fail",
@@ -236,10 +266,11 @@ def main() -> int:
         "correctness_gate": correctness,
         "keep_rows": keep_rows,
         "regression_rows": regressions,
+        "arena_minimum_rows": args.arena_minimum_rows,
+        "eligible_rows": len(eligible),
+        "bypassed_rows": len(bypassed),
         "comparisons": comparisons,
-        "decision": ("keep universal model Arena" if regressions == 0 and
-                     keep_rows == len(comparisons) else
-                     "reject universal model Arena; inspect shape selection"),
+        "decision": decision,
     }
     with (args.output_directory / "raw.jsonl").open("w", encoding="utf-8") as output:
         for record in records:

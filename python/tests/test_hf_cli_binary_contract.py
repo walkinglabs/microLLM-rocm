@@ -31,6 +31,8 @@ def main() -> int:
         b"fp8_dynamic_clipped_tensor_calls",
         b"--bf16-ffn-arena",
         b"bf16_ffn_arena_capacity_bytes",
+        b"--bf16-ffn-arena-minimum-rows",
+        b"bf16_ffn_arena_bypassed_calls",
     )
     missing = [value.decode() for value in required if value not in payload]
     if missing:

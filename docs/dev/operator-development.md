@@ -29,6 +29,8 @@ must not discover an allocation or unsupported error only after Graph capture.
 At model level, never create one workspace per block. The opt-in cache owns one backing per exact
 row count and shares it across sequential blocks. Returned workspace views must not escape the
 model forward, and concurrent calls require external synchronization.
+Selection must use shape/runtime facts rather than model names. When `minimum_rows` bypasses a
+call, no backing Storage may be created and allocation/peak counters must match the old path.
 - readable HIP launch declarations: `src/ops/hip/kernels.h`;
 - optimized matmul policy: `src/ops/optimized.cpp`;
 - correctness-first matmul/AdamW tuners: `src/ops/tuning.cpp` and

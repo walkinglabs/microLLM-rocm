@@ -3108,3 +3108,22 @@ Qwen T512 profiler两边都5,642个Kernel，Kernel时间49.07/49.44ms；malloc/f
 不能因为Qwen R1单独变快，就写一个模型名字判断。
 
 ![Complete-model BF16 FFN Arena](assets/bf16-ffn-arena-model.svg)
+
+## 201. Experiment 184：选择优化时，没选中的路径必须真的没变
+
+上一轮只支持一个不含模型名字的共同解释：两套模型都在flattened rows 512改善。于是API增加
+`minimum_rows`，cache每次明确记eligible或bypassed。bypass必须返回空entry并走旧`bf16_ffn`，不能
+先分配Arena再假装没用。
+
+我们没有复用旧的八个短case，而是用相同revision、warmup、steps和交替顺序重跑全部60进程。
+Qwen/DeepSeek T512分别1.019×/1.022×，entry为1，分配3495→2895和4075→3375。
+
+其余八行的entry、capacity、eligible全部为0，bypassed为正；allocation和peak逐项等于baseline，
+速度保持0.999×–1.005×。全部完整logits bit-exact，decode token一致。这证明短路径不是“优化后恰好
+差不多”，而是根本没有进入候选。
+
+Qwen T512 profiler仍是5,642个Kernel，launch数不变；malloc/free从1879/1567降到1637/1327。
+所以rows≥512策略keep。FFN阈值搜索在现有证据上结束；下一块应是长prefill共享cast的BF16 Q/K/V，
+而不是在128和512之间挑一个没有实测意义的数字。
+
+![Selective BF16 FFN Arena](assets/bf16-ffn-arena-selective.svg)

@@ -190,6 +190,12 @@ rows pass 1.01. Universal model routing is closed. Both T512 rows improve 1.020�
 the model-independent `flattened rows>=512` predicate remains distinct. Per-model decode tuning,
 universal routing and model Graph are not supported by this evidence.
 
+Experiment 184 validates the only remaining FFN selection hypothesis. With `minimum_rows=512`,
+both eligible official rows improve 1.019×–1.022×; eight shorter rows have zero Arena entries and
+exact baseline allocation/peak counters. The threshold is retained and further FFN crossover
+search between unmeasured points is closed. The next liveness work must target another region,
+such as shared-cast BF16 Q/K/V, with the same full-model gate.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

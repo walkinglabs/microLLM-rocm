@@ -148,6 +148,9 @@ needed to run a real training and generation loop:
 - a default-off model BF16 FFN Arena shares one backing across every block and exposes exact cache
   statistics; 60/60 official processes are bit-exact and reduce allocations, but only three of ten
   rows exceed 1.01, rejecting universal routing while leaving a `rows>=512` hypothesis;
+- the model-independent `minimum_rows=512` policy passes that follow-up: Qwen/DeepSeek T512 improve
+  `1.019×/1.022×`, while eight short cases create no Arena, retain exact baseline allocation/peak
+  counters and remain `0.999×–1.005×`; the policy stays explicit pending broader hardware evidence;
 - a phase-independent exact-size HIP pool with immediate legacy-default-Stream reuse and strict
   permanent disablement for non-default Streams;
 - a cross-framework trace runner for operator/layer values and latency comparisons.
