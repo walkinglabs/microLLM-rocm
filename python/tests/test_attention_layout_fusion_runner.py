@@ -141,6 +141,29 @@ class AttentionLayoutFusionRunnerTest(unittest.TestCase):
         self.assertEqual(repeated[selected + 1], "false")
         self.assertEqual(forward[selected + 1], "true")
 
+    def test_gradient_inplace_changes_only_exclusive_accumulation(self):
+        self.args.policy = "gradient_inplace"
+        allocating = RUNNER.command(self.args, self.model, False)
+        inplace = RUNNER.command(self.args, self.model, True)
+        selected = allocating.index("--unique-gradient-inplace-add")
+        self.assertEqual(allocating[selected + 1], "false")
+        self.assertEqual(inplace[selected + 1], "true")
+        self.assertEqual(allocating[:selected], inplace[:selected])
+        self.assertEqual(allocating[selected + 2:], inplace[selected + 2:])
+        for rejected in (
+            "--attention-layout-plan-cache",
+            "--attention-gemm-scale-fusion",
+            "--attention-paired-gqa-repeat",
+            "--attention-gqa-value-broadcast",
+            "--attention-gqa-forward-value-broadcast",
+        ):
+            position = inplace.index(rejected)
+            self.assertEqual(inplace[position + 1], "false")
+        self.assertEqual(
+            RUNNER.policy_labels(self.args.policy), ("allocating", "inplace"))
+        self.assertEqual(
+            RUNNER.policy_labels("context"), ("materialized", "fused"))
+
     def test_operator_matrix_preserves_batch_head_sequence_width(self):
         shape = MATRIX.parse_shape("qwen:2:14:512:64")
         self.assertEqual(

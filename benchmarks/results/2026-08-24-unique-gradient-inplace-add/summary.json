@@ -1,0 +1,141 @@
+{
+  "aggregation": "median of fresh processes with alternating policy order",
+  "comparisons": [
+    {
+      "allocation_calls_saved": 144.0,
+      "gradient_accumulation": {
+        "allocating": {
+          "unique_dense_add_candidates": 72,
+          "unique_dense_add_elements": 33030144,
+          "unique_dense_add_executed": 0,
+          "unique_dense_add_executed_elements": 0
+        },
+        "inplace": {
+          "unique_dense_add_candidates": 72,
+          "unique_dense_add_elements": 33030144,
+          "unique_dense_add_executed": 72,
+          "unique_dense_add_executed_elements": 33030144
+        }
+      },
+      "loss_relative_difference": 0.00027910854765795195,
+      "model": "qwen2.5-0.5b",
+      "observed_parameter_after_equal": true,
+      "peak_bytes_saved": 0.0,
+      "peak_ratio": 1.0,
+      "policies": {
+        "allocating": {
+          "engine_allocation_calls": 3340.0,
+          "engine_peak_bytes": 11824424968.0,
+          "final_loss": 0.016896652,
+          "mean_optimizer_ms": 12.5447885,
+          "mean_step_ms": 34.2025095,
+          "observed_parameter_after": 7.468718052,
+          "tokens_per_second": 14969.661802155
+        },
+        "inplace": {
+          "engine_allocation_calls": 3196.0,
+          "engine_peak_bytes": 11824424968.0,
+          "final_loss": 0.016891936,
+          "mean_optimizer_ms": 13.631294,
+          "mean_step_ms": 34.0604185,
+          "observed_parameter_after": 7.468718052,
+          "tokens_per_second": 15032.111246666
+        }
+      },
+      "strided_copy": {
+        "allocating": {
+          "bytes": 0,
+          "calls": 0,
+          "elements": 0
+        },
+        "inplace": {
+          "bytes": 0,
+          "calls": 0,
+          "elements": 0
+        }
+      },
+      "throughput_speedup": 1.0041717338264788
+    },
+    {
+      "allocation_calls_saved": 168.0,
+      "gradient_accumulation": {
+        "allocating": {
+          "unique_dense_add_candidates": 84,
+          "unique_dense_add_elements": 66060288,
+          "unique_dense_add_executed": 0,
+          "unique_dense_add_executed_elements": 0
+        },
+        "inplace": {
+          "unique_dense_add_candidates": 84,
+          "unique_dense_add_elements": 66060288,
+          "unique_dense_add_executed": 84,
+          "unique_dense_add_executed_elements": 66060288
+        }
+      },
+      "loss_relative_difference": 0.0,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "observed_parameter_after_equal": true,
+      "peak_bytes_saved": 0.0,
+      "peak_ratio": 1.0,
+      "policies": {
+        "allocating": {
+          "engine_allocation_calls": 3896.0,
+          "engine_peak_bytes": 37102645256.0,
+          "final_loss": 4.036802292,
+          "mean_optimizer_ms": 49.819044,
+          "mean_step_ms": 81.694711,
+          "observed_parameter_after": 2.124970913,
+          "tokens_per_second": 6267.235586402
+        },
+        "inplace": {
+          "engine_allocation_calls": 3728.0,
+          "engine_peak_bytes": 37102645256.0,
+          "final_loss": 4.036802292,
+          "mean_optimizer_ms": 49.931783,
+          "mean_step_ms": 82.092112,
+          "observed_parameter_after": 2.124970913,
+          "tokens_per_second": 6236.896426785
+        }
+      },
+      "strided_copy": {
+        "allocating": {
+          "bytes": 0,
+          "calls": 0,
+          "elements": 0
+        },
+        "inplace": {
+          "bytes": 0,
+          "calls": 0,
+          "elements": 0
+        }
+      },
+      "throughput_speedup": 0.9951590842248172
+    }
+  ],
+  "context": 512,
+  "decision": "reject unique-gradient in-place accumulation",
+  "gate_results": {
+    "allocation_calls_reduced": true,
+    "eligible_adds_execute_only_when_enabled": true,
+    "loss": true,
+    "parameter": true,
+    "peak_nonincrease": true,
+    "strided_copy_unchanged_zero": true,
+    "throughput": false
+  },
+  "keep_gate": {
+    "allocation_calls_saved_minimum": 1,
+    "eligible_adds_must_execute": true,
+    "loss_relative_difference_maximum": 0.005,
+    "observed_parameter_after_equal": true,
+    "peak_ratio_maximum": 1.0,
+    "throughput_ratio_minimum": 1.01
+  },
+  "policy": "gradient_inplace",
+  "runs_per_model_policy": 3,
+  "schema_version": 1,
+  "status": "pass",
+  "steps": 2,
+  "track": "unique_gradient_inplace_add",
+  "warmup": 1
+}

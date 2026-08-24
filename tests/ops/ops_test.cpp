@@ -34,6 +34,29 @@ TEST(CpuOpsTest, ElementwiseOpsMatchHandValues) {
     EXPECT_EQ(scale(left, 0.5F).to_vector(), (std::vector<float>{0.5F, -1, 1.5F}));
 }
 
+TEST(CpuOpsTest, InPlaceAddPreservesStorageAndRejectsUnsafeContracts) {
+    auto destination = Tensor::from_vector({1, -2, 3, 4}, {2, 2});
+    const auto source = Tensor::from_vector({4, 5, -6, 2}, {2, 2});
+    const auto* address = destination.storage().data();
+    add_in_place_(destination, source);
+    EXPECT_EQ(destination.storage().data(), address);
+    EXPECT_EQ(destination.to_vector(), (std::vector<float>{5, 3, -3, 6}));
+
+    add_in_place_(destination, destination);
+    EXPECT_EQ(destination.to_vector(), (std::vector<float>{10, 6, -6, 12}));
+    EXPECT_THROW(add_in_place_(destination, Tensor({4})), std::invalid_argument);
+    EXPECT_THROW(add_in_place_(destination,
+                               Tensor({2, 2}, DType::BFloat16)),
+                 std::invalid_argument);
+    EXPECT_THROW(add_in_place_(destination, destination.transpose(0, 1)),
+                 std::invalid_argument);
+
+    auto backing = Tensor::from_vector({1, 2, 3, 4, 5}, {5});
+    auto first = backing.slice(0, 0, 4);
+    const auto overlapping = backing.slice(0, 1, 5);
+    EXPECT_THROW(add_in_place_(first, overlapping), std::invalid_argument);
+}
+
 TEST(CpuOpsTest, EmbeddingBackwardAddAccumulatesDuplicateRowsInCallerStorage) {
     auto weight_gradient = Tensor::from_vector(
         {10, 20, 30, 40, 50, 60, 70, 80}, {4, 2});

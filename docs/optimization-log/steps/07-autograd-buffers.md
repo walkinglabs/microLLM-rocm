@@ -1,6 +1,6 @@
 # Step 07 — in-place gradient accumulation and buffer reuse
 
-Status: `in progress` — local copy-on-write candidate discarded in Experiment 010
+Status: `complete` — local reuse variants measured; graph-wide planning is a new track
 
 ## Hypothesis
 
@@ -92,3 +92,16 @@ Scalar. Step 07 is complete at this boundary: three gradient-buffer/multi-tensor
 and the local vector-width space have been measured. Reopening it requires new trace
 evidence or a different optimizer-state representation, not another unmeasured launch
 rewrite.
+
+## Experiment 172 source-aware retry and final boundary
+
+New diagnostics finally found a narrower case that Experiment 010 could not see: Qwen and
+DeepSeek have 72/84 exclusive contiguous reshape-gradient destinations per T512 step. A safe
+in-place primitive removes exactly 144/168 engine allocation calls over two steps and passes
+shared-graph/overlap/device correctness.
+
+The model gate still rejects it at `1.0042×/0.9952×`. Qwen rocprofv3 shows unchanged backend
+allocation, HIP allocation/free, add Kernel, total Kernel and peak counts because the existing
+exact-size cache already handles those temporary blocks. Local owner predicates are now closed.
+Reopening this step requires graph-wide lifetime/buffer planning or eliminating the add work,
+not another `Storage::use_count()` condition.

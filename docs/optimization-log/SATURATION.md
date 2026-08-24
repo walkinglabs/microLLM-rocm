@@ -119,6 +119,13 @@ Experiment 171 rejects that final forward-only route as well. DeepSeek remains f
 parameter equality changes, and profile dispatches stay constant because each removed copy
 becomes an extra GEMM. The current zero-stride model-routing family is fully closed.
 
+Experiment 172 reopens local gradient reuse only after source-aware diagnostics identify
+72/84 genuinely exclusive Qwen/DeepSeek destinations. The implementation saves exactly
+144/168 engine allocations over two steps, but the allocator cache means backend allocation,
+HIP allocation/free, add Kernel count and peak are unchanged. Throughput reaches only
+1.0042×/0.9952× and misses the declared two-model 1.01 gate. Another `use_count` predicate is
+not a new hypothesis; future work must remove add computation or plan lifetimes graph-wide.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

@@ -35,7 +35,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [04](steps/04-device-kv-cache.md) | complete | 预分配 device KV/GQA | score 1.167931 |
 | [05](steps/05-device-sampling.md) | complete | device greedy argmax；随机 top-k 保留 reference | score 1.219170 |
 | [06](steps/06-memory-pool.md) | complete | exact-size pool + phase-independent default-Stream reuse | score 2.470863 + Experiment 087 inference evidence |
-| [07](steps/07-autograd-buffers.md) | complete | COW/stable/chunking discarded；float4 explicit-only、Auto scalar | operator/model evidence boundary |
+| [07](steps/07-autograd-buffers.md) | complete | generic COW失败；source-aware独占累加也因整机中性而默认关闭 | 下一步必须做graph-wide liveness |
 | [08](steps/08-batched-fmha.md) | complete | cached/full GQA；Q/K RoPE；BTHD P×V/dP/dV | diagnosed layout copies = 0 |
 | [09](steps/09-fusion-autotune.md) | complete | plan/alpha/repeat/zero-stride families measured | local Attention search saturated |
 | [10](steps/10-bf16.md) | in progress | DeepSeek first-four robust-strict；Qwen long-constant要求全FP32 fallback | broader checkpoints and prompt families |

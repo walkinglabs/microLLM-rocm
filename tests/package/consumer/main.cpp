@@ -45,6 +45,9 @@ int main() {
         microllm::Tensor::from_vector({1.0F, 2.0F}, {1, 2}),
         microllm::Tensor::from_vector({3.0F, 4.0F}, {2, 1}),
         0.5F, microllm::ops::MatmulImplementation::Readable);
+    auto inplace_sum = microllm::Tensor::from_vector({1.0F, 2.0F}, {2});
+    microllm::ops::add_in_place_(
+        inplace_sum, microllm::Tensor::from_vector({3.0F, 4.0F}, {2}));
     const auto paired_repeat = microllm::ops::repeat_gqa_kv_bthd(
         microllm::Tensor::from_vector({1.0F, 2.0F}, {1, 1, 1, 2}),
         microllm::Tensor::from_vector({3.0F, 4.0F}, {1, 1, 1, 2}), 1);
@@ -57,6 +60,8 @@ int main() {
             microllm::Tensor::from_vector({1.0F, 1.0F}, {1, 1, 1, 2}),
             microllm::Tensor::from_vector({2.0F, 3.0F}, {1, 1, 1, 2}), 1);
     microllm::autograd::enable_gradient_accumulation_diagnostics(false);
+    microllm::autograd::enable_unique_gradient_inplace_add(true);
+    microllm::autograd::enable_unique_gradient_inplace_add(false);
     microllm::runtime::enable_strided_copy_diagnostics(false);
     microllm::autograd::enable_attention_rope_layout_fusion(false);
     microllm::autograd::enable_attention_rope_layout_fusion(true);
@@ -95,6 +100,7 @@ int main() {
         layout_context.to_vector() != std::vector<float>({2.0F, 3.0F}) ||
         gqa_layout_context.to_vector() != std::vector<float>({2.0F, 3.0F}) ||
         scaled_product.to_vector() != std::vector<float>({5.5F}) ||
+        inplace_sum.to_vector() != std::vector<float>({4.0F, 6.0F}) ||
         paired_repeat.first.to_vector() != std::vector<float>({1.0F, 2.0F}) ||
         paired_repeat.second.to_vector() != std::vector<float>({3.0F, 4.0F}) ||
         broadcast_context.to_vector() != std::vector<float>({2.0F, 3.0F}) ||
@@ -103,6 +109,7 @@ int main() {
         attention_plan_stats.entries != 0 || attention_plan_stats.hits != 0 ||
         attention_plan_stats.misses != 0 ||
         !microllm::autograd::attention_rope_layout_fusion_enabled() ||
+        microllm::autograd::unique_gradient_inplace_add_enabled() ||
         !rejected_cpu_tuning || !rejected_cpu_adamw_tuning) return 1;
     std::cout << "microLLM package consumer: pass\n";
     return 0;

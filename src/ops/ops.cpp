@@ -708,6 +708,39 @@ Tensor add(const Tensor& left, const Tensor& right, [[maybe_unused]] const OpCon
     return from_values(std::move(left_values), left.shape(), left.dtype());
 }
 
+void add_in_place_(Tensor& destination, const Tensor& source,
+                   [[maybe_unused]] const OpContext& context) {
+    require_float(destination, "destination");
+    require_float(source, "source");
+    require_same_shape(destination, source);
+    require_same_device(destination, source);
+    require_contiguous(destination, "destination");
+    require_contiguous(source, "source");
+    const auto destination_storage = destination.storage();
+    const auto source_storage = source.storage();
+    if (destination_storage.data() == source_storage.data() &&
+        destination.data() != source.data()) {
+        throw std::invalid_argument(
+            "in-place add rejects partially overlapping tensor views");
+    }
+    if (destination.device().is_hip()) {
+#if MICROLLM_HAS_HIP
+        hip::launch_add_typed(
+            destination.data(), source.data(), destination.data(),
+            DType::Float32, destination.numel(),
+            context.native_stream(destination.device()));
+        return;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    auto* destination_data = static_cast<float*>(destination.data());
+    const auto* source_data = static_cast<const float*>(source.data());
+    for (std::int64_t index = 0; index < destination.numel(); ++index) {
+        destination_data[index] += source_data[index];
+    }
+}
+
 Tensor add_bias(const Tensor& input, const Tensor& bias,
                 [[maybe_unused]] const OpContext& context) {
     require_float(input, "input");

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run same-binary official-model A/B for one Attention layout fusion."""
+"""Run same-binary official-model A/B for one training policy."""
 
 from __future__ import annotations
 
@@ -10,6 +10,16 @@ import pathlib
 import statistics
 import subprocess
 import sys
+
+
+POLICIES = (
+    "rope", "context", "plan", "scale", "pair", "broadcast",
+    "forward_broadcast", "gradient_inplace",
+)
+STRICT_POLICIES = {
+    "plan", "scale", "pair", "broadcast", "forward_broadcast",
+    "gradient_inplace",
+}
 
 
 def options() -> argparse.Namespace:
@@ -23,8 +33,8 @@ def options() -> argparse.Namespace:
     parser.add_argument("--steps", type=int, default=2)
     parser.add_argument("--collect-diagnostics", action="store_true")
     parser.add_argument(
-        "--policy", choices=("rope", "context", "plan", "scale", "pair", "broadcast", "forward_broadcast"), default="rope",
-        help="the one layout policy changed by the A/B")
+        "--policy", choices=POLICIES, default="rope",
+        help="the one training policy changed by the A/B")
     result = parser.parse_args()
     if result.runs <= 0 or result.context < 2 or result.warmup < 0 or result.steps <= 0:
         parser.error("runs/steps must be positive, context >= 2 and warmup nonnegative")
@@ -55,6 +65,7 @@ def command(args: argparse.Namespace, model: dict, enabled: bool,
     paired_repeat_enabled = enabled if args.policy == "pair" else False
     value_broadcast_enabled = enabled if args.policy == "broadcast" else False
     forward_broadcast_enabled = enabled if args.policy == "forward_broadcast" else False
+    gradient_inplace_enabled = enabled if args.policy == "gradient_inplace" else False
     result = [
         str(args.binary),
         "--config", model["config"],
@@ -68,6 +79,7 @@ def command(args: argparse.Namespace, model: dict, enabled: bool,
         "--linear-precision", "bf16",
         "--bf16-weight-mirrors", "true",
         "--tied-embedding-sparse-add", "true",
+        "--unique-gradient-inplace-add", "true" if gradient_inplace_enabled else "false",
         "--attention-rope-layout-fusion", "true" if rope_enabled else "false",
         "--attention-context-layout-fusion", "true" if context_enabled else "false",
         "--attention-layout-plan-cache", "true" if plan_cache_enabled else "false",
@@ -99,6 +111,7 @@ def execute(args: argparse.Namespace, model: dict, enabled: bool,
         "pair": "attention_paired_gqa_repeat",
         "broadcast": "attention_gqa_value_broadcast",
         "forward_broadcast": "attention_gqa_forward_value_broadcast",
+        "gradient_inplace": "unique_gradient_inplace_add",
     }[args.policy]
     if record.get(field) is not enabled:
         raise RuntimeError(f"{model['name']} reported the wrong layout policy")
@@ -109,10 +122,17 @@ def median(rows: list[dict], field: str) -> float:
     return statistics.median(float(row[field]) for row in rows)
 
 
+def policy_labels(policy: str) -> tuple[str, str]:
+    if policy == "gradient_inplace":
+        return "allocating", "inplace"
+    return "materialized", "fused"
+
+
 def main() -> int:
     args = options()
     models = json.loads(args.manifest.read_text(encoding="utf-8"))["models"]
     args.output_directory.mkdir(parents=True, exist_ok=True)
+    baseline_label, candidate_label = policy_labels(args.policy)
     records: list[dict] = []
     for process_run in range(1, args.runs + 1):
         for model in models:
@@ -124,7 +144,7 @@ def main() -> int:
                     "model": model["name"],
                     "revision": model.get("revision", "unknown"),
                     "process_run": process_run,
-                    "policy": "fused" if enabled else "materialized",
+                    "policy": candidate_label if enabled else baseline_label,
                 })
                 records.append(record)
                 print(json.dumps(record, sort_keys=True), flush=True)
@@ -133,7 +153,8 @@ def main() -> int:
     if args.collect_diagnostics:
         for model in models:
             diagnostics[model["name"]] = {}
-            for enabled, policy in ((False, "materialized"), (True, "fused")):
+            for enabled, policy in (
+                    (False, baseline_label), (True, candidate_label)):
                 path = args.output_directory / f"{model['name']}-{policy}-diagnostics.json"
                 execute(args, model, enabled, path)
                 diagnostics[model["name"]][policy] = json.loads(
@@ -143,7 +164,7 @@ def main() -> int:
     for model in models:
         selected = [row for row in records if row["model"] == model["name"]]
         policies = {}
-        for policy in ("materialized", "fused"):
+        for policy in (baseline_label, candidate_label):
             group = [row for row in selected if row["policy"] == policy]
             if len(group) != args.runs:
                 raise RuntimeError(f"{model['name']}/{policy} has incomplete runs")
@@ -156,8 +177,8 @@ def main() -> int:
                 "final_loss": median(group, "final_loss"),
                 "observed_parameter_after": median(group, "observed_parameter_after"),
             }
-        baseline = policies["materialized"]
-        candidate = policies["fused"]
+        baseline = policies[baseline_label]
+        candidate = policies[candidate_label]
         item = {
             "model": model["name"],
             "policies": policies,
@@ -182,7 +203,20 @@ def main() -> int:
                     field: diagnostics[model["name"]][policy]["strided_copy"][field]
                     for field in ("calls", "elements", "bytes")
                 }
-                for policy in ("materialized", "fused")
+                for policy in (baseline_label, candidate_label)
+            }
+            item["gradient_accumulation"] = {
+                policy: {
+                    field: diagnostics[model["name"]][policy][
+                        "gradient_accumulation"][field]
+                    for field in (
+                        "unique_dense_add_candidates",
+                        "unique_dense_add_executed",
+                        "unique_dense_add_elements",
+                        "unique_dense_add_executed_elements",
+                    )
+                }
+                for policy in (baseline_label, candidate_label)
             }
         comparisons.append(item)
 
@@ -195,6 +229,7 @@ def main() -> int:
             "pair": "attention_paired_gqa_repeat",
             "broadcast": "attention_gqa_value_broadcast",
             "forward_broadcast": "attention_gqa_forward_value_broadcast",
+            "gradient_inplace": "unique_gradient_inplace_add",
         }.get(args.policy, f"attention_{args.policy}_layout_fusion")),
         "policy": args.policy,
         "context": args.context,
@@ -204,29 +239,60 @@ def main() -> int:
         "aggregation": "median of fresh processes with alternating policy order",
         "comparisons": comparisons,
         "keep_gate": {
-            "throughput_ratio_minimum": 1.01 if args.policy in {"plan", "scale", "pair", "broadcast", "forward_broadcast"} else 0.98,
+            "throughput_ratio_minimum": (
+                1.01 if args.policy in STRICT_POLICIES else 0.98),
             "loss_relative_difference_maximum": 0.005,
             "observed_parameter_after_equal": True,
         },
     }
+    strict_policy = args.policy in STRICT_POLICIES
     summary["gate_results"] = {
         "throughput": all(
             row["throughput_speedup"] >=
-            (1.01 if args.policy in {"plan", "scale", "pair", "broadcast", "forward_broadcast"} else 0.98)
+            (1.01 if strict_policy else 0.98)
             for row in comparisons),
         "loss": all(
             row["loss_relative_difference"] <= 0.005 for row in comparisons),
         "parameter": all(
             row["observed_parameter_after_equal"] for row in comparisons),
-        ("strided_copy_unchanged_zero" if args.policy in {"plan", "scale", "pair", "broadcast", "forward_broadcast"} else
+        ("strided_copy_unchanged_zero" if strict_policy else
          "strided_copy_reduced"): all(
-            (row.get("strided_copy", {}).get("fused", {}).get("bytes") == 0 and
-             row.get("strided_copy", {}).get("materialized", {}).get("bytes") == 0)
-            if args.policy in {"plan", "scale", "pair", "broadcast", "forward_broadcast"} else
-            row.get("strided_copy", {}).get("fused", {}).get("bytes", math.inf) <
-            row.get("strided_copy", {}).get("materialized", {}).get("bytes", -math.inf)
-            for row in comparisons) if args.collect_diagnostics else None,
+            (row.get("strided_copy", {}).get(candidate_label, {}).get("bytes") == 0 and
+             row.get("strided_copy", {}).get(baseline_label, {}).get("bytes") == 0)
+            if strict_policy else
+            row.get("strided_copy", {}).get(candidate_label, {}).get(
+                "bytes", math.inf) <
+            row.get("strided_copy", {}).get(baseline_label, {}).get(
+                "bytes", -math.inf)
+        for row in comparisons) if args.collect_diagnostics else None,
     }
+    if args.policy == "gradient_inplace":
+        summary["keep_gate"].update({
+            "peak_ratio_maximum": 1.0,
+            "allocation_calls_saved_minimum": 1,
+            "eligible_adds_must_execute": True,
+        })
+        summary["gate_results"].update({
+            "peak_nonincrease": all(
+                row["peak_ratio"] <= 1.0 for row in comparisons),
+            "allocation_calls_reduced": all(
+                row["allocation_calls_saved"] >= 1 for row in comparisons),
+            "eligible_adds_execute_only_when_enabled": all(
+                row.get("gradient_accumulation", {})
+                    .get(baseline_label, {})
+                    .get("unique_dense_add_executed") == 0 and
+                row.get("gradient_accumulation", {})
+                    .get(candidate_label, {})
+                    .get("unique_dense_add_candidates", 0) > 0 and
+                row.get("gradient_accumulation", {})
+                    .get(candidate_label, {})
+                    .get("unique_dense_add_executed") ==
+                row.get("gradient_accumulation", {})
+                    .get(candidate_label, {})
+                    .get("unique_dense_add_candidates")
+                for row in comparisons)
+                if args.collect_diagnostics else None,
+        })
     if not args.collect_diagnostics:
         summary["decision"] = "incomplete evidence: diagnostics were not collected"
     else:
@@ -237,6 +303,7 @@ def main() -> int:
             "pair": "paired GQA repeat",
             "broadcast": "GQA Value broadcast",
             "forward_broadcast": "forward-only GQA Value broadcast",
+            "gradient_inplace": "unique-gradient in-place accumulation",
         }.get(args.policy, "layout fusion")
         summary["decision"] = f"{'keep' if accepted else 'reject'} {subject}"
     (args.output_directory / "training.jsonl").write_text(

@@ -140,6 +140,11 @@ Runtime records exact strided-copy shape/stride, calls, elements and bytes. Valu
 not copied to host. The diagnostic bookkeeping is intentionally excluded from performance
 measurements and is disabled by default.
 
+Dense accumulation additionally reports exclusive-owner candidate/executed calls and
+elements. `--unique-gradient-inplace-add true/false` is the matching same-binary control.
+It defaults false after Experiment 172: logical engine allocations fell, while backend/HIP
+allocation calls, add launches, peak memory and two-model throughput did not clear the gate.
+
 The retained tied-weight optimization can be rebutted with the same binary using
 `--tied-embedding-sparse-add true/false`.
 

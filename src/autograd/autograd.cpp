@@ -35,6 +35,7 @@ namespace {
 
 thread_local bool accumulation_diagnostics_enabled = false;
 thread_local bool tied_embedding_sparse_add = true;
+thread_local bool unique_gradient_inplace_add = false;
 thread_local bool attention_rope_layout_fusion = true;
 thread_local bool attention_context_layout_fusion = true;
 thread_local std::map<std::pair<std::string, Shape>, GradientAccumulationRecord>
@@ -74,6 +75,14 @@ void accumulate(const std::shared_ptr<Value::Node>& node, const Tensor& gradient
     auto prepared = gradient;
     if (prepared.device() != node->data.device()) prepared = prepared.to(node->data.device());
     const auto needs_materialization = !prepared.is_contiguous();
+    bool unique_dense_destination = false;
+    if (node->gradient.defined() && !needs_materialization &&
+        node->gradient.is_contiguous()) {
+        const auto storage = node->gradient.storage();
+        // storage is one temporary owner here; count==2 means the node is the
+        // only persistent owner. Any source alias or graph view raises the count.
+        unique_dense_destination = storage.use_count() == 2;
+    }
     if (accumulation_diagnostics_enabled) {
         auto& record = accumulation_record(*node);
         if (needs_materialization) {
@@ -84,15 +93,29 @@ void accumulate(const std::shared_ptr<Value::Node>& node, const Tensor& gradient
             ++record.add_calls;
             record.added_elements += static_cast<std::uint64_t>(prepared.numel());
             record.last_add_source = source;
+            if (unique_dense_destination) {
+                ++record.unique_dense_add_candidates;
+                record.unique_dense_add_elements +=
+                    static_cast<std::uint64_t>(prepared.numel());
+                if (unique_gradient_inplace_add) {
+                    ++record.unique_dense_add_executed;
+                    record.unique_dense_add_executed_elements +=
+                        static_cast<std::uint64_t>(prepared.numel());
+                }
+            }
         } else {
             ++record.first_assignments;
             if (record.first_source.empty()) record.first_source = source;
         }
     }
     if (needs_materialization) prepared = prepared.contiguous();
-    node->gradient = node->gradient.defined()
-                         ? ops::add(node->gradient, prepared)
-                         : prepared;
+    if (!node->gradient.defined()) {
+        node->gradient = prepared;
+    } else if (unique_gradient_inplace_add && unique_dense_destination) {
+        ops::add_in_place_(node->gradient, prepared);
+    } else {
+        node->gradient = ops::add(node->gradient, prepared);
+    }
 }
 
 void accumulate_embedding(const std::shared_ptr<Value::Node>& node,
@@ -157,7 +180,12 @@ GradientAccumulationDiagnostics gradient_accumulation_diagnostics() {
         result.add_calls += record.add_calls;
         result.materializations += record.materializations;
         result.sparse_embedding_add_calls += record.sparse_embedding_add_calls;
+        result.unique_dense_add_candidates += record.unique_dense_add_candidates;
+        result.unique_dense_add_executed += record.unique_dense_add_executed;
         result.added_elements += record.added_elements;
+        result.unique_dense_add_elements += record.unique_dense_add_elements;
+        result.unique_dense_add_executed_elements +=
+            record.unique_dense_add_executed_elements;
         result.materialized_elements += record.materialized_elements;
     }
     return result;
@@ -169,6 +197,14 @@ void enable_tied_embedding_sparse_add(bool enabled) noexcept {
 
 bool tied_embedding_sparse_add_enabled() noexcept {
     return tied_embedding_sparse_add;
+}
+
+void enable_unique_gradient_inplace_add(bool enabled) noexcept {
+    unique_gradient_inplace_add = enabled;
+}
+
+bool unique_gradient_inplace_add_enabled() noexcept {
+    return unique_gradient_inplace_add;
 }
 
 void enable_attention_rope_layout_fusion(bool enabled) noexcept {

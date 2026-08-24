@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "decision": "discard model default; retain tested primitive and diagnostics",
+  "tests": {
+    "cpu_debug": {"passed": 273, "total": 273},
+    "cpu_asan_ubsan": {"passed": 271, "total": 271},
+    "pytorch_enabled_cpu": {"passed": 247, "total": 247},
+    "hip_full_configuration": {
+      "passed": 409,
+      "total": 409,
+      "expected_environment_skips": 3
+    },
+    "hip_label": {"passed": 132, "total": 132},
+    "coverage_manifest": "pass",
+    "optimization_log_validator": "pass",
+    "svg_xml": "pass",
+    "installed_package_consumer": "pass"
+  },
+  "coverage": {
+    "lines_percent": 80.7,
+    "functions_percent": 90.5,
+    "branches_percent": 61.6
+  },
+  "official_model_gate": {
+    "qwen_throughput_ratio": 1.0041717338264788,
+    "deepseek_throughput_ratio": 0.9951590842248172,
+    "required_each": 1.01,
+    "throughput_pass": false,
+    "loss_pass": true,
+    "parameter_pass": true,
+    "peak_pass": true,
+    "routing_pass": true
+  }
+}

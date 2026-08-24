@@ -219,6 +219,8 @@ void save_adamw_tuning_cache(const std::filesystem::path& path);
     bool replace_existing = true);
 
 [[nodiscard]] Tensor add(const Tensor& left, const Tensor& right, const OpContext& context = {});
+void add_in_place_(Tensor& destination, const Tensor& source,
+                   const OpContext& context = {});
 [[nodiscard]] Tensor add_bias(const Tensor& input, const Tensor& bias,
                               const OpContext& context = {});
 [[nodiscard]] Tensor bias_gradient(const Tensor& gradient,

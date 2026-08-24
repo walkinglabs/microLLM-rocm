@@ -2850,3 +2850,25 @@ repeat forward 336→252，可总dispatch仍8058，因为少84次copy恰好多84
 保留用于backend能力和未来完全不同的grouped-GEMM设计，不能再被当作当前默认优化。
 
 ![Forward-only GQA Value broadcast discarded](assets/forward-only-gqa-value-broadcast-discard.svg)
+
+## 189. Experiment 172：少申请内存，不等于少做计算
+
+这一次先不猜。诊断器告诉我们：Qwen每步121次dense梯度相加中，有72次目标确实只有一个长期
+Storage主人，形状全部是`[512,896]`；Deep是84次`[512,1536]`。残差、embedding和共享leaf都
+没有被误判。就像一张草稿纸只有一个人在用时才能直接在上面续写，多人还拿着同一张纸时必须
+另开一张。
+
+新路径只在“独占、连续、FP32、不与来源重叠”时原地相加。CPU测试证明少一次allocation，
+`add(x,x)`仍走安全fallback；HIP保持地址、没有payload搬运；安装后的外部项目也真实链接该符号。
+
+两模型正式结果却提醒我们，计数器不是速度：两步少144/168次engine allocation，但Qwen只有
+1.0042×、Deep反而只有0.9952×，没同时越过预先写下的1.01线，peak也完全不变。
+
+profile给出因果解释。Qwen三步少216次engine allocation和216次cache reuse，可backend allocation
+仍是1027次，HIP malloc/free仍是2071/452次，总Kernel仍6905次，add Kernel仍504次。旧路径的
+临时块早已由exact-size cache接住；新路径只是少做了主机侧账本操作，没有少发任何GPU计算。
+
+所以默认false，原语和candidate/executed诊断保留。下一次若仍只换一个`use_count`条件，就是重复
+失败；必须让add Kernel本身消失，或由整张计算图统一规划梯度寿命。
+
+![Unique-gradient in-place accumulation discarded](assets/unique-gradient-inplace-add-discard.svg)

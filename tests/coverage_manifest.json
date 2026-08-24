@@ -54,6 +54,7 @@
   "operator_infrastructure": {
     "cast_out_": "tests/ops/ops_test.cpp",
     "cast_transpose_2d_out_": "tests/ops/ops_test.cpp",
+    "add_in_place_": "tests/ops/hip_ops_test.cpp",
     "adamw_update_": "tests/training/optimizer_test.cpp",
     "adamw_update_bf16_mirror_": "tests/training/optimizer_test.cpp",
     "embedding_backward_add_": "tests/ops/hip_ops_test.cpp",

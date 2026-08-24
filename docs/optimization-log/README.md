@@ -706,6 +706,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/170-selective-gqa-value-broadcast-discard.md](experiments/170-selective-gqa-value-broadcast-discard.md) | dP/QKV梯度、12模型进程与Deep profile |
 | [assets/forward-only-gqa-value-broadcast-discard.svg](assets/forward-only-gqa-value-broadcast-discard.svg) | forward-only整机/参数/profile最终拒绝 |
 | [experiments/171-forward-only-gqa-value-broadcast-discard.md](experiments/171-forward-only-gqa-value-broadcast-discard.md) | zero-stride模型路线关闭证据 |
+| [assets/unique-gradient-inplace-add-discard.svg](assets/unique-gradient-inplace-add-discard.svg) | 真正少allocation但不减少device工作的反例 |
+| [experiments/172-unique-gradient-inplace-add-discard.md](experiments/172-unique-gradient-inplace-add-discard.md) | 独占owner合同、两模型A/B与rocprofv3拒绝门 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

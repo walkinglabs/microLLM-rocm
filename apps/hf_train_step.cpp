@@ -103,7 +103,15 @@ void write_diagnostics(
            << ",\"materializations\":" << accumulation.materializations
            << ",\"sparse_embedding_add_calls\":"
            << accumulation.sparse_embedding_add_calls
+           << ",\"unique_dense_add_candidates\":"
+           << accumulation.unique_dense_add_candidates
+           << ",\"unique_dense_add_executed\":"
+           << accumulation.unique_dense_add_executed
            << ",\"added_elements\":" << accumulation.added_elements
+           << ",\"unique_dense_add_elements\":"
+           << accumulation.unique_dense_add_elements
+           << ",\"unique_dense_add_executed_elements\":"
+           << accumulation.unique_dense_add_executed_elements
            << ",\"materialized_elements\":" << accumulation.materialized_elements
            << ",\"records\":[";
     for (std::size_t index = 0; index < accumulation.records.size(); ++index) {
@@ -122,7 +130,15 @@ void write_diagnostics(
                << ",\"materializations\":" << record.materializations
                << ",\"sparse_embedding_add_calls\":"
                << record.sparse_embedding_add_calls
+               << ",\"unique_dense_add_candidates\":"
+               << record.unique_dense_add_candidates
+               << ",\"unique_dense_add_executed\":"
+               << record.unique_dense_add_executed
                << ",\"added_elements\":" << record.added_elements
+               << ",\"unique_dense_add_elements\":"
+               << record.unique_dense_add_elements
+               << ",\"unique_dense_add_executed_elements\":"
+               << record.unique_dense_add_executed_elements
                << ",\"materialized_elements\":" << record.materialized_elements
                << '}';
     }
@@ -170,6 +186,7 @@ int main(int argc, char** argv) {
         std::filesystem::path diagnostics_output;
         bool bf16_weight_mirrors = true;
         bool tied_embedding_sparse_add = true;
+        bool unique_gradient_inplace_add = false;
         bool attention_rope_layout_fusion = true;
         bool attention_context_layout_fusion = true;
         bool attention_layout_plan_cache = false;
@@ -205,6 +222,14 @@ int main(int argc, char** argv) {
                         "--tied-embedding-sparse-add must be true or false");
                 }
                 tied_embedding_sparse_add = value == "true";
+            }
+            else if (name == "--unique-gradient-inplace-add") {
+                const std::string value = argv[index + 1];
+                if (value != "true" && value != "false") {
+                    throw std::invalid_argument(
+                        "--unique-gradient-inplace-add must be true or false");
+                }
+                unique_gradient_inplace_add = value == "true";
             }
             else if (name == "--attention-rope-layout-fusion") {
                 const std::string value = argv[index + 1];
@@ -290,6 +315,8 @@ int main(int argc, char** argv) {
         const auto bf16_algorithms = parse_bf16_algorithms(bf16_algorithm_text);
         microllm::autograd::enable_tied_embedding_sparse_add(
             tied_embedding_sparse_add);
+        microllm::autograd::enable_unique_gradient_inplace_add(
+            unique_gradient_inplace_add);
         microllm::autograd::enable_attention_rope_layout_fusion(
             attention_rope_layout_fusion);
         microllm::autograd::enable_attention_context_layout_fusion(
@@ -464,6 +491,8 @@ int main(int argc, char** argv) {
                   << (!diagnostics_output.empty() ? "true" : "false")
                   << ",\"tied_embedding_sparse_add\":"
                   << (tied_embedding_sparse_add ? "true" : "false")
+                  << ",\"unique_gradient_inplace_add\":"
+                  << (unique_gradient_inplace_add ? "true" : "false")
                   << ",\"attention_rope_layout_fusion\":"
                   << (attention_rope_layout_fusion ? "true" : "false")
                   << ",\"attention_context_layout_fusion\":"

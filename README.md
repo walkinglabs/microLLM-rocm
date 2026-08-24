@@ -80,6 +80,10 @@ needed to run a real training and generation loop:
 - source-aware Autograd and strided-layout diagnostics identify one Qwen tied embedding/head
   accumulation as 71.2% of added gradient elements; sparse token-row accumulation removes a
   mostly-zero 544 MB Tensor, cuts Qwen peak 8.11%, and keeps throughput neutral-positive;
+- exclusive-owner dense-gradient diagnostics find 72/84 real Qwen/DeepSeek in-place candidates;
+  the tested primitive removes 144/168 engine allocations over two T512 steps, but leaves every
+  add Kernel, backend allocation and peak unchanged, so `1.0042×/0.9952×` keeps the model policy
+  default-off and hands future work to graph-wide liveness planning;
 - layout-aware Q/K bias + split-half RoPE reads projection `[B,T,H,D]` and writes Attention
   `[B,H,T,D]` directly in forward and reverses the mapping in backward; independent PyTorch
   gradients pass, diagnosed strided-copy bytes fall 60%, and official T512 peaks fall on both
@@ -425,15 +429,15 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 406/406 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
-| CPU Debug | 271/271 | host code, CLI, model/graph, benchmark, package and evidence schemas |
-| ASan/UBSan CPU | 269/269 | host lifetime, undefined-behavior and ordinary CPU gates |
-| MI300X/gfx942 HIP label | 131/131 | allocator/stream, graph, autotune, BF16/FP8, model and installed-package gates |
-| PyTorch-enabled CPU build | 245/245 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
+| Full CPU/HIP configuration | 409/409 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
+| CPU Debug | 273/273 | host code, CLI, model/graph, benchmark, package and evidence schemas |
+| ASan/UBSan CPU | 271/271 | host lifetime, undefined-behavior and ordinary CPU gates |
+| MI300X/gfx942 HIP label | 132/132 | allocator/stream, graph, autotune, BF16/FP8, model and installed-package gates |
+| PyTorch-enabled CPU build | 247/247 | dispatcher parity, full graph/model oracle and ordinary CPU suite |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, DDP trainer/CLI |
 | Registered test files | 55 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | Installed CMake package | CPU + HIP + RCCL pass | relocated prefix, external `find_package`, components, compile, static link and run |
-| CPU source coverage | 81.0% lines / 90.5% functions / 61.7% branches | GCC 13.3 + gcovr 8.3 |
+| CPU source coverage | 80.7% lines / 90.5% functions / 61.6% branches | 7,723/9,567 lines; GCC 13.3 + gcovr 8.3 |
 
 Latest PyTorch-reference maximum absolute differences:
 

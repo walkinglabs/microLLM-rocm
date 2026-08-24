@@ -17,7 +17,11 @@ struct GradientAccumulationRecord {
     std::uint64_t add_calls = 0;
     std::uint64_t materializations = 0;
     std::uint64_t sparse_embedding_add_calls = 0;
+    std::uint64_t unique_dense_add_candidates = 0;
+    std::uint64_t unique_dense_add_executed = 0;
     std::uint64_t added_elements = 0;
+    std::uint64_t unique_dense_add_elements = 0;
+    std::uint64_t unique_dense_add_executed_elements = 0;
     std::uint64_t materialized_elements = 0;
 };
 
@@ -27,7 +31,11 @@ struct GradientAccumulationDiagnostics {
     std::uint64_t add_calls = 0;
     std::uint64_t materializations = 0;
     std::uint64_t sparse_embedding_add_calls = 0;
+    std::uint64_t unique_dense_add_candidates = 0;
+    std::uint64_t unique_dense_add_executed = 0;
     std::uint64_t added_elements = 0;
+    std::uint64_t unique_dense_add_elements = 0;
+    std::uint64_t unique_dense_add_executed_elements = 0;
     std::uint64_t materialized_elements = 0;
 };
 
@@ -37,6 +45,10 @@ void reset_gradient_accumulation_diagnostics() noexcept;
 // Research control for same-revision A/B. Production default is enabled.
 void enable_tied_embedding_sparse_add(bool enabled) noexcept;
 [[nodiscard]] bool tied_embedding_sparse_add_enabled() noexcept;
+// Research control for same-revision A/B. Only an exclusive, contiguous FP32
+// destination can take this path; shared graph gradients retain allocating add.
+void enable_unique_gradient_inplace_add(bool enabled) noexcept;
+[[nodiscard]] bool unique_gradient_inplace_add_enabled() noexcept;
 // Research control for same-revision Attention layout A/B. Production default
 // is enabled; disabling it restores the explicit transpose materializations.
 void enable_attention_rope_layout_fusion(bool enabled) noexcept;

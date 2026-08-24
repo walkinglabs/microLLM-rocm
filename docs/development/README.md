@@ -367,3 +367,5 @@ the next gate. Records are append-only except for factual corrections.
   ModelConfig/CLI format, mixed autograd and CPU/HIP Transformer gates.
 - [2026-08-21-divergent-row-cache-reference.md](2026-08-21-divergent-row-cache-reference.md):
   unequal-position shared-Storage B1 oracle with CPU/HIP and reset-prefix gates.
+- [2026-08-24-unique-gradient-inplace-add.md](2026-08-24-unique-gradient-inplace-add.md):
+  exclusive-owner accumulation, real allocation savings and a default-off model rebuttal.

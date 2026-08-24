@@ -98,6 +98,28 @@ An operator implementation must not infer ownership from a data pointer. Output,
 workspace, device, and execution stream are explicit. This allows the same HIP
 kernel to consume engine-owned or PyTorch-owned allocations.
 
+## Autograd accumulation ownership
+
+A gradient is not automatically safe to modify just because its `Tensor` object is local.
+Several graph nodes or views may still share the same `Storage`. The ordinary rule is therefore:
+
+```text
+first contribution  -> assign its Tensor
+later contribution  -> allocate add result
+```
+
+The experimental `add_in_place_` route is narrower. It requires FP32, equal shape/device,
+contiguous inputs, and exactly one persistent destination owner. The temporary owner used to
+inspect `Storage::use_count()` makes the accepted count two. A source alias or any saved graph
+view raises the count and restores allocating add. Partially overlapping public views are
+rejected explicitly; exact self-add is safe.
+
+Candidate and executed calls/elements are distinct diagnostics. Experiment 172 proves that
+Qwen/DeepSeek really have 72/84 eligible T512 destinations, but also proves that reusing them
+does not remove add Kernel or backend-allocation work after the exact-size cache. The production
+default is therefore false. This seam is evidence infrastructure for a future graph-wide
+liveness planner, not permission to mutate an arbitrary Tensor.
+
 ## Tensor N0 invariants
 
 - scalar shape `{}` contains one element;

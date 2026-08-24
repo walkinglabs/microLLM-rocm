@@ -6,6 +6,7 @@
 #include <microllm/autograd/autograd.h>
 #include <microllm/autograd/diagnostics.h>
 #include <microllm/ops/ops.h>
+#include <microllm/runtime/memory.h>
 
 namespace microllm::autograd {
 
@@ -152,11 +153,13 @@ TEST(AutogradTest, ZeroGradAndDetachAreExplicit) {
 }
 
 TEST(AutogradTest, RepeatedBackwardAccumulatesLeavesWithoutReusingIntermediateGradients) {
+    enable_unique_gradient_inplace_add(true);
     Value input(Tensor::from_vector({2}, {1}), true);
     const auto loss = sum(multiply(input, input));
     loss.backward();
     loss.backward();
     EXPECT_EQ(input.grad().to_vector(), (std::vector<float>{8}));
+    enable_unique_gradient_inplace_add(false);
 }
 
 TEST(AutogradTest, EmbeddingBackwardScattersAndAccumulatesRepeatedIndices) {
@@ -432,6 +435,54 @@ TEST(AutogradDiagnosticsTest, TiedEmbeddingUsesSparseAddAfterDenseHeadGradient) 
         EXPECT_NEAR(actual[index], dense_values[index], 1.0e-5F) << "index=" << index;
     }
     EXPECT_TRUE(tied_embedding_sparse_add_enabled());
+    reset_gradient_accumulation_diagnostics();
+}
+
+TEST(AutogradDiagnosticsTest, DenseAddEligibilityRequiresUniqueDestinationStorage) {
+    reset_gradient_accumulation_diagnostics();
+    enable_gradient_accumulation_diagnostics(true);
+    enable_unique_gradient_inplace_add(true);
+    runtime::reset_allocation_peak(Device::cpu());
+    Value unique_input(Tensor::from_vector({1, 2, 3}, {3}), true);
+    sum(add(scale(unique_input, 2.0F), scale(unique_input, 3.0F))).backward();
+    auto diagnostics = gradient_accumulation_diagnostics();
+    const auto inplace_allocations =
+        runtime::allocation_stats(Device::cpu()).allocation_calls;
+    EXPECT_EQ(unique_input.grad().to_vector(),
+              (std::vector<float>{5, 5, 5}));
+    EXPECT_EQ(diagnostics.add_calls, 1U);
+    EXPECT_EQ(diagnostics.unique_dense_add_candidates, 1U);
+    EXPECT_EQ(diagnostics.unique_dense_add_executed, 1U);
+    EXPECT_EQ(diagnostics.unique_dense_add_elements, 3U);
+    EXPECT_EQ(diagnostics.unique_dense_add_executed_elements, 3U);
+
+    reset_gradient_accumulation_diagnostics();
+    enable_unique_gradient_inplace_add(false);
+    runtime::reset_allocation_peak(Device::cpu());
+    Value allocating_input(Tensor::from_vector({1, 2, 3}, {3}), true);
+    sum(add(scale(allocating_input, 2.0F), scale(allocating_input, 3.0F))).backward();
+    diagnostics = gradient_accumulation_diagnostics();
+    const auto allocating_allocations =
+        runtime::allocation_stats(Device::cpu()).allocation_calls;
+    EXPECT_EQ(allocating_input.grad().to_vector(), unique_input.grad().to_vector());
+    EXPECT_EQ(diagnostics.unique_dense_add_candidates, 1U);
+    EXPECT_EQ(diagnostics.unique_dense_add_executed, 0U);
+    EXPECT_EQ(inplace_allocations + 1U, allocating_allocations);
+
+    reset_gradient_accumulation_diagnostics();
+    enable_unique_gradient_inplace_add(true);
+    Value shared_input(Tensor::from_vector({1, 2, 3}, {3}), true);
+    sum(add(shared_input, shared_input)).backward();
+    diagnostics = gradient_accumulation_diagnostics();
+    EXPECT_EQ(shared_input.grad().to_vector(), (std::vector<float>{2, 2, 2}));
+    EXPECT_EQ(diagnostics.add_calls, 1U);
+    EXPECT_EQ(diagnostics.unique_dense_add_candidates, 0U);
+    EXPECT_EQ(diagnostics.unique_dense_add_executed, 0U);
+    EXPECT_EQ(diagnostics.unique_dense_add_elements, 0U);
+    EXPECT_EQ(diagnostics.unique_dense_add_executed_elements, 0U);
+    enable_unique_gradient_inplace_add(false);
+    EXPECT_FALSE(unique_gradient_inplace_add_enabled());
+    enable_gradient_accumulation_diagnostics(false);
     reset_gradient_accumulation_diagnostics();
 }
 

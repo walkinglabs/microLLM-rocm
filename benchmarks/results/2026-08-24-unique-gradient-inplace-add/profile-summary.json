@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "workload": "qwen2.5-0.5b BF16-linear FP32-master B1 T512 load plus three training steps",
+  "policies": {
+    "allocating": {
+      "engine_allocation_calls": 5010,
+      "engine_backend_allocation_calls": 1027,
+      "engine_cache_reuse_calls": 3983,
+      "engine_peak_bytes": 11824424968,
+      "kernel_calls": 6905,
+      "kernel_duration_ns": 109190439,
+      "add_kernel_calls": 504,
+      "add_kernel_duration_ns": 2292494,
+      "hip_malloc_calls": 2071,
+      "hip_free_calls": 452
+    },
+    "inplace": {
+      "engine_allocation_calls": 4794,
+      "engine_backend_allocation_calls": 1027,
+      "engine_cache_reuse_calls": 3767,
+      "engine_peak_bytes": 11824424968,
+      "kernel_calls": 6905,
+      "kernel_duration_ns": 109877480,
+      "add_kernel_calls": 504,
+      "add_kernel_duration_ns": 2374050,
+      "hip_malloc_calls": 2071,
+      "hip_free_calls": 452
+    }
+  },
+  "delta": {
+    "engine_allocation_calls_saved": 216,
+    "engine_backend_allocation_calls_saved": 0,
+    "engine_cache_reuse_calls_saved": 216,
+    "engine_peak_bytes_saved": 0,
+    "kernel_calls_saved": 0,
+    "add_kernel_calls_saved": 0,
+    "hip_malloc_calls_saved": 0,
+    "hip_free_calls_saved": 0
+  },
+  "interpretation": "The candidate removes engine Tensor allocation bookkeeping served by the exact-size cache. It does not remove the add kernel, a backend allocation, or a HIP allocation/free API call."
+}
