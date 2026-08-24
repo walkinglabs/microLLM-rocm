@@ -441,6 +441,11 @@ adds every bound pointer. Registered T512 shapes pass both official models, whil
 non-Arena FFN and other shapes preserve the previous path exactly. No solution index is compiled
 into the default.
 
+Experiment 197 verifies independent ownership when grouped QKV and gate/up are active together.
+The registries and plan caches do not clear or shadow each other; both report exact per-block
+dispatch counts. QKV initialization also primes the grouped library path, reducing subsequent
+gate/up kernel setup below 0.25 ms. Combined setup is still reported as one serving lifecycle cost.
+
 ## Stable integration boundary
 
 The long-term integration seam is a C-compatible descriptor plus explicit stream

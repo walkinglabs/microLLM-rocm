@@ -420,3 +420,5 @@ the next gate. Records are append-only except for factual corrections.
   beginner-friendly grouped gate/up capability and stable-address requirement.
 - [2026-08-24-bf16-grouped-gate-up-model.md](2026-08-24-bf16-grouped-gate-up-model.md):
   beginner-friendly shared-kernel/per-block-plan integration and official model result.
+- [2026-08-24-bf16-grouped-composition.md](2026-08-24-bf16-grouped-composition.md):
+  beginner-friendly four-policy proof that the two grouped registries compose safely.

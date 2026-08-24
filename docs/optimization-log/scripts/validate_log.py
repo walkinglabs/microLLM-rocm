@@ -9494,6 +9494,141 @@ def validate_bf16_grouped_gate_up_model(
         max(speedups, default=0.0), calls_saved
 
 
+def validate_bf16_grouped_composition(
+        errors: list[str]) -> tuple[int, float, float, float]:
+    data = REPOSITORY / (
+        "benchmarks/results/2026-08-24-bf16-grouped-composition")
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = {row.get("model"): row
+                   for row in summary.get("comparisons", [])}
+    expected = {
+        "qwen2.5-0.5b": {
+            "tokens_per_second": {
+                "baseline": 93564.905499811,
+                "qkv": 97741.029187075,
+                "gate_up": 95217.886233595,
+                "both": 99689.599298434,
+            },
+            "speedup_vs_baseline": {
+                "baseline": 1.0,
+                "qkv": 1.0446334409782783,
+                "gate_up": 1.0176666745394976,
+                "both": 1.0654593061993247,
+            },
+            "both_vs_qkv_speedup": 1.0199360506796942,
+            "both_vs_gate_up_speedup": 1.0469629524632451,
+            "both_peak_ratio": 1.0034204551849573,
+            "qkv_kernel_setup_ms": 214.23376,
+            "gate_up_kernel_setup_ms": 0.248997,
+            "combined_kernel_setup_ms": 214.482757,
+            "maximum_absolute_logit_difference": 0.12031126022338867,
+            "maximum_rms_logit_difference": 0.029053766956449397,
+        },
+        "deepseek-r1-distill-qwen-1.5b": {
+            "tokens_per_second": {
+                "baseline": 50327.806036164,
+                "qkv": 51819.339564541,
+                "gate_up": 50917.050893164,
+                "both": 52710.931440045,
+            },
+            "speedup_vs_baseline": {
+                "baseline": 1.0,
+                "qkv": 1.0296363709418452,
+                "gate_up": 1.0117081371792083,
+                "both": 1.0473520622410712,
+            },
+            "both_vs_qkv_speedup": 1.01720577458139,
+            "both_vs_gate_up_speedup": 1.0352314306389228,
+            "both_peak_ratio": 1.001730065143681,
+            "qkv_kernel_setup_ms": 205.349409,
+            "gate_up_kernel_setup_ms": 0.239435,
+            "combined_kernel_setup_ms": 205.588844,
+            "maximum_absolute_logit_difference": 0.07199788093566895,
+            "maximum_rms_logit_difference": 0.012551317609247993,
+        },
+    }
+    expected_tests = {
+        "cpu_debug": {"passed": 304, "total": 304},
+        "asan_ubsan": {"passed": 302, "total": 302},
+        "pytorch_enabled_cpu": {"passed": 278, "total": 278},
+        "hip_full_configuration": {
+            "passed": 475, "total": 475, "conditional_skips": 3},
+        "hip_label": {"passed": 161, "total": 161},
+        "rccl_multi_gpu": {"passed": 12, "total": 12},
+        "rccl_full_label": {"passed": 14, "total": 14},
+    }
+    counts = {(name, policy): 0 for name in expected
+              for policy in ("baseline", "qkv", "gate_up", "both")}
+    for row in raw:
+        key = (row.get("model"), row.get("policy"))
+        if key in counts:
+            counts[key] += 1
+    evidence_changed = False
+    for name, values in expected.items():
+        row = comparisons.get(name, {})
+        if row.get("finite_complete_logits") is not True or \
+                row.get("top_tokens_equal") is not True:
+            evidence_changed = True
+            break
+        for mapping in ("tokens_per_second", "speedup_vs_baseline"):
+            if any(abs(float(row.get(mapping, {}).get(policy, 0.0)) - value)
+                   > 1.0e-6 for policy, value in
+                   values[mapping].items()):
+                evidence_changed = True
+                break
+        for field, value in values.items():
+            if isinstance(value, dict):
+                continue
+            if abs(float(row.get(field, 0.0)) - value) > 1.0e-6:
+                evidence_changed = True
+                break
+    if summary.get("status") != "pass" or len(raw) != 24 or \
+            summary.get("raw_processes") != 24 or \
+            summary.get("correctness_gate") is not True or \
+            summary.get("performance_gate") is not True or \
+            summary.get("memory_gate") is not True or \
+            summary.get("setup_gate") is not True or \
+            set(comparisons) != set(expected) or evidence_changed or \
+            any(count != 3 for count in counts.values()) or \
+            verification.get("status") != "pass" or \
+            verification.get("tests") != expected_tests or \
+            verification.get("registered_test_files") != 76 or \
+            verification.get("formal_processes") != 24 or \
+            verification.get("formal_comparisons") != 2 or \
+            any(verification.get(gate) is not True for gate in (
+                "correctness_gate", "performance_gate",
+                "memory_gate", "setup_gate")):
+        errors.append("BF16 grouped composition evidence changed")
+    runner = (REPOSITORY / "benchmarks/single_gpu/"
+              "compare_bf16_grouped_composition.py").read_text(
+                  encoding="utf-8")
+    contract = (REPOSITORY / "python/tests/"
+                "test_bf16_grouped_composition.py").read_text(
+                    encoding="utf-8")
+    for token, document in (
+            ("POLICIES = (\"baseline\", \"qkv\", \"gate_up\", \"both\")",
+             runner),
+            ("both_vs_qkv_speedup", runner),
+            ("bf16_grouped_qkv_dispatches", runner),
+            ("bf16_grouped_gate_up_dispatches", runner),
+            ("both_vs_qkv_speedup", contract)):
+        if token not in document:
+            errors.append("BF16 grouped composition runner/test contract changed")
+            break
+    both_ratios = [
+        float(row["speedup_vs_baseline"]["both"])
+        for row in comparisons.values()]
+    incremental = [
+        float(row["both_vs_qkv_speedup"])
+        for row in comparisons.values()]
+    return len(raw), min(both_ratios, default=0.0), \
+        max(both_ratios, default=0.0), min(incremental, default=0.0)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -9668,7 +9803,8 @@ def validate_assets(errors: list[str]) -> None:
                  "hipblaslt-preload.svg",
                  "bf16-exact-startup.svg",
                  "bf16-grouped-gate-up.svg",
-                 "bf16-grouped-gate-up-model.svg"):
+                 "bf16-grouped-gate-up-model.svg",
+                 "bf16-grouped-composition.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -10011,6 +10147,9 @@ def main() -> int:
     grouped_gate_up_model_rows, grouped_gate_up_model_minimum, \
         grouped_gate_up_model_maximum, grouped_gate_up_calls_saved = \
         validate_bf16_grouped_gate_up_model(errors)
+    grouped_composition_rows, grouped_composition_minimum, \
+        grouped_composition_maximum, grouped_composition_incremental = \
+        validate_bf16_grouped_composition(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -10299,6 +10438,10 @@ def main() -> int:
           f"{grouped_gate_up_model_minimum:.3f}/"
           f"{grouped_gate_up_model_maximum:.3f}/"
           f"{grouped_gate_up_calls_saved} "
+          f"bf16_grouped_composition={grouped_composition_rows}/"
+          f"{grouped_composition_minimum:.3f}/"
+          f"{grouped_composition_maximum:.3f}/"
+          f"{grouped_composition_incremental:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="560" viewBox="0 0 1000 560" role="img" aria-labelledby="title desc">
+  <title id="title">BF16 grouped QKV and gate/up composition</title>
+  <desc id="desc">Both grouped policies compose with additional throughput on Qwen and DeepSeek while preserving accuracy and memory gates.</desc>
+  <rect width="1000" height="560" fill="#0b1020"/>
+  <text x="55" y="48" fill="#f8fafc" font-family="sans-serif" font-size="28" font-weight="700">Experiment 197 · two grouped policies compose</text>
+  <text x="55" y="78" fill="#94a3b8" font-family="sans-serif" font-size="15">T512 · median of 3 fresh processes per policy · throughput normalized to baseline</text>
+
+  <text x="55" y="135" fill="#e2e8f0" font-family="sans-serif" font-size="20" font-weight="700">Qwen</text>
+  <rect x="220" y="155" width="600" height="28" rx="6" fill="#475569"/>
+  <rect x="220" y="195" width="627" height="28" rx="6" fill="#a78bfa"/>
+  <rect x="220" y="235" width="611" height="28" rx="6" fill="#22d3ee"/>
+  <rect x="220" y="275" width="639" height="28" rx="6" fill="#34d399"/>
+  <text x="55" y="176" fill="#cbd5e1" font-family="sans-serif" font-size="14">baseline</text>
+  <text x="55" y="216" fill="#cbd5e1" font-family="sans-serif" font-size="14">QKV</text>
+  <text x="55" y="256" fill="#cbd5e1" font-family="sans-serif" font-size="14">gate/up</text>
+  <text x="55" y="296" fill="#cbd5e1" font-family="sans-serif" font-size="14">both</text>
+  <text x="872" y="296" fill="#a7f3d0" font-family="monospace" font-size="15">1.0655×</text>
+
+  <text x="55" y="358" fill="#e2e8f0" font-family="sans-serif" font-size="20" font-weight="700">DeepSeek</text>
+  <rect x="220" y="378" width="600" height="28" rx="6" fill="#475569"/>
+  <rect x="220" y="418" width="618" height="28" rx="6" fill="#a78bfa"/>
+  <rect x="220" y="458" width="607" height="28" rx="6" fill="#22d3ee"/>
+  <rect x="220" y="498" width="628" height="28" rx="6" fill="#34d399"/>
+  <text x="55" y="399" fill="#cbd5e1" font-family="sans-serif" font-size="14">baseline</text>
+  <text x="55" y="439" fill="#cbd5e1" font-family="sans-serif" font-size="14">QKV</text>
+  <text x="55" y="479" fill="#cbd5e1" font-family="sans-serif" font-size="14">gate/up</text>
+  <text x="55" y="519" fill="#cbd5e1" font-family="sans-serif" font-size="14">both</text>
+  <text x="861" y="519" fill="#a7f3d0" font-family="monospace" font-size="15">1.0474×</text>
+
+  <text x="55" y="550" fill="#94a3b8" font-family="sans-serif" font-size="13">Both/QKV incremental: 1.0199× / 1.0172× · explicit measured policy only</text>
+</svg>

@@ -1,0 +1,81 @@
+{
+  "comparisons": [
+    {
+      "both_peak_ratio": 1.0034204551849573,
+      "both_vs_gate_up_speedup": 1.0469629524632451,
+      "both_vs_qkv_speedup": 1.0199360506796942,
+      "combined_kernel_setup_ms": 214.482757,
+      "finite_complete_logits": true,
+      "gate_up_kernel_setup_ms": 0.248997,
+      "gate_up_solution_index": 65168,
+      "maximum_absolute_logit_difference": 0.12031126022338867,
+      "maximum_rms_logit_difference": 0.029053766956449397,
+      "model": "qwen2.5-0.5b",
+      "peak_bytes": {
+        "baseline": 1310108672,
+        "both": 1314589840,
+        "gate_up": 1310118560,
+        "qkv": 1314579952
+      },
+      "qkv_kernel_setup_ms": 214.23376,
+      "qkv_solution_index": 64713,
+      "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+      "speedup_vs_baseline": {
+        "baseline": 1.0,
+        "both": 1.0654593061993247,
+        "gate_up": 1.0176666745394976,
+        "qkv": 1.0446334409782783
+      },
+      "tokens_per_second": {
+        "baseline": 93564.905499811,
+        "both": 99689.599298434,
+        "gate_up": 95217.886233595,
+        "qkv": 97741.029187075
+      },
+      "top_tokens_equal": true
+    },
+    {
+      "both_peak_ratio": 1.001730065143681,
+      "both_vs_gate_up_speedup": 1.0352314306389228,
+      "both_vs_qkv_speedup": 1.01720577458139,
+      "combined_kernel_setup_ms": 205.588844,
+      "finite_complete_logits": true,
+      "gate_up_kernel_setup_ms": 0.239435,
+      "gate_up_solution_index": 65200,
+      "maximum_absolute_logit_difference": 0.07199788093566895,
+      "maximum_rms_logit_difference": 0.012551317609247993,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "peak_bytes": {
+        "baseline": 4562232832,
+        "both": 4570125792,
+        "gate_up": 4562244288,
+        "qkv": 4570114336
+      },
+      "qkv_kernel_setup_ms": 205.349409,
+      "qkv_solution_index": 64755,
+      "revision": "ad9f0ae0864d7fbcd1cd905e3c6c5b069cc8b562",
+      "speedup_vs_baseline": {
+        "baseline": 1.0,
+        "both": 1.0473520622410712,
+        "gate_up": 1.0117081371792083,
+        "qkv": 1.0296363709418452
+      },
+      "tokens_per_second": {
+        "baseline": 50327.806036164,
+        "both": 52710.931440045,
+        "gate_up": 50917.050893164,
+        "qkv": 51819.339564541
+      },
+      "top_tokens_equal": true
+    }
+  ],
+  "correctness_gate": true,
+  "decision": "keep explicit composed grouped policy",
+  "memory_gate": true,
+  "performance_gate": true,
+  "raw_processes": 24,
+  "record_type": "bf16_grouped_composition_summary",
+  "schema_version": 1,
+  "setup_gate": true,
+  "status": "pass"
+}

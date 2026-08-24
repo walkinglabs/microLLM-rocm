@@ -273,6 +273,13 @@ per block and improves GEMM time 1.035×/1.020×; instrumented DeepSeek total Ke
 0.998× counterexample. The explicit exact policy is retained. Version-local defaults, non-Arena
 routing and unmeasured short/batch shapes remain closed.
 
+Experiment 197 proves the two exact grouped families compose rather than shadow each other.
+Both/base reaches 1.0655×/1.0474× and both/QKV adds 1.0199×/1.0172× in 24 fresh processes;
+each enabled registry reports its exact dispatch count and disabled sides report zero. Peak ratios
+are 1.00342×/1.00173× and complete BF16/top-1 gates pass. QKV initialization amortizes gate/up
+kernel setup to below 0.25 ms, but combined setup remains 214.5/205.6 ms. Explicit T512
+composition is retained; broader shape policy and one-shot defaults remain open/disabled.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

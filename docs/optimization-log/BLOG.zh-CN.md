@@ -3330,3 +3330,17 @@ phase delta也准确少24/28次GEMM提交，GEMM时间改善1.035×/1.020×。�
 短shape也不会偷偷建立无法复用的plan。
 
 ![Grouped gate/up model gate](assets/bf16-grouped-gate-up-model.svg)
+
+## 214. Experiment 197：两个优化都命中，收益还能继续相加
+
+两个registry一起开可能互相清理、只命中一个，或者两个Arena让peak越界。我们因此用四策略而不是
+只测before/after：baseline、QKV-only、gate/up-only、both，每个模型各三进程。
+
+Qwen both/base为1.0655×，DeepSeek为1.0474×；相对QKV-only还能增加1.0199×/1.0172×。
+每个打开的策略都准确dispatch 168/196次，关闭侧为0。24个完整输出top-1相同，Max/RMS和peak
+继续过门。
+
+组合还有一个setup交互：QKV先初始化后，gate/up shared kernel只花0.249/0.239ms；但QKV本身仍
+让combined setup达到214.5/205.6ms。所以组合keep为显式warmed策略，不会偷换one-shot默认。
+
+![Grouped policy composition](assets/bf16-grouped-composition.svg)

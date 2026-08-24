@@ -202,6 +202,10 @@ Grouped gate/up是steady策略，不是启动策略。只有BF16 FFN Arena已开
 精确匹配且显式注册solution时才运行。服务可以在开放admission前用一次真实shape warm-up建立
 每block plan；必须单独报告约57ms shared kernel setup，不能把它藏进TTFT口径。
 
+同时启用Grouped QKV和gate/up时，先做QKV prewarm。实测这会把随后gate/up kernel setup降到
+0.25ms以内；第一个完整dummy forward再建立gate/up的每block arguments。ready状态必须检查
+两个registry和两个plan集合，不能只看其中一个已经warm。
+
 ## 9. 测试位置
 
 ```text

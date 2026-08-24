@@ -406,6 +406,11 @@ phase profile uses profile_step_delta.py with inference_prefill_kernel_phase_del
 GEMM submission disappears per Transformer block. Use uninstrumented repeated processes for the
 throughput decision; retain any opposite profiler total as a counterexample.
 
+Use compare_bf16_grouped_composition.py for interaction testing. It rotates baseline, QKV,
+gate/up and both, requires both dispatch counters in combined processes, and reports both/base plus
+both/QKV incremental speedup. A combination is not accepted merely because its absolute throughput
+is highest; it must add measured value over the stronger individual policy.
+
 ## What remains
 
 There is no Python `@profile` decorator yet. The current stable entry points are the
