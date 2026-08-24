@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "track": "training_bf16_shared_activation",
+  "decision": "reject every model route; retain tested primitives",
+  "context": 512,
+  "warmup": 1,
+  "steps": 2,
+  "performance_processes": 56,
+  "comparisons": [
+    {
+      "policy": "qkv_and_gate_up",
+      "runs_per_model_policy": 5,
+      "qwen_throughput_speedup": 1.006565763534787,
+      "deepseek_throughput_speedup": 1.01785775609995,
+      "performance_gate": false
+    },
+    {
+      "policy": "qkv_only",
+      "runs_per_model_policy": 3,
+      "qwen_throughput_speedup": 0.9803539130333282,
+      "deepseek_throughput_speedup": 1.0039012894758361,
+      "performance_gate": false
+    },
+    {
+      "policy": "gate_up_only",
+      "runs_per_model_policy": 3,
+      "qwen_throughput_speedup": 0.9911111455053325,
+      "deepseek_throughput_speedup": 1.001191424062445,
+      "performance_gate": false
+    }
+  ],
+  "gates": {
+    "throughput_ratio_minimum_each_model": 1.01,
+    "complete_state_correctness": true,
+    "pytorch_oracle": true,
+    "device_native": true,
+    "peak_nonincrease": true,
+    "performance": false
+  }
+}

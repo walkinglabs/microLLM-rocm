@@ -90,6 +90,10 @@ void emit_forward_cases() {
         {0.25F, -0.5F, 1.0F, 0.75F, -1.25F, 0.5F, 0.125F, -0.875F},
         {4, 2}, DType::BFloat16);
     emit("bf16_ffn", bf16_ffn(matrix_left, ffn_gate, ffn_up, ffn_down));
+    const auto gate_up = bf16_gate_up_projection(
+        matrix_left, ffn_gate, ffn_up);
+    emit("bf16_gate_up_gate", gate_up.first);
+    emit("bf16_gate_up_up", gate_up.second);
     const auto qkv = bf16_qkv_projection(
         matrix_left, cast(matrix_right, DType::BFloat16),
         Tensor::from_vector({0.5F, -1.0F, 0.25F}, {3, 1}, DType::BFloat16),
@@ -280,6 +284,46 @@ void emit_graph_gradient_cases() {
     sum(multiply(bf16_output, bf16_seed)).backward();
     emit("graph_bf16_matmul_left_grad", bf16_left.grad());
     emit("graph_bf16_matmul_right_grad", bf16_right.grad());
+
+    Value shared_input(f32({1, -2, 3, 0.5F, 2, -1}, {2, 3}), true);
+    Value shared_gate(f32({1, 0.5F, -1, 2, 0.25F, -0.75F}, {3, 2}), true);
+    Value shared_up(f32({-0.5F, 1.5F, 2, -1, 0.75F, 0.25F}, {3, 2}), true);
+    const auto shared_gate_mirror = shared_gate.data().cast(DType::BFloat16);
+    const auto shared_up_mirror = shared_up.data().cast(DType::BFloat16);
+    const auto shared_pair = bf16_gate_up_projection(
+        shared_input, shared_gate, shared_gate_mirror,
+        shared_up, shared_up_mirror);
+    emit("graph_bf16_gate_up_gate", shared_pair.first.data());
+    emit("graph_bf16_gate_up_up", shared_pair.second.data());
+    const Value shared_gate_seed(f32({1, -2, 0.5F, 3}, {2, 2}));
+    const Value shared_up_seed(f32({-1, 0.25F, 2, -0.5F}, {2, 2}));
+    add(sum(multiply(shared_pair.first, shared_gate_seed)),
+        sum(multiply(shared_pair.second, shared_up_seed))).backward();
+    emit("graph_bf16_gate_up_input_grad", shared_input.grad());
+    emit("graph_bf16_gate_up_gate_grad", shared_gate.grad());
+    emit("graph_bf16_gate_up_up_grad", shared_up.grad());
+
+    Value shared_query(f32({1, 0.5F, -1, 2, 0.25F, -0.75F}, {3, 2}), true);
+    Value shared_key(f32({1, -0.5F, 2}, {3, 1}), true);
+    Value shared_value(f32({-1, 0.25F, 0.5F}, {3, 1}), true);
+    Value shared_qkv_input(f32({1, -2, 3, 0.5F, 2, -1}, {2, 3}), true);
+    const auto shared_qkv = bf16_qkv_projection(
+        shared_qkv_input, shared_query,
+        shared_query.data().cast(DType::BFloat16), shared_key,
+        shared_key.data().cast(DType::BFloat16), shared_value,
+        shared_value.data().cast(DType::BFloat16));
+    emit("graph_bf16_qkv_query", shared_qkv.first.data());
+    emit("graph_bf16_qkv_key", shared_qkv.second.data());
+    emit("graph_bf16_qkv_value", shared_qkv.third.data());
+    const Value shared_key_seed(f32({1.5F, -2}, {2, 1}));
+    const Value shared_value_seed(f32({-0.25F, 3}, {2, 1}));
+    add(add(sum(multiply(shared_qkv.first, shared_gate_seed)),
+            sum(multiply(shared_qkv.second, shared_key_seed))),
+        sum(multiply(shared_qkv.third, shared_value_seed))).backward();
+    emit("graph_bf16_qkv_input_grad", shared_qkv_input.grad());
+    emit("graph_bf16_qkv_query_grad", shared_query.grad());
+    emit("graph_bf16_qkv_key_grad", shared_key.grad());
+    emit("graph_bf16_qkv_value_grad", shared_value.grad());
 
     Value fused_rope_input(f32(
         {1, 2, 3, 4, 5, 6, 7, 8,
@@ -484,6 +528,12 @@ void emit_invalid_shape_cases() {
                   const auto bf16 = matrix.cast(DType::BFloat16);
                   (void)bf16_qkv_projection(matrix, bf16, bf16,
                                              Tensor({3, 1}, DType::BFloat16));
+              }));
+    emit_bool("invalid_bf16_gate_up_shape", rejected([&] {
+                  const auto bf16 = matrix.cast(DType::BFloat16);
+                  (void)bf16_gate_up_projection(
+                      matrix, bf16,
+                      Tensor({3, 2}, DType::BFloat16));
               }));
     emit_bool("invalid_embedding_weight", rejected([&] {
                   (void)embedding(vector, Tensor::from_int32_vector({0}, {1}));

@@ -96,6 +96,20 @@ int main() {
     microllm::ops::bf16_ffn_out_(
         bf16_output, bf16_workspace, bf16_input, bf16_gate_weight,
         bf16_up_weight, bf16_down_weight);
+    const auto bf16_gate_up = microllm::ops::bf16_gate_up_projection(
+        bf16_input, bf16_gate_weight, bf16_up_weight);
+    microllm::autograd::Value shared_input(bf16_input, true);
+    microllm::autograd::Value shared_gate(
+        bf16_gate_weight.cast(microllm::DType::Float32), true);
+    microllm::autograd::Value shared_up(
+        bf16_up_weight.cast(microllm::DType::Float32), true);
+    const auto shared_gate_up =
+        microllm::autograd::bf16_gate_up_projection(
+            shared_input, shared_gate, bf16_gate_weight,
+            shared_up, bf16_up_weight);
+    const auto shared_qkv = microllm::autograd::bf16_qkv_projection(
+        shared_input, shared_gate, bf16_gate_weight, shared_up,
+        bf16_up_weight, shared_gate, bf16_gate_weight);
     const auto bias_result = microllm::ops::bias_gradient_with_implementation(
         bias_input, microllm::ops::BiasGradientImplementation::ScalarColumns);
     auto embedding_gradient = microllm::Tensor::from_vector(
@@ -258,6 +272,9 @@ int main() {
         !microllm::autograd::attention_rope_layout_fusion_enabled() ||
         microllm::autograd::unique_gradient_inplace_add_enabled() ||
         native_copy_destination != native_copy_source ||
+        bf16_gate_up.first.shape() != microllm::Shape({1, 2}) ||
+        shared_gate_up.first.data().shape() != microllm::Shape({1, 2}) ||
+        shared_qkv.third.data().shape() != microllm::Shape({1, 2}) ||
         multi_adamw_stats.tensors != 0 ||
         !rejected_cpu_tuning || !rejected_cpu_adamw_tuning ||
         !rejected_cpu_softmax_candidate ||

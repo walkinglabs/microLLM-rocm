@@ -136,6 +136,13 @@ CPU reuse by a completion Event. This turns many parameter launches into one wit
 that addresses are stable. Experiment 211 retains the primitive but rejects the training/CLI
 route because DeepSeek reaches only 1.0094× against a 1.01× gate.
 
+Shared BF16 projection primitives make one forward cast feed two gate/up GEMMs or three QKV
+GEMMs. They do not merge Autograd identities: every output remains a node with the shared input
+and its own FP32 master weight as parents. Backward therefore preserves the ordinary per-weight
+gradient and accumulates two or three input contributions. Experiment 212 proves the outputs and
+gradients on CPU, HIP and PyTorch, then rejects all eager-model routes after combined and isolated
+official-model gates fail.
+
 ## Tensor N0 invariants
 
 - scalar shape `{}` contains one element;

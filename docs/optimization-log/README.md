@@ -786,6 +786,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/210-training-add-rms-norm-fusion-discard.md](experiments/210-training-add-rms-norm-fusion-discard.md) | 分支梯度完整对齐与两模型拒绝门 |
 | [assets/multi-tensor-adamw-discard.svg](assets/multi-tensor-adamw-discard.svg) | 290/339次AdamW启动合一与DeepSeek带宽反例 |
 | [experiments/211-multi-tensor-adamw-discard.md](experiments/211-multi-tensor-adamw-discard.md) | pinned异步metadata、五进程模型门与隔离profile |
+| [assets/training-bf16-shared-activation-discard.svg](assets/training-bf16-shared-activation-discard.svg) | 共享cast的三策略模型反例与结构命中 |
+| [experiments/212-training-bf16-shared-activation-discard.md](experiments/212-training-bf16-shared-activation-discard.md) | 56进程、双模型profile与多输出梯度门 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

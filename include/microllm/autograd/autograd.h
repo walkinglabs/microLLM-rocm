@@ -10,6 +10,8 @@
 
 namespace microllm::autograd {
 
+struct ValueTriple;
+
 struct GraphNodeInfo {
     std::size_t id = 0;
     std::string operation;
@@ -60,6 +62,12 @@ private:
                             DType);
     friend Value bf16_matmul(const Value&, const Value&);
     friend Value bf16_matmul(const Value&, const Value&, const Tensor&);
+    friend std::pair<Value, Value> bf16_gate_up_projection(
+        const Value&, const Value&, const Tensor&, const Value&,
+        const Tensor&);
+    friend ValueTriple bf16_qkv_projection(
+        const Value&, const Value&, const Tensor&, const Value&,
+        const Tensor&, const Value&, const Tensor&);
     friend Value sum(const Value&);
     friend Value mean(const Value&);
     friend Value reshape(const Value&, Shape);
@@ -87,6 +95,12 @@ private:
     friend GraphSnapshot inspect_graph(const Value&);
 };
 
+struct ValueTriple {
+    Value first;
+    Value second;
+    Value third;
+};
+
 [[nodiscard]] Value add(const Value& left, const Value& right);
 [[nodiscard]] Value add_bias(const Value& input, const Value& bias);
 [[nodiscard]] Value multiply(const Value& left, const Value& right);
@@ -106,6 +120,15 @@ private:
 // Uses a caller-owned BF16 mirror for forward while gradients target the FP32 master.
 [[nodiscard]] Value bf16_matmul(const Value& left, const Value& right_master,
                                 const Tensor& right_bf16_mirror);
+[[nodiscard]] std::pair<Value, Value> bf16_gate_up_projection(
+    const Value& input, const Value& gate_master,
+    const Tensor& gate_bf16_mirror, const Value& up_master,
+    const Tensor& up_bf16_mirror);
+[[nodiscard]] ValueTriple bf16_qkv_projection(
+    const Value& input, const Value& query_master,
+    const Tensor& query_bf16_mirror, const Value& key_master,
+    const Tensor& key_bf16_mirror, const Value& value_master,
+    const Tensor& value_bf16_mirror);
 [[nodiscard]] Value sum(const Value& input);
 [[nodiscard]] Value mean(const Value& input);
 [[nodiscard]] Value reshape(const Value& input, Shape shape);

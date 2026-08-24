@@ -324,9 +324,6 @@ def validate_bf16_training_qkv(errors: list[str]) -> int:
     ratios = [row["speedup_vs_bf16_independent_linears"] for row in summary.get("rows", [])]
     if len(ratios) == 2 and math.prod(ratios) ** 0.5 >= 1.0:
         errors.append("BF16 training QKV discard boundary changed")
-    if "bf16_qkv_projection" in (REPOSITORY / "include" / "microllm" /
-                                  "autograd" / "autograd.h").read_text(encoding="utf-8"):
-        errors.append("discarded BF16 training QKV graph API remains in public header")
     return len(records)
 
 
@@ -10912,6 +10909,124 @@ def validate_multi_tensor_adamw_discard(
     return len(raw), min(ratios), max(ratios), 864, 1014
 
 
+def validate_training_bf16_shared_activation_discard(
+        errors: list[str]) -> tuple[int, float, float, int, int]:
+    data = REPOSITORY / (
+        "benchmarks/results/2026-08-24-training-bf16-shared-activation")
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    profile = json.loads((data / "profile-summary.json").read_text(
+        encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw_files = {
+        "combined_pilot": "combined-pilot-training.jsonl",
+        "combined_formal": "combined-formal-training.jsonl",
+        "qkv": "qkv-training.jsonl",
+        "gate_up": "gate-up-training.jsonl",
+    }
+    raw_counts = {
+        name: len([line for line in (data / filename).read_text(
+            encoding="utf-8").splitlines() if line.strip()])
+        for name, filename in raw_files.items()
+    }
+    rows = {row.get("policy"): row
+            for row in summary.get("comparisons", [])}
+    expected = {
+        "qkv_and_gate_up": (1.006565763534787, 1.01785775609995, 5),
+        "qkv_only": (0.9803539130333282, 1.0039012894758361, 3),
+        "gate_up_only": (0.9911111455053325, 1.001191424062445, 3),
+    }
+    profile_rows = {row.get("model"): row
+                    for row in profile.get("models", [])}
+    profile_expected = {
+        "qwen2.5-0.5b":
+            (6903, 6687, 672, 456, 216, 1.455955449123831,
+             1.0115539291680526),
+        "deepseek-r1-distill-qwen-1.5b":
+            (8056, 7804, 788, 536, 252, 1.4314166517077982,
+             1.00953522758909),
+    }
+    profile_changed = set(profile_rows) != set(profile_expected)
+    if not profile_changed:
+        for model, values in profile_expected.items():
+            row = profile_rows[model]
+            actual = (
+                row["separate"]["all_kernel_calls"],
+                row["shared"]["all_kernel_calls"],
+                row["separate"]["fp32_to_bf16_cast_calls"],
+                row["shared"]["fp32_to_bf16_cast_calls"],
+                row["cast_calls_removed"], row["cast_kernel_speedup"],
+                row["all_kernel_speedup"],
+            )
+            if any(abs(float(left) - float(right)) > 1.0e-9
+                   for left, right in zip(actual, values, strict=True)):
+                profile_changed = True
+                break
+    expected_tests = {
+        "cpu_debug": {"passed": 318, "total": 318},
+        "asan_ubsan": {"passed": 316, "total": 316},
+        "pytorch_enabled_cpu": {"passed": 292, "total": 292},
+        "hip_full_configuration": {
+            "passed": 498, "total": 498, "conditional_skips": 3},
+        "hip_label": {"passed": 169, "total": 169},
+        "rccl_multi_gpu": {"passed": 12, "total": 12},
+        "rccl_full_label": {"passed": 14, "total": 14},
+    }
+    if summary.get("status") != "pass" or \
+            summary.get("performance_processes") != 56 or \
+            summary.get("decision") != \
+                "reject every model route; retain tested primitives" or \
+            raw_counts != {"combined_pilot": 12, "combined_formal": 20,
+                           "qkv": 12, "gate_up": 12} or \
+            set(rows) != set(expected) or \
+            any(abs(float(rows[name].get("qwen_throughput_speedup", 0.0)) -
+                    values[0]) > 1.0e-12 or
+                abs(float(rows[name].get("deepseek_throughput_speedup", 0.0)) -
+                    values[1]) > 1.0e-12 or
+                rows[name].get("runs_per_model_policy") != values[2] or
+                rows[name].get("performance_gate") is not False
+                for name, values in expected.items()) or profile_changed or \
+            verification.get("status") != "pass" or \
+            verification.get("model_routes_retained") != 0 or \
+            verification.get("registered_test_files") != 86 or \
+            verification.get("combined_pilot_processes") != 12 or \
+            verification.get("combined_formal_processes") != 20 or \
+            verification.get("qkv_isolation_processes") != 12 or \
+            verification.get("gate_up_isolation_processes") != 12 or \
+            verification.get("coverage") != {
+                "lines_percent": 80.0,
+                "functions_percent": 87.8,
+                "branches_percent": 60.5} or \
+            verification.get("tests") != expected_tests:
+        errors.append("training BF16 shared-activation evidence changed")
+    ops_header = (REPOSITORY / "include/microllm/ops/ops.h").read_text(
+        encoding="utf-8")
+    autograd_header = (REPOSITORY / "include/microllm/autograd/autograd.h").read_text(
+        encoding="utf-8")
+    graph_test = (REPOSITORY / "tests/graph/graph_gradient_alignment_test.cpp").read_text(
+        encoding="utf-8")
+    hip_test = (REPOSITORY / "tests/graph/hip_graph_alignment_test.cpp").read_text(
+        encoding="utf-8")
+    for token, document in (
+            ("bf16_gate_up_projection", ops_header),
+            ("ValueTriple bf16_qkv_projection", autograd_header),
+            ("SharedBf16ProjectionCastsMatchComposedOutputsAndAllGradients",
+             graph_test),
+            ("SharedBf16ProjectionCastsMatchCpuAndStayDeviceNative", hip_test)):
+        if token not in document:
+            errors.append("training BF16 shared-activation source/test contract changed")
+            break
+    route_sources = "\n".join((
+        (REPOSITORY / "src/model/model.cpp").read_text(encoding="utf-8"),
+        (REPOSITORY / "apps/hf_train_step.cpp").read_text(encoding="utf-8"),
+        (REPOSITORY / "include/microllm/autograd/diagnostics.h").read_text(
+            encoding="utf-8")))
+    if "training_bf16_shared" in route_sources:
+        errors.append("rejected training BF16 shared-activation route returned")
+    ratios = [value for row in expected.values() for value in row[:2]]
+    return 56, min(ratios), max(ratios), 216, 252
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -11101,7 +11216,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-repeat-fusion-discard.svg",
                  "post-bf16-qk-saturation.svg",
                  "training-add-rms-norm-discard.svg",
-                 "multi-tensor-adamw-discard.svg"):
+                 "multi-tensor-adamw-discard.svg",
+                 "training-bf16-shared-activation-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -11484,6 +11600,9 @@ def main() -> int:
     multi_adamw_rows, multi_adamw_minimum, multi_adamw_maximum, \
         multi_adamw_qwen_calls, multi_adamw_deep_calls = \
         validate_multi_tensor_adamw_discard(errors)
+    shared_bf16_rows, shared_bf16_minimum, shared_bf16_maximum, \
+        shared_bf16_qwen_casts, shared_bf16_deep_casts = \
+        validate_training_bf16_shared_activation_discard(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -11817,6 +11936,9 @@ def main() -> int:
           f"multi_tensor_adamw={multi_adamw_rows}/"
           f"{multi_adamw_minimum:.3f}/{multi_adamw_maximum:.3f}/"
           f"{multi_adamw_qwen_calls}/{multi_adamw_deep_calls} "
+          f"training_bf16_shared={shared_bf16_rows}/"
+          f"{shared_bf16_minimum:.3f}/{shared_bf16_maximum:.3f}/"
+          f"{shared_bf16_qwen_casts}/{shared_bf16_deep_casts} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

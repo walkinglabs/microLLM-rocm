@@ -223,6 +223,7 @@ bool attention_context_layout_fusion_enabled() noexcept {
     return attention_context_layout_fusion;
 }
 
+
 Value::Value(Tensor data, bool requires_grad) : node_(std::make_shared<Node>()) {
     if (!data.defined()) throw std::invalid_argument("autograd Value data must be defined");
     if (requires_grad && data.dtype() != DType::Float32) {
@@ -515,6 +516,96 @@ Value bf16_matmul(const Value& left, const Value& right_master,
                                                     true, false),
                                     "bf16_matmul_right");
                      });
+}
+
+std::pair<Value, Value> bf16_gate_up_projection(
+    const Value& input, const Value& gate_master,
+    const Tensor& gate_bf16_mirror, const Value& up_master,
+    const Tensor& up_bf16_mirror) {
+    require_value(input, "input");
+    require_value(gate_master, "gate_master");
+    require_value(up_master, "up_master");
+    auto input_node = input.node_;
+    auto gate_node = gate_master.node_;
+    auto up_node = up_master.node_;
+    profiling::TraceTimer timer(
+        profiling::TraceKind::Operator, "bf16_gate_up_projection",
+        input.data().device());
+    auto outputs = ops::bf16_gate_up_projection(
+        input.data(), gate_bf16_mirror, up_bf16_mirror,
+        {.mode = ops::OpMode::Training});
+    timer.finish(outputs.second);
+    const auto make_output = [&](const char* name, Tensor output,
+                                 const std::shared_ptr<Value::Node>& weight) {
+        return operation(
+            name, std::move(output), {input_node, weight},
+            [input_node, weight](const Tensor& gradient) {
+                accumulate(
+                    input_node,
+                    ops::matmul_with_implementation(
+                        gradient, weight->data,
+                        ops::MatmulImplementation::Auto, false, true));
+                accumulate(
+                    weight,
+                    ops::matmul_with_implementation(
+                        input_node->data, gradient,
+                        ops::MatmulImplementation::Auto, true, false),
+                    "bf16_shared_projection_right");
+            });
+    };
+    return {
+        make_output("bf16_gate_projection", std::move(outputs.first),
+                    gate_node),
+        make_output("bf16_up_projection", std::move(outputs.second), up_node),
+    };
+}
+
+ValueTriple bf16_qkv_projection(
+    const Value& input, const Value& query_master,
+    const Tensor& query_bf16_mirror, const Value& key_master,
+    const Tensor& key_bf16_mirror, const Value& value_master,
+    const Tensor& value_bf16_mirror) {
+    require_value(input, "input");
+    require_value(query_master, "query_master");
+    require_value(key_master, "key_master");
+    require_value(value_master, "value_master");
+    auto input_node = input.node_;
+    auto query_node = query_master.node_;
+    auto key_node = key_master.node_;
+    auto value_node = value_master.node_;
+    profiling::TraceTimer timer(
+        profiling::TraceKind::Operator, "bf16_qkv_projection",
+        input.data().device());
+    auto outputs = ops::bf16_qkv_projection(
+        input.data(), query_bf16_mirror, key_bf16_mirror,
+        value_bf16_mirror, {.mode = ops::OpMode::Training});
+    timer.finish(outputs.third);
+    const auto make_output = [&](const char* name, Tensor output,
+                                 const std::shared_ptr<Value::Node>& weight) {
+        return operation(
+            name, std::move(output), {input_node, weight},
+            [input_node, weight](const Tensor& gradient) {
+                accumulate(
+                    input_node,
+                    ops::matmul_with_implementation(
+                        gradient, weight->data,
+                        ops::MatmulImplementation::Auto, false, true));
+                accumulate(
+                    weight,
+                    ops::matmul_with_implementation(
+                        input_node->data, gradient,
+                        ops::MatmulImplementation::Auto, true, false),
+                    "bf16_shared_projection_right");
+            });
+    };
+    return {
+        make_output("bf16_query_projection", std::move(outputs.first),
+                    query_node),
+        make_output("bf16_key_projection", std::move(outputs.second),
+                    key_node),
+        make_output("bf16_value_projection", std::move(outputs.third),
+                    value_node),
+    };
 }
 
 Value sum(const Value& input) {

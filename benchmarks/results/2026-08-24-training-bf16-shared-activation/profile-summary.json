@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "device": "AMD Instinct MI300X VF",
+  "architecture": "gfx942:sramecc+:xnack-",
+  "context": 512,
+  "warmup": 1,
+  "steps": 2,
+  "models": [
+    {
+      "model": "qwen2.5-0.5b",
+      "separate": {
+        "all_kernel_calls": 6903,
+        "all_kernel_time_ns": 109915630,
+        "fp32_to_bf16_cast_calls": 672,
+        "fp32_to_bf16_cast_time_ns": 4051627
+      },
+      "shared": {
+        "all_kernel_calls": 6687,
+        "all_kernel_time_ns": 108660178,
+        "fp32_to_bf16_cast_calls": 456,
+        "fp32_to_bf16_cast_time_ns": 2782796
+      },
+      "cast_calls_removed": 216,
+      "cast_kernel_speedup": 1.455955449123831,
+      "all_kernel_speedup": 1.0115539291680526
+    },
+    {
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "separate": {
+        "all_kernel_calls": 8056,
+        "all_kernel_time_ns": 264278474,
+        "fp32_to_bf16_cast_calls": 788,
+        "fp32_to_bf16_cast_time_ns": 9265998
+      },
+      "shared": {
+        "all_kernel_calls": 7804,
+        "all_kernel_time_ns": 261782320,
+        "fp32_to_bf16_cast_calls": 536,
+        "fp32_to_bf16_cast_time_ns": 6473306
+      },
+      "cast_calls_removed": 252,
+      "cast_kernel_speedup": 1.4314166517077982,
+      "all_kernel_speedup": 1.00953522758909
+    }
+  ]
+}

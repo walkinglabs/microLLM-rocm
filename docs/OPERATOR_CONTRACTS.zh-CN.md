@@ -80,6 +80,8 @@
 | `multiply` | 两输入同 shape | `g*right` 与 `g*left` |
 | `scale` | shape 不变 | 梯度乘 scalar |
 | `matmul` | 遵守 matmul 契约 | 两边分别使用转置矩阵乘 |
+| `bf16_gate_up_projection` | 一个FP32输入与两个同shape BF16 mirror，返回两个FP32输出 | input累加两条FP32 master梯度；gate/up各收一条weight梯度 |
+| `bf16_qkv_projection` | 一个FP32输入与三个兼容BF16 mirror，返回Q/K/V三个FP32输出 | input累加三条FP32 master梯度；三个weight边保持独立 |
 | `sum` | 任意 shape 到 scalar | scalar seed 广播回原 shape |
 | `mean` | 非空 shape 到 scalar | sum backward 再除元素数 |
 | `reshape` | 元素总数不变 | 梯度恢复原 shape |

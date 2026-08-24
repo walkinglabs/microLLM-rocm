@@ -65,6 +65,20 @@ TEST(GraphConstructionTest, EveryPublicGraphOperationHasAVisibleRootContract) {
     expect_root(multiply(vector, other), "multiply", 2, {2, 2});
     expect_root(scale(vector, 0.5F), "scale", 1, {2, 2});
     expect_root(matmul(vector, other), "matmul", 2, {2, 2});
+    const auto vector_mirror = vector.data().cast(DType::BFloat16);
+    const auto other_mirror = other.data().cast(DType::BFloat16);
+    expect_root(bf16_matmul(vector, other, other_mirror),
+                "bf16_matmul", 2, {2, 2});
+    const auto gate_up = bf16_gate_up_projection(
+        vector, vector, vector_mirror, other, other_mirror);
+    expect_root(gate_up.first, "bf16_gate_projection", 2, {2, 2});
+    expect_root(gate_up.second, "bf16_up_projection", 2, {2, 2});
+    const auto qkv = bf16_qkv_projection(
+        vector, vector, vector_mirror, other, other_mirror,
+        vector, vector_mirror);
+    expect_root(qkv.first, "bf16_query_projection", 2, {2, 2});
+    expect_root(qkv.second, "bf16_key_projection", 2, {2, 2});
+    expect_root(qkv.third, "bf16_value_projection", 2, {2, 2});
     expect_root(sum(vector), "sum", 1, {});
 
     const auto mean_graph = inspect_graph(mean(vector));

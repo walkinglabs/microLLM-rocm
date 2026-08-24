@@ -3529,3 +3529,17 @@ Qwen/DeepSeek的870/1,017次启动变成3次。第一版同步上传地址卡会
 保留。下一版要改block/descriptor读取，而不是再包装一次相同Kernel。
 
 ![Multi-tensor AdamW discard](assets/multi-tensor-adamw-discard.svg)
+
+## 229. Experiment 212：少了cast，eager图却没有稳定变快
+
+Q/K/V会把同一个输入转三次BF16，gate/up会转两次。多输出原语把它们各自合成一次cast，
+同时保留每个输出独立的weight梯度边。CPU、HIP和PyTorch都比较了全部输出与梯度。
+
+Profile证明目标工作精确消失：Qwen/DeepSeek三步少216/252次cast，cast Kernel快1.456×/
+1.431×。但总Kernel只快1.0116×/1.0095×。五进程组合策略为1.0066×/1.0179×；拆成
+QKV-only后是0.9804×/1.0039×，gate/up-only是0.9911×/1.0012×。
+
+所以三个模型路由都删除，只保留多输出原语。下一次要让它和grouped GEMM或图级调度一起工作，
+不能把“少一次cast”直接当成端到端优化。
+
+![Training BF16 shared activation discard](assets/training-bf16-shared-activation-discard.svg)

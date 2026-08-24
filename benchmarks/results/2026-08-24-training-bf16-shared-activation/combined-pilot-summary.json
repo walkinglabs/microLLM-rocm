@@ -1,0 +1,135 @@
+{
+  "aggregation": "median of fresh processes with alternating policy order",
+  "comparisons": [
+    {
+      "allocation_calls_saved": 144.0,
+      "gradient_accumulation": {
+        "fused": {
+          "unique_dense_add_candidates": 72,
+          "unique_dense_add_elements": 33030144,
+          "unique_dense_add_executed": 0,
+          "unique_dense_add_executed_elements": 0
+        },
+        "materialized": {
+          "unique_dense_add_candidates": 72,
+          "unique_dense_add_elements": 33030144,
+          "unique_dense_add_executed": 0,
+          "unique_dense_add_executed_elements": 0
+        }
+      },
+      "loss_relative_difference": 0.001305714155323063,
+      "model": "qwen2.5-0.5b",
+      "observed_parameter_after_equal": true,
+      "peak_bytes_saved": 0.0,
+      "peak_ratio": 1.0,
+      "policies": {
+        "fused": {
+          "engine_allocation_calls": 3196.0,
+          "engine_peak_bytes": 11824424968.0,
+          "final_loss": 0.016916262,
+          "mean_optimizer_ms": 12.925874,
+          "mean_step_ms": 34.459722,
+          "observed_parameter_after": 7.468718052,
+          "tokens_per_second": 14857.92601577
+        },
+        "materialized": {
+          "engine_allocation_calls": 3340.0,
+          "engine_peak_bytes": 11824424968.0,
+          "final_loss": 0.016894203,
+          "mean_optimizer_ms": 13.3708915,
+          "mean_step_ms": 34.67496,
+          "observed_parameter_after": 7.468718052,
+          "tokens_per_second": 14765.698359854
+        }
+      },
+      "strided_copy": {
+        "fused": {
+          "bytes": 0,
+          "calls": 0,
+          "elements": 0
+        },
+        "materialized": {
+          "bytes": 0,
+          "calls": 0,
+          "elements": 0
+        }
+      },
+      "throughput_speedup": 1.0062460747651973
+    },
+    {
+      "allocation_calls_saved": 168.0,
+      "gradient_accumulation": {
+        "fused": {
+          "unique_dense_add_candidates": 84,
+          "unique_dense_add_elements": 66060288,
+          "unique_dense_add_executed": 0,
+          "unique_dense_add_executed_elements": 0
+        },
+        "materialized": {
+          "unique_dense_add_candidates": 84,
+          "unique_dense_add_elements": 66060288,
+          "unique_dense_add_executed": 0,
+          "unique_dense_add_executed_elements": 0
+        }
+      },
+      "loss_relative_difference": 0.0,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "observed_parameter_after_equal": true,
+      "peak_bytes_saved": 0.0,
+      "peak_ratio": 1.0,
+      "policies": {
+        "fused": {
+          "engine_allocation_calls": 3728.0,
+          "engine_peak_bytes": 37102645256.0,
+          "final_loss": 4.036802292,
+          "mean_optimizer_ms": 50.078119,
+          "mean_step_ms": 80.1569065,
+          "observed_parameter_after": 2.124970913,
+          "tokens_per_second": 6387.472051457
+        },
+        "materialized": {
+          "engine_allocation_calls": 3896.0,
+          "engine_peak_bytes": 37102645256.0,
+          "final_loss": 4.036802292,
+          "mean_optimizer_ms": 49.4541645,
+          "mean_step_ms": 81.6264285,
+          "observed_parameter_after": 2.124970913,
+          "tokens_per_second": 6272.478281957
+        }
+      },
+      "strided_copy": {
+        "fused": {
+          "bytes": 0,
+          "calls": 0,
+          "elements": 0
+        },
+        "materialized": {
+          "bytes": 0,
+          "calls": 0,
+          "elements": 0
+        }
+      },
+      "throughput_speedup": 1.0183330677813238
+    }
+  ],
+  "context": 512,
+  "decision": "reject layout fusion",
+  "gate_results": {
+    "loss": true,
+    "parameter": true,
+    "strided_copy_unchanged_zero": true,
+    "throughput": false
+  },
+  "keep_gate": {
+    "loss_relative_difference_maximum": 0.005,
+    "observed_parameter_after_equal": true,
+    "throughput_ratio_minimum": 1.01
+  },
+  "policy": "bf16_shared",
+  "runs_per_model_policy": 3,
+  "schema_version": 1,
+  "status": "pass",
+  "steps": 2,
+  "track": "training_bf16_shared_activation",
+  "warmup": 1
+}

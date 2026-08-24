@@ -125,6 +125,88 @@ TEST(HipGraphAlignmentTest,
     expect_graph_near(fused_weight.grad().to_vector(), expected_weight_gradient, 3.0e-5F);
 }
 
+TEST(HipGraphAlignmentTest,
+     SharedBf16ProjectionCastsMatchCpuAndStayDeviceNative) {
+    require_graph_gpu();
+    const auto input_data = Tensor::from_vector(
+        {1, -2, 3, 0.5F, 2, -1}, {2, 3});
+    const auto query_data = Tensor::from_vector(
+        {1, 0.5F, -1, 2, 0.25F, -0.75F}, {3, 2});
+    const auto gate_data = Tensor::from_vector(
+        {0.5F, -1, 2, 0.25F, 1.5F, -0.5F}, {3, 2});
+    const auto up_data = Tensor::from_vector(
+        {-0.5F, 1.5F, 2, -1, 0.75F, 0.25F}, {3, 2});
+    const auto key_data = Tensor::from_vector({1, -0.5F, 2}, {3, 1});
+    const auto value_data = Tensor::from_vector({-1, 0.25F, 0.5F}, {3, 1});
+    const Value pair_seed(Tensor::from_vector({1, -2, 0.5F, 3}, {2, 2}));
+    const Value key_seed(Tensor::from_vector({1.5F, -2}, {2, 1}));
+    const Value value_seed(Tensor::from_vector({-0.25F, 3}, {2, 1}));
+
+    Value cpu_input(input_data, true);
+    Value cpu_query(query_data, true);
+    Value cpu_gate(gate_data, true);
+    Value cpu_up(up_data, true);
+    Value cpu_key(key_data, true);
+    Value cpu_value(value_data, true);
+    const auto cpu_pair = bf16_gate_up_projection(
+        cpu_input, cpu_gate, gate_data.cast(DType::BFloat16),
+        cpu_up, up_data.cast(DType::BFloat16));
+    const auto cpu_qkv = bf16_qkv_projection(
+        cpu_input, cpu_query, query_data.cast(DType::BFloat16),
+        cpu_key, key_data.cast(DType::BFloat16), cpu_value,
+        value_data.cast(DType::BFloat16));
+    const auto cpu_loss = add(
+        add(sum(multiply(cpu_pair.first, pair_seed)),
+            sum(multiply(cpu_pair.second, pair_seed))),
+        add(add(sum(multiply(cpu_qkv.first, pair_seed)),
+                sum(multiply(cpu_qkv.second, key_seed))),
+            sum(multiply(cpu_qkv.third, value_seed))));
+    cpu_loss.backward();
+
+    const auto gpu = Device::hip(0);
+    Value hip_input(input_data.to(gpu), true);
+    Value hip_query(query_data.to(gpu), true);
+    Value hip_gate(gate_data.to(gpu), true);
+    Value hip_up(up_data.to(gpu), true);
+    Value hip_key(key_data.to(gpu), true);
+    Value hip_value(value_data.to(gpu), true);
+    const Value hip_pair_seed(pair_seed.data().to(gpu));
+    const Value hip_key_seed(key_seed.data().to(gpu));
+    const Value hip_value_seed(value_seed.data().to(gpu));
+    const auto hip_query_mirror = hip_query.data().cast(DType::BFloat16);
+    const auto hip_gate_mirror = hip_gate.data().cast(DType::BFloat16);
+    const auto hip_up_mirror = hip_up.data().cast(DType::BFloat16);
+    const auto hip_key_mirror = hip_key.data().cast(DType::BFloat16);
+    const auto hip_value_mirror = hip_value.data().cast(DType::BFloat16);
+    runtime::reset_transfer_stats();
+    const auto hip_pair = bf16_gate_up_projection(
+        hip_input, hip_gate, hip_gate_mirror, hip_up, hip_up_mirror);
+    const auto hip_qkv = bf16_qkv_projection(
+        hip_input, hip_query, hip_query_mirror, hip_key, hip_key_mirror,
+        hip_value, hip_value_mirror);
+    const auto hip_loss = add(
+        add(sum(multiply(hip_pair.first, hip_pair_seed)),
+            sum(multiply(hip_pair.second, hip_pair_seed))),
+        add(add(sum(multiply(hip_qkv.first, hip_pair_seed)),
+                sum(multiply(hip_qkv.second, hip_key_seed))),
+            sum(multiply(hip_qkv.third, hip_value_seed))));
+    hip_loss.backward();
+    runtime::synchronize(gpu);
+    const auto transfers = runtime::transfer_stats();
+
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    expect_graph_near(hip_loss.data().to_vector(), cpu_loss.data().to_vector(),
+                      3.0e-4F);
+    for (const auto& [hip_leaf, cpu_leaf] : std::vector<std::pair<Value*, Value*>>{
+             {&hip_input, &cpu_input}, {&hip_query, &cpu_query},
+             {&hip_gate, &cpu_gate}, {&hip_up, &cpu_up},
+             {&hip_key, &cpu_key}, {&hip_value, &cpu_value}}) {
+        expect_graph_near(hip_leaf->grad().to_vector(),
+                          cpu_leaf->grad().to_vector(), 2.0e-3F);
+    }
+}
+
 TEST(HipGraphAlignmentTest, DeferredScopedStreamRestoresCompleteInferenceLogits) {
     require_graph_gpu();
     const model::ModelConfig config{.vocabulary_size = 16,

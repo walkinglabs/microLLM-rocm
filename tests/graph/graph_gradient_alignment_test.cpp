@@ -80,6 +80,86 @@ TEST(GraphGradientAlignmentTest,
     EXPECT_EQ(graph.nodes[graph.root_id].operation, "add_rms_norm");
 }
 
+TEST(GraphGradientAlignmentTest,
+     SharedBf16ProjectionCastsMatchComposedOutputsAndAllGradients) {
+    const auto input_data = Tensor::from_vector(
+        {1, -2, 3, 0.5F, 2, -1}, {2, 3});
+    const auto gate_data = Tensor::from_vector(
+        {1, 0.5F, -1, 2, 0.25F, -0.75F}, {3, 2});
+    const auto up_data = Tensor::from_vector(
+        {-0.5F, 1.5F, 2, -1, 0.75F, 0.25F}, {3, 2});
+    const auto gate_mirror = gate_data.cast(DType::BFloat16);
+    const auto up_mirror = up_data.cast(DType::BFloat16);
+    const Value gate_seed(Tensor::from_vector({1, -2, 0.5F, 3}, {2, 2}));
+    const Value up_seed(Tensor::from_vector({-1, 0.25F, 2, -0.5F}, {2, 2}));
+
+    Value fused_input(input_data, true);
+    Value fused_gate(gate_data, true);
+    Value fused_up(up_data, true);
+    const auto fused = bf16_gate_up_projection(
+        fused_input, fused_gate, gate_mirror, fused_up, up_mirror);
+    add(sum(multiply(fused.first, gate_seed)),
+        sum(multiply(fused.second, up_seed))).backward();
+
+    Value reference_input(input_data, true);
+    Value reference_gate(gate_data, true);
+    Value reference_up(up_data, true);
+    const auto reference_gate_output = bf16_matmul(
+        reference_input, reference_gate, gate_mirror);
+    const auto reference_up_output = bf16_matmul(
+        reference_input, reference_up, up_mirror);
+    add(sum(multiply(reference_gate_output, gate_seed)),
+        sum(multiply(reference_up_output, up_seed))).backward();
+
+    expect_near(fused.first.data(), reference_gate_output.data().to_vector());
+    expect_near(fused.second.data(), reference_up_output.data().to_vector());
+    expect_near(fused_input.grad(), reference_input.grad().to_vector(), 2.0e-5F);
+    expect_near(fused_gate.grad(), reference_gate.grad().to_vector(), 2.0e-5F);
+    expect_near(fused_up.grad(), reference_up.grad().to_vector(), 2.0e-5F);
+
+    const auto key_data = Tensor::from_vector({1, -0.5F, 2}, {3, 1});
+    const auto value_data = Tensor::from_vector({-1, 0.25F, 0.5F}, {3, 1});
+    const auto key_mirror = key_data.cast(DType::BFloat16);
+    const auto value_mirror = value_data.cast(DType::BFloat16);
+    Value triple_input(input_data, true);
+    Value triple_query(gate_data, true);
+    Value triple_key(key_data, true);
+    Value triple_value(value_data, true);
+    const auto triple = bf16_qkv_projection(
+        triple_input, triple_query, gate_mirror, triple_key, key_mirror,
+        triple_value, value_mirror);
+    const Value key_seed(Tensor::from_vector({1.5F, -2}, {2, 1}));
+    const Value value_seed(Tensor::from_vector({-0.25F, 3}, {2, 1}));
+    add(add(sum(multiply(triple.first, gate_seed)),
+            sum(multiply(triple.second, key_seed))),
+        sum(multiply(triple.third, value_seed))).backward();
+
+    Value triple_reference_input(input_data, true);
+    Value triple_reference_query(gate_data, true);
+    Value triple_reference_key(key_data, true);
+    Value triple_reference_value(value_data, true);
+    const auto query_output = bf16_matmul(
+        triple_reference_input, triple_reference_query, gate_mirror);
+    const auto key_output = bf16_matmul(
+        triple_reference_input, triple_reference_key, key_mirror);
+    const auto value_output = bf16_matmul(
+        triple_reference_input, triple_reference_value, value_mirror);
+    add(add(sum(multiply(query_output, gate_seed)),
+            sum(multiply(key_output, key_seed))),
+        sum(multiply(value_output, value_seed))).backward();
+    expect_near(triple.first.data(), query_output.data().to_vector());
+    expect_near(triple.second.data(), key_output.data().to_vector());
+    expect_near(triple.third.data(), value_output.data().to_vector());
+    expect_near(triple_input.grad(), triple_reference_input.grad().to_vector(),
+                2.0e-5F);
+    expect_near(triple_query.grad(), triple_reference_query.grad().to_vector(),
+                2.0e-5F);
+    expect_near(triple_key.grad(), triple_reference_key.grad().to_vector(),
+                2.0e-5F);
+    expect_near(triple_value.grad(), triple_reference_value.grad().to_vector(),
+                2.0e-5F);
+}
+
 TEST(GraphGradientAlignmentTest, ViewGraphRestoresLogicalGradientOrder) {
     Value input(Tensor::from_vector({0, 1, 2, 3, 4, 5}, {2, 3}), true);
     const auto view = transpose(input, 0, 1);

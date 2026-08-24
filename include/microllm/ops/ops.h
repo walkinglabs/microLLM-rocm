@@ -335,6 +335,10 @@ void bf16_ffn_out_(Tensor& output_fp32, Bf16FfnWorkspace& workspace,
     const Tensor& input_fp32, const Tensor& query_weight_bf16,
     const Tensor& key_weight_bf16, const Tensor& value_weight_bf16,
     const OpContext& context = {});
+// Casts one shared FP32 activation once for the equal-shape gate/up projections.
+[[nodiscard]] TensorPair bf16_gate_up_projection(
+    const Tensor& input_fp32, const Tensor& gate_weight_bf16,
+    const Tensor& up_weight_bf16, const OpContext& context = {});
 // Returns true only when query/key remain in the caller's BF16 fallback tensors.
 // Value and all non-grouped fallbacks are always materialized in the FP32 outputs.
 bool bf16_qkv_projection_out_(

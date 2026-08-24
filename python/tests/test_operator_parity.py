@@ -140,6 +140,9 @@ def pytorch_references(actual):
     ffn_up_output = (ffn_input @ ffn_up).to(torch.bfloat16)
     ffn_activated = (F.silu(ffn_gate_output) * ffn_up_output).to(torch.bfloat16)
     record(refs, "bf16_ffn", (ffn_activated @ ffn_down).to(torch.float32))
+    shared_projection_input = matrix_left.to(torch.bfloat16).float()
+    record(refs, "bf16_gate_up_gate", shared_projection_input @ ffn_gate.float())
+    record(refs, "bf16_gate_up_up", shared_projection_input @ ffn_up.float())
     qkv_input = matrix_left.to(torch.bfloat16).float()
     record(refs, "bf16_qkv_query", qkv_input @ matrix_right.to(torch.bfloat16).float())
     record(refs, "bf16_qkv_key",
@@ -319,6 +322,49 @@ def pytorch_references(actual):
     record(refs, "graph_bf16_matmul_output", rounded_left @ rounded_right)
     record(refs, "graph_bf16_matmul_left_grad", bf16_seed @ bf16_right.detach().transpose(0, 1))
     record(refs, "graph_bf16_matmul_right_grad", bf16_left.detach().transpose(0, 1) @ bf16_seed)
+
+    shared_input = tensor([1, -2, 3, 0.5, 2, -1], (2, 3), True)
+    shared_gate = tensor([1, 0.5, -1, 2, 0.25, -0.75], (3, 2), True)
+    shared_up = tensor([-0.5, 1.5, 2, -1, 0.75, 0.25], (3, 2), True)
+    shared_gate_seed = tensor([1, -2, 0.5, 3], (2, 2))
+    shared_up_seed = tensor([-1, 0.25, 2, -0.5], (2, 2))
+    shared_rounded = shared_input.to(torch.bfloat16).float()
+    shared_gate_output = shared_rounded @ shared_gate.to(torch.bfloat16).float()
+    shared_up_output = shared_rounded @ shared_up.to(torch.bfloat16).float()
+    record(refs, "graph_bf16_gate_up_gate", shared_gate_output)
+    record(refs, "graph_bf16_gate_up_up", shared_up_output)
+    shared_gate_input_grad = (
+        shared_gate_seed @ shared_gate.detach().transpose(0, 1) +
+        shared_up_seed @ shared_up.detach().transpose(0, 1))
+    record(refs, "graph_bf16_gate_up_input_grad", shared_gate_input_grad)
+    record(refs, "graph_bf16_gate_up_gate_grad",
+           shared_input.detach().transpose(0, 1) @ shared_gate_seed)
+    record(refs, "graph_bf16_gate_up_up_grad",
+           shared_input.detach().transpose(0, 1) @ shared_up_seed)
+
+    shared_query = tensor([1, 0.5, -1, 2, 0.25, -0.75], (3, 2), True)
+    shared_key = tensor([1, -0.5, 2], (3, 1), True)
+    shared_value = tensor([-1, 0.25, 0.5], (3, 1), True)
+    shared_qkv_input = tensor([1, -2, 3, 0.5, 2, -1], (2, 3), True)
+    shared_key_seed = tensor([1.5, -2], (2, 1))
+    shared_value_seed = tensor([-0.25, 3], (2, 1))
+    shared_qkv_rounded = shared_qkv_input.to(torch.bfloat16).float()
+    record(refs, "graph_bf16_qkv_query",
+           shared_qkv_rounded @ shared_query.to(torch.bfloat16).float())
+    record(refs, "graph_bf16_qkv_key",
+           shared_qkv_rounded @ shared_key.to(torch.bfloat16).float())
+    record(refs, "graph_bf16_qkv_value",
+           shared_qkv_rounded @ shared_value.to(torch.bfloat16).float())
+    record(refs, "graph_bf16_qkv_input_grad",
+           shared_gate_seed @ shared_query.detach().transpose(0, 1) +
+           shared_key_seed @ shared_key.detach().transpose(0, 1) +
+           shared_value_seed @ shared_value.detach().transpose(0, 1))
+    record(refs, "graph_bf16_qkv_query_grad",
+           shared_qkv_input.detach().transpose(0, 1) @ shared_gate_seed)
+    record(refs, "graph_bf16_qkv_key_grad",
+           shared_qkv_input.detach().transpose(0, 1) @ shared_key_seed)
+    record(refs, "graph_bf16_qkv_value_grad",
+           shared_qkv_input.detach().transpose(0, 1) @ shared_value_seed)
 
     fused_rope_input = tensor(
         [1, 2, 3, 4, 5, 6, 7, 8,
@@ -691,6 +737,7 @@ class OperatorParityTest(unittest.TestCase):
             "invalid_bf16_matmul_dtype",
             "invalid_bf16_ffn_shape",
             "invalid_bf16_qkv_shape",
+            "invalid_bf16_gate_up_shape",
             "invalid_embedding_weight",
             "invalid_softmax_dim",
             "invalid_rms_weight",
