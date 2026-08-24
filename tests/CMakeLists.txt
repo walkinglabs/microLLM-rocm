@@ -245,6 +245,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.Bf16ExactStartupContract PROPERTIES
         LABELS "cpu;benchmark;model;inference;bf16;matmul;solution;latency;schema")
     add_test(
+        NAME Benchmark.Bf16GroupedGateUpMatrixContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_bf16_grouped_gate_up_matrix.py
+    )
+    set_tests_properties(Benchmark.Bf16GroupedGateUpMatrixContract PROPERTIES
+        LABELS "cpu;benchmark;model;inference;ffn;bf16;matmul;grouped;schema")
+    add_test(
         NAME Coverage.OperatorAndTestFiles
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/audit_test_coverage.py
     )

@@ -752,6 +752,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/193-hipblaslt-preload.md](experiments/193-hipblaslt-preload.md) | 18进程、wall/forward/显存与策略拒绝 |
 | [assets/bf16-exact-startup.svg](assets/bf16-exact-startup.svg) | exact gate/up算子、cold和steady三层对照 |
 | [experiments/194-bf16-exact-startup.md](experiments/194-bf16-exact-startup.md) | 6 tuner + 24模型进程与bit-exact拒绝 |
+| [assets/bf16-grouped-gate-up.svg](assets/bf16-grouped-gate-up.svg) | 双gate/up稳定、device arguments与重初始化对照 |
+| [experiments/195-bf16-grouped-gate-up.md](experiments/195-bf16-grouped-gate-up.md) | 6进程、64候选与FFN Arena接入门 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

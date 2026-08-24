@@ -416,3 +416,5 @@ the next gate. Records are append-only except for factual corrections.
   beginner-friendly cold-start explanation and the rejected all-kernel preload shortcut.
 - [2026-08-24-bf16-exact-startup.md](2026-08-24-bf16-exact-startup.md):
   beginner-friendly explanation of why a faster local GEMM does not make startup or the model fast.
+- [2026-08-24-bf16-grouped-gate-up.md](2026-08-24-bf16-grouped-gate-up.md):
+  beginner-friendly grouped gate/up capability and stable-address requirement.

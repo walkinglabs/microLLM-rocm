@@ -3298,3 +3298,17 @@ tuner进程，64个候选必须三次共同通过完整输出，再按Event中�
 常驻进程摊销一次初始化。
 
 ![Exact BF16 startup gate](assets/bf16-exact-startup.svg)
+
+## 212. Experiment 195：gate和up可以一起提交，但地址必须稳定
+
+启动shortcut关闭后，我们回到steady trace。FFN gate和up读取同一个input，shape也相同，却一直
+分两次提交。新probe把现有GroupedGemm扩成两个group，先不动模型。
+
+Qwen/DeepSeek各三个进程都看见10227个算法，前64个完整输出全部bit-exact。稳定GroupedGemm
+Event为1.203×/1.139×；真正适合多block的device user arguments仍有1.188×/1.155×。
+
+反例决定实现边界：如果每次都setProblem和initialize，速度只剩0.823×/0.940×。所以不能增加
+一个无状态grouped_gate_up函数就结束。下一节点只能把plan绑定到FFN Arena的稳定input、gate、
+up和每层权重地址，再做完整Qwen/DeepSeek gate。这个节点只keep benchmark能力，生产默认没变。
+
+![Grouped gate/up capability](assets/bf16-grouped-gate-up.svg)

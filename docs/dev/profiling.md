@@ -395,6 +395,11 @@ then measures cold and steady complete models in separate processes. Experiment 
 three layers matter: 1.059×/1.032× operator gains become 0.990×/0.996× cold ratios and
 0.973×/1.007× steady ratios.
 
+Run bf16_grouped_gate_up_matrix.py before changing FFN routing. It compares stable GroupedGemm,
+device user arguments and per-call reinitialization for the two official T512 shapes. A production
+candidate is valid only if it uses the existing FFN Arena addresses and separately reports shared
+kernel setup, per-block argument setup, dispatches and complete-model throughput.
+
 ## What remains
 
 There is no Python `@profile` decorator yet. The current stable entry points are the

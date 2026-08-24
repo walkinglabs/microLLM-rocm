@@ -260,6 +260,12 @@ Logits are bit-exact and peak is unchanged, so this is a clean performance rejec
 startup work needs library/module lifecycle control or process persistence, not another first-GEMM
 solution index.
 
+Experiment 195 opens a distinct steady FFN submission track. Two-operation BF16 GroupedGemm has
+10,227 available algorithms for both official T512 gate/up shapes; 64/64 screened candidates are
+bit-exact. Device-user-arguments Event ratios are 1.188×/1.155×, while per-call reinitialization
+is only 0.823×/0.940×. The capability benchmark is retained. Only pointer-stable FFN Arena
+integration is open; a stateless grouped function or model-name dispatch is not supported.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

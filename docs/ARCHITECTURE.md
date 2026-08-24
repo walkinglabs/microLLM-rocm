@@ -427,6 +427,14 @@ improve isolated Event time but fail both cold and two-model steady gates with b
 The exact registry remains a research mechanism, not a startup subsystem. A future startup layer
 must own module loading or a persistent worker lifecycle explicitly.
 
+### BF16 grouped gate/up candidate
+
+The FFN Arena already gives gate/up one shared BF16 input and stable BF16 output addresses.
+Experiment 195 proves that a two-operation GroupedGemm supports both official T512 shapes and that
+device user arguments preserve an operator gain. Reinitializing on every call is slower, so the
+only allowed production design binds a shared initialized kernel plus one argument record per
+block's persistent gate/up weight pointers. This capability is not model routing yet.
+
 ## Stable integration boundary
 
 The long-term integration seam is a C-compatible descriptor plus explicit stream

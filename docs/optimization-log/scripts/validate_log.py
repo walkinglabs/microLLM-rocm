@@ -9233,6 +9233,111 @@ def validate_bf16_exact_startup(
         max(operator_ratios, default=0.0)
 
 
+def validate_bf16_grouped_gate_up(
+        errors: list[str]) -> tuple[int, float, float]:
+    data = REPOSITORY / "benchmarks/results/2026-08-24-bf16-grouped-gate-up"
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = {row.get("model"): row
+                   for row in summary.get("comparisons", [])}
+    expected = {
+        "qwen": {
+            "solution_indices": [65168, 65198],
+            "event_speedup_median": 1.202964033465,
+            "wall_speedup_median": 1.162324455206,
+            "reinitialized_event_speedup_median": 0.823183132833,
+            "reinitialized_wall_speedup_median": 0.869636993632,
+            "user_arguments_setup_ms_median": 0.053674,
+            "user_arguments_event_speedup_median": 1.188396274575,
+            "user_arguments_wall_speedup_median": 1.139376797471,
+        },
+        "deepseek": {
+            "solution_indices": [65200],
+            "event_speedup_median": 1.138599957149,
+            "wall_speedup_median": 1.113179702577,
+            "reinitialized_event_speedup_median": 0.939959619441,
+            "reinitialized_wall_speedup_median": 0.970368008444,
+            "user_arguments_setup_ms_median": 0.052356,
+            "user_arguments_event_speedup_median": 1.155151582167,
+            "user_arguments_wall_speedup_median": 1.152467741318,
+        },
+    }
+    expected_tests = {
+        "cpu_debug": {"passed": 301, "total": 301},
+        "asan_ubsan": {"passed": 299, "total": 299},
+        "pytorch_enabled_cpu": {"passed": 275, "total": 275},
+        "hip_full_configuration": {
+            "passed": 471, "total": 471, "conditional_skips": 3},
+        "hip_label": {"passed": 160, "total": 160},
+        "rccl_multi_gpu": {"passed": 12, "total": 12},
+        "rccl_full_label": {"passed": 14, "total": 14},
+    }
+    counts = {name: 0 for name in expected}
+    for row in raw:
+        name = row.get("model")
+        if name in counts:
+            counts[name] += 1
+    evidence_changed = False
+    for name, values in expected.items():
+        row = comparisons.get(name, {})
+        if row.get("solution_indices") != values["solution_indices"] or \
+                row.get("groups") != 2 or \
+                row.get("algorithm_count") != 10227 or \
+                row.get("passing_candidates") != 64 or \
+                float(row.get("maximum_absolute_error", 1.0)) != 0 or \
+                float(row.get("maximum_rms_error", 1.0)) != 0:
+            evidence_changed = True
+            break
+        for field, value in values.items():
+            if field == "solution_indices":
+                continue
+            if abs(float(row.get(field, 0.0)) - value) > 1.0e-6:
+                evidence_changed = True
+                break
+    if summary.get("status") != "pass" or len(raw) != 6 or \
+            summary.get("raw_processes") != 6 or \
+            summary.get("capability_gate") is not True or \
+            summary.get("reinitialization_counterexample_gate") is not True or \
+            set(comparisons) != set(expected) or evidence_changed or \
+            any(count != 3 for count in counts.values()) or \
+            any(row.get("record_type") != "bf16_grouped_gate_up_probe" or
+                row.get("projection") != "gate-up" or
+                row.get("groups") != 2 or
+                row.get("grouped_supported") is not True
+                for row in raw) or \
+            verification.get("status") != "pass" or \
+            verification.get("tests") != expected_tests or \
+            verification.get("registered_test_files") != 74 or \
+            verification.get("formal_processes") != 6 or \
+            verification.get("formal_comparisons") != 2 or \
+            verification.get("capability_gate") is not True or \
+            verification.get(
+                "reinitialization_counterexample_gate") is not True:
+        errors.append("BF16 grouped gate/up evidence changed")
+    source = (REPOSITORY / "benchmarks/micro/"
+              "benchmark_bf16_grouped_qkv.cpp").read_text(encoding="utf-8")
+    runner = (REPOSITORY / "benchmarks/single_gpu/"
+              "bf16_grouped_gate_up_matrix.py").read_text(encoding="utf-8")
+    contract = (REPOSITORY / "python/tests/"
+                "test_bf16_grouped_gate_up_matrix.py").read_text(
+                    encoding="utf-8")
+    for token, document in (
+            ("--projection", source),
+            ("bf16_grouped_gate_up_probe", source),
+            ("user_arguments_event_speedup_median", runner),
+            ("reinitialization_counterexample_gate", contract)):
+        if token not in document:
+            errors.append("BF16 grouped gate/up source/test contract changed")
+            break
+    user_ratios = [float(row["user_arguments_event_speedup_median"])
+                   for row in comparisons.values()]
+    return len(raw), min(user_ratios, default=0.0), \
+        max(user_ratios, default=0.0)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -9405,7 +9510,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-grouped-qkv-expanded.svg",
                  "bf16-grouped-qkv-prewarm.svg",
                  "hipblaslt-preload.svg",
-                 "bf16-exact-startup.svg"):
+                 "bf16-exact-startup.svg",
+                 "bf16-grouped-gate-up.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -9743,6 +9849,8 @@ def main() -> int:
         hipblaslt_preload_maximum = validate_hipblaslt_preload(errors)
     bf16_exact_tuning, bf16_exact_models, bf16_exact_cold, \
         bf16_exact_operator = validate_bf16_exact_startup(errors)
+    grouped_gate_up_rows, grouped_gate_up_minimum, \
+        grouped_gate_up_maximum = validate_bf16_grouped_gate_up(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -10025,6 +10133,8 @@ def main() -> int:
           f"{hipblaslt_preload_minimum:.3f}/{hipblaslt_preload_maximum:.3f} "
           f"bf16_exact_startup={bf16_exact_tuning}/{bf16_exact_models}/"
           f"{bf16_exact_cold:.3f}/{bf16_exact_operator:.3f} "
+          f"bf16_grouped_gate_up={grouped_gate_up_rows}/"
+          f"{grouped_gate_up_minimum:.3f}/{grouped_gate_up_maximum:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

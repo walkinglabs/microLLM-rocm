@@ -289,6 +289,7 @@
     "python/tests/test_bf16_grouped_qkv_prewarm.py",
     "python/tests/test_hipblaslt_preload.py",
     "python/tests/test_bf16_exact_startup.py",
+    "python/tests/test_bf16_grouped_gate_up_matrix.py",
     "python/tests/test_attention_layout_fusion_runner.py",
     "python/tests/test_hf_benchmark_contract.py",
     "python/tests/test_hf_shape_matrix.py",

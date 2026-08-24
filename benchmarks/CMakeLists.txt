@@ -345,6 +345,15 @@ if(BUILD_TESTING)
                              --warmup 0 --repetitions 1)
             set_tests_properties(Benchmark.HipBf16GroupedQkvProbe PROPERTIES
                                  LABELS "hip;benchmark;matmul;bf16;grouped;correctness;smoke")
+            add_test(NAME Benchmark.HipBf16GroupedGateUpProbe
+                     COMMAND microllm_bench_bf16_grouped_qkv
+                             --model qwen --projection gate-up
+                             --rows 32 --workspace-bytes 33554432
+                             --output-dtype bf16 --equal-width false
+                             --maximum-algorithms 4
+                             --warmup 0 --repetitions 1)
+            set_tests_properties(Benchmark.HipBf16GroupedGateUpProbe PROPERTIES
+                                 LABELS "hip;benchmark;matmul;ffn;bf16;grouped;correctness;smoke")
         endif()
         add_test(NAME Benchmark.HipGenerateSmoke
                  COMMAND microllm_bench_model --mode generate --model tiny --device hip

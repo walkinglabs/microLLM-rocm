@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="560" viewBox="0 0 1000 560" role="img" aria-labelledby="title desc">
+  <title id="title">BF16 grouped gate/up capability ratios</title>
+  <desc id="desc">Pointer-stable and device-argument grouped gate/up improve both official shapes, while per-call reinitialization is slower.</desc>
+  <rect width="1000" height="560" fill="#0b1020"/>
+  <text x="55" y="48" fill="#f8fafc" font-family="sans-serif" font-size="28" font-weight="700">Experiment 195 · grouped gate/up capability</text>
+  <text x="55" y="78" fill="#94a3b8" font-family="sans-serif" font-size="15">T512 BF16 output · median of 3 fresh processes · ratio above 1 is better</text>
+  <line x1="490" y1="120" x2="490" y2="438" stroke="#64748b" stroke-width="2"/>
+  <text x="466" y="108" fill="#cbd5e1" font-family="monospace" font-size="14">1.00</text>
+
+  <text x="55" y="158" fill="#e2e8f0" font-family="sans-serif" font-size="18" font-weight="700">Qwen</text>
+  <text x="120" y="200" fill="#cbd5e1" font-family="sans-serif" font-size="15">stable grouped</text>
+  <rect x="490" y="180" width="203" height="28" rx="5" fill="#34d399"/>
+  <text x="705" y="200" fill="#a7f3d0" font-family="monospace" font-size="14">1.203×</text>
+  <text x="120" y="242" fill="#cbd5e1" font-family="sans-serif" font-size="15">device arguments</text>
+  <rect x="490" y="222" width="188" height="28" rx="5" fill="#22d3ee"/>
+  <text x="690" y="242" fill="#a5f3fc" font-family="monospace" font-size="14">1.188×</text>
+  <text x="120" y="284" fill="#cbd5e1" font-family="sans-serif" font-size="15">reinitialize</text>
+  <rect x="313" y="264" width="177" height="28" rx="5" fill="#fb7185"/>
+  <text x="250" y="284" fill="#fecdd3" font-family="monospace" font-size="14">0.823×</text>
+
+  <text x="55" y="348" fill="#e2e8f0" font-family="sans-serif" font-size="18" font-weight="700">DeepSeek</text>
+  <text x="120" y="390" fill="#cbd5e1" font-family="sans-serif" font-size="15">stable grouped</text>
+  <rect x="490" y="370" width="139" height="28" rx="5" fill="#34d399"/>
+  <text x="641" y="390" fill="#a7f3d0" font-family="monospace" font-size="14">1.139×</text>
+  <text x="120" y="432" fill="#cbd5e1" font-family="sans-serif" font-size="15">device arguments</text>
+  <rect x="490" y="412" width="155" height="28" rx="5" fill="#22d3ee"/>
+  <text x="657" y="432" fill="#a5f3fc" font-family="monospace" font-size="14">1.155×</text>
+  <text x="120" y="474" fill="#cbd5e1" font-family="sans-serif" font-size="15">reinitialize</text>
+  <rect x="430" y="454" width="60" height="28" rx="5" fill="#fb7185"/>
+  <text x="367" y="474" fill="#fecdd3" font-family="monospace" font-size="14">0.940×</text>
+
+  <rect x="55" y="505" width="890" height="38" rx="9" fill="#172033" stroke="#334155"/>
+  <text x="75" y="530" fill="#a7f3d0" font-family="sans-serif" font-size="15">Capability passes · next gate must bind pointer-stable FFN Arena addresses</text>
+</svg>

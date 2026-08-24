@@ -40,6 +40,7 @@ private:
 
 struct Options {
     std::string model = "qwen";
+    std::string projection = "qkv";
     std::string output_dtype = "fp32";
     bool equal_width = false;
     std::int64_t rows = 512;
@@ -64,6 +65,7 @@ Options options(int argc, char** argv) {
         if (index + 1 >= argc) throw std::invalid_argument("missing option value");
         const std::string_view name(argv[index]);
         if (name == "--model") result.model = argv[index + 1];
+        else if (name == "--projection") result.projection = argv[index + 1];
         else if (name == "--output-dtype") result.output_dtype = argv[index + 1];
         else if (name == "--equal-width") {
             const std::string value = argv[index + 1];
@@ -90,12 +92,14 @@ Options options(int argc, char** argv) {
         }
     }
     if ((result.model != "qwen" && result.model != "deepseek") ||
+        (result.projection != "qkv" && result.projection != "gate-up") ||
         (result.output_dtype != "fp32" && result.output_dtype != "bf16" &&
          result.output_dtype != "model") ||
         result.rows <= 0 || result.rows > 4096 || result.warmup < 0 ||
         result.repetitions <= 0 || result.maximum_algorithms <= 0 ||
         result.maximum_algorithms > 256) {
-        throw std::invalid_argument("grouped QKV options are invalid");
+        throw std::invalid_argument(
+            "grouped BF16 projection options are invalid");
     }
     return result;
 }
@@ -118,7 +122,7 @@ struct Errors {
 Errors compare(const std::vector<float>& reference,
                const std::vector<float>& actual) {
     if (reference.size() != actual.size()) {
-        throw std::runtime_error("grouped QKV output size changed");
+        throw std::runtime_error("grouped BF16 output size changed");
     }
     Errors result;
     double squared = 0.0;
@@ -140,14 +144,25 @@ int main(int argc, char** argv) {
     try {
         const auto command = options(argc, argv);
         if (microllm::runtime::hip_device_count() == 0) {
-            throw std::runtime_error("grouped QKV requires a visible HIP GPU");
+            throw std::runtime_error(
+                "grouped BF16 projection requires a visible HIP GPU");
         }
         const auto hidden = command.model == "qwen" ? 896LL : 1536LL;
         const auto query_width = hidden;
         const auto kv_width = command.model == "qwen" ? 128LL : 256LL;
-        const std::vector<std::int64_t> widths = command.equal_width
-            ? std::vector<std::int64_t>{query_width, query_width, query_width}
-            : std::vector<std::int64_t>{query_width, kv_width, kv_width};
+        const auto intermediate =
+            command.model == "qwen" ? 4864LL : 8960LL;
+        const std::vector<std::int64_t> widths =
+            command.projection == "gate-up"
+                ? std::vector<std::int64_t>{intermediate, intermediate}
+                : command.equal_width
+                      ? std::vector<std::int64_t>{
+                            query_width, query_width, query_width}
+                      : std::vector<std::int64_t>{
+                            query_width, kv_width, kv_width};
+        const auto record_type = command.projection == "gate-up"
+                                     ? "bf16_grouped_gate_up_probe"
+                                     : "bf16_grouped_qkv_probe";
         const auto model_comparison = command.output_dtype == "model";
         const auto maximum_tolerance = model_comparison ? 0.25F : 2.0e-4F;
         const auto grouped_output_dtype = command.output_dtype == "fp32"
@@ -242,8 +257,9 @@ int main(int argc, char** argv) {
             algorithms);
         if (inventory_status != HIPBLAS_STATUS_SUCCESS) {
             std::cout << "{\"schema_version\":1,\"status\":\"pass\""
-                      << ",\"record_type\":\"bf16_grouped_qkv_probe\""
+                      << ",\"record_type\":\"" << record_type << "\""
                       << ",\"model\":\"" << command.model << "\""
+                      << ",\"projection\":\"" << command.projection << "\""
                       << ",\"output_dtype\":\"" << command.output_dtype << "\""
                       << ",\"equal_width\":"
                       << (command.equal_width ? "true" : "false")
@@ -251,6 +267,8 @@ int main(int argc, char** argv) {
                       << ",\"hidden\":" << hidden
                       << ",\"query_width\":" << query_width
                       << ",\"kv_width\":" << kv_width
+                      << ",\"intermediate\":" << intermediate
+                      << ",\"groups\":" << widths.size()
                       << ",\"algorithm_count\":" << algorithms.size()
                       << ",\"supported_candidates\":0"
                       << ",\"passing_candidates\":0"
@@ -346,8 +364,9 @@ int main(int argc, char** argv) {
         const auto supported = solution_index >= 0;
         if (!supported) {
             std::cout << "{\"schema_version\":1,\"status\":\"pass\""
-                      << ",\"record_type\":\"bf16_grouped_qkv_probe\""
+                      << ",\"record_type\":\"" << record_type << "\""
                       << ",\"model\":\"" << command.model << "\""
+                      << ",\"projection\":\"" << command.projection << "\""
                       << ",\"output_dtype\":\"" << command.output_dtype << "\""
                       << ",\"equal_width\":"
                       << (command.equal_width ? "true" : "false")
@@ -355,6 +374,8 @@ int main(int argc, char** argv) {
                       << ",\"hidden\":" << hidden
                       << ",\"query_width\":" << query_width
                       << ",\"kv_width\":" << kv_width
+                      << ",\"intermediate\":" << intermediate
+                      << ",\"groups\":" << widths.size()
                       << ",\"algorithm_count\":" << algorithms.size()
                       << ",\"supported_candidates\":" << supported_candidates
                       << ",\"passing_candidates\":" << passing_candidates
@@ -407,8 +428,9 @@ int main(int argc, char** argv) {
                 user_arguments_setup_finish - user_arguments_setup_start).count();
         std::cout << std::setprecision(12)
                   << "{\"schema_version\":1,\"status\":\"pass\""
-                  << ",\"record_type\":\"bf16_grouped_qkv_probe\""
+                  << ",\"record_type\":\"" << record_type << "\""
                   << ",\"model\":\"" << command.model << "\""
+                  << ",\"projection\":\"" << command.projection << "\""
                   << ",\"output_dtype\":\"" << command.output_dtype << "\""
                   << ",\"equal_width\":"
                   << (command.equal_width ? "true" : "false")
@@ -416,6 +438,8 @@ int main(int argc, char** argv) {
                   << ",\"hidden\":" << hidden
                   << ",\"query_width\":" << query_width
                   << ",\"kv_width\":" << kv_width
+                  << ",\"intermediate\":" << intermediate
+                  << ",\"groups\":" << widths.size()
                   << ",\"algorithm_count\":" << algorithms.size()
                   << ",\"supported_candidates\":" << supported_candidates
                   << ",\"passing_candidates\":" << passing_candidates
@@ -458,7 +482,8 @@ int main(int argc, char** argv) {
                   << baseline_time[2] / user_arguments_time[2] << "}\n";
         return errors.finite && errors.maximum <= maximum_tolerance ? 0 : 2;
     } catch (const std::exception& error) {
-        std::cerr << "grouped QKV probe failed: " << error.what() << '\n';
+        std::cerr << "grouped BF16 projection probe failed: "
+                  << error.what() << '\n';
         return 1;
     }
 }

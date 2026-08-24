@@ -58,6 +58,10 @@ When many pointer sets share one grouped shape, do not initialize one GroupedGem
 Initialize one kernel with device user arguments, cache the algorithm/kernel by exact environment,
 and store only a device argument record per pointer plan. Report kernel setup and argument setup
 separately; warm steady-state timing cannot justify hiding first-use latency.
+Grouped gate/up follows the same rule. Experiment 195 shows the stable two-operation path is faster
+while per-call initialization is slower on both official shapes. A production implementation must
+bind the existing FFN Arena input/gate/up addresses and each block's persistent weights; temporary
+outputs or a stateless convenience wrapper do not satisfy the evidence contract.
 - readable HIP launch declarations: `src/ops/hip/kernels.h`;
 - optimized matmul policy: `src/ops/optimized.cpp`;
 - correctness-first matmul/AdamW tuners: `src/ops/tuning.cpp` and
