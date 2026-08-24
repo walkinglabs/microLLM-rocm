@@ -300,6 +300,19 @@ This adds R1 decode shapes and distinguishes five-node direct FP32 output from s
 caller-owned BF16 fallback. The runner reports measured engine allocation calls and retains
 DeepSeek R32 Graph as a performance counterexample.
 
+Complete-model eager Arena comparison:
+
+```bash
+python3 benchmarks/single_gpu/compare_bf16_ffn_arena_models.py \
+  --manifest /absolute/path/to/hf-models.json \
+  --binary build/hip-release/apps/microllm_hf_infer \
+  --output-directory /tmp/microllm-bf16-ffn-arena-model
+```
+
+The CLI flag is `--bf16-ffn-arena true` and requires `--bf16-ffn true`. JSON reports
+entry/hit/miss/capacity. Value tracing deliberately rejects the flag because traced layer details
+use the diagnostic allocation-returning route rather than the timed workspace path.
+
 ## What remains
 
 There is no Python `@profile` decorator yet. The current stable entry points are the

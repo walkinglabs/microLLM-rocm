@@ -26,6 +26,9 @@ not extend lifetime or free the pointer. Prefer `_out_` operators such as `matmu
 For BF16 FFN, use `Bf16FfnWorkspace` and `bf16_ffn_out_`. The fallback is mandatory even when the
 development GPU accepts direct FP32 output: support is exact-shape/runtime dependent, and a caller
 must not discover an allocation or unsupported error only after Graph capture.
+At model level, never create one workspace per block. The opt-in cache owns one backing per exact
+row count and shares it across sequential blocks. Returned workspace views must not escape the
+model forward, and concurrent calls require external synchronization.
 - readable HIP launch declarations: `src/ops/hip/kernels.h`;
 - optimized matmul policy: `src/ops/optimized.cpp`;
 - correctness-first matmul/AdamW tuners: `src/ops/tuning.cpp` and

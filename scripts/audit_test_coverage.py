@@ -84,6 +84,7 @@ expected_weight_model = {
     "load_safetensors_index",
     "save_safetensors",
     "qwen_style_weight_mapping",
+    "set_bf16_ffn_arena_enabled",
 }
 if declared_weight_model != expected_weight_model:
     errors.append(

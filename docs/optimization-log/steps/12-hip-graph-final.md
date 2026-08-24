@@ -113,6 +113,13 @@ and runtime-rejected fallback shapes. All 54 official-shape processes are exact.
 Graph each pass five of six rows; DeepSeek R32 Graph is 0.970×. The next allowed experiment is an
 eager Arena complete-model gate. Graph model routing still lacks stable whole-model addresses.
 
+## Experiment 183 complete-model result
+
+One backing allocation is shared across all blocks and cached per exact row count. Sixty official
+processes are complete-logit exact and allocation calls fall substantially, but only three of ten
+throughput rows exceed 1.01. Universal routing is rejected. Qwen/DeepSeek T512 both improve, so
+`rows>=512` is the only remaining eager model-Arena hypothesis; model Graph remains out of scope.
+
 ## Final matrix
 
 - FP32 fixed matrix and running-best curve;

@@ -728,6 +728,8 @@ Experiment 074增加admission compatibility buckets、singleton fallback和跨dr
 | [experiments/181-arena-ffn.md](experiments/181-arena-ffn.md) | official shape、36进程、四节点Graph与profile |
 | [assets/bf16-arena-ffn.svg](assets/bf16-arena-ffn.svg) | BF16 caller-owned FFN六shape速度与Graph反例 |
 | [experiments/182-bf16-arena-ffn.md](experiments/182-bf16-arena-ffn.md) | 54进程、direct/fallback节点与分配profile |
+| [assets/bf16-ffn-arena-model.svg](assets/bf16-ffn-arena-model.svg) | 两模型五case完整推理比率与选择边界 |
+| [experiments/183-bf16-ffn-arena-model.md](experiments/183-bf16-ffn-arena-model.md) | 60进程完整logits、分配profile与全局策略拒绝 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

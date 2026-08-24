@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "workload": "Qwen BF16 Attention+FFN prefill T512 B1, two warm-ups and five measured forwards",
+  "modes": {
+    "baseline": {
+      "kernel_calls": 5642,
+      "kernel_duration_ns": 49069973,
+      "hip_malloc_calls": 1879,
+      "hip_free_calls": 1567,
+      "hip_launch_kernel_calls": 4000,
+      "hip_ext_launch_calls": 1519,
+      "stream_synchronize_calls": 0
+    },
+    "arena": {
+      "kernel_calls": 5642,
+      "kernel_duration_ns": 49435864,
+      "hip_malloc_calls": 1637,
+      "hip_free_calls": 1327,
+      "hip_launch_kernel_calls": 4000,
+      "hip_ext_launch_calls": 1519,
+      "stream_synchronize_calls": 0
+    }
+  },
+  "inference": "model Arena removes 242 malloc and 240 free calls without changing Kernel count; device Kernel duration is neutral-slightly higher"
+}

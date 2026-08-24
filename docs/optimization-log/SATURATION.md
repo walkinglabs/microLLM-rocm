@@ -184,6 +184,12 @@ All 54 outputs are exact, eager Arena passes five rows, and Graph passes five ro
 Graph is 0.970×, so universal Graph routing is closed. Only eager Arena complete-model routing is
 open; another operator-only BF16 shape sweep is not a distinct hypothesis.
 
+Experiment 183 carries the eager Arena through complete Qwen/DeepSeek logits, cache decode and
+five context/batch cases. All 60 outputs are exact and allocation falls, but only three of ten
+rows pass 1.01. Universal model routing is closed. Both T512 rows improve 1.020×–1.022×, so only
+the model-independent `flattened rows>=512` predicate remains distinct. Per-model decode tuning,
+universal routing and model Graph are not supported by this evidence.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

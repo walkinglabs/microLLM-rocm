@@ -237,6 +237,12 @@ all caller-owned. Exact shapes that support BF16×BF16→FP32 capture five nodes
 direct-output shapes capture a sixth BF16→FP32 cast without allocating. Experiment 182 keeps this
 contract but rejects universal Graph routing; complete-model eager Arena evidence is still required.
 
+`TransformerModel` can opt into one `Bf16FfnArenaCache` shared by all blocks. Each exact row count
+gets one owned backing Storage containing every non-owning workspace slice and FP32 output. Default
+Stream order preserves liveness between the residual consumer and the next block overwrite. The
+cache is default-off, cleared on device moves, and externally synchronized for concurrent calls.
+Experiment 183 rejects universal routing; the statistics/API remain the gate for shape selection.
+
 hipBLASLt GEMM also supports contiguous strided batches: leading Tensor dimensions become
 the batch count and last-two dimensions remain the matrix contract. Explicit batched
 selection is tested independently; Auto is not changed by operator-only timing.

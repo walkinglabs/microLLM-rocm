@@ -12,6 +12,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <tuple>
 #include <utility>
 
 #include <microllm/autograd/diagnostics.h>
@@ -984,6 +985,129 @@ private:
     Linear output_;
 };
 
+class Bf16FfnArenaCache {
+public:
+    struct Entry {
+        Entry(std::int64_t rows, std::int64_t hidden,
+              std::int64_t intermediate, Device device) {
+            const Shape input_shape{rows, hidden};
+            const Shape intermediate_shape{rows, intermediate};
+            const auto input_bytes = tensor_bytes(
+                input_shape, DType::BFloat16);
+            const auto intermediate_bytes = tensor_bytes(
+                intermediate_shape, DType::BFloat16);
+            const auto output_bytes = tensor_bytes(
+                input_shape, DType::Float32);
+            const auto input_aligned = aligned(input_bytes);
+            const auto intermediate_aligned = aligned(intermediate_bytes);
+            capacity = checked_add(
+                checked_add(
+                    checked_add(input_aligned, input_aligned),
+                    checked_add(
+                        checked_add(intermediate_aligned,
+                                    intermediate_aligned),
+                        intermediate_aligned)),
+                aligned(output_bytes));
+            backing = Storage(capacity, device);
+            std::size_t offset = 0;
+            const auto slice = [&](const Shape& shape, DType dtype) {
+                const auto bytes = tensor_bytes(shape, dtype);
+                offset = aligned(offset);
+                auto* pointer = static_cast<std::byte*>(backing.data()) + offset;
+                offset = checked_add(offset, bytes);
+                auto storage = Storage::from_external(pointer, bytes, device);
+                return Tensor::from_storage(
+                    std::move(storage), shape, contiguous_strides(shape), 0,
+                    dtype);
+            };
+            workspace.input_bf16 = slice(input_shape, DType::BFloat16);
+            workspace.gate = slice(intermediate_shape, DType::BFloat16);
+            workspace.up = slice(intermediate_shape, DType::BFloat16);
+            workspace.activated = slice(intermediate_shape, DType::BFloat16);
+            workspace.output_fallback_bf16 =
+                slice(input_shape, DType::BFloat16);
+            output = slice(input_shape, DType::Float32);
+            if (offset > capacity) {
+                throw std::logic_error("BF16 FFN Arena plan exceeded capacity");
+            }
+        }
+
+        Storage backing;
+        ops::Bf16FfnWorkspace workspace;
+        Tensor output;
+        std::size_t capacity = 0;
+
+    private:
+        static std::size_t aligned(std::size_t bytes) {
+            if (bytes > std::numeric_limits<std::size_t>::max() - 255U) {
+                throw std::overflow_error("BF16 FFN Arena alignment overflows");
+            }
+            return (bytes + 255U) & ~std::size_t{255U};
+        }
+        static std::size_t checked_add(std::size_t left,
+                                       std::size_t right) {
+            if (right > std::numeric_limits<std::size_t>::max() - left) {
+                throw std::overflow_error("BF16 FFN Arena capacity overflows");
+            }
+            return left + right;
+        }
+        static std::size_t tensor_bytes(const Shape& shape, DType dtype) {
+            const auto elements = checked_numel(shape);
+            const auto bytes = dtype_size(dtype);
+            if (static_cast<std::uint64_t>(elements) >
+                std::numeric_limits<std::size_t>::max() / bytes) {
+                throw std::overflow_error("BF16 FFN Arena Tensor bytes overflow");
+            }
+            return static_cast<std::size_t>(elements) * bytes;
+        }
+    };
+
+    Entry& acquire(std::int64_t rows, std::int64_t hidden,
+                   std::int64_t intermediate, Device device) {
+        const auto key = std::tuple{
+            static_cast<int>(device.type()), device.index(), rows, hidden,
+            intermediate};
+        const auto found = entries_.find(key);
+        if (found != entries_.end()) {
+            ++hits_;
+            return *found->second;
+        }
+        ++misses_;
+        auto entry = std::make_unique<Entry>(
+            rows, hidden, intermediate, device);
+        if (entry->capacity >
+            std::numeric_limits<std::uint64_t>::max() - capacity_bytes_) {
+            throw std::overflow_error(
+                "BF16 FFN Arena aggregate capacity overflows");
+        }
+        capacity_bytes_ += entry->capacity;
+        auto* result = entry.get();
+        entries_.emplace(key, std::move(entry));
+        return *result;
+    }
+
+    void clear() noexcept {
+        entries_.clear();
+        hits_ = 0;
+        misses_ = 0;
+        capacity_bytes_ = 0;
+    }
+
+    [[nodiscard]] Bf16FfnArenaStats stats() const noexcept {
+        return {.entries = entries_.size(),
+                .hits = hits_,
+                .misses = misses_,
+                .capacity_bytes = capacity_bytes_};
+    }
+
+private:
+    using Key = std::tuple<int, int, std::int64_t, std::int64_t, std::int64_t>;
+    std::map<Key, std::unique_ptr<Entry>> entries_;
+    std::size_t hits_ = 0;
+    std::size_t misses_ = 0;
+    std::uint64_t capacity_bytes_ = 0;
+};
+
 class FeedForward {
 public:
     FeedForward(const ModelConfig& config, std::mt19937_64& generator,
@@ -1021,9 +1145,20 @@ public:
                 throw std::logic_error("FFN inference weights have mixed preparation state");
             }
             if (trace_prefix.empty()) {
-                output = ops::bf16_ffn(
-                    flat, gate_.weight_data(), up_.weight_data(),
-                    down_.weight_data());
+                if (arena_cache_ != nullptr) {
+                    auto& entry = arena_cache_->acquire(
+                        batch * sequence, config_.dimension,
+                        config_.ffn_dimension, input.device());
+                    ops::bf16_ffn_out_(
+                        entry.output, entry.workspace, flat,
+                        gate_.weight_data(), up_.weight_data(),
+                        down_.weight_data());
+                    output = entry.output;
+                } else {
+                    output = ops::bf16_ffn(
+                        flat, gate_.weight_data(), up_.weight_data(),
+                        down_.weight_data());
+                }
             } else {
                 const auto diagnostics = ops::bf16_ffn_diagnostics(
                     flat, gate_.weight_data(), up_.weight_data(),
@@ -1069,6 +1204,9 @@ public:
         values.emplace_back(prefix + ".up_proj.weight", &up_.weight());
         values.emplace_back(prefix + ".down_proj.weight", &down_.weight());
     }
+    void set_bf16_ffn_arena_cache(Bf16FfnArenaCache* cache) noexcept {
+        arena_cache_ = cache;
+    }
 
     void append_bf16_training_mirrors(Bf16TrainingMirrors& mirrors) {
         for (auto* linear : {&gate_, &up_, &down_}) {
@@ -1096,6 +1234,7 @@ private:
     Linear gate_;
     Linear up_;
     Linear down_;
+    Bf16FfnArenaCache* arena_cache_ = nullptr;
 };
 
 class Block {
@@ -1170,6 +1309,9 @@ public:
         values.emplace_back(prefix + ".ffn_norm.weight", &ffn_norm_.weight());
         feed_forward_.append_named(prefix + ".feed_forward", values);
     }
+    void set_bf16_ffn_arena_cache(Bf16FfnArenaCache* cache) noexcept {
+        feed_forward_.set_bf16_ffn_arena_cache(cache);
+    }
 
     void append_bf16_training_mirrors(Bf16TrainingMirrors& mirrors) {
         attention_.append_bf16_training_mirrors(mirrors);
@@ -1232,7 +1374,9 @@ struct TransformerModel::Impl {
     std::vector<std::unique_ptr<Block>> blocks;
     Norm final_norm;
     std::unique_ptr<Linear> output_head;
+    Bf16FfnArenaCache bf16_ffn_arena;
     bool bf16_ffn_prepared = false;
+    bool bf16_ffn_arena_enabled = false;
     bool bf16_attention_prepared = false;
     bool bf16_training_mirrors_prepared = false;
     bool fp8_inference_prepared = false;
@@ -1257,6 +1401,7 @@ Device TransformerModel::device() {
 }
 
 void TransformerModel::to(Device target) {
+    impl_->bf16_ffn_arena.clear();
     for (auto* value : parameters()) {
         value->mutable_data() = impl_->parameters_initialized
                                     ? value->data().to(target)
@@ -1924,6 +2069,27 @@ Bf16FfnPreparationReport TransformerModel::prepare_bf16_ffn_inference() {
 
 bool TransformerModel::bf16_ffn_inference_prepared() const noexcept {
     return impl_->bf16_ffn_prepared;
+}
+
+void TransformerModel::set_bf16_ffn_arena_enabled(bool enabled) {
+    if (enabled && !impl_->bf16_ffn_prepared) {
+        throw std::logic_error(
+            "BF16 FFN Arena requires prepared BF16 inference weights");
+    }
+    impl_->bf16_ffn_arena.clear();
+    for (auto& block : impl_->blocks) {
+        block->set_bf16_ffn_arena_cache(
+            enabled ? &impl_->bf16_ffn_arena : nullptr);
+    }
+    impl_->bf16_ffn_arena_enabled = enabled;
+}
+
+bool TransformerModel::bf16_ffn_arena_enabled() const noexcept {
+    return impl_->bf16_ffn_arena_enabled;
+}
+
+Bf16FfnArenaStats TransformerModel::bf16_ffn_arena_stats() const noexcept {
+    return impl_->bf16_ffn_arena.stats();
 }
 
 Bf16WeightPreparationReport TransformerModel::prepare_bf16_attention_inference() {

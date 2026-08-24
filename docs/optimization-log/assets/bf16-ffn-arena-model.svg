@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="600" viewBox="0 0 1100 600" role="img" aria-labelledby="title desc">
+  <title id="title">Complete-model BF16 FFN Arena speed ratios</title>
+  <desc id="desc">Only long prefill and Qwen batch-one decode exceed the keep line.</desc>
+  <rect width="1100" height="600" fill="#0b1020"/>
+  <text x="48" y="48" fill="#f8fafc" font-family="sans-serif" font-size="25" font-weight="700">Region wins become a narrow model policy</text>
+  <text x="48" y="76" fill="#94a3b8" font-family="sans-serif" font-size="14">60 fresh processes · complete logits exact · Arena / BF16 baseline</text>
+  <line x1="90" y1="340" x2="1030" y2="340" stroke="#64748b" stroke-dasharray="3 4"/>
+  <text x="1035" y="345" fill="#cbd5e1" font-family="sans-serif" font-size="12">1.00×</text>
+  <line x1="90" y1="285" x2="1030" y2="285" stroke="#f59e0b" stroke-dasharray="5 5"/>
+  <text x="1035" y="290" fill="#fcd34d" font-family="sans-serif" font-size="12">1.01× keep</text>
+  <line x1="90" y1="450" x2="1030" y2="450" stroke="#fb7185" stroke-dasharray="5 5"/>
+  <text x="1035" y="455" fill="#fda4af" font-family="sans-serif" font-size="12">0.98× reject</text>
+  <polyline points="150,338 340,217 530,334 720,167 910,349" fill="none" stroke="#38bdf8" stroke-width="4"/>
+  <polyline points="150,334 340,232 530,333 720,350 910,339" fill="none" stroke="#22c55e" stroke-width="4"/>
+  <g fill="#38bdf8">
+    <circle cx="150" cy="338" r="7"/><circle cx="340" cy="217" r="7"/><circle cx="530" cy="334" r="7"/><circle cx="720" cy="167" r="7"/><circle cx="910" cy="349" r="7"/>
+  </g>
+  <g fill="#22c55e">
+    <circle cx="150" cy="334" r="7"/><circle cx="340" cy="232" r="7"/><circle cx="530" cy="333" r="7"/><circle cx="720" cy="350" r="7"/><circle cx="910" cy="339" r="7"/>
+  </g>
+  <g fill="#cbd5e1" font-family="sans-serif" font-size="13" text-anchor="middle">
+    <text x="150" y="500">T32 B1</text><text x="340" y="500">T512 B1</text><text x="530" y="500">T32 B4</text><text x="720" y="500">decode B1</text><text x="910" y="500">decode B4</text>
+  </g>
+  <rect x="90" y="530" width="940" height="42" rx="7" fill="#111827" stroke="#334155"/>
+  <circle cx="320" cy="551" r="6" fill="#38bdf8"/><text x="334" y="556" fill="#e2e8f0" font-family="sans-serif" font-size="14">Qwen</text>
+  <circle cx="490" cy="551" r="6" fill="#22c55e"/><text x="504" y="556" fill="#e2e8f0" font-family="sans-serif" font-size="14">DeepSeek</text>
+  <text x="700" y="556" fill="#e2e8f0" font-family="sans-serif" font-size="14">universal policy rejected; rows≥512 remains open</text>
+</svg>

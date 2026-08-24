@@ -29,6 +29,8 @@ def main() -> int:
         b"--fp8-weight-scale-scope",
         b"attention-output-only",
         b"fp8_dynamic_clipped_tensor_calls",
+        b"--bf16-ffn-arena",
+        b"bf16_ffn_arena_capacity_bytes",
     )
     missing = [value.decode() for value in required if value not in payload]
     if missing:

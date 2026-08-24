@@ -3088,3 +3088,23 @@ Qwen R512 profile三条路径都执行130个Kernel。Arena把whole-process mallo
 Arena：必须对齐全部logits并测端到端；再跑一轮operator shape不是新解释。
 
 ![BF16 Arena FFN result](assets/bf16-arena-ffn.svg)
+
+## 200. Experiment 183：单个房间省下来的搬家，不等于整栋楼提速
+
+这一步把BF16 workspace真正接进Transformer，但没有给每层各存一份。模型按device和flattened rows
+缓存一块backing，所有block在default Stream上顺序复用；T512 Qwen只常驻18.61MB，不是24倍。
+API和CLI默认关闭，公开entry/hit/miss/capacity；切换device会清空，详细value trace仍走旧diagnostics。
+
+正式60进程覆盖两模型、T32/T512、B1/B4和cached decode。每个完整last-position logits都是bit-exact，
+decode token也全部相同。分配确实下降：Qwen decode B1从10630降到7750，DeepSeek从23650降到16930。
+
+但速度只在三行跨过1.01。Qwen/DeepSeek T512为1.022×/1.020×，Qwen decode B1为1.031×；另外七行
+是0.998×–1.001×。好消息是没有低于0.98的严重回退，坏消息是“到处开Arena”没有成为普遍优化。
+
+Qwen T512 profiler两边都5,642个Kernel，Kernel时间49.07/49.44ms；malloc/free从1879/1567降到
+1637/1327，launch次数不变。说明收益只来自host allocation，device数学甚至略慢。
+
+因此基础设施keep、全局策略reject。下一次只允许使用两模型都支持的共同证据：flattened rows≥512。
+不能因为Qwen R1单独变快，就写一个模型名字判断。
+
+![Complete-model BF16 FFN Arena](assets/bf16-ffn-arena-model.svg)

@@ -8116,6 +8116,80 @@ def validate_bf16_arena_ffn(
         min(nodes, default=0), max(nodes, default=0)
 
 
+def validate_bf16_ffn_arena_model(
+        errors: list[str]) -> tuple[int, float, float, int, int]:
+    data = REPOSITORY / "benchmarks/results/2026-08-24-bf16-ffn-arena-model"
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    profile = json.loads((data / "profile-summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = summary.get("comparisons", [])
+    speedups = [float(row.get("arena_speedup", 0.0)) for row in comparisons]
+    modes = profile.get("modes", {})
+    baseline_profile = modes.get("baseline", {})
+    arena_profile = modes.get("arena", {})
+    expected_tests = {
+        "cpu_debug": {"passed": 288, "total": 288},
+        "asan_ubsan": {"passed": 286, "total": 286},
+        "pytorch_enabled_cpu": {"passed": 262, "total": 262},
+        "hip_full_configuration": {
+            "passed": 451, "total": 451, "conditional_skips": 3},
+        "hip_label": {"passed": 152, "total": 152},
+        "rccl_multi_gpu": {"passed": 11, "total": 11},
+        "rccl_full_label": {"passed": 13, "total": 13},
+    }
+    profile_files = (
+        "baseline-hip-api-stats.csv", "baseline-kernel-stats.csv",
+        "arena-hip-api-stats.csv", "arena-kernel-stats.csv")
+    if summary.get("status") != "pass" or len(raw) != 60 or \
+            summary.get("raw_processes") != 60 or len(comparisons) != 10 or \
+            summary.get("correctness_gate") is not True or \
+            summary.get("keep_rows") != 3 or \
+            summary.get("regression_rows") != 0 or \
+            summary.get("decision") != \
+                    "reject universal model Arena; inspect shape selection" or \
+            not (0.99 <= min(speedups, default=0.0) <= 1.00) or \
+            not (1.03 <= max(speedups, default=0.0) <= 1.04) or \
+            any(row.get("maximum_absolute_logit_difference") != 0 or
+                row.get("exact_expected_tokens") is not True or
+                int(row.get("arena_engine_allocation_calls", 0)) >=
+                    int(row.get("baseline_engine_allocation_calls", 0)) or
+                int(row.get("arena_entries", 0)) <= 0 or
+                int(row.get("arena_misses", 0)) <= 0
+                for row in comparisons) or \
+            profile.get("status") != "pass" or \
+            baseline_profile.get("kernel_calls") != arena_profile.get("kernel_calls") or \
+            arena_profile.get("hip_malloc_calls", 0) >= \
+                    baseline_profile.get("hip_malloc_calls", 0) or \
+            arena_profile.get("hip_free_calls", 0) >= \
+                    baseline_profile.get("hip_free_calls", 0) or \
+            verification.get("status") != "pass" or \
+            verification.get("tests") != expected_tests or \
+            verification.get("registered_test_files") != 65 or \
+            verification.get("formal_processes") != 60 or \
+            any(row.get("record_type") !=
+                    "bf16_ffn_arena_model_measurement" or
+                row.get("status") != "pass" for row in raw) or \
+            any(not (data / name).is_file() for name in profile_files):
+        errors.append("BF16 FFN Arena model evidence changed")
+    header = (REPOSITORY / "include/microllm/model/model.h").read_text(
+        encoding="utf-8")
+    source = (REPOSITORY / "src/model/model.cpp").read_text(encoding="utf-8")
+    cli = (REPOSITORY / "apps/hf_infer.cpp").read_text(encoding="utf-8")
+    runner = (REPOSITORY / "benchmarks/single_gpu/"
+              "compare_bf16_ffn_arena_models.py").read_text(encoding="utf-8")
+    if "struct Bf16FfnArenaStats" not in header or \
+            "set_bf16_ffn_arena_enabled" not in header or \
+            "class Bf16FfnArenaCache" not in source or \
+            "--bf16-ffn-arena" not in cli or \
+            "maximum_absolute_logit_difference" not in runner:
+        errors.append("BF16 FFN Arena model source/test contract changed")
+    return len(raw), min(speedups, default=0.0), max(speedups, default=0.0), \
+        int(summary.get("keep_rows", 0)), int(summary.get("regression_rows", 0))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -8276,7 +8350,8 @@ def validate_assets(errors: list[str]) -> None:
                  "stream-ordered-allocator.svg",
                  "activation-arena.svg",
                  "arena-ffn.svg",
-                 "bf16-arena-ffn.svg"):
+                 "bf16-arena-ffn.svg",
+                 "bf16-ffn-arena-model.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -8584,6 +8659,9 @@ def main() -> int:
         bf16_arena_graph_minimum, bf16_arena_graph_maximum, \
         bf16_arena_node_minimum, bf16_arena_node_maximum = \
         validate_bf16_arena_ffn(errors)
+    bf16_arena_model_rows, bf16_arena_model_minimum, \
+        bf16_arena_model_maximum, bf16_arena_model_keep, \
+        bf16_arena_model_regressions = validate_bf16_ffn_arena_model(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -8838,6 +8916,9 @@ def main() -> int:
           f"{bf16_arena_eager_minimum:.3f}/{bf16_arena_eager_maximum:.3f}/"
           f"{bf16_arena_graph_minimum:.3f}/{bf16_arena_graph_maximum:.3f}/"
           f"{bf16_arena_node_minimum}/{bf16_arena_node_maximum} "
+          f"bf16_arena_model={bf16_arena_model_rows}/"
+          f"{bf16_arena_model_minimum:.3f}/{bf16_arena_model_maximum:.3f}/"
+          f"{bf16_arena_model_keep}/{bf16_arena_model_regressions} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

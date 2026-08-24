@@ -145,6 +145,9 @@ needed to run a real training and generation loop:
 - caller-owned BF16 FFN workspaces preserve direct-output and fallback shapes without hidden
   allocations; 54/54 official-shape processes are bit-exact, eager Arena/Graph each pass five of
   six rows, and DeepSeek R32 Graph at `0.970×` blocks a universal policy pending full-model gates;
+- a default-off model BF16 FFN Arena shares one backing across every block and exposes exact cache
+  statistics; 60/60 official processes are bit-exact and reduce allocations, but only three of ten
+  rows exceed 1.01, rejecting universal routing while leaving a `rows>=512` hypothesis;
 - a phase-independent exact-size HIP pool with immediate legacy-default-Stream reuse and strict
   permanent disablement for non-default Streams;
 - a cross-framework trace runner for operator/layer values and latency comparisons.
@@ -482,13 +485,13 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 450/450 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
-| CPU Debug | 287/287 | host code, CLI, model/graph, benchmark, both package paths and evidence schemas |
-| ASan/UBSan CPU | 285/285 | host lifetime, external Storage and instrumented-package linking |
+| Full CPU/HIP configuration | 451/451 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
+| CPU Debug | 288/288 | host code, CLI, model/graph, benchmark, both package paths and evidence schemas |
+| ASan/UBSan CPU | 286/286 | host lifetime, external Storage and instrumented-package linking |
 | MI300X/gfx942 HIP label | 152/152 | allocator/arena/Stream/Graph, per-device matmul, BF16/FP8, model and package paths |
-| PyTorch-enabled CPU build | 261/261 | dispatcher parity, full graph/model oracle and both package paths |
+| PyTorch-enabled CPU build | 262/262 | dispatcher parity, full graph/model oracle and both package paths |
 | Two-rank RCCL | 11/11 | collectives, global-batch equivalence, gradient buckets, DDP trainer/CLI and per-device hipBLASLt ownership |
-| Registered test files | 64 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| Registered test files | 65 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree and relocated install tree, external `find_package`, components, compile, link and run |
 | CPU source coverage | 80.4% lines / 89.3% functions / 61.4% branches | 7,782/9,678 lines; GCC 13.3 + gcovr 8.3 |
 

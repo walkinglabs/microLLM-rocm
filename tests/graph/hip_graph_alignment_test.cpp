@@ -212,6 +212,21 @@ TEST(HipGraphAlignmentTest, Bf16LinearInferenceMatchesCpuAndStaysDeviceNative) {
     EXPECT_EQ(transfers.device_to_host_calls, 0U);
     EXPECT_EQ(actual.device(), Device::hip(0));
     expect_graph_near(actual.to_vector(), expected, 5.0e-2F);
+    hip.set_bf16_ffn_arena_enabled(true);
+    runtime::reset_transfer_stats();
+    const auto arena_first = hip.forward_inference(device_tokens);
+    const auto arena_second = hip.forward_inference(device_tokens);
+    runtime::synchronize(Device::hip(0));
+    const auto arena_transfers = runtime::transfer_stats();
+    EXPECT_EQ(arena_transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(arena_transfers.device_to_host_calls, 0U);
+    EXPECT_EQ(arena_first.to_vector(), actual.to_vector());
+    EXPECT_EQ(arena_second.to_vector(), actual.to_vector());
+    const auto arena_stats = hip.bf16_ffn_arena_stats();
+    EXPECT_EQ(arena_stats.entries, 1U);
+    EXPECT_EQ(arena_stats.misses, 1U);
+    EXPECT_EQ(arena_stats.hits, 1U);
+    EXPECT_GT(arena_stats.capacity_bytes, 0U);
 }
 
 }  // namespace microllm::autograd

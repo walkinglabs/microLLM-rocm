@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <map>
@@ -66,6 +67,13 @@ struct Fp8WeightPreparationReport {
 
 using Bf16FfnPreparationReport = Bf16WeightPreparationReport;
 
+struct Bf16FfnArenaStats {
+    std::size_t entries = 0;
+    std::size_t hits = 0;
+    std::size_t misses = 0;
+    std::uint64_t capacity_bytes = 0;
+};
+
 enum class ParameterInitialization { Random, Uninitialized };
 
 [[nodiscard]] WeightMapping qwen_style_weight_mapping(const ModelConfig& config);
@@ -126,6 +134,12 @@ public:
     // No persistent FP32 copy remains inside the model after this call.
     [[nodiscard]] Bf16FfnPreparationReport prepare_bf16_ffn_inference();
     [[nodiscard]] bool bf16_ffn_inference_prepared() const noexcept;
+    // Opt-in graph-free inference workspace. One stable backing allocation is
+    // cached per (device, flattened row count) and reused across all blocks.
+    // A model instance requires external synchronization while this is enabled.
+    void set_bf16_ffn_arena_enabled(bool enabled);
+    [[nodiscard]] bool bf16_ffn_arena_enabled() const noexcept;
+    [[nodiscard]] Bf16FfnArenaStats bf16_ffn_arena_stats() const noexcept;
     [[nodiscard]] Bf16WeightPreparationReport prepare_bf16_attention_inference();
     [[nodiscard]] bool bf16_attention_inference_prepared() const noexcept;
     // One-way inference preparation for every Linear. FP32 Embedding/Norm and

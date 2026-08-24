@@ -245,6 +245,7 @@ TEST(TransformerModelTest, TraceAllLayerDetailsExposesEveryLinearInputBoundary) 
 TEST(TransformerModelTest, Bf16FfnPreparationIsSingleRepresentationAndInferenceOnly) {
     TransformerModel model(tiny_config(), 17);
     const auto input = Tensor::from_int32_vector({1, 2, 3, 4}, {1, 4});
+    EXPECT_THROW(model.set_bf16_ffn_arena_enabled(true), std::logic_error);
     const auto before = model.forward_inference(input).to_vector();
     const auto report = model.prepare_bf16_ffn_inference();
     EXPECT_TRUE(model.bf16_ffn_inference_prepared());
@@ -282,6 +283,28 @@ TEST(TransformerModelTest, Bf16FfnPreparationIsSingleRepresentationAndInferenceO
               "inference.blocks.0.ffn.activated");
     EXPECT_EQ(trace.records()[17].name, "inference.blocks.0.ffn.down");
     expect_near(after, before, 2.0e-2F);
+    model.set_bf16_ffn_arena_enabled(true);
+    EXPECT_TRUE(model.bf16_ffn_arena_enabled());
+    const auto arena_first = model.forward_inference(input).to_vector();
+    const auto arena_second = model.forward_inference(input).to_vector();
+    EXPECT_EQ(arena_first, after);
+    EXPECT_EQ(arena_second, after);
+    const auto arena_stats = model.bf16_ffn_arena_stats();
+    EXPECT_EQ(arena_stats.entries, 1U);
+    EXPECT_EQ(arena_stats.misses, 1U);
+    EXPECT_EQ(arena_stats.hits,
+              static_cast<std::size_t>(model.config().layers * 2 - 1));
+    EXPECT_GT(arena_stats.capacity_bytes, 0U);
+    const auto short_input = Tensor::from_int32_vector({1, 2}, {1, 2});
+    (void)model.forward_inference(short_input);
+    EXPECT_EQ(model.bf16_ffn_arena_stats().entries, 2U);
+    EXPECT_EQ(model.bf16_ffn_arena_stats().misses, 2U);
+    model.to(Device::cpu());
+    EXPECT_TRUE(model.bf16_ffn_arena_enabled());
+    EXPECT_EQ(model.bf16_ffn_arena_stats().entries, 0U);
+    model.set_bf16_ffn_arena_enabled(false);
+    EXPECT_FALSE(model.bf16_ffn_arena_enabled());
+    EXPECT_EQ(model.bf16_ffn_arena_stats().capacity_bytes, 0U);
     EXPECT_THROW((void)model.forward(input), std::logic_error);
     EXPECT_THROW((void)model.prepare_bf16_ffn_inference(), std::logic_error);
 }

@@ -48,6 +48,7 @@ struct Options {
     std::string tokenizer_family = "qwen2";
     std::string chat_user;
     bool bf16_ffn = false;
+    bool bf16_ffn_arena = false;
     bool bf16_attention = false;
     bool fp8_linear = false;
     float fp8_activation_scale = 0.025F;
@@ -117,6 +118,13 @@ Options options(int argc, char** argv) {
                 throw std::invalid_argument("--bf16-ffn must be true or false");
             }
             result.bf16_ffn = value == "true";
+        } else if (name == "--bf16-ffn-arena") {
+            const std::string value = argv[index + 1];
+            if (value != "true" && value != "false") {
+                throw std::invalid_argument(
+                    "--bf16-ffn-arena must be true or false");
+            }
+            result.bf16_ffn_arena = value == "true";
         } else if (name == "--bf16-attention") {
             const std::string value = argv[index + 1];
             if (value != "true" && value != "false") {
@@ -292,6 +300,14 @@ Options options(int argc, char** argv) {
     }
     if (result.bf16_attention && !result.bf16_ffn) {
         throw std::invalid_argument("--bf16-attention requires --bf16-ffn true");
+    }
+    if (result.bf16_ffn_arena && !result.bf16_ffn) {
+        throw std::invalid_argument(
+            "--bf16-ffn-arena requires --bf16-ffn true");
+    }
+    if (result.bf16_ffn_arena && !result.trace_output.empty()) {
+        throw std::invalid_argument(
+            "--bf16-ffn-arena is unavailable during value tracing");
     }
     if ((result.fp8_linear && (result.bf16_ffn || result.bf16_attention)) ||
         !std::isfinite(result.fp8_activation_scale) ||
@@ -978,6 +994,9 @@ int main(int argc, char** argv) {
         microllm::runtime::reset_allocation_peak(device);
         const auto preparation_start = std::chrono::steady_clock::now();
         if (command.bf16_ffn) bf16_report = model.prepare_bf16_ffn_inference();
+        if (command.bf16_ffn_arena) {
+            model.set_bf16_ffn_arena_enabled(true);
+        }
         if (command.bf16_attention) {
             bf16_attention_report = model.prepare_bf16_attention_inference();
         }
@@ -1623,6 +1642,7 @@ int main(int argc, char** argv) {
             if (tokenizer.has_value()) generated_text = tokenizer->decode(generated_suffix);
         }
         const auto allocation = microllm::runtime::allocation_stats(device);
+        const auto bf16_arena_stats = model.bf16_ffn_arena_stats();
         const auto measured_transfers = microllm::runtime::transfer_stats();
         if (!command.cache_logits_output.empty()) {
             const auto cache_logits = cache_logits_evidence.to_vector();
@@ -1666,6 +1686,16 @@ int main(int argc, char** argv) {
                   << ",\"workload\":\"" << command.workload << "\""
                   << ",\"bf16_ffn_converted_tensors\":"
                   << bf16_report.converted_tensors
+                  << ",\"bf16_ffn_arena_enabled\":"
+                  << (model.bf16_ffn_arena_enabled() ? "true" : "false")
+                  << ",\"bf16_ffn_arena_entries\":"
+                  << bf16_arena_stats.entries
+                  << ",\"bf16_ffn_arena_hits\":"
+                  << bf16_arena_stats.hits
+                  << ",\"bf16_ffn_arena_misses\":"
+                  << bf16_arena_stats.misses
+                  << ",\"bf16_ffn_arena_capacity_bytes\":"
+                  << bf16_arena_stats.capacity_bytes
                   << ",\"bf16_attention_converted_tensors\":"
                   << bf16_attention_report.converted_tensors
                   << ",\"fp8_converted_tensors\":"
