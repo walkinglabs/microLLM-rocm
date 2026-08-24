@@ -260,6 +260,10 @@ the chronological details are in the [optimization log](docs/optimization-log/RE
   matrices on the independent vector path; five-process Qwen/DeepSeek optimizer reaches
   `1.2404×/1.2631×` and end-to-end training reaches `1.0490×/1.0528×`; a 16M threshold makes
   DeepSeek slower, so the selected boundary is explicit and MI300X-specific;
+- a fresh load-subtracted post-hybrid profile closes the AdamW-threshold track: AdamW Kernel time
+  improves `1.372×/1.293×`, while GEMM now owns `59.33%/63.81%` of Qwen/DeepSeek training
+  Kernel time; the next accepted training change must alter GEMM architecture rather than another
+  local optimizer or cast launch;
 - rank-N strided-batched hipBLASLt with last-two-dimension transpose contracts for Attention.
 - T≥256 causal GQA backward using batched GEMM for K/V gradients, with short-sequence fallback.
 - optional autograd probability saving for T≥256, reported as a long-sequence speed/memory trade-off.
@@ -565,13 +569,13 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 508/508 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
-| CPU Debug | 324/324 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
-| ASan/UBSan CPU | 322/322 | host lifetime, external Storage and instrumented-package linking |
+| Full CPU/HIP configuration | 509/509 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
+| CPU Debug | 325/325 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
+| ASan/UBSan CPU | 323/323 | host lifetime, external Storage and instrumented-package linking |
 | MI300X/gfx942 HIP label | 173/173 | allocator/arena/Stream/Graph, grouped/exact vendor solutions, BF16/FP8 and model paths |
-| PyTorch-enabled CPU build | 298/298 | dispatcher parity, 32-step BF16 optimizer state, full graph/model oracle and all package paths |
+| PyTorch-enabled CPU build | 299/299 | dispatcher parity, 32-step BF16 optimizer state, full graph/model oracle and all package paths |
 | Multi-GPU/RCCL | 11/11 | collectives, global-batch equivalence, gradient buckets, DDP trainer/CLI and per-device hipBLASLt ownership; RCCL label 14/14 with package gates |
-| Registered test files | 87 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| Registered test files | 88 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
 | CPU source coverage | 79.8% lines / 87.7% functions / 60.4% branches | 8,861/11,100 lines; HIP-only hybrid workspace branches remain visible; GCC 13.3 + gcovr 8.3 |
 

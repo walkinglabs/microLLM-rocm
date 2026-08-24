@@ -77,6 +77,9 @@ BF16_ADAMW_CHART = ROOT / "assets" / "bf16-adamw-moments.svg"
 HYBRID_ADAMW_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
                      "2026-08-24-hybrid-bf16-adamw")
 HYBRID_ADAMW_CHART = ROOT / "assets" / "hybrid-bf16-adamw.svg"
+POST_HYBRID_PROFILE_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
+                            "2026-08-24-post-hybrid-training-profile")
+POST_HYBRID_PROFILE_CHART = ROOT / "assets" / "post-hybrid-training-profile.svg"
 
 
 def rows() -> list[dict]:
@@ -2000,6 +2003,90 @@ def hybrid_bf16_adamw_svg() -> str:
     return "\n".join(parts)
 
 
+def post_hybrid_training_profile_svg() -> str:
+    summary = json.loads((POST_HYBRID_PROFILE_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    comparisons = summary["comparisons"]
+    profiles = {
+        model: json.loads((POST_HYBRID_PROFILE_ROOT / model /
+                           "profile-delta.json").read_text(encoding="utf-8"))
+        for model in ("qwen", "deepseek")
+    }
+    width, height = 1720, 760
+    left_x, right_x, top, panel_h = 100, 930, 145, 460
+    left_w, right_w = 720, 690
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 216 · Post-Hybrid Training Profile", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 80,
+             "load + 3 steps minus load + 1 step · per-step Kernel time",
+             16, "#5b6474", anchor="middle"),
+        f'<rect x="{left_x}" y="{top}" width="{left_w}" height="{panel_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+        f'<rect x="{right_x}" y="{top}" width="{right_w}" height="{panel_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+        text(left_x + left_w / 2, 125, "Kernel time before / after", 20,
+             anchor="middle", weight=700),
+        text(right_x + right_w / 2, 125, "Current category share", 20,
+             anchor="middle", weight=700),
+    ]
+    maximum_ms = max(row["previous_kernel_ns_per_step"] for row in comparisons) / 1e6
+    for index, row in enumerate(comparisons):
+        y = top + 85 + index * 185
+        model = "Qwen 0.5B" if row["model"].startswith("qwen") else "DeepSeek 1.5B"
+        parts.append(text(left_x + 25, y - 28, model, 16, weight=700))
+        for offset, (value, color, label) in enumerate((
+                (row["previous_kernel_ns_per_step"] / 1e6, "#9aa3b2", "Exp213"),
+                (row["kernel_ns_per_step"] / 1e6, "#18a558", "hybrid"))):
+            bar_y = y + offset * 52
+            bar_w = 500 * value / maximum_ms
+            parts.append(f'<rect x="{left_x+25}" y="{bar_y}" width="500" height="30" '
+                         'fill="#eef1f5" rx="4"/>')
+            parts.append(f'<rect x="{left_x+25}" y="{bar_y}" width="{bar_w:.1f}" '
+                         f'height="30" fill="{color}" rx="4"/>')
+            parts.append(text(left_x + 545, bar_y + 21,
+                              f"{label} {value:.2f} ms", 13, color, weight=700))
+        parts.append(text(left_x + 545, y + 128,
+                          f'AdamW {row["adamw_speedup_vs_experiment_213"]:.3f}× faster',
+                          13, "#166534", weight=700))
+    shown = ("hipBLASLt GEMM", "AdamW", "other kernels",
+             "RMSNorm forward/backward", "bias gradient", "cross entropy",
+             "FP32/BF16 cast")
+    colors = ("#2563eb", "#7c3aed", "#94a3b8", "#0f766e",
+              "#d97706", "#dc2626", "#16a34a")
+    for model_index, model in enumerate(("qwen", "deepseek")):
+        categories = {row["category"]: row for row in profiles[model]["categories"]}
+        y = top + 48 + model_index * 205
+        label = "Qwen 0.5B" if model == "qwen" else "DeepSeek 1.5B"
+        parts.append(text(right_x + 25, y, label, 16, weight=700))
+        for index, (name, color) in enumerate(zip(shown, colors, strict=True)):
+            row = categories[name]
+            bar_y = y + 23 + index * 23
+            bar_w = 420 * row["kernel_share"] / 0.65
+            short = ("GEMM" if name == "hipBLASLt GEMM" else
+                     "RMSNorm" if name.startswith("RMSNorm") else
+                     "bias grad" if name == "bias gradient" else
+                     "cross entropy" if name == "cross entropy" else
+                     "cast" if name == "FP32/BF16 cast" else name)
+            parts.append(text(right_x + 25, bar_y + 13, short, 11,
+                              "#5b6474"))
+            parts.append(f'<rect x="{right_x+150}" y="{bar_y}" width="420" height="16" '
+                         'fill="#eef1f5" rx="3"/>')
+            parts.append(f'<rect x="{right_x+150}" y="{bar_y}" width="{bar_w:.1f}" '
+                         f'height="16" fill="{color}" rx="3"/>')
+            parts.append(text(right_x + 590, bar_y + 13,
+                              f'{row["kernel_share"]*100:.2f}%', 11, color,
+                              anchor="end", weight=700))
+    parts.append(text(width / 2, 700,
+                      "AdamW threshold track closed · GEMM now owns 59.33% / 63.81%",
+                      17, "#9a4f00", anchor="middle", weight=700))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -2030,7 +2117,8 @@ def main() -> int:
                 BATCHED_BACKWARD_CHART: batched_attention_backward_svg(),
                 SAVED_ATTENTION_CHART: saved_attention_probabilities_svg(),
                 BF16_ADAMW_CHART: bf16_adamw_moments_svg(),
-                HYBRID_ADAMW_CHART: hybrid_bf16_adamw_svg()}
+                HYBRID_ADAMW_CHART: hybrid_bf16_adamw_svg(),
+                POST_HYBRID_PROFILE_CHART: post_hybrid_training_profile_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

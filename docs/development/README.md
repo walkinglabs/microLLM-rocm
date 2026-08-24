@@ -450,3 +450,5 @@ the next gate. Records are append-only except for factual corrections.
   BF16 AdamW state, checkpoint v2 compatibility, corrected timing and official-model evidence.
 - [2026-08-24-hybrid-bf16-adamw.md](2026-08-24-hybrid-bf16-adamw.md): thresholded
   small-Tensor merge, 16M counterexample and retained 1M Auto policy.
+- [2026-08-24-post-hybrid-training-profile.md](2026-08-24-post-hybrid-training-profile.md):
+  load-subtracted proof that GEMM is the next training architecture boundary.

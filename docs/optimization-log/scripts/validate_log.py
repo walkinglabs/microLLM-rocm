@@ -11378,6 +11378,115 @@ def validate_hybrid_bf16_adamw(
               ["throughput_speedup"])
 
 
+def validate_post_hybrid_training_profile(
+        errors: list[str]) -> tuple[int, float, float, int]:
+    data = REPOSITORY / (
+        "benchmarks/results/2026-08-24-post-hybrid-training-profile")
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    rows = {row["model"]: row for row in summary.get("comparisons", [])}
+    expected = {
+        "qwen2.5-0.5b": (
+            32116614.5, 1698, 19054429.5, 651,
+            0.5932888567691342, 4118064.5, 74,
+            0.1282222477092036, 1.0444235490636786,
+            1.3721069884000483),
+        "deepseek-r1-distill-qwen-1.5b": (
+            72905871.5, 2037, 46519368.5, 759,
+            0.6380743764924338, 12835667.0, 143,
+            0.17605806961651915, 1.057880633111971,
+            1.2929479073439523),
+    }
+    fields = (
+        "kernel_ns_per_step", "kernel_calls_per_step",
+        "gemm_ns_per_step", "gemm_calls_per_step", "gemm_share",
+        "adamw_ns_per_step", "adamw_calls_per_step", "adamw_share",
+        "kernel_speedup_vs_experiment_213",
+        "adamw_speedup_vs_experiment_213")
+    changed = set(rows) != set(expected)
+    if not changed:
+        changed = any(
+            any(abs(float(rows[model].get(field, 0.0)) - value) > 1.0e-12
+                for field, value in zip(fields, values, strict=True))
+            for model, values in expected.items())
+    profile_map = {
+        "qwen2.5-0.5b": data / "qwen",
+        "deepseek-r1-distill-qwen-1.5b": data / "deepseek",
+    }
+    for model, directory in profile_map.items():
+        delta = json.loads((directory / "profile-delta.json").read_text(
+            encoding="utf-8"))
+        categories = {row["category"]: row
+                      for row in delta.get("categories", [])}
+        with (directory / "one-step-kernel-stats.csv").open(
+                encoding="utf-8", newline="") as stream:
+            one = {row["Name"]: row for row in csv.DictReader(stream)}
+        with (directory / "three-step-kernel-stats.csv").open(
+                encoding="utf-8", newline="") as stream:
+            three = {row["Name"]: row for row in csv.DictReader(stream)}
+        call_delta = sum(int(three.get(name, {}).get("Calls", 0)) -
+                         int(one.get(name, {}).get("Calls", 0))
+                         for name in set(one) | set(three)) / 2
+        if delta.get("status") != "pass" or delta.get("derived_steps") != 2 or \
+                delta.get("negative_call_delta_names") != [] or \
+                len(categories) != 11 or \
+                abs(float(delta.get("total_kernel_ns_per_step", 0.0)) -
+                    expected[model][0]) > 1.0e-12 or \
+                abs(call_delta - expected[model][1]) > 1.0e-12 or \
+                categories.get("hipBLASLt GEMM", {}).get(
+                    "calls_per_step") != expected[model][3] or \
+                categories.get("AdamW", {}).get(
+                    "calls_per_step") != expected[model][6]:
+            changed = True
+    if summary.get("status") != "pass" or \
+            summary.get("decision") != \
+                "close AdamW threshold search and move to training GEMM architecture" or \
+            summary.get("negative_call_delta_names") != 0 or changed:
+        errors.append("post-hybrid training profile evidence changed")
+    expected_tests = {
+        "cpu_debug": {"passed": 325, "total": 325},
+        "asan_ubsan": {"passed": 323, "total": 323},
+        "pytorch_enabled_cpu": {"passed": 299, "total": 299},
+        "hip_full_configuration": {
+            "passed": 509, "total": 509, "conditional_skips": 3},
+        "hip_label": {"passed": 173, "total": 173},
+        "rccl_multi_gpu": {"passed": 11, "total": 11},
+        "rccl_full_label": {"passed": 14, "total": 14},
+    }
+    if verification.get("status") != "pass" or \
+            verification.get("profile_models") != 2 or \
+            verification.get("profile_files") != 4 or \
+            verification.get("derived_steps_per_model") != 2 or \
+            verification.get("negative_call_delta_names") != 0 or \
+            verification.get("registered_test_files") != 88 or \
+            verification.get("next_track") != "training GEMM architecture" or \
+            verification.get("tests") != expected_tests or \
+            verification.get("coverage") != {
+                "lines_percent": 79.8,
+                "functions_percent": 87.7,
+                "branches_percent": 60.4,
+                "lines_covered": 8861,
+                "lines_total": 11100}:
+        errors.append("post-hybrid training profile verification changed")
+    script = (REPOSITORY / "benchmarks/single_gpu/profile_step_delta.py").read_text(
+        encoding="utf-8")
+    test = (REPOSITORY / "python/tests/test_profile_step_delta.py").read_text(
+        encoding="utf-8")
+    for token, document in (
+            ("negative Kernel call deltas", script),
+            ('("softmax", "softmax")', script),
+            ('("repeat", "GQA repeat")', script),
+            ("training profile delta contract: pass", test)):
+        if token not in document:
+            errors.append("post-hybrid profile parser/test contract changed")
+            break
+    shares = [float(row["gemm_share"]) for row in rows.values()]
+    speedups = [float(row["adamw_speedup_vs_experiment_213"])
+                for row in rows.values()]
+    return len(rows), min(shares), max(shares), int(round(min(speedups) * 1000))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -11571,7 +11680,8 @@ def validate_assets(errors: list[str]) -> None:
                  "training-bf16-shared-activation-discard.svg",
                  "post-training-micro-saturation.svg",
                  "bf16-adamw-moments.svg",
-                 "hybrid-bf16-adamw.svg"):
+                 "hybrid-bf16-adamw.svg",
+                 "post-hybrid-training-profile.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -11965,6 +12075,9 @@ def main() -> int:
     hybrid_adamw_rows, hybrid_adamw_minimum, \
         hybrid_adamw_optimizer_maximum, hybrid_adamw_deep = \
         validate_hybrid_bf16_adamw(errors)
+    post_hybrid_rows, post_hybrid_gemm_minimum, \
+        post_hybrid_gemm_maximum, post_hybrid_adamw_milli = \
+        validate_post_hybrid_training_profile(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -12310,6 +12423,10 @@ def main() -> int:
           f"{bf16_adamw_stretch_models} "
           f"hybrid_adamw={hybrid_adamw_rows}/{hybrid_adamw_minimum:.3f}/"
           f"{hybrid_adamw_optimizer_maximum:.3f}/{hybrid_adamw_deep:.3f} "
+          f"post_hybrid_profile={post_hybrid_rows}/"
+          f"{post_hybrid_gemm_minimum:.3f}/"
+          f"{post_hybrid_gemm_maximum:.3f}/"
+          f"{post_hybrid_adamw_milli} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

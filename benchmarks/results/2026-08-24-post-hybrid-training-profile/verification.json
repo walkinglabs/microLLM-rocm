@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "profile_models": 2,
+  "profile_files": 4,
+  "derived_steps_per_model": 2,
+  "negative_call_delta_names": 0,
+  "registered_test_files": 88,
+  "next_track": "training GEMM architecture",
+  "tests": {
+    "cpu_debug": {"passed": 325, "total": 325},
+    "asan_ubsan": {"passed": 323, "total": 323},
+    "pytorch_enabled_cpu": {"passed": 299, "total": 299},
+    "hip_full_configuration": {
+      "passed": 509,
+      "total": 509,
+      "conditional_skips": 3
+    },
+    "hip_label": {"passed": 173, "total": 173},
+    "rccl_multi_gpu": {"passed": 11, "total": 11},
+    "rccl_full_label": {"passed": 14, "total": 14}
+  },
+  "coverage": {
+    "lines_percent": 79.8,
+    "functions_percent": 87.7,
+    "branches_percent": 60.4,
+    "lines_covered": 8861,
+    "lines_total": 11100
+  }
+}

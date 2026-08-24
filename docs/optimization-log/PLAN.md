@@ -67,6 +67,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [36](steps/36-post-training-micro-saturation.md) | complete | 训练微融合饱和审计 | GEMM+AdamW占72.71%/83.77% |
 | [37](steps/37-bf16-adamw-moments.md) | complete | BF16 optimizer状态带宽/显存 | 端到端与显存过门；Qwen optimizer stretch未过 |
 | [38](steps/38-hybrid-bf16-adamw.md) | complete | BF16小Tensor分层合并 | 1M双模型全过；16M DeepSeek反例 |
+| [39](steps/39-post-hybrid-training-profile.md) | complete | Hybrid后训练profile | GEMM占59.33%/63.81%，转入GEMM架构 |
 
 ## 为什么按这个顺序
 

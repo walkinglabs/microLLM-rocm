@@ -22,6 +22,8 @@ def category(name: str) -> str:
         ("bias_gradient", "bias gradient"),
         ("strided_copy", "strided materialization"),
         ("cast_kernel", "FP32/BF16 cast"),
+        ("softmax", "softmax"),
+        ("repeat", "GQA repeat"),
         ("rms_norm", "RMSNorm forward/backward"),
         ("fill", "fill"),
     ):
@@ -57,14 +59,26 @@ def main() -> int:
     many = read(args.many_step)
     divisor = args.many_step_count - 1
     kernels = []
+    excluded = []
+    negative_calls = []
     grouped: dict[str, list[float]] = defaultdict(lambda: [0.0, 0.0])
-    for name, row in many.items():
+    for name in sorted(set(one) | set(many)):
+        row = many.get(name, {})
         one_row = one.get(name, {})
-        calls = (int(row["Calls"]) - int(one_row.get("Calls", 0))) / divisor
-        duration = (int(row["TotalDurationNs"]) -
+        call_delta = int(row.get("Calls", 0)) - int(one_row.get("Calls", 0))
+        duration_delta = (int(row.get("TotalDurationNs", 0)) -
                     int(one_row.get("TotalDurationNs", 0))) / divisor
-        if calls <= 0 or duration < 0:
+        if call_delta < 0:
+            negative_calls.append(name)
             continue
+        calls = call_delta / divisor
+        duration = duration_delta
+        if calls <= 0:
+            excluded.append(name)
+            continue
+        if duration < 0:
+            raise ValueError(
+                f"positive-call Kernel has negative duration delta: {name}")
         label = category(name)
         kernels.append({
             "name": name,
@@ -76,6 +90,12 @@ def main() -> int:
         grouped[label][1] += calls
     kernels.sort(key=lambda row: row["duration_ns_per_step"], reverse=True)
     total = sum(row["duration_ns_per_step"] for row in kernels)
+    if negative_calls:
+        raise ValueError(
+            "many-step profile has negative Kernel call deltas: " +
+            ", ".join(negative_calls))
+    if total <= 0:
+        raise ValueError("profile delta contains no positive training Kernel time")
     categories = [
         {
             "category": label,
@@ -96,8 +116,9 @@ def main() -> int:
         "total_kernel_ns_per_step": total,
         "categories": categories,
         "top_kernels": kernels[:30],
-        "excluded_nonpositive_delta_names": sorted(set(one) - set(
-            row["name"] for row in kernels)),
+        "raw_delta_kernel_names": len(set(one) | set(many)),
+        "negative_call_delta_names": negative_calls,
+        "excluded_nonpositive_delta_names": excluded,
     }
     args.output_directory.mkdir(parents=True, exist_ok=True)
     shutil.copy2(args.one_step, args.output_directory / "one-step-kernel-stats.csv")

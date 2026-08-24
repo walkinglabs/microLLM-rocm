@@ -418,6 +418,12 @@ Experiment 215只合并小Tensor并扫描6个阈值。1M五进程正式门让Qwe
 
 ![Hybrid BF16 AdamW](assets/hybrid-bf16-adamw.svg)
 
+Experiment 216重新采集Hybrid后的load-subtracted profile。AdamW相对Experiment 213提高
+`1.372×/1.293×`，总Kernel提高`1.044×/1.058×`；GEMM现在占`59.33%/63.81%`。
+AdamW阈值track关闭，下一训练节点必须改变GEMM结构。
+
+![Post-hybrid training profile](assets/post-hybrid-training-profile.svg)
+
 只提高平均数不够。每次保留改动还必须满足正确性、单项退化、显存和复杂度门。
 
 ## 目录
@@ -807,6 +813,8 @@ Experiment 215只合并小Tensor并扫描6个阈值。1M五进程正式门让Qwe
 | [experiments/214-bf16-adamw-moments-partial.md](experiments/214-bf16-adamw-moments-partial.md) | BF16 moment、计时修复、multi-tensor反例与partial keep |
 | [assets/hybrid-bf16-adamw.svg](assets/hybrid-bf16-adamw.svg) | 六阈值搜索、1M正式门和16M反例 |
 | [experiments/215-hybrid-bf16-adamw.md](experiments/215-hybrid-bf16-adamw.md) | 小Tensor分层合并与HIP Auto边界 |
+| [assets/post-hybrid-training-profile.svg](assets/post-hybrid-training-profile.svg) | Hybrid前后总Kernel/AdamW与新类别占比 |
+| [experiments/216-post-hybrid-training-profile.md](experiments/216-post-hybrid-training-profile.md) | 差分profile与训练GEMM下一合同 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

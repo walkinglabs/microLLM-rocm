@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1720" height="760" viewBox="0 0 1720 760">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="860.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 216 · Post-Hybrid Training Profile</text>
+<text x="860.0" y="80.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">load + 3 steps minus load + 1 step · per-step Kernel time</text>
+<rect x="100" y="145" width="720" height="460" fill="#ffffff" stroke="#cbd3df" rx="10"/>
+<rect x="930" y="145" width="690" height="460" fill="#ffffff" stroke="#cbd3df" rx="10"/>
+<text x="460.0" y="125.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">Kernel time before / after</text>
+<text x="1275.0" y="125.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">Current category share</text>
+<text x="125.0" y="202.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" text-anchor="start" font-weight="700">Qwen 0.5B</text>
+<rect x="125" y="230" width="500" height="30" fill="#eef1f5" rx="4"/>
+<rect x="125" y="230" width="217.5" height="30" fill="#9aa3b2" rx="4"/>
+<text x="645.0" y="251.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#9aa3b2" text-anchor="start" font-weight="700">Exp213 33.54 ms</text>
+<rect x="125" y="282" width="500" height="30" fill="#eef1f5" rx="4"/>
+<rect x="125" y="282" width="208.2" height="30" fill="#18a558" rx="4"/>
+<text x="645.0" y="303.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#18a558" text-anchor="start" font-weight="700">hybrid 32.12 ms</text>
+<text x="645.0" y="358.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#166534" text-anchor="start" font-weight="700">AdamW 1.372× faster</text>
+<text x="125.0" y="387.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" text-anchor="start" font-weight="700">DeepSeek 1.5B</text>
+<rect x="125" y="415" width="500" height="30" fill="#eef1f5" rx="4"/>
+<rect x="125" y="415" width="500.0" height="30" fill="#9aa3b2" rx="4"/>
+<text x="645.0" y="436.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#9aa3b2" text-anchor="start" font-weight="700">Exp213 77.13 ms</text>
+<rect x="125" y="467" width="500" height="30" fill="#eef1f5" rx="4"/>
+<rect x="125" y="467" width="472.6" height="30" fill="#18a558" rx="4"/>
+<text x="645.0" y="488.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#18a558" text-anchor="start" font-weight="700">hybrid 72.91 ms</text>
+<text x="645.0" y="543.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#166534" text-anchor="start" font-weight="700">AdamW 1.293× faster</text>
+<text x="955.0" y="193.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" text-anchor="start" font-weight="700">Qwen 0.5B</text>
+<text x="955.0" y="229.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="start" font-weight="400">GEMM</text>
+<rect x="1080" y="216" width="420" height="16" fill="#eef1f5" rx="3"/>
+<rect x="1080" y="216" width="383.4" height="16" fill="#2563eb" rx="3"/>
+<text x="1520.0" y="229.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#2563eb" text-anchor="end" font-weight="700">59.33%</text>
+<text x="955.0" y="252.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="start" font-weight="400">AdamW</text>
+<rect x="1080" y="239" width="420" height="16" fill="#eef1f5" rx="3"/>
+<rect x="1080" y="239" width="82.9" height="16" fill="#7c3aed" rx="3"/>
+<text x="1520.0" y="252.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#7c3aed" text-anchor="end" font-weight="700">12.82%</text>
+<text x="955.0" y="275.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="start" font-weight="400">other kernels</text>
+<rect x="1080" y="262" width="420" height="16" fill="#eef1f5" rx="3"/>
+<rect x="1080" y="262" width="33.0" height="16" fill="#94a3b8" rx="3"/>
+<text x="1520.0" y="275.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#94a3b8" text-anchor="end" font-weight="700">5.11%</text>
+<text x="955.0" y="298.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="start" font-weight="400">RMSNorm</text>
+<rect x="1080" y="285" width="420" height="16" fill="#eef1f5" rx="3"/>
+<rect x="1080" y="285" width="25.9" height="16" fill="#0f766e" rx="3"/>
+<text x="1520.0" y="298.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#0f766e" text-anchor="end" font-weight="700">4.01%</text>
+<text x="955.0" y="321.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="start" font-weight="400">bias grad</text>
+<rect x="1080" y="308" width="420" height="16" fill="#eef1f5" rx="3"/>
+<rect x="1080" y="308" width="26.2" height="16" fill="#d97706" rx="3"/>
+<text x="1520.0" y="321.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#d97706" text-anchor="end" font-weight="700">4.06%</text>
+<text x="955.0" y="344.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="start" font-weight="400">cross entropy</text>
+<rect x="1080" y="331" width="420" height="16" fill="#eef1f5" rx="3"/>
+<rect x="1080" y="331" width="25.6" height="16" fill="#dc2626" rx="3"/>
+<text x="1520.0" y="344.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#dc2626" text-anchor="end" font-weight="700">3.97%</text>
+<text x="955.0" y="367.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="start" font-weight="400">cast</text>
+<rect x="1080" y="354" width="420" height="16" fill="#eef1f5" rx="3"/>
+<rect x="1080" y="354" width="19.8" height="16" fill="#16a34a" rx="3"/>
+<text x="1520.0" y="367.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#16a34a" text-anchor="end" font-weight="700">3.06%</text>
+<text x="955.0" y="398.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033" text-anchor="start" font-weight="700">DeepSeek 1.5B</text>
+<text x="955.0" y="434.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="start" font-weight="400">GEMM</text>
+<rect x="1080" y="421" width="420" height="16" fill="#eef1f5" rx="3"/>
+<rect x="1080" y="421" width="412.3" height="16" fill="#2563eb" rx="3"/>
+<text x="1520.0" y="434.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#2563eb" text-anchor="end" font-weight="700">63.81%</text>
+<text x="955.0" y="457.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="start" font-weight="400">AdamW</text>
+<rect x="1080" y="444" width="420" height="16" fill="#eef1f5" rx="3"/>
+<rect x="1080" y="444" width="113.8" height="16" fill="#7c3aed" rx="3"/>
+<text x="1520.0" y="457.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#7c3aed" text-anchor="end" font-weight="700">17.61%</text>
+<text x="955.0" y="480.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="start" font-weight="400">other kernels</text>
+<rect x="1080" y="467" width="420" height="16" fill="#eef1f5" rx="3"/>
+<rect x="1080" y="467" width="24.1" height="16" fill="#94a3b8" rx="3"/>
+<text x="1520.0" y="480.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#94a3b8" text-anchor="end" font-weight="700">3.73%</text>
+<text x="955.0" y="503.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="start" font-weight="400">RMSNorm</text>
+<rect x="1080" y="490" width="420" height="16" fill="#eef1f5" rx="3"/>
+<rect x="1080" y="490" width="17.9" height="16" fill="#0f766e" rx="3"/>
+<text x="1520.0" y="503.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#0f766e" text-anchor="end" font-weight="700">2.77%</text>
+<text x="955.0" y="526.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="start" font-weight="400">bias grad</text>
+<rect x="1080" y="513" width="420" height="16" fill="#eef1f5" rx="3"/>
+<rect x="1080" y="513" width="15.6" height="16" fill="#d97706" rx="3"/>
+<text x="1520.0" y="526.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#d97706" text-anchor="end" font-weight="700">2.41%</text>
+<text x="955.0" y="549.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="start" font-weight="400">cross entropy</text>
+<rect x="1080" y="536" width="420" height="16" fill="#eef1f5" rx="3"/>
+<rect x="1080" y="536" width="12.9" height="16" fill="#dc2626" rx="3"/>
+<text x="1520.0" y="549.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#dc2626" text-anchor="end" font-weight="700">1.99%</text>
+<text x="955.0" y="572.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="start" font-weight="400">cast</text>
+<rect x="1080" y="559" width="420" height="16" fill="#eef1f5" rx="3"/>
+<rect x="1080" y="559" width="17.2" height="16" fill="#16a34a" rx="3"/>
+<text x="1520.0" y="572.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#16a34a" text-anchor="end" font-weight="700">2.66%</text>
+<text x="860.0" y="700.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#9a4f00" text-anchor="middle" font-weight="700">AdamW threshold track closed · GEMM now owns 59.33% / 63.81%</text>
+</svg>
