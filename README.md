@@ -37,6 +37,10 @@ extending small decoder-only language models on AMD GPUs.
 > and both complete parameter-Max gates fail. The Autograd/CLI route and candidate
 > runners are removed; the aligned standalone operator and evidence tools remain.
 
+> Allocation attribution is now exact: the rejected route's extra calls are two cached
+> cast buffers per weight gradient, with zero backend-allocation or peak-memory delta.
+> A workspace API will be considered only after a direct wall/Event cost gate.
+
 ## Why this project exists
 
 Large frameworks make model development productive, but they hide the ownership,

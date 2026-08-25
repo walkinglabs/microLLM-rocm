@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "record_type": "bf16_weight_gradient_allocation_attribution",
+  "source": "2026-08-25-bf16-weight-gradient-trajectory",
+  "models": [
+    {
+      "model": "qwen2.5-0.5b",
+      "measured_steps": 20,
+      "routes_per_step": 48,
+      "total_routes": 960,
+      "allocation_calls_delta": 1920,
+      "allocations_per_route": 2,
+      "total_allocated_bytes_delta": 5662310400,
+      "bytes_per_route": 5898240,
+      "input_cast_transpose_bytes": 917504,
+      "output_gradient_cast_bytes": 4980736,
+      "expected_cast_bytes_per_route": 5898240,
+      "backend_allocation_calls_delta": 0,
+      "cache_reuse_calls_delta": 1920,
+      "peak_bytes_delta": 0,
+      "cached_bytes_delta": 0,
+      "exact_allocation_identity": true
+    },
+    {
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "measured_steps": 20,
+      "routes_per_step": 56,
+      "total_routes": 1120,
+      "allocation_calls_delta": 2240,
+      "allocations_per_route": 2,
+      "total_allocated_bytes_delta": 12037652480,
+      "bytes_per_route": 10747904,
+      "input_cast_transpose_bytes": 1572864,
+      "output_gradient_cast_bytes": 9175040,
+      "expected_cast_bytes_per_route": 10747904,
+      "backend_allocation_calls_delta": 0,
+      "cache_reuse_calls_delta": 2240,
+      "peak_bytes_delta": 0,
+      "cached_bytes_delta": 0,
+      "exact_allocation_identity": true
+    }
+  ],
+  "decision": "measure allocating versus preallocated cost before designing workspace API"
+}
+

@@ -3960,3 +3960,13 @@ Qwen的loss和Parameter RMS也失败。五个聚合门只有峰值通过。
 进入下一门，不能直接成为默认。
 
 ![BF16 weight-gradient trajectory discard](assets/bf16-weight-gradient-trajectory-discard.svg)
+
+## 265. Experiment 248：逻辑分配多，不等于显存真的多分配
+
+Qwen/DeepSeek每次route恰好多两块Storage，字节数正好等于input cast+transpose和dY cast。
+但backend allocation、peak和cached bytes增量全部是0，额外调用全被cache reuse吸收。
+
+所以暂时不能凭allocation calls设计workspace。下一节直接测allocating与preallocated的
+wall/Event差异。
+
+![BF16 weight-gradient allocation attribution](assets/bf16-weight-gradient-allocation-attribution.svg)

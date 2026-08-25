@@ -13790,6 +13790,49 @@ def validate_bf16_weight_gradient_trajectory_discard(
     return summary.get("raw_processes", 0), *expected
 
 
+def validate_bf16_weight_gradient_allocation_attribution(
+        errors: list[str]) -> tuple[int, int, int, int]:
+    root = REPOSITORY / (
+        "benchmarks/results/2026-08-25-bf16-weight-gradient-allocation-attribution")
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    models = {row["model"]: row for row in summary.get("models", [])}
+    qwen = models.get("qwen2.5-0.5b", {})
+    deep = models.get("deepseek-r1-distill-qwen-1.5b", {})
+    if (summary.get("schema_version") != 1 or summary.get("status") != "pass" or
+            summary.get("record_type") !=
+                "bf16_weight_gradient_allocation_attribution" or
+            len(models) != 2 or
+            qwen.get("total_routes") != 960 or deep.get("total_routes") != 1120 or
+            qwen.get("allocation_calls_delta") != 1920 or
+            deep.get("allocation_calls_delta") != 2240 or
+            qwen.get("bytes_per_route") != 5898240 or
+            deep.get("bytes_per_route") != 10747904 or
+            any(row.get("bytes_per_route") !=
+                    row.get("expected_cast_bytes_per_route") or
+                row.get("allocations_per_route") != 2 or
+                row.get("backend_allocation_calls_delta") != 0 or
+                row.get("peak_bytes_delta") != 0 or
+                row.get("exact_allocation_identity") is not True
+                for row in models.values())):
+        errors.append("BF16 weight-gradient allocation attribution changed")
+    if (check != {
+            "schema_version": 1, "status": "pass", "source_processes": 12,
+            "source_loss_values": 240, "models": 2,
+            "exact_allocation_identities": 2, "backend_allocation_delta": 0,
+            "peak_byte_delta": 0, "model_route_restored": False,
+            "workspace_api_created": False}):
+        errors.append("BF16 weight-gradient allocation verification changed")
+    source = (REPOSITORY / "src/ops/optimized.cpp").read_text(encoding="utf-8")
+    if (source.count("Tensor bf16_weight_gradient(") != 1 or
+            "Bf16WeightGradientWorkspace" in source):
+        errors.append("BF16 weight-gradient allocation source boundary changed")
+    return len(models), qwen.get("allocation_calls_delta", 0), \
+        deep.get("allocation_calls_delta", 0), \
+        sum(row.get("backend_allocation_calls_delta", 0)
+            for row in models.values())
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -14015,7 +14058,8 @@ def validate_assets(errors: list[str]) -> None:
                  "current-training-profile.svg",
                  "bf16-weight-gradient-shapes.svg",
                  "bf16-weight-gradient-model.svg",
-                 "bf16-weight-gradient-trajectory-discard.svg"):
+                 "bf16-weight-gradient-trajectory-discard.svg",
+                 "bf16-weight-gradient-allocation-attribution.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -14500,6 +14544,9 @@ def main() -> int:
     bf16_wgrad_trajectory_rows, bf16_wgrad_qwen_long, bf16_wgrad_deep_long, \
         bf16_wgrad_qwen_parameter, bf16_wgrad_deep_parameter = \
         validate_bf16_weight_gradient_trajectory_discard(errors)
+    bf16_wgrad_allocation_models, bf16_wgrad_qwen_allocations, \
+        bf16_wgrad_deep_allocations, bf16_wgrad_backend_allocations = \
+        validate_bf16_weight_gradient_allocation_attribution(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -14943,6 +14990,9 @@ def main() -> int:
           f"{bf16_wgrad_qwen_long:.3f}/{bf16_wgrad_deep_long:.3f}/"
           f"{bf16_wgrad_qwen_parameter:.3e}/"
           f"{bf16_wgrad_deep_parameter:.3e} "
+          f"bf16_wgrad_allocations={bf16_wgrad_allocation_models}/"
+          f"{bf16_wgrad_qwen_allocations}/{bf16_wgrad_deep_allocations}/"
+          f"{bf16_wgrad_backend_allocations} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

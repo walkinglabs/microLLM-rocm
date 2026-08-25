@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "source_processes": 12,
+  "source_loss_values": 240,
+  "models": 2,
+  "exact_allocation_identities": 2,
+  "backend_allocation_delta": 0,
+  "peak_byte_delta": 0,
+  "model_route_restored": false,
+  "workspace_api_created": false
+}
+

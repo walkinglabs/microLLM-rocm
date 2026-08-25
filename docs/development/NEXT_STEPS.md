@@ -173,8 +173,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   both parameter-Max gates fail and only 1/5 aggregate gates passes;
 - [x] remove the rejected Autograd/CLI model route and candidate-only runners while retaining
   the aligned operator, shape matrix, loss export and complete safetensors comparison;
-- [ ] attribute training temporary allocations and prove caller-owned workspace lifetime/address
-  safety before attempting another graph-wide training optimization;
+- [x] attribute the rejected candidate's temporary allocations exactly to two BF16 cast buffers
+  per route; backend allocation, peak and cached-byte deltas are zero;
+- [ ] measure allocating versus preallocated wall/Event cost before adding any public
+  weight-gradient workspace contract;
 
 - [x] make the matmul registry key exact over its implicit op identity, GPU architecture,
   dtype, shape, strides/layout, mode, workspace limit, and library/runtime versions;

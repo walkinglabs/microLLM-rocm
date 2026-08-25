@@ -203,6 +203,11 @@ BF16_WGRAD_TRAJECTORY_ROOT = (
     "2026-08-25-bf16-weight-gradient-trajectory")
 BF16_WGRAD_TRAJECTORY_CHART = (
     ROOT / "assets" / "bf16-weight-gradient-trajectory-discard.svg")
+BF16_WGRAD_ALLOCATION_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-bf16-weight-gradient-allocation-attribution")
+BF16_WGRAD_ALLOCATION_CHART = (
+    ROOT / "assets" / "bf16-weight-gradient-allocation-attribution.svg")
 
 
 def rows() -> list[dict]:
@@ -4030,6 +4035,52 @@ def bf16_weight_gradient_trajectory_svg() -> str:
     return "\n".join(parts)
 
 
+def bf16_weight_gradient_allocation_svg() -> str:
+    summary = json.loads((BF16_WGRAD_ALLOCATION_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    width, height = 1500, 720
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 248 · Allocation Source Identity", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "20-step retained evidence · rejected model route is not restored",
+             16, "#5b6474", anchor="middle"),
+    ]
+    for index, row in enumerate(summary["models"]):
+        x = 145 + index * 680
+        model = "Qwen2.5-0.5B" if index == 0 else "DeepSeek-Distill-1.5B"
+        parts.extend([
+            f'<rect x="{x}" y="145" width="540" height="365" rx="16" '
+            'fill="#eef6ff" stroke="#2563eb" stroke-width="3"/>',
+            text(x + 270, 195, model, 23, "#172033", anchor="middle", weight=700),
+            text(x + 45, 255, f"routes  {row['total_routes']}", 18),
+            text(x + 45, 295,
+                 f"allocation delta  {row['allocation_calls_delta']}", 18),
+            text(x + 45, 335, "exactly 2 logical allocations / route", 18,
+                 "#2563eb", weight=700),
+            text(x + 45, 390,
+                 f"bytes / route  {row['bytes_per_route']:,}", 18),
+            text(x + 45, 430,
+                 f"two cast buffers  {row['expected_cast_bytes_per_route']:,}", 18),
+            text(x + 270, 480, "EXACT IDENTITY", 23, "#166534",
+                 anchor="middle", weight=700),
+        ])
+    parts.append(text(width / 2, 575,
+                      "Backend allocations +0 · peak bytes +0 · cached bytes +0",
+                      22, "#166534", anchor="middle", weight=700))
+    parts.append(text(width / 2, 635,
+                      "Attribution is complete; workspace speedup is not yet proven",
+                      22, "#b45309", anchor="middle", weight=700))
+    parts.append(text(width / 2, 685,
+                      "Next: allocating vs preallocated wall/Event gate before any API",
+                      16, "#5b6474", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -4093,7 +4144,8 @@ def main() -> int:
                 CURRENT_TRAINING_PROFILE_CHART: current_training_profile_svg(),
                 BF16_WGRAD_SHAPE_CHART: bf16_weight_gradient_shapes_svg(),
                 BF16_WGRAD_MODEL_CHART: bf16_weight_gradient_model_svg(),
-                BF16_WGRAD_TRAJECTORY_CHART: bf16_weight_gradient_trajectory_svg()}
+                BF16_WGRAD_TRAJECTORY_CHART: bf16_weight_gradient_trajectory_svg(),
+                BF16_WGRAD_ALLOCATION_CHART: bf16_weight_gradient_allocation_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

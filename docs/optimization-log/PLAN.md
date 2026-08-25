@@ -99,7 +99,8 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [68](steps/68-bf16-weight-gradient.md) | complete | cast-inclusive BF16 weight gradient | gate/up 1.459×/1.890×；其余四格拒绝 |
 | [69](steps/69-bf16-weight-gradient-model-gate.md) | complete | gate/up-only整模A/B | 1.0213×/1.0638×；短门全过，保持显式 |
 | [70](steps/70-bf16-weight-gradient-trajectory.md) | complete | 更长loss/参数轨迹 | 仅1/5门通过；模型路由和候选runner撤回 |
-| [71](steps/71-training-allocation-workspace.md) | planned | 训练分配/workspace归因 | 先证地址与生命周期，不恢复已拒绝路由 |
+| [71](steps/71-training-allocation-workspace.md) | complete | 训练分配/workspace归因 | 两cast Storage逐字节闭合；backend/peak增量0 |
+| [72](steps/72-bf16-weight-gradient-workspace-gate.md) | in progress | allocating vs preallocated | 先测wall/Event，过1.01门才建API |
 
 ## 为什么按这个顺序
 
