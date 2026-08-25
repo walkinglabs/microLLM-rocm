@@ -2,6 +2,13 @@
 
 这份文档只讲框架权重，不等于某个模型架构已经兼容。
 
+## 完整临时参数比较
+
+`microllm_compare_safetensors BASELINE CANDIDATE` 要求两份文件的 Tensor 名字、shape
+和 FP32 dtype 完全相同，然后比较每一个值，输出整体 Max/RMS、有限性、元素数量和最差
+Tensor 名字。它用于不能把多 GB 参数快照提交进仓库的训练实验。这个诊断工具不替代下文
+的原子模型加载和保存合同。
+
 ## 1. 权重是什么
 
 模型由许多有名字的 Tensor 组成，例如：

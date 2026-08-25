@@ -25,10 +25,14 @@ add_executable(microllm_hf_train_step hf_train_step.cpp)
 target_link_libraries(microllm_hf_train_step PRIVATE
     microllm::training microllm::model microllm::runtime)
 
+add_executable(microllm_compare_safetensors compare_safetensors.cpp)
+target_link_libraries(microllm_compare_safetensors PRIVATE microllm::io)
+
 install(TARGETS microllm_train microllm_runtime_info microllm_alignment microllm_hf_inspect
         microllm_hf_infer
         microllm_hf_tokenize
         microllm_hf_train_step
+        microllm_compare_safetensors
         RUNTIME DESTINATION bin)
 
 if(MICROLLM_HAS_RCCL)

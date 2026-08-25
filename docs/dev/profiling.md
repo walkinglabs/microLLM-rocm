@@ -229,6 +229,12 @@ and output-gradient cast. It compares the complete candidate output with the FP3
 checks deterministic samples against CPU BF16 arithmetic and keeps per-shape fresh-process
 medians. Passing this gate permits an explicit Autograd rebuttal; it does not install one.
 
+For a longer training gate, `bf16_weight_gradient_trajectory.py` passes optional loss and
+gate/up-parameter output paths to the training CLI. Both files are written after the measured
+window. `microllm_compare_safetensors` then compares every FP32 master value; temporary
+snapshots are deleted after comparison. This prevents file I/O from becoming a fake speed
+regression and prevents a small checksum from standing in for complete parameter evidence.
+
 For HIP Graph submission crossover measurements:
 
 ```bash

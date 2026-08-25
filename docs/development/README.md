@@ -518,3 +518,5 @@ the next gate. Records are append-only except for factual corrections.
   records four rejected shapes, two admitted shapes and the default-off Autograd boundary.
 - [2026-08-25-bf16-weight-gradient-model.md](2026-08-25-bf16-weight-gradient-model.md):
   records the wiring rebuttal and the passing short official-model gate.
+- [2026-08-25-training-trajectory-evidence.md](2026-08-25-training-trajectory-evidence.md):
+  defines timed loss export and complete temporary gate/up parameter comparison.

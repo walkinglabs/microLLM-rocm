@@ -16,6 +16,7 @@
 #include <microllm/model/huggingface.h>
 #include <microllm/model/model.h>
 #include <microllm/autograd/diagnostics.h>
+#include <microllm/io/safetensors.h>
 #include <microllm/runtime/diagnostics.h>
 #include <microllm/runtime/memory.h>
 #include <microllm/runtime/runtime.h>
@@ -168,6 +169,23 @@ void write_diagnostics(
     if (!output) throw std::runtime_error("cannot write diagnostics output");
 }
 
+void write_loss_trajectory(const std::filesystem::path& path,
+                           const std::vector<float>& losses) {
+    if (path.has_parent_path()) {
+        std::filesystem::create_directories(path.parent_path());
+    }
+    std::ofstream output(path, std::ios::trunc);
+    if (!output) throw std::runtime_error("cannot open loss trajectory output");
+    output << std::setprecision(9)
+           << "{\"schema_version\":1,\"status\":\"pass\",\"losses\":[";
+    for (std::size_t index = 0; index < losses.size(); ++index) {
+        if (index != 0) output << ',';
+        output << losses[index];
+    }
+    output << "]}\n";
+    if (!output) throw std::runtime_error("cannot write loss trajectory output");
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -187,6 +205,8 @@ int main(int argc, char** argv) {
         std::string bf16_algorithm_text;
         int fp32_gate_up_weight_gradient_solution_index = -1;
         std::filesystem::path diagnostics_output;
+        std::filesystem::path loss_trajectory_output;
+        std::filesystem::path gate_up_parameters_output;
         bool bf16_weight_mirrors = true;
         bool tied_embedding_sparse_add = true;
         bool unique_gradient_inplace_add = false;
@@ -231,6 +251,12 @@ int main(int argc, char** argv) {
             }
             else if (name == "--diagnostics-output") {
                 diagnostics_output = argv[index + 1];
+            }
+            else if (name == "--loss-trajectory-output") {
+                loss_trajectory_output = argv[index + 1];
+            }
+            else if (name == "--gate-up-parameters-output") {
+                gate_up_parameters_output = argv[index + 1];
             }
             else if (name == "--tied-embedding-sparse-add") {
                 const std::string value = argv[index + 1];
@@ -511,6 +537,8 @@ int main(int argc, char** argv) {
         float first_loss = 0.0F;
         float final_loss = 0.0F;
         double optimizer_ms = 0.0;
+        std::vector<float> loss_trajectory;
+        loss_trajectory.reserve(static_cast<std::size_t>(steps));
         std::uint64_t optimizer_h2d = 0;
         std::uint64_t optimizer_d2h = 0;
         std::uint64_t optimizer_h2d_bytes = 0;
@@ -520,6 +548,7 @@ int main(int argc, char** argv) {
             const auto result = run_step();
             if (iteration == 0) first_loss = result.loss;
             final_loss = result.loss;
+            loss_trajectory.push_back(result.loss);
             optimizer_ms += result.optimizer_ms;
             optimizer_h2d += result.transfers.host_to_device_calls;
             optimizer_d2h += result.transfers.device_to_host_calls;
@@ -546,6 +575,31 @@ int main(int argc, char** argv) {
             microllm::ops::fp32_matmul_solution_stats();
         const auto measured_ms =
             std::chrono::duration<double, std::milli>(finish - start).count();
+        if (!loss_trajectory_output.empty()) {
+            write_loss_trajectory(loss_trajectory_output, loss_trajectory);
+        }
+        std::size_t gate_up_parameter_tensors = 0;
+        std::uint64_t gate_up_parameter_elements = 0;
+        if (!gate_up_parameters_output.empty()) {
+            microllm::io::StateDict selected;
+            for (const auto& [name, parameter] : named) {
+                if (!name.ends_with(".gate_proj.weight") &&
+                    !name.ends_with(".up_proj.weight")) {
+                    continue;
+                }
+                gate_up_parameter_elements += static_cast<std::uint64_t>(
+                    parameter->data().numel());
+                selected.emplace(name, parameter->data());
+            }
+            gate_up_parameter_tensors = selected.size();
+            if (gate_up_parameter_tensors == 0) {
+                throw std::logic_error("gate/up parameter selection is empty");
+            }
+            microllm::io::save_safetensors(
+                gate_up_parameters_output, selected,
+                {.dtype = microllm::io::WeightFileDType::Float32,
+                 .atomic_replace = true});
+        }
         const auto warmup_ms =
             std::chrono::duration<double, std::milli>(warmup_finish - warmup_start).count();
         const auto trained_tokens = input_ids.size() * static_cast<std::size_t>(batch_size) *
@@ -591,6 +645,15 @@ int main(int argc, char** argv) {
                   << fp32_solution_stats.dispatches
                   << ",\"diagnostics_enabled\":"
                   << (!diagnostics_output.empty() ? "true" : "false")
+                  << ",\"loss_trajectory_output_written\":"
+                  << (!loss_trajectory_output.empty() ? "true" : "false")
+                  << ",\"loss_trajectory_steps\":" << loss_trajectory.size()
+                  << ",\"gate_up_parameters_output_written\":"
+                  << (!gate_up_parameters_output.empty() ? "true" : "false")
+                  << ",\"gate_up_parameter_tensors\":"
+                  << gate_up_parameter_tensors
+                  << ",\"gate_up_parameter_elements\":"
+                  << gate_up_parameter_elements
                   << ",\"tied_embedding_sparse_add\":"
                   << (tied_embedding_sparse_add ? "true" : "false")
                   << ",\"unique_gradient_inplace_add\":"
