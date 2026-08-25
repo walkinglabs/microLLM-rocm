@@ -24,9 +24,43 @@ CROSS_BATCH_SPEC = importlib.util.spec_from_file_location(
 CROSS_BATCH = importlib.util.module_from_spec(CROSS_BATCH_SPEC)
 assert CROSS_BATCH_SPEC.loader is not None
 CROSS_BATCH_SPEC.loader.exec_module(CROSS_BATCH)
+PRECISION_SPEC = importlib.util.spec_from_file_location(
+    "audit_cross_batch_precision",
+    ROOT / "benchmarks/single_gpu/audit_cross_batch_precision.py")
+PRECISION = importlib.util.module_from_spec(PRECISION_SPEC)
+assert PRECISION_SPEC.loader is not None
+PRECISION_SPEC.loader.exec_module(PRECISION)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_precision_isolation_summary_separates_weight_islands(self):
+        measurements = []
+        for run in (1, 2):
+            for policy_index, policy in enumerate(PRECISION.POLICIES):
+                for batch in (1, 2, 4, 8):
+                    values = [0.0, 1.0, 2.0, 3.0]
+                    if policy_index and batch > 1:
+                        values = [0.0, 1.0 + policy_index / 10.0, 2.0, 3.0]
+                    measurements.append(({
+                        "precision_island": policy, "batch": batch,
+                        "process_run": run,
+                        "within_batch_bitwise_equal": True,
+                        "host_device_argmax_equal": True,
+                        "device_argmax_token": 3,
+                        "engine_peak_bytes": 1000 + policy_index,
+                    }, values * batch))
+        summary = PRECISION.summarize(measurements, 4)
+        self.assertEqual(summary["process_rows"], 32)
+        self.assertEqual(summary["case_rows"], 16)
+        self.assertTrue(summary["all_repeat_bitwise_equal"])
+        self.assertTrue(summary["all_within_batch_bitwise_equal"])
+        self.assertTrue(summary["all_host_device_argmax_equal"])
+        by_policy = {row["precision_island"]: row
+                     for row in summary["policy_summaries"]}
+        self.assertEqual(by_policy["fp32-linear"]["maximum_cross_batch_error"], 0)
+        self.assertAlmostEqual(
+            by_policy["bf16-both"]["maximum_cross_batch_error"], 0.3)
+
     def test_current_cross_batch_audit_is_complete(self):
         root = ROOT / "benchmarks/results/2026-08-25-deepseek-cross-batch-logits"
         summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))

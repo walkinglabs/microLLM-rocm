@@ -195,6 +195,32 @@ zero warm backend allocations, and passes only at Event 1.05x plus wall 1.02x.
 The runner emits raw JSON Lines, a case summary, and `value-reuse.svg`; no model
 or automatic route reads the tile selection.
 
+Audit batch-shape numerical drift independently of performance timing:
+
+```bash
+ROCR_VISIBLE_DEVICES=0 HIP_VISIBLE_DEVICES=0 python3 \
+  benchmarks/single_gpu/audit_cached_cross_batch_logits.py \
+  --manifest /path/to/hf-models.local.json \
+  --binary build/hip-release/apps/microllm_hf_infer \
+  --output-directory /tmp/microllm-cross-batch-logits
+```
+
+This saves selected decode steps 0/1/2, checks every batch row and host/device
+argmax, and compares all vocabulary values against B1. To isolate the source at
+step 0 across FP32 Linear, BF16 FFN, BF16 Attention, and combined BF16, run:
+
+```bash
+ROCR_VISIBLE_DEVICES=0 HIP_VISIBLE_DEVICES=0 python3 \
+  benchmarks/single_gpu/audit_cross_batch_precision.py \
+  --manifest /path/to/hf-models.local.json \
+  --binary build/hip-release/apps/microllm_hf_infer \
+  --output-directory /tmp/microllm-cross-batch-precision
+```
+
+Both are diagnostic runs, not throughput rankings. They require two fresh
+processes per case and report actual converted-tensor counts so a requested
+precision island cannot silently fall back.
+
 Screen the separate BF16 weight-gradient hypothesis before changing Autograd:
 
 ```bash
