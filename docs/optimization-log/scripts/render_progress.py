@@ -352,6 +352,11 @@ RANKED_MODEL_S_INPUT_ROOT = (
     "2026-08-25-ranked-model-s-input-weighting")
 RANKED_MODEL_S_INPUT_CHART = (
     ROOT / "assets" / "ranked-model-s-input-weighting.svg")
+RANKED_WEIGHTED_OVERLAP_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-ranked-weighted-overlap")
+RANKED_WEIGHTED_OVERLAP_CHART = (
+    ROOT / "assets" / "ranked-weighted-overlap-discard.svg")
 
 
 def rows() -> list[dict]:
@@ -6272,6 +6277,108 @@ def ranked_model_s_input_svg() -> str:
     return "\n".join(parts)
 
 
+def ranked_weighted_overlap_svg() -> str:
+    summary = json.loads((RANKED_WEIGHTED_OVERLAP_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    verification = json.loads((RANKED_WEIGHTED_OVERLAP_ROOT /
+                               "verification.json").read_text(encoding="utf-8"))
+    result = summary["results"]["128"]
+    synchronous = result["policies"]["bucket-views"]
+    overlap = result["policies"]["overlap-views"]
+    width, height = 1500, 800
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 278 · Weighted Ready-Overlap Discard", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "Model-S T128 · rank rows [1,2] · 3 paired runs · 6 steady samples per policy · 3 buckets",
+             16, "#5b6474", anchor="middle"),
+        '<rect x="55" y="125" width="580" height="425" rx="18" fill="#ffffff" stroke="#64748b" stroke-width="2"/>',
+        text(345, 170, "Where the steady step moved", 23, "#172033",
+             anchor="middle", weight=700),
+    ]
+    rows_data = (
+        ("Synchronous", synchronous, "#2563eb"),
+        ("Leaf weighted overlap", overlap, "#dc2626"),
+    )
+    for index, (label, value, color) in enumerate(rows_data):
+        y = 225 + index * 145
+        forward = value["median_steady_forward_backward_ms"]
+        finish = value["median_steady_finish_ms"]
+        total = value["median_steady_training_ms"]
+        parts.extend([
+            text(95, y, label, 18, color, weight=700),
+            text(590, y, f"{total:.3f} ms", 21, color,
+                 anchor="end", weight=700),
+            f'<rect x="95" y="{y + 25}" width="{400 * forward / 10.0:.1f}" '
+            f'height="34" rx="7" fill="#2563eb"/>',
+            f'<rect x="{95 + 400 * forward / 10.0:.1f}" y="{y + 25}" '
+            f'width="{400 * finish / 10.0:.1f}" height="34" rx="7" fill="#f59e0b"/>',
+            text(95, y + 88, f"forward/backward {forward:.3f} ms", 14,
+                 "#1d4ed8"),
+            text(590, y + 88, f"finish {finish:.3f} ms", 14,
+                 "#b45309", anchor="end"),
+        ])
+    parts.extend([
+        text(345, 515, "blue: backward + weighting · amber: reducer finish",
+             14, "#5b6474", anchor="middle"),
+        '<rect x="675" y="125" width="350" height="425" rx="18" fill="#ffffff" stroke="#dc2626" stroke-width="3"/>',
+        text(850, 170, "Performance gate", 23, "#b42335",
+             anchor="middle", weight=700),
+        text(720, 235, "Finish speedup", 16, "#5b6474"),
+        text(980, 235, f"{result['finish_speedup']:.3f}x", 23, "#166534",
+             anchor="end", weight=700),
+        text(720, 300, "F/B added", 16, "#5b6474"),
+        text(980, 300, f"+{result['forward_backward_added_ms']:.3f} ms", 23,
+             "#b42335", anchor="end", weight=700),
+        text(720, 365, "Whole-step speedup", 16, "#5b6474"),
+        text(980, 365, f"{result['training_speedup']:.4f}x", 27,
+             "#b42335", anchor="end", weight=700),
+        text(720, 430, "Required", 16, "#5b6474"),
+        text(980, 430, "≥ 1.0100x", 23, "#172033", anchor="end", weight=700),
+        text(850, 500, "REJECT", 31, "#b42335", anchor="middle", weight=700),
+        '<rect x="1065" y="125" width="380" height="425" rx="18" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>',
+        text(1255, 170, "Correctness and resources", 23, "#166534",
+             anchor="middle", weight=700),
+    ])
+    facts = (
+        ("Rank Max / RMS", "0 / 0"),
+        ("Policy Max / RMS", "0 / 0"),
+        ("Policy comparisons", "3 × 15,586,176"),
+        ("CPU parameter Max", f"{verification['maximum_reference_difference']:.6f}"),
+        ("CPU parameter RMS", f"{verification['maximum_reference_rms_difference']:.3e}"),
+        ("Current / peak delta", "0 / 0 bytes"),
+        ("Temp weights retained", "false"),
+    )
+    for index, (label, value) in enumerate(facts):
+        y = 225 + index * 43
+        parts.extend([
+            text(1105, y, label, 14, "#5b6474"),
+            text(1405, y, value, 16, "#166534", anchor="end", weight=700),
+        ])
+    paired = verification["paired_run_speedups"]
+    leave_one = verification["leave_one_pair_out_speedups"]
+    parts.extend([
+        '<rect x="55" y="590" width="1390" height="155" rx="18" fill="#fff7ed" stroke="#f59e0b" stroke-width="2"/>',
+        text(95, 630, "Sensitivity", 19, "#b45309", weight=700),
+        text(290, 630,
+             "paired runs  " + "  /  ".join(f"{value:.3f}x" for value in paired),
+             17, "#172033"),
+        text(290, 672,
+             "leave-one-pair-out  " +
+             "  /  ".join(f"{value:.3f}x" for value in leave_one),
+             17, "#172033"),
+        text(290, 714,
+             "57 leaf scales erase the overlap win · next counterfactual: 3 bucket scales",
+             18, "#b42335", weight=700),
+        text(1400, 714, "0.9594x", 25, "#b42335", anchor="end", weight=700),
+        "</svg>\n",
+    ])
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -6365,7 +6472,8 @@ def main() -> int:
                 RANKED_WORLD_SIZE_CHART: ranked_world_size_svg(),
                 RANKED_PREFLIGHT_CHART: ranked_rccl_preflight_svg(),
                 RANKED_INPUT_WEIGHT_CHART: ranked_input_weighting_svg(),
-                RANKED_MODEL_S_INPUT_CHART: ranked_model_s_input_svg()}
+                RANKED_MODEL_S_INPUT_CHART: ranked_model_s_input_svg(),
+                RANKED_WEIGHTED_OVERLAP_CHART: ranked_weighted_overlap_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

@@ -955,6 +955,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [experiments/276-ranked-input-weighting.md](experiments/276-ranked-input-weighting.md) | 默认拒绝、显式weighted保留与Model-S交接 |
 | [assets/ranked-model-s-input-weighting.svg](assets/ranked-model-s-input-weighting.svg) | Model-S `[B1,B2]` scale、精度与显存smoke |
 | [experiments/277-ranked-model-s-input-weighting.md](experiments/277-ranked-model-s-input-weighting.md) | 同步weighted保留与scale-before-ready交接 |
+| [assets/ranked-weighted-overlap-discard.svg](assets/ranked-weighted-overlap-discard.svg) | finish收益、leaf scale代价与0.9594x整步反例 |
+| [experiments/278-ranked-weighted-overlap-discard.md](experiments/278-ranked-weighted-overlap-discard.md) | 完整参数等价、性能拒绝与bucket weighting反驳实验 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

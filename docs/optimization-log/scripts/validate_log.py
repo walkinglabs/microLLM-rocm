@@ -16291,6 +16291,167 @@ def validate_ranked_model_s_input_weighting(
         summary.get("maximum_engine_peak_bytes", 0)
 
 
+def validate_ranked_weighted_overlap(
+        errors: list[str]) -> tuple[int, float, float, int]:
+    root = REPOSITORY / "benchmarks/results/2026-08-25-ranked-weighted-overlap"
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    failure = json.loads((root / "failure.json").read_text(encoding="utf-8"))
+    comparisons = json.loads((root / "policy-comparisons.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    result = summary.get("results", {}).get("128", {})
+    policies = result.get("policies", {})
+    synchronous = policies.get("bucket-views", {})
+    overlap = policies.get("overlap-views", {})
+    expected_training = 0.9594161124399574
+    expected_finish = 1.9298014544890927
+    if (summary.get("schema_version") != 1 or summary.get("status") != "pass" or
+            summary.get("record_type") != "ranked_overlap_context_summary" or
+            summary.get("contexts") != [128] or
+            summary.get("gate_contexts") != [128] or
+            summary.get("rank_batch_rows") != [1, 2] or
+            summary.get("input_weighting") != "token-weighted" or
+            summary.get("runs_per_policy_context") != 3 or
+            summary.get("policy_context_runs") != 6 or
+            summary.get("rank_processes") != 12 or
+            summary.get("steps_per_rank") != 3 or
+            summary.get("steady_skip_steps") != 1 or
+            summary.get("steady_steps_per_run") != 2 or
+            summary.get("bucket_bytes") != 26214400 or
+            summary.get("mean_loss_tolerance") != 0.001 or
+            summary.get("policy_parameter_comparisons") != 3 or
+            summary.get("maximum_policy_parameter_difference") != 0 or
+            summary.get("policy_parameter_rms_difference") != 0 or
+            summary.get("temporary_parameter_files_retained") is not False or
+            summary.get("minimum_required_speedup") != 1.01 or
+            summary.get("longer_context_gate_passed") is not False or
+            summary.get("peer_failure_detected") is not True or
+            summary.get("peer_processes_terminated") != 1 or
+            summary.get("failure_returncodes") != [1, -15] or
+            summary.get("decision") !=
+                "close Model-S ranked weighted overlap scale track" or
+            result.get("training_speedup") != expected_training or
+            result.get("finish_speedup") != expected_finish or
+            result.get("forward_backward_added_ms") != 1.5195305000000001 or
+            result.get("current_bytes_added") != 0 or
+            result.get("peak_bytes_added") != 0 or
+            synchronous.get("median_steady_training_ms") != 8.9537005 or
+            synchronous.get("median_steady_finish_ms") != 2.6644595 or
+            synchronous.get("median_steady_forward_backward_ms") != 6.1691945 or
+            overlap.get("median_steady_training_ms") != 9.3324475 or
+            overlap.get("median_steady_finish_ms") != 1.3806910000000001 or
+            overlap.get("median_steady_forward_backward_ms") != 7.688725 or
+            synchronous.get("maximum_reference_difference") !=
+                0.0049375561066 or
+            synchronous.get("maximum_reference_rms_difference") !=
+                3.21758371961e-06 or
+            synchronous.get("maximum_mean_loss_difference") !=
+                1.716433333243117e-05 or
+            synchronous.get("maximum_engine_current_bytes") != 249378820 or
+            synchronous.get("maximum_engine_peak_bytes") != 417369612 or
+            overlap.get("maximum_engine_current_bytes") != 249378820 or
+            overlap.get("maximum_engine_peak_bytes") != 417369612):
+        errors.append("ranked weighted-overlap summary changed")
+    if (len(raw) != 6 or
+            {row.get("reducer") for row in raw} !=
+                {"bucket-views", "overlap-views"} or
+            any(row.get("context") != 128 or
+                row.get("rank_batch_rows") != [1, 2] or
+                row.get("input_weighting") != "token-weighted" or
+                row.get("steps") != 3 or
+                row.get("maximum_rank_difference") != 0.0 or
+                row.get("rank_rms_difference") != 0.0 or
+                row.get("maximum_rank_step_weighted_gradient_scales") !=
+                    [57, 57, 57] or
+                row.get("maximum_rank_step_collectives") != [3, 3, 3] or
+                row.get("maximum_rank_step_reducer_backend_allocation_calls") !=
+                    [3, 0, 0] or
+                row.get("parameter_files_retained") is not True
+                for row in raw) or
+            any(row.get("maximum_rank_step_overlap_enabled") != [0, 0, 0] or
+                row.get("maximum_rank_step_overlapped_buckets") != [0, 0, 0]
+                for row in raw if row.get("reducer") == "bucket-views") or
+            any(row.get("maximum_rank_step_overlap_enabled") != [0, 1, 1] or
+                row.get("maximum_rank_step_overlapped_buckets") != [0, 3, 3]
+                for row in raw if row.get("reducer") == "overlap-views")):
+        errors.append("ranked weighted-overlap raw evidence changed")
+    if (len(comparisons) != 3 or
+            any(value.get("record_type") !=
+                    "safetensors_complete_comparison" or
+                value.get("tensor_count") != 57 or
+                value.get("compared_elements") != 15586176 or
+                value.get("maximum_absolute_difference") != 0 or
+                value.get("rms_difference") != 0 or
+                value.get("context") != 128 or
+                value.get("process_run") != index
+                for index, value in enumerate(comparisons, 1))):
+        errors.append("ranked weighted-overlap policy comparisons changed")
+    if (failure.get("record_type") != "ranked_peer_failure_summary" or
+            failure.get("failure_detected") is not True or
+            failure.get("peer_processes_terminated") != 1 or
+            failure.get("returncodes") != [1, -15] or
+            list(root.rglob("*.safetensors")) or
+            list(root.rglob("communicator.id"))):
+        errors.append("ranked weighted-overlap cleanup or failure changed")
+    if (check.get("measurement_commit") !=
+            "e53c9cb21061b2c5b672709aa56c6bf81fba656b" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("gpu") != "2 x AMD Instinct MI300X VF" or
+            check.get("architecture") != "gfx942" or
+            check.get("model") != "model-s" or
+            check.get("world_size") != 2 or check.get("context") != 128 or
+            check.get("rank_batch_rows") != [1, 2] or
+            check.get("rank_local_tokens") != [128, 256] or
+            check.get("average_tokens") != 192.0 or
+            check.get("rank_gradient_scales") !=
+                [0.666666687, 1.333333373] or
+            check.get("runs_per_policy") != 3 or
+            check.get("policy_runs") != 6 or
+            check.get("rank_processes") != 12 or
+            check.get("steps_per_rank") != 3 or
+            check.get("weighted_gradient_scales_per_step") != 57 or
+            check.get("training_speedup") != expected_training or
+            check.get("finish_speedup") != expected_finish or
+            check.get("performance_gate_passed") is not False or
+            check.get("paired_run_speedups") != [
+                0.9575450591033846, 0.9354204934862484,
+                1.027414671589421] or
+            check.get("leave_one_pair_out_speedups") != [
+                0.9679150912890443, 0.973496397078478,
+                0.951909684235657] or
+            check.get("maximum_rank_difference") != 0.0 or
+            check.get("maximum_rank_rms_difference") != 0.0 or
+            check.get("maximum_policy_parameter_difference") != 0.0 or
+            check.get("policy_parameter_rms_difference") != 0.0 or
+            check.get("maximum_reference_difference") != 0.0049375561066 or
+            check.get("maximum_reference_rms_difference") !=
+                3.21758371961e-06 or
+            check.get("maximum_mean_loss_difference") !=
+                1.716433333243117e-05 or
+            check.get("mean_loss_tolerance") != 0.001 or
+            check.get("current_bytes_added") != 0 or
+            check.get("peak_bytes_added") != 0 or
+            check.get("temporary_parameter_files_retained") is not False or
+            check.get("performance_claim") is not False or
+            check.get("rccl_label") != {"passed": 50, "total": 50} or
+            check.get("ranked_contracts") != {"passed": 8, "total": 8} or
+            check.get("registered_test_files") != 125):
+        errors.append("ranked weighted-overlap verification changed")
+    runner = (REPOSITORY /
+              "benchmarks/distributed/ranked_overlap_context_matrix.py").read_text(
+                  encoding="utf-8")
+    worker = (REPOSITORY / "apps/distributed_rank.cpp").read_text(
+        encoding="utf-8")
+    if ("retain-consensus-parameter-file" not in runner or
+            "maximum_policy_parameter_difference" not in runner or
+            "step_weighted_gradient_scales" not in worker):
+        errors.append("ranked weighted-overlap measurement route is missing")
+    return len(raw), expected_finish, expected_training, \
+        check.get("weighted_gradient_scales_per_step", 0)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -16546,7 +16707,8 @@ def validate_assets(errors: list[str]) -> None:
                  "ranked-world-size-boundary.svg",
                  "ranked-rccl-preflight.svg",
                  "ranked-input-weighting.svg",
-                 "ranked-model-s-input-weighting.svg"):
+                 "ranked-model-s-input-weighting.svg",
+                 "ranked-weighted-overlap-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -17121,6 +17283,9 @@ def main() -> int:
     ranked_model_s_weighted_steps, ranked_model_s_weighted_max, \
         ranked_model_s_weighted_rms, ranked_model_s_weighted_peak = \
         validate_ranked_model_s_input_weighting(errors)
+    ranked_weighted_overlap_runs, ranked_weighted_overlap_finish, \
+        ranked_weighted_overlap_training, ranked_weighted_overlap_scales = \
+        validate_ranked_weighted_overlap(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -17680,6 +17845,10 @@ def main() -> int:
           f"{ranked_model_s_weighted_max:.3e}/"
           f"{ranked_model_s_weighted_rms:.3e}/"
           f"{ranked_model_s_weighted_peak} "
+          f"ranked_weighted_overlap={ranked_weighted_overlap_runs}/"
+          f"{ranked_weighted_overlap_finish:.4f}/"
+          f"{ranked_weighted_overlap_training:.4f}/"
+          f"{ranked_weighted_overlap_scales} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

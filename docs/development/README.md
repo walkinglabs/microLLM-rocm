@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-25: Ranked weighted-overlap result](2026-08-25-ranked-weighted-overlap-result.md)
 - [2026-08-25: Ranked weighted-overlap matrix infrastructure](2026-08-25-ranked-weighted-overlap-matrix.md)
 - [2026-08-25: Ranked token-weighted overlap infrastructure](2026-08-25-ranked-weighted-overlap-infrastructure.md)
 - [2026-08-25: Ranked Model-S uneven-input result](2026-08-25-ranked-model-s-input-weighting-result.md)

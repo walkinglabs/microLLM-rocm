@@ -1,6 +1,6 @@
 # Step 101 — Ranked token-weighted ready overlap
 
-Status: implemented; formal Model-S measurement pending
+Status: complete; performance route rejected
 
 当前weighted同步路径在backward完成后统一scale；overlap会更早pack，所以两者不能直接组合。下一
 节点将每个leaf gradient的local scale放入gradient-ready hook，并在scale Kernel之后记录bucket
@@ -21,3 +21,7 @@ Model-S T128的同步`bucket-views`与weighted `overlap-views`交替测量三轮
 成对runner已扩展并做T32 pilot：两条策略最终15,586,176个参数逐项完全相同，但overlap
 steady step只有0.9545x。三步CPU loss差达到`4.067e-4`，而参数Max/RMS仍通过
 `1e-2 / 1e-5`；正式T128命令会公开使用`1e-3` loss门，不把一步门静默套到三步轨迹。
+
+正式T128三轮中，finish加速1.930x，但57次leaf scale令forward/backward增加1.520ms，整步
+只有0.9594x。三轮策略间完整参数Max/RMS均0，CPU Max/RMS为`0.004938 / 3.218e-6`，显存
+增量0。性能路由拒绝，正确性原语保留。Step 102只尝试把57次scale降成3次bucket scale。

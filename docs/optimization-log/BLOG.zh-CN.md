@@ -4371,3 +4371,19 @@ token-weighted一步比较57个Tensor、15,586,176个值：rank Max/RMS为0，CP
 我们需要在leaf ready hook里先scale，再让plan记录Event和pack bucket。
 
 ![Ranked Model-S input weighting](assets/ranked-model-s-input-weighting.svg)
+
+## 295. Experiment 278：通信明明提前了，为什么整步反而更慢
+
+Model-S T128使用rank0 B1、rank1 B2。每个leaf gradient ready时先乘本rank权重，再记录Event并
+启动对应bucket通信。三轮同步/overlap最终57个Tensor、15,586,176个值逐项完全相同，CPU
+Max/RMS为0.004938/3.218e-6，因此顺序是正确的。
+
+但正确不等于快。finish从2.664ms降到1.381ms，快1.930x；57次leaf scale却让forward/
+backward增加1.520ms。steady step由8.954ms升到9.332ms，只有0.9594x。逐轮中甚至有一轮是
+1.027x，然而leave-one-pair-out仍全在0.952x–0.973x，不能挑最好的一轮宣布成功。
+
+所以我们拒绝当前性能路由，保留正确性原语。下一次只移动scale位置：leaf不再逐个scale，等
+3个bucket各自ready并pack后，在RCCL Stream上每bucket scale一次。若57→3仍不能让整步过
+1.01门，weighted overlap优化track就到此关闭。
+
+![Ranked weighted overlap discard](assets/ranked-weighted-overlap-discard.svg)
