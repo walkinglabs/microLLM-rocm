@@ -40,6 +40,7 @@ def main() -> int:
         "overlap-views", "overlap_steady_finish_speedup_vs_synchronous_views",
         "overlap_steady_training_speedup_vs_synchronous_views",
         "overlap_peak_bytes_added_vs_synchronous_views",
+        "--context", "context exceeds the selected model contract",
         "profile ranked Model-S cold and steady reducer",
         "admit measured ranked Model-S bucket baseline",
         "admit one-process-per-GPU ready-bucket migration",

@@ -591,6 +591,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(DistributedRank.MatrixContract PROPERTIES
         LABELS "cpu;multi_gpu;rccl;distributed;training;failure;schema")
     add_test(
+        NAME DistributedRank.ContextMatrixContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_ranked_overlap_context_matrix.py
+    )
+    set_tests_properties(DistributedRank.ContextMatrixContract PROPERTIES
+        LABELS "cpu;multi_gpu;rccl;distributed;training;context;schema")
+    add_test(
         NAME Benchmark.Bf16RepeatContract
         COMMAND ${Python3_EXECUTABLE}
                 ${PROJECT_SOURCE_DIR}/python/tests/test_bf16_repeat.py

@@ -34,6 +34,7 @@ def main() -> int:
         "maximum_rank_step_gradient_views",
         "overlap-views", "overlap_steps_per_rank",
         "maximum_rank_step_overlapped_buckets",
+        "--context", "context exceeds the selected model contract",
     ):
         assert token in runner
     for token in (
@@ -47,6 +48,7 @@ def main() -> int:
         "engine_current_bytes", "engine_peak_bytes",
         "gradient_view_count", "bucket-views",
         "begin_overlap_step", "finish_overlap_step",
+        "options.context", "context_dimension",
     ):
         assert token in worker
     print("ranked launcher contract: pass")

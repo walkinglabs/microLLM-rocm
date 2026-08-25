@@ -31,12 +31,18 @@ def options() -> argparse.Namespace:
                         default="per-parameter")
     parser.add_argument("--bucket-bytes", type=int, default=4096)
     parser.add_argument("--model", choices=("tiny", "model-s"), default="tiny")
+    parser.add_argument("--context", type=int, default=0)
     parser.add_argument("--compare-binary", type=Path)
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
     if (not args.binary.is_file() or args.steps <= 0 or
             args.timeout_seconds <= 0 or args.bucket_bytes < 4):
         parser.error("ranked launcher inputs are invalid")
+    if args.context == 0:
+        args.context = 4 if args.model == "tiny" else 32
+    if ((args.model == "tiny" and args.context != 4) or
+            (args.model == "model-s" and not 1 <= args.context <= 512)):
+        parser.error("context exceeds the selected model contract")
     if args.compare_binary is not None and not args.compare_binary.is_file():
         parser.error("--compare-binary is not a file")
     if args.model == "model-s" and (
@@ -135,7 +141,8 @@ def main() -> int:
               "--steps", str(args.steps), "--seed", "607",
               "--timeout-ms", str(int(args.timeout_seconds * 1000)),
               "--reducer", args.reducer,
-              "--bucket-bytes", str(args.bucket_bytes)]
+              "--bucket-bytes", str(args.bucket_bytes),
+              "--context", str(args.context)]
     rank_parameter_files = [output / "rank1.safetensors",
                             output / "rank0.safetensors"]
     reference_parameter_file = output / "reference.safetensors"
@@ -195,7 +202,8 @@ def main() -> int:
              for index, text in enumerate(outputs)]
     reference_command = [str(args.binary.resolve()), "--mode", "reference",
                          "--steps", str(args.steps), "--seed", "607",
-                         "--model", args.model]
+                         "--model", args.model,
+                         "--context", str(args.context)]
     if args.model == "model-s":
         reference_command.extend(
             ["--parameter-file", str(reference_parameter_file)])
@@ -212,6 +220,9 @@ def main() -> int:
         raise RuntimeError("CPU global-batch reference failed")
     reference = load_record(reference_completed.stdout, "reference")
     if (ranks[0].get("rank") != 1 or ranks[1].get("rank") != 0 or
+            ranks[0].get("context") != args.context or
+            ranks[1].get("context") != args.context or
+            reference.get("context") != args.context or
             ranks[0]["parameter_names"] != ranks[1]["parameter_names"] or
             ranks[0]["parameter_names"] != reference["parameter_names"]):
         raise RuntimeError("rank identity or parameter names changed")
@@ -392,6 +403,7 @@ def main() -> int:
         "record_type": "ranked_training_summary",
         "world_size": 2,
         "model": args.model,
+        "context": args.context,
         "reducer": args.reducer,
         "bucket_bytes": args.bucket_bytes,
         "steps": args.steps,

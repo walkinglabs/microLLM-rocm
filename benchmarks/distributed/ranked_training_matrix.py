@@ -29,6 +29,7 @@ def options() -> argparse.Namespace:
     parser.add_argument("--timeout-seconds", type=float, default=20.0)
     parser.add_argument("--overwrite", action="store_true")
     parser.add_argument("--model", choices=("tiny", "model-s"), default="tiny")
+    parser.add_argument("--context", type=int, default=0)
     parser.add_argument("--compare-binary", type=Path)
     parser.add_argument("--bucket-bytes", type=int, default=4096)
     parser.add_argument("--steady-skip-steps", type=int, default=0)
@@ -45,6 +46,11 @@ def options() -> argparse.Namespace:
     if args.model == "model-s" and (
             args.compare_binary is None):
         parser.error("Model-S requires --compare-binary")
+    if args.context == 0:
+        args.context = 4 if args.model == "tiny" else 32
+    if ((args.model == "tiny" and args.context != 4) or
+            (args.model == "model-s" and not 1 <= args.context <= 512)):
+        parser.error("context exceeds the selected model contract")
     if (len(set(args.policies)) != len(args.policies) or
             "per-parameter" not in args.policies or
             "bucket" not in args.policies):
@@ -88,6 +94,7 @@ def main() -> int:
                 str(output / f"run-{process_run}-{policy}"),
                 "--steps", str(args.steps), "--reducer", policy,
                 "--model", args.model,
+                "--context", str(args.context),
                 "--bucket-bytes", str(args.bucket_bytes),
                 "--timeout-seconds", str(args.timeout_seconds), "--overwrite",
             ]
@@ -114,6 +121,7 @@ def main() -> int:
                     value.get("world_size") != 2 or
                     value.get("steps") != args.steps or
                     value.get("model") != args.model or
+                    value.get("context") != args.context or
                     value.get("reducer") != policy or
                     value.get("collectives_per_rank") != expected_collectives or
                     value.get("parameter_tensors") != parameter_tensors or
@@ -309,6 +317,7 @@ def main() -> int:
         "status": "pass",
         "record_type": "ranked_training_matrix_summary",
         "model": args.model,
+        "context": args.context,
         "selected_policies": args.policies,
         "runs_per_policy": args.runs,
         "policy_runs": len(raw),

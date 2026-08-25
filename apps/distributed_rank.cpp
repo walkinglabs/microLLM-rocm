@@ -33,6 +33,7 @@ struct Options {
     std::string reducer = "per-parameter";
     std::size_t bucket_bytes = 4096;
     std::string model = "tiny";
+    std::size_t context = 0;
     std::filesystem::path parameter_file;
 };
 
@@ -79,6 +80,9 @@ Options parse(int argc, char** argv) {
                 number(next("--bucket-bytes"), "bucket bytes"));
         } else if (argument == "--model") {
             options.model = next("--model");
+        } else if (argument == "--context") {
+            options.context = static_cast<std::size_t>(
+                number(next("--context"), "context"));
         } else if (argument == "--parameter-file") {
             options.parameter_file = next("--parameter-file");
         } else {
@@ -94,6 +98,14 @@ Options parse(int argc, char** argv) {
         options.bucket_bytes < sizeof(float) ||
         (options.model != "tiny" && options.model != "model-s")) {
         throw std::invalid_argument("distributed rank options are invalid");
+    }
+    if (options.context == 0) {
+        options.context = options.model == "tiny" ? 4U : 32U;
+    }
+    if ((options.model == "tiny" && options.context != 4) ||
+        (options.model == "model-s" && options.context > 512)) {
+        throw std::invalid_argument(
+            "distributed rank context exceeds the model contract");
     }
     if (options.mode == "rank" &&
         (options.world_size != 2 || options.rank < 0 ||
@@ -123,7 +135,8 @@ microllm::model::ModelConfig model_config(const std::string& model) {
 }
 
 microllm::io::TokenBatch local_batch(
-    const microllm::model::ModelConfig& config, int rank) {
+    const microllm::model::ModelConfig& config, int rank,
+    std::size_t context) {
     if (config.vocabulary_size == 8 && rank == 0) {
         return {microllm::Tensor::from_int32_vector({0, 1, 2, 3}, {1, 4}),
                 microllm::Tensor::from_int32_vector({1, 2, 3, 0}, {1, 4})};
@@ -132,7 +145,6 @@ microllm::io::TokenBatch local_batch(
         return {microllm::Tensor::from_int32_vector({3, 2, 1, 0}, {1, 4}),
                 microllm::Tensor::from_int32_vector({2, 1, 0, 3}, {1, 4})};
     }
-    constexpr std::size_t context = 32;
     std::vector<std::int32_t> inputs(context);
     std::vector<std::int32_t> targets(context);
     for (std::size_t index = 0; index < context; ++index) {
@@ -143,23 +155,28 @@ microllm::io::TokenBatch local_batch(
         targets[index] = (token + 1) %
                          static_cast<std::int32_t>(config.vocabulary_size);
     }
-    return {microllm::Tensor::from_int32_vector(inputs, {1, 32}),
-            microllm::Tensor::from_int32_vector(targets, {1, 32})};
+    const auto context_dimension = static_cast<std::int64_t>(context);
+    return {microllm::Tensor::from_int32_vector(
+                inputs, {1, context_dimension}),
+            microllm::Tensor::from_int32_vector(
+                targets, {1, context_dimension})};
 }
 
 microllm::io::TokenBatch global_batch(
-    const microllm::model::ModelConfig& config) {
-    const auto first = local_batch(config, 0);
-    const auto second = local_batch(config, 1);
+    const microllm::model::ModelConfig& config, std::size_t context) {
+    const auto first = local_batch(config, 0, context);
+    const auto second = local_batch(config, 1, context);
     auto inputs = first.inputs.to_int32_vector();
     const auto second_inputs = second.inputs.to_int32_vector();
     inputs.insert(inputs.end(), second_inputs.begin(), second_inputs.end());
     auto targets = first.targets.to_int32_vector();
     const auto second_targets = second.targets.to_int32_vector();
     targets.insert(targets.end(), second_targets.begin(), second_targets.end());
-    const auto context = first.inputs.size(1);
-    return {microllm::Tensor::from_int32_vector(inputs, {2, context}),
-            microllm::Tensor::from_int32_vector(targets, {2, context})};
+    const auto context_dimension = first.inputs.size(1);
+    return {microllm::Tensor::from_int32_vector(
+                inputs, {2, context_dimension}),
+            microllm::Tensor::from_int32_vector(
+                targets, {2, context_dimension})};
 }
 
 microllm::training::AdamWConfig optimizer_config() {
@@ -277,11 +294,13 @@ void write_result(const char* mode, int rank,
                   const PhaseTimings& timings,
                   const microllm::runtime::AllocationStats& allocation,
                   const std::string& model_name,
+                  std::size_t context,
                   const std::filesystem::path& parameter_file) {
     std::cout << std::setprecision(9)
               << "{\"schema_version\":1,\"status\":\"pass\""
               << ",\"mode\":\"" << mode << "\",\"rank\":" << rank
               << ",\"model\":\"" << model_name << "\""
+              << ",\"context\":" << context
               << ",\"reducer\":\"" << reducer << "\""
               << ",\"collectives\":" << reducer_stats.collectives
               << ",\"buckets\":" << reducer_stats.buckets
@@ -374,7 +393,7 @@ void run_reference(const Options& options) {
     const auto config = model_config(options.model);
     microllm::model::TransformerModel model(config, options.seed);
     microllm::training::AdamW optimizer(model.parameters(), optimizer_config());
-    const auto batch = global_batch(config);
+    const auto batch = global_batch(config, options.context);
     std::vector<float> losses;
     PhaseTimings timings;
     const auto training_begin = SteadyClock::now();
@@ -408,7 +427,8 @@ void run_reference(const Options& options) {
     const auto allocation =
         microllm::runtime::allocation_stats(microllm::Device::cpu());
     write_result("reference", -1, losses, model, "reference", {}, timings,
-                 allocation, options.model, options.parameter_file);
+                 allocation, options.model, options.context,
+                 options.parameter_file);
 }
 
 void run_rank(const Options& options) {
@@ -426,7 +446,7 @@ void run_rank(const Options& options) {
     model.to(communicator.device());
     microllm::training::AdamW optimizer(model.parameters(), optimizer_config());
     const auto parameters = model.parameters();
-    const auto batch = local_batch(config, options.rank);
+    const auto batch = local_batch(config, options.rank, options.context);
     std::vector<float> losses;
     ReducerStats reducer_stats;
     microllm::multi_gpu::RankGradientBucketPlan persistent_bucket_plan;
@@ -593,7 +613,7 @@ void run_rank(const Options& options) {
     }
     write_result("rank", options.rank, losses, model,
                  options.reducer, reducer_stats, timings, allocation,
-                 options.model,
+                 options.model, options.context,
                  options.parameter_file);
 }
 

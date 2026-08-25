@@ -122,7 +122,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [91](steps/91-ranked-persistent-buckets.md) | complete | rank-local persistent bucket Storage | alloc 60→0；vs transient total1.250×；显存代价使其显式 |
 | [92](steps/92-ranked-gradient-bucket-views.md) | complete | rank-local gradient-as-bucket views | unpack57→0、current基线、vs逐参数total1.055× |
 | [93](steps/93-ranked-gradient-ready-overlap.md) | complete | rank-local Event + ready-bucket overlap | finish2.180×但total1.0052×；T32性能拒绝 |
-| [94](steps/94-ranked-overlap-scale-boundary.md) | planned | Model-S T32/T128 overlap尺度边界 | 新context track与1.01 total门 |
+| [94](steps/94-ranked-overlap-scale-boundary.md) | implemented; measurement pending | Model-S T32/T128 overlap尺度边界 | 新context track与1.01 total门 |
 
 ## 为什么按这个顺序
 
