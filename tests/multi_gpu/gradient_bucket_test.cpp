@@ -134,12 +134,97 @@ TEST(RcclGradientBucketTest, PersistentPlanReusesEveryReducerStorageAddress) {
         (void)all_reduce_gradients(
             communicator, {parameters0, parameters1}, 512 * 1024, true, &plan),
         std::invalid_argument);
+    EXPECT_THROW(
+        (void)all_reduce_gradients(
+            communicator, {parameters0, parameters1}, 1024 * 1024, true,
+            &plan, true),
+        std::invalid_argument);
 
     GradientBucketPlan moved = std::move(plan);
     EXPECT_FALSE(plan.initialized());
     EXPECT_TRUE(moved.initialized());
     moved.clear();
     EXPECT_FALSE(moved.initialized());
+}
+
+TEST(RcclGradientBucketTest, GradientViewsShareBucketStorageAndSkipUnpackCopies) {
+    if (runtime::hip_device_count() < 2) GTEST_SKIP() << "two visible HIP devices required";
+    const model::ModelConfig config{.vocabulary_size = 8,
+                                    .dimension = 8,
+                                    .layers = 1,
+                                    .heads = 2,
+                                    .kv_heads = 1,
+                                    .ffn_dimension = 16,
+                                    .max_sequence_length = 4,
+                                    .rope_base = 10000.0F,
+                                    .tie_embeddings = false};
+    model::TransformerModel rank0(config, 107);
+    model::TransformerModel rank1(config, 107);
+    rank0.to(Device::hip(0));
+    rank1.to(Device::hip(1));
+    const auto input0 = Tensor::from_int32_vector({0, 1, 2, 3}, {1, 4});
+    const auto input1 = Tensor::from_int32_vector({3, 2, 1, 0}, {1, 4});
+    const auto target = Tensor::from_int32_vector({1, 2, 3, 0}, {1, 4});
+    auto parameters0 = rank0.parameters();
+    auto parameters1 = rank1.parameters();
+    const auto backward = [&] {
+        for (auto* parameter : parameters0) parameter->zero_grad();
+        for (auto* parameter : parameters1) parameter->zero_grad();
+        rank0.loss(input0, target).backward();
+        rank1.loss(input1, target).backward();
+    };
+
+    Communicator communicator({0, 1});
+    GradientBucketPlan plan;
+    backward();
+    const auto allocation_before = runtime::allocation_stats(Device::hip(0));
+    const auto first = all_reduce_gradients(
+        communicator, {parameters0, parameters1}, 1024 * 1024, true,
+        &plan, true);
+    const auto allocation_after = runtime::allocation_stats(Device::hip(0));
+    EXPECT_TRUE(first.persistent_storage);
+    EXPECT_EQ(first.bucket_count, 1U);
+    EXPECT_EQ(first.bucket_tensor_count, 2U);
+    EXPECT_EQ(first.unpacked_tensor_count, 0U);
+    EXPECT_EQ(first.gradient_view_count, parameters0.size() * 2U);
+    EXPECT_EQ(first.unpack_copy_calls, 0U);
+    EXPECT_EQ(first.plan_capacity_elements, first.total_elements * 2U);
+    EXPECT_EQ(allocation_after.allocation_calls - allocation_before.allocation_calls,
+              first.bucket_tensor_count);
+
+    std::vector<const void*> addresses;
+    addresses.reserve(parameters0.size() + parameters1.size());
+    for (const auto& parameters : {parameters0, parameters1}) {
+        const auto* bucket_storage = parameters.front()->grad().storage().data();
+        std::int64_t expected_offset = 0;
+        for (const auto* parameter : parameters) {
+            EXPECT_EQ(parameter->grad().storage().data(), bucket_storage);
+            EXPECT_EQ(parameter->grad().storage_offset(), expected_offset);
+            EXPECT_TRUE(parameter->grad().is_contiguous());
+            addresses.push_back(parameter->grad().data());
+            expected_offset += parameter->grad().numel();
+        }
+    }
+    for (std::size_t index = 0; index < parameters0.size(); ++index) {
+        EXPECT_EQ(parameters0[index]->grad().to_vector(),
+                  parameters1[index]->grad().to_vector());
+    }
+
+    backward();
+    const auto reuse_before = runtime::allocation_stats(Device::hip(0));
+    const auto second = all_reduce_gradients(
+        communicator, {parameters0, parameters1}, 1024 * 1024, true,
+        &plan, true);
+    const auto reuse_after = runtime::allocation_stats(Device::hip(0));
+    EXPECT_TRUE(second.plan_reused);
+    EXPECT_EQ(second.unpack_copy_calls, 0U);
+    EXPECT_EQ(reuse_after.allocation_calls - reuse_before.allocation_calls, 0U);
+    std::size_t address = 0;
+    for (const auto& parameters : {parameters0, parameters1}) {
+        for (const auto* parameter : parameters) {
+            EXPECT_EQ(parameter->grad().data(), addresses[address++]);
+        }
+    }
 }
 
 }  // namespace microllm::multi_gpu

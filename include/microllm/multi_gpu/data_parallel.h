@@ -21,6 +21,7 @@ struct DataParallelConfig {
     std::size_t parameter_check_interval = 1;
     bool in_place_bucket_average = true;
     bool persistent_gradient_buckets = false;
+    bool gradient_bucket_views = false;
     training::AdamWConfig optimizer;
 };
 

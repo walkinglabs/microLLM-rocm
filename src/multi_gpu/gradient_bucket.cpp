@@ -95,10 +95,11 @@ struct GradientBucketPlan::Impl {
         std::size_t end_parameter = 0;
         std::size_t elements = 0;
         std::vector<Tensor> buckets;
-        std::vector<std::vector<Tensor>> unpacked;
+        std::vector<std::vector<Tensor>> gradients;
     };
 
     bool initialized = false;
+    bool gradient_views = false;
     std::size_t maximum_bucket_bytes = 0;
     std::vector<int> devices;
     std::vector<std::vector<autograd::Value*>> parameters;
@@ -121,6 +122,7 @@ void GradientBucketPlan::clear() noexcept {
     impl_->parameters.clear();
     impl_->devices.clear();
     impl_->maximum_bucket_bytes = 0;
+    impl_->gradient_views = false;
     impl_->capacity_elements = 0;
     impl_->initialized = false;
 }
@@ -129,13 +131,17 @@ BucketStats all_reduce_gradients(
     Communicator& communicator,
     const std::vector<std::vector<autograd::Value*>>& rank_parameters,
     std::size_t maximum_bucket_bytes, bool in_place_average,
-    GradientBucketPlan* persistent_plan) {
+    GradientBucketPlan* persistent_plan, bool gradient_views) {
     if (maximum_bucket_bytes < sizeof(float)) {
         throw std::invalid_argument("maximum bucket size must hold at least one float");
     }
     if (persistent_plan != nullptr && !in_place_average) {
         throw std::invalid_argument(
             "persistent gradient buckets require in-place averaging");
+    }
+    if (gradient_views && persistent_plan == nullptr) {
+        throw std::invalid_argument(
+            "gradient bucket views require persistent gradient buckets");
     }
     validate(communicator, rank_parameters);
     if (rank_parameters.empty() || rank_parameters.front().empty()) return {};
@@ -155,6 +161,7 @@ BucketStats all_reduce_gradients(
         const bool reused = plan.initialized;
         if (reused) {
             if (plan.maximum_bucket_bytes != maximum_bucket_bytes ||
+                plan.gradient_views != gradient_views ||
                 plan.devices != communicator.devices() ||
                 plan.parameters != rank_parameters ||
                 plan.ranges.size() != ranges.size()) {
@@ -174,30 +181,45 @@ BucketStats all_reduce_gradients(
         } else {
             GradientBucketPlan::Impl candidate;
             candidate.maximum_bucket_bytes = maximum_bucket_bytes;
+            candidate.gradient_views = gradient_views;
             candidate.devices = communicator.devices();
             candidate.parameters = rank_parameters;
             candidate.ranges.reserve(ranges.size());
             for (const auto& range : ranges) {
+                if (range.elements > static_cast<std::size_t>(
+                        std::numeric_limits<std::int64_t>::max())) {
+                    throw std::overflow_error(
+                        "gradient bucket shape exceeds int64");
+                }
                 GradientBucketPlan::Impl::PersistentRange persistent_range;
                 persistent_range.first_parameter = range.first_parameter;
                 persistent_range.end_parameter = range.end_parameter;
                 persistent_range.elements = range.elements;
                 persistent_range.buckets.reserve(communicator.size());
-                persistent_range.unpacked.resize(communicator.size());
+                persistent_range.gradients.resize(communicator.size());
                 for (std::size_t rank = 0; rank < communicator.size(); ++rank) {
                     persistent_range.buckets.emplace_back(
                         Shape{static_cast<std::int64_t>(range.elements)},
                         DType::Float32, Device::hip(communicator.devices()[rank]));
                     add_elements(candidate.capacity_elements, range.elements);
-                    auto& unpacked = persistent_range.unpacked[rank];
-                    unpacked.reserve(range.end_parameter - range.first_parameter);
+                    auto& gradients = persistent_range.gradients[rank];
+                    gradients.reserve(range.end_parameter - range.first_parameter);
+                    std::size_t offset = 0;
                     for (std::size_t parameter = range.first_parameter;
                          parameter < range.end_parameter; ++parameter) {
                         const auto& gradient = rank_parameters[rank][parameter]->grad();
-                        unpacked.emplace_back(gradient.shape(), DType::Float32,
-                                              gradient.device());
-                        add_elements(candidate.capacity_elements,
-                                     static_cast<std::size_t>(gradient.numel()));
+                        const auto elements = static_cast<std::size_t>(gradient.numel());
+                        if (gradient_views) {
+                            gradients.emplace_back(Tensor::from_storage(
+                                persistent_range.buckets.back().storage(),
+                                gradient.shape(), contiguous_strides(gradient.shape()),
+                                static_cast<std::int64_t>(offset), DType::Float32));
+                        } else {
+                            gradients.emplace_back(gradient.shape(), DType::Float32,
+                                                   gradient.device());
+                            add_elements(candidate.capacity_elements, elements);
+                        }
+                        add_elements(offset, elements);
                     }
                 }
                 candidate.ranges.push_back(std::move(persistent_range));
@@ -232,31 +254,37 @@ BucketStats all_reduce_gradients(
                 }
             }
             communicator.all_reduce(range.buckets, true, true);
-            for (std::size_t rank = 0; rank < communicator.size(); ++rank) {
-                std::size_t offset = 0;
-                auto& unpacked = range.unpacked[rank];
-                stats.unpacked_tensor_count += unpacked.size();
-                for (auto& gradient : unpacked) {
-                    const auto elements = static_cast<std::size_t>(gradient.numel());
-                    const auto bytes = bytes_for(
-                        elements, "gradient bucket unpack bytes overflow");
-                    const auto* source =
-                        static_cast<const std::byte*>(range.buckets[rank].data()) +
-                        offset * sizeof(float);
-                    runtime::copy_bytes_async(
-                        gradient.data(), gradient.device(), source,
-                        range.buckets[rank].device(), bytes,
-                        communicator.stream(rank));
-                    ++stats.unpack_copy_calls;
-                    offset += elements;
+            if (plan.gradient_views) {
+                for (const auto& gradients : range.gradients) {
+                    stats.gradient_view_count += gradients.size();
                 }
+            } else {
+                for (std::size_t rank = 0; rank < communicator.size(); ++rank) {
+                    std::size_t offset = 0;
+                    auto& gradients = range.gradients[rank];
+                    stats.unpacked_tensor_count += gradients.size();
+                    for (auto& gradient : gradients) {
+                        const auto elements = static_cast<std::size_t>(gradient.numel());
+                        const auto bytes = bytes_for(
+                            elements, "gradient bucket unpack bytes overflow");
+                        const auto* source =
+                            static_cast<const std::byte*>(range.buckets[rank].data()) +
+                            offset * sizeof(float);
+                        runtime::copy_bytes_async(
+                            gradient.data(), gradient.device(), source,
+                            range.buckets[rank].device(), bytes,
+                            communicator.stream(rank));
+                        ++stats.unpack_copy_calls;
+                        offset += elements;
+                    }
+                }
+                communicator.synchronize();
             }
-            communicator.synchronize();
             for (std::size_t rank = 0; rank < communicator.size(); ++rank) {
                 for (std::size_t local = 0;
-                     local < range.unpacked[rank].size(); ++local) {
+                     local < range.gradients[rank].size(); ++local) {
                     rank_parameters[rank][range.first_parameter + local]->set_grad(
-                        range.unpacked[rank][local]);
+                        range.gradients[rank][local]);
                 }
             }
         }

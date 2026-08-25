@@ -101,6 +101,11 @@ struct DataParallelTrainer::Impl {
             throw std::invalid_argument(
                 "persistent gradient buckets require in-place averaging");
         }
+        if (config.gradient_bucket_views &&
+            !config.persistent_gradient_buckets) {
+            throw std::invalid_argument(
+                "gradient bucket views require persistent gradient buckets");
+        }
         models.reserve(config.device_indices.size());
         optimizers.reserve(config.device_indices.size());
         for (const auto device_index : config.device_indices) {
@@ -180,7 +185,8 @@ DistributedStepMetrics DataParallelTrainer::step(
         impl_->config.in_place_bucket_average,
         impl_->config.persistent_gradient_buckets
             ? &impl_->gradient_bucket_plan
-            : nullptr);
+            : nullptr,
+        impl_->config.gradient_bucket_views);
     const auto communication_allocation_after = runtime::allocation_stats(
         Device::hip(impl_->config.device_indices.front()));
     metrics.communication_allocation_calls =

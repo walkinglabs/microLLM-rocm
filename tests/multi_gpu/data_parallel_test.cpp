@@ -165,6 +165,44 @@ TEST(DataParallelTrainerTest, PersistentBucketsRequireInPlaceAverage) {
         std::invalid_argument);
 }
 
+TEST(DataParallelTrainerTest, BucketViewsRemainExactThroughOptimizerSteps) {
+    if (runtime::hip_device_count() < 2) GTEST_SKIP() << "two visible HIP devices required";
+    DataParallelTrainer trainer(
+        config(), 557,
+        {.device_indices = {0, 1},
+         .maximum_bucket_bytes = 1024 * 1024,
+         .parameter_check_interval = 1,
+         .in_place_bucket_average = true,
+         .persistent_gradient_buckets = true,
+         .gradient_bucket_views = true,
+         .optimizer = {}});
+    const auto first = trainer.step(local_batches(), 1);
+    EXPECT_EQ(first.buckets.bucket_count, 1U);
+    EXPECT_EQ(first.buckets.bucket_tensor_count, 2U);
+    EXPECT_EQ(first.buckets.unpacked_tensor_count, 0U);
+    EXPECT_EQ(first.buckets.gradient_view_count,
+              first.buckets.parameter_count * 2U);
+    EXPECT_EQ(first.buckets.unpack_copy_calls, 0U);
+    EXPECT_EQ(first.communication_allocation_calls, 2U);
+    EXPECT_EQ(first.maximum_parameter_difference, 0.0F);
+    const auto second = trainer.step(local_batches(), 2);
+    EXPECT_TRUE(second.buckets.plan_reused);
+    EXPECT_EQ(second.communication_allocation_calls, 0U);
+    EXPECT_EQ(second.maximum_parameter_difference, 0.0F);
+}
+
+TEST(DataParallelTrainerTest, BucketViewsRequirePersistentStorage) {
+    if (runtime::hip_device_count() < 2) GTEST_SKIP() << "two visible HIP devices required";
+    EXPECT_THROW(
+        (void)DataParallelTrainer(
+            config(), 563,
+            {.device_indices = {0, 1},
+             .maximum_bucket_bytes = 4096,
+             .gradient_bucket_views = true,
+             .optimizer = {}}),
+        std::invalid_argument);
+}
+
 TEST(DataParallelTrainerTest, RejectsUnequalLocalBatchWeighting) {
     if (runtime::hip_device_count() < 2) GTEST_SKIP() << "two visible HIP devices required";
     DataParallelTrainer trainer(

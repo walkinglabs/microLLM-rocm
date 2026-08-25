@@ -105,6 +105,13 @@ communication/total improve 1.681x/1.285x, and all losses/parameters match. It i
 because live/peak bytes rise by 124,689,408/157,958,408. The next reducer step replaces the 114
 unpacked gradient Storage objects and copies with parameter-shaped views into reduced buckets.
 
+The separate default-off `DataParallelConfig.gradient_bucket_views` flag implements that next
+step without changing the persistent-copy control. Each parameter keeps its original shape and
+contiguous strides while sharing the reduced bucket Storage at an explicit element offset. It
+requires persistent buckets and in-place averaging. The first Model-S smoke reports 114 views,
+zero unpacked Storage/copies, six first-step bucket allocations, zero later allocations, and a
+124,689,408-byte plan; formal three-policy measurement decides whether the combination advances.
+
 The CLI prints one JSON record per step and writes stage/layer/model timing records using
 the same trace schema as the alignment infrastructure.
 

@@ -24,6 +24,8 @@ def main() -> int:
         "communication_backend_allocation_calls",
         "--inplace-bucket-average", "inplace_bucket_average",
         "--persistent-gradient-buckets", "persistent_gradient_buckets",
+        "--gradient-bucket-views", "gradient_bucket_views",
+        "gradient_view_count",
         "maximum_engine_current_bytes",
         "distributed step failed its loss or rank-parameter gate",
     ):
