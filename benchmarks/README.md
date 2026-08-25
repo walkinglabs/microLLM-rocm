@@ -136,6 +136,19 @@ interfaces remain: `microllm_hf_train_step --loss-trajectory-output ...` writes 
 losses after timing, `--gate-up-parameters-output ...` writes selected FP32 safetensors,
 and `microllm_compare_safetensors BASELINE CANDIDATE` compares every value. See Experiment 247.
 
+Measure whether those cached logical allocations justify a workspace API:
+
+```bash
+HIP_VISIBLE_DEVICES=0 python3 \
+  benchmarks/single_gpu/bf16_weight_gradient_workspace_matrix.py \
+  --binary build/hip-release/benchmarks/microllm_bench_bf16_weight_gradient \
+  --output-directory /tmp/microllm-bf16-wgrad-workspace
+```
+
+The benchmark first primes the exact-size caching allocator, then separates Event and wall
+time for the public allocating API and an equivalent caller-preallocated composition. It also
+requires exactly three cache-reused allocations and zero backend allocations per public call.
+
 `microllm_bench_model` measures train or cache-backed generation throughput. Its
 `tokens_per_second` excludes construction and warm-up; `tokens_per_second_with_setup`
 includes construction, device transfer, optimizer allocation, and warm-up. Both are

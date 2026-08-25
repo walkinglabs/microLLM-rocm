@@ -11,3 +11,5 @@ input cast+transpose与dY cast两块BF16 Storage之和。
 但backend allocation、峰值、cached bytes都没有增加，cache reuse增量与allocation call增量
 完全相同。因此workspace可能只省少量host bookkeeping。下一实验先测成本，再决定接口。
 
+对应 runner 会先预热 exact-size cache，再分开记录 Event 与同步 wall；同时要求公共API每次
+恰好3次cache reuse、0次backend allocation。这样不会把首次显存申请误写成workspace收益。

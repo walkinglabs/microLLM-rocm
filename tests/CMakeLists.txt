@@ -500,6 +500,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.TrainingTrajectoryEvidenceContract PROPERTIES
         LABELS "cpu;benchmark;model;training;precision;trajectory;weights;schema")
     add_test(
+        NAME Benchmark.Bf16WeightGradientWorkspaceMatrixContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_bf16_weight_gradient_workspace_matrix.py
+    )
+    set_tests_properties(Benchmark.Bf16WeightGradientWorkspaceMatrixContract PROPERTIES
+        LABELS "cpu;benchmark;training;backward;bf16;memory;workspace;schema")
+    add_test(
         NAME Benchmark.Bf16RepeatContract
         COMMAND ${Python3_EXECUTABLE}
                 ${PROJECT_SOURCE_DIR}/python/tests/test_bf16_repeat.py

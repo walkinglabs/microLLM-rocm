@@ -235,6 +235,11 @@ written after the measured window. `microllm_compare_safetensors` compares every
 value; this prevents file I/O from becoming a fake speed regression and prevents a small
 summary statistic from standing in for complete parameter evidence.
 
+`bf16_weight_gradient_workspace_matrix.py` is the follow-up allocation-cost gate. Device
+Event time shows whether the same Kernels changed; synchronized wall time includes host-side
+Tensor construction and allocator-cache lookup. A workspace API is not allowed unless both
+official gate/up shapes reach a 1.01 wall median with no fresh-process regression.
+
 For HIP Graph submission crossover measurements:
 
 ```bash

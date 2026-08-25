@@ -11,6 +11,7 @@
 
 #include <microllm/core/tensor.h>
 #include <microllm/ops/ops.h>
+#include <microllm/runtime/memory.h>
 #include <microllm/runtime/runtime.h>
 
 namespace {
@@ -158,6 +159,11 @@ int main(int argc, char** argv) {
                 candidate_output, input_transposed_bf16, gradient_bf16,
                 candidate_fallback, context);
         };
+        const auto allocating = [&] {
+            const auto output = microllm::ops::bf16_weight_gradient(
+                input, gradient, context);
+            (void)output;
+        };
         baseline();
         candidate();
         microllm::runtime::synchronize(device);
@@ -194,6 +200,19 @@ int main(int argc, char** argv) {
             throw std::runtime_error(
                 "BF16 weight-gradient sampled reference gate failed");
         }
+        microllm::runtime::enable_hip_caching_allocator(device);
+        {
+            const auto allocating_output = microllm::ops::bf16_weight_gradient(
+                input, gradient, context);
+            microllm::runtime::synchronize(device);
+            const auto allocating_values = allocating_output.to_vector();
+            const auto allocating_error = compare(
+                candidate_values, allocating_values);
+            if (!allocating_error.finite || allocating_error.maximum != 0.0F) {
+                throw std::runtime_error(
+                    "allocating and preallocated BF16 weight gradients differ");
+            }
+        }
         microllm::runtime::Event start(device);
         microllm::runtime::Event finish(device);
         const auto time = [&](const auto& operation) {
@@ -219,6 +238,11 @@ int main(int argc, char** argv) {
         };
         const auto baseline_time = time(baseline);
         const auto candidate_time = time(candidate);
+        const auto allocation_before = microllm::runtime::allocation_stats(device);
+        const auto allocating_time = time(allocating);
+        const auto allocation_after = microllm::runtime::allocation_stats(device);
+        const auto timed_invocations = static_cast<double>(
+            command.warmup + command.repetitions);
         const auto info = microllm::runtime::device_info(device);
         std::cout << std::setprecision(12)
                   << "{\"schema_version\":1,\"status\":\"pass\""
@@ -248,6 +272,30 @@ int main(int argc, char** argv) {
                   << ",\"baseline_wall_ms_p95\":" << baseline_time.wall_p95
                   << ",\"candidate_wall_ms_p50\":" << candidate_time.wall_p50
                   << ",\"candidate_wall_ms_p95\":" << candidate_time.wall_p95
+                  << ",\"allocating_event_ms_p50\":"
+                  << allocating_time.event_p50
+                  << ",\"allocating_event_ms_p95\":"
+                  << allocating_time.event_p95
+                  << ",\"allocating_wall_ms_p50\":"
+                  << allocating_time.wall_p50
+                  << ",\"allocating_wall_ms_p95\":"
+                  << allocating_time.wall_p95
+                  << ",\"preallocated_over_allocating_event_speedup\":"
+                  << allocating_time.event_p50 / candidate_time.event_p50
+                  << ",\"preallocated_over_allocating_wall_speedup\":"
+                  << allocating_time.wall_p50 / candidate_time.wall_p50
+                  << ",\"allocating_allocation_calls_per_invocation\":"
+                  << static_cast<double>(allocation_after.allocation_calls -
+                                         allocation_before.allocation_calls) /
+                         timed_invocations
+                  << ",\"allocating_backend_allocation_calls_per_invocation\":"
+                  << static_cast<double>(allocation_after.backend_allocation_calls -
+                                         allocation_before.backend_allocation_calls) /
+                         timed_invocations
+                  << ",\"allocating_cache_reuse_calls_per_invocation\":"
+                  << static_cast<double>(allocation_after.cache_reuse_calls -
+                                         allocation_before.cache_reuse_calls) /
+                         timed_invocations
                   << ",\"event_speedup\":"
                   << baseline_time.event_p50 / candidate_time.event_p50
                   << "}\n";
@@ -258,4 +306,3 @@ int main(int argc, char** argv) {
         return 1;
     }
 }
-
