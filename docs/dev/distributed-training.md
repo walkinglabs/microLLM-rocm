@@ -211,6 +211,11 @@ step-specific ready marker. Peers never write the shared path. A separate launch
 interrupted 2+3-step trajectory against uninterrupted five-step checkpoint bytes and injects a
 rank0 write failure. Model-S checkpoint size/runtime evidence remains the next gate.
 
+The ranked worker and launcher now accept a general world size and build the CPU global batch from
+every rank-local batch. World sizes one and two pass. Four visible MI300X VFs currently fail inside
+`ncclCommInitRank` with a 64 MiB `/dev/shm`; the bounded group-init probe records all rank errors and
+must not be reported as four-GPU training support.
+
 RCCL provides the collective primitives; the reducer and readiness state machine remain
 framework responsibilities.
 

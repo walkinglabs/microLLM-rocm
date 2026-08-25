@@ -21,8 +21,10 @@ def options() -> argparse.Namespace:
     parser.add_argument("--binary", required=True, type=Path)
     parser.add_argument("--output-directory", required=True, type=Path)
     parser.add_argument("--steps", type=int, default=3)
+    parser.add_argument("--world-size", type=int, default=2)
     parser.add_argument("--timeout-seconds", type=float, default=20.0)
-    parser.add_argument("--failure-mode", choices=("none", "peer-failure"),
+    parser.add_argument("--failure-mode",
+                        choices=("none", "peer-failure", "group-init"),
                         default="none")
     parser.add_argument("--reducer",
                         choices=("per-parameter", "bucket",
@@ -36,7 +38,8 @@ def options() -> argparse.Namespace:
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
     if (not args.binary.is_file() or args.steps <= 0 or
-            args.timeout_seconds <= 0 or args.bucket_bytes < 4):
+            args.timeout_seconds <= 0 or args.bucket_bytes < 4 or
+            args.world_size <= 0 or args.world_size > 8):
         parser.error("ranked launcher inputs are invalid")
     if args.context == 0:
         args.context = 4 if args.model == "tiny" else 32
@@ -137,26 +140,28 @@ def main() -> int:
     output = args.output_directory.resolve()
     prepare_output(output, args.overwrite)
     id_file = output / "communicator.id"
-    common = ["--world-size", "2", "--id-file", str(id_file),
+    common = ["--world-size", str(args.world_size),
+              "--id-file", str(id_file),
               "--steps", str(args.steps), "--seed", "607",
               "--timeout-ms", str(int(args.timeout_seconds * 1000)),
               "--reducer", args.reducer,
               "--bucket-bytes", str(args.bucket_bytes),
               "--context", str(args.context)]
-    rank_parameter_files = [output / "rank1.safetensors",
-                            output / "rank0.safetensors"]
+    command_ranks = [*range(args.world_size - 1, 0, -1), 0]
+    rank_parameter_files = {
+        rank: output / f"rank{rank}.safetensors" for rank in command_ranks}
     reference_parameter_file = output / "reference.safetensors"
     commands = [
-        [str(args.binary.resolve()), "--mode", "rank", "--rank", "1",
-         "--local-rank", "1", "--model", args.model, *common],
-        [str(args.binary.resolve()), "--mode", "rank", "--rank", "0",
-         "--local-rank", "0", "--model", args.model, *common],
+        [str(args.binary.resolve()), "--mode", "rank", "--rank", str(rank),
+         "--local-rank", str(rank), "--model", args.model, *common]
+        for rank in command_ranks
     ]
     if args.model == "model-s":
-        for command, parameter_file in zip(commands, rank_parameter_files):
-            command.extend(["--parameter-file", str(parameter_file)])
+        for command, rank in zip(commands, command_ranks):
+            command.extend(
+                ["--parameter-file", str(rank_parameter_files[rank])])
     if args.failure_mode == "peer-failure":
-        commands[0][commands[0].index("--rank") + 1] = "2"
+        commands[0][commands[0].index("--rank") + 1] = str(args.world_size)
     group_start = time.monotonic()
     processes = [subprocess.Popen(command, cwd=ROOT, text=True,
                                   stdout=subprocess.PIPE,
@@ -177,7 +182,7 @@ def main() -> int:
         (output / f"rank{index}.stderr").write_text(text, encoding="utf-8")
 
     if args.failure_mode == "peer-failure":
-        for path in [*rank_parameter_files, reference_parameter_file]:
+        for path in [*rank_parameter_files.values(), reference_parameter_file]:
             path.unlink(missing_ok=True)
         if completed or terminated < 1 or processes[0].returncode == 0:
             raise RuntimeError("peer failure did not terminate the waiting rank group")
@@ -186,6 +191,7 @@ def main() -> int:
             "status": "pass",
             "record_type": "ranked_peer_failure_summary",
             "failure_detected": True,
+            "world_size": args.world_size,
             "peer_processes_terminated": terminated,
             "rank_group_ms": rank_group_ms,
             "returncodes": [process.returncode for process in processes],
@@ -197,13 +203,48 @@ def main() -> int:
         return 0
 
     if not completed:
+        for path in [*rank_parameter_files.values(), reference_parameter_file]:
+            path.unlink(missing_ok=True)
+        if args.failure_mode == "group-init":
+            system_error_ranks = sum(
+                "ncclCommInitRank" in error and
+                "system error" in error for error in errors)
+            if (system_error_ranks == 0 or
+                    any(process.returncode == 0 for process in processes)):
+                raise RuntimeError(
+                    "ranked group-init failure did not match the expected boundary")
+            shared_memory_bytes = shutil.disk_usage("/dev/shm").total
+            summary = {
+                "schema_version": 1,
+                "status": "pass",
+                "record_type": "ranked_group_init_failure_summary",
+                "world_size": args.world_size,
+                "group_initialized": False,
+                "failure_detected": True,
+                "system_error_ranks": system_error_ranks,
+                "peer_processes_terminated": terminated,
+                "rank_group_ms": rank_group_ms,
+                "returncodes": [process.returncode for process in processes],
+                "shared_memory_bytes": shared_memory_bytes,
+                "decision": "retain world-size interface and record environment boundary",
+            }
+            (output / "summary.json").write_text(
+                json.dumps(summary, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8")
+            print(json.dumps(summary, sort_keys=True))
+            return 0
         raise RuntimeError("ranked training timed out or one rank failed")
-    ranks = [load_record(text, f"rank{index}")
-             for index, text in enumerate(outputs)]
+    emitted = [load_record(text, f"process{index}")
+               for index, text in enumerate(outputs)]
+    ranks_by_identity = {rank.get("rank"): rank for rank in emitted}
+    if set(ranks_by_identity) != set(range(args.world_size)):
+        raise RuntimeError("ranked process identities changed")
+    ranks = [ranks_by_identity[rank] for rank in range(args.world_size)]
     reference_command = [str(args.binary.resolve()), "--mode", "reference",
                          "--steps", str(args.steps), "--seed", "607",
                          "--model", args.model,
-                         "--context", str(args.context)]
+                         "--context", str(args.context),
+                         "--world-size", str(args.world_size)]
     if args.model == "model-s":
         reference_command.extend(
             ["--parameter-file", str(reference_parameter_file)])
@@ -219,12 +260,12 @@ def main() -> int:
     if reference_completed.returncode != 0:
         raise RuntimeError("CPU global-batch reference failed")
     reference = load_record(reference_completed.stdout, "reference")
-    if (ranks[0].get("rank") != 1 or ranks[1].get("rank") != 0 or
-            ranks[0].get("context") != args.context or
-            ranks[1].get("context") != args.context or
-            reference.get("context") != args.context or
-            ranks[0]["parameter_names"] != ranks[1]["parameter_names"] or
-            ranks[0]["parameter_names"] != reference["parameter_names"]):
+    if (reference.get("context") != args.context or
+            reference.get("world_size") != args.world_size or
+            any(rank.get("context") != args.context or
+                rank.get("world_size") != args.world_size or
+                rank["parameter_names"] != reference["parameter_names"]
+                for rank in ranks)):
         raise RuntimeError("rank identity or parameter names changed")
     expected_collectives = (
         ranks[0]["buckets"] if args.reducer != "per-parameter" else
@@ -236,31 +277,39 @@ def main() -> int:
         raise RuntimeError("rank reducer collective count changed")
     if args.model == "model-s":
         assert args.compare_binary is not None
-        rank_comparison = compare_safetensors(
-            args.compare_binary, rank_parameter_files[0],
-            rank_parameter_files[1], args.timeout_seconds)
+        rank_comparisons = [
+            compare_safetensors(
+                args.compare_binary, rank_parameter_files[0],
+                rank_parameter_files[rank], args.timeout_seconds)
+            for rank in range(1, args.world_size)]
         reference_comparisons = [
             compare_safetensors(
                 args.compare_binary, reference_parameter_file,
-                path, args.timeout_seconds)
-            for path in rank_parameter_files]
-        rank_difference = rank_comparison["maximum_absolute_difference"]
-        rank_rms_difference = rank_comparison["rms_difference"]
+                rank_parameter_files[rank], args.timeout_seconds)
+            for rank in range(args.world_size)]
+        rank_difference = max(
+            (comparison["maximum_absolute_difference"]
+             for comparison in rank_comparisons), default=0.0)
+        rank_rms_difference = max(
+            (comparison["rms_difference"]
+             for comparison in rank_comparisons), default=0.0)
         reference_difference = max(
             comparison["maximum_absolute_difference"]
             for comparison in reference_comparisons)
         reference_rms_difference = max(
             comparison["rms_difference"]
             for comparison in reference_comparisons)
-        tensor_count = rank_comparison["tensor_count"]
-        value_count = rank_comparison["compared_elements"]
+        tensor_count = reference_comparisons[0]["tensor_count"]
+        value_count = reference_comparisons[0]["compared_elements"]
         reference_tolerance = 1.0e-2
         reference_rms_tolerance = 1.0e-5
     else:
-        rank_difference = maximum_difference(
-            ranks[0]["parameters"], ranks[1]["parameters"])
-        rank_rms_difference = rms_difference(
-            ranks[0]["parameters"], ranks[1]["parameters"])
+        rank_difference = max(
+            (maximum_difference(ranks[0]["parameters"], rank["parameters"])
+             for rank in ranks[1:]), default=0.0)
+        rank_rms_difference = max(
+            (rms_difference(ranks[0]["parameters"], rank["parameters"])
+             for rank in ranks[1:]), default=0.0)
         reference_difference = max(
             maximum_difference(rank["parameters"], reference["parameters"])
             for rank in ranks)
@@ -395,13 +444,13 @@ def main() -> int:
             loss_difference > 1.0e-4):
         raise RuntimeError("ranked parameters failed the global-batch gate")
     if args.model == "model-s":
-        for path in [*rank_parameter_files, reference_parameter_file]:
+        for path in [*rank_parameter_files.values(), reference_parameter_file]:
             path.unlink(missing_ok=True)
     summary = {
         "schema_version": 1,
         "status": "pass",
         "record_type": "ranked_training_summary",
-        "world_size": 2,
+        "world_size": args.world_size,
         "model": args.model,
         "context": args.context,
         "reducer": args.reducer,

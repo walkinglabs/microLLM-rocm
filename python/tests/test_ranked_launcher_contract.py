@@ -35,6 +35,10 @@ def main() -> int:
         "overlap-views", "overlap_steps_per_rank",
         "maximum_rank_step_overlapped_buckets",
         "--context", "context exceeds the selected model contract",
+        "--world-size", "command_ranks", "ranks_by_identity",
+        "rank_parameter_files.values()",
+        "group-init", "ranked_group_init_failure_summary",
+        "shared_memory_bytes", "system_error_ranks",
     ):
         assert token in runner
     for token in (
@@ -49,6 +53,7 @@ def main() -> int:
         "gradient_view_count", "bucket-views",
         "begin_overlap_step", "finish_overlap_step",
         "options.context", "context_dimension",
+        "options.world_size", "world_size)",
     ):
         assert token in worker
     print("ranked launcher contract: pass")

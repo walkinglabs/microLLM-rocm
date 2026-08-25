@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-25: Ranked world-size infrastructure](2026-08-25-ranked-world-size-infrastructure.md)
 - [2026-08-25: Ranked Model-S checkpoint result](2026-08-25-ranked-model-s-checkpoint-result.md)
 - [2026-08-25: Ranked Model-S checkpoint infrastructure](2026-08-25-ranked-model-s-checkpoint-infrastructure.md)
 - [2026-08-25: Ranked checkpoint ownership result](2026-08-25-ranked-checkpoint-result.md)

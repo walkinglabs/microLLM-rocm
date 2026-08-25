@@ -121,11 +121,11 @@ Options parse(int argc, char** argv) {
             "distributed rank context exceeds the model contract");
     }
     if (options.mode == "rank" &&
-        (options.world_size != 2 || options.rank < 0 ||
+        (options.world_size <= 0 || options.rank < 0 ||
          options.rank >= options.world_size || options.local_rank < 0 ||
          options.id_file.empty())) {
         throw std::invalid_argument(
-            "rank mode requires world size two, rank/local-rank, and ID file");
+            "rank mode requires valid rank/local-rank/world-size and ID file");
     }
     if (options.model == "model-s" && options.parameter_file.empty()) {
         throw std::invalid_argument(
@@ -171,9 +171,21 @@ microllm::io::TokenBatch local_batch(
         return {microllm::Tensor::from_int32_vector({0, 1, 2, 3}, {1, 4}),
                 microllm::Tensor::from_int32_vector({1, 2, 3, 0}, {1, 4})};
     }
-    if (config.vocabulary_size == 8) {
+    if (config.vocabulary_size == 8 && rank == 1) {
         return {microllm::Tensor::from_int32_vector({3, 2, 1, 0}, {1, 4}),
                 microllm::Tensor::from_int32_vector({2, 1, 0, 3}, {1, 4})};
+    }
+    if (config.vocabulary_size == 8) {
+        std::vector<std::int32_t> inputs(context);
+        std::vector<std::int32_t> targets(context);
+        for (std::size_t index = 0; index < context; ++index) {
+            const auto token = static_cast<std::int32_t>(
+                (static_cast<std::size_t>(rank) * 3 + index * 5 + 1) % 8);
+            inputs[index] = token;
+            targets[index] = (token + 1) % 8;
+        }
+        return {microllm::Tensor::from_int32_vector(inputs, {1, 4}),
+                microllm::Tensor::from_int32_vector(targets, {1, 4})};
     }
     std::vector<std::int32_t> inputs(context);
     std::vector<std::int32_t> targets(context);
@@ -193,20 +205,24 @@ microllm::io::TokenBatch local_batch(
 }
 
 microllm::io::TokenBatch global_batch(
-    const microllm::model::ModelConfig& config, std::size_t context) {
-    const auto first = local_batch(config, 0, context);
-    const auto second = local_batch(config, 1, context);
-    auto inputs = first.inputs.to_int32_vector();
-    const auto second_inputs = second.inputs.to_int32_vector();
-    inputs.insert(inputs.end(), second_inputs.begin(), second_inputs.end());
-    auto targets = first.targets.to_int32_vector();
-    const auto second_targets = second.targets.to_int32_vector();
-    targets.insert(targets.end(), second_targets.begin(), second_targets.end());
-    const auto context_dimension = first.inputs.size(1);
+    const microllm::model::ModelConfig& config, std::size_t context,
+    int world_size) {
+    std::vector<std::int32_t> inputs;
+    std::vector<std::int32_t> targets;
+    inputs.reserve(static_cast<std::size_t>(world_size) * context);
+    targets.reserve(static_cast<std::size_t>(world_size) * context);
+    for (int rank = 0; rank < world_size; ++rank) {
+        const auto batch = local_batch(config, rank, context);
+        const auto rank_inputs = batch.inputs.to_int32_vector();
+        const auto rank_targets = batch.targets.to_int32_vector();
+        inputs.insert(inputs.end(), rank_inputs.begin(), rank_inputs.end());
+        targets.insert(targets.end(), rank_targets.begin(), rank_targets.end());
+    }
+    const auto context_dimension = static_cast<std::int64_t>(context);
     return {microllm::Tensor::from_int32_vector(
-                inputs, {2, context_dimension}),
+                inputs, {world_size, context_dimension}),
             microllm::Tensor::from_int32_vector(
-                targets, {2, context_dimension})};
+                targets, {world_size, context_dimension})};
 }
 
 microllm::training::AdamWConfig optimizer_config() {
@@ -387,12 +403,14 @@ void write_result(const char* mode, int rank,
                   const CheckpointReport& checkpoint,
                   const std::string& model_name,
                   std::size_t context,
+                  int world_size,
                   const std::filesystem::path& parameter_file) {
     std::cout << std::setprecision(9)
               << "{\"schema_version\":1,\"status\":\"pass\""
               << ",\"mode\":\"" << mode << "\",\"rank\":" << rank
               << ",\"model\":\"" << model_name << "\""
               << ",\"context\":" << context
+              << ",\"world_size\":" << world_size
               << ",\"reducer\":\"" << reducer << "\""
               << ",\"collectives\":" << reducer_stats.collectives
               << ",\"buckets\":" << reducer_stats.buckets
@@ -507,7 +525,8 @@ void run_reference(const Options& options) {
     const auto config = model_config(options.model);
     microllm::model::TransformerModel model(config, options.seed);
     microllm::training::AdamW optimizer(model.parameters(), optimizer_config());
-    const auto batch = global_batch(config, options.context);
+    const auto batch = global_batch(
+        config, options.context, options.world_size);
     std::vector<float> losses;
     PhaseTimings timings;
     const auto training_begin = SteadyClock::now();
@@ -542,6 +561,7 @@ void run_reference(const Options& options) {
         microllm::runtime::allocation_stats(microllm::Device::cpu());
     write_result("reference", -1, losses, model, "reference", {}, timings,
                  allocation, {}, options.model, options.context,
+                 options.world_size,
                  options.parameter_file);
 }
 
@@ -566,7 +586,8 @@ void run_rank(const Options& options) {
         .rng_state = "seed=" + std::to_string(options.seed),
         .model_config = config.summary(),
         .data_config = "ranked-synthetic:context=" +
-                       std::to_string(options.context) + ":world=2"};
+                       std::to_string(options.context) + ":world=" +
+                       std::to_string(options.world_size)};
     CheckpointReport checkpoint_report{
         .checkpoint_requested = !options.checkpoint_file.empty(),
         .checkpoint_file = options.checkpoint_file,
@@ -803,6 +824,7 @@ void run_rank(const Options& options) {
     write_result("rank", options.rank, losses, model,
                  options.reducer, reducer_stats, timings, allocation,
                  checkpoint_report, options.model, options.context,
+                 options.world_size,
                  options.parameter_file);
 }
 

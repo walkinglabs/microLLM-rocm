@@ -26,6 +26,7 @@ def options() -> argparse.Namespace:
     parser.add_argument("--output-directory", required=True, type=Path)
     parser.add_argument("--runs", type=int, default=3)
     parser.add_argument("--steps", type=int, default=3)
+    parser.add_argument("--world-size", type=int, default=2)
     parser.add_argument("--timeout-seconds", type=float, default=20.0)
     parser.add_argument("--overwrite", action="store_true")
     parser.add_argument("--model", choices=("tiny", "model-s"), default="tiny")
@@ -39,7 +40,8 @@ def options() -> argparse.Namespace:
     if (not args.launcher.is_file() or not args.binary.is_file() or
             args.runs <= 0 or args.steps <= 0 or args.timeout_seconds <= 0 or
             args.bucket_bytes < 4 or args.steady_skip_steps < 0 or
-            args.steady_skip_steps >= args.steps):
+            args.steady_skip_steps >= args.steps or
+            args.world_size <= 0 or args.world_size > 8):
         parser.error("ranked training matrix inputs are invalid")
     if args.compare_binary is not None and not args.compare_binary.is_file():
         parser.error("--compare-binary is not a file")
@@ -93,6 +95,7 @@ def main() -> int:
                 "--output-directory",
                 str(output / f"run-{process_run}-{policy}"),
                 "--steps", str(args.steps), "--reducer", policy,
+                "--world-size", str(args.world_size),
                 "--model", args.model,
                 "--context", str(args.context),
                 "--bucket-bytes", str(args.bucket_bytes),
@@ -118,7 +121,7 @@ def main() -> int:
                         expected_collectives % args.steps != 0):
                     raise RuntimeError("ranked bucket count is invalid")
             if (value.get("record_type") != "ranked_training_summary" or
-                    value.get("world_size") != 2 or
+                    value.get("world_size") != args.world_size or
                     value.get("steps") != args.steps or
                     value.get("model") != args.model or
                     value.get("context") != args.context or
@@ -184,6 +187,7 @@ def main() -> int:
         "--binary", str(args.binary.resolve()),
         "--output-directory", str(output / "peer-failure"),
         "--steps", "1", "--timeout-seconds", "5",
+        "--world-size", str(args.world_size),
         "--reducer", "bucket", "--model", "tiny",
         "--failure-mode", "peer-failure", "--overwrite",
     ]
@@ -321,7 +325,8 @@ def main() -> int:
         "selected_policies": args.policies,
         "runs_per_policy": args.runs,
         "policy_runs": len(raw),
-        "rank_processes": len(raw) * 2,
+        "rank_processes": len(raw) * args.world_size,
+        "world_size": args.world_size,
         "steps_per_rank": args.steps,
         "steady_skip_steps": args.steady_skip_steps,
         "steady_steps_per_run": args.steps - args.steady_skip_steps,
