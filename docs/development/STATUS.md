@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| Current validation configurations | smoke-tested | CPU 365/365, ASan/UBSan 363/363, RCCL label 36/36; retained producer CPU/HIP/PyTorch targeted gates pass; prior single-GPU HIP label 188/188 with 1 conditional skip remains applicable | broader compiler/OS/GPU matrix |
+| Current validation configurations | smoke-tested | CPU 367/367, ASan/UBSan 365/365, RCCL label 41/41; retained producer CPU/HIP/PyTorch targeted gates pass; prior single-GPU HIP label 188/188 with 1 conditional skip remains applicable | broader compiler/OS/GPU matrix |
 | CPU code coverage | smoke-tested | 78.4% lines, 86.6% functions, 59.1% branches over `src/` + `include/`; quiescent handoff and other HIP-only paths remain visible as CPU gaps | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, native cast, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
@@ -73,7 +73,8 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | End-to-end benchmark | smoke-tested | matched Python/PyTorch ROCm official training plus phase-separated prefill and one-forward-per-token steady-decode JSONL | serving concurrency, board-level memory and llama.cpp |
 | Single-GPU model matrix | smoke-tested | MI300X tiny/Model-S/Model-M plus official Qwen0.5B/DeepSeek-Distill1.5B train+generate, parameters, time, tokens/s and engine peak bytes | repeated contexts/dtypes and external board-level memory sampling |
 | Python/PyTorch ROCm performance matrix | smoke-tested | official Qwen/DeepSeek train plus inference context 1–2048, batch 1–8, output 1–64, KV allocated/active/waste, continuous slot metrics and token gates | DeepSeek continuous 3-case mismatch, identical residency policy, version matrix and llama.cpp |
-| Optimization experiment journal | implemented | experiments through 263; raw evidence, rejection gates and generated SVGs validated in CTest | Radeon and production data-parallel tracks |
+| Optimization experiment journal | implemented | experiments through 264; raw evidence, rejection gates and generated SVGs validated in CTest | Radeon and production data-parallel tracks |
+| One-process-per-GPU bootstrap | smoke-tested | 3 launches/6 ranks/18 rank-steps; 728 values rank-exact, CPU max 1.19e-7; peer failure terminates RCCL waiter | rank-local buckets, checkpoint ownership, then ready overlap migration |
 | Single-process gradient-ready overlap | smoke-tested, explicit | vs sync views total 1.0159×, finish wait 2.297×, peak unchanged; 45 exact losses/9 parameter gates | one-process-per-GPU; inherited +33.3MB vs transient blocks default |
 | Model-S gradient-ready order | measured, overlap admitted | 3×3×2 rank orders exact; reverse parameter order; natural bucket completion 57/57, 35/57, 1/57; two early buckets | Event + async collective prototype; no speedup claim yet |
 | Scoped Autograd weight-gradient producer | rejected and removed | exact/address stable and allocation -1, but 0/5 shapes pass: Event 0.976×–1.035×, wall 0.991×–1.018× | caller-owned operator retained; move to gradient-ready audit |

@@ -118,6 +118,7 @@ def main() -> int:
         stdout, stderr = process.communicate(timeout=2)
         outputs.append(stdout)
         errors.append(stderr)
+    id_file.unlink(missing_ok=True)
     for index, text in enumerate(outputs):
         (output / f"rank{index}.stdout").write_text(text, encoding="utf-8")
     for index, text in enumerate(errors):

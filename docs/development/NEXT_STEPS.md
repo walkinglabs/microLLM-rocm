@@ -246,8 +246,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   match and reverse parameter order; natural buckets complete at 57/57, 35/57 and 1/57;
 - [x] prototype Event plus asynchronous all-reduce: exact losses/parameters, 3 buckets, zero later
   communication allocations, unchanged view peak and 1.0159x total versus synchronous views;
-- [ ] bootstrap one process per GPU with rank identity, RCCL unique-ID exchange, timeout/error
-  propagation and tiny global-batch equivalence before porting ready-bucket overlap;
+- [x] bootstrap one process per GPU: 3 fresh launches/6 ranks, 728 values rank-exact and CPU max
+  diff 1.19e-7; atomic RCCL ID exchange and injected peer termination pass;
+- [ ] replace per-parameter ranked collectives with a synchronous rank-local bucket reducer,
+  preserving CPU/rank equivalence and failure behavior before migrating ready overlap;
 - [ ] unused parameter, uneven input, timeout, and cross-process failure handling.
 
 ## P3 — DeepSeek distill target

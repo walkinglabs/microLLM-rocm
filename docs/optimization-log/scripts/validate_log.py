@@ -14703,6 +14703,75 @@ def validate_data_parallel_gradient_overlap(
     return summary.get("processes", 0), *expected
 
 
+def validate_ranked_training_bootstrap(
+        errors: list[str]) -> tuple[int, int, float, int, float]:
+    root = REPOSITORY / "benchmarks/results/2026-08-25-ranked-training-bootstrap"
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    failure = json.loads((root / "failure.json").read_text(encoding="utf-8"))
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    expected_reference = 1.1900000007614153e-07
+    expected_ms = 5267.242916859686
+    if (summary.get("schema_version") != 1 or summary.get("status") != "pass" or
+            summary.get("record_type") != "ranked_training_matrix_summary" or
+            summary.get("runs") != 3 or summary.get("rank_processes") != 6 or
+            summary.get("steps_per_rank") != 3 or
+            summary.get("parameter_tensors") != 12 or
+            summary.get("parameter_values") != 728 or
+            summary.get("maximum_rank_difference") != 0.0 or
+            summary.get("maximum_reference_difference") != expected_reference or
+            summary.get("median_rank_group_ms") != expected_ms or
+            summary.get("peer_failure_detected") is not True or
+            summary.get("peer_processes_terminated") != 1 or
+            summary.get("failure_returncodes") != [1, -15] or
+            summary.get("decision") !=
+                "admit one-process-per-GPU ready-bucket migration"):
+        errors.append("ranked training bootstrap summary changed")
+    if (len(raw) != 3 or any(
+            row.get("world_size") != 2 or row.get("steps") != 3 or
+            row.get("parameter_tensors") != 12 or
+            row.get("parameter_values") != 728 or
+            row.get("maximum_rank_difference") != 0.0 or
+            row.get("maximum_reference_difference") != expected_reference or
+            row.get("peer_processes_terminated") != 0
+            for row in raw)):
+        errors.append("ranked training bootstrap raw evidence changed")
+    if (failure.get("record_type") != "ranked_peer_failure_summary" or
+            failure.get("failure_detected") is not True or
+            failure.get("peer_processes_terminated") != 1 or
+            failure.get("returncodes") != [1, -15]):
+        errors.append("ranked training peer-failure evidence changed")
+    if (check.get("measurement_commit") !=
+            "68f01646bd894ff278684273129b334d7d651b41" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("runs") != 3 or check.get("rank_processes") != 6 or
+            check.get("steps_per_rank") != 3 or
+            check.get("parameter_tensors") != 12 or
+            check.get("parameter_values") != 728 or
+            check.get("maximum_rank_difference") != 0.0 or
+            check.get("maximum_reference_difference") != expected_reference or
+            check.get("median_rank_group_ms") != expected_ms or
+            check.get("peer_failure_detected") is not True or
+            check.get("peer_processes_terminated") != 1 or
+            check.get("failure_returncodes") != [1, -15] or
+            check.get("ready_bucket_overlap_migrated") is not False or
+            check.get("rccl_label") != {"passed": 41, "total": 41} or
+            check.get("registered_test_files") != 123):
+        errors.append("ranked training bootstrap verification changed")
+    communicator = (REPOSITORY / "include/microllm/multi_gpu/communicator.h").read_text(
+        encoding="utf-8")
+    launcher = (REPOSITORY / "tools/distributed/run_ranked.py").read_text(
+        encoding="utf-8")
+    if ("class RankCommunicator" not in communicator or
+            "peer_processes_terminated" not in launcher):
+        errors.append("ranked training bootstrap route is missing")
+    return summary.get("runs", 0), summary.get("rank_processes", 0), \
+        float(summary.get("maximum_reference_difference", 0.0)), \
+        summary.get("peer_processes_terminated", 0), \
+        float(summary.get("median_rank_group_ms", 0.0))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -14944,7 +15013,8 @@ def validate_assets(errors: list[str]) -> None:
                  "gradient-producer-out-matrix.svg",
                  "scoped-autograd-gradient-producer-discard.svg",
                  "data-parallel-gradient-ready-order.svg",
-                 "data-parallel-gradient-overlap.svg"):
+                 "data-parallel-gradient-overlap.svg",
+                 "one-process-per-gpu-bootstrap.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -15480,6 +15550,8 @@ def main() -> int:
     gradient_overlap_processes, gradient_overlap_sync, \
         gradient_overlap_transient, gradient_overlap_wait, \
         gradient_overlap_peak = validate_data_parallel_gradient_overlap(errors)
+    ranked_runs, ranked_processes, ranked_reference_difference, \
+        ranked_terminated, ranked_group_ms = validate_ranked_training_bootstrap(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -15979,6 +16051,9 @@ def main() -> int:
           f"gradient_overlap={gradient_overlap_processes}/"
           f"{gradient_overlap_sync:.4f}/{gradient_overlap_transient:.3f}/"
           f"{gradient_overlap_wait:.3f}/{gradient_overlap_peak} "
+          f"ranked_bootstrap={ranked_runs}/{ranked_processes}/"
+          f"{ranked_reference_difference:.3e}/{ranked_terminated}/"
+          f"{ranked_group_ms:.1f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

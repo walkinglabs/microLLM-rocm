@@ -1,6 +1,6 @@
 # Step 87 — One process per GPU bootstrap
 
-Status: implemented, formal repeated matrix pending
+Status: complete, bootstrap kept
 
 单进程Event overlap只比同步views快1.0159×，主要限制是rank0/rank1顺序backward。下一节点先不
 做性能优化，建立one-process-per-GPU最小合同：
@@ -20,3 +20,6 @@ Status: implemented, formal repeated matrix pending
 
 pilot：两个独立rank各3step后728个参数值完全相同，和CPU reference最大差1.19e-7；坏rank
 注入返回1，等待peer被SIGTERM，组不挂死。正式三次fresh launch前不迁移overlap。
+
+正式结果：3次fresh launch、6个rank进程、728值跨rankexact、CPU最大差1.19e-7；故障返回
+[1,-15]且peer被终止。准入rank-local同步bucket reducer，尚无跨进程overlap或性能声明。

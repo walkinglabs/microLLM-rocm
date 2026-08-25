@@ -106,6 +106,11 @@ extending small decoder-only language models on AMD GPUs.
 > exact losses/parameters. It remains explicit because peak is still 33.3 MB over
 > transient and single-process sequential-rank backward limits the result.
 
+> One-process-per-GPU bootstrap now passes: three fresh launches produce six
+> independent ranks and 18 rank-steps; all 728 parameter values match across
+> ranks and stay within 1.19e-7 of CPU global batch. Bad-rank injection terminates
+> its RCCL-waiting peer. Bucketization and overlap migration remain next.
+
 ## Why this project exists
 
 Large frameworks make model development productive, but they hide the ownership,
@@ -739,12 +744,12 @@ Current `main` gates:
 | Gate | Result | Scope |
 |---|---:|---|
 | Full CPU/HIP configuration | 544/544 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
-| CPU Debug | 365/365 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
-| ASan/UBSan CPU | 363/363 | host lifetime, external Storage and instrumented-package linking |
+| CPU Debug | 367/367 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
+| ASan/UBSan CPU | 365/365 | host lifetime, external Storage and instrumented-package linking |
 | MI300X/gfx942 HIP label | 187/187 | allocator/arena/Stream/Graph, public rocWMMA online Attention, BF16 RMSNorm/SwiGLU, grouped/exact vendor solutions, FP8 and model paths |
 | PyTorch-enabled CPU build | 319/319 | dispatcher parity, 32-step BF16 optimizer state, full graph/model oracle and all package paths |
-| Multi-GPU/RCCL | 36/36 | collectives, global-batch equivalence, ready-bucket overlap, DDP trainer/CLI, package and evidence gates |
-| Registered test files | 121 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| Multi-GPU/RCCL | 41/41 | collectives, one-process-per-GPU equivalence/failure, overlap, package and evidence gates |
+| Registered test files | 123 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
 | CPU source coverage | 78.4% lines / 86.6% functions / 59.1% branches | 8,878/11,329 lines; quiescent handoff and other HIP-only branches remain visible; GCC 13.3 + gcovr 8.3 |
 

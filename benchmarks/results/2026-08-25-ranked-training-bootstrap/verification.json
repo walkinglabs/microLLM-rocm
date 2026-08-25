@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "measurement_commit": "68f01646bd894ff278684273129b334d7d651b41",
+  "dirty_at_measurement": false,
+  "runs": 3,
+  "rank_processes": 6,
+  "steps_per_rank": 3,
+  "parameter_tensors": 12,
+  "parameter_values": 728,
+  "maximum_rank_difference": 0.0,
+  "maximum_reference_difference": 1.1900000007614153e-07,
+  "median_rank_group_ms": 5267.242916859686,
+  "peer_failure_detected": true,
+  "peer_processes_terminated": 1,
+  "failure_returncodes": [1, -15],
+  "ready_bucket_overlap_migrated": false,
+  "rccl_label": {"passed": 41, "total": 41},
+  "registered_test_files": 123
+}

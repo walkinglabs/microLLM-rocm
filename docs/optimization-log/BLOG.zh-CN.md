@@ -4138,3 +4138,18 @@ transient虽然total 1.382×，peak仍多33.3MB。
 one-process-per-GPU的rank/unique-ID/timeout/故障合同。
 
 ![Gradient-ready overlap](assets/data-parallel-gradient-overlap.svg)
+
+## 281. Experiment 264：每张GPU终于由独立进程负责
+
+rank0生成opaque RCCL ID并原子发布文件，rank1有限时等待；每个进程只有一份tiny模型、AdamW和
+本地GPU。三个fresh launch共6个rank、18个rank-step，12个Tensor/728个值跨rank位级一致，
+相对CPU global batch最大差1.19e-7。
+
+故障门把rank1改成非法rank2：它返回1，rank0已进入RCCL init等待；launcher检测peer失败后发送
+SIGTERM，返回-15，组没有永久挂起。rank-group初始化+训练median约5.27s，只是bootstrap成本，
+不是吞吐结论。
+
+当前每个parameter各发一次collective。下一步先做rank-local同步bucket，保持等价/timeout合同，
+再把ready Event overlap迁移过来。
+
+![One process per GPU bootstrap](assets/one-process-per-gpu-bootstrap.svg)

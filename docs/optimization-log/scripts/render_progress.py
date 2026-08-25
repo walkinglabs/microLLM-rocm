@@ -283,6 +283,11 @@ DATA_PARALLEL_GRADIENT_OVERLAP_ROOT = (
     "2026-08-25-data-parallel-gradient-overlap")
 DATA_PARALLEL_GRADIENT_OVERLAP_CHART = (
     ROOT / "assets" / "data-parallel-gradient-overlap.svg")
+RANKED_TRAINING_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-ranked-training-bootstrap")
+RANKED_TRAINING_CHART = (
+    ROOT / "assets" / "one-process-per-gpu-bootstrap.svg")
 
 
 def rows() -> list[dict]:
@@ -4963,6 +4968,65 @@ def data_parallel_gradient_overlap_svg() -> str:
     return "\n".join(parts)
 
 
+def ranked_training_bootstrap_svg() -> str:
+    summary = json.loads((RANKED_TRAINING_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    width, height = 1500, 720
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 264 · One Process per GPU Bootstrap", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "3 fresh launches · 6 rank processes · 18 rank-steps · opaque RCCL ID exchange",
+             16, "#5b6474", anchor="middle"),
+        '<rect x="540" y="125" width="420" height="105" rx="14" '
+        'fill="#fff7ed" stroke="#f59e0b" stroke-width="2"/>',
+        text(750, 168, "CPU global-batch reference", 22, "#9a4f00",
+             anchor="middle", weight=700),
+        text(750, 202, "12 tensors · 728 values", 16, "#5b6474",
+             anchor="middle"),
+    ]
+    for x, rank, gpu in ((180, 0, 0), (900, 1, 1)):
+        parts.extend([
+            f'<rect x="{x}" y="300" width="420" height="185" rx="16" '
+            'fill="#ffffff" stroke="#2563eb" stroke-width="3"/>',
+            text(x + 210, 350, f"OS process · rank {rank}", 23, "#2563eb",
+                 anchor="middle", weight=700),
+            text(x + 210, 392, f"one model · one AdamW · GPU {gpu}", 18,
+                 "#172033", anchor="middle"),
+            text(x + 210, 435, "local batch · averaged gradients", 17,
+                 "#5b6474", anchor="middle"),
+        ])
+    parts.extend([
+        '<line x1="600" y1="390" x2="900" y2="390" stroke="#16a34a" '
+        'stroke-width="6"/>',
+        '<polygon points="890,380 910,390 890,400" fill="#16a34a"/>',
+        '<polygon points="610,380 590,390 610,400" fill="#16a34a"/>',
+        text(750, 373, "RCCL all-reduce average", 17, "#166534",
+             anchor="middle", weight=700),
+        '<line x1="750" y1="230" x2="390" y2="300" stroke="#f59e0b" '
+        'stroke-width="2" stroke-dasharray="8 6"/>',
+        '<line x1="750" y1="230" x2="1110" y2="300" stroke="#f59e0b" '
+        'stroke-width="2" stroke-dasharray="8 6"/>',
+        text(width / 2, 555,
+             f"rank max diff {summary['maximum_rank_difference']:.1f} · CPU max diff {summary['maximum_reference_difference']:.2e}",
+             22, "#166534", anchor="middle", weight=700),
+        text(width / 2, 600,
+             f"median rank group {summary['median_rank_group_ms'] / 1000:.2f} s · peer failure return codes {summary['failure_returncodes']}",
+             20, "#172033", anchor="middle", weight=700),
+        text(width / 2, 645,
+             "Bad rank exits · launcher terminates peer blocked in RCCL init",
+             18, "#b42335", anchor="middle", weight=700),
+        text(width / 2, 688,
+             "Bootstrap kept · next: rank-local synchronous gradient buckets",
+             15, "#5b6474", anchor="middle"),
+        "</svg>\n",
+    ])
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -5042,7 +5106,8 @@ def main() -> int:
                 GRADIENT_PRODUCER_OUT_CHART: gradient_producer_out_svg(),
                 AUTOGRAD_GRADIENT_PRODUCER_CHART: autograd_gradient_producer_svg(),
                 DATA_PARALLEL_GRADIENT_READY_CHART: data_parallel_gradient_ready_svg(),
-                DATA_PARALLEL_GRADIENT_OVERLAP_CHART: data_parallel_gradient_overlap_svg()}
+                DATA_PARALLEL_GRADIENT_OVERLAP_CHART: data_parallel_gradient_overlap_svg(),
+                RANKED_TRAINING_CHART: ranked_training_bootstrap_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]
