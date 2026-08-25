@@ -19,6 +19,8 @@ FINALIZE_RUNNER = (
     ROOT / "benchmarks/single_gpu/cached_attention_finalize_mapping_matrix.py")
 SPLIT_PV_RUNNER = (
     ROOT / "benchmarks/single_gpu/cached_attention_split_pv_matrix.py")
+VALUE_REUSE_RUNNER = (
+    ROOT / "benchmarks/single_gpu/cached_attention_gqa_value_reuse_matrix.py")
 
 
 FAKE = r'''#!/usr/bin/env python3
@@ -37,6 +39,8 @@ dtype = a["--cache-dtype"]
 order = a["--order"]
 finalize_threads = int(a.get("--finalize-threads", "256"))
 pv_splits = int(a.get("--pv-splits", "0"))
+gqa_value_reuse = a.get("--gqa-value-reuse", "false") == "true"
+gqa_tile_columns = int(a.get("--gqa-tile-columns", "32"))
 factor = b * t / 32.0 * (0.97 if dtype == "bf16" else 1.0)
 times = {
     "score": 0.020 * factor,
@@ -49,6 +53,8 @@ times = {
 if pv_splits:
     split_speedup = {1: 0.75, 2: 1.2, 4: 1.5}.get(pv_splits, 1.0)
     times["split_pv"] = times["materialized"] / split_speedup
+if gqa_value_reuse:
+    times["gqa_value_reuse"] = times["materialized"] / 0.8
 record = {
     "schema_version": 1,
     "status": "pass",
@@ -92,6 +98,15 @@ if pv_splits:
         "split_pv_speedup_over_materialized":
             times["materialized"] / times["split_pv"],
     })
+if gqa_value_reuse:
+    record.update({
+        "gqa_value_reuse_tile_columns": gqa_tile_columns,
+        "gqa_value_reuse_probability_bytes": b * h * t * 4,
+        "gqa_value_reuse_max_error": 1.0e-8,
+        "gqa_value_reuse_rms_error": 1.0e-8,
+        "gqa_value_reuse_bitwise_equal_materialized": True,
+        "gqa_value_reuse_speedup_over_materialized": 0.8,
+    })
 for field in (
     "score_max_error", "score_rms_error",
     "probability_max_error", "probability_rms_error",
@@ -105,7 +120,8 @@ for stage, value in times.items():
     record[f"{stage}_event_ms_p95"] = value * 1.1
     record[f"{stage}_wall_ms_p50"] = value * 1.2
     record[f"{stage}_wall_ms_p95"] = value * 1.3
-    allocations = (4 if stage == "split_pv" else 3 if stage == "pipeline"
+    allocations = (4 if stage == "split_pv" else 3 if stage in {
+                   "pipeline", "gqa_value_reuse"}
                    else 2 if stage == "materialized" else 1)
     record[f"{stage}_allocation_calls_per_invocation"] = allocations
     record[f"{stage}_backend_allocation_calls_per_invocation"] = 0
@@ -334,6 +350,34 @@ def main() -> int:
                 split_pv_summary["cases"]} == {4}
         assert len(split_pv_raw) == 12
         assert "Exact-softmax split P×V search" in split_pv_chart
+
+        value_reuse_output = root / "value-reuse-matrix"
+        value_reuse_completed = subprocess.run([
+            sys.executable, str(VALUE_REUSE_RUNNER),
+            "--benchmark", str(fake),
+            "--output-directory", str(value_reuse_output),
+            "--models", "qwen2.5-0.5b,deepseek-r1-distill-qwen-1.5b",
+            "--sequences", "32", "--batches", "1",
+            "--cache-dtypes", "bf16", "--tile-columns", "8,16,32,64",
+            "--runs", "2", "--warmup", "3", "--repetitions", "4",
+        ], text=True, capture_output=True, check=False)
+        if value_reuse_completed.returncode != 0:
+            raise AssertionError(
+                value_reuse_completed.stdout + value_reuse_completed.stderr)
+        value_reuse_summary = json.loads(
+            (value_reuse_output / "summary.json").read_text(encoding="utf-8"))
+        value_reuse_raw = (value_reuse_output / "raw.jsonl").read_text(
+            encoding="utf-8").splitlines()
+        value_reuse_chart = (value_reuse_output / "value-reuse.svg").read_text(
+            encoding="utf-8")
+        assert value_reuse_summary["matrix_complete"] is True
+        assert value_reuse_summary["process_rows"] == 16
+        assert value_reuse_summary["candidate_rows"] == 8
+        assert value_reuse_summary["case_count"] == 2
+        assert value_reuse_summary["all_accuracy_gates_passed"] is True
+        assert value_reuse_summary["performance_pass_count"] == 0
+        assert len(value_reuse_raw) == 16
+        assert "Exact-order GQA value-load reuse" in value_reuse_chart
     print("cached Attention stage matrix contract: pass")
     return 0
 

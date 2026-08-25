@@ -3385,6 +3385,77 @@ Tensor cached_gqa_attention_split_pv_exact_softmax(
         query, key_cache, value_cache, repeats, factor, context);
 }
 
+Tensor cached_gqa_attention_gqa_value_reuse(
+    const Tensor& query, const Tensor& key_cache, const Tensor& value_cache,
+    std::int64_t repeats, float factor, std::int64_t tile_columns,
+    [[maybe_unused]] const OpContext& context) {
+    require_float(query, "query");
+    require_forward_float(key_cache, "key_cache");
+    require_forward_float(value_cache, "value_cache");
+    require_same_device(query, key_cache);
+    require_same_device(query, value_cache);
+    require_same_shape(key_cache, value_cache);
+    require_same_dtype(key_cache, value_cache);
+    const auto valid_tile = tile_columns == 8 || tile_columns == 16 ||
+                            tile_columns == 32 || tile_columns == 64;
+    if (query.dtype() != DType::Float32 ||
+        (key_cache.dtype() != DType::Float32 &&
+         key_cache.dtype() != DType::BFloat16) ||
+        query.ndim() != 4 || key_cache.ndim() != 4 ||
+        query.shape()[0] <= 0 || query.shape()[2] != 1 ||
+        key_cache.shape()[0] != query.shape()[0] ||
+        query.shape()[3] != key_cache.shape()[3] ||
+        key_cache.shape()[2] <= 0 || key_cache.shape()[2] > 4096 ||
+        repeats <= 0 || repeats > 8 ||
+        query.shape()[1] != key_cache.shape()[1] * repeats ||
+        !valid_tile || !std::isfinite(factor) || factor <= 0.0F ||
+        key_cache.strides() != value_cache.strides()) {
+        throw std::invalid_argument(
+            "exact-order GQA value-reuse cached attention contract is invalid");
+    }
+    require_contiguous(query, "query");
+    [[maybe_unused]] const auto batches = query.shape()[0];
+    [[maybe_unused]] const auto heads = query.shape()[1];
+    [[maybe_unused]] const auto kv_heads = key_cache.shape()[1];
+    const auto sequence = key_cache.shape()[2];
+    const auto width = query.shape()[3];
+    const auto cache_head_stride = key_cache.stride(1);
+    [[maybe_unused]] const auto cache_batch_stride = key_cache.stride(0);
+    if (key_cache.stride(3) != 1 || key_cache.stride(2) != width ||
+        cache_head_stride < sequence * width) {
+        throw std::invalid_argument(
+            "exact-order GQA value reuse requires a dense prefix");
+    }
+    if (query.device().is_hip()) {
+#if MICROLLM_HAS_HIP
+        Tensor scores(
+            {batches, heads, 1, sequence}, DType::Float32, query.device());
+        Tensor probabilities(
+            {batches, heads, 1, sequence}, DType::Float32, query.device());
+        Tensor output(
+            {batches, heads, 1, width}, DType::Float32, query.device());
+        const auto native_stream = context.native_stream(query.device());
+        hip::launch_cached_attention_scores(
+            static_cast<const float*>(query.data()), key_cache.data(),
+            key_cache.dtype(), static_cast<float*>(scores.data()), batches,
+            heads, kv_heads, sequence, cache_batch_stride, cache_head_stride,
+            width, repeats, factor, native_stream);
+        hip::launch_cached_attention_gqa_value_reuse(
+            static_cast<const float*>(scores.data()), value_cache.data(),
+            value_cache.dtype(), static_cast<float*>(probabilities.data()),
+            static_cast<float*>(output.data()), batches, heads, kv_heads,
+            sequence, cache_batch_stride, cache_head_stride, width, repeats,
+            tile_columns, native_stream);
+        return output;
+#else
+        throw std::runtime_error(
+            "microLLM was built without HIP operator support");
+#endif
+    }
+    return cached_gqa_attention(
+        query, key_cache, value_cache, repeats, factor, context);
+}
+
 Tensor cached_gqa_attention_positions(
     const Tensor& query, const Tensor& key_cache, const Tensor& value_cache,
     const Tensor& positions, const Tensor& cache_rows, std::int64_t repeats,

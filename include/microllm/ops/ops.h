@@ -895,6 +895,12 @@ void kv_cache_store_pair_positions_(
     const Tensor& query, const Tensor& key_cache, const Tensor& value_cache,
     std::int64_t repeats, float scale, std::int64_t splits,
     const OpContext& context = {});
+// Research-only exact-order route. Query heads sharing one KV head retain
+// independent position-ordered accumulators while reusing each value load.
+[[nodiscard]] Tensor cached_gqa_attention_gqa_value_reuse(
+    const Tensor& query, const Tensor& key_cache, const Tensor& value_cache,
+    std::int64_t repeats, float scale, std::int64_t tile_columns,
+    const OpContext& context = {});
 [[nodiscard]] Tensor cached_gqa_attention_positions(
     const Tensor& query, const Tensor& key_cache, const Tensor& value_cache,
     const Tensor& positions, const Tensor& cache_rows,

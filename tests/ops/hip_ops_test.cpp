@@ -2074,6 +2074,18 @@ TEST(HipCachedAttentionTest,
                 cached_gqa_attention_split_pv_exact_softmax(
                     device_query, device_key, device_value, repeats, scale,
                     std::min<std::int64_t>(2, sequence));
+            const auto actual_value_reuse_8 =
+                cached_gqa_attention_gqa_value_reuse(
+                    device_query, device_key, device_value, repeats, scale, 8);
+            const auto actual_value_reuse_16 =
+                cached_gqa_attention_gqa_value_reuse(
+                    device_query, device_key, device_value, repeats, scale, 16);
+            const auto actual_value_reuse_32 =
+                cached_gqa_attention_gqa_value_reuse(
+                    device_query, device_key, device_value, repeats, scale, 32);
+            const auto actual_value_reuse_64 =
+                cached_gqa_attention_gqa_value_reuse(
+                    device_query, device_key, device_value, repeats, scale, 64);
             runtime::synchronize(gpu);
             const auto transfers = runtime::transfer_stats();
             EXPECT_EQ(transfers.host_to_device_calls, 0U);
@@ -2113,6 +2125,14 @@ TEST(HipCachedAttentionTest,
             expect_near(
                 actual_split_pv_2.to_vector(), expected_context_values,
                 8.0e-4F);
+            EXPECT_EQ(
+                actual_value_reuse_8.to_vector(), actual_materialized.to_vector());
+            EXPECT_EQ(
+                actual_value_reuse_16.to_vector(), actual_materialized.to_vector());
+            EXPECT_EQ(
+                actual_value_reuse_32.to_vector(), actual_materialized.to_vector());
+            EXPECT_EQ(
+                actual_value_reuse_64.to_vector(), actual_materialized.to_vector());
             EXPECT_TRUE(std::all_of(
                 expected_score_values.begin(), expected_score_values.end(),
                 [](float element) { return std::isfinite(element); }));

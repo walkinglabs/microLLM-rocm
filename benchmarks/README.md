@@ -176,6 +176,25 @@ complete context before timing. A case reaches an official-model gate only at Ev
 allocations. The runner writes `raw.jsonl`, `summary.json`, and
 `split-pv-search.svg`; it never changes Auto routing.
 
+Test whether GQA query heads can reuse each value load while retaining every
+head's exact position accumulation order:
+
+```bash
+ROCR_VISIBLE_DEVICES=0 HIP_VISIBLE_DEVICES=0 python3 \
+  benchmarks/single_gpu/cached_attention_gqa_value_reuse_matrix.py \
+  --benchmark build/hip-release/benchmarks/microllm_bench_cached_attention_stages \
+  --output-directory /tmp/microllm-gqa-value-reuse \
+  --models qwen2.5-0.5b,deepseek-r1-distill-qwen-1.5b \
+  --sequences 512,2048 --batches 1,2 --cache-dtypes fp32,bf16 \
+  --tile-columns 8,16,32,64 --runs 2 --warmup 3 --repetitions 20
+```
+
+All tiles must be bitwise equal to materialized current before timing. The
+candidate uses three logical outputs (scores, probabilities, context), reports
+zero warm backend allocations, and passes only at Event 1.05x plus wall 1.02x.
+The runner emits raw JSON Lines, a case summary, and `value-reuse.svg`; no model
+or automatic route reads the tile selection.
+
 Screen the separate BF16 weight-gradient hypothesis before changing Autograd:
 
 ```bash

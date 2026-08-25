@@ -25,8 +25,10 @@ struct Options {
     std::int64_t width = 128;
     std::int64_t splits = 0;
     std::int64_t pv_splits = 0;
+    std::int64_t gqa_tile_columns = 32;
     std::int64_t finalize_threads = 256;
     bool materialized = false;
+    bool gqa_value_reuse = false;
     std::string cache_dtype = "bf16";
     std::string order = "forward";
     int warmup = 3;
@@ -70,8 +72,14 @@ Options parse(int argc, char** argv) {
             result.splits = integer(argv[index + 1], "splits");
         } else if (name == "--pv-splits") {
             result.pv_splits = integer(argv[index + 1], "pv-splits");
+        } else if (name == "--gqa-tile-columns") {
+            result.gqa_tile_columns = integer(
+                argv[index + 1], "gqa-tile-columns");
         } else if (name == "--materialized") {
             result.materialized = boolean(argv[index + 1], "materialized");
+        } else if (name == "--gqa-value-reuse") {
+            result.gqa_value_reuse = boolean(
+                argv[index + 1], "gqa-value-reuse");
         } else if (name == "--finalize-threads") {
             result.finalize_threads = integer(
                 argv[index + 1], "finalize-threads");
@@ -96,6 +104,8 @@ Options parse(int argc, char** argv) {
         result.splits > result.sequence ||
         result.pv_splits < 0 || result.pv_splits > 32 ||
         result.pv_splits > result.sequence ||
+        (result.gqa_tile_columns != 8 && result.gqa_tile_columns != 16 &&
+         result.gqa_tile_columns != 32 && result.gqa_tile_columns != 64) ||
         (result.finalize_threads != 64 && result.finalize_threads != 128 &&
          result.finalize_threads != 256) ||
         (result.cache_dtype != "fp32" && result.cache_dtype != "bf16") ||
@@ -293,6 +303,13 @@ int main(int argc, char** argv) {
                     device_query, device_key, device_value, repeats, scale,
                     options.pv_splits);
         }
+        microllm::Tensor device_gqa_value_reuse;
+        if (options.gqa_value_reuse) {
+            device_gqa_value_reuse =
+                microllm::ops::cached_gqa_attention_gqa_value_reuse(
+                    device_query, device_key, device_value, repeats, scale,
+                    options.gqa_tile_columns);
+        }
         microllm::runtime::synchronize(device);
 
         const auto score_error = compare(
@@ -330,6 +347,17 @@ int main(int argc, char** argv) {
             split_pv_bitwise_equal_materialized =
                 split_pv_values == reference_values;
         }
+        Error gqa_value_reuse_error;
+        bool gqa_value_reuse_bitwise_equal_materialized = true;
+        if (options.gqa_value_reuse) {
+            const auto candidate_values = device_gqa_value_reuse.to_vector();
+            const auto reference_values = options.materialized
+                ? device_materialized.to_vector() : device_fused.to_vector();
+            gqa_value_reuse_error = compare(
+                candidate_values, expected_context_values);
+            gqa_value_reuse_bitwise_equal_materialized =
+                candidate_values == reference_values;
+        }
         const auto accuracy_passed =
             score_error.finite && probability_error.finite &&
             context_error.finite && pipeline_error.finite && fused_error.finite &&
@@ -349,7 +377,11 @@ int main(int argc, char** argv) {
               split_pv_error.rms <= 8.0e-5 &&
               (options.pv_splits != 1 ||
                split_pv_bitwise_equal_materialized)));
-        if (!accuracy_passed) {
+        const auto value_reuse_accuracy =
+            !options.gqa_value_reuse ||
+            (gqa_value_reuse_error.finite &&
+             gqa_value_reuse_bitwise_equal_materialized);
+        if (!accuracy_passed || !value_reuse_accuracy) {
             throw std::runtime_error(
                 "cached Attention stage complete-output gate failed");
         }
@@ -393,6 +425,12 @@ int main(int argc, char** argv) {
                     device_query, device_key, device_value, repeats, scale,
                     options.pv_splits);
         };
+        const auto gqa_value_reuse_operation = [&] {
+            device_gqa_value_reuse =
+                microllm::ops::cached_gqa_attention_gqa_value_reuse(
+                    device_query, device_key, device_value, repeats, scale,
+                    options.gqa_tile_columns);
+        };
 
         Timing score_timing;
         Timing softmax_timing;
@@ -402,6 +440,7 @@ int main(int argc, char** argv) {
         Timing split_timing;
         Timing materialized_timing;
         Timing split_pv_timing;
+        Timing gqa_value_reuse_timing;
         microllm::runtime::reset_transfer_stats();
         if (options.order == "forward") {
             score_timing = measure(score_operation, options, device);
@@ -420,7 +459,15 @@ int main(int argc, char** argv) {
                 split_pv_timing = measure(
                     split_pv_operation, options, device);
             }
+            if (options.gqa_value_reuse) {
+                gqa_value_reuse_timing = measure(
+                    gqa_value_reuse_operation, options, device);
+            }
         } else {
+            if (options.gqa_value_reuse) {
+                gqa_value_reuse_timing = measure(
+                    gqa_value_reuse_operation, options, device);
+            }
             if (options.pv_splits > 0) {
                 split_pv_timing = measure(
                     split_pv_operation, options, device);
@@ -454,7 +501,10 @@ int main(int argc, char** argv) {
             (options.materialized &&
              materialized_timing.backend_allocation_calls_per_invocation != 0.0) ||
             (options.pv_splits > 0 &&
-             split_pv_timing.backend_allocation_calls_per_invocation != 0.0)) {
+             split_pv_timing.backend_allocation_calls_per_invocation != 0.0) ||
+            (options.gqa_value_reuse &&
+             gqa_value_reuse_timing.backend_allocation_calls_per_invocation !=
+                 0.0)) {
             throw std::runtime_error(
                 "warm stage measurement reached the backend allocator");
         }
@@ -539,6 +589,19 @@ int main(int argc, char** argv) {
                       << ",\"split_pv_bitwise_equal_materialized\":"
                       << (split_pv_bitwise_equal_materialized ? "true" : "false");
         }
+        if (options.gqa_value_reuse) {
+            std::cout << ",\"gqa_value_reuse_tile_columns\":"
+                      << options.gqa_tile_columns
+                      << ",\"gqa_value_reuse_probability_bytes\":"
+                      << score_elements * sizeof(float)
+                      << ",\"gqa_value_reuse_max_error\":"
+                      << gqa_value_reuse_error.maximum
+                      << ",\"gqa_value_reuse_rms_error\":"
+                      << gqa_value_reuse_error.rms
+                      << ",\"gqa_value_reuse_bitwise_equal_materialized\":"
+                      << (gqa_value_reuse_bitwise_equal_materialized
+                              ? "true" : "false");
+        }
         print_timing("score", score_timing);
         print_timing("softmax", softmax_timing);
         print_timing("context", context_timing);
@@ -552,6 +615,9 @@ int main(int argc, char** argv) {
         }
         if (options.pv_splits > 0) {
             print_timing("split_pv", split_pv_timing);
+        }
+        if (options.gqa_value_reuse) {
+            print_timing("gqa_value_reuse", gqa_value_reuse_timing);
         }
         std::cout << ",\"stage_sum_event_ms_p50\":" << stage_sum
                   << ",\"stage_sum_over_pipeline\":"
@@ -572,6 +638,11 @@ int main(int argc, char** argv) {
             std::cout << ",\"split_pv_speedup_over_materialized\":"
                       << materialized_timing.event_p50 /
                              split_pv_timing.event_p50;
+        }
+        if (options.gqa_value_reuse && options.materialized) {
+            std::cout << ",\"gqa_value_reuse_speedup_over_materialized\":"
+                      << materialized_timing.event_p50 /
+                             gqa_value_reuse_timing.event_p50;
         }
         std::cout << ",\"host_to_device_calls\":"
                   << transfers.host_to_device_calls

@@ -1790,6 +1790,43 @@ __global__ void cached_attention_split_pv_combine_kernel(
     output[index] = total;
 }
 
+template <typename Cache, int Repeats>
+__global__ void cached_attention_gqa_value_reuse_kernel(
+    const float* probabilities, const Cache* value_cache, float* output,
+    std::int64_t batches, std::int64_t heads, std::int64_t kv_heads,
+    std::int64_t sequence, std::int64_t cache_batch_stride,
+    std::int64_t cache_head_stride, std::int64_t width,
+    std::int64_t tile_columns) {
+    const auto tiles = (width + tile_columns - 1) / tile_columns;
+    const auto block = static_cast<std::int64_t>(blockIdx.x);
+    const auto tile = block % tiles;
+    const auto batch_kv = block / tiles;
+    const auto batch = batch_kv / kv_heads;
+    const auto kv_head = batch_kv % kv_heads;
+    const auto column = tile * tile_columns + threadIdx.x;
+    if (batch >= batches || column >= width || threadIdx.x >= tile_columns) {
+        return;
+    }
+    float totals[Repeats] = {};
+    const auto cache_base = batch * cache_batch_stride +
+                            kv_head * cache_head_stride;
+    for (std::int64_t position = 0; position < sequence; ++position) {
+        const auto value = static_cast<float>(value_cache[
+            cache_base + position * width + column]);
+#pragma unroll
+        for (int repeat = 0; repeat < Repeats; ++repeat) {
+            const auto head = kv_head * Repeats + repeat;
+            totals[repeat] += probabilities[
+                (batch * heads + head) * sequence + position] * value;
+        }
+    }
+#pragma unroll
+    for (int repeat = 0; repeat < Repeats; ++repeat) {
+        const auto head = kv_head * Repeats + repeat;
+        output[(batch * heads + head) * width + column] = totals[repeat];
+    }
+}
+
 template <typename Cache>
 __global__ void cached_attention_fused_kernel(
     const float* query, const Cache* key_cache, const Cache* value_cache,
@@ -4214,6 +4251,57 @@ void launch_cached_attention_split_pv(
         dim3(kBlockSize), 0, as_stream(stream), partials, output, elements,
         width, splits);
     check_launch("cached_attention_split_pv_combine_kernel");
+}
+
+void launch_cached_attention_gqa_value_reuse(
+    const float* scores, const void* value_cache, DType cache_dtype,
+    float* probabilities, float* output, std::int64_t batches,
+    std::int64_t heads, std::int64_t kv_heads, std::int64_t sequence,
+    std::int64_t cache_batch_stride, std::int64_t cache_head_stride,
+    std::int64_t width, std::int64_t repeats, std::int64_t tile_columns,
+    void* stream) {
+    const auto softmax_grid = dim3(static_cast<unsigned>(batches * heads));
+    const auto shared_bytes = static_cast<std::size_t>(sequence) * sizeof(float);
+    hipLaunchKernelGGL(
+        cached_attention_exact_softmax_kernel, softmax_grid,
+        dim3(kBlockSize), shared_bytes, as_stream(stream), scores,
+        probabilities, batches, heads, sequence);
+    check_launch("cached_attention_exact_softmax_kernel");
+    const auto tiles = (width + tile_columns - 1) / tile_columns;
+    const auto grid = dim3(static_cast<unsigned>(batches * kv_heads * tiles));
+    constexpr unsigned threads = 64;
+    if (cache_dtype != DType::Float32 && cache_dtype != DType::BFloat16) {
+        throw std::invalid_argument(
+            "GQA value-reuse cached attention supports FP32 and BF16 cache");
+    }
+    const auto launch = [&]<typename Cache, int RepeatCount>(const Cache* cache) {
+        hipLaunchKernelGGL(
+            (cached_attention_gqa_value_reuse_kernel<Cache, RepeatCount>),
+            grid, dim3(threads), 0, as_stream(stream), probabilities, cache,
+            output, batches, heads, kv_heads, sequence, cache_batch_stride,
+            cache_head_stride, width, tile_columns);
+    };
+    const auto dispatch = [&]<typename Cache>(const Cache* cache) {
+        switch (repeats) {
+            case 1: launch.template operator()<Cache, 1>(cache); break;
+            case 2: launch.template operator()<Cache, 2>(cache); break;
+            case 3: launch.template operator()<Cache, 3>(cache); break;
+            case 4: launch.template operator()<Cache, 4>(cache); break;
+            case 5: launch.template operator()<Cache, 5>(cache); break;
+            case 6: launch.template operator()<Cache, 6>(cache); break;
+            case 7: launch.template operator()<Cache, 7>(cache); break;
+            case 8: launch.template operator()<Cache, 8>(cache); break;
+            default:
+                throw std::invalid_argument(
+                    "GQA value-reuse repeats must be 1..8");
+        }
+    };
+    if (cache_dtype == DType::Float32) {
+        dispatch(static_cast<const float*>(value_cache));
+    } else {
+        dispatch(static_cast<const hip_bfloat16*>(value_cache));
+    }
+    check_launch("cached_attention_gqa_value_reuse_kernel");
 }
 
 void launch_cached_attention_fused(

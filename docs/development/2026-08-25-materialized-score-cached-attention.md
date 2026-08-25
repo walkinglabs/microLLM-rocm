@@ -67,3 +67,13 @@ CPU、小shape PyTorch oracle和16格MI300X长短边界都覆盖默认/64/128；
 S1不是性能候选，而是隔离证明：它有额外probability/partial Tensor和launch，但必须与当前
 materialized context位级相同。只有S1通过后，S2/4/8/16的差异才可以解释为P×V累加树变化。
 CPU、PyTorch、小shape以及MI300X T31–2048、B1/B2、FP32/BF16均覆盖接口和非法split。
+
+## 保序GQA value复用
+
+`cached_gqa_attention_gqa_value_reuse`不拆sequence。共享同一KV head的query heads各自保留从
+position 0到T的独立accumulator，但每个position/column只读取一次value。显式tile只改变column
+block数量，可选8/16/32/64。
+
+repeats必须在1–8，并作为HIP模板常量实例化；首版运行时数组会溢出到私有内存，目标shape只有
+约0.099x，模板化后恢复到约0.5x。这两个阶段都属于同一个可反驳优化过程，正式结论由完整矩阵
+决定。接口不进入模型或Auto。
