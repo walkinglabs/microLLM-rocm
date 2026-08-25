@@ -406,6 +406,7 @@
     "python/tests/test_ranked_checkpoint_contract.py",
     "python/tests/test_ranked_overlap_context_matrix.py",
     "python/tests/test_ranked_training_matrix.py",
+    "python/tests/test_status_contract.py",
     "python/tests/test_bf16_repeat.py",
     "python/tests/test_inference_bthd_shape_models.py",
     "python/tests/test_hf_fp8_layer_drift.py",

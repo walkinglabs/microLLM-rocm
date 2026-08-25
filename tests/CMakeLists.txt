@@ -624,6 +624,13 @@ if(Python3_Interpreter_FOUND)
     )
     set_tests_properties(Coverage.OperatorAndTestFiles PROPERTIES LABELS "cpu;coverage;schema")
     add_test(
+        NAME Documentation.StatusContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_status_contract.py
+    )
+    set_tests_properties(Documentation.StatusContract PROPERTIES
+        LABELS "cpu;documentation;status;schema")
+    add_test(
         NAME Alignment.Tools
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/python/tests/test_alignment_tools.py
     )
