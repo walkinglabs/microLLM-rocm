@@ -1,4 +1,5 @@
 import importlib.util
+import json
 import unittest
 from pathlib import Path
 
@@ -13,6 +14,44 @@ SPEC.loader.exec_module(MATRIX)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_current_deepseek_t2048_baseline_is_complete_and_exact(self):
+        root = ROOT / "benchmarks/results/2026-08-25-current-deepseek-t2048"
+        summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+        verification = json.loads((root / "verification.json").read_text(
+            encoding="utf-8"))
+        attempts = json.loads((root / "attempts.json").read_text(encoding="utf-8"))
+        raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+            encoding="utf-8").splitlines() if line]
+        self.assertEqual(summary["status"], "pass")
+        self.assertEqual(summary["runs_per_framework"], 3)
+        self.assertEqual(len(summary["rows"]), 1)
+        row = summary["rows"][0]
+        self.assertEqual((row["context"], row["batch"], row["decode_tokens"]),
+                         (2048, 2, 64))
+        self.assertTrue(row["cross_framework_tokens_equal"])
+        self.assertEqual(row["cross_framework_first_token_difference"], -1)
+        self.assertEqual(row["cross_framework_matching_prefix_tokens"], 64)
+        self.assertEqual(row["microllm_throughput_tokens_per_second"],
+                         133.501430352)
+        self.assertEqual(row["pytorch_throughput_tokens_per_second"],
+                         163.64307901695054)
+        self.assertEqual(row["throughput_ratio_microllm_over_pytorch"],
+                         0.8158085948637742)
+        self.assertEqual(row["microllm_kv_cache_actual_bytes"], 121110528.0)
+        self.assertEqual(row["pytorch_kv_cache_actual_bytes"], 121110528.0)
+        self.assertEqual(row["microllm_kv_cache_utilization"], 1.0)
+        self.assertEqual(row["pytorch_kv_cache_utilization"], 1.0)
+        self.assertEqual(len(raw), 6)
+        self.assertTrue(all(record["status"] == "pass" for record in raw))
+        self.assertEqual({record["framework"] for record in raw},
+                         {"microllm", "pytorch"})
+        self.assertEqual(verification["measurement_commit"],
+                         "4ac239384a8c4f3f26b49e4884efeb32e0f02cfa")
+        self.assertTrue(verification["performance_gap_reproduced"])
+        self.assertEqual(attempts["attempts"][0]["status"],
+                         "invalid_for_cross_framework_comparison")
+        self.assertEqual(attempts["attempts"][1]["status"], "pass")
+
     def test_named_suites_cover_short_long_context_and_batch_scaling(self):
         self.assertEqual(MATRIX.MATRIX_SUITES["smoke"]["contexts"], [8, 128])
         standard = MATRIX.MATRIX_SUITES["standard"]

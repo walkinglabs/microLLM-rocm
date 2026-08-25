@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-25: Current DeepSeek T2048 baseline](2026-08-25-current-deepseek-t2048-baseline.md)
 - [2026-08-25: Cached Attention score oracle](2026-08-25-cached-attention-score-oracle.md)
 - [2026-08-25: Next long-context profile audit](2026-08-25-long-context-profile-audit.md)
 - [2026-08-25: Evidence status refresh](2026-08-25-evidence-status-refresh.md)

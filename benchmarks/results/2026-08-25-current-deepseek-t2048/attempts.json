@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "attempts": [
+    {
+      "attempt": 1,
+      "status": "invalid_for_cross_framework_comparison",
+      "micro_processes_passed": 3,
+      "pytorch_processes_passed": 0,
+      "reason": "AMDSMI reported zero devices and the explicit HIP-runtime fallback flag was omitted",
+      "action": "overwrite the incomplete matrix and rerun all six fresh processes with the documented fallback"
+    },
+    {
+      "attempt": 2,
+      "status": "pass",
+      "micro_processes_passed": 3,
+      "pytorch_processes_passed": 3,
+      "amdsmi_fallback_explicit": true,
+      "raw_records": 6
+    }
+  ]
+}

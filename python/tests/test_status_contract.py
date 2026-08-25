@@ -15,6 +15,7 @@ def main() -> int:
         "CPU 371/371",
         "ASan/UBSan 369/369",
         "single-GPU HIP label 191/191",
+        "current T2048/B2/N64 is 0.8158x",
         "experiments through 280",
         "Ranked per-leaf weighted overlap",
         "whole step 0.9594×",

@@ -59,3 +59,7 @@ score oracle通过后，才从干净revision重跑当前DeepSeek T2048/B2/N64 st
 完整回归：CPU 371/371、ASan/UBSan 369/369、HIP 191/191、PyTorch OperatorParity通过。
 该API仍是diagnostic-only，不进入模型默认forward。下一提交从干净revision重跑当前DeepSeek
 T2048 profile。
+
+当前跨框架基线已完成：microLLM/PyTorch为133.50/163.64 tok/s，即0.8158x；64个token精确，
+峰值5.23/6.38GB，KV均为121,110,528 bytes且100%利用。旧0.868x被当前数据取代。rocprof
+归因仍待独立节点，尚未选择优化Kernel。
