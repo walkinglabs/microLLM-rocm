@@ -22,6 +22,7 @@ def main() -> int:
         '"--tied-embedding-sparse-add", "true"',
         '"--attention-context-layout-fusion", "true"',
         '"--attention-layout-plan-cache", "false"',
+        "OPTIMIZER_METADATA_BYTES_PER_STEP",
         '"optimizer_host_to_device_calls"',
         '"current_training_profile_summary"',
     ):
@@ -32,4 +33,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

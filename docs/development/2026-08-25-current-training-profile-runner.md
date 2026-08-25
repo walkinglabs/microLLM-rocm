@@ -12,9 +12,9 @@
 - tied-embedding sparse add 开启；
 - 已保留的 Attention layout fusion 开启；
 - 已拒绝的局部策略全部显式关闭；
-- optimizer measured window 内 Tensor payload 的 H2D/D2H 必须为零。
+- optimizer measured window 内 Tensor payload 的 H2D/D2H 必须为零；保留的 descriptor
+  metadata 每步精确为 Qwen 13,888 bytes、DeepSeek 12,608 bytes，且 D2H 为零。
 
 runner 为每个模型启动 `load + 1 step` 和 `load + 3 steps` 两个新进程，保存应用 JSON、
 Kernel CSV 和派生 profile。静态合同测试已注册到 CTest；真实性能仍必须在 MI300X 上执行，
 不能用合同测试代替。
-

@@ -211,8 +211,9 @@ HIP_VISIBLE_DEVICES=0 python3 \
 It explicitly pins BF16 Linear, FP32 master weights, BF16 AdamW moments, the retained
 1,048,576-element hybrid threshold and every accepted/rejected training switch. For each
 model it subtracts `load + 1 step` from `load + 3 steps` and divides by two. The runner
-rejects a changed policy, a missing parameter update, or optimizer payload transfers before
-publishing a summary. These are Kernel phase deltas, not end-to-end throughput claims.
+rejects a changed policy, a missing parameter update, changed descriptor metadata bytes, or
+optimizer Tensor-payload transfers before publishing a summary. These are Kernel phase deltas,
+not end-to-end throughput claims.
 
 For HIP Graph submission crossover measurements:
 

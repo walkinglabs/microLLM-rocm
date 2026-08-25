@@ -15,6 +15,10 @@ from pathlib import Path
 MODEL_NAMES = {"qwen2.5-0.5b", "deepseek-r1-distill-qwen-1.5b"}
 CONTEXT = 512
 MOMENT_THRESHOLD = 1_048_576
+OPTIMIZER_METADATA_BYTES_PER_STEP = {
+    "qwen2.5-0.5b": 13_888,
+    "deepseek-r1-distill-qwen-1.5b": 12_608,
+}
 
 
 def options() -> argparse.Namespace:
@@ -87,7 +91,7 @@ def last_json(text: str) -> dict:
     raise RuntimeError("profiled training application emitted no JSON")
 
 
-def validate_record(record: dict, steps: int) -> None:
+def validate_record(record: dict, steps: int, model_name: str) -> None:
     expected = {
         "status": "pass",
         "compute_dtype": "bf16_linear_fp32_master",
@@ -110,9 +114,12 @@ def validate_record(record: dict, steps: int) -> None:
         "steps": steps,
     }
     changed = [key for key, value in expected.items() if record.get(key) != value]
+    expected_metadata_bytes = OPTIMIZER_METADATA_BYTES_PER_STEP[model_name] * steps
     if changed or record.get("parameter_changed") is not True or \
-            record.get("optimizer_host_to_device_calls") != 0 or \
-            record.get("optimizer_device_to_host_calls") != 0:
+            record.get("optimizer_host_to_device_calls") != steps or \
+            record.get("optimizer_host_to_device_bytes") != expected_metadata_bytes or \
+            record.get("optimizer_device_to_host_calls") != 0 or \
+            record.get("optimizer_device_to_host_bytes") != 0:
         raise RuntimeError("profiled training contract changed: " + ", ".join(changed))
 
 
@@ -141,7 +148,7 @@ def main() -> int:
                 if completed.returncode != 0:
                     raise RuntimeError(completed.stdout + completed.stderr)
                 record = last_json(completed.stdout)
-                validate_record(record, steps)
+                validate_record(record, steps, model["name"])
                 record.update({
                     "record_type": "current_training_profile_run",
                     "model": model["name"], "revision": model["revision"],
@@ -202,4 +209,3 @@ if __name__ == "__main__":
     except (OSError, RuntimeError, ValueError, KeyError, json.JSONDecodeError) as error:
         print(f"profile_current_training: {error}", file=sys.stderr)
         raise SystemExit(2)
-
