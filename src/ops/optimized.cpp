@@ -2949,6 +2949,38 @@ Tensor bf16_matmul_output(const Tensor& left_bf16, const Tensor& right_bf16,
 #endif
 }
 
+Tensor bf16_weight_gradient(
+    const Tensor& input_fp32, const Tensor& output_gradient_fp32,
+    const OpContext& context) {
+    if (input_fp32.dtype() != DType::Float32 ||
+        output_gradient_fp32.dtype() != DType::Float32 ||
+        input_fp32.device() != output_gradient_fp32.device() ||
+        input_fp32.ndim() != 2 || output_gradient_fp32.ndim() != 2 ||
+        !input_fp32.is_contiguous() || !output_gradient_fp32.is_contiguous() ||
+        input_fp32.shape()[0] != output_gradient_fp32.shape()[0]) {
+        throw std::invalid_argument(
+            "BF16 weight gradient requires contiguous FP32 [rows, hidden] and "
+            "[rows, width] tensors on one device");
+    }
+    if (input_fp32.device().is_cpu()) {
+        const auto rounded_input = cast(input_fp32, DType::BFloat16, context);
+        const auto rounded_gradient = cast(
+            output_gradient_fp32, DType::BFloat16, context);
+        return matmul_with_implementation(
+            cast(rounded_input, DType::Float32, context),
+            cast(rounded_gradient, DType::Float32, context),
+            MatmulImplementation::Readable, true, false, context);
+    }
+    Tensor transposed_input(
+        {input_fp32.shape()[1], input_fp32.shape()[0]},
+        DType::BFloat16, input_fp32.device());
+    cast_transpose_2d_out_(input_fp32, transposed_input, context);
+    const auto rounded_gradient = cast(
+        output_gradient_fp32, DType::BFloat16, context);
+    return bf16_matmul_output(
+        transposed_input, rounded_gradient, DType::Float32, context);
+}
+
 void bf16_matmul_output_out_(
     Tensor& output, const Tensor& left_bf16, const Tensor& right_bf16,
     Tensor& output_fallback_bf16, const OpContext& context) {

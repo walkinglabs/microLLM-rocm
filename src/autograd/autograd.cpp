@@ -38,6 +38,7 @@ thread_local bool tied_embedding_sparse_add = true;
 thread_local bool unique_gradient_inplace_add = false;
 thread_local bool attention_rope_layout_fusion = true;
 thread_local bool attention_context_layout_fusion = true;
+thread_local bool bf16_gate_up_weight_gradient = false;
 thread_local std::map<std::pair<std::string, Shape>, GradientAccumulationRecord>
     accumulation_diagnostic_records;
 
@@ -221,6 +222,14 @@ void enable_attention_context_layout_fusion(bool enabled) noexcept {
 
 bool attention_context_layout_fusion_enabled() noexcept {
     return attention_context_layout_fusion;
+}
+
+void enable_bf16_gate_up_weight_gradient(bool enabled) noexcept {
+    bf16_gate_up_weight_gradient = enabled;
+}
+
+bool bf16_gate_up_weight_gradient_enabled() noexcept {
+    return bf16_gate_up_weight_gradient;
 }
 
 
@@ -547,10 +556,16 @@ std::pair<Value, Value> bf16_gate_up_projection(
                         ops::MatmulImplementation::Auto, false, true));
                 accumulate(
                     weight,
-                    ops::matmul_with_implementation(
-                        input_node->data, gradient,
-                        ops::MatmulImplementation::Auto, true, false),
-                    "bf16_shared_projection_right");
+                    bf16_gate_up_weight_gradient
+                        ? ops::bf16_weight_gradient(
+                              input_node->data, gradient,
+                              {.mode = ops::OpMode::Training})
+                        : ops::matmul_with_implementation(
+                              input_node->data, gradient,
+                              ops::MatmulImplementation::Auto, true, false),
+                    bf16_gate_up_weight_gradient
+                        ? "bf16_gate_up_weight_gradient"
+                        : "bf16_shared_projection_right");
             });
     };
     return {

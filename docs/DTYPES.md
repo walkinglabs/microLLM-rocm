@@ -1,5 +1,10 @@
 # Tensor 数据类型：数字用几位保存，计算时用几位
 
+> 当前新增的 BF16 weight-gradient 原语会把两个 FP32 操作数显式舍入为 BF16，
+> 再用 FP32 累加和输出。CPU、HIP 与 PyTorch oracle 对齐的是这套 BF16 数学，
+> 不是 FP32 gradient 的 bit-exact 结果。gate/up-only Autograd 路由默认关闭；
+> query/KV 的实测反例禁止把它扩展成全局策略。
+
 ## 1. 为什么不能只有 FP32
 
 一个 FP32 数字占 4 字节，FP16/BF16 占 2 字节，FP8/INT8 占 1 字节。模型有

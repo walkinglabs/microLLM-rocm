@@ -163,6 +163,12 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] reprofile the current binary: Kernel is 31.327/71.873 ms, GEMM remains
   58.56%/63.43%, and the next training target is still architectural;
 - [ ] select a new training GEMM or graph-wide candidate from the current top-k families;
+- [x] measure cast-inclusive BF16 weight gradients on six real T512 shapes; admit only
+  gate/up at 1.459x/1.890x and preserve four query/KV counterexamples;
+- [x] add a CPU/HIP/PyTorch-aligned BF16 weight-gradient API and a default-off,
+  gate/up-only Autograd/CLI research switch;
+- [ ] run the official-model same-binary gate and a longer loss/parameter trajectory before
+  considering any default training policy;
 
 - [x] make the matmul registry key exact over its implicit op identity, GPU architecture,
   dtype, shape, strides/layout, mode, workspace limit, and library/runtime versions;

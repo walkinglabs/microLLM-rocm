@@ -663,6 +663,28 @@ TEST(CpuOpsTest, DeviceStyleCastAndMixedBf16MatmulMatchRoundedReference) {
         std::invalid_argument);
 }
 
+TEST(CpuOpsTest, Bf16WeightGradientRoundsBothOperandsAndKeepsFp32Output) {
+    const auto input = Tensor::from_vector(
+        {1.1F, -2.2F, 3.3F, 4.4F, 0.55F, -0.27F}, {2, 3});
+    const auto gradient = Tensor::from_vector({1, -1, 0.5F, 2}, {2, 2});
+    const auto rounded_input = input.cast(DType::BFloat16).cast(DType::Float32);
+    const auto rounded_gradient = gradient.cast(DType::BFloat16).cast(DType::Float32);
+    const auto expected = matmul_with_implementation(
+        rounded_input, rounded_gradient,
+        MatmulImplementation::Readable, true, false);
+    const auto actual = bf16_weight_gradient(input, gradient);
+    EXPECT_EQ(actual.dtype(), DType::Float32);
+    EXPECT_EQ(actual.shape(), (Shape{3, 2}));
+    EXPECT_EQ(actual.to_vector(), expected.to_vector());
+    EXPECT_THROW(
+        (void)bf16_weight_gradient(input, Tensor({3, 2})),
+        std::invalid_argument);
+    EXPECT_THROW(
+        (void)bf16_weight_gradient(
+            input.cast(DType::BFloat16), gradient),
+        std::invalid_argument);
+}
+
 TEST(CpuOpsTest, Bf16FfnKeepsIntermediateActivationsLowPrecision) {
     const auto input = Tensor::from_vector(
         {1.1F, -0.5F, 0.25F, 2.0F, -1.0F, 0.75F}, {2, 3});

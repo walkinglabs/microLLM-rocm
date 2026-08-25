@@ -340,6 +340,17 @@ TEST(HipBf16MixedGemmTest, NativeCastAndFp32OutputMatchRoundedCpuReference) {
     expect_near(restored.to_vector(), rounded_right.cast(DType::Float32).to_vector(), 0.0F);
     expect_near(actual.to_vector(), expected, 2.0e-2F);
     EXPECT_EQ(actual.dtype(), DType::Float32);
+    const auto expected_weight_gradient = bf16_weight_gradient(left, right);
+    runtime::reset_transfer_stats();
+    const auto actual_weight_gradient = bf16_weight_gradient(
+        device_left, device_right);
+    runtime::synchronize(gpu);
+    const auto weight_gradient_transfers = runtime::transfer_stats();
+    EXPECT_EQ(weight_gradient_transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(weight_gradient_transfers.device_to_host_calls, 0U);
+    EXPECT_EQ(actual_weight_gradient.dtype(), DType::Float32);
+    expect_near(actual_weight_gradient.to_vector(),
+                expected_weight_gradient.to_vector(), 2.0e-2F);
     const auto bf16_output = bf16_matmul_output(
         cast(device_left, DType::BFloat16), device_right_bf16, DType::BFloat16);
     EXPECT_EQ(bf16_output.dtype(), DType::BFloat16);

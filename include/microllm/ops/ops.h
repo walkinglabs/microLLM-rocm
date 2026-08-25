@@ -350,6 +350,11 @@ void cast_transpose_2d_out_(const Tensor& input, Tensor& output,
                                         const Tensor& right_bf16,
                                         DType output_dtype,
                                         const OpContext& context = {});
+// Computes input^T @ output_gradient with BF16-rounded operands and FP32
+// accumulation/output. Both public inputs remain FP32 master tensors.
+[[nodiscard]] Tensor bf16_weight_gradient(
+    const Tensor& input_fp32, const Tensor& output_gradient_fp32,
+    const OpContext& context = {});
 // Writes into caller Storage. A shape-compatible BF16 fallback is required for
 // FP32 output so runtime-specific direct-output rejection remains allocation-free.
 void bf16_matmul_output_out_(Tensor& output, const Tensor& left_bf16,

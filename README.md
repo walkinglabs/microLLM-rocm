@@ -29,6 +29,10 @@ extending small decoder-only language models on AMD GPUs.
 > 31.327/71.873 ms of Kernel time for Qwen/DeepSeek; GEMM remains 58.56%/63.43%.
 > See the [generated training map](docs/optimization-log/assets/current-training-profile.svg).
 
+> The next measured training candidate is intentionally shape-selective: BF16 gate/up
+> weight gradients reach 1.459×/1.890× at operator level, while four query/KV shapes
+> regress. The Autograd route is explicit and default-off pending model validation.
+
 ## Why this project exists
 
 Large frameworks make model development productive, but they hide the ownership,

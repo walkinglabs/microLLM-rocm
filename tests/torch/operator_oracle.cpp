@@ -80,6 +80,8 @@ void emit_forward_cases() {
     emit("bf16_output_matmul", bf16_matmul_output(
         cast(matrix_left, DType::BFloat16), cast(matrix_right, DType::BFloat16),
         DType::BFloat16));
+    emit("bf16_weight_gradient", bf16_weight_gradient(
+        matrix_left, f32({1, -1, 0.5F, 2}, {2, 2})));
     const auto ffn_gate = Tensor::from_vector(
         {0.5F, -1.0F, 0.25F, 0.75F, 1.5F, -0.5F,
          -0.25F, 0.5F, 1.0F, -1.25F, 0.125F, 0.875F},
@@ -535,6 +537,9 @@ void emit_invalid_shape_cases() {
               }));
     emit_bool("invalid_bf16_matmul_dtype", rejected([&] {
                   (void)bf16_matmul(matrix, matrix);
+              }));
+    emit_bool("invalid_bf16_weight_gradient_shape", rejected([&] {
+                  (void)bf16_weight_gradient(matrix, f32({1, 2, 3}, {3, 1}));
               }));
     emit_bool("invalid_bf16_ffn_shape", rejected([&] {
                   const auto bf16 = matrix.cast(DType::BFloat16);

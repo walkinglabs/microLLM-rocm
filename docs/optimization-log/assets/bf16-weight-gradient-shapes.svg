@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="800" viewBox="0 0 1500 800">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="750.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 245 · Cast-inclusive BF16 Weight Gradient</text>
+<text x="750.0" y="82.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">Three fresh MI300X processes per B1T512 shape · operator gate 1.05x</text>
+<rect x="90" y="145" width="400" height="205" rx="14" fill="#fff1f2" stroke="#e11d48" stroke-width="3"/>
+<text x="290.0" y="185.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">Qwen2.5-0.5B</text>
+<text x="290.0" y="221.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#172033" text-anchor="middle" font-weight="700">Query</text>
+<text x="290.0" y="271.0" font-family="Inter,Arial,sans-serif" font-size="32" fill="#e11d48" text-anchor="middle" font-weight="700">0.718x</text>
+<text x="290.0" y="305.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="middle" font-weight="400">minimum 0.718x</text>
+<text x="290.0" y="335.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#e11d48" text-anchor="middle" font-weight="700">REJECT</text>
+<rect x="560" y="145" width="400" height="205" rx="14" fill="#fff1f2" stroke="#e11d48" stroke-width="3"/>
+<text x="760.0" y="185.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">Qwen2.5-0.5B</text>
+<text x="760.0" y="221.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#172033" text-anchor="middle" font-weight="700">KV</text>
+<text x="760.0" y="271.0" font-family="Inter,Arial,sans-serif" font-size="32" fill="#e11d48" text-anchor="middle" font-weight="700">0.821x</text>
+<text x="760.0" y="305.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="middle" font-weight="400">minimum 0.813x</text>
+<text x="760.0" y="335.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#e11d48" text-anchor="middle" font-weight="700">REJECT</text>
+<rect x="1030" y="145" width="400" height="205" rx="14" fill="#ecfdf3" stroke="#16a34a" stroke-width="3"/>
+<text x="1230.0" y="185.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">Qwen2.5-0.5B</text>
+<text x="1230.0" y="221.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#172033" text-anchor="middle" font-weight="700">Gate / Up</text>
+<text x="1230.0" y="271.0" font-family="Inter,Arial,sans-serif" font-size="32" fill="#16a34a" text-anchor="middle" font-weight="700">1.459x</text>
+<text x="1230.0" y="305.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="middle" font-weight="400">minimum 1.446x</text>
+<text x="1230.0" y="335.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#16a34a" text-anchor="middle" font-weight="700">MODEL GATE</text>
+<rect x="90" y="400" width="400" height="205" rx="14" fill="#fff1f2" stroke="#e11d48" stroke-width="3"/>
+<text x="290.0" y="440.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">DeepSeek-Distill-1.5B</text>
+<text x="290.0" y="476.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#172033" text-anchor="middle" font-weight="700">Query</text>
+<text x="290.0" y="526.0" font-family="Inter,Arial,sans-serif" font-size="32" fill="#e11d48" text-anchor="middle" font-weight="700">0.976x</text>
+<text x="290.0" y="560.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="middle" font-weight="400">minimum 0.965x</text>
+<text x="290.0" y="590.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#e11d48" text-anchor="middle" font-weight="700">REJECT</text>
+<rect x="560" y="400" width="400" height="205" rx="14" fill="#fff1f2" stroke="#e11d48" stroke-width="3"/>
+<text x="760.0" y="440.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">DeepSeek-Distill-1.5B</text>
+<text x="760.0" y="476.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#172033" text-anchor="middle" font-weight="700">KV</text>
+<text x="760.0" y="526.0" font-family="Inter,Arial,sans-serif" font-size="32" fill="#e11d48" text-anchor="middle" font-weight="700">0.816x</text>
+<text x="760.0" y="560.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="middle" font-weight="400">minimum 0.813x</text>
+<text x="760.0" y="590.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#e11d48" text-anchor="middle" font-weight="700">REJECT</text>
+<rect x="1030" y="400" width="400" height="205" rx="14" fill="#ecfdf3" stroke="#16a34a" stroke-width="3"/>
+<text x="1230.0" y="440.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">DeepSeek-Distill-1.5B</text>
+<text x="1230.0" y="476.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#172033" text-anchor="middle" font-weight="700">Gate / Up</text>
+<text x="1230.0" y="526.0" font-family="Inter,Arial,sans-serif" font-size="32" fill="#16a34a" text-anchor="middle" font-weight="700">1.890x</text>
+<text x="1230.0" y="560.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="middle" font-weight="400">minimum 1.823x</text>
+<text x="1230.0" y="590.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#16a34a" text-anchor="middle" font-weight="700">MODEL GATE</text>
+<text x="750.0" y="685.0" font-family="Inter,Arial,sans-serif" font-size="24" fill="#172033" text-anchor="middle" font-weight="700">2 / 6 shapes pass · no universal BF16 gradient policy</text>
+<text x="750.0" y="735.0" font-family="Inter,Arial,sans-serif" font-size="19" fill="#166534" text-anchor="middle" font-weight="700">Only gate/up enters an explicit, default-off official-model A/B</text>
+<text x="750.0" y="775.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">Candidate time includes both casts; FP32 Max/RMS remains visible</text>
+</svg>

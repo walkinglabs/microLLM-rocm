@@ -514,3 +514,5 @@ the next gate. Records are append-only except for factual corrections.
   records the four-process current training map and unchanged hotspot order.
 - [2026-08-25-bf16-weight-gradient-benchmark.md](2026-08-25-bf16-weight-gradient-benchmark.md):
   defines a cast-inclusive low-precision weight-gradient operator gate before graph integration.
+- [2026-08-25-bf16-weight-gradient-shapes.md](2026-08-25-bf16-weight-gradient-shapes.md):
+  records four rejected shapes, two admitted shapes and the default-off Autograd boundary.

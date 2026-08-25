@@ -197,6 +197,7 @@ int main(int argc, char** argv) {
         bool attention_paired_gqa_repeat = false;
         bool attention_gqa_value_broadcast = false;
         bool attention_gqa_forward_value_broadcast = false;
+        bool bf16_gate_up_weight_gradient = false;
         for (int index = 1; index < argc; index += 2) {
             if (index + 1 >= argc) throw std::invalid_argument("missing CLI value");
             const std::string name = argv[index];
@@ -311,6 +312,14 @@ int main(int argc, char** argv) {
                 }
                 bf16_weight_mirrors = value == "true";
             }
+            else if (name == "--bf16-gate-up-weight-gradient") {
+                const std::string value = argv[index + 1];
+                if (value != "true" && value != "false") {
+                    throw std::invalid_argument(
+                        "--bf16-gate-up-weight-gradient must be true or false");
+                }
+                bf16_gate_up_weight_gradient = value == "true";
+            }
             else throw std::invalid_argument("unknown option: " + name);
         }
         if (config_path.empty() || weights_path.empty() || token_text.empty()) {
@@ -354,6 +363,8 @@ int main(int argc, char** argv) {
             attention_rope_layout_fusion);
         microllm::autograd::enable_attention_context_layout_fusion(
             attention_context_layout_fusion);
+        microllm::autograd::enable_bf16_gate_up_weight_gradient(
+            bf16_gate_up_weight_gradient);
         microllm::ops::enable_attention_layout_plan_cache(
             attention_layout_plan_cache);
         microllm::ops::enable_attention_gemm_scale_fusion(
@@ -588,6 +599,8 @@ int main(int argc, char** argv) {
                   << (attention_rope_layout_fusion ? "true" : "false")
                   << ",\"attention_context_layout_fusion\":"
                   << (attention_context_layout_fusion ? "true" : "false")
+                  << ",\"bf16_gate_up_weight_gradient\":"
+                  << (bf16_gate_up_weight_gradient ? "true" : "false")
                   << ",\"attention_layout_plan_cache\":"
                   << (attention_layout_plan_cache ? "true" : "false")
                   << ",\"attention_layout_plan_cache_entries\":"

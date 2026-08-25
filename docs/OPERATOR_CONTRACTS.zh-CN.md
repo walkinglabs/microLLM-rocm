@@ -12,6 +12,17 @@
 - 默认元素级阈值是 `atol=1e-6, rtol=1e-5`。
 - PyTorch 支持更多广播、dtype 和维度；microLLM 第一版故意更窄。测试比较共同支持域，并验证契约外输入会被拒绝。
 
+## BF16 weight gradient
+
+`bf16_weight_gradient(input_fp32, output_gradient_fp32)` 接受两个连续二维 FP32 Tensor：
+`[rows, hidden]` 与 `[rows, width]`。它先把两个操作数舍入为 BF16，再计算
+`inputᵀ @ output_gradient`，累加和输出保持 FP32，结果 shape 为 `[hidden, width]`。
+
+CPU 是可读参考；HIP 使用 cast+transpose、cast 和 hipBLASLt。PyTorch oracle 使用相同的
+BF16 舍入语义。它不承诺与 FP32 gradient bit-exact，也不会自动改变 Autograd。
+`--bf16-gate-up-weight-gradient` 只是官方模型实验开关，默认 `false`；query/KV 已有稳定
+性能反例，不能扩展为全局策略。
+
 ## 前向算子
 
 | microLLM | 输入和输出 shape | PyTorch oracle | FP32 阈值 | 必测非法输入 |

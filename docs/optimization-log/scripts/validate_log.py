@@ -13621,6 +13621,57 @@ def validate_current_training_profile(
     return summary.get("profile_processes", 0), *expected
 
 
+def validate_bf16_weight_gradient_shape_matrix(
+        errors: list[str]) -> tuple[int, int, float, float]:
+    root = REPOSITORY / (
+        "benchmarks/results/2026-08-25-bf16-weight-gradient-operator")
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    shapes = {(row["model"], row["family"]): row
+              for row in summary.get("shapes", [])}
+    qwen_gate = shapes.get(("qwen2.5-0.5b", "gate"), {})
+    deep_gate = shapes.get(("deepseek-r1-distill-qwen-1.5b", "gate"), {})
+    expected = (1.458535319386, 1.889599566578)
+    if (summary.get("schema_version") != 1 or summary.get("status") != "pass" or
+            summary.get("record_type") != "bf16_weight_gradient_matrix_summary" or
+            summary.get("raw_processes") != 18 or summary.get("shape_count") != 6 or
+            summary.get("eligible_shape_count") != 2 or
+            summary.get("both_models_have_large_family_candidate") is not True or
+            len(shapes) != 6 or
+            abs(float(qwen_gate.get("event_speedup_median", 0.0)) - expected[0]) > 1.0e-12 or
+            abs(float(deep_gate.get("event_speedup_median", 0.0)) - expected[1]) > 1.0e-12 or
+            sum(bool(row.get("passes_operator_performance_gate"))
+                for row in shapes.values()) != 2):
+        errors.append("BF16 weight-gradient shape summary changed")
+    if (len(raw) != 18 or any(
+            row.get("status") != "pass" or
+            row.get("complete_output_finite") is not True or
+            row.get("candidate_includes_input_cast_transpose") is not True or
+            row.get("candidate_includes_gradient_cast") is not True or
+            float(row.get("bf16_reference_sample_max_error", 1.0)) > 2.0e-3
+            for row in raw)):
+        errors.append("BF16 weight-gradient raw evidence changed")
+    if (check.get("cpu_full") != {"passed": 350, "total": 350} or
+            check.get("hip_full", {}).get("passed") != 549 or
+            check.get("asan_ubsan") != {"passed": 348, "total": 348} or
+            check.get("pytorch_enabled_cpu") != {"passed": 324, "total": 324} or
+            check.get("pytorch_operator_parity") != {"passed": 1, "total": 1} or
+            check.get("registered_test_files") != 110 or
+            check.get("default_model_route") is not False):
+        errors.append("BF16 weight-gradient verification changed")
+    sources = (
+        ("bf16_weight_gradient", REPOSITORY / "include/microllm/ops/ops.h"),
+        ("bf16_gate_up_weight_gradient = false", REPOSITORY / "src/autograd/autograd.cpp"),
+        ("--bf16-gate-up-weight-gradient", REPOSITORY / "apps/hf_train_step.cpp"),
+        ("bf16_weight_gradient", REPOSITORY / "python/tests/test_operator_parity.py"),
+    )
+    if any(token not in path.read_text(encoding="utf-8") for token, path in sources):
+        errors.append("BF16 weight-gradient source or parity route changed")
+    return summary.get("raw_processes", 0), summary.get("eligible_shape_count", 0), *expected
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -13843,7 +13894,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-pv-output-discard.svg",
                  "bf16-value-pv-discard.svg",
                  "inference-local-saturation.svg",
-                 "current-training-profile.svg"):
+                 "current-training-profile.svg",
+                 "bf16-weight-gradient-shapes.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -14320,6 +14372,8 @@ def main() -> int:
     current_training_rows, current_training_qwen_ns, current_training_deep_ns, \
         current_training_qwen_gemm, current_training_deep_gemm = \
         validate_current_training_profile(errors)
+    bf16_wgrad_rows, bf16_wgrad_eligible, bf16_wgrad_qwen, bf16_wgrad_deep = \
+        validate_bf16_weight_gradient_shape_matrix(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -14754,6 +14808,8 @@ def main() -> int:
           f"{current_training_deep_ns / 1.0e6:.3f}/"
           f"{current_training_qwen_gemm:.3f}/"
           f"{current_training_deep_gemm:.3f} "
+          f"bf16_wgrad_shapes={bf16_wgrad_rows}/{bf16_wgrad_eligible}/"
+          f"{bf16_wgrad_qwen:.3f}/{bf16_wgrad_deep:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

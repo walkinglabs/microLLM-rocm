@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "raw_processes": 18,
+  "shape_count": 6,
+  "eligible_shape_count": 2,
+  "complete_output_finite_processes": 18,
+  "maximum_bf16_reference_sample_error": 5.2154e-8,
+  "cpu_full": {"passed": 350, "total": 350},
+  "hip_full": {"passed": 549, "total": 549, "conditional_skips": 4},
+  "asan_ubsan": {"passed": 348, "total": 348},
+  "pytorch_enabled_cpu": {"passed": 324, "total": 324},
+  "pytorch_operator_parity": {"passed": 1, "total": 1},
+  "registered_test_files": 110,
+  "default_model_route": false,
+  "next_gate": "same-binary gate/up-only official-model A/B"
+}

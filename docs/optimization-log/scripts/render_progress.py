@@ -188,6 +188,11 @@ CURRENT_TRAINING_PROFILE_ROOT = (
     "2026-08-25-current-training-profile")
 CURRENT_TRAINING_PROFILE_CHART = (
     ROOT / "assets" / "current-training-profile.svg")
+BF16_WGRAD_SHAPE_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-bf16-weight-gradient-operator")
+BF16_WGRAD_SHAPE_CHART = (
+    ROOT / "assets" / "bf16-weight-gradient-shapes.svg")
 
 
 def rows() -> list[dict]:
@@ -3855,6 +3860,57 @@ def current_training_profile_svg() -> str:
     return "\n".join(parts)
 
 
+def bf16_weight_gradient_shapes_svg() -> str:
+    summary = json.loads((BF16_WGRAD_SHAPE_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    width, height = 1500, 800
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 245 · Cast-inclusive BF16 Weight Gradient", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "Three fresh MI300X processes per B1T512 shape · operator gate 1.05x",
+             16, "#5b6474", anchor="middle"),
+    ]
+    labels = {"query": "Query", "kv": "KV", "gate": "Gate / Up"}
+    for index, row in enumerate(summary["shapes"]):
+        group = index // 3
+        column = index % 3
+        x, y = 90 + column * 470, 145 + group * 255
+        passing = row["passes_operator_performance_gate"]
+        fill = "#ecfdf3" if passing else "#fff1f2"
+        stroke = "#16a34a" if passing else "#e11d48"
+        model = "Qwen2.5-0.5B" if group == 0 else "DeepSeek-Distill-1.5B"
+        parts.extend([
+            f'<rect x="{x}" y="{y}" width="400" height="205" rx="14" '
+            f'fill="{fill}" stroke="{stroke}" stroke-width="3"/>',
+            text(x + 200, y + 40, model, 16, "#5b6474", anchor="middle"),
+            text(x + 200, y + 76, labels[row["family"]], 22, "#172033",
+                 anchor="middle", weight=700),
+            text(x + 200, y + 126, f"{row['event_speedup_median']:.3f}x",
+                 32, stroke, anchor="middle", weight=700),
+            text(x + 200, y + 160,
+                 f"minimum {row['event_speedup_minimum']:.3f}x", 15,
+                 "#5b6474", anchor="middle"),
+            text(x + 200, y + 190,
+                 "MODEL GATE" if passing else "REJECT", 15, stroke,
+                 anchor="middle", weight=700),
+        ])
+    parts.append(text(width / 2, 685,
+                      "2 / 6 shapes pass · no universal BF16 gradient policy",
+                      24, "#172033", anchor="middle", weight=700))
+    parts.append(text(width / 2, 735,
+                      "Only gate/up enters an explicit, default-off official-model A/B",
+                      19, "#166534", anchor="middle", weight=700))
+    parts.append(text(width / 2, 775,
+                      "Candidate time includes both casts; FP32 Max/RMS remains visible",
+                      14, "#5b6474", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -3915,7 +3971,8 @@ def main() -> int:
                 BF16_PV_OUTPUT_CHART: bf16_pv_output_svg(),
                 BF16_VALUE_PV_CHART: bf16_value_pv_svg(),
                 INFERENCE_LOCAL_SATURATION_CHART: inference_local_saturation_svg(),
-                CURRENT_TRAINING_PROFILE_CHART: current_training_profile_svg()}
+                CURRENT_TRAINING_PROFILE_CHART: current_training_profile_svg(),
+                BF16_WGRAD_SHAPE_CHART: bf16_weight_gradient_shapes_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

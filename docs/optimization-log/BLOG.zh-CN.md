@@ -3930,3 +3930,13 @@ GEMM占58.56%/63.43%，AdamW占13.22%/18.16%。
 所以下一轮继续进入训练GEMM或graph-wide架构，不重新拨AdamW阈值。
 
 ![Current training profile](assets/current-training-profile.svg)
+
+## 262. Experiment 245：低精度梯度只在大shape上划算
+
+候选计时把input cast+transpose和dY cast全部算进去。18个进程显示，Qwen/DeepSeek
+gate/up达到1.459×/1.890×，但query/KV只有0.718×–0.976×。
+
+因此正式API和PyTorch对齐测试可以保留，但模型开关只能覆盖gate/up且默认关闭。
+下一节必须用完整模型证明局部胜出没有被分配、cast或精度代价吃掉。
+
+![BF16 weight-gradient shapes](assets/bf16-weight-gradient-shapes.svg)

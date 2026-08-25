@@ -129,6 +129,10 @@ def pytorch_references(actual):
            matrix_left.to(torch.bfloat16).float() @ matrix_right.to(torch.bfloat16).float())
     record(refs, "bf16_output_matmul",
            (matrix_left.to(torch.bfloat16) @ matrix_right.to(torch.bfloat16)).to(torch.bfloat16))
+    weight_gradient_seed = tensor([1, -1, 0.5, 2], (2, 2))
+    record(refs, "bf16_weight_gradient",
+           matrix_left.to(torch.bfloat16).float().transpose(0, 1) @
+           weight_gradient_seed.to(torch.bfloat16).float())
     ffn_gate = tensor(
         [0.5, -1.0, 0.25, 0.75, 1.5, -0.5,
          -0.25, 0.5, 1.0, -1.25, 0.125, 0.875], (3, 4)).to(torch.bfloat16)
@@ -809,6 +813,7 @@ class OperatorParityTest(unittest.TestCase):
             "invalid_matmul_inner",
             "invalid_matmul_scaled_factor",
             "invalid_bf16_matmul_dtype",
+            "invalid_bf16_weight_gradient_shape",
             "invalid_bf16_ffn_shape",
             "invalid_bf16_qkv_shape",
             "invalid_bf16_gate_up_shape",

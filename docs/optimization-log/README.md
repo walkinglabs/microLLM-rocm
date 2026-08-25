@@ -889,6 +889,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [experiments/243-inference-local-saturation.md](experiments/243-inference-local-saturation.md) | 当前推理局部策略搜索的停止门 |
 | [assets/current-training-profile.svg](assets/current-training-profile.svg) | 当前B1T512训练Kernel时间分布 |
 | [experiments/244-current-training-profile.md](experiments/244-current-training-profile.md) | 四进程重采样与下一训练架构合同 |
+| [assets/bf16-weight-gradient-shapes.svg](assets/bf16-weight-gradient-shapes.svg) | 六个真实weight-gradient shape的胜负矩阵 |
+| [experiments/245-bf16-weight-gradient-shapes.md](experiments/245-bf16-weight-gradient-shapes.md) | BF16数学门、四个反例与gate/up准入 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

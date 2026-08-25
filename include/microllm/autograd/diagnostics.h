@@ -55,5 +55,9 @@ void enable_attention_rope_layout_fusion(bool enabled) noexcept;
 [[nodiscard]] bool attention_rope_layout_fusion_enabled() noexcept;
 void enable_attention_context_layout_fusion(bool enabled) noexcept;
 [[nodiscard]] bool attention_context_layout_fusion_enabled() noexcept;
+// Explicit same-binary research control. Default false until the official-model
+// precision and end-to-end gates accept BF16 gate/up weight gradients.
+void enable_bf16_gate_up_weight_gradient(bool enabled) noexcept;
+[[nodiscard]] bool bf16_gate_up_weight_gradient_enabled() noexcept;
 
 }  // namespace microllm::autograd
