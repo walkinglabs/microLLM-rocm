@@ -985,6 +985,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [split-PV search SVG](../../benchmarks/results/2026-08-25-cached-attention-split-pv-matrix/split-pv-search.svg) | S1反例与16格S16 winner |
 | [experiments/292-split-pv-model-reject.md](experiments/292-split-pv-model-reject.md) | 1.4834x但完整logits失败，定位到P×V加法树 |
 | [split-PV model SVG](../../benchmarks/results/2026-08-25-cached-attention-split-pv-model/comparison.svg) | 三对速度、完整分布与资源反例 |
+| [experiments/293-exact-gqa-value-reuse-reject.md](experiments/293-exact-gqa-value-reuse-reject.md) | 位级GQA复用0/16过门与exact-finalize局部线关闭 |
+| [GQA value-reuse SVG](../../benchmarks/results/2026-08-25-cached-attention-gqa-value-reuse/value-reuse.svg) | 128进程tile矩阵与全局probability代价 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

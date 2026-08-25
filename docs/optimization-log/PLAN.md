@@ -138,7 +138,8 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [107](steps/107-exact-order-finalize-mapping.md) | complete; performance rejected | 保序finalize线程映射矩阵 | 96进程位级通过，128仅0.9901x–1.0121x，0/16过门 |
 | [108](steps/108-split-pv-exact-softmax.md) | complete; operator admitted | exact softmax + split P×V | 160进程；S16全胜，Event1.2749x–2.9549x |
 | [109](steps/109-split-pv-model-gate.md) | complete; precision rejected | DeepSeek T2048/B2/N64完整模型门 | 1.4834x但logits Max/RMS 0.064486/0.011488 |
-| [110](steps/110-exact-gqa-value-reuse.md) | planned | 保序GQA value-load复用 | 位级context与两模型operator矩阵 |
+| [110](steps/110-exact-gqa-value-reuse.md) | complete; performance rejected | 保序GQA value-load复用 | 128进程位级通过，winner仅0.4540x–0.6349x；局部线关闭 |
+| [111](steps/111-serving-batch-scale.md) | planned | current exact T2048 serving batch扩展 | Qwen/Deep B1/2/4/8 + PyTorch/显存/延迟 |
 
 ## 为什么按这个顺序
 

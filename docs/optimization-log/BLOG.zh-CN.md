@@ -4587,3 +4587,17 @@ leave-one约1.483x–1.486x。64 token、peak和121,110,528-byte KV都不变。
 exact-finalize局部优化线就关闭。
 
 ![Split-P×V model reject](../../benchmarks/results/2026-08-25-cached-attention-split-pv-model/comparison.svg)
+
+## 310. Experiment 293：Value只读一次，Probability却要多走一趟显存
+
+新Kernel让6/7个GQA query heads保留各自position 0→T累加，只共享value load。128个fresh process
+全部与materialized current位级相同。
+
+首版运行时accumulator数组只有约0.099x；把repeats实例化为1–8后恢复到约0.5x，确认私有内存spill
+是真问题。但正式16格winner仍只有Event 0.4540x–0.6349x、wall 0.4695x–0.6637x，0/16过门。
+
+原因是为了跨Kernel复用，exact softmax概率必须先写全局显存再读回；省下的BF16 value load补不回
+FP32 probability流量和launch。模型/Auto不变，exact-finalize局部线关闭。下一步测B1/B2/B4/B8
+服务batch扩展，用不改变数学的并发轴填充GPU。
+
+![Exact GQA value reuse](../../benchmarks/results/2026-08-25-cached-attention-gqa-value-reuse/value-reuse.svg)

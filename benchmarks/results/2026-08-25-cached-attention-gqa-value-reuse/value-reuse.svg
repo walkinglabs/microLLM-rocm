@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1260" height="862" viewBox="0 0 1260 862">
+<rect width="100%" height="100%" fill="#0b1020"/>
+<style>text{font-family:ui-monospace,SFMono-Regular,monospace;fill:#e5e7eb}.title{font-size:21px;font-weight:700}.label{font-size:13px}.muted{fill:#94a3b8;font-size:12px}</style>
+<text x="30" y="35" class="title">Exact-order GQA value-load reuse</text>
+<text x="30" y="59" class="muted">best tile versus materialized current · all contexts must be bitwise equal</text>
+<text x="30" y="101" class="label">DeepSeek T512 B1 BF16</text>
+<rect x="360" y="82" width="242.85" height="25" rx="4" fill="#ef4444"/>
+<text x="990" y="101" class="label">0.578x · tile 8</text>
+<text x="30" y="148" class="label">DeepSeek T512 B1 FP32</text>
+<rect x="360" y="129" width="266.67" height="25" rx="4" fill="#ef4444"/>
+<text x="990" y="148" class="label">0.635x · tile 64</text>
+<text x="30" y="195" class="label">DeepSeek T512 B2 BF16</text>
+<rect x="360" y="176" width="243.74" height="25" rx="4" fill="#ef4444"/>
+<text x="990" y="195" class="label">0.580x · tile 8</text>
+<text x="30" y="242" class="label">DeepSeek T512 B2 FP32</text>
+<rect x="360" y="223" width="265.60" height="25" rx="4" fill="#ef4444"/>
+<text x="990" y="242" class="label">0.632x · tile 8</text>
+<text x="30" y="289" class="label">Qwen T512 B1 BF16</text>
+<rect x="360" y="270" width="221.19" height="25" rx="4" fill="#ef4444"/>
+<text x="990" y="289" class="label">0.527x · tile 64</text>
+<text x="30" y="336" class="label">Qwen T512 B1 FP32</text>
+<rect x="360" y="317" width="221.74" height="25" rx="4" fill="#ef4444"/>
+<text x="990" y="336" class="label">0.528x · tile 64</text>
+<text x="30" y="383" class="label">Qwen T512 B2 BF16</text>
+<rect x="360" y="364" width="218.82" height="25" rx="4" fill="#ef4444"/>
+<text x="990" y="383" class="label">0.521x · tile 64</text>
+<text x="30" y="430" class="label">Qwen T512 B2 FP32</text>
+<rect x="360" y="411" width="220.40" height="25" rx="4" fill="#ef4444"/>
+<text x="990" y="430" class="label">0.525x · tile 64</text>
+<text x="30" y="477" class="label">DeepSeek T2048 B1 BF16</text>
+<rect x="360" y="458" width="202.73" height="25" rx="4" fill="#ef4444"/>
+<text x="990" y="477" class="label">0.483x · tile 8</text>
+<text x="30" y="524" class="label">DeepSeek T2048 B1 FP32</text>
+<rect x="360" y="505" width="210.45" height="25" rx="4" fill="#ef4444"/>
+<text x="990" y="524" class="label">0.501x · tile 8</text>
+<text x="30" y="571" class="label">DeepSeek T2048 B2 BF16</text>
+<rect x="360" y="552" width="209.07" height="25" rx="4" fill="#ef4444"/>
+<text x="990" y="571" class="label">0.498x · tile 8</text>
+<text x="30" y="618" class="label">DeepSeek T2048 B2 FP32</text>
+<rect x="360" y="599" width="217.12" height="25" rx="4" fill="#ef4444"/>
+<text x="990" y="618" class="label">0.517x · tile 8</text>
+<text x="30" y="665" class="label">Qwen T2048 B1 BF16</text>
+<rect x="360" y="646" width="192.78" height="25" rx="4" fill="#ef4444"/>
+<text x="990" y="665" class="label">0.459x · tile 64</text>
+<text x="30" y="712" class="label">Qwen T2048 B1 FP32</text>
+<rect x="360" y="693" width="193.07" height="25" rx="4" fill="#ef4444"/>
+<text x="990" y="712" class="label">0.460x · tile 64</text>
+<text x="30" y="759" class="label">Qwen T2048 B2 BF16</text>
+<rect x="360" y="740" width="190.67" height="25" rx="4" fill="#ef4444"/>
+<text x="990" y="759" class="label">0.454x · tile 64</text>
+<text x="30" y="806" class="label">Qwen T2048 B2 FP32</text>
+<rect x="360" y="787" width="195.72" height="25" rx="4" fill="#ef4444"/>
+<text x="990" y="806" class="label">0.466x · tile 64</text>
+</svg>

@@ -39,12 +39,12 @@ Start with [Quick start](#quick-start), consume the installed library through th
 <details>
 <summary>Latest optimization checkpoints</summary>
 
-> **Current optimization checkpoint:** Experiment 292 rejects split-P×V at model
-> precision. DeepSeek T2048/B2/N64 is stably 1.4834× faster with identical tokens,
-> peak and KV bytes, but all three 303,872-logit pairs fail at Max/RMS
-> 0.064486/0.011488. The route stays explicit and Auto is unchanged; the next
-> candidate must preserve each head's position accumulation order. See the
-> [split-P×V model rejection](docs/optimization-log/experiments/292-split-pv-model-reject.md).
+> **Current optimization checkpoint:** Experiment 293 closes the local exact-finalize
+> search. GQA value-load reuse is bitwise-equal in 128 fresh processes, but every
+> case regresses; best-case Event speed is only 0.6349×. Together with the prior
+> thread and split-P×V gates, this leaves the exact default unchanged. The next
+> track measures serving batch as a mathematically exact parallel axis. See the
+> [GQA value-reuse rejection](docs/optimization-log/experiments/293-exact-gqa-value-reuse-reject.md).
 
 > **Current training checkpoint:** the current B1T512 BF16 profile measures
 > 31.327/71.873 ms of Kernel time for Qwen/DeepSeek; GEMM remains 58.56%/63.43%.

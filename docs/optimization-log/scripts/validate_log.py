@@ -18170,6 +18170,105 @@ def validate_split_pv_model_rejection(
             float(summary.get("maximum_logit_rms_error", 0.0)))
 
 
+def validate_gqa_value_reuse_rejection(
+        errors: list[str]) -> tuple[int, int, float, float]:
+    root = (REPOSITORY / "benchmarks/results" /
+            "2026-08-25-cached-attention-gqa-value-reuse")
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    keys = {(row.get("model"), row.get("sequence"), row.get("batch"),
+             row.get("cache_dtype"), row.get("gqa_value_reuse_tile_columns"),
+             row.get("process_run")) for row in raw}
+    if (summary.get("record_type") !=
+            "cached_attention_gqa_value_reuse_matrix" or
+            summary.get("status") != "pass" or
+            summary.get("matrix_complete") is not True or
+            summary.get("process_rows") != 128 or len(raw) != 128 or
+            len(keys) != 128 or summary.get("candidate_rows") != 64 or
+            summary.get("case_count") != 16 or
+            summary.get("runs_per_candidate") != 2 or
+            summary.get("tile_columns") != [8, 16, 32, 64] or
+            summary.get("all_accuracy_gates_passed") is not True or
+            summary.get("performance_pass_count") != 0 or
+            summary.get("minimum_winner_event_speedup") !=
+                0.45396573352780734 or
+            summary.get("maximum_winner_event_speedup") !=
+                0.6349186484307114 or
+            summary.get("minimum_winner_wall_speedup") !=
+                0.4694900132673586 or
+            summary.get("maximum_winner_wall_speedup") !=
+                0.663703611210382 or
+            any(row.get("gqa_value_reuse_bitwise_equal_materialized") is not True or
+                row.get("gqa_value_reuse_backend_allocation_calls_per_invocation") != 0
+                for row in raw)):
+        errors.append("exact-order GQA value-reuse summary changed")
+    cases = summary.get("cases", [])
+    if (len(cases) != 16 or
+            any(case.get("accuracy_gate_passed") is not True or
+                case.get("performance_gate_passed") is not False or
+                len(case.get("candidates", [])) != 4
+                for case in cases) or
+            sum(case.get("winner_tile_columns") == 8 for case in cases) != 7 or
+            sum(case.get("winner_tile_columns") == 64 for case in cases) != 9):
+        errors.append("exact-order GQA value-reuse cases changed")
+    if (analysis.get("decision") !=
+            "reject exact-order GQA value-load reuse and close local exact-finalize search" or
+            analysis.get("process_rows") != 128 or
+            analysis.get("candidate_rows") != 64 or
+            analysis.get("performance_pass_count") != 0 or
+            analysis.get("target_winner_tile_columns") != 8 or
+            analysis.get("target_event_speedup") != 0.49778862878559516 or
+            analysis.get("target_wall_speedup") != 0.511286841867268 or
+            analysis.get("target_probability_bytes") != 196608 or
+            analysis.get("runtime_repeat_pilot_speedup") != 0.0992041994439 or
+            analysis.get("register_specialization_helped") is not True or
+            analysis.get("model_gate_admitted") is not False or
+            analysis.get("default_policy_changed") is not False or
+            analysis.get("local_exact_finalize_search_closed") is not True):
+        errors.append("exact-order GQA value-reuse analysis changed")
+    if (check.get("measurement_commit") !=
+            "743e9cac30f53f32f1abf78ed850296d9462c433" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("gpu") != "AMD Instinct MI300X VF" or
+            check.get("architecture") != "gfx942" or
+            check.get("process_rows") != 128 or
+            check.get("case_count") != 16 or
+            check.get("all_contexts_bitwise_equal_materialized") is not True or
+            check.get("performance_pass_count") != 0 or
+            check.get("model_gate_admitted") is not False or
+            check.get("default_policy_changed") is not False or
+            check.get("local_exact_finalize_search_closed") is not True or
+            check.get("cpu_label") != {"passed": 374, "total": 374} or
+            check.get("sanitizer_label") != {"passed": 372, "total": 372} or
+            check.get("hip_label") != {"passed": 192, "total": 192} or
+            check.get("rccl_label") != {"passed": 53, "total": 53} or
+            check.get("torch_operator_parity") != {"passed": 1, "total": 1} or
+            check.get("coverage_manifest_audit") != "pass" or
+            check.get("registered_test_files") != 129):
+        errors.append("exact-order GQA value-reuse verification changed")
+    for name in ("README.md", "raw.jsonl", "summary.json", "analysis.json",
+                 "verification.json", "value-reuse.svg"):
+        if not (root / name).is_file():
+            errors.append(f"exact-order GQA value-reuse evidence missing: {name}")
+    try:
+        ET.parse(root / "value-reuse.svg")
+    except ET.ParseError as error:
+        errors.append(f"invalid exact-order GQA value-reuse SVG: {error}")
+    runner = (REPOSITORY / "benchmarks/single_gpu" /
+              "cached_attention_gqa_value_reuse_matrix.py").read_text(
+                  encoding="utf-8")
+    if ("gqa_value_reuse_bitwise_equal_materialized" not in runner or
+            "winner[\"event_speedup\"] >= 1.05" not in runner or
+            "gqa_value_reuse_backend_allocation_calls_per_invocation" not in runner):
+        errors.append("exact-order GQA value-reuse runner contract changed")
+    return (len(raw), len(cases),
+            float(summary.get("minimum_winner_event_speedup", 0.0)),
+            float(summary.get("maximum_winner_event_speedup", 0.0)))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -19044,6 +19143,8 @@ def main() -> int:
         validate_exact_softmax_split_pv_matrix(errors)
     split_pv_model_rows, split_pv_model_speedup, split_pv_model_maximum, \
         split_pv_model_rms = validate_split_pv_model_rejection(errors)
+    gqa_value_rows, gqa_value_cases, gqa_value_minimum, gqa_value_maximum = \
+        validate_gqa_value_reuse_rejection(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -19658,6 +19759,8 @@ def main() -> int:
           f"{split_pv_model_speedup:.3f}/"
           f"{split_pv_model_maximum:.4f}/"
           f"{split_pv_model_rms:.4f} "
+          f"gqa_value_reuse={gqa_value_rows}/{gqa_value_cases}/"
+          f"{gqa_value_minimum:.3f}/{gqa_value_maximum:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")
