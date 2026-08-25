@@ -332,6 +332,11 @@ RANKED_MODEL_S_CHECKPOINT_ROOT = (
     "2026-08-25-ranked-model-s-checkpoint")
 RANKED_MODEL_S_CHECKPOINT_CHART = (
     ROOT / "assets" / "ranked-model-s-checkpoint.svg")
+RANKED_WORLD_SIZE_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-ranked-world-size")
+RANKED_WORLD_SIZE_CHART = (
+    ROOT / "assets" / "ranked-world-size-boundary.svg")
 
 
 def rows() -> list[dict]:
@@ -5939,6 +5944,76 @@ def ranked_model_s_checkpoint_svg() -> str:
     return "\n".join(parts)
 
 
+def ranked_world_size_svg() -> str:
+    summary = json.loads((RANKED_WORLD_SIZE_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    width, height = 1500, 720
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 274 · Ranked World-Size Boundary", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "same tiny one-step contract · general N-rank launcher · complete CPU reference when initialization succeeds",
+             16, "#5b6474", anchor="middle"),
+    ]
+    cards = (("world1", 1, 70, "#16a34a"),
+             ("world2", 2, 530, "#16a34a"),
+             ("world4", 4, 990, "#dc2626"))
+    for key, world, x, color in cards:
+        value = summary[key]
+        initialized = value["group_initialized"]
+        parts.extend([
+            f'<rect x="{x}" y="130" width="400" height="430" rx="18" '
+            f'fill="#ffffff" stroke="{color}" stroke-width="4"/>',
+            text(x + 200, 185, f"World size {world}", 27, color,
+                 anchor="middle", weight=700),
+            text(x + 200, 235, "FULL PASS" if initialized else "INIT FAILURE",
+                 23, color, anchor="middle", weight=700),
+            text(x + 45, 295, "Group time", 16, "#5b6474"),
+            text(x + 355, 295, f"{value['rank_group_ms'] / 1000:.3f} s", 20,
+                 color, anchor="end", weight=700),
+        ])
+        if initialized:
+            parts.extend([
+                text(x + 45, 350, "Rank difference", 16, "#5b6474"),
+                text(x + 355, 350, "0", 20, "#166534", anchor="end", weight=700),
+                text(x + 45, 405, "CPU max difference", 16, "#5b6474"),
+                text(x + 355, 405,
+                     f"{value['maximum_reference_difference']:.2e}", 20,
+                     "#166534", anchor="end", weight=700),
+                text(x + 200, 485, "training + reference verified", 17,
+                     "#166534", anchor="middle", weight=700),
+            ])
+        else:
+            parts.extend([
+                text(x + 45, 350, "System-error ranks", 16, "#5b6474"),
+                text(x + 355, 350, str(value["system_error_ranks"]), 20,
+                     "#b42335", anchor="end", weight=700),
+                text(x + 45, 405, "Return codes", 16, "#5b6474"),
+                text(x + 355, 405, str(value["returncodes"]), 18,
+                     "#b42335", anchor="end", weight=700),
+                text(x + 45, 460, "/dev/shm", 16, "#5b6474"),
+                text(x + 355, 460,
+                     f"{value['shared_memory_bytes'] / 1048576:.0f} MiB", 20,
+                     "#b42335", anchor="end", weight=700),
+                text(x + 200, 515, "no four-GPU execution claim", 17,
+                     "#b42335", anchor="middle", weight=700),
+            ])
+    parts.extend([
+        '<rect x="70" y="600" width="1320" height="72" rx="16" fill="#fff7ed" stroke="#f59e0b" stroke-width="2"/>',
+        text(width / 2, 632,
+             "Keep general world-size interface · world1/2 verified · world4 bounded environment failure",
+             19, "#b45309", anchor="middle", weight=700),
+        text(width / 2, 658,
+             "Next: RCCL debug + shared-memory preflight; rerun the same gate only after resources change",
+             15, "#5b6474", anchor="middle"),
+        "</svg>\n",
+    ])
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -6028,7 +6103,8 @@ def main() -> int:
                 RANKED_OVERLAP_CHART: ranked_gradient_overlap_svg(),
                 RANKED_CONTEXT_CHART: ranked_overlap_context_svg(),
                 RANKED_CHECKPOINT_CHART: ranked_checkpoint_svg(),
-                RANKED_MODEL_S_CHECKPOINT_CHART: ranked_model_s_checkpoint_svg()}
+                RANKED_MODEL_S_CHECKPOINT_CHART: ranked_model_s_checkpoint_svg(),
+                RANKED_WORLD_SIZE_CHART: ranked_world_size_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

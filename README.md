@@ -179,6 +179,11 @@ Start with [Quick start](#quick-start), consume the installed library through th
 > 15,586,176 values match across ranks, write takes about 1.02–1.07 s and
 > restore at most 740 ms in this environment. No I/O ranking is claimed.
 
+> The ranked harness now accepts a general world size. World sizes 1 and 2 pass
+> complete training/CPU gates; four visible MI300X VFs currently fail RCCL init
+> on all ranks with only 64 MiB `/dev/shm`. The failure is bounded and recorded;
+> this environment is not claimed to support four-GPU execution.
+
 </details>
 
 ## Why this project exists

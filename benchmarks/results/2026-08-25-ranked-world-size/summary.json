@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "record_type": "ranked_world_size_summary",
+  "world_sizes": [1, 2, 4],
+  "world1": {
+    "group_initialized": true,
+    "training_passed": true,
+    "rank_difference": 0.0,
+    "maximum_reference_difference": 1.4000000020386594e-08,
+    "maximum_reference_rms_difference": 1.1963379147444592e-09,
+    "rank_group_ms": 5226.630602031946
+  },
+  "world2": {
+    "group_initialized": true,
+    "training_passed": true,
+    "rank_difference": 0.0,
+    "maximum_reference_difference": 5.999999996841865e-08,
+    "maximum_reference_rms_difference": 2.8552183172397198e-09,
+    "rank_group_ms": 5327.53544067964
+  },
+  "world4": {
+    "group_initialized": false,
+    "failure_detected": true,
+    "system_error_ranks": 4,
+    "returncodes": [1, 1, 1, 1],
+    "peer_processes_terminated": 0,
+    "rank_group_ms": 2756.3046319410205,
+    "shared_memory_bytes": 67108864
+  },
+  "world1_world2_regression_passed": true,
+  "world4_failure_bounded": true,
+  "four_gpu_execution_claim": false,
+  "decision": "retain general world-size interface and publish four-rank environment boundary"
+}

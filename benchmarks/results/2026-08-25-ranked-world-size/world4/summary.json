@@ -1,0 +1,19 @@
+{
+  "decision": "retain world-size interface and record environment boundary",
+  "failure_detected": true,
+  "group_initialized": false,
+  "peer_processes_terminated": 0,
+  "rank_group_ms": 2756.3046319410205,
+  "record_type": "ranked_group_init_failure_summary",
+  "returncodes": [
+    1,
+    1,
+    1,
+    1
+  ],
+  "schema_version": 1,
+  "shared_memory_bytes": 67108864,
+  "status": "pass",
+  "system_error_ranks": 4,
+  "world_size": 4
+}

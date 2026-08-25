@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="720" viewBox="0 0 1500 720">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="750.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 274 · Ranked World-Size Boundary</text>
+<text x="750.0" y="82.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">same tiny one-step contract · general N-rank launcher · complete CPU reference when initialization succeeds</text>
+<rect x="70" y="130" width="400" height="430" rx="18" fill="#ffffff" stroke="#16a34a" stroke-width="4"/>
+<text x="270.0" y="185.0" font-family="Inter,Arial,sans-serif" font-size="27" fill="#16a34a" text-anchor="middle" font-weight="700">World size 1</text>
+<text x="270.0" y="235.0" font-family="Inter,Arial,sans-serif" font-size="23" fill="#16a34a" text-anchor="middle" font-weight="700">FULL PASS</text>
+<text x="115.0" y="295.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="start" font-weight="400">Group time</text>
+<text x="425.0" y="295.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#16a34a" text-anchor="end" font-weight="700">5.227 s</text>
+<text x="115.0" y="350.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="start" font-weight="400">Rank difference</text>
+<text x="425.0" y="350.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#166534" text-anchor="end" font-weight="700">0</text>
+<text x="115.0" y="405.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="start" font-weight="400">CPU max difference</text>
+<text x="425.0" y="405.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#166534" text-anchor="end" font-weight="700">1.40e-08</text>
+<text x="270.0" y="485.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#166534" text-anchor="middle" font-weight="700">training + reference verified</text>
+<rect x="530" y="130" width="400" height="430" rx="18" fill="#ffffff" stroke="#16a34a" stroke-width="4"/>
+<text x="730.0" y="185.0" font-family="Inter,Arial,sans-serif" font-size="27" fill="#16a34a" text-anchor="middle" font-weight="700">World size 2</text>
+<text x="730.0" y="235.0" font-family="Inter,Arial,sans-serif" font-size="23" fill="#16a34a" text-anchor="middle" font-weight="700">FULL PASS</text>
+<text x="575.0" y="295.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="start" font-weight="400">Group time</text>
+<text x="885.0" y="295.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#16a34a" text-anchor="end" font-weight="700">5.328 s</text>
+<text x="575.0" y="350.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="start" font-weight="400">Rank difference</text>
+<text x="885.0" y="350.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#166534" text-anchor="end" font-weight="700">0</text>
+<text x="575.0" y="405.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="start" font-weight="400">CPU max difference</text>
+<text x="885.0" y="405.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#166534" text-anchor="end" font-weight="700">6.00e-08</text>
+<text x="730.0" y="485.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#166534" text-anchor="middle" font-weight="700">training + reference verified</text>
+<rect x="990" y="130" width="400" height="430" rx="18" fill="#ffffff" stroke="#dc2626" stroke-width="4"/>
+<text x="1190.0" y="185.0" font-family="Inter,Arial,sans-serif" font-size="27" fill="#dc2626" text-anchor="middle" font-weight="700">World size 4</text>
+<text x="1190.0" y="235.0" font-family="Inter,Arial,sans-serif" font-size="23" fill="#dc2626" text-anchor="middle" font-weight="700">INIT FAILURE</text>
+<text x="1035.0" y="295.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="start" font-weight="400">Group time</text>
+<text x="1345.0" y="295.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#dc2626" text-anchor="end" font-weight="700">2.756 s</text>
+<text x="1035.0" y="350.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="start" font-weight="400">System-error ranks</text>
+<text x="1345.0" y="350.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#b42335" text-anchor="end" font-weight="700">4</text>
+<text x="1035.0" y="405.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="start" font-weight="400">Return codes</text>
+<text x="1345.0" y="405.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#b42335" text-anchor="end" font-weight="700">[1, 1, 1, 1]</text>
+<text x="1035.0" y="460.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="start" font-weight="400">/dev/shm</text>
+<text x="1345.0" y="460.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#b42335" text-anchor="end" font-weight="700">64 MiB</text>
+<text x="1190.0" y="515.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#b42335" text-anchor="middle" font-weight="700">no four-GPU execution claim</text>
+<rect x="70" y="600" width="1320" height="72" rx="16" fill="#fff7ed" stroke="#f59e0b" stroke-width="2"/>
+<text x="750.0" y="632.0" font-family="Inter,Arial,sans-serif" font-size="19" fill="#b45309" text-anchor="middle" font-weight="700">Keep general world-size interface · world1/2 verified · world4 bounded environment failure</text>
+<text x="750.0" y="658.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="middle" font-weight="400">Next: RCCL debug + shared-memory preflight; rerun the same gate only after resources change</text>
+</svg>

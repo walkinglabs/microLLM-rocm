@@ -947,6 +947,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [experiments/272-ranked-checkpoint-resume.md](experiments/272-ranked-checkpoint-resume.md) | 完整checkpoint字节等价与Model-S准入 |
 | [assets/ranked-model-s-checkpoint.svg](assets/ranked-model-s-checkpoint.svg) | 187MB状态构成、写/等/读/恢复资源时间 |
 | [experiments/273-ranked-model-s-checkpoint.md](experiments/273-ranked-model-s-checkpoint.md) | Model-S恢复等价与world-size边界交接 |
+| [assets/ranked-world-size-boundary.svg](assets/ranked-world-size-boundary.svg) | world1/2成功与world4共享内存失败边界 |
+| [experiments/274-ranked-world-size-boundary.md](experiments/274-ranked-world-size-boundary.md) | 一般接口保留、当前四卡能力不声明 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

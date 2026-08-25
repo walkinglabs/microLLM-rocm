@@ -15917,6 +15917,89 @@ def validate_ranked_model_s_checkpoint(
         min(write_values, default=0.0), max(write_values, default=0.0)
 
 
+def validate_ranked_world_size(
+        errors: list[str]) -> tuple[bool, bool, int, int]:
+    root = REPOSITORY / "benchmarks/results/2026-08-25-ranked-world-size"
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    world1_raw = json.loads((root / "world1/summary.json").read_text(
+        encoding="utf-8"))
+    world2_raw = json.loads((root / "world2/summary.json").read_text(
+        encoding="utf-8"))
+    world4_raw = json.loads((root / "world4/summary.json").read_text(
+        encoding="utf-8"))
+    if (summary.get("schema_version") != 1 or summary.get("status") != "pass" or
+            summary.get("record_type") != "ranked_world_size_summary" or
+            summary.get("world_sizes") != [1, 2, 4] or
+            summary.get("world1_world2_regression_passed") is not True or
+            summary.get("world4_failure_bounded") is not True or
+            summary.get("four_gpu_execution_claim") is not False or
+            summary.get("world1", {}).get("rank_difference") != 0.0 or
+            summary.get("world2", {}).get("rank_difference") != 0.0 or
+            summary.get("world4", {}).get("system_error_ranks") != 4 or
+            summary.get("world4", {}).get("returncodes") != [1, 1, 1, 1] or
+            summary.get("world4", {}).get("shared_memory_bytes") != 67108864 or
+            summary.get("decision") !=
+                "retain general world-size interface and publish four-rank environment boundary"):
+        errors.append("ranked world-size summary changed")
+    if (world1_raw.get("record_type") != "ranked_training_summary" or
+            world1_raw.get("world_size") != 1 or
+            world1_raw.get("maximum_rank_difference") != 0.0 or
+            world1_raw.get("maximum_reference_difference") !=
+                1.4000000020386594e-08 or
+            world2_raw.get("record_type") != "ranked_training_summary" or
+            world2_raw.get("world_size") != 2 or
+            world2_raw.get("maximum_rank_difference") != 0.0 or
+            world2_raw.get("maximum_reference_difference") !=
+                5.999999996841865e-08 or
+            world4_raw.get("record_type") !=
+                "ranked_group_init_failure_summary" or
+            world4_raw.get("world_size") != 4 or
+            world4_raw.get("group_initialized") is not False or
+            world4_raw.get("system_error_ranks") != 4 or
+            world4_raw.get("returncodes") != [1, 1, 1, 1] or
+            world4_raw.get("shared_memory_bytes") != 67108864):
+        errors.append("ranked world-size raw evidence changed")
+    world4_errors = [path.read_text(encoding="utf-8")
+                     for path in sorted((root / "world4").glob("rank*.stderr"))]
+    if (len(world4_errors) != 4 or
+            any("ncclCommInitRank" not in value or "system error" not in value
+                for value in world4_errors) or
+            list(root.rglob("communicator.id")) or
+            list(root.rglob("*.safetensors"))):
+        errors.append("ranked world-size process evidence changed")
+    if (check.get("measurement_commit") !=
+            "81fa7f0dfb9371841493551e17012f52553f58cc" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("gpu") != "4 x AMD Instinct MI300X VF" or
+            check.get("architecture") != "gfx942" or
+            check.get("world1_training_passed") is not True or
+            check.get("world2_training_passed") is not True or
+            check.get("world1_rank_difference") != 0.0 or
+            check.get("world2_rank_difference") != 0.0 or
+            check.get("world4_group_initialized") is not False or
+            check.get("world4_system_error_ranks") != 4 or
+            check.get("world4_returncodes") != [1, 1, 1, 1] or
+            check.get("shared_memory_bytes") != 67108864 or
+            check.get("world4_failure_bounded") is not True or
+            check.get("four_gpu_execution_claim") is not False or
+            check.get("rccl_label") != {"passed": 49, "total": 49} or
+            check.get("registered_test_files") != 125):
+        errors.append("ranked world-size verification changed")
+    launcher = (REPOSITORY / "tools/distributed/run_ranked.py").read_text(
+        encoding="utf-8")
+    worker = (REPOSITORY / "apps/distributed_rank.cpp").read_text(
+        encoding="utf-8")
+    if ("command_ranks" not in launcher or
+            "ranked_group_init_failure_summary" not in launcher or
+            "world_size)" not in worker):
+        errors.append("ranked world-size route is missing")
+    return bool(summary.get("world1", {}).get("training_passed")), \
+        bool(summary.get("world2", {}).get("training_passed")), \
+        summary.get("world4", {}).get("system_error_ranks", 0), \
+        summary.get("world4", {}).get("shared_memory_bytes", 0)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -16168,7 +16251,8 @@ def validate_assets(errors: list[str]) -> None:
                  "ranked-gradient-overlap-discard.svg",
                  "ranked-overlap-context-scale.svg",
                  "ranked-checkpoint-resume.svg",
-                 "ranked-model-s-checkpoint.svg"):
+                 "ranked-model-s-checkpoint.svg",
+                 "ranked-world-size-boundary.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -16734,6 +16818,8 @@ def main() -> int:
     ranked_model_s_checkpoint_processes, ranked_model_s_checkpoint_bytes, \
         ranked_model_s_checkpoint_write_min, ranked_model_s_checkpoint_write_max = \
         validate_ranked_model_s_checkpoint(errors)
+    ranked_world1, ranked_world2, ranked_world4_errors, ranked_world4_shm = \
+        validate_ranked_world_size(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -17279,6 +17365,8 @@ def main() -> int:
           f"{ranked_model_s_checkpoint_bytes}/"
           f"{ranked_model_s_checkpoint_write_min:.1f}/"
           f"{ranked_model_s_checkpoint_write_max:.1f} "
+          f"ranked_world={int(ranked_world1)}/{int(ranked_world2)}/"
+          f"{ranked_world4_errors}/{ranked_world4_shm} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

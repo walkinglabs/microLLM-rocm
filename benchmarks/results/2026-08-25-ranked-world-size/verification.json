@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "measurement_commit": "81fa7f0dfb9371841493551e17012f52553f58cc",
+  "dirty_at_measurement": false,
+  "gpu": "4 x AMD Instinct MI300X VF",
+  "architecture": "gfx942",
+  "hip_version": "7.13.99004",
+  "world1_training_passed": true,
+  "world2_training_passed": true,
+  "world1_rank_difference": 0.0,
+  "world2_rank_difference": 0.0,
+  "world4_group_initialized": false,
+  "world4_system_error_ranks": 4,
+  "world4_returncodes": [1, 1, 1, 1],
+  "world4_group_ms": 2756.3046319410205,
+  "shared_memory_bytes": 67108864,
+  "world4_failure_bounded": true,
+  "four_gpu_execution_claim": false,
+  "rccl_label": {"passed": 49, "total": 49},
+  "registered_test_files": 125
+}

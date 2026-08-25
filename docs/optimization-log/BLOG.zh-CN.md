@@ -4306,3 +4306,19 @@ tiny注入，rank0=1、peer=−15。Model-S checkpoint smoke完成；下一缺�
 写死2卡泛化到world-size，并诚实复现当前4卡共享内存边界。
 
 ![Ranked Model-S checkpoint](assets/ranked-model-s-checkpoint.svg)
+
+## 291. Experiment 274：有4张卡，不等于4个rank能初始化
+
+worker和launcher不再写死2：可以启动N个进程、生成N份不同local batch、拼CPU global batch并
+比较全部rank。world1/2 tiny一步完整门分别通过，CPU最大参数差1.4e-8/6.0e-8。
+
+world4没有被包装成成功。四个进程都在`ncclCommInitRank`返回`unhandled system error`，return
+code全是1，组在2.756秒结束，没有挂死。机器暴露4个MI300X VF，但容器`/dev/shm`只有
+67,108,864 bytes（64MiB），与之前四卡失败一致。
+
+新增`group-init`模式把环境能力失败变成结构化证据；如果未来初始化成功，它会继续正常训练和
+CPU门。结论是：一般world-size接口保留，当前环境world4不可用，绝不写“4卡已支持”。
+
+下一节点用RCCL debug和资源preflight把不透明system error变成可操作诊断，再等待资源变化重测。
+
+![Ranked world-size boundary](assets/ranked-world-size-boundary.svg)
