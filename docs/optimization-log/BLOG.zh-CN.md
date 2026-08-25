@@ -4166,3 +4166,18 @@ CPU和peer failure全过。绝大多数时间是进程、ROCm、RCCL启动，因
 rank bucket和ready overlap迁移。
 
 ![Ranked gradient buckets](assets/ranked-gradient-buckets.svg)
+
+## 283. Experiment 266：collective少19倍，为什么还不能说通信快了
+
+Model-S `B1×T32/rank`终于让两个独立进程拥有真实多bucket负载。25 MiB把57个参数分成3个
+bucket；两策略各三个fresh进程组，逐项比较全部15,586,176个参数值与CPU `B2×T32`参考。
+
+Reducer中位数从54.51ms降到32.48ms，表面是1.678×；但bucket三次为19.55、32.48、
+158.52ms，CV高达89.3%。完整训练只从5657.56ms到5648.32ms（1.0016×），组wall也只有
+1.0023×。图中保留min–max，不能只展示好看的中位数。
+
+rank间Max/RMS为0，CPU Max/RMS为0.0062738/3.483e-6，loss均值差9.555e-7；peer failure仍
+能终止等待rank。这个节点证明bucket语义和测量边界，不能证明steady通信加速。下一实验在同一
+fresh进程中记录多步，单独标记第一步cold，再决定persistent Storage或ready overlap。
+
+![Ranked Model-S buckets](assets/ranked-model-s-buckets.svg)

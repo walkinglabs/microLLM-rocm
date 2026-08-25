@@ -1,0 +1,128 @@
+{
+  "bucket_bytes": 26214400,
+  "buckets_per_rank": 3,
+  "collectives_per_rank": 3,
+  "commands": [
+    [
+      "/home/devpod/github/microLLM-rocm/build/rccl-release/apps/microllm_distributed_rank",
+      "--mode",
+      "rank",
+      "--rank",
+      "1",
+      "--local-rank",
+      "1",
+      "--model",
+      "model-s",
+      "--world-size",
+      "2",
+      "--id-file",
+      "/home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-25-ranked-model-s-buckets/run-3-bucket/communicator.id",
+      "--steps",
+      "1",
+      "--seed",
+      "607",
+      "--timeout-ms",
+      "90000",
+      "--reducer",
+      "bucket",
+      "--bucket-bytes",
+      "26214400",
+      "--parameter-file",
+      "/home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-25-ranked-model-s-buckets/run-3-bucket/rank1.safetensors"
+    ],
+    [
+      "/home/devpod/github/microLLM-rocm/build/rccl-release/apps/microllm_distributed_rank",
+      "--mode",
+      "rank",
+      "--rank",
+      "0",
+      "--local-rank",
+      "0",
+      "--model",
+      "model-s",
+      "--world-size",
+      "2",
+      "--id-file",
+      "/home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-25-ranked-model-s-buckets/run-3-bucket/communicator.id",
+      "--steps",
+      "1",
+      "--seed",
+      "607",
+      "--timeout-ms",
+      "90000",
+      "--reducer",
+      "bucket",
+      "--bucket-bytes",
+      "26214400",
+      "--parameter-file",
+      "/home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-25-ranked-model-s-buckets/run-3-bucket/rank0.safetensors"
+    ]
+  ],
+  "maximum_mean_loss_difference": 9.555000008987236e-07,
+  "maximum_rank_difference": 0,
+  "maximum_rank_forward_backward_ms": 5614.257491,
+  "maximum_rank_optimizer_ms": 0.324965,
+  "maximum_rank_reducer_ms": 19.548062,
+  "maximum_rank_training_ms": 5631.390214,
+  "maximum_reference_difference": 0.00627380143851,
+  "mean_loss_tolerance": 0.0001,
+  "model": "model-s",
+  "pack_copies_per_rank": 57,
+  "parameter_files_retained": false,
+  "parameter_tensors": 57,
+  "parameter_values": 15586176,
+  "peer_processes_terminated": 0,
+  "rank_forward_backward_ms": [
+    5614.257491,
+    5609.420873
+  ],
+  "rank_group_ms": 9487.819728907198,
+  "rank_losses": [
+    [
+      9.284751892
+    ],
+    [
+      9.542316437
+    ]
+  ],
+  "rank_optimizer_ms": [
+    0.324965,
+    0.31905
+  ],
+  "rank_reducer_ms": [
+    16.357475,
+    19.548062
+  ],
+  "rank_rms_difference": 0,
+  "rank_training_ms": [
+    5631.390214,
+    5629.768022
+  ],
+  "record_type": "ranked_training_summary",
+  "reducer": "bucket",
+  "reference_command": [
+    "/home/devpod/github/microLLM-rocm/build/rccl-release/apps/microllm_distributed_rank",
+    "--mode",
+    "reference",
+    "--steps",
+    "1",
+    "--seed",
+    "607",
+    "--model",
+    "model-s",
+    "--parameter-file",
+    "/home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-25-ranked-model-s-buckets/run-3-bucket/reference.safetensors"
+  ],
+  "reference_losses": [
+    9.41353512
+  ],
+  "reference_max_tolerance": 0.01,
+  "reference_ms": 3718.9411967992783,
+  "reference_rms_difference": 3.48336491075e-06,
+  "reference_rms_tolerance": 1e-05,
+  "schema_version": 1,
+  "status": "pass",
+  "steps": 1,
+  "unpack_copies_per_rank": 57,
+  "world_size": 2
+}

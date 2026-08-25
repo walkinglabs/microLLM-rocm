@@ -292,6 +292,11 @@ RANKED_BUCKET_ROOT = (
     ROOT.parents[1] / "benchmarks" / "results" /
     "2026-08-25-ranked-gradient-buckets")
 RANKED_BUCKET_CHART = ROOT / "assets" / "ranked-gradient-buckets.svg"
+RANKED_MODEL_S_BUCKET_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-ranked-model-s-buckets")
+RANKED_MODEL_S_BUCKET_CHART = (
+    ROOT / "assets" / "ranked-model-s-buckets.svg")
 
 
 def rows() -> list[dict]:
@@ -5082,6 +5087,118 @@ def ranked_gradient_bucket_svg() -> str:
     return "\n".join(parts)
 
 
+def ranked_model_s_bucket_svg() -> str:
+    summary = json.loads((RANKED_MODEL_S_BUCKET_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in
+           (RANKED_MODEL_S_BUCKET_ROOT / "raw.jsonl").read_text(
+               encoding="utf-8").splitlines() if line]
+    per_parameter = summary["policies"]["per-parameter"]
+    bucket = summary["policies"]["bucket"]
+    reducer = {
+        policy: [row["maximum_rank_reducer_ms"] for row in raw
+                 if row["reducer"] == policy]
+        for policy in ("per-parameter", "bucket")
+    }
+    width, height = 1500, 820
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 266 · Ranked Model-S Natural Buckets", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "3 fresh two-rank launches / policy · B1×T32 / rank · one step · 15,586,176 values checked",
+             16, "#5b6474", anchor="middle"),
+    ]
+    panels = ((55, 120, 420, 515), (540, 120, 420, 515),
+              (1025, 120, 420, 515))
+    for x, y, panel_w, panel_h in panels:
+        parts.append(f'<rect x="{x}" y="{y}" width="{panel_w}" height="{panel_h}" '
+                     'rx="18" fill="#ffffff" stroke="#d8dee9" stroke-width="2"/>')
+
+    parts.append(text(265, 165, "Collectives / rank", 23, anchor="middle", weight=700))
+    for index, (label, value, color) in enumerate((
+            ("Per parameter", per_parameter["collectives_per_rank"], "#64748b"),
+            ("25 MiB bucket", bucket["collectives_per_rank"], "#16a34a"))):
+        x = 125 + index * 190
+        bar_height = 310 * value / per_parameter["collectives_per_rank"]
+        parts.extend([
+            f'<rect x="{x}" y="{545 - bar_height:.1f}" width="110" '
+            f'height="{bar_height:.1f}" rx="8" fill="{color}"/>',
+            text(x + 55, 575, label, 15, color, anchor="middle", weight=700),
+            text(x + 55, 525 - bar_height, value, 27, color,
+                 anchor="middle", weight=700),
+        ])
+    parts.extend([
+        text(265, 610, "19× fewer collectives", 22, "#166534",
+             anchor="middle", weight=700),
+        text(750, 165, "Reducer time · median + min–max", 23,
+             anchor="middle", weight=700),
+    ])
+    reducer_max = max(max(values) for values in reducer.values()) * 1.08
+    for index, (policy, label, color) in enumerate((
+            ("per-parameter", "Per parameter", "#64748b"),
+            ("bucket", "25 MiB bucket", "#16a34a"))):
+        values = reducer[policy]
+        median = (per_parameter if policy == "per-parameter" else bucket)[
+            "median_maximum_rank_reducer_ms"]
+        x = 660 + index * 185
+        y_min = 535 - 305 * min(values) / reducer_max
+        y_max = 535 - 305 * max(values) / reducer_max
+        y_median = 535 - 305 * median / reducer_max
+        parts.extend([
+            f'<line x1="{x}" y1="{y_max:.1f}" x2="{x}" y2="{y_min:.1f}" '
+            f'stroke="{color}" stroke-width="5"/>',
+            f'<line x1="{x - 18}" y1="{y_max:.1f}" x2="{x + 18}" y2="{y_max:.1f}" '
+            f'stroke="{color}" stroke-width="4"/>',
+            f'<line x1="{x - 18}" y1="{y_min:.1f}" x2="{x + 18}" y2="{y_min:.1f}" '
+            f'stroke="{color}" stroke-width="4"/>',
+            f'<circle cx="{x}" cy="{y_median:.1f}" r="13" fill="{color}"/>',
+            text(x, 575, label, 15, color, anchor="middle", weight=700),
+            text(x, 605, f"{median:.2f} ms", 19, color,
+                 anchor="middle", weight=700),
+            text(x, 207, f"{min(values):.1f}–{max(values):.1f}", 14,
+                 "#5b6474", anchor="middle"),
+        ])
+    parts.extend([
+        text(750, 610, "median 1.678× · bucket CV 89.3%", 19, "#b45309",
+             anchor="middle", weight=700),
+        text(1235, 165, "What changed end to end?", 23,
+             anchor="middle", weight=700),
+    ])
+    metrics = (
+        ("Reducer", summary["bucket_reducer_speedup"], "#16a34a"),
+        ("Training", summary["bucket_training_speedup"], "#2563eb"),
+        ("Group wall", summary["bucket_wall_speedup"], "#64748b"),
+    )
+    for index, (label, ratio, color) in enumerate(metrics):
+        y = 235 + index * 105
+        bar_width = min(300.0, 200.0 * ratio / 1.7)
+        parts.extend([
+            text(1075, y, label, 17, "#172033", weight=700),
+            f'<rect x="1075" y="{y + 15}" width="300" height="24" rx="7" fill="#e8edf4"/>',
+            f'<rect x="1075" y="{y + 15}" width="{bar_width:.1f}" height="24" rx="7" fill="{color}"/>',
+            text(1390, y + 35, f"{ratio:.4f}×", 18, color,
+                 anchor="end", weight=700),
+        ])
+    parts.extend([
+        text(1235, 570, "Training gain: 0.16%", 20, "#b45309",
+             anchor="middle", weight=700),
+        text(1235, 608, "Wall gain: 0.23%", 20, "#b45309",
+             anchor="middle", weight=700),
+        '<rect x="55" y="670" width="1390" height="95" rx="16" fill="#fff7ed" stroke="#f59e0b" stroke-width="2"/>',
+        text(width / 2, 708,
+             "Correct: rank Max/RMS 0 · CPU Max 0.00627 / RMS 3.483e-6 · loss diff 9.555e-7 · peer failure bounded",
+             18, "#166534", anchor="middle", weight=700),
+        text(width / 2, 744,
+             "No steady speed claim: one cold spike dominates variance · next measure multiple steps inside each rank process",
+             18, "#b45309", anchor="middle", weight=700),
+        "</svg>\n",
+    ])
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -5163,7 +5280,8 @@ def main() -> int:
                 DATA_PARALLEL_GRADIENT_READY_CHART: data_parallel_gradient_ready_svg(),
                 DATA_PARALLEL_GRADIENT_OVERLAP_CHART: data_parallel_gradient_overlap_svg(),
                 RANKED_TRAINING_CHART: ranked_training_bootstrap_svg(),
-                RANKED_BUCKET_CHART: ranked_gradient_bucket_svg()}
+                RANKED_BUCKET_CHART: ranked_gradient_bucket_svg(),
+                RANKED_MODEL_S_BUCKET_CHART: ranked_model_s_bucket_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

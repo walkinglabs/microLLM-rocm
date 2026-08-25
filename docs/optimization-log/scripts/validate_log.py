@@ -14845,6 +14845,130 @@ def validate_ranked_gradient_buckets(
         float(summary.get("collective_reduction", 0.0))
 
 
+def validate_ranked_model_s_buckets(
+        errors: list[str]) -> tuple[int, int, int, float, float, float]:
+    root = REPOSITORY / "benchmarks/results/2026-08-25-ranked-model-s-buckets"
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    failure = json.loads((root / "failure.json").read_text(encoding="utf-8"))
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    policies = summary.get("policies", {})
+    per_parameter = policies.get("per-parameter", {})
+    bucket = policies.get("bucket", {})
+    expected_maximum = 0.00627380143851
+    expected_rms = 3.48336491075e-06
+    expected_loss = 9.555000008987236e-07
+    expected_reducer = 1.6782877087498271
+    expected_training = 1.0016359383202356
+    expected_wall = 1.0023480619008711
+    bucket_reducer = [row["maximum_rank_reducer_ms"] for row in raw
+                      if row.get("reducer") == "bucket"]
+    bucket_cv = statistics.pstdev(bucket_reducer) / statistics.mean(bucket_reducer)
+    if (summary.get("schema_version") != 1 or summary.get("status") != "pass" or
+            summary.get("record_type") != "ranked_training_matrix_summary" or
+            summary.get("model") != "model-s" or
+            summary.get("runs_per_policy") != 3 or
+            summary.get("policy_runs") != 6 or
+            summary.get("rank_processes") != 12 or
+            summary.get("steps_per_rank") != 1 or
+            summary.get("parameter_tensors") != 57 or
+            summary.get("parameter_values") != 15586176 or
+            summary.get("maximum_rank_difference") != 0.0 or
+            summary.get("maximum_reference_difference") != expected_maximum or
+            summary.get("maximum_reference_rms_difference") != expected_rms or
+            summary.get("maximum_mean_loss_difference") != expected_loss or
+            per_parameter.get("collectives_per_rank") != 57 or
+            bucket.get("collectives_per_rank") != 3 or
+            summary.get("collective_reduction") != 19.0 or
+            summary.get("bucket_reducer_speedup") != expected_reducer or
+            summary.get("bucket_training_speedup") != expected_training or
+            summary.get("bucket_wall_speedup") != expected_wall or
+            summary.get("decision") !=
+                "admit measured ranked Model-S bucket baseline" or
+            summary.get("peer_failure_detected") is not True or
+            summary.get("peer_processes_terminated") != 1 or
+            summary.get("failure_returncodes") != [1, -15]):
+        errors.append("ranked Model-S bucket summary changed")
+    if (len(raw) != 6 or len(bucket_reducer) != 3 or
+            {row.get("reducer") for row in raw} !=
+                {"per-parameter", "bucket"} or
+            any(row.get("model") != "model-s" or row.get("steps") != 1 or
+                row.get("parameter_tensors") != 57 or
+                row.get("parameter_values") != 15586176 or
+                row.get("maximum_rank_difference") != 0.0 or
+                row.get("rank_rms_difference") != 0.0 or
+                row.get("maximum_reference_difference") != expected_maximum or
+                row.get("reference_rms_difference") != expected_rms or
+                row.get("maximum_mean_loss_difference") != expected_loss or
+                row.get("maximum_rank_training_ms", 0.0) <= 0.0 or
+                row.get("maximum_rank_reducer_ms", 0.0) <= 0.0 or
+                row.get("parameter_files_retained") is not False
+                for row in raw)):
+        errors.append("ranked Model-S bucket raw evidence changed")
+    stdout_records = []
+    for path in sorted(root.glob("run-*/*.stdout")):
+        if path.name.startswith("rank"):
+            stdout_records.append(json.loads(path.read_text(encoding="utf-8")))
+    if (len(stdout_records) != 12 or
+            any("parameters" in row or row.get("parameter_count") != 15586176
+                for row in stdout_records) or
+            list(root.rglob("*.safetensors")) or
+            list(root.rglob("communicator.id"))):
+        errors.append("ranked Model-S temporary parameter evidence changed")
+    if (failure.get("failure_detected") is not True or
+            failure.get("peer_processes_terminated") != 1 or
+            failure.get("returncodes") != [1, -15]):
+        errors.append("ranked Model-S bucket failure evidence changed")
+    if (check.get("measurement_commit") !=
+            "c9122020fd857781c6f2a80a4c1898dbe250ba68" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("gpu") != "AMD Instinct MI300X VF" or
+            check.get("architecture") != "gfx942" or
+            check.get("world_size") != 2 or
+            check.get("runs_per_policy") != 3 or
+            check.get("policy_runs") != 6 or
+            check.get("rank_processes") != 12 or
+            check.get("steps_per_rank") != 1 or
+            check.get("parameter_tensors") != 57 or
+            check.get("parameter_values") != 15586176 or
+            check.get("per_parameter_collectives") != 57 or
+            check.get("bucket_collectives") != 3 or
+            check.get("collective_reduction") != 19.0 or
+            check.get("bucket_reducer_speedup") != expected_reducer or
+            check.get("bucket_training_speedup") != expected_training or
+            check.get("bucket_wall_speedup") != expected_wall or
+            check.get("maximum_rank_difference") != 0.0 or
+            check.get("maximum_rank_rms_difference") != 0.0 or
+            check.get("maximum_reference_difference") != expected_maximum or
+            check.get("maximum_reference_rms_difference") != expected_rms or
+            check.get("maximum_mean_loss_difference") != expected_loss or
+            check.get("bucket_reducer_min_ms") != min(bucket_reducer) or
+            check.get("bucket_reducer_max_ms") != max(bucket_reducer) or
+            abs(float(check.get("bucket_reducer_coefficient_of_variation", 0.0)) -
+                bucket_cv) > 1.0e-15 or
+            check.get("temporary_parameter_files_retained") is not False or
+            check.get("performance_claim") is not False or
+            check.get("reducer_variability_blocks_performance_claim") is not True or
+            check.get("rccl_label") != {"passed": 43, "total": 43} or
+            check.get("ranked_contract") != {"passed": 5, "total": 5} or
+            check.get("registered_test_files") != 123):
+        errors.append("ranked Model-S bucket verification changed")
+    launcher = (REPOSITORY / "tools/distributed/run_ranked.py").read_text(
+        encoding="utf-8")
+    worker = (REPOSITORY / "apps/distributed_rank.cpp").read_text(
+        encoding="utf-8")
+    if ("maximum_rank_reducer_ms" not in launcher or
+            "unlink(missing_ok=True)" not in launcher or
+            "forward_backward_ms" not in worker or
+            "save_safetensors" not in worker):
+        errors.append("ranked Model-S measurement route is missing")
+    return summary.get("policy_runs", 0), \
+        per_parameter.get("collectives_per_rank", 0), \
+        bucket.get("collectives_per_rank", 0), expected_reducer, \
+        expected_training, bucket_cv
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -15088,7 +15212,8 @@ def validate_assets(errors: list[str]) -> None:
                  "data-parallel-gradient-ready-order.svg",
                  "data-parallel-gradient-overlap.svg",
                  "one-process-per-gpu-bootstrap.svg",
-                 "ranked-gradient-buckets.svg"):
+                 "ranked-gradient-buckets.svg",
+                 "ranked-model-s-buckets.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -15629,6 +15754,10 @@ def main() -> int:
     ranked_bucket_runs, ranked_parameter_collectives, ranked_bucket_collectives, \
         ranked_bucket_speedup, ranked_collective_reduction = \
         validate_ranked_gradient_buckets(errors)
+    ranked_model_s_runs, ranked_model_s_parameter_collectives, \
+        ranked_model_s_bucket_collectives, ranked_model_s_reducer_speedup, \
+        ranked_model_s_training_speedup, ranked_model_s_bucket_cv = \
+        validate_ranked_model_s_buckets(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -16134,6 +16263,12 @@ def main() -> int:
           f"ranked_buckets={ranked_bucket_runs}/"
           f"{ranked_parameter_collectives}/{ranked_bucket_collectives}/"
           f"{ranked_bucket_speedup:.4f}/{ranked_collective_reduction:.1f} "
+          f"ranked_model_s={ranked_model_s_runs}/"
+          f"{ranked_model_s_parameter_collectives}/"
+          f"{ranked_model_s_bucket_collectives}/"
+          f"{ranked_model_s_reducer_speedup:.4f}/"
+          f"{ranked_model_s_training_speedup:.4f}/"
+          f"{ranked_model_s_bucket_cv:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

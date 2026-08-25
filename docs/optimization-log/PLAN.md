@@ -117,7 +117,8 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [86](steps/86-gradient-ready-event-overlap.md) | complete | Event + async all-reduce原型 | vs sync total1.0159×、wait2.297×；显式保留 |
 | [87](steps/87-one-process-per-gpu-bootstrap.md) | complete | one-process-per-GPU bootstrap | 6 ranks/728 exact/CPU1.19e-7；peer终止通过 |
 | [88](steps/88-ranked-gradient-buckets.md) | complete | rank-local同步gradient bucket | tiny collective36→3；wall1.0037×，正确性baseline |
-| [89](steps/89-ranked-model-s-bucket-smoke.md) | implemented; measurement pending | ranked Model-S B1T32 one-step | 57 vs 3 collective与完整参数门 |
+| [89](steps/89-ranked-model-s-bucket-smoke.md) | complete | ranked Model-S B1T32 one-step | collective 57→3；Reducer方差阻止性能声明 |
+| [90](steps/90-ranked-multistep-reducer-timing.md) | planned | ranked Model-S多步cold/steady分离 | 逐step Reducer分布与persistent准入门 |
 
 ## 为什么按这个顺序
 

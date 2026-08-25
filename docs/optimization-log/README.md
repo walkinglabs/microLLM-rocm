@@ -931,6 +931,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [experiments/264-one-process-per-gpu-bootstrap.md](experiments/264-one-process-per-gpu-bootstrap.md) | 728值等价、peer终止与rank bucket准入 |
 | [assets/ranked-gradient-buckets.svg](assets/ranked-gradient-buckets.svg) | collective 12×缩减与tiny启动反例 |
 | [experiments/265-ranked-gradient-buckets.md](experiments/265-ranked-gradient-buckets.md) | 同步bucket baseline与Model-S交接 |
+| [assets/ranked-model-s-buckets.svg](assets/ranked-model-s-buckets.svg) | Model-S collective、Reducer范围与端到端差异 |
+| [experiments/266-ranked-model-s-buckets.md](experiments/266-ranked-model-s-buckets.md) | 19× collective缩减、89.3%方差与cold/steady交接 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

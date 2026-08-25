@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="820" viewBox="0 0 1500 820">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="750.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 266 · Ranked Model-S Natural Buckets</text>
+<text x="750.0" y="82.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">3 fresh two-rank launches / policy · B1×T32 / rank · one step · 15,586,176 values checked</text>
+<rect x="55" y="120" width="420" height="515" rx="18" fill="#ffffff" stroke="#d8dee9" stroke-width="2"/>
+<rect x="540" y="120" width="420" height="515" rx="18" fill="#ffffff" stroke="#d8dee9" stroke-width="2"/>
+<rect x="1025" y="120" width="420" height="515" rx="18" fill="#ffffff" stroke="#d8dee9" stroke-width="2"/>
+<text x="265.0" y="165.0" font-family="Inter,Arial,sans-serif" font-size="23" fill="#172033" text-anchor="middle" font-weight="700">Collectives / rank</text>
+<rect x="125" y="235.0" width="110" height="310.0" rx="8" fill="#64748b"/>
+<text x="180.0" y="575.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#64748b" text-anchor="middle" font-weight="700">Per parameter</text>
+<text x="180.0" y="215.0" font-family="Inter,Arial,sans-serif" font-size="27" fill="#64748b" text-anchor="middle" font-weight="700">57</text>
+<rect x="315" y="528.7" width="110" height="16.3" rx="8" fill="#16a34a"/>
+<text x="370.0" y="575.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#16a34a" text-anchor="middle" font-weight="700">25 MiB bucket</text>
+<text x="370.0" y="508.7" font-family="Inter,Arial,sans-serif" font-size="27" fill="#16a34a" text-anchor="middle" font-weight="700">3</text>
+<text x="265.0" y="610.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#166534" text-anchor="middle" font-weight="700">19× fewer collectives</text>
+<text x="750.0" y="165.0" font-family="Inter,Arial,sans-serif" font-size="23" fill="#172033" text-anchor="middle" font-weight="700">Reducer time · median + min–max</text>
+<line x1="660" y1="434.9" x2="660" y2="477.9" stroke="#64748b" stroke-width="5"/>
+<line x1="642" y1="434.9" x2="678" y2="434.9" stroke="#64748b" stroke-width="4"/>
+<line x1="642" y1="477.9" x2="678" y2="477.9" stroke="#64748b" stroke-width="4"/>
+<circle cx="660" cy="437.9" r="13" fill="#64748b"/>
+<text x="660.0" y="575.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#64748b" text-anchor="middle" font-weight="700">Per parameter</text>
+<text x="660.0" y="605.0" font-family="Inter,Arial,sans-serif" font-size="19" fill="#64748b" text-anchor="middle" font-weight="700">54.51 ms</text>
+<text x="660.0" y="207.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">32.1–56.2</text>
+<line x1="845" y1="252.6" x2="845" y2="500.2" stroke="#16a34a" stroke-width="5"/>
+<line x1="827" y1="252.6" x2="863" y2="252.6" stroke="#16a34a" stroke-width="4"/>
+<line x1="827" y1="500.2" x2="863" y2="500.2" stroke="#16a34a" stroke-width="4"/>
+<circle cx="845" cy="477.1" r="13" fill="#16a34a"/>
+<text x="845.0" y="575.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#16a34a" text-anchor="middle" font-weight="700">25 MiB bucket</text>
+<text x="845.0" y="605.0" font-family="Inter,Arial,sans-serif" font-size="19" fill="#16a34a" text-anchor="middle" font-weight="700">32.48 ms</text>
+<text x="845.0" y="207.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">19.5–158.5</text>
+<text x="750.0" y="610.0" font-family="Inter,Arial,sans-serif" font-size="19" fill="#b45309" text-anchor="middle" font-weight="700">median 1.678× · bucket CV 89.3%</text>
+<text x="1235.0" y="165.0" font-family="Inter,Arial,sans-serif" font-size="23" fill="#172033" text-anchor="middle" font-weight="700">What changed end to end?</text>
+<text x="1075.0" y="235.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="start" font-weight="700">Reducer</text>
+<rect x="1075" y="250" width="300" height="24" rx="7" fill="#e8edf4"/>
+<rect x="1075" y="250" width="197.4" height="24" rx="7" fill="#16a34a"/>
+<text x="1390.0" y="270.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#16a34a" text-anchor="end" font-weight="700">1.6783×</text>
+<text x="1075.0" y="340.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="start" font-weight="700">Training</text>
+<rect x="1075" y="355" width="300" height="24" rx="7" fill="#e8edf4"/>
+<rect x="1075" y="355" width="117.8" height="24" rx="7" fill="#2563eb"/>
+<text x="1390.0" y="375.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#2563eb" text-anchor="end" font-weight="700">1.0016×</text>
+<text x="1075.0" y="445.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="start" font-weight="700">Group wall</text>
+<rect x="1075" y="460" width="300" height="24" rx="7" fill="#e8edf4"/>
+<rect x="1075" y="460" width="117.9" height="24" rx="7" fill="#64748b"/>
+<text x="1390.0" y="480.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#64748b" text-anchor="end" font-weight="700">1.0023×</text>
+<text x="1235.0" y="570.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#b45309" text-anchor="middle" font-weight="700">Training gain: 0.16%</text>
+<text x="1235.0" y="608.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#b45309" text-anchor="middle" font-weight="700">Wall gain: 0.23%</text>
+<rect x="55" y="670" width="1390" height="95" rx="16" fill="#fff7ed" stroke="#f59e0b" stroke-width="2"/>
+<text x="750.0" y="708.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#166534" text-anchor="middle" font-weight="700">Correct: rank Max/RMS 0 · CPU Max 0.00627 / RMS 3.483e-6 · loss diff 9.555e-7 · peer failure bounded</text>
+<text x="750.0" y="744.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#b45309" text-anchor="middle" font-weight="700">No steady speed claim: one cold spike dominates variance · next measure multiple steps inside each rank process</text>
+</svg>

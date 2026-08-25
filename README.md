@@ -135,6 +135,12 @@ Start with [Quick start](#quick-start), consume the installed library through th
 > because startup dominates, so this is a correctness baseline; ranked Model-S
 > natural buckets are required before performance or overlap claims.
 
+> Ranked Model-S then reduces collectives from 57 to 3 with all 15,586,176
+> parameter values checked. Reducer median is 1.678× faster, but bucket samples
+> span 19.55–158.52 ms (89.3% CV), while training/wall improve only
+> 1.0016×/1.0023×. It is a correctness baseline; multi-step cold/steady timing
+> must precede persistence or overlap.
+
 </details>
 
 ## Why this project exists
