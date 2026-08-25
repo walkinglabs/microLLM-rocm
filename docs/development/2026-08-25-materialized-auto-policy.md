@@ -43,3 +43,6 @@ CPU fixture验证auto-bypass；CLI合同验证显式开关、互斥和输出身�
 实现smoke已用官方Qwen T2048/B1/BF16、不传策略开关运行：JSON报告`auto-enabled`、eligible=true、
 measured-head=true、minimum=2048并生成有效token。CPU fixture报告`auto-bypass`。正式默认性能复测仍在
 下一节点，不能用这个N1 smoke代替三对结果。
+
+成对runner的`candidate_policy=auto`会让current显式传false，而candidate完全不传开关；合同测试
+检查candidate报告`auto-enabled`。这避免用“显式true的结果”替代“默认行为的结果”。

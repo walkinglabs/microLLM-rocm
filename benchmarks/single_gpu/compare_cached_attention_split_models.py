@@ -26,7 +26,7 @@ def arguments() -> argparse.Namespace:
     parser.add_argument("--cache-dtype", choices=("fp32", "bf16"), default="bf16")
     parser.add_argument("--splits", type=int, default=32)
     parser.add_argument(
-        "--candidate-policy", choices=("split", "materialized"),
+        "--candidate-policy", choices=("split", "materialized", "auto"),
         default="split")
     parser.add_argument("--minimum-sequence", type=int, default=512)
     parser.add_argument("--warmup", type=int, default=2)
@@ -92,8 +92,9 @@ def command(args: argparse.Namespace, model: dict, policy: str,
     is_candidate = policy == "split"
     splits = (args.splits if is_candidate and
               args.candidate_policy == "split" else 0)
-    materialized = is_candidate and args.candidate_policy == "materialized"
-    return [
+    materialized = is_candidate and args.candidate_policy in {
+        "materialized", "auto"}
+    result = [
         str(args.binary), "--config", model["config"],
         "--weights", model["weights"],
         "--tokens", ",".join(str(token) for token in tokens),
@@ -110,8 +111,11 @@ def command(args: argparse.Namespace, model: dict, policy: str,
         "--workload", "decode", "--cache-logits-output", str(logits_path),
         "--cached-attention-splits", str(splits),
         "--cached-attention-minimum-sequence", str(args.minimum_sequence),
-        "--cached-attention-materialized", str(materialized).lower(),
     ]
+    if not (is_candidate and args.candidate_policy == "auto"):
+        result.extend([
+            "--cached-attention-materialized", str(materialized).lower()])
+    return result
 
 
 def validate_record(record: dict, args: argparse.Namespace, model: dict,
@@ -119,7 +123,12 @@ def validate_record(record: dict, args: argparse.Namespace, model: dict,
     is_candidate = policy == "split"
     splits = (args.splits if is_candidate and
               args.candidate_policy == "split" else 0)
-    materialized = is_candidate and args.candidate_policy == "materialized"
+    materialized = is_candidate and args.candidate_policy in {
+        "materialized", "auto"}
+    expected_policy = (
+        "auto-enabled" if is_candidate and args.candidate_policy == "auto"
+        else "explicit-on" if materialized else "explicit-off")
+    expected_auto = is_candidate and args.candidate_policy == "auto"
     required = {
         "parameter_count": model["parameter_count"],
         "token_count": args.context,
@@ -137,9 +146,8 @@ def validate_record(record: dict, args: argparse.Namespace, model: dict,
         "cached_attention_splits": splits,
         "cached_attention_minimum_sequence": args.minimum_sequence,
         "cached_attention_materialized_scores": materialized,
-        "cached_attention_materialized_policy": (
-            "explicit-on" if materialized else "explicit-off"),
-        "cached_attention_materialized_auto_eligible": False,
+        "cached_attention_materialized_policy": expected_policy,
+        "cached_attention_materialized_auto_eligible": expected_auto,
     }
     for field, expected in required.items():
         if record.get(field) != expected:

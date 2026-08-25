@@ -26,7 +26,9 @@ n = int(a["--new-tokens"])
 steps = int(a["--steps"])
 warmup = int(a["--warmup"])
 splits = int(a["--cached-attention-splits"])
-materialized = a["--cached-attention-materialized"] == "true"
+materialized_explicit = "--cached-attention-materialized" in a
+materialized = a.get("--cached-attention-materialized", "true") == "true"
+candidate = bool(splits) or materialized
 minimum = int(a["--cached-attention-minimum-sequence"])
 tokens = [int(value) for value in a["--tokens"].split(",")]
 values = [float(index) / 32.0 + (1.0e-6 if splits else 0.0)
@@ -53,14 +55,16 @@ record = {
     "cached_attention_splits": splits,
     "cached_attention_minimum_sequence": minimum,
     "cached_attention_materialized_scores": materialized,
-    "cached_attention_materialized_policy": "explicit-on" if materialized else "explicit-off",
-    "cached_attention_materialized_auto_eligible": False,
+    "cached_attention_materialized_policy": (
+        "explicit-on" if materialized_explicit and materialized
+        else "explicit-off" if materialized_explicit else "auto-enabled"),
+    "cached_attention_materialized_auto_eligible": not materialized_explicit,
     "measured_tokens": b * n * steps,
     "measured_forward_steps": b * n * steps,
     "generated_tokens": list(range(n)),
-    "decode_tokens_per_second": 150.0 if splits else 100.0,
-    "engine_peak_bytes": 1020 if splits else 1000,
-    "engine_allocation_calls": 130 if splits else 100,
+    "decode_tokens_per_second": 150.0 if candidate else 100.0,
+    "engine_peak_bytes": 1020 if candidate else 1000,
+    "engine_allocation_calls": 130 if candidate else 100,
     "engine_backend_allocation_calls": 10,
 }
 print(json.dumps(record))
@@ -157,6 +161,23 @@ def main() -> int:
         assert len(pairs) == 3
         assert "Official model · current vs split cached Attention" in chart
         assert "median speedup  1.5000x" in chart
+
+        auto_output = root / "auto-output"
+        auto_completed = subprocess.run([
+            sys.executable, str(RUNNER), "--manifest", str(manifest),
+            "--binary", str(fake), "--output-directory", str(auto_output),
+            "--model", "fixture", "--candidate-policy", "auto",
+            "--context", "8", "--batch", "2", "--decode-tokens", "4",
+            "--cache-dtype", "bf16", "--minimum-sequence", "4",
+            "--warmup", "1", "--steps", "2", "--runs", "3",
+        ], text=True, capture_output=True, check=False)
+        if auto_completed.returncode != 0:
+            raise AssertionError(auto_completed.stdout + auto_completed.stderr)
+        auto_summary = json.loads(
+            (auto_output / "summary.json").read_text(encoding="utf-8"))
+        assert auto_summary["candidate_policy"] == "auto"
+        assert auto_summary["accuracy_gate_passed"] is True
+        assert auto_summary["performance_gate_passed"] is True
 
         fake_comparison = root / "fake_comparison.py"
         fake_comparison.write_text(FAKE_COMPARISON, encoding="utf-8")
