@@ -33,7 +33,8 @@ def options() -> argparse.Namespace:
                         choices=("per-parameter", "bucket",
                                  "persistent-bucket", "bucket-views",
                                  "overlap-views",
-                                 "bucket-weighted-overlap"),
+                                 "bucket-weighted-overlap",
+                                 "gather-weighted-overlap"),
                         default="per-parameter")
     parser.add_argument("--bucket-bytes", type=int, default=4096)
     parser.add_argument("--model", choices=("tiny", "model-s"), default="tiny")
@@ -516,7 +517,10 @@ def main() -> int:
                          "step_overlap_enabled",
                          "step_overlapped_buckets",
                          "step_weighted_gradient_scales",
-                         "step_weighted_bucket_scales")
+                         "step_weighted_bucket_scales",
+                         "step_gather_scale_calls",
+                         "step_gather_descriptor_copy_calls",
+                         "step_gather_descriptor_bytes")
     if any(not isinstance(rank.get(field), list) or
            len(rank[field]) != args.steps
            for rank in ranks for field in
@@ -556,13 +560,20 @@ def main() -> int:
            rank["weighted_gradient_scales"]
            or sum(rank["step_weighted_bucket_scales"]) !=
            rank["weighted_bucket_scales"]
+           or sum(rank["step_gather_scale_calls"]) !=
+           rank["gather_scale_calls"]
+           or sum(rank["step_gather_descriptor_copy_calls"]) !=
+           rank["gather_descriptor_copy_calls"]
+           or sum(rank["step_gather_descriptor_bytes"]) !=
+           rank["gather_descriptor_bytes"]
            for rank in ranks):
         raise RuntimeError("rank per-step reducer totals changed")
     expected_weighted_gradient_scales = [
         (len(reference["parameter_names"])
          if args.input_weighting == "token-weighted" and
          args.rank_batch_rows[rank_index] * args.context != average_tokens and
-         args.reducer != "bucket-weighted-overlap"
+         args.reducer not in ("bucket-weighted-overlap",
+                              "gather-weighted-overlap")
          else 0)
         for rank_index in range(args.world_size)]
     if any(rank.get("weighted_gradient_scales") !=
@@ -585,9 +596,37 @@ def main() -> int:
            args.steps
            for rank_index, rank in enumerate(ranks)):
         raise RuntimeError("rank ready-bucket weighting count changed")
+    expected_gather_calls = (
+        [rank["buckets"] for rank in ranks]
+        if args.reducer == "gather-weighted-overlap" else
+        [0] * args.world_size)
+    if any(rank.get("gather_scale_calls") !=
+           expected_gather_calls[rank_index] or
+           rank.get("gather_descriptor_copy_calls") !=
+           expected_gather_calls[rank_index] or
+           rank["step_gather_scale_calls"] !=
+           [expected_gather_calls[rank_index] // args.steps] * args.steps or
+           rank["step_gather_descriptor_copy_calls"] !=
+           [expected_gather_calls[rank_index] // args.steps] * args.steps or
+           (args.reducer == "gather-weighted-overlap" and
+            (rank.get("gather_descriptor_bytes", 0) <= 0 or
+             rank.get("gather_descriptor_capacity_bytes", 0) <= 0 or
+             any(value <= 0 for value in
+                 rank["step_gather_descriptor_bytes"]))) or
+           (args.reducer != "gather-weighted-overlap" and
+            (rank.get("gather_descriptor_bytes") != 0 or
+             rank.get("gather_descriptor_capacity_bytes") != 0 or
+             any(rank["step_gather_descriptor_bytes"])))
+           for rank_index, rank in enumerate(ranks)):
+        raise RuntimeError("rank gather-scale count changed")
+    if args.reducer == "gather-weighted-overlap" and any(
+            rank.get("pack_copies") != 0 or any(rank["step_pack_copies"])
+            for rank in ranks):
+        raise RuntimeError("rank gather-scale retained per-gradient pack copies")
     expected_reuse = [0] + [1] * (args.steps - 1)
     if args.reducer in ("persistent-bucket", "bucket-views",
-                        "overlap-views", "bucket-weighted-overlap"):
+                        "overlap-views", "bucket-weighted-overlap",
+                        "gather-weighted-overlap"):
         if any(rank.get("persistent_storage") is not True or
                rank.get("plan_reuses") != args.steps - 1 or
                rank.get("plan_capacity_elements", 0) <= 0 or
@@ -603,7 +642,8 @@ def main() -> int:
              for rank in ranks):
         raise RuntimeError("non-persistent reducer exposed a bucket plan")
     if args.reducer in ("bucket-views", "overlap-views",
-                        "bucket-weighted-overlap"):
+                        "bucket-weighted-overlap",
+                        "gather-weighted-overlap"):
         if any(rank.get("gradient_views") !=
                args.steps * len(reference["parameter_names"]) or
                rank.get("unpack_copies") != 0 or
@@ -618,7 +658,8 @@ def main() -> int:
     expected_overlap = [0] + [1] * (args.steps - 1)
     expected_overlapped_buckets = [0] + [
         ranks[0]["buckets"] // args.steps] * (args.steps - 1)
-    if args.reducer in ("overlap-views", "bucket-weighted-overlap"):
+    if args.reducer in ("overlap-views", "bucket-weighted-overlap",
+                        "gather-weighted-overlap"):
         if any(rank.get("overlap_steps") != args.steps - 1 or
                rank.get("overlapped_buckets") !=
                (args.steps - 1) * ranks[0]["buckets"] // args.steps or
@@ -755,6 +796,15 @@ def main() -> int:
         "maximum_rank_step_weighted_bucket_scales": [
             max(rank["step_weighted_bucket_scales"][step]
                 for rank in ranks) for step in range(args.steps)],
+        "maximum_rank_step_gather_scale_calls": [
+            max(rank["step_gather_scale_calls"][step]
+                for rank in ranks) for step in range(args.steps)],
+        "maximum_rank_step_gather_descriptor_copy_calls": [
+            max(rank["step_gather_descriptor_copy_calls"][step]
+                for rank in ranks) for step in range(args.steps)],
+        "maximum_rank_step_gather_descriptor_bytes": [
+            max(rank["step_gather_descriptor_bytes"][step]
+                for rank in ranks) for step in range(args.steps)],
         "maximum_engine_current_bytes": max(
             rank["engine_current_bytes"] for rank in ranks),
         "maximum_engine_peak_bytes": max(
@@ -782,6 +832,14 @@ def main() -> int:
             rank["weighted_bucket_scales"] for rank in ranks],
         "maximum_weighted_bucket_scales_per_rank": max(
             rank["weighted_bucket_scales"] for rank in ranks),
+        "maximum_gather_scale_calls_per_rank": max(
+            rank["gather_scale_calls"] for rank in ranks),
+        "maximum_gather_descriptor_copy_calls_per_rank": max(
+            rank["gather_descriptor_copy_calls"] for rank in ranks),
+        "maximum_gather_descriptor_bytes_per_rank": max(
+            rank["gather_descriptor_bytes"] for rank in ranks),
+        "maximum_gather_descriptor_capacity_bytes_per_rank": max(
+            rank["gather_descriptor_capacity_bytes"] for rank in ranks),
         "parameter_files_retained": consensus_parameter_file is not None,
         "consensus_parameter_file": (
             str(consensus_parameter_file)

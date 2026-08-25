@@ -5,6 +5,7 @@ add_library(microllm_multi_gpu STATIC
 )
 add_library(microllm::multi_gpu ALIAS microllm_multi_gpu)
 set_target_properties(microllm_multi_gpu PROPERTIES EXPORT_NAME multi_gpu)
+target_sources(microllm_multi_gpu PRIVATE gather_scale.hip)
 
 target_include_directories(microllm_multi_gpu
     PUBLIC

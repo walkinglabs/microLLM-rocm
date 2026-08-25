@@ -235,6 +235,12 @@ layout. The clean T128 matrix measures `1.0661x` steady-step speed with exact fi
 memory delta, so the route is retained explicitly. It is not enabled as a general default: one
 paired run regressed and the weakest leave-one-pair-out result is `1.0027x`.
 
+`gather-weighted-overlap` is the next explicit candidate. It replaces the 57 per-gradient device
+copies and 3 bucket scales with 3 gather-scale kernels. A persistent device descriptor table keeps
+fixed destination ranges, while source pointers are refreshed after every backward; no gradient
+address stability is assumed. The Model-S descriptor payload is 1,368 bytes per step and adds
+1,368 persistent bytes. Formal T128 evidence is still pending, so this route has no speed claim.
+
 The order matters:
 
 ```text

@@ -28,7 +28,8 @@ def options() -> argparse.Namespace:
                         choices=("equal-only", "token-weighted"),
                         default="equal-only")
     parser.add_argument("--overlap-policy",
-                        choices=("overlap-views", "bucket-weighted-overlap"),
+                        choices=("overlap-views", "bucket-weighted-overlap",
+                                 "gather-weighted-overlap"),
                         default="overlap-views")
     parser.add_argument("--runs", type=int, default=3)
     parser.add_argument("--steps", type=int, default=3)
@@ -71,6 +72,13 @@ def record(stdout: str, name: str) -> dict:
     return value
 
 
+def cleanup_consensus(rows: list[dict]) -> None:
+    for row in rows:
+        path = row.get("consensus_parameter_file", "")
+        if path:
+            Path(path).unlink(missing_ok=True)
+
+
 def main() -> int:
     args = options()
     output = args.output_directory.resolve()
@@ -107,17 +115,27 @@ def main() -> int:
                 command, cwd=ROOT, text=True, capture_output=True, check=False,
                 timeout=args.timeout_seconds + 10)
             if completed.returncode != 0:
+                cleanup_consensus(raw)
                 raise RuntimeError(completed.stdout + completed.stderr)
             value = record(completed.stdout, f"T{context}-{policy}")
             expected_overlap = policy != SYNCHRONOUS_POLICY
             expected_scales = (
                 57 if args.input_weighting == "token-weighted" and
                 len(set(args.rank_batch_rows)) > 1 and
-                policy != "bucket-weighted-overlap" else 0)
+                policy not in ("bucket-weighted-overlap",
+                               "gather-weighted-overlap") else 0)
             expected_bucket_scales = (
                 3 if args.input_weighting == "token-weighted" and
                 len(set(args.rank_batch_rows)) > 1 and
                 policy == "bucket-weighted-overlap" else 0)
+            expected_gather_calls = (
+                3 if policy == "gather-weighted-overlap" else 0)
+            expected_gather_descriptor_bytes = (
+                57 * 24 if policy == "gather-weighted-overlap" else 0)
+            expected_pack_copies = (
+                0 if policy == "gather-weighted-overlap" else 57)
+            expected_plan_allocations = (
+                6 if policy == "gather-weighted-overlap" else 3)
             if (value.get("record_type") != "ranked_training_summary" or
                     value.get("model") != "model-s" or
                     value.get("context") != context or
@@ -137,8 +155,10 @@ def main() -> int:
                     args.mean_loss_tolerance or
                     value.get("maximum_rank_step_collectives") != [3] * args.steps or
                     value.get("maximum_rank_step_unpack_copies") != [0] * args.steps or
+                    value.get("maximum_rank_step_pack_copies") !=
+                    [expected_pack_copies] * args.steps or
                     value.get("maximum_rank_step_reducer_backend_allocation_calls") !=
-                    [3] + [0] * (args.steps - 1) or
+                    [expected_plan_allocations] + [0] * (args.steps - 1) or
                     value.get("maximum_rank_step_overlap_enabled") !=
                     ([0] + [1] * (args.steps - 1) if expected_overlap else
                      [0] * args.steps) or
@@ -153,12 +173,28 @@ def main() -> int:
                     [expected_bucket_scales] * args.steps or
                     value.get("maximum_weighted_bucket_scales_per_rank") !=
                     expected_bucket_scales * args.steps or
+                    value.get("maximum_rank_step_gather_scale_calls") !=
+                    [expected_gather_calls] * args.steps or
+                    value.get("maximum_rank_step_gather_descriptor_copy_calls") !=
+                    [expected_gather_calls] * args.steps or
+                    value.get("maximum_rank_step_gather_descriptor_bytes") !=
+                    [expected_gather_descriptor_bytes] * args.steps or
+                    value.get("maximum_gather_scale_calls_per_rank") !=
+                    expected_gather_calls * args.steps or
+                    value.get("maximum_gather_descriptor_copy_calls_per_rank") !=
+                    expected_gather_calls * args.steps or
+                    value.get("maximum_gather_descriptor_bytes_per_rank") !=
+                    expected_gather_descriptor_bytes * args.steps or
+                    value.get(
+                        "maximum_gather_descriptor_capacity_bytes_per_rank") !=
+                    expected_gather_descriptor_bytes or
                     value.get("maximum_engine_current_bytes", 0) <= 0 or
                     value.get("maximum_engine_peak_bytes", 0) <
                     value.get("maximum_engine_current_bytes", 0) or
                     value.get("parameter_files_retained") is not True or
                     not Path(value.get(
                         "consensus_parameter_file", "")).is_file()):
+                cleanup_consensus([*raw, value])
                 raise RuntimeError("ranked overlap context result contract changed")
             value["process_run"] = process_run
             raw.append(value)
@@ -198,8 +234,7 @@ def main() -> int:
                 })
                 policy_comparisons.append(comparison)
     finally:
-        for path in retained_files:
-            path.unlink(missing_ok=True)
+        cleanup_consensus(raw)
 
     failure_command = [
         sys.executable, str(args.launcher.resolve()),

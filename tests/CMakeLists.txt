@@ -741,6 +741,21 @@ if(MICROLLM_HAS_RCCL)
             LABELS "hip;rccl;multi_gpu;distributed;integration;bucket;overlap;weighting"
             RUN_SERIAL TRUE TIMEOUT 30)
         add_test(
+            NAME DistributedRank.GatherWeightedOverlapSmoke
+            COMMAND ${Python3_EXECUTABLE}
+                    ${PROJECT_SOURCE_DIR}/tools/distributed/run_ranked.py
+                    --binary $<TARGET_FILE:microllm_distributed_rank>
+                    --output-directory
+                    ${PROJECT_BINARY_DIR}/ranked-gather-weighted-overlap-smoke
+                    --steps 3 --timeout-seconds 20
+                    --rank-batch-rows 1,2 --input-weighting token-weighted
+                    --reducer gather-weighted-overlap --bucket-bytes 4096
+                    --overwrite
+        )
+        set_tests_properties(DistributedRank.GatherWeightedOverlapSmoke PROPERTIES
+            LABELS "hip;rccl;multi_gpu;distributed;integration;bucket;overlap;weighting;gather"
+            RUN_SERIAL TRUE TIMEOUT 30)
+        add_test(
             NAME DistributedRank.PeerFailure
             COMMAND ${Python3_EXECUTABLE}
                     ${PROJECT_SOURCE_DIR}/tools/distributed/run_ranked.py

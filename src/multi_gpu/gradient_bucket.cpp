@@ -11,6 +11,8 @@
 
 #include <microllm/runtime/memory.h>
 
+#include "gather_scale.h"
+
 namespace microllm::multi_gpu {
 namespace {
 
@@ -89,6 +91,15 @@ std::size_t bytes_for(std::size_t elements, const char* description) {
     return elements * sizeof(float);
 }
 
+std::size_t descriptor_bytes_for(std::size_t count) {
+    if (count > std::numeric_limits<std::size_t>::max() /
+                    sizeof(hip::GatherScaleDescriptor)) {
+        throw std::overflow_error(
+            "rank gather-scale descriptor bytes overflow");
+    }
+    return count * sizeof(hip::GatherScaleDescriptor);
+}
+
 }  // namespace
 
 struct GradientBucketPlan::Impl {
@@ -124,6 +135,8 @@ struct RankGradientBucketPlan::Impl {
         std::size_t elements = 0;
         Tensor bucket;
         std::vector<Tensor> gradients;
+        Tensor gather_descriptors;
+        std::vector<hip::GatherScaleDescriptor> host_gather_descriptors;
         std::unique_ptr<runtime::Event> ready_event;
         std::size_t remaining_parameters = 0;
         std::vector<bool> parameter_ready;
@@ -136,9 +149,11 @@ struct RankGradientBucketPlan::Impl {
     Device device = Device::cpu();
     std::size_t maximum_bucket_bytes = 0;
     bool gradient_views = false;
+    bool gather_scale = false;
     std::vector<autograd::Value*> parameters;
     std::vector<PersistentRange> ranges;
     std::size_t capacity_elements = 0;
+    std::size_t gather_descriptor_capacity_bytes = 0;
     bool overlap_active = false;
     RankCommunicator* overlap_communicator = nullptr;
     std::vector<autograd::Value*> overlap_parameters;
@@ -208,7 +223,9 @@ void RankGradientBucketPlan::clear() noexcept {
     impl_->world_size = 0;
     impl_->device = Device::cpu();
     impl_->maximum_bucket_bytes = 0;
+    impl_->gather_scale = false;
     impl_->capacity_elements = 0;
+    impl_->gather_descriptor_capacity_bytes = 0;
     impl_->initialized = false;
     impl_->overlap_active = false;
     impl_->overlap_communicator = nullptr;
@@ -300,23 +317,51 @@ void RankGradientBucketPlan::mark_parameter_ready(
         auto& range = impl_->ranges[impl_->next_overlap_range - 1];
         if (range.remaining_parameters != 0) break;
         range.ready_event->wait(communicator.stream());
-        std::size_t offset = 0;
-        for (std::size_t index = range.first_parameter;
-             index < range.end_parameter; ++index) {
-            const auto& gradient = impl_->overlap_parameters[index]->grad();
-            const auto elements = static_cast<std::size_t>(gradient.numel());
-            const auto bytes = bytes_for(
-                elements, "rank gradient overlap pack bytes overflow");
-            auto* destination =
-                static_cast<std::byte*>(range.bucket.data()) +
-                offset * sizeof(float);
+        if (impl_->gather_scale) {
+            for (std::size_t descriptor_index = 0;
+                 descriptor_index < range.host_gather_descriptors.size();
+                 ++descriptor_index) {
+                range.host_gather_descriptors[descriptor_index].source =
+                    static_cast<const float*>(
+                        impl_->overlap_parameters[
+                            range.first_parameter + descriptor_index]
+                            ->grad().data());
+            }
+            const auto descriptor_bytes = descriptor_bytes_for(
+                range.host_gather_descriptors.size());
             runtime::copy_bytes_async(
-                destination, range.bucket.device(), gradient.data(),
-                gradient.device(), bytes, communicator.stream());
-            offset += elements;
+                range.gather_descriptors.data(), range.bucket.device(),
+                range.host_gather_descriptors.data(), Device::cpu(),
+                descriptor_bytes, communicator.stream());
+            hip::launch_gather_scale(
+                static_cast<const hip::GatherScaleDescriptor*>(
+                    range.gather_descriptors.data()),
+                range.host_gather_descriptors.size(),
+                static_cast<float*>(range.bucket.data()),
+                static_cast<std::int64_t>(range.elements),
+                impl_->overlap_local_gradient_scale,
+                communicator.stream().native_handle());
+        } else {
+            std::size_t offset = 0;
+            for (std::size_t index = range.first_parameter;
+                 index < range.end_parameter; ++index) {
+                const auto& gradient = impl_->overlap_parameters[index]->grad();
+                const auto elements = static_cast<std::size_t>(gradient.numel());
+                const auto bytes = bytes_for(
+                    elements, "rank gradient overlap pack bytes overflow");
+                auto* destination =
+                    static_cast<std::byte*>(range.bucket.data()) +
+                    offset * sizeof(float);
+                runtime::copy_bytes_async(
+                    destination, range.bucket.device(), gradient.data(),
+                    gradient.device(), bytes, communicator.stream());
+                offset += elements;
+            }
         }
         communicator.enqueue_all_reduce_average_in_place(
-            range.bucket, impl_->overlap_local_gradient_scale);
+            range.bucket, impl_->gather_scale
+                              ? 1.0F
+                              : impl_->overlap_local_gradient_scale);
         range.overlap_enqueued = true;
         ++impl_->overlap_enqueued_buckets;
         --impl_->next_overlap_range;
@@ -341,10 +386,21 @@ RankBucketStats RankGradientBucketPlan::finish_overlap_step() {
     stats.plan_reused = true;
     stats.overlap_enabled = true;
     stats.overlapped_bucket_count = impl_->overlap_enqueued_buckets;
-    stats.weight_scale_calls =
-        impl_->overlap_local_gradient_scale == 1.0F
-            ? 0U
-            : impl_->ranges.size();
+    if (impl_->gather_scale) {
+        stats.gather_scale_calls = impl_->ranges.size();
+        stats.gather_descriptor_copy_calls = impl_->ranges.size();
+        stats.gather_descriptor_capacity_bytes =
+            impl_->gather_descriptor_capacity_bytes;
+        for (const auto& range : impl_->ranges) {
+            stats.gather_descriptor_bytes += descriptor_bytes_for(
+                range.host_gather_descriptors.size());
+        }
+    } else {
+        stats.weight_scale_calls =
+            impl_->overlap_local_gradient_scale == 1.0F
+                ? 0U
+                : impl_->ranges.size();
+    }
     stats.plan_capacity_elements = impl_->capacity_elements;
     stats.plan_capacity_bytes = bytes_for(
         impl_->capacity_elements,
@@ -352,7 +408,9 @@ RankBucketStats RankGradientBucketPlan::finish_overlap_step() {
     for (auto& range : impl_->ranges) {
         add_elements(stats.total_elements, range.elements);
         stats.gradient_view_count += range.gradients.size();
-        stats.pack_copy_calls += range.gradients.size();
+        if (!impl_->gather_scale) {
+            stats.pack_copy_calls += range.gradients.size();
+        }
         for (std::size_t local = 0;
              local < range.gradients.size(); ++local) {
             impl_->overlap_parameters[range.first_parameter + local]->set_grad(
@@ -748,7 +806,8 @@ RankBucketStats all_reduce_rank_gradients(
     std::size_t maximum_bucket_bytes,
     RankGradientBucketPlan* persistent_plan,
     bool gradient_views,
-    float local_gradient_scale) {
+    float local_gradient_scale,
+    bool gather_scale) {
     if (maximum_bucket_bytes < sizeof(float)) {
         throw std::invalid_argument(
             "rank gradient bucket must hold at least one float");
@@ -756,6 +815,10 @@ RankBucketStats all_reduce_rank_gradients(
     if (gradient_views && persistent_plan == nullptr) {
         throw std::invalid_argument(
             "rank gradient bucket views require persistent storage");
+    }
+    if (gather_scale && (!gradient_views || persistent_plan == nullptr)) {
+        throw std::invalid_argument(
+            "rank gather-scale requires persistent gradient views");
     }
     if (!std::isfinite(local_gradient_scale) ||
         local_gradient_scale <= 0.0F) {
@@ -789,6 +852,7 @@ RankBucketStats all_reduce_rank_gradients(
                 plan.device != communicator.device() ||
                 plan.maximum_bucket_bytes != maximum_bucket_bytes ||
                 plan.gradient_views != gradient_views ||
+                plan.gather_scale != gather_scale ||
                 plan.parameters != parameters ||
                 plan.ranges.size() != ranges.size()) {
                 throw std::invalid_argument(
@@ -823,6 +887,7 @@ RankBucketStats all_reduce_rank_gradients(
             candidate.device = communicator.device();
             candidate.maximum_bucket_bytes = maximum_bucket_bytes;
             candidate.gradient_views = gradient_views;
+            candidate.gather_scale = gather_scale;
             candidate.parameters = parameters;
             candidate.ranges.reserve(ranges.size());
             for (const auto& range : ranges) {
@@ -841,12 +906,17 @@ RankBucketStats all_reduce_rank_gradients(
                 add_elements(candidate.capacity_elements, range.elements);
                 persistent.gradients.reserve(
                     range.end_parameter - range.first_parameter);
+                if (gather_scale) {
+                    persistent.host_gather_descriptors.reserve(
+                        range.end_parameter - range.first_parameter);
+                }
                 std::size_t offset = 0;
                 for (std::size_t index = range.first_parameter;
                      index < range.end_parameter; ++index) {
                     const auto& gradient = parameters[index]->grad();
                     const auto elements =
                         static_cast<std::size_t>(gradient.numel());
+                    const auto destination_begin = offset;
                     if (gradient_views) {
                         persistent.gradients.emplace_back(Tensor::from_storage(
                             persistent.bucket.storage(), gradient.shape(),
@@ -860,6 +930,31 @@ RankBucketStats all_reduce_rank_gradients(
                         add_elements(candidate.capacity_elements, elements);
                     }
                     add_elements(offset, elements);
+                    if (gather_scale) {
+                        persistent.host_gather_descriptors.push_back({
+                            .source = static_cast<const float*>(gradient.data()),
+                            .destination_begin = static_cast<std::int64_t>(
+                                destination_begin),
+                            .destination_end = static_cast<std::int64_t>(offset),
+                        });
+                    }
+                }
+                if (gather_scale) {
+                    const auto descriptor_bytes = descriptor_bytes_for(
+                        persistent.host_gather_descriptors.size());
+                    const auto descriptor_elements =
+                        descriptor_bytes / sizeof(float);
+                    if (descriptor_elements > static_cast<std::size_t>(
+                            std::numeric_limits<std::int64_t>::max())) {
+                        throw std::overflow_error(
+                            "rank gather-scale descriptor shape exceeds int64");
+                    }
+                    persistent.gather_descriptors = Tensor(
+                        Shape{static_cast<std::int64_t>(descriptor_elements)},
+                        DType::Float32, communicator.device());
+                    add_elements(
+                        candidate.gather_descriptor_capacity_bytes,
+                        descriptor_bytes);
                 }
                 candidate.ranges.push_back(std::move(persistent));
             }
@@ -873,29 +968,60 @@ RankBucketStats all_reduce_rank_gradients(
         stats.plan_capacity_bytes = bytes_for(
             plan.capacity_elements,
             "persistent rank gradient bucket capacity bytes overflow");
+        stats.gather_descriptor_capacity_bytes =
+            plan.gather_descriptor_capacity_bytes;
         if (gradient_views) {
             stats.gradient_view_count = parameters.size();
         }
         for (auto& range : plan.ranges) {
             std::size_t offset = 0;
-            for (std::size_t index = range.first_parameter;
-                 index < range.end_parameter; ++index) {
-                const auto& gradient = parameters[index]->grad();
-                const auto elements = static_cast<std::size_t>(gradient.numel());
-                const auto bytes = bytes_for(
-                    elements, "persistent rank gradient pack bytes overflow");
-                auto* destination =
-                    static_cast<std::byte*>(range.bucket.data()) +
-                    offset * sizeof(float);
+            if (gather_scale) {
+                for (std::size_t local = 0;
+                     local < range.host_gather_descriptors.size(); ++local) {
+                    range.host_gather_descriptors[local].source =
+                        static_cast<const float*>(
+                            parameters[range.first_parameter + local]
+                                ->grad().data());
+                }
+                const auto descriptor_bytes = descriptor_bytes_for(
+                    range.host_gather_descriptors.size());
                 runtime::copy_bytes_async(
-                    destination, range.bucket.device(), gradient.data(),
-                    gradient.device(), bytes, communicator.stream());
-                ++stats.pack_copy_calls;
-                offset += elements;
+                    range.gather_descriptors.data(), range.bucket.device(),
+                    range.host_gather_descriptors.data(), Device::cpu(),
+                    descriptor_bytes, communicator.stream());
+                hip::launch_gather_scale(
+                    static_cast<const hip::GatherScaleDescriptor*>(
+                        range.gather_descriptors.data()),
+                    range.host_gather_descriptors.size(),
+                    static_cast<float*>(range.bucket.data()),
+                    static_cast<std::int64_t>(range.elements),
+                    local_gradient_scale,
+                    communicator.stream().native_handle());
+                ++stats.gather_descriptor_copy_calls;
+                stats.gather_descriptor_bytes += descriptor_bytes;
+                ++stats.gather_scale_calls;
+            } else {
+                for (std::size_t index = range.first_parameter;
+                     index < range.end_parameter; ++index) {
+                    const auto& gradient = parameters[index]->grad();
+                    const auto elements = static_cast<std::size_t>(
+                        gradient.numel());
+                    const auto bytes = bytes_for(
+                        elements,
+                        "persistent rank gradient pack bytes overflow");
+                    auto* destination =
+                        static_cast<std::byte*>(range.bucket.data()) +
+                        offset * sizeof(float);
+                    runtime::copy_bytes_async(
+                        destination, range.bucket.device(), gradient.data(),
+                        gradient.device(), bytes, communicator.stream());
+                    ++stats.pack_copy_calls;
+                    offset += elements;
+                }
             }
             communicator.enqueue_all_reduce_average_in_place(
-                range.bucket, local_gradient_scale);
-            if (local_gradient_scale != 1.0F) {
+                range.bucket, gather_scale ? 1.0F : local_gradient_scale);
+            if (!gather_scale && local_gradient_scale != 1.0F) {
                 ++stats.weight_scale_calls;
             }
             if (!gradient_views) {

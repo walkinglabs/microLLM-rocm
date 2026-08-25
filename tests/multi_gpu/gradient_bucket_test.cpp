@@ -428,6 +428,53 @@ TEST(RcclRankGradientBucketTest,
 }
 
 TEST(RcclRankGradientBucketTest,
+     GatherScaleRefreshesSourcesAndReplacesPackAndScaleCalls) {
+    if (runtime::hip_device_count() < 1) {
+        GTEST_SKIP() << "visible HIP device required";
+    }
+    const auto id = create_communicator_id();
+    RankCommunicator communicator(0, 1, 0, id);
+    autograd::Value first(Tensor({2}, DType::Float32, Device::hip(0)), true);
+    autograd::Value second(Tensor({3}, DType::Float32, Device::hip(0)), true);
+    first.set_grad(Tensor::from_vector({1, 2}, {2}).to(Device::hip(0)));
+    second.set_grad(Tensor::from_vector({3, 4, 5}, {3}).to(Device::hip(0)));
+
+    RankGradientBucketPlan plan;
+    const auto initial = all_reduce_rank_gradients(
+        communicator, {&first, &second}, 4096, &plan, true, 2.0F, true);
+    EXPECT_EQ(initial.pack_copy_calls, 0U);
+    EXPECT_EQ(initial.weight_scale_calls, 0U);
+    EXPECT_EQ(initial.gather_scale_calls, 1U);
+    EXPECT_EQ(initial.gather_descriptor_copy_calls, 1U);
+    EXPECT_EQ(initial.gather_descriptor_bytes,
+              2U * sizeof(void*) + 4U * sizeof(std::int64_t));
+    EXPECT_EQ(initial.gather_descriptor_capacity_bytes,
+              initial.gather_descriptor_bytes);
+    EXPECT_EQ(first.grad().to_vector(), (std::vector<float>{2, 4}));
+    EXPECT_EQ(second.grad().to_vector(), (std::vector<float>{6, 8, 10}));
+
+    first.set_grad(Tensor::from_vector({6, 8}, {2}).to(Device::hip(0)));
+    second.set_grad(Tensor::from_vector({10, 12, 14}, {3}).to(Device::hip(0)));
+    plan.begin_overlap_step(communicator, {&first, &second}, 0.5F);
+    plan.mark_parameter_ready(1);
+    plan.mark_parameter_ready(0);
+    const auto overlap = plan.finish_overlap_step();
+    EXPECT_EQ(overlap.pack_copy_calls, 0U);
+    EXPECT_EQ(overlap.weight_scale_calls, 0U);
+    EXPECT_EQ(overlap.gather_scale_calls, 1U);
+    EXPECT_EQ(overlap.gather_descriptor_copy_calls, 1U);
+    EXPECT_EQ(first.grad().to_vector(), (std::vector<float>{3, 4}));
+    EXPECT_EQ(second.grad().to_vector(), (std::vector<float>{5, 6, 7}));
+
+    RankGradientBucketPlan invalid;
+    EXPECT_THROW(
+        (void)all_reduce_rank_gradients(
+            communicator, {&first, &second}, 4096, &invalid, false,
+            1.0F, true),
+        std::invalid_argument);
+}
+
+TEST(RcclRankGradientBucketTest,
      ClearingActiveOverlapAbortsBeforeReleasingStorage) {
     if (runtime::hip_device_count() < 1) {
         GTEST_SKIP() << "visible HIP device required";

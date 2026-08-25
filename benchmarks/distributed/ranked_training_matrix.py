@@ -15,7 +15,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 AVAILABLE_POLICIES = (
     "per-parameter", "bucket", "persistent-bucket", "bucket-views",
-    "overlap-views", "bucket-weighted-overlap")
+    "overlap-views", "bucket-weighted-overlap",
+    "gather-weighted-overlap")
 DEFAULT_POLICIES = ("per-parameter", "bucket")
 
 
@@ -65,7 +66,8 @@ def options() -> argparse.Namespace:
             "persistent-bucket" not in args.policies):
         parser.error("bucket-views comparison requires persistent-bucket")
     if (any(policy in args.policies for policy in
-            ("overlap-views", "bucket-weighted-overlap")) and
+            ("overlap-views", "bucket-weighted-overlap",
+             "gather-weighted-overlap")) and
             "bucket-views" not in args.policies):
         parser.error("overlap comparison requires bucket-views")
     if args.rank_batch_rows:
@@ -183,6 +185,9 @@ def main() -> int:
                 "maximum_rank_step_overlapped_buckets",
                 "maximum_rank_step_weighted_gradient_scales",
                 "maximum_rank_step_weighted_bucket_scales",
+                "maximum_rank_step_gather_scale_calls",
+                "maximum_rank_step_gather_descriptor_copy_calls",
+                "maximum_rank_step_gather_descriptor_bytes",
             )
             if any(not isinstance(value.get(field), list) or
                    len(value[field]) != args.steps for field in step_fields):
@@ -197,18 +202,21 @@ def main() -> int:
                               if policy in
                               ("persistent-bucket", "bucket-views",
                                "overlap-views",
-                               "bucket-weighted-overlap") else
+                               "bucket-weighted-overlap",
+                               "gather-weighted-overlap") else
                               [0] * args.steps)
             if (value["maximum_rank_step_plan_reused"] != expected_reuse or
                     value.get("persistent_storage") !=
                     (policy in ("persistent-bucket", "bucket-views",
                                 "overlap-views",
-                                "bucket-weighted-overlap"))):
+                                "bucket-weighted-overlap",
+                                "gather-weighted-overlap"))):
                 raise RuntimeError("ranked persistent plan state changed")
             expected_scales = (parameter_tensors
                                if args.input_weighting == "token-weighted" and
                                len(set(args.rank_batch_rows)) > 1 and
-                               policy != "bucket-weighted-overlap" else 0)
+                               policy not in ("bucket-weighted-overlap",
+                                              "gather-weighted-overlap") else 0)
             average_tokens = (
                 sum(args.rank_batch_rows) * args.context / args.world_size)
             expected_rank_scale_totals = [
@@ -235,6 +243,24 @@ def main() -> int:
                     expected_bucket_scales * args.steps):
                 raise RuntimeError(
                     "ranked weighted-bucket scale count changed")
+            expected_gather_calls = (
+                value["maximum_rank_step_buckets"][0]
+                if policy == "gather-weighted-overlap" else 0)
+            expected_descriptor_bytes = (
+                parameter_tensors * 24
+                if policy == "gather-weighted-overlap" else 0)
+            if (value["maximum_rank_step_gather_scale_calls"] !=
+                    [expected_gather_calls] * args.steps or
+                    value["maximum_rank_step_gather_descriptor_copy_calls"] !=
+                    [expected_gather_calls] * args.steps or
+                    value["maximum_rank_step_gather_descriptor_bytes"] !=
+                    [expected_descriptor_bytes] * args.steps or
+                    value.get("maximum_gather_scale_calls_per_rank") !=
+                    expected_gather_calls * args.steps or
+                    value.get(
+                        "maximum_gather_descriptor_capacity_bytes_per_rank") !=
+                    expected_descriptor_bytes):
+                raise RuntimeError("ranked gather-scale count changed")
             value["process_run"] = process_run
             raw.append(value)
     failure_command = [

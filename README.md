@@ -203,6 +203,9 @@ Start with [Quick start](#quick-start), consume the installed library through th
 > reaches `1.0661x` steady-step speed with exact cross-policy parameters and no
 > memory delta. It remains explicit because one paired run regressed and the
 > weakest leave-one sensitivity is `1.0027x`.
+> A further `gather-weighted-overlap` candidate removes the remaining 57 pack
+> copies using three 1,368-byte-described gather-scale launches. Its correctness
+> smoke passes; formal T128 performance is pending and it is not a default.
 
 </details>
 

@@ -33,6 +33,11 @@ def main() -> int:
         "--overlap-policy", "bucket-weighted-overlap",
         "maximum_rank_step_weighted_bucket_scales",
         "maximum_weighted_bucket_scales_per_rank",
+        "gather-weighted-overlap",
+        "maximum_rank_step_gather_scale_calls",
+        "maximum_rank_step_gather_descriptor_copy_calls",
+        "maximum_rank_step_gather_descriptor_bytes",
+        "maximum_gather_descriptor_capacity_bytes_per_rank",
     ):
         assert token in text
     print("ranked overlap context matrix contract: pass")

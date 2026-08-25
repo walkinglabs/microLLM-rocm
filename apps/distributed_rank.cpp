@@ -147,7 +147,8 @@ Options parse(int argc, char** argv) {
          options.reducer != "persistent-bucket" &&
          options.reducer != "bucket-views" &&
          options.reducer != "overlap-views" &&
-         options.reducer != "bucket-weighted-overlap") ||
+         options.reducer != "bucket-weighted-overlap" &&
+         options.reducer != "gather-weighted-overlap") ||
         options.bucket_bytes < sizeof(float) ||
         (options.model != "tiny" && options.model != "model-s")) {
         throw std::invalid_argument("distributed rank options are invalid");
@@ -438,10 +439,17 @@ struct ReducerStats {
     std::size_t overlapped_buckets = 0;
     std::size_t weighted_gradient_scales = 0;
     std::size_t weighted_bucket_scales = 0;
+    std::size_t gather_scale_calls = 0;
+    std::size_t gather_descriptor_copy_calls = 0;
+    std::size_t gather_descriptor_bytes = 0;
+    std::size_t gather_descriptor_capacity_bytes = 0;
     std::vector<std::size_t> step_overlap_enabled;
     std::vector<std::size_t> step_overlapped_buckets;
     std::vector<std::size_t> step_weighted_gradient_scales;
     std::vector<std::size_t> step_weighted_bucket_scales;
+    std::vector<std::size_t> step_gather_scale_calls;
+    std::vector<std::size_t> step_gather_descriptor_copy_calls;
+    std::vector<std::size_t> step_gather_descriptor_bytes;
 };
 
 struct PhaseTimings {
@@ -530,6 +538,14 @@ void write_result(const char* mode, int rank,
               << reducer_stats.weighted_gradient_scales
               << ",\"weighted_bucket_scales\":"
               << reducer_stats.weighted_bucket_scales
+              << ",\"gather_scale_calls\":"
+              << reducer_stats.gather_scale_calls
+              << ",\"gather_descriptor_copy_calls\":"
+              << reducer_stats.gather_descriptor_copy_calls
+              << ",\"gather_descriptor_bytes\":"
+              << reducer_stats.gather_descriptor_bytes
+              << ",\"gather_descriptor_capacity_bytes\":"
+              << reducer_stats.gather_descriptor_capacity_bytes
               << ",\"engine_current_bytes\":" << allocation.current_bytes
               << ",\"engine_peak_bytes\":" << allocation.peak_bytes
               << ",\"engine_cached_bytes\":" << allocation.cached_bytes
@@ -614,6 +630,12 @@ void write_result(const char* mode, int rank,
     write_number_array(reducer_stats.step_weighted_gradient_scales);
     std::cout << ",\"step_weighted_bucket_scales\":";
     write_number_array(reducer_stats.step_weighted_bucket_scales);
+    std::cout << ",\"step_gather_scale_calls\":";
+    write_number_array(reducer_stats.step_gather_scale_calls);
+    std::cout << ",\"step_gather_descriptor_copy_calls\":";
+    write_number_array(reducer_stats.step_gather_descriptor_copy_calls);
+    std::cout << ",\"step_gather_descriptor_bytes\":";
+    write_number_array(reducer_stats.step_gather_descriptor_bytes);
     std::cout << ",\"losses\":";
     write_number_array(losses);
     std::cout << ",\"parameter_names\":[";
@@ -762,10 +784,14 @@ void run_rank(const Options& options) {
     ReducerStats reducer_stats;
     microllm::multi_gpu::RankGradientBucketPlan persistent_bucket_plan;
     std::size_t ready_weighted_gradient_scales = 0;
+    const auto gather_weighted_overlap =
+        options.reducer == "gather-weighted-overlap";
     const auto bucket_weighted_overlap =
         options.reducer == "bucket-weighted-overlap";
+    const auto reducer_weighted_overlap =
+        bucket_weighted_overlap || gather_weighted_overlap;
     const auto overlap_reducer =
-        options.reducer == "overlap-views" || bucket_weighted_overlap;
+        options.reducer == "overlap-views" || reducer_weighted_overlap;
     if (overlap_reducer) {
         for (std::size_t index = 0; index < parameters.size(); ++index) {
             auto* parameter = parameters[index];
@@ -773,7 +799,7 @@ void run_rank(const Options& options) {
                 [&persistent_bucket_plan, &ready_weighted_gradient_scales,
                  parameter, index, local_gradient_scale,
                  weighted = options.input_weighting == "token-weighted" &&
-                            !bucket_weighted_overlap] {
+                            !reducer_weighted_overlap] {
                     if (persistent_bucket_plan.overlap_active()) {
                         if (weighted && local_gradient_scale != 1.0F) {
                             auto gradient = parameter->grad();
@@ -802,7 +828,7 @@ void run_rank(const Options& options) {
         if (overlap_step) {
             persistent_bucket_plan.begin_overlap_step(
                 communicator, parameters,
-                bucket_weighted_overlap ? local_gradient_scale : 1.0F);
+                reducer_weighted_overlap ? local_gradient_scale : 1.0F);
         }
         const auto loss = model.loss(batch.inputs, batch.targets);
         losses.push_back(loss.data().to_vector()[0]);
@@ -810,7 +836,7 @@ void run_rank(const Options& options) {
         if (!overlap_step) {
             microllm::runtime::synchronize(communicator.device());
         }
-        if (!bucket_weighted_overlap && !overlap_step &&
+        if (!reducer_weighted_overlap && !overlap_step &&
             options.input_weighting == "token-weighted" &&
             local_gradient_scale != 1.0F) {
             for (auto* parameter : parameters) {
@@ -824,7 +850,7 @@ void run_rank(const Options& options) {
         const auto expected_weighted_gradient_scales =
             options.input_weighting == "token-weighted" &&
                     local_gradient_scale != 1.0F &&
-                    !bucket_weighted_overlap
+                    !reducer_weighted_overlap
                 ? parameters.size()
                 : 0U;
         if (ready_weighted_gradient_scales !=
@@ -848,6 +874,9 @@ void run_rank(const Options& options) {
         std::size_t step_overlap_enabled = 0;
         std::size_t step_overlapped_buckets = 0;
         std::size_t step_weighted_bucket_scales = 0;
+        std::size_t step_gather_scale_calls = 0;
+        std::size_t step_gather_descriptor_copy_calls = 0;
+        std::size_t step_gather_descriptor_bytes = 0;
         if (overlap_step) {
             const auto buckets =
                 persistent_bucket_plan.finish_overlap_step();
@@ -865,6 +894,12 @@ void run_rank(const Options& options) {
             step_overlap_enabled = buckets.overlap_enabled ? 1U : 0U;
             step_overlapped_buckets = buckets.overlapped_bucket_count;
             step_weighted_bucket_scales = buckets.weight_scale_calls;
+            step_gather_scale_calls = buckets.gather_scale_calls;
+            step_gather_descriptor_copy_calls =
+                buckets.gather_descriptor_copy_calls;
+            step_gather_descriptor_bytes = buckets.gather_descriptor_bytes;
+            reducer_stats.gather_descriptor_capacity_bytes =
+                buckets.gather_descriptor_capacity_bytes;
             reducer_stats.persistent_storage = buckets.persistent_storage;
             reducer_stats.plan_reuses += step_plan_reused;
             reducer_stats.plan_capacity_elements =
@@ -876,18 +911,19 @@ void run_rank(const Options& options) {
             options.reducer == "persistent-bucket" ||
             options.reducer == "bucket-views" ||
             options.reducer == "overlap-views" ||
-            bucket_weighted_overlap) {
+            reducer_weighted_overlap) {
             auto* plan = options.reducer != "bucket"
                              ? &persistent_bucket_plan
                              : nullptr;
             const auto gradient_views =
                 options.reducer == "bucket-views" ||
                 options.reducer == "overlap-views" ||
-                bucket_weighted_overlap;
+                reducer_weighted_overlap;
             const auto buckets = microllm::multi_gpu::all_reduce_rank_gradients(
                 communicator, parameters, options.bucket_bytes, plan,
                 gradient_views,
-                bucket_weighted_overlap ? local_gradient_scale : 1.0F);
+                reducer_weighted_overlap ? local_gradient_scale : 1.0F,
+                gather_weighted_overlap);
             reducer_stats.collectives += buckets.bucket_count;
             reducer_stats.buckets += buckets.bucket_count;
             reducer_stats.pack_copies += buckets.pack_copy_calls;
@@ -899,6 +935,12 @@ void run_rank(const Options& options) {
             step_unpack_copies = buckets.unpack_copy_calls;
             step_gradient_views = buckets.gradient_view_count;
             step_weighted_bucket_scales = buckets.weight_scale_calls;
+            step_gather_scale_calls = buckets.gather_scale_calls;
+            step_gather_descriptor_copy_calls =
+                buckets.gather_descriptor_copy_calls;
+            step_gather_descriptor_bytes = buckets.gather_descriptor_bytes;
+            reducer_stats.gather_descriptor_capacity_bytes =
+                buckets.gather_descriptor_capacity_bytes;
             step_plan_reused = buckets.plan_reused ? 1U : 0U;
             reducer_stats.persistent_storage = buckets.persistent_storage;
             reducer_stats.plan_reuses += step_plan_reused;
@@ -966,6 +1008,29 @@ void run_rank(const Options& options) {
             step_weighted_bucket_scales;
         reducer_stats.step_weighted_bucket_scales.push_back(
             step_weighted_bucket_scales);
+        const auto expected_gather_scale_calls =
+            gather_weighted_overlap ? step_buckets : 0U;
+        if (step_gather_scale_calls != expected_gather_scale_calls ||
+            step_gather_descriptor_copy_calls !=
+                expected_gather_scale_calls ||
+            (gather_weighted_overlap &&
+             step_gather_descriptor_bytes == 0) ||
+            (!gather_weighted_overlap &&
+             step_gather_descriptor_bytes != 0)) {
+            throw std::runtime_error(
+                "ranked gather-scale reducer counters changed");
+        }
+        reducer_stats.gather_scale_calls += step_gather_scale_calls;
+        reducer_stats.gather_descriptor_copy_calls +=
+            step_gather_descriptor_copy_calls;
+        reducer_stats.gather_descriptor_bytes +=
+            step_gather_descriptor_bytes;
+        reducer_stats.step_gather_scale_calls.push_back(
+            step_gather_scale_calls);
+        reducer_stats.step_gather_descriptor_copy_calls.push_back(
+            step_gather_descriptor_copy_calls);
+        reducer_stats.step_gather_descriptor_bytes.push_back(
+            step_gather_descriptor_bytes);
         const auto optimizer_begin = SteadyClock::now();
         optimizer.step();
         microllm::runtime::synchronize(communicator.device());
