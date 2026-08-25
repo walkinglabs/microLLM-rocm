@@ -109,6 +109,9 @@ OPTIMIZER_GRAPH_PREFLIGHT_CHART = (
 QUIESCENT_HANDOFF_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
                           "2026-08-24-quiescent-allocator-handoff")
 QUIESCENT_HANDOFF_CHART = ROOT / "assets" / "quiescent-allocator-handoff.svg"
+OPTIMIZER_GRAPH_MODEL_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
+                              "2026-08-24-optimizer-graph-model-gate")
+OPTIMIZER_GRAPH_MODEL_CHART = ROOT / "assets" / "optimizer-graph-model-gate.svg"
 
 
 def rows() -> list[dict]:
@@ -2697,6 +2700,65 @@ def quiescent_allocator_handoff_svg() -> str:
     return "\n".join(parts)
 
 
+def optimizer_graph_model_gate_svg() -> str:
+    summary = json.loads((OPTIMIZER_GRAPH_MODEL_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    rows = summary["comparisons"]
+    width, height = 1600, 740
+    chart_x, chart_y, chart_w, chart_h = 180, 150, 1240, 390
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 226 · Model Optimizer Graph Gate", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "21 fresh processes · exact loss/parameter · two nodes · handoff cost included in step",
+             16, "#5b6474", anchor="middle"),
+        f'<rect x="{chart_x}" y="{chart_y}" width="{chart_w}" height="{chart_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+    ]
+
+    def y(value: float) -> float:
+        return chart_y + chart_h * (1.10 - value) / 0.55
+
+    for tick in (0.6, 0.7, 0.8, 0.9, 1.0, 1.1):
+        position = y(tick)
+        color = "#2563eb" if tick == 1.0 else "#e5e9f0"
+        parts.append(f'<line x1="{chart_x}" y1="{position:.1f}" '
+                     f'x2="{chart_x+chart_w}" y2="{position:.1f}" stroke="{color}"/>')
+        parts.append(text(chart_x - 12, position + 5, f"{tick:.1f}×", 13,
+                          "#5b6474", anchor="end"))
+    group_w = chart_w / len(rows)
+    for index, row in enumerate(rows):
+        center = chart_x + group_w * (index + 0.5)
+        for offset, (field, color, label) in enumerate((
+                ("optimizer_speedup", "#e11d48", "optimizer"),
+                ("step_speedup", "#f59e0b", "full step"))):
+            value = row[field]
+            x = center - 100 + offset * 115
+            top = y(value)
+            base = y(0.55)
+            parts.append(f'<rect x="{x:.1f}" y="{top:.1f}" width="90" '
+                         f'height="{base-top:.1f}" fill="{color}" rx="6"/>')
+            parts.append(text(x + 45, top - 9, f"{value:.3f}×", 15,
+                              color, anchor="middle", weight=700))
+            parts.append(text(x + 45, chart_y + chart_h + 23, label, 13,
+                              "#5b6474", anchor="middle"))
+        model = "Qwen" if row["model"] == "qwen" else "DeepSeek"
+        parts.append(text(center, chart_y + chart_h + 58,
+                          f'{model} T{row["context"]}', 17,
+                          anchor="middle", weight=700))
+    parts.append(text(width / 2, 630,
+                      "optimizer: 0.798× / 0.807× / 0.656× · metadata H2D removed but device work regresses",
+                      18, "#b42335", anchor="middle", weight=700))
+    parts.append(text(width / 2, 675,
+                      "Qwen T8 full-step 1.050× is isolated noise/overlap; Qwen T512 and DeepSeek regress · no route",
+                      15, "#5b6474", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -2738,7 +2800,8 @@ def main() -> int:
                 GRADIENT_ADDRESS_CHART: gradient_address_stability_svg(),
                 OPTIMIZER_GRAPH_PREFLIGHT_CHART:
                     optimizer_graph_model_preflight_svg(),
-                QUIESCENT_HANDOFF_CHART: quiescent_allocator_handoff_svg()}
+                QUIESCENT_HANDOFF_CHART: quiescent_allocator_handoff_svg(),
+                OPTIMIZER_GRAPH_MODEL_CHART: optimizer_graph_model_gate_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

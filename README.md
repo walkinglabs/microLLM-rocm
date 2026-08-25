@@ -168,6 +168,9 @@ the chronological details are in the [optimization log](docs/optimization-log/RE
 - an explicit device-wide quiescent handoff starts a new default-Stream allocator phase, while
   every later non-default submission disables reuse again; 24-process preflight rescues Qwen
   T8/T512 and DeepSeek T8 but correctly retains the DeepSeek T512 rejection;
+- the final 21-process model gate rejects optimizer-only Graph routing: loss/parameters are exact
+  and metadata H2D is removed, yet Qwen/DeepSeek optimizer time is only `0.798×–0.656×` eager and
+  two of three complete steps regress; the research primitives remain explicit;
 - the first arena-backed heterogeneous FFN region uses official Qwen/DeepSeek FP32 shapes and
   four stable GEMM/SwiGLU nodes; three of four Graph rows improve `1.202×–2.970×`, while
   DeepSeek R32 at `1.005×` keeps routing shape-selective and outside the BF16 model default;
@@ -597,13 +600,13 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 528/528 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
-| CPU Debug | 335/335 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
-| ASan/UBSan CPU | 333/333 | host lifetime, external Storage and instrumented-package linking |
+| Full CPU/HIP configuration | 529/529 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
+| CPU Debug | 336/336 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
+| ASan/UBSan CPU | 334/334 | host lifetime, external Storage and instrumented-package linking |
 | MI300X/gfx942 HIP label | 181/181 | allocator/arena/Stream/Graph, grouped/exact vendor solutions, BF16/FP8 and model paths |
-| PyTorch-enabled CPU build | 309/309 | dispatcher parity, 32-step BF16 optimizer state, full graph/model oracle and all package paths |
+| PyTorch-enabled CPU build | 310/310 | dispatcher parity, 32-step BF16 optimizer state, full graph/model oracle and all package paths |
 | Multi-GPU/RCCL | 12/12 | collectives, global-batch equivalence, gradient buckets, DDP trainer/CLI and per-device hipBLASLt ownership; RCCL label 14/14 with package gates |
-| Registered test files | 98 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| Registered test files | 99 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
 | CPU source coverage | 78.4% lines / 86.6% functions / 59.1% branches | 8,878/11,329 lines; quiescent handoff and other HIP-only branches remain visible; GCC 13.3 + gcovr 8.3 |
 

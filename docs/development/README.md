@@ -470,3 +470,5 @@ the next gate. Records are append-only except for factual corrections.
   beginner-friendly Stream/allocator conflict, snapshot safety gate and zero-launch rejection.
 - [2026-08-24-quiescent-allocator-handoff.md](2026-08-24-quiescent-allocator-handoff.md):
   beginner-friendly device-wide completion proof and reversible default/Graph phases.
+- [2026-08-24-optimizer-graph-model-gate.md](2026-08-24-optimizer-graph-model-gate.md):
+  beginner-friendly explanation of why fewer submissions can still lose on real model shapes.

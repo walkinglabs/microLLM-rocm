@@ -3697,3 +3697,14 @@ DeepSeek T512仍拒，保留了真实allocator顺序反例。
 吃掉收益，就转Event粒度，不降低正确性门。
 
 ![Quiescent allocator handoff](assets/quiescent-allocator-handoff.svg)
+
+## 243. Experiment 226：micro快36倍，模型optimizer却只有0.66×–0.81×
+
+最后21进程只launch三个snapshot安全case。两步loss、参数、step都精确一致，Graph固定2节点，
+optimizer metadata H2D从每步1次变0。可Qwen T8/T512 optimizer只有0.798×/0.807×，DeepSeek
+T8只有0.656×；完整step只有Qwen T8孤立1.050×，另两项回退。
+
+真实模型的大Tensor让通用multi grid输给现有Hybrid大Tensor路径。optimizer-only Graph track关闭，
+不再调阈值或block size；原语保留给未来graph-wide方案。
+
+![Model optimizer Graph gate](assets/optimizer-graph-model-gate.svg)

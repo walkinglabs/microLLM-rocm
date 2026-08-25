@@ -1,0 +1,90 @@
+{
+  "comparisons": [
+    {
+      "context": 8,
+      "maximum_loss_error": 0.0,
+      "maximum_parameter_error": 0.0,
+      "model": "qwen",
+      "optimizer_speedup": 0.797944228637298,
+      "policies": {
+        "eager": {
+          "mean_optimizer_ms": 4.0703175,
+          "mean_step_ms": 17.6533695,
+          "optimizer_h2d_calls": 2,
+          "preparation_ms": 0.0011
+        },
+        "graph": {
+          "mean_optimizer_ms": 5.101005,
+          "mean_step_ms": 16.817934,
+          "optimizer_h2d_calls": 0,
+          "preparation_ms": 1.704668
+        }
+      },
+      "runs": 3,
+      "step_speedup": 1.0496752752151364,
+      "steps": 2
+    },
+    {
+      "context": 512,
+      "maximum_loss_error": 0.0,
+      "maximum_parameter_error": 0.0,
+      "model": "qwen",
+      "optimizer_speedup": 0.8066932742545639,
+      "policies": {
+        "eager": {
+          "mean_optimizer_ms": 4.080522,
+          "mean_step_ms": 27.889107,
+          "optimizer_h2d_calls": 2,
+          "preparation_ms": 0.001017
+        },
+        "graph": {
+          "mean_optimizer_ms": 5.0583315,
+          "mean_step_ms": 30.006706,
+          "optimizer_h2d_calls": 0,
+          "preparation_ms": 1.94424
+        }
+      },
+      "runs": 3,
+      "step_speedup": 0.9294291416058796,
+      "steps": 2
+    },
+    {
+      "context": 8,
+      "maximum_loss_error": 0.0,
+      "maximum_parameter_error": 0.0,
+      "model": "deepseek",
+      "optimizer_speedup": 0.6559565764634332,
+      "policies": {
+        "eager": {
+          "mean_optimizer_ms": 12.441797,
+          "mean_step_ms": 30.983273,
+          "optimizer_h2d_calls": 2,
+          "preparation_ms": 0.000992
+        },
+        "graph": {
+          "mean_optimizer_ms": 18.9674095,
+          "mean_step_ms": 35.427195,
+          "optimizer_h2d_calls": 0,
+          "preparation_ms": 2.972789
+        }
+      },
+      "runs": 3,
+      "step_speedup": 0.8745618443684294,
+      "steps": 2
+    }
+  ],
+  "decision": "reject model optimizer Graph route; close optimizer-only Graph track",
+  "experiment": "optimizer_graph_model_gate",
+  "gates": {
+    "all_graph_safe_snapshots_match": true,
+    "deepseek_t512_remains_zero_launch": true,
+    "end_to_end_step_speedup_at_least_1_01": false,
+    "graph_has_two_nodes_and_no_optimizer_metadata_copy": true,
+    "loss_and_parameter_exact": true,
+    "optimizer_speedup_at_least_1_01": false
+  },
+  "processes": 21,
+  "runs_per_policy_case": 3,
+  "schema_version": 1,
+  "status": "pass"
+}

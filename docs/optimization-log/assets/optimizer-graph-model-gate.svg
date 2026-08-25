@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="740" viewBox="0 0 1600 740">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="800.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 226 · Model Optimizer Graph Gate</text>
+<text x="800.0" y="82.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">21 fresh processes · exact loss/parameter · two nodes · handoff cost included in step</text>
+<rect x="180" y="150" width="1240" height="390" fill="#ffffff" stroke="#cbd3df" rx="10"/>
+<line x1="180" y1="504.5" x2="1420" y2="504.5" stroke="#e5e9f0"/>
+<text x="168.0" y="509.5" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">0.6×</text>
+<line x1="180" y1="433.6" x2="1420" y2="433.6" stroke="#e5e9f0"/>
+<text x="168.0" y="438.6" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">0.7×</text>
+<line x1="180" y1="362.7" x2="1420" y2="362.7" stroke="#e5e9f0"/>
+<text x="168.0" y="367.7" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">0.8×</text>
+<line x1="180" y1="291.8" x2="1420" y2="291.8" stroke="#e5e9f0"/>
+<text x="168.0" y="296.8" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">0.9×</text>
+<line x1="180" y1="220.9" x2="1420" y2="220.9" stroke="#2563eb"/>
+<text x="168.0" y="225.9" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">1.0×</text>
+<line x1="180" y1="150.0" x2="1420" y2="150.0" stroke="#e5e9f0"/>
+<text x="168.0" y="155.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">1.1×</text>
+<rect x="286.7" y="364.2" width="90" height="175.8" fill="#e11d48" rx="6"/>
+<text x="331.7" y="355.2" font-family="Inter,Arial,sans-serif" font-size="15" fill="#e11d48" text-anchor="middle" font-weight="700">0.798×</text>
+<text x="331.7" y="563.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">optimizer</text>
+<rect x="401.7" y="185.7" width="90" height="354.3" fill="#f59e0b" rx="6"/>
+<text x="446.7" y="176.7" font-family="Inter,Arial,sans-serif" font-size="15" fill="#f59e0b" text-anchor="middle" font-weight="700">1.050×</text>
+<text x="446.7" y="563.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">full step</text>
+<text x="386.7" y="598.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="middle" font-weight="700">Qwen T8</text>
+<rect x="700.0" y="358.0" width="90" height="182.0" fill="#e11d48" rx="6"/>
+<text x="745.0" y="349.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#e11d48" text-anchor="middle" font-weight="700">0.807×</text>
+<text x="745.0" y="563.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">optimizer</text>
+<rect x="815.0" y="271.0" width="90" height="269.0" fill="#f59e0b" rx="6"/>
+<text x="860.0" y="262.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#f59e0b" text-anchor="middle" font-weight="700">0.929×</text>
+<text x="860.0" y="563.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">full step</text>
+<text x="800.0" y="598.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="middle" font-weight="700">Qwen T512</text>
+<rect x="1113.3" y="464.9" width="90" height="75.1" fill="#e11d48" rx="6"/>
+<text x="1158.3" y="455.9" font-family="Inter,Arial,sans-serif" font-size="15" fill="#e11d48" text-anchor="middle" font-weight="700">0.656×</text>
+<text x="1158.3" y="563.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">optimizer</text>
+<rect x="1228.3" y="309.9" width="90" height="230.1" fill="#f59e0b" rx="6"/>
+<text x="1273.3" y="300.9" font-family="Inter,Arial,sans-serif" font-size="15" fill="#f59e0b" text-anchor="middle" font-weight="700">0.875×</text>
+<text x="1273.3" y="563.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">full step</text>
+<text x="1213.3" y="598.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="middle" font-weight="700">DeepSeek T8</text>
+<text x="800.0" y="630.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#b42335" text-anchor="middle" font-weight="700">optimizer: 0.798× / 0.807× / 0.656× · metadata H2D removed but device work regresses</text>
+<text x="800.0" y="675.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="middle" font-weight="400">Qwen T8 full-step 1.050× is isolated noise/overlap; Qwen T512 and DeepSeek regress · no route</text>
+</svg>

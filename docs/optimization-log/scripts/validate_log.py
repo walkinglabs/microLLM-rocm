@@ -12420,6 +12420,105 @@ def validate_quiescent_allocator_handoff(
         min(preparations), max(preparations)
 
 
+def validate_optimizer_graph_model_gate(
+        errors: list[str]) -> tuple[int, float, float, float, float]:
+    data = REPOSITORY / (
+        "benchmarks/results/2026-08-24-optimizer-graph-model-gate")
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = {(row["model"], row["context"]): row
+                   for row in summary.get("comparisons", [])}
+    expected = {
+        ("qwen", 8): (0.797944228637298, 1.0496752752151364),
+        ("qwen", 512): (0.8066932742545639, 0.9294291416058796),
+        ("deepseek", 8): (0.6559565764634332, 0.8745618443684294),
+    }
+    counts = {(model, context, mode): 0
+              for model, context in expected for mode in ("eager", "graph")}
+    rejected = 0
+    for row in raw:
+        key = (row.get("model"), row.get("context"), row.get("mode"))
+        if key in counts: counts[key] += 1
+        if key == ("deepseek", 512, "preflight"): rejected += 1
+    expected_gates = {
+        "loss_and_parameter_exact": True,
+        "graph_has_two_nodes_and_no_optimizer_metadata_copy": True,
+        "all_graph_safe_snapshots_match": True,
+        "optimizer_speedup_at_least_1_01": False,
+        "end_to_end_step_speedup_at_least_1_01": False,
+        "deepseek_t512_remains_zero_launch": True,
+    }
+    if summary.get("schema_version") != 1 or summary.get("status") != "pass" or \
+            summary.get("experiment") != "optimizer_graph_model_gate" or \
+            summary.get("processes") != 21 or \
+            summary.get("runs_per_policy_case") != 3 or \
+            summary.get("gates") != expected_gates or \
+            summary.get("decision") != (
+                "reject model optimizer Graph route; close optimizer-only Graph track") or \
+            len(raw) != 21 or set(comparisons) != set(expected) or \
+            any(count != 3 for count in counts.values()) or rejected != 3 or \
+            any(abs(float(comparisons[key].get("optimizer_speedup", 0.0)) -
+                    values[0]) > 1.0e-12 or
+                abs(float(comparisons[key].get("step_speedup", 0.0)) -
+                    values[1]) > 1.0e-12 or
+                comparisons[key].get("maximum_loss_error") != 0.0 or
+                comparisons[key].get("maximum_parameter_error") != 0.0
+                for key, values in expected.items()) or \
+            any(row.get("schema_version") != 1 or row.get("status") != "pass" or
+                row.get("record_type") != "optimizer_graph_model_measurement" or
+                (row.get("mode") == "graph" and
+                 (row.get("captured_nodes") != 2 or
+                  row.get("optimizer_host_to_device_calls") != 0 or
+                  row.get("gradient_snapshot_matches") is not True))
+                for row in raw):
+        errors.append("optimizer Graph model gate evidence changed")
+    sources = (
+        ("optimizer_host_to_device_calls", REPOSITORY /
+         "benchmarks/single_gpu/benchmark_optimizer_graph_model.cpp"),
+        ("optimizer_speedup_at_least_1_01", REPOSITORY /
+         "benchmarks/single_gpu/optimizer_graph_model_matrix.py"),
+        ("exact_but_slower_graph_is_rejected", REPOSITORY /
+         "python/tests/test_optimizer_graph_model_matrix.py"),
+    )
+    if any(token not in path.read_text(encoding="utf-8")
+           for token, path in sources):
+        errors.append("optimizer Graph model gate source/test changed")
+    expected_tests = {
+        "cpu_debug": {"passed": 336, "total": 336},
+        "asan_ubsan": {"passed": 334, "total": 334},
+        "pytorch_enabled_cpu": {"passed": 310, "total": 310},
+        "hip_full_configuration": {
+            "passed": 529, "total": 529, "conditional_skips": 3},
+        "hip_label": {"passed": 181, "total": 181},
+        "rccl_multi_gpu": {"passed": 12, "total": 12},
+        "rccl_full_label": {"passed": 14, "total": 14},
+    }
+    if verification.get("status") != "pass" or \
+            verification.get("processes") != 21 or \
+            verification.get("exact_model_cases") != 3 or \
+            verification.get("graph_nodes") != 2 or \
+            verification.get("graph_optimizer_h2d_calls") != 0 or \
+            verification.get("optimizer_cases_passing_1_01") != 0 or \
+            verification.get("step_cases_passing_1_01") != 1 or \
+            verification.get("model_route_retained") is not False or \
+            verification.get("registered_test_files") != 99 or \
+            verification.get("tests") != expected_tests or \
+            verification.get("coverage") != {
+                "lines_percent": 78.4,
+                "functions_percent": 86.6,
+                "branches_percent": 59.1,
+                "lines_covered": 8878,
+                "lines_total": 11329}:
+        errors.append("optimizer Graph model gate verification changed")
+    optimizer_values = [value[0] for value in expected.values()]
+    step_values = [value[1] for value in expected.values()]
+    return len(raw), min(optimizer_values), max(optimizer_values), \
+        min(step_values), max(step_values)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -12623,7 +12722,8 @@ def validate_assets(errors: list[str]) -> None:
                  "adamw-graph-multi.svg",
                  "gradient-address-stability.svg",
                  "optimizer-graph-model-preflight.svg",
-                 "quiescent-allocator-handoff.svg"):
+                 "quiescent-allocator-handoff.svg",
+                 "optimizer-graph-model-gate.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -13044,6 +13144,9 @@ def main() -> int:
     quiescent_rows, quiescent_rescued, quiescent_launches, \
         quiescent_minimum, quiescent_maximum = \
         validate_quiescent_allocator_handoff(errors)
+    optimizer_model_rows, optimizer_model_minimum, optimizer_model_maximum, \
+        optimizer_model_step_minimum, optimizer_model_step_maximum = \
+        validate_optimizer_graph_model_gate(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -13419,6 +13522,10 @@ def main() -> int:
           f"quiescent_handoff={quiescent_rows}/{quiescent_rescued}/"
           f"{quiescent_launches}/{quiescent_minimum:.3f}/"
           f"{quiescent_maximum:.3f} "
+          f"optimizer_graph_model={optimizer_model_rows}/"
+          f"{optimizer_model_minimum:.3f}/{optimizer_model_maximum:.3f}/"
+          f"{optimizer_model_step_minimum:.3f}/"
+          f"{optimizer_model_step_maximum:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")
