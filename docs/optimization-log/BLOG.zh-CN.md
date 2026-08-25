@@ -4218,3 +4218,22 @@ speedup，完整step也只有`0.8527×`。
 Reducer与显存。
 
 ![Ranked persistent buckets](assets/ranked-persistent-buckets.svg)
+
+## 286. Experiment 269：不复制输出，只换一种Tensor解释
+
+bucket-views不再为57个输出gradient分配独立Storage。每个gradient只是3个bucket之一的连续view，
+shape、stride和offset在plan第一次建立时固定。后续step仍pack 57次并做3次collective，但unpack
+从57降到0。
+
+四策略各三个fresh双rank进程中，views相对persistent-copy Reducer/完整step为
+1.120×/1.006×，相对transient为1.763×/1.274×。相对逐参数Reducer略慢（0.984×），完整step
+为1.055×。
+
+plan容量从124.69MB减半到62.34MB，final current回到逐参数的249.38MB。peak仍是324.93MB，
+比逐参数多62.34MB，但比persistent-copy少62.34MB。内存并没有被一句“共享Storage”带过。
+
+24个rank进程的完整参数、CPU、loss和故障门通过。views显式保留、不默认。现在单进程阶段已经
+证明前两个自然bucket有ready窗口，下一实验终于可以把Event + ready-bucket enqueue迁移到真正
+one-process-per-GPU路径。
+
+![Ranked gradient views](assets/ranked-gradient-bucket-views.svg)

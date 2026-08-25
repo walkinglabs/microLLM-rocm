@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-25: Ranked gradient-as-bucket view result](2026-08-25-ranked-gradient-view-result.md)
 - [2026-08-25: Ranked gradient-as-bucket view infrastructure](2026-08-25-ranked-gradient-view-infrastructure.md)
 - [2026-08-25: Ranked persistent bucket result](2026-08-25-ranked-persistent-bucket-result.md)
 - [2026-08-25: Ranked persistent bucket infrastructure](2026-08-25-ranked-persistent-bucket-infrastructure.md)

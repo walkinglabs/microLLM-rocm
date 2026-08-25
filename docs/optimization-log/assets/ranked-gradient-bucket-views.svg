@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1560" height="900" viewBox="0 0 1560 900">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="780.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 269 · Ranked Gradient-as-Bucket Views</text>
+<text x="780.0" y="82.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">4 policies · 3 fresh two-rank launches each · 6 steady samples / policy · full parameter gates</text>
+<rect x="45" y="120" width="470" height="590" rx="18" fill="#ffffff" stroke="#d8dee9" stroke-width="2"/>
+<rect x="545" y="120" width="470" height="590" rx="18" fill="#ffffff" stroke="#d8dee9" stroke-width="2"/>
+<rect x="1045" y="120" width="470" height="590" rx="18" fill="#ffffff" stroke="#d8dee9" stroke-width="2"/>
+<text x="280.0" y="165.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#172033" text-anchor="middle" font-weight="700">Steady time · lower is better</text>
+<text x="80.0" y="215.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#64748b" text-anchor="start" font-weight="700">Per parameter</text>
+<text x="80.0" y="243.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#5b6474" text-anchor="start" font-weight="400">Reducer</text>
+<rect x="145" y="228" width="107.4" height="21" rx="6" fill="#64748b"/>
+<text x="480.0" y="245.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#64748b" text-anchor="end" font-weight="700">2.619</text>
+<text x="80.0" y="276.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#5b6474" text-anchor="start" font-weight="400">Step</text>
+<rect x="145" y="261" width="148.5" height="21" rx="6" fill="#64748b" opacity="0.70"/>
+<text x="480.0" y="278.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#64748b" text-anchor="end" font-weight="700">8.693 ms</text>
+<text x="80.0" y="327.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#dc2626" text-anchor="start" font-weight="700">Transient</text>
+<text x="80.0" y="355.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#5b6474" text-anchor="start" font-weight="400">Reducer</text>
+<rect x="145" y="340" width="192.4" height="21" rx="6" fill="#dc2626"/>
+<text x="480.0" y="357.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#dc2626" text-anchor="end" font-weight="700">4.692</text>
+<text x="80.0" y="388.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#5b6474" text-anchor="start" font-weight="400">Step</text>
+<rect x="145" y="373" width="179.3" height="21" rx="6" fill="#dc2626" opacity="0.70"/>
+<text x="480.0" y="390.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#dc2626" text-anchor="end" font-weight="700">10.497 ms</text>
+<text x="80.0" y="439.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#f59e0b" text-anchor="start" font-weight="700">Persistent copy</text>
+<text x="80.0" y="467.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#5b6474" text-anchor="start" font-weight="400">Reducer</text>
+<rect x="145" y="452" width="122.2" height="21" rx="6" fill="#f59e0b"/>
+<text x="480.0" y="469.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#f59e0b" text-anchor="end" font-weight="700">2.981</text>
+<text x="80.0" y="500.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#5b6474" text-anchor="start" font-weight="400">Step</text>
+<rect x="145" y="485" width="141.7" height="21" rx="6" fill="#f59e0b" opacity="0.70"/>
+<text x="480.0" y="502.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#f59e0b" text-anchor="end" font-weight="700">8.292 ms</text>
+<text x="80.0" y="551.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#16a34a" text-anchor="start" font-weight="700">Bucket views</text>
+<text x="80.0" y="579.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#5b6474" text-anchor="start" font-weight="400">Reducer</text>
+<rect x="145" y="564" width="109.1" height="21" rx="6" fill="#16a34a"/>
+<text x="480.0" y="581.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16a34a" text-anchor="end" font-weight="700">2.662</text>
+<text x="80.0" y="612.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#5b6474" text-anchor="start" font-weight="400">Step</text>
+<rect x="145" y="597" width="140.8" height="21" rx="6" fill="#16a34a" opacity="0.70"/>
+<text x="480.0" y="614.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16a34a" text-anchor="end" font-weight="700">8.242 ms</text>
+<text x="280.0" y="675.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#166534" text-anchor="middle" font-weight="700">Views vs copy: 1.120× reducer · 1.006× step</text>
+<text x="780.0" y="165.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#172033" text-anchor="middle" font-weight="700">Engine memory / rank</text>
+<text x="580.0" y="215.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#64748b" text-anchor="start" font-weight="700">Per parameter</text>
+<text x="580.0" y="243.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#5b6474" text-anchor="start" font-weight="400">Current</text>
+<rect x="650" y="228" width="127.7" height="21" rx="6" fill="#64748b"/>
+<text x="980.0" y="245.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#64748b" text-anchor="end" font-weight="700">249.4</text>
+<text x="580.0" y="276.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#5b6474" text-anchor="start" font-weight="400">Peak</text>
+<rect x="650" y="261" width="134.5" height="21" rx="6" fill="#64748b" opacity="0.70"/>
+<text x="980.0" y="278.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#64748b" text-anchor="end" font-weight="700">262.6 MB</text>
+<text x="580.0" y="327.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#dc2626" text-anchor="start" font-weight="700">Transient</text>
+<text x="580.0" y="355.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#5b6474" text-anchor="start" font-weight="400">Current</text>
+<rect x="650" y="340" width="127.7" height="21" rx="6" fill="#dc2626"/>
+<text x="980.0" y="357.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#dc2626" text-anchor="end" font-weight="700">249.4</text>
+<text x="580.0" y="388.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#5b6474" text-anchor="start" font-weight="400">Peak</text>
+<rect x="650" y="373" width="161.3" height="21" rx="6" fill="#dc2626" opacity="0.70"/>
+<text x="980.0" y="390.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#dc2626" text-anchor="end" font-weight="700">314.9 MB</text>
+<text x="580.0" y="439.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#f59e0b" text-anchor="start" font-weight="700">Persistent copy</text>
+<text x="580.0" y="467.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#5b6474" text-anchor="start" font-weight="400">Current</text>
+<rect x="650" y="452" width="159.7" height="21" rx="6" fill="#f59e0b"/>
+<text x="980.0" y="469.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#f59e0b" text-anchor="end" font-weight="700">311.7</text>
+<text x="580.0" y="500.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#5b6474" text-anchor="start" font-weight="400">Peak</text>
+<rect x="650" y="485" width="198.4" height="21" rx="6" fill="#f59e0b" opacity="0.70"/>
+<text x="980.0" y="502.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#f59e0b" text-anchor="end" font-weight="700">387.3 MB</text>
+<text x="580.0" y="551.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#16a34a" text-anchor="start" font-weight="700">Bucket views</text>
+<text x="580.0" y="579.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#5b6474" text-anchor="start" font-weight="400">Current</text>
+<rect x="650" y="564" width="127.7" height="21" rx="6" fill="#16a34a"/>
+<text x="980.0" y="581.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16a34a" text-anchor="end" font-weight="700">249.4</text>
+<text x="580.0" y="612.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#5b6474" text-anchor="start" font-weight="400">Peak</text>
+<rect x="650" y="597" width="166.4" height="21" rx="6" fill="#16a34a" opacity="0.70"/>
+<text x="980.0" y="614.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16a34a" text-anchor="end" font-weight="700">324.9 MB</text>
+<text x="780.0" y="654.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#166534" text-anchor="middle" font-weight="700">Views current = per-parameter</text>
+<text x="780.0" y="680.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#b45309" text-anchor="middle" font-weight="700">Peak +62.34 MB · −62.34 MB vs copy</text>
+<text x="1280.0" y="165.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#172033" text-anchor="middle" font-weight="700">What views remove</text>
+<text x="1080.0" y="225.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="start" font-weight="400">Plan capacity</text>
+<text x="1480.0" y="225.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#166534" text-anchor="end" font-weight="700">124.69 → 62.34 MB</text>
+<line x1="1080" y1="242" x2="1480" y2="242" stroke="#e8edf4" stroke-width="2"/>
+<text x="1080.0" y="303.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="start" font-weight="400">Later backend alloc</text>
+<text x="1480.0" y="303.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#166534" text-anchor="end" font-weight="700">0 → 0</text>
+<line x1="1080" y1="320" x2="1480" y2="320" stroke="#e8edf4" stroke-width="2"/>
+<text x="1080.0" y="381.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="start" font-weight="400">Pack copies</text>
+<text x="1480.0" y="381.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#b45309" text-anchor="end" font-weight="700">57 → 57</text>
+<line x1="1080" y1="398" x2="1480" y2="398" stroke="#e8edf4" stroke-width="2"/>
+<text x="1080.0" y="459.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="start" font-weight="400">Unpack copies</text>
+<text x="1480.0" y="459.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#166534" text-anchor="end" font-weight="700">57 → 0</text>
+<line x1="1080" y1="476" x2="1480" y2="476" stroke="#e8edf4" stroke-width="2"/>
+<text x="1080.0" y="537.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="start" font-weight="400">Gradient views</text>
+<text x="1480.0" y="537.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#166534" text-anchor="end" font-weight="700">0 → 57</text>
+<line x1="1080" y1="554" x2="1480" y2="554" stroke="#e8edf4" stroke-width="2"/>
+<text x="1280.0" y="635.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#b45309" text-anchor="middle" font-weight="700">vs per reducer 0.984×</text>
+<text x="1280.0" y="665.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#166534" text-anchor="middle" font-weight="700">vs per complete step 1.055×</text>
+<rect x="45" y="750" width="1470" height="100" rx="16" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+<text x="780.0" y="789.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#166534" text-anchor="middle" font-weight="700">Correct: 24 rank processes · 15,586,176 values exact · CPU Max/RMS 0.00627/3.701e-6 · peer bounded</text>
+<text x="780.0" y="827.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#1d4ed8" text-anchor="middle" font-weight="700">Keep explicit, not default · storage prerequisite now admits real ranked gradient-ready Event overlap</text>
+</svg>

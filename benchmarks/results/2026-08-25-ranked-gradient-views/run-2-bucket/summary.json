@@ -1,0 +1,230 @@
+{
+  "bucket_bytes": 26214400,
+  "buckets_per_rank": 9,
+  "collectives_per_rank": 9,
+  "commands": [
+    [
+      "/home/devpod/github/microLLM-rocm/build/rccl-release/apps/microllm_distributed_rank",
+      "--mode",
+      "rank",
+      "--rank",
+      "1",
+      "--local-rank",
+      "1",
+      "--model",
+      "model-s",
+      "--world-size",
+      "2",
+      "--id-file",
+      "/home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-25-ranked-gradient-views/run-2-bucket/communicator.id",
+      "--steps",
+      "3",
+      "--seed",
+      "607",
+      "--timeout-ms",
+      "120000",
+      "--reducer",
+      "bucket",
+      "--bucket-bytes",
+      "26214400",
+      "--parameter-file",
+      "/home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-25-ranked-gradient-views/run-2-bucket/rank1.safetensors"
+    ],
+    [
+      "/home/devpod/github/microLLM-rocm/build/rccl-release/apps/microllm_distributed_rank",
+      "--mode",
+      "rank",
+      "--rank",
+      "0",
+      "--local-rank",
+      "0",
+      "--model",
+      "model-s",
+      "--world-size",
+      "2",
+      "--id-file",
+      "/home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-25-ranked-gradient-views/run-2-bucket/communicator.id",
+      "--steps",
+      "3",
+      "--seed",
+      "607",
+      "--timeout-ms",
+      "120000",
+      "--reducer",
+      "bucket",
+      "--bucket-bytes",
+      "26214400",
+      "--parameter-file",
+      "/home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-25-ranked-gradient-views/run-2-bucket/rank0.safetensors"
+    ]
+  ],
+  "gradient_views_per_rank": 0,
+  "maximum_engine_allocation_calls": 1518,
+  "maximum_engine_backend_allocation_calls": 1518,
+  "maximum_engine_cached_bytes": 0,
+  "maximum_engine_current_bytes": 249378816,
+  "maximum_engine_peak_bytes": 314897672,
+  "maximum_engine_reserved_bytes": 249378816,
+  "maximum_mean_loss_difference": 1.9672499999678905e-05,
+  "maximum_rank_difference": 0,
+  "maximum_rank_forward_backward_ms": 5612.740471,
+  "maximum_rank_optimizer_ms": 0.957843,
+  "maximum_rank_reducer_ms": 26.299154,
+  "maximum_rank_step_buckets": [
+    3,
+    3,
+    3
+  ],
+  "maximum_rank_step_collectives": [
+    3,
+    3,
+    3
+  ],
+  "maximum_rank_step_forward_backward_ms": [
+    5602.346786,
+    5.974524,
+    5.763717
+  ],
+  "maximum_rank_step_gradient_views": [
+    0,
+    0,
+    0
+  ],
+  "maximum_rank_step_optimizer_ms": [
+    0.331009,
+    0.316172,
+    0.314396
+  ],
+  "maximum_rank_step_pack_copies": [
+    57,
+    57,
+    57
+  ],
+  "maximum_rank_step_plan_reused": [
+    0,
+    0,
+    0
+  ],
+  "maximum_rank_step_reducer_allocation_calls": [
+    60,
+    60,
+    60
+  ],
+  "maximum_rank_step_reducer_backend_allocation_calls": [
+    60,
+    60,
+    60
+  ],
+  "maximum_rank_step_reducer_current_bytes_after": [
+    262584584,
+    262584584,
+    262584584
+  ],
+  "maximum_rank_step_reducer_current_bytes_before": [
+    262584584,
+    262584584,
+    262584584
+  ],
+  "maximum_rank_step_reducer_deallocation_calls": [
+    60,
+    60,
+    60
+  ],
+  "maximum_rank_step_reducer_ms": [
+    18.108113,
+    4.956852,
+    4.830054
+  ],
+  "maximum_rank_step_reducer_peak_bytes_after": [
+    314897672,
+    314897672,
+    314897672
+  ],
+  "maximum_rank_step_reducer_total_allocated_bytes": [
+    124689408,
+    124689408,
+    124689408
+  ],
+  "maximum_rank_step_training_ms": [
+    5618.201478,
+    10.499494,
+    10.316288
+  ],
+  "maximum_rank_step_unpack_copies": [
+    57,
+    57,
+    57
+  ],
+  "maximum_rank_training_ms": 5640.081131,
+  "maximum_reference_difference": 0.00627149641514,
+  "mean_loss_tolerance": 0.0001,
+  "model": "model-s",
+  "pack_copies_per_rank": 171,
+  "parameter_files_retained": false,
+  "parameter_tensors": 57,
+  "parameter_values": 15586176,
+  "peer_processes_terminated": 0,
+  "persistent_storage": false,
+  "plan_capacity_bytes_per_rank": 0,
+  "plan_capacity_elements_per_rank": 0,
+  "plan_reuses_per_rank": 0,
+  "rank_forward_backward_ms": [
+    5612.740471,
+    5608.614406
+  ],
+  "rank_group_ms": 9540.159936994314,
+  "rank_losses": [
+    [
+      9.284751892,
+      6.682232857,
+      4.232010841
+    ],
+    [
+      9.542316437,
+      6.853151321,
+      3.802856684
+    ]
+  ],
+  "rank_optimizer_ms": [
+    0.957843,
+    0.955709
+  ],
+  "rank_reducer_ms": [
+    25.310498,
+    26.299154
+  ],
+  "rank_rms_difference": 0,
+  "rank_training_ms": [
+    5640.081131,
+    5637.238446
+  ],
+  "record_type": "ranked_training_summary",
+  "reducer": "bucket",
+  "reference_command": [
+    "/home/devpod/github/microLLM-rocm/build/rccl-release/apps/microllm_distributed_rank",
+    "--mode",
+    "reference",
+    "--steps",
+    "3",
+    "--seed",
+    "607",
+    "--model",
+    "model-s",
+    "--parameter-file",
+    "/home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-25-ranked-gradient-views/run-2-bucket/reference.safetensors"
+  ],
+  "reference_losses": [
+    9.41353512,
+    6.76768446,
+    4.01741409
+  ],
+  "reference_max_tolerance": 0.01,
+  "reference_ms": 8916.513648815453,
+  "reference_rms_difference": 3.70091947467e-06,
+  "reference_rms_tolerance": 1e-05,
+  "schema_version": 1,
+  "status": "pass",
+  "steps": 3,
+  "unpack_copies_per_rank": 171,
+  "world_size": 2
+}

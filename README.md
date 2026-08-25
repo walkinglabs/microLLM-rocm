@@ -153,6 +153,12 @@ Start with [Quick start](#quick-start), consume the installed library through th
 > 62.34/124.69 MB. The copy route remains explicit while bucket-gradient views
 > target the remaining 57 unpack copies and duplicate storage.
 
+> Ranked bucket-gradient views remove all 57 unpack copies, halve plan capacity
+> to 62.34 MB, and return current memory to the per-parameter baseline. They
+> improve reducer/step 1.120×/1.006× versus persistent copies and yield a
+> 1.055× complete step versus per-parameter, while peak remains +62.34 MB.
+> Views stay explicit and become the prerequisite for ranked ready overlap.
+
 </details>
 
 ## Why this project exists

@@ -937,6 +937,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [experiments/267-ranked-steady-reducer-discard.md](experiments/267-ranked-steady-reducer-discard.md) | bucket steady 0.6747×与persistent Storage准入 |
 | [assets/ranked-persistent-buckets.svg](assets/ranked-persistent-buckets.svg) | 三策略steady速度、分配归零与current/peak代价 |
 | [experiments/268-ranked-persistent-buckets.md](experiments/268-ranked-persistent-buckets.md) | persistent显式保留与rank gradient views准入 |
+| [assets/ranked-gradient-bucket-views.svg](assets/ranked-gradient-bucket-views.svg) | 四策略速度、unpack删除与显存恢复 |
+| [experiments/269-ranked-gradient-bucket-views.md](experiments/269-ranked-gradient-bucket-views.md) | views显式保留与rank ready overlap准入 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

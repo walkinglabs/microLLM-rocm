@@ -1,0 +1,12 @@
+{
+  "failure_detected": true,
+  "peer_processes_terminated": 1,
+  "rank_group_ms": 101.38827608898282,
+  "record_type": "ranked_peer_failure_summary",
+  "returncodes": [
+    1,
+    -15
+  ],
+  "schema_version": 1,
+  "status": "pass"
+}

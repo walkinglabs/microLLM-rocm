@@ -307,6 +307,11 @@ RANKED_PERSISTENT_ROOT = (
     "2026-08-25-ranked-persistent-buckets")
 RANKED_PERSISTENT_CHART = (
     ROOT / "assets" / "ranked-persistent-buckets.svg")
+RANKED_VIEW_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-ranked-gradient-views")
+RANKED_VIEW_CHART = (
+    ROOT / "assets" / "ranked-gradient-bucket-views.svg")
 
 
 def rows() -> list[dict]:
@@ -5429,6 +5434,116 @@ def ranked_persistent_bucket_svg() -> str:
     return "\n".join(parts)
 
 
+def ranked_gradient_view_svg() -> str:
+    summary = json.loads((RANKED_VIEW_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    policies = summary["policies"]
+    ordered = (
+        ("Per parameter", policies["per-parameter"], "#64748b"),
+        ("Transient", policies["bucket"], "#dc2626"),
+        ("Persistent copy", policies["persistent-bucket"], "#f59e0b"),
+        ("Bucket views", policies["bucket-views"], "#16a34a"),
+    )
+    width, height = 1560, 900
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 269 · Ranked Gradient-as-Bucket Views", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "4 policies · 3 fresh two-rank launches each · 6 steady samples / policy · full parameter gates",
+             16, "#5b6474", anchor="middle"),
+    ]
+    panels = ((45, 120, 470, 590), (545, 120, 470, 590),
+              (1045, 120, 470, 590))
+    for x, y, panel_w, panel_h in panels:
+        parts.append(f'<rect x="{x}" y="{y}" width="{panel_w}" height="{panel_h}" '
+                     'rx="18" fill="#ffffff" stroke="#d8dee9" stroke-width="2"/>')
+
+    parts.append(text(280, 165, "Steady time · lower is better", 22,
+                      anchor="middle", weight=700))
+    for index, (label, row, color) in enumerate(ordered):
+        y = 215 + index * 112
+        reducer = row["median_steady_maximum_rank_reducer_ms"]
+        complete = row["median_steady_maximum_rank_training_ms"]
+        parts.extend([
+            text(80, y, label, 15, color, weight=700),
+            text(80, y + 28, "Reducer", 12, "#5b6474"),
+            f'<rect x="145" y="{y + 13}" width="{205 * reducer / 5.0:.1f}" '
+            f'height="21" rx="6" fill="{color}"/>',
+            text(480, y + 30, f"{reducer:.3f}", 14, color,
+                 anchor="end", weight=700),
+            text(80, y + 61, "Step", 12, "#5b6474"),
+            f'<rect x="145" y="{y + 46}" width="{205 * complete / 12.0:.1f}" '
+            f'height="21" rx="6" fill="{color}" opacity="0.70"/>',
+            text(480, y + 63, f"{complete:.3f} ms", 14, color,
+                 anchor="end", weight=700),
+        ])
+    parts.extend([
+        text(280, 675, "Views vs copy: 1.120× reducer · 1.006× step", 16,
+             "#166534", anchor="middle", weight=700),
+        text(780, 165, "Engine memory / rank", 22,
+             anchor="middle", weight=700),
+    ])
+    memory_scale = 410.0e6
+    for index, (label, row, color) in enumerate(ordered):
+        y = 215 + index * 112
+        current = row["maximum_engine_current_bytes"]
+        peak = row["maximum_engine_peak_bytes"]
+        parts.extend([
+            text(580, y, label, 15, color, weight=700),
+            text(580, y + 28, "Current", 12, "#5b6474"),
+            f'<rect x="650" y="{y + 13}" width="{210 * current / memory_scale:.1f}" '
+            f'height="21" rx="6" fill="{color}"/>',
+            text(980, y + 30, f"{current / 1.0e6:.1f}", 14, color,
+                 anchor="end", weight=700),
+            text(580, y + 61, "Peak", 12, "#5b6474"),
+            f'<rect x="650" y="{y + 46}" width="{210 * peak / memory_scale:.1f}" '
+            f'height="21" rx="6" fill="{color}" opacity="0.70"/>',
+            text(980, y + 63, f"{peak / 1.0e6:.1f} MB", 14, color,
+                 anchor="end", weight=700),
+        ])
+    parts.extend([
+        text(780, 654, "Views current = per-parameter", 16, "#166534",
+             anchor="middle", weight=700),
+        text(780, 680, "Peak +62.34 MB · −62.34 MB vs copy", 16, "#b45309",
+             anchor="middle", weight=700),
+        text(1280, 165, "What views remove", 22,
+             anchor="middle", weight=700),
+    ])
+    facts = (
+        ("Plan capacity", "124.69 → 62.34 MB", "#166534"),
+        ("Later backend alloc", "0 → 0", "#166534"),
+        ("Pack copies", "57 → 57", "#b45309"),
+        ("Unpack copies", "57 → 0", "#166534"),
+        ("Gradient views", "0 → 57", "#166534"),
+    )
+    for index, (label, value, color) in enumerate(facts):
+        y = 225 + index * 78
+        parts.extend([
+            text(1080, y, label, 15, "#5b6474"),
+            text(1480, y, value, 20, color, anchor="end", weight=700),
+            f'<line x1="1080" y1="{y + 17}" x2="1480" y2="{y + 17}" '
+            'stroke="#e8edf4" stroke-width="2"/>',
+        ])
+    parts.extend([
+        text(1280, 635, "vs per reducer 0.984×", 16, "#b45309",
+             anchor="middle", weight=700),
+        text(1280, 665, "vs per complete step 1.055×", 16, "#166534",
+             anchor="middle", weight=700),
+        '<rect x="45" y="750" width="1470" height="100" rx="16" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>',
+        text(width / 2, 789,
+             "Correct: 24 rank processes · 15,586,176 values exact · CPU Max/RMS 0.00627/3.701e-6 · peer bounded",
+             18, "#166534", anchor="middle", weight=700),
+        text(width / 2, 827,
+             "Keep explicit, not default · storage prerequisite now admits real ranked gradient-ready Event overlap",
+             18, "#1d4ed8", anchor="middle", weight=700),
+        "</svg>\n",
+    ])
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -5513,7 +5628,8 @@ def main() -> int:
                 RANKED_BUCKET_CHART: ranked_gradient_bucket_svg(),
                 RANKED_MODEL_S_BUCKET_CHART: ranked_model_s_bucket_svg(),
                 RANKED_STEADY_CHART: ranked_steady_reducer_svg(),
-                RANKED_PERSISTENT_CHART: ranked_persistent_bucket_svg()}
+                RANKED_PERSISTENT_CHART: ranked_persistent_bucket_svg(),
+                RANKED_VIEW_CHART: ranked_gradient_view_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]
