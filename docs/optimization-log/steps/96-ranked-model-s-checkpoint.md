@@ -1,6 +1,6 @@
 # Step 96 — Ranked Model-S checkpoint smoke
 
-Status: planned
+Status: implemented, formal clean-revision smoke pending
 
 tiny证明ownership和状态语义，但不能代表15,586,176参数与两组AdamW moments的实际I/O。下一节点
 固定Model-S、T32、两rank、一步checkpoint：
@@ -12,3 +12,7 @@ tiny证明ownership和状态语义，但不能代表15,586,176参数与两组Ada
 - 写失败传播合同继续执行。
 
 该节点先证明资源可用与恢复等价，不把磁盘缓存下单次最快时间写成通用吞吐。
+
+实现已支持Model-S临时rank safetensors全量比较与checkpoint write/wait/verify/resume计时。pilot的
+checkpoint为187,042,096 bytes，final逐字节相等，rank exact；write约1.02–1.05s、restore最大
+745ms、verify最大544ms。正式干净revision结果前只算资源pilot。

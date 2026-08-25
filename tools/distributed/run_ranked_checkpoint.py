@@ -19,6 +19,9 @@ def options() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--binary", required=True, type=Path)
     parser.add_argument("--output-directory", required=True, type=Path)
+    parser.add_argument("--model", choices=("tiny", "model-s"), default="tiny")
+    parser.add_argument("--context", type=int, default=0)
+    parser.add_argument("--compare-binary", type=Path)
     parser.add_argument("--first-steps", type=int, default=2)
     parser.add_argument("--resumed-steps", type=int, default=3)
     parser.add_argument("--timeout-seconds", type=float, default=30.0)
@@ -27,6 +30,15 @@ def options() -> argparse.Namespace:
     if (not args.binary.is_file() or args.first_steps <= 0 or
             args.resumed_steps <= 0 or args.timeout_seconds <= 0):
         parser.error("ranked checkpoint inputs are invalid")
+    if args.context == 0:
+        args.context = 4 if args.model == "tiny" else 32
+    if ((args.model == "tiny" and args.context != 4) or
+            (args.model == "model-s" and not 1 <= args.context <= 512)):
+        parser.error("checkpoint context exceeds the model contract")
+    if args.compare_binary is not None and not args.compare_binary.is_file():
+        parser.error("--compare-binary is not a file")
+    if args.model == "model-s" and args.compare_binary is None:
+        parser.error("Model-S checkpoint requires --compare-binary")
     return args
 
 
@@ -76,15 +88,28 @@ def parse_record(text: str, name: str) -> dict:
     return value
 
 
+def compare_safetensors(binary: Path, baseline: Path, candidate: Path,
+                        timeout: float) -> dict:
+    completed = subprocess.run(
+        [str(binary.resolve()), str(baseline), str(candidate)],
+        cwd=ROOT, text=True, capture_output=True, timeout=timeout,
+        check=False)
+    if completed.returncode != 0:
+        raise RuntimeError(completed.stdout + completed.stderr)
+    return parse_record(completed.stdout, "rank safetensors comparison")
+
+
 def run_group(binary: Path, output: Path, steps: int, timeout: float,
               checkpoint: Path, ready: Path, resume: Path | None = None,
-              inject_failure: bool = False) -> tuple[list[dict], dict]:
+              inject_failure: bool = False, model: str = "tiny",
+              context: int = 4,
+              compare_binary: Path | None = None) -> tuple[list[dict], dict]:
     output.mkdir(parents=True, exist_ok=True)
     id_file = output / "communicator.id"
     common = [
         "--world-size", "2", "--id-file", str(id_file),
         "--steps", str(steps), "--seed", "607", "--timeout-ms",
-        str(int(timeout * 1000)), "--model", "tiny", "--context", "4",
+        str(int(timeout * 1000)), "--model", model, "--context", str(context),
         "--reducer", "per-parameter", "--bucket-bytes", "4096",
         "--checkpoint-file", str(checkpoint),
         "--checkpoint-ready-file", str(ready),
@@ -97,6 +122,11 @@ def run_group(binary: Path, output: Path, steps: int, timeout: float,
         [str(binary.resolve()), "--mode", "rank", "--rank", "0",
          "--local-rank", "0", *common],
     ]
+    parameter_files = [output / "rank1.safetensors",
+                       output / "rank0.safetensors"]
+    if model == "model-s":
+        for command, path in zip(commands, parameter_files):
+            command.extend(["--parameter-file", str(path)])
     if inject_failure:
         commands[1].append("--inject-checkpoint-failure")
     started = time.monotonic()
@@ -123,6 +153,7 @@ def run_group(binary: Path, output: Path, steps: int, timeout: float,
         "returncodes": [item.returncode for item in processes],
         "group_ms": elapsed_ms,
         "commands": commands,
+        "rank_parameter_difference": None,
     }
     if inject_failure:
         return [], process
@@ -132,6 +163,21 @@ def run_group(binary: Path, output: Path, steps: int, timeout: float,
              for index, text in enumerate(outputs)]
     if ranks[0].get("rank") != 1 or ranks[1].get("rank") != 0:
         raise RuntimeError("ranked checkpoint identity changed")
+    if model == "model-s":
+        if compare_binary is None:
+            raise RuntimeError("Model-S rank comparison binary is missing")
+        comparison = compare_safetensors(
+            compare_binary, parameter_files[0], parameter_files[1], timeout)
+        process["rank_parameter_difference"] = (
+            comparison["maximum_absolute_difference"])
+        process["rank_parameter_rms_difference"] = comparison["rms_difference"]
+        process["parameter_tensors"] = comparison["tensor_count"]
+        process["parameter_values"] = comparison["compared_elements"]
+        for path in parameter_files:
+            path.unlink(missing_ok=True)
+    else:
+        process["rank_parameter_difference"] = parameter_difference(
+            ranks[0], ranks[1])
     return ranks, process
 
 
@@ -148,9 +194,9 @@ def parameter_difference(left: dict, right: dict) -> float:
     return maximum
 
 
-def verify_group(ranks: list[dict], initial: int, final: int,
+def verify_group(ranks: list[dict], process: dict, initial: int, final: int,
                  resumed: bool) -> None:
-    if (parameter_difference(ranks[0], ranks[1]) != 0.0 or
+    if (process.get("rank_parameter_difference") != 0.0 or
             any(rank.get("initial_step") != initial or
                 rank.get("final_step") != final or
                 rank.get("optimizer_step") != final or
@@ -177,26 +223,31 @@ def main() -> int:
 
     first_ranks, first_process = run_group(
         args.binary, output / "first-segment", args.first_steps,
-        args.timeout_seconds, interrupted, interrupted_ready)
-    verify_group(first_ranks, 0, args.first_steps, False)
+        args.timeout_seconds, interrupted, interrupted_ready,
+        model=args.model, context=args.context,
+        compare_binary=args.compare_binary)
+    verify_group(first_ranks, first_process, 0, args.first_steps, False)
     resumed_ranks, resumed_process = run_group(
         args.binary, output / "resumed-segment", args.resumed_steps,
-        args.timeout_seconds, resumed_final, resumed_ready, interrupted)
-    verify_group(resumed_ranks, args.first_steps, final_step, True)
+        args.timeout_seconds, resumed_final, resumed_ready, interrupted,
+        model=args.model, context=args.context,
+        compare_binary=args.compare_binary)
+    verify_group(
+        resumed_ranks, resumed_process, args.first_steps, final_step, True)
     uninterrupted_ranks, uninterrupted_process = run_group(
         args.binary, output / "uninterrupted", final_step,
-        args.timeout_seconds, uninterrupted_final, uninterrupted_ready)
-    verify_group(uninterrupted_ranks, 0, final_step, False)
+        args.timeout_seconds, uninterrupted_final, uninterrupted_ready,
+        model=args.model, context=args.context,
+        compare_binary=args.compare_binary)
+    verify_group(
+        uninterrupted_ranks, uninterrupted_process, 0, final_step, False)
 
-    resumed_rank_difference = parameter_difference(
-        resumed_ranks[0], resumed_ranks[1])
-    uninterrupted_rank_difference = parameter_difference(
-        uninterrupted_ranks[0], uninterrupted_ranks[1])
-    trajectory_difference = max(
-        parameter_difference(resumed, uninterrupted)
-        for resumed in resumed_ranks for uninterrupted in uninterrupted_ranks)
+    resumed_rank_difference = resumed_process["rank_parameter_difference"]
+    uninterrupted_rank_difference = uninterrupted_process[
+        "rank_parameter_difference"]
     checkpoint_bytes_equal = (
         resumed_final.read_bytes() == uninterrupted_final.read_bytes())
+    trajectory_difference = 0.0 if checkpoint_bytes_equal else 1.0
     if (resumed_rank_difference != 0.0 or
             uninterrupted_rank_difference != 0.0 or
             trajectory_difference != 0.0 or not checkpoint_bytes_equal):
@@ -224,6 +275,7 @@ def main() -> int:
                  failure_ready):
         path.unlink(missing_ok=True)
     if (list(output.rglob("*.ckpt")) or list(output.rglob("*.ready")) or
+            list(output.rglob("*.safetensors")) or
             list(output.rglob("*.tmp")) or
             list(output.rglob("communicator.id"))):
         raise RuntimeError("ranked checkpoint temporary files were retained")
@@ -233,6 +285,8 @@ def main() -> int:
         "status": "pass",
         "record_type": "ranked_checkpoint_summary",
         "world_size": 2,
+        "model": args.model,
+        "context": args.context,
         "first_steps": args.first_steps,
         "resumed_steps": args.resumed_steps,
         "final_step": final_step,
@@ -244,6 +298,22 @@ def main() -> int:
         "resume_vs_uninterrupted_parameter_difference": trajectory_difference,
         "resume_vs_uninterrupted_checkpoint_bytes_equal": checkpoint_bytes_equal,
         "checkpoint_sizes": checkpoint_sizes,
+        "checkpoint_write_ms": {
+            "interrupted": first_ranks[1]["checkpoint_write_ms"],
+            "resumed_final": resumed_ranks[1]["checkpoint_write_ms"],
+            "uninterrupted_final":
+                uninterrupted_ranks[1]["checkpoint_write_ms"],
+        },
+        "maximum_resume_ms": max(
+            rank["resume_ms"] for rank in resumed_ranks),
+        "maximum_checkpoint_wait_ms": max(
+            rank["checkpoint_wait_ms"] for ranks in
+            (first_ranks, resumed_ranks, uninterrupted_ranks)
+            for rank in ranks),
+        "maximum_checkpoint_verify_ms": max(
+            rank["checkpoint_verify_ms"] for ranks in
+            (first_ranks, resumed_ranks, uninterrupted_ranks)
+            for rank in ranks),
         "checkpoint_files_retained": False,
         "failure_detected": True,
         "peer_processes_terminated": failure_process["terminated"],
@@ -254,7 +324,9 @@ def main() -> int:
             "uninterrupted": uninterrupted_process,
             "failure": failure_process,
         },
-        "decision": "admit Model-S ranked checkpoint smoke",
+        "decision": ("complete Model-S ranked checkpoint smoke"
+                     if args.model == "model-s" else
+                     "admit Model-S ranked checkpoint smoke"),
     }
     (output / "failure.json").write_text(
         json.dumps(failure_process, indent=2, sort_keys=True) + "\n",

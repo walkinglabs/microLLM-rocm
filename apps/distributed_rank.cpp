@@ -357,6 +357,10 @@ struct CheckpointReport {
     std::uint64_t initial_step = 0;
     std::uint64_t final_step = 0;
     std::uint64_t optimizer_step = 0;
+    double resume_ms = 0.0;
+    double checkpoint_write_ms = 0.0;
+    double checkpoint_wait_ms = 0.0;
+    double checkpoint_verify_ms = 0.0;
     std::filesystem::path checkpoint_file;
     std::filesystem::path checkpoint_ready_file;
 };
@@ -424,6 +428,13 @@ void write_result(const char* mode, int rank,
               << ",\"initial_step\":" << checkpoint.initial_step
               << ",\"final_step\":" << checkpoint.final_step
               << ",\"optimizer_step\":" << checkpoint.optimizer_step
+              << ",\"resume_ms\":" << checkpoint.resume_ms
+              << ",\"checkpoint_write_ms\":"
+              << checkpoint.checkpoint_write_ms
+              << ",\"checkpoint_wait_ms\":"
+              << checkpoint.checkpoint_wait_ms
+              << ",\"checkpoint_verify_ms\":"
+              << checkpoint.checkpoint_verify_ms
               << ",\"checkpoint_file\":\""
               << checkpoint.checkpoint_file.string() << "\""
               << ",\"checkpoint_ready_file\":\""
@@ -561,6 +572,7 @@ void run_rank(const Options& options) {
         .checkpoint_file = options.checkpoint_file,
         .checkpoint_ready_file = options.checkpoint_ready_file};
     if (!options.resume_file.empty()) {
+        const auto resume_begin = SteadyClock::now();
         const auto loaded =
             microllm::training::load_checkpoint(options.resume_file);
         if (loaded.experiment.model_config != experiment.model_config ||
@@ -571,6 +583,8 @@ void run_rank(const Options& options) {
         }
         microllm::training::restore_checkpoint(
             loaded, named_parameters(model), optimizer, experiment);
+        checkpoint_report.resume_ms = elapsed_ms(
+            resume_begin, SteadyClock::now());
         checkpoint_report.resumed = true;
     }
     checkpoint_report.initial_step = experiment.global_step;
@@ -752,17 +766,24 @@ void run_rank(const Options& options) {
             if (options.inject_checkpoint_failure) {
                 throw std::runtime_error("injected rank0 checkpoint failure");
             }
+            const auto write_begin = SteadyClock::now();
             microllm::training::save_checkpoint(
                 options.checkpoint_file, named_parameters(model), optimizer,
                 experiment);
             publish_checkpoint_ready(
                 options.checkpoint_ready_file, experiment.global_step);
+            checkpoint_report.checkpoint_write_ms = elapsed_ms(
+                write_begin, SteadyClock::now());
             checkpoint_report.checkpoint_written = true;
         } else {
+            const auto wait_begin = SteadyClock::now();
             wait_for_checkpoint_ready(
                 options.checkpoint_ready_file, experiment.global_step,
                 options.timeout_ms);
+            checkpoint_report.checkpoint_wait_ms = elapsed_ms(
+                wait_begin, SteadyClock::now());
         }
+        const auto verify_begin = SteadyClock::now();
         const auto published =
             microllm::training::load_checkpoint(options.checkpoint_file);
         if (published.experiment.global_step != experiment.global_step ||
@@ -771,6 +792,8 @@ void run_rank(const Options& options) {
             throw std::runtime_error(
                 "published rank checkpoint state changed");
         }
+        checkpoint_report.checkpoint_verify_ms = elapsed_ms(
+            verify_begin, SteadyClock::now());
         checkpoint_report.checkpoint_verified = true;
     }
     if (!options.parameter_file.empty()) {

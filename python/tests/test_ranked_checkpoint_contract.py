@@ -18,12 +18,16 @@ def main() -> int:
         "nonzero_rank_checkpoint_writes", "checkpoint_files_retained",
         "inject-checkpoint-failure", "peer_processes_terminated",
         "admit Model-S ranked checkpoint smoke",
+        "--model", "--compare-binary", "rank1.safetensors",
+        "maximum_resume_ms", "checkpoint_write_ms",
+        "maximum_checkpoint_wait_ms", "complete Model-S ranked checkpoint smoke",
     ):
         assert token in runner
     for token in (
         "save_checkpoint", "restore_checkpoint", "publish_checkpoint_ready",
         "wait_for_checkpoint_ready", "checkpoint_written",
         "optimizer_step", "injected rank0 checkpoint failure",
+        "resume_ms", "checkpoint_verify_ms",
     ):
         assert token in worker
     print("ranked checkpoint contract: pass")
