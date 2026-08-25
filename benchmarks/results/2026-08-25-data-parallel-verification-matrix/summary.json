@@ -1,0 +1,41 @@
+{
+  "aggregation": "median of per-process step-2..20 medians with rotated policy order",
+  "decision": "retain default interval 1; expose sparse/disabled production measurements",
+  "loss_trajectories_exact": true,
+  "policies": {
+    "disabled": {
+      "final_loss": 0.55,
+      "median_total_ms": 2.52,
+      "median_verification_ms": 0.0,
+      "parameter_check_interval": 0,
+      "parameter_checks_per_process": 0,
+      "processes": 3,
+      "speedup_vs_every_step": 1.1746031746031746
+    },
+    "every_step": {
+      "final_loss": 0.55,
+      "median_total_ms": 2.96,
+      "median_verification_ms": 0.395,
+      "parameter_check_interval": 1,
+      "parameter_checks_per_process": 20,
+      "processes": 3
+    },
+    "final_step": {
+      "final_loss": 0.55,
+      "median_total_ms": 2.38,
+      "median_verification_ms": 0.37,
+      "parameter_check_interval": 20,
+      "parameter_checks_per_process": 1,
+      "processes": 3,
+      "speedup_vs_every_step": 1.2436974789915967
+    }
+  },
+  "processes": 9,
+  "raw_records": 180,
+  "record_type": "data_parallel_verification_matrix_summary",
+  "runs_per_policy": 3,
+  "schema_version": 1,
+  "status": "pass",
+  "steady_steps_per_process": 19,
+  "steps_per_process": 20
+}

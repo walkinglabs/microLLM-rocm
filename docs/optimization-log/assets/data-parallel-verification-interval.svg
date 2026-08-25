@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="720" viewBox="0 0 1500 720">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="750.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 252 · Parameter Verification Interval</text>
+<text x="750.0" y="82.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">Three rotated fresh processes · steady medians use steps 2–20</text>
+<rect x="150" y="155.0" width="280" height="330.0" rx="10" fill="#2563eb"/>
+<text x="290.0" y="137.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#2563eb" text-anchor="middle" font-weight="700">2.960 ms</text>
+<text x="290.0" y="525.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">Every step</text>
+<text x="290.0" y="558.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="middle" font-weight="400">checks 20 / 20</text>
+<rect x="600" y="219.7" width="280" height="265.3" rx="10" fill="#16a34a"/>
+<text x="740.0" y="201.7" font-family="Inter,Arial,sans-serif" font-size="22" fill="#16a34a" text-anchor="middle" font-weight="700">2.380 ms</text>
+<text x="740.0" y="525.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">Final step</text>
+<text x="740.0" y="558.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="middle" font-weight="400">checks 1 / 20</text>
+<text x="740.0" y="600.0" font-family="Inter,Arial,sans-serif" font-size="23" fill="#166534" text-anchor="middle" font-weight="700">1.244x</text>
+<rect x="1050" y="204.1" width="280" height="280.9" rx="10" fill="#f59e0b"/>
+<text x="1190.0" y="186.1" font-family="Inter,Arial,sans-serif" font-size="22" fill="#f59e0b" text-anchor="middle" font-weight="700">2.520 ms</text>
+<text x="1190.0" y="525.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">Disabled</text>
+<text x="1190.0" y="558.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="middle" font-weight="400">checks 0 / 20</text>
+<text x="1190.0" y="600.0" font-family="Inter,Arial,sans-serif" font-size="23" fill="#166534" text-anchor="middle" font-weight="700">1.175x</text>
+<text x="750.0" y="645.0" font-family="Inter,Arial,sans-serif" font-size="21" fill="#166534" text-anchor="middle" font-weight="700">180 / 180 loss values exact · default interval remains 1</text>
+<text x="750.0" y="690.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="middle" font-weight="400">Optimizer completion is explicit; skipped verification is not a correctness claim</text>
+</svg>

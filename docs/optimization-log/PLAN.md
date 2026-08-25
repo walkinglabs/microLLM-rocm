@@ -103,7 +103,8 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [72](steps/72-bf16-weight-gradient-workspace-gate.md) | complete | allocating vs preallocated | wall 0.986×/0.889×；workspace API拒绝 |
 | [73](steps/73-current-training-local-saturation.md) | complete | 当前训练局部饱和审计 | 六track关闭；下一步升级架构或production reducer |
 | [74](steps/74-current-data-parallel-audit.md) | complete | 当前多卡production gap审计 | RCCL14/14；参数审计残差13.32%；选第一合同 |
-| [75](steps/75-data-parallel-verification-interval.md) | in progress | 参数审计独立计时与interval | 默认兼容；先清理hot-path测量边界 |
+| [75](steps/75-data-parallel-verification-interval.md) | complete | 参数审计独立计时与interval | loss exact；稀疏1.244×；默认仍1 |
+| [76](steps/76-data-parallel-bucket-matrix.md) | planned | 真实bucket-count矩阵 | final-step审计；多bucket后再谈readiness |
 
 ## 为什么按这个顺序
 

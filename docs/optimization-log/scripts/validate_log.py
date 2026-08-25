@@ -13954,6 +13954,54 @@ def validate_current_data_parallel_audit(
     return len(metrics), *expected
 
 
+def validate_data_parallel_verification_matrix(
+        errors: list[str]) -> tuple[int, float, float, float, float]:
+    root = REPOSITORY / (
+        "benchmarks/results/2026-08-25-data-parallel-verification-matrix")
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    processes = [json.loads(line) for line in (root / "process-summary.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    policies = summary.get("policies", {})
+    every = policies.get("every_step", {})
+    final = policies.get("final_step", {})
+    disabled = policies.get("disabled", {})
+    expected = (2.96, 2.38, 1.2436974789915967, 1.1746031746031746)
+    if (summary.get("schema_version") != 1 or summary.get("status") != "pass" or
+            summary.get("record_type") !=
+                "data_parallel_verification_matrix_summary" or
+            summary.get("raw_records") != 180 or summary.get("processes") != 9 or
+            summary.get("loss_trajectories_exact") is not True or
+            every.get("parameter_checks_per_process") != 20 or
+            final.get("parameter_checks_per_process") != 1 or
+            disabled.get("parameter_checks_per_process") != 0 or
+            abs(float(every.get("median_total_ms", 0.0)) - expected[0]) > 1.0e-12 or
+            abs(float(final.get("median_total_ms", 0.0)) - expected[1]) > 1.0e-12 or
+            abs(float(final.get("speedup_vs_every_step", 0.0)) - expected[2]) > 1.0e-12 or
+            abs(float(disabled.get("speedup_vs_every_step", 0.0)) - expected[3]) > 1.0e-12):
+        errors.append("data-parallel verification matrix summary changed")
+    if (len(raw) != 180 or len(processes) != 9 or any(
+            (not row.get("parameter_check_performed") and
+             row.get("verification_ms") != 0.0) or
+            row.get("parameter_max_difference") != 0.0 for row in raw)):
+        errors.append("data-parallel verification raw evidence changed")
+    if (check.get("raw_records") != 180 or check.get("process_records") != 9 or
+            check.get("loss_trajectories_exact") is not True or
+            check.get("default_interval") != 1 or
+            check.get("explicit_optimizer_completion") is not True or
+            check.get("rccl_label") != {"passed": 16, "total": 16} or
+            check.get("registered_test_files") != 112):
+        errors.append("data-parallel verification matrix verification changed")
+    source = (REPOSITORY / "src/multi_gpu/data_parallel.cpp").read_text(
+        encoding="utf-8")
+    if ("parameter_check_interval" not in source or
+            "Parameter verification previously supplied an accidental" not in source):
+        errors.append("data-parallel verification/optimizer boundary changed")
+    return summary.get("processes", 0), *expected
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -14183,7 +14231,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-weight-gradient-allocation-attribution.svg",
                  "bf16-weight-gradient-workspace-discard.svg",
                  "training-local-saturation.svg",
-                 "current-data-parallel-audit.svg"):
+                 "current-data-parallel-audit.svg",
+                 "data-parallel-verification-interval.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -14680,6 +14729,10 @@ def main() -> int:
     data_parallel_rows, data_parallel_comm, data_parallel_total, \
         data_parallel_audit, data_parallel_rccl = \
         validate_current_data_parallel_audit(errors)
+    data_parallel_verification_processes, data_parallel_every_total, \
+        data_parallel_sparse_total, data_parallel_sparse_speedup, \
+        data_parallel_disabled_speedup = \
+        validate_data_parallel_verification_matrix(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -15135,6 +15188,10 @@ def main() -> int:
           f"current_data_parallel={data_parallel_rows}/"
           f"{data_parallel_comm:.3f}/{data_parallel_total:.3f}/"
           f"{data_parallel_audit:.3f}/{data_parallel_rccl} "
+          f"data_parallel_verification={data_parallel_verification_processes}/"
+          f"{data_parallel_every_total:.3f}/{data_parallel_sparse_total:.3f}/"
+          f"{data_parallel_sparse_speedup:.3f}/"
+          f"{data_parallel_disabled_speedup:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

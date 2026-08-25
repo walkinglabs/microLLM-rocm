@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "raw_records": 180,
+  "process_records": 9,
+  "runs_per_policy": 3,
+  "steps_per_process": 20,
+  "steady_steps_per_process": 19,
+  "loss_trajectories_exact": true,
+  "checks_per_process": {
+    "every_step": 20,
+    "final_step": 1,
+    "disabled": 0
+  },
+  "default_interval": 1,
+  "explicit_optimizer_completion": true,
+  "rccl_label": {"passed": 16, "total": 16},
+  "registered_test_files": 112
+}
+

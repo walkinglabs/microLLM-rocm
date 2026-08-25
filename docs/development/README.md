@@ -532,3 +532,5 @@ the next gate. Records are append-only except for factual corrections.
   separates current two-GPU training, communication and host verification costs.
 - [2026-08-25-data-parallel-verification-interval.md](2026-08-25-data-parallel-verification-interval.md):
   makes every-step, sparse and disabled host parameter audits explicit.
+- [2026-08-25-data-parallel-verification-matrix.md](2026-08-25-data-parallel-verification-matrix.md):
+  records rotated performance, exact losses and the explicit optimizer completion fix.

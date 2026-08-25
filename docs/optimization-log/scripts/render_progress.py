@@ -223,6 +223,11 @@ CURRENT_DATA_PARALLEL_ROOT = (
     "2026-08-25-current-data-parallel")
 CURRENT_DATA_PARALLEL_CHART = (
     ROOT / "assets" / "current-data-parallel-audit.svg")
+DATA_PARALLEL_VERIFICATION_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-data-parallel-verification-matrix")
+DATA_PARALLEL_VERIFICATION_CHART = (
+    ROOT / "assets" / "data-parallel-verification-interval.svg")
 
 
 def rows() -> list[dict]:
@@ -4269,6 +4274,53 @@ def current_data_parallel_svg() -> str:
     return "\n".join(parts)
 
 
+def data_parallel_verification_svg() -> str:
+    summary = json.loads((DATA_PARALLEL_VERIFICATION_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    width, height = 1500, 720
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 252 · Parameter Verification Interval", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "Three rotated fresh processes · steady medians use steps 2–20",
+             16, "#5b6474", anchor="middle"),
+    ]
+    order = (("every_step", "Every step", "#2563eb"),
+             ("final_step", "Final step", "#16a34a"),
+             ("disabled", "Disabled", "#f59e0b"))
+    maximum = max(row["median_total_ms"] for row in summary["policies"].values())
+    for index, (key, label, color) in enumerate(order):
+        row = summary["policies"][key]
+        x = 150 + index * 450
+        height = 330 * row["median_total_ms"] / maximum
+        y = 485 - height
+        parts.extend([
+            f'<rect x="{x}" y="{y:.1f}" width="280" height="{height:.1f}" '
+            f'rx="10" fill="{color}"/>',
+            text(x + 140, y - 18, f"{row['median_total_ms']:.3f} ms", 22,
+                 color, anchor="middle", weight=700),
+            text(x + 140, 525, label, 20, "#172033", anchor="middle", weight=700),
+            text(x + 140, 558,
+                 f"checks {row['parameter_checks_per_process']} / 20", 15,
+                 "#5b6474", anchor="middle"),
+        ])
+        if key != "every_step":
+            parts.append(text(x + 140, 600,
+                              f"{row['speedup_vs_every_step']:.3f}x", 23,
+                              "#166534", anchor="middle", weight=700))
+    parts.append(text(width / 2, 645,
+                      "180 / 180 loss values exact · default interval remains 1",
+                      21, "#166534", anchor="middle", weight=700))
+    parts.append(text(width / 2, 690,
+                      "Optimizer completion is explicit; skipped verification is not a correctness claim",
+                      15, "#5b6474", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -4336,7 +4388,8 @@ def main() -> int:
                 BF16_WGRAD_ALLOCATION_CHART: bf16_weight_gradient_allocation_svg(),
                 BF16_WGRAD_WORKSPACE_CHART: bf16_weight_gradient_workspace_svg(),
                 TRAINING_LOCAL_SATURATION_CHART: training_local_saturation_svg(),
-                CURRENT_DATA_PARALLEL_CHART: current_data_parallel_svg()}
+                CURRENT_DATA_PARALLEL_CHART: current_data_parallel_svg(),
+                DATA_PARALLEL_VERIFICATION_CHART: data_parallel_verification_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

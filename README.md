@@ -52,6 +52,10 @@ extending small decoder-only language models on AMD GPUs.
 > for 20 steps. Its first production fix is to separate the 13.32% host parameter-audit
 > residual from training time before implementing real gradient-ready overlap.
 
+> Parameter verification is now separately timed and configurable: the default remains
+> every step, while explicit final-step-only measurement is 1.244× faster with all 180
+> loss values unchanged. Real overlap still requires a multi-bucket model workload.
+
 ## Why this project exists
 
 Large frameworks make model development productive, but they hide the ownership,

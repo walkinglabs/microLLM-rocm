@@ -215,8 +215,9 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] forward/backward, communication, optimizer, total, and rank-difference metrics;
 - [x] refresh the current two-GPU baseline: RCCL 14/14, 20-step parameters identical,
   communication 15.28% and unseparated host verification 13.32% of steady total;
-- [ ] add explicit parameter-check interval and verification timing while preserving the
-  default every-step correctness behavior;
+- [x] add explicit parameter-check interval and verification timing while preserving the
+  default every-step behavior; 180 loss values match and final-step audit reaches 1.244x;
+- [ ] run a final-step-audited real bucket-count matrix before implementing readiness overlap;
 - [ ] one process per GPU communicator initialization;
 - [ ] autograd gradient-ready hooks and bucket rebuild by observed readiness;
 - [ ] compute-stream Events to communication streams and asynchronous work handles;

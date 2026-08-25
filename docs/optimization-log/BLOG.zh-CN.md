@@ -3996,3 +3996,10 @@ data-parallel reducer。
 因此第一个production节点先增加verification_ms和检查interval，默认语义不变。
 
 ![Current data parallel audit](assets/current-data-parallel-audit.svg)
+
+## 269. Experiment 252：默认检查保留，性能测量显式变稀
+
+每步、末步、关闭三种审计的20-step loss完全相同。末步审计相对每步1.244×，关闭为1.175×。
+更重要的是，optimizer完成等待已从host审计中拆出，跳过检查不再改变step生命周期。
+
+![Data parallel verification interval](assets/data-parallel-verification-interval.svg)
