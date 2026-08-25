@@ -863,6 +863,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [experiments/230-rocwmma-online-model-discard.md](experiments/230-rocwmma-online-model-discard.md) | 36进程整模反例与模型路由拒绝 |
 | [assets/rocwmma-direct-bf16-model-discard.svg](assets/rocwmma-direct-bf16-model-discard.svg) | 三cast与direct-BF16整模速度配对 |
 | [experiments/231-rocwmma-direct-bf16-model-discard.md](experiments/231-rocwmma-direct-bf16-model-discard.md) | direct-BF16反驳与online模型track关闭 |
+| [assets/current-inference-profile.svg](assets/current-inference-profile.svg) | 当前B1T1024默认路径分类占比 |
+| [experiments/232-current-inference-profile.md](experiments/232-current-inference-profile.md) | 4进程rocprof、phase delta与新GEMM合同 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

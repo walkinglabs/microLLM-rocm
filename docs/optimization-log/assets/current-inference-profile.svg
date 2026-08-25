@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="760" viewBox="0 0 1500 760">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="750.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 232 · Current T1024 Inference Profile</text>
+<text x="750.0" y="82.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">4 rocprof processes · (6-step − 1-step) / 5 · retained default path</text>
+<rect x="170" y="150" width="1160" height="410" fill="#ffffff" stroke="#cbd3df" rx="10"/>
+<line x1="170" y1="560.0" x2="1330" y2="560.0" stroke="#e5e9f0"/>
+<text x="158.0" y="565.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">0%</text>
+<line x1="170" y1="478.0" x2="1330" y2="478.0" stroke="#e5e9f0"/>
+<text x="158.0" y="483.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">20%</text>
+<line x1="170" y1="396.0" x2="1330" y2="396.0" stroke="#e5e9f0"/>
+<text x="158.0" y="401.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">40%</text>
+<line x1="170" y1="314.0" x2="1330" y2="314.0" stroke="#e5e9f0"/>
+<text x="158.0" y="319.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">60%</text>
+<line x1="170" y1="232.0" x2="1330" y2="232.0" stroke="#e5e9f0"/>
+<text x="158.0" y="237.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">80%</text>
+<line x1="170" y1="150.0" x2="1330" y2="150.0" stroke="#e5e9f0"/>
+<text x="158.0" y="155.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">100%</text>
+<rect x="408.0" y="315.3" width="220" height="244.7" fill="#2563eb"/>
+<text x="518.0" y="442.6" font-family="Inter,Arial,sans-serif" font-size="13" fill="#ffffff" text-anchor="middle" font-weight="700">hipBLASLt GEMM 59.7%</text>
+<rect x="408.0" y="254.4" width="220" height="60.8" fill="#e11d48"/>
+<text x="518.0" y="289.9" font-family="Inter,Arial,sans-serif" font-size="13" fill="#ffffff" text-anchor="middle" font-weight="700">softmax 14.8%</text>
+<rect x="408.0" y="212.2" width="220" height="42.2" fill="#94a3b8"/>
+<text x="518.0" y="238.3" font-family="Inter,Arial,sans-serif" font-size="13" fill="#ffffff" text-anchor="middle" font-weight="700">other kernels 10.3%</text>
+<rect x="408.0" y="188.3" width="220" height="23.9" fill="#f59e0b"/>
+<text x="518.0" y="205.3" font-family="Inter,Arial,sans-serif" font-size="13" fill="#ffffff" text-anchor="middle" font-weight="700">FP32/BF16 cast 5.8%</text>
+<rect x="408.0" y="174.1" width="220" height="14.3" fill="#16a34a"/>
+<rect x="408.0" y="161.2" width="220" height="12.9" fill="#8b5cf6"/>
+<rect x="408.0" y="150.0" width="220" height="11.2" fill="#64748b"/>
+<text x="518.0" y="596.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="middle" font-weight="700">Qwen2.5-0.5B</text>
+<text x="518.0" y="622.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">8.315 ms Kernel</text>
+<rect x="872.0" y="286.3" width="220" height="273.7" fill="#2563eb"/>
+<text x="982.0" y="428.2" font-family="Inter,Arial,sans-serif" font-size="13" fill="#ffffff" text-anchor="middle" font-weight="700">hipBLASLt GEMM 66.8%</text>
+<rect x="872.0" y="248.4" width="220" height="37.9" fill="#e11d48"/>
+<text x="982.0" y="272.4" font-family="Inter,Arial,sans-serif" font-size="13" fill="#ffffff" text-anchor="middle" font-weight="700">softmax 9.2%</text>
+<rect x="872.0" y="206.4" width="220" height="42.0" fill="#94a3b8"/>
+<text x="982.0" y="232.4" font-family="Inter,Arial,sans-serif" font-size="13" fill="#ffffff" text-anchor="middle" font-weight="700">other kernels 10.3%</text>
+<rect x="872.0" y="188.7" width="220" height="17.7" fill="#f59e0b"/>
+<text x="982.0" y="202.5" font-family="Inter,Arial,sans-serif" font-size="13" fill="#ffffff" text-anchor="middle" font-weight="700">FP32/BF16 cast 4.3%</text>
+<rect x="872.0" y="174.7" width="220" height="13.9" fill="#16a34a"/>
+<rect x="872.0" y="161.1" width="220" height="13.6" fill="#8b5cf6"/>
+<rect x="872.0" y="150.0" width="220" height="11.1" fill="#64748b"/>
+<text x="982.0" y="596.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="middle" font-weight="700">DeepSeek-Distill-1.5B</text>
+<text x="982.0" y="622.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">14.862 ms Kernel</text>
+<text x="750.0" y="650.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="middle" font-weight="700">GEMM remains 59.7% / 66.8%; softmax is 14.8% / 9.2% but its local thread track is saturated</text>
+<text x="750.0" y="695.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="middle" font-weight="400">Next bounded experiment: exact T1024 QK/PV hipBLASLt solution screening</text>
+</svg>

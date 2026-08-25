@@ -12925,6 +12925,75 @@ def validate_rocwmma_direct_bf16_model_gate(
     return len(raw), min(speeds), max(speeds), maximum_logit, maximum_saved
 
 
+def validate_current_inference_profile(
+        errors: list[str]) -> tuple[int, float, float, float, float]:
+    data = REPOSITORY / "benchmarks/results/2026-08-25-current-inference-profile"
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    models = {row["model"]: row for row in summary.get("models", [])}
+    expected = {
+        "qwen2.5-0.5b": (8315450.2, 0.5968900156482208,
+                          0.14840654087496066),
+        "deepseek-r1-distill-qwen-1.5b": (
+            14861633.8, 0.667511885537107, 0.09241425394292786),
+    }
+    if summary.get("schema_version") != 1 or summary.get("status") != "pass" or \
+            summary.get("record_type") != "current_inference_profile_summary" or \
+            summary.get("profile_processes") != 4 or \
+            summary.get("sequence") != 1024 or summary.get("batch") != 1 or \
+            summary.get("derived_forwards") != 5 or set(models) != set(expected) or \
+            summary.get("decision") != (
+                "keep softmax local track closed; screen exact T1024 Attention GEMM solutions") or \
+            len(raw) != 4 or \
+            any(row.get("schema_version") != 1 or row.get("status") != "pass" or
+                row.get("record_type") != "current_inference_profile_run" or
+                row.get("inference_bthd_online_attention") is not False or
+                int(row.get("rocwmma_online_attention_native_calls", -1)) != 0 or
+                int(row.get("rocwmma_online_attention_fallback_calls", -1)) != 0
+                for row in raw):
+        errors.append("current inference profile evidence changed")
+    for model, (total, gemm, softmax) in expected.items():
+        row = models.get(model, {})
+        categories = {item["category"]: item for item in row.get("categories", [])}
+        if abs(float(row.get("total_kernel_ns_per_step", 0.0)) - total) > 1.0e-6 or \
+                abs(float(categories.get("hipBLASLt GEMM", {}).get(
+                    "kernel_share", 0.0)) - gemm) > 1.0e-12 or \
+                abs(float(categories.get("softmax", {}).get(
+                    "kernel_share", 0.0)) - softmax) > 1.0e-12 or \
+                row.get("negative_call_delta_names") != []:
+            errors.append(f"current inference profile changed for {model}")
+    if verification != {
+            "schema_version": 1,
+            "status": "pass",
+            "profile_processes": 4,
+            "models": 2,
+            "sequence": 1024,
+            "batch": 1,
+            "derived_forwards": 5,
+            "negative_call_delta_names": 0,
+            "default_online_calls": 0,
+            "next_target": "exact T1024 Attention GEMM solutions"}:
+        errors.append("current inference profile verification changed")
+    sources = (
+        ("--kernel-trace", REPOSITORY /
+         "benchmarks/single_gpu/profile_current_inference.py"),
+        ("inference_prefill_kernel_phase_delta", REPOSITORY /
+         "benchmarks/single_gpu/profile_step_delta.py"),
+        ("derived_forwards", REPOSITORY /
+         "python/tests/test_profile_current_inference.py"),
+    )
+    if any(token not in path.read_text(encoding="utf-8")
+           for token, path in sources):
+        errors.append("current inference profile source/test changed")
+    return len(raw), expected["qwen2.5-0.5b"][1], \
+        expected["deepseek-r1-distill-qwen-1.5b"][1], \
+        expected["qwen2.5-0.5b"][2], \
+        expected["deepseek-r1-distill-qwen-1.5b"][2]
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -13134,7 +13203,8 @@ def validate_assets(errors: list[str]) -> None:
                  "rocwmma-online-attention.svg",
                  "rocwmma-online-operator.svg",
                  "rocwmma-online-model-discard.svg",
-                 "rocwmma-direct-bf16-model-discard.svg"):
+                 "rocwmma-direct-bf16-model-discard.svg",
+                 "current-inference-profile.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -13572,6 +13642,9 @@ def main() -> int:
     rocwmma_direct_rows, rocwmma_direct_minimum, rocwmma_direct_maximum, \
         rocwmma_direct_logit, rocwmma_direct_saved = \
         validate_rocwmma_direct_bf16_model_gate(errors)
+    current_profile_rows, current_profile_qwen_gemm, \
+        current_profile_deep_gemm, current_profile_qwen_softmax, \
+        current_profile_deep_softmax = validate_current_inference_profile(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -13965,6 +14038,10 @@ def main() -> int:
           f"rocwmma_direct={rocwmma_direct_rows}/"
           f"{rocwmma_direct_minimum:.3f}/{rocwmma_direct_maximum:.3f}/"
           f"{rocwmma_direct_logit:.3f}/{rocwmma_direct_saved} "
+          f"current_profile={current_profile_rows}/"
+          f"{current_profile_qwen_gemm:.3f}/{current_profile_deep_gemm:.3f}/"
+          f"{current_profile_qwen_softmax:.3f}/"
+          f"{current_profile_deep_softmax:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

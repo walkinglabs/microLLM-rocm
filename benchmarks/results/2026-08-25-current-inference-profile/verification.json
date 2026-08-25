@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "profile_processes": 4,
+  "models": 2,
+  "sequence": 1024,
+  "batch": 1,
+  "derived_forwards": 5,
+  "negative_call_delta_names": 0,
+  "default_online_calls": 0,
+  "next_target": "exact T1024 Attention GEMM solutions"
+}

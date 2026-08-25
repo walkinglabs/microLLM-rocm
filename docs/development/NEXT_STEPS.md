@@ -54,6 +54,9 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   all three per-layer casts, and repeat the same model gate;
 - [x] reject the direct-BF16 route at 0.777x–0.906x with Qwen Max/RMS up to
   0.485/0.110; close the online-Attention model track rather than tune local knobs;
+- [x] reprofile the retained B1T1024 default path with load-subtracted rocprof traces;
+  GEMM is 59.7%/66.8%, while old softmax tuning has less than 0.3% whole-step upside;
+- [ ] screen exact T1024 QK/PV hipBLASLt solutions before any new model policy;
 - [x] populate B1 KV cache from one full-sequence prefill instead of token replay;
 - [x] support batched cached decode with batch-aware KV Storage;
 - [x] add opt-in BF16 KV Storage with FP32 accumulation, complete-logit gates and a retained

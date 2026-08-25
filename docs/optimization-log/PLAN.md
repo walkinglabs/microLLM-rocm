@@ -83,6 +83,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [52](steps/52-rocwmma-online-operator.md) | complete | 公共online causal GQA算子 | 10 native全胜；4 fallback精确反例；准入模型A/B |
 | [53](steps/53-rocwmma-online-model-discard.md) | complete | online Attention完整模型门 | 六格0.761×–0.884×且Qwen logits失败；拒绝模型路由 |
 | [54](steps/54-rocwmma-direct-bf16-model-discard.md) | complete | 去三cast反驳实验 | direct BF16仍0.777×–0.906×；关闭online模型track |
+| [55](steps/55-current-inference-profile.md) | complete | 当前B1T1024重新profile | GEMM 59.7%/66.8%；下一步筛exact Attention solution |
 
 ## 为什么按这个顺序
 

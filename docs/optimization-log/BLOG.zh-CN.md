@@ -3777,3 +3777,13 @@ grouped QKV现在可保留BF16 V，V bias和bias+RoPE都直接写BF16，Attentio
 direct-BF16 bias/RoPE原语和public operator保留，online模型track关闭，不再调局部tile或threads。
 
 ![Direct BF16 model discard](assets/rocwmma-direct-bf16-model-discard.svg)
+
+## 249. Experiment 232：路线关闭后，重新看默认程序
+
+当前B1T1024默认策略做四个rocprof进程，用`(load+6−load−1)/5`去掉启动。Qwen/DeepSeek
+Kernel时间8.315/14.862ms，hipBLASLt GEMM占59.7%/66.8%，softmax占14.8%/9.2%。
+
+softmax虽是最大单kernel，但旧T1024线程候选局部只有1.013×/1.021×，理论整步不足0.3%；online
+模型也已关闭。因此下一步只筛exact T1024 QK/PV solution，不能从红色条直接跳到旧方案。
+
+![Current inference profile](assets/current-inference-profile.svg)

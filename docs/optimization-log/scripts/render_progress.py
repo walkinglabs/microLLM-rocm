@@ -128,6 +128,10 @@ ROCWMMA_DIRECT_MODEL_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
                              "2026-08-25-rocwmma-direct-bf16-model-gate")
 ROCWMMA_DIRECT_MODEL_CHART = (
     ROOT / "assets" / "rocwmma-direct-bf16-model-discard.svg")
+CURRENT_INFERENCE_PROFILE_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
+                                  "2026-08-25-current-inference-profile")
+CURRENT_INFERENCE_PROFILE_CHART = (
+    ROOT / "assets" / "current-inference-profile.svg")
 
 
 def rows() -> list[dict]:
@@ -3090,6 +3094,69 @@ def rocwmma_direct_bf16_model_svg() -> str:
     return "\n".join(parts)
 
 
+def current_inference_profile_svg() -> str:
+    summary = json.loads((CURRENT_INFERENCE_PROFILE_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    models = summary["models"]
+    width, height = 1500, 760
+    chart_x, chart_y, chart_w, chart_h = 170, 150, 1160, 410
+    palette = {
+        "hipBLASLt GEMM": "#2563eb", "softmax": "#e11d48",
+        "other kernels": "#94a3b8", "FP32/BF16 cast": "#f59e0b",
+        "RMSNorm forward/backward": "#16a34a", "GQA repeat": "#8b5cf6",
+        "gradient/elementwise add": "#64748b",
+    }
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 232 · Current T1024 Inference Profile", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "4 rocprof processes · (6-step − 1-step) / 5 · retained default path",
+             16, "#5b6474", anchor="middle"),
+        f'<rect x="{chart_x}" y="{chart_y}" width="{chart_w}" height="{chart_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+    ]
+    for tick in (0, 20, 40, 60, 80, 100):
+        y_pos = chart_y + chart_h * (100 - tick) / 100
+        parts.append(f'<line x1="{chart_x}" y1="{y_pos:.1f}" '
+                     f'x2="{chart_x+chart_w}" y2="{y_pos:.1f}" stroke="#e5e9f0"/>')
+        parts.append(text(chart_x - 12, y_pos + 5, f"{tick}%", 13,
+                          "#5b6474", anchor="end"))
+    centers = (chart_x + chart_w * 0.3, chart_x + chart_w * 0.7)
+    for model, center in zip(models, centers):
+        bottom = chart_y + chart_h
+        by_category = {row["category"]: row for row in model["categories"]}
+        for category in palette:
+            row = by_category.get(category)
+            if row is None:
+                continue
+            height_value = chart_h * row["kernel_share"]
+            bottom -= height_value
+            parts.append(f'<rect x="{center-110:.1f}" y="{bottom:.1f}" '
+                         f'width="220" height="{height_value:.1f}" '
+                         f'fill="{palette[category]}"/>')
+            if row["kernel_share"] >= 0.04:
+                parts.append(text(center, bottom + height_value / 2 + 5,
+                                  f'{category} {row["kernel_share"]*100:.1f}%',
+                                  13, "#ffffff", anchor="middle", weight=700))
+        label = "Qwen2.5-0.5B" if model["model"].startswith("qwen") else "DeepSeek-Distill-1.5B"
+        parts.append(text(center, chart_y + chart_h + 36, label, 17,
+                          anchor="middle", weight=700))
+        parts.append(text(center, chart_y + chart_h + 62,
+                          f'{model["total_kernel_ns_per_step"]/1e6:.3f} ms Kernel',
+                          14, "#5b6474", anchor="middle"))
+    parts.append(text(width / 2, 650,
+                      "GEMM remains 59.7% / 66.8%; softmax is 14.8% / 9.2% but its local thread track is saturated",
+                      17, "#172033", anchor="middle", weight=700))
+    parts.append(text(width / 2, 695,
+                      "Next bounded experiment: exact T1024 QK/PV hipBLASLt solution screening",
+                      15, "#5b6474", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -3137,7 +3204,8 @@ def main() -> int:
                 ROCWMMA_ONLINE_CHART: rocwmma_online_attention_svg(),
                 ROCWMMA_OPERATOR_CHART: rocwmma_online_operator_svg(),
                 ROCWMMA_MODEL_CHART: rocwmma_online_model_svg(),
-                ROCWMMA_DIRECT_MODEL_CHART: rocwmma_direct_bf16_model_svg()}
+                ROCWMMA_DIRECT_MODEL_CHART: rocwmma_direct_bf16_model_svg(),
+                CURRENT_INFERENCE_PROFILE_CHART: current_inference_profile_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]
