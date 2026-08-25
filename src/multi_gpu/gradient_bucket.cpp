@@ -44,7 +44,7 @@ void validate(const Communicator& communicator,
 BucketStats all_reduce_gradients(
     Communicator& communicator,
     const std::vector<std::vector<autograd::Value*>>& rank_parameters,
-    std::size_t maximum_bucket_bytes) {
+    std::size_t maximum_bucket_bytes, bool in_place_average) {
     if (maximum_bucket_bytes < sizeof(float)) {
         throw std::invalid_argument("maximum bucket size must hold at least one float");
     }
@@ -87,9 +87,11 @@ BucketStats all_reduce_gradients(
                 offset += static_cast<std::size_t>(gradient.numel());
             }
         }
-        communicator.all_reduce(buckets, true);
-        stats.average_tensor_count += communicator.size();
-        stats.temporary_elements += bucket_elements * communicator.size();
+        communicator.all_reduce(buckets, true, in_place_average);
+        if (!in_place_average) {
+            stats.average_tensor_count += communicator.size();
+            stats.temporary_elements += bucket_elements * communicator.size();
+        }
 
         std::vector<std::vector<Tensor>> unpacked(communicator.size());
         for (std::size_t rank = 0; rank < communicator.size(); ++rank) {

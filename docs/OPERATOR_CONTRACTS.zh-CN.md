@@ -34,6 +34,7 @@ BF16 舍入语义。它不承诺与 FP32 gradient bit-exact，也不会自动改
 | `multiply` | `S,S -> S` | `torch.mul` | 默认 | shape/device 不同、HIP 非连续 |
 | `multiply_out_` | 同`multiply`，output预分配且不与输入共享Storage | `torch.mul` + caller地址检查 | 默认/BF16舍入 | output shape/dtype/device/stride或alias错 |
 | `scale` | `S,scalar -> S` | `x*scalar` | 默认 | 非 FP32、HIP 非连续 |
+| `scale_in_place_` | 连续浮点Tensor原地乘有限factor，Storage地址不变 | `x*factor` | FP32默认/低精度舍入 | 非浮点、非连续、Inf/NaN factor |
 | `matmul` | `[...,M,K] × [...,K,N] -> [...,M,N]`，batch 维完全相同 | `torch.matmul` | `2e-4,2e-4` | rank<2、rank/batch/inner 不同 |
 | `matmul_out_` | 数学shape同`matmul`；output预先分配、连续、同dtype/device且不与输入共享Storage | `torch.matmul` + caller地址检查 | `2e-4,2e-4` | output shape/dtype/device/stride错误或alias |
 | `bf16_ffn_precast_out_` | caller已填`workspace.input_bf16 [R,D]`，三个BF16权重，输出FP32 | 与`bf16_ffn_out_`同输出，但不重复cast | 完整BF16中间值和FP32输出相同 | workspace/weight/output shape、dtype、device、stride或alias错 |

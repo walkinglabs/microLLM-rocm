@@ -20,6 +20,8 @@ def parse_args():
     parser.add_argument("--steps", type=int, default=3)
     parser.add_argument("--bucket-bytes", type=int, default=4 * 1024 * 1024)
     parser.add_argument("--parameter-check-interval", type=int, default=1)
+    parser.add_argument("--inplace-bucket-average", choices=("true", "false"),
+                        default="true")
     parser.add_argument("--seed", type=int, default=601)
     parser.add_argument("--batch", type=int, default=1)
     parser.add_argument("--context", type=int, default=0)
@@ -69,6 +71,7 @@ def main():
         "--steps", str(args.steps),
         "--bucket-bytes", str(args.bucket_bytes),
         "--parameter-check-interval", str(args.parameter_check_interval),
+        "--inplace-bucket-average", args.inplace_bucket_average,
         "--seed", str(args.seed),
         "--batch", str(args.batch),
         "--context", str(args.context),
@@ -121,6 +124,7 @@ def main():
             "steps": args.steps,
             "bucket_bytes": args.bucket_bytes,
             "parameter_check_interval": args.parameter_check_interval,
+            "inplace_bucket_average": args.inplace_bucket_average == "true",
             "seed": args.seed,
             "batch": args.batch,
             "context": args.context,

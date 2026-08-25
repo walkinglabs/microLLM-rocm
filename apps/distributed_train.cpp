@@ -19,6 +19,7 @@ struct Options {
     std::uint64_t steps = 3;
     std::size_t bucket_bytes = 4U * 1024U * 1024U;
     std::size_t parameter_check_interval = 1;
+    bool in_place_bucket_average = true;
     std::uint64_t seed = 601;
     std::size_t batch = 1;
     std::size_t context = 0;
@@ -49,6 +50,13 @@ Options parse(int argc, char** argv) {
             options.parameter_check_interval = static_cast<std::size_t>(
                 number(next("--parameter-check-interval"),
                        "parameter check interval"));
+        } else if (argument == "--inplace-bucket-average") {
+            const auto value = next("--inplace-bucket-average");
+            if (value != "true" && value != "false") {
+                throw std::invalid_argument(
+                    "--inplace-bucket-average must be true or false");
+            }
+            options.in_place_bucket_average = value == "true";
         } else if (argument == "--seed") options.seed = number(next("--seed"), "seed");
         else if (argument == "--batch") {
             options.batch = static_cast<std::size_t>(number(next("--batch"), "batch"));
@@ -136,6 +144,7 @@ int main(int argc, char** argv) {
             {.device_indices = {0, 1},
              .maximum_bucket_bytes = options.bucket_bytes,
              .parameter_check_interval = options.parameter_check_interval,
+             .in_place_bucket_average = options.in_place_bucket_average,
              .optimizer = optimizer});
         const auto parameter_count = trainer.model(0).parameter_count();
         for (const auto device : {0, 1}) {
@@ -172,6 +181,8 @@ int main(int argc, char** argv) {
                           << ",\"batch\":" << options.batch
                           << ",\"context\":" << options.context
                           << ",\"parameter_count\":" << parameter_count
+                          << ",\"inplace_bucket_average\":"
+                          << (options.in_place_bucket_average ? "true" : "false")
                           << ",\"mean_loss\":" << metrics.mean_loss
                           << ",\"bucket_count\":" << metrics.buckets.bucket_count
                           << ",\"bucket_parameter_count\":"

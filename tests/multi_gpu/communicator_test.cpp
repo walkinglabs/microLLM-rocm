@@ -12,10 +12,25 @@ TEST(RcclCommunicatorTest, TwoGpuAverageProducesIdenticalValues) {
     std::vector<Tensor> tensors;
     tensors.push_back(Tensor::from_vector({1, 2, 3, 4}, {4}).to(Device::hip(0)));
     tensors.push_back(Tensor::from_vector({3, 4, 5, 6}, {4}).to(Device::hip(1)));
+    const auto* first_address = tensors[0].storage().data();
+    const auto* second_address = tensors[1].storage().data();
     communicator.all_reduce(tensors, true);
+    EXPECT_EQ(tensors[0].storage().data(), first_address);
+    EXPECT_EQ(tensors[1].storage().data(), second_address);
     EXPECT_EQ(tensors[0].to_vector(), (std::vector<float>{2, 3, 4, 5}));
     EXPECT_EQ(tensors[1].to_vector(), tensors[0].to_vector());
     EXPECT_FALSE(communicator.aborted());
+}
+
+TEST(RcclCommunicatorTest, AllocatingAverageControlMatchesInPlaceValues) {
+    if (runtime::hip_device_count() < 2) GTEST_SKIP() << "two visible HIP devices required";
+    Communicator communicator({0, 1});
+    std::vector<Tensor> tensors;
+    tensors.push_back(Tensor::from_vector({1, 2, 3, 4}, {4}).to(Device::hip(0)));
+    tensors.push_back(Tensor::from_vector({3, 4, 5, 6}, {4}).to(Device::hip(1)));
+    communicator.all_reduce(tensors, true, false);
+    EXPECT_EQ(tensors[0].to_vector(), (std::vector<float>{2, 3, 4, 5}));
+    EXPECT_EQ(tensors[1].to_vector(), tensors[0].to_vector());
 }
 
 TEST(RcclCommunicatorTest, ValidatesAllRanksBeforeCommunication) {

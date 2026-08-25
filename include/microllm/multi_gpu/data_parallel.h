@@ -19,6 +19,7 @@ struct DataParallelConfig {
     // 1 preserves the correctness-first every-step audit. 0 explicitly
     // disables it; N checks steps divisible by N.
     std::size_t parameter_check_interval = 1;
+    bool in_place_bucket_average = true;
     training::AdamWConfig optimizer;
 };
 

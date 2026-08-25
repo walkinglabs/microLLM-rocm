@@ -535,6 +535,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.DataParallelModelSBucketMatrixContract PROPERTIES
         LABELS "cpu;benchmark;training;model;multi_gpu;rccl;bucket;memory;schema")
     add_test(
+        NAME Benchmark.DataParallelInplaceAverageMatrixContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_data_parallel_inplace_average_matrix.py
+    )
+    set_tests_properties(Benchmark.DataParallelInplaceAverageMatrixContract PROPERTIES
+        LABELS "cpu;benchmark;training;model;multi_gpu;rccl;bucket;memory;schema")
+    add_test(
         NAME Benchmark.Bf16RepeatContract
         COMMAND ${Python3_EXECUTABLE}
                 ${PROJECT_SOURCE_DIR}/python/tests/test_bf16_repeat.py

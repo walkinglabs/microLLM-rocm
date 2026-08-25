@@ -35,11 +35,11 @@ TEST(RcclGradientBucketTest, OneLargeBucketAveragesEveryTinyModelGradient) {
     EXPECT_EQ(stats.bucket_count, 1U);
     EXPECT_EQ(stats.parameter_count, parameters0.size());
     EXPECT_EQ(stats.bucket_tensor_count, 2U);
-    EXPECT_EQ(stats.average_tensor_count, 2U);
+    EXPECT_EQ(stats.average_tensor_count, 0U);
     EXPECT_EQ(stats.unpacked_tensor_count, parameters0.size() * 2U);
     EXPECT_EQ(stats.pack_copy_calls, parameters0.size() * 2U);
     EXPECT_EQ(stats.unpack_copy_calls, parameters0.size() * 2U);
-    EXPECT_EQ(stats.temporary_elements, stats.total_elements * 6U);
+    EXPECT_EQ(stats.temporary_elements, stats.total_elements * 4U);
     EXPECT_EQ(stats.temporary_bytes, stats.temporary_elements * sizeof(float));
     for (std::size_t index = 0; index < parameters0.size(); ++index) {
         EXPECT_EQ(parameters0[index]->grad().to_vector(), parameters1[index]->grad().to_vector());

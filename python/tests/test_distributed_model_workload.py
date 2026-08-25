@@ -21,6 +21,7 @@ def main() -> int:
         "pack_copy_calls", "unpack_copy_calls",
         "communication_allocation_calls",
         "communication_backend_allocation_calls",
+        "--inplace-bucket-average", "inplace_bucket_average",
         "distributed step failed its loss or rank-parameter gate",
     ):
         assert token in cli

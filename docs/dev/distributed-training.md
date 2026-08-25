@@ -83,6 +83,10 @@ Bucket metrics now expose bucket/average/unpacked Tensor counts, pack/unpack cop
 bytes and communication-stage allocation deltas. The 3-bucket Model-S identity is 126 backend
 allocations and 374,068,224 temporary bytes per step; RCCL non-default streams prevent pool reuse.
 
+Bucket averaging now defaults to an address-stable in-place scale after all-reduce sum. The
+explicit CLI control exists only for same-binary A/B. This removes the average Tensor family and
+is a prerequisite for persistent bucket addresses; it does not remove pack/unpack copies.
+
 The CLI prints one JSON record per step and writes stage/layer/model timing records using
 the same trace schema as the alignment infrastructure.
 

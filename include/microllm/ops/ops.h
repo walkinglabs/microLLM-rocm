@@ -516,6 +516,7 @@ void add_in_place_(Tensor& destination, const Tensor& source,
 void multiply_out_(Tensor& output, const Tensor& left, const Tensor& right,
                    const OpContext& context = {});
 [[nodiscard]] Tensor scale(const Tensor& input, float factor, const OpContext& context = {});
+void scale_in_place_(Tensor& input, float factor, const OpContext& context = {});
 [[nodiscard]] Tensor matmul(const Tensor& left, const Tensor& right,
                             const OpContext& context = {});
 [[nodiscard]] bool hipblaslt_available() noexcept;

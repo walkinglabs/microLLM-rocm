@@ -71,7 +71,8 @@ const std::vector<int>& Communicator::devices() const noexcept { return impl_->d
 bool Communicator::aborted() const noexcept { return impl_->aborted; }
 runtime::Stream& Communicator::stream(std::size_t rank) { return impl_->streams.at(rank); }
 
-void Communicator::all_reduce(std::vector<Tensor>& tensors, bool average) {
+void Communicator::all_reduce(std::vector<Tensor>& tensors, bool average,
+                              bool in_place_average) {
     if (tensors.empty()) return;
     enqueue_all_reduce_sum(tensors);
     synchronize();
@@ -79,7 +80,11 @@ void Communicator::all_reduce(std::vector<Tensor>& tensors, bool average) {
         const auto factor = 1.0F / static_cast<float>(tensors.size());
         for (std::size_t rank = 0; rank < tensors.size(); ++rank) {
             const ops::OpContext context{&impl_->streams[rank], nullptr, 0};
-            tensors[rank] = ops::scale(tensors[rank], factor, context);
+            if (in_place_average) {
+                ops::scale_in_place_(tensors[rank], factor, context);
+            } else {
+                tensors[rank] = ops::scale(tensors[rank], factor, context);
+            }
         }
         synchronize();
     }

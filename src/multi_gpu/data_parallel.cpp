@@ -170,7 +170,8 @@ DistributedStepMetrics DataParallelTrainer::step(
     rank_parameters.reserve(world_size());
     for (auto& rank_model : impl_->models) rank_parameters.push_back(rank_model->parameters());
     metrics.buckets = all_reduce_gradients(
-        impl_->communicator, rank_parameters, impl_->config.maximum_bucket_bytes);
+        impl_->communicator, rank_parameters, impl_->config.maximum_bucket_bytes,
+        impl_->config.in_place_bucket_average);
     const auto communication_allocation_after = runtime::allocation_stats(
         Device::hip(impl_->config.device_indices.front()));
     metrics.communication_allocation_calls =

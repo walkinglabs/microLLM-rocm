@@ -112,6 +112,7 @@ def pytorch_references(actual):
     record(refs, "add", left + right)
     record(refs, "multiply", left * right)
     record(refs, "scale", left * -0.25)
+    record(refs, "scale_in_place", left * -0.25)
     record(refs, "cast_bf16", left.to(torch.bfloat16))
     record(refs, "add_bias", left + tensor([0.5, -1.0, 2.0], (3,)))
     record(refs, "add_bias_bf16",
@@ -809,6 +810,7 @@ class OperatorParityTest(unittest.TestCase):
             "invalid_add_bias_bf16_shape",
             "invalid_bias_gradient_rank",
             "invalid_scale_dtype",
+            "invalid_scale_in_place_factor",
             "invalid_cast_dtype",
             "invalid_matmul_inner",
             "invalid_matmul_scaled_factor",

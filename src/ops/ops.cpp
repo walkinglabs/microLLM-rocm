@@ -1521,6 +1521,29 @@ Tensor scale(const Tensor& input, float factor, [[maybe_unused]] const OpContext
     return from_values(std::move(values), input.shape(), input.dtype());
 }
 
+void scale_in_place_(Tensor& input, float factor,
+                     [[maybe_unused]] const OpContext& context) {
+    require_forward_float(input, "input");
+    require_contiguous(input, "input");
+    if (!std::isfinite(factor)) {
+        throw std::invalid_argument("in-place scale factor must be finite");
+    }
+    if (input.device().is_hip()) {
+#if MICROLLM_HAS_HIP
+        hip::launch_scale_typed(input.data(), input.data(), input.dtype(),
+                                input.numel(), factor,
+                                context.native_stream(input.device()));
+        return;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    const auto reference = scale(input, factor, context);
+    runtime::copy_bytes(
+        input.data(), input.device(), reference.data(), reference.device(),
+        static_cast<std::size_t>(input.numel()) * dtype_size(input.dtype()));
+}
+
 Tensor matmul(const Tensor& left, const Tensor& right,
               [[maybe_unused]] const OpContext& context) {
     require_forward_float(left, "left");

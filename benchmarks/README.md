@@ -202,6 +202,17 @@ Distributed metrics also report exact bucket/average/unpacked Tensor counts, pac
 copies and communication-stage allocation/backend/cache-reuse deltas. These fields are the
 admission gate for persistent reducer storage.
 
+Gate in-place bucket averaging against its allocating control:
+
+```bash
+ROCR_VISIBLE_DEVICES=0,1 python3 \
+  benchmarks/distributed/data_parallel_inplace_average_matrix.py \
+  --binary build/rccl-release/apps/microllm_distributed_train \
+  --output-directory /tmp/microllm-inplace-average
+```
+
+Both paths use the same 25 MiB/3-bucket Model-S workload and final-step parameter audit.
+
 `microllm_bench_model` measures train or cache-backed generation throughput. Its
 `tokens_per_second` excludes construction and warm-up; `tokens_per_second_with_setup`
 includes construction, device transfer, optimizer allocation, and warm-up. Both are

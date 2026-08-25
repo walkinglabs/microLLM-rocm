@@ -35,6 +35,21 @@ TEST(CpuOpsTest, ElementwiseOpsMatchHandValues) {
     EXPECT_EQ(scale(left, 0.5F).to_vector(), (std::vector<float>{0.5F, -1, 1.5F}));
 }
 
+TEST(CpuOpsTest, InPlaceScalePreservesStorageAndChecksContract) {
+    auto input = Tensor::from_vector({1, -2, 3}, {3});
+    const auto* address = input.storage().data();
+    scale_in_place_(input, -0.25F);
+    EXPECT_EQ(input.storage().data(), address);
+    EXPECT_EQ(input.to_vector(), (std::vector<float>{-0.25F, 0.5F, -0.75F}));
+    EXPECT_THROW(
+        scale_in_place_(input, std::numeric_limits<float>::infinity()),
+        std::invalid_argument);
+    auto integers = Tensor::from_int32_vector({1}, {1});
+    EXPECT_THROW(scale_in_place_(integers, 2.0F), std::invalid_argument);
+    auto view = Tensor::from_vector({1, 2, 3, 4}, {2, 2}).transpose(0, 1);
+    EXPECT_THROW(scale_in_place_(view, 2.0F), std::invalid_argument);
+}
+
 TEST(CpuOpsTest, InPlaceAddPreservesStorageAndRejectsUnsafeContracts) {
     auto destination = Tensor::from_vector({1, -2, 3, 4}, {2, 2});
     const auto source = Tensor::from_vector({4, 5, -6, 2}, {2, 2});

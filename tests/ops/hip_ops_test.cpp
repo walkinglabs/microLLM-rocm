@@ -69,6 +69,20 @@ TEST(HipOpsTest, FillAndElementwiseMatchCpuReference) {
     expect_near(scale(left, -0.25F).to_vector(), scale(left_cpu, -0.25F).to_vector());
 }
 
+TEST(HipOpsTest, InPlaceScalePreservesStorageWithoutPayloadTransfers) {
+    require_gpu();
+    auto input = Tensor::from_vector({1, -2, 3, -4}, {4}).to(Device::hip());
+    const auto* address = input.storage().data();
+    runtime::reset_transfer_stats();
+    scale_in_place_(input, -0.5F);
+    runtime::synchronize(input.device());
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(input.storage().data(), address);
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    expect_near(input.to_vector(), {-0.5F, 1.0F, -1.5F, 2.0F});
+}
+
 TEST(HipOpsTest, InPlaceAddPreservesStorageWithoutPayloadTransfers) {
     require_gpu();
     const auto gpu = Device::hip(0);

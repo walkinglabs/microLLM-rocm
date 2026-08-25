@@ -63,6 +63,9 @@ void emit_forward_cases() {
     emit("add", add(left, right));
     emit("multiply", multiply(left, right));
     emit("scale", scale(left, -0.25F));
+    auto in_place_scale = f32({1, -2, 3, 4, 0.5F, -0.25F}, {2, 3});
+    scale_in_place_(in_place_scale, -0.25F);
+    emit("scale_in_place", in_place_scale);
     emit("cast_bf16", cast(left, DType::BFloat16));
     emit("add_bias", add_bias(left, f32({0.5F, -1.0F, 2.0F}, {3})));
     emit("add_bias_bf16", add_bias_bf16(
@@ -524,6 +527,10 @@ void emit_invalid_shape_cases() {
               }));
     emit_bool("invalid_scale_dtype", rejected([&] {
                   (void)scale(Tensor::from_int32_vector({1, 2}, {2}), 2.0F);
+              }));
+    emit_bool("invalid_scale_in_place_factor", rejected([&] {
+                  auto value = matrix;
+                  scale_in_place_(value, std::numeric_limits<float>::infinity());
               }));
     emit_bool("invalid_cast_dtype", rejected([&] {
                   (void)cast(Tensor::from_int32_vector({1, 2}, {2}), DType::BFloat16);
