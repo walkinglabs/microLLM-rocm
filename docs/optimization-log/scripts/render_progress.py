@@ -193,6 +193,11 @@ BF16_WGRAD_SHAPE_ROOT = (
     "2026-08-25-bf16-weight-gradient-operator")
 BF16_WGRAD_SHAPE_CHART = (
     ROOT / "assets" / "bf16-weight-gradient-shapes.svg")
+BF16_WGRAD_MODEL_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-bf16-weight-gradient-model-gate")
+BF16_WGRAD_MODEL_CHART = (
+    ROOT / "assets" / "bf16-weight-gradient-model.svg")
 
 
 def rows() -> list[dict]:
@@ -3911,6 +3916,53 @@ def bf16_weight_gradient_shapes_svg() -> str:
     return "\n".join(parts)
 
 
+def bf16_weight_gradient_model_svg() -> str:
+    summary = json.loads((BF16_WGRAD_MODEL_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    width, height = 1500, 720
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 246 · Gate/Up BF16 Weight Gradient", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "Three alternating-order same-binary pairs · B1T512 · two measured steps",
+             16, "#5b6474", anchor="middle"),
+    ]
+    for index, row in enumerate(summary["comparisons"]):
+        x = 145 + index * 680
+        model = "Qwen2.5-0.5B" if index == 0 else "DeepSeek-Distill-1.5B"
+        speedup = row["throughput_speedup"]
+        route = row["diagnostics"]["bf16_gate_up_weight_gradient_assignments"]
+        parts.extend([
+            f'<rect x="{x}" y="145" width="540" height="330" rx="16" '
+            'fill="#ecfdf3" stroke="#16a34a" stroke-width="3"/>',
+            text(x + 270, 195, model, 23, "#172033", anchor="middle", weight=700),
+            text(x + 270, 270, f"{speedup:.4f}x", 42, "#16a34a",
+                 anchor="middle", weight=700),
+            text(x + 270, 310, "end-to-end training throughput", 16,
+                 "#5b6474", anchor="middle"),
+            text(x + 60, 370, f"route assignments  {route}", 17, "#172033"),
+            text(x + 60, 405, f"peak ratio  {row['peak_ratio']:.3f}", 17,
+                 "#172033"),
+            text(x + 60, 440,
+                 f"final loss diff  {row['final_loss_relative_difference'] * 100:.4f}%",
+                 17, "#172033"),
+        ])
+    parts.append(text(width / 2, 555,
+                      "All six short model gates pass · peak memory unchanged",
+                      24, "#166534", anchor="middle", weight=700))
+    parts.append(text(width / 2, 615,
+                      "Candidate adds 192 / 224 logical allocations over two steps",
+                      18, "#5b6474", anchor="middle"))
+    parts.append(text(width / 2, 670,
+                      "Decision: keep explicit; require a longer trajectory before default",
+                      20, "#b45309", anchor="middle", weight=700))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -3972,7 +4024,8 @@ def main() -> int:
                 BF16_VALUE_PV_CHART: bf16_value_pv_svg(),
                 INFERENCE_LOCAL_SATURATION_CHART: inference_local_saturation_svg(),
                 CURRENT_TRAINING_PROFILE_CHART: current_training_profile_svg(),
-                BF16_WGRAD_SHAPE_CHART: bf16_weight_gradient_shapes_svg()}
+                BF16_WGRAD_SHAPE_CHART: bf16_weight_gradient_shapes_svg(),
+                BF16_WGRAD_MODEL_CHART: bf16_weight_gradient_model_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

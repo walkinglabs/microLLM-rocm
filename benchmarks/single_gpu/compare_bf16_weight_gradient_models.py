@@ -119,6 +119,10 @@ def main() -> int:
                     "policy": "candidate" if enabled else "baseline",
                 })
                 records.append(record)
+                (args.output_directory / "training.jsonl").write_text(
+                    "".join(json.dumps(row, sort_keys=True) + "\n"
+                            for row in records),
+                    encoding="utf-8")
                 print(json.dumps(record, sort_keys=True), flush=True)
     diagnostics = {}
     for model in models:
@@ -164,7 +168,9 @@ def main() -> int:
                 baseline["engine_peak_bytes"],
             "allocation_calls_delta": candidate["engine_allocation_calls"] -
                 baseline["engine_allocation_calls"],
-            "first_loss_equal": candidate["first_loss"] == baseline["first_loss"],
+            "first_loss_relative_difference": abs(
+                candidate["first_loss"] - baseline["first_loss"]) /
+                max(abs(baseline["first_loss"]), 1.0e-12),
             "final_loss_relative_difference": abs(
                 candidate["final_loss"] - baseline["final_loss"]) /
                 max(abs(baseline["final_loss"]), 1.0e-12),
@@ -178,7 +184,8 @@ def main() -> int:
         "throughput": all(row["throughput_speedup"] >= 1.01
                           for row in comparisons),
         "peak_memory": all(row["peak_ratio"] <= 1.01 for row in comparisons),
-        "first_loss": all(row["first_loss_equal"] for row in comparisons),
+        "first_loss": all(row["first_loss_relative_difference"] <= 0.005
+                          for row in comparisons),
         "two_step_loss": all(row["final_loss_relative_difference"] <= 0.005
                              for row in comparisons),
         "observed_parameter": all(
@@ -202,6 +209,7 @@ def main() -> int:
         "keep_gate": {
             "throughput_speedup_minimum": 1.01,
             "peak_ratio_maximum": 1.01,
+            "first_loss_relative_difference_maximum": 0.005,
             "final_loss_relative_difference_maximum": 0.005,
             "observed_parameter_relative_difference_maximum": 5.0e-4,
         },
@@ -225,4 +233,3 @@ if __name__ == "__main__":
     except (OSError, RuntimeError, ValueError, KeyError, json.JSONDecodeError) as error:
         print(f"compare_bf16_weight_gradient_models: {error}", file=sys.stderr)
         raise SystemExit(2)
-

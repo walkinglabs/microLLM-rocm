@@ -1,0 +1,101 @@
+{
+  "aggregation": "median of fresh processes with alternating policy order",
+  "comparisons": [
+    {
+      "allocation_calls_delta": 192.0,
+      "diagnostics": {
+        "bf16_gate_up_weight_gradient_assignments": 48,
+        "strided_copy_bytes": 0,
+        "strided_copy_calls": 0
+      },
+      "final_loss_relative_difference": 0.0002008311704219032,
+      "first_loss_relative_difference": 0.0007121821451025376,
+      "model": "qwen2.5-0.5b",
+      "observed_parameter_relative_difference": 0.0,
+      "peak_ratio": 1.0,
+      "policies": {
+        "baseline": {
+          "engine_allocation_calls": 3340.0,
+          "engine_peak_bytes": 9848480300.0,
+          "final_loss": 0.016849974,
+          "first_loss": 0.049237404,
+          "mean_optimizer_ms": 4.157525,
+          "mean_step_ms": 32.7543325,
+          "observed_parameter_after": 7.468718052,
+          "tokens_per_second": 15631.5198913
+        },
+        "candidate": {
+          "engine_allocation_calls": 3532.0,
+          "engine_peak_bytes": 9848480300.0,
+          "final_loss": 0.01684659,
+          "first_loss": 0.04927247,
+          "mean_optimizer_ms": 4.199064,
+          "mean_step_ms": 32.0711455,
+          "observed_parameter_after": 7.468718052,
+          "tokens_per_second": 15964.506163336
+        }
+      },
+      "throughput_speedup": 1.0213022325628955
+    },
+    {
+      "allocation_calls_delta": 224.0,
+      "diagnostics": {
+        "bf16_gate_up_weight_gradient_assignments": 56,
+        "strided_copy_bytes": 0,
+        "strided_copy_calls": 0
+      },
+      "final_loss_relative_difference": 3.508635964605404e-05,
+      "first_loss_relative_difference": 8.764039869792994e-05,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "observed_parameter_relative_difference": 0.0,
+      "peak_ratio": 1.0,
+      "policies": {
+        "baseline": {
+          "engine_allocation_calls": 3896.0,
+          "engine_peak_bytes": 29994392784.0,
+          "final_loss": 4.036326408,
+          "first_loss": 5.179677486,
+          "mean_optimizer_ms": 13.195464,
+          "mean_step_ms": 78.76466,
+          "observed_parameter_after": 2.124971151,
+          "tokens_per_second": 6500.377199622
+        },
+        "candidate": {
+          "engine_allocation_calls": 4120.0,
+          "engine_peak_bytes": 29994392784.0,
+          "final_loss": 4.036184788,
+          "first_loss": 5.180131435,
+          "mean_optimizer_ms": 13.114133,
+          "mean_step_ms": 74.0378,
+          "observed_parameter_after": 2.124971151,
+          "tokens_per_second": 6915.386464752
+        }
+      },
+      "throughput_speedup": 1.063843874345343
+    }
+  ],
+  "context": 512,
+  "decision": "keep explicit candidate for longer training validation",
+  "gate_results": {
+    "first_loss": true,
+    "observed_parameter": true,
+    "peak_memory": true,
+    "route_count": true,
+    "throughput": true,
+    "two_step_loss": true
+  },
+  "keep_gate": {
+    "final_loss_relative_difference_maximum": 0.005,
+    "first_loss_relative_difference_maximum": 0.005,
+    "observed_parameter_relative_difference_maximum": 0.0005,
+    "peak_ratio_maximum": 1.01,
+    "throughput_speedup_minimum": 1.01
+  },
+  "raw_processes": 12,
+  "record_type": "bf16_weight_gradient_model_gate_summary",
+  "runs_per_model_policy": 3,
+  "schema_version": 1,
+  "status": "pass",
+  "steps": 2,
+  "warmup": 1
+}

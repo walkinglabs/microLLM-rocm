@@ -516,3 +516,5 @@ the next gate. Records are append-only except for factual corrections.
   defines a cast-inclusive low-precision weight-gradient operator gate before graph integration.
 - [2026-08-25-bf16-weight-gradient-shapes.md](2026-08-25-bf16-weight-gradient-shapes.md):
   records four rejected shapes, two admitted shapes and the default-off Autograd boundary.
+- [2026-08-25-bf16-weight-gradient-model.md](2026-08-25-bf16-weight-gradient-model.md):
+  records the wiring rebuttal and the passing short official-model gate.

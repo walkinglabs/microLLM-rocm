@@ -33,6 +33,10 @@ extending small decoder-only language models on AMD GPUs.
 > weight gradients reach 1.459×/1.890× at operator level, while four query/KV shapes
 > regress. The Autograd route is explicit and default-off pending model validation.
 
+> The short same-binary model gate now passes at 1.0213×/1.0638× with unchanged
+> peak memory and exact 48/56 route counts. It remains explicit until a longer
+> stepwise loss and full gate/up parameter trajectory passes.
+
 ## Why this project exists
 
 Large frameworks make model development productive, but they hide the ownership,

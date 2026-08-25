@@ -3940,3 +3940,13 @@ gate/up达到1.459×/1.890×，但query/KV只有0.718×–0.976×。
 下一节必须用完整模型证明局部胜出没有被分配、cast或精度代价吃掉。
 
 ![BF16 weight-gradient shapes](assets/bf16-weight-gradient-shapes.svg)
+
+## 263. Experiment 246：局部胜出终于穿过完整模型
+
+只切换gate/up weight gradient后，Qwen/DeepSeek端到端训练达到
+1.0213×/1.0638×，峰值不变，48/56次路由与loss门全部通过。
+
+这仍不是默认准入：每两步多192/224次逻辑分配，而且两步训练太短，不能证明长期质量。
+下一节增加逐步loss和gate/up参数误差轨迹。
+
+![BF16 weight-gradient model gate](assets/bf16-weight-gradient-model.svg)

@@ -97,7 +97,8 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [66](steps/66-inference-local-saturation.md) | complete | 当前推理局部饱和审计 | 免费删除cast上限1.0277×/1.0188×；升级架构尺度 |
 | [67](steps/67-current-training-profile.md) | complete | 当前训练路径重新profile | Kernel 31.327/71.873ms；GEMM仍占58.56%/63.43% |
 | [68](steps/68-bf16-weight-gradient.md) | complete | cast-inclusive BF16 weight gradient | gate/up 1.459×/1.890×；其余四格拒绝 |
-| [69](steps/69-bf16-weight-gradient-model-gate.md) | in progress | gate/up-only整模A/B | 默认关闭；待12性能进程+2诊断进程 |
+| [69](steps/69-bf16-weight-gradient-model-gate.md) | complete | gate/up-only整模A/B | 1.0213×/1.0638×；短门全过，保持显式 |
+| [70](steps/70-bf16-weight-gradient-trajectory.md) | in progress | 更长loss/参数轨迹 | 默认关闭；待逐步loss与gate/up参数Max/RMS |
 
 ## 为什么按这个顺序
 

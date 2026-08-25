@@ -180,11 +180,12 @@ TEST(GraphGradientAlignmentTest,
     const Value gate_seed(gate_seed_data);
     const Value up_seed(up_seed_data);
     enable_bf16_gate_up_weight_gradient(true);
-    const auto outputs = bf16_gate_up_projection(
-        input, gate, gate_data.cast(DType::BFloat16),
-        up, up_data.cast(DType::BFloat16));
-    add(sum(multiply(outputs.first, gate_seed)),
-        sum(multiply(outputs.second, up_seed))).backward();
+    const auto gate_output = bf16_matmul(
+        input, gate, gate_data.cast(DType::BFloat16), true);
+    const auto up_output = bf16_matmul(
+        input, up, up_data.cast(DType::BFloat16), true);
+    add(sum(multiply(gate_output, gate_seed)),
+        sum(multiply(up_output, up_seed))).backward();
     enable_bf16_gate_up_weight_gradient(false);
 
     const auto expected_input = ops::add(

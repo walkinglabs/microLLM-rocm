@@ -18,7 +18,9 @@ def main() -> int:
         "bf16_gate_up_weight_gradient_assignments", "48", "56",
         "alternating policy order", "throughput_speedup_minimum",
         "peak_ratio_maximum", "final_loss_relative_difference_maximum",
+        "first_loss_relative_difference_maximum",
         "observed_parameter_relative_difference_maximum",
+        '"training.jsonl"',
         "keep explicit candidate for longer training validation",
     ):
         assert token in text
@@ -28,4 +30,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

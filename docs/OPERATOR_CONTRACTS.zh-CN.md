@@ -21,7 +21,8 @@
 CPU 是可读参考；HIP 使用 cast+transpose、cast 和 hipBLASLt。PyTorch oracle 使用相同的
 BF16 舍入语义。它不承诺与 FP32 gradient bit-exact，也不会自动改变 Autograd。
 `--bf16-gate-up-weight-gradient` 只是官方模型实验开关，默认 `false`；query/KV 已有稳定
-性能反例，不能扩展为全局策略。
+性能反例，不能扩展为全局策略。短模型门达到 1.0213×/1.0638× 且峰值不变，但在更长
+loss/参数轨迹通过前仍不能成为默认。
 
 ## 前向算子
 

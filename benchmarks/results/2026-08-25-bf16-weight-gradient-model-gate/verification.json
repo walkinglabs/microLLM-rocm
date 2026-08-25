@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "performance_processes": 12,
+  "diagnostic_processes": 2,
+  "qwen_route_assignments": 48,
+  "deepseek_route_assignments": 56,
+  "qwen_throughput_speedup": 1.0213022325628955,
+  "deepseek_throughput_speedup": 1.063843874345343,
+  "qwen_peak_ratio": 1.0,
+  "deepseek_peak_ratio": 1.0,
+  "all_model_gates_pass": true,
+  "default_model_route": false,
+  "registered_test_files": 110,
+  "cpu_full": {"passed": 350, "total": 350},
+  "asan_ubsan_explicit_route": {"passed": 1, "total": 1},
+  "pytorch_operator_parity": {"passed": 1, "total": 1},
+  "next_gate": "longer loss and parameter trajectory"
+}

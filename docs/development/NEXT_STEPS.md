@@ -167,7 +167,9 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   gate/up at 1.459x/1.890x and preserve four query/KV counterexamples;
 - [x] add a CPU/HIP/PyTorch-aligned BF16 weight-gradient API and a default-off,
   gate/up-only Autograd/CLI research switch;
-- [ ] run the official-model same-binary gate and a longer loss/parameter trajectory before
+- [x] run the short official-model same-binary gate: 1.0213x/1.0638x, unchanged peak,
+  exact 48/56 route counts and passing warm-up/final loss gates;
+- [ ] run a longer stepwise loss and complete gate/up parameter Max/RMS trajectory before
   considering any default training policy;
 
 - [x] make the matmul registry key exact over its implicit op identity, GPU architecture,

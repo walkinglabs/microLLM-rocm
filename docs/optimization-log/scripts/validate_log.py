@@ -13672,6 +13672,66 @@ def validate_bf16_weight_gradient_shape_matrix(
     return summary.get("raw_processes", 0), summary.get("eligible_shape_count", 0), *expected
 
 
+def validate_bf16_weight_gradient_model_gate(
+        errors: list[str]) -> tuple[int, int, int, float, float]:
+    root = REPOSITORY / (
+        "benchmarks/results/2026-08-25-bf16-weight-gradient-model-gate")
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    raw = [json.loads(line) for line in (root / "training.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    comparisons = {row["model"]: row for row in summary.get("comparisons", [])}
+    qwen = comparisons.get("qwen2.5-0.5b", {})
+    deep = comparisons.get("deepseek-r1-distill-qwen-1.5b", {})
+    expected = (48, 56, 1.0213022325628955, 1.063843874345343)
+    if (summary.get("schema_version") != 1 or summary.get("status") != "pass" or
+            summary.get("record_type") != "bf16_weight_gradient_model_gate_summary" or
+            summary.get("raw_processes") != 12 or
+            summary.get("runs_per_model_policy") != 3 or
+            summary.get("context") != 512 or summary.get("steps") != 2 or
+            not all(summary.get("gate_results", {}).values()) or
+            qwen.get("diagnostics", {}).get(
+                "bf16_gate_up_weight_gradient_assignments") != expected[0] or
+            deep.get("diagnostics", {}).get(
+                "bf16_gate_up_weight_gradient_assignments") != expected[1] or
+            abs(float(qwen.get("throughput_speedup", 0.0)) - expected[2]) > 1.0e-12 or
+            abs(float(deep.get("throughput_speedup", 0.0)) - expected[3]) > 1.0e-12 or
+            qwen.get("peak_ratio") != 1.0 or deep.get("peak_ratio") != 1.0 or
+            summary.get("decision") !=
+                "keep explicit candidate for longer training validation"):
+        errors.append("BF16 weight-gradient model summary changed")
+    if (len(raw) != 12 or {row.get("policy") for row in raw} != {
+            "baseline", "candidate"} or any(
+                row.get("status") != "pass" or
+                row.get("parameter_changed") is not True or
+                row.get("bf16_gate_up_weight_gradient") is not
+                    (row.get("policy") == "candidate")
+                for row in raw)):
+        errors.append("BF16 weight-gradient model raw evidence changed")
+    for model, calls in (("qwen2.5-0.5b", expected[0]),
+                         ("deepseek-r1-distill-qwen-1.5b", expected[1])):
+        diagnostic = json.loads((root / f"{model}-candidate-diagnostics.json").read_text(
+            encoding="utf-8"))
+        routed = sum(int(row.get("first_assignments", 0))
+                     for row in diagnostic["gradient_accumulation"]["records"]
+                     if row.get("first_source") == "bf16_gate_up_weight_gradient")
+        if routed != calls or diagnostic["strided_copy"]["bytes"] != 0:
+            errors.append(f"BF16 weight-gradient {model} diagnostics changed")
+    if (check.get("performance_processes") != 12 or
+            check.get("diagnostic_processes") != 2 or
+            check.get("all_model_gates_pass") is not True or
+            check.get("default_model_route") is not False or
+            check.get("registered_test_files") != 110 or
+            check.get("cpu_full") != {"passed": 350, "total": 350} or
+            check.get("asan_ubsan_explicit_route") != {"passed": 1, "total": 1} or
+            check.get("pytorch_operator_parity") != {"passed": 1, "total": 1}):
+        errors.append("BF16 weight-gradient model verification changed")
+    if "bool bf16_gate_up_weight_gradient = false" not in (
+            REPOSITORY / "apps/hf_train_step.cpp").read_text(encoding="utf-8"):
+        errors.append("BF16 weight-gradient CLI default changed")
+    return summary.get("raw_processes", 0), *expected
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -13895,7 +13955,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-value-pv-discard.svg",
                  "inference-local-saturation.svg",
                  "current-training-profile.svg",
-                 "bf16-weight-gradient-shapes.svg"):
+                 "bf16-weight-gradient-shapes.svg",
+                 "bf16-weight-gradient-model.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -14374,6 +14435,9 @@ def main() -> int:
         validate_current_training_profile(errors)
     bf16_wgrad_rows, bf16_wgrad_eligible, bf16_wgrad_qwen, bf16_wgrad_deep = \
         validate_bf16_weight_gradient_shape_matrix(errors)
+    bf16_wgrad_model_rows, bf16_wgrad_qwen_routes, bf16_wgrad_deep_routes, \
+        bf16_wgrad_qwen_model, bf16_wgrad_deep_model = \
+        validate_bf16_weight_gradient_model_gate(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -14810,6 +14874,9 @@ def main() -> int:
           f"{current_training_deep_gemm:.3f} "
           f"bf16_wgrad_shapes={bf16_wgrad_rows}/{bf16_wgrad_eligible}/"
           f"{bf16_wgrad_qwen:.3f}/{bf16_wgrad_deep:.3f} "
+          f"bf16_wgrad_model={bf16_wgrad_model_rows}/"
+          f"{bf16_wgrad_qwen_routes}/{bf16_wgrad_deep_routes}/"
+          f"{bf16_wgrad_qwen_model:.3f}/{bf16_wgrad_deep_model:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")
