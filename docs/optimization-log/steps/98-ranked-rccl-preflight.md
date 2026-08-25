@@ -1,6 +1,6 @@
 # Step 98 — Ranked RCCL shared-memory preflight
 
-Status: implemented, formal clean-revision diagnostic pending
+Status: complete
 
 Experiment 274证明world4失败有界，但`unhandled system error`对用户仍不够可操作。下一节点在不
 改变RCCL初始化语义的前提下：
@@ -16,3 +16,6 @@ Experiment 274证明world4失败有界，但`unhandled system error`对用户仍
 实现已记录visible GPU和shm total/free，并从每进程官方debug日志提取根因。pilot四rank均出现
 21,823,872-byte segment `No space left on device`，诊断`shared-memory-capacity-exhausted`；
 required total保持unknown，原始507KB日志删除。world2非回归通过。
+
+正式结果复现：4/4日志No-space、segment21,823,872、shm free43,724,800、RCCL2.28.3；world2
+完整门通过。诊断保留，world4能力状态仍未通过。

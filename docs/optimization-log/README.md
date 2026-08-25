@@ -949,6 +949,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [experiments/273-ranked-model-s-checkpoint.md](experiments/273-ranked-model-s-checkpoint.md) | Model-S恢复等价与world-size边界交接 |
 | [assets/ranked-world-size-boundary.svg](assets/ranked-world-size-boundary.svg) | world1/2成功与world4共享内存失败边界 |
 | [experiments/274-ranked-world-size-boundary.md](experiments/274-ranked-world-size-boundary.md) | 一般接口保留、当前四卡能力不声明 |
+| [assets/ranked-rccl-preflight.svg](assets/ranked-rccl-preflight.svg) | visible GPU、shm total/free与debug根因 |
+| [experiments/275-ranked-rccl-preflight.md](experiments/275-ranked-rccl-preflight.md) | 4/4 No-space证据、unknown总需求与world2非回归 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

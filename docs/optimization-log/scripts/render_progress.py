@@ -337,6 +337,11 @@ RANKED_WORLD_SIZE_ROOT = (
     "2026-08-25-ranked-world-size")
 RANKED_WORLD_SIZE_CHART = (
     ROOT / "assets" / "ranked-world-size-boundary.svg")
+RANKED_PREFLIGHT_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-ranked-rccl-preflight")
+RANKED_PREFLIGHT_CHART = (
+    ROOT / "assets" / "ranked-rccl-preflight.svg")
 
 
 def rows() -> list[dict]:
@@ -6014,6 +6019,94 @@ def ranked_world_size_svg() -> str:
     return "\n".join(parts)
 
 
+def ranked_rccl_preflight_svg() -> str:
+    summary = json.loads((RANKED_PREFLIGHT_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    width, height = 1500, 760
+    total = summary["shared_memory_total_bytes"]
+    free = summary["shared_memory_free_bytes"]
+    used = total - free
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 275 · RCCL Resource Preflight", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "official per-rank debug logs · non-blocking preflight · world2 control + world4 diagnosis",
+             16, "#5b6474", anchor="middle"),
+        '<rect x="65" y="125" width="430" height="480" rx="18" fill="#ffffff" stroke="#2563eb" stroke-width="3"/>',
+        text(280, 170, "Observed before launch", 23, "#1d4ed8",
+             anchor="middle", weight=700),
+    ]
+    facts = (
+        ("Visible GPUs", str(summary["visible_gpu_count"])),
+        ("Requested world", "4"),
+        ("GPU count sufficient", "true"),
+        ("/dev/shm total", f"{total / 1048576:.0f} MiB"),
+        ("/dev/shm free", f"{free / 1048576:.1f} MiB"),
+    )
+    for index, (label, value) in enumerate(facts):
+        y = 225 + index * 52
+        parts.extend([
+            text(105, y, label, 15, "#5b6474"),
+            text(455, y, value, 19, "#172033", anchor="end", weight=700),
+        ])
+    parts.extend([
+        text(105, 500, "Shared-memory occupancy", 15, "#5b6474"),
+        '<rect x="105" y="520" width="350" height="34" rx="8" fill="#e8edf4"/>',
+        f'<rect x="105" y="520" width="{350 * used / total:.1f}" height="34" rx="8" fill="#f59e0b"/>',
+        text(280, 580, f"{used / 1048576:.1f} MiB used · {free / 1048576:.1f} MiB free",
+             16, "#b45309", anchor="middle", weight=700),
+        '<rect x="535" y="125" width="430" height="480" rx="18" fill="#ffffff" stroke="#dc2626" stroke-width="3"/>',
+        text(750, 170, "Four-rank debug evidence", 23, "#b42335",
+             anchor="middle", weight=700),
+    ])
+    debug_facts = (
+        ("RCCL", summary["rccl_version"]),
+        ("Debug logs", str(summary["debug_log_files"])),
+        ("No-space logs", str(summary["shared_memory_no_space_logs"])),
+        ("Failed segment", f"{summary['shared_memory_segment_bytes']:,} B"),
+        ("Raw log bytes", f"{summary['debug_raw_log_bytes']:,}"),
+        ("Raw logs retained", "false"),
+    )
+    for index, (label, value) in enumerate(debug_facts):
+        y = 225 + index * 55
+        parts.extend([
+            text(575, y, label, 15, "#5b6474"),
+            text(925, y, value, 18, "#b42335", anchor="end", weight=700),
+        ])
+    parts.extend([
+        text(750, 555, "shared-memory-capacity-exhausted", 18, "#b42335",
+             anchor="middle", weight=700),
+        text(750, 585, "4 / 4 ranks", 16, "#5b6474", anchor="middle"),
+        '<rect x="1005" y="125" width="430" height="480" rx="18" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>',
+        text(1220, 170, "What we can conclude", 23, "#166534",
+             anchor="middle", weight=700),
+        text(1050, 235, "World2 training + CPU", 16, "#5b6474"),
+        text(1390, 235, "PASS", 20, "#166534", anchor="end", weight=700),
+        text(1050, 300, "World4 initialization", 16, "#5b6474"),
+        text(1390, 300, "FAIL", 20, "#b42335", anchor="end", weight=700),
+        text(1050, 365, "Failed segment size", 16, "#5b6474"),
+        text(1390, 365, "known", 20, "#166534", anchor="end", weight=700),
+        text(1050, 430, "Total shm requirement", 16, "#5b6474"),
+        text(1390, 430, "unknown", 20, "#b45309", anchor="end", weight=700),
+        text(1220, 500, "No guessed threshold", 19, "#166534",
+             anchor="middle", weight=700),
+        text(1220, 545, "Await resource change", 19, "#b45309",
+             anchor="middle", weight=700),
+        '<rect x="65" y="645" width="1370" height="70" rx="16" fill="#fff7ed" stroke="#f59e0b" stroke-width="2"/>',
+        text(width / 2, 678,
+             "Actionable diagnosis retained · verbose logs deleted · current four-GPU execution still not claimed",
+             18, "#b45309", anchor="middle", weight=700),
+        text(width / 2, 703,
+             "Next: continue two-rank uneven-input correctness while the external shared-memory blocker remains",
+             15, "#5b6474", anchor="middle"),
+        "</svg>\n",
+    ])
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -6104,7 +6197,8 @@ def main() -> int:
                 RANKED_CONTEXT_CHART: ranked_overlap_context_svg(),
                 RANKED_CHECKPOINT_CHART: ranked_checkpoint_svg(),
                 RANKED_MODEL_S_CHECKPOINT_CHART: ranked_model_s_checkpoint_svg(),
-                RANKED_WORLD_SIZE_CHART: ranked_world_size_svg()}
+                RANKED_WORLD_SIZE_CHART: ranked_world_size_svg(),
+                RANKED_PREFLIGHT_CHART: ranked_rccl_preflight_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

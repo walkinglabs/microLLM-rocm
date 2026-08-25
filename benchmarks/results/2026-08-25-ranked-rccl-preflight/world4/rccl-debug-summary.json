@@ -1,0 +1,13 @@
+{
+  "diagnosis": "shared-memory-capacity-exhausted",
+  "enabled": true,
+  "log_files": 4,
+  "raw_log_bytes": 507069,
+  "raw_logs_retained": false,
+  "rccl_versions": [
+    "2.28.3-HEAD:3309c61"
+  ],
+  "shared_memory_failure_observed": true,
+  "shared_memory_no_space_logs": 4,
+  "shared_memory_segment_bytes": 21823872
+}

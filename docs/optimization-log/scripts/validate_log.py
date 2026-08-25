@@ -16000,6 +16000,99 @@ def validate_ranked_world_size(
         summary.get("world4", {}).get("shared_memory_bytes", 0)
 
 
+def validate_ranked_rccl_preflight(
+        errors: list[str]) -> tuple[int, int, int, bool]:
+    root = REPOSITORY / "benchmarks/results/2026-08-25-ranked-rccl-preflight"
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    world2 = json.loads((root / "world2/summary.json").read_text(encoding="utf-8"))
+    world4 = json.loads((root / "world4/summary.json").read_text(encoding="utf-8"))
+    preflight = json.loads((root / "world4/preflight.json").read_text(
+        encoding="utf-8"))
+    debug = json.loads((root / "world4/rccl-debug-summary.json").read_text(
+        encoding="utf-8"))
+    if (summary.get("schema_version") != 1 or summary.get("status") != "pass" or
+            summary.get("record_type") != "ranked_rccl_preflight_summary" or
+            summary.get("world2_training_passed") is not True or
+            summary.get("world2_rank_difference") != 0.0 or
+            summary.get("world4_group_initialized") is not False or
+            summary.get("world4_returncodes") != [1, 1, 1, 1] or
+            summary.get("visible_gpu_count") != 4 or
+            summary.get("shared_memory_total_bytes") != 67108864 or
+            summary.get("shared_memory_free_bytes") != 43724800 or
+            summary.get("required_shared_memory_bytes") is not None or
+            summary.get("required_shared_memory_unknown") is not True or
+            summary.get("rccl_version") != "2.28.3-HEAD:3309c61" or
+            summary.get("debug_log_files") != 4 or
+            summary.get("debug_raw_log_bytes") != 507069 or
+            summary.get("raw_logs_retained") is not False or
+            summary.get("shared_memory_no_space_logs") != 4 or
+            summary.get("shared_memory_segment_bytes") != 21823872 or
+            summary.get("diagnosis") != "shared-memory-capacity-exhausted" or
+            summary.get("world2_preflight_nonblocking") is not True or
+            summary.get("four_gpu_execution_claim") is not False):
+        errors.append("ranked RCCL preflight summary changed")
+    if (world2.get("record_type") != "ranked_training_summary" or
+            world2.get("world_size") != 2 or
+            world2.get("maximum_rank_difference") != 0.0 or
+            world2.get("preflight") !=
+                json.loads((root / "world2/preflight.json").read_text(
+                    encoding="utf-8")) or
+            world4.get("record_type") !=
+                "ranked_group_init_failure_summary" or
+            world4.get("world_size") != 4 or
+            world4.get("rccl_debug") != debug or world4.get("preflight") != preflight):
+        errors.append("ranked RCCL preflight raw evidence changed")
+    if (preflight.get("visible_gpu_count") != 4 or
+            preflight.get("visible_gpu_count_sufficient") is not True or
+            preflight.get("shared_memory_total_bytes") != 67108864 or
+            preflight.get("shared_memory_free_bytes") != 43724800 or
+            preflight.get("required_shared_memory_bytes") is not None or
+            preflight.get("required_shared_memory_unknown") is not True or
+            debug.get("enabled") is not True or debug.get("log_files") != 4 or
+            debug.get("raw_log_bytes") != 507069 or
+            debug.get("raw_logs_retained") is not False or
+            debug.get("shared_memory_no_space_logs") != 4 or
+            debug.get("shared_memory_segment_bytes") != 21823872 or
+            debug.get("diagnosis") != "shared-memory-capacity-exhausted" or
+            debug.get("rccl_versions") != ["2.28.3-HEAD:3309c61"] or
+            list(root.rglob("*.log"))):
+        errors.append("ranked RCCL extracted debug evidence changed")
+    if (check.get("measurement_commit") !=
+            "9421b6b00b53c8383ae348a2cf3962d660ede305" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("gpu") != "4 x AMD Instinct MI300X VF" or
+            check.get("architecture") != "gfx942" or
+            check.get("rccl_version") != "2.28.3-HEAD:3309c61" or
+            check.get("world2_training_passed") is not True or
+            check.get("world4_group_initialized") is not False or
+            check.get("visible_gpu_count") != 4 or
+            check.get("shared_memory_total_bytes") != 67108864 or
+            check.get("shared_memory_free_bytes") != 43724800 or
+            check.get("required_shared_memory_bytes") is not None or
+            check.get("required_shared_memory_unknown") is not True or
+            check.get("shared_memory_no_space_logs") != 4 or
+            check.get("shared_memory_segment_bytes") != 21823872 or
+            check.get("debug_raw_log_bytes") != 507069 or
+            check.get("raw_logs_retained") is not False or
+            check.get("diagnosis") != "shared-memory-capacity-exhausted" or
+            check.get("four_gpu_execution_claim") is not False or
+            check.get("rccl_label") != {"passed": 49, "total": 49} or
+            check.get("ranked_contracts") != {"passed": 7, "total": 7} or
+            check.get("registered_test_files") != 125):
+        errors.append("ranked RCCL preflight verification changed")
+    launcher = (REPOSITORY / "tools/distributed/run_ranked.py").read_text(
+        encoding="utf-8")
+    if ("collect_rccl_debug" not in launcher or
+            "required_shared_memory_unknown" not in launcher or
+            "NCCL_DEBUG_FILE" not in launcher):
+        errors.append("ranked RCCL preflight route is missing")
+    return summary.get("visible_gpu_count", 0), \
+        summary.get("shared_memory_free_bytes", 0), \
+        summary.get("shared_memory_segment_bytes", 0), \
+        bool(summary.get("world2_training_passed"))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -16252,7 +16345,8 @@ def validate_assets(errors: list[str]) -> None:
                  "ranked-overlap-context-scale.svg",
                  "ranked-checkpoint-resume.svg",
                  "ranked-model-s-checkpoint.svg",
-                 "ranked-world-size-boundary.svg"):
+                 "ranked-world-size-boundary.svg",
+                 "ranked-rccl-preflight.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -16820,6 +16914,8 @@ def main() -> int:
         validate_ranked_model_s_checkpoint(errors)
     ranked_world1, ranked_world2, ranked_world4_errors, ranked_world4_shm = \
         validate_ranked_world_size(errors)
+    ranked_preflight_gpus, ranked_preflight_free, ranked_preflight_segment, \
+        ranked_preflight_world2 = validate_ranked_rccl_preflight(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -17367,6 +17463,10 @@ def main() -> int:
           f"{ranked_model_s_checkpoint_write_max:.1f} "
           f"ranked_world={int(ranked_world1)}/{int(ranked_world2)}/"
           f"{ranked_world4_errors}/{ranked_world4_shm} "
+          f"ranked_preflight={ranked_preflight_gpus}/"
+          f"{ranked_preflight_free}/"
+          f"{ranked_preflight_segment}/"
+          f"{int(ranked_preflight_world2)} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

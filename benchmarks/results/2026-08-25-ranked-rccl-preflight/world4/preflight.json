@@ -1,0 +1,9 @@
+{
+  "required_shared_memory_bytes": null,
+  "required_shared_memory_unknown": true,
+  "shared_memory_free_bytes": 43724800,
+  "shared_memory_total_bytes": 67108864,
+  "visible_gpu_count": 4,
+  "visible_gpu_count_sufficient": true,
+  "world_size": 4
+}

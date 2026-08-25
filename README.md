@@ -184,6 +184,11 @@ Start with [Quick start](#quick-start), consume the installed library through th
 > on all ranks with only 64 MiB `/dev/shm`. The failure is bounded and recorded;
 > this environment is not claimed to support four-GPU execution.
 
+> Official per-rank RCCL logs now make that boundary actionable: all four ranks
+> fail to create a 21,823,872-byte shared-memory segment with only 43,724,800
+> bytes free. The segment is not treated as total required memory; world2 remains
+> unblocked and world4 awaits a larger shared-memory mount.
+
 </details>
 
 ## Why this project exists

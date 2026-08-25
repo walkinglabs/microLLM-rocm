@@ -1,0 +1,41 @@
+{
+  "decision": "retain world-size interface and record environment boundary",
+  "failure_detected": true,
+  "group_initialized": false,
+  "peer_processes_terminated": 0,
+  "preflight": {
+    "required_shared_memory_bytes": null,
+    "required_shared_memory_unknown": true,
+    "shared_memory_free_bytes": 43724800,
+    "shared_memory_total_bytes": 67108864,
+    "visible_gpu_count": 4,
+    "visible_gpu_count_sufficient": true,
+    "world_size": 4
+  },
+  "rank_group_ms": 2757.216244004667,
+  "rccl_debug": {
+    "diagnosis": "shared-memory-capacity-exhausted",
+    "enabled": true,
+    "log_files": 4,
+    "raw_log_bytes": 507069,
+    "raw_logs_retained": false,
+    "rccl_versions": [
+      "2.28.3-HEAD:3309c61"
+    ],
+    "shared_memory_failure_observed": true,
+    "shared_memory_no_space_logs": 4,
+    "shared_memory_segment_bytes": 21823872
+  },
+  "record_type": "ranked_group_init_failure_summary",
+  "returncodes": [
+    1,
+    1,
+    1,
+    1
+  ],
+  "schema_version": 1,
+  "shared_memory_bytes": 67108864,
+  "status": "pass",
+  "system_error_ranks": 4,
+  "world_size": 4
+}

@@ -4322,3 +4322,21 @@ CPU门。结论是：一般world-size接口保留，当前环境world4不可用�
 下一节点用RCCL debug和资源preflight把不透明system error变成可操作诊断，再等待资源变化重测。
 
 ![Ranked world-size boundary](assets/ranked-world-size-boundary.svg)
+
+## 292. Experiment 275：RCCL到底在哪一步用完共享内存
+
+按AMD官方troubleshooting建议，我们给每个rank设置独立`NCCL_DEBUG_FILE`，并采集INIT/SHM/NET/
+ALLOC。只设`NCCL_DEBUG=INFO`没有stderr输出；加入per-process文件和当前包兼容的日志级别后得到
+4份完整日志。
+
+preflight看到4张GPU，world size也为4，但`/dev/shm`总量67,108,864 bytes、启动前只剩
+43,724,800 bytes。4/4日志都在创建21,823,872-byte segment时收到`No space left on device (28)`。
+RCCL版本是2.28.3。
+
+21.8MB只是某个失败segment，不是四rank总需求；系统仍把required total写成unknown。world2在
+同一preflight下完整通过，诊断不会误拒绝可用配置。507,069-byte verbose日志提取后删除。
+
+当前world4仍不声明成功。下一开发节点不等待外部资源，转向两卡可做的uneven local-batch权重
+合同；四卡只在共享内存资源变化后重跑同一门。
+
+![Ranked RCCL preflight](assets/ranked-rccl-preflight.svg)
