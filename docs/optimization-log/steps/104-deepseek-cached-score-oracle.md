@@ -64,3 +64,7 @@ T2048 profile。
 峰值5.23/6.38GB，KV均为121,110,528 bytes且100%利用。旧0.868x被当前数据取代。rocprof
 runner已加入1-step/3-step phase delta，并保存Kernel/API/copy/allocation统计；正式归因仍待从
 干净runner提交执行，尚未选择优化Kernel。
+
+runner第一次干净执行发现原始app/归一化record字段边界写错并有界失败；现在检查原始
+`token_count`和forward accounting，再补profile元数据，同时输出逐字段错误。正式trace将从
+修复后的提交重新运行。

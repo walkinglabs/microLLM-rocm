@@ -119,17 +119,21 @@ def main() -> int:
                 raise RuntimeError(completed.stdout + completed.stderr)
             record = last_json(completed.stdout)
             expected = {
-                "status": "pass", "model": args.model,
-                "context": args.context, "batch": args.batch,
-                "decode_tokens": args.decode_tokens,
+                "status": "pass", "batch": args.batch,
                 "use_cache": True, "kv_cache_dtype": "bf16",
                 "decode_mode": "steady", "workload": "decode",
                 "warmup": args.warmup, "steps": steps,
             }
-            if any(record.get(key) != value for key, value in expected.items()):
-                raise RuntimeError("profiled cached decode contract changed")
+            changed = {key: {"actual": record.get(key), "expected": value}
+                       for key, value in expected.items()
+                       if record.get(key) != value}
+            if changed:
+                raise RuntimeError(
+                    "profiled cached decode contract changed: " +
+                    json.dumps(changed, sort_keys=True))
             if (record.get("decode_step_semantics") !=
                     "one_model_forward_per_measured_token" or
+                    record.get("token_count") != args.context or
                     record.get("requested_cache_capacity") !=
                     args.context + args.decode_tokens or
                     record.get("kv_cache_utilization") != 1.0 or
@@ -138,7 +142,10 @@ def main() -> int:
                 raise RuntimeError("profiled decode accounting changed")
             record.update({
                 "record_type": "current_cached_decode_profile_run",
+                "model": args.model,
                 "model_revision": selected["revision"],
+                "context": args.context,
+                "decode_tokens": args.decode_tokens,
                 "profile_steps": steps,
             })
             records.append(record)

@@ -20,6 +20,7 @@ def main() -> int:
         "--kernel-trace", "--hip-runtime-trace", "--memory-copy-trace",
         "--memory-allocation-trace", "--stats",
         "one_model_forward_per_measured_token", "kv_cache_utilization",
+        "profiled cached decode contract changed", "json.dumps(changed",
         "profile_step_delta.py", "inference_cached_decode_kernel_phase_delta",
         "current_cached_decode_profile_summary", "derived_forward_steps",
     ):

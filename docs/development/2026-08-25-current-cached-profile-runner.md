@@ -32,3 +32,10 @@ measured forward数等于`batch × decode_tokens × steps`。
 结果。新静态合同由CTest注册，测试文件审计为127。
 
 runner先推送再测量；任何正式trace必须来自干净revision。
+
+第一次干净执行在应用合同处被runner拒绝。原因不是模型失败，而是原始`hf_infer`记录使用
+`token_count`，`model/context/decode_tokens`由framework runner归一化后才存在；profile runner
+错误地要求原始记录已有后三个字段。修复后改为检查`token_count/context`和完整forward计数，再
+显式写入profile元数据。错误信息也会列出每个actual/expected字段，不再只说“contract changed”。
+
+这次失败发生在任何trace结论生成前。修复必须单独推送，正式profile从修复提交重新开始。
