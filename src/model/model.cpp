@@ -985,7 +985,8 @@ public:
         inference::KVCache::LayerState* prefill_cache = nullptr,
         std::int64_t cache_capacity = 0,
         DType cache_dtype = DType::Float32,
-        const std::string& trace_prefix = {}) {
+        const std::string& trace_prefix = {},
+        Norm* bf16_input_norm = nullptr) {
         if (input.ndim() != 3) throw std::invalid_argument("attention input must be BxTxD");
         const auto batch = input.shape()[0];
         const auto sequence = input.shape()[1];
@@ -1014,7 +1015,7 @@ public:
                 const auto projections = bf16_projection(
                     flat, query_.weight_data(), key_.weight_data(),
                     value_.weight_data(), retain_bf16_qk,
-                    online_bthd_attention);
+                    online_bthd_attention, bf16_input_norm);
                 query_projection = bthd_attention
                                        ? projections.values.first
                                        : query_.has_bias()
@@ -1398,18 +1399,30 @@ private:
         const Tensor& input, const Tensor& query_weight,
         const Tensor& key_weight, const Tensor& value_weight,
         bool retain_query_key_bf16 = false,
-        bool retain_value_bf16 = false) {
+        bool retain_value_bf16 = false,
+        Norm* bf16_input_norm = nullptr) {
         if (qkv_arena_cache_ != nullptr) {
             auto* entry = qkv_arena_cache_->acquire(
                 input.shape()[0], input.shape()[1], query_weight.shape()[1],
                 key_weight.shape()[1], value_weight.shape()[1],
                 input.device());
             if (entry != nullptr) {
-                const auto retained = ops::bf16_qkv_projection_out_(
-                    entry->query_output, entry->key_output,
-                    entry->value_output, entry->workspace, input,
-                    query_weight, key_weight, value_weight, {},
-                    retain_query_key_bf16, retain_value_bf16);
+                bool retained = false;
+                if (bf16_input_norm != nullptr) {
+                    bf16_input_norm->forward_bf16_out(
+                        entry->workspace.input_bf16, input);
+                    retained = ops::bf16_qkv_projection_precast_out_(
+                        entry->query_output, entry->key_output,
+                        entry->value_output, entry->workspace,
+                        query_weight, key_weight, value_weight, {},
+                        retain_query_key_bf16, retain_value_bf16);
+                } else {
+                    retained = ops::bf16_qkv_projection_out_(
+                        entry->query_output, entry->key_output,
+                        entry->value_output, entry->workspace, input,
+                        query_weight, key_weight, value_weight, {},
+                        retain_query_key_bf16, retain_value_bf16);
+                }
                 if (retained) {
                     return {{entry->workspace.query_fallback_bf16,
                              entry->workspace.key_fallback_bf16,
@@ -1419,6 +1432,21 @@ private:
                 }
                 return {{entry->query_output, entry->key_output,
                          entry->value_output}};
+            }
+        }
+        if (bf16_input_norm != nullptr) {
+            auto* cache = qkv_arena_cache_;
+            qkv_arena_cache_ = nullptr;
+            try {
+                auto normalized = bf16_input_norm->forward_tensor(input);
+                auto result = bf16_projection(
+                    normalized, query_weight, key_weight, value_weight,
+                    retain_query_key_bf16, retain_value_bf16, nullptr);
+                qkv_arena_cache_ = cache;
+                return result;
+            } catch (...) {
+                qkv_arena_cache_ = cache;
+                throw;
             }
         }
         return {ops::bf16_qkv_projection(
@@ -1780,16 +1808,25 @@ public:
 
     Tensor forward_tensor(const Tensor& input,
                           const std::string& trace_prefix = {}) {
-        Tensor attention_input;
-        {
+        Tensor attention;
+        if (bf16_attention_norm_fusion_enabled_ && trace_prefix.empty()) {
             runtime::ScopedAllocationSource allocation_source(
                 runtime::AllocationSource::AttentionNorm);
-            attention_input = attention_norm_.forward_tensor(input);
+            attention = attention_.forward_tensor(
+                input, nullptr, 0, DType::Float32, {}, &attention_norm_);
+        } else {
+            Tensor attention_input;
+            {
+                runtime::ScopedAllocationSource allocation_source(
+                    runtime::AllocationSource::AttentionNorm);
+                attention_input = attention_norm_.forward_tensor(input);
+            }
+            trace_detail(trace_prefix, "attention_norm", attention_input);
+            attention = attention_.forward_tensor(
+                attention_input, nullptr, 0, DType::Float32,
+                trace_prefix.empty() ? std::string{} :
+                                       trace_prefix + ".attention");
         }
-        trace_detail(trace_prefix, "attention_norm", attention_input);
-        auto attention = attention_.forward_tensor(
-            attention_input, nullptr, 0, DType::Float32,
-            trace_prefix.empty() ? std::string{} : trace_prefix + ".attention");
         Tensor hidden;
         {
             runtime::ScopedAllocationSource allocation_source(
@@ -1872,6 +1909,9 @@ public:
     void set_bf16_qkv_arena_cache(Bf16QkvArenaCache* cache) noexcept {
         attention_.set_bf16_qkv_arena_cache(cache);
     }
+    void set_bf16_attention_norm_fusion_enabled(bool enabled) noexcept {
+        bf16_attention_norm_fusion_enabled_ = enabled;
+    }
     void set_attention_core_arena_cache(
         AttentionCoreArenaCache* cache) noexcept {
         attention_.set_attention_core_arena_cache(cache);
@@ -1904,6 +1944,7 @@ private:
     Norm ffn_norm_;
     FeedForward feed_forward_;
     bool bf16_ffn_norm_fusion_enabled_ = false;
+    bool bf16_attention_norm_fusion_enabled_ = false;
 };
 
 }  // namespace
@@ -1950,6 +1991,7 @@ struct TransformerModel::Impl {
     bool bf16_ffn_arena_enabled = false;
     bool bf16_ffn_norm_fusion_enabled = false;
     bool bf16_qkv_arena_enabled = false;
+    bool bf16_attention_norm_fusion_enabled = false;
     bool attention_core_arena_enabled = false;
     bool bf16_attention_prepared = false;
     bool bf16_training_mirrors_prepared = false;
@@ -2732,8 +2774,10 @@ void TransformerModel::set_bf16_qkv_arena_enabled(
     for (auto& block : impl_->blocks) {
         block->set_bf16_qkv_arena_cache(
             enabled ? &impl_->bf16_qkv_arena : nullptr);
+        block->set_bf16_attention_norm_fusion_enabled(enabled);
     }
     impl_->bf16_qkv_arena_enabled = enabled;
+    impl_->bf16_attention_norm_fusion_enabled = enabled;
 }
 
 bool TransformerModel::bf16_qkv_arena_enabled() const noexcept {
@@ -2742,6 +2786,22 @@ bool TransformerModel::bf16_qkv_arena_enabled() const noexcept {
 
 Bf16QkvArenaStats TransformerModel::bf16_qkv_arena_stats() const noexcept {
     return impl_->bf16_qkv_arena.stats();
+}
+
+void TransformerModel::set_bf16_attention_norm_fusion_enabled(bool enabled) {
+    if (enabled && (!impl_->bf16_attention_prepared ||
+                    !impl_->bf16_qkv_arena_enabled)) {
+        throw std::logic_error(
+            "BF16 Attention Norm fusion requires prepared weights and QKV Arena");
+    }
+    for (auto& block : impl_->blocks) {
+        block->set_bf16_attention_norm_fusion_enabled(enabled);
+    }
+    impl_->bf16_attention_norm_fusion_enabled = enabled;
+}
+
+bool TransformerModel::bf16_attention_norm_fusion_enabled() const noexcept {
+    return impl_->bf16_attention_norm_fusion_enabled;
 }
 
 Bf16GroupedQkvPrewarmReport

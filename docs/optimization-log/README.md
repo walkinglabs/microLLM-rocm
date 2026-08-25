@@ -877,6 +877,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [experiments/237-bf16-ffn-norm-model.md](experiments/237-bf16-ffn-norm-model.md) | Arena直入、fallback修正和默认决定 |
 | [assets/post-bf16-ffn-norm-profile.svg](assets/post-bf16-ffn-norm-profile.svg) | 融合前后Kernel时间与cast调用 |
 | [experiments/238-post-bf16-ffn-norm-profile.md](experiments/238-post-bf16-ffn-norm-profile.md) | 四进程phase delta与下一合同 |
+| [assets/bf16-attention-norm-model.svg](assets/bf16-attention-norm-model.svg) | 整模吞吐、峰值、allocation和精度 |
+| [experiments/239-bf16-attention-norm-model.md](experiments/239-bf16-attention-norm-model.md) | QKV precast合同与默认路由 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

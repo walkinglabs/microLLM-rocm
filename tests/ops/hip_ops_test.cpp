@@ -615,6 +615,17 @@ TEST(HipBf16ProjectionTest, GroupedQkvCachesExactPointerStablePlan) {
                 candidate_key.to_vector(), 0.0F);
     expect_near(candidate_workspace.value_fallback_bf16.to_vector(),
                 baseline_value.cast(DType::BFloat16).to_vector(), 0.0F);
+    auto precast_workspace = workspace();
+    cast_out_(input, precast_workspace.input_bf16);
+    Tensor precast_query({rows, hidden}, DType::Float32, gpu);
+    Tensor precast_key({rows, kv}, DType::Float32, gpu);
+    Tensor precast_value({rows, kv}, DType::Float32, gpu);
+    EXPECT_FALSE(bf16_qkv_projection_precast_out_(
+        precast_query, precast_key, precast_value, precast_workspace,
+        query_weight, key_weight, value_weight));
+    expect_near(precast_query.to_vector(), baseline_query.to_vector(), 1.0e-2F);
+    expect_near(precast_key.to_vector(), baseline_key.to_vector(), 1.0e-2F);
+    expect_near(precast_value.to_vector(), baseline_value.to_vector(), 1.0e-2F);
     clear_bf16_grouped_qkv_registry();
     EXPECT_EQ(bf16_grouped_qkv_stats().registered_entries, 0U);
 }

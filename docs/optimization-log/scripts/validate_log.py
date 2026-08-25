@@ -13372,6 +13372,62 @@ def validate_post_bf16_ffn_norm_profile(
     return summary.get("profile_processes", 0), *expected
 
 
+def validate_bf16_attention_norm_model(
+        errors: list[str]) -> tuple[int, float, float, int, int, int, int]:
+    root = REPOSITORY / (
+        "benchmarks/results/2026-08-25-bf16-attention-norm-model-gate")
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((root / "verification.json").read_text(
+        encoding="utf-8"))
+    rows = {row["model"]: row for row in summary.get("comparisons", [])}
+    qwen = "qwen2.5-0.5b"
+    deep = "deepseek-r1-distill-qwen-1.5b"
+    expected = (1.0130861750438, 1.0130286771412904,
+                120, 140, 3670016, 6291456)
+    if (summary.get("schema_version") != 1 or summary.get("status") != "pass" or
+            summary.get("record_type") !=
+                "bf16_attention_norm_fusion_model_summary" or
+            summary.get("candidate_attention_norm") is not True or
+            summary.get("raw_processes") != 12 or
+            summary.get("keep_default") is not True or set(rows) != {qwen, deep} or
+            any(row.get("correctness_passed") is not True or
+                row.get("performance_passed") is not True or
+                row.get("memory_passed") is not True or
+                row.get("maximum_absolute_logit_difference") != 0.0 or
+                row.get("maximum_rms_logit_difference") != 0.0
+                for row in rows.values()) or
+            abs(float(rows[qwen]["candidate_speedup"]) - expected[0]) > 1.0e-12 or
+            abs(float(rows[deep]["candidate_speedup"]) - expected[1]) > 1.0e-12 or
+            int(rows[qwen]["baseline_engine_allocation_calls"]) -
+                int(rows[qwen]["candidate_engine_allocation_calls"]) != expected[2] or
+            int(rows[deep]["baseline_engine_allocation_calls"]) -
+                int(rows[deep]["candidate_engine_allocation_calls"]) != expected[3] or
+            int(rows[qwen]["baseline_engine_peak_bytes"]) -
+                int(rows[qwen]["candidate_engine_peak_bytes"]) != expected[4] or
+            int(rows[deep]["baseline_engine_peak_bytes"]) -
+                int(rows[deep]["candidate_engine_peak_bytes"]) != expected[5]):
+        errors.append("BF16 Attention Norm model evidence changed")
+    if (verification.get("keep_default") is not True or
+            verification.get("default_without_explicit_flag") is not True or
+            verification.get("maximum_absolute_logit_difference") != 0.0 or
+            verification.get("qwen_peak_byte_reduction") != expected[4] or
+            verification.get("deepseek_peak_byte_reduction") != expected[5]):
+        errors.append("BF16 Attention Norm verification changed")
+    sources = (
+        ("bf16_qkv_projection_precast_out_", REPOSITORY /
+         "include/microllm/ops/ops.h"),
+        ("bf16_attention_norm_fusion_enabled_", REPOSITORY /
+         "src/model/model.cpp"),
+        ("--bf16-attention-norm-fusion", REPOSITORY / "apps/hf_infer.cpp"),
+        ("--candidate-attention-norm", REPOSITORY /
+         "benchmarks/single_gpu/compare_bf16_swiglu_models.py"),
+    )
+    if any(token not in path.read_text(encoding="utf-8")
+           for token, path in sources):
+        errors.append("BF16 Attention Norm model source or runners changed")
+    return summary.get("raw_processes", 0), *expected
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -13588,7 +13644,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-grouped-swish-discard.svg",
                  "bf16-rms-norm-output.svg",
                  "bf16-ffn-norm-model.svg",
-                 "post-bf16-ffn-norm-profile.svg"):
+                 "post-bf16-ffn-norm-profile.svg",
+                 "bf16-attention-norm-model.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -14048,6 +14105,10 @@ def main() -> int:
     post_norm_profile_rows, post_norm_qwen_ms, post_norm_deep_ms, \
         post_norm_qwen_casts, post_norm_deep_casts, post_norm_qwen_gemm, \
         post_norm_deep_gemm = validate_post_bf16_ffn_norm_profile(errors)
+    attention_norm_rows, attention_norm_qwen, attention_norm_deep, \
+        attention_norm_qwen_alloc, attention_norm_deep_alloc, \
+        attention_norm_qwen_peak, attention_norm_deep_peak = \
+        validate_bf16_attention_norm_model(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -14465,6 +14526,10 @@ def main() -> int:
           f"{post_norm_deep_ms:.3f}/{post_norm_qwen_casts}/"
           f"{post_norm_deep_casts}/{post_norm_qwen_gemm:.3f}/"
           f"{post_norm_deep_gemm:.3f} "
+          f"attention_norm={attention_norm_rows}/{attention_norm_qwen:.3f}/"
+          f"{attention_norm_deep:.3f}/{attention_norm_qwen_alloc}/"
+          f"{attention_norm_deep_alloc}/{attention_norm_qwen_peak}/"
+          f"{attention_norm_deep_peak} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

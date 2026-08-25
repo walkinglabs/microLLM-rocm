@@ -70,6 +70,10 @@ That model gate now exists for FFN Norm: `bf16_ffn_precast_out_` consumes an alr
 input, Qwen/DeepSeek both pass, and enabling BF16 FFN Arena enables this exact route by default.
 Keep explicit false available, and never apply the shortcut to trace, cached, training or bypassed
 calls without separate evidence.
+The analogous Attention path uses `bf16_qkv_projection_precast_out_`. It is default only when the
+BF16 QKV Arena is enabled and hit; trace, cached, training and bypass paths retain their previous
+contracts. The full gate compares against the already-retained FFN Norm default on both sides so
+the two improvements are not double-counted.
 BF16 GroupedQKV has an even stricter lifetime rule: `GroupedGemm::initialize` binds every pointer.
 Use it only through `bf16_qkv_projection_out_` with caller-owned stable buffers. The exact cache key
 must include all three weights, BF16 intermediates, FP32 outputs, device and Stream. Timing only

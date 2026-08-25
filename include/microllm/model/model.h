@@ -171,6 +171,8 @@ public:
                                     std::int64_t minimum_rows = 512);
     [[nodiscard]] bool bf16_qkv_arena_enabled() const noexcept;
     [[nodiscard]] Bf16QkvArenaStats bf16_qkv_arena_stats() const noexcept;
+    void set_bf16_attention_norm_fusion_enabled(bool enabled);
+    [[nodiscard]] bool bf16_attention_norm_fusion_enabled() const noexcept;
     [[nodiscard]] Bf16GroupedQkvPrewarmReport
     prewarm_bf16_grouped_qkv(std::int64_t rows);
     void set_attention_core_arena_enabled(

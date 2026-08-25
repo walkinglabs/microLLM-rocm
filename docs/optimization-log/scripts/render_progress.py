@@ -162,6 +162,11 @@ POST_BF16_FFN_NORM_PROFILE_ROOT = (
     "2026-08-25-post-bf16-ffn-norm-profile")
 POST_BF16_FFN_NORM_PROFILE_CHART = (
     ROOT / "assets" / "post-bf16-ffn-norm-profile.svg")
+BF16_ATTENTION_NORM_MODEL_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-bf16-attention-norm-model-gate")
+BF16_ATTENTION_NORM_MODEL_CHART = (
+    ROOT / "assets" / "bf16-attention-norm-model.svg")
 
 
 def rows() -> list[dict]:
@@ -3531,6 +3536,59 @@ def post_bf16_ffn_norm_profile_svg() -> str:
     return "\n".join(parts)
 
 
+def bf16_attention_norm_model_svg() -> str:
+    summary = json.loads((BF16_ATTENTION_NORM_MODEL_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    rows = summary["comparisons"]
+    width, height = 1500, 700
+    chart_x, chart_y, chart_w, chart_h = 210, 155, 1080, 320
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 239 · BF16 Attention Norm Model Gate", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "12 same-binary processes · FFN Norm retained on both sides · B1T1024",
+             16, "#5b6474", anchor="middle"),
+        f'<rect x="{chart_x}" y="{chart_y}" width="{chart_w}" height="{chart_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+    ]
+    def y(value: float) -> float:
+        return chart_y + chart_h * (1.016 - value) / 0.018
+    for tick in (1.0, 1.005, 1.01, 1.015):
+        y_pos = y(tick)
+        color = "#e11d48" if tick == 1.0 else "#e5e9f0"
+        parts.append(f'<line x1="{chart_x}" y1="{y_pos:.1f}" '
+                     f'x2="{chart_x+chart_w}" y2="{y_pos:.1f}" stroke="{color}"/>')
+        parts.append(text(chart_x - 12, y_pos + 5, f"{tick:.3f}×", 13,
+                          "#5b6474", anchor="end"))
+    for index, row in enumerate(rows):
+        center = chart_x + chart_w * (index + 0.5) / 2
+        value = row["candidate_speedup"]
+        top, base = y(value), y(0.998)
+        parts.append(f'<rect x="{center-110:.1f}" y="{top:.1f}" width="220" '
+                     f'height="{base-top:.1f}" fill="#16a34a" rx="8"/>')
+        label = "Qwen" if row["model"].startswith("qwen") else "DeepSeek"
+        parts.append(text(center, top - 12, f"{value:.4f}×", 18, "#166534",
+                          anchor="middle", weight=700))
+        parts.append(text(center, chart_y + chart_h + 32, label, 16,
+                          "#5b6474", anchor="middle"))
+    qwen_peak = rows[0]["baseline_engine_peak_bytes"] - rows[0]["candidate_engine_peak_bytes"]
+    deep_peak = rows[1]["baseline_engine_peak_bytes"] - rows[1]["candidate_engine_peak_bytes"]
+    parts.append(text(width / 2, 565,
+                      f"Peak bytes: -{qwen_peak} / -{deep_peak}; allocations: -120 / -140",
+                      18, "#166534", anchor="middle", weight=700))
+    parts.append(text(width / 2, 612,
+                      "Complete logits Max/RMS = 0 / 0 for both models",
+                      18, "#166534", anchor="middle", weight=700))
+    parts.append(text(width / 2, 658,
+                      "BF16 QKV Arena enables the route by default; explicit false remains",
+                      14, "#5b6474", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -3585,7 +3643,8 @@ def main() -> int:
                 BF16_GROUPED_SWISH_CHART: bf16_grouped_swish_svg(),
                 BF16_RMS_NORM_OUTPUT_CHART: bf16_rms_norm_output_svg(),
                 BF16_FFN_NORM_MODEL_CHART: bf16_ffn_norm_model_svg(),
-                POST_BF16_FFN_NORM_PROFILE_CHART: post_bf16_ffn_norm_profile_svg()}
+                POST_BF16_FFN_NORM_PROFILE_CHART: post_bf16_ffn_norm_profile_svg(),
+                BF16_ATTENTION_NORM_MODEL_CHART: bf16_attention_norm_model_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

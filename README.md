@@ -410,6 +410,9 @@ the chronological details are in the [optimization log](docs/optimization-log/RE
 - a fresh load-subtracted profile of that default cuts cast calls 96→72 and 112→84 and Kernel
   time to 8.208/14.659 ms; GEMM now occupies 60.9%/68.2%, and the next isolated boundary is
   Attention Norm directly feeding the existing BF16 QKV Arena.
+- that Attention route passes at 1.01309×/1.01303× with bit-identical complete logits,
+  120/140 fewer measured allocations and 3.67/6.29 MB lower peak; BF16 QKV Arena enables it by
+  default while explicit false remains available.
 
 </details>
 

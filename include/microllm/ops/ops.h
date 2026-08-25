@@ -402,6 +402,15 @@ bool bf16_qkv_projection_out_(
     const Tensor& key_weight_bf16, const Tensor& value_weight_bf16,
     const OpContext& context = {}, bool retain_query_key_bf16 = false,
     bool retain_value_bf16 = false);
+// Executes Q/K/V projection after the caller has filled workspace.input_bf16.
+// Return/retention semantics are identical to bf16_qkv_projection_out_.
+bool bf16_qkv_projection_precast_out_(
+    Tensor& query_output_fp32, Tensor& key_output_fp32,
+    Tensor& value_output_fp32, Bf16QkvWorkspace& workspace,
+    const Tensor& query_weight_bf16, const Tensor& key_weight_bf16,
+    const Tensor& value_weight_bf16, const OpContext& context = {},
+    bool retain_query_key_bf16 = false,
+    bool retain_value_bf16 = false);
 
 void fill_(Tensor& tensor, float value, const OpContext& context = {});
 void adamw_update_(Tensor& parameter, const Tensor& gradient,

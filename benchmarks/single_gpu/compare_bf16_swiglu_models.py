@@ -30,12 +30,14 @@ def options() -> argparse.Namespace:
     parser.add_argument("--steps", type=int, default=5)
     parser.add_argument("--candidate-swish", action="store_true")
     parser.add_argument("--candidate-bf16-norm", action="store_true")
+    parser.add_argument("--candidate-attention-norm", action="store_true")
     result = parser.parse_args()
     if (not result.manifest.is_file() or not result.baseline_binary.is_file() or
             not result.candidate_binary.is_file() or result.runs <= 0 or
             result.warmup < 0 or result.steps <= 0):
         parser.error("model-gate inputs are outside the measured contract")
-    if result.candidate_swish and result.candidate_bf16_norm:
+    if sum((result.candidate_swish, result.candidate_bf16_norm,
+            result.candidate_attention_norm)) > 1:
         parser.error("select only one candidate route")
     return result
 
@@ -86,6 +88,11 @@ def command(args: argparse.Namespace, model: dict, policy: str,
     if args.candidate_bf16_norm:
         result.extend([
             "--bf16-ffn-norm-fusion",
+            "true" if policy == "vectorized" else "false",
+        ])
+    if args.candidate_attention_norm:
+        result.extend([
+            "--bf16-attention-norm-fusion",
             "true" if policy == "vectorized" else "false",
         ])
     return result
@@ -170,8 +177,15 @@ def main() -> int:
                             (policy == "vectorized")):
                         raise RuntimeError(
                             f"{stem} did not select the requested BF16 Norm route")
+                    if args.candidate_attention_norm and (
+                            row.get("bf16_attention_norm_fusion_enabled") is not
+                            (policy == "vectorized")):
+                        raise RuntimeError(
+                            f"{stem} did not select the requested Attention Norm route")
                     row.update({
                         "record_type": (
+                            "bf16_attention_norm_fusion_model_measurement"
+                            if args.candidate_attention_norm else
                             "bf16_ffn_norm_fusion_model_measurement"
                             if args.candidate_bf16_norm else
                             "bf16_grouped_swiglu_model_measurement"
@@ -228,15 +242,22 @@ def main() -> int:
     summary = {
         "schema_version": 1, "status": "pass",
         "record_type": (
+            "bf16_attention_norm_fusion_model_summary"
+            if args.candidate_attention_norm else
             "bf16_ffn_norm_fusion_model_summary" if args.candidate_bf16_norm else
             "bf16_grouped_swiglu_model_summary" if args.candidate_swish else
             "bf16_swiglu_vector_model_summary"),
         "candidate_swish": args.candidate_swish,
         "candidate_bf16_norm": args.candidate_bf16_norm,
+        "candidate_attention_norm": args.candidate_attention_norm,
         "raw_processes": len(records), "warmup": args.warmup,
         "steps": args.steps, "minimum_speedup": 1.005,
         "comparisons": comparisons, "keep_default": keep,
         "decision": (
+            "keep BF16 Attention Norm fusion"
+            if args.candidate_attention_norm and keep else
+            "reject BF16 Attention Norm fusion"
+            if args.candidate_attention_norm else
             "keep BF16 FFN Norm fusion" if args.candidate_bf16_norm and keep else
             "reject BF16 FFN Norm fusion" if args.candidate_bf16_norm else
             "keep grouped Swish epilogue" if args.candidate_swish and keep else

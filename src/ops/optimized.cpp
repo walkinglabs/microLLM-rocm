@@ -3369,6 +3369,72 @@ bool bf16_qkv_projection_out_(
         }
     }
     cast_out_(input_fp32, workspace.input_bf16, context);
+    return bf16_qkv_projection_precast_out_(
+        query_output_fp32, key_output_fp32, value_output_fp32, workspace,
+        query_weight_bf16, key_weight_bf16, value_weight_bf16, context,
+        retain_query_key_bf16, retain_value_bf16);
+}
+
+bool bf16_qkv_projection_precast_out_(
+    Tensor& query_output_fp32, Tensor& key_output_fp32,
+    Tensor& value_output_fp32, Bf16QkvWorkspace& workspace,
+    const Tensor& query_weight_bf16, const Tensor& key_weight_bf16,
+    const Tensor& value_weight_bf16, const OpContext& context,
+    bool retain_query_key_bf16, bool retain_value_bf16) {
+    if (retain_value_bf16 && !retain_query_key_bf16) {
+        throw std::invalid_argument(
+            "retaining BF16 value requires retaining BF16 query/key");
+    }
+    const auto& input_bf16 = workspace.input_bf16;
+    if (input_bf16.dtype() != DType::BFloat16 || input_bf16.ndim() != 2 ||
+        !input_bf16.is_contiguous()) {
+        throw std::invalid_argument(
+            "bf16_qkv_projection_precast_out requires contiguous BF16 input");
+    }
+    const auto rows = input_bf16.shape()[0];
+    const auto hidden = input_bf16.shape()[1];
+    const auto device = input_bf16.device();
+    const auto valid_weight = [&](const Tensor& weight) {
+        return weight.dtype() == DType::BFloat16 && weight.ndim() == 2 &&
+               weight.is_contiguous() && weight.device() == device &&
+               weight.shape()[0] == hidden;
+    };
+    const auto valid_output = [&](const Tensor& output, std::int64_t columns) {
+        return output.dtype() == DType::Float32 && output.device() == device &&
+               output.shape() == Shape({rows, columns}) && output.is_contiguous();
+    };
+    const auto valid_fallback = [&](const Tensor& fallback, const Tensor& output) {
+        return fallback.dtype() == DType::BFloat16 &&
+               fallback.device() == device && fallback.shape() == output.shape() &&
+               fallback.is_contiguous();
+    };
+    if (!valid_weight(query_weight_bf16) || !valid_weight(key_weight_bf16) ||
+        !valid_weight(value_weight_bf16) ||
+        !valid_output(query_output_fp32, query_weight_bf16.shape()[1]) ||
+        !valid_output(key_output_fp32, key_weight_bf16.shape()[1]) ||
+        !valid_output(value_output_fp32, value_weight_bf16.shape()[1]) ||
+        !valid_fallback(workspace.query_fallback_bf16, query_output_fp32) ||
+        !valid_fallback(workspace.key_fallback_bf16, key_output_fp32) ||
+        !valid_fallback(workspace.value_fallback_bf16, value_output_fp32)) {
+        throw std::invalid_argument(
+            "bf16_qkv_projection_precast_out workspace/output mismatch");
+    }
+    const std::vector<const void*> buffers{
+        query_output_fp32.data(), key_output_fp32.data(), value_output_fp32.data(),
+        input_bf16.data(), workspace.query_fallback_bf16.data(),
+        workspace.key_fallback_bf16.data(), workspace.value_fallback_bf16.data()};
+    const std::set<const void*> buffer_set(buffers.begin(), buffers.end());
+    if (buffer_set.size() != buffers.size()) {
+        throw std::invalid_argument(
+            "bf16_qkv_projection_precast_out buffers must not alias");
+    }
+    for (const auto* weight : {query_weight_bf16.data(), key_weight_bf16.data(),
+                               value_weight_bf16.data()}) {
+        if (buffer_set.contains(weight)) {
+            throw std::invalid_argument(
+                "bf16_qkv_projection_precast_out buffers must not alias weights");
+        }
+    }
 #if MICROLLM_HAS_HIPBLASLT
     if (try_bf16_grouped_qkv(
             workspace, query_weight_bf16, key_weight_bf16,

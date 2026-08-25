@@ -345,6 +345,8 @@ TEST(TransformerModelTest, Bf16AttentionPreparationConvertsOnlyProjectionWeights
     TransformerModel model(config, 18);
     const auto input = Tensor::from_int32_vector({1, 2, 3, 4}, {1, 4});
     EXPECT_THROW(model.set_bf16_qkv_arena_enabled(true), std::logic_error);
+    EXPECT_THROW(model.set_bf16_attention_norm_fusion_enabled(true),
+                 std::logic_error);
     EXPECT_THROW((void)model.prewarm_bf16_grouped_qkv(4), std::logic_error);
     const auto before = model.forward_inference(input).to_vector();
     (void)model.prepare_bf16_ffn_inference();
@@ -369,6 +371,7 @@ TEST(TransformerModelTest, Bf16AttentionPreparationConvertsOnlyProjectionWeights
     const auto prepared = model.forward_inference(input).to_vector();
     expect_near(prepared, before, 5.0e-2F);
     model.set_bf16_qkv_arena_enabled(true, 5);
+    EXPECT_TRUE(model.bf16_attention_norm_fusion_enabled());
     EXPECT_THROW((void)model.prewarm_bf16_grouped_qkv(4), std::logic_error);
     EXPECT_EQ(model.forward_inference(input).to_vector(), prepared);
     auto arena_stats = model.bf16_qkv_arena_stats();
@@ -387,8 +390,15 @@ TEST(TransformerModelTest, Bf16AttentionPreparationConvertsOnlyProjectionWeights
     EXPECT_EQ(arena_stats.eligible_calls,
               static_cast<std::size_t>(model.config().layers * 2));
     EXPECT_GT(arena_stats.capacity_bytes, 0U);
+    model.set_bf16_attention_norm_fusion_enabled(false);
+    EXPECT_FALSE(model.bf16_attention_norm_fusion_enabled());
+    EXPECT_EQ(model.forward_inference(input).to_vector(), prepared);
+    model.set_bf16_attention_norm_fusion_enabled(true);
+    EXPECT_TRUE(model.bf16_attention_norm_fusion_enabled());
+    EXPECT_EQ(model.forward_inference(input).to_vector(), prepared);
     model.set_bf16_qkv_arena_enabled(false);
     EXPECT_FALSE(model.bf16_qkv_arena_enabled());
+    EXPECT_FALSE(model.bf16_attention_norm_fusion_enabled());
     EXPECT_EQ(model.bf16_qkv_arena_stats().entries, 0U);
     EXPECT_THROW(model.set_attention_core_arena_enabled(true, 0),
                  std::invalid_argument);

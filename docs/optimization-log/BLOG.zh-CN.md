@@ -3870,3 +3870,15 @@ Qwen/DeepSeek Kernel时间从8.315/14.862 ms下降到8.208/14.659 ms，cast调�
 剩余cast中的下一个可分离问题是Attention Norm直入QKV Arena。下一节只改这一个边界。
 
 ![Post FFN Norm profile](assets/post-bf16-ffn-norm-profile.svg)
+
+## 256. Experiment 239：Attention Norm也直接写入BF16 Arena
+
+A/B两边都保留FFN Norm默认收益，只切换Attention Norm是否直入QKV Arena。
+precast API检查全部workspace和alias，bypass也只做一次cache决策。
+
+12进程里Qwen/DeepSeek为1.01309×/1.01303×，完整logits Max/RMS为0，allocation减
+120/140，峰值减3,670,016/6,291,456 bytes。
+
+BF16 QKV Arena现在默认开启该路径，显式`false`保留。
+
+![BF16 Attention Norm model gate](assets/bf16-attention-norm-model.svg)
