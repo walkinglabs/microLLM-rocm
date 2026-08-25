@@ -943,6 +943,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [experiments/270-ranked-gradient-overlap-discard.md](experiments/270-ranked-gradient-overlap-discard.md) | T32 total 1.0052×拒绝与尺度track交接 |
 | [assets/ranked-overlap-context-scale.svg](assets/ranked-overlap-context-scale.svg) | T32/T128 finish、total、CV与显存边界 |
 | [experiments/271-ranked-overlap-context-scale.md](experiments/271-ranked-overlap-context-scale.md) | T128 context-selective keep与一般默认边界 |
+| [assets/ranked-checkpoint-resume.svg](assets/ranked-checkpoint-resume.svg) | rank0写、2+3恢复/5步控制与失败传播时间线 |
+| [experiments/272-ranked-checkpoint-resume.md](experiments/272-ranked-checkpoint-resume.md) | 完整checkpoint字节等价与Model-S准入 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

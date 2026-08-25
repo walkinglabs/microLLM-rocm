@@ -322,6 +322,11 @@ RANKED_CONTEXT_ROOT = (
     "2026-08-25-ranked-overlap-contexts")
 RANKED_CONTEXT_CHART = (
     ROOT / "assets" / "ranked-overlap-context-scale.svg")
+RANKED_CHECKPOINT_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-ranked-checkpoint-resume")
+RANKED_CHECKPOINT_CHART = (
+    ROOT / "assets" / "ranked-checkpoint-resume.svg")
 
 
 def rows() -> list[dict]:
@@ -5750,6 +5755,87 @@ def ranked_overlap_context_svg() -> str:
     return "\n".join(parts)
 
 
+def ranked_checkpoint_svg() -> str:
+    summary = json.loads((RANKED_CHECKPOINT_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    width, height = 1500, 780
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 272 · Rank0 Checkpoint Ownership", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "tiny · two ranks · complete model + AdamW + ExperimentState · binary equality gate",
+             16, "#5b6474", anchor="middle"),
+    ]
+    # Interrupted/resumed timeline.
+    parts.extend([
+        '<rect x="70" y="130" width="900" height="250" rx="18" fill="#ffffff" stroke="#2563eb" stroke-width="3"/>',
+        text(520, 170, "Interrupted and resumed path", 23, "#1d4ed8",
+             anchor="middle", weight=700),
+        '<line x1="130" y1="255" x2="900" y2="255" stroke="#94a3b8" stroke-width="6"/>',
+    ])
+    nodes = ((130, "start", "0"), (300, "step", "1"), (470, "rank0 ckpt", "2"),
+             (650, "resume", "2"), (780, "step", "3–4"), (900, "final", "5"))
+    for x, label, step in nodes:
+        color = "#16a34a" if label in ("rank0 ckpt", "final") else "#2563eb"
+        parts.extend([
+            f'<circle cx="{x}" cy="255" r="14" fill="{color}"/>',
+            text(x, 225, label, 14, color, anchor="middle", weight=700),
+            text(x, 292, f"step {step}", 13, "#5b6474", anchor="middle"),
+        ])
+    parts.extend([
+        text(520, 342, "new rank processes restore model + both moments + step + cursor",
+             16, "#5b6474", anchor="middle"),
+        '<rect x="70" y="410" width="900" height="190" rx="18" fill="#ffffff" stroke="#64748b" stroke-width="3"/>',
+        text(520, 450, "Uninterrupted control", 23, "#475569",
+             anchor="middle", weight=700),
+        '<line x1="130" y1="520" x2="900" y2="520" stroke="#94a3b8" stroke-width="6"/>',
+        '<circle cx="130" cy="520" r="14" fill="#64748b"/>',
+        '<circle cx="900" cy="520" r="14" fill="#16a34a"/>',
+        text(130, 490, "start", 14, "#475569", anchor="middle", weight=700),
+        text(900, 490, "final", 14, "#166534", anchor="middle", weight=700),
+        text(520, 555, "same seed · five continuous steps", 16, "#5b6474",
+             anchor="middle"),
+        text(520, 585, "final checkpoint bytes equal", 19, "#166534",
+             anchor="middle", weight=700),
+    ])
+    # Evidence card.
+    parts.extend([
+        '<rect x="1020" y="130" width="410" height="470" rx="18" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>',
+        text(1225, 170, "Ownership and failure gates", 22, "#166534",
+             anchor="middle", weight=700),
+    ])
+    facts = (
+        ("Checkpoint bytes", str(summary["checkpoint_sizes"]["resumed_final"])),
+        ("Rank0 writes", str(summary["rank0_checkpoint_writes"])),
+        ("Other-rank writes", str(summary["nonzero_rank_checkpoint_writes"])),
+        ("Rank diff", "0"),
+        ("Resume/control diff", "0"),
+        ("Binary equality", "true"),
+        ("Write failure", "peer −15 / rank0 1"),
+        ("Files retained", "false"),
+    )
+    for index, (label, value) in enumerate(facts):
+        y = 215 + index * 46
+        parts.extend([
+            text(1060, y, label, 14, "#5b6474"),
+            text(1395, y, value, 17, "#166534", anchor="end", weight=700),
+        ])
+    parts.extend([
+        '<rect x="70" y="640" width="1360" height="85" rx="16" fill="#ecfdf5" stroke="#16a34a" stroke-width="2"/>',
+        text(width / 2, 678,
+             "Keep rank0-only ownership · complete resumed state is byte-identical · no performance claim",
+             19, "#166534", anchor="middle", weight=700),
+        text(width / 2, 708,
+             "Next: Model-S checkpoint size, write/read/restore cost, and one-step resumed equivalence",
+             16, "#5b6474", anchor="middle"),
+        "</svg>\n",
+    ])
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -5837,7 +5923,8 @@ def main() -> int:
                 RANKED_PERSISTENT_CHART: ranked_persistent_bucket_svg(),
                 RANKED_VIEW_CHART: ranked_gradient_view_svg(),
                 RANKED_OVERLAP_CHART: ranked_gradient_overlap_svg(),
-                RANKED_CONTEXT_CHART: ranked_overlap_context_svg()}
+                RANKED_CONTEXT_CHART: ranked_overlap_context_svg(),
+                RANKED_CHECKPOINT_CHART: ranked_checkpoint_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="780" viewBox="0 0 1500 780">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="750.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 272 · Rank0 Checkpoint Ownership</text>
+<text x="750.0" y="82.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">tiny · two ranks · complete model + AdamW + ExperimentState · binary equality gate</text>
+<rect x="70" y="130" width="900" height="250" rx="18" fill="#ffffff" stroke="#2563eb" stroke-width="3"/>
+<text x="520.0" y="170.0" font-family="Inter,Arial,sans-serif" font-size="23" fill="#1d4ed8" text-anchor="middle" font-weight="700">Interrupted and resumed path</text>
+<line x1="130" y1="255" x2="900" y2="255" stroke="#94a3b8" stroke-width="6"/>
+<circle cx="130" cy="255" r="14" fill="#2563eb"/>
+<text x="130.0" y="225.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#2563eb" text-anchor="middle" font-weight="700">start</text>
+<text x="130.0" y="292.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">step 0</text>
+<circle cx="300" cy="255" r="14" fill="#2563eb"/>
+<text x="300.0" y="225.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#2563eb" text-anchor="middle" font-weight="700">step</text>
+<text x="300.0" y="292.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">step 1</text>
+<circle cx="470" cy="255" r="14" fill="#16a34a"/>
+<text x="470.0" y="225.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16a34a" text-anchor="middle" font-weight="700">rank0 ckpt</text>
+<text x="470.0" y="292.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">step 2</text>
+<circle cx="650" cy="255" r="14" fill="#2563eb"/>
+<text x="650.0" y="225.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#2563eb" text-anchor="middle" font-weight="700">resume</text>
+<text x="650.0" y="292.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">step 2</text>
+<circle cx="780" cy="255" r="14" fill="#2563eb"/>
+<text x="780.0" y="225.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#2563eb" text-anchor="middle" font-weight="700">step</text>
+<text x="780.0" y="292.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">step 3–4</text>
+<circle cx="900" cy="255" r="14" fill="#16a34a"/>
+<text x="900.0" y="225.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16a34a" text-anchor="middle" font-weight="700">final</text>
+<text x="900.0" y="292.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">step 5</text>
+<text x="520.0" y="342.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">new rank processes restore model + both moments + step + cursor</text>
+<rect x="70" y="410" width="900" height="190" rx="18" fill="#ffffff" stroke="#64748b" stroke-width="3"/>
+<text x="520.0" y="450.0" font-family="Inter,Arial,sans-serif" font-size="23" fill="#475569" text-anchor="middle" font-weight="700">Uninterrupted control</text>
+<line x1="130" y1="520" x2="900" y2="520" stroke="#94a3b8" stroke-width="6"/>
+<circle cx="130" cy="520" r="14" fill="#64748b"/>
+<circle cx="900" cy="520" r="14" fill="#16a34a"/>
+<text x="130.0" y="490.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#475569" text-anchor="middle" font-weight="700">start</text>
+<text x="900.0" y="490.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#166534" text-anchor="middle" font-weight="700">final</text>
+<text x="520.0" y="555.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">same seed · five continuous steps</text>
+<text x="520.0" y="585.0" font-family="Inter,Arial,sans-serif" font-size="19" fill="#166534" text-anchor="middle" font-weight="700">final checkpoint bytes equal</text>
+<rect x="1020" y="130" width="410" height="470" rx="18" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>
+<text x="1225.0" y="170.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#166534" text-anchor="middle" font-weight="700">Ownership and failure gates</text>
+<text x="1060.0" y="215.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="start" font-weight="400">Checkpoint bytes</text>
+<text x="1395.0" y="215.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#166534" text-anchor="end" font-weight="700">10796</text>
+<text x="1060.0" y="261.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="start" font-weight="400">Rank0 writes</text>
+<text x="1395.0" y="261.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#166534" text-anchor="end" font-weight="700">3</text>
+<text x="1060.0" y="307.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="start" font-weight="400">Other-rank writes</text>
+<text x="1395.0" y="307.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#166534" text-anchor="end" font-weight="700">0</text>
+<text x="1060.0" y="353.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="start" font-weight="400">Rank diff</text>
+<text x="1395.0" y="353.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#166534" text-anchor="end" font-weight="700">0</text>
+<text x="1060.0" y="399.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="start" font-weight="400">Resume/control diff</text>
+<text x="1395.0" y="399.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#166534" text-anchor="end" font-weight="700">0</text>
+<text x="1060.0" y="445.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="start" font-weight="400">Binary equality</text>
+<text x="1395.0" y="445.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#166534" text-anchor="end" font-weight="700">true</text>
+<text x="1060.0" y="491.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="start" font-weight="400">Write failure</text>
+<text x="1395.0" y="491.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#166534" text-anchor="end" font-weight="700">peer −15 / rank0 1</text>
+<text x="1060.0" y="537.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="start" font-weight="400">Files retained</text>
+<text x="1395.0" y="537.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#166534" text-anchor="end" font-weight="700">false</text>
+<rect x="70" y="640" width="1360" height="85" rx="16" fill="#ecfdf5" stroke="#16a34a" stroke-width="2"/>
+<text x="750.0" y="678.0" font-family="Inter,Arial,sans-serif" font-size="19" fill="#166534" text-anchor="middle" font-weight="700">Keep rank0-only ownership · complete resumed state is byte-identical · no performance claim</text>
+<text x="750.0" y="708.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">Next: Model-S checkpoint size, write/read/restore cost, and one-step resumed equivalence</text>
+</svg>

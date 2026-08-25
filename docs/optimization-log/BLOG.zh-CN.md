@@ -4272,3 +4272,20 @@ T128同步CV为6.80%，所以我们做了敏感性检查：完全删除最慢的
 它不是其他模型/GPU/world size的一般默认。
 
 ![Ranked overlap context scale](assets/ranked-overlap-context-scale.svg)
+
+## 289. Experiment 272：恢复的是权重，还是同一次训练
+
+两个rank先跑2步，完成optimizer和barrier后只有rank0写checkpoint。它包含模型、AdamW两组moments、
+optimizer step、global step、data cursor、seed和配置。rank1不写，只等`step=2` marker并读取验证。
+
+新的两个rank恢复后再跑3步；控制组从同一seed不中断跑5步。两个final checkpoint都是10,796
+bytes且逐字节相等，所有rank/轨迹参数最大差0。这比“加载后还能运行”强得多。
+
+故障实验让rank0在barrier后、写文件前返回1。marker不会出现，launcher终止等待rank1，返回−15；
+checkpoint、ready、tmp和communicator ID均没有残留。第一次5秒故障门被进程启动抢先触发，修正
+为15秒后才证明根因来自写失败。
+
+这是可靠性证据，不是I/O性能结论。下一节点使用Model-S完整model+moments，记录实际checkpoint
+大小和恢复时间，并在验证后删除大文件。
+
+![Ranked checkpoint resume](assets/ranked-checkpoint-resume.svg)

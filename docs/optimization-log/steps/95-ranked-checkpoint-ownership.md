@@ -1,6 +1,6 @@
 # Step 95 — Ranked checkpoint ownership and resume
 
-Status: implemented for tiny, formal clean-revision evidence pending
+Status: complete for tiny; rank0 ownership retained
 
 one-process-per-GPU训练已经有rank identity、同步bucket、persistent views、context-selective overlap
 和peer-failure传播，但还没有生产checkpoint ownership。下一节点不继续调Reducer，而是规定：
@@ -16,3 +16,5 @@ one-process-per-GPU训练已经有rank identity、同步bucket、persistent view
 实现已让rank0原子写完整checkpoint/ready marker，非0 rank只等待与验证。tiny pilot的2+3恢复与
 不中断5步checkpoint均10,796 bytes且逐字节相等，参数差0；写失败为rank0=1、peer=−15，无残留
 文件。正式干净revision结果后再准入Model-S smoke。
+
+正式结果完全复现pilot，RCCL49/49。tiny合同完成；Model-S大小/耗时与恢复smoke移交Step96。

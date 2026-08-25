@@ -15729,6 +15729,96 @@ def validate_ranked_overlap_contexts(
         bool(summary.get("longer_context_gate_passed"))
 
 
+def validate_ranked_checkpoint(
+        errors: list[str]) -> tuple[int, int, bool, int]:
+    root = REPOSITORY / "benchmarks/results/2026-08-25-ranked-checkpoint-resume"
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    failure = json.loads((root / "failure.json").read_text(encoding="utf-8"))
+    if (summary.get("schema_version") != 1 or summary.get("status") != "pass" or
+            summary.get("record_type") != "ranked_checkpoint_summary" or
+            summary.get("world_size") != 2 or
+            summary.get("first_steps") != 2 or
+            summary.get("resumed_steps") != 3 or
+            summary.get("final_step") != 5 or
+            summary.get("rank_processes") != 8 or
+            summary.get("rank0_checkpoint_writes") != 3 or
+            summary.get("nonzero_rank_checkpoint_writes") != 0 or
+            summary.get("resumed_rank_difference") != 0.0 or
+            summary.get("uninterrupted_rank_difference") != 0.0 or
+            summary.get("resume_vs_uninterrupted_parameter_difference") != 0.0 or
+            summary.get("resume_vs_uninterrupted_checkpoint_bytes_equal") is not True or
+            summary.get("checkpoint_sizes") !=
+                {"interrupted": 10796, "resumed_final": 10796,
+                 "uninterrupted_final": 10796} or
+            summary.get("checkpoint_files_retained") is not False or
+            summary.get("failure_detected") is not True or
+            summary.get("peer_processes_terminated") != 1 or
+            summary.get("failure_returncodes") != [-15, 1] or
+            summary.get("decision") != "admit Model-S ranked checkpoint smoke"):
+        errors.append("ranked checkpoint summary changed")
+    successful_records = []
+    for directory in ("first-segment", "resumed-segment", "uninterrupted"):
+        for path in sorted((root / directory).glob("rank*.stdout")):
+            successful_records.append(json.loads(path.read_text(encoding="utf-8")))
+    if (len(successful_records) != 6 or
+            any(record.get("checkpoint_requested") is not True or
+                record.get("checkpoint_verified") is not True or
+                record.get("optimizer_step") != record.get("final_step")
+                for record in successful_records) or
+            sum(record.get("checkpoint_written") is True
+                for record in successful_records) != 3 or
+            sum(record.get("checkpoint_written") is True and
+                record.get("rank") != 0 for record in successful_records) != 0 or
+            list(root.rglob("*.ckpt")) or list(root.rglob("*.ready")) or
+            list(root.rglob("*.tmp")) or list(root.rglob("communicator.id"))):
+        errors.append("ranked checkpoint worker evidence changed")
+    if (failure.get("completed") is not False or
+            failure.get("terminated") != 1 or
+            failure.get("returncodes") != [-15, 1]):
+        errors.append("ranked checkpoint failure evidence changed")
+    if (check.get("measurement_commit") !=
+            "8357bcf1152487d54379070f5ec44919d25a8c74" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("gpu") != "AMD Instinct MI300X VF" or
+            check.get("architecture") != "gfx942" or
+            check.get("world_size") != 2 or check.get("model") != "tiny" or
+            check.get("first_steps") != 2 or check.get("resumed_steps") != 3 or
+            check.get("final_step") != 5 or check.get("rank_processes") != 8 or
+            check.get("rank0_checkpoint_writes") != 3 or
+            check.get("nonzero_rank_checkpoint_writes") != 0 or
+            check.get("interrupted_checkpoint_bytes") != 10796 or
+            check.get("resumed_final_checkpoint_bytes") != 10796 or
+            check.get("uninterrupted_final_checkpoint_bytes") != 10796 or
+            check.get("resume_vs_uninterrupted_checkpoint_bytes_equal") is not True or
+            check.get("resumed_rank_difference") != 0.0 or
+            check.get("uninterrupted_rank_difference") != 0.0 or
+            check.get("resume_vs_uninterrupted_parameter_difference") != 0.0 or
+            check.get("peer_processes_terminated") != 1 or
+            check.get("failure_returncodes") != [-15, 1] or
+            check.get("checkpoint_files_retained") is not False or
+            check.get("performance_claim") is not False or
+            check.get("rank0_ownership_admitted") is not True or
+            check.get("model_s_checkpoint_smoke_admitted") is not True or
+            check.get("rccl_label") != {"passed": 49, "total": 49} or
+            check.get("checkpoint_contract") != {"passed": 1, "total": 1} or
+            check.get("registered_test_files") != 125):
+        errors.append("ranked checkpoint verification changed")
+    runner = (REPOSITORY /
+              "tools/distributed/run_ranked_checkpoint.py").read_text(
+                  encoding="utf-8")
+    worker = (REPOSITORY / "apps/distributed_rank.cpp").read_text(
+        encoding="utf-8")
+    if ("checkpoint_bytes_equal" not in runner or
+            "publish_checkpoint_ready" not in worker or
+            "restore_checkpoint" not in worker):
+        errors.append("ranked checkpoint route is missing")
+    return summary.get("rank_processes", 0), \
+        summary.get("rank0_checkpoint_writes", 0), \
+        bool(summary.get("resume_vs_uninterrupted_checkpoint_bytes_equal")), \
+        summary.get("peer_processes_terminated", 0)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -15978,7 +16068,8 @@ def validate_assets(errors: list[str]) -> None:
                  "ranked-persistent-buckets.svg",
                  "ranked-gradient-bucket-views.svg",
                  "ranked-gradient-overlap-discard.svg",
-                 "ranked-overlap-context-scale.svg"):
+                 "ranked-overlap-context-scale.svg",
+                 "ranked-checkpoint-resume.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -16538,6 +16629,9 @@ def main() -> int:
         validate_ranked_gradient_overlap(errors)
     ranked_context_runs, ranked_context_t32, ranked_context_t128, \
         ranked_context_gate = validate_ranked_overlap_contexts(errors)
+    ranked_checkpoint_processes, ranked_checkpoint_writes, \
+        ranked_checkpoint_equal, ranked_checkpoint_terminated = \
+        validate_ranked_checkpoint(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -17075,6 +17169,10 @@ def main() -> int:
           f"{ranked_context_t32:.4f}/"
           f"{ranked_context_t128:.4f}/"
           f"{int(ranked_context_gate)} "
+          f"ranked_checkpoint={ranked_checkpoint_processes}/"
+          f"{ranked_checkpoint_writes}/"
+          f"{int(ranked_checkpoint_equal)}/"
+          f"{ranked_checkpoint_terminated} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

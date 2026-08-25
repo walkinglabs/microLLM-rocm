@@ -123,7 +123,8 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [92](steps/92-ranked-gradient-bucket-views.md) | complete | rank-local gradient-as-bucket views | unpack57→0、current基线、vs逐参数total1.055× |
 | [93](steps/93-ranked-gradient-ready-overlap.md) | complete | rank-local Event + ready-bucket overlap | finish2.180×但total1.0052×；T32性能拒绝 |
 | [94](steps/94-ranked-overlap-scale-boundary.md) | complete | Model-S T32/T128 overlap尺度边界 | T32 0.9995×；T128 1.0923× context-selective keep |
-| [95](steps/95-ranked-checkpoint-ownership.md) | implemented for tiny; evidence pending | rank0 checkpoint ownership/resume | 双rank中断/恢复三步等价与写失败传播 |
+| [95](steps/95-ranked-checkpoint-ownership.md) | complete for tiny | rank0 checkpoint ownership/resume | checkpoint字节相等、rank1零写、故障传播 |
+| [96](steps/96-ranked-model-s-checkpoint.md) | planned | Model-S完整checkpoint smoke | 一步恢复等价、I/O时间与大文件清理 |
 
 ## 为什么按这个顺序
 

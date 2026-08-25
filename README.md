@@ -169,6 +169,11 @@ Start with [Quick start](#quick-start), consume the installed library through th
 > run) with no memory delta. Overlap is retained as an explicit context-selective
 > policy for the measured two-MI300X Model-S track, not as a general default.
 
+> Rank0-only checkpoint publication now passes a full tiny interruption test:
+> 2+3 resumed and uninterrupted 5-step checkpoints are byte-identical, rank1
+> performs zero writes, and injected rank0 failure terminates its waiting peer.
+> Model-S checkpoint size and restore cost remain the next reliability gate.
+
 </details>
 
 ## Why this project exists
