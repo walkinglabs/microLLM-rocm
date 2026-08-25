@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-25: Gradient-as-bucket view result](2026-08-25-data-parallel-gradient-view-result.md)
 - [2026-08-25: Gradient-as-bucket view infrastructure](2026-08-25-data-parallel-gradient-view-infrastructure.md)
 - [2026-08-25: Persistent gradient-bucket result](2026-08-25-data-parallel-persistent-bucket-result.md)
 - [2026-08-25: Persistent gradient-bucket infrastructure](2026-08-25-data-parallel-persistent-bucket-infrastructure.md)

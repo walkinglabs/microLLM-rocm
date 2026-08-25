@@ -253,6 +253,11 @@ DATA_PARALLEL_PERSISTENT_ROOT = (
     "2026-08-25-data-parallel-persistent-buckets")
 DATA_PARALLEL_PERSISTENT_CHART = (
     ROOT / "assets" / "data-parallel-persistent-buckets.svg")
+DATA_PARALLEL_GRADIENT_VIEW_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-data-parallel-gradient-views")
+DATA_PARALLEL_GRADIENT_VIEW_CHART = (
+    ROOT / "assets" / "data-parallel-gradient-bucket-views.svg")
 
 
 def rows() -> list[dict]:
@@ -4586,6 +4591,60 @@ def data_parallel_persistent_bucket_svg() -> str:
     return "\n".join(parts)
 
 
+def data_parallel_gradient_view_svg() -> str:
+    summary = json.loads((DATA_PARALLEL_GRADIENT_VIEW_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    width, height = 1600, 780
+    policies = summary["policies"]
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 258 · Gradients as Bucket Views", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "Same binary · 3 rotated policies · Model-S B1T32 · step 2–5 medians",
+             16, "#5b6474", anchor="middle"),
+    ]
+    cards = (
+        ("Transient", policies["transient"], "#64748b", "114 unpack copies"),
+        ("Persistent copy", policies["persistent_copy"], "#b45309",
+         "114 unpack copies"),
+        ("Bucket views", policies["bucket_views"], "#16a34a",
+         "0 unpack copies"),
+    )
+    for index, (label, row, color, copy_label) in enumerate(cards):
+        x = 80 + index * 510
+        parts.extend([
+            f'<rect x="{x}" y="135" width="420" height="390" rx="16" '
+            f'fill="#ffffff" stroke="{color}" stroke-width="3"/>',
+            text(x + 210, 185, label, 24, color, anchor="middle", weight=700),
+            text(x + 45, 245,
+                 f"communication  {row['median_communication_ms']:.3f} ms", 18),
+            text(x + 45, 300, f"total  {row['median_total_ms']:.3f} ms", 22,
+                 color, weight=700),
+            text(x + 45, 360,
+                 f"live  {row['median_engine_current_bytes'] / (1024**2):.1f} MiB", 18),
+            text(x + 45, 410,
+                 f"peak  {row['maximum_engine_peak_bytes'] / (1024**2):.1f} MiB", 18),
+            text(x + 45, 470, copy_label, 18, color, weight=700),
+        ])
+    parts.append(text(width / 2, 590,
+                      f"View vs copy: communication {summary['view_vs_copy_communication_speedup']:.3f}x · total {summary['view_vs_copy_total_speedup']:.3f}x",
+                      23, "#166534", anchor="middle", weight=700))
+    parts.append(text(width / 2, 635,
+                      f"View vs transient: communication {summary['view_vs_transient_communication_speedup']:.3f}x · total {summary['view_vs_transient_total_speedup']:.3f}x",
+                      23, "#166534", anchor="middle", weight=700))
+    parts.append(text(width / 2, 682,
+                      "45 / 45 losses exact · live equals transient · peak still +31.7 MiB",
+                      19, "#b45309", anchor="middle", weight=700))
+    parts.append(text(width / 2, 730,
+                      "Explicit, not default · next: backward accumulates directly into bucket views",
+                      16, "#5b6474", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -4659,7 +4718,8 @@ def main() -> int:
                 DATA_PARALLEL_MODEL_S_CHART: data_parallel_model_s_svg(),
                 DATA_PARALLEL_COPY_CHART: data_parallel_copy_attribution_svg(),
                 DATA_PARALLEL_INPLACE_CHART: data_parallel_inplace_average_svg(),
-                DATA_PARALLEL_PERSISTENT_CHART: data_parallel_persistent_bucket_svg()}
+                DATA_PARALLEL_PERSISTENT_CHART: data_parallel_persistent_bucket_svg(),
+                DATA_PARALLEL_GRADIENT_VIEW_CHART: data_parallel_gradient_view_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

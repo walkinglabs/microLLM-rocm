@@ -14256,6 +14256,91 @@ def validate_data_parallel_persistent_buckets(
     return summary.get("processes", 0), *expected
 
 
+def validate_data_parallel_gradient_views(
+        errors: list[str]) -> tuple[int, float, float, int, int]:
+    root = REPOSITORY / (
+        "benchmarks/results/2026-08-25-data-parallel-gradient-views")
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    processes = [json.loads(line) for line in (root / "process-summary.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    policies = summary.get("policies", {})
+    transient = policies.get("transient", {})
+    copied = policies.get("persistent_copy", {})
+    views = policies.get("bucket_views", {})
+    expected = (1.0668458179375209, 1.3668122270742358,
+                124689408, 33269000)
+    if (summary.get("schema_version") != 1 or summary.get("status") != "pass" or
+            summary.get("record_type") != "data_parallel_gradient_view_summary" or
+            summary.get("raw_records") != 45 or summary.get("processes") != 9 or
+            summary.get("loss_trajectories_exact") is not True or
+            summary.get("unpack_storage_removed") != 114 or
+            summary.get("unpack_copies_removed") != 114 or
+            summary.get("plan_capacity_bytes") != 124689408 or
+            summary.get("default_eligible") is not False or
+            summary.get("decision") !=
+                "keep explicit and continue to direct bucket-gradient accumulation" or
+            abs(float(summary.get("view_vs_copy_total_speedup", 0.0)) -
+                expected[0]) > 1.0e-12 or
+            abs(float(summary.get("view_vs_transient_total_speedup", 0.0)) -
+                expected[1]) > 1.0e-12 or
+            summary.get("current_bytes_saved_vs_copy") != expected[2] or
+            summary.get("peak_bytes_saved_vs_copy") != expected[2] or
+            summary.get("current_bytes_added_vs_transient") != 0 or
+            summary.get("peak_bytes_added_vs_transient") != expected[3] or
+            transient.get("median_engine_current_bytes") != 498757632 or
+            views.get("median_engine_current_bytes") != 498757632 or
+            copied.get("median_engine_current_bytes") != 623447040):
+        errors.append("data-parallel gradient view summary changed")
+    view_rows = [row for row in raw if row.get("policy") == "bucket_views"]
+    view_later = [row for row in view_rows if row.get("step", 0) > 1]
+    if (len(raw) != 45 or len(processes) != 9 or len(view_rows) != 15 or
+            len(view_later) != 12 or
+            any(row.get("unpacked_tensor_count") != 0 or
+                row.get("gradient_view_count") != 114 or
+                row.get("unpack_copy_calls") != 0 or
+                row.get("bucket_plan_capacity_bytes") != 124689408
+                for row in view_rows) or
+            any(row.get("communication_backend_allocation_calls") != 0 or
+                row.get("communication_allocation_calls") != 0 or
+                row.get("communication_cache_reuse_calls") != 0
+                for row in view_later) or
+            any(row.get("parameter_max_difference") != 0.0 for row in raw)):
+        errors.append("data-parallel gradient view raw evidence changed")
+    if (check.get("measurement_commit") !=
+            "88776174cbe2474d20964412d20331ca04ec101f" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("raw_records") != 45 or check.get("process_records") != 9 or
+            check.get("loss_values_exact") != 45 or
+            check.get("final_parameter_checks") != 9 or
+            check.get("maximum_parameter_difference") != 0.0 or
+            check.get("unpack_storage_removed") != 114 or
+            check.get("unpack_copies_removed") != 114 or
+            check.get("first_step_backend_allocations") != 6 or
+            check.get("later_step_backend_allocations") != 0 or
+            check.get("plan_capacity_bytes") != 124689408 or
+            check.get("view_vs_copy_total_speedup") != expected[0] or
+            check.get("view_vs_transient_total_speedup") != expected[1] or
+            check.get("current_bytes_saved_vs_copy") != expected[2] or
+            check.get("peak_bytes_saved_vs_copy") != expected[2] or
+            check.get("current_bytes_added_vs_transient") != 0 or
+            check.get("peak_bytes_added_vs_transient") != expected[3] or
+            check.get("default_gradient_bucket_views") is not False or
+            check.get("rccl_label") != {"passed": 30, "total": 30} or
+            check.get("registered_test_files") != 118):
+        errors.append("data-parallel gradient view verification changed")
+    header = (REPOSITORY / "include/microllm/multi_gpu/data_parallel.h").read_text(
+        encoding="utf-8")
+    source = (REPOSITORY / "src/multi_gpu/gradient_bucket.cpp").read_text(
+        encoding="utf-8")
+    if ("gradient_bucket_views = false" not in header or
+            "Tensor::from_storage" not in source):
+        errors.append("data-parallel gradient view explicit route is missing")
+    return summary.get("processes", 0), *expected
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -14491,7 +14576,8 @@ def validate_assets(errors: list[str]) -> None:
                  "data-parallel-model-s-buckets.svg",
                  "data-parallel-bucket-copy-attribution.svg",
                  "data-parallel-inplace-average.svg",
-                 "data-parallel-persistent-buckets.svg"):
+                 "data-parallel-persistent-buckets.svg",
+                 "data-parallel-gradient-bucket-views.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -15009,6 +15095,9 @@ def main() -> int:
         data_parallel_persistent_total, data_parallel_persistent_current, \
         data_parallel_persistent_peak = \
         validate_data_parallel_persistent_buckets(errors)
+    data_parallel_view_processes, data_parallel_view_copy_total, \
+        data_parallel_view_transient_total, data_parallel_view_current, \
+        data_parallel_view_peak = validate_data_parallel_gradient_views(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -15484,6 +15573,10 @@ def main() -> int:
           f"{data_parallel_persistent_comm:.3f}/"
           f"{data_parallel_persistent_total:.3f}/"
           f"{data_parallel_persistent_current}/{data_parallel_persistent_peak} "
+          f"data_parallel_views={data_parallel_view_processes}/"
+          f"{data_parallel_view_copy_total:.3f}/"
+          f"{data_parallel_view_transient_total:.3f}/"
+          f"{data_parallel_view_current}/{data_parallel_view_peak} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

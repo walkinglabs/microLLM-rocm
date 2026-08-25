@@ -112,6 +112,12 @@ requires persistent buckets and in-place averaging. The first Model-S smoke repo
 zero unpacked Storage/copies, six first-step bucket allocations, zero later allocations, and a
 124,689,408-byte plan; formal three-policy measurement decides whether the combination advances.
 
+Experiment 258 keeps views explicit. They improve communication/total 1.131x/1.067x versus
+persistent-copy and 1.937x/1.367x versus transient; 45 losses and nine final parameter audits are
+exact. Live bytes equal transient, but peak remains 33,269,000 bytes higher because backward still
+creates ordinary gradients before the 114 pack copies. Direct Autograd accumulation into the
+views is the next gate before defaults or readiness overlap.
+
 The CLI prints one JSON record per step and writes stage/layer/model timing records using
 the same trace schema as the alignment infrastructure.
 

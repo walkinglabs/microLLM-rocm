@@ -1,0 +1,55 @@
+{
+  "aggregation": "median of step-2..5 medians with rotated policy order",
+  "current_bytes_added_vs_transient": 0,
+  "current_bytes_saved_vs_copy": 124689408,
+  "decision": "keep explicit and continue to direct bucket-gradient accumulation",
+  "default_eligible": false,
+  "loss_trajectories_exact": true,
+  "peak_bytes_added_vs_transient": 33269000,
+  "peak_bytes_saved_vs_copy": 124689408,
+  "plan_capacity_bytes": 124689408,
+  "policies": {
+    "bucket_views": {
+      "final_loss": 2.08,
+      "maximum_engine_peak_bytes": 636652808,
+      "median_communication_ms": 3.575,
+      "median_engine_current_bytes": 498757632,
+      "median_total_ms": 14.885,
+      "persistent": true,
+      "processes": 3,
+      "views": true
+    },
+    "persistent_copy": {
+      "final_loss": 2.08,
+      "maximum_engine_peak_bytes": 761342216,
+      "median_communication_ms": 4.045,
+      "median_engine_current_bytes": 623447040,
+      "median_total_ms": 15.879999999999999,
+      "persistent": true,
+      "processes": 3,
+      "views": false
+    },
+    "transient": {
+      "final_loss": 2.08,
+      "maximum_engine_peak_bytes": 603383808,
+      "median_communication_ms": 6.925,
+      "median_engine_current_bytes": 498757632,
+      "median_total_ms": 20.345,
+      "persistent": false,
+      "processes": 3,
+      "views": false
+    }
+  },
+  "processes": 9,
+  "raw_records": 45,
+  "record_type": "data_parallel_gradient_view_summary",
+  "runs_per_policy": 3,
+  "schema_version": 1,
+  "status": "pass",
+  "unpack_copies_removed": 114,
+  "unpack_storage_removed": 114,
+  "view_vs_copy_communication_speedup": 1.1314685314685313,
+  "view_vs_copy_total_speedup": 1.0668458179375209,
+  "view_vs_transient_communication_speedup": 1.9370629370629369,
+  "view_vs_transient_total_speedup": 1.3668122270742358
+}

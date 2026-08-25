@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="780" viewBox="0 0 1600 780">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="800.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 258 · Gradients as Bucket Views</text>
+<text x="800.0" y="82.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">Same binary · 3 rotated policies · Model-S B1T32 · step 2–5 medians</text>
+<rect x="80" y="135" width="420" height="390" rx="16" fill="#ffffff" stroke="#64748b" stroke-width="3"/>
+<text x="290.0" y="185.0" font-family="Inter,Arial,sans-serif" font-size="24" fill="#64748b" text-anchor="middle" font-weight="700">Transient</text>
+<text x="125.0" y="245.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="400">communication  6.925 ms</text>
+<text x="125.0" y="300.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#64748b" text-anchor="start" font-weight="700">total  20.345 ms</text>
+<text x="125.0" y="360.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="400">live  475.7 MiB</text>
+<text x="125.0" y="410.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="400">peak  575.4 MiB</text>
+<text x="125.0" y="470.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#64748b" text-anchor="start" font-weight="700">114 unpack copies</text>
+<rect x="590" y="135" width="420" height="390" rx="16" fill="#ffffff" stroke="#b45309" stroke-width="3"/>
+<text x="800.0" y="185.0" font-family="Inter,Arial,sans-serif" font-size="24" fill="#b45309" text-anchor="middle" font-weight="700">Persistent copy</text>
+<text x="635.0" y="245.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="400">communication  4.045 ms</text>
+<text x="635.0" y="300.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#b45309" text-anchor="start" font-weight="700">total  15.880 ms</text>
+<text x="635.0" y="360.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="400">live  594.6 MiB</text>
+<text x="635.0" y="410.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="400">peak  726.1 MiB</text>
+<text x="635.0" y="470.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#b45309" text-anchor="start" font-weight="700">114 unpack copies</text>
+<rect x="1100" y="135" width="420" height="390" rx="16" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>
+<text x="1310.0" y="185.0" font-family="Inter,Arial,sans-serif" font-size="24" fill="#16a34a" text-anchor="middle" font-weight="700">Bucket views</text>
+<text x="1145.0" y="245.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="400">communication  3.575 ms</text>
+<text x="1145.0" y="300.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#16a34a" text-anchor="start" font-weight="700">total  14.885 ms</text>
+<text x="1145.0" y="360.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="400">live  475.7 MiB</text>
+<text x="1145.0" y="410.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="400">peak  607.2 MiB</text>
+<text x="1145.0" y="470.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#16a34a" text-anchor="start" font-weight="700">0 unpack copies</text>
+<text x="800.0" y="590.0" font-family="Inter,Arial,sans-serif" font-size="23" fill="#166534" text-anchor="middle" font-weight="700">View vs copy: communication 1.131x · total 1.067x</text>
+<text x="800.0" y="635.0" font-family="Inter,Arial,sans-serif" font-size="23" fill="#166534" text-anchor="middle" font-weight="700">View vs transient: communication 1.937x · total 1.367x</text>
+<text x="800.0" y="682.0" font-family="Inter,Arial,sans-serif" font-size="19" fill="#b45309" text-anchor="middle" font-weight="700">45 / 45 losses exact · live equals transient · peak still +31.7 MiB</text>
+<text x="800.0" y="730.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">Explicit, not default · next: backward accumulates directly into bucket views</text>
+</svg>

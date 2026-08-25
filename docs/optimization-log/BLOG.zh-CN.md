@@ -4050,3 +4050,18 @@ move-only plan在第一次真实backward后建立6个bucket和114个unpacked gra
 bucket的连续view，删除114个Storage和114次copy，再看速度与显存是否同时改善。
 
 ![Persistent data-parallel buckets](assets/data-parallel-persistent-buckets.svg)
+
+## 275. Experiment 258：gradient本来就可以是bucket的一段
+
+每个parameter仍看到自己的shape和连续stride，但其Storage改为reduced bucket，offset是此前
+参数元素的前缀和。这样114个unpacked Storage和114次D2D copy同时消失，plan容量从
+249,378,816减半到124,689,408B。
+
+三策略轮换A/B中，view相对persistent-copy的communication/total为1.131×/1.067×，相对
+transient为1.937×/1.367×；45个loss和9次末步参数检查完全一致。live已经等于transient，
+但peak仍多33,269,000B，因为backward仍先创建普通gradient，再做114次pack。
+
+所以仍不设默认。下一节让Autograd从一开始就向bucket view累加，目标是同时删除pack copy和
+双表示peak，而不是用更快的communication掩盖backward内存。
+
+![Gradient-as-bucket views](assets/data-parallel-gradient-bucket-views.svg)

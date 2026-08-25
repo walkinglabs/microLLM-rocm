@@ -231,8 +231,11 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [ ] one process per GPU communicator initialization;
 - [ ] autograd gradient-ready hooks and bucket rebuild by observed readiness;
 - [ ] compute-stream Events to communication streams and asynchronous work handles;
-- [ ] replace 114 unpacked-gradient Storage/copies with gradient-as-bucket views, then remeasure
-  total time and live/peak memory before any default or readiness-overlap claim;
+- [x] replace 114 unpacked-gradient Storage/copies with gradient-as-bucket views: total improves
+  1.067x versus persistent-copy and 1.367x versus transient, live matches transient, but peak is
+  still +33.3MB, so the policy remains explicit;
+- [ ] pre-seed Autograd gradients with bucket views so backward writes directly into reducer
+  Storage; require pack copies 114→0 and peak no higher than transient before default/overlap;
 - [ ] unused parameter, uneven input, timeout, and cross-process failure handling.
 
 ## P3 — DeepSeek distill target

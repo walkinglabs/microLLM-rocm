@@ -76,6 +76,11 @@ extending small decoder-only language models on AMD GPUs.
 > explicit because live/peak memory rises 124.7/158.0 MB; gradient-as-bucket
 > views are the next measured reducer step.
 
+> Gradient-as-bucket views remove all 114 unpack Storage/copies, improve total
+> another 1.067× versus persistent-copy (1.367× versus transient), and return
+> live bytes to baseline. Peak remains 33.3 MB above transient, so the route is
+> still explicit; direct Autograd accumulation is the next falsifiable step.
+
 ## Why this project exists
 
 Large frameworks make model development productive, but they hide the ownership,
@@ -709,12 +714,12 @@ Current `main` gates:
 | Gate | Result | Scope |
 |---|---:|---|
 | Full CPU/HIP configuration | 544/544 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
-| CPU Debug | 357/357 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
-| ASan/UBSan CPU | 355/355 | host lifetime, external Storage and instrumented-package linking |
+| CPU Debug | 358/358 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
+| ASan/UBSan CPU | 356/356 | host lifetime, external Storage and instrumented-package linking |
 | MI300X/gfx942 HIP label | 187/187 | allocator/arena/Stream/Graph, public rocWMMA online Attention, BF16 RMSNorm/SwiGLU, grouped/exact vendor solutions, FP8 and model paths |
 | PyTorch-enabled CPU build | 319/319 | dispatcher parity, 32-step BF16 optimizer state, full graph/model oracle and all package paths |
-| Multi-GPU/RCCL | 26/26 | collectives, global-batch equivalence, persistent gradient buckets, DDP trainer/CLI, package and evidence gates |
-| Registered test files | 117 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| Multi-GPU/RCCL | 30/30 | collectives, global-batch equivalence, bucket-gradient views, DDP trainer/CLI, package and evidence gates |
+| Registered test files | 118 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
 | CPU source coverage | 78.4% lines / 86.6% functions / 59.1% branches | 8,878/11,329 lines; quiescent handoff and other HIP-only branches remain visible; GCC 13.3 + gcovr 8.3 |
 
