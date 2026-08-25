@@ -83,6 +83,7 @@ struct DataParallelTrainer::Impl {
     std::vector<std::unique_ptr<model::TransformerModel>> models;
     std::vector<std::unique_ptr<training::AdamW>> optimizers;
     Communicator communicator;
+    GradientBucketPlan gradient_bucket_plan;
 
     Impl(model::ModelConfig model_configuration, std::uint64_t seed,
          DataParallelConfig trainer_config)
@@ -94,6 +95,11 @@ struct DataParallelTrainer::Impl {
         }
         if (config.maximum_bucket_bytes < sizeof(float)) {
             throw std::invalid_argument("data parallel bucket must hold at least one float");
+        }
+        if (config.persistent_gradient_buckets &&
+            !config.in_place_bucket_average) {
+            throw std::invalid_argument(
+                "persistent gradient buckets require in-place averaging");
         }
         models.reserve(config.device_indices.size());
         optimizers.reserve(config.device_indices.size());
@@ -171,7 +177,10 @@ DistributedStepMetrics DataParallelTrainer::step(
     for (auto& rank_model : impl_->models) rank_parameters.push_back(rank_model->parameters());
     metrics.buckets = all_reduce_gradients(
         impl_->communicator, rank_parameters, impl_->config.maximum_bucket_bytes,
-        impl_->config.in_place_bucket_average);
+        impl_->config.in_place_bucket_average,
+        impl_->config.persistent_gradient_buckets
+            ? &impl_->gradient_bucket_plan
+            : nullptr);
     const auto communication_allocation_after = runtime::allocation_stats(
         Device::hip(impl_->config.device_indices.front()));
     metrics.communication_allocation_calls =

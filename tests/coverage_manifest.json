@@ -394,6 +394,7 @@
     "python/tests/test_distributed_model_workload.py",
     "python/tests/test_data_parallel_model_s_bucket_matrix.py",
     "python/tests/test_data_parallel_inplace_average_matrix.py",
+    "python/tests/test_data_parallel_persistent_bucket_matrix.py",
     "python/tests/test_bf16_repeat.py",
     "python/tests/test_inference_bthd_shape_models.py",
     "python/tests/test_hf_fp8_layer_drift.py",

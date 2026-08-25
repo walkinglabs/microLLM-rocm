@@ -22,6 +22,8 @@ def parse_args():
     parser.add_argument("--parameter-check-interval", type=int, default=1)
     parser.add_argument("--inplace-bucket-average", choices=("true", "false"),
                         default="true")
+    parser.add_argument("--persistent-gradient-buckets", choices=("true", "false"),
+                        default="false")
     parser.add_argument("--seed", type=int, default=601)
     parser.add_argument("--batch", type=int, default=1)
     parser.add_argument("--context", type=int, default=0)
@@ -72,6 +74,7 @@ def main():
         "--bucket-bytes", str(args.bucket_bytes),
         "--parameter-check-interval", str(args.parameter_check_interval),
         "--inplace-bucket-average", args.inplace_bucket_average,
+        "--persistent-gradient-buckets", args.persistent_gradient_buckets,
         "--seed", str(args.seed),
         "--batch", str(args.batch),
         "--context", str(args.context),
@@ -125,6 +128,7 @@ def main():
             "bucket_bytes": args.bucket_bytes,
             "parameter_check_interval": args.parameter_check_interval,
             "inplace_bucket_average": args.inplace_bucket_average == "true",
+            "persistent_gradient_buckets": args.persistent_gradient_buckets == "true",
             "seed": args.seed,
             "batch": args.batch,
             "context": args.context,

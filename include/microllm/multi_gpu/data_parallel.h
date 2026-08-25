@@ -20,6 +20,7 @@ struct DataParallelConfig {
     // disables it; N checks steps divisible by N.
     std::size_t parameter_check_interval = 1;
     bool in_place_bucket_average = true;
+    bool persistent_gradient_buckets = false;
     training::AdamWConfig optimizer;
 };
 

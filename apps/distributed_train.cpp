@@ -20,6 +20,7 @@ struct Options {
     std::size_t bucket_bytes = 4U * 1024U * 1024U;
     std::size_t parameter_check_interval = 1;
     bool in_place_bucket_average = true;
+    bool persistent_gradient_buckets = false;
     std::uint64_t seed = 601;
     std::size_t batch = 1;
     std::size_t context = 0;
@@ -57,6 +58,13 @@ Options parse(int argc, char** argv) {
                     "--inplace-bucket-average must be true or false");
             }
             options.in_place_bucket_average = value == "true";
+        } else if (argument == "--persistent-gradient-buckets") {
+            const auto value = next("--persistent-gradient-buckets");
+            if (value != "true" && value != "false") {
+                throw std::invalid_argument(
+                    "--persistent-gradient-buckets must be true or false");
+            }
+            options.persistent_gradient_buckets = value == "true";
         } else if (argument == "--seed") options.seed = number(next("--seed"), "seed");
         else if (argument == "--batch") {
             options.batch = static_cast<std::size_t>(number(next("--batch"), "batch"));
@@ -145,6 +153,7 @@ int main(int argc, char** argv) {
              .maximum_bucket_bytes = options.bucket_bytes,
              .parameter_check_interval = options.parameter_check_interval,
              .in_place_bucket_average = options.in_place_bucket_average,
+             .persistent_gradient_buckets = options.persistent_gradient_buckets,
              .optimizer = optimizer});
         const auto parameter_count = trainer.model(0).parameter_count();
         for (const auto device : {0, 1}) {
@@ -170,11 +179,14 @@ int main(int argc, char** argv) {
                         "distributed step failed its loss or rank-parameter gate");
                 }
                 std::size_t maximum_peak_bytes = 0;
+                std::size_t maximum_current_bytes = 0;
                 for (const auto device : {0, 1}) {
+                    const auto allocation = microllm::runtime::allocation_stats(
+                        microllm::Device::hip(device));
                     maximum_peak_bytes = std::max(
-                        maximum_peak_bytes,
-                        microllm::runtime::allocation_stats(
-                            microllm::Device::hip(device)).peak_bytes);
+                        maximum_peak_bytes, allocation.peak_bytes);
+                    maximum_current_bytes = std::max(
+                        maximum_current_bytes, allocation.current_bytes);
                 }
                 std::cout << "{\"step\":" << metrics.step
                           << ",\"model\":\"" << options.model << "\""
@@ -183,6 +195,8 @@ int main(int argc, char** argv) {
                           << ",\"parameter_count\":" << parameter_count
                           << ",\"inplace_bucket_average\":"
                           << (options.in_place_bucket_average ? "true" : "false")
+                          << ",\"persistent_gradient_buckets\":"
+                          << (options.persistent_gradient_buckets ? "true" : "false")
                           << ",\"mean_loss\":" << metrics.mean_loss
                           << ",\"bucket_count\":" << metrics.buckets.bucket_count
                           << ",\"bucket_parameter_count\":"
@@ -203,6 +217,14 @@ int main(int argc, char** argv) {
                           << metrics.buckets.temporary_elements
                           << ",\"bucket_temporary_bytes\":"
                           << metrics.buckets.temporary_bytes
+                          << ",\"bucket_persistent_storage\":"
+                          << (metrics.buckets.persistent_storage ? "true" : "false")
+                          << ",\"bucket_plan_reused\":"
+                          << (metrics.buckets.plan_reused ? "true" : "false")
+                          << ",\"bucket_plan_capacity_elements\":"
+                          << metrics.buckets.plan_capacity_elements
+                          << ",\"bucket_plan_capacity_bytes\":"
+                          << metrics.buckets.plan_capacity_bytes
                           << ",\"parameter_check_performed\":"
                           << (metrics.parameter_check_performed ? "true" : "false")
                           << ",\"parameter_max_difference\":"
@@ -221,6 +243,8 @@ int main(int argc, char** argv) {
                           << ",\"verification_ms\":" << metrics.verification_ms
                           << ",\"maximum_engine_peak_bytes\":"
                           << maximum_peak_bytes
+                          << ",\"maximum_engine_current_bytes\":"
+                          << maximum_current_bytes
                           << ",\"total_ms\":" << metrics.total_ms << "}\n";
             }
         }

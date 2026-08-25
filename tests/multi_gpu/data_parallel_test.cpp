@@ -123,6 +123,48 @@ TEST(DataParallelTrainerTest, ParameterVerificationIntervalIsExplicit) {
     }
 }
 
+TEST(DataParallelTrainerTest, PersistentBucketsAllocateOnlyOnFirstStep) {
+    if (runtime::hip_device_count() < 2) GTEST_SKIP() << "two visible HIP devices required";
+    DataParallelTrainer trainer(
+        config(), 541,
+        {.device_indices = {0, 1},
+         .maximum_bucket_bytes = 4096,
+         .parameter_check_interval = 2,
+         .in_place_bucket_average = true,
+         .persistent_gradient_buckets = true,
+         .optimizer = {}});
+    const auto first = trainer.step(local_batches(), 1);
+    EXPECT_TRUE(first.buckets.persistent_storage);
+    EXPECT_FALSE(first.buckets.plan_reused);
+    EXPECT_GT(first.buckets.plan_capacity_bytes, 0U);
+    EXPECT_EQ(first.buckets.temporary_bytes, 0U);
+    EXPECT_EQ(first.communication_allocation_calls,
+              first.buckets.bucket_tensor_count +
+                  first.buckets.unpacked_tensor_count);
+    const auto second = trainer.step(local_batches(), 2);
+    EXPECT_TRUE(second.buckets.persistent_storage);
+    EXPECT_TRUE(second.buckets.plan_reused);
+    EXPECT_EQ(second.communication_allocation_calls, 0U);
+    EXPECT_EQ(second.communication_backend_allocation_calls, 0U);
+    EXPECT_EQ(second.communication_cache_reuse_calls, 0U);
+    EXPECT_EQ(second.communication_total_allocated_bytes, 0U);
+    EXPECT_TRUE(second.parameter_check_performed);
+    EXPECT_EQ(second.maximum_parameter_difference, 0.0F);
+}
+
+TEST(DataParallelTrainerTest, PersistentBucketsRequireInPlaceAverage) {
+    if (runtime::hip_device_count() < 2) GTEST_SKIP() << "two visible HIP devices required";
+    EXPECT_THROW(
+        (void)DataParallelTrainer(
+            config(), 547,
+            {.device_indices = {0, 1},
+             .maximum_bucket_bytes = 4096,
+             .in_place_bucket_average = false,
+             .persistent_gradient_buckets = true,
+             .optimizer = {}}),
+        std::invalid_argument);
+}
+
 TEST(DataParallelTrainerTest, RejectsUnequalLocalBatchWeighting) {
     if (runtime::hip_device_count() < 2) GTEST_SKIP() << "two visible HIP devices required";
     DataParallelTrainer trainer(

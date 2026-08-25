@@ -74,7 +74,9 @@ Build the RCCL preset, then:
 
 `--model model-s --context 32 --batch 1` selects the 15,586,176-parameter teaching model.
 The current 4 MiB run naturally creates 12 buckets and records bucket parameter/elements plus
-maximum per-rank engine peak bytes. This workload is the prerequisite for real overlap work.
+maximum process-wide engine peak/current bytes. The current allocation ledger covers all HIP
+devices in the process, so it must not be summed or described as a per-rank measurement. This
+workload is the prerequisite for real overlap work.
 
 Experiment 254 selects 25 MiB/3 buckets as the current reducer baseline: 19.76 ms total,
 6.825 ms communication and 603,383,808 peak engine bytes per rank. It is not yet overlapped.
@@ -90,6 +92,13 @@ is a prerequisite for persistent bucket addresses; it does not remove pack/unpac
 Experiment 256 retains that default: Model-S communication/total improve 1.269x/1.107x with
 unchanged peak, exact losses/parameters and RCCL 22/22. Persistent storage targets the remaining
 6 bucket plus 114 unpacked backend allocations.
+
+`DataParallelConfig.persistent_gradient_buckets` and the matching CLI flag are default-off while
+the Model-S gate runs. The move-only plan is built after the first real backward, binds to the
+exact communicator/parameter order/shapes/bucket limit, and keeps its Storage until the trainer
+is destroyed. Step one therefore allocates normally; later communication stages must report zero
+allocation/backend/cache calls. Persistent capacity, whether a plan was reused, and process-wide
+current/peak bytes are emitted separately. Persistent mode requires in-place averaging.
 
 The CLI prints one JSON record per step and writes stage/layer/model timing records using
 the same trace schema as the alignment infrastructure.

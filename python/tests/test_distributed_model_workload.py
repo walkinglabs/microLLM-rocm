@@ -18,10 +18,13 @@ def main() -> int:
         '"--context"', '"--batch"', "bucket_parameter_count",
         "bucket_total_elements", "maximum_engine_peak_bytes",
         "bucket_temporary_bytes", "average_tensor_count",
+        "bucket_plan_capacity_bytes", "bucket_plan_reused",
         "pack_copy_calls", "unpack_copy_calls",
         "communication_allocation_calls",
         "communication_backend_allocation_calls",
         "--inplace-bucket-average", "inplace_bucket_average",
+        "--persistent-gradient-buckets", "persistent_gradient_buckets",
+        "maximum_engine_current_bytes",
         "distributed step failed its loss or rank-parameter gate",
     ):
         assert token in cli
