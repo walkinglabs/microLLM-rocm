@@ -521,6 +521,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.DataParallelBucketMatrixContract PROPERTIES
         LABELS "cpu;benchmark;training;multi_gpu;rccl;bucket;schema")
     add_test(
+        NAME Benchmark.DistributedModelWorkloadContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_distributed_model_workload.py
+    )
+    set_tests_properties(Benchmark.DistributedModelWorkloadContract PROPERTIES
+        LABELS "cpu;benchmark;training;model;multi_gpu;rccl;memory;schema")
+    add_test(
         NAME Benchmark.Bf16RepeatContract
         COMMAND ${Python3_EXECUTABLE}
                 ${PROJECT_SOURCE_DIR}/python/tests/test_bf16_repeat.py

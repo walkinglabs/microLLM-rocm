@@ -65,11 +65,16 @@ Build the RCCL preset, then:
 
 ```bash
 ./build/rccl-release/apps/microllm_distributed_train \
+  --model tiny \
   --steps 3 \
   --bucket-bytes 4194304 \
   --parameter-check-interval 1 \
   --trace /tmp/microllm-ddp-trace.jsonl
 ```
+
+`--model model-s --context 32 --batch 1` selects the 15,586,176-parameter teaching model.
+The current 4 MiB run naturally creates 12 buckets and records bucket parameter/elements plus
+maximum per-rank engine peak bytes. This workload is the prerequisite for real overlap work.
 
 The CLI prints one JSON record per step and writes stage/layer/model timing records using
 the same trace schema as the alignment infrastructure.

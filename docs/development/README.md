@@ -538,3 +538,5 @@ the next gate. Records are append-only except for factual corrections.
   fixes a final-step-audited real bucket-count sweep before overlap work.
 - [2026-08-25-data-parallel-bucket-matrix.md](2026-08-25-data-parallel-bucket-matrix.md):
   rejects artificial tiny-model overlap and hands off to Model-S.
+- [2026-08-25-model-s-data-parallel-workload.md](2026-08-25-model-s-data-parallel-workload.md):
+  adds the first natural multi-bucket model workload and measured memory/stage evidence.

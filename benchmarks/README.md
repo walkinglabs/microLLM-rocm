@@ -174,6 +174,18 @@ ROCR_VISIBLE_DEVICES=0,1 python3 \
 This is a communication/bucket-count matrix, not overlap evidence. A one-bucket winner hands the
 next milestone to a larger Model-S workload rather than manufacturing synthetic readiness events.
 
+The distributed CLI now supports that workload directly:
+
+```bash
+ROCR_VISIBLE_DEVICES=0,1 \
+  build/rccl-release/apps/microllm_distributed_train \
+  --model model-s --context 32 --batch 1 --steps 3 \
+  --bucket-bytes 4194304 --parameter-check-interval 3
+```
+
+Metrics include model/shape, exact parameter count, bucket parameter/element counts, stage times,
+verification time and maximum per-rank engine peak bytes.
+
 `microllm_bench_model` measures train or cache-backed generation throughput. Its
 `tokens_per_second` excludes construction and warm-up; `tokens_per_second_with_setup`
 includes construction, device transfer, optimizer allocation, and warm-up. Both are

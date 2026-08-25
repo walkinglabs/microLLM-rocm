@@ -47,6 +47,13 @@ if(MICROLLM_HAS_RCCL)
                          --trace ${CMAKE_CURRENT_BINARY_DIR}/distributed-smoke.jsonl)
         set_tests_properties(DistributedCLI.Smoke PROPERTIES
                              LABELS "hip;rccl;multi_gpu;integration")
+        add_test(NAME DistributedCLI.ModelSSmoke
+                 COMMAND microllm_distributed_train --model model-s
+                         --steps 1 --context 4 --batch 1
+                         --bucket-bytes 4194304
+                         --parameter-check-interval 1)
+        set_tests_properties(DistributedCLI.ModelSSmoke PROPERTIES
+                             LABELS "hip;rccl;multi_gpu;integration;model;slow")
     endif()
 endif()
 

@@ -16,14 +16,17 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Run a recorded microLLM data-parallel experiment")
     parser.add_argument("--binary", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--model", choices=("tiny", "model-s"), default="tiny")
     parser.add_argument("--steps", type=int, default=3)
     parser.add_argument("--bucket-bytes", type=int, default=4 * 1024 * 1024)
     parser.add_argument("--parameter-check-interval", type=int, default=1)
     parser.add_argument("--seed", type=int, default=601)
+    parser.add_argument("--batch", type=int, default=1)
+    parser.add_argument("--context", type=int, default=0)
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
     if (args.steps <= 0 or args.bucket_bytes < 4 or args.seed < 0 or
-            args.parameter_check_interval < 0):
+            args.parameter_check_interval < 0 or args.batch <= 0 or args.context < 0):
         parser.error("steps/bucket size must be positive and seed non-negative")
     return args
 
@@ -62,10 +65,13 @@ def main():
     trace = output / "trace.jsonl"
     command = [
         str(args.binary.resolve()),
+        "--model", args.model,
         "--steps", str(args.steps),
         "--bucket-bytes", str(args.bucket_bytes),
         "--parameter-check-interval", str(args.parameter_check_interval),
         "--seed", str(args.seed),
+        "--batch", str(args.batch),
+        "--context", str(args.context),
         "--trace", str(trace),
     ]
     completed = subprocess.run(command, cwd=PROJECT, text=True, capture_output=True)
@@ -111,10 +117,13 @@ def main():
         },
         "configuration": {
             "binary": str(args.binary.resolve()),
+            "model": args.model,
             "steps": args.steps,
             "bucket_bytes": args.bucket_bytes,
             "parameter_check_interval": args.parameter_check_interval,
             "seed": args.seed,
+            "batch": args.batch,
+            "context": args.context,
             "devices": [0, 1],
         },
         "command": command,
