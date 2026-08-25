@@ -12,6 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 RUNNER = ROOT / "benchmarks/single_gpu/compare_cached_attention_split_models.py"
+MATRIX_RUNNER = ROOT / "benchmarks/single_gpu/materialized_attention_model_matrix.py"
 
 
 FAKE = r'''#!/usr/bin/env python3
@@ -61,6 +62,43 @@ record = {
     "engine_backend_allocation_calls": 10,
 }
 print(json.dumps(record))
+'''
+
+
+FAKE_COMPARISON = r'''#!/usr/bin/env python3
+import json
+import pathlib
+import sys
+
+a = dict(zip(sys.argv[1::2], sys.argv[2::2]))
+context = int(a["--context"])
+batch = int(a["--batch"])
+speedup = 1.02 if context == 512 else 1.20
+output = pathlib.Path(a["--output-directory"])
+output.mkdir(parents=True, exist_ok=True)
+summary = {
+    "status": "pass",
+    "model": a["--model"],
+    "revision": "fixture-r1",
+    "context": context,
+    "batch": batch,
+    "candidate_policy": "materialized",
+    "accuracy_gate_passed": True,
+    "performance_gate_passed": context >= 2048,
+    "all_generated_tokens_equal": True,
+    "maximum_logit_error": 0.0,
+    "maximum_logit_rms_error": 0.0,
+    "median_current_throughput_tokens_per_second": 100.0,
+    "median_split_throughput_tokens_per_second": 100.0 * speedup,
+    "median_throughput_speedup": speedup,
+    "paired_speedups": [speedup, speedup, speedup],
+    "leave_one_pair_out_speedups": [speedup, speedup, speedup],
+    "median_peak_bytes_delta": 0,
+    "median_allocation_calls_delta": 10,
+    "median_backend_allocation_calls_delta": 1,
+}
+(output / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+print(json.dumps(summary))
 '''
 
 
@@ -117,6 +155,37 @@ def main() -> int:
         assert len(pairs) == 3
         assert "Official model · current vs split cached Attention" in chart
         assert "median speedup  1.5000x" in chart
+
+        fake_comparison = root / "fake_comparison.py"
+        fake_comparison.write_text(FAKE_COMPARISON, encoding="utf-8")
+        os.chmod(fake_comparison, 0o755)
+        matrix_output = root / "matrix"
+        matrix_completed = subprocess.run([
+            sys.executable, str(MATRIX_RUNNER),
+            "--comparison-runner", str(fake_comparison),
+            "--manifest", str(manifest), "--binary", str(fake),
+            "--output-directory", str(matrix_output),
+            "--models", "fixture,fixture2", "--contexts", "512,2048",
+            "--batches", "1,2", "--decode-tokens", "4",
+            "--runs", "3", "--warmup", "1", "--steps", "2",
+        ], text=True, capture_output=True, check=False)
+        if matrix_completed.returncode != 0:
+            raise AssertionError(
+                matrix_completed.stdout + matrix_completed.stderr)
+        matrix = json.loads(
+            (matrix_output / "summary.json").read_text(encoding="utf-8"))
+        case_lines = (matrix_output / "cases.jsonl").read_text(
+            encoding="utf-8").splitlines()
+        matrix_chart = (matrix_output / "matrix.svg").read_text(encoding="utf-8")
+        assert matrix["matrix_complete"] is True
+        assert matrix["case_count"] == 8
+        assert matrix["all_accuracy_gates_passed"] is True
+        assert matrix["all_performance_gates_passed"] is False
+        assert matrix["minimum_default_sequence"] == 2048
+        assert matrix["minimum_speedup"] == 1.02
+        assert matrix["maximum_speedup"] == 1.2
+        assert len(case_lines) == 8
+        assert "Materialized-score official model boundary" in matrix_chart
     print("cached Attention split model comparison contract: pass")
     return 0
 
