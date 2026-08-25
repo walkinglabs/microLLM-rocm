@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| CPU configuration | smoke-tested | CPU 345/345; full CPU/HIP 544/544 with 3 conditional skips; HIP label 187/187; ASan/UBSan 343/343 | broader compiler/OS CI matrix |
+| Current validation configurations | smoke-tested | CPU 349/349; HIP label 188/188 with 1 conditional skip; ASan/UBSan 347/347; PyTorch-enabled 323/323 after building the installed comparison CLI target | broader compiler/OS/GPU matrix |
 | CPU code coverage | smoke-tested | 78.4% lines, 86.6% functions, 59.1% branches over `src/` + `include/`; quiescent handoff and other HIP-only paths remain visible as CPU gaps | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, native cast, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
@@ -60,7 +60,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Serving scheduler | smoke-tested | slot-ratio matrix 48/48 token-exact; matched 6:2 short and 2:6 long retain 85%–87% throughput while reducing KV 56%/19% | safe dynamic ratio transition and allocator cost; uniform remains default, overflow opt-in |
 | Stable model failure | smoke-tested | low-loss cycle breaks beyond training context | rebuttal experiments |
 | PyTorch Custom Ops | smoke-tested on CPU | Torch 2.13 add/multiply via dispatcher | build/run with PyTorch ROCm |
-| PyTorch correctness oracle | smoke-tested | PyTorch-enabled build 319/319; Tensor/graph/model/optimizer parity plus package and schema gates | broader direct PyTorch ROCm operator matrix |
+| PyTorch correctness oracle | smoke-tested | PyTorch-enabled build 323/323; Tensor/graph/model/optimizer parity plus package, trajectory and schema gates | broader direct PyTorch ROCm operator matrix |
 | PyTorch ROCm environment | smoke-tested | Torch 2.10.0+rocm7.13 and Transformers 5.8.1 run official Qwen/DeepSeek BF16 training on MI300X with native device discovery | additional Torch/ROCm versions and Radeon |
 | C ABI v1 | smoke-tested | pure C CPU/HIP create/copy/ops/error client plus build-tree and relocated-install C-only Config consumers | zero-copy external views |
 | Python ctypes API | smoke-tested | CPU/HIP Tensor/ops/error unittest | packaging/broader ops |
@@ -73,9 +73,9 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | End-to-end benchmark | smoke-tested | matched Python/PyTorch ROCm official training plus phase-separated prefill and one-forward-per-token steady-decode JSONL | serving concurrency, board-level memory and llama.cpp |
 | Single-GPU model matrix | smoke-tested | MI300X tiny/Model-S/Model-M plus official Qwen0.5B/DeepSeek-Distill1.5B train+generate, parameters, time, tokens/s and engine peak bytes | repeated contexts/dtypes and external board-level memory sampling |
 | Python/PyTorch ROCm performance matrix | smoke-tested | official Qwen/DeepSeek train plus inference context 1–2048, batch 1–8, output 1–64, KV allocated/active/waste, continuous slot metrics and token gates | DeepSeek continuous 3-case mismatch, identical residency policy, version matrix and llama.cpp |
-| Optimization experiment journal | implemented | experiments through 246; raw evidence, rejection gates and generated SVGs validated in CTest | Radeon and production data-parallel tracks |
-| BF16 gate/up weight gradient | operator admitted, model route default-off | CPU/HIP/PyTorch BF16 math; 18 processes: gate/up 1.459×/1.890×, query/KV 0.718×–0.976×; CPU 350/350, ASan/UBSan 348/348, HIP 549/549, PyTorch-enabled 324/324 | longer stepwise loss and full gate/up parameter trajectory |
-| BF16 gate/up weight-gradient model route | short gate passed, explicit only | 12 performance + 2 diagnostic processes; 1.0213×/1.0638×, peak unchanged, routes 48/56, first/final loss gates pass | longer stepwise loss and full gate/up parameter Max/RMS trajectory |
+| Optimization experiment journal | implemented | experiments through 247; raw evidence, rejection gates and generated SVGs validated in CTest | Radeon and production data-parallel tracks |
+| BF16 weight-gradient operator | operator admitted; model route removed | CPU/HIP/PyTorch BF16 math; 18 processes: gate/up 1.459×/1.890×, query/KV 0.718×–0.976×; 20-step model rebuttal retained | standalone op remains explicit; no Autograd precision policy |
+| BF16 gate/up weight-gradient model route | rejected and removed | 20-step Qwen/DeepSeek 1.0006×/1.0528×; only 1/5 gates passes; 979,894,272 parameters compared; route/runners removed | retain standalone op; investigate generic training workspace/liveness |
 | Current B1T512 training profile | smoke-tested | four current-binary rocprof processes; Kernel 31.327/71.873ms, GEMM 58.56%/63.43%, AdamW 13.22%/18.16%, zero negative call deltas | new training GEMM or graph-wide architecture plus model A/B |
 | Current inference local policy search | measured saturation | remaining casts are 2.694%/1.841% of Kernel time; perfect-deletion ceilings are 1.0277×/1.0188×; six adjacent scoped tracks closed | new custom-kernel/graph architecture or a new backend/hardware matrix |
 | BF16 V into FP32 P×V | capability rejected | ordinary BTHD and zero-stride GQA both return status 6 before timing | candidate APIs removed; vendor mixed-dtype cast track closed |

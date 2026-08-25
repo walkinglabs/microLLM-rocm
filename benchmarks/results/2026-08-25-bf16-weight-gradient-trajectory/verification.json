@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "performance_processes": 12,
+  "loss_values": 240,
+  "qwen_parameter_elements_compared": 209190912,
+  "deepseek_parameter_elements_compared": 770703360,
+  "passing_model_gates": 1,
+  "failing_model_gates": 4,
+  "model_route_retained": false,
+  "candidate_runners_retained": false,
+  "public_operator_retained": true,
+  "registered_test_files": 110,
+  "cpu_full": {"passed": 349, "total": 349},
+  "asan_ubsan": {"passed": 347, "total": 347},
+  "hip_label": {"passed": 188, "total": 188, "conditional_skips": 1},
+  "pytorch_enabled": {
+    "passed": 323,
+    "total": 323,
+    "required_install_target_built": true
+  },
+  "decision": "reject model route; retain operator and evidence tools"
+}

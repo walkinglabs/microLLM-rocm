@@ -13663,8 +13663,6 @@ def validate_bf16_weight_gradient_shape_matrix(
         errors.append("BF16 weight-gradient verification changed")
     sources = (
         ("bf16_weight_gradient", REPOSITORY / "include/microllm/ops/ops.h"),
-        ("bf16_gate_up_weight_gradient = false", REPOSITORY / "src/autograd/autograd.cpp"),
-        ("--bf16-gate-up-weight-gradient", REPOSITORY / "apps/hf_train_step.cpp"),
         ("bf16_weight_gradient", REPOSITORY / "python/tests/test_operator_parity.py"),
     )
     if any(token not in path.read_text(encoding="utf-8") for token, path in sources):
@@ -13726,9 +13724,69 @@ def validate_bf16_weight_gradient_model_gate(
             check.get("asan_ubsan_explicit_route") != {"passed": 1, "total": 1} or
             check.get("pytorch_operator_parity") != {"passed": 1, "total": 1}):
         errors.append("BF16 weight-gradient model verification changed")
-    if "bool bf16_gate_up_weight_gradient = false" not in (
-            REPOSITORY / "apps/hf_train_step.cpp").read_text(encoding="utf-8"):
-        errors.append("BF16 weight-gradient CLI default changed")
+    return summary.get("raw_processes", 0), *expected
+
+
+def validate_bf16_weight_gradient_trajectory_discard(
+        errors: list[str]) -> tuple[int, float, float, float, float]:
+    root = REPOSITORY / (
+        "benchmarks/results/2026-08-25-bf16-weight-gradient-trajectory")
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    raw = [json.loads(line) for line in (root / "trajectory.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    comparisons = {row["model"]: row for row in summary.get("comparisons", [])}
+    qwen = comparisons.get("qwen2.5-0.5b", {})
+    deep = comparisons.get("deepseek-r1-distill-qwen-1.5b", {})
+    expected = (1.0005553807717638, 1.0527885336629597,
+                0.000140691176057, 0.0000623539090157)
+    if (summary.get("schema_version") != 1 or summary.get("status") != "pass" or
+            summary.get("record_type") != "bf16_weight_gradient_trajectory_summary" or
+            summary.get("raw_processes") != 12 or summary.get("steps") != 20 or
+            summary.get("runs_per_model_policy") != 3 or
+            summary.get("model_route_retained") is not False or
+            sum(bool(value) for value in summary.get("gate_results", {}).values()) != 1 or
+            summary.get("decision") !=
+                "reject model route; retain operator and evidence tools" or
+            abs(float(qwen.get("throughput_speedup", 0.0)) - expected[0]) > 1.0e-12 or
+            abs(float(deep.get("throughput_speedup", 0.0)) - expected[1]) > 1.0e-12 or
+            abs(float(qwen.get("parameter_comparison", {}).get(
+                "maximum_absolute_difference", 0.0)) - expected[2]) > 1.0e-15 or
+            abs(float(deep.get("parameter_comparison", {}).get(
+                "maximum_absolute_difference", 0.0)) - expected[3]) > 1.0e-15):
+        errors.append("BF16 weight-gradient trajectory summary changed")
+    if (len(raw) != 12 or any(
+            len(row.get("losses", [])) != 20 or
+            any(not math.isfinite(float(loss)) for loss in row.get("losses", []))
+            for row in raw)):
+        errors.append("BF16 weight-gradient trajectory raw evidence changed")
+    if (check.get("performance_processes") != 12 or
+            check.get("loss_values") != 240 or
+            check.get("passing_model_gates") != 1 or
+            check.get("failing_model_gates") != 4 or
+            check.get("model_route_retained") is not False or
+            check.get("candidate_runners_retained") is not False or
+            check.get("public_operator_retained") is not True or
+            check.get("registered_test_files") != 110 or
+            check.get("cpu_full") != {"passed": 349, "total": 349} or
+            check.get("asan_ubsan") != {"passed": 347, "total": 347} or
+            check.get("hip_label", {}).get("passed") != 188 or
+            check.get("pytorch_enabled", {}).get("passed") != 323):
+        errors.append("BF16 weight-gradient trajectory verification changed")
+    forbidden = (
+        ("--bf16-gate-up-weight-gradient", REPOSITORY / "apps/hf_train_step.cpp"),
+        ("bf16_gate_up_weight_gradient", REPOSITORY / "src/autograd/autograd.cpp"),
+    )
+    if any(token in path.read_text(encoding="utf-8") for token, path in forbidden):
+        errors.append("rejected BF16 weight-gradient model route remains")
+    for relative in (
+            "benchmarks/single_gpu/compare_bf16_weight_gradient_models.py",
+            "benchmarks/single_gpu/bf16_weight_gradient_trajectory.py"):
+        if (REPOSITORY / relative).exists():
+            errors.append(f"rejected candidate runner remains: {relative}")
+    if "bf16_weight_gradient" not in (
+            REPOSITORY / "include/microllm/ops/ops.h").read_text(encoding="utf-8"):
+        errors.append("retained BF16 weight-gradient operator is missing")
     return summary.get("raw_processes", 0), *expected
 
 
@@ -13956,7 +14014,8 @@ def validate_assets(errors: list[str]) -> None:
                  "inference-local-saturation.svg",
                  "current-training-profile.svg",
                  "bf16-weight-gradient-shapes.svg",
-                 "bf16-weight-gradient-model.svg"):
+                 "bf16-weight-gradient-model.svg",
+                 "bf16-weight-gradient-trajectory-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -14438,6 +14497,9 @@ def main() -> int:
     bf16_wgrad_model_rows, bf16_wgrad_qwen_routes, bf16_wgrad_deep_routes, \
         bf16_wgrad_qwen_model, bf16_wgrad_deep_model = \
         validate_bf16_weight_gradient_model_gate(errors)
+    bf16_wgrad_trajectory_rows, bf16_wgrad_qwen_long, bf16_wgrad_deep_long, \
+        bf16_wgrad_qwen_parameter, bf16_wgrad_deep_parameter = \
+        validate_bf16_weight_gradient_trajectory_discard(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -14877,6 +14939,10 @@ def main() -> int:
           f"bf16_wgrad_model={bf16_wgrad_model_rows}/"
           f"{bf16_wgrad_qwen_routes}/{bf16_wgrad_deep_routes}/"
           f"{bf16_wgrad_qwen_model:.3f}/{bf16_wgrad_deep_model:.3f} "
+          f"bf16_wgrad_trajectory={bf16_wgrad_trajectory_rows}/"
+          f"{bf16_wgrad_qwen_long:.3f}/{bf16_wgrad_deep_long:.3f}/"
+          f"{bf16_wgrad_qwen_parameter:.3e}/"
+          f"{bf16_wgrad_deep_parameter:.3e} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

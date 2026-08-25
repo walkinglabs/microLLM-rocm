@@ -198,6 +198,11 @@ BF16_WGRAD_MODEL_ROOT = (
     "2026-08-25-bf16-weight-gradient-model-gate")
 BF16_WGRAD_MODEL_CHART = (
     ROOT / "assets" / "bf16-weight-gradient-model.svg")
+BF16_WGRAD_TRAJECTORY_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-bf16-weight-gradient-trajectory")
+BF16_WGRAD_TRAJECTORY_CHART = (
+    ROOT / "assets" / "bf16-weight-gradient-trajectory-discard.svg")
 
 
 def rows() -> list[dict]:
@@ -3963,6 +3968,68 @@ def bf16_weight_gradient_model_svg() -> str:
     return "\n".join(parts)
 
 
+def bf16_weight_gradient_trajectory_svg() -> str:
+    summary = json.loads((BF16_WGRAD_TRAJECTORY_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    width, height = 1500, 790
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 247 · 20-Step BF16 Weight-Gradient Gate", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "Three process pairs · 240 losses · 979,894,272 complete parameter values",
+             16, "#5b6474", anchor="middle"),
+    ]
+    metrics = (
+        ("Throughput ≥ 1.01x", "throughput"),
+        ("Peak ≤ 1.01x", "peak_memory"),
+        ("Loss diff ≤ 0.5%", "loss_trajectory"),
+        ("Parameter Max ≤ 5e-5", "parameter_maximum"),
+        ("Parameter RMS ≤ 1e-6", "parameter_rms"),
+    )
+    for index, (label, key) in enumerate(metrics):
+        passed = summary["gate_results"][key]
+        x = 95 + index * 270
+        fill = "#ecfdf3" if passed else "#fff1f2"
+        stroke = "#16a34a" if passed else "#e11d48"
+        parts.extend([
+            f'<rect x="{x}" y="145" width="230" height="130" rx="14" '
+            f'fill="{fill}" stroke="{stroke}" stroke-width="3"/>',
+            text(x + 115, 190, label, 15, "#172033", anchor="middle", weight=700),
+            text(x + 115, 245, "PASS" if passed else "FAIL", 27,
+                 stroke, anchor="middle", weight=700),
+        ])
+    for index, row in enumerate(summary["comparisons"]):
+        x = 150 + index * 690
+        model = "Qwen2.5-0.5B" if index == 0 else "DeepSeek-Distill-1.5B"
+        parameter = row["parameter_comparison"]
+        parts.extend([
+            f'<rect x="{x}" y="340" width="520" height="250" rx="16" '
+            'fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>',
+            text(x + 260, 385, model, 22, "#172033", anchor="middle", weight=700),
+            text(x + 45, 435, f"throughput  {row['throughput_speedup']:.4f}x", 18),
+            text(x + 45, 475,
+                 f"loss max relative  {row['loss_relative_difference_maximum']:.6g}", 18),
+            text(x + 45, 515,
+                 f"parameter Max  {parameter['maximum_absolute_difference']:.3e}", 18),
+            text(x + 45, 555,
+                 f"parameter RMS  {parameter['rms_difference']:.3e}", 18),
+        ])
+    parts.append(text(width / 2, 660,
+                      "Only 1 / 5 aggregate gates passes · model route rejected",
+                      26, "#e11d48", anchor="middle", weight=700))
+    parts.append(text(width / 2, 715,
+                      "Retain the standalone operator and complete evidence tools",
+                      20, "#166534", anchor="middle", weight=700))
+    parts.append(text(width / 2, 760,
+                      "Autograd/CLI candidate wiring and candidate runners removed",
+                      15, "#5b6474", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -4025,7 +4092,8 @@ def main() -> int:
                 INFERENCE_LOCAL_SATURATION_CHART: inference_local_saturation_svg(),
                 CURRENT_TRAINING_PROFILE_CHART: current_training_profile_svg(),
                 BF16_WGRAD_SHAPE_CHART: bf16_weight_gradient_shapes_svg(),
-                BF16_WGRAD_MODEL_CHART: bf16_weight_gradient_model_svg()}
+                BF16_WGRAD_MODEL_CHART: bf16_weight_gradient_model_svg(),
+                BF16_WGRAD_TRAJECTORY_CHART: bf16_weight_gradient_trajectory_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

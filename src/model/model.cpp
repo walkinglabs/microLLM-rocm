@@ -335,13 +335,10 @@ public:
         }
     }
 
-    Value forward_without_bias(
-        const Value& input, bool gate_up_weight_gradient = false) {
+    Value forward_without_bias(const Value& input) {
         if (precision_ == LinearPrecision::BFloat16) {
             return bf16_training_weight_.defined()
-                       ? autograd::bf16_matmul(
-                             input, weight_, bf16_training_weight_,
-                             gate_up_weight_gradient)
+                       ? autograd::bf16_matmul(input, weight_, bf16_training_weight_)
                        : autograd::bf16_matmul(input, weight_);
         }
         if (precision_ == LinearPrecision::Float8E4M3FNUZ) {
@@ -359,8 +356,8 @@ public:
         }
         return autograd::matmul(input, weight_);
     }
-    Value forward(const Value& input, bool gate_up_weight_gradient = false) {
-        auto output = forward_without_bias(input, gate_up_weight_gradient);
+    Value forward(const Value& input) {
+        auto output = forward_without_bias(input);
         return has_bias_ ? autograd::add_bias(output, bias_) : output;
     }
     [[nodiscard]] bool shares_dynamic_activation() const noexcept {
@@ -1645,8 +1642,8 @@ public:
         const auto sequence = input.data().shape()[1];
         const auto flat = autograd::reshape(input, {batch * sequence, config_.dimension});
         // Keep projection evaluation order explicit so traces and failure attribution are stable.
-        const auto gate = gate_.forward(flat, true);
-        const auto up = up_.forward(flat, true);
+        const auto gate = gate_.forward(flat);
+        const auto up = up_.forward(flat);
         const auto activated = autograd::swiglu(gate, up);
         return autograd::reshape(down_.forward(activated),
                                  {batch, sequence, config_.dimension});

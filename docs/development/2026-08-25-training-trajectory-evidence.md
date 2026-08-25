@@ -10,8 +10,9 @@
 默认 JSON 体积。
 
 `microllm_compare_safetensors` 会检查两份文件的名字、shape、dtype 和全部元素，报告真实
-Max/RMS、最差 Tensor 与有限性。长轨迹 runner 每完成一个进程就保存 JSONL；多 GB 参数
-文件在比较后立即从 runner 自己的临时目录删除，仓库只保留汇总证据。
+Max/RMS、最差 Tensor 与有限性。Experiment 247 的候选 runner 每完成一个进程就保存
+JSONL；多 GB 参数文件在比较后立即删除。该候选失败后 runner 已删除，通用 CLI 输出与
+比较工具继续保留。
 
 真实 Qwen 3-step 烟测导出 48 个 Tensor、209,190,912 个 FP32 值。完整比较结果为
 Max `4.17e-5`、RMS `3.37e-7`，最差 Tensor 名字也被记录；两份临时参数文件随后删除。

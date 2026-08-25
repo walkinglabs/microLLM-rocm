@@ -2,8 +2,6 @@
 
 #include <gtest/gtest.h>
 #include <microllm/autograd/autograd.h>
-#include <microllm/autograd/diagnostics.h>
-#include <microllm/ops/ops.h>
 
 namespace microllm::autograd {
 namespace {
@@ -160,45 +158,6 @@ TEST(GraphGradientAlignmentTest,
                 2.0e-5F);
     expect_near(triple_value.grad(), triple_reference_value.grad().to_vector(),
                 2.0e-5F);
-}
-
-TEST(GraphGradientAlignmentTest,
-     ExplicitBf16GateUpWeightGradientKeepsFp32InputGradient) {
-    const auto input_data = Tensor::from_vector(
-        {1, -2, 3, 0.5F, 2, -1}, {2, 3});
-    const auto gate_data = Tensor::from_vector(
-        {1, 0.5F, -1, 2, 0.25F, -0.75F}, {3, 2});
-    const auto up_data = Tensor::from_vector(
-        {-0.5F, 1.5F, 2, -1, 0.75F, 0.25F}, {3, 2});
-    const auto gate_seed_data = Tensor::from_vector(
-        {1, -2, 0.5F, 3}, {2, 2});
-    const auto up_seed_data = Tensor::from_vector(
-        {-1, 0.25F, 2, -0.5F}, {2, 2});
-    Value input(input_data, true);
-    Value gate(gate_data, true);
-    Value up(up_data, true);
-    const Value gate_seed(gate_seed_data);
-    const Value up_seed(up_seed_data);
-    enable_bf16_gate_up_weight_gradient(true);
-    const auto gate_output = bf16_matmul(
-        input, gate, gate_data.cast(DType::BFloat16), true);
-    const auto up_output = bf16_matmul(
-        input, up, up_data.cast(DType::BFloat16), true);
-    add(sum(multiply(gate_output, gate_seed)),
-        sum(multiply(up_output, up_seed))).backward();
-    enable_bf16_gate_up_weight_gradient(false);
-
-    const auto expected_input = ops::add(
-        ops::matmul(gate_seed_data, gate_data.transpose(0, 1).contiguous()),
-        ops::matmul(up_seed_data, up_data.transpose(0, 1).contiguous()));
-    expect_near(input.grad(), expected_input.to_vector(), 0.0F);
-    expect_near(gate.grad(),
-                ops::bf16_weight_gradient(input_data, gate_seed_data).to_vector(),
-                0.0F);
-    expect_near(up.grad(),
-                ops::bf16_weight_gradient(input_data, up_seed_data).to_vector(),
-                0.0F);
-    EXPECT_FALSE(bf16_gate_up_weight_gradient_enabled());
 }
 
 TEST(GraphGradientAlignmentTest, ViewGraphRestoresLogicalGradientOrder) {

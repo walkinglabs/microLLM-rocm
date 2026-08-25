@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="790" viewBox="0 0 1500 790">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="750.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 247 · 20-Step BF16 Weight-Gradient Gate</text>
+<text x="750.0" y="82.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">Three process pairs · 240 losses · 979,894,272 complete parameter values</text>
+<rect x="95" y="145" width="230" height="130" rx="14" fill="#fff1f2" stroke="#e11d48" stroke-width="3"/>
+<text x="210.0" y="190.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="middle" font-weight="700">Throughput ≥ 1.01x</text>
+<text x="210.0" y="245.0" font-family="Inter,Arial,sans-serif" font-size="27" fill="#e11d48" text-anchor="middle" font-weight="700">FAIL</text>
+<rect x="365" y="145" width="230" height="130" rx="14" fill="#ecfdf3" stroke="#16a34a" stroke-width="3"/>
+<text x="480.0" y="190.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="middle" font-weight="700">Peak ≤ 1.01x</text>
+<text x="480.0" y="245.0" font-family="Inter,Arial,sans-serif" font-size="27" fill="#16a34a" text-anchor="middle" font-weight="700">PASS</text>
+<rect x="635" y="145" width="230" height="130" rx="14" fill="#fff1f2" stroke="#e11d48" stroke-width="3"/>
+<text x="750.0" y="190.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="middle" font-weight="700">Loss diff ≤ 0.5%</text>
+<text x="750.0" y="245.0" font-family="Inter,Arial,sans-serif" font-size="27" fill="#e11d48" text-anchor="middle" font-weight="700">FAIL</text>
+<rect x="905" y="145" width="230" height="130" rx="14" fill="#fff1f2" stroke="#e11d48" stroke-width="3"/>
+<text x="1020.0" y="190.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="middle" font-weight="700">Parameter Max ≤ 5e-5</text>
+<text x="1020.0" y="245.0" font-family="Inter,Arial,sans-serif" font-size="27" fill="#e11d48" text-anchor="middle" font-weight="700">FAIL</text>
+<rect x="1175" y="145" width="230" height="130" rx="14" fill="#fff1f2" stroke="#e11d48" stroke-width="3"/>
+<text x="1290.0" y="190.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033" text-anchor="middle" font-weight="700">Parameter RMS ≤ 1e-6</text>
+<text x="1290.0" y="245.0" font-family="Inter,Arial,sans-serif" font-size="27" fill="#e11d48" text-anchor="middle" font-weight="700">FAIL</text>
+<rect x="150" y="340" width="520" height="250" rx="16" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+<text x="410.0" y="385.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#172033" text-anchor="middle" font-weight="700">Qwen2.5-0.5B</text>
+<text x="195.0" y="435.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="400">throughput  1.0006x</text>
+<text x="195.0" y="475.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="400">loss max relative  15.7052</text>
+<text x="195.0" y="515.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="400">parameter Max  1.407e-04</text>
+<text x="195.0" y="555.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="400">parameter RMS  1.218e-05</text>
+<rect x="840" y="340" width="520" height="250" rx="16" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+<text x="1100.0" y="385.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#172033" text-anchor="middle" font-weight="700">DeepSeek-Distill-1.5B</text>
+<text x="885.0" y="435.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="400">throughput  1.0528x</text>
+<text x="885.0" y="475.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="400">loss max relative  0.00076981</text>
+<text x="885.0" y="515.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="400">parameter Max  6.235e-05</text>
+<text x="885.0" y="555.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="400">parameter RMS  8.299e-07</text>
+<text x="750.0" y="660.0" font-family="Inter,Arial,sans-serif" font-size="26" fill="#e11d48" text-anchor="middle" font-weight="700">Only 1 / 5 aggregate gates passes · model route rejected</text>
+<text x="750.0" y="715.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#166534" text-anchor="middle" font-weight="700">Retain the standalone operator and complete evidence tools</text>
+<text x="750.0" y="760.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="middle" font-weight="400">Autograd/CLI candidate wiring and candidate runners removed</text>
+</svg>

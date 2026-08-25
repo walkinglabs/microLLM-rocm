@@ -61,7 +61,7 @@ private:
     friend Value fp8_matmul(const Value&, const Value&, float, float, DType,
                             DType);
     friend Value bf16_matmul(const Value&, const Value&);
-    friend Value bf16_matmul(const Value&, const Value&, const Tensor&, bool);
+    friend Value bf16_matmul(const Value&, const Value&, const Tensor&);
     friend std::pair<Value, Value> bf16_gate_up_projection(
         const Value&, const Value&, const Tensor&, const Value&,
         const Tensor&);
@@ -119,8 +119,7 @@ struct ValueTriple {
 [[nodiscard]] Value bf16_matmul(const Value& left, const Value& right);
 // Uses a caller-owned BF16 mirror for forward while gradients target the FP32 master.
 [[nodiscard]] Value bf16_matmul(const Value& left, const Value& right_master,
-                                const Tensor& right_bf16_mirror,
-                                bool gate_up_weight_gradient = false);
+                                const Tensor& right_bf16_mirror);
 [[nodiscard]] std::pair<Value, Value> bf16_gate_up_projection(
     const Value& input, const Value& gate_master,
     const Tensor& gate_bf16_mirror, const Value& up_master,

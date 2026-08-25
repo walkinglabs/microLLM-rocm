@@ -38,7 +38,6 @@ thread_local bool tied_embedding_sparse_add = true;
 thread_local bool unique_gradient_inplace_add = false;
 thread_local bool attention_rope_layout_fusion = true;
 thread_local bool attention_context_layout_fusion = true;
-thread_local bool bf16_gate_up_weight_gradient = false;
 thread_local std::map<std::pair<std::string, Shape>, GradientAccumulationRecord>
     accumulation_diagnostic_records;
 
@@ -222,14 +221,6 @@ void enable_attention_context_layout_fusion(bool enabled) noexcept {
 
 bool attention_context_layout_fusion_enabled() noexcept {
     return attention_context_layout_fusion;
-}
-
-void enable_bf16_gate_up_weight_gradient(bool enabled) noexcept {
-    bf16_gate_up_weight_gradient = enabled;
-}
-
-bool bf16_gate_up_weight_gradient_enabled() noexcept {
-    return bf16_gate_up_weight_gradient;
 }
 
 
@@ -494,8 +485,7 @@ Value bf16_matmul(const Value& left, const Value& right) {
 }
 
 Value bf16_matmul(const Value& left, const Value& right_master,
-                  const Tensor& right_bf16_mirror,
-                  bool gate_up_weight_gradient) {
+                  const Tensor& right_bf16_mirror) {
     require_value(left, "left");
     require_value(right_master, "right_master");
     if (left.data().ndim() != 2 || right_master.data().ndim() != 2 ||
@@ -514,28 +504,17 @@ Value bf16_matmul(const Value& left, const Value& right_master,
     auto output = profiled_tensor("bf16_matmul_cached", left.data().device(), [&] {
         return ops::bf16_matmul(left_forward, right_bf16_mirror);
     });
-    const auto low_precision_weight_gradient =
-        gate_up_weight_gradient && bf16_gate_up_weight_gradient;
     return operation("bf16_matmul", std::move(output), {left_node, right_node},
-                     [left_node, right_node,
-                      low_precision_weight_gradient](const Tensor& gradient) {
+                     [left_node, right_node](const Tensor& gradient) {
                          accumulate(left_node, ops::matmul_with_implementation(
                                                    gradient, right_node->data,
                                                    ops::MatmulImplementation::Auto,
                                                    false, true));
-                         accumulate(
-                             right_node,
-                             low_precision_weight_gradient
-                                 ? ops::bf16_weight_gradient(
-                                       left_node->data, gradient,
-                                       {.mode = ops::OpMode::Training})
-                                 : ops::matmul_with_implementation(
-                                       left_node->data, gradient,
-                                       ops::MatmulImplementation::Auto,
-                                       true, false),
-                             low_precision_weight_gradient
-                                 ? "bf16_gate_up_weight_gradient"
-                                 : "bf16_matmul_right");
+                         accumulate(right_node, ops::matmul_with_implementation(
+                                                    left_node->data, gradient,
+                                                    ops::MatmulImplementation::Auto,
+                                                    true, false),
+                                    "bf16_matmul_right");
                      });
 }
 
@@ -568,16 +547,10 @@ std::pair<Value, Value> bf16_gate_up_projection(
                         ops::MatmulImplementation::Auto, false, true));
                 accumulate(
                     weight,
-                    bf16_gate_up_weight_gradient
-                        ? ops::bf16_weight_gradient(
-                              input_node->data, gradient,
-                              {.mode = ops::OpMode::Training})
-                        : ops::matmul_with_implementation(
-                              input_node->data, gradient,
-                              ops::MatmulImplementation::Auto, true, false),
-                    bf16_gate_up_weight_gradient
-                        ? "bf16_gate_up_weight_gradient"
-                        : "bf16_shared_projection_right");
+                    ops::matmul_with_implementation(
+                        input_node->data, gradient,
+                        ops::MatmulImplementation::Auto, true, false),
+                    "bf16_shared_projection_right");
             });
     };
     return {

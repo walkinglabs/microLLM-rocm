@@ -1,0 +1,70 @@
+{
+  "comparisons": [
+    {
+      "baseline_tokens_per_second": 13465.260626957,
+      "candidate_tokens_per_second": 13472.738973796,
+      "loss_relative_difference_maximum": 15.705183326727717,
+      "loss_relative_difference_rms": 2.0717598402785016,
+      "loss_values_compared": 60,
+      "model": "qwen2.5-0.5b",
+      "parameter_comparison": {
+        "all_finite": true,
+        "compared_elements": 209190912,
+        "maximum_absolute_difference": 0.000140691176057,
+        "record_type": "safetensors_complete_comparison",
+        "rms_difference": 1.21760818092e-05,
+        "schema_version": 1,
+        "status": "pass",
+        "tensor_count": 48,
+        "worst_tensor": "blocks.6.feed_forward.gate_proj.weight"
+      },
+      "peak_ratio": 1.0,
+      "throughput_speedup": 1.0005553807717638
+    },
+    {
+      "baseline_tokens_per_second": 5407.241238589,
+      "candidate_tokens_per_second": 5692.681574736,
+      "loss_relative_difference_maximum": 0.0007698103566533972,
+      "loss_relative_difference_rms": 0.0001709882062429241,
+      "loss_values_compared": 60,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "parameter_comparison": {
+        "all_finite": true,
+        "compared_elements": 770703360,
+        "maximum_absolute_difference": 6.23539090157e-05,
+        "record_type": "safetensors_complete_comparison",
+        "rms_difference": 8.29878032659e-07,
+        "schema_version": 1,
+        "status": "pass",
+        "tensor_count": 56,
+        "worst_tensor": "blocks.20.feed_forward.gate_proj.weight"
+      },
+      "peak_ratio": 1.0,
+      "throughput_speedup": 1.0527885336629597
+    }
+  ],
+  "context": 512,
+  "decision": "reject model route; retain operator and evidence tools",
+  "gate_results": {
+    "loss_trajectory": false,
+    "parameter_maximum": false,
+    "parameter_rms": false,
+    "peak_memory": true,
+    "throughput": false
+  },
+  "gates": {
+    "loss_relative_difference_maximum": 0.005,
+    "parameter_maximum_absolute_difference": 5e-05,
+    "parameter_rms_difference": 1e-06,
+    "peak_ratio_maximum": 1.01,
+    "throughput_speedup_minimum": 1.01
+  },
+  "raw_processes": 12,
+  "model_route_retained": false,
+  "record_type": "bf16_weight_gradient_trajectory_summary",
+  "runs_per_model_policy": 3,
+  "schema_version": 1,
+  "status": "pass",
+  "steps": 20,
+  "warmup": 1
+}

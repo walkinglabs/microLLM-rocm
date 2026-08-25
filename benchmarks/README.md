@@ -130,21 +130,11 @@ BF16×BF16→FP32 GEMM. It reports complete-output finite/FP32 Max/RMS evidence 
 deterministic BF16 CPU sample gate. Small shapes are expected counterexamples; only
 shape-selective winners may enter a later model A/B.
 
-Run the longer gate with stepwise losses and complete gate/up FP32-master comparison:
-
-```bash
-HIP_VISIBLE_DEVICES=0 python3 \
-  benchmarks/single_gpu/bf16_weight_gradient_trajectory.py \
-  --manifest /path/to/hf-models.local.json \
-  --train-binary build/hip-release/apps/microllm_hf_train_step \
-  --compare-binary build/hip-release/apps/microllm_compare_safetensors \
-  --output-directory /tmp/microllm-bf16-wgrad-trajectory \
-  --runs 3 --steps 20
-```
-
-Parameter files are temporary and excluded from measured time. The comparison covers every
-exported gate/up element and records Max/RMS; the repository result package keeps only JSONL,
-summary and verification, not multi-gigabyte snapshots.
+The rejected model route was tested with 20-step loss trajectories and complete gate/up
+FP32-master comparison; its candidate-only runner has been removed. The reusable evidence
+interfaces remain: `microllm_hf_train_step --loss-trajectory-output ...` writes measured
+losses after timing, `--gate-up-parameters-output ...` writes selected FP32 safetensors,
+and `microllm_compare_safetensors BASELINE CANDIDATE` compares every value. See Experiment 247.
 
 `microllm_bench_model` measures train or cache-backed generation throughput. Its
 `tokens_per_second` excludes construction and warm-up; `tokens_per_second_with_setup`

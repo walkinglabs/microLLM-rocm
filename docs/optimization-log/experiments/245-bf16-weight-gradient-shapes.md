@@ -29,5 +29,6 @@ gate/up提供显式开关，默认关闭；query/KV四个反例禁止建立全�
 
 下一步是同二进制官方模型 A/B。算子加速不能直接成为训练吞吐结论。
 
-证据：[`operator matrix`](../../../benchmarks/results/2026-08-25-bf16-weight-gradient-operator/)
+Update: Experiment 247 的20-step门失败，模型路由已删除；本实验的独立算子与shape反例保留。
 
+证据：[`operator matrix`](../../../benchmarks/results/2026-08-25-bf16-weight-gradient-operator/)

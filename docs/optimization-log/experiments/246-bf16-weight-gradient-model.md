@@ -22,5 +22,6 @@ warm-up本身会更新一次参数，所以首个measured loss不应bit-exact。
 本实验还捕获并修复了一个接线错误：最初候选只接到未被当前训练图调用的共享投影原语，
 诊断稳定报告0次。最终实现用显式Linear role只标记FeedForward gate/up；down/QKV/O仍走FP32。
 
-证据：[`model gate`](../../../benchmarks/results/2026-08-25-bf16-weight-gradient-model-gate/)
+Update: Experiment 247 的20-step/完整参数门推翻短跑决定；该模型接线与候选runner已删除。
 
+证据：[`model gate`](../../../benchmarks/results/2026-08-25-bf16-weight-gradient-model-gate/)

@@ -169,8 +169,12 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   gate/up-only Autograd/CLI research switch;
 - [x] run the short official-model same-binary gate: 1.0213x/1.0638x, unchanged peak,
   exact 48/56 route counts and passing warm-up/final loss gates;
-- [ ] run a longer stepwise loss and complete gate/up parameter Max/RMS trajectory before
-  considering any default training policy;
+- [x] run 20-step loss and complete gate/up parameter Max/RMS: Qwen falls to 1.0006x,
+  both parameter-Max gates fail and only 1/5 aggregate gates passes;
+- [x] remove the rejected Autograd/CLI model route and candidate-only runners while retaining
+  the aligned operator, shape matrix, loss export and complete safetensors comparison;
+- [ ] attribute training temporary allocations and prove caller-owned workspace lifetime/address
+  safety before attempting another graph-wide training optimization;
 
 - [x] make the matmul registry key exact over its implicit op identity, GPU architecture,
   dtype, shape, strides/layout, mode, workspace limit, and library/runtime versions;

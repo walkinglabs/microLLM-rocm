@@ -3950,3 +3950,13 @@ gate/up达到1.459×/1.890×，但query/KV只有0.718×–0.976×。
 下一节增加逐步loss和gate/up参数误差轨迹。
 
 ![BF16 weight-gradient model gate](assets/bf16-weight-gradient-model.svg)
+
+## 264. Experiment 247：短跑胜出被二十步推翻
+
+Qwen长跑只剩1.0006×；DeepSeek仍有1.0528×，但两模型完整Parameter Max都失败，
+Qwen的loss和Parameter RMS也失败。五个聚合门只有峰值通过。
+
+因此删除模型接线和候选runner，保留独立算子与通用证据工具。这个反例说明短A/B只能
+进入下一门，不能直接成为默认。
+
+![BF16 weight-gradient trajectory discard](assets/bf16-weight-gradient-trajectory-discard.svg)

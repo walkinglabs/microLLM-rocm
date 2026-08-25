@@ -893,6 +893,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [experiments/245-bf16-weight-gradient-shapes.md](experiments/245-bf16-weight-gradient-shapes.md) | BF16数学门、四个反例与gate/up准入 |
 | [assets/bf16-weight-gradient-model.svg](assets/bf16-weight-gradient-model.svg) | 两模型吞吐、路由、loss与峰值门 |
 | [experiments/246-bf16-weight-gradient-model.md](experiments/246-bf16-weight-gradient-model.md) | 接线反例、短模型门与显式保留决定 |
+| [assets/bf16-weight-gradient-trajectory-discard.svg](assets/bf16-weight-gradient-trajectory-discard.svg) | 五个长轨迹门与模型路由拒绝 |
+| [experiments/247-bf16-weight-gradient-trajectory-discard.md](experiments/247-bf16-weight-gradient-trajectory-discard.md) | 20-step、完整参数和候选清理 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 
