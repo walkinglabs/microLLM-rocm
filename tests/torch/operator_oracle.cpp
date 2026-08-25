@@ -191,6 +191,12 @@ void emit_forward_cases() {
     emit("cached_gqa_attention_context", cached_gqa_attention_context(
         softmax(cached_scores, -1),
         f32({1, 2, 3, 4, 5, 6}, {1, 1, 3, 2}), 2));
+    emit("cached_gqa_attention_split_sequence",
+         cached_gqa_attention_split_sequence(
+             f32({1, 0, 0, 1}, {1, 2, 1, 2}),
+             f32({3, 4, 1, 0, -1, 2}, {1, 1, 3, 2}),
+             f32({1, 2, 3, 4, 5, 6}, {1, 1, 3, 2}),
+             2, 0.5F, 2));
     emit("online_causal_gqa_attention_bthd",
          online_causal_gqa_attention_bthd(
              attention_query.cast(DType::BFloat16),
@@ -628,6 +634,11 @@ void emit_invalid_shape_cases() {
     emit_bool("invalid_cached_gqa_context_shape", rejected([&] {
                   (void)cached_gqa_attention_context(
                       Tensor({1, 2, 1, 3}), Tensor({1, 1, 3, 2}), 3);
+              }));
+    emit_bool("invalid_cached_gqa_split_count", rejected([&] {
+                  (void)cached_gqa_attention_split_sequence(
+                      Tensor({1, 2, 1, 2}), Tensor({1, 1, 3, 2}),
+                      Tensor({1, 1, 3, 2}), 2, 0.5F, 4);
               }));
     emit_bool("invalid_attention_probability_value_bthd_shape", rejected([&] {
                   (void)attention_probability_value_bthd(

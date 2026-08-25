@@ -2053,6 +2053,11 @@ TEST(HipCachedAttentionTest,
                 actual_probabilities, device_value, repeats);
             const auto actual_fused = cached_gqa_attention(
                 device_query, device_key, device_value, repeats, scale);
+            const auto split_count = std::min<std::int64_t>(
+                sequence, sequence >= 512 ? 8 : 4);
+            const auto actual_split = cached_gqa_attention_split_sequence(
+                device_query, device_key, device_value, repeats, scale,
+                split_count);
             runtime::synchronize(gpu);
             const auto transfers = runtime::transfer_stats();
             EXPECT_EQ(transfers.host_to_device_calls, 0U);
@@ -2078,9 +2083,12 @@ TEST(HipCachedAttentionTest,
             expect_near(
                 actual_fused.to_vector(), expected_context_values,
                 8.0e-4F);
+            expect_near(
+                actual_split.to_vector(), expected_context_values,
+                8.0e-4F);
             EXPECT_TRUE(std::all_of(
                 expected_score_values.begin(), expected_score_values.end(),
-                [](float value) { return std::isfinite(value); }));
+                [](float element) { return std::isfinite(element); }));
         }
     }
 }

@@ -1688,6 +1688,98 @@ __global__ void cached_attention_fused_kernel(
 }
 
 template <typename Cache>
+__global__ void cached_attention_split_partial_kernel(
+    const float* query, const Cache* key_cache, const Cache* value_cache,
+    float* partial_stats, float* partial_numerators,
+    std::int64_t batches, std::int64_t heads, std::int64_t sequence,
+    std::int64_t cache_batch_stride, std::int64_t cache_head_stride,
+    std::int64_t width, std::int64_t repeats, float scale,
+    std::int64_t splits) {
+    const auto partial = static_cast<std::int64_t>(blockIdx.x);
+    const auto split = partial % splits;
+    const auto instance = partial / splits;
+    const auto batch = instance / heads;
+    const auto head = instance % heads;
+    if (batch >= batches) return;
+    const auto begin = sequence * split / splits;
+    const auto end = sequence * (split + 1) / splits;
+    const auto kv_head = head / repeats;
+    const auto query_base = (batch * heads + head) * width;
+    const auto cache_base = batch * cache_batch_stride +
+                            kv_head * cache_head_stride;
+    extern __shared__ float shared_scores[];
+    __shared__ float reduction[kBlockSize];
+
+    float local_maximum = -INFINITY;
+    for (std::int64_t position = begin + threadIdx.x; position < end;
+         position += blockDim.x) {
+        float dot = 0.0F;
+        for (std::int64_t column = 0; column < width; ++column) {
+            dot += query[query_base + column] *
+                   static_cast<float>(
+                       key_cache[cache_base + position * width + column]);
+        }
+        const auto score = dot * scale;
+        shared_scores[position - begin] = score;
+        local_maximum = fmaxf(local_maximum, score);
+    }
+    const auto maximum = block_reduce_max(local_maximum, reduction);
+    float local_denominator = 0.0F;
+    for (std::int64_t position = begin + threadIdx.x; position < end;
+         position += blockDim.x) {
+        const auto exponential =
+            expf(shared_scores[position - begin] - maximum);
+        shared_scores[position - begin] = exponential;
+        local_denominator += exponential;
+    }
+    const auto denominator = block_reduce_sum(local_denominator, reduction);
+    if (threadIdx.x == 0) {
+        partial_stats[partial * 2] = maximum;
+        partial_stats[partial * 2 + 1] = denominator;
+    }
+    for (std::int64_t column = threadIdx.x; column < width;
+         column += blockDim.x) {
+        float numerator = 0.0F;
+        for (std::int64_t position = begin; position < end; ++position) {
+            numerator += shared_scores[position - begin] *
+                         static_cast<float>(value_cache[
+                             cache_base + position * width + column]);
+        }
+        partial_numerators[partial * width + column] = numerator;
+    }
+}
+
+__global__ void cached_attention_split_combine_kernel(
+    const float* partial_stats, const float* partial_numerators,
+    float* output, std::int64_t instances, std::int64_t width,
+    std::int64_t splits) {
+    const auto instance = static_cast<std::int64_t>(blockIdx.x);
+    if (instance >= instances) return;
+    __shared__ float reduction[kBlockSize];
+    const auto split = static_cast<std::int64_t>(threadIdx.x);
+    const auto local_maximum = split < splits
+        ? partial_stats[(instance * splits + split) * 2]
+        : -INFINITY;
+    const auto maximum = block_reduce_max(local_maximum, reduction);
+    const auto local_denominator = split < splits
+        ? partial_stats[(instance * splits + split) * 2 + 1] *
+              expf(local_maximum - maximum)
+        : 0.0F;
+    const auto denominator = block_reduce_sum(local_denominator, reduction);
+    for (std::int64_t column = threadIdx.x; column < width;
+         column += blockDim.x) {
+        float numerator = 0.0F;
+        for (std::int64_t partial_index = 0; partial_index < splits;
+             ++partial_index) {
+            const auto partial = instance * splits + partial_index;
+            const auto weight = expf(partial_stats[partial * 2] - maximum);
+            numerator += partial_numerators[partial * width + column] * weight;
+        }
+        output[instance * width + column] = numerator / denominator;
+    }
+}
+
+template <typename Cache>
 __global__ void cached_attention_fused_positions_kernel(
     const float* query, const Cache* key_cache, const Cache* value_cache,
     const std::int32_t* positions, const std::int32_t* cache_rows,
@@ -3914,6 +4006,51 @@ void launch_cached_attention_fused(
         throw std::invalid_argument("cached attention supports FP32 and BF16 cache");
     }
     check_launch("cached_attention_fused_kernel");
+}
+
+void launch_cached_attention_split_sequence(
+    const float* query, const void* key_cache, const void* value_cache,
+    DType cache_dtype, float* partial_stats, float* partial_numerators,
+    float* output, std::int64_t batches, std::int64_t heads,
+    std::int64_t sequence, std::int64_t cache_batch_stride,
+    std::int64_t cache_head_stride, std::int64_t width,
+    std::int64_t repeats, float scale, std::int64_t splits, void* stream) {
+    const auto instances = batches * heads;
+    const auto partials = instances * splits;
+    const auto maximum_segment = (sequence + splits - 1) / splits;
+    const auto shared_bytes =
+        static_cast<std::size_t>(maximum_segment) * sizeof(float);
+    if (cache_dtype == DType::Float32) {
+        hipLaunchKernelGGL(
+            cached_attention_split_partial_kernel<float>,
+            dim3(static_cast<unsigned>(partials)), dim3(kBlockSize),
+            shared_bytes, as_stream(stream), query,
+            static_cast<const float*>(key_cache),
+            static_cast<const float*>(value_cache), partial_stats,
+            partial_numerators, batches, heads, sequence,
+            cache_batch_stride, cache_head_stride, width, repeats, scale,
+            splits);
+    } else if (cache_dtype == DType::BFloat16) {
+        hipLaunchKernelGGL(
+            cached_attention_split_partial_kernel<hip_bfloat16>,
+            dim3(static_cast<unsigned>(partials)), dim3(kBlockSize),
+            shared_bytes, as_stream(stream), query,
+            static_cast<const hip_bfloat16*>(key_cache),
+            static_cast<const hip_bfloat16*>(value_cache), partial_stats,
+            partial_numerators, batches, heads, sequence,
+            cache_batch_stride, cache_head_stride, width, repeats, scale,
+            splits);
+    } else {
+        throw std::invalid_argument(
+            "split cached attention supports FP32 and BF16 cache");
+    }
+    check_launch("cached_attention_split_partial_kernel");
+    hipLaunchKernelGGL(
+        cached_attention_split_combine_kernel,
+        dim3(static_cast<unsigned>(instances)), dim3(kBlockSize), 0,
+        as_stream(stream), partial_stats, partial_numerators, output,
+        instances, width, splits);
+    check_launch("cached_attention_split_combine_kernel");
 }
 
 void launch_cached_attention_fused_positions(

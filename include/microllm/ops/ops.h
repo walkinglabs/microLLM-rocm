@@ -871,6 +871,13 @@ void kv_cache_store_pair_positions_(
                                           const Tensor& value_cache,
                                           std::int64_t repeats, float scale,
                                           const OpContext& context = {});
+// Research-only two-stage cached decode path. Each head's sequence is split
+// across several partial blocks, then combined with log-sum-exp. It is never
+// selected by cached_gqa_attention unless a later model gate admits it.
+[[nodiscard]] Tensor cached_gqa_attention_split_sequence(
+    const Tensor& query, const Tensor& key_cache, const Tensor& value_cache,
+    std::int64_t repeats, float scale, std::int64_t splits,
+    const OpContext& context = {});
 [[nodiscard]] Tensor cached_gqa_attention_positions(
     const Tensor& query, const Tensor& key_cache, const Tensor& value_cache,
     const Tensor& positions, const Tensor& cache_rows,

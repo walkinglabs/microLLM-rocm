@@ -356,6 +356,14 @@ void launch_cached_attention_fused(
     std::int64_t sequence, std::int64_t cache_batch_stride,
     std::int64_t cache_head_stride, std::int64_t width,
     std::int64_t repeats, float scale, void* stream = nullptr);
+void launch_cached_attention_split_sequence(
+    const float* query, const void* key_cache, const void* value_cache,
+    DType cache_dtype, float* partial_stats, float* partial_numerators,
+    float* output, std::int64_t batches, std::int64_t heads,
+    std::int64_t sequence, std::int64_t cache_batch_stride,
+    std::int64_t cache_head_stride, std::int64_t width,
+    std::int64_t repeats, float scale, std::int64_t splits,
+    void* stream = nullptr);
 void launch_cached_attention_fused_positions(
     const float* query, const void* key_cache, const void* value_cache,
     const std::int32_t* positions, const std::int32_t* cache_rows,
