@@ -234,8 +234,11 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] replace 114 unpacked-gradient Storage/copies with gradient-as-bucket views: total improves
   1.067x versus persistent-copy and 1.367x versus transient, live matches transient, but peak is
   still +33.3MB, so the policy remains explicit;
-- [ ] pre-seed Autograd gradients with bucket views so backward writes directly into reducer
-  Storage; require pack copies 114→0 and peak no higher than transient before default/overlap;
+- [x] pre-seed Autograd gradients with bucket views: pack/unpack copies reach zero and peak falls
+  13.2MB versus views, but added leaf accumulation makes forward/backward 0.830x and total 0.991x,
+  so the model route is rejected;
+- [ ] gate one real parameter-gradient producer out-kernel that writes the prepared leaf target
+  directly; require allocation/add removal and operator Event/wall >=1.05x before model routing;
 - [ ] unused parameter, uneven input, timeout, and cross-process failure handling.
 
 ## P3 — DeepSeek distill target

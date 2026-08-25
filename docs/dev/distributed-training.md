@@ -126,6 +126,12 @@ noncontiguous targets fail, and direct mode requires both persistent Storage and
 The first Model-S smoke removes both copy families but also moves work into leaf accumulation;
 the formal forward/backward plus total gate decides whether this route survives.
 
+Experiment 259 rejects the model route. Direct accumulation removes both copy families and makes
+communication 2.173x faster than views, but producer gradients are still materialized before the
+leaf add. Forward/backward falls to 0.830x and total to 0.991x; exact losses and parameters prove
+this is a performance failure. The C++/CLI route is removed after recording the experiment. The
+leaf-only Autograd target remains independently tested for a future producer out-kernel gate.
+
 The CLI prints one JSON record per step and writes stage/layer/model timing records using
 the same trace schema as the alignment infrastructure.
 

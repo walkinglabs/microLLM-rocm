@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="790" viewBox="0 0 1600 790">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="800.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 259 · Zero Copies, Slower Step</text>
+<text x="800.0" y="82.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">Model-S · 3 rotated policies · forward/backward and communication reported separately</text>
+<rect x="80" y="135" width="420" height="405" rx="16" fill="#ffffff" stroke="#64748b" stroke-width="3"/>
+<text x="290.0" y="185.0" font-family="Inter,Arial,sans-serif" font-size="24" fill="#64748b" text-anchor="middle" font-weight="700">Transient</text>
+<text x="125.0" y="245.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="400">forward/backward  12.105 ms</text>
+<text x="125.0" y="300.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="400">communication  6.740 ms</text>
+<text x="125.0" y="355.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#64748b" text-anchor="start" font-weight="700">total  19.630 ms</text>
+<text x="125.0" y="415.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="400">peak  575.4 MiB</text>
+<text x="125.0" y="480.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#64748b" text-anchor="start" font-weight="700">114 pack + 114 unpack</text>
+<rect x="590" y="135" width="420" height="405" rx="16" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>
+<text x="800.0" y="185.0" font-family="Inter,Arial,sans-serif" font-size="24" fill="#16a34a" text-anchor="middle" font-weight="700">Bucket views</text>
+<text x="635.0" y="245.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="400">forward/backward  10.400 ms</text>
+<text x="635.0" y="300.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="400">communication  3.585 ms</text>
+<text x="635.0" y="355.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#16a34a" text-anchor="start" font-weight="700">total  14.900 ms</text>
+<text x="635.0" y="415.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="400">peak  607.2 MiB</text>
+<text x="635.0" y="480.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#16a34a" text-anchor="start" font-weight="700">114 pack + 0 unpack</text>
+<rect x="1100" y="135" width="420" height="405" rx="16" fill="#ffffff" stroke="#e11d48" stroke-width="3"/>
+<text x="1310.0" y="185.0" font-family="Inter,Arial,sans-serif" font-size="24" fill="#e11d48" text-anchor="middle" font-weight="700">Direct targets</text>
+<text x="1145.0" y="245.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="400">forward/backward  12.535 ms</text>
+<text x="1145.0" y="300.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="400">communication  1.650 ms</text>
+<text x="1145.0" y="355.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#e11d48" text-anchor="start" font-weight="700">total  15.035 ms</text>
+<text x="1145.0" y="415.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="400">peak  594.6 MiB</text>
+<text x="1145.0" y="480.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#e11d48" text-anchor="start" font-weight="700">0 pack + 0 unpack</text>
+<text x="800.0" y="602.0" font-family="Inter,Arial,sans-serif" font-size="23" fill="#166534" text-anchor="middle" font-weight="700">Direct communication 2.173x · peak -12.6 MiB vs views</text>
+<text x="800.0" y="650.0" font-family="Inter,Arial,sans-serif" font-size="24" fill="#b42335" text-anchor="middle" font-weight="700">But forward/backward 0.830x · total 0.991x</text>
+<text x="800.0" y="700.0" font-family="Inter,Arial,sans-serif" font-size="19" fill="#b42335" text-anchor="middle" font-weight="700">Producer still allocates gradient, then leaf target adds it again · model route rejected</text>
+<text x="800.0" y="748.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">Next: one producer out-kernel must remove both temporary output and leaf add</text>
+</svg>

@@ -917,6 +917,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [experiments/257-data-parallel-persistent-buckets.md](experiments/257-data-parallel-persistent-buckets.md) | 后续allocation归零、保持显式与bucket-view交接 |
 | [assets/data-parallel-gradient-bucket-views.svg](assets/data-parallel-gradient-bucket-views.svg) | 三策略速度、live/peak与unpack删除对比 |
 | [experiments/258-data-parallel-gradient-bucket-views.md](experiments/258-data-parallel-gradient-bucket-views.md) | 114个Storage/copy删除与direct-backward交接 |
+| [assets/data-parallel-direct-bucket-gradient-discard.svg](assets/data-parallel-direct-bucket-gradient-discard.svg) | copy归零但forward/backward回退的反例 |
+| [experiments/259-data-parallel-direct-bucket-gradients-discard.md](experiments/259-data-parallel-direct-bucket-gradients-discard.md) | 模型route拒绝与producer out-kernel交接 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

@@ -14341,6 +14341,78 @@ def validate_data_parallel_gradient_views(
     return summary.get("processes", 0), *expected
 
 
+def validate_data_parallel_direct_gradients(
+        errors: list[str]) -> tuple[int, float, float, int, int]:
+    root = REPOSITORY / (
+        "benchmarks/results/2026-08-25-data-parallel-direct-bucket-gradients")
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    processes = [json.loads(line) for line in (root / "process-summary.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    policies = summary.get("policies", {})
+    views = policies.get("bucket_views", {})
+    direct = policies.get("direct", {})
+    expected = (0.8296769046669324, 2.172727272727273,
+                0.9910209511140672, 13205768)
+    if (summary.get("schema_version") != 1 or summary.get("status") != "pass" or
+            summary.get("record_type") !=
+                "data_parallel_direct_bucket_gradient_summary" or
+            summary.get("raw_records") != 45 or summary.get("processes") != 9 or
+            summary.get("loss_trajectories_exact") is not True or
+            summary.get("pack_copies_removed") != 114 or
+            summary.get("default_eligible") is not False or
+            summary.get("decision") != "reject direct bucket-gradient model route" or
+            abs(float(summary.get("forward_backward_speedup_vs_views", 0.0)) -
+                expected[0]) > 1.0e-12 or
+            abs(float(summary.get("communication_speedup_vs_views", 0.0)) -
+                expected[1]) > 1.0e-12 or
+            abs(float(summary.get("total_speedup_vs_views", 0.0)) -
+                expected[2]) > 1.0e-12 or
+            summary.get("peak_bytes_saved_vs_views") != expected[3] or
+            views.get("median_total_ms") != 14.9 or
+            direct.get("median_total_ms") != 15.035):
+        errors.append("data-parallel direct gradient summary changed")
+    direct_rows = [row for row in raw if row.get("policy") == "direct"]
+    direct_later = [row for row in direct_rows if row.get("step", 0) > 1]
+    if (len(raw) != 45 or len(processes) != 9 or len(direct_rows) != 15 or
+            len(direct_later) != 12 or
+            any(row.get("pack_copy_calls") != 0 or
+                row.get("unpack_copy_calls") != 0 or
+                row.get("direct_gradient_target_count") != 114 or
+                row.get("communication_allocation_calls") != 0 or
+                row.get("communication_backend_allocation_calls") != 0
+                for row in direct_later) or
+            any(row.get("parameter_max_difference") != 0.0 for row in raw)):
+        errors.append("data-parallel direct gradient raw evidence changed")
+    if (check.get("measurement_commit") !=
+            "739ba6dcf1e8ce8eb9a0e620b16021eade90e031" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("raw_records") != 45 or check.get("process_records") != 9 or
+            check.get("loss_values_exact") != 45 or
+            check.get("final_parameter_checks") != 9 or
+            check.get("maximum_parameter_difference") != 0.0 or
+            check.get("direct_later_steps_checked") != 12 or
+            check.get("direct_gradient_targets") != 114 or
+            check.get("pack_copies_removed") != 114 or
+            check.get("unpack_copies_removed") != 114 or
+            check.get("forward_backward_speedup_vs_views") != expected[0] or
+            check.get("communication_speedup_vs_views") != expected[1] or
+            check.get("total_speedup_vs_views") != expected[2] or
+            check.get("peak_bytes_saved_vs_views") != expected[3] or
+            check.get("default_direct_bucket_gradients") is not False or
+            check.get("model_route_rejected") is not True or
+            check.get("rccl_label") != {"passed": 33, "total": 33} or
+            check.get("registered_test_files") != 119):
+        errors.append("data-parallel direct gradient verification changed")
+    header = (REPOSITORY / "include/microllm/multi_gpu/data_parallel.h").read_text(
+        encoding="utf-8")
+    if "direct_bucket_gradients = false" not in header:
+        errors.append("data-parallel direct gradient measured route is missing")
+    return summary.get("processes", 0), *expected
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -14577,7 +14649,8 @@ def validate_assets(errors: list[str]) -> None:
                  "data-parallel-bucket-copy-attribution.svg",
                  "data-parallel-inplace-average.svg",
                  "data-parallel-persistent-buckets.svg",
-                 "data-parallel-gradient-bucket-views.svg"):
+                 "data-parallel-gradient-bucket-views.svg",
+                 "data-parallel-direct-bucket-gradient-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -15098,6 +15171,9 @@ def main() -> int:
     data_parallel_view_processes, data_parallel_view_copy_total, \
         data_parallel_view_transient_total, data_parallel_view_current, \
         data_parallel_view_peak = validate_data_parallel_gradient_views(errors)
+    data_parallel_direct_processes, data_parallel_direct_backward, \
+        data_parallel_direct_comm, data_parallel_direct_total, \
+        data_parallel_direct_peak = validate_data_parallel_direct_gradients(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -15577,6 +15653,10 @@ def main() -> int:
           f"{data_parallel_view_copy_total:.3f}/"
           f"{data_parallel_view_transient_total:.3f}/"
           f"{data_parallel_view_current}/{data_parallel_view_peak} "
+          f"data_parallel_direct={data_parallel_direct_processes}/"
+          f"{data_parallel_direct_backward:.3f}/"
+          f"{data_parallel_direct_comm:.3f}/"
+          f"{data_parallel_direct_total:.3f}/{data_parallel_direct_peak} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

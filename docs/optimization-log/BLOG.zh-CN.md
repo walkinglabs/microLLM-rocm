@@ -4065,3 +4065,18 @@ transient为1.937×/1.367×；45个loss和9次末步参数检查完全一致。l
 双表示peak，而不是用更快的communication掩盖backward内存。
 
 ![Gradient-as-bucket views](assets/data-parallel-gradient-bucket-views.svg)
+
+## 276. Experiment 259：copy全没了，为什么total还是更慢
+
+我们先把persistent bucket清零，再把114个parameter leaf的gradient设成对应view。backward后
+地址/shape/offset必须不变，reducer直接all-reduce，不再pack。通信确实从3.585降到1.650ms，
+相对view为2.173×，peak也少13.2MB。
+
+但当前producer仍先生成普通gradient Tensor，leaf target随后再launch add。于是
+forward/backward从10.400升到12.535ms（只有0.830×），total从14.900升到15.035ms（0.991×）。
+45个loss和9次参数门完全一致，所以这是很干净的性能反例。
+
+模型route撤回。leaf accumulation target作为独立模块保留，但只有某个producer能直接写目标
+地址、同时删除临时output与leaf add，并在operator Event/wall过1.05门，才允许重新接模型。
+
+![Direct bucket-gradient discard](assets/data-parallel-direct-bucket-gradient-discard.svg)

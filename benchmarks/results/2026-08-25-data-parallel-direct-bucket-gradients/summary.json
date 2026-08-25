@@ -1,0 +1,57 @@
+{
+  "aggregation": "median of step-2..5 medians with rotated policy order",
+  "communication_speedup_vs_views": 2.172727272727273,
+  "decision": "reject direct bucket-gradient model route",
+  "default_eligible": false,
+  "forward_backward_speedup_vs_views": 0.8296769046669324,
+  "loss_trajectories_exact": true,
+  "pack_copies_removed": 114,
+  "peak_bytes_added_vs_transient": 20063232,
+  "peak_bytes_saved_vs_views": 13205768,
+  "policies": {
+    "bucket_views": {
+      "direct": false,
+      "final_loss": 2.08,
+      "maximum_engine_peak_bytes": 636652808,
+      "median_communication_ms": 3.585,
+      "median_engine_current_bytes": 498757632,
+      "median_forward_backward_ms": 10.399999999999999,
+      "median_total_ms": 14.9,
+      "persistent": true,
+      "processes": 3,
+      "views": true
+    },
+    "direct": {
+      "direct": true,
+      "final_loss": 2.08,
+      "maximum_engine_peak_bytes": 623447040,
+      "median_communication_ms": 1.65,
+      "median_engine_current_bytes": 498757632,
+      "median_forward_backward_ms": 12.535,
+      "median_total_ms": 15.035,
+      "persistent": true,
+      "processes": 3,
+      "views": true
+    },
+    "transient": {
+      "direct": false,
+      "final_loss": 2.08,
+      "maximum_engine_peak_bytes": 603383808,
+      "median_communication_ms": 6.74,
+      "median_engine_current_bytes": 498757632,
+      "median_forward_backward_ms": 12.105,
+      "median_total_ms": 19.630000000000003,
+      "persistent": false,
+      "processes": 3,
+      "views": false
+    }
+  },
+  "processes": 9,
+  "raw_records": 45,
+  "record_type": "data_parallel_direct_bucket_gradient_summary",
+  "runs_per_policy": 3,
+  "schema_version": 1,
+  "status": "pass",
+  "total_speedup_vs_transient": 1.3056202194878619,
+  "total_speedup_vs_views": 0.9910209511140672
+}

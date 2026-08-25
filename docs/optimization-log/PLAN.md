@@ -110,7 +110,8 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [79](steps/79-data-parallel-inplace-average.md) | complete | bucket原地average | comm1.269×/total1.107×；默认保留 |
 | [80](steps/80-data-parallel-persistent-buckets.md) | complete | persistent bucket+unpacked | alloc 120→0、total1.285×；显存代价使其保持显式 |
 | [81](steps/81-data-parallel-gradient-bucket-views.md) | complete | gradient-as-bucket views | unpack 114→0、total1.367× vs transient；peak仍+33.3MB |
-| [82](steps/82-data-parallel-direct-bucket-gradients.md) | planned | backward直写bucket views | pack copy 114→0、消除双表示peak目标 |
+| [82](steps/82-data-parallel-direct-bucket-gradients.md) | complete | 预设leaf target模型门 | copy归零但F/B 0.830×、total0.991×；route拒绝 |
+| [83](steps/83-gradient-producer-out-kernel-gate.md) | planned | producer直接写leaf target | 独立op allocation/add与1.05×门 |
 
 ## 为什么按这个顺序
 
