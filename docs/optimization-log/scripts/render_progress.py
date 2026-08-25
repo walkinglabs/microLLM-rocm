@@ -297,6 +297,11 @@ RANKED_MODEL_S_BUCKET_ROOT = (
     "2026-08-25-ranked-model-s-buckets")
 RANKED_MODEL_S_BUCKET_CHART = (
     ROOT / "assets" / "ranked-model-s-buckets.svg")
+RANKED_STEADY_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-ranked-model-s-steady-reducer")
+RANKED_STEADY_CHART = (
+    ROOT / "assets" / "ranked-steady-reducer-discard.svg")
 
 
 def rows() -> list[dict]:
@@ -5199,6 +5204,117 @@ def ranked_model_s_bucket_svg() -> str:
     return "\n".join(parts)
 
 
+def ranked_steady_reducer_svg() -> str:
+    summary = json.loads((RANKED_STEADY_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    per_parameter = summary["policies"]["per-parameter"]
+    bucket = summary["policies"]["bucket"]
+    width, height = 1500, 820
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 267 · Cold Win, Steady Reversal", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "Model-S · 3 fresh two-rank launches / policy · step 1 cold · steps 2–3 steady",
+             16, "#5b6474", anchor="middle"),
+    ]
+    panels = ((55, 120, 420, 515), (540, 120, 420, 515),
+              (1025, 120, 420, 515))
+    for x, y, panel_w, panel_h in panels:
+        parts.append(f'<rect x="{x}" y="{y}" width="{panel_w}" height="{panel_h}" '
+                     'rx="18" fill="#ffffff" stroke="#d8dee9" stroke-width="2"/>')
+
+    parts.append(text(265, 165, "Bucket speedup by phase", 23,
+                      anchor="middle", weight=700))
+    phase_rows = (
+        ("Cold reducer", summary["bucket_cold_reducer_speedup"]),
+        ("Steady reducer", summary["bucket_steady_reducer_speedup"]),
+        ("Steady complete step", summary["bucket_steady_training_speedup"]),
+    )
+    for index, (label, ratio) in enumerate(phase_rows):
+        y = 220 + index * 115
+        color = "#16a34a" if ratio >= 1.0 else "#dc2626"
+        bar_width = 270 * min(ratio, 1.4) / 1.4
+        parts.extend([
+            text(100, y, label, 17, "#172033", weight=700),
+            f'<rect x="100" y="{y + 18}" width="270" height="28" rx="7" fill="#e8edf4"/>',
+            f'<rect x="100" y="{y + 18}" width="{bar_width:.1f}" height="28" rx="7" fill="{color}"/>',
+            f'<line x1="{100 + 270 / 1.4:.1f}" y1="{y + 12}" '
+            f'x2="{100 + 270 / 1.4:.1f}" y2="{y + 52}" stroke="#172033" stroke-width="2"/>',
+            text(410, y + 42, f"{ratio:.4f}×", 20, color,
+                 anchor="end", weight=700),
+        ])
+    parts.extend([
+        text(265, 585, "Cold says +32.1%", 19, "#166534",
+             anchor="middle", weight=700),
+        text(265, 615, "Steady reducer says −32.5%", 19, "#b42335",
+             anchor="middle", weight=700),
+        text(750, 165, "Steady time · six samples / policy", 23,
+             anchor="middle", weight=700),
+    ])
+    timing_rows = (
+        ("Reducer", per_parameter["median_steady_maximum_rank_reducer_ms"],
+         bucket["median_steady_maximum_rank_reducer_ms"], 5.0),
+        ("Complete step", per_parameter["median_steady_maximum_rank_training_ms"],
+         bucket["median_steady_maximum_rank_training_ms"], 12.0),
+    )
+    for row_index, (label, baseline, candidate, scale) in enumerate(timing_rows):
+        y = 235 + row_index * 175
+        parts.append(text(590, y, label, 18, "#172033", weight=700))
+        for index, (name, value, color) in enumerate((
+                ("Per parameter", baseline, "#64748b"),
+                ("Transient bucket", candidate, "#dc2626"))):
+            bar_y = y + 30 + index * 50
+            parts.extend([
+                text(590, bar_y + 20, name, 14, "#5b6474"),
+                f'<rect x="720" y="{bar_y}" width="{180 * value / scale:.1f}" '
+                f'height="27" rx="7" fill="{color}"/>',
+                text(930, bar_y + 21, f"{value:.3f} ms", 16, color,
+                     anchor="end", weight=700),
+            ])
+    parts.extend([
+        text(750, 585, "Bucket time +48.2% reducer", 19, "#b42335",
+             anchor="middle", weight=700),
+        text(750, 615, "+17.3% complete step", 19, "#b42335",
+             anchor="middle", weight=700),
+        text(1235, 165, "Transient bucket cost / steady step", 23,
+             anchor="middle", weight=700),
+    ])
+    cost_rows = (
+        ("Backend allocations",
+         f"{bucket['median_steady_reducer_backend_allocation_calls']:.0f}"),
+        ("Allocated bytes",
+         f"{bucket['median_steady_reducer_total_allocated_bytes'] / 1.0e6:.1f} MB"),
+        ("Pack copies", f"{bucket['median_steady_pack_copies']:.0f}"),
+        ("Unpack copies", f"{bucket['median_steady_unpack_copies']:.0f}"),
+    )
+    for index, (label, display) in enumerate(cost_rows):
+        y = 225 + index * 82
+        parts.extend([
+            text(1080, y, label, 16, "#5b6474"),
+            text(1390, y, display, 25, "#dc2626", anchor="end", weight=700),
+            f'<line x1="1080" y1="{y + 18}" x2="1390" y2="{y + 18}" '
+            'stroke="#e8edf4" stroke-width="2"/>',
+        ])
+    parts.extend([
+        text(1235, 585, "Per-parameter: all four costs = 0", 18, "#166534",
+             anchor="middle", weight=700),
+        text(1235, 615, "Persistent Storage is the next counterfactual", 17,
+             "#172033", anchor="middle", weight=700),
+        '<rect x="55" y="670" width="1390" height="95" rx="16" fill="#fff1f2" stroke="#e11d48" stroke-width="2"/>',
+        text(width / 2, 708,
+             "Correctness passes: rank Max/RMS 0 · CPU Max 0.00627 / RMS 3.701e-6 · loss diff 1.967e-5 · peer bounded",
+             18, "#166534", anchor="middle", weight=700),
+        text(width / 2, 744,
+             "Decision: reject transient bucket for steady performance · keep readable baseline · test persistent rank storage",
+             18, "#b42335", anchor="middle", weight=700),
+        "</svg>\n",
+    ])
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -5281,7 +5397,8 @@ def main() -> int:
                 DATA_PARALLEL_GRADIENT_OVERLAP_CHART: data_parallel_gradient_overlap_svg(),
                 RANKED_TRAINING_CHART: ranked_training_bootstrap_svg(),
                 RANKED_BUCKET_CHART: ranked_gradient_bucket_svg(),
-                RANKED_MODEL_S_BUCKET_CHART: ranked_model_s_bucket_svg()}
+                RANKED_MODEL_S_BUCKET_CHART: ranked_model_s_bucket_svg(),
+                RANKED_STEADY_CHART: ranked_steady_reducer_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

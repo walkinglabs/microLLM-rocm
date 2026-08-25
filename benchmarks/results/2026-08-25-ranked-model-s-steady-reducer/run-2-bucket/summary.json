@@ -1,0 +1,194 @@
+{
+  "bucket_bytes": 26214400,
+  "buckets_per_rank": 9,
+  "collectives_per_rank": 9,
+  "commands": [
+    [
+      "/home/devpod/github/microLLM-rocm/build/rccl-release/apps/microllm_distributed_rank",
+      "--mode",
+      "rank",
+      "--rank",
+      "1",
+      "--local-rank",
+      "1",
+      "--model",
+      "model-s",
+      "--world-size",
+      "2",
+      "--id-file",
+      "/home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-25-ranked-model-s-steady-reducer/run-2-bucket/communicator.id",
+      "--steps",
+      "3",
+      "--seed",
+      "607",
+      "--timeout-ms",
+      "120000",
+      "--reducer",
+      "bucket",
+      "--bucket-bytes",
+      "26214400",
+      "--parameter-file",
+      "/home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-25-ranked-model-s-steady-reducer/run-2-bucket/rank1.safetensors"
+    ],
+    [
+      "/home/devpod/github/microLLM-rocm/build/rccl-release/apps/microllm_distributed_rank",
+      "--mode",
+      "rank",
+      "--rank",
+      "0",
+      "--local-rank",
+      "0",
+      "--model",
+      "model-s",
+      "--world-size",
+      "2",
+      "--id-file",
+      "/home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-25-ranked-model-s-steady-reducer/run-2-bucket/communicator.id",
+      "--steps",
+      "3",
+      "--seed",
+      "607",
+      "--timeout-ms",
+      "120000",
+      "--reducer",
+      "bucket",
+      "--bucket-bytes",
+      "26214400",
+      "--parameter-file",
+      "/home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-25-ranked-model-s-steady-reducer/run-2-bucket/rank0.safetensors"
+    ]
+  ],
+  "maximum_mean_loss_difference": 1.9672499999678905e-05,
+  "maximum_rank_difference": 0,
+  "maximum_rank_forward_backward_ms": 5625.20923,
+  "maximum_rank_optimizer_ms": 0.957395,
+  "maximum_rank_reducer_ms": 48.886214,
+  "maximum_rank_step_buckets": [
+    3,
+    3,
+    3
+  ],
+  "maximum_rank_step_collectives": [
+    3,
+    3,
+    3
+  ],
+  "maximum_rank_step_forward_backward_ms": [
+    5613.236004,
+    5.837605,
+    6.239151
+  ],
+  "maximum_rank_step_optimizer_ms": [
+    0.329252,
+    0.314335,
+    0.319925
+  ],
+  "maximum_rank_step_pack_copies": [
+    57,
+    57,
+    57
+  ],
+  "maximum_rank_step_reducer_allocation_calls": [
+    60,
+    60,
+    60
+  ],
+  "maximum_rank_step_reducer_backend_allocation_calls": [
+    60,
+    60,
+    60
+  ],
+  "maximum_rank_step_reducer_deallocation_calls": [
+    60,
+    60,
+    60
+  ],
+  "maximum_rank_step_reducer_ms": [
+    40.817901,
+    4.231291,
+    4.00853
+  ],
+  "maximum_rank_step_reducer_total_allocated_bytes": [
+    124689408,
+    124689408,
+    124689408
+  ],
+  "maximum_rank_step_training_ms": [
+    5637.555963,
+    10.275064,
+    10.51613
+  ],
+  "maximum_rank_step_unpack_copies": [
+    57,
+    57,
+    57
+  ],
+  "maximum_rank_training_ms": 5659.508471,
+  "maximum_reference_difference": 0.00627149641514,
+  "mean_loss_tolerance": 0.0001,
+  "model": "model-s",
+  "pack_copies_per_rank": 171,
+  "parameter_files_retained": false,
+  "parameter_tensors": 57,
+  "parameter_values": 15586176,
+  "peer_processes_terminated": 0,
+  "rank_forward_backward_ms": [
+    5608.405655,
+    5625.20923
+  ],
+  "rank_group_ms": 9470.307556912303,
+  "rank_losses": [
+    [
+      9.284751892,
+      6.682232857,
+      4.232010841
+    ],
+    [
+      9.542316437,
+      6.853151321,
+      3.802856684
+    ]
+  ],
+  "rank_optimizer_ms": [
+    0.957395,
+    0.950727
+  ],
+  "rank_reducer_ms": [
+    48.886214,
+    23.670521
+  ],
+  "rank_rms_difference": 0,
+  "rank_training_ms": [
+    5659.508471,
+    5651.068143
+  ],
+  "record_type": "ranked_training_summary",
+  "reducer": "bucket",
+  "reference_command": [
+    "/home/devpod/github/microLLM-rocm/build/rccl-release/apps/microllm_distributed_rank",
+    "--mode",
+    "reference",
+    "--steps",
+    "3",
+    "--seed",
+    "607",
+    "--model",
+    "model-s",
+    "--parameter-file",
+    "/home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-25-ranked-model-s-steady-reducer/run-2-bucket/reference.safetensors"
+  ],
+  "reference_losses": [
+    9.41353512,
+    6.76768446,
+    4.01741409
+  ],
+  "reference_max_tolerance": 0.01,
+  "reference_ms": 8765.358085744083,
+  "reference_rms_difference": 3.70091947467e-06,
+  "reference_rms_tolerance": 1e-05,
+  "schema_version": 1,
+  "status": "pass",
+  "steps": 3,
+  "unpack_copies_per_rank": 171,
+  "world_size": 2
+}

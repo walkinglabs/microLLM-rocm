@@ -141,6 +141,12 @@ Start with [Quick start](#quick-start), consume the installed library through th
 > 1.0016×/1.0023×. It is a correctness baseline; multi-step cold/steady timing
 > must precede persistence or overlap.
 
+> Multi-step timing overturns that cold result: transient buckets are only
+> 0.6747× as fast in the steady reducer and 0.8527× over a complete steady step.
+> Each step still makes 60 backend allocations over 124.7 MB and 57+57
+> pack/unpack copies. The transient performance route is rejected; persistent
+> rank-local storage is the next isolated counterfactual.
+
 </details>
 
 ## Why this project exists

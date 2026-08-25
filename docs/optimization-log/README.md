@@ -933,6 +933,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [experiments/265-ranked-gradient-buckets.md](experiments/265-ranked-gradient-buckets.md) | 同步bucket baseline与Model-S交接 |
 | [assets/ranked-model-s-buckets.svg](assets/ranked-model-s-buckets.svg) | Model-S collective、Reducer范围与端到端差异 |
 | [experiments/266-ranked-model-s-buckets.md](experiments/266-ranked-model-s-buckets.md) | 19× collective缩减、89.3%方差与cold/steady交接 |
+| [assets/ranked-steady-reducer-discard.svg](assets/ranked-steady-reducer-discard.svg) | cold/steady反转、分配/copy归因与transient拒绝 |
+| [experiments/267-ranked-steady-reducer-discard.md](experiments/267-ranked-steady-reducer-discard.md) | bucket steady 0.6747×与persistent Storage准入 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

@@ -14969,6 +14969,154 @@ def validate_ranked_model_s_buckets(
         expected_training, bucket_cv
 
 
+def validate_ranked_steady_reducer(
+        errors: list[str]) -> tuple[int, float, float, int, int]:
+    root = REPOSITORY / "benchmarks/results/2026-08-25-ranked-model-s-steady-reducer"
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    failure = json.loads((root / "failure.json").read_text(encoding="utf-8"))
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    policies = summary.get("policies", {})
+    per_parameter = policies.get("per-parameter", {})
+    bucket = policies.get("bucket", {})
+    expected_maximum = 0.00627149641514
+    expected_rms = 3.70091947467e-06
+    expected_loss = 1.9672499999678905e-05
+    expected_cold = 1.3211835170064232
+    expected_reducer = 0.6746764344034968
+    expected_training = 0.852713172701866
+    expected_bucket_cv = 0.027183571848472626
+    if (summary.get("schema_version") != 1 or summary.get("status") != "pass" or
+            summary.get("record_type") != "ranked_training_matrix_summary" or
+            summary.get("model") != "model-s" or
+            summary.get("runs_per_policy") != 3 or
+            summary.get("policy_runs") != 6 or
+            summary.get("rank_processes") != 12 or
+            summary.get("steps_per_rank") != 3 or
+            summary.get("steady_skip_steps") != 1 or
+            summary.get("steady_steps_per_run") != 2 or
+            summary.get("parameter_tensors") != 57 or
+            summary.get("parameter_values") != 15586176 or
+            summary.get("maximum_rank_difference") != 0.0 or
+            summary.get("maximum_reference_difference") != expected_maximum or
+            summary.get("maximum_reference_rms_difference") != expected_rms or
+            summary.get("maximum_mean_loss_difference") != expected_loss or
+            per_parameter.get("collectives_per_rank") != 171 or
+            bucket.get("collectives_per_rank") != 9 or
+            summary.get("collective_reduction") != 19.0 or
+            per_parameter.get("steady_step_samples") != 6 or
+            bucket.get("steady_step_samples") != 6 or
+            summary.get("bucket_cold_reducer_speedup") != expected_cold or
+            summary.get("bucket_steady_reducer_speedup") != expected_reducer or
+            summary.get("bucket_steady_training_speedup") != expected_training or
+            bucket.get("steady_maximum_rank_reducer_cv") != expected_bucket_cv or
+            bucket.get("median_steady_reducer_backend_allocation_calls") != 60.0 or
+            bucket.get("median_steady_reducer_total_allocated_bytes") !=
+                124689408.0 or
+            bucket.get("median_steady_pack_copies") != 57.0 or
+            bucket.get("median_steady_unpack_copies") != 57.0 or
+            per_parameter.get("median_steady_reducer_backend_allocation_calls") !=
+                0.0 or
+            summary.get("decision") !=
+                "profile ranked Model-S cold and steady reducer" or
+            summary.get("peer_failure_detected") is not True or
+            summary.get("peer_processes_terminated") != 1 or
+            summary.get("failure_returncodes") != [1, -15]):
+        errors.append("ranked steady reducer summary changed")
+    bucket_rows = [row for row in raw if row.get("reducer") == "bucket"]
+    parameter_rows = [row for row in raw if row.get("reducer") == "per-parameter"]
+    if (len(raw) != 6 or len(bucket_rows) != 3 or len(parameter_rows) != 3 or
+            any(len(row.get("maximum_rank_step_reducer_ms", [])) != 3 or
+                len(row.get("maximum_rank_step_training_ms", [])) != 3 or
+                row.get("maximum_rank_difference") != 0.0 or
+                row.get("rank_rms_difference") != 0.0 or
+                row.get("maximum_reference_difference") != expected_maximum or
+                row.get("reference_rms_difference") != expected_rms or
+                row.get("maximum_mean_loss_difference") != expected_loss or
+                row.get("parameter_files_retained") is not False
+                for row in raw) or
+            any(row.get("maximum_rank_step_collectives") != [3, 3, 3] or
+                row.get("maximum_rank_step_reducer_backend_allocation_calls") !=
+                    [60, 60, 60] or
+                row.get("maximum_rank_step_reducer_total_allocated_bytes") !=
+                    [124689408, 124689408, 124689408] or
+                row.get("maximum_rank_step_pack_copies") != [57, 57, 57] or
+                row.get("maximum_rank_step_unpack_copies") != [57, 57, 57]
+                for row in bucket_rows) or
+            any(row.get("maximum_rank_step_collectives") != [57, 57, 57] or
+                row.get("maximum_rank_step_reducer_backend_allocation_calls") !=
+                    [0, 0, 0] or
+                row.get("maximum_rank_step_reducer_total_allocated_bytes") !=
+                    [0, 0, 0]
+                for row in parameter_rows)):
+        errors.append("ranked steady reducer raw evidence changed")
+    stdout_records = []
+    for path in sorted(root.glob("run-*/*.stdout")):
+        if path.name.startswith("rank"):
+            stdout_records.append(json.loads(path.read_text(encoding="utf-8")))
+    if (len(stdout_records) != 12 or
+            any("parameters" in row or row.get("parameter_count") != 15586176
+                for row in stdout_records) or
+            list(root.rglob("*.safetensors")) or
+            list(root.rglob("communicator.id"))):
+        errors.append("ranked steady temporary parameter evidence changed")
+    if (failure.get("failure_detected") is not True or
+            failure.get("peer_processes_terminated") != 1 or
+            failure.get("returncodes") != [1, -15]):
+        errors.append("ranked steady reducer failure evidence changed")
+    if (check.get("measurement_commit") !=
+            "ff2be89eb6086d1acc3d62c0f847caf9e385770c" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("gpu") != "AMD Instinct MI300X VF" or
+            check.get("architecture") != "gfx942" or
+            check.get("world_size") != 2 or
+            check.get("runs_per_policy") != 3 or
+            check.get("policy_runs") != 6 or
+            check.get("rank_processes") != 12 or
+            check.get("steps_per_rank") != 3 or
+            check.get("steady_skip_steps") != 1 or
+            check.get("steady_steps_per_run") != 2 or
+            check.get("steady_samples_per_policy") != 6 or
+            check.get("parameter_tensors") != 57 or
+            check.get("parameter_values") != 15586176 or
+            check.get("per_parameter_collectives") != 171 or
+            check.get("bucket_collectives") != 9 or
+            check.get("collective_reduction") != 19.0 or
+            check.get("bucket_cold_reducer_speedup") != expected_cold or
+            check.get("bucket_steady_reducer_speedup") != expected_reducer or
+            check.get("bucket_steady_training_speedup") != expected_training or
+            check.get("bucket_steady_reducer_cv") != expected_bucket_cv or
+            check.get("bucket_steady_backend_allocation_calls") != 60 or
+            check.get("bucket_steady_total_allocated_bytes") != 124689408 or
+            check.get("bucket_steady_pack_copies") != 57 or
+            check.get("bucket_steady_unpack_copies") != 57 or
+            check.get("maximum_rank_difference") != 0.0 or
+            check.get("maximum_rank_rms_difference") != 0.0 or
+            check.get("maximum_reference_difference") != expected_maximum or
+            check.get("maximum_reference_rms_difference") != expected_rms or
+            check.get("maximum_mean_loss_difference") != expected_loss or
+            check.get("temporary_parameter_files_retained") is not False or
+            check.get("transient_bucket_steady_performance_rejected") is not True or
+            check.get("persistent_rank_counterfactual_admitted") is not True or
+            check.get("rccl_label") != {"passed": 43, "total": 43} or
+            check.get("ranked_contract") != {"passed": 5, "total": 5} or
+            check.get("registered_test_files") != 123):
+        errors.append("ranked steady reducer verification changed")
+    launcher = (REPOSITORY / "tools/distributed/run_ranked.py").read_text(
+        encoding="utf-8")
+    matrix = (REPOSITORY /
+              "benchmarks/distributed/ranked_training_matrix.py").read_text(
+                  encoding="utf-8")
+    if ("maximum_rank_step_reducer_ms" not in launcher or
+            "--steady-skip-steps" not in matrix or
+            "median_steady_reducer_backend_allocation_calls" not in matrix):
+        errors.append("ranked steady reducer measurement route is missing")
+    return summary.get("policy_runs", 0), expected_reducer, expected_training, \
+        int(bucket.get("median_steady_reducer_backend_allocation_calls", 0)), \
+        int(bucket.get("median_steady_reducer_total_allocated_bytes", 0))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -15213,7 +15361,8 @@ def validate_assets(errors: list[str]) -> None:
                  "data-parallel-gradient-overlap.svg",
                  "one-process-per-gpu-bootstrap.svg",
                  "ranked-gradient-buckets.svg",
-                 "ranked-model-s-buckets.svg"):
+                 "ranked-model-s-buckets.svg",
+                 "ranked-steady-reducer-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -15758,6 +15907,9 @@ def main() -> int:
         ranked_model_s_bucket_collectives, ranked_model_s_reducer_speedup, \
         ranked_model_s_training_speedup, ranked_model_s_bucket_cv = \
         validate_ranked_model_s_buckets(errors)
+    ranked_steady_runs, ranked_steady_reducer_speedup, \
+        ranked_steady_training_speedup, ranked_steady_backend_allocations, \
+        ranked_steady_allocated_bytes = validate_ranked_steady_reducer(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -16269,6 +16421,11 @@ def main() -> int:
           f"{ranked_model_s_reducer_speedup:.4f}/"
           f"{ranked_model_s_training_speedup:.4f}/"
           f"{ranked_model_s_bucket_cv:.3f} "
+          f"ranked_steady={ranked_steady_runs}/"
+          f"{ranked_steady_reducer_speedup:.4f}/"
+          f"{ranked_steady_training_speedup:.4f}/"
+          f"{ranked_steady_backend_allocations}/"
+          f"{ranked_steady_allocated_bytes} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

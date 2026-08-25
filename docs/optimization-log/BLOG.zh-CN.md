@@ -4181,3 +4181,22 @@ rank间Max/RMS为0，CPU Max/RMS为0.0062738/3.483e-6，loss均值差9.555e-7；
 fresh进程中记录多步，单独标记第一步cold，再决定persistent Storage或ready overlap。
 
 ![Ranked Model-S buckets](assets/ranked-model-s-buckets.svg)
+
+## 284. Experiment 267：第一次看起来快，后面为什么反而慢48%
+
+这次每个fresh双rank进程连续跑三步，不扔掉第一步，而是明确标记cold；步骤2–3构成每策略
+6个steady样本。结果发生反转：cold bucket快1.321×，steady bucket却只有`0.6747×` Reducer
+speedup，完整step也只有`0.8527×`。
+
+逐参数steady Reducer为2.837ms，transient bucket为4.205ms；bucket用时多48.2%。完整step
+从8.864ms变成10.396ms，用时多17.3%。bucket steady CV仅2.72%，不是一次坏运气。
+
+计数解释了反例：每个steady bucket step仍做60次backend allocation、分配124,689,408 bytes，
+再做57次pack和57次unpack；逐参数路径这些计数为0。collective从57变3是真的，但临时Storage
+和114次copy更贵。
+
+三步完整参数、CPU、loss和peer-failure门全过。transient bucket继续作为可读正确性路径，性能
+解释被拒绝。下一实验只把bucket/unpack Storage变成persistent，先证明warmup后60次后端分配
+归零，再谈通信重叠。
+
+![Ranked steady reducer](assets/ranked-steady-reducer-discard.svg)
