@@ -176,12 +176,32 @@ DistributedStepMetrics DataParallelTrainer::step(
 
     const auto optimizer_start = Clock::now();
     for (auto& optimizer : impl_->optimizers) optimizer->step();
+    // Parameter verification previously supplied an accidental device wait via
+    // to_vector(). A skipped audit must not change step completion or temporary
+    // lifetimes, so optimizer completion is an explicit stage boundary.
+    for (const auto device : impl_->config.device_indices) {
+        runtime::synchronize(Device::hip(device));
+    }
     const auto optimizer_finish = Clock::now();
     metrics.optimizer_ms = elapsed_ms(optimizer_start, optimizer_finish);
-    metrics.maximum_parameter_difference = maximum_parameter_difference(impl_->models);
+    metrics.parameter_check_performed =
+        impl_->config.parameter_check_interval != 0 &&
+        step_number % impl_->config.parameter_check_interval == 0;
+    if (metrics.parameter_check_performed) {
+        const auto verification_start = Clock::now();
+        metrics.maximum_parameter_difference =
+            maximum_parameter_difference(impl_->models);
+        metrics.verification_ms = elapsed_ms(
+            verification_start, Clock::now());
+    }
     if (auto* trace = profiling::TraceSession::current(); trace != nullptr) {
         trace->record(profiling::TraceKind::Layer, "data_parallel.optimizer",
-                      scalar(metrics.maximum_parameter_difference), metrics.optimizer_ms);
+                      scalar(static_cast<float>(impl_->optimizers.size())),
+                      metrics.optimizer_ms);
+        trace->record(profiling::TraceKind::Layer,
+                      "data_parallel.parameter_verification",
+                      scalar(metrics.maximum_parameter_difference),
+                      metrics.verification_ms);
     }
     metrics.total_ms = elapsed_ms(total_start, Clock::now());
     total_timer.finish(scalar(metrics.mean_loss));

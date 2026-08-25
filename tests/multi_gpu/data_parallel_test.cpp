@@ -75,14 +75,46 @@ TEST(DataParallelTrainerTest, MultiStepTwoRankTrainingMatchesSingleGlobalBatch) 
         EXPECT_EQ(metrics.rank_losses.size(), 2U);
         EXPECT_GT(metrics.buckets.bucket_count, 0U);
         EXPECT_GT(metrics.buckets.parameter_count, 0U);
+        EXPECT_TRUE(metrics.parameter_check_performed);
         EXPECT_EQ(metrics.maximum_parameter_difference, 0.0F);
         EXPECT_GE(metrics.forward_backward_ms, 0.0);
         EXPECT_GE(metrics.communication_ms, 0.0);
         EXPECT_GE(metrics.optimizer_ms, 0.0);
+        EXPECT_GE(metrics.verification_ms, 0.0);
         EXPECT_GE(metrics.total_ms, metrics.communication_ms);
     }
     EXPECT_LE(difference(reference, trainer.model(0)), 2.0e-5F);
     EXPECT_EQ(difference(trainer.model(0), trainer.model(1)), 0.0F);
+}
+
+TEST(DataParallelTrainerTest, ParameterVerificationIntervalIsExplicit) {
+    if (runtime::hip_device_count() < 2) GTEST_SKIP() << "two visible HIP devices required";
+    {
+        DataParallelTrainer trainer(
+            config(), 527,
+            {.device_indices = {0, 1},
+             .maximum_bucket_bytes = 4096,
+             .parameter_check_interval = 2,
+             .optimizer = {}});
+        const auto first = trainer.step(local_batches(), 1);
+        EXPECT_FALSE(first.parameter_check_performed);
+        EXPECT_EQ(first.verification_ms, 0.0);
+        const auto second = trainer.step(local_batches(), 2);
+        EXPECT_TRUE(second.parameter_check_performed);
+        EXPECT_GE(second.verification_ms, 0.0);
+        EXPECT_EQ(second.maximum_parameter_difference, 0.0F);
+    }
+    {
+        DataParallelTrainer disabled(
+            config(), 529,
+            {.device_indices = {0, 1},
+             .maximum_bucket_bytes = 4096,
+             .parameter_check_interval = 0,
+             .optimizer = {}});
+        const auto skipped = disabled.step(local_batches(), 1);
+        EXPECT_FALSE(skipped.parameter_check_performed);
+        EXPECT_EQ(skipped.verification_ms, 0.0);
+    }
 }
 
 TEST(DataParallelTrainerTest, RejectsUnequalLocalBatchWeighting) {
@@ -123,6 +155,7 @@ TEST(DataParallelTrainerTest, EmitsStageLevelProfileRecords) {
     EXPECT_TRUE(has_name("data_parallel.forward_backward"));
     EXPECT_TRUE(has_name("data_parallel.all_reduce"));
     EXPECT_TRUE(has_name("data_parallel.optimizer"));
+    EXPECT_TRUE(has_name("data_parallel.parameter_verification"));
     EXPECT_TRUE(has_name("data_parallel.step"));
 }
 

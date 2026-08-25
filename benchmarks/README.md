@@ -149,6 +149,19 @@ The benchmark first primes the exact-size caching allocator, then separates Even
 time for the public allocating API and an equivalent caller-preallocated composition. It also
 requires exactly three cache-reused allocations and zero backend allocations per public call.
 
+For the two-GPU host-audit boundary:
+
+```bash
+ROCR_VISIBLE_DEVICES=0,1 python3 \
+  benchmarks/distributed/data_parallel_verification_matrix.py \
+  --binary build/rccl-release/apps/microllm_distributed_train \
+  --output-directory /tmp/microllm-ddp-verification
+```
+
+It rotates every-step, final-step-only and disabled policies, requires exact loss trajectories,
+and excludes the visible step-1 lazy setup from steady medians. Interval `1` remains the API/CLI
+default regardless of the measured production speedup.
+
 `microllm_bench_model` measures train or cache-backed generation throughput. Its
 `tokens_per_second` excludes construction and warm-up; `tokens_per_second_with_setup`
 includes construction, device transfer, optimizer allocation, and warm-up. Both are

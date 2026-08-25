@@ -507,6 +507,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.Bf16WeightGradientWorkspaceMatrixContract PROPERTIES
         LABELS "cpu;benchmark;training;backward;bf16;memory;workspace;schema")
     add_test(
+        NAME Benchmark.DataParallelVerificationMatrixContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_data_parallel_verification_matrix.py
+    )
+    set_tests_properties(Benchmark.DataParallelVerificationMatrixContract PROPERTIES
+        LABELS "cpu;benchmark;training;multi_gpu;rccl;verification;schema")
+    add_test(
         NAME Benchmark.Bf16RepeatContract
         COMMAND ${Python3_EXECUTABLE}
                 ${PROJECT_SOURCE_DIR}/python/tests/test_bf16_repeat.py

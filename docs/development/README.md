@@ -530,3 +530,5 @@ the next gate. Records are append-only except for factual corrections.
   closes local training policy retuning and selects the next architecture scale.
 - [2026-08-25-current-data-parallel-audit.md](2026-08-25-current-data-parallel-audit.md):
   separates current two-GPU training, communication and host verification costs.
+- [2026-08-25-data-parallel-verification-interval.md](2026-08-25-data-parallel-verification-interval.md):
+  makes every-step, sparse and disabled host parameter audits explicit.

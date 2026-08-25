@@ -46,6 +46,11 @@ Current Experiment 251 evidence also shows that the post-optimizer full-paramete
 is not timed separately; on the tiny 20-step baseline the residual is 0.305 ms or 13.32% of
 steady total. The next compatibility-preserving change adds a verification metric and interval.
 
+`DataParallelConfig.parameter_check_interval` now defaults to `1`, preserving that every-step
+audit. `0` explicitly disables it and `N` checks steps divisible by `N`. Metrics and traces expose
+whether the check ran and its separate wall time. A skipped check is performance evidence only;
+it is never reported as a successful rank-consistency check.
+
 All ranks must currently contribute the same number of targets. Otherwise averaging
 rank-local mean gradients would weight small and large local batches equally, so the API
 rejects the step.
@@ -58,6 +63,7 @@ Build the RCCL preset, then:
 ./build/rccl-release/apps/microllm_distributed_train \
   --steps 3 \
   --bucket-bytes 4194304 \
+  --parameter-check-interval 1 \
   --trace /tmp/microllm-ddp-trace.jsonl
 ```
 

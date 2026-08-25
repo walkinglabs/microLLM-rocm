@@ -16,6 +16,9 @@ namespace microllm::multi_gpu {
 struct DataParallelConfig {
     std::vector<int> device_indices;
     std::size_t maximum_bucket_bytes = 25U * 1024U * 1024U;
+    // 1 preserves the correctness-first every-step audit. 0 explicitly
+    // disables it; N checks steps divisible by N.
+    std::size_t parameter_check_interval = 1;
     training::AdamWConfig optimizer;
 };
 
@@ -24,10 +27,12 @@ struct DistributedStepMetrics {
     float mean_loss = 0.0F;
     std::vector<float> rank_losses;
     BucketStats buckets;
+    bool parameter_check_performed = false;
     float maximum_parameter_difference = 0.0F;
     double forward_backward_ms = 0.0;
     double communication_ms = 0.0;
     double optimizer_ms = 0.0;
+    double verification_ms = 0.0;
     double total_ms = 0.0;
 };
 

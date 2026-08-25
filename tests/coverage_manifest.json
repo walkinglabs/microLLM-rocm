@@ -388,6 +388,7 @@
     "python/tests/test_bf16_weight_gradient_matrix.py",
     "python/tests/test_training_trajectory_evidence.py",
     "python/tests/test_bf16_weight_gradient_workspace_matrix.py",
+    "python/tests/test_data_parallel_verification_matrix.py",
     "python/tests/test_bf16_repeat.py",
     "python/tests/test_inference_bthd_shape_models.py",
     "python/tests/test_hf_fp8_layer_drift.py",

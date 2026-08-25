@@ -14,6 +14,7 @@ namespace {
 struct Options {
     std::uint64_t steps = 3;
     std::size_t bucket_bytes = 4U * 1024U * 1024U;
+    std::size_t parameter_check_interval = 1;
     std::uint64_t seed = 601;
     std::filesystem::path trace;
 };
@@ -37,6 +38,10 @@ Options parse(int argc, char** argv) {
         else if (argument == "--bucket-bytes") {
             options.bucket_bytes = static_cast<std::size_t>(
                 number(next("--bucket-bytes"), "bucket bytes"));
+        } else if (argument == "--parameter-check-interval") {
+            options.parameter_check_interval = static_cast<std::size_t>(
+                number(next("--parameter-check-interval"),
+                       "parameter check interval"));
         } else if (argument == "--seed") options.seed = number(next("--seed"), "seed");
         else if (argument == "--trace") options.trace = next("--trace");
         else throw std::invalid_argument("unknown argument: " + argument);
@@ -84,6 +89,7 @@ int main(int argc, char** argv) {
             config(), options.seed,
             {.device_indices = {0, 1},
              .maximum_bucket_bytes = options.bucket_bytes,
+             .parameter_check_interval = options.parameter_check_interval,
              .optimizer = optimizer});
         microllm::profiling::TraceOptions trace_options;
         trace_options.phase = "distributed_training";
@@ -101,11 +107,14 @@ int main(int argc, char** argv) {
                 std::cout << "{\"step\":" << metrics.step
                           << ",\"mean_loss\":" << metrics.mean_loss
                           << ",\"bucket_count\":" << metrics.buckets.bucket_count
+                          << ",\"parameter_check_performed\":"
+                          << (metrics.parameter_check_performed ? "true" : "false")
                           << ",\"parameter_max_difference\":"
                           << metrics.maximum_parameter_difference
                           << ",\"forward_backward_ms\":" << metrics.forward_backward_ms
                           << ",\"communication_ms\":" << metrics.communication_ms
                           << ",\"optimizer_ms\":" << metrics.optimizer_ms
+                          << ",\"verification_ms\":" << metrics.verification_ms
                           << ",\"total_ms\":" << metrics.total_ms << "}\n";
             }
         }

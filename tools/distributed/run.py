@@ -18,10 +18,12 @@ def parse_args():
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--steps", type=int, default=3)
     parser.add_argument("--bucket-bytes", type=int, default=4 * 1024 * 1024)
+    parser.add_argument("--parameter-check-interval", type=int, default=1)
     parser.add_argument("--seed", type=int, default=601)
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
-    if args.steps <= 0 or args.bucket_bytes < 4 or args.seed < 0:
+    if (args.steps <= 0 or args.bucket_bytes < 4 or args.seed < 0 or
+            args.parameter_check_interval < 0):
         parser.error("steps/bucket size must be positive and seed non-negative")
     return args
 
@@ -62,6 +64,7 @@ def main():
         str(args.binary.resolve()),
         "--steps", str(args.steps),
         "--bucket-bytes", str(args.bucket_bytes),
+        "--parameter-check-interval", str(args.parameter_check_interval),
         "--seed", str(args.seed),
         "--trace", str(trace),
     ]
@@ -86,6 +89,9 @@ def main():
         "median_forward_backward_ms": median(metrics, "forward_backward_ms") if metrics else None,
         "median_communication_ms": median(metrics, "communication_ms") if metrics else None,
         "median_optimizer_ms": median(metrics, "optimizer_ms") if metrics else None,
+        "median_verification_ms": median(metrics, "verification_ms") if metrics else None,
+        "parameter_checks": sum(
+            1 for record in metrics if record["parameter_check_performed"]),
         "median_total_ms": median(metrics, "total_ms") if metrics else None,
     }
     (output / "summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
@@ -107,6 +113,7 @@ def main():
             "binary": str(args.binary.resolve()),
             "steps": args.steps,
             "bucket_bytes": args.bucket_bytes,
+            "parameter_check_interval": args.parameter_check_interval,
             "seed": args.seed,
             "devices": [0, 1],
         },
