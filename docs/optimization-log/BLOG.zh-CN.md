@@ -3900,3 +3900,12 @@ cast 48/56。每层恰好各剩一次FP32→BF16和BF16→FP32。
 0个case计时，0个模型路由，临时API已撤回。后续若重开，必须换kernel/consumer。
 
 ![BF16 P×V output discard](assets/bf16-pv-output-discard.svg)
+
+## 259. Experiment 242：反向mixed-dtype也在能力门停下
+
+这次保留BF16 V，probabilities、compute和context仍是FP32。BTHD/GQA两种布局仍均返回
+status 6，0计时、0模型路由，临时API撤回。
+
+剩余一进一出的vendor mixed-dtype捷径全部关闭。
+
+![BF16 V P×V discard](assets/bf16-value-pv-discard.svg)

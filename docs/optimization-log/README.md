@@ -883,6 +883,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [experiments/240-post-bf16-attention-norm-profile.md](experiments/240-post-bf16-attention-norm-profile.md) | 剩余一进一出边界和下一合同 |
 | [assets/bf16-pv-output-discard.svg](assets/bf16-pv-output-discard.svg) | BTHD/GQA两种descriptor能力拒绝 |
 | [experiments/241-bf16-pv-output-discard.md](experiments/241-bf16-pv-output-discard.md) | status 6、0计时与API撤回 |
+| [assets/bf16-value-pv-discard.svg](assets/bf16-value-pv-discard.svg) | BF16 V的BTHD/GQA能力拒绝 |
+| [experiments/242-bf16-value-pv-discard.md](experiments/242-bf16-value-pv-discard.md) | 反向cast能力门与vendor路线关闭 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

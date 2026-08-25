@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "ordinary_bthd_status": 6,
+  "gqa_bthd_status": 6,
+  "retained_fp32_value_conformance_passed": true,
+  "candidate_timing_started": false,
+  "candidate_source_retained": false,
+  "model_route_created": false
+}

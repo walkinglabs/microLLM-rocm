@@ -175,6 +175,9 @@ POST_BF16_ATTENTION_NORM_PROFILE_CHART = (
 BF16_PV_OUTPUT_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
                        "2026-08-25-bf16-pv-output-capability")
 BF16_PV_OUTPUT_CHART = ROOT / "assets" / "bf16-pv-output-discard.svg"
+BF16_VALUE_PV_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
+                      "2026-08-25-bf16-value-pv-capability")
+BF16_VALUE_PV_CHART = ROOT / "assets" / "bf16-value-pv-discard.svg"
 
 
 def rows() -> list[dict]:
@@ -3688,6 +3691,37 @@ def bf16_pv_output_svg() -> str:
     return "\n".join(parts)
 
 
+def bf16_value_pv_svg() -> str:
+    width, height = 1500, 620
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 242 · BF16 V Input for P×V", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82, "FP32 probabilities + BF16 V + FP32 compute/output", 16,
+             "#5b6474", anchor="middle"),
+    ]
+    for index, label in enumerate(("Interleaved BTHD", "Zero-stride GQA BTHD")):
+        x = 170 + index * 610
+        parts.append(f'<rect x="{x}" y="155" width="500" height="235" rx="14" '
+                     'fill="#fff1f2" stroke="#e11d48" stroke-width="3"/>')
+        parts.append(text(x + 250, 212, label, 22, "#9f1239", anchor="middle", weight=700))
+        parts.append(text(x + 250, 282, "status 6", 34, "#e11d48", anchor="middle", weight=700))
+        parts.append(text(x + 250, 338, "unsupported before timing", 17,
+                          "#5b6474", anchor="middle"))
+    parts.append(text(width / 2, 475, "Supported 0 / 2 · timed 0 · model routes 0",
+                      20, "#b42335", anchor="middle", weight=700))
+    parts.append(text(width / 2, 530,
+                      "Both remaining vendor mixed-dtype cast routes are now closed",
+                      18, "#5b6474", anchor="middle", weight=700))
+    parts.append(text(width / 2, 580,
+                      "Candidate APIs removed; future work needs a different kernel architecture",
+                      14, "#5b6474", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -3745,7 +3779,8 @@ def main() -> int:
                 POST_BF16_FFN_NORM_PROFILE_CHART: post_bf16_ffn_norm_profile_svg(),
                 BF16_ATTENTION_NORM_MODEL_CHART: bf16_attention_norm_model_svg(),
                 POST_BF16_ATTENTION_NORM_PROFILE_CHART: post_bf16_attention_norm_profile_svg(),
-                BF16_PV_OUTPUT_CHART: bf16_pv_output_svg()}
+                BF16_PV_OUTPUT_CHART: bf16_pv_output_svg(),
+                BF16_VALUE_PV_CHART: bf16_value_pv_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

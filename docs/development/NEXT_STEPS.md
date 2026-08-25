@@ -75,6 +75,8 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   layer retains exactly one FP32→BF16 plus one BF16→FP32 cast;
 - [x] reject direct BF16 P×V output before timing: both interleaved BTHD and
   zero-stride GQA descriptors return backend status 6; remove candidate APIs;
+- [x] reject BF16 V with FP32 probabilities/output before timing for the same
+  two descriptors; close the current vendor mixed-dtype cast track;
 - [x] populate B1 KV cache from one full-sequence prefill instead of token replay;
 - [x] support batched cached decode with batch-aware KV Storage;
 - [x] add opt-in BF16 KV Storage with FP32 accumulation, complete-logit gates and a retained

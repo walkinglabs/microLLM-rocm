@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "record_type": "bf16_value_pv_capability_summary",
+  "raw_cases": 2,
+  "supported_cases": 0,
+  "unsupported_status": 6,
+  "timed_cases": 0,
+  "public_api_retained": false,
+  "model_route_created": false,
+  "decision": "reject BF16 V with FP32 probabilities on the current backend"
+}

@@ -418,6 +418,8 @@ the chronological details are in the [optimization log](docs/optimization-log/RE
   before another route is proposed.
 - direct BF16 P×V output is rejected before timing: both interleaved BTHD and zero-stride GQA
   descriptors return backend status 6, so candidate APIs were removed and no model claim exists.
+- retaining BF16 V with FP32 probabilities/context is rejected by the same two descriptors;
+  both directions of the remaining vendor mixed-dtype cast shortcut are therefore closed.
 
 </details>
 

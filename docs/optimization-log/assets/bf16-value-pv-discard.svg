@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="620" viewBox="0 0 1500 620">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="750.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 242 · BF16 V Input for P×V</text>
+<text x="750.0" y="82.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">FP32 probabilities + BF16 V + FP32 compute/output</text>
+<rect x="170" y="155" width="500" height="235" rx="14" fill="#fff1f2" stroke="#e11d48" stroke-width="3"/>
+<text x="420.0" y="212.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#9f1239" text-anchor="middle" font-weight="700">Interleaved BTHD</text>
+<text x="420.0" y="282.0" font-family="Inter,Arial,sans-serif" font-size="34" fill="#e11d48" text-anchor="middle" font-weight="700">status 6</text>
+<text x="420.0" y="338.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474" text-anchor="middle" font-weight="400">unsupported before timing</text>
+<rect x="780" y="155" width="500" height="235" rx="14" fill="#fff1f2" stroke="#e11d48" stroke-width="3"/>
+<text x="1030.0" y="212.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#9f1239" text-anchor="middle" font-weight="700">Zero-stride GQA BTHD</text>
+<text x="1030.0" y="282.0" font-family="Inter,Arial,sans-serif" font-size="34" fill="#e11d48" text-anchor="middle" font-weight="700">status 6</text>
+<text x="1030.0" y="338.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474" text-anchor="middle" font-weight="400">unsupported before timing</text>
+<text x="750.0" y="475.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#b42335" text-anchor="middle" font-weight="700">Supported 0 / 2 · timed 0 · model routes 0</text>
+<text x="750.0" y="530.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474" text-anchor="middle" font-weight="700">Both remaining vendor mixed-dtype cast routes are now closed</text>
+<text x="750.0" y="580.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">Candidate APIs removed; future work needs a different kernel architecture</text>
+</svg>

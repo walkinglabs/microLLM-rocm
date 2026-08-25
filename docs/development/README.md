@@ -504,3 +504,5 @@ the next gate. Records are append-only except for factual corrections.
   beginner-friendly map of the final per-layer cast pair.
 - [2026-08-25-bf16-pv-output-discard.md](2026-08-25-bf16-pv-output-discard.md):
   beginner-friendly backend capability rejection before timing.
+- [2026-08-25-bf16-value-pv-discard.md](2026-08-25-bf16-value-pv-discard.md):
+  closes the opposite mixed-dtype P×V boundary with the same evidence gate.
