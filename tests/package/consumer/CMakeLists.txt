@@ -19,6 +19,10 @@ endif()
 if(NOT DEFINED microLLM_HIP_ARCHITECTURES)
     message(FATAL_ERROR "package Config is missing HIP architecture metadata")
 endif()
+if(NOT microLLM_DEFAULT_TARGET STREQUAL "microLLM::microLLM" OR
+   NOT TARGET microLLM::microLLM)
+    message(FATAL_ERROR "package Config is missing its default C++ SDK target")
+endif()
 if(NOT DEFINED microLLM_WITH_ROCWMMA OR
    (microLLM_WITH_ROCWMMA AND NOT microLLM_WITH_HIP))
     message(FATAL_ERROR "package Config has invalid rocWMMA feature metadata")
@@ -76,7 +80,7 @@ foreach(optional_component capi multi_gpu)
 endforeach()
 
 add_executable(microllm_package_consumer main.cpp)
-target_link_libraries(microllm_package_consumer PRIVATE microLLM::inference)
+target_link_libraries(microllm_package_consumer PRIVATE microLLM::microLLM)
 target_compile_features(microllm_package_consumer PRIVATE cxx_std_20)
 
 if(microLLM_capi_FOUND)

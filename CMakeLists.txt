@@ -137,6 +137,17 @@ if(MICROLLM_HAS_RCCL)
     add_subdirectory(src/multi_gpu)
 endif()
 
+# A stable one-target entry point for ordinary C++ consumers. It intentionally
+# contains the complete single-device training and inference surface without
+# pulling the optional C ABI, PyTorch adapter, or RCCL backend into every app.
+add_library(microllm_sdk INTERFACE)
+add_library(microLLM::microLLM ALIAS microllm_sdk)
+set_target_properties(microllm_sdk PROPERTIES EXPORT_NAME microLLM)
+target_link_libraries(microllm_sdk INTERFACE
+    microllm::training
+    microllm::inference
+)
+
 if(MICROLLM_BUILD_TESTS)
     include(CTest)
 endif()
@@ -185,7 +196,7 @@ if(MICROLLM_BUILD_TESTS)
 endif()
 
 install(DIRECTORY include/microllm DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(TARGETS microllm_project_options microllm_build_config
+install(TARGETS microllm_project_options microllm_build_config microllm_sdk
         EXPORT microLLMTargets)
 
 set(MICROLLM_INSTALL_CMAKEDIR

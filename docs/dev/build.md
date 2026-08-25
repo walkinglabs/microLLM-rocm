@@ -147,8 +147,10 @@ lib/cmake/microLLM/microLLMConfigVersion.cmake
 lib/cmake/microLLM/microLLMTargets.cmake
 ```
 
-Consumers use `find_package(microLLM CONFIG REQUIRED)` and link namespaced targets such
-as `microLLM::core`, `microLLM::model` or `microLLM::inference`. Linking a higher-level
+Consumers use `find_package(microLLM CONFIG REQUIRED)`. The recommended
+`microLLM::microLLM` target carries the complete single-device C++ training and
+inference SDK. Advanced consumers can instead link narrower targets such as
+`microLLM::core`, `microLLM::model` or `microLLM::inference`; linking a higher-level
 target propagates its public microLLM dependencies. When the C API is built, plain-C
 consumers request the `capi` component and link `microLLM::capi`. A package produced by
 a HIP build also resolves HIP and hipBLASLt; an RCCL build additionally resolves RCCL.
@@ -162,6 +164,13 @@ instructions executable instead of treating them as documentation-only text.
 Think of the Config package as an installed instruction card: the consumer names the
 capability it needs, while CMake reads the card and supplies include directories,
 libraries, compile requirements, and backend dependencies. A minimal consumer uses:
+
+```cmake
+find_package(microLLM 0.1 CONFIG REQUIRED)
+target_link_libraries(app PRIVATE microLLM::microLLM)
+```
+
+To keep the dependency request narrow, name the capability explicitly:
 
 ```cmake
 find_package(microLLM 0.1 CONFIG REQUIRED COMPONENTS inference)

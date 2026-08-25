@@ -562,9 +562,9 @@ ctest --preset rccl-release
 ### Use microLLM from another CMake project
 
 microLLM installs a relocatable CMake Config package. In plain language, the Config file
-is the SDK's address card: another project names the capability it needs, and CMake
-supplies the headers, libraries, C++20 requirement, and enabled backend dependencies.
-Do not copy source files or hand-write `-I`, `-L`, and `-l` flags.
+is the SDK's address card: another project asks for microLLM, and CMake supplies the
+headers, libraries, C++20 requirement, and enabled backend dependencies. Do not copy
+source files or hand-write `-I`, `-L`, and `-l` flags.
 
 #### 1. Install microLLM
 
@@ -582,17 +582,17 @@ directory instead. Installation never changes which backends were compiled into 
 
 #### 2. Create a separate C++ consumer
 
-Put these two files in a new directory. `CMakeLists.txt` requests the inference
-component and links one public target; its lower-level dependencies are carried
-automatically:
+Put these two files in a new directory. `microLLM::microLLM` is the simplest supported
+target: it contains the complete single-device C++ training and inference SDK, and its
+lower-level dependencies are carried automatically:
 
 ```cmake
 cmake_minimum_required(VERSION 3.25)
 project(my_microLLM_app LANGUAGES CXX)
 
-find_package(microLLM 0.1 CONFIG REQUIRED COMPONENTS inference)
+find_package(microLLM 0.1 CONFIG REQUIRED)
 add_executable(my_app main.cpp)
-target_link_libraries(my_app PRIVATE microLLM::inference)
+target_link_libraries(my_app PRIVATE microLLM::microLLM)
 ```
 
 ```cpp
@@ -655,6 +655,7 @@ Installed targets are:
 
 | Target | Purpose |
 |---|---|
+| `microLLM::microLLM` | Recommended complete single-device C++ SDK |
 | `microLLM::runtime` | Device, Stream, Event and memory runtime |
 | `microLLM::core` | Storage, Tensor, dtype and view primitives |
 | `microLLM::profiling` | In-process trace API |
@@ -672,8 +673,8 @@ Installed targets are:
 `microLLM_WITH_HIP`,
 `microLLM_WITH_HIPBLASLT`, `microLLM_WITH_ROCWMMA`, `microLLM_WITH_RCCL`, `microLLM_WITH_CAPI`,
 `microLLM_WITH_SANITIZERS`, `microLLM_WITH_COVERAGE`, and
-`microLLM_AVAILABLE_COMPONENTS`. It resolves the backend dependencies recorded by the
-installed build; a CPU installation does not require ROCm. Mixing libraries from one
+`microLLM_AVAILABLE_COMPONENTS` and `microLLM_DEFAULT_TARGET`. It resolves the backend
+dependencies recorded by the installed build; a CPU installation does not require ROCm. Mixing libraries from one
 build with a config file from another is unsupported, so install the complete prefix
 atomically. Before the project reaches 1.0, version compatibility is limited to the
 installed `0.1.x` minor line.

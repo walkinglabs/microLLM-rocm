@@ -2,9 +2,9 @@ cmake_minimum_required(VERSION 3.25)
 
 project(microLLMPackageExample LANGUAGES CXX)
 
-# microLLM is a Config package. The caller selects a capability and links the
-# corresponding imported target; include paths and lower-level libraries follow it.
-find_package(microLLM 0.1 CONFIG REQUIRED COMPONENTS inference)
+# The default target exposes the complete single-device C++ SDK. Applications that
+# need a smaller dependency surface can request a component and link its target.
+find_package(microLLM 0.1 CONFIG REQUIRED)
 
 add_executable(microllm_package_example main.cpp)
-target_link_libraries(microllm_package_example PRIVATE microLLM::inference)
+target_link_libraries(microllm_package_example PRIVATE microLLM::microLLM)
