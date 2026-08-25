@@ -379,6 +379,10 @@ the chronological details are in the [optimization log](docs/optimization-log/RE
   no global score tensor; 42 fresh processes cover real Qwen/DeepSeek head grids at T32–2048,
   improving the current operator by 1.260×–4.041× while retaining short scalar counterexamples
   and keeping public/model dispatch unchanged pending fallback and full-logit gates.
+- `online_causal_gqa_attention_bthd` is now a public BF16-input/FP32-output operator with
+  batch-native gfx942 dispatch, explicit tail/width/architecture fallback and auditable counters;
+  42 fresh public-API processes pass CPU/PyTorch/HIP outputs, with native cases 1.534×–2.456×
+  current while exact fallbacks retain 0.607×–0.696× counterexamples; model use remains disabled.
 
 </details>
 
@@ -577,7 +581,7 @@ Installed targets are:
 `microLLMConfig.cmake` exposes `microLLM_VERSION` and its `MAJOR`, `MINOR`, and
 `PATCH` fields, plus `microLLM_CXX_STANDARD`, `microLLM_HIP_ARCHITECTURES`,
 `microLLM_WITH_HIP`,
-`microLLM_WITH_HIPBLASLT`, `microLLM_WITH_RCCL`, `microLLM_WITH_CAPI`,
+`microLLM_WITH_HIPBLASLT`, `microLLM_WITH_ROCWMMA`, `microLLM_WITH_RCCL`, `microLLM_WITH_CAPI`,
 `microLLM_WITH_SANITIZERS`, `microLLM_WITH_COVERAGE`, and
 `microLLM_AVAILABLE_COMPONENTS`. It resolves the backend dependencies recorded by the
 installed build; a CPU installation does not require ROCm. Mixing libraries from one
@@ -610,13 +614,13 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 533/533 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
-| CPU Debug | 338/338 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
-| ASan/UBSan CPU | 336/336 | host lifetime, external Storage and instrumented-package linking |
-| MI300X/gfx942 HIP label | 183/183 | allocator/arena/Stream/Graph, rocWMMA online Attention, grouped/exact vendor solutions, BF16/FP8 and model paths |
-| PyTorch-enabled CPU build | 312/312 | dispatcher parity, 32-step BF16 optimizer state, full graph/model oracle and all package paths |
+| Full CPU/HIP configuration | 536/536 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
+| CPU Debug | 340/340 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
+| ASan/UBSan CPU | 338/338 | host lifetime, external Storage and instrumented-package linking |
+| MI300X/gfx942 HIP label | 184/184 | allocator/arena/Stream/Graph, public rocWMMA online Attention, grouped/exact vendor solutions, BF16/FP8 and model paths |
+| PyTorch-enabled CPU build | 314/314 | dispatcher parity, 32-step BF16 optimizer state, full graph/model oracle and all package paths |
 | Multi-GPU/RCCL | 12/12 | collectives, global-batch equivalence, gradient buckets, DDP trainer/CLI and per-device hipBLASLt ownership; RCCL label 14/14 with package gates |
-| Registered test files | 101 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| Registered test files | 102 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
 | CPU source coverage | 78.4% lines / 86.6% functions / 59.1% branches | 8,878/11,329 lines; quiescent handoff and other HIP-only branches remain visible; GCC 13.3 + gcovr 8.3 |
 

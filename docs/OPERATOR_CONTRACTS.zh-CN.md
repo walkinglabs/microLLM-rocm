@@ -42,6 +42,7 @@
 | `attention_probability_value_bthd` | probability `[B,H,T,T]`、value `[B,T,H,D]`，输出 `[B,T,H,D]` | `(P @ V.transpose(1,2)).transpose(1,2)` | `3e-5,3e-5` | 非连续/非 FP32、B/H/T/device 不匹配 |
 | `attention_probability_value_gqa_bthd` | P `[B,H,T,T]`、V `[B,T,KV,D]`、`H=KV×R`，输出 `[B,T,H,D]` | 先在 dim2 repeat V，再用上项 | `3e-5,3e-5` | B/H/KV/T/device/连续性或 R 错 |
 | `causal_gqa_attention_bthd` | Q `[B,H,T,D]`、K `[B,KV,T,D]`、V `[B,T,KV,D]`，输出 `[B,T,H,D]` | causal GQA 后 `transpose(1,2)` | 前向 `3e-5`、整图 `2e-3` | 连续性、B/T/D/device、`H=KV*repeats` 或 scale 错 |
+| `online_causal_gqa_attention_bthd` | BF16 Q/K/V沿用上项布局，输出FP32；gfx942上T整32且D64/128走online rocWMMA，其余走FP32 fallback | 输入先按BF16舍入，PyTorch FP32 causal GQA | native Max `2e-3`、RMS `2e-4`；fallback `3e-5` | 非BF16、连续性、B/T/D/device、head关系或scale错；tail/batch必须fallback |
 | `repeat_interleave` | 维 d 从 D 变为 `D×repeats` | `torch.repeat_interleave` | 精确 | dim 越界、repeats<=0、溢出 |
 | `repeat_gqa_kv_bthd` | K `[B,KV,T,D]`、V `[B,T,KV,D]` → H=KV×R 两个布局 | 分别在 dim1/dim2 `repeat_interleave` | 精确 | B/KV/T/D/device/连续性或 R 错 |
 

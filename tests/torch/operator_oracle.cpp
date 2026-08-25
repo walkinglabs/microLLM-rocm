@@ -165,6 +165,13 @@ void emit_forward_cases() {
     const auto attention_value = f32({1, 2, 3, 4, 5, 6}, {1, 1, 3, 2});
     emit("causal_gqa_attention", causal_gqa_attention(
         attention_query, attention_key, attention_value, 2, 0.5F));
+    emit("online_causal_gqa_attention_bthd",
+         online_causal_gqa_attention_bthd(
+             attention_query.cast(DType::BFloat16),
+             attention_key.cast(DType::BFloat16),
+             attention_value.transpose(1, 2).contiguous().cast(
+                 DType::BFloat16),
+             2, 0.5F));
     emit("attention_probability_value_bthd",
          attention_probability_value_bthd(
              f32({1, 0, 0.25F, 0.75F,
@@ -595,6 +602,13 @@ void emit_invalid_shape_cases() {
                   (void)causal_gqa_attention_bthd(
                       Tensor({1, 2, 3, 2}), Tensor({1, 1, 3, 2}),
                       Tensor({1, 3, 2, 2}), 2, 0.5F);
+              }));
+    emit_bool("invalid_online_causal_gqa_bthd_shape", rejected([&] {
+                  (void)online_causal_gqa_attention_bthd(
+                      Tensor({1, 2, 3, 2}, DType::BFloat16),
+                      Tensor({1, 1, 3, 2}, DType::BFloat16),
+                      Tensor({1, 3, 2, 2}, DType::BFloat16),
+                      2, 0.5F);
               }));
     emit_bool("invalid_repeat_count", rejected([&] { (void)repeat_interleave(matrix, 0, 0); }));
     emit_bool("invalid_repeat_gqa_kv_bthd_shape", rejected([&] {

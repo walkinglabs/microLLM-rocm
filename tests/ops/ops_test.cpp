@@ -969,6 +969,33 @@ TEST(CpuOpsTest, AttentionBthdBackwardPrimitivesAndGqaMatchMaterializedReference
                  std::invalid_argument);
 }
 
+TEST(CpuOpsTest, OnlineCausalGqaBthdFallsBackFromBf16AndChecksContract) {
+    const auto query = Tensor::from_vector(
+        {0.5F, -1, 1.5F, 0.25F, -0.5F, 1,
+         0.75F, -0.25F, 1, 0.5F, -1, 0.25F},
+        {1, 2, 3, 2}, DType::BFloat16);
+    const auto key = Tensor::from_vector(
+        {0.5F, 1, -0.5F, 0.25F, 1.5F, -1},
+        {1, 1, 3, 2}, DType::BFloat16);
+    const auto value = Tensor::from_vector(
+        {1, 2, 3, 4, 5, 6}, {1, 3, 1, 2}, DType::BFloat16);
+    const auto expected = causal_gqa_attention_bthd(
+        query.cast(DType::Float32), key.cast(DType::Float32),
+        value.cast(DType::Float32), 2, 0.5F);
+    const auto actual = online_causal_gqa_attention_bthd(
+        query, key, value, 2, 0.5F);
+    EXPECT_EQ(actual.dtype(), DType::Float32);
+    EXPECT_EQ(actual.shape(), (Shape{1, 3, 2, 2}));
+    expect_near(actual.to_vector(), expected.to_vector());
+    EXPECT_THROW((void)online_causal_gqa_attention_bthd(
+                     query.cast(DType::Float32), key, value, 2, 0.5F),
+                 std::invalid_argument);
+    EXPECT_THROW((void)online_causal_gqa_attention_bthd(
+                     query, key, Tensor({1, 3, 2, 2}, DType::BFloat16),
+                     2, 0.5F),
+                 std::invalid_argument);
+}
+
 TEST(CpuOpsTest, PairedGqaRepeatMatchesSeparateKeyValuePaths) {
     const auto key = Tensor::from_vector(
         {1, 2, 3, 4, 10, 20, 30, 40}, {1, 2, 2, 2});

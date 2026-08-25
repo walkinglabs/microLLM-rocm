@@ -118,6 +118,9 @@ ROCWMMA_QK_CHART = ROOT / "assets" / "rocwmma-qk-tile.svg"
 ROCWMMA_ONLINE_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
                        "2026-08-25-rocwmma-online-attention")
 ROCWMMA_ONLINE_CHART = ROOT / "assets" / "rocwmma-online-attention.svg"
+ROCWMMA_OPERATOR_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
+                         "2026-08-25-rocwmma-online-operator")
+ROCWMMA_OPERATOR_CHART = ROOT / "assets" / "rocwmma-online-operator.svg"
 
 
 def rows() -> list[dict]:
@@ -2898,6 +2901,62 @@ def rocwmma_online_attention_svg() -> str:
     return "\n".join(parts)
 
 
+def rocwmma_online_operator_svg() -> str:
+    summary = json.loads((ROCWMMA_OPERATOR_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    rows = summary["comparisons"]
+    width, height = 1700, 790
+    chart_x, chart_y, chart_w, chart_h = 120, 150, 1460, 410
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 229 · Public Online-Attention Operator", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "42 fresh processes · B1/B2 native routes · T31/T33/D32 explicit fallbacks",
+             16, "#5b6474", anchor="middle"),
+        f'<rect x="{chart_x}" y="{chart_y}" width="{chart_w}" height="{chart_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+    ]
+
+    def y(value: float) -> float:
+        return chart_y + chart_h * (2.7 - value) / 2.2
+
+    for tick in (0.5, 1.0, 1.5, 2.0, 2.5):
+        position = y(tick)
+        color = "#2563eb" if tick == 1.0 else "#e5e9f0"
+        parts.append(f'<line x1="{chart_x}" y1="{position:.1f}" '
+                     f'x2="{chart_x+chart_w}" y2="{position:.1f}" stroke="{color}"/>')
+        parts.append(text(chart_x - 10, position + 5, f"{tick:.1f}×", 13,
+                          "#5b6474", anchor="end"))
+    group_width = chart_w / len(rows)
+    for index, row in enumerate(rows):
+        center = chart_x + group_width * (index + 0.5)
+        value = row["candidate_over_current"]
+        color = "#16a34a" if row["native"] else "#f59e0b"
+        base = y(0.5)
+        top = y(value)
+        parts.append(f'<rect x="{center-27:.1f}" y="{top:.1f}" width="54" '
+                     f'height="{base-top:.1f}" fill="{color}" rx="5"/>')
+        parts.append(text(center, top - 8, f"{value:.2f}×", 12, color,
+                          anchor="middle", weight=700))
+        label = row["case"].replace("qwen-", "Q-").replace("deep-", "D-")
+        parts.append(text(center, chart_y + chart_h + 18, label, 11,
+                          "#5b6474", anchor="end", rotate=-48))
+    parts.append(text(width / 2, 665,
+                      "10/10 native cases ≥1.534× · exact routing counters · timed payload transfer = 0",
+                      18, "#166534", anchor="middle", weight=700))
+    parts.append(text(width / 2, 710,
+                      "Fallbacks stay exact but only 0.607×–0.696× because BF16→FP32 casts are explicit",
+                      16, "#9a4f00", anchor="middle", weight=700))
+    parts.append(text(width / 2, 752,
+                      "Green = native rocWMMA · orange = fallback · vertical axis is candidate/current Event speed",
+                      13, "#5b6474", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -2942,7 +3001,8 @@ def main() -> int:
                 QUIESCENT_HANDOFF_CHART: quiescent_allocator_handoff_svg(),
                 OPTIMIZER_GRAPH_MODEL_CHART: optimizer_graph_model_gate_svg(),
                 ROCWMMA_QK_CHART: rocwmma_qk_tile_svg(),
-                ROCWMMA_ONLINE_CHART: rocwmma_online_attention_svg()}
+                ROCWMMA_ONLINE_CHART: rocwmma_online_attention_svg(),
+                ROCWMMA_OPERATOR_CHART: rocwmma_online_operator_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

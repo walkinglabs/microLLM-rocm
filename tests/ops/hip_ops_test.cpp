@@ -2844,6 +2844,94 @@ TEST(HipOpsTest, PairedGqaRepeatForwardBackwardMatchSeparateWithoutTransfers) {
     enable_attention_paired_gqa_repeat(false);
 }
 
+TEST(HipOpsTest, RocwmmaOnlineGqaBthdMatchesCpuForBatchAndTailFallback) {
+    require_gpu();
+    if (!rocwmma_online_attention_available() ||
+        !runtime::device_info(Device::hip()).architecture.starts_with("gfx942")) {
+        GTEST_SKIP() << "rocWMMA online Attention requires a gfx942 build";
+    }
+    constexpr std::int64_t batches = 2;
+    constexpr std::int64_t heads = 4;
+    constexpr std::int64_t kv_heads = 2;
+    constexpr std::int64_t sequence = 32;
+    constexpr std::int64_t width = 64;
+    std::vector<float> query_values(
+        static_cast<std::size_t>(batches * heads * sequence * width));
+    std::vector<float> key_values(
+        static_cast<std::size_t>(batches * kv_heads * sequence * width));
+    std::vector<float> value_values(key_values.size());
+    for (std::size_t index = 0; index < query_values.size(); ++index) {
+        query_values[index] =
+            static_cast<float>(static_cast<int>(index % 29) - 14) / 32.0F;
+    }
+    for (std::size_t index = 0; index < key_values.size(); ++index) {
+        key_values[index] =
+            static_cast<float>(static_cast<int>(index % 31) - 15) / 31.0F;
+        value_values[index] =
+            static_cast<float>(static_cast<int>(index % 37) - 18) / 37.0F;
+    }
+    const auto query = Tensor::from_vector(
+        query_values, {batches, heads, sequence, width}, DType::BFloat16);
+    const auto key = Tensor::from_vector(
+        key_values, {batches, kv_heads, sequence, width}, DType::BFloat16);
+    const auto value = Tensor::from_vector(
+        value_values, {batches, sequence, kv_heads, width}, DType::BFloat16);
+    const auto scale = 1.0F / std::sqrt(static_cast<float>(width));
+    const auto expected = online_causal_gqa_attention_bthd(
+        query, key, value, heads / kv_heads, scale);
+    const auto gpu = Device::hip(0);
+    const auto device_query = query.to(gpu);
+    const auto device_key = key.to(gpu);
+    const auto device_value = value.to(gpu);
+    runtime::reset_transfer_stats();
+    clear_rocwmma_online_attention_stats();
+    const auto actual = online_causal_gqa_attention_bthd(
+        device_query, device_key, device_value, heads / kv_heads, scale);
+    runtime::synchronize(gpu);
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    EXPECT_EQ(actual.dtype(), DType::Float32);
+    EXPECT_EQ(actual.shape(), (Shape{batches, sequence, heads, width}));
+    EXPECT_EQ(rocwmma_online_attention_native_calls(), 1U);
+    EXPECT_EQ(rocwmma_online_attention_fallback_calls(), 0U);
+    expect_near(actual.to_vector(), expected.to_vector(), 2.0e-3F);
+
+    constexpr std::int64_t tail_sequence = 33;
+    std::vector<float> tail_query_values(
+        static_cast<std::size_t>(heads * tail_sequence * width), 0.125F);
+    std::vector<float> tail_key_values(
+        static_cast<std::size_t>(kv_heads * tail_sequence * width), -0.25F);
+    std::vector<float> tail_value_values(tail_key_values.size(), 0.5F);
+    const auto tail_query = Tensor::from_vector(
+        tail_query_values, {1, heads, tail_sequence, width},
+        DType::BFloat16);
+    const auto tail_key = Tensor::from_vector(
+        tail_key_values, {1, kv_heads, tail_sequence, width},
+        DType::BFloat16);
+    const auto tail_value = Tensor::from_vector(
+        tail_value_values, {1, tail_sequence, kv_heads, width},
+        DType::BFloat16);
+    const auto tail_expected = online_causal_gqa_attention_bthd(
+        tail_query, tail_key, tail_value, heads / kv_heads, scale);
+    const auto device_tail_query = tail_query.to(gpu);
+    const auto device_tail_key = tail_key.to(gpu);
+    const auto device_tail_value = tail_value.to(gpu);
+    clear_rocwmma_online_attention_stats();
+    runtime::reset_transfer_stats();
+    const auto tail_actual = online_causal_gqa_attention_bthd(
+        device_tail_query, device_tail_key, device_tail_value,
+        heads / kv_heads, scale);
+    runtime::synchronize(gpu);
+    const auto tail_transfers = runtime::transfer_stats();
+    EXPECT_EQ(tail_transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(tail_transfers.device_to_host_calls, 0U);
+    EXPECT_EQ(rocwmma_online_attention_native_calls(), 0U);
+    EXPECT_EQ(rocwmma_online_attention_fallback_calls(), 1U);
+    expect_near(tail_actual.to_vector(), tail_expected.to_vector(), 2.0e-3F);
+    clear_rocwmma_online_attention_stats();
+}
+
 TEST(HipOpsTest, LongCausalGqaBthdForwardBackwardMatchCpuWithoutTransfers) {
     require_gpu();
     constexpr std::int64_t batches = 1;

@@ -202,6 +202,18 @@ def pytorch_references(actual):
     attention_probabilities = causal_softmax(
         attention_query @ expanded_key.transpose(-2, -1) * 0.5)
     record(refs, "causal_gqa_attention", attention_probabilities @ expanded_value)
+    online_query = attention_query.to(torch.bfloat16).float()
+    online_key = attention_key.to(torch.bfloat16).float()
+    online_value = attention_value.to(torch.bfloat16).float()
+    online_probabilities = causal_softmax(
+        online_query @ torch.repeat_interleave(
+            online_key, 2, dim=1).transpose(-2, -1) * 0.5)
+    record(
+        refs,
+        "online_causal_gqa_attention_bthd",
+        (online_probabilities @
+         torch.repeat_interleave(online_value, 2, dim=1)).transpose(1, 2),
+    )
     layout_probabilities = tensor(
         [1, 0, 0.25, 0.75, 1, 0, 0.5, 0.5], (1, 2, 2, 2))
     layout_value = tensor([1, 2, 10, 20, 3, 4, 30, 40], (1, 2, 2, 2))
@@ -808,6 +820,7 @@ class OperatorParityTest(unittest.TestCase):
             "invalid_attention_probability_gradient_gqa_bthd_shape",
             "invalid_attention_value_gradient_bthd_shape",
             "invalid_causal_gqa_bthd_shape",
+            "invalid_online_causal_gqa_bthd_shape",
             "invalid_repeat_count",
             "invalid_repeat_gqa_kv_bthd_shape",
             "invalid_embedding_backward_shape",

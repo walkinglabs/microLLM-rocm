@@ -737,6 +737,17 @@ void causal_gqa_attention_out_(
 [[nodiscard]] Tensor causal_gqa_attention_bthd(
     const Tensor& query, const Tensor& key, const Tensor& value,
     std::int64_t repeats, float scale, const OpContext& context = {});
+// BF16-input, FP32-output inference Attention. On gfx942, tile-aligned T and
+// D64/D128 use rocWMMA online QK/PV without a global score Tensor. Every other
+// supported shape explicitly falls back through the FP32 reference contract.
+[[nodiscard]] bool rocwmma_online_attention_available();
+[[nodiscard]] std::size_t rocwmma_online_attention_native_calls();
+[[nodiscard]] std::size_t rocwmma_online_attention_fallback_calls();
+void clear_rocwmma_online_attention_stats();
+[[nodiscard]] Tensor online_causal_gqa_attention_bthd(
+    const Tensor& query_bf16, const Tensor& key_bf16,
+    const Tensor& value_bf16, std::int64_t repeats, float scale,
+    const OpContext& context = {});
 [[nodiscard]] TensorPair causal_gqa_attention_bthd_saved(
     const Tensor& query, const Tensor& key, const Tensor& value,
     std::int64_t repeats, float scale, const OpContext& context = {});

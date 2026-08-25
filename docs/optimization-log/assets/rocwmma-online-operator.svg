@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1700" height="790" viewBox="0 0 1700 790">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="850.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 229 · Public Online-Attention Operator</text>
+<text x="850.0" y="82.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">42 fresh processes · B1/B2 native routes · T31/T33/D32 explicit fallbacks</text>
+<rect x="120" y="150" width="1460" height="410" fill="#ffffff" stroke="#cbd3df" rx="10"/>
+<line x1="120" y1="560.0" x2="1580" y2="560.0" stroke="#e5e9f0"/>
+<text x="110.0" y="565.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">0.5×</text>
+<line x1="120" y1="466.8" x2="1580" y2="466.8" stroke="#2563eb"/>
+<text x="110.0" y="471.8" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">1.0×</text>
+<line x1="120" y1="373.6" x2="1580" y2="373.6" stroke="#e5e9f0"/>
+<text x="110.0" y="378.6" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">1.5×</text>
+<line x1="120" y1="280.5" x2="1580" y2="280.5" stroke="#e5e9f0"/>
+<text x="110.0" y="285.5" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">2.0×</text>
+<line x1="120" y1="187.3" x2="1580" y2="187.3" stroke="#e5e9f0"/>
+<text x="110.0" y="192.3" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">2.5×</text>
+<rect x="145.1" y="345.8" width="54" height="214.2" fill="#16a34a" rx="5"/>
+<text x="172.1" y="337.8" font-family="Inter,Arial,sans-serif" font-size="12" fill="#16a34a" text-anchor="middle" font-weight="700">1.65×</text>
+<text x="172.1" y="578.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="end" font-weight="400" transform="rotate(-48 172.1 578.0)">Q-b1-t32</text>
+<rect x="249.4" y="339.6" width="54" height="220.4" fill="#16a34a" rx="5"/>
+<text x="276.4" y="331.6" font-family="Inter,Arial,sans-serif" font-size="12" fill="#16a34a" text-anchor="middle" font-weight="700">1.68×</text>
+<text x="276.4" y="578.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="end" font-weight="400" transform="rotate(-48 276.4 578.0)">Q-b2-t32</text>
+<rect x="353.7" y="367.2" width="54" height="192.8" fill="#16a34a" rx="5"/>
+<text x="380.7" y="359.2" font-family="Inter,Arial,sans-serif" font-size="12" fill="#16a34a" text-anchor="middle" font-weight="700">1.53×</text>
+<text x="380.7" y="578.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="end" font-weight="400" transform="rotate(-48 380.7 578.0)">Q-b1-t512</text>
+<rect x="458.0" y="195.4" width="54" height="364.6" fill="#16a34a" rx="5"/>
+<text x="485.0" y="187.4" font-family="Inter,Arial,sans-serif" font-size="12" fill="#16a34a" text-anchor="middle" font-weight="700">2.46×</text>
+<text x="485.0" y="578.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="end" font-weight="400" transform="rotate(-48 485.0 578.0)">Q-b2-t512</text>
+<rect x="562.3" y="306.8" width="54" height="253.2" fill="#16a34a" rx="5"/>
+<text x="589.3" y="298.8" font-family="Inter,Arial,sans-serif" font-size="12" fill="#16a34a" text-anchor="middle" font-weight="700">1.86×</text>
+<text x="589.3" y="578.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="end" font-weight="400" transform="rotate(-48 589.3 578.0)">Q-b1-t1024</text>
+<rect x="666.6" y="326.8" width="54" height="233.2" fill="#16a34a" rx="5"/>
+<text x="693.6" y="318.8" font-family="Inter,Arial,sans-serif" font-size="12" fill="#16a34a" text-anchor="middle" font-weight="700">1.75×</text>
+<text x="693.6" y="578.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="end" font-weight="400" transform="rotate(-48 693.6 578.0)">D-b1-t32</text>
+<rect x="770.9" y="273.7" width="54" height="286.3" fill="#16a34a" rx="5"/>
+<text x="797.9" y="265.7" font-family="Inter,Arial,sans-serif" font-size="12" fill="#16a34a" text-anchor="middle" font-weight="700">2.04×</text>
+<text x="797.9" y="578.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="end" font-weight="400" transform="rotate(-48 797.9 578.0)">D-b2-t32</text>
+<rect x="875.1" y="207.8" width="54" height="352.2" fill="#16a34a" rx="5"/>
+<text x="902.1" y="199.8" font-family="Inter,Arial,sans-serif" font-size="12" fill="#16a34a" text-anchor="middle" font-weight="700">2.39×</text>
+<text x="902.1" y="578.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="end" font-weight="400" transform="rotate(-48 902.1 578.0)">D-b1-t512</text>
+<rect x="979.4" y="226.4" width="54" height="333.6" fill="#16a34a" rx="5"/>
+<text x="1006.4" y="218.4" font-family="Inter,Arial,sans-serif" font-size="12" fill="#16a34a" text-anchor="middle" font-weight="700">2.29×</text>
+<text x="1006.4" y="578.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="end" font-weight="400" transform="rotate(-48 1006.4 578.0)">D-b2-t512</text>
+<rect x="1083.7" y="348.2" width="54" height="211.8" fill="#16a34a" rx="5"/>
+<text x="1110.7" y="340.2" font-family="Inter,Arial,sans-serif" font-size="12" fill="#16a34a" text-anchor="middle" font-weight="700">1.64×</text>
+<text x="1110.7" y="578.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="end" font-weight="400" transform="rotate(-48 1110.7 578.0)">D-b1-t1024</text>
+<rect x="1188.0" y="535.0" width="54" height="25.0" fill="#f59e0b" rx="5"/>
+<text x="1215.0" y="527.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#f59e0b" text-anchor="middle" font-weight="700">0.63×</text>
+<text x="1215.0" y="578.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="end" font-weight="400" transform="rotate(-48 1215.0 578.0)">Q-tail31</text>
+<rect x="1292.3" y="534.0" width="54" height="26.0" fill="#f59e0b" rx="5"/>
+<text x="1319.3" y="526.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#f59e0b" text-anchor="middle" font-weight="700">0.64×</text>
+<text x="1319.3" y="578.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="end" font-weight="400" transform="rotate(-48 1319.3 578.0)">Q-tail33</text>
+<rect x="1396.6" y="523.6" width="54" height="36.4" fill="#f59e0b" rx="5"/>
+<text x="1423.6" y="515.6" font-family="Inter,Arial,sans-serif" font-size="12" fill="#f59e0b" text-anchor="middle" font-weight="700">0.70×</text>
+<text x="1423.6" y="578.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="end" font-weight="400" transform="rotate(-48 1423.6 578.0)">D-b2-tail33</text>
+<rect x="1500.9" y="540.1" width="54" height="19.9" fill="#f59e0b" rx="5"/>
+<text x="1527.9" y="532.1" font-family="Inter,Arial,sans-serif" font-size="12" fill="#f59e0b" text-anchor="middle" font-weight="700">0.61×</text>
+<text x="1527.9" y="578.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="end" font-weight="400" transform="rotate(-48 1527.9 578.0)">width32-fallback</text>
+<text x="850.0" y="665.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#166534" text-anchor="middle" font-weight="700">10/10 native cases ≥1.534× · exact routing counters · timed payload transfer = 0</text>
+<text x="850.0" y="710.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#9a4f00" text-anchor="middle" font-weight="700">Fallbacks stay exact but only 0.607×–0.696× because BF16→FP32 casts are explicit</text>
+<text x="850.0" y="752.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">Green = native rocWMMA · orange = fallback · vertical axis is candidate/current Event speed</text>
+</svg>

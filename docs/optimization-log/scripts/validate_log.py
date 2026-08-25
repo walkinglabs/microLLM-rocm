@@ -12685,6 +12685,91 @@ def validate_rocwmma_online_attention(
         max(int(row["current_score_bytes"]) for row in comparisons.values())
 
 
+def validate_rocwmma_online_operator(
+        errors: list[str]) -> tuple[int, float, float, int, int]:
+    data = REPOSITORY / "benchmarks/results/2026-08-25-rocwmma-online-operator"
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = {row["case"]: row for row in summary.get("comparisons", [])}
+    expected_boundary = {
+        "qwen-b2-t512": 2.4564286865246157,
+        "deep-b2-t512": 2.2901051421970333,
+        "qwen-tail33": 0.6393930882716267,
+        "width32-fallback": 0.6066797941096791,
+    }
+    keys = {(row.get("case"), int(row.get("process_run", -1))) for row in raw}
+    if summary.get("schema_version") != 1 or summary.get("status") != "pass" or \
+            summary.get("record_type") != "rocwmma_online_operator_summary" or \
+            summary.get("architecture") != "gfx942:sramecc+:xnack-" or \
+            summary.get("processes") != 42 or \
+            summary.get("runs_per_case") != 3 or \
+            summary.get("native_cases") != 10 or \
+            summary.get("fallback_cases") != 4 or \
+            summary.get("correctness_gate") is not True or \
+            summary.get("native_performance_gate") is not True or \
+            summary.get("routing_gate") is not True or \
+            summary.get("memory_gate") is not True or \
+            summary.get("fallback_counterexample") is not True or \
+            summary.get("model_gate_admitted") is not True or \
+            summary.get("model_route_accepted") is not False or \
+            summary.get("decision") != (
+                "admit explicit model-level gate; keep default model route disabled") or \
+            len(raw) != 42 or len(keys) != 42 or len(comparisons) != 14 or \
+            any(key not in comparisons or
+                abs(float(comparisons[key].get("candidate_over_current", 0.0)) - value) > 1.0e-12
+                for key, value in expected_boundary.items()) or \
+            any(row.get("schema_version") != 1 or row.get("status") != "pass" or
+                row.get("record_type") != "rocwmma_online_operator_measurement" or
+                row.get("accuracy_passed") is not True or
+                int(row.get("candidate_global_score_bytes", -1)) != 0 or
+                int(row.get("candidate_h2d_calls", -1)) != 0 or
+                int(row.get("candidate_d2h_calls", -1)) != 0 or
+                (row.get("native_expected") and
+                 (int(row.get("native_calls", -1)) != 25 or
+                  int(row.get("fallback_calls", -1)) != 0)) or
+                (not row.get("native_expected") and
+                 (int(row.get("native_calls", -1)) != 0 or
+                  int(row.get("fallback_calls", -1)) != 25))
+                for row in raw):
+        errors.append("rocWMMA public online operator evidence changed")
+    if verification != {
+            "schema_version": 1,
+            "status": "pass",
+            "raw_records": 42,
+            "expected_raw_records": 42,
+            "matrix_cases": 14,
+            "native_cases": 10,
+            "fallback_cases": 4,
+            "all_complete_outputs": True,
+            "routing_gate": True,
+            "native_performance_gate": True,
+            "fallback_counterexample": True,
+            "model_gate_admitted": True,
+            "model_route_accepted": False}:
+        errors.append("rocWMMA public online operator verification changed")
+    sources = (
+        ("online_causal_gqa_attention_bthd", REPOSITORY /
+         "include/microllm/ops/ops.h"),
+        ("launch_rocwmma_online_gqa_attention_bthd", REPOSITORY /
+         "src/ops/hip/rocwmma_attention.hip"),
+        ("fallback_counterexample", REPOSITORY /
+         "benchmarks/single_gpu/rocwmma_online_operator_matrix.py"),
+        ("model_gate_admitted", REPOSITORY /
+         "python/tests/test_rocwmma_online_operator_matrix.py"),
+    )
+    if any(token not in path.read_text(encoding="utf-8")
+           for token, path in sources):
+        errors.append("rocWMMA public online operator source/test changed")
+    native = [float(row["candidate_over_current"]) for row in comparisons.values()
+              if row["native"]]
+    fallback = [float(row["candidate_over_current"]) for row in comparisons.values()
+                if not row["native"]]
+    return len(raw), min(native), max(native), len(native), len(fallback)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -12891,7 +12976,8 @@ def validate_assets(errors: list[str]) -> None:
                  "quiescent-allocator-handoff.svg",
                  "optimizer-graph-model-gate.svg",
                  "rocwmma-qk-tile.svg",
-                 "rocwmma-online-attention.svg"):
+                 "rocwmma-online-attention.svg",
+                 "rocwmma-online-operator.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -13320,6 +13406,9 @@ def main() -> int:
     rocwmma_online_rows, rocwmma_online_minimum, rocwmma_online_maximum, \
         rocwmma_online_cases, rocwmma_online_score_bytes = \
         validate_rocwmma_online_attention(errors)
+    rocwmma_operator_rows, rocwmma_operator_minimum, \
+        rocwmma_operator_maximum, rocwmma_operator_native, \
+        rocwmma_operator_fallback = validate_rocwmma_online_operator(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -13704,6 +13793,9 @@ def main() -> int:
           f"rocwmma_online={rocwmma_online_rows}/{rocwmma_online_cases}/"
           f"{rocwmma_online_minimum:.3f}/{rocwmma_online_maximum:.3f}/"
           f"{rocwmma_online_score_bytes} "
+          f"rocwmma_operator={rocwmma_operator_rows}/"
+          f"{rocwmma_operator_native}/{rocwmma_operator_fallback}/"
+          f"{rocwmma_operator_minimum:.3f}/{rocwmma_operator_maximum:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

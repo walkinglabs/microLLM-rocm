@@ -3738,3 +3738,18 @@ PV仍只有0.172×。真正的转折是把softmax权重显式转BF16，再用2/4
 准入带batch/tail/architecture fallback的公共operator，模型路由继续关闭。
 
 ![rocWMMA online Attention](assets/rocwmma-online-attention.svg)
+
+## 246. Experiment 229：快kernel终于有了公共合同
+
+新`online_causal_gqa_attention_bthd`固定BF16 Q/K/V、FP32 BTHD输出。gfx942、T整32、
+D64/128走online；其他合法shape显式cast FP32并调用当前路径。native/fallback计数让测试能证明
+真正dispatch，而不是看到好数字后猜。
+
+CPU fallback、PyTorch BF16-rounded oracle、HIP batch2和T33全部通过。42进程公共API矩阵中，
+10个native case为当前路径1.534×–2.456×且timed payload transfer为0；4个T31/T33/D32 fallback
+数值精确，但只有0.607×–0.696×。慢fallback被保留为真实代价。
+
+CMake Config新增`microLLM_WITH_ROCWMMA`，header-only实现不会泄露成外部SDK强制链接项。下一步
+只做显式模型A/B；operator保留不等于模型默认启用。
+
+![Public online operator](assets/rocwmma-online-operator.svg)

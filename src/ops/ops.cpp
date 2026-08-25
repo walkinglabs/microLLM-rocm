@@ -12,6 +12,7 @@
 
 #include <microllm/base/low_precision.h>
 #include <microllm/runtime/memory.h>
+#include <microllm/runtime/runtime.h>
 
 #if MICROLLM_HAS_HIP
 #include "hip/kernels.h"
@@ -27,6 +28,8 @@ thread_local bool attention_gqa_value_broadcast = false;
 thread_local bool attention_gqa_forward_value_broadcast = false;
 thread_local bool inference_bthd_attention = false;
 thread_local bool inference_bthd_bf16_qk = false;
+thread_local std::size_t rocwmma_online_native_calls = 0;
+thread_local std::size_t rocwmma_online_fallback_calls = 0;
 
 float fp8_finite_maximum(DType dtype) {
     if (dtype == DType::Float8E4M3FNUZ) return 240.0F;
@@ -3981,6 +3984,36 @@ void validate_causal_gqa_bthd(const Tensor& query, const Tensor& key,
     }
 }
 
+void validate_online_causal_gqa_bthd(
+    const Tensor& query, const Tensor& key, const Tensor& value,
+    std::int64_t repeats, float scale) {
+    if (query.dtype() != DType::BFloat16 ||
+        key.dtype() != DType::BFloat16 ||
+        value.dtype() != DType::BFloat16) {
+        throw std::invalid_argument(
+            "online causal GQA BTHD requires BF16 Q/K/V inputs");
+    }
+    require_same_device(query, key);
+    require_same_device(query, value);
+    if (query.ndim() != 4 || key.ndim() != 4 || value.ndim() != 4 ||
+        query.shape()[0] != key.shape()[0] ||
+        query.shape()[0] != value.shape()[0] ||
+        query.shape()[2] != key.shape()[2] ||
+        query.shape()[2] != value.shape()[1] ||
+        query.shape()[3] != key.shape()[3] ||
+        query.shape()[3] != value.shape()[3] ||
+        key.shape()[1] != value.shape()[2] ||
+        query.shape()[1] != key.shape()[1] * repeats || repeats <= 0 ||
+        query.shape()[2] <= 0 || query.shape()[3] <= 0 ||
+        !std::isfinite(scale) || !(scale > 0.0F) ||
+        !query.is_contiguous() || !key.is_contiguous() ||
+        !value.is_contiguous()) {
+        throw std::invalid_argument(
+            "online causal GQA BTHD requires contiguous Q[B,H,T,D], "
+            "K[B,KV,T,D], V[B,T,KV,D]");
+    }
+}
+
 }  // namespace
 
 TensorPair causal_gqa_attention_bthd_saved(
@@ -4046,6 +4079,66 @@ Tensor causal_gqa_attention_bthd(
     std::int64_t repeats, float scale, const OpContext& context) {
     return causal_gqa_attention_bthd_saved(
         query, key, value, repeats, scale, context).first;
+}
+
+bool rocwmma_online_attention_available() {
+#if MICROLLM_HAS_ROCWMMA
+    return true;
+#else
+    return false;
+#endif
+}
+
+std::size_t rocwmma_online_attention_native_calls() {
+    return rocwmma_online_native_calls;
+}
+
+std::size_t rocwmma_online_attention_fallback_calls() {
+    return rocwmma_online_fallback_calls;
+}
+
+void clear_rocwmma_online_attention_stats() {
+    rocwmma_online_native_calls = 0;
+    rocwmma_online_fallback_calls = 0;
+}
+
+Tensor online_causal_gqa_attention_bthd(
+    const Tensor& query_bf16, const Tensor& key_bf16,
+    const Tensor& value_bf16, std::int64_t repeats, float scale,
+    const OpContext& context) {
+    validate_online_causal_gqa_bthd(
+        query_bf16, key_bf16, value_bf16, repeats, scale);
+#if MICROLLM_HAS_ROCWMMA
+    const auto batches = query_bf16.shape()[0];
+    const auto heads = query_bf16.shape()[1];
+    const auto sequence = query_bf16.shape()[2];
+    const auto width = query_bf16.shape()[3];
+    const auto architecture = query_bf16.device().is_hip()
+        ? runtime::device_info(query_bf16.device()).architecture
+        : std::string{};
+    const auto native_shape =
+        query_bf16.device().is_hip() &&
+        architecture.rfind("gfx942", 0) == 0 &&
+        sequence >= 32 && sequence <= 4096 && sequence % 32 == 0 &&
+        (width == 64 || width == 128) && batches <= 65535;
+    if (native_shape) {
+        Tensor output(
+            {batches, sequence, heads, width}, DType::Float32,
+            query_bf16.device());
+        hip::launch_rocwmma_online_gqa_attention_bthd(
+            query_bf16.data(), key_bf16.data(), value_bf16.data(),
+            static_cast<float*>(output.data()), batches, heads,
+            key_bf16.shape()[1], sequence, width, scale,
+            context.native_stream(query_bf16.device()));
+        ++rocwmma_online_native_calls;
+        return output;
+    }
+#endif
+    ++rocwmma_online_fallback_calls;
+    return causal_gqa_attention_bthd(
+        cast(query_bf16, DType::Float32, context),
+        cast(key_bf16, DType::Float32, context),
+        cast(value_bf16, DType::Float32, context), repeats, scale, context);
 }
 
 TensorTriple causal_gqa_attention_bthd_backward_saved(

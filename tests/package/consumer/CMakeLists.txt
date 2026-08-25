@@ -19,6 +19,10 @@ endif()
 if(NOT DEFINED microLLM_HIP_ARCHITECTURES)
     message(FATAL_ERROR "package Config is missing HIP architecture metadata")
 endif()
+if(NOT DEFINED microLLM_WITH_ROCWMMA OR
+   (microLLM_WITH_ROCWMMA AND NOT microLLM_WITH_HIP))
+    message(FATAL_ERROR "package Config has invalid rocWMMA feature metadata")
+endif()
 
 if(NOT "inference" IN_LIST microLLM_AVAILABLE_COMPONENTS OR
    NOT microLLM_inference_FOUND OR NOT microLLM_model_FOUND)

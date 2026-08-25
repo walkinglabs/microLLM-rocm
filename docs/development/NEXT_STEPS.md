@@ -46,8 +46,9 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   all complete outputs pass, while T2048 D128 preserves a 0.688x library counterexample;
 - [x] build a benchmark-only MFMA/rocWMMA online Attention prototype with tiled
   QK/PV, online max/sum, causal masking and real Qwen/DeepSeek GQA grids;
-- [ ] integrate it as a public operator with explicit batch/tail/architecture fallback,
-  then run PyTorch, full-logit, peak-memory and end-to-end model gates;
+- [x] integrate a public BF16-input/FP32-output operator with batch support,
+  explicit tail/architecture fallback, counters, PyTorch and CMake Config gates;
+- [ ] run explicit Qwen/DeepSeek full-logit, peak-memory and end-to-end model A/B;
 - [x] populate B1 KV cache from one full-sequence prefill instead of token replay;
 - [x] support batched cached decode with batch-aware KV Storage;
 - [x] add opt-in BF16 KV Storage with FP32 accumulation, complete-logit gates and a retained

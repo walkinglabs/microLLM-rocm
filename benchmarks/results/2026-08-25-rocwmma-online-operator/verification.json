@@ -1,0 +1,15 @@
+{
+  "all_complete_outputs": true,
+  "expected_raw_records": 42,
+  "fallback_cases": 4,
+  "fallback_counterexample": true,
+  "matrix_cases": 14,
+  "model_gate_admitted": true,
+  "model_route_accepted": false,
+  "native_cases": 10,
+  "native_performance_gate": true,
+  "raw_records": 42,
+  "routing_gate": true,
+  "schema_version": 1,
+  "status": "pass"
+}

@@ -80,6 +80,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [49](steps/49-optimizer-graph-model-gate.md) | complete | 两节点optimizer Graph模型门 | optimizer 0.656×–0.807×，模型路由拒绝并关闭track |
 | [50](steps/50-rocwmma-qk-tile.md) | complete | rocWMMA QK矩阵单元能力 | 48进程全对齐；T512胜出、T2048 D128为0.688×反例；只进入原型 |
 | [51](steps/51-rocwmma-online-attention.md) | complete | online rocWMMA causal GQA原型 | 42进程；14/14胜当前1.260×–4.041×；只准入fallback operator |
+| [52](steps/52-rocwmma-online-operator.md) | complete | 公共online causal GQA算子 | 10 native全胜；4 fallback精确反例；准入模型A/B |
 
 ## 为什么按这个顺序
 

@@ -276,6 +276,11 @@ void launch_causal_gqa_attention_backward_saved_rows(
     std::int64_t batches, std::int64_t heads, std::int64_t kv_heads,
     std::int64_t sequence, std::int64_t width, std::int64_t repeats,
     float scale, void* stream = nullptr);
+void launch_rocwmma_online_gqa_attention_bthd(
+    const void* query_bf16, const void* key_bf16, const void* value_bf16,
+    float* output, std::int64_t batches, std::int64_t heads,
+    std::int64_t kv_heads, std::int64_t sequence, std::int64_t width,
+    float scale, void* stream = nullptr);
 void launch_repeat_interleave(const float* input, float* output,
                               std::int64_t output_elements, std::int64_t repeated_width,
                               std::int64_t inner, std::int64_t repeats,

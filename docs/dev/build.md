@@ -197,8 +197,9 @@ dependencies are propagated normally.
 
 The Config file also exposes `microLLM_VERSION`, `microLLM_CXX_STANDARD`,
 `microLLM_HIP_ARCHITECTURES`, `microLLM_AVAILABLE_COMPONENTS`, and the boolean feature
-metadata `microLLM_WITH_HIP`, `microLLM_WITH_HIPBLASLT`, `microLLM_WITH_RCCL`, and
-`microLLM_WITH_CAPI`, plus `microLLM_WITH_SANITIZERS` and
+metadata `microLLM_WITH_HIP`, `microLLM_WITH_HIPBLASLT`,
+`microLLM_WITH_ROCWMMA`, `microLLM_WITH_RCCL`, and `microLLM_WITH_CAPI`, plus
+`microLLM_WITH_SANITIZERS` and
 `microLLM_WITH_COVERAGE`. Prefer testing targets or requested components for linking;
 these variables are intended for diagnostics and optional application features. A CPU
 package reports an empty `microLLM_HIP_ARCHITECTURES` value.
@@ -234,6 +235,7 @@ above against a fresh installation.
 | `MICROLLM_ENABLE_HIP` | `AUTO` | `AUTO`, `ON`, or `OFF` HIP backend |
 | `MICROLLM_HIP_ARCHITECTURES` | empty | explicit targets such as `gfx942` or `gfx1100` |
 | `MICROLLM_ENABLE_HIPBLASLT` | `ON` | optional optimized 2D FP32 matmul |
+| `MICROLLM_ENABLE_ROCWMMA` | `ON` | optional gfx942 online-Attention operator and research benchmarks |
 | `MICROLLM_ENABLE_RCCL` | `OFF` | single-node multi-GPU collectives |
 | `MICROLLM_BUILD_TESTS` | `ON` | unit/conformance/integration tests |
 | `MICROLLM_BUILD_APPS` | `ON` | training, inspection, inference and profiling command-line applications |

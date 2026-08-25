@@ -2,13 +2,7 @@ add_executable(microllm_bench_ops micro/benchmark_ops.cpp)
 target_link_libraries(microllm_bench_ops PRIVATE microllm::ops microllm::runtime)
 
 if(MICROLLM_HAS_HIP)
-    # rocWMMA remains benchmark-only until a complete Attention candidate passes
-    # correctness, memory and end-to-end gates. Its target references OpenMP.
-    find_package(OpenMP QUIET COMPONENTS CXX)
-    if(OpenMP_CXX_FOUND)
-        find_package(rocwmma QUIET CONFIG)
-    endif()
-    if(rocwmma_FOUND AND MICROLLM_HAS_HIPBLASLT)
+    if(MICROLLM_HAS_ROCWMMA AND MICROLLM_HAS_HIPBLASLT)
         add_executable(microllm_bench_rocwmma_qk
                        micro/benchmark_rocwmma_qk.hip)
         target_link_libraries(microllm_bench_rocwmma_qk PRIVATE
@@ -74,6 +68,10 @@ if(MICROLLM_HAS_HIP)
     add_executable(microllm_bench_bf16_repeat
                    micro/benchmark_bf16_repeat.cpp)
     target_link_libraries(microllm_bench_bf16_repeat PRIVATE
+        microllm::ops microllm::runtime hip::host)
+    add_executable(microllm_bench_online_attention_operator
+                   micro/benchmark_online_attention_operator.cpp)
+    target_link_libraries(microllm_bench_online_attention_operator PRIVATE
         microllm::ops microllm::runtime hip::host)
 endif()
 
