@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-25: Split-sequence matrix infrastructure](2026-08-25-split-sequence-matrix-infrastructure.md)
 - [2026-08-25: Split-sequence cached Attention](2026-08-25-split-sequence-cached-attention.md)
 - [2026-08-25: Cached Attention stage-matrix result](../optimization-log/experiments/282-cached-attention-stage-matrix.md)
 - [2026-08-25: Cached Attention stage-matrix infrastructure](2026-08-25-cached-attention-stage-matrix-infrastructure.md)

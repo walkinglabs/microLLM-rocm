@@ -23,6 +23,7 @@ struct Options {
     std::int64_t kv_heads = 2;
     std::int64_t sequence = 512;
     std::int64_t width = 128;
+    std::int64_t splits = 0;
     std::string cache_dtype = "bf16";
     std::string order = "forward";
     int warmup = 3;
@@ -55,6 +56,8 @@ Options parse(int argc, char** argv) {
             result.sequence = integer(argv[index + 1], "sequence");
         } else if (name == "--width") {
             result.width = integer(argv[index + 1], "width");
+        } else if (name == "--splits") {
+            result.splits = integer(argv[index + 1], "splits");
         } else if (name == "--cache-dtype") {
             result.cache_dtype = argv[index + 1];
         } else if (name == "--order") {
@@ -72,6 +75,8 @@ Options parse(int argc, char** argv) {
         result.kv_heads <= 0 || result.heads % result.kv_heads != 0 ||
         result.sequence <= 0 || result.sequence > 4096 ||
         result.width <= 0 || result.width > 256 ||
+        result.splits < 0 || result.splits > 32 ||
+        result.splits > result.sequence ||
         (result.cache_dtype != "fp32" && result.cache_dtype != "bf16") ||
         (result.order != "forward" && result.order != "reverse") ||
         result.warmup < 3 || result.repetitions <= 0 ||
@@ -247,6 +252,12 @@ int main(int argc, char** argv) {
             device_value, repeats);
         auto device_fused = microllm::ops::cached_gqa_attention(
             device_query, device_key, device_value, repeats, scale);
+        microllm::Tensor device_split;
+        if (options.splits > 0) {
+            device_split = microllm::ops::cached_gqa_attention_split_sequence(
+                device_query, device_key, device_value, repeats, scale,
+                options.splits);
+        }
         microllm::runtime::synchronize(device);
 
         const auto score_error = compare(
@@ -259,6 +270,11 @@ int main(int argc, char** argv) {
             device_pipeline.to_vector(), expected_context_values);
         const auto fused_error = compare(
             device_fused.to_vector(), expected_context_values);
+        Error split_error;
+        if (options.splits > 0) {
+            split_error = compare(
+                device_split.to_vector(), expected_context_values);
+        }
         const auto accuracy_passed =
             score_error.finite && probability_error.finite &&
             context_error.finite && pipeline_error.finite && fused_error.finite &&
@@ -267,7 +283,10 @@ int main(int argc, char** argv) {
             probability_error.rms <= 3.0e-5 &&
             context_error.maximum <= 8.0e-4F && context_error.rms <= 8.0e-5 &&
             pipeline_error.maximum <= 8.0e-4F && pipeline_error.rms <= 8.0e-5 &&
-            fused_error.maximum <= 8.0e-4F && fused_error.rms <= 8.0e-5;
+            fused_error.maximum <= 8.0e-4F && fused_error.rms <= 8.0e-5 &&
+            (options.splits == 0 ||
+             (split_error.finite && split_error.maximum <= 8.0e-4F &&
+              split_error.rms <= 8.0e-5));
         if (!accuracy_passed) {
             throw std::runtime_error(
                 "cached Attention stage complete-output gate failed");
@@ -295,12 +314,18 @@ int main(int argc, char** argv) {
             device_fused = microllm::ops::cached_gqa_attention(
                 device_query, device_key, device_value, repeats, scale);
         };
+        const auto split_operation = [&] {
+            device_split = microllm::ops::cached_gqa_attention_split_sequence(
+                device_query, device_key, device_value, repeats, scale,
+                options.splits);
+        };
 
         Timing score_timing;
         Timing softmax_timing;
         Timing context_timing;
         Timing pipeline_timing;
         Timing fused_timing;
+        Timing split_timing;
         microllm::runtime::reset_transfer_stats();
         if (options.order == "forward") {
             score_timing = measure(score_operation, options, device);
@@ -308,7 +333,13 @@ int main(int argc, char** argv) {
             context_timing = measure(context_operation, options, device);
             pipeline_timing = measure(pipeline_operation, options, device);
             fused_timing = measure(fused_operation, options, device);
+            if (options.splits > 0) {
+                split_timing = measure(split_operation, options, device);
+            }
         } else {
+            if (options.splits > 0) {
+                split_timing = measure(split_operation, options, device);
+            }
             fused_timing = measure(fused_operation, options, device);
             pipeline_timing = measure(pipeline_operation, options, device);
             context_timing = measure(context_operation, options, device);
@@ -325,7 +356,9 @@ int main(int argc, char** argv) {
             softmax_timing.backend_allocation_calls_per_invocation != 0.0 ||
             context_timing.backend_allocation_calls_per_invocation != 0.0 ||
             pipeline_timing.backend_allocation_calls_per_invocation != 0.0 ||
-            fused_timing.backend_allocation_calls_per_invocation != 0.0) {
+            fused_timing.backend_allocation_calls_per_invocation != 0.0 ||
+            (options.splits > 0 &&
+             split_timing.backend_allocation_calls_per_invocation != 0.0)) {
             throw std::runtime_error(
                 "warm stage measurement reached the backend allocator");
         }
@@ -367,17 +400,39 @@ int main(int argc, char** argv) {
                   << ",\"pipeline_rms_error\":" << pipeline_error.rms
                   << ",\"fused_max_error\":" << fused_error.maximum
                   << ",\"fused_rms_error\":" << fused_error.rms;
+        if (options.splits > 0) {
+            const auto partial_elements = static_cast<std::uint64_t>(
+                options.batch * options.heads * options.splits *
+                (options.width + 2));
+            std::cout << ",\"splits\":" << options.splits
+                      << ",\"split_partial_blocks\":"
+                      << options.batch * options.heads * options.splits
+                      << ",\"split_combine_blocks\":"
+                      << options.batch * options.heads
+                      << ",\"split_partial_bytes\":"
+                      << partial_elements * sizeof(float)
+                      << ",\"split_max_error\":" << split_error.maximum
+                      << ",\"split_rms_error\":" << split_error.rms;
+        }
         print_timing("score", score_timing);
         print_timing("softmax", softmax_timing);
         print_timing("context", context_timing);
         print_timing("pipeline", pipeline_timing);
         print_timing("fused", fused_timing);
+        if (options.splits > 0) {
+            print_timing("split", split_timing);
+        }
         std::cout << ",\"stage_sum_event_ms_p50\":" << stage_sum
                   << ",\"stage_sum_over_pipeline\":"
                   << stage_sum / pipeline_timing.event_p50
                   << ",\"fused_speedup_over_pipeline\":"
                   << pipeline_timing.event_p50 / fused_timing.event_p50
-                  << ",\"host_to_device_calls\":"
+                  ;
+        if (options.splits > 0) {
+            std::cout << ",\"split_speedup_over_fused\":"
+                      << fused_timing.event_p50 / split_timing.event_p50;
+        }
+        std::cout << ",\"host_to_device_calls\":"
                   << transfers.host_to_device_calls
                   << ",\"device_to_host_calls\":"
                   << transfers.device_to_host_calls << "}\n";

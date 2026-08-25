@@ -12,6 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 RUNNER = ROOT / "benchmarks/single_gpu/cached_attention_stage_matrix.py"
+SPLIT_RUNNER = ROOT / "benchmarks/single_gpu/cached_attention_split_matrix.py"
 
 
 FAKE = r'''#!/usr/bin/env python3
@@ -82,6 +83,63 @@ print(json.dumps(record))
 '''
 
 
+SPLIT_FAKE = r'''#!/usr/bin/env python3
+import json
+import sys
+
+a = dict(zip(sys.argv[1::2], sys.argv[2::2]))
+b = int(a["--batch"])
+t = int(a["--sequence"])
+h = int(a["--heads"])
+kv = int(a["--kv-heads"])
+d = int(a["--width"])
+s = int(a["--splits"])
+warmup = int(a["--warmup"])
+repetitions = int(a["--repetitions"])
+speedup = {1: 0.8, 2: 1.1, 4: 1.5}[s]
+fused = t / 32.0
+split = fused / speedup
+record = {
+    "schema_version": 1,
+    "status": "pass",
+    "record_type": "cached_attention_stage_probe",
+    "device_name": "fake MI300X",
+    "architecture": "gfx942",
+    "batch": b,
+    "heads": h,
+    "kv_heads": kv,
+    "sequence": t,
+    "width": d,
+    "repeats": h // kv,
+    "cache_dtype": a["--cache-dtype"],
+    "splits": s,
+    "order": a["--order"],
+    "warmup": warmup,
+    "repetitions": repetitions,
+    "split_partial_blocks": b * h * s,
+    "split_combine_blocks": b * h,
+    "split_partial_bytes": b * h * s * (d + 2) * 4,
+    "complete_output_accuracy_passed": True,
+    "host_to_device_calls": 0,
+    "device_to_host_calls": 0,
+    "fused_max_error": 1.0e-8,
+    "fused_rms_error": 1.0e-9,
+    "split_max_error": 2.0e-8,
+    "split_rms_error": 2.0e-9,
+    "split_speedup_over_fused": speedup,
+}
+for prefix, value, allocations in (("fused", fused, 1), ("split", split, 3)):
+    record[f"{prefix}_event_ms_p50"] = value
+    record[f"{prefix}_event_ms_p95"] = value * 1.1
+    record[f"{prefix}_wall_ms_p50"] = value * 1.2
+    record[f"{prefix}_wall_ms_p95"] = value * 1.3
+    record[f"{prefix}_allocation_calls_per_invocation"] = allocations
+    record[f"{prefix}_backend_allocation_calls_per_invocation"] = 0
+    record[f"{prefix}_cache_reuse_calls_per_invocation"] = allocations
+print(json.dumps(record))
+'''
+
+
 def main() -> int:
     with tempfile.TemporaryDirectory() as temporary:
         root = Path(temporary)
@@ -131,6 +189,36 @@ def main() -> int:
         ], text=True, capture_output=True, check=False)
         assert rejected.returncode == 2
         assert "schema_version expected" in rejected.stderr
+
+        split_fake = root / "fake_split.py"
+        split_fake.write_text(SPLIT_FAKE, encoding="utf-8")
+        os.chmod(split_fake, 0o755)
+        split_output = root / "split-matrix"
+        split_completed = subprocess.run([
+            sys.executable, str(SPLIT_RUNNER), "--benchmark", str(split_fake),
+            "--output-directory", str(split_output),
+            "--sequences", "32,64", "--batches", "1",
+            "--cache-dtypes", "bf16", "--splits", "1,2,4",
+            "--runs", "2", "--warmup", "3", "--repetitions", "4",
+        ], text=True, capture_output=True, check=False)
+        if split_completed.returncode != 0:
+            raise AssertionError(split_completed.stdout + split_completed.stderr)
+        split_summary = json.loads(
+            (split_output / "summary.json").read_text(encoding="utf-8"))
+        split_raw = (split_output / "raw.jsonl").read_text(
+            encoding="utf-8").splitlines()
+        split_chart = (split_output / "split-search.svg").read_text(
+            encoding="utf-8")
+        assert split_summary["matrix_complete"] is True
+        assert split_summary["process_rows"] == 12
+        assert split_summary["candidate_rows"] == 6
+        assert split_summary["case_count"] == 2
+        assert split_summary["all_case_winners_pass_operator_gate"] is True
+        assert {winner["best_splits"] for winner in
+                split_summary["winners"]} == {4}
+        assert len(split_raw) == 12
+        assert "Split-sequence cached Attention search" in split_chart
+        assert "best S4" in split_chart
     print("cached Attention stage matrix contract: pass")
     return 0
 
