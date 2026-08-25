@@ -51,6 +51,10 @@ audit. `0` explicitly disables it and `N` checks steps divisible by `N`. Metrics
 whether the check ran and its separate wall time. A skipped check is performance evidence only;
 it is never reported as a successful rank-consistency check.
 
+Experiment 253 shows the tiny CLI model has one natural bucket at both 4 KiB and 4 MiB.
+Artificially forcing 12 buckets raises communication from 0.34–0.39 ms to 1.18–1.26 ms.
+It is therefore not an overlap workload; Model-S support is the next prerequisite.
+
 All ranks must currently contribute the same number of targets. Otherwise averaging
 rank-local mean gradients would weight small and large local batches equally, so the API
 rejects the step.

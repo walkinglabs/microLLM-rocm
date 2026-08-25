@@ -1,0 +1,61 @@
+{
+  "aggregation": "median of step-2..20 medians with rotated bucket order",
+  "decision": "add a Model-S multi-bucket workload before overlap work",
+  "loss_trajectories_exact": true,
+  "multi_bucket_policies_are_slower": true,
+  "one_bucket_policies_are_equivalent_workloads": true,
+  "policies": {
+    "4b": {
+      "bucket_bytes": 4,
+      "bucket_count": 12,
+      "final_loss": 0.55,
+      "median_communication_ms": 1.26,
+      "median_forward_backward_ms": 1.62,
+      "median_optimizer_ms": 0.09,
+      "median_total_ms": 2.98,
+      "processes": 3,
+      "speedup_vs_4mib": 0.7248322147651007
+    },
+    "4kib": {
+      "bucket_bytes": 4096,
+      "bucket_count": 1,
+      "final_loss": 0.55,
+      "median_communication_ms": 0.34,
+      "median_forward_backward_ms": 1.58,
+      "median_optimizer_ms": 0.09,
+      "median_total_ms": 2.03,
+      "processes": 3,
+      "speedup_vs_4mib": 1.0640394088669953
+    },
+    "4mib": {
+      "bucket_bytes": 4194304,
+      "bucket_count": 1,
+      "final_loss": 0.55,
+      "median_communication_ms": 0.39,
+      "median_forward_backward_ms": 1.66,
+      "median_optimizer_ms": 0.1,
+      "median_total_ms": 2.16,
+      "processes": 3,
+      "speedup_vs_4mib": 1.0
+    },
+    "64b": {
+      "bucket_bytes": 64,
+      "bucket_count": 12,
+      "final_loss": 0.55,
+      "median_communication_ms": 1.18,
+      "median_forward_backward_ms": 1.48,
+      "median_optimizer_ms": 0.08,
+      "median_total_ms": 2.75,
+      "processes": 3,
+      "speedup_vs_4mib": 0.7854545454545455
+    }
+  },
+  "processes": 12,
+  "raw_records": 240,
+  "record_type": "data_parallel_bucket_matrix_summary",
+  "runs_per_policy": 3,
+  "schema_version": 1,
+  "status": "pass",
+  "steady_steps_per_process": 19,
+  "steps_per_process": 20
+}

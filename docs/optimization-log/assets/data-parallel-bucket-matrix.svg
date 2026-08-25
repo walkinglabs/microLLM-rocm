@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="740" viewBox="0 0 1500 740">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="750.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 253 · Tiny Real Bucket-Count Matrix</text>
+<text x="750.0" y="82.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">Final-step parameter audit · three rotated processes · steps 2–20</text>
+<rect x="100" y="145.0" width="240" height="320.0" rx="9" fill="#e11d48"/>
+<text x="220.0" y="127.0" font-family="Inter,Arial,sans-serif" font-size="21" fill="#e11d48" text-anchor="middle" font-weight="700">2.98 ms</text>
+<text x="220.0" y="510.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">4 B</text>
+<text x="220.0" y="545.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">12 bucket(s)</text>
+<text x="220.0" y="578.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">comm 1.26 ms</text>
+<rect x="450" y="169.7" width="240" height="295.3" rx="9" fill="#e11d48"/>
+<text x="570.0" y="151.7" font-family="Inter,Arial,sans-serif" font-size="21" fill="#e11d48" text-anchor="middle" font-weight="700">2.75 ms</text>
+<text x="570.0" y="510.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">64 B</text>
+<text x="570.0" y="545.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">12 bucket(s)</text>
+<text x="570.0" y="578.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">comm 1.18 ms</text>
+<rect x="800" y="247.0" width="240" height="218.0" rx="9" fill="#2563eb"/>
+<text x="920.0" y="229.0" font-family="Inter,Arial,sans-serif" font-size="21" fill="#2563eb" text-anchor="middle" font-weight="700">2.03 ms</text>
+<text x="920.0" y="510.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">4 KiB</text>
+<text x="920.0" y="545.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">1 bucket(s)</text>
+<text x="920.0" y="578.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">comm 0.34 ms</text>
+<rect x="1150" y="233.1" width="240" height="231.9" rx="9" fill="#2563eb"/>
+<text x="1270.0" y="215.1" font-family="Inter,Arial,sans-serif" font-size="21" fill="#2563eb" text-anchor="middle" font-weight="700">2.16 ms</text>
+<text x="1270.0" y="510.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">4 MiB</text>
+<text x="1270.0" y="545.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">1 bucket(s)</text>
+<text x="1270.0" y="578.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">comm 0.39 ms</text>
+<text x="750.0" y="635.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#166534" text-anchor="middle" font-weight="700">4 KiB and 4 MiB are the same one-bucket workload</text>
+<text x="750.0" y="685.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">Twelve tiny buckets are slower · next: Model-S multi-bucket workload</text>
+<text x="750.0" y="720.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">Synthetic or artificial tiny buckets are not readiness-overlap evidence</text>
+</svg>

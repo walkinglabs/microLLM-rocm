@@ -16,7 +16,8 @@ def main() -> int:
     for token in (
         '("4b", 4)', '("64b", 64)', '("4kib", 4096)',
         '"--parameter-check-interval"', "rows[1:]", "rotated bucket order",
-        "loss_trajectories_exact", "Model-S multi-bucket workload",
+        "loss_trajectories_exact", "one_bucket_policies_are_equivalent_workloads",
+        "multi_bucket_policies_are_slower", "Model-S multi-bucket workload",
     ):
         assert token in text
     print("data-parallel bucket matrix contract: pass")
@@ -25,4 +26,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

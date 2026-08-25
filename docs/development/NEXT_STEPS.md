@@ -217,7 +217,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   communication 15.28% and unseparated host verification 13.32% of steady total;
 - [x] add explicit parameter-check interval and verification timing while preserving the
   default every-step behavior; 180 loss values match and final-step audit reaches 1.244x;
-- [ ] run a final-step-audited real bucket-count matrix before implementing readiness overlap;
+- [x] run a final-step-audited tiny bucket-count matrix: one natural bucket is fastest;
+  artificial 12-bucket paths increase communication about 3–4x;
+- [ ] add a Model-S natural multi-bucket distributed workload with equivalence, stage time and
+  peak-memory evidence before implementing readiness overlap;
 - [ ] one process per GPU communicator initialization;
 - [ ] autograd gradient-ready hooks and bucket rebuild by observed readiness;
 - [ ] compute-stream Events to communication streams and asynchronous work handles;

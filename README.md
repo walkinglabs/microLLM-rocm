@@ -56,6 +56,10 @@ extending small decoder-only language models on AMD GPUs.
 > every step, while explicit final-step-only measurement is 1.244× faster with all 180
 > loss values unchanged. Real overlap still requires a multi-bucket model workload.
 
+> The tiny bucket matrix confirms that prerequisite: its natural path has one bucket,
+> while forcing 12 buckets makes communication 3–4× larger. Model-S is the next
+> distributed workload before any readiness-overlap claim.
+
 ## Why this project exists
 
 Large frameworks make model development productive, but they hide the ownership,

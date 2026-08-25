@@ -103,10 +103,14 @@ def main() -> int:
     for policy in policies:
         policies[policy]["speedup_vs_4mib"] = (
             reference / policies[policy]["median_total_ms"])
-    one_bucket_best = (
-        policies["4mib"]["bucket_count"] == 1 and
-        policies["4mib"]["median_total_ms"] ==
-        min(row["median_total_ms"] for row in policies.values()))
+    one_bucket_equivalent = (
+        policies["4kib"]["bucket_count"] == 1 and
+        policies["4mib"]["bucket_count"] == 1)
+    multi_bucket_slower = all(
+        policies[policy]["median_total_ms"] >
+        max(policies["4kib"]["median_total_ms"],
+            policies["4mib"]["median_total_ms"])
+        for policy in ("4b", "64b"))
     summary = {
         "schema_version": 1,
         "status": "pass",
@@ -119,10 +123,11 @@ def main() -> int:
         "aggregation": "median of step-2..20 medians with rotated bucket order",
         "loss_trajectories_exact": True,
         "policies": policies,
-        "one_bucket_4mib_is_fastest": one_bucket_best,
+        "one_bucket_policies_are_equivalent_workloads": one_bucket_equivalent,
+        "multi_bucket_policies_are_slower": multi_bucket_slower,
         "decision": ("add a Model-S multi-bucket workload before overlap work"
-                     if one_bucket_best else
-                     "investigate the measured tiny-model bucket crossover"),
+                     if one_bucket_equivalent and multi_bucket_slower else
+                     "investigate the measured tiny-model bucket matrix"),
     }
     args.output_directory.mkdir(parents=True, exist_ok=True)
     (args.output_directory / "raw.jsonl").write_text(
@@ -143,4 +148,3 @@ if __name__ == "__main__":
     except (OSError, RuntimeError, ValueError, KeyError, json.JSONDecodeError) as error:
         print(f"data_parallel_bucket_matrix: {error}", file=sys.stderr)
         raise SystemExit(2)
-

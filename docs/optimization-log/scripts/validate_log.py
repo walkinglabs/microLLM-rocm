@@ -14002,6 +14002,46 @@ def validate_data_parallel_verification_matrix(
     return summary.get("processes", 0), *expected
 
 
+def validate_data_parallel_bucket_matrix(
+        errors: list[str]) -> tuple[int, int, int, float, float]:
+    root = REPOSITORY / "benchmarks/results/2026-08-25-data-parallel-bucket-matrix"
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    processes = [json.loads(line) for line in (root / "process-summary.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    policies = summary.get("policies", {})
+    four_b = policies.get("4b", {})
+    four_kib = policies.get("4kib", {})
+    four_mib = policies.get("4mib", {})
+    expected = (12, 1, 1.26, 0.34)
+    if (summary.get("schema_version") != 1 or summary.get("status") != "pass" or
+            summary.get("record_type") != "data_parallel_bucket_matrix_summary" or
+            summary.get("raw_records") != 240 or summary.get("processes") != 12 or
+            summary.get("loss_trajectories_exact") is not True or
+            summary.get("one_bucket_policies_are_equivalent_workloads") is not True or
+            summary.get("multi_bucket_policies_are_slower") is not True or
+            summary.get("decision") !=
+                "add a Model-S multi-bucket workload before overlap work" or
+            four_b.get("bucket_count") != expected[0] or
+            four_kib.get("bucket_count") != expected[1] or
+            four_mib.get("bucket_count") != expected[1] or
+            abs(float(four_b.get("median_communication_ms", 0.0)) - expected[2]) > 1.0e-12 or
+            abs(float(four_kib.get("median_communication_ms", 0.0)) - expected[3]) > 1.0e-12):
+        errors.append("data-parallel bucket matrix summary changed")
+    if (len(raw) != 240 or len(processes) != 12 or any(
+            row.get("parameter_max_difference") != 0.0 for row in raw)):
+        errors.append("data-parallel bucket raw evidence changed")
+    if (check.get("raw_records") != 240 or check.get("process_records") != 12 or
+            check.get("loss_values_exact") != 240 or
+            check.get("final_parameter_checks") != 12 or
+            check.get("maximum_parameter_difference") != 0.0 or
+            check.get("registered_test_files") != 113):
+        errors.append("data-parallel bucket verification changed")
+    return summary.get("processes", 0), *expected
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -14232,7 +14272,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-weight-gradient-workspace-discard.svg",
                  "training-local-saturation.svg",
                  "current-data-parallel-audit.svg",
-                 "data-parallel-verification-interval.svg"):
+                 "data-parallel-verification-interval.svg",
+                 "data-parallel-bucket-matrix.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -14733,6 +14774,9 @@ def main() -> int:
         data_parallel_sparse_total, data_parallel_sparse_speedup, \
         data_parallel_disabled_speedup = \
         validate_data_parallel_verification_matrix(errors)
+    data_parallel_bucket_processes, data_parallel_tiny_buckets, \
+        data_parallel_large_buckets, data_parallel_tiny_comm, \
+        data_parallel_large_comm = validate_data_parallel_bucket_matrix(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -15192,6 +15236,9 @@ def main() -> int:
           f"{data_parallel_every_total:.3f}/{data_parallel_sparse_total:.3f}/"
           f"{data_parallel_sparse_speedup:.3f}/"
           f"{data_parallel_disabled_speedup:.3f} "
+          f"data_parallel_buckets={data_parallel_bucket_processes}/"
+          f"{data_parallel_tiny_buckets}/{data_parallel_large_buckets}/"
+          f"{data_parallel_tiny_comm:.3f}/{data_parallel_large_comm:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

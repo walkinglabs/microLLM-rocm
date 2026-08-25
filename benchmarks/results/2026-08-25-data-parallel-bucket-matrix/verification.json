@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "raw_records": 240,
+  "process_records": 12,
+  "loss_values_exact": 240,
+  "final_parameter_checks": 12,
+  "maximum_parameter_difference": 0.0,
+  "one_bucket_policies": 2,
+  "twelve_bucket_policies": 2,
+  "one_bucket_policies_are_equivalent_workloads": true,
+  "multi_bucket_policies_are_slower": true,
+  "rccl_previous_gate": {"passed": 16, "total": 16},
+  "bucket_matrix_contract": {"passed": 1, "total": 1},
+  "registered_test_files": 113
+}
+

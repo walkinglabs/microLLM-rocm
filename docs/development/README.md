@@ -536,3 +536,5 @@ the next gate. Records are append-only except for factual corrections.
   records rotated performance, exact losses and the explicit optimizer completion fix.
 - [2026-08-25-data-parallel-bucket-matrix-runner.md](2026-08-25-data-parallel-bucket-matrix-runner.md):
   fixes a final-step-audited real bucket-count sweep before overlap work.
+- [2026-08-25-data-parallel-bucket-matrix.md](2026-08-25-data-parallel-bucket-matrix.md):
+  rejects artificial tiny-model overlap and hands off to Model-S.

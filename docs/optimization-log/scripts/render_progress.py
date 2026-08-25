@@ -228,6 +228,11 @@ DATA_PARALLEL_VERIFICATION_ROOT = (
     "2026-08-25-data-parallel-verification-matrix")
 DATA_PARALLEL_VERIFICATION_CHART = (
     ROOT / "assets" / "data-parallel-verification-interval.svg")
+DATA_PARALLEL_BUCKET_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-data-parallel-bucket-matrix")
+DATA_PARALLEL_BUCKET_CHART = (
+    ROOT / "assets" / "data-parallel-bucket-matrix.svg")
 
 
 def rows() -> list[dict]:
@@ -4321,6 +4326,53 @@ def data_parallel_verification_svg() -> str:
     return "\n".join(parts)
 
 
+def data_parallel_bucket_svg() -> str:
+    summary = json.loads((DATA_PARALLEL_BUCKET_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    width, height = 1500, 740
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 253 · Tiny Real Bucket-Count Matrix", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "Final-step parameter audit · three rotated processes · steps 2–20",
+             16, "#5b6474", anchor="middle"),
+    ]
+    order = (("4b", "4 B"), ("64b", "64 B"),
+             ("4kib", "4 KiB"), ("4mib", "4 MiB"))
+    max_total = max(row["median_total_ms"] for row in summary["policies"].values())
+    for index, (key, label) in enumerate(order):
+        row = summary["policies"][key]
+        x = 100 + index * 350
+        bar_height = 320 * row["median_total_ms"] / max_total
+        y = 465 - bar_height
+        color = "#e11d48" if row["bucket_count"] > 1 else "#2563eb"
+        parts.extend([
+            f'<rect x="{x}" y="{y:.1f}" width="240" height="{bar_height:.1f}" '
+            f'rx="9" fill="{color}"/>',
+            text(x + 120, y - 18, f"{row['median_total_ms']:.2f} ms", 21,
+                 color, anchor="middle", weight=700),
+            text(x + 120, 510, label, 20, "#172033", anchor="middle", weight=700),
+            text(x + 120, 545, f"{row['bucket_count']} bucket(s)", 16,
+                 "#5b6474", anchor="middle"),
+            text(x + 120, 578, f"comm {row['median_communication_ms']:.2f} ms", 16,
+                 "#5b6474", anchor="middle"),
+        ])
+    parts.append(text(width / 2, 635,
+                      "4 KiB and 4 MiB are the same one-bucket workload",
+                      22, "#166534", anchor="middle", weight=700))
+    parts.append(text(width / 2, 685,
+                      "Twelve tiny buckets are slower · next: Model-S multi-bucket workload",
+                      20, "#172033", anchor="middle", weight=700))
+    parts.append(text(width / 2, 720,
+                      "Synthetic or artificial tiny buckets are not readiness-overlap evidence",
+                      14, "#5b6474", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -4389,7 +4441,8 @@ def main() -> int:
                 BF16_WGRAD_WORKSPACE_CHART: bf16_weight_gradient_workspace_svg(),
                 TRAINING_LOCAL_SATURATION_CHART: training_local_saturation_svg(),
                 CURRENT_DATA_PARALLEL_CHART: current_data_parallel_svg(),
-                DATA_PARALLEL_VERIFICATION_CHART: data_parallel_verification_svg()}
+                DATA_PARALLEL_VERIFICATION_CHART: data_parallel_verification_svg(),
+                DATA_PARALLEL_BUCKET_CHART: data_parallel_bucket_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

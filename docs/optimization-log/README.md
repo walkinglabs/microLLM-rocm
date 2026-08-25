@@ -905,6 +905,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [experiments/251-current-data-parallel-audit.md](experiments/251-current-data-parallel-audit.md) | RCCL14/14、20-step与第一production合同 |
 | [assets/data-parallel-verification-interval.svg](assets/data-parallel-verification-interval.svg) | 三种审计policy的steady total与检查次数 |
 | [experiments/252-data-parallel-verification-interval.md](experiments/252-data-parallel-verification-interval.md) | 隐式同步修复、loss等价与默认兼容 |
+| [assets/data-parallel-bucket-matrix.svg](assets/data-parallel-bucket-matrix.svg) | bucket count、通信与total矩阵 |
+| [experiments/253-data-parallel-bucket-matrix.md](experiments/253-data-parallel-bucket-matrix.md) | tiny overlap workload拒绝与Model-S交接 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

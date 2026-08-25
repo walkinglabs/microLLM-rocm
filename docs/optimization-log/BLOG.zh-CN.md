@@ -4003,3 +4003,12 @@ data-parallel reducer。
 更重要的是，optimizer完成等待已从host审计中拆出，跳过检查不再改变step生命周期。
 
 ![Data parallel verification interval](assets/data-parallel-verification-interval.svg)
+
+## 270. Experiment 253：没有多bucket，就没有真实overlap问题
+
+tiny在4KiB和4MiB下都只有一个bucket；人为切成12个bucket后，通信从0.34–0.39ms升到
+1.18–1.26ms。240个loss完全一致，差异纯粹来自通信/pack颗粒度。
+
+因此下一步增加Model-S自然多bucket workload，而不是在tiny上制造overlap。
+
+![Data parallel bucket matrix](assets/data-parallel-bucket-matrix.svg)
