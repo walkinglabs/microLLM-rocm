@@ -15607,6 +15607,128 @@ def validate_ranked_gradient_overlap(
         int(summary.get("overlap_peak_bytes_added_vs_synchronous_views", 0))
 
 
+def validate_ranked_overlap_contexts(
+        errors: list[str]) -> tuple[int, float, float, bool]:
+    root = REPOSITORY / "benchmarks/results/2026-08-25-ranked-overlap-contexts"
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    failure = json.loads((root / "failure.json").read_text(encoding="utf-8"))
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    t32 = summary.get("results", {}).get("32", {})
+    t128 = summary.get("results", {}).get("128", {})
+    expected_t32 = 0.9995113342458171
+    expected_t128 = 1.0923041258339492
+    if (summary.get("schema_version") != 1 or summary.get("status") != "pass" or
+            summary.get("record_type") != "ranked_overlap_context_summary" or
+            summary.get("contexts") != [32, 128] or
+            summary.get("runs_per_policy_context") != 3 or
+            summary.get("policy_context_runs") != 12 or
+            summary.get("rank_processes") != 24 or
+            summary.get("steps_per_rank") != 3 or
+            summary.get("steady_skip_steps") != 1 or
+            summary.get("steady_steps_per_run") != 2 or
+            summary.get("bucket_bytes") != 26214400 or
+            t32.get("training_speedup") != expected_t32 or
+            t128.get("training_speedup") != expected_t128 or
+            t32.get("finish_speedup") != 2.0224090417730323 or
+            t128.get("finish_speedup") != 2.2351030585228466 or
+            t32.get("current_bytes_added") != 0 or
+            t32.get("peak_bytes_added") != 0 or
+            t128.get("current_bytes_added") != 0 or
+            t128.get("peak_bytes_added") != 0 or
+            summary.get("minimum_required_speedup") != 1.01 or
+            summary.get("longer_context_gate_passed") is not True or
+            summary.get("peer_failure_detected") is not True or
+            summary.get("peer_processes_terminated") != 1 or
+            summary.get("failure_returncodes") != [1, -15] or
+            summary.get("decision") != "retain context-selective ranked overlap"):
+        errors.append("ranked overlap context summary changed")
+    if (len(raw) != 12 or
+            {row.get("context") for row in raw} != {32, 128} or
+            {row.get("reducer") for row in raw} !=
+                {"bucket-views", "overlap-views"} or
+            any(row.get("parameter_tensors") != 57 or
+                row.get("parameter_values") != 15586176 or
+                row.get("maximum_rank_difference") != 0.0 or
+                row.get("rank_rms_difference") != 0.0 or
+                row.get("maximum_reference_difference", 1.0) > 1.0e-2 or
+                row.get("reference_rms_difference", 1.0) > 1.0e-5 or
+                row.get("maximum_mean_loss_difference", 1.0) > 1.0e-4 or
+                row.get("parameter_files_retained") is not False
+                for row in raw)):
+        errors.append("ranked overlap context raw evidence changed")
+    for context in (32, 128):
+        rows = [row for row in raw if row.get("context") == context]
+        synchronous = [row for row in rows if row.get("reducer") == "bucket-views"]
+        overlap = [row for row in rows if row.get("reducer") == "overlap-views"]
+        if (len(synchronous) != 3 or len(overlap) != 3 or
+                any(row.get("maximum_rank_step_overlap_enabled") != [0, 0, 0] or
+                    row.get("maximum_rank_step_overlapped_buckets") != [0, 0, 0]
+                    for row in synchronous) or
+                any(row.get("maximum_rank_step_overlap_enabled") != [0, 1, 1] or
+                    row.get("maximum_rank_step_overlapped_buckets") != [0, 3, 3]
+                    for row in overlap) or
+                max(row["maximum_engine_current_bytes"] for row in synchronous) !=
+                max(row["maximum_engine_current_bytes"] for row in overlap) or
+                max(row["maximum_engine_peak_bytes"] for row in synchronous) !=
+                max(row["maximum_engine_peak_bytes"] for row in overlap)):
+            errors.append(f"ranked overlap T{context} policy evidence changed")
+    stdout_records = []
+    for path in sorted(root.glob("run-*/*.stdout")):
+        if path.name.startswith("rank"):
+            stdout_records.append(json.loads(path.read_text(encoding="utf-8")))
+    if (len(stdout_records) != 24 or
+            any("parameters" in row or row.get("parameter_count") != 15586176
+                for row in stdout_records) or
+            list(root.rglob("*.safetensors")) or
+            list(root.rglob("communicator.id"))):
+        errors.append("ranked context temporary parameter evidence changed")
+    if (failure.get("failure_detected") is not True or
+            failure.get("peer_processes_terminated") != 1 or
+            failure.get("returncodes") != [1, -15]):
+        errors.append("ranked overlap context failure evidence changed")
+    if (check.get("measurement_commit") !=
+            "31e58e86fb2d1fb12d8156515f08b84e21d0aeff" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("gpu") != "AMD Instinct MI300X VF" or
+            check.get("architecture") != "gfx942" or
+            check.get("contexts") != [32, 128] or
+            check.get("runs_per_policy_context") != 3 or
+            check.get("policy_context_runs") != 12 or
+            check.get("rank_processes") != 24 or
+            check.get("steady_samples_per_policy_context") != 6 or
+            check.get("t32_training_speedup") != expected_t32 or
+            check.get("t128_training_speedup") != expected_t128 or
+            check.get("t128_excluding_run1_speedup") != 1.069171138658113 or
+            check.get("minimum_required_speedup") != 1.01 or
+            check.get("longer_context_gate_passed") is not True or
+            check.get("t32_current_bytes_added") != 0 or
+            check.get("t32_peak_bytes_added") != 0 or
+            check.get("t128_current_bytes_added") != 0 or
+            check.get("t128_peak_bytes_added") != 0 or
+            check.get("maximum_rank_difference") != 0.0 or
+            check.get("temporary_parameter_files_retained") is not False or
+            check.get("context_selective_overlap_retained") is not True or
+            check.get("t32_overlap_enabled") is not False or
+            check.get("t128_overlap_admitted") is not True or
+            check.get("general_default_overlap") is not False or
+            check.get("rccl_label") != {"passed": 48, "total": 48} or
+            check.get("context_contract") != {"passed": 1, "total": 1} or
+            check.get("registered_test_files") != 124):
+        errors.append("ranked overlap context verification changed")
+    runner = (REPOSITORY /
+              "benchmarks/distributed/ranked_overlap_context_matrix.py").read_text(
+                  encoding="utf-8")
+    worker = (REPOSITORY / "apps/distributed_rank.cpp").read_text(
+        encoding="utf-8")
+    if ("--contexts" not in runner or "longer_context_gate_passed" not in runner or
+            "options.context" not in worker):
+        errors.append("ranked overlap context route is missing")
+    return summary.get("policy_context_runs", 0), expected_t32, expected_t128, \
+        bool(summary.get("longer_context_gate_passed"))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -15855,7 +15977,8 @@ def validate_assets(errors: list[str]) -> None:
                  "ranked-steady-reducer-discard.svg",
                  "ranked-persistent-buckets.svg",
                  "ranked-gradient-bucket-views.svg",
-                 "ranked-gradient-overlap-discard.svg"):
+                 "ranked-gradient-overlap-discard.svg",
+                 "ranked-overlap-context-scale.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -16413,6 +16536,8 @@ def main() -> int:
     ranked_overlap_runs, ranked_overlap_finish, ranked_overlap_training, \
         ranked_overlap_current, ranked_overlap_peak = \
         validate_ranked_gradient_overlap(errors)
+    ranked_context_runs, ranked_context_t32, ranked_context_t128, \
+        ranked_context_gate = validate_ranked_overlap_contexts(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -16946,6 +17071,10 @@ def main() -> int:
           f"{ranked_overlap_training:.4f}/"
           f"{ranked_overlap_current}/"
           f"{ranked_overlap_peak} "
+          f"ranked_context={ranked_context_runs}/"
+          f"{ranked_context_t32:.4f}/"
+          f"{ranked_context_t128:.4f}/"
+          f"{int(ranked_context_gate)} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

@@ -4254,3 +4254,21 @@ overlap实现作为显式教学/研究入口保留，Model-S T32 ranked reducer�
 改变context尺度，至少比较T32/T128；不能继续在同一T32数据上微调计时边界。
 
 ![Ranked gradient overlap](assets/ranked-gradient-overlap-discard.svg)
+
+## 288. Experiment 271：同一套overlap，为什么T32没用、T128快9.2%
+
+这次不改代码路径，只改变context。T32/T128分别比较同步views和overlap views，每个组合三个
+fresh双rank进程、6个steady样本。
+
+T32同步/overlap为8.015/8.019ms，ratio `0.9995×`；T128为9.289/8.504ms，ratio
+`1.0923×`。两尺度finish都快约2×，区别在backward/enqueue added：T32是1.178ms，T128只有
+0.466ms，后者留下真正的端到端收益。
+
+T128同步CV为6.80%，所以我们做了敏感性检查：完全删除最慢的process_run 1，同步/overlap仍为
+9.093/8.504ms，`1.069×`，继续过1.01门。不是单个异常值制造的结论。
+
+两尺度current/peak增量都是0；T128完整参数、CPU Max/RMS `0.003842/2.595e-6`、loss与故障门
+通过。结论是context-selective：当前Model-S/two-MI300X/25MiB轨道T32同步、T128 overlap。
+它不是其他模型/GPU/world size的一般默认。
+
+![Ranked overlap context scale](assets/ranked-overlap-context-scale.svg)

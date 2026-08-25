@@ -164,6 +164,11 @@ Start with [Quick start](#quick-start), consume the installed library through th
 > 1.0052× faster, below the 1.01 gate. The explicit route remains for teaching
 > and scale experiments; Model-S T32 reducer-local optimization is closed.
 
+> The separate scale track finds the boundary: T32 remains neutral at 0.9995×,
+> while T128 overlap reaches 1.0923× (1.069× even after removing the slowest
+> run) with no memory delta. Overlap is retained as an explicit context-selective
+> policy for the measured two-MI300X Model-S track, not as a general default.
+
 </details>
 
 ## Why this project exists

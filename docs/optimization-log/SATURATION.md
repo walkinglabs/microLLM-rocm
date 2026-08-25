@@ -334,6 +334,12 @@ finish wait 2.180× without adding peak, but complete steady step improves only 
 hook/Event/enqueue work moves into backward. Another T32 Stream, timing-boundary or bucket-lifetime
 edit is closed. A future overlap claim must establish a separate context/model/topology scale track.
 
+Experiment 271 establishes that separate context track. T32 remains neutral at 0.9995×, while
+T128 reaches 1.0923× with identical current/peak and still reaches 1.069× after excluding the
+slowest run. Overlap is therefore retained only as a measured context-selective policy for the
+current Model-S/two-MI300X/25MiB configuration. T32 tuning is still closed; extrapolation to other
+models, contexts, bucket limits, GPUs or world sizes is also closed without new evidence.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-25: Ranked overlap context-scale result](2026-08-25-ranked-overlap-context-result.md)
 - [2026-08-25: Ranked overlap context-scale infrastructure](2026-08-25-ranked-overlap-scale-infrastructure.md)
 - [2026-08-25: Ranked gradient-ready overlap result](2026-08-25-ranked-gradient-overlap-result.md)
 - [2026-08-25: Ranked gradient-ready overlap infrastructure](2026-08-25-ranked-gradient-overlap-infrastructure.md)

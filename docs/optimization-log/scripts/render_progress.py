@@ -317,6 +317,11 @@ RANKED_OVERLAP_ROOT = (
     "2026-08-25-ranked-gradient-overlap")
 RANKED_OVERLAP_CHART = (
     ROOT / "assets" / "ranked-gradient-overlap-discard.svg")
+RANKED_CONTEXT_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-ranked-overlap-contexts")
+RANKED_CONTEXT_CHART = (
+    ROOT / "assets" / "ranked-overlap-context-scale.svg")
 
 
 def rows() -> list[dict]:
@@ -5660,6 +5665,91 @@ def ranked_gradient_overlap_svg() -> str:
     return "\n".join(parts)
 
 
+def ranked_overlap_context_svg() -> str:
+    summary = json.loads((RANKED_CONTEXT_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    width, height = 1500, 820
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 271 · Ranked Overlap Context Boundary", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "T32 / T128 · sync views vs overlap views · 3 fresh two-rank launches · 6 steady samples each",
+             16, "#5b6474", anchor="middle"),
+    ]
+    contexts = ((32, 70, "#64748b"), (128, 550, "#2563eb"))
+    for context, x, accent in contexts:
+        result = summary["results"][str(context)]
+        synchronous = result["policies"]["bucket-views"]
+        overlap = result["policies"]["overlap-views"]
+        parts.extend([
+            f'<rect x="{x}" y="125" width="420" height="525" rx="18" '
+            f'fill="#ffffff" stroke="{accent}" stroke-width="3"/>',
+            text(x + 210, 170, f"Context T{context}", 25, accent,
+                 anchor="middle", weight=700),
+            text(x + 45, 225, "Complete steady step", 17, "#172033", weight=700),
+        ])
+        for index, (label, row, color) in enumerate((
+                ("Synchronous", synchronous, "#64748b"),
+                ("Overlap", overlap, "#2563eb"))):
+            y = 255 + index * 75
+            value = row["median_steady_training_ms"]
+            parts.extend([
+                text(x + 45, y + 21, label, 14, "#5b6474"),
+                f'<rect x="{x + 145}" y="{y}" width="{190 * value / 11.0:.1f}" '
+                f'height="27" rx="7" fill="{color}"/>',
+                text(x + 385, y + 21, f"{value:.3f} ms", 16, color,
+                     anchor="end", weight=700),
+            ])
+        ratio_color = "#166534" if result["training_speedup"] >= 1.01 else "#b42335"
+        parts.extend([
+            text(x + 210, 420, f"Total speedup {result['training_speedup']:.4f}×",
+                 23, ratio_color, anchor="middle", weight=700),
+            text(x + 210, 462, f"Finish speedup {result['finish_speedup']:.3f}×",
+                 18, "#166534", anchor="middle", weight=700),
+            text(x + 210, 502,
+                 f"F/B enqueue added {result['forward_backward_added_ms']:.3f} ms",
+                 17, "#b45309", anchor="middle", weight=700),
+            text(x + 210, 542,
+                 f"Sync / overlap CV {synchronous['steady_training_cv'] * 100:.2f}% / {overlap['steady_training_cv'] * 100:.2f}%",
+                 15, "#5b6474", anchor="middle"),
+            text(x + 210, 582, "Current delta 0 · Peak delta 0", 17,
+                 "#166534", anchor="middle", weight=700),
+            text(x + 210, 620,
+                 "PASS ≥1.01" if result["training_speedup"] >= 1.01 else "FAIL <1.01",
+                 18, ratio_color, anchor="middle", weight=700),
+        ])
+    parts.extend([
+        '<rect x="1030" y="125" width="400" height="525" rx="18" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>',
+        text(1230, 170, "Scale decision", 25, "#166534",
+             anchor="middle", weight=700),
+        text(1070, 225, "T32", 18, "#5b6474", weight=700),
+        text(1390, 225, "synchronous", 22, "#b42335", anchor="end", weight=700),
+        text(1070, 285, "T128", 18, "#5b6474", weight=700),
+        text(1390, 285, "overlap", 22, "#166534", anchor="end", weight=700),
+        '<line x1="1070" y1="315" x2="1390" y2="315" stroke="#d8dee9" stroke-width="2"/>',
+        text(1230, 365, "T128 sensitivity", 18, "#172033",
+             anchor="middle", weight=700),
+        text(1230, 405, "drop slowest run", 15, "#5b6474", anchor="middle"),
+        text(1230, 450, "1.069×", 30, "#166534", anchor="middle", weight=700),
+        text(1230, 515, "Rank Max = 0", 17, "#166534", anchor="middle", weight=700),
+        text(1230, 555, "T128 CPU RMS 2.595e-6", 17, "#166534", anchor="middle", weight=700),
+        text(1230, 602, "Context-selective keep", 20, "#166534",
+             anchor="middle", weight=700),
+        '<rect x="70" y="690" width="1360" height="80" rx="16" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>',
+        text(width / 2, 725,
+             "Measured policy: Model-S / 2×MI300X / 25 MiB · T32 sync · T128 overlap · no general default",
+             19, "#1d4ed8", anchor="middle", weight=700),
+        text(width / 2, 753,
+             "Next reliability gap: rank0 checkpoint ownership and interruption/resume equivalence",
+             16, "#5b6474", anchor="middle"),
+        "</svg>\n",
+    ])
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -5746,7 +5836,8 @@ def main() -> int:
                 RANKED_STEADY_CHART: ranked_steady_reducer_svg(),
                 RANKED_PERSISTENT_CHART: ranked_persistent_bucket_svg(),
                 RANKED_VIEW_CHART: ranked_gradient_view_svg(),
-                RANKED_OVERLAP_CHART: ranked_gradient_overlap_svg()}
+                RANKED_OVERLAP_CHART: ranked_gradient_overlap_svg(),
+                RANKED_CONTEXT_CHART: ranked_overlap_context_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]
