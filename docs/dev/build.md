@@ -106,8 +106,9 @@ cmake --preset hip-release -DMICROLLM_HIP_ARCHITECTURES=gfx942
 enables HIP only when the toolchain is found; `OFF` guarantees a CPU-only build.
 
 When both rocWMMA and its OpenMP C++ dependency are discoverable, CMake also builds
-`microllm_bench_rocwmma_qk`. This target is a research benchmark, not an engine or
-installed-SDK dependency. If either optional package is absent, ordinary HIP operators,
+`microllm_bench_rocwmma_qk` and `microllm_bench_rocwmma_online_attention`. These are
+research benchmarks, not engine or
+installed-SDK dependencies. If either optional package is absent, ordinary HIP operators,
 applications and the exported `microLLM::*` targets are unchanged.
 
 ## RCCL build

@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| CPU configuration | smoke-tested | CPU 337/337; full CPU/HIP 531/531 with 3 conditional skips; HIP label 182/182; ASan/UBSan 335/335 | broader compiler/OS CI matrix |
+| CPU configuration | smoke-tested | CPU 338/338; full CPU/HIP 533/533 with 3 conditional skips; HIP label 183/183; ASan/UBSan 336/336 | broader compiler/OS CI matrix |
 | CPU code coverage | smoke-tested | 78.4% lines, 86.6% functions, 59.1% branches over `src/` + `include/`; quiescent handoff and other HIP-only paths remain visible as CPU gaps | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, native cast, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
@@ -60,7 +60,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Serving scheduler | smoke-tested | slot-ratio matrix 48/48 token-exact; matched 6:2 short and 2:6 long retain 85%–87% throughput while reducing KV 56%/19% | safe dynamic ratio transition and allocator cost; uniform remains default, overflow opt-in |
 | Stable model failure | smoke-tested | low-loss cycle breaks beyond training context | rebuttal experiments |
 | PyTorch Custom Ops | smoke-tested on CPU | Torch 2.13 add/multiply via dispatcher | build/run with PyTorch ROCm |
-| PyTorch correctness oracle | smoke-tested | PyTorch-enabled build 311/311; Tensor/graph/model/optimizer parity plus package and schema gates | broader direct PyTorch ROCm operator matrix |
+| PyTorch correctness oracle | smoke-tested | PyTorch-enabled build 312/312; Tensor/graph/model/optimizer parity plus package and schema gates | broader direct PyTorch ROCm operator matrix |
 | PyTorch ROCm environment | smoke-tested | Torch 2.10.0+rocm7.13 and Transformers 5.8.1 run official Qwen/DeepSeek BF16 training on MI300X with native device discovery | additional Torch/ROCm versions and Radeon |
 | C ABI v1 | smoke-tested | pure C CPU/HIP create/copy/ops/error client plus build-tree and relocated-install C-only Config consumers | zero-copy external views |
 | Python ctypes API | smoke-tested | CPU/HIP Tensor/ops/error unittest | packaging/broader ops |
@@ -73,8 +73,9 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | End-to-end benchmark | smoke-tested | matched Python/PyTorch ROCm official training plus phase-separated prefill and one-forward-per-token steady-decode JSONL | serving concurrency, board-level memory and llama.cpp |
 | Single-GPU model matrix | smoke-tested | MI300X tiny/Model-S/Model-M plus official Qwen0.5B/DeepSeek-Distill1.5B train+generate, parameters, time, tokens/s and engine peak bytes | repeated contexts/dtypes and external board-level memory sampling |
 | Python/PyTorch ROCm performance matrix | smoke-tested | official Qwen/DeepSeek train plus inference context 1–2048, batch 1–8, output 1–64, KV allocated/active/waste, continuous slot metrics and token gates | DeepSeek continuous 3-case mismatch, identical residency policy, version matrix and llama.cpp |
-| Optimization experiment journal | implemented | experiments through 227; raw evidence, rejection gates and generated SVGs validated in CTest | Radeon and production data-parallel tracks |
-| rocWMMA QK tile | smoke-tested | gfx942 rocWMMA 2.2.0, 48 complete-output processes over T16–2048/D64–128; T512 is 1.654×–1.784× hipBLASLt while T2048 D128 is 0.688× | online max/sum, causal/GQA/tails, PV, memory and model gates; no model route |
+| Optimization experiment journal | implemented | experiments through 228; raw evidence, rejection gates and generated SVGs validated in CTest | Radeon and production data-parallel tracks |
+| rocWMMA QK tile | smoke-tested | gfx942 rocWMMA 2.2.0, 48 complete-output processes over T16–2048/D64–128; T512 is 1.654×–1.784× hipBLASLt while T2048 D128 is 0.688× | standalone tile track handed to the separate online prototype; no direct model route |
+| rocWMMA online Attention prototype | smoke-tested | 42 complete-output processes, real Qwen/DeepSeek GQA grids T32–2048, 1.260×–4.041× current operator and zero global score bytes | public operator, batch/tails/other-architecture fallback, PyTorch/full-logit/model gates; no route |
 | Complete-training HIP Graph | smoke-tested | 24-process FP32/BF16 staged audit; dynamic Storage is rejected before driver invalidation and same-Stream recovery passes; AdamW captures 21 nodes but replay does not advance host step | graph-wide liveness/workspace plan and device-owned optimizer step before any full-step performance claim |
 | rocprofv3 workflow | smoke-tested | kernel/HIP API/memory/full trace generated | release artifact retention |
 | hipBLASLt matmul | smoke-tested | FP32/BF16, rank-N strided batches, four transpose contracts, Model-S and T≥256 Attention forward/backward | workspace-aware candidate enumeration/timing |

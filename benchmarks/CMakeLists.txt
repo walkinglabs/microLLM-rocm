@@ -15,6 +15,13 @@ if(MICROLLM_HAS_HIP)
             hip::host roc::rocwmma roc::hipblaslt)
         target_compile_definitions(microllm_bench_rocwmma_qk PRIVATE
             MICROLLM_ROCWMMA_VERSION="${rocwmma_VERSION}")
+        add_executable(microllm_bench_rocwmma_online_attention
+                       micro/benchmark_rocwmma_online_attention.hip)
+        target_link_libraries(microllm_bench_rocwmma_online_attention PRIVATE
+            microllm::ops microllm::runtime hip::host roc::rocwmma)
+        target_compile_definitions(
+            microllm_bench_rocwmma_online_attention PRIVATE
+            MICROLLM_ROCWMMA_VERSION="${rocwmma_VERSION}")
     endif()
     add_executable(microllm_bench_deferred_deallocation
                    micro/benchmark_deferred_deallocation.cpp)
@@ -178,6 +185,15 @@ if(BUILD_TESTING)
                          --warmup 1 --repetitions 2)
         set_tests_properties(Benchmark.RocwmmaQkTileSmoke PROPERTIES
                              LABELS "hip;benchmark;attention;bf16;mfma;rocwmma")
+    endif()
+    if(TARGET microllm_bench_rocwmma_online_attention)
+        add_test(NAME Benchmark.RocwmmaOnlineAttentionSmoke
+                 COMMAND microllm_bench_rocwmma_online_attention
+                         --sequence 32 --width 64 --worker-threads 256
+                         --heads 2 --kv-heads 1
+                         --warmup 1 --repetitions 2)
+        set_tests_properties(Benchmark.RocwmmaOnlineAttentionSmoke PROPERTIES
+                             LABELS "hip;benchmark;attention;bf16;mfma;rocwmma;online")
     endif()
     if(Python3_Interpreter_FOUND)
         add_test(NAME Benchmark.JsonSchema

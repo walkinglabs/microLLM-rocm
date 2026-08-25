@@ -115,6 +115,9 @@ OPTIMIZER_GRAPH_MODEL_CHART = ROOT / "assets" / "optimizer-graph-model-gate.svg"
 ROCWMMA_QK_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
                    "2026-08-25-rocwmma-qk-tile")
 ROCWMMA_QK_CHART = ROOT / "assets" / "rocwmma-qk-tile.svg"
+ROCWMMA_ONLINE_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
+                       "2026-08-25-rocwmma-online-attention")
+ROCWMMA_ONLINE_CHART = ROOT / "assets" / "rocwmma-online-attention.svg"
 
 
 def rows() -> list[dict]:
@@ -2828,6 +2831,73 @@ def rocwmma_qk_tile_svg() -> str:
     return "\n".join(parts)
 
 
+def rocwmma_online_attention_svg() -> str:
+    summary = json.loads((ROCWMMA_ONLINE_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    rows = summary["comparisons"]
+    sequences = summary["sequences"]
+    width, height = 1600, 760
+    chart_x, chart_y, chart_w, chart_h = 150, 150, 1300, 390
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 228 · Online rocWMMA Attention", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "42 fresh processes · causal GQA · MFMA QK/PV · no global score tensor",
+             16, "#5b6474", anchor="middle"),
+        f'<rect x="{chart_x}" y="{chart_y}" width="{chart_w}" height="{chart_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+    ]
+
+    def y(value: float) -> float:
+        return chart_y + chart_h * (4.2 - value) / 3.4
+
+    for tick in (1.0, 2.0, 3.0, 4.0):
+        position = y(tick)
+        color = "#2563eb" if tick == 1.0 else "#e5e9f0"
+        parts.append(f'<line x1="{chart_x}" y1="{position:.1f}" '
+                     f'x2="{chart_x+chart_w}" y2="{position:.1f}" stroke="{color}"/>')
+        parts.append(text(chart_x - 12, position + 5, f"{tick:.1f}×", 13,
+                          "#5b6474", anchor="end"))
+    x_by_sequence = {
+        sequence: chart_x + chart_w * (index + 0.5) / len(sequences)
+        for index, sequence in enumerate(sequences)
+    }
+    for sequence, x_pos in x_by_sequence.items():
+        parts.append(text(x_pos, chart_y + chart_h + 30, f"T{sequence}", 14,
+                          "#5b6474", anchor="middle"))
+    for family, color, label in (("qwen", "#16a34a", "Qwen H14/KV2/D64"),
+                                 ("deepseek", "#e11d48", "Deep H12/KV2/D128")):
+        selected = sorted((row for row in rows if row["family"] == family),
+                          key=lambda row: row["sequence"])
+        points = [(x_by_sequence[row["sequence"]],
+                   y(row["online_over_current"])) for row in selected]
+        parts.append('<polyline fill="none" stroke="{}" stroke-width="4" points="{}"/>'.format(
+            color, " ".join(f"{x:.1f},{point_y:.1f}" for x, point_y in points)))
+        for row, (x_pos, y_pos) in zip(selected, points):
+            parts.append(f'<circle cx="{x_pos:.1f}" cy="{y_pos:.1f}" r="6" fill="{color}"/>')
+            if row["sequence"] in (512, 2048):
+                parts.append(text(x_pos, y_pos - 12,
+                                  f'{row["online_over_current"]:.3f}×',
+                                  13, color, anchor="middle", weight=700))
+        parts.append(text(chart_x + chart_w - 15,
+                          chart_y + 30 + (0 if family == "qwen" else 26),
+                          label, 15, color, anchor="end", weight=700))
+    parts.append(text(width / 2, 625,
+                      "candidate/current: every shape ≥1.260× · T2048 score removed: 224 MiB / 192 MiB",
+                      18, "#166534", anchor="middle", weight=700))
+    parts.append(text(width / 2, 670,
+                      "Short scalar kernels remain faster; admit operator integration with fallback, not a model route",
+                      15, "#9a4f00", anchor="middle"))
+    parts.append(text(width / 2, 710,
+                      "Vertical axis: online rocWMMA Event speed ÷ current framework Attention Event speed",
+                      13, "#5b6474", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -2871,7 +2941,8 @@ def main() -> int:
                     optimizer_graph_model_preflight_svg(),
                 QUIESCENT_HANDOFF_CHART: quiescent_allocator_handoff_svg(),
                 OPTIMIZER_GRAPH_MODEL_CHART: optimizer_graph_model_gate_svg(),
-                ROCWMMA_QK_CHART: rocwmma_qk_tile_svg()}
+                ROCWMMA_QK_CHART: rocwmma_qk_tile_svg(),
+                ROCWMMA_ONLINE_CHART: rocwmma_online_attention_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

@@ -375,6 +375,10 @@ the chronological details are in the [optimization log](docs/optimization-log/RE
 - a benchmark-only rocWMMA BF16 QK tile covers T16–2048 and D64/128 with 48 complete-output
   process gates; it beats the matched library baseline at T512 but falls to 0.688× at T2048 D128,
   admitting an online-Attention prototype while keeping every model route disabled.
+- the follow-up online causal-GQA prototype fuses rocWMMA QK/PV with online max/sum and writes
+  no global score tensor; 42 fresh processes cover real Qwen/DeepSeek head grids at T32–2048,
+  improving the current operator by 1.260×–4.041× while retaining short scalar counterexamples
+  and keeping public/model dispatch unchanged pending fallback and full-logit gates.
 
 </details>
 
@@ -606,13 +610,13 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 531/531 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
-| CPU Debug | 337/337 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
-| ASan/UBSan CPU | 335/335 | host lifetime, external Storage and instrumented-package linking |
-| MI300X/gfx942 HIP label | 182/182 | allocator/arena/Stream/Graph, rocWMMA, grouped/exact vendor solutions, BF16/FP8 and model paths |
-| PyTorch-enabled CPU build | 311/311 | dispatcher parity, 32-step BF16 optimizer state, full graph/model oracle and all package paths |
+| Full CPU/HIP configuration | 533/533 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
+| CPU Debug | 338/338 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
+| ASan/UBSan CPU | 336/336 | host lifetime, external Storage and instrumented-package linking |
+| MI300X/gfx942 HIP label | 183/183 | allocator/arena/Stream/Graph, rocWMMA online Attention, grouped/exact vendor solutions, BF16/FP8 and model paths |
+| PyTorch-enabled CPU build | 312/312 | dispatcher parity, 32-step BF16 optimizer state, full graph/model oracle and all package paths |
 | Multi-GPU/RCCL | 12/12 | collectives, global-batch equivalence, gradient buckets, DDP trainer/CLI and per-device hipBLASLt ownership; RCCL label 14/14 with package gates |
-| Registered test files | 100 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| Registered test files | 101 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
 | CPU source coverage | 78.4% lines / 86.6% functions / 59.1% branches | 8,878/11,329 lines; quiescent handoff and other HIP-only branches remain visible; GCC 13.3 + gcovr 8.3 |
 

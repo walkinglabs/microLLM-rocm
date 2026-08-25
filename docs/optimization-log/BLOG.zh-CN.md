@@ -3723,3 +3723,18 @@ D128跌到0.688×。矩阵硬件可用和长上下文反例同时成立。
 causal、GQA、tail和PV，并重新过完整Attention、KV、显存与双模型logits门。
 
 ![rocWMMA QK tile boundary](assets/rocwmma-qk-tile.svg)
+
+## 245. Experiment 228：边算边忘，终于删除T²分数表
+
+第一版online kernel只用一个wave算QK，再用普通循环做PV，T512 D128只有标量fused的0.047×。
+扩到第二个wave时，完整输出门抓到shared写重叠造成0.029误差；修好线程步长后，512-thread标量
+PV仍只有0.172×。真正的转折是把softmax权重显式转BF16，再用2/4个wave执行rocWMMA PV。
+
+单head仍喂不满MI300X。加入Qwen H14/KV2/D64和DeepSeek H12/KV2/D128的真实GQA网格后，
+42个fresh processes覆盖T32–2048，全部完整输出过门。相对当前`causal_gqa_attention_bthd`
+为1.260×–4.041×；T2048不再写224/192MiB全局score。
+
+候选Max/RMS最高约5.66e-4/1.16e-4，明确不是bit-exact。短标量fused也仍更快。因此下一步只
+准入带batch/tail/architecture fallback的公共operator，模型路由继续关闭。
+
+![rocWMMA online Attention](assets/rocwmma-online-attention.svg)

@@ -12599,6 +12599,92 @@ def validate_rocwmma_qk_tile(
     return len(raw), min(ratios), max(ratios), len(comparisons)
 
 
+def validate_rocwmma_online_attention(
+        errors: list[str]) -> tuple[int, float, float, int, int]:
+    data = REPOSITORY / "benchmarks/results/2026-08-25-rocwmma-online-attention"
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = {(row["family"], int(row["sequence"])): row
+                   for row in summary.get("comparisons", [])}
+    expected_boundary = {
+        ("qwen", 512): 1.5256532416219646,
+        ("qwen", 2048): 1.6730214334537978,
+        ("deepseek", 512): 4.04094880906739,
+        ("deepseek", 2048): 1.2602728520458482,
+    }
+    keys = {(row.get("family"), int(row.get("sequence", -1)),
+             int(row.get("process_run", -1))) for row in raw}
+    if summary.get("schema_version") != 1 or summary.get("status") != "pass" or \
+            summary.get("record_type") != "rocwmma_online_attention_summary" or \
+            summary.get("architecture") != "gfx942:sramecc+:xnack-" or \
+            summary.get("rocwmma_version") != "2.2.0" or \
+            summary.get("processes") != 42 or \
+            summary.get("runs_per_case") != 3 or \
+            summary.get("sequences") != [32, 64, 128, 256, 512, 1024, 2048] or \
+            summary.get("families") != ["qwen", "deepseek"] or \
+            summary.get("correctness_gate") is not True or \
+            summary.get("current_performance_gate") is not True or \
+            summary.get("long_scalar_gate") is not True or \
+            summary.get("short_scalar_counterexample") is not True or \
+            summary.get("memory_gate") is not True or \
+            summary.get("batch_support") is not False or \
+            summary.get("tail_support") is not False or \
+            summary.get("operator_integration_admitted") is not True or \
+            summary.get("model_route_accepted") is not False or \
+            summary.get("decision") != (
+                "admit public operator integration with explicit fallback; keep model route disabled") or \
+            len(raw) != 42 or len(keys) != 42 or len(comparisons) != 14 or \
+            any(key not in comparisons or
+                abs(float(comparisons[key].get("online_over_current", 0.0)) - value) > 1.0e-12
+                for key, value in expected_boundary.items()) or \
+            any(row.get("schema_version") != 1 or row.get("status") != "pass" or
+                row.get("record_type") != "rocwmma_online_attention_measurement" or
+                row.get("accuracy_passed") is not True or
+                row.get("pv_path") != "rocwmma_bf16" or
+                row.get("gqa") is not True or
+                int(row.get("global_score_bytes", -1)) != 0 or
+                int(row.get("worker_threads", -1)) != 512 or
+                int(row.get("complete_output_elements", -1)) !=
+                    int(row.get("heads", 0)) * int(row.get("sequence", 0)) *
+                    int(row.get("width", 0)) or
+                float(row.get("online_max_error", 1.0)) > 2.0e-3 or
+                float(row.get("online_rms_error", 1.0)) > 2.0e-4
+                for row in raw):
+        errors.append("rocWMMA online Attention evidence changed")
+    if verification != {
+            "schema_version": 1,
+            "status": "pass",
+            "raw_records": 42,
+            "expected_raw_records": 42,
+            "matrix_cases": 14,
+            "expected_matrix_cases": 14,
+            "all_complete_outputs": True,
+            "all_accuracy_passed": True,
+            "current_performance_gate": True,
+            "memory_gate": True,
+            "operator_integration_admitted": True,
+            "model_route_accepted": False}:
+        errors.append("rocWMMA online Attention verification changed")
+    sources = (
+        ("rocwmma_online_attention_kernel", REPOSITORY /
+         "benchmarks/micro/benchmark_rocwmma_online_attention.hip"),
+        ("short_scalar_counterexample", REPOSITORY /
+         "benchmarks/single_gpu/rocwmma_online_attention_matrix.py"),
+        ("operator_integration_admitted", REPOSITORY /
+         "python/tests/test_rocwmma_online_attention_matrix.py"),
+    )
+    if any(token not in path.read_text(encoding="utf-8")
+           for token, path in sources):
+        errors.append("rocWMMA online Attention source/test contract changed")
+    ratios = [float(row["online_over_current"])
+              for row in comparisons.values()]
+    return len(raw), min(ratios), max(ratios), len(comparisons), \
+        max(int(row["current_score_bytes"]) for row in comparisons.values())
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -12804,7 +12890,8 @@ def validate_assets(errors: list[str]) -> None:
                  "optimizer-graph-model-preflight.svg",
                  "quiescent-allocator-handoff.svg",
                  "optimizer-graph-model-gate.svg",
-                 "rocwmma-qk-tile.svg"):
+                 "rocwmma-qk-tile.svg",
+                 "rocwmma-online-attention.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -13230,6 +13317,9 @@ def main() -> int:
         validate_optimizer_graph_model_gate(errors)
     rocwmma_qk_rows, rocwmma_qk_minimum, rocwmma_qk_maximum, \
         rocwmma_qk_cases = validate_rocwmma_qk_tile(errors)
+    rocwmma_online_rows, rocwmma_online_minimum, rocwmma_online_maximum, \
+        rocwmma_online_cases, rocwmma_online_score_bytes = \
+        validate_rocwmma_online_attention(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -13611,6 +13701,9 @@ def main() -> int:
           f"{optimizer_model_step_maximum:.3f} "
           f"rocwmma_qk={rocwmma_qk_rows}/{rocwmma_qk_cases}/"
           f"{rocwmma_qk_minimum:.3f}/{rocwmma_qk_maximum:.3f} "
+          f"rocwmma_online={rocwmma_online_rows}/{rocwmma_online_cases}/"
+          f"{rocwmma_online_minimum:.3f}/{rocwmma_online_maximum:.3f}/"
+          f"{rocwmma_online_score_bytes} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

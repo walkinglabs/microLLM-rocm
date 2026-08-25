@@ -476,3 +476,5 @@ the next gate. Records are append-only except for factual corrections.
   proves that both build-tree and relocated install-tree Config packages work from a genuinely C-only project.
 - [2026-08-25-rocwmma-qk-tile.md](2026-08-25-rocwmma-qk-tile.md):
   beginner-friendly matrix-core capability, complete-output matrix and long-context counterexample.
+- [2026-08-25-rocwmma-online-attention.md](2026-08-25-rocwmma-online-attention.md):
+  beginner-friendly online softmax, MFMA QK/PV, caught race and real GQA evidence.

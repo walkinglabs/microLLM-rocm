@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="760" viewBox="0 0 1600 760">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="800.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 228 · Online rocWMMA Attention</text>
+<text x="800.0" y="82.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">42 fresh processes · causal GQA · MFMA QK/PV · no global score tensor</text>
+<rect x="150" y="150" width="1300" height="390" fill="#ffffff" stroke="#cbd3df" rx="10"/>
+<line x1="150" y1="517.1" x2="1450" y2="517.1" stroke="#2563eb"/>
+<text x="138.0" y="522.1" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">1.0×</text>
+<line x1="150" y1="402.4" x2="1450" y2="402.4" stroke="#e5e9f0"/>
+<text x="138.0" y="407.4" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">2.0×</text>
+<line x1="150" y1="287.6" x2="1450" y2="287.6" stroke="#e5e9f0"/>
+<text x="138.0" y="292.6" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">3.0×</text>
+<line x1="150" y1="172.9" x2="1450" y2="172.9" stroke="#e5e9f0"/>
+<text x="138.0" y="177.9" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">4.0×</text>
+<text x="242.9" y="570.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">T32</text>
+<text x="428.6" y="570.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">T64</text>
+<text x="614.3" y="570.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">T128</text>
+<text x="800.0" y="570.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">T256</text>
+<text x="985.7" y="570.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">T512</text>
+<text x="1171.4" y="570.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">T1024</text>
+<text x="1357.1" y="570.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">T2048</text>
+<polyline fill="none" stroke="#16a34a" stroke-width="4" points="242.9,331.9 428.6,429.2 614.3,458.1 800.0,333.7 985.7,456.8 1171.4,346.5 1357.1,439.9"/>
+<circle cx="242.9" cy="331.9" r="6" fill="#16a34a"/>
+<circle cx="428.6" cy="429.2" r="6" fill="#16a34a"/>
+<circle cx="614.3" cy="458.1" r="6" fill="#16a34a"/>
+<circle cx="800.0" cy="333.7" r="6" fill="#16a34a"/>
+<circle cx="985.7" cy="456.8" r="6" fill="#16a34a"/>
+<text x="985.7" y="444.8" font-family="Inter,Arial,sans-serif" font-size="13" fill="#16a34a" text-anchor="middle" font-weight="700">1.526×</text>
+<circle cx="1171.4" cy="346.5" r="6" fill="#16a34a"/>
+<circle cx="1357.1" cy="439.9" r="6" fill="#16a34a"/>
+<text x="1357.1" y="427.9" font-family="Inter,Arial,sans-serif" font-size="13" fill="#16a34a" text-anchor="middle" font-weight="700">1.673×</text>
+<text x="1435.0" y="180.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#16a34a" text-anchor="end" font-weight="700">Qwen H14/KV2/D64</text>
+<polyline fill="none" stroke="#e11d48" stroke-width="4" points="242.9,315.4 428.6,390.0 614.3,349.3 800.0,353.4 985.7,168.2 1171.4,377.6 1357.1,487.2"/>
+<circle cx="242.9" cy="315.4" r="6" fill="#e11d48"/>
+<circle cx="428.6" cy="390.0" r="6" fill="#e11d48"/>
+<circle cx="614.3" cy="349.3" r="6" fill="#e11d48"/>
+<circle cx="800.0" cy="353.4" r="6" fill="#e11d48"/>
+<circle cx="985.7" cy="168.2" r="6" fill="#e11d48"/>
+<text x="985.7" y="156.2" font-family="Inter,Arial,sans-serif" font-size="13" fill="#e11d48" text-anchor="middle" font-weight="700">4.041×</text>
+<circle cx="1171.4" cy="377.6" r="6" fill="#e11d48"/>
+<circle cx="1357.1" cy="487.2" r="6" fill="#e11d48"/>
+<text x="1357.1" y="475.2" font-family="Inter,Arial,sans-serif" font-size="13" fill="#e11d48" text-anchor="middle" font-weight="700">1.260×</text>
+<text x="1435.0" y="206.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#e11d48" text-anchor="end" font-weight="700">Deep H12/KV2/D128</text>
+<text x="800.0" y="625.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#166534" text-anchor="middle" font-weight="700">candidate/current: every shape ≥1.260× · T2048 score removed: 224 MiB / 192 MiB</text>
+<text x="800.0" y="670.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#9a4f00" text-anchor="middle" font-weight="400">Short scalar kernels remain faster; admit operator integration with fallback, not a model route</text>
+<text x="800.0" y="710.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">Vertical axis: online rocWMMA Event speed ÷ current framework Attention Event speed</text>
+</svg>

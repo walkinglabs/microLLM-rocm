@@ -79,6 +79,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [48](steps/48-quiescent-allocator-handoff.md) | complete | device-wide静止后的allocator阶段交接 | 救回Qwen T8/T512与DeepSeek T8；Deep T512仍拒绝 |
 | [49](steps/49-optimizer-graph-model-gate.md) | complete | 两节点optimizer Graph模型门 | optimizer 0.656×–0.807×，模型路由拒绝并关闭track |
 | [50](steps/50-rocwmma-qk-tile.md) | complete | rocWMMA QK矩阵单元能力 | 48进程全对齐；T512胜出、T2048 D128为0.688×反例；只进入原型 |
+| [51](steps/51-rocwmma-online-attention.md) | complete | online rocWMMA causal GQA原型 | 42进程；14/14胜当前1.260×–4.041×；只准入fallback operator |
 
 ## 为什么按这个顺序
 

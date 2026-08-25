@@ -1,0 +1,14 @@
+{
+  "all_accuracy_passed": true,
+  "all_complete_outputs": true,
+  "current_performance_gate": true,
+  "expected_matrix_cases": 14,
+  "expected_raw_records": 42,
+  "matrix_cases": 14,
+  "memory_gate": true,
+  "model_route_accepted": false,
+  "operator_integration_admitted": true,
+  "raw_records": 42,
+  "schema_version": 1,
+  "status": "pass"
+}

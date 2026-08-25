@@ -44,8 +44,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   cross-model/shape rejections and publish perfect-elimination upper bounds;
 - [x] prove the gfx942 rocWMMA BF16 QK tile boundary across T16–2048 and D64/128;
   all complete outputs pass, while T2048 D128 preserves a 0.688x library counterexample;
-- [ ] build the admitted MFMA/rocWMMA online Attention prototype with tiled QK/PV,
-  online max/sum, causal masking, GQA sharing, tails and full-logit gates;
+- [x] build a benchmark-only MFMA/rocWMMA online Attention prototype with tiled
+  QK/PV, online max/sum, causal masking and real Qwen/DeepSeek GQA grids;
+- [ ] integrate it as a public operator with explicit batch/tail/architecture fallback,
+  then run PyTorch, full-logit, peak-memory and end-to-end model gates;
 - [x] populate B1 KV cache from one full-sequence prefill instead of token replay;
 - [x] support batched cached decode with batch-aware KV Storage;
 - [x] add opt-in BF16 KV Storage with FP32 accumulation, complete-logit gates and a retained

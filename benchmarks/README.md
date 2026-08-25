@@ -31,6 +31,20 @@ The multi-process T16–2048/D64–128 runner is
 `benchmarks/single_gpu/rocwmma_qk_matrix.py`. This is a capability gate for an online
 Attention prototype; it does not register an operator or change model dispatch.
 
+The admitted benchmark-only online causal-GQA prototype adds online max/sum and
+rocWMMA PV without a global score Tensor:
+
+```bash
+./build/hip-release/benchmarks/microllm_bench_rocwmma_online_attention \
+  --sequence 512 --heads 14 --kv-heads 2 --width 64 \
+  --worker-threads 512 --warmup 5 --repetitions 20
+```
+
+`rocwmma_online_attention_matrix.py` runs Qwen/DeepSeek head grids from T32 to
+T2048 and compares CPU, scalar fused, the candidate and the current framework
+operator. The candidate remains outside public/model dispatch until fallback and
+full-logit gates pass.
+
 Screen and time the two matmul implementations in the required order:
 
 ```bash
