@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="650" viewBox="0 0 1500 650">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="750.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 241 · Direct BF16 P×V Output Capability</text>
+<text x="750.0" y="82.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">FP32 P/V + FP32 compute · only D changes to BF16</text>
+<rect x="170" y="170" width="500" height="240" rx="14" fill="#fff1f2" stroke="#e11d48" stroke-width="3"/>
+<text x="420.0" y="225.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#9f1239" text-anchor="middle" font-weight="700">Interleaved BTHD</text>
+<text x="420.0" y="285.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#e11d48" text-anchor="middle" font-weight="700">hipBLASLt status 6</text>
+<text x="420.0" y="335.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474" text-anchor="middle" font-weight="400">timing not started</text>
+<text x="420.0" y="375.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#166534" text-anchor="middle" font-weight="400">retained FP32 path passed</text>
+<rect x="780" y="170" width="500" height="240" rx="14" fill="#fff1f2" stroke="#e11d48" stroke-width="3"/>
+<text x="1030.0" y="225.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#9f1239" text-anchor="middle" font-weight="700">Zero-stride GQA BTHD</text>
+<text x="1030.0" y="285.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#e11d48" text-anchor="middle" font-weight="700">hipBLASLt status 6</text>
+<text x="1030.0" y="335.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474" text-anchor="middle" font-weight="400">timing not started</text>
+<text x="1030.0" y="375.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#166534" text-anchor="middle" font-weight="400">retained FP32 path passed</text>
+<text x="750.0" y="500.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#b42335" text-anchor="middle" font-weight="700">Supported 0 / 2 · timed 0 · model route 0</text>
+<text x="750.0" y="555.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474" text-anchor="middle" font-weight="700">Candidate APIs removed; direct mixed-output route closed on this backend</text>
+<text x="750.0" y="610.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">Future work requires a different consumer/kernel, not another solution index</text>
+</svg>

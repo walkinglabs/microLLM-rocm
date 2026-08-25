@@ -13469,6 +13469,42 @@ def validate_post_bf16_attention_norm_profile(
     return summary.get("profile_processes", 0), *expected
 
 
+def validate_bf16_pv_output_capability(errors: list[str]) -> tuple[int, int, int]:
+    root = REPOSITORY / (
+        "benchmarks/results/2026-08-25-bf16-pv-output-capability")
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    if (summary != {
+            "schema_version": 1, "status": "pass",
+            "record_type": "bf16_pv_output_capability_summary",
+            "raw_cases": 2, "supported_cases": 0, "unsupported_status": 6,
+            "timed_cases": 0, "public_api_retained": False,
+            "model_route_created": False,
+            "decision": "reject direct BF16 P×V output on the current backend"}):
+        errors.append("BF16 P×V capability summary changed")
+    if (len(raw) != 2 or {row.get("case") for row in raw} != {
+            "interleaved_bthd", "zero_stride_gqa_bthd"} or
+            any(row.get("hipblaslt_status") != 6 or
+                row.get("timing_started") is not False or
+                row.get("model_route_created") is not False for row in raw)):
+        errors.append("BF16 P×V raw capability evidence changed")
+    if (check.get("ordinary_bthd_status") != 6 or
+            check.get("gqa_bthd_status") != 6 or
+            check.get("candidate_source_retained") is not False or
+            check.get("model_route_created") is not False):
+        errors.append("BF16 P×V verification changed")
+    forbidden_tokens = (
+        "attention_probability_value_bthd_bf16",
+        "attention_probability_value_gqa_bthd_bf16",
+    )
+    public = (REPOSITORY / "include/microllm/ops/ops.h").read_text(encoding="utf-8")
+    if any(token in public for token in forbidden_tokens):
+        errors.append("rejected BF16 P×V API remains public")
+    return summary["raw_cases"], summary["supported_cases"], summary["timed_cases"]
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -13687,7 +13723,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-ffn-norm-model.svg",
                  "post-bf16-ffn-norm-profile.svg",
                  "bf16-attention-norm-model.svg",
-                 "post-bf16-attention-norm-profile.svg"):
+                 "post-bf16-attention-norm-profile.svg",
+                 "bf16-pv-output-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -14155,6 +14192,8 @@ def main() -> int:
         post_attention_qwen_casts, post_attention_deep_casts, \
         post_attention_qwen_gemm, post_attention_deep_gemm = \
         validate_post_bf16_attention_norm_profile(errors)
+    pv_output_cases, pv_output_supported, pv_output_timed = \
+        validate_bf16_pv_output_capability(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -14580,6 +14619,7 @@ def main() -> int:
           f"{post_attention_deep_ms:.3f}/{post_attention_qwen_casts}/"
           f"{post_attention_deep_casts}/{post_attention_qwen_gemm:.3f}/"
           f"{post_attention_deep_gemm:.3f} "
+          f"pv_bf16={pv_output_cases}/{pv_output_supported}/{pv_output_timed} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

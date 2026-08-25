@@ -416,6 +416,8 @@ the chronological details are in the [optimization log](docs/optimization-log/RE
 - reprofiled with both defaults, Kernel time is 8.069/14.489 ms and casts fall to 48/56; each
   layer now has exactly one FP32→BF16 and one BF16→FP32 conversion, which must be attributed
   before another route is proposed.
+- direct BF16 P×V output is rejected before timing: both interleaved BTHD and zero-stride GQA
+  descriptors return backend status 6, so candidate APIs were removed and no model claim exists.
 
 </details>
 

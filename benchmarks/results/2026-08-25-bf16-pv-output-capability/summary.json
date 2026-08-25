@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "record_type": "bf16_pv_output_capability_summary",
+  "raw_cases": 2,
+  "supported_cases": 0,
+  "unsupported_status": 6,
+  "timed_cases": 0,
+  "public_api_retained": false,
+  "model_route_created": false,
+  "decision": "reject direct BF16 P×V output on the current backend"
+}

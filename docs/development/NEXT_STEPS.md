@@ -73,6 +73,8 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   1.01309x/1.01303x, exact logits, 120/140 fewer allocations and lower peak;
 - [x] reprofile both retained Norm fusions; Kernel is 8.069/14.489ms and each
   layer retains exactly one FP32→BF16 plus one BF16→FP32 cast;
+- [x] reject direct BF16 P×V output before timing: both interleaved BTHD and
+  zero-stride GQA descriptors return backend status 6; remove candidate APIs;
 - [x] populate B1 KV cache from one full-sequence prefill instead of token replay;
 - [x] support batched cached decode with batch-aware KV Storage;
 - [x] add opt-in BF16 KV Storage with FP32 accumulation, complete-logit gates and a retained

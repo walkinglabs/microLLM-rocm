@@ -3891,3 +3891,12 @@ cast 48/56。每层恰好各剩一次FP32→BF16和BF16→FP32。
 下一节先归因这两个边界，不从kernel名称直接跳到新融合。
 
 ![Post Attention Norm profile](assets/post-bf16-attention-norm-profile.svg)
+
+## 258. Experiment 241：P×V直写BF16在能力门就停下
+
+剩余FP32→BF16归因到Attention context进入O projection。最小候选只改P×V输出dtype，
+但普通BTHD和zero-stride GQA都返回hipBLASLt status 6。
+
+0个case计时，0个模型路由，临时API已撤回。后续若重开，必须换kernel/consumer。
+
+![BF16 P×V output discard](assets/bf16-pv-output-discard.svg)

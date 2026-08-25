@@ -1,0 +1,2 @@
+{"schema_version":1,"status":"unsupported","case":"interleaved_bthd","input_dtype":"fp32","output_dtype":"bf16","compute_dtype":"fp32","hipblaslt_status":6,"timing_started":false,"model_route_created":false}
+{"schema_version":1,"status":"unsupported","case":"zero_stride_gqa_bthd","input_dtype":"fp32","output_dtype":"bf16","compute_dtype":"fp32","hipblaslt_status":6,"timing_started":false,"model_route_created":false}
