@@ -20,6 +20,25 @@ extending small decoder-only language models on AMD GPUs.
 > CPU-oracle, and two-rank RCCL evidence. It does not yet claim production readiness,
 > all-workload PyTorch ROCm parity, Radeon validation, or reference-length training.
 
+## Status at a glance
+
+| Area | What works now | Honest boundary |
+|---|---|---|
+| C++ SDK | Installable Config package, `microLLM::microLLM`, narrow component targets, C API | API and ABI may still change before 1.0 |
+| Correctness | CPU references, HIP comparisons, PyTorch oracles, graph-gradient and checkpoint gates | Not every dtype, shape, GPU, or ROCm release is validated |
+| Inference | Qwen2.5 and DeepSeek-Distill weight loading, prefill, KV-cache decode and generation | This is not yet a general Hugging Face architecture runtime |
+| Training | Tiny/Model-S loops, Autograd, AdamW, checkpoint/resume, BF16 experiments | No reference-length Model-S training claim yet |
+| AMD GPU | Measured MI300X/gfx942 HIP, hipBLASLt, FP8 experiments and two-rank RCCL | Radeon and four-rank results remain open evidence gaps |
+| Optimization | Reproducible operator/model measurements with accepted and rejected experiments | A local kernel win is never reported as an end-to-end win |
+
+Start with [Quick start](#quick-start), consume the installed library through the
+[CMake package](#use-microllm-from-another-cmake-project), or read the compact
+[evidence status](docs/development/STATUS.md). The long chronology belongs in the
+[optimization log](docs/optimization-log/README.md), not in the getting-started path.
+
+<details>
+<summary>Latest optimization checkpoints</summary>
+
 > **Current optimization checkpoint:** Experiment 243 closes only the present
 > inference local-policy search. The two remaining casts occupy 2.694%/1.841% of
 > measured Qwen/DeepSeek Kernel time, so the next inference milestone must use a new
@@ -115,6 +134,8 @@ extending small decoder-only language models on AMD GPUs.
 > 3 while preserving every rank/CPU/failure gate. Wall improves only 1.0037×
 > because startup dominates, so this is a correctness baseline; ranked Model-S
 > natural buckets are required before performance or overlap claims.
+
+</details>
 
 ## Why this project exists
 

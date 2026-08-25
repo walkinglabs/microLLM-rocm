@@ -21,6 +21,7 @@
 - [2026-08-25: Persistent gradient-bucket result](2026-08-25-data-parallel-persistent-bucket-result.md)
 - [2026-08-25: Persistent gradient-bucket infrastructure](2026-08-25-data-parallel-persistent-bucket-infrastructure.md)
 - [2026-08-25: CMake Config package completion](2026-08-25-cmake-config-package.md)
+- [2026-08-25: CMake Config and README usability audit](2026-08-25-cmake-config-readme-audit.md)
 - [2026-08-24: Public CMake package consumer](2026-08-24-public-cmake-consumer.md)
 - [2026-08-24: CMake SDK and README cleanup](2026-08-24-cmake-sdk-readme.md)
 - [2026-08-24: Training add plus RMSNorm Autograd](2026-08-24-training-add-rms-norm-autograd.md)
