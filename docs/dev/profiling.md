@@ -197,6 +197,23 @@ It also defaults false after Experiment 171; the zero-stride model-routing famil
 This produces HIP API/kernel/allocation traces, statistics, JSON, CSV, and Perfetto
 output when supported by the installed rocprofv3.
 
+For the pinned Qwen/DeepSeek B1T512 BF16 training path, use the repository runner instead
+of assembling four profiler commands by hand:
+
+```bash
+HIP_VISIBLE_DEVICES=0 python3 \
+  benchmarks/single_gpu/profile_current_training.py \
+  --manifest /path/to/hf-models.local.json \
+  --binary build/hip-release/apps/microllm_hf_train_step \
+  --output-directory /tmp/microllm-current-training-profile
+```
+
+It explicitly pins BF16 Linear, FP32 master weights, BF16 AdamW moments, the retained
+1,048,576-element hybrid threshold and every accepted/rejected training switch. For each
+model it subtracts `load + 1 step` from `load + 3 steps` and divides by two. The runner
+rejects a changed policy, a missing parameter update, or optimizer payload transfers before
+publishing a summary. These are Kernel phase deltas, not end-to-end throughput claims.
+
 For HIP Graph submission crossover measurements:
 
 ```bash

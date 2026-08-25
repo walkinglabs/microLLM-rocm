@@ -508,3 +508,5 @@ the next gate. Records are append-only except for factual corrections.
   closes the opposite mixed-dtype P×V boundary with the same evidence gate.
 - [2026-08-25-inference-local-saturation.md](2026-08-25-inference-local-saturation.md):
   explains the measured local-search ceiling without confusing it with the whole roadmap.
+- [2026-08-25-current-training-profile-runner.md](2026-08-25-current-training-profile-runner.md):
+  pins the retained B1T512 training profile contract in one reproducible command.

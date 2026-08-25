@@ -479,6 +479,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.CurrentInferenceProfileContract PROPERTIES
         LABELS "cpu;benchmark;model;inference;profile;rocprof;schema")
     add_test(
+        NAME Benchmark.CurrentTrainingProfileContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_profile_current_training.py
+    )
+    set_tests_properties(Benchmark.CurrentTrainingProfileContract PROPERTIES
+        LABELS "cpu;benchmark;model;training;profile;rocprof;schema")
+    add_test(
         NAME Benchmark.Bf16RepeatContract
         COMMAND ${Python3_EXECUTABLE}
                 ${PROJECT_SOURCE_DIR}/python/tests/test_bf16_repeat.py

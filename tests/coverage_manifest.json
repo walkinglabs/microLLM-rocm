@@ -383,6 +383,7 @@
     "python/tests/test_rocwmma_online_operator_matrix.py",
     "python/tests/test_rocwmma_online_model_matrix.py",
     "python/tests/test_profile_current_inference.py",
+    "python/tests/test_profile_current_training.py",
     "python/tests/test_bf16_repeat.py",
     "python/tests/test_inference_bthd_shape_models.py",
     "python/tests/test_hf_fp8_layer_drift.py",

@@ -102,6 +102,20 @@ Autograd first/add sources and Runtime strided-copy layouts only during measured
 `--tied-embedding-sparse-add true/false` provides same-binary A/B for the retained
 Qwen tied-weight memory optimization.
 
+Reprofile the current retained official-model training path with one command:
+
+```bash
+HIP_VISIBLE_DEVICES=0 python3 \
+  benchmarks/single_gpu/profile_current_training.py \
+  --manifest /path/to/hf-models.local.json \
+  --binary build/hip-release/apps/microllm_hf_train_step \
+  --output-directory /tmp/microllm-current-training-profile
+```
+
+The runner fixes B1T512, BF16 Linear, BF16 AdamW moments, the 1M hybrid threshold and
+all accepted/rejected training controls. It collects two fresh rocprof processes per model
+and derives one stable step from `(three-step - one-step) / 2`.
+
 `microllm_bench_model` measures train or cache-backed generation throughput. Its
 `tokens_per_second` excludes construction and warm-up; `tokens_per_second_with_setup`
 includes construction, device transfer, optimizer allocation, and warm-up. Both are
