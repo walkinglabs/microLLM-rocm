@@ -577,6 +577,20 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.DataParallelGradientOverlapMatrixContract PROPERTIES
         LABELS "cpu;benchmark;autograd;training;model;multi_gpu;rccl;bucket;memory;schema")
     add_test(
+        NAME DistributedRank.LauncherContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_ranked_launcher_contract.py
+    )
+    set_tests_properties(DistributedRank.LauncherContract PROPERTIES
+        LABELS "cpu;multi_gpu;rccl;distributed;failure;schema")
+    add_test(
+        NAME DistributedRank.MatrixContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_ranked_training_matrix.py
+    )
+    set_tests_properties(DistributedRank.MatrixContract PROPERTIES
+        LABELS "cpu;multi_gpu;rccl;distributed;training;failure;schema")
+    add_test(
         NAME Benchmark.Bf16RepeatContract
         COMMAND ${Python3_EXECUTABLE}
                 ${PROJECT_SOURCE_DIR}/python/tests/test_bf16_repeat.py
@@ -660,4 +674,29 @@ if(MICROLLM_HAS_RCCL)
         PROPERTIES LABELS "hip\;rccl\;multi_gpu"
         DISCOVERY_TIMEOUT 60
     )
+    if(Python3_Interpreter_FOUND AND TARGET microllm_distributed_rank)
+        add_test(
+            NAME DistributedRank.MultiProcessSmoke
+            COMMAND ${Python3_EXECUTABLE}
+                    ${PROJECT_SOURCE_DIR}/tools/distributed/run_ranked.py
+                    --binary $<TARGET_FILE:microllm_distributed_rank>
+                    --output-directory ${PROJECT_BINARY_DIR}/ranked-smoke
+                    --steps 2 --timeout-seconds 20 --overwrite
+        )
+        set_tests_properties(DistributedRank.MultiProcessSmoke PROPERTIES
+            LABELS "hip;rccl;multi_gpu;distributed;integration"
+            RUN_SERIAL TRUE TIMEOUT 30)
+        add_test(
+            NAME DistributedRank.PeerFailure
+            COMMAND ${Python3_EXECUTABLE}
+                    ${PROJECT_SOURCE_DIR}/tools/distributed/run_ranked.py
+                    --binary $<TARGET_FILE:microllm_distributed_rank>
+                    --output-directory ${PROJECT_BINARY_DIR}/ranked-peer-failure
+                    --steps 1 --timeout-seconds 5 --failure-mode peer-failure
+                    --overwrite
+        )
+        set_tests_properties(DistributedRank.PeerFailure PROPERTIES
+            LABELS "hip;rccl;multi_gpu;distributed;failure"
+            RUN_SERIAL TRUE TIMEOUT 15)
+    endif()
 endif()

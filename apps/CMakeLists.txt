@@ -41,6 +41,10 @@ if(MICROLLM_HAS_RCCL)
         microllm::multi_gpu microllm::profiling
     )
     install(TARGETS microllm_distributed_train RUNTIME DESTINATION bin)
+    add_executable(microllm_distributed_rank distributed_rank.cpp)
+    target_link_libraries(microllm_distributed_rank PRIVATE
+        microllm::multi_gpu microllm::training microllm::model microllm::runtime)
+    install(TARGETS microllm_distributed_rank RUNTIME DESTINATION bin)
     if(BUILD_TESTING)
         add_test(NAME DistributedCLI.Smoke
                  COMMAND microllm_distributed_train --steps 1 --bucket-bytes 4096

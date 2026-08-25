@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-25: One-process-per-GPU infrastructure](2026-08-25-one-process-per-gpu-infrastructure.md)
 - [2026-08-25: Gradient-ready Event overlap result](2026-08-25-gradient-ready-overlap-result.md)
 - [2026-08-25: Gradient-ready Event overlap infrastructure](2026-08-25-gradient-ready-overlap-infrastructure.md)
 - [2026-08-25: Gradient-ready audit result](2026-08-25-gradient-ready-audit-result.md)

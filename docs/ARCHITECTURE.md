@@ -130,6 +130,11 @@ hooked leaves before traversal, decrements only after each contribution is accum
 the hook once when the final contribution is enqueued. Shared/tied leaves therefore cannot appear
 ready after only their first path. With no installed hook, no ready-state map is constructed.
 
+Multi-process RCCL uses a separate rank-local communicator. One opaque ID is generated once and
+delivered byte-for-byte to every process; each process owns one rank, one local device and one
+communication Stream. The bootstrap file exchange is atomic and bounded by the launcher's group
+deadline. It does not reuse the single-process multi-device communicator or share model objects.
+
 A fused operator may still need more than one graph node. `autograd::add_rms_norm` is the
 smallest example: one device launch returns the residual sum and the normalized value, but the
 sum remains a visible Autograd node. The direct residual path and the normalization backward

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <vector>
 
@@ -27,6 +28,37 @@ public:
                     bool in_place_average = true);
     void enqueue_all_reduce_sum(std::vector<Tensor>& tensors);
     void enqueue_all_reduce_average_in_place(std::vector<Tensor>& tensors);
+    void synchronize();
+    void abort() noexcept;
+
+private:
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
+};
+
+using CommunicatorId = std::vector<std::uint8_t>;
+
+[[nodiscard]] CommunicatorId create_communicator_id();
+[[nodiscard]] std::size_t communicator_id_bytes() noexcept;
+
+// One process owns one rank and one local GPU. The opaque ID must be generated
+// once and delivered byte-for-byte to every rank before construction.
+class RankCommunicator {
+public:
+    RankCommunicator(int rank, int world_size, int local_device,
+                     const CommunicatorId& id);
+    ~RankCommunicator();
+    RankCommunicator(RankCommunicator&&) noexcept;
+    RankCommunicator& operator=(RankCommunicator&&) noexcept;
+    RankCommunicator(const RankCommunicator&) = delete;
+    RankCommunicator& operator=(const RankCommunicator&) = delete;
+
+    [[nodiscard]] int rank() const noexcept;
+    [[nodiscard]] int world_size() const noexcept;
+    [[nodiscard]] Device device() const noexcept;
+    [[nodiscard]] bool aborted() const noexcept;
+    [[nodiscard]] runtime::Stream& stream();
+    void enqueue_all_reduce_average_in_place(Tensor& tensor);
     void synchronize();
     void abort() noexcept;
 

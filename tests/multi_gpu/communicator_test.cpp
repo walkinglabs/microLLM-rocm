@@ -67,4 +67,29 @@ TEST(RcclCommunicatorTest, AsyncAverageIsOrderedOnCommunicationStreams) {
     EXPECT_EQ(tensors[1].to_vector(), tensors[0].to_vector());
 }
 
+TEST(RcclRankCommunicatorTest, WorldOneRoundTripAndIdentityValidation) {
+    if (runtime::hip_device_count() < 1) GTEST_SKIP() << "visible HIP device required";
+    const auto id = create_communicator_id();
+    EXPECT_EQ(id.size(), communicator_id_bytes());
+    EXPECT_GT(id.size(), 0U);
+    RankCommunicator communicator(0, 1, 0, id);
+    auto tensor = Tensor::from_vector({1, 2, 3}, {3}).to(Device::hip(0));
+    communicator.enqueue_all_reduce_average_in_place(tensor);
+    communicator.synchronize();
+    EXPECT_EQ(tensor.to_vector(), (std::vector<float>{1, 2, 3}));
+    EXPECT_EQ(communicator.rank(), 0);
+    EXPECT_EQ(communicator.world_size(), 1);
+    EXPECT_EQ(communicator.device(), Device::hip(0));
+    EXPECT_FALSE(communicator.aborted());
+
+    EXPECT_THROW((void)RankCommunicator(-1, 1, 0, id),
+                 std::invalid_argument);
+    EXPECT_THROW((void)RankCommunicator(1, 1, 0, id),
+                 std::invalid_argument);
+    auto short_id = id;
+    short_id.pop_back();
+    EXPECT_THROW((void)RankCommunicator(0, 1, 0, short_id),
+                 std::invalid_argument);
+}
+
 }  // namespace microllm::multi_gpu

@@ -187,6 +187,13 @@ A production one-process-per-GPU DDP path still needs:
 - timeout, abort, and cross-process error propagation;
 - checkpoint ownership and rank-local weight placement.
 
+The bootstrap now provides a rank-local `RankCommunicator`, opaque ID byte exchange, one-model /
+one-optimizer / one-device worker, and a launcher with a group deadline. Rank 0 atomically
+publishes the ID file; peers wait for the exact byte count. The tiny worker averages every
+parameter gradient, then the launcher compares all 728 values across ranks and against a CPU
+global-batch reference. A bad-rank injection terminates a peer blocked in communicator init.
+This is local single-node bootstrap code, not yet the ready-bucket reducer or a performance claim.
+
 RCCL provides the collective primitives; the reducer and readiness state machine remain
 framework responsibilities.
 

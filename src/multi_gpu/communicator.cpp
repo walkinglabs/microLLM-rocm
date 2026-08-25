@@ -1,5 +1,6 @@
 #include <microllm/multi_gpu/communicator.h>
 
+#include <cstring>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -152,6 +153,100 @@ void Communicator::abort() noexcept {
     if (!impl_ || impl_->aborted) return;
     for (const auto communicator : impl_->communicators) {
         if (communicator != nullptr) (void)ncclCommAbort(communicator);
+    }
+    impl_->aborted = true;
+}
+
+CommunicatorId create_communicator_id() {
+    ncclUniqueId native{};
+    check_rccl(ncclGetUniqueId(&native), "ncclGetUniqueId");
+    CommunicatorId result(sizeof(native));
+    std::memcpy(result.data(), &native, sizeof(native));
+    return result;
+}
+
+std::size_t communicator_id_bytes() noexcept { return sizeof(ncclUniqueId); }
+
+struct RankCommunicator::Impl {
+    int rank = 0;
+    int world_size = 0;
+    Device device = Device::hip(0);
+    ncclComm_t communicator = nullptr;
+    std::unique_ptr<runtime::Stream> stream;
+    bool aborted = false;
+};
+
+RankCommunicator::RankCommunicator(
+    int rank, int world_size, int local_device, const CommunicatorId& id)
+    : impl_(std::make_unique<Impl>()) {
+    const auto visible = runtime::hip_device_count();
+    if (world_size <= 0 || rank < 0 || rank >= world_size) {
+        throw std::invalid_argument("rank communicator identity is invalid");
+    }
+    if (local_device < 0 || local_device >= visible) {
+        throw std::out_of_range("rank communicator local device is not visible");
+    }
+    if (id.size() != sizeof(ncclUniqueId)) {
+        throw std::invalid_argument("rank communicator ID size is invalid");
+    }
+    ncclUniqueId native{};
+    std::memcpy(&native, id.data(), sizeof(native));
+    impl_->rank = rank;
+    impl_->world_size = world_size;
+    impl_->device = Device::hip(local_device);
+    runtime::set_device(impl_->device);
+    check_rccl(
+        ncclCommInitRank(&impl_->communicator, world_size, native, rank),
+        "ncclCommInitRank");
+    impl_->stream = std::make_unique<runtime::Stream>(impl_->device);
+}
+
+RankCommunicator::~RankCommunicator() {
+    if (!impl_ || impl_->communicator == nullptr || impl_->aborted) return;
+    (void)ncclCommDestroy(impl_->communicator);
+}
+RankCommunicator::RankCommunicator(RankCommunicator&&) noexcept = default;
+RankCommunicator& RankCommunicator::operator=(RankCommunicator&&) noexcept = default;
+
+int RankCommunicator::rank() const noexcept { return impl_->rank; }
+int RankCommunicator::world_size() const noexcept { return impl_->world_size; }
+Device RankCommunicator::device() const noexcept { return impl_->device; }
+bool RankCommunicator::aborted() const noexcept { return impl_->aborted; }
+runtime::Stream& RankCommunicator::stream() { return *impl_->stream; }
+
+void RankCommunicator::enqueue_all_reduce_average_in_place(Tensor& tensor) {
+    if (impl_->aborted) throw std::logic_error("rank communicator has been aborted");
+    if (!tensor.defined() || tensor.device() != impl_->device ||
+        tensor.dtype() != DType::Float32 || !tensor.is_contiguous()) {
+        throw std::invalid_argument(
+            "rank all-reduce requires a contiguous local float32 HIP tensor");
+    }
+    check_rccl(
+        ncclAllReduce(
+            tensor.data(), tensor.data(),
+            static_cast<std::size_t>(tensor.numel()), ncclFloat32, ncclSum,
+            impl_->communicator,
+            reinterpret_cast<hipStream_t>(impl_->stream->native_handle())),
+        "ncclAllReduce(rank)");
+    const ops::OpContext context{impl_->stream.get(), nullptr, 0};
+    ops::scale_in_place_(
+        tensor, 1.0F / static_cast<float>(impl_->world_size), context);
+}
+
+void RankCommunicator::synchronize() {
+    if (impl_->aborted) throw std::logic_error("rank communicator has been aborted");
+    try {
+        impl_->stream->synchronize();
+    } catch (...) {
+        abort();
+        throw;
+    }
+}
+
+void RankCommunicator::abort() noexcept {
+    if (!impl_ || impl_->aborted) return;
+    if (impl_->communicator != nullptr) {
+        (void)ncclCommAbort(impl_->communicator);
     }
     impl_->aborted = true;
 }
