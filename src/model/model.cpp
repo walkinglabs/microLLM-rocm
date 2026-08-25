@@ -1107,17 +1107,28 @@ public:
             const auto scale =
                 1.0F / std::sqrt(static_cast<float>(
                            config_.head_dimension()));
-            context = bthd_attention
-                          ? ops::causal_gqa_attention_bthd(
-                                query, key, value, repeats, scale)
-                                .reshape(
-                                    {batch * sequence, config_.dimension})
-                          : causal_attention(
+            const auto online_attention =
+                bthd_attention &&
+                ops::inference_bthd_online_attention_enabled();
+            if (online_attention) {
+                context = ops::online_causal_gqa_attention_bthd(
+                    ops::cast(query, DType::BFloat16),
+                    ops::cast(key, DType::BFloat16),
+                    ops::cast(value, DType::BFloat16),
+                    repeats, scale).reshape(
+                        {batch * sequence, config_.dimension});
+            } else if (bthd_attention) {
+                context = ops::causal_gqa_attention_bthd(
+                    query, key, value, repeats, scale).reshape(
+                        {batch * sequence, config_.dimension});
+            } else {
+                context = causal_attention(
                                 query, key, value, repeats, scale)
                                 .transpose(1, 2)
                                 .contiguous()
                                 .reshape(
                                     {batch * sequence, config_.dimension});
+            }
         }
         trace_detail(trace_prefix, "context", context);
         Tensor output;

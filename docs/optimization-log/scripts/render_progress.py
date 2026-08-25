@@ -121,6 +121,9 @@ ROCWMMA_ONLINE_CHART = ROOT / "assets" / "rocwmma-online-attention.svg"
 ROCWMMA_OPERATOR_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
                          "2026-08-25-rocwmma-online-operator")
 ROCWMMA_OPERATOR_CHART = ROOT / "assets" / "rocwmma-online-operator.svg"
+ROCWMMA_MODEL_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
+                      "2026-08-25-rocwmma-online-model-gate")
+ROCWMMA_MODEL_CHART = ROOT / "assets" / "rocwmma-online-model-discard.svg"
 
 
 def rows() -> list[dict]:
@@ -2957,6 +2960,66 @@ def rocwmma_online_operator_svg() -> str:
     return "\n".join(parts)
 
 
+def rocwmma_online_model_svg() -> str:
+    summary = json.loads((ROCWMMA_MODEL_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    rows = summary["comparisons"]
+    width, height = 1600, 760
+    chart_x, chart_y, chart_w, chart_h = 150, 150, 1300, 390
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 230 · Full-Model Online Attention Gate", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "36 fresh processes · full 151936 logits · 2 warm-up + 5 measured prefills",
+             16, "#5b6474", anchor="middle"),
+        f'<rect x="{chart_x}" y="{chart_y}" width="{chart_w}" height="{chart_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+    ]
+
+    def y(value: float) -> float:
+        return chart_y + chart_h * (1.05 - value) / 0.35
+
+    for tick in (0.7, 0.8, 0.9, 1.0):
+        position = y(tick)
+        color = "#2563eb" if tick == 1.0 else "#e5e9f0"
+        parts.append(f'<line x1="{chart_x}" y1="{position:.1f}" '
+                     f'x2="{chart_x+chart_w}" y2="{position:.1f}" stroke="{color}"/>')
+        parts.append(text(chart_x - 12, position + 5, f"{tick:.1f}×", 13,
+                          "#5b6474", anchor="end"))
+    group_width = chart_w / len(rows)
+    for index, row in enumerate(rows):
+        center = chart_x + group_width * (index + 0.5)
+        value = row["speedup"]
+        color = "#16a34a" if row["model"].startswith("qwen") else "#e11d48"
+        top = y(value)
+        base = y(0.7)
+        parts.append(f'<rect x="{center-55:.1f}" y="{top:.1f}" width="110" '
+                     f'height="{base-top:.1f}" fill="{color}" rx="6"/>')
+        parts.append(text(center, top - 10, f"{value:.3f}×", 15, color,
+                          anchor="middle", weight=700))
+        family = "Qwen" if row["model"].startswith("qwen") else "Deep"
+        parts.append(text(center, chart_y + chart_h + 28,
+                          f'{family} {row["case"]}', 14,
+                          "#5b6474", anchor="middle"))
+        parts.append(text(center, chart_y + chart_h + 52,
+                          f'-{row["peak_bytes_saved"] / 1048576:.1f} MiB', 12,
+                          "#166534", anchor="middle"))
+    parts.append(text(width / 2, 630,
+                      "Every model case regresses to 0.761×–0.884× despite saving 3.5–57.0 MiB",
+                      18, "#b42335", anchor="middle", weight=700))
+    parts.append(text(width / 2, 675,
+                      "Qwen logits reach Max/RMS 0.511/0.112 · top tokens stay equal · model route rejected",
+                      16, "#9a4f00", anchor="middle"))
+    parts.append(text(width / 2, 716,
+                      "Operator remains public; bars are online/current prefill throughput",
+                      13, "#5b6474", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -3002,7 +3065,8 @@ def main() -> int:
                 OPTIMIZER_GRAPH_MODEL_CHART: optimizer_graph_model_gate_svg(),
                 ROCWMMA_QK_CHART: rocwmma_qk_tile_svg(),
                 ROCWMMA_ONLINE_CHART: rocwmma_online_attention_svg(),
-                ROCWMMA_OPERATOR_CHART: rocwmma_online_operator_svg()}
+                ROCWMMA_OPERATOR_CHART: rocwmma_online_operator_svg(),
+                ROCWMMA_MODEL_CHART: rocwmma_online_model_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

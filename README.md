@@ -383,6 +383,9 @@ the chronological details are in the [optimization log](docs/optimization-log/RE
   batch-native gfx942 dispatch, explicit tail/width/architecture fallback and auditable counters;
   42 fresh public-API processes pass CPU/PyTorch/HIP outputs, with native cases 1.534×–2.456×
   current while exact fallbacks retain 0.607×–0.696× counterexamples; model use remains disabled.
+- the explicit full-model gate correctly hits 168/196 native calls per Qwen/DeepSeek process and
+  saves 3.5–57 MiB peak, but every prefill regresses to 0.761×–0.884× and Qwen complete-logit
+  Max/RMS reaches 0.511/0.112; the model route is rejected while the public operator remains.
 
 </details>
 
@@ -614,13 +617,13 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 536/536 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
-| CPU Debug | 340/340 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
-| ASan/UBSan CPU | 338/338 | host lifetime, external Storage and instrumented-package linking |
+| Full CPU/HIP configuration | 537/537 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
+| CPU Debug | 341/341 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
+| ASan/UBSan CPU | 339/339 | host lifetime, external Storage and instrumented-package linking |
 | MI300X/gfx942 HIP label | 184/184 | allocator/arena/Stream/Graph, public rocWMMA online Attention, grouped/exact vendor solutions, BF16/FP8 and model paths |
-| PyTorch-enabled CPU build | 314/314 | dispatcher parity, 32-step BF16 optimizer state, full graph/model oracle and all package paths |
+| PyTorch-enabled CPU build | 315/315 | dispatcher parity, 32-step BF16 optimizer state, full graph/model oracle and all package paths |
 | Multi-GPU/RCCL | 12/12 | collectives, global-batch equivalence, gradient buckets, DDP trainer/CLI and per-device hipBLASLt ownership; RCCL label 14/14 with package gates |
-| Registered test files | 102 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| Registered test files | 103 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
 | CPU source coverage | 78.4% lines / 86.6% functions / 59.1% branches | 8,878/11,329 lines; quiescent handoff and other HIP-only branches remain visible; GCC 13.3 + gcovr 8.3 |
 

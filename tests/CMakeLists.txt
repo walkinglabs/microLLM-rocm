@@ -444,6 +444,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.RocwmmaOnlineOperatorMatrixContract PROPERTIES
         LABELS "cpu;benchmark;inference;attention;bf16;mfma;rocwmma;online;gqa;memory;shape;batch;schema")
     add_test(
+        NAME Benchmark.RocwmmaOnlineModelMatrixContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_rocwmma_online_model_matrix.py
+    )
+    set_tests_properties(Benchmark.RocwmmaOnlineModelMatrixContract PROPERTIES
+        LABELS "cpu;benchmark;model;inference;attention;bf16;mfma;rocwmma;online;gqa;memory;shape;batch;schema")
+    add_test(
         NAME Benchmark.Bf16RepeatContract
         COMMAND ${Python3_EXECUTABLE}
                 ${PROJECT_SOURCE_DIR}/python/tests/test_bf16_repeat.py

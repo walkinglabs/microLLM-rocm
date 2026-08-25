@@ -859,6 +859,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [experiments/228-rocwmma-online-attention.md](experiments/228-rocwmma-online-attention.md) | online max/sum、MFMA QK/PV、失败修正与operator准入 |
 | [assets/rocwmma-online-operator.svg](assets/rocwmma-online-operator.svg) | 10个native与4个fallback公共API速度/路由边界 |
 | [experiments/229-rocwmma-online-operator.md](experiments/229-rocwmma-online-operator.md) | 公共API、CMake feature、PyTorch与模型门准入 |
+| [assets/rocwmma-online-model-discard.svg](assets/rocwmma-online-model-discard.svg) | 六格整模吞吐、显存节省与logit失败 |
+| [experiments/230-rocwmma-online-model-discard.md](experiments/230-rocwmma-online-model-discard.md) | 36进程整模反例与模型路由拒绝 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

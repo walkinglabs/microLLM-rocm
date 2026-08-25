@@ -885,6 +885,11 @@ TEST(CpuOpsTest, AttentionProbabilityValueGqaBroadcastMatchesRepeatedReference) 
     enable_inference_bthd_attention(true);
     EXPECT_TRUE(inference_bthd_attention_enabled());
     enable_inference_bthd_attention(false);
+    enable_inference_bthd_online_attention(false);
+    EXPECT_FALSE(inference_bthd_online_attention_enabled());
+    enable_inference_bthd_online_attention(true);
+    EXPECT_TRUE(inference_bthd_online_attention_enabled());
+    enable_inference_bthd_online_attention(false);
     enable_inference_bthd_bf16_qk(false);
     EXPECT_FALSE(inference_bthd_bf16_qk_enabled());
     enable_inference_bthd_bf16_qk(true);

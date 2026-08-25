@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="760" viewBox="0 0 1600 760">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="800.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 230 · Full-Model Online Attention Gate</text>
+<text x="800.0" y="82.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">36 fresh processes · full 151936 logits · 2 warm-up + 5 measured prefills</text>
+<rect x="150" y="150" width="1300" height="390" fill="#ffffff" stroke="#cbd3df" rx="10"/>
+<line x1="150" y1="540.0" x2="1450" y2="540.0" stroke="#e5e9f0"/>
+<text x="138.0" y="545.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">0.7×</text>
+<line x1="150" y1="428.6" x2="1450" y2="428.6" stroke="#e5e9f0"/>
+<text x="138.0" y="433.6" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">0.8×</text>
+<line x1="150" y1="317.1" x2="1450" y2="317.1" stroke="#e5e9f0"/>
+<text x="138.0" y="322.1" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">0.9×</text>
+<line x1="150" y1="205.7" x2="1450" y2="205.7" stroke="#2563eb"/>
+<text x="138.0" y="210.7" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">1.0×</text>
+<rect x="203.3" y="447.3" width="110" height="92.7" fill="#16a34a" rx="6"/>
+<text x="258.3" y="437.3" font-family="Inter,Arial,sans-serif" font-size="15" fill="#16a34a" text-anchor="middle" font-weight="700">0.783×</text>
+<text x="258.3" y="568.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">Qwen b1t256</text>
+<text x="258.3" y="592.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#166534" text-anchor="middle" font-weight="400">-3.8 MiB</text>
+<rect x="420.0" y="471.6" width="110" height="68.4" fill="#16a34a" rx="6"/>
+<text x="475.0" y="461.6" font-family="Inter,Arial,sans-serif" font-size="15" fill="#16a34a" text-anchor="middle" font-weight="700">0.761×</text>
+<text x="475.0" y="568.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">Qwen b1t1024</text>
+<text x="475.0" y="592.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#166534" text-anchor="middle" font-weight="400">-57.0 MiB</text>
+<rect x="636.7" y="355.7" width="110" height="184.3" fill="#16a34a" rx="6"/>
+<text x="691.7" y="345.7" font-family="Inter,Arial,sans-serif" font-size="15" fill="#16a34a" text-anchor="middle" font-weight="700">0.865×</text>
+<text x="691.7" y="568.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">Qwen b2t512</text>
+<text x="691.7" y="592.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#166534" text-anchor="middle" font-weight="400">-29.0 MiB</text>
+<rect x="853.3" y="380.2" width="110" height="159.8" fill="#e11d48" rx="6"/>
+<text x="908.3" y="370.2" font-family="Inter,Arial,sans-serif" font-size="15" fill="#e11d48" text-anchor="middle" font-weight="700">0.843×</text>
+<text x="908.3" y="568.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">Deep b1t256</text>
+<text x="908.3" y="592.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#166534" text-anchor="middle" font-weight="400">-3.5 MiB</text>
+<rect x="1070.0" y="470.1" width="110" height="69.9" fill="#e11d48" rx="6"/>
+<text x="1125.0" y="460.1" font-family="Inter,Arial,sans-serif" font-size="15" fill="#e11d48" text-anchor="middle" font-weight="700">0.763×</text>
+<text x="1125.0" y="568.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">Deep b1t1024</text>
+<text x="1125.0" y="592.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#166534" text-anchor="middle" font-weight="400">-50.0 MiB</text>
+<rect x="1286.7" y="335.0" width="110" height="205.0" fill="#e11d48" rx="6"/>
+<text x="1341.7" y="325.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#e11d48" text-anchor="middle" font-weight="700">0.884×</text>
+<text x="1341.7" y="568.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">Deep b2t512</text>
+<text x="1341.7" y="592.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#166534" text-anchor="middle" font-weight="400">-26.0 MiB</text>
+<text x="800.0" y="630.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#b42335" text-anchor="middle" font-weight="700">Every model case regresses to 0.761×–0.884× despite saving 3.5–57.0 MiB</text>
+<text x="800.0" y="675.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#9a4f00" text-anchor="middle" font-weight="400">Qwen logits reach Max/RMS 0.511/0.112 · top tokens stay equal · model route rejected</text>
+<text x="800.0" y="716.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">Operator remains public; bars are online/current prefill throughput</text>
+</svg>

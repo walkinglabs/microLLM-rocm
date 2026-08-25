@@ -527,6 +527,8 @@ void enable_inference_bthd_attention(bool enabled) noexcept;
 [[nodiscard]] bool inference_bthd_attention_enabled() noexcept;
 void enable_inference_bthd_bf16_qk(bool enabled) noexcept;
 [[nodiscard]] bool inference_bthd_bf16_qk_enabled() noexcept;
+void enable_inference_bthd_online_attention(bool enabled) noexcept;
+[[nodiscard]] bool inference_bthd_online_attention_enabled() noexcept;
 void register_bf16_algorithm(std::int64_t rows, std::int64_t inner,
                              std::int64_t columns, DType output_dtype,
                              int solution_index);

@@ -48,7 +48,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   QK/PV, online max/sum, causal masking and real Qwen/DeepSeek GQA grids;
 - [x] integrate a public BF16-input/FP32-output operator with batch support,
   explicit tail/architecture fallback, counters, PyTorch and CMake Config gates;
-- [ ] run explicit Qwen/DeepSeek full-logit, peak-memory and end-to-end model A/B;
+- [x] run explicit Qwen/DeepSeek full-logit, peak-memory and end-to-end model A/B;
+  reject the route at 0.761x–0.884x and Qwen Max/RMS drift up to 0.511/0.112;
+- [ ] only reopen model integration if RoPE/layout can produce BF16 Q/K/V directly,
+  eliminating all three per-layer casts before repeating the same gates;
 - [x] populate B1 KV cache from one full-sequence prefill instead of token replay;
 - [x] support batched cached decode with batch-aware KV Storage;
 - [x] add opt-in BF16 KV Storage with FP32 accumulation, complete-logit gates and a retained

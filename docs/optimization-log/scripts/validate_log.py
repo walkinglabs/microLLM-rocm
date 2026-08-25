@@ -12770,6 +12770,86 @@ def validate_rocwmma_online_operator(
     return len(raw), min(native), max(native), len(native), len(fallback)
 
 
+def validate_rocwmma_online_model_gate(
+        errors: list[str]) -> tuple[int, float, float, float, int]:
+    data = REPOSITORY / "benchmarks/results/2026-08-25-rocwmma-online-model-gate"
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = {(row["model"], row["case"]): row
+                   for row in summary.get("comparisons", [])}
+    expected = {
+        ("qwen2.5-0.5b", "b1t256"): 0.7832098790859691,
+        ("qwen2.5-0.5b", "b1t1024"): 0.7613625708314778,
+        ("qwen2.5-0.5b", "b2t512"): 0.865424065870452,
+        ("deepseek-r1-distill-qwen-1.5b", "b1t256"): 0.8434485404374473,
+        ("deepseek-r1-distill-qwen-1.5b", "b1t1024"): 0.7627438166013704,
+        ("deepseek-r1-distill-qwen-1.5b", "b2t512"): 0.8840165522472178,
+    }
+    keys = {(row.get("model"), row.get("case"), row.get("policy"),
+             int(row.get("process_run", -1))) for row in raw}
+    if summary.get("schema_version") != 1 or summary.get("status") != "fail" or \
+            summary.get("record_type") != "rocwmma_online_model_summary" or \
+            summary.get("processes") != 36 or \
+            summary.get("runs_per_policy_case") != 3 or \
+            summary.get("correctness_gate") is not False or \
+            summary.get("routing_gate") is not True or \
+            summary.get("performance_gate") is not False or \
+            summary.get("memory_gate") is not True or \
+            summary.get("model_route_accepted") is not False or \
+            summary.get("decision") != "reject model route; retain operator" or \
+            len(raw) != 36 or len(keys) != 36 or set(comparisons) != set(expected) or \
+            any(abs(float(comparisons[key].get("speedup", 0.0)) - value) > 1.0e-12
+                for key, value in expected.items()) or \
+            any(row.get("schema_version") != 1 or row.get("status") != "pass" or
+                row.get("record_type") != "rocwmma_online_model_measurement" or
+                row.get("inference_bthd_attention") is not True or
+                row.get("inference_bthd_bf16_qk") is not True or
+                int(row.get("rocwmma_online_attention_fallback_calls", -1)) != 0 or
+                (row.get("policy") == "online" and
+                 int(row.get("rocwmma_online_attention_native_calls", -1)) not in {168, 196}) or
+                (row.get("policy") == "current" and
+                 int(row.get("rocwmma_online_attention_native_calls", -1)) != 0)
+                for row in raw):
+        errors.append("rocWMMA full-model gate evidence changed")
+    if verification != {
+            "schema_version": 1,
+            "status": "pass",
+            "summary_status": "fail",
+            "processes": 36,
+            "model_cases": 6,
+            "runs_per_policy_case": 3,
+            "routing_gate": True,
+            "correctness_gate": False,
+            "performance_gate": False,
+            "memory_gate": True,
+            "all_top_rows_equal": True,
+            "model_route_accepted": False,
+            "operator_retained": True}:
+        errors.append("rocWMMA full-model verification changed")
+    sources = (
+        ("inference_bthd_online_attention_enabled", REPOSITORY /
+         "src/model/model.cpp"),
+        ("--inference-bthd-online-attention", REPOSITORY /
+         "apps/hf_infer.cpp"),
+        ("maximum_absolute_logit_difference", REPOSITORY /
+         "benchmarks/single_gpu/rocwmma_online_model_matrix.py"),
+        ("model_route_accepted", REPOSITORY /
+         "python/tests/test_rocwmma_online_model_matrix.py"),
+    )
+    if any(token not in path.read_text(encoding="utf-8")
+           for token, path in sources):
+        errors.append("rocWMMA full-model source/test contract changed")
+    speeds = [float(row["speedup"]) for row in comparisons.values()]
+    maximum_logit = max(float(row["maximum_absolute_logit_difference"])
+                        for row in comparisons.values())
+    maximum_saved = max(int(row["peak_bytes_saved"])
+                        for row in comparisons.values())
+    return len(raw), min(speeds), max(speeds), maximum_logit, maximum_saved
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -12977,7 +13057,8 @@ def validate_assets(errors: list[str]) -> None:
                  "optimizer-graph-model-gate.svg",
                  "rocwmma-qk-tile.svg",
                  "rocwmma-online-attention.svg",
-                 "rocwmma-online-operator.svg"):
+                 "rocwmma-online-operator.svg",
+                 "rocwmma-online-model-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -13409,6 +13490,9 @@ def main() -> int:
     rocwmma_operator_rows, rocwmma_operator_minimum, \
         rocwmma_operator_maximum, rocwmma_operator_native, \
         rocwmma_operator_fallback = validate_rocwmma_online_operator(errors)
+    rocwmma_model_rows, rocwmma_model_minimum, rocwmma_model_maximum, \
+        rocwmma_model_logit, rocwmma_model_saved = \
+        validate_rocwmma_online_model_gate(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -13796,6 +13880,9 @@ def main() -> int:
           f"rocwmma_operator={rocwmma_operator_rows}/"
           f"{rocwmma_operator_native}/{rocwmma_operator_fallback}/"
           f"{rocwmma_operator_minimum:.3f}/{rocwmma_operator_maximum:.3f} "
+          f"rocwmma_model={rocwmma_model_rows}/"
+          f"{rocwmma_model_minimum:.3f}/{rocwmma_model_maximum:.3f}/"
+          f"{rocwmma_model_logit:.3f}/{rocwmma_model_saved} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

@@ -28,6 +28,7 @@ thread_local bool attention_gqa_value_broadcast = false;
 thread_local bool attention_gqa_forward_value_broadcast = false;
 thread_local bool inference_bthd_attention = false;
 thread_local bool inference_bthd_bf16_qk = false;
+thread_local bool inference_bthd_online_attention = false;
 thread_local std::size_t rocwmma_online_native_calls = 0;
 thread_local std::size_t rocwmma_online_fallback_calls = 0;
 
@@ -1161,6 +1162,14 @@ void enable_inference_bthd_bf16_qk(bool enabled) noexcept {
 
 bool inference_bthd_bf16_qk_enabled() noexcept {
     return inference_bthd_bf16_qk;
+}
+
+void enable_inference_bthd_online_attention(bool enabled) noexcept {
+    inference_bthd_online_attention = enabled;
+}
+
+bool inference_bthd_online_attention_enabled() noexcept {
+    return inference_bthd_online_attention;
 }
 
 Tensor dequantize_fp8(const ScaledTensor& input, DType output_dtype,

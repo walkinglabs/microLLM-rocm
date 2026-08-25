@@ -3753,3 +3753,16 @@ CMake Config新增`microLLM_WITH_ROCWMMA`，header-only实现不会泄露成外�
 只做显式模型A/B；operator保留不等于模型默认启用。
 
 ![Public online operator](assets/rocwmma-online-operator.svg)
+
+## 247. Experiment 230：算子快两倍，模型只剩0.76×–0.88×
+
+模型candidate在每层RoPE后把Q/K/V三次cast BF16，再调用public online operator。36进程精确
+命中Qwen 168次、DeepSeek 196次native，全部零fallback。六格top token相同，peak少3.5–57MiB。
+
+但六格prefill全部回退到0.761×–0.884×；Qwen完整151936 logits的Max/RMS最高0.511/0.112，
+失败预设0.2/0.02门。三次cast与24/28层误差累积推翻了“operator快就接模型”的解释。
+
+模型路由拒绝、默认不变，public operator继续保留。只有RoPE能直接产生BF16 Q/K/V并消除三次
+cast时，才允许用同一门重开。
+
+![Full-model online Attention discard](assets/rocwmma-online-model-discard.svg)

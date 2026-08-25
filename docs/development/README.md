@@ -480,3 +480,5 @@ the next gate. Records are append-only except for factual corrections.
   beginner-friendly online softmax, MFMA QK/PV, caught race and real GQA evidence.
 - [2026-08-25-rocwmma-online-operator.md](2026-08-25-rocwmma-online-operator.md):
   beginner-friendly public contract, exact routing counters, batch and fallback evidence.
+- [2026-08-25-rocwmma-online-model-discard.md](2026-08-25-rocwmma-online-model-discard.md):
+  beginner-friendly full-model counterexample, complete logits, memory and cast-cost explanation.

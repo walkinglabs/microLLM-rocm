@@ -98,6 +98,7 @@ struct Options {
     bool strided_copy_diagnostics = false;
     bool inference_bthd_attention = false;
     bool inference_bthd_bf16_qk = false;
+    bool inference_bthd_online_attention = false;
 };
 
 Options options(int argc, char** argv) {
@@ -337,6 +338,14 @@ Options options(int argc, char** argv) {
                     "--inference-bthd-bf16-qk must be true or false");
             }
             result.inference_bthd_bf16_qk = value == "true";
+        }
+        else if (name == "--inference-bthd-online-attention") {
+            const std::string value = argv[index + 1];
+            if (value != "true" && value != "false") {
+                throw std::invalid_argument(
+                    "--inference-bthd-online-attention must be true or false");
+            }
+            result.inference_bthd_online_attention = value == "true";
         }
         else throw std::invalid_argument("unknown CLI option: " + name);
     }
@@ -592,6 +601,11 @@ Options options(int argc, char** argv) {
          result.bf16_grouped_qkv_algorithm_index < 0)) {
         throw std::invalid_argument(
             "--inference-bthd-bf16-qk requires BTHD Attention, QKV Arena, and an exact grouped QKV algorithm");
+    }
+    if (result.inference_bthd_online_attention &&
+        (!result.inference_bthd_attention || !result.inference_bthd_bf16_qk)) {
+        throw std::invalid_argument(
+            "--inference-bthd-online-attention requires BTHD Attention and retained BF16 Q/K");
     }
     return result;
 }
@@ -1179,6 +1193,8 @@ int main(int argc, char** argv) {
             command.inference_bthd_attention);
         microllm::ops::enable_inference_bthd_bf16_qk(
             command.inference_bthd_bf16_qk);
+        microllm::ops::enable_inference_bthd_online_attention(
+            command.inference_bthd_online_attention);
         if (command.bf16_qkv_arena) {
             model.set_bf16_qkv_arena_enabled(
                 true, command.bf16_qkv_arena_minimum_rows);
@@ -1931,6 +1947,10 @@ int main(int argc, char** argv) {
             microllm::ops::bf16_grouped_qkv_stats();
         const auto grouped_gate_up_stats =
             microllm::ops::bf16_grouped_gate_up_stats();
+        const auto online_attention_native_calls =
+            microllm::ops::rocwmma_online_attention_native_calls();
+        const auto online_attention_fallback_calls =
+            microllm::ops::rocwmma_online_attention_fallback_calls();
         if (!command.cache_logits_output.empty()) {
             const auto cache_logits = cache_logits_evidence.to_vector();
             std::ofstream output(command.cache_logits_output,
@@ -1952,8 +1972,14 @@ int main(int argc, char** argv) {
                   << trace_record_count
                   << ",\"inference_bthd_attention\":"
                   << (command.inference_bthd_attention ? "true" : "false")
+                  << ",\"inference_bthd_online_attention\":"
+                  << (command.inference_bthd_online_attention ? "true" : "false")
                   << ",\"inference_bthd_bf16_qk\":"
                   << (command.inference_bthd_bf16_qk ? "true" : "false")
+                  << ",\"rocwmma_online_attention_native_calls\":"
+                  << online_attention_native_calls
+                  << ",\"rocwmma_online_attention_fallback_calls\":"
+                  << online_attention_fallback_calls
                   << ",\"bf16_algorithm_index\":"
                   << command.bf16_algorithm_index
                   << ",\"bf16_grouped_qkv_algorithm_index\":"
