@@ -17367,6 +17367,104 @@ def validate_cached_attention_split_model(
             float(summary.get("maximum_logit_rms_error", 0.0)))
 
 
+def validate_cached_attention_materialized_matrix(
+        errors: list[str]) -> tuple[int, float, float]:
+    root = (REPOSITORY / "benchmarks/results" /
+            "2026-08-25-cached-attention-materialized-matrix")
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    expected = {
+        (512, 1, "bf16"): (1.3034746817862846, 1.2603851055873125, 24576),
+        (512, 1, "fp32"): (1.4079320412439957, 1.3720971066990097, 24576),
+        (512, 2, "bf16"): (1.298130836287899, 1.249000272652913, 49152),
+        (512, 2, "fp32"): (1.402393772170745, 1.3563592743313748, 49152),
+        (2048, 1, "bf16"): (1.887717117891973, 1.8416525427880046, 98304),
+        (2048, 1, "fp32"): (2.419243613528528, 2.350716298586024, 98304),
+        (2048, 2, "bf16"): (1.7520940607060393, 1.717483286015203, 196608),
+        (2048, 2, "fp32"): (2.617178339837332, 2.5434753556993566, 196608),
+    }
+    cases = {(row.get("sequence"), row.get("batch"), row.get("cache_dtype")): row
+             for row in summary.get("cases", [])}
+    if (summary.get("schema_version") != 1 or summary.get("status") != "pass" or
+            summary.get("record_type") !=
+                "cached_attention_materialized_matrix" or
+            summary.get("matrix_complete") is not True or
+            summary.get("process_rows") != 24 or summary.get("case_count") != 8 or
+            summary.get("runs_per_case") != 3 or summary.get("warmup") != 3 or
+            summary.get("repetitions") != 20 or
+            summary.get("all_bitwise_equal_current") is not True or
+            summary.get("zero_payload_transfers") is not True or
+            summary.get("zero_warm_backend_allocations") is not True or
+            summary.get("all_cases_pass_operator_gate") is not True or
+            summary.get("minimum_event_speedup") != 1.298130836287899 or
+            summary.get("maximum_event_speedup") != 2.617178339837332 or
+            summary.get("minimum_wall_speedup") != 1.249000272652913 or
+            summary.get("maximum_wall_speedup") != 2.5434753556993566 or
+            set(cases) != set(expected)):
+        errors.append("materialized-score Attention summary changed")
+    for key, values in expected.items():
+        row = cases.get(key, {})
+        if (row.get("event_speedup") != values[0] or
+                row.get("wall_speedup") != values[1] or
+                row.get("score_bytes") != values[2] or
+                row.get("runs") != 3 or
+                row.get("orders") != ["forward", "reverse"] or
+                row.get("materialized_allocation_calls_per_invocation") != 2 or
+                row.get("materialized_backend_allocation_calls_per_invocation") != 0 or
+                row.get("bitwise_equal_current") is not True or
+                row.get("operator_gate_passed") is not True):
+            errors.append(f"materialized-score Attention case changed: {key}")
+    if (len(raw) != 24 or
+            any(row.get("status") != "pass" or
+                row.get("materialized_bitwise_equal_current") is not True or
+                row.get("materialized_allocation_calls_per_invocation") != 2 or
+                row.get("materialized_backend_allocation_calls_per_invocation") != 0 or
+                row.get("host_to_device_calls") != 0 or
+                row.get("device_to_host_calls") != 0
+                for row in raw)):
+        errors.append("materialized-score Attention raw evidence changed")
+    if (analysis.get("record_type") !=
+            "cached_attention_materialized_analysis" or
+            analysis.get("minimum_event_speedup") != 1.298130836287899 or
+            analysis.get("maximum_event_speedup") != 2.617178339837332 or
+            analysis.get("t2048_b2_bf16_event_speedup") !=
+                1.7520940607060393 or
+            analysis.get("all_bitwise_equal_current") is not True or
+            analysis.get("all_cases_pass_operator_gate") is not True or
+            analysis.get("model_candidate_admitted") is not True or
+            analysis.get("general_default_admitted") is not False):
+        errors.append("materialized-score Attention analysis changed")
+    if (check.get("measurement_commit") !=
+            "6315385fbe2454b93da2343288f8a1a7e3f0ff1c" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("process_rows") != 24 or check.get("case_count") != 8 or
+            check.get("all_bitwise_equal_current") is not True or
+            check.get("minimum_event_speedup") != 1.298130836287899 or
+            check.get("maximum_event_speedup") != 2.617178339837332 or
+            check.get("model_candidate_admitted") is not True or
+            check.get("general_default_claim") is not False or
+            check.get("cpu_label") != {"passed": 374, "total": 374} or
+            check.get("sanitizer_label") != {"passed": 372, "total": 372} or
+            check.get("pytorch_enabled_cpu") !=
+                {"passed": 377, "total": 377} or
+            check.get("hip_label") != {"passed": 192, "total": 192} or
+            check.get("registered_test_files") != 129):
+        errors.append("materialized-score Attention verification changed")
+    for name in ("README.md", "raw.jsonl", "summary.json", "analysis.json",
+                 "verification.json", "comparison.svg"):
+        if not (root / name).is_file():
+            errors.append(f"materialized-score Attention evidence missing: {name}")
+    try:
+        ET.parse(root / "comparison.svg")
+    except ET.ParseError as error:
+        errors.append(f"invalid materialized-score SVG: {error}")
+    return (len(raw), float(summary.get("minimum_event_speedup", 0.0)),
+            float(summary.get("maximum_event_speedup", 0.0)))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -18221,6 +18319,8 @@ def main() -> int:
     cached_split_model_rows, cached_split_model_speedup, \
         cached_split_model_maximum, cached_split_model_rms = \
         validate_cached_attention_split_model(errors)
+    materialized_rows, materialized_minimum, materialized_maximum = \
+        validate_cached_attention_materialized_matrix(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -18809,6 +18909,8 @@ def main() -> int:
           f"{cached_split_model_speedup:.3f}/"
           f"{cached_split_model_maximum:.4f}/"
           f"{cached_split_model_rms:.4f} "
+          f"materialized_scores={materialized_rows}/"
+          f"{materialized_minimum:.3f}/{materialized_maximum:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

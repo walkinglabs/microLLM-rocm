@@ -1,0 +1,226 @@
+{
+  "all_bitwise_equal_current": true,
+  "all_cases_pass_operator_gate": true,
+  "architecture": "gfx942:sramecc+:xnack-",
+  "case_count": 8,
+  "cases": [
+    {
+      "batch": 1,
+      "bitwise_equal_current": true,
+      "cache_dtype": "bf16",
+      "event_speedup": 1.3034746817862846,
+      "fused_event_ms_p50": 0.0731874965131,
+      "fused_wall_ms_p50": 0.0825735,
+      "materialized_allocation_calls_per_invocation": 2,
+      "materialized_backend_allocation_calls_per_invocation": 0,
+      "materialized_event_ms_p50": 0.0561480000615,
+      "materialized_event_range_ms": [
+        0.0561079997569,
+        0.0564090013504
+      ],
+      "materialized_wall_ms_p50": 0.0655145,
+      "operator_gate_passed": true,
+      "orders": [
+        "forward",
+        "reverse"
+      ],
+      "runs": 3,
+      "score_bytes": 24576,
+      "sequence": 512,
+      "wall_speedup": 1.2603851055873125
+    },
+    {
+      "batch": 1,
+      "bitwise_equal_current": true,
+      "cache_dtype": "fp32",
+      "event_speedup": 1.4079320412439957,
+      "fused_event_ms_p50": 0.096861500293,
+      "fused_wall_ms_p50": 0.105493,
+      "materialized_allocation_calls_per_invocation": 2,
+      "materialized_backend_allocation_calls_per_invocation": 0,
+      "materialized_event_ms_p50": 0.0687969997525,
+      "materialized_event_range_ms": [
+        0.0686965025961,
+        0.0688370019197
+      ],
+      "materialized_wall_ms_p50": 0.0768845,
+      "operator_gate_passed": true,
+      "orders": [
+        "forward",
+        "reverse"
+      ],
+      "runs": 3,
+      "score_bytes": 24576,
+      "sequence": 512,
+      "wall_speedup": 1.3720971066990097
+    },
+    {
+      "batch": 2,
+      "bitwise_equal_current": true,
+      "cache_dtype": "bf16",
+      "event_speedup": 1.298130836287899,
+      "fused_event_ms_p50": 0.0734080001712,
+      "fused_wall_ms_p50": 0.0824565,
+      "materialized_allocation_calls_per_invocation": 2,
+      "materialized_backend_allocation_calls_per_invocation": 0,
+      "materialized_event_ms_p50": 0.0565489996225,
+      "materialized_event_range_ms": [
+        0.0564689990133,
+        0.0567294992507
+      ],
+      "materialized_wall_ms_p50": 0.066018,
+      "operator_gate_passed": true,
+      "orders": [
+        "forward",
+        "reverse"
+      ],
+      "runs": 3,
+      "score_bytes": 49152,
+      "sequence": 512,
+      "wall_speedup": 1.249000272652913
+    },
+    {
+      "batch": 2,
+      "bitwise_equal_current": true,
+      "cache_dtype": "fp32",
+      "event_speedup": 1.402393772170745,
+      "fused_event_ms_p50": 0.0962000004947,
+      "fused_wall_ms_p50": 0.1051565,
+      "materialized_allocation_calls_per_invocation": 2,
+      "materialized_backend_allocation_calls_per_invocation": 0,
+      "materialized_event_ms_p50": 0.068596996367,
+      "materialized_event_range_ms": [
+        0.0685764998198,
+        0.0691979974508
+      ],
+      "materialized_wall_ms_p50": 0.0775285,
+      "operator_gate_passed": true,
+      "orders": [
+        "forward",
+        "reverse"
+      ],
+      "runs": 3,
+      "score_bytes": 49152,
+      "sequence": 512,
+      "wall_speedup": 1.3563592743313748
+    },
+    {
+      "batch": 1,
+      "bitwise_equal_current": true,
+      "cache_dtype": "bf16",
+      "event_speedup": 1.887717117891973,
+      "fused_event_ms_p50": 0.273323506117,
+      "fused_wall_ms_p50": 0.2819745,
+      "materialized_allocation_calls_per_invocation": 2,
+      "materialized_backend_allocation_calls_per_invocation": 0,
+      "materialized_event_ms_p50": 0.144790500402,
+      "materialized_event_range_ms": [
+        0.144730001688,
+        0.145332500339
+      ],
+      "materialized_wall_ms_p50": 0.1531095,
+      "operator_gate_passed": true,
+      "orders": [
+        "forward",
+        "reverse"
+      ],
+      "runs": 3,
+      "score_bytes": 98304,
+      "sequence": 2048,
+      "wall_speedup": 1.8416525427880046
+    },
+    {
+      "batch": 1,
+      "bitwise_equal_current": true,
+      "cache_dtype": "fp32",
+      "event_speedup": 2.419243613528528,
+      "fused_event_ms_p50": 0.369583010674,
+      "fused_wall_ms_p50": 0.3787145,
+      "materialized_allocation_calls_per_invocation": 2,
+      "materialized_backend_allocation_calls_per_invocation": 0,
+      "materialized_event_ms_p50": 0.15276800096,
+      "materialized_event_range_ms": [
+        0.1525080055,
+        0.153049997985
+      ],
+      "materialized_wall_ms_p50": 0.161106,
+      "operator_gate_passed": true,
+      "orders": [
+        "forward",
+        "reverse"
+      ],
+      "runs": 3,
+      "score_bytes": 98304,
+      "sequence": 2048,
+      "wall_speedup": 2.350716298586024
+    },
+    {
+      "batch": 2,
+      "bitwise_equal_current": true,
+      "cache_dtype": "bf16",
+      "event_speedup": 1.7520940607060393,
+      "fused_event_ms_p50": 0.272861495614,
+      "fused_wall_ms_p50": 0.281298,
+      "materialized_allocation_calls_per_invocation": 2,
+      "materialized_backend_allocation_calls_per_invocation": 0,
+      "materialized_event_ms_p50": 0.155734501779,
+      "materialized_event_range_ms": [
+        0.155153997242,
+        0.155875995755
+      ],
+      "materialized_wall_ms_p50": 0.163785,
+      "operator_gate_passed": true,
+      "orders": [
+        "forward",
+        "reverse"
+      ],
+      "runs": 3,
+      "score_bytes": 196608,
+      "sequence": 2048,
+      "wall_speedup": 1.717483286015203
+    },
+    {
+      "batch": 2,
+      "bitwise_equal_current": true,
+      "cache_dtype": "fp32",
+      "event_speedup": 2.617178339837332,
+      "fused_event_ms_p50": 0.419076994061,
+      "fused_wall_ms_p50": 0.4282335,
+      "materialized_allocation_calls_per_invocation": 2,
+      "materialized_backend_allocation_calls_per_invocation": 0,
+      "materialized_event_ms_p50": 0.160125501454,
+      "materialized_event_range_ms": [
+        0.15888299793,
+        0.160206496716
+      ],
+      "materialized_wall_ms_p50": 0.1683655,
+      "operator_gate_passed": true,
+      "orders": [
+        "forward",
+        "reverse"
+      ],
+      "runs": 3,
+      "score_bytes": 196608,
+      "sequence": 2048,
+      "wall_speedup": 2.5434753556993566
+    }
+  ],
+  "device_name": "AMD Instinct MI300X VF",
+  "heads": 12,
+  "kv_heads": 2,
+  "matrix_complete": true,
+  "maximum_event_speedup": 2.617178339837332,
+  "maximum_wall_speedup": 2.5434753556993566,
+  "minimum_event_speedup": 1.298130836287899,
+  "minimum_wall_speedup": 1.249000272652913,
+  "process_rows": 24,
+  "record_type": "cached_attention_materialized_matrix",
+  "repetitions": 20,
+  "runs_per_case": 3,
+  "schema_version": 1,
+  "status": "pass",
+  "warmup": 3,
+  "width": 128,
+  "zero_payload_transfers": true,
+  "zero_warm_backend_allocations": true
+}

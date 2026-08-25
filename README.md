@@ -39,11 +39,11 @@ Start with [Quick start](#quick-start), consume the installed library through th
 <details>
 <summary>Latest optimization checkpoints</summary>
 
-> **Current optimization checkpoint:** Experiment 284 makes DeepSeek T2048/B2 decode
-> 2.222× faster with unchanged peak/KV and exact 64-token suffix, but complete logits
-> drift by Max/RMS 0.05691/0.01370. The default route is rejected on precision. The next
-> rebuttal preserves the original reduction order after parallel score materialization.
-> See the [measured failure](docs/optimization-log/experiments/284-cached-attention-split-model-reject.md).
+> **Current optimization checkpoint:** Experiment 285 preserves the original reduction
+> order after parallel score materialization. All eight DeepSeek operator shapes are
+> bitwise-equal and improve Event time 1.298×–2.617×. The candidate is admitted only to
+> an official-model A/B; no default speedup is claimed yet. See the
+> [measured operator gate](docs/optimization-log/experiments/285-materialized-score-attention.md).
 
 > **Current training checkpoint:** the current B1T512 BF16 profile measures
 > 31.327/71.873 ms of Kernel time for Qwen/DeepSeek; GEMM remains 58.56%/63.43%.

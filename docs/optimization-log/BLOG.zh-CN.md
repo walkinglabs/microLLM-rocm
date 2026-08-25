@@ -4482,3 +4482,17 @@ log-sum-exp改变了归约树，微小context差异经过28层和64步被放大�
 顺序完成max、softmax和P·V。若logits恢复但global score流量吃掉速度，原解释同样会被推翻。
 
 ![Split model comparison](../../benchmarks/results/2026-08-25-cached-attention-split-model/comparison.svg)
+
+## 302. Experiment 285：只并行QK，完整context终于位级相同
+
+新路径先并行物化每个position score，再用一个finalize Kernel按旧fused的原线程映射完成max、
+softmax与P·V。它没有使用partial log-sum-exp，因此不改变归约树。
+
+T512/T2048、B1/B2、FP32/BF16的24进程全部位级相同。Event快1.298x–2.617x，wall快
+1.249x–2.543x；T2048/B2/BF16目标格为1.752x/1.717x。最大score buffer 196,608 bytes，
+两次逻辑allocation全部复用，热backend allocation为0。
+
+这支持“并行QK是有效部分”，也推翻“必须一起拆softmax/PV才会快”。候选只准入官方模型A/B，
+下一步沿用三对完整logits与N64协议。
+
+![Materialized-score comparison](../../benchmarks/results/2026-08-25-cached-attention-materialized-matrix/comparison.svg)

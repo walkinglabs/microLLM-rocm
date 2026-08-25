@@ -969,6 +969,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [split search SVG](../../benchmarks/results/2026-08-25-cached-attention-split-matrix/split-search.svg) | 八个shape的split边界与1.05门 |
 | [experiments/284-cached-attention-split-model-reject.md](experiments/284-cached-attention-split-model-reject.md) | 2.222x速度通过但完整logits拒绝 |
 | [split model SVG](../../benchmarks/results/2026-08-25-cached-attention-split-model/comparison.svg) | 三对吞吐、精度与资源结果 |
+| [experiments/285-materialized-score-attention.md](experiments/285-materialized-score-attention.md) | 位级保序并行QK的24进程算子准入 |
+| [materialized score SVG](../../benchmarks/results/2026-08-25-cached-attention-materialized-matrix/comparison.svg) | 八格current/materialized Event与score bytes |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 
