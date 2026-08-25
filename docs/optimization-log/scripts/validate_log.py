@@ -16093,6 +16093,108 @@ def validate_ranked_rccl_preflight(
         bool(summary.get("world2_training_passed"))
 
 
+def validate_ranked_input_weighting(
+        errors: list[str]) -> tuple[int, float, float, float]:
+    root = REPOSITORY / "benchmarks/results/2026-08-25-ranked-input-weighting"
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    rejected = json.loads((root / "equal-reject/summary.json").read_text(
+        encoding="utf-8"))
+    weighted = json.loads((root / "token-weighted/summary.json").read_text(
+        encoding="utf-8"))
+    if (summary.get("schema_version") != 1 or summary.get("status") != "pass" or
+            summary.get("record_type") != "ranked_input_weighting_summary" or
+            summary.get("world_size") != 2 or
+            summary.get("rank_batch_rows") != [1, 2] or
+            summary.get("rank_local_tokens") != [4, 8] or
+            summary.get("average_tokens") != 6.0 or
+            summary.get("equal_only_failure_detected") is not True or
+            summary.get("equal_only_error_processes") != 2 or
+            summary.get("equal_only_returncodes") != [1, 1] or
+            summary.get("rank_gradient_scales") !=
+                [0.666666687, 1.333333373] or
+            summary.get("weighted_steps") != 3 or
+            summary.get("weighted_rank_difference") != 0.0 or
+            summary.get("weighted_rank_rms_difference") != 0.0 or
+            summary.get("weighted_maximum_reference_difference") !=
+                8.17999999958019e-08 or
+            summary.get("weighted_reference_rms_difference") !=
+                8.793435520060956e-09 or
+            summary.get("weighted_maximum_mean_loss_difference") !=
+                1.9433333342533388e-07 or
+            summary.get("weighted_overlap_supported") is not False or
+            summary.get("decision") != "keep explicit token-weighted input mode"):
+        errors.append("ranked input weighting summary changed")
+    if (rejected.get("record_type") !=
+            "ranked_uneven_input_failure_summary" or
+            rejected.get("rank_batch_rows") != [1, 2] or
+            rejected.get("input_weighting") != "equal-only" or
+            rejected.get("weighting_contract_error_processes") != 2 or
+            rejected.get("returncodes") != [1, 1] or
+            weighted.get("record_type") != "ranked_training_summary" or
+            weighted.get("rank_batch_rows") != [1, 2] or
+            weighted.get("input_weighting") != "token-weighted" or
+            weighted.get("average_tokens") != 6.0 or
+            weighted.get("maximum_rank_difference") != 0.0 or
+            weighted.get("rank_rms_difference") != 0.0 or
+            weighted.get("maximum_reference_difference") !=
+                8.17999999958019e-08 or
+            weighted.get("reference_rms_difference") !=
+                8.793435520060956e-09 or
+            weighted.get("maximum_mean_loss_difference") !=
+                1.9433333342533388e-07):
+        errors.append("ranked input weighting raw evidence changed")
+    ranks = [json.loads(path.read_text(encoding="utf-8"))
+             for path in sorted((root / "token-weighted").glob("rank*.stdout"))]
+    ranks.sort(key=lambda record: record["rank"])
+    if (len(ranks) != 2 or
+            [rank.get("local_batch_rows") for rank in ranks] != [1, 2] or
+            [rank.get("local_tokens") for rank in ranks] != [4, 8] or
+            [rank.get("local_gradient_scale") for rank in ranks] !=
+                [0.666666687, 1.333333373] or
+            list(root.rglob("communicator.id"))):
+        errors.append("ranked input weighting worker evidence changed")
+    if (check.get("measurement_commit") !=
+            "8e99c53828b634db9cbb8165dbed7a400b98d18a" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("gpu") != "2 x AMD Instinct MI300X VF" or
+            check.get("architecture") != "gfx942" or
+            check.get("world_size") != 2 or
+            check.get("rank_batch_rows") != [1, 2] or
+            check.get("rank_local_tokens") != [4, 8] or
+            check.get("average_tokens") != 6.0 or
+            check.get("equal_only_failure_detected") is not True or
+            check.get("equal_only_error_processes") != 2 or
+            check.get("equal_only_returncodes") != [1, 1] or
+            check.get("rank0_gradient_scale") != 0.666666687 or
+            check.get("rank1_gradient_scale") != 1.333333373 or
+            check.get("weighted_steps") != 3 or
+            check.get("weighted_rank_difference") != 0.0 or
+            check.get("weighted_rank_rms_difference") != 0.0 or
+            check.get("weighted_maximum_reference_difference") !=
+                8.17999999958019e-08 or
+            check.get("weighted_reference_rms_difference") !=
+                8.793435520060956e-09 or
+            check.get("weighted_maximum_mean_loss_difference") !=
+                1.9433333342533388e-07 or
+            check.get("weighted_overlap_supported") is not False or
+            check.get("ranked_contracts") != {"passed": 7, "total": 7} or
+            check.get("registered_test_files") != 125):
+        errors.append("ranked input weighting verification changed")
+    worker = (REPOSITORY / "apps/distributed_rank.cpp").read_text(
+        encoding="utf-8")
+    launcher = (REPOSITORY / "tools/distributed/run_ranked.py").read_text(
+        encoding="utf-8")
+    if ("local_gradient_scale" not in worker or
+            "uneven local token counts require token-weighted" not in worker or
+            "ranked_uneven_input_failure_summary" not in launcher):
+        errors.append("ranked input weighting route is missing")
+    return summary.get("weighted_steps", 0), \
+        summary.get("weighted_maximum_reference_difference", 0.0), \
+        summary.get("weighted_reference_rms_difference", 0.0), \
+        summary.get("weighted_maximum_mean_loss_difference", 0.0)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -16346,7 +16448,8 @@ def validate_assets(errors: list[str]) -> None:
                  "ranked-checkpoint-resume.svg",
                  "ranked-model-s-checkpoint.svg",
                  "ranked-world-size-boundary.svg",
-                 "ranked-rccl-preflight.svg"):
+                 "ranked-rccl-preflight.svg",
+                 "ranked-input-weighting.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -16916,6 +17019,8 @@ def main() -> int:
         validate_ranked_world_size(errors)
     ranked_preflight_gpus, ranked_preflight_free, ranked_preflight_segment, \
         ranked_preflight_world2 = validate_ranked_rccl_preflight(errors)
+    ranked_weighted_steps, ranked_weighted_max, ranked_weighted_rms, \
+        ranked_weighted_loss = validate_ranked_input_weighting(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -17467,6 +17572,10 @@ def main() -> int:
           f"{ranked_preflight_free}/"
           f"{ranked_preflight_segment}/"
           f"{int(ranked_preflight_world2)} "
+          f"ranked_weighting={ranked_weighted_steps}/"
+          f"{ranked_weighted_max:.3e}/"
+          f"{ranked_weighted_rms:.3e}/"
+          f"{ranked_weighted_loss:.3e} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

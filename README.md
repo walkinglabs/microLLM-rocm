@@ -189,6 +189,11 @@ Start with [Quick start](#quick-start), consume the installed library through th
 > bytes free. The segment is not treated as total required memory; world2 remains
 > unblocked and world4 awaits a larger shared-memory mount.
 
+> Uneven two-rank inputs now have an explicit contract. Equal-only mode rejects
+> `[B1,B2]` before parameter collectives; token-weighted mode scales local mean
+> gradients by `0.6667/1.3333` and matches a CPU B3 global batch through three
+> steps (parameter Max/RMS `8.18e-8/8.79e-9`).
+
 </details>
 
 ## Why this project exists

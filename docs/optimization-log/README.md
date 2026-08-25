@@ -951,6 +951,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [experiments/274-ranked-world-size-boundary.md](experiments/274-ranked-world-size-boundary.md) | 一般接口保留、当前四卡能力不声明 |
 | [assets/ranked-rccl-preflight.svg](assets/ranked-rccl-preflight.svg) | visible GPU、shm total/free与debug根因 |
 | [experiments/275-ranked-rccl-preflight.md](experiments/275-ranked-rccl-preflight.md) | 4/4 No-space证据、unknown总需求与world2非回归 |
+| [assets/ranked-input-weighting.svg](assets/ranked-input-weighting.svg) | `[B1,B2]` token交换、scale与CPU global-batch等价 |
+| [experiments/276-ranked-input-weighting.md](experiments/276-ranked-input-weighting.md) | 默认拒绝、显式weighted保留与Model-S交接 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

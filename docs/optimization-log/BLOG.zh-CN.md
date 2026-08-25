@@ -4340,3 +4340,20 @@ RCCL版本是2.28.3。
 合同；四卡只在共享内存资源变化后重跑同一门。
 
 ![Ranked RCCL preflight](assets/ranked-rccl-preflight.svg)
+
+## 293. Experiment 276：一个rank有4个token，另一个有8个，怎样求全局平均
+
+如果每rank loss都是local mean，直接把两个gradient平均会让4-token rank和8-token rank各占一半，
+这不等于12-token global mean。默认`equal-only`先用RCCL交换token count；看到4和8后，两rank在
+任何参数collective前共同返回1，不允许静默训练。
+
+显式`token-weighted`计算average tokens=6。rank0 gradient乘4/6=0.666666687，rank1乘
+8/6=1.333333373，然后做普通RCCL average。结果正好是按12个token加权的global gradient。
+
+tiny三步中，rank参数Max/RMS为0；相对CPU拼接B3，参数Max/RMS为8.18e-8/8.79e-9，local loss
+加权与global loss最大差1.94e-7。公式由完整轨迹验证，不只是一张手算表。
+
+weighted ready overlap仍拒绝，因为bucket可能在backward期间、全局scale前已经enqueue。下一节点
+只做Model-S同步weighted smoke，不同时改通信时机。
+
+![Ranked input weighting](assets/ranked-input-weighting.svg)

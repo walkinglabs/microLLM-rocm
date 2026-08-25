@@ -342,6 +342,11 @@ RANKED_PREFLIGHT_ROOT = (
     "2026-08-25-ranked-rccl-preflight")
 RANKED_PREFLIGHT_CHART = (
     ROOT / "assets" / "ranked-rccl-preflight.svg")
+RANKED_INPUT_WEIGHT_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-ranked-input-weighting")
+RANKED_INPUT_WEIGHT_CHART = (
+    ROOT / "assets" / "ranked-input-weighting.svg")
 
 
 def rows() -> list[dict]:
@@ -6107,6 +6112,92 @@ def ranked_rccl_preflight_svg() -> str:
     return "\n".join(parts)
 
 
+def ranked_input_weighting_svg() -> str:
+    summary = json.loads((RANKED_INPUT_WEIGHT_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    width, height = 1500, 760
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 276 · Ranked Uneven-Input Weighting", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "tiny · rank rows [1,2] · 4 vs 8 valid tokens · three-step global-batch parameter gate",
+             16, "#5b6474", anchor="middle"),
+        '<rect x="60" y="125" width="420" height="480" rx="18" fill="#ffffff" stroke="#dc2626" stroke-width="3"/>',
+        text(270, 170, "Default: equal-only", 23, "#b42335",
+             anchor="middle", weight=700),
+        text(110, 230, "Rank0 local tokens", 16, "#5b6474"),
+        text(430, 230, "4", 23, "#172033", anchor="end", weight=700),
+        text(110, 285, "Rank1 local tokens", 16, "#5b6474"),
+        text(430, 285, "8", 23, "#172033", anchor="end", weight=700),
+        text(110, 340, "Average tokens", 16, "#5b6474"),
+        text(430, 340, "6", 23, "#172033", anchor="end", weight=700),
+        '<line x1="110" y1="375" x2="430" y2="375" stroke="#d8dee9" stroke-width="2"/>',
+        text(270, 425, "UNEQUAL", 28, "#b42335", anchor="middle", weight=700),
+        text(270, 470, "2 / 2 processes return 1", 18, "#b42335",
+             anchor="middle", weight=700),
+        text(270, 515, "before parameter collectives", 17, "#5b6474",
+             anchor="middle"),
+        text(270, 560, f"bounded {summary['equal_only_group_ms'] / 1000:.3f} s",
+             17, "#b45309", anchor="middle", weight=700),
+        '<rect x="540" y="125" width="420" height="480" rx="18" fill="#ffffff" stroke="#2563eb" stroke-width="3"/>',
+        text(750, 170, "Explicit: token-weighted", 23, "#1d4ed8",
+             anchor="middle", weight=700),
+    ]
+    rank_rows = (("Rank0", 4, summary["rank_gradient_scales"][0], "#2563eb"),
+                 ("Rank1", 8, summary["rank_gradient_scales"][1], "#16a34a"))
+    for index, (label, tokens, scale, color) in enumerate(rank_rows):
+        y = 235 + index * 145
+        parts.extend([
+            text(585, y, label, 18, color, weight=700),
+            text(585, y + 35, f"{tokens} / 6", 16, "#5b6474"),
+            f'<rect x="690" y="{y + 15}" width="{190 * scale / 1.4:.1f}" '
+            f'height="30" rx="7" fill="{color}"/>',
+            text(920, y + 39, f"scale {scale:.6f}", 17, color,
+                 anchor="end", weight=700),
+        ])
+    parts.extend([
+        text(750, 495, "RCCL average", 20, "#172033",
+             anchor="middle", weight=700),
+        text(750, 535, "= sum(local mean × tokens)", 17, "#5b6474",
+             anchor="middle"),
+        text(750, 565, "/ 12 global tokens", 17, "#5b6474",
+             anchor="middle"),
+        '<rect x="1020" y="125" width="420" height="480" rx="18" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>',
+        text(1230, 170, "Three-step evidence", 23, "#166534",
+             anchor="middle", weight=700),
+    ])
+    facts = (
+        ("Rank Max / RMS", "0 / 0"),
+        ("CPU Max", "8.18e-8"),
+        ("CPU RMS", "8.79e-9"),
+        ("Weighted loss diff", "1.94e-7"),
+        ("Global batch rows", "3"),
+        ("Compared values", "728"),
+    )
+    for index, (label, value) in enumerate(facts):
+        y = 230 + index * 58
+        parts.extend([
+            text(1060, y, label, 15, "#5b6474"),
+            text(1400, y, value, 19, "#166534", anchor="end", weight=700),
+        ])
+    parts.extend([
+        text(1230, 560, "Explicit weighted mode kept", 19, "#166534",
+             anchor="middle", weight=700),
+        '<rect x="60" y="645" width="1380" height="70" rx="16" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>',
+        text(width / 2, 677,
+             "Correct global weighting, not equal rank weighting · weighted ready-overlap remains unsupported",
+             18, "#1d4ed8", anchor="middle", weight=700),
+        text(width / 2, 703,
+             "Next: Model-S [B1,B2] synchronous weighted full-parameter smoke",
+             15, "#5b6474", anchor="middle"),
+        "</svg>\n",
+    ])
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -6198,7 +6289,8 @@ def main() -> int:
                 RANKED_CHECKPOINT_CHART: ranked_checkpoint_svg(),
                 RANKED_MODEL_S_CHECKPOINT_CHART: ranked_model_s_checkpoint_svg(),
                 RANKED_WORLD_SIZE_CHART: ranked_world_size_svg(),
-                RANKED_PREFLIGHT_CHART: ranked_rccl_preflight_svg()}
+                RANKED_PREFLIGHT_CHART: ranked_rccl_preflight_svg(),
+                RANKED_INPUT_WEIGHT_CHART: ranked_input_weighting_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

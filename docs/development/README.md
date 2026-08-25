@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-25: Ranked uneven-input weighting result](2026-08-25-ranked-input-weighting-result.md)
 - [2026-08-25: Ranked uneven-input weighting infrastructure](2026-08-25-ranked-input-weighting-infrastructure.md)
 - [2026-08-25: Ranked RCCL preflight result](2026-08-25-ranked-rccl-preflight-result.md)
 - [2026-08-25: Ranked RCCL debug and resource preflight](2026-08-25-ranked-rccl-preflight-infrastructure.md)
