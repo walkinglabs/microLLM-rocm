@@ -42,6 +42,10 @@ The step returns rank losses, mean loss, bucket/parameter/element counts, maximu
 cross-rank parameter difference, and forward/backward, communication, optimizer, and
 total wall times.
 
+Current Experiment 251 evidence also shows that the post-optimizer full-parameter host audit
+is not timed separately; on the tiny 20-step baseline the residual is 0.305 ms or 13.32% of
+steady total. The next compatibility-preserving change adds a verification metric and interval.
+
 All ranks must currently contribute the same number of targets. Otherwise averaging
 rank-local mean gradients would weight small and large local batches equally, so the API
 rejects the step.

@@ -102,7 +102,8 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [71](steps/71-training-allocation-workspace.md) | complete | 训练分配/workspace归因 | 两cast Storage逐字节闭合；backend/peak增量0 |
 | [72](steps/72-bf16-weight-gradient-workspace-gate.md) | complete | allocating vs preallocated | wall 0.986×/0.889×；workspace API拒绝 |
 | [73](steps/73-current-training-local-saturation.md) | complete | 当前训练局部饱和审计 | 六track关闭；下一步升级架构或production reducer |
-| [74](steps/74-current-data-parallel-audit.md) | planned | 当前多卡production gap审计 | 固定等价、bucket readiness与错误传播合同 |
+| [74](steps/74-current-data-parallel-audit.md) | complete | 当前多卡production gap审计 | RCCL14/14；参数审计残差13.32%；选第一合同 |
+| [75](steps/75-data-parallel-verification-interval.md) | in progress | 参数审计独立计时与interval | 默认兼容；先清理hot-path测量边界 |
 
 ## 为什么按这个顺序
 

@@ -48,6 +48,10 @@ extending small decoder-only language models on AMD GPUs.
 > rejections. This does not finish training work; it moves the next milestone to a new
 > kernel/graph scale or the production data-parallel reducer.
 
+> The refreshed two-GPU baseline passes RCCL 14/14 and keeps rank parameters identical
+> for 20 steps. Its first production fix is to separate the 13.32% host parameter-audit
+> residual from training time before implementing real gradient-ready overlap.
+
 ## Why this project exists
 
 Large frameworks make model development productive, but they hide the ownership,

@@ -73,7 +73,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | End-to-end benchmark | smoke-tested | matched Python/PyTorch ROCm official training plus phase-separated prefill and one-forward-per-token steady-decode JSONL | serving concurrency, board-level memory and llama.cpp |
 | Single-GPU model matrix | smoke-tested | MI300X tiny/Model-S/Model-M plus official Qwen0.5B/DeepSeek-Distill1.5B train+generate, parameters, time, tokens/s and engine peak bytes | repeated contexts/dtypes and external board-level memory sampling |
 | Python/PyTorch ROCm performance matrix | smoke-tested | official Qwen/DeepSeek train plus inference context 1–2048, batch 1–8, output 1–64, KV allocated/active/waste, continuous slot metrics and token gates | DeepSeek continuous 3-case mismatch, identical residency policy, version matrix and llama.cpp |
-| Optimization experiment journal | implemented | experiments through 250; raw evidence, rejection gates and generated SVGs validated in CTest | Radeon and production data-parallel tracks |
+| Optimization experiment journal | implemented | experiments through 251; raw evidence, rejection gates and generated SVGs validated in CTest | Radeon and production data-parallel tracks |
 | Current training local policy search | measured saturation | current GEMM 58.56%/63.43%, AdamW 13.22%/18.16%; cast ceiling 1.0332×/1.0277×; six adjacent tracks closed | new custom-kernel/graph architecture or production data-parallel reducer |
 | BF16 weight-gradient workspace | rejected | 6 processes; public API has 3 cache reuses/0 backend allocations per call; preallocated wall 0.986×/0.889× | no workspace API; retain standalone cost runner for future backends |
 | BF16 weight-gradient allocation attribution | measured | 960/1120 historical routes; exactly 2 extra logical allocations per route and exact cast-byte identity; backend/peak/cached deltas zero | allocating-vs-preallocated wall/Event gate before any workspace API |
@@ -102,7 +102,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | BF16 solution tuning | smoke-tested | eight T512 shapes, 24 processes, 1,536 complete-output candidates and two rejected model policies | stable cross-process winner plus both-model 1.05 gate before persistence |
 | Matmul tuning registry | smoke-tested | exact persistent key plus complete-output gate, Event/wall P50/P95 and explicit acceptance | solution-index enumeration and automatic model regression |
 | RCCL two-GPU baseline | smoke-tested | XGMI average and global-batch parameter equivalence | buckets/4 GPU/failure timing |
-| DataParallelTrainer | smoke-tested | 3-step two-rank/global-batch equivalence, rank diff 0, stage trace | one-process-per-GPU/gradient-ready overlap |
+| DataParallelTrainer | smoke-tested | current RCCL 14/14; 20-step loss 2.75→0.55 and rank diff 0; steady 2.290ms with 0.350ms communication and 0.305ms unattributed host verification | parameter-check interval/timing, then one-process-per-GPU/gradient-ready overlap |
 | RCCL gradient buckets | smoke-tested | 1MB payload with 64/4/1 bucket matrix | overlap with backward |
 | RCCL four-GPU | draft | 3 stable init failures and debug root cause | environment with >87MB /dev/shm |
 | RCCL compute overlap | smoke-tested | 3 runs, 30–33% synthetic overlap gain | bucket readiness during real backward |

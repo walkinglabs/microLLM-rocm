@@ -3987,3 +3987,12 @@ exact-index、optimizer Graph、BF16长轨迹和workspace六条相邻路线已�
 data-parallel reducer。
 
 ![Training local saturation](assets/training-local-saturation.svg)
+
+## 268. Experiment 251：多卡先分清“训练”和“审计”
+
+当前双卡14/14通过，20-step参数差为0。steady total 2.290ms中，通信0.350ms，而没有单列的
+全参数host一致性检查约0.305ms，占13.32%。tiny模型只有一个bucket，不能证明overlap。
+
+因此第一个production节点先增加verification_ms和检查interval，默认语义不变。
+
+![Current data parallel audit](assets/current-data-parallel-audit.svg)

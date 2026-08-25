@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "current_commit": "c9d8384a87d7e29d8f8102282523af2028ece57d",
+  "current_branch": "main",
+  "dirty_at_measurement": false,
+  "rccl_label": {"passed": 14, "total": 14},
+  "metric_records": 20,
+  "trace_records": 240,
+  "maximum_parameter_difference": 0.0,
+  "four_rank_measured": false,
+  "synthetic_overlap_is_not_model_overlap": true
+}

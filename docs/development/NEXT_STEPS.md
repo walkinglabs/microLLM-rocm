@@ -213,6 +213,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] synchronous single-process multi-device DataParallelTrainer baseline;
 - [x] equal-local-batch validation, bucketed average all-reduce, identical updates;
 - [x] forward/backward, communication, optimizer, total, and rank-difference metrics;
+- [x] refresh the current two-GPU baseline: RCCL 14/14, 20-step parameters identical,
+  communication 15.28% and unseparated host verification 13.32% of steady total;
+- [ ] add explicit parameter-check interval and verification timing while preserving the
+  default every-step correctness behavior;
 - [ ] one process per GPU communicator initialization;
 - [ ] autograd gradient-ready hooks and bucket rebuild by observed readiness;
 - [ ] compute-stream Events to communication streams and asynchronous work handles;

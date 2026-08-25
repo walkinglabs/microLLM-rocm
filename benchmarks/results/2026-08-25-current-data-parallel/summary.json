@@ -1,0 +1,12 @@
+{
+  "final_loss": 0.55,
+  "initial_loss": 2.75,
+  "maximum_parameter_difference": 0.0,
+  "median_communication_ms": 0.35,
+  "median_forward_backward_ms": 1.565,
+  "median_optimizer_ms": 0.07,
+  "median_total_ms": 2.29,
+  "schema_version": 1,
+  "status": "pass",
+  "steps": 20
+}

@@ -218,6 +218,11 @@ TRAINING_LOCAL_SATURATION_ROOT = (
     "2026-08-25-training-local-saturation")
 TRAINING_LOCAL_SATURATION_CHART = (
     ROOT / "assets" / "training-local-saturation.svg")
+CURRENT_DATA_PARALLEL_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-current-data-parallel")
+CURRENT_DATA_PARALLEL_CHART = (
+    ROOT / "assets" / "current-data-parallel-audit.svg")
 
 
 def rows() -> list[dict]:
@@ -4199,6 +4204,71 @@ def training_local_saturation_svg() -> str:
     return "\n".join(parts)
 
 
+def current_data_parallel_svg() -> str:
+    audit = json.loads((CURRENT_DATA_PARALLEL_ROOT / "gap-audit.json").read_text(
+        encoding="utf-8"))
+    width, height = 1500, 760
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 251 · Current Two-GPU Data Parallel", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "20 steps · 4 MiB bucket limit · rank parameters remain identical",
+             16, "#5b6474", anchor="middle"),
+    ]
+    shares = (
+        ("Forward + backward", audit["forward_backward_share"], "#2563eb"),
+        ("Communication", audit["communication_share"], "#7c3aed"),
+        ("Optimizer", audit["optimizer_share"], "#16a34a"),
+        ("Parameter audit", audit["unattributed_verification_share"], "#f59e0b"),
+    )
+    cursor = 120.0
+    for label, share, color in shares:
+        bar_width = 1260.0 * share
+        parts.append(f'<rect x="{cursor:.1f}" y="145" width="{bar_width:.1f}" '
+                     f'height="95" fill="{color}"/>')
+        if bar_width >= 105:
+            parts.append(text(cursor + bar_width / 2, 185,
+                              f"{share * 100:.1f}%", 18, "#ffffff",
+                              anchor="middle", weight=700))
+            parts.append(text(cursor + bar_width / 2, 216, label, 13,
+                              "#ffffff", anchor="middle"))
+        cursor += bar_width
+    parts.append(text(width / 2, 290,
+                      "Median total 2.290 ms · communication 0.350 ms · parameter audit residual 0.305 ms",
+                      19, "#172033", anchor="middle", weight=700))
+    gaps = (
+        ("Complete backward sync before communication", False),
+        ("Real gradient-ready overlap", False),
+        ("Persistent gradient buckets / zero-copy views", False),
+        ("One process per GPU", False),
+        ("Two-rank global-batch equivalence", True),
+        ("RCCL current validation 14 / 14", True),
+    )
+    for index, (label, available) in enumerate(gaps):
+        row, column = divmod(index, 2)
+        x, y = 120 + column * 660, 355 + row * 90
+        color = "#16a34a" if available else "#e11d48"
+        fill = "#ecfdf3" if available else "#fff1f2"
+        parts.extend([
+            f'<rect x="{x}" y="{y}" width="600" height="62" rx="11" '
+            f'fill="{fill}" stroke="{color}" stroke-width="2"/>',
+            text(x + 35, y + 39, "✓" if available else "×", 25,
+                 color, anchor="middle", weight=700),
+            text(x + 70, y + 38, label, 17, "#172033", weight=700),
+        ])
+    parts.append(text(width / 2, 660,
+                      "First contract: separate parameter-audit timing and interval",
+                      23, "#166534", anchor="middle", weight=700))
+    parts.append(text(width / 2, 710,
+                      "One tiny-model bucket cannot prove backward / communication overlap",
+                      16, "#5b6474", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -4265,7 +4335,8 @@ def main() -> int:
                 BF16_WGRAD_TRAJECTORY_CHART: bf16_weight_gradient_trajectory_svg(),
                 BF16_WGRAD_ALLOCATION_CHART: bf16_weight_gradient_allocation_svg(),
                 BF16_WGRAD_WORKSPACE_CHART: bf16_weight_gradient_workspace_svg(),
-                TRAINING_LOCAL_SATURATION_CHART: training_local_saturation_svg()}
+                TRAINING_LOCAL_SATURATION_CHART: training_local_saturation_svg(),
+                CURRENT_DATA_PARALLEL_CHART: current_data_parallel_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]
