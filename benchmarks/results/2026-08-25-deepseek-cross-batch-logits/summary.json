@@ -1,0 +1,245 @@
+{
+  "all_cross_batch_bitwise_equal": false,
+  "all_host_device_argmax_equal": true,
+  "all_repeat_bitwise_equal": true,
+  "all_within_batch_bitwise_equal": true,
+  "batches": [
+    1,
+    2,
+    4,
+    8
+  ],
+  "case_rows": 12,
+  "cases": [
+    {
+      "batch": 1,
+      "complete_values_compared_per_run": 151936,
+      "cross_batch_bitwise_equal": true,
+      "cross_batch_maximum_error": 0.0,
+      "cross_batch_maximum_rms_error": 0.0,
+      "decode_step": 0,
+      "device_argmax_tokens": [
+        151643,
+        151643
+      ],
+      "host_device_argmax_equal": true,
+      "repeat_bitwise_equal": true,
+      "repeat_maximum_error": 0.0,
+      "repeat_rms_error": 0.0,
+      "runs": 2,
+      "within_batch_bitwise_equal": true
+    },
+    {
+      "batch": 2,
+      "complete_values_compared_per_run": 151936,
+      "cross_batch_bitwise_equal": false,
+      "cross_batch_maximum_error": 0.04968404769897461,
+      "cross_batch_maximum_rms_error": 0.009997791342145953,
+      "decode_step": 0,
+      "device_argmax_tokens": [
+        151643,
+        151643
+      ],
+      "host_device_argmax_equal": true,
+      "repeat_bitwise_equal": true,
+      "repeat_maximum_error": 0.0,
+      "repeat_rms_error": 0.0,
+      "runs": 2,
+      "within_batch_bitwise_equal": true
+    },
+    {
+      "batch": 4,
+      "complete_values_compared_per_run": 151936,
+      "cross_batch_bitwise_equal": false,
+      "cross_batch_maximum_error": 0.06757020950317383,
+      "cross_batch_maximum_rms_error": 0.017349767052212035,
+      "decode_step": 0,
+      "device_argmax_tokens": [
+        151643,
+        151643
+      ],
+      "host_device_argmax_equal": true,
+      "repeat_bitwise_equal": true,
+      "repeat_maximum_error": 0.0,
+      "repeat_rms_error": 0.0,
+      "runs": 2,
+      "within_batch_bitwise_equal": true
+    },
+    {
+      "batch": 8,
+      "complete_values_compared_per_run": 151936,
+      "cross_batch_bitwise_equal": false,
+      "cross_batch_maximum_error": 0.05164986848831177,
+      "cross_batch_maximum_rms_error": 0.00969841565899372,
+      "decode_step": 0,
+      "device_argmax_tokens": [
+        151643,
+        151643
+      ],
+      "host_device_argmax_equal": true,
+      "repeat_bitwise_equal": true,
+      "repeat_maximum_error": 0.0,
+      "repeat_rms_error": 0.0,
+      "runs": 2,
+      "within_batch_bitwise_equal": true
+    },
+    {
+      "batch": 1,
+      "complete_values_compared_per_run": 151936,
+      "cross_batch_bitwise_equal": true,
+      "cross_batch_maximum_error": 0.0,
+      "cross_batch_maximum_rms_error": 0.0,
+      "decode_step": 1,
+      "device_argmax_tokens": [
+        151646,
+        151646
+      ],
+      "host_device_argmax_equal": true,
+      "repeat_bitwise_equal": true,
+      "repeat_maximum_error": 0.0,
+      "repeat_rms_error": 0.0,
+      "runs": 2,
+      "within_batch_bitwise_equal": true
+    },
+    {
+      "batch": 2,
+      "complete_values_compared_per_run": 151936,
+      "cross_batch_bitwise_equal": false,
+      "cross_batch_maximum_error": 0.15220355987548828,
+      "cross_batch_maximum_rms_error": 0.04613266241344166,
+      "decode_step": 1,
+      "device_argmax_tokens": [
+        151646,
+        151646
+      ],
+      "host_device_argmax_equal": true,
+      "repeat_bitwise_equal": true,
+      "repeat_maximum_error": 0.0,
+      "repeat_rms_error": 0.0,
+      "runs": 2,
+      "within_batch_bitwise_equal": true
+    },
+    {
+      "batch": 4,
+      "complete_values_compared_per_run": 151936,
+      "cross_batch_bitwise_equal": false,
+      "cross_batch_maximum_error": 0.15179729461669922,
+      "cross_batch_maximum_rms_error": 0.032716622820007375,
+      "decode_step": 1,
+      "device_argmax_tokens": [
+        151646,
+        151646
+      ],
+      "host_device_argmax_equal": true,
+      "repeat_bitwise_equal": true,
+      "repeat_maximum_error": 0.0,
+      "repeat_rms_error": 0.0,
+      "runs": 2,
+      "within_batch_bitwise_equal": true
+    },
+    {
+      "batch": 8,
+      "complete_values_compared_per_run": 151936,
+      "cross_batch_bitwise_equal": false,
+      "cross_batch_maximum_error": 0.12120842933654785,
+      "cross_batch_maximum_rms_error": 0.0199889517189494,
+      "decode_step": 1,
+      "device_argmax_tokens": [
+        151646,
+        151646
+      ],
+      "host_device_argmax_equal": true,
+      "repeat_bitwise_equal": true,
+      "repeat_maximum_error": 0.0,
+      "repeat_rms_error": 0.0,
+      "runs": 2,
+      "within_batch_bitwise_equal": true
+    },
+    {
+      "batch": 1,
+      "complete_values_compared_per_run": 151936,
+      "cross_batch_bitwise_equal": true,
+      "cross_batch_maximum_error": 0.0,
+      "cross_batch_maximum_rms_error": 0.0,
+      "decode_step": 2,
+      "device_argmax_tokens": [
+        151643,
+        151643
+      ],
+      "host_device_argmax_equal": true,
+      "repeat_bitwise_equal": true,
+      "repeat_maximum_error": 0.0,
+      "repeat_rms_error": 0.0,
+      "runs": 2,
+      "within_batch_bitwise_equal": true
+    },
+    {
+      "batch": 2,
+      "complete_values_compared_per_run": 151936,
+      "cross_batch_bitwise_equal": false,
+      "cross_batch_maximum_error": 0.19780349731445312,
+      "cross_batch_maximum_rms_error": 0.02644864171667121,
+      "decode_step": 2,
+      "device_argmax_tokens": [
+        3555,
+        3555
+      ],
+      "host_device_argmax_equal": true,
+      "repeat_bitwise_equal": true,
+      "repeat_maximum_error": 0.0,
+      "repeat_rms_error": 0.0,
+      "runs": 2,
+      "within_batch_bitwise_equal": true
+    },
+    {
+      "batch": 4,
+      "complete_values_compared_per_run": 151936,
+      "cross_batch_bitwise_equal": false,
+      "cross_batch_maximum_error": 0.1931309700012207,
+      "cross_batch_maximum_rms_error": 0.03661009655988008,
+      "decode_step": 2,
+      "device_argmax_tokens": [
+        3555,
+        3555
+      ],
+      "host_device_argmax_equal": true,
+      "repeat_bitwise_equal": true,
+      "repeat_maximum_error": 0.0,
+      "repeat_rms_error": 0.0,
+      "runs": 2,
+      "within_batch_bitwise_equal": true
+    },
+    {
+      "batch": 8,
+      "complete_values_compared_per_run": 151936,
+      "cross_batch_bitwise_equal": false,
+      "cross_batch_maximum_error": 0.14889740943908691,
+      "cross_batch_maximum_rms_error": 0.026411151127243297,
+      "decode_step": 2,
+      "device_argmax_tokens": [
+        151643,
+        151643
+      ],
+      "host_device_argmax_equal": true,
+      "repeat_bitwise_equal": true,
+      "repeat_maximum_error": 0.0,
+      "repeat_rms_error": 0.0,
+      "runs": 2,
+      "within_batch_bitwise_equal": true
+    }
+  ],
+  "decode_steps": [
+    0,
+    1,
+    2
+  ],
+  "first_non_bitwise_step": 0,
+  "maximum_cross_batch_error": 0.19780349731445312,
+  "maximum_cross_batch_rms_error": 0.04613266241344166,
+  "process_rows": 24,
+  "record_type": "cached_cross_batch_logit_audit",
+  "runs_per_case": 2,
+  "schema_version": 1,
+  "status": "pass",
+  "vocabulary_size": 151936
+}

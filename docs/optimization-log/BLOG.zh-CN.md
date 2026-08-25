@@ -4616,3 +4616,16 @@ token相同；DeepSeek B2/B4相同，B1/B8从index 2分叉。由于两框架prec
 模型特定batch policy。
 
 ![Serving batch scale](../../benchmarks/results/2026-08-25-serving-batch-scale/batch-scale.svg)
+
+## 312. Experiment 295：Batch内每行都对，Batch之间却从step0就不同
+
+DeepSeek B1/2/4/8在step0/1/2各导出完整151,936 logits，两次fresh process。24/24进程确定、每个
+batch内部行位级相同、host argmax与device token全相同，因此排除行混写和采样错误。
+
+但跨batch从step0已经漂移，B2/B4/B8相对B1 Max为0.04968/0.06757/0.05165；最终全局Max/RMS
+达到0.19780/0.04613。step2正好B1/B8选151643，B2/B4选3555，完整解释上一实验的序列分组。
+
+下一步只测step0的全FP32、BF16-FFN-only、BF16-Attention-only和当前双BF16。若FP32也漂移，查
+通用batch GEMM；否则定位首次放大的低精度island。scheduler默认继续冻结。
+
+![DeepSeek cross-batch logits](../../benchmarks/results/2026-08-25-deepseek-cross-batch-logits/cross-batch.svg)

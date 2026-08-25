@@ -18376,6 +18376,101 @@ def validate_serving_batch_scale(
             float(deep8.get("throughput_ratio_microllm_over_pytorch", 0.0)))
 
 
+def validate_cross_batch_logit_audit(
+        errors: list[str]) -> tuple[int, float, float, int]:
+    root = (REPOSITORY / "benchmarks/results" /
+            "2026-08-25-deepseek-cross-batch-logits")
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    keys = {(row.get("batch"), row.get("decode_step"), row.get("process_run"))
+            for row in raw}
+    cases = {(row.get("batch"), row.get("decode_step")): row
+             for row in summary.get("cases", [])}
+    if (summary.get("record_type") != "cached_cross_batch_logit_audit" or
+            summary.get("status") != "pass" or
+            summary.get("process_rows") != 24 or len(raw) != 24 or
+            len(keys) != 24 or summary.get("case_rows") != 12 or
+            len(cases) != 12 or summary.get("batches") != [1, 2, 4, 8] or
+            summary.get("decode_steps") != [0, 1, 2] or
+            summary.get("runs_per_case") != 2 or
+            summary.get("vocabulary_size") != 151936 or
+            summary.get("all_repeat_bitwise_equal") is not True or
+            summary.get("all_within_batch_bitwise_equal") is not True or
+            summary.get("all_host_device_argmax_equal") is not True or
+            summary.get("all_cross_batch_bitwise_equal") is not False or
+            summary.get("first_non_bitwise_step") != 0 or
+            summary.get("maximum_cross_batch_error") !=
+                0.19780349731445312 or
+            summary.get("maximum_cross_batch_rms_error") !=
+                0.04613266241344166 or
+            any(row.get("cached_attention_materialized_policy") != "auto-enabled" or
+                row.get("cached_attention_materialized_scores") is not True or
+                row.get("within_batch_bitwise_equal") is not True or
+                row.get("host_device_argmax_equal") is not True or
+                row.get("complete_logit_elements") !=
+                    row.get("batch") * 151936
+                for row in raw)):
+        errors.append("cross-batch logit audit summary/raw changed")
+    if (cases.get((2, 0), {}).get("cross_batch_maximum_error") !=
+            0.04968404769897461 or
+            cases.get((4, 0), {}).get("cross_batch_maximum_error") !=
+                0.06757020950317383 or
+            cases.get((8, 0), {}).get("cross_batch_maximum_error") !=
+                0.05164986848831177 or
+            cases.get((2, 2), {}).get("device_argmax_tokens") != [3555, 3555] or
+            cases.get((4, 2), {}).get("device_argmax_tokens") != [3555, 3555] or
+            cases.get((8, 2), {}).get("device_argmax_tokens") != [151643, 151643]):
+        errors.append("cross-batch key cases changed")
+    if (analysis.get("decision") !=
+            "reject scheduler batch policy and isolate low-precision batch-shape numerics" or
+            analysis.get("process_rows") != 24 or
+            analysis.get("first_non_bitwise_step") != 0 or
+            analysis.get("batch_row_storage_or_indexing_failure_supported") is not False or
+            analysis.get("device_argmax_failure_supported") is not False or
+            analysis.get("batch_shape_numeric_drift_supported") is not True or
+            analysis.get("scheduler_default_admitted") is not False):
+        errors.append("cross-batch logit audit analysis changed")
+    if (check.get("measurement_commit") !=
+            "0203cd9cd0dbf68e0105bc6318c38f8aeb046d4e" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("gpu") != "AMD Instinct MI300X VF" or
+            check.get("architecture") != "gfx942" or
+            check.get("process_rows") != 24 or
+            check.get("auto_enabled_rows") != 24 or
+            check.get("all_repeat_bitwise_equal") is not True or
+            check.get("all_within_batch_rows_bitwise_equal") is not True or
+            check.get("all_host_device_argmax_equal") is not True or
+            check.get("scheduler_default_admitted") is not False or
+            check.get("cpu_label") != {"passed": 374, "total": 374} or
+            check.get("sanitizer_label") != {"passed": 372, "total": 372} or
+            check.get("hip_label") != {"passed": 192, "total": 192} or
+            check.get("rccl_label") != {"passed": 53, "total": 53} or
+            check.get("torch_operator_parity") != {"passed": 1, "total": 1} or
+            check.get("coverage_manifest_audit") != "pass" or
+            check.get("registered_test_files") != 129):
+        errors.append("cross-batch logit audit verification changed")
+    for name in ("README.md", "raw.jsonl", "summary.json", "analysis.json",
+                 "verification.json", "cross-batch.svg"):
+        if not (root / name).is_file():
+            errors.append(f"cross-batch logit evidence missing: {name}")
+    try:
+        ET.parse(root / "cross-batch.svg")
+    except ET.ParseError as error:
+        errors.append(f"invalid cross-batch logit SVG: {error}")
+    runner = (REPOSITORY / "benchmarks/single_gpu" /
+              "audit_cached_cross_batch_logits.py").read_text(encoding="utf-8")
+    if ("cache-logits-step" not in runner or
+            "within_batch_bitwise_equal" not in runner or
+            "host_device_argmax_equal" not in runner):
+        errors.append("cross-batch logit runner contract changed")
+    return (len(raw), float(summary.get("maximum_cross_batch_error", 0.0)),
+            float(summary.get("maximum_cross_batch_rms_error", 0.0)),
+            int(summary.get("first_non_bitwise_step", -1)))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -19254,6 +19349,8 @@ def main() -> int:
         validate_gqa_value_reuse_rejection(errors)
     serving_batch_rows, serving_batch_qwen, serving_batch_deep, \
         serving_batch_deep_torch = validate_serving_batch_scale(errors)
+    cross_batch_rows, cross_batch_maximum, cross_batch_rms, \
+        cross_batch_first = validate_cross_batch_logit_audit(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -19874,6 +19971,9 @@ def main() -> int:
           f"{serving_batch_qwen:.3f}/"
           f"{serving_batch_deep:.3f}/"
           f"{serving_batch_deep_torch:.3f} "
+          f"cross_batch={cross_batch_rows}/"
+          f"{cross_batch_maximum:.4f}/"
+          f"{cross_batch_rms:.4f}/{cross_batch_first} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

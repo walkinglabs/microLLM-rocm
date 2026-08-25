@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520">
+<rect width="100%" height="100%" fill="#0b1020"/>
+<style>text{font-family:ui-monospace,SFMono-Regular,monospace;fill:#e5e7eb}.title{font-size:22px;font-weight:700}.label{font-size:13px}.muted{fill:#94a3b8;font-size:12px}</style>
+<text x="30" y="38" class="title">DeepSeek microLLM cross-batch complete logits</text>
+<text x="30" y="62" class="muted">B1 reference · step 0/1/2 · every row and host/device argmax checked</text>
+<text x="30" y="105" class="label">S0 B1</text>
+<rect x="120" y="88" width="2.00" height="22" rx="4" fill="#22c55e"/>
+<text x="142.00" y="104" class="label">Max 0.000e+00 · RMS 0.000e+00</text>
+<text x="30" y="138" class="label">S0 B2</text>
+<rect x="120" y="121" width="163.27" height="22" rx="4" fill="#ef4444"/>
+<text x="303.27" y="137" class="label">Max 4.968e-02 · RMS 9.998e-03</text>
+<text x="30" y="171" class="label">S0 B4</text>
+<rect x="120" y="154" width="222.04" height="22" rx="4" fill="#ef4444"/>
+<text x="362.04" y="170" class="label">Max 6.757e-02 · RMS 1.735e-02</text>
+<text x="30" y="204" class="label">S0 B8</text>
+<rect x="120" y="187" width="169.73" height="22" rx="4" fill="#ef4444"/>
+<text x="309.73" y="203" class="label">Max 5.165e-02 · RMS 9.698e-03</text>
+<text x="30" y="237" class="label">S1 B1</text>
+<rect x="120" y="220" width="2.00" height="22" rx="4" fill="#22c55e"/>
+<text x="142.00" y="236" class="label">Max 0.000e+00 · RMS 0.000e+00</text>
+<text x="30" y="270" class="label">S1 B2</text>
+<rect x="120" y="253" width="500.15" height="22" rx="4" fill="#ef4444"/>
+<text x="640.15" y="269" class="label">Max 1.522e-01 · RMS 4.613e-02</text>
+<text x="30" y="303" class="label">S1 B4</text>
+<rect x="120" y="286" width="498.82" height="22" rx="4" fill="#ef4444"/>
+<text x="638.82" y="302" class="label">Max 1.518e-01 · RMS 3.272e-02</text>
+<text x="30" y="336" class="label">S1 B8</text>
+<rect x="120" y="319" width="398.30" height="22" rx="4" fill="#ef4444"/>
+<text x="538.30" y="335" class="label">Max 1.212e-01 · RMS 1.999e-02</text>
+<text x="30" y="369" class="label">S2 B1</text>
+<rect x="120" y="352" width="2.00" height="22" rx="4" fill="#22c55e"/>
+<text x="142.00" y="368" class="label">Max 0.000e+00 · RMS 0.000e+00</text>
+<text x="30" y="402" class="label">S2 B2</text>
+<rect x="120" y="385" width="650.00" height="22" rx="4" fill="#ef4444"/>
+<text x="790.00" y="401" class="label">Max 1.978e-01 · RMS 2.645e-02</text>
+<text x="30" y="435" class="label">S2 B4</text>
+<rect x="120" y="418" width="634.65" height="22" rx="4" fill="#ef4444"/>
+<text x="774.65" y="434" class="label">Max 1.931e-01 · RMS 3.661e-02</text>
+<text x="30" y="468" class="label">S2 B8</text>
+<rect x="120" y="451" width="489.29" height="22" rx="4" fill="#ef4444"/>
+<text x="629.29" y="467" class="label">Max 1.489e-01 · RMS 2.641e-02</text>
+</svg>

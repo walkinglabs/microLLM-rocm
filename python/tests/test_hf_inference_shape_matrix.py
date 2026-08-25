@@ -27,6 +27,25 @@ CROSS_BATCH_SPEC.loader.exec_module(CROSS_BATCH)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_current_cross_batch_audit_is_complete(self):
+        root = ROOT / "benchmarks/results/2026-08-25-deepseek-cross-batch-logits"
+        summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+        verification = json.loads((root / "verification.json").read_text(
+            encoding="utf-8"))
+        raw = (root / "raw.jsonl").read_text(encoding="utf-8").splitlines()
+        self.assertEqual(len(raw), 24)
+        self.assertEqual(summary["process_rows"], 24)
+        self.assertTrue(summary["all_repeat_bitwise_equal"])
+        self.assertTrue(summary["all_within_batch_bitwise_equal"])
+        self.assertTrue(summary["all_host_device_argmax_equal"])
+        self.assertFalse(summary["all_cross_batch_bitwise_equal"])
+        self.assertEqual(summary["first_non_bitwise_step"], 0)
+        self.assertEqual(summary["maximum_cross_batch_error"],
+                         0.19780349731445312)
+        self.assertEqual(verification["measurement_commit"],
+                         "0203cd9cd0dbf68e0105bc6318c38f8aeb046d4e")
+        ET.parse(root / "cross-batch.svg")
+
     def test_cross_batch_audit_finds_first_complete_logit_drift(self):
         measurements = []
         for run in (1, 2):
