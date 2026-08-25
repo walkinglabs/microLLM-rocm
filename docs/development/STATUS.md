@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| Current validation configurations | smoke-tested | CPU 367/367, ASan/UBSan 365/365, RCCL label 45/45; retained producer CPU/HIP/PyTorch targeted gates pass; prior single-GPU HIP label 188/188 with 1 conditional skip remains applicable | broader compiler/OS/GPU matrix |
+| Current validation configurations | smoke-tested | CPU 367/367, ASan/UBSan 365/365, RCCL label 47/47; retained producer CPU/HIP/PyTorch targeted gates pass; prior single-GPU HIP label 188/188 with 1 conditional skip remains applicable | broader compiler/OS/GPU matrix |
 | CPU code coverage | smoke-tested | 78.4% lines, 86.6% functions, 59.1% branches over `src/` + `include/`; quiescent handoff and other HIP-only paths remain visible as CPU gaps | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, native cast, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |

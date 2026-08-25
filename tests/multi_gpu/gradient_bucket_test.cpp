@@ -361,4 +361,71 @@ TEST(RcclRankGradientBucketTest,
         std::invalid_argument);
 }
 
+TEST(RcclRankGradientBucketTest,
+     ReadyOverlapUsesFixedViewPlanAndRequiresEveryParameter) {
+    if (runtime::hip_device_count() < 1) {
+        GTEST_SKIP() << "visible HIP device required";
+    }
+    const auto id = create_communicator_id();
+    RankCommunicator communicator(0, 1, 0, id);
+    autograd::Value first(Tensor({2}, DType::Float32, Device::hip(0)), true);
+    autograd::Value second(Tensor({3}, DType::Float32, Device::hip(0)), true);
+    first.set_grad(Tensor::from_vector({1, 2}, {2}).to(Device::hip(0)));
+    second.set_grad(Tensor::from_vector({3, 4, 5}, {3}).to(Device::hip(0)));
+
+    RankGradientBucketPlan plan;
+    (void)all_reduce_rank_gradients(
+        communicator, {&first, &second}, 4096, &plan, true);
+    EXPECT_FALSE(plan.overlap_active());
+    first.set_grad(Tensor::from_vector({6, 7}, {2}).to(Device::hip(0)));
+    second.set_grad(Tensor::from_vector({8, 9, 10}, {3}).to(Device::hip(0)));
+    plan.begin_overlap_step(communicator, {&first, &second});
+    EXPECT_TRUE(plan.overlap_active());
+    plan.mark_parameter_ready(1);
+    EXPECT_THROW((void)plan.finish_overlap_step(), std::logic_error);
+    EXPECT_THROW(plan.mark_parameter_ready(1), std::logic_error);
+    plan.mark_parameter_ready(0);
+    const auto stats = plan.finish_overlap_step();
+    EXPECT_FALSE(plan.overlap_active());
+    EXPECT_TRUE(stats.overlap_enabled);
+    EXPECT_EQ(stats.overlapped_bucket_count, 1U);
+    EXPECT_EQ(stats.gradient_view_count, 2U);
+    EXPECT_EQ(stats.pack_copy_calls, 2U);
+    EXPECT_EQ(stats.unpack_copy_calls, 0U);
+    EXPECT_EQ(first.grad().to_vector(), (std::vector<float>{6, 7}));
+    EXPECT_EQ(second.grad().to_vector(), (std::vector<float>{8, 9, 10}));
+    EXPECT_THROW(plan.mark_parameter_ready(0), std::logic_error);
+
+    RankGradientBucketPlan copy_plan;
+    first.set_grad(Tensor::from_vector({1, 2}, {2}).to(Device::hip(0)));
+    second.set_grad(Tensor::from_vector({3, 4, 5}, {3}).to(Device::hip(0)));
+    (void)all_reduce_rank_gradients(
+        communicator, {&first, &second}, 4096, &copy_plan, false);
+    EXPECT_THROW(
+        copy_plan.begin_overlap_step(communicator, {&first, &second}),
+        std::logic_error);
+}
+
+TEST(RcclRankGradientBucketTest,
+     ClearingActiveOverlapAbortsBeforeReleasingStorage) {
+    if (runtime::hip_device_count() < 1) {
+        GTEST_SKIP() << "visible HIP device required";
+    }
+    const auto id = create_communicator_id();
+    RankCommunicator communicator(0, 1, 0, id);
+    autograd::Value first(Tensor({2}, DType::Float32, Device::hip(0)), true);
+    autograd::Value second(Tensor({3}, DType::Float32, Device::hip(0)), true);
+    first.set_grad(Tensor::from_vector({1, 2}, {2}).to(Device::hip(0)));
+    second.set_grad(Tensor::from_vector({3, 4, 5}, {3}).to(Device::hip(0)));
+    RankGradientBucketPlan plan;
+    (void)all_reduce_rank_gradients(
+        communicator, {&first, &second}, 4096, &plan, true);
+    plan.begin_overlap_step(communicator, {&first, &second});
+    plan.mark_parameter_ready(1);
+    plan.clear();
+    EXPECT_FALSE(plan.initialized());
+    EXPECT_FALSE(plan.overlap_active());
+    EXPECT_TRUE(communicator.aborted());
+}
+
 }  // namespace microllm::multi_gpu

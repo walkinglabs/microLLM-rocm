@@ -123,6 +123,10 @@ struct RankGradientBucketPlan::Impl {
         std::size_t elements = 0;
         Tensor bucket;
         std::vector<Tensor> gradients;
+        std::unique_ptr<runtime::Event> ready_event;
+        std::size_t remaining_parameters = 0;
+        std::vector<bool> parameter_ready;
+        bool overlap_enqueued = false;
     };
 
     bool initialized = false;
@@ -134,6 +138,11 @@ struct RankGradientBucketPlan::Impl {
     std::vector<autograd::Value*> parameters;
     std::vector<PersistentRange> ranges;
     std::size_t capacity_elements = 0;
+    bool overlap_active = false;
+    RankCommunicator* overlap_communicator = nullptr;
+    std::vector<autograd::Value*> overlap_parameters;
+    std::size_t next_overlap_range = 0;
+    std::size_t overlap_enqueued_buckets = 0;
 };
 
 GradientBucketPlan::GradientBucketPlan() : impl_(std::make_unique<Impl>()) {}
@@ -167,7 +176,7 @@ void GradientBucketPlan::clear() noexcept {
 
 RankGradientBucketPlan::RankGradientBucketPlan()
     : impl_(std::make_unique<Impl>()) {}
-RankGradientBucketPlan::~RankGradientBucketPlan() = default;
+RankGradientBucketPlan::~RankGradientBucketPlan() { clear(); }
 RankGradientBucketPlan::RankGradientBucketPlan(
     RankGradientBucketPlan&&) noexcept = default;
 RankGradientBucketPlan& RankGradientBucketPlan::operator=(
@@ -177,8 +186,20 @@ bool RankGradientBucketPlan::initialized() const noexcept {
     return impl_ != nullptr && impl_->initialized;
 }
 
+bool RankGradientBucketPlan::overlap_active() const noexcept {
+    return impl_ != nullptr && impl_->overlap_active;
+}
+
 void RankGradientBucketPlan::clear() noexcept {
     if (!impl_) return;
+    if (impl_->overlap_active && impl_->overlap_communicator != nullptr) {
+        impl_->overlap_communicator->abort();
+        try {
+            runtime::synchronize(impl_->device);
+        } catch (...) {
+            // Destruction/clear is best effort after a failed collective.
+        }
+    }
     impl_->ranges.clear();
     impl_->parameters.clear();
     impl_->rank = -1;
@@ -187,6 +208,146 @@ void RankGradientBucketPlan::clear() noexcept {
     impl_->maximum_bucket_bytes = 0;
     impl_->capacity_elements = 0;
     impl_->initialized = false;
+    impl_->overlap_active = false;
+    impl_->overlap_communicator = nullptr;
+    impl_->overlap_parameters.clear();
+    impl_->next_overlap_range = 0;
+    impl_->overlap_enqueued_buckets = 0;
+}
+
+void RankGradientBucketPlan::begin_overlap_step(
+    RankCommunicator& communicator,
+    const std::vector<autograd::Value*>& parameters) {
+    if (!impl_ || !impl_->initialized || !impl_->gradient_views) {
+        throw std::logic_error(
+            "rank gradient overlap requires an initialized view plan");
+    }
+    if (impl_->overlap_active) {
+        throw std::logic_error("rank gradient overlap step is already active");
+    }
+    if (impl_->rank != communicator.rank() ||
+        impl_->world_size != communicator.world_size() ||
+        impl_->device != communicator.device() ||
+        impl_->parameters != parameters) {
+        throw std::invalid_argument(
+            "rank gradient overlap communicator or parameter contract changed");
+    }
+    impl_->overlap_active = true;
+    impl_->overlap_communicator = &communicator;
+    impl_->overlap_parameters = parameters;
+    impl_->next_overlap_range = impl_->ranges.size();
+    impl_->overlap_enqueued_buckets = 0;
+    for (auto& range : impl_->ranges) {
+        if (!range.ready_event) {
+            range.ready_event = std::make_unique<runtime::Event>(
+                communicator.device(), false);
+        }
+        range.remaining_parameters =
+            range.end_parameter - range.first_parameter;
+        range.parameter_ready.assign(range.remaining_parameters, false);
+        range.overlap_enqueued = false;
+    }
+}
+
+void RankGradientBucketPlan::mark_parameter_ready(
+    std::size_t parameter_index) {
+    if (!impl_ || !impl_->overlap_active ||
+        impl_->overlap_communicator == nullptr) {
+        throw std::logic_error("rank gradient overlap step is not active");
+    }
+    auto found = std::find_if(
+        impl_->ranges.begin(), impl_->ranges.end(),
+        [&](const auto& range) {
+            return parameter_index >= range.first_parameter &&
+                   parameter_index < range.end_parameter;
+        });
+    if (found == impl_->ranges.end()) {
+        throw std::out_of_range(
+            "rank gradient overlap parameter is out of range");
+    }
+    const auto local = parameter_index - found->first_parameter;
+    if (found->parameter_ready[local]) {
+        throw std::logic_error(
+            "rank gradient overlap parameter readiness was duplicated");
+    }
+    const auto* parameter = impl_->overlap_parameters[parameter_index];
+    if (parameter == nullptr || !parameter->has_grad() ||
+        parameter->grad().dtype() != DType::Float32 ||
+        parameter->grad().device() != impl_->device ||
+        !parameter->grad().is_contiguous() ||
+        parameter->grad().shape() != found->gradients[local].shape()) {
+        throw std::invalid_argument(
+            "rank gradient overlap received an invalid ready gradient");
+    }
+    found->parameter_ready[local] = true;
+    --found->remaining_parameters;
+    if (found->remaining_parameters == 0) {
+        found->ready_event->record_default_stream();
+    }
+
+    auto& communicator = *impl_->overlap_communicator;
+    while (impl_->next_overlap_range > 0) {
+        auto& range = impl_->ranges[impl_->next_overlap_range - 1];
+        if (range.remaining_parameters != 0) break;
+        range.ready_event->wait(communicator.stream());
+        std::size_t offset = 0;
+        for (std::size_t index = range.first_parameter;
+             index < range.end_parameter; ++index) {
+            const auto& gradient = impl_->overlap_parameters[index]->grad();
+            const auto elements = static_cast<std::size_t>(gradient.numel());
+            const auto bytes = bytes_for(
+                elements, "rank gradient overlap pack bytes overflow");
+            auto* destination =
+                static_cast<std::byte*>(range.bucket.data()) +
+                offset * sizeof(float);
+            runtime::copy_bytes_async(
+                destination, range.bucket.device(), gradient.data(),
+                gradient.device(), bytes, communicator.stream());
+            offset += elements;
+        }
+        communicator.enqueue_all_reduce_average_in_place(range.bucket);
+        range.overlap_enqueued = true;
+        ++impl_->overlap_enqueued_buckets;
+        --impl_->next_overlap_range;
+    }
+}
+
+RankBucketStats RankGradientBucketPlan::finish_overlap_step() {
+    if (!impl_ || !impl_->overlap_active ||
+        impl_->overlap_communicator == nullptr) {
+        throw std::logic_error("rank gradient overlap step is not active");
+    }
+    if (impl_->next_overlap_range != 0 ||
+        impl_->overlap_enqueued_buckets != impl_->ranges.size()) {
+        throw std::logic_error(
+            "rank gradient overlap finished before every bucket was ready");
+    }
+    impl_->overlap_communicator->synchronize();
+    RankBucketStats stats;
+    stats.parameter_count = impl_->parameters.size();
+    stats.bucket_count = impl_->ranges.size();
+    stats.persistent_storage = true;
+    stats.plan_reused = true;
+    stats.overlap_enabled = true;
+    stats.overlapped_bucket_count = impl_->overlap_enqueued_buckets;
+    stats.plan_capacity_elements = impl_->capacity_elements;
+    stats.plan_capacity_bytes = bytes_for(
+        impl_->capacity_elements,
+        "rank gradient overlap plan capacity bytes overflow");
+    for (auto& range : impl_->ranges) {
+        add_elements(stats.total_elements, range.elements);
+        stats.gradient_view_count += range.gradients.size();
+        stats.pack_copy_calls += range.gradients.size();
+        for (std::size_t local = 0;
+             local < range.gradients.size(); ++local) {
+            impl_->overlap_parameters[range.first_parameter + local]->set_grad(
+                range.gradients[local]);
+        }
+    }
+    impl_->overlap_active = false;
+    impl_->overlap_communicator = nullptr;
+    impl_->overlap_parameters.clear();
+    return stats;
 }
 
 void GradientBucketPlan::begin_overlap_step(

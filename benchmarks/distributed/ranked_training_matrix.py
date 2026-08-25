@@ -14,7 +14,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 AVAILABLE_POLICIES = (
-    "per-parameter", "bucket", "persistent-bucket", "bucket-views")
+    "per-parameter", "bucket", "persistent-bucket", "bucket-views",
+    "overlap-views")
 DEFAULT_POLICIES = ("per-parameter", "bucket")
 
 
@@ -51,6 +52,9 @@ def options() -> argparse.Namespace:
     if ("bucket-views" in args.policies and
             "persistent-bucket" not in args.policies):
         parser.error("bucket-views comparison requires persistent-bucket")
+    if ("overlap-views" in args.policies and
+            "bucket-views" not in args.policies):
+        parser.error("overlap-views comparison requires bucket-views")
     return args
 
 
@@ -143,6 +147,8 @@ def main() -> int:
                 "maximum_rank_step_reducer_current_bytes_before",
                 "maximum_rank_step_reducer_current_bytes_after",
                 "maximum_rank_step_reducer_peak_bytes_after",
+                "maximum_rank_step_overlap_enabled",
+                "maximum_rank_step_overlapped_buckets",
             )
             if any(not isinstance(value.get(field), list) or
                    len(value[field]) != args.steps for field in step_fields):
@@ -155,11 +161,13 @@ def main() -> int:
                 raise RuntimeError("ranked per-step collective count changed")
             expected_reuse = ([0] + [1] * (args.steps - 1)
                               if policy in
-                              ("persistent-bucket", "bucket-views") else
+                              ("persistent-bucket", "bucket-views",
+                               "overlap-views") else
                               [0] * args.steps)
             if (value["maximum_rank_step_plan_reused"] != expected_reuse or
                     value.get("persistent_storage") !=
-                    (policy in ("persistent-bucket", "bucket-views"))):
+                    (policy in ("persistent-bucket", "bucket-views",
+                                "overlap-views"))):
                 raise RuntimeError("ranked persistent plan state changed")
             value["process_run"] = process_run
             raw.append(value)
@@ -236,6 +244,9 @@ def main() -> int:
             "plan_capacity_bytes_per_rank":
                 rows[0]["plan_capacity_bytes_per_rank"],
             "gradient_views_per_rank": rows[0]["gradient_views_per_rank"],
+            "overlap_steps_per_rank": rows[0]["overlap_steps_per_rank"],
+            "overlapped_buckets_per_rank":
+                rows[0]["overlapped_buckets_per_rank"],
             "maximum_engine_current_bytes": max(
                 row["maximum_engine_current_bytes"] for row in rows),
             "maximum_engine_peak_bytes": max(
@@ -340,7 +351,9 @@ def main() -> int:
         "peer_failure_detected": True,
         "peer_processes_terminated": failure["peer_processes_terminated"],
         "failure_returncodes": failure["returncodes"],
-        "decision": ("measure ranked gradient bucket views"
+        "decision": ("measure ranked gradient-ready overlap"
+                     if "overlap-views" in args.policies else
+                     "measure ranked gradient bucket views"
                      if "bucket-views" in args.policies else
                      "measure persistent ranked Model-S buckets"
                      if "persistent-bucket" in args.policies else
@@ -424,6 +437,35 @@ def main() -> int:
             "views_peak_bytes_added_vs_persistent_copy":
                 views["maximum_engine_peak_bytes"] -
                 persistent["maximum_engine_peak_bytes"],
+        })
+    if "overlap-views" in policies:
+        overlap = policies["overlap-views"]
+        views = policies["bucket-views"]
+        summary.update({
+            "overlap_steady_finish_speedup_vs_synchronous_views": (
+                views["median_steady_maximum_rank_reducer_ms"] /
+                overlap["median_steady_maximum_rank_reducer_ms"]),
+            "overlap_steady_training_speedup_vs_synchronous_views": (
+                views["median_steady_maximum_rank_training_ms"] /
+                overlap["median_steady_maximum_rank_training_ms"]),
+            "overlap_steady_training_speedup_vs_per_parameter": (
+                policies["per-parameter"]
+                ["median_steady_maximum_rank_training_ms"] /
+                overlap["median_steady_maximum_rank_training_ms"]),
+            "overlap_steady_training_speedup_vs_transient": (
+                policies["bucket"]["median_steady_maximum_rank_training_ms"] /
+                overlap["median_steady_maximum_rank_training_ms"]),
+            "overlap_maximum_steady_backend_allocation_calls":
+                overlap["maximum_steady_reducer_backend_allocation_calls"],
+            "overlap_steps_per_rank": overlap["overlap_steps_per_rank"],
+            "overlapped_buckets_per_rank":
+                overlap["overlapped_buckets_per_rank"],
+            "overlap_current_bytes_added_vs_synchronous_views":
+                overlap["maximum_engine_current_bytes"] -
+                views["maximum_engine_current_bytes"],
+            "overlap_peak_bytes_added_vs_synchronous_views":
+                overlap["maximum_engine_peak_bytes"] -
+                views["maximum_engine_peak_bytes"],
         })
     (output / "raw.jsonl").write_text(
         "".join(json.dumps(row, sort_keys=True) + "\n" for row in raw),

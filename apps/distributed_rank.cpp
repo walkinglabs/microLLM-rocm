@@ -89,7 +89,8 @@ Options parse(int argc, char** argv) {
         options.steps == 0 || options.timeout_ms == 0 ||
         (options.reducer != "per-parameter" && options.reducer != "bucket" &&
          options.reducer != "persistent-bucket" &&
-         options.reducer != "bucket-views") ||
+         options.reducer != "bucket-views" &&
+         options.reducer != "overlap-views") ||
         options.bucket_bytes < sizeof(float) ||
         (options.model != "tiny" && options.model != "model-s")) {
         throw std::invalid_argument("distributed rank options are invalid");
@@ -239,6 +240,10 @@ struct ReducerStats {
     std::size_t plan_reuses = 0;
     std::size_t plan_capacity_elements = 0;
     std::size_t plan_capacity_bytes = 0;
+    std::size_t overlap_steps = 0;
+    std::size_t overlapped_buckets = 0;
+    std::vector<std::size_t> step_overlap_enabled;
+    std::vector<std::size_t> step_overlapped_buckets;
 };
 
 struct PhaseTimings {
@@ -290,6 +295,9 @@ void write_result(const char* mode, int rank,
               << reducer_stats.plan_capacity_elements
               << ",\"plan_capacity_bytes\":"
               << reducer_stats.plan_capacity_bytes
+              << ",\"overlap_steps\":" << reducer_stats.overlap_steps
+              << ",\"overlapped_buckets\":"
+              << reducer_stats.overlapped_buckets
               << ",\"engine_current_bytes\":" << allocation.current_bytes
               << ",\"engine_peak_bytes\":" << allocation.peak_bytes
               << ",\"engine_cached_bytes\":" << allocation.cached_bytes
@@ -337,6 +345,10 @@ void write_result(const char* mode, int rank,
     write_number_array(reducer_stats.step_current_bytes_after);
     std::cout << ",\"step_reducer_peak_bytes_after\":";
     write_number_array(reducer_stats.step_peak_bytes_after);
+    std::cout << ",\"step_overlap_enabled\":";
+    write_number_array(reducer_stats.step_overlap_enabled);
+    std::cout << ",\"step_overlapped_buckets\":";
+    write_number_array(reducer_stats.step_overlapped_buckets);
     std::cout << ",\"losses\":";
     write_number_array(losses);
     std::cout << ",\"parameter_names\":[";
@@ -413,10 +425,21 @@ void run_rank(const Options& options) {
     microllm::model::TransformerModel model(config, options.seed);
     model.to(communicator.device());
     microllm::training::AdamW optimizer(model.parameters(), optimizer_config());
+    const auto parameters = model.parameters();
     const auto batch = local_batch(config, options.rank);
     std::vector<float> losses;
     ReducerStats reducer_stats;
     microllm::multi_gpu::RankGradientBucketPlan persistent_bucket_plan;
+    if (options.reducer == "overlap-views") {
+        for (std::size_t index = 0; index < parameters.size(); ++index) {
+            parameters[index]->set_gradient_ready_hook(
+                [&persistent_bucket_plan, index] {
+                    if (persistent_bucket_plan.overlap_active()) {
+                        persistent_bucket_plan.mark_parameter_ready(index);
+                    }
+                });
+        }
+    }
     PhaseTimings timings;
     microllm::runtime::synchronize(communicator.device());
     const auto training_begin = SteadyClock::now();
@@ -424,10 +447,19 @@ void run_rank(const Options& options) {
         const auto step_begin = SteadyClock::now();
         const auto forward_backward_begin = SteadyClock::now();
         optimizer.zero_grad();
+        const auto overlap_step =
+            options.reducer == "overlap-views" &&
+            persistent_bucket_plan.initialized();
+        if (overlap_step) {
+            persistent_bucket_plan.begin_overlap_step(
+                communicator, parameters);
+        }
         const auto loss = model.loss(batch.inputs, batch.targets);
         losses.push_back(loss.data().to_vector()[0]);
         loss.backward();
-        microllm::runtime::synchronize(communicator.device());
+        if (!overlap_step) {
+            microllm::runtime::synchronize(communicator.device());
+        }
         const auto forward_backward_elapsed = elapsed_ms(
             forward_backward_begin, SteadyClock::now());
         timings.forward_backward_ms += forward_backward_elapsed;
@@ -441,15 +473,43 @@ void run_rank(const Options& options) {
         std::size_t step_unpack_copies = 0;
         std::size_t step_gradient_views = 0;
         std::size_t step_plan_reused = 0;
-        if (options.reducer == "bucket" ||
+        std::size_t step_overlap_enabled = 0;
+        std::size_t step_overlapped_buckets = 0;
+        if (overlap_step) {
+            const auto buckets =
+                persistent_bucket_plan.finish_overlap_step();
+            reducer_stats.collectives += buckets.bucket_count;
+            reducer_stats.buckets += buckets.bucket_count;
+            reducer_stats.pack_copies += buckets.pack_copy_calls;
+            reducer_stats.unpack_copies += buckets.unpack_copy_calls;
+            reducer_stats.gradient_views += buckets.gradient_view_count;
+            step_collectives = buckets.bucket_count;
+            step_buckets = buckets.bucket_count;
+            step_pack_copies = buckets.pack_copy_calls;
+            step_unpack_copies = buckets.unpack_copy_calls;
+            step_gradient_views = buckets.gradient_view_count;
+            step_plan_reused = buckets.plan_reused ? 1U : 0U;
+            step_overlap_enabled = buckets.overlap_enabled ? 1U : 0U;
+            step_overlapped_buckets = buckets.overlapped_bucket_count;
+            reducer_stats.persistent_storage = buckets.persistent_storage;
+            reducer_stats.plan_reuses += step_plan_reused;
+            reducer_stats.plan_capacity_elements =
+                buckets.plan_capacity_elements;
+            reducer_stats.plan_capacity_bytes = buckets.plan_capacity_bytes;
+            reducer_stats.overlap_steps += step_overlap_enabled;
+            reducer_stats.overlapped_buckets += step_overlapped_buckets;
+        } else if (options.reducer == "bucket" ||
             options.reducer == "persistent-bucket" ||
-            options.reducer == "bucket-views") {
+            options.reducer == "bucket-views" ||
+            options.reducer == "overlap-views") {
             auto* plan = options.reducer != "bucket"
                              ? &persistent_bucket_plan
                              : nullptr;
-            const auto gradient_views = options.reducer == "bucket-views";
+            const auto gradient_views =
+                options.reducer == "bucket-views" ||
+                options.reducer == "overlap-views";
             const auto buckets = microllm::multi_gpu::all_reduce_rank_gradients(
-                communicator, model.parameters(), options.bucket_bytes, plan,
+                communicator, parameters, options.bucket_bytes, plan,
                 gradient_views);
             reducer_stats.collectives += buckets.bucket_count;
             reducer_stats.buckets += buckets.bucket_count;
@@ -468,7 +528,7 @@ void run_rank(const Options& options) {
                 buckets.plan_capacity_elements;
             reducer_stats.plan_capacity_bytes = buckets.plan_capacity_bytes;
         } else {
-            for (auto* parameter : model.parameters()) {
+            for (auto* parameter : parameters) {
                 auto gradient = parameter->grad();
                 communicator.enqueue_all_reduce_average_in_place(gradient);
                 ++reducer_stats.collectives;
@@ -506,6 +566,9 @@ void run_rank(const Options& options) {
             allocation_after.current_bytes);
         reducer_stats.step_peak_bytes_after.push_back(
             allocation_after.peak_bytes);
+        reducer_stats.step_overlap_enabled.push_back(step_overlap_enabled);
+        reducer_stats.step_overlapped_buckets.push_back(
+            step_overlapped_buckets);
         const auto optimizer_begin = SteadyClock::now();
         optimizer.step();
         microllm::runtime::synchronize(communicator.device());
@@ -519,6 +582,11 @@ void run_rank(const Options& options) {
     timings.training_ms = elapsed_ms(training_begin, SteadyClock::now());
     const auto allocation =
         microllm::runtime::allocation_stats(communicator.device());
+    if (options.reducer == "overlap-views") {
+        for (auto* parameter : parameters) {
+            parameter->clear_gradient_ready_hook();
+        }
+    }
     if (!options.parameter_file.empty()) {
         microllm::io::save_safetensors(
             options.parameter_file, model.state_dict());

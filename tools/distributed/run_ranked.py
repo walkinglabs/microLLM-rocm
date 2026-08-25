@@ -26,7 +26,8 @@ def options() -> argparse.Namespace:
                         default="none")
     parser.add_argument("--reducer",
                         choices=("per-parameter", "bucket",
-                                 "persistent-bucket", "bucket-views"),
+                                 "persistent-bucket", "bucket-views",
+                                 "overlap-views"),
                         default="per-parameter")
     parser.add_argument("--bucket-bytes", type=int, default=4096)
     parser.add_argument("--model", choices=("tiny", "model-s"), default="tiny")
@@ -286,7 +287,9 @@ def main() -> int:
                          "step_plan_reused",
                          "step_reducer_current_bytes_before",
                          "step_reducer_current_bytes_after",
-                         "step_reducer_peak_bytes_after")
+                         "step_reducer_peak_bytes_after",
+                         "step_overlap_enabled",
+                         "step_overlapped_buckets")
     if any(not isinstance(rank.get(field), list) or
            len(rank[field]) != args.steps
            for rank in ranks for field in
@@ -325,7 +328,8 @@ def main() -> int:
            for rank in ranks):
         raise RuntimeError("rank per-step reducer totals changed")
     expected_reuse = [0] + [1] * (args.steps - 1)
-    if args.reducer in ("persistent-bucket", "bucket-views"):
+    if args.reducer in ("persistent-bucket", "bucket-views",
+                        "overlap-views"):
         if any(rank.get("persistent_storage") is not True or
                rank.get("plan_reuses") != args.steps - 1 or
                rank.get("plan_capacity_elements", 0) <= 0 or
@@ -340,7 +344,7 @@ def main() -> int:
              any(rank["step_plan_reused"])
              for rank in ranks):
         raise RuntimeError("non-persistent reducer exposed a bucket plan")
-    if args.reducer == "bucket-views":
+    if args.reducer in ("bucket-views", "overlap-views"):
         if any(rank.get("gradient_views") !=
                args.steps * len(reference["parameter_names"]) or
                rank.get("unpack_copies") != 0 or
@@ -352,6 +356,24 @@ def main() -> int:
              any(rank["step_gradient_views"])
              for rank in ranks):
         raise RuntimeError("non-view reducer exposed gradient views")
+    expected_overlap = [0] + [1] * (args.steps - 1)
+    expected_overlapped_buckets = [0] + [
+        ranks[0]["buckets"] // args.steps] * (args.steps - 1)
+    if args.reducer == "overlap-views":
+        if any(rank.get("overlap_steps") != args.steps - 1 or
+               rank.get("overlapped_buckets") !=
+               (args.steps - 1) * ranks[0]["buckets"] // args.steps or
+               rank["step_overlap_enabled"] != expected_overlap or
+               rank["step_overlapped_buckets"] !=
+               expected_overlapped_buckets
+               for rank in ranks):
+            raise RuntimeError("rank gradient overlap contract changed")
+    elif any(rank.get("overlap_steps") != 0 or
+             rank.get("overlapped_buckets") != 0 or
+             any(rank["step_overlap_enabled"]) or
+             any(rank["step_overlapped_buckets"])
+             for rank in ranks):
+        raise RuntimeError("non-overlap reducer exposed overlap state")
     loss_difference = max(
         abs(sum(rank["losses"][step] for rank in ranks) / len(ranks) -
             reference["losses"][step])
@@ -449,6 +471,12 @@ def main() -> int:
         "maximum_rank_step_reducer_peak_bytes_after": [
             max(rank["step_reducer_peak_bytes_after"][step]
                 for rank in ranks) for step in range(args.steps)],
+        "maximum_rank_step_overlap_enabled": [
+            max(rank["step_overlap_enabled"][step] for rank in ranks)
+            for step in range(args.steps)],
+        "maximum_rank_step_overlapped_buckets": [
+            max(rank["step_overlapped_buckets"][step] for rank in ranks)
+            for step in range(args.steps)],
         "maximum_engine_current_bytes": max(
             rank["engine_current_bytes"] for rank in ranks),
         "maximum_engine_peak_bytes": max(
@@ -466,6 +494,8 @@ def main() -> int:
         "plan_capacity_elements_per_rank": ranks[0]["plan_capacity_elements"],
         "plan_capacity_bytes_per_rank": ranks[0]["plan_capacity_bytes"],
         "gradient_views_per_rank": ranks[0]["gradient_views"],
+        "overlap_steps_per_rank": ranks[0]["overlap_steps"],
+        "overlapped_buckets_per_rank": ranks[0]["overlapped_buckets"],
         "parameter_files_retained": False,
         "peer_processes_terminated": terminated,
         "collectives_per_rank": expected_collectives,

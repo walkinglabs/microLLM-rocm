@@ -32,6 +32,8 @@ def main() -> int:
         "step_reducer_current_bytes_after",
         "bucket-views", "gradient_views_per_rank",
         "maximum_rank_step_gradient_views",
+        "overlap-views", "overlap_steps_per_rank",
+        "maximum_rank_step_overlapped_buckets",
     ):
         assert token in runner
     for token in (
@@ -44,6 +46,7 @@ def main() -> int:
         "RankGradientBucketPlan", "plan_capacity_bytes",
         "engine_current_bytes", "engine_peak_bytes",
         "gradient_view_count", "bucket-views",
+        "begin_overlap_step", "finish_overlap_step",
     ):
         assert token in worker
     print("ranked launcher contract: pass")
