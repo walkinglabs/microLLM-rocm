@@ -37,7 +37,7 @@ def arguments() -> argparse.Namespace:
     parser.add_argument("--sequences", type=csv_ints, default=[512, 2048])
     parser.add_argument("--batches", type=csv_ints, default=[1, 2])
     parser.add_argument("--cache-dtypes", type=csv_strings, default=["fp32", "bf16"])
-    parser.add_argument("--splits", type=csv_ints, default=[1, 2, 4, 8, 16])
+    parser.add_argument("--splits", type=csv_ints, default=[1, 2, 4, 8, 16, 32])
     parser.add_argument("--runs", type=int, default=3)
     parser.add_argument("--warmup", type=int, default=3)
     parser.add_argument("--repetitions", type=int, default=20)

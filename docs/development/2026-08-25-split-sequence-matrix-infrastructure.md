@@ -16,12 +16,13 @@ B1与B2也可能因为block数量不同而选择不同。单点只能让我们�
 T = 512 / 2048
 B = 1 / 2
 cache = FP32 / BF16
-S = 1 / 2 / 4 / 8 / 16
+S = 1 / 2 / 4 / 8 / 16 / 32
 每格3个新进程
 每项3次热身 + 20次正式测量
 ```
 
-总计120条raw。每个candidate都重新测当前fused，避免拿旧进程时间作分母；进程交替
+初始S16搜索的8个winner全部贴住上界，因此按合同扩到允许上限S32，总计144条raw。每个
+candidate都重新测当前fused，避免拿旧进程时间作分母；进程交替
 forward/reverse顺序。每条记录必须满足：
 
 - 完整split context Max不超过8e-4、RMS不超过8e-5；
@@ -38,4 +39,4 @@ forward/reverse顺序。每条记录必须满足：
 CPU测试用2个sequence、3个S、2次运行构造12条伪记录。它验证顺序轮换、6个candidate聚合、
 2个winner、S4选择、门限和SVG内容。真实MI300X pilot另外验证benchmark输出可以通过同一合同。
 
-下一节点才运行120个真实进程，并依据T512/B2反例决定保留、限制shape或完全拒绝。
+真实144进程结果独立记录在Experiment 283；本文件只定义工具合同。

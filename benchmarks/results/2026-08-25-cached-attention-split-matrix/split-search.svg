@@ -1,0 +1,134 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="642" viewBox="0 0 1280 642">
+<rect width="100%" height="100%" fill="#0b1020"/>
+<style>text{font-family:ui-monospace,SFMono-Regular,monospace;fill:#e5e7eb}.small{font-size:12px}.label{font-size:14px}.title{font-size:20px;font-weight:700}.muted{fill:#94a3b8}</style>
+<text x="28" y="34" class="title">Split-sequence cached Attention search</text>
+<text x="28" y="58" class="small muted">MI300X Event median · above 1.05x passes the operator gate</text>
+<text x="28" y="115" class="label">B1 T512 BF16</text>
+<line x1="235" y1="130.55" x2="1135" y2="130.55" stroke="#22c55e" stroke-dasharray="5 5"/>
+<circle cx="235.00" cy="132.37" r="5" fill="#ef4444"/>
+<text x="235.00" y="148" class="small" text-anchor="middle">S1</text>
+<circle cx="415.00" cy="129.87" r="5" fill="#22c55e"/>
+<text x="415.00" y="148" class="small" text-anchor="middle">S2</text>
+<circle cx="595.00" cy="126.99" r="5" fill="#22c55e"/>
+<text x="595.00" y="148" class="small" text-anchor="middle">S4</text>
+<circle cx="775.00" cy="125.55" r="5" fill="#22c55e"/>
+<text x="775.00" y="148" class="small" text-anchor="middle">S8</text>
+<circle cx="955.00" cy="124.36" r="5" fill="#22c55e"/>
+<text x="955.00" y="148" class="small" text-anchor="middle">S16</text>
+<circle cx="1135.00" cy="124.63" r="5" fill="#22c55e"/>
+<text x="1135.00" y="148" class="small" text-anchor="middle">S32</text>
+<polyline points="235.00,132.37 415.00,129.87 595.00,126.99 775.00,125.55 955.00,124.36 1135.00,124.63" fill="none" stroke="#60a5fa" stroke-width="2"/>
+<text x="1153" y="114" class="small">best S16 · 2.39x</text>
+<text x="28" y="179" class="label">B1 T512 FP32</text>
+<line x1="235" y1="194.55" x2="1135" y2="194.55" stroke="#22c55e" stroke-dasharray="5 5"/>
+<circle cx="235.00" cy="196.04" r="5" fill="#ef4444"/>
+<text x="235.00" y="212" class="small" text-anchor="middle">S1</text>
+<circle cx="415.00" cy="193.18" r="5" fill="#22c55e"/>
+<text x="415.00" y="212" class="small" text-anchor="middle">S2</text>
+<circle cx="595.00" cy="189.67" r="5" fill="#22c55e"/>
+<text x="595.00" y="212" class="small" text-anchor="middle">S4</text>
+<circle cx="775.00" cy="186.17" r="5" fill="#22c55e"/>
+<text x="775.00" y="212" class="small" text-anchor="middle">S8</text>
+<circle cx="955.00" cy="184.56" r="5" fill="#22c55e"/>
+<text x="955.00" y="212" class="small" text-anchor="middle">S16</text>
+<circle cx="1135.00" cy="185.04" r="5" fill="#22c55e"/>
+<text x="1135.00" y="212" class="small" text-anchor="middle">S32</text>
+<polyline points="235.00,196.04 415.00,193.18 595.00,189.67 775.00,186.17 955.00,184.56 1135.00,185.04" fill="none" stroke="#60a5fa" stroke-width="2"/>
+<text x="1153" y="178" class="small">best S16 · 3.21x</text>
+<text x="28" y="243" class="label">B2 T512 BF16</text>
+<line x1="235" y1="258.55" x2="1135" y2="258.55" stroke="#22c55e" stroke-dasharray="5 5"/>
+<circle cx="235.00" cy="260.37" r="5" fill="#ef4444"/>
+<text x="235.00" y="276" class="small" text-anchor="middle">S1</text>
+<circle cx="415.00" cy="257.92" r="5" fill="#22c55e"/>
+<text x="415.00" y="276" class="small" text-anchor="middle">S2</text>
+<circle cx="595.00" cy="255.04" r="5" fill="#22c55e"/>
+<text x="595.00" y="276" class="small" text-anchor="middle">S4</text>
+<circle cx="775.00" cy="253.55" r="5" fill="#22c55e"/>
+<text x="775.00" y="276" class="small" text-anchor="middle">S8</text>
+<circle cx="955.00" cy="252.40" r="5" fill="#22c55e"/>
+<text x="955.00" y="276" class="small" text-anchor="middle">S16</text>
+<circle cx="1135.00" cy="252.84" r="5" fill="#22c55e"/>
+<text x="1135.00" y="276" class="small" text-anchor="middle">S32</text>
+<polyline points="235.00,260.37 415.00,257.92 595.00,255.04 775.00,253.55 955.00,252.40 1135.00,252.84" fill="none" stroke="#60a5fa" stroke-width="2"/>
+<text x="1153" y="242" class="small">best S16 · 2.38x</text>
+<text x="28" y="307" class="label">B2 T512 FP32</text>
+<line x1="235" y1="322.55" x2="1135" y2="322.55" stroke="#22c55e" stroke-dasharray="5 5"/>
+<circle cx="235.00" cy="324.05" r="5" fill="#ef4444"/>
+<text x="235.00" y="340" class="small" text-anchor="middle">S1</text>
+<circle cx="415.00" cy="321.21" r="5" fill="#22c55e"/>
+<text x="415.00" y="340" class="small" text-anchor="middle">S2</text>
+<circle cx="595.00" cy="317.80" r="5" fill="#22c55e"/>
+<text x="595.00" y="340" class="small" text-anchor="middle">S4</text>
+<circle cx="775.00" cy="314.21" r="5" fill="#22c55e"/>
+<text x="775.00" y="340" class="small" text-anchor="middle">S8</text>
+<circle cx="955.00" cy="312.72" r="5" fill="#22c55e"/>
+<text x="955.00" y="340" class="small" text-anchor="middle">S16</text>
+<circle cx="1135.00" cy="313.26" r="5" fill="#22c55e"/>
+<text x="1135.00" y="340" class="small" text-anchor="middle">S32</text>
+<polyline points="235.00,324.05 415.00,321.21 595.00,317.80 775.00,314.21 955.00,312.72 1135.00,313.26" fill="none" stroke="#60a5fa" stroke-width="2"/>
+<text x="1153" y="306" class="small">best S16 · 3.18x</text>
+<text x="28" y="371" class="label">B1 T2048 BF16</text>
+<line x1="235" y1="386.55" x2="1135" y2="386.55" stroke="#22c55e" stroke-dasharray="5 5"/>
+<circle cx="235.00" cy="388.34" r="5" fill="#ef4444"/>
+<text x="235.00" y="404" class="small" text-anchor="middle">S1</text>
+<circle cx="415.00" cy="385.47" r="5" fill="#22c55e"/>
+<text x="415.00" y="404" class="small" text-anchor="middle">S2</text>
+<circle cx="595.00" cy="380.18" r="5" fill="#22c55e"/>
+<text x="595.00" y="404" class="small" text-anchor="middle">S4</text>
+<circle cx="775.00" cy="371.98" r="5" fill="#22c55e"/>
+<text x="775.00" y="404" class="small" text-anchor="middle">S8</text>
+<circle cx="955.00" cy="362.50" r="5" fill="#22c55e"/>
+<text x="955.00" y="404" class="small" text-anchor="middle">S16</text>
+<circle cx="1135.00" cy="359.53" r="5" fill="#22c55e"/>
+<text x="1135.00" y="404" class="small" text-anchor="middle">S32</text>
+<polyline points="235.00,388.34 415.00,385.47 595.00,380.18 775.00,371.98 955.00,362.50 1135.00,359.53" fill="none" stroke="#60a5fa" stroke-width="2"/>
+<text x="1153" y="370" class="small">best S32 · 6.90x</text>
+<text x="28" y="435" class="label">B1 T2048 FP32</text>
+<line x1="235" y1="450.55" x2="1135" y2="450.55" stroke="#22c55e" stroke-dasharray="5 5"/>
+<circle cx="235.00" cy="452.01" r="5" fill="#ef4444"/>
+<text x="235.00" y="468" class="small" text-anchor="middle">S1</text>
+<circle cx="415.00" cy="448.67" r="5" fill="#22c55e"/>
+<text x="415.00" y="468" class="small" text-anchor="middle">S2</text>
+<circle cx="595.00" cy="442.60" r="5" fill="#22c55e"/>
+<text x="595.00" y="468" class="small" text-anchor="middle">S4</text>
+<circle cx="775.00" cy="432.30" r="5" fill="#22c55e"/>
+<text x="775.00" y="468" class="small" text-anchor="middle">S8</text>
+<circle cx="955.00" cy="421.50" r="5" fill="#22c55e"/>
+<text x="955.00" y="468" class="small" text-anchor="middle">S16</text>
+<circle cx="1135.00" cy="417.99" r="5" fill="#22c55e"/>
+<text x="1135.00" y="468" class="small" text-anchor="middle">S32</text>
+<polyline points="235.00,452.01 415.00,448.67 595.00,442.60 775.00,432.30 955.00,421.50 1135.00,417.99" fill="none" stroke="#60a5fa" stroke-width="2"/>
+<text x="1153" y="434" class="small">best S32 · 8.10x</text>
+<text x="28" y="499" class="label">B2 T2048 BF16</text>
+<line x1="235" y1="514.55" x2="1135" y2="514.55" stroke="#22c55e" stroke-dasharray="5 5"/>
+<circle cx="235.00" cy="516.36" r="5" fill="#ef4444"/>
+<text x="235.00" y="532" class="small" text-anchor="middle">S1</text>
+<circle cx="415.00" cy="513.51" r="5" fill="#22c55e"/>
+<text x="415.00" y="532" class="small" text-anchor="middle">S2</text>
+<circle cx="595.00" cy="508.59" r="5" fill="#22c55e"/>
+<text x="595.00" y="532" class="small" text-anchor="middle">S4</text>
+<circle cx="775.00" cy="502.54" r="5" fill="#22c55e"/>
+<text x="775.00" y="532" class="small" text-anchor="middle">S8</text>
+<circle cx="955.00" cy="494.83" r="5" fill="#22c55e"/>
+<text x="955.00" y="532" class="small" text-anchor="middle">S16</text>
+<circle cx="1135.00" cy="493.94" r="5" fill="#22c55e"/>
+<text x="1135.00" y="532" class="small" text-anchor="middle">S32</text>
+<polyline points="235.00,516.36 415.00,513.51 595.00,508.59 775.00,502.54 955.00,494.83 1135.00,493.94" fill="none" stroke="#60a5fa" stroke-width="2"/>
+<text x="1153" y="498" class="small">best S32 · 5.51x</text>
+<text x="28" y="563" class="label">B2 T2048 FP32</text>
+<line x1="235" y1="578.55" x2="1135" y2="578.55" stroke="#22c55e" stroke-dasharray="5 5"/>
+<circle cx="235.00" cy="580.87" r="5" fill="#ef4444"/>
+<text x="235.00" y="596" class="small" text-anchor="middle">S1</text>
+<circle cx="415.00" cy="576.02" r="5" fill="#22c55e"/>
+<text x="415.00" y="596" class="small" text-anchor="middle">S2</text>
+<circle cx="595.00" cy="569.03" r="5" fill="#22c55e"/>
+<text x="595.00" y="596" class="small" text-anchor="middle">S4</text>
+<circle cx="775.00" cy="558.33" r="5" fill="#22c55e"/>
+<text x="775.00" y="596" class="small" text-anchor="middle">S8</text>
+<circle cx="955.00" cy="554.58" r="5" fill="#22c55e"/>
+<text x="955.00" y="596" class="small" text-anchor="middle">S16</text>
+<circle cx="1135.00" cy="557.00" r="5" fill="#22c55e"/>
+<text x="1135.00" y="596" class="small" text-anchor="middle">S32</text>
+<polyline points="235.00,580.87 415.00,576.02 595.00,569.03 775.00,558.33 955.00,554.58 1135.00,557.00" fill="none" stroke="#60a5fa" stroke-width="2"/>
+<text x="1153" y="562" class="small">best S16 · 6.24x</text>
+</svg>

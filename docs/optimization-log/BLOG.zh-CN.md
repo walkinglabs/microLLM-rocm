@@ -4450,3 +4450,21 @@ split-sequence：多个blocks先算局部max/denominator/weighted value，再用
 T512和B2会直接检验额外partial buffer与combine launch是否抵消占用率收益。
 
 ![Cached Attention stage timing](../../benchmarks/results/2026-08-25-cached-attention-stage-matrix/stage-timing.svg)
+
+## 300. Experiment 283：把长序列分给更多Block，单算子真的快了
+
+初始S1/2/4/8/16搜索的8个winner都贴在S16上界，所以把边界扩到S32并重跑完整矩阵。最终是
+144个新进程、48个candidate、8个shape winner。
+
+T512四格都选S16，Event快2.381x–3.211x；T2048除B2/FP32选S16外，其余选S32，快
+5.511x–8.096x。winner wall仍快2.084x–6.988x，最大partial只有399,360 bytes，完整context
+Max/RMS最多3.90e-9/1.09e-9。
+
+关键反例是S1八格全输，最低0.546x；它承担两阶段代价却没有增加并行度。S2八格全过1.05，最低
+1.185x。S32也不是越多越好，T512和T2048/B2/FP32都会回落。这支持shape相关的block并行解释，
+不支持“所有shape固定最大S”。
+
+候选只准入官方DeepSeek模型A/B，默认路由仍不变。下一关是完整logits/token、allocation/peak和
+T2048/B2/N64三对fresh process。
+
+![Split-sequence search](../../benchmarks/results/2026-08-25-cached-attention-split-matrix/split-search.svg)

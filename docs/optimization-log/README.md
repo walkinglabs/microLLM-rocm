@@ -965,6 +965,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [experiments/281-current-deepseek-t2048-profile.md](experiments/281-current-deepseek-t2048-profile.md) | score/context微架构准入与allocator/KV store排除 |
 | [experiments/282-cached-attention-stage-matrix.md](experiments/282-cached-attention-stage-matrix.md) | 24进程三阶段/Fused矩阵与split-sequence准入 |
 | [stage timing SVG](../../benchmarks/results/2026-08-25-cached-attention-stage-matrix/stage-timing.svg) | 从24条raw生成的autoresearch风格分段图 |
+| [experiments/283-cached-attention-split-search.md](experiments/283-cached-attention-split-search.md) | 144进程S1–S32搜索与官方模型门准入 |
+| [split search SVG](../../benchmarks/results/2026-08-25-cached-attention-split-matrix/split-search.svg) | 八个shape的split边界与1.05门 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

@@ -17091,6 +17091,159 @@ def validate_cached_attention_stage_matrix(
                 "fused_speedup_over_transparent_pipeline_maximum", 0.0)))
 
 
+def validate_cached_attention_split_matrix(
+        errors: list[str]) -> tuple[int, int, float, float]:
+    root = (REPOSITORY / "benchmarks/results" /
+            "2026-08-25-cached-attention-split-matrix")
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    candidates = summary.get("candidates", [])
+    winners = summary.get("winners", [])
+    expected_winners = {
+        (512, 1, "bf16"): (16, 2.3890834724761936, 2.0842624, 99840),
+        (512, 1, "fp32"): (16, 3.211035801587032,
+                            2.7430701686020837, 99840),
+        (512, 2, "bf16"): (16, 2.380619958193915,
+                            2.084398618421891, 199680),
+        (512, 2, "fp32"): (16, 3.178034845101122,
+                            2.709858388505241, 199680),
+        (2048, 1, "bf16"): (32, 6.897430488216877,
+                             5.8564582902090665, 199680),
+        (2048, 1, "fp32"): (32, 8.096337483158056,
+                             6.987523692103858, 199680),
+        (2048, 2, "bf16"): (32, 5.510698288885276,
+                             4.867587889695512, 399360),
+        (2048, 2, "fp32"): (16, 6.238415470399182,
+                             5.6655320447744355, 199680),
+    }
+    actual_winners = {
+        (row.get("sequence"), row.get("batch"), row.get("cache_dtype")): row
+        for row in winners}
+    if (summary.get("schema_version") != 1 or
+            summary.get("status") != "pass" or
+            summary.get("record_type") != "cached_attention_split_matrix" or
+            summary.get("matrix_complete") is not True or
+            summary.get("process_rows") != 144 or
+            summary.get("candidate_rows") != 48 or
+            summary.get("case_count") != 8 or
+            summary.get("runs_per_candidate") != 3 or
+            summary.get("warmup") != 3 or summary.get("repetitions") != 20 or
+            summary.get("complete_output_accuracy_passed") is not True or
+            summary.get("zero_payload_transfers") is not True or
+            summary.get("zero_warm_backend_allocations") is not True or
+            summary.get("all_case_winners_pass_operator_gate") is not True or
+            set(actual_winners) != set(expected_winners)):
+        errors.append("cached Attention split summary contract changed")
+    for key, expected in expected_winners.items():
+        row = actual_winners.get(key, {})
+        if (row.get("best_splits") != expected[0] or
+                row.get("best_event_speedup") != expected[1] or
+                row.get("best_wall_speedup") != expected[2] or
+                row.get("partial_bytes") != expected[3] or
+                row.get("operator_gate_passed") is not True):
+            errors.append(f"cached Attention split winner changed: {key}")
+    candidate_keys = {
+        (row.get("sequence"), row.get("batch"), row.get("cache_dtype"),
+         row.get("splits")) for row in candidates}
+    expected_keys = {
+        (sequence, batch, dtype, splits)
+        for sequence in (512, 2048) for batch in (1, 2)
+        for dtype in ("fp32", "bf16") for splits in (1, 2, 4, 8, 16, 32)}
+    if (len(candidates) != 48 or candidate_keys != expected_keys or
+            not all(row.get("operator_gate_passed") is False
+                    for row in candidates if row.get("splits") == 1) or
+            not all(row.get("operator_gate_passed") is True
+                    for row in candidates if row.get("splits") == 2) or
+            max(row.get("maximum_split_error", 1.0)
+                for row in candidates) != 3.8999132812e-09 or
+            max(row.get("maximum_split_rms_error", 1.0)
+                for row in candidates) != 1.09329569806e-09 or
+            any(row.get("split_backend_allocation_calls_per_invocation") != 0.0
+                for row in candidates)):
+        errors.append("cached Attention split candidate matrix changed")
+    raw_groups: dict[tuple[object, ...], list[dict]] = {}
+    for row in raw:
+        key = (row.get("sequence"), row.get("batch"), row.get("cache_dtype"),
+               row.get("splits"))
+        raw_groups.setdefault(key, []).append(row)
+        if (row.get("status") != "pass" or
+                row.get("complete_output_accuracy_passed") is not True or
+                row.get("host_to_device_calls") != 0 or
+                row.get("device_to_host_calls") != 0 or
+                row.get("split_backend_allocation_calls_per_invocation") != 0 or
+                row.get("split_max_error", 1.0) > 3.8999132812e-09 or
+                row.get("split_rms_error", 1.0) > 1.09329569806e-09):
+            errors.append("cached Attention split raw gate changed")
+            break
+    if (len(raw) != 144 or set(raw_groups) != expected_keys or
+            any(len(rows) != 3 or
+                {row.get("process_run") for row in rows} != {1, 2, 3} or
+                {row.get("order") for row in rows} != {"forward", "reverse"}
+                for rows in raw_groups.values())):
+        errors.append("cached Attention split raw process matrix changed")
+    if (analysis.get("record_type") != "cached_attention_split_analysis" or
+            analysis.get("event_winner_speedup_minimum") !=
+                2.380619958193915 or
+            analysis.get("event_winner_speedup_maximum") !=
+                8.096337483158056 or
+            analysis.get("wall_winner_speedup_minimum") != 2.0842624 or
+            analysis.get("wall_winner_speedup_maximum") !=
+                6.987523692103858 or
+            analysis.get("all_s1_candidates_rejected") is not True or
+            analysis.get("all_s2_candidates_passed") is not True or
+            analysis.get("t512_winner_splits") != [16] or
+            analysis.get("t2048_winner_splits") != [16, 32] or
+            analysis.get("operator_candidate_admitted") is not True or
+            analysis.get("general_default_admitted") is not False):
+        errors.append("cached Attention split analysis changed")
+    expected_policy = {
+        "t512_b1_bf16": 16, "t512_b1_fp32": 16,
+        "t512_b2_bf16": 16, "t512_b2_fp32": 16,
+        "t2048_b1_bf16": 32, "t2048_b1_fp32": 32,
+        "t2048_b2_bf16": 32, "t2048_b2_fp32": 16,
+    }
+    if (check.get("measurement_commit") !=
+            "eace0ce0035b9e1191f11da040ed709b40fbe7f7" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("splits") != [1, 2, 4, 8, 16, 32] or
+            check.get("process_rows") != 144 or
+            check.get("candidate_rows") != 48 or
+            check.get("orders_rotated") is not True or
+            check.get("all_s1_candidates_rejected") is not True or
+            check.get("all_s2_candidates_passed") is not True or
+            check.get("winner_policy") != expected_policy or
+            check.get("operator_candidate_admitted") is not True or
+            check.get("model_route_admitted") is not False or
+            check.get("general_default_claim") is not False or
+            check.get("cpu_label") != {"passed": 373, "total": 373} or
+            check.get("sanitizer_label") != {"passed": 371, "total": 371} or
+            check.get("pytorch_enabled_cpu") !=
+                {"passed": 376, "total": 376} or
+            check.get("hip_label") != {"passed": 192, "total": 192} or
+            check.get("registered_test_files") != 128):
+        errors.append("cached Attention split verification changed")
+    for name in ("README.md", "raw.jsonl", "summary.json", "analysis.json",
+                 "verification.json", "split-search.svg"):
+        if not (root / name).is_file():
+            errors.append(f"cached Attention split evidence missing: {name}")
+    try:
+        ET.parse(root / "split-search.svg")
+    except ET.ParseError as error:
+        errors.append(f"invalid cached Attention split SVG: {error}")
+    runner = (REPOSITORY / "benchmarks/single_gpu" /
+              "cached_attention_split_matrix.py").read_text(encoding="utf-8")
+    for token in ("[1, 2, 4, 8, 16, 32]", "operator_gate_passed",
+                  "split-search.svg", "split_partial_bytes"):
+        if token not in runner:
+            errors.append(f"cached Attention split runner token missing: {token}")
+    return (len(raw), len(candidates),
+            min(float(row.get("best_event_speedup", 0.0)) for row in winners),
+            max(float(row.get("best_event_speedup", 0.0)) for row in winners))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -17940,6 +18093,8 @@ def main() -> int:
     cached_stage_rows, cached_stage_softmax_minimum, \
         cached_stage_softmax_maximum, cached_stage_fused_minimum, \
         cached_stage_fused_maximum = validate_cached_attention_stage_matrix(errors)
+    cached_split_rows, cached_split_candidates, cached_split_minimum, \
+        cached_split_maximum = validate_cached_attention_split_matrix(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -18522,6 +18677,8 @@ def main() -> int:
           f"{cached_stage_softmax_maximum:.4f}/"
           f"{cached_stage_fused_minimum:.3f}/"
           f"{cached_stage_fused_maximum:.3f} "
+          f"cached_split={cached_split_rows}/{cached_split_candidates}/"
+          f"{cached_split_minimum:.3f}/{cached_split_maximum:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

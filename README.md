@@ -39,11 +39,11 @@ Start with [Quick start](#quick-start), consume the installed library through th
 <details>
 <summary>Latest optimization checkpoints</summary>
 
-> **Current optimization checkpoint:** Experiment 282 measures 24 fresh-process
-> cached-Attention stage rows. The current fused Kernel is 2.72×–4.16× faster than
-> the transparent global-score pipeline; all complete-output and resource gates pass.
-> Its 12/24-block long-context grid admits a split-sequence occupancy experiment—no
-> model speedup is claimed yet. See the [measured experiment](docs/optimization-log/experiments/282-cached-attention-stage-matrix.md).
+> **Current optimization checkpoint:** Experiment 283 measures 144 fresh-process
+> split-sequence cached-Attention rows. Eight shape winners improve Event time
+> 2.381×–8.096× and wall time 2.084×–6.988× with complete-output/resource gates.
+> The candidate is admitted only to an explicit DeepSeek model A/B; no end-to-end or
+> default-route speedup is claimed yet. See the [measured experiment](docs/optimization-log/experiments/283-cached-attention-split-search.md).
 
 > **Current training checkpoint:** the current B1T512 BF16 profile measures
 > 31.327/71.873 ms of Kernel time for Qwen/DeepSeek; GEMM remains 58.56%/63.43%.
