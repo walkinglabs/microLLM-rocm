@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| Current validation configurations | smoke-tested | CPU 373/373, ASan/UBSan 371/371, PyTorch-enabled CPU 376/376, single-GPU HIP label 192/192, RCCL label 53/53 | broader compiler/OS/GPU matrix |
+| Current validation configurations | smoke-tested | CPU 374/374, ASan/UBSan 372/372, PyTorch-enabled CPU 377/377, single-GPU HIP label 192/192, RCCL label 53/53 | broader compiler/OS/GPU matrix |
 | CPU code coverage | smoke-tested | 78.4% lines, 86.6% functions, 59.1% branches over `src/` + `include/`; quiescent handoff and other HIP-only paths remain visible as CPU gaps | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, native cast, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
@@ -50,6 +50,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Cached Attention stage oracles | smoke-tested, diagnostic-only | CPU hand values, PyTorch parity, and 16 HIP DeepSeek H12/KV2/D128 FP32/BF16 B1/B2 boundary/T2048 cases; complete score/probability/context/fused outputs and zero payload transfers | Event/wall stage matrix before any new Kernel or model route |
 | Cached Attention stage benchmark | measured | 24 fresh processes; T512/T2048 × B1/B2 × FP32/BF16; transparent softmax 65.46%–73.56%, fused 2.72×–4.16× faster; complete outputs and resource gates pass | split-sequence partial + log-sum-exp candidate; no fused-phase claim from generic softmax |
 | Split-sequence cached Attention | explicit model A/B route | 144-process operator gate with eight winners Event 2.381×–8.096×; fixed-S/minimum uniform cached-decode switch; CPU MHA/GQA and MI300X B1/B2 strided-capacity cache logits pass | official DeepSeek full-logit/token/performance/peak gate; no default yet |
+| Split-sequence official model gate | implemented; measurement pending | paired fresh-process current/split runner, complete cached logits/tokens, throughput/peak/allocation/KV gates, leave-one sensitivity and generated SVG | DeepSeek T2048/B2/BF16/S32/N64 three-pair run |
 | Current DeepSeek T2048 cached-decode profile | measured | B2/N64 phase delta: cached Attention 647.3ms/61.57%/1,792 calls; GEMM 270.4ms/25.72%; zero backend allocation delta; KV store 0.65% | score/context microarchitecture matrix before any model route |
 | Fused Q/K bias + split-half RoPE | smoke-tested | CPU/HIP/PyTorch forward+backward; 1,120 fewer profiled launches; paired generation +13.7%/+6.6%; score 1.784147 | interleaved/low-precision variants and remaining launch fusion |
 | BTHD BF16 Q/K inference boundary | smoke-tested | grouped hit removes exactly 48/56 T512 casts; six B1/T256–1024 and B2/T512 cases are bit-exact at 1.0128x–1.0244x; peak unchanged | Radeon/other Instinct and backend-version matrix; explicit/default-off |

@@ -395,6 +395,7 @@
     "python/tests/test_profile_current_training.py",
     "python/tests/test_profile_current_cached_decode.py",
     "python/tests/test_cached_attention_stage_matrix.py",
+    "python/tests/test_cached_attention_split_models.py",
     "python/tests/test_bf16_weight_gradient_matrix.py",
     "python/tests/test_training_trajectory_evidence.py",
     "python/tests/test_bf16_weight_gradient_workspace_matrix.py",
