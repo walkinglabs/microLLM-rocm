@@ -53,6 +53,7 @@ add_test(
         -DMICROLLM_CONSUMER_SOURCE_DIR=${PROJECT_SOURCE_DIR}/tests/package/consumer
         -DMICROLLM_CONSUMER_BINARY_DIR=${PROJECT_BINARY_DIR}/package-consumer-build
         -DMICROLLM_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/package-consumer-prefix
+        -DMICROLLM_PACKAGE_WITH_CAPI=${MICROLLM_BUILD_CAPI}
         -P ${PROJECT_SOURCE_DIR}/cmake/RunInstalledConsumer.cmake
 )
 set(microllm_package_test_labels cpu package install integration)
@@ -73,6 +74,7 @@ add_test(
         -DMICROLLM_BINARY_DIR=${PROJECT_BINARY_DIR}
         -DMICROLLM_CONSUMER_SOURCE_DIR=${PROJECT_SOURCE_DIR}/tests/package/consumer
         -DMICROLLM_CONSUMER_BINARY_DIR=${PROJECT_BINARY_DIR}/package-build-tree-consumer
+        -DMICROLLM_PACKAGE_WITH_CAPI=${MICROLLM_BUILD_CAPI}
         -P ${PROJECT_SOURCE_DIR}/cmake/RunBuildTreeConsumer.cmake
 )
 set_tests_properties(PackageConfig.BuildTreeConsumer PROPERTIES

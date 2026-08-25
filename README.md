@@ -530,7 +530,9 @@ target_link_libraries(my_c_app PRIVATE microLLM::capi)
 
 The C header is `<microllm/capi/microllm.h>`. The C++ component libraries are static;
 the C ABI is installed as a versioned shared library. CMake supplies its include path
-and runtime link information through the imported target.
+and runtime link information through the imported target. This path works in a genuinely
+C-only CMake project: the consumer does not need to enable C++ or know which C++ libraries
+implement the shared ABI.
 
 `CMAKE_PREFIX_PATH` points at the installation root. If a larger environment contains
 many packages, `-DmicroLLM_DIR=/prefix/lib/cmake/microLLM` can point directly at the
@@ -579,7 +581,8 @@ installed `0.1.x` minor line.
 CTest has three repository-external consumer gates. `PackageConfig.BuildTreeConsumer`
 uses `microLLM_DIR` directly, while `PackageConfig.InstalledConsumer` installs into a
 temporary prefix, moves that prefix, and consumes the moved SDK. Both configure,
-compile, link, and run C++ and, when enabled, C programs. They check that internal
+compile, link, and run a C++ project, a mixed C/C++ project, and a separate project whose
+only enabled language is C. They check that internal
 compile flags do not leak and that ordinary builds add no link flags; an instrumented
 build may carry only its required runtime link option. Both gates also prove that a
 missing component and an incompatible pre-1.0 minor version are rejected.

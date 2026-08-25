@@ -472,3 +472,5 @@ the next gate. Records are append-only except for factual corrections.
   beginner-friendly device-wide completion proof and reversible default/Graph phases.
 - [2026-08-24-optimizer-graph-model-gate.md](2026-08-24-optimizer-graph-model-gate.md):
   beginner-friendly explanation of why fewer submissions can still lose on real model shapes.
+- [2026-08-24-cmake-c-only-consumer.md](2026-08-24-cmake-c-only-consumer.md):
+  proves that both build-tree and relocated install-tree Config packages work from a genuinely C-only project.

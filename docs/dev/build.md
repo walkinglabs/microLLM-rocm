@@ -167,6 +167,10 @@ find_package(microLLM 0.1 CONFIG REQUIRED COMPONENTS capi)
 target_link_libraries(c_app PRIVATE microLLM::capi)
 ```
 
+The C API contract is tested from a separate `project(... LANGUAGES C)` consumer. It
+does not initialize a C++ compiler; the imported shared-library target carries the C
+header, library location, and runtime link information required by the C application.
+
 During local development, installation is optional. After configuring and building
 microLLM, point the consumer directly at that configured build tree:
 
@@ -203,8 +207,9 @@ cmake -S . -B build/install \
   -DMICROLLM_INSTALL_CMAKEDIR=share/microLLM/cmake
 ```
 
-`PackageConfig.BuildTreeConsumer` configures, compiles, links, and runs an independent
-C/C++ project against the generated build-tree Config. `PackageConfig.InstalledConsumer`
+`PackageConfig.BuildTreeConsumer` configures, compiles, links, and runs independent C++,
+mixed-language, and genuinely C-only projects against the generated build-tree Config.
+`PackageConfig.InstalledConsumer`
 installs into a fresh temporary prefix, moves the prefix to prove relocatability, then
 does the same against the installed SDK. Both check every expected target, reject
 repository-only compile options, and require ordinary builds to add no link options.

@@ -68,6 +68,45 @@ if(EXISTS "${c_consumer}")
     endif()
 endif()
 
+if(MICROLLM_PACKAGE_WITH_CAPI)
+    set(c_only_build "${MICROLLM_CONSUMER_BINARY_DIR}-c-only")
+    file(REMOVE_RECURSE "${c_only_build}")
+    execute_process(
+        COMMAND "${CMAKE_COMMAND}"
+                -S "${MICROLLM_CONSUMER_SOURCE_DIR}/../c_only_consumer"
+                -B "${c_only_build}"
+                "-DCMAKE_PREFIX_PATH=${MICROLLM_RELOCATED_PREFIX}"
+        RESULT_VARIABLE c_only_configure_status
+        OUTPUT_VARIABLE c_only_configure_output
+        ERROR_VARIABLE c_only_configure_error)
+    if(NOT c_only_configure_status EQUAL 0)
+        message(FATAL_ERROR
+            "installed C-only consumer configure failed:\n"
+            "${c_only_configure_output}\n${c_only_configure_error}")
+    endif()
+    execute_process(
+        COMMAND "${CMAKE_COMMAND}" --build "${c_only_build}"
+        RESULT_VARIABLE c_only_build_status
+        OUTPUT_VARIABLE c_only_build_output
+        ERROR_VARIABLE c_only_build_error)
+    if(NOT c_only_build_status EQUAL 0)
+        message(FATAL_ERROR
+            "installed C-only consumer build failed:\n"
+            "${c_only_build_output}\n${c_only_build_error}")
+    endif()
+    execute_process(
+        COMMAND "${c_only_build}/microllm_c_only_package_consumer"
+        RESULT_VARIABLE c_only_run_status
+        OUTPUT_VARIABLE c_only_run_output
+        ERROR_VARIABLE c_only_run_error)
+    if(NOT c_only_run_status EQUAL 0 OR
+       NOT c_only_run_output MATCHES "microLLM C-only package consumer: pass")
+        message(FATAL_ERROR
+            "installed C-only consumer run failed:\n"
+            "${c_only_run_output}\n${c_only_run_error}")
+    endif()
+endif()
+
 # Required components are an API contract. A typo or an unavailable optional backend
 # must fail at configure time rather than become a link error later.
 set(missing_component_build "${MICROLLM_CONSUMER_BINARY_DIR}-missing-component")
