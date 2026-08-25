@@ -13833,6 +13833,49 @@ def validate_bf16_weight_gradient_allocation_attribution(
             for row in models.values())
 
 
+def validate_bf16_weight_gradient_workspace_discard(
+        errors: list[str]) -> tuple[int, float, float, float, float]:
+    root = REPOSITORY / (
+        "benchmarks/results/2026-08-25-bf16-weight-gradient-workspace-gate")
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    models = {row["model"]: row for row in summary.get("models", [])}
+    qwen = models.get("qwen2.5-0.5b", {})
+    deep = models.get("deepseek-r1-distill-qwen-1.5b", {})
+    expected = (0.986345960589, 0.888871113614,
+                1.037146384129, 0.886107352552)
+    if (summary.get("schema_version") != 1 or summary.get("status") != "pass" or
+            summary.get("record_type") !=
+                "bf16_weight_gradient_workspace_summary" or
+            summary.get("raw_processes") != 6 or summary.get("shape_count") != 2 or
+            any(row.get("passes_workspace_gate") is not False
+                for row in models.values()) or
+            summary.get("decision") !=
+                "reject workspace API; cached logical allocation cost is too small" or
+            abs(float(qwen.get("wall_speedup_median", 0.0)) - expected[0]) > 1.0e-12 or
+            abs(float(deep.get("wall_speedup_median", 0.0)) - expected[1]) > 1.0e-12 or
+            abs(float(qwen.get("event_speedup_median", 0.0)) - expected[2]) > 1.0e-12 or
+            abs(float(deep.get("event_speedup_median", 0.0)) - expected[3]) > 1.0e-12):
+        errors.append("BF16 weight-gradient workspace summary changed")
+    if (len(raw) != 6 or any(
+            row.get("allocating_allocation_calls_per_invocation") != 3.0 or
+            row.get("allocating_backend_allocation_calls_per_invocation") != 0.0 or
+            row.get("allocating_cache_reuse_calls_per_invocation") != 3.0 or
+            row.get("complete_output_finite") is not True for row in raw)):
+        errors.append("BF16 weight-gradient workspace raw evidence changed")
+    if (check.get("raw_processes") != 6 or check.get("passing_shapes") != 0 or
+            check.get("workspace_api_created") is not False or
+            check.get("model_route_restored") is not False or
+            check.get("registered_test_files") != 111):
+        errors.append("BF16 weight-gradient workspace verification changed")
+    public = (REPOSITORY / "include/microllm/ops/ops.h").read_text(encoding="utf-8")
+    if "Bf16WeightGradientWorkspace" in public:
+        errors.append("rejected BF16 weight-gradient workspace API remains")
+    return summary.get("raw_processes", 0), *expected
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -14059,7 +14102,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-weight-gradient-shapes.svg",
                  "bf16-weight-gradient-model.svg",
                  "bf16-weight-gradient-trajectory-discard.svg",
-                 "bf16-weight-gradient-allocation-attribution.svg"):
+                 "bf16-weight-gradient-allocation-attribution.svg",
+                 "bf16-weight-gradient-workspace-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -14547,6 +14591,9 @@ def main() -> int:
     bf16_wgrad_allocation_models, bf16_wgrad_qwen_allocations, \
         bf16_wgrad_deep_allocations, bf16_wgrad_backend_allocations = \
         validate_bf16_weight_gradient_allocation_attribution(errors)
+    bf16_wgrad_workspace_rows, bf16_wgrad_qwen_wall, bf16_wgrad_deep_wall, \
+        bf16_wgrad_qwen_event, bf16_wgrad_deep_event = \
+        validate_bf16_weight_gradient_workspace_discard(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -14993,6 +15040,9 @@ def main() -> int:
           f"bf16_wgrad_allocations={bf16_wgrad_allocation_models}/"
           f"{bf16_wgrad_qwen_allocations}/{bf16_wgrad_deep_allocations}/"
           f"{bf16_wgrad_backend_allocations} "
+          f"bf16_wgrad_workspace={bf16_wgrad_workspace_rows}/"
+          f"{bf16_wgrad_qwen_wall:.3f}/{bf16_wgrad_deep_wall:.3f}/"
+          f"{bf16_wgrad_qwen_event:.3f}/{bf16_wgrad_deep_event:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

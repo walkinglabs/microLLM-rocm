@@ -41,6 +41,9 @@ extending small decoder-only language models on AMD GPUs.
 > cast buffers per weight gradient, with zero backend-allocation or peak-memory delta.
 > A workspace API will be considered only after a direct wall/Event cost gate.
 
+> That gate now rejects the workspace: preallocated Qwen/DeepSeek wall ratios are
+> 0.986×/0.889×. No workspace type or model route is added.
+
 ## Why this project exists
 
 Large frameworks make model development productive, but they hide the ownership,

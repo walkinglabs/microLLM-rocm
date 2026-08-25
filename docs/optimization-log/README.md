@@ -897,6 +897,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [experiments/247-bf16-weight-gradient-trajectory-discard.md](experiments/247-bf16-weight-gradient-trajectory-discard.md) | 20-step、完整参数和候选清理 |
 | [assets/bf16-weight-gradient-allocation-attribution.svg](assets/bf16-weight-gradient-allocation-attribution.svg) | route、逻辑分配与cast字节恒等式 |
 | [experiments/248-bf16-weight-gradient-allocation-attribution.md](experiments/248-bf16-weight-gradient-allocation-attribution.md) | cache复用、零backend增量与workspace前置门 |
+| [assets/bf16-weight-gradient-workspace-discard.svg](assets/bf16-weight-gradient-workspace-discard.svg) | allocating/preallocated Event与wall反例 |
+| [experiments/249-bf16-weight-gradient-workspace-discard.md](experiments/249-bf16-weight-gradient-workspace-discard.md) | 0/2 workspace门与API拒绝 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

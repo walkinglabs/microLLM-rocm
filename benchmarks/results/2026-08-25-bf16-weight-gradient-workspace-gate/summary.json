@@ -1,0 +1,40 @@
+{
+  "decision": "reject workspace API; cached logical allocation cost is too small",
+  "gate": "wall median >= 1.01 and minimum >= 1.0 for both models",
+  "models": [
+    {
+      "event_speedup_maximum": 1.054386487326,
+      "event_speedup_median": 1.037146384129,
+      "event_speedup_minimum": 1.010348084034,
+      "hidden": 896,
+      "model": "qwen2.5-0.5b",
+      "passes_workspace_gate": false,
+      "processes": 3,
+      "rows": 512,
+      "wall_speedup_maximum": 1.139444902082,
+      "wall_speedup_median": 0.986345960589,
+      "wall_speedup_minimum": 0.955963817607,
+      "width": 4864
+    },
+    {
+      "event_speedup_maximum": 0.911693180968,
+      "event_speedup_median": 0.886107352552,
+      "event_speedup_minimum": 0.878476113524,
+      "hidden": 1536,
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "passes_workspace_gate": false,
+      "processes": 3,
+      "rows": 512,
+      "wall_speedup_maximum": 0.913112368002,
+      "wall_speedup_median": 0.888871113614,
+      "wall_speedup_minimum": 0.840184467396,
+      "width": 8960
+    }
+  ],
+  "raw_processes": 6,
+  "record_type": "bf16_weight_gradient_workspace_summary",
+  "runs_per_shape": 3,
+  "schema_version": 1,
+  "shape_count": 2,
+  "status": "pass"
+}

@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "raw_processes": 6,
+  "shape_count": 2,
+  "passing_shapes": 0,
+  "allocation_calls_per_public_invocation": 3,
+  "backend_allocation_calls_per_public_invocation": 0,
+  "cache_reuse_calls_per_public_invocation": 3,
+  "workspace_api_created": false,
+  "model_route_restored": false,
+  "contract_test": {"passed": 1, "total": 1},
+  "registered_test_files": 111
+}
+

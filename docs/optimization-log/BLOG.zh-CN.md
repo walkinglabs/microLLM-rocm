@@ -3970,3 +3970,10 @@ Qwen/DeepSeek每次route恰好多两块Storage，字节数正好等于input cast
 wall/Event差异。
 
 ![BF16 weight-gradient allocation attribution](assets/bf16-weight-gradient-allocation-attribution.svg)
+
+## 266. Experiment 249：预分配也要过整段wall门
+
+公共API已经只做cache reuse，但preallocated的Qwen/DeepSeek wall仍只有0.986×/0.889×；
+DeepSeek Event也更慢。0/2 shape过门，所以不增加workspace API。
+
+![BF16 weight-gradient workspace discard](assets/bf16-weight-gradient-workspace-discard.svg)

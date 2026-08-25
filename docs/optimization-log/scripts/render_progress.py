@@ -208,6 +208,11 @@ BF16_WGRAD_ALLOCATION_ROOT = (
     "2026-08-25-bf16-weight-gradient-allocation-attribution")
 BF16_WGRAD_ALLOCATION_CHART = (
     ROOT / "assets" / "bf16-weight-gradient-allocation-attribution.svg")
+BF16_WGRAD_WORKSPACE_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-bf16-weight-gradient-workspace-gate")
+BF16_WGRAD_WORKSPACE_CHART = (
+    ROOT / "assets" / "bf16-weight-gradient-workspace-discard.svg")
 
 
 def rows() -> list[dict]:
@@ -4081,6 +4086,52 @@ def bf16_weight_gradient_allocation_svg() -> str:
     return "\n".join(parts)
 
 
+def bf16_weight_gradient_workspace_svg() -> str:
+    summary = json.loads((BF16_WGRAD_WORKSPACE_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    width, height = 1500, 700
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 249 · Workspace Cost Gate", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "Preallocated / allocating · cache already primed · three fresh processes",
+             16, "#5b6474", anchor="middle"),
+    ]
+    for index, row in enumerate(summary["models"]):
+        x = 145 + index * 680
+        model = "Qwen2.5-0.5B" if index == 0 else "DeepSeek-Distill-1.5B"
+        parts.extend([
+            f'<rect x="{x}" y="145" width="540" height="315" rx="16" '
+            'fill="#fff1f2" stroke="#e11d48" stroke-width="3"/>',
+            text(x + 270, 195, model, 23, "#172033", anchor="middle", weight=700),
+            text(x + 70, 265, "Event", 18, "#5b6474"),
+            text(x + 470, 265, f"{row['event_speedup_median']:.3f}x", 27,
+                 "#172033", anchor="end", weight=700),
+            text(x + 70, 325, "Wall", 18, "#5b6474"),
+            text(x + 470, 325, f"{row['wall_speedup_median']:.3f}x", 31,
+                 "#e11d48", anchor="end", weight=700),
+            text(x + 70, 375, "Minimum wall", 18, "#5b6474"),
+            text(x + 470, 375, f"{row['wall_speedup_minimum']:.3f}x", 23,
+                 "#e11d48", anchor="end", weight=700),
+            text(x + 270, 430, "REJECT", 22, "#e11d48",
+                 anchor="middle", weight=700),
+        ])
+    parts.append(text(width / 2, 535,
+                      "0 / 2 shapes pass the 1.01 wall gate",
+                      26, "#e11d48", anchor="middle", weight=700))
+    parts.append(text(width / 2, 590,
+                      "3 cache reuses / public call · 0 backend allocations",
+                      20, "#166534", anchor="middle", weight=700))
+    parts.append(text(width / 2, 645,
+                      "Decision: do not add a workspace API",
+                      22, "#172033", anchor="middle", weight=700))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -4145,7 +4196,8 @@ def main() -> int:
                 BF16_WGRAD_SHAPE_CHART: bf16_weight_gradient_shapes_svg(),
                 BF16_WGRAD_MODEL_CHART: bf16_weight_gradient_model_svg(),
                 BF16_WGRAD_TRAJECTORY_CHART: bf16_weight_gradient_trajectory_svg(),
-                BF16_WGRAD_ALLOCATION_CHART: bf16_weight_gradient_allocation_svg()}
+                BF16_WGRAD_ALLOCATION_CHART: bf16_weight_gradient_allocation_svg(),
+                BF16_WGRAD_WORKSPACE_CHART: bf16_weight_gradient_workspace_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

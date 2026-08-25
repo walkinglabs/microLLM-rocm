@@ -524,3 +524,5 @@ the next gate. Records are append-only except for factual corrections.
   records the long-run rebuttal, complete parameter failure and candidate cleanup.
 - [2026-08-25-bf16-weight-gradient-allocation-attribution.md](2026-08-25-bf16-weight-gradient-allocation-attribution.md):
   proves the exact two-cast allocation identity without restoring the rejected route.
+- [2026-08-25-bf16-weight-gradient-workspace-discard.md](2026-08-25-bf16-weight-gradient-workspace-discard.md):
+  rejects a public workspace after separate Event and wall gates.

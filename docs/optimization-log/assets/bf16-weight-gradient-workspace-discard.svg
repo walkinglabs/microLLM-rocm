@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="700" viewBox="0 0 1500 700">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="750.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 249 · Workspace Cost Gate</text>
+<text x="750.0" y="82.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">Preallocated / allocating · cache already primed · three fresh processes</text>
+<rect x="145" y="145" width="540" height="315" rx="16" fill="#fff1f2" stroke="#e11d48" stroke-width="3"/>
+<text x="415.0" y="195.0" font-family="Inter,Arial,sans-serif" font-size="23" fill="#172033" text-anchor="middle" font-weight="700">Qwen2.5-0.5B</text>
+<text x="215.0" y="265.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474" text-anchor="start" font-weight="400">Event</text>
+<text x="615.0" y="265.0" font-family="Inter,Arial,sans-serif" font-size="27" fill="#172033" text-anchor="end" font-weight="700">1.037x</text>
+<text x="215.0" y="325.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474" text-anchor="start" font-weight="400">Wall</text>
+<text x="615.0" y="325.0" font-family="Inter,Arial,sans-serif" font-size="31" fill="#e11d48" text-anchor="end" font-weight="700">0.986x</text>
+<text x="215.0" y="375.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474" text-anchor="start" font-weight="400">Minimum wall</text>
+<text x="615.0" y="375.0" font-family="Inter,Arial,sans-serif" font-size="23" fill="#e11d48" text-anchor="end" font-weight="700">0.956x</text>
+<text x="415.0" y="430.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#e11d48" text-anchor="middle" font-weight="700">REJECT</text>
+<rect x="825" y="145" width="540" height="315" rx="16" fill="#fff1f2" stroke="#e11d48" stroke-width="3"/>
+<text x="1095.0" y="195.0" font-family="Inter,Arial,sans-serif" font-size="23" fill="#172033" text-anchor="middle" font-weight="700">DeepSeek-Distill-1.5B</text>
+<text x="895.0" y="265.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474" text-anchor="start" font-weight="400">Event</text>
+<text x="1295.0" y="265.0" font-family="Inter,Arial,sans-serif" font-size="27" fill="#172033" text-anchor="end" font-weight="700">0.886x</text>
+<text x="895.0" y="325.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474" text-anchor="start" font-weight="400">Wall</text>
+<text x="1295.0" y="325.0" font-family="Inter,Arial,sans-serif" font-size="31" fill="#e11d48" text-anchor="end" font-weight="700">0.889x</text>
+<text x="895.0" y="375.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474" text-anchor="start" font-weight="400">Minimum wall</text>
+<text x="1295.0" y="375.0" font-family="Inter,Arial,sans-serif" font-size="23" fill="#e11d48" text-anchor="end" font-weight="700">0.840x</text>
+<text x="1095.0" y="430.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#e11d48" text-anchor="middle" font-weight="700">REJECT</text>
+<text x="750.0" y="535.0" font-family="Inter,Arial,sans-serif" font-size="26" fill="#e11d48" text-anchor="middle" font-weight="700">0 / 2 shapes pass the 1.01 wall gate</text>
+<text x="750.0" y="590.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#166534" text-anchor="middle" font-weight="700">3 cache reuses / public call · 0 backend allocations</text>
+<text x="750.0" y="645.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#172033" text-anchor="middle" font-weight="700">Decision: do not add a workspace API</text>
+</svg>
