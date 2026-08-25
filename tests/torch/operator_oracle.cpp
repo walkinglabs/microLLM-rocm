@@ -182,6 +182,9 @@ void emit_forward_cases() {
     const auto attention_value = f32({1, 2, 3, 4, 5, 6}, {1, 1, 3, 2});
     emit("causal_gqa_attention", causal_gqa_attention(
         attention_query, attention_key, attention_value, 2, 0.5F));
+    emit("cached_gqa_attention_scores", cached_gqa_attention_scores(
+        f32({1, 0, 0, 1}, {1, 2, 1, 2}),
+        f32({3, 4, 1, 0, -1, 2}, {1, 1, 3, 2}), 2, 0.5F));
     emit("online_causal_gqa_attention_bthd",
          online_causal_gqa_attention_bthd(
              attention_query.cast(DType::BFloat16),
@@ -610,6 +613,11 @@ void emit_invalid_shape_cases() {
                   const auto query = Tensor({1, 2, 3, 2});
                   const auto key = Tensor({1, 1, 3, 2});
                   (void)causal_gqa_attention(query, key, key, 3, 0.5F);
+              }));
+    emit_bool("invalid_cached_gqa_scores_shape", rejected([&] {
+                  (void)cached_gqa_attention_scores(
+                      Tensor({1, 2, 1, 2}), Tensor({1, 1, 3, 2}),
+                      3, 0.5F);
               }));
     emit_bool("invalid_attention_probability_value_bthd_shape", rejected([&] {
                   (void)attention_probability_value_bthd(

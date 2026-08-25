@@ -1,6 +1,6 @@
 # Step 104 — DeepSeek T2048 cached-Attention score oracle
 
-Status: planned
+Status: score oracle implemented; current DeepSeek profile pending
 
 ## 为什么不能直接写新Kernel
 
@@ -45,3 +45,17 @@ score oracle通过后，才从干净revision重跑当前DeepSeek T2048/B2/N64 st
 - 不把旧0.868x或旧60%当成本轮结果。
 
 只有当前trace仍证明cached Attention是最大热点，Step 105才允许提出一个online/MFMA候选。
+
+## 已完成的score门
+
+- CPU手算：`[1,0] / [0,1]`两个query head对3个key位置，完整6个score逐项通过；
+- PyTorch：独立`query @ repeat_interleave(key).T * scale`完整对齐；
+- HIP：DeepSeek `H12/KV2/D128`，FP32/BF16 cache，B1/B2，T31/32/33、
+  511/512/513、2048共16条完整矩阵通过；
+- 算子区间H2D/D2H为0，query/cache地址不变，输出连续FP32；
+- bad repeats、scale和非dense/错误shape均显式拒绝；
+- coverage manifest把新API同时绑定到PyTorch数值case和shape失败case。
+
+完整回归：CPU 371/371、ASan/UBSan 369/369、HIP 191/191、PyTorch OperatorParity通过。
+该API仍是diagnostic-only，不进入模型默认forward。下一提交从干净revision重跑当前DeepSeek
+T2048 profile。

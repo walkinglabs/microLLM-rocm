@@ -1991,6 +1991,65 @@ TEST(HipCachedAttentionTest, Bf16BatchFusedAndLongFallbackMatchRoundedCpu) {
     }
 }
 
+TEST(HipCachedAttentionTest,
+     DeepSeekScoreOracleCoversDispatchBoundariesBatchAndCacheDtype) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    constexpr std::int64_t heads = 12;
+    constexpr std::int64_t kv_heads = 2;
+    constexpr std::int64_t width = 128;
+    constexpr std::int64_t repeats = heads / kv_heads;
+    constexpr float scale = 0.08838834764831845F;
+    const std::vector<std::pair<std::int64_t, std::int64_t>> cases = {
+        {1, 31}, {2, 32}, {1, 33}, {2, 511},
+        {1, 512}, {2, 513}, {1, 2048}, {2, 2048},
+    };
+    for (const auto dtype : {DType::Float32, DType::BFloat16}) {
+        for (const auto& [batches, sequence] : cases) {
+            std::vector<float> query_values(static_cast<std::size_t>(
+                batches * heads * width));
+            std::vector<float> key_values(static_cast<std::size_t>(
+                batches * kv_heads * sequence * width));
+            for (std::size_t index = 0; index < query_values.size(); ++index) {
+                query_values[index] =
+                    static_cast<float>(static_cast<int>(index % 37) - 18) *
+                    0.0078125F;
+            }
+            for (std::size_t index = 0; index < key_values.size(); ++index) {
+                key_values[index] =
+                    static_cast<float>(static_cast<int>(index % 41) - 20) *
+                    0.005859375F;
+            }
+            const auto query = Tensor::from_vector(
+                query_values, {batches, heads, 1, width});
+            const auto key = Tensor::from_vector(
+                key_values, {batches, kv_heads, sequence, width}, dtype);
+            const auto expected = cached_gqa_attention_scores(
+                query, key, repeats, scale).to_vector();
+            const auto device_query = query.to(gpu);
+            const auto device_key = key.to(gpu);
+            const auto* query_address = device_query.data();
+            const auto* key_address = device_key.data();
+            runtime::reset_transfer_stats();
+            const auto actual = cached_gqa_attention_scores(
+                device_query, device_key, repeats, scale);
+            runtime::synchronize(gpu);
+            const auto transfers = runtime::transfer_stats();
+            EXPECT_EQ(transfers.host_to_device_calls, 0U);
+            EXPECT_EQ(transfers.device_to_host_calls, 0U);
+            EXPECT_EQ(actual.shape(), (Shape{batches, heads, 1, sequence}));
+            EXPECT_EQ(actual.dtype(), DType::Float32);
+            EXPECT_TRUE(actual.is_contiguous());
+            EXPECT_EQ(device_query.data(), query_address);
+            EXPECT_EQ(device_key.data(), key_address);
+            expect_near(actual.to_vector(), expected, 2.0e-4F);
+            EXPECT_TRUE(std::all_of(
+                expected.begin(), expected.end(),
+                [](float value) { return std::isfinite(value); }));
+        }
+    }
+}
+
 TEST(HipFullAttentionTest, CausalMhaGqaForwardBackwardMatchCpuWithoutTransfers) {
     require_gpu();
     const auto gpu = Device::hip(0);

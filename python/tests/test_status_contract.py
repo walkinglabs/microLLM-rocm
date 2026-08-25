@@ -12,8 +12,9 @@ def main() -> int:
     text = STATUS.read_text(encoding="utf-8")
     for token in (
         "RCCL label 53/53",
-        "CPU 370/370",
-        "ASan/UBSan 368/368",
+        "CPU 371/371",
+        "ASan/UBSan 369/369",
+        "single-GPU HIP label 191/191",
         "experiments through 280",
         "Ranked per-leaf weighted overlap",
         "whole step 0.9594×",

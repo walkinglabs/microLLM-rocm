@@ -1191,6 +1191,41 @@ TEST(CpuOpsTest, CachedGqaAttentionStoresStablePrefixesAndRejectsBadContracts) {
                      cache, cache, 0, 1.0F), std::invalid_argument);
 }
 
+TEST(CpuOpsTest, CachedGqaAttentionScoresExposeEveryScaledDotWithoutMutation) {
+    const auto query = Tensor::from_vector(
+        {1, 0, 0, 1}, {1, 2, 1, 2});
+    auto backing = Tensor::from_vector(
+        {3, 4, 1, 0, -1, 2, 9, 9}, {1, 1, 4, 2});
+    auto cache = Tensor::from_storage(
+        backing.storage(), {1, 1, 3, 2}, backing.strides(), 0,
+        DType::Float32);
+    const auto query_before = query.to_vector();
+    const auto cache_before = cache.to_vector();
+
+    const auto scores = cached_gqa_attention_scores(
+        query, cache, 2, 0.5F);
+    EXPECT_EQ(scores.shape(), (Shape{1, 2, 1, 3}));
+    EXPECT_EQ(scores.dtype(), DType::Float32);
+    EXPECT_TRUE(scores.is_contiguous());
+    expect_near(scores.to_vector(), {1.5F, 0.5F, -0.5F, 2, 0, 1});
+    EXPECT_EQ(query.to_vector(), query_before);
+    EXPECT_EQ(cache.to_vector(), cache_before);
+
+    const auto bf16_scores = cached_gqa_attention_scores(
+        query, cache.cast(DType::BFloat16), 2, 0.5F);
+    EXPECT_EQ(bf16_scores.to_vector(), scores.to_vector());
+    EXPECT_THROW(
+        (void)cached_gqa_attention_scores(query, cache, 3, 0.5F),
+        std::invalid_argument);
+    EXPECT_THROW(
+        (void)cached_gqa_attention_scores(query, cache, 2, 0.0F),
+        std::invalid_argument);
+    EXPECT_THROW(
+        (void)cached_gqa_attention_scores(
+            query, cache.transpose(2, 3), 2, 0.5F),
+        std::invalid_argument);
+}
+
 TEST(CpuOpsTest, BatchedCacheStoreAndGqaAttentionKeepRowsIndependent) {
     Tensor backing({2, 1, 2, 2});
     auto cache = Tensor::from_storage(backing.storage(), {2, 1, 1, 2},

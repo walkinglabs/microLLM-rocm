@@ -226,6 +226,11 @@ needed to run a real training and generation loop:
 - installable CMake targets for independent C and C++ applications;
 - reproducible CPU, PyTorch, MI300X, profiling, and RCCL evidence.
 
+Cached decoding also exposes a diagnostic-only per-position score API. It returns
+the complete scaled `Q·K` tensor for CPU/HIP/PyTorch alignment without changing
+the fused generation route, so future long-context kernels can be localized before
+they are timed or connected to a model.
+
 The framework keeps readable reference code, measured optimized paths, and rejected
 experiments separate. The concise status is in [Current status](docs/development/STATUS.md);
 the chronological details are in the [optimization log](docs/optimization-log/README.md).

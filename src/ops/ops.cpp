@@ -2912,6 +2912,82 @@ void kv_cache_store_pair_positions_(
     }
 }
 
+Tensor cached_gqa_attention_scores(
+    const Tensor& query, const Tensor& key_cache, std::int64_t repeats,
+    float factor, [[maybe_unused]] const OpContext& context) {
+    require_float(query, "query");
+    require_forward_float(key_cache, "key_cache");
+    require_same_device(query, key_cache);
+    if (query.dtype() != DType::Float32 ||
+        (key_cache.dtype() != DType::Float32 &&
+         key_cache.dtype() != DType::BFloat16) ||
+        query.ndim() != 4 || key_cache.ndim() != 4 ||
+        query.shape()[0] <= 0 || query.shape()[2] != 1 ||
+        key_cache.shape()[0] != query.shape()[0] ||
+        query.shape()[3] != key_cache.shape()[3] ||
+        key_cache.shape()[2] <= 0 || repeats <= 0 ||
+        query.shape()[1] != key_cache.shape()[1] * repeats ||
+        !std::isfinite(factor) || factor <= 0.0F) {
+        throw std::invalid_argument(
+            "cached GQA score shape, dtype, or scale is invalid");
+    }
+    require_contiguous(query, "query");
+    const auto batches = query.shape()[0];
+    const auto heads = query.shape()[1];
+    const auto kv_heads = key_cache.shape()[1];
+    const auto sequence = key_cache.shape()[2];
+    const auto width = query.shape()[3];
+    const auto cache_head_stride = key_cache.stride(1);
+    [[maybe_unused]] const auto cache_batch_stride = key_cache.stride(0);
+    if (key_cache.stride(3) != 1 || key_cache.stride(2) != width ||
+        cache_head_stride < sequence * width) {
+        throw std::invalid_argument(
+            "cached GQA scores require a dense sequence prefix");
+    }
+    Tensor scores(
+        {batches, heads, 1, sequence}, DType::Float32, query.device());
+    if (query.device().is_hip()) {
+#if MICROLLM_HAS_HIP
+        hip::launch_cached_attention_scores(
+            static_cast<const float*>(query.data()), key_cache.data(),
+            key_cache.dtype(), static_cast<float*>(scores.data()), batches,
+            heads, kv_heads, sequence, cache_batch_stride, cache_head_stride,
+            width, repeats, factor, context.native_stream(query.device()));
+        return scores;
+#else
+        throw std::runtime_error(
+            "microLLM was built without HIP operator support");
+#endif
+    }
+
+    const auto query_values = query.to_vector();
+    const auto key_values = key_cache.to_vector();
+    std::vector<float> output(
+        static_cast<std::size_t>(batches * heads * sequence));
+    for (std::int64_t batch = 0; batch < batches; ++batch) {
+        for (std::int64_t head = 0; head < heads; ++head) {
+            const auto kv_head = head / repeats;
+            const auto query_base = (batch * heads + head) * width;
+            const auto key_base =
+                (batch * kv_heads + kv_head) * sequence * width;
+            const auto score_base = (batch * heads + head) * sequence;
+            for (std::int64_t position = 0; position < sequence; ++position) {
+                float dot = 0.0F;
+                for (std::int64_t column = 0; column < width; ++column) {
+                    dot += query_values[static_cast<std::size_t>(
+                               query_base + column)] *
+                           key_values[static_cast<std::size_t>(
+                               key_base + position * width + column)];
+                }
+                output[static_cast<std::size_t>(score_base + position)] =
+                    dot * factor;
+            }
+        }
+    }
+    return Tensor::from_vector(
+        output, {batches, heads, 1, sequence});
+}
+
 Tensor cached_gqa_attention(const Tensor& query, const Tensor& key_cache,
                             const Tensor& value_cache, std::int64_t repeats,
                             float factor, [[maybe_unused]] const OpContext& context) {

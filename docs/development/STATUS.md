@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| Current validation configurations | smoke-tested | CPU 370/370, ASan/UBSan 368/368, RCCL label 53/53; retained producer CPU/HIP/PyTorch targeted gates pass; prior single-GPU HIP label 188/188 with 1 conditional skip remains applicable | broader compiler/OS/GPU matrix |
+| Current validation configurations | smoke-tested | CPU 371/371, ASan/UBSan 369/369, single-GPU HIP label 191/191, RCCL label 53/53; PyTorch score oracle 4/4 and retained producer gates pass | broader compiler/OS/GPU matrix |
 | CPU code coverage | smoke-tested | 78.4% lines, 86.6% functions, 59.1% branches over `src/` + `include/`; quiescent handoff and other HIP-only paths remain visible as CPU gaps | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, native cast, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
@@ -47,6 +47,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Device greedy sampling | smoke-tested | scalar/two-stage plus last-dim batched argmax; Qwen B8 D2H 38.9MB→256B with exact tokens | stochastic device top-k/RNG |
 | HIP exact-size allocator | smoke-tested | immediate legacy-default reuse; non-default submissions disable; explicit device-wide quiescent handoff safely restores a new default phase and rescues three model/context snapshots | Event-granular retirement and end-to-end handoff cost |
 | Fused cached decode Attention | smoke-tested | FP32 MHA/GQA 1/32/128/512 + fallback; repeated-process score 1.752183; long decode up to +57.9% | one-token regression, prefill/backward/BF16 |
+| Cached Attention score oracle | smoke-tested, diagnostic-only | CPU hand values, PyTorch parity, and 16 HIP DeepSeek H12/KV2/D128 FP32/BF16 B1/B2 boundary/T2048 cases; complete `[B,H,1,T]` outputs and zero payload transfers | current DeepSeek T2048 profile, then score/probability/context gates for any new online Kernel |
 | Fused Q/K bias + split-half RoPE | smoke-tested | CPU/HIP/PyTorch forward+backward; 1,120 fewer profiled launches; paired generation +13.7%/+6.6%; score 1.784147 | interleaved/low-precision variants and remaining launch fusion |
 | BTHD BF16 Q/K inference boundary | smoke-tested | grouped hit removes exactly 48/56 T512 casts; six B1/T256–1024 and B2/T512 cases are bit-exact at 1.0128x–1.0244x; peak unchanged | Radeon/other Instinct and backend-version matrix; explicit/default-off |
 | Causal-softmax thread tuning | implemented | explicit Rows128 passes T256/512/1024 outputs, but only 4/6 operator medians clear 1.01x; DeepSeek T512 1.0071x | model route rejected; future work requires online/fused Attention |

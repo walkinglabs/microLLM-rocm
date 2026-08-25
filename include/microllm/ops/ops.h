@@ -857,6 +857,11 @@ void kv_cache_store_pair_positions_(
     Tensor& key_cache, Tensor& value_cache, const Tensor& current_key,
     const Tensor& current_value, const Tensor& positions,
     const Tensor& cache_rows, const OpContext& context = {});
+// Diagnostic-only pre-softmax scaled Q·K scores. This uses the readable score
+// path even when cached_gqa_attention selects the fused decode kernel.
+[[nodiscard]] Tensor cached_gqa_attention_scores(
+    const Tensor& query, const Tensor& key_cache,
+    std::int64_t repeats, float scale, const OpContext& context = {});
 [[nodiscard]] Tensor cached_gqa_attention(const Tensor& query, const Tensor& key_cache,
                                           const Tensor& value_cache,
                                           std::int64_t repeats, float scale,
