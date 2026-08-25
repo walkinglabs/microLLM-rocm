@@ -156,6 +156,26 @@ least 1.05x in Event time and 1.02x in synchronized wall time versus 256 threads
 The runner emits raw JSON Lines, a case summary and `mapping.svg`; it never changes
 the model's automatic policy.
 
+Search P*V sequence parallelism while keeping score and softmax in exact current
+order:
+
+```bash
+ROCR_VISIBLE_DEVICES=0 HIP_VISIBLE_DEVICES=0 python3 \
+  benchmarks/single_gpu/cached_attention_split_pv_matrix.py \
+  --benchmark build/hip-release/benchmarks/microllm_bench_cached_attention_stages \
+  --output-directory /tmp/microllm-split-pv \
+  --models qwen2.5-0.5b,deepseek-r1-distill-qwen-1.5b \
+  --sequences 512,2048 --batches 1,2 --cache-dtypes fp32,bf16 \
+  --splits 1,2,4,8,16 --runs 2 --warmup 3 --repetitions 20
+```
+
+S1 must be bitwise equal to the exact-order materialized route and must remain in
+the report as the extra-buffer/launch counterexample. Each larger split checks the
+complete context before timing. A case reaches an official-model gate only at Event
+1.05x and synchronized wall 1.02x with zero payload transfers and zero warm backend
+allocations. The runner writes `raw.jsonl`, `summary.json`, and
+`split-pv-search.svg`; it never changes Auto routing.
+
 Screen the separate BF16 weight-gradient hypothesis before changing Autograd:
 
 ```bash

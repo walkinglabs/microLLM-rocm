@@ -889,6 +889,12 @@ void kv_cache_store_pair_positions_(
     const Tensor& query, const Tensor& key_cache, const Tensor& value_cache,
     std::int64_t repeats, float scale, std::int64_t finalize_threads,
     const OpContext& context = {});
+// Research-only isolation: score and softmax retain the exact current order;
+// only P*V is partitioned across contiguous sequence ranges and combined.
+[[nodiscard]] Tensor cached_gqa_attention_split_pv_exact_softmax(
+    const Tensor& query, const Tensor& key_cache, const Tensor& value_cache,
+    std::int64_t repeats, float scale, std::int64_t splits,
+    const OpContext& context = {});
 [[nodiscard]] Tensor cached_gqa_attention_positions(
     const Tensor& query, const Tensor& key_cache, const Tensor& value_cache,
     const Tensor& positions, const Tensor& cache_rows,

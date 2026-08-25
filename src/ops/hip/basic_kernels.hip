@@ -1,5 +1,6 @@
 #include "kernels.h"
 
+#include <algorithm>
 #include <stdexcept>
 #include <string>
 
@@ -1710,6 +1711,83 @@ __global__ void cached_attention_finalize_scores_kernel(
         }
         output[(batch * heads + head) * width + column] = total;
     }
+}
+
+__global__ void cached_attention_exact_softmax_kernel(
+    const float* scores, float* probabilities, std::int64_t batches,
+    std::int64_t heads, std::int64_t sequence) {
+    const auto instance = static_cast<std::int64_t>(blockIdx.x);
+    if (instance >= batches * heads) return;
+    extern __shared__ float shared_scores[];
+    __shared__ float reduction[kBlockSize];
+    const auto score_base = instance * sequence;
+    float local_maximum = -INFINITY;
+    for (std::int64_t position = threadIdx.x; position < sequence;
+         position += kBlockSize) {
+        const auto score = scores[score_base + position];
+        shared_scores[position] = score;
+        local_maximum = fmaxf(local_maximum, score);
+    }
+    const auto maximum = block_reduce_max(local_maximum, reduction);
+    float local_denominator = 0.0F;
+    for (std::int64_t position = threadIdx.x; position < sequence;
+         position += kBlockSize) {
+        const auto probability = expf(shared_scores[position] - maximum);
+        shared_scores[position] = probability;
+        local_denominator += probability;
+    }
+    const auto denominator = block_reduce_sum(local_denominator, reduction);
+    for (std::int64_t position = threadIdx.x; position < sequence;
+         position += kBlockSize) {
+        probabilities[score_base + position] =
+            shared_scores[position] / denominator;
+    }
+}
+
+template <typename Cache>
+__global__ void cached_attention_split_pv_partial_kernel(
+    const float* probabilities, const Cache* value_cache, float* partials,
+    std::int64_t batches, std::int64_t heads, std::int64_t sequence,
+    std::int64_t cache_batch_stride, std::int64_t cache_head_stride,
+    std::int64_t width, std::int64_t repeats, std::int64_t splits) {
+    const auto block = static_cast<std::int64_t>(blockIdx.x);
+    const auto split = block % splits;
+    const auto instance = block / splits;
+    const auto batch = instance / heads;
+    const auto head = instance % heads;
+    if (batch >= batches) return;
+    const auto kv_head = head / repeats;
+    const auto begin = sequence * split / splits;
+    const auto end = sequence * (split + 1) / splits;
+    const auto score_base = instance * sequence;
+    const auto cache_base = batch * cache_batch_stride +
+                            kv_head * cache_head_stride;
+    const auto partial_base = block * width;
+    for (std::int64_t column = threadIdx.x; column < width;
+         column += blockDim.x) {
+        float total = 0.0F;
+        for (auto position = begin; position < end; ++position) {
+            total += probabilities[score_base + position] *
+                     static_cast<float>(value_cache[
+                         cache_base + position * width + column]);
+        }
+        partials[partial_base + column] = total;
+    }
+}
+
+__global__ void cached_attention_split_pv_combine_kernel(
+    const float* partials, float* output, std::int64_t elements,
+    std::int64_t width, std::int64_t splits) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x +
+                       threadIdx.x;
+    if (index >= elements) return;
+    const auto instance = index / width;
+    const auto column = index % width;
+    float total = 0.0F;
+    for (std::int64_t split = 0; split < splits; ++split) {
+        total += partials[(instance * splits + split) * width + column];
+    }
+    output[index] = total;
 }
 
 template <typename Cache>
@@ -4091,6 +4169,51 @@ void launch_cached_attention_finalize_scores(
         dispatch(static_cast<const hip_bfloat16*>(value_cache));
     }
     check_launch("cached_attention_finalize_scores_kernel");
+}
+
+void launch_cached_attention_split_pv(
+    const float* scores, const void* value_cache, DType cache_dtype,
+    float* probabilities, float* partials, float* output,
+    std::int64_t batches, std::int64_t heads, std::int64_t sequence,
+    std::int64_t cache_batch_stride, std::int64_t cache_head_stride,
+    std::int64_t width, std::int64_t repeats, std::int64_t splits,
+    void* stream) {
+    const auto softmax_grid = dim3(static_cast<unsigned>(batches * heads));
+    const auto shared_bytes = static_cast<std::size_t>(sequence) * sizeof(float);
+    hipLaunchKernelGGL(
+        cached_attention_exact_softmax_kernel, softmax_grid,
+        dim3(kBlockSize), shared_bytes, as_stream(stream), scores,
+        probabilities, batches, heads, sequence);
+    check_launch("cached_attention_exact_softmax_kernel");
+    const auto partial_grid = dim3(
+        static_cast<unsigned>(batches * heads * splits));
+    const auto threads = dim3(static_cast<unsigned>(std::min<std::int64_t>(
+        width, static_cast<std::int64_t>(kBlockSize))));
+    if (cache_dtype == DType::Float32) {
+        hipLaunchKernelGGL(
+            cached_attention_split_pv_partial_kernel<float>, partial_grid,
+            threads, 0, as_stream(stream), probabilities,
+            static_cast<const float*>(value_cache), partials, batches, heads,
+            sequence, cache_batch_stride, cache_head_stride, width, repeats,
+            splits);
+    } else if (cache_dtype == DType::BFloat16) {
+        hipLaunchKernelGGL(
+            cached_attention_split_pv_partial_kernel<hip_bfloat16>,
+            partial_grid, threads, 0, as_stream(stream), probabilities,
+            static_cast<const hip_bfloat16*>(value_cache), partials, batches,
+            heads, sequence, cache_batch_stride, cache_head_stride, width,
+            repeats, splits);
+    } else {
+        throw std::invalid_argument(
+            "split-PV cached attention supports FP32 and BF16 cache");
+    }
+    check_launch("cached_attention_split_pv_partial_kernel");
+    const auto elements = batches * heads * width;
+    hipLaunchKernelGGL(
+        cached_attention_split_pv_combine_kernel, dim3(grid_size(elements)),
+        dim3(kBlockSize), 0, as_stream(stream), partials, output, elements,
+        width, splits);
+    check_launch("cached_attention_split_pv_combine_kernel");
 }
 
 void launch_cached_attention_fused(

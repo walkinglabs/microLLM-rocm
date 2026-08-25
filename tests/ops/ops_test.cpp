@@ -1229,12 +1229,18 @@ TEST(CpuOpsTest, CachedGqaAttentionScoresExposeEveryScaledDotWithoutMutation) {
         query, cache, value_cache, 2, 0.5F, 64);
     const auto materialized_128 = cached_gqa_attention_materialized_scores(
         query, cache, value_cache, 2, 0.5F, 128);
+    const auto split_pv_1 = cached_gqa_attention_split_pv_exact_softmax(
+        query, cache, value_cache, 2, 0.5F, 1);
+    const auto split_pv_2 = cached_gqa_attention_split_pv_exact_softmax(
+        query, cache, value_cache, 2, 0.5F, 2);
     EXPECT_EQ(context.shape(), (Shape{1, 2, 1, 2}));
     expect_near(context.to_vector(), fused.to_vector(), 2.0e-5F);
     EXPECT_EQ(split.to_vector(), fused.to_vector());
     EXPECT_EQ(materialized.to_vector(), fused.to_vector());
     EXPECT_EQ(materialized_64.to_vector(), fused.to_vector());
     EXPECT_EQ(materialized_128.to_vector(), fused.to_vector());
+    EXPECT_EQ(split_pv_1.to_vector(), fused.to_vector());
+    EXPECT_EQ(split_pv_2.to_vector(), fused.to_vector());
 
     const auto bf16_cache = cache.cast(DType::BFloat16);
     const auto bf16_value = value_cache.cast(DType::BFloat16);
@@ -1281,6 +1287,14 @@ TEST(CpuOpsTest, CachedGqaAttentionScoresExposeEveryScaledDotWithoutMutation) {
     EXPECT_THROW(
         (void)cached_gqa_attention_materialized_scores(
             query, cache, value_cache, 2, 0.5F, 32),
+        std::invalid_argument);
+    EXPECT_THROW(
+        (void)cached_gqa_attention_split_pv_exact_softmax(
+            query, cache, value_cache, 2, 0.5F, 0),
+        std::invalid_argument);
+    EXPECT_THROW(
+        (void)cached_gqa_attention_split_pv_exact_softmax(
+            query, cache, value_cache, 2, 0.5F, 4),
         std::invalid_argument);
 }
 

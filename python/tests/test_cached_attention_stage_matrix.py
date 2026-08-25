@@ -17,6 +17,8 @@ MATERIALIZED_RUNNER = (
     ROOT / "benchmarks/single_gpu/cached_attention_materialized_matrix.py")
 FINALIZE_RUNNER = (
     ROOT / "benchmarks/single_gpu/cached_attention_finalize_mapping_matrix.py")
+SPLIT_PV_RUNNER = (
+    ROOT / "benchmarks/single_gpu/cached_attention_split_pv_matrix.py")
 
 
 FAKE = r'''#!/usr/bin/env python3
@@ -34,6 +36,7 @@ repetitions = int(a["--repetitions"])
 dtype = a["--cache-dtype"]
 order = a["--order"]
 finalize_threads = int(a.get("--finalize-threads", "256"))
+pv_splits = int(a.get("--pv-splits", "0"))
 factor = b * t / 32.0 * (0.97 if dtype == "bf16" else 1.0)
 times = {
     "score": 0.020 * factor,
@@ -43,6 +46,9 @@ times = {
     "fused": 0.040 * factor,
     "materialized": 0.030 * factor,
 }
+if pv_splits:
+    split_speedup = {1: 0.75, 2: 1.2, 4: 1.5}.get(pv_splits, 1.0)
+    times["split_pv"] = times["materialized"] / split_speedup
 record = {
     "schema_version": 1,
     "status": "pass",
@@ -75,6 +81,17 @@ record = {
     "materialized_finalize_threads": finalize_threads,
     "materialized_speedup_over_fused": times["fused"] / times["materialized"],
 }
+if pv_splits:
+    record.update({
+        "pv_splits": pv_splits,
+        "split_pv_probability_bytes": b * h * t * 4,
+        "split_pv_partial_bytes": b * h * pv_splits * d * 4,
+        "split_pv_max_error": 1.0e-8,
+        "split_pv_rms_error": 1.0e-9,
+        "split_pv_bitwise_equal_materialized": pv_splits == 1,
+        "split_pv_speedup_over_materialized":
+            times["materialized"] / times["split_pv"],
+    })
 for field in (
     "score_max_error", "score_rms_error",
     "probability_max_error", "probability_rms_error",
@@ -88,7 +105,8 @@ for stage, value in times.items():
     record[f"{stage}_event_ms_p95"] = value * 1.1
     record[f"{stage}_wall_ms_p50"] = value * 1.2
     record[f"{stage}_wall_ms_p95"] = value * 1.3
-    allocations = 3 if stage == "pipeline" else 2 if stage == "materialized" else 1
+    allocations = (4 if stage == "split_pv" else 3 if stage == "pipeline"
+                   else 2 if stage == "materialized" else 1)
     record[f"{stage}_allocation_calls_per_invocation"] = allocations
     record[f"{stage}_backend_allocation_calls_per_invocation"] = 0
     record[f"{stage}_cache_reuse_calls_per_invocation"] = allocations
@@ -287,6 +305,35 @@ def main() -> int:
         assert {case["winner_threads"] for case in
                 finalize_summary["cases"]} <= {64, 128}
         assert "Exact-order finalize mapping search" in finalize_chart
+
+        split_pv_output = root / "split-pv-matrix"
+        split_pv_completed = subprocess.run([
+            sys.executable, str(SPLIT_PV_RUNNER), "--benchmark", str(fake),
+            "--output-directory", str(split_pv_output),
+            "--models", "qwen2.5-0.5b,deepseek-r1-distill-qwen-1.5b",
+            "--sequences", "32", "--batches", "1",
+            "--cache-dtypes", "bf16", "--splits", "1,2,4",
+            "--runs", "2", "--warmup", "3", "--repetitions", "4",
+        ], text=True, capture_output=True, check=False)
+        if split_pv_completed.returncode != 0:
+            raise AssertionError(
+                split_pv_completed.stdout + split_pv_completed.stderr)
+        split_pv_summary = json.loads(
+            (split_pv_output / "summary.json").read_text(encoding="utf-8"))
+        split_pv_raw = (split_pv_output / "raw.jsonl").read_text(
+            encoding="utf-8").splitlines()
+        split_pv_chart = (split_pv_output / "split-pv-search.svg").read_text(
+            encoding="utf-8")
+        assert split_pv_summary["matrix_complete"] is True
+        assert split_pv_summary["process_rows"] == 12
+        assert split_pv_summary["candidate_rows"] == 6
+        assert split_pv_summary["case_count"] == 2
+        assert split_pv_summary["all_s1_bitwise_materialized"] is True
+        assert split_pv_summary["all_s1_performance_counterexamples"] is True
+        assert {case["winner_splits"] for case in
+                split_pv_summary["cases"]} == {4}
+        assert len(split_pv_raw) == 12
+        assert "Exact-softmax split P×V search" in split_pv_chart
     print("cached Attention stage matrix contract: pass")
     return 0
 

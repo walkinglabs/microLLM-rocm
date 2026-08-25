@@ -57,3 +57,13 @@ bytes。至少1.05x才进入模型；位级精度只是准入条件，不是保�
 CPU、小shape PyTorch oracle和16格MI300X长短边界都覆盖默认/64/128；非法线程数明确失败。
 模型Auto路由不读取这个参数。正式性能结论必须来自
 `cached_attention_finalize_mapping_matrix.py`，不能从一次手工计时得出。
+
+## 只拆P×V的精度隔离接口
+
+`cached_gqa_attention_split_pv_exact_softmax`继续使用相同的并行score和256-lane max/denominator树。
+它把归一化概率写到FP32 Tensor，只将最后的`probability × value`序列分成连续片段并按split顺序
+合并。
+
+S1不是性能候选，而是隔离证明：它有额外probability/partial Tensor和launch，但必须与当前
+materialized context位级相同。只有S1通过后，S2/4/8/16的差异才可以解释为P×V累加树变化。
+CPU、PyTorch、小shape以及MI300X T31–2048、B1/B2、FP32/BF16均覆盖接口和非法split。

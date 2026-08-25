@@ -24,6 +24,7 @@ struct Options {
     std::int64_t sequence = 512;
     std::int64_t width = 128;
     std::int64_t splits = 0;
+    std::int64_t pv_splits = 0;
     std::int64_t finalize_threads = 256;
     bool materialized = false;
     std::string cache_dtype = "bf16";
@@ -67,6 +68,8 @@ Options parse(int argc, char** argv) {
             result.width = integer(argv[index + 1], "width");
         } else if (name == "--splits") {
             result.splits = integer(argv[index + 1], "splits");
+        } else if (name == "--pv-splits") {
+            result.pv_splits = integer(argv[index + 1], "pv-splits");
         } else if (name == "--materialized") {
             result.materialized = boolean(argv[index + 1], "materialized");
         } else if (name == "--finalize-threads") {
@@ -91,6 +94,8 @@ Options parse(int argc, char** argv) {
         result.width <= 0 || result.width > 256 ||
         result.splits < 0 || result.splits > 32 ||
         result.splits > result.sequence ||
+        result.pv_splits < 0 || result.pv_splits > 32 ||
+        result.pv_splits > result.sequence ||
         (result.finalize_threads != 64 && result.finalize_threads != 128 &&
          result.finalize_threads != 256) ||
         (result.cache_dtype != "fp32" && result.cache_dtype != "bf16") ||
@@ -281,6 +286,13 @@ int main(int argc, char** argv) {
                     device_query, device_key, device_value, repeats, scale,
                     options.finalize_threads);
         }
+        microllm::Tensor device_split_pv;
+        if (options.pv_splits > 0) {
+            device_split_pv =
+                microllm::ops::cached_gqa_attention_split_pv_exact_softmax(
+                    device_query, device_key, device_value, repeats, scale,
+                    options.pv_splits);
+        }
         microllm::runtime::synchronize(device);
 
         const auto score_error = compare(
@@ -307,6 +319,17 @@ int main(int argc, char** argv) {
                 materialized_values, expected_context_values);
             materialized_bitwise_equal = materialized_values == fused_values;
         }
+        Error split_pv_error;
+        bool split_pv_bitwise_equal_materialized = true;
+        if (options.pv_splits > 0) {
+            const auto split_pv_values = device_split_pv.to_vector();
+            const auto reference_values = options.materialized
+                ? device_materialized.to_vector() : device_fused.to_vector();
+            split_pv_error = compare(
+                split_pv_values, expected_context_values);
+            split_pv_bitwise_equal_materialized =
+                split_pv_values == reference_values;
+        }
         const auto accuracy_passed =
             score_error.finite && probability_error.finite &&
             context_error.finite && pipeline_error.finite && fused_error.finite &&
@@ -320,7 +343,12 @@ int main(int argc, char** argv) {
              (split_error.finite && split_error.maximum <= 8.0e-4F &&
               split_error.rms <= 8.0e-5)) &&
             (!options.materialized ||
-             (materialized_error.finite && materialized_bitwise_equal));
+             (materialized_error.finite && materialized_bitwise_equal)) &&
+            (options.pv_splits == 0 ||
+             (split_pv_error.finite && split_pv_error.maximum <= 8.0e-4F &&
+              split_pv_error.rms <= 8.0e-5 &&
+              (options.pv_splits != 1 ||
+               split_pv_bitwise_equal_materialized)));
         if (!accuracy_passed) {
             throw std::runtime_error(
                 "cached Attention stage complete-output gate failed");
@@ -359,6 +387,12 @@ int main(int argc, char** argv) {
                     device_query, device_key, device_value, repeats, scale,
                     options.finalize_threads);
         };
+        const auto split_pv_operation = [&] {
+            device_split_pv =
+                microllm::ops::cached_gqa_attention_split_pv_exact_softmax(
+                    device_query, device_key, device_value, repeats, scale,
+                    options.pv_splits);
+        };
 
         Timing score_timing;
         Timing softmax_timing;
@@ -367,6 +401,7 @@ int main(int argc, char** argv) {
         Timing fused_timing;
         Timing split_timing;
         Timing materialized_timing;
+        Timing split_pv_timing;
         microllm::runtime::reset_transfer_stats();
         if (options.order == "forward") {
             score_timing = measure(score_operation, options, device);
@@ -381,7 +416,15 @@ int main(int argc, char** argv) {
                 materialized_timing = measure(
                     materialized_operation, options, device);
             }
+            if (options.pv_splits > 0) {
+                split_pv_timing = measure(
+                    split_pv_operation, options, device);
+            }
         } else {
+            if (options.pv_splits > 0) {
+                split_pv_timing = measure(
+                    split_pv_operation, options, device);
+            }
             if (options.materialized) {
                 materialized_timing = measure(
                     materialized_operation, options, device);
@@ -409,7 +452,9 @@ int main(int argc, char** argv) {
             (options.splits > 0 &&
              split_timing.backend_allocation_calls_per_invocation != 0.0) ||
             (options.materialized &&
-             materialized_timing.backend_allocation_calls_per_invocation != 0.0)) {
+             materialized_timing.backend_allocation_calls_per_invocation != 0.0) ||
+            (options.pv_splits > 0 &&
+             split_pv_timing.backend_allocation_calls_per_invocation != 0.0)) {
             throw std::runtime_error(
                 "warm stage measurement reached the backend allocator");
         }
@@ -477,6 +522,23 @@ int main(int argc, char** argv) {
                       << ",\"materialized_bitwise_equal_current\":"
                       << (materialized_bitwise_equal ? "true" : "false");
         }
+        if (options.pv_splits > 0) {
+            const auto probability_bytes = score_elements * sizeof(float);
+            const auto partial_elements = static_cast<std::uint64_t>(
+                options.batch * options.heads * options.pv_splits *
+                options.width);
+            std::cout << ",\"pv_splits\":" << options.pv_splits
+                      << ",\"split_pv_probability_bytes\":"
+                      << probability_bytes
+                      << ",\"split_pv_partial_bytes\":"
+                      << partial_elements * sizeof(float)
+                      << ",\"split_pv_max_error\":"
+                      << split_pv_error.maximum
+                      << ",\"split_pv_rms_error\":"
+                      << split_pv_error.rms
+                      << ",\"split_pv_bitwise_equal_materialized\":"
+                      << (split_pv_bitwise_equal_materialized ? "true" : "false");
+        }
         print_timing("score", score_timing);
         print_timing("softmax", softmax_timing);
         print_timing("context", context_timing);
@@ -487,6 +549,9 @@ int main(int argc, char** argv) {
         }
         if (options.materialized) {
             print_timing("materialized", materialized_timing);
+        }
+        if (options.pv_splits > 0) {
+            print_timing("split_pv", split_pv_timing);
         }
         std::cout << ",\"stage_sum_event_ms_p50\":" << stage_sum
                   << ",\"stage_sum_over_pipeline\":"
@@ -502,6 +567,11 @@ int main(int argc, char** argv) {
             std::cout << ",\"materialized_speedup_over_fused\":"
                       << fused_timing.event_p50 /
                              materialized_timing.event_p50;
+        }
+        if (options.pv_splits > 0 && options.materialized) {
+            std::cout << ",\"split_pv_speedup_over_materialized\":"
+                      << materialized_timing.event_p50 /
+                             split_pv_timing.event_p50;
         }
         std::cout << ",\"host_to_device_calls\":"
                   << transfers.host_to_device_calls
