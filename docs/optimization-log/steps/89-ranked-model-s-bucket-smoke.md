@@ -1,10 +1,23 @@
-# Step 89 — Ranked Model-S synchronous bucket smoke
+# Step 89 — Ranked Model-S natural buckets
 
-Status: planned
+Status: implemented, formal clean-revision measurement pending
 
-tiny无法测bucket性能。下一步扩展rank worker到Model-S B1T32 one-step：两rank各本地batch，和CPU
-global B2T32 reference比较完整15,586,176参数值；25MiB应得到3个自然bucket，per-parameter为57次
-collective。
+tiny的12个参数只能形成1个自然bucket，且组wall几乎全部是进程启动。当前节点固定Model-S
+`B1×T32`、一步、两rank和25 MiB，比较：
 
-由于CPU reference与JSON全参数输出成本很高，先做一次smoke并记录rank组时间、collective、peak和
-最大参数差。正确后再设计不输出全部参数的多run摘要；ready overlap仍不接入。
+```text
+57 parameter all-reduces
+vs
+3 natural bucket all-reduces
+```
+
+完整15,586,176个参数值通过临时safetensors比较：rank/rank要求Max/RMS均为0；rank/CPU
+global-batch同时要求Max不超过`1e-2`、RMS不超过`1e-5`；两rank loss均值与global-batch
+loss差不超过`1e-4`。权重比较后删除，不进入Git。
+
+worker新增落盘之外的forward/backward、Reducer、optimizer和完整训练计时。正式结果同时报告
+collective数、较慢rank训练时间、较慢rank Reducer时间与组wall；组wall包含启动，只能作为补充。
+
+基础设施冒烟得到3个自然bucket、rank exact、CPU Max `0.0062738`/RMS `3.483e-6`，且
+`DistributedRank.*` 5/5。下一步必须从已push的干净revision运行两策略；一次运行只能证明
+可执行和数量级，不能支持稳定speedup结论。

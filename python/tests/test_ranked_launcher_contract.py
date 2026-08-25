@@ -20,12 +20,18 @@ def main() -> int:
         "maximum_rank_difference", "maximum_reference_difference",
         "communicator.id", "timeout-seconds", "parameter_values",
         "--reducer", "collectives_per_rank", "buckets_per_rank",
+        "--compare-binary", "compare_safetensors", "reference.safetensors",
+        "maximum_rank_training_ms", "maximum_rank_reducer_ms",
+        "parameter_files_retained", "unlink(missing_ok=True)",
+        "maximum_mean_loss_difference", "math.isfinite",
     ):
         assert token in runner
     for token in (
         "create_communicator_id", "RankCommunicator", "timed out waiting",
         "--world-size", "--local-rank", "--id-file", "global_batch",
         "all_reduce_rank_gradients", "--bucket-bytes",
+        "save_safetensors", "model-s", "--parameter-file",
+        "forward_backward_ms", "reducer_ms", "optimizer_ms",
     ):
         assert token in worker
     print("ranked launcher contract: pass")

@@ -18,6 +18,11 @@ def main() -> int:
         "maximum_rank_difference", "maximum_reference_difference",
         "peer_processes_terminated", "median_rank_group_ms",
         "collective_reduction", "bucket_wall_speedup", "per-parameter",
+        "--compare-binary", "model-s", "15586176",
+        "bucket_training_speedup", "bucket_reducer_speedup",
+        "median_maximum_rank_training_ms",
+        "maximum_mean_loss_difference",
+        "admit measured ranked Model-S bucket baseline",
         "admit one-process-per-GPU ready-bucket migration",
     ):
         assert token in text

@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-25: Ranked Model-S bucket measurement infrastructure](2026-08-25-ranked-model-s-bucket-infrastructure.md)
 - [2026-08-25: Ranked gradient bucket result](2026-08-25-ranked-gradient-bucket-result.md)
 - [2026-08-25: Ranked gradient bucket infrastructure](2026-08-25-ranked-gradient-bucket-infrastructure.md)
 - [2026-08-25: One-process-per-GPU result](2026-08-25-one-process-per-gpu-result.md)

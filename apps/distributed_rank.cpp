@@ -11,6 +11,7 @@
 #include <vector>
 
 #include <microllm/io/token_dataset.h>
+#include <microllm/io/safetensors.h>
 #include <microllm/model/model.h>
 #include <microllm/multi_gpu/communicator.h>
 #include <microllm/multi_gpu/gradient_bucket.h>
@@ -30,6 +31,8 @@ struct Options {
     std::uint64_t timeout_ms = 10000;
     std::string reducer = "per-parameter";
     std::size_t bucket_bytes = 4096;
+    std::string model = "tiny";
+    std::filesystem::path parameter_file;
 };
 
 std::uint64_t number(const std::string& value, const char* name) {
@@ -73,6 +76,10 @@ Options parse(int argc, char** argv) {
         } else if (argument == "--bucket-bytes") {
             options.bucket_bytes = static_cast<std::size_t>(
                 number(next("--bucket-bytes"), "bucket bytes"));
+        } else if (argument == "--model") {
+            options.model = next("--model");
+        } else if (argument == "--parameter-file") {
+            options.parameter_file = next("--parameter-file");
         } else {
             throw std::invalid_argument("unknown argument: " + argument);
         }
@@ -80,7 +87,8 @@ Options parse(int argc, char** argv) {
     if ((options.mode != "rank" && options.mode != "reference") ||
         options.steps == 0 || options.timeout_ms == 0 ||
         (options.reducer != "per-parameter" && options.reducer != "bucket") ||
-        options.bucket_bytes < sizeof(float)) {
+        options.bucket_bytes < sizeof(float) ||
+        (options.model != "tiny" && options.model != "model-s")) {
         throw std::invalid_argument("distributed rank options are invalid");
     }
     if (options.mode == "rank" &&
@@ -90,10 +98,15 @@ Options parse(int argc, char** argv) {
         throw std::invalid_argument(
             "rank mode requires world size two, rank/local-rank, and ID file");
     }
+    if (options.model == "model-s" && options.parameter_file.empty()) {
+        throw std::invalid_argument(
+            "Model-S rank/reference mode requires a parameter file");
+    }
     return options;
 }
 
-microllm::model::ModelConfig tiny_config() {
+microllm::model::ModelConfig model_config(const std::string& model) {
+    if (model == "model-s") return microllm::model::ModelConfig::model_s();
     return {.vocabulary_size = 8,
             .dimension = 8,
             .layers = 1,
@@ -105,20 +118,44 @@ microllm::model::ModelConfig tiny_config() {
             .tie_embeddings = false};
 }
 
-microllm::io::TokenBatch local_batch(int rank) {
-    if (rank == 0) {
+microllm::io::TokenBatch local_batch(
+    const microllm::model::ModelConfig& config, int rank) {
+    if (config.vocabulary_size == 8 && rank == 0) {
         return {microllm::Tensor::from_int32_vector({0, 1, 2, 3}, {1, 4}),
                 microllm::Tensor::from_int32_vector({1, 2, 3, 0}, {1, 4})};
     }
-    return {microllm::Tensor::from_int32_vector({3, 2, 1, 0}, {1, 4}),
-            microllm::Tensor::from_int32_vector({2, 1, 0, 3}, {1, 4})};
+    if (config.vocabulary_size == 8) {
+        return {microllm::Tensor::from_int32_vector({3, 2, 1, 0}, {1, 4}),
+                microllm::Tensor::from_int32_vector({2, 1, 0, 3}, {1, 4})};
+    }
+    constexpr std::size_t context = 32;
+    std::vector<std::int32_t> inputs(context);
+    std::vector<std::int32_t> targets(context);
+    for (std::size_t index = 0; index < context; ++index) {
+        const auto token = static_cast<std::int32_t>(
+            (static_cast<std::size_t>(rank) * 97 + index * 13 + 7) %
+            static_cast<std::size_t>(config.vocabulary_size));
+        inputs[index] = token;
+        targets[index] = (token + 1) %
+                         static_cast<std::int32_t>(config.vocabulary_size);
+    }
+    return {microllm::Tensor::from_int32_vector(inputs, {1, 32}),
+            microllm::Tensor::from_int32_vector(targets, {1, 32})};
 }
 
-microllm::io::TokenBatch global_batch() {
-    return {microllm::Tensor::from_int32_vector(
-                {0, 1, 2, 3, 3, 2, 1, 0}, {2, 4}),
-            microllm::Tensor::from_int32_vector(
-                {1, 2, 3, 0, 2, 1, 0, 3}, {2, 4})};
+microllm::io::TokenBatch global_batch(
+    const microllm::model::ModelConfig& config) {
+    const auto first = local_batch(config, 0);
+    const auto second = local_batch(config, 1);
+    auto inputs = first.inputs.to_int32_vector();
+    const auto second_inputs = second.inputs.to_int32_vector();
+    inputs.insert(inputs.end(), second_inputs.begin(), second_inputs.end());
+    auto targets = first.targets.to_int32_vector();
+    const auto second_targets = second.targets.to_int32_vector();
+    targets.insert(targets.end(), second_targets.begin(), second_targets.end());
+    const auto context = first.inputs.size(1);
+    return {microllm::Tensor::from_int32_vector(inputs, {2, context}),
+            microllm::Tensor::from_int32_vector(targets, {2, context})};
 }
 
 microllm::training::AdamWConfig optimizer_config() {
@@ -182,18 +219,40 @@ struct ReducerStats {
     std::size_t unpack_copies = 0;
 };
 
+struct PhaseTimings {
+    double training_ms = 0.0;
+    double forward_backward_ms = 0.0;
+    double reducer_ms = 0.0;
+    double optimizer_ms = 0.0;
+};
+
+using SteadyClock = std::chrono::steady_clock;
+
+double elapsed_ms(SteadyClock::time_point begin, SteadyClock::time_point end) {
+    return std::chrono::duration<double, std::milli>(end - begin).count();
+}
+
 void write_result(const char* mode, int rank,
                   const std::vector<float>& losses,
                   microllm::model::TransformerModel& model,
-                  const std::string& reducer, const ReducerStats& reducer_stats) {
+                  const std::string& reducer, const ReducerStats& reducer_stats,
+                  const PhaseTimings& timings,
+                  const std::string& model_name,
+                  const std::filesystem::path& parameter_file) {
     std::cout << std::setprecision(9)
               << "{\"schema_version\":1,\"status\":\"pass\""
               << ",\"mode\":\"" << mode << "\",\"rank\":" << rank
+              << ",\"model\":\"" << model_name << "\""
               << ",\"reducer\":\"" << reducer << "\""
               << ",\"collectives\":" << reducer_stats.collectives
               << ",\"buckets\":" << reducer_stats.buckets
               << ",\"pack_copies\":" << reducer_stats.pack_copies
               << ",\"unpack_copies\":" << reducer_stats.unpack_copies
+              << ",\"training_ms\":" << timings.training_ms
+              << ",\"forward_backward_ms\":"
+              << timings.forward_backward_ms
+              << ",\"reducer_ms\":" << timings.reducer_ms
+              << ",\"optimizer_ms\":" << timings.optimizer_ms
               << ",\"losses\":";
     write_float_array(losses);
     std::cout << ",\"parameter_names\":[";
@@ -202,27 +261,48 @@ void write_result(const char* mode, int rank,
         if (index != 0) std::cout << ',';
         std::cout << '\"' << named[index].first << '\"';
     }
-    std::cout << "],\"parameters\":[";
-    for (std::size_t index = 0; index < named.size(); ++index) {
-        if (index != 0) std::cout << ',';
-        write_float_array(named[index].second->data().to_vector());
+    std::cout << "],\"parameter_file\":\"" << parameter_file.string() << "\""
+              << ",\"parameter_count\":" << model.parameter_count();
+    if (model_name == "tiny") {
+        std::cout << ",\"parameters\":[";
+        for (std::size_t index = 0; index < named.size(); ++index) {
+            if (index != 0) std::cout << ',';
+            write_float_array(named[index].second->data().to_vector());
+        }
+        std::cout << ']';
     }
-    std::cout << "]}\n";
+    std::cout << "}\n";
 }
 
 void run_reference(const Options& options) {
-    microllm::model::TransformerModel model(tiny_config(), options.seed);
+    const auto config = model_config(options.model);
+    microllm::model::TransformerModel model(config, options.seed);
     microllm::training::AdamW optimizer(model.parameters(), optimizer_config());
-    const auto batch = global_batch();
+    const auto batch = global_batch(config);
     std::vector<float> losses;
+    PhaseTimings timings;
+    const auto training_begin = SteadyClock::now();
     for (std::uint64_t step = 0; step < options.steps; ++step) {
+        const auto forward_backward_begin = SteadyClock::now();
         optimizer.zero_grad();
         const auto loss = model.loss(batch.inputs, batch.targets);
         losses.push_back(loss.data().to_vector()[0]);
         loss.backward();
+        const auto forward_backward_end = SteadyClock::now();
+        timings.forward_backward_ms += elapsed_ms(
+            forward_backward_begin, forward_backward_end);
+        const auto optimizer_begin = SteadyClock::now();
         optimizer.step();
+        timings.optimizer_ms += elapsed_ms(
+            optimizer_begin, SteadyClock::now());
     }
-    write_result("reference", -1, losses, model, "reference", {});
+    timings.training_ms = elapsed_ms(training_begin, SteadyClock::now());
+    if (!options.parameter_file.empty()) {
+        microllm::io::save_safetensors(
+            options.parameter_file, model.state_dict());
+    }
+    write_result("reference", -1, losses, model, "reference", {}, timings,
+                 options.model, options.parameter_file);
 }
 
 void run_rank(const Options& options) {
@@ -235,18 +315,26 @@ void run_rank(const Options& options) {
     }
     microllm::multi_gpu::RankCommunicator communicator(
         options.rank, options.world_size, options.local_rank, id);
-    microllm::model::TransformerModel model(tiny_config(), options.seed);
+    const auto config = model_config(options.model);
+    microllm::model::TransformerModel model(config, options.seed);
     model.to(communicator.device());
     microllm::training::AdamW optimizer(model.parameters(), optimizer_config());
-    const auto batch = local_batch(options.rank);
+    const auto batch = local_batch(config, options.rank);
     std::vector<float> losses;
     ReducerStats reducer_stats;
+    PhaseTimings timings;
+    microllm::runtime::synchronize(communicator.device());
+    const auto training_begin = SteadyClock::now();
     for (std::uint64_t step = 0; step < options.steps; ++step) {
+        const auto forward_backward_begin = SteadyClock::now();
         optimizer.zero_grad();
         const auto loss = model.loss(batch.inputs, batch.targets);
         losses.push_back(loss.data().to_vector()[0]);
         loss.backward();
         microllm::runtime::synchronize(communicator.device());
+        timings.forward_backward_ms += elapsed_ms(
+            forward_backward_begin, SteadyClock::now());
+        const auto reducer_begin = SteadyClock::now();
         if (options.reducer == "bucket") {
             const auto buckets = microllm::multi_gpu::all_reduce_rank_gradients(
                 communicator, model.parameters(), options.bucket_bytes);
@@ -262,11 +350,21 @@ void run_rank(const Options& options) {
             }
             communicator.synchronize();
         }
+        timings.reducer_ms += elapsed_ms(reducer_begin, SteadyClock::now());
+        const auto optimizer_begin = SteadyClock::now();
         optimizer.step();
         microllm::runtime::synchronize(communicator.device());
+        timings.optimizer_ms += elapsed_ms(
+            optimizer_begin, SteadyClock::now());
+    }
+    timings.training_ms = elapsed_ms(training_begin, SteadyClock::now());
+    if (!options.parameter_file.empty()) {
+        microllm::io::save_safetensors(
+            options.parameter_file, model.state_dict());
     }
     write_result("rank", options.rank, losses, model,
-                 options.reducer, reducer_stats);
+                 options.reducer, reducer_stats, timings, options.model,
+                 options.parameter_file);
 }
 
 }  // namespace
