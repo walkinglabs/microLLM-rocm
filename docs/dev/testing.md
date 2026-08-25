@@ -19,7 +19,7 @@ CPU ASan/UBSan                365/365 pass
 full CPU/HIP configuration    544/544 pass (3 conditional skips)
 MI300X/gfx942 HIP             187/187 pass
 PyTorch-enabled CPU           319/319 pass
-RCCL full label                43/43 pass
+RCCL full label                44/44 pass
 registered test files              123
 ```
 

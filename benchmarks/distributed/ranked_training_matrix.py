@@ -13,7 +13,8 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-POLICIES = ("per-parameter", "bucket")
+AVAILABLE_POLICIES = ("per-parameter", "bucket", "persistent-bucket")
+DEFAULT_POLICIES = ("per-parameter", "bucket")
 
 
 def options() -> argparse.Namespace:
@@ -29,6 +30,8 @@ def options() -> argparse.Namespace:
     parser.add_argument("--compare-binary", type=Path)
     parser.add_argument("--bucket-bytes", type=int, default=4096)
     parser.add_argument("--steady-skip-steps", type=int, default=0)
+    parser.add_argument("--policies", nargs="+", choices=AVAILABLE_POLICIES,
+                        default=list(DEFAULT_POLICIES))
     args = parser.parse_args()
     if (not args.launcher.is_file() or not args.binary.is_file() or
             args.runs <= 0 or args.steps <= 0 or args.timeout_seconds <= 0 or
@@ -40,6 +43,10 @@ def options() -> argparse.Namespace:
     if args.model == "model-s" and (
             args.compare_binary is None):
         parser.error("Model-S requires --compare-binary")
+    if (len(set(args.policies)) != len(args.policies) or
+            "per-parameter" not in args.policies or
+            "bucket" not in args.policies):
+        parser.error("policies must uniquely include per-parameter and bucket")
     return args
 
 
@@ -63,7 +70,8 @@ def main() -> int:
     output.mkdir(parents=True, exist_ok=True)
     raw = []
     for process_run in range(1, args.runs + 1):
-        order = POLICIES if process_run % 2 else tuple(reversed(POLICIES))
+        order = (tuple(args.policies) if process_run % 2 else
+                 tuple(reversed(args.policies)))
         for policy in order:
             command = [
                 sys.executable, str(args.launcher.resolve()),
@@ -89,7 +97,7 @@ def main() -> int:
             reference_maximum = 1.0e-2 if args.model == "model-s" else 2.0e-5
             reference_rms = 1.0e-5 if args.model == "model-s" else 2.0e-5
             expected_collectives = args.steps * parameter_tensors
-            if policy == "bucket":
+            if policy != "per-parameter":
                 expected_collectives = value.get("buckets_per_rank", 0)
                 if (expected_collectives <= 0 or
                         expected_collectives % args.steps != 0):
@@ -126,6 +134,10 @@ def main() -> int:
                 "maximum_rank_step_reducer_backend_allocation_calls",
                 "maximum_rank_step_reducer_deallocation_calls",
                 "maximum_rank_step_reducer_total_allocated_bytes",
+                "maximum_rank_step_plan_reused",
+                "maximum_rank_step_reducer_current_bytes_before",
+                "maximum_rank_step_reducer_current_bytes_after",
+                "maximum_rank_step_reducer_peak_bytes_after",
             )
             if any(not isinstance(value.get(field), list) or
                    len(value[field]) != args.steps for field in step_fields):
@@ -136,6 +148,13 @@ def main() -> int:
             if any(count != expected_step_collectives for count in
                    value["maximum_rank_step_collectives"]):
                 raise RuntimeError("ranked per-step collective count changed")
+            expected_reuse = ([0] + [1] * (args.steps - 1)
+                              if policy == "persistent-bucket" else
+                              [0] * args.steps)
+            if (value["maximum_rank_step_plan_reused"] != expected_reuse or
+                    value.get("persistent_storage") !=
+                    (policy == "persistent-bucket")):
+                raise RuntimeError("ranked persistent plan state changed")
             value["process_run"] = process_run
             raw.append(value)
     failure_command = [
@@ -157,7 +176,7 @@ def main() -> int:
             failure.get("peer_processes_terminated", 0) < 1):
         raise RuntimeError("ranked peer-failure contract changed")
     policies = {}
-    for policy in POLICIES:
+    for policy in args.policies:
         rows = [row for row in raw if row["reducer"] == policy]
         cold_reducer = [row["maximum_rank_step_reducer_ms"][0]
                         for row in rows]
@@ -204,6 +223,20 @@ def main() -> int:
             "runs": len(rows),
             "collectives_per_rank": rows[0]["collectives_per_rank"],
             "buckets_per_rank": rows[0]["buckets_per_rank"],
+            "persistent_storage": rows[0]["persistent_storage"],
+            "plan_reuses_per_rank": rows[0]["plan_reuses_per_rank"],
+            "plan_capacity_elements_per_rank":
+                rows[0]["plan_capacity_elements_per_rank"],
+            "plan_capacity_bytes_per_rank":
+                rows[0]["plan_capacity_bytes_per_rank"],
+            "maximum_engine_current_bytes": max(
+                row["maximum_engine_current_bytes"] for row in rows),
+            "maximum_engine_peak_bytes": max(
+                row["maximum_engine_peak_bytes"] for row in rows),
+            "maximum_engine_cached_bytes": max(
+                row["maximum_engine_cached_bytes"] for row in rows),
+            "maximum_engine_reserved_bytes": max(
+                row["maximum_engine_reserved_bytes"] for row in rows),
             "median_rank_group_ms": statistics.median(
                 row["rank_group_ms"] for row in rows),
             "median_maximum_rank_training_ms": statistics.median(
@@ -258,6 +291,7 @@ def main() -> int:
         "status": "pass",
         "record_type": "ranked_training_matrix_summary",
         "model": args.model,
+        "selected_policies": args.policies,
         "runs_per_policy": args.runs,
         "policy_runs": len(raw),
         "rank_processes": len(raw) * 2,
@@ -299,12 +333,48 @@ def main() -> int:
         "peer_failure_detected": True,
         "peer_processes_terminated": failure["peer_processes_terminated"],
         "failure_returncodes": failure["returncodes"],
-        "decision": ("profile ranked Model-S cold and steady reducer"
+        "decision": ("measure persistent ranked Model-S buckets"
+                     if "persistent-bucket" in args.policies else
+                     "profile ranked Model-S cold and steady reducer"
                      if args.model == "model-s" and args.steady_skip_steps > 0 else
                      "admit measured ranked Model-S bucket baseline"
                      if args.model == "model-s" else
                      "admit one-process-per-GPU ready-bucket migration"),
     }
+    if "persistent-bucket" in policies:
+        persistent = policies["persistent-bucket"]
+        summary.update({
+            "persistent_steady_reducer_speedup_vs_per_parameter": (
+                policies["per-parameter"]
+                ["median_steady_maximum_rank_reducer_ms"] /
+                persistent["median_steady_maximum_rank_reducer_ms"]),
+            "persistent_steady_reducer_speedup_vs_transient": (
+                policies["bucket"]["median_steady_maximum_rank_reducer_ms"] /
+                persistent["median_steady_maximum_rank_reducer_ms"]),
+            "persistent_steady_training_speedup_vs_per_parameter": (
+                policies["per-parameter"]
+                ["median_steady_maximum_rank_training_ms"] /
+                persistent["median_steady_maximum_rank_training_ms"]),
+            "persistent_steady_training_speedup_vs_transient": (
+                policies["bucket"]["median_steady_maximum_rank_training_ms"] /
+                persistent["median_steady_maximum_rank_training_ms"]),
+            "persistent_maximum_steady_backend_allocation_calls":
+                persistent["maximum_steady_reducer_backend_allocation_calls"],
+            "persistent_plan_capacity_bytes_per_rank":
+                persistent["plan_capacity_bytes_per_rank"],
+            "persistent_current_bytes_added_vs_per_parameter":
+                persistent["maximum_engine_current_bytes"] -
+                policies["per-parameter"]["maximum_engine_current_bytes"],
+            "persistent_current_bytes_added_vs_transient":
+                persistent["maximum_engine_current_bytes"] -
+                policies["bucket"]["maximum_engine_current_bytes"],
+            "persistent_peak_bytes_added_vs_per_parameter":
+                persistent["maximum_engine_peak_bytes"] -
+                policies["per-parameter"]["maximum_engine_peak_bytes"],
+            "persistent_peak_bytes_added_vs_transient":
+                persistent["maximum_engine_peak_bytes"] -
+                policies["bucket"]["maximum_engine_peak_bytes"],
+        })
     (output / "raw.jsonl").write_text(
         "".join(json.dumps(row, sort_keys=True) + "\n" for row in raw),
         encoding="utf-8")

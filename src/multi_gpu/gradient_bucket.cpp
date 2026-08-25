@@ -116,6 +116,25 @@ struct GradientBucketPlan::Impl {
     std::size_t overlap_enqueued_buckets = 0;
 };
 
+struct RankGradientBucketPlan::Impl {
+    struct PersistentRange {
+        std::size_t first_parameter = 0;
+        std::size_t end_parameter = 0;
+        std::size_t elements = 0;
+        Tensor bucket;
+        std::vector<Tensor> gradients;
+    };
+
+    bool initialized = false;
+    int rank = -1;
+    int world_size = 0;
+    Device device = Device::cpu();
+    std::size_t maximum_bucket_bytes = 0;
+    std::vector<autograd::Value*> parameters;
+    std::vector<PersistentRange> ranges;
+    std::size_t capacity_elements = 0;
+};
+
 GradientBucketPlan::GradientBucketPlan() : impl_(std::make_unique<Impl>()) {}
 GradientBucketPlan::~GradientBucketPlan() = default;
 GradientBucketPlan::GradientBucketPlan(GradientBucketPlan&&) noexcept = default;
@@ -142,6 +161,30 @@ void GradientBucketPlan::clear() noexcept {
     impl_->overlap_communicator = nullptr;
     impl_->overlap_parameters.clear();
     impl_->overlap_enqueued_buckets = 0;
+}
+
+RankGradientBucketPlan::RankGradientBucketPlan()
+    : impl_(std::make_unique<Impl>()) {}
+RankGradientBucketPlan::~RankGradientBucketPlan() = default;
+RankGradientBucketPlan::RankGradientBucketPlan(
+    RankGradientBucketPlan&&) noexcept = default;
+RankGradientBucketPlan& RankGradientBucketPlan::operator=(
+    RankGradientBucketPlan&&) noexcept = default;
+
+bool RankGradientBucketPlan::initialized() const noexcept {
+    return impl_ != nullptr && impl_->initialized;
+}
+
+void RankGradientBucketPlan::clear() noexcept {
+    if (!impl_) return;
+    impl_->ranges.clear();
+    impl_->parameters.clear();
+    impl_->rank = -1;
+    impl_->world_size = 0;
+    impl_->device = Device::cpu();
+    impl_->maximum_bucket_bytes = 0;
+    impl_->capacity_elements = 0;
+    impl_->initialized = false;
 }
 
 void GradientBucketPlan::begin_overlap_step(
@@ -523,7 +566,8 @@ BucketStats all_reduce_gradients(
 RankBucketStats all_reduce_rank_gradients(
     RankCommunicator& communicator,
     const std::vector<autograd::Value*>& parameters,
-    std::size_t maximum_bucket_bytes) {
+    std::size_t maximum_bucket_bytes,
+    RankGradientBucketPlan* persistent_plan) {
     if (maximum_bucket_bytes < sizeof(float)) {
         throw std::invalid_argument(
             "rank gradient bucket must hold at least one float");
@@ -542,6 +586,133 @@ RankBucketStats all_reduce_rank_gradients(
     if (parameters.empty()) return stats;
     const auto ranges = make_ranges(
         parameters, maximum_bucket_bytes / sizeof(float));
+    if (persistent_plan != nullptr) {
+        if (!persistent_plan->impl_) {
+            persistent_plan->impl_ =
+                std::make_unique<RankGradientBucketPlan::Impl>();
+        }
+        auto& plan = *persistent_plan->impl_;
+        const bool reused = plan.initialized;
+        if (reused) {
+            if (plan.rank != communicator.rank() ||
+                plan.world_size != communicator.world_size() ||
+                plan.device != communicator.device() ||
+                plan.maximum_bucket_bytes != maximum_bucket_bytes ||
+                plan.parameters != parameters ||
+                plan.ranges.size() != ranges.size()) {
+                throw std::invalid_argument(
+                    "persistent rank gradient bucket contract changed; "
+                    "clear the plan first");
+            }
+            for (std::size_t index = 0; index < ranges.size(); ++index) {
+                const auto& expected = ranges[index];
+                const auto& actual = plan.ranges[index];
+                if (actual.first_parameter != expected.first_parameter ||
+                    actual.end_parameter != expected.end_parameter ||
+                    actual.elements != expected.elements) {
+                    throw std::invalid_argument(
+                        "persistent rank gradient bucket layout changed; "
+                        "clear the plan first");
+                }
+                for (std::size_t local = 0;
+                     local < actual.gradients.size(); ++local) {
+                    const auto parameter = actual.first_parameter + local;
+                    if (actual.gradients[local].shape() !=
+                        parameters[parameter]->grad().shape()) {
+                        throw std::invalid_argument(
+                            "persistent rank gradient shape changed; "
+                            "clear the plan first");
+                    }
+                }
+            }
+        } else {
+            RankGradientBucketPlan::Impl candidate;
+            candidate.rank = communicator.rank();
+            candidate.world_size = communicator.world_size();
+            candidate.device = communicator.device();
+            candidate.maximum_bucket_bytes = maximum_bucket_bytes;
+            candidate.parameters = parameters;
+            candidate.ranges.reserve(ranges.size());
+            for (const auto& range : ranges) {
+                if (range.elements > static_cast<std::size_t>(
+                        std::numeric_limits<std::int64_t>::max())) {
+                    throw std::overflow_error(
+                        "persistent rank gradient bucket shape exceeds int64");
+                }
+                RankGradientBucketPlan::Impl::PersistentRange persistent;
+                persistent.first_parameter = range.first_parameter;
+                persistent.end_parameter = range.end_parameter;
+                persistent.elements = range.elements;
+                persistent.bucket = Tensor(
+                    Shape{static_cast<std::int64_t>(range.elements)},
+                    DType::Float32, communicator.device());
+                add_elements(candidate.capacity_elements, range.elements);
+                persistent.gradients.reserve(
+                    range.end_parameter - range.first_parameter);
+                for (std::size_t index = range.first_parameter;
+                     index < range.end_parameter; ++index) {
+                    const auto& gradient = parameters[index]->grad();
+                    persistent.gradients.emplace_back(
+                        gradient.shape(), DType::Float32,
+                        communicator.device());
+                    add_elements(candidate.capacity_elements,
+                                 static_cast<std::size_t>(gradient.numel()));
+                }
+                candidate.ranges.push_back(std::move(persistent));
+            }
+            candidate.initialized = true;
+            plan = std::move(candidate);
+        }
+
+        stats.persistent_storage = true;
+        stats.plan_reused = reused;
+        stats.plan_capacity_elements = plan.capacity_elements;
+        stats.plan_capacity_bytes = bytes_for(
+            plan.capacity_elements,
+            "persistent rank gradient bucket capacity bytes overflow");
+        for (auto& range : plan.ranges) {
+            std::size_t offset = 0;
+            for (std::size_t index = range.first_parameter;
+                 index < range.end_parameter; ++index) {
+                const auto& gradient = parameters[index]->grad();
+                const auto elements = static_cast<std::size_t>(gradient.numel());
+                const auto bytes = bytes_for(
+                    elements, "persistent rank gradient pack bytes overflow");
+                auto* destination =
+                    static_cast<std::byte*>(range.bucket.data()) +
+                    offset * sizeof(float);
+                runtime::copy_bytes_async(
+                    destination, range.bucket.device(), gradient.data(),
+                    gradient.device(), bytes, communicator.stream());
+                ++stats.pack_copy_calls;
+                offset += elements;
+            }
+            communicator.enqueue_all_reduce_average_in_place(range.bucket);
+            offset = 0;
+            for (auto& gradient : range.gradients) {
+                const auto elements = static_cast<std::size_t>(gradient.numel());
+                const auto bytes = bytes_for(
+                    elements, "persistent rank gradient unpack bytes overflow");
+                const auto* source =
+                    static_cast<const std::byte*>(range.bucket.data()) +
+                    offset * sizeof(float);
+                runtime::copy_bytes_async(
+                    gradient.data(), gradient.device(), source,
+                    range.bucket.device(), bytes, communicator.stream());
+                ++stats.unpack_copy_calls;
+                offset += elements;
+            }
+            communicator.synchronize();
+            for (std::size_t local = 0;
+                 local < range.gradients.size(); ++local) {
+                parameters[range.first_parameter + local]->set_grad(
+                    range.gradients[local]);
+            }
+            ++stats.bucket_count;
+            add_elements(stats.total_elements, range.elements);
+        }
+        return stats;
+    }
     for (const auto& range : ranges) {
         if (range.elements > static_cast<std::size_t>(
                 std::numeric_limits<std::int64_t>::max())) {

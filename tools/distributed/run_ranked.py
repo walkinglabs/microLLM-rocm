@@ -24,7 +24,9 @@ def options() -> argparse.Namespace:
     parser.add_argument("--timeout-seconds", type=float, default=20.0)
     parser.add_argument("--failure-mode", choices=("none", "peer-failure"),
                         default="none")
-    parser.add_argument("--reducer", choices=("per-parameter", "bucket"),
+    parser.add_argument("--reducer",
+                        choices=("per-parameter", "bucket",
+                                 "persistent-bucket"),
                         default="per-parameter")
     parser.add_argument("--bucket-bytes", type=int, default=4096)
     parser.add_argument("--model", choices=("tiny", "model-s"), default="tiny")
@@ -213,7 +215,7 @@ def main() -> int:
             ranks[0]["parameter_names"] != reference["parameter_names"]):
         raise RuntimeError("rank identity or parameter names changed")
     expected_collectives = (
-        ranks[0]["buckets"] if args.reducer == "bucket" else
+        ranks[0]["buckets"] if args.reducer != "per-parameter" else
         args.steps * len(reference["parameter_names"]))
     if any(rank.get("reducer") != args.reducer or
            rank.get("collectives") != expected_collectives or
@@ -279,7 +281,11 @@ def main() -> int:
                          "step_reducer_allocation_calls",
                          "step_reducer_backend_allocation_calls",
                          "step_reducer_deallocation_calls",
-                         "step_reducer_total_allocated_bytes")
+                         "step_reducer_total_allocated_bytes",
+                         "step_plan_reused",
+                         "step_reducer_current_bytes_before",
+                         "step_reducer_current_bytes_after",
+                         "step_reducer_peak_bytes_after")
     if any(not isinstance(rank.get(field), list) or
            len(rank[field]) != args.steps
            for rank in ranks for field in
@@ -303,12 +309,35 @@ def main() -> int:
            for rank in ranks for field in step_count_fields
            for value in rank[field]):
         raise RuntimeError("rank per-step reducer counters are invalid")
+    engine_fields = ("engine_current_bytes", "engine_peak_bytes",
+                     "engine_cached_bytes", "engine_reserved_bytes",
+                     "engine_allocation_calls",
+                     "engine_backend_allocation_calls")
+    if any(not isinstance(rank.get(field), int) or rank[field] < 0
+           for rank in ranks for field in engine_fields):
+        raise RuntimeError("rank engine memory counters are invalid")
     if any(sum(rank["step_collectives"]) != rank["collectives"] or
            sum(rank["step_buckets"]) != rank["buckets"] or
            sum(rank["step_pack_copies"]) != rank["pack_copies"] or
            sum(rank["step_unpack_copies"]) != rank["unpack_copies"]
            for rank in ranks):
         raise RuntimeError("rank per-step reducer totals changed")
+    expected_reuse = [0] + [1] * (args.steps - 1)
+    if args.reducer == "persistent-bucket":
+        if any(rank.get("persistent_storage") is not True or
+               rank.get("plan_reuses") != args.steps - 1 or
+               rank.get("plan_capacity_elements", 0) <= 0 or
+               rank.get("plan_capacity_bytes", 0) <= 0 or
+               rank["step_plan_reused"] != expected_reuse
+               for rank in ranks):
+            raise RuntimeError("persistent rank bucket plan contract changed")
+    elif any(rank.get("persistent_storage") is not False or
+             rank.get("plan_reuses") != 0 or
+             rank.get("plan_capacity_elements") != 0 or
+             rank.get("plan_capacity_bytes") != 0 or
+             any(rank["step_plan_reused"])
+             for rank in ranks):
+        raise RuntimeError("non-persistent reducer exposed a bucket plan")
     loss_difference = max(
         abs(sum(rank["losses"][step] for rank in ranks) / len(ranks) -
             reference["losses"][step])
@@ -391,6 +420,34 @@ def main() -> int:
         "maximum_rank_step_reducer_total_allocated_bytes": [
             max(rank["step_reducer_total_allocated_bytes"][step]
                 for rank in ranks) for step in range(args.steps)],
+        "maximum_rank_step_plan_reused": [
+            max(rank["step_plan_reused"][step] for rank in ranks)
+            for step in range(args.steps)],
+        "maximum_rank_step_reducer_current_bytes_before": [
+            max(rank["step_reducer_current_bytes_before"][step]
+                for rank in ranks) for step in range(args.steps)],
+        "maximum_rank_step_reducer_current_bytes_after": [
+            max(rank["step_reducer_current_bytes_after"][step]
+                for rank in ranks) for step in range(args.steps)],
+        "maximum_rank_step_reducer_peak_bytes_after": [
+            max(rank["step_reducer_peak_bytes_after"][step]
+                for rank in ranks) for step in range(args.steps)],
+        "maximum_engine_current_bytes": max(
+            rank["engine_current_bytes"] for rank in ranks),
+        "maximum_engine_peak_bytes": max(
+            rank["engine_peak_bytes"] for rank in ranks),
+        "maximum_engine_cached_bytes": max(
+            rank["engine_cached_bytes"] for rank in ranks),
+        "maximum_engine_reserved_bytes": max(
+            rank["engine_reserved_bytes"] for rank in ranks),
+        "maximum_engine_allocation_calls": max(
+            rank["engine_allocation_calls"] for rank in ranks),
+        "maximum_engine_backend_allocation_calls": max(
+            rank["engine_backend_allocation_calls"] for rank in ranks),
+        "persistent_storage": ranks[0]["persistent_storage"],
+        "plan_reuses_per_rank": ranks[0]["plan_reuses"],
+        "plan_capacity_elements_per_rank": ranks[0]["plan_capacity_elements"],
+        "plan_capacity_bytes_per_rank": ranks[0]["plan_capacity_bytes"],
         "parameter_files_retained": False,
         "peer_processes_terminated": terminated,
         "collectives_per_rank": expected_collectives,

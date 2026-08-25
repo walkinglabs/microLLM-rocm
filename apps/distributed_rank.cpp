@@ -87,7 +87,8 @@ Options parse(int argc, char** argv) {
     }
     if ((options.mode != "rank" && options.mode != "reference") ||
         options.steps == 0 || options.timeout_ms == 0 ||
-        (options.reducer != "per-parameter" && options.reducer != "bucket") ||
+        (options.reducer != "per-parameter" && options.reducer != "bucket" &&
+         options.reducer != "persistent-bucket") ||
         options.bucket_bytes < sizeof(float) ||
         (options.model != "tiny" && options.model != "model-s")) {
         throw std::invalid_argument("distributed rank options are invalid");
@@ -227,6 +228,14 @@ struct ReducerStats {
     std::vector<std::size_t> step_backend_allocation_calls;
     std::vector<std::size_t> step_deallocation_calls;
     std::vector<std::size_t> step_total_allocated_bytes;
+    std::vector<std::size_t> step_plan_reused;
+    std::vector<std::size_t> step_current_bytes_before;
+    std::vector<std::size_t> step_current_bytes_after;
+    std::vector<std::size_t> step_peak_bytes_after;
+    bool persistent_storage = false;
+    std::size_t plan_reuses = 0;
+    std::size_t plan_capacity_elements = 0;
+    std::size_t plan_capacity_bytes = 0;
 };
 
 struct PhaseTimings {
@@ -258,6 +267,7 @@ void write_result(const char* mode, int rank,
                   microllm::model::TransformerModel& model,
                   const std::string& reducer, const ReducerStats& reducer_stats,
                   const PhaseTimings& timings,
+                  const microllm::runtime::AllocationStats& allocation,
                   const std::string& model_name,
                   const std::filesystem::path& parameter_file) {
     std::cout << std::setprecision(9)
@@ -269,6 +279,21 @@ void write_result(const char* mode, int rank,
               << ",\"buckets\":" << reducer_stats.buckets
               << ",\"pack_copies\":" << reducer_stats.pack_copies
               << ",\"unpack_copies\":" << reducer_stats.unpack_copies
+              << ",\"persistent_storage\":"
+              << (reducer_stats.persistent_storage ? "true" : "false")
+              << ",\"plan_reuses\":" << reducer_stats.plan_reuses
+              << ",\"plan_capacity_elements\":"
+              << reducer_stats.plan_capacity_elements
+              << ",\"plan_capacity_bytes\":"
+              << reducer_stats.plan_capacity_bytes
+              << ",\"engine_current_bytes\":" << allocation.current_bytes
+              << ",\"engine_peak_bytes\":" << allocation.peak_bytes
+              << ",\"engine_cached_bytes\":" << allocation.cached_bytes
+              << ",\"engine_reserved_bytes\":" << allocation.reserved_bytes
+              << ",\"engine_allocation_calls\":"
+              << allocation.allocation_calls
+              << ",\"engine_backend_allocation_calls\":"
+              << allocation.backend_allocation_calls
               << ",\"training_ms\":" << timings.training_ms
               << ",\"forward_backward_ms\":"
               << timings.forward_backward_ms
@@ -298,6 +323,14 @@ void write_result(const char* mode, int rank,
     write_number_array(reducer_stats.step_deallocation_calls);
     std::cout << ",\"step_reducer_total_allocated_bytes\":";
     write_number_array(reducer_stats.step_total_allocated_bytes);
+    std::cout << ",\"step_plan_reused\":";
+    write_number_array(reducer_stats.step_plan_reused);
+    std::cout << ",\"step_reducer_current_bytes_before\":";
+    write_number_array(reducer_stats.step_current_bytes_before);
+    std::cout << ",\"step_reducer_current_bytes_after\":";
+    write_number_array(reducer_stats.step_current_bytes_after);
+    std::cout << ",\"step_reducer_peak_bytes_after\":";
+    write_number_array(reducer_stats.step_peak_bytes_after);
     std::cout << ",\"losses\":";
     write_number_array(losses);
     std::cout << ",\"parameter_names\":[";
@@ -354,8 +387,10 @@ void run_reference(const Options& options) {
         microllm::io::save_safetensors(
             options.parameter_file, model.state_dict());
     }
+    const auto allocation =
+        microllm::runtime::allocation_stats(microllm::Device::cpu());
     write_result("reference", -1, losses, model, "reference", {}, timings,
-                 options.model, options.parameter_file);
+                 allocation, options.model, options.parameter_file);
 }
 
 void run_rank(const Options& options) {
@@ -375,6 +410,7 @@ void run_rank(const Options& options) {
     const auto batch = local_batch(config, options.rank);
     std::vector<float> losses;
     ReducerStats reducer_stats;
+    microllm::multi_gpu::RankGradientBucketPlan persistent_bucket_plan;
     PhaseTimings timings;
     microllm::runtime::synchronize(communicator.device());
     const auto training_begin = SteadyClock::now();
@@ -397,9 +433,14 @@ void run_rank(const Options& options) {
         std::size_t step_buckets = 0;
         std::size_t step_pack_copies = 0;
         std::size_t step_unpack_copies = 0;
-        if (options.reducer == "bucket") {
+        std::size_t step_plan_reused = 0;
+        if (options.reducer == "bucket" ||
+            options.reducer == "persistent-bucket") {
+            auto* plan = options.reducer == "persistent-bucket"
+                             ? &persistent_bucket_plan
+                             : nullptr;
             const auto buckets = microllm::multi_gpu::all_reduce_rank_gradients(
-                communicator, model.parameters(), options.bucket_bytes);
+                communicator, model.parameters(), options.bucket_bytes, plan);
             reducer_stats.collectives += buckets.bucket_count;
             reducer_stats.buckets += buckets.bucket_count;
             reducer_stats.pack_copies += buckets.pack_copy_calls;
@@ -408,6 +449,12 @@ void run_rank(const Options& options) {
             step_buckets = buckets.bucket_count;
             step_pack_copies = buckets.pack_copy_calls;
             step_unpack_copies = buckets.unpack_copy_calls;
+            step_plan_reused = buckets.plan_reused ? 1U : 0U;
+            reducer_stats.persistent_storage = buckets.persistent_storage;
+            reducer_stats.plan_reuses += step_plan_reused;
+            reducer_stats.plan_capacity_elements =
+                buckets.plan_capacity_elements;
+            reducer_stats.plan_capacity_bytes = buckets.plan_capacity_bytes;
         } else {
             for (auto* parameter : model.parameters()) {
                 auto gradient = parameter->grad();
@@ -439,6 +486,13 @@ void run_rank(const Options& options) {
         reducer_stats.step_total_allocated_bytes.push_back(counter_delta(
             allocation_after.total_allocated_bytes,
             allocation_before.total_allocated_bytes));
+        reducer_stats.step_plan_reused.push_back(step_plan_reused);
+        reducer_stats.step_current_bytes_before.push_back(
+            allocation_before.current_bytes);
+        reducer_stats.step_current_bytes_after.push_back(
+            allocation_after.current_bytes);
+        reducer_stats.step_peak_bytes_after.push_back(
+            allocation_after.peak_bytes);
         const auto optimizer_begin = SteadyClock::now();
         optimizer.step();
         microllm::runtime::synchronize(communicator.device());
@@ -450,12 +504,15 @@ void run_rank(const Options& options) {
             elapsed_ms(step_begin, SteadyClock::now()));
     }
     timings.training_ms = elapsed_ms(training_begin, SteadyClock::now());
+    const auto allocation =
+        microllm::runtime::allocation_stats(communicator.device());
     if (!options.parameter_file.empty()) {
         microllm::io::save_safetensors(
             options.parameter_file, model.state_dict());
     }
     write_result("rank", options.rank, losses, model,
-                 options.reducer, reducer_stats, timings, options.model,
+                 options.reducer, reducer_stats, timings, allocation,
+                 options.model,
                  options.parameter_file);
 }
 

@@ -26,6 +26,10 @@ def main() -> int:
         "maximum_mean_loss_difference", "math.isfinite",
         "maximum_rank_step_reducer_ms",
         "maximum_rank_step_reducer_backend_allocation_calls",
+        "persistent-bucket", "plan_reuses_per_rank",
+        "maximum_rank_step_plan_reused",
+        "maximum_engine_current_bytes", "maximum_engine_peak_bytes",
+        "step_reducer_current_bytes_after",
     ):
         assert token in runner
     for token in (
@@ -35,6 +39,8 @@ def main() -> int:
         "save_safetensors", "model-s", "--parameter-file",
         "forward_backward_ms", "reducer_ms", "optimizer_ms",
         "step_reducer_total_allocated_bytes", "allocation_stats",
+        "RankGradientBucketPlan", "plan_capacity_bytes",
+        "engine_current_bytes", "engine_peak_bytes",
     ):
         assert token in worker
     print("ranked launcher contract: pass")

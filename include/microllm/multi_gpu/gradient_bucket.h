@@ -35,6 +35,36 @@ struct RankBucketStats {
     std::size_t total_elements = 0;
     std::size_t pack_copy_calls = 0;
     std::size_t unpack_copy_calls = 0;
+    bool persistent_storage = false;
+    bool plan_reused = false;
+    std::size_t plan_capacity_elements = 0;
+    std::size_t plan_capacity_bytes = 0;
+};
+
+// Owns reusable bucket and unpacked-gradient Storage for one process/rank.
+// The plan binds to rank identity/device, parameter identity/order/shapes and
+// one bucket limit. clear() is required before changing that contract.
+class RankGradientBucketPlan {
+public:
+    RankGradientBucketPlan();
+    ~RankGradientBucketPlan();
+    RankGradientBucketPlan(RankGradientBucketPlan&&) noexcept;
+    RankGradientBucketPlan& operator=(RankGradientBucketPlan&&) noexcept;
+    RankGradientBucketPlan(const RankGradientBucketPlan&) = delete;
+    RankGradientBucketPlan& operator=(const RankGradientBucketPlan&) = delete;
+
+    [[nodiscard]] bool initialized() const noexcept;
+    void clear() noexcept;
+
+private:
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
+
+    friend RankBucketStats all_reduce_rank_gradients(
+        RankCommunicator& communicator,
+        const std::vector<autograd::Value*>& parameters,
+        std::size_t maximum_bucket_bytes,
+        RankGradientBucketPlan* persistent_plan);
 };
 
 // Owns reusable rank-local bucket and unpacked-gradient Storage. A plan binds to
@@ -79,6 +109,7 @@ private:
 [[nodiscard]] RankBucketStats all_reduce_rank_gradients(
     RankCommunicator& communicator,
     const std::vector<autograd::Value*>& parameters,
-    std::size_t maximum_bucket_bytes);
+    std::size_t maximum_bucket_bytes,
+    RankGradientBucketPlan* persistent_plan = nullptr);
 
 }  // namespace microllm::multi_gpu

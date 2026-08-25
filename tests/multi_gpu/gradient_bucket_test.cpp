@@ -250,4 +250,61 @@ TEST(RcclRankGradientBucketTest, WorldOneBucketPreservesEveryGradient) {
         std::invalid_argument);
 }
 
+TEST(RcclRankGradientBucketTest,
+     PersistentPlanReusesRankLocalStorageAndRejectsContractChanges) {
+    static_assert(std::is_move_constructible_v<RankGradientBucketPlan>);
+    static_assert(std::is_move_assignable_v<RankGradientBucketPlan>);
+    static_assert(!std::is_copy_constructible_v<RankGradientBucketPlan>);
+    static_assert(!std::is_copy_assignable_v<RankGradientBucketPlan>);
+    if (runtime::hip_device_count() < 1) {
+        GTEST_SKIP() << "visible HIP device required";
+    }
+    const auto id = create_communicator_id();
+    RankCommunicator communicator(0, 1, 0, id);
+    autograd::Value first(Tensor({2}, DType::Float32, Device::hip(0)), true);
+    autograd::Value second(Tensor({3}, DType::Float32, Device::hip(0)), true);
+    first.set_grad(Tensor::from_vector({1, 2}, {2}).to(Device::hip(0)));
+    second.set_grad(Tensor::from_vector({3, 4, 5}, {3}).to(Device::hip(0)));
+
+    RankGradientBucketPlan plan;
+    EXPECT_FALSE(plan.initialized());
+    const auto first_before = runtime::allocation_stats(Device::hip(0));
+    const auto first_stats = all_reduce_rank_gradients(
+        communicator, {&first, &second}, 4096, &plan);
+    const auto first_after = runtime::allocation_stats(Device::hip(0));
+    EXPECT_TRUE(plan.initialized());
+    EXPECT_TRUE(first_stats.persistent_storage);
+    EXPECT_FALSE(first_stats.plan_reused);
+    EXPECT_EQ(first_stats.bucket_count, 1U);
+    EXPECT_EQ(first_stats.plan_capacity_elements, 10U);
+    EXPECT_EQ(first_stats.plan_capacity_bytes, 10U * sizeof(float));
+    EXPECT_EQ(first_after.allocation_calls - first_before.allocation_calls, 3U);
+    const auto* first_address = first.grad().data();
+    const auto* second_address = second.grad().data();
+
+    first.set_grad(Tensor::from_vector({6, 7}, {2}).to(Device::hip(0)));
+    second.set_grad(Tensor::from_vector({8, 9, 10}, {3}).to(Device::hip(0)));
+    const auto reuse_before = runtime::allocation_stats(Device::hip(0));
+    const auto reused = all_reduce_rank_gradients(
+        communicator, {&first, &second}, 4096, &plan);
+    const auto reuse_after = runtime::allocation_stats(Device::hip(0));
+    EXPECT_TRUE(reused.persistent_storage);
+    EXPECT_TRUE(reused.plan_reused);
+    EXPECT_EQ(reuse_after.allocation_calls - reuse_before.allocation_calls, 0U);
+    EXPECT_EQ(first.grad().data(), first_address);
+    EXPECT_EQ(second.grad().data(), second_address);
+    EXPECT_EQ(first.grad().to_vector(), (std::vector<float>{6, 7}));
+    EXPECT_EQ(second.grad().to_vector(), (std::vector<float>{8, 9, 10}));
+    EXPECT_THROW(
+        (void)all_reduce_rank_gradients(
+            communicator, {&first, &second}, sizeof(float), &plan),
+        std::invalid_argument);
+
+    RankGradientBucketPlan moved = std::move(plan);
+    EXPECT_FALSE(plan.initialized());
+    EXPECT_TRUE(moved.initialized());
+    moved.clear();
+    EXPECT_FALSE(moved.initialized());
+}
+
 }  // namespace microllm::multi_gpu
