@@ -3766,3 +3766,14 @@ CMake Config新增`microLLM_WITH_ROCWMMA`，header-only实现不会泄露成外�
 cast时，才允许用同一门重开。
 
 ![Full-model online Attention discard](assets/rocwmma-online-model-discard.svg)
+
+## 248. Experiment 231：三次cast全删了，解释还是倒了
+
+grouped QKV现在可保留BF16 V，V bias和bias+RoPE都直接写BF16，Attention core前不再有三次cast。
+同一36进程模型门中六格都略有恢复，证明cast有成本；但仍只有0.777×–0.906×，Qwen Max/RMS
+仍到0.485/0.110。
+
+这推翻了“cast是主要瓶颈”。online kernel逐层执行效率与BF16 probability误差才是更大边界。
+direct-BF16 bias/RoPE原语和public operator保留，online模型track关闭，不再调局部tile或threads。
+
+![Direct BF16 model discard](assets/rocwmma-direct-bf16-model-discard.svg)

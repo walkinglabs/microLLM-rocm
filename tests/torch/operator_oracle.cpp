@@ -65,6 +65,8 @@ void emit_forward_cases() {
     emit("scale", scale(left, -0.25F));
     emit("cast_bf16", cast(left, DType::BFloat16));
     emit("add_bias", add_bias(left, f32({0.5F, -1.0F, 2.0F}, {3})));
+    emit("add_bias_bf16", add_bias_bf16(
+        left.cast(DType::BFloat16), f32({0.5F, -1.0F, 2.0F}, {3})));
     const auto residual_norm = add_rms_norm(
         left, right, f32({1, 0.5F, 2}, {3}));
     emit("add_rms_norm_sum", residual_norm.first);
@@ -141,6 +143,10 @@ void emit_forward_cases() {
     const auto rope_input = f32({1, 0, 0, 1, 1, 0, 0, 1}, {1, 2, 1, 4});
     emit("rope", rope(rope_input));
     emit("rope_split_half", rope_split_half(rope_input));
+    emit("rope_split_half_bias_bthd_bf16",
+         rope_split_half_bias_bthd_bf16(
+             rope_input.cast(DType::BFloat16),
+             f32({0.5F, -0.25F, 1, -1}, {4})));
     const auto logits = f32({2, 1, 0, 100, -100, 0}, {2, 3});
     const auto targets = Tensor::from_int32_vector({0, -100}, {2});
     emit("cross_entropy", cross_entropy(logits, targets));
@@ -507,6 +513,10 @@ void emit_invalid_shape_cases() {
     emit_bool("invalid_add_shape", rejected([&] { (void)add(matrix, vector); }));
     emit_bool("invalid_multiply_shape", rejected([&] { (void)multiply(matrix, vector); }));
     emit_bool("invalid_add_bias_shape", rejected([&] { (void)add_bias(matrix, vector); }));
+    emit_bool("invalid_add_bias_bf16_shape", rejected([&] {
+                  (void)add_bias_bf16(
+                      matrix.cast(DType::BFloat16), f32({1}, {1}));
+              }));
     emit_bool("invalid_bias_gradient_rank", rejected([&] {
                   (void)bias_gradient(f32({1}, {}));
               }));
@@ -564,6 +574,11 @@ void emit_invalid_shape_cases() {
     emit_bool("invalid_rope_split_half_bias_bthd_shape", rejected([&] {
                   (void)rope_split_half_bias_bthd(
                       f32({1, 2, 3, 4}, {1, 1, 1, 4}), vector);
+              }));
+    emit_bool("invalid_rope_split_half_bias_bthd_bf16_shape", rejected([&] {
+                  (void)rope_split_half_bias_bthd_bf16(
+                      Tensor({1, 2, 1, 3}, DType::BFloat16),
+                      f32({1, 2, 3}, {3}));
               }));
     emit_bool("invalid_cross_entropy_shape", rejected([&] {
                   (void)cross_entropy(matrix, Tensor::from_int32_vector({0}, {1}));

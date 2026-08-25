@@ -995,6 +995,9 @@ public:
             config_.rope_layout == RopeLayout::SplitHalf &&
             query_.has_bias() && key_.has_bias() &&
             query_.weight_data().dtype() == DType::BFloat16;
+        const auto online_bthd_attention =
+            bthd_attention &&
+            ops::inference_bthd_online_attention_enabled();
         Tensor query_projection;
         Tensor key_projection;
         Tensor value_projection;
@@ -1007,7 +1010,8 @@ public:
                     ops::inference_bthd_bf16_qk_enabled();
                 const auto projections = bf16_projection(
                     flat, query_.weight_data(), key_.weight_data(),
-                    value_.weight_data(), retain_bf16_qk);
+                    value_.weight_data(), retain_bf16_qk,
+                    online_bthd_attention);
                 query_projection = bthd_attention
                                        ? projections.values.first
                                        : query_.has_bias()
@@ -1023,10 +1027,14 @@ public:
                                            key_.bias().data())
                                      : projections.values.second;
                 value_projection = value_.has_bias()
-                                       ? ops::add_bias(
-                                             projections.values.third,
-                                             value_.bias().data())
-                                       : projections.values.third;
+                    ? online_bthd_attention
+                          ? ops::add_bias_bf16(
+                                projections.values.third,
+                                value_.bias().data())
+                          : ops::add_bias(
+                                projections.values.third,
+                                value_.bias().data())
+                    : projections.values.third;
             } else if (query_.shares_dynamic_activation() &&
                        key_.shares_dynamic_activation() &&
                        value_.shares_dynamic_activation()) {
@@ -1050,16 +1058,26 @@ public:
             runtime::ScopedAllocationSource allocation_source(
                 runtime::AllocationSource::AttentionLayout);
             if (bthd_attention) {
-                query = ops::rope_split_half_bias_bthd(
-                    query_projection.reshape(
-                        {batch, sequence, config_.heads,
-                         config_.head_dimension()}),
-                    query_.bias().data(), 0, config_.rope_base);
-                key = ops::rope_split_half_bias_bthd(
-                    key_projection.reshape(
-                        {batch, sequence, config_.kv_heads,
-                         config_.head_dimension()}),
-                    key_.bias().data(), 0, config_.rope_base);
+                const auto query_bthd = query_projection.reshape(
+                    {batch, sequence, config_.heads,
+                     config_.head_dimension()});
+                const auto key_bthd = key_projection.reshape(
+                    {batch, sequence, config_.kv_heads,
+                     config_.head_dimension()});
+                query = online_bthd_attention
+                    ? ops::rope_split_half_bias_bthd_bf16(
+                          query_bthd, query_.bias().data(), 0,
+                          config_.rope_base)
+                    : ops::rope_split_half_bias_bthd(
+                          query_bthd, query_.bias().data(), 0,
+                          config_.rope_base);
+                key = online_bthd_attention
+                    ? ops::rope_split_half_bias_bthd_bf16(
+                          key_bthd, key_.bias().data(), 0,
+                          config_.rope_base)
+                    : ops::rope_split_half_bias_bthd(
+                          key_bthd, key_.bias().data(), 0,
+                          config_.rope_base);
                 value = value_projection.reshape(
                     {batch, sequence, config_.kv_heads,
                      config_.head_dimension()});
@@ -1107,15 +1125,9 @@ public:
             const auto scale =
                 1.0F / std::sqrt(static_cast<float>(
                            config_.head_dimension()));
-            const auto online_attention =
-                bthd_attention &&
-                ops::inference_bthd_online_attention_enabled();
-            if (online_attention) {
+            if (online_bthd_attention) {
                 context = ops::online_causal_gqa_attention_bthd(
-                    ops::cast(query, DType::BFloat16),
-                    ops::cast(key, DType::BFloat16),
-                    ops::cast(value, DType::BFloat16),
-                    repeats, scale).reshape(
+                    query, key, value, repeats, scale).reshape(
                         {batch * sequence, config_.dimension});
             } else if (bthd_attention) {
                 context = ops::causal_gqa_attention_bthd(
@@ -1382,7 +1394,8 @@ private:
     Bf16ProjectionResult bf16_projection(
         const Tensor& input, const Tensor& query_weight,
         const Tensor& key_weight, const Tensor& value_weight,
-        bool retain_query_key_bf16 = false) {
+        bool retain_query_key_bf16 = false,
+        bool retain_value_bf16 = false) {
         if (qkv_arena_cache_ != nullptr) {
             auto* entry = qkv_arena_cache_->acquire(
                 input.shape()[0], input.shape()[1], query_weight.shape()[1],
@@ -1393,11 +1406,13 @@ private:
                     entry->query_output, entry->key_output,
                     entry->value_output, entry->workspace, input,
                     query_weight, key_weight, value_weight, {},
-                    retain_query_key_bf16);
+                    retain_query_key_bf16, retain_value_bf16);
                 if (retained) {
                     return {{entry->workspace.query_fallback_bf16,
                              entry->workspace.key_fallback_bf16,
-                             entry->value_output}};
+                             retain_value_bf16
+                                 ? entry->workspace.value_fallback_bf16
+                                 : entry->value_output}};
                 }
                 return {{entry->query_output, entry->key_output,
                          entry->value_output}};

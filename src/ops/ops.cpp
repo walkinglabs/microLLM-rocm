@@ -1359,6 +1359,36 @@ Tensor add_bias(const Tensor& input, const Tensor& bias,
     return from_values(std::move(values), input.shape());
 }
 
+Tensor add_bias_bf16(const Tensor& input_bf16, const Tensor& bias_fp32,
+                     const OpContext& context) {
+    require_same_device(input_bf16, bias_fp32);
+    if (input_bf16.dtype() != DType::BFloat16 ||
+        bias_fp32.dtype() != DType::Float32 || input_bf16.ndim() == 0 ||
+        bias_fp32.ndim() != 1 ||
+        input_bf16.shape().back() != bias_fp32.shape()[0]) {
+        throw std::invalid_argument(
+            "add_bias_bf16 requires BF16 input and matching FP32 rank-one bias");
+    }
+    require_contiguous(input_bf16, "input");
+    require_contiguous(bias_fp32, "bias");
+    if (input_bf16.device().is_hip()) {
+        Tensor output(
+            input_bf16.shape(), DType::BFloat16, input_bf16.device());
+#if MICROLLM_HAS_HIP
+        hip::launch_add_bias_bf16(
+            input_bf16.data(), static_cast<const float*>(bias_fp32.data()),
+            output.data(), input_bf16.numel(), bias_fp32.numel(),
+            context.native_stream(input_bf16.device()));
+        return output;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    return add_bias(
+        input_bf16.cast(DType::Float32), bias_fp32, context).cast(
+            DType::BFloat16);
+}
+
 Tensor bias_gradient(const Tensor& gradient,
                      const OpContext& context) {
     return bias_gradient_with_implementation(
@@ -1984,6 +2014,45 @@ Tensor rope_split_half_bias_bthd(const Tensor& input, const Tensor& bias,
         }
     }
     return from_values(std::move(output), output_shape);
+}
+
+Tensor rope_split_half_bias_bthd_bf16(
+    const Tensor& input_bf16, const Tensor& bias,
+    std::int64_t position_offset, float base,
+    const OpContext& context) {
+    require_same_device(input_bf16, bias);
+    if (input_bf16.dtype() != DType::BFloat16 ||
+        bias.dtype() != DType::Float32 || input_bf16.ndim() != 4 ||
+        bias.ndim() != 1 || input_bf16.shape()[3] % 2 != 0 ||
+        bias.shape()[0] != input_bf16.shape()[2] * input_bf16.shape()[3] ||
+        position_offset < 0 || base <= 0.0F) {
+        throw std::invalid_argument(
+            "BF16 BTHD split-half rope+bias requires BF16 [B,T,H,even-D] "
+            "and FP32 bias [H*D]");
+    }
+    require_contiguous(input_bf16, "input");
+    require_contiguous(bias, "bias");
+    const auto batches = input_bf16.shape()[0];
+    const auto sequence = input_bf16.shape()[1];
+    const auto heads = input_bf16.shape()[2];
+    const auto head_width = input_bf16.shape()[3];
+    const Shape output_shape{batches, heads, sequence, head_width};
+    if (input_bf16.device().is_hip()) {
+        Tensor output(output_shape, DType::BFloat16, input_bf16.device());
+#if MICROLLM_HAS_HIP
+        hip::launch_rope_split_half_bias_bthd_bf16(
+            input_bf16.data(), static_cast<const float*>(bias.data()),
+            output.data(), batches, sequence, heads, head_width,
+            position_offset, base,
+            context.native_stream(input_bf16.device()));
+        return output;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    return rope_split_half_bias_bthd(
+        input_bf16, bias, position_offset, base, context).cast(
+            DType::BFloat16);
 }
 
 Tensor rope_positions(const Tensor& input, const Tensor& positions, float base,

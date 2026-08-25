@@ -499,6 +499,17 @@ __device__ T store_from_float(float value) {
     return T(value);
 }
 
+__global__ void add_bias_bf16_kernel(
+    const hip_bfloat16* input, const float* bias, hip_bfloat16* output,
+    std::int64_t elements, std::int64_t width) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x +
+                       threadIdx.x;
+    if (index < elements) {
+        output[index] = store_from_float<hip_bfloat16>(
+            load_as_float(input[index]) + bias[index % width]);
+    }
+}
+
 __device__ float sigmoid_typed_device(float value) {
     if (value >= 0.0F) return 1.0F / (1.0F + expf(-value));
     const auto exponential = expf(value);
@@ -830,9 +841,9 @@ __global__ void rope_split_half_bias_kernel(
     output[second] = first_value * sine + second_value * cosine;
 }
 
-template <typename Input>
+template <typename Input, typename Output>
 __global__ void rope_split_half_bias_bthd_kernel(
-    const Input* input, const float* bias, float* output, std::int64_t pairs,
+    const Input* input, const float* bias, Output* output, std::int64_t pairs,
     std::int64_t sequence_size, std::int64_t heads, std::int64_t head_width,
     std::int64_t position_offset, float base) {
     const auto pair_index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x +
@@ -865,8 +876,10 @@ __global__ void rope_split_half_bias_bthd_kernel(
         load_as_float(input[input_first]) + bias[bias_first];
     const auto second_value =
         load_as_float(input[input_second]) + bias[bias_second];
-    output[output_first] = first_value * cosine - second_value * sine;
-    output[output_second] = first_value * sine + second_value * cosine;
+    output[output_first] = store_from_float<Output>(
+        first_value * cosine - second_value * sine);
+    output[output_second] = store_from_float<Output>(
+        first_value * sine + second_value * cosine);
 }
 
 __global__ void rope_positions_kernel(
@@ -2665,6 +2678,17 @@ void launch_add_bias(const float* input, const float* bias, float* output,
     check_launch("add_bias_kernel");
 }
 
+void launch_add_bias_bf16(const void* input_bf16, const float* bias,
+                          void* output_bf16, std::int64_t elements,
+                          std::int64_t width, void* stream) {
+    if (elements == 0) return;
+    hipLaunchKernelGGL(
+        add_bias_bf16_kernel, dim3(grid_size(elements)), dim3(kBlockSize), 0,
+        as_stream(stream), static_cast<const hip_bfloat16*>(input_bf16),
+        bias, static_cast<hip_bfloat16*>(output_bf16), elements, width);
+    check_launch("add_bias_bf16_kernel");
+}
+
 void launch_bias_gradient(const float* gradient, float* output,
                           std::int64_t rows, std::int64_t width, void* stream) {
     if (width == 0) return;
@@ -3503,13 +3527,13 @@ void launch_rope_split_half_bias_bthd(
     const auto pairs = batches * sequence_size * heads * head_width / 2;
     if (pairs == 0) return;
     if (input_dtype == DType::Float32) {
-        hipLaunchKernelGGL((rope_split_half_bias_bthd_kernel<float>),
+        hipLaunchKernelGGL((rope_split_half_bias_bthd_kernel<float, float>),
                            dim3(grid_size(pairs)), dim3(kBlockSize), 0,
                            as_stream(stream), static_cast<const float*>(input),
                            bias, output, pairs, sequence_size, heads,
                            head_width, position_offset, base);
     } else if (input_dtype == DType::BFloat16) {
-        hipLaunchKernelGGL((rope_split_half_bias_bthd_kernel<hip_bfloat16>),
+        hipLaunchKernelGGL((rope_split_half_bias_bthd_kernel<hip_bfloat16, float>),
                            dim3(grid_size(pairs)), dim3(kBlockSize), 0,
                            as_stream(stream),
                            static_cast<const hip_bfloat16*>(input),
@@ -3520,6 +3544,22 @@ void launch_rope_split_half_bias_bthd(
             "rope_split_half_bias_bthd input must be FP32 or BF16");
     }
     check_launch("rope_split_half_bias_bthd_kernel");
+}
+
+void launch_rope_split_half_bias_bthd_bf16(
+    const void* input_bf16, const float* bias, void* output_bf16,
+    std::int64_t batches, std::int64_t sequence_size, std::int64_t heads,
+    std::int64_t head_width, std::int64_t position_offset, float base,
+    void* stream) {
+    const auto pairs = batches * sequence_size * heads * head_width / 2;
+    if (pairs == 0) return;
+    hipLaunchKernelGGL(
+        (rope_split_half_bias_bthd_kernel<hip_bfloat16, hip_bfloat16>),
+        dim3(grid_size(pairs)), dim3(kBlockSize), 0, as_stream(stream),
+        static_cast<const hip_bfloat16*>(input_bf16), bias,
+        static_cast<hip_bfloat16*>(output_bf16), pairs, sequence_size,
+        heads, head_width, position_offset, base);
+    check_launch("rope_split_half_bias_bthd_bf16_kernel");
 }
 
 void launch_rope_positions(const float* input, const std::int32_t* positions,

@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "summary_status": "fail",
+  "processes": 36,
+  "model_cases": 6,
+  "runs_per_policy_case": 3,
+  "routing_gate": true,
+  "correctness_gate": false,
+  "performance_gate": false,
+  "memory_gate": true,
+  "all_top_rows_equal": true,
+  "direct_bf16_boundary": true,
+  "model_route_accepted": false,
+  "operator_retained": true
+}

@@ -128,6 +128,10 @@ TEST(CpuOpsTest, BiasBroadcastAndReductionMatchHandValues) {
     const auto input = Tensor::from_vector({1, 2, 3, 4, 5, 6}, {2, 3});
     const auto bias = Tensor::from_vector({0.5F, -1.0F, 2.0F}, {3});
     expect_near(add_bias(input, bias).to_vector(), {1.5F, 1.0F, 5.0F, 4.5F, 4.0F, 8.0F});
+    const auto bf16_input = input.cast(DType::BFloat16);
+    EXPECT_EQ(add_bias_bf16(bf16_input, bias).to_vector(),
+              add_bias(bf16_input.cast(DType::Float32), bias)
+                  .cast(DType::BFloat16).to_vector());
     expect_near(bias_gradient(input).to_vector(), {5, 7, 9});
     expect_near(bias_gradient_with_implementation(
                     input, BiasGradientImplementation::ScalarColumns).to_vector(),
@@ -172,6 +176,11 @@ TEST(CpuOpsTest, BthdFusedSplitHalfRopeBiasMatchesLayoutMaterialization) {
         rounded_input, bias, 3, 5000.0F);
     EXPECT_EQ(rounded_actual.dtype(), DType::Float32);
     expect_near(rounded_actual.to_vector(), rounded_expected.to_vector());
+    const auto direct_bf16 = rope_split_half_bias_bthd_bf16(
+        rounded_input, bias, 3, 5000.0F);
+    EXPECT_EQ(direct_bf16.dtype(), DType::BFloat16);
+    EXPECT_EQ(direct_bf16.to_vector(),
+              rounded_expected.cast(DType::BFloat16).to_vector());
 
     const auto gradient = Tensor::from_vector(
         {1, -1, 2, -2, 3, -3, 4, -4,
@@ -740,6 +749,11 @@ TEST(CpuOpsTest, Bf16QkvProjectionCastsSharedInputOnceAndKeepsFp32Outputs) {
     EXPECT_EQ(query_output.to_vector(), output.first.to_vector());
     EXPECT_EQ(key_output.to_vector(), output.second.to_vector());
     EXPECT_EQ(value_output.to_vector(), output.third.to_vector());
+    EXPECT_THROW(
+        bf16_qkv_projection_out_(
+            query_output, key_output, value_output, workspace,
+            input, query, key, value, {}, false, true),
+        std::invalid_argument);
     workspace.value_fallback_bf16 = workspace.key_fallback_bf16;
     EXPECT_THROW(
         bf16_qkv_projection_out_(

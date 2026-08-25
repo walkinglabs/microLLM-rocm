@@ -482,3 +482,5 @@ the next gate. Records are append-only except for factual corrections.
   beginner-friendly public contract, exact routing counters, batch and fallback evidence.
 - [2026-08-25-rocwmma-online-model-discard.md](2026-08-25-rocwmma-online-model-discard.md):
   beginner-friendly full-model counterexample, complete logits, memory and cast-cost explanation.
+- [2026-08-25-rocwmma-direct-bf16-model-discard.md](2026-08-25-rocwmma-direct-bf16-model-discard.md):
+  beginner-friendly rebuttal that removes all three casts and closes the model track.

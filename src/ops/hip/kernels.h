@@ -76,6 +76,9 @@ void launch_add(const float* left, const float* right, float* output,
                 std::int64_t elements, void* stream = nullptr);
 void launch_add_bias(const float* input, const float* bias, float* output,
                      std::int64_t elements, std::int64_t width, void* stream = nullptr);
+void launch_add_bias_bf16(const void* input_bf16, const float* bias,
+                          void* output_bf16, std::int64_t elements,
+                          std::int64_t width, void* stream = nullptr);
 void launch_bias_gradient(const float* gradient, float* output,
                           std::int64_t rows, std::int64_t width, void* stream = nullptr);
 void launch_bias_gradient_cooperative(const float* gradient, float* output,
@@ -183,6 +186,11 @@ void launch_rope_split_half_bias(const float* input, const float* bias, float* o
                                  void* stream = nullptr);
 void launch_rope_split_half_bias_bthd(
     const void* input, DType input_dtype, const float* bias, float* output,
+    std::int64_t batches, std::int64_t sequence_size, std::int64_t heads,
+    std::int64_t head_width, std::int64_t position_offset, float base,
+    void* stream = nullptr);
+void launch_rope_split_half_bias_bthd_bf16(
+    const void* input_bf16, const float* bias, void* output_bf16,
     std::int64_t batches, std::int64_t sequence_size, std::int64_t heads,
     std::int64_t head_width, std::int64_t position_offset, float base,
     void* stream = nullptr);

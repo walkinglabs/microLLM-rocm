@@ -19,6 +19,7 @@
 | `fill_` | 任意 Tensor，shape 不变 | `torch.full` | 精确 | 非 FP32 |
 | `add` | `S,S -> S` | `torch.add` | 默认 | shape/device 不同、HIP 非连续 |
 | `add_bias` | input `[...,D]`、bias `[D]`，输出不变 | `input+bias` | 默认 | rank/shape/device 错 |
+| `add_bias_bf16` | BF16 input `[...,D]`、FP32 bias `[D]`，输出BF16 | `(input.float()+bias).bfloat16()` | 逐项按BF16舍入一致 | dtype/rank/shape/device/连续性错 |
 | `multiply` | `S,S -> S` | `torch.mul` | 默认 | shape/device 不同、HIP 非连续 |
 | `scale` | `S,scalar -> S` | `x*scalar` | 默认 | 非 FP32、HIP 非连续 |
 | `matmul` | `[...,M,K] × [...,K,N] -> [...,M,N]`，batch 维完全相同 | `torch.matmul` | `2e-4,2e-4` | rank<2、rank/batch/inner 不同 |
@@ -33,6 +34,7 @@
 | `rope` | `[...,T,...,H] -> same`，H 是偶数 | PyTorch `sin/cos` 组合 | `2e-5,2e-5` | rank<2、H 奇数、sequence_dim 错、offset/base 错 |
 | `rope_split_half_bias` | input `[B,H,T,D]`、bias `[H*D]`，D 偶数 | `rope_split_half(x+bias.view(1,H,1,D))` | `3e-5,3e-5` | 非 FP32、rank/shape/device 错、offset/base 错 |
 | `rope_split_half_bias_bthd` | FP32/BF16 input `[B,T,H,D]`、FP32 bias `[H*D]`，输出FP32 `[B,H,T,D]` | `rope_split_half((x.float()+bias.view(1,1,H,D)).transpose(1,2))` | FP32 `3e-5,3e-5`；BF16按输入舍入后同值 | 非连续、F16/FP8、rank/shape/device 错、offset/base 错 |
+| `rope_split_half_bias_bthd_bf16` | BF16 input `[B,T,H,D]`、FP32 bias，直接输出BF16 `[B,H,T,D]` | 上项结果再`bfloat16()` | 逐项按BF16舍入一致 | 非BF16、非连续、rank/偶数D/bias/device/offset/base错 |
 | `causal_softmax_with_implementation` | `Rows128`只接受HIP FP32方阵且T=256..1024；Auto保持原路由 | 与`causal_softmax`逐项比较，mask严格为0、可见行和为1 | `2e-6,1e-7` | CPU、T&lt;256、T&gt;1024、非方阵/非连续拒绝 |
 | `repeat_interleave_bf16_to_float` | BF16输入，任意rank/dim，FP32输出 | `repeat_interleave(ops::cast(x, FP32), dim, repeats)` | 逐项完全相等 | 非BF16、坏dim、repeats≤0、overflow拒绝 |
 | `cross_entropy` | logits `S+[C]`，targets `S`，输出 scalar | `F.cross_entropy(ignore_index=-100)` | `2e-5,2e-5` | target shape/dtype/device 错、无有效 target |

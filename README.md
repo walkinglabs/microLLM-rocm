@@ -386,6 +386,9 @@ the chronological details are in the [optimization log](docs/optimization-log/RE
 - the explicit full-model gate correctly hits 168/196 native calls per Qwen/DeepSeek process and
   saves 3.5–57 MiB peak, but every prefill regresses to 0.761×–0.884× and Qwen complete-logit
   Max/RMS reaches 0.511/0.112; the model route is rejected while the public operator remains.
+- a rebuttal removes all three per-layer casts by retaining BF16 V and writing BF16 bias/RoPE
+  outputs directly; every case improves slightly but remains only 0.777×–0.906× current and Qwen
+  Max/RMS remains 0.485/0.110, closing the online-Attention model track without removing its APIs.
 
 </details>
 

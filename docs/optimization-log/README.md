@@ -861,6 +861,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [experiments/229-rocwmma-online-operator.md](experiments/229-rocwmma-online-operator.md) | 公共API、CMake feature、PyTorch与模型门准入 |
 | [assets/rocwmma-online-model-discard.svg](assets/rocwmma-online-model-discard.svg) | 六格整模吞吐、显存节省与logit失败 |
 | [experiments/230-rocwmma-online-model-discard.md](experiments/230-rocwmma-online-model-discard.md) | 36进程整模反例与模型路由拒绝 |
+| [assets/rocwmma-direct-bf16-model-discard.svg](assets/rocwmma-direct-bf16-model-discard.svg) | 三cast与direct-BF16整模速度配对 |
+| [experiments/231-rocwmma-direct-bf16-model-discard.md](experiments/231-rocwmma-direct-bf16-model-discard.md) | direct-BF16反驳与online模型track关闭 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

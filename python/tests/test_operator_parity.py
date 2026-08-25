@@ -114,6 +114,9 @@ def pytorch_references(actual):
     record(refs, "scale", left * -0.25)
     record(refs, "cast_bf16", left.to(torch.bfloat16))
     record(refs, "add_bias", left + tensor([0.5, -1.0, 2.0], (3,)))
+    record(refs, "add_bias_bf16",
+           (left.to(torch.bfloat16).float() +
+            tensor([0.5, -1.0, 2.0], (3,))).to(torch.bfloat16))
     residual_sum = left + right
     record(refs, "add_rms_norm_sum", residual_sum)
     record(refs, "add_rms_norm_normalized",
@@ -178,6 +181,15 @@ def pytorch_references(actual):
     rope_input = tensor([1, 0, 0, 1, 1, 0, 0, 1], (1, 2, 1, 4))
     record(refs, "rope", rope(rope_input))
     record(refs, "rope_split_half", rope_split_half(rope_input))
+    rope_bf16_input = rope_input.to(torch.bfloat16)
+    rope_bf16_bias = tensor([0.5, -0.25, 1, -1], (4,))
+    record(
+        refs,
+        "rope_split_half_bias_bthd_bf16",
+        rope_split_half(
+            (rope_bf16_input.float() + rope_bf16_bias.view(1, 1, 1, 4))
+            .transpose(1, 2), 2).to(torch.bfloat16),
+    )
     logits = tensor([2, 1, 0, 100, -100, 0], (2, 3))
     targets = torch.tensor([0, -100], dtype=torch.long)
     record(refs, "cross_entropy", F.cross_entropy(logits, targets, ignore_index=-100))
@@ -790,6 +802,7 @@ class OperatorParityTest(unittest.TestCase):
             "invalid_add_shape",
             "invalid_multiply_shape",
             "invalid_add_bias_shape",
+            "invalid_add_bias_bf16_shape",
             "invalid_bias_gradient_rank",
             "invalid_scale_dtype",
             "invalid_cast_dtype",
@@ -809,6 +822,7 @@ class OperatorParityTest(unittest.TestCase):
             "invalid_rope_split_half_width",
             "invalid_rope_split_half_bias_shape",
             "invalid_rope_split_half_bias_bthd_shape",
+            "invalid_rope_split_half_bias_bthd_bf16_shape",
             "invalid_cross_entropy_shape",
             "invalid_reduce_dtype",
             "invalid_broadcast_source",

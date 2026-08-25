@@ -535,9 +535,14 @@ TEST(HipBf16ProjectionTest, GroupedQkvCachesExactPointerStablePlan) {
         candidate_query, candidate_key, candidate_value,
         candidate_workspace, input, query_weight, key_weight,
         value_weight, {}, true);
+    const auto retained_all = bf16_qkv_projection_out_(
+        candidate_query, candidate_key, candidate_value,
+        candidate_workspace, input, query_weight, key_weight,
+        value_weight, {}, true, true);
     runtime::synchronize(gpu);
     const auto stats = bf16_grouped_qkv_stats();
     EXPECT_TRUE(retained_query_key);
+    EXPECT_TRUE(retained_all);
     EXPECT_EQ(stats.registered_entries, 1U);
     EXPECT_EQ(stats.algorithm_entries, 1U);
     EXPECT_EQ(stats.algorithm_misses, 1U);
@@ -547,9 +552,9 @@ TEST(HipBf16ProjectionTest, GroupedQkvCachesExactPointerStablePlan) {
     EXPECT_EQ(stats.kernel_hits, 0U);
     EXPECT_EQ(stats.plan_entries, 1U);
     EXPECT_EQ(stats.plan_misses, 1U);
-    EXPECT_EQ(stats.plan_hits, 2U);
-    EXPECT_EQ(stats.dispatches, 3U);
-    EXPECT_EQ(stats.retained_query_key_dispatches, 1U);
+    EXPECT_EQ(stats.plan_hits, 3U);
+    EXPECT_EQ(stats.dispatches, 4U);
+    EXPECT_EQ(stats.retained_query_key_dispatches, 2U);
     const auto transfers = runtime::transfer_stats();
     EXPECT_EQ(transfers.host_to_device_calls, 0U);
     EXPECT_EQ(transfers.device_to_host_calls, 0U);
@@ -560,6 +565,8 @@ TEST(HipBf16ProjectionTest, GroupedQkvCachesExactPointerStablePlan) {
                 candidate_query.to_vector(), 0.0F);
     expect_near(candidate_workspace.key_fallback_bf16.to_vector(),
                 candidate_key.to_vector(), 0.0F);
+    expect_near(candidate_workspace.value_fallback_bf16.to_vector(),
+                baseline_value.cast(DType::BFloat16).to_vector(), 0.0F);
     clear_bf16_grouped_qkv_registry();
     EXPECT_EQ(bf16_grouped_qkv_stats().registered_entries, 0U);
 }
@@ -2607,6 +2614,13 @@ TEST(HipAllocatorStressTest, ReusedDefaultStreamBlocksPreserveAsyncKernelOrder) 
 
 TEST(HipOpsTest, RopeAndCrossEntropyMatchCpuReference) {
     require_gpu();
+    const auto bf16_bias_input = Tensor::from_vector(
+        {1, 2, 3, 4, 5, 6}, {2, 3}, DType::BFloat16);
+    const auto bf16_bias = Tensor::from_vector({0.5F, -1, 2}, {3});
+    EXPECT_EQ(add_bias_bf16(
+                  bf16_bias_input.to(Device::hip()),
+                  bf16_bias.to(Device::hip())).to_vector(),
+              add_bias_bf16(bf16_bias_input, bf16_bias).to_vector());
     const auto rope_input = Tensor::from_vector({1, 0, 0, 1, 1, 0, 0, 1}, {1, 2, 1, 4});
     expect_near(rope(rope_input.to(Device::hip())).to_vector(), rope(rope_input).to_vector());
     expect_near(rope_split_half(rope_input.to(Device::hip())).to_vector(),
@@ -2640,6 +2654,8 @@ TEST(HipOpsTest, RopeAndCrossEntropyMatchCpuReference) {
         device_bthd, device_bias, 7, 5000.0F);
     const auto actual_bthd_bf16 = rope_split_half_bias_bthd(
         device_bthd_bf16, device_bias, 7, 5000.0F);
+    const auto actual_bthd_direct_bf16 = rope_split_half_bias_bthd_bf16(
+        device_bthd_bf16, device_bias, 7, 5000.0F);
     const auto actual_bthd_backward = rope_split_half_bias_bthd_backward(
         device_gradient, 7, 5000.0F);
     runtime::synchronize(Device::hip());
@@ -2649,6 +2665,8 @@ TEST(HipOpsTest, RopeAndCrossEntropyMatchCpuReference) {
     expect_near(actual_bthd.to_vector(), expected_bthd.to_vector(), 2.0e-5F);
     expect_near(actual_bthd_bf16.to_vector(),
                 expected_bthd_bf16.to_vector(), 2.0e-5F);
+    EXPECT_EQ(actual_bthd_direct_bf16.to_vector(),
+              expected_bthd_bf16.cast(DType::BFloat16).to_vector());
     expect_near(actual_bthd_backward.to_vector(),
                 expected_bthd_backward.to_vector(), 2.0e-5F);
 

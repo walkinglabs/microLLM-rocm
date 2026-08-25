@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="760" viewBox="0 0 1600 760">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="800.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 231 · Direct-BF16 Model Rebuttal</text>
+<text x="800.0" y="82.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">RoPE writes BF16 · grouped QKV retains BF16 V · zero Attention-core casts</text>
+<rect x="150" y="150" width="1300" height="390" fill="#ffffff" stroke="#cbd3df" rx="10"/>
+<line x1="150" y1="540.0" x2="1450" y2="540.0" stroke="#e5e9f0"/>
+<text x="138.0" y="545.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">0.7×</text>
+<line x1="150" y1="428.6" x2="1450" y2="428.6" stroke="#e5e9f0"/>
+<text x="138.0" y="433.6" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">0.8×</text>
+<line x1="150" y1="317.1" x2="1450" y2="317.1" stroke="#e5e9f0"/>
+<text x="138.0" y="322.1" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">0.9×</text>
+<line x1="150" y1="205.7" x2="1450" y2="205.7" stroke="#2563eb"/>
+<text x="138.0" y="210.7" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">1.0×</text>
+<rect x="196.3" y="447.3" width="56" height="92.7" fill="#94a3b8" rx="5"/>
+<text x="224.3" y="439.3" font-family="Inter,Arial,sans-serif" font-size="12" fill="#94a3b8" text-anchor="middle" font-weight="700">0.783×</text>
+<text x="224.3" y="558.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="middle" font-weight="400">3 casts</text>
+<rect x="262.3" y="402.2" width="56" height="137.8" fill="#f59e0b" rx="5"/>
+<text x="290.3" y="394.2" font-family="Inter,Arial,sans-serif" font-size="12" fill="#f59e0b" text-anchor="middle" font-weight="700">0.824×</text>
+<text x="290.3" y="558.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="middle" font-weight="400">direct</text>
+<text x="258.3" y="588.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">Qwen b1t256</text>
+<rect x="413.0" y="471.6" width="56" height="68.4" fill="#94a3b8" rx="5"/>
+<text x="441.0" y="463.6" font-family="Inter,Arial,sans-serif" font-size="12" fill="#94a3b8" text-anchor="middle" font-weight="700">0.761×</text>
+<text x="441.0" y="558.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="middle" font-weight="400">3 casts</text>
+<rect x="479.0" y="453.7" width="56" height="86.3" fill="#f59e0b" rx="5"/>
+<text x="507.0" y="445.7" font-family="Inter,Arial,sans-serif" font-size="12" fill="#f59e0b" text-anchor="middle" font-weight="700">0.777×</text>
+<text x="507.0" y="558.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="middle" font-weight="400">direct</text>
+<text x="475.0" y="588.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">Qwen b1t1024</text>
+<rect x="629.7" y="355.7" width="56" height="184.3" fill="#94a3b8" rx="5"/>
+<text x="657.7" y="347.7" font-family="Inter,Arial,sans-serif" font-size="12" fill="#94a3b8" text-anchor="middle" font-weight="700">0.865×</text>
+<text x="657.7" y="558.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="middle" font-weight="400">3 casts</text>
+<rect x="695.7" y="330.3" width="56" height="209.7" fill="#f59e0b" rx="5"/>
+<text x="723.7" y="322.3" font-family="Inter,Arial,sans-serif" font-size="12" fill="#f59e0b" text-anchor="middle" font-weight="700">0.888×</text>
+<text x="723.7" y="558.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="middle" font-weight="400">direct</text>
+<text x="691.7" y="588.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">Qwen b2t512</text>
+<rect x="846.3" y="380.2" width="56" height="159.8" fill="#94a3b8" rx="5"/>
+<text x="874.3" y="372.2" font-family="Inter,Arial,sans-serif" font-size="12" fill="#94a3b8" text-anchor="middle" font-weight="700">0.843×</text>
+<text x="874.3" y="558.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="middle" font-weight="400">3 casts</text>
+<rect x="912.3" y="353.8" width="56" height="186.2" fill="#f59e0b" rx="5"/>
+<text x="940.3" y="345.8" font-family="Inter,Arial,sans-serif" font-size="12" fill="#f59e0b" text-anchor="middle" font-weight="700">0.867×</text>
+<text x="940.3" y="558.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="middle" font-weight="400">direct</text>
+<text x="908.3" y="588.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">Deep b1t256</text>
+<rect x="1063.0" y="470.1" width="56" height="69.9" fill="#94a3b8" rx="5"/>
+<text x="1091.0" y="462.1" font-family="Inter,Arial,sans-serif" font-size="12" fill="#94a3b8" text-anchor="middle" font-weight="700">0.763×</text>
+<text x="1091.0" y="558.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="middle" font-weight="400">3 casts</text>
+<rect x="1129.0" y="449.4" width="56" height="90.6" fill="#f59e0b" rx="5"/>
+<text x="1157.0" y="441.4" font-family="Inter,Arial,sans-serif" font-size="12" fill="#f59e0b" text-anchor="middle" font-weight="700">0.781×</text>
+<text x="1157.0" y="558.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="middle" font-weight="400">direct</text>
+<text x="1125.0" y="588.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">Deep b1t1024</text>
+<rect x="1279.7" y="335.0" width="56" height="205.0" fill="#94a3b8" rx="5"/>
+<text x="1307.7" y="327.0" font-family="Inter,Arial,sans-serif" font-size="12" fill="#94a3b8" text-anchor="middle" font-weight="700">0.884×</text>
+<text x="1307.7" y="558.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="middle" font-weight="400">3 casts</text>
+<rect x="1345.7" y="310.1" width="56" height="229.9" fill="#f59e0b" rx="5"/>
+<text x="1373.7" y="302.1" font-family="Inter,Arial,sans-serif" font-size="12" fill="#f59e0b" text-anchor="middle" font-weight="700">0.906×</text>
+<text x="1373.7" y="558.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="middle" font-weight="400">direct</text>
+<text x="1341.7" y="588.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">Deep b2t512</text>
+<text x="800.0" y="635.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#b42335" text-anchor="middle" font-weight="700">Every case improves slightly, but direct BF16 still reaches only 0.777×–0.906×</text>
+<text x="800.0" y="680.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#9a4f00" text-anchor="middle" font-weight="400">Qwen Max/RMS remains 0.485/0.110 · cast-removal hypothesis rejected</text>
+<text x="800.0" y="720.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">Gray = prior three-cast route · orange = direct BF16 boundary</text>
+</svg>

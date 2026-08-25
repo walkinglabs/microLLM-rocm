@@ -392,7 +392,8 @@ bool bf16_qkv_projection_out_(
     Tensor& value_output_fp32, Bf16QkvWorkspace& workspace,
     const Tensor& input_fp32, const Tensor& query_weight_bf16,
     const Tensor& key_weight_bf16, const Tensor& value_weight_bf16,
-    const OpContext& context = {}, bool retain_query_key_bf16 = false);
+    const OpContext& context = {}, bool retain_query_key_bf16 = false,
+    bool retain_value_bf16 = false);
 
 void fill_(Tensor& tensor, float value, const OpContext& context = {});
 void adamw_update_(Tensor& parameter, const Tensor& gradient,
@@ -480,6 +481,9 @@ void add_in_place_(Tensor& destination, const Tensor& source,
                    const OpContext& context = {});
 [[nodiscard]] Tensor add_bias(const Tensor& input, const Tensor& bias,
                               const OpContext& context = {});
+[[nodiscard]] Tensor add_bias_bf16(const Tensor& input_bf16,
+                                   const Tensor& bias_fp32,
+                                   const OpContext& context = {});
 [[nodiscard]] Tensor bias_gradient(const Tensor& gradient,
                                    const OpContext& context = {});
 [[nodiscard]] Tensor bias_gradient_with_implementation(
@@ -625,6 +629,12 @@ void swiglu_out_(Tensor& output, const Tensor& gate, const Tensor& up,
 // required before the call.
 [[nodiscard]] Tensor rope_split_half_bias_bthd(
     const Tensor& input, const Tensor& bias,
+    std::int64_t position_offset = 0, float base = 10000.0F,
+    const OpContext& context = {});
+// BF16-only inference boundary matching rope_split_half_bias_bthd's BTHD->BHTD
+// layout, but rounds the fused bias+rotation result directly into BF16.
+[[nodiscard]] Tensor rope_split_half_bias_bthd_bf16(
+    const Tensor& input_bf16, const Tensor& bias,
     std::int64_t position_offset = 0, float base = 10000.0F,
     const OpContext& context = {});
 // Decode-only RoPE for [A,H,1,D]. positions[A] supplies one absolute

@@ -3209,7 +3209,12 @@ bool bf16_qkv_projection_out_(
     Tensor& value_output_fp32, Bf16QkvWorkspace& workspace,
     const Tensor& input_fp32, const Tensor& query_weight_bf16,
     const Tensor& key_weight_bf16, const Tensor& value_weight_bf16,
-    const OpContext& context, [[maybe_unused]] bool retain_query_key_bf16) {
+    const OpContext& context, [[maybe_unused]] bool retain_query_key_bf16,
+    [[maybe_unused]] bool retain_value_bf16) {
+    if (retain_value_bf16 && !retain_query_key_bf16) {
+        throw std::invalid_argument(
+            "retaining BF16 value requires retaining BF16 query/key");
+    }
     if (input_fp32.dtype() != DType::Float32 || input_fp32.ndim() != 2 ||
         !input_fp32.is_contiguous()) {
         throw std::invalid_argument(
@@ -3288,8 +3293,10 @@ bool bf16_qkv_projection_out_(
             cast_out_(workspace.key_fallback_bf16,
                       key_output_fp32, context);
         }
-        cast_out_(workspace.value_fallback_bf16,
-                  value_output_fp32, context);
+        if (!retain_value_bf16) {
+            cast_out_(workspace.value_fallback_bf16,
+                      value_output_fp32, context);
+        }
         if (retain_query_key_bf16) {
             ++bf16_grouped_qkv_retained_query_key_dispatches;
         }

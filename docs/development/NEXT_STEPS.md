@@ -50,8 +50,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   explicit tail/architecture fallback, counters, PyTorch and CMake Config gates;
 - [x] run explicit Qwen/DeepSeek full-logit, peak-memory and end-to-end model A/B;
   reject the route at 0.761x–0.884x and Qwen Max/RMS drift up to 0.511/0.112;
-- [ ] only reopen model integration if RoPE/layout can produce BF16 Q/K/V directly,
-  eliminating all three per-layer casts before repeating the same gates;
+- [x] make grouped QKV, value bias and fused RoPE produce BF16 directly, eliminate
+  all three per-layer casts, and repeat the same model gate;
+- [x] reject the direct-BF16 route at 0.777x–0.906x with Qwen Max/RMS up to
+  0.485/0.110; close the online-Attention model track rather than tune local knobs;
 - [x] populate B1 KV cache from one full-sequence prefill instead of token replay;
 - [x] support batched cached decode with batch-aware KV Storage;
 - [x] add opt-in BF16 KV Storage with FP32 accumulation, complete-logit gates and a retained
