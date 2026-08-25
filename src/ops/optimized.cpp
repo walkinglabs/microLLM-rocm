@@ -2732,6 +2732,18 @@ void matmul_out_(Tensor& output, const Tensor& left, const Tensor& right,
         static_cast<std::size_t>(output.numel()) * dtype_size(output.dtype()));
 }
 
+void matmul_weight_gradient_out_(
+    Tensor& weight_gradient, const Tensor& input,
+    const Tensor& output_gradient, MatmulImplementation implementation,
+    const OpContext& context) {
+    if (input.ndim() != 2 || output_gradient.ndim() != 2) {
+        throw std::invalid_argument(
+            "matmul weight gradient requires rank-two input and output gradient");
+    }
+    matmul_out_(weight_gradient, input, output_gradient, implementation,
+                true, false, context);
+}
+
 Tensor matmul_scaled_with_implementation(
     const Tensor& left, const Tensor& right, float factor,
     MatmulImplementation implementation, bool transpose_left,

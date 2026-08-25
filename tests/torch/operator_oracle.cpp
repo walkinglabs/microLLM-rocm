@@ -78,6 +78,12 @@ void emit_forward_cases() {
     const auto matrix_left = f32({1, 2, 3, 4, 5, 6}, {2, 3});
     const auto matrix_right = f32({1, 2, 3, 4, 5, 6}, {3, 2});
     emit("matmul_2d", matmul(matrix_left, matrix_right));
+    Tensor caller_weight_gradient({3, 2});
+    matmul_weight_gradient_out_(
+        caller_weight_gradient, matrix_left,
+        f32({1, -1, 0.5F, 2}, {2, 2}),
+        MatmulImplementation::Readable);
+    emit("matmul_weight_gradient_out", caller_weight_gradient);
     emit("bf16_mixed_matmul",
          bf16_matmul(matrix_left, cast(matrix_right, DType::BFloat16)));
     emit("bf16_output_matmul", bf16_matmul_output(

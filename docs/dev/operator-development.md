@@ -23,6 +23,9 @@ Arena-backed owning-style operators may also wrap caller memory with
 `Storage::from_external`, then construct a Tensor using `Tensor::from_storage`. The wrapper does
 not extend lifetime or free the pointer. Prefer `_out_` operators such as `matmul_out_` and
 `swiglu_out_`; never return an arena-backed Tensor beyond its arena/Stream lifetime.
+`matmul_weight_gradient_out_` is the narrower linear-backward form: it requires rank-2 input and
+output gradient and writes `input^T @ output_gradient` into the validated caller Tensor. It does
+not add an existing gradient; Autograd may route only a proven first/sole contribution to it.
 For BF16 FFN, use `Bf16FfnWorkspace` and `bf16_ffn_out_`. The fallback is mandatory even when the
 development GPU accepts direct FP32 output: support is exact-shape/runtime dependent, and a caller
 must not discover an allocation or unsupported error only after Graph capture.

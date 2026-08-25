@@ -617,6 +617,12 @@ void matmul_out_(Tensor& output, const Tensor& left, const Tensor& right,
                  MatmulImplementation implementation,
                  bool transpose_left = false, bool transpose_right = false,
                  const OpContext& context = {});
+// Writes input^T @ output_gradient into caller-owned FP32 Storage. This is the
+// rank-2 linear-weight gradient producer used to test direct leaf destinations.
+void matmul_weight_gradient_out_(
+    Tensor& weight_gradient, const Tensor& input,
+    const Tensor& output_gradient, MatmulImplementation implementation,
+    const OpContext& context = {});
 // Computes factor * (op(left) @ op(right)). hipBLASLt applies factor through
 // the GEMM alpha parameter; readable/CPU keeps an explicit composed reference.
 [[nodiscard]] Tensor matmul_scaled_with_implementation(

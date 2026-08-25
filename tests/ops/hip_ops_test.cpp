@@ -120,6 +120,32 @@ TEST(HipOpsTest, MatmulOutUsesCallerStorageWithoutPayloadTransfers) {
     expect_near(output.to_vector(), matmul(left_cpu, right_cpu).to_vector());
 }
 
+TEST(HipOpsTest, MatmulWeightGradientOutUsesCallerStorageAndMatchesCpu) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    const auto input_cpu = Tensor::from_vector({1, 2, 3, 4, 5, 6}, {2, 3});
+    const auto gradient_cpu = Tensor::from_vector({1, -1, 0.5F, 2}, {2, 2});
+    const auto input = input_cpu.to(gpu);
+    const auto gradient = gradient_cpu.to(gpu);
+    Tensor weight_gradient({3, 2}, DType::Float32, gpu);
+    const auto* address = weight_gradient.storage().data();
+    runtime::reset_transfer_stats();
+    matmul_weight_gradient_out_(
+        weight_gradient, input, gradient,
+        MatmulImplementation::HipBLASLt);
+    runtime::synchronize(gpu);
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(weight_gradient.storage().data(), address);
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    EXPECT_EQ(transfers.device_to_device_calls, 0U);
+    expect_near(
+        weight_gradient.to_vector(),
+        matmul_with_implementation(
+            input_cpu, gradient_cpu, MatmulImplementation::Readable,
+            true, false).to_vector());
+}
+
 TEST(HipGraphMatmulTest, CallerOwnedHipblasLtOutputCapturesAndReplays) {
     require_gpu();
     const auto gpu = Device::hip(0);

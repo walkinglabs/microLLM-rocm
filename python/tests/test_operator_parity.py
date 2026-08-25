@@ -126,6 +126,8 @@ def pytorch_references(actual):
     matrix_left = tensor([1, 2, 3, 4, 5, 6], (2, 3))
     matrix_right = tensor([1, 2, 3, 4, 5, 6], (3, 2))
     record(refs, "matmul_2d", matrix_left @ matrix_right)
+    record(refs, "matmul_weight_gradient_out",
+           matrix_left.transpose(0, 1) @ tensor([1, -1, 0.5, 2], (2, 2)))
     record(refs, "bf16_mixed_matmul",
            matrix_left.to(torch.bfloat16).float() @ matrix_right.to(torch.bfloat16).float())
     record(refs, "bf16_output_matmul",
@@ -774,6 +776,7 @@ class OperatorParityTest(unittest.TestCase):
         looser = {
             "matmul_2d",
             "matmul_readable",
+            "matmul_weight_gradient_out",
             "matmul_3d",
             "rms_norm",
             "graph_rms_input_grad",

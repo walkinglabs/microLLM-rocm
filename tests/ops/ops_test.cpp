@@ -104,6 +104,31 @@ TEST(CpuOpsTest, MatmulOutPreservesCallerStorageAndChecksAliases) {
                  std::invalid_argument);
 }
 
+TEST(CpuOpsTest, MatmulWeightGradientOutMatchesReferenceAndPreservesStorage) {
+    const auto input = Tensor::from_vector({1, 2, 3, 4, 5, 6}, {2, 3});
+    const auto output_gradient = Tensor::from_vector({1, -1, 0.5F, 2}, {2, 2});
+    Tensor weight_gradient({3, 2});
+    const auto* address = weight_gradient.storage().data();
+    matmul_weight_gradient_out_(
+        weight_gradient, input, output_gradient,
+        MatmulImplementation::Readable);
+    EXPECT_EQ(weight_gradient.storage().data(), address);
+    EXPECT_EQ(weight_gradient.to_vector(),
+              matmul_with_implementation(
+                  input, output_gradient, MatmulImplementation::Readable,
+                  true, false).to_vector());
+    EXPECT_THROW(
+        matmul_weight_gradient_out_(
+            weight_gradient, input.reshape({1, 2, 3}), output_gradient,
+            MatmulImplementation::Readable),
+        std::invalid_argument);
+    EXPECT_THROW(
+        matmul_weight_gradient_out_(
+            weight_gradient, input, Tensor({3, 2}),
+            MatmulImplementation::Readable),
+        std::invalid_argument);
+}
+
 TEST(CpuOpsTest, EmbeddingBackwardAddAccumulatesDuplicateRowsInCallerStorage) {
     auto weight_gradient = Tensor::from_vector(
         {10, 20, 30, 40, 50, 60, 70, 80}, {4, 2});
