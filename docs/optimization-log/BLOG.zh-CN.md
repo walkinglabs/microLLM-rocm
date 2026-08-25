@@ -3669,3 +3669,17 @@ Graph descriptor保存gradient真实地址；`zero_grad`后下一次backward只�
 Graph；DeepSeek T512直接fallback，不用未定义地址去“试速度”。
 
 ![Gradient Storage address stability](assets/gradient-address-stability.svg)
+
+## 241. Experiment 224：第二条队伍出现，第一条队伍不能随便复用桌子
+
+上一轮Qwen地址稳定，但真正的HIP Graph必须创建非默认Stream。runtime为避免跨Stream
+use-after-free，会永久关闭只对default Stream安全的exact-size pool。allocator行为一变，Qwen/
+DeepSeek T8/T512四个snapshot全部失配。
+
+正式12进程中pool enabled全为false、snapshot match全为false、Graph launch为0。安全门在读过期
+地址前停止，所以没有伪造速度数字。
+
+optimizer-only model Graph方向关闭。下一实验必须先做可证明的quiescent Stream handoff或
+Event-aware retirement；不能简单把pool布尔值重新打开。
+
+![Optimizer Graph model preflight](assets/optimizer-graph-model-preflight.svg)

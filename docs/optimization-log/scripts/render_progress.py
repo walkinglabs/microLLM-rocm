@@ -102,6 +102,10 @@ ADAMW_GRAPH_MULTI_CHART = ROOT / "assets" / "adamw-graph-multi.svg"
 GRADIENT_ADDRESS_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
                          "2026-08-24-gradient-address-stability")
 GRADIENT_ADDRESS_CHART = ROOT / "assets" / "gradient-address-stability.svg"
+OPTIMIZER_GRAPH_PREFLIGHT_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
+                                  "2026-08-24-optimizer-graph-model-preflight")
+OPTIMIZER_GRAPH_PREFLIGHT_CHART = (
+    ROOT / "assets" / "optimizer-graph-model-preflight.svg")
 
 
 def rows() -> list[dict]:
@@ -2558,6 +2562,71 @@ def gradient_address_stability_svg() -> str:
     return "\n".join(parts)
 
 
+def optimizer_graph_model_preflight_svg() -> str:
+    summary = json.loads((OPTIMIZER_GRAPH_PREFLIGHT_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    width, height = 1600, 720
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 224 · Model Optimizer Graph Preflight", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "12 fresh processes · graph-ready Stream lifecycle · safety gate before launch",
+             16, "#5b6474", anchor="middle"),
+    ]
+    steps = (
+        ("1", "Create non-default", "Graph Stream", "#fff7ed", "#f59e0b"),
+        ("2", "Default-Stream", "pool disabled", "#fff1f2", "#e11d48"),
+        ("3", "Next backward", "snapshot differs", "#fff1f2", "#e11d48"),
+        ("4", "Safety gate", "rejects replay", "#ecfdf3", "#16a34a"),
+        ("5", "Graph launches", "0 / 12", "#ecfdf3", "#16a34a"),
+    )
+    start_x, y, box_w, gap = 70, 165, 250, 55
+    for index, (number, first, second, fill, stroke) in enumerate(steps):
+        x = start_x + index * (box_w + gap)
+        parts.append(f'<rect x="{x}" y="{y}" width="{box_w}" height="150" '
+                     f'fill="{fill}" stroke="{stroke}" rx="12"/>')
+        parts.append(text(x + 24, y + 38, number, 22, stroke, weight=700))
+        parts.append(text(x + box_w / 2, y + 78, first, 17,
+                          anchor="middle", weight=700))
+        parts.append(text(x + box_w / 2, y + 108, second, 17, stroke,
+                          anchor="middle", weight=700))
+        if index + 1 < len(steps):
+            parts.append(f'<path d="M {x+box_w+8} {y+75} L {x+box_w+gap-8} {y+75}" '
+                         'stroke="#64748b" stroke-width="3"/>')
+            parts.append(f'<path d="M {x+box_w+gap-18} {y+68} L {x+box_w+gap-8} {y+75} '
+                         f'L {x+box_w+gap-18} {y+82}" fill="none" '
+                         'stroke="#64748b" stroke-width="3"/>')
+    comparisons = summary["comparisons"]
+    panel_y = 380
+    parts.append(f'<rect x="170" y="{panel_y}" width="1260" height="175" '
+                 'fill="#ffffff" stroke="#cbd3df" rx="12"/>')
+    group_w = 1260 / len(comparisons)
+    for index, row in enumerate(comparisons):
+        center = 170 + group_w * (index + 0.5)
+        label = ("Qwen" if row["model"] == "qwen" else "DeepSeek") + \
+                f' T{row["context"]}'
+        parts.append(text(center, panel_y + 42, label, 17,
+                          anchor="middle", weight=700))
+        parts.append(text(center, panel_y + 82, "3/3 rejected", 21,
+                          "#e11d48", anchor="middle", weight=700))
+        parts.append(text(center, panel_y + 116,
+                          f'{row["preparation_ms_median"]:.2f} ms setup', 14,
+                          "#5b6474", anchor="middle"))
+        parts.append(text(center, panel_y + 145, "0 launches", 14,
+                          "#16a34a", anchor="middle", weight=700))
+    parts.append(text(width / 2, 625,
+                      "Previous default-Stream stability does not survive Graph Stream creation",
+                      18, "#9a4f00", anchor="middle", weight=700))
+    parts.append(text(width / 2, 666,
+                      "Decision: no optimizer-only model Graph until Stream-aware retirement or stable gradients",
+                      16, "#5b6474", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -2596,7 +2665,9 @@ def main() -> int:
                 TRAINING_GRAPH_CHART: training_graph_capture_svg(),
                 ADAMW_GRAPH_CHART: adamw_graph_replay_svg(),
                 ADAMW_GRAPH_MULTI_CHART: adamw_graph_multi_svg(),
-                GRADIENT_ADDRESS_CHART: gradient_address_stability_svg()}
+                GRADIENT_ADDRESS_CHART: gradient_address_stability_svg(),
+                OPTIMIZER_GRAPH_PREFLIGHT_CHART:
+                    optimizer_graph_model_preflight_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

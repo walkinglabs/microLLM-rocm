@@ -75,6 +75,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [44](steps/44-adamw-device-step-graph.md) | complete | device-owned AdamW step | FP32 many-small 1.427×/1.436×；BF16和大Tensor拒绝 |
 | [45](steps/45-adamw-stable-descriptor-multi-graph.md) | complete | immutable descriptor + 两节点multi Graph | BF16 small 10.813×/36.929×；FP32 large 0.908×反例 |
 | [46](steps/46-gradient-address-stability.md) | complete | real backward gradient地址审计 | Qwen T8/T512稳定；DeepSeek T512变化198项/7.108GB |
+| [47](steps/47-optimizer-graph-model-preflight.md) | complete | graph-ready Stream/allocator preflight | 四case 12进程snapshot失配，0次launch |
 
 ## 为什么按这个顺序
 

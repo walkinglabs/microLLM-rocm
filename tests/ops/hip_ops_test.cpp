@@ -3798,6 +3798,8 @@ TEST(HipTrainingTest,
             0);
         for (int step = 0; step < 3; ++step) eager_optimizer.step();
         auto workspace = replay_optimizer.make_graph_workspace();
+        EXPECT_TRUE(replay_optimizer.graph_workspace_matches_current_gradients(
+            workspace));
         runtime::Stream stream(device);
         runtime::ScopedDeferredHipStream lifetime(stream, 64);
         OpContext context;
@@ -3807,6 +3809,8 @@ TEST(HipTrainingTest,
             0);
         EXPECT_THROW(wrong_owner.step_graph_replayable(workspace, context),
                      std::invalid_argument);
+        EXPECT_FALSE(wrong_owner.graph_workspace_matches_current_gradients(
+            workspace));
         auto graph = runtime::HipGraphExecutable::capture(stream, [&] {
             replay_optimizer.step_graph_replayable(workspace, context);
         });
@@ -3836,6 +3840,11 @@ TEST(HipTrainingTest,
         }
         graph = runtime::HipGraphExecutable();
         lifetime.finish();
+        replay.front().set_grad(
+            Tensor::from_vector(std::vector<float>(17, 0.5F), {17})
+                .to(device));
+        EXPECT_FALSE(replay_optimizer.graph_workspace_matches_current_gradients(
+            workspace));
     }
 }
 

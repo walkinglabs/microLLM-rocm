@@ -466,3 +466,5 @@ the next gate. Records are append-only except for factual corrections.
   beginner-friendly immutable pointer table, two-node replay and real-gradient address blocker.
 - [2026-08-24-gradient-address-stability.md](2026-08-24-gradient-address-stability.md):
   beginner-friendly shape-versus-address explanation and model/context-specific evidence.
+- [2026-08-24-optimizer-graph-model-preflight.md](2026-08-24-optimizer-graph-model-preflight.md):
+  beginner-friendly Stream/allocator conflict, snapshot safety gate and zero-launch rejection.

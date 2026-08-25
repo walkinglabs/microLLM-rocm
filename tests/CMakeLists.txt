@@ -204,6 +204,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.GradientAddressMatrixContract PROPERTIES
         LABELS "cpu;benchmark;training;graph;autograd;memory;schema")
     add_test(
+        NAME Benchmark.OptimizerGraphModelPreflightContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_optimizer_graph_model_preflight.py
+    )
+    set_tests_properties(Benchmark.OptimizerGraphModelPreflightContract PROPERTIES
+        LABELS "cpu;benchmark;training;graph;optimizer;allocator;schema")
+    add_test(
         NAME Benchmark.HipGraphMatrixContract
         COMMAND ${Python3_EXECUTABLE}
                 ${PROJECT_SOURCE_DIR}/python/tests/test_hip_graph_matrix.py

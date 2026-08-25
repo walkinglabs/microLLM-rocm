@@ -847,6 +847,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [experiments/222-adamw-stable-descriptor-multi-graph.md](experiments/222-adamw-stable-descriptor-multi-graph.md) | 90进程、immutable descriptor与大FP32反例 |
 | [assets/gradient-address-stability.svg](assets/gradient-address-stability.svg) | 六case稳定/变化gradient字节与Tensor数 |
 | [experiments/223-gradient-address-stability.md](experiments/223-gradient-address-stability.md) | 18进程、context反例与Graph eligibility边界 |
+| [assets/optimizer-graph-model-preflight.svg](assets/optimizer-graph-model-preflight.svg) | Stream创建到安全拒绝的完整因果链 |
+| [experiments/224-optimizer-graph-model-preflight.md](experiments/224-optimizer-graph-model-preflight.md) | 12进程、pool disable与零launch模型反例 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

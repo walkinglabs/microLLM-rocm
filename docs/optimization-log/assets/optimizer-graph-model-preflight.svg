@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="720" viewBox="0 0 1600 720">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="800.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 224 · Model Optimizer Graph Preflight</text>
+<text x="800.0" y="82.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">12 fresh processes · graph-ready Stream lifecycle · safety gate before launch</text>
+<rect x="70" y="165" width="250" height="150" fill="#fff7ed" stroke="#f59e0b" rx="12"/>
+<text x="94.0" y="203.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#f59e0b" text-anchor="start" font-weight="700">1</text>
+<text x="195.0" y="243.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="middle" font-weight="700">Create non-default</text>
+<text x="195.0" y="273.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#f59e0b" text-anchor="middle" font-weight="700">Graph Stream</text>
+<path d="M 328 240 L 367 240" stroke="#64748b" stroke-width="3"/>
+<path d="M 357 233 L 367 240 L 357 247" fill="none" stroke="#64748b" stroke-width="3"/>
+<rect x="375" y="165" width="250" height="150" fill="#fff1f2" stroke="#e11d48" rx="12"/>
+<text x="399.0" y="203.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#e11d48" text-anchor="start" font-weight="700">2</text>
+<text x="500.0" y="243.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="middle" font-weight="700">Default-Stream</text>
+<text x="500.0" y="273.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#e11d48" text-anchor="middle" font-weight="700">pool disabled</text>
+<path d="M 633 240 L 672 240" stroke="#64748b" stroke-width="3"/>
+<path d="M 662 233 L 672 240 L 662 247" fill="none" stroke="#64748b" stroke-width="3"/>
+<rect x="680" y="165" width="250" height="150" fill="#fff1f2" stroke="#e11d48" rx="12"/>
+<text x="704.0" y="203.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#e11d48" text-anchor="start" font-weight="700">3</text>
+<text x="805.0" y="243.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="middle" font-weight="700">Next backward</text>
+<text x="805.0" y="273.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#e11d48" text-anchor="middle" font-weight="700">snapshot differs</text>
+<path d="M 938 240 L 977 240" stroke="#64748b" stroke-width="3"/>
+<path d="M 967 233 L 977 240 L 967 247" fill="none" stroke="#64748b" stroke-width="3"/>
+<rect x="985" y="165" width="250" height="150" fill="#ecfdf3" stroke="#16a34a" rx="12"/>
+<text x="1009.0" y="203.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#16a34a" text-anchor="start" font-weight="700">4</text>
+<text x="1110.0" y="243.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="middle" font-weight="700">Safety gate</text>
+<text x="1110.0" y="273.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#16a34a" text-anchor="middle" font-weight="700">rejects replay</text>
+<path d="M 1243 240 L 1282 240" stroke="#64748b" stroke-width="3"/>
+<path d="M 1272 233 L 1282 240 L 1272 247" fill="none" stroke="#64748b" stroke-width="3"/>
+<rect x="1290" y="165" width="250" height="150" fill="#ecfdf3" stroke="#16a34a" rx="12"/>
+<text x="1314.0" y="203.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#16a34a" text-anchor="start" font-weight="700">5</text>
+<text x="1415.0" y="243.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="middle" font-weight="700">Graph launches</text>
+<text x="1415.0" y="273.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#16a34a" text-anchor="middle" font-weight="700">0 / 12</text>
+<rect x="170" y="380" width="1260" height="175" fill="#ffffff" stroke="#cbd3df" rx="12"/>
+<text x="327.5" y="422.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="middle" font-weight="700">Qwen T8</text>
+<text x="327.5" y="462.0" font-family="Inter,Arial,sans-serif" font-size="21" fill="#e11d48" text-anchor="middle" font-weight="700">3/3 rejected</text>
+<text x="327.5" y="496.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">2.68 ms setup</text>
+<text x="327.5" y="525.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16a34a" text-anchor="middle" font-weight="700">0 launches</text>
+<text x="642.5" y="422.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="middle" font-weight="700">Qwen T512</text>
+<text x="642.5" y="462.0" font-family="Inter,Arial,sans-serif" font-size="21" fill="#e11d48" text-anchor="middle" font-weight="700">3/3 rejected</text>
+<text x="642.5" y="496.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">2.46 ms setup</text>
+<text x="642.5" y="525.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16a34a" text-anchor="middle" font-weight="700">0 launches</text>
+<text x="957.5" y="422.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="middle" font-weight="700">DeepSeek T8</text>
+<text x="957.5" y="462.0" font-family="Inter,Arial,sans-serif" font-size="21" fill="#e11d48" text-anchor="middle" font-weight="700">3/3 rejected</text>
+<text x="957.5" y="496.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">4.44 ms setup</text>
+<text x="957.5" y="525.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16a34a" text-anchor="middle" font-weight="700">0 launches</text>
+<text x="1272.5" y="422.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="middle" font-weight="700">DeepSeek T512</text>
+<text x="1272.5" y="462.0" font-family="Inter,Arial,sans-serif" font-size="21" fill="#e11d48" text-anchor="middle" font-weight="700">3/3 rejected</text>
+<text x="1272.5" y="496.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">5.20 ms setup</text>
+<text x="1272.5" y="525.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16a34a" text-anchor="middle" font-weight="700">0 launches</text>
+<text x="800.0" y="625.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#9a4f00" text-anchor="middle" font-weight="700">Previous default-Stream stability does not survive Graph Stream creation</text>
+<text x="800.0" y="666.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">Decision: no optimizer-only model Graph until Stream-aware retirement or stable gradients</text>
+</svg>

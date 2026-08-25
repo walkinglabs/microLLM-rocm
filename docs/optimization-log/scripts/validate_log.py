@@ -12214,6 +12214,104 @@ def validate_gradient_address_stability(
             for row in comparisons.values())
 
 
+def validate_optimizer_graph_model_preflight(
+        errors: list[str]) -> tuple[int, int, float, float]:
+    data = REPOSITORY / (
+        "benchmarks/results/2026-08-24-optimizer-graph-model-preflight")
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = {(row["model"], row["context"]): row
+                   for row in summary.get("comparisons", [])}
+    expected_preparation = {
+        ("qwen", 8): 2.679057,
+        ("qwen", 512): 2.458843,
+        ("deepseek", 8): 4.438049,
+        ("deepseek", 512): 5.202113,
+    }
+    counts = {key: 0 for key in expected_preparation}
+    for row in raw:
+        key = (row.get("model"), row.get("context"))
+        if key in counts: counts[key] += 1
+    expected_gates = {
+        "non_default_stream_disables_exact_size_pool": True,
+        "all_model_context_snapshots_rejected": True,
+        "no_graph_launched_after_failed_snapshot": True,
+        "four_cases_repeat_three_times": True,
+    }
+    if summary.get("schema_version") != 1 or summary.get("status") != "pass" or \
+            summary.get("experiment") != "optimizer_graph_model_preflight" or \
+            summary.get("processes") != 12 or \
+            summary.get("runs_per_case") != 3 or \
+            summary.get("gates") != expected_gates or \
+            summary.get("decision") != (
+                "reject optimizer-only model Graph under permanent non-default "
+                "Stream allocator disable; require Stream-aware retirement") or \
+            len(raw) != 12 or set(comparisons) != set(expected_preparation) or \
+            any(count != 3 for count in counts.values()) or \
+            any(abs(float(comparisons[key].get("preparation_ms_median", 0.0)) -
+                    value) > 1.0e-9 or
+                comparisons[key].get("gradient_snapshot_matches") is not False or
+                comparisons[key].get("caching_allocator_enabled") is not False or
+                comparisons[key].get("graph_launches") != 0
+                for key, value in expected_preparation.items()) or \
+            any(row.get("schema_version") != 1 or row.get("status") != "pass" or
+                row.get("record_type") != "optimizer_graph_model_measurement" or
+                row.get("mode") != "preflight" or
+                row.get("gradient_snapshot_matches") is not False or
+                row.get("caching_allocator_enabled") is not False or
+                row.get("graph_launched") is not False or
+                row.get("captured_nodes") != 0
+                for row in raw):
+        errors.append("optimizer Graph model preflight evidence changed")
+    sources = (
+        ("graph_workspace_matches_current_gradients", REPOSITORY /
+         "include/microllm/training/optimizer.h"),
+        ("notify_non_default_stream", REPOSITORY /
+         "src/runtime/runtime.cpp"),
+        ("Graph gradient snapshot changed before launch", REPOSITORY /
+         "benchmarks/single_gpu/benchmark_optimizer_graph_model.cpp"),
+        ("no_graph_launched_after_failed_snapshot", REPOSITORY /
+         "benchmarks/single_gpu/optimizer_graph_model_preflight.py"),
+        ("successful_safety_result", REPOSITORY /
+         "python/tests/test_optimizer_graph_model_preflight.py"),
+    )
+    if any(token not in path.read_text(encoding="utf-8")
+           for token, path in sources):
+        errors.append("optimizer Graph model preflight source/test changed")
+    expected_tests = {
+        "cpu_debug": {"passed": 334, "total": 334},
+        "asan_ubsan": {"passed": 332, "total": 332},
+        "pytorch_enabled_cpu": {"passed": 308, "total": 308},
+        "hip_full_configuration": {
+            "passed": 527, "total": 527, "conditional_skips": 3},
+        "hip_label": {"passed": 181, "total": 181},
+        "rccl_multi_gpu": {"passed": 12, "total": 12},
+        "rccl_full_label": {"passed": 14, "total": 14},
+    }
+    if verification.get("status") != "pass" or \
+            verification.get("processes") != 12 or \
+            verification.get("snapshot_matches") != 0 or \
+            verification.get("graph_launches") != 0 or \
+            verification.get("pool_enabled_processes") != 0 or \
+            verification.get("model_route_retained") is not False or \
+            verification.get("registered_test_files") != 97 or \
+            verification.get("tests") != expected_tests or \
+            verification.get("coverage") != {
+                "lines_percent": 78.4,
+                "functions_percent": 86.7,
+                "branches_percent": 59.1,
+                "lines_covered": 8877,
+                "lines_total": 11320}:
+        errors.append("optimizer Graph model preflight verification changed")
+    preparations = list(expected_preparation.values())
+    return len(raw), sum(int(row.get("graph_launches", 0))
+                         for row in comparisons.values()), \
+        min(preparations), max(preparations)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -12415,7 +12513,8 @@ def validate_assets(errors: list[str]) -> None:
                  "training-graph-capture-boundary.svg",
                  "adamw-graph-replay.svg",
                  "adamw-graph-multi.svg",
-                 "gradient-address-stability.svg"):
+                 "gradient-address-stability.svg",
+                 "optimizer-graph-model-preflight.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -12830,6 +12929,9 @@ def main() -> int:
     gradient_address_rows, gradient_address_stable, gradient_address_changed, \
         gradient_address_bytes, gradient_address_peak = \
         validate_gradient_address_stability(errors)
+    optimizer_preflight_rows, optimizer_preflight_launches, \
+        optimizer_preflight_minimum, optimizer_preflight_maximum = \
+        validate_optimizer_graph_model_preflight(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -13198,6 +13300,10 @@ def main() -> int:
           f"gradient_address={gradient_address_rows}/"
           f"{gradient_address_stable}/{gradient_address_changed}/"
           f"{gradient_address_bytes}/{gradient_address_peak} "
+          f"optimizer_graph_preflight={optimizer_preflight_rows}/"
+          f"{optimizer_preflight_launches}/"
+          f"{optimizer_preflight_minimum:.3f}/"
+          f"{optimizer_preflight_maximum:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

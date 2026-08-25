@@ -1,0 +1,52 @@
+{
+  "comparisons": [
+    {
+      "caching_allocator_enabled": false,
+      "context": 8,
+      "gradient_snapshot_matches": false,
+      "graph_launches": 0,
+      "model": "qwen",
+      "preparation_ms_median": 2.679057,
+      "runs": 3
+    },
+    {
+      "caching_allocator_enabled": false,
+      "context": 512,
+      "gradient_snapshot_matches": false,
+      "graph_launches": 0,
+      "model": "qwen",
+      "preparation_ms_median": 2.458843,
+      "runs": 3
+    },
+    {
+      "caching_allocator_enabled": false,
+      "context": 8,
+      "gradient_snapshot_matches": false,
+      "graph_launches": 0,
+      "model": "deepseek",
+      "preparation_ms_median": 4.438049,
+      "runs": 3
+    },
+    {
+      "caching_allocator_enabled": false,
+      "context": 512,
+      "gradient_snapshot_matches": false,
+      "graph_launches": 0,
+      "model": "deepseek",
+      "preparation_ms_median": 5.202113,
+      "runs": 3
+    }
+  ],
+  "decision": "reject optimizer-only model Graph under permanent non-default Stream allocator disable; require Stream-aware retirement",
+  "experiment": "optimizer_graph_model_preflight",
+  "gates": {
+    "all_model_context_snapshots_rejected": true,
+    "four_cases_repeat_three_times": true,
+    "no_graph_launched_after_failed_snapshot": true,
+    "non_default_stream_disables_exact_size_pool": true
+  },
+  "processes": 12,
+  "runs_per_case": 3,
+  "schema_version": 1,
+  "status": "pass"
+}

@@ -60,6 +60,7 @@ public:
 private:
     ops::AdamWGraphStepState step_state_;
     ops::AdamWMultiTensorWorkspace multi_tensor_;
+    std::vector<const void*> gradient_addresses_;
     const AdamW* owner_ = nullptr;
     friend class AdamW;
 };
@@ -77,6 +78,8 @@ public:
     void step();
     [[nodiscard]] ops::AdamWGraphStepState make_graph_step_state() const;
     [[nodiscard]] AdamWGraphWorkspace make_graph_workspace();
+    [[nodiscard]] bool graph_workspace_matches_current_gradients(
+        const AdamWGraphWorkspace& workspace) const noexcept;
     void step_graph_replayable(ops::AdamWGraphStepState& graph_state,
                                ops::OpContext context = {});
     void step_graph_replayable(AdamWGraphWorkspace& workspace,

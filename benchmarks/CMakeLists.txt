@@ -25,6 +25,11 @@ if(MICROLLM_HAS_HIP)
     target_link_libraries(microllm_bench_gradient_address_stability PRIVATE
         microllm::model microllm::training microllm::ops microllm::runtime
         hip::host)
+    add_executable(microllm_bench_optimizer_graph_model
+                   single_gpu/benchmark_optimizer_graph_model.cpp)
+    target_link_libraries(microllm_bench_optimizer_graph_model PRIVATE
+        microllm::model microllm::training microllm::ops microllm::runtime
+        hip::host)
     add_executable(microllm_bench_stream_ordered_allocator
                    micro/benchmark_stream_ordered_allocator.cpp)
     target_link_libraries(microllm_bench_stream_ordered_allocator PRIVATE

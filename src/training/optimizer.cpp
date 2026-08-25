@@ -274,8 +274,12 @@ AdamWGraphWorkspace AdamW::make_graph_workspace() {
         std::move(element_counts), result.step_state_.device());
     std::vector<ops::AdamWMultiTensorEntry> entries;
     entries.reserve(parameters_.size());
+    result.gradient_addresses_.reserve(parameters_.size());
     for (std::size_t index = 0; index < parameters_.size(); ++index) {
         auto* parameter = parameters_[index];
+        result.gradient_addresses_.push_back(
+            parameter->has_grad() ? parameter->grad().storage().data()
+                                  : nullptr);
         entries.push_back({
             .parameter = &parameter->mutable_data(),
             .gradient = parameter->has_grad() ? &parameter->grad() : nullptr,
@@ -286,6 +290,22 @@ AdamWGraphWorkspace AdamW::make_graph_workspace() {
     }
     ops::adamw_prepare_multi_graph_(result.multi_tensor_, entries);
     return result;
+}
+
+bool AdamW::graph_workspace_matches_current_gradients(
+    const AdamWGraphWorkspace& workspace) const noexcept {
+    if (workspace.owner_ != this ||
+        workspace.gradient_addresses_.size() != parameters_.size()) {
+        return false;
+    }
+    for (std::size_t index = 0; index < parameters_.size(); ++index) {
+        const auto* parameter = parameters_[index];
+        const auto* current = parameter->has_grad()
+                                  ? parameter->grad().storage().data()
+                                  : nullptr;
+        if (current != workspace.gradient_addresses_[index]) return false;
+    }
+    return true;
 }
 
 void AdamW::step_graph_replayable(ops::AdamWGraphStepState& graph_state,
@@ -351,6 +371,7 @@ void AdamW::step_graph_replayable(AdamWGraphWorkspace& workspace,
         ops::adamw_multi_tensor_workspace_stats(workspace.multi_tensor_);
     if (!workspace.step_state_.defined() ||
         workspace.owner_ != this ||
+        !graph_workspace_matches_current_gradients(workspace) ||
         stats.tensors != parameters_.size() ||
         !stats.graph_descriptors_prepared || parameters_.empty() ||
         workspace.step_state_.device() != parameters_.front()->data().device()) {
