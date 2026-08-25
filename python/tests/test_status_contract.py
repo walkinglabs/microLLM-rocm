@@ -12,9 +12,10 @@ def main() -> int:
     text = STATUS.read_text(encoding="utf-8")
     for token in (
         "RCCL label 53/53",
-        "CPU 372/372",
-        "ASan/UBSan 370/370",
-        "single-GPU HIP label 191/191",
+        "CPU 373/373",
+        "ASan/UBSan 371/371",
+        "PyTorch-enabled CPU 376/376",
+        "single-GPU HIP label 192/192",
         "current T2048/B2/N64 is 0.8158x",
         "experiments through 280",
         "Ranked per-leaf weighted overlap",
@@ -30,6 +31,7 @@ def main() -> int:
         assert token in text
     for stale in (
         "RCCL label 49/49",
+        "PyTorch-enabled build 323/323",
         "experiments through 277",
         "scale-before-ready weighted overlap ordering",
         "Model-S sync smoke; weighted ready-overlap ordering",

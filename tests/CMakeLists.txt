@@ -486,6 +486,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.CurrentCachedDecodeProfileContract PROPERTIES
         LABELS "cpu;benchmark;model;inference;profile;cache;rocprof;schema")
     add_test(
+        NAME Benchmark.CachedAttentionStageMatrixContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_cached_attention_stage_matrix.py
+    )
+    set_tests_properties(Benchmark.CachedAttentionStageMatrixContract PROPERTIES
+        LABELS "cpu;benchmark;inference;attention;cache;precision;schema")
+    add_test(
         NAME Benchmark.CurrentTrainingProfileContract
         COMMAND ${Python3_EXECUTABLE}
                 ${PROJECT_SOURCE_DIR}/python/tests/test_profile_current_training.py

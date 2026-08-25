@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| Current validation configurations | smoke-tested | CPU 372/372, ASan/UBSan 370/370, single-GPU HIP label 191/191, RCCL label 53/53; PyTorch score oracle 4/4 and retained producer gates pass | broader compiler/OS/GPU matrix |
+| Current validation configurations | smoke-tested | CPU 373/373, ASan/UBSan 371/371, PyTorch-enabled CPU 376/376, single-GPU HIP label 192/192, RCCL label 53/53 | broader compiler/OS/GPU matrix |
 | CPU code coverage | smoke-tested | 78.4% lines, 86.6% functions, 59.1% branches over `src/` + `include/`; quiescent handoff and other HIP-only paths remain visible as CPU gaps | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, native cast, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
@@ -48,6 +48,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | HIP exact-size allocator | smoke-tested | immediate legacy-default reuse; non-default submissions disable; explicit device-wide quiescent handoff safely restores a new default phase and rescues three model/context snapshots | Event-granular retirement and end-to-end handoff cost |
 | Fused cached decode Attention | smoke-tested | FP32 MHA/GQA 1/32/128/512 + fallback; repeated-process score 1.752183; long decode up to +57.9% | one-token regression, prefill/backward/BF16 |
 | Cached Attention stage oracles | smoke-tested, diagnostic-only | CPU hand values, PyTorch parity, and 16 HIP DeepSeek H12/KV2/D128 FP32/BF16 B1/B2 boundary/T2048 cases; complete score/probability/context/fused outputs and zero payload transfers | Event/wall stage matrix before any new Kernel or model route |
+| Cached Attention stage benchmark | implemented; smoke-tested | complete five-path output gate, Event/wall P50/P95, warm allocation and transfer accounting; matrix runner rotates process order and generates JSONL/JSON/SVG | real T512/T2048 × B1/B2 × FP32/BF16 matrix |
 | Current DeepSeek T2048 cached-decode profile | measured | B2/N64 phase delta: cached Attention 647.3ms/61.57%/1,792 calls; GEMM 270.4ms/25.72%; zero backend allocation delta; KV store 0.65% | score/context microarchitecture matrix before any model route |
 | Fused Q/K bias + split-half RoPE | smoke-tested | CPU/HIP/PyTorch forward+backward; 1,120 fewer profiled launches; paired generation +13.7%/+6.6%; score 1.784147 | interleaved/low-precision variants and remaining launch fusion |
 | BTHD BF16 Q/K inference boundary | smoke-tested | grouped hit removes exactly 48/56 T512 casts; six B1/T256–1024 and B2/T512 cases are bit-exact at 1.0128x–1.0244x; peak unchanged | Radeon/other Instinct and backend-version matrix; explicit/default-off |
@@ -62,7 +63,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Serving scheduler | smoke-tested | slot-ratio matrix 48/48 token-exact; matched 6:2 short and 2:6 long retain 85%–87% throughput while reducing KV 56%/19% | safe dynamic ratio transition and allocator cost; uniform remains default, overflow opt-in |
 | Stable model failure | smoke-tested | low-loss cycle breaks beyond training context | rebuttal experiments |
 | PyTorch Custom Ops | smoke-tested on CPU | Torch 2.13 add/multiply via dispatcher | build/run with PyTorch ROCm |
-| PyTorch correctness oracle | smoke-tested | PyTorch-enabled build 323/323; Tensor/graph/model/optimizer parity plus package, trajectory and schema gates | broader direct PyTorch ROCm operator matrix |
+| PyTorch correctness oracle | smoke-tested | PyTorch-enabled build 376/376; Tensor/graph/model/optimizer parity plus package, trajectory and schema gates | broader direct PyTorch ROCm operator matrix |
 | PyTorch ROCm environment | smoke-tested | Torch 2.10.0+rocm7.13 and Transformers 5.8.1 run official Qwen/DeepSeek BF16 training on MI300X with native device discovery | additional Torch/ROCm versions and Radeon |
 | C ABI v1 | smoke-tested | pure C CPU/HIP create/copy/ops/error client plus build-tree and relocated-install C-only Config consumers | zero-copy external views |
 | Python ctypes API | smoke-tested | CPU/HIP Tensor/ops/error unittest | packaging/broader ops |

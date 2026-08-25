@@ -77,6 +77,10 @@ if(MICROLLM_HAS_HIP)
                    micro/benchmark_online_attention_operator.cpp)
     target_link_libraries(microllm_bench_online_attention_operator PRIVATE
         microllm::ops microllm::runtime hip::host)
+    add_executable(microllm_bench_cached_attention_stages
+                   micro/benchmark_cached_attention_stages.cpp)
+    target_link_libraries(microllm_bench_cached_attention_stages PRIVATE
+        microllm::ops microllm::runtime hip::host)
 endif()
 
 if(MICROLLM_HAS_HIP AND MICROLLM_HAS_HIPBLASLT)
@@ -204,6 +208,14 @@ if(BUILD_TESTING)
                          --warmup 1 --repetitions 2)
         set_tests_properties(Benchmark.RocwmmaOnlineAttentionSmoke PROPERTIES
                              LABELS "hip;benchmark;attention;bf16;mfma;rocwmma;online")
+    endif()
+    if(TARGET microllm_bench_cached_attention_stages)
+        add_test(NAME Benchmark.HipCachedAttentionStages
+                 COMMAND microllm_bench_cached_attention_stages
+                         --batch 1 --sequence 32 --cache-dtype bf16
+                         --warmup 3 --repetitions 3 --order forward)
+        set_tests_properties(Benchmark.HipCachedAttentionStages PROPERTIES
+                             LABELS "hip;benchmark;attention;cache;precision;schema")
     endif()
     if(Python3_Interpreter_FOUND)
         add_test(NAME Benchmark.JsonSchema
