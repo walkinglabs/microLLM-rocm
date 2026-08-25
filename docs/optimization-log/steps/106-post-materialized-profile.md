@@ -1,6 +1,6 @@
 # Step 106 — Reprofile the retained T2048 default
 
-Status: planned
+Status: profile runner updated; measurement pending
 
 Experiment 288保留了gfx942/BF16/known-head/uniform T>=2048自动路径。旧Experiment 281中cached
 Attention占61.57%的profile已经过期。

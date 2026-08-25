@@ -140,6 +140,15 @@ def main() -> int:
                     record.get("measured_forward_steps") !=
                     args.batch * args.decode_tokens * steps):
                 raise RuntimeError("profiled decode accounting changed")
+            if (record.get("cached_attention_materialized_policy") !=
+                    "auto-enabled" or
+                    record.get("cached_attention_materialized_auto_eligible")
+                    is not True or
+                    record.get("cached_attention_materialized_scores") is not True or
+                    record.get("cached_attention_materialized_minimum_sequence") !=
+                    2048):
+                raise RuntimeError(
+                    "profiled decode did not use the retained scoped auto policy")
             record.update({
                 "record_type": "current_cached_decode_profile_run",
                 "model": args.model,

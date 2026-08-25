@@ -24,10 +24,13 @@ def main() -> int:
         "profiled cached decode contract changed", "json.dumps(changed",
         "profile_step_delta.py", "inference_cached_decode_kernel_phase_delta",
         "current_cached_decode_profile_summary", "derived_forward_steps",
+        "cached_attention_materialized_policy", "auto-enabled",
     ):
         assert token in runner
     assert "cached_attention" in delta
     assert "cached Attention" in delta
+    assert "cached Attention scores" in delta
+    assert "cached Attention finalize" in delta
     assert "inference_cached_decode_kernel_phase_delta" in delta
     result = (ROOT / "benchmarks/results" /
               "2026-08-25-current-deepseek-t2048-profile")
