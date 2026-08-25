@@ -973,6 +973,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [materialized score SVG](../../benchmarks/results/2026-08-25-cached-attention-materialized-matrix/comparison.svg) | 八格current/materialized Event与score bytes |
 | [experiments/286-materialized-score-model.md](experiments/286-materialized-score-model.md) | DeepSeek位级相同、1.3207x模型保留 |
 | [materialized model SVG](../../benchmarks/results/2026-08-25-cached-attention-materialized-model/comparison.svg) | 三对吞吐、完整精度与资源变化 |
+| [experiments/287-materialized-score-model-boundary.md](experiments/287-materialized-score-model-boundary.md) | Qwen/DeepSeek默认minimum=2048的八格证据 |
+| [materialized boundary SVG](../../benchmarks/results/2026-08-25-materialized-attention-model-matrix/matrix.svg) | 两模型、两context、两batch性能与精度门 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

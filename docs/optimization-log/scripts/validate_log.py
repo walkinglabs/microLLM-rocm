@@ -17561,6 +17561,119 @@ def validate_cached_attention_materialized_model(
             float(analysis.get("materialized_over_historical_pytorch_throughput", 0.0)))
 
 
+def validate_materialized_attention_model_matrix(
+        errors: list[str]) -> tuple[int, int, float, float]:
+    root = (REPOSITORY / "benchmarks/results" /
+            "2026-08-25-materialized-attention-model-matrix")
+    cases_raw = [json.loads(line) for line in (root / "cases.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    expected = {
+        ("qwen2.5-0.5b", 512, 1): (1.0479105995966032, False, 2304),
+        ("qwen2.5-0.5b", 512, 2): (1.048360550699828, False, 2304),
+        ("qwen2.5-0.5b", 2048, 1): (1.184030182732402, True, 2304),
+        ("qwen2.5-0.5b", 2048, 2): (1.174732914430705, True, 2304),
+        ("deepseek-r1-distill-qwen-1.5b", 512, 1):
+            (1.1048870227102974, True, 2688),
+        ("deepseek-r1-distill-qwen-1.5b", 512, 2):
+            (1.1061995193233394, True, 2688),
+        ("deepseek-r1-distill-qwen-1.5b", 2048, 1):
+            (1.3687575712188265, True, 2688),
+        ("deepseek-r1-distill-qwen-1.5b", 2048, 2):
+            (1.3209313282210915, True, 2688),
+    }
+    cases = {(row.get("model"), row.get("context"), row.get("batch")): row
+             for row in cases_raw}
+    if (summary.get("record_type") !=
+            "materialized_attention_model_matrix" or
+            summary.get("status") != "pass" or
+            summary.get("matrix_complete") is not True or
+            summary.get("models") !=
+                ["qwen2.5-0.5b", "deepseek-r1-distill-qwen-1.5b"] or
+            summary.get("contexts") != [512, 2048] or
+            summary.get("batches") != [1, 2] or
+            summary.get("decode_tokens") != 32 or
+            summary.get("runs_per_policy") != 3 or
+            summary.get("case_count") != 8 or
+            summary.get("all_accuracy_gates_passed") is not True or
+            summary.get("all_performance_gates_passed") is not False or
+            summary.get("minimum_default_sequence") != 2048 or
+            summary.get("minimum_speedup") != 1.0479105995966032 or
+            summary.get("maximum_speedup") != 1.3687575712188265 or
+            set(cases) != set(expected)):
+        errors.append("materialized model boundary summary changed")
+    child_processes = 0
+    child_pairs = 0
+    for key, values in expected.items():
+        row = cases.get(key, {})
+        if (row.get("throughput_speedup") != values[0] or
+                row.get("performance_gate_passed") is not values[1] or
+                row.get("allocation_calls_delta") != values[2] or
+                row.get("backend_allocation_calls_delta") != 32 or
+                row.get("accuracy_gate_passed") is not True or
+                row.get("maximum_logit_error") != 0.0 or
+                row.get("peak_bytes_delta") != 0):
+            errors.append(f"materialized model boundary case changed: {key}")
+        child = root / str(row.get("relative_directory", "missing"))
+        raw_path = child / "raw.jsonl"
+        pair_path = child / "pairs.jsonl"
+        if not raw_path.is_file() or not pair_path.is_file() or not \
+                (child / "summary.json").is_file() or not \
+                (child / "comparison.svg").is_file():
+            errors.append(f"materialized model child evidence missing: {key}")
+            continue
+        child_processes += len(raw_path.read_text(encoding="utf-8").splitlines())
+        child_pairs += len(pair_path.read_text(encoding="utf-8").splitlines())
+    if child_processes != 48 or child_pairs != 24:
+        errors.append("materialized model child row counts changed")
+    if (analysis.get("record_type") !=
+            "materialized_attention_model_matrix_analysis" or
+            analysis.get("case_count") != 8 or
+            analysis.get("child_process_rows") != 48 or
+            analysis.get("child_pair_rows") != 24 or
+            analysis.get("all_accuracy_gates_passed") is not True or
+            analysis.get("all_performance_gates_passed") is not False or
+            analysis.get("minimum_default_sequence") != 2048 or
+            analysis.get("qwen_t512_b1_speedup") != 1.0479105995966032 or
+            analysis.get("deepseek_t2048_b1_speedup") !=
+                1.3687575712188265 or
+            analysis.get("scoped_automatic_policy_admitted") is not True or
+            analysis.get("general_hardware_model_default_admitted") is not False):
+        errors.append("materialized model boundary analysis changed")
+    if (check.get("measurement_commit") !=
+            "8eebab67423bfaec7db079cd5db72d86a4989d17" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("case_count") != 8 or
+            check.get("child_process_rows") != 48 or
+            check.get("child_pair_rows") != 24 or
+            check.get("minimum_default_sequence") != 2048 or
+            check.get("qwen_t512_performance_rejections") != 2 or
+            check.get("t2048_minimum_speedup") != 1.174732914430705 or
+            check.get("maximum_logit_error") != 0.0 or
+            check.get("scoped_automatic_policy_admitted") is not True or
+            check.get("general_default_claim") is not False or
+            check.get("cpu_label") != {"passed": 374, "total": 374} or
+            check.get("sanitizer_label") != {"passed": 372, "total": 372} or
+            check.get("pytorch_enabled_cpu") !=
+                {"passed": 377, "total": 377} or
+            check.get("hip_label") != {"passed": 192, "total": 192} or
+            check.get("registered_test_files") != 129):
+        errors.append("materialized model boundary verification changed")
+    for name in ("README.md", "cases.jsonl", "summary.json", "analysis.json",
+                 "verification.json", "matrix.svg"):
+        if not (root / name).is_file():
+            errors.append(f"materialized model boundary evidence missing: {name}")
+    try:
+        ET.parse(root / "matrix.svg")
+    except ET.ParseError as error:
+        errors.append(f"invalid materialized model boundary SVG: {error}")
+    return (len(cases_raw), child_processes,
+            float(summary.get("minimum_speedup", 0.0)),
+            float(summary.get("maximum_speedup", 0.0)))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -18419,6 +18532,9 @@ def main() -> int:
         validate_cached_attention_materialized_matrix(errors)
     materialized_model_rows, materialized_model_speedup, \
         materialized_model_pytorch = validate_cached_attention_materialized_model(errors)
+    materialized_boundary_cases, materialized_boundary_processes, \
+        materialized_boundary_minimum, materialized_boundary_maximum = \
+        validate_materialized_attention_model_matrix(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -19012,6 +19128,10 @@ def main() -> int:
           f"materialized_model={materialized_model_rows}/"
           f"{materialized_model_speedup:.3f}/"
           f"{materialized_model_pytorch:.3f} "
+          f"materialized_boundary={materialized_boundary_cases}/"
+          f"{materialized_boundary_processes}/"
+          f"{materialized_boundary_minimum:.3f}/"
+          f"{materialized_boundary_maximum:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

@@ -1,6 +1,6 @@
 # Step 105 — Cached Attention score/context microarchitecture
 
-Status: multi-model materialized-score default-boundary runner implemented; measurement pending
+Status: multi-model boundary complete; scoped gfx942/BF16/uniform T>=2048 policy admitted
 
 Experiment 281证明当前DeepSeek T2048/B2/N64的cached Attention占Kernel时间61.57%，单次约
 361.2us；GEMM第二，KV store和allocator不是主因。

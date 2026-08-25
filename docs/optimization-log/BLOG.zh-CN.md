@@ -4508,3 +4508,14 @@ allocation，后者与64个递增prefix score尺寸一致。显式路径保留�
 B1/B2扩大模型门之前，不写成一般默认。
 
 ![Materialized model comparison](../../benchmarks/results/2026-08-25-cached-attention-materialized-model/comparison.svg)
+
+## 304. Experiment 287：Qwen T512差0.002，也不能把门线向下挪
+
+八格官方矩阵的完整logits全部位级相同。DeepSeek T512已经快1.105x左右，但Qwen T512/B1/B2
+只有1.0479x/1.0484x，leave-one同样稳定未过1.05。Qwen T2048为1.1840x/1.1747x，DeepSeek
+T2048为1.3688x/1.3209x。
+
+所以跨两模型的单调minimum是2048。自动策略只准入gfx942、BF16 KV、uniform decode和这两个已测
+head签名；其他硬件、dtype、模型结构与divergent serving不推广。
+
+![Materialized model boundary](../../benchmarks/results/2026-08-25-materialized-attention-model-matrix/matrix.svg)

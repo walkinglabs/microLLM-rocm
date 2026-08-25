@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="620" viewBox="0 0 1180 620">
+<rect width="100%" height="100%" fill="#0b1020"/>
+<style>text{font-family:ui-monospace,SFMono-Regular,monospace;fill:#e5e7eb}.small{font-size:13px}.label{font-size:16px}.title{font-size:23px;font-weight:700}.muted{fill:#94a3b8}</style>
+<text x="32" y="40" class="title">Official model · current vs split cached Attention</text>
+<text x="32" y="67" class="small muted">deepseek-r1-distill-qwen-1.5b · T2048 · B1 · N32 · materialized</text>
+<text x="32" y="135" class="label">pair 1 · current-first</text>
+<rect x="250" y="115" width="502.98" height="25" rx="4" fill="#64748b"/>
+<rect x="250" y="149" width="688.09" height="25" rx="4" fill="#22c55e"/>
+<text x="762.98" y="133" class="small">current 67.13</text>
+<text x="948.09" y="167" class="small">split 91.83</text>
+<text x="1080" y="153" class="label" text-anchor="end">1.368x</text>
+<text x="32" y="250" class="label">pair 2 · split-first</text>
+<rect x="250" y="230" width="502.55" height="25" rx="4" fill="#64748b"/>
+<rect x="250" y="264" width="687.87" height="25" rx="4" fill="#22c55e"/>
+<text x="762.55" y="248" class="small">current 67.07</text>
+<text x="947.87" y="282" class="small">split 91.80</text>
+<text x="1080" y="268" class="label" text-anchor="end">1.369x</text>
+<text x="32" y="365" class="label">pair 3 · current-first</text>
+<rect x="250" y="345" width="502.90" height="25" rx="4" fill="#64748b"/>
+<rect x="250" y="379" width="690.00" height="25" rx="4" fill="#22c55e"/>
+<text x="762.90" y="363" class="small">current 67.11</text>
+<text x="950.00" y="397" class="small">split 92.08</text>
+<text x="1080" y="383" class="label" text-anchor="end">1.372x</text>
+<rect x="32" y="475" width="1116" height="110" rx="14" fill="#111827" stroke="#334155"/>
+<text x="58" y="515" class="label">median speedup  1.3688x</text>
+<text x="58" y="548" class="small">logit Max/RMS  0.000e+00 / 0.000e+00</text>
+<text x="620" y="515" class="label">peak delta  +0 bytes</text>
+<text x="620" y="548" class="small">tokens exact  true</text>
+</svg>

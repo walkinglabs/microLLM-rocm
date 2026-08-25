@@ -39,11 +39,11 @@ Start with [Quick start](#quick-start), consume the installed library through th
 <details>
 <summary>Latest optimization checkpoints</summary>
 
-> **Current optimization checkpoint:** Experiment 286 makes DeepSeek T2048/B2/N64
-> decode 1.3207× faster with bitwise-equal full logits/tokens and unchanged peak/KV.
-> It reaches 1.079× of the pinned PyTorch throughput reference. The route remains
-> explicit until a broader Qwen/DeepSeek shape matrix establishes its default boundary.
-> See the [measured model gate](docs/optimization-log/experiments/286-materialized-score-model.md).
+> **Current optimization checkpoint:** Experiment 287 tests Qwen and DeepSeek at
+> T512/T2048 and B1/B2. Every full logit is bitwise-equal; Qwen T512 stays below the
+> 1.05 gate, while all T2048 cases improve 1.1747×–1.3688×. A narrowly scoped
+> gfx942/BF16/uniform-decode automatic policy is admitted at prefix 2048.
+> See the [boundary experiment](docs/optimization-log/experiments/287-materialized-score-model-boundary.md).
 
 > **Current training checkpoint:** the current B1T512 BF16 profile measures
 > 31.327/71.873 ms of Kernel time for Qwen/DeepSeek; GEMM remains 58.56%/63.43%.
