@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="760" viewBox="0 0 1600 760">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="800.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 263 · Gradient-Ready Event Overlap</text>
+<text x="800.0" y="82.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">Same binary · Model-S B1T32 · 3 policies × 3 processes · step 2–5 medians</text>
+<rect x="80" y="135" width="420" height="390" rx="16" fill="#ffffff" stroke="#64748b" stroke-width="3"/>
+<text x="290.0" y="185.0" font-family="Inter,Arial,sans-serif" font-size="24" fill="#64748b" text-anchor="middle" font-weight="700">Transient</text>
+<text x="125.0" y="250.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="400">communication  6.815 ms</text>
+<text x="125.0" y="315.0" font-family="Inter,Arial,sans-serif" font-size="23" fill="#64748b" text-anchor="start" font-weight="700">total  20.435 ms</text>
+<text x="125.0" y="380.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="400">peak  575.4 MiB</text>
+<text x="125.0" y="445.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#64748b" text-anchor="start" font-weight="700">synchronous reducer</text>
+<rect x="590" y="135" width="420" height="390" rx="16" fill="#ffffff" stroke="#2563eb" stroke-width="3"/>
+<text x="800.0" y="185.0" font-family="Inter,Arial,sans-serif" font-size="24" fill="#2563eb" text-anchor="middle" font-weight="700">Sync views</text>
+<text x="635.0" y="250.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="400">communication  3.560 ms</text>
+<text x="635.0" y="315.0" font-family="Inter,Arial,sans-serif" font-size="23" fill="#2563eb" text-anchor="start" font-weight="700">total  15.025 ms</text>
+<text x="635.0" y="380.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="400">peak  607.2 MiB</text>
+<text x="635.0" y="445.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#2563eb" text-anchor="start" font-weight="700">synchronous reducer</text>
+<rect x="1100" y="135" width="420" height="390" rx="16" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>
+<text x="1310.0" y="185.0" font-family="Inter,Arial,sans-serif" font-size="24" fill="#16a34a" text-anchor="middle" font-weight="700">Overlap views</text>
+<text x="1145.0" y="250.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="400">finish wait  1.550 ms</text>
+<text x="1145.0" y="315.0" font-family="Inter,Arial,sans-serif" font-size="23" fill="#16a34a" text-anchor="start" font-weight="700">total  14.790 ms</text>
+<text x="1145.0" y="380.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="400">peak  607.2 MiB</text>
+<text x="1145.0" y="445.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#16a34a" text-anchor="start" font-weight="700">3 async buckets</text>
+<text x="800.0" y="590.0" font-family="Inter,Arial,sans-serif" font-size="23" fill="#166534" text-anchor="middle" font-weight="700">Overlap vs sync views: total 1.0159x · finish wait 2.297x</text>
+<text x="800.0" y="638.0" font-family="Inter,Arial,sans-serif" font-size="21" fill="#b45309" text-anchor="middle" font-weight="700">Overlap vs transient: total 1.382x · peak +31.7 MiB</text>
+<text x="800.0" y="685.0" font-family="Inter,Arial,sans-serif" font-size="19" fill="#172033" text-anchor="middle" font-weight="700">45 exact losses · 9 final parameter audits · explicit, not default</text>
+<text x="800.0" y="728.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="middle" font-weight="400">Next: one process per GPU removes sequential-rank backward ceiling</text>
+</svg>

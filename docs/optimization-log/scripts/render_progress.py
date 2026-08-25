@@ -278,6 +278,11 @@ DATA_PARALLEL_GRADIENT_READY_ROOT = (
     "2026-08-25-data-parallel-gradient-ready-audit")
 DATA_PARALLEL_GRADIENT_READY_CHART = (
     ROOT / "assets" / "data-parallel-gradient-ready-order.svg")
+DATA_PARALLEL_GRADIENT_OVERLAP_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-data-parallel-gradient-overlap")
+DATA_PARALLEL_GRADIENT_OVERLAP_CHART = (
+    ROOT / "assets" / "data-parallel-gradient-overlap.svg")
 
 
 def rows() -> list[dict]:
@@ -4905,6 +4910,59 @@ def data_parallel_gradient_ready_svg() -> str:
     return "\n".join(parts)
 
 
+def data_parallel_gradient_overlap_svg() -> str:
+    summary = json.loads((DATA_PARALLEL_GRADIENT_OVERLAP_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    width, height = 1600, 760
+    policies = summary["policies"]
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 263 · Gradient-Ready Event Overlap", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "Same binary · Model-S B1T32 · 3 policies × 3 processes · step 2–5 medians",
+             16, "#5b6474", anchor="middle"),
+    ]
+    cards = (
+        ("Transient", policies["transient"], "#64748b", "communication"),
+        ("Sync views", policies["synchronous_views"], "#2563eb", "communication"),
+        ("Overlap views", policies["overlap_views"], "#16a34a", "finish wait"),
+    )
+    for index, (label, row, color, phase) in enumerate(cards):
+        x = 80 + index * 510
+        phase_value = (row["median_overlap_finish_ms"]
+                       if row["overlap"] else row["median_communication_ms"])
+        parts.extend([
+            f'<rect x="{x}" y="135" width="420" height="390" rx="16" '
+            f'fill="#ffffff" stroke="{color}" stroke-width="3"/>',
+            text(x + 210, 185, label, 24, color, anchor="middle", weight=700),
+            text(x + 45, 250, f"{phase}  {phase_value:.3f} ms", 18),
+            text(x + 45, 315, f"total  {row['median_total_ms']:.3f} ms", 23,
+                 color, weight=700),
+            text(x + 45, 380,
+                 f"peak  {row['maximum_engine_peak_bytes'] / (1024**2):.1f} MiB", 18),
+            text(x + 45, 445,
+                 "3 async buckets" if row["overlap"] else "synchronous reducer", 18,
+                 color, weight=700),
+        ])
+    parts.append(text(width / 2, 590,
+                      f"Overlap vs sync views: total {summary['total_speedup_vs_synchronous_views']:.4f}x · finish wait {summary['finish_wait_speedup_vs_synchronous_communication']:.3f}x",
+                      23, "#166534", anchor="middle", weight=700))
+    parts.append(text(width / 2, 638,
+                      f"Overlap vs transient: total {summary['total_speedup_vs_transient']:.3f}x · peak +{summary['peak_bytes_added_vs_transient'] / (1024**2):.1f} MiB",
+                      21, "#b45309", anchor="middle", weight=700))
+    parts.append(text(width / 2, 685,
+                      "45 exact losses · 9 final parameter audits · explicit, not default",
+                      19, "#172033", anchor="middle", weight=700))
+    parts.append(text(width / 2, 728,
+                      "Next: one process per GPU removes sequential-rank backward ceiling",
+                      15, "#5b6474", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -4983,7 +5041,8 @@ def main() -> int:
                 DATA_PARALLEL_DIRECT_GRADIENT_CHART: data_parallel_direct_gradient_svg(),
                 GRADIENT_PRODUCER_OUT_CHART: gradient_producer_out_svg(),
                 AUTOGRAD_GRADIENT_PRODUCER_CHART: autograd_gradient_producer_svg(),
-                DATA_PARALLEL_GRADIENT_READY_CHART: data_parallel_gradient_ready_svg()}
+                DATA_PARALLEL_GRADIENT_READY_CHART: data_parallel_gradient_ready_svg(),
+                DATA_PARALLEL_GRADIENT_OVERLAP_CHART: data_parallel_gradient_overlap_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

@@ -114,7 +114,8 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [83](steps/83-gradient-producer-out-kernel-gate.md) | complete | caller-owned weight-gradient producer | 5/5 exact；Event1.178×–1.873×、Wall1.101×–1.612× |
 | [84](steps/84-scoped-autograd-gradient-producer.md) | complete | scoped right-leaf producer反例 | 0/5过1.05；Event0.976×–1.035×、Wall0.991×–1.018× |
 | [85](steps/85-gradient-ready-order-audit.md) | complete | Model-S gradient-ready顺序审计 | 3×3×2一致；bucket完成57/57、35/57、1/57 |
-| [86](steps/86-gradient-ready-event-overlap.md) | planned | Event + async all-reduce原型 | 两早bucket真实overlap与端到端门 |
+| [86](steps/86-gradient-ready-event-overlap.md) | complete | Event + async all-reduce原型 | vs sync total1.0159×、wait2.297×；显式保留 |
+| [87](steps/87-one-process-per-gpu-bootstrap.md) | planned | one-process-per-GPU bootstrap | rank/ID/timeout/tiny等价前置合同 |
 
 ## 为什么按这个顺序
 

@@ -1,0 +1,59 @@
+{
+  "aggregation": "median of step-2..5 medians with rotated policy order",
+  "decision": "keep explicit and move to one-process-per-GPU",
+  "default_eligible": false,
+  "finish_wait_speedup_vs_synchronous_communication": 2.2967741935483867,
+  "loss_trajectories_exact": true,
+  "peak_bytes_added_vs_synchronous_views": 0,
+  "peak_bytes_added_vs_transient": 33269000,
+  "policies": {
+    "overlap_views": {
+      "final_loss": 2.08,
+      "maximum_engine_peak_bytes": 636652808,
+      "median_communication_ms": 1.55,
+      "median_engine_current_bytes": 498757632,
+      "median_forward_backward_ms": 14.175,
+      "median_overlap_finish_ms": 1.55,
+      "median_total_ms": 14.79,
+      "overlap": true,
+      "persistent": true,
+      "processes": 3,
+      "views": true
+    },
+    "synchronous_views": {
+      "final_loss": 2.08,
+      "maximum_engine_peak_bytes": 636652808,
+      "median_communication_ms": 3.5599999999999996,
+      "median_engine_current_bytes": 498757632,
+      "median_forward_backward_ms": 10.77,
+      "median_overlap_finish_ms": 0.0,
+      "median_total_ms": 15.025,
+      "overlap": false,
+      "persistent": true,
+      "processes": 3,
+      "views": true
+    },
+    "transient": {
+      "final_loss": 2.08,
+      "maximum_engine_peak_bytes": 603383808,
+      "median_communication_ms": 6.8149999999999995,
+      "median_engine_current_bytes": 498757632,
+      "median_forward_backward_ms": 12.09,
+      "median_overlap_finish_ms": 0.0,
+      "median_total_ms": 20.435000000000002,
+      "overlap": false,
+      "persistent": false,
+      "processes": 3,
+      "views": false
+    }
+  },
+  "processes": 9,
+  "raw_records": 45,
+  "record_type": "data_parallel_gradient_overlap_summary",
+  "retained": true,
+  "runs_per_policy": 3,
+  "schema_version": 1,
+  "status": "pass",
+  "total_speedup_vs_synchronous_views": 1.0158891142663964,
+  "total_speedup_vs_transient": 1.3816768086544966
+}

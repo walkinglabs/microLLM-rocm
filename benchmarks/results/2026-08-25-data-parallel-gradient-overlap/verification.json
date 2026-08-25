@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "measurement_commit": "c29c1305f113f57ba9b64a033dfa1f2d492e78ef",
+  "dirty_at_measurement": false,
+  "raw_records": 45,
+  "process_records": 9,
+  "loss_values_exact": 45,
+  "final_parameter_checks": 9,
+  "maximum_parameter_difference": 0.0,
+  "overlap_later_steps_checked": 12,
+  "overlapped_buckets_per_step": 3,
+  "total_speedup_vs_synchronous_views": 1.0158891142663964,
+  "total_speedup_vs_transient": 1.3816768086544966,
+  "finish_wait_speedup_vs_synchronous_communication": 2.2967741935483867,
+  "peak_bytes_added_vs_synchronous_views": 0,
+  "peak_bytes_added_vs_transient": 33269000,
+  "default_overlap": false,
+  "single_process_scope": true,
+  "rccl_label": {"passed": 36, "total": 36},
+  "registered_test_files": 121
+}

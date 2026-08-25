@@ -244,8 +244,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   so the route and target-state API are removed;
 - [x] record Model-S ready order across 3 processes × 3 steps × 2 ranks: all 57-parameter orders
   match and reverse parameter order; natural buckets complete at 57/57, 35/57 and 1/57;
-- [ ] prototype explicit Event plus asynchronous all-reduce for the two early natural buckets;
-  preserve synchronous control and require exact losses/parameters, no peak increase and total >=1.01x;
+- [x] prototype Event plus asynchronous all-reduce: exact losses/parameters, 3 buckets, zero later
+  communication allocations, unchanged view peak and 1.0159x total versus synchronous views;
+- [ ] bootstrap one process per GPU with rank identity, RCCL unique-ID exchange, timeout/error
+  propagation and tiny global-batch equivalence before porting ready-bucket overlap;
 - [ ] unused parameter, uneven input, timeout, and cross-process failure handling.
 
 ## P3 — DeepSeek distill target

@@ -925,6 +925,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [experiments/261-scoped-autograd-gradient-producer-discard.md](experiments/261-scoped-autograd-gradient-producer-discard.md) | 0/5门、route撤回与gradient-ready交接 |
 | [assets/data-parallel-gradient-ready-order.svg](assets/data-parallel-gradient-ready-order.svg) | 57参数逆序与3个自然bucket完成窗口 |
 | [experiments/262-data-parallel-gradient-ready-audit.md](experiments/262-data-parallel-gradient-ready-audit.md) | 两rank/多step一致性与Event overlap准入 |
+| [assets/data-parallel-gradient-overlap.svg](assets/data-parallel-gradient-overlap.svg) | transient/sync/overlap total、wait与peak对比 |
+| [experiments/263-data-parallel-gradient-overlap.md](experiments/263-data-parallel-gradient-overlap.md) | 1.0159×显式保留与one-process-per-GPU交接 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

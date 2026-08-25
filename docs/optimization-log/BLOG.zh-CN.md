@@ -4123,3 +4123,18 @@ parameter恰好按注册顺序逆序ready。
 all-reduce，同时保留同步control和最终optimizer前wait。
 
 ![Gradient-ready bucket order](assets/data-parallel-gradient-ready-order.svg)
+
+## 280. Experiment 263：结构窗口变成了1.59%的total收益
+
+两个rank的bucket都ready时，各自default Stream记录Event；communication Stream等待后pack，
+enqueue RCCL sum和原地average。optimizer前只做一次finish wait。step 1同步建plan，后续step
+全部3 bucket异步enqueue。
+
+三策略9进程中，overlap total为14.790ms，同步views为15.025ms，只有1.0159×；finish wait从
+3.560降到1.550ms（2.297×），peak与sync view相同。45个loss和9次参数门全部通过。相对
+transient虽然total 1.382×，peak仍多33.3MB。
+
+所以显式保留但不默认。单进程按rank0→rank1顺序backward，天然压小了窗口；下一步必须先做
+one-process-per-GPU的rank/unique-ID/timeout/故障合同。
+
+![Gradient-ready overlap](assets/data-parallel-gradient-overlap.svg)

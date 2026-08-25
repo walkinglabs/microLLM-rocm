@@ -1,6 +1,6 @@
 # Step 86 — Gradient-ready Event and asynchronous all-reduce prototype
 
-Status: implemented, Model-S A/B pending
+Status: complete, kept explicit
 
 Experiment 262证明25MiB自然bucket 2/1分别在backward 1/57和35/57完成。下一步仅在显式开关下：
 
@@ -20,3 +20,6 @@ RCCL sum+in-place scale。全部backward返回后统一wait，替换parameter gr
 单进程仍按rank0→rank1顺序backward，所以只能与rank1剩余计算重叠；不能外推到标准DDP。
 Model-S pilot的steady total约14.01ms、finish wait 1.48ms，peak与sync views相同；正式三策略
 轮换矩阵前保持默认关闭。
+
+正式结果：相对sync views total 1.0159×、finish wait 2.297×、peak不变，完整loss/参数门通过；
+相对transient peak仍+33,269,000B。保留显式、不设默认，下一步转one-process-per-GPU。
