@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1450" height="700" viewBox="0 0 1450 700">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="725.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 265 · Ranked Synchronous Buckets</text>
+<text x="725.0" y="82.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">3 fresh two-rank launches / policy · tiny 3-step · CPU full-parameter gate</text>
+<rect x="170" y="135" width="480" height="370" rx="16" fill="#ffffff" stroke="#64748b" stroke-width="3"/>
+<text x="410.0" y="185.0" font-family="Inter,Arial,sans-serif" font-size="25" fill="#64748b" text-anchor="middle" font-weight="700">Per parameter</text>
+<rect x="235" y="195.0" width="120" height="260.0" fill="#64748b" rx="7"/>
+<text x="295.0" y="480.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">collectives</text>
+<text x="295.0" y="183.0" font-family="Inter,Arial,sans-serif" font-size="23" fill="#64748b" text-anchor="middle" font-weight="700">36</text>
+<text x="405.0" y="285.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="start" font-weight="400">rank group</text>
+<text x="405.0" y="330.0" font-family="Inter,Arial,sans-serif" font-size="28" fill="#64748b" text-anchor="start" font-weight="700">5.288 s</text>
+<text x="405.0" y="385.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#166534" text-anchor="start" font-weight="700">rank diff 0</text>
+<text x="405.0" y="425.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#166534" text-anchor="start" font-weight="700">CPU diff 1.19e-7</text>
+<rect x="820" y="135" width="480" height="370" rx="16" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>
+<text x="1060.0" y="185.0" font-family="Inter,Arial,sans-serif" font-size="25" fill="#16a34a" text-anchor="middle" font-weight="700">4 KiB bucket</text>
+<rect x="885" y="433.3" width="120" height="21.7" fill="#16a34a" rx="7"/>
+<text x="945.0" y="480.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">collectives</text>
+<text x="945.0" y="421.3" font-family="Inter,Arial,sans-serif" font-size="23" fill="#16a34a" text-anchor="middle" font-weight="700">3</text>
+<text x="1055.0" y="285.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="start" font-weight="400">rank group</text>
+<text x="1055.0" y="330.0" font-family="Inter,Arial,sans-serif" font-size="28" fill="#16a34a" text-anchor="start" font-weight="700">5.268 s</text>
+<text x="1055.0" y="385.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#166534" text-anchor="start" font-weight="700">rank diff 0</text>
+<text x="1055.0" y="425.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#166534" text-anchor="start" font-weight="700">CPU diff 1.19e-7</text>
+<text x="725.0" y="565.0" font-family="Inter,Arial,sans-serif" font-size="25" fill="#b45309" text-anchor="middle" font-weight="700">Collectives 12x fewer · wall only 1.0037x</text>
+<text x="725.0" y="615.0" font-family="Inter,Arial,sans-serif" font-size="19" fill="#172033" text-anchor="middle" font-weight="700">Startup dominates tiny · bucket kept as correctness baseline, not speed claim</text>
+<text x="725.0" y="660.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="middle" font-weight="400">Next: ranked Model-S B1T32 one-step natural 3-bucket smoke</text>
+</svg>

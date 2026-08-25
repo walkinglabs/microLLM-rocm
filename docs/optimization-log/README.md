@@ -929,6 +929,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [experiments/263-data-parallel-gradient-overlap.md](experiments/263-data-parallel-gradient-overlap.md) | 1.0159×显式保留与one-process-per-GPU交接 |
 | [assets/one-process-per-gpu-bootstrap.svg](assets/one-process-per-gpu-bootstrap.svg) | 独立rank/CPU reference/RCCL ID与故障传播 |
 | [experiments/264-one-process-per-gpu-bootstrap.md](experiments/264-one-process-per-gpu-bootstrap.md) | 728值等价、peer终止与rank bucket准入 |
+| [assets/ranked-gradient-buckets.svg](assets/ranked-gradient-buckets.svg) | collective 12×缩减与tiny启动反例 |
+| [experiments/265-ranked-gradient-buckets.md](experiments/265-ranked-gradient-buckets.md) | 同步bucket baseline与Model-S交接 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

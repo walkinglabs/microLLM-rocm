@@ -1,6 +1,6 @@
 # Step 88 — Rank-local gradient buckets
 
-Status: implemented, ranked reducer A/B pending
+Status: complete, correctness baseline kept
 
 one-process-per-GPU worker当前对tiny的12个参数分别发起collective。下一步先实现rank-local同步
 bucket reducer：按相同parameter order/byte limit pack到本rank稳定Tensor，单Tensor RCCL average，
@@ -15,3 +15,6 @@ hook和Event。
 自然为1 bucket/step，3step collective 36→3，728值rank exact、CPU最大差1.19e-7。
 
 world1 API、双进程bucket smoke与原有peer failure通过；正式三次两策略轮换前不迁移overlap。
+
+正式结果：collective/rank 36→3（12×），参数/CPU/故障门通过，wall只有1.0037×。启动成本淹没
+tiny通信，保留同步baseline但不作性能结论；下一步Model-S one-step自然3 bucket。

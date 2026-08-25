@@ -1,0 +1,40 @@
+{
+  "bucket_wall_speedup": 1.003666271951239,
+  "collective_reduction": 12.0,
+  "decision": "admit one-process-per-GPU ready-bucket migration",
+  "failure_returncodes": [
+    1,
+    -15
+  ],
+  "maximum_rank_difference": 0.0,
+  "maximum_reference_difference": 1.1900000007614153e-07,
+  "parameter_tensors": 12,
+  "parameter_values": 728,
+  "peer_failure_detected": true,
+  "peer_processes_terminated": 1,
+  "policies": {
+    "bucket": {
+      "buckets_per_rank": 3,
+      "collectives_per_rank": 3,
+      "maximum_rank_difference": 0.0,
+      "maximum_reference_difference": 1.1900000007614153e-07,
+      "median_rank_group_ms": 5268.464261200279,
+      "runs": 3
+    },
+    "per-parameter": {
+      "buckets_per_rank": 0,
+      "collectives_per_rank": 36,
+      "maximum_rank_difference": 0.0,
+      "maximum_reference_difference": 1.1900000007614153e-07,
+      "median_rank_group_ms": 5287.779883947223,
+      "runs": 3
+    }
+  },
+  "policy_runs": 6,
+  "rank_processes": 12,
+  "record_type": "ranked_training_matrix_summary",
+  "runs_per_policy": 3,
+  "schema_version": 1,
+  "status": "pass",
+  "steps_per_rank": 3
+}

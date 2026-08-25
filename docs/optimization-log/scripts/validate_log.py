@@ -14772,6 +14772,79 @@ def validate_ranked_training_bootstrap(
         float(summary.get("median_rank_group_ms", 0.0))
 
 
+def validate_ranked_gradient_buckets(
+        errors: list[str]) -> tuple[int, int, int, float, float]:
+    root = REPOSITORY / "benchmarks/results/2026-08-25-ranked-gradient-buckets"
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    failure = json.loads((root / "failure.json").read_text(encoding="utf-8"))
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    policies = summary.get("policies", {})
+    per_parameter = policies.get("per-parameter", {})
+    bucket = policies.get("bucket", {})
+    expected_reference = 1.1900000007614153e-07
+    expected_speedup = 1.003666271951239
+    if (summary.get("schema_version") != 1 or summary.get("status") != "pass" or
+            summary.get("record_type") != "ranked_training_matrix_summary" or
+            summary.get("runs_per_policy") != 3 or
+            summary.get("policy_runs") != 6 or
+            summary.get("rank_processes") != 12 or
+            summary.get("steps_per_rank") != 3 or
+            summary.get("parameter_tensors") != 12 or
+            summary.get("parameter_values") != 728 or
+            summary.get("maximum_rank_difference") != 0.0 or
+            summary.get("maximum_reference_difference") != expected_reference or
+            per_parameter.get("collectives_per_rank") != 36 or
+            bucket.get("collectives_per_rank") != 3 or
+            summary.get("collective_reduction") != 12.0 or
+            summary.get("bucket_wall_speedup") != expected_speedup or
+            summary.get("peer_failure_detected") is not True or
+            summary.get("peer_processes_terminated") != 1 or
+            summary.get("failure_returncodes") != [1, -15]):
+        errors.append("ranked gradient bucket summary changed")
+    if (len(raw) != 6 or {row.get("reducer") for row in raw} !=
+            {"per-parameter", "bucket"} or any(
+                row.get("maximum_rank_difference") != 0.0 or
+                row.get("maximum_reference_difference") != expected_reference
+                for row in raw)):
+        errors.append("ranked gradient bucket raw evidence changed")
+    if (failure.get("failure_detected") is not True or
+            failure.get("peer_processes_terminated") != 1 or
+            failure.get("returncodes") != [1, -15]):
+        errors.append("ranked gradient bucket failure evidence changed")
+    if (check.get("measurement_commit") !=
+            "76e3afac3d96a6178ac5460573eb222ae620ed8e" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("runs_per_policy") != 3 or
+            check.get("policy_runs") != 6 or
+            check.get("rank_processes") != 12 or
+            check.get("steps_per_rank") != 3 or
+            check.get("parameter_tensors") != 12 or
+            check.get("parameter_values") != 728 or
+            check.get("per_parameter_collectives") != 36 or
+            check.get("bucket_collectives") != 3 or
+            check.get("collective_reduction") != 12.0 or
+            check.get("bucket_wall_speedup") != expected_speedup or
+            check.get("maximum_rank_difference") != 0.0 or
+            check.get("maximum_reference_difference") != expected_reference or
+            check.get("peer_failure_detected") is not True or
+            check.get("peer_processes_terminated") != 1 or
+            check.get("failure_returncodes") != [1, -15] or
+            check.get("performance_claim") is not False or
+            check.get("rccl_label") != {"passed": 43, "total": 43} or
+            check.get("registered_test_files") != 123):
+        errors.append("ranked gradient bucket verification changed")
+    source = (REPOSITORY / "src/multi_gpu/gradient_bucket.cpp").read_text(
+        encoding="utf-8")
+    if "all_reduce_rank_gradients" not in source:
+        errors.append("ranked gradient bucket route is missing")
+    return summary.get("policy_runs", 0), \
+        per_parameter.get("collectives_per_rank", 0), \
+        bucket.get("collectives_per_rank", 0), expected_speedup, \
+        float(summary.get("collective_reduction", 0.0))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -15014,7 +15087,8 @@ def validate_assets(errors: list[str]) -> None:
                  "scoped-autograd-gradient-producer-discard.svg",
                  "data-parallel-gradient-ready-order.svg",
                  "data-parallel-gradient-overlap.svg",
-                 "one-process-per-gpu-bootstrap.svg"):
+                 "one-process-per-gpu-bootstrap.svg",
+                 "ranked-gradient-buckets.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -15552,6 +15626,9 @@ def main() -> int:
         gradient_overlap_peak = validate_data_parallel_gradient_overlap(errors)
     ranked_runs, ranked_processes, ranked_reference_difference, \
         ranked_terminated, ranked_group_ms = validate_ranked_training_bootstrap(errors)
+    ranked_bucket_runs, ranked_parameter_collectives, ranked_bucket_collectives, \
+        ranked_bucket_speedup, ranked_collective_reduction = \
+        validate_ranked_gradient_buckets(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -16054,6 +16131,9 @@ def main() -> int:
           f"ranked_bootstrap={ranked_runs}/{ranked_processes}/"
           f"{ranked_reference_difference:.3e}/{ranked_terminated}/"
           f"{ranked_group_ms:.1f} "
+          f"ranked_buckets={ranked_bucket_runs}/"
+          f"{ranked_parameter_collectives}/{ranked_bucket_collectives}/"
+          f"{ranked_bucket_speedup:.4f}/{ranked_collective_reduction:.1f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

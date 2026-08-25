@@ -4153,3 +4153,16 @@ SIGTERM，返回-15，组没有永久挂起。rank-group初始化+训练median�
 再把ready Event overlap迁移过来。
 
 ![One process per GPU bootstrap](assets/one-process-per-gpu-bootstrap.svg)
+
+## 282. Experiment 265：collective少12倍，wall只快0.37%
+
+rank worker增加同步bucket：pack、RCCL average、unpack都在本rank communication Stream顺序执行。
+tiny的12个参数、728元素放进一个4KiB bucket，三步collective/rank从36降到3。
+
+两策略各三次fresh双进程launch中，bucket组时间5268.46ms，逐参数5287.78ms，仅1.0037×；参数、
+CPU和peer failure全过。绝大多数时间是进程、ROCm、RCCL启动，因此只保留正确性baseline。
+
+下一步用Model-S B1T32 one-step：逐参数57次collective，对比25MiB自然3 bucket，再决定persistent
+rank bucket和ready overlap迁移。
+
+![Ranked gradient buckets](assets/ranked-gradient-buckets.svg)

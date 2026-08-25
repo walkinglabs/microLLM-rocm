@@ -248,8 +248,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   communication allocations, unchanged view peak and 1.0159x total versus synchronous views;
 - [x] bootstrap one process per GPU: 3 fresh launches/6 ranks, 728 values rank-exact and CPU max
   diff 1.19e-7; atomic RCCL ID exchange and injected peer termination pass;
-- [ ] replace per-parameter ranked collectives with a synchronous rank-local bucket reducer,
-  preserving CPU/rank equivalence and failure behavior before migrating ready overlap;
+- [x] add synchronous rank-local buckets: tiny collectives/rank 36→3 (12x), rank/CPU/failure
+  gates pass; wall only 1.0037x because startup dominates, so it is a correctness baseline;
+- [ ] run ranked Model-S B1T32 one-step with per-parameter 57 vs natural 25MiB/3-bucket paths,
+  full parameter equivalence and process/peak/collective records before persistent migration;
 - [ ] unused parameter, uneven input, timeout, and cross-process failure handling.
 
 ## P3 — DeepSeek distill target

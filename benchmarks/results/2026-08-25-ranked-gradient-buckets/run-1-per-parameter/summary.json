@@ -1,0 +1,94 @@
+{
+  "bucket_bytes": 4096,
+  "buckets_per_rank": 0,
+  "collectives_per_rank": 36,
+  "commands": [
+    [
+      "/home/devpod/github/microLLM-rocm/build/rccl-release/apps/microllm_distributed_rank",
+      "--mode",
+      "rank",
+      "--rank",
+      "1",
+      "--local-rank",
+      "1",
+      "--world-size",
+      "2",
+      "--id-file",
+      "/home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-25-ranked-gradient-buckets/run-1-per-parameter/communicator.id",
+      "--steps",
+      "3",
+      "--seed",
+      "607",
+      "--timeout-ms",
+      "20000",
+      "--reducer",
+      "per-parameter",
+      "--bucket-bytes",
+      "4096"
+    ],
+    [
+      "/home/devpod/github/microLLM-rocm/build/rccl-release/apps/microllm_distributed_rank",
+      "--mode",
+      "rank",
+      "--rank",
+      "0",
+      "--local-rank",
+      "0",
+      "--world-size",
+      "2",
+      "--id-file",
+      "/home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-25-ranked-gradient-buckets/run-1-per-parameter/communicator.id",
+      "--steps",
+      "3",
+      "--seed",
+      "607",
+      "--timeout-ms",
+      "20000",
+      "--reducer",
+      "per-parameter",
+      "--bucket-bytes",
+      "4096"
+    ]
+  ],
+  "maximum_rank_difference": 0.0,
+  "maximum_reference_difference": 1.1900000007614153e-07,
+  "pack_copies_per_rank": 0,
+  "parameter_tensors": 12,
+  "parameter_values": 728,
+  "peer_processes_terminated": 0,
+  "rank_group_ms": 5287.779883947223,
+  "rank_losses": [
+    [
+      2.238874197,
+      1.514390945,
+      1.243385553
+    ],
+    [
+      1.489674687,
+      1.326616645,
+      1.180724144
+    ]
+  ],
+  "record_type": "ranked_training_summary",
+  "reducer": "per-parameter",
+  "reference_command": [
+    "/home/devpod/github/microLLM-rocm/build/rccl-release/apps/microllm_distributed_rank",
+    "--mode",
+    "reference",
+    "--steps",
+    "3",
+    "--seed",
+    "607"
+  ],
+  "reference_losses": [
+    1.8642745,
+    1.42050385,
+    1.21205497
+  ],
+  "reference_ms": 83.53446424007416,
+  "schema_version": 1,
+  "status": "pass",
+  "steps": 3,
+  "unpack_copies_per_rank": 0,
+  "world_size": 2
+}

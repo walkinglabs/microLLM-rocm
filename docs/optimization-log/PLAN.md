@@ -116,7 +116,8 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [85](steps/85-gradient-ready-order-audit.md) | complete | Model-S gradient-ready顺序审计 | 3×3×2一致；bucket完成57/57、35/57、1/57 |
 | [86](steps/86-gradient-ready-event-overlap.md) | complete | Event + async all-reduce原型 | vs sync total1.0159×、wait2.297×；显式保留 |
 | [87](steps/87-one-process-per-gpu-bootstrap.md) | complete | one-process-per-GPU bootstrap | 6 ranks/728 exact/CPU1.19e-7；peer终止通过 |
-| [88](steps/88-ranked-gradient-buckets.md) | planned | rank-local同步gradient bucket | collective缩减与tiny/Model-S等价门 |
+| [88](steps/88-ranked-gradient-buckets.md) | complete | rank-local同步gradient bucket | tiny collective36→3；wall1.0037×，正确性baseline |
+| [89](steps/89-ranked-model-s-bucket-smoke.md) | planned | ranked Model-S B1T32 one-step | 57 vs 3 collective与完整参数门 |
 
 ## 为什么按这个顺序
 

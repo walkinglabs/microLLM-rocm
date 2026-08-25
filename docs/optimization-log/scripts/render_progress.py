@@ -288,6 +288,10 @@ RANKED_TRAINING_ROOT = (
     "2026-08-25-ranked-training-bootstrap")
 RANKED_TRAINING_CHART = (
     ROOT / "assets" / "one-process-per-gpu-bootstrap.svg")
+RANKED_BUCKET_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-ranked-gradient-buckets")
+RANKED_BUCKET_CHART = ROOT / "assets" / "ranked-gradient-buckets.svg"
 
 
 def rows() -> list[dict]:
@@ -5027,6 +5031,57 @@ def ranked_training_bootstrap_svg() -> str:
     return "\n".join(parts)
 
 
+def ranked_gradient_bucket_svg() -> str:
+    summary = json.loads((RANKED_BUCKET_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    per_parameter = summary["policies"]["per-parameter"]
+    bucket = summary["policies"]["bucket"]
+    width, height = 1450, 700
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 265 · Ranked Synchronous Buckets", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "3 fresh two-rank launches / policy · tiny 3-step · CPU full-parameter gate",
+             16, "#5b6474", anchor="middle"),
+    ]
+    for index, (label, row, color) in enumerate((
+            ("Per parameter", per_parameter, "#64748b"),
+            ("4 KiB bucket", bucket, "#16a34a"))):
+        x = 170 + index * 650
+        collective_height = 260 * row["collectives_per_rank"] / 36
+        parts.extend([
+            f'<rect x="{x}" y="135" width="480" height="370" rx="16" '
+            f'fill="#ffffff" stroke="{color}" stroke-width="3"/>',
+            text(x + 240, 185, label, 25, color, anchor="middle", weight=700),
+            f'<rect x="{x + 65}" y="{455 - collective_height:.1f}" width="120" '
+            f'height="{collective_height:.1f}" fill="{color}" rx="7"/>',
+            text(x + 125, 480, "collectives", 14, "#5b6474", anchor="middle"),
+            text(x + 125, 455 - collective_height - 12,
+                 str(row["collectives_per_rank"]), 23, color,
+                 anchor="middle", weight=700),
+            text(x + 235, 285, "rank group", 16, "#5b6474"),
+            text(x + 235, 330,
+                 f"{row['median_rank_group_ms'] / 1000:.3f} s", 28, color,
+                 weight=700),
+            text(x + 235, 385, "rank diff 0", 17, "#166534", weight=700),
+            text(x + 235, 425, "CPU diff 1.19e-7", 17, "#166534", weight=700),
+        ])
+    parts.append(text(width / 2, 565,
+                      f"Collectives {summary['collective_reduction']:.0f}x fewer · wall only {summary['bucket_wall_speedup']:.4f}x",
+                      25, "#b45309", anchor="middle", weight=700))
+    parts.append(text(width / 2, 615,
+                      "Startup dominates tiny · bucket kept as correctness baseline, not speed claim",
+                      19, "#172033", anchor="middle", weight=700))
+    parts.append(text(width / 2, 660,
+                      "Next: ranked Model-S B1T32 one-step natural 3-bucket smoke",
+                      15, "#5b6474", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -5107,7 +5162,8 @@ def main() -> int:
                 AUTOGRAD_GRADIENT_PRODUCER_CHART: autograd_gradient_producer_svg(),
                 DATA_PARALLEL_GRADIENT_READY_CHART: data_parallel_gradient_ready_svg(),
                 DATA_PARALLEL_GRADIENT_OVERLAP_CHART: data_parallel_gradient_overlap_svg(),
-                RANKED_TRAINING_CHART: ranked_training_bootstrap_svg()}
+                RANKED_TRAINING_CHART: ranked_training_bootstrap_svg(),
+                RANKED_BUCKET_CHART: ranked_gradient_bucket_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]
