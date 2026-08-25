@@ -3241,6 +3241,14 @@ Tensor cached_gqa_attention_split_sequence(
 Tensor cached_gqa_attention_materialized_scores(
     const Tensor& query, const Tensor& key_cache, const Tensor& value_cache,
     std::int64_t repeats, float factor,
+    const OpContext& context) {
+    return cached_gqa_attention_materialized_scores(
+        query, key_cache, value_cache, repeats, factor, 256, context);
+}
+
+Tensor cached_gqa_attention_materialized_scores(
+    const Tensor& query, const Tensor& key_cache, const Tensor& value_cache,
+    std::int64_t repeats, float factor, std::int64_t finalize_threads,
     [[maybe_unused]] const OpContext& context) {
     require_float(query, "query");
     require_forward_float(key_cache, "key_cache");
@@ -3258,6 +3266,8 @@ Tensor cached_gqa_attention_materialized_scores(
         query.shape()[3] != key_cache.shape()[3] ||
         key_cache.shape()[2] <= 0 || key_cache.shape()[2] > 4096 ||
         repeats <= 0 || query.shape()[1] != key_cache.shape()[1] * repeats ||
+        (finalize_threads != 64 && finalize_threads != 128 &&
+         finalize_threads != 256) ||
         !std::isfinite(factor) || factor <= 0.0F ||
         key_cache.strides() != value_cache.strides()) {
         throw std::invalid_argument(
@@ -3292,7 +3302,7 @@ Tensor cached_gqa_attention_materialized_scores(
             static_cast<const float*>(scores.data()), value_cache.data(),
             value_cache.dtype(), static_cast<float*>(output.data()), batches,
             heads, sequence, cache_batch_stride, cache_head_stride, width,
-            repeats, native_stream);
+            repeats, finalize_threads, native_stream);
         return output;
 #else
         throw std::runtime_error(

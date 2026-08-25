@@ -1636,7 +1636,7 @@ __global__ void cached_attention_context_kernel(
     output[index] = total;
 }
 
-template <typename Cache>
+template <typename Cache, unsigned PhysicalThreads>
 __global__ void cached_attention_finalize_scores_kernel(
     const float* scores, const Cache* value_cache, float* output,
     std::int64_t batches, std::int64_t heads, std::int64_t sequence,
@@ -1650,27 +1650,58 @@ __global__ void cached_attention_finalize_scores_kernel(
     extern __shared__ float shared_scores[];
     __shared__ float reduction[kBlockSize];
 
-    float local_maximum = -INFINITY;
     const auto score_base = (batch * heads + head) * sequence;
-    for (std::int64_t position = threadIdx.x; position < sequence;
-         position += blockDim.x) {
-        const auto score = scores[score_base + position];
-        shared_scores[position] = score;
-        local_maximum = fmaxf(local_maximum, score);
+    // PhysicalThreads may be smaller than the historical 256-thread block, but
+    // each physical lane owns the same logical 256-lane streams.  The shared
+    // reduction below therefore performs the exact old tree.  This separates a
+    // scheduling experiment from a numerical-order experiment.
+    for (unsigned logical_lane = threadIdx.x; logical_lane < kBlockSize;
+         logical_lane += PhysicalThreads) {
+        float local_maximum = -INFINITY;
+        for (std::int64_t position = logical_lane; position < sequence;
+             position += kBlockSize) {
+            const auto score = scores[score_base + position];
+            shared_scores[position] = score;
+            local_maximum = fmaxf(local_maximum, score);
+        }
+        reduction[logical_lane] = local_maximum;
     }
-    const auto maximum = block_reduce_max(local_maximum, reduction);
-    float local_denominator = 0.0F;
-    for (std::int64_t position = threadIdx.x; position < sequence;
-         position += blockDim.x) {
-        const auto probability = expf(shared_scores[position] - maximum);
-        shared_scores[position] = probability;
-        local_denominator += probability;
+    __syncthreads();
+    for (unsigned stride = kBlockSize / 2; stride > 0; stride >>= 1) {
+        for (unsigned logical_lane = threadIdx.x; logical_lane < stride;
+             logical_lane += PhysicalThreads) {
+            reduction[logical_lane] = fmaxf(
+                reduction[logical_lane], reduction[logical_lane + stride]);
+        }
+        __syncthreads();
     }
-    const auto denominator = block_reduce_sum(local_denominator, reduction);
+    const auto maximum = reduction[0];
+    __syncthreads();
+    for (unsigned logical_lane = threadIdx.x; logical_lane < kBlockSize;
+         logical_lane += PhysicalThreads) {
+        float local_denominator = 0.0F;
+        for (std::int64_t position = logical_lane; position < sequence;
+             position += kBlockSize) {
+            const auto probability = expf(shared_scores[position] - maximum);
+            shared_scores[position] = probability;
+            local_denominator += probability;
+        }
+        reduction[logical_lane] = local_denominator;
+    }
+    __syncthreads();
+    for (unsigned stride = kBlockSize / 2; stride > 0; stride >>= 1) {
+        for (unsigned logical_lane = threadIdx.x; logical_lane < stride;
+             logical_lane += PhysicalThreads) {
+            reduction[logical_lane] += reduction[logical_lane + stride];
+        }
+        __syncthreads();
+    }
+    const auto denominator = reduction[0];
+    __syncthreads();
     const auto cache_base = batch * cache_batch_stride +
                             kv_head * cache_head_stride;
     for (std::int64_t column = threadIdx.x; column < width;
-         column += blockDim.x) {
+         column += PhysicalThreads) {
         float total = 0.0F;
         for (std::int64_t position = 0; position < sequence; ++position) {
             total += shared_scores[position] / denominator *
@@ -4030,25 +4061,34 @@ void launch_cached_attention_finalize_scores(
     float* output, std::int64_t batches, std::int64_t heads,
     std::int64_t sequence, std::int64_t cache_batch_stride,
     std::int64_t cache_head_stride, std::int64_t width,
-    std::int64_t repeats, void* stream) {
+    std::int64_t repeats, std::int64_t finalize_threads, void* stream) {
     const auto grid = dim3(static_cast<unsigned>(batches * heads));
     const auto shared_bytes = static_cast<std::size_t>(sequence) * sizeof(float);
-    if (cache_dtype == DType::Float32) {
-        hipLaunchKernelGGL(
-            cached_attention_finalize_scores_kernel<float>, grid,
-            dim3(kBlockSize), shared_bytes, as_stream(stream), scores,
-            static_cast<const float*>(value_cache), output, batches, heads,
-            sequence, cache_batch_stride, cache_head_stride, width, repeats);
-    } else if (cache_dtype == DType::BFloat16) {
-        hipLaunchKernelGGL(
-            cached_attention_finalize_scores_kernel<hip_bfloat16>, grid,
-            dim3(kBlockSize), shared_bytes, as_stream(stream), scores,
-            static_cast<const hip_bfloat16*>(value_cache), output, batches,
-            heads, sequence, cache_batch_stride, cache_head_stride, width,
-            repeats);
-    } else {
+    if (cache_dtype != DType::Float32 && cache_dtype != DType::BFloat16) {
         throw std::invalid_argument(
             "materialized-score cached attention supports FP32 and BF16 cache");
+    }
+    const auto launch = [&]<typename Cache, unsigned Threads>(const Cache* cache) {
+        hipLaunchKernelGGL(
+            (cached_attention_finalize_scores_kernel<Cache, Threads>), grid,
+            dim3(Threads), shared_bytes, as_stream(stream), scores, cache,
+            output, batches, heads, sequence, cache_batch_stride,
+            cache_head_stride, width, repeats);
+    };
+    const auto dispatch = [&]<typename Cache>(const Cache* cache) {
+        switch (finalize_threads) {
+            case 64: launch.template operator()<Cache, 64>(cache); break;
+            case 128: launch.template operator()<Cache, 128>(cache); break;
+            case 256: launch.template operator()<Cache, 256>(cache); break;
+            default:
+                throw std::invalid_argument(
+                    "materialized-score finalize threads must be 64, 128, or 256");
+        }
+    };
+    if (cache_dtype == DType::Float32) {
+        dispatch(static_cast<const float*>(value_cache));
+    } else {
+        dispatch(static_cast<const hip_bfloat16*>(value_cache));
     }
     check_launch("cached_attention_finalize_scores_kernel");
 }

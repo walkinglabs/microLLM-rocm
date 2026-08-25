@@ -24,6 +24,7 @@ struct Options {
     std::int64_t sequence = 512;
     std::int64_t width = 128;
     std::int64_t splits = 0;
+    std::int64_t finalize_threads = 256;
     bool materialized = false;
     std::string cache_dtype = "bf16";
     std::string order = "forward";
@@ -68,6 +69,9 @@ Options parse(int argc, char** argv) {
             result.splits = integer(argv[index + 1], "splits");
         } else if (name == "--materialized") {
             result.materialized = boolean(argv[index + 1], "materialized");
+        } else if (name == "--finalize-threads") {
+            result.finalize_threads = integer(
+                argv[index + 1], "finalize-threads");
         } else if (name == "--cache-dtype") {
             result.cache_dtype = argv[index + 1];
         } else if (name == "--order") {
@@ -87,6 +91,8 @@ Options parse(int argc, char** argv) {
         result.width <= 0 || result.width > 256 ||
         result.splits < 0 || result.splits > 32 ||
         result.splits > result.sequence ||
+        (result.finalize_threads != 64 && result.finalize_threads != 128 &&
+         result.finalize_threads != 256) ||
         (result.cache_dtype != "fp32" && result.cache_dtype != "bf16") ||
         (result.order != "forward" && result.order != "reverse") ||
         result.warmup < 3 || result.repetitions <= 0 ||
@@ -272,7 +278,8 @@ int main(int argc, char** argv) {
         if (options.materialized) {
             device_materialized =
                 microllm::ops::cached_gqa_attention_materialized_scores(
-                    device_query, device_key, device_value, repeats, scale);
+                    device_query, device_key, device_value, repeats, scale,
+                    options.finalize_threads);
         }
         microllm::runtime::synchronize(device);
 
@@ -349,7 +356,8 @@ int main(int argc, char** argv) {
         const auto materialized_operation = [&] {
             device_materialized =
                 microllm::ops::cached_gqa_attention_materialized_scores(
-                    device_query, device_key, device_value, repeats, scale);
+                    device_query, device_key, device_value, repeats, scale,
+                    options.finalize_threads);
         };
 
         Timing score_timing;
@@ -460,6 +468,8 @@ int main(int argc, char** argv) {
         if (options.materialized) {
             std::cout << ",\"materialized_score_bytes\":"
                       << score_elements * sizeof(float)
+                      << ",\"materialized_finalize_threads\":"
+                      << options.finalize_threads
                       << ",\"materialized_max_error\":"
                       << materialized_error.maximum
                       << ",\"materialized_rms_error\":"

@@ -137,6 +137,25 @@ visual index; raw CSV and the derived JSON remain the evidence used for decision
 The curated result is
 [`2026-08-25-post-materialized-deepseek-t2048-profile`](results/2026-08-25-post-materialized-deepseek-t2048-profile/).
 
+Search the exact-order finalizer's physical-thread mapping without changing the
+logical 256-lane reduction tree:
+
+```bash
+ROCR_VISIBLE_DEVICES=0 HIP_VISIBLE_DEVICES=0 python3 \
+  benchmarks/single_gpu/cached_attention_finalize_mapping_matrix.py \
+  --benchmark build/hip-release/benchmarks/microllm_bench_cached_attention_stages \
+  --output-directory /tmp/microllm-finalize-mapping \
+  --models qwen2.5-0.5b,deepseek-r1-distill-qwen-1.5b \
+  --sequences 512,2048 --batches 1,2 --cache-dtypes fp32,bf16 \
+  --finalize-threads 64,128,256 --runs 2 --warmup 3 --repetitions 20
+```
+
+Every fresh process requires bitwise equality to the current fused context and
+zero warm backend allocations. A mapped policy passes only when its median is at
+least 1.05x in Event time and 1.02x in synchronized wall time versus 256 threads.
+The runner emits raw JSON Lines, a case summary and `mapping.svg`; it never changes
+the model's automatic policy.
+
 Screen the separate BF16 weight-gradient hypothesis before changing Autograd:
 
 ```bash

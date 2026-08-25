@@ -883,6 +883,12 @@ void kv_cache_store_pair_positions_(
 [[nodiscard]] Tensor cached_gqa_attention_materialized_scores(
     const Tensor& query, const Tensor& key_cache, const Tensor& value_cache,
     std::int64_t repeats, float scale, const OpContext& context = {});
+// Research overload for scheduling the exact same logical 256-lane reduction
+// with 64, 128, or 256 physical threads. It does not alter model Auto routing.
+[[nodiscard]] Tensor cached_gqa_attention_materialized_scores(
+    const Tensor& query, const Tensor& key_cache, const Tensor& value_cache,
+    std::int64_t repeats, float scale, std::int64_t finalize_threads,
+    const OpContext& context = {});
 [[nodiscard]] Tensor cached_gqa_attention_positions(
     const Tensor& query, const Tensor& key_cache, const Tensor& value_cache,
     const Tensor& positions, const Tensor& cache_rows,

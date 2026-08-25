@@ -38,3 +38,22 @@ Kernel 2：每个batch/head一个block
 
 下一节点分别测current和materialized的Event/wall、2次逻辑allocation、热backend allocation和score
 bytes。至少1.05x才进入模型；位级精度只是准入条件，不是保留理由。
+
+## 保持数学顺序的线程映射接口
+
+后续profile发现第二个Kernel成为最大单项。研究重载增加一个显式`finalize_threads`参数，只接受
+64、128或256；不传参数仍是原来的256。64/128不是简单改变block reduction的宽度，而是用较少
+物理线程模拟同样的256个逻辑lane：
+
+```text
+逻辑lane 0仍累加position 0,256,512,...
+逻辑lane 1仍累加position 1,257,513,...
+...
+共享内存仍按128,64,...,1的相同树归约
+每个输出column仍按position 0→T累加
+```
+
+因此这个接口只回答“少一些物理线程是否更适合调度”，不把数值顺序变化混进同一个实验。
+CPU、小shape PyTorch oracle和16格MI300X长短边界都覆盖默认/64/128；非法线程数明确失败。
+模型Auto路由不读取这个参数。正式性能结论必须来自
+`cached_attention_finalize_mapping_matrix.py`，不能从一次手工计时得出。

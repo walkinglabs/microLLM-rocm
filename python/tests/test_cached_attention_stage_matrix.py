@@ -15,6 +15,8 @@ RUNNER = ROOT / "benchmarks/single_gpu/cached_attention_stage_matrix.py"
 SPLIT_RUNNER = ROOT / "benchmarks/single_gpu/cached_attention_split_matrix.py"
 MATERIALIZED_RUNNER = (
     ROOT / "benchmarks/single_gpu/cached_attention_materialized_matrix.py")
+FINALIZE_RUNNER = (
+    ROOT / "benchmarks/single_gpu/cached_attention_finalize_mapping_matrix.py")
 
 
 FAKE = r'''#!/usr/bin/env python3
@@ -31,6 +33,7 @@ warmup = int(a["--warmup"])
 repetitions = int(a["--repetitions"])
 dtype = a["--cache-dtype"]
 order = a["--order"]
+finalize_threads = int(a.get("--finalize-threads", "256"))
 factor = b * t / 32.0 * (0.97 if dtype == "bf16" else 1.0)
 times = {
     "score": 0.020 * factor,
@@ -69,6 +72,7 @@ record = {
     "materialized_max_error": 1.0e-8,
     "materialized_rms_error": 1.0e-8,
     "materialized_bitwise_equal_current": True,
+    "materialized_finalize_threads": finalize_threads,
     "materialized_speedup_over_fused": times["fused"] / times["materialized"],
 }
 for field in (
@@ -256,6 +260,33 @@ def main() -> int:
         assert len(materialized_raw) == 16
         assert "Exact-order materialized-score cached Attention" in \
             materialized_chart
+
+        finalize_output = root / "finalize-matrix"
+        finalize_completed = subprocess.run([
+            sys.executable, str(FINALIZE_RUNNER), "--benchmark", str(fake),
+            "--output-directory", str(finalize_output),
+            "--models", "qwen2.5-0.5b,deepseek-r1-distill-qwen-1.5b",
+            "--sequences", "32", "--batches", "1",
+            "--cache-dtypes", "bf16", "--runs", "2",
+            "--warmup", "3", "--repetitions", "4",
+        ], text=True, capture_output=True, check=False)
+        if finalize_completed.returncode != 0:
+            raise AssertionError(
+                finalize_completed.stdout + finalize_completed.stderr)
+        finalize_summary = json.loads(
+            (finalize_output / "summary.json").read_text(encoding="utf-8"))
+        finalize_raw = (finalize_output / "raw.jsonl").read_text(
+            encoding="utf-8").splitlines()
+        finalize_chart = (finalize_output / "mapping.svg").read_text(
+            encoding="utf-8")
+        assert finalize_summary["matrix_complete"] is True
+        assert finalize_summary["process_rows"] == 12
+        assert finalize_summary["case_count"] == 2
+        assert finalize_summary["all_accuracy_gates_passed"] is True
+        assert len(finalize_raw) == 12
+        assert {case["winner_threads"] for case in
+                finalize_summary["cases"]} <= {64, 128}
+        assert "Exact-order finalize mapping search" in finalize_chart
     print("cached Attention stage matrix contract: pass")
     return 0
 

@@ -355,7 +355,8 @@ void launch_cached_attention_finalize_scores(
     float* output, std::int64_t batches, std::int64_t heads,
     std::int64_t sequence, std::int64_t cache_batch_stride,
     std::int64_t cache_head_stride, std::int64_t width,
-    std::int64_t repeats, void* stream = nullptr);
+    std::int64_t repeats, std::int64_t finalize_threads,
+    void* stream = nullptr);
 void launch_cached_attention_fused(
     const float* query, const void* key_cache, const void* value_cache,
     DType cache_dtype, float* output, std::int64_t batches, std::int64_t heads,
