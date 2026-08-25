@@ -2,6 +2,20 @@ add_executable(microllm_bench_ops micro/benchmark_ops.cpp)
 target_link_libraries(microllm_bench_ops PRIVATE microllm::ops microllm::runtime)
 
 if(MICROLLM_HAS_HIP)
+    # rocWMMA remains benchmark-only until a complete Attention candidate passes
+    # correctness, memory and end-to-end gates. Its target references OpenMP.
+    find_package(OpenMP QUIET COMPONENTS CXX)
+    if(OpenMP_CXX_FOUND)
+        find_package(rocwmma QUIET CONFIG)
+    endif()
+    if(rocwmma_FOUND AND MICROLLM_HAS_HIPBLASLT)
+        add_executable(microllm_bench_rocwmma_qk
+                       micro/benchmark_rocwmma_qk.hip)
+        target_link_libraries(microllm_bench_rocwmma_qk PRIVATE
+            hip::host roc::rocwmma roc::hipblaslt)
+        target_compile_definitions(microllm_bench_rocwmma_qk PRIVATE
+            MICROLLM_ROCWMMA_VERSION="${rocwmma_VERSION}")
+    endif()
     add_executable(microllm_bench_deferred_deallocation
                    micro/benchmark_deferred_deallocation.cpp)
     target_link_libraries(microllm_bench_deferred_deallocation PRIVATE
@@ -157,6 +171,14 @@ if(BUILD_TESTING)
                      --continuous-only true)
     set_tests_properties(Benchmark.SchedulerContinuousProfileSmoke PROPERTIES
                          LABELS "cpu;benchmark;inference;scheduler;profile;schema")
+    if(TARGET microllm_bench_rocwmma_qk)
+        add_test(NAME Benchmark.RocwmmaQkTileSmoke
+                 COMMAND microllm_bench_rocwmma_qk --rows 16 --columns 16
+                         --inner 16 --tile 16 --waves-per-block 1
+                         --warmup 1 --repetitions 2)
+        set_tests_properties(Benchmark.RocwmmaQkTileSmoke PROPERTIES
+                             LABELS "hip;benchmark;attention;bf16;mfma;rocwmma")
+    endif()
     if(Python3_Interpreter_FOUND)
         add_test(NAME Benchmark.JsonSchema
                  COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/validate_json.py

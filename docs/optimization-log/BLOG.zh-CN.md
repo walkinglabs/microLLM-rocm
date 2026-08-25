@@ -3708,3 +3708,18 @@ T8只有0.656×；完整step只有Qwen T8孤立1.050×，另两项回退。
 不再调阈值或block size；原语保留给未来graph-wide方案。
 
 ![Model optimizer Graph gate](assets/optimizer-graph-model-gate.svg)
+
+## 244. Experiment 227：先测矩阵积木，不先宣布Flash Attention
+
+推理微融合已经饱和，下一步需要MFMA tile和online softmax。但我们先把问题缩成
+`Q[T,D] × Kᵀ[D,T]`：CPU完整reference、标量HIP、rocWMMA和hipBLASLt读取同一语义输入，
+输出同一张FP32分数表。
+
+16个shape、每格3个新进程，48次完整输出全部对齐。筛出的32×32×16、一个wave/block在
+T512 D64/D128比同二进制hipBLASLt快1.784×/1.654×，T1024仍快1.666×/1.342×；但T2048
+D128跌到0.688×。矩阵硬件可用和长上下文反例同时成立。
+
+因此只准入下一阶段原型，不建立模型路由。真正的候选必须不写T² score，完成online max/sum、
+causal、GQA、tail和PV，并重新过完整Attention、KV、显存与双模型logits门。
+
+![rocWMMA QK tile boundary](assets/rocwmma-qk-tile.svg)

@@ -353,6 +353,7 @@
     "python/tests/test_inference_bthd_bf16_qk.py",
     "python/tests/test_inference_bthd_bf16_qk_shapes.py",
     "python/tests/test_causal_softmax_threads.py",
+    "python/tests/test_rocwmma_qk_matrix.py",
     "python/tests/test_bf16_repeat.py",
     "python/tests/test_inference_bthd_shape_models.py",
     "python/tests/test_hf_fp8_layer_drift.py",

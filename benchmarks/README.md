@@ -17,6 +17,20 @@ Result schema version 1 fields are emitted directly by `microllm_bench_ops`.
 Representative committed smoke results live under `benchmarks/results/`; full local
 run outputs are ignored unless curated with their environment and correctness data.
 
+When rocWMMA 2.2 and OpenMP are available, the benchmark-only QK capability target
+compares complete BF16×BF16→FP32 outputs against CPU, scalar HIP and hipBLASLt:
+
+```bash
+cmake --build build/hip-release --target microllm_bench_rocwmma_qk --parallel
+./build/hip-release/benchmarks/microllm_bench_rocwmma_qk \
+  --rows 512 --columns 512 --inner 128 \
+  --tile 32 --waves-per-block 1 --warmup 10 --repetitions 50
+```
+
+The multi-process T16–2048/D64–128 runner is
+`benchmarks/single_gpu/rocwmma_qk_matrix.py`. This is a capability gate for an online
+Attention prototype; it does not register an operator or change model dispatch.
+
 Screen and time the two matmul implementations in the required order:
 
 ```bash

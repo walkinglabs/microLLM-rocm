@@ -42,8 +42,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   already-recorded width-128 end-to-end counterexamples;
 - [x] close the current inference micro-fusion track after two consecutive
   cross-model/shape rejections and publish perfect-elimination upper bounds;
-- [ ] treat MFMA/rocWMMA online Attention as a separate design milestone with
-  tiled QK/PV, online max/sum, causal masking, GQA sharing and full-logit gates;
+- [x] prove the gfx942 rocWMMA BF16 QK tile boundary across T16–2048 and D64/128;
+  all complete outputs pass, while T2048 D128 preserves a 0.688x library counterexample;
+- [ ] build the admitted MFMA/rocWMMA online Attention prototype with tiled QK/PV,
+  online max/sum, causal masking, GQA sharing, tails and full-logit gates;
 - [x] populate B1 KV cache from one full-sequence prefill instead of token replay;
 - [x] support batched cached decode with batch-aware KV Storage;
 - [x] add opt-in BF16 KV Storage with FP32 accumulation, complete-logit gates and a retained

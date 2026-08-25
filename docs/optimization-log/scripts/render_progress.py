@@ -112,6 +112,9 @@ QUIESCENT_HANDOFF_CHART = ROOT / "assets" / "quiescent-allocator-handoff.svg"
 OPTIMIZER_GRAPH_MODEL_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
                               "2026-08-24-optimizer-graph-model-gate")
 OPTIMIZER_GRAPH_MODEL_CHART = ROOT / "assets" / "optimizer-graph-model-gate.svg"
+ROCWMMA_QK_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
+                   "2026-08-25-rocwmma-qk-tile")
+ROCWMMA_QK_CHART = ROOT / "assets" / "rocwmma-qk-tile.svg"
 
 
 def rows() -> list[dict]:
@@ -2759,6 +2762,72 @@ def optimizer_graph_model_gate_svg() -> str:
     return "\n".join(parts)
 
 
+def rocwmma_qk_tile_svg() -> str:
+    summary = json.loads((ROCWMMA_QK_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    rows = summary["comparisons"]
+    sequences = summary["sequences"]
+    width, height = 1600, 760
+    chart_x, chart_y, chart_w, chart_h = 150, 150, 1300, 390
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 227 · rocWMMA QK Tile Boundary", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "48 fresh processes · complete BF16×BF16→FP32 outputs · tile32/wave1 after screening",
+             16, "#5b6474", anchor="middle"),
+        f'<rect x="{chart_x}" y="{chart_y}" width="{chart_w}" height="{chart_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+    ]
+
+    def y(value: float) -> float:
+        return chart_y + chart_h * (2.1 - value) / 1.6
+
+    for tick in (0.5, 1.0, 1.5, 2.0):
+        position = y(tick)
+        color = "#2563eb" if tick == 1.0 else "#e5e9f0"
+        parts.append(f'<line x1="{chart_x}" y1="{position:.1f}" '
+                     f'x2="{chart_x+chart_w}" y2="{position:.1f}" stroke="{color}"/>')
+        parts.append(text(chart_x - 12, position + 5, f"{tick:.1f}×", 13,
+                          "#5b6474", anchor="end"))
+    x_by_sequence = {
+        sequence: chart_x + chart_w * (index + 0.5) / len(sequences)
+        for index, sequence in enumerate(sequences)
+    }
+    for sequence, x_pos in x_by_sequence.items():
+        parts.append(text(x_pos, chart_y + chart_h + 30, f"T{sequence}", 14,
+                          "#5b6474", anchor="middle"))
+    for inner, color in ((64, "#16a34a"), (128, "#e11d48")):
+        selected = sorted((row for row in rows if row["inner"] == inner),
+                          key=lambda row: row["sequence"])
+        points = [(x_by_sequence[row["sequence"]],
+                   y(row["rocwmma_over_hipblaslt"])) for row in selected]
+        parts.append('<polyline fill="none" stroke="{}" stroke-width="4" points="{}"/>'.format(
+            color, " ".join(f"{x:.1f},{point_y:.1f}" for x, point_y in points)))
+        for row, (x_pos, y_pos) in zip(selected, points):
+            parts.append(f'<circle cx="{x_pos:.1f}" cy="{y_pos:.1f}" r="6" fill="{color}"/>')
+            if row["sequence"] in (512, 2048):
+                parts.append(text(x_pos, y_pos - 12,
+                                  f'{row["rocwmma_over_hipblaslt"]:.3f}×',
+                                  13, color, anchor="middle", weight=700))
+        parts.append(text(chart_x + chart_w - 15,
+                          chart_y + 32 + (0 if inner == 64 else 26),
+                          f"D{inner}", 15, color, anchor="end", weight=700))
+    parts.append(text(width / 2, 625,
+                      "T512: 1.784× / 1.654× faster than default hipBLASLt · T2048 D128: only 0.688×",
+                      18, "#9a4f00", anchor="middle", weight=700))
+    parts.append(text(width / 2, 670,
+                      "Admit an online-Attention prototype; do not route models until causal/GQA/tail/memory gates pass",
+                      15, "#5b6474", anchor="middle"))
+    parts.append(text(width / 2, 710,
+                      "Vertical axis: rocWMMA speed ÷ hipBLASLt speed; 1.0× is parity",
+                      13, "#5b6474", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -2801,7 +2870,8 @@ def main() -> int:
                 OPTIMIZER_GRAPH_PREFLIGHT_CHART:
                     optimizer_graph_model_preflight_svg(),
                 QUIESCENT_HANDOFF_CHART: quiescent_allocator_handoff_svg(),
-                OPTIMIZER_GRAPH_MODEL_CHART: optimizer_graph_model_gate_svg()}
+                OPTIMIZER_GRAPH_MODEL_CHART: optimizer_graph_model_gate_svg(),
+                ROCWMMA_QK_CHART: rocwmma_qk_tile_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

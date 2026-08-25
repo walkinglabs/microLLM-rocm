@@ -12519,6 +12519,86 @@ def validate_optimizer_graph_model_gate(
         min(step_values), max(step_values)
 
 
+def validate_rocwmma_qk_tile(
+        errors: list[str]) -> tuple[int, float, float, int]:
+    data = REPOSITORY / "benchmarks/results/2026-08-25-rocwmma-qk-tile"
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = {(int(row["sequence"]), int(row["inner"])): row
+                   for row in summary.get("comparisons", [])}
+    expected_boundary = {
+        (512, 64): 1.7842354091946528,
+        (512, 128): 1.653697126251211,
+        (2048, 64): 1.0218506813470623,
+        (2048, 128): 0.6876655740649276,
+    }
+    keys = {(int(row.get("rows", -1)), int(row.get("inner", -1)),
+             int(row.get("process_run", -1))) for row in raw}
+    if summary.get("schema_version") != 1 or summary.get("status") != "pass" or \
+            summary.get("record_type") != "rocwmma_qk_matrix_summary" or \
+            summary.get("architecture") != "gfx942:sramecc+:xnack-" or \
+            summary.get("rocwmma_version") != "2.2.0" or \
+            summary.get("processes") != 48 or \
+            summary.get("runs_per_case") != 3 or \
+            summary.get("sequences") != [16, 32, 64, 128, 256, 512, 1024, 2048] or \
+            summary.get("inners") != [64, 128] or \
+            summary.get("correctness_gate") is not True or \
+            summary.get("long_scalar_gate") is not True or \
+            summary.get("t512_blas_gate") is not True or \
+            summary.get("long_blas_counterexample") is not True or \
+            summary.get("tail_support") is not False or \
+            summary.get("online_prototype_admitted") is not True or \
+            summary.get("model_route_accepted") is not False or \
+            summary.get("decision") != (
+                "admit bounded online Attention prototype; keep model route disabled") or \
+            len(raw) != 48 or len(keys) != 48 or len(comparisons) != 16 or \
+            any(key not in comparisons or
+                abs(float(comparisons[key].get("rocwmma_over_hipblaslt", 0.0)) - value) > 1.0e-12
+                for key, value in expected_boundary.items()) or \
+            any(row.get("schema_version") != 1 or row.get("status") != "pass" or
+                row.get("record_type") != "rocwmma_qk_measurement" or
+                row.get("accuracy_passed") is not True or
+                int(row.get("complete_output_elements", -1)) !=
+                    int(row.get("rows", 0)) * int(row.get("columns", 0)) or
+                float(row.get("rocwmma_max_error", 1.0)) > 2.0e-3 or
+                float(row.get("rocwmma_rms_error", 1.0)) > 3.0e-4 or
+                float(row.get("hipblaslt_max_error", 1.0)) > 2.0e-3 or
+                int(row.get("waves_per_block", 0)) != 1
+                for row in raw):
+        errors.append("rocWMMA QK tile evidence changed")
+    if verification != {
+            "schema_version": 1,
+            "status": "pass",
+            "raw_records": 48,
+            "expected_raw_records": 48,
+            "matrix_cases": 16,
+            "expected_matrix_cases": 16,
+            "all_complete_outputs": True,
+            "all_accuracy_passed": True,
+            "selected_layout": "tile32-wave1 except tile16 for T16",
+            "correctness_gate": True,
+            "online_prototype_admitted": True,
+            "model_route_accepted": False}:
+        errors.append("rocWMMA QK tile verification changed")
+    sources = (
+        ("rocwmma_qk_kernel", REPOSITORY /
+         "benchmarks/micro/benchmark_rocwmma_qk.hip"),
+        ("long_blas_counterexample", REPOSITORY /
+         "benchmarks/single_gpu/rocwmma_qk_matrix.py"),
+        ("online_prototype_admitted", REPOSITORY /
+         "python/tests/test_rocwmma_qk_matrix.py"),
+    )
+    if any(token not in path.read_text(encoding="utf-8")
+           for token, path in sources):
+        errors.append("rocWMMA QK source/test contract changed")
+    ratios = [float(row["rocwmma_over_hipblaslt"])
+              for row in comparisons.values()]
+    return len(raw), min(ratios), max(ratios), len(comparisons)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -12723,7 +12803,8 @@ def validate_assets(errors: list[str]) -> None:
                  "gradient-address-stability.svg",
                  "optimizer-graph-model-preflight.svg",
                  "quiescent-allocator-handoff.svg",
-                 "optimizer-graph-model-gate.svg"):
+                 "optimizer-graph-model-gate.svg",
+                 "rocwmma-qk-tile.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -13147,6 +13228,8 @@ def main() -> int:
     optimizer_model_rows, optimizer_model_minimum, optimizer_model_maximum, \
         optimizer_model_step_minimum, optimizer_model_step_maximum = \
         validate_optimizer_graph_model_gate(errors)
+    rocwmma_qk_rows, rocwmma_qk_minimum, rocwmma_qk_maximum, \
+        rocwmma_qk_cases = validate_rocwmma_qk_tile(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -13526,6 +13609,8 @@ def main() -> int:
           f"{optimizer_model_minimum:.3f}/{optimizer_model_maximum:.3f}/"
           f"{optimizer_model_step_minimum:.3f}/"
           f"{optimizer_model_step_maximum:.3f} "
+          f"rocwmma_qk={rocwmma_qk_rows}/{rocwmma_qk_cases}/"
+          f"{rocwmma_qk_minimum:.3f}/{rocwmma_qk_maximum:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

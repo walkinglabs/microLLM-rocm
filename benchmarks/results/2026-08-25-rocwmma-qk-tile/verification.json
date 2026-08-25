@@ -1,0 +1,14 @@
+{
+  "all_accuracy_passed": true,
+  "all_complete_outputs": true,
+  "correctness_gate": true,
+  "expected_matrix_cases": 16,
+  "expected_raw_records": 48,
+  "matrix_cases": 16,
+  "model_route_accepted": false,
+  "online_prototype_admitted": true,
+  "raw_records": 48,
+  "schema_version": 1,
+  "selected_layout": "tile32-wave1 except tile16 for T16",
+  "status": "pass"
+}

@@ -15,6 +15,8 @@ version is not silently claimed to work.
 | Python | 3.9 or newer for optional API/tests | 3.13.13 |
 | HIP/ROCm | optional for CPU; required for AMD GPU | HIP 7.13.99004, AMD Clang 23.0 development build |
 | hipBLASLt | optional optimized matmul backend | 1.3.0 |
+| rocWMMA | optional, benchmark-only matrix-fragment headers | 2.2.0 |
+| OpenMP C++ | optional transitive requirement of the rocWMMA CMake target | LLVM OpenMP from ROCm SDK |
 | RCCL | optional multi-GPU backend | 2.28.3 |
 | rocprofv3 | optional profiler | 1.3.0 |
 | GPU architecture | a ROCm-supported AMD GPU | 4 × gfx942 MI300X virtual functions |
@@ -102,6 +104,11 @@ cmake --preset hip-release -DMICROLLM_HIP_ARCHITECTURES=gfx942
 
 `MICROLLM_ENABLE_HIP=ON` makes a missing HIP compiler a configuration error. `AUTO`
 enables HIP only when the toolchain is found; `OFF` guarantees a CPU-only build.
+
+When both rocWMMA and its OpenMP C++ dependency are discoverable, CMake also builds
+`microllm_bench_rocwmma_qk`. This target is a research benchmark, not an engine or
+installed-SDK dependency. If either optional package is absent, ordinary HIP operators,
+applications and the exported `microLLM::*` targets are unchanged.
 
 ## RCCL build
 
@@ -253,6 +260,12 @@ cmake --preset hip-release -DCMAKE_PREFIX_PATH=/opt/rocm
 
 Check for `hipblaslt-config.cmake` or `rccl-config.cmake` under the ROCm installation.
 hipBLASLt is optional; RCCL is required only when `MICROLLM_ENABLE_RCCL=ON`.
+
+### rocWMMA QK benchmark target not found
+
+The target is intentionally conditional. Confirm that `rocwmma-config.cmake` is visible
+through `CMAKE_PREFIX_PATH` and that CMake can find an OpenMP C++ target. Its absence does
+not disable the existing Attention implementation or add a dependency to an installed SDK.
 
 ### Wrong GPU target
 

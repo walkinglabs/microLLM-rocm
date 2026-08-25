@@ -474,3 +474,5 @@ the next gate. Records are append-only except for factual corrections.
   beginner-friendly explanation of why fewer submissions can still lose on real model shapes.
 - [2026-08-24-cmake-c-only-consumer.md](2026-08-24-cmake-c-only-consumer.md):
   proves that both build-tree and relocated install-tree Config packages work from a genuinely C-only project.
+- [2026-08-25-rocwmma-qk-tile.md](2026-08-25-rocwmma-qk-tile.md):
+  beginner-friendly matrix-core capability, complete-output matrix and long-context counterexample.

@@ -423,6 +423,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.CausalSoftmaxThreadsContract PROPERTIES
         LABELS "cpu;benchmark;model;inference;attention;softmax;memory;shape;schema")
     add_test(
+        NAME Benchmark.RocwmmaQkMatrixContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_rocwmma_qk_matrix.py
+    )
+    set_tests_properties(Benchmark.RocwmmaQkMatrixContract PROPERTIES
+        LABELS "cpu;benchmark;inference;attention;bf16;mfma;rocwmma;shape;schema")
+    add_test(
         NAME Benchmark.Bf16RepeatContract
         COMMAND ${Python3_EXECUTABLE}
                 ${PROJECT_SOURCE_DIR}/python/tests/test_bf16_repeat.py

@@ -853,6 +853,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [experiments/225-quiescent-allocator-handoff.md](experiments/225-quiescent-allocator-handoff.md) | 24进程、三次handoff与Deep长上下文反例 |
 | [assets/optimizer-graph-model-gate.svg](assets/optimizer-graph-model-gate.svg) | optimizer/完整step双指标模型反例 |
 | [experiments/226-optimizer-graph-model-gate.md](experiments/226-optimizer-graph-model-gate.md) | 21进程精确状态、零metadata copy与模型拒绝 |
+| [assets/rocwmma-qk-tile.svg](assets/rocwmma-qk-tile.svg) | T16–2048、D64/128的rocWMMA/标量/hipBLASLt边界 |
+| [experiments/227-rocwmma-qk-tile.md](experiments/227-rocwmma-qk-tile.md) | 矩阵单元能力门、完整输出与online Attention原型准入 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 
