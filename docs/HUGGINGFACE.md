@@ -84,6 +84,9 @@ layer 1只对原prompt有效；robust-strict使用layers 0–3 FP32、其余BF16
 Qwen uniform BF16在repeat/rotated/ramp通过，但constant T32/512/2048完整logits失败；
 constant T2048只有全FP32 Cache通过。`fp32`默认值因此仍是必要fallback。
 
+`--bf16-ffn`与`--bf16-attention`是独立的权重准备开关。普通运行通常同时开启；精度诊断可以只
+开启一个，用JSON中的两个`*_converted_tensors`字段验收实际路径。Attention-only不隐式准备FFN。
+
 `--cache-logits-output PATH`保存真正经过cached decode后的完整logits，只用于精度诊断。
 默认保存最后一步；`--cache-logits-step N`可选择`0 <= N < new_tokens`的具体decode步，包含
 batch的完整`[B,V]` FP32值。至少生成一个token；开启诊断输出的运行不作为正式性能排名。

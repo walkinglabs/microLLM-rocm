@@ -133,6 +133,15 @@ def main() -> int:
         if rejected_logit_step.returncode == 0 or \
                 "requires an output" not in rejected_logit_step.stderr:
             raise RuntimeError("hf_infer accepted a logits step without output")
+        independent_attention = subprocess.run([
+            str(args.binary), "--config", str(missing),
+            "--weights", str(missing), "--tokens", "1", "--device", "cpu",
+            "--bf16-ffn", "false", "--bf16-attention", "true",
+        ], text=True, capture_output=True, check=False)
+        if independent_attention.returncode == 0 or \
+                "requires --bf16-ffn" in independent_attention.stderr:
+            raise RuntimeError(
+                "hf_infer still couples independent BF16 Attention and FFN islands")
     print("hf_infer binary contract: pass")
     return 0
 

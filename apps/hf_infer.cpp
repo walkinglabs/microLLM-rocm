@@ -454,9 +454,6 @@ Options options(int argc, char** argv) {
     if (result.workload == "prefill" && result.new_tokens != 0) {
         throw std::invalid_argument("prefill workload requires --new-tokens 0");
     }
-    if (result.bf16_attention && !result.bf16_ffn) {
-        throw std::invalid_argument("--bf16-attention requires --bf16-ffn true");
-    }
     if (result.bf16_ffn_arena && !result.bf16_ffn) {
         throw std::invalid_argument(
             "--bf16-ffn-arena requires --bf16-ffn true");
