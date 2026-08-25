@@ -3716,6 +3716,7 @@ TEST(HipModelTest, PreallocatedGqaCacheMatchesCpuAndAvoidsPayloadTransfers) {
     inference::KVCache cpu_cache(config.layers, config.max_sequence_length);
     model::TransformerModel hip_model(config, 61);
     hip_model.to(Device::hip());
+    hip_model.set_cached_attention_split_sequence(2, 1);
     inference::KVCache hip_cache(config.layers, config.max_sequence_length);
     const std::vector<std::int32_t> tokens{3, 4, 5, 6};
     const void* key_address = nullptr;
@@ -3766,6 +3767,7 @@ TEST(HipModelTest, PreallocatedGqaCacheMatchesCpuAndAvoidsPayloadTransfers) {
     model::TransformerModel batch_cpu_model(config, 71);
     model::TransformerModel batch_hip_model(config, 71);
     batch_hip_model.to(Device::hip());
+    batch_hip_model.set_cached_attention_split_sequence(2, 1);
     inference::KVCache batch_cpu_cache(config.layers, config.max_sequence_length, 2);
     inference::KVCache batch_hip_cache(config.layers, config.max_sequence_length, 2);
     const auto batch_prefix = Tensor::from_int32_vector(

@@ -95,6 +95,7 @@ expected_weight_model = {
     "set_bf16_qkv_arena_enabled",
     "set_bf16_attention_norm_fusion_enabled",
     "set_attention_core_arena_enabled",
+    "set_cached_attention_split_sequence",
     "prewarm_bf16_grouped_qkv",
 }
 if declared_weight_model != expected_weight_model:

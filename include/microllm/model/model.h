@@ -179,6 +179,14 @@ public:
         bool enabled, std::int64_t minimum_sequence = 512);
     [[nodiscard]] bool attention_core_arena_enabled() const noexcept;
     [[nodiscard]] AttentionCoreArenaStats attention_core_arena_stats() const noexcept;
+    // Explicit research route for uniform cached decode. Zero disables it.
+    // Divergent/positions-aware decode retains its dedicated reference path.
+    void set_cached_attention_split_sequence(
+        std::int64_t splits, std::int64_t minimum_sequence = 512);
+    [[nodiscard]] std::int64_t cached_attention_split_sequence_splits()
+        const noexcept;
+    [[nodiscard]] std::int64_t cached_attention_split_minimum_sequence()
+        const noexcept;
     // One-way inference preparation for every Linear. FP32 Embedding/Norm and
     // a tied output head remain unchanged. Weight scale is either fixed or
     // computed independently from each Linear Tensor; activation scale remains fixed.

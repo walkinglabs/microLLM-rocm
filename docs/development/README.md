@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-25: Split-sequence explicit model route](2026-08-25-split-sequence-model-route.md)
 - [2026-08-25: Split-sequence operator result](../optimization-log/experiments/283-cached-attention-split-search.md)
 - [2026-08-25: Split-sequence matrix infrastructure](2026-08-25-split-sequence-matrix-infrastructure.md)
 - [2026-08-25: Split-sequence cached Attention](2026-08-25-split-sequence-cached-attention.md)

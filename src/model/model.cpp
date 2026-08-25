@@ -1235,9 +1235,18 @@ public:
         ops::kv_cache_store_pair_(cache.key, cache.value, packed_key, packed_value,
                                   position);
         const auto repeats = config_.heads / config_.kv_heads;
-        auto context = ops::cached_gqa_attention(
-                           query, cache.key, cache.value, repeats,
-                           1.0F / std::sqrt(static_cast<float>(config_.head_dimension())))
+        const auto scale =
+            1.0F / std::sqrt(static_cast<float>(config_.head_dimension()));
+        const auto use_split = cached_attention_splits_ > 0 &&
+                               cache.key.shape()[2] >=
+                                   cached_attention_minimum_sequence_;
+        auto cached_context = use_split
+            ? ops::cached_gqa_attention_split_sequence(
+                  query, cache.key, cache.value, repeats, scale,
+                  std::min(cached_attention_splits_, cache.key.shape()[2]))
+            : ops::cached_gqa_attention(
+                  query, cache.key, cache.value, repeats, scale);
+        auto context = cached_context
                            .transpose(1, 2)
                            .contiguous()
                            .reshape({batch, config_.dimension});
@@ -1384,6 +1393,11 @@ public:
         AttentionCoreArenaCache* cache) noexcept {
         attention_core_arena_cache_ = cache;
     }
+    void set_cached_attention_split_sequence(
+        std::int64_t splits, std::int64_t minimum_sequence) noexcept {
+        cached_attention_splits_ = splits;
+        cached_attention_minimum_sequence_ = minimum_sequence;
+    }
     void prewarm_bf16_grouped_qkv(const Tensor& input) {
         if (qkv_arena_cache_ == nullptr) {
             throw std::logic_error(
@@ -1478,6 +1492,8 @@ private:
     Linear output_;
     Bf16QkvArenaCache* qkv_arena_cache_ = nullptr;
     AttentionCoreArenaCache* attention_core_arena_cache_ = nullptr;
+    std::int64_t cached_attention_splits_ = 0;
+    std::int64_t cached_attention_minimum_sequence_ = 512;
 };
 
 class Bf16FfnArenaCache {
@@ -1916,6 +1932,11 @@ public:
         AttentionCoreArenaCache* cache) noexcept {
         attention_.set_attention_core_arena_cache(cache);
     }
+    void set_cached_attention_split_sequence(
+        std::int64_t splits, std::int64_t minimum_sequence) noexcept {
+        attention_.set_cached_attention_split_sequence(
+            splits, minimum_sequence);
+    }
     void prewarm_bf16_grouped_qkv(const Tensor& input) {
         attention_.prewarm_bf16_grouped_qkv(input);
     }
@@ -1993,6 +2014,8 @@ struct TransformerModel::Impl {
     bool bf16_qkv_arena_enabled = false;
     bool bf16_attention_norm_fusion_enabled = false;
     bool attention_core_arena_enabled = false;
+    std::int64_t cached_attention_splits = 0;
+    std::int64_t cached_attention_minimum_sequence = 512;
     bool bf16_attention_prepared = false;
     bool bf16_training_mirrors_prepared = false;
     bool fp8_inference_prepared = false;
@@ -2868,6 +2891,29 @@ bool TransformerModel::attention_core_arena_enabled() const noexcept {
 
 AttentionCoreArenaStats TransformerModel::attention_core_arena_stats() const noexcept {
     return impl_->attention_core_arena.stats();
+}
+
+void TransformerModel::set_cached_attention_split_sequence(
+    std::int64_t splits, std::int64_t minimum_sequence) {
+    if (splits < 0 || splits > 32 || minimum_sequence <= 0) {
+        throw std::invalid_argument(
+            "cached Attention splits must be 0..32 and minimum sequence positive");
+    }
+    for (auto& block : impl_->blocks) {
+        block->set_cached_attention_split_sequence(splits, minimum_sequence);
+    }
+    impl_->cached_attention_splits = splits;
+    impl_->cached_attention_minimum_sequence = minimum_sequence;
+}
+
+std::int64_t TransformerModel::cached_attention_split_sequence_splits()
+    const noexcept {
+    return impl_->cached_attention_splits;
+}
+
+std::int64_t TransformerModel::cached_attention_split_minimum_sequence()
+    const noexcept {
+    return impl_->cached_attention_minimum_sequence;
 }
 
 Fp8WeightPreparationReport TransformerModel::prepare_fp8_inference_weights() {

@@ -758,6 +758,17 @@ TEST(TransformerModelTest, CachedLogitsMatchFullPrefixForMhaAndGqa) {
         auto config = tiny_config(gqa);
         config.max_sequence_length = 4;
         TransformerModel model(config, 41);
+        EXPECT_EQ(model.cached_attention_split_sequence_splits(), 0);
+        EXPECT_EQ(model.cached_attention_split_minimum_sequence(), 512);
+        EXPECT_THROW(model.set_cached_attention_split_sequence(-1, 1),
+                     std::invalid_argument);
+        EXPECT_THROW(model.set_cached_attention_split_sequence(33, 1),
+                     std::invalid_argument);
+        EXPECT_THROW(model.set_cached_attention_split_sequence(2, 0),
+                     std::invalid_argument);
+        model.set_cached_attention_split_sequence(2, 1);
+        EXPECT_EQ(model.cached_attention_split_sequence_splits(), 2);
+        EXPECT_EQ(model.cached_attention_split_minimum_sequence(), 1);
         inference::KVCache cache(model.config().layers, model.config().max_sequence_length);
         const std::vector<std::int32_t> tokens{1, 2, 3, 4};
         const void* key_address = nullptr;

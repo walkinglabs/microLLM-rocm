@@ -43,6 +43,9 @@ def main() -> int:
         b"--attention-core-arena",
         b"--attention-core-arena-minimum-sequence",
         b"attention_core_arena_capacity_bytes",
+        b"--cached-attention-splits",
+        b"--cached-attention-minimum-sequence",
+        b"cached_attention_splits",
         b"--bf16-grouped-gate-up-algorithm-index",
         b"bf16_grouped_gate_up_dispatches",
         b"prefill logits shape does not match batch export contract",
@@ -73,6 +76,16 @@ def main() -> int:
                 "requires BTHD Attention, QKV Arena" not in rejected.stderr:
             raise RuntimeError(
                 "hf_infer accepted BF16 Q/K without its required exact route")
+        rejected_split = subprocess.run([
+            str(args.binary), "--config", str(missing),
+            "--weights", str(missing), "--tokens", "1",
+            "--device", "cpu", "--cached-attention-splits", "33",
+        ], text=True, capture_output=True, check=False)
+        if rejected_split.returncode == 0 or \
+                "--cached-attention-splits must be 0..32" not in \
+                rejected_split.stderr:
+            raise RuntimeError(
+                "hf_infer accepted an invalid cached Attention split count")
     print("hf_infer binary contract: pass")
     return 0
 
