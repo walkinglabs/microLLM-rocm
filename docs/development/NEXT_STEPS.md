@@ -239,8 +239,11 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   so the model route is rejected;
 - [x] gate caller-owned rank-2 weight-gradient producer on four Model-S shapes plus tiny:
   complete outputs exact, allocation 1→0, Event 1.178x–1.873x and wall 1.101x–1.612x;
-- [ ] add a scoped Autograd first/sole right-leaf producer path with explicit zero/fresh target
-  state; keep all ambiguous or repeated contributions on ordinary accumulation;
+- [x] test scoped Autograd right-leaf producer with safe overwrite/fallback state: one logical
+  allocation disappears, but 0/5 shapes pass 1.05 (Event 0.976x–1.035x, wall 0.991x–1.018x),
+  so the route and target-state API are removed;
+- [ ] record Model-S parameter gradient-ready order on both ranks and map it to natural 25MiB
+  buckets before implementing any compute/communication overlap;
 - [ ] unused parameter, uneven input, timeout, and cross-process failure handling.
 
 ## P3 — DeepSeek distill target

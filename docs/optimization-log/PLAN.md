@@ -112,7 +112,8 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [81](steps/81-data-parallel-gradient-bucket-views.md) | complete | gradient-as-bucket views | unpack 114→0、total1.367× vs transient；peak仍+33.3MB |
 | [82](steps/82-data-parallel-direct-bucket-gradients.md) | complete | 预设leaf target模型门 | copy归零但F/B 0.830×、total0.991×；route拒绝 |
 | [83](steps/83-gradient-producer-out-kernel-gate.md) | complete | caller-owned weight-gradient producer | 5/5 exact；Event1.178×–1.873×、Wall1.101×–1.612× |
-| [84](steps/84-scoped-autograd-gradient-producer.md) | planned | scoped right-leaf direct producer | 零/fresh/唯一贡献合同与Autograd micro门 |
+| [84](steps/84-scoped-autograd-gradient-producer.md) | complete | scoped right-leaf producer反例 | 0/5过1.05；Event0.976×–1.035×、Wall0.991×–1.018× |
+| [85](steps/85-gradient-ready-order-audit.md) | planned | Model-S gradient-ready顺序审计 | 两rank/order/bucket可重叠性前置证据 |
 
 ## 为什么按这个顺序
 

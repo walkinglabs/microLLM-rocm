@@ -268,6 +268,11 @@ GRADIENT_PRODUCER_OUT_ROOT = (
     "2026-08-25-gradient-producer-out-matrix")
 GRADIENT_PRODUCER_OUT_CHART = (
     ROOT / "assets" / "gradient-producer-out-matrix.svg")
+AUTOGRAD_GRADIENT_PRODUCER_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-autograd-gradient-producer-matrix")
+AUTOGRAD_GRADIENT_PRODUCER_CHART = (
+    ROOT / "assets" / "scoped-autograd-gradient-producer-discard.svg")
 
 
 def rows() -> list[dict]:
@@ -4773,6 +4778,72 @@ def gradient_producer_out_svg() -> str:
     return "\n".join(parts)
 
 
+def autograd_gradient_producer_svg() -> str:
+    summary = json.loads((AUTOGRAD_GRADIENT_PRODUCER_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    order = (
+        ("model_s_head_t32", "Head T32"),
+        ("model_s_ffn_t32", "FFN T32"),
+        ("model_s_attention_t32", "Attn T32"),
+        ("model_s_head_t512", "Head T512"),
+        ("tiny_counterexample", "Tiny"),
+    )
+    width, height = 1600, 760
+    chart_x, chart_y, chart_w, chart_h = 130, 145, 1340, 390
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 261 · Scoped Autograd Producer Rejected", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "Repeated backward · 15 exact gradients · one logical allocation removed",
+             16, "#5b6474", anchor="middle"),
+        f'<rect x="{chart_x}" y="{chart_y}" width="{chart_w}" height="{chart_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+    ]
+
+    def y(value: float) -> float:
+        return chart_y + chart_h * (1.08 - value) / 0.14
+
+    for tick in (0.95, 1.0, 1.05):
+        position = y(tick)
+        color = "#2563eb" if tick == 1.0 else "#e5e9f0"
+        parts.append(f'<line x1="{chart_x}" y1="{position:.1f}" '
+                     f'x2="{chart_x + chart_w}" y2="{position:.1f}" stroke="{color}"/>')
+        parts.append(text(chart_x - 12, position + 5, f"{tick:.2f}x", 13,
+                          "#5b6474", anchor="end"))
+    group_width = chart_w / len(order)
+    for index, (key, label) in enumerate(order):
+        row = summary["shapes"][key]
+        center = chart_x + group_width * (index + 0.5)
+        for offset, (value, shade, name) in enumerate((
+                (row["event_speedup"], "#e11d48", "Event"),
+                (row["wall_speedup"], "#f59e0b", "Wall"))):
+            x_pos = center - 66 + offset * 70
+            top = min(y(value), y(1.0))
+            height_value = abs(y(value) - y(1.0))
+            parts.append(f'<rect x="{x_pos:.1f}" y="{top:.1f}" width="60" '
+                         f'height="{height_value:.1f}" fill="{shade}" rx="5"/>')
+            parts.append(text(x_pos + 30, y(value) - 9, f"{value:.3f}x", 12,
+                              shade, anchor="middle", weight=700))
+            parts.append(text(x_pos + 30, chart_y + chart_h + 22, name, 11,
+                              "#5b6474", anchor="middle"))
+        parts.append(text(center, chart_y + chart_h + 52, label, 14,
+                          "#172033", anchor="middle", weight=700))
+    parts.append(text(width / 2, 625,
+                      "0 / 5 shapes pass the 1.05x Event + Wall gate",
+                      23, "#b42335", anchor="middle", weight=700))
+    parts.append(text(width / 2, 675,
+                      "Ordinary first leaf assignment already adopts the producer Tensor",
+                      19, "#172033", anchor="middle", weight=700))
+    parts.append(text(width / 2, 720,
+                      "Scoped Autograd route removed · caller-owned operator retained",
+                      16, "#5b6474", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -4849,7 +4920,8 @@ def main() -> int:
                 DATA_PARALLEL_PERSISTENT_CHART: data_parallel_persistent_bucket_svg(),
                 DATA_PARALLEL_GRADIENT_VIEW_CHART: data_parallel_gradient_view_svg(),
                 DATA_PARALLEL_DIRECT_GRADIENT_CHART: data_parallel_direct_gradient_svg(),
-                GRADIENT_PRODUCER_OUT_CHART: gradient_producer_out_svg()}
+                GRADIENT_PRODUCER_OUT_CHART: gradient_producer_out_svg(),
+                AUTOGRAD_GRADIENT_PRODUCER_CHART: autograd_gradient_producer_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

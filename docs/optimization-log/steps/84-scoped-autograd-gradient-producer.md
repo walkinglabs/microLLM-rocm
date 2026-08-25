@@ -1,6 +1,6 @@
 # Step 84 — Scoped Autograd caller-owned weight-gradient producer
 
-Status: implemented, MI300 matrix pending
+Status: complete, discarded and removed
 
 Operator门已经证明caller-owned weight-gradient producer在5/5 shape同时提高Event/Wall并删除
 一次allocation。下一步只改rank-2 matmul的right leaf backward：当leaf被显式标记为“零初始化、
@@ -18,3 +18,6 @@ HIP覆盖左右梯度、地址和零payload transfer。
 
 Autograd backward-only runner复用已构建graph，覆盖与operator相同五shape并轮换顺序。pilot显示
 虽然allocation少1，FFN T32为0.960×/0.976×、head T32为0.983×/0.985×；正式矩阵仍需确认。
+
+正式结果：5/5 gradient exact且地址保持，但Event 0.976×–1.035×、Wall 0.991×–1.018×，
+0/5过1.05门。scoped dispatch和target状态API撤回；caller-owned operator保留。

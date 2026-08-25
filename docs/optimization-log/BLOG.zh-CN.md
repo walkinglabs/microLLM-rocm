@@ -4094,3 +4094,18 @@ logical allocation每次1→0。Event提高1.178×–1.873×，Wall提高1.101×
 非leaf、非连续或已有值都回到普通accumulate。还没有模型或DDP route。
 
 ![Gradient producer out matrix](assets/gradient-producer-out-matrix.svg)
+
+## 278. Experiment 261：普通first assignment已经没有leaf add
+
+把同一producer接入已构建graph的重复backward后，15个gradient仍exact、target地址保持，每次
+logical allocation少1。但5个shape没有一个同时过Event/Wall 1.05：Event范围0.976×–1.035×，
+Wall 0.991×–1.018×。
+
+原因和上一反例不同。普通Autograd的第一个leaf contribution直接接管producer Tensor，本来就
+没有leaf add；scoped candidate只省了已被cache吸收的逻辑allocation，同时引入target状态管理。
+因此撤回Autograd dispatch、overwrite/zero target与runner，保留独立caller-owned operator。
+
+下一步不再做leaf微优化，先记录Model-S两个rank的gradient-ready顺序，证明自然bucket是否真的
+有机会在backward结束前开始通信。
+
+![Scoped Autograd producer discard](assets/scoped-autograd-gradient-producer-discard.svg)

@@ -14479,11 +14479,74 @@ def validate_gradient_producer_out_matrix(
         errors.append("gradient producer out verification changed")
     ops_header = (REPOSITORY / "include/microllm/ops/ops.h").read_text(
         encoding="utf-8")
-    autograd = (REPOSITORY / "src/autograd/autograd.cpp").read_text(
-        encoding="utf-8")
-    if ("matmul_weight_gradient_out_" not in ops_header or
-            "matmul_weight_gradient_out_" in autograd):
+    if "matmul_weight_gradient_out_" not in ops_header:
         errors.append("gradient producer out admission boundary changed")
+    return len(raw), *expected
+
+
+def validate_autograd_gradient_producer_matrix(
+        errors: list[str]) -> tuple[int, float, float, float, float]:
+    root = REPOSITORY / (
+        "benchmarks/results/2026-08-25-autograd-gradient-producer-matrix")
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    shapes = summary.get("shapes", {})
+    expected = (0.9763784668008942, 1.035183570773678,
+                0.990722788072156, 1.0182310980460902)
+    if (summary.get("schema_version") != 1 or summary.get("status") != "pass" or
+            summary.get("record_type") !=
+                "autograd_gradient_producer_matrix_summary" or
+            summary.get("raw_records") != 15 or summary.get("runs_per_shape") != 3 or
+            summary.get("warmup") != 5 or summary.get("repetitions") != 40 or
+            summary.get("complete_gradients_exact") is not True or
+            summary.get("target_addresses_preserved") is not True or
+            summary.get("allocation_calls_removed_per_invocation") != 1.0 or
+            summary.get("direct_dispatches_per_invocation") != 1.0 or
+            summary.get("admitted_model_s_shapes") != [] or
+            len(summary.get("rejected_shapes", [])) != 5 or
+            summary.get("decision") != "remove scoped Autograd producer route" or
+            len(shapes) != 5 or any(
+                row.get("passes_1_05_gate") is not False
+                for row in shapes.values())):
+        errors.append("Autograd gradient producer summary changed")
+    event_values = [float(row.get("event_speedup", 0.0)) for row in shapes.values()]
+    wall_values = [float(row.get("wall_speedup", 0.0)) for row in shapes.values()]
+    if (not event_values or abs(min(event_values) - expected[0]) > 1.0e-12 or
+            abs(max(event_values) - expected[1]) > 1.0e-12 or
+            abs(min(wall_values) - expected[2]) > 1.0e-12 or
+            abs(max(wall_values) - expected[3]) > 1.0e-12 or
+            len(raw) != 15 or any(
+                row.get("complete_gradient_exact") is not True or
+                row.get("target_address_preserved") is not True or
+                row.get("direct_dispatches_per_invocation") != 1.0 or
+                row.get("baseline_allocation_calls_per_invocation") -
+                row.get("direct_allocation_calls_per_invocation") != 1.0
+                for row in raw)):
+        errors.append("Autograd gradient producer raw evidence changed")
+    if (check.get("measurement_commit") !=
+            "a36c73ef1c4d9cc1333c642a2623d891821eb65f" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("raw_records") != 15 or
+            check.get("complete_gradients_exact") != 15 or
+            check.get("target_addresses_preserved") != 15 or
+            check.get("direct_dispatches_per_invocation") != 1.0 or
+            check.get("allocation_calls_removed_per_invocation") != 1.0 or
+            check.get("admitted_model_s_shapes") != 0 or
+            check.get("rejected_shapes") != 5 or
+            check.get("minimum_event_speedup") != expected[0] or
+            check.get("maximum_event_speedup") != expected[1] or
+            check.get("minimum_wall_speedup") != expected[2] or
+            check.get("maximum_wall_speedup") != expected[3] or
+            check.get("model_route_created") is not False or
+            check.get("route_removal_required") is not True or
+            check.get("rccl_label") != {"passed": 30, "total": 30} or
+            check.get("registered_test_files") != 120):
+        errors.append("Autograd gradient producer verification changed")
+    source = (REPOSITORY / "src/autograd/autograd.cpp").read_text(encoding="utf-8")
+    if "direct_weight_gradient_producer" not in source:
+        errors.append("measured scoped Autograd producer route is missing")
     return len(raw), *expected
 
 
@@ -14725,7 +14788,8 @@ def validate_assets(errors: list[str]) -> None:
                  "data-parallel-persistent-buckets.svg",
                  "data-parallel-gradient-bucket-views.svg",
                  "data-parallel-direct-bucket-gradient-discard.svg",
-                 "gradient-producer-out-matrix.svg"):
+                 "gradient-producer-out-matrix.svg",
+                 "scoped-autograd-gradient-producer-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -15252,6 +15316,9 @@ def main() -> int:
     gradient_producer_rows, gradient_producer_event_minimum, \
         gradient_producer_event_maximum, gradient_producer_wall_minimum, \
         gradient_producer_wall_maximum = validate_gradient_producer_out_matrix(errors)
+    autograd_producer_rows, autograd_producer_event_minimum, \
+        autograd_producer_event_maximum, autograd_producer_wall_minimum, \
+        autograd_producer_wall_maximum = validate_autograd_gradient_producer_matrix(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -15740,6 +15807,11 @@ def main() -> int:
           f"{gradient_producer_event_maximum:.3f}/"
           f"{gradient_producer_wall_minimum:.3f}/"
           f"{gradient_producer_wall_maximum:.3f} "
+          f"autograd_producer={autograd_producer_rows}/"
+          f"{autograd_producer_event_minimum:.3f}/"
+          f"{autograd_producer_event_maximum:.3f}/"
+          f"{autograd_producer_wall_minimum:.3f}/"
+          f"{autograd_producer_wall_maximum:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

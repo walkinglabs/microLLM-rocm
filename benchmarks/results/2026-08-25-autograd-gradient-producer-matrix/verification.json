@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "measurement_commit": "a36c73ef1c4d9cc1333c642a2623d891821eb65f",
+  "dirty_at_measurement": false,
+  "raw_records": 15,
+  "complete_gradients_exact": 15,
+  "target_addresses_preserved": 15,
+  "direct_dispatches_per_invocation": 1.0,
+  "allocation_calls_removed_per_invocation": 1.0,
+  "admitted_model_s_shapes": 0,
+  "rejected_shapes": 5,
+  "minimum_event_speedup": 0.9763784668008942,
+  "maximum_event_speedup": 1.035183570773678,
+  "minimum_wall_speedup": 0.990722788072156,
+  "maximum_wall_speedup": 1.0182310980460902,
+  "model_route_created": false,
+  "route_removal_required": true,
+  "rccl_label": {"passed": 30, "total": 30},
+  "registered_test_files": 120
+}
