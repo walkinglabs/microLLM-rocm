@@ -3,6 +3,7 @@
 #include <vector>
 
 #include <gtest/gtest.h>
+#include <microllm/autograd/diagnostics.h>
 #include <microllm/model/model.h>
 #include <microllm/runtime/runtime.h>
 
@@ -70,6 +71,40 @@ TEST(HipGraphAlignmentTest, FullTransformerForwardAndBackwardMatchCpuWithoutHost
         expect_graph_near(hip_parameters[index].second->grad().to_vector(),
                           cpu_parameters[index].second->grad().to_vector(), 2.0e-3F);
     }
+}
+
+TEST(HipGraphAlignmentTest,
+     DirectWeightGradientProducerPreservesTargetAndBothGradients) {
+    require_graph_gpu();
+    const auto input_data = Tensor::from_vector({1, 2, 3, 4, 5, 6}, {2, 3});
+    const auto weight_data = Tensor::from_vector(
+        {1, -1, 2, 0.5F, 3, -2}, {3, 2});
+    Value cpu_input(input_data, true);
+    Value cpu_weight(weight_data, true);
+    sum(matmul(cpu_input, cpu_weight)).backward();
+
+    const auto gpu = Device::hip(0);
+    Value hip_input(input_data.to(gpu), true);
+    Value hip_weight(weight_data.to(gpu), true);
+    Tensor target({3, 2}, DType::Float32, gpu);
+    const auto* address = target.data();
+    hip_weight.set_overwrite_grad_accumulation_target(std::move(target));
+    reset_direct_weight_gradient_producer_calls();
+    enable_direct_weight_gradient_producer(true);
+    runtime::reset_transfer_stats();
+    sum(matmul(hip_input, hip_weight)).backward();
+    runtime::synchronize(gpu);
+    const auto transfers = runtime::transfer_stats();
+    enable_direct_weight_gradient_producer(false);
+
+    EXPECT_EQ(hip_weight.grad().data(), address);
+    EXPECT_EQ(direct_weight_gradient_producer_calls(), 1U);
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    expect_graph_near(
+        hip_input.grad().to_vector(), cpu_input.grad().to_vector(), 3.0e-5F);
+    expect_graph_near(
+        hip_weight.grad().to_vector(), cpu_weight.grad().to_vector(), 3.0e-5F);
 }
 
 TEST(HipGraphAlignmentTest,

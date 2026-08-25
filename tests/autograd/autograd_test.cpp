@@ -200,6 +200,74 @@ TEST(AutogradTest, PreparedEmbeddingGradientTargetUsesSharedStorageInPlace) {
               (std::vector<float>{1, 1, 0, 0, 2, 2}));
 }
 
+TEST(AutogradTest, DirectWeightGradientProducerMatchesOrdinaryMatmulBackward) {
+    const auto input_data = Tensor::from_vector({1, 2, 3, 4, 5, 6}, {2, 3});
+    const auto weight_data = Tensor::from_vector({1, -1, 2, 0.5F, 3, -2}, {3, 2});
+    Value reference_input(input_data, true);
+    Value reference_weight(weight_data, true);
+    sum(matmul(reference_input, reference_weight)).backward();
+
+    Value direct_input(input_data, true);
+    Value direct_weight(weight_data, true);
+    auto target = Tensor::from_vector({10, 20, 30, 40, 50, 60}, {3, 2});
+    const auto* address = target.data();
+    direct_weight.set_overwrite_grad_accumulation_target(std::move(target));
+    reset_direct_weight_gradient_producer_calls();
+    enable_direct_weight_gradient_producer(true);
+    sum(matmul(direct_input, direct_weight)).backward();
+    enable_direct_weight_gradient_producer(false);
+
+    EXPECT_EQ(direct_weight.grad().data(), address);
+    EXPECT_EQ(direct_weight.grad().to_vector(), reference_weight.grad().to_vector());
+    EXPECT_EQ(direct_input.grad().to_vector(), reference_input.grad().to_vector());
+    EXPECT_EQ(direct_weight_gradient_producer_calls(), 1U);
+    EXPECT_FALSE(direct_weight_gradient_producer_enabled());
+}
+
+TEST(AutogradTest, DirectWeightGradientRejectsPreservedNonzeroTarget) {
+    const auto input_data = Tensor::from_vector({1, 2, 3, 4, 5, 6}, {2, 3});
+    const auto weight_data = Tensor::from_vector({1, -1, 2, 0.5F, 3, -2}, {3, 2});
+    Value weight(weight_data, true);
+    weight.set_grad_accumulation_target(
+        Tensor::from_vector({10, 20, 30, 40, 50, 60}, {3, 2}));
+    reset_direct_weight_gradient_producer_calls();
+    enable_direct_weight_gradient_producer(true);
+    sum(matmul(Value(input_data), weight)).backward();
+    enable_direct_weight_gradient_producer(false);
+    EXPECT_EQ(direct_weight_gradient_producer_calls(), 0U);
+    EXPECT_EQ(weight.grad().to_vector(),
+              (std::vector<float>{15, 25, 37, 47, 59, 69}));
+}
+
+TEST(AutogradTest, OverwriteGradientTargetFallsBackWithoutReadingOldValues) {
+    Value input(Tensor::from_vector({1, 2, 3}, {3}), true);
+    auto target = Tensor::from_vector({100, 200, 300}, {3});
+    const auto* abandoned_address = target.data();
+    input.set_overwrite_grad_accumulation_target(std::move(target));
+    reset_direct_weight_gradient_producer_calls();
+    enable_direct_weight_gradient_producer(true);
+    sum(scale(input, 2.0F)).backward();
+    enable_direct_weight_gradient_producer(false);
+    EXPECT_EQ(direct_weight_gradient_producer_calls(), 0U);
+    EXPECT_NE(input.grad().data(), abandoned_address);
+    EXPECT_EQ(input.grad().to_vector(), (std::vector<float>{2, 2, 2}));
+}
+
+TEST(AutogradTest, DirectWeightGradientWritesOnlyFirstSharedContribution) {
+    const auto weight_data = Tensor::from_vector({1, -1, 2, 0.5F}, {2, 2});
+    Value weight(weight_data, true);
+    weight.set_overwrite_grad_accumulation_target(Tensor({2, 2}));
+    const Value first(Tensor::from_vector({1, 2, 3, 4}, {2, 2}));
+    const Value second(Tensor::from_vector({-1, 1, 2, -2}, {2, 2}));
+    reset_direct_weight_gradient_producer_calls();
+    enable_direct_weight_gradient_producer(true);
+    sum(add(matmul(first, weight), matmul(second, weight))).backward();
+    enable_direct_weight_gradient_producer(false);
+    EXPECT_EQ(direct_weight_gradient_producer_calls(), 1U);
+    EXPECT_EQ(weight.grad().to_vector(),
+              (std::vector<float>{5, 5, 5, 5}));
+}
+
 TEST(AutogradTest, EmbeddingBackwardScattersAndAccumulatesRepeatedIndices) {
     Value weight(Tensor::from_vector({0, 1, 2, 3, 4, 5}, {3, 2}), true);
     const auto indices = Tensor::from_int32_vector({2, 0, 2}, {3});

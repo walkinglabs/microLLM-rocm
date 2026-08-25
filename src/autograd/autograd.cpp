@@ -22,6 +22,8 @@ struct Value::Node {
     Tensor data;
     Tensor gradient;
     bool gradient_is_accumulation_target = false;
+    bool gradient_target_is_fresh_zero = false;
+    bool gradient_target_requires_overwrite = false;
     std::string operation = "leaf";
     bool requires_grad = false;
     std::vector<std::shared_ptr<Node>> parents;
@@ -37,6 +39,8 @@ namespace {
 thread_local bool accumulation_diagnostics_enabled = false;
 thread_local bool tied_embedding_sparse_add = true;
 thread_local bool unique_gradient_inplace_add = false;
+thread_local bool direct_weight_gradient_producer = false;
+thread_local std::uint64_t direct_weight_gradient_calls = 0;
 thread_local bool attention_rope_layout_fusion = true;
 thread_local bool attention_context_layout_fusion = true;
 thread_local std::map<std::pair<std::string, Shape>, GradientAccumulationRecord>
@@ -112,8 +116,15 @@ void accumulate(const std::shared_ptr<Value::Node>& node, const Tensor& gradient
     if (needs_materialization) prepared = prepared.contiguous();
     if (!node->gradient.defined()) {
         node->gradient = prepared;
+    } else if (node->gradient_is_accumulation_target &&
+               node->gradient_target_requires_overwrite) {
+        node->gradient = prepared;
+        node->gradient_is_accumulation_target = false;
+        node->gradient_target_is_fresh_zero = false;
+        node->gradient_target_requires_overwrite = false;
     } else if (node->gradient_is_accumulation_target) {
         ops::add_in_place_(node->gradient, prepared);
+        node->gradient_target_is_fresh_zero = false;
     } else if (unique_gradient_inplace_add && unique_dense_destination) {
         ops::add_in_place_(node->gradient, prepared);
     } else {
@@ -126,6 +137,7 @@ void accumulate_embedding(const std::shared_ptr<Value::Node>& node,
                           std::int64_t vocabulary) {
     if (tied_embedding_sparse_add && node->requires_grad &&
         node->gradient.defined() &&
+        !node->gradient_target_requires_overwrite &&
         node->gradient.shape() == Shape({vocabulary, gradient.shape().back()}) &&
         node->gradient.is_contiguous()) {
         const auto storage = node->gradient.storage();
@@ -141,6 +153,8 @@ void accumulate_embedding(const std::shared_ptr<Value::Node>& node,
                 ++record.sparse_embedding_add_calls;
             }
             ops::embedding_backward_add_(node->gradient, gradient, indices);
+            node->gradient_target_is_fresh_zero = false;
+            node->gradient_target_requires_overwrite = false;
             return;
         }
     }
@@ -210,6 +224,22 @@ bool unique_gradient_inplace_add_enabled() noexcept {
     return unique_gradient_inplace_add;
 }
 
+void enable_direct_weight_gradient_producer(bool enabled) noexcept {
+    direct_weight_gradient_producer = enabled;
+}
+
+bool direct_weight_gradient_producer_enabled() noexcept {
+    return direct_weight_gradient_producer;
+}
+
+void reset_direct_weight_gradient_producer_calls() noexcept {
+    direct_weight_gradient_calls = 0;
+}
+
+std::uint64_t direct_weight_gradient_producer_calls() noexcept {
+    return direct_weight_gradient_calls;
+}
+
 void enable_attention_rope_layout_fusion(bool enabled) noexcept {
     attention_rope_layout_fusion = enabled;
 }
@@ -262,6 +292,8 @@ void Value::set_grad(Tensor gradient) {
     }
     node_->gradient = gradient.is_contiguous() ? std::move(gradient) : gradient.contiguous();
     node_->gradient_is_accumulation_target = false;
+    node_->gradient_target_is_fresh_zero = false;
+    node_->gradient_target_requires_overwrite = false;
 }
 void Value::set_grad_accumulation_target(Tensor gradient) {
     if (!node_ || !node_->requires_grad) {
@@ -281,11 +313,24 @@ void Value::set_grad_accumulation_target(Tensor gradient) {
     }
     node_->gradient = std::move(gradient);
     node_->gradient_is_accumulation_target = true;
+    node_->gradient_target_is_fresh_zero = false;
+    node_->gradient_target_requires_overwrite = false;
+}
+void Value::set_zero_grad_accumulation_target(Tensor gradient) {
+    set_grad_accumulation_target(std::move(gradient));
+    ops::fill_(node_->gradient, 0.0F);
+    node_->gradient_target_is_fresh_zero = true;
+}
+void Value::set_overwrite_grad_accumulation_target(Tensor gradient) {
+    set_grad_accumulation_target(std::move(gradient));
+    node_->gradient_target_requires_overwrite = true;
 }
 void Value::zero_grad() {
     if (node_) {
         node_->gradient = Tensor();
         node_->gradient_is_accumulation_target = false;
+        node_->gradient_target_is_fresh_zero = false;
+        node_->gradient_target_requires_overwrite = false;
     }
 }
 
@@ -318,6 +363,8 @@ void Value::backward(const Tensor& gradient) const {
         if (!current->parents.empty()) {
             current->gradient = Tensor();
             current->gradient_is_accumulation_target = false;
+            current->gradient_target_is_fresh_zero = false;
+            current->gradient_target_requires_overwrite = false;
         }
     }
     if (node_->parents.empty()) {
@@ -448,7 +495,20 @@ Value matmul(const Value& left, const Value& right,
             }
 
             Tensor right_gradient;
-            if (!transpose_right) {
+            bool wrote_right_gradient_directly = false;
+            if (direct_weight_gradient_producer && !transpose_left &&
+                !transpose_right && right_node->gradient_is_accumulation_target &&
+                (right_node->gradient_target_is_fresh_zero ||
+                 right_node->gradient_target_requires_overwrite) &&
+                left_node->data.ndim() == 2 && gradient.ndim() == 2) {
+                ops::matmul_weight_gradient_out_(
+                    right_node->gradient, left_node->data, gradient,
+                    ops::MatmulImplementation::Auto);
+                right_node->gradient_target_is_fresh_zero = false;
+                right_node->gradient_target_requires_overwrite = false;
+                ++direct_weight_gradient_calls;
+                wrote_right_gradient_directly = true;
+            } else if (!transpose_right) {
                 right_gradient = ops::matmul_with_implementation(
                     left_node->data, gradient, ops::MatmulImplementation::Auto,
                     !transpose_left, false);
@@ -458,7 +518,9 @@ Value matmul(const Value& left, const Value& right,
                     true, transpose_left);
             }
             accumulate(left_node, std::move(left_gradient));
-            accumulate(right_node, std::move(right_gradient), "matmul_right");
+            if (!wrote_right_gradient_directly) {
+                accumulate(right_node, std::move(right_gradient), "matmul_right");
+            }
         });
 }
 

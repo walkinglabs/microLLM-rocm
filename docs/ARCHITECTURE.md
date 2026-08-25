@@ -128,6 +128,12 @@ views share one bucket Storage. Non-leaf and noncontiguous targets are rejected;
 The data-parallel direct-gradient experiment uses zeroed, non-overlapping bucket views and checks
 their addresses after backward. This is not the default Autograd allocation policy.
 
+An overwrite-only variant never reads caller bytes. A supported producer may fill the entire
+target as its first contribution; if any generic contribution arrives first, Autograd abandons
+the caller address and restores ordinary first assignment. The default-off rank-2 right-weight
+producer is the first consumer. It records dispatches and never treats a preserved nonzero target
+as overwrite-safe.
+
 A fused operator may still need more than one graph node. `autograd::add_rms_norm` is the
 smallest example: one device launch returns the residual sum and the normalized value, but the
 sum remains a visible Autograd node. The direct residual path and the normalization backward
