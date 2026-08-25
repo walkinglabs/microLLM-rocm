@@ -41,6 +41,9 @@ def arguments() -> argparse.Namespace:
     parser.add_argument("--decode-tokens", type=int, default=32)
     parser.add_argument("--cache-dtype", choices=("fp32", "bf16"), default="bf16")
     parser.add_argument("--minimum-sequence", type=int, default=512)
+    parser.add_argument(
+        "--candidate-policy", choices=("materialized", "auto"),
+        default="materialized")
     parser.add_argument("--warmup", type=int, default=1)
     parser.add_argument("--steps", type=int, default=3)
     parser.add_argument("--runs", type=int, default=3)
@@ -62,7 +65,7 @@ def run_case(args: argparse.Namespace, model: str, context: int,
         sys.executable, str(args.comparison_runner),
         "--manifest", str(args.manifest), "--binary", str(args.binary),
         "--output-directory", str(output), "--model", model,
-        "--candidate-policy", "materialized",
+        "--candidate-policy", args.candidate_policy,
         "--context", str(context), "--batch", str(batch),
         "--decode-tokens", str(args.decode_tokens),
         "--cache-dtype", args.cache_dtype,
@@ -80,7 +83,7 @@ def run_case(args: argparse.Namespace, model: str, context: int,
     summary = json.loads(summary_path.read_text(encoding="utf-8"))
     if summary.get("model") != model or summary.get("context") != context or \
             summary.get("batch") != batch or \
-            summary.get("candidate_policy") != "materialized":
+            summary.get("candidate_policy") != args.candidate_policy:
         raise ValueError("child comparison summary identity changed")
     if completed.returncode not in (0, 1):
         raise RuntimeError(
@@ -92,6 +95,7 @@ def run_case(args: argparse.Namespace, model: str, context: int,
         "batch": batch,
         "decode_tokens": args.decode_tokens,
         "cache_dtype": args.cache_dtype,
+        "candidate_policy": args.candidate_policy,
         "runs_per_policy": args.runs,
         "child_status": summary.get("status"),
         "accuracy_gate_passed": summary.get("accuracy_gate_passed") is True,
@@ -186,6 +190,7 @@ def main() -> int:
         "batches": args.batches,
         "decode_tokens": args.decode_tokens,
         "cache_dtype": args.cache_dtype,
+        "candidate_policy": args.candidate_policy,
         "runs_per_policy": args.runs,
         "case_count": len(cases),
         "all_accuracy_gates_passed": all(

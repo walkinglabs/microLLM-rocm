@@ -201,6 +201,7 @@ def main() -> int:
             encoding="utf-8").splitlines()
         matrix_chart = (matrix_output / "matrix.svg").read_text(encoding="utf-8")
         assert matrix["matrix_complete"] is True
+        assert matrix["candidate_policy"] == "materialized"
         assert matrix["case_count"] == 8
         assert matrix["all_accuracy_gates_passed"] is True
         assert matrix["all_performance_gates_passed"] is False
