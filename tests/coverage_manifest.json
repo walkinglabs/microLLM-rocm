@@ -48,6 +48,7 @@
     "cached_gqa_attention_scores": {"torch": "cached_gqa_attention_scores", "shape": "invalid_cached_gqa_scores_shape"},
     "cached_gqa_attention_context": {"torch": "cached_gqa_attention_context", "shape": "invalid_cached_gqa_context_shape"},
     "cached_gqa_attention_split_sequence": {"torch": "cached_gqa_attention_split_sequence", "shape": "invalid_cached_gqa_split_count"},
+    "cached_gqa_attention_materialized_scores": {"torch": "cached_gqa_attention_materialized_scores", "shape": "invalid_cached_gqa_materialized_shape"},
     "causal_softmax_backward": {"torch": "graph_causal_softmax_input_grad", "shape": "invalid_causal_backward_shape"},
     "attention_probability_value_bthd": {"torch": "attention_probability_value_bthd", "shape": "invalid_attention_probability_value_bthd_shape"},
     "attention_probability_value_gqa_bthd": {"torch": "attention_probability_value_gqa_bthd", "shape": "invalid_attention_probability_value_gqa_bthd_shape"},

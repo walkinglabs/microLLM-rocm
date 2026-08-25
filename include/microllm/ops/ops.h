@@ -878,6 +878,11 @@ void kv_cache_store_pair_positions_(
     const Tensor& query, const Tensor& key_cache, const Tensor& value_cache,
     std::int64_t repeats, float scale, std::int64_t splits,
     const OpContext& context = {});
+// Research-only exact-order route: materialize parallel per-position scores,
+// then use the current fused max/softmax/P·V thread order in one finalizer.
+[[nodiscard]] Tensor cached_gqa_attention_materialized_scores(
+    const Tensor& query, const Tensor& key_cache, const Tensor& value_cache,
+    std::int64_t repeats, float scale, const OpContext& context = {});
 [[nodiscard]] Tensor cached_gqa_attention_positions(
     const Tensor& query, const Tensor& key_cache, const Tensor& value_cache,
     const Tensor& positions, const Tensor& cache_rows,

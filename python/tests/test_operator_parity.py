@@ -247,6 +247,12 @@ def pytorch_references(actual):
         cached_probabilities @ torch.repeat_interleave(
             cached_value, 2, dim=1),
     )
+    record(
+        refs,
+        "cached_gqa_attention_materialized_scores",
+        cached_probabilities @ torch.repeat_interleave(
+            cached_value, 2, dim=1),
+    )
     online_query = attention_query.to(torch.bfloat16).float()
     online_key = attention_key.to(torch.bfloat16).float()
     online_value = attention_value.to(torch.bfloat16).float()
@@ -867,6 +873,7 @@ class OperatorParityTest(unittest.TestCase):
             "invalid_cached_gqa_scores_shape",
             "invalid_cached_gqa_context_shape",
             "invalid_cached_gqa_split_count",
+            "invalid_cached_gqa_materialized_shape",
             "invalid_attention_probability_value_bthd_shape",
             "invalid_attention_probability_value_gqa_bthd_shape",
             "invalid_attention_probability_gradient_bthd_shape",
