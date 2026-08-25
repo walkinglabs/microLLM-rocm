@@ -327,6 +327,13 @@ while Experiments 210–212 already show that real local candidates miss their c
 The remaining distinct training tracks are grouped/algorithmic GEMM, reduced optimizer memory
 traffic, and graph-wide liveness/capture; another isolated elementwise launch is closed.
 
+Experiment 270 closes the Model-S T32 ranked-reducer local track. The path has now measured
+per-parameter, transient buckets, persistent copies, bucket views and real one-process-per-GPU
+ready overlap. Views remove later allocation/unpack and restore current memory; overlap cuts
+finish wait 2.180× without adding peak, but complete steady step improves only 1.0052× because
+hook/Event/enqueue work moves into backward. Another T32 Stream, timing-boundary or bucket-lifetime
+edit is closed. A future overlap claim must establish a separate context/model/topology scale track.
+
 Each item must start with a new task contract, correctness oracle and track-specific
 figure. The FP32 M=1 running best remains frozen until a candidate passes the same fixed
 matrix.

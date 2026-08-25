@@ -4237,3 +4237,20 @@ plan容量从124.69MB减半到62.34MB，final current回到逐参数的249.38MB�
 one-process-per-GPU路径。
 
 ![Ranked gradient views](assets/ranked-gradient-bucket-views.svg)
+
+## 287. Experiment 270：最后等待快2.18倍，训练为什么只快0.52%
+
+两个独立rank现在都在backward期间按固定`bucket 2→1→0`顺序进入RCCL。default Stream记录
+ready Event，communication Stream等待后pack/all-reduce，optimizer前只等通信尾部。
+
+效果局部很明显：同步views finish wait 3.080ms，overlap只要1.413ms，改善2.180×。但工作没有
+消失，它的一部分移进了backward host区间：5.257ms变成6.456ms，增加1.199ms。完整step最终
+只从8.195ms到8.152ms，即1.0052×，未过1.01门。
+
+allocation仍为0，current/peak完全相同；每个steady step overlap 3个bucket，30个rank进程的
+完整参数、CPU、loss和peer failure全过。正确不等于值得默认。
+
+overlap实现作为显式教学/研究入口保留，Model-S T32 ranked reducer局部搜索关闭。下一实验必须
+改变context尺度，至少比较T32/T128；不能继续在同一T32数据上微调计时边界。
+
+![Ranked gradient overlap](assets/ranked-gradient-overlap-discard.svg)

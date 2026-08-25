@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-25: Ranked gradient-ready overlap result](2026-08-25-ranked-gradient-overlap-result.md)
 - [2026-08-25: Ranked gradient-ready overlap infrastructure](2026-08-25-ranked-gradient-overlap-infrastructure.md)
 - [2026-08-25: Ranked gradient-as-bucket view result](2026-08-25-ranked-gradient-view-result.md)
 - [2026-08-25: Ranked gradient-as-bucket view infrastructure](2026-08-25-ranked-gradient-view-infrastructure.md)

@@ -1,6 +1,6 @@
 # Step 93 — Ranked gradient-ready overlap
 
-Status: implemented, formal clean-revision measurement pending
+Status: complete, Model-S T32 performance rejected
 
 Experiment 269已经建立one-process-per-GPU persistent views：3个自然bucket中，前两个在完整
 backward结束前ready；unpack和later allocation均为0。下一节点只改变communication enqueue
@@ -16,3 +16,6 @@ current/peak不高于views。正式比较同步views与overlap views；若total�
 实现强制bucket `2→1→0`顺序，加入active-plan异常abort/synchronize清理。真实双进程pilot的
 steps2–3各overlap 3 buckets，finish wait约1.31ms，allocation0，current/peak不变，完整数值门
 通过。五策略单次matrix中finish约1.998×，但total仅0.985×；正式三次前不作保留决定。
+
+正式结果：finish wait `2.180×`，backward/enqueue却增加1.199ms，total仅`1.0052×`，未过
+1.01门；显存、分配和正确性不退化。实现显式保留、不默认，T32局部路线关闭。

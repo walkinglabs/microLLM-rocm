@@ -312,6 +312,11 @@ RANKED_VIEW_ROOT = (
     "2026-08-25-ranked-gradient-views")
 RANKED_VIEW_CHART = (
     ROOT / "assets" / "ranked-gradient-bucket-views.svg")
+RANKED_OVERLAP_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-ranked-gradient-overlap")
+RANKED_OVERLAP_CHART = (
+    ROOT / "assets" / "ranked-gradient-overlap-discard.svg")
 
 
 def rows() -> list[dict]:
@@ -5544,6 +5549,117 @@ def ranked_gradient_view_svg() -> str:
     return "\n".join(parts)
 
 
+def ranked_gradient_overlap_svg() -> str:
+    summary = json.loads((RANKED_OVERLAP_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    synchronous = summary["policies"]["bucket-views"]
+    overlap = summary["policies"]["overlap-views"]
+    width, height = 1500, 820
+    sync_fb = synchronous["median_steady_maximum_rank_forward_backward_ms"]
+    overlap_fb = overlap["median_steady_maximum_rank_forward_backward_ms"]
+    sync_finish = synchronous["median_steady_maximum_rank_reducer_ms"]
+    overlap_finish = overlap["median_steady_maximum_rank_reducer_ms"]
+    sync_total = synchronous["median_steady_maximum_rank_training_ms"]
+    overlap_total = overlap["median_steady_maximum_rank_training_ms"]
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 270 · Ranked Ready Overlap Rebuttal", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "3 fresh two-rank launches / policy · 6 steady samples · fixed bucket 2→1→0 RCCL order",
+             16, "#5b6474", anchor="middle"),
+    ]
+    panels = ((55, 120, 430, 500), (535, 120, 430, 500),
+              (1015, 120, 430, 500))
+    for x, y, panel_w, panel_h in panels:
+        parts.append(f'<rect x="{x}" y="{y}" width="{panel_w}" height="{panel_h}" '
+                     'rx="18" fill="#ffffff" stroke="#d8dee9" stroke-width="2"/>')
+
+    parts.append(text(270, 165, "Measured phase wall time", 22,
+                      anchor="middle", weight=700))
+    phase_rows = (
+        ("Synchronous views", sync_fb, sync_finish, sync_total, "#64748b"),
+        ("Overlap views", overlap_fb, overlap_finish, overlap_total, "#2563eb"),
+    )
+    for index, (label, fb, finish, total, color) in enumerate(phase_rows):
+        y = 225 + index * 175
+        parts.extend([
+            text(95, y, label, 18, color, weight=700),
+            text(95, y + 38, "F/B or enqueue", 13, "#5b6474"),
+            f'<rect x="205" y="{y + 20}" width="{190 * fb / 7.0:.1f}" '
+            f'height="24" rx="6" fill="{color}"/>',
+            text(450, y + 39, f"{fb:.3f} ms", 15, color,
+                 anchor="end", weight=700),
+            text(95, y + 78, "Finish wait", 13, "#5b6474"),
+            f'<rect x="205" y="{y + 60}" width="{190 * finish / 3.5:.1f}" '
+            f'height="24" rx="6" fill="{color}" opacity="0.75"/>',
+            text(450, y + 79, f"{finish:.3f} ms", 15, color,
+                 anchor="end", weight=700),
+            text(95, y + 118, "Complete step", 13, "#5b6474"),
+            text(450, y + 118, f"{total:.3f} ms", 20, color,
+                 anchor="end", weight=700),
+        ])
+    parts.extend([
+        text(270, 580, "Finish 2.180× faster", 18, "#166534",
+             anchor="middle", weight=700),
+        text(750, 165, "Where the saved wait went", 22,
+             anchor="middle", weight=700),
+    ])
+    accounting = (
+        ("Finish wait removed", sync_finish - overlap_finish, "#16a34a", "−"),
+        ("Backward/enqueue added", overlap_fb - sync_fb, "#dc2626", "+"),
+        ("Net complete-step saved", sync_total - overlap_total, "#2563eb", "−"),
+    )
+    for index, (label, value, color, sign) in enumerate(accounting):
+        y = 235 + index * 105
+        parts.extend([
+            text(585, y, label, 17, "#172033", weight=700),
+            f'<rect x="585" y="{y + 18}" width="{min(300.0, 170 * value / 1.7):.1f}" '
+            f'height="28" rx="7" fill="{color}"/>',
+            text(930, y + 41, f"{sign}{value:.3f} ms", 19, color,
+                 anchor="end", weight=700),
+        ])
+    parts.extend([
+        text(750, 560, "Complete step speedup 1.0052×", 21, "#b45309",
+             anchor="middle", weight=700),
+        text(750, 592, "Below fixed 1.01 gate", 18, "#b42335",
+             anchor="middle", weight=700),
+        text(1230, 165, "Invariant gates", 22,
+             anchor="middle", weight=700),
+    ])
+    facts = (
+        ("Overlap steps / rank", "2"),
+        ("Buckets / overlap step", "3"),
+        ("Later backend alloc", "0"),
+        ("Current added", "0 B"),
+        ("Peak added", "0 B"),
+        ("Rank parameter Max/RMS", "0 / 0"),
+    )
+    for index, (label, value) in enumerate(facts):
+        y = 220 + index * 58
+        parts.extend([
+            text(1060, y, label, 15, "#5b6474"),
+            text(1405, y, value, 20, "#166534", anchor="end", weight=700),
+            f'<line x1="1060" y1="{y + 15}" x2="1405" y2="{y + 15}" '
+            'stroke="#e8edf4" stroke-width="2"/>',
+        ])
+    parts.extend([
+        text(1230, 585, "Correct and memory-neutral", 18, "#166534",
+             anchor="middle", weight=700),
+        '<rect x="55" y="665" width="1390" height="105" rx="16" fill="#fff1f2" stroke="#e11d48" stroke-width="2"/>',
+        text(width / 2, 705,
+             "30 rank processes · full parameters / CPU / loss / peer-failure pass · sync/overlap total distributions overlap",
+             18, "#166534", anchor="middle", weight=700),
+        text(width / 2, 744,
+             "Reject Model-S T32 performance claim · keep explicit teaching route · next requires a separate context/model scale track",
+             18, "#b42335", anchor="middle", weight=700),
+        "</svg>\n",
+    ])
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -5629,7 +5745,8 @@ def main() -> int:
                 RANKED_MODEL_S_BUCKET_CHART: ranked_model_s_bucket_svg(),
                 RANKED_STEADY_CHART: ranked_steady_reducer_svg(),
                 RANKED_PERSISTENT_CHART: ranked_persistent_bucket_svg(),
-                RANKED_VIEW_CHART: ranked_gradient_view_svg()}
+                RANKED_VIEW_CHART: ranked_gradient_view_svg(),
+                RANKED_OVERLAP_CHART: ranked_gradient_overlap_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

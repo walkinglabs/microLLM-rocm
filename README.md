@@ -159,6 +159,11 @@ Start with [Quick start](#quick-start), consume the installed library through th
 > 1.055× complete step versus per-parameter, while peak remains +62.34 MB.
 > Views stay explicit and become the prerequisite for ranked ready overlap.
 
+> Ranked ready overlap cuts optimizer-side finish wait 2.180× without adding
+> memory, but hook/Event/enqueue overhead leaves the complete T32 step only
+> 1.0052× faster, below the 1.01 gate. The explicit route remains for teaching
+> and scale experiments; Model-S T32 reducer-local optimization is closed.
+
 </details>
 
 ## Why this project exists
