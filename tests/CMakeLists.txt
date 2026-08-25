@@ -486,6 +486,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.CurrentTrainingProfileContract PROPERTIES
         LABELS "cpu;benchmark;model;training;profile;rocprof;schema")
     add_test(
+        NAME Benchmark.Bf16WeightGradientMatrixContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_bf16_weight_gradient_matrix.py
+    )
+    set_tests_properties(Benchmark.Bf16WeightGradientMatrixContract PROPERTIES
+        LABELS "cpu;benchmark;model;training;backward;matmul;bf16;shape;schema")
+    add_test(
         NAME Benchmark.Bf16RepeatContract
         COMMAND ${Python3_EXECUTABLE}
                 ${PROJECT_SOURCE_DIR}/python/tests/test_bf16_repeat.py

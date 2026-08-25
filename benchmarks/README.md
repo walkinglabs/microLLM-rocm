@@ -116,6 +116,20 @@ The runner fixes B1T512, BF16 Linear, BF16 AdamW moments, the 1M hybrid threshol
 all accepted/rejected training controls. It collects two fresh rocprof processes per model
 and derives one stable step from `(three-step - one-step) / 2`.
 
+Screen the separate BF16 weight-gradient hypothesis before changing Autograd:
+
+```bash
+HIP_VISIBLE_DEVICES=0 python3 \
+  benchmarks/single_gpu/bf16_weight_gradient_matrix.py \
+  --binary build/hip-release/benchmarks/microllm_bench_bf16_weight_gradient \
+  --output-directory /tmp/microllm-bf16-weight-gradient
+```
+
+The candidate time includes FP32-input cast+transpose, FP32-gradient cast and the
+BF16×BF16→FP32 GEMM. It reports complete-output finite/FP32 Max/RMS evidence and a
+deterministic BF16 CPU sample gate. Small shapes are expected counterexamples; only
+shape-selective winners may enter a later model A/B.
+
 `microllm_bench_model` measures train or cache-backed generation throughput. Its
 `tokens_per_second` excludes construction and warm-up; `tokens_per_second_with_setup`
 includes construction, device transfer, optimizer allocation, and warm-up. Both are

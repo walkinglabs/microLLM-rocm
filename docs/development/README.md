@@ -512,3 +512,5 @@ the next gate. Records are append-only except for factual corrections.
   pins the retained B1T512 training profile contract in one reproducible command.
 - [2026-08-25-current-training-profile.md](2026-08-25-current-training-profile.md):
   records the four-process current training map and unchanged hotspot order.
+- [2026-08-25-bf16-weight-gradient-benchmark.md](2026-08-25-bf16-weight-gradient-benchmark.md):
+  defines a cast-inclusive low-precision weight-gradient operator gate before graph integration.

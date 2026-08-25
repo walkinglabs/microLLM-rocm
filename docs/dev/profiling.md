@@ -215,6 +215,20 @@ rejects a changed policy, a missing parameter update, changed descriptor metadat
 optimizer Tensor-payload transfers before publishing a summary. These are Kernel phase deltas,
 not end-to-end throughput claims.
 
+The next training-GEMM experiment is deliberately benchmark-only:
+
+```bash
+HIP_VISIBLE_DEVICES=0 python3 \
+  benchmarks/single_gpu/bf16_weight_gradient_matrix.py \
+  --binary build/hip-release/benchmarks/microllm_bench_bf16_weight_gradient \
+  --output-directory /tmp/microllm-bf16-weight-gradient
+```
+
+Unlike a GEMM-only number, its candidate Event range includes the input cast+transpose
+and output-gradient cast. It compares the complete candidate output with the FP32 baseline,
+checks deterministic samples against CPU BF16 arithmetic and keeps per-shape fresh-process
+medians. Passing this gate permits an explicit Autograd rebuttal; it does not install one.
+
 For HIP Graph submission crossover measurements:
 
 ```bash

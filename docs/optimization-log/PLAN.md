@@ -96,6 +96,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [65](steps/65-bf16-value-pv-discard.md) | complete | BF16 V直入P×V | BTHD/GQA均status 6；vendor mixed-dtype路线关闭 |
 | [66](steps/66-inference-local-saturation.md) | complete | 当前推理局部饱和审计 | 免费删除cast上限1.0277×/1.0188×；升级架构尺度 |
 | [67](steps/67-current-training-profile.md) | complete | 当前训练路径重新profile | Kernel 31.327/71.873ms；GEMM仍占58.56%/63.43% |
+| [68](steps/68-bf16-weight-gradient.md) | in progress | cast-inclusive BF16 weight gradient | 小shape 0.823×；待六个真实shape矩阵 |
 
 ## 为什么按这个顺序
 

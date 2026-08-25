@@ -126,6 +126,10 @@ if(MICROLLM_HAS_HIP AND MICROLLM_HAS_HIPBLASLT)
                    micro/benchmark_packed_weight_gradient.cpp)
     target_link_libraries(microllm_bench_packed_weight_gradient PRIVATE
         microllm::ops microllm::runtime hip::host roc::hipblaslt)
+    add_executable(microllm_bench_bf16_weight_gradient
+                   micro/benchmark_bf16_weight_gradient.cpp)
+    target_link_libraries(microllm_bench_bf16_weight_gradient PRIVATE
+        microllm::ops microllm::runtime hip::host roc::hipblaslt)
     add_executable(microllm_tune_fp32_weight_gradient_algorithms
                    micro/tune_fp32_weight_gradient_algorithms.cpp)
     target_link_libraries(microllm_tune_fp32_weight_gradient_algorithms PRIVATE
@@ -409,6 +413,12 @@ if(BUILD_TESTING)
                              --hidden 128 --intermediate 256 --warmup 1 --repetitions 2)
             set_tests_properties(Benchmark.HipBf16FfnIsland
                                  PROPERTIES LABELS "hip;benchmark;dtype;bf16;smoke")
+            add_test(NAME Benchmark.HipBf16WeightGradient
+                     COMMAND microllm_bench_bf16_weight_gradient
+                             --rows 32 --hidden 64 --width 96
+                             --warmup 1 --repetitions 2)
+            set_tests_properties(Benchmark.HipBf16WeightGradient PROPERTIES
+                LABELS "hip;benchmark;training;backward;matmul;bf16;correctness;smoke")
             foreach(MICROLLM_LOW_DTYPE IN ITEMS fp16 bf16)
                 add_test(NAME Benchmark.HipMatmul.${MICROLLM_LOW_DTYPE}
                          COMMAND microllm_bench_ops --op matmul --size 128
