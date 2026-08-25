@@ -246,6 +246,7 @@ TEST(TransformerModelTest, Bf16FfnPreparationIsSingleRepresentationAndInferenceO
     TransformerModel model(tiny_config(), 17);
     const auto input = Tensor::from_int32_vector({1, 2, 3, 4}, {1, 4});
     EXPECT_THROW(model.set_bf16_ffn_arena_enabled(true), std::logic_error);
+    EXPECT_THROW(model.set_bf16_ffn_norm_fusion_enabled(true), std::logic_error);
     const auto before = model.forward_inference(input).to_vector();
     const auto report = model.prepare_bf16_ffn_inference();
     EXPECT_TRUE(model.bf16_ffn_inference_prepared());
@@ -285,6 +286,7 @@ TEST(TransformerModelTest, Bf16FfnPreparationIsSingleRepresentationAndInferenceO
     expect_near(after, before, 2.0e-2F);
     model.set_bf16_ffn_arena_enabled(true);
     EXPECT_TRUE(model.bf16_ffn_arena_enabled());
+    EXPECT_TRUE(model.bf16_ffn_norm_fusion_enabled());
     const auto arena_first = model.forward_inference(input).to_vector();
     const auto arena_second = model.forward_inference(input).to_vector();
     EXPECT_EQ(arena_first, after);
@@ -299,6 +301,12 @@ TEST(TransformerModelTest, Bf16FfnPreparationIsSingleRepresentationAndInferenceO
     EXPECT_EQ(arena_stats.bypassed_calls, 0U);
     EXPECT_EQ(arena_stats.minimum_rows, 1);
     EXPECT_GT(arena_stats.capacity_bytes, 0U);
+    model.set_bf16_ffn_norm_fusion_enabled(false);
+    EXPECT_FALSE(model.bf16_ffn_norm_fusion_enabled());
+    EXPECT_EQ(model.forward_inference(input).to_vector(), after);
+    model.set_bf16_ffn_norm_fusion_enabled(true);
+    EXPECT_TRUE(model.bf16_ffn_norm_fusion_enabled());
+    EXPECT_EQ(model.forward_inference(input).to_vector(), after);
     const auto short_input = Tensor::from_int32_vector({1, 2}, {1, 2});
     const auto short_expected = model.forward_inference(short_input).to_vector();
     EXPECT_EQ(model.bf16_ffn_arena_stats().entries, 2U);
@@ -324,6 +332,7 @@ TEST(TransformerModelTest, Bf16FfnPreparationIsSingleRepresentationAndInferenceO
               static_cast<std::size_t>(model.config().layers));
     model.set_bf16_ffn_arena_enabled(false);
     EXPECT_FALSE(model.bf16_ffn_arena_enabled());
+    EXPECT_FALSE(model.bf16_ffn_norm_fusion_enabled());
     EXPECT_EQ(model.bf16_ffn_arena_stats().capacity_bytes, 0U);
     EXPECT_EQ(model.bf16_ffn_arena_stats().minimum_rows, 1);
     EXPECT_THROW((void)model.forward(input), std::logic_error);

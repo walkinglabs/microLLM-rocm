@@ -65,6 +65,8 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   the model route at 1.000x/0.991x and close the local FFN activation track;
 - [x] add bit-identical direct BF16 RMSNorm output; operator Event improves
   1.866x/2.070x and is admitted to a separate FFN model gate;
+- [x] connect FFN Norm directly to BF16 Arena; keep as default at 1.0122x/1.0092x,
+  exact logits, unchanged peak and 120/140 fewer measured allocations;
 - [x] populate B1 KV cache from one full-sequence prefill instead of token replay;
 - [x] support batched cached decode with batch-aware KV Storage;
 - [x] add opt-in BF16 KV Storage with FP32 accumulation, complete-logit gates and a retained

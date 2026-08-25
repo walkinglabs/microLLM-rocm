@@ -404,6 +404,9 @@ the chronological details are in the [optimization log](docs/optimization-log/RE
 - direct BF16 RMSNorm output removes a full FP32 write plus cast while preserving every GPU BF16
   value; exact B1T1024 operator Event speedups are 1.866×/2.070×, with model routing deferred
   to a separate full-logit gate.
+- the FFN Arena model route passes separately at 1.0122×/1.0092× with bit-identical complete
+  logits, unchanged peak and 120/140 fewer measured allocations; BF16 FFN Arena now enables it by
+  default while an explicit false path remains.
 
 </details>
 

@@ -13274,6 +13274,61 @@ def validate_bf16_rms_norm_output(
     return summary.get("raw_processes", 0), *expected
 
 
+def validate_bf16_ffn_norm_model(
+        errors: list[str]) -> tuple[int, float, float, int, int]:
+    root = REPOSITORY / (
+        "benchmarks/results/2026-08-25-bf16-ffn-norm-model-gate")
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((root / "verification.json").read_text(
+        encoding="utf-8"))
+    rows = {row["model"]: row for row in summary.get("comparisons", [])}
+    qwen = "qwen2.5-0.5b"
+    deep = "deepseek-r1-distill-qwen-1.5b"
+    qwen_speed = 1.012234084906912
+    deep_speed = 1.0092074824868777
+    qwen_alloc = 120
+    deep_alloc = 140
+    if (summary.get("schema_version") != 1 or summary.get("status") != "pass" or
+            summary.get("record_type") != "bf16_ffn_norm_fusion_model_summary" or
+            summary.get("candidate_bf16_norm") is not True or
+            summary.get("raw_processes") != 12 or
+            summary.get("keep_default") is not True or set(rows) != {qwen, deep} or
+            any(row.get("correctness_passed") is not True or
+                row.get("performance_passed") is not True or
+                row.get("memory_passed") is not True or
+                row.get("maximum_absolute_logit_difference") != 0.0 or
+                row.get("maximum_rms_logit_difference") != 0.0
+                for row in rows.values()) or
+            abs(float(rows.get(qwen, {}).get("candidate_speedup", 0.0)) -
+                qwen_speed) > 1.0e-12 or
+            abs(float(rows.get(deep, {}).get("candidate_speedup", 0.0)) -
+                deep_speed) > 1.0e-12 or
+            int(rows[qwen]["baseline_engine_allocation_calls"]) -
+            int(rows[qwen]["candidate_engine_allocation_calls"]) != qwen_alloc or
+            int(rows[deep]["baseline_engine_allocation_calls"]) -
+                int(rows[deep]["candidate_engine_allocation_calls"]) != deep_alloc):
+        errors.append("BF16 FFN Norm model evidence changed")
+    if (verification.get("keep_default") is not True or
+            verification.get("default_without_explicit_flag") is not True or
+            verification.get("peak_bytes_unchanged") is not True or
+            verification.get("maximum_absolute_logit_difference") != 0.0):
+        errors.append("BF16 FFN Norm model verification changed")
+    sources = (
+        ("bf16_ffn_precast_out_", REPOSITORY / "include/microllm/ops/ops.h"),
+        ("forward_normalized_bf16_tensor", REPOSITORY / "src/model/model.cpp"),
+        ("--bf16-ffn-norm-fusion", REPOSITORY / "apps/hf_infer.cpp"),
+        ("--candidate-bf16-norm", REPOSITORY /
+         "benchmarks/single_gpu/compare_bf16_swiglu_models.py"),
+        ("set_bf16_ffn_norm_fusion_enabled", REPOSITORY /
+         "tests/model/model_test.cpp"),
+    )
+    if any(token not in path.read_text(encoding="utf-8")
+           for token, path in sources):
+        errors.append("BF16 FFN Norm model source or tests changed")
+    return summary.get("raw_processes", 0), qwen_speed, deep_speed, \
+        qwen_alloc, deep_alloc
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -13488,7 +13543,8 @@ def validate_assets(errors: list[str]) -> None:
                  "fp32-attention-t1024-discard.svg",
                  "bf16-swiglu-vector-discard.svg",
                  "bf16-grouped-swish-discard.svg",
-                 "bf16-rms-norm-output.svg"):
+                 "bf16-rms-norm-output.svg",
+                 "bf16-ffn-norm-model.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -13942,6 +13998,9 @@ def main() -> int:
     bf16_norm_rows, bf16_norm_qwen_event, bf16_norm_deep_event, \
         bf16_norm_qwen_wall, bf16_norm_deep_wall = \
         validate_bf16_rms_norm_output(errors)
+    bf16_norm_model_rows, bf16_norm_model_qwen, bf16_norm_model_deep, \
+        bf16_norm_model_qwen_alloc, bf16_norm_model_deep_alloc = \
+        validate_bf16_ffn_norm_model(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -14352,6 +14411,9 @@ def main() -> int:
           f"bf16_norm={bf16_norm_rows}/{bf16_norm_qwen_event:.3f}/"
           f"{bf16_norm_deep_event:.3f}/{bf16_norm_qwen_wall:.3f}/"
           f"{bf16_norm_deep_wall:.3f} "
+          f"bf16_norm_model={bf16_norm_model_rows}/"
+          f"{bf16_norm_model_qwen:.3f}/{bf16_norm_model_deep:.3f}/"
+          f"{bf16_norm_model_qwen_alloc}/{bf16_norm_model_deep_alloc} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

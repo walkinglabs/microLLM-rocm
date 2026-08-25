@@ -3079,6 +3079,70 @@ void bf16_ffn_out_(Tensor& output_fp32, Bf16FfnWorkspace& workspace,
         }
     }
     cast_out_(input_fp32, workspace.input_bf16, context);
+    bf16_ffn_precast_out_(
+        output_fp32, workspace, gate_weight_bf16, up_weight_bf16,
+        down_weight_bf16, context);
+}
+
+void bf16_ffn_precast_out_(
+    Tensor& output_fp32, Bf16FfnWorkspace& workspace,
+    const Tensor& gate_weight_bf16, const Tensor& up_weight_bf16,
+    const Tensor& down_weight_bf16, const OpContext& context) {
+    const auto& input_bf16 = workspace.input_bf16;
+    if (input_bf16.dtype() != DType::BFloat16 || input_bf16.ndim() != 2 ||
+        !input_bf16.is_contiguous() || output_fp32.dtype() != DType::Float32 ||
+        !output_fp32.is_contiguous()) {
+        throw std::invalid_argument(
+            "bf16_ffn_precast_out requires contiguous BF16 input and FP32 output");
+    }
+    const auto rows = input_bf16.shape()[0];
+    const auto hidden = input_bf16.shape()[1];
+    const auto device = input_bf16.device();
+    if (gate_weight_bf16.dtype() != DType::BFloat16 ||
+        up_weight_bf16.dtype() != DType::BFloat16 ||
+        down_weight_bf16.dtype() != DType::BFloat16 ||
+        gate_weight_bf16.ndim() != 2 || up_weight_bf16.ndim() != 2 ||
+        down_weight_bf16.ndim() != 2 || !gate_weight_bf16.is_contiguous() ||
+        !up_weight_bf16.is_contiguous() || !down_weight_bf16.is_contiguous() ||
+        gate_weight_bf16.shape()[0] != hidden ||
+        up_weight_bf16.shape() != gate_weight_bf16.shape() ||
+        down_weight_bf16.shape()[0] != gate_weight_bf16.shape()[1] ||
+        output_fp32.shape() != Shape({rows, down_weight_bf16.shape()[1]})) {
+        throw std::invalid_argument(
+            "bf16_ffn_precast_out weight/output shapes are incompatible");
+    }
+    const Shape intermediate_shape{rows, gate_weight_bf16.shape()[1]};
+    const Shape output_shape{rows, down_weight_bf16.shape()[1]};
+    const auto valid_workspace = [&](const Tensor& tensor, const Shape& shape) {
+        return tensor.dtype() == DType::BFloat16 && tensor.device() == device &&
+               tensor.shape() == shape && tensor.is_contiguous();
+    };
+    if (gate_weight_bf16.device() != device || up_weight_bf16.device() != device ||
+        down_weight_bf16.device() != device || output_fp32.device() != device ||
+        !valid_workspace(workspace.gate, intermediate_shape) ||
+        !valid_workspace(workspace.up, intermediate_shape) ||
+        !valid_workspace(workspace.activated, intermediate_shape) ||
+        !valid_workspace(workspace.output_fallback_bf16, output_shape)) {
+        throw std::invalid_argument(
+            "bf16_ffn_precast_out workspace mismatch");
+    }
+    const std::vector<const void*> buffers{
+        output_fp32.data(), input_bf16.data(), workspace.gate.data(),
+        workspace.up.data(), workspace.activated.data(),
+        workspace.output_fallback_bf16.data()};
+    if (std::set<const void*>(buffers.begin(), buffers.end()).size() !=
+        buffers.size()) {
+        throw std::invalid_argument(
+            "bf16_ffn_precast_out buffers must not alias");
+    }
+    const std::set<const void*> buffer_set(buffers.begin(), buffers.end());
+    for (const auto* weight : {gate_weight_bf16.data(), up_weight_bf16.data(),
+                               down_weight_bf16.data()}) {
+        if (buffer_set.contains(weight)) {
+            throw std::invalid_argument(
+                "bf16_ffn_precast_out buffers must not alias weights");
+        }
+    }
     bool grouped_gate_up = false;
 #if MICROLLM_HAS_HIPBLASLT
     grouped_gate_up = try_bf16_grouped_gate_up(

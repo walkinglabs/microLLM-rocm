@@ -66,6 +66,10 @@ For direct low-precision normalization output, compare `rms_norm_bf16_out_` agai
 FP32 RMSNorm followed by the GPU cast, not against a differently ordered CPU reduction. Both paths
 must use caller Storage so allocator work cannot masquerade as a Kernel result. Operator admission
 does not authorize the Transformer route; the latter needs a separate complete-logit model gate.
+That model gate now exists for FFN Norm: `bf16_ffn_precast_out_` consumes an already-filled Arena
+input, Qwen/DeepSeek both pass, and enabling BF16 FFN Arena enables this exact route by default.
+Keep explicit false available, and never apply the shortcut to trace, cached, training or bypassed
+calls without separate evidence.
 BF16 GroupedQKV has an even stricter lifetime rule: `GroupedGemm::initialize` binds every pointer.
 Use it only through `bf16_qkv_projection_out_` with caller-owned stable buffers. The exact cache key
 must include all three weights, BF16 intermediates, FP32 outputs, device and Stream. Timing only

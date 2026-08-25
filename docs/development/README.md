@@ -494,3 +494,5 @@ the next gate. Records are append-only except for factual corrections.
   beginner-friendly grouped epilogue capability and full-model rejection.
 - [2026-08-25-bf16-rms-norm-output.md](2026-08-25-bf16-rms-norm-output.md):
   beginner-friendly direct-BF16 final store and corrected GPU reference.
+- [2026-08-25-bf16-ffn-norm-model.md](2026-08-25-bf16-ffn-norm-model.md):
+  beginner-friendly default route, exact allocation reduction and fallback fix.

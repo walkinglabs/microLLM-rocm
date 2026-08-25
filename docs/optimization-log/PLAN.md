@@ -88,6 +88,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [57](steps/57-bf16-swiglu-vector-discard.md) | complete | BF16 SwiGLU vector | operator 1.249×/1.190×；整模1.007×/1.001×，Auto拒绝 |
 | [58](steps/58-bf16-grouped-swish-discard.md) | complete | grouped Swish epilogue | operator 1.097×/1.069×；整模1.000×/0.991×且logits变化 |
 | [59](steps/59-bf16-rms-norm-output.md) | complete | RMSNorm直写BF16 | Event 1.866×/2.070×；位级相同，准入模型门 |
+| [60](steps/60-bf16-ffn-norm-model.md) | complete | FFN Norm直入Arena | 整模1.0122×/1.0092×；位级相同，默认启用 |
 
 ## 为什么按这个顺序
 

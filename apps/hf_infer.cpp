@@ -51,6 +51,8 @@ struct Options {
     bool bf16_ffn = false;
     bool bf16_ffn_arena = false;
     std::int64_t bf16_ffn_arena_minimum_rows = 1;
+    bool bf16_ffn_norm_fusion = false;
+    bool bf16_ffn_norm_fusion_explicit = false;
     bool bf16_qkv_arena = false;
     std::int64_t bf16_qkv_arena_minimum_rows = 512;
     bool attention_core_arena = false;
@@ -145,6 +147,14 @@ Options options(int argc, char** argv) {
         } else if (name == "--bf16-ffn-arena-minimum-rows") {
             result.bf16_ffn_arena_minimum_rows =
                 std::stoll(argv[index + 1]);
+        } else if (name == "--bf16-ffn-norm-fusion") {
+            const std::string value = argv[index + 1];
+            if (value != "true" && value != "false") {
+                throw std::invalid_argument(
+                    "--bf16-ffn-norm-fusion must be true or false");
+            }
+            result.bf16_ffn_norm_fusion = value == "true";
+            result.bf16_ffn_norm_fusion_explicit = true;
         } else if (name == "--bf16-qkv-arena") {
             const std::string value = argv[index + 1];
             if (value != "true" && value != "false") {
@@ -416,6 +426,13 @@ Options options(int argc, char** argv) {
     if (result.bf16_ffn_arena && !result.bf16_ffn) {
         throw std::invalid_argument(
             "--bf16-ffn-arena requires --bf16-ffn true");
+    }
+    if (!result.bf16_ffn_norm_fusion_explicit && result.bf16_ffn_arena) {
+        result.bf16_ffn_norm_fusion = true;
+    }
+    if (result.bf16_ffn_norm_fusion && !result.bf16_ffn_arena) {
+        throw std::invalid_argument(
+            "--bf16-ffn-norm-fusion requires BF16 FFN Arena");
     }
     if (result.bf16_ffn_arena_minimum_rows <= 0 ||
         (!result.bf16_ffn_arena &&
@@ -1200,6 +1217,8 @@ int main(int argc, char** argv) {
             model.set_bf16_ffn_arena_enabled(
                 true, command.bf16_ffn_arena_minimum_rows);
         }
+        model.set_bf16_ffn_norm_fusion_enabled(
+            command.bf16_ffn_norm_fusion);
         if (command.bf16_attention) {
             bf16_attention_report = model.prepare_bf16_attention_inference();
         }
@@ -2113,6 +2132,8 @@ int main(int argc, char** argv) {
                   << bf16_report.converted_tensors
                   << ",\"bf16_ffn_arena_enabled\":"
                   << (model.bf16_ffn_arena_enabled() ? "true" : "false")
+                  << ",\"bf16_ffn_norm_fusion_enabled\":"
+                  << (model.bf16_ffn_norm_fusion_enabled() ? "true" : "false")
                   << ",\"bf16_ffn_arena_entries\":"
                   << bf16_arena_stats.entries
                   << ",\"bf16_ffn_arena_hits\":"

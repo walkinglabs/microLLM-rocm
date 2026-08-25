@@ -883,6 +883,9 @@ public:
     Tensor forward_tensor(const Tensor& input) {
         return ops::rms_norm(input, weight_.data(), epsilon_);
     }
+    void forward_bf16_out(Tensor& output, const Tensor& input) {
+        ops::rms_norm_bf16_out_(output, input, weight_.data(), epsilon_);
+    }
     ops::TensorPair add_forward_tensor(const Tensor& left, const Tensor& right) {
         return ops::add_rms_norm(left, right, weight_.data(), epsilon_);
     }
@@ -1691,6 +1694,38 @@ public:
         return reshaped;
     }
 
+    Tensor forward_normalized_bf16_tensor(const Tensor& input, Norm& norm) {
+        if (input.ndim() != 3 || gate_.weight_data().dtype() != DType::BFloat16 ||
+            up_.weight_data().dtype() != DType::BFloat16 ||
+            down_.weight_data().dtype() != DType::BFloat16 ||
+            arena_cache_ == nullptr) {
+            return forward_tensor(norm.forward_tensor(input));
+        }
+        const auto batch = input.shape()[0];
+        const auto sequence = input.shape()[1];
+        const auto rows = batch * sequence;
+        auto* entry = arena_cache_->acquire(
+            rows, config_.dimension, config_.ffn_dimension, input.device());
+        if (entry == nullptr) {
+            auto* cache = arena_cache_;
+            arena_cache_ = nullptr;
+            try {
+                auto output = forward_tensor(norm.forward_tensor(input));
+                arena_cache_ = cache;
+                return output;
+            } catch (...) {
+                arena_cache_ = cache;
+                throw;
+            }
+        }
+        const auto flat = input.reshape({rows, config_.dimension});
+        norm.forward_bf16_out(entry->workspace.input_bf16, flat);
+        ops::bf16_ffn_precast_out_(
+            entry->output, entry->workspace, gate_.weight_data(),
+            up_.weight_data(), down_.weight_data());
+        return entry->output.reshape({batch, sequence, config_.dimension});
+    }
+
     void append_named(const std::string& prefix, NamedValues& values) {
         values.emplace_back(prefix + ".gate_proj.weight", &gate_.weight());
         values.emplace_back(prefix + ".up_proj.weight", &up_.weight());
@@ -1762,20 +1797,25 @@ public:
             hidden = ops::add(input, attention);
         }
         trace_detail(trace_prefix, "attention_residual", hidden);
-        Tensor ffn_input;
-        {
-            runtime::ScopedAllocationSource allocation_source(
-                runtime::AllocationSource::FfnNorm);
-            ffn_input = ffn_norm_.forward_tensor(hidden);
-        }
-        trace_detail(trace_prefix, "ffn_norm", ffn_input);
         Tensor ffn;
-        {
+        if (bf16_ffn_norm_fusion_enabled_ && trace_prefix.empty()) {
+            runtime::ScopedAllocationSource allocation_source(
+                runtime::AllocationSource::Ffn);
+            ffn = feed_forward_.forward_normalized_bf16_tensor(
+                hidden, ffn_norm_);
+        } else {
+            Tensor ffn_input;
+            {
+                runtime::ScopedAllocationSource allocation_source(
+                    runtime::AllocationSource::FfnNorm);
+                ffn_input = ffn_norm_.forward_tensor(hidden);
+            }
+            trace_detail(trace_prefix, "ffn_norm", ffn_input);
             runtime::ScopedAllocationSource allocation_source(
                 runtime::AllocationSource::Ffn);
             ffn = feed_forward_.forward_tensor(
-                ffn_input,
-                trace_prefix.empty() ? std::string{} : trace_prefix + ".ffn");
+                ffn_input, trace_prefix.empty() ? std::string{} :
+                                                  trace_prefix + ".ffn");
         }
         runtime::ScopedAllocationSource allocation_source(
             runtime::AllocationSource::FfnResidual);
@@ -1826,6 +1866,9 @@ public:
     void set_bf16_ffn_arena_cache(Bf16FfnArenaCache* cache) noexcept {
         feed_forward_.set_bf16_ffn_arena_cache(cache);
     }
+    void set_bf16_ffn_norm_fusion_enabled(bool enabled) noexcept {
+        bf16_ffn_norm_fusion_enabled_ = enabled;
+    }
     void set_bf16_qkv_arena_cache(Bf16QkvArenaCache* cache) noexcept {
         attention_.set_bf16_qkv_arena_cache(cache);
     }
@@ -1860,6 +1903,7 @@ private:
     Attention attention_;
     Norm ffn_norm_;
     FeedForward feed_forward_;
+    bool bf16_ffn_norm_fusion_enabled_ = false;
 };
 
 }  // namespace
@@ -1904,6 +1948,7 @@ struct TransformerModel::Impl {
     std::set<std::int64_t> bf16_grouped_qkv_prewarmed_rows;
     bool bf16_ffn_prepared = false;
     bool bf16_ffn_arena_enabled = false;
+    bool bf16_ffn_norm_fusion_enabled = false;
     bool bf16_qkv_arena_enabled = false;
     bool attention_core_arena_enabled = false;
     bool bf16_attention_prepared = false;
@@ -2624,8 +2669,10 @@ void TransformerModel::set_bf16_ffn_arena_enabled(
     for (auto& block : impl_->blocks) {
         block->set_bf16_ffn_arena_cache(
             enabled ? &impl_->bf16_ffn_arena : nullptr);
+        block->set_bf16_ffn_norm_fusion_enabled(enabled);
     }
     impl_->bf16_ffn_arena_enabled = enabled;
+    impl_->bf16_ffn_norm_fusion_enabled = enabled;
 }
 
 bool TransformerModel::bf16_ffn_arena_enabled() const noexcept {
@@ -2634,6 +2681,22 @@ bool TransformerModel::bf16_ffn_arena_enabled() const noexcept {
 
 Bf16FfnArenaStats TransformerModel::bf16_ffn_arena_stats() const noexcept {
     return impl_->bf16_ffn_arena.stats();
+}
+
+void TransformerModel::set_bf16_ffn_norm_fusion_enabled(bool enabled) {
+    if (enabled && (!impl_->bf16_ffn_prepared ||
+                    !impl_->bf16_ffn_arena_enabled)) {
+        throw std::logic_error(
+            "BF16 FFN Norm fusion requires prepared weights and FFN Arena");
+    }
+    for (auto& block : impl_->blocks) {
+        block->set_bf16_ffn_norm_fusion_enabled(enabled);
+    }
+    impl_->bf16_ffn_norm_fusion_enabled = enabled;
+}
+
+bool TransformerModel::bf16_ffn_norm_fusion_enabled() const noexcept {
+    return impl_->bf16_ffn_norm_fusion_enabled;
 }
 
 Bf16WeightPreparationReport TransformerModel::prepare_bf16_attention_inference() {

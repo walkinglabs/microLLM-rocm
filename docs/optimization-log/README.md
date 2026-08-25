@@ -873,6 +873,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [experiments/235-bf16-grouped-swish-discard.md](experiments/235-bf16-grouped-swish-discard.md) | 64-candidate能力门、same-binary A/B与路线关闭 |
 | [assets/bf16-rms-norm-output.svg](assets/bf16-rms-norm-output.svg) | Qwen/DeepSeek Event与wall加速 |
 | [experiments/236-bf16-rms-norm-output.md](experiments/236-bf16-rms-norm-output.md) | GPU reference修正、位级门和operator准入 |
+| [assets/bf16-ffn-norm-model.svg](assets/bf16-ffn-norm-model.svg) | 整模吞吐、allocation与精度门 |
+| [experiments/237-bf16-ffn-norm-model.md](experiments/237-bf16-ffn-norm-model.md) | Arena直入、fallback修正和默认决定 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

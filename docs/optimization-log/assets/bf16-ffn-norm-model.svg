@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="700" viewBox="0 0 1500 700">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="750.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 237 · BF16 FFN Norm Model Gate</text>
+<text x="750.0" y="82.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">12 same-binary processes · B1T1024 · complete vocab logits</text>
+<rect x="210" y="155" width="1080" height="320" fill="#ffffff" stroke="#cbd3df" rx="10"/>
+<line x1="210" y1="439.4" x2="1290" y2="439.4" stroke="#e11d48"/>
+<text x="198.0" y="444.4" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">1.000×</text>
+<line x1="210" y1="350.6" x2="1290" y2="350.6" stroke="#e5e9f0"/>
+<text x="198.0" y="355.6" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">1.005×</text>
+<line x1="210" y1="261.7" x2="1290" y2="261.7" stroke="#e5e9f0"/>
+<text x="198.0" y="266.7" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">1.010×</text>
+<line x1="210" y1="172.8" x2="1290" y2="172.8" stroke="#e5e9f0"/>
+<text x="198.0" y="177.8" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">1.015×</text>
+<rect x="370.0" y="221.9" width="220" height="253.1" fill="#16a34a" rx="8"/>
+<text x="480.0" y="209.9" font-family="Inter,Arial,sans-serif" font-size="18" fill="#166534" text-anchor="middle" font-weight="700">1.0122×</text>
+<text x="480.0" y="507.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">Qwen</text>
+<rect x="910.0" y="275.8" width="220" height="199.2" fill="#16a34a" rx="8"/>
+<text x="1020.0" y="263.8" font-family="Inter,Arial,sans-serif" font-size="18" fill="#166534" text-anchor="middle" font-weight="700">1.0092×</text>
+<text x="1020.0" y="507.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">DeepSeek</text>
+<text x="750.0" y="565.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#166534" text-anchor="middle" font-weight="700">Measured allocations: -120 / -140; peak unchanged</text>
+<text x="750.0" y="612.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#166534" text-anchor="middle" font-weight="700">Complete logits Max/RMS = 0 / 0 for both models</text>
+<text x="750.0" y="658.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">BF16 FFN Arena now enables the route by default; explicit false remains</text>
+</svg>

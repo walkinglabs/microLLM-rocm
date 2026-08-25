@@ -370,6 +370,13 @@ void bf16_ffn_out_(Tensor& output_fp32, Bf16FfnWorkspace& workspace,
                    const Tensor& up_weight_bf16,
                    const Tensor& down_weight_bf16,
                    const OpContext& context = {});
+// Executes the same BF16 FFN after the caller has already filled
+// workspace.input_bf16. No cast or allocation is performed.
+void bf16_ffn_precast_out_(Tensor& output_fp32, Bf16FfnWorkspace& workspace,
+                           const Tensor& gate_weight_bf16,
+                           const Tensor& up_weight_bf16,
+                           const Tensor& down_weight_bf16,
+                           const OpContext& context = {});
 // Diagnostic-only variant exposing the existing activation island boundaries.
 // It executes the same kernels as bf16_ffn and does not copy values to the host.
 [[nodiscard]] Bf16FfnDiagnostics bf16_ffn_diagnostics(

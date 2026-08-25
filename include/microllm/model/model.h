@@ -163,6 +163,8 @@ public:
                                     std::int64_t minimum_rows = 1);
     [[nodiscard]] bool bf16_ffn_arena_enabled() const noexcept;
     [[nodiscard]] Bf16FfnArenaStats bf16_ffn_arena_stats() const noexcept;
+    void set_bf16_ffn_norm_fusion_enabled(bool enabled);
+    [[nodiscard]] bool bf16_ffn_norm_fusion_enabled() const noexcept;
     [[nodiscard]] Bf16WeightPreparationReport prepare_bf16_attention_inference();
     [[nodiscard]] bool bf16_attention_inference_prepared() const noexcept;
     void set_bf16_qkv_arena_enabled(bool enabled,

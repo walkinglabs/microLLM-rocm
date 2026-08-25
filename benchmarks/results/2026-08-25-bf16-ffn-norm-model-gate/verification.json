@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "raw_processes": 12,
+  "qwen_speedup": 1.012234084906912,
+  "deepseek_speedup": 1.0092074824868777,
+  "qwen_allocation_reduction": 120,
+  "deepseek_allocation_reduction": 140,
+  "maximum_absolute_logit_difference": 0.0,
+  "maximum_rms_logit_difference": 0.0,
+  "peak_bytes_unchanged": true,
+  "default_without_explicit_flag": true,
+  "keep_default": true
+}

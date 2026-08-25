@@ -3844,3 +3844,18 @@ profile里FP32到BF16 cast仍占4%–6%。FFN的RMSNorm输出会马上被cast进
 计时payload transfer为0。operator准入，模型路由继续关闭，留给下一个独立节点。
 
 ![Direct BF16 RMSNorm output](assets/bf16-rms-norm-output.svg)
+
+## 254. Experiment 237：这一次，小算子收益真的进了整模
+
+只在BF16 FFN Arena命中且没有详细trace时，FFN Norm直接写`workspace.input_bf16`，
+再用`bf16_ffn_precast_out_`跳过cast。cached、training、trace和bypass都不变。
+
+第一版bypass fallback会再查一次Arena，现有测试通过计数器抓到双重记录；修复后一个
+请求只做一次决策。
+
+12进程same-binary门中，Qwen/DeepSeek快1.0122×/1.0092×，完整logits Max/RMS都为0，
+峰值不变，allocation刚好减120/140。未显式传flag的Qwen运行也报告路由已启用。
+
+BF16 FFN Arena现在默认使用该路径，显式`false`保留为反驳门。
+
+![BF16 FFN Norm model gate](assets/bf16-ffn-norm-model.svg)

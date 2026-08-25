@@ -154,6 +154,9 @@ BF16_GROUPED_SWISH_CHART = ROOT / "assets" / "bf16-grouped-swish-discard.svg"
 BF16_RMS_NORM_OUTPUT_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
                              "2026-08-25-bf16-rms-norm-output-operator")
 BF16_RMS_NORM_OUTPUT_CHART = ROOT / "assets" / "bf16-rms-norm-output.svg"
+BF16_FFN_NORM_MODEL_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
+                            "2026-08-25-bf16-ffn-norm-model-gate")
+BF16_FFN_NORM_MODEL_CHART = ROOT / "assets" / "bf16-ffn-norm-model.svg"
 
 
 def rows() -> list[dict]:
@@ -3413,6 +3416,61 @@ def bf16_rms_norm_output_svg() -> str:
     return "\n".join(parts)
 
 
+def bf16_ffn_norm_model_svg() -> str:
+    summary = json.loads((BF16_FFN_NORM_MODEL_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    rows = summary["comparisons"]
+    width, height = 1500, 700
+    chart_x, chart_y, chart_w, chart_h = 210, 155, 1080, 320
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 237 · BF16 FFN Norm Model Gate", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "12 same-binary processes · B1T1024 · complete vocab logits",
+             16, "#5b6474", anchor="middle"),
+        f'<rect x="{chart_x}" y="{chart_y}" width="{chart_w}" height="{chart_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+    ]
+    def y(value: float) -> float:
+        return chart_y + chart_h * (1.016 - value) / 0.018
+    for tick in (1.0, 1.005, 1.01, 1.015):
+        y_pos = y(tick)
+        color = "#e11d48" if tick == 1.0 else "#e5e9f0"
+        parts.append(f'<line x1="{chart_x}" y1="{y_pos:.1f}" '
+                     f'x2="{chart_x+chart_w}" y2="{y_pos:.1f}" stroke="{color}"/>')
+        parts.append(text(chart_x - 12, y_pos + 5, f"{tick:.3f}×", 13,
+                          "#5b6474", anchor="end"))
+    for index, row in enumerate(rows):
+        center = chart_x + chart_w * (index + 0.5) / 2
+        value = row["candidate_speedup"]
+        top, base = y(value), y(0.998)
+        parts.append(f'<rect x="{center-110:.1f}" y="{top:.1f}" width="220" '
+                     f'height="{base-top:.1f}" fill="#16a34a" rx="8"/>')
+        label = "Qwen" if row["model"].startswith("qwen") else "DeepSeek"
+        parts.append(text(center, top - 12, f"{value:.4f}×", 18, "#166534",
+                          anchor="middle", weight=700))
+        parts.append(text(center, chart_y + chart_h + 32, label, 16,
+                          "#5b6474", anchor="middle"))
+    qwen_reduction = rows[0]["baseline_engine_allocation_calls"] - \
+        rows[0]["candidate_engine_allocation_calls"]
+    deep_reduction = rows[1]["baseline_engine_allocation_calls"] - \
+        rows[1]["candidate_engine_allocation_calls"]
+    parts.append(text(width / 2, 565,
+                      f"Measured allocations: -{qwen_reduction} / -{deep_reduction}; peak unchanged",
+                      18, "#166534", anchor="middle", weight=700))
+    parts.append(text(width / 2, 612,
+                      "Complete logits Max/RMS = 0 / 0 for both models",
+                      18, "#166534", anchor="middle", weight=700))
+    parts.append(text(width / 2, 658,
+                      "BF16 FFN Arena now enables the route by default; explicit false remains",
+                      14, "#5b6474", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -3465,7 +3523,8 @@ def main() -> int:
                 FP32_ATTENTION_T1024_CHART: fp32_attention_t1024_svg(),
                 BF16_SWIGLU_VECTOR_CHART: bf16_swiglu_vector_svg(),
                 BF16_GROUPED_SWISH_CHART: bf16_grouped_swish_svg(),
-                BF16_RMS_NORM_OUTPUT_CHART: bf16_rms_norm_output_svg()}
+                BF16_RMS_NORM_OUTPUT_CHART: bf16_rms_norm_output_svg(),
+                BF16_FFN_NORM_MODEL_CHART: bf16_ffn_norm_model_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]
