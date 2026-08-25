@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-25: Cached Attention stage-matrix result](../optimization-log/experiments/282-cached-attention-stage-matrix.md)
 - [2026-08-25: Cached Attention stage-matrix infrastructure](2026-08-25-cached-attention-stage-matrix-infrastructure.md)
 - [2026-08-25: Cached Attention context oracle](2026-08-25-cached-attention-context-oracle.md)
 - [2026-08-25: Current DeepSeek T2048 profile](2026-08-25-current-deepseek-t2048-profile.md)

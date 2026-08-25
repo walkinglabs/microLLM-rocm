@@ -963,6 +963,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [experiments/280-ranked-gather-scale-discard.md](experiments/280-ranked-gather-scale-discard.md) | Step 102最佳对照与ranked reducer局部线关闭 |
 | [assets/current-deepseek-t2048-profile.svg](assets/current-deepseek-t2048-profile.svg) | 当前0.8158x差距、Attention/GEMM占比与资源边界 |
 | [experiments/281-current-deepseek-t2048-profile.md](experiments/281-current-deepseek-t2048-profile.md) | score/context微架构准入与allocator/KV store排除 |
+| [experiments/282-cached-attention-stage-matrix.md](experiments/282-cached-attention-stage-matrix.md) | 24进程三阶段/Fused矩阵与split-sequence准入 |
+| [stage timing SVG](../../benchmarks/results/2026-08-25-cached-attention-stage-matrix/stage-timing.svg) | 从24条raw生成的autoresearch风格分段图 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

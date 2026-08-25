@@ -1,6 +1,6 @@
 # Step 105 — Cached Attention score/context microarchitecture
 
-Status: diagnostic stages and reproducible timing runner implemented; MI300X matrix pending
+Status: MI300X diagnostic matrix complete; split-sequence fused candidate admitted
 
 Experiment 281证明当前DeepSeek T2048/B2/N64的cached Attention占Kernel时间61.57%，单次约
 361.2us；GEMM第二，KV store和allocator不是主因。
@@ -18,6 +18,9 @@ Experiment 281证明当前DeepSeek T2048/B2/N64的cached Attention占Kernel时�
 整张Tensor。HIP矩阵覆盖DeepSeek H12/KV2/D128、B1/B2、FP32/BF16 cache，以及
 T31/32/33、T511/512/513和T2048，共16个case；运行期间没有payload H2D/D2H。
 
-计时工具固定T512/T2048、B1/B2和两种cache dtype，分别测score、softmax、context和当前融合
-baseline。每个候选必须提交完整score、probability、context Max/RMS，warm-up 3 + measured 20
-Event/wall，以及T2048反例。算子至少1.05x且完整context门通过，才允许进入官方模型；否则拒绝。
+24个新进程已经完成矩阵。透明softmax占65.46%–73.56%，fused比透明pipeline快2.72x–4.16x，
+BF16 fused比FP32快1.313x–1.534x。透明比例不冒充fused内部归因。
+
+下一候选只改变sequence并行分解：每个head使用多个partial blocks，再用log-sum-exp合并。它必须
+提交完整context Max/RMS、warm-up 3 + measured 20 Event/wall、0 payload transfer/热backend
+allocation，以及T512/B2反例。至少1.05x才允许进入官方模型；否则拒绝并关闭这一候选。

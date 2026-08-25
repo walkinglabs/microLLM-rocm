@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="669" viewBox="0 0 1240 669">
+<rect width="100%" height="100%" fill="#0b1020"/>
+<style>text{font-family:ui-monospace,SFMono-Regular,monospace;fill:#e5e7eb}.small{font-size:12px}.label{font-size:14px}.title{font-size:20px;font-weight:700}.muted{fill:#94a3b8}</style>
+<text x="28" y="34" class="title">Cached Attention: transparent stages vs fused</text>
+<text x="28" y="58" class="small muted">MI300X HIP Event median; longer bars are slower</text>
+<rect x="590" y="25" width="14" height="14" rx="2" fill="#ef4444"/>
+<text x="611" y="37" class="small">QK score</text>
+<rect x="735" y="25" width="14" height="14" rx="2" fill="#f59e0b"/>
+<text x="756" y="37" class="small">softmax</text>
+<rect x="880" y="25" width="14" height="14" rx="2" fill="#3b82f6"/>
+<text x="901" y="37" class="small">PV context</text>
+<rect x="1025" y="25" width="14" height="14" rx="2" fill="#22c55e"/>
+<text x="1046" y="37" class="small">fused</text>
+<text x="28" y="111" class="label">B1 T512 BF16</text>
+<rect x="220.00" y="94" width="17.70" height="18" rx="2" fill="#ef4444"/>
+<rect x="237.70" y="94" width="148.89" height="18" rx="2" fill="#f59e0b"/>
+<rect x="386.59" y="94" width="50.96" height="18" rx="2" fill="#3b82f6"/>
+<rect x="220" y="119" width="55.14" height="15" rx="2" fill="#22c55e"/>
+<text x="444.83" y="109" class="small">pipeline 0.2876 ms</text>
+<text x="283.14" y="132" class="small">fused 0.0731 ms · 3.93x</text>
+<line x1="220" y1="144" x2="1080" y2="144" stroke="#1e293b"/>
+<text x="28" y="179" class="label">B1 T512 FP32</text>
+<rect x="220.00" y="162" width="27.84" height="18" rx="2" fill="#ef4444"/>
+<rect x="247.84" y="162" width="148.12" height="18" rx="2" fill="#f59e0b"/>
+<rect x="395.96" y="162" width="50.34" height="18" rx="2" fill="#3b82f6"/>
+<rect x="220" y="187" width="72.96" height="15" rx="2" fill="#22c55e"/>
+<text x="454.20" y="177" class="small">pipeline 0.3001 ms</text>
+<text x="300.96" y="200" class="small">fused 0.0968 ms · 3.10x</text>
+<line x1="220" y1="212" x2="1080" y2="212" stroke="#1e293b"/>
+<text x="28" y="247" class="label">B2 T512 BF16</text>
+<rect x="220.00" y="230" width="17.95" height="18" rx="2" fill="#ef4444"/>
+<rect x="237.95" y="230" width="157.90" height="18" rx="2" fill="#f59e0b"/>
+<rect x="395.85" y="230" width="51.24" height="18" rx="2" fill="#3b82f6"/>
+<rect x="220" y="255" width="55.20" height="15" rx="2" fill="#22c55e"/>
+<text x="456.24" y="245" class="small">pipeline 0.3028 ms</text>
+<text x="283.20" y="268" class="small">fused 0.0732 ms · 4.13x</text>
+<line x1="220" y1="280" x2="1080" y2="280" stroke="#1e293b"/>
+<text x="28" y="315" class="label">B2 T512 FP32</text>
+<rect x="220.00" y="298" width="27.84" height="18" rx="2" fill="#ef4444"/>
+<rect x="247.84" y="298" width="158.34" height="18" rx="2" fill="#f59e0b"/>
+<rect x="406.17" y="298" width="50.53" height="18" rx="2" fill="#3b82f6"/>
+<rect x="220" y="323" width="72.50" height="15" rx="2" fill="#22c55e"/>
+<text x="464.99" y="313" class="small">pipeline 0.3144 ms</text>
+<text x="300.50" y="336" class="small">fused 0.0962 ms · 3.27x</text>
+<line x1="220" y1="348" x2="1080" y2="348" stroke="#1e293b"/>
+<text x="28" y="383" class="label">B1 T2048 BF16</text>
+<rect x="220.00" y="366" width="19.34" height="18" rx="2" fill="#ef4444"/>
+<rect x="239.34" y="366" width="571.96" height="18" rx="2" fill="#f59e0b"/>
+<rect x="811.30" y="366" width="194.58" height="18" rx="2" fill="#3b82f6"/>
+<rect x="220" y="391" width="206.20" height="15" rx="2" fill="#22c55e"/>
+<text x="1018.02" y="381" class="small">pipeline 1.0480 ms</text>
+<text x="434.20" y="404" class="small">fused 0.2735 ms · 3.83x</text>
+<line x1="220" y1="416" x2="1080" y2="416" stroke="#1e293b"/>
+<text x="28" y="451" class="label">B1 T2048 FP32</text>
+<rect x="220.00" y="434" width="28.30" height="18" rx="2" fill="#ef4444"/>
+<rect x="248.30" y="434" width="565.77" height="18" rx="2" fill="#f59e0b"/>
+<rect x="814.08" y="434" width="192.17" height="18" rx="2" fill="#3b82f6"/>
+<rect x="220" y="459" width="279.80" height="15" rx="2" fill="#22c55e"/>
+<text x="1025.25" y="449" class="small">pipeline 1.0576 ms</text>
+<text x="507.80" y="472" class="small">fused 0.3712 ms · 2.85x</text>
+<line x1="220" y1="484" x2="1080" y2="484" stroke="#1e293b"/>
+<text x="28" y="519" class="label">B2 T2048 BF16</text>
+<rect x="220.00" y="502" width="27.55" height="18" rx="2" fill="#ef4444"/>
+<rect x="247.55" y="502" width="622.53" height="18" rx="2" fill="#f59e0b"/>
+<rect x="870.08" y="502" width="196.16" height="18" rx="2" fill="#3b82f6"/>
+<rect x="220" y="527" width="205.80" height="15" rx="2" fill="#22c55e"/>
+<text x="1083.57" y="517" class="small">pipeline 1.1349 ms</text>
+<text x="433.80" y="540" class="small">fused 0.2730 ms · 4.16x</text>
+<line x1="220" y1="552" x2="1080" y2="552" stroke="#1e293b"/>
+<text x="28" y="587" class="label">B2 T2048 FP32</text>
+<rect x="220.00" y="570" width="30.30" height="18" rx="2" fill="#ef4444"/>
+<rect x="250.30" y="570" width="616.37" height="18" rx="2" fill="#f59e0b"/>
+<rect x="866.67" y="570" width="192.90" height="18" rx="2" fill="#3b82f6"/>
+<rect x="220" y="595" width="315.67" height="15" rx="2" fill="#22c55e"/>
+<text x="1088.00" y="585" class="small">pipeline 1.1408 ms</text>
+<text x="543.67" y="608" class="small">fused 0.4187 ms · 2.72x</text>
+<line x1="220" y1="620" x2="1080" y2="620" stroke="#1e293b"/>
+</svg>

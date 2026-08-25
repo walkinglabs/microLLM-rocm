@@ -16945,6 +16945,152 @@ def validate_current_deepseek_t2048(
             float(analysis.get("application_generation_ms", 0.0)))
 
 
+def validate_cached_attention_stage_matrix(
+        errors: list[str]) -> tuple[int, float, float, float, float]:
+    root = (REPOSITORY / "benchmarks/results" /
+            "2026-08-25-cached-attention-stage-matrix")
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    cases = summary.get("cases", [])
+    expected = {
+        (512, 1, "bf16"): (0.19751150161, 0.0731469988823,
+                            0.6844278395192597, 3.9323007277555133),
+        (512, 1, "fp32"): (0.19648899883, 0.096781000495,
+                            0.6545585987243436, 3.1004483081418677),
+        (512, 2, "bf16"): (0.209457494318, 0.0732269994915,
+                            0.6953015245578513, 4.1346769753981905),
+        (512, 2, "fp32"): (0.210039995611, 0.0961790010333,
+                            0.6689235853966187, 3.2686760100175407),
+        (2048, 1, "bf16"): (0.758710503578, 0.273524001241,
+                             0.7277955623780078, 3.831371137908441),
+        (2048, 1, "fp32"): (0.750510007143, 0.371165499091,
+                             0.7195844248824862, 2.8493313626671717),
+        (2048, 2, "bf16"): (0.825805008411, 0.273002997041,
+                             0.7356427819372006, 4.157210655491648),
+        (2048, 2, "fp32"): (0.81762701273, 0.418737009168,
+                             0.7341514146904751, 2.724400959176505),
+    }
+    actual = {(case.get("sequence"), case.get("batch"),
+               case.get("cache_dtype")): case for case in cases}
+    if (summary.get("schema_version") != 1 or
+            summary.get("status") != "pass" or
+            summary.get("record_type") != "cached_attention_stage_matrix" or
+            summary.get("matrix_complete") is not True or
+            summary.get("process_rows") != 24 or
+            summary.get("case_count") != 8 or
+            summary.get("runs_per_case") != 3 or summary.get("warmup") != 3 or
+            summary.get("repetitions") != 20 or summary.get("heads") != 12 or
+            summary.get("kv_heads") != 2 or summary.get("width") != 128 or
+            summary.get("complete_output_accuracy_passed") is not True or
+            summary.get("zero_payload_transfers") is not True or
+            summary.get("zero_warm_backend_allocations") is not True or
+            set(actual) != set(expected)):
+        errors.append("cached Attention stage summary contract changed")
+    for key, values in expected.items():
+        case = actual.get(key, {})
+        if (case.get("runs") != 3 or
+                case.get("orders") != ["forward", "reverse"] or
+                case.get("softmax_event_ms_p50") != values[0] or
+                case.get("fused_event_ms_p50") != values[1] or
+                case.get("softmax_share") != values[2] or
+                case.get("fused_speedup_over_pipeline") != values[3] or
+                case.get("score_max_error") != 0.0 or
+                case.get("probability_max_error", 1.0) > 9.31322574615e-10 or
+                case.get("context_max_error", 1.0) > 1.82626536116e-09 or
+                case.get("fused_max_error", 1.0) > 3.72529029846e-09):
+            errors.append(f"cached Attention stage case changed: {key}")
+    groups: dict[tuple[int, int, str], list[dict]] = {}
+    for row in raw:
+        key = (row.get("sequence"), row.get("batch"), row.get("cache_dtype"))
+        groups.setdefault(key, []).append(row)
+        if (row.get("status") != "pass" or
+                row.get("record_type") != "cached_attention_stage_probe" or
+                row.get("complete_output_accuracy_passed") is not True or
+                row.get("host_to_device_calls") != 0 or
+                row.get("device_to_host_calls") != 0 or
+                any(row.get(f"{stage}_backend_allocation_calls_per_invocation")
+                    != 0 for stage in
+                    ("score", "softmax", "context", "pipeline", "fused"))):
+            errors.append("cached Attention raw resource/accuracy gate changed")
+            break
+    if (len(raw) != 24 or set(groups) != set(expected) or
+            any(len(rows) != 3 or
+                {row.get("process_run") for row in rows} != {1, 2, 3} or
+                {row.get("order") for row in rows} != {"forward", "reverse"}
+                for rows in groups.values())):
+        errors.append("cached Attention raw process matrix changed")
+    if (analysis.get("record_type") != "cached_attention_stage_analysis" or
+            analysis.get("transparent_softmax_share_minimum") !=
+                0.6545585987243436 or
+            analysis.get("transparent_softmax_share_maximum") !=
+                0.7356427819372006 or
+            analysis.get("fused_speedup_over_transparent_pipeline_minimum") !=
+                2.724400959176505 or
+            analysis.get("fused_speedup_over_transparent_pipeline_maximum") !=
+                4.157210655491648 or
+            analysis.get("bf16_fused_speedup_over_fp32_minimum") !=
+                1.3134363240496316 or
+            analysis.get("bf16_fused_speedup_over_fp32_maximum") !=
+                1.5338183598955635 or
+            analysis.get("generic_softmax_share_proves_fused_phase_share")
+                is not False or
+            analysis.get("device_compute_units") != 304 or
+            analysis.get("current_fused_blocks_b1") != 12 or
+            analysis.get("current_fused_blocks_b2") != 24 or
+            "Split one head sequence" not in analysis.get("next_hypothesis", "")):
+        errors.append("cached Attention stage analysis changed")
+    if (check.get("measurement_commit") !=
+            "b496518a02cb0ba1b5472ff84ca2006b4fca8b15" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("compute_units") != 304 or
+            check.get("sequences") != [512, 2048] or
+            check.get("batches") != [1, 2] or
+            check.get("cache_dtypes") != ["fp32", "bf16"] or
+            check.get("process_rows") != 24 or
+            check.get("orders_rotated") is not True or
+            check.get("split_sequence_candidate_admitted") is not True or
+            check.get("performance_claim") is not False or
+            check.get("general_model_speedup_claim") is not False or
+            check.get("cpu_label") != {"passed": 373, "total": 373} or
+            check.get("sanitizer_label") != {"passed": 371, "total": 371} or
+            check.get("pytorch_enabled_cpu") !=
+                {"passed": 376, "total": 376} or
+            check.get("hip_label") != {"passed": 192, "total": 192} or
+            check.get("registered_test_files") != 128):
+        errors.append("cached Attention stage verification changed")
+    for name in ("README.md", "raw.jsonl", "summary.json", "analysis.json",
+                 "verification.json", "stage-timing.svg"):
+        if not (root / name).is_file():
+            errors.append(f"cached Attention stage evidence missing: {name}")
+    try:
+        ET.parse(root / "stage-timing.svg")
+    except ET.ParseError as error:
+        errors.append(f"invalid cached Attention stage SVG: {error}")
+    benchmark = (REPOSITORY / "benchmarks/micro" /
+                 "benchmark_cached_attention_stages.cpp").read_text(
+                     encoding="utf-8")
+    runner = (REPOSITORY / "benchmarks/single_gpu" /
+              "cached_attention_stage_matrix.py").read_text(encoding="utf-8")
+    for token in ("cached_gqa_attention_scores", "cached_gqa_attention_context",
+                  "stage_sum_over_pipeline", "backend_allocation_calls"):
+        if token not in benchmark:
+            errors.append(f"cached Attention benchmark token missing: {token}")
+    for token in ("--sequences", "--cache-dtypes", "stage-timing.svg",
+                  "orders", "zero_warm_backend_allocations"):
+        if token not in runner:
+            errors.append(f"cached Attention runner token missing: {token}")
+    return (len(raw),
+            float(analysis.get("transparent_softmax_share_minimum", 0.0)),
+            float(analysis.get("transparent_softmax_share_maximum", 0.0)),
+            float(analysis.get(
+                "fused_speedup_over_transparent_pipeline_minimum", 0.0)),
+            float(analysis.get(
+                "fused_speedup_over_transparent_pipeline_maximum", 0.0)))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -17791,6 +17937,9 @@ def main() -> int:
         validate_ranked_gather_scale(errors)
     deepseek_t2048_ratio, deepseek_t2048_attention, deepseek_t2048_gemm, \
         deepseek_t2048_generation_ms = validate_current_deepseek_t2048(errors)
+    cached_stage_rows, cached_stage_softmax_minimum, \
+        cached_stage_softmax_maximum, cached_stage_fused_minimum, \
+        cached_stage_fused_maximum = validate_cached_attention_stage_matrix(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -18368,6 +18517,11 @@ def main() -> int:
           f"{deepseek_t2048_attention:.4f}/"
           f"{deepseek_t2048_gemm:.4f}/"
           f"{deepseek_t2048_generation_ms:.1f} "
+          f"cached_stages={cached_stage_rows}/"
+          f"{cached_stage_softmax_minimum:.4f}/"
+          f"{cached_stage_softmax_maximum:.4f}/"
+          f"{cached_stage_fused_minimum:.3f}/"
+          f"{cached_stage_fused_maximum:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

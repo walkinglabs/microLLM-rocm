@@ -4433,3 +4433,20 @@ allocator不是当前根因：backend allocation增量0，36,963次逻辑申请�
 通过前，不改模型默认路由。
 
 ![Current DeepSeek T2048 profile](assets/current-deepseek-t2048-profile.svg)
+
+## 299. Experiment 282：拆开的softmax很慢，不等于融合里的softmax也占七成
+
+新的分段工具固定DeepSeek H12/KV2/D128，跑T512/T2048、B1/B2和FP32/BF16 cache。8格各3个
+新进程，每项3次热身、20次正式Event/wall测量；24条记录都通过完整score、probability、context
+和fused精度门，计时区间没有payload传输或backend allocation。
+
+透明三段中softmax占65.46%–73.56%，T2048约72%–74%。但当前fused比透明pipeline快
+2.72x–4.16x，它没有global score/probability，不能把透明比例直接贴到融合Kernel上。BF16 fused
+又比FP32快1.313x–1.534x，说明cache流量仍是事实。
+
+当前fused一项`batch × head`只发一个block，B1/B2仅12/24 blocks，而MI300X有304个CU。旧的缩
+线程、shared query、pair load和预归一化都已有反例，因此下一步不再排列标量写法，而是测试
+split-sequence：多个blocks先算局部max/denominator/weighted value，再用log-sum-exp合并。
+T512和B2会直接检验额外partial buffer与combine launch是否抵消占用率收益。
+
+![Cached Attention stage timing](../../benchmarks/results/2026-08-25-cached-attention-stage-matrix/stage-timing.svg)

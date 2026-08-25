@@ -17,7 +17,7 @@ def main() -> int:
         "PyTorch-enabled CPU 376/376",
         "single-GPU HIP label 192/192",
         "current T2048/B2/N64 is 0.8158x",
-        "experiments through 280",
+        "experiments through 282",
         "Ranked per-leaf weighted overlap",
         "whole step 0.9594×",
         "Ranked ready-bucket weighting",
@@ -25,6 +25,7 @@ def main() -> int:
         "Ranked gather-scale fusion",
         "T128 only 1.0140×",
         "ranked reducer local optimization closed",
+        "transparent softmax 65.46%–73.56%",
         "DataParallel tests 11/11",
         "total requirement remains unknown",
     ):
@@ -32,7 +33,7 @@ def main() -> int:
     for stale in (
         "RCCL label 49/49",
         "PyTorch-enabled build 323/323",
-        "experiments through 277",
+        "experiments through 280",
         "scale-before-ready weighted overlap ordering",
         "Model-S sync smoke; weighted ready-overlap ordering",
         "environment with >87MB /dev/shm",

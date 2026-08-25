@@ -39,11 +39,11 @@ Start with [Quick start](#quick-start), consume the installed library through th
 <details>
 <summary>Latest optimization checkpoints</summary>
 
-> **Current optimization checkpoint:** Experiment 281 measures the current
-> DeepSeek T2048/B2 cached-decode path. Cached Attention occupies 61.57% of measured
-> Kernel time and GEMM 25.72%; allocator and KV store are not the main bottlenecks.
-> Step 105 now exposes complete score/probability/context checks before timing a new
-> microarchitecture. See the [step contract](docs/optimization-log/steps/105-cached-attention-microarchitecture.md).
+> **Current optimization checkpoint:** Experiment 282 measures 24 fresh-process
+> cached-Attention stage rows. The current fused Kernel is 2.72×–4.16× faster than
+> the transparent global-score pipeline; all complete-output and resource gates pass.
+> Its 12/24-block long-context grid admits a split-sequence occupancy experiment—no
+> model speedup is claimed yet. See the [measured experiment](docs/optimization-log/experiments/282-cached-attention-stage-matrix.md).
 
 > **Current training checkpoint:** the current B1T512 BF16 profile measures
 > 31.327/71.873 ms of Kernel time for Qwen/DeepSeek; GEMM remains 58.56%/63.43%.
