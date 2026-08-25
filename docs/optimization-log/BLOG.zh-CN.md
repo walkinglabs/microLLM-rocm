@@ -3816,3 +3816,18 @@ profile差一个数量级；换成caller-output API后才重跑正式门。
 operator边界，例如处理grouped GEMM epilogue，而不是继续打磨同一个小kernel。
 
 ![BF16 SwiGLU vector discard](assets/bf16-swiglu-vector-discard.svg)
+
+## 252. Experiment 235：把SiLU塞进矩阵乘法，整模还是没变快
+
+本机hipBLASLt支持Swish epilogue，却不支持双输入SwiGLU。候选让gate GEMM直接写
+SiLU(gate)，再用一次BF16 multiply与up合并。plan key显式加入epilogue位，避免错用旧plan。
+
+6进程能力门里，两个shape的64个候选全部正确，pointer-stable路径快1.097×/1.069×；
+每轮重建plan仍是0.851×/0.862×。这只证明它值得进入整模门。
+
+12进程same-binary A/B中，Qwen只有1.00015×，DeepSeek退到0.99114×；完整logits
+Max为0.0973/0.0362。局部速度和数值误差都没有转化成可接受的模型政策。
+
+显式开关保留但默认关闭；BF16 FFN activation局部路线关闭。
+
+![Grouped Swish epilogue discard](assets/bf16-grouped-swish-discard.svg)

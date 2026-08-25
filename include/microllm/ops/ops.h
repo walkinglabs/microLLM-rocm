@@ -492,6 +492,8 @@ void add_in_place_(Tensor& destination, const Tensor& source,
     const OpContext& context = {});
 [[nodiscard]] Tensor multiply(const Tensor& left, const Tensor& right,
                               const OpContext& context = {});
+void multiply_out_(Tensor& output, const Tensor& left, const Tensor& right,
+                   const OpContext& context = {});
 [[nodiscard]] Tensor scale(const Tensor& input, float factor, const OpContext& context = {});
 [[nodiscard]] Tensor matmul(const Tensor& left, const Tensor& right,
                             const OpContext& context = {});
@@ -515,6 +517,10 @@ void register_bf16_grouped_gate_up_algorithm(
 void clear_bf16_grouped_gate_up_registry() noexcept;
 [[nodiscard]] Bf16GroupedGateUpStats
 bf16_grouped_gate_up_stats() noexcept;
+// Research-only fusion: the grouped gate GEMM writes SiLU(gate), then FFN uses
+// one multiply kernel instead of a standalone SwiGLU kernel. Disabled by default.
+void enable_bf16_grouped_gate_up_swish(bool enabled) noexcept;
+[[nodiscard]] bool bf16_grouped_gate_up_swish_enabled() noexcept;
 void enable_attention_layout_plan_cache(bool enabled) noexcept;
 [[nodiscard]] bool attention_layout_plan_cache_enabled() noexcept;
 [[nodiscard]] AttentionLayoutPlanCacheStats

@@ -58,6 +58,10 @@ Elementwise candidates follow the same rule. `swiglu_with_implementation` and
 `swiglu_out_with_implementation_` expose the measured BF16 vector route, while Auto remains scalar
 because DeepSeek's full-model gate was only 1.001x. Benchmark caller-provided output Storage; timing
 an owning convenience call would include allocator work and answer a different question.
+The grouped gate/up Swish switch is also explicit and default-off. Its plan and kernel keys include
+the epilogue bit, and the CLI rejects it without an exact grouped algorithm. `multiply_out_` keeps
+the remaining gate/up product in caller Storage. Operator support is not a model claim: the MI300X
+T1024 model gate regressed DeepSeek and changed complete logits, so this route must not become Auto.
 BF16 GroupedQKV has an even stricter lifetime rule: `GroupedGemm::initialize` binds every pointer.
 Use it only through `bf16_qkv_projection_out_` with caller-owned stable buffers. The exact cache key
 must include all three weights, BF16 intermediates, FP32 outputs, device and Stream. Timing only

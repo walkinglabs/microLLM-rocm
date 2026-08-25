@@ -86,6 +86,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [55](steps/55-current-inference-profile.md) | complete | 当前B1T1024重新profile | GEMM 59.7%/66.8%；下一步筛exact Attention solution |
 | [56](steps/56-fp32-attention-t1024-discard.md) | complete | T1024 exact QK/PV | PV descriptor失配；Qwen错/Deep慢，默认全拒绝 |
 | [57](steps/57-bf16-swiglu-vector-discard.md) | complete | BF16 SwiGLU vector | operator 1.249×/1.190×；整模1.007×/1.001×，Auto拒绝 |
+| [58](steps/58-bf16-grouped-swish-discard.md) | complete | grouped Swish epilogue | operator 1.097×/1.069×；整模1.000×/0.991×且logits变化 |
 
 ## 为什么按这个顺序
 

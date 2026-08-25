@@ -36,6 +36,7 @@ v=array.array('f',[1.0,2.0,3.0])
 with open(a['--logits-output'],'wb') as f: v.tofile(f)
 print(json.dumps({'status':'pass','inference_bthd_attention':True,
 'inference_bthd_bf16_qk':True,'inference_bthd_online_attention':False,
+'bf16_grouped_gate_up_swish':a.get('--bf16-grouped-gate-up-swish','false')=='true',
 'prefill_tokens_per_second':101.0 if candidate else 100.0,
 'engine_peak_bytes':1000,'engine_allocation_calls':20}))
 """
@@ -60,6 +61,18 @@ print(json.dumps({'status':'pass','inference_bthd_attention':True,
                    for row in summary["comparisons"])
         assert all(row["maximum_absolute_logit_difference"] == 0.0
                    for row in summary["comparisons"])
+        swish_output = root / "swish"
+        swish = subprocess.run([
+            sys.executable, str(RUNNER), "--manifest", str(manifest),
+            "--baseline-binary", str(baseline), "--candidate-binary", str(candidate),
+            "--output-directory", str(swish_output), "--runs", "1",
+            "--warmup", "0", "--steps", "1", "--candidate-swish"],
+            text=True, capture_output=True, check=False)
+        assert swish.returncode == 0, swish.stderr
+        swish_summary = json.loads(
+            (swish_output / "summary.json").read_text(encoding="utf-8"))
+        assert swish_summary["candidate_swish"] is True
+        assert swish_summary["record_type"] == "bf16_grouped_swiglu_model_summary"
     print("BF16 SwiGLU model gate contract: pass")
     return 0
 

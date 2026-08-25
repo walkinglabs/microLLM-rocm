@@ -13152,6 +13152,79 @@ def validate_bf16_swiglu_vector(
     return operator.get("raw_processes", 0), model.get("raw_processes", 0), *expected
 
 
+def validate_bf16_grouped_swish(
+        errors: list[str]) -> tuple[int, int, float, float, float, float]:
+    operator_root = REPOSITORY / (
+        "benchmarks/results/2026-08-25-bf16-grouped-swish-operator")
+    model_root = REPOSITORY / (
+        "benchmarks/results/2026-08-25-bf16-grouped-swish-model-gate")
+    operator = json.loads((operator_root / "summary.json").read_text(
+        encoding="utf-8"))
+    model = json.loads((model_root / "summary.json").read_text(
+        encoding="utf-8"))
+    operator_check = json.loads((operator_root / "verification.json").read_text(
+        encoding="utf-8"))
+    model_check = json.loads((model_root / "verification.json").read_text(
+        encoding="utf-8"))
+    operator_rows = {row["model"]: row for row in operator.get("comparisons", [])}
+    model_rows = {row["model"]: row for row in model.get("comparisons", [])}
+    qwen_model = "qwen2.5-0.5b"
+    deep_model = "deepseek-r1-distill-qwen-1.5b"
+    expected = (1.097039318584, 1.068558740794,
+                1.0001482267179747, 0.9911367045950957)
+    if (operator.get("schema_version") != 1 or operator.get("status") != "pass" or
+            operator.get("record_type") !=
+                "bf16_grouped_gate_up_swish_matrix_summary" or
+            operator.get("gate_swish") is not True or
+            operator.get("raw_processes") != 6 or
+            operator.get("capability_gate") is not True or
+            set(operator_rows) != {"qwen", "deepseek"} or
+            any(row.get("passing_candidates") != 64 or
+                row.get("maximum_absolute_error", 1.0) > 1.0e-3
+                for row in operator_rows.values()) or
+            abs(float(operator_rows.get("qwen", {}).get(
+                "user_arguments_event_speedup_median", 0.0)) - expected[0]) > 1.0e-12 or
+            abs(float(operator_rows.get("deepseek", {}).get(
+                "user_arguments_event_speedup_median", 0.0)) - expected[1]) > 1.0e-12):
+        errors.append("BF16 grouped Swish operator evidence changed")
+    if (model.get("schema_version") != 1 or model.get("status") != "pass" or
+            model.get("record_type") != "bf16_grouped_swiglu_model_summary" or
+            model.get("candidate_swish") is not True or
+            model.get("raw_processes") != 12 or
+            model.get("keep_default") is not False or
+            set(model_rows) != {qwen_model, deep_model} or
+            abs(float(model_rows.get(qwen_model, {}).get(
+                "candidate_speedup", 0.0)) - expected[2]) > 1.0e-12 or
+            abs(float(model_rows.get(deep_model, {}).get(
+                "candidate_speedup", 0.0)) - expected[3]) > 1.0e-12 or
+            abs(float(model_rows.get(qwen_model, {}).get(
+                "maximum_absolute_logit_difference", 0.0)) -
+                0.09726572036743164) > 1.0e-12 or
+            abs(float(model_rows.get(deep_model, {}).get(
+                "maximum_absolute_logit_difference", 0.0)) -
+                0.03615880012512207) > 1.0e-12):
+        errors.append("BF16 grouped Swish model evidence changed")
+    if (operator_check.get("capability_gate") is not True or
+            model_check.get("keep_default") is not False or
+            model_check.get("peak_bytes_unchanged") is not True or
+            model_check.get("allocation_calls_unchanged") is not True):
+        errors.append("BF16 grouped Swish verification changed")
+    sources = (
+        ("HIPBLASLT_EPILOGUE_SWISH_EXT", REPOSITORY /
+         "src/ops/optimized.cpp"),
+        ("multiply_out_", REPOSITORY / "include/microllm/ops/ops.h"),
+        ("--bf16-grouped-gate-up-swish", REPOSITORY / "apps/hf_infer.cpp"),
+        ("--gate-swish", REPOSITORY /
+         "benchmarks/single_gpu/bf16_grouped_gate_up_matrix.py"),
+        ("--candidate-swish", REPOSITORY /
+         "benchmarks/single_gpu/compare_bf16_swiglu_models.py"),
+    )
+    if any(token not in path.read_text(encoding="utf-8")
+           for token, path in sources):
+        errors.append("BF16 grouped Swish source or runners changed")
+    return operator.get("raw_processes", 0), model.get("raw_processes", 0), *expected
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -13364,7 +13437,8 @@ def validate_assets(errors: list[str]) -> None:
                  "rocwmma-direct-bf16-model-discard.svg",
                  "current-inference-profile.svg",
                  "fp32-attention-t1024-discard.svg",
-                 "bf16-swiglu-vector-discard.svg"):
+                 "bf16-swiglu-vector-discard.svg",
+                 "bf16-grouped-swish-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -13811,6 +13885,10 @@ def main() -> int:
     swiglu_operator_rows, swiglu_model_rows, swiglu_qwen_operator, \
         swiglu_deep_operator, swiglu_qwen_model, swiglu_deep_model = \
         validate_bf16_swiglu_vector(errors)
+    grouped_swish_operator_rows, grouped_swish_model_rows, \
+        grouped_swish_qwen_operator, grouped_swish_deep_operator, \
+        grouped_swish_qwen_model, grouped_swish_deep_model = \
+        validate_bf16_grouped_swish(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -14214,6 +14292,10 @@ def main() -> int:
           f"swiglu_vector={swiglu_operator_rows}/{swiglu_model_rows}/"
           f"{swiglu_qwen_operator:.3f}/{swiglu_deep_operator:.3f}/"
           f"{swiglu_qwen_model:.3f}/{swiglu_deep_model:.3f} "
+          f"grouped_swish={grouped_swish_operator_rows}/"
+          f"{grouped_swish_model_rows}/{grouped_swish_qwen_operator:.3f}/"
+          f"{grouped_swish_deep_operator:.3f}/{grouped_swish_qwen_model:.3f}/"
+          f"{grouped_swish_deep_model:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

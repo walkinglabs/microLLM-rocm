@@ -1,0 +1,53 @@
+{
+  "capability_gate": true,
+  "comparisons": [
+    {
+      "algorithm_count": 10227,
+      "event_speedup_median": 1.076269695864,
+      "groups": 2,
+      "maximum_absolute_error": 0.000122070312,
+      "maximum_rms_error": 3.4996134e-05,
+      "model": "qwen",
+      "passing_candidates": 64,
+      "reinitialized_event_speedup_median": 0.85079751092,
+      "reinitialized_wall_speedup_median": 0.879193106673,
+      "rows": 1024,
+      "solution_indices": [
+        65168,
+        65200
+      ],
+      "user_arguments_event_speedup_median": 1.097039318584,
+      "user_arguments_setup_ms_median": 0.052246,
+      "user_arguments_wall_speedup_median": 1.06622004638,
+      "wall_speedup_median": 1.045747064338,
+      "workspace_bytes": 480
+    },
+    {
+      "algorithm_count": 10227,
+      "event_speedup_median": 0.918029756623,
+      "groups": 2,
+      "maximum_absolute_error": 0.000244140625,
+      "maximum_rms_error": 4.6976983e-05,
+      "model": "deepseek",
+      "passing_candidates": 64,
+      "reinitialized_event_speedup_median": 0.86177189381,
+      "reinitialized_wall_speedup_median": 0.884839069731,
+      "rows": 1024,
+      "solution_indices": [
+        65212
+      ],
+      "user_arguments_event_speedup_median": 1.068558740794,
+      "user_arguments_setup_ms_median": 0.106881,
+      "user_arguments_wall_speedup_median": 1.061159948962,
+      "wall_speedup_median": 0.920179328829,
+      "workspace_bytes": 480
+    }
+  ],
+  "decision": "continue to grouped Swish full-model gate",
+  "gate_swish": true,
+  "raw_processes": 6,
+  "record_type": "bf16_grouped_gate_up_swish_matrix_summary",
+  "reinitialization_counterexample_gate": true,
+  "schema_version": 1,
+  "status": "pass"
+}

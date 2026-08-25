@@ -21,9 +21,12 @@ def options() -> argparse.Namespace:
     parser.add_argument("--warmup", type=int, default=2)
     parser.add_argument("--repetitions", type=int, default=5)
     parser.add_argument("--maximum-algorithms", type=int, default=64)
+    parser.add_argument("--rows", type=int, default=512)
+    parser.add_argument("--gate-swish", action="store_true")
     result = parser.parse_args()
     if (result.runs <= 0 or result.warmup < 0 or result.repetitions <= 0 or
             result.maximum_algorithms <= 0 or result.maximum_algorithms > 256 or
+            result.rows <= 0 or result.rows > 4096 or
             not result.binary.is_file()):
         parser.error("binary and positive grouped gate/up options are required")
     return result
@@ -51,8 +54,9 @@ def main() -> int:
         for model in order:
             completed = subprocess.run([
                 str(args.binary), "--model", model,
-                "--projection", "gate-up", "--rows", "512",
+                "--projection", "gate-up", "--rows", str(args.rows),
                 "--output-dtype", "bf16", "--equal-width", "false",
+                "--gate-swish", "true" if args.gate_swish else "false",
                 "--maximum-algorithms", str(args.maximum_algorithms),
                 "--warmup", str(args.warmup),
                 "--repetitions", str(args.repetitions),
@@ -66,6 +70,7 @@ def main() -> int:
                     record.get("projection") != "gate-up" or \
                     record.get("model") != model or \
                     record.get("groups") != 2 or \
+                    bool(record.get("gate_swish", False)) != args.gate_swish or \
                     record.get("grouped_supported") is not True or \
                     int(record.get("passing_candidates", 0)) != \
                         args.maximum_algorithms:
@@ -81,7 +86,7 @@ def main() -> int:
         rows = [row for row in records if row["model"] == model]
         comparisons.append({
             "model": model,
-            "rows": 512,
+            "rows": args.rows,
             "groups": 2,
             "solution_indices": sorted({
                 int(row["solution_index"]) for row in rows}),
@@ -111,8 +116,10 @@ def main() -> int:
         })
     capability = all(
         row["algorithm_count"] > 0 and row["passing_candidates"] ==
-            args.maximum_algorithms and row["maximum_absolute_error"] == 0 and
-        row["user_arguments_event_speedup_median"] >= 1.05
+            args.maximum_algorithms and
+        row["maximum_absolute_error"] <= (1.0e-3 if args.gate_swish else 0.0) and
+        row["user_arguments_event_speedup_median"] >=
+            (1.0 if args.gate_swish else 1.05)
         for row in comparisons)
     reinitialization_counterexample = all(
         row["reinitialized_event_speedup_median"] < 1.0
@@ -120,14 +127,18 @@ def main() -> int:
     summary = {
         "schema_version": 1,
         "status": "pass",
-        "record_type": "bf16_grouped_gate_up_matrix_summary",
+        "record_type": ("bf16_grouped_gate_up_swish_matrix_summary"
+                        if args.gate_swish else
+                        "bf16_grouped_gate_up_matrix_summary"),
+        "gate_swish": args.gate_swish,
         "raw_processes": len(records),
         "capability_gate": capability,
         "reinitialization_counterexample_gate":
             reinitialization_counterexample,
         "comparisons": comparisons,
         "decision": (
-            "continue to pointer-stable FFN Arena model gate"
+            ("continue to grouped Swish full-model gate" if args.gate_swish else
+             "continue to pointer-stable FFN Arena model gate")
             if capability else "reject grouped gate/up capability"),
     }
     with (args.output_directory / "raw.jsonl").open(

@@ -398,6 +398,9 @@ the chronological details are in the [optimization log](docs/optimization-log/RE
 - a tail-safe BF16 SwiGLU vector candidate is bit-identical and 1.249×/1.190× at the exact
   Qwen/DeepSeek operator shapes, but full models improve only 1.007×/1.001×; the explicit API
   stays available while Auto remains scalar.
+- hipBLASLt gate-Swish epilogues have 64/64 correct candidates and pointer-stable local speedups
+  of 1.097×/1.069×, yet the same-binary model gate is 1.000×/0.991× with changed logits;
+  the explicit research switch stays default-off and the local FFN activation track is closed.
 
 </details>
 

@@ -243,6 +243,8 @@ TEST(HipLowPrecisionOpsTest, NativeBasicKernelsMatchCpuAndAvoidHostTransfers) {
         fill_(filled, -1.25F);
         const auto added = add(left, right);
         const auto multiplied = multiply(left, right);
+        Tensor caller_multiplied(left.shape(), dtype, gpu);
+        multiply_out_(caller_multiplied, left, right);
         const auto scaled = scale(left, -0.25F);
         const auto matrix = matmul(left, mat_right);
         const auto activated = silu(left);
@@ -257,6 +259,7 @@ TEST(HipLowPrecisionOpsTest, NativeBasicKernelsMatchCpuAndAvoidHostTransfers) {
         expect_near(filled.to_vector(), std::vector<float>(6, -1.25F), tolerance);
         expect_near(added.to_vector(), add(left_cpu, right_cpu).to_vector(), tolerance);
         expect_near(multiplied.to_vector(), multiply(left_cpu, right_cpu).to_vector(), tolerance);
+        expect_near(caller_multiplied.to_vector(), multiplied.to_vector(), tolerance);
         expect_near(scaled.to_vector(), scale(left_cpu, -0.25F).to_vector(), tolerance);
         expect_near(matrix.to_vector(), matmul(left_cpu, mat_right_cpu).to_vector(), tolerance);
         expect_near(activated.to_vector(), silu(left_cpu).to_vector(), tolerance);
@@ -620,6 +623,8 @@ TEST(HipBf16FfnTest, GroupedGateUpCachesExactPointerStablePlan) {
     require_gpu();
     if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";
     const auto gpu = Device::hip(0);
+    enable_bf16_grouped_gate_up_swish(false);
+    EXPECT_FALSE(bf16_grouped_gate_up_swish_enabled());
     if (!runtime::device_info(gpu).architecture.starts_with("gfx942") ||
         hipblaslt_version() != 10300) {
         GTEST_SKIP()
@@ -700,9 +705,22 @@ TEST(HipBf16FfnTest, GroupedGateUpCachesExactPointerStablePlan) {
     EXPECT_EQ(transfers.device_to_host_calls, 0U);
     expect_near(
         candidate.to_vector(), baseline.to_vector(), 1.0e-2F);
+    enable_bf16_grouped_gate_up_swish(true);
+    EXPECT_TRUE(bf16_grouped_gate_up_swish_enabled());
+    auto swish_workspace = workspace();
+    Tensor swish_candidate({rows, hidden}, DType::Float32, gpu);
+    bf16_ffn_out_(
+        swish_candidate, swish_workspace, input,
+        gate_weight, up_weight, down_weight);
+    runtime::synchronize(gpu);
+    expect_near(
+        swish_candidate.to_vector(), baseline.to_vector(), 2.0e-2F);
+    EXPECT_EQ(bf16_grouped_gate_up_stats().dispatches, 3U);
+    enable_bf16_grouped_gate_up_swish(false);
     clear_bf16_grouped_gate_up_registry();
     EXPECT_EQ(
         bf16_grouped_gate_up_stats().registered_entries, 0U);
+    EXPECT_FALSE(bf16_grouped_gate_up_swish_enabled());
 }
 
 TEST(HipInferenceBthdAttentionTest,

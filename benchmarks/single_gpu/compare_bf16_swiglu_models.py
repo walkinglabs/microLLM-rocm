@@ -28,6 +28,7 @@ def options() -> argparse.Namespace:
     parser.add_argument("--runs", type=int, default=3)
     parser.add_argument("--warmup", type=int, default=2)
     parser.add_argument("--steps", type=int, default=5)
+    parser.add_argument("--candidate-swish", action="store_true")
     result = parser.parse_args()
     if (not result.manifest.is_file() or not result.baseline_binary.is_file() or
             not result.candidate_binary.is_file() or result.runs <= 0 or
@@ -56,7 +57,7 @@ def command(args: argparse.Namespace, model: dict, policy: str,
             logits: Path) -> list[str]:
     qkv_index, gate_up_index = GROUPED_T1024[model["name"]]
     binary = args.baseline_binary if policy == "baseline" else args.candidate_binary
-    return [
+    result = [
         str(binary), "--config", model["config"], "--weights", model["weights"],
         "--tokens", repeated(model["inference"]["token_ids"], 1024),
         "--device", "hip", "--top-k", "10", "--batch", "1",
@@ -74,6 +75,12 @@ def command(args: argparse.Namespace, model: dict, policy: str,
         "--prefill-steps", str(args.steps),
         "--prefill-logits", "last", "--logits-output", str(logits),
     ]
+    if args.candidate_swish:
+        result.extend([
+            "--bf16-grouped-gate-up-swish",
+            "true" if policy == "vectorized" else "false",
+        ])
+    return result
 
 
 def last_json(text: str) -> dict:
@@ -145,8 +152,16 @@ def main() -> int:
                             row.get("inference_bthd_bf16_qk") is not True or
                             row.get("inference_bthd_online_attention") is not False):
                         raise RuntimeError(f"{stem} did not run the retained policy")
+                    if args.candidate_swish and (
+                            row.get("bf16_grouped_gate_up_swish") is not
+                            (policy == "vectorized")):
+                        raise RuntimeError(
+                            f"{stem} did not select the requested swish epilogue")
                     row.update({
-                        "record_type": "bf16_swiglu_vector_model_measurement",
+                        "record_type": (
+                            "bf16_grouped_swiglu_model_measurement"
+                            if args.candidate_swish else
+                            "bf16_swiglu_vector_model_measurement"),
                         "model": model["name"], "revision": model["revision"],
                         "policy": policy, "sequence": 1024,
                         "process_run": process_run, "process_order": order,
@@ -197,12 +212,18 @@ def main() -> int:
                row["memory_passed"] for row in comparisons)
     summary = {
         "schema_version": 1, "status": "pass",
-        "record_type": "bf16_swiglu_vector_model_summary",
+        "record_type": (
+            "bf16_grouped_swiglu_model_summary" if args.candidate_swish else
+            "bf16_swiglu_vector_model_summary"),
+        "candidate_swish": args.candidate_swish,
         "raw_processes": len(records), "warmup": args.warmup,
         "steps": args.steps, "minimum_speedup": 1.005,
         "comparisons": comparisons, "keep_default": keep,
-        "decision": "keep BF16 vectorized SwiGLU" if keep else
-                    "retain explicit operator; reject default route",
+        "decision": (
+            "keep grouped Swish epilogue" if args.candidate_swish and keep else
+            "reject grouped Swish epilogue" if args.candidate_swish else
+            "keep BF16 vectorized SwiGLU" if keep else
+            "retain explicit operator; reject default route"),
     }
     (args.output_directory / "raw.jsonl").write_text(
         "".join(json.dumps(row, sort_keys=True) + "\n" for row in records),

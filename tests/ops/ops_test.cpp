@@ -1319,6 +1319,9 @@ TEST(CpuOpsTest, SiluAndSwiGluMatchDefinitions) {
     expect_near(swiglu(input, Tensor::from_vector({2, 2, 2}, {3})).to_vector(),
                 {2 * silu_values[0], 0, 2 * silu_values[2]});
     const auto up = Tensor::from_vector({2, 2, 2}, {3});
+    Tensor multiplied({3});
+    multiply_out_(multiplied, input, up);
+    expect_near(multiplied.to_vector(), multiply(input, up).to_vector());
     Tensor caller_output({3});
     swiglu_out_(caller_output, input, up);
     expect_near(caller_output.to_vector(), swiglu(input, up).to_vector());
@@ -1327,6 +1330,7 @@ TEST(CpuOpsTest, SiluAndSwiGluMatchDefinitions) {
             input, up, SwiGLUImplementation::Vectorized),
         std::invalid_argument);
     auto alias_output = input;
+    EXPECT_THROW(multiply_out_(alias_output, input, up), std::invalid_argument);
     EXPECT_THROW(swiglu_out_(alias_output, input, up), std::invalid_argument);
     Tensor wrong({2});
     EXPECT_THROW(swiglu_out_(wrong, input, up), std::invalid_argument);

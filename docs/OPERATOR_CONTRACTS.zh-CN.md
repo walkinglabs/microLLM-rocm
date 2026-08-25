@@ -21,6 +21,7 @@
 | `add_bias` | input `[...,D]`、bias `[D]`，输出不变 | `input+bias` | 默认 | rank/shape/device 错 |
 | `add_bias_bf16` | BF16 input `[...,D]`、FP32 bias `[D]`，输出BF16 | `(input.float()+bias).bfloat16()` | 逐项按BF16舍入一致 | dtype/rank/shape/device/连续性错 |
 | `multiply` | `S,S -> S` | `torch.mul` | 默认 | shape/device 不同、HIP 非连续 |
+| `multiply_out_` | 同`multiply`，output预分配且不与输入共享Storage | `torch.mul` + caller地址检查 | 默认/BF16舍入 | output shape/dtype/device/stride或alias错 |
 | `scale` | `S,scalar -> S` | `x*scalar` | 默认 | 非 FP32、HIP 非连续 |
 | `matmul` | `[...,M,K] × [...,K,N] -> [...,M,N]`，batch 维完全相同 | `torch.matmul` | `2e-4,2e-4` | rank<2、rank/batch/inner 不同 |
 | `matmul_out_` | 数学shape同`matmul`；output预先分配、连续、同dtype/device且不与输入共享Storage | `torch.matmul` + caller地址检查 | `2e-4,2e-4` | output shape/dtype/device/stride错误或alias |

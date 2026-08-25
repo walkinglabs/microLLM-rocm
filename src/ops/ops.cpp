@@ -1468,6 +1468,41 @@ Tensor multiply(const Tensor& left, const Tensor& right,
     return from_values(std::move(left_values), left.shape(), left.dtype());
 }
 
+void multiply_out_(Tensor& output, const Tensor& left, const Tensor& right,
+                   [[maybe_unused]] const OpContext& context) {
+    require_forward_float(left, "left");
+    require_forward_float(right, "right");
+    require_forward_float(output, "output");
+    require_same_dtype(left, right);
+    require_same_dtype(left, output);
+    require_same_shape(left, right);
+    require_same_shape(left, output);
+    require_same_device(left, right);
+    require_same_device(left, output);
+    require_contiguous(left, "left");
+    require_contiguous(right, "right");
+    require_contiguous(output, "output");
+    if (output.storage().data() == left.storage().data() ||
+        output.storage().data() == right.storage().data()) {
+        throw std::invalid_argument(
+            "multiply_out output must not alias either input Storage");
+    }
+    if (left.device().is_hip()) {
+#if MICROLLM_HAS_HIP
+        hip::launch_multiply_typed(
+            left.data(), right.data(), output.data(), left.dtype(), left.numel(),
+            context.native_stream(left.device()));
+        return;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    const auto reference = multiply(left, right);
+    runtime::copy_bytes(
+        output.data(), output.device(), reference.data(), reference.device(),
+        static_cast<std::size_t>(output.numel()) * dtype_size(output.dtype()));
+}
+
 Tensor scale(const Tensor& input, float factor, [[maybe_unused]] const OpContext& context) {
     require_forward_float(input, "input");
     if (input.device().is_hip()) {

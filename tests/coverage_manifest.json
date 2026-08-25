@@ -58,6 +58,7 @@
   },
   "operator_infrastructure": {
     "cast_out_": "tests/ops/ops_test.cpp",
+    "multiply_out_": "tests/ops/hip_ops_test.cpp",
     "cast_transpose_2d_out_": "tests/ops/ops_test.cpp",
     "swiglu_out_": "tests/ops/hip_ops_test.cpp",
     "swiglu_out_with_implementation_": "tests/ops/hip_ops_test.cpp",
@@ -134,6 +135,8 @@
     "register_bf16_grouped_gate_up_algorithm": "tests/ops/hip_ops_test.cpp",
     "clear_bf16_grouped_gate_up_registry": "tests/ops/hip_ops_test.cpp",
     "bf16_grouped_gate_up_stats": "tests/ops/hip_ops_test.cpp",
+    "enable_bf16_grouped_gate_up_swish": "tests/ops/hip_ops_test.cpp",
+    "bf16_grouped_gate_up_swish_enabled": "tests/ops/hip_ops_test.cpp",
     "make_fp32_matmul_solution_key": "tests/ops/ops_test.cpp",
     "register_fp32_matmul_solution": "tests/ops/hip_ops_test.cpp",
     "clear_fp32_matmul_solution_registry": "tests/ops/ops_test.cpp",

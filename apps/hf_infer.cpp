@@ -91,6 +91,7 @@ struct Options {
     int bf16_algorithm_index = -1;
     int bf16_grouped_qkv_algorithm_index = -1;
     int bf16_grouped_gate_up_algorithm_index = -1;
+    bool bf16_grouped_gate_up_swish = false;
     bool bf16_grouped_qkv_prewarm = false;
     int fp32_attention_qk_solution_index = -1;
     int fp32_attention_pv_solution_index = -1;
@@ -290,6 +291,14 @@ Options options(int argc, char** argv) {
         else if (name == "--bf16-grouped-gate-up-algorithm-index") {
             result.bf16_grouped_gate_up_algorithm_index =
                 std::stoi(argv[index + 1]);
+        }
+        else if (name == "--bf16-grouped-gate-up-swish") {
+            const std::string value = argv[index + 1];
+            if (value != "true" && value != "false") {
+                throw std::invalid_argument(
+                    "--bf16-grouped-gate-up-swish must be true or false");
+            }
+            result.bf16_grouped_gate_up_swish = value == "true";
         }
         else if (name == "--bf16-grouped-qkv-prewarm") {
             const std::string value = argv[index + 1];
@@ -562,6 +571,11 @@ Options options(int argc, char** argv) {
           !result.bf16_ffn || !result.bf16_ffn_arena))) {
         throw std::invalid_argument(
             "--bf16-grouped-gate-up-algorithm-index requires HIP BF16 FFN Arena prefill");
+    }
+    if (result.bf16_grouped_gate_up_swish &&
+        result.bf16_grouped_gate_up_algorithm_index < 0) {
+        throw std::invalid_argument(
+            "--bf16-grouped-gate-up-swish requires an exact grouped gate/up algorithm");
     }
     const auto fp32_attention_solution_requested =
         result.fp32_attention_qk_solution_index >= 0 ||
@@ -1264,6 +1278,8 @@ int main(int argc, char** argv) {
             microllm::ops::register_bf16_grouped_gate_up_algorithm(
                 key, command.bf16_grouped_gate_up_algorithm_index);
         }
+        microllm::ops::enable_bf16_grouped_gate_up_swish(
+            command.bf16_grouped_gate_up_swish);
         if (command.bf16_grouped_qkv_algorithm_index >= 0) {
             microllm::ops::clear_bf16_grouped_qkv_registry();
             const auto key = microllm::ops::make_bf16_grouped_qkv_key(
@@ -1986,6 +2002,8 @@ int main(int argc, char** argv) {
                   << command.bf16_grouped_qkv_algorithm_index
                   << ",\"bf16_grouped_gate_up_algorithm_index\":"
                   << command.bf16_grouped_gate_up_algorithm_index
+                  << ",\"bf16_grouped_gate_up_swish\":"
+                  << (command.bf16_grouped_gate_up_swish ? "true" : "false")
                   << ",\"bf16_grouped_qkv_prewarm\":"
                   << (command.bf16_grouped_qkv_prewarm ? "true" : "false")
                   << ",\"bf16_grouped_qkv_prewarm_rows\":"

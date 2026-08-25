@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "raw_processes": 6,
+  "models": 2,
+  "common_passing_candidates_per_process": 64,
+  "qwen_user_arguments_speedup": 1.097039318584,
+  "deepseek_user_arguments_speedup": 1.068558740794,
+  "maximum_absolute_error": 0.000244140625,
+  "capability_gate": true
+}

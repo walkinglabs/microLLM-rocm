@@ -43,6 +43,7 @@ struct Options {
     std::string projection = "qkv";
     std::string output_dtype = "fp32";
     bool equal_width = false;
+    bool gate_swish = false;
     std::int64_t rows = 512;
     int warmup = 2;
     int repetitions = 5;
@@ -74,6 +75,13 @@ Options options(int argc, char** argv) {
             }
             result.equal_width = value == "true";
         }
+        else if (name == "--gate-swish") {
+            const std::string value = argv[index + 1];
+            if (value != "true" && value != "false") {
+                throw std::invalid_argument("gate-swish must be true or false");
+            }
+            result.gate_swish = value == "true";
+        }
         else if (name == "--rows") result.rows = integer(argv[index + 1], "rows");
         else if (name == "--warmup") {
             result.warmup = static_cast<int>(integer(argv[index + 1], "warmup"));
@@ -100,6 +108,11 @@ Options options(int argc, char** argv) {
         result.maximum_algorithms > 256) {
         throw std::invalid_argument(
             "grouped BF16 projection options are invalid");
+    }
+    if (result.gate_swish &&
+        (result.projection != "gate-up" || result.output_dtype != "bf16")) {
+        throw std::invalid_argument(
+            "gate-swish requires gate-up with bf16 output");
     }
     return result;
 }
@@ -164,7 +177,9 @@ int main(int argc, char** argv) {
                                      ? "bf16_grouped_gate_up_probe"
                                      : "bf16_grouped_qkv_probe";
         const auto model_comparison = command.output_dtype == "model";
-        const auto maximum_tolerance = model_comparison ? 0.25F : 2.0e-4F;
+        const auto maximum_tolerance = command.gate_swish
+                                           ? 2.0e-2F
+                                           : model_comparison ? 0.25F : 2.0e-4F;
         const auto grouped_output_dtype = command.output_dtype == "fp32"
                                               ? microllm::DType::Float32
                                               : microllm::DType::BFloat16;
@@ -221,8 +236,21 @@ int main(int argc, char** argv) {
         baseline();
         microllm::runtime::synchronize(device);
         std::vector<std::vector<float>> references;
-        for (const auto& output : baseline_outputs) {
-            references.push_back(output.to_vector());
+        for (std::size_t group = 0; group < baseline_outputs.size(); ++group) {
+            auto values = baseline_outputs[group].to_vector();
+            if (command.gate_swish && group == 0) {
+                for (auto& value : values) {
+                    const auto exponential = std::exp(-std::abs(value));
+                    const auto sigmoid = value >= 0.0F
+                        ? 1.0F / (1.0F + exponential)
+                        : exponential / (1.0F + exponential);
+                    value *= sigmoid;
+                }
+                values = microllm::Tensor::from_vector(
+                    values, baseline_outputs[group].shape(),
+                    microllm::DType::BFloat16).to_vector();
+            }
+            references.push_back(std::move(values));
         }
 
         Handle handle;
@@ -236,6 +264,9 @@ int main(int argc, char** argv) {
         std::vector<std::int64_t> k(widths.size(), hidden);
         std::vector<std::int64_t> batch(widths.size(), 1);
         std::vector<hipblaslt_ext::GemmEpilogue> epilogues(widths.size());
+        if (command.gate_swish) {
+            epilogues[0].setMode(HIPBLASLT_EPILOGUE_SWISH_EXT);
+        }
         std::vector<hipblaslt_ext::GemmInputs> inputs(widths.size());
         float alpha = 1.0F;
         float beta = 0.0F;
@@ -263,6 +294,8 @@ int main(int argc, char** argv) {
                       << ",\"output_dtype\":\"" << command.output_dtype << "\""
                       << ",\"equal_width\":"
                       << (command.equal_width ? "true" : "false")
+                      << ",\"gate_swish\":"
+                      << (command.gate_swish ? "true" : "false")
                       << ",\"rows\":" << command.rows
                       << ",\"hidden\":" << hidden
                       << ",\"query_width\":" << query_width
@@ -370,6 +403,8 @@ int main(int argc, char** argv) {
                       << ",\"output_dtype\":\"" << command.output_dtype << "\""
                       << ",\"equal_width\":"
                       << (command.equal_width ? "true" : "false")
+                      << ",\"gate_swish\":"
+                      << (command.gate_swish ? "true" : "false")
                       << ",\"rows\":" << command.rows
                       << ",\"hidden\":" << hidden
                       << ",\"query_width\":" << query_width
@@ -434,6 +469,8 @@ int main(int argc, char** argv) {
                   << ",\"output_dtype\":\"" << command.output_dtype << "\""
                   << ",\"equal_width\":"
                   << (command.equal_width ? "true" : "false")
+                  << ",\"gate_swish\":"
+                  << (command.gate_swish ? "true" : "false")
                   << ",\"rows\":" << command.rows
                   << ",\"hidden\":" << hidden
                   << ",\"query_width\":" << query_width

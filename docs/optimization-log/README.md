@@ -869,6 +869,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [experiments/233-fp32-attention-t1024-discard.md](experiments/233-fp32-attention-t1024-discard.md) | descriptor mismatch、logits与默认拒绝 |
 | [assets/bf16-swiglu-vector-discard.svg](assets/bf16-swiglu-vector-discard.svg) | operator加速与整模收益落差 |
 | [experiments/234-bf16-swiglu-vector-discard.md](experiments/234-bf16-swiglu-vector-discard.md) | 预分配测量、bit-exact门与Auto拒绝 |
+| [assets/bf16-grouped-swish-discard.svg](assets/bf16-grouped-swish-discard.svg) | grouped epilogue局部收益和整模反例 |
+| [experiments/235-bf16-grouped-swish-discard.md](experiments/235-bf16-grouped-swish-discard.md) | 64-candidate能力门、same-binary A/B与路线关闭 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

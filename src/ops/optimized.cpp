@@ -66,6 +66,7 @@ thread_local std::size_t bf16_grouped_gate_up_kernel_hits = 0;
 thread_local std::size_t bf16_grouped_gate_up_kernel_misses = 0;
 thread_local double bf16_grouped_gate_up_kernel_setup_ms = 0.0;
 thread_local double bf16_grouped_gate_up_argument_setup_ms = 0.0;
+thread_local bool bf16_grouped_gate_up_swish = false;
 
 struct TuningEnvironment {
     std::string architecture;
@@ -1263,7 +1264,7 @@ hipblasLtMatmulAlgo_t grouped_gate_up_algorithm(
 }
 
 using Bf16GroupedGateUpKernelKey =
-    std::tuple<Bf16GroupedGateUpKey, int, int, std::uintptr_t>;
+    std::tuple<Bf16GroupedGateUpKey, int, int, std::uintptr_t, bool>;
 
 class Bf16GroupedGateUpKernel {
 public:
@@ -1272,7 +1273,7 @@ public:
         int solution_index, const Tensor& input_bf16,
         const Tensor& gate_weight_bf16,
         const Tensor& up_weight_bf16, Tensor& gate_bf16,
-        Tensor& up_bf16, Device device, void* stream)
+        Tensor& up_bf16, Device device, void* stream, bool gate_swish)
         : grouped_(handle.get(), HIPBLAS_OP_N, HIPBLAS_OP_N,
                    HIP_R_16BF, HIP_R_16BF, HIP_R_16BF, HIP_R_16BF,
                    HIPBLAS_COMPUTE_32F) {
@@ -1283,6 +1284,9 @@ public:
         std::vector<std::int64_t> k(2, key.inner);
         std::vector<std::int64_t> batch(2, 1);
         std::vector<hipblaslt_ext::GemmEpilogue> epilogues(2);
+        if (gate_swish) {
+            epilogues[0].setMode(HIPBLASLT_EPILOGUE_SWISH_EXT);
+        }
         std::vector<hipblaslt_ext::GemmInputs> inputs(2);
         const std::vector<const Tensor*> weights{
             &gate_weight_bf16, &up_weight_bf16};
@@ -1389,7 +1393,7 @@ private:
 
 using Bf16GroupedGateUpPlanKey = std::tuple<
     Bf16GroupedGateUpKey, int, std::uintptr_t, std::uintptr_t,
-    std::uintptr_t, std::uintptr_t, std::uintptr_t, std::uintptr_t>;
+    std::uintptr_t, std::uintptr_t, std::uintptr_t, std::uintptr_t, bool>;
 thread_local std::map<Bf16GroupedGateUpPlanKey,
                       std::unique_ptr<Bf16GroupedGateUpPlan>>
     bf16_grouped_gate_up_plans;
@@ -1400,7 +1404,7 @@ Bf16GroupedGateUpPlanKey grouped_gate_up_plan_key(
     const Tensor& gate_weight_bf16,
     const Tensor& up_weight_bf16,
     const Tensor& gate_bf16, const Tensor& up_bf16,
-    void* stream) {
+    void* stream, bool gate_swish) {
     const auto address = [](const void* pointer) {
         return reinterpret_cast<std::uintptr_t>(pointer);
     };
@@ -1408,7 +1412,7 @@ Bf16GroupedGateUpPlanKey grouped_gate_up_plan_key(
         key, device.index(), address(input_bf16.data()),
         address(gate_weight_bf16.data()),
         address(up_weight_bf16.data()), address(gate_bf16.data()),
-        address(up_bf16.data()), address(stream)};
+        address(up_bf16.data()), address(stream), gate_swish};
 }
 
 bool try_bf16_grouped_gate_up(
@@ -1430,10 +1434,11 @@ bool try_bf16_grouped_gate_up(
     if (registered == bf16_grouped_gate_up_registry.end()) return false;
     auto* stream =
         context.native_stream(workspace.input_bf16.device());
+    const auto gate_swish = bf16_grouped_gate_up_swish;
     const auto plan_key = grouped_gate_up_plan_key(
         key, workspace.input_bf16.device(), workspace.input_bf16,
         gate_weight_bf16, up_weight_bf16,
-        workspace.gate, workspace.up, stream);
+        workspace.gate, workspace.up, stream, gate_swish);
     auto found = bf16_grouped_gate_up_plans.find(plan_key);
     if (found == bf16_grouped_gate_up_plans.end()) {
         ++bf16_grouped_gate_up_plan_misses;
@@ -1442,7 +1447,7 @@ bool try_bf16_grouped_gate_up(
         const Bf16GroupedGateUpKernelKey kernel_key{
             key, registered->second,
             workspace.input_bf16.device().index(),
-            reinterpret_cast<std::uintptr_t>(stream)};
+            reinterpret_cast<std::uintptr_t>(stream), gate_swish};
         auto kernel = bf16_grouped_gate_up_kernels.find(kernel_key);
         if (kernel == bf16_grouped_gate_up_kernels.end()) {
             ++bf16_grouped_gate_up_kernel_misses;
@@ -1454,7 +1459,7 @@ bool try_bf16_grouped_gate_up(
                     workspace.input_bf16,
                     gate_weight_bf16, up_weight_bf16,
                     workspace.gate, workspace.up,
-                    workspace.input_bf16.device(), stream);
+                    workspace.input_bf16.device(), stream, gate_swish);
             const auto setup_finish =
                 std::chrono::steady_clock::now();
             bf16_grouped_gate_up_kernel_setup_ms +=
@@ -2468,6 +2473,19 @@ Bf16GroupedGateUpStats bf16_grouped_gate_up_stats() noexcept {
     };
 }
 
+void enable_bf16_grouped_gate_up_swish(bool enabled) noexcept {
+    if (bf16_grouped_gate_up_swish == enabled) return;
+    bf16_grouped_gate_up_swish = enabled;
+#if MICROLLM_HAS_HIPBLASLT
+    bf16_grouped_gate_up_kernels.clear();
+    bf16_grouped_gate_up_plans.clear();
+#endif
+}
+
+bool bf16_grouped_gate_up_swish_enabled() noexcept {
+    return bf16_grouped_gate_up_swish;
+}
+
 void register_fp32_matmul_solution(
     const Fp32MatmulSolutionKey& key, int solution_index) {
 #if MICROLLM_HAS_HIPBLASLT
@@ -3076,7 +3094,11 @@ void bf16_ffn_out_(Tensor& output_fp32, Bf16FfnWorkspace& workspace,
             up_weight_bf16,
             workspace.output_fallback_bf16, context);
     }
-    swiglu_out_(workspace.activated, workspace.gate, workspace.up, context);
+    if (grouped_gate_up && bf16_grouped_gate_up_swish) {
+        multiply_out_(workspace.activated, workspace.gate, workspace.up, context);
+    } else {
+        swiglu_out_(workspace.activated, workspace.gate, workspace.up, context);
+    }
     bf16_matmul_output_out_(output_fp32, workspace.activated,
                             down_weight_bf16,
                             workspace.output_fallback_bf16, context);
