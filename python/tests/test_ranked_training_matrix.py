@@ -43,11 +43,18 @@ def main() -> int:
         "--context", "context exceeds the selected model contract",
         "--world-size", "args.world_size",
         "--rank-batch-rows", "--input-weighting", "token-weighted",
+        "maximum_rank_step_weighted_gradient_scales",
+        "rank_weighted_gradient_scales",
+        "maximum_weighted_gradient_scales_per_rank",
         "profile ranked Model-S cold and steady reducer",
         "admit measured ranked Model-S bucket baseline",
         "admit one-process-per-GPU ready-bucket migration",
     ):
         assert token in text
+    worker = (ROOT / "apps/distributed_rank.cpp").read_text(encoding="utf-8")
+    hook_begin = worker.index("set_gradient_ready_hook(")
+    hook = worker[hook_begin:worker.index("PhaseTimings timings;", hook_begin)]
+    assert hook.index("scale_in_place_") < hook.index("mark_parameter_ready")
     print("ranked training matrix contract: pass")
     return 0
 

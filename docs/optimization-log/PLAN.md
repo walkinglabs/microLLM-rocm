@@ -129,7 +129,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [98](steps/98-ranked-rccl-preflight.md) | complete | RCCL共享内存/debug preflight | 4/4 No-space根因、unknown总需求与2卡非回归 |
 | [99](steps/99-ranked-input-weighting.md) | complete for tiny | uneven local-batch weighting | 默认拒绝与三步weighted CPU等价 |
 | [100](steps/100-ranked-model-s-input-weighting.md) | complete | Model-S uneven-input smoke | `[B1,B2]` 57 Tensor weighted CPU门通过 |
-| [101](steps/101-ranked-weighted-overlap.md) | planned | token-weighted ready overlap | scale-before-Event顺序与三步模型门 |
+| [101](steps/101-ranked-weighted-overlap.md) | implemented; measurement pending | token-weighted ready overlap | scale-before-Event顺序、逐叶计数与Tiny三步门通过 |
 
 ## 为什么按这个顺序
 

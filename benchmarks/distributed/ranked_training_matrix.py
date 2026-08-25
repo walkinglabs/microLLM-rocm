@@ -180,6 +180,7 @@ def main() -> int:
                 "maximum_rank_step_reducer_peak_bytes_after",
                 "maximum_rank_step_overlap_enabled",
                 "maximum_rank_step_overlapped_buckets",
+                "maximum_rank_step_weighted_gradient_scales",
             )
             if any(not isinstance(value.get(field), list) or
                    len(value[field]) != args.steps for field in step_fields):
@@ -200,6 +201,24 @@ def main() -> int:
                     (policy in ("persistent-bucket", "bucket-views",
                                 "overlap-views"))):
                 raise RuntimeError("ranked persistent plan state changed")
+            expected_scales = (parameter_tensors
+                               if args.input_weighting == "token-weighted" and
+                               len(set(args.rank_batch_rows)) > 1 else 0)
+            average_tokens = (
+                sum(args.rank_batch_rows) * args.context / args.world_size)
+            expected_rank_scale_totals = [
+                (parameter_tensors * args.steps
+                 if args.input_weighting == "token-weighted" and
+                 rows * args.context != average_tokens else 0)
+                for rows in args.rank_batch_rows]
+            if (value["maximum_rank_step_weighted_gradient_scales"] !=
+                    [expected_scales] * args.steps or
+                    value.get("rank_weighted_gradient_scales") !=
+                    expected_rank_scale_totals or
+                    value.get("maximum_weighted_gradient_scales_per_rank") !=
+                    expected_scales * args.steps):
+                raise RuntimeError(
+                    "ranked weighted-gradient scale count changed")
             value["process_run"] = process_run
             raw.append(value)
     failure_command = [

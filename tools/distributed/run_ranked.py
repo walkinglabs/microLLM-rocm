@@ -506,7 +506,8 @@ def main() -> int:
                          "step_reducer_current_bytes_after",
                          "step_reducer_peak_bytes_after",
                          "step_overlap_enabled",
-                         "step_overlapped_buckets")
+                         "step_overlapped_buckets",
+                         "step_weighted_gradient_scales")
     if any(not isinstance(rank.get(field), list) or
            len(rank[field]) != args.steps
            for rank in ranks for field in
@@ -544,6 +545,18 @@ def main() -> int:
            sum(rank["step_gradient_views"]) != rank["gradient_views"]
            for rank in ranks):
         raise RuntimeError("rank per-step reducer totals changed")
+    expected_weighted_gradient_scales = [
+        (len(reference["parameter_names"])
+         if args.input_weighting == "token-weighted" and
+         args.rank_batch_rows[rank_index] * args.context != average_tokens
+         else 0)
+        for rank_index in range(args.world_size)]
+    if any(rank.get("weighted_gradient_scales") !=
+           args.steps * expected_weighted_gradient_scales[rank_index] or
+           rank["step_weighted_gradient_scales"] !=
+           [expected_weighted_gradient_scales[rank_index]] * args.steps
+           for rank_index, rank in enumerate(ranks)):
+        raise RuntimeError("rank per-leaf gradient weighting count changed")
     expected_reuse = [0] + [1] * (args.steps - 1)
     if args.reducer in ("persistent-bucket", "bucket-views",
                         "overlap-views"):
@@ -699,6 +712,9 @@ def main() -> int:
         "maximum_rank_step_overlapped_buckets": [
             max(rank["step_overlapped_buckets"][step] for rank in ranks)
             for step in range(args.steps)],
+        "maximum_rank_step_weighted_gradient_scales": [
+            max(rank["step_weighted_gradient_scales"][step]
+                for rank in ranks) for step in range(args.steps)],
         "maximum_engine_current_bytes": max(
             rank["engine_current_bytes"] for rank in ranks),
         "maximum_engine_peak_bytes": max(
@@ -718,6 +734,10 @@ def main() -> int:
         "gradient_views_per_rank": ranks[0]["gradient_views"],
         "overlap_steps_per_rank": ranks[0]["overlap_steps"],
         "overlapped_buckets_per_rank": ranks[0]["overlapped_buckets"],
+        "rank_weighted_gradient_scales": [
+            rank["weighted_gradient_scales"] for rank in ranks],
+        "maximum_weighted_gradient_scales_per_rank": max(
+            rank["weighted_gradient_scales"] for rank in ranks),
         "parameter_files_retained": False,
         "peer_processes_terminated": terminated,
         "collectives_per_rank": expected_collectives,
