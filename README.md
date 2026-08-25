@@ -39,10 +39,11 @@ Start with [Quick start](#quick-start), consume the installed library through th
 <details>
 <summary>Latest optimization checkpoints</summary>
 
-> **Current optimization checkpoint:** Experiment 243 closes only the present
-> inference local-policy search. The two remaining casts occupy 2.694%/1.841% of
-> measured Qwen/DeepSeek Kernel time, so the next inference milestone must use a new
-> custom-kernel or graph-wide architecture. See the [generated saturation map](docs/optimization-log/assets/inference-local-saturation.svg).
+> **Current optimization checkpoint:** Experiment 281 measures the current
+> DeepSeek T2048/B2 cached-decode path. Cached Attention occupies 61.57% of measured
+> Kernel time and GEMM 25.72%; allocator and KV store are not the main bottlenecks.
+> Step 105 now exposes complete score/probability/context checks before timing a new
+> microarchitecture. See the [step contract](docs/optimization-log/steps/105-cached-attention-microarchitecture.md).
 
 > **Current training checkpoint:** the current B1T512 BF16 profile measures
 > 31.327/71.873 ms of Kernel time for Qwen/DeepSeek; GEMM remains 58.56%/63.43%.
@@ -847,13 +848,12 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 544/544 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
-| CPU Debug | 367/367 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
-| ASan/UBSan CPU | 365/365 | host lifetime, external Storage and instrumented-package linking |
-| MI300X/gfx942 HIP label | 187/187 | allocator/arena/Stream/Graph, public rocWMMA online Attention, BF16 RMSNorm/SwiGLU, grouped/exact vendor solutions, FP8 and model paths |
-| PyTorch-enabled CPU build | 319/319 | dispatcher parity, 32-step BF16 optimizer state, full graph/model oracle and all package paths |
-| Multi-GPU/RCCL | 49/49 | ranked overlap/checkpoint ownership/equivalence/failure, package and evidence gates |
-| Registered test files | 125 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| CPU Debug | 372/372 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
+| ASan/UBSan CPU | 370/370 | host lifetime, external Storage and instrumented-package linking |
+| MI300X/gfx942 HIP label | 191/191 | allocator/arena/Stream/Graph, complete cached-Attention stages, BF16/FP8 and model paths |
+| PyTorch-enabled CPU build | 323/323 | dispatcher parity, optimizer state, full operator/graph/model oracle and all package paths |
+| Multi-GPU/RCCL | 53/53 | ranked overlap/checkpoint ownership/uneven-input equivalence/failure and package gates |
+| Registered test files | 127 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
 | CPU source coverage | 78.4% lines / 86.6% functions / 59.1% branches | 8,878/11,329 lines; quiescent handoff and other HIP-only branches remain visible; GCC 13.3 + gcovr 8.3 |
 
