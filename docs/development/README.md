@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-25: Rejected scoped Autograd producer cleanup](2026-08-25-scoped-autograd-gradient-producer-cleanup.md)
 - [2026-08-25: Scoped Autograd producer result](2026-08-25-scoped-autograd-gradient-producer-result.md)
 - [2026-08-25: Scoped Autograd gradient producer](2026-08-25-scoped-autograd-gradient-producer.md)
 - [2026-08-25: Caller-owned weight-gradient producer result](2026-08-25-gradient-producer-out-result.md)

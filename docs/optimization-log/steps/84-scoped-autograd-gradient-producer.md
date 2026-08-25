@@ -21,3 +21,6 @@ Autograd backward-only runner复用已构建graph，覆盖与operator相同五sh
 
 正式结果：5/5 gradient exact且地址保持，但Event 0.976×–1.035×、Wall 0.991×–1.018×，
 0/5过1.05门。scoped dispatch和target状态API撤回；caller-owned operator保留。
+
+清理节点已删除Autograd target API、dispatch/counter、runner和专属测试；普通first assignment恢复
+为唯一leaf路径。

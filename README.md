@@ -729,12 +729,12 @@ Current `main` gates:
 | Gate | Result | Scope |
 |---|---:|---|
 | Full CPU/HIP configuration | 544/544 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
-| CPU Debug | 363/363 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
-| ASan/UBSan CPU | 361/361 | host lifetime, external Storage and instrumented-package linking |
+| CPU Debug | 360/360 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
+| ASan/UBSan CPU | 358/358 | host lifetime, external Storage and instrumented-package linking |
 | MI300X/gfx942 HIP label | 187/187 | allocator/arena/Stream/Graph, public rocWMMA online Attention, BF16 RMSNorm/SwiGLU, grouped/exact vendor solutions, FP8 and model paths |
 | PyTorch-enabled CPU build | 319/319 | dispatcher parity, 32-step BF16 optimizer state, full graph/model oracle and all package paths |
 | Multi-GPU/RCCL | 30/30 | collectives, global-batch equivalence, gradient views, DDP trainer/CLI, package and evidence gates after route cleanup |
-| Registered test files | 120 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| Registered test files | 119 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
 | CPU source coverage | 78.4% lines / 86.6% functions / 59.1% branches | 8,878/11,329 lines; quiescent handoff and other HIP-only branches remain visible; GCC 13.3 + gcovr 8.3 |
 

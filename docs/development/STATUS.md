@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| Current validation configurations | smoke-tested | CPU 363/363, ASan/UBSan 361/361, RCCL label 30/30; new producer CPU/HIP/PyTorch targeted gates pass; prior single-GPU HIP label 188/188 with 1 conditional skip remains applicable | broader compiler/OS/GPU matrix |
+| Current validation configurations | smoke-tested | after scoped-route cleanup CPU 360/360, ASan/UBSan 358/358, RCCL label 30/30; retained producer CPU/HIP/PyTorch targeted gates pass; prior single-GPU HIP label 188/188 with 1 conditional skip remains applicable | broader compiler/OS/GPU matrix |
 | CPU code coverage | smoke-tested | 78.4% lines, 86.6% functions, 59.1% branches over `src/` + `include/`; quiescent handoff and other HIP-only paths remain visible as CPU gaps | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, native cast, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
@@ -74,7 +74,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Single-GPU model matrix | smoke-tested | MI300X tiny/Model-S/Model-M plus official Qwen0.5B/DeepSeek-Distill1.5B train+generate, parameters, time, tokens/s and engine peak bytes | repeated contexts/dtypes and external board-level memory sampling |
 | Python/PyTorch ROCm performance matrix | smoke-tested | official Qwen/DeepSeek train plus inference context 1–2048, batch 1–8, output 1–64, KV allocated/active/waste, continuous slot metrics and token gates | DeepSeek continuous 3-case mismatch, identical residency policy, version matrix and llama.cpp |
 | Optimization experiment journal | implemented | experiments through 261; raw evidence, rejection gates and generated SVGs validated in CTest | Radeon and production data-parallel tracks |
-| Scoped Autograd weight-gradient producer | rejected; removal pending | exact/address stable and allocation -1, but 0/5 shapes pass: Event 0.976×–1.035×, wall 0.991×–1.018× | remove route/target state; retain caller-owned operator |
+| Scoped Autograd weight-gradient producer | rejected and removed | exact/address stable and allocation -1, but 0/5 shapes pass: Event 0.976×–1.035×, wall 0.991×–1.018× | caller-owned operator retained; move to gradient-ready audit |
 | Caller-owned weight-gradient producer | operator admitted | 5/5 exact shapes; allocation 1→0; Event 1.178×–1.873×, wall 1.101×–1.612×; CPU/HIP/PyTorch parity | scoped Autograd first/sole right-leaf gate; no model route yet |
 | Direct bucket-gradient accumulation | rejected and removed | copy 228→0 and communication 2.173× vs views, but forward/backward 0.830× and total 0.991×; exact losses/parameters | retain leaf target only for producer out-kernel gate |
 | RCCL gradient-as-bucket views | smoke-tested, explicit | unpack Storage/copy 114→0; vs transient total 1.367× and live equal; exact loss/parameters; peak +33.3MB | direct Autograd accumulation before any default |

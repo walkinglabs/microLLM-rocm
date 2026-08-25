@@ -14413,8 +14413,8 @@ def validate_data_parallel_direct_gradients(
         errors.append("rejected data-parallel direct gradient model route remains")
     autograd = (REPOSITORY / "include/microllm/autograd/autograd.h").read_text(
         encoding="utf-8")
-    if "set_grad_accumulation_target" not in autograd:
-        errors.append("independent leaf accumulation target foundation is missing")
+    if "grad_accumulation_target" in autograd:
+        errors.append("rejected leaf accumulation target API remains")
     return summary.get("processes", 0), *expected
 
 
@@ -14545,8 +14545,14 @@ def validate_autograd_gradient_producer_matrix(
             check.get("registered_test_files") != 120):
         errors.append("Autograd gradient producer verification changed")
     source = (REPOSITORY / "src/autograd/autograd.cpp").read_text(encoding="utf-8")
-    if "direct_weight_gradient_producer" not in source:
-        errors.append("measured scoped Autograd producer route is missing")
+    autograd_header = (REPOSITORY / "include/microllm/autograd/autograd.h").read_text(
+        encoding="utf-8")
+    ops_header = (REPOSITORY / "include/microllm/ops/ops.h").read_text(
+        encoding="utf-8")
+    if ("direct_weight_gradient_producer" in source or
+            "grad_accumulation_target" in autograd_header or
+            "matmul_weight_gradient_out_" not in ops_header):
+        errors.append("rejected scoped Autograd route cleanup changed")
     return len(raw), *expected
 
 

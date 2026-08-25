@@ -41,17 +41,6 @@ public:
     [[nodiscard]] bool has_grad() const noexcept;
     [[nodiscard]] const Tensor& grad() const;
     void set_grad(Tensor gradient);
-    // Marks an existing contiguous Tensor as the destination for subsequent
-    // backward accumulation. Its current values are preserved, so callers must
-    // initialize them deliberately before backward.
-    void set_grad_accumulation_target(Tensor gradient);
-    // Clears a matching leaf target and marks it eligible for a specialized
-    // first-contribution producer that can safely overwrite zero.
-    void set_zero_grad_accumulation_target(Tensor gradient);
-    // Marks caller Storage as uninitialized and overwrite-only. A matching
-    // specialized producer may fill it completely; any generic first
-    // contribution abandons the target and restores ordinary assignment.
-    void set_overwrite_grad_accumulation_target(Tensor gradient);
     void zero_grad();
     void backward() const;
     void backward(const Tensor& gradient) const;

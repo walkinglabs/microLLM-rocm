@@ -49,12 +49,6 @@ void enable_tied_embedding_sparse_add(bool enabled) noexcept;
 // destination can take this path; shared graph gradients retain allocating add.
 void enable_unique_gradient_inplace_add(bool enabled) noexcept;
 [[nodiscard]] bool unique_gradient_inplace_add_enabled() noexcept;
-// Default-off research route. A rank-2 matmul may write the first right-leaf
-// gradient contribution directly into an explicitly zero/fresh target.
-void enable_direct_weight_gradient_producer(bool enabled) noexcept;
-[[nodiscard]] bool direct_weight_gradient_producer_enabled() noexcept;
-void reset_direct_weight_gradient_producer_calls() noexcept;
-[[nodiscard]] std::uint64_t direct_weight_gradient_producer_calls() noexcept;
 // Research control for same-revision Attention layout A/B. Production default
 // is enabled; disabling it restores the explicit transpose materializations.
 void enable_attention_rope_layout_fusion(bool enabled) noexcept;
