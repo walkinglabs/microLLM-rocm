@@ -17465,6 +17465,102 @@ def validate_cached_attention_materialized_matrix(
             float(summary.get("maximum_event_speedup", 0.0)))
 
 
+def validate_cached_attention_materialized_model(
+        errors: list[str]) -> tuple[int, float, float]:
+    root = (REPOSITORY / "benchmarks/results" /
+            "2026-08-25-cached-attention-materialized-model")
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    pairs = [json.loads(line) for line in (root / "pairs.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    speedups = [1.320677478017454, 1.320338355399628, 1.3207127223642745]
+    leave_one = [1.3205255388819512, 1.3206951001908642, 1.320507916708541]
+    if (summary.get("status") != "pass" or
+            summary.get("record_type") !=
+                "cached_attention_split_model_summary" or
+            summary.get("candidate_policy") != "materialized" or
+            summary.get("context") != 2048 or summary.get("batch") != 2 or
+            summary.get("decode_tokens") != 64 or summary.get("splits") != 0 or
+            summary.get("process_rows") != 6 or summary.get("pair_rows") != 3 or
+            summary.get("maximum_logit_error") != 0.0 or
+            summary.get("maximum_logit_rms_error") != 0.0 or
+            summary.get("all_generated_tokens_equal") is not True or
+            summary.get("median_current_throughput_tokens_per_second") !=
+                133.780849869 or
+            summary.get("median_split_throughput_tokens_per_second") !=
+                176.6359873 or
+            summary.get("median_throughput_speedup") != 1.320677478017454 or
+            summary.get("paired_speedups") != speedups or
+            summary.get("leave_one_pair_out_speedups") != leave_one or
+            summary.get("median_peak_bytes_delta") != 0 or
+            summary.get("median_allocation_calls_delta") != 8960 or
+            summary.get("median_backend_allocation_calls_delta") != 64 or
+            summary.get("accuracy_gate_passed") is not True or
+            summary.get("performance_gate_passed") is not True):
+        errors.append("materialized-score model summary changed")
+    if (len(raw) != 6 or
+            any(row.get("candidate_policy") != "materialized" or
+                row.get("status") != "pass" or
+                row.get("complete_logit_elements") != 303872 or
+                row.get("engine_peak_bytes") != 5231076352 or
+                row.get("kv_cache_actual_bytes") != 121110528
+                for row in raw)):
+        errors.append("materialized-score model raw evidence changed")
+    if (len(pairs) != 3 or
+            [row.get("throughput_speedup") for row in pairs] != speedups or
+            any(row.get("status") != "pass" or
+                row.get("candidate_policy") != "materialized" or
+                row.get("maximum_logit_error") != 0.0 or
+                row.get("logit_rms_error") != 0.0 or
+                row.get("generated_tokens_equal") is not True or
+                row.get("peak_bytes_delta") != 0 or
+                row.get("allocation_calls_delta") != 8960 or
+                row.get("backend_allocation_calls_delta") != 64
+                for row in pairs)):
+        errors.append("materialized-score model pairs changed")
+    if (analysis.get("record_type") !=
+            "cached_attention_materialized_model_analysis" or
+            analysis.get("median_throughput_speedup") != 1.320677478017454 or
+            analysis.get("materialized_over_historical_pytorch_throughput") !=
+                1.0793978478106223 or
+            analysis.get("maximum_logit_error") != 0.0 or
+            analysis.get("accuracy_gate_passed") is not True or
+            analysis.get("performance_gate_passed") is not True or
+            analysis.get("explicit_model_route_retained") is not True or
+            analysis.get("automatic_default_admitted") is not False):
+        errors.append("materialized-score model analysis changed")
+    if (check.get("measurement_commit") !=
+            "b62d302b3ae7af563eea1d851ff227e5439d1e25" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("candidate_policy") != "materialized" or
+            check.get("median_throughput_speedup") != 1.320677478017454 or
+            check.get("maximum_logit_error") != 0.0 or
+            check.get("accuracy_gate_passed") is not True or
+            check.get("performance_gate_passed") is not True or
+            check.get("explicit_model_route_retained") is not True or
+            check.get("automatic_default_claim") is not False or
+            check.get("cpu_label") != {"passed": 374, "total": 374} or
+            check.get("sanitizer_label") != {"passed": 372, "total": 372} or
+            check.get("pytorch_enabled_cpu") !=
+                {"passed": 377, "total": 377} or
+            check.get("hip_label") != {"passed": 192, "total": 192} or
+            check.get("registered_test_files") != 129):
+        errors.append("materialized-score model verification changed")
+    for name in ("README.md", "raw.jsonl", "pairs.jsonl", "summary.json",
+                 "analysis.json", "verification.json", "comparison.svg"):
+        if not (root / name).is_file():
+            errors.append(f"materialized-score model evidence missing: {name}")
+    try:
+        ET.parse(root / "comparison.svg")
+    except ET.ParseError as error:
+        errors.append(f"invalid materialized-score model SVG: {error}")
+    return (len(raw), float(summary.get("median_throughput_speedup", 0.0)),
+            float(analysis.get("materialized_over_historical_pytorch_throughput", 0.0)))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -18321,6 +18417,8 @@ def main() -> int:
         validate_cached_attention_split_model(errors)
     materialized_rows, materialized_minimum, materialized_maximum = \
         validate_cached_attention_materialized_matrix(errors)
+    materialized_model_rows, materialized_model_speedup, \
+        materialized_model_pytorch = validate_cached_attention_materialized_model(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -18911,6 +19009,9 @@ def main() -> int:
           f"{cached_split_model_rms:.4f} "
           f"materialized_scores={materialized_rows}/"
           f"{materialized_minimum:.3f}/{materialized_maximum:.3f} "
+          f"materialized_model={materialized_model_rows}/"
+          f"{materialized_model_speedup:.3f}/"
+          f"{materialized_model_pytorch:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

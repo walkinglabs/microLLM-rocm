@@ -1,6 +1,6 @@
 # Step 105 — Cached Attention score/context microarchitecture
 
-Status: materialized-score explicit model route implemented; official three-pair measurement pending
+Status: materialized-score DeepSeek T2048 model passes bitwise at 1.3207x; broader default gate pending
 
 Experiment 281证明当前DeepSeek T2048/B2/N64的cached Attention占Kernel时间61.57%，单次约
 361.2us；GEMM第二，KV store和allocator不是主因。

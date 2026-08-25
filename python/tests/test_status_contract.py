@@ -17,7 +17,7 @@ def main() -> int:
         "PyTorch-enabled CPU 377/377",
         "single-GPU HIP label 192/192",
         "current T2048/B2/N64 is 0.8158x",
-        "experiments through 285",
+        "experiments through 286",
         "Ranked per-leaf weighted overlap",
         "whole step 0.9594×",
         "Ranked ready-bucket weighting",
@@ -29,6 +29,7 @@ def main() -> int:
         "eight winners Event 2.381×–8.096×",
         "complete logits Max/RMS 0.05691/0.01370 fail",
         "Event 1.298×–2.617×/wall 1.249×–2.543×",
+        "133.78→176.64 tok/s =1.3207×",
         "DataParallel tests 11/11",
         "total requirement remains unknown",
     ):
@@ -36,7 +37,7 @@ def main() -> int:
     for stale in (
         "RCCL label 49/49",
         "PyTorch-enabled build 323/323",
-        "experiments through 284",
+        "experiments through 285",
         "scale-before-ready weighted overlap ordering",
         "Model-S sync smoke; weighted ready-overlap ordering",
         "environment with >87MB /dev/shm",

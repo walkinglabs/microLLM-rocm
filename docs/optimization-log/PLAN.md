@@ -133,7 +133,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [102](steps/102-ranked-bucket-weighting.md) | complete; explicit keep | ready-bucket weighting | T128 scale 57→3，steady step 1.0661x，非一般默认 |
 | [103](steps/103-ranked-gather-scale.md) | complete; performance rejected | persistent gather-scale | 57 pack→0但仅1.0140x且慢于Step 102，局部线关闭 |
 | [104](steps/104-deepseek-cached-score-oracle.md) | complete | T2048 score oracle + current profile | current Attention 61.57%，GEMM 25.72%，allocator非热点 |
-| [105](steps/105-cached-attention-microarchitecture.md) | in progress | exact-order score物化八格位级相同、1.298x–2.617x | DeepSeek T2048三对模型门 |
+| [105](steps/105-cached-attention-microarchitecture.md) | in progress | DeepSeek T2048模型位级相同、1.3207x | Qwen/DeepSeek T512/T2048默认边界矩阵 |
 
 ## 为什么按这个顺序
 

@@ -39,11 +39,11 @@ Start with [Quick start](#quick-start), consume the installed library through th
 <details>
 <summary>Latest optimization checkpoints</summary>
 
-> **Current optimization checkpoint:** Experiment 285 preserves the original reduction
-> order after parallel score materialization. All eight DeepSeek operator shapes are
-> bitwise-equal and improve Event time 1.298×–2.617×. The candidate is admitted only to
-> an official-model A/B; no default speedup is claimed yet. See the
-> [measured operator gate](docs/optimization-log/experiments/285-materialized-score-attention.md).
+> **Current optimization checkpoint:** Experiment 286 makes DeepSeek T2048/B2/N64
+> decode 1.3207× faster with bitwise-equal full logits/tokens and unchanged peak/KV.
+> It reaches 1.079× of the pinned PyTorch throughput reference. The route remains
+> explicit until a broader Qwen/DeepSeek shape matrix establishes its default boundary.
+> See the [measured model gate](docs/optimization-log/experiments/286-materialized-score-model.md).
 
 > **Current training checkpoint:** the current B1T512 BF16 profile measures
 > 31.327/71.873 ms of Kernel time for Qwen/DeepSeek; GEMM remains 58.56%/63.43%.

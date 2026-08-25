@@ -4496,3 +4496,15 @@ T512/T2048、B1/B2、FP32/BF16的24进程全部位级相同。Event快1.298x–2
 下一步沿用三对完整logits与N64协议。
 
 ![Materialized-score comparison](../../benchmarks/results/2026-08-25-cached-attention-materialized-matrix/comparison.svg)
+
+## 303. Experiment 286：换回原归约顺序，DeepSeek既快又位级相同
+
+同一T2048/B2/BF16/N64三对模型门中，current为133.78 tok/s，materialized为176.64 tok/s，
+中位1.32068x，三组leave-one都约1.3205x。303,872个完整cached logits与64 token全部位级相同，
+peak和KV bytes不变。
+
+相对固定PyTorch 163.64 tok/s参考是1.0794x。代价是+8,960逻辑allocation和+64冷backend
+allocation，后者与64个递增prefix score尺寸一致。显式路径保留；在Qwen/DeepSeek、T512/T2048、
+B1/B2扩大模型门之前，不写成一般默认。
+
+![Materialized model comparison](../../benchmarks/results/2026-08-25-cached-attention-materialized-model/comparison.svg)
