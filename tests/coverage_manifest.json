@@ -390,6 +390,7 @@
     "python/tests/test_rocwmma_online_model_matrix.py",
     "python/tests/test_profile_current_inference.py",
     "python/tests/test_profile_current_training.py",
+    "python/tests/test_profile_current_cached_decode.py",
     "python/tests/test_bf16_weight_gradient_matrix.py",
     "python/tests/test_training_trajectory_evidence.py",
     "python/tests/test_bf16_weight_gradient_workspace_matrix.py",

@@ -20,6 +20,8 @@ def category(name: str) -> str:
         ("add_typed", "gradient/elementwise add"),
         ("cross_entropy", "cross entropy"),
         ("bias_gradient", "bias gradient"),
+        ("cached_attention", "cached Attention"),
+        ("kv_cache_store", "KV cache store"),
         ("strided_copy", "strided materialization"),
         ("cast_kernel", "FP32/BF16 cast"),
         ("softmax", "softmax"),
@@ -46,7 +48,8 @@ def options() -> argparse.Namespace:
     parser.add_argument(
         "--track", default="training_kernel_phase_delta",
         choices=("training_kernel_phase_delta",
-                 "inference_prefill_kernel_phase_delta"))
+                 "inference_prefill_kernel_phase_delta",
+                 "inference_cached_decode_kernel_phase_delta"))
     result = parser.parse_args()
     if result.many_step_count <= 1:
         parser.error("many-step-count must exceed one")

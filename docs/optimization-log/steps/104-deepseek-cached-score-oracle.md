@@ -62,4 +62,5 @@ T2048 profile。
 
 当前跨框架基线已完成：microLLM/PyTorch为133.50/163.64 tok/s，即0.8158x；64个token精确，
 峰值5.23/6.38GB，KV均为121,110,528 bytes且100%利用。旧0.868x被当前数据取代。rocprof
-归因仍待独立节点，尚未选择优化Kernel。
+runner已加入1-step/3-step phase delta，并保存Kernel/API/copy/allocation统计；正式归因仍待从
+干净runner提交执行，尚未选择优化Kernel。

@@ -12,8 +12,8 @@ def main() -> int:
     text = STATUS.read_text(encoding="utf-8")
     for token in (
         "RCCL label 53/53",
-        "CPU 371/371",
-        "ASan/UBSan 369/369",
+        "CPU 372/372",
+        "ASan/UBSan 370/370",
         "single-GPU HIP label 191/191",
         "current T2048/B2/N64 is 0.8158x",
         "experiments through 280",

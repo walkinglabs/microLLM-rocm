@@ -479,6 +479,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.CurrentInferenceProfileContract PROPERTIES
         LABELS "cpu;benchmark;model;inference;profile;rocprof;schema")
     add_test(
+        NAME Benchmark.CurrentCachedDecodeProfileContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_profile_current_cached_decode.py
+    )
+    set_tests_properties(Benchmark.CurrentCachedDecodeProfileContract PROPERTIES
+        LABELS "cpu;benchmark;model;inference;profile;cache;rocprof;schema")
+    add_test(
         NAME Benchmark.CurrentTrainingProfileContract
         COMMAND ${Python3_EXECUTABLE}
                 ${PROJECT_SOURCE_DIR}/python/tests/test_profile_current_training.py
