@@ -1308,6 +1308,17 @@ TEST(CpuOpsTest, RmsNormMatchesManualCalculation) {
     const auto weight = Tensor::from_vector({1, 2}, {2});
     const auto denominator = std::sqrt(12.5F + 1.0e-5F);
     expect_near(rms_norm(input, weight).to_vector(), {3.0F / denominator, 8.0F / denominator});
+    Tensor fp32_output(input.shape());
+    rms_norm_out_(fp32_output, input, weight);
+    EXPECT_EQ(fp32_output.to_vector(), rms_norm(input, weight).to_vector());
+    Tensor bf16_output(input.shape(), DType::BFloat16);
+    rms_norm_bf16_out_(bf16_output, input, weight);
+    EXPECT_EQ(bf16_output.to_vector(),
+              rms_norm(input, weight).cast(DType::BFloat16).to_vector());
+    Tensor wrong({1, 2});
+    EXPECT_THROW(rms_norm_bf16_out_(wrong, input, weight), std::invalid_argument);
+    auto alias = input;
+    EXPECT_THROW(rms_norm_bf16_out_(alias, input, weight), std::invalid_argument);
 }
 
 TEST(CpuOpsTest, SiluAndSwiGluMatchDefinitions) {

@@ -69,6 +69,10 @@ if(MICROLLM_HAS_HIP)
                    micro/benchmark_bf16_repeat.cpp)
     target_link_libraries(microllm_bench_bf16_repeat PRIVATE
         microllm::ops microllm::runtime hip::host)
+    add_executable(microllm_bench_bf16_rms_norm
+                   micro/benchmark_bf16_rms_norm.cpp)
+    target_link_libraries(microllm_bench_bf16_rms_norm PRIVATE
+        microllm::ops microllm::runtime hip::host)
     add_executable(microllm_bench_online_attention_operator
                    micro/benchmark_online_attention_operator.cpp)
     target_link_libraries(microllm_bench_online_attention_operator PRIVATE
@@ -364,6 +368,11 @@ if(BUILD_TESTING)
                          --warmup 1 --repetitions 2)
         set_tests_properties(Benchmark.HipBf16SwiGLUVectorized
                              PROPERTIES LABELS "hip;benchmark;ffn;bf16;correctness;smoke")
+        add_test(NAME Benchmark.HipBf16RmsNormOutput
+                 COMMAND microllm_bench_bf16_rms_norm --model qwen --rows 3
+                         --warmup 1 --repetitions 2)
+        set_tests_properties(Benchmark.HipBf16RmsNormOutput
+                             PROPERTIES LABELS "hip;benchmark;norm;bf16;correctness;smoke")
         add_test(NAME Benchmark.HipAdamWVectorized
                  COMMAND microllm_bench_adamw --elements 4099 --mirror true
                          --implementation vectorized --warmup 1 --repetitions 2)

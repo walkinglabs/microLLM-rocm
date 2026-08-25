@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "raw_processes": 6,
+  "models": 2,
+  "qwen_event_speedup": 1.86626228861,
+  "deepseek_event_speedup": 2.07039594158,
+  "qwen_wall_speedup": 1.39855072464,
+  "deepseek_wall_speedup": 1.51088201604,
+  "complete_output_equal": true,
+  "timed_payload_transfers": 0,
+  "operator_gate_passed": true,
+  "model_route_enabled": false
+}

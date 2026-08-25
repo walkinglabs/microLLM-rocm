@@ -492,3 +492,5 @@ the next gate. Records are append-only except for factual corrections.
   beginner-friendly operator-versus-model speedup counterexample.
 - [2026-08-25-bf16-grouped-swish-discard.md](2026-08-25-bf16-grouped-swish-discard.md):
   beginner-friendly grouped epilogue capability and full-model rejection.
+- [2026-08-25-bf16-rms-norm-output.md](2026-08-25-bf16-rms-norm-output.md):
+  beginner-friendly direct-BF16 final store and corrected GPU reference.

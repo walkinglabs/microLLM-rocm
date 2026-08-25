@@ -63,6 +63,8 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   reaches 1.249x/1.190x but the two full models reach only 1.007x/1.001x;
 - [x] test hipBLASLt gate Swish epilogue with pointer-stable grouped plans; reject
   the model route at 1.000x/0.991x and close the local FFN activation track;
+- [x] add bit-identical direct BF16 RMSNorm output; operator Event improves
+  1.866x/2.070x and is admitted to a separate FFN model gate;
 - [x] populate B1 KV cache from one full-sequence prefill instead of token replay;
 - [x] support batched cached decode with batch-aware KV Storage;
 - [x] add opt-in BF16 KV Storage with FP32 accumulation, complete-logit gates and a retained

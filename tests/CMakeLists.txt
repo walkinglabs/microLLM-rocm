@@ -332,6 +332,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.Bf16SwiGLUModelsContract PROPERTIES
         LABELS "cpu;benchmark;model;inference;ffn;bf16;schema")
     add_test(
+        NAME Benchmark.Bf16RmsNormOutputMatrixContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_bf16_rms_norm_output_matrix.py
+    )
+    set_tests_properties(Benchmark.Bf16RmsNormOutputMatrixContract PROPERTIES
+        LABELS "cpu;benchmark;model;inference;norm;bf16;schema")
+    add_test(
         NAME Benchmark.Bf16GroupedQkvMatrixContract
         COMMAND ${Python3_EXECUTABLE}
                 ${PROJECT_SOURCE_DIR}/python/tests/test_bf16_grouped_qkv_matrix.py

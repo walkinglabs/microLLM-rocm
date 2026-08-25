@@ -13225,6 +13225,55 @@ def validate_bf16_grouped_swish(
     return operator.get("raw_processes", 0), model.get("raw_processes", 0), *expected
 
 
+def validate_bf16_rms_norm_output(
+        errors: list[str]) -> tuple[int, float, float, float, float]:
+    root = REPOSITORY / (
+        "benchmarks/results/2026-08-25-bf16-rms-norm-output-operator")
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((root / "verification.json").read_text(
+        encoding="utf-8"))
+    rows = {row["model"]: row for row in summary.get("comparisons", [])}
+    expected = (1.86626228861, 2.07039594158,
+                1.39855072464, 1.51088201604)
+    if (summary.get("schema_version") != 1 or summary.get("status") != "pass" or
+            summary.get("record_type") !=
+                "bf16_rms_norm_output_matrix_summary" or
+            summary.get("raw_processes") != 6 or
+            summary.get("operator_gate_passed") is not True or
+            set(rows) != {"qwen", "deepseek"} or
+            any(row.get("complete_output_equal") is not True or
+                row.get("host_to_device_calls") != 0 or
+                row.get("device_to_host_calls") != 0
+                for row in rows.values()) or
+            abs(float(rows.get("qwen", {}).get("event_speedup_median", 0.0)) -
+                expected[0]) > 1.0e-12 or
+            abs(float(rows.get("deepseek", {}).get("event_speedup_median", 0.0)) -
+                expected[1]) > 1.0e-12 or
+            abs(float(rows.get("qwen", {}).get("wall_speedup_median", 0.0)) -
+                expected[2]) > 1.0e-12 or
+            abs(float(rows.get("deepseek", {}).get("wall_speedup_median", 0.0)) -
+                expected[3]) > 1.0e-12):
+        errors.append("BF16 RMSNorm output evidence changed")
+    if (verification.get("operator_gate_passed") is not True or
+            verification.get("complete_output_equal") is not True or
+            verification.get("timed_payload_transfers") != 0 or
+            verification.get("model_route_enabled") is not False):
+        errors.append("BF16 RMSNorm output verification changed")
+    sources = (
+        ("rms_norm_bf16_out_", REPOSITORY / "include/microllm/ops/ops.h"),
+        ("rms_norm_bf16_output_kernel", REPOSITORY /
+         "src/ops/hip/basic_kernels.hip"),
+        ("bf16_rms_norm_output_probe", REPOSITORY /
+         "benchmarks/micro/benchmark_bf16_rms_norm.cpp"),
+        ("operator_gate_passed", REPOSITORY /
+         "python/tests/test_bf16_rms_norm_output_matrix.py"),
+    )
+    if any(token not in path.read_text(encoding="utf-8")
+           for token, path in sources):
+        errors.append("BF16 RMSNorm output source or tests changed")
+    return summary.get("raw_processes", 0), *expected
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -13438,7 +13487,8 @@ def validate_assets(errors: list[str]) -> None:
                  "current-inference-profile.svg",
                  "fp32-attention-t1024-discard.svg",
                  "bf16-swiglu-vector-discard.svg",
-                 "bf16-grouped-swish-discard.svg"):
+                 "bf16-grouped-swish-discard.svg",
+                 "bf16-rms-norm-output.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -13889,6 +13939,9 @@ def main() -> int:
         grouped_swish_qwen_operator, grouped_swish_deep_operator, \
         grouped_swish_qwen_model, grouped_swish_deep_model = \
         validate_bf16_grouped_swish(errors)
+    bf16_norm_rows, bf16_norm_qwen_event, bf16_norm_deep_event, \
+        bf16_norm_qwen_wall, bf16_norm_deep_wall = \
+        validate_bf16_rms_norm_output(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -14296,6 +14349,9 @@ def main() -> int:
           f"{grouped_swish_model_rows}/{grouped_swish_qwen_operator:.3f}/"
           f"{grouped_swish_deep_operator:.3f}/{grouped_swish_qwen_model:.3f}/"
           f"{grouped_swish_deep_model:.3f} "
+          f"bf16_norm={bf16_norm_rows}/{bf16_norm_qwen_event:.3f}/"
+          f"{bf16_norm_deep_event:.3f}/{bf16_norm_qwen_wall:.3f}/"
+          f"{bf16_norm_deep_wall:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

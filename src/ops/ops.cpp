@@ -1704,6 +1704,96 @@ Tensor rms_norm(const Tensor& input, const Tensor& weight, float epsilon,
     return from_values(std::move(output), input.shape(), input.dtype());
 }
 
+void rms_norm_out_(Tensor& output_fp32, const Tensor& input_fp32,
+                   const Tensor& weight_fp32, float epsilon,
+                   [[maybe_unused]] const OpContext& context) {
+    require_float(input_fp32, "input");
+    require_float(weight_fp32, "weight");
+    require_float(output_fp32, "output");
+    require_same_device(input_fp32, weight_fp32);
+    require_same_device(input_fp32, output_fp32);
+    require_contiguous(input_fp32, "input");
+    require_contiguous(weight_fp32, "weight");
+    require_contiguous(output_fp32, "output");
+    if (input_fp32.ndim() == 0 || weight_fp32.ndim() != 1 ||
+        weight_fp32.shape()[0] != input_fp32.shape().back() ||
+        output_fp32.shape() != input_fp32.shape() || epsilon <= 0.0F ||
+        !std::isfinite(epsilon)) {
+        throw std::invalid_argument("rms_norm_out shape or epsilon is invalid");
+    }
+    if (output_fp32.storage().data() == input_fp32.storage().data() ||
+        output_fp32.storage().data() == weight_fp32.storage().data()) {
+        throw std::invalid_argument(
+            "rms_norm_out output must not alias input Storage");
+    }
+    if (input_fp32.device().is_hip()) {
+#if MICROLLM_HAS_HIP
+        const auto width = input_fp32.shape().back();
+        hip::launch_rms_norm(
+            static_cast<const float*>(input_fp32.data()),
+            static_cast<const float*>(weight_fp32.data()),
+            static_cast<float*>(output_fp32.data()),
+            input_fp32.numel() / width, width, epsilon,
+            context.native_stream(input_fp32.device()));
+        return;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    const auto reference = rms_norm(input_fp32, weight_fp32, epsilon);
+    runtime::copy_bytes(
+        output_fp32.data(), output_fp32.device(), reference.data(),
+        reference.device(), static_cast<std::size_t>(output_fp32.numel()) *
+                                dtype_size(output_fp32.dtype()));
+}
+
+void rms_norm_bf16_out_(Tensor& output_bf16, const Tensor& input_fp32,
+                        const Tensor& weight_fp32, float epsilon,
+                        [[maybe_unused]] const OpContext& context) {
+    require_float(input_fp32, "input");
+    require_float(weight_fp32, "weight");
+    if (!output_bf16.defined() || output_bf16.dtype() != DType::BFloat16) {
+        throw std::invalid_argument(
+            "rms_norm_bf16_out output must be bfloat16");
+    }
+    require_same_device(input_fp32, weight_fp32);
+    require_same_device(input_fp32, output_bf16);
+    require_contiguous(input_fp32, "input");
+    require_contiguous(weight_fp32, "weight");
+    require_contiguous(output_bf16, "output");
+    if (input_fp32.ndim() == 0 || weight_fp32.ndim() != 1 ||
+        weight_fp32.shape()[0] != input_fp32.shape().back() ||
+        output_bf16.shape() != input_fp32.shape() || epsilon <= 0.0F ||
+        !std::isfinite(epsilon)) {
+        throw std::invalid_argument(
+            "rms_norm_bf16_out shape or epsilon is invalid");
+    }
+    if (output_bf16.storage().data() == input_fp32.storage().data() ||
+        output_bf16.storage().data() == weight_fp32.storage().data()) {
+        throw std::invalid_argument(
+            "rms_norm_bf16_out output must not alias input Storage");
+    }
+    if (input_fp32.device().is_hip()) {
+#if MICROLLM_HAS_HIP
+        const auto width = input_fp32.shape().back();
+        hip::launch_rms_norm_bf16_output(
+            static_cast<const float*>(input_fp32.data()),
+            static_cast<const float*>(weight_fp32.data()),
+            output_bf16.data(), input_fp32.numel() / width, width, epsilon,
+            context.native_stream(input_fp32.device()));
+        return;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    const auto reference = rms_norm(input_fp32, weight_fp32, epsilon).cast(
+        DType::BFloat16);
+    runtime::copy_bytes(
+        output_bf16.data(), output_bf16.device(), reference.data(),
+        reference.device(), static_cast<std::size_t>(output_bf16.numel()) *
+                                dtype_size(output_bf16.dtype()));
+}
+
 TensorPair add_rms_norm(const Tensor& left, const Tensor& right,
                         const Tensor& weight, float epsilon,
                         [[maybe_unused]] const OpContext& context) {

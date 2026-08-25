@@ -163,6 +163,10 @@ void launch_softmax(const float* input, float* output, std::int64_t rows,
 void launch_rms_norm(const float* input, const float* weight, float* output,
                      std::int64_t rows, std::int64_t width, float epsilon,
                      void* stream = nullptr);
+void launch_rms_norm_bf16_output(
+    const float* input, const float* weight, void* output_bf16,
+    std::int64_t rows, std::int64_t width, float epsilon,
+    void* stream = nullptr);
 void launch_add_rms_norm(const float* left, const float* right, const float* weight,
                          float* sum, float* normalized, std::int64_t rows,
                          std::int64_t width, float epsilon, void* stream = nullptr);

@@ -1,0 +1,32 @@
+{
+  "comparisons": [
+    {
+      "complete_output_equal": true,
+      "device_to_host_calls": 0,
+      "event_speedup_median": 1.86626228861,
+      "host_to_device_calls": 0,
+      "model": "qwen",
+      "rows": 1024,
+      "runs": 3,
+      "wall_speedup_median": 1.39855072464,
+      "width": 896
+    },
+    {
+      "complete_output_equal": true,
+      "device_to_host_calls": 0,
+      "event_speedup_median": 2.07039594158,
+      "host_to_device_calls": 0,
+      "model": "deepseek",
+      "rows": 1024,
+      "runs": 3,
+      "wall_speedup_median": 1.51088201604,
+      "width": 1536
+    }
+  ],
+  "decision": "admit FFN model route",
+  "operator_gate_passed": true,
+  "raw_processes": 6,
+  "record_type": "bf16_rms_norm_output_matrix_summary",
+  "schema_version": 1,
+  "status": "pass"
+}

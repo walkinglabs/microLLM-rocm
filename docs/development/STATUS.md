@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| CPU configuration | smoke-tested | CPU 344/344; full CPU/HIP 542/542 with 3 conditional skips; HIP label 186/186; ASan/UBSan 342/342 | broader compiler/OS CI matrix |
+| CPU configuration | smoke-tested | CPU 345/345; full CPU/HIP 544/544 with 3 conditional skips; HIP label 187/187; ASan/UBSan 343/343 | broader compiler/OS CI matrix |
 | CPU code coverage | smoke-tested | 78.4% lines, 86.6% functions, 59.1% branches over `src/` + `include/`; quiescent handoff and other HIP-only paths remain visible as CPU gaps | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, native cast, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
@@ -60,7 +60,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Serving scheduler | smoke-tested | slot-ratio matrix 48/48 token-exact; matched 6:2 short and 2:6 long retain 85%–87% throughput while reducing KV 56%/19% | safe dynamic ratio transition and allocator cost; uniform remains default, overflow opt-in |
 | Stable model failure | smoke-tested | low-loss cycle breaks beyond training context | rebuttal experiments |
 | PyTorch Custom Ops | smoke-tested on CPU | Torch 2.13 add/multiply via dispatcher | build/run with PyTorch ROCm |
-| PyTorch correctness oracle | smoke-tested | PyTorch-enabled build 318/318; Tensor/graph/model/optimizer parity plus package and schema gates | broader direct PyTorch ROCm operator matrix |
+| PyTorch correctness oracle | smoke-tested | PyTorch-enabled build 319/319; Tensor/graph/model/optimizer parity plus package and schema gates | broader direct PyTorch ROCm operator matrix |
 | PyTorch ROCm environment | smoke-tested | Torch 2.10.0+rocm7.13 and Transformers 5.8.1 run official Qwen/DeepSeek BF16 training on MI300X with native device discovery | additional Torch/ROCm versions and Radeon |
 | C ABI v1 | smoke-tested | pure C CPU/HIP create/copy/ops/error client plus build-tree and relocated-install C-only Config consumers | zero-copy external views |
 | Python ctypes API | smoke-tested | CPU/HIP Tensor/ops/error unittest | packaging/broader ops |
@@ -73,11 +73,12 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | End-to-end benchmark | smoke-tested | matched Python/PyTorch ROCm official training plus phase-separated prefill and one-forward-per-token steady-decode JSONL | serving concurrency, board-level memory and llama.cpp |
 | Single-GPU model matrix | smoke-tested | MI300X tiny/Model-S/Model-M plus official Qwen0.5B/DeepSeek-Distill1.5B train+generate, parameters, time, tokens/s and engine peak bytes | repeated contexts/dtypes and external board-level memory sampling |
 | Python/PyTorch ROCm performance matrix | smoke-tested | official Qwen/DeepSeek train plus inference context 1–2048, batch 1–8, output 1–64, KV allocated/active/waste, continuous slot metrics and token gates | DeepSeek continuous 3-case mismatch, identical residency policy, version matrix and llama.cpp |
-| Optimization experiment journal | implemented | experiments through 235; raw evidence, rejection gates and generated SVGs validated in CTest | Radeon and production data-parallel tracks |
+| Optimization experiment journal | implemented | experiments through 236; raw evidence, rejection gates and generated SVGs validated in CTest | Radeon and production data-parallel tracks |
 | Current B1T1024 inference profile | smoke-tested | four rocprof processes, `(6−1)/5`; GEMM 59.7%/66.8%, softmax 14.8%/9.2%, default online calls zero | exact Attention solution track measured and closed; select a new profile-backed target |
 | Exact T1024 Attention solutions | implemented, rejected | 12 operator processes find four 1.060×–1.538× local winners; PV has 175 descriptor misses/0 dispatch; 12 model processes reject Qwen for logits and DeepSeek for only 1.002× | a future interleaved-BTHD PV tuner must screen the real descriptor; no default index |
 | BF16 vectorized SwiGLU | implemented, explicit only | caller-output API and tail-safe four-value kernel are bit-identical; operator 1.249×/1.190×, but full models only 1.007×/1.001× | Auto remains scalar; future work must cross the grouped-GEMM epilogue boundary |
 | Grouped gate Swish epilogue | implemented, rejected | 64/64 candidates pass per T1024 process and pointer-stable operator is 1.097×/1.069×; full models are 1.000×/0.991× with Max logits 0.0973/0.0362 | explicit switch remains default-off; local FFN activation track closed |
+| Direct BF16 RMSNorm output | smoke-tested, operator only | caller-output FP32 baseline plus cast versus one fused final store; bit-identical, Event 1.866×/2.070× and wall 1.399×/1.511× | Transformer route remains disabled pending full-model gate |
 | rocWMMA QK tile | smoke-tested | gfx942 rocWMMA 2.2.0, 48 complete-output processes over T16–2048/D64–128; T512 is 1.654×–1.784× hipBLASLt while T2048 D128 is 0.688× | standalone tile track handed to the separate online prototype; no direct model route |
 | rocWMMA online Attention prototype | smoke-tested | 42 complete-output processes, real Qwen/DeepSeek GQA grids T32–2048, 1.260×–4.041× current operator and zero global score bytes | handed to the public operator; benchmark prototype has no direct model route |
 | Public online Attention operator | smoke-tested | BF16→FP32 BTHD API, gfx942 batch-native route, exact counters, PyTorch/CPU/HIP; 10 native cases 1.534×–2.456× and 4 exact fallback counterexamples | other-GPU validation; full-model route was measured and rejected |

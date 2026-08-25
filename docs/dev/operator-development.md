@@ -62,6 +62,10 @@ The grouped gate/up Swish switch is also explicit and default-off. Its plan and 
 the epilogue bit, and the CLI rejects it without an exact grouped algorithm. `multiply_out_` keeps
 the remaining gate/up product in caller Storage. Operator support is not a model claim: the MI300X
 T1024 model gate regressed DeepSeek and changed complete logits, so this route must not become Auto.
+For direct low-precision normalization output, compare `rms_norm_bf16_out_` against the current GPU
+FP32 RMSNorm followed by the GPU cast, not against a differently ordered CPU reduction. Both paths
+must use caller Storage so allocator work cannot masquerade as a Kernel result. Operator admission
+does not authorize the Transformer route; the latter needs a separate complete-logit model gate.
 BF16 GroupedQKV has an even stricter lifetime rule: `GroupedGemm::initialize` binds every pointer.
 Use it only through `bf16_qkv_projection_out_` with caller-owned stable buffers. The exact cache key
 must include all three weights, BF16 intermediates, FP32 outputs, device and Stream. Timing only

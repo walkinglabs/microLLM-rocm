@@ -1810,6 +1810,11 @@ TEST(HipRmsNormTest, BlockParallelForwardBackwardCoverModelWidthsWithoutHostTran
             const auto device_gradient = gradient.to(gpu);
             runtime::reset_transfer_stats();
             const auto actual = rms_norm(device_input, device_weight, epsilon);
+            Tensor fp32_output({rows, width}, DType::Float32, gpu);
+            rms_norm_out_(fp32_output, device_input, device_weight, epsilon);
+            Tensor bf16_output({rows, width}, DType::BFloat16, gpu);
+            rms_norm_bf16_out_(
+                bf16_output, device_input, device_weight, epsilon);
             const auto actual_backward =
                 rms_norm_backward(device_input, device_weight, device_gradient, epsilon);
             runtime::synchronize(gpu);
@@ -1817,6 +1822,10 @@ TEST(HipRmsNormTest, BlockParallelForwardBackwardCoverModelWidthsWithoutHostTran
             EXPECT_EQ(transfers.host_to_device_calls, 0U);
             EXPECT_EQ(transfers.device_to_host_calls, 0U);
             expect_near(actual.to_vector(), expected, 4.0e-4F);
+            EXPECT_EQ(fp32_output.to_vector(), actual.to_vector());
+            EXPECT_EQ(
+                bf16_output.to_vector(),
+                actual.cast(DType::BFloat16).to_vector());
             expect_near(actual_backward.first.to_vector(),
                         expected_backward.first.to_vector(), 4.0e-4F);
             expect_near(actual_backward.second.to_vector(),

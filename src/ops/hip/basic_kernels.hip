@@ -766,6 +766,27 @@ __global__ void rms_norm_kernel(const float* input, const float* weight, float* 
     }
 }
 
+__global__ void rms_norm_bf16_output_kernel(
+    const float* input, const float* weight, hip_bfloat16* output,
+    std::int64_t rows, std::int64_t width, float epsilon) {
+    const auto row = static_cast<std::int64_t>(blockIdx.x);
+    if (row >= rows) return;
+    const auto base = row * width;
+    float local_square_sum = 0.0F;
+    for (std::int64_t column = threadIdx.x; column < width; column += blockDim.x) {
+        const auto value = input[base + column];
+        local_square_sum += value * value;
+    }
+    __shared__ float scratch[kBlockSize];
+    const auto square_sum = block_reduce_sum(local_square_sum, scratch);
+    const auto inverse_rms =
+        rsqrtf(square_sum / static_cast<float>(width) + epsilon);
+    for (std::int64_t column = threadIdx.x; column < width; column += blockDim.x) {
+        output[base + column] = hip_bfloat16(
+            input[base + column] * inverse_rms * weight[column]);
+    }
+}
+
 template <unsigned BlockSize>
 __global__ void add_rms_norm_kernel(const float* left, const float* right,
                                     const float* weight, float* sum,
@@ -3501,6 +3522,17 @@ void launch_rms_norm(const float* input, const float* weight, float* output,
     hipLaunchKernelGGL(rms_norm_kernel, dim3(static_cast<unsigned>(rows)), dim3(kBlockSize), 0,
                        as_stream(stream), input, weight, output, rows, width, epsilon);
     check_launch("rms_norm_kernel");
+}
+
+void launch_rms_norm_bf16_output(
+    const float* input, const float* weight, void* output_bf16,
+    std::int64_t rows, std::int64_t width, float epsilon, void* stream) {
+    if (rows == 0) return;
+    hipLaunchKernelGGL(
+        rms_norm_bf16_output_kernel, dim3(static_cast<unsigned>(rows)),
+        dim3(kBlockSize), 0, as_stream(stream), input, weight,
+        static_cast<hip_bfloat16*>(output_bf16), rows, width, epsilon);
+    check_launch("rms_norm_bf16_output_kernel");
 }
 
 void launch_add_rms_norm(const float* left, const float* right, const float* weight,

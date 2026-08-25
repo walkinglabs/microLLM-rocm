@@ -3831,3 +3831,16 @@ Max为0.0973/0.0362。局部速度和数值误差都没有转化成可接受的�
 显式开关保留但默认关闭；BF16 FFN activation局部路线关闭。
 
 ![Grouped Swish epilogue discard](assets/bf16-grouped-swish-discard.svg)
+
+## 253. Experiment 236：不写那张马上要丢掉的FP32表
+
+profile里FP32到BF16 cast仍占4%–6%。FFN的RMSNorm输出会马上被cast进BF16 Arena，
+所以新operator保留FP32 reduction和乘法，只把最后store改为BF16。
+
+第一次测试错把CPU reduction当成bit-exact oracle，对少数1-BF16-step差异正确报错。候选
+真正替换的是GPU RMSNorm + GPU cast；改用这条reference后，所有shape完整输出位级相同。
+
+6进程正式门中，Qwen/DeepSeek Event加速1.866×/2.070×，wall加速1.399×/1.511×，
+计时payload transfer为0。operator准入，模型路由继续关闭，留给下一个独立节点。
+
+![Direct BF16 RMSNorm output](assets/bf16-rms-norm-output.svg)

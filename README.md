@@ -401,6 +401,9 @@ the chronological details are in the [optimization log](docs/optimization-log/RE
 - hipBLASLt gate-Swish epilogues have 64/64 correct candidates and pointer-stable local speedups
   of 1.097×/1.069×, yet the same-binary model gate is 1.000×/0.991× with changed logits;
   the explicit research switch stays default-off and the local FFN activation track is closed.
+- direct BF16 RMSNorm output removes a full FP32 write plus cast while preserving every GPU BF16
+  value; exact B1T1024 operator Event speedups are 1.866×/2.070×, with model routing deferred
+  to a separate full-logit gate.
 
 </details>
 
@@ -632,13 +635,13 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 542/542 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
-| CPU Debug | 344/344 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
-| ASan/UBSan CPU | 342/342 | host lifetime, external Storage and instrumented-package linking |
-| MI300X/gfx942 HIP label | 186/186 | allocator/arena/Stream/Graph, public rocWMMA online Attention, vectorized SwiGLU, grouped/exact vendor solutions, BF16/FP8 and model paths |
-| PyTorch-enabled CPU build | 318/318 | dispatcher parity, 32-step BF16 optimizer state, full graph/model oracle and all package paths |
+| Full CPU/HIP configuration | 544/544 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
+| CPU Debug | 345/345 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
+| ASan/UBSan CPU | 343/343 | host lifetime, external Storage and instrumented-package linking |
+| MI300X/gfx942 HIP label | 187/187 | allocator/arena/Stream/Graph, public rocWMMA online Attention, BF16 RMSNorm/SwiGLU, grouped/exact vendor solutions, FP8 and model paths |
+| PyTorch-enabled CPU build | 319/319 | dispatcher parity, 32-step BF16 optimizer state, full graph/model oracle and all package paths |
 | Multi-GPU/RCCL | 12/12 | collectives, global-batch equivalence, gradient buckets, DDP trainer/CLI and per-device hipBLASLt ownership; RCCL label 14/14 with package gates |
-| Registered test files | 106 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| Registered test files | 107 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
 | CPU source coverage | 78.4% lines / 86.6% functions / 59.1% branches | 8,878/11,329 lines; quiescent handoff and other HIP-only branches remain visible; GCC 13.3 + gcovr 8.3 |
 

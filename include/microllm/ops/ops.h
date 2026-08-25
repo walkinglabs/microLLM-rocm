@@ -607,6 +607,14 @@ void matmul_out_(Tensor& output, const Tensor& left, const Tensor& right,
                              const OpContext& context = {});
 [[nodiscard]] Tensor rms_norm(const Tensor& input, const Tensor& weight,
                               float epsilon = 1.0e-5F, const OpContext& context = {});
+void rms_norm_out_(Tensor& output_fp32, const Tensor& input_fp32,
+                   const Tensor& weight_fp32, float epsilon = 1.0e-5F,
+                   const OpContext& context = {});
+// Computes the FP32 RMSNorm formula and rounds only the caller-provided output
+// to BF16. This is equivalent to cast(rms_norm(input, weight), BF16).
+void rms_norm_bf16_out_(Tensor& output_bf16, const Tensor& input_fp32,
+                        const Tensor& weight_fp32, float epsilon = 1.0e-5F,
+                        const OpContext& context = {});
 // Returns {left + right, rms_norm(left + right, weight)} in one HIP launch.
 [[nodiscard]] TensorPair add_rms_norm(const Tensor& left, const Tensor& right,
                                       const Tensor& weight, float epsilon = 1.0e-5F,
