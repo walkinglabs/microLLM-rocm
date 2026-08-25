@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="598" viewBox="0 0 1040 598">
+<rect width="100%" height="100%" fill="#0b1020"/>
+<style>text{font-family:Inter,system-ui,sans-serif;fill:#e5e7eb}.title{font-size:25px;font-weight:700}.sub{font-size:14px;fill:#9ca3af}.label{font-size:15px}.value{font-size:14px;font-weight:650}</style>
+<text x="48" y="48" class="title">Load-subtracted GPU kernel profile</text>
+<text x="48" y="76" class="sub">One measured workload; bars show aggregate kernel time by phase.</text>
+<text x="48" y="101" class="sub">Total: 831.31 ms · 2 process-delta samples</text>
+<text x="48" y="158" class="label">cached Attention finalize</text>
+<rect x="310" y="136" width="610.00" height="29" rx="5" fill="#f59e0b"/>
+<text x="932.00" y="157" class="value">349.17 ms · 42.00%</text>
+<text x="48" y="212" class="label">hipBLASLt GEMM</text>
+<rect x="310" y="190" width="476.55" height="29" rx="5" fill="#38bdf8"/>
+<text x="798.55" y="211" class="value">272.79 ms · 32.81%</text>
+<text x="48" y="266" class="label">cached Attention scores</text>
+<rect x="310" y="244" width="113.23" height="29" rx="5" fill="#a78bfa"/>
+<text x="435.23" y="265" class="value">64.81 ms · 7.80%</text>
+<text x="48" y="320" class="label">other kernels</text>
+<rect x="310" y="298" width="101.49" height="29" rx="5" fill="#34d399"/>
+<text x="423.49" y="319" class="value">58.09 ms · 6.99%</text>
+<text x="48" y="374" class="label">FP32/BF16 cast</text>
+<rect x="310" y="352" width="62.63" height="29" rx="5" fill="#fb7185"/>
+<text x="384.63" y="373" class="value">35.85 ms · 4.31%</text>
+<text x="48" y="428" class="label">RMSNorm forward/backward</text>
+<rect x="310" y="406" width="33.50" height="29" rx="5" fill="#60a5fa"/>
+<text x="355.50" y="427" class="value">19.18 ms · 2.31%</text>
+<text x="48" y="482" class="label">gradient/elementwise add</text>
+<rect x="310" y="460" width="17.81" height="29" rx="5" fill="#f472b6"/>
+<text x="339.81" y="481" class="value">10.20 ms · 1.23%</text>
+<text x="48" y="536" class="label">KV cache store</text>
+<rect x="310" y="514" width="15.60" height="29" rx="5" fill="#94a3b8"/>
+<text x="337.60" y="535" class="value">8.93 ms · 1.07%</text>
+<text x="48" y="574" class="sub">Generated from profile-delta.json; raw CSV remains the source of truth.</text>
+</svg>

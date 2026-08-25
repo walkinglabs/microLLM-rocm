@@ -17785,6 +17785,91 @@ def validate_materialized_attention_auto_matrix(
             float(summary.get("maximum_speedup", 0.0)))
 
 
+def validate_post_materialized_cached_profile(
+        errors: list[str]) -> tuple[float, float, float]:
+    root = (REPOSITORY / "benchmarks/results" /
+            "2026-08-25-post-materialized-deepseek-t2048-profile")
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    profile = summary.get("kernel_profile", {})
+    categories = {row.get("category"): row
+                  for row in profile.get("categories", [])}
+    score = categories.get("cached Attention scores", {})
+    finalize = categories.get("cached Attention finalize", {})
+    gemm = categories.get("hipBLASLt GEMM", {})
+    runs = summary.get("application_runs", [])
+    if (summary.get("record_type") != "current_cached_decode_profile_summary" or
+            summary.get("status") != "pass" or
+            (summary.get("context"), summary.get("batch"),
+             summary.get("decode_tokens")) != (2048, 2, 64) or
+            summary.get("derived_generations") != 2 or
+            summary.get("derived_forward_steps") != 128 or
+            len(runs) != 2 or
+            any(row.get("cached_attention_materialized_policy") != "auto-enabled"
+                or row.get("cached_attention_materialized_auto_eligible") is not True
+                or row.get("cached_attention_materialized_scores") is not True
+                for row in runs) or
+            profile.get("status") != "pass" or
+            profile.get("negative_call_delta_names") != [] or
+            profile.get("total_kernel_ns_per_step") != 831309810.5 or
+            score.get("calls_per_step") != 1792.0 or
+            score.get("duration_ns_per_step") != 64814394.0 or
+            finalize.get("calls_per_step") != 1792.0 or
+            finalize.get("duration_ns_per_step") != 349171879.5 or
+            gemm.get("duration_ns_per_step") != 272785837.5):
+        errors.append("post-materialized cached profile summary changed")
+    if (analysis.get("status") != "pass" or
+            analysis.get("application_generation_ms") != 776.1418285 or
+            analysis.get("application_speedup_vs_historical_profile") !=
+                1.2774490178118263 or
+            analysis.get("kernel_speedup_vs_historical_profile") !=
+                1.2646147136982453 or
+            analysis.get("cached_attention_combined_ms") != 413.9862735 or
+            analysis.get("cached_attention_combined_share") !=
+                0.49799276788397767 or
+            analysis.get("cached_attention_speedup_vs_historical_profile") !=
+                1.5634722983152243 or
+            analysis.get("backend_allocation_calls") != 0 or
+            analysis.get("cache_reuse_calls") != 38755 or
+            analysis.get("largest_current_kernel_category") !=
+                "cached Attention finalize"):
+        errors.append("post-materialized cached profile analysis changed")
+    if (check.get("measurement_commit") !=
+            "9a9bdfc6379ecf9aaa78e3a5c9c8a406f574851f" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("gpu") != "AMD Instinct MI300X VF" or
+            check.get("architecture") != "gfx942" or
+            check.get("derived_forward_steps") != 128 or
+            check.get("auto_policy") != "auto-enabled" or
+            check.get("default_policy_identity_confirmed") is not True or
+            check.get("current_profile_confirms_finalize_hotspot") is not True or
+            check.get("allocator_is_current_hotspot") is not False or
+            check.get("cpu_label") != {"passed": 374, "total": 374} or
+            check.get("sanitizer_label") != {"passed": 372, "total": 372} or
+            check.get("pytorch_cpu_label") != {"passed": 377, "total": 377} or
+            check.get("hip_label") != {"passed": 192, "total": 192} or
+            check.get("rccl_label") != {"passed": 53, "total": 53} or
+            check.get("registered_test_files") != 129):
+        errors.append("post-materialized cached profile verification changed")
+    for name in ("README.md", "raw.jsonl", "summary.json", "analysis.json",
+                 "verification.json", "profile-delta.json", "profile-delta.svg"):
+        if not (root / name).is_file():
+            errors.append(f"post-materialized profile evidence missing: {name}")
+    for prefix in ("1-step", "3-step"):
+        for suffix in ("kernel", "hip-api", "memory-copy", "memory-allocation"):
+            if not (root / f"{prefix}-{suffix}-stats.csv").is_file():
+                errors.append(
+                    f"post-materialized profile raw evidence missing: {prefix}-{suffix}")
+    try:
+        ET.parse(root / "profile-delta.svg")
+    except ET.ParseError as error:
+        errors.append(f"invalid post-materialized profile SVG: {error}")
+    return (float(profile.get("total_kernel_ns_per_step", 0.0)) / 1.0e6,
+            float(finalize.get("kernel_share", 0.0)),
+            float(gemm.get("kernel_share", 0.0)))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -18649,6 +18734,9 @@ def main() -> int:
     materialized_auto_cases, materialized_auto_processes, \
         materialized_auto_minimum, materialized_auto_maximum = \
         validate_materialized_attention_auto_matrix(errors)
+    post_materialized_kernel_ms, post_materialized_finalize_share, \
+        post_materialized_gemm_share = \
+        validate_post_materialized_cached_profile(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -19250,6 +19338,9 @@ def main() -> int:
           f"{materialized_auto_processes}/"
           f"{materialized_auto_minimum:.3f}/"
           f"{materialized_auto_maximum:.3f} "
+          f"post_materialized_profile={post_materialized_kernel_ms:.3f}/"
+          f"{post_materialized_finalize_share:.4f}/"
+          f"{post_materialized_gemm_share:.4f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

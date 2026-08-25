@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-25: Post-materialized profile, explained simply](2026-08-25-post-materialized-profile.md)
 - [2026-08-25: Materialized-score automatic policy result](../optimization-log/experiments/288-materialized-score-auto-policy.md)
 - [2026-08-25: Materialized-score scoped auto policy](2026-08-25-materialized-auto-policy.md)
 - [2026-08-25: Materialized-score default boundary](../optimization-log/experiments/287-materialized-score-model-boundary.md)

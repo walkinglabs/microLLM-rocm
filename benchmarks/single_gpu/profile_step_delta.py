@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import html
 import json
 import pathlib
 import shutil
@@ -40,6 +41,55 @@ def category(name: str) -> str:
 def read(path: pathlib.Path) -> dict[str, dict[str, str]]:
     with path.open(newline="", encoding="utf-8") as stream:
         return {row["Name"]: row for row in csv.DictReader(stream)}
+
+
+def render_svg(result: dict, path: pathlib.Path) -> None:
+    """Render a dependency-free, deterministic profile summary.
+
+    The raw CSV and JSON remain authoritative.  This chart is the quick visual
+    index used by the optimization journal: the longest bar is the next
+    falsifiable candidate, not an automatic instruction to rewrite it.
+    """
+    rows = result["categories"][:8]
+    width = 1040
+    height = 166 + len(rows) * 54
+    chart_x = 310
+    chart_width = 610
+    maximum = max(row["duration_ns_per_step"] for row in rows)
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" '
+        f'height="{height}" viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#0b1020"/>',
+        '<style>text{font-family:Inter,system-ui,sans-serif;fill:#e5e7eb}'
+        '.title{font-size:25px;font-weight:700}.sub{font-size:14px;fill:#9ca3af}'
+        '.label{font-size:15px}.value{font-size:14px;font-weight:650}</style>',
+        '<text x="48" y="48" class="title">Load-subtracted GPU kernel profile</text>',
+        '<text x="48" y="76" class="sub">One measured workload; bars show aggregate kernel time by phase.</text>',
+        f'<text x="48" y="101" class="sub">Total: '
+        f'{result["total_kernel_ns_per_step"] / 1.0e6:.2f} ms · '
+        f'{int(result["derived_steps"])} process-delta samples</text>',
+    ]
+    colors = ("#f59e0b", "#38bdf8", "#a78bfa", "#34d399",
+              "#fb7185", "#60a5fa", "#f472b6", "#94a3b8")
+    for index, row in enumerate(rows):
+        y = 136 + index * 54
+        bar_width = max(2.0, chart_width * row["duration_ns_per_step"] / maximum)
+        label = html.escape(str(row["category"]))
+        milliseconds = row["duration_ns_per_step"] / 1.0e6
+        share = 100.0 * row["kernel_share"]
+        parts.extend((
+            f'<text x="48" y="{y + 22}" class="label">{label}</text>',
+            f'<rect x="{chart_x}" y="{y}" width="{bar_width:.2f}" height="29" '
+            f'rx="5" fill="{colors[index]}"/>',
+            f'<text x="{chart_x + bar_width + 12:.2f}" y="{y + 21}" '
+            f'class="value">{milliseconds:.2f} ms · {share:.2f}%</text>',
+        ))
+    parts.extend((
+        f'<text x="48" y="{height - 24}" class="sub">'
+        'Generated from profile-delta.json; raw CSV remains the source of truth.</text>',
+        '</svg>',
+    ))
+    path.write_text("\n".join(parts) + "\n", encoding="utf-8")
 
 
 def options() -> argparse.Namespace:
@@ -132,6 +182,7 @@ def main() -> int:
     (args.output_directory / "profile-delta.json").write_text(
         json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
+    render_svg(result, args.output_directory / "profile-delta.svg")
     print(json.dumps(result, sort_keys=True))
     return 0
 

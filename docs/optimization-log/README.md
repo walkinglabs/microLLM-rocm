@@ -977,6 +977,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [materialized boundary SVG](../../benchmarks/results/2026-08-25-materialized-attention-model-matrix/matrix.svg) | 两模型、两context、两batch性能与精度门 |
 | [experiments/288-materialized-score-auto-policy.md](experiments/288-materialized-score-auto-policy.md) | 用户默认auto与显式off的四格因果复测 |
 | [auto policy SVG](../../benchmarks/results/2026-08-25-materialized-attention-auto-matrix/matrix.svg) | Qwen/DeepSeek T2048默认收益 |
+| [experiments/289-post-materialized-profile.md](experiments/289-post-materialized-profile.md) | 新默认后的阶段迁移、finalize热点与allocator反例 |
+| [post-materialized profile SVG](../../benchmarks/results/2026-08-25-post-materialized-deepseek-t2048-profile/profile-delta.svg) | 自动生成的Kernel阶段占比图 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

@@ -134,7 +134,8 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [103](steps/103-ranked-gather-scale.md) | complete; performance rejected | persistent gather-scale | 57 pack→0但仅1.0140x且慢于Step 102，局部线关闭 |
 | [104](steps/104-deepseek-cached-score-oracle.md) | complete | T2048 score oracle + current profile | current Attention 61.57%，GEMM 25.72%，allocator非热点 |
 | [105](steps/105-cached-attention-microarchitecture.md) | complete | scoped auto四格位级相同、1.1777x–1.3687x | Step 106重新profile |
-| [106](steps/106-post-materialized-profile.md) | planned | 保留默认后的T2048 phase-delta profile | 重新选择最大Kernel类别 |
+| [106](steps/106-post-materialized-profile.md) | complete | 保留默认后的T2048 phase-delta profile | Kernel 831.31ms；finalize 42.00%为最大单项 |
+| [107](steps/107-exact-order-finalize-mapping.md) | planned | 保序finalize线程映射矩阵 | operator完整context门后再决定模型实验 |
 
 ## 为什么按这个顺序
 

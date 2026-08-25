@@ -1,6 +1,6 @@
 # Step 106 — Reprofile the retained T2048 default
 
-Status: profile runner updated; measurement pending
+Status: complete
 
 Experiment 288保留了gfx942/BF16/known-head/uniform T>=2048自动路径。旧Experiment 281中cached
 Attention占61.57%的profile已经过期。
@@ -15,3 +15,9 @@ Attention占61.57%的profile已经过期。
 
 如果cached Attention仍第一，再分score/finalize；如果GEMM第一，回到shape/算法或更大图边界。任何
 下一优化仍需完整logits/token和端到端门。
+
+## 实测结果
+
+默认身份通过。Kernel总时间831.31ms；score 64.81ms/7.80%，finalize
+349.17ms/42.00%，Attention合计49.80%，GEMM 272.79ms/32.81%。每代backend allocation为0，
+所以workspace不准入。Step 107只搜索保序finalize线程映射。

@@ -3,6 +3,7 @@
 import ast
 import json
 from pathlib import Path
+import xml.etree.ElementTree as ET
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -64,6 +65,41 @@ def main() -> int:
     for prefix in ("1-step", "3-step"):
         for suffix in ("kernel", "hip-api", "memory-copy", "memory-allocation"):
             assert (result / f"{prefix}-{suffix}-stats.csv").is_file()
+
+    post = (ROOT / "benchmarks/results" /
+            "2026-08-25-post-materialized-deepseek-t2048-profile")
+    post_summary = json.loads((post / "summary.json").read_text(
+        encoding="utf-8"))
+    post_analysis = json.loads((post / "analysis.json").read_text(
+        encoding="utf-8"))
+    post_verification = json.loads((post / "verification.json").read_text(
+        encoding="utf-8"))
+    post_categories = {
+        row["category"]: row
+        for row in post_summary["kernel_profile"]["categories"]
+    }
+    assert post_summary["status"] == "pass"
+    assert post_summary["derived_forward_steps"] == 128
+    assert post_summary["kernel_profile"]["total_kernel_ns_per_step"] == \
+        831309810.5
+    assert post_summary["kernel_profile"]["negative_call_delta_names"] == []
+    assert post_categories["cached Attention scores"]["calls_per_step"] == 1792
+    assert post_categories["cached Attention finalize"]["calls_per_step"] == 1792
+    assert post_categories["cached Attention finalize"]["kernel_share"] == \
+        0.42002617446555446
+    assert post_analysis["cached_attention_combined_share"] == \
+        0.49799276788397767
+    assert post_analysis["backend_allocation_calls"] == 0
+    assert post_analysis["largest_current_kernel_category"] == \
+        "cached Attention finalize"
+    assert post_verification["measurement_commit"] == \
+        "9a9bdfc6379ecf9aaa78e3a5c9c8a406f574851f"
+    assert post_verification["default_policy_identity_confirmed"] is True
+    assert post_verification["current_profile_confirms_finalize_hotspot"] is True
+    ET.parse(post / "profile-delta.svg")
+    for prefix in ("1-step", "3-step"):
+        for suffix in ("kernel", "hip-api", "memory-copy", "memory-allocation"):
+            assert (post / f"{prefix}-{suffix}-stats.csv").is_file()
     print("current cached decode profile contract: pass")
     return 0
 

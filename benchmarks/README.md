@@ -116,6 +116,27 @@ The runner fixes B1T512, BF16 Linear, BF16 AdamW moments, the 1M hybrid threshol
 all accepted/rejected training controls. It collects two fresh rocprof processes per model
 and derives one stable step from `(three-step - one-step) / 2`.
 
+Reprofile the retained long-context cached-decode default with the corresponding
+inference runner:
+
+```bash
+ROCR_VISIBLE_DEVICES=0 HIP_VISIBLE_DEVICES=0 python3 \
+  benchmarks/single_gpu/profile_current_cached_decode.py \
+  --manifest /path/to/hf-models.local.json \
+  --binary build/hip-release/apps/microllm_hf_infer \
+  --output-directory /tmp/microllm-current-cached-profile \
+  --model deepseek-r1-distill-qwen-1.5b \
+  --context 2048 --batch 2 --decode-tokens 64 \
+  --warmup 1 --many-step-count 3
+```
+
+The runner requires the measured scoped default to report `auto-enabled`, saves
+Kernel/HIP API/copy/allocation CSV files, subtracts process load, and generates both
+`profile-delta.json` and an autoresearch-style `profile-delta.svg`. The chart is a
+visual index; raw CSV and the derived JSON remain the evidence used for decisions.
+The curated result is
+[`2026-08-25-post-materialized-deepseek-t2048-profile`](results/2026-08-25-post-materialized-deepseek-t2048-profile/).
+
 Screen the separate BF16 weight-gradient hypothesis before changing Autograd:
 
 ```bash

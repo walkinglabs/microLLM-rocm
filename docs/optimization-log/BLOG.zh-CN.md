@@ -4529,3 +4529,18 @@ current显式off，candidate完全不传开关且JSON必须报告auto-enabled。
 dtype、模型与positions-aware路径不推广。旧61.57% Attention profile已经过期，下一步重新profile。
 
 ![Automatic policy matrix](../../benchmarks/results/2026-08-25-materialized-attention-auto-matrix/matrix.svg)
+
+## 306. Experiment 289：优化成功后，旧profile也会过期
+
+新默认启用后，我们用同一个DeepSeek T2048/B2/N64重新做1次与3次generation差分。两个进程都
+必须报告`auto-enabled`，否则测到的就不是用户默认路径。
+
+新的总Kernel时间为831.31ms，旧profile是1051.29ms；应用generation由历史991.48ms降到
+776.14ms。Attention不再是一个黑盒：并行score只占64.81ms/7.80%，保持原累加顺序的finalize
+占349.17ms/42.00%，两者合计49.80%；GEMM是272.79ms/32.81%。
+
+这次profile也拒绝了一个看似自然的方向。每代有38,755次逻辑申请，但backend新分配是0，全部
+命中缓存，所以先写workspace不会消除稳态热点。Step 107只改finalize线程映射，并要求完整
+context与模型logits门；若单算子快而模型不快，我们就接受反例并转向下一个系统边界。
+
+![Post-materialized profile](../../benchmarks/results/2026-08-25-post-materialized-deepseek-t2048-profile/profile-delta.svg)

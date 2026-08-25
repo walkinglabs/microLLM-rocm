@@ -39,11 +39,12 @@ Start with [Quick start](#quick-start), consume the installed library through th
 <details>
 <summary>Latest optimization checkpoints</summary>
 
-> **Current optimization checkpoint:** Experiment 288 verifies the no-flag default
-> against explicit-off controls. Qwen/DeepSeek T2048 B1/B2 remain bitwise-equal and
-> improve 1.1777×–1.3687×. The scoped gfx942/BF16/uniform policy is retained; other
-> hardware, dtypes, models and positions-aware serving remain on the old path. See the
-> [automatic-policy experiment](docs/optimization-log/experiments/288-materialized-score-auto-policy.md).
+> **Current optimization checkpoint:** Experiment 289 reprofiles the retained no-flag
+> path. A DeepSeek T2048/B2/N64 generation has 831.31 ms aggregate Kernel time;
+> exact-order Attention finalize is now the largest category at 349.17 ms/42.00%,
+> ahead of GEMM at 32.81%. Steady backend allocation delta is zero, so the next
+> experiment changes only finalize thread mapping. See the
+> [post-materialized profile](docs/optimization-log/experiments/289-post-materialized-profile.md).
 
 > **Current training checkpoint:** the current B1T512 BF16 profile measures
 > 31.327/71.873 ms of Kernel time for Qwen/DeepSeek; GEMM remains 58.56%/63.43%.

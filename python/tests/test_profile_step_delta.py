@@ -9,6 +9,7 @@ import pathlib
 import subprocess
 import sys
 import tempfile
+import xml.etree.ElementTree as ET
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -63,6 +64,13 @@ def main() -> int:
         assert categories["softmax"]["duration_ns_per_step"] == 100
         assert (output / "one-step-kernel-stats.csv").is_file()
         assert (output / "three-step-kernel-stats.csv").is_file()
+        chart = output / "profile-delta.svg"
+        assert chart.is_file()
+        root = ET.parse(chart).getroot()
+        assert root.tag.endswith("svg")
+        chart_text = chart.read_text(encoding="utf-8")
+        assert "hipBLASLt GEMM" in chart_text
+        assert "Load-subtracted GPU kernel profile" in chart_text
 
         write_stats(many, [("Cijk_fixture", 9, 900)])
         rejected = subprocess.run(command, capture_output=True, text=True)
