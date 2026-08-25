@@ -1,6 +1,6 @@
 # Step 105 — Cached Attention score/context microarchitecture
 
-Status: multi-model boundary complete; scoped gfx942/BF16/uniform T>=2048 policy admitted
+Status: scoped gfx942/BF16/uniform T>=2048 auto policy implemented; default-path check pending
 
 Experiment 281证明当前DeepSeek T2048/B2/N64的cached Attention占Kernel时间61.57%，单次约
 361.2us；GEMM第二，KV store和allocator不是主因。

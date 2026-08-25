@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import array
+import json
 import subprocess
 import tempfile
 from pathlib import Path
@@ -18,7 +19,7 @@ def floats(path: Path) -> array.array:
 
 
 def run(binary: Path, fixture: Path, batch: int,
-        mode: str, output: Path) -> array.array:
+        mode: str, output: Path) -> tuple[array.array, dict]:
     completed = subprocess.run([
         str(binary), "--config", str(fixture / "config.json"),
         "--weights", str(fixture / "model.safetensors"),
@@ -30,7 +31,12 @@ def run(binary: Path, fixture: Path, batch: int,
     ], text=True, capture_output=True, check=False)
     if completed.returncode != 0:
         raise AssertionError(completed.stdout + completed.stderr)
-    return floats(output)
+    record = json.loads(completed.stdout.splitlines()[-1])
+    assert record["cached_attention_materialized_policy"] == "auto-bypass"
+    assert record["cached_attention_materialized_auto_eligible"] is False
+    assert record["cached_attention_materialized_scores"] is False
+    assert record["cached_attention_materialized_minimum_sequence"] == 2048
+    return floats(output), record
 
 
 def main() -> int:
@@ -46,11 +52,11 @@ def main() -> int:
         ], text=True, capture_output=True, check=False)
         if completed.returncode != 0:
             raise AssertionError(completed.stdout + completed.stderr)
-        batch_one = run(
+        batch_one, _ = run(
             args.binary, fixture, 1, "last", root / "b1.bin")
-        batch_last = run(
+        batch_last, _ = run(
             args.binary, fixture, 2, "last", root / "b2-last.bin")
-        batch_full = run(
+        batch_full, _ = run(
             args.binary, fixture, 2, "full", root / "b2-full.bin")
         assert len(batch_one) == 8
         assert len(batch_last) == 16

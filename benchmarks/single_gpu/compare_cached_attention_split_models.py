@@ -137,6 +137,9 @@ def validate_record(record: dict, args: argparse.Namespace, model: dict,
         "cached_attention_splits": splits,
         "cached_attention_minimum_sequence": args.minimum_sequence,
         "cached_attention_materialized_scores": materialized,
+        "cached_attention_materialized_policy": (
+            "explicit-on" if materialized else "explicit-off"),
+        "cached_attention_materialized_auto_eligible": False,
     }
     for field, expected in required.items():
         if record.get(field) != expected:

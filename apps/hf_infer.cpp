@@ -62,6 +62,7 @@ struct Options {
     std::int64_t cached_attention_splits = 0;
     std::int64_t cached_attention_minimum_sequence = 512;
     bool cached_attention_materialized = false;
+    bool cached_attention_materialized_explicit = false;
     bool bf16_attention = false;
     bool fp8_linear = false;
     float fp8_activation_scale = 0.025F;
@@ -200,6 +201,7 @@ Options options(int argc, char** argv) {
                     "--cached-attention-materialized must be true or false");
             }
             result.cached_attention_materialized = value == "true";
+            result.cached_attention_materialized_explicit = true;
         } else if (name == "--bf16-attention") {
             const std::string value = argv[index + 1];
             if (value != "true" && value != "false") {
@@ -1239,6 +1241,33 @@ int main(int argc, char** argv) {
         if (device.is_hip() && microllm::runtime::hip_device_count() == 0) {
             throw std::runtime_error("HIP inference requested without a visible device");
         }
+        const auto materialized_architecture = device.is_hip()
+            ? microllm::runtime::device_info(device).architecture
+            : std::string{};
+        const auto measured_head_signature =
+            external.model.kv_heads == 2 &&
+            ((external.model.heads == 14 &&
+              external.model.head_dimension() == 64) ||
+             (external.model.heads == 12 &&
+              external.model.head_dimension() == 128));
+        const auto materialized_auto_eligible =
+            !command.cached_attention_materialized_explicit &&
+            command.cached_attention_splits == 0 && device.is_hip() &&
+            materialized_architecture.starts_with("gfx942") &&
+            command.kv_cache_dtype == "bf16" && command.use_cache &&
+            measured_head_signature;
+        const auto materialized_enabled =
+            command.cached_attention_materialized_explicit
+                ? command.cached_attention_materialized
+                : materialized_auto_eligible;
+        const auto materialized_minimum_sequence =
+            command.cached_attention_materialized_explicit
+                ? command.cached_attention_minimum_sequence
+                : 2048LL;
+        const std::string materialized_policy =
+            command.cached_attention_materialized_explicit
+                ? materialized_enabled ? "explicit-on" : "explicit-off"
+                : materialized_auto_eligible ? "auto-enabled" : "auto-bypass";
         microllm::runtime::reset_allocation_peak(device);
         microllm::model::TransformerModel model(
             external.model, 1,
@@ -1285,8 +1314,7 @@ int main(int argc, char** argv) {
             command.cached_attention_splits,
             command.cached_attention_minimum_sequence);
         model.set_cached_attention_materialized_scores(
-            command.cached_attention_materialized,
-            command.cached_attention_minimum_sequence);
+            materialized_enabled, materialized_minimum_sequence);
         if (command.fp8_linear) {
             fp8_report = model.prepare_fp8_inference_weights();
             microllm::ops::clear_fp8_dispatch_registry();
@@ -2242,6 +2270,12 @@ int main(int argc, char** argv) {
                           ? "true" : "false")
                   << ",\"cached_attention_materialized_minimum_sequence\":"
                   << model.cached_attention_materialized_minimum_sequence()
+                  << ",\"cached_attention_materialized_policy\":\""
+                  << materialized_policy << "\""
+                  << ",\"cached_attention_materialized_auto_eligible\":"
+                  << (materialized_auto_eligible ? "true" : "false")
+                  << ",\"cached_attention_materialized_measured_head_signature\":"
+                  << (measured_head_signature ? "true" : "false")
                   << ",\"bf16_attention_converted_tensors\":"
                   << bf16_attention_report.converted_tensors
                   << ",\"fp8_converted_tensors\":"

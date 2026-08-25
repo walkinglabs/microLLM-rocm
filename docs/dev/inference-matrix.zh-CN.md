@@ -3,6 +3,24 @@
 这份文档解释怎样公平地测量 microLLM 和 PyTorch 的推理。它故意使用简单词语；先看懂
 “在测什么”，再看 tokens/s。
 
+## 长上下文cached Attention自动策略
+
+MI300X/gfx942上，已测Qwen H14/KV2/D64与DeepSeek H12/KV2/D128在BF16 KV、uniform cached
+decode且prefix至少2048时，会自动使用保序的materialized-score路径。T512、FP32 KV、其他GPU、
+其他head签名和positions-aware serving保持旧路径。
+
+复现实验时可显式控制：
+
+```bash
+--cached-attention-materialized true \
+--cached-attention-minimum-sequence 2048
+
+# current对照
+--cached-attention-materialized false
+```
+
+请同时保存JSON中的`cached_attention_materialized_policy`、`cached_attention_materialized_scores`和
+`cached_attention_materialized_minimum_sequence`，不要只根据命令行猜测实际路径。
 ## 推理有三段，不是一件事
 
 假设输入是一段128个token的文字，模型还要生成4个token：
