@@ -91,6 +91,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [60](steps/60-bf16-ffn-norm-model.md) | complete | FFN Norm直入Arena | 整模1.0122×/1.0092×；位级相同，默认启用 |
 | [61](steps/61-post-bf16-ffn-norm-profile.md) | complete | 融合后重新profile | cast 96→72/112→84；下一边界Attention Norm |
 | [62](steps/62-bf16-attention-norm-model.md) | complete | Attention Norm直入QKV Arena | 整模1.0131×/1.0130×；位级相同且降峰值 |
+| [63](steps/63-post-bf16-attention-norm-profile.md) | complete | 两Norm后重新profile | Kernel 8.069/14.489ms；每层cast剩一进一出 |
 
 ## 为什么按这个顺序
 

@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "profile_processes": 4,
+  "qwen_total_kernel_ms": 8.0690472,
+  "deepseek_total_kernel_ms": 14.488504,
+  "qwen_previous_total_kernel_ms": 8.2080498,
+  "deepseek_previous_total_kernel_ms": 14.6589138,
+  "qwen_cast_calls_per_step": 48,
+  "deepseek_cast_calls_per_step": 56,
+  "qwen_float_to_bf16_calls_per_step": 24,
+  "deepseek_float_to_bf16_calls_per_step": 28,
+  "qwen_bf16_to_float_calls_per_step": 24,
+  "deepseek_bf16_to_float_calls_per_step": 28,
+  "qwen_gemm_share": 0.614577592258972,
+  "deepseek_gemm_share": 0.6884913583900726,
+  "both_norm_fusions_enabled": true
+}

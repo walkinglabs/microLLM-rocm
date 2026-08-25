@@ -413,6 +413,9 @@ the chronological details are in the [optimization log](docs/optimization-log/RE
 - that Attention route passes at 1.01309×/1.01303× with bit-identical complete logits,
   120/140 fewer measured allocations and 3.67/6.29 MB lower peak; BF16 QKV Arena enables it by
   default while explicit false remains available.
+- reprofiled with both defaults, Kernel time is 8.069/14.489 ms and casts fall to 48/56; each
+  layer now has exactly one FP32→BF16 and one BF16→FP32 conversion, which must be attributed
+  before another route is proposed.
 
 </details>
 

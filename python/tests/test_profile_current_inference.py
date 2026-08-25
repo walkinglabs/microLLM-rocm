@@ -18,6 +18,7 @@ def main() -> int:
         "profile_step_delta.py", "inference_prefill_kernel_phase_delta",
         "--inference-bthd-online-attention", "derived_forwards",
         "--expected-bf16-ffn-norm",
+        "--expected-bf16-attention-norm",
     ):
         assert token in text
     print("current inference profile runner contract: pass")

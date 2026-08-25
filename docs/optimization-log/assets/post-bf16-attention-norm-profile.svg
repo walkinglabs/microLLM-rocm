@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="700" viewBox="0 0 1500 700">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="750.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 240 · Profile After Both Norm Fusions</text>
+<text x="750.0" y="82.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">B1T1024 · four load-subtracted rocprof processes</text>
+<rect x="180" y="145" width="1140" height="340" fill="#ffffff" stroke="#cbd3df" rx="10"/>
+<line x1="180" y1="485.0" x2="1320" y2="485.0" stroke="#e5e9f0"/>
+<text x="168.0" y="490.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">0 ms</text>
+<line x1="180" y1="400.0" x2="1320" y2="400.0" stroke="#e5e9f0"/>
+<text x="168.0" y="405.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">4 ms</text>
+<line x1="180" y1="315.0" x2="1320" y2="315.0" stroke="#e5e9f0"/>
+<text x="168.0" y="320.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">8 ms</text>
+<line x1="180" y1="230.0" x2="1320" y2="230.0" stroke="#e5e9f0"/>
+<text x="168.0" y="235.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">12 ms</text>
+<line x1="180" y1="145.0" x2="1320" y2="145.0" stroke="#e5e9f0"/>
+<text x="168.0" y="150.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">16 ms</text>
+<rect x="252.5" y="310.6" width="140" height="174.4" fill="#94a3b8" rx="6"/>
+<text x="322.5" y="300.6" font-family="Inter,Arial,sans-serif" font-size="15" fill="#94a3b8" text-anchor="middle" font-weight="700">8.208</text>
+<text x="322.5" y="513.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">Qwen prior</text>
+<rect x="537.5" y="313.5" width="140" height="171.5" fill="#16a34a" rx="6"/>
+<text x="607.5" y="303.5" font-family="Inter,Arial,sans-serif" font-size="15" fill="#16a34a" text-anchor="middle" font-weight="700">8.069</text>
+<text x="607.5" y="513.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">Qwen both</text>
+<rect x="822.5" y="173.5" width="140" height="311.5" fill="#94a3b8" rx="6"/>
+<text x="892.5" y="163.5" font-family="Inter,Arial,sans-serif" font-size="15" fill="#94a3b8" text-anchor="middle" font-weight="700">14.659</text>
+<text x="892.5" y="513.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">Deep prior</text>
+<rect x="1107.5" y="177.1" width="140" height="307.9" fill="#16a34a" rx="6"/>
+<text x="1177.5" y="167.1" font-family="Inter,Arial,sans-serif" font-size="15" fill="#16a34a" text-anchor="middle" font-weight="700">14.489</text>
+<text x="1177.5" y="513.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">Deep both</text>
+<text x="750.0" y="585.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#166534" text-anchor="middle" font-weight="700">Cast calls: 72→48 (Qwen), 84→56 (DeepSeek)</text>
+<text x="750.0" y="628.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474" text-anchor="middle" font-weight="700">Remaining per layer: one FP32→BF16 and one BF16→FP32 boundary</text>
+<text x="750.0" y="670.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="middle" font-weight="400">Attribute both boundaries before the next implementation</text>
+</svg>

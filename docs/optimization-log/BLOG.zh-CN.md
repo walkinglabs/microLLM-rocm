@@ -3882,3 +3882,12 @@ precast API检查全部workspace和alias，bypass也只做一次cache决策。
 BF16 QKV Arena现在默认开启该路径，显式`false`保留。
 
 ![BF16 Attention Norm model gate](assets/bf16-attention-norm-model.svg)
+
+## 257. Experiment 240：每层cast只剩一进一出
+
+同时验证FFN和Attention Norm默认开启后，四进程profile得到Kernel 8.069/14.489 ms，
+cast 48/56。每层恰好各剩一次FP32→BF16和BF16→FP32。
+
+下一节先归因这两个边界，不从kernel名称直接跳到新融合。
+
+![Post Attention Norm profile](assets/post-bf16-attention-norm-profile.svg)

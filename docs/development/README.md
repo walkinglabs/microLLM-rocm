@@ -500,3 +500,5 @@ the next gate. Records are append-only except for factual corrections.
   beginner-friendly load-subtracted map after the retained default change.
 - [2026-08-25-bf16-attention-norm-model.md](2026-08-25-bf16-attention-norm-model.md):
   beginner-friendly Attention/QKV Arena route and exact peak reduction.
+- [2026-08-25-post-bf16-attention-norm-profile.md](2026-08-25-post-bf16-attention-norm-profile.md):
+  beginner-friendly map of the final per-layer cast pair.

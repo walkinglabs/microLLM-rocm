@@ -167,6 +167,11 @@ BF16_ATTENTION_NORM_MODEL_ROOT = (
     "2026-08-25-bf16-attention-norm-model-gate")
 BF16_ATTENTION_NORM_MODEL_CHART = (
     ROOT / "assets" / "bf16-attention-norm-model.svg")
+POST_BF16_ATTENTION_NORM_PROFILE_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-post-bf16-attention-norm-profile")
+POST_BF16_ATTENTION_NORM_PROFILE_CHART = (
+    ROOT / "assets" / "post-bf16-attention-norm-profile.svg")
 
 
 def rows() -> list[dict]:
@@ -3589,6 +3594,59 @@ def bf16_attention_norm_model_svg() -> str:
     return "\n".join(parts)
 
 
+def post_bf16_attention_norm_profile_svg() -> str:
+    data = json.loads((POST_BF16_ATTENTION_NORM_PROFILE_ROOT /
+                       "verification.json").read_text(encoding="utf-8"))
+    width, height = 1500, 700
+    chart_x, chart_y, chart_w, chart_h = 180, 145, 1140, 340
+    values = [
+        ("Qwen prior", data["qwen_previous_total_kernel_ms"], "#94a3b8"),
+        ("Qwen both", data["qwen_total_kernel_ms"], "#16a34a"),
+        ("Deep prior", data["deepseek_previous_total_kernel_ms"], "#94a3b8"),
+        ("Deep both", data["deepseek_total_kernel_ms"], "#16a34a"),
+    ]
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 240 · Profile After Both Norm Fusions", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82, "B1T1024 · four load-subtracted rocprof processes", 16,
+             "#5b6474", anchor="middle"),
+        f'<rect x="{chart_x}" y="{chart_y}" width="{chart_w}" height="{chart_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+    ]
+    def y(value: float) -> float:
+        return chart_y + chart_h * (16.0 - value) / 16.0
+    for tick in (0, 4, 8, 12, 16):
+        y_pos = y(float(tick))
+        parts.append(f'<line x1="{chart_x}" y1="{y_pos:.1f}" '
+                     f'x2="{chart_x+chart_w}" y2="{y_pos:.1f}" stroke="#e5e9f0"/>')
+        parts.append(text(chart_x - 12, y_pos + 5, f"{tick} ms", 13,
+                          "#5b6474", anchor="end"))
+    slot = chart_w / len(values)
+    for index, (label, value, color) in enumerate(values):
+        center = chart_x + slot * (index + 0.5)
+        top, base = y(value), y(0.0)
+        parts.append(f'<rect x="{center-70:.1f}" y="{top:.1f}" width="140" '
+                     f'height="{base-top:.1f}" fill="{color}" rx="6"/>')
+        parts.append(text(center, top - 10, f"{value:.3f}", 15, color,
+                          anchor="middle", weight=700))
+        parts.append(text(center, chart_y + chart_h + 28, label, 14,
+                          "#5b6474", anchor="middle"))
+    parts.append(text(width / 2, 585,
+                      "Cast calls: 72→48 (Qwen), 84→56 (DeepSeek)",
+                      18, "#166534", anchor="middle", weight=700))
+    parts.append(text(width / 2, 628,
+                      "Remaining per layer: one FP32→BF16 and one BF16→FP32 boundary",
+                      18, "#5b6474", anchor="middle", weight=700))
+    parts.append(text(width / 2, 670,
+                      "Attribute both boundaries before the next implementation",
+                      14, "#5b6474", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -3644,7 +3702,8 @@ def main() -> int:
                 BF16_RMS_NORM_OUTPUT_CHART: bf16_rms_norm_output_svg(),
                 BF16_FFN_NORM_MODEL_CHART: bf16_ffn_norm_model_svg(),
                 POST_BF16_FFN_NORM_PROFILE_CHART: post_bf16_ffn_norm_profile_svg(),
-                BF16_ATTENTION_NORM_MODEL_CHART: bf16_attention_norm_model_svg()}
+                BF16_ATTENTION_NORM_MODEL_CHART: bf16_attention_norm_model_svg(),
+                POST_BF16_ATTENTION_NORM_PROFILE_CHART: post_bf16_attention_norm_profile_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

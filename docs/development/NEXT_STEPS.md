@@ -71,6 +71,8 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   target is Attention Norm directly feeding the existing QKV Arena;
 - [x] connect Attention Norm directly to QKV Arena; keep by default at
   1.01309x/1.01303x, exact logits, 120/140 fewer allocations and lower peak;
+- [x] reprofile both retained Norm fusions; Kernel is 8.069/14.489ms and each
+  layer retains exactly one FP32→BF16 plus one BF16→FP32 cast;
 - [x] populate B1 KV cache from one full-sequence prefill instead of token replay;
 - [x] support batched cached decode with batch-aware KV Storage;
 - [x] add opt-in BF16 KV Storage with FP32 accumulation, complete-logit gates and a retained

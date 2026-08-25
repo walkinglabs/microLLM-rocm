@@ -13428,6 +13428,47 @@ def validate_bf16_attention_norm_model(
     return summary.get("raw_processes", 0), *expected
 
 
+def validate_post_bf16_attention_norm_profile(
+        errors: list[str]) -> tuple[int, float, float, int, int, float, float]:
+    root = REPOSITORY / (
+        "benchmarks/results/2026-08-25-post-bf16-attention-norm-profile")
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    rows = {row["model"]: row for row in summary.get("models", [])}
+    qwen = rows.get("qwen2.5-0.5b", {})
+    deep = rows.get("deepseek-r1-distill-qwen-1.5b", {})
+    def category(model: dict, name: str) -> dict:
+        return next((row for row in model.get("categories", [])
+                     if row["category"] == name), {})
+    qwen_cast, deep_cast = category(qwen, "FP32/BF16 cast"), category(deep, "FP32/BF16 cast")
+    qwen_gemm, deep_gemm = category(qwen, "hipBLASLt GEMM"), category(deep, "hipBLASLt GEMM")
+    expected = (8.0690472, 14.488504, 48, 56,
+                0.614577592258972, 0.6884913583900726)
+    if (summary.get("schema_version") != 1 or summary.get("status") != "pass" or
+            summary.get("record_type") !=
+                "post_bf16_attention_norm_profile_summary" or
+            summary.get("bf16_ffn_norm_fusion_expected") is not True or
+            summary.get("bf16_attention_norm_fusion_expected") is not True or
+            summary.get("profile_processes") != 4 or len(rows) != 2 or
+            abs(float(qwen.get("total_kernel_ns_per_step", 0.0)) / 1.0e6 -
+                expected[0]) > 1.0e-9 or
+            abs(float(deep.get("total_kernel_ns_per_step", 0.0)) / 1.0e6 -
+                expected[1]) > 1.0e-9 or
+            qwen_cast.get("calls_per_step") != expected[2] or
+            deep_cast.get("calls_per_step") != expected[3] or
+            abs(float(qwen_gemm.get("kernel_share", 0.0)) - expected[4]) > 1.0e-12 or
+            abs(float(deep_gemm.get("kernel_share", 0.0)) - expected[5]) > 1.0e-12):
+        errors.append("post-BF16-Attention-Norm profile changed")
+    if (check.get("both_norm_fusions_enabled") is not True or
+            check.get("qwen_float_to_bf16_calls_per_step") != 24 or
+            check.get("deepseek_bf16_to_float_calls_per_step") != 28):
+        errors.append("post-BF16-Attention-Norm verification changed")
+    source = REPOSITORY / "benchmarks/single_gpu/profile_current_inference.py"
+    if "--expected-bf16-attention-norm" not in source.read_text(encoding="utf-8"):
+        errors.append("post-BF16-Attention-Norm runner changed")
+    return summary.get("profile_processes", 0), *expected
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -13645,7 +13686,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-rms-norm-output.svg",
                  "bf16-ffn-norm-model.svg",
                  "post-bf16-ffn-norm-profile.svg",
-                 "bf16-attention-norm-model.svg"):
+                 "bf16-attention-norm-model.svg",
+                 "post-bf16-attention-norm-profile.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -14109,6 +14151,10 @@ def main() -> int:
         attention_norm_qwen_alloc, attention_norm_deep_alloc, \
         attention_norm_qwen_peak, attention_norm_deep_peak = \
         validate_bf16_attention_norm_model(errors)
+    post_attention_rows, post_attention_qwen_ms, post_attention_deep_ms, \
+        post_attention_qwen_casts, post_attention_deep_casts, \
+        post_attention_qwen_gemm, post_attention_deep_gemm = \
+        validate_post_bf16_attention_norm_profile(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -14530,6 +14576,10 @@ def main() -> int:
           f"{attention_norm_deep:.3f}/{attention_norm_qwen_alloc}/"
           f"{attention_norm_deep_alloc}/{attention_norm_qwen_peak}/"
           f"{attention_norm_deep_peak} "
+          f"post_attention={post_attention_rows}/{post_attention_qwen_ms:.3f}/"
+          f"{post_attention_deep_ms:.3f}/{post_attention_qwen_casts}/"
+          f"{post_attention_deep_casts}/{post_attention_qwen_gemm:.3f}/"
+          f"{post_attention_deep_gemm:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")
