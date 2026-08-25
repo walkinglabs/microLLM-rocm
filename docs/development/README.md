@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-25: Next long-context profile audit](2026-08-25-long-context-profile-audit.md)
 - [2026-08-25: Evidence status refresh](2026-08-25-evidence-status-refresh.md)
 - [2026-08-25: Ranked gather-scale result](2026-08-25-ranked-gather-scale-result.md)
 - [2026-08-25: Ranked persistent gather-scale infrastructure](2026-08-25-ranked-gather-scale-infrastructure.md)
