@@ -510,3 +510,5 @@ the next gate. Records are append-only except for factual corrections.
   explains the measured local-search ceiling without confusing it with the whole roadmap.
 - [2026-08-25-current-training-profile-runner.md](2026-08-25-current-training-profile-runner.md):
   pins the retained B1T512 training profile contract in one reproducible command.
+- [2026-08-25-current-training-profile.md](2026-08-25-current-training-profile.md):
+  records the four-process current training map and unchanged hotspot order.

@@ -158,6 +158,12 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 
 ## P2 — operator registry and profiler API
 
+- [x] add a one-command current B1T512 training profiler that pins every retained/rejected
+  switch and validates exact optimizer metadata transfers;
+- [x] reprofile the current binary: Kernel is 31.327/71.873 ms, GEMM remains
+  58.56%/63.43%, and the next training target is still architectural;
+- [ ] select a new training GEMM or graph-wide candidate from the current top-k families;
+
 - [x] make the matmul registry key exact over its implicit op identity, GPU architecture,
   dtype, shape, strides/layout, mode, workspace limit, and library/runtime versions;
 - [ ] register multiple candidates for every hotspot, not only 2D matmul;

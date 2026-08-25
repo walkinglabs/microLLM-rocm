@@ -183,6 +183,11 @@ INFERENCE_LOCAL_SATURATION_ROOT = (
     "2026-08-25-inference-local-saturation")
 INFERENCE_LOCAL_SATURATION_CHART = (
     ROOT / "assets" / "inference-local-saturation.svg")
+CURRENT_TRAINING_PROFILE_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-current-training-profile")
+CURRENT_TRAINING_PROFILE_CHART = (
+    ROOT / "assets" / "current-training-profile.svg")
 
 
 def rows() -> list[dict]:
@@ -3786,6 +3791,70 @@ def inference_local_saturation_svg() -> str:
     return "\n".join(parts)
 
 
+def current_training_profile_svg() -> str:
+    summary = json.loads((CURRENT_TRAINING_PROFILE_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    rows = {row["model"]: row for row in summary["models"]}
+    width, height = 1500, 720
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 244 · Current B1T512 Training Profile", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "BF16 Linear + BF16 AdamW moments · (three-step − one-step) / 2",
+             16, "#5b6474", anchor="middle"),
+    ]
+    models = (
+        ("Qwen2.5-0.5B", rows["qwen2.5-0.5b"], 1.025195919807247),
+        ("DeepSeek-Distill-1.5B", rows["deepseek-r1-distill-qwen-1.5b"],
+         1.014371378731901),
+    )
+    colors = {"hipBLASLt GEMM": "#2563eb", "AdamW": "#7c3aed",
+              "other": "#cbd5e1"}
+    for index, (label, model, speedup) in enumerate(models):
+        x = 130 + index * 680
+        total_ms = model["total_kernel_ns_per_step"] / 1.0e6
+        categories = {row["category"]: row for row in model["categories"]}
+        gemm = categories["hipBLASLt GEMM"]["kernel_share"]
+        adamw = categories["AdamW"]["kernel_share"]
+        other = 1.0 - gemm - adamw
+        parts.extend([
+            text(x + 275, 150, label, 23, "#172033", anchor="middle", weight=700),
+            text(x + 275, 190, f"{total_ms:.3f} ms / stable step", 22,
+                 "#172033", anchor="middle", weight=700),
+        ])
+        cursor = x
+        for name, share in (("hipBLASLt GEMM", gemm), ("AdamW", adamw),
+                            ("other", other)):
+            bar_width = 550 * share
+            parts.append(f'<rect x="{cursor:.1f}" y="235" width="{bar_width:.1f}" '
+                         f'height="72" fill="{colors[name]}"/>')
+            cursor += bar_width
+        parts.extend([
+            text(x, 340, f"GEMM {gemm * 100:.2f}%", 18, "#2563eb", weight=700),
+            text(x + 205, 340, f"AdamW {adamw * 100:.2f}%", 18,
+                 "#7c3aed", weight=700),
+            text(x + 550, 390, f"{speedup:.4f}x vs Experiment 216", 19,
+                 "#166534", anchor="end", weight=700),
+        ])
+    parts.append(text(width / 2, 505,
+                      "Hotspot order is unchanged on the current retained binary",
+                      24, "#172033", anchor="middle", weight=700))
+    parts.append(text(width / 2, 560,
+                      "GEMM remains 58.56% / 63.43% · AdamW threshold search stays closed",
+                      19, "#5b6474", anchor="middle"))
+    parts.append(text(width / 2, 625,
+                      "Next contract: new training GEMM or graph-wide architecture",
+                      22, "#166534", anchor="middle", weight=700))
+    parts.append(text(width / 2, 675,
+                      "Kernel phase attribution is not an end-to-end speed claim",
+                      15, "#5b6474", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -3845,7 +3914,8 @@ def main() -> int:
                 POST_BF16_ATTENTION_NORM_PROFILE_CHART: post_bf16_attention_norm_profile_svg(),
                 BF16_PV_OUTPUT_CHART: bf16_pv_output_svg(),
                 BF16_VALUE_PV_CHART: bf16_value_pv_svg(),
-                INFERENCE_LOCAL_SATURATION_CHART: inference_local_saturation_svg()}
+                INFERENCE_LOCAL_SATURATION_CHART: inference_local_saturation_svg(),
+                CURRENT_TRAINING_PROFILE_CHART: current_training_profile_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

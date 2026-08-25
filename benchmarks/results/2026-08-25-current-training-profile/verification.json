@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "profile_processes": 4,
+  "derived_steps_per_model": 2,
+  "negative_call_delta_names": 0,
+  "parameter_updates": 4,
+  "optimizer_device_to_host_calls": 0,
+  "qwen_optimizer_metadata_bytes_per_step": 13888,
+  "deepseek_optimizer_metadata_bytes_per_step": 12608,
+  "qwen_kernel_speedup_vs_experiment_216": 1.025195919807247,
+  "deepseek_kernel_speedup_vs_experiment_216": 1.014371378731901,
+  "registered_test_files": 108,
+  "runner_contract": {
+    "passed": 1,
+    "total": 1
+  },
+  "coverage_manifest_audit": "pass",
+  "next_track": "new training GEMM or graph-wide architecture"
+}
+

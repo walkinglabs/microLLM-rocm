@@ -13562,6 +13562,65 @@ def validate_inference_local_saturation(
     return len(summary.get("consecutive_scoped_closed_tracks", [])), qwen_upper, deep_upper
 
 
+def validate_current_training_profile(
+        errors: list[str]) -> tuple[int, float, float, float, float]:
+    root = REPOSITORY / (
+        "benchmarks/results/2026-08-25-current-training-profile")
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    models = {row["model"]: row for row in summary.get("models", [])}
+    qwen = models.get("qwen2.5-0.5b", {})
+    deep = models.get("deepseek-r1-distill-qwen-1.5b", {})
+
+    def share(model: dict, name: str) -> float:
+        return float(next((row["kernel_share"] for row in model.get("categories", [])
+                           if row["category"] == name), 0.0))
+
+    expected = (31327294.5, 71872958.0,
+                0.5855728779898309, 0.634324727528259)
+    if (summary.get("schema_version") != 1 or summary.get("status") != "pass" or
+            summary.get("record_type") != "current_training_profile_summary" or
+            summary.get("profile_processes") != 4 or
+            summary.get("batch") != 1 or summary.get("context") != 512 or
+            summary.get("derived_steps") != 2 or
+            summary.get("linear_precision") != "bf16" or
+            summary.get("adamw_moment_precision") != "bf16" or
+            summary.get("adamw_bf16_multi_tensor_threshold") != 1048576 or
+            abs(float(qwen.get("total_kernel_ns_per_step", 0.0)) - expected[0]) > 1.0e-9 or
+            abs(float(deep.get("total_kernel_ns_per_step", 0.0)) - expected[1]) > 1.0e-9 or
+            abs(share(qwen, "hipBLASLt GEMM") - expected[2]) > 1.0e-12 or
+            abs(share(deep, "hipBLASLt GEMM") - expected[3]) > 1.0e-12 or
+            qwen.get("negative_call_delta_names") != [] or
+            deep.get("negative_call_delta_names") != []):
+        errors.append("current training profile summary changed")
+    metadata = {"qwen2.5-0.5b": 13888,
+                "deepseek-r1-distill-qwen-1.5b": 12608}
+    if (len(raw) != 4 or any(
+            row.get("status") != "pass" or row.get("parameter_changed") is not True or
+            row.get("context") != 512 or row.get("batch") != 1 or
+            row.get("optimizer_device_to_host_calls") != 0 or
+            row.get("optimizer_device_to_host_bytes") != 0 or
+            row.get("optimizer_host_to_device_calls") != row.get("steps") or
+            row.get("optimizer_host_to_device_bytes") !=
+                metadata.get(row.get("model"), 0) * row.get("steps", 0)
+            for row in raw)):
+        errors.append("current training raw profile gate changed")
+    if (check.get("profile_processes") != 4 or
+            check.get("negative_call_delta_names") != 0 or
+            check.get("parameter_updates") != 4 or
+            check.get("registered_test_files") != 108 or
+            check.get("coverage_manifest_audit") != "pass"):
+        errors.append("current training profile verification changed")
+    runner = REPOSITORY / "benchmarks/single_gpu/profile_current_training.py"
+    if any(token not in runner.read_text(encoding="utf-8") for token in (
+            "MOMENT_THRESHOLD = 1_048_576", "OPTIMIZER_METADATA_BYTES_PER_STEP",
+            '"--linear-precision", "bf16"', "training_kernel_phase_delta")):
+        errors.append("current training profile runner changed")
+    return summary.get("profile_processes", 0), *expected
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -13783,7 +13842,8 @@ def validate_assets(errors: list[str]) -> None:
                  "post-bf16-attention-norm-profile.svg",
                  "bf16-pv-output-discard.svg",
                  "bf16-value-pv-discard.svg",
-                 "inference-local-saturation.svg"):
+                 "inference-local-saturation.svg",
+                 "current-training-profile.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -14257,6 +14317,9 @@ def main() -> int:
         validate_bf16_value_pv_capability(errors)
     local_closed, local_qwen_upper, local_deep_upper = \
         validate_inference_local_saturation(errors)
+    current_training_rows, current_training_qwen_ns, current_training_deep_ns, \
+        current_training_qwen_gemm, current_training_deep_gemm = \
+        validate_current_training_profile(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -14686,6 +14749,11 @@ def main() -> int:
           f"value_bf16={value_pv_cases}/{value_pv_supported}/{value_pv_timed} "
           f"local_saturation={local_closed}/{local_qwen_upper:.4f}/"
           f"{local_deep_upper:.4f} "
+          f"current_training={current_training_rows}/"
+          f"{current_training_qwen_ns / 1.0e6:.3f}/"
+          f"{current_training_deep_ns / 1.0e6:.3f}/"
+          f"{current_training_qwen_gemm:.3f}/"
+          f"{current_training_deep_gemm:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

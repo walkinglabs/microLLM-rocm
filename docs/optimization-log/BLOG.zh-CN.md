@@ -3920,3 +3920,13 @@ Kernel-only上限也只有1.0277×/1.0188×。
 graph-wide融合或新后端/硬件矩阵。
 
 ![Current inference local saturation](assets/inference-local-saturation.svg)
+
+## 261. Experiment 244：用当前二进制重画训练地图
+
+新的自动runner采了四个隔离进程。Qwen/DeepSeek稳定Kernel时间是31.327/71.873ms，
+GEMM占58.56%/63.43%，AdamW占13.22%/18.16%。
+
+相对Experiment 216，整步Kernel时间改善1.0252×/1.0144×，但热点排序没有翻转。
+所以下一轮继续进入训练GEMM或graph-wide架构，不重新拨AdamW阈值。
+
+![Current training profile](assets/current-training-profile.svg)

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="720" viewBox="0 0 1500 720">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="750.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 244 · Current B1T512 Training Profile</text>
+<text x="750.0" y="82.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">BF16 Linear + BF16 AdamW moments · (three-step − one-step) / 2</text>
+<text x="405.0" y="150.0" font-family="Inter,Arial,sans-serif" font-size="23" fill="#172033" text-anchor="middle" font-weight="700">Qwen2.5-0.5B</text>
+<text x="405.0" y="190.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#172033" text-anchor="middle" font-weight="700">31.327 ms / stable step</text>
+<rect x="130.0" y="235" width="322.1" height="72" fill="#2563eb"/>
+<rect x="452.1" y="235" width="72.7" height="72" fill="#7c3aed"/>
+<rect x="524.8" y="235" width="155.2" height="72" fill="#cbd5e1"/>
+<text x="130.0" y="340.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#2563eb" text-anchor="start" font-weight="700">GEMM 58.56%</text>
+<text x="335.0" y="340.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#7c3aed" text-anchor="start" font-weight="700">AdamW 13.22%</text>
+<text x="680.0" y="390.0" font-family="Inter,Arial,sans-serif" font-size="19" fill="#166534" text-anchor="end" font-weight="700">1.0252x vs Experiment 216</text>
+<text x="1085.0" y="150.0" font-family="Inter,Arial,sans-serif" font-size="23" fill="#172033" text-anchor="middle" font-weight="700">DeepSeek-Distill-1.5B</text>
+<text x="1085.0" y="190.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#172033" text-anchor="middle" font-weight="700">71.873 ms / stable step</text>
+<rect x="810.0" y="235" width="348.9" height="72" fill="#2563eb"/>
+<rect x="1158.9" y="235" width="99.9" height="72" fill="#7c3aed"/>
+<rect x="1258.8" y="235" width="101.2" height="72" fill="#cbd5e1"/>
+<text x="810.0" y="340.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#2563eb" text-anchor="start" font-weight="700">GEMM 63.43%</text>
+<text x="1015.0" y="340.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#7c3aed" text-anchor="start" font-weight="700">AdamW 18.16%</text>
+<text x="1360.0" y="390.0" font-family="Inter,Arial,sans-serif" font-size="19" fill="#166534" text-anchor="end" font-weight="700">1.0144x vs Experiment 216</text>
+<text x="750.0" y="505.0" font-family="Inter,Arial,sans-serif" font-size="24" fill="#172033" text-anchor="middle" font-weight="700">Hotspot order is unchanged on the current retained binary</text>
+<text x="750.0" y="560.0" font-family="Inter,Arial,sans-serif" font-size="19" fill="#5b6474" text-anchor="middle" font-weight="400">GEMM remains 58.56% / 63.43% · AdamW threshold search stays closed</text>
+<text x="750.0" y="625.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#166534" text-anchor="middle" font-weight="700">Next contract: new training GEMM or graph-wide architecture</text>
+<text x="750.0" y="675.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="middle" font-weight="400">Kernel phase attribution is not an end-to-end speed claim</text>
+</svg>

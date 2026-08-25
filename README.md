@@ -25,6 +25,10 @@ extending small decoder-only language models on AMD GPUs.
 > measured Qwen/DeepSeek Kernel time, so the next inference milestone must use a new
 > custom-kernel or graph-wide architecture. See the [generated saturation map](docs/optimization-log/assets/inference-local-saturation.svg).
 
+> **Current training checkpoint:** the current B1T512 BF16 profile measures
+> 31.327/71.873 ms of Kernel time for Qwen/DeepSeek; GEMM remains 58.56%/63.43%.
+> See the [generated training map](docs/optimization-log/assets/current-training-profile.svg).
+
 ## Why this project exists
 
 Large frameworks make model development productive, but they hide the ownership,

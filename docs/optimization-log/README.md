@@ -887,6 +887,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [experiments/242-bf16-value-pv-discard.md](experiments/242-bf16-value-pv-discard.md) | 反向cast能力门与vendor路线关闭 |
 | [assets/inference-local-saturation.svg](assets/inference-local-saturation.svg) | 剩余cast上限与六条关闭路线 |
 | [experiments/243-inference-local-saturation.md](experiments/243-inference-local-saturation.md) | 当前推理局部策略搜索的停止门 |
+| [assets/current-training-profile.svg](assets/current-training-profile.svg) | 当前B1T512训练Kernel时间分布 |
+| [experiments/244-current-training-profile.md](experiments/244-current-training-profile.md) | 四进程重采样与下一训练架构合同 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 
