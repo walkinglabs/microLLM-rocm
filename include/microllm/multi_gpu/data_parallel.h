@@ -22,6 +22,7 @@ struct DataParallelConfig {
     bool in_place_bucket_average = true;
     bool persistent_gradient_buckets = false;
     bool gradient_bucket_views = false;
+    bool direct_bucket_gradients = false;
     training::AdamWConfig optimizer;
 };
 

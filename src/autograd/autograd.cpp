@@ -21,6 +21,7 @@ namespace microllm::autograd {
 struct Value::Node {
     Tensor data;
     Tensor gradient;
+    bool gradient_is_accumulation_target = false;
     std::string operation = "leaf";
     bool requires_grad = false;
     std::vector<std::shared_ptr<Node>> parents;
@@ -111,6 +112,8 @@ void accumulate(const std::shared_ptr<Value::Node>& node, const Tensor& gradient
     if (needs_materialization) prepared = prepared.contiguous();
     if (!node->gradient.defined()) {
         node->gradient = prepared;
+    } else if (node->gradient_is_accumulation_target) {
+        ops::add_in_place_(node->gradient, prepared);
     } else if (unique_gradient_inplace_add && unique_dense_destination) {
         ops::add_in_place_(node->gradient, prepared);
     } else {
@@ -128,7 +131,7 @@ void accumulate_embedding(const std::shared_ptr<Value::Node>& node,
         const auto storage = node->gradient.storage();
         // storage is one temporary owner here; count==2 means the node is the
         // only persistent owner and can safely receive sparse row additions.
-        if (storage.use_count() == 2) {
+        if (node->gradient_is_accumulation_target || storage.use_count() == 2) {
             if (accumulation_diagnostics_enabled) {
                 auto& record = accumulation_record(*node);
                 ++record.add_calls;
@@ -258,9 +261,32 @@ void Value::set_grad(Tensor gradient) {
         throw std::invalid_argument("assigned gradient must match parameter shape/device/dtype");
     }
     node_->gradient = gradient.is_contiguous() ? std::move(gradient) : gradient.contiguous();
+    node_->gradient_is_accumulation_target = false;
+}
+void Value::set_grad_accumulation_target(Tensor gradient) {
+    if (!node_ || !node_->requires_grad) {
+        throw std::logic_error(
+            "cannot set a gradient target on a non-differentiable Value");
+    }
+    if (!node_->parents.empty()) {
+        throw std::logic_error(
+            "gradient accumulation targets are supported only for leaf Values");
+    }
+    if (gradient.shape() != node_->data.shape() ||
+        gradient.dtype() != DType::Float32 ||
+        gradient.device() != node_->data.device() ||
+        !gradient.is_contiguous()) {
+        throw std::invalid_argument(
+            "gradient accumulation target must match parameter shape/device/dtype and be contiguous");
+    }
+    node_->gradient = std::move(gradient);
+    node_->gradient_is_accumulation_target = true;
 }
 void Value::zero_grad() {
-    if (node_) node_->gradient = Tensor();
+    if (node_) {
+        node_->gradient = Tensor();
+        node_->gradient_is_accumulation_target = false;
+    }
 }
 
 void Value::backward() const {
@@ -289,7 +315,10 @@ void Value::backward(const Tensor& gradient) const {
     visit(node_);
 
     for (const auto& current : topological) {
-        if (!current->parents.empty()) current->gradient = Tensor();
+        if (!current->parents.empty()) {
+            current->gradient = Tensor();
+            current->gradient_is_accumulation_target = false;
+        }
     }
     if (node_->parents.empty()) {
         accumulate(node_, gradient);

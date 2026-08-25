@@ -22,6 +22,7 @@ struct Options {
     bool in_place_bucket_average = true;
     bool persistent_gradient_buckets = false;
     bool gradient_bucket_views = false;
+    bool direct_bucket_gradients = false;
     std::uint64_t seed = 601;
     std::size_t batch = 1;
     std::size_t context = 0;
@@ -73,6 +74,13 @@ Options parse(int argc, char** argv) {
                     "--gradient-bucket-views must be true or false");
             }
             options.gradient_bucket_views = value == "true";
+        } else if (argument == "--direct-bucket-gradients") {
+            const auto value = next("--direct-bucket-gradients");
+            if (value != "true" && value != "false") {
+                throw std::invalid_argument(
+                    "--direct-bucket-gradients must be true or false");
+            }
+            options.direct_bucket_gradients = value == "true";
         } else if (argument == "--seed") options.seed = number(next("--seed"), "seed");
         else if (argument == "--batch") {
             options.batch = static_cast<std::size_t>(number(next("--batch"), "batch"));
@@ -163,6 +171,7 @@ int main(int argc, char** argv) {
              .in_place_bucket_average = options.in_place_bucket_average,
              .persistent_gradient_buckets = options.persistent_gradient_buckets,
              .gradient_bucket_views = options.gradient_bucket_views,
+             .direct_bucket_gradients = options.direct_bucket_gradients,
              .optimizer = optimizer});
         const auto parameter_count = trainer.model(0).parameter_count();
         for (const auto device : {0, 1}) {
@@ -208,6 +217,8 @@ int main(int argc, char** argv) {
                           << (options.persistent_gradient_buckets ? "true" : "false")
                           << ",\"gradient_bucket_views\":"
                           << (options.gradient_bucket_views ? "true" : "false")
+                          << ",\"direct_bucket_gradients\":"
+                          << (options.direct_bucket_gradients ? "true" : "false")
                           << ",\"mean_loss\":" << metrics.mean_loss
                           << ",\"bucket_count\":" << metrics.buckets.bucket_count
                           << ",\"bucket_parameter_count\":"
@@ -222,6 +233,8 @@ int main(int argc, char** argv) {
                           << metrics.buckets.unpacked_tensor_count
                           << ",\"gradient_view_count\":"
                           << metrics.buckets.gradient_view_count
+                          << ",\"direct_gradient_target_count\":"
+                          << metrics.buckets.direct_gradient_target_count
                           << ",\"pack_copy_calls\":"
                           << metrics.buckets.pack_copy_calls
                           << ",\"unpack_copy_calls\":"

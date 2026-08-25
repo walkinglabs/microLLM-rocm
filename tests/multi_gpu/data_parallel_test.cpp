@@ -203,6 +203,58 @@ TEST(DataParallelTrainerTest, BucketViewsRequirePersistentStorage) {
         std::invalid_argument);
 }
 
+TEST(DataParallelTrainerTest, DirectBucketGradientsMatchSingleGlobalBatch) {
+    if (runtime::hip_device_count() < 2) GTEST_SKIP() << "two visible HIP devices required";
+    const training::AdamWConfig optimizer{.learning_rate = 0.005F,
+                                           .beta1 = 0.9F,
+                                           .beta2 = 0.99F,
+                                           .epsilon = 1.0e-8F,
+                                           .weight_decay = 0.0F};
+    model::TransformerModel reference(config(), 571);
+    training::AdamW reference_optimizer(reference.parameters(), optimizer);
+    DataParallelTrainer trainer(
+        config(), 571,
+        {.device_indices = {0, 1},
+         .maximum_bucket_bytes = 1024 * 1024,
+         .parameter_check_interval = 1,
+         .in_place_bucket_average = true,
+         .persistent_gradient_buckets = true,
+         .gradient_bucket_views = true,
+         .direct_bucket_gradients = true,
+         .optimizer = optimizer});
+    for (std::uint64_t step = 1; step <= 3; ++step) {
+        reference_optimizer.zero_grad();
+        reference.loss(global_batch().inputs, global_batch().targets).backward();
+        reference_optimizer.step();
+        const auto metrics = trainer.step(local_batches(), step);
+        if (step == 1) {
+            EXPECT_GT(metrics.buckets.pack_copy_calls, 0U);
+            EXPECT_EQ(metrics.buckets.direct_gradient_target_count, 0U);
+        } else {
+            EXPECT_EQ(metrics.buckets.pack_copy_calls, 0U);
+            EXPECT_EQ(metrics.buckets.direct_gradient_target_count,
+                      metrics.buckets.parameter_count * 2U);
+        }
+        EXPECT_EQ(metrics.buckets.unpack_copy_calls, 0U);
+        EXPECT_EQ(metrics.maximum_parameter_difference, 0.0F);
+    }
+    EXPECT_LE(difference(reference, trainer.model(0)), 2.0e-5F);
+    EXPECT_EQ(difference(trainer.model(0), trainer.model(1)), 0.0F);
+}
+
+TEST(DataParallelTrainerTest, DirectBucketGradientsRequireViews) {
+    if (runtime::hip_device_count() < 2) GTEST_SKIP() << "two visible HIP devices required";
+    EXPECT_THROW(
+        (void)DataParallelTrainer(
+            config(), 577,
+            {.device_indices = {0, 1},
+             .maximum_bucket_bytes = 4096,
+             .persistent_gradient_buckets = true,
+             .direct_bucket_gradients = true,
+             .optimizer = {}}),
+        std::invalid_argument);
+}
+
 TEST(DataParallelTrainerTest, RejectsUnequalLocalBatchWeighting) {
     if (runtime::hip_device_count() < 2) GTEST_SKIP() << "two visible HIP devices required";
     DataParallelTrainer trainer(

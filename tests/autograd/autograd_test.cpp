@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cmath>
+#include <utility>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -160,6 +161,43 @@ TEST(AutogradTest, RepeatedBackwardAccumulatesLeavesWithoutReusingIntermediateGr
     loss.backward();
     EXPECT_EQ(input.grad().to_vector(), (std::vector<float>{8}));
     enable_unique_gradient_inplace_add(false);
+}
+
+TEST(AutogradTest, PreparedLeafGradientTargetAccumulatesInPlace) {
+    Value input(Tensor::from_vector({2, 3, 4}, {3}), true);
+    auto target = Tensor::from_vector({10, 20, 30}, {3});
+    const auto* address = target.data();
+    input.set_grad_accumulation_target(target);
+    sum(add(input, input)).backward();
+    EXPECT_EQ(input.grad().data(), address);
+    EXPECT_EQ(input.grad().to_vector(), (std::vector<float>{12, 22, 32}));
+    sum(input).backward();
+    EXPECT_EQ(input.grad().data(), address);
+    EXPECT_EQ(input.grad().to_vector(), (std::vector<float>{13, 23, 33}));
+}
+
+TEST(AutogradTest, PreparedGradientTargetRejectsNonLeafAndNoncontiguousTensor) {
+    Value input(Tensor::from_vector({1, 2, 3, 4}, {2, 2}), true);
+    auto output = scale(input, 2.0F);
+    EXPECT_THROW(
+        output.set_grad_accumulation_target(Tensor({2, 2})),
+        std::logic_error);
+    EXPECT_THROW(
+        input.set_grad_accumulation_target(Tensor({2, 2}).transpose(0, 1)),
+        std::invalid_argument);
+}
+
+TEST(AutogradTest, PreparedEmbeddingGradientTargetUsesSharedStorageInPlace) {
+    Value weight(Tensor::from_vector({0, 1, 2, 3, 4, 5}, {3, 2}), true);
+    auto target = Tensor::from_vector({0, 0, 0, 0, 0, 0}, {3, 2});
+    const auto alias = target;
+    const auto* address = target.data();
+    weight.set_grad_accumulation_target(std::move(target));
+    sum(embedding(weight, Tensor::from_int32_vector({2, 0, 2}, {3}))).backward();
+    EXPECT_EQ(weight.grad().data(), address);
+    EXPECT_GT(alias.storage().use_count(), 1);
+    EXPECT_EQ(weight.grad().to_vector(),
+              (std::vector<float>{1, 1, 0, 0, 2, 2}));
 }
 
 TEST(AutogradTest, EmbeddingBackwardScattersAndAccumulatesRepeatedIndices) {

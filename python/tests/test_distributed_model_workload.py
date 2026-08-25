@@ -26,6 +26,8 @@ def main() -> int:
         "--persistent-gradient-buckets", "persistent_gradient_buckets",
         "--gradient-bucket-views", "gradient_bucket_views",
         "gradient_view_count",
+        "--direct-bucket-gradients", "direct_bucket_gradients",
+        "direct_gradient_target_count",
         "maximum_engine_current_bytes",
         "distributed step failed its loss or rank-parameter gate",
     ):

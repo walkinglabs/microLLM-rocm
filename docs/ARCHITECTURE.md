@@ -120,6 +120,14 @@ does not remove add Kernel or backend-allocation work after the exact-size cache
 default is therefore false. This seam is evidence infrastructure for a future graph-wide
 liveness planner, not permission to mutate an arbitrary Tensor.
 
+A separate leaf-only accumulation-target contract is explicit rather than inferred from owner
+count. A caller may install a matching contiguous FP32 Tensor whose existing values become the
+starting gradient. Every contribution then uses in-place addition, even when disjoint parameter
+views share one bucket Storage. Non-leaf and noncontiguous targets are rejected; ordinary
+`set_grad` and `zero_grad` clear the contract. The caller owns overlap and initialization safety.
+The data-parallel direct-gradient experiment uses zeroed, non-overlapping bucket views and checks
+their addresses after backward. This is not the default Autograd allocation policy.
+
 A fused operator may still need more than one graph node. `autograd::add_rms_norm` is the
 smallest example: one device launch returns the residual sum and the normalized value, but the
 sum remains a visible Autograd node. The direct residual path and the normalization backward

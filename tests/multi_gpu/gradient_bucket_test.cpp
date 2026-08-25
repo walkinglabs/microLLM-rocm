@@ -225,6 +225,30 @@ TEST(RcclGradientBucketTest, GradientViewsShareBucketStorageAndSkipUnpackCopies)
             EXPECT_EQ(parameter->grad().data(), addresses[address++]);
         }
     }
+
+    for (auto* parameter : parameters0) parameter->zero_grad();
+    for (auto* parameter : parameters1) parameter->zero_grad();
+    plan.prepare_gradient_accumulation_targets({parameters0, parameters1});
+    for (const auto& parameters : {parameters0, parameters1}) {
+        for (const auto* parameter : parameters) {
+            EXPECT_EQ(parameter->grad().to_vector(),
+                      std::vector<float>(
+                          static_cast<std::size_t>(parameter->grad().numel()),
+                          0.0F));
+        }
+    }
+    rank0.loss(input0, target).backward();
+    rank1.loss(input1, target).backward();
+    const auto direct = all_reduce_gradients(
+        communicator, {parameters0, parameters1}, 1024 * 1024, true,
+        &plan, true, true);
+    EXPECT_EQ(direct.pack_copy_calls, 0U);
+    EXPECT_EQ(direct.unpack_copy_calls, 0U);
+    EXPECT_EQ(direct.direct_gradient_target_count, parameters0.size() * 2U);
+    for (std::size_t index = 0; index < parameters0.size(); ++index) {
+        EXPECT_EQ(parameters0[index]->grad().to_vector(),
+                  parameters1[index]->grad().to_vector());
+    }
 }
 
 }  // namespace microllm::multi_gpu

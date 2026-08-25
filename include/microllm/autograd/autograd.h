@@ -41,6 +41,10 @@ public:
     [[nodiscard]] bool has_grad() const noexcept;
     [[nodiscard]] const Tensor& grad() const;
     void set_grad(Tensor gradient);
+    // Marks an existing contiguous Tensor as the destination for subsequent
+    // backward accumulation. Its current values are preserved, so callers must
+    // initialize them deliberately before backward.
+    void set_grad_accumulation_target(Tensor gradient);
     void zero_grad();
     void backward() const;
     void backward(const Tensor& gradient) const;

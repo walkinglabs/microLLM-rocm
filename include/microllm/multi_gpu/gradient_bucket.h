@@ -17,6 +17,7 @@ struct BucketStats {
     std::size_t average_tensor_count = 0;
     std::size_t unpacked_tensor_count = 0;
     std::size_t gradient_view_count = 0;
+    std::size_t direct_gradient_target_count = 0;
     std::size_t pack_copy_calls = 0;
     std::size_t unpack_copy_calls = 0;
     std::size_t temporary_elements = 0;
@@ -41,6 +42,8 @@ public:
 
     [[nodiscard]] bool initialized() const noexcept;
     void clear() noexcept;
+    void prepare_gradient_accumulation_targets(
+        const std::vector<std::vector<autograd::Value*>>& rank_parameters);
 
 private:
     struct Impl;
@@ -50,7 +53,8 @@ private:
         Communicator& communicator,
         const std::vector<std::vector<autograd::Value*>>& rank_parameters,
         std::size_t maximum_bucket_bytes, bool in_place_average,
-        GradientBucketPlan* persistent_plan, bool gradient_views);
+        GradientBucketPlan* persistent_plan, bool gradient_views,
+        bool gradients_already_bucketed);
 };
 
 [[nodiscard]] BucketStats all_reduce_gradients(
@@ -58,6 +62,7 @@ private:
     const std::vector<std::vector<autograd::Value*>>& rank_parameters,
     std::size_t maximum_bucket_bytes, bool in_place_average = true,
     GradientBucketPlan* persistent_plan = nullptr,
-    bool gradient_views = false);
+    bool gradient_views = false,
+    bool gradients_already_bucketed = false);
 
 }  // namespace microllm::multi_gpu
