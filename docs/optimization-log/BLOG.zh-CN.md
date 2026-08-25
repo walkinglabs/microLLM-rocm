@@ -3859,3 +3859,14 @@ profile里FP32到BF16 cast仍占4%–6%。FFN的RMSNorm输出会马上被cast进
 BF16 FFN Arena现在默认使用该路径，显式`false`保留为反驳门。
 
 ![BF16 FFN Norm model gate](assets/bf16-ffn-norm-model.svg)
+
+## 255. Experiment 238：默认路径变了，性能地图也要重画
+
+四个rocprof进程用`(six-one)/5`排除加载和plan setup，并强制检查FFN Norm默认已启用。
+
+Qwen/DeepSeek Kernel时间从8.315/14.862 ms下降到8.208/14.659 ms，cast调用从
+96/112降到72/84，正好每层少一次。GEMM占比升到60.9%/68.2%。
+
+剩余cast中的下一个可分离问题是Attention Norm直入QKV Arena。下一节只改这一个边界。
+
+![Post FFN Norm profile](assets/post-bf16-ffn-norm-profile.svg)

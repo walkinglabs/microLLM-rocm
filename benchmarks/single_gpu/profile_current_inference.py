@@ -24,6 +24,7 @@ def options() -> argparse.Namespace:
     parser.add_argument("--binary", required=True, type=Path)
     parser.add_argument("--output-directory", required=True, type=Path)
     parser.add_argument("--rocprof", default="rocprofv3")
+    parser.add_argument("--expected-bf16-ffn-norm", action="store_true")
     args = parser.parse_args()
     if not args.manifest.is_file() or not args.binary.is_file():
         parser.error("profile inputs are unavailable")
@@ -108,6 +109,9 @@ def main() -> int:
                         record.get("inference_bthd_bf16_qk") is not True or \
                         record.get("inference_bthd_online_attention") is not False:
                     raise RuntimeError("profiled default route changed")
+                if args.expected_bf16_ffn_norm and \
+                        record.get("bf16_ffn_norm_fusion_enabled") is not True:
+                    raise RuntimeError("profiled FFN Norm default route changed")
                 record.update({
                     "record_type": "current_inference_profile_run",
                     "model": model["name"], "revision": model["revision"],
@@ -141,13 +145,18 @@ def main() -> int:
     summary = {
         "schema_version": 1,
         "status": "pass",
-        "record_type": "current_inference_profile_summary",
+        "record_type": ("post_bf16_ffn_norm_profile_summary"
+                        if args.expected_bf16_ffn_norm else
+                        "current_inference_profile_summary"),
+        "bf16_ffn_norm_fusion_expected": args.expected_bf16_ffn_norm,
         "profile_processes": len(records),
         "sequence": 1024,
         "batch": 1,
         "derived_forwards": 5,
         "models": summaries,
-        "decision": "keep softmax local track closed; screen exact T1024 Attention GEMM solutions",
+        "decision": ("reselect hotspot after retained FFN Norm fusion"
+                     if args.expected_bf16_ffn_norm else
+                     "keep softmax local track closed; screen exact T1024 Attention GEMM solutions"),
     }
     (args.output_directory / "raw.jsonl").write_text(
         "".join(json.dumps(row, sort_keys=True) + "\n" for row in records),

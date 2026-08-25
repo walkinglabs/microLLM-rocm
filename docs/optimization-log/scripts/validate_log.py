@@ -13329,6 +13329,49 @@ def validate_bf16_ffn_norm_model(
         qwen_alloc, deep_alloc
 
 
+def validate_post_bf16_ffn_norm_profile(
+        errors: list[str]) -> tuple[int, float, float, int, int, float, float]:
+    root = REPOSITORY / (
+        "benchmarks/results/2026-08-25-post-bf16-ffn-norm-profile")
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((root / "verification.json").read_text(
+        encoding="utf-8"))
+    rows = {row["model"]: row for row in summary.get("models", [])}
+    qwen = rows.get("qwen2.5-0.5b", {})
+    deep = rows.get("deepseek-r1-distill-qwen-1.5b", {})
+    qwen_cast = next((row for row in qwen.get("categories", [])
+                      if row["category"] == "FP32/BF16 cast"), {})
+    deep_cast = next((row for row in deep.get("categories", [])
+                      if row["category"] == "FP32/BF16 cast"), {})
+    qwen_gemm = next((row for row in qwen.get("categories", [])
+                      if row["category"] == "hipBLASLt GEMM"), {})
+    deep_gemm = next((row for row in deep.get("categories", [])
+                      if row["category"] == "hipBLASLt GEMM"), {})
+    expected = (8.2080498, 14.6589138, 72, 84,
+                0.6094946451226454, 0.6818679430395451)
+    if (summary.get("schema_version") != 1 or summary.get("status") != "pass" or
+            summary.get("record_type") != "post_bf16_ffn_norm_profile_summary" or
+            summary.get("bf16_ffn_norm_fusion_expected") is not True or
+            summary.get("profile_processes") != 4 or len(rows) != 2 or
+            abs(float(qwen.get("total_kernel_ns_per_step", 0.0)) / 1.0e6 -
+                expected[0]) > 1.0e-9 or
+            abs(float(deep.get("total_kernel_ns_per_step", 0.0)) / 1.0e6 -
+                expected[1]) > 1.0e-9 or
+            qwen_cast.get("calls_per_step") != expected[2] or
+            deep_cast.get("calls_per_step") != expected[3] or
+            abs(float(qwen_gemm.get("kernel_share", 0.0)) - expected[4]) > 1.0e-12 or
+            abs(float(deep_gemm.get("kernel_share", 0.0)) - expected[5]) > 1.0e-12):
+        errors.append("post-BF16-FFN-Norm profile changed")
+    if (verification.get("bf16_ffn_norm_fusion_enabled") is not True or
+            verification.get("qwen_previous_cast_calls_per_step") != 96 or
+            verification.get("deepseek_previous_cast_calls_per_step") != 112):
+        errors.append("post-BF16-FFN-Norm verification changed")
+    source = REPOSITORY / "benchmarks/single_gpu/profile_current_inference.py"
+    if "--expected-bf16-ffn-norm" not in source.read_text(encoding="utf-8"):
+        errors.append("post-BF16-FFN-Norm profile runner changed")
+    return summary.get("profile_processes", 0), *expected
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -13544,7 +13587,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-swiglu-vector-discard.svg",
                  "bf16-grouped-swish-discard.svg",
                  "bf16-rms-norm-output.svg",
-                 "bf16-ffn-norm-model.svg"):
+                 "bf16-ffn-norm-model.svg",
+                 "post-bf16-ffn-norm-profile.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -14001,6 +14045,9 @@ def main() -> int:
     bf16_norm_model_rows, bf16_norm_model_qwen, bf16_norm_model_deep, \
         bf16_norm_model_qwen_alloc, bf16_norm_model_deep_alloc = \
         validate_bf16_ffn_norm_model(errors)
+    post_norm_profile_rows, post_norm_qwen_ms, post_norm_deep_ms, \
+        post_norm_qwen_casts, post_norm_deep_casts, post_norm_qwen_gemm, \
+        post_norm_deep_gemm = validate_post_bf16_ffn_norm_profile(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -14414,6 +14461,10 @@ def main() -> int:
           f"bf16_norm_model={bf16_norm_model_rows}/"
           f"{bf16_norm_model_qwen:.3f}/{bf16_norm_model_deep:.3f}/"
           f"{bf16_norm_model_qwen_alloc}/{bf16_norm_model_deep_alloc} "
+          f"post_norm_profile={post_norm_profile_rows}/{post_norm_qwen_ms:.3f}/"
+          f"{post_norm_deep_ms:.3f}/{post_norm_qwen_casts}/"
+          f"{post_norm_deep_casts}/{post_norm_qwen_gemm:.3f}/"
+          f"{post_norm_deep_gemm:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

@@ -407,6 +407,9 @@ the chronological details are in the [optimization log](docs/optimization-log/RE
 - the FFN Arena model route passes separately at 1.0122×/1.0092× with bit-identical complete
   logits, unchanged peak and 120/140 fewer measured allocations; BF16 FFN Arena now enables it by
   default while an explicit false path remains.
+- a fresh load-subtracted profile of that default cuts cast calls 96→72 and 112→84 and Kernel
+  time to 8.208/14.659 ms; GEMM now occupies 60.9%/68.2%, and the next isolated boundary is
+  Attention Norm directly feeding the existing BF16 QKV Arena.
 
 </details>
 

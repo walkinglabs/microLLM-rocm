@@ -89,6 +89,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [58](steps/58-bf16-grouped-swish-discard.md) | complete | grouped Swish epilogue | operator 1.097×/1.069×；整模1.000×/0.991×且logits变化 |
 | [59](steps/59-bf16-rms-norm-output.md) | complete | RMSNorm直写BF16 | Event 1.866×/2.070×；位级相同，准入模型门 |
 | [60](steps/60-bf16-ffn-norm-model.md) | complete | FFN Norm直入Arena | 整模1.0122×/1.0092×；位级相同，默认启用 |
+| [61](steps/61-post-bf16-ffn-norm-profile.md) | complete | 融合后重新profile | cast 96→72/112→84；下一边界Attention Norm |
 
 ## 为什么按这个顺序
 

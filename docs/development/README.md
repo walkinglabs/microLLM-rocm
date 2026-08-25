@@ -496,3 +496,5 @@ the next gate. Records are append-only except for factual corrections.
   beginner-friendly direct-BF16 final store and corrected GPU reference.
 - [2026-08-25-bf16-ffn-norm-model.md](2026-08-25-bf16-ffn-norm-model.md):
   beginner-friendly default route, exact allocation reduction and fallback fix.
+- [2026-08-25-post-bf16-ffn-norm-profile.md](2026-08-25-post-bf16-ffn-norm-profile.md):
+  beginner-friendly load-subtracted map after the retained default change.

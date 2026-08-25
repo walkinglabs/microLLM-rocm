@@ -17,6 +17,7 @@ def main() -> int:
         "--kernel-trace", "--stats", "(1, 6)",
         "profile_step_delta.py", "inference_prefill_kernel_phase_delta",
         "--inference-bthd-online-attention", "derived_forwards",
+        "--expected-bf16-ffn-norm",
     ):
         assert token in text
     print("current inference profile runner contract: pass")

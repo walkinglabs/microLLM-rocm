@@ -157,6 +157,11 @@ BF16_RMS_NORM_OUTPUT_CHART = ROOT / "assets" / "bf16-rms-norm-output.svg"
 BF16_FFN_NORM_MODEL_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
                             "2026-08-25-bf16-ffn-norm-model-gate")
 BF16_FFN_NORM_MODEL_CHART = ROOT / "assets" / "bf16-ffn-norm-model.svg"
+POST_BF16_FFN_NORM_PROFILE_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-post-bf16-ffn-norm-profile")
+POST_BF16_FFN_NORM_PROFILE_CHART = (
+    ROOT / "assets" / "post-bf16-ffn-norm-profile.svg")
 
 
 def rows() -> list[dict]:
@@ -3471,6 +3476,61 @@ def bf16_ffn_norm_model_svg() -> str:
     return "\n".join(parts)
 
 
+def post_bf16_ffn_norm_profile_svg() -> str:
+    verification = json.loads((POST_BF16_FFN_NORM_PROFILE_ROOT /
+                               "verification.json").read_text(encoding="utf-8"))
+    width, height = 1500, 720
+    chart_x, chart_y, chart_w, chart_h = 180, 150, 1140, 330
+    values = [
+        ("Qwen before", verification["qwen_previous_total_kernel_ms"], "#94a3b8"),
+        ("Qwen after", verification["qwen_total_kernel_ms"], "#16a34a"),
+        ("Deep before", verification["deepseek_previous_total_kernel_ms"], "#94a3b8"),
+        ("Deep after", verification["deepseek_total_kernel_ms"], "#16a34a"),
+    ]
+    maximum = 16.0
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 238 · Profile After FFN Norm Fusion", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "load-subtracted B1T1024 · four rocprof processes · milliseconds/forward",
+             16, "#5b6474", anchor="middle"),
+        f'<rect x="{chart_x}" y="{chart_y}" width="{chart_w}" height="{chart_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+    ]
+    def y(value: float) -> float:
+        return chart_y + chart_h * (maximum - value) / maximum
+    for tick in (0, 4, 8, 12, 16):
+        y_pos = y(float(tick))
+        parts.append(f'<line x1="{chart_x}" y1="{y_pos:.1f}" '
+                     f'x2="{chart_x+chart_w}" y2="{y_pos:.1f}" stroke="#e5e9f0"/>')
+        parts.append(text(chart_x - 12, y_pos + 5, f"{tick} ms", 13,
+                          "#5b6474", anchor="end"))
+    slot = chart_w / len(values)
+    for index, (label, value, color) in enumerate(values):
+        center = chart_x + slot * (index + 0.5)
+        top, base = y(value), y(0.0)
+        parts.append(f'<rect x="{center-70:.1f}" y="{top:.1f}" width="140" '
+                     f'height="{base-top:.1f}" fill="{color}" rx="6"/>')
+        parts.append(text(center, top - 10, f"{value:.3f}", 15, color,
+                          anchor="middle", weight=700))
+        parts.append(text(center, chart_y + chart_h + 28, label, 14,
+                          "#5b6474", anchor="middle"))
+    parts.append(text(width / 2, 590,
+                      "FP32/BF16 casts per step: 96→72 (Qwen), 112→84 (DeepSeek)",
+                      18, "#166534", anchor="middle", weight=700))
+    parts.append(text(width / 2, 635,
+                      "GEMM share is now 60.9% / 68.2%; next boundary is Attention input",
+                      18, "#5b6474", anchor="middle", weight=700))
+    parts.append(text(width / 2, 680,
+                      "Profile selects the next experiment; it does not itself enable another route",
+                      13, "#5b6474", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -3524,7 +3584,8 @@ def main() -> int:
                 BF16_SWIGLU_VECTOR_CHART: bf16_swiglu_vector_svg(),
                 BF16_GROUPED_SWISH_CHART: bf16_grouped_swish_svg(),
                 BF16_RMS_NORM_OUTPUT_CHART: bf16_rms_norm_output_svg(),
-                BF16_FFN_NORM_MODEL_CHART: bf16_ffn_norm_model_svg()}
+                BF16_FFN_NORM_MODEL_CHART: bf16_ffn_norm_model_svg(),
+                POST_BF16_FFN_NORM_PROFILE_CHART: post_bf16_ffn_norm_profile_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]
