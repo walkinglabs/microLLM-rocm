@@ -213,6 +213,11 @@ BF16_WGRAD_WORKSPACE_ROOT = (
     "2026-08-25-bf16-weight-gradient-workspace-gate")
 BF16_WGRAD_WORKSPACE_CHART = (
     ROOT / "assets" / "bf16-weight-gradient-workspace-discard.svg")
+TRAINING_LOCAL_SATURATION_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-training-local-saturation")
+TRAINING_LOCAL_SATURATION_CHART = (
+    ROOT / "assets" / "training-local-saturation.svg")
 
 
 def rows() -> list[dict]:
@@ -4132,6 +4137,68 @@ def bf16_weight_gradient_workspace_svg() -> str:
     return "\n".join(parts)
 
 
+def training_local_saturation_svg() -> str:
+    summary = json.loads((TRAINING_LOCAL_SATURATION_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    width, height = 1500, 820
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 250 · Current Training Local Saturation", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "Current B1T512 profile · six adjacent model-policy tracks closed",
+             16, "#5b6474", anchor="middle"),
+    ]
+    models = (
+        ("Qwen2.5-0.5B", summary["qwen_kernel_ms"],
+         summary["qwen_gemm_share"], summary["qwen_adamw_share"],
+         summary["qwen_perfect_cast_deletion_ceiling"]),
+        ("DeepSeek-Distill-1.5B", summary["deepseek_kernel_ms"],
+         summary["deepseek_gemm_share"], summary["deepseek_adamw_share"],
+         summary["deepseek_perfect_cast_deletion_ceiling"]),
+    )
+    for index, (model, kernel, gemm, adamw, cast_ceiling) in enumerate(models):
+        x = 145 + index * 680
+        parts.extend([
+            f'<rect x="{x}" y="130" width="540" height="220" rx="16" '
+            'fill="#eef6ff" stroke="#2563eb" stroke-width="2"/>',
+            text(x + 270, 175, model, 22, "#172033", anchor="middle", weight=700),
+            text(x + 55, 225, f"Kernel / step  {kernel:.3f} ms", 18),
+            text(x + 55, 265, f"GEMM  {gemm * 100:.2f}%", 18, "#2563eb", weight=700),
+            text(x + 300, 265, f"AdamW  {adamw * 100:.2f}%", 18,
+                 "#7c3aed", weight=700),
+            text(x + 270, 320, f"free cast deletion ≤ {cast_ceiling:.4f}x", 19,
+                 "#5b6474", anchor="middle"),
+        ])
+    labels = (
+        "grouped dW", "packed dW", "exact dW index",
+        "optimizer Graph", "BF16 dW trajectory", "BF16 dW workspace",
+    )
+    for index, label in enumerate(labels):
+        row, column = divmod(index, 3)
+        x, y = 95 + column * 470, 410 + row * 105
+        parts.extend([
+            f'<rect x="{x}" y="{y}" width="400" height="72" rx="12" '
+            'fill="#fff1f2" stroke="#e11d48" stroke-width="2"/>',
+            text(x + 200, y + 31, label, 18, "#9f1239", anchor="middle", weight=700),
+            text(x + 200, y + 57, "closed by operator/model/trajectory gate", 13,
+                 "#5b6474", anchor="middle"),
+        ])
+    parts.append(text(width / 2, 660,
+                      "Decision: stop local default-policy retuning",
+                      25, "#166534", anchor="middle", weight=700))
+    parts.append(text(width / 2, 720,
+                      "Next scale: new custom kernel / graph architecture / production reducer",
+                      20, "#172033", anchor="middle", weight=700))
+    parts.append(text(width / 2, 775,
+                      "This closes one search scale, not the training roadmap",
+                      15, "#5b6474", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -4197,7 +4264,8 @@ def main() -> int:
                 BF16_WGRAD_MODEL_CHART: bf16_weight_gradient_model_svg(),
                 BF16_WGRAD_TRAJECTORY_CHART: bf16_weight_gradient_trajectory_svg(),
                 BF16_WGRAD_ALLOCATION_CHART: bf16_weight_gradient_allocation_svg(),
-                BF16_WGRAD_WORKSPACE_CHART: bf16_weight_gradient_workspace_svg()}
+                BF16_WGRAD_WORKSPACE_CHART: bf16_weight_gradient_workspace_svg(),
+                TRAINING_LOCAL_SATURATION_CHART: training_local_saturation_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

@@ -526,3 +526,5 @@ the next gate. Records are append-only except for factual corrections.
   proves the exact two-cast allocation identity without restoring the rejected route.
 - [2026-08-25-bf16-weight-gradient-workspace-discard.md](2026-08-25-bf16-weight-gradient-workspace-discard.md):
   rejects a public workspace after separate Event and wall gates.
+- [2026-08-25-training-local-saturation.md](2026-08-25-training-local-saturation.md):
+  closes local training policy retuning and selects the next architecture scale.

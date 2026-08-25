@@ -44,6 +44,10 @@ extending small decoder-only language models on AMD GPUs.
 > That gate now rejects the workspace: preallocated Qwen/DeepSeek wall ratios are
 > 0.986×/0.889×. No workspace type or model route is added.
 
+> The current training local-policy search is now closed after six adjacent measured
+> rejections. This does not finish training work; it moves the next milestone to a new
+> kernel/graph scale or the production data-parallel reducer.
+
 ## Why this project exists
 
 Large frameworks make model development productive, but they hide the ownership,

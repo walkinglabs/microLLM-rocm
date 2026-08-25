@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="820" viewBox="0 0 1500 820">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="750.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 250 · Current Training Local Saturation</text>
+<text x="750.0" y="82.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">Current B1T512 profile · six adjacent model-policy tracks closed</text>
+<rect x="145" y="130" width="540" height="220" rx="16" fill="#eef6ff" stroke="#2563eb" stroke-width="2"/>
+<text x="415.0" y="175.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#172033" text-anchor="middle" font-weight="700">Qwen2.5-0.5B</text>
+<text x="200.0" y="225.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="400">Kernel / step  31.327 ms</text>
+<text x="200.0" y="265.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#2563eb" text-anchor="start" font-weight="700">GEMM  58.56%</text>
+<text x="445.0" y="265.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#7c3aed" text-anchor="start" font-weight="700">AdamW  13.22%</text>
+<text x="415.0" y="320.0" font-family="Inter,Arial,sans-serif" font-size="19" fill="#5b6474" text-anchor="middle" font-weight="400">free cast deletion ≤ 1.0332x</text>
+<rect x="825" y="130" width="540" height="220" rx="16" fill="#eef6ff" stroke="#2563eb" stroke-width="2"/>
+<text x="1095.0" y="175.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#172033" text-anchor="middle" font-weight="700">DeepSeek-Distill-1.5B</text>
+<text x="880.0" y="225.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="400">Kernel / step  71.873 ms</text>
+<text x="880.0" y="265.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#2563eb" text-anchor="start" font-weight="700">GEMM  63.43%</text>
+<text x="1125.0" y="265.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#7c3aed" text-anchor="start" font-weight="700">AdamW  18.16%</text>
+<text x="1095.0" y="320.0" font-family="Inter,Arial,sans-serif" font-size="19" fill="#5b6474" text-anchor="middle" font-weight="400">free cast deletion ≤ 1.0277x</text>
+<rect x="95" y="410" width="400" height="72" rx="12" fill="#fff1f2" stroke="#e11d48" stroke-width="2"/>
+<text x="295.0" y="441.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#9f1239" text-anchor="middle" font-weight="700">grouped dW</text>
+<text x="295.0" y="467.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">closed by operator/model/trajectory gate</text>
+<rect x="565" y="410" width="400" height="72" rx="12" fill="#fff1f2" stroke="#e11d48" stroke-width="2"/>
+<text x="765.0" y="441.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#9f1239" text-anchor="middle" font-weight="700">packed dW</text>
+<text x="765.0" y="467.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">closed by operator/model/trajectory gate</text>
+<rect x="1035" y="410" width="400" height="72" rx="12" fill="#fff1f2" stroke="#e11d48" stroke-width="2"/>
+<text x="1235.0" y="441.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#9f1239" text-anchor="middle" font-weight="700">exact dW index</text>
+<text x="1235.0" y="467.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">closed by operator/model/trajectory gate</text>
+<rect x="95" y="515" width="400" height="72" rx="12" fill="#fff1f2" stroke="#e11d48" stroke-width="2"/>
+<text x="295.0" y="546.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#9f1239" text-anchor="middle" font-weight="700">optimizer Graph</text>
+<text x="295.0" y="572.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">closed by operator/model/trajectory gate</text>
+<rect x="565" y="515" width="400" height="72" rx="12" fill="#fff1f2" stroke="#e11d48" stroke-width="2"/>
+<text x="765.0" y="546.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#9f1239" text-anchor="middle" font-weight="700">BF16 dW trajectory</text>
+<text x="765.0" y="572.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">closed by operator/model/trajectory gate</text>
+<rect x="1035" y="515" width="400" height="72" rx="12" fill="#fff1f2" stroke="#e11d48" stroke-width="2"/>
+<text x="1235.0" y="546.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#9f1239" text-anchor="middle" font-weight="700">BF16 dW workspace</text>
+<text x="1235.0" y="572.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">closed by operator/model/trajectory gate</text>
+<text x="750.0" y="660.0" font-family="Inter,Arial,sans-serif" font-size="25" fill="#166534" text-anchor="middle" font-weight="700">Decision: stop local default-policy retuning</text>
+<text x="750.0" y="720.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">Next scale: new custom kernel / graph architecture / production reducer</text>
+<text x="750.0" y="775.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="middle" font-weight="400">This closes one search scale, not the training roadmap</text>
+</svg>

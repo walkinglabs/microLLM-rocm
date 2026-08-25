@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "record_type": "training_local_saturation_summary",
+  "profile_source": "2026-08-25-current-training-profile",
+  "qwen_kernel_ms": 31.3272945,
+  "deepseek_kernel_ms": 71.872958,
+  "qwen_gemm_share": 0.5855728779898309,
+  "deepseek_gemm_share": 0.634324727528259,
+  "qwen_adamw_share": 0.13218766784983618,
+  "deepseek_adamw_share": 0.18162864536617512,
+  "qwen_cast_share": 0.032102644548510244,
+  "deepseek_cast_share": 0.0269899911452093,
+  "qwen_perfect_cast_deletion_ceiling": 1.033167405993723,
+  "deepseek_perfect_cast_deletion_ceiling": 1.02773865725901,
+  "qwen_largest_small_category_ceiling": 1.050738271110566,
+  "deepseek_largest_small_category_ceiling": 1.03884362947197,
+  "closed_tracks": [
+    "grouped_weight_gradient",
+    "packed_weight_gradient",
+    "exact_weight_gradient_solution",
+    "optimizer_graph_model",
+    "bf16_gate_up_weight_gradient_trajectory",
+    "bf16_weight_gradient_workspace"
+  ],
+  "local_default_policy_saturated": true,
+  "next_contract": "new custom-kernel or graph-wide architecture, or production data-parallel reducer"
+}
+

@@ -3977,3 +3977,13 @@ wall/Event差异。
 DeepSeek Event也更慢。0/2 shape过门，所以不增加workspace API。
 
 ![BF16 weight-gradient workspace discard](assets/bf16-weight-gradient-workspace-discard.svg)
+
+## 267. Experiment 250：训练局部搜索也要有停止门
+
+当前GEMM和AdamW占绝对多数；cast免费删除上限只有1.0332×/1.0277×。Grouped、packed、
+exact-index、optimizer Graph、BF16长轨迹和workspace六条相邻路线已关闭。
+
+所以停止局部默认策略调参。下一阶段进入新kernel/graph尺度，或回到课程主线中的production
+data-parallel reducer。
+
+![Training local saturation](assets/training-local-saturation.svg)

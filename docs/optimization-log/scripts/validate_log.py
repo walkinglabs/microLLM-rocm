@@ -13876,6 +13876,41 @@ def validate_bf16_weight_gradient_workspace_discard(
     return summary.get("raw_processes", 0), *expected
 
 
+def validate_training_local_saturation(
+        errors: list[str]) -> tuple[int, float, float, float, float]:
+    root = REPOSITORY / "benchmarks/results/2026-08-25-training-local-saturation"
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    expected = (1.033167405993723, 1.02773865725901,
+                1.050738271110566, 1.03884362947197)
+    if (summary.get("schema_version") != 1 or summary.get("status") != "pass" or
+            summary.get("record_type") != "training_local_saturation_summary" or
+            summary.get("profile_source") != "2026-08-25-current-training-profile" or
+            len(summary.get("closed_tracks", [])) != 6 or
+            summary.get("local_default_policy_saturated") is not True or
+            abs(float(summary.get("qwen_perfect_cast_deletion_ceiling", 0.0)) -
+                expected[0]) > 1.0e-12 or
+            abs(float(summary.get("deepseek_perfect_cast_deletion_ceiling", 0.0)) -
+                expected[1]) > 1.0e-12 or
+            abs(float(summary.get("qwen_largest_small_category_ceiling", 0.0)) -
+                expected[2]) > 1.0e-12 or
+            abs(float(summary.get("deepseek_largest_small_category_ceiling", 0.0)) -
+                expected[3]) > 1.0e-12):
+        errors.append("training local-saturation summary changed")
+    current = check.get("current_validation", {})
+    if (check.get("closed_tracks") != 6 or
+            check.get("retained_rejected_model_routes") != 0 or
+            check.get("workspace_api_created") is not False or
+            check.get("local_default_policy_saturated") is not True or
+            current.get("cpu") != {"passed": 349, "total": 349} or
+            current.get("asan_ubsan") != {"passed": 347, "total": 347} or
+            current.get("hip", {}).get("passed") != 188 or
+            current.get("pytorch_enabled") != {"passed": 323, "total": 323} or
+            check.get("registered_test_files") != 111):
+        errors.append("training local-saturation verification changed")
+    return len(summary.get("closed_tracks", [])), *expected
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -14103,7 +14138,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-weight-gradient-model.svg",
                  "bf16-weight-gradient-trajectory-discard.svg",
                  "bf16-weight-gradient-allocation-attribution.svg",
-                 "bf16-weight-gradient-workspace-discard.svg"):
+                 "bf16-weight-gradient-workspace-discard.svg",
+                 "training-local-saturation.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -14594,6 +14630,9 @@ def main() -> int:
     bf16_wgrad_workspace_rows, bf16_wgrad_qwen_wall, bf16_wgrad_deep_wall, \
         bf16_wgrad_qwen_event, bf16_wgrad_deep_event = \
         validate_bf16_weight_gradient_workspace_discard(errors)
+    training_local_closed, training_local_qwen_cast, training_local_deep_cast, \
+        training_local_qwen_small, training_local_deep_small = \
+        validate_training_local_saturation(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -15043,6 +15082,9 @@ def main() -> int:
           f"bf16_wgrad_workspace={bf16_wgrad_workspace_rows}/"
           f"{bf16_wgrad_qwen_wall:.3f}/{bf16_wgrad_deep_wall:.3f}/"
           f"{bf16_wgrad_qwen_event:.3f}/{bf16_wgrad_deep_event:.3f} "
+          f"training_local_saturation={training_local_closed}/"
+          f"{training_local_qwen_cast:.3f}/{training_local_deep_cast:.3f}/"
+          f"{training_local_qwen_small:.3f}/{training_local_deep_small:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

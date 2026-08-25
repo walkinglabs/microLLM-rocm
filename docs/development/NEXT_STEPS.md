@@ -177,8 +177,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   per route; backend allocation, peak and cached-byte deltas are zero;
 - [x] measure allocating versus preallocated wall/Event cost: Qwen/DeepSeek wall is
   0.986x/0.889x, so no public weight-gradient workspace is added;
-- [ ] publish the current training local-saturation audit and move the next experiment to
-  a genuinely new kernel/graph scale or the production data-parallel reducer;
+- [x] publish the current training local-saturation audit: six adjacent tracks closed and
+  perfect cast-deletion ceilings are only 1.0332x/1.0277x;
+- [ ] move the next experiment to a genuinely new kernel/graph scale or the production
+  data-parallel reducer; do not reopen local training policy knobs;
 
 - [x] make the matmul registry key exact over its implicit op identity, GPU architecture,
   dtype, shape, strides/layout, mode, workspace limit, and library/runtime versions;
