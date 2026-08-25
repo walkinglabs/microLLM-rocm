@@ -178,12 +178,34 @@ int main(int argc, char** argv) {
                           << metrics.buckets.parameter_count
                           << ",\"bucket_total_elements\":"
                           << metrics.buckets.total_elements
+                          << ",\"bucket_tensor_count\":"
+                          << metrics.buckets.bucket_tensor_count
+                          << ",\"average_tensor_count\":"
+                          << metrics.buckets.average_tensor_count
+                          << ",\"unpacked_tensor_count\":"
+                          << metrics.buckets.unpacked_tensor_count
+                          << ",\"pack_copy_calls\":"
+                          << metrics.buckets.pack_copy_calls
+                          << ",\"unpack_copy_calls\":"
+                          << metrics.buckets.unpack_copy_calls
+                          << ",\"bucket_temporary_elements\":"
+                          << metrics.buckets.temporary_elements
+                          << ",\"bucket_temporary_bytes\":"
+                          << metrics.buckets.temporary_bytes
                           << ",\"parameter_check_performed\":"
                           << (metrics.parameter_check_performed ? "true" : "false")
                           << ",\"parameter_max_difference\":"
                           << metrics.maximum_parameter_difference
                           << ",\"forward_backward_ms\":" << metrics.forward_backward_ms
                           << ",\"communication_ms\":" << metrics.communication_ms
+                          << ",\"communication_allocation_calls\":"
+                          << metrics.communication_allocation_calls
+                          << ",\"communication_backend_allocation_calls\":"
+                          << metrics.communication_backend_allocation_calls
+                          << ",\"communication_cache_reuse_calls\":"
+                          << metrics.communication_cache_reuse_calls
+                          << ",\"communication_total_allocated_bytes\":"
+                          << metrics.communication_total_allocated_bytes
                           << ",\"optimizer_ms\":" << metrics.optimizer_ms
                           << ",\"verification_ms\":" << metrics.verification_ms
                           << ",\"maximum_engine_peak_bytes\":"

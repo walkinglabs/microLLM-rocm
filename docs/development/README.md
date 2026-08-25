@@ -544,3 +544,5 @@ the next gate. Records are append-only except for factual corrections.
   pins the natural 1/4/25 MiB reducer-baseline matrix.
 - [2026-08-25-data-parallel-model-s-buckets.md](2026-08-25-data-parallel-model-s-buckets.md):
   selects the 3-bucket baseline and records its memory tradeoff.
+- [2026-08-25-data-parallel-bucket-copy-stats.md](2026-08-25-data-parallel-bucket-copy-stats.md):
+  adds exact pack/unpack/average temporary and backend-allocation statistics.

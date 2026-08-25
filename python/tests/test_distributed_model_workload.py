@@ -17,6 +17,10 @@ def main() -> int:
         '"--model"', '"model-s"', "ModelConfig::model_s()",
         '"--context"', '"--batch"', "bucket_parameter_count",
         "bucket_total_elements", "maximum_engine_peak_bytes",
+        "bucket_temporary_bytes", "average_tensor_count",
+        "pack_copy_calls", "unpack_copy_calls",
+        "communication_allocation_calls",
+        "communication_backend_allocation_calls",
         "distributed step failed its loss or rank-parameter gate",
     ):
         assert token in cli

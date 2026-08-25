@@ -79,6 +79,10 @@ maximum per-rank engine peak bytes. This workload is the prerequisite for real o
 Experiment 254 selects 25 MiB/3 buckets as the current reducer baseline: 19.76 ms total,
 6.825 ms communication and 603,383,808 peak engine bytes per rank. It is not yet overlapped.
 
+Bucket metrics now expose bucket/average/unpacked Tensor counts, pack/unpack copies, temporary
+bytes and communication-stage allocation deltas. The 3-bucket Model-S identity is 126 backend
+allocations and 374,068,224 temporary bytes per step; RCCL non-default streams prevent pool reuse.
+
 The CLI prints one JSON record per step and writes stage/layer/model timing records using
 the same trace schema as the alignment infrastructure.
 

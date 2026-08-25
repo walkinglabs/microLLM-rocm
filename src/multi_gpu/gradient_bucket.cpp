@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -72,6 +73,8 @@ BucketStats all_reduce_gradients(
         for (std::size_t rank = 0; rank < communicator.size(); ++rank) {
             buckets.emplace_back(Shape{static_cast<std::int64_t>(bucket_elements)},
                                  DType::Float32, Device::hip(communicator.devices()[rank]));
+            ++stats.bucket_tensor_count;
+            stats.temporary_elements += bucket_elements;
             std::size_t offset = 0;
             for (std::size_t index = first_parameter; index < end_parameter; ++index) {
                 const auto& gradient = rank_parameters[rank][index]->grad();
@@ -80,10 +83,13 @@ BucketStats all_reduce_gradients(
                                     offset * sizeof(float);
                 runtime::copy_bytes_async(destination, buckets.back().device(), gradient.data(),
                                           gradient.device(), bytes, communicator.stream(rank));
+                ++stats.pack_copy_calls;
                 offset += static_cast<std::size_t>(gradient.numel());
             }
         }
         communicator.all_reduce(buckets, true);
+        stats.average_tensor_count += communicator.size();
+        stats.temporary_elements += bucket_elements * communicator.size();
 
         std::vector<std::vector<Tensor>> unpacked(communicator.size());
         for (std::size_t rank = 0; rank < communicator.size(); ++rank) {
@@ -93,6 +99,9 @@ BucketStats all_reduce_gradients(
                 const auto shape = rank_parameters[rank][index]->grad().shape();
                 unpacked[rank].emplace_back(shape, DType::Float32,
                                             Device::hip(communicator.devices()[rank]));
+                ++stats.unpacked_tensor_count;
+                stats.temporary_elements += static_cast<std::size_t>(
+                    unpacked[rank].back().numel());
                 const auto bytes = static_cast<std::size_t>(unpacked[rank].back().numel()) *
                                    sizeof(float);
                 const auto* source = static_cast<const std::byte*>(buckets[rank].data()) +
@@ -101,6 +110,7 @@ BucketStats all_reduce_gradients(
                                           unpacked[rank].back().device(), source,
                                           buckets[rank].device(), bytes,
                                           communicator.stream(rank));
+                ++stats.unpack_copy_calls;
                 offset += static_cast<std::size_t>(unpacked[rank].back().numel());
             }
         }
@@ -115,6 +125,11 @@ BucketStats all_reduce_gradients(
         stats.total_elements += bucket_elements;
         first_parameter = end_parameter;
     }
+    if (stats.temporary_elements >
+        std::numeric_limits<std::size_t>::max() / sizeof(float)) {
+        throw std::overflow_error("gradient bucket temporary bytes overflow");
+    }
+    stats.temporary_bytes = stats.temporary_elements * sizeof(float);
     return stats;
 }
 

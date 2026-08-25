@@ -12,6 +12,13 @@ struct BucketStats {
     std::size_t bucket_count = 0;
     std::size_t parameter_count = 0;
     std::size_t total_elements = 0;
+    std::size_t bucket_tensor_count = 0;
+    std::size_t average_tensor_count = 0;
+    std::size_t unpacked_tensor_count = 0;
+    std::size_t pack_copy_calls = 0;
+    std::size_t unpack_copy_calls = 0;
+    std::size_t temporary_elements = 0;
+    std::size_t temporary_bytes = 0;
 };
 
 [[nodiscard]] BucketStats all_reduce_gradients(

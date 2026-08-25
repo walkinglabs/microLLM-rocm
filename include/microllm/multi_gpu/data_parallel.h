@@ -31,6 +31,10 @@ struct DistributedStepMetrics {
     float maximum_parameter_difference = 0.0F;
     double forward_backward_ms = 0.0;
     double communication_ms = 0.0;
+    std::size_t communication_allocation_calls = 0;
+    std::size_t communication_backend_allocation_calls = 0;
+    std::size_t communication_cache_reuse_calls = 0;
+    std::size_t communication_total_allocated_bytes = 0;
     double optimizer_ms = 0.0;
     double verification_ms = 0.0;
     double total_ms = 0.0;

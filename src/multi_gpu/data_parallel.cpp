@@ -7,6 +7,7 @@
 #include <utility>
 
 #include <microllm/profiling/trace.h>
+#include <microllm/runtime/memory.h>
 #include <microllm/runtime/runtime.h>
 
 namespace microllm::multi_gpu {
@@ -161,11 +162,29 @@ DistributedStepMetrics DataParallelTrainer::step(
     }
 
     const auto communication_start = Clock::now();
+    // Runtime HIP allocation counters are process-wide across HIP devices.
+    // Sample once; summing per-device queries would double-count the same ledger.
+    const auto communication_allocation_before = runtime::allocation_stats(
+        Device::hip(impl_->config.device_indices.front()));
     std::vector<std::vector<autograd::Value*>> rank_parameters;
     rank_parameters.reserve(world_size());
     for (auto& rank_model : impl_->models) rank_parameters.push_back(rank_model->parameters());
     metrics.buckets = all_reduce_gradients(
         impl_->communicator, rank_parameters, impl_->config.maximum_bucket_bytes);
+    const auto communication_allocation_after = runtime::allocation_stats(
+        Device::hip(impl_->config.device_indices.front()));
+    metrics.communication_allocation_calls =
+        communication_allocation_after.allocation_calls -
+        communication_allocation_before.allocation_calls;
+    metrics.communication_backend_allocation_calls =
+        communication_allocation_after.backend_allocation_calls -
+        communication_allocation_before.backend_allocation_calls;
+    metrics.communication_cache_reuse_calls =
+        communication_allocation_after.cache_reuse_calls -
+        communication_allocation_before.cache_reuse_calls;
+    metrics.communication_total_allocated_bytes =
+        communication_allocation_after.total_allocated_bytes -
+        communication_allocation_before.total_allocated_bytes;
     const auto communication_finish = Clock::now();
     metrics.communication_ms = elapsed_ms(communication_start, communication_finish);
     if (auto* trace = profiling::TraceSession::current(); trace != nullptr) {

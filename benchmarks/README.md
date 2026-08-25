@@ -198,6 +198,10 @@ ROCR_VISIBLE_DEVICES=0,1 python3 \
 It scans 1/4/25 MiB, rotates process order, excludes step 1 from steady medians and requires
 exact loss trajectories plus a final rank-parameter audit.
 
+Distributed metrics also report exact bucket/average/unpacked Tensor counts, pack/unpack D2D
+copies and communication-stage allocation/backend/cache-reuse deltas. These fields are the
+admission gate for persistent reducer storage.
+
 `microllm_bench_model` measures train or cache-backed generation throughput. Its
 `tokens_per_second` excludes construction and warm-up; `tokens_per_second_with_setup`
 includes construction, device transfer, optimizer allocation, and warm-up. Both are

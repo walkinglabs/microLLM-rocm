@@ -75,6 +75,12 @@ TEST(DataParallelTrainerTest, MultiStepTwoRankTrainingMatchesSingleGlobalBatch) 
         EXPECT_EQ(metrics.rank_losses.size(), 2U);
         EXPECT_GT(metrics.buckets.bucket_count, 0U);
         EXPECT_GT(metrics.buckets.parameter_count, 0U);
+        EXPECT_GT(metrics.buckets.pack_copy_calls, 0U);
+        EXPECT_EQ(metrics.buckets.pack_copy_calls,
+                  metrics.buckets.unpack_copy_calls);
+        EXPECT_GT(metrics.communication_allocation_calls, 0U);
+        EXPECT_GE(metrics.communication_allocation_calls,
+                  metrics.communication_cache_reuse_calls);
         EXPECT_TRUE(metrics.parameter_check_performed);
         EXPECT_EQ(metrics.maximum_parameter_difference, 0.0F);
         EXPECT_GE(metrics.forward_backward_ms, 0.0);
