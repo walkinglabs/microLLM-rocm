@@ -186,6 +186,18 @@ ROCR_VISIBLE_DEVICES=0,1 \
 Metrics include model/shape, exact parameter count, bucket parameter/element counts, stage times,
 verification time and maximum per-rank engine peak bytes.
 
+Run the natural multi-bucket matrix:
+
+```bash
+ROCR_VISIBLE_DEVICES=0,1 python3 \
+  benchmarks/distributed/data_parallel_model_s_bucket_matrix.py \
+  --binary build/rccl-release/apps/microllm_distributed_train \
+  --output-directory /tmp/microllm-model-s-buckets
+```
+
+It scans 1/4/25 MiB, rotates process order, excludes step 1 from steady medians and requires
+exact loss trajectories plus a final rank-parameter audit.
+
 `microllm_bench_model` measures train or cache-backed generation throughput. Its
 `tokens_per_second` excludes construction and warm-up; `tokens_per_second_with_setup`
 includes construction, device transfer, optimizer allocation, and warm-up. Both are
