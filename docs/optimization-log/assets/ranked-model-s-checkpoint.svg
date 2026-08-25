@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="800" viewBox="0 0 1500 800">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="750.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 273 · Ranked Model-S Checkpoint</text>
+<text x="750.0" y="82.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">15,586,176 FP32 parameters · complete AdamW state · 1+1 resumed vs uninterrupted 2-step</text>
+<rect x="65" y="125" width="430" height="515" rx="18" fill="#ffffff" stroke="#2563eb" stroke-width="3"/>
+<text x="280.0" y="170.0" font-family="Inter,Arial,sans-serif" font-size="23" fill="#1d4ed8" text-anchor="middle" font-weight="700">Checkpoint contents</text>
+<text x="105.0" y="215.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="start" font-weight="400">Model parameters</text>
+<rect x="105" y="233" width="100.0" height="28" rx="7" fill="#2563eb"/>
+<text x="460.0" y="255.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#2563eb" text-anchor="end" font-weight="700">62.345 MB</text>
+<text x="105.0" y="305.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="start" font-weight="400">AdamW first moments</text>
+<rect x="105" y="323" width="100.0" height="28" rx="7" fill="#16a34a"/>
+<text x="460.0" y="345.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#16a34a" text-anchor="end" font-weight="700">62.345 MB</text>
+<text x="105.0" y="395.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="start" font-weight="400">AdamW second moments</text>
+<rect x="105" y="413" width="100.0" height="28" rx="7" fill="#0f766e"/>
+<text x="460.0" y="435.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#0f766e" text-anchor="end" font-weight="700">62.345 MB</text>
+<text x="105.0" y="485.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="start" font-weight="400">Header / names / state</text>
+<rect x="105" y="503" width="5.0" height="28" rx="7" fill="#f59e0b"/>
+<text x="460.0" y="525.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#f59e0b" text-anchor="end" font-weight="700">0.008 MB</text>
+<text x="280.0" y="590.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#172033" text-anchor="middle" font-weight="700">Total 187,042,096 bytes</text>
+<text x="280.0" y="620.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474" text-anchor="middle" font-weight="400">178.4 MiB</text>
+<rect x="535" y="125" width="430" height="515" rx="18" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>
+<text x="750.0" y="170.0" font-family="Inter,Arial,sans-serif" font-size="23" fill="#166534" text-anchor="middle" font-weight="700">Observed resource time</text>
+<text x="575.0" y="220.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="start" font-weight="400">Rank0 write min</text>
+<rect x="575" y="238" width="240.1" height="26" rx="7" fill="#16a34a"/>
+<text x="925.0" y="259.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#16a34a" text-anchor="end" font-weight="700">1022 ms</text>
+<text x="575.0" y="294.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="start" font-weight="400">Rank0 write max</text>
+<rect x="575" y="312" width="250.8" height="26" rx="7" fill="#0f766e"/>
+<text x="925.0" y="333.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#0f766e" text-anchor="end" font-weight="700">1068 ms</text>
+<text x="575.0" y="368.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="start" font-weight="400">Rank1 wait max</text>
+<rect x="575" y="386" width="251.0" height="26" rx="7" fill="#2563eb"/>
+<text x="925.0" y="407.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#2563eb" text-anchor="end" font-weight="700">1069 ms</text>
+<text x="575.0" y="442.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="start" font-weight="400">Read / verify max</text>
+<rect x="575" y="460" width="125.0" height="26" rx="7" fill="#f59e0b"/>
+<text x="925.0" y="481.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#f59e0b" text-anchor="end" font-weight="700">532 ms</text>
+<text x="575.0" y="516.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="start" font-weight="400">Load + restore max</text>
+<rect x="575" y="534" width="173.9" height="26" rx="7" fill="#9333ea"/>
+<text x="925.0" y="555.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#9333ea" text-anchor="end" font-weight="700">740 ms</text>
+<text x="750.0" y="608.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#b45309" text-anchor="middle" font-weight="700">Single-run resource evidence</text>
+<rect x="1005" y="125" width="430" height="515" rx="18" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>
+<text x="1220.0" y="170.0" font-family="Inter,Arial,sans-serif" font-size="23" fill="#166534" text-anchor="middle" font-weight="700">Correctness and ownership</text>
+<text x="1045.0" y="220.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="start" font-weight="400">Rank tensors</text>
+<text x="1400.0" y="220.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#166534" text-anchor="end" font-weight="700">57</text>
+<text x="1045.0" y="267.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="start" font-weight="400">Compared values</text>
+<text x="1400.0" y="267.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#166534" text-anchor="end" font-weight="700">15,586,176</text>
+<text x="1045.0" y="314.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="start" font-weight="400">Rank Max / RMS</text>
+<text x="1400.0" y="314.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#166534" text-anchor="end" font-weight="700">0 / 0</text>
+<text x="1045.0" y="361.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="start" font-weight="400">Final checkpoint bytes</text>
+<text x="1400.0" y="361.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#166534" text-anchor="end" font-weight="700">equal</text>
+<text x="1045.0" y="408.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="start" font-weight="400">Final optimizer step</text>
+<text x="1400.0" y="408.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#166534" text-anchor="end" font-weight="700">2</text>
+<text x="1045.0" y="455.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="start" font-weight="400">Other-rank writes</text>
+<text x="1400.0" y="455.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#166534" text-anchor="end" font-weight="700">0</text>
+<text x="1045.0" y="502.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="start" font-weight="400">Failure</text>
+<text x="1400.0" y="502.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#166534" text-anchor="end" font-weight="700">peer −15 / rank0 1</text>
+<text x="1045.0" y="549.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="start" font-weight="400">Large files retained</text>
+<text x="1400.0" y="549.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#166534" text-anchor="end" font-weight="700">false</text>
+<rect x="65" y="680" width="1370" height="72" rx="16" fill="#ecfdf5" stroke="#16a34a" stroke-width="2"/>
+<text x="750.0" y="714.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#166534" text-anchor="middle" font-weight="700">Model-S full-state resume complete · no retained 187 MB artifacts · no portable storage-speed claim</text>
+<text x="750.0" y="740.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="middle" font-weight="400">Next: generalize ranked worker/launcher beyond the currently hard-coded two-rank harness</text>
+</svg>

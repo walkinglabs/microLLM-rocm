@@ -945,6 +945,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [experiments/271-ranked-overlap-context-scale.md](experiments/271-ranked-overlap-context-scale.md) | T128 context-selective keep与一般默认边界 |
 | [assets/ranked-checkpoint-resume.svg](assets/ranked-checkpoint-resume.svg) | rank0写、2+3恢复/5步控制与失败传播时间线 |
 | [experiments/272-ranked-checkpoint-resume.md](experiments/272-ranked-checkpoint-resume.md) | 完整checkpoint字节等价与Model-S准入 |
+| [assets/ranked-model-s-checkpoint.svg](assets/ranked-model-s-checkpoint.svg) | 187MB状态构成、写/等/读/恢复资源时间 |
+| [experiments/273-ranked-model-s-checkpoint.md](experiments/273-ranked-model-s-checkpoint.md) | Model-S恢复等价与world-size边界交接 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

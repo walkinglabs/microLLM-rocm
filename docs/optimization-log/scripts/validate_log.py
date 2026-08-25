@@ -15819,6 +15819,104 @@ def validate_ranked_checkpoint(
         summary.get("peer_processes_terminated", 0)
 
 
+def validate_ranked_model_s_checkpoint(
+        errors: list[str]) -> tuple[int, int, float, float]:
+    root = REPOSITORY / "benchmarks/results/2026-08-25-ranked-model-s-checkpoint"
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    failure = json.loads((root / "failure.json").read_text(encoding="utf-8"))
+    expected_bytes = 187042096
+    if (summary.get("schema_version") != 1 or summary.get("status") != "pass" or
+            summary.get("record_type") != "ranked_checkpoint_summary" or
+            summary.get("world_size") != 2 or summary.get("model") != "model-s" or
+            summary.get("context") != 32 or summary.get("first_steps") != 1 or
+            summary.get("resumed_steps") != 1 or summary.get("final_step") != 2 or
+            summary.get("rank_processes") != 8 or
+            summary.get("rank0_checkpoint_writes") != 3 or
+            summary.get("nonzero_rank_checkpoint_writes") != 0 or
+            summary.get("resumed_rank_difference") != 0.0 or
+            summary.get("uninterrupted_rank_difference") != 0.0 or
+            summary.get("resume_vs_uninterrupted_parameter_difference") != 0.0 or
+            summary.get("resume_vs_uninterrupted_checkpoint_bytes_equal") is not True or
+            summary.get("checkpoint_sizes") !=
+                {"interrupted": expected_bytes, "resumed_final": expected_bytes,
+                 "uninterrupted_final": expected_bytes} or
+            summary.get("checkpoint_files_retained") is not False or
+            summary.get("failure_detected") is not True or
+            summary.get("peer_processes_terminated") != 1 or
+            summary.get("failure_returncodes") != [-15, 1] or
+            summary.get("decision") != "complete Model-S ranked checkpoint smoke"):
+        errors.append("ranked Model-S checkpoint summary changed")
+    for name in ("first", "resumed", "uninterrupted"):
+        process = summary.get("processes", {}).get(name, {})
+        if (process.get("rank_parameter_difference") != 0.0 or
+                process.get("rank_parameter_rms_difference") != 0.0 or
+                process.get("parameter_tensors") != 57 or
+                process.get("parameter_values") != 15586176):
+            errors.append(f"ranked Model-S checkpoint {name} rank evidence changed")
+    successful_records = []
+    for directory in ("first-segment", "resumed-segment", "uninterrupted"):
+        for path in sorted((root / directory).glob("rank*.stdout")):
+            successful_records.append(json.loads(path.read_text(encoding="utf-8")))
+    if (len(successful_records) != 6 or
+            any(record.get("parameter_count") != 15586176 or
+                record.get("optimizer_step") != record.get("final_step") or
+                record.get("checkpoint_verified") is not True
+                for record in successful_records) or
+            sum(record.get("checkpoint_written") is True
+                for record in successful_records) != 3 or
+            list(root.rglob("*.ckpt")) or list(root.rglob("*.ready")) or
+            list(root.rglob("*.safetensors")) or list(root.rglob("*.tmp")) or
+            list(root.rglob("communicator.id"))):
+        errors.append("ranked Model-S checkpoint worker evidence changed")
+    if (failure.get("completed") is not False or
+            failure.get("terminated") != 1 or
+            failure.get("returncodes") != [-15, 1]):
+        errors.append("ranked Model-S checkpoint failure evidence changed")
+    if (check.get("measurement_commit") !=
+            "526c95ba3c7f8f955475b95b606eb1676574f905" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("gpu") != "AMD Instinct MI300X VF" or
+            check.get("architecture") != "gfx942" or
+            check.get("world_size") != 2 or check.get("model") != "model-s" or
+            check.get("context") != 32 or check.get("first_steps") != 1 or
+            check.get("resumed_steps") != 1 or check.get("final_step") != 2 or
+            check.get("rank_processes") != 8 or
+            check.get("parameter_tensors") != 57 or
+            check.get("parameter_values") != 15586176 or
+            check.get("rank0_checkpoint_writes") != 3 or
+            check.get("nonzero_rank_checkpoint_writes") != 0 or
+            check.get("checkpoint_bytes") != expected_bytes or
+            check.get("interrupted_write_ms") != 1068.157398 or
+            check.get("resumed_final_write_ms") != 1022.482341 or
+            check.get("uninterrupted_final_write_ms") != 1037.596419 or
+            check.get("maximum_checkpoint_wait_ms") != 1068.924767 or
+            check.get("maximum_checkpoint_verify_ms") != 532.451936 or
+            check.get("maximum_resume_ms") != 740.482871 or
+            check.get("resume_vs_uninterrupted_checkpoint_bytes_equal") is not True or
+            check.get("resumed_rank_difference") != 0.0 or
+            check.get("uninterrupted_rank_difference") != 0.0 or
+            check.get("resume_vs_uninterrupted_parameter_difference") != 0.0 or
+            check.get("peer_processes_terminated") != 1 or
+            check.get("failure_returncodes") != [-15, 1] or
+            check.get("large_files_retained") is not False or
+            check.get("performance_claim") is not False or
+            check.get("model_s_checkpoint_smoke_complete") is not True or
+            check.get("rccl_label") != {"passed": 49, "total": 49} or
+            check.get("checkpoint_contract") != {"passed": 1, "total": 1} or
+            check.get("registered_test_files") != 125):
+        errors.append("ranked Model-S checkpoint verification changed")
+    runner = (REPOSITORY /
+              "tools/distributed/run_ranked_checkpoint.py").read_text(
+                  encoding="utf-8")
+    if ("Model-S checkpoint requires --compare-binary" not in runner or
+            "maximum_resume_ms" not in runner):
+        errors.append("ranked Model-S checkpoint route is missing")
+    write_values = list(summary.get("checkpoint_write_ms", {}).values())
+    return summary.get("rank_processes", 0), expected_bytes, \
+        min(write_values, default=0.0), max(write_values, default=0.0)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -16069,7 +16167,8 @@ def validate_assets(errors: list[str]) -> None:
                  "ranked-gradient-bucket-views.svg",
                  "ranked-gradient-overlap-discard.svg",
                  "ranked-overlap-context-scale.svg",
-                 "ranked-checkpoint-resume.svg"):
+                 "ranked-checkpoint-resume.svg",
+                 "ranked-model-s-checkpoint.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -16632,6 +16731,9 @@ def main() -> int:
     ranked_checkpoint_processes, ranked_checkpoint_writes, \
         ranked_checkpoint_equal, ranked_checkpoint_terminated = \
         validate_ranked_checkpoint(errors)
+    ranked_model_s_checkpoint_processes, ranked_model_s_checkpoint_bytes, \
+        ranked_model_s_checkpoint_write_min, ranked_model_s_checkpoint_write_max = \
+        validate_ranked_model_s_checkpoint(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -17173,6 +17275,10 @@ def main() -> int:
           f"{ranked_checkpoint_writes}/"
           f"{int(ranked_checkpoint_equal)}/"
           f"{ranked_checkpoint_terminated} "
+          f"ranked_model_s_checkpoint={ranked_model_s_checkpoint_processes}/"
+          f"{ranked_model_s_checkpoint_bytes}/"
+          f"{ranked_model_s_checkpoint_write_min:.1f}/"
+          f"{ranked_model_s_checkpoint_write_max:.1f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

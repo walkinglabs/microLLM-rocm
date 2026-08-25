@@ -174,6 +174,11 @@ Start with [Quick start](#quick-start), consume the installed library through th
 > performs zero writes, and injected rank0 failure terminates its waiting peer.
 > Model-S checkpoint size and restore cost remain the next reliability gate.
 
+> Model-S checkpoint smoke now passes with a 187,042,096-byte complete state:
+> 1+1 resumed and uninterrupted 2-step checkpoints are byte-identical, all
+> 15,586,176 values match across ranks, write takes about 1.02–1.07 s and
+> restore at most 740 ms in this environment. No I/O ranking is claimed.
+
 </details>
 
 ## Why this project exists

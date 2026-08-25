@@ -327,6 +327,11 @@ RANKED_CHECKPOINT_ROOT = (
     "2026-08-25-ranked-checkpoint-resume")
 RANKED_CHECKPOINT_CHART = (
     ROOT / "assets" / "ranked-checkpoint-resume.svg")
+RANKED_MODEL_S_CHECKPOINT_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-ranked-model-s-checkpoint")
+RANKED_MODEL_S_CHECKPOINT_CHART = (
+    ROOT / "assets" / "ranked-model-s-checkpoint.svg")
 
 
 def rows() -> list[dict]:
@@ -5836,6 +5841,104 @@ def ranked_checkpoint_svg() -> str:
     return "\n".join(parts)
 
 
+def ranked_model_s_checkpoint_svg() -> str:
+    summary = json.loads((RANKED_MODEL_S_CHECKPOINT_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    width, height = 1500, 800
+    checkpoint_bytes = summary["checkpoint_sizes"]["resumed_final"]
+    tensor_bytes = 15586176 * 4
+    metadata_bytes = checkpoint_bytes - tensor_bytes * 3
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 273 · Ranked Model-S Checkpoint", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "15,586,176 FP32 parameters · complete AdamW state · 1+1 resumed vs uninterrupted 2-step",
+             16, "#5b6474", anchor="middle"),
+        '<rect x="65" y="125" width="430" height="515" rx="18" fill="#ffffff" stroke="#2563eb" stroke-width="3"/>',
+        text(280, 170, "Checkpoint contents", 23, "#1d4ed8",
+             anchor="middle", weight=700),
+    ]
+    components = (
+        ("Model parameters", tensor_bytes, "#2563eb"),
+        ("AdamW first moments", tensor_bytes, "#16a34a"),
+        ("AdamW second moments", tensor_bytes, "#0f766e"),
+        ("Header / names / state", metadata_bytes, "#f59e0b"),
+    )
+    y = 215
+    for label, value, color in components:
+        bar_width = max(5.0, 300 * value / checkpoint_bytes)
+        parts.extend([
+            text(105, y, label, 15, "#5b6474"),
+            f'<rect x="105" y="{y + 18}" width="{bar_width:.1f}" height="28" rx="7" fill="{color}"/>',
+            text(460, y + 40, f"{value / 1.0e6:.3f} MB", 16, color,
+                 anchor="end", weight=700),
+        ])
+        y += 90
+    parts.extend([
+        text(280, 590, f"Total {checkpoint_bytes:,} bytes", 22, "#172033",
+             anchor="middle", weight=700),
+        text(280, 620, f"{checkpoint_bytes / 1048576:.1f} MiB", 18,
+             "#5b6474", anchor="middle"),
+        '<rect x="535" y="125" width="430" height="515" rx="18" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>',
+        text(750, 170, "Observed resource time", 23, "#166534",
+             anchor="middle", weight=700),
+    ])
+    write_values = list(summary["checkpoint_write_ms"].values())
+    timings = (
+        ("Rank0 write min", min(write_values), "#16a34a"),
+        ("Rank0 write max", max(write_values), "#0f766e"),
+        ("Rank1 wait max", summary["maximum_checkpoint_wait_ms"], "#2563eb"),
+        ("Read / verify max", summary["maximum_checkpoint_verify_ms"], "#f59e0b"),
+        ("Load + restore max", summary["maximum_resume_ms"], "#9333ea"),
+    )
+    for index, (label, value, color) in enumerate(timings):
+        y = 220 + index * 74
+        parts.extend([
+            text(575, y, label, 15, "#5b6474"),
+            f'<rect x="575" y="{y + 18}" width="{270 * value / 1150.0:.1f}" '
+            f'height="26" rx="7" fill="{color}"/>',
+            text(925, y + 39, f"{value:.0f} ms", 17, color,
+                 anchor="end", weight=700),
+        ])
+    parts.extend([
+        text(750, 608, "Single-run resource evidence", 17, "#b45309",
+             anchor="middle", weight=700),
+        '<rect x="1005" y="125" width="430" height="515" rx="18" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>',
+        text(1220, 170, "Correctness and ownership", 23, "#166534",
+             anchor="middle", weight=700),
+    ])
+    facts = (
+        ("Rank tensors", "57"),
+        ("Compared values", "15,586,176"),
+        ("Rank Max / RMS", "0 / 0"),
+        ("Final checkpoint bytes", "equal"),
+        ("Final optimizer step", "2"),
+        ("Other-rank writes", "0"),
+        ("Failure", "peer −15 / rank0 1"),
+        ("Large files retained", "false"),
+    )
+    for index, (label, value) in enumerate(facts):
+        y = 220 + index * 47
+        parts.extend([
+            text(1045, y, label, 14, "#5b6474"),
+            text(1400, y, value, 17, "#166534", anchor="end", weight=700),
+        ])
+    parts.extend([
+        '<rect x="65" y="680" width="1370" height="72" rx="16" fill="#ecfdf5" stroke="#16a34a" stroke-width="2"/>',
+        text(width / 2, 714,
+             "Model-S full-state resume complete · no retained 187 MB artifacts · no portable storage-speed claim",
+             18, "#166534", anchor="middle", weight=700),
+        text(width / 2, 740,
+             "Next: generalize ranked worker/launcher beyond the currently hard-coded two-rank harness",
+             15, "#5b6474", anchor="middle"),
+        "</svg>\n",
+    ])
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -5924,7 +6027,8 @@ def main() -> int:
                 RANKED_VIEW_CHART: ranked_gradient_view_svg(),
                 RANKED_OVERLAP_CHART: ranked_gradient_overlap_svg(),
                 RANKED_CONTEXT_CHART: ranked_overlap_context_svg(),
-                RANKED_CHECKPOINT_CHART: ranked_checkpoint_svg()}
+                RANKED_CHECKPOINT_CHART: ranked_checkpoint_svg(),
+                RANKED_MODEL_S_CHECKPOINT_CHART: ranked_model_s_checkpoint_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

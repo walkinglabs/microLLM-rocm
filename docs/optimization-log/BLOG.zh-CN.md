@@ -4289,3 +4289,20 @@ checkpoint、ready、tmp和communicator ID均没有残留。第一次5秒故障�
 大小和恢复时间，并在验证后删除大文件。
 
 ![Ranked checkpoint resume](assets/ranked-checkpoint-resume.svg)
+
+## 290. Experiment 273：完整Model-S状态有多大，恢复要多久
+
+Model-S有15,586,176个FP32参数。完整checkpoint还要保存AdamW first/second moments，所以文件为
+187,042,096 bytes，约178.4MiB，不是一个62MB权重文件。
+
+两个rank跑1步后rank0写中断点；新rank恢复再跑1步，对照不中断2步。resumed/uninterrupted final
+checkpoint逐字节相等，三组57个Tensor/15,586,176值跨rank Max/RMS均0。
+
+当前环境三次写为1.022–1.068s，rank1等待最大1.069s，checkpoint读取验证最大532ms，两个rank
+load+restore最大740ms。它们是单次资源记录，不是磁盘性能排名。
+
+成功后所有187MB checkpoint、临时safetensors、marker、tmp和ID都删除。失败传播复用共同层的
+tiny注入，rank0=1、peer=−15。Model-S checkpoint smoke完成；下一缺口是把worker/launcher从
+写死2卡泛化到world-size，并诚实复现当前4卡共享内存边界。
+
+![Ranked Model-S checkpoint](assets/ranked-model-s-checkpoint.svg)
