@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="800" viewBox="0 0 1500 800">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="750.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 280 · Persistent Gather-Scale Discard</text>
+<text x="750.0" y="82.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">Model-S T128 · uneven [B1,B2] · exact policy parameters · dual gate against synchronous and running best</text>
+<rect x="55" y="125" width="420" height="420" rx="18" fill="#ffffff" stroke="#2563eb" stroke-width="3"/>
+<text x="265.0" y="170.0" font-family="Inter,Arial,sans-serif" font-size="23" fill="#1d4ed8" text-anchor="middle" font-weight="700">Submission count</text>
+<text x="95.0" y="225.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="start" font-weight="400">Per-gradient pack copies</text>
+<text x="435.0" y="225.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#16a34a" text-anchor="end" font-weight="700">57 → 0</text>
+<text x="95.0" y="273.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="start" font-weight="400">Independent bucket scales</text>
+<text x="435.0" y="273.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#16a34a" text-anchor="end" font-weight="700">3 → 0</text>
+<text x="95.0" y="321.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="start" font-weight="400">Gather-scale launches</text>
+<text x="435.0" y="321.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#2563eb" text-anchor="end" font-weight="700">0 → 3</text>
+<text x="95.0" y="369.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="start" font-weight="400">Descriptor copies</text>
+<text x="435.0" y="369.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#2563eb" text-anchor="end" font-weight="700">0 → 3</text>
+<text x="95.0" y="417.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="start" font-weight="400">Descriptor bytes / step</text>
+<text x="435.0" y="417.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#b45309" text-anchor="end" font-weight="700">0 → 1,368</text>
+<text x="95.0" y="465.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="start" font-weight="400">Persistent bytes</text>
+<text x="435.0" y="465.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#b45309" text-anchor="end" font-weight="700">0 → 1,368</text>
+<rect x="515" y="125" width="500" height="420" rx="18" fill="#ffffff" stroke="#dc2626" stroke-width="3"/>
+<text x="765.0" y="170.0" font-family="Inter,Arial,sans-serif" font-size="23" fill="#b42335" text-anchor="middle" font-weight="700">Two performance gates</text>
+<text x="560.0" y="230.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="start" font-weight="400">Synchronous control</text>
+<text x="970.0" y="230.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="end" font-weight="700">8.901 ms</text>
+<text x="560.0" y="285.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="start" font-weight="400">Gather candidate</text>
+<text x="970.0" y="285.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="end" font-weight="700">8.778 ms</text>
+<text x="560.0" y="350.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474" text-anchor="start" font-weight="400">vs synchronous</text>
+<text x="970.0" y="350.0" font-family="Inter,Arial,sans-serif" font-size="23" fill="#166534" text-anchor="end" font-weight="700">1.0140x  PASS</text>
+<text x="560.0" y="410.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474" text-anchor="start" font-weight="400">vs Step 102 best</text>
+<text x="970.0" y="410.0" font-family="Inter,Arial,sans-serif" font-size="23" fill="#b42335" text-anchor="end" font-weight="700">0.9897x  FAIL</text>
+<text x="765.0" y="485.0" font-family="Inter,Arial,sans-serif" font-size="23" fill="#b42335" text-anchor="middle" font-weight="700">REJECT · +0.090 ms vs running best</text>
+<text x="765.0" y="520.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="middle" font-weight="400">finish 1.880x · whole step 1.0140x</text>
+<rect x="1055" y="125" width="390" height="420" rx="18" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>
+<text x="1250.0" y="170.0" font-family="Inter,Arial,sans-serif" font-size="23" fill="#166534" text-anchor="middle" font-weight="700">Correctness gates</text>
+<text x="1095.0" y="225.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="start" font-weight="400">Policy Max / RMS</text>
+<text x="1405.0" y="225.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#166534" text-anchor="end" font-weight="700">0 / 0</text>
+<text x="1095.0" y="267.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="start" font-weight="400">Rank Max / RMS</text>
+<text x="1405.0" y="267.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#166534" text-anchor="end" font-weight="700">0 / 0</text>
+<text x="1095.0" y="309.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="start" font-weight="400">CPU Max</text>
+<text x="1405.0" y="309.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#166534" text-anchor="end" font-weight="700">0.004938</text>
+<text x="1095.0" y="351.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="start" font-weight="400">CPU RMS</text>
+<text x="1405.0" y="351.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#166534" text-anchor="end" font-weight="700">3.218e-06</text>
+<text x="1095.0" y="393.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="start" font-weight="400">Loss difference</text>
+<text x="1405.0" y="393.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#166534" text-anchor="end" font-weight="700">1.716e-05</text>
+<text x="1095.0" y="435.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="start" font-weight="400">Later backend alloc</text>
+<text x="1405.0" y="435.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#166534" text-anchor="end" font-weight="700">0</text>
+<text x="1095.0" y="477.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="start" font-weight="400">Temp weights</text>
+<text x="1405.0" y="477.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#166534" text-anchor="end" font-weight="700">deleted</text>
+<rect x="55" y="585" width="1390" height="160" rx="18" fill="#fff1f2" stroke="#dc2626" stroke-width="2"/>
+<text x="95.0" y="625.0" font-family="Inter,Arial,sans-serif" font-size="19" fill="#b42335" text-anchor="start" font-weight="700">Sensitivity and closure</text>
+<text x="330.0" y="625.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="start" font-weight="400">paired  0.990x  /  1.039x  /  1.031x</text>
+<text x="330.0" y="669.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="start" font-weight="400">leave-one  1.024x  /  1.008x  /  1.020x</text>
+<text x="330.0" y="714.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#b42335" text-anchor="start" font-weight="700">Keep Step 102 · gather remains research-only · close ranked reducer local optimization</text>
+<text x="1400.0" y="714.0" font-family="Inter,Arial,sans-serif" font-size="27" fill="#b42335" text-anchor="end" font-weight="700">1.0140x</text>
+</svg>

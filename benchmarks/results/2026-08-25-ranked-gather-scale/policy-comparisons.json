@@ -1,0 +1,41 @@
+[
+  {
+    "all_finite": true,
+    "compared_elements": 15586176,
+    "context": 128,
+    "maximum_absolute_difference": 0,
+    "process_run": 1,
+    "record_type": "safetensors_complete_comparison",
+    "rms_difference": 0,
+    "schema_version": 1,
+    "status": "pass",
+    "tensor_count": 57,
+    "worst_tensor": ""
+  },
+  {
+    "all_finite": true,
+    "compared_elements": 15586176,
+    "context": 128,
+    "maximum_absolute_difference": 0,
+    "process_run": 2,
+    "record_type": "safetensors_complete_comparison",
+    "rms_difference": 0,
+    "schema_version": 1,
+    "status": "pass",
+    "tensor_count": 57,
+    "worst_tensor": ""
+  },
+  {
+    "all_finite": true,
+    "compared_elements": 15586176,
+    "context": 128,
+    "maximum_absolute_difference": 0,
+    "process_run": 3,
+    "record_type": "safetensors_complete_comparison",
+    "rms_difference": 0,
+    "schema_version": 1,
+    "status": "pass",
+    "tensor_count": 57,
+    "worst_tensor": ""
+  }
+]

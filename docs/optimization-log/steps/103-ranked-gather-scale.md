@@ -1,6 +1,6 @@
 # Step 103 — Ranked persistent gather-scale
 
-Status: implemented; formal Model-S measurement pending
+Status: complete; performance route rejected
 
 Step 102已经把weighted overlap从0.9594x修复到1.0661x，但每步仍向通信Stream提交57次
 device-to-device copy，再提交3次bucket scale。下一节点只融合这两件事：
@@ -25,3 +25,7 @@ rank/CPU门通过。Model-S T32 pilot得到每步3次gather、1,368-byte descrip
 1,368 bytes，完整参数精确一致；同步对照出现77% CV，所以pilot的4.45x无效，只保留候选约
 7.95ms这一诊断。完整RCCL标签53/53、`DistributedRank.*` 10/10；正式T128三轮仍待干净
 提交。
+
+正式T128三轮实现57 pack→0和3 gather，但steady step只有1.0140x；候选8.778ms还比Step
+102最佳8.687ms慢0.090ms，leave-one最低1.0078x，并增加1,368 bytes current/peak。因此
+性能路线拒绝，研究原语保留；当前ranked reducer局部优化线停止，下一步重新profile端到端。

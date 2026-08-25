@@ -362,6 +362,11 @@ RANKED_BUCKET_WEIGHT_ROOT = (
     "2026-08-25-ranked-bucket-weighting")
 RANKED_BUCKET_WEIGHT_CHART = (
     ROOT / "assets" / "ranked-bucket-weighting.svg")
+RANKED_GATHER_SCALE_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-ranked-gather-scale")
+RANKED_GATHER_SCALE_CHART = (
+    ROOT / "assets" / "ranked-gather-scale-discard.svg")
 
 
 def rows() -> list[dict]:
@@ -6480,6 +6485,102 @@ def ranked_bucket_weighting_svg() -> str:
     return "\n".join(parts)
 
 
+def ranked_gather_scale_svg() -> str:
+    summary = json.loads((RANKED_GATHER_SCALE_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    verification = json.loads((RANKED_GATHER_SCALE_ROOT /
+                               "verification.json").read_text(encoding="utf-8"))
+    result = summary["results"]["128"]
+    synchronous = result["policies"]["bucket-views"]
+    candidate = result["policies"]["gather-weighted-overlap"]
+    width, height = 1500, 800
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 280 · Persistent Gather-Scale Discard", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "Model-S T128 · uneven [B1,B2] · exact policy parameters · dual gate against synchronous and running best",
+             16, "#5b6474", anchor="middle"),
+        '<rect x="55" y="125" width="420" height="420" rx="18" fill="#ffffff" stroke="#2563eb" stroke-width="3"/>',
+        text(265, 170, "Submission count", 23, "#1d4ed8",
+             anchor="middle", weight=700),
+    ]
+    counters = (
+        ("Per-gradient pack copies", "57 → 0", "#16a34a"),
+        ("Independent bucket scales", "3 → 0", "#16a34a"),
+        ("Gather-scale launches", "0 → 3", "#2563eb"),
+        ("Descriptor copies", "0 → 3", "#2563eb"),
+        ("Descriptor bytes / step", "0 → 1,368", "#b45309"),
+        ("Persistent bytes", "0 → 1,368", "#b45309"),
+    )
+    for index, (label, value, color) in enumerate(counters):
+        y = 225 + index * 48
+        parts.extend([
+            text(95, y, label, 14, "#5b6474"),
+            text(435, y, value, 18, color, anchor="end", weight=700),
+        ])
+    parts.extend([
+        '<rect x="515" y="125" width="500" height="420" rx="18" fill="#ffffff" stroke="#dc2626" stroke-width="3"/>',
+        text(765, 170, "Two performance gates", 23, "#b42335",
+             anchor="middle", weight=700),
+        text(560, 230, "Synchronous control", 16, "#5b6474"),
+        text(970, 230, f"{synchronous['median_steady_training_ms']:.3f} ms", 20,
+             "#172033", anchor="end", weight=700),
+        text(560, 285, "Gather candidate", 16, "#5b6474"),
+        text(970, 285, f"{candidate['median_steady_training_ms']:.3f} ms", 20,
+             "#172033", anchor="end", weight=700),
+        text(560, 350, "vs synchronous", 17, "#5b6474"),
+        text(970, 350, f"{result['training_speedup']:.4f}x  PASS", 23,
+             "#166534", anchor="end", weight=700),
+        text(560, 410, "vs Step 102 best", 17, "#5b6474"),
+        text(970, 410,
+             f"{verification['speed_ratio_vs_step102_best']:.4f}x  FAIL",
+             23, "#b42335", anchor="end", weight=700),
+        text(765, 485, "REJECT · +0.090 ms vs running best", 23,
+             "#b42335", anchor="middle", weight=700),
+        text(765, 520, f"finish {result['finish_speedup']:.3f}x · whole step {result['training_speedup']:.4f}x",
+             15, "#5b6474", anchor="middle"),
+        '<rect x="1055" y="125" width="390" height="420" rx="18" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>',
+        text(1250, 170, "Correctness gates", 23, "#166534",
+             anchor="middle", weight=700),
+    ])
+    facts = (
+        ("Policy Max / RMS", "0 / 0"),
+        ("Rank Max / RMS", "0 / 0"),
+        ("CPU Max", f"{verification['maximum_reference_difference']:.6f}"),
+        ("CPU RMS", f"{verification['maximum_reference_rms_difference']:.3e}"),
+        ("Loss difference", f"{verification['maximum_mean_loss_difference']:.3e}"),
+        ("Later backend alloc", "0"),
+        ("Temp weights", "deleted"),
+    )
+    for index, (label, value) in enumerate(facts):
+        y = 225 + index * 42
+        parts.extend([
+            text(1095, y, label, 14, "#5b6474"),
+            text(1405, y, value, 16, "#166534", anchor="end", weight=700),
+        ])
+    paired = verification["paired_run_speedups"]
+    leave_one = verification["leave_one_pair_out_speedups"]
+    parts.extend([
+        '<rect x="55" y="585" width="1390" height="160" rx="18" fill="#fff1f2" stroke="#dc2626" stroke-width="2"/>',
+        text(95, 625, "Sensitivity and closure", 19, "#b42335", weight=700),
+        text(330, 625,
+             "paired  " + "  /  ".join(f"{value:.3f}x" for value in paired),
+             17, "#172033"),
+        text(330, 669,
+             "leave-one  " + "  /  ".join(f"{value:.3f}x" for value in leave_one),
+             17, "#172033"),
+        text(330, 714,
+             "Keep Step 102 · gather remains research-only · close ranked reducer local optimization",
+             18, "#b42335", weight=700),
+        text(1400, 714, "1.0140x", 27, "#b42335", anchor="end", weight=700),
+        "</svg>\n",
+    ])
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -6575,7 +6676,8 @@ def main() -> int:
                 RANKED_INPUT_WEIGHT_CHART: ranked_input_weighting_svg(),
                 RANKED_MODEL_S_INPUT_CHART: ranked_model_s_input_svg(),
                 RANKED_WEIGHTED_OVERLAP_CHART: ranked_weighted_overlap_svg(),
-                RANKED_BUCKET_WEIGHT_CHART: ranked_bucket_weighting_svg()}
+                RANKED_BUCKET_WEIGHT_CHART: ranked_bucket_weighting_svg(),
+                RANKED_GATHER_SCALE_CHART: ranked_gather_scale_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

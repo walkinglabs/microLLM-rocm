@@ -239,7 +239,11 @@ paired run regressed and the weakest leave-one-pair-out result is `1.0027x`.
 copies and 3 bucket scales with 3 gather-scale kernels. A persistent device descriptor table keeps
 fixed destination ranges, while source pointers are refreshed after every backward; no gradient
 address stability is assumed. The Model-S descriptor payload is 1,368 bytes per step and adds
-1,368 persistent bytes. Formal T128 evidence is still pending, so this route has no speed claim.
+1,368 persistent bytes.
+The formal matrix reaches only `1.0140x` versus its synchronous control and runs 0.090 ms slower
+than the Step 102 candidate, while adding the descriptor traffic and storage. The gather policy is
+therefore retained only as an experimental primitive; the current ranked reducer local optimization
+track is closed and `bucket-weighted-overlap` remains the explicit measured T128 route.
 
 The order matters:
 

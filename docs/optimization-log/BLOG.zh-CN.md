@@ -4402,3 +4402,18 @@ leave-one最低只有1.0027x。下一步尝试把57次pack copy和3次scale融�
 gather-scale Kernel；如果数值通过但速度或敏感性不改善，这条局部优化线就停止。
 
 ![Ranked bucket weighting](assets/ranked-bucket-weighting.svg)
+
+## 297. Experiment 280：少了57次copy，也不代表系统更快
+
+gather-scale把每步57次device copy和3次独立scale变成3次融合Kernel。描述表每步只有1,368
+bytes，完整参数、CPU和失败门全部通过。
+
+但steady step只从本轮同步的8.901ms降到8.778ms，即1.0140x。Step 102已经做到8.687ms和
+1.0661x；新候选反而慢0.090ms，还多1,368 bytes持久空间与每步描述传输。逐轮有一次0.990x，
+leave-one最低1.0078x。
+
+因此“相对同步过1.01”不够，候选没有改善running best，性能路线拒绝。Kernel和显式policy
+作为研究原语留下，Step 102仍是当前显式T128最佳。ranked reducer局部优化到此停止，下一步
+回到端到端profile重新找主要瓶颈。
+
+![Ranked gather-scale discard](assets/ranked-gather-scale-discard.svg)

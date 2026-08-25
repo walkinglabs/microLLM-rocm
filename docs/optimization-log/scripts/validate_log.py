@@ -16623,6 +16623,194 @@ def validate_ranked_bucket_weighting(
         check.get("candidate_bucket_scales_per_step", 0)
 
 
+def validate_ranked_gather_scale(
+        errors: list[str]) -> tuple[int, float, float, int, int]:
+    root = REPOSITORY / "benchmarks/results/2026-08-25-ranked-gather-scale"
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    failure = json.loads((root / "failure.json").read_text(encoding="utf-8"))
+    comparisons = json.loads((root / "policy-comparisons.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    result = summary.get("results", {}).get("128", {})
+    policies = result.get("policies", {})
+    synchronous = policies.get("bucket-views", {})
+    candidate = policies.get("gather-weighted-overlap", {})
+    expected_training = 1.0140471331534455
+    expected_finish = 1.8801054705435731
+    if (summary.get("schema_version") != 1 or summary.get("status") != "pass" or
+            summary.get("record_type") != "ranked_overlap_context_summary" or
+            summary.get("contexts") != [128] or
+            summary.get("gate_contexts") != [128] or
+            summary.get("rank_batch_rows") != [1, 2] or
+            summary.get("input_weighting") != "token-weighted" or
+            summary.get("overlap_policy") != "gather-weighted-overlap" or
+            summary.get("runs_per_policy_context") != 3 or
+            summary.get("policy_context_runs") != 6 or
+            summary.get("rank_processes") != 12 or
+            summary.get("steps_per_rank") != 3 or
+            summary.get("steady_skip_steps") != 1 or
+            summary.get("steady_steps_per_run") != 2 or
+            summary.get("bucket_bytes") != 26214400 or
+            summary.get("mean_loss_tolerance") != 0.001 or
+            summary.get("policy_parameter_comparisons") != 3 or
+            summary.get("maximum_policy_parameter_difference") != 0 or
+            summary.get("policy_parameter_rms_difference") != 0 or
+            summary.get("temporary_parameter_files_retained") is not False or
+            summary.get("minimum_required_speedup") != 1.01 or
+            summary.get("longer_context_gate_passed") is not True or
+            summary.get("peer_failure_detected") is not True or
+            summary.get("peer_processes_terminated") != 1 or
+            summary.get("failure_returncodes") != [1, -15] or
+            summary.get("decision") !=
+                "retain context-selective ranked weighted overlap" or
+            result.get("training_speedup") != expected_training or
+            result.get("finish_speedup") != expected_finish or
+            result.get("forward_backward_added_ms") != 1.0406580000000005 or
+            result.get("current_bytes_added") != 1368 or
+            result.get("peak_bytes_added") != 1368 or
+            synchronous.get("median_steady_training_ms") != 8.9011805 or
+            synchronous.get("median_steady_finish_ms") != 2.5059625 or
+            synchronous.get("median_steady_forward_backward_ms") != 6.172174 or
+            candidate.get("median_steady_training_ms") != 8.7778765 or
+            candidate.get("median_steady_finish_ms") != 1.332884 or
+            candidate.get("median_steady_forward_backward_ms") !=
+                7.212832000000001 or
+            synchronous.get("maximum_reference_difference") !=
+                0.0049375561066 or
+            synchronous.get("maximum_reference_rms_difference") !=
+                3.21758371961e-06 or
+            synchronous.get("maximum_mean_loss_difference") !=
+                1.716433333243117e-05 or
+            synchronous.get("maximum_engine_current_bytes") != 249378820 or
+            synchronous.get("maximum_engine_peak_bytes") != 417369612 or
+            candidate.get("maximum_engine_current_bytes") != 249380188 or
+            candidate.get("maximum_engine_peak_bytes") != 417370980):
+        errors.append("ranked gather-scale summary changed")
+    if (len(raw) != 6 or
+            {row.get("reducer") for row in raw} !=
+                {"bucket-views", "gather-weighted-overlap"} or
+            any(row.get("context") != 128 or
+                row.get("rank_batch_rows") != [1, 2] or
+                row.get("input_weighting") != "token-weighted" or
+                row.get("steps") != 3 or
+                row.get("maximum_rank_difference") != 0.0 or
+                row.get("rank_rms_difference") != 0.0 or
+                row.get("maximum_rank_step_collectives") != [3, 3, 3] or
+                row.get("parameter_files_retained") is not True
+                for row in raw) or
+            any(row.get("maximum_rank_step_pack_copies") != [57, 57, 57] or
+                row.get("maximum_rank_step_weighted_gradient_scales") !=
+                    [57, 57, 57] or
+                row.get("maximum_rank_step_gather_scale_calls") != [0, 0, 0] or
+                row.get("maximum_rank_step_reducer_backend_allocation_calls") !=
+                    [3, 0, 0]
+                for row in raw if row.get("reducer") == "bucket-views") or
+            any(row.get("maximum_rank_step_pack_copies") != [0, 0, 0] or
+                row.get("maximum_rank_step_weighted_gradient_scales") !=
+                    [0, 0, 0] or
+                row.get("maximum_rank_step_weighted_bucket_scales") != [0, 0, 0] or
+                row.get("maximum_rank_step_gather_scale_calls") != [3, 3, 3] or
+                row.get("maximum_rank_step_gather_descriptor_copy_calls") !=
+                    [3, 3, 3] or
+                row.get("maximum_rank_step_gather_descriptor_bytes") !=
+                    [1368, 1368, 1368] or
+                row.get("maximum_rank_step_reducer_backend_allocation_calls") !=
+                    [6, 0, 0] or
+                row.get("maximum_rank_step_overlap_enabled") != [0, 1, 1] or
+                row.get("maximum_rank_step_overlapped_buckets") != [0, 3, 3]
+                for row in raw if row.get("reducer") ==
+                    "gather-weighted-overlap")):
+        errors.append("ranked gather-scale raw evidence changed")
+    if (len(comparisons) != 3 or
+            any(value.get("record_type") !=
+                    "safetensors_complete_comparison" or
+                value.get("tensor_count") != 57 or
+                value.get("compared_elements") != 15586176 or
+                value.get("maximum_absolute_difference") != 0 or
+                value.get("rms_difference") != 0 or
+                value.get("context") != 128 or
+                value.get("process_run") != index
+                for index, value in enumerate(comparisons, 1))):
+        errors.append("ranked gather-scale policy comparisons changed")
+    if (failure.get("record_type") != "ranked_peer_failure_summary" or
+            failure.get("failure_detected") is not True or
+            failure.get("peer_processes_terminated") != 1 or
+            failure.get("returncodes") != [1, -15] or
+            list(root.rglob("*.safetensors")) or
+            list(root.rglob("communicator.id"))):
+        errors.append("ranked gather-scale cleanup or failure changed")
+    if (check.get("measurement_commit") !=
+            "7b8599fc6d08d1fe9b0a12de654c955e14b6e686" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("gpu") != "2 x AMD Instinct MI300X VF" or
+            check.get("architecture") != "gfx942" or
+            check.get("model") != "model-s" or
+            check.get("world_size") != 2 or check.get("context") != 128 or
+            check.get("rank_batch_rows") != [1, 2] or
+            check.get("rank_local_tokens") != [128, 256] or
+            check.get("average_tokens") != 192.0 or
+            check.get("runs_per_policy") != 3 or
+            check.get("policy_runs") != 6 or
+            check.get("rank_processes") != 12 or
+            check.get("steps_per_rank") != 3 or
+            check.get("synchronous_pack_copies_per_step") != 57 or
+            check.get("candidate_pack_copies_per_step") != 0 or
+            check.get("candidate_gather_scale_calls_per_step") != 3 or
+            check.get("candidate_descriptor_copy_calls_per_step") != 3 or
+            check.get("candidate_descriptor_bytes_per_step") != 1368 or
+            check.get("candidate_descriptor_capacity_bytes") != 1368 or
+            check.get("candidate_first_step_backend_allocations") != 6 or
+            check.get("candidate_later_backend_allocations") != 0 or
+            check.get("training_speedup") != expected_training or
+            check.get("finish_speedup") != expected_finish or
+            check.get("synchronous_baseline_gate_passed") is not True or
+            check.get("leave_one_pair_out_gate_passed") is not False or
+            check.get("paired_run_speedups") != [
+                0.9898451583968187, 1.0386872610932725,
+                1.0309925176285035] or
+            check.get("leave_one_pair_out_speedups") != [
+                1.0242163985790596, 1.0077695124845618,
+                1.0200060010323944] or
+            check.get("step102_best_training_speedup") !=
+                1.0661141746810199 or
+            check.get("step102_best_candidate_ms") != 8.687486499999999 or
+            check.get("speed_ratio_vs_step102_best") !=
+                0.9897025208773442 or
+            check.get("best_route_improvement_gate_passed") is not False or
+            check.get("maximum_rank_difference") != 0.0 or
+            check.get("maximum_rank_rms_difference") != 0.0 or
+            check.get("maximum_policy_parameter_difference") != 0.0 or
+            check.get("policy_parameter_rms_difference") != 0.0 or
+            check.get("maximum_reference_difference") != 0.0049375561066 or
+            check.get("maximum_reference_rms_difference") !=
+                3.21758371961e-06 or
+            check.get("maximum_mean_loss_difference") !=
+                1.716433333243117e-05 or
+            check.get("current_bytes_added") != 1368 or
+            check.get("peak_bytes_added") != 1368 or
+            check.get("temporary_parameter_files_retained") is not False or
+            check.get("performance_claim") is not False or
+            check.get("general_default_claim") is not False or
+            check.get("research_primitive_retained") is not True or
+            check.get("rccl_label") != {"passed": 53, "total": 53} or
+            check.get("ranked_contracts") != {"passed": 10, "total": 10} or
+            check.get("registered_test_files") != 125):
+        errors.append("ranked gather-scale verification changed")
+    kernel = (REPOSITORY / "src/multi_gpu/gather_scale.hip").read_text(
+        encoding="utf-8")
+    worker = (REPOSITORY / "apps/distributed_rank.cpp").read_text(
+        encoding="utf-8")
+    if ("gather_scale_kernel" not in kernel or
+            "gather-weighted-overlap" not in worker or
+            "step_gather_descriptor_bytes" not in worker):
+        errors.append("ranked gather-scale implementation route is missing")
+    return len(raw), expected_finish, expected_training, \
+        check.get("candidate_pack_copies_per_step", 0), \
+        check.get("candidate_gather_scale_calls_per_step", 0)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -16880,7 +17068,8 @@ def validate_assets(errors: list[str]) -> None:
                  "ranked-input-weighting.svg",
                  "ranked-model-s-input-weighting.svg",
                  "ranked-weighted-overlap-discard.svg",
-                 "ranked-bucket-weighting.svg"):
+                 "ranked-bucket-weighting.svg",
+                 "ranked-gather-scale-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -17462,6 +17651,9 @@ def main() -> int:
         ranked_bucket_weight_training, ranked_bucket_weight_leaf_scales, \
         ranked_bucket_weight_bucket_scales = \
         validate_ranked_bucket_weighting(errors)
+    ranked_gather_runs, ranked_gather_finish, ranked_gather_training, \
+        ranked_gather_pack_copies, ranked_gather_calls = \
+        validate_ranked_gather_scale(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -18030,6 +18222,11 @@ def main() -> int:
           f"{ranked_bucket_weight_training:.4f}/"
           f"{ranked_bucket_weight_leaf_scales}/"
           f"{ranked_bucket_weight_bucket_scales} "
+          f"ranked_gather={ranked_gather_runs}/"
+          f"{ranked_gather_finish:.4f}/"
+          f"{ranked_gather_training:.4f}/"
+          f"{ranked_gather_pack_copies}/"
+          f"{ranked_gather_calls} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")
