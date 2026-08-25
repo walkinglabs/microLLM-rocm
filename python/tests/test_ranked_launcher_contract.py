@@ -39,6 +39,9 @@ def main() -> int:
         "rank_parameter_files.values()",
         "group-init", "ranked_group_init_failure_summary",
         "shared_memory_bytes", "system_error_ranks",
+        "--rccl-debug", "resource_preflight", "collect_rccl_debug",
+        "required_shared_memory_unknown", "shared-memory-capacity-exhausted",
+        "shared_memory_segment_bytes", "raw_logs_retained",
     ):
         assert token in runner
     for token in (

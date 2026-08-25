@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-25: Ranked RCCL debug and resource preflight](2026-08-25-ranked-rccl-preflight-infrastructure.md)
 - [2026-08-25: Ranked world-size result](2026-08-25-ranked-world-size-result.md)
 - [2026-08-25: Ranked world-size infrastructure](2026-08-25-ranked-world-size-infrastructure.md)
 - [2026-08-25: Ranked Model-S checkpoint result](2026-08-25-ranked-model-s-checkpoint-result.md)

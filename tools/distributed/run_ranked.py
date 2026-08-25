@@ -6,6 +6,8 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
+import re
 import shutil
 import subprocess
 import sys
@@ -35,6 +37,7 @@ def options() -> argparse.Namespace:
     parser.add_argument("--model", choices=("tiny", "model-s"), default="tiny")
     parser.add_argument("--context", type=int, default=0)
     parser.add_argument("--compare-binary", type=Path)
+    parser.add_argument("--rccl-debug", action="store_true")
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
     if (not args.binary.is_file() or args.steps <= 0 or
@@ -135,10 +138,81 @@ def compare_safetensors(binary: Path, baseline: Path, candidate: Path,
     return load_record(completed.stdout, "safetensors comparison")
 
 
+def visible_gpu_count() -> int:
+    count = 0
+    for path in Path("/sys/class/kfd/kfd/topology/nodes").glob("*/gpu_id"):
+        try:
+            count += int(path.read_text(encoding="utf-8").strip()) != 0
+        except (OSError, ValueError):
+            continue
+    return count
+
+
+def resource_preflight(world_size: int) -> dict:
+    shared = shutil.disk_usage("/dev/shm")
+    visible = visible_gpu_count()
+    return {
+        "world_size": world_size,
+        "visible_gpu_count": visible,
+        "visible_gpu_count_sufficient": visible >= world_size,
+        "shared_memory_total_bytes": shared.total,
+        "shared_memory_free_bytes": shared.free,
+        "required_shared_memory_bytes": None,
+        "required_shared_memory_unknown": True,
+    }
+
+
+def collect_rccl_debug(path: Path) -> dict:
+    logs = sorted(path.glob("*.log"))
+    segment_sizes = []
+    no_space_logs = 0
+    rccl_versions = set()
+    no_space_pattern = re.compile(
+        r"shared memory segment .*\(size ([0-9]+)\).*No space left on device")
+    version_pattern = re.compile(r"RCCL version : ([^\n]+)")
+    total_bytes = 0
+    for log in logs:
+        text = log.read_text(encoding="utf-8", errors="replace")
+        total_bytes += log.stat().st_size
+        found_sizes = [int(value) for value in no_space_pattern.findall(text)]
+        segment_sizes.extend(found_sizes)
+        if found_sizes:
+            no_space_logs += 1
+        rccl_versions.update(value.strip() for value in version_pattern.findall(text))
+        log.unlink()
+    return {
+        "enabled": True,
+        "log_files": len(logs),
+        "raw_log_bytes": total_bytes,
+        "raw_logs_retained": False,
+        "shared_memory_no_space_logs": no_space_logs,
+        "shared_memory_segment_bytes": max(segment_sizes, default=0),
+        "shared_memory_failure_observed": no_space_logs > 0,
+        "diagnosis": ("shared-memory-capacity-exhausted"
+                      if no_space_logs > 0 else "not-established"),
+        "rccl_versions": sorted(rccl_versions),
+    }
+
+
 def main() -> int:
     args = options()
     output = args.output_directory.resolve()
     prepare_output(output, args.overwrite)
+    preflight = resource_preflight(args.world_size)
+    (output / "preflight.json").write_text(
+        json.dumps(preflight, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8")
+    rank_environment = None
+    debug_directory = output / "rccl-debug"
+    if args.rccl_debug:
+        debug_directory.mkdir(parents=True, exist_ok=True)
+        rank_environment = os.environ.copy()
+        rank_environment.update({
+            "RCCL_LOG_LEVEL": "5",
+            "NCCL_DEBUG": "INFO",
+            "NCCL_DEBUG_SUBSYS": "INIT,SHM,NET,ALLOC",
+            "NCCL_DEBUG_FILE": str(debug_directory / "rank.%p.log"),
+        })
     id_file = output / "communicator.id"
     common = ["--world-size", str(args.world_size),
               "--id-file", str(id_file),
@@ -165,7 +239,8 @@ def main() -> int:
     group_start = time.monotonic()
     processes = [subprocess.Popen(command, cwd=ROOT, text=True,
                                   stdout=subprocess.PIPE,
-                                  stderr=subprocess.PIPE)
+                                  stderr=subprocess.PIPE,
+                                  env=rank_environment)
                  for command in commands]
     completed, terminated = wait_group(processes, args.timeout_seconds)
     rank_group_ms = (time.monotonic() - group_start) * 1000.0
@@ -180,6 +255,12 @@ def main() -> int:
         (output / f"rank{index}.stdout").write_text(text, encoding="utf-8")
     for index, text in enumerate(errors):
         (output / f"rank{index}.stderr").write_text(text, encoding="utf-8")
+    rccl_debug = (collect_rccl_debug(debug_directory)
+                  if args.rccl_debug else {"enabled": False})
+    if args.rccl_debug:
+        (output / "rccl-debug-summary.json").write_text(
+            json.dumps(rccl_debug, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8")
 
     if args.failure_mode == "peer-failure":
         for path in [*rank_parameter_files.values(), reference_parameter_file]:
@@ -195,6 +276,8 @@ def main() -> int:
             "peer_processes_terminated": terminated,
             "rank_group_ms": rank_group_ms,
             "returncodes": [process.returncode for process in processes],
+            "preflight": preflight,
+            "rccl_debug": rccl_debug,
         }
         (output / "summary.json").write_text(
             json.dumps(summary, indent=2, sort_keys=True) + "\n",
@@ -213,7 +296,7 @@ def main() -> int:
                     any(process.returncode == 0 for process in processes)):
                 raise RuntimeError(
                     "ranked group-init failure did not match the expected boundary")
-            shared_memory_bytes = shutil.disk_usage("/dev/shm").total
+            shared_memory_bytes = preflight["shared_memory_total_bytes"]
             summary = {
                 "schema_version": 1,
                 "status": "pass",
@@ -226,6 +309,8 @@ def main() -> int:
                 "rank_group_ms": rank_group_ms,
                 "returncodes": [process.returncode for process in processes],
                 "shared_memory_bytes": shared_memory_bytes,
+                "preflight": preflight,
+                "rccl_debug": rccl_debug,
                 "decision": "retain world-size interface and record environment boundary",
             }
             (output / "summary.json").write_text(
@@ -567,6 +652,8 @@ def main() -> int:
         "reference_ms": reference_ms,
         "commands": commands,
         "reference_command": reference_command,
+        "preflight": preflight,
+        "rccl_debug": rccl_debug,
     }
     (output / "summary.json").write_text(
         json.dumps(summary, indent=2, sort_keys=True) + "\n",

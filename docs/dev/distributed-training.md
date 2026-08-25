@@ -216,6 +216,12 @@ every rank-local batch. World sizes one and two pass. Four visible MI300X VFs cu
 `ncclCommInitRank` with a 64 MiB `/dev/shm`; the bounded group-init probe records all rank errors and
 must not be reported as four-GPU training support.
 
+`run_ranked.py --rccl-debug` follows AMD's per-process logging guidance. Its preflight reports
+visible GPUs and `/dev/shm` total/free without inventing a required threshold. On the current
+four-rank failure, all debug logs identify a 21,823,872-byte shared-memory segment that cannot be
+created because the 64 MiB mount has insufficient free space; extracted diagnostics are retained,
+while verbose raw logs are deleted.
+
 RCCL provides the collective primitives; the reducer and readiness state machine remain
 framework responsibilities.
 
