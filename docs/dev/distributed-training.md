@@ -194,6 +194,13 @@ parameter gradient, then the launcher compares all 728 values across ranks and a
 global-batch reference. A bad-rank injection terminates a peer blocked in communicator init.
 This is local single-node bootstrap code, not yet the ready-bucket reducer or a performance claim.
 
+The rank worker now has an explicit `per-parameter|bucket` reducer control. The synchronous bucket
+path packs local contiguous FP32 gradients on the rank communication Stream, enqueues one averaged
+collective per byte-limited range, unpacks after it, and restores checked parameter gradients.
+Tiny's 12 parameters fit one 4 KiB bucket, reducing three-step collectives from 36 to 3 while
+preserving rank/CPU parameters. The implementation is still allocating and synchronous; it is the
+correctness baseline for later persistent ranked buckets and ready overlap.
+
 RCCL provides the collective primitives; the reducer and readiness state machine remain
 framework responsibilities.
 

@@ -13,6 +13,7 @@
 #include <microllm/io/token_dataset.h>
 #include <microllm/model/model.h>
 #include <microllm/multi_gpu/communicator.h>
+#include <microllm/multi_gpu/gradient_bucket.h>
 #include <microllm/runtime/runtime.h>
 #include <microllm/training/optimizer.h>
 
@@ -27,6 +28,8 @@ struct Options {
     std::uint64_t steps = 3;
     std::uint64_t seed = 607;
     std::uint64_t timeout_ms = 10000;
+    std::string reducer = "per-parameter";
+    std::size_t bucket_bytes = 4096;
 };
 
 std::uint64_t number(const std::string& value, const char* name) {
@@ -65,12 +68,19 @@ Options parse(int argc, char** argv) {
             options.seed = number(next("--seed"), "seed");
         } else if (argument == "--timeout-ms") {
             options.timeout_ms = number(next("--timeout-ms"), "timeout");
+        } else if (argument == "--reducer") {
+            options.reducer = next("--reducer");
+        } else if (argument == "--bucket-bytes") {
+            options.bucket_bytes = static_cast<std::size_t>(
+                number(next("--bucket-bytes"), "bucket bytes"));
         } else {
             throw std::invalid_argument("unknown argument: " + argument);
         }
     }
     if ((options.mode != "rank" && options.mode != "reference") ||
-        options.steps == 0 || options.timeout_ms == 0) {
+        options.steps == 0 || options.timeout_ms == 0 ||
+        (options.reducer != "per-parameter" && options.reducer != "bucket") ||
+        options.bucket_bytes < sizeof(float)) {
         throw std::invalid_argument("distributed rank options are invalid");
     }
     if (options.mode == "rank" &&
@@ -165,12 +175,25 @@ void write_float_array(const std::vector<float>& values) {
     std::cout << ']';
 }
 
+struct ReducerStats {
+    std::size_t collectives = 0;
+    std::size_t buckets = 0;
+    std::size_t pack_copies = 0;
+    std::size_t unpack_copies = 0;
+};
+
 void write_result(const char* mode, int rank,
                   const std::vector<float>& losses,
-                  microllm::model::TransformerModel& model) {
+                  microllm::model::TransformerModel& model,
+                  const std::string& reducer, const ReducerStats& reducer_stats) {
     std::cout << std::setprecision(9)
               << "{\"schema_version\":1,\"status\":\"pass\""
               << ",\"mode\":\"" << mode << "\",\"rank\":" << rank
+              << ",\"reducer\":\"" << reducer << "\""
+              << ",\"collectives\":" << reducer_stats.collectives
+              << ",\"buckets\":" << reducer_stats.buckets
+              << ",\"pack_copies\":" << reducer_stats.pack_copies
+              << ",\"unpack_copies\":" << reducer_stats.unpack_copies
               << ",\"losses\":";
     write_float_array(losses);
     std::cout << ",\"parameter_names\":[";
@@ -199,7 +222,7 @@ void run_reference(const Options& options) {
         loss.backward();
         optimizer.step();
     }
-    write_result("reference", -1, losses, model);
+    write_result("reference", -1, losses, model, "reference", {});
 }
 
 void run_rank(const Options& options) {
@@ -217,21 +240,33 @@ void run_rank(const Options& options) {
     microllm::training::AdamW optimizer(model.parameters(), optimizer_config());
     const auto batch = local_batch(options.rank);
     std::vector<float> losses;
+    ReducerStats reducer_stats;
     for (std::uint64_t step = 0; step < options.steps; ++step) {
         optimizer.zero_grad();
         const auto loss = model.loss(batch.inputs, batch.targets);
         losses.push_back(loss.data().to_vector()[0]);
         loss.backward();
         microllm::runtime::synchronize(communicator.device());
-        for (auto* parameter : model.parameters()) {
-            auto gradient = parameter->grad();
-            communicator.enqueue_all_reduce_average_in_place(gradient);
+        if (options.reducer == "bucket") {
+            const auto buckets = microllm::multi_gpu::all_reduce_rank_gradients(
+                communicator, model.parameters(), options.bucket_bytes);
+            reducer_stats.collectives += buckets.bucket_count;
+            reducer_stats.buckets += buckets.bucket_count;
+            reducer_stats.pack_copies += buckets.pack_copy_calls;
+            reducer_stats.unpack_copies += buckets.unpack_copy_calls;
+        } else {
+            for (auto* parameter : model.parameters()) {
+                auto gradient = parameter->grad();
+                communicator.enqueue_all_reduce_average_in_place(gradient);
+                ++reducer_stats.collectives;
+            }
+            communicator.synchronize();
         }
-        communicator.synchronize();
         optimizer.step();
         microllm::runtime::synchronize(communicator.device());
     }
-    write_result("rank", options.rank, losses, model);
+    write_result("rank", options.rank, losses, model,
+                 options.reducer, reducer_stats);
 }
 
 }  // namespace

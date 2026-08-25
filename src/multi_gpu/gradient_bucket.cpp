@@ -520,4 +520,78 @@ BucketStats all_reduce_gradients(
     return stats;
 }
 
+RankBucketStats all_reduce_rank_gradients(
+    RankCommunicator& communicator,
+    const std::vector<autograd::Value*>& parameters,
+    std::size_t maximum_bucket_bytes) {
+    if (maximum_bucket_bytes < sizeof(float)) {
+        throw std::invalid_argument(
+            "rank gradient bucket must hold at least one float");
+    }
+    for (const auto* parameter : parameters) {
+        if (parameter == nullptr || !parameter->has_grad() ||
+            parameter->grad().dtype() != DType::Float32 ||
+            parameter->grad().device() != communicator.device() ||
+            !parameter->grad().is_contiguous()) {
+            throw std::invalid_argument(
+                "rank gradient buckets require contiguous local float32 gradients");
+        }
+    }
+    RankBucketStats stats;
+    stats.parameter_count = parameters.size();
+    if (parameters.empty()) return stats;
+    const auto ranges = make_ranges(
+        parameters, maximum_bucket_bytes / sizeof(float));
+    for (const auto& range : ranges) {
+        if (range.elements > static_cast<std::size_t>(
+                std::numeric_limits<std::int64_t>::max())) {
+            throw std::overflow_error("rank gradient bucket shape exceeds int64");
+        }
+        Tensor bucket(
+            Shape{static_cast<std::int64_t>(range.elements)},
+            DType::Float32, communicator.device());
+        std::vector<Tensor> unpacked;
+        unpacked.reserve(range.end_parameter - range.first_parameter);
+        std::size_t offset = 0;
+        for (std::size_t index = range.first_parameter;
+             index < range.end_parameter; ++index) {
+            const auto& gradient = parameters[index]->grad();
+            const auto elements = static_cast<std::size_t>(gradient.numel());
+            const auto bytes = bytes_for(
+                elements, "rank gradient pack bytes overflow");
+            auto* destination = static_cast<std::byte*>(bucket.data()) +
+                                offset * sizeof(float);
+            runtime::copy_bytes_async(
+                destination, bucket.device(), gradient.data(),
+                gradient.device(), bytes, communicator.stream());
+            unpacked.emplace_back(
+                gradient.shape(), DType::Float32, communicator.device());
+            ++stats.pack_copy_calls;
+            offset += elements;
+        }
+        communicator.enqueue_all_reduce_average_in_place(bucket);
+        offset = 0;
+        for (auto& gradient : unpacked) {
+            const auto elements = static_cast<std::size_t>(gradient.numel());
+            const auto bytes = bytes_for(
+                elements, "rank gradient unpack bytes overflow");
+            const auto* source = static_cast<const std::byte*>(bucket.data()) +
+                                 offset * sizeof(float);
+            runtime::copy_bytes_async(
+                gradient.data(), gradient.device(), source, bucket.device(),
+                bytes, communicator.stream());
+            ++stats.unpack_copy_calls;
+            offset += elements;
+        }
+        communicator.synchronize();
+        for (std::size_t local = 0; local < unpacked.size(); ++local) {
+            parameters[range.first_parameter + local]->set_grad(
+                std::move(unpacked[local]));
+        }
+        ++stats.bucket_count;
+        add_elements(stats.total_elements, range.elements);
+    }
+    return stats;
+}
+
 }  // namespace microllm::multi_gpu

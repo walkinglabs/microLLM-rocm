@@ -17,6 +17,7 @@ def main() -> int:
         "ranked_training_summary", "ranked_peer_failure_summary",
         "maximum_rank_difference", "maximum_reference_difference",
         "peer_processes_terminated", "median_rank_group_ms",
+        "collective_reduction", "bucket_wall_speedup", "per-parameter",
         "admit one-process-per-GPU ready-bucket migration",
     ):
         assert token in text

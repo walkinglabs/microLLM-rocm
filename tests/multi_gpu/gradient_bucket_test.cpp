@@ -228,4 +228,26 @@ TEST(RcclGradientBucketTest, GradientViewsShareBucketStorageAndSkipUnpackCopies)
 
 }
 
+TEST(RcclRankGradientBucketTest, WorldOneBucketPreservesEveryGradient) {
+    if (runtime::hip_device_count() < 1) GTEST_SKIP() << "visible HIP device required";
+    const auto id = create_communicator_id();
+    RankCommunicator communicator(0, 1, 0, id);
+    autograd::Value first(Tensor({2}, DType::Float32, Device::hip(0)), true);
+    autograd::Value second(Tensor({3}, DType::Float32, Device::hip(0)), true);
+    first.set_grad(Tensor::from_vector({1, 2}, {2}).to(Device::hip(0)));
+    second.set_grad(Tensor::from_vector({3, 4, 5}, {3}).to(Device::hip(0)));
+    const auto stats = all_reduce_rank_gradients(
+        communicator, {&first, &second}, 4096);
+    EXPECT_EQ(stats.bucket_count, 1U);
+    EXPECT_EQ(stats.parameter_count, 2U);
+    EXPECT_EQ(stats.total_elements, 5U);
+    EXPECT_EQ(stats.pack_copy_calls, 2U);
+    EXPECT_EQ(stats.unpack_copy_calls, 2U);
+    EXPECT_EQ(first.grad().to_vector(), (std::vector<float>{1, 2}));
+    EXPECT_EQ(second.grad().to_vector(), (std::vector<float>{3, 4, 5}));
+    EXPECT_THROW(
+        (void)all_reduce_rank_gradients(communicator, {&first}, 1),
+        std::invalid_argument);
+}
+
 }  // namespace microllm::multi_gpu

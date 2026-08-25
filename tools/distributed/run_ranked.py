@@ -23,10 +23,13 @@ def options() -> argparse.Namespace:
     parser.add_argument("--timeout-seconds", type=float, default=20.0)
     parser.add_argument("--failure-mode", choices=("none", "peer-failure"),
                         default="none")
+    parser.add_argument("--reducer", choices=("per-parameter", "bucket"),
+                        default="per-parameter")
+    parser.add_argument("--bucket-bytes", type=int, default=4096)
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
     if (not args.binary.is_file() or args.steps <= 0 or
-            args.timeout_seconds <= 0):
+            args.timeout_seconds <= 0 or args.bucket_bytes < 4):
         parser.error("ranked launcher inputs are invalid")
     return args
 
@@ -96,7 +99,9 @@ def main() -> int:
     id_file = output / "communicator.id"
     common = ["--world-size", "2", "--id-file", str(id_file),
               "--steps", str(args.steps), "--seed", "607",
-              "--timeout-ms", str(int(args.timeout_seconds * 1000))]
+              "--timeout-ms", str(int(args.timeout_seconds * 1000)),
+              "--reducer", args.reducer,
+              "--bucket-bytes", str(args.bucket_bytes)]
     commands = [
         [str(args.binary.resolve()), "--mode", "rank", "--rank", "1",
          "--local-rank", "1", *common],
@@ -164,6 +169,12 @@ def main() -> int:
             ranks[0]["parameter_names"] != ranks[1]["parameter_names"] or
             ranks[0]["parameter_names"] != reference["parameter_names"]):
         raise RuntimeError("rank identity or parameter names changed")
+    expected_collectives = (args.steps if args.reducer == "bucket" else
+                            args.steps * len(reference["parameters"]))
+    if any(rank.get("reducer") != args.reducer or
+           rank.get("collectives") != expected_collectives
+           for rank in ranks):
+        raise RuntimeError("rank reducer collective count changed")
     rank_difference = maximum_difference(
         ranks[0]["parameters"], ranks[1]["parameters"])
     reference_difference = max(
@@ -177,6 +188,8 @@ def main() -> int:
         "status": "pass",
         "record_type": "ranked_training_summary",
         "world_size": 2,
+        "reducer": args.reducer,
+        "bucket_bytes": args.bucket_bytes,
         "steps": args.steps,
         "parameter_tensors": len(reference["parameters"]),
         "parameter_values": value_count,
@@ -185,6 +198,10 @@ def main() -> int:
         "rank_losses": [rank["losses"] for rank in ranks],
         "reference_losses": reference["losses"],
         "peer_processes_terminated": terminated,
+        "collectives_per_rank": expected_collectives,
+        "buckets_per_rank": ranks[0]["buckets"],
+        "pack_copies_per_rank": ranks[0]["pack_copies"],
+        "unpack_copies_per_rank": ranks[0]["unpack_copies"],
         "rank_group_ms": rank_group_ms,
         "reference_ms": reference_ms,
         "commands": commands,

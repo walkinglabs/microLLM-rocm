@@ -29,6 +29,14 @@ struct BucketStats {
     std::size_t plan_capacity_bytes = 0;
 };
 
+struct RankBucketStats {
+    std::size_t bucket_count = 0;
+    std::size_t parameter_count = 0;
+    std::size_t total_elements = 0;
+    std::size_t pack_copy_calls = 0;
+    std::size_t unpack_copy_calls = 0;
+};
+
 // Owns reusable rank-local bucket and unpacked-gradient Storage. A plan binds to
 // one communicator, parameter identity/order, shape set, and bucket limit. Call
 // clear() before deliberately changing any part of that contract.
@@ -67,5 +75,10 @@ private:
     std::size_t maximum_bucket_bytes, bool in_place_average = true,
     GradientBucketPlan* persistent_plan = nullptr,
     bool gradient_views = false);
+
+[[nodiscard]] RankBucketStats all_reduce_rank_gradients(
+    RankCommunicator& communicator,
+    const std::vector<autograd::Value*>& parameters,
+    std::size_t maximum_bucket_bytes);
 
 }  // namespace microllm::multi_gpu

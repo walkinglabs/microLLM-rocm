@@ -19,11 +19,13 @@ def main() -> int:
         "--failure-mode", "peer-failure", "peer_processes_terminated",
         "maximum_rank_difference", "maximum_reference_difference",
         "communicator.id", "timeout-seconds", "parameter_values",
+        "--reducer", "collectives_per_rank", "buckets_per_rank",
     ):
         assert token in runner
     for token in (
         "create_communicator_id", "RankCommunicator", "timed out waiting",
         "--world-size", "--local-rank", "--id-file", "global_batch",
+        "all_reduce_rank_gradients", "--bucket-bytes",
     ):
         assert token in worker
     print("ranked launcher contract: pass")

@@ -687,6 +687,17 @@ if(MICROLLM_HAS_RCCL)
             LABELS "hip;rccl;multi_gpu;distributed;integration"
             RUN_SERIAL TRUE TIMEOUT 30)
         add_test(
+            NAME DistributedRank.BucketSmoke
+            COMMAND ${Python3_EXECUTABLE}
+                    ${PROJECT_SOURCE_DIR}/tools/distributed/run_ranked.py
+                    --binary $<TARGET_FILE:microllm_distributed_rank>
+                    --output-directory ${PROJECT_BINARY_DIR}/ranked-bucket-smoke
+                    --steps 2 --timeout-seconds 20 --reducer bucket --overwrite
+        )
+        set_tests_properties(DistributedRank.BucketSmoke PROPERTIES
+            LABELS "hip;rccl;multi_gpu;distributed;integration;bucket"
+            RUN_SERIAL TRUE TIMEOUT 30)
+        add_test(
             NAME DistributedRank.PeerFailure
             COMMAND ${Python3_EXECUTABLE}
                     ${PROJECT_SOURCE_DIR}/tools/distributed/run_ranked.py

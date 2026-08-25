@@ -13,6 +13,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
+POLICIES = ("per-parameter", "bucket")
 
 
 def options() -> argparse.Namespace:
@@ -51,34 +52,42 @@ def main() -> int:
     output.mkdir(parents=True, exist_ok=True)
     raw = []
     for process_run in range(1, args.runs + 1):
-        command = [
-            sys.executable, str(args.launcher.resolve()),
-            "--binary", str(args.binary.resolve()),
-            "--output-directory", str(output / f"run-{process_run}"),
-            "--steps", str(args.steps),
-            "--timeout-seconds", str(args.timeout_seconds), "--overwrite",
-        ]
-        completed = subprocess.run(
-            command, cwd=ROOT, text=True, capture_output=True, check=False,
-            timeout=args.timeout_seconds + 10)
-        if completed.returncode != 0:
-            raise RuntimeError(completed.stdout + completed.stderr)
-        value = record(completed.stdout, f"run-{process_run}")
-        if (value.get("record_type") != "ranked_training_summary" or
-                value.get("world_size") != 2 or value.get("steps") != args.steps or
-                value.get("parameter_tensors") != 12 or
-                value.get("parameter_values") != 728 or
-                value.get("maximum_rank_difference") != 0.0 or
-                value.get("maximum_reference_difference", 1.0) > 2.0e-5 or
-                value.get("peer_processes_terminated") != 0):
-            raise RuntimeError("ranked training result contract changed")
-        value["process_run"] = process_run
-        raw.append(value)
+        order = POLICIES if process_run % 2 else tuple(reversed(POLICIES))
+        for policy in order:
+            command = [
+                sys.executable, str(args.launcher.resolve()),
+                "--binary", str(args.binary.resolve()),
+                "--output-directory",
+                str(output / f"run-{process_run}-{policy}"),
+                "--steps", str(args.steps), "--reducer", policy,
+                "--timeout-seconds", str(args.timeout_seconds), "--overwrite",
+            ]
+            completed = subprocess.run(
+                command, cwd=ROOT, text=True, capture_output=True, check=False,
+                timeout=args.timeout_seconds + 10)
+            if completed.returncode != 0:
+                raise RuntimeError(completed.stdout + completed.stderr)
+            value = record(completed.stdout, f"run-{process_run}-{policy}")
+            expected_collectives = args.steps if policy == "bucket" else args.steps * 12
+            if (value.get("record_type") != "ranked_training_summary" or
+                    value.get("world_size") != 2 or
+                    value.get("steps") != args.steps or
+                    value.get("reducer") != policy or
+                    value.get("collectives_per_rank") != expected_collectives or
+                    value.get("parameter_tensors") != 12 or
+                    value.get("parameter_values") != 728 or
+                    value.get("maximum_rank_difference") != 0.0 or
+                    value.get("maximum_reference_difference", 1.0) > 2.0e-5 or
+                    value.get("peer_processes_terminated") != 0):
+                raise RuntimeError("ranked training result contract changed")
+            value["process_run"] = process_run
+            raw.append(value)
     failure_command = [
         sys.executable, str(args.launcher.resolve()),
         "--binary", str(args.binary.resolve()),
         "--output-directory", str(output / "peer-failure"),
         "--steps", "1", "--timeout-seconds", "5",
+        "--reducer", "bucket",
         "--failure-mode", "peer-failure", "--overwrite",
     ]
     failure_completed = subprocess.run(
@@ -91,11 +100,26 @@ def main() -> int:
             failure.get("failure_detected") is not True or
             failure.get("peer_processes_terminated", 0) < 1):
         raise RuntimeError("ranked peer-failure contract changed")
+    policies = {}
+    for policy in POLICIES:
+        rows = [row for row in raw if row["reducer"] == policy]
+        policies[policy] = {
+            "runs": len(rows),
+            "collectives_per_rank": rows[0]["collectives_per_rank"],
+            "buckets_per_rank": rows[0]["buckets_per_rank"],
+            "median_rank_group_ms": statistics.median(
+                row["rank_group_ms"] for row in rows),
+            "maximum_rank_difference": max(
+                row["maximum_rank_difference"] for row in rows),
+            "maximum_reference_difference": max(
+                row["maximum_reference_difference"] for row in rows),
+        }
     summary = {
         "schema_version": 1,
         "status": "pass",
         "record_type": "ranked_training_matrix_summary",
-        "runs": len(raw),
+        "runs_per_policy": args.runs,
+        "policy_runs": len(raw),
         "rank_processes": len(raw) * 2,
         "steps_per_rank": args.steps,
         "parameter_tensors": 12,
@@ -104,8 +128,13 @@ def main() -> int:
             row["maximum_rank_difference"] for row in raw),
         "maximum_reference_difference": max(
             row["maximum_reference_difference"] for row in raw),
-        "median_rank_group_ms": statistics.median(
-            row["rank_group_ms"] for row in raw),
+        "policies": policies,
+        "collective_reduction": (
+            policies["per-parameter"]["collectives_per_rank"] /
+            policies["bucket"]["collectives_per_rank"]),
+        "bucket_wall_speedup": (
+            policies["per-parameter"]["median_rank_group_ms"] /
+            policies["bucket"]["median_rank_group_ms"]),
         "peer_failure_detected": True,
         "peer_processes_terminated": failure["peer_processes_terminated"],
         "failure_returncodes": failure["returncodes"],
