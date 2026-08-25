@@ -39,12 +39,12 @@ Start with [Quick start](#quick-start), consume the installed library through th
 <details>
 <summary>Latest optimization checkpoints</summary>
 
-> **Current optimization checkpoint:** Experiment 290 rejects physical-thread
-> remapping of the exact-order finalizer. All 96 fresh processes are bitwise-equal,
-> but 128 threads span only 0.9901×–1.0121× Event speed and 0/16 cases pass the
-> performance gate; 64 threads regress further. The default remains unchanged and
-> the next experiment isolates split P×V behind exact score and softmax. See the
-> [finalize mapping experiment](docs/optimization-log/experiments/290-finalize-thread-mapping-discard.md).
+> **Current optimization checkpoint:** Experiment 291 keeps exact score/softmax and
+> splits only P×V. All 160 fresh processes pass; S1 is a bitwise, slower control and
+> S16 wins all 16 cases at 1.2749×–2.9549× Event speed with context Max/RMS no worse
+> than 3.90e-9/1.09e-9. This admits a DeepSeek full-logit gate only; no model or Auto
+> policy changed. See the
+> [split-P×V experiment](docs/optimization-log/experiments/291-exact-softmax-split-pv.md).
 
 > **Current training checkpoint:** the current B1T512 BF16 profile measures
 > 31.327/71.873 ms of Kernel time for Qwen/DeepSeek; GEMM remains 58.56%/63.43%.

@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="880" viewBox="0 0 1280 880">
+<rect width="100%" height="100%" fill="#0b1020"/>
+<style>text{font-family:ui-monospace,SFMono-Regular,monospace;fill:#e5e7eb}.title{font-size:21px;font-weight:700}.label{font-size:13px}.muted{fill:#94a3b8;font-size:12px}</style>
+<text x="30" y="35" class="title">Exact-softmax split P×V search</text>
+<text x="30" y="59" class="muted">winner versus exact-order materialized current · complete context checked before timing</text>
+<text x="30" y="103" class="label">DeepSeek T512 B1 BF16</text>
+<rect x="360" y="84" width="211.00" height="25" rx="4" fill="#22c55e"/>
+<text x="990" y="103" class="label">1.407x · S16</text>
+<text x="1120" y="103" class="muted">Max 2.68e-09</text>
+<text x="30" y="151" class="label">DeepSeek T512 B1 FP32</text>
+<rect x="360" y="132" width="192.00" height="25" rx="4" fill="#22c55e"/>
+<text x="990" y="151" class="label">1.280x · S16</text>
+<text x="1120" y="151" class="muted">Max 2.68e-09</text>
+<text x="30" y="199" class="label">DeepSeek T512 B2 BF16</text>
+<rect x="360" y="180" width="208.60" height="25" rx="4" fill="#22c55e"/>
+<text x="990" y="199" class="label">1.391x · S16</text>
+<text x="1120" y="199" class="muted">Max 2.68e-09</text>
+<text x="30" y="247" class="label">DeepSeek T512 B2 FP32</text>
+<rect x="360" y="228" width="191.23" height="25" rx="4" fill="#22c55e"/>
+<text x="990" y="247" class="label">1.275x · S16</text>
+<text x="1120" y="247" class="muted">Max 2.68e-09</text>
+<text x="30" y="295" class="label">Qwen T512 B1 BF16</text>
+<rect x="360" y="276" width="227.78" height="25" rx="4" fill="#22c55e"/>
+<text x="990" y="295" class="label">1.519x · S16</text>
+<text x="1120" y="295" class="muted">Max 1.89e-09</text>
+<text x="30" y="343" class="label">Qwen T512 B1 FP32</text>
+<rect x="360" y="324" width="221.34" height="25" rx="4" fill="#22c55e"/>
+<text x="990" y="343" class="label">1.476x · S16</text>
+<text x="1120" y="343" class="muted">Max 1.89e-09</text>
+<text x="30" y="391" class="label">Qwen T512 B2 BF16</text>
+<rect x="360" y="372" width="227.44" height="25" rx="4" fill="#22c55e"/>
+<text x="990" y="391" class="label">1.516x · S16</text>
+<text x="1120" y="391" class="muted">Max 1.92e-09</text>
+<text x="30" y="439" class="label">Qwen T512 B2 FP32</text>
+<rect x="360" y="420" width="221.78" height="25" rx="4" fill="#22c55e"/>
+<text x="990" y="439" class="label">1.479x · S16</text>
+<text x="1120" y="439" class="muted">Max 1.92e-09</text>
+<text x="30" y="487" class="label">DeepSeek T2048 B1 BF16</text>
+<rect x="360" y="468" width="381.76" height="25" rx="4" fill="#22c55e"/>
+<text x="990" y="487" class="label">2.545x · S16</text>
+<text x="1120" y="487" class="muted">Max 3.43e-09</text>
+<text x="30" y="535" class="label">DeepSeek T2048 B1 FP32</text>
+<rect x="360" y="516" width="332.87" height="25" rx="4" fill="#22c55e"/>
+<text x="990" y="535" class="label">2.219x · S16</text>
+<text x="1120" y="535" class="muted">Max 3.43e-09</text>
+<text x="30" y="583" class="label">DeepSeek T2048 B2 BF16</text>
+<rect x="360" y="564" width="343.63" height="25" rx="4" fill="#22c55e"/>
+<text x="990" y="583" class="label">2.291x · S16</text>
+<text x="1120" y="583" class="muted">Max 3.90e-09</text>
+<text x="30" y="631" class="label">DeepSeek T2048 B2 FP32</text>
+<rect x="360" y="612" width="335.34" height="25" rx="4" fill="#22c55e"/>
+<text x="990" y="631" class="label">2.236x · S16</text>
+<text x="1120" y="631" class="muted">Max 3.90e-09</text>
+<text x="30" y="679" class="label">Qwen T2048 B1 BF16</text>
+<rect x="360" y="660" width="443.24" height="25" rx="4" fill="#22c55e"/>
+<text x="990" y="679" class="label">2.955x · S16</text>
+<text x="1120" y="679" class="muted">Max 1.63e-09</text>
+<text x="30" y="727" class="label">Qwen T2048 B1 FP32</text>
+<rect x="360" y="708" width="417.89" height="25" rx="4" fill="#22c55e"/>
+<text x="990" y="727" class="label">2.786x · S16</text>
+<text x="1120" y="727" class="muted">Max 1.63e-09</text>
+<text x="30" y="775" class="label">Qwen T2048 B2 BF16</text>
+<rect x="360" y="756" width="431.07" height="25" rx="4" fill="#22c55e"/>
+<text x="990" y="775" class="label">2.874x · S16</text>
+<text x="1120" y="775" class="muted">Max 2.24e-09</text>
+<text x="30" y="823" class="label">Qwen T2048 B2 FP32</text>
+<rect x="360" y="804" width="386.38" height="25" rx="4" fill="#22c55e"/>
+<text x="990" y="823" class="label">2.576x · S16</text>
+<text x="1120" y="823" class="muted">Max 2.24e-09</text>
+</svg>

@@ -1,6 +1,6 @@
 # Step 108 — Exact softmax with split P×V
 
-Status: planned
+Status: complete; operator admitted
 
 Step 107证明仅减少物理线程没有用，因为每个output column仍按T串行读取value并累加。Step 108只
 拆这一段：
@@ -25,3 +25,9 @@ ordered partial combine            输出context
 
 如果P×V-only在operator快但模型精度仍失败，则不再继续序列split；下一路线转向跨GQA heads的value
 复用或更大图融合。
+
+## 实测结果
+
+160进程、80个candidate、16个case全部通过。S1全部位级相同且全部更慢；S16赢16/16，Event
+1.2749x–2.9549x、wall 1.2372x–2.6373x，context Max/RMS最多3.90e-9/1.09e-9。
+Step 109进入DeepSeek完整logits门，模型和Auto仍未改变。

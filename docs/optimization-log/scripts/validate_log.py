@@ -17966,6 +17966,103 @@ def validate_finalize_mapping_matrix(
             float(summary.get("maximum_winner_event_speedup", 0.0)))
 
 
+def validate_exact_softmax_split_pv_matrix(
+        errors: list[str]) -> tuple[int, int, float, float]:
+    root = (REPOSITORY / "benchmarks/results" /
+            "2026-08-25-cached-attention-split-pv-matrix")
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    keys = {(row.get("model"), row.get("sequence"), row.get("batch"),
+             row.get("cache_dtype"), row.get("pv_splits"),
+             row.get("process_run")) for row in raw}
+    if (summary.get("record_type") != "cached_attention_split_pv_matrix" or
+            summary.get("status") != "pass" or
+            summary.get("matrix_complete") is not True or
+            summary.get("process_rows") != 160 or len(raw) != 160 or
+            len(keys) != 160 or summary.get("candidate_rows") != 80 or
+            summary.get("case_count") != 16 or
+            summary.get("runs_per_candidate") != 2 or
+            summary.get("splits") != [1, 2, 4, 8, 16] or
+            summary.get("all_s1_bitwise_materialized") is not True or
+            summary.get("all_s1_performance_counterexamples") is not True or
+            summary.get("operator_pass_count") != 16 or
+            summary.get("minimum_winner_event_speedup") !=
+                1.2748822149050096 or
+            summary.get("maximum_winner_event_speedup") !=
+                2.9549277173685278 or
+            summary.get("minimum_winner_wall_speedup") !=
+                1.2371941520795855 or
+            summary.get("maximum_winner_wall_speedup") !=
+                2.6372673237809536 or
+            summary.get("maximum_context_error") != 3.8999132812e-09 or
+            summary.get("maximum_context_rms_error") != 1.09215567176e-09 or
+            any(row.get("split_pv_backend_allocation_calls_per_invocation") != 0
+                for row in raw)):
+        errors.append("exact-softmax split-PV summary changed")
+    cases = summary.get("cases", [])
+    if (len(cases) != 16 or
+            any(case.get("winner_splits") != 16 or
+                case.get("operator_gate_passed") is not True or
+                case.get("s1_is_performance_counterexample") is not True or
+                len(case.get("candidates", [])) != 5
+                for case in cases)):
+        errors.append("exact-softmax split-PV cases changed")
+    if (analysis.get("decision") !=
+            "admit S16 exact-softmax split-PV to an explicit official-model gate" or
+            analysis.get("process_rows") != 160 or
+            analysis.get("candidate_rows") != 80 or
+            analysis.get("operator_pass_count") != 16 or
+            analysis.get("winner_splits") != 16 or
+            analysis.get("target_event_speedup") != 2.2908365255028365 or
+            analysis.get("target_wall_speedup") != 2.1372069310381896 or
+            analysis.get("target_probability_bytes") != 196608 or
+            analysis.get("target_partial_bytes") != 196608 or
+            analysis.get("official_model_gate_admitted") is not True or
+            analysis.get("model_route_retained") is not False or
+            analysis.get("default_policy_changed") is not False):
+        errors.append("exact-softmax split-PV analysis changed")
+    if (check.get("measurement_commit") !=
+            "69f09b7d2eab633d0fb95d8687241f574ea3e799" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("gpu") != "AMD Instinct MI300X VF" or
+            check.get("architecture") != "gfx942" or
+            check.get("process_rows") != 160 or
+            check.get("case_count") != 16 or
+            check.get("all_s1_bitwise_materialized") is not True or
+            check.get("operator_pass_count") != 16 or
+            check.get("winner_splits") != 16 or
+            check.get("official_model_gate_admitted") is not True or
+            check.get("default_policy_changed") is not False or
+            check.get("cpu_label") != {"passed": 374, "total": 374} or
+            check.get("sanitizer_label") != {"passed": 372, "total": 372} or
+            check.get("hip_label") != {"passed": 192, "total": 192} or
+            check.get("rccl_label") != {"passed": 53, "total": 53} or
+            check.get("torch_operator_parity") != {"passed": 1, "total": 1} or
+            check.get("coverage_manifest_audit") != "pass" or
+            check.get("registered_test_files") != 129):
+        errors.append("exact-softmax split-PV verification changed")
+    for name in ("README.md", "raw.jsonl", "summary.json", "analysis.json",
+                 "verification.json", "split-pv-search.svg"):
+        if not (root / name).is_file():
+            errors.append(f"exact-softmax split-PV evidence missing: {name}")
+    try:
+        ET.parse(root / "split-pv-search.svg")
+    except ET.ParseError as error:
+        errors.append(f"invalid exact-softmax split-PV SVG: {error}")
+    runner = (REPOSITORY / "benchmarks/single_gpu" /
+              "cached_attention_split_pv_matrix.py").read_text(encoding="utf-8")
+    if ("all_s1_bitwise_materialized" not in runner or
+            "winner[\"event_speedup\"] >= 1.05" not in runner or
+            "split_pv_backend_allocation_calls_per_invocation" not in runner):
+        errors.append("exact-softmax split-PV runner contract changed")
+    return (len(raw), len(cases),
+            float(summary.get("minimum_winner_event_speedup", 0.0)),
+            float(summary.get("maximum_winner_event_speedup", 0.0)))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -18836,6 +18933,8 @@ def main() -> int:
     finalize_mapping_rows, finalize_mapping_cases, \
         finalize_mapping_minimum, finalize_mapping_maximum = \
         validate_finalize_mapping_matrix(errors)
+    split_pv_rows, split_pv_cases, split_pv_minimum, split_pv_maximum = \
+        validate_exact_softmax_split_pv_matrix(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -19444,6 +19543,8 @@ def main() -> int:
           f"{finalize_mapping_cases}/"
           f"{finalize_mapping_minimum:.3f}/"
           f"{finalize_mapping_maximum:.3f} "
+          f"split_pv={split_pv_rows}/{split_pv_cases}/"
+          f"{split_pv_minimum:.3f}/{split_pv_maximum:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

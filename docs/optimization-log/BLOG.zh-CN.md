@@ -4559,3 +4559,17 @@ Event只有0.5548x–0.9651x。目标DeepSeek T2048/B2/BF16虽然是最好一格
 只拆P×V，直接测试value累加顺序能否在完整模型里承受。
 
 ![Finalize mapping matrix](../../benchmarks/results/2026-08-25-cached-attention-finalize-mapping/mapping.svg)
+
+## 308. Experiment 291：Softmax不动，只把P×V分段
+
+S1保留exact score和softmax并走新buffer/launch，但不真正切序列。16格S1全部与current位级相同，
+也全部更慢，说明接口真的只隔离了P×V，额外阶段本身不是免费优化。
+
+扩大到S2/4/8/16后，160个fresh process的16格都选择S16。Event为1.2749x–2.9549x，wall为
+1.2372x–2.6373x；最大context Max/RMS只有3.90e-9/1.09e-9。目标DeepSeek T2048/B2/BF16为
+2.2908x/2.1372x。
+
+这说明finalize热点主要能由P×V序列并行缓解，也说明先前全split的精度问题不必来自score。但算子
+1e-9误差经过28层×64步仍可能放大；下一步只做三对完整DeepSeek logits门，不提前改模型或Auto。
+
+![Exact-softmax split P×V](../../benchmarks/results/2026-08-25-cached-attention-split-pv-matrix/split-pv-search.svg)
