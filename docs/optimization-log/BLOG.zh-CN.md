@@ -4544,3 +4544,18 @@ dtype、模型与positions-aware路径不推广。旧61.57% Attention profile已
 context与模型logits门；若单算子快而模型不快，我们就接受反例并转向下一个系统边界。
 
 ![Post-materialized profile](../../benchmarks/results/2026-08-25-post-materialized-deepseek-t2048-profile/profile-delta.svg)
+
+## 307. Experiment 290：256个线程只有128个算column，砍半却没有更快
+
+我们让64/128个物理线程模拟原来的256个逻辑lane。每条局部position流、共享归约树和P×V累加
+顺序完全不变，所以96个fresh process的16格context全部位级相同。
+
+但128-thread相对256的Event只有0.9901x–1.0121x，wall为0.9808x–1.0121x；64-thread更差，
+Event只有0.5548x–0.9651x。目标DeepSeek T2048/B2/BF16虽然是最好一格，也只有1.0121x，
+0/16过性能门。
+
+这推翻了“闲着的线程就是主要浪费”。每个column仍必须按T串行读value并累加；少线程没有缩短
+这条链，反而让每个线程模拟更多逻辑lane。默认不变。下一实验保留exact score和exact softmax，
+只拆P×V，直接测试value累加顺序能否在完整模型里承受。
+
+![Finalize mapping matrix](../../benchmarks/results/2026-08-25-cached-attention-finalize-mapping/mapping.svg)

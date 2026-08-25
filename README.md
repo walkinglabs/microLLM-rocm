@@ -39,12 +39,12 @@ Start with [Quick start](#quick-start), consume the installed library through th
 <details>
 <summary>Latest optimization checkpoints</summary>
 
-> **Current optimization checkpoint:** Experiment 289 reprofiles the retained no-flag
-> path. A DeepSeek T2048/B2/N64 generation has 831.31 ms aggregate Kernel time;
-> exact-order Attention finalize is now the largest category at 349.17 ms/42.00%,
-> ahead of GEMM at 32.81%. Steady backend allocation delta is zero, so the next
-> experiment changes only finalize thread mapping. See the
-> [post-materialized profile](docs/optimization-log/experiments/289-post-materialized-profile.md).
+> **Current optimization checkpoint:** Experiment 290 rejects physical-thread
+> remapping of the exact-order finalizer. All 96 fresh processes are bitwise-equal,
+> but 128 threads span only 0.9901×–1.0121× Event speed and 0/16 cases pass the
+> performance gate; 64 threads regress further. The default remains unchanged and
+> the next experiment isolates split P×V behind exact score and softmax. See the
+> [finalize mapping experiment](docs/optimization-log/experiments/290-finalize-thread-mapping-discard.md).
 
 > **Current training checkpoint:** the current B1T512 BF16 profile measures
 > 31.327/71.873 ms of Kernel time for Qwen/DeepSeek; GEMM remains 58.56%/63.43%.

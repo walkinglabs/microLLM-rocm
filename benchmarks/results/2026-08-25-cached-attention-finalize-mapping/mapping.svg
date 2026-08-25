@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="848" viewBox="0 0 1280 848">
+<rect width="100%" height="100%" fill="#0b1020"/>
+<style>text{font-family:ui-monospace,SFMono-Regular,monospace;fill:#e5e7eb}.title{font-size:21px;font-weight:700}.label{font-size:13px}.muted{fill:#94a3b8;font-size:12px}</style>
+<text x="30" y="35" class="title">Exact-order finalize mapping search</text>
+<text x="30" y="59" class="muted">winner versus 256 physical threads · green requires Event >=1.05x and wall >=1.02x</text>
+<line x1="900" y1="78" x2="900" y2="100%" stroke="#64748b"/>
+<text x="30" y="102" class="label">DeepSeek T512 B1 BF16</text>
+<rect x="700" y="84" width="200.89" height="24" rx="4" fill="#ef4444"/>
+<text x="1020" y="102" class="label">1.001x · 128 threads</text>
+<text x="30" y="148" class="label">DeepSeek T512 B1 FP32</text>
+<rect x="700" y="130" width="194.57" height="24" rx="4" fill="#ef4444"/>
+<text x="1020" y="148" class="label">0.995x · 128 threads</text>
+<text x="30" y="194" class="label">DeepSeek T512 B2 BF16</text>
+<rect x="700" y="176" width="202.85" height="24" rx="4" fill="#ef4444"/>
+<text x="1020" y="194" class="label">1.003x · 128 threads</text>
+<text x="30" y="240" class="label">DeepSeek T512 B2 FP32</text>
+<rect x="700" y="222" width="198.24" height="24" rx="4" fill="#ef4444"/>
+<text x="1020" y="240" class="label">0.998x · 128 threads</text>
+<text x="30" y="286" class="label">Qwen T512 B1 BF16</text>
+<rect x="700" y="268" width="190.08" height="24" rx="4" fill="#ef4444"/>
+<text x="1020" y="286" class="label">0.990x · 128 threads</text>
+<text x="30" y="332" class="label">Qwen T512 B1 FP32</text>
+<rect x="700" y="314" width="190.76" height="24" rx="4" fill="#ef4444"/>
+<text x="1020" y="332" class="label">0.991x · 128 threads</text>
+<text x="30" y="378" class="label">Qwen T512 B2 BF16</text>
+<rect x="700" y="360" width="190.78" height="24" rx="4" fill="#ef4444"/>
+<text x="1020" y="378" class="label">0.991x · 128 threads</text>
+<text x="30" y="424" class="label">Qwen T512 B2 FP32</text>
+<rect x="700" y="406" width="201.11" height="24" rx="4" fill="#ef4444"/>
+<text x="1020" y="424" class="label">1.001x · 128 threads</text>
+<text x="30" y="470" class="label">DeepSeek T2048 B1 BF16</text>
+<rect x="700" y="452" width="203.55" height="24" rx="4" fill="#ef4444"/>
+<text x="1020" y="470" class="label">1.004x · 128 threads</text>
+<text x="30" y="516" class="label">DeepSeek T2048 B1 FP32</text>
+<rect x="700" y="498" width="201.06" height="24" rx="4" fill="#ef4444"/>
+<text x="1020" y="516" class="label">1.001x · 128 threads</text>
+<text x="30" y="562" class="label">DeepSeek T2048 B2 BF16</text>
+<rect x="700" y="544" width="212.09" height="24" rx="4" fill="#ef4444"/>
+<text x="1020" y="562" class="label">1.012x · 128 threads</text>
+<text x="30" y="608" class="label">DeepSeek T2048 B2 FP32</text>
+<rect x="700" y="590" width="198.05" height="24" rx="4" fill="#ef4444"/>
+<text x="1020" y="608" class="label">0.998x · 128 threads</text>
+<text x="30" y="654" class="label">Qwen T2048 B1 BF16</text>
+<rect x="700" y="636" width="194.28" height="24" rx="4" fill="#ef4444"/>
+<text x="1020" y="654" class="label">0.994x · 128 threads</text>
+<text x="30" y="700" class="label">Qwen T2048 B1 FP32</text>
+<rect x="700" y="682" width="199.46" height="24" rx="4" fill="#ef4444"/>
+<text x="1020" y="700" class="label">0.999x · 128 threads</text>
+<text x="30" y="746" class="label">Qwen T2048 B2 BF16</text>
+<rect x="700" y="728" width="203.77" height="24" rx="4" fill="#ef4444"/>
+<text x="1020" y="746" class="label">1.004x · 128 threads</text>
+<text x="30" y="792" class="label">Qwen T2048 B2 FP32</text>
+<rect x="700" y="774" width="200.66" height="24" rx="4" fill="#ef4444"/>
+<text x="1020" y="792" class="label">1.001x · 128 threads</text>
+</svg>

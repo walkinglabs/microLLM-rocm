@@ -1,6 +1,6 @@
 # Step 107 — Exact-order finalize thread mapping
 
-Status: planned
+Status: complete; performance rejected
 
 Experiment 289证明DeepSeek T2048/B2/N64中，保序finalize单独占349.17ms/42.00%，大于GEMM。
 
@@ -16,3 +16,9 @@ Experiment 289证明DeepSeek T2048/B2/N64中，保序finalize单独占349.17ms/4
 第一组可反驳候选是`blockDim=64/128/256`。当前width为64或128，256线程有大量线程不参与P×V，
 但更大的block可能加快max/denominator；较小block提高每CU驻留，却会改变block reduction的树。
 因此“位级相同”与“数值容差内”必须分开报告，不能先假定哪一个更快或更准。
+
+## 实测结果
+
+96个fresh process、16个case全部位级相同。128-thread Event为0.9901x–1.0121x，wall为
+0.9808x–1.0121x；64-thread Event为0.5548x–0.9651x。0/16通过性能门，不做模型路由和默认修改。
+显式研究接口保留，Step 108转向exact softmax + split P×V。

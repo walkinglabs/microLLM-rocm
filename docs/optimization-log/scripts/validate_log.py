@@ -17870,6 +17870,102 @@ def validate_post_materialized_cached_profile(
             float(gemm.get("kernel_share", 0.0)))
 
 
+def validate_finalize_mapping_matrix(
+        errors: list[str]) -> tuple[int, int, float, float]:
+    root = (REPOSITORY / "benchmarks/results" /
+            "2026-08-25-cached-attention-finalize-mapping")
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    keys = {(row.get("model"), row.get("sequence"), row.get("batch"),
+             row.get("cache_dtype"), row.get("materialized_finalize_threads"),
+             row.get("process_run")) for row in raw}
+    if (summary.get("record_type") !=
+            "cached_attention_finalize_mapping_matrix" or
+            summary.get("status") != "pass" or
+            summary.get("matrix_complete") is not True or
+            summary.get("process_rows") != 96 or len(raw) != 96 or
+            len(keys) != 96 or summary.get("case_count") != 16 or
+            summary.get("runs_per_policy") != 2 or
+            summary.get("finalize_threads") != [64, 128, 256] or
+            summary.get("all_accuracy_gates_passed") is not True or
+            summary.get("performance_pass_count") != 0 or
+            summary.get("minimum_winner_event_speedup") !=
+                0.9900755739168878 or
+            summary.get("maximum_winner_event_speedup") !=
+                1.0120861883652736 or
+            summary.get("minimum_winner_wall_speedup") !=
+                0.9808337519735899 or
+            summary.get("maximum_winner_wall_speedup") !=
+                1.012053756913843 or
+            any(row.get("materialized_bitwise_equal_current") is not True or
+                row.get("materialized_backend_allocation_calls_per_invocation") != 0
+                for row in raw)):
+        errors.append("exact-order finalize mapping summary changed")
+    cases = summary.get("cases", [])
+    if (len(cases) != 16 or
+            any(case.get("winner_threads") != 128 or
+                case.get("accuracy_gate_passed") is not True or
+                case.get("performance_gate_passed") is not False or
+                len(case.get("policies", [])) != 3
+                for case in cases)):
+        errors.append("exact-order finalize mapping cases changed")
+    if (analysis.get("status") != "pass" or
+            analysis.get("decision") !=
+                "reject physical-thread remapping as a performance route" or
+            analysis.get("process_rows") != 96 or
+            analysis.get("case_count") != 16 or
+            analysis.get("performance_pass_count") != 0 or
+            analysis.get("mapped_64_event_speedup_minimum") !=
+                0.5548406400433141 or
+            analysis.get("mapped_64_event_speedup_maximum") !=
+                0.9651382972365931 or
+            analysis.get("target_128_event_speedup") !=
+                1.0120861883652736 or
+            analysis.get("target_performance_gate_passed") is not False or
+            analysis.get("model_route_admitted") is not False or
+            analysis.get("default_policy_changed") is not False):
+        errors.append("exact-order finalize mapping analysis changed")
+    if (check.get("measurement_commit") !=
+            "f827b0d3a4929a6c125c0ec52532ee7a6f094b60" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("gpu") != "AMD Instinct MI300X VF" or
+            check.get("architecture") != "gfx942" or
+            check.get("process_rows") != 96 or
+            check.get("case_count") != 16 or
+            check.get("all_contexts_bitwise_equal_current") is not True or
+            check.get("performance_pass_count") != 0 or
+            check.get("model_route_admitted") is not False or
+            check.get("cpu_label") != {"passed": 374, "total": 374} or
+            check.get("sanitizer_label") != {"passed": 372, "total": 372} or
+            check.get("hip_label") != {"passed": 192, "total": 192} or
+            check.get("rccl_label") != {"passed": 53, "total": 53} or
+            check.get("torch_operator_parity") != {"passed": 1, "total": 1} or
+            check.get("coverage_manifest_audit") != "pass" or
+            check.get("registered_test_files") != 129):
+        errors.append("exact-order finalize mapping verification changed")
+    for name in ("README.md", "raw.jsonl", "summary.json", "analysis.json",
+                 "verification.json", "mapping.svg"):
+        if not (root / name).is_file():
+            errors.append(f"exact-order finalize mapping evidence missing: {name}")
+    try:
+        ET.parse(root / "mapping.svg")
+    except ET.ParseError as error:
+        errors.append(f"invalid exact-order finalize mapping SVG: {error}")
+    runner = (REPOSITORY / "benchmarks/single_gpu" /
+              "cached_attention_finalize_mapping_matrix.py").read_text(
+                  encoding="utf-8")
+    if ("materialized_finalize_threads" not in runner or
+            "event_speedup >= 1.05 and wall_speedup >= 1.02" not in runner or
+            "bitwise_equal_current" not in runner):
+        errors.append("exact-order finalize mapping runner contract changed")
+    return (len(raw), len(cases),
+            float(summary.get("minimum_winner_event_speedup", 0.0)),
+            float(summary.get("maximum_winner_event_speedup", 0.0)))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -18737,6 +18833,9 @@ def main() -> int:
     post_materialized_kernel_ms, post_materialized_finalize_share, \
         post_materialized_gemm_share = \
         validate_post_materialized_cached_profile(errors)
+    finalize_mapping_rows, finalize_mapping_cases, \
+        finalize_mapping_minimum, finalize_mapping_maximum = \
+        validate_finalize_mapping_matrix(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -19341,6 +19440,10 @@ def main() -> int:
           f"post_materialized_profile={post_materialized_kernel_ms:.3f}/"
           f"{post_materialized_finalize_share:.4f}/"
           f"{post_materialized_gemm_share:.4f} "
+          f"finalize_mapping={finalize_mapping_rows}/"
+          f"{finalize_mapping_cases}/"
+          f"{finalize_mapping_minimum:.3f}/"
+          f"{finalize_mapping_maximum:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")
