@@ -42,6 +42,7 @@ def main() -> int:
         "overlap_peak_bytes_added_vs_synchronous_views",
         "--context", "context exceeds the selected model contract",
         "--world-size", "args.world_size",
+        "--rank-batch-rows", "--input-weighting", "token-weighted",
         "profile ranked Model-S cold and steady reducer",
         "admit measured ranked Model-S bucket baseline",
         "admit one-process-per-GPU ready-bucket migration",

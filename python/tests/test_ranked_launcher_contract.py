@@ -42,6 +42,9 @@ def main() -> int:
         "--rccl-debug", "resource_preflight", "collect_rccl_debug",
         "required_shared_memory_unknown", "shared-memory-capacity-exhausted",
         "shared_memory_segment_bytes", "raw_logs_retained",
+        "uneven-input", "ranked_uneven_input_failure_summary",
+        "--rank-batch-rows", "--input-weighting", "token-weighted",
+        "local_gradient_scale", "average_tokens",
     ):
         assert token in runner
     for token in (
@@ -57,6 +60,8 @@ def main() -> int:
         "begin_overlap_step", "finish_overlap_step",
         "options.context", "context_dimension",
         "options.world_size", "world_size)",
+        "rank_batch_rows", "uneven local token counts require token-weighted",
+        "local_gradient_scale", "scale_in_place_",
     ):
         assert token in worker
     print("ranked launcher contract: pass")

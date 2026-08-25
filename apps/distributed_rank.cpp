@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -5,6 +6,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <numeric>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -15,6 +17,7 @@
 #include <microllm/model/model.h>
 #include <microllm/multi_gpu/communicator.h>
 #include <microllm/multi_gpu/gradient_bucket.h>
+#include <microllm/ops/ops.h>
 #include <microllm/runtime/memory.h>
 #include <microllm/runtime/runtime.h>
 #include <microllm/training/checkpoint.h>
@@ -40,6 +43,8 @@ struct Options {
     std::filesystem::path checkpoint_ready_file;
     std::filesystem::path resume_file;
     bool inject_checkpoint_failure = false;
+    std::vector<std::size_t> rank_batch_rows;
+    std::string input_weighting = "equal-only";
 };
 
 std::uint64_t number(const std::string& value, const char* name) {
@@ -49,6 +54,35 @@ std::uint64_t number(const std::string& value, const char* name) {
         throw std::invalid_argument(std::string(name) + " is invalid");
     }
     return parsed;
+}
+
+std::vector<std::size_t> number_list(
+    const std::string& value, const char* name) {
+    std::vector<std::size_t> result;
+    std::size_t first = 0;
+    while (first <= value.size()) {
+        const auto separator = value.find(',', first);
+        const auto token = value.substr(
+            first, separator == std::string::npos
+                       ? std::string::npos
+                       : separator - first);
+        if (token.empty()) {
+            throw std::invalid_argument(std::string(name) + " is invalid");
+        }
+        result.push_back(static_cast<std::size_t>(number(token, name)));
+        if (separator == std::string::npos) break;
+        first = separator + 1;
+    }
+    return result;
+}
+
+std::string number_list_string(const std::vector<std::size_t>& values) {
+    std::string result;
+    for (std::size_t index = 0; index < values.size(); ++index) {
+        if (index != 0) result += ',';
+        result += std::to_string(values[index]);
+    }
+    return result;
 }
 
 Options parse(int argc, char** argv) {
@@ -98,6 +132,11 @@ Options parse(int argc, char** argv) {
             options.resume_file = next("--resume-file");
         } else if (argument == "--inject-checkpoint-failure") {
             options.inject_checkpoint_failure = true;
+        } else if (argument == "--rank-batch-rows") {
+            options.rank_batch_rows = number_list(
+                next("--rank-batch-rows"), "rank batch rows");
+        } else if (argument == "--input-weighting") {
+            options.input_weighting = next("--input-weighting");
         } else {
             throw std::invalid_argument("unknown argument: " + argument);
         }
@@ -119,6 +158,25 @@ Options parse(int argc, char** argv) {
         (options.model == "model-s" && options.context > 512)) {
         throw std::invalid_argument(
             "distributed rank context exceeds the model contract");
+    }
+    if (options.rank_batch_rows.empty()) {
+        options.rank_batch_rows.assign(
+            static_cast<std::size_t>(options.world_size), 1U);
+    }
+    if (options.rank_batch_rows.size() !=
+            static_cast<std::size_t>(options.world_size) ||
+        std::any_of(options.rank_batch_rows.begin(),
+                    options.rank_batch_rows.end(),
+                    [](std::size_t rows) { return rows == 0; }) ||
+        (options.input_weighting != "equal-only" &&
+         options.input_weighting != "token-weighted")) {
+        throw std::invalid_argument(
+            "rank batch rows or input weighting contract is invalid");
+    }
+    if (options.input_weighting == "token-weighted" &&
+        options.reducer == "overlap-views") {
+        throw std::invalid_argument(
+            "token-weighted input does not yet support ready overlap");
     }
     if (options.mode == "rank" &&
         (options.world_size <= 0 || options.rank < 0 ||
@@ -164,7 +222,7 @@ microllm::model::ModelConfig model_config(const std::string& model) {
             .tie_embeddings = false};
 }
 
-microllm::io::TokenBatch local_batch(
+microllm::io::TokenBatch local_batch_one(
     const microllm::model::ModelConfig& config, int rank,
     std::size_t context) {
     if (config.vocabulary_size == 8 && rank == 0) {
@@ -204,15 +262,45 @@ microllm::io::TokenBatch local_batch(
                 targets, {1, context_dimension})};
 }
 
+microllm::io::TokenBatch local_batch(
+    const microllm::model::ModelConfig& config, int rank,
+    std::size_t context, std::size_t rows) {
+    const auto first = local_batch_one(config, rank, context);
+    auto inputs = first.inputs.to_int32_vector();
+    auto targets = first.targets.to_int32_vector();
+    inputs.reserve(rows * context);
+    targets.reserve(rows * context);
+    for (std::size_t row = 1; row < rows; ++row) {
+        for (std::size_t index = 0; index < context; ++index) {
+            const auto token = static_cast<std::int32_t>(
+                (static_cast<std::size_t>(rank) * 97 + row * 53 +
+                 index * 13 + 7) %
+                static_cast<std::size_t>(config.vocabulary_size));
+            inputs.push_back(token);
+            targets.push_back(
+                (token + 1) %
+                static_cast<std::int32_t>(config.vocabulary_size));
+        }
+    }
+    return {microllm::Tensor::from_int32_vector(
+                inputs, {static_cast<std::int64_t>(rows),
+                         static_cast<std::int64_t>(context)}),
+            microllm::Tensor::from_int32_vector(
+                targets, {static_cast<std::int64_t>(rows),
+                          static_cast<std::int64_t>(context)})};
+}
+
 microllm::io::TokenBatch global_batch(
     const microllm::model::ModelConfig& config, std::size_t context,
-    int world_size) {
+    int world_size, const std::vector<std::size_t>& rank_batch_rows) {
     std::vector<std::int32_t> inputs;
     std::vector<std::int32_t> targets;
     inputs.reserve(static_cast<std::size_t>(world_size) * context);
     targets.reserve(static_cast<std::size_t>(world_size) * context);
     for (int rank = 0; rank < world_size; ++rank) {
-        const auto batch = local_batch(config, rank, context);
+        const auto batch = local_batch(
+            config, rank, context,
+            rank_batch_rows[static_cast<std::size_t>(rank)]);
         const auto rank_inputs = batch.inputs.to_int32_vector();
         const auto rank_targets = batch.targets.to_int32_vector();
         inputs.insert(inputs.end(), rank_inputs.begin(), rank_inputs.end());
@@ -220,9 +308,11 @@ microllm::io::TokenBatch global_batch(
     }
     const auto context_dimension = static_cast<std::int64_t>(context);
     return {microllm::Tensor::from_int32_vector(
-                inputs, {world_size, context_dimension}),
+                inputs, {static_cast<std::int64_t>(inputs.size() / context),
+                         context_dimension}),
             microllm::Tensor::from_int32_vector(
-                targets, {world_size, context_dimension})};
+                targets, {static_cast<std::int64_t>(targets.size() / context),
+                          context_dimension})};
 }
 
 microllm::training::AdamWConfig optimizer_config() {
@@ -381,6 +471,14 @@ struct CheckpointReport {
     std::filesystem::path checkpoint_ready_file;
 };
 
+struct InputWeightReport {
+    std::string mode = "equal-only";
+    std::size_t local_batch_rows = 0;
+    std::size_t local_tokens = 0;
+    float average_tokens = 0.0F;
+    float local_gradient_scale = 1.0F;
+};
+
 using SteadyClock = std::chrono::steady_clock;
 
 double elapsed_ms(SteadyClock::time_point begin, SteadyClock::time_point end) {
@@ -401,6 +499,7 @@ void write_result(const char* mode, int rank,
                   const PhaseTimings& timings,
                   const microllm::runtime::AllocationStats& allocation,
                   const CheckpointReport& checkpoint,
+                  const InputWeightReport& input_weight,
                   const std::string& model_name,
                   std::size_t context,
                   int world_size,
@@ -457,6 +556,13 @@ void write_result(const char* mode, int rank,
               << checkpoint.checkpoint_file.string() << "\""
               << ",\"checkpoint_ready_file\":\""
               << checkpoint.checkpoint_ready_file.string() << "\""
+              << ",\"input_weighting\":\"" << input_weight.mode << "\""
+              << ",\"local_batch_rows\":"
+              << input_weight.local_batch_rows
+              << ",\"local_tokens\":" << input_weight.local_tokens
+              << ",\"average_tokens\":" << input_weight.average_tokens
+              << ",\"local_gradient_scale\":"
+              << input_weight.local_gradient_scale
               << ",\"training_ms\":" << timings.training_ms
               << ",\"forward_backward_ms\":"
               << timings.forward_backward_ms
@@ -526,7 +632,8 @@ void run_reference(const Options& options) {
     microllm::model::TransformerModel model(config, options.seed);
     microllm::training::AdamW optimizer(model.parameters(), optimizer_config());
     const auto batch = global_batch(
-        config, options.context, options.world_size);
+        config, options.context, options.world_size,
+        options.rank_batch_rows);
     std::vector<float> losses;
     PhaseTimings timings;
     const auto training_begin = SteadyClock::now();
@@ -559,8 +666,15 @@ void run_reference(const Options& options) {
     }
     const auto allocation =
         microllm::runtime::allocation_stats(microllm::Device::cpu());
+    const auto total_rows = std::accumulate(
+        options.rank_batch_rows.begin(), options.rank_batch_rows.end(),
+        std::size_t{0});
+    const InputWeightReport input_weight{
+        .mode = options.input_weighting,
+        .average_tokens = static_cast<float>(total_rows * options.context) /
+                          static_cast<float>(options.world_size)};
     write_result("reference", -1, losses, model, "reference", {}, timings,
-                 allocation, {}, options.model, options.context,
+                 allocation, {}, input_weight, options.model, options.context,
                  options.world_size,
                  options.parameter_file);
 }
@@ -575,6 +689,29 @@ void run_rank(const Options& options) {
     }
     microllm::multi_gpu::RankCommunicator communicator(
         options.rank, options.world_size, options.local_rank, id);
+    const auto local_rows = options.rank_batch_rows[
+        static_cast<std::size_t>(options.rank)];
+    const auto local_tokens = local_rows * options.context;
+    auto token_count = microllm::Tensor::from_vector(
+        {static_cast<float>(local_tokens)}, {1}).to(communicator.device());
+    communicator.enqueue_all_reduce_average_in_place(token_count);
+    communicator.synchronize();
+    const auto average_tokens = token_count.to_vector()[0];
+    if (options.input_weighting == "equal-only" &&
+        static_cast<float>(local_tokens) != average_tokens) {
+        throw std::invalid_argument(
+            "uneven local token counts require token-weighted input mode");
+    }
+    const auto local_gradient_scale =
+        options.input_weighting == "token-weighted"
+            ? static_cast<float>(local_tokens) / average_tokens
+            : 1.0F;
+    const InputWeightReport input_weight{
+        .mode = options.input_weighting,
+        .local_batch_rows = local_rows,
+        .local_tokens = local_tokens,
+        .average_tokens = average_tokens,
+        .local_gradient_scale = local_gradient_scale};
     const auto config = model_config(options.model);
     microllm::model::TransformerModel model(config, options.seed);
     model.to(communicator.device());
@@ -587,7 +724,9 @@ void run_rank(const Options& options) {
         .model_config = config.summary(),
         .data_config = "ranked-synthetic:context=" +
                        std::to_string(options.context) + ":world=" +
-                       std::to_string(options.world_size)};
+                       std::to_string(options.world_size) + ":rows=" +
+                       number_list_string(options.rank_batch_rows) +
+                       ":weighting=" + options.input_weighting};
     CheckpointReport checkpoint_report{
         .checkpoint_requested = !options.checkpoint_file.empty(),
         .checkpoint_file = options.checkpoint_file,
@@ -609,7 +748,8 @@ void run_rank(const Options& options) {
         checkpoint_report.resumed = true;
     }
     checkpoint_report.initial_step = experiment.global_step;
-    const auto batch = local_batch(config, options.rank, options.context);
+    const auto batch = local_batch(
+        config, options.rank, options.context, local_rows);
     std::vector<float> losses;
     ReducerStats reducer_stats;
     microllm::multi_gpu::RankGradientBucketPlan persistent_bucket_plan;
@@ -643,6 +783,15 @@ void run_rank(const Options& options) {
         losses.push_back(loss.data().to_vector()[0]);
         loss.backward();
         if (!overlap_step) {
+            microllm::runtime::synchronize(communicator.device());
+        }
+        if (options.input_weighting == "token-weighted" &&
+            local_gradient_scale != 1.0F) {
+            for (auto* parameter : parameters) {
+                auto gradient = parameter->grad();
+                microllm::ops::scale_in_place_(
+                    gradient, local_gradient_scale);
+            }
             microllm::runtime::synchronize(communicator.device());
         }
         const auto forward_backward_elapsed = elapsed_ms(
@@ -823,7 +972,8 @@ void run_rank(const Options& options) {
     }
     write_result("rank", options.rank, losses, model,
                  options.reducer, reducer_stats, timings, allocation,
-                 checkpoint_report, options.model, options.context,
+                 checkpoint_report, input_weight, options.model,
+                 options.context,
                  options.world_size,
                  options.parameter_file);
 }

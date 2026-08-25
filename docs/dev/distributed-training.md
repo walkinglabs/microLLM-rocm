@@ -222,6 +222,12 @@ four-rank failure, all debug logs identify a 21,823,872-byte shared-memory segme
 created because the 64 MiB mount has insufficient free space; extracted diagnostics are retained,
 while verbose raw logs are deleted.
 
+Uneven local inputs use an explicit contract. Every rank first exchanges its valid-token count.
+The default equal-only mode rejects unequal counts before parameter collectives. The synchronous
+token-weighted mode scales each local mean gradient by `local_tokens / average_tokens` before the
+ordinary RCCL average, producing the same gradient as one concatenated global batch. Weighted
+ready-overlap is intentionally unsupported until scaling can occur before bucket enqueue.
+
 RCCL provides the collective primitives; the reducer and readiness state machine remain
 framework responsibilities.
 

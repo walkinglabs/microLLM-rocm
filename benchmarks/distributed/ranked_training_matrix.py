@@ -27,6 +27,10 @@ def options() -> argparse.Namespace:
     parser.add_argument("--runs", type=int, default=3)
     parser.add_argument("--steps", type=int, default=3)
     parser.add_argument("--world-size", type=int, default=2)
+    parser.add_argument("--rank-batch-rows", default="")
+    parser.add_argument("--input-weighting",
+                        choices=("equal-only", "token-weighted"),
+                        default="equal-only")
     parser.add_argument("--timeout-seconds", type=float, default=20.0)
     parser.add_argument("--overwrite", action="store_true")
     parser.add_argument("--model", choices=("tiny", "model-s"), default="tiny")
@@ -63,6 +67,17 @@ def options() -> argparse.Namespace:
     if ("overlap-views" in args.policies and
             "bucket-views" not in args.policies):
         parser.error("overlap-views comparison requires bucket-views")
+    if args.rank_batch_rows:
+        try:
+            args.rank_batch_rows = [
+                int(value) for value in args.rank_batch_rows.split(',')]
+        except ValueError:
+            parser.error("rank batch rows are invalid")
+    else:
+        args.rank_batch_rows = [1] * args.world_size
+    if (len(args.rank_batch_rows) != args.world_size or
+            any(value <= 0 for value in args.rank_batch_rows)):
+        parser.error("rank batch rows must match world size")
     return args
 
 
@@ -96,6 +111,9 @@ def main() -> int:
                 str(output / f"run-{process_run}-{policy}"),
                 "--steps", str(args.steps), "--reducer", policy,
                 "--world-size", str(args.world_size),
+                "--rank-batch-rows",
+                ",".join(str(value) for value in args.rank_batch_rows),
+                "--input-weighting", args.input_weighting,
                 "--model", args.model,
                 "--context", str(args.context),
                 "--bucket-bytes", str(args.bucket_bytes),
@@ -125,6 +143,8 @@ def main() -> int:
                     value.get("steps") != args.steps or
                     value.get("model") != args.model or
                     value.get("context") != args.context or
+                    value.get("rank_batch_rows") != args.rank_batch_rows or
+                    value.get("input_weighting") != args.input_weighting or
                     value.get("reducer") != policy or
                     value.get("collectives_per_rank") != expected_collectives or
                     value.get("parameter_tensors") != parameter_tensors or
@@ -188,6 +208,9 @@ def main() -> int:
         "--output-directory", str(output / "peer-failure"),
         "--steps", "1", "--timeout-seconds", "5",
         "--world-size", str(args.world_size),
+        "--rank-batch-rows",
+        ",".join(str(value) for value in args.rank_batch_rows),
+        "--input-weighting", args.input_weighting,
         "--reducer", "bucket", "--model", "tiny",
         "--failure-mode", "peer-failure", "--overwrite",
     ]
@@ -322,6 +345,8 @@ def main() -> int:
         "record_type": "ranked_training_matrix_summary",
         "model": args.model,
         "context": args.context,
+        "rank_batch_rows": args.rank_batch_rows,
+        "input_weighting": args.input_weighting,
         "selected_policies": args.policies,
         "runs_per_policy": args.runs,
         "policy_runs": len(raw),

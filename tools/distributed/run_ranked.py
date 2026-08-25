@@ -26,7 +26,8 @@ def options() -> argparse.Namespace:
     parser.add_argument("--world-size", type=int, default=2)
     parser.add_argument("--timeout-seconds", type=float, default=20.0)
     parser.add_argument("--failure-mode",
-                        choices=("none", "peer-failure", "group-init"),
+                        choices=("none", "peer-failure", "group-init",
+                                 "uneven-input"),
                         default="none")
     parser.add_argument("--reducer",
                         choices=("per-parameter", "bucket",
@@ -38,6 +39,10 @@ def options() -> argparse.Namespace:
     parser.add_argument("--context", type=int, default=0)
     parser.add_argument("--compare-binary", type=Path)
     parser.add_argument("--rccl-debug", action="store_true")
+    parser.add_argument("--rank-batch-rows", default="")
+    parser.add_argument("--input-weighting",
+                        choices=("equal-only", "token-weighted"),
+                        default="equal-only")
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
     if (not args.binary.is_file() or args.steps <= 0 or
@@ -54,6 +59,23 @@ def options() -> argparse.Namespace:
     if args.model == "model-s" and (
             args.compare_binary is None):
         parser.error("Model-S requires --compare-binary")
+    if args.rank_batch_rows:
+        try:
+            args.rank_batch_rows = [
+                int(value) for value in args.rank_batch_rows.split(',')]
+        except ValueError:
+            parser.error("rank batch rows are invalid")
+    else:
+        args.rank_batch_rows = [1] * args.world_size
+    if (len(args.rank_batch_rows) != args.world_size or
+            any(rows <= 0 for rows in args.rank_batch_rows)):
+        parser.error("rank batch rows must contain one positive value per rank")
+    if args.failure_mode == "uneven-input":
+        if args.world_size < 2:
+            parser.error("uneven-input failure requires at least two ranks")
+        args.rank_batch_rows = [1] * args.world_size
+        args.rank_batch_rows[1] = 2
+        args.input_weighting = "equal-only"
     return args
 
 
@@ -220,7 +242,10 @@ def main() -> int:
               "--timeout-ms", str(int(args.timeout_seconds * 1000)),
               "--reducer", args.reducer,
               "--bucket-bytes", str(args.bucket_bytes),
-              "--context", str(args.context)]
+              "--context", str(args.context),
+              "--rank-batch-rows",
+              ",".join(str(value) for value in args.rank_batch_rows),
+              "--input-weighting", args.input_weighting]
     command_ranks = [*range(args.world_size - 1, 0, -1), 0]
     rank_parameter_files = {
         rank: output / f"rank{rank}.safetensors" for rank in command_ranks}
@@ -288,6 +313,33 @@ def main() -> int:
     if not completed:
         for path in [*rank_parameter_files.values(), reference_parameter_file]:
             path.unlink(missing_ok=True)
+        if args.failure_mode == "uneven-input":
+            contract_errors = sum(
+                "uneven local token counts require token-weighted input mode"
+                in error for error in errors)
+            if (contract_errors == 0 or
+                    any(process.returncode == 0 for process in processes)):
+                raise RuntimeError(
+                    "uneven-input failure did not match the weighting contract")
+            summary = {
+                "schema_version": 1,
+                "status": "pass",
+                "record_type": "ranked_uneven_input_failure_summary",
+                "world_size": args.world_size,
+                "rank_batch_rows": args.rank_batch_rows,
+                "input_weighting": args.input_weighting,
+                "failure_detected": True,
+                "weighting_contract_error_processes": contract_errors,
+                "peer_processes_terminated": terminated,
+                "rank_group_ms": rank_group_ms,
+                "returncodes": [process.returncode for process in processes],
+                "decision": "admit explicit token-weighted input mode",
+            }
+            (output / "summary.json").write_text(
+                json.dumps(summary, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8")
+            print(json.dumps(summary, sort_keys=True))
+            return 0
         if args.failure_mode == "group-init":
             system_error_ranks = sum(
                 "ncclCommInitRank" in error and
@@ -329,7 +381,10 @@ def main() -> int:
                          "--steps", str(args.steps), "--seed", "607",
                          "--model", args.model,
                          "--context", str(args.context),
-                         "--world-size", str(args.world_size)]
+                         "--world-size", str(args.world_size),
+                         "--rank-batch-rows",
+                         ",".join(str(value) for value in args.rank_batch_rows),
+                         "--input-weighting", args.input_weighting]
     if args.model == "model-s":
         reference_command.extend(
             ["--parameter-file", str(reference_parameter_file)])
@@ -352,6 +407,23 @@ def main() -> int:
                 rank["parameter_names"] != reference["parameter_names"]
                 for rank in ranks)):
         raise RuntimeError("rank identity or parameter names changed")
+    average_tokens = (
+        sum(args.rank_batch_rows) * args.context / args.world_size)
+    for rank_index, rank in enumerate(ranks):
+        local_tokens = args.rank_batch_rows[rank_index] * args.context
+        expected_scale = (local_tokens / average_tokens
+                          if args.input_weighting == "token-weighted" else 1.0)
+        if (rank.get("input_weighting") != args.input_weighting or
+                rank.get("local_batch_rows") !=
+                args.rank_batch_rows[rank_index] or
+                rank.get("local_tokens") != local_tokens or
+                abs(rank.get("average_tokens", -1.0) - average_tokens) > 1.0e-6 or
+                abs(rank.get("local_gradient_scale", -1.0) -
+                    expected_scale) > 1.0e-6):
+            raise RuntimeError("rank input weighting metadata changed")
+    if (reference.get("input_weighting") != args.input_weighting or
+            abs(reference.get("average_tokens", -1.0) - average_tokens) > 1.0e-6):
+        raise RuntimeError("reference input weighting metadata changed")
     expected_collectives = (
         ranks[0]["buckets"] if args.reducer != "per-parameter" else
         args.steps * len(reference["parameter_names"]))
@@ -520,8 +592,9 @@ def main() -> int:
              for rank in ranks):
         raise RuntimeError("non-overlap reducer exposed overlap state")
     loss_difference = max(
-        abs(sum(rank["losses"][step] for rank in ranks) / len(ranks) -
-            reference["losses"][step])
+        abs(sum(rank["losses"][step] * args.rank_batch_rows[index]
+                for index, rank in enumerate(ranks)) /
+            sum(args.rank_batch_rows) - reference["losses"][step])
         for step in range(args.steps))
     if (rank_difference != 0.0 or rank_rms_difference != 0.0 or
             reference_difference > reference_tolerance or
@@ -538,6 +611,9 @@ def main() -> int:
         "world_size": args.world_size,
         "model": args.model,
         "context": args.context,
+        "rank_batch_rows": args.rank_batch_rows,
+        "input_weighting": args.input_weighting,
+        "average_tokens": average_tokens,
         "reducer": args.reducer,
         "bucket_bytes": args.bucket_bytes,
         "steps": args.steps,
