@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "pilot_processes_completed": 3,
+  "pv_registered_entries": 1,
+  "pv_registry_hits": 0,
+  "pv_registry_misses": 175,
+  "pv_dispatches": 0,
+  "pv_model_candidate_valid": false
+}

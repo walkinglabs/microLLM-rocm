@@ -132,6 +132,13 @@ CURRENT_INFERENCE_PROFILE_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
                                   "2026-08-25-current-inference-profile")
 CURRENT_INFERENCE_PROFILE_CHART = (
     ROOT / "assets" / "current-inference-profile.svg")
+FP32_ATTENTION_T1024_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
+                             "2026-08-25-fp32-attention-t1024-solutions")
+FP32_ATTENTION_T1024_MODEL_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-fp32-attention-t1024-qk-model-gate")
+FP32_ATTENTION_T1024_CHART = (
+    ROOT / "assets" / "fp32-attention-t1024-discard.svg")
 
 
 def rows() -> list[dict]:
@@ -3157,6 +3164,71 @@ def current_inference_profile_svg() -> str:
     return "\n".join(parts)
 
 
+def fp32_attention_t1024_svg() -> str:
+    operator = json.loads((FP32_ATTENTION_T1024_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    model = json.loads((FP32_ATTENTION_T1024_MODEL_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    operator_rows = operator["comparisons"]
+    model_rows = model["comparisons"]
+    width, height = 1600, 760
+    chart_x, chart_y, chart_w, chart_h = 160, 150, 1280, 390
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 233 · T1024 Exact Attention Solutions", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "12 operator processes + PV descriptor counterexample + 12 full-model processes",
+             16, "#5b6474", anchor="middle"),
+        f'<rect x="{chart_x}" y="{chart_y}" width="{chart_w}" height="{chart_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+    ]
+
+    def y(value: float) -> float:
+        return chart_y + chart_h * (1.6 - value) / 0.65
+
+    for tick in (1.0, 1.1, 1.2, 1.3, 1.4, 1.5):
+        y_pos = y(tick)
+        color = "#2563eb" if tick == 1.0 else "#e5e9f0"
+        parts.append(f'<line x1="{chart_x}" y1="{y_pos:.1f}" '
+                     f'x2="{chart_x+chart_w}" y2="{y_pos:.1f}" stroke="{color}"/>')
+        parts.append(text(chart_x - 12, y_pos + 5, f"{tick:.1f}×", 13,
+                          "#5b6474", anchor="end"))
+    items = []
+    for row in operator_rows:
+        items.append((f'{row["model"]} {row["operation"].upper()}',
+                      row["recommended_event_speedup"], "#16a34a", "operator"))
+    for row in model_rows:
+        label = "Qwen model" if row["model"].startswith("qwen") else "Deep model"
+        items.append((label, row["candidate_speedup"], "#e11d48", "model"))
+    group_width = chart_w / len(items)
+    for index, (label, value, color, kind) in enumerate(items):
+        center = chart_x + group_width * (index + 0.5)
+        top = y(value)
+        base = y(0.95)
+        parts.append(f'<rect x="{center-55:.1f}" y="{top:.1f}" width="110" '
+                     f'height="{base-top:.1f}" fill="{color}" rx="6"/>')
+        parts.append(text(center, top - 10, f"{value:.3f}×", 14, color,
+                          anchor="middle", weight=700))
+        parts.append(text(center, chart_y + chart_h + 28, label, 13,
+                          "#5b6474", anchor="middle"))
+        parts.append(text(center, chart_y + chart_h + 49, kind, 11,
+                          "#5b6474", anchor="middle"))
+    parts.append(text(width / 2, 630,
+                      "PV indices do not match interleaved BTHD descriptors: 175 misses, 0 dispatch",
+                      17, "#9a4f00", anchor="middle", weight=700))
+    parts.append(text(width / 2, 674,
+                      "Qwen QK model logits Max/RMS 0.0733/0.0157; DeepSeek model only 1.002×",
+                      17, "#b42335", anchor="middle", weight=700))
+    parts.append(text(width / 2, 716,
+                      "All local winners retained as evidence; no default solution policy",
+                      13, "#5b6474", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -3205,7 +3277,8 @@ def main() -> int:
                 ROCWMMA_OPERATOR_CHART: rocwmma_online_operator_svg(),
                 ROCWMMA_MODEL_CHART: rocwmma_online_model_svg(),
                 ROCWMMA_DIRECT_MODEL_CHART: rocwmma_direct_bf16_model_svg(),
-                CURRENT_INFERENCE_PROFILE_CHART: current_inference_profile_svg()}
+                CURRENT_INFERENCE_PROFILE_CHART: current_inference_profile_svg(),
+                FP32_ATTENTION_T1024_CHART: fp32_attention_t1024_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

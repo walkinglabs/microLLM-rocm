@@ -14,6 +14,10 @@ from pathlib import Path
 
 
 POLICIES = ("baseline", "qk", "pv", "both")
+GROUPED_T1024 = {
+    "qwen2.5-0.5b": (64755, 65200),
+    "deepseek-r1-distill-qwen-1.5b": (64755, 65212),
+}
 
 
 def options() -> argparse.Namespace:
@@ -25,6 +29,8 @@ def options() -> argparse.Namespace:
     parser.add_argument("--warmup", type=int, default=2)
     parser.add_argument("--steps", type=int, default=5)
     parser.add_argument("--sequence", type=int, default=512)
+    parser.add_argument("--bthd-policy", action="store_true")
+    parser.add_argument("--policies", default=",".join(POLICIES))
     parser.add_argument("--qwen-qk-index", type=int, default=311017)
     parser.add_argument("--qwen-pv-index", type=int, default=294519)
     parser.add_argument("--deepseek-qk-index", type=int, default=305423)
@@ -32,6 +38,7 @@ def options() -> argparse.Namespace:
     parser.add_argument("--maximum-absolute-tolerance", type=float, default=1.0e-4)
     parser.add_argument("--rms-tolerance", type=float, default=1.0e-5)
     result = parser.parse_args()
+    result.policies = tuple(result.policies.split(","))
     indices = (
         result.qwen_qk_index, result.qwen_pv_index,
         result.deepseek_qk_index, result.deepseek_pv_index,
@@ -39,10 +46,15 @@ def options() -> argparse.Namespace:
     if (result.runs <= 0 or result.warmup < 0 or result.steps <= 0 or
             result.sequence < 256 or result.sequence > 4096 or
             any(index < 0 for index in indices) or
+            not result.policies or result.policies[0] != "baseline" or
+            any(policy not in POLICIES for policy in result.policies) or
+            len(set(result.policies)) != len(result.policies) or
             result.maximum_absolute_tolerance < 0 or result.rms_tolerance < 0):
         parser.error("run, shape, index, or tolerance options are invalid")
     if not result.manifest.is_file() or not result.binary.is_file():
         parser.error("manifest and binary must exist")
+    if result.bthd_policy and result.policies != ("baseline", "qk"):
+        parser.error("current BTHD path only exposes generic exact QK routing")
     return result
 
 
@@ -113,13 +125,26 @@ def command(args: argparse.Namespace, model: dict, policy: str,
         "--device", "hip", "--top-k", "10", "--batch", "1",
         "--bf16-ffn", "true", "--bf16-attention", "true",
         "--bf16-ffn-arena", "true",
-        "--bf16-ffn-arena-minimum-rows", "512",
+        "--bf16-ffn-arena-minimum-rows", str(args.sequence),
         "--workload", "prefill", "--new-tokens", "0",
         "--warmup", "0", "--steps", "1",
         "--prefill-warmup", str(args.warmup),
         "--prefill-steps", str(args.steps),
         "--prefill-logits", "last", "--logits-output", str(logits),
     ]
+    if args.bthd_policy:
+        if args.sequence != 1024:
+            raise RuntimeError("current BTHD solution gate is pinned to T1024")
+        qkv_index, gate_up_index = GROUPED_T1024[model["name"]]
+        result.extend([
+            "--bf16-qkv-arena", "true",
+            "--bf16-qkv-arena-minimum-rows", str(args.sequence),
+            "--bf16-grouped-qkv-algorithm-index", str(qkv_index),
+            "--bf16-grouped-gate-up-algorithm-index", str(gate_up_index),
+            "--inference-bthd-attention", "true",
+            "--inference-bthd-bf16-qk", "true",
+            "--inference-bthd-online-attention", "false",
+        ])
     qk, pv = indices(args, model)
     if policy in ("qk", "both"):
         result.extend([
@@ -148,7 +173,7 @@ def main() -> int:
         temporary = Path(temp)
         for model in selected_models:
             for process_run in range(1, args.runs + 1):
-                order = list(POLICIES)
+                order = list(args.policies)
                 if process_run % 2 == 0:
                     order.reverse()
                 for policy in order:
@@ -167,6 +192,13 @@ def main() -> int:
                     record = last_json(completed.stdout)
                     if record.get("status") != "pass":
                         raise RuntimeError(f"invalid record for {stem}")
+                    if args.bthd_policy and (
+                            record.get("inference_bthd_attention") is not True or
+                            record.get("inference_bthd_bf16_qk") is not True or
+                            record.get("inference_bthd_online_attention") is not False or
+                            int(record.get("bf16_grouped_qkv_dispatches", 0)) <= 0):
+                        raise RuntimeError(
+                            f"current BTHD policy did not dispatch for {stem}")
                     registered = int(record["fp32_solution_registered_entries"])
                     dispatches = int(record["fp32_solution_dispatches"])
                     expected_registered = 0 if policy == "baseline" else \
@@ -191,10 +223,10 @@ def main() -> int:
         selected = [row for row in records if row["model"] == model["name"]]
         grouped = {
             policy: [row for row in selected if row["policy"] == policy]
-            for policy in POLICIES
+            for policy in args.policies
         }
         qk, pv = indices(args, model)
-        for policy in POLICIES[1:]:
+        for policy in args.policies[1:]:
             maximum = 0.0
             rms = 0.0
             finite = True
@@ -244,7 +276,7 @@ def main() -> int:
             comparisons.append(row)
 
     policy_keep = {}
-    for policy in POLICIES[1:]:
+    for policy in args.policies[1:]:
         rows = [row for row in comparisons if row["policy"] == policy]
         policy_keep[policy] = len(rows) == len(selected_models) and all(
             row["correctness_passed"] and row["performance_passed"] and
@@ -259,6 +291,8 @@ def main() -> int:
         "status": "pass" if all(
             row["finite_complete_logits"] for row in comparisons) else "fail",
         "record_type": "fp32_attention_solution_model_summary",
+        "bthd_policy": args.bthd_policy,
+        "policies": list(args.policies),
         "raw_processes": len(records),
         "maximum_absolute_tolerance": args.maximum_absolute_tolerance,
         "rms_tolerance": args.rms_tolerance,

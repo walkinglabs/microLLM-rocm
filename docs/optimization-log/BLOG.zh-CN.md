@@ -3787,3 +3787,18 @@ softmax虽是最大单kernel，但旧T1024线程候选局部只有1.013×/1.021�
 模型也已关闭。因此下一步只筛exact T1024 QK/PV solution，不能从红色条直接跳到旧方案。
 
 ![Current inference profile](assets/current-inference-profile.svg)
+
+## 250. Experiment 233：四个小测都赢，整个模型仍然不能用
+
+对当前B1T1024的QK和PV各筛64个hipBLASLt算法，四个operator shape都找到三进程共同正确的
+winner，局部速度为1.060×–1.538×。但模型里的PV使用interleaved BTHD descriptor，与
+tuner里的普通BHTD不是同一道题；注册后只得到175次miss、0次dispatch。
+
+只保留真正命中的QK再做12进程整模门。Qwen的确快到1.051×，但完整logits
+Max/RMS误差扩大到0.0733/0.0157；DeepSeek数值完全相同，却只有1.002×。两个模型
+各通过一半验收门，不能拼成一个默认策略。
+
+四个局部winner、PV descriptor反例和两个整模结果全部保留，但不注册任何默认index。
+exact Attention solution track再次关闭，下一轮必须回到profile选一个新热点。
+
+![T1024 Attention solutions discard](assets/fp32-attention-t1024-discard.svg)

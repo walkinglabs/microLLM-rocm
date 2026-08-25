@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "raw_processes": 12,
+  "comparisons": 4,
+  "runs_per_case": 3,
+  "common_candidates_per_case": 64,
+  "local_rows_passing_1_05": 4,
+  "maximum_absolute_error": 2.45869e-7,
+  "model_policy_accepted": false
+}

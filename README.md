@@ -392,6 +392,9 @@ the chronological details are in the [optimization log](docs/optimization-log/RE
 - a fresh load-subtracted B1T1024 profile puts hipBLASLt GEMM at 59.7%/66.8% of Qwen/DeepSeek
   Kernel time and causal softmax at 14.8%/9.2%; prior thread tuning has under 0.3% whole-step
   upside, so the next bounded track is exact T1024 QK/PV solution screening.
+- T1024 screening finds four local 1.060×–1.538× QK/PV winners, but interleaved BTHD PV has a
+  different descriptor (175 misses, zero dispatch); Qwen QK reaches 1.051× with Max/RMS logits
+  0.0733/0.0157 while DeepSeek stays exact at only 1.002×, so no index becomes default.
 
 </details>
 

@@ -56,7 +56,9 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   0.485/0.110; close the online-Attention model track rather than tune local knobs;
 - [x] reprofile the retained B1T1024 default path with load-subtracted rocprof traces;
   GEMM is 59.7%/66.8%, while old softmax tuning has less than 0.3% whole-step upside;
-- [ ] screen exact T1024 QK/PV hipBLASLt solutions before any new model policy;
+- [x] screen exact T1024 QK/PV hipBLASLt solutions; all four operator rows win;
+- [x] reject the model policy: BTHD PV has a different descriptor, Qwen QK
+  reaches 1.051x but fails complete logits, and DeepSeek QK reaches only 1.002x;
 - [x] populate B1 KV cache from one full-sequence prefill instead of token replay;
 - [x] support batched cached decode with batch-aware KV Storage;
 - [x] add opt-in BF16 KV Storage with FP32 accumulation, complete-logit gates and a retained

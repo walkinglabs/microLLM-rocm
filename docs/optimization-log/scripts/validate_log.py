@@ -12994,6 +12994,96 @@ def validate_current_inference_profile(
         expected["deepseek-r1-distill-qwen-1.5b"][2]
 
 
+def validate_fp32_attention_t1024(
+        errors: list[str]) -> tuple[int, int, float, float, float, float]:
+    operator_data = REPOSITORY / (
+        "benchmarks/results/2026-08-25-fp32-attention-t1024-solutions")
+    model_data = REPOSITORY / (
+        "benchmarks/results/2026-08-25-fp32-attention-t1024-qk-model-gate")
+    mismatch_data = REPOSITORY / (
+        "benchmarks/results/2026-08-25-fp32-attention-t1024-bthd-pv-mismatch-pilot")
+    operator = json.loads((operator_data / "summary.json").read_text(
+        encoding="utf-8"))
+    model = json.loads((model_data / "summary.json").read_text(
+        encoding="utf-8"))
+    operator_verification = json.loads((operator_data / "verification.json").read_text(
+        encoding="utf-8"))
+    model_verification = json.loads((model_data / "verification.json").read_text(
+        encoding="utf-8"))
+    mismatch = json.loads((mismatch_data / "verification.json").read_text(
+        encoding="utf-8"))
+    operator_rows = {(row["model"], row["operation"]): row
+                     for row in operator.get("comparisons", [])}
+    expected_operator = {
+        ("qwen", "qk"): (304680, 1.5384864521525536),
+        ("qwen", "pv"): (294867, 1.4761965182420926),
+        ("deepseek", "qk"): (310758, 1.0604589482527877),
+        ("deepseek", "pv"): (296917, 1.102905465844882),
+    }
+    if operator.get("schema_version") != 1 or operator.get("status") != "pass" or \
+            operator.get("raw_processes") != 12 or operator.get("keep_rows") != 4 or \
+            set(operator_rows) != set(expected_operator) or \
+            any(row.get("sequence") != 1024 or
+                row.get("common_passing_candidates") != 64 or
+                row.get("recommended_index") != expected_operator[key][0] or
+                abs(float(row.get("recommended_event_speedup", 0.0)) -
+                    expected_operator[key][1]) > 1.0e-12
+                for key, row in operator_rows.items()):
+        errors.append("T1024 Attention operator screening changed")
+    if operator_verification.get("status") != "pass" or \
+            operator_verification.get("raw_processes") != 12 or \
+            operator_verification.get("local_rows_passing_1_05") != 4 or \
+            operator_verification.get("model_policy_accepted") is not False:
+        errors.append("T1024 Attention operator verification changed")
+    comparisons = {row["model"]: row for row in model.get("comparisons", [])}
+    if model.get("schema_version") != 1 or model.get("status") != "pass" or \
+            model.get("bthd_policy") is not True or \
+            model.get("policies") != ["baseline", "qk"] or \
+            model.get("raw_processes") != 12 or model.get("keep_default") is not False or \
+            model.get("correctness_gate") is not False or \
+            model.get("performance_gate") is not False or len(comparisons) != 2 or \
+            abs(float(comparisons.get("qwen2.5-0.5b", {}).get(
+                "candidate_speedup", 0.0)) - 1.0508034721823274) > 1.0e-12 or \
+            abs(float(comparisons.get("deepseek-r1-distill-qwen-1.5b", {}).get(
+                "candidate_speedup", 0.0)) - 1.0021461903553712) > 1.0e-12 or \
+            abs(float(comparisons.get("qwen2.5-0.5b", {}).get(
+                "maximum_absolute_logit_difference", 0.0)) -
+                0.07328248023986816) > 1.0e-12:
+        errors.append("T1024 QK full-model gate changed")
+    if model_verification.get("status") != "pass" or \
+            model_verification.get("raw_processes") != 12 or \
+            model_verification.get("qwen_dispatches") != 168 or \
+            model_verification.get("deepseek_dispatches") != 196 or \
+            model_verification.get("keep_default") is not False:
+        errors.append("T1024 QK model verification changed")
+    if mismatch != {
+            "schema_version": 1,
+            "status": "pass",
+            "pilot_processes_completed": 3,
+            "pv_registered_entries": 1,
+            "pv_registry_hits": 0,
+            "pv_registry_misses": 175,
+            "pv_dispatches": 0,
+            "pv_model_candidate_valid": False}:
+        errors.append("T1024 BTHD PV mismatch evidence changed")
+    sources = (
+        ("--sequence", REPOSITORY /
+         "benchmarks/single_gpu/fp32_attention_solution_matrix.py"),
+        ("--bthd-policy", REPOSITORY /
+         "benchmarks/single_gpu/compare_fp32_attention_solutions.py"),
+        ("row[\"sequence\"] == 1024", REPOSITORY /
+         "python/tests/test_fp32_attention_solution_matrix.py"),
+    )
+    if any(token not in path.read_text(encoding="utf-8")
+           for token, path in sources):
+        errors.append("T1024 Attention solution source/test changed")
+    return operator.get("raw_processes", 0), model.get("raw_processes", 0), \
+        expected_operator[("qwen", "qk")][1], \
+        expected_operator[("deepseek", "pv")][1], \
+        float(comparisons["qwen2.5-0.5b"]["candidate_speedup"]), \
+        float(comparisons["deepseek-r1-distill-qwen-1.5b"]["candidate_speedup"])
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -13204,7 +13294,8 @@ def validate_assets(errors: list[str]) -> None:
                  "rocwmma-online-operator.svg",
                  "rocwmma-online-model-discard.svg",
                  "rocwmma-direct-bf16-model-discard.svg",
-                 "current-inference-profile.svg"):
+                 "current-inference-profile.svg",
+                 "fp32-attention-t1024-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -13645,6 +13736,9 @@ def main() -> int:
     current_profile_rows, current_profile_qwen_gemm, \
         current_profile_deep_gemm, current_profile_qwen_softmax, \
         current_profile_deep_softmax = validate_current_inference_profile(errors)
+    t1024_operator_rows, t1024_model_rows, t1024_qwen_qk, \
+        t1024_deep_pv, t1024_qwen_model, t1024_deep_model = \
+        validate_fp32_attention_t1024(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -14042,6 +14136,9 @@ def main() -> int:
           f"{current_profile_qwen_gemm:.3f}/{current_profile_deep_gemm:.3f}/"
           f"{current_profile_qwen_softmax:.3f}/"
           f"{current_profile_deep_softmax:.3f} "
+          f"t1024_solutions={t1024_operator_rows}/{t1024_model_rows}/"
+          f"{t1024_qwen_qk:.3f}/{t1024_deep_pv:.3f}/"
+          f"{t1024_qwen_model:.3f}/{t1024_deep_model:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

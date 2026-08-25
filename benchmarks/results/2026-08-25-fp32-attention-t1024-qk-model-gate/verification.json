@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "raw_processes": 12,
+  "models": 2,
+  "policies": ["baseline", "qk"],
+  "runs_per_policy_case": 3,
+  "qwen_dispatches": 168,
+  "deepseek_dispatches": 196,
+  "qwen_correctness_passed": false,
+  "deepseek_performance_passed": false,
+  "memory_gate": true,
+  "keep_default": false
+}
