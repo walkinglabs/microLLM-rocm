@@ -106,11 +106,6 @@ struct DataParallelTrainer::Impl {
             throw std::invalid_argument(
                 "gradient bucket views require persistent gradient buckets");
         }
-        if (config.direct_bucket_gradients &&
-            !config.gradient_bucket_views) {
-            throw std::invalid_argument(
-                "direct bucket gradients require gradient bucket views");
-        }
         models.reserve(config.device_indices.size());
         optimizers.reserve(config.device_indices.size());
         for (const auto device_index : config.device_indices) {
@@ -154,22 +149,9 @@ DistributedStepMetrics DataParallelTrainer::step(
     profiling::TraceTimer total_timer(profiling::TraceKind::Model,
                                       "data_parallel.step", Device::cpu());
 
-    std::vector<std::vector<autograd::Value*>> rank_parameters;
-    rank_parameters.reserve(world_size());
-    for (auto& rank_model : impl_->models) {
-        rank_parameters.push_back(rank_model->parameters());
-    }
-    const bool direct_gradients_ready =
-        impl_->config.direct_bucket_gradients &&
-        impl_->gradient_bucket_plan.initialized();
-
     const auto forward_start = Clock::now();
-    for (auto& optimizer : impl_->optimizers) optimizer->zero_grad();
-    if (direct_gradients_ready) {
-        impl_->gradient_bucket_plan.prepare_gradient_accumulation_targets(
-            rank_parameters);
-    }
     for (std::size_t rank = 0; rank < world_size(); ++rank) {
+        impl_->optimizers[rank]->zero_grad();
         const auto loss = impl_->models[rank]->loss(rank_batches[rank].inputs,
                                                    rank_batches[rank].targets);
         metrics.rank_losses[rank] = loss.data().to_vector()[0];
@@ -195,14 +177,18 @@ DistributedStepMetrics DataParallelTrainer::step(
     // Sample once; summing per-device queries would double-count the same ledger.
     const auto communication_allocation_before = runtime::allocation_stats(
         Device::hip(impl_->config.device_indices.front()));
+    std::vector<std::vector<autograd::Value*>> rank_parameters;
+    rank_parameters.reserve(world_size());
+    for (auto& rank_model : impl_->models) {
+        rank_parameters.push_back(rank_model->parameters());
+    }
     metrics.buckets = all_reduce_gradients(
         impl_->communicator, rank_parameters, impl_->config.maximum_bucket_bytes,
         impl_->config.in_place_bucket_average,
         impl_->config.persistent_gradient_buckets
             ? &impl_->gradient_bucket_plan
             : nullptr,
-        impl_->config.gradient_bucket_views,
-        direct_gradients_ready);
+        impl_->config.gradient_bucket_views);
     const auto communication_allocation_after = runtime::allocation_stats(
         Device::hip(impl_->config.device_indices.front()));
     metrics.communication_allocation_calls =

@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-25: Rejected direct-gradient route cleanup](2026-08-25-data-parallel-direct-gradient-cleanup.md)
 - [2026-08-25: Direct bucket-gradient result](2026-08-25-data-parallel-direct-gradient-result.md)
 - [2026-08-25: Direct bucket-gradient infrastructure](2026-08-25-data-parallel-direct-gradient-infrastructure.md)
 - [2026-08-25: Gradient-as-bucket view result](2026-08-25-data-parallel-gradient-view-result.md)

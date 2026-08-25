@@ -14408,8 +14408,13 @@ def validate_data_parallel_direct_gradients(
         errors.append("data-parallel direct gradient verification changed")
     header = (REPOSITORY / "include/microllm/multi_gpu/data_parallel.h").read_text(
         encoding="utf-8")
-    if "direct_bucket_gradients = false" not in header:
-        errors.append("data-parallel direct gradient measured route is missing")
+    cli = (REPOSITORY / "apps/distributed_train.cpp").read_text(encoding="utf-8")
+    if "direct_bucket_gradients" in header or "--direct-bucket-gradients" in cli:
+        errors.append("rejected data-parallel direct gradient model route remains")
+    autograd = (REPOSITORY / "include/microllm/autograd/autograd.h").read_text(
+        encoding="utf-8")
+    if "set_grad_accumulation_target" not in autograd:
+        errors.append("independent leaf accumulation target foundation is missing")
     return summary.get("processes", 0), *expected
 
 

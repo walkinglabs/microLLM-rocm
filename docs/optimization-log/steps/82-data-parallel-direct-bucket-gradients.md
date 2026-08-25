@@ -20,3 +20,5 @@ Embedding和拒绝用例通过；tiny与单卡global-batch参考对齐。Model-S
 结果：communication相对view 2.173×、peak少13,205,768B，但forward/backward只有0.830×，
 total只有0.991×。45个loss和9次参数门通过。失败模型route撤回；leaf accumulation target保留
 给真正能直接写output的producer算子，下一步先做独立operator可行性门。
+
+清理节点已从`DataParallelConfig`、CLI、reducer和测试注册中删除失败route与候选runner。

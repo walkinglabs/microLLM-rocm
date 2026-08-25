@@ -118,13 +118,11 @@ exact. Live bytes equal transient, but peak remains 33,269,000 bytes higher beca
 creates ordinary gradients before the 114 pack copies. Direct Autograd accumulation into the
 views is the next gate before defaults or readiness overlap.
 
-The independent default-off `direct_bucket_gradients` policy starts only after step one has built
-a valid view plan. Later steps zero each bucket once, mark its disjoint parameter views as
-leaf-gradient accumulation targets, and require backward to preserve every address/shape/offset.
-The reducer then skips all 114 pack copies. Ordinary Autograd behavior is unchanged, non-leaf or
-noncontiguous targets fail, and direct mode requires both persistent Storage and bucket views.
-The first Model-S smoke removes both copy families but also moves work into leaf accumulation;
-the formal forward/backward plus total gate decides whether this route survives.
+The Experiment 259-only `direct_bucket_gradients` policy started after step one built a valid view
+plan. Later steps zeroed each bucket, installed disjoint leaf-gradient targets, and skipped all 114
+pack copies. The route is no longer part of `DataParallelConfig` or the CLI; these details remain
+here so the recorded failure can be understood. Ordinary Autograd keeps only the independently
+tested leaf accumulation-target primitive for future producer out-kernels.
 
 Experiment 259 rejects the model route. Direct accumulation removes both copy families and makes
 communication 2.173x faster than views, but producer gradients are still materialized before the
