@@ -36,6 +36,8 @@ struct RankBucketStats {
     std::size_t pack_copy_calls = 0;
     std::size_t unpack_copy_calls = 0;
     std::size_t gradient_view_count = 0;
+    // One call means one complete packed bucket was locally weighted.
+    std::size_t weight_scale_calls = 0;
     bool persistent_storage = false;
     bool plan_reused = false;
     bool overlap_enabled = false;
@@ -62,7 +64,8 @@ public:
     void clear() noexcept;
     void begin_overlap_step(
         RankCommunicator& communicator,
-        const std::vector<autograd::Value*>& parameters);
+        const std::vector<autograd::Value*>& parameters,
+        float local_gradient_scale = 1.0F);
     void mark_parameter_ready(std::size_t parameter_index);
     [[nodiscard]] RankBucketStats finish_overlap_step();
 
@@ -75,7 +78,8 @@ private:
         const std::vector<autograd::Value*>& parameters,
         std::size_t maximum_bucket_bytes,
         RankGradientBucketPlan* persistent_plan,
-        bool gradient_views);
+        bool gradient_views,
+        float local_gradient_scale);
 };
 
 // Owns reusable rank-local bucket and unpacked-gradient Storage. A plan binds to
@@ -122,6 +126,7 @@ private:
     const std::vector<autograd::Value*>& parameters,
     std::size_t maximum_bucket_bytes,
     RankGradientBucketPlan* persistent_plan = nullptr,
-    bool gradient_views = false);
+    bool gradient_views = false,
+    float local_gradient_scale = 1.0F);
 
 }  // namespace microllm::multi_gpu

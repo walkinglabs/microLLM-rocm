@@ -146,7 +146,8 @@ Options parse(int argc, char** argv) {
         (options.reducer != "per-parameter" && options.reducer != "bucket" &&
          options.reducer != "persistent-bucket" &&
          options.reducer != "bucket-views" &&
-         options.reducer != "overlap-views") ||
+         options.reducer != "overlap-views" &&
+         options.reducer != "bucket-weighted-overlap") ||
         options.bucket_bytes < sizeof(float) ||
         (options.model != "tiny" && options.model != "model-s")) {
         throw std::invalid_argument("distributed rank options are invalid");
@@ -436,9 +437,11 @@ struct ReducerStats {
     std::size_t overlap_steps = 0;
     std::size_t overlapped_buckets = 0;
     std::size_t weighted_gradient_scales = 0;
+    std::size_t weighted_bucket_scales = 0;
     std::vector<std::size_t> step_overlap_enabled;
     std::vector<std::size_t> step_overlapped_buckets;
     std::vector<std::size_t> step_weighted_gradient_scales;
+    std::vector<std::size_t> step_weighted_bucket_scales;
 };
 
 struct PhaseTimings {
@@ -525,6 +528,8 @@ void write_result(const char* mode, int rank,
               << reducer_stats.overlapped_buckets
               << ",\"weighted_gradient_scales\":"
               << reducer_stats.weighted_gradient_scales
+              << ",\"weighted_bucket_scales\":"
+              << reducer_stats.weighted_bucket_scales
               << ",\"engine_current_bytes\":" << allocation.current_bytes
               << ",\"engine_peak_bytes\":" << allocation.peak_bytes
               << ",\"engine_cached_bytes\":" << allocation.cached_bytes
@@ -607,6 +612,8 @@ void write_result(const char* mode, int rank,
     write_number_array(reducer_stats.step_overlapped_buckets);
     std::cout << ",\"step_weighted_gradient_scales\":";
     write_number_array(reducer_stats.step_weighted_gradient_scales);
+    std::cout << ",\"step_weighted_bucket_scales\":";
+    write_number_array(reducer_stats.step_weighted_bucket_scales);
     std::cout << ",\"losses\":";
     write_number_array(losses);
     std::cout << ",\"parameter_names\":[";
@@ -755,13 +762,18 @@ void run_rank(const Options& options) {
     ReducerStats reducer_stats;
     microllm::multi_gpu::RankGradientBucketPlan persistent_bucket_plan;
     std::size_t ready_weighted_gradient_scales = 0;
-    if (options.reducer == "overlap-views") {
+    const auto bucket_weighted_overlap =
+        options.reducer == "bucket-weighted-overlap";
+    const auto overlap_reducer =
+        options.reducer == "overlap-views" || bucket_weighted_overlap;
+    if (overlap_reducer) {
         for (std::size_t index = 0; index < parameters.size(); ++index) {
             auto* parameter = parameters[index];
             parameters[index]->set_gradient_ready_hook(
                 [&persistent_bucket_plan, &ready_weighted_gradient_scales,
                  parameter, index, local_gradient_scale,
-                 weighted = options.input_weighting == "token-weighted"] {
+                 weighted = options.input_weighting == "token-weighted" &&
+                            !bucket_weighted_overlap] {
                     if (persistent_bucket_plan.overlap_active()) {
                         if (weighted && local_gradient_scale != 1.0F) {
                             auto gradient = parameter->grad();
@@ -785,11 +797,12 @@ void run_rank(const Options& options) {
         optimizer.zero_grad();
         ready_weighted_gradient_scales = 0;
         const auto overlap_step =
-            options.reducer == "overlap-views" &&
+            overlap_reducer &&
             persistent_bucket_plan.initialized();
         if (overlap_step) {
             persistent_bucket_plan.begin_overlap_step(
-                communicator, parameters);
+                communicator, parameters,
+                bucket_weighted_overlap ? local_gradient_scale : 1.0F);
         }
         const auto loss = model.loss(batch.inputs, batch.targets);
         losses.push_back(loss.data().to_vector()[0]);
@@ -797,7 +810,8 @@ void run_rank(const Options& options) {
         if (!overlap_step) {
             microllm::runtime::synchronize(communicator.device());
         }
-        if (!overlap_step && options.input_weighting == "token-weighted" &&
+        if (!bucket_weighted_overlap && !overlap_step &&
+            options.input_weighting == "token-weighted" &&
             local_gradient_scale != 1.0F) {
             for (auto* parameter : parameters) {
                 auto gradient = parameter->grad();
@@ -809,7 +823,8 @@ void run_rank(const Options& options) {
         }
         const auto expected_weighted_gradient_scales =
             options.input_weighting == "token-weighted" &&
-                    local_gradient_scale != 1.0F
+                    local_gradient_scale != 1.0F &&
+                    !bucket_weighted_overlap
                 ? parameters.size()
                 : 0U;
         if (ready_weighted_gradient_scales !=
@@ -832,6 +847,7 @@ void run_rank(const Options& options) {
         std::size_t step_plan_reused = 0;
         std::size_t step_overlap_enabled = 0;
         std::size_t step_overlapped_buckets = 0;
+        std::size_t step_weighted_bucket_scales = 0;
         if (overlap_step) {
             const auto buckets =
                 persistent_bucket_plan.finish_overlap_step();
@@ -848,6 +864,7 @@ void run_rank(const Options& options) {
             step_plan_reused = buckets.plan_reused ? 1U : 0U;
             step_overlap_enabled = buckets.overlap_enabled ? 1U : 0U;
             step_overlapped_buckets = buckets.overlapped_bucket_count;
+            step_weighted_bucket_scales = buckets.weight_scale_calls;
             reducer_stats.persistent_storage = buckets.persistent_storage;
             reducer_stats.plan_reuses += step_plan_reused;
             reducer_stats.plan_capacity_elements =
@@ -858,16 +875,19 @@ void run_rank(const Options& options) {
         } else if (options.reducer == "bucket" ||
             options.reducer == "persistent-bucket" ||
             options.reducer == "bucket-views" ||
-            options.reducer == "overlap-views") {
+            options.reducer == "overlap-views" ||
+            bucket_weighted_overlap) {
             auto* plan = options.reducer != "bucket"
                              ? &persistent_bucket_plan
                              : nullptr;
             const auto gradient_views =
                 options.reducer == "bucket-views" ||
-                options.reducer == "overlap-views";
+                options.reducer == "overlap-views" ||
+                bucket_weighted_overlap;
             const auto buckets = microllm::multi_gpu::all_reduce_rank_gradients(
                 communicator, parameters, options.bucket_bytes, plan,
-                gradient_views);
+                gradient_views,
+                bucket_weighted_overlap ? local_gradient_scale : 1.0F);
             reducer_stats.collectives += buckets.bucket_count;
             reducer_stats.buckets += buckets.bucket_count;
             reducer_stats.pack_copies += buckets.pack_copy_calls;
@@ -878,6 +898,7 @@ void run_rank(const Options& options) {
             step_pack_copies = buckets.pack_copy_calls;
             step_unpack_copies = buckets.unpack_copy_calls;
             step_gradient_views = buckets.gradient_view_count;
+            step_weighted_bucket_scales = buckets.weight_scale_calls;
             step_plan_reused = buckets.plan_reused ? 1U : 0U;
             reducer_stats.persistent_storage = buckets.persistent_storage;
             reducer_stats.plan_reuses += step_plan_reused;
@@ -930,6 +951,21 @@ void run_rank(const Options& options) {
             ready_weighted_gradient_scales;
         reducer_stats.step_weighted_gradient_scales.push_back(
             ready_weighted_gradient_scales);
+        const auto expected_weighted_bucket_scales =
+            bucket_weighted_overlap &&
+                    options.input_weighting == "token-weighted" &&
+                    local_gradient_scale != 1.0F
+                ? step_buckets
+                : 0U;
+        if (step_weighted_bucket_scales !=
+            expected_weighted_bucket_scales) {
+            throw std::runtime_error(
+                "ranked bucket weighting did not scale every bucket once");
+        }
+        reducer_stats.weighted_bucket_scales +=
+            step_weighted_bucket_scales;
+        reducer_stats.step_weighted_bucket_scales.push_back(
+            step_weighted_bucket_scales);
         const auto optimizer_begin = SteadyClock::now();
         optimizer.step();
         microllm::runtime::synchronize(communicator.device());
@@ -943,7 +979,7 @@ void run_rank(const Options& options) {
     timings.training_ms = elapsed_ms(training_begin, SteadyClock::now());
     const auto allocation =
         microllm::runtime::allocation_stats(communicator.device());
-    if (options.reducer == "overlap-views") {
+    if (overlap_reducer) {
         for (auto* parameter : parameters) {
             parameter->clear_gradient_ready_hook();
         }

@@ -15,7 +15,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 AVAILABLE_POLICIES = (
     "per-parameter", "bucket", "persistent-bucket", "bucket-views",
-    "overlap-views")
+    "overlap-views", "bucket-weighted-overlap")
 DEFAULT_POLICIES = ("per-parameter", "bucket")
 
 
@@ -64,9 +64,10 @@ def options() -> argparse.Namespace:
     if ("bucket-views" in args.policies and
             "persistent-bucket" not in args.policies):
         parser.error("bucket-views comparison requires persistent-bucket")
-    if ("overlap-views" in args.policies and
+    if (any(policy in args.policies for policy in
+            ("overlap-views", "bucket-weighted-overlap")) and
             "bucket-views" not in args.policies):
-        parser.error("overlap-views comparison requires bucket-views")
+        parser.error("overlap comparison requires bucket-views")
     if args.rank_batch_rows:
         try:
             args.rank_batch_rows = [
@@ -181,6 +182,7 @@ def main() -> int:
                 "maximum_rank_step_overlap_enabled",
                 "maximum_rank_step_overlapped_buckets",
                 "maximum_rank_step_weighted_gradient_scales",
+                "maximum_rank_step_weighted_bucket_scales",
             )
             if any(not isinstance(value.get(field), list) or
                    len(value[field]) != args.steps for field in step_fields):
@@ -194,16 +196,19 @@ def main() -> int:
             expected_reuse = ([0] + [1] * (args.steps - 1)
                               if policy in
                               ("persistent-bucket", "bucket-views",
-                               "overlap-views") else
+                               "overlap-views",
+                               "bucket-weighted-overlap") else
                               [0] * args.steps)
             if (value["maximum_rank_step_plan_reused"] != expected_reuse or
                     value.get("persistent_storage") !=
                     (policy in ("persistent-bucket", "bucket-views",
-                                "overlap-views"))):
+                                "overlap-views",
+                                "bucket-weighted-overlap"))):
                 raise RuntimeError("ranked persistent plan state changed")
             expected_scales = (parameter_tensors
                                if args.input_weighting == "token-weighted" and
-                               len(set(args.rank_batch_rows)) > 1 else 0)
+                               len(set(args.rank_batch_rows)) > 1 and
+                               policy != "bucket-weighted-overlap" else 0)
             average_tokens = (
                 sum(args.rank_batch_rows) * args.context / args.world_size)
             expected_rank_scale_totals = [
@@ -219,6 +224,17 @@ def main() -> int:
                     expected_scales * args.steps):
                 raise RuntimeError(
                     "ranked weighted-gradient scale count changed")
+            expected_bucket_scales = (
+                value["maximum_rank_step_buckets"][0]
+                if args.input_weighting == "token-weighted" and
+                len(set(args.rank_batch_rows)) > 1 and
+                policy == "bucket-weighted-overlap" else 0)
+            if (value["maximum_rank_step_weighted_bucket_scales"] !=
+                    [expected_bucket_scales] * args.steps or
+                    value.get("maximum_weighted_bucket_scales_per_rank") !=
+                    expected_bucket_scales * args.steps):
+                raise RuntimeError(
+                    "ranked weighted-bucket scale count changed")
             value["process_run"] = process_run
             raw.append(value)
     failure_command = [

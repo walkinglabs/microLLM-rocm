@@ -226,7 +226,25 @@ Uneven local inputs use an explicit contract. Every rank first exchanges its val
 The default equal-only mode rejects unequal counts before parameter collectives. The synchronous
 token-weighted mode scales each local mean gradient by `local_tokens / average_tokens` before the
 ordinary RCCL average, producing the same gradient as one concatenated global batch. Weighted
-ready-overlap is intentionally unsupported until scaling can occur before bucket enqueue.
+ready-overlap has two explicit implementations. `overlap-views` scales every leaf before its
+ready Event; it is numerically verified but its Model-S T128 steady step is only `0.9594x`, so it
+is not a performance route. `bucket-weighted-overlap` records leaf readiness without scaling,
+packs a complete bucket on the communication Stream, scales that bucket once, then launches the
+ordinary all-reduce average. This changes 57 scale calls to 3 for the measured Model-S bucket
+layout. It remains an experimental candidate until the clean-revision three-run matrix passes.
+
+The order matters:
+
+```text
+default Stream finishes every gradient in a bucket
+→ Event releases the communication Stream
+→ communication Stream packs the bucket
+→ bucket is multiplied by local_tokens / average_tokens
+→ RCCL sums ranks and divides by world size
+```
+
+Both paths retain the synchronous first-step plan construction, fixed reverse-ready bucket order,
+rank equality, CPU global-batch comparison, and zero later reducer allocations.
 
 RCCL provides the collective primitives; the reducer and readiness state machine remain
 framework responsibilities.

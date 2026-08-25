@@ -13,7 +13,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-POLICIES = ("bucket-views", "overlap-views")
+SYNCHRONOUS_POLICY = "bucket-views"
 
 
 def options() -> argparse.Namespace:
@@ -27,6 +27,9 @@ def options() -> argparse.Namespace:
     parser.add_argument("--input-weighting",
                         choices=("equal-only", "token-weighted"),
                         default="equal-only")
+    parser.add_argument("--overlap-policy",
+                        choices=("overlap-views", "bucket-weighted-overlap"),
+                        default="overlap-views")
     parser.add_argument("--runs", type=int, default=3)
     parser.add_argument("--steps", type=int, default=3)
     parser.add_argument("--steady-skip-steps", type=int, default=1)
@@ -77,8 +80,9 @@ def main() -> int:
         shutil.rmtree(output)
     output.mkdir(parents=True, exist_ok=True)
 
+    policies = (SYNCHRONOUS_POLICY, args.overlap_policy)
     cases = [(context, policy) for context in args.contexts
-             for policy in POLICIES]
+             for policy in policies]
     raw = []
     for process_run in range(1, args.runs + 1):
         order = cases if process_run % 2 else list(reversed(cases))
@@ -105,9 +109,15 @@ def main() -> int:
             if completed.returncode != 0:
                 raise RuntimeError(completed.stdout + completed.stderr)
             value = record(completed.stdout, f"T{context}-{policy}")
-            expected_overlap = policy == "overlap-views"
-            expected_scales = (57 if args.input_weighting == "token-weighted" and
-                               len(set(args.rank_batch_rows)) > 1 else 0)
+            expected_overlap = policy != SYNCHRONOUS_POLICY
+            expected_scales = (
+                57 if args.input_weighting == "token-weighted" and
+                len(set(args.rank_batch_rows)) > 1 and
+                policy != "bucket-weighted-overlap" else 0)
+            expected_bucket_scales = (
+                3 if args.input_weighting == "token-weighted" and
+                len(set(args.rank_batch_rows)) > 1 and
+                policy == "bucket-weighted-overlap" else 0)
             if (value.get("record_type") != "ranked_training_summary" or
                     value.get("model") != "model-s" or
                     value.get("context") != context or
@@ -139,6 +149,10 @@ def main() -> int:
                     [expected_scales] * args.steps or
                     value.get("maximum_weighted_gradient_scales_per_rank") !=
                     expected_scales * args.steps or
+                    value.get("maximum_rank_step_weighted_bucket_scales") !=
+                    [expected_bucket_scales] * args.steps or
+                    value.get("maximum_weighted_bucket_scales_per_rank") !=
+                    expected_bucket_scales * args.steps or
                     value.get("maximum_engine_current_bytes", 0) <= 0 or
                     value.get("maximum_engine_peak_bytes", 0) <
                     value.get("maximum_engine_current_bytes", 0) or
@@ -159,8 +173,8 @@ def main() -> int:
                         row["context"] == context}
                 command = [
                     str(args.compare_binary.resolve()),
-                    rows["bucket-views"]["consensus_parameter_file"],
-                    rows["overlap-views"]["consensus_parameter_file"],
+                    rows[SYNCHRONOUS_POLICY]["consensus_parameter_file"],
+                    rows[args.overlap_policy]["consensus_parameter_file"],
                 ]
                 completed = subprocess.run(
                     command, cwd=ROOT, text=True, capture_output=True,
@@ -208,7 +222,7 @@ def main() -> int:
     contexts = {}
     for context in args.contexts:
         policy_summary = {}
-        for policy in POLICIES:
+        for policy in policies:
             rows = [row for row in raw if row["context"] == context and
                     row["reducer"] == policy]
             steady_total = [value for row in rows
@@ -242,8 +256,8 @@ def main() -> int:
                 "maximum_mean_loss_difference": max(
                     row["maximum_mean_loss_difference"] for row in rows),
             }
-        synchronous = policy_summary["bucket-views"]
-        overlap = policy_summary["overlap-views"]
+        synchronous = policy_summary[SYNCHRONOUS_POLICY]
+        overlap = policy_summary[args.overlap_policy]
         contexts[str(context)] = {
             "policies": policy_summary,
             "finish_speedup": (
@@ -274,6 +288,7 @@ def main() -> int:
         "contexts": args.contexts,
         "rank_batch_rows": args.rank_batch_rows,
         "input_weighting": args.input_weighting,
+        "overlap_policy": args.overlap_policy,
         "runs_per_policy_context": args.runs,
         "policy_context_runs": len(raw),
         "rank_processes": len(raw) * 2,

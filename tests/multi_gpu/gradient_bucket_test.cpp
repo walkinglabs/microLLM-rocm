@@ -295,6 +295,13 @@ TEST(RcclRankGradientBucketTest,
     EXPECT_EQ(second.grad().data(), second_address);
     EXPECT_EQ(first.grad().to_vector(), (std::vector<float>{6, 7}));
     EXPECT_EQ(second.grad().to_vector(), (std::vector<float>{8, 9, 10}));
+    first.set_grad(Tensor::from_vector({1, 2}, {2}).to(Device::hip(0)));
+    second.set_grad(Tensor::from_vector({3, 4, 5}, {3}).to(Device::hip(0)));
+    const auto weighted = all_reduce_rank_gradients(
+        communicator, {&first, &second}, 4096, &plan, false, 2.0F);
+    EXPECT_EQ(weighted.weight_scale_calls, 1U);
+    EXPECT_EQ(first.grad().to_vector(), (std::vector<float>{2, 4}));
+    EXPECT_EQ(second.grad().to_vector(), (std::vector<float>{6, 8, 10}));
     EXPECT_THROW(
         (void)all_reduce_rank_gradients(
             communicator, {&first, &second}, sizeof(float), &plan),
@@ -392,9 +399,23 @@ TEST(RcclRankGradientBucketTest,
     EXPECT_EQ(stats.gradient_view_count, 2U);
     EXPECT_EQ(stats.pack_copy_calls, 2U);
     EXPECT_EQ(stats.unpack_copy_calls, 0U);
+    EXPECT_EQ(stats.weight_scale_calls, 0U);
     EXPECT_EQ(first.grad().to_vector(), (std::vector<float>{6, 7}));
     EXPECT_EQ(second.grad().to_vector(), (std::vector<float>{8, 9, 10}));
     EXPECT_THROW(plan.mark_parameter_ready(0), std::logic_error);
+
+    first.set_grad(Tensor::from_vector({1, 2}, {2}).to(Device::hip(0)));
+    second.set_grad(Tensor::from_vector({3, 4, 5}, {3}).to(Device::hip(0)));
+    plan.begin_overlap_step(communicator, {&first, &second}, 2.0F);
+    plan.mark_parameter_ready(1);
+    plan.mark_parameter_ready(0);
+    const auto weighted = plan.finish_overlap_step();
+    EXPECT_EQ(weighted.weight_scale_calls, 1U);
+    EXPECT_EQ(first.grad().to_vector(), (std::vector<float>{2, 4}));
+    EXPECT_EQ(second.grad().to_vector(), (std::vector<float>{6, 8, 10}));
+    EXPECT_THROW(
+        plan.begin_overlap_step(communicator, {&first, &second}, 0.0F),
+        std::invalid_argument);
 
     RankGradientBucketPlan copy_plan;
     first.set_grad(Tensor::from_vector({1, 2}, {2}).to(Device::hip(0)));

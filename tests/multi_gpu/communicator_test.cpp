@@ -77,6 +77,13 @@ TEST(RcclRankCommunicatorTest, WorldOneRoundTripAndIdentityValidation) {
     communicator.enqueue_all_reduce_average_in_place(tensor);
     communicator.synchronize();
     EXPECT_EQ(tensor.to_vector(), (std::vector<float>{1, 2, 3}));
+    auto weighted = Tensor::from_vector({1, 2, 3}, {3}).to(Device::hip(0));
+    communicator.enqueue_all_reduce_average_in_place(weighted, 2.0F);
+    communicator.synchronize();
+    EXPECT_EQ(weighted.to_vector(), (std::vector<float>{2, 4, 6}));
+    EXPECT_THROW(
+        communicator.enqueue_all_reduce_average_in_place(weighted, 0.0F),
+        std::invalid_argument);
     EXPECT_EQ(communicator.rank(), 0);
     EXPECT_EQ(communicator.world_size(), 1);
     EXPECT_EQ(communicator.device(), Device::hip(0));

@@ -30,6 +30,9 @@ def main() -> int:
         "safetensors_complete_comparison",
         "maximum_policy_parameter_difference",
         "temporary_parameter_files_retained",
+        "--overlap-policy", "bucket-weighted-overlap",
+        "maximum_rank_step_weighted_bucket_scales",
+        "maximum_weighted_bucket_scales_per_rank",
     ):
         assert token in text
     print("ranked overlap context matrix contract: pass")

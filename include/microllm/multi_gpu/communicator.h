@@ -58,7 +58,10 @@ public:
     [[nodiscard]] Device device() const noexcept;
     [[nodiscard]] bool aborted() const noexcept;
     [[nodiscard]] runtime::Stream& stream();
-    void enqueue_all_reduce_average_in_place(Tensor& tensor);
+    // Optionally weights this rank's local mean before the collective, then
+    // divides the global sum by world size on the same communication Stream.
+    void enqueue_all_reduce_average_in_place(
+        Tensor& tensor, float local_scale = 1.0F);
     void synchronize();
     void abort() noexcept;
 

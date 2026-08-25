@@ -1,6 +1,7 @@
 #include <microllm/multi_gpu/gradient_bucket.h>
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -143,6 +144,7 @@ struct RankGradientBucketPlan::Impl {
     std::vector<autograd::Value*> overlap_parameters;
     std::size_t next_overlap_range = 0;
     std::size_t overlap_enqueued_buckets = 0;
+    float overlap_local_gradient_scale = 1.0F;
 };
 
 GradientBucketPlan::GradientBucketPlan() : impl_(std::make_unique<Impl>()) {}
@@ -213,17 +215,24 @@ void RankGradientBucketPlan::clear() noexcept {
     impl_->overlap_parameters.clear();
     impl_->next_overlap_range = 0;
     impl_->overlap_enqueued_buckets = 0;
+    impl_->overlap_local_gradient_scale = 1.0F;
 }
 
 void RankGradientBucketPlan::begin_overlap_step(
     RankCommunicator& communicator,
-    const std::vector<autograd::Value*>& parameters) {
+    const std::vector<autograd::Value*>& parameters,
+    float local_gradient_scale) {
     if (!impl_ || !impl_->initialized || !impl_->gradient_views) {
         throw std::logic_error(
             "rank gradient overlap requires an initialized view plan");
     }
     if (impl_->overlap_active) {
         throw std::logic_error("rank gradient overlap step is already active");
+    }
+    if (!std::isfinite(local_gradient_scale) ||
+        local_gradient_scale <= 0.0F) {
+        throw std::invalid_argument(
+            "rank gradient overlap local scale must be finite and positive");
     }
     if (impl_->rank != communicator.rank() ||
         impl_->world_size != communicator.world_size() ||
@@ -237,6 +246,7 @@ void RankGradientBucketPlan::begin_overlap_step(
     impl_->overlap_parameters = parameters;
     impl_->next_overlap_range = impl_->ranges.size();
     impl_->overlap_enqueued_buckets = 0;
+    impl_->overlap_local_gradient_scale = local_gradient_scale;
     for (auto& range : impl_->ranges) {
         if (!range.ready_event) {
             range.ready_event = std::make_unique<runtime::Event>(
@@ -305,7 +315,8 @@ void RankGradientBucketPlan::mark_parameter_ready(
                 gradient.device(), bytes, communicator.stream());
             offset += elements;
         }
-        communicator.enqueue_all_reduce_average_in_place(range.bucket);
+        communicator.enqueue_all_reduce_average_in_place(
+            range.bucket, impl_->overlap_local_gradient_scale);
         range.overlap_enqueued = true;
         ++impl_->overlap_enqueued_buckets;
         --impl_->next_overlap_range;
@@ -330,6 +341,10 @@ RankBucketStats RankGradientBucketPlan::finish_overlap_step() {
     stats.plan_reused = true;
     stats.overlap_enabled = true;
     stats.overlapped_bucket_count = impl_->overlap_enqueued_buckets;
+    stats.weight_scale_calls =
+        impl_->overlap_local_gradient_scale == 1.0F
+            ? 0U
+            : impl_->ranges.size();
     stats.plan_capacity_elements = impl_->capacity_elements;
     stats.plan_capacity_bytes = bytes_for(
         impl_->capacity_elements,
@@ -347,6 +362,7 @@ RankBucketStats RankGradientBucketPlan::finish_overlap_step() {
     impl_->overlap_active = false;
     impl_->overlap_communicator = nullptr;
     impl_->overlap_parameters.clear();
+    impl_->overlap_local_gradient_scale = 1.0F;
     return stats;
 }
 
@@ -731,7 +747,8 @@ RankBucketStats all_reduce_rank_gradients(
     const std::vector<autograd::Value*>& parameters,
     std::size_t maximum_bucket_bytes,
     RankGradientBucketPlan* persistent_plan,
-    bool gradient_views) {
+    bool gradient_views,
+    float local_gradient_scale) {
     if (maximum_bucket_bytes < sizeof(float)) {
         throw std::invalid_argument(
             "rank gradient bucket must hold at least one float");
@@ -739,6 +756,11 @@ RankBucketStats all_reduce_rank_gradients(
     if (gradient_views && persistent_plan == nullptr) {
         throw std::invalid_argument(
             "rank gradient bucket views require persistent storage");
+    }
+    if (!std::isfinite(local_gradient_scale) ||
+        local_gradient_scale <= 0.0F) {
+        throw std::invalid_argument(
+            "rank gradient bucket local scale must be finite and positive");
     }
     for (const auto* parameter : parameters) {
         if (parameter == nullptr || !parameter->has_grad() ||
@@ -871,7 +893,11 @@ RankBucketStats all_reduce_rank_gradients(
                 ++stats.pack_copy_calls;
                 offset += elements;
             }
-            communicator.enqueue_all_reduce_average_in_place(range.bucket);
+            communicator.enqueue_all_reduce_average_in_place(
+                range.bucket, local_gradient_scale);
+            if (local_gradient_scale != 1.0F) {
+                ++stats.weight_scale_calls;
+            }
             if (!gradient_views) {
                 offset = 0;
                 for (auto& gradient : range.gradients) {
@@ -928,7 +954,11 @@ RankBucketStats all_reduce_rank_gradients(
             ++stats.pack_copy_calls;
             offset += elements;
         }
-        communicator.enqueue_all_reduce_average_in_place(bucket);
+        communicator.enqueue_all_reduce_average_in_place(
+            bucket, local_gradient_scale);
+        if (local_gradient_scale != 1.0F) {
+            ++stats.weight_scale_calls;
+        }
         offset = 0;
         for (auto& gradient : unpacked) {
             const auto elements = static_cast<std::size_t>(gradient.numel());

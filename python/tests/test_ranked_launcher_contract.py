@@ -45,6 +45,8 @@ def main() -> int:
         "uneven-input", "ranked_uneven_input_failure_summary",
         "--rank-batch-rows", "--input-weighting", "token-weighted",
         "local_gradient_scale", "average_tokens",
+        "bucket-weighted-overlap", "step_weighted_bucket_scales",
+        "maximum_weighted_bucket_scales_per_rank",
         "--mean-loss-tolerance", "mean_loss_tolerance",
         "--retain-consensus-parameter-file",
         "consensus_parameter_file", "gate_passed",

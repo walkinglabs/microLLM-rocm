@@ -196,8 +196,10 @@ Start with [Quick start](#quick-start), consume the installed library through th
 
 > The same `[B1T32,B2T32]` contract passes Model-S: all 57 tensors and
 > 15,586,176 values are rank-exact, with CPU parameter Max/RMS
-> `0.007760/3.639e-6`. Weighted communication remains synchronous until scaling
-> is moved before each ready-bucket Event.
+> `0.007760/3.639e-6`. Per-leaf weighted overlap is correct but rejected at
+> T128 (`0.9594x` steady step): 57 scale launches erase the shorter wait.
+> An explicit bucket-weighted candidate reduces those calls to 3 and is awaiting
+> a clean-revision Model-S matrix; no speed claim is made from its pilot.
 
 </details>
 

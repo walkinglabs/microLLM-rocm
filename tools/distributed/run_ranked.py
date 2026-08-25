@@ -32,7 +32,8 @@ def options() -> argparse.Namespace:
     parser.add_argument("--reducer",
                         choices=("per-parameter", "bucket",
                                  "persistent-bucket", "bucket-views",
-                                 "overlap-views"),
+                                 "overlap-views",
+                                 "bucket-weighted-overlap"),
                         default="per-parameter")
     parser.add_argument("--bucket-bytes", type=int, default=4096)
     parser.add_argument("--model", choices=("tiny", "model-s"), default="tiny")
@@ -514,7 +515,8 @@ def main() -> int:
                          "step_reducer_peak_bytes_after",
                          "step_overlap_enabled",
                          "step_overlapped_buckets",
-                         "step_weighted_gradient_scales")
+                         "step_weighted_gradient_scales",
+                         "step_weighted_bucket_scales")
     if any(not isinstance(rank.get(field), list) or
            len(rank[field]) != args.steps
            for rank in ranks for field in
@@ -550,12 +552,17 @@ def main() -> int:
            sum(rank["step_pack_copies"]) != rank["pack_copies"] or
            sum(rank["step_unpack_copies"]) != rank["unpack_copies"] or
            sum(rank["step_gradient_views"]) != rank["gradient_views"]
+           or sum(rank["step_weighted_gradient_scales"]) !=
+           rank["weighted_gradient_scales"]
+           or sum(rank["step_weighted_bucket_scales"]) !=
+           rank["weighted_bucket_scales"]
            for rank in ranks):
         raise RuntimeError("rank per-step reducer totals changed")
     expected_weighted_gradient_scales = [
         (len(reference["parameter_names"])
          if args.input_weighting == "token-weighted" and
-         args.rank_batch_rows[rank_index] * args.context != average_tokens
+         args.rank_batch_rows[rank_index] * args.context != average_tokens and
+         args.reducer != "bucket-weighted-overlap"
          else 0)
         for rank_index in range(args.world_size)]
     if any(rank.get("weighted_gradient_scales") !=
@@ -564,9 +571,23 @@ def main() -> int:
            [expected_weighted_gradient_scales[rank_index]] * args.steps
            for rank_index, rank in enumerate(ranks)):
         raise RuntimeError("rank per-leaf gradient weighting count changed")
+    expected_weighted_bucket_scales = [
+        (ranks[rank_index]["buckets"]
+         if args.input_weighting == "token-weighted" and
+         args.rank_batch_rows[rank_index] * args.context != average_tokens and
+         args.reducer == "bucket-weighted-overlap"
+         else 0)
+        for rank_index in range(args.world_size)]
+    if any(rank.get("weighted_bucket_scales") !=
+           expected_weighted_bucket_scales[rank_index] or
+           rank["step_weighted_bucket_scales"] !=
+           [expected_weighted_bucket_scales[rank_index] // args.steps] *
+           args.steps
+           for rank_index, rank in enumerate(ranks)):
+        raise RuntimeError("rank ready-bucket weighting count changed")
     expected_reuse = [0] + [1] * (args.steps - 1)
     if args.reducer in ("persistent-bucket", "bucket-views",
-                        "overlap-views"):
+                        "overlap-views", "bucket-weighted-overlap"):
         if any(rank.get("persistent_storage") is not True or
                rank.get("plan_reuses") != args.steps - 1 or
                rank.get("plan_capacity_elements", 0) <= 0 or
@@ -581,7 +602,8 @@ def main() -> int:
              any(rank["step_plan_reused"])
              for rank in ranks):
         raise RuntimeError("non-persistent reducer exposed a bucket plan")
-    if args.reducer in ("bucket-views", "overlap-views"):
+    if args.reducer in ("bucket-views", "overlap-views",
+                        "bucket-weighted-overlap"):
         if any(rank.get("gradient_views") !=
                args.steps * len(reference["parameter_names"]) or
                rank.get("unpack_copies") != 0 or
@@ -596,7 +618,7 @@ def main() -> int:
     expected_overlap = [0] + [1] * (args.steps - 1)
     expected_overlapped_buckets = [0] + [
         ranks[0]["buckets"] // args.steps] * (args.steps - 1)
-    if args.reducer == "overlap-views":
+    if args.reducer in ("overlap-views", "bucket-weighted-overlap"):
         if any(rank.get("overlap_steps") != args.steps - 1 or
                rank.get("overlapped_buckets") !=
                (args.steps - 1) * ranks[0]["buckets"] // args.steps or
@@ -730,6 +752,9 @@ def main() -> int:
         "maximum_rank_step_weighted_gradient_scales": [
             max(rank["step_weighted_gradient_scales"][step]
                 for rank in ranks) for step in range(args.steps)],
+        "maximum_rank_step_weighted_bucket_scales": [
+            max(rank["step_weighted_bucket_scales"][step]
+                for rank in ranks) for step in range(args.steps)],
         "maximum_engine_current_bytes": max(
             rank["engine_current_bytes"] for rank in ranks),
         "maximum_engine_peak_bytes": max(
@@ -753,6 +778,10 @@ def main() -> int:
             rank["weighted_gradient_scales"] for rank in ranks],
         "maximum_weighted_gradient_scales_per_rank": max(
             rank["weighted_gradient_scales"] for rank in ranks),
+        "rank_weighted_bucket_scales": [
+            rank["weighted_bucket_scales"] for rank in ranks],
+        "maximum_weighted_bucket_scales_per_rank": max(
+            rank["weighted_bucket_scales"] for rank in ranks),
         "parameter_files_retained": consensus_parameter_file is not None,
         "consensus_parameter_file": (
             str(consensus_parameter_file)

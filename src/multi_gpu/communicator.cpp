@@ -1,5 +1,6 @@
 #include <microllm/multi_gpu/communicator.h>
 
+#include <cmath>
 #include <cstring>
 #include <stdexcept>
 #include <string>
@@ -214,12 +215,21 @@ Device RankCommunicator::device() const noexcept { return impl_->device; }
 bool RankCommunicator::aborted() const noexcept { return impl_->aborted; }
 runtime::Stream& RankCommunicator::stream() { return *impl_->stream; }
 
-void RankCommunicator::enqueue_all_reduce_average_in_place(Tensor& tensor) {
+void RankCommunicator::enqueue_all_reduce_average_in_place(
+    Tensor& tensor, float local_scale) {
     if (impl_->aborted) throw std::logic_error("rank communicator has been aborted");
     if (!tensor.defined() || tensor.device() != impl_->device ||
         tensor.dtype() != DType::Float32 || !tensor.is_contiguous()) {
         throw std::invalid_argument(
             "rank all-reduce requires a contiguous local float32 HIP tensor");
+    }
+    if (!std::isfinite(local_scale) || local_scale <= 0.0F) {
+        throw std::invalid_argument(
+            "rank all-reduce local scale must be finite and positive");
+    }
+    const ops::OpContext context{impl_->stream.get(), nullptr, 0};
+    if (local_scale != 1.0F) {
+        ops::scale_in_place_(tensor, local_scale, context);
     }
     check_rccl(
         ncclAllReduce(
@@ -228,7 +238,6 @@ void RankCommunicator::enqueue_all_reduce_average_in_place(Tensor& tensor) {
             impl_->communicator,
             reinterpret_cast<hipStream_t>(impl_->stream->native_handle())),
         "ncclAllReduce(rank)");
-    const ops::OpContext context{impl_->stream.get(), nullptr, 0};
     ops::scale_in_place_(
         tensor, 1.0F / static_cast<float>(impl_->world_size), context);
 }
