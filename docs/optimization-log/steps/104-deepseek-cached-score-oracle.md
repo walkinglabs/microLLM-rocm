@@ -68,3 +68,7 @@ runner已加入1-step/3-step phase delta，并保存Kernel/API/copy/allocation�
 runner第一次干净执行发现原始app/归一化record字段边界写错并有界失败；现在检查原始
 `token_count`和forward accounting，再补profile元数据，同时输出逐字段错误。正式trace将从
 修复后的提交重新运行。
+
+当前profile从修复提交完成：cached Attention为647.3ms/61.57%，GEMM为270.4ms/25.72%；
+1,792次Attention=28层×64 token。backend allocation增量0，KV store仅0.65%。Step 104完成，
+Step 105只准入score/context微架构矩阵。

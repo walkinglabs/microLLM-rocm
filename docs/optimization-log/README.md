@@ -961,6 +961,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [experiments/279-ranked-bucket-weighting.md](experiments/279-ranked-bucket-weighting.md) | 显式T128保留、完整参数门与gather-scale交接 |
 | [assets/ranked-gather-scale-discard.svg](assets/ranked-gather-scale-discard.svg) | 57 pack删除、1.0140x、额外描述与双门拒绝 |
 | [experiments/280-ranked-gather-scale-discard.md](experiments/280-ranked-gather-scale-discard.md) | Step 102最佳对照与ranked reducer局部线关闭 |
+| [assets/current-deepseek-t2048-profile.svg](assets/current-deepseek-t2048-profile.svg) | 当前0.8158x差距、Attention/GEMM占比与资源边界 |
+| [experiments/281-current-deepseek-t2048-profile.md](experiments/281-current-deepseek-t2048-profile.md) | score/context微架构准入与allocator/KV store排除 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

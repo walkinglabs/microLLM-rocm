@@ -132,7 +132,8 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [101](steps/101-ranked-weighted-overlap.md) | complete; performance rejected | token-weighted ready overlap | T128正确，57次leaf scale使整步仅0.9594x |
 | [102](steps/102-ranked-bucket-weighting.md) | complete; explicit keep | ready-bucket weighting | T128 scale 57→3，steady step 1.0661x，非一般默认 |
 | [103](steps/103-ranked-gather-scale.md) | complete; performance rejected | persistent gather-scale | 57 pack→0但仅1.0140x且慢于Step 102，局部线关闭 |
-| [104](steps/104-deepseek-cached-score-oracle.md) | oracle+baseline complete; trace runner ready | T2048 score oracle + current profile | 当前0.8158x；1/3-step rocprof runner待干净执行 |
+| [104](steps/104-deepseek-cached-score-oracle.md) | complete | T2048 score oracle + current profile | current Attention 61.57%，GEMM 25.72%，allocator非热点 |
+| [105](steps/105-cached-attention-microarchitecture.md) | planned | score/context微架构矩阵 | H12/KV2/D128，T512/2048，完整三阶段精度门 |
 
 ## 为什么按这个顺序
 

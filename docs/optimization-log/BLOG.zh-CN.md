@@ -4417,3 +4417,19 @@ leave-one最低1.0078x。
 回到端到端profile重新找主要瓶颈。
 
 ![Ranked gather-scale discard](assets/ranked-gather-scale-discard.svg)
+
+## 298. Experiment 281：当前DeepSeek长上下文差距到底在哪里
+
+T2048/B2/N64当前三对结果是microLLM 133.50 tok/s、PyTorch 163.64 tok/s，即0.8158x；64个
+token完全一致。microLLM峰值更低，但速度差距仍在。
+
+1-step/3-step rocprof差分显示，一次完整generation有1.051s聚合Kernel时间。cached Attention
+占647.3ms/61.57%，GEMM占270.4ms/25.72%。Attention共1,792次，正好28层×64 token。
+
+allocator不是当前根因：backend allocation增量0，36,963次逻辑申请全部复用。KV store只有
+0.65%。`hipMemcpy` API时间会吸收前序GPU等待，也不能被误写成327ms纯复制。
+
+所以Step 105先做score/context微架构矩阵，完整对齐score、probability和context；在算子门
+通过前，不改模型默认路由。
+
+![Current DeepSeek T2048 profile](assets/current-deepseek-t2048-profile.svg)

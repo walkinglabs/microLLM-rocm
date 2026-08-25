@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-25: Current DeepSeek T2048 profile](2026-08-25-current-deepseek-t2048-profile.md)
 - [2026-08-25: Current cached-decode profile runner](2026-08-25-current-cached-profile-runner.md)
 - [2026-08-25: Current DeepSeek T2048 baseline](2026-08-25-current-deepseek-t2048-baseline.md)
 - [2026-08-25: Cached Attention score oracle](2026-08-25-cached-attention-score-oracle.md)

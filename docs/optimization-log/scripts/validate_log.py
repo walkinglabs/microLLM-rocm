@@ -16811,6 +16811,140 @@ def validate_ranked_gather_scale(
         check.get("candidate_gather_scale_calls_per_step", 0)
 
 
+def validate_current_deepseek_t2048(
+        errors: list[str]) -> tuple[float, float, float, float]:
+    baseline_root = (REPOSITORY / "benchmarks/results" /
+                     "2026-08-25-current-deepseek-t2048")
+    profile_root = (REPOSITORY / "benchmarks/results" /
+                    "2026-08-25-current-deepseek-t2048-profile")
+    baseline = json.loads((baseline_root / "summary.json").read_text(
+        encoding="utf-8"))
+    baseline_check = json.loads((baseline_root / "verification.json").read_text(
+        encoding="utf-8"))
+    attempts = json.loads((baseline_root / "attempts.json").read_text(
+        encoding="utf-8"))
+    baseline_raw = [json.loads(line) for line in (baseline_root / "raw.jsonl")
+                    .read_text(encoding="utf-8").splitlines() if line]
+    profile = json.loads((profile_root / "summary.json").read_text(
+        encoding="utf-8"))
+    analysis = json.loads((profile_root / "analysis.json").read_text(
+        encoding="utf-8"))
+    profile_check = json.loads((profile_root / "verification.json").read_text(
+        encoding="utf-8"))
+    row = baseline.get("rows", [{}])[0]
+    if (baseline.get("schema_version") != 1 or baseline.get("status") != "pass" or
+            baseline.get("runs_per_framework") != 3 or
+            len(baseline.get("rows", [])) != 1 or
+            row.get("model") != "deepseek-r1-distill-qwen-1.5b" or
+            row.get("context") != 2048 or row.get("batch") != 2 or
+            row.get("decode_tokens") != 64 or
+            row.get("cross_framework_tokens_equal") is not True or
+            row.get("cross_framework_matching_prefix_tokens") != 64 or
+            row.get("cross_framework_first_token_difference") != -1 or
+            row.get("microllm_throughput_tokens_per_second") != 133.501430352 or
+            row.get("pytorch_throughput_tokens_per_second") !=
+                163.64307901695054 or
+            row.get("throughput_ratio_microllm_over_pytorch") !=
+                0.8158085948637742 or
+            row.get("microllm_peak_bytes") != 5229860864.0 or
+            row.get("pytorch_peak_bytes") != 6381346816.0 or
+            row.get("microllm_kv_cache_actual_bytes") != 121110528.0 or
+            row.get("pytorch_kv_cache_actual_bytes") != 121110528.0 or
+            row.get("microllm_kv_cache_utilization") != 1.0 or
+            row.get("pytorch_kv_cache_utilization") != 1.0):
+        errors.append("current DeepSeek T2048 framework summary changed")
+    if (len(baseline_raw) != 6 or
+            any(value.get("status") != "pass" or
+                value.get("context") != 2048 or value.get("batch") != 2 or
+                value.get("decode_tokens") != 64 or
+                value.get("measured_forward_steps") != 640
+                for value in baseline_raw) or
+            {value.get("framework") for value in baseline_raw} !=
+                {"microllm", "pytorch"}):
+        errors.append("current DeepSeek T2048 raw framework evidence changed")
+    if (baseline_check.get("measurement_commit") !=
+            "4ac239384a8c4f3f26b49e4884efeb32e0f02cfa" or
+            baseline_check.get("dirty_at_measurement") is not False or
+            baseline_check.get("micro_throughput_cv") !=
+                0.0006374822930391884 or
+            baseline_check.get("pytorch_throughput_cv") !=
+                0.029612357479797388 or
+            baseline_check.get("performance_gap_reproduced") is not True or
+            baseline_check.get("general_inference_parity_claim") is not False or
+            attempts.get("attempts", [{}])[0].get("status") !=
+                "invalid_for_cross_framework_comparison" or
+            attempts.get("attempts", [{}, {}])[1].get("status") != "pass"):
+        errors.append("current DeepSeek T2048 baseline verification changed")
+    kernel = profile.get("kernel_profile", {})
+    categories = {value.get("category"): value
+                  for value in kernel.get("categories", [])}
+    cached = categories.get("cached Attention", {})
+    gemm = categories.get("hipBLASLt GEMM", {})
+    if (profile.get("schema_version") != 1 or profile.get("status") != "pass" or
+            profile.get("record_type") !=
+                "current_cached_decode_profile_summary" or
+            profile.get("model") != "deepseek-r1-distill-qwen-1.5b" or
+            profile.get("context") != 2048 or profile.get("batch") != 2 or
+            profile.get("decode_tokens") != 64 or profile.get("warmup") != 1 or
+            profile.get("one_step_count") != 1 or
+            profile.get("many_step_count") != 3 or
+            profile.get("derived_generations") != 2 or
+            profile.get("derived_forward_steps") != 128 or
+            kernel.get("track") !=
+                "inference_cached_decode_kernel_phase_delta" or
+            kernel.get("negative_call_delta_names") != [] or
+            kernel.get("total_kernel_ns_per_step") != 1051286618.0 or
+            cached.get("calls_per_step") != 1792.0 or
+            cached.get("duration_ns_per_step") != 647256070.5 or
+            cached.get("kernel_share") != 0.6156799291627624 or
+            gemm.get("duration_ns_per_step") != 270405964.5 or
+            gemm.get("kernel_share") != 0.25721431231991576):
+        errors.append("current DeepSeek cached-decode profile summary changed")
+    if (analysis.get("application_generation_ms") != 991.4816165 or
+            analysis.get("application_cache_prepare_ms") != 63.4017085 or
+            analysis.get("cached_attention_expected_calls") != 1792 or
+            analysis.get("cached_attention_us_per_call") !=
+                361.19200362723217 or
+            analysis.get("backend_allocation_calls") != 0 or
+            analysis.get("cache_reuse_calls") != 36963 or
+            analysis.get("d2d_calls") != 224 or
+            analysis.get("d2d_bytes") != 117440512 or
+            analysis.get("hip_memcpy_duration_is_not_copy_cost") is not True or
+            analysis.get("largest_current_kernel_category") !=
+                "cached Attention"):
+        errors.append("current DeepSeek cached-decode analysis changed")
+    if (profile_check.get("measurement_commit") !=
+            "90862e88cb7ba61bec3f1f4fc0cb5d37ee499ef3" or
+            profile_check.get("dirty_at_measurement") is not False or
+            profile_check.get("cached_attention_calls") != 1792 or
+            profile_check.get("cached_attention_share") !=
+                0.6156799291627624 or
+            profile_check.get("backend_allocation_calls") != 0 or
+            profile_check.get("current_profile_confirms_cached_attention_hotspot")
+                is not True or
+            profile_check.get("allocator_is_current_hotspot") is not False or
+            profile_check.get("kv_store_is_current_hotspot") is not False or
+            profile_check.get("cpu_label") != {"passed": 372, "total": 372} or
+            profile_check.get("sanitizer_label") !=
+                {"passed": 370, "total": 370} or
+            profile_check.get("hip_label") != {"passed": 191, "total": 191} or
+            profile_check.get("registered_test_files") != 127):
+        errors.append("current DeepSeek cached-decode verification changed")
+    expected_stats = (
+        "1-step-kernel-stats.csv", "3-step-kernel-stats.csv",
+        "1-step-hip-api-stats.csv", "3-step-hip-api-stats.csv",
+        "1-step-memory-copy-stats.csv", "3-step-memory-copy-stats.csv",
+        "1-step-memory-allocation-stats.csv",
+        "3-step-memory-allocation-stats.csv",
+    )
+    if any(not (profile_root / name).is_file() for name in expected_stats):
+        errors.append("current DeepSeek cached-decode raw stats are missing")
+    return (float(row.get("throughput_ratio_microllm_over_pytorch", 0.0)),
+            float(cached.get("kernel_share", 0.0)),
+            float(gemm.get("kernel_share", 0.0)),
+            float(analysis.get("application_generation_ms", 0.0)))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -17069,7 +17203,8 @@ def validate_assets(errors: list[str]) -> None:
                  "ranked-model-s-input-weighting.svg",
                  "ranked-weighted-overlap-discard.svg",
                  "ranked-bucket-weighting.svg",
-                 "ranked-gather-scale-discard.svg"):
+                 "ranked-gather-scale-discard.svg",
+                 "current-deepseek-t2048-profile.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -17654,6 +17789,8 @@ def main() -> int:
     ranked_gather_runs, ranked_gather_finish, ranked_gather_training, \
         ranked_gather_pack_copies, ranked_gather_calls = \
         validate_ranked_gather_scale(errors)
+    deepseek_t2048_ratio, deepseek_t2048_attention, deepseek_t2048_gemm, \
+        deepseek_t2048_generation_ms = validate_current_deepseek_t2048(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -18227,6 +18364,10 @@ def main() -> int:
           f"{ranked_gather_training:.4f}/"
           f"{ranked_gather_pack_copies}/"
           f"{ranked_gather_calls} "
+          f"deepseek_t2048={deepseek_t2048_ratio:.4f}/"
+          f"{deepseek_t2048_attention:.4f}/"
+          f"{deepseek_t2048_gemm:.4f}/"
+          f"{deepseek_t2048_generation_ms:.1f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

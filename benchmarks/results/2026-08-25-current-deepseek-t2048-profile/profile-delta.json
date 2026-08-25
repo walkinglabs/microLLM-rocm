@@ -1,0 +1,253 @@
+{
+  "categories": [
+    {
+      "calls_per_step": 1792.0,
+      "category": "cached Attention",
+      "duration_ns_per_step": 647256070.5,
+      "kernel_share": 0.6156799291627624
+    },
+    {
+      "calls_per_step": 12861.0,
+      "category": "hipBLASLt GEMM",
+      "duration_ns_per_step": 270405964.5,
+      "kernel_share": 0.25721431231991576
+    },
+    {
+      "calls_per_step": 7720.0,
+      "category": "other kernels",
+      "duration_ns_per_step": 52727046.5,
+      "kernel_share": 0.050154777581312274
+    },
+    {
+      "calls_per_step": 7308.0,
+      "category": "FP32/BF16 cast",
+      "duration_ns_per_step": 32238664.0,
+      "kernel_share": 0.030665913032672125
+    },
+    {
+      "calls_per_step": 3705.0,
+      "category": "RMSNorm forward/backward",
+      "duration_ns_per_step": 21010014.0,
+      "kernel_share": 0.01998504845421708
+    },
+    {
+      "calls_per_step": 1848.0,
+      "category": "gradient/elementwise add",
+      "duration_ns_per_step": 8410746.0,
+      "kernel_share": 0.008000430953835274
+    },
+    {
+      "calls_per_step": 28.0,
+      "category": "softmax",
+      "duration_ns_per_step": 7820179.5,
+      "kernel_share": 0.007438675016026885
+    },
+    {
+      "calls_per_step": 1792.0,
+      "category": "KV cache store",
+      "duration_ns_per_step": 6803478.0,
+      "kernel_share": 0.0064715729121931995
+    },
+    {
+      "calls_per_step": 113.0,
+      "category": "strided materialization",
+      "duration_ns_per_step": 3057426.5,
+      "kernel_share": 0.002908271110514602
+    },
+    {
+      "calls_per_step": 56.0,
+      "category": "GQA repeat",
+      "duration_ns_per_step": 1557028.5,
+      "kernel_share": 0.0014810694565504305
+    }
+  ],
+  "derived_steps": 2,
+  "excluded_nonpositive_delta_names": [
+    "__amd_rocclr_fillBufferAligned",
+    "void microllm::ops::hip::(anonymous namespace)::cast_transpose_2d_kernel<hip_bfloat16, float>(hip_bfloat16 const*, float*, long, long)"
+  ],
+  "many_step_count": 3,
+  "negative_call_delta_names": [],
+  "one_step_count": 1,
+  "raw_delta_kernel_names": 31,
+  "schema_version": 1,
+  "status": "pass",
+  "top_kernels": [
+    {
+      "calls_per_step": 1792.0,
+      "category": "cached Attention",
+      "duration_ns_per_step": 647256070.5,
+      "name": "void microllm::ops::hip::(anonymous namespace)::cached_attention_fused_kernel<hip_bfloat16>(float const*, hip_bfloat16 const*, hip_bfloat16 const*, float*, long, long, long, long, long, long, long, float)"
+    },
+    {
+      "calls_per_step": 1792.0,
+      "category": "hipBLASLt GEMM",
+      "duration_ns_per_step": 89662983.5,
+      "name": "Cijk_Ailk_Bljk_BBS_BH_Bias_HA_S_SAV_UserArgs_MT16x16x128_MI16x16x1_SN_LDSB0_AFC1_AG0_AFEM1_AFEM1_ASEM1_CLR1_CADS0_DTLA0_DTLB0_DTVA0_DTVB0_DTVMXSA0_DTVMXSB0_DTVSM0_DPLB0_EPS0_ELFLR0_EMLLn1_FDSI0_GRPM1_GRVWA1_GRVWB8_GSUAMB_GLS0_ISA942_IU1_K1_LDSTI0_LBSPPA256_LBSPPB256_LBSPPM0_LPA16_LPB16_LPM0_LRVW8_LWPMn1_MIAV0_MIWT1_1_MO40_MGRIPM1_NTn1_NTA0_NTB0_NTC0_NTD4_NTM0_NEPBS16_NLCA1_NLCB1_ONLL1_PGR2_PLR1_PKA1_SGROB0_SIA3_SS1_SPO0_SRVW0_SSO0_SVW1_SK0_SKFTR0_SKXCCM0_SGRO0_TDMI0_TIN0_TLDS1_TLDSM1_ULSGRO0_USL1_USLMX0_UIOFGRO0_UPLRP0_USFGROn1_USI0_VSn1_VWA1_VWB1_WSGRA0_WSGRB0_WS64_WG16_4_4"
+    },
+    {
+      "calls_per_step": 3584.0,
+      "category": "hipBLASLt GEMM",
+      "duration_ns_per_step": 46920259.0,
+      "name": "Cijk_Ailk_Bljk_BBS_BH_Bias_HA_S_SAV_UserArgs_MT32x16x128_MI16x16x1_SN_LDSB0_AFC1_AG0_AFEM1_AFEM1_ASEM1_CLR1_CADS0_DTLA0_DTLB0_DTVA0_DTVB0_DTVMXSA0_DTVMXSB0_DTVSM0_DPLB0_EPS0_ELFLR0_EMLLn1_FDSI0_GRPM1_GRVWA8_GRVWB8_GSUAMBSK_GLS0_ISA942_IU1_K1_LDSTI0_LBSPPA512_LBSPPB256_LBSPPM0_LPA32_LPB16_LPM0_LRVW8_LWPMn1_MIAV0_MIWT2_1_MO40_MGRIPM1_NTn1_NTA0_NTB0_NTC0_NTD4_NTM0_NEPBS8_NLCA1_NLCB1_ONLL1_PGR2_PLR1_PKA1_SGROB0_SIA3_SS1_SPO0_SRVW0_SSO0_SVW2_SK0_SKFTR0_SKXCCM0_SGRO0_TDMI0_TIN0_TLDS1_TLDSM1_ULSGRO0_USL1_USLMX0_UIOFGRO0_UPLRP0_USFGROn1_USI0_VSn1_VWA2_VWB1_WSGRA0_WSGRB0_WS64_WG16_4_4"
+    },
+    {
+      "calls_per_step": 3584.0,
+      "category": "hipBLASLt GEMM",
+      "duration_ns_per_step": 41720253.5,
+      "name": "Cijk_Ailk_Bljk_BSS_BH_Bias_HA_S_SAV_UserArgs_MT32x16x512_MI16x16x1_SN_LDSB1_AFC1_AG0_AFEM1_AFEM1_ASEM1_CLR1_CADS0_DTLA0_DTLB0_DTVA0_DTVB0_DTVMXSA0_DTVMXSB0_DTVSM0_DPLB0_EPS0_ELFLR0_EMLLn1_FDSI0_GRPM1_GRVWA8_GRVWB8_GSUAMBSK_GLS0_ISA942_IU1_K1_LDSTI0_LBSPPA512_LBSPPB1024_LBSPPM0_LPA32_LPB16_LPM0_LRVW8_LWPMn1_MIAV0_MIWT2_1_MO40_MGRIPM1_NTn1_NTA0_NTB0_NTC0_NTD4_NTM0_NEPBS8_NLCA1_NLCB1_ONLL1_PGR2_PLR1_PKA1_SGROB0_SIA3_SS1_SPO0_SRVW0_SSO0_SVW2_SK0_SKFTR0_SKXCCM0_SGRO0_TDMI0_TIN0_TLDS1_TLDSM1_ULSGRO1_USL1_USLMX0_UIOFGRO0_UPLRP0_USFGROn1_USI0_VSn1_VWA2_VWB1_WSGRA0_WSGRB0_WS64_WG16_4_4"
+    },
+    {
+      "calls_per_step": 3584.0,
+      "category": "hipBLASLt GEMM",
+      "duration_ns_per_step": 39364438.0,
+      "name": "Cijk_Ailk_Bljk_BSS_BH_Bias_HA_S_SAV_UserArgs_MT16x16x512_MI16x16x1_SN_LDSB1_AFC1_AG0_AFEM1_AFEM1_ASEM1_CLR1_CADS0_DTLA0_DTLB0_DTVA0_DTVB0_DTVMXSA0_DTVMXSB0_DTVSM0_DPLB0_EPS0_ELFLR0_EMLLn1_FDSI0_GRPM1_GRVWA8_GRVWB8_GSUAMBSK_GLS0_ISA942_IU1_K1_LDSTI0_LBSPPA256_LBSPPB1024_LBSPPM0_LPA16_LPB16_LPM0_LRVW8_LWPMn1_MIAV0_MIWT1_1_MO40_MGRIPM1_NTn1_NTA0_NTB0_NTC0_NTD4_NTM0_NEPBS8_NLCA1_NLCB1_ONLL1_PGR2_PLR1_PKA1_SGROB0_SIA3_SS1_SPO0_SRVW0_SSO0_SVW1_SK0_SKFTR0_SKXCCM0_SGRO0_TDMI0_TIN0_TLDS1_TLDSM1_ULSGRO0_USL1_USLMX0_UIOFGRO0_UPLRP0_USFGROn1_USI0_VSn1_VWA1_VWB1_WSGRA0_WSGRB0_WS64_WG16_4_4"
+    },
+    {
+      "calls_per_step": 5516.0,
+      "category": "FP32/BF16 cast",
+      "duration_ns_per_step": 25366333.5,
+      "name": "void microllm::ops::hip::(anonymous namespace)::cast_kernel<float, hip_bfloat16>(float const*, hip_bfloat16*, long)"
+    },
+    {
+      "calls_per_step": 65.0,
+      "category": "other kernels",
+      "duration_ns_per_step": 16761621.5,
+      "name": "microllm::ops::hip::(anonymous namespace)::argmax_last_dim_kernel(float const*, int*, long, long)"
+    },
+    {
+      "calls_per_step": 65.0,
+      "category": "hipBLASLt GEMM",
+      "duration_ns_per_step": 14365051.5,
+      "name": "Cijk_Ailk_Bljk_S_B_Bias_HA_S_SAV_UserArgs_MT512x16x16_MI16x16x1_SN_LDSB1_AFC1_AG0_AFEM1_AFEM1_ASEM1_CLR1_CADS0_DTLA0_DTLB0_DTVA0_DTVB0_DTVMXSA0_DTVMXSB0_DTVSM0_DPLB0_EPS0_ELFLR0_EMLLn1_FDSI0_GRPM1_GRVWA4_GRVWB1_GSUAMB_GLS0_ISA942_IU1_K1_LDSTI0_LBSPPA0_LBSPPB128_LBSPPM0_LPA0_LPB2_LPM0_LRVW2_LWPMn1_MIAV0_MIWT8_1_MO40_MGRIPM1_NTn1_NTA0_NTB0_NTC0_NTD4_NTM0_NEPBS16_NLCA1_NLCB1_ONLL1_PGR2_PLR1_PKA1_SGROB0_SIA3_SS1_SPO0_SRVW0_SSO0_SVW4_SK0_SKFTR0_SKXCCM0_SGRO0_TDMI0_TIN0_TLDS1_TLDSM1_ULSGRO0_USL1_USLMX0_UIOFGRO0_UPLRP0_USFGROn1_USI0_VSn1_VWA4_VWB1_WSGRA0_WSGRB0_WS64_WG64_4_1"
+    },
+    {
+      "calls_per_step": 3584.0,
+      "category": "other kernels",
+      "duration_ns_per_step": 14089631.5,
+      "name": "microllm::ops::hip::(anonymous namespace)::rope_split_half_bias_kernel(float const*, float const*, float*, long, long, long, long, long, float)"
+    },
+    {
+      "calls_per_step": 1913.0,
+      "category": "RMSNorm forward/backward",
+      "duration_ns_per_step": 12467222.5,
+      "name": "microllm::ops::hip::(anonymous namespace)::rms_norm_kernel(float const*, float const*, float*, long, long, float)"
+    },
+    {
+      "calls_per_step": 56.0,
+      "category": "hipBLASLt GEMM",
+      "duration_ns_per_step": 12027683.5,
+      "name": "Cijk_Ailk_Bljk_BBS_BH_Bias_HA_S_SAV_UserArgs_MT256x160x64_MI16x16x1_SN_LDSB1_AFC1_AG0_AFEM1_AFEM1_ASEM1_CLR1_CADS0_DTLA0_DTLB0_DTVA0_DTVB0_DTVMXSA0_DTVMXSB0_DTVSM0_DPLB0_EPS0_ELFLR0_EMLLn1_FDSI0_GRPM1_GRVWA8_GRVWB8_GSUAMBSK_GLS0_ISA942_IU1_K1_LDSTI0_LBSPPA0_LBSPPB256_LBSPPM0_LPA0_LPB16_LPM0_LRVW8_LWPMn1_MIAV0_MIWT4_10_MO40_MGRIPM1_NTn1_NTA0_NTB0_NTC0_NTD4_NTM0_NEPBS8_NLCA1_NLCB1_ONLL1_PGR2_PLR1_PKA1_SGROB0_SIA3_SS1_SPO0_SRVW0_SSO0_SVW4_SK0_SKFTR0_SKXCCM0_SGRO0_TDMI0_TIN0_TLDS1_TLDSM1_ULSGRO1_USL1_USLMX0_UIOFGRO0_UPLRP0_USFGROn1_USI0_VSn1_VWA4_VWB2_WSGRA0_WSGRB0_WS64_WG64_4_1"
+    },
+    {
+      "calls_per_step": 1820.0,
+      "category": "other kernels",
+      "duration_ns_per_step": 11064298.0,
+      "name": "void microllm::ops::hip::(anonymous namespace)::swiglu_typed_kernel<hip_bfloat16>(hip_bfloat16 const*, hip_bfloat16 const*, hip_bfloat16*, long)"
+    },
+    {
+      "calls_per_step": 28.0,
+      "category": "hipBLASLt GEMM",
+      "duration_ns_per_step": 9192489.0,
+      "name": "Cijk_Alik_Bljk_S_B_Bias_HA_S_SAV_UserArgs_MT256x112x32_MI16x16x1_SN_LDSB1_AFC1_AG0_AFEM1_AFEM1_ASEM1_CLR1_CADS0_DTLA0_DTLB0_DTVA1_DTVB0_DTVMXSA0_DTVMXSB0_DTVSM0_DPLB0_EPS0_ELFLR0_EMLLn1_FDSI0_GRPM1_GRVWA4_GRVWB2_GSUAMB_GLS0_ISA942_IU1_K1_LDSTI0_LBSPPA0_LBSPPB128_LBSPPM0_LPA0_LPB8_LPM0_LRVW4_LWPMn1_MIAV0_MIWT4_7_MO40_MGRIPM1_NTn1_NTA0_NTB0_NTC0_NTD4_NTM0_NEPBS16_NLCA2_NLCB1_ONLL1_PGR2_PLR1_PKA1_SGROB0_SIA3_SS1_SPO0_SRVW0_SSO0_SVW4_SK0_SKFTR0_SKXCCM0_SGRO0_TDMI0_TIN0_TLDS1_TLDSM1_ULSGRO0_USL1_USLMX0_UIOFGRO0_UPLRP0_USFGROn1_USI0_VSn1_VWA4_VWB1_WSGRA0_WSGRB0_WS64_WG64_4_1"
+    },
+    {
+      "calls_per_step": 1792.0,
+      "category": "RMSNorm forward/backward",
+      "duration_ns_per_step": 8542791.5,
+      "name": "void microllm::ops::hip::(anonymous namespace)::add_rms_norm_kernel<512u>(float const*, float const*, float const*, float*, float*, long, long, float)"
+    },
+    {
+      "calls_per_step": 1848.0,
+      "category": "gradient/elementwise add",
+      "duration_ns_per_step": 8410746.0,
+      "name": "void microllm::ops::hip::(anonymous namespace)::add_typed_kernel<float>(float const*, float const*, float*, long)"
+    },
+    {
+      "calls_per_step": 1876.0,
+      "category": "other kernels",
+      "duration_ns_per_step": 7865607.0,
+      "name": "microllm::ops::hip::(anonymous namespace)::add_bias_kernel(float const*, float const*, float*, long, long)"
+    },
+    {
+      "calls_per_step": 28.0,
+      "category": "softmax",
+      "duration_ns_per_step": 7820179.5,
+      "name": "microllm::ops::hip::(anonymous namespace)::causal_softmax_rows_register_kernel(float const*, float*, long, long)"
+    },
+    {
+      "calls_per_step": 28.0,
+      "category": "hipBLASLt GEMM",
+      "duration_ns_per_step": 7088670.0,
+      "name": "Cijk_Ailk_Bljk_S_B_Bias_HA_S_SAV_UserArgs_MT128x176x32_MI16x16x1_SN_LDSB1_AFC1_AG0_AFEM1_AFEM1_ASEM1_CLR1_CADS0_DTLA0_DTLB0_DTVA0_DTVB0_DTVMXSA0_DTVMXSB0_DTVSM0_DPLB0_EPS0_ELFLR0_EMLLn1_FDSI0_GRPM1_GRVWA4_GRVWB2_GSUAMB_GLS0_ISA942_IU1_K1_LDSTI0_LBSPPA0_LBSPPB128_LBSPPM0_LPA0_LPB8_LPM0_LRVW4_LWPMn1_MIAV0_MIWT2_11_MO40_MGRIPM1_NTn1_NTA0_NTB0_NTC0_NTD4_NTM0_NEPBS16_NLCA1_NLCB1_ONLL1_PGR2_PLR1_PKA1_SGROB0_SIA3_SS1_SPO0_SRVW0_SSO0_SVW2_SK0_SKFTR0_SKXCCM0_SGRO0_TDMI0_TIN0_TLDS1_TLDSM1_ULSGRO0_USL1_USLMX0_UIOFGRO0_UPLRP0_USFGROn1_USI0_VSn1_VWA2_VWB1_WSGRA0_WSGRB0_WS64_WG64_4_1"
+    },
+    {
+      "calls_per_step": 1792.0,
+      "category": "FP32/BF16 cast",
+      "duration_ns_per_step": 6872330.5,
+      "name": "void microllm::ops::hip::(anonymous namespace)::cast_kernel<hip_bfloat16, float>(hip_bfloat16 const*, float*, long)"
+    },
+    {
+      "calls_per_step": 1792.0,
+      "category": "KV cache store",
+      "duration_ns_per_step": 6803478.0,
+      "name": "void microllm::ops::hip::(anonymous namespace)::kv_cache_store_pair_kernel<hip_bfloat16>(float const*, float const*, hip_bfloat16*, hip_bfloat16*, long, long, long, long, long)"
+    },
+    {
+      "calls_per_step": 28.0,
+      "category": "hipBLASLt GEMM",
+      "duration_ns_per_step": 6127155.5,
+      "name": "Cijk_Ailk_Bljk_BSS_BH_Bias_HA_S_SAV_UserArgs_MT256x96x64_MI16x16x1_SN_LDSB1_AFC1_AG0_AFEM1_AFEM1_ASEM1_CLR1_CADS0_DTLA0_DTLB0_DTVA0_DTVB0_DTVMXSA0_DTVMXSB0_DTVSM0_DPLB0_EPS0_ELFLR0_EMLLn1_FDSI0_GRPM1_GRVWA8_GRVWB8_GSUAMBSK_GLS0_ISA942_IU1_K1_LDSTI0_LBSPPA0_LBSPPB256_LBSPPM0_LPA0_LPB16_LPM0_LRVW8_LWPMn1_MIAV0_MIWT4_6_MO40_MGRIPM1_NTn1_NTA0_NTB0_NTC0_NTD4_NTM0_NEPBS8_NLCA1_NLCB1_ONLL1_PGR2_PLR1_PKA1_SGROB0_SIA3_SS1_SPO0_SRVW0_SSO0_SVW4_SK0_SKFTR0_SKXCCM0_SGRO0_TDMI0_TIN0_TLDS1_TLDSM1_ULSGRO0_USL1_USLMX0_UIOFGRO0_UPLRP0_USFGROn1_USI0_VSn1_VWA4_VWB2_WSGRA0_WSGRB0_WS64_WG64_4_1"
+    },
+    {
+      "calls_per_step": 113.0,
+      "category": "strided materialization",
+      "duration_ns_per_step": 3057426.5,
+      "name": "microllm::runtime::detail::(anonymous namespace)::strided_copy_kernel(std::byte*, std::byte const*, unsigned long, long, microllm::runtime::detail::(anonymous namespace)::Layout)"
+    },
+    {
+      "calls_per_step": 56.0,
+      "category": "hipBLASLt GEMM",
+      "duration_ns_per_step": 2818969.5,
+      "name": "Cijk_Ailk_Bljk_BSS_BH_Bias_HA_S_SAV_UserArgs_MT256x96x64_MI16x16x1_SN_LDSB1_AFC1_AG0_AFEM1_AFEM1_ASEM1_CLR1_CADS0_DTLA0_DTLB0_DTVA0_DTVB0_DTVMXSA0_DTVMXSB0_DTVSM0_DPLB0_EPS0_ELFLR0_EMLLn1_FDSI0_GRPM1_GRVWA8_GRVWB8_GSUAMBSK_GLS0_ISA942_IU1_K1_LDSTI0_LBSPPA0_LBSPPB256_LBSPPM0_LPA0_LPB16_LPM0_LRVW8_LWPMn1_MIAV0_MIWT4_6_MO40_MGRIPM1_NTn1_NTA0_NTB0_NTC0_NTD4_NTM0_NEPBS8_NLCA1_NLCB1_ONLL1_PGR2_PLR1_PKA1_SGROB0_SIA3_SS1_SPO0_SRVW0_SSO0_SVW4_SK0_SKFTR0_SKXCCM0_SGRO0_TDMI0_TIN0_TLDS1_TLDSM1_ULSGRO1_USL1_USLMX0_UIOFGRO0_UPLRP0_USFGROn1_USI0_VSn1_VWA4_VWB2_WSGRA0_WSGRB0_WS64_WG64_4_1"
+    },
+    {
+      "calls_per_step": 56.0,
+      "category": "GQA repeat",
+      "duration_ns_per_step": 1557028.5,
+      "name": "void microllm::ops::hip::(anonymous namespace)::repeat_interleave_typed_kernel<float>(float const*, float*, long, long, long, long)"
+    },
+    {
+      "calls_per_step": 56.0,
+      "category": "hipBLASLt GEMM",
+      "duration_ns_per_step": 1118011.5,
+      "name": "Cijk_Ailk_Bljk_BSS_BH_Bias_HA_S_SAV_UserArgs_MT64x64x128_MI16x16x1_SN_LDSB1_AFC1_AG0_AFEM1_AFEM1_ASEM1_CLR1_CADS0_DTLA0_DTLB0_DTVA0_DTVB0_DTVMXSA0_DTVMXSB0_DTVSM0_DPLB0_EPS0_ELFLR0_EMLLn1_FDSI0_GRPM1_GRVWA8_GRVWB8_GSUAMBSK_GLS0_ISA942_IU1_K1_LDSTI0_LBSPPA0_LBSPPB1024_LBSPPM0_LPA0_LPB16_LPM0_LRVW8_LWPMn1_MIAV0_MIWT4_4_MO40_MGRIPM1_NTn1_NTA0_NTB0_NTC0_NTD4_NTM0_NEPBS8_NLCA1_NLCB1_ONLL1_PGR2_PLR1_PKA1_SGROB0_SIA3_SS1_SPO0_SRVW0_SSO0_SVW4_SK0_SKFTR0_SKXCCM0_SGRO0_TDMI0_TIN0_TLDS1_TLDSM1_ULSGRO0_USL1_USLMX0_UIOFGRO0_UPLRP0_USFGROn1_USI0_VSn1_VWA4_VWB4_WSGRA0_WSGRB0_WS64_WG16_4_4"
+    },
+    {
+      "calls_per_step": 56.0,
+      "category": "other kernels",
+      "duration_ns_per_step": 1080601.0,
+      "name": "microllm::ops::hip::(anonymous namespace)::rope_split_half_kernel(float const*, float*, long, long, long, long, long, float)"
+    },
+    {
+      "calls_per_step": 226.0,
+      "category": "other kernels",
+      "duration_ns_per_step": 1057468.0,
+      "name": "__amd_rocclr_copyBuffer"
+    },
+    {
+      "calls_per_step": 28.0,
+      "category": "other kernels",
+      "duration_ns_per_step": 540632.5,
+      "name": "void microllm::ops::hip::(anonymous namespace)::scale_typed_kernel<float>(float const*, float*, long, float)"
+    },
+    {
+      "calls_per_step": 65.0,
+      "category": "other kernels",
+      "duration_ns_per_step": 267187.0,
+      "name": "microllm::ops::hip::(anonymous namespace)::embedding_kernel(float const*, int const*, float*, long, long, long)"
+    }
+  ],
+  "total_kernel_ns_per_step": 1051286618.0,
+  "track": "inference_cached_decode_kernel_phase_delta"
+}

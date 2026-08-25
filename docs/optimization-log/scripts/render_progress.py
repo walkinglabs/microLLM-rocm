@@ -367,6 +367,14 @@ RANKED_GATHER_SCALE_ROOT = (
     "2026-08-25-ranked-gather-scale")
 RANKED_GATHER_SCALE_CHART = (
     ROOT / "assets" / "ranked-gather-scale-discard.svg")
+CURRENT_DEEPSEEK_T2048_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-current-deepseek-t2048")
+CURRENT_DEEPSEEK_T2048_PROFILE_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-current-deepseek-t2048-profile")
+CURRENT_DEEPSEEK_T2048_CHART = (
+    ROOT / "assets" / "current-deepseek-t2048-profile.svg")
 
 
 def rows() -> list[dict]:
@@ -6581,6 +6589,112 @@ def ranked_gather_scale_svg() -> str:
     return "\n".join(parts)
 
 
+def current_deepseek_t2048_svg() -> str:
+    baseline = json.loads((CURRENT_DEEPSEEK_T2048_ROOT / "summary.json").read_text(
+        encoding="utf-8"))["rows"][0]
+    profile = json.loads((CURRENT_DEEPSEEK_T2048_PROFILE_ROOT /
+                          "analysis.json").read_text(encoding="utf-8"))
+    width, height = 1500, 800
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 281 · Current DeepSeek T2048 Profile", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "B2 · N64 · BF16 exact KV · 3 fresh process pairs · 1/3-generation rocprof phase delta",
+             16, "#5b6474", anchor="middle"),
+        '<rect x="55" y="125" width="430" height="420" rx="18" fill="#ffffff" stroke="#dc2626" stroke-width="3"/>',
+        text(270, 170, "Current framework gap", 23, "#b42335",
+             anchor="middle", weight=700),
+    ]
+    framework_rows = (
+        ("microLLM", baseline["microllm_throughput_tokens_per_second"],
+         baseline["microllm_peak_bytes"], "#2563eb"),
+        ("PyTorch ROCm", baseline["pytorch_throughput_tokens_per_second"],
+         baseline["pytorch_peak_bytes"], "#16a34a"),
+    )
+    for index, (label, throughput, peak, color) in enumerate(framework_rows):
+        y = 230 + index * 120
+        parts.extend([
+            text(95, y, label, 17, color, weight=700),
+            text(445, y, f"{throughput:.2f} tok/s", 20, color,
+                 anchor="end", weight=700),
+            f'<rect x="95" y="{y + 22}" width="{310 * throughput / 180.0:.1f}" '
+            f'height="30" rx="7" fill="{color}"/>',
+            text(95, y + 83, f"peak {peak / 1.0e9:.2f} GB", 15,
+                 "#5b6474"),
+        ])
+    parts.extend([
+        text(270, 475,
+             f"throughput ratio {baseline['throughput_ratio_microllm_over_pytorch']:.4f}x",
+             25, "#b42335", anchor="middle", weight=700),
+        text(270, 512, "64 / 64 tokens exact · KV 121.11 MB each", 15,
+             "#166534", anchor="middle", weight=700),
+        '<rect x="525" y="125" width="560" height="420" rx="18" fill="#ffffff" stroke="#f59e0b" stroke-width="3"/>',
+        text(805, 170, "One generation · Kernel attribution", 23,
+             "#b45309", anchor="middle", weight=700),
+    ])
+    category_rows = (
+        ("Cached Attention", profile["cached_attention_ms"],
+         profile["cached_attention_share"], "#dc2626"),
+        ("hipBLASLt GEMM", profile["hipblaslt_gemm_ms"],
+         profile["hipblaslt_gemm_share"], "#2563eb"),
+        ("Cast", profile["cast_ms"], profile["cast_share"], "#9333ea"),
+        ("RMSNorm", profile["rms_norm_ms"], profile["rms_norm_share"], "#0f766e"),
+        ("KV store", profile["kv_store_ms"], profile["kv_store_share"], "#64748b"),
+    )
+    for index, (label, milliseconds, share, color) in enumerate(category_rows):
+        y = 225 + index * 57
+        parts.extend([
+            text(570, y, label, 15, "#5b6474"),
+            f'<rect x="725" y="{y - 18}" width="{270 * share / 0.65:.1f}" '
+            f'height="25" rx="6" fill="{color}"/>',
+            text(1040, y, f"{milliseconds:.1f} ms / {share * 100:.2f}%", 16,
+                 color, anchor="end", weight=700),
+        ])
+    parts.extend([
+        text(805, 502,
+             f"1,792 Attention calls · {profile['cached_attention_us_per_call']:.1f} µs each",
+             18, "#b42335", anchor="middle", weight=700),
+        '<rect x="1125" y="125" width="320" height="420" rx="18" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>',
+        text(1285, 170, "What is not first", 23, "#166534",
+             anchor="middle", weight=700),
+    ])
+    facts = (
+        ("Backend alloc", "0"),
+        ("Cache reuse", "36,963"),
+        ("D2D", "224 / 117.44 MB"),
+        ("H2D", "1 / 16 KB"),
+        ("D2H", "1 / 512 B"),
+        ("KV store share", "0.65%"),
+    )
+    for index, (label, value) in enumerate(facts):
+        y = 225 + index * 48
+        parts.extend([
+            text(1165, y, label, 14, "#5b6474"),
+            text(1405, y, value, 16, "#166534", anchor="end", weight=700),
+        ])
+    parts.extend([
+        text(1285, 500, "hipMemcpy API time ≠ pure copy", 15,
+             "#b45309", anchor="middle", weight=700),
+        '<rect x="55" y="590" width="1390" height="150" rx="18" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>',
+        text(95, 630, "Decision", 20, "#1d4ed8", weight=700),
+        text(300, 630,
+             "Admit cached-Attention score/context microarchitecture matrix",
+             20, "#172033", weight=700),
+        text(300, 674,
+             "Full score → probability → context gates before any model route",
+             17, "#5b6474"),
+        text(300, 713,
+             "Do not reopen allocator · do not optimize 0.65% KV store",
+             17, "#b42335", weight=700),
+        text(1400, 690, "61.57%", 30, "#b42335", anchor="end", weight=700),
+        "</svg>\n",
+    ])
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -6677,7 +6791,8 @@ def main() -> int:
                 RANKED_MODEL_S_INPUT_CHART: ranked_model_s_input_svg(),
                 RANKED_WEIGHTED_OVERLAP_CHART: ranked_weighted_overlap_svg(),
                 RANKED_BUCKET_WEIGHT_CHART: ranked_bucket_weighting_svg(),
-                RANKED_GATHER_SCALE_CHART: ranked_gather_scale_svg()}
+                RANKED_GATHER_SCALE_CHART: ranked_gather_scale_svg(),
+                CURRENT_DEEPSEEK_T2048_CHART: current_deepseek_t2048_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]
