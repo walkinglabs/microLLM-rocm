@@ -223,8 +223,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   baseline with exact losses/parameters and a +54.3MB peak tradeoff versus 4MiB;
 - [x] attribute Model-S bucket copies and temporaries exactly: 126 backend allocations,
   228 D2D copies and 374,068,224 bytes per 3-bucket step;
-- [ ] make bucket averaging in-place to stabilize addresses, then build persistent bucket and
-  unpacked-gradient storage before readiness overlap;
+- [x] make bucket averaging in-place and keep it after Model-S communication/total improve
+  1.269x/1.107x, peak is unchanged and RCCL 22/22 passes;
+- [ ] build persistent bucket plus unpacked-gradient storage and require subsequent communication
+  backend allocations to fall from 120 to zero before readiness overlap;
 - [ ] one process per GPU communicator initialization;
 - [ ] autograd gradient-ready hooks and bucket rebuild by observed readiness;
 - [ ] compute-stream Events to communication streams and asynchronous work handles;

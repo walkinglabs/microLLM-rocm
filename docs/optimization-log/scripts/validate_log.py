@@ -14132,6 +14132,53 @@ def validate_data_parallel_bucket_copy_attribution(
         float(audit.get("steady_communication_ms", 0.0))
 
 
+def validate_data_parallel_inplace_average(
+        errors: list[str]) -> tuple[int, float, float, int, int]:
+    root = REPOSITORY / "benchmarks/results/2026-08-25-data-parallel-inplace-average"
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    processes = [json.loads(line) for line in (root / "process-summary.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    baseline = summary.get("policies", {}).get("allocating", {})
+    candidate = summary.get("policies", {}).get("inplace", {})
+    expected = (1.2692307692307692, 1.1072046109510085, 126, 120)
+    if (summary.get("schema_version") != 1 or summary.get("status") != "pass" or
+            summary.get("record_type") != "data_parallel_inplace_average_summary" or
+            summary.get("raw_records") != 30 or summary.get("processes") != 6 or
+            summary.get("loss_trajectories_exact") is not True or
+            summary.get("decision") != "keep in-place bucket average as default" or
+            abs(float(summary.get("communication_speedup", 0.0)) - expected[0]) > 1.0e-12 or
+            abs(float(summary.get("total_speedup", 0.0)) - expected[1]) > 1.0e-12 or
+            baseline.get("maximum_engine_peak_bytes") !=
+                candidate.get("maximum_engine_peak_bytes")):
+        errors.append("data-parallel in-place average summary changed")
+    allocating_rows = [row for row in raw if row.get("policy") == "allocating"]
+    inplace_rows = [row for row in raw if row.get("policy") == "inplace"]
+    if (len(raw) != 30 or len(processes) != 6 or
+            any(row.get("average_tensor_count") != 6 or
+                row.get("communication_backend_allocation_calls") != expected[2]
+                for row in allocating_rows) or
+            any(row.get("average_tensor_count") != 0 or
+                row.get("communication_backend_allocation_calls") != expected[3]
+                for row in inplace_rows)):
+        errors.append("data-parallel in-place average raw evidence changed")
+    if (check.get("raw_records") != 30 or check.get("process_records") != 6 or
+            check.get("loss_values_exact") != 30 or
+            check.get("communication_speedup") != expected[0] or
+            check.get("total_speedup") != expected[1] or
+            check.get("default_inplace_average") is not True or
+            check.get("rccl_label") != {"passed": 22, "total": 22} or
+            check.get("registered_test_files") != 116):
+        errors.append("data-parallel in-place average verification changed")
+    source = (REPOSITORY / "src/multi_gpu/communicator.cpp").read_text(
+        encoding="utf-8")
+    if "scale_in_place_" not in source:
+        errors.append("data-parallel in-place average default is missing")
+    return summary.get("processes", 0), *expected
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -14365,7 +14412,8 @@ def validate_assets(errors: list[str]) -> None:
                  "data-parallel-verification-interval.svg",
                  "data-parallel-bucket-matrix.svg",
                  "data-parallel-model-s-buckets.svg",
-                 "data-parallel-bucket-copy-attribution.svg"):
+                 "data-parallel-bucket-copy-attribution.svg",
+                 "data-parallel-inplace-average.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -14876,6 +14924,9 @@ def main() -> int:
     data_parallel_copy_tensors, data_parallel_copy_calls, \
         data_parallel_copy_bytes, data_parallel_copy_backend, \
         data_parallel_copy_comm = validate_data_parallel_bucket_copy_attribution(errors)
+    data_parallel_inplace_processes, data_parallel_inplace_comm, \
+        data_parallel_inplace_total, data_parallel_allocating_backend, \
+        data_parallel_inplace_backend = validate_data_parallel_inplace_average(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -15344,6 +15395,9 @@ def main() -> int:
           f"data_parallel_copy={data_parallel_copy_tensors}/"
           f"{data_parallel_copy_calls}/{data_parallel_copy_bytes}/"
           f"{data_parallel_copy_backend}/{data_parallel_copy_comm:.3f} "
+          f"data_parallel_inplace={data_parallel_inplace_processes}/"
+          f"{data_parallel_inplace_comm:.3f}/{data_parallel_inplace_total:.3f}/"
+          f"{data_parallel_allocating_backend}/{data_parallel_inplace_backend} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

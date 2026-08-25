@@ -550,3 +550,5 @@ the next gate. Records are append-only except for factual corrections.
   admits persistent reducer work with an exact Model-S allocation identity.
 - [2026-08-25-data-parallel-inplace-average.md](2026-08-25-data-parallel-inplace-average.md):
   adds address-stable averaging and a same-binary Model-S gate.
+- [2026-08-25-data-parallel-inplace-average-result.md](2026-08-25-data-parallel-inplace-average-result.md):
+  records the retained 1.107x Model-S reducer improvement.

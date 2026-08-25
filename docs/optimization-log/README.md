@@ -911,6 +911,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [experiments/254-data-parallel-model-s-buckets.md](experiments/254-data-parallel-model-s-buckets.md) | 3-bucket reducer baseline与copy归因交接 |
 | [assets/data-parallel-bucket-copy-attribution.svg](assets/data-parallel-bucket-copy-attribution.svg) | 126 Tensor、228 copy与374MB恒等式 |
 | [experiments/255-data-parallel-bucket-copy-attribution.md](experiments/255-data-parallel-bucket-copy-attribution.md) | backend分配热点与persistent reducer准入 |
+| [assets/data-parallel-inplace-average.svg](assets/data-parallel-inplace-average.svg) | allocating/in-place通信与total A/B |
+| [experiments/256-data-parallel-inplace-average.md](experiments/256-data-parallel-inplace-average.md) | 地址稳定、RCCL门与默认保留 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

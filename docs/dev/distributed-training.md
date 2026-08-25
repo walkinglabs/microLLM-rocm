@@ -87,6 +87,10 @@ Bucket averaging now defaults to an address-stable in-place scale after all-redu
 explicit CLI control exists only for same-binary A/B. This removes the average Tensor family and
 is a prerequisite for persistent bucket addresses; it does not remove pack/unpack copies.
 
+Experiment 256 retains that default: Model-S communication/total improve 1.269x/1.107x with
+unchanged peak, exact losses/parameters and RCCL 22/22. Persistent storage targets the remaining
+6 bucket plus 114 unpacked backend allocations.
+
 The CLI prints one JSON record per step and writes stage/layer/model timing records using
 the same trace schema as the alignment infrastructure.
 

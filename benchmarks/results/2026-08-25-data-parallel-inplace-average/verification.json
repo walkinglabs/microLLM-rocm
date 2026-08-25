@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "raw_records": 30,
+  "process_records": 6,
+  "loss_values_exact": 30,
+  "final_parameter_checks": 6,
+  "maximum_parameter_difference": 0.0,
+  "communication_speedup": 1.2692307692307692,
+  "total_speedup": 1.1072046109510085,
+  "peak_bytes_saved": 0,
+  "average_tensors_removed": 6,
+  "backend_allocations_removed": 6,
+  "temporary_bytes_removed": 124689408,
+  "default_inplace_average": true,
+  "rccl_label": {"passed": 22, "total": 22},
+  "registered_test_files": 116
+}
+

@@ -68,6 +68,10 @@ extending small decoder-only language models on AMD GPUs.
 > allocations and 228 D2D copies over 374,068,224 temporary bytes per step.
 > In-place averaging is the first persistent-reducer prerequisite.
 
+> In-place bucket averaging now passes the Model-S gate: communication 1.269×,
+> total 1.107×, unchanged peak and RCCL 22/22. Persistent bucket/unpacked storage
+> targets the remaining 120 backend allocations.
+
 ## Why this project exists
 
 Large frameworks make model development productive, but they hide the ownership,

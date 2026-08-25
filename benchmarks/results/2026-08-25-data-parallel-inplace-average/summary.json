@@ -1,0 +1,32 @@
+{
+  "aggregation": "median of step-2..5 medians with alternating policy order",
+  "communication_speedup": 1.2692307692307692,
+  "decision": "keep in-place bucket average as default",
+  "loss_trajectories_exact": true,
+  "peak_bytes_saved": 0,
+  "policies": {
+    "allocating": {
+      "enabled": false,
+      "final_loss": 2.08,
+      "maximum_engine_peak_bytes": 603383808,
+      "median_communication_ms": 6.6,
+      "median_total_ms": 19.21,
+      "processes": 3
+    },
+    "inplace": {
+      "enabled": true,
+      "final_loss": 2.08,
+      "maximum_engine_peak_bytes": 603383808,
+      "median_communication_ms": 5.2,
+      "median_total_ms": 17.35,
+      "processes": 3
+    }
+  },
+  "processes": 6,
+  "raw_records": 30,
+  "record_type": "data_parallel_inplace_average_summary",
+  "runs_per_policy": 3,
+  "schema_version": 1,
+  "status": "pass",
+  "total_speedup": 1.1072046109510085
+}

@@ -4030,3 +4030,10 @@ tiny在4KiB和4MiB下都只有一个bucket；人为切成12个bucket后，通信
 因此persistent reducer有真实证据。第一步先把average改为原地，保证bucket地址稳定。
 
 ![Data parallel bucket copy attribution](assets/data-parallel-bucket-copy-attribution.svg)
+
+## 273. Experiment 256：average原地做，bucket地址终于稳定
+
+原地average删除6个Tensor和124,689,408临时字节，communication 1.269×，Model-S total
+1.107×，peak不变，30个loss与末步参数完全一致。
+
+![Data parallel in-place average](assets/data-parallel-inplace-average.svg)
