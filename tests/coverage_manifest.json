@@ -403,6 +403,7 @@
     "python/tests/test_data_parallel_gradient_ready_audit.py",
     "python/tests/test_data_parallel_gradient_overlap_matrix.py",
     "python/tests/test_ranked_launcher_contract.py",
+    "python/tests/test_ranked_checkpoint_contract.py",
     "python/tests/test_ranked_overlap_context_matrix.py",
     "python/tests/test_ranked_training_matrix.py",
     "python/tests/test_bf16_repeat.py",

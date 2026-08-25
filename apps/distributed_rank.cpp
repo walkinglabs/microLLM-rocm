@@ -17,6 +17,7 @@
 #include <microllm/multi_gpu/gradient_bucket.h>
 #include <microllm/runtime/memory.h>
 #include <microllm/runtime/runtime.h>
+#include <microllm/training/checkpoint.h>
 #include <microllm/training/optimizer.h>
 
 namespace {
@@ -35,6 +36,10 @@ struct Options {
     std::string model = "tiny";
     std::size_t context = 0;
     std::filesystem::path parameter_file;
+    std::filesystem::path checkpoint_file;
+    std::filesystem::path checkpoint_ready_file;
+    std::filesystem::path resume_file;
+    bool inject_checkpoint_failure = false;
 };
 
 std::uint64_t number(const std::string& value, const char* name) {
@@ -85,6 +90,14 @@ Options parse(int argc, char** argv) {
                 number(next("--context"), "context"));
         } else if (argument == "--parameter-file") {
             options.parameter_file = next("--parameter-file");
+        } else if (argument == "--checkpoint-file") {
+            options.checkpoint_file = next("--checkpoint-file");
+        } else if (argument == "--checkpoint-ready-file") {
+            options.checkpoint_ready_file = next("--checkpoint-ready-file");
+        } else if (argument == "--resume-file") {
+            options.resume_file = next("--resume-file");
+        } else if (argument == "--inject-checkpoint-failure") {
+            options.inject_checkpoint_failure = true;
         } else {
             throw std::invalid_argument("unknown argument: " + argument);
         }
@@ -117,6 +130,23 @@ Options parse(int argc, char** argv) {
     if (options.model == "model-s" && options.parameter_file.empty()) {
         throw std::invalid_argument(
             "Model-S rank/reference mode requires a parameter file");
+    }
+    if (options.mode == "reference" &&
+        (!options.checkpoint_file.empty() ||
+         !options.checkpoint_ready_file.empty() ||
+         !options.resume_file.empty() || options.inject_checkpoint_failure)) {
+        throw std::invalid_argument(
+            "checkpoint ownership options require rank mode");
+    }
+    if (options.checkpoint_file.empty() !=
+        options.checkpoint_ready_file.empty()) {
+        throw std::invalid_argument(
+            "checkpoint file and ready file must be provided together");
+    }
+    if (options.inject_checkpoint_failure &&
+        options.checkpoint_file.empty()) {
+        throw std::invalid_argument(
+            "checkpoint failure injection requires a checkpoint file");
     }
     return options;
 }
@@ -187,6 +217,12 @@ microllm::training::AdamWConfig optimizer_config() {
             .weight_decay = 0.0F};
 }
 
+microllm::training::NamedParameters named_parameters(
+    microllm::model::TransformerModel& model) {
+    const auto values = model.named_parameters();
+    return {values.begin(), values.end()};
+}
+
 void write_id(const std::filesystem::path& path,
               const microllm::multi_gpu::CommunicatorId& id) {
     const auto temporary = path.string() + ".rank0.tmp";
@@ -222,6 +258,45 @@ microllm::multi_gpu::CommunicatorId wait_for_id(
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
     throw std::runtime_error("timed out waiting for communicator ID file");
+}
+
+void publish_checkpoint_ready(
+    const std::filesystem::path& path, std::uint64_t step) {
+    const auto temporary = path.string() + ".rank0.tmp";
+    {
+        std::ofstream output(temporary, std::ios::trunc);
+        if (!output) {
+            throw std::runtime_error(
+                "cannot create checkpoint ready temporary file");
+        }
+        output << "step=" << step << '\n';
+        output.flush();
+        if (!output) {
+            throw std::runtime_error("cannot write checkpoint ready file");
+        }
+    }
+    std::error_code error;
+    std::filesystem::remove(path, error);
+    error.clear();
+    std::filesystem::rename(temporary, path, error);
+    if (error) {
+        throw std::runtime_error("cannot publish checkpoint ready file");
+    }
+}
+
+void wait_for_checkpoint_ready(
+    const std::filesystem::path& path, std::uint64_t step,
+    std::uint64_t timeout_ms) {
+    const auto expected = "step=" + std::to_string(step);
+    const auto deadline = std::chrono::steady_clock::now() +
+                          std::chrono::milliseconds(timeout_ms);
+    while (std::chrono::steady_clock::now() < deadline) {
+        std::ifstream input(path);
+        std::string value;
+        if (input && std::getline(input, value) && value == expected) return;
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    throw std::runtime_error("timed out waiting for checkpoint publication");
 }
 
 template <typename T>
@@ -274,6 +349,18 @@ struct PhaseTimings {
     std::vector<double> step_optimizer_ms;
 };
 
+struct CheckpointReport {
+    bool resumed = false;
+    bool checkpoint_requested = false;
+    bool checkpoint_written = false;
+    bool checkpoint_verified = false;
+    std::uint64_t initial_step = 0;
+    std::uint64_t final_step = 0;
+    std::uint64_t optimizer_step = 0;
+    std::filesystem::path checkpoint_file;
+    std::filesystem::path checkpoint_ready_file;
+};
+
 using SteadyClock = std::chrono::steady_clock;
 
 double elapsed_ms(SteadyClock::time_point begin, SteadyClock::time_point end) {
@@ -293,6 +380,7 @@ void write_result(const char* mode, int rank,
                   const std::string& reducer, const ReducerStats& reducer_stats,
                   const PhaseTimings& timings,
                   const microllm::runtime::AllocationStats& allocation,
+                  const CheckpointReport& checkpoint,
                   const std::string& model_name,
                   std::size_t context,
                   const std::filesystem::path& parameter_file) {
@@ -325,6 +413,21 @@ void write_result(const char* mode, int rank,
               << allocation.allocation_calls
               << ",\"engine_backend_allocation_calls\":"
               << allocation.backend_allocation_calls
+              << ",\"resumed\":"
+              << (checkpoint.resumed ? "true" : "false")
+              << ",\"checkpoint_requested\":"
+              << (checkpoint.checkpoint_requested ? "true" : "false")
+              << ",\"checkpoint_written\":"
+              << (checkpoint.checkpoint_written ? "true" : "false")
+              << ",\"checkpoint_verified\":"
+              << (checkpoint.checkpoint_verified ? "true" : "false")
+              << ",\"initial_step\":" << checkpoint.initial_step
+              << ",\"final_step\":" << checkpoint.final_step
+              << ",\"optimizer_step\":" << checkpoint.optimizer_step
+              << ",\"checkpoint_file\":\""
+              << checkpoint.checkpoint_file.string() << "\""
+              << ",\"checkpoint_ready_file\":\""
+              << checkpoint.checkpoint_ready_file.string() << "\""
               << ",\"training_ms\":" << timings.training_ms
               << ",\"forward_backward_ms\":"
               << timings.forward_backward_ms
@@ -427,7 +530,7 @@ void run_reference(const Options& options) {
     const auto allocation =
         microllm::runtime::allocation_stats(microllm::Device::cpu());
     write_result("reference", -1, losses, model, "reference", {}, timings,
-                 allocation, options.model, options.context,
+                 allocation, {}, options.model, options.context,
                  options.parameter_file);
 }
 
@@ -446,6 +549,31 @@ void run_rank(const Options& options) {
     model.to(communicator.device());
     microllm::training::AdamW optimizer(model.parameters(), optimizer_config());
     const auto parameters = model.parameters();
+    microllm::training::ExperimentState experiment{
+        .global_step = 0,
+        .data_cursor = 0,
+        .rng_state = "seed=" + std::to_string(options.seed),
+        .model_config = config.summary(),
+        .data_config = "ranked-synthetic:context=" +
+                       std::to_string(options.context) + ":world=2"};
+    CheckpointReport checkpoint_report{
+        .checkpoint_requested = !options.checkpoint_file.empty(),
+        .checkpoint_file = options.checkpoint_file,
+        .checkpoint_ready_file = options.checkpoint_ready_file};
+    if (!options.resume_file.empty()) {
+        const auto loaded =
+            microllm::training::load_checkpoint(options.resume_file);
+        if (loaded.experiment.model_config != experiment.model_config ||
+            loaded.experiment.data_config != experiment.data_config ||
+            loaded.experiment.rng_state != experiment.rng_state) {
+            throw std::invalid_argument(
+                "rank checkpoint experiment contract changed");
+        }
+        microllm::training::restore_checkpoint(
+            loaded, named_parameters(model), optimizer, experiment);
+        checkpoint_report.resumed = true;
+    }
+    checkpoint_report.initial_step = experiment.global_step;
     const auto batch = local_batch(config, options.rank, options.context);
     std::vector<float> losses;
     ReducerStats reducer_stats;
@@ -464,6 +592,8 @@ void run_rank(const Options& options) {
     microllm::runtime::synchronize(communicator.device());
     const auto training_begin = SteadyClock::now();
     for (std::uint64_t step = 0; step < options.steps; ++step) {
+        ++experiment.global_step;
+        experiment.data_cursor += options.context;
         const auto step_begin = SteadyClock::now();
         const auto forward_backward_begin = SteadyClock::now();
         optimizer.zero_grad();
@@ -607,13 +737,49 @@ void run_rank(const Options& options) {
             parameter->clear_gradient_ready_hook();
         }
     }
+    checkpoint_report.final_step = experiment.global_step;
+    checkpoint_report.optimizer_step = optimizer.step_count();
+    if (checkpoint_report.optimizer_step != checkpoint_report.final_step) {
+        throw std::runtime_error(
+            "rank checkpoint optimizer and experiment steps diverged");
+    }
+    if (checkpoint_report.checkpoint_requested) {
+        auto barrier = microllm::Tensor::from_vector({1.0F}, {1}).to(
+            communicator.device());
+        communicator.enqueue_all_reduce_average_in_place(barrier);
+        communicator.synchronize();
+        if (options.rank == 0) {
+            if (options.inject_checkpoint_failure) {
+                throw std::runtime_error("injected rank0 checkpoint failure");
+            }
+            microllm::training::save_checkpoint(
+                options.checkpoint_file, named_parameters(model), optimizer,
+                experiment);
+            publish_checkpoint_ready(
+                options.checkpoint_ready_file, experiment.global_step);
+            checkpoint_report.checkpoint_written = true;
+        } else {
+            wait_for_checkpoint_ready(
+                options.checkpoint_ready_file, experiment.global_step,
+                options.timeout_ms);
+        }
+        const auto published =
+            microllm::training::load_checkpoint(options.checkpoint_file);
+        if (published.experiment.global_step != experiment.global_step ||
+            published.optimizer_state.step != optimizer.step_count() ||
+            published.experiment.data_cursor != experiment.data_cursor) {
+            throw std::runtime_error(
+                "published rank checkpoint state changed");
+        }
+        checkpoint_report.checkpoint_verified = true;
+    }
     if (!options.parameter_file.empty()) {
         microllm::io::save_safetensors(
             options.parameter_file, model.state_dict());
     }
     write_result("rank", options.rank, losses, model,
                  options.reducer, reducer_stats, timings, allocation,
-                 options.model, options.context,
+                 checkpoint_report, options.model, options.context,
                  options.parameter_file);
 }
 

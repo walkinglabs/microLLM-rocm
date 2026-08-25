@@ -598,6 +598,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(DistributedRank.ContextMatrixContract PROPERTIES
         LABELS "cpu;multi_gpu;rccl;distributed;training;context;schema")
     add_test(
+        NAME DistributedRank.CheckpointContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_ranked_checkpoint_contract.py
+    )
+    set_tests_properties(DistributedRank.CheckpointContract PROPERTIES
+        LABELS "cpu;multi_gpu;rccl;distributed;training;checkpoint;failure;schema")
+    add_test(
         NAME Benchmark.Bf16RepeatContract
         COMMAND ${Python3_EXECUTABLE}
                 ${PROJECT_SOURCE_DIR}/python/tests/test_bf16_repeat.py

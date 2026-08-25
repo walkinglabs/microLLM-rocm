@@ -201,6 +201,16 @@ Tiny's 12 parameters fit one 4 KiB bucket, reducing three-step collectives from 
 preserving rank/CPU parameters. The implementation is still allocating and synchronous; it is the
 correctness baseline for later persistent ranked buckets and ready overlap.
 
+The ranked path has since added persistent copy buckets, gradient-as-bucket views and fixed-order
+ready Event overlap. Model-S T32 remains synchronous; the measured T128/two-MI300X/25 MiB track
+retains explicit overlap. This is context-selective evidence, not a universal default.
+
+Ranked checkpoint ownership is now explicit. All ranks complete optimizer and a barrier; rank0
+alone atomically writes the complete model/AdamW/ExperimentState checkpoint and then publishes a
+step-specific ready marker. Peers never write the shared path. A separate launcher checks an
+interrupted 2+3-step trajectory against uninterrupted five-step checkpoint bytes and injects a
+rank0 write failure. Model-S checkpoint size/runtime evidence remains the next gate.
+
 RCCL provides the collective primitives; the reducer and readiness state machine remain
 framework responsibilities.
 

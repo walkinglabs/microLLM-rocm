@@ -1,6 +1,6 @@
 # Step 95 — Ranked checkpoint ownership and resume
 
-Status: planned
+Status: implemented for tiny, formal clean-revision evidence pending
 
 one-process-per-GPU训练已经有rank identity、同步bucket、persistent views、context-selective overlap
 和peer-failure传播，但还没有生产checkpoint ownership。下一节点不继续调Reducer，而是规定：
@@ -12,3 +12,7 @@ one-process-per-GPU训练已经有rank identity、同步bucket、persistent view
 - rank0写失败必须让其他rank有限时退出，不得永久等待。
 
 先做tiny多步二进制合同，再扩展Model-S one-step。该节点是可靠性/恢复证据，不作为性能实验。
+
+实现已让rank0原子写完整checkpoint/ready marker，非0 rank只等待与验证。tiny pilot的2+3恢复与
+不中断5步checkpoint均10,796 bytes且逐字节相等，参数差0；写失败为rank0=1、peer=−15，无残留
+文件。正式干净revision结果后再准入Model-S smoke。

@@ -19,8 +19,8 @@ CPU ASan/UBSan                365/365 pass
 full CPU/HIP configuration    544/544 pass (3 conditional skips)
 MI300X/gfx942 HIP             187/187 pass
 PyTorch-enabled CPU           319/319 pass
-RCCL full label                48/48 pass
-registered test files              124
+RCCL full label                49/49 pass
+registered test files              125
 ```
 
 These counts describe the current commit. They do not imply every dtype, shape, GPU, or

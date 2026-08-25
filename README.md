@@ -808,8 +808,8 @@ Current `main` gates:
 | ASan/UBSan CPU | 365/365 | host lifetime, external Storage and instrumented-package linking |
 | MI300X/gfx942 HIP label | 187/187 | allocator/arena/Stream/Graph, public rocWMMA online Attention, BF16 RMSNorm/SwiGLU, grouped/exact vendor solutions, FP8 and model paths |
 | PyTorch-enabled CPU build | 319/319 | dispatcher parity, 32-step BF16 optimizer state, full graph/model oracle and all package paths |
-| Multi-GPU/RCCL | 48/48 | collectives, ranked context-scale overlap/equivalence/failure, package and evidence gates |
-| Registered test files | 124 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| Multi-GPU/RCCL | 49/49 | ranked overlap/checkpoint ownership/equivalence/failure, package and evidence gates |
+| Registered test files | 125 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
 | CPU source coverage | 78.4% lines / 86.6% functions / 59.1% branches | 8,878/11,329 lines; quiescent handoff and other HIP-only branches remain visible; GCC 13.3 + gcovr 8.3 |
 
