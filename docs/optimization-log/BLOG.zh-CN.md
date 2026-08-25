@@ -3683,3 +3683,17 @@ optimizer-only model Graph方向关闭。下一实验必须先做可证明的qui
 Event-aware retirement；不能简单把pool布尔值重新打开。
 
 ![Optimizer Graph model preflight](assets/optimizer-graph-model-preflight.svg)
+
+## 242. Experiment 225：先清空路口，才能让default Stream重新用内存池
+
+新API先做device-wide synchronize，再开启新的default-Stream-only阶段；任何Graph/Event/copy/
+显式Kernel提交都会再次关闭。runtime测试证明8KiB地址重新复用，而旧Stream一记录Event就立即
+关池，不能靠遗忘Stream对象维持假安全。
+
+24进程中关闭策略四case全拒；handoff每run执行三次，救回Qwen T8/T512和DeepSeek T8。
+DeepSeek T512仍拒，保留了真实allocator顺序反例。
+
+下一步只给三个安全case运行Graph optimizer，并把device-wide handoff成本算进端到端；若同步
+吃掉收益，就转Event粒度，不降低正确性门。
+
+![Quiescent allocator handoff](assets/quiescent-allocator-handoff.svg)

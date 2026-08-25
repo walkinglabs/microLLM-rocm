@@ -222,8 +222,11 @@ TEST(HipGraphTest, CapturesReplaysAndMovesCallerOwnedOperatorChain) {
     EXPECT_EQ(graph.device(), gpu);
     EXPECT_EQ(graph.node_count(), 2U);
 
+    quiesce_and_enable_hip_caching_allocator(gpu);
+    EXPECT_TRUE(hip_caching_allocator_enabled(gpu));
     reset_transfer_stats();
     graph.launch(stream);
+    EXPECT_FALSE(hip_caching_allocator_enabled(gpu));
     stream.synchronize();
     auto transfers = transfer_stats();
     EXPECT_EQ(transfers.host_to_device_calls, 0U);
@@ -567,7 +570,7 @@ TEST(HipRuntimeTest, ExactSizePoolReusesCompletedDefaultStreamBlock) {
     if (hip_device_count() == 0) GTEST_SKIP() << "No visible HIP device";
     const auto gpu = Device::hip(0);
     const auto baseline = allocation_stats(gpu);
-    enable_hip_caching_allocator(gpu);
+    quiesce_and_enable_hip_caching_allocator(gpu);
     ASSERT_TRUE(hip_caching_allocator_enabled(gpu));
     reset_allocation_peak(gpu);
     {
@@ -606,13 +609,14 @@ TEST(HipRuntimeTest, DefaultStreamPoolReusesEveryExactSizeWithoutBatchPhase) {
     }
 }
 
-TEST(HipRuntimeTest, NonDefaultStreamPermanentlyDisablesPoolReuse) {
+TEST(HipRuntimeTest, NonDefaultStreamDisablesPoolUntilQuiescentHandoff) {
     if (hip_device_count() == 0) GTEST_SKIP() << "No visible HIP device";
     const auto gpu = Device::hip(0);
     const auto baseline = allocation_stats(gpu);
-    enable_hip_caching_allocator(gpu);
+    quiesce_and_enable_hip_caching_allocator(gpu);
     Stream stream(gpu);
     EXPECT_FALSE(hip_caching_allocator_enabled(gpu));
+    EXPECT_THROW(enable_hip_caching_allocator(gpu), std::logic_error);
     reset_allocation_peak(gpu);
     {
         Storage first(4096, gpu);
@@ -628,6 +632,33 @@ TEST(HipRuntimeTest, NonDefaultStreamPermanentlyDisablesPoolReuse) {
     EXPECT_EQ(stats.cache_reuse_calls, 0U);
     EXPECT_EQ(stats.cached_bytes, baseline.cached_bytes);
     EXPECT_EQ(stats.reserved_bytes, baseline.reserved_bytes);
+
+    const auto handoffs =
+        hip_caching_allocator_quiescent_reenable_count(gpu);
+    quiesce_and_enable_hip_caching_allocator(gpu);
+    EXPECT_TRUE(hip_caching_allocator_enabled(gpu));
+    EXPECT_EQ(hip_caching_allocator_quiescent_reenable_count(gpu),
+              handoffs + 1);
+    reset_allocation_peak(gpu);
+    {
+        Storage first(8192, gpu);
+    }
+    {
+        Storage second(8192, gpu);
+    }
+    const auto reused = allocation_stats(gpu);
+    EXPECT_EQ(reused.allocation_calls, 2U);
+    EXPECT_EQ(reused.backend_allocation_calls, 1U);
+    EXPECT_EQ(reused.cache_reuse_calls, 1U);
+
+    Event marker(gpu, false);
+    marker.record(stream);
+    EXPECT_FALSE(hip_caching_allocator_enabled(gpu));
+    marker.synchronize();
+    quiesce_and_enable_hip_caching_allocator(gpu);
+    EXPECT_TRUE(hip_caching_allocator_enabled(gpu));
+    EXPECT_EQ(hip_caching_allocator_quiescent_reenable_count(gpu),
+              handoffs + 2);
 }
 
 TEST(HipRuntimeTest, AsyncCopyAndEventsRespectDependencies) {

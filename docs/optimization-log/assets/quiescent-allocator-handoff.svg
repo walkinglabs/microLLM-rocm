@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="740" viewBox="0 0 1600 740">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="800.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 225 · Quiescent Allocator Handoff</text>
+<text x="800.0" y="82.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">24 fresh processes · device-wide completion proof · three phase handoffs per run</text>
+<rect x="150" y="135" width="270" height="105" fill="#ecfdf3" stroke="#16a34a" rx="12"/>
+<text x="285.0" y="178.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="middle" font-weight="700">default backward</text>
+<text x="285.0" y="210.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#16a34a" text-anchor="middle" font-weight="700">pool enabled</text>
+<path d="M 430 187 L 490 187" stroke="#64748b" stroke-width="3"/>
+<rect x="500" y="135" width="270" height="105" fill="#fff1f2" stroke="#e11d48" rx="12"/>
+<text x="635.0" y="178.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="middle" font-weight="700">Graph submit</text>
+<text x="635.0" y="210.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#e11d48" text-anchor="middle" font-weight="700">pool disabled</text>
+<path d="M 780 187 L 840 187" stroke="#64748b" stroke-width="3"/>
+<rect x="850" y="135" width="270" height="105" fill="#eff6ff" stroke="#2563eb" rx="12"/>
+<text x="985.0" y="178.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="middle" font-weight="700">device quiescent</text>
+<text x="985.0" y="210.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#2563eb" text-anchor="middle" font-weight="700">all Streams done</text>
+<path d="M 1130 187 L 1190 187" stroke="#64748b" stroke-width="3"/>
+<rect x="1200" y="135" width="270" height="105" fill="#ecfdf3" stroke="#16a34a" rx="12"/>
+<text x="1335.0" y="178.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="middle" font-weight="700">next backward</text>
+<text x="1335.0" y="210.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#16a34a" text-anchor="middle" font-weight="700">pool enabled</text>
+<rect x="150" y="310" width="1300" height="255" fill="#ffffff" stroke="#cbd3df" rx="12"/>
+<text x="312.5" y="350.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="middle" font-weight="700">Qwen T8</text>
+<text x="247.5" y="403.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">disabled</text>
+<text x="247.5" y="447.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#e11d48" text-anchor="middle" font-weight="700">rejected</text>
+<text x="377.5" y="403.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">handoff</text>
+<text x="377.5" y="447.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#16a34a" text-anchor="middle" font-weight="700">rescued</text>
+<text x="312.5" y="505.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#2563eb" text-anchor="middle" font-weight="700">3 handoffs/run</text>
+<text x="312.5" y="534.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">0 Graph launches</text>
+<text x="637.5" y="350.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="middle" font-weight="700">Qwen T512</text>
+<text x="572.5" y="403.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">disabled</text>
+<text x="572.5" y="447.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#e11d48" text-anchor="middle" font-weight="700">rejected</text>
+<text x="702.5" y="403.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">handoff</text>
+<text x="702.5" y="447.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#16a34a" text-anchor="middle" font-weight="700">rescued</text>
+<text x="637.5" y="505.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#2563eb" text-anchor="middle" font-weight="700">3 handoffs/run</text>
+<text x="637.5" y="534.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">0 Graph launches</text>
+<text x="962.5" y="350.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="middle" font-weight="700">DeepSeek T8</text>
+<text x="897.5" y="403.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">disabled</text>
+<text x="897.5" y="447.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#e11d48" text-anchor="middle" font-weight="700">rejected</text>
+<text x="1027.5" y="403.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">handoff</text>
+<text x="1027.5" y="447.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#16a34a" text-anchor="middle" font-weight="700">rescued</text>
+<text x="962.5" y="505.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#2563eb" text-anchor="middle" font-weight="700">3 handoffs/run</text>
+<text x="962.5" y="534.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">0 Graph launches</text>
+<text x="1287.5" y="350.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="middle" font-weight="700">DeepSeek T512</text>
+<text x="1222.5" y="403.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">disabled</text>
+<text x="1222.5" y="447.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#e11d48" text-anchor="middle" font-weight="700">rejected</text>
+<text x="1352.5" y="403.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">handoff</text>
+<text x="1352.5" y="447.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#e11d48" text-anchor="middle" font-weight="700">still rejected</text>
+<text x="1287.5" y="505.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#2563eb" text-anchor="middle" font-weight="700">3 handoffs/run</text>
+<text x="1287.5" y="534.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">0 Graph launches</text>
+<text x="800.0" y="635.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#9a4f00" text-anchor="middle" font-weight="700">Qwen T8/T512 + DeepSeek T8 rescued · DeepSeek T512 remains a real allocator-order counterexample</text>
+<text x="800.0" y="680.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="middle" font-weight="400">keep explicit handoff; every later non-default submission disables reuse again</text>
+</svg>

@@ -468,3 +468,5 @@ the next gate. Records are append-only except for factual corrections.
   beginner-friendly shape-versus-address explanation and model/context-specific evidence.
 - [2026-08-24-optimizer-graph-model-preflight.md](2026-08-24-optimizer-graph-model-preflight.md):
   beginner-friendly Stream/allocator conflict, snapshot safety gate and zero-launch rejection.
+- [2026-08-24-quiescent-allocator-handoff.md](2026-08-24-quiescent-allocator-handoff.md):
+  beginner-friendly device-wide completion proof and reversible default/Graph phases.

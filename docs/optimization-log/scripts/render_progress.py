@@ -106,6 +106,9 @@ OPTIMIZER_GRAPH_PREFLIGHT_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
                                   "2026-08-24-optimizer-graph-model-preflight")
 OPTIMIZER_GRAPH_PREFLIGHT_CHART = (
     ROOT / "assets" / "optimizer-graph-model-preflight.svg")
+QUIESCENT_HANDOFF_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
+                          "2026-08-24-quiescent-allocator-handoff")
+QUIESCENT_HANDOFF_CHART = ROOT / "assets" / "quiescent-allocator-handoff.svg"
 
 
 def rows() -> list[dict]:
@@ -2627,6 +2630,73 @@ def optimizer_graph_model_preflight_svg() -> str:
     return "\n".join(parts)
 
 
+def quiescent_allocator_handoff_svg() -> str:
+    summary = json.loads((QUIESCENT_HANDOFF_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    width, height = 1600, 740
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 225 · Quiescent Allocator Handoff", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "24 fresh processes · device-wide completion proof · three phase handoffs per run",
+             16, "#5b6474", anchor="middle"),
+    ]
+    flow_y = 135
+    flow = (("default backward", "pool enabled", "#ecfdf3", "#16a34a"),
+            ("Graph submit", "pool disabled", "#fff1f2", "#e11d48"),
+            ("device quiescent", "all Streams done", "#eff6ff", "#2563eb"),
+            ("next backward", "pool enabled", "#ecfdf3", "#16a34a"))
+    for index, (top, bottom, fill, stroke) in enumerate(flow):
+        x = 150 + index * 350
+        parts.append(f'<rect x="{x}" y="{flow_y}" width="270" height="105" '
+                     f'fill="{fill}" stroke="{stroke}" rx="12"/>')
+        parts.append(text(x + 135, flow_y + 43, top, 17,
+                          anchor="middle", weight=700))
+        parts.append(text(x + 135, flow_y + 75, bottom, 15, stroke,
+                          anchor="middle", weight=700))
+        if index < len(flow) - 1:
+            parts.append(f'<path d="M {x+280} {flow_y+52} L {x+340} {flow_y+52}" '
+                         'stroke="#64748b" stroke-width="3"/>')
+    panel_x, panel_y, panel_w, panel_h = 150, 310, 1300, 255
+    parts.append(f'<rect x="{panel_x}" y="{panel_y}" width="{panel_w}" '
+                 f'height="{panel_h}" fill="#ffffff" stroke="#cbd3df" rx="12"/>')
+    comparisons = summary["comparisons"]
+    group_w = panel_w / len(comparisons)
+    for index, row in enumerate(comparisons):
+        center = panel_x + group_w * (index + 0.5)
+        label = ("Qwen" if row["model"] == "qwen" else "DeepSeek") + \
+                f' T{row["context"]}'
+        parts.append(text(center, panel_y + 40, label, 17,
+                          anchor="middle", weight=700))
+        parts.append(text(center - 65, panel_y + 93, "disabled", 13,
+                          "#5b6474", anchor="middle"))
+        parts.append(text(center - 65, panel_y + 137, "rejected", 18,
+                          "#e11d48", anchor="middle", weight=700))
+        rescued = row["rescued"]
+        parts.append(text(center + 65, panel_y + 93, "handoff", 13,
+                          "#5b6474", anchor="middle"))
+        parts.append(text(center + 65, panel_y + 137,
+                          "rescued" if rescued else "still rejected", 18,
+                          "#16a34a" if rescued else "#e11d48",
+                          anchor="middle", weight=700))
+        parts.append(text(center, panel_y + 195,
+                          f'{row["policies"]["handoff"]["handoff_count"]} handoffs/run',
+                          14, "#2563eb", anchor="middle", weight=700))
+        parts.append(text(center, panel_y + 224, "0 Graph launches", 13,
+                          "#5b6474", anchor="middle"))
+    parts.append(text(width / 2, 635,
+                      "Qwen T8/T512 + DeepSeek T8 rescued · DeepSeek T512 remains a real allocator-order counterexample",
+                      17, "#9a4f00", anchor="middle", weight=700))
+    parts.append(text(width / 2, 680,
+                      "keep explicit handoff; every later non-default submission disables reuse again",
+                      15, "#5b6474", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -2667,7 +2737,8 @@ def main() -> int:
                 ADAMW_GRAPH_MULTI_CHART: adamw_graph_multi_svg(),
                 GRADIENT_ADDRESS_CHART: gradient_address_stability_svg(),
                 OPTIMIZER_GRAPH_PREFLIGHT_CHART:
-                    optimizer_graph_model_preflight_svg()}
+                    optimizer_graph_model_preflight_svg(),
+                QUIESCENT_HANDOFF_CHART: quiescent_allocator_handoff_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

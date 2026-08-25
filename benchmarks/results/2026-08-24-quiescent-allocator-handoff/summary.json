@@ -1,0 +1,98 @@
+{
+  "comparisons": [
+    {
+      "context": 8,
+      "model": "qwen",
+      "policies": {
+        "disabled": {
+          "handoff_count": 0,
+          "pool_enabled": false,
+          "preparation_ms_median": 2.391394,
+          "snapshot_matches": false
+        },
+        "handoff": {
+          "handoff_count": 3,
+          "pool_enabled": true,
+          "preparation_ms_median": 1.581562,
+          "snapshot_matches": true
+        }
+      },
+      "rescued": true,
+      "runs": 3
+    },
+    {
+      "context": 512,
+      "model": "qwen",
+      "policies": {
+        "disabled": {
+          "handoff_count": 0,
+          "pool_enabled": false,
+          "preparation_ms_median": 2.83445,
+          "snapshot_matches": false
+        },
+        "handoff": {
+          "handoff_count": 3,
+          "pool_enabled": true,
+          "preparation_ms_median": 2.121215,
+          "snapshot_matches": true
+        }
+      },
+      "rescued": true,
+      "runs": 3
+    },
+    {
+      "context": 8,
+      "model": "deepseek",
+      "policies": {
+        "disabled": {
+          "handoff_count": 0,
+          "pool_enabled": false,
+          "preparation_ms_median": 3.71198,
+          "snapshot_matches": false
+        },
+        "handoff": {
+          "handoff_count": 3,
+          "pool_enabled": true,
+          "preparation_ms_median": 3.210978,
+          "snapshot_matches": true
+        }
+      },
+      "rescued": true,
+      "runs": 3
+    },
+    {
+      "context": 512,
+      "model": "deepseek",
+      "policies": {
+        "disabled": {
+          "handoff_count": 0,
+          "pool_enabled": false,
+          "preparation_ms_median": 5.088169,
+          "snapshot_matches": false
+        },
+        "handoff": {
+          "handoff_count": 3,
+          "pool_enabled": true,
+          "preparation_ms_median": 5.062707,
+          "snapshot_matches": false
+        }
+      },
+      "rescued": false,
+      "runs": 3
+    }
+  ],
+  "decision": "keep explicit quiescent handoff primitive; continue Qwen and DeepSeek T8 model Graph gate; retain DeepSeek T512 rejection",
+  "experiment": "quiescent_allocator_handoff",
+  "gates": {
+    "deepseek_t512_still_rejected": true,
+    "deepseek_t8_rescued": true,
+    "disabled_policy_rejects_all_cases": true,
+    "handoff_reenables_pool_three_times": true,
+    "no_graph_launched_during_preflight": true,
+    "qwen_t8_t512_rescued": true
+  },
+  "processes": 24,
+  "runs_per_policy_case": 3,
+  "schema_version": 1,
+  "status": "pass"
+}

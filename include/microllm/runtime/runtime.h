@@ -75,10 +75,17 @@ void synchronize(Device device);
 [[nodiscard]] TransferStats transfer_stats() noexcept;
 void reset_transfer_stats() noexcept;
 // The exact-size allocator cache is only safe for legacy-default-stream work.
-// Creating or passing any non-default stream permanently disables reuse on that device.
+// Creating or submitting to a non-default Stream disables reuse until an
+// explicit device-wide quiescent handoff starts a new default-Stream phase.
 void notify_non_default_stream(Device device) noexcept;
 void enable_hip_caching_allocator(Device device);
 [[nodiscard]] bool hip_caching_allocator_enabled(Device device) noexcept;
+// Explicitly waits for every Stream on the device, then starts a new
+// default-Stream-only allocator phase. Any later non-default submission
+// disables reuse again before that work is enqueued.
+void quiesce_and_enable_hip_caching_allocator(Device device);
+[[nodiscard]] std::size_t hip_caching_allocator_quiescent_reenable_count(
+    Device device) noexcept;
 
 class Stream {
 public:

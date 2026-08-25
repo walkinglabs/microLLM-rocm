@@ -849,6 +849,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [experiments/223-gradient-address-stability.md](experiments/223-gradient-address-stability.md) | 18进程、context反例与Graph eligibility边界 |
 | [assets/optimizer-graph-model-preflight.svg](assets/optimizer-graph-model-preflight.svg) | Stream创建到安全拒绝的完整因果链 |
 | [experiments/224-optimizer-graph-model-preflight.md](experiments/224-optimizer-graph-model-preflight.md) | 12进程、pool disable与零launch模型反例 |
+| [assets/quiescent-allocator-handoff.svg](assets/quiescent-allocator-handoff.svg) | default/Graph阶段状态机与四case救回结果 |
+| [experiments/225-quiescent-allocator-handoff.md](experiments/225-quiescent-allocator-handoff.md) | 24进程、三次handoff与Deep长上下文反例 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

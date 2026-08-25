@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "processes": 24,
+  "rescued_cases": 3,
+  "handoffs_per_enabled_run": 3,
+  "graph_launches": 0,
+  "deepseek_t512_retained_rejection": true,
+  "default_policy_changed": false,
+  "registered_test_files": 98,
+  "tests": {
+    "cpu_debug": {"passed": 335, "total": 335},
+    "asan_ubsan": {"passed": 333, "total": 333},
+    "pytorch_enabled_cpu": {"passed": 309, "total": 309},
+    "hip_full_configuration": {
+      "passed": 528,
+      "total": 528,
+      "conditional_skips": 3
+    },
+    "hip_label": {"passed": 181, "total": 181},
+    "rccl_multi_gpu": {"passed": 12, "total": 12},
+    "rccl_full_label": {"passed": 14, "total": 14}
+  },
+  "coverage": {
+    "lines_percent": 78.4,
+    "functions_percent": 86.6,
+    "branches_percent": 59.1,
+    "lines_covered": 8878,
+    "lines_total": 11329
+  }
+}

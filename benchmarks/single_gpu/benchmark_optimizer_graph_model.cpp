@@ -25,6 +25,7 @@ struct Options {
     std::string config;
     int context = 8;
     int steps = 2;
+    bool quiescent_handoff = false;
 };
 
 Options options(int argc, char** argv) {
@@ -37,6 +38,14 @@ Options options(int argc, char** argv) {
         else if (name == "--config") result.config = argv[index + 1];
         else if (name == "--context") result.context = std::stoi(argv[index + 1]);
         else if (name == "--steps") result.steps = std::stoi(argv[index + 1]);
+        else if (name == "--quiescent-handoff") {
+            const std::string value(argv[index + 1]);
+            if (value != "true" && value != "false") {
+                throw std::invalid_argument(
+                    "quiescent-handoff must be true or false");
+            }
+            result.quiescent_handoff = value == "true";
+        }
         else throw std::invalid_argument("unknown option: " + std::string(name));
     }
     if ((result.model != "qwen" && result.model != "deepseek") ||
@@ -108,6 +117,10 @@ int main(int argc, char** argv) {
         microllm::ops::OpContext optimizer_context;
         optimizer_context.stream = &optimizer_stream;
         const auto backward_only = [&]() {
+            if (command.quiescent_handoff) {
+                microllm::runtime::quiesce_and_enable_hip_caching_allocator(
+                    device);
+            }
             microllm::training::zero_grad(model.parameters());
             const auto loss = model.loss(inputs, targets);
             const auto value = loss.data().to_vector().front();
@@ -149,6 +162,12 @@ int main(int argc, char** argv) {
                       << ",\"context\":" << command.context
                       << ",\"parameter_count\":" << model.parameter_count()
                       << ",\"parameter_tensors\":" << named.size()
+                      << ",\"quiescent_handoff\":"
+                      << (command.quiescent_handoff ? "true" : "false")
+                      << ",\"quiescent_handoff_count\":"
+                      << microllm::runtime::
+                             hip_caching_allocator_quiescent_reenable_count(
+                                 device)
                       << ",\"gradient_snapshot_matches\":"
                       << (eligible ? "true" : "false")
                       << ",\"caching_allocator_enabled\":"
@@ -216,6 +235,11 @@ int main(int argc, char** argv) {
                   << ",\"steps\":" << command.steps
                   << ",\"parameter_count\":" << model.parameter_count()
                   << ",\"parameter_tensors\":" << named.size()
+                  << ",\"quiescent_handoff\":"
+                  << (command.quiescent_handoff ? "true" : "false")
+                  << ",\"quiescent_handoff_count\":"
+                  << microllm::runtime::
+                         hip_caching_allocator_quiescent_reenable_count(device)
                   << ",\"gradient_snapshot_matches\":"
                   << (all_addresses_match ? "true" : "false")
                   << ",\"caching_allocator_enabled\":"

@@ -152,9 +152,10 @@ struct HipExactSizePool {
     std::mutex mutex;
     std::map<int, bool> enabled;
     std::map<int, bool> forbidden;
-    // Immediate address reuse is safe only while every engine operation uses
-    // the legacy default stream: later work is ordered after the last use of
-    // the retired address.  notify_non_default_stream permanently disables it.
+    std::map<int, std::size_t> quiescent_reenables;
+    // Immediate address reuse is safe only inside a proven default-Stream
+    // phase. Non-default submission disables it; an explicit device-wide
+    // quiescent handoff may start a new phase.
     std::map<std::pair<int, std::size_t>, std::vector<void*>> retired;
 };
 
@@ -463,9 +464,46 @@ bool hip_caching_allocator_enabled(Device device) noexcept {
 #endif
 }
 
+void quiesce_and_enable_hip_caching_allocator(Device device) {
+    if (device.is_cpu()) return;
+#if MICROLLM_HAS_HIP
+    set_device(device);
+    auto& pool = hip_pool();
+    // Serialize the proof and state transition with every allocator access
+    // and notify-before-submit path. Without holding this lock, another CPU
+    // thread could submit non-default work after synchronize but before the
+    // phase is marked enabled.
+    const std::lock_guard<std::mutex> lock(pool.mutex);
+    check_hip(hipDeviceSynchronize(),
+              "hipDeviceSynchronize(quiescent allocator handoff)");
+    pool.enabled[device.index()] = true;
+    pool.forbidden[device.index()] = false;
+    ++pool.quiescent_reenables[device.index()];
+#else
+    throw std::runtime_error(
+        "HIP caching allocator handoff requested from a CPU-only build");
+#endif
+}
+
+std::size_t hip_caching_allocator_quiescent_reenable_count(
+    Device device) noexcept {
+    if (device.is_cpu()) return 0;
+#if MICROLLM_HAS_HIP
+    auto& pool = hip_pool();
+    const std::lock_guard<std::mutex> lock(pool.mutex);
+    return pool.quiescent_reenables[device.index()];
+#else
+    (void)device;
+    return 0;
+#endif
+}
+
 void* resolve_deferred_hip_stream(
     Device device, void* explicitly_requested_stream) {
     if (device.is_cpu() || active_scoped_deferred_stream == nullptr) {
+        if (device.is_hip() && explicitly_requested_stream != nullptr) {
+            notify_non_default_stream(device);
+        }
         return explicitly_requested_stream;
     }
     if (active_scoped_deferred_stream->device() != device) {
@@ -479,6 +517,7 @@ void* resolve_deferred_hip_stream(
         throw std::logic_error(
             "operator Stream conflicts with active deferred HIP Stream");
     }
+    notify_non_default_stream(device);
     return active_handle;
 }
 
@@ -841,6 +880,7 @@ StreamOrderedHipBuffer::StreamOrderedHipBuffer(
     }
 #if MICROLLM_HAS_HIP
     set_device(stream.device());
+    notify_non_default_stream(stream.device());
     void* pointer = nullptr;
     check_hip(hipMallocAsync(&pointer, bytes, as_stream(stream.native_handle())),
               "hipMallocAsync");
@@ -900,6 +940,7 @@ void StreamOrderedHipBuffer::release() {
     if (!defined()) return;
 #if MICROLLM_HAS_HIP
     set_device(impl_->device);
+    notify_non_default_stream(impl_->device);
     check_hip(hipFreeAsync(
                   impl_->pointer, as_stream(impl_->stream->native_handle())),
               "hipFreeAsync");
@@ -1020,6 +1061,7 @@ HipGraphExecutable HipGraphExecutable::capture(
     if (active_hip_graph_capture) {
         throw std::logic_error("nested HIP graph capture is unsupported");
     }
+    notify_non_default_stream(stream.device());
     set_device(stream.device());
     const auto native_stream = as_stream(stream.native_handle());
     check_hip(hipStreamBeginCapture(native_stream, hipStreamCaptureModeThreadLocal),
@@ -1108,6 +1150,7 @@ void HipGraphExecutable::launch(const Stream& stream) const {
         throw std::invalid_argument("HIP graph launch Stream uses a different device");
     }
 #if MICROLLM_HAS_HIP
+    notify_non_default_stream(impl_->device);
     set_device(impl_->device);
     check_hip(hipGraphLaunch(
                   reinterpret_cast<hipGraphExec_t>(impl_->executable),
@@ -1393,6 +1436,7 @@ void Event::record(const Stream& stream) {
         return;
     }
 #if MICROLLM_HAS_HIP
+    notify_non_default_stream(impl_->device);
     check_hip(hipEventRecord(as_event(impl_->handle), as_stream(stream.native_handle())),
               "hipEventRecord");
 #endif
@@ -1415,6 +1459,7 @@ void Event::wait(const Stream& stream) const {
     if (stream.device() != impl_->device) throw std::invalid_argument("event/stream device mismatch");
     if (impl_->device.is_cpu()) return;
 #if MICROLLM_HAS_HIP
+    notify_non_default_stream(impl_->device);
     check_hip(hipStreamWaitEvent(as_stream(stream.native_handle()), as_event(impl_->handle), 0),
               "hipStreamWaitEvent");
 #endif

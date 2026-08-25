@@ -2621,7 +2621,8 @@ def validate_immediate_default_stream_pool(errors: list[str]) -> tuple[int, int,
         encoding="utf-8")
     if "kRetirementBatchSize" in runtime_source or \
             "std::vector<void*>" not in runtime_source or \
-            "notify_non_default_stream permanently disables" not in runtime_source or \
+            ("notify_non_default_stream permanently disables" not in runtime_source and
+             "Non-default submission disables it" not in runtime_source) or \
             "DefaultStreamPoolReusesEveryExactSizeWithoutBatchPhase" not in runtime_tests or \
             "if (iteration % 16" in stress_tests:
         errors.append("immediate allocator source or safety gate changed")
@@ -12312,6 +12313,113 @@ def validate_optimizer_graph_model_preflight(
         min(preparations), max(preparations)
 
 
+def validate_quiescent_allocator_handoff(
+        errors: list[str]) -> tuple[int, int, int, float, float]:
+    data = REPOSITORY / (
+        "benchmarks/results/2026-08-24-quiescent-allocator-handoff")
+    summary = json.loads((data / "summary.json").read_text(encoding="utf-8"))
+    verification = json.loads((data / "verification.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (data / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line.strip()]
+    comparisons = {(row["model"], row["context"]): row
+                   for row in summary.get("comparisons", [])}
+    expected_preparation = {
+        ("qwen", 8): (2.391394, 1.581562, True),
+        ("qwen", 512): (2.83445, 2.121215, True),
+        ("deepseek", 8): (3.71198, 3.210978, True),
+        ("deepseek", 512): (5.088169, 5.062707, False),
+    }
+    counts = {(model, context, handoff): 0
+              for model, context in expected_preparation
+              for handoff in (False, True)}
+    for row in raw:
+        key = (row.get("model"), row.get("context"),
+               row.get("quiescent_handoff"))
+        if key in counts: counts[key] += 1
+    expected_gates = {
+        "disabled_policy_rejects_all_cases": True,
+        "handoff_reenables_pool_three_times": True,
+        "qwen_t8_t512_rescued": True,
+        "deepseek_t8_rescued": True,
+        "deepseek_t512_still_rejected": True,
+        "no_graph_launched_during_preflight": True,
+    }
+    if summary.get("schema_version") != 1 or summary.get("status") != "pass" or \
+            summary.get("experiment") != "quiescent_allocator_handoff" or \
+            summary.get("processes") != 24 or \
+            summary.get("runs_per_policy_case") != 3 or \
+            summary.get("gates") != expected_gates or \
+            summary.get("decision") != (
+                "keep explicit quiescent handoff primitive; continue Qwen and "
+                "DeepSeek T8 model Graph gate; retain DeepSeek T512 rejection") or \
+            len(raw) != 24 or set(comparisons) != set(expected_preparation) or \
+            any(count != 3 for count in counts.values()) or \
+            any(abs(float(comparisons[key]["policies"]["disabled"].get(
+                        "preparation_ms_median", 0.0)) - values[0]) > 1.0e-9 or
+                abs(float(comparisons[key]["policies"]["handoff"].get(
+                        "preparation_ms_median", 0.0)) - values[1]) > 1.0e-9 or
+                comparisons[key].get("rescued") is not values[2]
+                for key, values in expected_preparation.items()) or \
+            any(row.get("schema_version") != 1 or row.get("status") != "pass" or
+                row.get("record_type") != "optimizer_graph_model_measurement" or
+                row.get("mode") != "preflight" or
+                row.get("graph_launched") is not False or
+                row.get("captured_nodes") != 0 or
+                row.get("quiescent_handoff_count") !=
+                    (3 if row.get("quiescent_handoff") else 0) or
+                row.get("caching_allocator_enabled") is not
+                    row.get("quiescent_handoff")
+                for row in raw):
+        errors.append("quiescent allocator handoff evidence changed")
+    sources = (
+        ("quiesce_and_enable_hip_caching_allocator", REPOSITORY /
+         "include/microllm/runtime/runtime.h"),
+        ("hipDeviceSynchronize(quiescent allocator handoff)", REPOSITORY /
+         "src/runtime/runtime.cpp"),
+        ("NonDefaultStreamDisablesPoolUntilQuiescentHandoff", REPOSITORY /
+         "tests/runtime/runtime_test.cpp"),
+        ("handoff_reenables_pool_three_times", REPOSITORY /
+         "benchmarks/single_gpu/quiescent_allocator_handoff_matrix.py"),
+        ("deep_long_remains_rejected", REPOSITORY /
+         "python/tests/test_quiescent_allocator_handoff_matrix.py"),
+    )
+    if any(token not in path.read_text(encoding="utf-8")
+           for token, path in sources):
+        errors.append("quiescent allocator handoff source/test changed")
+    expected_tests = {
+        "cpu_debug": {"passed": 335, "total": 335},
+        "asan_ubsan": {"passed": 333, "total": 333},
+        "pytorch_enabled_cpu": {"passed": 309, "total": 309},
+        "hip_full_configuration": {
+            "passed": 528, "total": 528, "conditional_skips": 3},
+        "hip_label": {"passed": 181, "total": 181},
+        "rccl_multi_gpu": {"passed": 12, "total": 12},
+        "rccl_full_label": {"passed": 14, "total": 14},
+    }
+    if verification.get("status") != "pass" or \
+            verification.get("processes") != 24 or \
+            verification.get("rescued_cases") != 3 or \
+            verification.get("handoffs_per_enabled_run") != 3 or \
+            verification.get("graph_launches") != 0 or \
+            verification.get("deepseek_t512_retained_rejection") is not True or \
+            verification.get("default_policy_changed") is not False or \
+            verification.get("registered_test_files") != 98 or \
+            verification.get("tests") != expected_tests or \
+            verification.get("coverage") != {
+                "lines_percent": 78.4,
+                "functions_percent": 86.6,
+                "branches_percent": 59.1,
+                "lines_covered": 8878,
+                "lines_total": 11329}:
+        errors.append("quiescent allocator handoff verification changed")
+    preparations = [value for row in expected_preparation.values()
+                    for value in row[:2]]
+    return len(raw), sum(row[2] for row in expected_preparation.values()), \
+        sum(int(record.get("graph_launched", False)) for record in raw), \
+        min(preparations), max(preparations)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -12514,7 +12622,8 @@ def validate_assets(errors: list[str]) -> None:
                  "adamw-graph-replay.svg",
                  "adamw-graph-multi.svg",
                  "gradient-address-stability.svg",
-                 "optimizer-graph-model-preflight.svg"):
+                 "optimizer-graph-model-preflight.svg",
+                 "quiescent-allocator-handoff.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -12932,6 +13041,9 @@ def main() -> int:
     optimizer_preflight_rows, optimizer_preflight_launches, \
         optimizer_preflight_minimum, optimizer_preflight_maximum = \
         validate_optimizer_graph_model_preflight(errors)
+    quiescent_rows, quiescent_rescued, quiescent_launches, \
+        quiescent_minimum, quiescent_maximum = \
+        validate_quiescent_allocator_handoff(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -13304,6 +13416,9 @@ def main() -> int:
           f"{optimizer_preflight_launches}/"
           f"{optimizer_preflight_minimum:.3f}/"
           f"{optimizer_preflight_maximum:.3f} "
+          f"quiescent_handoff={quiescent_rows}/{quiescent_rescued}/"
+          f"{quiescent_launches}/{quiescent_minimum:.3f}/"
+          f"{quiescent_maximum:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

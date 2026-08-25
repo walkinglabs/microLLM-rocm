@@ -211,6 +211,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.OptimizerGraphModelPreflightContract PROPERTIES
         LABELS "cpu;benchmark;training;graph;optimizer;allocator;schema")
     add_test(
+        NAME Benchmark.QuiescentAllocatorHandoffMatrixContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_quiescent_allocator_handoff_matrix.py
+    )
+    set_tests_properties(Benchmark.QuiescentAllocatorHandoffMatrixContract PROPERTIES
+        LABELS "cpu;benchmark;training;graph;allocator;lifetime;schema")
+    add_test(
         NAME Benchmark.HipGraphMatrixContract
         COMMAND ${Python3_EXECUTABLE}
                 ${PROJECT_SOURCE_DIR}/python/tests/test_hip_graph_matrix.py

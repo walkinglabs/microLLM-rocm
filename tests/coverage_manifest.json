@@ -330,6 +330,7 @@
     "python/tests/test_adamw_graph_multi_matrix.py",
     "python/tests/test_gradient_address_matrix.py",
     "python/tests/test_optimizer_graph_model_preflight.py",
+    "python/tests/test_quiescent_allocator_handoff_matrix.py",
     "python/tests/test_hf_benchmark_contract.py",
     "python/tests/test_hf_shape_matrix.py",
     "python/tests/test_hf_inference_shape_matrix.py",
