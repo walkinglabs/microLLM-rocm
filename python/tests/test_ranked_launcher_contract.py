@@ -45,6 +45,9 @@ def main() -> int:
         "uneven-input", "ranked_uneven_input_failure_summary",
         "--rank-batch-rows", "--input-weighting", "token-weighted",
         "local_gradient_scale", "average_tokens",
+        "--mean-loss-tolerance", "mean_loss_tolerance",
+        "--retain-consensus-parameter-file",
+        "consensus_parameter_file", "gate_passed",
     ):
         assert token in runner
     for token in (

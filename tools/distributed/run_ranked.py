@@ -43,10 +43,15 @@ def options() -> argparse.Namespace:
     parser.add_argument("--input-weighting",
                         choices=("equal-only", "token-weighted"),
                         default="equal-only")
+    parser.add_argument("--mean-loss-tolerance", type=float, default=1.0e-4)
+    parser.add_argument("--retain-consensus-parameter-file",
+                        action="store_true")
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
     if (not args.binary.is_file() or args.steps <= 0 or
             args.timeout_seconds <= 0 or args.bucket_bytes < 4 or
+            not math.isfinite(args.mean_loss_tolerance) or
+            args.mean_loss_tolerance <= 0.0 or
             args.world_size <= 0 or args.world_size > 8):
         parser.error("ranked launcher inputs are invalid")
     if args.context == 0:
@@ -59,6 +64,8 @@ def options() -> argparse.Namespace:
     if args.model == "model-s" and (
             args.compare_binary is None):
         parser.error("Model-S requires --compare-binary")
+    if args.retain_consensus_parameter_file and args.model != "model-s":
+        parser.error("consensus parameter retention requires Model-S")
     if args.rank_batch_rows:
         try:
             args.rank_batch_rows = [
@@ -609,14 +616,22 @@ def main() -> int:
                 for index, rank in enumerate(ranks)) /
             sum(args.rank_batch_rows) - reference["losses"][step])
         for step in range(args.steps))
-    if (rank_difference != 0.0 or rank_rms_difference != 0.0 or
-            reference_difference > reference_tolerance or
-            reference_rms_difference > reference_rms_tolerance or
-            loss_difference > 1.0e-4):
-        raise RuntimeError("ranked parameters failed the global-batch gate")
+    gate_passed = not (
+        rank_difference != 0.0 or rank_rms_difference != 0.0 or
+        reference_difference > reference_tolerance or
+        reference_rms_difference > reference_rms_tolerance or
+        loss_difference > args.mean_loss_tolerance)
+    consensus_parameter_file: Path | None = None
     if args.model == "model-s":
-        for path in [*rank_parameter_files.values(), reference_parameter_file]:
-            path.unlink(missing_ok=True)
+        if gate_passed and args.retain_consensus_parameter_file:
+            consensus_parameter_file = rank_parameter_files[0]
+        for rank, path in rank_parameter_files.items():
+            if not (gate_passed and args.retain_consensus_parameter_file and
+                    rank == 0):
+                path.unlink(missing_ok=True)
+        reference_parameter_file.unlink(missing_ok=True)
+    if not gate_passed:
+        raise RuntimeError("ranked parameters failed the global-batch gate")
     summary = {
         "schema_version": 1,
         "status": "pass",
@@ -637,7 +652,7 @@ def main() -> int:
         "maximum_reference_difference": reference_difference,
         "reference_rms_difference": reference_rms_difference,
         "maximum_mean_loss_difference": loss_difference,
-        "mean_loss_tolerance": 1.0e-4,
+        "mean_loss_tolerance": args.mean_loss_tolerance,
         "reference_max_tolerance": reference_tolerance,
         "reference_rms_tolerance": reference_rms_tolerance,
         "rank_losses": [rank["losses"] for rank in ranks],
@@ -738,7 +753,10 @@ def main() -> int:
             rank["weighted_gradient_scales"] for rank in ranks],
         "maximum_weighted_gradient_scales_per_rank": max(
             rank["weighted_gradient_scales"] for rank in ranks),
-        "parameter_files_retained": False,
+        "parameter_files_retained": consensus_parameter_file is not None,
+        "consensus_parameter_file": (
+            str(consensus_parameter_file)
+            if consensus_parameter_file is not None else ""),
         "peer_processes_terminated": terminated,
         "collectives_per_rank": expected_collectives,
         "buckets_per_rank": ranks[0]["buckets"],

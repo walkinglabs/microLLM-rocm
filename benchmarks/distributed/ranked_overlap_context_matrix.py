@@ -23,10 +23,15 @@ def options() -> argparse.Namespace:
     parser.add_argument("--compare-binary", required=True, type=Path)
     parser.add_argument("--output-directory", required=True, type=Path)
     parser.add_argument("--contexts", nargs="+", type=int, default=[32, 128])
+    parser.add_argument("--rank-batch-rows", default="1,1")
+    parser.add_argument("--input-weighting",
+                        choices=("equal-only", "token-weighted"),
+                        default="equal-only")
     parser.add_argument("--runs", type=int, default=3)
     parser.add_argument("--steps", type=int, default=3)
     parser.add_argument("--steady-skip-steps", type=int, default=1)
     parser.add_argument("--bucket-bytes", type=int, default=26214400)
+    parser.add_argument("--mean-loss-tolerance", type=float, default=1.0e-4)
     parser.add_argument("--timeout-seconds", type=float, default=180.0)
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
@@ -34,10 +39,22 @@ def options() -> argparse.Namespace:
             not args.compare_binary.is_file() or args.runs <= 0 or
             args.steps <= 1 or args.steady_skip_steps < 1 or
             args.steady_skip_steps >= args.steps or args.bucket_bytes < 4 or
-            args.timeout_seconds <= 0 or not args.contexts or
+            args.timeout_seconds <= 0 or args.mean_loss_tolerance <= 0.0 or
+            not args.contexts or
             len(set(args.contexts)) != len(args.contexts) or
             any(context < 1 or context > 512 for context in args.contexts)):
         parser.error("ranked overlap context matrix inputs are invalid")
+    try:
+        args.rank_batch_rows = [
+            int(value) for value in args.rank_batch_rows.split(",")]
+    except ValueError:
+        parser.error("rank batch rows are invalid")
+    if (len(args.rank_batch_rows) != 2 or
+            any(value <= 0 for value in args.rank_batch_rows)):
+        parser.error("rank batch rows must contain two positive values")
+    if (args.input_weighting == "equal-only" and
+            len(set(args.rank_batch_rows)) != 1):
+        parser.error("uneven rank rows require token-weighted input")
     return args
 
 
@@ -74,6 +91,11 @@ def main() -> int:
                 str(output / f"run-{process_run}-t{context}-{policy}"),
                 "--model", "model-s", "--context", str(context),
                 "--steps", str(args.steps), "--reducer", policy,
+                "--rank-batch-rows",
+                ",".join(str(value) for value in args.rank_batch_rows),
+                "--input-weighting", args.input_weighting,
+                "--mean-loss-tolerance", str(args.mean_loss_tolerance),
+                "--retain-consensus-parameter-file",
                 "--bucket-bytes", str(args.bucket_bytes),
                 "--timeout-seconds", str(args.timeout_seconds), "--overwrite",
             ]
@@ -84,9 +106,13 @@ def main() -> int:
                 raise RuntimeError(completed.stdout + completed.stderr)
             value = record(completed.stdout, f"T{context}-{policy}")
             expected_overlap = policy == "overlap-views"
+            expected_scales = (57 if args.input_weighting == "token-weighted" and
+                               len(set(args.rank_batch_rows)) > 1 else 0)
             if (value.get("record_type") != "ranked_training_summary" or
                     value.get("model") != "model-s" or
                     value.get("context") != context or
+                    value.get("rank_batch_rows") != args.rank_batch_rows or
+                    value.get("input_weighting") != args.input_weighting or
                     value.get("reducer") != policy or
                     value.get("steps") != args.steps or
                     value.get("parameter_tensors") != 57 or
@@ -95,7 +121,10 @@ def main() -> int:
                     value.get("rank_rms_difference") != 0.0 or
                     value.get("maximum_reference_difference", 1.0) > 1.0e-2 or
                     value.get("reference_rms_difference", 1.0) > 1.0e-5 or
-                    value.get("maximum_mean_loss_difference", 1.0) > 1.0e-4 or
+                    value.get("maximum_mean_loss_difference", 1.0) >
+                    args.mean_loss_tolerance or
+                    value.get("mean_loss_tolerance") !=
+                    args.mean_loss_tolerance or
                     value.get("maximum_rank_step_collectives") != [3] * args.steps or
                     value.get("maximum_rank_step_unpack_copies") != [0] * args.steps or
                     value.get("maximum_rank_step_reducer_backend_allocation_calls") !=
@@ -106,13 +135,57 @@ def main() -> int:
                     value.get("maximum_rank_step_overlapped_buckets") !=
                     ([0] + [3] * (args.steps - 1) if expected_overlap else
                      [0] * args.steps) or
+                    value.get("maximum_rank_step_weighted_gradient_scales") !=
+                    [expected_scales] * args.steps or
+                    value.get("maximum_weighted_gradient_scales_per_rank") !=
+                    expected_scales * args.steps or
                     value.get("maximum_engine_current_bytes", 0) <= 0 or
                     value.get("maximum_engine_peak_bytes", 0) <
                     value.get("maximum_engine_current_bytes", 0) or
-                    value.get("parameter_files_retained") is not False):
+                    value.get("parameter_files_retained") is not True or
+                    not Path(value.get(
+                        "consensus_parameter_file", "")).is_file()):
                 raise RuntimeError("ranked overlap context result contract changed")
             value["process_run"] = process_run
             raw.append(value)
+
+    retained_files = [Path(row["consensus_parameter_file"]) for row in raw]
+    policy_comparisons = []
+    try:
+        for process_run in range(1, args.runs + 1):
+            for context in args.contexts:
+                rows = {row["reducer"]: row for row in raw
+                        if row["process_run"] == process_run and
+                        row["context"] == context}
+                command = [
+                    str(args.compare_binary.resolve()),
+                    rows["bucket-views"]["consensus_parameter_file"],
+                    rows["overlap-views"]["consensus_parameter_file"],
+                ]
+                completed = subprocess.run(
+                    command, cwd=ROOT, text=True, capture_output=True,
+                    check=False, timeout=args.timeout_seconds)
+                if completed.returncode != 0:
+                    raise RuntimeError(completed.stdout + completed.stderr)
+                comparison = record(
+                    completed.stdout,
+                    f"T{context}-run{process_run}-policy-comparison")
+                if (comparison.get("record_type") !=
+                        "safetensors_complete_comparison" or
+                        comparison.get("tensor_count") != 57 or
+                        comparison.get("compared_elements") != 15586176 or
+                        comparison.get("maximum_absolute_difference") != 0.0 or
+                        comparison.get("rms_difference") != 0.0):
+                    raise RuntimeError(
+                        "synchronous and overlap parameters diverged")
+                comparison.update({
+                    "context": context,
+                    "process_run": process_run,
+                })
+                policy_comparisons.append(comparison)
+    finally:
+        for path in retained_files:
+            path.unlink(missing_ok=True)
 
     failure_command = [
         sys.executable, str(args.launcher.resolve()),
@@ -189,13 +262,18 @@ def main() -> int:
                 overlap["maximum_engine_peak_bytes"] -
                 synchronous["maximum_engine_peak_bytes"]),
         }
-    longer = [contexts[str(context)]["training_speedup"]
-              for context in args.contexts if context > min(args.contexts)]
+    gate_contexts = ([context for context in args.contexts
+                      if context > min(args.contexts)]
+                     if len(args.contexts) > 1 else args.contexts)
+    gated_speedups = [contexts[str(context)]["training_speedup"]
+                       for context in gate_contexts]
     summary = {
         "schema_version": 1,
         "status": "pass",
         "record_type": "ranked_overlap_context_summary",
         "contexts": args.contexts,
+        "rank_batch_rows": args.rank_batch_rows,
+        "input_weighting": args.input_weighting,
         "runs_per_policy_context": args.runs,
         "policy_context_runs": len(raw),
         "rank_processes": len(raw) * 2,
@@ -203,15 +281,33 @@ def main() -> int:
         "steady_skip_steps": args.steady_skip_steps,
         "steady_steps_per_run": args.steps - args.steady_skip_steps,
         "bucket_bytes": args.bucket_bytes,
+        "mean_loss_tolerance": args.mean_loss_tolerance,
+        "policy_parameter_comparisons": len(policy_comparisons),
+        "maximum_policy_parameter_difference": max(
+            comparison["maximum_absolute_difference"]
+            for comparison in policy_comparisons),
+        "policy_parameter_rms_difference": max(
+            comparison["rms_difference"]
+            for comparison in policy_comparisons),
+        "temporary_parameter_files_retained": any(
+            path.exists() for path in retained_files),
         "results": contexts,
         "minimum_required_speedup": 1.01,
-        "longer_context_gate_passed": bool(longer) and all(
-            speedup >= 1.01 for speedup in longer),
+        "gate_contexts": gate_contexts,
+        "longer_context_gate_passed": bool(gated_speedups) and all(
+            speedup >= 1.01 for speedup in gated_speedups),
         "peer_failure_detected": True,
         "peer_processes_terminated": failure["peer_processes_terminated"],
         "failure_returncodes": failure["returncodes"],
-        "decision": ("retain context-selective ranked overlap"
-                     if bool(longer) and all(speedup >= 1.01 for speedup in longer)
+        "decision": ("retain context-selective ranked weighted overlap"
+                     if args.input_weighting == "token-weighted" and
+                     bool(gated_speedups) and all(
+                         speedup >= 1.01 for speedup in gated_speedups)
+                     else "close Model-S ranked weighted overlap scale track"
+                     if args.input_weighting == "token-weighted"
+                     else "retain context-selective ranked overlap"
+                     if bool(gated_speedups) and all(
+                         speedup >= 1.01 for speedup in gated_speedups)
                      else "close Model-S ranked overlap scale track"),
     }
     (output / "raw.jsonl").write_text(
@@ -219,6 +315,9 @@ def main() -> int:
         encoding="utf-8")
     (output / "failure.json").write_text(
         json.dumps(failure, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8")
+    (output / "policy-comparisons.json").write_text(
+        json.dumps(policy_comparisons, indent=2, sort_keys=True) + "\n",
         encoding="utf-8")
     (output / "summary.json").write_text(
         json.dumps(summary, indent=2, sort_keys=True) + "\n",

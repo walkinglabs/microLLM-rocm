@@ -16,9 +16,20 @@ def main() -> int:
         "median_steady_finish_ms", "finish_speedup", "training_speedup",
         "forward_backward_added_ms", "maximum_engine_current_bytes",
         "maximum_engine_peak_bytes", "minimum_required_speedup",
-        "longer_context_gate_passed", "peer_processes_terminated",
+        "gate_contexts", "longer_context_gate_passed",
+        "peer_processes_terminated",
         "retain context-selective ranked overlap",
         "close Model-S ranked overlap scale track",
+        "--rank-batch-rows", "--input-weighting", "token-weighted",
+        "maximum_rank_step_weighted_gradient_scales",
+        "maximum_weighted_gradient_scales_per_rank",
+        "retain context-selective ranked weighted overlap",
+        "close Model-S ranked weighted overlap scale track",
+        "--mean-loss-tolerance", "mean_loss_tolerance",
+        "--retain-consensus-parameter-file",
+        "safetensors_complete_comparison",
+        "maximum_policy_parameter_difference",
+        "temporary_parameter_files_retained",
     ):
         assert token in text
     print("ranked overlap context matrix contract: pass")

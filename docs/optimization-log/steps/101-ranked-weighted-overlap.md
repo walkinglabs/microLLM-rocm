@@ -17,3 +17,7 @@ ready hook先发出scale Kernel，再让bucket记录Event。worker逐步输出
 两张MI300X上的Tiny三步smoke得到scale `[12,12,12]`、overlap `[0,1,1]`、rank差0，
 CPU Max/RMS为`8.18e-8 / 8.79e-9`。完整RCCL标签50/50。下一提交从干净revision对
 Model-S T128的同步`bucket-views`与weighted `overlap-views`交替测量三轮。
+
+成对runner已扩展并做T32 pilot：两条策略最终15,586,176个参数逐项完全相同，但overlap
+steady step只有0.9545x。三步CPU loss差达到`4.067e-4`，而参数Max/RMS仍通过
+`1e-2 / 1e-5`；正式T128命令会公开使用`1e-3` loss门，不把一步门静默套到三步轨迹。
