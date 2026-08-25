@@ -178,6 +178,11 @@ BF16_PV_OUTPUT_CHART = ROOT / "assets" / "bf16-pv-output-discard.svg"
 BF16_VALUE_PV_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
                       "2026-08-25-bf16-value-pv-capability")
 BF16_VALUE_PV_CHART = ROOT / "assets" / "bf16-value-pv-discard.svg"
+INFERENCE_LOCAL_SATURATION_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-inference-local-saturation")
+INFERENCE_LOCAL_SATURATION_CHART = (
+    ROOT / "assets" / "inference-local-saturation.svg")
 
 
 def rows() -> list[dict]:
@@ -3722,6 +3727,65 @@ def bf16_value_pv_svg() -> str:
     return "\n".join(parts)
 
 
+def inference_local_saturation_svg() -> str:
+    summary = json.loads((INFERENCE_LOCAL_SATURATION_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    width, height = 1500, 760
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 243 · Current Inference Local Saturation", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "Measured upper bounds and six closed local tracks · MI300X/gfx942",
+             16, "#5b6474", anchor="middle"),
+    ]
+    models = (
+        ("Qwen2.5-0.5B", summary["qwen_cast_share"],
+         summary["qwen_perfect_cast_deletion_upper_bound"]),
+        ("DeepSeek-Distill-1.5B", summary["deepseek_cast_share"],
+         summary["deepseek_perfect_cast_deletion_upper_bound"]),
+    )
+    for index, (label, share, upper) in enumerate(models):
+        x = 150 + index * 650
+        parts.extend([
+            f'<rect x="{x}" y="135" width="550" height="170" rx="16" '
+            'fill="#eef6ff" stroke="#2563eb" stroke-width="2"/>',
+            text(x + 275, 180, label, 22, "#1e3a8a", anchor="middle", weight=700),
+            text(x + 275, 230, f"remaining cast share {share * 100:.2f}%", 19,
+                 "#334155", anchor="middle"),
+            text(x + 275, 275, f"free-deletion ceiling {upper:.4f}x", 27,
+                 "#2563eb", anchor="middle", weight=700),
+        ])
+    closed = [
+        "online Attention model", "exact Attention solution",
+        "vectorized SwiGLU", "grouped Swish epilogue",
+        "direct BF16 P×V output", "BF16 V into P×V",
+    ]
+    for index, label in enumerate(closed):
+        row, column = divmod(index, 3)
+        x, y = 95 + column * 470, 370 + row * 105
+        parts.extend([
+            f'<rect x="{x}" y="{y}" width="400" height="72" rx="12" '
+            'fill="#fff1f2" stroke="#e11d48" stroke-width="2"/>',
+            text(x + 200, y + 31, label, 17, "#9f1239", anchor="middle", weight=700),
+            text(x + 200, y + 57, "closed by measured counterexample", 13,
+                 "#5b6474", anchor="middle"),
+        ])
+    parts.append(text(width / 2, 625,
+                      "Decision: stop retuning local default-policy knobs",
+                      23, "#166534", anchor="middle", weight=700))
+    parts.append(text(width / 2, 672,
+                      "Next contract: a new custom-kernel or graph-wide architecture",
+                      20, "#172033", anchor="middle", weight=700))
+    parts.append(text(width / 2, 716,
+                      "This closes one search scale, not the whole inference roadmap",
+                      15, "#5b6474", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -3780,7 +3844,8 @@ def main() -> int:
                 BF16_ATTENTION_NORM_MODEL_CHART: bf16_attention_norm_model_svg(),
                 POST_BF16_ATTENTION_NORM_PROFILE_CHART: post_bf16_attention_norm_profile_svg(),
                 BF16_PV_OUTPUT_CHART: bf16_pv_output_svg(),
-                BF16_VALUE_PV_CHART: bf16_value_pv_svg()}
+                BF16_VALUE_PV_CHART: bf16_value_pv_svg(),
+                INFERENCE_LOCAL_SATURATION_CHART: inference_local_saturation_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

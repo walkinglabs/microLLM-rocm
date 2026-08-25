@@ -20,6 +20,11 @@ extending small decoder-only language models on AMD GPUs.
 > CPU-oracle, and two-rank RCCL evidence. It does not yet claim production readiness,
 > all-workload PyTorch ROCm parity, Radeon validation, or reference-length training.
 
+> **Current optimization checkpoint:** Experiment 243 closes only the present
+> inference local-policy search. The two remaining casts occupy 2.694%/1.841% of
+> measured Qwen/DeepSeek Kernel time, so the next inference milestone must use a new
+> custom-kernel or graph-wide architecture. See the [generated saturation map](docs/optimization-log/assets/inference-local-saturation.svg).
+
 ## Why this project exists
 
 Large frameworks make model development productive, but they hide the ownership,

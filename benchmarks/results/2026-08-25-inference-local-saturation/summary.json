@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "record_type": "inference_local_saturation_summary",
+  "qwen_cast_share": 0.02694340417292391,
+  "deepseek_cast_share": 0.01841102435420524,
+  "qwen_perfect_cast_deletion_upper_bound": 1.0276894522769486,
+  "deepseek_perfect_cast_deletion_upper_bound": 1.018756347932792,
+  "qwen_gemm_share": 0.614577592258972,
+  "deepseek_gemm_share": 0.6884913583900726,
+  "consecutive_scoped_closed_tracks": [
+    "online_attention_model",
+    "exact_attention_solution",
+    "vectorized_swiglu_model",
+    "grouped_swish_model",
+    "direct_bf16_pv_output",
+    "bf16_value_pv_input"
+  ],
+  "local_default_policy_saturated": true,
+  "next_contract": "new custom-kernel or graph architecture; no local policy retuning"
+}

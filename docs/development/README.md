@@ -506,3 +506,5 @@ the next gate. Records are append-only except for factual corrections.
   beginner-friendly backend capability rejection before timing.
 - [2026-08-25-bf16-value-pv-discard.md](2026-08-25-bf16-value-pv-discard.md):
   closes the opposite mixed-dtype P×V boundary with the same evidence gate.
+- [2026-08-25-inference-local-saturation.md](2026-08-25-inference-local-saturation.md):
+  explains the measured local-search ceiling without confusing it with the whole roadmap.

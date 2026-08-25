@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="760" viewBox="0 0 1500 760">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="750.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 243 · Current Inference Local Saturation</text>
+<text x="750.0" y="82.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">Measured upper bounds and six closed local tracks · MI300X/gfx942</text>
+<rect x="150" y="135" width="550" height="170" rx="16" fill="#eef6ff" stroke="#2563eb" stroke-width="2"/>
+<text x="425.0" y="180.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#1e3a8a" text-anchor="middle" font-weight="700">Qwen2.5-0.5B</text>
+<text x="425.0" y="230.0" font-family="Inter,Arial,sans-serif" font-size="19" fill="#334155" text-anchor="middle" font-weight="400">remaining cast share 2.69%</text>
+<text x="425.0" y="275.0" font-family="Inter,Arial,sans-serif" font-size="27" fill="#2563eb" text-anchor="middle" font-weight="700">free-deletion ceiling 1.0277x</text>
+<rect x="800" y="135" width="550" height="170" rx="16" fill="#eef6ff" stroke="#2563eb" stroke-width="2"/>
+<text x="1075.0" y="180.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#1e3a8a" text-anchor="middle" font-weight="700">DeepSeek-Distill-1.5B</text>
+<text x="1075.0" y="230.0" font-family="Inter,Arial,sans-serif" font-size="19" fill="#334155" text-anchor="middle" font-weight="400">remaining cast share 1.84%</text>
+<text x="1075.0" y="275.0" font-family="Inter,Arial,sans-serif" font-size="27" fill="#2563eb" text-anchor="middle" font-weight="700">free-deletion ceiling 1.0188x</text>
+<rect x="95" y="370" width="400" height="72" rx="12" fill="#fff1f2" stroke="#e11d48" stroke-width="2"/>
+<text x="295.0" y="401.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#9f1239" text-anchor="middle" font-weight="700">online Attention model</text>
+<text x="295.0" y="427.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">closed by measured counterexample</text>
+<rect x="565" y="370" width="400" height="72" rx="12" fill="#fff1f2" stroke="#e11d48" stroke-width="2"/>
+<text x="765.0" y="401.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#9f1239" text-anchor="middle" font-weight="700">exact Attention solution</text>
+<text x="765.0" y="427.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">closed by measured counterexample</text>
+<rect x="1035" y="370" width="400" height="72" rx="12" fill="#fff1f2" stroke="#e11d48" stroke-width="2"/>
+<text x="1235.0" y="401.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#9f1239" text-anchor="middle" font-weight="700">vectorized SwiGLU</text>
+<text x="1235.0" y="427.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">closed by measured counterexample</text>
+<rect x="95" y="475" width="400" height="72" rx="12" fill="#fff1f2" stroke="#e11d48" stroke-width="2"/>
+<text x="295.0" y="506.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#9f1239" text-anchor="middle" font-weight="700">grouped Swish epilogue</text>
+<text x="295.0" y="532.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">closed by measured counterexample</text>
+<rect x="565" y="475" width="400" height="72" rx="12" fill="#fff1f2" stroke="#e11d48" stroke-width="2"/>
+<text x="765.0" y="506.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#9f1239" text-anchor="middle" font-weight="700">direct BF16 P×V output</text>
+<text x="765.0" y="532.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">closed by measured counterexample</text>
+<rect x="1035" y="475" width="400" height="72" rx="12" fill="#fff1f2" stroke="#e11d48" stroke-width="2"/>
+<text x="1235.0" y="506.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#9f1239" text-anchor="middle" font-weight="700">BF16 V into P×V</text>
+<text x="1235.0" y="532.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">closed by measured counterexample</text>
+<text x="750.0" y="625.0" font-family="Inter,Arial,sans-serif" font-size="23" fill="#166534" text-anchor="middle" font-weight="700">Decision: stop retuning local default-policy knobs</text>
+<text x="750.0" y="672.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">Next contract: a new custom-kernel or graph-wide architecture</text>
+<text x="750.0" y="716.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="middle" font-weight="400">This closes one search scale, not the whole inference roadmap</text>
+</svg>

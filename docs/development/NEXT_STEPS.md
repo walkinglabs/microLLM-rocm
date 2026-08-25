@@ -77,6 +77,11 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   zero-stride GQA descriptors return backend status 6; remove candidate APIs;
 - [x] reject BF16 V with FP32 probabilities/output before timing for the same
   two descriptors; close the current vendor mixed-dtype cast track;
+- [x] publish the current local-search saturation audit: remaining cast shares are
+  2.694%/1.841%, perfect Kernel-only deletion ceilings are 1.0277x/1.0188x,
+  and six adjacent scoped tracks are closed;
+- [ ] start the next inference milestone only with a new custom-kernel/graph-wide
+  contract or a new backend/hardware matrix; do not reopen local default-policy knobs;
 - [x] populate B1 KV cache from one full-sequence prefill instead of token replay;
 - [x] support batched cached decode with batch-aware KV Storage;
 - [x] add opt-in BF16 KV Storage with FP32 accumulation, complete-logit gates and a retained

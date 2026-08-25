@@ -94,6 +94,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [63](steps/63-post-bf16-attention-norm-profile.md) | complete | 两Norm后重新profile | Kernel 8.069/14.489ms；每层cast剩一进一出 |
 | [64](steps/64-bf16-pv-output-discard.md) | complete | P×V直写BF16 | BTHD/GQA均status 6；0计时、0模型路由 |
 | [65](steps/65-bf16-value-pv-discard.md) | complete | BF16 V直入P×V | BTHD/GQA均status 6；vendor mixed-dtype路线关闭 |
+| [66](steps/66-inference-local-saturation.md) | complete | 当前推理局部饱和审计 | 免费删除cast上限1.0277×/1.0188×；升级架构尺度 |
 
 ## 为什么按这个顺序
 

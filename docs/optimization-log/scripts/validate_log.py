@@ -13532,6 +13532,36 @@ def validate_bf16_value_pv_capability(errors: list[str]) -> tuple[int, int, int]
     return 2, 0, 0
 
 
+def validate_inference_local_saturation(
+        errors: list[str]) -> tuple[int, float, float]:
+    root = REPOSITORY / (
+        "benchmarks/results/2026-08-25-inference-local-saturation")
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    qwen_share = 0.02694340417292391
+    deep_share = 0.01841102435420524
+    qwen_upper = 1.0 / (1.0 - qwen_share)
+    deep_upper = 1.0 / (1.0 - deep_share)
+    if (summary.get("schema_version") != 1 or summary.get("status") != "pass" or
+            summary.get("record_type") != "inference_local_saturation_summary" or
+            summary.get("qwen_cast_share") != qwen_share or
+            summary.get("deepseek_cast_share") != deep_share or
+            abs(summary.get("qwen_perfect_cast_deletion_upper_bound", 0.0) -
+                qwen_upper) > 1.0e-12 or
+            abs(summary.get("deepseek_perfect_cast_deletion_upper_bound", 0.0) -
+                deep_upper) > 1.0e-12 or
+            len(summary.get("consecutive_scoped_closed_tracks", [])) != 6 or
+            summary.get("local_default_policy_saturated") is not True):
+        errors.append("inference local-saturation summary changed")
+    if (check.get("profile_source") !=
+            "2026-08-25-post-bf16-attention-norm-profile" or
+            check.get("closed_track_count") != 6 or
+            check.get("mixed_dtype_vendor_routes_supported") != 0 or
+            check.get("local_default_policy_saturated") is not True):
+        errors.append("inference local-saturation verification changed")
+    return len(summary.get("consecutive_scoped_closed_tracks", [])), qwen_upper, deep_upper
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -13752,7 +13782,8 @@ def validate_assets(errors: list[str]) -> None:
                  "bf16-attention-norm-model.svg",
                  "post-bf16-attention-norm-profile.svg",
                  "bf16-pv-output-discard.svg",
-                 "bf16-value-pv-discard.svg"):
+                 "bf16-value-pv-discard.svg",
+                 "inference-local-saturation.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -14224,6 +14255,8 @@ def main() -> int:
         validate_bf16_pv_output_capability(errors)
     value_pv_cases, value_pv_supported, value_pv_timed = \
         validate_bf16_value_pv_capability(errors)
+    local_closed, local_qwen_upper, local_deep_upper = \
+        validate_inference_local_saturation(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -14651,6 +14684,8 @@ def main() -> int:
           f"{post_attention_deep_gemm:.3f} "
           f"pv_bf16={pv_output_cases}/{pv_output_supported}/{pv_output_timed} "
           f"value_bf16={value_pv_cases}/{value_pv_supported}/{value_pv_timed} "
+          f"local_saturation={local_closed}/{local_qwen_upper:.4f}/"
+          f"{local_deep_upper:.4f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

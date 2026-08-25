@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "profile_source": "2026-08-25-post-bf16-attention-norm-profile",
+  "closed_track_count": 6,
+  "remaining_casts_per_qwen_layer": 2,
+  "remaining_casts_per_deepseek_layer": 2,
+  "mixed_dtype_vendor_routes_supported": 0,
+  "local_default_policy_saturated": true
+}

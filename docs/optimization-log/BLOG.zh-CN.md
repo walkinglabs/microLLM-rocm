@@ -3909,3 +3909,14 @@ status 6，0计时、0模型路由，临时API撤回。
 剩余一进一出的vendor mixed-dtype捷径全部关闭。
 
 ![BF16 V P×V discard](assets/bf16-value-pv-discard.svg)
+
+## 260. Experiment 243：给当前局部搜索画一条边界
+
+两次保留的cast只占Qwen/DeepSeek Kernel时间2.694%/1.841%。即使免费删除，
+Kernel-only上限也只有1.0277×/1.0188×。
+
+再把相邻六条已由整模反例或能力门关闭的路线放在一起，结论不是“推理完成”，而是
+“当前默认路径的局部旋钮已经不值得继续调”。下一轮必须进入新的custom kernel、
+graph-wide融合或新后端/硬件矩阵。
+
+![Current inference local saturation](assets/inference-local-saturation.svg)
