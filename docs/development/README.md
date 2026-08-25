@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-25: Materialized-score explicit model route](2026-08-25-materialized-score-model-route.md)
 - [2026-08-25: Materialized-score operator result](../optimization-log/experiments/285-materialized-score-attention.md)
 - [2026-08-25: Materialized-score matrix infrastructure](2026-08-25-materialized-score-matrix-infrastructure.md)
 - [2026-08-25: Materialized-score exact-order cached Attention](2026-08-25-materialized-score-cached-attention.md)

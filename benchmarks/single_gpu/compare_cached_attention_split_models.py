@@ -25,6 +25,9 @@ def arguments() -> argparse.Namespace:
     parser.add_argument("--decode-tokens", type=int, default=64)
     parser.add_argument("--cache-dtype", choices=("fp32", "bf16"), default="bf16")
     parser.add_argument("--splits", type=int, default=32)
+    parser.add_argument(
+        "--candidate-policy", choices=("split", "materialized"),
+        default="split")
     parser.add_argument("--minimum-sequence", type=int, default=512)
     parser.add_argument("--warmup", type=int, default=2)
     parser.add_argument("--steps", type=int, default=5)
@@ -86,7 +89,10 @@ def read_float32(path: Path) -> list[float]:
 def command(args: argparse.Namespace, model: dict, policy: str,
             logits_path: Path) -> list[str]:
     tokens = expanded_tokens(model["inference"]["token_ids"], args.context)
-    splits = args.splits if policy == "split" else 0
+    is_candidate = policy == "split"
+    splits = (args.splits if is_candidate and
+              args.candidate_policy == "split" else 0)
+    materialized = is_candidate and args.candidate_policy == "materialized"
     return [
         str(args.binary), "--config", model["config"],
         "--weights", model["weights"],
@@ -104,12 +110,16 @@ def command(args: argparse.Namespace, model: dict, policy: str,
         "--workload", "decode", "--cache-logits-output", str(logits_path),
         "--cached-attention-splits", str(splits),
         "--cached-attention-minimum-sequence", str(args.minimum_sequence),
+        "--cached-attention-materialized", str(materialized).lower(),
     ]
 
 
 def validate_record(record: dict, args: argparse.Namespace, model: dict,
                     policy: str) -> None:
-    splits = args.splits if policy == "split" else 0
+    is_candidate = policy == "split"
+    splits = (args.splits if is_candidate and
+              args.candidate_policy == "split" else 0)
+    materialized = is_candidate and args.candidate_policy == "materialized"
     required = {
         "parameter_count": model["parameter_count"],
         "token_count": args.context,
@@ -126,6 +136,7 @@ def validate_record(record: dict, args: argparse.Namespace, model: dict,
         "kv_cache_active_tokens": args.context + args.decode_tokens,
         "cached_attention_splits": splits,
         "cached_attention_minimum_sequence": args.minimum_sequence,
+        "cached_attention_materialized_scores": materialized,
     }
     for field, expected in required.items():
         if record.get(field) != expected:
@@ -170,6 +181,7 @@ def run_policy(args: argparse.Namespace, model: dict, policy: str,
         "revision": model["revision"],
         "context": args.context,
         "policy": policy,
+        "candidate_policy": args.candidate_policy,
         "process_run": run,
         "pair_order": order,
         "complete_logit_elements": len(logits),
@@ -199,7 +211,8 @@ def compare_pair(args: argparse.Namespace, current: tuple[dict, list[float]],
         "batch": args.batch,
         "decode_tokens": args.decode_tokens,
         "cache_dtype": args.cache_dtype,
-        "splits": args.splits,
+        "candidate_policy": args.candidate_policy,
+        "splits": args.splits if args.candidate_policy == "split" else 0,
         "minimum_sequence": args.minimum_sequence,
         "process_run": run,
         "pair_order": order,
@@ -255,7 +268,8 @@ def svg(summary: dict) -> str:
         '.muted{fill:#94a3b8}</style>',
         '<text x="32" y="40" class="title">Official model · current vs split cached Attention</text>',
         f'<text x="32" y="67" class="small muted">{summary["model"]} · T{summary["context"]} · '
-        f'B{summary["batch"]} · N{summary["decode_tokens"]} · S{summary["splits"]}</text>',
+        f'B{summary["batch"]} · N{summary["decode_tokens"]} · '
+        f'{summary["candidate_policy"]}</text>',
     ]
     for index, pair in enumerate(pairs):
         y = 115 + index * 115
@@ -312,7 +326,8 @@ def main() -> int:
         "batch": args.batch,
         "decode_tokens": args.decode_tokens,
         "cache_dtype": args.cache_dtype,
-        "splits": args.splits,
+        "candidate_policy": args.candidate_policy,
+        "splits": args.splits if args.candidate_policy == "split" else 0,
         "minimum_sequence": args.minimum_sequence,
         "runs_per_policy": args.runs,
         "process_rows": len(records),

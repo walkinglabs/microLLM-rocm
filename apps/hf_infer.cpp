@@ -61,6 +61,7 @@ struct Options {
     std::int64_t attention_core_arena_minimum_sequence = 512;
     std::int64_t cached_attention_splits = 0;
     std::int64_t cached_attention_minimum_sequence = 512;
+    bool cached_attention_materialized = false;
     bool bf16_attention = false;
     bool fp8_linear = false;
     float fp8_activation_scale = 0.025F;
@@ -192,6 +193,13 @@ Options options(int argc, char** argv) {
         } else if (name == "--cached-attention-minimum-sequence") {
             result.cached_attention_minimum_sequence =
                 std::stoll(argv[index + 1]);
+        } else if (name == "--cached-attention-materialized") {
+            const std::string value = argv[index + 1];
+            if (value != "true" && value != "false") {
+                throw std::invalid_argument(
+                    "--cached-attention-materialized must be true or false");
+            }
+            result.cached_attention_materialized = value == "true";
         } else if (name == "--bf16-attention") {
             const std::string value = argv[index + 1];
             if (value != "true" && value != "false") {
@@ -485,6 +493,11 @@ Options options(int argc, char** argv) {
         result.cached_attention_minimum_sequence <= 0) {
         throw std::invalid_argument(
             "--cached-attention-splits must be 0..32 and minimum sequence positive");
+    }
+    if (result.cached_attention_materialized &&
+        result.cached_attention_splits > 0) {
+        throw std::invalid_argument(
+            "cached Attention materialized and split policies are mutually exclusive");
     }
     if (result.bf16_ffn_arena && !result.trace_output.empty()) {
         throw std::invalid_argument(
@@ -1270,6 +1283,9 @@ int main(int argc, char** argv) {
         }
         model.set_cached_attention_split_sequence(
             command.cached_attention_splits,
+            command.cached_attention_minimum_sequence);
+        model.set_cached_attention_materialized_scores(
+            command.cached_attention_materialized,
             command.cached_attention_minimum_sequence);
         if (command.fp8_linear) {
             fp8_report = model.prepare_fp8_inference_weights();
@@ -2221,6 +2237,11 @@ int main(int argc, char** argv) {
                   << model.cached_attention_split_sequence_splits()
                   << ",\"cached_attention_minimum_sequence\":"
                   << model.cached_attention_split_minimum_sequence()
+                  << ",\"cached_attention_materialized_scores\":"
+                  << (model.cached_attention_materialized_scores_enabled()
+                          ? "true" : "false")
+                  << ",\"cached_attention_materialized_minimum_sequence\":"
+                  << model.cached_attention_materialized_minimum_sequence()
                   << ",\"bf16_attention_converted_tensors\":"
                   << bf16_attention_report.converted_tensors
                   << ",\"fp8_converted_tensors\":"

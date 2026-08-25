@@ -272,6 +272,7 @@
     "attention_core_arena_enabled": "tests/model/model_test.cpp",
     "attention_core_arena_stats": "tests/model/model_test.cpp",
     "set_cached_attention_split_sequence": "tests/model/model_test.cpp",
+    "set_cached_attention_materialized_scores": "tests/model/model_test.cpp",
     "prepare_bf16_training_mirrors": "tests/model/model_test.cpp",
     "bf16_training_mirrors_prepared": "tests/model/model_test.cpp"
   },

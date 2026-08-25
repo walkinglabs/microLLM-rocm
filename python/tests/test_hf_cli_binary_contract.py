@@ -46,6 +46,8 @@ def main() -> int:
         b"--cached-attention-splits",
         b"--cached-attention-minimum-sequence",
         b"cached_attention_splits",
+        b"--cached-attention-materialized",
+        b"cached_attention_materialized_scores",
         b"--bf16-grouped-gate-up-algorithm-index",
         b"bf16_grouped_gate_up_dispatches",
         b"prefill logits shape does not match batch export contract",
@@ -86,6 +88,16 @@ def main() -> int:
                 rejected_split.stderr:
             raise RuntimeError(
                 "hf_infer accepted an invalid cached Attention split count")
+        rejected_conflict = subprocess.run([
+            str(args.binary), "--config", str(missing),
+            "--weights", str(missing), "--tokens", "1",
+            "--device", "cpu", "--cached-attention-splits", "2",
+            "--cached-attention-materialized", "true",
+        ], text=True, capture_output=True, check=False)
+        if rejected_conflict.returncode == 0 or \
+                "mutually exclusive" not in rejected_conflict.stderr:
+            raise RuntimeError(
+                "hf_infer accepted conflicting cached Attention policies")
     print("hf_infer binary contract: pass")
     return 0
 

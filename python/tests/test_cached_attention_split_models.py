@@ -25,6 +25,7 @@ n = int(a["--new-tokens"])
 steps = int(a["--steps"])
 warmup = int(a["--warmup"])
 splits = int(a["--cached-attention-splits"])
+materialized = a["--cached-attention-materialized"] == "true"
 minimum = int(a["--cached-attention-minimum-sequence"])
 tokens = [int(value) for value in a["--tokens"].split(",")]
 values = [float(index) / 32.0 + (1.0e-6 if splits else 0.0)
@@ -50,6 +51,7 @@ record = {
     "kv_cache_active_bytes": 4096,
     "cached_attention_splits": splits,
     "cached_attention_minimum_sequence": minimum,
+    "cached_attention_materialized_scores": materialized,
     "measured_tokens": b * n * steps,
     "measured_forward_steps": b * n * steps,
     "generated_tokens": list(range(n)),
@@ -100,6 +102,7 @@ def main() -> int:
         pairs = (output / "pairs.jsonl").read_text(encoding="utf-8").splitlines()
         chart = (output / "comparison.svg").read_text(encoding="utf-8")
         assert summary["status"] == "pass"
+        assert summary["candidate_policy"] == "split"
         assert summary["process_rows"] == 6
         assert summary["pair_rows"] == 3
         assert summary["median_throughput_speedup"] == 1.5

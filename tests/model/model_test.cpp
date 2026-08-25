@@ -760,12 +760,22 @@ TEST(TransformerModelTest, CachedLogitsMatchFullPrefixForMhaAndGqa) {
         TransformerModel model(config, 41);
         EXPECT_EQ(model.cached_attention_split_sequence_splits(), 0);
         EXPECT_EQ(model.cached_attention_split_minimum_sequence(), 512);
+        EXPECT_FALSE(model.cached_attention_materialized_scores_enabled());
+        EXPECT_EQ(
+            model.cached_attention_materialized_minimum_sequence(), 512);
         EXPECT_THROW(model.set_cached_attention_split_sequence(-1, 1),
                      std::invalid_argument);
         EXPECT_THROW(model.set_cached_attention_split_sequence(33, 1),
                      std::invalid_argument);
         EXPECT_THROW(model.set_cached_attention_split_sequence(2, 0),
                      std::invalid_argument);
+        EXPECT_THROW(model.set_cached_attention_materialized_scores(true, 0),
+                     std::invalid_argument);
+        model.set_cached_attention_materialized_scores(true, 1);
+        EXPECT_TRUE(model.cached_attention_materialized_scores_enabled());
+        EXPECT_THROW(model.set_cached_attention_split_sequence(2, 1),
+                     std::logic_error);
+        model.set_cached_attention_materialized_scores(false, 1);
         model.set_cached_attention_split_sequence(2, 1);
         EXPECT_EQ(model.cached_attention_split_sequence_splits(), 2);
         EXPECT_EQ(model.cached_attention_split_minimum_sequence(), 1);

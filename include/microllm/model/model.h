@@ -187,6 +187,12 @@ public:
         const noexcept;
     [[nodiscard]] std::int64_t cached_attention_split_minimum_sequence()
         const noexcept;
+    void set_cached_attention_materialized_scores(
+        bool enabled, std::int64_t minimum_sequence = 512);
+    [[nodiscard]] bool cached_attention_materialized_scores_enabled()
+        const noexcept;
+    [[nodiscard]] std::int64_t cached_attention_materialized_minimum_sequence()
+        const noexcept;
     // One-way inference preparation for every Linear. FP32 Embedding/Norm and
     // a tied output head remain unchanged. Weight scale is either fixed or
     // computed independently from each Linear Tensor; activation scale remains fixed.
