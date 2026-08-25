@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-25: Materialized-score matrix infrastructure](2026-08-25-materialized-score-matrix-infrastructure.md)
 - [2026-08-25: Materialized-score exact-order cached Attention](2026-08-25-materialized-score-cached-attention.md)
 - [2026-08-25: Split-sequence model rejection](../optimization-log/experiments/284-cached-attention-split-model-reject.md)
 - [2026-08-25: Split-sequence official model-gate infrastructure](2026-08-25-split-sequence-model-gate-infrastructure.md)

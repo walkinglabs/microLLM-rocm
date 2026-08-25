@@ -24,6 +24,7 @@ struct Options {
     std::int64_t sequence = 512;
     std::int64_t width = 128;
     std::int64_t splits = 0;
+    bool materialized = false;
     std::string cache_dtype = "bf16";
     std::string order = "forward";
     int warmup = 3;
@@ -37,6 +38,13 @@ std::int64_t integer(const char* value, const char* name) {
         throw std::invalid_argument(std::string("invalid ") + name);
     }
     return result;
+}
+
+bool boolean(const char* value, const char* name) {
+    const std::string_view text(value);
+    if (text == "true") return true;
+    if (text == "false") return false;
+    throw std::invalid_argument(std::string(name) + " must be true or false");
 }
 
 Options parse(int argc, char** argv) {
@@ -58,6 +66,8 @@ Options parse(int argc, char** argv) {
             result.width = integer(argv[index + 1], "width");
         } else if (name == "--splits") {
             result.splits = integer(argv[index + 1], "splits");
+        } else if (name == "--materialized") {
+            result.materialized = boolean(argv[index + 1], "materialized");
         } else if (name == "--cache-dtype") {
             result.cache_dtype = argv[index + 1];
         } else if (name == "--order") {
@@ -258,6 +268,12 @@ int main(int argc, char** argv) {
                 device_query, device_key, device_value, repeats, scale,
                 options.splits);
         }
+        microllm::Tensor device_materialized;
+        if (options.materialized) {
+            device_materialized =
+                microllm::ops::cached_gqa_attention_materialized_scores(
+                    device_query, device_key, device_value, repeats, scale);
+        }
         microllm::runtime::synchronize(device);
 
         const auto score_error = compare(
@@ -275,6 +291,15 @@ int main(int argc, char** argv) {
             split_error = compare(
                 device_split.to_vector(), expected_context_values);
         }
+        Error materialized_error;
+        bool materialized_bitwise_equal = true;
+        if (options.materialized) {
+            const auto materialized_values = device_materialized.to_vector();
+            const auto fused_values = device_fused.to_vector();
+            materialized_error = compare(
+                materialized_values, expected_context_values);
+            materialized_bitwise_equal = materialized_values == fused_values;
+        }
         const auto accuracy_passed =
             score_error.finite && probability_error.finite &&
             context_error.finite && pipeline_error.finite && fused_error.finite &&
@@ -286,7 +311,9 @@ int main(int argc, char** argv) {
             fused_error.maximum <= 8.0e-4F && fused_error.rms <= 8.0e-5 &&
             (options.splits == 0 ||
              (split_error.finite && split_error.maximum <= 8.0e-4F &&
-              split_error.rms <= 8.0e-5));
+              split_error.rms <= 8.0e-5)) &&
+            (!options.materialized ||
+             (materialized_error.finite && materialized_bitwise_equal));
         if (!accuracy_passed) {
             throw std::runtime_error(
                 "cached Attention stage complete-output gate failed");
@@ -319,6 +346,11 @@ int main(int argc, char** argv) {
                 device_query, device_key, device_value, repeats, scale,
                 options.splits);
         };
+        const auto materialized_operation = [&] {
+            device_materialized =
+                microllm::ops::cached_gqa_attention_materialized_scores(
+                    device_query, device_key, device_value, repeats, scale);
+        };
 
         Timing score_timing;
         Timing softmax_timing;
@@ -326,6 +358,7 @@ int main(int argc, char** argv) {
         Timing pipeline_timing;
         Timing fused_timing;
         Timing split_timing;
+        Timing materialized_timing;
         microllm::runtime::reset_transfer_stats();
         if (options.order == "forward") {
             score_timing = measure(score_operation, options, device);
@@ -336,7 +369,15 @@ int main(int argc, char** argv) {
             if (options.splits > 0) {
                 split_timing = measure(split_operation, options, device);
             }
+            if (options.materialized) {
+                materialized_timing = measure(
+                    materialized_operation, options, device);
+            }
         } else {
+            if (options.materialized) {
+                materialized_timing = measure(
+                    materialized_operation, options, device);
+            }
             if (options.splits > 0) {
                 split_timing = measure(split_operation, options, device);
             }
@@ -358,7 +399,9 @@ int main(int argc, char** argv) {
             pipeline_timing.backend_allocation_calls_per_invocation != 0.0 ||
             fused_timing.backend_allocation_calls_per_invocation != 0.0 ||
             (options.splits > 0 &&
-             split_timing.backend_allocation_calls_per_invocation != 0.0)) {
+             split_timing.backend_allocation_calls_per_invocation != 0.0) ||
+            (options.materialized &&
+             materialized_timing.backend_allocation_calls_per_invocation != 0.0)) {
             throw std::runtime_error(
                 "warm stage measurement reached the backend allocator");
         }
@@ -414,6 +457,16 @@ int main(int argc, char** argv) {
                       << ",\"split_max_error\":" << split_error.maximum
                       << ",\"split_rms_error\":" << split_error.rms;
         }
+        if (options.materialized) {
+            std::cout << ",\"materialized_score_bytes\":"
+                      << score_elements * sizeof(float)
+                      << ",\"materialized_max_error\":"
+                      << materialized_error.maximum
+                      << ",\"materialized_rms_error\":"
+                      << materialized_error.rms
+                      << ",\"materialized_bitwise_equal_current\":"
+                      << (materialized_bitwise_equal ? "true" : "false");
+        }
         print_timing("score", score_timing);
         print_timing("softmax", softmax_timing);
         print_timing("context", context_timing);
@@ -421,6 +474,9 @@ int main(int argc, char** argv) {
         print_timing("fused", fused_timing);
         if (options.splits > 0) {
             print_timing("split", split_timing);
+        }
+        if (options.materialized) {
+            print_timing("materialized", materialized_timing);
         }
         std::cout << ",\"stage_sum_event_ms_p50\":" << stage_sum
                   << ",\"stage_sum_over_pipeline\":"
@@ -431,6 +487,11 @@ int main(int argc, char** argv) {
         if (options.splits > 0) {
             std::cout << ",\"split_speedup_over_fused\":"
                       << fused_timing.event_p50 / split_timing.event_p50;
+        }
+        if (options.materialized) {
+            std::cout << ",\"materialized_speedup_over_fused\":"
+                      << fused_timing.event_p50 /
+                             materialized_timing.event_p50;
         }
         std::cout << ",\"host_to_device_calls\":"
                   << transfers.host_to_device_calls

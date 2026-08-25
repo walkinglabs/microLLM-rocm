@@ -13,6 +13,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 RUNNER = ROOT / "benchmarks/single_gpu/cached_attention_stage_matrix.py"
 SPLIT_RUNNER = ROOT / "benchmarks/single_gpu/cached_attention_split_matrix.py"
+MATERIALIZED_RUNNER = (
+    ROOT / "benchmarks/single_gpu/cached_attention_materialized_matrix.py")
 
 
 FAKE = r'''#!/usr/bin/env python3
@@ -36,6 +38,7 @@ times = {
     "context": 0.030 * factor,
     "pipeline": 0.065 * factor,
     "fused": 0.040 * factor,
+    "materialized": 0.030 * factor,
 }
 record = {
     "schema_version": 1,
@@ -62,6 +65,11 @@ record = {
     "stage_sum_event_ms_p50": sum(times[x] for x in ("score", "softmax", "context")),
     "stage_sum_over_pipeline": sum(times[x] for x in ("score", "softmax", "context")) / times["pipeline"],
     "fused_speedup_over_pipeline": times["pipeline"] / times["fused"],
+    "materialized_score_bytes": b * h * t * 4,
+    "materialized_max_error": 1.0e-8,
+    "materialized_rms_error": 1.0e-8,
+    "materialized_bitwise_equal_current": True,
+    "materialized_speedup_over_fused": times["fused"] / times["materialized"],
 }
 for field in (
     "score_max_error", "score_rms_error",
@@ -76,9 +84,10 @@ for stage, value in times.items():
     record[f"{stage}_event_ms_p95"] = value * 1.1
     record[f"{stage}_wall_ms_p50"] = value * 1.2
     record[f"{stage}_wall_ms_p95"] = value * 1.3
-    record[f"{stage}_allocation_calls_per_invocation"] = 3 if stage == "pipeline" else 1
+    allocations = 3 if stage == "pipeline" else 2 if stage == "materialized" else 1
+    record[f"{stage}_allocation_calls_per_invocation"] = allocations
     record[f"{stage}_backend_allocation_calls_per_invocation"] = 0
-    record[f"{stage}_cache_reuse_calls_per_invocation"] = 3 if stage == "pipeline" else 1
+    record[f"{stage}_cache_reuse_calls_per_invocation"] = allocations
 print(json.dumps(record))
 '''
 
@@ -219,6 +228,34 @@ def main() -> int:
         assert len(split_raw) == 12
         assert "Split-sequence cached Attention search" in split_chart
         assert "best S4" in split_chart
+
+        materialized_output = root / "materialized-matrix"
+        materialized_completed = subprocess.run([
+            sys.executable, str(MATERIALIZED_RUNNER),
+            "--benchmark", str(fake),
+            "--output-directory", str(materialized_output),
+            "--sequences", "32,64", "--batches", "1,2",
+            "--cache-dtypes", "fp32,bf16", "--runs", "2",
+            "--warmup", "3", "--repetitions", "4",
+        ], text=True, capture_output=True, check=False)
+        if materialized_completed.returncode != 0:
+            raise AssertionError(
+                materialized_completed.stdout + materialized_completed.stderr)
+        materialized_summary = json.loads(
+            (materialized_output / "summary.json").read_text(encoding="utf-8"))
+        materialized_raw = (materialized_output / "raw.jsonl").read_text(
+            encoding="utf-8").splitlines()
+        materialized_chart = (materialized_output / "comparison.svg").read_text(
+            encoding="utf-8")
+        assert materialized_summary["matrix_complete"] is True
+        assert materialized_summary["process_rows"] == 16
+        assert materialized_summary["case_count"] == 8
+        assert materialized_summary["all_bitwise_equal_current"] is True
+        assert materialized_summary["all_cases_pass_operator_gate"] is True
+        assert abs(materialized_summary["minimum_event_speedup"] - 4 / 3) < 1e-12
+        assert len(materialized_raw) == 16
+        assert "Exact-order materialized-score cached Attention" in \
+            materialized_chart
     print("cached Attention stage matrix contract: pass")
     return 0
 
