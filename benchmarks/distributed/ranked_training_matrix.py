@@ -28,10 +28,12 @@ def options() -> argparse.Namespace:
     parser.add_argument("--model", choices=("tiny", "model-s"), default="tiny")
     parser.add_argument("--compare-binary", type=Path)
     parser.add_argument("--bucket-bytes", type=int, default=4096)
+    parser.add_argument("--steady-skip-steps", type=int, default=0)
     args = parser.parse_args()
     if (not args.launcher.is_file() or not args.binary.is_file() or
             args.runs <= 0 or args.steps <= 0 or args.timeout_seconds <= 0 or
-            args.bucket_bytes < 4):
+            args.bucket_bytes < 4 or args.steady_skip_steps < 0 or
+            args.steady_skip_steps >= args.steps):
         parser.error("ranked training matrix inputs are invalid")
     if args.compare_binary is not None and not args.compare_binary.is_file():
         parser.error("--compare-binary is not a file")
@@ -111,6 +113,29 @@ def main() -> int:
                     value.get("parameter_files_retained") is not False or
                     value.get("peer_processes_terminated") != 0):
                 raise RuntimeError("ranked training result contract changed")
+            step_fields = (
+                "maximum_rank_step_training_ms",
+                "maximum_rank_step_forward_backward_ms",
+                "maximum_rank_step_reducer_ms",
+                "maximum_rank_step_optimizer_ms",
+                "maximum_rank_step_collectives",
+                "maximum_rank_step_buckets",
+                "maximum_rank_step_pack_copies",
+                "maximum_rank_step_unpack_copies",
+                "maximum_rank_step_reducer_allocation_calls",
+                "maximum_rank_step_reducer_backend_allocation_calls",
+                "maximum_rank_step_reducer_deallocation_calls",
+                "maximum_rank_step_reducer_total_allocated_bytes",
+            )
+            if any(not isinstance(value.get(field), list) or
+                   len(value[field]) != args.steps for field in step_fields):
+                raise RuntimeError("ranked per-step result contract changed")
+            expected_step_collectives = (
+                parameter_tensors if policy == "per-parameter" else
+                expected_collectives // args.steps)
+            if any(count != expected_step_collectives for count in
+                   value["maximum_rank_step_collectives"]):
+                raise RuntimeError("ranked per-step collective count changed")
             value["process_run"] = process_run
             raw.append(value)
     failure_command = [
@@ -134,6 +159,47 @@ def main() -> int:
     policies = {}
     for policy in POLICIES:
         rows = [row for row in raw if row["reducer"] == policy]
+        cold_reducer = [row["maximum_rank_step_reducer_ms"][0]
+                        for row in rows]
+        steady_reducer = [value for row in rows
+                          for value in row["maximum_rank_step_reducer_ms"]
+                          [args.steady_skip_steps:]]
+        steady_training = [value for row in rows
+                           for value in row["maximum_rank_step_training_ms"]
+                           [args.steady_skip_steps:]]
+        steady_forward_backward = [
+            value for row in rows
+            for value in row["maximum_rank_step_forward_backward_ms"]
+            [args.steady_skip_steps:]]
+        steady_optimizer = [value for row in rows
+                            for value in row["maximum_rank_step_optimizer_ms"]
+                            [args.steady_skip_steps:]]
+        steady_backend_allocations = [
+            value for row in rows
+            for value in row[
+                "maximum_rank_step_reducer_backend_allocation_calls"]
+            [args.steady_skip_steps:]]
+        steady_allocation_calls = [
+            value for row in rows
+            for value in row["maximum_rank_step_reducer_allocation_calls"]
+            [args.steady_skip_steps:]]
+        steady_allocated_bytes = [
+            value for row in rows
+            for value in row["maximum_rank_step_reducer_total_allocated_bytes"]
+            [args.steady_skip_steps:]]
+        steady_pack_copies = [
+            value for row in rows
+            for value in row["maximum_rank_step_pack_copies"]
+            [args.steady_skip_steps:]]
+        steady_unpack_copies = [
+            value for row in rows
+            for value in row["maximum_rank_step_unpack_copies"]
+            [args.steady_skip_steps:]]
+        steady_deallocation_calls = [
+            value for row in rows
+            for value in row["maximum_rank_step_reducer_deallocation_calls"]
+            [args.steady_skip_steps:]]
+        reducer_mean = statistics.mean(steady_reducer)
         policies[policy] = {
             "runs": len(rows),
             "collectives_per_rank": rows[0]["collectives_per_rank"],
@@ -148,6 +214,36 @@ def main() -> int:
                 row["maximum_rank_reducer_ms"] for row in rows),
             "median_maximum_rank_optimizer_ms": statistics.median(
                 row["maximum_rank_optimizer_ms"] for row in rows),
+            "cold_reducer_samples": cold_reducer,
+            "median_cold_maximum_rank_reducer_ms": statistics.median(
+                cold_reducer),
+            "steady_step_samples": len(steady_reducer),
+            "median_steady_maximum_rank_reducer_ms": statistics.median(
+                steady_reducer),
+            "minimum_steady_maximum_rank_reducer_ms": min(steady_reducer),
+            "maximum_steady_maximum_rank_reducer_ms": max(steady_reducer),
+            "steady_maximum_rank_reducer_cv": (
+                statistics.pstdev(steady_reducer) / reducer_mean),
+            "median_steady_maximum_rank_training_ms": statistics.median(
+                steady_training),
+            "median_steady_maximum_rank_forward_backward_ms": statistics.median(
+                steady_forward_backward),
+            "median_steady_maximum_rank_optimizer_ms": statistics.median(
+                steady_optimizer),
+            "median_steady_reducer_allocation_calls": statistics.median(
+                steady_allocation_calls),
+            "median_steady_reducer_backend_allocation_calls": statistics.median(
+                steady_backend_allocations),
+            "maximum_steady_reducer_backend_allocation_calls": max(
+                steady_backend_allocations),
+            "median_steady_reducer_total_allocated_bytes": statistics.median(
+                steady_allocated_bytes),
+            "median_steady_pack_copies": statistics.median(
+                steady_pack_copies),
+            "median_steady_unpack_copies": statistics.median(
+                steady_unpack_copies),
+            "median_steady_reducer_deallocation_calls": statistics.median(
+                steady_deallocation_calls),
             "maximum_rank_difference": max(
                 row["maximum_rank_difference"] for row in rows),
             "maximum_reference_difference": max(
@@ -166,6 +262,8 @@ def main() -> int:
         "policy_runs": len(raw),
         "rank_processes": len(raw) * 2,
         "steps_per_rank": args.steps,
+        "steady_skip_steps": args.steady_skip_steps,
+        "steady_steps_per_run": args.steps - args.steady_skip_steps,
         "parameter_tensors": 57 if args.model == "model-s" else 12,
         "parameter_values": 15586176 if args.model == "model-s" else 728,
         "maximum_rank_difference": max(
@@ -189,10 +287,21 @@ def main() -> int:
         "bucket_reducer_speedup": (
             policies["per-parameter"]["median_maximum_rank_reducer_ms"] /
             policies["bucket"]["median_maximum_rank_reducer_ms"]),
+        "bucket_cold_reducer_speedup": (
+            policies["per-parameter"]["median_cold_maximum_rank_reducer_ms"] /
+            policies["bucket"]["median_cold_maximum_rank_reducer_ms"]),
+        "bucket_steady_reducer_speedup": (
+            policies["per-parameter"]["median_steady_maximum_rank_reducer_ms"] /
+            policies["bucket"]["median_steady_maximum_rank_reducer_ms"]),
+        "bucket_steady_training_speedup": (
+            policies["per-parameter"]["median_steady_maximum_rank_training_ms"] /
+            policies["bucket"]["median_steady_maximum_rank_training_ms"]),
         "peer_failure_detected": True,
         "peer_processes_terminated": failure["peer_processes_terminated"],
         "failure_returncodes": failure["returncodes"],
-        "decision": ("admit measured ranked Model-S bucket baseline"
+        "decision": ("profile ranked Model-S cold and steady reducer"
+                     if args.model == "model-s" and args.steady_skip_steps > 0 else
+                     "admit measured ranked Model-S bucket baseline"
                      if args.model == "model-s" else
                      "admit one-process-per-GPU ready-bucket migration"),
     }

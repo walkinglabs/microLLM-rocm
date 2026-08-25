@@ -272,6 +272,43 @@ def main() -> int:
            rank["optimizer_ms"]
            for rank in ranks):
         raise RuntimeError("rank phase timings do not form a complete interval")
+    step_timing_fields = ("step_training_ms", "step_forward_backward_ms",
+                          "step_reducer_ms", "step_optimizer_ms")
+    step_count_fields = ("step_collectives", "step_buckets",
+                         "step_pack_copies", "step_unpack_copies",
+                         "step_reducer_allocation_calls",
+                         "step_reducer_backend_allocation_calls",
+                         "step_reducer_deallocation_calls",
+                         "step_reducer_total_allocated_bytes")
+    if any(not isinstance(rank.get(field), list) or
+           len(rank[field]) != args.steps
+           for rank in ranks for field in
+           (*step_timing_fields, *step_count_fields)):
+        raise RuntimeError("rank per-step record count changed")
+    if any(not math.isfinite(value) or value < 0.0
+           for rank in ranks for field in step_timing_fields
+           for value in rank[field]):
+        raise RuntimeError("rank per-step timing is invalid")
+    if any(rank["step_training_ms"][step] <= 0.0 or
+           rank["step_forward_backward_ms"][step] <= 0.0 or
+           rank["step_reducer_ms"][step] <= 0.0 or
+           rank["step_optimizer_ms"][step] <= 0.0 or
+           rank["step_training_ms"][step] + 1.0e-6 <
+           rank["step_forward_backward_ms"][step] +
+           rank["step_reducer_ms"][step] +
+           rank["step_optimizer_ms"][step]
+           for rank in ranks for step in range(args.steps)):
+        raise RuntimeError("rank per-step timings do not form a complete interval")
+    if any(not isinstance(value, int) or value < 0
+           for rank in ranks for field in step_count_fields
+           for value in rank[field]):
+        raise RuntimeError("rank per-step reducer counters are invalid")
+    if any(sum(rank["step_collectives"]) != rank["collectives"] or
+           sum(rank["step_buckets"]) != rank["buckets"] or
+           sum(rank["step_pack_copies"]) != rank["pack_copies"] or
+           sum(rank["step_unpack_copies"]) != rank["unpack_copies"]
+           for rank in ranks):
+        raise RuntimeError("rank per-step reducer totals changed")
     loss_difference = max(
         abs(sum(rank["losses"][step] for rank in ranks) / len(ranks) -
             reference["losses"][step])
@@ -318,6 +355,42 @@ def main() -> int:
         "rank_optimizer_ms": [rank["optimizer_ms"] for rank in ranks],
         "maximum_rank_optimizer_ms": max(
             rank["optimizer_ms"] for rank in ranks),
+        "maximum_rank_step_training_ms": [
+            max(rank["step_training_ms"][step] for rank in ranks)
+            for step in range(args.steps)],
+        "maximum_rank_step_forward_backward_ms": [
+            max(rank["step_forward_backward_ms"][step] for rank in ranks)
+            for step in range(args.steps)],
+        "maximum_rank_step_reducer_ms": [
+            max(rank["step_reducer_ms"][step] for rank in ranks)
+            for step in range(args.steps)],
+        "maximum_rank_step_optimizer_ms": [
+            max(rank["step_optimizer_ms"][step] for rank in ranks)
+            for step in range(args.steps)],
+        "maximum_rank_step_collectives": [
+            max(rank["step_collectives"][step] for rank in ranks)
+            for step in range(args.steps)],
+        "maximum_rank_step_buckets": [
+            max(rank["step_buckets"][step] for rank in ranks)
+            for step in range(args.steps)],
+        "maximum_rank_step_pack_copies": [
+            max(rank["step_pack_copies"][step] for rank in ranks)
+            for step in range(args.steps)],
+        "maximum_rank_step_unpack_copies": [
+            max(rank["step_unpack_copies"][step] for rank in ranks)
+            for step in range(args.steps)],
+        "maximum_rank_step_reducer_allocation_calls": [
+            max(rank["step_reducer_allocation_calls"][step]
+                for rank in ranks) for step in range(args.steps)],
+        "maximum_rank_step_reducer_backend_allocation_calls": [
+            max(rank["step_reducer_backend_allocation_calls"][step]
+                for rank in ranks) for step in range(args.steps)],
+        "maximum_rank_step_reducer_deallocation_calls": [
+            max(rank["step_reducer_deallocation_calls"][step]
+                for rank in ranks) for step in range(args.steps)],
+        "maximum_rank_step_reducer_total_allocated_bytes": [
+            max(rank["step_reducer_total_allocated_bytes"][step]
+                for rank in ranks) for step in range(args.steps)],
         "parameter_files_retained": False,
         "peer_processes_terminated": terminated,
         "collectives_per_rank": expected_collectives,

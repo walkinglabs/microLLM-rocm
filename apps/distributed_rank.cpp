@@ -15,6 +15,7 @@
 #include <microllm/model/model.h>
 #include <microllm/multi_gpu/communicator.h>
 #include <microllm/multi_gpu/gradient_bucket.h>
+#include <microllm/runtime/memory.h>
 #include <microllm/runtime/runtime.h>
 #include <microllm/training/optimizer.h>
 
@@ -203,7 +204,8 @@ microllm::multi_gpu::CommunicatorId wait_for_id(
     throw std::runtime_error("timed out waiting for communicator ID file");
 }
 
-void write_float_array(const std::vector<float>& values) {
+template <typename T>
+void write_number_array(const std::vector<T>& values) {
     std::cout << '[';
     for (std::size_t index = 0; index < values.size(); ++index) {
         if (index != 0) std::cout << ',';
@@ -217,6 +219,14 @@ struct ReducerStats {
     std::size_t buckets = 0;
     std::size_t pack_copies = 0;
     std::size_t unpack_copies = 0;
+    std::vector<std::size_t> step_collectives;
+    std::vector<std::size_t> step_buckets;
+    std::vector<std::size_t> step_pack_copies;
+    std::vector<std::size_t> step_unpack_copies;
+    std::vector<std::size_t> step_allocation_calls;
+    std::vector<std::size_t> step_backend_allocation_calls;
+    std::vector<std::size_t> step_deallocation_calls;
+    std::vector<std::size_t> step_total_allocated_bytes;
 };
 
 struct PhaseTimings {
@@ -224,12 +234,23 @@ struct PhaseTimings {
     double forward_backward_ms = 0.0;
     double reducer_ms = 0.0;
     double optimizer_ms = 0.0;
+    std::vector<double> step_training_ms;
+    std::vector<double> step_forward_backward_ms;
+    std::vector<double> step_reducer_ms;
+    std::vector<double> step_optimizer_ms;
 };
 
 using SteadyClock = std::chrono::steady_clock;
 
 double elapsed_ms(SteadyClock::time_point begin, SteadyClock::time_point end) {
     return std::chrono::duration<double, std::milli>(end - begin).count();
+}
+
+std::size_t counter_delta(std::size_t after, std::size_t before) {
+    if (after < before) {
+        throw std::runtime_error("allocation counter moved backwards");
+    }
+    return after - before;
 }
 
 void write_result(const char* mode, int rank,
@@ -253,8 +274,32 @@ void write_result(const char* mode, int rank,
               << timings.forward_backward_ms
               << ",\"reducer_ms\":" << timings.reducer_ms
               << ",\"optimizer_ms\":" << timings.optimizer_ms
-              << ",\"losses\":";
-    write_float_array(losses);
+              << ",\"step_training_ms\":";
+    write_number_array(timings.step_training_ms);
+    std::cout << ",\"step_forward_backward_ms\":";
+    write_number_array(timings.step_forward_backward_ms);
+    std::cout << ",\"step_reducer_ms\":";
+    write_number_array(timings.step_reducer_ms);
+    std::cout << ",\"step_optimizer_ms\":";
+    write_number_array(timings.step_optimizer_ms);
+    std::cout << ",\"step_collectives\":";
+    write_number_array(reducer_stats.step_collectives);
+    std::cout << ",\"step_buckets\":";
+    write_number_array(reducer_stats.step_buckets);
+    std::cout << ",\"step_pack_copies\":";
+    write_number_array(reducer_stats.step_pack_copies);
+    std::cout << ",\"step_unpack_copies\":";
+    write_number_array(reducer_stats.step_unpack_copies);
+    std::cout << ",\"step_reducer_allocation_calls\":";
+    write_number_array(reducer_stats.step_allocation_calls);
+    std::cout << ",\"step_reducer_backend_allocation_calls\":";
+    write_number_array(reducer_stats.step_backend_allocation_calls);
+    std::cout << ",\"step_reducer_deallocation_calls\":";
+    write_number_array(reducer_stats.step_deallocation_calls);
+    std::cout << ",\"step_reducer_total_allocated_bytes\":";
+    write_number_array(reducer_stats.step_total_allocated_bytes);
+    std::cout << ",\"losses\":";
+    write_number_array(losses);
     std::cout << ",\"parameter_names\":[";
     const auto named = model.named_parameters();
     for (std::size_t index = 0; index < named.size(); ++index) {
@@ -267,7 +312,7 @@ void write_result(const char* mode, int rank,
         std::cout << ",\"parameters\":[";
         for (std::size_t index = 0; index < named.size(); ++index) {
             if (index != 0) std::cout << ',';
-            write_float_array(named[index].second->data().to_vector());
+            write_number_array(named[index].second->data().to_vector());
         }
         std::cout << ']';
     }
@@ -283,18 +328,26 @@ void run_reference(const Options& options) {
     PhaseTimings timings;
     const auto training_begin = SteadyClock::now();
     for (std::uint64_t step = 0; step < options.steps; ++step) {
+        const auto step_begin = SteadyClock::now();
         const auto forward_backward_begin = SteadyClock::now();
         optimizer.zero_grad();
         const auto loss = model.loss(batch.inputs, batch.targets);
         losses.push_back(loss.data().to_vector()[0]);
         loss.backward();
         const auto forward_backward_end = SteadyClock::now();
-        timings.forward_backward_ms += elapsed_ms(
+        const auto forward_backward_elapsed = elapsed_ms(
             forward_backward_begin, forward_backward_end);
+        timings.forward_backward_ms += forward_backward_elapsed;
+        timings.step_forward_backward_ms.push_back(forward_backward_elapsed);
+        timings.step_reducer_ms.push_back(0.0);
         const auto optimizer_begin = SteadyClock::now();
         optimizer.step();
-        timings.optimizer_ms += elapsed_ms(
+        const auto optimizer_elapsed = elapsed_ms(
             optimizer_begin, SteadyClock::now());
+        timings.optimizer_ms += optimizer_elapsed;
+        timings.step_optimizer_ms.push_back(optimizer_elapsed);
+        timings.step_training_ms.push_back(
+            elapsed_ms(step_begin, SteadyClock::now()));
     }
     timings.training_ms = elapsed_ms(training_begin, SteadyClock::now());
     if (!options.parameter_file.empty()) {
@@ -326,15 +379,24 @@ void run_rank(const Options& options) {
     microllm::runtime::synchronize(communicator.device());
     const auto training_begin = SteadyClock::now();
     for (std::uint64_t step = 0; step < options.steps; ++step) {
+        const auto step_begin = SteadyClock::now();
         const auto forward_backward_begin = SteadyClock::now();
         optimizer.zero_grad();
         const auto loss = model.loss(batch.inputs, batch.targets);
         losses.push_back(loss.data().to_vector()[0]);
         loss.backward();
         microllm::runtime::synchronize(communicator.device());
-        timings.forward_backward_ms += elapsed_ms(
+        const auto forward_backward_elapsed = elapsed_ms(
             forward_backward_begin, SteadyClock::now());
+        timings.forward_backward_ms += forward_backward_elapsed;
+        timings.step_forward_backward_ms.push_back(forward_backward_elapsed);
+        const auto allocation_before =
+            microllm::runtime::allocation_stats(communicator.device());
         const auto reducer_begin = SteadyClock::now();
+        std::size_t step_collectives = 0;
+        std::size_t step_buckets = 0;
+        std::size_t step_pack_copies = 0;
+        std::size_t step_unpack_copies = 0;
         if (options.reducer == "bucket") {
             const auto buckets = microllm::multi_gpu::all_reduce_rank_gradients(
                 communicator, model.parameters(), options.bucket_bytes);
@@ -342,20 +404,50 @@ void run_rank(const Options& options) {
             reducer_stats.buckets += buckets.bucket_count;
             reducer_stats.pack_copies += buckets.pack_copy_calls;
             reducer_stats.unpack_copies += buckets.unpack_copy_calls;
+            step_collectives = buckets.bucket_count;
+            step_buckets = buckets.bucket_count;
+            step_pack_copies = buckets.pack_copy_calls;
+            step_unpack_copies = buckets.unpack_copy_calls;
         } else {
             for (auto* parameter : model.parameters()) {
                 auto gradient = parameter->grad();
                 communicator.enqueue_all_reduce_average_in_place(gradient);
                 ++reducer_stats.collectives;
+                ++step_collectives;
             }
             communicator.synchronize();
         }
-        timings.reducer_ms += elapsed_ms(reducer_begin, SteadyClock::now());
+        const auto reducer_elapsed = elapsed_ms(
+            reducer_begin, SteadyClock::now());
+        timings.reducer_ms += reducer_elapsed;
+        timings.step_reducer_ms.push_back(reducer_elapsed);
+        const auto allocation_after =
+            microllm::runtime::allocation_stats(communicator.device());
+        reducer_stats.step_collectives.push_back(step_collectives);
+        reducer_stats.step_buckets.push_back(step_buckets);
+        reducer_stats.step_pack_copies.push_back(step_pack_copies);
+        reducer_stats.step_unpack_copies.push_back(step_unpack_copies);
+        reducer_stats.step_allocation_calls.push_back(counter_delta(
+            allocation_after.allocation_calls,
+            allocation_before.allocation_calls));
+        reducer_stats.step_backend_allocation_calls.push_back(counter_delta(
+            allocation_after.backend_allocation_calls,
+            allocation_before.backend_allocation_calls));
+        reducer_stats.step_deallocation_calls.push_back(counter_delta(
+            allocation_after.deallocation_calls,
+            allocation_before.deallocation_calls));
+        reducer_stats.step_total_allocated_bytes.push_back(counter_delta(
+            allocation_after.total_allocated_bytes,
+            allocation_before.total_allocated_bytes));
         const auto optimizer_begin = SteadyClock::now();
         optimizer.step();
         microllm::runtime::synchronize(communicator.device());
-        timings.optimizer_ms += elapsed_ms(
+        const auto optimizer_elapsed = elapsed_ms(
             optimizer_begin, SteadyClock::now());
+        timings.optimizer_ms += optimizer_elapsed;
+        timings.step_optimizer_ms.push_back(optimizer_elapsed);
+        timings.step_training_ms.push_back(
+            elapsed_ms(step_begin, SteadyClock::now()));
     }
     timings.training_ms = elapsed_ms(training_begin, SteadyClock::now());
     if (!options.parameter_file.empty()) {

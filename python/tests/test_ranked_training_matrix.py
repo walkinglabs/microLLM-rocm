@@ -22,6 +22,12 @@ def main() -> int:
         "bucket_training_speedup", "bucket_reducer_speedup",
         "median_maximum_rank_training_ms",
         "maximum_mean_loss_difference",
+        "--steady-skip-steps", "bucket_steady_reducer_speedup",
+        "bucket_steady_training_speedup",
+        "steady_maximum_rank_reducer_cv",
+        "median_steady_reducer_backend_allocation_calls",
+        "median_steady_pack_copies", "median_steady_unpack_copies",
+        "profile ranked Model-S cold and steady reducer",
         "admit measured ranked Model-S bucket baseline",
         "admit one-process-per-GPU ready-bucket migration",
     ):
