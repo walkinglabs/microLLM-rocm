@@ -26,6 +26,8 @@ def parse_args():
                         default="false")
     parser.add_argument("--gradient-bucket-views", choices=("true", "false"),
                         default="false")
+    parser.add_argument("--record-gradient-ready-order", choices=("true", "false"),
+                        default="false")
     parser.add_argument("--seed", type=int, default=601)
     parser.add_argument("--batch", type=int, default=1)
     parser.add_argument("--context", type=int, default=0)
@@ -78,6 +80,7 @@ def main():
         "--inplace-bucket-average", args.inplace_bucket_average,
         "--persistent-gradient-buckets", args.persistent_gradient_buckets,
         "--gradient-bucket-views", args.gradient_bucket_views,
+        "--record-gradient-ready-order", args.record_gradient_ready_order,
         "--seed", str(args.seed),
         "--batch", str(args.batch),
         "--context", str(args.context),
@@ -133,6 +136,7 @@ def main():
             "inplace_bucket_average": args.inplace_bucket_average == "true",
             "persistent_gradient_buckets": args.persistent_gradient_buckets == "true",
             "gradient_bucket_views": args.gradient_bucket_views == "true",
+            "record_gradient_ready_order": args.record_gradient_ready_order == "true",
             "seed": args.seed,
             "batch": args.batch,
             "context": args.context,

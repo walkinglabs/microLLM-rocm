@@ -203,6 +203,34 @@ TEST(DataParallelTrainerTest, BucketViewsRequirePersistentStorage) {
         std::invalid_argument);
 }
 
+TEST(DataParallelTrainerTest, GradientReadyAuditIsCompleteStableAndRankIdentical) {
+    if (runtime::hip_device_count() < 2) GTEST_SKIP() << "two visible HIP devices required";
+    DataParallelTrainer trainer(
+        config(), 569,
+        {.device_indices = {0, 1},
+         .maximum_bucket_bytes = 4096,
+         .parameter_check_interval = 1,
+         .record_gradient_ready_order = true,
+         .optimizer = {}});
+    const auto first = trainer.step(local_batches(), 1);
+    ASSERT_TRUE(first.gradient_ready_audit_performed);
+    ASSERT_TRUE(first.gradient_ready_orders_match);
+    ASSERT_EQ(first.rank_gradient_ready_order.size(), 2U);
+    const auto parameter_count = trainer.model(0).parameters().size();
+    ASSERT_EQ(first.rank_gradient_ready_order[0].size(), parameter_count);
+    EXPECT_EQ(first.rank_gradient_ready_order[0],
+              first.rank_gradient_ready_order[1]);
+    auto sorted = first.rank_gradient_ready_order[0];
+    std::sort(sorted.begin(), sorted.end());
+    for (std::size_t index = 0; index < sorted.size(); ++index) {
+        EXPECT_EQ(sorted[index], index);
+    }
+    const auto second = trainer.step(local_batches(), 2);
+    EXPECT_EQ(second.rank_gradient_ready_order,
+              first.rank_gradient_ready_order);
+    EXPECT_EQ(second.maximum_parameter_difference, 0.0F);
+}
+
 TEST(DataParallelTrainerTest, RejectsUnequalLocalBatchWeighting) {
     if (runtime::hip_device_count() < 2) GTEST_SKIP() << "two visible HIP devices required";
     DataParallelTrainer trainer(

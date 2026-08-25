@@ -22,6 +22,7 @@ struct Options {
     bool in_place_bucket_average = true;
     bool persistent_gradient_buckets = false;
     bool gradient_bucket_views = false;
+    bool record_gradient_ready_order = false;
     std::uint64_t seed = 601;
     std::size_t batch = 1;
     std::size_t context = 0;
@@ -73,6 +74,13 @@ Options parse(int argc, char** argv) {
                     "--gradient-bucket-views must be true or false");
             }
             options.gradient_bucket_views = value == "true";
+        } else if (argument == "--record-gradient-ready-order") {
+            const auto value = next("--record-gradient-ready-order");
+            if (value != "true" && value != "false") {
+                throw std::invalid_argument(
+                    "--record-gradient-ready-order must be true or false");
+            }
+            options.record_gradient_ready_order = value == "true";
         } else if (argument == "--seed") options.seed = number(next("--seed"), "seed");
         else if (argument == "--batch") {
             options.batch = static_cast<std::size_t>(number(next("--batch"), "batch"));
@@ -140,6 +148,24 @@ std::vector<microllm::io::TokenBatch> batches(
     return result;
 }
 
+void write_indices(const std::vector<std::size_t>& values) {
+    std::cout << '[';
+    for (std::size_t index = 0; index < values.size(); ++index) {
+        if (index != 0) std::cout << ',';
+        std::cout << values[index];
+    }
+    std::cout << ']';
+}
+
+void write_strings(const std::vector<std::string>& values) {
+    std::cout << '[';
+    for (std::size_t index = 0; index < values.size(); ++index) {
+        if (index != 0) std::cout << ',';
+        std::cout << '\"' << values[index] << '\"';
+    }
+    std::cout << ']';
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -163,8 +189,16 @@ int main(int argc, char** argv) {
              .in_place_bucket_average = options.in_place_bucket_average,
              .persistent_gradient_buckets = options.persistent_gradient_buckets,
              .gradient_bucket_views = options.gradient_bucket_views,
+             .record_gradient_ready_order = options.record_gradient_ready_order,
              .optimizer = optimizer});
         const auto parameter_count = trainer.model(0).parameter_count();
+        std::vector<std::string> parameter_names;
+        std::vector<std::size_t> parameter_elements;
+        for (const auto& [name, parameter] : trainer.model(0).named_parameters()) {
+            parameter_names.push_back(name);
+            parameter_elements.push_back(
+                static_cast<std::size_t>(parameter->data().numel()));
+        }
         for (const auto device : {0, 1}) {
             microllm::runtime::reset_allocation_peak(microllm::Device::hip(device));
         }
@@ -208,6 +242,8 @@ int main(int argc, char** argv) {
                           << (options.persistent_gradient_buckets ? "true" : "false")
                           << ",\"gradient_bucket_views\":"
                           << (options.gradient_bucket_views ? "true" : "false")
+                          << ",\"record_gradient_ready_order\":"
+                          << (options.record_gradient_ready_order ? "true" : "false")
                           << ",\"mean_loss\":" << metrics.mean_loss
                           << ",\"bucket_count\":" << metrics.buckets.bucket_count
                           << ",\"bucket_parameter_count\":"
@@ -258,7 +294,20 @@ int main(int argc, char** argv) {
                           << maximum_peak_bytes
                           << ",\"maximum_engine_current_bytes\":"
                           << maximum_current_bytes
-                          << ",\"total_ms\":" << metrics.total_ms << "}\n";
+                          << ",\"gradient_ready_audit_performed\":"
+                          << (metrics.gradient_ready_audit_performed ? "true" : "false")
+                          << ",\"gradient_ready_orders_match\":"
+                          << (metrics.gradient_ready_orders_match ? "true" : "false")
+                          << ",\"parameter_names\":";
+                write_strings(parameter_names);
+                std::cout << ",\"parameter_elements\":";
+                write_indices(parameter_elements);
+                for (std::size_t rank = 0;
+                     rank < metrics.rank_gradient_ready_order.size(); ++rank) {
+                    std::cout << ",\"gradient_ready_order_rank" << rank << "\":";
+                    write_indices(metrics.rank_gradient_ready_order[rank]);
+                }
+                std::cout << ",\"total_ms\":" << metrics.total_ms << "}\n";
             }
         }
         if (!options.trace.empty()) trace.write_jsonl(options.trace);

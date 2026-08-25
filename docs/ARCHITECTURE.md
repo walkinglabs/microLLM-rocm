@@ -125,6 +125,11 @@ both Autograd routes after full-step and backward-only gates failed. Ordinary fi
 already adopts the producer Tensor. Caller-owned operator outputs remain public, but Autograd has
 no preinstalled-gradient target API.
 
+Gradient-ready hooks are a separate diagnostic contract. Backward counts incoming graph edges for
+hooked leaves before traversal, decrements only after each contribution is accumulated, and calls
+the hook once when the final contribution is enqueued. Shared/tied leaves therefore cannot appear
+ready after only their first path. With no installed hook, no ready-state map is constructed.
+
 A fused operator may still need more than one graph node. `autograd::add_rms_norm` is the
 smallest example: one device launch returns the residual sum and the normalized value, but the
 sum remains a visible Autograd node. The direct residual path and the normalization backward

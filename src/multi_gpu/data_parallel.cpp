@@ -75,6 +75,17 @@ float maximum_parameter_difference(
     return maximum;
 }
 
+bool is_parameter_permutation(const std::vector<std::size_t>& order,
+                              std::size_t parameter_count) {
+    if (order.size() != parameter_count) return false;
+    std::vector<bool> seen(parameter_count, false);
+    for (const auto index : order) {
+        if (index >= parameter_count || seen[index]) return false;
+        seen[index] = true;
+    }
+    return true;
+}
+
 }  // namespace
 
 struct DataParallelTrainer::Impl {
@@ -82,6 +93,7 @@ struct DataParallelTrainer::Impl {
     DataParallelConfig config;
     std::vector<std::unique_ptr<model::TransformerModel>> models;
     std::vector<std::unique_ptr<training::AdamW>> optimizers;
+    std::vector<std::vector<std::size_t>> gradient_ready_order;
     Communicator communicator;
     GradientBucketPlan gradient_bucket_plan;
 
@@ -108,6 +120,7 @@ struct DataParallelTrainer::Impl {
         }
         models.reserve(config.device_indices.size());
         optimizers.reserve(config.device_indices.size());
+        gradient_ready_order.resize(config.device_indices.size());
         for (const auto device_index : config.device_indices) {
             auto rank_model = std::make_unique<model::TransformerModel>(model_config, seed);
             rank_model->to(Device::hip(device_index));
@@ -116,6 +129,17 @@ struct DataParallelTrainer::Impl {
         for (auto& rank_model : models) {
             optimizers.push_back(std::make_unique<training::AdamW>(
                 rank_model->parameters(), config.optimizer));
+        }
+        if (config.record_gradient_ready_order) {
+            for (std::size_t rank = 0; rank < models.size(); ++rank) {
+                const auto parameters = models[rank]->parameters();
+                for (std::size_t index = 0; index < parameters.size(); ++index) {
+                    parameters[index]->set_gradient_ready_hook(
+                        [this, rank, index] {
+                            gradient_ready_order[rank].push_back(index);
+                        });
+                }
+            }
         }
     }
 };
@@ -148,6 +172,9 @@ DistributedStepMetrics DataParallelTrainer::step(
     const auto total_start = Clock::now();
     profiling::TraceTimer total_timer(profiling::TraceKind::Model,
                                       "data_parallel.step", Device::cpu());
+    if (impl_->config.record_gradient_ready_order) {
+        for (auto& order : impl_->gradient_ready_order) order.clear();
+    }
 
     const auto forward_start = Clock::now();
     for (std::size_t rank = 0; rank < world_size(); ++rank) {
@@ -156,6 +183,29 @@ DistributedStepMetrics DataParallelTrainer::step(
                                                    rank_batches[rank].targets);
         metrics.rank_losses[rank] = loss.data().to_vector()[0];
         loss.backward();
+    }
+    metrics.gradient_ready_audit_performed =
+        impl_->config.record_gradient_ready_order;
+    if (metrics.gradient_ready_audit_performed) {
+        metrics.rank_gradient_ready_order = impl_->gradient_ready_order;
+        const auto parameter_count = impl_->models.front()->parameters().size();
+        const auto valid = std::all_of(
+            metrics.rank_gradient_ready_order.begin(),
+            metrics.rank_gradient_ready_order.end(),
+            [&](const auto& order) {
+                return is_parameter_permutation(order, parameter_count);
+            });
+        metrics.gradient_ready_orders_match = valid &&
+            std::all_of(
+                metrics.rank_gradient_ready_order.begin() + 1,
+                metrics.rank_gradient_ready_order.end(),
+                [&](const auto& order) {
+                    return order == metrics.rank_gradient_ready_order.front();
+                });
+        if (!metrics.gradient_ready_orders_match) {
+            throw std::runtime_error(
+                "rank gradient-ready orders are incomplete or inconsistent");
+        }
     }
     // Correctness baseline: communication streams must not read gradients before
     // default-stream backward work is complete. Gradient-ready event overlap is a

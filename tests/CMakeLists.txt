@@ -563,6 +563,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.DataParallelGradientViewMatrixContract PROPERTIES
         LABELS "cpu;benchmark;training;model;multi_gpu;rccl;bucket;memory;schema")
     add_test(
+        NAME Benchmark.DataParallelGradientReadyAuditContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_data_parallel_gradient_ready_audit.py
+    )
+    set_tests_properties(Benchmark.DataParallelGradientReadyAuditContract PROPERTIES
+        LABELS "cpu;benchmark;autograd;training;model;multi_gpu;rccl;bucket;schema")
+    add_test(
         NAME Benchmark.Bf16RepeatContract
         COMMAND ${Python3_EXECUTABLE}
                 ${PROJECT_SOURCE_DIR}/python/tests/test_bf16_repeat.py

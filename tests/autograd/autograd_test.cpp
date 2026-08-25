@@ -162,6 +162,46 @@ TEST(AutogradTest, RepeatedBackwardAccumulatesLeavesWithoutReusingIntermediateGr
     enable_unique_gradient_inplace_add(false);
 }
 
+TEST(AutogradTest, GradientReadyHookWaitsForEverySharedLeafContribution) {
+    Value input(Tensor::from_vector({1, 2, 3}, {3}), true);
+    Value coefficient(Tensor::from_vector({4, 5, 6}, {3}), true);
+    std::vector<int> order;
+    std::vector<float> input_at_ready;
+    input.set_gradient_ready_hook([&] {
+        order.push_back(0);
+        input_at_ready = input.grad().to_vector();
+    });
+    coefficient.set_gradient_ready_hook([&] { order.push_back(1); });
+    sum(add(multiply(input, coefficient), input)).backward();
+    EXPECT_EQ(order, (std::vector<int>{0, 1}));
+    EXPECT_EQ(input_at_ready, (std::vector<float>{5, 6, 7}));
+    EXPECT_EQ(coefficient.grad().to_vector(),
+              (std::vector<float>{1, 2, 3}));
+}
+
+TEST(AutogradTest, GradientReadyHookRunsOncePerBackwardAndCanBeCleared) {
+    Value input(Tensor::from_vector({2}, {1}), true);
+    const auto loss = sum(multiply(input, input));
+    int calls = 0;
+    input.set_gradient_ready_hook([&] { ++calls; });
+    loss.backward();
+    loss.backward();
+    EXPECT_EQ(calls, 2);
+    EXPECT_EQ(input.grad().to_vector(), (std::vector<float>{8}));
+    input.clear_gradient_ready_hook();
+    loss.backward();
+    EXPECT_EQ(calls, 2);
+}
+
+TEST(AutogradTest, GradientReadyHookRejectsInvalidTargetsAndCallbacks) {
+    Value leaf(Tensor::from_vector({1}, {1}), true);
+    Value plain(Tensor::from_vector({1}, {1}));
+    auto nonleaf = scale(leaf, 2.0F);
+    EXPECT_THROW(nonleaf.set_gradient_ready_hook([] {}), std::logic_error);
+    EXPECT_THROW(plain.set_gradient_ready_hook([] {}), std::logic_error);
+    EXPECT_THROW(leaf.set_gradient_ready_hook({}), std::invalid_argument);
+}
+
 TEST(AutogradTest, EmbeddingBackwardScattersAndAccumulatesRepeatedIndices) {
     Value weight(Tensor::from_vector({0, 1, 2, 3, 4, 5}, {3, 2}), true);
     const auto indices = Tensor::from_int32_vector({2, 0, 2}, {3});

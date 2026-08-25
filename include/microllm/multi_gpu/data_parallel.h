@@ -22,6 +22,7 @@ struct DataParallelConfig {
     bool in_place_bucket_average = true;
     bool persistent_gradient_buckets = false;
     bool gradient_bucket_views = false;
+    bool record_gradient_ready_order = false;
     training::AdamWConfig optimizer;
 };
 
@@ -41,6 +42,9 @@ struct DistributedStepMetrics {
     double optimizer_ms = 0.0;
     double verification_ms = 0.0;
     double total_ms = 0.0;
+    bool gradient_ready_audit_performed = false;
+    bool gradient_ready_orders_match = false;
+    std::vector<std::vector<std::size_t>> rank_gradient_ready_order;
 };
 
 class DataParallelTrainer {

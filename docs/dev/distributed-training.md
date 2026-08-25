@@ -159,6 +159,13 @@ on the equivalent global batch. It requires:
 The baseline explicitly synchronizes each GPU after backward before communication
 streams read gradients. This is correct but does not overlap backward and all-reduce.
 
+`DataParallelConfig.record_gradient_ready_order` is a default-off diagnostic. It installs one
+hook per parameter and records an index only after the leaf's final graph contribution has been
+accumulated. The CLI can emit parameter names, element counts and rank-local orders. This records
+host enqueue order only; it does not claim device completion or change the synchronization path.
+The audit runner maps that order to the exact natural bucket ranges before any Event/collective
+prototype is admitted.
+
 A production one-process-per-GPU DDP path still needs:
 
 - rank initialization from `RANK`, `LOCAL_RANK`, `WORLD_SIZE`, and a distributed unique

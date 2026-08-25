@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <functional>
 #include <memory>
 #include <string>
 #include <utility>
@@ -41,6 +42,8 @@ public:
     [[nodiscard]] bool has_grad() const noexcept;
     [[nodiscard]] const Tensor& grad() const;
     void set_grad(Tensor gradient);
+    void set_gradient_ready_hook(std::function<void()> hook);
+    void clear_gradient_ready_hook() noexcept;
     void zero_grad();
     void backward() const;
     void backward(const Tensor& gradient) const;

@@ -23,6 +23,7 @@ struct Value::Node {
     Tensor gradient;
     std::string operation = "leaf";
     bool requires_grad = false;
+    std::function<void()> gradient_ready_hook;
     std::vector<std::shared_ptr<Node>> parents;
     std::function<void(const Tensor&)> backward;
 };
@@ -40,6 +41,31 @@ thread_local bool attention_rope_layout_fusion = true;
 thread_local bool attention_context_layout_fusion = true;
 thread_local std::map<std::pair<std::string, Shape>, GradientAccumulationRecord>
     accumulation_diagnostic_records;
+
+struct GradientReadyState {
+    std::unordered_map<Value::Node*, std::size_t> remaining_contributions;
+};
+
+thread_local GradientReadyState* active_gradient_ready_state = nullptr;
+
+void notify_gradient_contribution(const std::shared_ptr<Value::Node>& node) {
+    if (active_gradient_ready_state == nullptr ||
+        !node->gradient_ready_hook || !node->parents.empty()) {
+        return;
+    }
+    const auto found = active_gradient_ready_state->remaining_contributions.find(
+        node.get());
+    if (found == active_gradient_ready_state->remaining_contributions.end()) return;
+    if (found->second == 0) {
+        throw std::logic_error(
+            "leaf received more gradient contributions than its graph count");
+    }
+    --found->second;
+    if (found->second == 0) {
+        const auto hook = node->gradient_ready_hook;
+        hook();
+    }
+}
 
 GradientAccumulationRecord& accumulation_record(const Value::Node& node) {
     const auto key = std::pair{node.operation, node.data.shape()};
@@ -116,6 +142,7 @@ void accumulate(const std::shared_ptr<Value::Node>& node, const Tensor& gradient
     } else {
         node->gradient = ops::add(node->gradient, prepared);
     }
+    notify_gradient_contribution(node);
 }
 
 void accumulate_embedding(const std::shared_ptr<Value::Node>& node,
@@ -138,6 +165,7 @@ void accumulate_embedding(const std::shared_ptr<Value::Node>& node,
                 ++record.sparse_embedding_add_calls;
             }
             ops::embedding_backward_add_(node->gradient, gradient, indices);
+            notify_gradient_contribution(node);
             return;
         }
     }
@@ -259,6 +287,17 @@ void Value::set_grad(Tensor gradient) {
     }
     node_->gradient = gradient.is_contiguous() ? std::move(gradient) : gradient.contiguous();
 }
+void Value::set_gradient_ready_hook(std::function<void()> hook) {
+    if (!node_ || !node_->requires_grad || !node_->parents.empty()) {
+        throw std::logic_error(
+            "gradient-ready hooks require a differentiable leaf Value");
+    }
+    if (!hook) throw std::invalid_argument("gradient-ready hook must be callable");
+    node_->gradient_ready_hook = std::move(hook);
+}
+void Value::clear_gradient_ready_hook() noexcept {
+    if (node_) node_->gradient_ready_hook = {};
+}
 void Value::zero_grad() {
     if (node_) node_->gradient = Tensor();
 }
@@ -279,14 +318,34 @@ void Value::backward(const Tensor& gradient) const {
         throw std::invalid_argument("backward seed shape must match output");
     }
 
+    GradientReadyState ready_state;
     std::vector<std::shared_ptr<Node>> topological;
     std::unordered_set<Node*> visited;
     std::function<void(const std::shared_ptr<Node>&)> visit = [&](const auto& current) {
         if (!visited.insert(current.get()).second) return;
-        for (const auto& parent : current->parents) visit(parent);
+        for (const auto& parent : current->parents) {
+            if (parent->requires_grad && parent->parents.empty() &&
+                parent->gradient_ready_hook) {
+                ++ready_state.remaining_contributions[parent.get()];
+            }
+            visit(parent);
+        }
         topological.push_back(current);
     };
     visit(node_);
+
+    if (node_->parents.empty() && node_->gradient_ready_hook) {
+        ready_state.remaining_contributions[node_.get()] = 1;
+    }
+    struct ReadyStateScope {
+        GradientReadyState* previous = nullptr;
+        explicit ReadyStateScope(GradientReadyState* current)
+            : previous(active_gradient_ready_state) {
+            active_gradient_ready_state = current;
+        }
+        ~ReadyStateScope() { active_gradient_ready_state = previous; }
+    } ready_scope(ready_state.remaining_contributions.empty()
+                      ? nullptr : &ready_state);
 
     for (const auto& current : topological) {
         if (!current->parents.empty()) current->gradient = Tensor();
