@@ -1,0 +1,14 @@
+{
+  "final_loss": 7.53,
+  "initial_loss": 9.74,
+  "maximum_parameter_difference": 0.0,
+  "median_communication_ms": 18.255,
+  "median_forward_backward_ms": 4864.195000000001,
+  "median_optimizer_ms": 0.495,
+  "median_total_ms": 4882.95,
+  "median_verification_ms": 0.0,
+  "parameter_checks": 0,
+  "schema_version": 1,
+  "status": "pass",
+  "steps": 2
+}

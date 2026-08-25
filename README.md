@@ -64,6 +64,10 @@ extending small decoder-only language models on AMD GPUs.
 > 19.76 ms best step, with exact rank parameters and a documented 54.3 MB peak-memory
 > tradeoff. Pack/unpack attribution comes before readiness overlap.
 
+> Attribution now closes exactly: the 3-bucket reducer performs 126 backend
+> allocations and 228 D2D copies over 374,068,224 temporary bytes per step.
+> In-place averaging is the first persistent-reducer prerequisite.
+
 ## Why this project exists
 
 Large frameworks make model development productive, but they hide the ownership,

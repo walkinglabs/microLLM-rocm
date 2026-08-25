@@ -4021,3 +4021,12 @@ tiny在4KiB和4MiB下都只有一个bucket；人为切成12个bucket后，通信
 下一节先记录pack/unpack copy和temporary恒等式，再设计gradient view/readiness。
 
 ![Model-S data-parallel buckets](assets/data-parallel-model-s-buckets.svg)
+
+## 272. Experiment 255：一次通信为何申请126个Tensor
+
+3bucket路径包含6个rank-local bucket、6个average输出和114个unpacked gradient；每步还做
+228次D2D copy。374,068,224临时字节与allocation ledger完全相等，且126次全是backend申请。
+
+因此persistent reducer有真实证据。第一步先把average改为原地，保证bucket地址稳定。
+
+![Data parallel bucket copy attribution](assets/data-parallel-bucket-copy-attribution.svg)

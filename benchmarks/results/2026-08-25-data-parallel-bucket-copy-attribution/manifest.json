@@ -1,0 +1,59 @@
+{
+  "artifacts": [
+    "metrics.jsonl",
+    "stderr.txt",
+    "summary.json",
+    "trace.jsonl"
+  ],
+  "command": [
+    "/home/devpod/github/microLLM-rocm/build/rccl-release/apps/microllm_distributed_train",
+    "--model",
+    "model-s",
+    "--steps",
+    "2",
+    "--bucket-bytes",
+    "26214400",
+    "--parameter-check-interval",
+    "0",
+    "--seed",
+    "601",
+    "--batch",
+    "1",
+    "--context",
+    "32",
+    "--trace",
+    "/home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-25-data-parallel-bucket-copy-attribution/trace.jsonl"
+  ],
+  "configuration": {
+    "batch": 1,
+    "binary": "/home/devpod/github/microLLM-rocm/build/rccl-release/apps/microllm_distributed_train",
+    "bucket_bytes": 26214400,
+    "context": 32,
+    "devices": [
+      0,
+      1
+    ],
+    "model": "model-s",
+    "parameter_check_interval": 0,
+    "seed": 601,
+    "steps": 2
+  },
+  "created_utc": "2026-08-25T09:03:59.261290+00:00",
+  "host": {
+    "cmake": "cmake version 3.31.10",
+    "g++": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+    "gcc": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+    "hipcc": "HIP version: 7.13.99004-3309c6114a",
+    "machine": "x86_64",
+    "platform": "Linux-6.12.48+deb13-amd64-x86_64-with-glibc2.39",
+    "rocprofv3": "             version: 1.3.0"
+  },
+  "repository": {
+    "branch": "main",
+    "commit": "fb048e1782ab7713e7d78be5351dc9d2b89b464c",
+    "dirty": false
+  },
+  "returncode": 0,
+  "schema_version": 1,
+  "status": "pass"
+}

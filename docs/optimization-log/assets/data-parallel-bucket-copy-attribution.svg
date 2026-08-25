@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="730" viewBox="0 0 1500 730">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="750.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 255 · Reducer Temporary Identity</text>
+<text x="750.0" y="82.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">Model-S · 25 MiB · 3 buckets · current clean commit</text>
+<rect x="150" y="424.7" width="280" height="15.3" rx="9" fill="#2563eb"/>
+<text x="290.0" y="406.7" font-family="Inter,Arial,sans-serif" font-size="26" fill="#2563eb" text-anchor="middle" font-weight="700">6</text>
+<text x="290.0" y="480.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="middle" font-weight="700">Bucket</text>
+<rect x="600" y="424.7" width="280" height="15.3" rx="9" fill="#7c3aed"/>
+<text x="740.0" y="406.7" font-family="Inter,Arial,sans-serif" font-size="26" fill="#7c3aed" text-anchor="middle" font-weight="700">6</text>
+<text x="740.0" y="480.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="middle" font-weight="700">Average</text>
+<rect x="1050" y="150.0" width="280" height="290.0" rx="9" fill="#e11d48"/>
+<text x="1190.0" y="132.0" font-family="Inter,Arial,sans-serif" font-size="26" fill="#e11d48" text-anchor="middle" font-weight="700">114</text>
+<text x="1190.0" y="480.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="middle" font-weight="700">Unpacked gradients</text>
+<text x="750.0" y="545.0" font-family="Inter,Arial,sans-serif" font-size="23" fill="#e11d48" text-anchor="middle" font-weight="700">126 tensors = 126 backend allocations · cache reuse 0</text>
+<text x="750.0" y="590.0" font-family="Inter,Arial,sans-serif" font-size="21" fill="#172033" text-anchor="middle" font-weight="700">228 D2D copies · 374,068,224 temporary bytes / step</text>
+<text x="750.0" y="640.0" font-family="Inter,Arial,sans-serif" font-size="21" fill="#166534" text-anchor="middle" font-weight="700">Communication 7.26 ms = 32.31% of steady total</text>
+<text x="750.0" y="690.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">Persistent design must cover bucket + average + unpacked gradients</text>
+</svg>

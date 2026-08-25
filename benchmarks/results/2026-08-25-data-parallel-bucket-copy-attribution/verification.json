@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "metric_records": 2,
+  "trace_records": 24,
+  "measurement_commit": "fb048e1782ab7713e7d78be5351dc9d2b89b464c",
+  "dirty_at_measurement": false,
+  "exact_tensor_identities": 1,
+  "exact_byte_identities": 1,
+  "rank_parameter_check_skipped": true,
+  "prior_model_s_parameter_gate": "9 final checks with maximum difference 0",
+  "persistent_reducer_created": false
+}
+

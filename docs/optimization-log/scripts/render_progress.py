@@ -238,6 +238,11 @@ DATA_PARALLEL_MODEL_S_ROOT = (
     "2026-08-25-data-parallel-model-s-bucket-matrix")
 DATA_PARALLEL_MODEL_S_CHART = (
     ROOT / "assets" / "data-parallel-model-s-buckets.svg")
+DATA_PARALLEL_COPY_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-data-parallel-bucket-copy-attribution")
+DATA_PARALLEL_COPY_CHART = (
+    ROOT / "assets" / "data-parallel-bucket-copy-attribution.svg")
 
 
 def rows() -> list[dict]:
@@ -4424,6 +4429,53 @@ def data_parallel_model_s_svg() -> str:
     return "\n".join(parts)
 
 
+def data_parallel_copy_attribution_svg() -> str:
+    audit = json.loads((DATA_PARALLEL_COPY_ROOT / "attribution.json").read_text(
+        encoding="utf-8"))
+    width, height = 1500, 730
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 255 · Reducer Temporary Identity", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "Model-S · 25 MiB · 3 buckets · current clean commit",
+             16, "#5b6474", anchor="middle"),
+    ]
+    groups = (
+        ("Bucket", audit["bucket_tensor_count"], "#2563eb"),
+        ("Average", audit["average_tensor_count"], "#7c3aed"),
+        ("Unpacked gradients", audit["unpacked_tensor_count"], "#e11d48"),
+    )
+    maximum = max(value for _, value, _ in groups)
+    for index, (label, value, color) in enumerate(groups):
+        x = 150 + index * 450
+        height = 290 * value / maximum
+        y = 440 - height
+        parts.extend([
+            f'<rect x="{x}" y="{y:.1f}" width="280" height="{height:.1f}" '
+            f'rx="9" fill="{color}"/>',
+            text(x + 140, y - 18, str(value), 26, color,
+                 anchor="middle", weight=700),
+            text(x + 140, 480, label, 18, "#172033", anchor="middle", weight=700),
+        ])
+    parts.append(text(width / 2, 545,
+                      "126 tensors = 126 backend allocations · cache reuse 0",
+                      23, "#e11d48", anchor="middle", weight=700))
+    parts.append(text(width / 2, 590,
+                      "228 D2D copies · 374,068,224 temporary bytes / step",
+                      21, "#172033", anchor="middle", weight=700))
+    parts.append(text(width / 2, 640,
+                      "Communication 7.26 ms = 32.31% of steady total",
+                      21, "#166534", anchor="middle", weight=700))
+    parts.append(text(width / 2, 690,
+                      "Persistent design must cover bucket + average + unpacked gradients",
+                      16, "#5b6474", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -4494,7 +4546,8 @@ def main() -> int:
                 CURRENT_DATA_PARALLEL_CHART: current_data_parallel_svg(),
                 DATA_PARALLEL_VERIFICATION_CHART: data_parallel_verification_svg(),
                 DATA_PARALLEL_BUCKET_CHART: data_parallel_bucket_svg(),
-                DATA_PARALLEL_MODEL_S_CHART: data_parallel_model_s_svg()}
+                DATA_PARALLEL_MODEL_S_CHART: data_parallel_model_s_svg(),
+                DATA_PARALLEL_COPY_CHART: data_parallel_copy_attribution_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

@@ -106,7 +106,8 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [75](steps/75-data-parallel-verification-interval.md) | complete | 参数审计独立计时与interval | loss exact；稀疏1.244×；默认仍1 |
 | [76](steps/76-data-parallel-bucket-matrix.md) | complete | tiny真实bucket-count矩阵 | 12-bucket更慢；one-bucket无overlap机会 |
 | [77](steps/77-data-parallel-model-s-workload.md) | complete | Model-S自然多bucket workload | 25MiB/3bucket/19.76ms；peak +54.3MB |
-| [78](steps/78-data-parallel-bucket-copy-attribution.md) | planned | bucket copy/temporary归因 | 先恒等式，再设计view/readiness |
+| [78](steps/78-data-parallel-bucket-copy-attribution.md) | complete | bucket copy/temporary归因 | 126 backend alloc/228 copy/374MB逐项闭合 |
+| [79](steps/79-data-parallel-inplace-average.md) | planned | bucket原地average | 先稳地址并删6个Tensor，再建persistent plan |
 
 ## 为什么按这个顺序
 

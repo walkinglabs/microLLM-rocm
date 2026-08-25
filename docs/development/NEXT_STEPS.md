@@ -221,8 +221,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   artificial 12-bucket paths increase communication about 3–4x;
 - [x] add a Model-S natural multi-bucket workload: 25MiB/3 buckets is the 19.76ms best
   baseline with exact losses/parameters and a +54.3MB peak tradeoff versus 4MiB;
-- [ ] attribute bucket pack/unpack copies and temporary allocations before persistent views or
-  readiness overlap;
+- [x] attribute Model-S bucket copies and temporaries exactly: 126 backend allocations,
+  228 D2D copies and 374,068,224 bytes per 3-bucket step;
+- [ ] make bucket averaging in-place to stabilize addresses, then build persistent bucket and
+  unpacked-gradient storage before readiness overlap;
 - [ ] one process per GPU communicator initialization;
 - [ ] autograd gradient-ready hooks and bucket rebuild by observed readiness;
 - [ ] compute-stream Events to communication streams and asynchronous work handles;

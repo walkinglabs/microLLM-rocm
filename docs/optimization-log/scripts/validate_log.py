@@ -14088,6 +14088,50 @@ def validate_data_parallel_model_s_bucket_matrix(
     return summary.get("processes", 0), *expected
 
 
+def validate_data_parallel_bucket_copy_attribution(
+        errors: list[str]) -> tuple[int, int, int, int, float]:
+    root = REPOSITORY / (
+        "benchmarks/results/2026-08-25-data-parallel-bucket-copy-attribution")
+    audit = json.loads((root / "attribution.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    metrics = [json.loads(line) for line in (root / "metrics.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    steady = metrics[-1] if metrics else {}
+    expected = (126, 228, 374068224, 126, 7.26)
+    if (audit.get("schema_version") != 1 or audit.get("status") != "pass" or
+            audit.get("record_type") != "data_parallel_bucket_copy_attribution" or
+            audit.get("parameter_count") != 15586176 or audit.get("bucket_count") != 3 or
+            audit.get("temporary_tensor_count") != expected[0] or
+            audit.get("total_copy_calls") != expected[1] or
+            audit.get("temporary_bytes") != expected[2] or
+            audit.get("communication_backend_allocation_calls") != expected[3] or
+            audit.get("communication_cache_reuse_calls") != 0 or
+            audit.get("communication_total_allocated_bytes") != expected[2] or
+            audit.get("exact_tensor_identity") is not True or
+            audit.get("exact_byte_identity") is not True or
+            abs(float(audit.get("steady_communication_ms", 0.0)) - expected[4]) > 1.0e-12):
+        errors.append("data-parallel bucket copy attribution changed")
+    if (len(metrics) != 2 or steady.get("bucket_tensor_count") != 6 or
+            steady.get("average_tensor_count") != 6 or
+            steady.get("unpacked_tensor_count") != 114 or
+            steady.get("pack_copy_calls") != 114 or
+            steady.get("unpack_copy_calls") != 114 or
+            steady.get("communication_allocation_calls") != expected[0] or
+            steady.get("communication_backend_allocation_calls") != expected[3] or
+            steady.get("communication_total_allocated_bytes") != expected[2]):
+        errors.append("data-parallel bucket copy raw evidence changed")
+    if (check.get("metric_records") != 2 or check.get("trace_records") != 24 or
+            check.get("measurement_commit") !=
+                "fb048e1782ab7713e7d78be5351dc9d2b89b464c" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("persistent_reducer_created") is not False):
+        errors.append("data-parallel bucket copy verification changed")
+    return audit.get("temporary_tensor_count", 0), \
+        audit.get("total_copy_calls", 0), audit.get("temporary_bytes", 0), \
+        audit.get("communication_backend_allocation_calls", 0), \
+        float(audit.get("steady_communication_ms", 0.0))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -14320,7 +14364,8 @@ def validate_assets(errors: list[str]) -> None:
                  "current-data-parallel-audit.svg",
                  "data-parallel-verification-interval.svg",
                  "data-parallel-bucket-matrix.svg",
-                 "data-parallel-model-s-buckets.svg"):
+                 "data-parallel-model-s-buckets.svg",
+                 "data-parallel-bucket-copy-attribution.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -14828,6 +14873,9 @@ def main() -> int:
         data_parallel_model_s_total, data_parallel_model_s_comm, \
         data_parallel_model_s_peak_delta = \
         validate_data_parallel_model_s_bucket_matrix(errors)
+    data_parallel_copy_tensors, data_parallel_copy_calls, \
+        data_parallel_copy_bytes, data_parallel_copy_backend, \
+        data_parallel_copy_comm = validate_data_parallel_bucket_copy_attribution(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -15293,6 +15341,9 @@ def main() -> int:
           f"data_parallel_model_s={data_parallel_model_s_processes}/"
           f"{data_parallel_model_s_buckets}/{data_parallel_model_s_total:.3f}/"
           f"{data_parallel_model_s_comm:.3f}/{data_parallel_model_s_peak_delta} "
+          f"data_parallel_copy={data_parallel_copy_tensors}/"
+          f"{data_parallel_copy_calls}/{data_parallel_copy_bytes}/"
+          f"{data_parallel_copy_backend}/{data_parallel_copy_comm:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

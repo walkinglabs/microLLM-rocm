@@ -546,3 +546,5 @@ the next gate. Records are append-only except for factual corrections.
   selects the 3-bucket baseline and records its memory tradeoff.
 - [2026-08-25-data-parallel-bucket-copy-stats.md](2026-08-25-data-parallel-bucket-copy-stats.md):
   adds exact pack/unpack/average temporary and backend-allocation statistics.
+- [2026-08-25-data-parallel-bucket-copy-attribution.md](2026-08-25-data-parallel-bucket-copy-attribution.md):
+  admits persistent reducer work with an exact Model-S allocation identity.
