@@ -983,6 +983,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [finalize mapping SVG](../../benchmarks/results/2026-08-25-cached-attention-finalize-mapping/mapping.svg) | 64/128相对256线程的16格速度图 |
 | [experiments/291-exact-softmax-split-pv.md](experiments/291-exact-softmax-split-pv.md) | exact softmax下隔离P×V并行度的160进程算子准入 |
 | [split-PV search SVG](../../benchmarks/results/2026-08-25-cached-attention-split-pv-matrix/split-pv-search.svg) | S1反例与16格S16 winner |
+| [experiments/292-split-pv-model-reject.md](experiments/292-split-pv-model-reject.md) | 1.4834x但完整logits失败，定位到P×V加法树 |
+| [split-PV model SVG](../../benchmarks/results/2026-08-25-cached-attention-split-pv-model/comparison.svg) | 三对速度、完整分布与资源反例 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

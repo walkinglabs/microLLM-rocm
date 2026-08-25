@@ -39,12 +39,12 @@ Start with [Quick start](#quick-start), consume the installed library through th
 <details>
 <summary>Latest optimization checkpoints</summary>
 
-> **Current optimization checkpoint:** Experiment 291 keeps exact score/softmax and
-> splits only P×V. All 160 fresh processes pass; S1 is a bitwise, slower control and
-> S16 wins all 16 cases at 1.2749×–2.9549× Event speed with context Max/RMS no worse
-> than 3.90e-9/1.09e-9. This admits a DeepSeek full-logit gate only; no model or Auto
-> policy changed. See the
-> [split-P×V experiment](docs/optimization-log/experiments/291-exact-softmax-split-pv.md).
+> **Current optimization checkpoint:** Experiment 292 rejects split-P×V at model
+> precision. DeepSeek T2048/B2/N64 is stably 1.4834× faster with identical tokens,
+> peak and KV bytes, but all three 303,872-logit pairs fail at Max/RMS
+> 0.064486/0.011488. The route stays explicit and Auto is unchanged; the next
+> candidate must preserve each head's position accumulation order. See the
+> [split-P×V model rejection](docs/optimization-log/experiments/292-split-pv-model-reject.md).
 
 > **Current training checkpoint:** the current B1T512 BF16 profile measures
 > 31.327/71.873 ms of Kernel time for Qwen/DeepSeek; GEMM remains 58.56%/63.43%.

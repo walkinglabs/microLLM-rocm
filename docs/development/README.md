@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-25: Why split-P*V model precision failed](2026-08-25-split-pv-model-reject.md)
 - [2026-08-25: Explicit split-P*V model route](2026-08-25-split-pv-model-route.md)
 - [2026-08-25: Exact softmax and split P*V, explained simply](2026-08-25-exact-softmax-split-pv.md)
 - [2026-08-25: Why fewer finalize threads did not help](2026-08-25-finalize-thread-mapping-discard.md)

@@ -18063,6 +18063,113 @@ def validate_exact_softmax_split_pv_matrix(
             float(summary.get("maximum_winner_event_speedup", 0.0)))
 
 
+def validate_split_pv_model_rejection(
+        errors: list[str]) -> tuple[int, float, float, float]:
+    root = (REPOSITORY / "benchmarks/results" /
+            "2026-08-25-cached-attention-split-pv-model")
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    pairs = [json.loads(line) for line in (root / "pairs.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    current = [row for row in raw if row.get("policy") == "current"]
+    candidate = [row for row in raw if row.get("policy") == "split"]
+    if (summary.get("record_type") !=
+            "cached_attention_split_model_summary" or
+            summary.get("status") != "failed" or
+            summary.get("candidate_policy") != "split-pv" or
+            summary.get("pv_splits") != 16 or
+            summary.get("process_rows") != 6 or len(raw) != 6 or
+            summary.get("pair_rows") != 3 or len(pairs) != 3 or
+            summary.get("maximum_logit_error") != 0.06448602676391602 or
+            summary.get("maximum_logit_rms_error") !=
+                0.011488061590535847 or
+            summary.get("all_generated_tokens_equal") is not True or
+            summary.get("median_current_throughput_tokens_per_second") !=
+                177.519391745 or
+            summary.get("median_split_throughput_tokens_per_second") !=
+                263.195771552 or
+            summary.get("median_throughput_speedup") !=
+                1.4833969001610043 or
+            min(summary.get("leave_one_pair_out_speedups", [0.0])) !=
+                1.4829378873223789 or
+            summary.get("median_peak_bytes_delta") != 0 or
+            summary.get("median_allocation_calls_delta") != 17920 or
+            summary.get("median_backend_allocation_calls_delta") != 65 or
+            summary.get("accuracy_gate_passed") is not False or
+            summary.get("performance_gate_passed") is not True):
+        errors.append("split-PV model rejection summary changed")
+    if (len(current) != 3 or len(candidate) != 3 or
+            any(row.get("cached_attention_materialized_scores") is not True or
+                row.get("cached_attention_materialized_policy") != "explicit-on" or
+                row.get("cached_attention_pv_splits") != 0
+                for row in current) or
+            any(row.get("cached_attention_materialized_scores") is not False or
+                row.get("cached_attention_materialized_policy") != "explicit-off" or
+                row.get("cached_attention_pv_splits") != 16
+                for row in candidate) or
+            any(row.get("complete_logit_elements") != 303872 for row in raw) or
+            any(pair.get("status") != "failed" or
+                pair.get("generated_tokens_equal") is not True or
+                pair.get("maximum_logit_error") != 0.06448602676391602 or
+                pair.get("logit_rms_error") != 0.011488061590535847 or
+                pair.get("peak_bytes_delta") != 0 or
+                pair.get("kv_cache_bytes") != 121110528
+                for pair in pairs)):
+        errors.append("split-PV model route or pair evidence changed")
+    if (analysis.get("decision") !=
+            "reject split-PV model route on complete-logit precision" or
+            analysis.get("process_rows") != 6 or
+            analysis.get("complete_logit_elements_per_pair") != 303872 or
+            analysis.get("median_throughput_speedup") !=
+                1.4833969001610043 or
+            analysis.get("accuracy_gate_passed") is not False or
+            analysis.get("performance_gate_passed") is not True or
+            analysis.get("model_route_retained") is not False or
+            analysis.get("default_policy_changed") is not False or
+            analysis.get("boundary_matrix_admitted") is not False):
+        errors.append("split-PV model rejection analysis changed")
+    if (check.get("measurement_commit") !=
+            "24ca30cb6bc61085bba5cfd8b8ab40b87eae4819" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("gpu") != "AMD Instinct MI300X VF" or
+            check.get("architecture") != "gfx942" or
+            check.get("process_rows") != 6 or
+            check.get("current_materialized_rows") != 3 or
+            check.get("candidate_split_pv_rows") != 3 or
+            check.get("accuracy_gate_passed") is not False or
+            check.get("performance_gate_passed") is not True or
+            check.get("model_route_retained") is not False or
+            check.get("default_policy_changed") is not False or
+            check.get("cpu_label") != {"passed": 374, "total": 374} or
+            check.get("sanitizer_label") != {"passed": 372, "total": 372} or
+            check.get("hip_label") != {"passed": 192, "total": 192} or
+            check.get("rccl_label") != {"passed": 53, "total": 53} or
+            check.get("torch_operator_parity") != {"passed": 1, "total": 1} or
+            check.get("coverage_manifest_audit") != "pass" or
+            check.get("registered_test_files") != 129):
+        errors.append("split-PV model rejection verification changed")
+    for name in ("README.md", "raw.jsonl", "pairs.jsonl", "summary.json",
+                 "analysis.json", "verification.json", "comparison.svg"):
+        if not (root / name).is_file():
+            errors.append(f"split-PV model evidence missing: {name}")
+    try:
+        ET.parse(root / "comparison.svg")
+    except ET.ParseError as error:
+        errors.append(f"invalid split-PV model SVG: {error}")
+    runner = (REPOSITORY / "benchmarks/single_gpu" /
+              "compare_cached_attention_split_models.py").read_text(
+                  encoding="utf-8")
+    if ("split-pv" not in runner or "cached_attention_pv_splits" not in runner or
+            "result.runs < 2" not in runner):
+        errors.append("split-PV model runner contract changed")
+    return (len(raw), float(summary.get("median_throughput_speedup", 0.0)),
+            float(summary.get("maximum_logit_error", 0.0)),
+            float(summary.get("maximum_logit_rms_error", 0.0)))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -18935,6 +19042,8 @@ def main() -> int:
         validate_finalize_mapping_matrix(errors)
     split_pv_rows, split_pv_cases, split_pv_minimum, split_pv_maximum = \
         validate_exact_softmax_split_pv_matrix(errors)
+    split_pv_model_rows, split_pv_model_speedup, split_pv_model_maximum, \
+        split_pv_model_rms = validate_split_pv_model_rejection(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -19545,6 +19654,10 @@ def main() -> int:
           f"{finalize_mapping_maximum:.3f} "
           f"split_pv={split_pv_rows}/{split_pv_cases}/"
           f"{split_pv_minimum:.3f}/{split_pv_maximum:.3f} "
+          f"split_pv_model={split_pv_model_rows}/"
+          f"{split_pv_model_speedup:.3f}/"
+          f"{split_pv_model_maximum:.4f}/"
+          f"{split_pv_model_rms:.4f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

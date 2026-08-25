@@ -137,7 +137,8 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [106](steps/106-post-materialized-profile.md) | complete | 保留默认后的T2048 phase-delta profile | Kernel 831.31ms；finalize 42.00%为最大单项 |
 | [107](steps/107-exact-order-finalize-mapping.md) | complete; performance rejected | 保序finalize线程映射矩阵 | 96进程位级通过，128仅0.9901x–1.0121x，0/16过门 |
 | [108](steps/108-split-pv-exact-softmax.md) | complete; operator admitted | exact softmax + split P×V | 160进程；S16全胜，Event1.2749x–2.9549x |
-| [109](steps/109-split-pv-model-gate.md) | planned | DeepSeek T2048/B2/N64完整模型门 | 303,872 logits + 三对速度/资源 |
+| [109](steps/109-split-pv-model-gate.md) | complete; precision rejected | DeepSeek T2048/B2/N64完整模型门 | 1.4834x但logits Max/RMS 0.064486/0.011488 |
+| [110](steps/110-exact-gqa-value-reuse.md) | planned | 保序GQA value-load复用 | 位级context与两模型operator矩阵 |
 
 ## 为什么按这个顺序
 

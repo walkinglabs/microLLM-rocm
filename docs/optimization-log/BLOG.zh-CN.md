@@ -4573,3 +4573,17 @@ S1保留exact score和softmax并走新buffer/launch，但不真正切序列。16
 1e-9误差经过28层×64步仍可能放大；下一步只做三对完整DeepSeek logits门，不提前改模型或Auto。
 
 ![Exact-softmax split P×V](../../benchmarks/results/2026-08-25-cached-attention-split-pv-matrix/split-pv-search.svg)
+
+## 309. Experiment 292：只改P×V，1e-9也会被模型放大
+
+三对DeepSeek T2048/B2/N64中，split-P×V从177.52提高到263.20 tok/s，中位1.4834x，所有
+leave-one约1.483x–1.486x。64 token、peak和121,110,528-byte KV都不变。
+
+但三对303,872 logits都得到Max/RMS 0.064486/0.011488，远超门线。Experiment 291已经锁住score
+和softmax顺序，S1也位级相同，所以这次能把放大来源定位到P×V累加树本身。
+
+模型路由拒绝，不跑边界矩阵，不改Auto。下一候选只能在保持每个head position 0→T顺序的前提下
+减少工作：多个GQA query heads复用同一value load。若它不能补回额外probability Tensor成本，
+exact-finalize局部优化线就关闭。
+
+![Split-P×V model reject](../../benchmarks/results/2026-08-25-cached-attention-split-pv-model/comparison.svg)
