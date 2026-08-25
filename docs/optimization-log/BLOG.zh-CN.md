@@ -4200,3 +4200,21 @@ speedup，完整step也只有`0.8527×`。
 归零，再谈通信重叠。
 
 ![Ranked steady reducer](assets/ranked-steady-reducer-discard.svg)
+
+## 285. Experiment 268：分配归零以后，显存账单是多少
+
+`RankGradientBucketPlan`第一次为3个bucket和57个输出gradient准备Storage，后续step复用地址。
+三策略各三个fresh双rank进程中，persistent warmup后的backend allocation从60降到0。
+
+相对transient bucket，persistent Reducer从4.440ms降到2.886ms（1.539×），完整step从
+10.311ms降到8.251ms（1.250×）。相对逐参数，完整step是1.056×，但Reducer仍是0.933×，
+说明57 pack + 57 unpack仍有成本。
+
+显存账单同样明确：plan容量124.69MB/rank，current比两条控制多62.34MB；peak比逐参数多
+124.69MB、比transient多72.38MB。速度改善不能把这部分藏起来。
+
+三步参数、CPU、loss与故障门全过。persistent copy显式保留、不默认。下一实验不改collective，
+只让57个gradient成为bucket view，删除独立unpacked Storage和57次unpack，再看能否同时改善
+Reducer与显存。
+
+![Ranked persistent buckets](assets/ranked-persistent-buckets.svg)

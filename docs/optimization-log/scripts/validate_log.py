@@ -15117,6 +15117,177 @@ def validate_ranked_steady_reducer(
         int(bucket.get("median_steady_reducer_total_allocated_bytes", 0))
 
 
+def validate_ranked_persistent_buckets(
+        errors: list[str]) -> tuple[int, float, float, int, int, int]:
+    root = REPOSITORY / "benchmarks/results/2026-08-25-ranked-persistent-buckets"
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    failure = json.loads((root / "failure.json").read_text(encoding="utf-8"))
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    policies = summary.get("policies", {})
+    per_parameter = policies.get("per-parameter", {})
+    transient = policies.get("bucket", {})
+    persistent = policies.get("persistent-bucket", {})
+    expected_maximum = 0.00627149641514
+    expected_rms = 3.70091947467e-06
+    expected_loss = 1.9672499999678905e-05
+    expected_reducer_parameter = 0.9328046934048982
+    expected_reducer_transient = 1.5388462496807402
+    expected_training_parameter = 1.0559172384002828
+    expected_training_transient = 1.2496859994984721
+    if (summary.get("schema_version") != 1 or summary.get("status") != "pass" or
+            summary.get("record_type") != "ranked_training_matrix_summary" or
+            summary.get("model") != "model-s" or
+            summary.get("selected_policies") !=
+                ["per-parameter", "bucket", "persistent-bucket"] or
+            summary.get("runs_per_policy") != 3 or
+            summary.get("policy_runs") != 9 or
+            summary.get("rank_processes") != 18 or
+            summary.get("steps_per_rank") != 3 or
+            summary.get("steady_skip_steps") != 1 or
+            summary.get("steady_steps_per_run") != 2 or
+            summary.get("parameter_tensors") != 57 or
+            summary.get("parameter_values") != 15586176 or
+            summary.get("maximum_rank_difference") != 0.0 or
+            summary.get("maximum_reference_difference") != expected_maximum or
+            summary.get("maximum_reference_rms_difference") != expected_rms or
+            summary.get("maximum_mean_loss_difference") != expected_loss or
+            per_parameter.get("collectives_per_rank") != 171 or
+            transient.get("collectives_per_rank") != 9 or
+            persistent.get("collectives_per_rank") != 9 or
+            persistent.get("persistent_storage") is not True or
+            persistent.get("plan_reuses_per_rank") != 2 or
+            persistent.get("plan_capacity_bytes_per_rank") != 124689408 or
+            persistent.get("maximum_steady_reducer_backend_allocation_calls") != 0 or
+            summary.get("persistent_steady_reducer_speedup_vs_per_parameter") !=
+                expected_reducer_parameter or
+            summary.get("persistent_steady_reducer_speedup_vs_transient") !=
+                expected_reducer_transient or
+            summary.get("persistent_steady_training_speedup_vs_per_parameter") !=
+                expected_training_parameter or
+            summary.get("persistent_steady_training_speedup_vs_transient") !=
+                expected_training_transient or
+            summary.get("persistent_current_bytes_added_vs_per_parameter") !=
+                62344704 or
+            summary.get("persistent_current_bytes_added_vs_transient") !=
+                62344704 or
+            summary.get("persistent_peak_bytes_added_vs_per_parameter") !=
+                124689408 or
+            summary.get("persistent_peak_bytes_added_vs_transient") !=
+                72376320 or
+            summary.get("decision") !=
+                "measure persistent ranked Model-S buckets" or
+            summary.get("peer_failure_detected") is not True or
+            summary.get("peer_processes_terminated") != 1 or
+            summary.get("failure_returncodes") != [1, -15]):
+        errors.append("ranked persistent bucket summary changed")
+    parameter_rows = [row for row in raw if row.get("reducer") == "per-parameter"]
+    transient_rows = [row for row in raw if row.get("reducer") == "bucket"]
+    persistent_rows = [row for row in raw if row.get("reducer") ==
+                       "persistent-bucket"]
+    if (len(raw) != 9 or len(parameter_rows) != 3 or
+            len(transient_rows) != 3 or len(persistent_rows) != 3 or
+            any(row.get("maximum_rank_difference") != 0.0 or
+                row.get("rank_rms_difference") != 0.0 or
+                row.get("maximum_reference_difference") != expected_maximum or
+                row.get("reference_rms_difference") != expected_rms or
+                row.get("maximum_mean_loss_difference") != expected_loss or
+                row.get("parameter_files_retained") is not False
+                for row in raw) or
+            any(row.get("maximum_rank_step_collectives") != [57, 57, 57] or
+                row.get("maximum_rank_step_reducer_backend_allocation_calls") !=
+                    [0, 0, 0] or
+                row.get("maximum_rank_step_plan_reused") != [0, 0, 0]
+                for row in parameter_rows) or
+            any(row.get("maximum_rank_step_collectives") != [3, 3, 3] or
+                row.get("maximum_rank_step_reducer_backend_allocation_calls") !=
+                    [60, 60, 60] or
+                row.get("maximum_rank_step_reducer_total_allocated_bytes") !=
+                    [124689408, 124689408, 124689408] or
+                row.get("maximum_rank_step_plan_reused") != [0, 0, 0]
+                for row in transient_rows) or
+            any(row.get("maximum_rank_step_collectives") != [3, 3, 3] or
+                row.get("maximum_rank_step_reducer_backend_allocation_calls") !=
+                    [60, 0, 0] or
+                row.get("maximum_rank_step_reducer_total_allocated_bytes") !=
+                    [124689408, 0, 0] or
+                row.get("maximum_rank_step_plan_reused") != [0, 1, 1] or
+                row.get("plan_capacity_bytes_per_rank") != 124689408 or
+                row.get("persistent_storage") is not True
+                for row in persistent_rows)):
+        errors.append("ranked persistent bucket raw evidence changed")
+    stdout_records = []
+    for path in sorted(root.glob("run-*/*.stdout")):
+        if path.name.startswith("rank"):
+            stdout_records.append(json.loads(path.read_text(encoding="utf-8")))
+    if (len(stdout_records) != 18 or
+            any("parameters" in row or row.get("parameter_count") != 15586176
+                for row in stdout_records) or
+            list(root.rglob("*.safetensors")) or
+            list(root.rglob("communicator.id"))):
+        errors.append("ranked persistent temporary parameter evidence changed")
+    if (failure.get("failure_detected") is not True or
+            failure.get("peer_processes_terminated") != 1 or
+            failure.get("returncodes") != [1, -15]):
+        errors.append("ranked persistent bucket failure evidence changed")
+    if (check.get("measurement_commit") !=
+            "5b6e78ff9573b0d8a8ca4334a87aeef3cdc78e43" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("gpu") != "AMD Instinct MI300X VF" or
+            check.get("architecture") != "gfx942" or
+            check.get("runs_per_policy") != 3 or
+            check.get("selected_policies") !=
+                ["per-parameter", "bucket", "persistent-bucket"] or
+            check.get("policy_runs") != 9 or
+            check.get("rank_processes") != 18 or
+            check.get("steps_per_rank") != 3 or
+            check.get("steady_samples_per_policy") != 6 or
+            check.get("parameter_tensors") != 57 or
+            check.get("parameter_values") != 15586176 or
+            check.get("persistent_reducer_speedup_vs_per_parameter") !=
+                expected_reducer_parameter or
+            check.get("persistent_reducer_speedup_vs_transient") !=
+                expected_reducer_transient or
+            check.get("persistent_training_speedup_vs_per_parameter") !=
+                expected_training_parameter or
+            check.get("persistent_training_speedup_vs_transient") !=
+                expected_training_transient or
+            check.get("persistent_later_backend_allocation_calls") != 0 or
+            check.get("persistent_plan_reuses_per_rank") != 2 or
+            check.get("persistent_plan_capacity_bytes_per_rank") != 124689408 or
+            check.get("persistent_current_added_vs_per_parameter") != 62344704 or
+            check.get("persistent_peak_added_vs_per_parameter") != 124689408 or
+            check.get("persistent_peak_added_vs_transient") != 72376320 or
+            check.get("maximum_rank_difference") != 0.0 or
+            check.get("maximum_rank_rms_difference") != 0.0 or
+            check.get("maximum_reference_difference") != expected_maximum or
+            check.get("maximum_reference_rms_difference") != expected_rms or
+            check.get("maximum_mean_loss_difference") != expected_loss or
+            check.get("temporary_parameter_files_retained") is not False or
+            check.get("persistent_copy_route_kept_explicit") is not True or
+            check.get("default_persistent_bucket") is not False or
+            check.get("rank_gradient_views_admitted") is not True or
+            check.get("rccl_label") != {"passed": 44, "total": 44} or
+            check.get("ranked_contract") != {"passed": 5, "total": 5} or
+            check.get("registered_test_files") != 123):
+        errors.append("ranked persistent bucket verification changed")
+    header = (REPOSITORY /
+              "include/microllm/multi_gpu/gradient_bucket.h").read_text(
+                  encoding="utf-8")
+    worker = (REPOSITORY / "apps/distributed_rank.cpp").read_text(
+        encoding="utf-8")
+    if ("class RankGradientBucketPlan" not in header or
+            'options.reducer == "persistent-bucket"' not in worker or
+            "step_plan_reused" not in worker):
+        errors.append("ranked persistent bucket route is missing")
+    return summary.get("policy_runs", 0), expected_reducer_parameter, \
+        expected_reducer_transient, \
+        int(summary.get("persistent_current_bytes_added_vs_per_parameter", 0)), \
+        int(summary.get("persistent_peak_bytes_added_vs_per_parameter", 0)), \
+        int(summary.get("persistent_maximum_steady_backend_allocation_calls", 0))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -15362,7 +15533,8 @@ def validate_assets(errors: list[str]) -> None:
                  "one-process-per-gpu-bootstrap.svg",
                  "ranked-gradient-buckets.svg",
                  "ranked-model-s-buckets.svg",
-                 "ranked-steady-reducer-discard.svg"):
+                 "ranked-steady-reducer-discard.svg",
+                 "ranked-persistent-buckets.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -15910,6 +16082,10 @@ def main() -> int:
     ranked_steady_runs, ranked_steady_reducer_speedup, \
         ranked_steady_training_speedup, ranked_steady_backend_allocations, \
         ranked_steady_allocated_bytes = validate_ranked_steady_reducer(errors)
+    ranked_persistent_runs, ranked_persistent_vs_parameter, \
+        ranked_persistent_vs_transient, ranked_persistent_current, \
+        ranked_persistent_peak, ranked_persistent_later_allocations = \
+        validate_ranked_persistent_buckets(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -16426,6 +16602,12 @@ def main() -> int:
           f"{ranked_steady_training_speedup:.4f}/"
           f"{ranked_steady_backend_allocations}/"
           f"{ranked_steady_allocated_bytes} "
+          f"ranked_persistent={ranked_persistent_runs}/"
+          f"{ranked_persistent_vs_parameter:.4f}/"
+          f"{ranked_persistent_vs_transient:.4f}/"
+          f"{ranked_persistent_current}/"
+          f"{ranked_persistent_peak}/"
+          f"{ranked_persistent_later_allocations} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

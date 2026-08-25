@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-25: Ranked persistent bucket result](2026-08-25-ranked-persistent-bucket-result.md)
 - [2026-08-25: Ranked persistent bucket infrastructure](2026-08-25-ranked-persistent-bucket-infrastructure.md)
 - [2026-08-25: Ranked Model-S steady reducer result](2026-08-25-ranked-steady-reducer-result.md)
 - [2026-08-25: Ranked multi-step cold/steady timing infrastructure](2026-08-25-ranked-multistep-timing-infrastructure.md)

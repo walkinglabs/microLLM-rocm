@@ -1,6 +1,6 @@
 # Step 91 — Ranked persistent buckets
 
-Status: implemented, formal clean-revision measurement pending
+Status: complete, explicit persistent-copy route kept
 
 Experiment 267证明transient bucket steady Reducer比逐参数慢48.2%，并把差额定位到每步60次
 backend allocation、124,689,408 bytes以及57+57次pack/unpack。下一节点只改变Reducer Storage
@@ -13,3 +13,7 @@ backend allocation、124,689,408 bytes以及57+57次pack/unpack。下一节点�
 实现新增move-only `RankGradientBucketPlan`和显式`persistent-bucket`策略。pilot的plan reuse
 `[0,1,1]`、backend allocation `[60,0,0]`，steady Reducer约2.78ms；代价是常驻+62.34MB、
 峰值相对逐参数+124.69MB。完整参数/CPU/loss/故障门通过。三策略正式矩阵前不作保留决定。
+
+正式结果：persistent相对transient Reducer/total `1.539×/1.250×`；相对逐参数Reducer
+`0.933×`、total `1.056×`。warmup后backend allocation为0，但current/peak分别增加
+62.34/124.69MB，且每步仍有57+57次copy。显式保留、不默认，准入rank gradient views。

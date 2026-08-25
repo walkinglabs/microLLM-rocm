@@ -147,6 +147,12 @@ Start with [Quick start](#quick-start), consume the installed library through th
 > pack/unpack copies. The transient performance route is rejected; persistent
 > rank-local storage is the next isolated counterfactual.
 
+> Persistent rank buckets remove all 60 later-step backend allocations and
+> improve reducer/step by 1.539×/1.250× versus transient. Versus per-parameter,
+> the complete step is 1.056× but reducer is 0.933×; current/peak rise by
+> 62.34/124.69 MB. The copy route remains explicit while bucket-gradient views
+> target the remaining 57 unpack copies and duplicate storage.
+
 </details>
 
 ## Why this project exists
