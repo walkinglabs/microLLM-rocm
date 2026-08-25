@@ -39,11 +39,11 @@ Start with [Quick start](#quick-start), consume the installed library through th
 <details>
 <summary>Latest optimization checkpoints</summary>
 
-> **Current optimization checkpoint:** Experiment 287 tests Qwen and DeepSeek at
-> T512/T2048 and B1/B2. Every full logit is bitwise-equal; Qwen T512 stays below the
-> 1.05 gate, while all T2048 cases improve 1.1747×–1.3688×. A narrowly scoped
-> gfx942/BF16/uniform-decode automatic policy is admitted at prefix 2048.
-> See the [boundary experiment](docs/optimization-log/experiments/287-materialized-score-model-boundary.md).
+> **Current optimization checkpoint:** Experiment 288 verifies the no-flag default
+> against explicit-off controls. Qwen/DeepSeek T2048 B1/B2 remain bitwise-equal and
+> improve 1.1777×–1.3687×. The scoped gfx942/BF16/uniform policy is retained; other
+> hardware, dtypes, models and positions-aware serving remain on the old path. See the
+> [automatic-policy experiment](docs/optimization-log/experiments/288-materialized-score-auto-policy.md).
 
 > **Current training checkpoint:** the current B1T512 BF16 profile measures
 > 31.327/71.873 ms of Kernel time for Qwen/DeepSeek; GEMM remains 58.56%/63.43%.

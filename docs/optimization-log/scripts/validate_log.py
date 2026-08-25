@@ -17674,6 +17674,117 @@ def validate_materialized_attention_model_matrix(
             float(summary.get("maximum_speedup", 0.0)))
 
 
+def validate_materialized_attention_auto_matrix(
+        errors: list[str]) -> tuple[int, int, float, float]:
+    root = (REPOSITORY / "benchmarks/results" /
+            "2026-08-25-materialized-attention-auto-matrix")
+    rows = [json.loads(line) for line in (root / "cases.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    expected = {
+        ("qwen2.5-0.5b", 1): 1.18360185016092,
+        ("qwen2.5-0.5b", 2): 1.1777420505196903,
+        ("deepseek-r1-distill-qwen-1.5b", 1): 1.3686944176333726,
+        ("deepseek-r1-distill-qwen-1.5b", 2): 1.3259078970034714,
+    }
+    cases = {(row.get("model"), row.get("batch")): row for row in rows}
+    if (summary.get("record_type") !=
+            "materialized_attention_model_matrix" or
+            summary.get("status") != "pass" or
+            summary.get("candidate_policy") != "auto" or
+            summary.get("contexts") != [2048] or
+            summary.get("batches") != [1, 2] or
+            summary.get("case_count") != 4 or
+            summary.get("all_accuracy_gates_passed") is not True or
+            summary.get("all_performance_gates_passed") is not True or
+            summary.get("minimum_default_sequence") != 2048 or
+            summary.get("minimum_speedup") != 1.1777420505196903 or
+            summary.get("maximum_speedup") != 1.3686944176333726 or
+            set(cases) != set(expected)):
+        errors.append("materialized automatic policy summary changed")
+    child_processes = 0
+    child_pairs = 0
+    auto_rows = 0
+    off_rows = 0
+    for key, speedup in expected.items():
+        row = cases.get(key, {})
+        if (row.get("throughput_speedup") != speedup or
+                row.get("candidate_policy") != "auto" or
+                row.get("accuracy_gate_passed") is not True or
+                row.get("performance_gate_passed") is not True or
+                row.get("maximum_logit_error") != 0.0 or
+                row.get("peak_bytes_delta") != 0 or
+                row.get("backend_allocation_calls_delta") != 32):
+            errors.append(f"materialized automatic policy case changed: {key}")
+        child = root / str(row.get("relative_directory", "missing"))
+        raw_path = child / "raw.jsonl"
+        pair_path = child / "pairs.jsonl"
+        if not raw_path.is_file() or not pair_path.is_file():
+            errors.append(f"materialized automatic child missing: {key}")
+            continue
+        child_raw = [json.loads(line) for line in raw_path.read_text(
+            encoding="utf-8").splitlines() if line]
+        child_processes += len(child_raw)
+        child_pairs += len(pair_path.read_text(encoding="utf-8").splitlines())
+        auto_rows += sum(row.get("cached_attention_materialized_policy") ==
+                         "auto-enabled" and
+                         row.get("cached_attention_materialized_auto_eligible")
+                         is True and
+                         row.get("cached_attention_materialized_scores") is True
+                         for row in child_raw)
+        off_rows += sum(row.get("cached_attention_materialized_policy") ==
+                        "explicit-off" and
+                        row.get("cached_attention_materialized_scores") is False
+                        for row in child_raw)
+    if child_processes != 24 or child_pairs != 12 or auto_rows != 12 or off_rows != 12:
+        errors.append("materialized automatic policy child identity changed")
+    if (analysis.get("record_type") !=
+            "materialized_attention_auto_analysis" or
+            analysis.get("case_count") != 4 or
+            analysis.get("child_process_rows") != 24 or
+            analysis.get("child_pair_rows") != 12 or
+            analysis.get("minimum_speedup") != 1.1777420505196903 or
+            analysis.get("maximum_speedup") != 1.3686944176333726 or
+            analysis.get("auto_enabled_rows") != 12 or
+            analysis.get("explicit_off_rows") != 12 or
+            analysis.get("scoped_automatic_policy_verified") is not True or
+            analysis.get("general_unscoped_default_claim") is not False):
+        errors.append("materialized automatic policy analysis changed")
+    if (check.get("measurement_commit") !=
+            "a3abca0d8a3ff8822cf0c29325ffc0369f5e6d08" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("candidate_policy") != "auto" or
+            check.get("case_count") != 4 or
+            check.get("child_process_rows") != 24 or
+            check.get("child_pair_rows") != 12 or
+            check.get("minimum_speedup") != 1.1777420505196903 or
+            check.get("maximum_speedup") != 1.3686944176333726 or
+            check.get("auto_enabled_rows") != 12 or
+            check.get("explicit_off_rows") != 12 or
+            check.get("scoped_automatic_policy_verified") is not True or
+            check.get("general_default_claim") is not False or
+            check.get("cpu_label") != {"passed": 374, "total": 374} or
+            check.get("sanitizer_label") != {"passed": 372, "total": 372} or
+            check.get("pytorch_enabled_cpu") !=
+                {"passed": 377, "total": 377} or
+            check.get("hip_label") != {"passed": 192, "total": 192} or
+            check.get("registered_test_files") != 129):
+        errors.append("materialized automatic policy verification changed")
+    for name in ("README.md", "cases.jsonl", "summary.json", "analysis.json",
+                 "verification.json", "matrix.svg"):
+        if not (root / name).is_file():
+            errors.append(f"materialized automatic policy evidence missing: {name}")
+    try:
+        ET.parse(root / "matrix.svg")
+    except ET.ParseError as error:
+        errors.append(f"invalid materialized automatic policy SVG: {error}")
+    return (len(rows), child_processes,
+            float(summary.get("minimum_speedup", 0.0)),
+            float(summary.get("maximum_speedup", 0.0)))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -18535,6 +18646,9 @@ def main() -> int:
     materialized_boundary_cases, materialized_boundary_processes, \
         materialized_boundary_minimum, materialized_boundary_maximum = \
         validate_materialized_attention_model_matrix(errors)
+    materialized_auto_cases, materialized_auto_processes, \
+        materialized_auto_minimum, materialized_auto_maximum = \
+        validate_materialized_attention_auto_matrix(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -19132,6 +19246,10 @@ def main() -> int:
           f"{materialized_boundary_processes}/"
           f"{materialized_boundary_minimum:.3f}/"
           f"{materialized_boundary_maximum:.3f} "
+          f"materialized_auto={materialized_auto_cases}/"
+          f"{materialized_auto_processes}/"
+          f"{materialized_auto_minimum:.3f}/"
+          f"{materialized_auto_maximum:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

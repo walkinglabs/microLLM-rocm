@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1250" height="381" viewBox="0 0 1250 381">
+<rect width="100%" height="100%" fill="#0b1020"/>
+<style>text{font-family:ui-monospace,SFMono-Regular,monospace;fill:#e5e7eb}.small{font-size:12px}.label{font-size:14px}.title{font-size:20px;font-weight:700}.muted{fill:#94a3b8}</style>
+<text x="28" y="34" class="title">Materialized-score official model boundary</text>
+<text x="28" y="58" class="small muted">paired fresh-process throughput · green requires exact logits and performance gate</text>
+<line x1="880.13" y1="75" x2="880.13" y2="356" stroke="#22c55e" stroke-dasharray="5 5"/>
+<text x="28" y="109" class="label">qwen2.5-0.5b · T2048 B1</text>
+<rect x="390" y="88" width="552.49" height="24" rx="4" fill="#22c55e"/>
+<text x="952.49" y="106" class="label">1.184x</text>
+<text x="1125" y="106" class="small">logit 0.0e+00</text>
+<text x="28" y="173" class="label">qwen2.5-0.5b · T2048 B2</text>
+<rect x="390" y="152" width="549.75" height="24" rx="4" fill="#22c55e"/>
+<text x="949.75" y="170" class="label">1.178x</text>
+<text x="1125" y="170" class="small">logit 0.0e+00</text>
+<text x="28" y="237" class="label">deepseek-r1-distill-qwen-1.5b · T2048 B1</text>
+<rect x="390" y="216" width="638.89" height="24" rx="4" fill="#22c55e"/>
+<text x="1038.89" y="234" class="label">1.369x</text>
+<text x="1125" y="234" class="small">logit 0.0e+00</text>
+<text x="28" y="301" class="label">deepseek-r1-distill-qwen-1.5b · T2048 B2</text>
+<rect x="390" y="280" width="618.92" height="24" rx="4" fill="#22c55e"/>
+<text x="1018.92" y="298" class="label">1.326x</text>
+<text x="1125" y="298" class="small">logit 0.0e+00</text>
+</svg>

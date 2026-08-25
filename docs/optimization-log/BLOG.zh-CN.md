@@ -4519,3 +4519,13 @@ T2048为1.3688x/1.3209x。
 head签名；其他硬件、dtype、模型结构与divergent serving不推广。
 
 ![Materialized model boundary](../../benchmarks/results/2026-08-25-materialized-attention-model-matrix/matrix.svg)
+
+## 305. Experiment 288：不传开关，也必须证明默认真的走了新路
+
+current显式off，candidate完全不传开关且JSON必须报告auto-enabled。Qwen T2048/B1/B2分别快
+1.1836x/1.1777x，DeepSeek快1.3687x/1.3259x；四格完整logits、token与peak全部通过。
+
+因此保留有界auto：gfx942、BF16 KV、uniform decode、已测head签名且prefix至少2048。其他硬件、
+dtype、模型与positions-aware路径不推广。旧61.57% Attention profile已经过期，下一步重新profile。
+
+![Automatic policy matrix](../../benchmarks/results/2026-08-25-materialized-attention-auto-matrix/matrix.svg)
