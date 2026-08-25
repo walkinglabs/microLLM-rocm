@@ -162,6 +162,18 @@ It rotates every-step, final-step-only and disabled policies, requires exact los
 and excludes the visible step-1 lazy setup from steady medians. Interval `1` remains the API/CLI
 default regardless of the measured production speedup.
 
+Sweep actual tiny-model bucket counts with final-step parameter verification:
+
+```bash
+ROCR_VISIBLE_DEVICES=0,1 python3 \
+  benchmarks/distributed/data_parallel_bucket_matrix.py \
+  --binary build/rccl-release/apps/microllm_distributed_train \
+  --output-directory /tmp/microllm-ddp-buckets
+```
+
+This is a communication/bucket-count matrix, not overlap evidence. A one-bucket winner hands the
+next milestone to a larger Model-S workload rather than manufacturing synthetic readiness events.
+
 `microllm_bench_model` measures train or cache-backed generation throughput. Its
 `tokens_per_second` excludes construction and warm-up; `tokens_per_second_with_setup`
 includes construction, device transfer, optimizer allocation, and warm-up. Both are
