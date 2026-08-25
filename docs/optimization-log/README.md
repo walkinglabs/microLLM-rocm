@@ -987,6 +987,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [split-PV model SVG](../../benchmarks/results/2026-08-25-cached-attention-split-pv-model/comparison.svg) | 三对速度、完整分布与资源反例 |
 | [experiments/293-exact-gqa-value-reuse-reject.md](experiments/293-exact-gqa-value-reuse-reject.md) | 位级GQA复用0/16过门与exact-finalize局部线关闭 |
 | [GQA value-reuse SVG](../../benchmarks/results/2026-08-25-cached-attention-gqa-value-reuse/value-reuse.svg) | 128进程tile矩阵与全局probability代价 |
+| [experiments/294-serving-batch-scale.md](experiments/294-serving-batch-scale.md) | T2048 B1/2/4/8吞吐、效率、显存与token边界 |
+| [serving batch SVG](../../benchmarks/results/2026-08-25-serving-batch-scale/batch-scale.svg) | micro/PyTorch batch扩展与每请求资源 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

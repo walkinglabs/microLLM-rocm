@@ -18269,6 +18269,113 @@ def validate_gqa_value_reuse_rejection(
             float(summary.get("maximum_winner_event_speedup", 0.0)))
 
 
+def validate_serving_batch_scale(
+        errors: list[str]) -> tuple[int, float, float, float]:
+    root = (REPOSITORY / "benchmarks/results" /
+            "2026-08-25-serving-batch-scale")
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    rows = {(row.get("model"), row.get("batch")): row
+            for row in summary.get("rows", [])}
+    qwen8 = rows.get(("qwen2.5-0.5b", 8), {})
+    deep4 = rows.get(("deepseek-r1-distill-qwen-1.5b", 4), {})
+    deep8 = rows.get(("deepseek-r1-distill-qwen-1.5b", 8), {})
+    ids = {(row.get("model"), row.get("batch"), row.get("framework"),
+            row.get("process_run")) for row in raw}
+    if (summary.get("schema_version") != 1 or
+            summary.get("track") != "official_inference_shape_matrix" or
+            summary.get("status") != "pass" or
+            summary.get("axes") != {
+                "contexts": [2048], "batches": [1, 2, 4, 8],
+                "decode_lengths": [64], "cases": ["cached"]} or
+            summary.get("runs_per_framework") != 3 or
+            len(raw) != 48 or len(ids) != 48 or len(rows) != 8 or
+            any(row.get("status") != "pass" for row in raw) or
+            sum(row.get("framework") == "microllm" and
+                row.get("cached_attention_materialized_policy") == "auto-enabled" and
+                row.get("cached_attention_materialized_scores") is True
+                for row in raw) != 24 or
+            sum(row.get("framework") == "pytorch" and
+                row.get("device_discovery_workaround") ==
+                    "amdsmi_zero_fallback_to_hip_runtime"
+                for row in raw) != 24):
+        errors.append("serving batch raw/summary identity changed")
+    if (qwen8.get("microllm_batch_throughput_scaling") !=
+            6.5851601491695755 or
+            qwen8.get("microllm_batch_efficiency") !=
+                0.8231450186461969 or
+            qwen8.get("throughput_ratio_microllm_over_pytorch") !=
+                1.2104231418173677 or
+            qwen8.get("cross_framework_tokens_equal") is not True or
+            deep4.get("microllm_batch_throughput_scaling") !=
+                3.558380023829852 or
+            deep4.get("microllm_batch_efficiency") != 0.889595005957463 or
+            deep4.get("throughput_ratio_microllm_over_pytorch") !=
+                1.0278749915572138 or
+            deep4.get("cross_framework_tokens_equal") is not True or
+            deep8.get("microllm_batch_throughput_scaling") !=
+                6.282360624661898 or
+            deep8.get("microllm_batch_efficiency") !=
+                0.7852950780827372 or
+            deep8.get("throughput_ratio_microllm_over_pytorch") !=
+                0.85898566946186 or
+            deep8.get("cross_framework_tokens_equal") is not False or
+            deep8.get("cross_framework_first_token_difference") != 2):
+        errors.append("serving batch key measurements changed")
+    if (analysis.get("record_type") != "serving_batch_scale_analysis" or
+            analysis.get("status") != "pass" or
+            analysis.get("process_rows") != 48 or
+            analysis.get("case_rows") != 8 or
+            analysis.get("microllm_auto_enabled_rows") != 24 or
+            analysis.get("pytorch_device_fallback_rows") != 24 or
+            analysis.get("qwen_all_tokens_equal") is not True or
+            analysis.get("deepseek_equal_batches") != [2, 4] or
+            analysis.get("deepseek_divergent_batches") != [1, 8] or
+            analysis.get("deepseek_first_difference") != 2 or
+            analysis.get("scheduler_default_admitted") is not False):
+        errors.append("serving batch analysis changed")
+    if (check.get("measurement_commit") !=
+            "b4138b9be073ae51407ab86263957c47d82a6dda" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("gpu") != "AMD Instinct MI300X VF" or
+            check.get("architecture") != "gfx942" or
+            check.get("pytorch_version") != "2.11.0+rocm7.13.0rc2" or
+            check.get("process_rows") != 48 or
+            check.get("microllm_pass_rows") != 24 or
+            check.get("pytorch_pass_rows") != 24 or
+            check.get("microllm_auto_enabled_rows") != 24 or
+            check.get("pytorch_device_fallback_rows") != 24 or
+            check.get("deepseek_divergent_batches") != [1, 8] or
+            check.get("scheduler_default_admitted") is not False or
+            check.get("cpu_label") != {"passed": 374, "total": 374} or
+            check.get("sanitizer_label") != {"passed": 372, "total": 372} or
+            check.get("hip_label") != {"passed": 192, "total": 192} or
+            check.get("rccl_label") != {"passed": 53, "total": 53} or
+            check.get("torch_operator_parity") != {"passed": 1, "total": 1} or
+            check.get("registered_test_files") != 129):
+        errors.append("serving batch verification changed")
+    for name in ("README.md", "raw.jsonl", "summary.json", "analysis.json",
+                 "verification.json", "batch-scale.svg"):
+        if not (root / name).is_file():
+            errors.append(f"serving batch evidence missing: {name}")
+    try:
+        ET.parse(root / "batch-scale.svg")
+    except ET.ParseError as error:
+        errors.append(f"invalid serving batch SVG: {error}")
+    renderer = (REPOSITORY / "benchmarks/single_gpu" /
+                "render_serving_batch_scale.py").read_text(encoding="utf-8")
+    if ("scheduler_default_admitted" not in renderer or
+            "deepseek_divergent_batches" not in renderer or
+            "microllm_batch_efficiency" not in renderer):
+        errors.append("serving batch renderer contract changed")
+    return (len(raw), float(qwen8.get("microllm_batch_throughput_scaling", 0.0)),
+            float(deep8.get("microllm_batch_throughput_scaling", 0.0)),
+            float(deep8.get("throughput_ratio_microllm_over_pytorch", 0.0)))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -19145,6 +19252,8 @@ def main() -> int:
         split_pv_model_rms = validate_split_pv_model_rejection(errors)
     gqa_value_rows, gqa_value_cases, gqa_value_minimum, gqa_value_maximum = \
         validate_gqa_value_reuse_rejection(errors)
+    serving_batch_rows, serving_batch_qwen, serving_batch_deep, \
+        serving_batch_deep_torch = validate_serving_batch_scale(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -19761,6 +19870,10 @@ def main() -> int:
           f"{split_pv_model_rms:.4f} "
           f"gqa_value_reuse={gqa_value_rows}/{gqa_value_cases}/"
           f"{gqa_value_minimum:.3f}/{gqa_value_maximum:.3f} "
+          f"serving_batch={serving_batch_rows}/"
+          f"{serving_batch_qwen:.3f}/"
+          f"{serving_batch_deep:.3f}/"
+          f"{serving_batch_deep_torch:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

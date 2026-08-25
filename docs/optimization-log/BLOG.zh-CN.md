@@ -4601,3 +4601,18 @@ FP32 probability流量和launch。模型/Auto不变，exact-finalize局部线关
 服务batch扩展，用不改变数学的并发轴填充GPU。
 
 ![Exact GQA value reuse](../../benchmarks/results/2026-08-25-cached-attention-gqa-value-reuse/value-reuse.svg)
+
+## 311. Experiment 294：Batch是精确并行轴，但B8不是免费午餐
+
+当前no-flag Auto固定T2048/N64，Qwen/DeepSeek测B1/2/4/8并与PyTorch ROCm三进程配对。Qwen B8
+达到B1的6.585x、效率82.3%，仍比PyTorch快1.210x；DeepSeek B8为6.282x/78.5%，却只有
+PyTorch的0.859x。每请求peak随batch下降，KV按batch线性。
+
+第一轮PyTorch被AMDSMI零设备阻断；正式轮显式记录fallback，24条都在可见HIP设备执行。Qwen四格
+token相同；DeepSeek B2/B4相同，B1/B8从index 2分叉。由于两框架precision policy不同，不能把
+分叉草率归因，也不能设置scheduler默认。
+
+下一步导出microLLM B1/B2/B4/B8 step0/1/2完整logits和每行结果。先证明自身batch一致，再讨论
+模型特定batch policy。
+
+![Serving batch scale](../../benchmarks/results/2026-08-25-serving-batch-scale/batch-scale.svg)

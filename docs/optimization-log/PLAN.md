@@ -139,7 +139,8 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [108](steps/108-split-pv-exact-softmax.md) | complete; operator admitted | exact softmax + split P×V | 160进程；S16全胜，Event1.2749x–2.9549x |
 | [109](steps/109-split-pv-model-gate.md) | complete; precision rejected | DeepSeek T2048/B2/N64完整模型门 | 1.4834x但logits Max/RMS 0.064486/0.011488 |
 | [110](steps/110-exact-gqa-value-reuse.md) | complete; performance rejected | 保序GQA value-load复用 | 128进程位级通过，winner仅0.4540x–0.6349x；局部线关闭 |
-| [111](steps/111-serving-batch-scale.md) | planned | current exact T2048 serving batch扩展 | Qwen/Deep B1/2/4/8 + PyTorch/显存/延迟 |
+| [111](steps/111-serving-batch-scale.md) | complete; scheduler withheld | current exact T2048 serving batch扩展 | Qwen B8 6.585x；Deep B8 6.282x但token边界失败 |
+| [112](steps/112-cross-batch-logit-audit.md) | planned | DeepSeek micro内部cross-batch logits | step0/1/2、每行、host/device argmax |
 
 ## 为什么按这个顺序
 

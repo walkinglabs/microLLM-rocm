@@ -39,12 +39,13 @@ Start with [Quick start](#quick-start), consume the installed library through th
 <details>
 <summary>Latest optimization checkpoints</summary>
 
-> **Current optimization checkpoint:** Experiment 293 closes the local exact-finalize
-> search. GQA value-load reuse is bitwise-equal in 128 fresh processes, but every
-> case regresses; best-case Event speed is only 0.6349×. Together with the prior
-> thread and split-P×V gates, this leaves the exact default unchanged. The next
-> track measures serving batch as a mathematically exact parallel axis. See the
-> [GQA value-reuse rejection](docs/optimization-log/experiments/293-exact-gqa-value-reuse-reject.md).
+> **Current optimization checkpoint:** Experiment 294 measures the retained exact
+> path at serving batch scale. Qwen B8 reaches 6.585× B1 throughput at 82.3%
+> efficiency; DeepSeek B8 reaches 6.282× at 78.5% but falls to 0.859× PyTorch.
+> Qwen tokens match across all batches, while DeepSeek B1/B8 diverge from PyTorch
+> at token index 2, so no scheduler default is admitted before a complete-logit
+> cross-batch audit. See the
+> [serving batch experiment](docs/optimization-log/experiments/294-serving-batch-scale.md).
 
 > **Current training checkpoint:** the current B1T512 BF16 profile measures
 > 31.327/71.873 ms of Kernel time for Qwen/DeepSeek; GEMM remains 58.56%/63.43%.

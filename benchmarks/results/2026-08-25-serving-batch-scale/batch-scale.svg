@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1420" height="760" viewBox="0 0 1420 760">
+<rect width="100%" height="100%" fill="#0b1020"/>
+<style>text{font-family:ui-monospace,SFMono-Regular,monospace;fill:#e5e7eb}.title{font-size:24px;font-weight:700}.label{font-size:14px}.small{font-size:12px}.muted{fill:#94a3b8}</style>
+<text x="34" y="42" class="title">T2048/N64 serving batch scale · MI300X</text>
+<text x="34" y="68" class="small muted">microLLM exact Auto vs PyTorch ROCm · bars=tokens/s · labels=efficiency / peak per request</text>
+<text x="34" y="108" class="label">Qwen2.5-0.5B</text>
+<text x="34" y="150" class="label">B1</text>
+<rect x="82" y="132" width="75.93" height="25" rx="4" fill="#38bdf8"/>
+<rect x="82" y="166" width="54.56" height="25" rx="4" fill="#a78bfa"/>
+<text x="167.93" y="150" class="small">micro 133.7</text>
+<text x="146.56" y="184" class="small">torch 96.1</text>
+<text x="82" y="215" class="small muted">eff 100.0% · peak/req 1.48 GiB</text>
+<circle cx="634" cy="177" r="7" fill="#22c55e"/>
+<text x="649" y="182" class="small">1.392x · tokens exact</text>
+<text x="34" y="285" class="label">B2</text>
+<rect x="82" y="267" width="151.13" height="25" rx="4" fill="#38bdf8"/>
+<rect x="82" y="301" width="105.61" height="25" rx="4" fill="#a78bfa"/>
+<text x="243.13" y="285" class="small">micro 266.1</text>
+<text x="197.61" y="319" class="small">torch 186.0</text>
+<text x="82" y="350" class="small muted">eff 99.5% · peak/req 0.89 GiB</text>
+<circle cx="634" cy="312" r="7" fill="#22c55e"/>
+<text x="649" y="317" class="small">1.431x · tokens exact</text>
+<text x="34" y="420" class="label">B4</text>
+<rect x="82" y="402" width="281.86" height="25" rx="4" fill="#38bdf8"/>
+<rect x="82" y="436" width="224.10" height="25" rx="4" fill="#a78bfa"/>
+<text x="373.86" y="420" class="small">micro 496.3</text>
+<text x="316.10" y="454" class="small">torch 394.6</text>
+<text x="82" y="485" class="small muted">eff 92.8% · peak/req 0.60 GiB</text>
+<circle cx="634" cy="447" r="7" fill="#22c55e"/>
+<text x="649" y="452" class="small">1.258x · tokens exact</text>
+<text x="34" y="555" class="label">B8</text>
+<rect x="82" y="537" width="500.00" height="25" rx="4" fill="#38bdf8"/>
+<rect x="82" y="571" width="413.08" height="25" rx="4" fill="#a78bfa"/>
+<text x="592.00" y="555" class="small">micro 880.4</text>
+<text x="505.08" y="589" class="small">torch 727.4</text>
+<text x="82" y="620" class="small muted">eff 82.3% · peak/req 0.45 GiB</text>
+<circle cx="634" cy="582" r="7" fill="#22c55e"/>
+<text x="649" y="587" class="small">1.210x · tokens exact</text>
+<text x="724" y="108" class="label">DeepSeek-Distill-1.5B</text>
+<text x="724" y="150" class="label">B1</text>
+<rect x="772" y="132" width="52.19" height="25" rx="4" fill="#38bdf8"/>
+<rect x="772" y="166" width="48.52" height="25" rx="4" fill="#a78bfa"/>
+<text x="834.19" y="150" class="small">micro 91.9</text>
+<text x="830.52" y="184" class="small">torch 85.4</text>
+<text x="772" y="215" class="small muted">eff 100.0% · peak/req 4.53 GiB</text>
+<circle cx="1324" cy="177" r="7" fill="#ef4444"/>
+<text x="1339" y="182" class="small">1.076x · tokens diverge</text>
+<text x="724" y="285" class="label">B2</text>
+<rect x="772" y="267" width="101.46" height="25" rx="4" fill="#38bdf8"/>
+<rect x="772" y="301" width="92.68" height="25" rx="4" fill="#a78bfa"/>
+<text x="883.46" y="285" class="small">micro 178.6</text>
+<text x="874.68" y="319" class="small">torch 163.2</text>
+<text x="772" y="350" class="small muted">eff 97.2% · peak/req 2.44 GiB</text>
+<circle cx="1324" cy="312" r="7" fill="#22c55e"/>
+<text x="1339" y="317" class="small">1.095x · tokens exact</text>
+<text x="724" y="420" class="label">B4</text>
+<rect x="772" y="402" width="185.72" height="25" rx="4" fill="#38bdf8"/>
+<rect x="772" y="436" width="180.69" height="25" rx="4" fill="#a78bfa"/>
+<text x="967.72" y="420" class="small">micro 327.0</text>
+<text x="962.69" y="454" class="small">torch 318.2</text>
+<text x="772" y="485" class="small muted">eff 89.0% · peak/req 1.39 GiB</text>
+<circle cx="1324" cy="447" r="7" fill="#22c55e"/>
+<text x="1339" y="452" class="small">1.028x · tokens exact</text>
+<text x="724" y="555" class="label">B8</text>
+<rect x="772" y="537" width="327.90" height="25" rx="4" fill="#38bdf8"/>
+<rect x="772" y="571" width="381.73" height="25" rx="4" fill="#a78bfa"/>
+<text x="1109.90" y="555" class="small">micro 577.4</text>
+<text x="1163.73" y="589" class="small">torch 672.2</text>
+<text x="772" y="620" class="small muted">eff 78.5% · peak/req 0.87 GiB</text>
+<circle cx="1324" cy="582" r="7" fill="#ef4444"/>
+<text x="1339" y="587" class="small">0.859x · tokens diverge</text>
+<rect x="34" y="690" width="1352" height="45" rx="10" fill="#111827" stroke="#334155"/>
+<text x="55" y="719" class="small">Green dot = cross-framework 64-token equality; red dot = precision investigation required before scheduler defaults.</text>
+</svg>

@@ -1,6 +1,7 @@
 import importlib.util
 import json
 import unittest
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 
@@ -11,9 +12,41 @@ SPEC = importlib.util.spec_from_file_location(
 MATRIX = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
 SPEC.loader.exec_module(MATRIX)
+RENDER_SPEC = importlib.util.spec_from_file_location(
+    "render_serving_batch_scale",
+    ROOT / "benchmarks/single_gpu/render_serving_batch_scale.py")
+RENDER = importlib.util.module_from_spec(RENDER_SPEC)
+assert RENDER_SPEC.loader is not None
+RENDER_SPEC.loader.exec_module(RENDER)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_current_serving_batch_scale_is_complete_and_rendered(self):
+        root = ROOT / "benchmarks/results/2026-08-25-serving-batch-scale"
+        summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+        analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+        verification = json.loads((root / "verification.json").read_text(
+            encoding="utf-8"))
+        raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+            encoding="utf-8").splitlines() if line]
+        self.assertEqual(summary["status"], "pass")
+        self.assertEqual(len(summary["rows"]), 8)
+        self.assertEqual(len(raw), 48)
+        self.assertEqual(sum(row["framework"] == "microllm" and
+                             row["cached_attention_materialized_policy"] ==
+                             "auto-enabled" for row in raw), 24)
+        self.assertEqual(sum(row["framework"] == "pytorch" and
+                             row["device_discovery_workaround"] ==
+                             "amdsmi_zero_fallback_to_hip_runtime"
+                             for row in raw), 24)
+        self.assertEqual(analysis["qwen_b8_scaling"], 6.5851601491695755)
+        self.assertEqual(analysis["deepseek_b8_scaling"], 6.282360624661898)
+        self.assertEqual(analysis["deepseek_divergent_batches"], [1, 8])
+        self.assertFalse(analysis["scheduler_default_admitted"])
+        self.assertEqual(verification["measurement_commit"],
+                         "b4138b9be073ae51407ab86263957c47d82a6dda")
+        ET.parse(root / "batch-scale.svg")
+
     def test_current_deepseek_t2048_baseline_is_complete_and_exact(self):
         root = ROOT / "benchmarks/results/2026-08-25-current-deepseek-t2048"
         summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
