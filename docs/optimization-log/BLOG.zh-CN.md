@@ -4080,3 +4080,17 @@ forward/backward从10.400升到12.535ms（只有0.830×），total从14.900升�
 地址、同时删除临时output与leaf add，并在operator Event/wall过1.05门，才允许重新接模型。
 
 ![Direct bucket-gradient discard](assets/data-parallel-direct-bucket-gradient-discard.svg)
+
+## 277. Experiment 260：不是预设target，而是producer必须直接写target
+
+新`matmul_weight_gradient_out_`计算rank-2 `input^T @ dY`并直接写caller-owned Tensor。
+baseline是allocating producer再做leaf add，candidate删掉两者之间的临时Tensor和add。
+
+Model-S head/FFN/Attention T32、head T512和tiny共5个shape、15个fresh process全部位级一致，
+logical allocation每次1→0。Event提高1.178×–1.873×，Wall提高1.101×–1.612×，连tiny反例也
+过1.05门；CPU、HIP、PyTorch oracle同时通过。
+
+这只准入scoped Autograd门：right leaf必须是显式零初始化、fresh且尚无贡献；任何重复使用、
+非leaf、非连续或已有值都回到普通accumulate。还没有模型或DDP route。
+
+![Gradient producer out matrix](assets/gradient-producer-out-matrix.svg)

@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-25: Caller-owned weight-gradient producer result](2026-08-25-gradient-producer-out-result.md)
 - [2026-08-25: Caller-owned weight-gradient producer](2026-08-25-gradient-producer-out-infrastructure.md)
 - [2026-08-25: Rejected direct-gradient route cleanup](2026-08-25-data-parallel-direct-gradient-cleanup.md)
 - [2026-08-25: Direct bucket-gradient result](2026-08-25-data-parallel-direct-gradient-result.md)

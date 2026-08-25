@@ -1,0 +1,93 @@
+{
+  "admitted_model_s_shapes": [
+    "model_s_head_t32",
+    "model_s_ffn_t32",
+    "model_s_attention_t32",
+    "model_s_head_t512"
+  ],
+  "aggregation": "median of fresh-process p50 with alternating operation and shape order",
+  "allocating_calls_per_invocation": 1.0,
+  "complete_outputs_exact": true,
+  "decision": "admit exact producer shapes to Autograd gate",
+  "direct_calls_per_invocation": 0.0,
+  "raw_records": 15,
+  "record_type": "gradient_producer_out_matrix_summary",
+  "rejected_shapes": [],
+  "repetitions": 40,
+  "runs_per_shape": 3,
+  "schema_version": 1,
+  "shapes": {
+    "model_s_attention_t32": {
+      "allocating_event_ms_p50": 0.017819999717,
+      "allocating_wall_ms_p50": 0.0268985,
+      "direct_event_ms_p50": 0.015115000308,
+      "direct_wall_ms_p50": 0.023965,
+      "event_speedup": 1.178961253978163,
+      "hidden": 384,
+      "model_s_shape": true,
+      "passes_1_05_gate": true,
+      "processes": 3,
+      "rows": 32,
+      "wall_speedup": 1.122407677863551,
+      "width": 384
+    },
+    "model_s_ffn_t32": {
+      "allocating_event_ms_p50": 0.017881000414,
+      "allocating_wall_ms_p50": 0.027136,
+      "direct_event_ms_p50": 0.014192000031,
+      "direct_wall_ms_p50": 0.0229715,
+      "event_speedup": 1.2599352011655869,
+      "hidden": 384,
+      "model_s_shape": true,
+      "passes_1_05_gate": true,
+      "processes": 3,
+      "rows": 32,
+      "wall_speedup": 1.1812898591733236,
+      "width": 832
+    },
+    "model_s_head_t32": {
+      "allocating_event_ms_p50": 0.034499000758,
+      "allocating_wall_ms_p50": 0.043304,
+      "direct_event_ms_p50": 0.018421999179,
+      "direct_wall_ms_p50": 0.0268655,
+      "event_speedup": 1.8727066711264886,
+      "hidden": 384,
+      "model_s_shape": true,
+      "passes_1_05_gate": true,
+      "processes": 3,
+      "rows": 32,
+      "wall_speedup": 1.6118814092423368,
+      "width": 8192
+    },
+    "model_s_head_t512": {
+      "allocating_event_ms_p50": 0.064226999879,
+      "allocating_wall_ms_p50": 0.0736275,
+      "direct_event_ms_p50": 0.0450424999,
+      "direct_wall_ms_p50": 0.0540315,
+      "event_speedup": 1.4259199649573626,
+      "hidden": 384,
+      "model_s_shape": true,
+      "passes_1_05_gate": true,
+      "processes": 3,
+      "rows": 512,
+      "wall_speedup": 1.3626773271147385,
+      "width": 8192
+    },
+    "tiny_counterexample": {
+      "allocating_event_ms_p50": 0.017018500715,
+      "allocating_wall_ms_p50": 0.025973,
+      "direct_event_ms_p50": 0.014452999923,
+      "direct_wall_ms_p50": 0.023585,
+      "event_speedup": 1.1775064557993493,
+      "hidden": 64,
+      "model_s_shape": false,
+      "passes_1_05_gate": true,
+      "processes": 3,
+      "rows": 32,
+      "wall_speedup": 1.10125079499682,
+      "width": 64
+    }
+  },
+  "status": "pass",
+  "warmup": 5
+}

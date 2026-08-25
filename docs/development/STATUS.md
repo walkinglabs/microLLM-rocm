@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| Current validation configurations | smoke-tested | after route cleanup CPU 361/361, ASan/UBSan 359/359, RCCL label 30/30; prior single-GPU HIP label 188/188 with 1 conditional skip and PyTorch-enabled 323/323 remain applicable | broader compiler/OS/GPU matrix |
+| Current validation configurations | smoke-tested | CPU 363/363, ASan/UBSan 361/361, RCCL label 30/30; new producer CPU/HIP/PyTorch targeted gates pass; prior single-GPU HIP label 188/188 with 1 conditional skip remains applicable | broader compiler/OS/GPU matrix |
 | CPU code coverage | smoke-tested | 78.4% lines, 86.6% functions, 59.1% branches over `src/` + `include/`; quiescent handoff and other HIP-only paths remain visible as CPU gaps | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, native cast, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
@@ -73,7 +73,8 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | End-to-end benchmark | smoke-tested | matched Python/PyTorch ROCm official training plus phase-separated prefill and one-forward-per-token steady-decode JSONL | serving concurrency, board-level memory and llama.cpp |
 | Single-GPU model matrix | smoke-tested | MI300X tiny/Model-S/Model-M plus official Qwen0.5B/DeepSeek-Distill1.5B train+generate, parameters, time, tokens/s and engine peak bytes | repeated contexts/dtypes and external board-level memory sampling |
 | Python/PyTorch ROCm performance matrix | smoke-tested | official Qwen/DeepSeek train plus inference context 1–2048, batch 1–8, output 1–64, KV allocated/active/waste, continuous slot metrics and token gates | DeepSeek continuous 3-case mismatch, identical residency policy, version matrix and llama.cpp |
-| Optimization experiment journal | implemented | experiments through 259; raw evidence, rejection gates and generated SVGs validated in CTest | Radeon and production data-parallel tracks |
+| Optimization experiment journal | implemented | experiments through 260; raw evidence, rejection gates and generated SVGs validated in CTest | Radeon and production data-parallel tracks |
+| Caller-owned weight-gradient producer | operator admitted | 5/5 exact shapes; allocation 1→0; Event 1.178×–1.873×, wall 1.101×–1.612×; CPU/HIP/PyTorch parity | scoped Autograd first/sole right-leaf gate; no model route yet |
 | Direct bucket-gradient accumulation | rejected and removed | copy 228→0 and communication 2.173× vs views, but forward/backward 0.830× and total 0.991×; exact losses/parameters | retain leaf target only for producer out-kernel gate |
 | RCCL gradient-as-bucket views | smoke-tested, explicit | unpack Storage/copy 114→0; vs transient total 1.367× and live equal; exact loss/parameters; peak +33.3MB | direct Autograd accumulation before any default |
 | Persistent RCCL gradient buckets | smoke-tested, explicit | later backend allocations 120→0; communication 1.681×, total 1.285×, exact losses/parameters; live/peak +124.7/+158.0MB | gradient-as-bucket views before any default |

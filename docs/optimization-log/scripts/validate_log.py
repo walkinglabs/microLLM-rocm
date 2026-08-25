@@ -14418,6 +14418,75 @@ def validate_data_parallel_direct_gradients(
     return summary.get("processes", 0), *expected
 
 
+def validate_gradient_producer_out_matrix(
+        errors: list[str]) -> tuple[int, float, float, float, float]:
+    root = REPOSITORY / "benchmarks/results/2026-08-25-gradient-producer-out-matrix"
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    shapes = summary.get("shapes", {})
+    expected = (1.1775064557993493, 1.8727066711264886,
+                1.10125079499682, 1.6118814092423368)
+    if (summary.get("schema_version") != 1 or summary.get("status") != "pass" or
+            summary.get("record_type") != "gradient_producer_out_matrix_summary" or
+            summary.get("raw_records") != 15 or summary.get("runs_per_shape") != 3 or
+            summary.get("warmup") != 5 or summary.get("repetitions") != 40 or
+            summary.get("complete_outputs_exact") is not True or
+            summary.get("allocating_calls_per_invocation") != 1.0 or
+            summary.get("direct_calls_per_invocation") != 0.0 or
+            len(summary.get("admitted_model_s_shapes", [])) != 4 or
+            summary.get("rejected_shapes") != [] or
+            summary.get("decision") !=
+                "admit exact producer shapes to Autograd gate" or
+            len(shapes) != 5 or any(
+                row.get("passes_1_05_gate") is not True
+                for row in shapes.values())):
+        errors.append("gradient producer out summary changed")
+    event_values = [float(row.get("event_speedup", 0.0)) for row in shapes.values()]
+    wall_values = [float(row.get("wall_speedup", 0.0)) for row in shapes.values()]
+    if (not event_values or abs(min(event_values) - expected[0]) > 1.0e-12 or
+            abs(max(event_values) - expected[1]) > 1.0e-12 or
+            abs(min(wall_values) - expected[2]) > 1.0e-12 or
+            abs(max(wall_values) - expected[3]) > 1.0e-12 or
+            len(raw) != 15 or
+            {row.get("order") for row in raw} !=
+                {"allocating-first", "direct-first"} or
+            any(row.get("complete_output_max_error") != 0.0 or
+                row.get("complete_output_rms_error") != 0.0 or
+                row.get("allocating_calls_per_invocation") != 1.0 or
+                row.get("direct_calls_per_invocation") != 0.0
+                for row in raw)):
+        errors.append("gradient producer out raw evidence changed")
+    if (check.get("measurement_commit") !=
+            "974e9e0698fc2de5a232d196d0ba91556a52c098" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("raw_records") != 15 or
+            check.get("complete_outputs_exact") != 15 or
+            check.get("operation_orders") !=
+                ["allocating-first", "direct-first"] or
+            check.get("allocating_calls_per_invocation") != 1.0 or
+            check.get("direct_calls_per_invocation") != 0.0 or
+            check.get("admitted_model_s_shapes") != 4 or
+            check.get("rejected_shapes") != 0 or
+            check.get("minimum_event_speedup") != expected[0] or
+            check.get("maximum_event_speedup") != expected[1] or
+            check.get("minimum_wall_speedup") != expected[2] or
+            check.get("maximum_wall_speedup") != expected[3] or
+            check.get("pytorch_operator_parity") != "pass" or
+            check.get("autograd_route_created") is not False or
+            check.get("registered_test_files") != 119):
+        errors.append("gradient producer out verification changed")
+    ops_header = (REPOSITORY / "include/microllm/ops/ops.h").read_text(
+        encoding="utf-8")
+    autograd = (REPOSITORY / "src/autograd/autograd.cpp").read_text(
+        encoding="utf-8")
+    if ("matmul_weight_gradient_out_" not in ops_header or
+            "matmul_weight_gradient_out_" in autograd):
+        errors.append("gradient producer out admission boundary changed")
+    return len(raw), *expected
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -14655,7 +14724,8 @@ def validate_assets(errors: list[str]) -> None:
                  "data-parallel-inplace-average.svg",
                  "data-parallel-persistent-buckets.svg",
                  "data-parallel-gradient-bucket-views.svg",
-                 "data-parallel-direct-bucket-gradient-discard.svg"):
+                 "data-parallel-direct-bucket-gradient-discard.svg",
+                 "gradient-producer-out-matrix.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -15179,6 +15249,9 @@ def main() -> int:
     data_parallel_direct_processes, data_parallel_direct_backward, \
         data_parallel_direct_comm, data_parallel_direct_total, \
         data_parallel_direct_peak = validate_data_parallel_direct_gradients(errors)
+    gradient_producer_rows, gradient_producer_event_minimum, \
+        gradient_producer_event_maximum, gradient_producer_wall_minimum, \
+        gradient_producer_wall_maximum = validate_gradient_producer_out_matrix(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -15662,6 +15735,11 @@ def main() -> int:
           f"{data_parallel_direct_backward:.3f}/"
           f"{data_parallel_direct_comm:.3f}/"
           f"{data_parallel_direct_total:.3f}/{data_parallel_direct_peak} "
+          f"gradient_producer={gradient_producer_rows}/"
+          f"{gradient_producer_event_minimum:.3f}/"
+          f"{gradient_producer_event_maximum:.3f}/"
+          f"{gradient_producer_wall_minimum:.3f}/"
+          f"{gradient_producer_wall_maximum:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

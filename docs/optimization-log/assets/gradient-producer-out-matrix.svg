@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="760" viewBox="0 0 1600 760">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="800.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 260 · Caller-Owned Gradient Producer</text>
+<text x="800.0" y="82.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">15 exact outputs · 3 fresh processes / shape · allocating + leaf add vs direct output</text>
+<rect x="130" y="145" width="1340" height="390" fill="#ffffff" stroke="#cbd3df" rx="10"/>
+<line x1="130" y1="535.0" x2="1470" y2="535.0" stroke="#2563eb"/>
+<text x="118.0" y="540.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">1.00x</text>
+<line x1="130" y1="437.5" x2="1470" y2="437.5" stroke="#e5e9f0"/>
+<text x="118.0" y="442.5" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">1.25x</text>
+<line x1="130" y1="340.0" x2="1470" y2="340.0" stroke="#e5e9f0"/>
+<text x="118.0" y="345.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">1.50x</text>
+<line x1="130" y1="242.5" x2="1470" y2="242.5" stroke="#e5e9f0"/>
+<text x="118.0" y="247.5" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">1.75x</text>
+<line x1="130" y1="145.0" x2="1470" y2="145.0" stroke="#e5e9f0"/>
+<text x="118.0" y="150.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="end" font-weight="400">2.00x</text>
+<rect x="198.0" y="194.6" width="60" height="340.4" fill="#2563eb" rx="5"/>
+<text x="228.0" y="186.6" font-family="Inter,Arial,sans-serif" font-size="12" fill="#2563eb" text-anchor="middle" font-weight="700">1.873x</text>
+<text x="228.0" y="557.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="middle" font-weight="400">Event</text>
+<rect x="268.0" y="296.4" width="60" height="238.6" fill="#16a34a" rx="5"/>
+<text x="298.0" y="288.4" font-family="Inter,Arial,sans-serif" font-size="12" fill="#16a34a" text-anchor="middle" font-weight="700">1.612x</text>
+<text x="298.0" y="557.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="middle" font-weight="400">Wall</text>
+<text x="264.0" y="587.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#172033" text-anchor="middle" font-weight="700">Head T32</text>
+<rect x="466.0" y="433.6" width="60" height="101.4" fill="#2563eb" rx="5"/>
+<text x="496.0" y="425.6" font-family="Inter,Arial,sans-serif" font-size="12" fill="#2563eb" text-anchor="middle" font-weight="700">1.260x</text>
+<text x="496.0" y="557.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="middle" font-weight="400">Event</text>
+<rect x="536.0" y="464.3" width="60" height="70.7" fill="#16a34a" rx="5"/>
+<text x="566.0" y="456.3" font-family="Inter,Arial,sans-serif" font-size="12" fill="#16a34a" text-anchor="middle" font-weight="700">1.181x</text>
+<text x="566.0" y="557.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="middle" font-weight="400">Wall</text>
+<text x="532.0" y="587.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#172033" text-anchor="middle" font-weight="700">FFN T32</text>
+<rect x="734.0" y="465.2" width="60" height="69.8" fill="#2563eb" rx="5"/>
+<text x="764.0" y="457.2" font-family="Inter,Arial,sans-serif" font-size="12" fill="#2563eb" text-anchor="middle" font-weight="700">1.179x</text>
+<text x="764.0" y="557.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="middle" font-weight="400">Event</text>
+<rect x="804.0" y="487.3" width="60" height="47.7" fill="#16a34a" rx="5"/>
+<text x="834.0" y="479.3" font-family="Inter,Arial,sans-serif" font-size="12" fill="#16a34a" text-anchor="middle" font-weight="700">1.122x</text>
+<text x="834.0" y="557.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="middle" font-weight="400">Wall</text>
+<text x="800.0" y="587.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#172033" text-anchor="middle" font-weight="700">Attn T32</text>
+<rect x="1002.0" y="368.9" width="60" height="166.1" fill="#2563eb" rx="5"/>
+<text x="1032.0" y="360.9" font-family="Inter,Arial,sans-serif" font-size="12" fill="#2563eb" text-anchor="middle" font-weight="700">1.426x</text>
+<text x="1032.0" y="557.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="middle" font-weight="400">Event</text>
+<rect x="1072.0" y="393.6" width="60" height="141.4" fill="#16a34a" rx="5"/>
+<text x="1102.0" y="385.6" font-family="Inter,Arial,sans-serif" font-size="12" fill="#16a34a" text-anchor="middle" font-weight="700">1.363x</text>
+<text x="1102.0" y="557.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="middle" font-weight="400">Wall</text>
+<text x="1068.0" y="587.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#172033" text-anchor="middle" font-weight="700">Head T512</text>
+<rect x="1270.0" y="465.8" width="60" height="69.2" fill="#2563eb" rx="5"/>
+<text x="1300.0" y="457.8" font-family="Inter,Arial,sans-serif" font-size="12" fill="#2563eb" text-anchor="middle" font-weight="700">1.178x</text>
+<text x="1300.0" y="557.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="middle" font-weight="400">Event</text>
+<rect x="1340.0" y="495.5" width="60" height="39.5" fill="#16a34a" rx="5"/>
+<text x="1370.0" y="487.5" font-family="Inter,Arial,sans-serif" font-size="12" fill="#16a34a" text-anchor="middle" font-weight="700">1.101x</text>
+<text x="1370.0" y="557.0" font-family="Inter,Arial,sans-serif" font-size="11" fill="#5b6474" text-anchor="middle" font-weight="400">Wall</text>
+<text x="1336.0" y="587.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#172033" text-anchor="middle" font-weight="700">Tiny</text>
+<text x="800.0" y="635.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#166534" text-anchor="middle" font-weight="700">Every shape passes Event + Wall 1.05x · logical allocation 1 → 0</text>
+<text x="800.0" y="682.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="middle" font-weight="700">CPU / HIP / PyTorch exact · admitted only to scoped Autograd right-leaf gate</text>
+<text x="800.0" y="725.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="middle" font-weight="400">No model or DDP route yet</text>
+</svg>

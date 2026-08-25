@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "measurement_commit": "974e9e0698fc2de5a232d196d0ba91556a52c098",
+  "dirty_at_measurement": false,
+  "raw_records": 15,
+  "complete_outputs_exact": 15,
+  "operation_orders": ["allocating-first", "direct-first"],
+  "allocating_calls_per_invocation": 1.0,
+  "direct_calls_per_invocation": 0.0,
+  "admitted_model_s_shapes": 4,
+  "rejected_shapes": 0,
+  "minimum_event_speedup": 1.1775064557993493,
+  "maximum_event_speedup": 1.8727066711264886,
+  "minimum_wall_speedup": 1.10125079499682,
+  "maximum_wall_speedup": 1.6118814092423368,
+  "pytorch_operator_parity": "pass",
+  "autograd_route_created": false,
+  "registered_test_files": 119
+}

@@ -237,8 +237,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] pre-seed Autograd gradients with bucket views: pack/unpack copies reach zero and peak falls
   13.2MB versus views, but added leaf accumulation makes forward/backward 0.830x and total 0.991x,
   so the model route is rejected;
-- [ ] gate one real parameter-gradient producer out-kernel that writes the prepared leaf target
-  directly; require allocation/add removal and operator Event/wall >=1.05x before model routing;
+- [x] gate caller-owned rank-2 weight-gradient producer on four Model-S shapes plus tiny:
+  complete outputs exact, allocation 1→0, Event 1.178x–1.873x and wall 1.101x–1.612x;
+- [ ] add a scoped Autograd first/sole right-leaf producer path with explicit zero/fresh target
+  state; keep all ambiguous or repeated contributions on ordinary accumulation;
 - [ ] unused parameter, uneven input, timeout, and cross-process failure handling.
 
 ## P3 — DeepSeek distill target
