@@ -4109,3 +4109,17 @@ Wall 0.991×–1.018×。
 有机会在backward结束前开始通信。
 
 ![Scoped Autograd producer discard](assets/scoped-autograd-gradient-producer-discard.svg)
+
+## 279. Experiment 262：先证明bucket什么时候ready，再谈overlap
+
+hook不是在parameter第一次收到gradient时触发，而是backward预先统计leaf所有入边，最后一条
+贡献累加完成入队后才记录。Model-S三个进程、每个3step、两个rank共18条order完全一致，57个
+parameter恰好按注册顺序逆序ready。
+
+25MiB自然bucket 2只有output head，在1/57完成；bucket 1在35/57完成；bucket 0包含embedding和
+前半blocks，直到57/57。两个bucket因此具备backward内结构性通信窗口。
+
+这还不是性能结果。下一步才记录compute Stream Event，让communication Stream等待并异步
+all-reduce，同时保留同步control和最终optimizer前wait。
+
+![Gradient-ready bucket order](assets/data-parallel-gradient-ready-order.svg)

@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "measurement_commit": "93fc7a4dd62f0a847d12e96910afa313b060fcf6",
+  "dirty_at_measurement": false,
+  "raw_records": 9,
+  "processes": 3,
+  "steps_per_process": 3,
+  "rank_orders_matching": 9,
+  "final_parameter_checks": 3,
+  "maximum_parameter_difference": 0.0,
+  "parameter_count": 57,
+  "ready_order_is_reverse_parameter_order": true,
+  "bucket_count": 3,
+  "bucket_completion_positions": [56, 34, 0],
+  "bucket_completion_fractions": [1.0, 0.6140350877192983, 0.017543859649122806],
+  "buckets_ready_before_backward_end": 2,
+  "overlap_route_created": false,
+  "rccl_label": {"passed": 32, "total": 32},
+  "registered_test_files": 120,
+  "graph_api_entries": 42
+}

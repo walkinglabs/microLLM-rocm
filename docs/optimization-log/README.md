@@ -923,6 +923,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [experiments/260-gradient-producer-out-matrix.md](experiments/260-gradient-producer-out-matrix.md) | CPU/HIP/PyTorch对齐与scoped Autograd准入 |
 | [assets/scoped-autograd-gradient-producer-discard.svg](assets/scoped-autograd-gradient-producer-discard.svg) | allocation减少但Autograd无收益的反例 |
 | [experiments/261-scoped-autograd-gradient-producer-discard.md](experiments/261-scoped-autograd-gradient-producer-discard.md) | 0/5门、route撤回与gradient-ready交接 |
+| [assets/data-parallel-gradient-ready-order.svg](assets/data-parallel-gradient-ready-order.svg) | 57参数逆序与3个自然bucket完成窗口 |
+| [experiments/262-data-parallel-gradient-ready-audit.md](experiments/262-data-parallel-gradient-ready-audit.md) | 两rank/多step一致性与Event overlap准入 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

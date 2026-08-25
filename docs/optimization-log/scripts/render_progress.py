@@ -273,6 +273,11 @@ AUTOGRAD_GRADIENT_PRODUCER_ROOT = (
     "2026-08-25-autograd-gradient-producer-matrix")
 AUTOGRAD_GRADIENT_PRODUCER_CHART = (
     ROOT / "assets" / "scoped-autograd-gradient-producer-discard.svg")
+DATA_PARALLEL_GRADIENT_READY_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-data-parallel-gradient-ready-audit")
+DATA_PARALLEL_GRADIENT_READY_CHART = (
+    ROOT / "assets" / "data-parallel-gradient-ready-order.svg")
 
 
 def rows() -> list[dict]:
@@ -4844,6 +4849,62 @@ def autograd_gradient_producer_svg() -> str:
     return "\n".join(parts)
 
 
+def data_parallel_gradient_ready_svg() -> str:
+    summary = json.loads((DATA_PARALLEL_GRADIENT_READY_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    width, height = 1500, 700
+    axis_x, axis_y, axis_w = 150, 525, 1200
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 262 · Model-S Gradient-Ready Order", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "3 processes × 3 steps × 2 ranks · final leaf contribution enqueue order",
+             16, "#5b6474", anchor="middle"),
+    ]
+    colors = ("#94a3b8", "#2563eb", "#16a34a")
+    for row, color in zip(summary["buckets"], colors):
+        first = row["first_ready_position"]
+        completion = row["completion_position"]
+        x = axis_x + axis_w * first / 56
+        end = axis_x + axis_w * completion / 56
+        y = 155 + row["bucket"] * 115
+        bar_width = max(16.0, end - x)
+        parts.extend([
+            text(axis_x - 25, y + 34, f"Bucket {row['bucket']}", 19,
+                 color, anchor="end", weight=700),
+            f'<rect x="{x:.1f}" y="{y}" width="{bar_width:.1f}" height="52" '
+            f'rx="10" fill="{color}" opacity="0.88"/>',
+            text(x + bar_width / 2, y + 33,
+                 f"{row['parameter_count']} params · {row['bytes'] / (1024**2):.1f} MiB",
+                 14, "#ffffff", anchor="middle", weight=700),
+            text(min(end + 12, axis_x + axis_w), y + 75,
+                 f"complete {completion + 1}/57", 14, color,
+                 anchor="end" if completion == 56 else "start", weight=700),
+        ])
+    parts.append(f'<line x1="{axis_x}" y1="{axis_y}" x2="{axis_x + axis_w}" '
+                 f'y2="{axis_y}" stroke="#172033" stroke-width="2"/>')
+    for value in (0, 14, 28, 42, 56):
+        x = axis_x + axis_w * value / 56
+        parts.append(f'<line x1="{x:.1f}" y1="{axis_y - 7}" x2="{x:.1f}" '
+                     f'y2="{axis_y + 7}" stroke="#172033"/>')
+        parts.append(text(x, axis_y + 28, f"{value + 1}/57", 13,
+                          "#5b6474", anchor="middle"))
+    parts.append(text(width / 2, 595,
+                      "Ready order = exact reverse parameter order · both ranks and all 9 steps match",
+                      20, "#172033", anchor="middle", weight=700))
+    parts.append(text(width / 2, 640,
+                      "2 natural buckets finish before backward ends · Event overlap prototype admitted",
+                      21, "#166534", anchor="middle", weight=700))
+    parts.append(text(width / 2, 678,
+                      "Structural window only — no overlap speedup claimed yet",
+                      15, "#5b6474", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -4921,7 +4982,8 @@ def main() -> int:
                 DATA_PARALLEL_GRADIENT_VIEW_CHART: data_parallel_gradient_view_svg(),
                 DATA_PARALLEL_DIRECT_GRADIENT_CHART: data_parallel_direct_gradient_svg(),
                 GRADIENT_PRODUCER_OUT_CHART: gradient_producer_out_svg(),
-                AUTOGRAD_GRADIENT_PRODUCER_CHART: autograd_gradient_producer_svg()}
+                AUTOGRAD_GRADIENT_PRODUCER_CHART: autograd_gradient_producer_svg(),
+                DATA_PARALLEL_GRADIENT_READY_CHART: data_parallel_gradient_ready_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

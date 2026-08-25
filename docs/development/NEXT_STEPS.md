@@ -242,8 +242,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] test scoped Autograd right-leaf producer with safe overwrite/fallback state: one logical
   allocation disappears, but 0/5 shapes pass 1.05 (Event 0.976x–1.035x, wall 0.991x–1.018x),
   so the route and target-state API are removed;
-- [ ] record Model-S parameter gradient-ready order on both ranks and map it to natural 25MiB
-  buckets before implementing any compute/communication overlap;
+- [x] record Model-S ready order across 3 processes × 3 steps × 2 ranks: all 57-parameter orders
+  match and reverse parameter order; natural buckets complete at 57/57, 35/57 and 1/57;
+- [ ] prototype explicit Event plus asynchronous all-reduce for the two early natural buckets;
+  preserve synchronous control and require exact losses/parameters, no peak increase and total >=1.01x;
 - [ ] unused parameter, uneven input, timeout, and cross-process failure handling.
 
 ## P3 — DeepSeek distill target

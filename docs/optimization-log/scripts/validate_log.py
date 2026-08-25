@@ -14556,6 +14556,73 @@ def validate_autograd_gradient_producer_matrix(
     return len(raw), *expected
 
 
+def validate_data_parallel_gradient_ready_audit(
+        errors: list[str]) -> tuple[int, int, int, int, int]:
+    root = REPOSITORY / (
+        "benchmarks/results/2026-08-25-data-parallel-gradient-ready-audit")
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    buckets = summary.get("buckets", [])
+    expected_positions = [56, 34, 0]
+    if (summary.get("schema_version") != 1 or summary.get("status") != "pass" or
+            summary.get("record_type") !=
+                "data_parallel_gradient_ready_summary" or
+            summary.get("raw_records") != 9 or summary.get("processes") != 3 or
+            summary.get("steps_per_process") != 3 or
+            summary.get("parameter_count") != 57 or
+            summary.get("bucket_bytes") != 26214400 or
+            summary.get("bucket_count") != 3 or
+            summary.get("orders_match_across_ranks_steps_processes") is not True or
+            summary.get("ready_order_is_reverse_parameter_order") is not True or
+            summary.get("ready_order") != list(reversed(range(57))) or
+            summary.get("buckets_ready_before_backward_end") != 2 or
+            summary.get("decision") != "admit event-based overlap prototype" or
+            [row.get("completion_position") for row in buckets] != expected_positions or
+            [row.get("bytes") for row in buckets] !=
+                [26156544, 23605248, 12582912]):
+        errors.append("data-parallel gradient-ready summary changed")
+    if (len(raw) != 9 or any(
+            row.get("gradient_ready_audit_performed") is not True or
+            row.get("gradient_ready_orders_match") is not True or
+            row.get("gradient_ready_order_rank0") != list(reversed(range(57))) or
+            row.get("gradient_ready_order_rank1") !=
+                row.get("gradient_ready_order_rank0") or
+            len(row.get("parameter_names", [])) != 57 or
+            len(row.get("parameter_elements", [])) != 57
+            for row in raw)):
+        errors.append("data-parallel gradient-ready raw evidence changed")
+    if (check.get("measurement_commit") !=
+            "93fc7a4dd62f0a847d12e96910afa313b060fcf6" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("raw_records") != 9 or check.get("processes") != 3 or
+            check.get("steps_per_process") != 3 or
+            check.get("rank_orders_matching") != 9 or
+            check.get("final_parameter_checks") != 3 or
+            check.get("maximum_parameter_difference") != 0.0 or
+            check.get("parameter_count") != 57 or
+            check.get("ready_order_is_reverse_parameter_order") is not True or
+            check.get("bucket_count") != 3 or
+            check.get("bucket_completion_positions") != expected_positions or
+            check.get("buckets_ready_before_backward_end") != 2 or
+            check.get("overlap_route_created") is not False or
+            check.get("rccl_label") != {"passed": 32, "total": 32} or
+            check.get("registered_test_files") != 120 or
+            check.get("graph_api_entries") != 42):
+        errors.append("data-parallel gradient-ready verification changed")
+    autograd = (REPOSITORY / "src/autograd/autograd.cpp").read_text(
+        encoding="utf-8")
+    config = (REPOSITORY / "include/microllm/multi_gpu/data_parallel.h").read_text(
+        encoding="utf-8")
+    if ("notify_gradient_contribution" not in autograd or
+            "record_gradient_ready_order = false" not in config):
+        errors.append("gradient-ready diagnostic route is missing")
+    return len(raw), len(buckets), summary.get(
+        "buckets_ready_before_backward_end", 0), expected_positions[2], \
+        expected_positions[1]
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -14795,7 +14862,8 @@ def validate_assets(errors: list[str]) -> None:
                  "data-parallel-gradient-bucket-views.svg",
                  "data-parallel-direct-bucket-gradient-discard.svg",
                  "gradient-producer-out-matrix.svg",
-                 "scoped-autograd-gradient-producer-discard.svg"):
+                 "scoped-autograd-gradient-producer-discard.svg",
+                 "data-parallel-gradient-ready-order.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -15325,6 +15393,9 @@ def main() -> int:
     autograd_producer_rows, autograd_producer_event_minimum, \
         autograd_producer_event_maximum, autograd_producer_wall_minimum, \
         autograd_producer_wall_maximum = validate_autograd_gradient_producer_matrix(errors)
+    gradient_ready_rows, gradient_ready_buckets, gradient_ready_early, \
+        gradient_ready_first, gradient_ready_second = \
+        validate_data_parallel_gradient_ready_audit(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -15818,6 +15889,9 @@ def main() -> int:
           f"{autograd_producer_event_maximum:.3f}/"
           f"{autograd_producer_wall_minimum:.3f}/"
           f"{autograd_producer_wall_maximum:.3f} "
+          f"gradient_ready={gradient_ready_rows}/{gradient_ready_buckets}/"
+          f"{gradient_ready_early}/{gradient_ready_first}/"
+          f"{gradient_ready_second} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="700" viewBox="0 0 1500 700">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="750.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 262 · Model-S Gradient-Ready Order</text>
+<text x="750.0" y="82.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">3 processes × 3 steps × 2 ranks · final leaf contribution enqueue order</text>
+<text x="125.0" y="189.0" font-family="Inter,Arial,sans-serif" font-size="19" fill="#94a3b8" text-anchor="end" font-weight="700">Bucket 0</text>
+<rect x="900.0" y="155" width="450.0" height="52" rx="10" fill="#94a3b8" opacity="0.88"/>
+<text x="1125.0" y="188.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#ffffff" text-anchor="middle" font-weight="700">22 params · 24.9 MiB</text>
+<text x="1350.0" y="230.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#94a3b8" text-anchor="end" font-weight="700">complete 57/57</text>
+<text x="125.0" y="304.0" font-family="Inter,Arial,sans-serif" font-size="19" fill="#2563eb" text-anchor="end" font-weight="700">Bucket 1</text>
+<rect x="171.4" y="270" width="707.1" height="52" rx="10" fill="#2563eb" opacity="0.88"/>
+<text x="525.0" y="303.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#ffffff" text-anchor="middle" font-weight="700">34 params · 22.5 MiB</text>
+<text x="890.6" y="345.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#2563eb" text-anchor="start" font-weight="700">complete 35/57</text>
+<text x="125.0" y="419.0" font-family="Inter,Arial,sans-serif" font-size="19" fill="#16a34a" text-anchor="end" font-weight="700">Bucket 2</text>
+<rect x="150.0" y="385" width="16.0" height="52" rx="10" fill="#16a34a" opacity="0.88"/>
+<text x="158.0" y="418.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#ffffff" text-anchor="middle" font-weight="700">1 params · 12.0 MiB</text>
+<text x="162.0" y="460.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#16a34a" text-anchor="start" font-weight="700">complete 1/57</text>
+<line x1="150" y1="525" x2="1350" y2="525" stroke="#172033" stroke-width="2"/>
+<line x1="150.0" y1="518" x2="150.0" y2="532" stroke="#172033"/>
+<text x="150.0" y="553.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">1/57</text>
+<line x1="450.0" y1="518" x2="450.0" y2="532" stroke="#172033"/>
+<text x="450.0" y="553.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">15/57</text>
+<line x1="750.0" y1="518" x2="750.0" y2="532" stroke="#172033"/>
+<text x="750.0" y="553.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">29/57</text>
+<line x1="1050.0" y1="518" x2="1050.0" y2="532" stroke="#172033"/>
+<text x="1050.0" y="553.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">43/57</text>
+<line x1="1350.0" y1="518" x2="1350.0" y2="532" stroke="#172033"/>
+<text x="1350.0" y="553.0" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474" text-anchor="middle" font-weight="400">57/57</text>
+<text x="750.0" y="595.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">Ready order = exact reverse parameter order · both ranks and all 9 steps match</text>
+<text x="750.0" y="640.0" font-family="Inter,Arial,sans-serif" font-size="21" fill="#166534" text-anchor="middle" font-weight="700">2 natural buckets finish before backward ends · Event overlap prototype admitted</text>
+<text x="750.0" y="678.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="middle" font-weight="400">Structural window only — no overlap speedup claimed yet</text>
+</svg>
